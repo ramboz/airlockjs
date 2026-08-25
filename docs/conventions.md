@@ -51,9 +51,22 @@ one a reader sees without digging.
 
 ## Testing
 
-> **Deferred — no test framework decided yet.** Will be filled in once the first
-> spec requires tests beyond ad-hoc verification.
+**Rule:** Tests run on **vitest**. Servo-scored oracle components live under `test/`.
+**Why:** Settled at vision level (product-vision § Stack, architecture § Tech stack); one
+runner keeps unit suites and the servo oracle harness consistent. See
+[refinement-todo.md](refinement-todo.md) § Testing (RESOLVED 2026-08-25).
+**How to apply:** Use vitest for unit and integration suites. Exact vitest config and the
+`oracle.sh` component wiring (`ga4_mp_conformance`, `cwv_budget`, `isolation_invariant`) land
+with the first spike spec. Browser-level oracles (Lighthouse, flicker) need a separate
+browser-automation harness, tracked in the
+[MVP1 architecture review](reviews/2026-08-25-mvp1-architecture-review.md) (finding G4).
 
 ## Git
 
-> **Deferred — commit message format and branch naming not yet decided.**
+**Rule:** Commit **directly to `main`** (no feature-branch or PR flow). Every commit message
+follows **Conventional Commits** (`type(scope): summary`).
+**Why:** Solo greenfield repo; direct-to-main keeps the loop tight and is cheaply reversible.
+Decided 2026-08-25; overrides the assistant's default "branch first" posture.
+**How to apply:** Types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`. See
+[lightweight-decisions.md](decisions/lightweight-decisions.md) (2026-08-25). Changes to this
+workflow require explicit human approval.
