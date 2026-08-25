@@ -1,0 +1,12 @@
+{
+  "name": "spike-eds-testbed",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Local EDS test bed: aem-boilerplate template + aem-experimentation v2 plugin + local mock documents, served by aem up. Grounds UC-1 (no-flicker eager swap) and hosts the risk-retirement spike page.",
+  "scripts": {
+    "up": "aem up --no-open --port 3111"
+  },
+  "devDependencies": {
+    "@adobe/aem-cli": "^16.0.0"
+  }
+}
