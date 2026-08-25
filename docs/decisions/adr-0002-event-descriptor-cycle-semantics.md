@@ -128,11 +128,12 @@ questions).
 - Unload-detection events fire on the main thread only and a dedicated worker is
   torn down with its document, so a reliable last-beacon flush must be
   main-thread-triggered. [Verified; see
+  [R-001](../research/R-001-worker-egress-unload.md) and
   [architecture review](../reviews/2026-08-25-mvp1-architecture-review.md)
   Verification A.]
 - The 64 KiB keepalive limit is aggregate across in-flight keepalive requests,
   and Chrome adds count caps (255 total, 9 per renderer). [Verified against the
-  Fetch Standard; see review Verification A.]
+  Fetch Standard; see [R-001](../research/R-001-worker-egress-unload.md).]
 
 ## Kill criteria
 

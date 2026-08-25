@@ -93,6 +93,7 @@ principle so the two controls do not drift.
   model.]
 - At MVP2 a connector wraps vendor code (alloy), making a compromised connector a
   real supply-chain threat the read boundary must contain. [Verified; see
+  [R-004](../research/R-004-alloy-in-worker.md) and
   [architecture review](../reviews/2026-08-25-mvp1-architecture-review.md)
   Verification D.]
 - Default-deny requires a declaration mechanism that becomes part of the

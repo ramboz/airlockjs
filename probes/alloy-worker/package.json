@@ -2,7 +2,7 @@
   "name": "spike-alloy-worker",
   "private": true,
   "version": "0.0.0",
-  "description": "Throwaway spike: boot Adobe Alloy (AEP Web SDK) in a Web Worker against instrumented shim globals. Grounds ADR-0001's synchronous-cookie assumption.",
+  "description": "Executable probe (R-004): boot Adobe Alloy (AEP Web SDK) in a Web Worker against instrumented shim globals. Grounds ADR-0001's synchronous-cookie assumption.",
   "scripts": {
     "serve": "node server.mjs"
   },

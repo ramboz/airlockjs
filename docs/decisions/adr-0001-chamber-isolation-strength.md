@@ -113,7 +113,12 @@ is not forced into SharedArrayBuffer (which would breach AD-4).
   needs synchronous cookie/storage access, so a plain no-DOM Worker cannot host
   it unmodified; a shimmed global plus a synchronous-cache shim is required, and
   that couples the isolation choice to the synchronous-access mechanism.
-  [Verified against Adobe Experience League docs; see review Verification D.]
+  [Grounded by executed probe: stock `@adobe/alloy@2.35.0` booted, configured,
+  and sent an event in a Worker with the sync-cache shim satisfying all 33
+  cookie reads / 5 writes — see
+  [R-004](../research/R-004-alloy-in-worker.md) and
+  [probes/alloy-worker](../../probes/alloy-worker/); doc trail in review
+  Verification D.]
 - A single Worker runs one event loop, so it cannot contain a connector that
   blocks that loop or exhausts memory. [Web platform behavior.]
 
