@@ -43,6 +43,22 @@ one a reader sees without digging.
 **Why:** Specs as contracts at the right granularity let humans and agents work in parallel without constant re-alignment.
 **How to apply:** Run `/jig:spec-workflow` (when implemented), or write `docs/specs/NNN-<slug>/spec.md` by hand using the SPIDR template. Each slice must touch the user-facing layer (no horizontal phasing).
 
+## Research
+
+**Rule:** Open investigations live as research notes at `docs/research/R-NNN-<slug>.md`
+(adopting jig's ADR-0054 convention); executable probe code lives under `probes/`, and the
+note — not the probe directory — carries the findings.
+**Why:** Research that precedes any named decision has no other home: the inbox holds thin
+one-liners, `refinement-todo.md` holds *named deferred decisions with triggers*, and spike
+slices live inside already-shaped specs. A durable, citable home lets ADR Assumptions ground
+on executed probes (`[Grounded by executed probe: … see R-NNN]`) instead of unverified claims.
+**How to apply:** Copy [docs/research/TEMPLATE.md](research/TEMPLATE.md) to the next unused
+`R-NNN` (numbering is local-and-cheap, no reservation) and add a row to the hand-maintained
+[index](research/README.md). When the investigation crystallizes, promote it into the right
+artifact (refinement-todo entry / ADR / spec), cite `R-NNN` in that artifact's Context, and
+flip the note to `CONCLUDED` with a `Promoted to:` line (`ABANDONED` + `n/a` if it goes
+nowhere). Probe directories keep a thin README pointing at their note and how to run.
+
 ## Code style
 
 > **Deferred — no signal from initial pitch.** Will be filled in as the project
