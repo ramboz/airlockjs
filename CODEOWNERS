@@ -1,0 +1,22 @@
+# jig governance plane — CODEOWNERS (scaffolded by scaffold-init, ADR-0051)
+#
+# These paths are GOVERNANCE-PROTECTED: they govern how this repo is changed
+# (conventions, decision log, the oracle, the governance plane's own files).
+#
+# Surface-and-stop rule (spec 102): a change to any path below must open an
+# ADR/spec and route through owner review — never a self-edit by the agent.
+#
+# INERT UNTIL ARMED: these CODEOWNERS entries enforce nothing on their own.
+# They only force review once branch protection *requires review from Code
+# Owners* AND *forbids bypassing* the rule (server-side settings scaffold-init
+# cannot commit — see docs governance.md for the arming checklist).
+#
+# Set @OWNER to a human or team owner DISTINCT from the autonomous agent — the
+# non-author-approval gate is fictional if the agent can approve its own PR.
+
+docs/conventions.md @OWNER
+docs/decisions/** @OWNER
+oracle.sh @OWNER
+.servo/**/config.json @OWNER
+.github/workflows/** @OWNER
+CODEOWNERS @OWNER

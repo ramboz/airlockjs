@@ -1,0 +1,59 @@
+# jig governance plane — protected-path CI (scaffolded, ADR-0051).
+#
+# This job only FLAGS a PR whose diff touches a governance-protected path, so an
+# owner review is required. It is NOT enforcement on its own: actual approval
+# enforcement is BRANCH PROTECTION (require this status check + require review
+# from Code Owners + forbid bypassing), a server-side repository setting
+# scaffold-init cannot commit. Until branch protection is armed this check is
+# INERT — a red X nobody is required to heed. See docs governance.md for the
+# arming checklist. The workflow file itself is a protected path (self-reference).
+name: jig-governance
+
+on:
+  pull_request:
+
+jobs:
+  protected-paths:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Flag protected-path changes for owner review
+        run: |
+          git diff --name-only origin/${{ github.base_ref }}...HEAD > changed.txt
+          python3 - <<'PY'
+          import re, sys
+
+          PROTECTED = ['docs/conventions.md', 'docs/decisions/**', 'oracle.sh', '.servo/**/config.json', '.github/workflows/**', 'CODEOWNERS']
+
+          def glob_to_regex(glob):
+              out = ["^"]
+              i, n = 0, len(glob)
+              while i < n:
+                  c = glob[i]
+                  if c == "*":
+                      if i + 1 < n and glob[i + 1] == "*":
+                          out.append(".*"); i += 2; continue
+                      out.append("[^/]*"); i += 1; continue
+                  out.append(re.escape(c)); i += 1
+              out.append("$")
+              return "".join(out)
+
+          def matches(path, glob):
+              path = path.replace("\\", "/")
+              if path.startswith("./"):
+                  path = path[2:]
+              if glob.endswith("/**") and path == glob[:-3]:
+                  return True
+              return re.match(glob_to_regex(glob), path) is not None
+
+          changed = [l.strip() for l in open("changed.txt") if l.strip()]
+          hit = [p for p in changed if any(matches(p, g) for g in PROTECTED)]
+          if hit:
+              print("Protected paths touched — owner review required:")
+              for p in hit:
+                  print("  " + p)
+              sys.exit(1)
+          print("No protected paths touched.")
+          PY
