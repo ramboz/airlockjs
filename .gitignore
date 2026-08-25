@@ -32,3 +32,6 @@ credentials/
 .jig/decision-scratch/
 .jig/decision-suppressions.log
 # <<< jig runtime state <<<
+
+# Node / npm (spike deps now; the eventual runtime package later)
+node_modules/

@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Alloy-in-worker spike</title>
+    <style>
+      body { font: 13px/1.4 ui-monospace, monospace; padding: 1rem; }
+      #out { white-space: pre-wrap; }
+      .ok { color: green; } .err { color: #c00; }
+    </style>
+  </head>
+  <body>
+    <h1>Alloy-in-worker spike</h1>
+    <div id="status">booting…</div>
+    <pre id="out"></pre>
+    <script>
+      const out = document.getElementById("out");
+      const statusEl = document.getElementById("status");
+      const print = (...a) => { out.textContent += a.join(" ") + "\n"; };
+
+      // Seed the sync cookie cache from the real main-thread document.cookie,
+      // and receive async write-backs from the worker (the "sync-cache + async
+      // write-back" shim under test).
+      const worker = new Worker("/worker.js");
+      worker.onmessage = (e) => {
+        const m = e.data;
+        if (m.type === "log") {
+          print("[log]", m.entry.op, m.entry.detail ? JSON.stringify(m.entry.detail) : "");
+        } else if (m.type === "cookie-writeback") {
+          try { document.cookie = m.value; } catch (err) {}
+          print("[cookie-writeback→main]", m.value);
+        } else if (m.type === "phase") {
+          print("\n=== PHASE: " + m.name + (m.detail ? " — " + m.detail : "") + " ===");
+        } else if (m.type === "done") {
+          statusEl.textContent = "DONE";
+          window.__SPIKE_RESULT__ = m.summary;
+          print("\n=== SUMMARY ===\n" + JSON.stringify(m.summary, null, 2));
+        } else if (m.type === "fatal") {
+          statusEl.textContent = "FATAL";
+          window.__SPIKE_RESULT__ = { fatal: m.message, stack: m.stack, phase: m.phase };
+          print("\n[FATAL @ " + m.phase + "] " + m.message + "\n" + (m.stack || ""));
+        }
+      };
+      worker.onerror = (e) => {
+        statusEl.textContent = "WORKER ONERROR";
+        window.__SPIKE_RESULT__ = { workerError: e.message, filename: e.filename, lineno: e.lineno };
+        print("\n[worker.onerror] " + e.message + " @ " + e.filename + ":" + e.lineno);
+      };
+      worker.postMessage({ type: "init", cookie: document.cookie, href: location.href });
+      print("worker spawned; cookie seed = " + JSON.stringify(document.cookie));
+    </script>
+  </body>
+</html>
