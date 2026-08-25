@@ -61,6 +61,8 @@ Feeds `/jig:contracts`. Five surfaces, in priority order:
 4. **The capability API** — what the orchestrator grants across the airlock (mediated DOM injection, mediated egress) and how scopes are declared.
 5. **The seam driver interfaces** — decision-source and egress driver contracts.
 
+> **Measurement surface (not a caller-facing API).** The before/after CWV scoreboard — the "punchline" success criterion in product-vision § Use cases — doubles as the servo oracle. Its measurement contract (INP threshold, Lighthouse score, the `ga4_mp_conformance` / `cwv_budget` / `isolation_invariant` oracle components) is not a public interface but must be pinned before the spike loop runs; tracked as OQ6.
+
 ## Core architecture decisions
 
 *(No elicitation markers — populate via `/jig:adr-workflow new`. These are the proto-ADRs surfaced in the design conversation; promote and let `/jig:arch-review` attack them.)*
@@ -91,3 +93,42 @@ Feeds `/jig:contracts`. Five surfaces, in priority order:
 ### Risk-retirement bet (retire before committing the release)
 
 Can the event-log/projection + worker boundary **beat the main-thread version on INP while emitting a Measurement-Protocol-conformant GA4 payload, on a real EDS page, at 100 Lighthouse?** Everything else is construction; this is the load-bearing uncertainty. The spike that retires it is the first thing to build (see `START_PROMPT.md`).
+
+## Clarifications
+
+_Pass 1 — 2026-08-25, via `/jig:clarify`. Targets ambiguities not already captured as OQ1–OQ8; the MVP1-blocking OQs (OQ1/OQ2/OQ4) are deferred to `/jig:arch-review` + `/jig:adr-workflow`. Several answers below are load-bearing enough to warrant their own ADRs — flagged for the adr-workflow step._
+
+### Q1: When a connector throws or its chamber crashes mid-cycle, does the airlock isolate that chamber (drop/restart it, other chambers and the page unaffected)?
+_(category: Edge Cases & Failure Modes)_
+_(provenance: [judgment])_
+
+Isolate the chamber, page unaffected — drop/restart just the failing chamber; other chambers and the page keep running. This realizes the fault-isolation half of the thesis (a broken tag must not sink the page).
+
+### Q2: If consent is never granted (or an endpoint stays un-allowlisted), how long are events held at the seal retained?
+_(category: Edge Cases & Failure Modes)_
+_(provenance: [judgment])_
+
+Retain until page unload in a bounded (capped) ring buffer; drop oldest past the cap; flush if consent arrives before unload.
+
+### Q3: When a drained batch exceeds the ~64KB aggregate keepalive body cap, what happens?
+_(category: Edge Cases & Failure Modes)_
+_(provenance: [grounded: architecture.md → Tech stack (~64KB keepalive cap)])_
+
+Split into multiple cycles — chunk the batch under the cap and emit sequentially, preserving all events and their ordering.
+
+### Q4: MVP1's in-house eager-window decisioning — behind the AD-1 "decision source" seam, or as EDS-adapter code that bypasses the seam?
+_(category: Scope & Boundaries)_
+_(provenance: [grounded: architecture.md → AD-1 + Repository structure])_
+
+Behind the local decision-source seam — ship the in-house logic AS the local driver so the seam is exercised from day one and "add edge" is a driver swap, not a rewrite. (Reconciles the `adapters/eds/` placement in Repository structure with AD-1's seam.)
+
+### Coverage summary
+
+| Category | Status |
+|---|---|
+| Scope & Boundaries | Resolved (Q4) |
+| Acceptance Criteria Testability | Clear |
+| Dependencies & Blockers | Clear (OQ1/OQ2/OQ4 named; deferred to arch-review + adr-workflow) |
+| Non-functional Requirements | Partial (INP bar is comparative only — no absolute capture-path budget yet) |
+| Edge Cases & Failure Modes | Partial (Q1–Q3 resolved; no-Worker/`postMessage`-unavailable fallback still Outstanding) |
+| Terminology Consistency | Clear |

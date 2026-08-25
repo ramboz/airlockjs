@@ -12,7 +12,13 @@
 Always-loaded primer, kept lean per jig's context-cost discipline. This is an **index**: each bold term is a one-line claim plus link; full definitions live in [docs/memory/glossary.md](docs/memory/glossary.md) and expand on demand via `/jig:explain <term>`. Update via `/jig:memory-sync`.
 
 ### Project codenames / active work
-- **airlock** - describe what this project is once the first spec lands.
+- **Airlock** (pkg `airlockjs`) - capability-secured, off-main-thread martech runtime for edge/static sites (EDS first). Main thread only captures + enqueues; all mapping and egress happen behind the airlock. See [docs/product-vision.md](docs/product-vision.md).
+
+### Airlock vocabulary (full defs in [glossary](docs/memory/glossary.md))
+- **airlock** - the mediated main-thread↔worker boundary; nothing crosses without going through the capability bridge.
+- **chamber** - one connector's sandbox in the worker; no DOM, no ambient globals; crashes are isolated.
+- **cycle** / **lock-through** - one batch of events crossing the airlock to the worker (per ring-buffer drain).
+- **the seal** - the consent/allowlist gate on egress; blocked events are "held at the seal".
 
 ### Key terms
 - **Context-cost discipline** - the orchestrator's context is re-read every turn; delegate file-heavy reading and keep only the result. See [docs/workflow.md](docs/workflow.md#context-cost-discipline).
