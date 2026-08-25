@@ -49,6 +49,10 @@ fields), so the documented shape and the helper output agree.
 
 ## Entries
 
-_No entries yet. The first lightweight decision will be recorded here — usually
-prompted at session end by `/jig:memory-sync`, or during a spec slice's
-reconciliation._
+### 2026-08-25 — Commit directly to main; Conventional Commits
+
+**Decision:** All work commits directly to the main branch (no feature-branch or PR flow), and every commit message follows the Conventional Commits format: type(scope): summary (types e.g. feat, fix, docs, chore, refactor, test).
+
+**Context:** User direction 2026-08-25 at scaffold time. Solo greenfield repo — direct-to-main keeps the loop tight and is cheaply reversible; the rejected alternative is a branch-and-PR flow. Overrides the assistant's default 'branch first on the default branch' posture for this project.
+
+**Scope:** Repo-wide VCS workflow (all commits in this repo)

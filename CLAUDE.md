@@ -63,6 +63,7 @@ Default to collaborative and solution-forward — answer what's asked, propose r
 
 ## Development Conventions
 
+- **Git workflow:** commit **directly to `main`** — no feature-branch or PR flow for this repo. Every commit message follows **Conventional Commits** (`type(scope): summary`; e.g. `feat`, `fix`, `docs`, `chore`, `refactor`, `test`). Decision: 2026-08-25, see [lightweight-decisions.md](docs/decisions/lightweight-decisions.md).
 - See [docs/conventions.md](docs/conventions.md) for the full list.
 - Changes to conventions require explicit human approval.
 - Use `/jig:memory-sync` to persist new learnings from this session.
