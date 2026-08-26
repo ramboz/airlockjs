@@ -30,22 +30,22 @@ const server = http.createServer(async (req, res) => {
 await new Promise((r) => server.listen(0, r));
 const port = server.address().port;
 
-const MODE = process.env.MODE || "baseline";
-const EVENTS = process.env.EVENTS || "10";
-const WORK = process.env.WORK || "50";
-const BLOCK = process.env.BLOCK || "0";
+const MODE = process.env.MODE || "naive";
+const TRACKERS = process.env.TRACKERS || "5";
+const WORK = process.env.WORK || "30000";
 const CLICKS = Number(process.env.CLICKS || 60);
-const GAP = Number(process.env.GAP || 40);
+const GAP = Number(process.env.GAP || 60);
 
 const browser = await chromium.launch();
 const page = await browser.newPage();
-let ga4 = 0;
-await page.route("**/mp/collect*", (route) => { ga4++; return route.fulfill({ status: 204, body: "" }); });
+let egress = 0;
+// stub every tracker endpoint (t0..tN /collect) so no real network is needed
+await page.route("**/collect*", (route) => { egress++; return route.fulfill({ status: 204, body: "" }); });
 
 const pageErrors = [];
 page.on("pageerror", (e) => pageErrors.push(String(e)));
 
-await page.goto(`http://localhost:${port}/rig/harness.html?mode=${MODE}&events=${EVENTS}&work=${WORK}&block=${BLOCK}`);
+await page.goto(`http://localhost:${port}/rig/harness.html?mode=${MODE}&trackers=${TRACKERS}&work=${WORK}`);
 await page.waitForFunction(() => window.__rig, { timeout: 10000 });
 
 const target = page.locator("#target");
@@ -53,10 +53,20 @@ for (let i = 0; i < CLICKS; i++) {
   await target.click({ timeout: 5000 });
   await page.waitForTimeout(GAP);
 }
-await page.waitForTimeout(700); // let idle work + beacons settle
+// Let delivery complete: flush, then poll until the intercepted egress count
+// stabilizes (delivery under a NORMAL settle), max 25s. The gap between this and
+// the count at page-close is the teardown loss (OQ10 / R-001).
+await page.evaluate(() => window.__rig.snapshot());
+let prev = -1, stable = 0;
+for (let i = 0; i < 130 && stable < 4; i++) {
+  await page.waitForTimeout(200);
+  await page.evaluate(() => window.__rig.snapshot()); // re-flush any remaining
+  if (egress === prev) stable++; else { stable = 0; prev = egress; }
+}
 
 const snap = await page.evaluate(() => window.__rig.snapshot());
-snap.ga4_requests = ga4;
+snap.egress_requests = egress;
+snap.expected_egress = CLICKS * Number(TRACKERS);
 snap.storm = { clicks: CLICKS, gap_ms: GAP };
 if (pageErrors.length) snap.pageErrors = pageErrors;
 console.log(JSON.stringify(snap, null, 2));

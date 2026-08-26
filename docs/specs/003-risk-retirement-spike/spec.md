@@ -120,3 +120,37 @@ blanket INP victory. This honestly qualifies the risk-retirement bet and feeds
 OQ10 (the delivery/INP tradeoff). It does **not** refute the runtime; it relocates
 its value from "beats main-thread on INP" to "INP-safe by construction + wins the
 common case + wins heavy load."
+
+### Head-to-head result (003-02 + 003-03) — the realistic case
+
+Modelled the real-world failure mode (domain report 2026-08-26): **5 trackers,
+each ~30ms of synchronous logic on click, each to its own endpoint, no deferral.**
+60-interaction storm on the rig.
+
+| runtime | INP p75 | INP p98 | delivery (normal settle) |
+|---|---|---|---|
+| **naive** (synchronous, sequential, no deferral — what most stacks run) | **152ms** | 152ms | 300/300 |
+| deferred (rIC-chunked, best-practice main-thread — rarely seen) | 8ms | 8ms | 300/300 |
+| **worker** (airlock, off-thread) | **8ms** | 8ms | 300/300 |
+
+- **The worker beats the common real-world case ~19× (152 → 8ms)** and matches the
+  best-practice main-thread approach — while giving that INP-safety **by
+  construction** (off-thread, capability-mediated: the naive version is
+  *impossible* to write in the airlock), plus per-tracker isolation.
+- **OQ10 resolved by measurement.** Delivery is only 300/300 when the worker is
+  given time to drain. When the page closed early (before the worker's 9s of
+  off-thread work finished), it delivered **155/300** — the worker's pending
+  egress is lost at teardown (R-001). So the egress model MUST backstop delivery
+  on the main thread at `visibilitychange`→`hidden` (ADR-0002 egress path / OQ10);
+  a naive worker-only egress silently drops the tail under load.
+
+**Answer to the bet:** retired, with an honest reframing. The worker delivers a
+large, real INP win in the case that actually occurs in production, and it does so
+*structurally*. The blanket claim "beats a competent main-thread version on INP"
+is false at GA4 loads (rIC ties it); the true, defensible claims are **INP-safe by
+construction**, **~19× better than the common naive stack**, and **wins heavy /
+indivisible load** — plus it exposes OQ10's delivery requirement with data.
+
+**Remaining for a full 003-03:** a Lighthouse pass on the real EDS testbed with the
+runtime loaded (INP is measured; LCP/CLS/TBT on the real page is the complement),
+and the OQ10 egress-backstop implemented + re-measured for delivery-under-teardown.

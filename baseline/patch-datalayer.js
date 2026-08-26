@@ -1,68 +1,48 @@
 /**
- * patchDatalayer-style main-thread baseline (spec 003-01).
- *
- * The competent main-thread comparison for the head-to-head: capture on the
- * interaction path is cheap; the map + serialize + send run on the MAIN thread,
- * drained in CHUNKS on idle (ADR-0002's chunked, yield-aware drain — but here the
- * chunk does the MAPPING on-thread). Fair, not a strawman: it defers and chunks
- * exactly like the airlock path; the ONLY difference from the worker path
- * (003-02) is WHERE the per-event mapping runs — here, the main thread.
- *
- * Under sustained interaction the chunked drain runs in the idle gaps between
- * interactions, so a chunk executing when the next interaction arrives inflates
- * that interaction's latency (INP). The worker path moves that per-event mapping
- * off-thread, leaving the main thread only the lighter drain.
+ * Competently-deferred multi-tracker main-thread baseline (spec 003) — the
+ * "done right" main-thread version, rarely seen in the wild: N trackers, but the
+ * complex mapping + egress is drained in CHUNKS on requestIdleCallback. The
+ * browser deprioritizes idle callbacks under pending input, so this is INP-safe
+ * (measured: p75 stays low even at 12s of deferred work). The point of the
+ * head-to-head is that (a) almost no real stack does this — see baseline/naive.js
+ * — and (b) the airlock gives this INP-safety BY CONSTRUCTION, off-thread, with
+ * per-tracker isolation, with no discipline to get wrong.
  */
 import { mapToMp } from "../connectors/ga4/map.js";
 
-/** Calibrated busy-wait modelling per-event mapping cost (microseconds). */
 function busy(micros) {
   if (micros <= 0) return;
   const end = performance.now() + micros / 1000;
   while (performance.now() < end) {} // eslint-disable-line no-empty
 }
 
-/**
- * @param {{ endpoint: string, ctx: object, workFactor?: number, chunk?: number }} opts
- *   workFactor = modelled mapping cost per event, in MICROSECONDS.
- *   chunk = events mapped per idle drain before yielding.
- */
-export function createBaseline({ endpoint, ctx, workFactor = 0, chunk = 5 }) {
+export function createDeferred({ trackers, workFactor, endpoints, ctx, chunk = 3 }) {
   let queue = [];
   let scheduled = false;
-  let mapped = 0;
-  let dispatched = 0;
+  let egressed = 0;
 
   const schedule = () => {
-    if (!scheduled) {
-      scheduled = true;
-      requestIdleCallback(drain, { timeout: 50 });
-    }
+    if (!scheduled) { scheduled = true; requestIdleCallback(drain, { timeout: 50 }); }
   };
-
   function drain() {
     scheduled = false;
     let processed = 0;
     while (queue.length && processed < chunk) {
       const event = queue.shift();
-      const body = mapToMp(event, ctx); // ← main-thread mapping (the differentiator)
-      busy(workFactor); // model heavier connector mapping cost
-      const payload = JSON.stringify(body);
-      fetch(endpoint, { method: "POST", body: payload, keepalive: true }).then(
-        () => { dispatched++; },
-        () => { dispatched++; },
-      );
-      mapped++;
+      for (let t = 0; t < trackers; t++) {
+        const body = mapToMp(event, ctx);
+        busy(workFactor); // complex per-tracker logic — main thread, but idle-deferred
+        fetch(endpoints[t], { method: "POST", body: JSON.stringify(body), keepalive: true })
+          .then(() => { egressed++; }, () => { egressed++; });
+      }
       processed++;
     }
-    if (queue.length) schedule(); // more to do → yield, then continue (chunked)
+    if (queue.length) schedule();
   }
 
   return {
-    /** Interaction-path entry: capture + ensure a drain is scheduled. Cheap. */
     push(event) { queue.push(event); schedule(); },
-    /** Drain everything synchronously (end of storm / unload). */
     flushNow() { while (queue.length) drain(); },
-    stats() { return { mapped, dispatched, pending: queue.length }; },
+    stats() { return { egressed, pending: queue.length }; },
   };
 }
