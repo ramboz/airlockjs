@@ -9,9 +9,10 @@
 
 > Promoted 2026-08-25 from `architecture.md` § Open questions (finding #1 of the `/jig:analyze` pass). **MVP1 blockers** must be resolved — via `/jig:arch-review` then `/jig:adr-workflow new` — before SPIDR-splitting the risk-retirement spike. Leanings are recorded so reviewers have a position to attack.
 
-### OQ1 — Chamber isolation strength for MVP1 — ⛔ MVP1 blocker
-**Deferred:** Plain Web Worker vs QuickJS-compiled-to-WASM with a capability bridge. *Leaning: plain Worker for MVP1* — the GA4 connector is first-party code with no untrusted vendor JS; hard chamber isolation becomes load-bearing only at MVP2 (running alloy).
+### ~~OQ1 — Chamber isolation strength for MVP1 — ⛔ MVP1 blocker~~ — RESOLVED 2026-08-25
+~~**Deferred:** Plain Web Worker vs QuickJS-compiled-to-WASM with a capability bridge. *Leaning: plain Worker for MVP1* — the GA4 connector is first-party code with no untrusted vendor JS; hard chamber isolation becomes load-bearing only at MVP2 (running alloy).~~
 **Resolution trigger:** Before the risk-retirement spike spec. Record via ADR; let `/jig:arch-review` attack the leaning.
+**Resolved by:** [ADR-0001: Chamber isolation strength for MVP1](decisions/adr-0001-chamber-isolation-strength.md).
 
 ### OQ2 — Event descriptor shape + cycle semantics — ⛔ MVP1 blocker
 **Deferred:** Exact fields crossing the airlock, ordering guarantees, batching cadence, backpressure. This is the first architecture spec. (Failure-mode edges partly settled: keepalive-cap overflow splits into multiple cycles — architecture.md § Clarifications Q3.)
@@ -40,6 +41,18 @@
 ### OQ8 — Distribution channel
 **Deferred:** git subtree (matching aem-martech/aem-experimentation) vs npm for the EDS audience. (Repo/package slug settled: `airlockjs`.)
 **Resolution trigger:** Before the first external release cut.
+
+### OQ9 — MVP2 chamber isolation model + synchronous-host-access mechanism (coupled)
+**Deferred:** The per-connector isolation model for MVP2 (worker-per-chamber vs QuickJS/WASM sandbox) and the synchronous cookie/storage access mechanism it requires are one coupled decision. R-004 grounded sync-access feasibility only in the plain-Worker single-realm model (host globals by reference); both MVP2 models break that precondition — separate-thread caches cannot share a synchronous cookie view without SharedArrayBuffer + Atomics (AD-4-forbidden); a WASM sandbox must marshal each read, losing the unmodified-stock-bundle property. Also unresolved: out-of-band-write staleness (a credentialed fetch `Set-Cookie`, a second tab, or a main-thread write leaving the worker's synchronous view stale). The MVP1 single-connector case (GA4 `client_id`) is served by a simple per-worker sync-cache; the multi-chamber case is not grounded. Promoted from [ADR-0001](decisions/adr-0001-chamber-isolation-strength.md) (its exposed forward-commitment).
+**Resolution trigger:** Before the step-5 capability contract freezes. Settle via a **model-agnostic** coherency probe (e.g. a two-worker proxy exercising concurrent and out-of-band cookie writes) that does not presuppose the deferred B-vs-C model; then record via ADR.
+
+### OQ10 — Last-beacon (unload-generated) mapping + dispatch path
+**Deferred:** [ADR-0002](decisions/adr-0002-event-descriptor-cycle-semantics.md) decides the normal-path egress (worker maps, orchestrator idle-dispatches). The canonical last beacon — an outbound click or closing pageview generated *within* the unload window — cannot complete an async worker round-trip to be mapped before the page is torn down, so it is absent from the un-sent requests the unload flush dispatches. Rescuing it needs a main-thread **synchronous mapping fast path** for a declared set of unload-critical event types, which cuts against "mapping stays worker-side" and must honor ADR-0003's out-of-chamber minimization. Shared by egress Option B too (it also maps in the worker), so the Option-B fallback does not retire it.
+**Resolution trigger:** With the risk-retirement spike — load-bearing for UC-2 analytics correctness (the last beacon is often the most valuable). Record via ADR (may supersede ADR-0002's egress section).
+
+### OQ11 — Event-payload read-boundary governance
+**Deferred:** [ADR-0003](decisions/adr-0003-projection-snapshot-privacy.md) governs the projection-snapshot read channel (default-deny allowlist). The event-payload channel (the connector's primary input) is open and site-defined — UC-2 custom events, `push()` open object, OQ3 emergent schema — so a field-allowlist collapses to a wildcard (= default-allow). It needs a different model: a host-owned **sensitive-field denylist** that strips known-dangerous fields (raw form inputs, declared PII paths) at the boundary outside the connector's chamber, optionally tightened to an allowlist if OQ3 pins a schema.
+**Resolution trigger:** With the connector interface contract at drive-order step 5; resolve jointly with **OQ3** (schema pin vs emergent). Record via ADR.
 
 ## Architecture — resolved at vision level (2026-08-25)
 

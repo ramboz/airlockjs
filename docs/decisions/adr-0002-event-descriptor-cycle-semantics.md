@@ -14,140 +14,136 @@ Proposed (2026-08-25)
 ## Context
 
 This decision defines the event descriptor, the append-only event log, and the
-cycle semantics by which batches cross the airlock to the worker. It is the
-first architecture spec (OQ2). The hard constraint is INP: the only main-thread
-work on the interaction path is appending the descriptor to the log and folding
-the synchronous projection, and both must stay O(1)-cheap (product-vision Design
-principles).
+cycle semantics by which batches cross the airlock to the worker (OQ2). The hard
+constraint is INP: the only main-thread work on the interaction path is appending
+the descriptor to the log and folding the synchronous projection, both O(1)
+(product-vision Design principles).
 
-The architecture review added load-bearing requirements to this decision:
-- R1: the drain's `postMessage` serialization is itself main-thread work
-  (structured clone), so it must be chunked with a yield between chunks, or an
-  idle drain that fires just before an interaction reintroduces the jank the
-  design removes.
-- R2: egress cannot be fully owned by the worker. The end-of-session flush must
-  be triggered from the main thread, because `visibilitychange` to `hidden` and
-  `pagehide` fire only there and the worker is torn down with the page. So a
-  cycle's results have to reach a place that can send them reliably at unload.
-- R2: the 64 KiB keepalive body limit is an aggregate budget across all
-  in-flight keepalive requests, not per-request, so emission must bound the
-  concurrent in-flight total, not just per-cycle size.
-- T3: the capture ring-buffer overflow policy under sustained no-idle pressure
-  is undefined.
+The architecture review added load-bearing requirements: R1 (the drain's
+`postMessage` serialization is main-thread work, so it must chunk with a yield),
+R2 (egress cannot be fully worker-owned — unload signals are main-thread-only and
+the 64 KiB keepalive limit is an aggregate budget), and T3 (the capture
+ring-buffer overflow policy).
+
+**This ADR decides the descriptor and the normal-path cycle and egress.** The
+*end-of-session last beacon* — a beacon generated *within* the unload window,
+which cannot complete an async worker round-trip to be mapped before the page is
+torn down — is a distinct, unresolved path deferred to
+[refinement-todo OQ10](../refinement-todo.md). It needs a main-thread synchronous
+mapping fast path that this normal-path decision deliberately does not settle, and
+this ADR does not assume the last beacon is already a mapped, returned request.
 
 ## Decision Options Considered
 
-This ADR bundles the descriptor shape with cycle semantics because OQ2 defines
-them together. The load-bearing sub-decision is where egress is dispatched, so
-the options below center on that; the descriptor shape and backpressure are
-specified in the Recommended Decision.
+The load-bearing sub-decision is where normal-path egress is dispatched.
 
 ### Option A: Worker maps and dispatches; main thread has no egress role
-- **Pros:** Matches the architecture Tech stack as written ("egress via fetch
-  keepalive from the worker"); zero main-thread egress work.
-- **Cons:** Refuted by R2. The worker cannot send the last beacon (it never sees
-  unload and is torn down with the page), so the most important beacon of a
-  session is dropped. Not viable as the sole model.
+- **Pros:** Matches the Tech stack as written; zero main-thread egress work.
+- **Cons:** Refuted by R2 for the unload path; not viable as the sole model.
 
-### Option B: Worker dispatches the normal path; main thread flushes un-acked payloads on unload
-- **Pros:** Keeps worker-side dispatch for the common case; adds a main-thread
-  backstop only for the last beacon.
-- **Cons:** Two senders means a dedup/ack protocol (the main thread must not
-  re-send what the worker already sent), which is extra state and a race surface.
-  The aggregate keepalive budget is now split across two contexts.
+### Option B: Worker dispatches the normal path; main thread backstops unload
+- **Pros:** Keeps worker-side dispatch for the common case.
+- **Cons:** Two senders need a dedup/ack protocol; the aggregate keepalive budget
+  splits across two contexts; and it does **not** solve the unload-generated
+  beacon either (it also maps in the worker — see OQ10).
 
-### Option C: Worker maps only; the orchestrator (main thread) dispatches all egress through the egress seam, after the seal
-- **Pros:** One sender, no dedup. The unload flush is the same code path as the
-  normal send, just triggered on `visibilitychange` to `hidden`. Most faithful to
-  capability-mediated egress (AD-5): the connector never touches the network, it
-  hands the orchestrator a mapped egress request that the seal (consent plus
-  host-owned allowlist) gates before dispatch, and consent state already lives on
-  the main thread. INP cost is negligible because the expensive work (mapping)
-  stays in the worker and a `fetch` dispatch is cheap and non-blocking.
-- **Cons:** Revises the Tech stack's "egress from the worker" phrasing. All
-  egress dispatch sits on the document's keepalive budget.
+### Option C: Worker maps only; orchestrator dispatches normal-path egress through the seal, on idle
+- **Pros:** One sender, no dedup. Faithful to capability-mediated egress (AD-5:
+  the connector never touches the network); the seal runs where consent authority
+  lives. INP cost is bounded once the dispatch is idle-gated (below).
+- **Cons:** Revises the Tech stack's "egress from the worker" phrasing; normal-path
+  dispatch sits on the document's keepalive budget.
 
 ## Recommended Decision
 
-Option C, with the descriptor and cycle semantics below.
+Option C for the normal path, with the descriptor and cycle semantics below.
 
 **Event descriptor (interaction path, O(1)).** A minimal, structured-clone-cheap
-record: a monotonic sequence number (total ordering across cycles), an event
-type, a high-resolution timestamp (`performance.now()`), a payload reference
-(inline if small, else an index into a side table), and a marker for which
-projection snapshot slice accompanies it (see
+record: a monotonic sequence number (total ordering), an event type, a
+high-resolution timestamp (`performance.now()`), a payload reference (inline if
+small, else a side-table index), and a marker for the projection snapshot slice
+that accompanies it (see
 [ADR-0003](./adr-0003-projection-snapshot-privacy.md)). The `push` appends the
 descriptor to the log and folds the projection synchronously, then enqueues into
 the ring buffer. No mapping on the hot path.
 
-**Cycle semantics.** The drain runs on idle (the `aem-cwv-helper` `runWhenIdle`
-and `yieldToMain` primitives). It pulls a batch, serializes it in chunks with a
-yield between chunks (R1), and `postMessage`s to the worker. Sequence numbers
-preserve total order; the worker processes in sequence order. Batching has a
-max-batch-size cap and a max-latency cap so events do not sit unsent.
+**Cycle semantics.** The drain runs on idle (the `aem-cwv-helper` `runWhenIdle` /
+`yieldToMain` primitives). It pulls a batch, serializes it in chunks with a yield
+between chunks (R1), and `postMessage`s to the worker. Sequence numbers preserve
+total order; the worker processes in sequence order. Batching has a max-batch-size
+cap and a max-latency cap.
 
-**Egress return path.** The worker maps each event into an egress request
+**Normal-path egress.** The worker maps each event into an egress request
 (endpoint plus payload) and returns ready-to-send requests to the orchestrator.
-The orchestrator applies the seal (consent plus host-owned allowlist), then
-dispatches via the egress seam (MVP driver: direct `fetch` keepalive) on the
-main thread. On `visibilitychange` to `hidden`, the orchestrator flushes any
-un-dispatched requests. Emission is sequential and bounds the concurrent
-in-flight keepalive total under the 64 KiB aggregate budget (R2); a request that
-fails is recorded as sent-unknown (the failure is a `TypeError` indistinguishable
-from a network error), which feeds the inspector (OQ7).
+Receiving that batch, deserializing it, running the seal (consent plus host-owned
+allowlist), accounting each body against the aggregate budget, and dispatching are
+main-thread work, **idle-gated and chunked exactly like the outbound drain** (R1):
+under `runWhenIdle`, at most a bounded number of requests per idle slice, yielding
+between slices. The MVP egress-seam driver is direct `fetch` keepalive; emission is
+sequential and bounds the concurrent in-flight keepalive total under the 64 KiB
+aggregate budget (R2); a failed request is recorded as sent-unknown (an opaque
+`TypeError`, feeding the inspector, OQ7). At `visibilitychange` to `hidden` the
+orchestrator flushes any already-returned, un-dispatched requests immediately
+(idle will not come again), highest-value first.
 
-**Capture ring-buffer overflow.** Capture never blocks (INP), so on sustained
+**The unload-generated beacon is out of scope here (OQ10).** The canonical last
+beacon — an outbound click or closing pageview captured microseconds before unload
+— is only appended and enqueued on the hot path and cannot round-trip to the
+worker to be mapped before the page is gone, so it is *not* among the returned
+requests the flush dispatches. Rescuing it needs a main-thread synchronous mapping
+fast path for a declared set of unload-critical event types — a real addition that
+cuts against "mapping stays worker-side" and must honor ADR-0003's
+out-of-chamber minimization. It is deferred to OQ10, to be settled with the
+risk-retirement spike (it is load-bearing for UC-2 correctness).
+
+**Capture ring-buffer overflow.** Capture never blocks (INP), so under sustained
 no-idle pressure the bounded ring buffer overwrites the oldest unsent descriptor
-(drop-oldest) and increments a dropped-count that the inspector can surface.
-Drop-oldest keeps the buffer representing recent activity; a priority carve-out
-for ordering-critical events (pageview, consent, exposure) is deferred (see Open
-questions).
+(drop-oldest) and increments a dropped-count the inspector can surface. A priority
+carve-out for ordering-critical events is deferred (Open questions).
 
 ## Consequences
 
 **Becomes easier:**
-- The last beacon of a session is handled by the same reliable path as every
-  other send.
-- The seal is enforced in one place (the orchestrator), where consent authority
-  and unload both live.
+- Normal-path egress is off the interaction path (idle-gated), and the seal is
+  enforced in one place (the orchestrator, where consent authority lives).
 - Backpressure is simple: capture buffers, the drain paces on idle, egress paces
   under the aggregate budget.
 
 **Becomes harder:**
-- The Tech stack section must be updated: egress dispatch is orchestrator-side,
-  not worker-side (mapping stays worker-side).
-- The worker-to-orchestrator return channel and the seal step add a hop that must
-  stay off the interaction path (it runs on idle and at unload, not on the hot
-  path).
+- The Tech stack section must be updated: normal-path egress dispatch is
+  orchestrator-side (mapping stays worker-side).
+- The egress model is complete for the normal path only; the last-beacon path is
+  left open (OQ10).
 
 ## Assumptions
 
-- `fetch` dispatch on the main thread is cheap and non-blocking; the expensive
-  work is payload construction, which stays in the worker. [Web platform
-  behavior; the body is prebuilt by the worker.]
+- **Load-bearing, not-yet-measured:** orchestrator-side receive + seal + dispatch,
+  once idle-gated and chunked as above, adds no measurable INP cost versus
+  worker-side dispatch. This is an assumption the **risk-retirement spike
+  measures** under interaction-storm load (R1), with Option B as the documented
+  fallback (Kill criteria). C is chosen over B because it keeps egress
+  capability-mediated (AD-5), needs no two-sender dedup, and enforces the seal
+  where consent lives.
 - Unload-detection events fire on the main thread only and a dedicated worker is
-  torn down with its document, so a reliable last-beacon flush must be
-  main-thread-triggered. [Verified; see
-  [R-001](../research/R-001-worker-egress-unload.md) and
-  [architecture review](../reviews/2026-08-25-mvp1-architecture-review.md)
-  Verification A.]
-- The 64 KiB keepalive limit is aggregate across in-flight keepalive requests,
-  and Chrome adds count caps (255 total, 9 per renderer). [Verified against the
-  Fetch Standard; see [R-001](../research/R-001-worker-egress-unload.md).]
+  torn down with its document. [Verified; see
+  [R-001](../research/R-001-worker-egress-unload.md) and review Verification A.]
+  This is also *why* the unload-generated beacon (OQ10) cannot be worker-mapped.
+- The 64 KiB keepalive limit is aggregate across in-flight keepalive requests, and
+  Chrome adds count caps (255 total, 9 per renderer). [Verified;
+  [R-001](../research/R-001-worker-egress-unload.md).]
 
 ## Kill criteria
 
 - Profiling shows the orchestrator-side dispatch or the worker-return hop
-  measurably raises INP. Revisit toward Option B (worker dispatches the normal
-  path, main thread backstops unload).
-- The drop-oldest overflow policy is shown to lose ordering-critical events in
-  practice. Add the priority carve-out.
+  measurably raises INP. Revisit toward Option B.
+- The drop-oldest overflow policy loses ordering-critical events in practice. Add
+  the priority carve-out.
 
 ## Open questions
 
-- Whether the egress model (Option C) is significant enough to extract into its
-  own ADR. It is recorded here because cycle semantics determine where a batch's
-  results go.
+- **OQ10 (refinement-todo):** the unload-generated last-beacon mapping and
+  dispatch path (a main-thread synchronous fast path for declared unload-critical
+  event types). Deferred to the spike; load-bearing for UC-2 correctness.
 - Priority tiering for the capture buffer (protect pageview/consent/exposure from
   drop-oldest).
 - Whether the projection snapshot is per-event or per-cycle. Ties to
