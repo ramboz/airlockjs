@@ -1,27 +1,89 @@
 ---
 status: DRAFT
 skill:
-use_cases: []
+use_cases: [UC-2]
 ---
-
-<!-- jig self-defining vocabulary (soft, forward-only): expand each acronym on first use and link the term to docs/memory/glossary.md (or jig's lexicon). See docs/workflow.md "Self-defining vocabulary". -->
 
 # Spec 003: Risk-retirement spike
 
-> Reserved on 2026-08-26 via `workflow.py new`. Body to be drafted in a feature branch.
-
 ## Overview
 
-_TBD_
+The load-bearing bet of the whole project, retired first and cheaply
+(drive-order step 7; [MVP1 release plan](../../releases/mvp1.md) risk-first item).
+
+**Question:** can the event-log/projection + Web Worker boundary beat a competent
+main-thread version on **INP p75 under interaction-storm load**, while emitting an
+**MP-conformant GA4 payload**, on a **real EDS page**, at **100 Lighthouse**?
+
+**Time-box:** appetite is "a demo a skeptical EDS practitioner believes" —
+measurement over polish. Build the smallest thing that answers the question.
+
+**What it builds** (GA4-only; the seed of the real runtime — "everything else is
+construction"): a `push()`-shaped entry that appends to an event log and folds a
+synchronous projection; a ring-buffer drain on idle that cycles into a Worker
+chamber; one GA4 connector doing the Measurement Protocol mapping and keepalive
+egress off-thread; a `patchDatalayer`-style main-thread baseline to compare
+against; and an INP + Lighthouse + delivery-rate scoreboard, all on the
+[EDS testbed](../../../probes/eds-testbed/).
+
+**Outcome:** resolves [OQ10](../../refinement-todo.md) (the egress
+dispatch/delivery model) by measurement, and produces the baseline numbers a
+later servo-unattended GA4 loop gates on. Consumes the pinned
+[contracts/](../../../contracts/README.md) and the accepted
+[ADR-0001](../../decisions/adr-0001-chamber-isolation-strength.md) /
+[ADR-0002](../../decisions/adr-0002-event-descriptor-cycle-semantics.md) /
+[ADR-0003](../../decisions/adr-0003-projection-snapshot-privacy.md).
+
+**Out of scope:** OQ9 (MVP2 sync-access), OQ11/OQ3 (payload governance/schema),
+multi-chamber isolation, and the other two demo items (UC-1 above-the-fold PZN,
+UC-3 block-decoration). GA4 analytics (UC-2) only.
 
 ## Assumptions
 
-_TBD — list load-bearing assumptions about runnable surfaces (library/API capability, version/perf behavior, behavior of existing code); probe-back (run it / cite source) or mark explicitly here. Risk-gated: omit (or write "None") when there are no unverified load-bearing assumptions — do not pad with boilerplate._
+- The runtime shape is fixed by the accepted ADRs (0001 plain Worker; 0002 the
+  descriptor/cycle + normal-path egress on idle; 0003 snapshot default-deny) and
+  the pinned contracts. This spike implements them; it does not re-decide them.
+- INP is measurable in-page via `PerformanceObserver` `event`/`first-input`
+  timing and the `web-vitals` attribution model (measures the slowest
+  interaction, the tail). [To be probe-confirmed in slice 003-01; if the browser
+  automation cannot capture a stable p75 under storm, the scoreboard method is
+  revisited — Kill criteria.]
+- A `patchDatalayer`-style baseline (main-thread map + `fetch` keepalive send,
+  deferred via `requestIdleCallback`) is a *fair, competent* main-thread
+  comparison — not a strawman. [Design choice; the baseline must also defer work
+  to idle, or the comparison flatters the worker — review R1.]
+- The EDS testbed page (`aem up`) is a faithful-enough real EDS page for
+  CWV/INP measurement (R-005). Local same-host serving flatters absolute cost;
+  the *delta* between two runtimes on the same page is the load-bearing number.
+
+## Kill criteria
+
+- The measurement rig cannot produce a stable, discriminating INP p75 under
+  interaction-storm load (noise swamps the delta). Then the bet cannot be
+  answered by this method; revisit the measurement (more samples, a synthetic
+  long-task injector) before drawing a go/no-go.
+- The worker path does **not** beat the baseline on INP p75. Then the thesis is
+  not retired — record it honestly and stop-and-re-shape MVP1 (release-plan
+  release-check).
 
 ## Decomposition
 
-_TBD — SPIDR analysis. See SKILL.md for the five axes (Spike / Paths / Interfaces / Data / Rules)._
+**SPIDR axis: Path.** The spec is a spike (research: does the bet hold?); the
+*build* splits by path through the same story — the main-thread baseline path
+first (simplest, and it establishes the measurement rig — review R1), then the
+worker path, then the head-to-head answer. Each slice delivers a real,
+observable measurement, not intermediate state.
 
-## Slices
+### Slices
 
-- [003-01 — tbd](slice-01-tbd.md)
+1. **[003-01 — baseline + measurement rig](slice-01-baseline-rig.md)** — the
+   `patchDatalayer`-style main-thread path on the testbed, plus the
+   interaction-storm + INP + GA4-conformance harness. Delivers the baseline
+   number and the rig everything else measures against.
+2. **[003-02 — the airlock worker path](slice-02-worker-path.md)** — push → log
+   + sync projection → ring buffer → drain/cycle → Worker chamber → GA4 connector
+   → keepalive egress, measured on the same rig. Delivers the worker number +
+   MP-conformant payload + per-stage delivery-rate.
+3. **[003-03 — scoreboard + the answer](slice-03-scoreboard.md)** — the
+   head-to-head (worker vs baseline INP p75 under storm; delivery-rate; a
+   Lighthouse pass) and the recorded go/no-go that resolves OQ10.

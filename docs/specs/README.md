@@ -16,6 +16,7 @@
 | Spec | Slice | Status | Notes |
 |------|-------|--------|-------|
 | [001-adopt-jig](001-adopt-jig/spec.md) | 001-01 — bootstrap | **DONE** | worked example; review boxes satisfied by deterministic completion check |
-| [002-first-spec](002-first-spec/spec.md) | 002-01 — replace-me | DRAFT | replace with your first real spec — run `/jig:spec-workflow` |
-
-<!-- Regenerate with `workflow.py status-board`. Add rows as specs are created. -->
+| [002-first-spec](002-first-spec/spec.md) | 002-01 — replace-me | UNKNOWN | replace with your first real spec — run `/jig:spec-workflow` |
+| [003-risk-retirement-spike](003-risk-retirement-spike/spec.md) | 003-01 — baseline + measurement rig | DRAFT |  |
+| [003-risk-retirement-spike](003-risk-retirement-spike/spec.md) | 003-02 — the airlock worker path | DRAFT |  |
+| [003-risk-retirement-spike](003-risk-retirement-spike/spec.md) | 003-03 — scoreboard + the answer | DRAFT |  |
