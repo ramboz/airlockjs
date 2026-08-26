@@ -1,7 +1,7 @@
 ---
-status: Proposed
+status: Accepted
 dependencies: []
-last_verified:
+last_verified: 2026-08-25
 frame_review: true
 ---
 
@@ -9,7 +9,7 @@ frame_review: true
 
 ## Status
 
-Proposed (2026-08-25)
+Accepted (2026-08-25)
 
 ## Context
 
@@ -103,9 +103,18 @@ carve-out for ordering-critical events is deferred (Open questions).
 
 - The projection fold proves not-O(1) for real event shapes (e.g. large payloads
   folded synchronously). Revisit the descriptor (move heavy fields to the
-  side-table, fold lazily behind a cheap index).
+  side-table, fold lazily behind a cheap index) — but *only* for fields no
+  synchronous reader consumes, or the lazy fold reintroduces the AD-3
+  synchronous-read violation that Option C was rejected for.
 - The drop-oldest overflow policy loses ordering-critical events in practice. Add
   a priority carve-out.
+- OQ10 resolves the last beacon with a main-thread synchronous mapping fast path,
+  and the frozen descriptor (payload by worker-side side-table reference) cannot
+  serve it — a worker-held index is unreachable from the main thread, and the
+  snapshot the fast path needs is not synchronously available main-thread-side.
+  Reopen the descriptor **for the declared unload-critical event types only**
+  (carry their payload inline and their snapshot main-thread-reachable); do not
+  treat the normal-path descriptor as the whole contract.
 
 ## Open questions
 
@@ -114,6 +123,15 @@ carve-out for ordering-critical events is deferred (Open questions).
   interaction-storm load, the aggregate keepalive budget, and the unload /
   last-beacon path. Deferred to the risk-retirement spike, which measures the
   INP-versus-delivery tension, and its own egress ADR.
+- **Descriptor ↔ egress coupling (bound to OQ10).** The descriptor's
+  payload-by-reference (worker-side side-table) and worker-side mapping are
+  specified for the normal, cross-to-worker path. If OQ10 resolves the last beacon
+  with a main-thread synchronous mapping fast path, unload-critical event types
+  need their payload and snapshot reachable synchronously on the main thread,
+  which a worker-held side-table index is not. So the descriptor shape for
+  unload-critical event types is **not** frozen here; it is bound to OQ10's
+  resolution (see Kill criteria). This ADR freezes the descriptor for the normal
+  path only.
 - Priority tiering for the capture buffer (protect pageview/consent/exposure from
   drop-oldest).
 - Whether the projection snapshot is per-event or per-cycle. Ties to

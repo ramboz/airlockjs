@@ -14,17 +14,19 @@
 **Resolution trigger:** Before the risk-retirement spike spec. Record via ADR; let `/jig:arch-review` attack the leaning.
 **Resolved by:** [ADR-0001: Chamber isolation strength for MVP1](decisions/adr-0001-chamber-isolation-strength.md).
 
-### OQ2 — Event descriptor shape + cycle semantics — ⛔ MVP1 blocker
-**Deferred:** Exact fields crossing the airlock, ordering guarantees, batching cadence, backpressure. This is the first architecture spec. (Failure-mode edges partly settled: keepalive-cap overflow splits into multiple cycles — architecture.md § Clarifications Q3.)
+### ~~OQ2 — Event descriptor shape + cycle semantics — ⛔ MVP1 blocker~~ — RESOLVED 2026-08-25
+~~**Deferred:** Exact fields crossing the airlock, ordering guarantees, batching cadence, backpressure. This is the first architecture spec. (Failure-mode edges partly settled: keepalive-cap overflow splits into multiple cycles — architecture.md § Clarifications Q3.)~~
 **Resolution trigger:** First architecture spec. Record via ADR before implementation.
+**Resolved by:** [ADR-0002: Event descriptor shape and cycle semantics](decisions/adr-0002-event-descriptor-cycle-semantics.md).
 
 ### OQ3 — Vendor-neutral schema now vs emergent
 **Deferred:** Commit to a Snowplow/Segment-style self-describing schema up front, or let it emerge from the GA4 mapping and generalize after MVP2? *Leaning: minimal/emergent* — avoid designing a schema before connectors validate it. (product-vision § Stack reconciled to this leaning, 2026-08-25.)
 **Resolution trigger:** After MVP2 exercises the second connector archetype, or when a second wire-protocol connector needs shared event shapes.
 
-### OQ4 — Projection snapshot privacy boundary — ⛔ MVP1 blocker
-**Deferred:** Exactly what projection state is allowed to cross the airlock to the worker per event. Part of the boundary contract.
+### ~~OQ4 — Projection snapshot privacy boundary — ⛔ MVP1 blocker~~ — RESOLVED 2026-08-25
+~~**Deferred:** Exactly what projection state is allowed to cross the airlock to the worker per event. Part of the boundary contract.~~
 **Resolution trigger:** Before the risk-retirement spike spec; pin via `/jig:contracts` (capability API surface) and an ADR.
+**Resolved by:** [ADR-0003: Projection snapshot read boundary](decisions/adr-0003-projection-snapshot-privacy.md).
 
 ### OQ5 — Identity / first-party cookie store home
 **Deferred:** A no-go for MVP1, but where it eventually lives (orchestrator, main thread) and how connectors get scoped access.
@@ -48,7 +50,7 @@
 
 ### OQ10 — Egress dispatch and delivery model (incl. last-beacon)
 **Deferred:** [ADR-0002](decisions/adr-0002-event-descriptor-cycle-semantics.md) deliberately stops at the worker boundary; the whole egress model is one coupled decision adversarial review showed cannot be settled by argument. It spans **dispatch location** (worker-side eager and off the INP path but needing a two-sender dedup/ack and a consent snapshot, vs orchestrator-side main-thread and capability-mediated but requiring idle-gating), **delivery under interaction-storm load** (idle-gated main-thread dispatch stalls and builds an undeliverable backlog; eager worker dispatch avoids it), the **aggregate 64 KiB keepalive budget** (Chrome 255/9 caps) that limits the end-of-session flush, and the **unload / last-beacon path**. The canonical last beacon — an outbound click or closing pageview generated *within* the unload window — cannot complete an async worker round-trip to be mapped before the page is torn down, so it is absent from the un-sent requests the unload flush dispatches. Rescuing it needs a main-thread **synchronous mapping fast path** for a declared set of unload-critical event types, which cuts against "mapping stays worker-side" and must honor ADR-0003's out-of-chamber minimization. Shared by egress Option B too (it also maps in the worker), so the Option-B fallback does not retire it.
-**Resolution trigger:** With the risk-retirement spike, which must measure the INP-versus-delivery tension directly (an INP oracle alone is insufficient; a delivery-rate oracle is needed). Record in a dedicated egress ADR. Load-bearing for UC-2 analytics correctness.
+**Resolution trigger:** With the risk-retirement spike, which must measure the INP-versus-delivery tension directly (an INP oracle alone is insufficient; a delivery-rate oracle is needed). The delivery-rate oracle must instrument the **drain stage** too, not just worker egress: the idle-gated main→worker drain (frozen in ADR-0002) itself caps delivery under no-idle load — it either drops-oldest before events reach the worker, or fires on its max-latency cap and runs structured-clone serialization during the storm — so worker-side egress cannot rescue events the drain never delivered, and a number measuring only egress would attribute drain-induced loss to the wrong stage. Record in a dedicated egress ADR. Load-bearing for UC-2 analytics correctness.
 
 ### OQ11 — Event-payload read-boundary governance
 **Deferred:** [ADR-0003](decisions/adr-0003-projection-snapshot-privacy.md) governs the projection-snapshot read channel (default-deny allowlist). The event-payload channel (the connector's primary input) is open and site-defined — UC-2 custom events, `push()` open object, OQ3 emergent schema — so a field-allowlist collapses to a wildcard (= default-allow). It needs a different model: a host-owned **sensitive-field denylist** that strips known-dangerous fields (raw form inputs, declared PII paths) at the boundary outside the connector's chamber, optionally tightened to an allowlist if OQ3 pins a schema.
