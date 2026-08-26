@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://airlockjs.dev/contracts/push-event.schema.json",
+  "title": "Airlock push() event envelope",
+  "description": "The minimal envelope for an object pushed via the push()-shaped datalayer API. DELIBERATELY PERMISSIVE: OQ3 keeps the vendor-neutral event schema emergent, not pinned. Only the event name is required; connectors map the rest, and unknown properties pass through unchanged. This schema pins the ENVELOPE (there is an event name), not the vocabulary of events or params (that is emergent, per-connector). GTM-style `event` key is the name.",
+  "type": "object",
+  "properties": {
+    "event": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Event type/name (GTM dataLayer convention). Required. The runtime routes on this to the connectors that declared it."
+    }
+  },
+  "required": ["event"],
+  "additionalProperties": true,
+  "examples": [
+    { "event": "page_view", "page_location": "https://example.com/", "page_title": "Home" },
+    { "event": "newsletter_signup", "form_id": "footer", "value": 1 }
+  ]
+}

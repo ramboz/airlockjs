@@ -1,0 +1,19 @@
+{
+  "client_id": "1234567890.1700000000",
+  "consent": {
+    "ad_user_data": "GRANTED",
+    "ad_personalization": "DENIED"
+  },
+  "events": [
+    {
+      "name": "page_view",
+      "params": {
+        "page_location": "https://www.example.com/pricing",
+        "page_title": "Pricing",
+        "page_referrer": "https://www.example.com/",
+        "session_id": "1724668790",
+        "engagement_time_msec": 100
+      }
+    }
+  ]
+}

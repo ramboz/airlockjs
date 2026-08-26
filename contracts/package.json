@@ -1,0 +1,14 @@
+{
+  "name": "airlock-contracts",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Pinned external-interface contracts for airlockjs (drive-order step 5): GA4 MP request schema + golden fixtures, the push() event envelope, and the connector/capability/seam .d.ts interfaces.",
+  "scripts": {
+    "validate": "node validate.mjs",
+    "typecheck": "tsc --noEmit --strict *.d.ts"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1"
+  }
+}

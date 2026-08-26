@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://airlockjs.dev/contracts/ga4-mp-request.schema.json",
+  "title": "GA4 Measurement Protocol request body (web data stream)",
+  "description": "Pinned external contract for the JSON body POSTed to https://www.google-analytics.com/mp/collect?measurement_id=G-XXXX&api_secret=YYYY (EU: region1.google-analytics.com; validation: /debug/mp/collect). Sourced from Google's official GA4 MP docs (see contracts/ga4-mp.md for URLs). This is the hermetic half of the ga4_mp_conformance oracle: a built payload MUST validate against this schema AND match a golden fixture; the live /debug endpoint is the complementary check. NOTE: client_id and session_id are opaque strings by contract — the _ga cookie grammar is NOT part of Google's schema and has changed (GS1->GS2), so it is not encoded here.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["client_id", "events"],
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Required. Uniquely and persistently identifies the web client instance. Any stable unique string is accepted by MP; reuse the _ga cookie's client_id for continuity with on-page GA."
+    },
+    "user_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional. UTF-8. Cross-platform user id. No documented max length."
+    },
+    "timestamp_micros": {
+      "type": "integer",
+      "description": "Optional. Unix timestamp in MICROSECONDS (ms x 1000). Backdating allowed up to 72 hours."
+    },
+    "user_properties": {
+      "type": "object",
+      "maxProperties": 25,
+      "description": "Optional. Up to 25. Each property name maps to an object with a `value`.",
+      "propertyNames": { "pattern": "^(?!first_open_time$|first_visit_time$|last_deep_link_referrer$|user_id$|first_open_after_install$)(?!_|google_|ga_|firebase_)[A-Za-z0-9_]{1,24}$" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["value"],
+        "additionalProperties": false,
+        "properties": {
+          "value": { "type": ["string", "number", "boolean"], "description": "String values <= 36 chars." }
+        }
+      }
+    },
+    "consent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ad_user_data": { "enum": ["GRANTED", "DENIED"] },
+        "ad_personalization": { "enum": ["GRANTED", "DENIED"] }
+      }
+    },
+    "non_personalized_ads": {
+      "type": "boolean",
+      "description": "Optional/legacy. Prefer the `consent` object."
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 25,
+      "items": { "$ref": "#/$defs/event" }
+    }
+  },
+  "$defs": {
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 40,
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*$",
+          "not": {
+            "enum": [
+              "ad_activeview", "ad_click", "ad_exposure", "ad_query", "ad_reward",
+              "adunit_exposure", "app_clear_data", "app_exception", "app_install",
+              "app_remove", "app_store_refund", "app_update", "app_upgrade",
+              "dynamic_link_app_open", "dynamic_link_app_update", "dynamic_link_first_open",
+              "error", "firebase_campaign", "firebase_in_app_message_action",
+              "firebase_in_app_message_dismiss", "firebase_in_app_message_impression",
+              "first_open", "first_visit", "notification_dismiss", "notification_foreground",
+              "notification_open", "notification_receive", "notification_send", "os_update",
+              "session_start", "user_engagement", "ad_impression", "in_app_purchase",
+              "screen_view"
+            ]
+          },
+          "description": "<=40 chars, alphanumeric+underscore, starts with a letter, not a reserved name. NOTE: an unknown/typo'd but well-formed name is ACCEPTED here and by GA4 by design — the golden fixture (not this schema) is what pins the exact expected name."
+        },
+        "params": {
+          "type": "object",
+          "maxProperties": 25,
+          "propertyNames": {
+            "maxLength": 40,
+            "pattern": "^(?!firebase_|ga_|google_)[A-Za-z][A-Za-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              { "type": "string", "maxLength": 100 },
+              { "type": "number" },
+              { "type": "boolean" }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
