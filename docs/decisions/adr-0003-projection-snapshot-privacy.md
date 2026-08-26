@@ -95,6 +95,16 @@ never crossable. Per event/cycle it crosses only the intersection of
 connector-declared needs, host-policy allow, and present projection state. The
 default is empty.
 
+**Field-name allowlisting is necessary but not sufficient for confidentiality.**
+The allowlist controls which field *names* cross, not the *values* inside them: an
+approved field like `page_path` routinely carries PII in its value (`/search?q=…`,
+reflected form/checkout params, tokens). So the host policy must also govern
+values — sanitize or deny value-bearing fields, or express the allowlist as
+typed/sanitized scopes — so that "approved field" never means "raw value crosses
+unchecked." The confidentiality claim in this ADR is scoped to field-set control
+*plus* this value governance, and the `isolation_invariant` oracle must reflect
+both: a field-name check alone would certify a property the system lacks.
+
 For MVP1 (GA4, first-party) this is lightweight. Establishing default-deny and the
 declaration mechanism for the snapshot now is what lets a future connector's
 snapshot access be contained without a breaking retrofit.
@@ -108,10 +118,14 @@ step 5.
 ## Consequences
 
 **Becomes easier:**
-- Least privilege on the snapshot channel is structural; a compromised connector
-  reads only its declared, approved projection fields.
-- The snapshot isolation invariant is oracle-checkable (`isolation_invariant`:
-  an undeclared *projection* read is denied). The payload-channel oracle is
+- Least privilege on the snapshot channel is structural at the field-set level; a
+  compromised connector receives only its declared, approved projection fields
+  (value-level sanitization of those fields is the host-policy half, above).
+- The snapshot isolation invariant is oracle-checkable at the field-name level
+  (`isolation_invariant`: an undeclared *projection* field is denied). That is
+  necessary but not sufficient — value-level PII in an *approved* field is a
+  separate host-policy check the oracle must also cover, or it certifies a
+  confidentiality property the system lacks. The payload-channel oracle is
   deferred to OQ11.
 
 **Becomes harder:**
