@@ -6,10 +6,13 @@
   "description": "Capability-secured, off-main-thread martech runtime for edge/static sites (EDS first). Risk-retirement spike — spec 003.",
   "scripts": {
     "test": "vitest run",
-    "rig": "node rig/measure.mjs"
+    "rig": "node rig/measure.mjs",
+    "lh": "node rig/lh.mjs"
   },
   "devDependencies": {
     "ajv": "^8.17.1",
+    "chrome-launcher": "^1.2.1",
+    "lighthouse": "^12.8.2",
     "playwright": "^1.48.0",
     "vitest": "^2.1.9"
   }
