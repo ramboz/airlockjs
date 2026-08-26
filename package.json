@@ -1,0 +1,14 @@
+{
+  "name": "airlockjs",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Capability-secured, off-main-thread martech runtime for edge/static sites (EDS first). Risk-retirement spike — spec 003.",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "vitest": "^2.1.9"
+  }
+}
