@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Airlock INP rig</title>
+    <style>
+      body { font: 14px system-ui, sans-serif; margin: 0; padding: 2rem; }
+      #target { width: 240px; height: 80px; font-size: 18px; cursor: pointer; }
+      #out { white-space: pre-wrap; margin-top: 1rem; color: #333; }
+    </style>
+  </head>
+  <body>
+    <h1>Airlock INP measurement rig</h1>
+    <p>Mode: <b id="mode"></b> — click the button (the storm driver does this fast).</p>
+    <button id="target">interact</button>
+    <pre id="out"></pre>
+    <script type="module">
+      // Config via query string: ?mode=baseline|worker&events=10&work=50
+      const q = new URLSearchParams(location.search);
+      const MODE = q.get("mode") || "baseline";
+      const EVENTS_PER_INTERACTION = Number(q.get("events") || 10);
+      const WORK = Number(q.get("work") || 50);
+      const BLOCK = Number(q.get("block") || 0); // diagnostic: synchronous busy-ms in the handler
+      document.getElementById("mode").textContent = MODE;
+
+      const ctx = { clientId: "1234567890.1700000000", sessionId: "1724668790" };
+      const endpoint = "https://www.google-analytics.com/mp/collect?measurement_id=G-RIG&api_secret=RIG";
+
+      // --- INP-under-storm collector: per-interaction latency (Event Timing) ---
+      const latencies = [];
+      const seen = new Set();
+      let rawEvents = 0;
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries()) {
+          rawEvents++;
+          if (e.interactionId && !seen.has(e.interactionId)) {
+            seen.add(e.interactionId);
+            latencies.push(e.duration); // full interaction latency (INP component)
+          }
+        }
+      }).observe({ type: "event", durationThreshold: 16, buffered: true });
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries()) {
+          if (!seen.has(e.interactionId ?? -1)) { seen.add(e.interactionId ?? -1); latencies.push(e.duration); }
+        }
+      }).observe({ type: "first-input", buffered: true });
+
+      // --- runtime under test ---
+      let runtime;
+      if (MODE === "baseline") {
+        const { createBaseline } = await import("../baseline/patch-datalayer.js");
+        runtime = createBaseline({ endpoint, ctx, workFactor: WORK });
+      } else {
+        // worker path — added in slice 003-02
+        const { createAirlock } = await import("../core/airlock.js");
+        runtime = createAirlock({ endpoint, ctx, workFactor: WORK });
+      }
+
+      // --- interaction handler: push a batch of GA4 events per interaction ---
+      let n = 0;
+      document.getElementById("target").addEventListener("click", () => {
+        if (BLOCK > 0) { const end = performance.now() + BLOCK; while (performance.now() < end) {} }
+        for (let i = 0; i < EVENTS_PER_INTERACTION; i++) {
+          runtime.push({ type: "spike_interaction", params: { i: n++, k: i } });
+        }
+      });
+
+      // --- rig readout for the Playwright driver ---
+      const pct = (arr, p) => {
+        if (!arr.length) return 0;
+        const s = [...arr].sort((a, b) => a - b);
+        return s[Math.min(s.length - 1, Math.floor((p / 100) * s.length))];
+      };
+      window.__rig = {
+        mode: MODE,
+        config: { EVENTS_PER_INTERACTION, WORK },
+        snapshot() {
+          runtime.flushNow?.();
+          return {
+            mode: MODE,
+            rawEventEntries: rawEvents,
+            interactions: latencies.length,
+            inp_p75: Math.round(pct(latencies, 75)),
+            inp_p98: Math.round(pct(latencies, 98)),
+            inp_max: Math.round(Math.max(0, ...latencies)),
+            stats: runtime.stats?.() ?? {},
+          };
+        },
+      };
+      document.getElementById("out").textContent = "rig ready (" + MODE + ")";
+    </script>
+  </body>
+</html>

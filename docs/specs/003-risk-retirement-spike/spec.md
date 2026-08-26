@@ -87,3 +87,36 @@ observable measurement, not intermediate state.
 3. **[003-03 — scoreboard + the answer](slice-03-scoreboard.md)** — the
    head-to-head (worker vs baseline INP p75 under storm; delivery-rate; a
    Lighthouse pass) and the recorded go/no-go that resolves OQ10.
+
+## Findings (in progress)
+
+**Rig built and validated (003-01).** Playwright drives a trusted-interaction
+storm; per-interaction latency is read from the Event Timing API. Validated: a
+handler that busy-waits 50ms yields INP p75 48ms — the rig measures the tail. The
+GA4 map→MP connector is conformance-tested against the pinned contract (5/5;
+reserved-name case rejected, so the `ga4_mp_conformance` link is real).
+
+**Load-bearing early finding — the thesis needs sharpening.**
+`requestIdleCallback`-scheduled work **does not harm INP**: the browser
+deprioritizes idle callbacks whenever input is pending. A `patchDatalayer`-style
+baseline that maps on the main thread but drains on `rIC` measured INP p75 ~8ms
+even at 1000 events × 12ms modeled mapping (12s of deferred work) — it all ran
+after the storm settled, never contending. So:
+
+- Against a **competently-deferred** (rIC) main-thread baseline, the worker gives
+  **≈ no INP advantage** at GA4 loads. That baseline is already INP-safe.
+- The worker's INP win is over the **common naive** case — synchronous mapping in
+  the interaction handler (what gtag/GTM effectively do), which measured INP p75
+  ~48ms at 50ms/interaction of mapping.
+- The worker's durable advantages are therefore: **INP-safe by construction** (no
+  deferral discipline to get wrong), main-thread freed for other work, and a real
+  win under **heavy or indivisible** mapping (the MVP2 wrapped-SDK / alloy case),
+  where chunked-yield deferral can't fully hide the cost.
+
+**Consequence for the scoreboard (003-03):** the head-to-head must compare the
+worker against **both** a naive-synchronous baseline and the rIC-deferred baseline,
+across light→heavy loads, and characterize *where* the worker wins — not assert a
+blanket INP victory. This honestly qualifies the risk-retirement bet and feeds
+OQ10 (the delivery/INP tradeoff). It does **not** refute the runtime; it relocates
+its value from "beats main-thread on INP" to "INP-safe by construction + wins the
+common case + wins heavy load."
