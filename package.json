@@ -11,6 +11,6 @@
   "devDependencies": {
     "ajv": "^8.17.1",
     "playwright": "^1.48.0",
-    "vitest": "^2.1.9"
+    "vitest": "^3.2.6"
   }
 }
