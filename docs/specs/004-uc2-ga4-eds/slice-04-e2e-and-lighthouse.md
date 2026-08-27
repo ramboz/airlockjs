@@ -1,10 +1,9 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [004-03, adr-0004]
 last_verified: 2026-08-27
 arch_review: true
 frame_review: true
-claimed_by: claude/airlock-build-continue-f9ad85
 ---
 
 ## Slice 004-04 — end-to-end GA4 + before/after Lighthouse
