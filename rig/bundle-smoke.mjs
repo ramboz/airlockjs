@@ -1,5 +1,5 @@
-// Bundle + real-page cycle smoke (spec 004-02, AC1 + AC2 + AC4) — the
-// "verified-by-building" check on the REAL testbed page.
+// Bundle + real-page cycle smoke (spec 004-02, AC1 + AC2 + AC4; extended for
+// 004-03) — the "verified-by-building" check on the REAL testbed page.
 //
 // Builds via `npm run build` (emitting the two-entry bundle INTO the testbed's
 // served tree: /scripts/airlock/eds.js + sibling chamber.worker.js), statically
@@ -16,6 +16,12 @@
 // (faithful to head.html's move-to-http-header="true"; index.html's meta CSP is
 // ALSO active — same policy). CSP-*enforcement* proof (negative control) lives in
 // `npm run rig:csp` (004-01); this rig asserts the bundle RUNS under that policy.
+//
+// 004-03 extension (cookie-sourced identity on the real page): a FRESH browser
+// context has no cookies, so boot takes the generate+persist path — after
+// airlock:init, document.cookie must carry a GA1-format `_ga`, and the
+// intercepted /collect* beacon's client_id must equal that cookie's parsed
+// client_id (identity actually flows cookie → ctx → payload).
 //
 // Tolerance: a plain static serve has no aem-up reverse proxy, so unrelated EDS
 // noise is expected (nav/footer .plain.html 404s, experimentation-plugin fetches).
@@ -71,7 +77,13 @@ const port = server.address().port;
 const browser = await chromium.launch();
 const page = await browser.newPage();
 let egress = 0;
-await page.route("**/collect*", (route) => { egress++; return route.fulfill({ status: 204, body: "" }); });
+const beaconBodies = []; // captured /collect* POST bodies (004-03 identity check)
+await page.route("**/collect*", (route) => {
+  egress++;
+  const body = route.request().postData();
+  if (body) beaconBodies.push(body);
+  return route.fulfill({ status: 204, body: "" });
+});
 const consoleNoise = [];
 page.on("console", (m) => { if (m.type() === "error" || m.type() === "warning") consoleNoise.push(m.text()); });
 page.on("pageerror", (e) => consoleNoise.push("pageerror: " + String(e)));
@@ -100,6 +112,7 @@ await page.waitForTimeout(800); // let the worker cycle complete
 const flicker = await page.evaluate(() => (window.__flicker && window.__flicker.events) || []);
 const bootFailed = await page.evaluate(() => window.__airlockBootFailed ?? null);
 const state = await page.evaluate(() => (window.airlock ? window.airlock.getState("page_view.params.page_location") : null));
+const documentCookie = await page.evaluate(() => document.cookie);
 await browser.close();
 server.close();
 
@@ -110,7 +123,18 @@ const bootedAfterAppear = appearIdx !== -1 && initIdx !== -1 && appearIdx < init
   && flicker[appearIdx].t <= flicker[initIdx].t;
 const workerCycled = egress > 0;
 
-const pass = bootFailed === null && bootedAfterAppear && pushed && workerCycled;
+// 004-03: fresh context ⇒ the generate+persist path ran on the real page. A
+// GA1-format `_ga` must now exist, and the SAME identity must have reached the
+// intercepted beacon (client_id equals the cookie's last two dotted segments).
+const gaCookieMatch = /(?:^|;\s*)_ga=(GA1\.1\.(\d+\.\d+))(?:;|$)/.exec(documentCookie || "");
+const gaCookiePersisted = gaCookieMatch !== null;
+const persistedClientId = gaCookieMatch ? gaCookieMatch[2] : null;
+let beaconClientId = null;
+try { beaconClientId = beaconBodies.length ? JSON.parse(beaconBodies[0]).client_id : null; } catch { /* keep null */ }
+const identityFlowed = persistedClientId !== null && beaconClientId === persistedClientId;
+
+const pass = bootFailed === null && bootedAfterAppear && pushed && workerCycled
+  && gaCookiePersisted && identityFlowed;
 
 const out = {
   question: "does the SERVED two-entry bundle boot lazily and cycle on the REAL testbed page?",
@@ -122,10 +146,15 @@ const out = {
   worker_cycled: workerCycled,         // AC4: cycle reached the worker → egress
   egress,
   getState_path_read: state,           // dotted-path read on the real page
+  // 004-03: cookie-sourced identity on the real page
+  ga_cookie_persisted: gaCookiePersisted, // fresh context → generated _ga written in GA1 format
+  persisted_client_id: persistedClientId, // parsed from the persisted _ga cookie
+  beacon_client_id: beaconClientId,       // client_id in the intercepted /collect* body
+  identity_flowed: identityFlowed,        // cookie → ctx → payload: same identity end to end
   marks,
   console_noise_tolerated: consoleNoise, // expected under static serve (no reverse proxy)
   verdict: pass
-    ? "PASS — bundled runtime served from the testbed tree booted after body:appear and cycled a contract-shaped event under the boilerplate CSP"
+    ? "PASS — bundled runtime booted after body:appear, persisted a GA1-format _ga, and cycled a contract-shaped event whose beacon carries the persisted identity, under the boilerplate CSP"
     : "FAIL — see flags above",
 };
 // eslint-disable-next-line no-console
