@@ -1,11 +1,10 @@
 ---
-status: RECONCILED
+status: DONE
 kind: feature
 dependencies: [004-04]
 last_verified: 2026-08-27
 arch_review: true
 frame_review: true
-claimed_by: claude/airlock-build-continue-f9ad85
 ---
 
 ## Slice 006-01 — block instrumenter → `view_block` GA4
