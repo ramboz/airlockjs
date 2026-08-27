@@ -28,7 +28,7 @@
 | [006-uc3-block-decoration](006-uc3-block-decoration/spec.md) | 006-01 — block instrumenter → `view_block` GA4 | **DONE** |  |
 | [007-servo-oracle-ci](007-servo-oracle-ci/spec.md) | 007-01 — `ga4_mp_conformance` oracle component (hermetic + live complement) | **DONE** |  |
 | [007-servo-oracle-ci](007-servo-oracle-ci/spec.md) | 007-02 — `isolation_invariant` real-Worker assert (browser realm; run in CI by 07-05) | **DONE** |  |
-| [007-servo-oracle-ci](007-servo-oracle-ci/spec.md) | 007-03 — `cwv_budget` oracle component + resolve OQ6 (flicker routing) | READY_FOR_REVIEW (claude/airlock-servo-oracle…) |  |
+| [007-servo-oracle-ci](007-servo-oracle-ci/spec.md) | 007-03 — `cwv_budget` oracle component + resolve OQ6 (flicker routing) | **DONE** |  |
 | [007-servo-oracle-ci](007-servo-oracle-ci/spec.md) | 007-04 — hermetic CI on GitHub Actions (vitest + contracts) | READY_FOR_REVIEW (claude/airlock-servo-oracle…) |  |
 | [007-servo-oracle-ci](007-servo-oracle-ci/spec.md) | 007-05 — browser CI (Playwright rigs + Lighthouse CI) | READY_FOR_REVIEW (claude/airlock-servo-oracle…) |  |
 
@@ -37,5 +37,5 @@
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
 - **0** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **14** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **16** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **0** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
