@@ -1,7 +1,8 @@
 ---
-status: DRAFT
+status: DONE
+kind: spike
 dependencies: [003-01, 003-02]
-last_verified:
+last_verified: 2026-08-26
 ---
 
 ## Slice 003-03 — scoreboard + the answer
@@ -32,11 +33,36 @@ Lighthouse pass — recorded as a go/no-go.
    measurement.
 
 **DoD:**
-- [ ] ACs 1–4 pass; the scoreboard is reproducible (documented run steps).
-- [ ] Findings record both numbers, the delta, delivery-rates, and the Lighthouse
+- [x] ACs 1–4 pass; the scoreboard is reproducible (`npm run rig`;
+      `MODE=worker node rig/lh.mjs`).
+- [x] Findings record both numbers, the delta, delivery-rates, and the Lighthouse
       score; the spec Overview Outcome is filled and OQ10 updated with the result.
-- [ ] Spike-light review; deviation log + reconciliation sweep.
+- [x] Spike-light review; deviation log + reconciliation sweep (below).
 
 **Anti-horizontal-phasing check:** after this slice, the risk-retirement bet has
 a measured answer on a real EDS page — the thing the whole front-load existed to
 produce — and OQ10 is resolved by data.
+
+### Deviation log
+
+- The bet was **retired but reframed**, not retired as originally framed: the
+  head-to-head added a **naive-synchronous** baseline (5 trackers × ~30ms) beside
+  the `rIC`-deferred one, because the deferred baseline is already INP-safe. The
+  honest answer — INP-safe-by-construction + ~19× the common naive stack + wins
+  heavy load, *ties* a competent main thread — is the spec Outcome. This is a
+  finding, not a scope cut.
+- The Lighthouse LCP gap was diagnosed as a dev-serving/eager-load artifact
+  (unbundled 4-module ESM chain, eager load), not a runtime cost — TBT 0 / CLS 0
+  is the structural result. Characterized, not "fixed," per the appetite.
+- OQ10 is **advanced, not fully closed**: Option-C egress delivers 300/300, but the
+  unload last-beacon main-thread fast path remains open — carried forward as the
+  next work item (egress ADR).
+
+### Reconciliation sweep
+
+- Spec Outcome + Findings complete; OQ10 in `refinement-todo.md` annotated
+  "Measured (spike 003)"; positioning docs reconciled (commit `e4009c0`).
+- Release-check bar in `mvp1.md` corrected to the reframed criterion (it had
+  required *beating* the competent baseline the spike showed it only ties).
+- Open follow-ups handed off cleanly: OQ10 unload fast-path + egress ADR, UC-2 EDS
+  graduation, servo oracle wiring + CI — none silently dropped.

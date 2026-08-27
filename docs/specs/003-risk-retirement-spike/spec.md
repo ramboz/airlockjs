@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: DONE
 skill:
 use_cases: [UC-2]
 ---
@@ -88,7 +88,7 @@ observable measurement, not intermediate state.
    head-to-head (worker vs baseline INP p75 under storm; delivery-rate; a
    Lighthouse pass) and the recorded go/no-go that resolves OQ10.
 
-## Findings (in progress)
+## Findings
 
 **Rig built and validated (003-01).** Playwright drives a trusted-interaction
 storm; per-interaction latency is read from the Event Timing API. Validated: a
