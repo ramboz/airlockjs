@@ -31,10 +31,14 @@ pipeline; the browser rigs (including the 07-02 isolation assert) land in 07-05.
 
 1. **A CI workflow runs the hermetic oracle on push and PR.** A new
    `.github/workflows/ci.yml` (separate from `jig-governance.yml`) triggers on
-   push and pull_request, runs `npm ci` then `npm test`, and runs the
-   `contracts` validator (`cd contracts && npm ci && npm run validate`).
-   Observable: the workflow appears in Actions and its job passes on the current
-   green tree.
+   push and pull_request, runs `npm ci` then `npm test`, runs the
+   `contracts` validator (`cd contracts && npm ci && npm run validate`), **and
+   runs `npm run test:oracle`** — the `ga4_mp_conformance` gate-flip proof that
+   007-01 moved out of the default `npm test` suite (so `bash oracle.sh` cannot
+   mutate a golden as a side effect of scoring; 007-01 arch re-review). Without
+   this step CI would never exercise the gate's fail-capability. Observable: the
+   workflow appears in Actions and its job passes on the current green tree, with
+   `test:oracle` a visible step.
 2. **A real failure fails the job.** A seeded failing test (or broken golden)
    makes the CI job exit non-zero; a green tree passes. Observable: a
    demonstrated red run, then restored green. (May be shown via `act` locally or

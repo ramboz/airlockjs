@@ -20,11 +20,23 @@
 
 set -euo pipefail
 
-THRESHOLD="${THRESHOLD:-0.5}"
+# Default 1.0 (not the servo-template 0.5): the AND-gate below (see the
+# COMPONENTS comment) depends on THRESHOLD=1.0. This line sits OUTSIDE any
+# `# SEED:start/end` block, so a future `/servo:scaffold-init --force`
+# re-emit could silently reset it back to the template default — if this
+# value ever isn't 1.0, that's why; a human should notice and re-apply 1.0.
+THRESHOLD="${THRESHOLD:-1.0}"
 
 # Registered components — one "<name>:<weight>" entry per scoring function.
+# THRESHOLD=1.0 turns the weighted average into an AND-gate (spec 007
+# Overview / A1): composite == 1.0 iff every component scores 1.0, so a
+# single 0.0 fails the gate. That property only holds if every gating
+# component below returns exactly 1.0 or 0.0 (BINARY) — a fractional score
+# would make THRESHOLD=1.0 a near-impossible bar instead of an AND. This is
+# a convention `oracle.sh` does NOT enforce; keep every score_* here binary.
 COMPONENTS=(
   "vitest:1.0"
+  "ga4_mp_conformance:1.0"
 )
 
 # SEED:start vitest
@@ -44,6 +56,23 @@ score_vitest() {
   fi
 }
 # SEED:end vitest
+
+# SEED:start ga4_mp_conformance
+score_ga4_mp_conformance() {
+  if ! command -v node >/dev/null 2>&1; then
+    echo "missing: node (required by contracts/validate.mjs)" >&2
+    return 2
+  fi
+  # contracts/validate.mjs exits 1/0 and never echoes a score itself — wrap it
+  # (mirroring score_vitest) so a genuine conformance failure (rc=1) becomes a
+  # 0.0 gate-fail, not a raw non-zero exit misclassified as an env-error (rc=2).
+  if (cd contracts && node validate.mjs) >/dev/null 2>&1; then
+    echo "1.0"
+  else
+    echo "0.0"
+  fi
+}
+# SEED:end ga4_mp_conformance
 
 weighted_sum="0"
 total_weight="0"

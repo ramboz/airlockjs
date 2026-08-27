@@ -1,7 +1,7 @@
 ---
-status: READY_FOR_REVIEW
+status: RECONCILED
 dependencies: []
-last_verified:
+last_verified: 2026-08-27
 arch_review: true
 frame_review: true
 claimed_by: claude/airlock-servo-oracle-ci-6b13d9
@@ -56,14 +56,16 @@ Measurement-Protocol conformance.
    MUST).
 
 **DoD:**
-- [ ] All ACs pass; full test suite green (`npm test`), `contracts` validator
-      green (no regressions).
-- [ ] A seeded fixture mutation is shown to flip the component verdict red, and
-      is restored (the gate is capable of failing).
-- [ ] Reviewed by `reviewer` subagent (compliance + craft; arch pass, since
-      `arch_review: true`).
-- [ ] Deviation log + reconciliation sweep produced under this slice heading.
-- [ ] `docs/refinement-todo.md` updated if any decision was deferred.
+- [x] All ACs pass; full test suite green (`npm test` — 12 files/119 tests),
+      `contracts` validator green (no regressions).
+- [x] A seeded fixture mutation is shown to flip the component verdict red
+      (`npm run test:oracle`: clean→exit 0, broken golden→exit 1), and is
+      restored (the gate is capable of failing).
+- [x] Reviewed by `reviewer` subagent (compliance pass + craft pass + arch pass
+      after a blocker fix + re-review).
+- [x] Deviation log + reconciliation sweep produced under this slice heading.
+- [x] `docs/refinement-todo.md` unaffected (the resolved Threshold deferral is
+      servo-owned — marked RESOLVED in `.servo/refinement-todo.md`).
 
 **Implementation notes (07-01 re-review, non-blocking):**
 - **Wrap `validate.mjs`'s exit code — do not let it propagate.**
@@ -86,8 +88,68 @@ any CI exists.
 
 ### Deviation log (after reconciliation)
 
-_TBD at reconciliation._
+The original ACs are preserved above. What changed during implementation, and
+the reviewer findings folded in:
+
+1. **Gate-flip meta-test moved out of the default vitest suite (arch blocker
+   fix).** The first implementation put `test/oracle-ga4.test.js` in the default
+   suite and spawned `bash oracle.sh` from it to prove the gate flips. Because
+   `score_vitest` runs the *whole* default suite, this made the servo-unattended
+   primary path (`bash oracle.sh`) re-enter itself and **mutate a committed
+   golden fixture** (delete `client_id` → write → restore) as a side effect of
+   scoring — a kill mid-mutation would corrupt the golden (arch `[blocker]`).
+   First attempt bounded it with an `ORACLE_GA4_TEST_GUARD` recursion guard; the
+   review correctly rejected that as insufficient (it bounds depth, not the
+   mutation). **Resolution:** a default `vitest.config.js` that `exclude`s the
+   meta-test from `npm test`/`score_vitest`, plus a dedicated
+   `vitest.oracle.config.js` + `npm run test:oracle` that runs only it. The
+   guard was deleted. `bash oracle.sh` now never runs the meta-test and never
+   dirties a fixture (verified: `git status` clean after a run). The
+   golden-corruption-on-kill risk is now confined to explicit `npm run
+   test:oracle` invocations — the inherent cost of any real gate-flip proof, and
+   an acceptable residual off the primary path.
+2. **Follow-up owed by 007-04 (cross-slice, from arch re-review).** Moving the
+   proof out of `npm test` orphaned it from CI as 07-04 was specified (its AC1
+   ran `npm test` + `npm run validate`, never `test:oracle`). **07-04's AC1 was
+   updated in this reconciliation** to add a `npm run test:oracle` CI step, so
+   the gate's fail-capability keeps automated coverage.
+3. **Live-check test hermeticity (craft nit, fixed).** The `mp-live-check` test
+   now spawns its child with `GA4_MEASUREMENT_ID`/`GA4_API_SECRET` explicitly
+   deleted from the env, so a developer with those exported can't make the test
+   POST to the real endpoint and fail the skip assertion.
+4. **`THRESHOLD=1.0` sits outside the SEED blocks (arch nit, noted).** A comment
+   was added at that line warning that a `/servo:scaffold-init --force` re-emit
+   could reset it to the template's 0.5 and silently disable the AND-gate.
+5. **Lightweight impl choices (reviewer-sanctioned):** the live-check env vars
+   are named `GA4_MEASUREMENT_ID` / `GA4_API_SECRET` (documented in the script
+   header; no committed values — AC4 honored); the `mp-live-check` npm script is
+   colocated in `contracts/package.json` alongside `validate`.
+6. **AC3 wording vs implementation (clarify).** AC3 says the live check "runs
+   credential-free against the placeholder endpoint, **or** self-skips." The
+   implementation has two paths: skip when no creds, or POST to the real GA4
+   `/debug/mp/collect` when creds are supplied — there is no credential-free
+   *placeholder-endpoint POST*. The skip path satisfies the security MUST
+   (credential-free by default); the AC's "placeholder endpoint" phrasing was
+   aspirational. No behavior change owed.
+7. **Oracle-design decisions destined for the 07-03 ADR.** The `THRESHOLD=1.0`
+   AND-gate and the binary-score invariant are load-bearing oracle-design
+   choices with a rejected alternative (weighted-mean dilution). They live as
+   inline `oracle.sh` comments now, but must be recorded in the "servo oracle
+   design" ADR authored during 07-03 (alongside OQ6 + the isolation
+   reclassification) — not left only as code comments.
 
 ### Reconciliation sweep
 
-_TBD at reconciliation — regenerate the sweep table from the slice template._
+| Artifact | Disposition | Rationale |
+|----------|-------------|-----------|
+| `README.md` | `no-op` | This slice adds an oracle component + CI-oriented tooling; the project front-door README is unaffected. |
+| `docs/specs/README.md` | `updated` | Regenerated by `workflow.py status-board` (007-01 → REVIEWED/DONE). |
+| `docs/product-vision.md` | `no-op` | No product-scope/behavior change; the oracle-routing framing it already carries is unchanged. |
+| `docs/architecture.md` | `no-op` | No module-boundary/public-contract change to `core/`/`connectors/`; the oracle components at `architecture.md:65` are already described. The AND-gate is an oracle-design decision routed to the 07-03 ADR, not an architecture.md edit. |
+| Primer surfaces: `CLAUDE.md` / `AGENTS.md` / scaffold templates | `no-op` | Spec 007 is still in flight (007-02…05 open); no close-out compression yet. |
+| `docs/inbox.md` | `no-op` | Nothing to park; implementer surfaced no out-of-scope items. |
+| `docs/refinement-todo.md` | `no-op` | The Threshold deferral this slice resolves is servo-owned; see the next row. |
+| `.servo/refinement-todo.md` | `updated` | The **Threshold** deferred decision is marked RESOLVED (THRESHOLD=1.0 AND-gate, decided in spec 007 authoring, implemented here). |
+| `docs/specs/007-servo-oracle-ci/slice-04-ci-core.md` | `updated` | AC1 gained a `npm run test:oracle` CI step (deviation-log item 2). |
+| `docs/decisions/**` / ADR index | `deferred` | The AND-gate + binary-invariant oracle-design decisions are recorded in the 07-03 "servo oracle design" ADR (deviation-log item 7), authored with OQ6. |
+| `docs/memory/**` | `no-op` | The servo-oracle-testing lesson (a meta-test that shells the whole oracle must be excluded from `score_vitest`'s suite) is captured in this deviation log + the review evidence; not separately memory-worthy. |
