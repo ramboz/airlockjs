@@ -47,6 +47,7 @@ The datalayer is deliberately split into the two objects that ACDL and GTM confl
 - **Event descriptor** — the minimal record a `push` writes on the interaction path (type + payload-ref + timestamp). Cheap to create; this is what keeps INP low. *(Exact shape is OQ2.)*
 - **Event log** — append-only, ordered, the source of truth. Cycles to the worker in batches; ordering preserved across the lock-through.
 - **State projection** — derived from the log, held in the orchestrator, read synchronously. `Map` for keyed state, `WeakMap` for element associations. A `push` folds its event into the projection synchronously (so synchronous readers see current state) *and* enqueues for the worker (so processing is off-thread) — the split that resolves `patchDatalayer`'s async-read caveat.
+  - *WeakMap ownership (clarified, spec 006 arch review):* the orchestrator's `WeakMap` holds **projection / cross-airlock** element→data associations. An **adapter** may keep its own **transient, module-local** element→lookup `WeakMap` for adapter-specific metadata that deliberately does NOT enter the vendor-neutral `core/` projection or cross the airlock — e.g. `adapters/eds/blocks.js`'s element→`{ block_name }` map (UC-3): EDS block names are an EDS concern, so they stay adapter-local rather than leaking into `core/`.
 - **Projection snapshot slice** — the bounded, privacy-filtered subset of projection state that crosses the airlock to the worker alongside each event for enrichment. *(What is allowed to cross is OQ4.)*
 
 ## Contract surfaces

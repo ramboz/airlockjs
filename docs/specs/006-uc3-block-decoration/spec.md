@@ -110,8 +110,37 @@ be horizontal phasing — each half delivers no observable value alone.
 
 ## Findings
 
-_TBD._
+- **Automatic block instrumentation, no markup, WeakMap-held.** On the real testbed,
+  a decorated content block within `<main>` is discovered by its `data-block-status`
+  marker, associated in a module-private `WeakMap<Element, { block_name }>` (no
+  `data-track-*` written — setAttribute-spy tested), and reports a single MP-conformant
+  `view_block { block_name }` on first ≥50% view (`npm run rig:uc3`): `.promo` (staged
+  below the fold) fires exactly one `view_block` only after scrolling into view, does
+  not re-fire on scroll-out/in, the never-in-view `.teaser` control fires nothing, and
+  the header/footer **chrome** blocks — which ARE decorated (their JS 404s appear) —
+  fire nothing, because discovery is scoped to `<main>` (`view_block_beacons_seen:
+  ["promo"]`).
+- **The connector generalized without change.** `view_block` (a brand-new custom
+  event) required **zero** change to `connectors/ga4/map.js` — the generic
+  `{ type, params }` → MP mapping absorbed it, golden-pinned in the
+  `ga4_mp_conformance` oracle. `core/` untouched; the `block_name` association stays
+  adapter-local (never enters the vendor-neutral projection or crosses the airlock).
+- **The pinned decoration→event contract held exactly:** decoration = association
+  only (no event); first view = one `view_block { block_name }`; interaction deferred.
+  No event the table does not list was produced.
 
 ## Outcome
 
-_TBD._
+**UC-3 lands: automatic EDS block instrumentation without touching markup.** A
+decorated block is instrumented via a WeakMap association (no `data-track-*` clutter,
+invisible to other tags) and reports a `view_block` GA4 event on view — off-thread,
+MP-conformant, `main`-scoped so the chrome is never mis-instrumented. With UC-1 and
+UC-2 already landed, this **completes the MVP1 demo trio** on a real EDS page.
+
+`Outcome: UC-3 graduated — automatic block-decoration instrumentation (WeakMap
+association, no markup) reports a view_block GA4 event on ≥50% view, main-scoped
+(chrome excluded), off-thread + MP-conformant; the GA4 connector absorbed the new
+event with no change. ga4_mp_conformance green. Reproducible: npm run rig:uc3. MVP1
+demo trio (UC-1/UC-2/UC-3) complete. Remaining MVP1: servo oracle wiring + CI
+(drive-order steps 8–9); follow-ups OQ12 item 4 (dispose guard — now touches 3 boot
+wirings), OQ13, live GA4 endpoint + aem-up Lighthouse.`

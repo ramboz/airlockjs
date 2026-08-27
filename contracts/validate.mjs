@@ -39,6 +39,7 @@ function mustFail(validate, data, label) {
 mustPass(ga4, "./fixtures/ga4-mp-page_view.golden.json");
 mustPass(ga4, "./fixtures/ga4-mp-custom-event.golden.json");
 mustPass(ga4, "./fixtures/ga4-mp-experiment-impression.golden.json"); // spec 005-01 exposure
+mustPass(ga4, "./fixtures/ga4-mp-view-block.golden.json"); // spec 006-01 block view
 
 // GA4 MP: negative controls the schema MUST reject.
 mustFail(ga4, { client_id: "x", events: [{ name: "_bad", params: {} }] }, "event name starting with _");

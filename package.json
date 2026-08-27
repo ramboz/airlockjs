@@ -13,6 +13,7 @@
     "rig:bundle": "node rig/bundle-smoke.mjs",
     "rig:e2e": "node rig/e2e.mjs",
     "rig:uc1": "node rig/uc1.mjs",
+    "rig:uc3": "node rig/uc3.mjs",
     "lh": "node rig/lh.mjs",
     "lh:eds": "node rig/lh-eds.mjs"
   },

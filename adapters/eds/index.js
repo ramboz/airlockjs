@@ -35,6 +35,7 @@ import { createAirlock } from "../../core/airlock.js";
 import { sourceGa4Ctx } from "../../connectors/ga4/cookies.js";
 import { createCookieCapability } from "./cookies.js";
 import { createExposureReporter } from "./exposure.js";
+import { createBlockInstrumenter } from "./blocks.js";
 
 /** Placeholder collect endpoint — the live GA4 MP URL (measurement_id/api_secret)
  *  is deferred; no real GA4 credentials ship in this slice. */
@@ -199,6 +200,47 @@ export function wireExposure(handle, io = {}) {
 }
 
 /**
+ * Wire the UC-3 block-decoration instrumentation on an EDS page (slice 006-01). At
+ * boot, discover the EDS-decorated blocks WITHIN `<main>`, associate each block's
+ * `{ block_name }` in a WeakMap (never a `data-track-*` attribute), and register each
+ * for a single `view_block` GA4 report the first time it is >=50% in view
+ * (IntersectionObserver, threshold 0.5), then unobserve it (once per block).
+ *
+ * Discovery is scoped to `main` DELIBERATELY (frame-critique 006-01, load-bearing):
+ * `loadHeader`/`loadFooter` also `decorateBlock` the header/footer CHROME (in
+ * `<body> > header/footer`, outside `main`), so an unscoped sweep would instrument the
+ * always-present chrome and fire spurious `view_block` beacons for it. A block in
+ * `<header>` is not a descendant of `main`, so it is never discovered or observed.
+ *
+ * A block view is analytics-lazy (the block already rendered) — it takes the
+ * steady-state `push()` (worker cycle), not the unload fast path.
+ *
+ * Guarded like wireExposure: a no-op off a real page (no `document`), when there is no
+ * `IntersectionObserver`, or when the page has no `<main>` (chrome-only) — and
+ * double-wire-guarded (`doc.__airlockBlocksWired`) so a second boot never stacks a
+ * second observer that would double-count a block view.
+ *
+ * @param {{ push: Function }} handle the airlock write surface.
+ * @param {{ doc?: Document, win?: Window }} [io] injectable DOM handles (test seam).
+ */
+export function wireBlocks(handle, io = {}) {
+  const doc = io.doc || (typeof document !== "undefined" ? document : undefined);
+  const win = io.win || (typeof window !== "undefined" ? window : undefined);
+  if (!doc || typeof doc.querySelector !== "function") return; // no DOM -> no-op
+  if (doc.__airlockBlocksWired) return; // never double-wire a document
+  const IntersectionObserverCtor = win && win.IntersectionObserver;
+  if (typeof IntersectionObserverCtor !== "function") return; // no IntersectionObserver -> no-op
+  const main = doc.querySelector("main");
+  if (!main) return; // no <main> (chrome-only page) -> no-op
+  doc.__airlockBlocksWired = true;
+
+  // Default observerFactory = the REAL window.IntersectionObserver (unit tests inject
+  // a fake via io.win). createBlockInstrumenter owns the threshold-0.5 opts.
+  const observerFactory = (cb, opts) => new IntersectionObserverCtor(cb, opts);
+  createBlockInstrumenter(handle, { observerFactory }).instrument(main);
+}
+
+/**
  * Boot the airlock analytics runtime for an EDS page.
  *
  * Note (recorded, accepted for this slice): boot is once-per-page by design — a
@@ -258,6 +300,11 @@ export async function bootEdsAnalytics(opts = {}) {
   // 005-01 AC1+AC2: report the applied above-the-fold experiment exposure (read from
   // the durable body dataset at boot + a live aem:experimentation listener, deduped).
   wireExposure(handle);
+
+  // 006-01: instrument the decorated blocks WITHIN <main> — WeakMap-associate each and
+  // fire one view_block on first >=50% view (chrome outside main is excluded). Guarded
+  // + idempotent, so it is safe to call unconditionally at boot.
+  wireBlocks(handle);
 
   return handle;
 }

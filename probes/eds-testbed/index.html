@@ -33,6 +33,51 @@
              Distinct from the /signup outbound anchor (AC2's pushCritical fast path). -->
         <p><button id="cta-engage" type="button">See pricing</button></p>
       </div>
+      <!-- 006-01 staging (frame-critique): a tall spacer so the DEMO block below starts
+           BELOW an 800px fold. Its own min-height (1200px) exceeds the viewport, so the
+           promo block is off-screen at load regardless of the sections above it — the
+           view_block must be SCROLL-triggered, not fire-on-load. -->
+      <div style="min-height: 1200px">
+        <h2>Spacer A (006-01 staging)</h2>
+        <p>Tall filler section. Pushes the promo demo block off-screen so its view_block
+           only fires after the reader scrolls it into view.</p>
+      </div>
+      <!-- 006-01 DEMO block: an EDS content block (div with a class → block_name "promo").
+           Instrumented WITHOUT markup changes: the airlock associates its metadata in a
+           WeakMap and fires exactly one view_block GA4 event on first ≥50% view. Its
+           blocks/promo/promo.{js,css} 404 is tolerated noise — the decorated element,
+           marked with data-block-status, is what matters. -->
+      <div>
+        <div class="promo">
+          <div>
+            <div>
+              <h3>Promo (006-01 demo block)</h3>
+              <p>UC-3 demo: automatic block instrumentation with no data-track-* markup —
+                 fires one view_block on first view.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 006-01 staging: a second tall spacer so scrolling the promo into view does NOT
+           also bring the never-in-view control block below into view. -->
+      <div style="min-height: 2000px">
+        <h2>Spacer B (006-01 staging)</h2>
+        <p>Keeps the never-in-view control block far below the demo block.</p>
+      </div>
+      <!-- 006-01 CONTROL block: an EDS block (block_name "teaser") positioned far below
+           the demo, so scrolling to the promo never reveals it — it must fire NOTHING.
+           This stages the "never-in-view fires nothing" behavior (AC2c). -->
+      <div>
+        <div class="teaser">
+          <div>
+            <div>
+              <h3>Teaser (006-01 never-in-view control)</h3>
+              <p>Control block: never scrolled into view in the demo, so no view_block
+                 should ever fire for it.</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
     <footer></footer>
   </body>
