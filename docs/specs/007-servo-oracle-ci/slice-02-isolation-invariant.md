@@ -38,19 +38,26 @@ as a **gating** check.
   ([rig/uc1.mjs](../../../rig/uc1.mjs)), but **diverges** from uc1's setup: it
   needs **no `npm run build`** and does not serve a testbed root. Instead it
   serves the repo **source tree** (`core/` + `connectors/`) with a JS MIME type
-  and loads `chamber.worker.js` directly as a `{type:"module"}` Worker — the
-  chamber and its one import (`connectors/ga4/map.js`, a pure ES module) are
-  loadable unbundled, so no esbuild two-entry step is required (07-02
-  re-review, attack (a) confirmed).
+  and loads a small **wrapper entry module** (`rig/isolation-probe.worker.js`)
+  as the `{type:"module"}` Worker — the wrapper `import`s the unmodified
+  `chamber.worker.js` (see AC1), which with its one import
+  (`connectors/ga4/map.js`, a pure ES module) is loadable unbundled, so no
+  esbuild two-entry step is required (07-02 re-review, attack (a) confirmed).
 
 **Acceptance Criteria:**
 
 1. **A BARE `document`/`window` reference throws `ReferenceError` — in the
-   chamber's own realm.** The rig injects, **into the same Worker realm that
-   runs the shipped `chamber.worker.js`** (its own module scope / the same
-   worker instance — not a throwaway scratch Worker), code that makes a **bare,
-   unqualified** reference to `document` (or `window`) and asserts it throws
-   `ReferenceError`. Two constraints are load-bearing (07-02 re-review):
+   chamber's own realm.** The mechanism (07-02 re-review): a small **wrapper
+   entry module** — e.g. `rig/isolation-probe.worker.js`, loaded as the
+   `{type:"module"}` Worker — `import`s the **unmodified**
+   `core/chamber.worker.js` (so the shipped chamber's `self.onmessage` registers
+   for AC2's mapping) and then makes a **bare, unqualified** reference to
+   `document` (or `window`) in the shared `WorkerGlobalScope`, asserting it
+   throws `ReferenceError`. Because all ES modules loaded into one Worker share
+   a single global realm, the throw runs in the **exact realm that runs
+   `mapToMp`** — with **no edit to the shipped chamber** (the two broken
+   alternatives — editing `chamber.worker.js`, or loading it directly with
+   nowhere to inject — are both avoided). Two constraints are load-bearing:
    - **Bare reference, not `typeof`/`self.document`.** A bare `document` throws
      `ReferenceError` in Worker scope but *not* on a DOM-bearing main thread —
      so it is realm-**discriminating**. `typeof document` / `self.document`
