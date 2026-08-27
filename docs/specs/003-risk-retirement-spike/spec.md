@@ -163,6 +163,14 @@ to the worker to be mapped — it needs a main-thread synchronous mapping fast p
 for declared unload-critical event types (the ADR-0002 kill-criterion, now
 confirmed by measurement).
 
+> **Post-spike update (2026-08-26 — [ADR-0004](../../decisions/adr-0004-egress-dispatch-delivery.md)):**
+> this last item is now **closed**. The fast path is implemented (`core/egress.js`
+> `createCriticalDispatcher`; `pushCritical()` + the `visibilitychange`/`pagehide`
+> ring-tail flush) and re-measured (`rig/teardown.mjs`): enqueued last beacon lost
+> in the teardown window (0/5), `pushCritical` delivers it (5/5), ring-tail flush
+> delivers the tail (50/50), steady-state INP p75 unchanged (8ms). Recorded in
+> ADR-0004, which extends ADR-0002's deferred egress section; OQ10 is resolved.
+
 **Lighthouse (load CWV).** The runtime adds **TBT 0ms, CLS 0** — no blocking time,
 no layout shift. Bare control: perf 99 (LCP 752ms). Runtime loaded eagerly,
 unbundled: perf 89 (LCP 924ms). The ~172ms LCP gap is an artifact of (a) unbundled
@@ -187,11 +195,16 @@ in the **lazy/delayed** phase (after LCP, AD-8) and bundled, so its LCP impact i
 3. **Delivery / OQ10, advanced by measurement:** Option-C egress (worker maps,
    orchestrator dispatches) delivers 300/300 and is INP-safe; the unload-generated
    last beacon still needs a main-thread mapping fast path — the one remaining OQ10
-   item, now evidence-backed.
+   item, now evidence-backed. **(Closed post-spike by
+   [ADR-0004](../../decisions/adr-0004-egress-dispatch-delivery.md): fast path
+   implemented + re-measured; OQ10 resolved.)**
 
 `Outcome: risk-retirement bet retired (reframed); OQ10 advanced by measurement
 (Option-C egress implemented; unload fast-path remains open); runtime seed built
 (core/, connectors/ga4/).`
+
+`Post-spike: OQ10 fully closed — unload synchronous fast path implemented +
+re-measured, egress model recorded in ADR-0004 (2026-08-26).`
 
 **Lifecycle note (spike-light).** Per the slices' DoD and the appetite (measurement
 over polish), this spike ran a light review: the code is tested (vitest green,
