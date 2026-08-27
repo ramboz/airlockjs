@@ -1,27 +1,55 @@
 ---
 status: DRAFT
 skill:
-use_cases: []
+use_cases: [UC-2]
+servo_driven: true
 ---
 
-<!-- jig self-defining vocabulary (soft, forward-only): expand each acronym on first use and link the term to docs/memory/glossary.md (or jig's lexicon). See docs/workflow.md "Self-defining vocabulary". -->
+# Spec 008: GA4 ecommerce `purchase` conversion event
 
-# Spec 008: Ga4-purchase conversion
-
-> Reserved on 2026-08-27 via `workflow.py new`. Body to be drafted in a feature branch.
+> **Servo-driven feature (not the jig review ceremony).** This spec is the goal
+> for a `/servo:agent-loop` run: the executable oracle target is
+> [test/ga4-purchase.test.js](../../../test/ga4-purchase.test.js), and the loop's
+> runner implements the connector change until `oracle.sh` (at `THRESHOLD=1.0`)
+> is green. Reserved 2026-08-27.
 
 ## Overview
 
-_TBD_
+The GA4 connector's `mapToMp` ([connectors/ga4/map.js](../../../connectors/ga4/map.js))
+is a generic passthrough — it already *maps* a `purchase` event, but does not
+**validate** it. A `purchase` is GA4's key **conversion** event for a commerce
+demo site, and the GA4 Measurement-Protocol ecommerce contract requires it to
+carry `transaction_id`, `currency`, `value`, and a non-empty `items[]`. Silently
+emitting a malformed purchase produces a beacon GA4 drops or mis-attributes.
 
-## Assumptions
+This feature adds **purchase-scoped validation** to the connector: a `purchase`
+event missing any required field is rejected with a clear error naming the
+field, while non-purchase events are untouched.
 
-_TBD — list load-bearing assumptions about runnable surfaces (library/API capability, version/perf behavior, behavior of existing code); probe-back (run it / cite source) or mark explicitly here. Risk-gated: omit (or write "None") when there are no unverified load-bearing assumptions — do not pad with boilerplate._
+## Acceptance Criteria (the oracle target)
 
-## Decomposition
+These are asserted by `test/ga4-purchase.test.js` (in the default vitest suite,
+so `score_vitest` gates on them at `THRESHOLD=1.0`):
 
-_TBD — SPIDR analysis. See SKILL.md for the five axes (Spike / Paths / Interfaces / Data / Rules)._
+1. **A valid purchase maps to an MP-conformant body** — event name `purchase`,
+   params carry `transaction_id` / `currency` / `value` / `items`, plus the
+   existing `session_id` + `engagement_time_msec` enrichment (regression guard).
+2. **`mapToMp` throws on a purchase missing `transaction_id`** — the error
+   message names `transaction_id`.
+3. **… missing `currency`** — error names `currency`.
+4. **… missing `value`** — error names `value`.
+5. **… missing or empty `items[]`** — error names `items`.
+6. **Validation is purchase-scoped** — a non-purchase event (`page_view`) maps
+   generically and is NOT subject to purchase validation.
+
+## Non-goals
+
+- No schema/golden changes required (the generic mapping already conforms); the
+  feature is the validation gate, expressed as unit behavior.
+- No new event types beyond `purchase`.
+- No enrichment/derivation (e.g. computing `value` from items) — reject, don't
+  repair.
 
 ## Slices
 
-- [008-01 — tbd](slice-01-tbd.md)
+- [008-01 — purchase-conversion validation in the GA4 connector](slice-01-purchase-validation.md)
