@@ -75,9 +75,13 @@ flatters the cost.
 - Real-CDN eager-window cost (measure with throttling before quoting).
 - Exposure dedup semantics for the Airlock exposure event (the plugin fires
   on every load; RUM samples it).
-- `new Worker()` compatibility with the boilerplate CSP
+- ~~`new Worker()` compatibility with the boilerplate CSP
   (`script-src 'nonce-aem' 'strict-dynamic'`, **no `worker-src`**) — the
-  runtime spike must check this explicitly.
+  runtime spike must check this explicitly.~~ **ANSWERED 2026-08-26 (spec
+  [004-01](../specs/004-uc2-ga4-eds/slice-01-worker-under-csp.md)):** a same-origin
+  module worker **runs** under the unmodified boilerplate CSP + Trusted Types — no
+  `worker-src` accommodation needed. Verified with a negative control proving the
+  CSP is enforced (`npm run rig:csp`).
 
 ## Conclusion
 
