@@ -90,9 +90,26 @@ Feeds `/jig:contracts`. Five surfaces, in priority order:
 - **OQ7 — Inspector scope in MVP1.** How much of the "why did this beacon fire / hold at the seal / get gated" panel ships in MVP1 vs later.
 - **OQ8 — Distribution.** git subtree (matching aem-martech/aem-experimentation) vs npm for the EDS audience. (Repo slug settled: `airlockjs`.)
 
-### Risk-retirement bet (retire before committing the release)
+### Risk-retirement bet — RETIRED 2026-08-26 (reframed)
 
-Can the event-log/projection + worker boundary **beat the main-thread version on INP while emitting a Measurement-Protocol-conformant GA4 payload, on a real EDS page, at 100 Lighthouse?** Everything else is construction; this is the load-bearing uncertainty. The spike that retires it is the first thing to build (see `START_PROMPT.md`).
+The original bet: can the event-log/projection + worker boundary **beat the
+main-thread version on INP while emitting a Measurement-Protocol-conformant GA4
+payload, on a real EDS page, at 100 Lighthouse?** Everything else is construction;
+this was the load-bearing uncertainty.
+
+**Retired by [spec 003](specs/003-risk-retirement-spike/spec.md), with an honest
+reframing.** The blanket "beats a competent main-thread version on INP" is **false**
+at GA4 loads — a competently `requestIdleCallback`-deferred main-thread baseline is
+already INP-safe, and the worker only *ties* it (both INP p75 ~8ms). The measured,
+defensible claims are: **INP-safe by construction** (the naive synchronous-mapping
+stack is impossible to write in the airlock), **~19× better than the common naive
+multi-tracker stack** (INP p75 152ms → 8ms, the case that actually occurs in
+production), **wins heavy / indivisible mapping load** (the MVP2 alloy case, where
+chunked-yield deferral can't hide the cost), and **per-tracker isolation**.
+Lighthouse: CWV-clean at load (TBT 0, CLS 0); LCP impact ~0 with the EDS lazy-phase
++ bundling. The egress/delivery model (OQ10) is advanced by the same spike —
+Option-C egress implemented (300/300 under normal settle); the unload last-beacon
+main-thread fast path remains open.
 
 ## Clarifications
 

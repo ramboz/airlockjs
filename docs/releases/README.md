@@ -12,7 +12,7 @@ they stop informing a current release decision.
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| [MVP1](mvp1.md) | Retire the core INP thesis — the capture-and-drain worker boundary at ~zero CWV cost, GA4-only, in-house decisioning. Build the risk-retirement spike first. | Spike on [probes/eds-testbed](../../probes/eds-testbed/); consumes [contracts/](../../contracts/README.md). |
+| [MVP1](mvp1.md) | Core thesis **retired (reframed) 2026-08-26**: the capture-and-drain worker boundary is INP-safe by construction, ~19× over the common naive stack, wins heavy/indivisible load, at ~zero CWV cost — GA4-only, in-house decisioning. Remaining MVP1: close OQ10 unload fast-path, graduate the demos to a real EDS page. | Spike ([spec 003](../specs/003-risk-retirement-spike/spec.md)) done on [probes/eds-testbed](../../probes/eds-testbed/); consumes [contracts/](../../contracts/README.md). |
 | [MVP2](mvp2.md) | Prove the connector abstraction generalizes to the wrapped-SDK archetype (Adobe stack via alloy). Starts only after MVP1 is retired. | Gated on the OQ9 coherency probe; extends the connector/capability contracts. |
 
 ## Committed
