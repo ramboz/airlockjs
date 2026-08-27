@@ -1,5 +1,5 @@
 ---
-status: IN_PROGRESS
+status: DONE
 skill:
 use_cases: [UC-1, UC-2, UC-3]
 ---

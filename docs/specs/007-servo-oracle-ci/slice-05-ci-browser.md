@@ -1,10 +1,9 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [007-02, 007-03, 007-04]
 last_verified: 2026-08-27
 arch_review: true
 frame_review: true
-claimed_by: claude/airlock-servo-oracle-ci-6b13d9
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): factual claims about runnable
