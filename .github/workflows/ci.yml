@@ -1,0 +1,56 @@
+# Hermetic CI — spec 007-04. Runs the deterministic, credential-free oracle
+# (vitest unit suite + the ga4_mp_conformance contracts validator) plus the
+# test:oracle gate-flip proof (007-01) on every push/PR. No secrets: the live
+# GA4 /debug/mp/collect check (contracts/mp-live-check.mjs) is NOT run here —
+# it needs measurement_id/api_secret and self-skips without an endpoint; the
+# browser rigs (Playwright/Lighthouse, including the 07-02 isolation assert)
+# are out of scope for this slice and land in 07-05.
+name: ci
+
+# Least privilege: this hermetic gate only reads the repo (07-04 craft review).
+permissions:
+  contents: read
+
+# Cancel superseded runs on the same ref so a push+PR pair doesn't double-run
+# to completion (07-04 craft review).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  hermetic-oracle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          # Key the npm cache on BOTH lockfiles so a contracts/ dep change
+          # invalidates it too (07-04 craft review).
+          cache-dependency-path: |
+            package-lock.json
+            contracts/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Unit tests (vitest)
+        run: npm test
+
+      - name: Oracle gate-flip proof (ga4_mp_conformance)
+        run: npm run test:oracle
+
+      - name: Install contracts dependencies
+        working-directory: contracts
+        run: npm ci
+
+      - name: Validate contracts (ga4_mp_conformance golden fixtures)
+        working-directory: contracts
+        run: npm run validate

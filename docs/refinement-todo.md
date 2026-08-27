@@ -97,5 +97,12 @@
 ## Operations
 
 ### Decision: CI/CD setup
-**Deferred:** No CI configured (scaffolded with `--no-ci`). (Still open.)
+**Deferred:** No CI configured (scaffolded with `--no-ci`).
 **Resolution trigger:** First spec that crosses a deploy boundary; also required before servo unattended loops can run the GA4 conformance oracle in CI (drive-order step 9, GA4 route).
+**Partially resolved (spec 007-04):** the **hermetic core** CI landed —
+`.github/workflows/ci.yml` runs `npm ci` + `npm test` + `npm run test:oracle`
+(the `ga4_mp_conformance` gate-flip proof) + the `contracts` validator on every
+push/PR, credential-free (no secrets). **Remaining:** the **browser** CI stage
+(Playwright/chromium + Lighthouse rigs + the 07-02 isolation gate + the advisory
+`cwv_budget`) lands in **007-05**. Note: verified offline via local step runs +
+`act -n` (Docker-not-running); a live GitHub Actions run has not been executed.
