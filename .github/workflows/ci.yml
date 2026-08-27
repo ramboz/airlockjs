@@ -54,3 +54,66 @@ jobs:
       - name: Validate contracts (ga4_mp_conformance golden fixtures)
         working-directory: contracts
         run: npm run validate
+
+  # Browser CI — spec 007-05. A SEPARATE job from hermetic-oracle (AC3): a
+  # chromium-install failure or browser flake here must not block the fast
+  # hermetic gate above. No `needs:` coupling to hermetic-oracle on purpose.
+  #
+  # Gates on two structural asserts (07-02 real-Worker isolation, UC-1
+  # no-flicker + conformant exposure beacon); reports the cwv_budget
+  # statistical rigs as advisory (07-03) — continue-on-error, per the
+  # slice's wiring caveat (cwv:budget exits 1 on an over-budget miss, and
+  # its advisory nature lives in the CI step, not the script).
+  browser-oracle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            contracts/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install Playwright chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: GATING — real-Worker isolation invariant (07-02)
+        run: npm run rig:isolation
+
+      - name: GATING — UC-1 no-flicker + conformant exposure beacon (005-01)
+        run: npm run rig:uc1
+        env:
+          # A slow shared runner needs more headroom than local dev for the
+          # airlock-boot wait + beacon poll (07-05 robustness pass;
+          # rig/uc1.mjs defaults to the original 20000/8000ms locally).
+          UC1_BOOT_TIMEOUT_MS: "60000"
+          UC1_BEACON_TIMEOUT_MS: "20000"
+
+      - name: ADVISORY — cwv_budget (Lighthouse + INP delta + drain delivery, 07-03)
+        # Advisory only (spec.md routing table) — cwv:budget exits 1 on a
+        # budget miss, so continue-on-error is REQUIRED here or a statistical
+        # drift would fail this job (07-05 wiring caveat). Do NOT add this to
+        # the gating steps above.
+        # `mkdir -p rig/out` decouples this from rig:uc1 having created the dir;
+        # `tee` keeps the report visible in the Actions log AND uploaded as an
+        # artifact (a human-readable text table — .txt, not JSON). GHA's default
+        # `pipefail` preserves cwv:budget's exit code through the pipe, so an
+        # over-budget miss still annotates the step (then continue-on-error keeps
+        # the job green). 07-05 compliance/craft/arch review.
+        continue-on-error: true
+        run: mkdir -p rig/out && npm run cwv:budget | tee rig/out/cwv-report.txt
+
+      - name: Upload rig artifacts (AC4 — scoreboard + challenger screenshot)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-oracle-artifacts
+          path: rig/out/
+          if-no-files-found: warn

@@ -96,13 +96,21 @@
 
 ## Operations
 
-### Decision: CI/CD setup
-**Deferred:** No CI configured (scaffolded with `--no-ci`).
+### ~~Decision: CI/CD setup~~ — RESOLVED 2026-08-27 (spec 007)
+~~**Deferred:** No CI configured (scaffolded with `--no-ci`).~~
 **Resolution trigger:** First spec that crosses a deploy boundary; also required before servo unattended loops can run the GA4 conformance oracle in CI (drive-order step 9, GA4 route).
-**Partially resolved (spec 007-04):** the **hermetic core** CI landed —
-`.github/workflows/ci.yml` runs `npm ci` + `npm test` + `npm run test:oracle`
-(the `ga4_mp_conformance` gate-flip proof) + the `contracts` validator on every
-push/PR, credential-free (no secrets). **Remaining:** the **browser** CI stage
-(Playwright/chromium + Lighthouse rigs + the 07-02 isolation gate + the advisory
-`cwv_budget`) lands in **007-05**. Note: verified offline via local step runs +
-`act -n` (Docker-not-running); a live GitHub Actions run has not been executed.
+**Resolved (spec 007-04 + 007-05):** `.github/workflows/ci.yml` runs two jobs on
+every push/PR, credential-free (no secrets), routed per
+[ADR-0005](decisions/adr-0005-oracle-design.md):
+- **`hermetic-oracle`** (07-04): `npm ci` + `npm test` + `npm run test:oracle`
+  (the `ga4_mp_conformance` gate-flip proof) + the `contracts` validator — the
+  fast, browser-free hermetic gate.
+- **`browser-oracle`** (07-05): installs Playwright/chromium; **gates** on
+  `rig:isolation` (07-02) + `rig:uc1` (flicker); runs `cwv_budget` **advisory**
+  (`continue-on-error`); uploads the CWV scoreboard + OQ6 challenger screenshot
+  as artifacts. A separate job, so a chromium-install failure never blocks the
+  hermetic gate.
+**Caveat:** verified **offline** — YAML valid, all step commands green locally,
+seeded-regression demos red→restored, `act -n` reached Docker-not-running. **A
+live GitHub Actions run has NOT been executed;** the first push should confirm
+the "job appears in Actions and completes" observable (spec A2).

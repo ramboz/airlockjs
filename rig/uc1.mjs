@@ -44,6 +44,14 @@ const ROOT = join(REPO, "probes/eds-testbed"); // the SERVED root, as under aem 
 const OUT_DIR = join(REPO, "rig/out");
 const CHALLENGER_SHOT = join(OUT_DIR, "uc1-challenger.png");
 
+// Env-configurable timeouts (07-05 CI robustness pass): defaults are the
+// ORIGINAL hardcoded values (backward-compatible — local behavior unchanged).
+// A slow shared CI runner needs more headroom for the airlock-boot wait and
+// the beacon poll than a local dev machine, so the browser CI job overrides
+// these via env rather than this script hardcoding a CI-sized value.
+const BOOT_TIMEOUT_MS = Number(process.env.UC1_BOOT_TIMEOUT_MS || 20000);
+const BEACON_TIMEOUT_MS = Number(process.env.UC1_BEACON_TIMEOUT_MS || 8000);
+
 // Hermetic conformance oracle (the same schema the worker maps against).
 const validate = new Ajv2020({ allErrors: true, strict: false }).compile(
   JSON.parse(readFileSync(new URL("../contracts/ga4-mp-request.schema.json", import.meta.url))),
@@ -113,13 +121,13 @@ async function runArm(variant, screenshotPath) {
     .waitForFunction(
       () => (window.__flicker && window.__flicker.events.some((e) => e.name === "airlock:init"))
         || window.__airlockBootFailed !== undefined,
-      { timeout: 20000 },
+      { timeout: BOOT_TIMEOUT_MS },
     )
     .catch(() => {});
 
   // Force-drain the exposure push (boot pushed it into the ring), then wait for its beacon.
   await page.evaluate(() => window.airlock && window.airlock.flushNow());
-  const deadline = Date.now() + 8000;
+  const deadline = Date.now() + BEACON_TIMEOUT_MS;
   while (Date.now() < deadline && !beacons.some((b) => b.name === "experiment_impression")) {
     await page.waitForTimeout(50);
   }
