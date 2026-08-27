@@ -1,0 +1,14 @@
+{
+  "servo_version": "0.1.0",
+  "timestamp": "2026-08-27T19:12:09Z",
+  "installed_tier": "tier-0",
+  "signals": {
+    "tests": true,
+    "lint": false,
+    "ci": true,
+    "language": "javascript"
+  },
+  "components": [
+    "vitest"
+  ]
+}

@@ -32,11 +32,14 @@ ADR-0001) from documented intent into an enforced, runnable invariant.
 2. **A clean connector is unaffected.** A DOM-free connector runs to completion
    in the same path, so the test discriminates (it is not vacuously throwing on
    all input). Observable: the positive-control assertion passes.
-3. **The check is wired as a gating oracle component.** `isolation_invariant`
-   is registered in `oracle.sh` (and `.servo/` metadata) as a
-   servo-unattended, blocking component that runs this test; a regression that
-   somehow exposed `document` to the chamber would flip the oracle verdict to
-   fail. Observable: the component's verdict line and exit code.
+3. **The check is wired as a gating oracle component.** A
+   `score_isolation_invariant()` function (own `# SEED:start/end` block in
+   [oracle.sh](../../../oracle.sh)) runs this test and returns `1.0`/`0.0`; it
+   is registered in the `COMPONENTS` array (`isolation_invariant:<weight>`,
+   servo-unattended/gating) and reflected in `.servo/install.json`. A
+   regression that exposed `document` to the chamber flips the composite below
+   `THRESHOLD` → `oracle.sh` exits non-zero. Observable: the score line and
+   `bash oracle.sh` exit code.
 
 **DoD:**
 - [ ] All ACs pass; full test suite green (`npm test`).

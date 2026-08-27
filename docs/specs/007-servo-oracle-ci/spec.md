@@ -59,12 +59,18 @@ and CI does not exist, so these surfaces cannot be run today). Each is marked
 so the frame-critique pass fires where it should; each slice re-grounds its own
 before implementation.
 
-- **A1 — `/servo:scaffold-init` emits a wireable `oracle.sh`.** The three
-  component slices assume the scaffolder produces an `oracle.sh` with a
-  component-append convention (a place to register `ga4_mp_conformance` /
-  `isolation_invariant` / `cwv_budget` and a per-component pass/fail verdict).
-  Unverifiable until step 2 runs. If the emitted shape differs, the slices
-  adapt to it rather than the reverse.
+- **A1 — RESOLVED 2026-08-27.** `/servo:scaffold-init` was run; the emitted
+  [oracle.sh](../../../oracle.sh) is a **weighted-composite** Tier-0 template:
+  each component is a `score_<name>()` shell function returning a score in
+  `[0.0, 1.0]`, registered as a `"<name>:<weight>"` entry in the `COMPONENTS`
+  array, inside `# SEED:start/end <name>` splice blocks; the composite is a
+  weighted average gated on `THRESHOLD` (exit 0 ≥, 1 <, 2 env-error). **Key
+  consequence for routing:** every entry in `COMPONENTS` feeds the *gating*
+  composite — there is no built-in non-gating tier. So the two hermetic
+  components (07-01/07-02) register as normal `score_*` gating components, but
+  `cwv_budget` (07-03, jig-supervised) must **not** be a `COMPONENTS` entry —
+  it runs as a **separate advisory invocation** so it never feeds the
+  servo-unattended composite (see 07-03 AC2).
 - **A2 — GitHub Actions can install chromium for the browser rigs.** The
   browser-CI slice assumes Actions can install Playwright/chromium and run the
   Lighthouse rigs headless. Standard, but unproven in this repo (only

@@ -27,16 +27,18 @@ Measurement-Protocol conformance.
 
 **Acceptance Criteria:**
 
-1. **The oracle component runs the hermetic validator and gates on it.**
-   Invoking the `ga4_mp_conformance` component through `oracle.sh` executes
-   `contracts/validate.mjs` and exits **non-zero** iff any golden fixture fails
-   to validate or any negative control unexpectedly passes. Observable: the
-   component's verdict line and exit code.
-2. **The component is registered as servo-unattended-strong.** The component is
-   wired into `oracle.sh` (and reflected in `.servo/` metadata) as a gating,
-   deterministic component — not advisory. Observable: `oracle.sh` lists it
-   among the blocking components; a seeded broken fixture flips the whole
-   oracle verdict to fail.
+1. **The oracle component runs the hermetic validator and gates on it.** A
+   `score_ga4_mp_conformance()` function (in its own `# SEED:start/end
+   ga4_mp_conformance` block in [oracle.sh](../../../oracle.sh)) runs
+   `contracts/validate.mjs` and returns `1.0` when all 4 goldens validate and
+   negative controls are rejected, `0.0` otherwise. Observable: the score line;
+   a seeded broken fixture drops the composite below `THRESHOLD` so `oracle.sh`
+   exits non-zero.
+2. **The component is registered as a gating, servo-unattended entry.** It is
+   added to the `COMPONENTS` array as `ga4_mp_conformance:<weight>` (feeding the
+   gating composite — the Tier-0 template has no non-gating tier; spec.md A1),
+   and reflected in `.servo/install.json`. Observable: `bash oracle.sh` invokes
+   the component; the seeded-failure run flips the whole oracle verdict to fail.
 3. **The live `/debug/mp/collect` check exists as a non-blocking complement.**
    A separate check posts a golden payload to GA4's MP validation endpoint and
    reports `validationMessages`, but its result **never gates** the oracle

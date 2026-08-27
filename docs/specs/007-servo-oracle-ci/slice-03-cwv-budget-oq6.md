@@ -42,13 +42,16 @@ servo-unattended gate.
    Observable: the component reads the rig outputs and reports each metric
    against its pinned budget. The exact pinned values are recorded as a
    lightweight decision (or folded into the OQ6 ADR).
-2. **The component is routed jig-supervised, not servo-unattended.** It is
-   registered in `oracle.sh` / `.servo/` as an **advisory** (non-gating for the
-   servo-unattended loop) measurement surface — its statistical, rIC-protected
-   nature means a threshold miss surfaces for human judgment rather than
-   auto-failing a variant race. Observable: `oracle.sh` classifies it as
-   supervised; `/servo:edd-suitability` does not mark the CWV route
-   EDD-suitable.
+2. **The component is routed jig-supervised, not servo-unattended.** Because
+   every `COMPONENTS` entry in the Tier-0 [oracle.sh](../../../oracle.sh) feeds
+   the *gating* composite (spec.md A1), `cwv_budget` is **deliberately NOT added
+   to `COMPONENTS`**. Instead it runs as a **separate advisory invocation** (its
+   own script — e.g. `bash cwv-budget.sh` or an `oracle.sh --advisory`-style
+   entry point that reports but never feeds the gating composite), so a
+   statistical, rIC-protected threshold miss surfaces for human judgment rather
+   than auto-failing a servo-unattended variant race. Observable: `bash
+   oracle.sh`'s gating verdict is unchanged whether `cwv_budget` passes or
+   misses; `/servo:edd-suitability` does not mark the CWV route EDD-suitable.
 3. **OQ6 is resolved and recorded.** The structural no-flicker invariant
    ([rig/uc1.mjs](../../../rig/uc1.mjs): exp-applied before `body:appear`, both
    arms) is confirmed automated and wired; the **perceptual** half (screenshot
