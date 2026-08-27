@@ -1,9 +1,10 @@
 ---
-status: DRAFT
+status: READY_FOR_REVIEW
 dependencies: []
 last_verified:
 arch_review: true
 frame_review: true
+claimed_by: claude/airlock-servo-oracle-ci-6b13d9
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): factual claims about runnable

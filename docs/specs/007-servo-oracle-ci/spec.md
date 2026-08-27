@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 skill:
 use_cases: [UC-1, UC-2, UC-3]
 ---
@@ -106,16 +106,21 @@ before implementation.
   require real credentials — security MUST). If it cannot, the live check stays
   a local/manual complement and only the hermetic half gates CI.
 - **A4 — the spike's numbers are the pinning basis, pinned as DELTAS not
-  absolutes** (revised per 07-03 frame-critique). `cwv_budget` thresholds are
-  pinned from spec 003's recorded measurements (worker INP p75 8ms vs the
-  naive/rIC baselines on the same page, 300/300 drain-stage delivery, TBT 0 /
-  CLS 0). Spec 003 itself declares absolute INP machine-dependent and only the
-  *delta between two runtimes on the same page* load-bearing (003/spec.md:56-57,
-  R-005). So INP is budgeted as a **same-run delta vs a control**
-  ([rig/measure.mjs](../../../rig/measure.mjs) already runs baseline+worker on
-  one page), never an absolute threshold checked on a different (CI-runner)
-  machine. The slice re-runs the rigs to confirm the delta still holds on the
-  current tree before pinning; if drifted, it is re-derived, not assumed.
+  absolutes** (revised per 07-03 frame-critique, both rounds). `cwv_budget`
+  thresholds are pinned from spec 003's recorded measurements (worker INP p75
+  8ms ties the rIC-deferred control; naive stack ~152 ms; 300/300 drain-stage
+  delivery; TBT 0 / CLS 0). Spec 003 declares absolute INP machine-dependent and
+  only the *delta between two runtimes* load-bearing (003/spec.md:56-57, R-005).
+  So INP is budgeted as a delta vs the rIC-deferred control — **but a
+  cross-invocation, median-of-N delta, not a same-run one**:
+  [rig/measure.mjs](../../../rig/measure.mjs) runs **one `MODE` per invocation**
+  (one browser, one page), so there is no same-run control+worker pair; the
+  slice builds a small pairing wrapper (run `MODE=deferred` and `MODE=worker`
+  ×N, extract each `inp_p75`, delta the medians) with a tolerance band sized to
+  swamp cross-run noise. No absolute INP threshold is pinned (it would go red on
+  CI-runner hardware, not on regression). The slice re-runs the rigs to confirm
+  the delta still holds on the current tree before pinning; if drifted, it is
+  re-derived, not assumed.
 
 ## Decomposition
 

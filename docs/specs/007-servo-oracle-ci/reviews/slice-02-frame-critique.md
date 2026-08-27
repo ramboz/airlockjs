@@ -1,10 +1,10 @@
 ---
-slice: 007-02 — `isolation_invariant` oracle component (build the structural assert)
+slice: 007-02 — `isolation_invariant` real-Worker assert (browser realm; run in CI by 07-05)
 pass: frame-critique
-verdict: needs-changes
+verdict: pass
 reviewer: jig:reviewer
-reviewed_at: 2026-08-27T19:52:28Z
-prompt_source: review.py frame-critique
+reviewed_at: 2026-08-27T20:14:45Z
+prompt_source: review.py frame-critique (re-review round 3)
 ---
 
-Frame-critique attacked the hermetic-isolation-test premise. FINDING (needs-changes): asserting "a connector touching document throws inside the chamber" via Node/vitest is vacuous. (1) No jsdom/happy-dom in devDeps and no @vitest-environment directive, so tests run in Node where document/window are absent — a document-touch throws because NODE has no DOM, not because the chamber strips it; it would pass even with the airlock removed. The guarantee ADR-0001 pins (Worker-scope-lacks-document vs main-thread-has-document) is exactly what a Node process cannot exhibit. (2) core/chamber.worker.js statically imports one pure function (mapToMp) via self.onmessage — no dynamic connector-loading seam to exercise, and it cannot run under Node (self/performance/postMessage). (3) No-DOM is a browser-platform property, not airlock source, so the AC3 regression + DoD mutation test have no well-defined target — a runnable-but-hollow gate. Resolution: either move the faithful assert to a real Worker/browser realm (07-05 territory, reclassifying it off servo-unattended-hermetic), or honestly re-scope the hermetic claim (e.g. a static source-level DOM-free check) and drop the "exercises the chamber boundary / catches isolation regression" language. Note: MVP1's chamber runs one pure first-party fn; arbitrary-connector runtime isolation is an MVP2 (wrapped-SDK) concern.
+Final re-review after mechanism-naming clarification. VERDICT PASS. The revised AC1 names a mechanically coherent mechanism consistent with the DoR, verified against source: core/chamber.worker.js:24 assigns self.onmessage at module top level, so a wrapper module `import`ing the UNMODIFIED chamber runs that side effect and registers the handler for AC2's positive control — no chamber edit required. All ES modules loaded into one Worker share a single WorkerGlobalScope, so a bare `document` reference in the wrapper throws ReferenceError in the exact realm that later runs mapToMp (connectors/ga4/map.js, a pure module loadable unbundled). AC1 (wrapper import + bare deref, no chamber edit) and the DoR (load the wrapper, not chamber.worker.js directly) no longer contradict. NO frame flaws remain. Two under-documented implementation details (not frame flaws, for 07-05/implementation): the wrapper lives in rig/ and its relative import chain (rig -> ../core/chamber.worker.js -> ../connectors/ga4/map.js) requires all three trees served under one root; AC1's "asserting it throws" implies a try/catch around the bare reference so evaluation completes and the throw is reported. The reframe (Node-hermetic -> real-Worker browser rig, not an oracle.sh COMPONENTS entry) is captured in the slice header banner + AC3; no new deviation.
