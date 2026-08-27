@@ -1,10 +1,9 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [004-02, adr-0003]
 last_verified: 2026-08-26
 arch_review: true
 frame_review: true
-claimed_by: claude/airlock-build-continue-f9ad85
 ---
 
 ## Slice 004-03 — GA4 ctx from `_ga` cookies (mediated cookie capability)
