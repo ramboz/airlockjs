@@ -24,10 +24,17 @@
  * and the outbound-link / closing-`page_view` unload-critical `pushCritical` fast
  * path (ADR-0004). Boot still does NOT auto-capture a page_view, and the collect
  * endpoint stays the placeholder (no live GA4 measurement_id/api_secret ships here).
+ *
+ * Exposure wiring (005-01): boot also installs the UC-1 above-the-fold exposure
+ * capture (`wireExposure`) — read the applied `body[data-experiment]`/`[data-variant]`
+ * durable state at lazy boot and `push` a single `experiment_impression`, plus a live
+ * `aem:experimentation` listener for a post-boot experiment (deduped). Decisioning
+ * stays `aem-experimentation`'s; the airlock only reports the exposure.
  */
 import { createAirlock } from "../../core/airlock.js";
 import { sourceGa4Ctx } from "../../connectors/ga4/cookies.js";
 import { createCookieCapability } from "./cookies.js";
+import { createExposureReporter } from "./exposure.js";
 
 /** Placeholder collect endpoint — the live GA4 MP URL (measurement_id/api_secret)
  *  is deferred; no real GA4 credentials ship in this slice. */
@@ -154,6 +161,44 @@ export function wireInteractions(handle, io = {}) {
 }
 
 /**
+ * Wire the UC-1 above-the-fold exposure capture on an EDS page (slice 005-01, AC1+AC2).
+ * Decisioning stays `aem-experimentation`'s (the local decision-source driver,
+ * Clarification Q4); the airlock only REPORTS the exposure:
+ *
+ *   - AC1 (eager page-level): read the durable `body[data-experiment]`/`[data-variant]`
+ *     state (set in the eager window before `appear`, which the lazy boot would miss
+ *     as an event) and `push({ event: "experiment_impression", experiment_id,
+ *     variant_id })`.
+ *   - AC2 (post-boot): a live `aem:experimentation` listener reports an experiment
+ *     applied AFTER boot, de-duplicated against the boot read via ONE shared `seen` Set.
+ *
+ * Exposure takes the steady-state `push()` (worker cycle) — analytics is lazy (AD-8),
+ * the exposure already HAPPENED pre-paint (no-flicker), reporting it a few ms later is
+ * the analytics-is-lazy contract, not a correctness gap (spec 005 Assumptions).
+ *
+ * Guarded like wireInteractions: a no-op off a real page (node/SSR — no `document` or
+ * no `addEventListener`), null-safe inside (missing body/dataset/detail → no-op), and
+ * double-wire-guarded (`doc.__airlockExposureWired`) — a second boot must NOT
+ * re-report the eager exposure (a fresh `seen` Set) or stack a second listener, which
+ * would double-count the impression (the measurement-critical count — review 005-01).
+ *
+ * @param {{ push: Function }} handle the airlock write surface.
+ * @param {{ doc?: Document }} [io] injectable DOM handle (test seam).
+ */
+export function wireExposure(handle, io = {}) {
+  const doc = io.doc || (typeof document !== "undefined" ? document : undefined);
+  if (!doc || typeof doc.addEventListener !== "function") return;
+  if (doc.__airlockExposureWired) return; // never double-report/double-listen
+  doc.__airlockExposureWired = true;
+
+  const reporter = createExposureReporter(handle, { seen: new Set() });
+  reporter.reportFromBody(doc); // AC1: eager page-level exposure from durable body state
+  doc.addEventListener("aem:experimentation", (e) =>
+    reporter.onAemExperimentation(e && e.detail),
+  ); // AC2: post-boot exposure, deduped against the boot read
+}
+
+/**
  * Boot the airlock analytics runtime for an EDS page.
  *
  * Note (recorded, accepted for this slice): boot is once-per-page by design — a
@@ -209,6 +254,10 @@ export async function bootEdsAnalytics(opts = {}) {
   // it is safe to call unconditionally at boot. The adapter owns both senders here,
   // so the push()-XOR-pushCritical() rule holds by construction (ADR-0004).
   wireInteractions(handle);
+
+  // 005-01 AC1+AC2: report the applied above-the-fold experiment exposure (read from
+  // the durable body dataset at boot + a live aem:experimentation listener, deduped).
+  wireExposure(handle);
 
   return handle;
 }
