@@ -4,7 +4,7 @@
 // per-interaction latency distribution. The GA4 endpoint is stubbed (route
 // interception), so no real network or credentials are needed.
 //
-// Usage: MODE=baseline|worker EVENTS=10 WORK=50 CLICKS=60 GAP=40 node rig/measure.mjs
+// Usage: MODE=naive|deferred|worker EVENTS=10 WORK=50 CLICKS=60 GAP=40 node rig/measure.mjs
 import http from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";

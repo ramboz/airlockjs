@@ -32,9 +32,10 @@
 **Deferred:** A no-go for MVP1, but where it eventually lives (orchestrator, main thread) and how connectors get scoped access.
 **Resolution trigger:** When identity resolution leaves the no-go list (post-MVP2).
 
-### OQ6 — Flicker oracle design
-**Deferred:** Screenshot-diff between pre- and post-decoration paint vs a CLS-after-apply proxy. A servo oracle-component question; the proxy-gap here is why the PZN demo item stays jig-supervised. This is also where the before/after CWV scoreboard (the "punchline" use case) becomes a pinned measurement surface (analyze finding #7).
+### ~~OQ6 — Flicker oracle design~~ — RESOLVED 2026-08-27
+~~**Deferred:** Screenshot-diff between pre- and post-decoration paint vs a CLS-after-apply proxy. A servo oracle-component question; the proxy-gap here is why the PZN demo item stays jig-supervised. This is also where the before/after CWV scoreboard (the "punchline" use case) becomes a pinned measurement surface (analyze finding #7).~~
 **Resolution trigger:** When designing the servo oracle components for the spike (drive-order step 8).
+**Resolved by:** [ADR-0005: Servo oracle design: AND-gate, isolation routing, and flicker (OQ6)](decisions/adr-0005-oracle-design.md).
 
 ### OQ7 — Inspector scope in MVP1
 **Deferred:** How much of the "why did this beacon fire / hold at the seal / get gated" panel ships in MVP1 vs later.
@@ -91,7 +92,7 @@
 ### Decision: Testing framework — RESOLVED (vitest)
 **Was deferred:** No signal from the initial pitch.
 **Now:** **vitest**, per product-vision § Stack and architecture § Tech stack. Servo-scored oracle components live under `test/`.
-**Remaining:** exact vitest config and the servo `oracle.sh` component wiring (`ga4_mp_conformance`, `cwv_budget`, `isolation_invariant`) — land with the spike spec (drive-order steps 7–8).
+**Landed (spec 007):** vitest config (`vitest.config.js` + `vitest.oracle.config.js`) and the oracle components. Per [ADR-0005](decisions/adr-0005-oracle-design.md), the three are **not** all `oracle.sh` `COMPONENTS` entries: only **`ga4_mp_conformance`** is a hermetic servo-unattended gating component (`oracle.sh`); **`isolation_invariant`** is a real-Worker browser-CI rig (`npm run rig:isolation`, gates the CI job, not the composite); **`cwv_budget`** is a jig-supervised **advisory** invocation (`npm run cwv:budget`, never in `COMPONENTS`). Do not add `cwv_budget`/`isolation_invariant` to the gating array.
 
 ## Operations
 

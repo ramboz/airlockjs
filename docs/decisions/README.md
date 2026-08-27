@@ -11,6 +11,7 @@
 - [ADR-0002: Event descriptor shape and cycle semantics](adr-0002-event-descriptor-cycle-semantics.md) — This decision defines the event descriptor, the append-only event log, the cycle by which batches cross the airlock *to* the worker, and the capture ring-buffer overflow policy (OQ2). (2026-08-25, Accepted)
 - [ADR-0003: Projection snapshot read boundary](adr-0003-projection-snapshot-privacy.md) — A connector reads across two channels, and the security thesis holds only if both are governed. (2026-08-25, Accepted)
 - [ADR-0004: Egress dispatch and delivery model](adr-0004-egress-dispatch-delivery.md) — [ADR-0002](./adr-0002-event-descriptor-cycle-semantics.md) fixed the event descriptor, the append-only log, and the cycle that carries batches *to* the worker — and deliberately stopped at the worker boundary, deferring the entire **egress** model (dispatch location, delivery under interaction-storm load, the aggregate keepalive budget, and the unload / last-beacon path) to [OQ10](../refinement-todo.md). (2026-08-26, Accepted)
+- [ADR-0005: Servo oracle design: AND-gate, isolation routing, and flicker (OQ6)](adr-0005-oracle-design.md) — Spec 007 (drive-order steps 8–9) wires the three servo oracle components named in [architecture.md:65](../architecture.md) and stands up CI, so a servo-unattended loop has a runnable truth-source. (2026-08-27, Accepted)
 
 ## Format
 

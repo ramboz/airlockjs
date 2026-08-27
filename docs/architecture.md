@@ -62,7 +62,7 @@ Feeds `/jig:contracts`. Five surfaces, in priority order:
 4. **The capability API** — what the orchestrator grants across the airlock (mediated DOM injection, mediated egress) and how scopes are declared.
 5. **The seam driver interfaces** — decision-source and egress driver contracts.
 
-> **Measurement surface (not a caller-facing API).** The before/after CWV scoreboard — the "punchline" success criterion in product-vision § Use cases — doubles as the servo oracle. Its measurement contract (INP threshold, Lighthouse score, the `ga4_mp_conformance` / `cwv_budget` / `isolation_invariant` oracle components) is not a public interface but must be pinned before the spike loop runs; tracked as OQ6.
+> **Measurement surface (not a caller-facing API).** The before/after CWV scoreboard — the "punchline" success criterion in product-vision § Use cases — doubles as the servo oracle. Its measurement contract (INP threshold, Lighthouse score, the `ga4_mp_conformance` / `cwv_budget` / `isolation_invariant` oracle components) is not a public interface but must be pinned before the spike loop runs; tracked as OQ6. **Resolved by spec 007 / [ADR-0005](decisions/adr-0005-oracle-design.md):** the three are routed by oracle strength — `ga4_mp_conformance` is the hermetic servo-unattended gate (`oracle.sh`, AND-gated at `THRESHOLD=1.0`), `isolation_invariant` is a real-Worker browser-CI rig, and `cwv_budget` is a jig-supervised advisory invocation (not in the gating composite; INP pinned as a cross-invocation delta, not an absolute).
 
 ## Core architecture decisions
 

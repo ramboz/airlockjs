@@ -46,6 +46,13 @@ the heavier pipeline the MVP1 plan flags as the browser-automation rabbit hole
    the **CI job exit**; they are not `oracle.sh` `COMPONENTS` entries (spec.md
    routing table). Observable: a seeded isolation regression fails; a seeded
    flicker regression fails; a seeded small budget drift is reported, not failed.
+
+   > **Wiring caveat (07-03 arch handoff): `npm run cwv:budget` exits `1` when
+   > over-budget.** Its advisory (non-gating) nature is NOT in the script — the
+   > script exits non-zero on a budget miss. So the `cwv:budget` CI step MUST be
+   > `continue-on-error: true` (or run with `|| true` / a captured exit code that
+   > only annotates), or an advisory budget miss would fail the browser job. The
+   > gating steps (`rig:isolation`, `rig:uc1`) must NOT get `continue-on-error`.
 3. **The browser stage is isolated from the hermetic gate.** The browser job's
    flakiness or a chromium-install failure does not block the hermetic core
    job's verdict (they are separate jobs / clearly separable). Observable: the

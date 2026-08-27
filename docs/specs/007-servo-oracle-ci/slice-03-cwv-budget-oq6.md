@@ -1,7 +1,7 @@
 ---
-status: READY_FOR_REVIEW
+status: RECONCILED
 dependencies: []
-last_verified:
+last_verified: 2026-08-27
 arch_review: true
 frame_review: true
 claimed_by: claude/airlock-servo-oracle-ci-6b13d9
@@ -91,26 +91,91 @@ servo-unattended gate.
      vitest test, which is vacuous — 07-02 frame-critique).
 
 **DoD:**
-- [ ] All ACs pass; rigs run green on the current tree; `npm test` green.
-- [ ] The budget check is shown to flip red on a seeded over-budget input
-      (e.g. an injected CLS regression) **and** on a seeded INP-delta regression,
-      then restored (capable of failing on the delta, not just absolutes).
-- [ ] Oracle-design ADR authored and accepted; `refinement-todo.md` OQ6 →
-      RESOLVED and the servo `refinement-todo` Threshold entry → RESOLVED.
-- [ ] Reviewed by `reviewer` subagent (compliance + craft; arch pass, since
-      `arch_review: true`).
-- [ ] Deviation log + reconciliation sweep produced under this slice heading.
-- [ ] `docs/refinement-todo.md` updated (OQ6 resolution + any new deferral).
+- [x] All ACs pass; `npm run cwv:budget` exits 0 on the current tree
+      (TBT/CLS/INP-delta/delivery all within budget); `npm test` green (119).
+- [x] The budget check flips red on a seeded CLS regression (`+0.05` → exit 1)
+      **and** on a seeded INP-delta regression (worker `+100ms` → exit 1), then
+      restored (capable of failing on the delta, not just absolutes).
+- [x] Oracle-design ADR authored + accepted (ADR-0005); `refinement-todo.md`
+      OQ6 → RESOLVED; servo `.servo/refinement-todo.md` Threshold → RESOLVED
+      (in 07-01).
+- [x] Reviewed by `reviewer` subagent (compliance + craft + arch, all pass;
+      ADR-0005 frame-critique pass; nits hardened post-review).
+- [x] Deviation log + reconciliation sweep produced under this slice heading.
+- [x] `docs/refinement-todo.md` updated (OQ6 resolved; stale wiring line
+      corrected to ADR-0005 routing).
+
+### Deviation log (after reconciliation)
+
+The original ACs are preserved above. What changed / notable choices:
+
+1. **`cwv_budget` is a standalone advisory `rig/cwv-budget.mjs` (`npm run
+   cwv:budget`)**, deliberately NOT in `oracle.sh` `COMPONENTS` (AC2). It spawns
+   the existing rigs (`measure.mjs` ×N under `MODE=deferred`/`worker`,
+   `lh-eds.mjs`, `teardown.mjs`) via `execFileSync` and budgets: INP p75 as a
+   cross-invocation median-of-N delta vs the rIC-`deferred` control within a
+   ±30ms band; TBT before/after ≤50ms; CLS ≤0.01; drain-stage delivery ≥99%.
+   Exit 0 all-pass / 1 any-fail — advisory reporting only.
+2. **Drain-stage delivery is sourced from the `MODE=worker` storm runs**
+   (`egress_requests / expected_egress`), with `teardown.mjs` used only for the
+   `pushCritical` fast-path + ring-tail scenarios — faithful to the AC (storm
+   300/300 + fast-path/ring-tail full count) and deliberately excluding the
+   OQ10 enqueued-last-beacon teardown loss (out of scope).
+3. **INP seed via stubbing the worker median, not bumping `WORK`.** `WORK` is
+   handed to the off-main-thread worker (`core/airlock.js`) and does not inflate
+   *main-thread* INP, so bumping it would produce no regression signal (a false
+   demo). Used the spec's offered alternative (stub the worker median).
+4. **Oracle-design ADR-0005 authored + accepted** (AC3), recording the three
+   settled decisions (AND-gate, isolation reclassification, OQ6 flicker routing)
+   each with rejected alternative + the pinned CWV budgets. Its frame-critique
+   added a "what the INP budget can and cannot detect" honesty paragraph
+   (±30ms band ~4× the 0–8ms signal → detects catastrophic collapse, not the
+   fine margin). OQ6 struck + Resolved-by ADR-0005; servo Threshold already
+   RESOLVED in 07-01.
+5. **Post-review hardening (craft/arch nits, fixed):** per-child
+   `CHILD_TIMEOUT_MS` (180s) on every `execFileSync` (no more indefinite hang on
+   a stalled chromium/build); `extractTrailingJSON`'s dead `start<0` guard
+   corrected to a real "no JSON found" throw; `teardown.mjs` scenarios looked up
+   by `scenario` label instead of brittle `results[1]`/`[2]` indices. Re-verified
+   `npm run cwv:budget` exits 0 after the changes.
+6. **Doc leak-vector fixes (arch nit):** `docs/refinement-todo.md` "Testing
+   framework" **Remaining** line no longer lists `cwv_budget`/`isolation_invariant`
+   as `oracle.sh` component wiring (it contradicted ADR-0005 — a future agent
+   could have read it as a TODO to add `cwv_budget` to the gate); it now states
+   the ADR-0005 routing. `architecture.md:65` gained an ADR-0005 pointer.
+   `slice-05` gained a `continue-on-error` wiring caveat (below).
+7. **07-05 handoff:** `npm run cwv:budget` exits 1 when over-budget, so its
+   non-gating nature is NOT in the script — 07-05's CI step MUST be
+   `continue-on-error` (recorded in slice-05 AC2). The gating browser checks
+   (`rig:isolation`, `rig:uc1`) must NOT be continue-on-error.
+8. **Deferred polish (logged, not fixed):** `rig/lh-eds.mjs` shells `npm run
+   build` with `stdio:"inherit"`, leaking the npm banner into its stdout — the
+   root cause of the `extractTrailingJSON` workaround; fixing lh-eds's stdout
+   hygiene (banner → stderr) so the helper can be retired is out of this slice's
+   core scope. Duplicated TBT/CLS budget literals (here + `lh-eds` `within_band`)
+   risk drift. Child-crash exits 1 identically to an over-budget FAIL (advisory
+   CI can't distinguish infra failure). The INP band is **symmetric** (`abs`) by
+   intent — a worker >30ms *faster* than control signals a measurement anomaly,
+   per ADR-0005 — though AC1's "must not exceed" wording reads one-sided.
+
+### Reconciliation sweep
+
+| Artifact | Disposition | Rationale |
+|----------|-------------|-----------|
+| `README.md` | `no-op` | Adds an advisory rig + an ADR; project front-door README unaffected. |
+| `docs/specs/README.md` | `deferred` | Regenerated by `workflow.py status-board` as the final close-out step (post-`DONE`), per the RECONCILED → commit → DONE → regen sequence; it legitimately lags until then. |
+| `docs/product-vision.md` | `no-op` | No product-scope/behavior change; the oracle-routing framing it already carries is unchanged. |
+| `docs/architecture.md` | `updated` | Added an [ADR-0005](../../decisions/adr-0005-oracle-design.md) pointer at the measurement-surface note (`:65`) recording the routing split (was: grouped the three as undifferentiated "oracle components"). |
+| `oracle.sh` / `.servo/install.json` | `no-op` | Deliberately untouched — `cwv_budget` stays OUT of `COMPONENTS` (AC2). Verified `git diff --stat oracle.sh` empty. |
+| `.servo/refinement-todo.md` | `no-op` | Threshold already RESOLVED in 07-01; nothing new here. |
+| Primer surfaces: `CLAUDE.md` / `AGENTS.md` / scaffold templates | `no-op` | Spec 007 still in flight (04/05 open); no close-out compression. |
+| `docs/inbox.md` | `no-op` | Nothing to park. |
+| `docs/refinement-todo.md` | `updated` | OQ6 struck + Resolved-by ADR-0005; the stale "Testing framework → oracle.sh component wiring" line corrected to the ADR-0005 routing (the arch-flagged doc leak vector). |
+| `docs/specs/007-servo-oracle-ci/slice-05-ci-browser.md` | `updated` | AC2 gained the `continue-on-error` wiring caveat for the advisory `cwv:budget` step (deviation-log item 7). |
+| `docs/decisions/**` / ADR index | `updated` | ADR-0005 authored, frame-critiqued, accepted; index regenerated. |
+| `docs/memory/**` | `no-op` | The INP-delta-vs-noise-floor and advisory-routing lessons are captured in ADR-0005 + this deviation log; not separately memory-worthy. |
 
 **Anti-horizontal-phasing check:** After this slice, the before/after CWV
 scoreboard — the demo's "punchline" — is a pinned, runnable measurement surface
 with explicit budgets, and the project's position on flicker oracle strength is
 recorded rather than left as an open question.
-
-### Deviation log (after reconciliation)
-
-_TBD at reconciliation._
-
-### Reconciliation sweep
-
-_TBD at reconciliation — regenerate the sweep table from the slice template._

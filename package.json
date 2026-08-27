@@ -17,7 +17,8 @@
     "rig:uc3": "node rig/uc3.mjs",
     "rig:isolation": "node rig/isolation.mjs",
     "lh": "node rig/lh.mjs",
-    "lh:eds": "node rig/lh-eds.mjs"
+    "lh:eds": "node rig/lh-eds.mjs",
+    "cwv:budget": "node rig/cwv-budget.mjs"
   },
   "devDependencies": {
     "ajv": "^8.17.1",
