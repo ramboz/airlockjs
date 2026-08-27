@@ -1,10 +1,9 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [004-01]
 last_verified: 2026-08-26
 arch_review: true
 frame_review: true
-claimed_by: claude/airlock-build-continue-f9ad85
 ---
 
 ## Slice 004-02 — bundle + lazy-phase boot + `push()` contract
