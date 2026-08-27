@@ -8,6 +8,7 @@
     "test": "vitest run",
     "rig": "node rig/measure.mjs",
     "rig:teardown": "node rig/teardown.mjs",
+    "rig:csp": "node rig/csp-probe.mjs",
     "lh": "node rig/lh.mjs"
   },
   "devDependencies": {

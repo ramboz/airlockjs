@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>airlock CSP probe (004-01)</title>
+    <!-- The CSP is delivered as an HTTP RESPONSE HEADER by rig/csp-probe.mjs,
+         faithful to the EDS boilerplate's move-to-http-header="true". -->
+  </head>
+  <body>
+    <button id="cta">cta</button>
+    <a id="out" href="/signup">signup</a>
+    <!-- NEGATIVE CONTROL: a non-nonce'd inline script. Under
+         `script-src 'nonce-aem' 'strict-dynamic'` the 'unsafe-inline' token is
+         ignored, so this MUST be blocked. If it runs, the CSP is not being
+         enforced and any "worker runs" verdict is a false positive. -->
+    <script>window.__cspControlRan = true;</script>
+    <script type="module" nonce="aem">
+      // Under `script-src 'nonce-aem' 'strict-dynamic'`, only this nonce'd script
+      // runs; its dynamic import() of the runtime should inherit trust. `new Worker`
+      // inside the runtime is the load-bearing question this probe answers.
+      window.__csp = {
+        violations: [],
+        errors: [],
+        importedRuntime: null,
+        workerConstructed: null,
+        workerError: null,
+        pushed: false,
+        ttPolicyInstalled: false,
+      };
+      document.addEventListener("securitypolicyviolation", (e) => {
+        window.__csp.violations.push({
+          violatedDirective: e.violatedDirective,
+          blockedURI: e.blockedURI,
+          sample: e.sample,
+        });
+      });
+      // Replicate the boilerplate's default Trusted Types policy so the Worker
+      // constructor's TrustedScriptURL sink is exercised exactly as on a real EDS
+      // page (scripts.js installs a `default` policy).
+      if (window.trustedTypes && window.trustedTypes.createPolicy) {
+        try {
+          window.trustedTypes.createPolicy("default", {
+            createHTML: (s) => s,
+            createScriptURL: (s) => s,
+            createScript: (s) => s,
+          });
+          window.__csp.ttPolicyInstalled = true;
+        } catch (e) {
+          window.__csp.errors.push("tt-policy: " + String(e));
+        }
+      }
+      const ctx = { clientId: "1234567890.1700000000", sessionId: "1724668790" };
+      const endpoints = ["https://t0.example/collect"];
+      try {
+        const mod = await import("../core/airlock.js");
+        window.__csp.importedRuntime = true;
+        let rt = null;
+        try {
+          rt = mod.createAirlock({ trackers: 1, workFactor: 0, endpoints, ctx });
+          window.__csp.workerConstructed = true;
+        } catch (e) {
+          window.__csp.workerConstructed = false;
+          window.__csp.errors.push("construct: " + String(e));
+        }
+        if (rt) {
+          // One event through the worker; a successful cycle -> orchestrator fetch
+          // (counted by the probe's route stub). Also probe the ADR-0004 fast path.
+          rt.push({ type: "page_view", params: { page_location: location.href } });
+          rt.flushNow?.();
+          rt.pushCritical?.({ type: "click", params: { link_url: "/signup" } });
+          window.__csp.pushed = true;
+        }
+      } catch (e) {
+        window.__csp.importedRuntime = false;
+        window.__csp.errors.push("import: " + String(e));
+      }
+      window.__cspReady = true;
+    </script>
+  </body>
+</html>
