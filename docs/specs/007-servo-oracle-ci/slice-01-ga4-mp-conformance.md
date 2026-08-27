@@ -27,18 +27,21 @@ Measurement-Protocol conformance.
 
 **Acceptance Criteria:**
 
-1. **The oracle component runs the hermetic validator and gates on it.** A
+1. **The oracle component runs the hermetic validator as a binary score.** A
    `score_ga4_mp_conformance()` function (in its own `# SEED:start/end
    ga4_mp_conformance` block in [oracle.sh](../../../oracle.sh)) runs
-   `contracts/validate.mjs` and returns `1.0` when all 4 goldens validate and
-   negative controls are rejected, `0.0` otherwise. Observable: the score line;
-   a seeded broken fixture drops the composite below `THRESHOLD` so `oracle.sh`
-   exits non-zero.
-2. **The component is registered as a gating, servo-unattended entry.** It is
-   added to the `COMPONENTS` array as `ga4_mp_conformance:<weight>` (feeding the
-   gating composite — the Tier-0 template has no non-gating tier; spec.md A1),
-   and reflected in `.servo/install.json`. Observable: `bash oracle.sh` invokes
-   the component; the seeded-failure run flips the whole oracle verdict to fail.
+   `contracts/validate.mjs` and returns exactly `1.0` when all 4 goldens
+   validate and negative controls are rejected, `0.0` otherwise. Observable: the
+   score line reads `1.0`/`0.0`, never a fraction.
+2. **The gate is an AND of binary checks — any 0.0 fails.** The component is
+   added to the `COMPONENTS` array as `ga4_mp_conformance:1.0`, and the
+   `THRESHOLD` default in `oracle.sh` is set to **`1.0`** (resolving the servo
+   `refinement-todo` Threshold deferral). Because the composite is a weighted
+   mean, `composite == 1.0` iff *every* component scores `1.0`, so a single `0.0`
+   drops it below `THRESHOLD` and `oracle.sh` exits non-zero — the weighted-mean
+   dilution 07-01 frame-critique caught is closed (spec.md Overview + A1).
+   Observable: with a seeded broken fixture, `bash oracle.sh` exits `1` (verdict
+   fail) even while `vitest` still scores `1.0`; restored, it exits `0`.
 3. **The live `/debug/mp/collect` check exists as a non-blocking complement.**
    A separate check posts a golden payload to GA4's MP validation endpoint and
    reports `validationMessages`, but its result **never gates** the oracle
@@ -60,6 +63,20 @@ Measurement-Protocol conformance.
       `arch_review: true`).
 - [ ] Deviation log + reconciliation sweep produced under this slice heading.
 - [ ] `docs/refinement-todo.md` updated if any decision was deferred.
+
+**Implementation notes (07-01 re-review, non-blocking):**
+- **Wrap `validate.mjs`'s exit code — do not let it propagate.**
+  `contracts/validate.mjs` exits `1` on failure / `0` on success and never
+  echoes a score. `score_ga4_mp_conformance()` must translate:
+  `if (cd contracts && node validate.mjs) >/dev/null 2>&1; then echo 1.0; else echo 0.0; fi`
+  (mirroring `score_vitest`). If a raw non-zero exit escaped the score function,
+  `oracle.sh` would misclassify a genuine conformance failure (rc=1) as an
+  env-error (exit 2) instead of a `0.0` gate-fail.
+- **The binary invariant is a convention, not enforced.** `THRESHOLD=1.0`
+  behaves as an AND only while every `score_*` returns exactly 1.0/0.0; nothing
+  in `oracle.sh` constrains that. Add a comment at the `COMPONENTS` array noting
+  that gating components MUST be binary — a future fractional score would make
+  `THRESHOLD=1.0` a near-impossible bar rather than an AND.
 
 **Anti-horizontal-phasing check:** After this slice, a developer (or servo)
 runs one command and gets a deterministic GA4-conformance verdict — the

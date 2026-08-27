@@ -1,6 +1,6 @@
 ---
 status: DRAFT
-dependencies: [007-01, 007-02]
+dependencies: [007-01]
 last_verified:
 arch_review: true
 frame_review: true
@@ -12,16 +12,19 @@ frame_review: true
 ## Slice 007-04 — hermetic CI on GitHub Actions (vitest + contracts)
 
 **Goal:** Stand up a GitHub Actions workflow that runs the **hermetic** oracle
-on every push/PR — `npm test` (vitest, which includes `isolation_invariant`)
-and the `contracts` validator (`ga4_mp_conformance`) — so the two
-servo-unattended-strong components gate CI. This is the fast, credential-free
-core pipeline; the browser rigs land in 07-05.
+on every push/PR — `npm test` (the vitest unit suite) and the `contracts`
+validator (`ga4_mp_conformance`, the sole servo-unattended-strong component) —
+so the deterministic, credential-free gate runs in CI. This is the fast core
+pipeline; the browser rigs (including the 07-02 isolation assert) land in 07-05.
 
 **DoR:**
-- ✅ 007-01 (`ga4_mp_conformance`) and 007-02 (`isolation_invariant`) are DONE —
-  CI runs the components they wired.
+- ✅ 007-01 (`ga4_mp_conformance`) is DONE — CI runs the component it wired,
+  including the `oracle.sh` `THRESHOLD=1.0` AND-gate.
 - ✅ `npm ci` installs cleanly from the committed lockfile(s) (root +
   `contracts/`); `node_modules` is not assumed present (fresh checkout).
+  *(Frame-critique confirmed a committed root `package-lock.json`
+  lockfileVersion 3 exists and playwright carries no install script, so `npm ci`
+  stays browser-free.)*
 
 **Acceptance Criteria:**
 
@@ -53,10 +56,20 @@ core pipeline; the browser rigs land in 07-05.
 - [ ] `docs/refinement-todo.md` CI/CD decision updated (partially resolved:
       hermetic core landed; browser CI tracked to 07-05).
 
+**Implementation notes (07-04 frame-critique, non-blocking):**
+- Root `npm ci` still installs the full devDep tree (playwright-core, lighthouse,
+  esbuild) the hermetic core does not exercise — heavier than "fast core"
+  implies. Consider `npm ci --omit=optional` or a leaner install if job time
+  matters; still credential-free and browser-free either way.
+- Adding `.github/workflows/ci.yml` touches a governance-protected path
+  (`jig-governance.yml:28` globs `.github/workflows/**`), so the governance job
+  self-flags. Expected/inert until branch protection is armed — record it in the
+  deviation log so it is not mistaken for a real failure.
+
 **Anti-horizontal-phasing check:** After this slice, every push is gated by the
-two hermetic oracle components in CI — the hard precondition (review G4) for any
-servo-unattended GA4 loop is met for the deterministic half, with fast feedback
-and no browser-install risk.
+GA4 hermetic component (`ga4_mp_conformance` at `THRESHOLD=1.0`) plus the vitest
+unit suite — the hard precondition (review G4) for any servo-unattended GA4 loop
+is met for the deterministic half, with fast feedback and no browser-install risk.
 
 ### Deviation log (after reconciliation)
 
