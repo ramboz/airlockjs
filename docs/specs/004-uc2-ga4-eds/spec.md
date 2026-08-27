@@ -112,8 +112,39 @@ the real page, never intermediate state.
   load-bearing unknown of the whole graduation is retired; R-005 open question #3 is
   answered (yes). The probe keeps a tested `worker-src 'self' [blob:]` escalation
   ready should a stricter real-deploy CSP ever require it._
-- 004-02 / 004-03 / 004-04 — _TBD (esp. 004-04's real Lighthouse delta)._
+- **004-02 (bundle + lazy boot + `push()` contract):** the runtime runs **bundled**
+  (esbuild two-entry, same-origin file worker per the 004-01 CSP verdict), booted in
+  the EDS **lazy phase** after `body:appear`, with `push()`/`pushCritical()` reconciled
+  to the pinned `{ event, ...params }` contract. Proven on the real `index.html`.
+- **004-03 (GA4 ctx from `_ga` cookies):** identity is sourced **host-side** — `_ga`
+  client_id (generated + persisted GA1-format when absent), `_ga_<stream>` session_id
+  (per-page fallback) — and only the **minimal `{ clientId, sessionId }` snapshot**
+  (ADR-0003) crosses to the runtime; identity flows cookie→ctx→beacon on the real page.
+- **004-04 (end-to-end + before/after Lighthouse) — the punchline:** a **real,
+  non-navigating interaction** (`#cta-engage`) delivers an MP-conformant GA4 beacon via
+  the **worker cycle while the page is still alive** (`rig/e2e.mjs`), and the
+  unload-critical **outbound-link + closing `page_view`** take the ADR-0004
+  `pushCritical` fast path (delivered in a teardown window, closing carries the current
+  URL). **Before/after Lighthouse** on the real testbed (5 iterations/arm, runtime off
+  vs on): **perf 77→77, TBT delta 0 ms, CLS delta 0** — within the ~0 band; the LCP
+  spread is dev-serving noise (post-LCP lazy boot), not runtime cost. OQ12 items 1–3 +
+  the `workFactor` prune resolved (`contracts/push-api.md` pins `pushCritical`).
 
 ## Outcome
 
-_TBD._
+**UC-2 is a believable demo on a real EDS page — the punchline lands.** The airlock
+GA4 runtime, bundled and lazy-loaded under the unmodified EDS boilerplate CSP + Trusted
+Types (004-01), captures a real interaction, cycles it off-thread, maps it to an
+MP-conformant GA4 beacon with real cookie-sourced identity (004-03), rescues the
+unload-critical last beacon via the ADR-0004 fast path (004-04), and does all of it at
+**~zero page-load CWV cost** (before/after Lighthouse: perf 77→77, **TBT delta 0, CLS
+delta 0**, LCP within dev-serving noise). The `ga4_mp_conformance` oracle is green on
+the cookie-sourced path, and the runtime is INP-safe by construction (spec 003).
+
+`Outcome: UC-2 graduated to the real EDS testbed — bundled + lazy-phase runtime, real
+_ga-sourced identity, end-to-end MP-conformant beacon (worker cycle) + unload-critical
+fast path, at ~zero CWV cost (TBT/CLS delta 0). ga4_mp_conformance green. OQ12 items
+1–3 + workFactor resolved (push-api.md pins pushCritical). Reproducible: npm run
+rig:e2e, LH_N=5 npm run lh:eds. Remaining MVP1: UC-1 (PZN), UC-3 (block-decoration),
+servo oracle wiring + CI; open follow-ups OQ12 item 4 (dispose guard), OQ13 (identity
+follow-ups), the live GA4 endpoint + aem-up Lighthouse.`

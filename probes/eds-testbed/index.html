@@ -27,6 +27,11 @@
       <div>
         <h2>Second section</h2>
         <p>Below-the-fold content shared by all variants, decorated in the lazy phase.</p>
+        <!-- 004-04 AC1: a NON-navigating interactive element. A click completes the
+             worker round-trip while the page is alive (steady-state push → cta_engage),
+             which the unload ring-tail flush cannot do — that is the worker-path proof.
+             Distinct from the /signup outbound anchor (AC2's pushCritical fast path). -->
+        <p><button id="cta-engage" type="button">See pricing</button></p>
       </div>
     </main>
     <footer></footer>

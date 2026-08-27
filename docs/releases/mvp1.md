@@ -90,7 +90,7 @@ decision.
 | Item | Note | Disposition |
 |---|---|---|
 | Risk-retirement spike: GA4-only, capture → ring buffer → drain/cycle → chamber → MP-conformant payload → keepalive egress; INP + Lighthouse + delivery-rate scoreboard vs a `patchDatalayer` baseline | Retires the thesis; also resolves OQ10 | **Include — RISK-FIRST** (build before the rest) |
-| UC-2: analytics with a custom GA4 event via the Measurement Protocol | Strong external oracle (`ga4_mp_conformance` pinned in contracts/) | Include — servo unattended; variant-race justified |
+| UC-2: analytics with a custom GA4 event via the Measurement Protocol | Strong external oracle (`ga4_mp_conformance` pinned in contracts/) | **✅ DEMO LANDED** ([spec 004](../specs/004-uc2-ga4-eds/spec.md)): bundled + lazy runtime on the real EDS testbed under the boilerplate CSP, real `_ga`-sourced identity, end-to-end MP-conformant beacon (worker cycle) + ADR-0004 unload fast path, at **~zero CWV cost** (before/after Lighthouse TBT/CLS delta 0). Remaining for full servo-unattended: live `/debug/mp/collect` check + CI (drive-order step 9). |
 | UC-3: automatic EDS block-decoration instrumentation (WeakMap, no `data-track-*`) | Pin the decoration→event-mapping contract first, or the oracle is self-referential | Include — jig supervised |
 | UC-1: A/B / PZN above the fold without flicker (in-house eager-window decisioning; exposure reported through the runtime) | Weakest oracle, widest proxy-gap; mechanism known (R-005) | Include — jig supervised + human visual review |
 | Before/after CWV scoreboard (Lighthouse 100 + INP field metric) | The punchline; doubles as the servo oracle (OQ6) | Include — precondition: browser-automation infra |
