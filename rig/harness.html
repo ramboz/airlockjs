@@ -57,7 +57,7 @@
       // --- interaction handler: one event; the runtime routes it to T trackers ---
       let n = 0;
       document.getElementById("target").addEventListener("click", () => {
-        runtime.push({ type: "spike_interaction", params: { i: n++ } });
+        runtime.push({ event: "spike_interaction", i: n++ });
       });
 
       const pct = (arr, p) => {

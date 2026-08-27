@@ -26,7 +26,9 @@ import { createCriticalDispatcher } from "./egress.js";
 
 export function createAirlock({ trackers, workFactor, endpoints, ctx, unloadCritical }) {
   const log = [];
-  const projection = {};
+  // Null-prototype: event names are object keys, so a pathological name like
+  // "__proto__" must land as an own key, not rewire the projection's prototype.
+  const projection = Object.create(null);
   const ring = [];
   let seq = 0;
   let dispatched = 0;
@@ -84,11 +86,27 @@ export function createAirlock({ trackers, workFactor, endpoints, ctx, unloadCrit
   }
 
   return {
-    /** Interaction-path entry: append + fold + enqueue. O(1), no mapping. */
-    push(event) {
-      const descriptor = { seq: seq++, type: event.type, ts: performance.now(), params: event.params };
+    /**
+     * Interaction-path entry: append + fold + enqueue. O(1), no mapping.
+     *
+     * Accepts the PINNED contract shape `push({ event: "name", ...params })`
+     * (contracts/push-api.md): the reserved `event` key is the GA4 event name,
+     * every other key is a param. We normalize to the internal `{ type, params }`
+     * descriptor here — the log/projection/ring/worker and the golden `mapToMp` all
+     * stay on `{ type, params }`, so reconciling the surface is a one-line unpack.
+     */
+    push(evt) {
+      const { event: type, ...params } = evt || {};
+      // Envelope guard (contracts/push-event.schema.json: `event` required, minLength
+      // 1). Drop + warn, never throw — the interaction path must stay O(1) and must
+      // not break the page on a malformed caller.
+      if (typeof type !== "string" || type.length === 0) {
+        console.warn("airlock: push() dropped — missing/empty `event` name", evt);
+        return;
+      }
+      const descriptor = { seq: seq++, type, ts: performance.now(), params };
       log.push(descriptor);
-      projection[event.type] = descriptor; // trivial synchronous fold (AD-3)
+      projection[type] = descriptor; // trivial synchronous fold (AD-3)
       ring.push(descriptor);
       schedule();
     },
@@ -100,8 +118,28 @@ export function createAirlock({ trackers, workFactor, endpoints, ctx, unloadCrit
      * Steady-state events MUST use `push()`; this path is INP-unsafe by design and
      * only justified when the page is going away.
      */
-    pushCritical(event) { critical.dispatch(event); },
-    getState() { return projection; },
+    pushCritical(evt) {
+      const { event: type, ...params } = evt || {}; // same contract shape as push()
+      if (typeof type !== "string" || type.length === 0) {
+        console.warn("airlock: pushCritical() dropped — missing/empty `event` name", evt);
+        return;
+      }
+      critical.dispatch({ type, params });
+    },
+    /**
+     * Synchronous read (AD-3): no argument → the whole projection; a dotted path
+     * (`getState("a.b.c")`, contracts/push-api.md) → the value at that path in the
+     * projection, `undefined` if any hop is absent. Never throws on a missing path.
+     */
+    getState(path) {
+      if (path == null) return projection;
+      let cur = projection;
+      for (const key of String(path).split(".")) {
+        if (cur == null) return undefined;
+        cur = cur[key];
+      }
+      return cur;
+    },
     flushNow() { while (ring.length) worker.postMessage({ type: "events", batch: ring.splice(0, 50) }); },
     stats() { return { dispatched, logged: log.length, ...critical.stats() }; },
   };

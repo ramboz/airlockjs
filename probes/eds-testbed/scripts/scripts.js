@@ -202,6 +202,26 @@ async function loadLazy(doc) {
   loadFonts();
 
   await runExperimentationLazy(doc, experimentationConfig);
+
+  // Airlock GA4 analytics — booted in the LAZY phase (AD-8: analytics is lazy), AFTER
+  // body.appear (set in loadEager). Imports the BUNDLED runtime emitted into this
+  // testbed's served tree by `npm run build` (repo-root build.mjs →
+  // scripts/airlock/eds.js + sibling chamber.worker.js — same-origin file worker per
+  // the 004-01 CSP verdict). Dynamic import keeps it off the eager/LCP path. The
+  // rec('airlock:init') mark makes the ordering observable — body:appear precedes
+  // airlock:init (spec 004-02 AC2). Boot must never break the page, so a failed load
+  // is caught — but VISIBLY: window.__airlockBootFailed lets a rig distinguish a
+  // failed boot from a silent no-op. (004-03 sources the real _ga cookie ctx; 004-04
+  // wires the real GA4 endpoint + the interaction→beacon path.)
+  try {
+    const { bootEdsAnalytics } = await import(`${window.hlx.codeBasePath}/scripts/airlock/eds.js`);
+    bootEdsAnalytics();
+    rec('airlock:init');
+  } catch (e) {
+    window.__airlockBootFailed = String(e);
+    // eslint-disable-next-line no-console
+    console.warn('airlock analytics boot FAILED (page unaffected):', e);
+  }
 }
 
 /**

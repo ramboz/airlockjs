@@ -56,3 +56,11 @@ fields), so the documented shape and the helper output agree.
 **Context:** User direction 2026-08-25 at scaffold time. Solo greenfield repo — direct-to-main keeps the loop tight and is cheaply reversible; the rejected alternative is a branch-and-PR flow. Overrides the assistant's default 'branch first on the default branch' posture for this project.
 
 **Scope:** Repo-wide VCS workflow (all commits in this repo)
+
+### 2026-08-26 — esbuild pinned exact (0.21.5), no caret
+
+**Decision:** devDependency "esbuild": "0.21.5" is an exact pin, unlike the sibling caret ranges.
+
+**Context:** Slice 004-02's bundle assumptions were probe-grounded against exactly 0.21.5 (no auto worker bundling; literal new URL worker reference preserved), and build.mjs's layout assertions are calibrated to that behavior. A silent minor bump could change worker-reference rewriting and invalidate the 004-01 CSP envelope enforcement.
+
+**Scope:** package.json devDependencies; revisit deliberately (re-run npm run build + rig:bundle) when bumping esbuild

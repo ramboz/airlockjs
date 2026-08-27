@@ -76,18 +76,18 @@ const results = [];
 results.push(await measure(
   "1. enqueued last beacon — push() via the worker round-trip",
   TRACKERS,
-  () => page.evaluate(() => window.__rig.push({ type: "page_view", params: { scenario: "enqueued" } })),
+  () => page.evaluate(() => window.__rig.push({ event: "page_view", scenario: "enqueued" })),
 ));
 results.push(await measure(
   "2. critical last beacon — pushCritical() synchronous fast path",
   TRACKERS,
-  () => page.evaluate(() => window.__rig.pushCritical({ type: "page_view", params: { scenario: "critical" } })),
+  () => page.evaluate(() => window.__rig.pushCritical({ event: "page_view", scenario: "critical" })),
 ));
 results.push(await measure(
   "3. ring tail flushed at visibilitychange -> hidden",
   RING_K * TRACKERS,
   () => page.evaluate((K) => {
-    for (let i = 0; i < K; i++) window.__rig.push({ type: "spike_interaction", params: { i } });
+    for (let i = 0; i < K; i++) window.__rig.push({ event: "spike_interaction", i });
     // Go hidden BEFORE the idle drain runs: the ring still holds all K, so the
     // synchronous unloadFlush is what delivers them.
     Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });

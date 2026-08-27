@@ -65,9 +65,9 @@
         if (rt) {
           // One event through the worker; a successful cycle -> orchestrator fetch
           // (counted by the probe's route stub). Also probe the ADR-0004 fast path.
-          rt.push({ type: "page_view", params: { page_location: location.href } });
+          rt.push({ event: "page_view", page_location: location.href });
           rt.flushNow?.();
-          rt.pushCritical?.({ type: "click", params: { link_url: "/signup" } });
+          rt.pushCritical?.({ event: "click", link_url: "/signup" });
           window.__csp.pushed = true;
         }
       } catch (e) {
