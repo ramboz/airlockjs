@@ -77,6 +77,10 @@
             stats: runtime.stats?.() ?? {},
           };
         },
+        // OQ10 teardown rig hooks: drive the two egress paths directly.
+        push(ev) { runtime.push(ev); },                       // normal (worker round-trip)
+        pushCritical(ev) { runtime.pushCritical?.(ev); },     // synchronous main-thread fast path
+        stats() { return runtime.stats?.() ?? {}; },
       };
       document.getElementById("out").textContent = "rig ready (" + MODE + ", " + TRACKERS + " trackers)";
     </script>
