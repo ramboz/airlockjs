@@ -87,6 +87,14 @@
             "maxLength": 40,
             "pattern": "^(?!firebase_|ga_|google_)[A-Za-z][A-Za-z0-9_]*$"
           },
+          "properties": {
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "description": "Ecommerce line items (e.g. for `purchase`, `add_to_cart`, `refund`). Each item must carry at least `item_id` or `item_name`; not the full GA4 ecommerce-items catalog (see ga4-mp.md for the deliberately-minimal scope).",
+              "items": { "$ref": "#/$defs/item" }
+            }
+          },
           "additionalProperties": {
             "anyOf": [
               { "type": "string", "maxLength": 100 },
@@ -96,6 +104,20 @@
           }
         }
       }
+    },
+    "item": {
+      "type": "object",
+      "anyOf": [
+        { "required": ["item_id"] },
+        { "required": ["item_name"] }
+      ],
+      "properties": {
+        "item_id": { "type": "string", "minLength": 1 },
+        "item_name": { "type": "string", "minLength": 1 },
+        "price": { "type": "number" },
+        "quantity": { "type": "number" }
+      },
+      "additionalProperties": { "type": ["string", "number", "boolean"] }
     }
   }
 }

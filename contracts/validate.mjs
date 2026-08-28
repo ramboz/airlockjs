@@ -40,6 +40,7 @@ mustPass(ga4, "./fixtures/ga4-mp-page_view.golden.json");
 mustPass(ga4, "./fixtures/ga4-mp-custom-event.golden.json");
 mustPass(ga4, "./fixtures/ga4-mp-experiment-impression.golden.json"); // spec 005-01 exposure
 mustPass(ga4, "./fixtures/ga4-mp-view-block.golden.json"); // spec 006-01 block view
+mustPass(ga4, "./fixtures/ga4-mp-purchase.golden.json"); // spec 008/010-01 purchase ecommerce
 
 // GA4 MP: negative controls the schema MUST reject.
 mustFail(ga4, { client_id: "x", events: [{ name: "_bad", params: {} }] }, "event name starting with _");
@@ -49,6 +50,33 @@ mustFail(ga4, { events: [{ name: "page_view" }] }, "missing required client_id")
 mustFail(ga4, { client_id: "x", events: [] }, "empty events array");
 mustFail(ga4, { client_id: "x", events: [{ name: "page_view", params: { ga_reserved: 1 } }] }, "reserved param prefix ga_");
 mustFail(ga4, { client_id: "x", events: [{ name: "page_view", params: {} }], bogus_top_level: 1 }, "unknown top-level field");
+
+// GA4 MP: purchase items[] negative controls (010-01) — the item shape must bite.
+mustFail(
+  ga4,
+  { client_id: "x", events: [{ name: "purchase", params: { transaction_id: "T-1", currency: "USD", value: 1, items: [{ price: 1, quantity: 1 }] } }] },
+  "purchase item with neither item_id nor item_name",
+);
+mustFail(
+  ga4,
+  { client_id: "x", events: [{ name: "purchase", params: { transaction_id: "T-1", currency: "USD", value: 1, items: [] } }] },
+  "purchase items as empty array",
+);
+mustFail(
+  ga4,
+  { client_id: "x", events: [{ name: "purchase", params: { transaction_id: "T-1", currency: "USD", value: 1, items: "SKU_12345" } }] },
+  "purchase items as scalar",
+);
+mustFail(
+  ga4,
+  { client_id: "x", events: [{ name: "purchase", params: { transaction_id: "T-1", currency: "USD", value: 1, items: ["SKU_12345"] } }] },
+  "purchase item ELEMENT is a scalar, not an object", // bites $defs.item type:object (010-01 craft review)
+);
+mustFail(
+  ga4,
+  { client_id: "x", events: [{ name: "purchase", params: { transaction_id: "T-1", currency: "USD", value: 1, items: [{ item_id: "SKU_1", price: "29.99" }] } }] },
+  "purchase item price as a string", // bites $defs.item price type:number (010-01 craft review)
+);
 
 // push() envelope: the schema's own examples must validate; a nameless push must fail.
 const pushSchema = load("./push-event.schema.json");

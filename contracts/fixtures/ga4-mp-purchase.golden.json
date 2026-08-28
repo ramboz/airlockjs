@@ -1,0 +1,23 @@
+{
+  "client_id": "1234567890.1700000000",
+  "events": [
+    {
+      "name": "purchase",
+      "params": {
+        "transaction_id": "T-12345",
+        "currency": "USD",
+        "value": 59.98,
+        "items": [
+          {
+            "item_id": "SKU_12345",
+            "item_name": "Widget, Large",
+            "price": 29.99,
+            "quantity": 2
+          }
+        ],
+        "session_id": "1724668790",
+        "engagement_time_msec": 100
+      }
+    }
+  ]
+}
