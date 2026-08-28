@@ -51,6 +51,15 @@ fixture, and wire it (plus a negative control) into the validator — so
 - **Contract change is a `/jig:contracts` surface.** The schema is the pinned MP
   contract; the boundary-change nudge applies. Record the extension in
   `contracts/ga4-mp.md`.
+- **Ground the item-shape rule + note the deliberate strictness (010-01
+  frame-critique).** `ga4-mp.md`'s provenance URLs currently cover the MP request
+  body, not the GA4 **ecommerce items** reference — add the ecommerce-items
+  source URL when extending the schema, so the "≥1 of `item_id`/`item_name`" rule
+  and the negative control's strictness are cited, not folk-knowledge. Note
+  explicitly that the hermetic schema is intentionally **stricter** than GA4's
+  lenient `/debug/mp/collect` endpoint (which may not flag `items:[]` or an
+  id-less item) — by design, per `ga4-mp.md`'s "hermetic half is authoritative"
+  stance and consistent with `validatePurchase`; it is not a false gate.
 
 **DoD:**
 - [ ] All ACs pass; `cd contracts && npm run validate` green; `npm test` green.

@@ -29,11 +29,21 @@ Net: one malformed event silently drops a whole batch of *unrelated* good
 events — strictly worse than the "unattributed conversion" 008's validation
 prevents, and a violation of the isolation guarantee the airlock is built on.
 
-This spec implements the guarantee at the two seams: **per-descriptor isolation**
-inside the chamber (a throwing map drops only that descriptor; the rest of the
-batch maps and delivers; the chamber survives), and a **chamber-crash backstop**
-on the orchestrator (`worker.onerror`) so a chamber-level failure is surfaced,
-not swallowed, and the page is unaffected.
+This spec closes what MVP1 can honestly close of that guarantee, at the two
+seams. **09-01 — per-descriptor isolation** inside the chamber: a throwing map
+drops only that descriptor; the rest of the batch maps and delivers; the chamber
+survives. This is the load-bearing fix — it stops one malformed event from
+losing a whole batch. **09-02 — failure observability** on the orchestrator: a
+chamber-level worker error and the per-descriptor drops are *surfaced* rather
+than silently swallowed.
+
+**Honest scope on architecture.md Q1** (settled in 009-02's frame-critique): the
+Worker boundary *already* gives "the page is unaffected" for free — that is not
+what this spec adds. What it adds is (i) per-event isolation (09-01, genuinely
+new) and (ii) diagnosability (09-02). Q1's "**restart** just the failing chamber"
+verb is **not** delivered — a single crashed chamber leaves analytics dead until
+reload; restart is a multi-chamber concern deferred to OQ9. This spec makes that
+state *observable* instead of silent; it does not claim Q1 is fully implemented.
 
 ## Assumptions
 
@@ -59,11 +69,12 @@ chamber-crash path):
   throwing `mapToMp` on one descriptor drops only that descriptor (with a
   recorded reason), the rest of the batch still maps and is handed back to the
   orchestrator, and the chamber keeps handling subsequent cycles.
-- **09-02 — chamber-crash backstop + drop observability** (the edge case): a
+- **09-02 — failure observability** (make the swallowed failures visible): a
   `worker.onerror` handler on the orchestrator so a chamber-level error (one that
-  escapes the per-descriptor guard) is surfaced and the page is unaffected, and
-  the per-descriptor drops from 09-01 are reported (count/reason) so a dropped
-  event is diagnosable.
+  escapes the per-descriptor guard) is *surfaced* rather than silently swallowed,
+  and the per-descriptor drops from 09-01 are reported (count/reason) so a dropped
+  event is diagnosable. (The page-containment is already free via the Worker
+  boundary; chamber *restart* is deferred to OQ9 — see the Overview.)
 
 **Not a spike** — the mechanism is known (try/catch per descriptor;
 `worker.onerror`); the design questions (granularity, drop-reporting shape) are
@@ -72,4 +83,4 @@ settled in the slices, not a research unknown.
 ## Slices
 
 - [009-01 — per-descriptor isolation in the chamber](slice-01-per-descriptor-isolation.md)
-- [009-02 — chamber-crash backstop + drop observability](slice-02-crash-backstop-observability.md)
+- [009-02 — chamber failure observability (surface drops + crashes)](slice-02-crash-backstop-observability.md)

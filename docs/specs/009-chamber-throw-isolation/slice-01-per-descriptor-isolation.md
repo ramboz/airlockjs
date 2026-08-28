@@ -49,14 +49,24 @@ batch of unrelated good events.
   touch the orchestrator's behavior.
 - **Contain, don't repair.** A dropped descriptor is dropped — no defaulting or
   retry (consistent with 008's "reject, don't repair").
+- **Make the handler testable (009-01 frame-critique).** `chamber.worker.js` is
+  a side-effecting `self.onmessage = …` module and vitest runs in the Node env
+  (no `self`/`postMessage`), so it is not importable as-is and has **no existing
+  test**. Extract the batch mapping into an **exported pure function** — e.g.
+  `mapBatch(batch, cfg) → { ready, dropped }` — that the tests call directly, and
+  have `self.onmessage` delegate to it. This is the mechanism for AC1–AC4's
+  assertions; do not test via a full real Worker.
 
 **DoD:**
-- [ ] All ACs pass; full suite green (`npm test`) — no regression in the existing
-      worker/egress tests.
-- [ ] A test exercises a mixed batch (good/throwing/good) and asserts the
-      partial `ready` + the `dropped` entry + chamber-survives-next-cycle; shown
-      to fail if the try/catch is removed (mutation-tested; restore via Edit,
-      never `git checkout --`).
+- [ ] All ACs pass; full suite green (`npm test`). *(The worker `onmessage`
+      handler is currently untested — only `mapToMp` and the egress fast path
+      are — so "no regression" here means the extracted `mapBatch` is newly
+      covered and nothing else breaks, not that pre-existing worker tests stay
+      green.)*
+- [ ] A test exercises a mixed batch (good/throwing/good) via the extracted
+      `mapBatch` and asserts the partial `ready` + the `dropped` entry +
+      chamber-survives-next-cycle; shown to fail if the try/catch is removed
+      (mutation-tested; restore via Edit, never `git checkout --`).
 - [ ] Reviewed by `reviewer` subagent (compliance + craft + arch, since
       `arch_review: true`).
 - [ ] Deviation log + reconciliation sweep produced under this slice heading.
