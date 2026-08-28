@@ -1,10 +1,9 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [adr-0001]
 last_verified: 2026-08-27
 arch_review: true
 frame_review: true
-claimed_by: claude/airlock-servo-oracle-ci-6b13d9
 ---
 
 ## Slice 009-01 — per-descriptor isolation in the chamber

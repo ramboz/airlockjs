@@ -32,14 +32,14 @@
 | [007-servo-oracle-ci](007-servo-oracle-ci/spec.md) | 007-04 — hermetic CI on GitHub Actions (vitest + contracts) | **DONE** |  |
 | [007-servo-oracle-ci](007-servo-oracle-ci/spec.md) | 007-05 — browser CI (Playwright rigs + Lighthouse CI) | **DONE** |  |
 | [008-ga4-purchase-conversion](008-ga4-purchase-conversion/spec.md) | 008-01 — purchase-conversion validation in the GA4 connector | **DONE** |  |
-| [009-chamber-throw-isolation](009-chamber-throw-isolation/spec.md) | 009-01 — per-descriptor isolation in the chamber | DRAFT |  |
-| [009-chamber-throw-isolation](009-chamber-throw-isolation/spec.md) | 009-02 — chamber-crash backstop + drop observability | DRAFT |  |
-| [010-ga4-purchase-conformance](010-ga4-purchase-conformance/spec.md) | 010-01 — purchase schema shape + golden + validator coverage | DRAFT |  |
+| [009-chamber-throw-isolation](009-chamber-throw-isolation/spec.md) | 009-01 — per-descriptor isolation in the chamber | **DONE** |  |
+| [009-chamber-throw-isolation](009-chamber-throw-isolation/spec.md) | 009-02 — chamber failure observability (surface drops + crashes) | READY_FOR_REVIEW (claude/airlock-servo-oracle…) |  |
+| [010-ga4-purchase-conformance](010-ga4-purchase-conformance/spec.md) | 010-01 — purchase schema shape + golden + validator coverage | **DONE** |  |
 
 ## Richer-skill selection audit (spec 096-05)
 
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
 - **0** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **20** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **24** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **0** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):

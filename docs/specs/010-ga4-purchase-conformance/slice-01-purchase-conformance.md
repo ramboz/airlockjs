@@ -1,10 +1,9 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: []
 last_verified: 2026-08-27
 arch_review: true
 frame_review: true
-claimed_by: claude/airlock-servo-oracle-ci-6b13d9
 ---
 
 ## Slice 010-01 — purchase schema shape + golden + validator coverage
