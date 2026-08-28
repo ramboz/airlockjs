@@ -57,3 +57,33 @@ fail-closed (no false pass — `gate.py` stayed the authority at composite 0.5),
 tests not gamed, ~$2.2 total. After a `.claude/settings.local.json`
 `bypassPermissions` grant (the `settings.json` force-push/`reset --hard`/`rm -rf`
 denies still apply on top), the loop converged in one iteration.
+
+### Light design pass (post-delivery, 2026-08-27)
+
+Because a servo-delivered feature is gated by the **oracle** (which only proves
+the code conforms to the eval), a light **design/reconciliation** pass ran on
+the result — the gap the oracle structurally can't cover (is the eval/contract
+*right*? doc drift?). **VERDICT: pass** (nothing must-fix). Actioned:
+
+- **Fixed in-scope (map.js is 008's surface):** `value` now rejects **negatives**
+  (`value >= 0` — a negative value is a `refund`, a separate GA4 event; zero is
+  allowed for a free/discounted order) + 2 tests added (127/127 green, oracle
+  still 1.0). Error messages reworded "missing" → "missing or invalid".
+- **Corrected the spec:** the Non-goal claim "generic mapping already conforms /
+  no schema-golden changes required" was **false** and is struck/corrected — see
+  OQ15.
+- **Closed doc drift:** `architecture.md` connector-interface surface now notes a
+  mapper MAY throw on contract-invalid input (→ Q1 chamber isolation, OQ14).
+- **Recorded two load-bearing follow-ups** (out of 008's `map.js`-only surface):
+  - **[OQ14]** the throw is reachable but the worker caller
+    (`core/chamber.worker.js` / `core/airlock.js`) has **no per-event
+    try/catch** → an uncaught throw would **silently drop the whole cycle's
+    batch**, contradicting the chamber-isolation contract. **Must land before
+    real purchase traffic.**
+  - **[OQ15]** the pinned schema can't represent `items[]` and there's no
+    purchase golden, so `ga4_mp_conformance` does **not** cover purchase.
+
+  Both are the servo-loop oracle's blind spots, made visible only by this
+  human design pass — a worked example of *why* even a strong-oracle
+  servo-unattended feature still earns a light supervised look at the
+  **design** (not the implementation).

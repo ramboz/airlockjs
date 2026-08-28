@@ -58,7 +58,7 @@ Feeds `/jig:contracts`. Five surfaces, in priority order:
 
 1. **GA4 Measurement Protocol** — external, versioned, validatable at `/debug/mp/collect`. The MVP1 conformance oracle.
 2. **The `push()`-shaped datalayer API** — the drop-in compatibility surface (loosely GTM/ACDL-shaped) that maps onto the event-log/projection split underneath.
-3. **The connector interface** — what a connector implements: consume typed events → request capabilities → emit to a declared endpoint.
+3. **The connector interface** — what a connector implements: consume typed events → request capabilities → emit to a declared endpoint. A mapper MAY **throw** on contract-invalid input (e.g. GA4 `mapToMp` rejects a `purchase` missing `transaction_id`/`currency`/`value`/`items[]`, spec 008); the airlock is responsible for isolating that throw to the failing chamber per Q1 (a per-event catch in the worker caller — tracked as OQ14, not yet implemented).
 4. **The capability API** — what the orchestrator grants across the airlock (mediated DOM injection, mediated egress) and how scopes are declared.
 5. **The seam driver interfaces** — decision-source and egress driver contracts.
 

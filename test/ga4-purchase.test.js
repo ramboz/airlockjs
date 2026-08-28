@@ -50,6 +50,17 @@ describe("GA4 purchase conversion event (spec 008)", () => {
     expect(() => mapToMp(bad, ctx)).toThrow(/value/);
   });
 
+  it("throws when a purchase value is negative (a refund is a separate event)", () => {
+    const bad = { type: "purchase", params: { transaction_id: "T-1", currency: "USD", value: -5, items } };
+    expect(() => mapToMp(bad, ctx)).toThrow(/value/);
+  });
+
+  it("allows a zero-value purchase (free / fully-discounted order)", () => {
+    const free = { type: "purchase", params: { transaction_id: "T-FREE", currency: "USD", value: 0, items } };
+    expect(() => mapToMp(free, ctx)).not.toThrow();
+    expect(mapToMp(free, ctx).events[0].params.value).toBe(0);
+  });
+
   it("throws when a purchase has an empty or missing items[]", () => {
     const noItems = { type: "purchase", params: { transaction_id: "T-1", currency: "USD", value: 42.5 } };
     const emptyItems = { type: "purchase", params: { transaction_id: "T-1", currency: "USD", value: 42.5, items: [] } };

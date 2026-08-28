@@ -114,3 +114,35 @@ every push/PR, credential-free (no secrets), routed per
 seeded-regression demos red→restored, `act -n` reached Docker-not-running. **A
 live GitHub Actions run has NOT been executed;** the first push should confirm
 the "job appears in Actions and completes" observable (spec A2).
+
+## Spec 008 (GA4 purchase) follow-ups — surfaced by the 008 design review (2026-08-27)
+
+### OQ14 — Chamber-side isolation of a throwing mapper — ⚠️ before real purchase traffic
+**Deferred:** Spec 008 makes `mapToMp` **throw** on a contract-invalid `purchase`
+(the first throwing path in the mapper). But its worker caller
+[`core/chamber.worker.js`](../../core/chamber.worker.js) runs the map inside
+`self.onmessage` with **no try/catch**, and [`core/airlock.js`](../../core/airlock.js)
+registers `worker.onmessage` with **no `worker.onerror`**. So an uncaught throw
+never reaches `self.postMessage({ ready })` — the **entire cycle's batch (all
+events × all trackers) is lost silently**, which is *worse* than the
+unattributed conversion 008 prevents, and contradicts `architecture.md` Q1's
+chamber-isolation contract ("drop/restart just the failing chamber; other
+chambers and the page unaffected"). Throwing from the pure mapper is only
+defensible if the caller catches **per event**.
+**Resolution trigger:** Before wiring real `purchase` traffic. Fix belongs in
+the caller/airlock (per-event try/catch + `worker.onerror`), out of 008's
+`map.js`-only surface. Related to OQ9 (MVP2 chamber isolation).
+
+### OQ15 — `ga4_mp_conformance` does not cover `purchase` (schema can't represent `items[]`)
+**Deferred:** The pinned
+[`contracts/ga4-mp-request.schema.json`](../../contracts/ga4-mp-request.schema.json)
+restricts `params` values to `anyOf[string, number, boolean]`, so an ecommerce
+`items[]` **array-of-objects is rejected by the contract**, and there is **no
+`ga4-mp-purchase.golden.json` fixture**. So the hermetic conformance oracle never
+validated the key conversion event, and a *valid* purchase body produced by
+`mapToMp` would fail its own pinned schema. Spec 008's premise ("the generic
+mapping already conforms") was corrected in its Non-goals.
+**Resolution trigger:** When the purchase route needs servo-unattended
+conformance coverage — add an ecommerce `items` shape to the schema + a purchase
+golden fixture (then `ga4_mp_conformance` gates purchase like the other events).
+Interacts with OQ3 (vendor-neutral schema now vs emergent).

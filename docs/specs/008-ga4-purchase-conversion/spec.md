@@ -44,11 +44,21 @@ so `score_vitest` gates on them at `THRESHOLD=1.0`):
 
 ## Non-goals
 
-- No schema/golden changes required (the generic mapping already conforms); the
-  feature is the validation gate, expressed as unit behavior.
 - No new event types beyond `purchase`.
 - No enrichment/derivation (e.g. computing `value` from items) — reject, don't
-  repair.
+  repair. (Design-review note: negative `value` is rejected — that's a `refund`,
+  a separate GA4 event; zero is allowed.)
+- **Not in scope (tracked as follow-ups, see [refinement-todo](../../refinement-todo.md)):**
+  the feature is expressed as **unit behavior** on `mapToMp`, and does *not*
+  extend the hermetic `ga4_mp_conformance` schema/golden coverage to purchase.
+  ⚠️ **Correction (008 design review):** an earlier draft claimed "the generic
+  mapping already conforms / no schema-golden changes required" — that is
+  **false**. The pinned [ga4-mp-request.schema.json](../../../contracts/ga4-mp-request.schema.json)
+  restricts `params` values to `string|number|boolean`, so an ecommerce
+  `items[]` array-of-objects is **rejected by the contract**, and there is no
+  purchase golden fixture — so a *valid* purchase body would fail its own pinned
+  schema, and the conformance oracle does **not** cover purchase. Closing that
+  (an `items` schema shape + a `ga4-mp-purchase.golden.json`) is a follow-up.
 
 ## Slices
 

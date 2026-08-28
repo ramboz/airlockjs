@@ -24,16 +24,19 @@ function validatePurchase(params) {
   const isNonEmptyString = (v) => typeof v === "string" && v.length > 0;
 
   if (!isNonEmptyString(params.transaction_id)) {
-    throw new Error("purchase event missing transaction_id");
+    throw new Error("purchase event missing or invalid transaction_id");
   }
   if (!isNonEmptyString(params.currency)) {
-    throw new Error("purchase event missing currency");
+    throw new Error("purchase event missing or invalid currency");
   }
-  if (typeof params.value !== "number" || !Number.isFinite(params.value)) {
-    throw new Error("purchase event missing value");
+  // value must be a finite, NON-NEGATIVE number: a negative value is a refund,
+  // which GA4 models as a separate `refund` event, not a `purchase` (008
+  // design review). Zero is allowed (a free / fully-discounted order).
+  if (typeof params.value !== "number" || !Number.isFinite(params.value) || params.value < 0) {
+    throw new Error("purchase event missing or invalid value (non-negative number required)");
   }
   if (!Array.isArray(params.items) || params.items.length === 0) {
-    throw new Error("purchase event missing items");
+    throw new Error("purchase event missing or invalid items");
   }
 }
 
