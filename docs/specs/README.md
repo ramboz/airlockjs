@@ -31,6 +31,7 @@
 | [007-servo-oracle-ci](007-servo-oracle-ci/spec.md) | 007-03 — `cwv_budget` oracle component + resolve OQ6 (flicker routing) | **DONE** |  |
 | [007-servo-oracle-ci](007-servo-oracle-ci/spec.md) | 007-04 — hermetic CI on GitHub Actions (vitest + contracts) | **DONE** |  |
 | [007-servo-oracle-ci](007-servo-oracle-ci/spec.md) | 007-05 — browser CI (Playwright rigs + Lighthouse CI) | **DONE** |  |
+| [008-ga4-purchase-conversion](008-ga4-purchase-conversion/spec.md) | 008-01 — purchase-conversion validation in the GA4 connector | **DONE** |  |
 
 ## Richer-skill selection audit (spec 096-05)
 

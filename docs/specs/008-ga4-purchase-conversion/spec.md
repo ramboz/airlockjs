@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: DONE
 skill:
 use_cases: [UC-2]
 servo_driven: true
