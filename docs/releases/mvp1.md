@@ -2,11 +2,17 @@
 
 ## Status
 
-`candidate`
+`shipped`
 
 Allowed statuses: `candidate`, `committed`, `shipping`, `shipped`, `dropped`.
 Do not move a plan from `candidate` to `committed` without an explicit user
 decision.
+
+> **Cut 2026-08-28 as `v0.1.0`** (explicit user decision; released on the public
+> GitHub repo `ramboz/airlockjs`). All Include cutline items DONE, thesis retired,
+> OQ14/OQ15 closed, OQ10 resolved (ADR-0004), critical CVE cleared. Shipped as the
+> skeptic's demo — API is pre-1.0 and not yet a stability commitment; OQ9/OQ16 and
+> live/servo-signal wiring remain deferred follow-ups.
 
 ## Problem / Baseline
 
