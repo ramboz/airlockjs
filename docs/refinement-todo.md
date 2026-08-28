@@ -136,10 +136,15 @@ defensible if the caller catches **per event**.
 the caller/airlock (per-event try/catch + `worker.onerror`), out of 008's
 `map.js`-only surface. Related to OQ9 (MVP2 chamber isolation).
 
-### OQ15 — `ga4_mp_conformance` does not cover `purchase` (schema can't represent `items[]`) — PULLED INTO MVP1 2026-08-27 (→ spec 010)
+### ~~OQ15 — `ga4_mp_conformance` does not cover `purchase` (schema can't represent `items[]`)~~ — RESOLVED 2026-08-27 (spec 010-01)
+**Resolved by spec 010-01:** `ga4-mp-request.schema.json` now models `items[]`
+(a `$defs/item` array, ≥1 of `item_id`/`item_name`), a `ga4-mp-purchase.golden`
+fixture is in the validator's `mustPass`, and 5 item-shape negative controls are
+in `mustFail` — so `score_ga4_mp_conformance` covers the purchase conversion like
+every other event. Contract doc: `contracts/ga4-mp.md` "Ecommerce `items[]`".
 **Scope:** Pulled into MVP1 scope 2026-08-27 ([mvp1.md](releases/mvp1.md) Cutline)
-— extends the hermetic conformance oracle to the key conversion event. To be
-closed by **spec 010**.
+— extends the hermetic conformance oracle to the key conversion event. Closed by
+**spec 010**.
 **Deferred:** The pinned
 [`contracts/ga4-mp-request.schema.json`](../../contracts/ga4-mp-request.schema.json)
 restricts `params` values to `anyOf[string, number, boolean]`, so an ecommerce
@@ -152,3 +157,18 @@ mapping already conforms") was corrected in its Non-goals.
 conformance coverage — add an ecommerce `items` shape to the schema + a purchase
 golden fixture (then `ga4_mp_conformance` gates purchase like the other events).
 Interacts with OQ3 (vendor-neutral schema now vs emergent).
+
+### OQ16 — Isolation of a throwing mapper on the unload/critical (main-thread) egress path
+**Deferred:** Spec 009-01 isolates a throwing `mapToMp` on the **worker** cycle
+path (`core/chamber.worker.js` `mapBatch`). But the OQ10 unload fast path maps
++ dispatches **synchronously on the main thread** — `core/airlock.js`
+`unloadFlush` → `createCriticalDispatcher` (`core/egress.js`) — and does **not**
+route through `mapBatch`, so a throwing descriptor (e.g. a malformed `purchase`)
+in the `visibilitychange`→`hidden` window has **undefined isolation** on the
+critical path: the throw would propagate in the unload handler, potentially
+losing the whole last-beacon flush. Surfaced by the 009-01 arch review.
+**Resolution trigger:** Before real `purchase` traffic uses the unload/critical
+path — mirror `mapBatch`'s per-descriptor try/catch (or route the critical map
+through the same guarded helper) in `core/egress.js`'s critical dispatcher.
+Related to OQ14 (this is the same containment guarantee at a second seam) and
+OQ10 (the egress model).
