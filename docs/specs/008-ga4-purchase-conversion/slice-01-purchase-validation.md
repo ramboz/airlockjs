@@ -1,7 +1,7 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: []
-last_verified:
+last_verified: 2026-08-27
 servo_driven: true
 ---
 
@@ -32,3 +32,28 @@ changed. The runner must NOT weaken the test to pass it.
 - Keep `mapToMp` a pure function (no DOM, no globals, no network) — it runs in
   the chamber worker. Reject, don't repair (no deriving `value` from items).
 - Do not change the emitted body shape for a VALID purchase (regression guard AC1).
+
+### Servo delivery (close-out)
+
+**Delivered autonomously by `/servo:agent-loop`** (loop driver, run
+`20260827T…`), 1 iteration, ~$0.18. The `runner` agent added a
+`validatePurchase(params)` helper + a purchase-scoped guard in `mapToMp`
+([connectors/ga4/map.js](../../../connectors/ga4/map.js), +30 lines).
+
+**Gate = the oracle + a human diff review** (this is a servo-driven feature, not
+the jig review ceremony):
+- `bash oracle.sh` → composite **1.0** at `THRESHOLD=1.0` (the full vitest suite
+  125/125 green + the `contracts` validator green).
+- Orchestrator reviewed the diff: real field-naming validation, pure function,
+  purchase-scoped, non-purchase events untouched; **only `map.js` changed — the
+  fixed tests were not edited or gamed** (no reward-hacking).
+
+**Notes on the loop run itself** (kept as a servo case study): the first two
+attempts (goal driver, then loop driver) ran the guardrails correctly but made
+**zero edits** — the headless `claude -p` child lacked edit permission
+(`loop.py` passes no skip-permissions flag), so its `Edit`/`Write` calls were
+denied. Both failed **safely**: guardrails fired (iteration-cap, then plateau),
+fail-closed (no false pass — `gate.py` stayed the authority at composite 0.5),
+tests not gamed, ~$2.2 total. After a `.claude/settings.local.json`
+`bypassPermissions` grant (the `settings.json` force-push/`reset --hard`/`rm -rf`
+denies still apply on top), the loop converged in one iteration.

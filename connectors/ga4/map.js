@@ -10,6 +10,34 @@
  */
 
 /**
+ * `purchase` is GA4's key conversion event: the MP ecommerce contract requires
+ * transaction_id + currency + value + a non-empty items[]. Reject a malformed
+ * purchase at map time with an error naming the offending field, so the failure
+ * is diagnosable instead of silently landing as an unattributed conversion.
+ *
+ * Pure: inspects only the passed params. Purchase-scoped by its single caller.
+ *
+ * @param {Record<string, unknown>} params
+ * @throws {Error} naming the first missing/invalid field.
+ */
+function validatePurchase(params) {
+  const isNonEmptyString = (v) => typeof v === "string" && v.length > 0;
+
+  if (!isNonEmptyString(params.transaction_id)) {
+    throw new Error("purchase event missing transaction_id");
+  }
+  if (!isNonEmptyString(params.currency)) {
+    throw new Error("purchase event missing currency");
+  }
+  if (typeof params.value !== "number" || !Number.isFinite(params.value)) {
+    throw new Error("purchase event missing value");
+  }
+  if (!Array.isArray(params.items) || params.items.length === 0) {
+    throw new Error("purchase event missing items");
+  }
+}
+
+/**
  * @param {{ type: string, params?: Record<string, unknown> }} event
  *   The captured event: a GA4 event name + its params.
  * @param {{
@@ -23,6 +51,8 @@
  * @returns {object} a GA4 MP request body (contracts/ga4-mp-request.schema.json).
  */
 export function mapToMp(event, ctx) {
+  if (event.type === "purchase") validatePurchase(event.params || {});
+
   const params = {
     ...(event.params || {}),
     // session_id + engagement_time_msec are required for the event to attribute
