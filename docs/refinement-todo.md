@@ -117,7 +117,10 @@ the "job appears in Actions and completes" observable (spec A2).
 
 ## Spec 008 (GA4 purchase) follow-ups — surfaced by the 008 design review (2026-08-27)
 
-### OQ14 — Chamber-side isolation of a throwing mapper — ⚠️ before real purchase traffic
+### OQ14 — Chamber-side isolation of a throwing mapper — ⚠️ PULLED INTO MVP1 2026-08-27 (→ spec 009)
+**Scope:** Pulled into MVP1 scope 2026-08-27 ([mvp1.md](releases/mvp1.md) Cutline)
+— a core ADR-0001 chamber-isolation guarantee that is stated but not
+implemented, not a purchase-specific nicety. To be closed by **spec 009**.
 **Deferred:** Spec 008 makes `mapToMp` **throw** on a contract-invalid `purchase`
 (the first throwing path in the mapper). But its worker caller
 [`core/chamber.worker.js`](../../core/chamber.worker.js) runs the map inside
@@ -133,7 +136,10 @@ defensible if the caller catches **per event**.
 the caller/airlock (per-event try/catch + `worker.onerror`), out of 008's
 `map.js`-only surface. Related to OQ9 (MVP2 chamber isolation).
 
-### OQ15 — `ga4_mp_conformance` does not cover `purchase` (schema can't represent `items[]`)
+### OQ15 — `ga4_mp_conformance` does not cover `purchase` (schema can't represent `items[]`) — PULLED INTO MVP1 2026-08-27 (→ spec 010)
+**Scope:** Pulled into MVP1 scope 2026-08-27 ([mvp1.md](releases/mvp1.md) Cutline)
+— extends the hermetic conformance oracle to the key conversion event. To be
+closed by **spec 010**.
 **Deferred:** The pinned
 [`contracts/ga4-mp-request.schema.json`](../../contracts/ga4-mp-request.schema.json)
 restricts `params` values to `anyOf[string, number, boolean]`, so an ecommerce
