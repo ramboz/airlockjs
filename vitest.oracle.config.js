@@ -9,5 +9,13 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     include: ["test/oracle-ga4.test.js"],
+    // Every test here shells out to `bash oracle.sh`, which itself spawns a
+    // full `vitest run` over the default suite (~3s each). The gate-flip test
+    // does TWO oracle runs back-to-back (break fixture → run → restore → run),
+    // so on a slow/loaded CI runner it blows vitest's 5s default (observed
+    // 6.2s on ubuntu-latest → CI red). 60s gives ~10x headroom over a real run
+    // while staying far under the job's 15-min budget, so a genuine hang is
+    // still caught.
+    testTimeout: 60000,
   },
 });
