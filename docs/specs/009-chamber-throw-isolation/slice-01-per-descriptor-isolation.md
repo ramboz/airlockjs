@@ -1,9 +1,10 @@
 ---
-status: DRAFT
+status: RECONCILED
 dependencies: [adr-0001]
-last_verified:
+last_verified: 2026-08-27
 arch_review: true
 frame_review: true
+claimed_by: claude/airlock-servo-oracle-ci-6b13d9
 ---
 
 ## Slice 009-01 — per-descriptor isolation in the chamber
@@ -58,18 +59,14 @@ batch of unrelated good events.
   assertions; do not test via a full real Worker.
 
 **DoD:**
-- [ ] All ACs pass; full suite green (`npm test`). *(The worker `onmessage`
-      handler is currently untested — only `mapToMp` and the egress fast path
-      are — so "no regression" here means the extracted `mapBatch` is newly
-      covered and nothing else breaks, not that pre-existing worker tests stay
-      green.)*
-- [ ] A test exercises a mixed batch (good/throwing/good) via the extracted
-      `mapBatch` and asserts the partial `ready` + the `dropped` entry +
-      chamber-survives-next-cycle; shown to fail if the try/catch is removed
-      (mutation-tested; restore via Edit, never `git checkout --`).
-- [ ] Reviewed by `reviewer` subagent (compliance + craft + arch, since
-      `arch_review: true`).
-- [ ] Deviation log + reconciliation sweep produced under this slice heading.
+- [x] All ACs pass; full suite green (`npm test` — 131 tests, incl. the 4 new
+      `chamber-isolation.test.js` covering the extracted `mapBatch`).
+- [x] A test exercises a mixed batch (good/throwing/good) via `mapBatch` and
+      asserts the partial `ready` + the `dropped` entry + chamber-survives-next-
+      cycle; mutation-tested (removing the try/catch fails 3/4), restored via Edit.
+- [x] Reviewed by `reviewer` subagent — compliance + craft + arch, all pass;
+      nits folded (index, defensive reason).
+- [x] Deviation log + reconciliation sweep produced under this slice heading.
 
 **Anti-horizontal-phasing check:** After this slice, a malformed event in a
 real cycle no longer takes down the batch — the airlock's core isolation
@@ -78,8 +75,44 @@ partial `ready` a mixed batch produces.
 
 ### Deviation log (after reconciliation)
 
-_TBD at reconciliation._
+1. **Extracted a pure exported `mapBatch(batch, cfg) → { ready, dropped }`**
+   from `chamber.worker.js`'s `onmessage` loop; per-descriptor try/catch (drop
+   the descriptor for all its trackers, record it, continue). `self.onmessage`
+   delegates to it and posts `{ ready, dropped }` (additive — `airlock.js` reads
+   only `e.data.ready`). `mapToMp`/`airlock.js`/`oracle.sh`/`contracts` untouched.
+2. **`typeof self !== "undefined"` guard around the `onmessage` wiring**
+   (009-01 frame-critique testability fix). `chamber.worker.js` had no test
+   because the side-effecting module wasn't importable in Node/vitest; the guard
+   makes `mapBatch` importable while leaving real-Worker behavior unchanged
+   (`self` exists there, so `onmessage` is still wired).
+3. **Post-review nits folded (craft/arch):** `dropped` entries now carry an
+   `index` (disambiguates two same-`type` drops in one batch — helps 09-02); the
+   `reason` is defensive against a non-`Error` throw (`err && err.message != null
+   ? err.message : String(err)`) so a drop is never vanished (A2). **Noted, not
+   fixed:** the `mapBatch` param `cfg` shadows the module-level `let cfg` —
+   harmless (the param wins in the pure function; the module `cfg` is used only
+   in `onmessage`), left to avoid churn on the init path.
+4. **Reconciliation notes (arch):** (a) the **unload/critical path**
+   (`airlock.js` `unloadFlush` → `critical.dispatch`, `core/egress.js`) maps on
+   the **main thread** and does **not** route through `mapBatch`, so a throwing
+   descriptor in the unload window has undefined isolation on the critical path —
+   recorded as **OQ16** ([refinement-todo](../../refinement-todo.md)). (b) The
+   `{ ready, dropped }` reply is an internal data shape with no formal contract
+   artifact; 09-02 decides whether the now-two-field reply warrants pinning. (c)
+   AC4's test asserts structural fields rather than literal byte-identity —
+   semantically adequate.
 
 ### Reconciliation sweep
 
-_TBD at reconciliation._
+| Artifact | Disposition | Rationale |
+|----------|-------------|-----------|
+| `README.md` | `no-op` | Internal runtime change; front-door README unaffected. |
+| `docs/specs/README.md` | `deferred` | Regenerated at close-out (post-DONE). |
+| `docs/product-vision.md` | `no-op` | No product-scope change. |
+| `docs/architecture.md` | `no-op` | The Q1 chamber-isolation reconciliation is 09-02's (it owns the honest "page-containment free + diagnosability; restart deferred" wording); 09-01 alone changes no boundary/contract doc. |
+| `oracle.sh` / `.servo/` | `no-op` | Untouched. |
+| Primer surfaces | `no-op` | Spec 009 in flight (09-02 open); no close-out. |
+| `docs/inbox.md` | `no-op` | Nothing to park. |
+| `docs/refinement-todo.md` | `updated` | **OQ16** added — unload/critical-path isolation (the seam `mapBatch` does not cover). |
+| `docs/decisions/**` | `no-op` | No ADR-worthy decision; realizes ADR-0001 at the worker seam. |
+| `docs/memory/**` | `no-op` | Nothing durable beyond the deviation log. |

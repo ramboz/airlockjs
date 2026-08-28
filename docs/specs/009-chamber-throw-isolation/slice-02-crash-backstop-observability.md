@@ -1,9 +1,10 @@
 ---
-status: DRAFT
+status: READY_FOR_REVIEW
 dependencies: [009-01]
 last_verified:
 arch_review: true
 frame_review: true
+claimed_by: claude/airlock-servo-oracle-ci-6b13d9
 ---
 
 ## Slice 009-02 — chamber failure observability (surface drops + crashes)
