@@ -1,9 +1,10 @@
 ---
-status: DRAFT
+status: READY_FOR_REVIEW
 kind: spike
 dependencies: []
 last_verified:
 frame_review: true
+claimed_by: claude/airlock-mvp2-coherency-cf9527
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about
@@ -12,11 +13,11 @@ frame_review: true
 
 ## Slice 011-01 — coherency rig + concurrent two-chamber writes
 
-**Goal:** A model-agnostic two-worker coherency proxy — a main-thread broker
-owning the authoritative cookie jar plus two worker chambers, each with a
-sync-cache + async write-back on one shared identity cookie — runs a concurrent
-read-modify-write from both chambers and reports whether the two caches diverge
-and how wide the incoherency window is.
+**Goal:** A two-worker coherency proxy modelling the worst-case Option-B topology
+— a main-thread broker owning the authoritative cookie jar plus two worker
+chambers, each with a sync-cache + async write-back on one shared identity cookie
+— runs a concurrent read-modify-write from both chambers and reports whether the
+two caches diverge and how wide the incoherency window is.
 
 **Question:** Under async write-back, do two chambers' sync-caches of a shared
 identity cookie diverge when both write concurrently, and how wide is the window

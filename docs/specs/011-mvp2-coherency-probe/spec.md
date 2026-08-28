@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 skill:
 use_cases: []
 ---
@@ -242,8 +242,9 @@ needle before the costlier out-of-band orchestration is built.
 ### Slices
 
 1. **[011-01 — coherency rig + concurrent two-chamber writes](slice-01-coherency-rig.md)**
-   — the model-agnostic two-worker proxy (broker + authoritative jar + two
-   sync-caches on a shared identity cookie), plus the in-band threat: concurrent
+   — the two-worker proxy (broker + authoritative jar + two sync-caches on a
+   shared identity cookie) modelling the worst-case Option-B topology, plus the
+   in-band threat: concurrent
    read-modify-write from both chambers. Delivers the rig everything else
    measures against **and** the first verdict — do two caches diverge under
    concurrent writes with async write-back, and how wide is the window?

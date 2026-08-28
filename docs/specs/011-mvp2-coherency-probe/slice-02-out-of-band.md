@@ -1,9 +1,10 @@
 ---
-status: DRAFT
+status: READY_FOR_REVIEW
 kind: spike
 dependencies: [011-01]
 last_verified:
 frame_review: true
+claimed_by: claude/airlock-mvp2-coherency-cf9527
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about
