@@ -31,11 +31,20 @@ source. Stop when each source has a characterized staleness window.
 
 **Acceptance Criteria:**
 
-1. **Credentialed-`fetch` `Set-Cookie` source.** The rig issues a credentialed
-   request whose response sets the shared identity cookie (same-site, so the
-   browser writes it into the jar), and measures whether/when the chambers'
-   sync-caches observe the new value. Driven deterministically (the endpoint's
-   `Set-Cookie` is controllable).
+1. **Credentialed-`fetch` `Set-Cookie` source — cross-site first.** The realistic
+   Adobe identity write is **cross-site** (Adobe edge → customer origin), which
+   under Chromium's third-party-cookie / CHIPS regime may be partitioned or
+   blocked and never reach the first-party jar the broker re-reads — so the rig
+   drives the **cross-site/partitioned** variant as the primary case (a
+   third-party endpoint's `Set-Cookie`, and a CHIPS `Partitioned` variant),
+   measuring whether it lands at all and, if so, when the chambers' sync-caches
+   observe it. A **same-origin** `Set-Cookie` is retained only as the easy
+   control (it isolates *detection* latency once landing is established). Each is
+   driven deterministically (the endpoint's `Set-Cookie` is controllable); a
+   variant that cannot land or be driven is **recorded as such** per the DoD
+   kill-criteria clause, not silently dropped. Detection is by broker jar re-read
+   (`cookieStore` / `document.cookie`), **not** response-header inspection —
+   `Set-Cookie` is a forbidden response header (R-006 F4).
 2. **Main-thread write source.** The broker (main thread) writes the shared
    cookie via `document.cookie` out-of-band, and the rig measures the chamber
    sync-cache staleness window that opens until write-back/seed reconciles it.

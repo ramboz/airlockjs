@@ -36,19 +36,31 @@ measurement; it consumes 011-01/011-02 and produces the ADR.
    one's measured verdict (coherent / stale-then-reconciles / permanently
    divergent) and window.
 2. **Go/no-go recorded.** The spec records an explicit conclusion: **go** (an
-   AD-4-compatible mechanism gives an acceptable coherent synchronous view — name
-   it) or **no-go** (it does not — trigger the Kill-criterion escalation:
-   AD-4-exception-via-ADR / single-shared-worker fallback / re-shape MVP2 scope).
+   AD-4-compatible sync-access mechanism bounds the unavoidable staleness to an
+   acceptable level for shared identity — name it) or **no-go** (it does not —
+   trigger the Kill-criterion escalation: AD-4-exception-via-ADR /
+   single-shared-worker fallback / re-shape MVP2 scope). The verdict must be
+   framed as a *correctness* judgment on shared identity, not merely a window
+   width (per the spec's third assumption).
 3. **Resolving ADR written and accepted.** A dedicated ADR (next free number, via
-   `/jig:adr-workflow`) records the decision, jointly resolving **both** halves
-   of OQ9: (a) the per-connector isolation model — ADR-0001's deferred Option B
-   (worker-per-chamber) vs Option C (WASM sandbox) — and (b) the
-   synchronous-host-access mechanism, chosen from
-   [R-006](../../research/R-006-cross-chamber-cookie-coherency-mechanisms.md)'s
-   option set (**A** seed + async write-back / **B** broker-push invalidation on
-   `cookieStore` `change` / **D** single shared worker; C ruled out within AD-4),
-   grounded in the probe's measured evidence. The ADR supersedes ADR-0001's
-   forward-commitment on this point and cites this spec's scoreboard.
+   `/jig:adr-workflow`) records the decision, resolving OQ9 along the **division
+   of labor** the spec's "What the probe settles" section fixes — the ADR must
+   not overclaim a probe-grounded isolation verdict:
+   - **(a) Sync-access mechanism** — chosen from
+     [R-006](../../research/R-006-cross-chamber-cookie-coherency-mechanisms.md)'s
+     named options (seed + async write-back / broker-push invalidation on
+     `cookieStore` `change` / single-shared-worker; per-read marshalling ruled
+     out within AD-4), **grounded in the probe's measured evidence**.
+   - **(b) Per-connector isolation viability** — **probe-gated**: does any
+     per-connector isolation survive (go), or must MVP2 retreat to a single
+     shared worker (no-go), dropping cross-connector confidentiality.
+   - **(c) Isolation model B-vs-C**, on a go — resolved on **ADR-0001's recorded
+     non-coherency tradeoffs** (unmodified-stock-bundle → Option B over Option
+     C's per-read marshalling), *explicitly not* on probe coherency evidence,
+     which does not discriminate B from C. The ADR states this grounding
+     honestly.
+   The ADR supersedes ADR-0001's forward-commitment on this point and cites this
+   spec's scoreboard.
 4. **OQ9 marked RESOLVED.** `docs/refinement-todo.md` OQ9 is struck through /
    marked RESOLVED with a link to the new ADR, mirroring the OQ10→ADR-0004
    resolution convention.
