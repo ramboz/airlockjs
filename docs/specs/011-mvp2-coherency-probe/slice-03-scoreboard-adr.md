@@ -43,9 +43,12 @@ measurement; it consumes 011-01/011-02 and produces the ADR.
    `/jig:adr-workflow`) records the decision, jointly resolving **both** halves
    of OQ9: (a) the per-connector isolation model — ADR-0001's deferred Option B
    (worker-per-chamber) vs Option C (WASM sandbox) — and (b) the
-   synchronous-host-access mechanism, grounded in the probe's measured evidence.
-   The ADR supersedes ADR-0001's forward-commitment on this point and cites this
-   spec's scoreboard.
+   synchronous-host-access mechanism, chosen from
+   [R-006](../../research/R-006-cross-chamber-cookie-coherency-mechanisms.md)'s
+   option set (**A** seed + async write-back / **B** broker-push invalidation on
+   `cookieStore` `change` / **D** single shared worker; C ruled out within AD-4),
+   grounded in the probe's measured evidence. The ADR supersedes ADR-0001's
+   forward-commitment on this point and cites this spec's scoreboard.
 4. **OQ9 marked RESOLVED.** `docs/refinement-todo.md` OQ9 is struck through /
    marked RESOLVED with a link to the new ADR, mirroring the OQ10→ADR-0004
    resolution convention.

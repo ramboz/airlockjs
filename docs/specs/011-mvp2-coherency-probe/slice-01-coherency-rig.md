@@ -29,6 +29,10 @@ staleness window on demand — the instrument the rest of the spec measures with
 - ✅ [R-004](../../research/R-004-alloy-in-worker.md) (single-chamber sync-cache
   shim proven) and the `rig/` Playwright realm (`rig/isolation.mjs`,
   `rig/e2e.mjs`) exist as the pattern to extend.
+- ✅ [R-006](../../research/R-006-cross-chamber-cookie-coherency-mechanisms.md)
+  (mechanism survey) fixes the rig's architecture: the authoritative jar lives
+  on the broker only (chambers have no cookie API), and the probe measures
+  broker↔cache freshness, not a shared-memory race.
 - ✅ [ADR-0001](../../decisions/adr-0001-chamber-isolation-strength.md) records
   the coupled B-vs-C + sync-access question this probe resolves.
 

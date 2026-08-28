@@ -38,6 +38,29 @@ names — concurrent two-chamber writes, and three out-of-band write sources (a
 credentialed-`fetch` `Set-Cookie`, a main-thread write, a second-tab write) —
 and scores the staleness window each opens.
 
+**Scope fixed by [R-006](../../research/R-006-cross-chamber-cookie-coherency-mechanisms.md)
+(the mechanism survey — read it first).** The survey settled the architecture
+*on paper* before this rig measures it, sharpening the question:
+
+- A dedicated-worker chamber has **no cookie API at all** (no `document`, and
+  `cookieStore` is not exposed on `DedicatedWorkerGlobalScope`), so the **main
+  thread is the sole cookie authority** — chambers hold *caches*, and the probe
+  measures **broker↔cache freshness**, not a shared-memory race. The rig's
+  "authoritative jar" therefore lives only on the broker.
+- **No AD-4-compatible mechanism gives synchronous cross-agent reads** (the only
+  synchronous shared-memory channel is SAB+`Atomics`, forbidden). So
+  synchronicity *necessarily* implies a cache and a **non-zero staleness
+  window** — a platform boundary, not a shim defect. The probe therefore does
+  **not** hunt for zero-staleness coherence (impossible for free); it measures
+  **whether the unavoidable async staleness is a *correctness* fault for shared
+  identity, and whether broker-push invalidation bounds it acceptably.**
+- The resolving ADR (011-03) chooses among R-006's option set: **A** seed +
+  async write-back (MVP1 shim, likely insufficient), **B** broker-push
+  invalidation on `cookieStore` `change` (leading AD-4-clean candidate), or
+  **D** single shared worker for the whole Adobe stack (the no-go fallback that
+  drops cross-connector confidentiality). Option C (per-read marshalling) is
+  ruled out within AD-4.
+
 **Why model-agnostic (not presupposing ADR-0001 B-vs-C).** The two-worker proxy
 is a concrete *instrument*, not a commitment to Option B (worker-per-chamber).
 It characterizes the failure mode any **multi-cache-over-one-jar** design faces
@@ -63,32 +86,39 @@ question and **records the decision**; it builds no runtime.
 
 ## Assumptions
 
+> Several premises that were hypotheses in the first draft are now **grounded**
+> by [R-006](../../research/R-006-cross-chamber-cookie-coherency-mechanisms.md)
+> and moved out of this section: that a non-zero staleness window is
+> *unavoidable* within AD-4 (R-006 F2, closed-set enumeration of cross-agent
+> channels), that the main thread is the sole cookie authority (F1), and that a
+> shared identity cookie is the realistic target (grounded in R-004's
+> identity-cookie set). What remains genuinely unverified:
+
 - **The two-worker proxy generalizes to the B-vs-C decision.** The coherency
-  failure mode of N sync-caches over one authoritative jar is a property of the
+  failure mode of N caches over one broker authority is a property of the
   *multi-cache* shape, not of the thread/realm mechanism, so a two-worker
   instrument characterizes Option C (WASM-sandbox marshalling) as well as
-  Option B. [Design premise — this is the model-agnostic claim the probe rests
-  on; frame-critique should test it. If Option C's single-thread shared cache
-  makes the concurrent case trivially coherent, that is itself a *finding* the
-  scoreboard records, not a rig failure.]
+  Option B. [Design premise — the model-agnostic claim the probe rests on;
+  frame-critique should test it. R-006 F1/F2 support it (both models share one
+  broker authority and cannot read it synchronously), but the *generalization*
+  itself is an argument, not a measurement. If Option C's single-thread shared
+  cache makes the concurrent case trivially coherent, that is itself a *finding*
+  the scoreboard records, not a rig failure.]
 - **The three out-of-band write sources are reproducible in a Playwright/chromium
   harness.** A credentialed-`fetch` `Set-Cookie`, a main-thread `document.cookie`
   write, and a second-tab write can each be driven deterministically against a
-  shared cookie. [To be probe-confirmed in slice 011-01's rig bring-up; the
-  `rig/` browser realm already runs Playwright — `rig/isolation.mjs`,
-  `rig/e2e.mjs`. If a source cannot be driven deterministically, the method is
+  shared cookie, and the broker can *detect* each (R-006 F3/F4 predict
+  `cookieStore` `change` + jar re-read; a foreign second-tab write may need
+  polling). [To be probe-confirmed in slice 011-01's rig bring-up; the `rig/`
+  browser realm already runs Playwright — `rig/isolation.mjs`, `rig/e2e.mjs`.
+  If a source cannot be driven or detected deterministically, the method is
   revisited before a verdict — Kill criteria.]
-- **Async write-back's staleness window is the coherency failure mode under
-  test** (not, e.g., cache eviction or serialization). [Hypothesis the probe
-  measures, grounded in ADR-0001's analysis that separate-thread caches "cannot
-  see each other's synchronous writes without SharedArrayBuffer + Atomics." The
-  probe's job is to measure the window's width and blast radius, not to
-  re-derive that it exists.]
-- **A shared identity cookie is the realistic contention target.** Two Adobe
-  chambers (Analytics + Target via alloy) share `AMCV_*=MCMID|<ECID>` / `demdex`
-  identity state, per [R-004](../../research/R-004-alloy-in-worker.md)'s
-  documented identity-cookie set. [Grounded in R-004; the probe uses an
-  identity-cookie-shaped value, not a real ECID.]
+- **The unavoidable async staleness is measurable as a *correctness* outcome,
+  not just a latency number.** The go/no-go turns on whether a stale
+  ECID/demdex read causes a real fault (duplicate identity, split session) vs
+  self-healing; the rig must surface that, not merely a window width. [The
+  crux R-006 hands to 011-03; needs the rig to model an identity-consuming
+  read, not just a cookie compare.]
 
 ## Kill criteria
 
