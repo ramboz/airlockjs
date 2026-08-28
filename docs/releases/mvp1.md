@@ -120,7 +120,9 @@ decision.
 - **Precondition task:** stand up CI + Lighthouse CI + Playwright before any
   servo-unattended loop.
 - Deferred and untouched by MVP1: OQ9 (MVP2 sync-access), OQ11/OQ3 (payload
-  governance / event schema).
+  governance / event schema), **OQ16** (unload/critical fast path maps on the main
+  thread, not via the chamber's `mapBatch` — teardown-window isolation gap surfaced
+  during spec 009-01 reconciliation; narrow post-MVP1 hardening).
 
 ## Release-Check Criteria
 
@@ -142,13 +144,19 @@ decision.
 - **GA4 conformance:** payloads pass `ga4_mp_conformance` — hermetic (schema +
   golden fixture) green AND the live `/debug/mp/collect` reports no validation
   errors (non-blocking check).
-- **Delivery (OQ10) — advanced, one item open.** With the Option-C egress backstop
-  (worker maps, orchestrator dispatches on the main thread + `visibilitychange`
-  flush) the worker path delivers 300/300 under normal settle, matching the
-  baseline; the delivery-rate oracle instruments the drain stage, not just egress.
-  **Still open:** a beacon *generated inside* the unload window needs a main-thread
-  synchronous mapping fast path (no worker round-trip possible at teardown) — the
-  one remaining OQ10 item, to be closed with the dedicated egress ADR before ship.
+- **Delivery (OQ10) — MET.** With the Option-C egress backstop (worker maps,
+  orchestrator dispatches on the main thread + `visibilitychange` flush) the worker
+  path delivers 300/300 under normal settle, matching the baseline; the
+  delivery-rate oracle instruments the drain stage, not just egress. **Closed
+  2026-08-28:** the beacon-*generated-inside*-the-unload-window case is handled by a
+  main-thread synchronous mapping fast path (`createCriticalDispatcher`, no worker
+  round-trip at teardown), pinned by
+  [ADR-0004](../decisions/adr-0004-egress-dispatch-delivery.md) (Accepted). The
+  dedicated egress ADR the earlier draft awaited now exists — OQ10 is resolved.
+  *Known narrow follow-up (OQ16, deferred):* that critical fast path maps on the
+  main thread and does not route through the chamber's `mapBatch`, so a throwing
+  descriptor in the teardown window has undefined isolation — post-MVP1 hardening,
+  not a demo blocker.
 - **Isolation:** `isolation_invariant` holds — a connector attempt to touch
   `document` throws.
 - **Scoreboard:** the before/after CWV scoreboard shows ~zero cost (Lighthouse
@@ -157,4 +165,4 @@ decision.
   check holds (variant content in the DOM at `body.appear`; `first-paint` never
   before `appear`).
 
-_Last shaped: 2026-08-26_
+_Last shaped: 2026-08-28 (OQ10 marked resolved via ADR-0004; OQ16 recorded as deferred follow-up; release-check advisory recommendation: ship)._
