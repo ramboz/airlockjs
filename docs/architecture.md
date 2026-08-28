@@ -58,7 +58,7 @@ Feeds `/jig:contracts`. Five surfaces, in priority order:
 
 1. **GA4 Measurement Protocol** — external, versioned, validatable at `/debug/mp/collect`. The MVP1 conformance oracle.
 2. **The `push()`-shaped datalayer API** — the drop-in compatibility surface (loosely GTM/ACDL-shaped) that maps onto the event-log/projection split underneath.
-3. **The connector interface** — what a connector implements: consume typed events → request capabilities → emit to a declared endpoint. A mapper MAY **throw** on contract-invalid input (e.g. GA4 `mapToMp` rejects a `purchase` missing `transaction_id`/`currency`/`value`/`items[]`, spec 008); the airlock is responsible for isolating that throw to the failing chamber per Q1 (a per-event catch in the worker caller — tracked as OQ14, not yet implemented).
+3. **The connector interface** — what a connector implements: consume typed events → request capabilities → emit to a declared endpoint. A mapper MAY **throw** on contract-invalid input (e.g. GA4 `mapToMp` rejects a `purchase` missing `transaction_id`/`currency`/`value`/`items[]`, spec 008); the airlock isolates that throw to the failing **descriptor** per Q1 — a per-descriptor catch in the worker caller (`chamber.worker.js` `mapBatch`, spec 009-01) drops just that event and records it in the cycle's `dropped[]`, and the main thread surfaces each drop plus any chamber-level `worker.onerror` through an injectable diagnostics seam (spec 009-02). OQ14 **resolved**; the unload/critical fast path is not yet routed through `mapBatch` (**OQ16**).
 4. **The capability API** — what the orchestrator grants across the airlock (mediated DOM injection, mediated egress) and how scopes are declared.
 5. **The seam driver interfaces** — decision-source and egress driver contracts.
 
@@ -121,6 +121,8 @@ _(category: Edge Cases & Failure Modes)_
 _(provenance: [judgment])_
 
 Isolate the chamber, page unaffected — drop/restart just the failing chamber; other chambers and the page keep running. This realizes the fault-isolation half of the thesis (a broken tag must not sink the page).
+
+**Reconciled 2026-08-27 (spec 009).** Two of the three verbs are delivered; the third is honestly deferred. **Page unaffected** — free from the Worker boundary itself (a throw or crash in the worker cannot take down the page's main thread), so no code "keeps the page running"; it never stopped. **Drop the failing event** — delivered per-descriptor by 009-01's `mapBatch` catch (finer than "drop the chamber": one malformed event is dropped, the rest of the batch still maps), and made **observable** by 009-02 (each drop + any `worker.onerror` surfaced via the diagnostics seam) — the failure is now diagnosable, not silent. **Restart the failing chamber** is **NOT** delivered — there is no chamber-recreate/replay; a chamber that hard-crashes stays down until page reload. Chamber restart remains deferred (**OQ9**). The critical/unload fast path is not yet routed through `mapBatch` (**OQ16**).
 
 ### Q2: If consent is never granted (or an endpoint stays un-allowlisted), how long are events held at the seal retained?
 _(category: Edge Cases & Failure Modes)_

@@ -24,7 +24,17 @@
  */
 import { createCriticalDispatcher } from "./egress.js";
 
-export function createAirlock({ trackers, workFactor, endpoints, ctx, unloadCritical }) {
+// Default diagnostics seam: console-backed, severity-differentiated (warn for a
+// per-descriptor drop, error for a chamber-level crash). Callers may inject
+// `onDiagnostic` (e.g. the future OQ7 inspector) to intercept the same records;
+// it is the single sink, so no call site hard-codes `console` directly.
+function consoleDiagnostic(record) {
+  const fn = record.level === "error" ? console.error : console.warn;
+  fn("airlock:", record);
+}
+
+export function createAirlock({ trackers, workFactor, endpoints, ctx, unloadCritical, onDiagnostic }) {
+  const diagnose = typeof onDiagnostic === "function" ? onDiagnostic : consoleDiagnostic;
   const log = [];
   // Null-prototype: event names are object keys, so a pathological name like
   // "__proto__" must land as an own key, not rewire the projection's prototype.
@@ -46,12 +56,38 @@ export function createAirlock({ trackers, workFactor, endpoints, ctx, unloadCrit
   // Orchestrator dispatch: the worker returns mapped requests; send them on the
   // MAIN thread immediately (fetch keepalive is cheap + survives page teardown).
   worker.onmessage = (e) => {
-    const ready = e.data && e.data.ready;
-    if (!ready) return;
-    for (const r of ready) {
-      fetch(r.url, { method: "POST", body: r.body, keepalive: true })
-        .then(() => { dispatched++; }, () => { dispatched++; });
+    const data = e.data;
+    const ready = data && data.ready;
+    if (ready) {
+      for (const r of ready) {
+        fetch(r.url, { method: "POST", body: r.body, keepalive: true })
+          .then(() => { dispatched++; }, () => { dispatched++; });
+      }
     }
+    // 009-02 AC2: surface each 009-01 per-descriptor drop — otherwise a
+    // malformed event silently vanishes instead of being diagnosable.
+    const dropped = data && data.dropped;
+    if (dropped && dropped.length) {
+      for (const d of dropped) {
+        diagnose({ level: "warn", kind: "dropped", type: d.type, reason: d.reason, index: d.index });
+      }
+    }
+  };
+
+  // 009-02 AC1: a chamber-level worker error (NOT a caught per-descriptor
+  // throw — e.g. a worker-module load error or an internal bug) is otherwise
+  // silently swallowed once handled/registered. The Worker boundary already
+  // keeps the page alive regardless (spec 009-02 frame-critique); this
+  // registration makes the failure OBSERVED via the same diagnostics seam.
+  // ErrorEvent fields degrade gracefully — never surface an empty record.
+  worker.onerror = (err) => {
+    diagnose({
+      level: "error",
+      kind: "chamber-error",
+      message: err && err.message != null ? err.message : String(err),
+      ...(err && err.filename != null ? { filename: err.filename } : {}),
+      ...(err && err.lineno != null ? { lineno: err.lineno } : {}),
+    });
   };
 
   const drain = () => {

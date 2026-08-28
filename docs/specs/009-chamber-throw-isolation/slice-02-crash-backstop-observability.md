@@ -1,10 +1,9 @@
 ---
-status: READY_FOR_REVIEW
+status: DONE
 dependencies: [009-01]
-last_verified:
+last_verified: 2026-08-27
 arch_review: true
 frame_review: true
-claimed_by: claude/airlock-servo-oracle-ci-6b13d9
 ---
 
 ## Slice 009-02 — chamber failure observability (surface drops + crashes)
@@ -62,19 +61,21 @@ invisible.
   attach.
 
 **DoD:**
-- [ ] All ACs pass; full suite green (`npm test`).
-- [ ] A test simulates (a) a worker `error` event → **surfaced record via the
+- [x] All ACs pass; full suite green (`npm test` — 139 tests, incl. the 8 new
+      `chamber-observability.test.js`).
+- [x] A test simulates (a) a worker `error` event → **surfaced record via the
       hook**, and (b) a reply with `dropped[]` → surfaced drop; each shown to
-      fail if the surfacing is removed — the mutation test hangs on the
-      **surfaced-record** assertion, NOT on "no unhandled main-thread throw"
-      (which is trivially true via the Worker boundary). Restore via Edit, never
-      `git checkout --`.
-- [ ] Reviewed by `reviewer` subagent (compliance + craft + arch).
-- [ ] Deviation log + reconciliation sweep produced under this slice heading.
-- [ ] `architecture.md` Q1 reconciled **honestly**: MVP1 delivers page
+      fail if the surfacing is removed — the mutation removing the drop-loop + the
+      onerror `diagnose` call produced **6 failures**, all on the
+      **surfaced-record** call-count assertions (no assertion concerns "no
+      unhandled throw"). Restored via Edit; re-verified 139/139.
+- [x] Reviewed by `reviewer` subagent (compliance + craft + arch, all pass; 2
+      nits folded — field-omission negative assertion + a seam-comment reword).
+- [x] Deviation log + reconciliation sweep produced under this slice heading.
+- [x] `architecture.md` Q1 reconciled **honestly**: MVP1 delivers page
       containment (free, Worker boundary) + diagnosability of drops/crashes; it
       does **NOT** deliver Q1's "restart the failing chamber" verb — that stays
-      deferred (OQ9). Do not imply Q1 is fully implemented.
+      deferred (OQ9). Q1 recorded as *partially* implemented, restart deferred.
 
 **Anti-horizontal-phasing check:** After this slice, a chamber failure is no
 longer silent — a per-event throw drops just the event and is reported (09-01 +
@@ -84,8 +85,42 @@ instead of analytics silently going dark.
 
 ### Deviation log (after reconciliation)
 
-_TBD at reconciliation._
+1. **One injectable diagnostics seam added to `createAirlock`.** A new optional
+   `onDiagnostic` param (defaulting to a `consoleDiagnostic` that maps
+   `level:"error"→console.error`, else `console.warn`) is the single sink for
+   both AC1 and AC2 — no call site hard-codes `console`. This is the OQ7-inspector
+   attach point (one place, severity differentiated within the record).
+2. **AC2 (drops) — `worker.onmessage` extended additively.** The existing
+   `ready`-dispatch loop is unchanged; after it, a non-empty `e.data.dropped`
+   surfaces one `{ level:"warn", kind:"dropped", type, reason, index }` per drop.
+   `index` is carried through from 009-01 (disambiguates two same-`type` drops) —
+   extra vs. the AC's "type + reason" wording, kept as useful, not noise.
+3. **AC1 (crash) — `worker.onerror` registered.** Surfaces
+   `{ level:"error", kind:"chamber-error", message, filename?, lineno? }`.
+   Fields degrade gracefully: `message` falls back to `String(err)`, and
+   `filename`/`lineno` use spread-conditionals so a partial `ErrorEvent` yields a
+   `{level,kind,message}`-minimum record, never an empty one. The comment states
+   honestly that the Worker boundary — not this handler — keeps the page alive;
+   the handler makes the failure *observed*.
+4. **Post-review nits folded (craft):** the degradation test now also asserts the
+   omitted fields are **absent** (`not.toHaveProperty("filename"/"lineno")`),
+   locking the spread's omission behavior; the seam comment was reworded from a
+   garbled phrase to a clean single-sink statement.
+5. **Scope held (arch):** no chamber-restart logic (OQ9 deferred);
+   `core/chamber.worker.js` / `connectors/` / `contracts/` / `oracle.sh`
+   untouched; `ready`-dispatch behavior byte-unchanged.
 
 ### Reconciliation sweep
 
-_TBD at reconciliation._
+| Artifact | Disposition | Rationale |
+|----------|-------------|-----------|
+| `README.md` | `no-op` | Internal runtime change; front-door README unaffected. |
+| `docs/specs/README.md` | `deferred` | Regenerated at close-out (post-DONE). |
+| `docs/product-vision.md` | `no-op` | No product-scope change; the fault-isolation thesis is unchanged (this makes its failure *observable*). |
+| `docs/architecture.md` | `updated` | **Q1 reconciled honestly** (`:123`): page-containment free (Worker boundary) + drop delivered (009-01) + now diagnosable (009-02); **restart NOT delivered**, deferred OQ9. `:61` connector-interface note updated — OQ14 **resolved** (per-descriptor catch + diagnostics seam), with the OQ16 critical-path caveat. |
+| `oracle.sh` / `.servo/` | `no-op` | Untouched. |
+| Primer surfaces | `deferred` | Spec 009 now fully closed (both slices DONE); no primer entry existed for spec 009 to update. |
+| `docs/inbox.md` | `no-op` | Nothing to park — OQ9 (restart) already tracked; OQ16 added by 009-01. |
+| `docs/refinement-todo.md` | `no-op` | OQ14 already marked resolved-via-spec-009 (009-01); OQ9 (restart) + OQ16 (critical path) already present. |
+| `docs/decisions/**` | `no-op` | Realizes ADR-0001 (chamber isolation) observability at the seam; no new decision. |
+| `docs/memory/**` | `no-op` | Nothing durable beyond the deviation log. |
