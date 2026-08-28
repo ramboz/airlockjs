@@ -36,10 +36,14 @@ shared **first-party** identity cookie (an `AMCV_*` / `kndctr_*`-shaped value �
 per R-004, these are first-party, JS-written via synchronous `document.cookie`
 from the Edge response body, *not* network `Set-Cookie`). The rig exercises the
 coherency threats [OQ9](../../refinement-todo.md) names — concurrent two-chamber
-(in-band) writes, and the out-of-band writes from *outside* any chamber (a
-main-thread write by another first-party script, a second-tab write, and a
-same-origin server `Set-Cookie`; the cross-site demdex-style `Set-Cookie` enters
-only as a negative boundary) — and scores the staleness window each opens.
+(in-band) writes, and the out-of-band writes from *outside* any chamber. Because
+the identity cookie is only ever JS-written (R-004), the load-bearing out-of-band
+writers are **other JS actors**: a main-thread write by another first-party
+script (e.g. a co-resident legacy Adobe Visitor/ECID lib) and a second-tab write.
+Network `Set-Cookie` enters only as a **negative boundary** — neither the
+cross-site demdex variant (writes Adobe's domain / CHIPS-partitioned) nor a
+same-origin server `Set-Cookie` (writes a *different* cell) mutates the cached
+identity cookie. The rig scores the staleness window each opens.
 
 **Scope fixed by [R-006](../../research/R-006-cross-chamber-cookie-coherency-mechanisms.md)
 (the mechanism survey — read it first).** The survey settled the architecture
@@ -67,62 +71,69 @@ only as a negative boundary) — and scores the staleness window each opens.
   ruled out within AD-4 (it needs a synchronous worker→main round-trip, i.e.
   SAB).
 
-**What the probe settles — the coupling, dissolved (not re-deferred).**
-OQ9 records the sync-access **mechanism** and the isolation **model** (ADR-0001
-Option **B** worker-per-chamber vs **C** WASM-sandbox-in-one-Worker) as *one
-coupled decision*, because the mechanism was thought to depend on the model
-(separate-thread caches need cross-thread invalidation; a shared-realm sandbox
-might not). The probe's substantive result is to **break that coupling** — and
-that is how it honours OQ9's "settle by a model-agnostic probe … that does not
-presuppose the B-vs-C model" trigger, rather than presupposing or re-deferring it:
+**What the probe measures — and what it hands to the 011-03 ADR to interpret.**
+OQ9 couples *two* axes: cross-thread **coherency** (can a cache be kept fresh
+enough without SAB) and, for ADR-0001 Option **C** (WASM-sandbox-in-one-Worker),
+**read-semantics** (ADR-0001 records C "must marshal each read across the
+boundary, losing the unmodified-stock-bundle property"). **This probe is scoped
+to the coherency axis only** — the rig measures cross-chamber cookie coherency
+for the worst-case topology and reports whether broker-push invalidation bounds
+staleness acceptably. Mapping that result onto OQ9's resolution (the B-vs-C model,
+the contract freeze) is the **011-03 resolving ADR's** job, which weighs the
+measurement against ADR-0001 and gets its own frame-critique. The spec states
+only the interpretive facts the measurement genuinely grounds:
 
-- **Option B is the worst-case coherency topology.** Its N separate,
-  cross-thread caches maximize both the write-propagation window (chamber→broker
-  write-back, then broker→chamber push) and the read-staleness window. Option C
-  (sandboxes sharing one host-side cache in one realm) is *strictly easier* —
-  fewer caches, no cross-thread hop; at best trivially coherent in-band.
-- **So proving the mechanism for B proves it model-independently.** If
-  broker-push invalidation bounds staleness acceptably for B's two-cache
-  topology (what the rig measures), it bounds it *a fortiori* for C. The
-  broker→worker push targets the worker/cache layer *below* the isolation
-  boundary, so it is realizable whether a chamber is a full Worker (B) or a WASM
-  sandbox in a Worker (C). [Residual assumption — see `## Assumptions`: that the
-  push is realizable across the isolation boundary in whichever model MVP2 picks;
-  grounded in that it targets the cache layer, not the sandbox.]
-- **Therefore the capability contract (step 5) can freeze on the *mechanism*
-  alone.** The isolation model is runtime-internal plumbing with an identical
-  capability surface (mediated sync cookie get/set backed by a broker-push-kept
-  cache), so **B-vs-C no longer gates the contract.**
+- **Option B is the worst-case *coherency* topology** (its N separate
+  cross-thread caches maximize the write-propagation and read-staleness windows;
+  Option C, sharing one realm/cache, is strictly easier). So a **go** — staleness
+  bounded acceptably for B — **transfers to C on the coherency axis** (a fortiori).
+  This transfer is **directional**: a *positive* result generalizes down to the
+  easier model; a *negative* result does not (see the no-go split below).
+- **The no-go splits by axis, and the split is load-bearing:**
+  - An **out-of-band no-go** (the broker cannot detect/propagate a foreign write
+    fast enough) is **model-independent** — every model (B, C, *and* the single
+    shared worker D) caches and so has the same broker↔cache staleness. This
+    threatens the whole no-SAB-chambers premise → genuine **stop-and-re-shape**.
+  - An **in-band no-go** (B's concurrent two-chamber RMW loses updates) is
+    **B-specific** — C's/D's single shared cache is structurally immune
+    (event-loop-serialized reads). So it does **not** kill the premise; it is
+    evidence **discriminating C/D over B**, and thus a real *input* to the
+    deferred model choice — coherency is not model-neutral in this branch.
 
-**What the probe does NOT decide: B-vs-C itself.** Coherency does not
-discriminate B from C (both are multi-cache-over-one-broker; C is only easier),
-and ADR-0001 deliberately **declined** to weigh the real drivers — fault
-isolation, **confidentiality/containment of untrusted vendor code** (Option C's
-pro, squarely relevant to alloy), per-thread overhead, capability-bridge
-maturity — making "no forward reservation" and handing them to OQ9. This spec
-does **not** re-attribute a decision to ADR-0001 it never made, and the probe
-gives no evidence on those drivers. So B-vs-C **spins out as an explicit,
-now-decoupled and non-blocking deferred decision** (a fresh refinement-todo item
-/ a decision inside the alloy-connector spec), to be made on isolation-strength
-grounds at connector-build time. The probe's only contribution to the isolation
-axis is the **viability floor**: on a **go**, *some* per-connector isolation (B
-or C) is viable; on a **no-go**, MVP2 retreats to a single shared worker —
-foreclosing the model question, and dropping cross-connector confidentiality.
+**What the probe does NOT settle (explicitly handed to the 011-03 ADR):**
 
-**Outcome:** a recorded go/no-go that resolves [OQ9](../../refinement-todo.md)
-via a **dedicated ADR**. Per the decoupling above, the ADR records: (a) the
-**synchronous-host-access mechanism** — probe-grounded (proven for the worst-case
-Option-B topology, hence model-independent); (b) the finding that the
-mechanism↔model **coupling is dissolved**, so the step-5 capability contract can
-freeze on the mechanism alone; and (c) the **per-connector isolation viability**
-floor — probe-gated. It **explicitly does not decide B-vs-C**, which it spins out
-as a decoupled, non-blocking deferred decision (naming the isolation-strength
-drivers ADR-0001 left open) — amending OQ9's "one coupled decision" premise with
-the probe's finding that the two axes are *separable*. On a **no-go** (no
-AD-4-compatible mechanism bounds the staleness acceptably for shared identity),
-the outcome is the honest stop-and-re-shape signal for MVP2's whole
-no-SAB-chambers premise ([MVP2 release plan](../../releases/mvp2.md) No-Gos) —
-the retreat to a single shared worker, dropping cross-connector confidentiality.
+- **OQ9's read-semantics axis for Option C** — whether a WASM sandbox can honor a
+  synchronous-by-reference cookie surface with an *unmodified* stock alloy bundle,
+  or must marshal each read (ADR-0001) / place the cache to avoid it. The rig
+  builds only the Worker (B) case, so this is **out of the probe's scope**;
+  ADR-0001 says it is costly, R-006's addendum argues it need not be — an
+  **unreconciled, unmeasured tension** the ADR must resolve, not the spec assert.
+- **The B-vs-C model choice**, which ADR-0001 deliberately deferred (weighing
+  fault isolation, **confidentiality/containment of untrusted vendor code** — C's
+  pro, squarely relevant to alloy — overhead, and bundle-maturity). The probe
+  gives no evidence on those drivers; it contributes only the coherency inputs
+  above (the go/no-go and the in-band discriminator). Critically, **freezing the
+  step-5 contract on a synchronous-by-reference cookie surface is itself a
+  *constraint* on this deferred choice** (it tilts against a C that cannot honor
+  sync-reads unmodified) — so B-vs-C is deferred but **pre-constrained**, not
+  cleanly independent. The ADR records the freeze as an explicit input to it.
+
+**Outcome:** the measured coherency scoreboard + a go/no-go on the coherency
+axis, feeding a **dedicated 011-03 ADR** that resolves [OQ9](../../refinement-todo.md).
+The **probe** grounds: the sync-access **coherency mechanism** (broker-push
+invalidation, proven for the worst-case B topology so a go transfers to C on the
+coherency axis); the **out-of-band vs in-band no-go split** (out-of-band =
+premise-threatening/all-models; in-band = B-specific discriminator). The **ADR**
+then interprets that onto OQ9: it may freeze the step-5 contract on the sync-read
+capability shape (recording that freeze as an explicit *constraint* on the
+deferred B-vs-C choice), it reconciles the still-open **read-semantics** tension
+for C (ADR-0001's marshal-each-read vs R-006's counter), and it carries B-vs-C
+forward as a **pre-constrained deferred decision** — not attributing to ADR-0001
+a choice it declined. On an **out-of-band no-go**, the outcome is the honest
+stop-and-re-shape signal for MVP2's whole no-SAB-chambers premise
+([MVP2 release plan](../../releases/mvp2.md) No-Gos); on an **in-band-only
+no-go**, it points the model choice toward a shared cache (C or D) rather than
+killing the premise.
 
 **Out of scope:** OQ11/OQ3 (payload governance + event schema — the next
 contract-extension step), the alloy wrapped-SDK connector itself, live
@@ -140,35 +151,39 @@ question and **records the decision**; it builds no runtime.
 > shared identity cookie is the realistic target (grounded in R-004's
 > identity-cookie set). What remains genuinely unverified:
 
-- **Option B is the worst-case coherency topology, so proving the mechanism for
-  B proves it model-independently.** (The load-bearing premise of the decoupling
-  above, reframed twice under frame-critique.) B's N separate cross-thread caches
-  maximize the write-propagation and read-staleness windows; Option C (sandboxes
-  sharing one realm/cache) is strictly easier. So a broker-push mechanism that
-  bounds staleness acceptably for B bounds it for C too. [Residual risk: the
-  broker→worker push must be *realizable across the isolation boundary* in
-  whichever model MVP2 picks — a WASM sandbox (C) receiving the pushed value into
-  the cache it reads. Grounded in that the push targets the worker/cache layer
-  *below* the sandbox boundary (the capability bridge mediates the read either
-  way), so it does not depend on the sandbox internals; but it is an argument,
-  not a measurement — the rig builds only the Worker (B) case. Note this does
-  **not** route the B-vs-C *choice* anywhere — that is spun out as a decoupled
-  deferred decision; this assumption only underwrites that the *mechanism* is
-  model-independent.]
-- **The genuine out-of-band sources for the shared first-party identity cookie
-  are reproducible and detectable in a Playwright/chromium harness.** Per R-004,
-  the shared identity cookies (`AMCV_*`, `kndctr_*`) are **first-party**, written
-  by Alloy's synchronous `document.cookie` JS from the Edge *response body* — not
-  by a network `Set-Cookie`. So the load-bearing out-of-band writes (from
-  *outside* any chamber) are a **main-thread write** by another first-party
-  script and a **second-tab write**; a **same-origin server `Set-Cookie`** is the
-  real network case that lands in the jar, while a **cross-site** demdex-style
-  `Set-Cookie` is a *negative-boundary* case (it writes Adobe's domain or is
-  CHIPS-partitioned, provably not the customer jar). Each realistic source can be
+- **Option B is the worst-case *coherency* topology, so a go transfers to C on
+  the coherency axis — directionally.** (Load-bearing premise, narrowed three
+  times under frame-critique.) B's N separate cross-thread caches maximize the
+  write-propagation and read-staleness windows; Option C (sharing one realm/cache)
+  is strictly easier. So a *positive* result (staleness bounded for B) generalizes
+  down to C **on coherency**; a *negative* result does **not** (an in-band no-go
+  is B-specific — see Kill criteria). [Two things this assumption deliberately
+  does **not** claim, because both were over-reached in earlier drafts and are
+  handed to the 011-03 ADR instead: (1) it does **not** claim C's *read-semantics*
+  match B's — whether a WASM sandbox honors a sync-by-reference cookie read with
+  an unmodified bundle (ADR-0001's marshal-each-read concern) is unmeasured here;
+  the rig builds only the Worker (B) case. (2) It does **not** route the B-vs-C
+  *choice* anywhere. It underwrites only that the *coherency mechanism* proven for
+  B is not made worse by a shift to C.]
+- **The genuine out-of-band sources are the two *JS* writers, and both are
+  reproducible/detectable in a Playwright/chromium harness.** Per R-004 the shared
+  identity cookies (`AMCV_*`, `kndctr_*`) are **first-party, JS-written** via
+  synchronous `document.cookie` from the Edge *response body* — so the cookie the
+  chambers cache is only ever mutated by JS. The load-bearing out-of-band writes
+  (from *outside* any chamber) are therefore a **foreign main-thread script**
+  write (e.g. a co-resident legacy Adobe Visitor/ECID lib mid-migration) and a
+  **second-tab** write. Network `Set-Cookie` is **not** a positive source for this
+  cell: a **same-origin** server `Set-Cookie` writes a *different* cookie
+  (session/consent), and a **cross-site** demdex-style one writes Adobe's domain /
+  is CHIPS-partitioned — both are *negative boundaries* the rig records (the
+  finding: the network does not mutate the cached identity cookie in the
+  client-side deployment R-004 probed). [The server-side/first-party-CNAME
+  deployment that *would* `Set-Cookie` `kndctr_*` is a different mode R-004 never
+  probed — explicitly out of scope, noted in 011-02.] Each realistic source is
   driven deterministically and detected by broker jar re-read (`cookieStore`
   `change` + `document.cookie`; R-006 F3/F4). [To be probe-confirmed in 011-01's
-  rig bring-up (`rig/` runs Playwright — `rig/isolation.mjs`, `rig/e2e.mjs`); a
-  source that cannot be driven or detected is recorded as such — Kill criteria.]
+  rig bring-up (`rig/` runs Playwright); a source that cannot be driven or
+  detected is recorded as such — Kill criteria.]
 - **The unavoidable async staleness is measurable as a *correctness* outcome,
   not just a latency number.** The go/no-go turns on whether a stale
   ECID/demdex read causes a real fault (duplicate identity, split session) vs
@@ -183,16 +198,23 @@ question and **records the decision**; it builds no runtime.
   indistinguishable. Then the question cannot be answered by this method;
   revisit the instrument (tighter write interleaving, an injected latency knob
   on write-back) before drawing a go/no-go.
-- **No AD-4-compatible mechanism bounds the staleness to an acceptable level for
-  shared identity.** (A *zero*-staleness synchronous cross-chamber view is
-  already known impossible without SAB — R-006 F2 — so "coherent" here means
-  "staleness bounded tightly enough that shared identity stays correct," not
-  "zero window.") Then MVP2's no-SAB-chambers premise is not retired: record it
-  honestly, and the resolving ADR escalates the choice — an explicit AD-4
-  exception (SAB via ADR, per the release plan's conditional), a
-  single-shared-worker fallback (one chamber for the whole Adobe stack, dropping
-  per-connector confidentiality between Analytics and Target), or re-shaping
-  MVP2's scope. This is a stop-and-re-shape trigger, not a slice failure.
+- **No AD-4-compatible mechanism bounds the staleness acceptably — split by
+  axis, because the two branches escalate differently.** (A *zero*-staleness
+  cross-chamber view is already known impossible without SAB — R-006 F2 — so
+  "acceptable" means "bounded tightly enough that shared identity stays correct,"
+  not "zero window.")
+  - **Out-of-band branch** (the broker cannot detect/propagate a foreign write
+    fast enough): **model-independent** — B, C, and the single-shared-worker D
+    all cache, so none escapes it. MVP2's no-SAB-chambers premise is not retired:
+    record it honestly; the 011-03 ADR escalates to an explicit AD-4 exception
+    (SAB via ADR, per the release plan's conditional) or re-shaping MVP2's scope.
+    This is the genuine **stop-and-re-shape** trigger.
+  - **In-band branch** (B's concurrent two-chamber RMW loses updates): **B-specific**
+    — a single shared cache (C, or D) is structurally immune. This does **not**
+    kill the premise; it is a coherency *input that discriminates the model toward
+    a shared cache*, recorded for the deferred B-vs-C decision. Not a
+    stop-and-re-shape.
+  Neither branch is a slice failure — each is a real, recorded finding.
 
 ## Decomposition
 

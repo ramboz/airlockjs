@@ -44,12 +44,14 @@ staleness window on demand — the instrument the rest of the spec measures with
    **two** worker chambers, each seeded at boot with a sync-cache of one shared
    first-party identity cookie (`AMCV_*` / `kndctr_*`-shaped value, per R-004)
    and writing back to the broker asynchronously. The two separate cross-thread
-   caches are the **worst-case coherency topology** (ADR-0001 Option B); the rig
+   caches are the **worst-case *coherency* topology** (ADR-0001 Option B); the rig
    documents that a mechanism bounding staleness here bounds it *a fortiori* for
-   Option C (sandboxes sharing one realm/cache — strictly easier), which is why
-   the rig need not build C — per the spec's "What the probe settles" decoupling
-   argument. The rig makes **no** B-vs-C isolation choice; it measures whether
-   the mechanism holds for the hardest topology.
+   Option C **on the coherency axis** (sharing one realm/cache — strictly easier),
+   which is why the rig need not build C. Two scope limits the rig states plainly
+   (both handed to the 011-03 ADR, per the spec's "What the probe measures"
+   section): it makes **no** B-vs-C isolation choice, and it does **not** exercise
+   Option C's *read-semantics* (the WASM-sandbox marshal-each-read / unmodified-
+   bundle question) — it measures coherency for the Worker topology only.
 2. **Concurrent in-band write scenario.** The rig drives a concurrent
    read-modify-write of the shared cookie from **both** chambers (each reads the
    current value synchronously from its cache, mutates it, writes back), with the

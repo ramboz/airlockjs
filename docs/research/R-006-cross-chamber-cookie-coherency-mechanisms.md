@@ -200,15 +200,25 @@ and the spec stay consistent:
   models* are lettered **B/C**. They are different axes. Spec 011 refers to the
   mechanisms by **name** (seed+write-back / broker-push / single-shared-worker)
   to avoid the collision; prefer that here too when citing across the two docs.
-- **Broker-push invalidation is isolation-model-independent.** F1/F2 fix the
-  broker as sole authority reachable only asynchronously, for *both* ADR-0001
-  Option B (worker-per-chamber) and Option C (WASM-sandbox-in-one-Worker). The
-  broker→worker push targets the cache layer *below* the isolation boundary, so
-  the same mechanism serves either model. In particular, Option C does **not**
-  require the "marshal each read" path (this note's ruled-out per-read
-  marshalling, echoing ADR-0001:89) — it can use broker-push + a local cache like
-  B. Consequence used by spec 011: because **Option B is the worst-case topology**
-  (N separate cross-thread caches), a mechanism proven for B holds for C *a
-  fortiori*, which **dissolves** the mechanism↔model coupling OQ9 asserted. The
-  isolation-model choice (B-vs-C) is therefore *not* a coherency question and is
-  left as a separate, decoupled decision on isolation-strength grounds.
+- **The *coherency* mechanism is isolation-model-independent; the *read-semantics*
+  are not settled here.** F1/F2 fix the broker as sole authority reachable only
+  asynchronously, for *both* ADR-0001 Option B (worker-per-chamber) and Option C
+  (WASM-sandbox-in-one-Worker). Because **Option B is the worst-case coherency
+  topology** (N separate cross-thread caches), a broker-push mechanism proven to
+  bound staleness for B bounds it for C *a fortiori* — so the **coherency** axis
+  of OQ9 is model-independent, and a *go* transfers from B to C.
+  - **Directional, not symmetric** (sharpened by spec 011's frame-critique): that
+    transfer holds for a *positive* result only. A *negative* in-band result is
+    B-specific — C's single shared cache is structurally immune — so an in-band
+    no-go discriminates *toward* C/D rather than transferring.
+  - **Read-semantics is a separate, open axis.** OQ9 also couples C's
+    "marshal each read, losing the unmodified-stock-bundle property"
+    ([ADR-0001](../decisions/adr-0001-chamber-isolation-strength.md):88–90) —
+    a *read-side capability-surface* question, not a coherency one. An earlier
+    draft of this addendum asserted C "can use broker-push + a local cache like B,
+    no marshalling"; that is an **unmeasured documentation-phase argument in
+    unreconciled tension with ADR-0001:89**, and it is **withdrawn as a settled
+    claim**. Whether C honors a sync-by-reference read with an unmodified bundle
+    (cache inside the sandbox vs host-side, and its stock-bundle cost) is left
+    **open for spec 011's resolving ADR** to reconcile — this note does not settle
+    it. The coherency finding above stands regardless.

@@ -35,45 +35,49 @@ measurement; it consumes 011-01/011-02 and produces the ADR.
    credentialed `Set-Cookie`, main-thread write, second-tab write — with each
    one's measured verdict (coherent / stale-then-reconciles / permanently
    divergent) and window.
-2. **Go/no-go recorded.** The spec records an explicit conclusion: **go** (an
-   AD-4-compatible sync-access mechanism bounds the unavoidable staleness to an
-   acceptable level for shared identity — name it) or **no-go** (it does not —
-   trigger the Kill-criterion escalation: AD-4-exception-via-ADR /
-   single-shared-worker fallback / re-shape MVP2 scope). The verdict must be
-   framed as a *correctness* judgment on shared identity, not merely a window
-   width (per the spec's third assumption).
+2. **Go/no-go recorded — split by axis.** The scoreboard yields an explicit
+   conclusion on the **coherency** axis, framed as a *correctness* judgment on
+   shared identity (not merely a window width — per the spec's third assumption):
+   **go** (broker-push invalidation bounds staleness acceptably for the worst-case
+   B topology); **out-of-band no-go** (model-independent → stop-and-re-shape
+   trigger: AD-4-exception-via-ADR or re-shape MVP2 scope); or **in-band-only
+   no-go** (B-specific → not a stop-and-re-shape; a recorded input that
+   discriminates the deferred model toward a shared cache, C or D).
 3. **Resolving ADR written and accepted.** A dedicated ADR (next free number, via
-   `/jig:adr-workflow`) records the decision along the **decoupling** the spec's
-   "What the probe settles" section establishes — the ADR must not overclaim a
-   probe-grounded isolation verdict, nor re-attribute a B-vs-C decision to
-   ADR-0001 (which deliberately made none):
-   - **(a) Sync-access mechanism** — chosen from
+   `/jig:adr-workflow`) interprets the scoreboard onto OQ9. It must claim **only
+   what the probe measured** (the coherency axis) and route the rest honestly:
+   - **(a) Coherency mechanism** — chosen from
      [R-006](../../research/R-006-cross-chamber-cookie-coherency-mechanisms.md)'s
      named options (seed + async write-back / broker-push invalidation on
      `cookieStore` `change` / single-shared-worker; per-read marshalling ruled
-     out within AD-4), **grounded in the probe's measured evidence**, and proven
-     for the worst-case Option-B topology so it holds **model-independently**.
-   - **(b) Coupling dissolved** — the ADR records the probe's finding that,
-     because the mechanism is model-independent, the mechanism↔isolation-model
-     coupling OQ9 asserted no longer holds, so the **step-5 capability contract
-     can freeze on the mechanism alone**.
-   - **(c) Per-connector isolation viability** — **probe-gated**: on a go, *some*
-     per-connector isolation (B or C) is viable; on a no-go, MVP2 retreats to a
-     single shared worker (dropping cross-connector confidentiality).
-   - **(d) B-vs-C explicitly NOT decided here** — the ADR spins it out as a
-     **decoupled, non-blocking deferred decision** on isolation-strength grounds
-     (fault isolation, confidentiality/containment of untrusted vendor code,
-     overhead, capability-bridge maturity — the drivers ADR-0001 left open),
-     recorded as a fresh refinement-todo item and/or routed to the alloy-connector
-     spec. It is **not** decided on coherency evidence (which does not
-     discriminate B from C) and **not** attributed to ADR-0001.
-   The ADR supersedes ADR-0001's forward-commitment (it resolves the coherency
-   half and dissolves the coupling) and cites this spec's scoreboard.
-4. **OQ9 resolved + coupling amended.** `docs/refinement-todo.md` OQ9 is marked
-   RESOLVED with a link to the new ADR (mirroring OQ10→ADR-0004), recording that
-   its "one coupled decision" premise is **amended** — the probe found the two
-   axes separable — and that the isolation-model half is carried forward as a new,
-   narrower, non-blocking deferred item (not left silently open).
+     out within AD-4), **grounded in the probe's evidence** and proven for the
+     worst-case B topology, so a go transfers to C **on coherency**.
+   - **(b) Contract freeze as a constraint** — on a go, the ADR may freeze the
+     step-5 capability contract on the **sync-read cookie shape**, recording that
+     the freeze is an **explicit constraint on** the deferred B-vs-C choice (it
+     tilts against a C that cannot honor sync-reads with an unmodified bundle) —
+     *not* a clean decoupling.
+   - **(c) Read-semantics tension reconciled, not asserted** — the ADR resolves
+     the still-open Option-C read-semantics question (ADR-0001's marshal-each-read
+     / unmodified-bundle vs R-006's addendum counter), which the probe did **not**
+     measure. If unresolved, it stays an explicit open question the freeze
+     pre-constrains — never papered over.
+   - **(d) B-vs-C: deferred but pre-constrained** — the ADR carries the model
+     choice forward on isolation-strength grounds (fault isolation,
+     confidentiality/containment of untrusted vendor code, overhead, bundle
+     maturity — the drivers ADR-0001 left open), **plus** the coherency inputs the
+     probe *did* produce (an in-band no-go discriminates toward a shared cache)
+     **plus** the contract-freeze constraint from (b). It is **not** attributed to
+     ADR-0001 (which decided none of it) and **not** claimed as unconstrained.
+   The ADR supersedes ADR-0001's forward-commitment on the coherency axis and
+   cites this spec's scoreboard.
+4. **OQ9 resolved on the coherency axis; remainder carried forward.**
+   `docs/refinement-todo.md` OQ9 is updated with a link to the new ADR (mirroring
+   OQ10→ADR-0004): the **coherency/sync-access half is RESOLVED**; OQ9's "one
+   coupled decision" premise is **amended** (the probe found the coherency axis
+   separable from the model choice); and the **isolation-model + read-semantics
+   remainder** is carried forward as a new, narrower, contract-freeze-constrained
+   deferred item (not left silently open, not marked resolved).
 
 **DoD:**
 - [ ] ACs 1–4 pass; the go/no-go is defensible from the recorded scoreboard (a
