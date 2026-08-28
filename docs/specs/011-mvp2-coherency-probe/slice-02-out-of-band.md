@@ -11,11 +11,19 @@ frame_review: true
 
 ## Slice 011-02 — out-of-band write coherency
 
-**Goal:** The coherency rig from 011-01 is extended with the three out-of-band
-cookie-mutation sources OQ9 names — a credentialed-`fetch` `Set-Cookie`, a
-main-thread `document.cookie` write, and a second-tab write — each driven
-deterministically, and reports the staleness window each opens in a chamber's
-sync-cache.
+**Goal:** The coherency rig from 011-01 is extended with the out-of-band
+cookie-mutation sources OQ9 names — writes to the shared first-party identity
+cookie from **outside any chamber**: a main-thread `document.cookie` write (by
+another first-party script), a second-tab write, and a same-origin server
+`Set-Cookie` (cross-site as a negative boundary) — each driven deterministically,
+and reports the staleness window each opens in a chamber's sync-cache.
+
+**Scope vs 011-01 (what this slice adds).** 011-01 covers **in-band** writes —
+the chambers' own writes of the identity cookie (e.g. Alloy persisting `AMCV_*`
+from the Edge response body, the R-004 pattern), concurrent across two chambers.
+011-02 is disjoint: it covers writes the chambers do **not** make — a host-side
+script, another tab, a first-party server — which the broker must detect and
+propagate. Together they cover the write's full provenance.
 
 **Question:** When the authoritative cookie jar is mutated **outside** any
 chamber — by a network `Set-Cookie`, a main-thread write, or another tab — how
@@ -31,20 +39,22 @@ source. Stop when each source has a characterized staleness window.
 
 **Acceptance Criteria:**
 
-1. **Credentialed-`fetch` `Set-Cookie` source — cross-site first.** The realistic
-   Adobe identity write is **cross-site** (Adobe edge → customer origin), which
-   under Chromium's third-party-cookie / CHIPS regime may be partitioned or
-   blocked and never reach the first-party jar the broker re-reads — so the rig
-   drives the **cross-site/partitioned** variant as the primary case (a
-   third-party endpoint's `Set-Cookie`, and a CHIPS `Partitioned` variant),
-   measuring whether it lands at all and, if so, when the chambers' sync-caches
-   observe it. A **same-origin** `Set-Cookie` is retained only as the easy
-   control (it isolates *detection* latency once landing is established). Each is
-   driven deterministically (the endpoint's `Set-Cookie` is controllable); a
-   variant that cannot land or be driven is **recorded as such** per the DoD
-   kill-criteria clause, not silently dropped. Detection is by broker jar re-read
+1. **Credentialed-`fetch` `Set-Cookie` source — first-party lands, cross-site is
+   a negative boundary.** Grounded in R-004: the shared identity cookies
+   (`AMCV_*`, `kndctr_*`) are **first-party**, written by Alloy's synchronous
+   `document.cookie` JS from the Edge *response body* — so a network `Set-Cookie`
+   is **not** how Adobe identity is written, and the primary network out-of-band
+   write is a **same-origin server `Set-Cookie`** (e.g. a first-party session /
+   consent cookie, or a first-party-CNAME edge) that genuinely lands in the jar
+   the chambers cache. The rig drives that same-origin write and measures when
+   the chambers' sync-caches observe it. A **cross-site** demdex-style
+   `Set-Cookie` is driven only as a **recorded negative boundary** — confirming
+   it writes Adobe's own domain or is CHIPS-partitioned and *provably does not*
+   mutate the customer-origin identity cookie (so it is not a coherency threat to
+   the shared cookie, which is the finding). Detection is by broker jar re-read
    (`cookieStore` / `document.cookie`), **not** response-header inspection —
-   `Set-Cookie` is a forbidden response header (R-006 F4).
+   `Set-Cookie` is a forbidden response header (R-006 F4). A source that cannot
+   be driven or detected is recorded as such per the DoD kill-criteria clause.
 2. **Main-thread write source.** The broker (main thread) writes the shared
    cookie via `document.cookie` out-of-band, and the rig measures the chamber
    sync-cache staleness window that opens until write-back/seed reconciles it.

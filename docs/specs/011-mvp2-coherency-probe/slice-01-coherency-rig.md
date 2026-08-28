@@ -38,17 +38,18 @@ staleness window on demand — the instrument the rest of the spec measures with
 
 **Acceptance Criteria:**
 
-1. **Two-worker coherency proxy (models ADR-0001 Option B).** A rig under
-   `probes/coherency/` (or `rig/coherency.*`) stands up a main-thread **broker**
-   holding the authoritative jar (the real `document.cookie`) and **two** worker
-   chambers, each seeded at boot with a sync-cache of one shared identity cookie
-   (`AMCV_*` / `demdex`-shaped value, per R-004) and writing back to the broker
-   asynchronously. The two-cache topology directly models Option B
-   (worker-per-chamber); the rig documents that its **in-band** verdict is
-   Option-B-specific while its **out-of-band** verdicts (011-02) transfer to
-   Option C, and that Option C's single-realm shared cache is a *paper* case
-   (trivially coherent in-band), not one this rig measures — per the spec's
-   "What the probe settles" division of labor.
+1. **Two-worker coherency proxy (models the worst-case Option-B topology).** A rig
+   under `probes/coherency/` (or `rig/coherency.*`) stands up a main-thread
+   **broker** holding the authoritative jar (the real `document.cookie`) and
+   **two** worker chambers, each seeded at boot with a sync-cache of one shared
+   first-party identity cookie (`AMCV_*` / `kndctr_*`-shaped value, per R-004)
+   and writing back to the broker asynchronously. The two separate cross-thread
+   caches are the **worst-case coherency topology** (ADR-0001 Option B); the rig
+   documents that a mechanism bounding staleness here bounds it *a fortiori* for
+   Option C (sandboxes sharing one realm/cache — strictly easier), which is why
+   the rig need not build C — per the spec's "What the probe settles" decoupling
+   argument. The rig makes **no** B-vs-C isolation choice; it measures whether
+   the mechanism holds for the hardest topology.
 2. **Concurrent in-band write scenario.** The rig drives a concurrent
    read-modify-write of the shared cookie from **both** chambers (each reads the
    current value synchronously from its cache, mutates it, writes back), with the

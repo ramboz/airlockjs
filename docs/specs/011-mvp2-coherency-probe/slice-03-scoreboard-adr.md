@@ -43,27 +43,37 @@ measurement; it consumes 011-01/011-02 and produces the ADR.
    framed as a *correctness* judgment on shared identity, not merely a window
    width (per the spec's third assumption).
 3. **Resolving ADR written and accepted.** A dedicated ADR (next free number, via
-   `/jig:adr-workflow`) records the decision, resolving OQ9 along the **division
-   of labor** the spec's "What the probe settles" section fixes — the ADR must
-   not overclaim a probe-grounded isolation verdict:
+   `/jig:adr-workflow`) records the decision along the **decoupling** the spec's
+   "What the probe settles" section establishes — the ADR must not overclaim a
+   probe-grounded isolation verdict, nor re-attribute a B-vs-C decision to
+   ADR-0001 (which deliberately made none):
    - **(a) Sync-access mechanism** — chosen from
      [R-006](../../research/R-006-cross-chamber-cookie-coherency-mechanisms.md)'s
      named options (seed + async write-back / broker-push invalidation on
      `cookieStore` `change` / single-shared-worker; per-read marshalling ruled
-     out within AD-4), **grounded in the probe's measured evidence**.
-   - **(b) Per-connector isolation viability** — **probe-gated**: does any
-     per-connector isolation survive (go), or must MVP2 retreat to a single
-     shared worker (no-go), dropping cross-connector confidentiality.
-   - **(c) Isolation model B-vs-C**, on a go — resolved on **ADR-0001's recorded
-     non-coherency tradeoffs** (unmodified-stock-bundle → Option B over Option
-     C's per-read marshalling), *explicitly not* on probe coherency evidence,
-     which does not discriminate B from C. The ADR states this grounding
-     honestly.
-   The ADR supersedes ADR-0001's forward-commitment on this point and cites this
-   spec's scoreboard.
-4. **OQ9 marked RESOLVED.** `docs/refinement-todo.md` OQ9 is struck through /
-   marked RESOLVED with a link to the new ADR, mirroring the OQ10→ADR-0004
-   resolution convention.
+     out within AD-4), **grounded in the probe's measured evidence**, and proven
+     for the worst-case Option-B topology so it holds **model-independently**.
+   - **(b) Coupling dissolved** — the ADR records the probe's finding that,
+     because the mechanism is model-independent, the mechanism↔isolation-model
+     coupling OQ9 asserted no longer holds, so the **step-5 capability contract
+     can freeze on the mechanism alone**.
+   - **(c) Per-connector isolation viability** — **probe-gated**: on a go, *some*
+     per-connector isolation (B or C) is viable; on a no-go, MVP2 retreats to a
+     single shared worker (dropping cross-connector confidentiality).
+   - **(d) B-vs-C explicitly NOT decided here** — the ADR spins it out as a
+     **decoupled, non-blocking deferred decision** on isolation-strength grounds
+     (fault isolation, confidentiality/containment of untrusted vendor code,
+     overhead, capability-bridge maturity — the drivers ADR-0001 left open),
+     recorded as a fresh refinement-todo item and/or routed to the alloy-connector
+     spec. It is **not** decided on coherency evidence (which does not
+     discriminate B from C) and **not** attributed to ADR-0001.
+   The ADR supersedes ADR-0001's forward-commitment (it resolves the coherency
+   half and dissolves the coupling) and cites this spec's scoreboard.
+4. **OQ9 resolved + coupling amended.** `docs/refinement-todo.md` OQ9 is marked
+   RESOLVED with a link to the new ADR (mirroring OQ10→ADR-0004), recording that
+   its "one coupled decision" premise is **amended** — the probe found the two
+   axes separable — and that the isolation-model half is carried forward as a new,
+   narrower, non-blocking deferred item (not left silently open).
 
 **DoD:**
 - [ ] ACs 1–4 pass; the go/no-go is defensible from the recorded scoreboard (a

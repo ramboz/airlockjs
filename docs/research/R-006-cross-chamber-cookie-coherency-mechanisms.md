@@ -189,3 +189,26 @@ question.
 Promoted to: [spec 011](../specs/011-mvp2-coherency-probe/spec.md) (scope +
 `## Assumptions` grounding; option set for the 011-03 resolving ADR). Remains
 the documentation phase; empirical confirmation is spec 011's rig.
+
+## Addendum (2026-08-28) — mechanism is model-independent; naming
+
+Spec 011's frame-critique sharpened two points worth recording here so this note
+and the spec stay consistent:
+
+- **Letter collision.** This note's mechanism options are lettered **A/B/D**;
+  [ADR-0001](../decisions/adr-0001-chamber-isolation-strength.md)'s *isolation
+  models* are lettered **B/C**. They are different axes. Spec 011 refers to the
+  mechanisms by **name** (seed+write-back / broker-push / single-shared-worker)
+  to avoid the collision; prefer that here too when citing across the two docs.
+- **Broker-push invalidation is isolation-model-independent.** F1/F2 fix the
+  broker as sole authority reachable only asynchronously, for *both* ADR-0001
+  Option B (worker-per-chamber) and Option C (WASM-sandbox-in-one-Worker). The
+  broker→worker push targets the cache layer *below* the isolation boundary, so
+  the same mechanism serves either model. In particular, Option C does **not**
+  require the "marshal each read" path (this note's ruled-out per-read
+  marshalling, echoing ADR-0001:89) — it can use broker-push + a local cache like
+  B. Consequence used by spec 011: because **Option B is the worst-case topology**
+  (N separate cross-thread caches), a mechanism proven for B holds for C *a
+  fortiori*, which **dissolves** the mechanism↔model coupling OQ9 asserted. The
+  isolation-model choice (B-vs-C) is therefore *not* a coherency question and is
+  left as a separate, decoupled decision on isolation-strength grounds.
