@@ -81,9 +81,12 @@ source. Stop when each source has a characterized staleness window.
 **DoD:**
 - [ ] ACs 1–4 pass; each out-of-band source is driven deterministically (the
       write happens on demand, and the measurement is reproducible across runs).
-- [ ] Any source that **cannot** be driven deterministically in the harness is
-      recorded as such with rationale (Kill-criteria check: the method is
-      revisited before a verdict rather than silently omitting the source).
+- [ ] Any source that **cannot** be driven *or detected* deterministically in the
+      harness is recorded as such with rationale (Kill-criteria check: the method
+      is revisited before a verdict rather than silently omitting the source). A
+      detect-only miss (e.g. no `cookieStore` `change` for a same-document/foreign
+      write) degrades to the `document.cookie`-polling fallback — a valid recorded
+      window, not an omission.
 - [ ] Spike-light review: self-verified against ACs (measurement rig).
 - [ ] Deviation log + reconciliation sweep produced under this slice heading.
 - [ ] `docs/refinement-todo.md` OQ9 annotated with the out-of-band findings if

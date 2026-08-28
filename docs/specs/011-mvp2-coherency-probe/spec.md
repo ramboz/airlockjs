@@ -84,19 +84,25 @@ measurement against ADR-0001 and gets its own frame-critique. The spec states
 only the interpretive facts the measurement genuinely grounds:
 
 - **Option B is the worst-case *coherency* topology** (its N separate
-  cross-thread caches maximize the write-propagation and read-staleness windows;
-  Option C, sharing one realm/cache, is strictly easier). So a **go** — staleness
-  bounded acceptably for B — **transfers to C on the coherency axis** (a fortiori).
-  This transfer is **directional**: a *positive* result generalizes down to the
-  easier model; a *negative* result does not (see the no-go split below).
+  cross-thread caches force every cross-chamber propagation through an *async*
+  hop — the only cross-agent channel without SAB, R-006 F2 — maximizing the
+  write-propagation and read-staleness windows). The single-thread models are
+  strictly easier on that channel: **Option C**'s per-connector sandboxes reach
+  one host-side authority by *synchronous in-thread* mediation (the capability
+  bridge — WASM→host imports are same-thread sync calls), and **Option D**
+  literally shares one cache. So a **go** — staleness bounded acceptably for B —
+  **transfers to them on the coherency axis** (a fortiori). This transfer is
+  **directional**: a *positive* result generalizes down to the easier model; a
+  *negative* result does not (see the no-go split below).
 - **The no-go splits by axis, and the split is load-bearing:**
   - An **out-of-band no-go** (the broker cannot detect/propagate a foreign write
     fast enough) is **model-independent** — every model (B, C, *and* the single
     shared worker D) caches and so has the same broker↔cache staleness. This
     threatens the whole no-SAB-chambers premise → genuine **stop-and-re-shape**.
   - An **in-band no-go** (B's concurrent two-chamber RMW loses updates) is
-    **B-specific** — C's/D's single shared cache is structurally immune
-    (event-loop-serialized reads). So it does **not** kill the premise; it is
+    **B-specific** — the single-thread models are structurally immune (C's
+    in-thread synchronous host mediation and D's one shared cache both
+    event-loop-serialize the reads). So it does **not** kill the premise; it is
     evidence **discriminating C/D over B**, and thus a real *input* to the
     deferred model choice — coherency is not model-neutral in this branch.
 
@@ -132,8 +138,8 @@ forward as a **pre-constrained deferred decision** — not attributing to ADR-00
 a choice it declined. On an **out-of-band no-go**, the outcome is the honest
 stop-and-re-shape signal for MVP2's whole no-SAB-chambers premise
 ([MVP2 release plan](../../releases/mvp2.md) No-Gos); on an **in-band-only
-no-go**, it points the model choice toward a shared cache (C or D) rather than
-killing the premise.
+no-go**, it points the model choice toward a single-thread model (C or D) rather
+than killing the premise.
 
 **Out of scope:** OQ11/OQ3 (payload governance + event schema — the next
 contract-extension step), the alloy wrapped-SDK connector itself, live
@@ -153,11 +159,13 @@ question and **records the decision**; it builds no runtime.
 
 - **Option B is the worst-case *coherency* topology, so a go transfers to C on
   the coherency axis — directionally.** (Load-bearing premise, narrowed three
-  times under frame-critique.) B's N separate cross-thread caches maximize the
-  write-propagation and read-staleness windows; Option C (sharing one realm/cache)
-  is strictly easier. So a *positive* result (staleness bounded for B) generalizes
-  down to C **on coherency**; a *negative* result does **not** (an in-band no-go
-  is B-specific — see Kill criteria). [Two things this assumption deliberately
+  times under frame-critique.) B's N separate cross-thread caches force an *async*
+  cross-chamber hop and so maximize the propagation/staleness windows; Option C
+  (per-connector sandboxes reaching one host authority by *synchronous in-thread*
+  capability-bridge mediation) is strictly easier on that channel. So a *positive*
+  result (staleness bounded for B) generalizes down to C **on coherency**; a
+  *negative* result does **not** (an in-band no-go is B-specific — see Kill
+  criteria). [Two things this assumption deliberately
   does **not** claim, because both were over-reached in earlier drafts and are
   handed to the 011-03 ADR instead: (1) it does **not** claim C's *read-semantics*
   match B's — whether a WASM sandbox honors a sync-by-reference cookie read with
@@ -210,9 +218,11 @@ question and **records the decision**; it builds no runtime.
     (SAB via ADR, per the release plan's conditional) or re-shaping MVP2's scope.
     This is the genuine **stop-and-re-shape** trigger.
   - **In-band branch** (B's concurrent two-chamber RMW loses updates): **B-specific**
-    — a single shared cache (C, or D) is structurally immune. This does **not**
-    kill the premise; it is a coherency *input that discriminates the model toward
-    a shared cache*, recorded for the deferred B-vs-C decision. Not a
+    — the single-thread models are structurally immune (C's in-thread synchronous
+    host mediation, or D's one shared cache, event-loop-serializes the reads).
+    This does **not** kill the premise; it is a coherency *input that discriminates
+    the model toward a single-thread model (C or D)*, recorded for the deferred
+    B-vs-C decision. Not a
     stop-and-re-shape.
   Neither branch is a slice failure — each is a real, recorded finding.
 

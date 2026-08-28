@@ -209,8 +209,9 @@ and the spec stay consistent:
   of OQ9 is model-independent, and a *go* transfers from B to C.
   - **Directional, not symmetric** (sharpened by spec 011's frame-critique): that
     transfer holds for a *positive* result only. A *negative* in-band result is
-    B-specific — C's single shared cache is structurally immune — so an in-band
-    no-go discriminates *toward* C/D rather than transferring.
+    B-specific — the single-thread models are structurally immune (C's per-connector
+    sandboxes reach one host authority by synchronous in-thread mediation; D shares
+    one cache) — so an in-band no-go discriminates *toward* C/D rather than transferring.
   - **Read-semantics is a separate, open axis.** OQ9 also couples C's
     "marshal each read, losing the unmodified-stock-bundle property"
     ([ADR-0001](../decisions/adr-0001-chamber-isolation-strength.md):88–90) —
