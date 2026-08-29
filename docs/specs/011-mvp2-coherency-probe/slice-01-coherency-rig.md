@@ -1,10 +1,9 @@
 ---
-status: RECONCILED
+status: DONE
 kind: spike
 dependencies: []
 last_verified: 2026-08-28
 frame_review: true
-claimed_by: claude/chambers-io-security-5867f9
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about
