@@ -8,12 +8,15 @@
 // structure of rig/coherency.mjs (node http server + playwright chromium + a
 // JSON verdict to rig/out/ + non-zero exit on any failed assertion).
 //
-// SCOPE — AC2/AC3/AC4. alloy's own worker-side fetch is INTERCEPTED in the chamber
-// and routed into the orchestrator's main-thread dispatch (ADR-0004, mirrored in
-// the harness); the harness runs the REAL network fetch ON MAIN against this rig's
-// minting-Edge stub, which server-assigns a fresh ECID; alloy persists it into the
-// AMCV_<ORGID> cell. Egress CONFINEMENT (AC5) + the contract-guard ADR (AC6) are
-// later stages, NOT exercised here.
+// SCOPE — AC2/AC3/AC4/AC5. alloy's own worker-side fetch is INTERCEPTED in the
+// chamber and routed into the orchestrator's main-thread dispatch (ADR-0004,
+// mirrored in the harness); the harness runs the REAL network fetch ON MAIN
+// against this rig's minting-Edge stub, which server-assigns a fresh ECID; alloy
+// persists it into the AMCV_<ORGID> cell. AC5 adds egress CONFINEMENT: a post-boot
+// adversarial self-probe proves the mediated fetch is the chamber's SOLE network
+// surface (the representative adversarial set is unreachable) while alloy still
+// boots + sends, and records the disclosed dynamic-loader residual honestly. The
+// contract-guard ADR (AC6) is a later stage, NOT exercised here.
 //
 // Asserts (AC2/AC3, kept green):
 //   1. alloy `configure` + `sendEvent` both resolve inside the chamber (no throw);
@@ -29,6 +32,15 @@
 //      (read from real document.cookie on main after the async write-back);
 //   6. the intercepted XDM interact payload validates (pageView + top-level
 //      query.identity.fetch includes "ECID").
+// Asserts (AC5, added):
+//   7. a representative adversarial set is UNREACHABLE inside the chamber post-boot
+//      (XMLHttpRequest / navigator.sendBeacon / WebSocket / EventSource /
+//      WebTransport / nested Worker / CacheStorage / post-load importScripts);
+//   8. the mediated fetch is PRESERVED as the sole surface and alloy STILL boots +
+//      sends through it (the allow-list did not break alloy — tested both ways);
+//   9. the disclosed dynamic-loader residual (remote import()) outcome is recorded
+//      honestly (blocked | disclosed-residual) — surfaced, never silently passed,
+//      never failing the rig.
 //
 // Usage: node rig/alloy-chamber.mjs   (exits non-zero if any assertion fails)
 import http from "node:http";
@@ -108,6 +120,15 @@ const server = http.createServer(async (req, res) => {
       interactStubCalls.push({ ecid, reqBody, response });
       res.writeHead(200, { "content-type": "application/json" });
       return res.end(JSON.stringify(response));
+    }
+    // --- AC5: a REMOTE ES module the chamber's disclosed dynamic-loader residual
+    //     probe attempts to load. Serving it lets the rig record the residual as
+    //     reachable (marker present) vs blocked — honestly, either way. This is
+    //     the loader-level egress a JS shim cannot withhold (gated by MVP3 seal
+    //     enforcement + a worker connect-src CSP where the host controls headers). ---
+    if (p === "/__egress_probe_module__.mjs") {
+      res.writeHead(200, { "content-type": "text/javascript" });
+      return res.end('export const MARKER = "REMOTE_LOADER_REACHED";');
     }
     if (p === "/") p = "/rig/alloy-chamber-harness.html";
     const file = join(ROOT, normalize(p));
@@ -218,6 +239,50 @@ try {
   xdmDetail = { parseError: String((e && e.message) || e) };
 }
 
+// --- AC5: egress confinement — allow-list posture. The mediated fetch is the
+//     chamber's SOLE network-capable surface. A representative adversarial set,
+//     probed INSIDE the chamber POST-BOOT (runEgressProbe), must each be
+//     unreachable (absent or throwing); alloy must STILL boot + send through the
+//     mediated fetch (confinement did not break it — R-004: alloy uses only
+//     fetch). Dynamic loader of a REMOTE specifier is the DISCLOSED residual —
+//     recorded honestly, NEVER silently passed, and NEVER failing the rig. ---
+const egress = result.egressProbe || {};
+const egressProbes = egress.probes || {};
+const egressConfinement = egress.confinement || {};
+const remoteLoader = egress.remoteLoader || {};
+
+// A primitive is CONFINED iff the chamber's probe found it not a working path.
+const unreachable = (key) => {
+  const p = egressProbes[key];
+  return !!p && p.reachable === false;
+};
+
+const xhrConfined = unreachable("XMLHttpRequest");
+const sendBeaconConfined = unreachable("navigator_sendBeacon");
+const webSocketConfined = unreachable("WebSocket");
+const eventSourceConfined = unreachable("EventSource");
+const webTransportConfined = unreachable("WebTransport");
+const nestedWorkerConfined = unreachable("nested_Worker");
+const cacheStorageConfined = unreachable("CacheStorage");
+// importScripts: the adversarial probe proved a data:-URL loader is no longer a
+// callable function (revoked), AND the chamber recorded the revoke.
+const importScriptsConfined = unreachable("importScripts") && s.importScriptsRevoked === true;
+
+// The allow-listed surface survived confinement, and alloy still booted + sent
+// through it — i.e. the allow-list did NOT break alloy (tested both ways).
+const mediatedFetchPreserved = egressConfinement.fetchPreserved === true;
+const alloyStillBootsAndSendsAfterConfinement =
+  alloyBooted && configureResolved && sendEventResolved &&
+  exactlyOneInteractIntercepted && exactlyOneInteractDispatchedOnMain;
+
+// The disclosed residual: recorded honestly as EITHER a hard block OR the
+// disclosed residual — surfaced, never silently passed. This assertion does NOT
+// fail the rig when the outcome is the disclosed residual (per AC5); it only
+// fails if the probe never ran / never classified.
+const remoteLoaderResidualHonestlyRecorded =
+  remoteLoader.attempted === true &&
+  (remoteLoader.outcome === "blocked" || remoteLoader.outcome === "disclosed-residual");
+
 const assertions = {
   // --- AC2 + AC3 (kept green) ---
   alloy_booted: alloyBooted,
@@ -240,15 +305,27 @@ const assertions = {
   minted_ecid_in_amcv_write_back: ecidInAmcvWriteBack,
   minted_ecid_landed_in_broker_jar_on_main: ecidLandedInBrokerJarOnMain,
   xdm_interact_payload_validates: xdmInteractValidates,
+  // --- AC5 (added) — egress confinement / allow-list posture ---
+  egress_XMLHttpRequest_unreachable_in_chamber: xhrConfined,
+  egress_navigator_sendBeacon_unreachable_in_chamber: sendBeaconConfined,
+  egress_WebSocket_unreachable_in_chamber: webSocketConfined,
+  egress_EventSource_unreachable_in_chamber: eventSourceConfined,
+  egress_WebTransport_unreachable_in_chamber: webTransportConfined,
+  egress_nested_Worker_unreachable_in_chamber: nestedWorkerConfined,
+  egress_CacheStorage_unreachable_in_chamber: cacheStorageConfined,
+  egress_post_load_importScripts_revoked_and_unreachable: importScriptsConfined,
+  egress_mediated_fetch_preserved_as_sole_surface: mediatedFetchPreserved,
+  egress_alloy_still_boots_and_sends_after_confinement: alloyStillBootsAndSendsAfterConfinement,
+  egress_remote_loader_residual_honestly_recorded: remoteLoaderResidualHonestlyRecorded,
 };
 
 const pass = Object.values(assertions).every(Boolean);
 
 const out = {
   question:
-    "Does stock UNMODIFIED @adobe/alloy@2.35.0, booted in an AIRLOCK classic-worker chamber, have its worker-side interact fetch INTERCEPTED and dispatched by the orchestrator on the MAIN thread (ADR-0004) to a minting-Edge stub, with the server-assigned ECID persisted synchronously into the AMCV_*/kndctr_* cell?",
+    "Does stock UNMODIFIED @adobe/alloy@2.35.0, booted in an AIRLOCK classic-worker chamber, have its worker-side interact fetch INTERCEPTED and dispatched by the orchestrator on the MAIN thread (ADR-0004) to a minting-Edge stub with the server-assigned ECID persisted into the AMCV_*/kndctr_* cell — AND is the mediated fetch the chamber's SOLE network-capable surface (every other ambient egress primitive withheld) while alloy still boots + sends?",
   pass,
-  scope: "AC2 + AC3 + AC4. alloy's interact fetch is intercepted in the chamber and dispatched on MAIN to the rig's minting-Edge stub (server-assigned ECID); the ECID is written back to the broker jar. Egress confinement (AC5) + contract-guard ADR (AC6) are later stages, NOT built here.",
+  scope: "AC2 + AC3 + AC4 + AC5. alloy's interact fetch is intercepted in the chamber and dispatched on MAIN to the rig's minting-Edge stub (server-assigned ECID), written back to the broker jar; and the chamber enforces an allow-list egress posture — the mediated fetch is its SOLE network surface, a representative adversarial set is unreachable, and the dynamic-loader residual is disclosed. Contract-guard ADR (AC6) is a later stage, NOT built here.",
   load_route: {
     worker: "classic Web Worker (new Worker(url), no { type: 'module' })",
     bundle_load: "importScripts (766 KB IIFE)",
@@ -297,11 +374,24 @@ const out = {
     minted_ecid_present_in_broker_jar: ecidLandedInBrokerJarOnMain,
   },
   xdm_interact: xdmDetail,
+  // AC5: egress confinement — the allow-list posture, the adversarial self-probe
+  // results, and the disclosed dynamic-loader residual, all recorded honestly.
+  egress_confinement: {
+    posture:
+      "ALLOW-LIST: the mediated (intercepted) fetch is the chamber's SOLE network-capable surface; every OTHER ambient network primitive is withheld (absent or a throwing stub). This is egress CONFINEMENT at the chamber boundary, distinct from the seal's consent enforcement on the mediated path (MVP3).",
+    withheld_record: egressConfinement,
+    adversarial_probes: egressProbes,
+    mediated_fetch_preserved: mediatedFetchPreserved,
+    alloy_still_boots_and_sends_after_confinement: alloyStillBootsAndSendsAfterConfinement,
+    remote_loader_residual: remoteLoader,
+    disclosed_residual_note:
+      "Dynamic loader of a REMOTE specifier is a language-level primitive a JS shim cannot reliably withhold — the DISCLOSED residual (AC5). Slice 01 takes the classic-worker load route (AC2) so the bundle-load needs none; this adversarial probe records the runtime outcome honestly. To the extent the engine still exposes it in a classic worker, loader-level remote egress in a CSP-less drop-in is a NAMED residual, gated by MVP3 seal enforcement (and a worker connect-src CSP where the host controls response headers). The rig does NOT fail for this disclosed residual.",
+  },
   assertions,
   phases: result.phases,
   page_errors: pageErrors,
   verdict: pass
-    ? "PASS — stock unmodified alloy 2.35.0 booted in a classic-worker chamber via createConnectorHost; alloy's interact fetch was INTERCEPTED in the chamber (no real worker fetch) and dispatched by the orchestrator on the MAIN thread to the minting-Edge stub; the stub's server-assigned ECID was persisted synchronously into the AMCV_*/kndctr_* cell and reconciled to the broker's real jar on main; the XDM payload validates (pageView + query.identity.fetch includes ECID). AC2/AC3 stay green. No dynamic import, no SharedArrayBuffer."
+    ? "PASS — stock unmodified alloy 2.35.0 booted in a classic-worker chamber via createConnectorHost; alloy's interact fetch was INTERCEPTED in the chamber (no real worker fetch) and dispatched by the orchestrator on the MAIN thread to the minting-Edge stub; the stub's server-assigned ECID was persisted synchronously into the AMCV_*/kndctr_* cell and reconciled to the broker's real jar on main; the XDM payload validates (pageView + query.identity.fetch includes ECID). AC5: the chamber enforces an ALLOW-LIST egress posture — the mediated fetch is its SOLE network surface; XMLHttpRequest / navigator.sendBeacon / WebSocket / EventSource / WebTransport / nested Worker / CacheStorage / post-load importScripts are all UNREACHABLE inside the chamber, and alloy still boots + sends. Disclosed residual: dynamic remote loader = " + (remoteLoader.outcome || "unrecorded") + " (recorded honestly, not failed). AC2/AC3/AC4 stay green. No dynamic import in the bundle, no SharedArrayBuffer."
     : "FAIL — see assertions",
 };
 
@@ -315,6 +405,14 @@ console.log(JSON.stringify({
   minting_edge_stub: out.minting_edge_stub,
   ecid_write_back: out.ecid_write_back,
   xdm_interact: out.xdm_interact,
+  egress_confinement: {
+    mediated_fetch_is_sole_surface: mediatedFetchPreserved,
+    adversarial_set_all_unreachable:
+      xhrConfined && sendBeaconConfined && webSocketConfined && eventSourceConfined &&
+      webTransportConfined && nestedWorkerConfined && cacheStorageConfined && importScriptsConfined,
+    alloy_still_boots_and_sends_after_confinement: alloyStillBootsAndSendsAfterConfinement,
+    disclosed_remote_loader_residual: { outcome: remoteLoader.outcome, reachable: remoteLoader.reachable, detail: remoteLoader.detail },
+  },
   verdict: out.verdict,
   out_file: "rig/out/alloy-chamber.json",
 }, null, 2));

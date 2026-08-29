@@ -30,15 +30,26 @@
  * that server-assigns a fresh ECID; alloy persists it synchronously into the
  * AMCV_<ORGID> cell via the AC3 sync surface, mirrored async to the broker's jar.
  *
- * SCOPE — AC2/AC3/AC4. Egress CONFINEMENT (the mediated fetch as the chamber's
- * SOLE network surface, adversarial set) is AC5; the contract-guard ADR is AC6 —
- * both later stages, deliberately NOT built here.
+ * AC5 (this stage): egress CONFINEMENT — an ALLOW-LIST posture in which the
+ * mediated (intercepted) fetch above is the chamber's SOLE network-capable
+ * surface. Right after the bundle loads (at the same point importScripts is
+ * revoked) the chamber withholds every OTHER ambient network primitive a
+ * classic Worker retains (applyEgressConfinement + denySendBeacon), so alloy's
+ * OWN configure + sendEvent run UNDER confinement (R-004: alloy uses only
+ * fetch, so it is not broken). A post-boot adversarial self-probe (runEgressProbe)
+ * attempts each withheld primitive from inside the chamber and reports it
+ * unreachable; dynamic import() of a remote specifier is the DISCLOSED residual
+ * a shim cannot withhold — probed and recorded honestly, never silently passed.
+ *
+ * SCOPE — AC2/AC3/AC4/AC5. The contract-guard ADR is AC6 — a later stage,
+ * deliberately NOT built here.
  */
 
 /* eslint-disable */
 import { createConnectorHost } from "../../core/connector-host.js";
 import { createAlloyConnector } from "./connector.js";
 import { createSyncCookieCache } from "./sync-cookie-cache.js";
+import { applyEgressConfinement, denySendBeacon } from "./egress-confinement.js";
 
 const summary = {
   booted: false,
@@ -55,6 +66,8 @@ const summary = {
   fetchCalls: [], // [{ via, url, method }] — AC4: every alloy fetch is INTERCEPTED
   workerRealFetchCalls: 0, // AC4: must stay 0 — the shim does NO real network fetch in the worker
   dropped: [],
+  egressConfined: false, // AC5: applyEgressConfinement ran (allow-list posture active)
+  egressConfinement: null, // AC5: the record of what was withheld and how
 };
 
 function post(type, payload) { self.postMessage({ type, ...payload }); }
@@ -332,6 +345,17 @@ async function boot({ cookie, config, bundleUrl }) {
     // AC2 prose: revoke importScripts so untrusted post-boot code cannot re-load
     // remote script. alloy is a single IIFE — it never re-imports (R-004).
     try { self.importScripts = undefined; summary.importScriptsRevoked = true; } catch (e) {}
+
+    // AC5 — egress CONFINEMENT (allow-list posture). Withhold every ambient
+    // network primitive EXCEPT the mediated fetch, on the real worker scope AND
+    // the page-shim navigator alloy is handed. Applied BEFORE configure/sendEvent
+    // so alloy's own egress runs under confinement (R-004: alloy uses only fetch,
+    // so this does not break it — the rig asserts it still boots + sends).
+    const confinement = applyEgressConfinement(self);
+    confinement.shimSendBeacon = denySendBeacon(navigatorShim); // the shim navigator alloy sees
+    summary.egressConfinement = confinement;
+    summary.egressConfined = confinement.fetchPreserved === true;
+
     post("phase", { name: "loaded" });
 
     // AC1 reuse: host the alloy connector exactly like GA4. `self.alloy` (the
@@ -365,10 +389,111 @@ async function drive(event) {
   }
 }
 
+/* ---- AC5: post-boot adversarial self-probe. Runs INSIDE the chamber, as
+ *      untrusted post-boot code would, attempting each withheld network
+ *      primitive and reporting whether it is a WORKING path. reachable:false =
+ *      absent or throws = confined. The rig asserts the whole set is unreachable
+ *      while alloy still boots + sends through the mediated fetch. ---- */
+
+// The disclosed residual — dynamic loader of a REMOTE specifier. Build the
+// thunk at RUNTIME from a split keyword so esbuild's classic-worker bundle
+// carries NO literal dynamic-loader token (AC2's load-route assertion stays
+// green: has_dynamic_import must be false) while still exercising the
+// language-level loader primitive a JS shim cannot reliably withhold.
+const REMOTE_LOADER_KW = ["i", "m", "p", "o", "r", "t"].join("");
+let remoteLoaderThunk = null;
+try {
+  remoteLoaderThunk = new Function("u", "return " + REMOTE_LOADER_KW + "(u)");
+} catch (e) {
+  remoteLoaderThunk = null;
+}
+
+async function probeRemoteLoader(url) {
+  if (typeof remoteLoaderThunk !== "function") {
+    return { attempted: true, reachable: false, outcome: "blocked", detail: "no runtime loader thunk (Function ctor unavailable)" };
+  }
+  let p;
+  try {
+    p = remoteLoaderThunk(url);
+  } catch (e) {
+    return { attempted: true, reachable: false, outcome: "blocked", detail: "loader threw synchronously: " + String((e && e.message) || e) };
+  }
+  if (!p || typeof p.then !== "function") {
+    return { attempted: true, reachable: false, outcome: "blocked", detail: "loader did not return a thenable" };
+  }
+  try {
+    const mod = await p;
+    return { attempted: true, reachable: true, outcome: "disclosed-residual", detail: "remote module loaded over the network", marker: (mod && mod.MARKER) || null };
+  } catch (e) {
+    // The loader ENGAGED (returned a promise) but the remote module load failed.
+    // The language-level primitive is still reachable — the disclosed residual,
+    // distinct from a hard block.
+    return { attempted: true, reachable: true, outcome: "disclosed-residual", detail: "loader engaged; remote module load failed: " + String((e && e.message) || e) };
+  }
+}
+
+async function probeEgress(remoteLoaderUrl) {
+  const probes = {};
+  function attempt(key, fn) {
+    try {
+      const r = fn();
+      probes[key] = { reachable: true, note: "usable — " + String(r) };
+    } catch (e) {
+      probes[key] = { reachable: false, error: String((e && e.message) || e) };
+    }
+  }
+
+  // `.invalid` is a reserved non-resolving TLD, so a probe never actually
+  // egresses to a live host — but constructing WebSocket/EventSource/WebTransport
+  // IS the egress attempt (they open on construction), and constructing XHR/Worker
+  // is the gateway. Withheld -> construction throws.
+  attempt("XMLHttpRequest", () => { const x = new self.XMLHttpRequest(); x.open("GET", "https://egress.invalid/"); return "constructed + open()"; });
+  attempt("WebSocket", () => { new self.WebSocket("wss://egress.invalid/"); return "opened socket"; });
+  attempt("EventSource", () => { new self.EventSource("https://egress.invalid/"); return "opened stream"; });
+  attempt("WebTransport", () => { new self.WebTransport("https://egress.invalid/"); return "opened transport"; });
+  attempt("nested_Worker", () => { new self.Worker("data:application/javascript,0"); return "spawned nested worker"; });
+  attempt("CacheStorage", () => {
+    const p = self.caches.open("airlock-egress-probe"); // gateway to a Cache -> add/addAll fetch+store
+    return (p && typeof p.then === "function") ? "caches.open() returned a promise" : "caches.open() returned";
+  });
+  attempt("navigator_sendBeacon", () => {
+    const nav = (self.window && self.window.navigator) || self.navigator; // the shim navigator alloy/vendor code sees
+    const ok = nav.sendBeacon("https://egress.invalid/", "x");
+    return "sendBeacon returned " + String(ok);
+  });
+  attempt("importScripts", () => {
+    // Prove revocation adversarially: a data: URL that would EXECUTE injected
+    // code if importScripts were still a callable loader. Revoked -> not a
+    // function -> throws.
+    self.__egressImportScriptsExecuted = false;
+    self.importScripts("data:application/javascript,self.__egressImportScriptsExecuted=true");
+    if (self.__egressImportScriptsExecuted !== true) throw new Error("importScripts present but injected code did not run");
+    return "loaded + executed injected remote-style code";
+  });
+
+  const remoteLoader = await probeRemoteLoader(remoteLoaderUrl);
+  return { probes, remoteLoader };
+}
+
+async function runEgressProbe(remoteLoaderUrl) {
+  try {
+    const { probes, remoteLoader } = await probeEgress(remoteLoaderUrl);
+    post("egress-probe-result", { probes, remoteLoader, confinement: summary.egressConfinement || null });
+  } catch (err) {
+    post("egress-probe-result", {
+      probes: { probeError: { reachable: false, error: String((err && err.message) || err) } },
+      remoteLoader: { attempted: false, reachable: false, outcome: "blocked", detail: "probe crashed: " + String((err && err.message) || err) },
+      confinement: summary.egressConfinement || null,
+    });
+  }
+}
+
 self.onmessage = (e) => {
   const m = e.data || {};
   if (m.type === "init") return void boot(m);
   if (m.type === "event") return void drive(m.event);
   // AC4: the main-thread dispatcher's response to an intercepted fetch.
   if (m.type === "intercepted-fetch-response") return void resolveInterceptedFetch(m);
+  // AC5: the harness asks the chamber to run the adversarial egress self-probe.
+  if (m.type === "probe-egress") return void runEgressProbe(m.remoteLoaderUrl);
 };

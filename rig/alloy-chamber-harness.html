@@ -2,10 +2,10 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Alloy Option-B chamber rig (spec 012-01 AC2+AC3+AC4)</title>
+    <title>Alloy Option-B chamber rig (spec 012-01 AC2+AC3+AC4+AC5)</title>
   </head>
   <body>
-    <h1>Alloy chamber — AC2 + AC3 + AC4</h1>
+    <h1>Alloy chamber — AC2 + AC3 + AC4 + AC5</h1>
     <div id="status">booting…</div>
     <script>
       // The rig (rig/alloy-chamber.mjs) builds connectors/alloy/alloy-chamber.worker.js
@@ -19,6 +19,11 @@
       // real core is untouched). When the chamber intercepts alloy's interact fetch
       // and postMessages it here, we run the REAL network fetch ON MAIN (never in
       // the worker) against the rig's minting-Edge stub, and post the response back.
+      //
+      // AC5: after that AC4 round-trip, the harness asks the chamber to run its
+      // post-boot adversarial egress self-probe (the allow-list posture: the
+      // mediated fetch is the chamber's SOLE network surface), then publishes the
+      // AC4 result and the AC5 probe together.
       const WORKER_URL = "/rig/out/alloy-chamber.worker.built.js";
       const BUNDLE_URL = "/probes/alloy-worker/node_modules/@adobe/alloy/dist/alloy.js";
 
@@ -45,6 +50,14 @@
       // Every real network fetch is dispatched HERE, on main — the rig asserts exactly
       // one interact egressed this way and the worker did none.
       const mainDispatch = { count: 0, requests: [] };
+      // AC5: the AC4 result (summary + ready), stashed while the chamber runs the
+      // post-boot adversarial egress self-probe. The final result is published only
+      // after the probe returns, so it carries both AC4 and AC5 evidence.
+      let resultCore = null;
+      // AC5: a REMOTE ES module the chamber's disclosed dynamic-loader residual
+      // probe attempts to load — its presence lets the rig record the residual as
+      // reachable (marker) vs blocked, honestly. Served by rig/alloy-chamber.mjs.
+      const REMOTE_LOADER_URL = location.origin + "/__egress_probe_module__.mjs";
       const statusEl = document.getElementById("status");
       const worker = new Worker(WORKER_URL); // CLASSIC worker (no { type: "module" })
 
@@ -96,8 +109,19 @@
           writeBacks.push(m.value);
           try { document.cookie = reconcileForBrokerJar(m.value); } catch (err) {} // async reconcile to the real jar
         } else if (m.type === "result") {
+          // AC4 done — stash it, then ask the chamber to run the AC5 adversarial
+          // egress self-probe (published together once the probe returns).
+          resultCore = { summary: m.summary, ready: m.ready };
+          statusEl.textContent = "PROBING EGRESS";
+          worker.postMessage({ type: "probe-egress", remoteLoaderUrl: REMOTE_LOADER_URL });
+        } else if (m.type === "egress-probe-result") {
           statusEl.textContent = "DONE";
-          window.__ALLOY_CHAMBER_RESULT__ = { summary: m.summary, ready: m.ready, phases, writeBacks, mainDispatch };
+          window.__ALLOY_CHAMBER_RESULT__ = {
+            summary: resultCore ? resultCore.summary : (m.confinement ? { egressConfinement: m.confinement } : null),
+            ready: resultCore ? resultCore.ready : [],
+            phases, writeBacks, mainDispatch,
+            egressProbe: { probes: m.probes, remoteLoader: m.remoteLoader, confinement: m.confinement },
+          };
         } else if (m.type === "fatal") {
           statusEl.textContent = "FATAL";
           window.__ALLOY_CHAMBER_RESULT__ = { fatal: m.message, stack: m.stack, phase: m.phase, summary: m.summary, phases, writeBacks, mainDispatch };
