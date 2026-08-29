@@ -37,7 +37,16 @@
 | [010-ga4-purchase-conformance](010-ga4-purchase-conformance/spec.md) | 010-01 — purchase schema shape + golden + validator coverage | **DONE** |  |
 | [011-mvp2-coherency-probe](011-mvp2-coherency-probe/spec.md) | 🔬 011-01 — coherency rig + concurrent two-chamber writes | **DONE** |  |
 | [011-mvp2-coherency-probe](011-mvp2-coherency-probe/spec.md) | 🔬 011-02 — out-of-band write coherency | **DONE** |  |
-| [011-mvp2-coherency-probe](011-mvp2-coherency-probe/spec.md) | 🔬 011-03 — coherency scoreboard + resolving ADR | READY_FOR_REVIEW (claude/airlock-mvp2-coheren…) |  |
+| [011-mvp2-coherency-probe](011-mvp2-coherency-probe/spec.md) | 🔬 011-03 — coherency scoreboard + resolving ADR | **DONE** | **OQ9 coherency axis → [ADR-0008](../decisions/adr-0008-oq9-coherency-sync-access.md): conditional GO** — retired by broker-side async mint coalescing (no SAB); wire-protocol (GA4) ready, wrapped-SDK (Alloy) freeze-held on vendor-`fetch` interception + XDM mint-recognition; B-vs-C unconstrained. Result analytical, not rig-measured. |
+| [011-mvp2-coherency-probe](011-mvp2-coherency-probe/spec.md) | 🔬 011-04 — async-mint coalescing needs broker-proxied egress (the OQ9 mechanism + its condition) | ABANDONED |  |
+
+## Abandoned slices
+
+> Slices permanently dropped, with a stated reason. This is distinct from Deferred (parked, resumable) — re-open by transitioning to DRAFT.
+
+| Spec | Slice | Abandonment reason |
+|------|-------|---------------------|
+| [011-mvp2-coherency-probe](011-mvp2-coherency-probe/spec.md) | 🔬 011-04 — async-mint coalescing needs broker-proxied egress (the OQ9 mechanism + its condition) |  |
 
 ## Richer-skill selection audit (spec 096-05)
 
@@ -45,4 +54,5 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
 
 - **0** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **28** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **0** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **1** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+  - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
