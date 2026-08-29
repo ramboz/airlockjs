@@ -32,10 +32,12 @@ measurement; it consumes 011-01/011-02 and produces the ADR.
 **Acceptance Criteria:**
 
 1. **Coherency scoreboard.** A single artifact (in the spec Findings and/or
-   `rig/out/`) tabulates all four threats — concurrent two-chamber write,
-   credentialed `Set-Cookie`, main-thread write, second-tab write — with each
-   one's measured verdict (coherent / stale-then-reconciles / permanently
-   divergent) and window.
+   `rig/out/`) tabulates the four threats — the concurrent two-chamber **in-band** write, the
+   two **positive** out-of-band sources (foreign main-thread script, second-tab),
+   and the network `Set-Cookie` **negative boundary** — with each one's measured
+   result: its coherency verdict (coherent / stale-then-reconciles / permanently
+   divergent) and window, plus — for the identity-consuming scenarios (011-01
+   AC5) — its **correctness** classification (fault vs self-heal).
 2. **Go/no-go recorded — split by axis.** The scoreboard yields an explicit
    conclusion on the **coherency** axis, framed as a *correctness* judgment on
    shared identity (not merely a window width — per the spec's third assumption):

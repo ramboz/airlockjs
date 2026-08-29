@@ -50,7 +50,7 @@ staleness window on demand — the instrument the rest of the spec measures with
    that a mechanism bounding staleness here bounds it *a fortiori* for Option C
    **on the coherency axis** (C's per-connector sandboxes reach one host authority
    by synchronous in-thread capability-bridge mediation — strictly easier on the
-   propagation channel), which is why the rig need not build C. Two scope limits the rig states plainly
+   propagation channel), which is why the rig need not build C. The rig plainly states two scope limits
    (both handed to the 011-03 ADR, per the spec's "What the probe measures"
    section): it makes **no** B-vs-C isolation choice, and it does **not** exercise
    Option C's *read-semantics* (the WASM-sandbox marshal-each-read / unmodified-
@@ -67,13 +67,28 @@ staleness window on demand — the instrument the rest of the spec measures with
    in the jar).
 4. **Verdict recorded.** Running the rig yields a concrete result — divergence
    observed (with window width) or not — captured in this slice's Findings.
+5. **Identity-consuming read surfaces a *correctness* fault, not just a window.**
+   [Closes the spec's Assumption 3 — the go/no-go turns on correctness, not a
+   latency number.] The rig models an **identity-consuming operation** off the
+   cached value: a chamber reads its cached ECID/identity synchronously and
+   performs an identity op (e.g. mints or attaches an identity keyed on it), so a
+   *stale* read yields an observable, classifiable outcome — a **correctness
+   fault** (duplicate / split identity) vs a **benign self-heal** (the stale value
+   reconciles before it is consumed). The rig records that classification per
+   scenario, not merely the window width. This is the instrument that 011-02's
+   positive sources and 011-03's go/no-go reuse; without it the go/no-go rests on
+   window width alone, which the spec's Assumption 3 says is insufficient.
 
 **DoD:**
-- [ ] ACs 1–4 pass; the concurrent-write scenario is reproducible across runs
+- [ ] ACs 1–5 pass; the concurrent-write scenario is reproducible across runs
       (the staleness window is opened deterministically, not flakily).
 - [ ] The rig's incoherency detector is shown capable of failing both ways: a
       coherent control run (single chamber, or synchronous write-through) reports
       *coherent*; the concurrent async-write-back run reports the divergence.
+- [ ] The identity-consuming read (AC5) is shown classifying both outcomes: a
+      stale read that causes a duplicate/split identity is recorded as a **fault**,
+      and a stale read that reconciles before consumption as a **self-heal** — so
+      the scoreboard carries correctness verdicts, not just window widths.
 - [ ] Spike-light review: self-verified against ACs (measurement rig, not
       production runtime — mirrors spec 003's spike-light close-out;
       `JIG_REVIEW_EVIDENCE_GATE=0` noted if used for transitions).

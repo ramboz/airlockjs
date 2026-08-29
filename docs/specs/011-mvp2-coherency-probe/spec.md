@@ -249,10 +249,11 @@ needle before the costlier out-of-band orchestration is built.
    measures against **and** the first verdict — do two caches diverge under
    concurrent writes with async write-back, and how wide is the window?
 2. **[011-02 — out-of-band write coherency](slice-02-out-of-band.md)** — extend
-   the rig with the three out-of-band mutation sources OQ9 names (credentialed
-   `Set-Cookie`, main-thread write, second-tab write), each driven
-   deterministically. Delivers the out-of-band verdict + per-source staleness
-   characterization.
+   the rig with the out-of-band writes from *outside* any chamber: the two
+   **positive** JS sources (a foreign main-thread script, a second tab), each
+   driven deterministically, plus network `Set-Cookie` as a **negative boundary**
+   (it does not mutate the cached identity cell — R-004). Delivers the out-of-band
+   verdict + per-source staleness characterization.
 3. **[011-03 — coherency scoreboard + resolving ADR](slice-03-scoreboard-adr.md)**
    — synthesize the verdicts into the go/no-go on "coherent synchronous
    cross-chamber view without SAB," and record the dedicated ADR that resolves

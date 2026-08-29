@@ -74,8 +74,10 @@ source. Stop when each source has a characterized staleness window.
 4. **Per-source staleness scoreboard.** For each source, the rig reports —
    programmatically retrievable — a characterized result: for the two **positive**
    sources (foreign main-thread script, second-tab), does the chamber's
-   synchronous view go stale, for how long (window), and whether it ever
-   reconciles without SAB; for the **negative boundary** (network `Set-Cookie`,
+   synchronous view go stale, for how long (window), whether it ever reconciles
+   without SAB, and — via 011-01's identity-consuming-read instrument (AC5) —
+   whether a stale read produces an identity **fault** (duplicate / split) or a
+   **self-heal**; for the **negative boundary** (network `Set-Cookie`,
    both variants), confirmation that it does not reach the cached cell. Captured
    in Findings.
 
