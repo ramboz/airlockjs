@@ -1,5 +1,5 @@
 /**
- * Alloy wrapped-SDK connector — spec 012-01, AC2.
+ * Alloy wrapped-SDK connector — spec 012-01.
  *
  * The wrapped-SDK archetype (contracts/connector.d.ts): a ConnectorFactory
  * `config -> { manifest, init, handle }`, hosted by createConnectorHost exactly
@@ -20,12 +20,15 @@
  * (AC3) — the connector itself needs no capability to boot alloy, so `init`
  * accepts `caps` for contract conformance but does not consume it.
  *
- * SCOPE — AC2/AC3 ONLY. `handle` returns [] (no EgressRequest to the
- * orchestrator): in this slice alloy's own worker-side `fetch` to
- * `.../ee/v1/interact` is captured by an IN-CHAMBER stub returning a minimal
- * Edge-shaped response. Intercepting that fetch and routing it into the
- * orchestrator's main-thread dispatch (ADR-0004) + minting/writing back the
- * ECID is AC4 — the NEXT stage — and is deliberately NOT built here.
+ * WRAPPED-SDK EGRESS MODEL (contrast the wire-protocol GA4): `handle` returns
+ * **[]** — alloy does NOT hand an `EgressRequest` back to the orchestrator.
+ * Instead alloy issues its own worker-side `fetch` to `.../ee/v1/interact`, which
+ * the chamber **intercepts** and routes into the orchestrator's main-thread
+ * dispatch (ADR-0004); the minting-Edge response's ECID is written back to the
+ * identity cookie (AC4). The chamber confines egress so that the mediated `fetch`
+ * is the connector's only network path (AC5). The interception + confinement live
+ * in the chamber (alloy-chamber.worker.js), not here — this connector stays free
+ * of any direct global/DOM/network reach.
  *
  * @param {Readonly<Record<string, unknown>>} [config] host-owned alloy config:
  *   `{ datastreamId, orgId, context?, alloy?, ...configureExtras }`.
