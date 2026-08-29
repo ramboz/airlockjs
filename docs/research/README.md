@@ -42,6 +42,7 @@ you create a note; update its status/promotion when it resolves.
 | [R-003](R-003-partytown-mechanism-check.md) | Partytown mechanism accuracy (AD-4 justification) | CONCLUDED | n/a (validated AD-4 as-is) |
 | [R-004](R-004-alloy-in-worker.md) | Alloy (AEP Web SDK) in a no-DOM Worker chamber | CONCLUDED | [ADR-0001](../decisions/adr-0001-chamber-isolation-strength.md); capability contract (step 5); probe: [probes/alloy-worker](../../probes/alloy-worker/) |
 | [R-005](R-005-eds-no-flicker-eager-swap.md) | EDS no-flicker eager swap mechanism + timing | CONCLUDED | UC-1 spec (arch-review G1); OQ6 flicker oracle; probe: [probes/eds-testbed](../../probes/eds-testbed/) |
+| [R-006](R-006-cross-chamber-cookie-coherency-mechanisms.md) | AD-4-compatible sync host-access + cross-chamber cookie coherency mechanisms | CONCLUDED | [OQ9](../refinement-todo.md); [spec 011](../specs/011-mvp2-coherency-probe/spec.md) (scope + option set); [ADR-0001](../decisions/adr-0001-chamber-isolation-strength.md) |
 
 ## Hand-offs
 

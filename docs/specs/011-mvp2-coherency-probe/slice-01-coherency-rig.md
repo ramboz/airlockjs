@@ -1,0 +1,122 @@
+---
+status: READY_FOR_REVIEW
+kind: spike
+dependencies: []
+last_verified:
+frame_review: true
+claimed_by: claude/airlock-mvp2-coherency-cf9527
+---
+
+<!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about
+     runnable surfaces by probe first (run it / read source) or a citation,
+     else mark them as assumptions in the spec's `## Assumptions` section. -->
+
+## Slice 011-01 — coherency rig + concurrent two-chamber writes
+
+**Goal:** A two-worker coherency proxy modelling the worst-case Option-B topology
+— a main-thread broker owning the authoritative cookie jar plus two worker
+chambers, each with a sync-cache + async write-back on one shared identity cookie
+— runs a concurrent read-modify-write from both chambers and reports whether the
+two caches diverge and how wide the incoherency window is.
+
+**Question:** Under async write-back, do two chambers' sync-caches of a shared
+identity cookie diverge when both write concurrently, and how wide is the window
+during which a chamber reads a stale value?
+
+**Time-box:** ~1 day. Build the smallest rig that opens a discriminating
+staleness window on demand — the instrument the rest of the spec measures with.
+
+**DoR:**
+- ✅ [R-004](../../research/R-004-alloy-in-worker.md) (single-chamber sync-cache
+  shim proven) and the `rig/` Playwright realm (`rig/isolation.mjs`,
+  `rig/e2e.mjs`) exist as the pattern to extend.
+- ✅ [R-006](../../research/R-006-cross-chamber-cookie-coherency-mechanisms.md)
+  (mechanism survey) fixes the rig's architecture: the authoritative jar lives
+  on the broker only (chambers have no cookie API), and the probe measures
+  broker↔cache freshness, not a shared-memory race.
+- ✅ [ADR-0001](../../decisions/adr-0001-chamber-isolation-strength.md) records
+  the coupled B-vs-C + sync-access question this probe resolves.
+
+**Acceptance Criteria:**
+
+1. **Two-worker coherency proxy (models the worst-case Option-B topology).** A rig
+   under `probes/coherency/` (or `rig/coherency.*`) stands up a main-thread
+   **broker** holding the authoritative jar (the real `document.cookie`) and
+   **two** worker chambers, each seeded at boot with a sync-cache of one shared
+   first-party identity cookie (`AMCV_*` / `kndctr_*`-shaped value, per R-004)
+   and writing back to the broker asynchronously. The two separate cross-thread
+   caches are the **worst-case *coherency* topology** (ADR-0001 Option B — its
+   cross-chamber propagation is forced through an async hop); the rig documents
+   that a mechanism bounding staleness here bounds it *a fortiori* for Option C
+   **on the coherency axis** (C's per-connector sandboxes reach one host authority
+   by synchronous in-thread capability-bridge mediation — strictly easier on the
+   propagation channel), which is why the rig need not build C. The rig plainly states two scope limits
+   (both handed to the 011-03 ADR, per the spec's "What the probe measures"
+   section): it makes **no** B-vs-C isolation choice, and it does **not** exercise
+   Option C's *read-semantics* (the WASM-sandbox marshal-each-read / unmodified-
+   bundle question) — it measures coherency for the Worker topology only.
+2. **Concurrent in-band write scenario.** The rig drives a concurrent
+   read-modify-write of the shared cookie from **both** chambers (each reads the
+   current value synchronously from its cache, mutates it, writes back), with the
+   interleaving controllable so the race is reproducible, not incidental.
+3. **Coherency verdict is observable.** After the scenario, the rig reports —
+   retrievable programmatically (e.g. on `window` or as JSON to `rig/out/`) —
+   whether the two caches ended coherent with each other and with the
+   authoritative jar, and the measured **staleness window** (time or op-count
+   during which a chamber's synchronous read returned a value already superseded
+   in the jar).
+4. **Verdict recorded.** Running the rig yields a concrete result — divergence
+   observed (with window width) or not — captured in this slice's Findings.
+5. **Identity-consuming read surfaces a *correctness* fault, not just a window.**
+   [Closes the spec's Assumption 3 — the go/no-go turns on correctness, not a
+   latency number.] The rig models an **identity-consuming operation** off the
+   cached value: a chamber reads its cached ECID/identity synchronously and
+   performs an identity op (e.g. mints or attaches an identity keyed on it), so a
+   *stale* read yields an observable, classifiable outcome — a **correctness
+   fault** (duplicate / split identity) vs a **benign self-heal** (the stale value
+   reconciles before it is consumed). The rig records that classification per
+   scenario, not merely the window width. This is the instrument that 011-02's
+   positive sources and 011-03's go/no-go reuse; without it the go/no-go rests on
+   window width alone, which the spec's Assumption 3 says is insufficient.
+
+**DoD:**
+- [ ] ACs 1–5 pass; the concurrent-write scenario is reproducible across runs
+      (the staleness window is opened deterministically, not flakily).
+- [ ] The rig's incoherency detector is shown capable of failing both ways: a
+      coherent control run (single chamber, or synchronous write-through) reports
+      *coherent*; the concurrent async-write-back run reports the divergence.
+- [ ] The identity-consuming read (AC5) is shown classifying both outcomes: a
+      stale read that causes a duplicate/split identity is recorded as a **fault**,
+      and a stale read that reconciles before consumption as a **self-heal** — so
+      the scoreboard carries correctness verdicts, not just window widths.
+- [ ] Spike-light review: self-verified against ACs (measurement rig, not
+      production runtime — mirrors spec 003's spike-light close-out;
+      `JIG_REVIEW_EVIDENCE_GATE=0` noted if used for transitions).
+- [ ] Deviation log + reconciliation sweep produced under this slice heading.
+- [ ] `docs/refinement-todo.md` OQ9 annotated with the in-band finding if it
+      moves the go/no-go.
+
+**Findings:** _Filled during IN_PROGRESS._
+
+**Outcome:** _Set at DONE — e.g. `spec 011-02 unblocked` (rig stands up; the
+out-of-band threats extend it)._
+
+**Anti-horizontal-phasing check:** after this slice, running the rig gives a
+real, reproducible answer to the simplest coherency threat (two chambers writing
+one cookie concurrently) — the comparison floor and the instrument the whole
+probe reuses. Observable value, not intermediate state.
+
+### Deviation log (after reconciliation)
+
+_TODO._
+
+### Reconciliation sweep
+
+| Artifact | Disposition | Rationale |
+|----------|-------------|-----------|
+| `docs/refinement-todo.md` | `updated` | _TODO: OQ9 annotated with the in-band coherency finding, or explain why deferred to 011-03._ |
+| `docs/specs/README.md` | `updated` | _TODO: regenerated by `workflow.py status-board`._ |
+| `docs/architecture.md` | `no-op` | _TODO: probe rig, no module-boundary/contract change (the ADR lands in 011-03)._ |
+| `docs/decisions/README.md` / ADR index | `no-op` | _TODO: no ADR this slice (resolving ADR is 011-03)._ |
+| Primer surfaces: `CLAUDE.md` / `AGENTS.md` / scaffold templates | `no-op` | _TODO: checked._ |
+| `docs/memory/**` | `no-op` | _TODO: memory-sync result._ |
