@@ -5,7 +5,7 @@
     <title>Airlock MVP2 coherency rig</title>
   </head>
   <body>
-    <h1>Airlock MVP2 coherency probe (spec 011-01)</h1>
+    <h1>Airlock MVP2 coherency probe (spec 011-01 in-band + 011-02 out-of-band)</h1>
     <p>Two real Worker chambers + a main-thread broker owning the authoritative
        jar (the real <code>document.cookie</code>). Results on
        <code>window.__coherencyResult</code>.</p>
@@ -15,6 +15,15 @@
       // the authoritative jar is a real first-party identity cookie
       // (AMCV_TESTORG, an AMCV_*-shaped value per R-004) in document.cookie. The
       // two chambers are real dedicated Workers with their own sync-caches.
+      //
+      // 011-02 extends this harness with OUT-OF-BAND writes from OUTSIDE any
+      // chamber: (AC1) a foreign main-thread script write, (AC3) a same-origin
+      // network Set-Cookie negative boundary — plus the persistent cookieStore
+      // `change` listener + polling helper the Node driver's second-tab (AC2) and
+      // cross-site (AC3) probes read. The identity cookie is only ever JS-written
+      // (R-004), so the foreign JS writers are the positive sources and network
+      // Set-Cookie is a negative boundary confirmed by JAR RE-READ, not header
+      // inspection (Set-Cookie is a forbidden response header, R-006 F4).
       import { runBroker, SCENARIOS, parseAmcv } from "./coherency-model.mjs";
 
       const COOKIE_NAME = "AMCV_TESTORG";
@@ -25,10 +34,48 @@
       function writeAmcvCookie(value) {
         document.cookie = COOKIE_NAME + "=" + encodeURIComponent(value) + "; path=/; SameSite=Lax";
       }
+      // A FOREIGN main-thread write (011-02 AC1): a co-resident script (e.g. a
+      // legacy Adobe Visitor/ECID lib) writing document.cookie directly — NOT the
+      // broker's mediated path. Same API; the point is the provenance is out-of-band.
+      function foreignScriptWrite(value) {
+        document.cookie = COOKIE_NAME + "=" + encodeURIComponent(value) + "; path=/; SameSite=Lax";
+      }
       function readAmcvCookie() {
         const m = new RegExp("(?:^|;\\s*)" + COOKIE_NAME + "=([^;]*)").exec(document.cookie);
         return m ? decodeURIComponent(m[1]) : null;
       }
+      function readCookie(name) {
+        const m = new RegExp("(?:^|;\\s*)" + name + "=([^;]*)").exec(document.cookie);
+        return m ? decodeURIComponent(m[1]) : null;
+      }
+
+      // --- Persistent out-of-band DETECTION hooks (R-006 F3) -------------------
+      // The broker learns of an out-of-band write either by a cookieStore `change`
+      // event (async, the intended primitive) or by polling document.cookie (the
+      // guaranteed fallback). We install both here and expose them so the AC1
+      // foreign-script probe (in this page) and the Node driver's AC2 second-tab
+      // probe can measure which one fires for each source.
+      const cookieStoreAvailable = typeof self.cookieStore !== "undefined";
+      window.__cookieChangeLog = [];
+      if (cookieStoreAvailable) {
+        self.cookieStore.addEventListener("change", (e) => {
+          window.__cookieChangeLog.push({
+            t: performance.now(),
+            changed: (e.changed || []).map((c) => ({ name: c.name, value: c.value })),
+            deleted: (e.deleted || []).map((c) => c.name),
+          });
+        });
+      }
+      // Helpers the Node driver calls across page.evaluate boundaries (AC2/AC3).
+      window.__cookieStoreAvailable = cookieStoreAvailable;
+      window.__readIdentityCookie = () => readAmcvCookie();
+      window.__changeLogLen = () => window.__cookieChangeLog.length;
+      // Did a cookieStore `change` naming COOKIE_NAME with `value` arrive after
+      // `sinceLen` / `sinceT`? (used by both the AC1 probe and the AC2 driver)
+      window.__changeFiredFor = (value, sinceLen = 0) =>
+        window.__cookieChangeLog
+          .slice(sinceLen)
+          .some((entry) => (entry.changed || []).some((c) => c.name === COOKIE_NAME && c.value === value));
 
       // A real Worker chamber with request/reply correlation over postMessage.
       function makeChamber(url) {
@@ -69,7 +116,8 @@
           ...spec,
           jarSeed: spec.jarSeed || "MCMID|",
           send,
-          onJarChange: writeAmcvCookie, // mirror the authority into the real cookie
+          onJarChange: writeAmcvCookie, // broker mirrors the authority into the real cookie
+          onOobWrite: foreignScriptWrite, // an OOB op is a FOREIGN write to the real cookie (011-02)
         });
 
         // Prove the authoritative jar really lived in document.cookie.
@@ -82,15 +130,126 @@
         return result;
       }
 
+      // Bounded wait for an async cookieStore `change` to name COOKIE_NAME with
+      // `value` (empirical — the event is async). Returns {fired, latencyMs}.
+      async function waitForChange(value, sinceLen, timeoutMs = 800) {
+        const start = performance.now();
+        while (performance.now() - start < timeoutMs) {
+          if (window.__changeFiredFor(value, sinceLen)) {
+            return { fired: true, latencyMs: Math.round(performance.now() - start) };
+          }
+          await new Promise((r) => setTimeout(r, 25));
+        }
+        return { fired: false, latencyMs: null };
+      }
+
+      // Validate the cookieStore `change` LISTENER itself against the async
+      // cookieStore.set() write path, on a throwaway cookie — so a negative result
+      // for document.cookie / cross-tab writes below reads as real platform
+      // behavior, not a broken probe (DoD kill-criteria: revisit the method before
+      // a verdict). Returns { available, listenerValidated, latencyMs }.
+      async function validateCookieStoreListener() {
+        if (!cookieStoreAvailable) return { available: false, listenerValidated: false, latencyMs: null };
+        const probeName = "__cs_probe__";
+        const probeValue = "v" + Math.random().toString(36).slice(2, 8);
+        const sinceLen = window.__changeLogLen();
+        try {
+          await self.cookieStore.set({ name: probeName, value: probeValue, path: "/" });
+        } catch {
+          return { available: true, listenerValidated: false, latencyMs: null, note: "cookieStore.set threw" };
+        }
+        const start = performance.now();
+        let fired = false;
+        while (performance.now() - start < 800) {
+          fired = window.__cookieChangeLog.slice(sinceLen)
+            .some((e) => (e.changed || []).some((c) => c.name === probeName && c.value === probeValue));
+          if (fired) break;
+          await new Promise((r) => setTimeout(r, 25));
+        }
+        try { await self.cookieStore.delete(probeName); } catch { /* best-effort cleanup */ }
+        return { available: true, listenerValidated: fired, latencyMs: fired ? Math.round(performance.now() - start) : null };
+      }
+
+      // AC1 — FOREIGN MAIN-THREAD SCRIPT (positive). A co-resident script writes
+      // the shared identity cookie via document.cookie. Measure whether the broker
+      // detects it via cookieStore `change` (same document) and, as the guaranteed
+      // fallback, via polling. A detect-only miss degrades to polling — a valid
+      // recorded window (DoD kill-criteria), NOT an omission.
+      async function probeForeignMainThreadScript() {
+        const foreignValue = "MCMID|ECID-foreign-ac1";
+        const before = readAmcvCookie();
+        const sinceLen = window.__changeLogLen();
+        foreignScriptWrite(foreignValue); // the out-of-band write happens here, on demand
+        const change = await waitForChange(foreignValue, sinceLen);
+        const pollingDetected = readAmcvCookie() === foreignValue; // broker re-reads the jar
+        return {
+          source: "foreign-main-thread-script",
+          cookieStoreAvailable,
+          identityCellBefore: before,
+          foreignWroteValue: foreignValue,
+          cookieStoreChangeFired: change.fired,
+          cookieStoreChangeLatencyMs: change.latencyMs,
+          pollingDetected,
+          // Detectable by SOME AD-4-clean means (polling is the guaranteed backstop).
+          detectable: change.fired || pollingDetected,
+          detectionMechanism: change.fired ? "cookieStore-change" : (pollingDetected ? "document.cookie-polling" : "none"),
+        };
+      }
+
+      // AC3 — NETWORK Set-Cookie, same-origin variant (negative boundary). A
+      // same-origin server Set-Cookie writes a DIFFERENT cookie (session/consent);
+      // it must NOT mutate the AMCV_* identity cell. Detection is by JAR RE-READ,
+      // not header inspection — and we prove the header is unreadable (R-006 F4).
+      async function probeSameOriginSetCookie() {
+        const otherName = "airlock_session";
+        const sid = "SID-" + Math.random().toString(36).slice(2, 8);
+        const identityBefore = readAmcvCookie();
+        let setCookieHeaderReadable = null;
+        let networkError = null;
+        try {
+          const resp = await fetch("/__set-cookie__?name=" + otherName + "&value=" + sid, { credentials: "include" });
+          // Set-Cookie is a forbidden RESPONSE header — JS cannot read it (R-006 F4).
+          setCookieHeaderReadable = resp.headers.get("set-cookie") !== null;
+          await resp.text();
+        } catch (e) {
+          networkError = String(e);
+        }
+        const identityAfter = readAmcvCookie();
+        const otherCookieAfter = readCookie(otherName);
+        return {
+          source: "network-set-cookie:same-origin",
+          otherCookieName: otherName,
+          expectedOtherValue: sid,
+          otherCookieWritten: otherCookieAfter === sid, // the server DID write a different cell
+          setCookieHeaderReadable, // must be false — forbidden header (R-006 F4)
+          identityCellBefore: identityBefore,
+          identityCellAfter: identityAfter,
+          identityCellMutated: identityBefore !== identityAfter, // must be false
+          networkError,
+        };
+      }
+
       try {
         const scenarios = {};
-        // Order fixed for reproducibility.
-        for (const key of ["concurrent-async-writeback", "single-chamber", "broker-push"]) {
+        // Order fixed for reproducibility. In-band (011-01) then out-of-band (011-02).
+        for (const key of [
+          "concurrent-async-writeback", "single-chamber", "broker-push",
+          "oob-foreign-writeback", "oob-broker-push",
+        ]) {
           scenarios[key] = await runScenario(SCENARIOS[key]);
         }
-        window.__coherencyResult = { scenarios };
+
+        // Empirical out-of-band probes (the Node driver adds AC2 second-tab +
+        // AC3 cross-site on top of these).
+        const detection = {
+          cookieStore: await validateCookieStoreListener(),
+          foreignMainThreadScript: await probeForeignMainThreadScript(),
+        };
+        const negativeBoundary = { sameOriginSetCookie: await probeSameOriginSetCookie() };
+
+        window.__coherencyResult = { scenarios, detection, negativeBoundary };
         document.getElementById("out").textContent =
-          "done — see window.__coherencyResult\n" + JSON.stringify(scenarios, null, 2);
+          "done — see window.__coherencyResult\n" + JSON.stringify(window.__coherencyResult, null, 2);
         window.__coherencyDone = true;
       } catch (err) {
         window.__coherencyError = String(err && (err.stack || err.message || err));

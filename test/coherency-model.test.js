@@ -1,4 +1,4 @@
-// Pure-logic tests for the MVP2 coherency probe (spec 011-01).
+// Pure-logic tests for the MVP2 coherency probe (spec 011-01 in-band + 011-02 out-of-band).
 //
 // The rig itself is a real-two-Worker browser instrument (rig/coherency.mjs) —
 // that is where AC1's cross-thread topology is proven. But the coherency
@@ -17,6 +17,7 @@ import {
   chamberIdentityStep,
   coherence,
   classifyIdentity,
+  jarIdentityHistory,
   stalenessWindow,
   createInMemoryChamber,
   runBroker,
@@ -92,6 +93,63 @@ describe("coherence — caches vs the authoritative jar (AC3)", () => {
   });
   it("a single cache equal to the jar is coherent (single-chamber control)", () => {
     expect(coherence({ c1: "MCMID|A" }, "MCMID|A").coherent).toBe(true);
+  });
+});
+
+// 011-01 craft-review nit #1, forward-logged to 011-02: an out-of-band writer can
+// legitimately leave a chamber cache ABSENT (never seeded / cleared / errored). The
+// old coherence() filtered undefined caches out and ran `[].every(...)`, so an
+// all-absent set was vacuously coherent:true. That must read as INCOHERENT.
+describe("coherence — an ABSENT cache is incoherent, not vacuously coherent (011-01 nit → 011-02)", () => {
+  it("treats an undefined/absent cache as incoherent even when the present caches agree with the jar", () => {
+    const c = coherence({ c1: "MCMID|A", c2: undefined }, "MCMID|A");
+    expect(c.coherent).toBe(false);
+    expect(c.anyAbsent).toBe(true);
+  });
+  it("treats an empty caches map as incoherent (not vacuously coherent)", () => {
+    const c = coherence({}, "MCMID|A");
+    expect(c.coherent).toBe(false);
+    expect(c.anyAbsent).toBe(true);
+  });
+  it("still reports coherent when every present cache agrees with the jar (no regression)", () => {
+    expect(coherence({ c1: "MCMID|A", c2: "MCMID|A" }, "MCMID|A").coherent).toBe(true);
+    expect(coherence({ c1: "MCMID|A" }, "MCMID|A").anyAbsent).toBe(false);
+  });
+});
+
+// The identity fault is defined over EVERY distinct identity asserted for one
+// visitor — including a foreign out-of-band write (011-02), not just the chambers'
+// own mints. jarIdentityHistory extracts that set from the authoritative jar's
+// trajectory so the classifier catches a chamber minting a duplicate alongside a
+// pre-existing out-of-band identity (which mints=[one] alone would misread).
+describe("jarIdentityHistory — distinct identities asserted for one visitor incl. out-of-band (011-02)", () => {
+  it("collects distinct non-empty ECIDs seen in the jar, in first-seen order", () => {
+    const log = [
+      { op: 0, jar: "MCMID|", caches: {} },
+      { op: 1, jar: "MCMID|ECID-foreign", caches: {} }, // a foreign OOB write
+      { op: 2, jar: "MCMID|ECID-c1", caches: {} }, // a chamber clobbers with its own mint
+    ];
+    expect(jarIdentityHistory(log)).toEqual(["ECID-foreign", "ECID-c1"]);
+  });
+  it("ignores the empty-visitor marker (MCMID|) — a new visitor is not an identity", () => {
+    expect(jarIdentityHistory([{ op: 0, jar: "MCMID|", caches: {} }])).toEqual([]);
+  });
+});
+
+describe("classifyIdentity — an out-of-band duplicate is a FAULT even with one chamber mint (AC4)", () => {
+  it("a foreign ECID plus a chamber's duplicate mint => two distinct identities => FAULT", () => {
+    const v = classifyIdentity({ identities: ["ECID-foreign", "ECID-c1"], staleReadOccurred: true });
+    expect(v.verdict).toBe("fault");
+    expect(v.kind).toBe("split-identity");
+    expect(v.distinctEcids).toEqual(["ECID-foreign", "ECID-c1"]);
+  });
+  it("a foreign ECID the chamber ATTACHED (minted nothing new) => one identity => self-heal", () => {
+    const v = classifyIdentity({ identities: ["ECID-foreign"], staleReadOccurred: true });
+    expect(v.verdict).toBe("self-heal");
+  });
+  it("falls back to `mints` when `identities` is not provided (backward-compatible with the in-band callers)", () => {
+    expect(classifyIdentity({ mints: ["ECID-c1", "ECID-c2"], staleReadOccurred: true }).verdict).toBe("fault");
+    expect(classifyIdentity({ mints: ["ECID-c1"], staleReadOccurred: false }).verdict).toBe("coherent");
   });
 });
 
@@ -173,5 +231,47 @@ describe("fails-both-ways (DoD) — the detector discriminates divergence from c
     const a = await runInMemory(SCENARIOS["concurrent-async-writeback"]);
     const b = await runInMemory(SCENARIOS["concurrent-async-writeback"]);
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 011-02 — OUT-OF-BAND writes (from OUTSIDE any chamber). The writer is a foreign
+// JS actor (a co-resident main-thread script, or a second tab), not a chamber and
+// not the broker's own commit. The correctness dichotomy is the same instrument as
+// the in-band case — a stale identity read consumed into a DUPLICATE mint is a
+// FAULT; a broker-push that reconciles the cache to the foreign identity BEFORE
+// consumption is a SELF-HEAL — but now the "other identity" is the out-of-band
+// write, caught via jarIdentityHistory. The correctness mechanism is
+// source-INDEPENDENT (a real finding): it turns on detect-before-consume, not on
+// which foreign actor wrote. Per-source *detectability* (does cookieStore `change`
+// fire, or must we poll) is the browser rig's empirical measurement, not modelled.
+describe("out-of-band scenarios (011-02) — foreign write: FAULT under no-invalidation vs SELF-HEAL under broker-push", () => {
+  it("oob-foreign-writeback: a foreign main-thread write with NO invalidation => split-identity FAULT (chamber mints a duplicate alongside the foreign ECID)", async () => {
+    const r = await runInMemory(SCENARIOS["oob-foreign-writeback"]);
+    expect(r.identity.verdict).toBe("fault");
+    expect(r.identity.distinctEcids).toContain("ECID-foreign"); // the pre-existing OOB identity
+    expect(r.mints.length).toBe(1); // the chamber minted a SECOND ECID off its stale cache
+    expect(r.oob.reconciledToOobValue).toBe(false); // the chamber never adopted the foreign identity
+    expect(r.staleness.staleReadOccurred).toBe(true);
+  });
+  it("oob-broker-push: broker detects (cookieStore change) + pushes the foreign value before consumption => SELF-HEAL (chamber attaches, mints nothing)", async () => {
+    const r = await runInMemory(SCENARIOS["oob-broker-push"]);
+    expect(r.identity.verdict).toBe("self-heal");
+    expect(r.mints.length).toBe(0); // attached the foreign ECID; no duplicate minted
+    expect(r.oob.reconciledToOobValue).toBe(true);
+    expect(r.oob.detectionLagOps).toBeGreaterThanOrEqual(1); // R-006 F4: broker-detection lag …
+    expect(r.oob.propagationLagOps).toBeGreaterThanOrEqual(1); // … + broker→chamber sync lag
+    expect(r.oob.totalStalenessOps).toBe(r.oob.detectionLagOps + r.oob.propagationLagOps);
+  });
+  it("in-band scenarios carry no oob decomposition (oob === null)", async () => {
+    expect((await runInMemory(SCENARIOS["single-chamber"])).oob).toBeNull();
+    expect((await runInMemory(SCENARIOS["concurrent-async-writeback"])).oob).toBeNull();
+  });
+  it("is reproducible: two runs of each oob scenario are byte-identical (deterministic, DoD)", async () => {
+    for (const key of ["oob-foreign-writeback", "oob-broker-push"]) {
+      const a = await runInMemory(SCENARIOS[key]);
+      const b = await runInMemory(SCENARIOS[key]);
+      expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+    }
   });
 });

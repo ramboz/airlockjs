@@ -1,4 +1,4 @@
-// Pure model for the MVP2 coherency probe (spec 011-01).
+// Pure model for the MVP2 coherency probe (spec 011-01 in-band + 011-02 out-of-band).
 //
 // This file is the DETERMINISTIC, side-effect-free core the coherency rig is
 // built from, and it is shared THREE ways so the logic under test is the same
@@ -110,24 +110,55 @@ export function createInMemoryChamber(id) {
  * Coherence verdict (AC3): do the live caches agree with each other AND with the
  * authoritative jar? A cache that holds a value already superseded in the jar
  * (a lost update) makes `agreeWithJar` false.
+ *
+ * An ABSENT cache (undefined, or an empty caches map) is INCOHERENT, not
+ * vacuously coherent (011-01 craft-review nit #1, forward-logged here): an
+ * out-of-band writer (011-02) can legitimately leave a chamber's cache
+ * unseeded/cleared, and a broker that cannot see a chamber's view cannot claim
+ * that view agrees. The old `filter(undefined)` + `[].every()` reported an
+ * all-absent set as coherent:true — a latent trap this slice closes.
  */
 export function coherence(caches, jar) {
-  const values = Object.values(caches).filter((v) => v !== undefined);
-  const cachesAgree = values.every((v) => v === values[0]);
-  const agreeWithJar = values.every((v) => v === jar);
-  return { coherent: cachesAgree && agreeWithJar, cachesAgree, agreeWithJar, caches: { ...caches }, jar };
+  const values = Object.values(caches);
+  const anyAbsent = values.length === 0 || values.some((v) => v === undefined);
+  const present = values.filter((v) => v !== undefined);
+  const cachesAgree = !anyAbsent && present.every((v) => v === present[0]);
+  const agreeWithJar = !anyAbsent && present.every((v) => v === jar);
+  return { coherent: cachesAgree && agreeWithJar, cachesAgree, agreeWithJar, anyAbsent, caches: { ...caches }, jar };
+}
+
+/**
+ * Distinct non-empty ECIDs that were ever asserted as this visitor's identity in
+ * the authoritative jar, in first-seen order (011-02). This is the identity set
+ * the fault classifier judges over: it includes an OUT-OF-BAND write (a foreign
+ * script / second tab writing the real cookie), not only the chambers' own mints —
+ * so a chamber minting a duplicate ALONGSIDE a pre-existing foreign identity reads
+ * as a split, which a chamber-mint count alone would miss.
+ */
+export function jarIdentityHistory(opLog) {
+  const seen = [];
+  for (const entry of opLog) {
+    const { ecid } = parseAmcv(entry.jar);
+    if (ecid && !seen.includes(ecid)) seen.push(ecid);
+  }
+  return seen;
 }
 
 /**
  * Correctness classification (AC5) — the instrument the go/no-go turns on. Not a
- * window width: the number of DISTINCT identities minted for one visitor.
- *   > 1 distinct mint          => fault  (split / duplicate identity)
- *   1 mint, a stale read seen  => self-heal (the stale value reconciled before it
- *                                 was consumed by the identity op)
- *   1 mint, no stale read      => coherent (no divergence at all)
+ * window width: the number of DISTINCT identities asserted for one visitor.
+ *   > 1 distinct identity        => fault  (split / duplicate identity)
+ *   1 identity, a stale read seen => self-heal (the stale value reconciled before
+ *                                    it was consumed by the identity op)
+ *   1 identity, no stale read     => coherent (no divergence at all)
+ *
+ * `identities` (the full jar identity history, incl. out-of-band writes — 011-02)
+ * is preferred when supplied; otherwise it falls back to the chambers' `mints`
+ * (the in-band-only callers and the direct unit tests). Both count DISTINCT ids.
  */
-export function classifyIdentity({ mints, staleReadOccurred }) {
-  const distinctEcids = [...new Set((mints || []).filter(Boolean))];
+export function classifyIdentity({ mints, identities, staleReadOccurred }) {
+  const source = identities !== undefined ? identities : mints;
+  const distinctEcids = [...new Set((source || []).filter(Boolean))];
   if (distinctEcids.length > 1) {
     return { verdict: "fault", kind: "split-identity", distinctEcids };
   }
@@ -197,19 +228,61 @@ export function stalenessWindow(opLog, chamberIds) {
 }
 
 /**
+ * Out-of-band staleness decomposition (011-02, grounding R-006 F4). When a
+ * scenario contains an `oob` op (a foreign write to the jar, from outside any
+ * chamber), the chamber-visible staleness has TWO components: the broker's
+ * DETECTION lag (from the foreign write until the broker learns of it — a
+ * cookieStore `change` / poll, modelled by the `detect` op) and the PROPAGATION
+ * lag (detection until the broker's push reconciles the cache). `reconcileOp` is
+ * the first op after the write at which every present cache is back to the jar;
+ * `reconciledToOobValue` distinguishes a genuine heal to the foreign identity
+ * (option B) from a chamber clobbering the jar with its OWN duplicate mint
+ * (option A — the cache re-equals the jar, but at the wrong, split value).
+ */
+export function oobDecomposition(opLog, chamberIds) {
+  const oobEntry = opLog.find((e) => typeof e.label === "string" && e.label.startsWith("oob"));
+  if (!oobEntry) return null;
+  const detectEntry = opLog.find((e) => e.op > oobEntry.op && e.label === "detect");
+  const reconcileEntry = opLog.find((e) =>
+    e.op > oobEntry.op && chamberIds.every((ch) => e.caches[ch] === undefined || e.caches[ch] === e.jar));
+  const oobOp = oobEntry.op;
+  const oobValue = oobEntry.jar; // the foreign write landed here (jar := value)
+  const detectOp = detectEntry ? detectEntry.op : null;
+  const reconcileOp = reconcileEntry ? reconcileEntry.op : null;
+  return {
+    oobValue,
+    oobOp,
+    detectOp,
+    reconcileOp,
+    detectionLagOps: detectOp != null ? detectOp - oobOp : null,
+    propagationLagOps: detectOp != null && reconcileOp != null ? reconcileOp - detectOp : null,
+    totalStalenessOps: reconcileOp != null ? reconcileOp - oobOp : null,
+    // Did a chamber's cache adopt the FOREIGN identity (a real heal), vs re-equal
+    // the jar only because the chamber clobbered it with its own duplicate mint?
+    reconciledToOobValue: !!reconcileEntry && reconcileEntry.jar === oobValue,
+  };
+}
+
+/**
  * The broker: main-thread authority owning the jar, driving a scripted, fully
  * SEQUENCED interleaving of the chambers (each step awaits its reply before the
  * next is sent — so the race is reproduced by construction, not by scheduler
  * luck). `send(chamberId, msg) => Promise<reply>` is the transport (real
  * postMessage in the browser; in-memory in the test). `onJarChange(value)` is an
  * optional effect so the browser can mirror the authoritative value into the
- * REAL `document.cookie` (AC1: the jar is the real cookie).
+ * REAL `document.cookie` (AC1: the jar is the real cookie). `onOobWrite(value,
+ * writer)` is the out-of-band effect (011-02): a FOREIGN actor (not the broker)
+ * writes the real cookie directly, so the browser routes an `oob` op through a
+ * different writer to keep its provenance genuinely out-of-band.
  *
  * Returns the full, programmatically-retrievable scoreboard for one scenario.
  */
-export async function runBroker({ name, mechanism, chambers, steps, jarSeed = amcvValue(""), send, onJarChange }) {
+export async function runBroker({ name, mechanism, source, chambers, steps, jarSeed = amcvValue(""), send, onJarChange, onOobWrite }) {
   let jar = jarSeed;
   const applyJar = (v) => { jar = v; if (onJarChange) onJarChange(v); };
+  // A foreign, out-of-band write: the jar (real cookie) moves, but the broker is
+  // NOT notified and no chamber cache is touched — the write came from outside.
+  const applyOobJar = (v, writer) => { jar = v; if (onOobWrite) onOobWrite(v, writer); };
   applyJar(jarSeed);
 
   // Boot each chamber: set its id, then seed its sync-cache from the authority.
@@ -251,17 +324,36 @@ export async function runBroker({ name, mechanism, chambers, steps, jarSeed = am
       // Broker-push invalidation: push the current authoritative value into a cache.
       await send(step.target, { op: "invalidate", value: jar });
       await snapshot(`push ${step.target}`);
+    } else if (step.op === "oob") {
+      // Out-of-band write (011-02): a FOREIGN actor writes the real cookie. The
+      // jar moves; no chamber cache is touched and the broker is not yet notified,
+      // so every chamber cache is now silently stale until a detect+push.
+      applyOobJar(step.value, step.writer);
+      await snapshot(`oob ${step.writer || "foreign"}`);
+    } else if (step.op === "detect") {
+      // The broker LEARNS of the out-of-band write (cookieStore `change` fired, or
+      // a document.cookie poll hit) — the boundary between detection lag and
+      // propagation lag (R-006 F4). A read-only marker; the jar already moved.
+      await snapshot("detect");
     }
   }
 
   const finalCaches = opLog.length ? opLog[opLog.length - 1].caches : {};
   const coh = coherence(finalCaches, jar);
   const staleness = stalenessWindow(opLog, chambers);
-  const identity = classifyIdentity({ mints, staleReadOccurred: staleness.staleReadOccurred });
+  // Judge the fault over EVERY distinct identity asserted for the visitor —
+  // including an out-of-band write — not just the chambers' own mints (011-02).
+  const identity = classifyIdentity({
+    mints,
+    identities: jarIdentityHistory(opLog),
+    staleReadOccurred: staleness.staleReadOccurred,
+  });
+  const oob = oobDecomposition(opLog, chambers);
 
   return {
     scenario: name,
     mechanism,
+    source: source || null,
     chambers,
     jarSeed,
     jarFinal: jar,
@@ -270,6 +362,7 @@ export async function runBroker({ name, mechanism, chambers, steps, jarSeed = am
     coherence: coh,
     identity,
     staleness,
+    oob,
     readTrace,
     opLog,
   };
@@ -322,6 +415,46 @@ export const SCENARIOS = {
       { op: "push", target: "c2" }, // broker-push invalidation reconciles c2 -> MCMID|ECID-c1
       { op: "read", chamber: "c2" }, // c2 now reads the fresh value
       { op: "commit", chamber: "c2" }, // attaches ECID-c1, mints NOTHING -> jar stays MCMID|ECID-c1
+    ],
+  },
+
+  // 011-02 OUT-OF-BAND, option A (seed + async write-back, NO invalidation — the
+  // MVP1 shim generalized). A FOREIGN actor (a co-resident legacy Adobe
+  // Visitor/ECID lib on the main thread, or a second tab) writes the real cookie
+  // with an ALREADY-VALID identity (ECID-foreign). The chamber, never told, reads
+  // its stale empty seed and MINTS a second ECID -> a duplicate/split identity and
+  // a lost update (the foreign identity is clobbered). The out-of-band analogue of
+  // concurrent-async-writeback: same fault, a foreign writer instead of a chamber.
+  "oob-foreign-writeback": {
+    name: "oob-foreign-writeback",
+    mechanism: "foreign out-of-band write + seed/async-write-back (no invalidation) — R-006 option A",
+    source: "foreign-actor (main-thread script / second tab)",
+    chambers: ["c1"],
+    steps: [
+      { op: "oob", writer: "legacy-visitor-lib", value: amcvValue("ECID-foreign") }, // real cookie -> ECID-foreign; c1 silently stale
+      { op: "observe", chamber: "c1" }, // c1 sync-reads its stale empty seed (recorded — the vulnerable window)
+      { op: "commit", chamber: "c1" }, // c1 mints ECID-c1 off the stale seed -> jar clobbered; {ECID-foreign, ECID-c1} = split
+    ],
+  },
+
+  // 011-02 OUT-OF-BAND, option B (broker-push invalidation on cookieStore
+  // `change`). Same foreign write, but the broker DETECTS it and PUSHES the
+  // foreign value into the chamber BEFORE the chamber's identity op consumes its
+  // stale read -> the chamber ATTACHES ECID-foreign and mints nothing. The stale
+  // read self-heals; the staleness window decomposes into detection + propagation
+  // lag (R-006 F4). The out-of-band analogue of broker-push.
+  "oob-broker-push": {
+    name: "oob-broker-push",
+    mechanism: "foreign out-of-band write + broker-push invalidation on change — R-006 option B",
+    source: "foreign-actor (main-thread script / second tab)",
+    chambers: ["c1"],
+    steps: [
+      { op: "oob", writer: "legacy-visitor-lib", value: amcvValue("ECID-foreign") }, // real cookie -> ECID-foreign; c1 silently stale
+      { op: "observe", chamber: "c1" }, // c1 sync-reads the stale empty seed (recorded — the vulnerable window)
+      { op: "detect" }, // broker learns of the foreign write (cookieStore `change` / poll)
+      { op: "push", target: "c1" }, // broker-push reconciles c1 -> MCMID|ECID-foreign
+      { op: "read", chamber: "c1" }, // c1 now reads the foreign identity
+      { op: "commit", chamber: "c1" }, // ATTACHES ECID-foreign, mints NOTHING -> jar stays MCMID|ECID-foreign
     ],
   },
 };
