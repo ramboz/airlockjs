@@ -16,6 +16,7 @@
     "rig:uc1": "node rig/uc1.mjs",
     "rig:uc3": "node rig/uc3.mjs",
     "rig:isolation": "node rig/isolation.mjs",
+    "rig:coherency": "node rig/coherency.mjs",
     "lh": "node rig/lh.mjs",
     "lh:eds": "node rig/lh-eds.mjs",
     "cwv:budget": "node rig/cwv-budget.mjs"

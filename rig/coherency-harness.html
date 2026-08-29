@@ -1,0 +1,102 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Airlock MVP2 coherency rig</title>
+  </head>
+  <body>
+    <h1>Airlock MVP2 coherency probe (spec 011-01)</h1>
+    <p>Two real Worker chambers + a main-thread broker owning the authoritative
+       jar (the real <code>document.cookie</code>). Results on
+       <code>window.__coherencyResult</code>.</p>
+    <pre id="out">running…</pre>
+    <script type="module">
+      // The BROKER runs here on the main thread. It is the sole cookie authority:
+      // the authoritative jar is a real first-party identity cookie
+      // (AMCV_TESTORG, an AMCV_*-shaped value per R-004) in document.cookie. The
+      // two chambers are real dedicated Workers with their own sync-caches.
+      import { runBroker, SCENARIOS, parseAmcv } from "./coherency-model.mjs";
+
+      const COOKIE_NAME = "AMCV_TESTORG";
+
+      // The authoritative jar lives in the REAL document.cookie (AC1). onJarChange
+      // write-throughs each authoritative update; readAmcvCookie proves the value
+      // is genuinely in the cookie jar, not just a JS variable.
+      function writeAmcvCookie(value) {
+        document.cookie = COOKIE_NAME + "=" + encodeURIComponent(value) + "; path=/; SameSite=Lax";
+      }
+      function readAmcvCookie() {
+        const m = new RegExp("(?:^|;\\s*)" + COOKIE_NAME + "=([^;]*)").exec(document.cookie);
+        return m ? decodeURIComponent(m[1]) : null;
+      }
+
+      // A real Worker chamber with request/reply correlation over postMessage.
+      function makeChamber(url) {
+        const w = new Worker(url, { type: "module" });
+        let seq = 0;
+        const pending = new Map();
+        w.onmessage = (e) => {
+          const { rid, ...reply } = e.data || {};
+          const resolve = pending.get(rid);
+          if (resolve) { pending.delete(rid); resolve(reply); }
+        };
+        w.onerror = (e) => {
+          const err = { op: "error", error: e && (e.message || String(e)) };
+          for (const resolve of pending.values()) resolve(err);
+          pending.clear();
+        };
+        return {
+          send(msg) {
+            const rid = ++seq;
+            return new Promise((resolve) => { pending.set(rid, resolve); w.postMessage({ ...msg, rid }); });
+          },
+          terminate() { w.terminate(); },
+        };
+      }
+
+      async function runScenario(spec) {
+        // Fresh chambers per scenario — each real Worker is a clean agent.
+        const chambers = {};
+        for (const id of spec.chambers) {
+          chambers[id] = makeChamber("./coherency-chamber.worker.js");
+        }
+        const send = (id, msg) => chambers[id].send(msg);
+
+        // Reset the authoritative cookie to the empty-visitor seed before the run.
+        writeAmcvCookie(spec.jarSeed || "MCMID|");
+
+        const result = await runBroker({
+          ...spec,
+          jarSeed: spec.jarSeed || "MCMID|",
+          send,
+          onJarChange: writeAmcvCookie, // mirror the authority into the real cookie
+        });
+
+        // Prove the authoritative jar really lived in document.cookie.
+        const cookieReadback = readAmcvCookie();
+        result.jarCookieReadback = cookieReadback;
+        result.jarLivesInRealCookie = cookieReadback === result.jarFinal;
+        result.jarCookieEcid = parseAmcv(cookieReadback || "").ecid;
+
+        for (const id of spec.chambers) chambers[id].terminate();
+        return result;
+      }
+
+      try {
+        const scenarios = {};
+        // Order fixed for reproducibility.
+        for (const key of ["concurrent-async-writeback", "single-chamber", "broker-push"]) {
+          scenarios[key] = await runScenario(SCENARIOS[key]);
+        }
+        window.__coherencyResult = { scenarios };
+        document.getElementById("out").textContent =
+          "done — see window.__coherencyResult\n" + JSON.stringify(scenarios, null, 2);
+        window.__coherencyDone = true;
+      } catch (err) {
+        window.__coherencyError = String(err && (err.stack || err.message || err));
+        document.getElementById("out").textContent = "ERROR: " + window.__coherencyError;
+        window.__coherencyDone = true;
+      }
+    </script>
+  </body>
+</html>
