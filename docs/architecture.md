@@ -24,7 +24,7 @@ A framework-agnostic runtime core, with EDS as the first adapter and connectors 
 
 <!-- elicited: 2026-08-25 / status: filled -->
 
-ES modules, no runtime framework dependency. Web Worker for the connector runtime, communicating by **batched `postMessage`** (structured clone) — each drain is a cycle — explicitly **not** SharedArrayBuffer, avoiding the COOP/COEP cross-origin isolation that breaks embeds. Egress via `fetch(url, { keepalive: true })` from the worker (mind the ~64KB aggregate keepalive body cap when batching). `PerformanceObserver` for INP/CLS/LCP attribution. vitest for tests. GA4 Measurement Protocol as the external, machine-validatable contract.
+ES modules, no runtime framework dependency. Web Worker for the connector runtime, communicating by **batched `postMessage`** (structured clone) — each drain is a cycle — explicitly **not** SharedArrayBuffer, avoiding the COOP/COEP cross-origin isolation that breaks embeds. Egress via `fetch(url, { keepalive: true })` **dispatched on the main thread** by the orchestrator — the worker maps off-thread and returns ready requests, plus a main-thread synchronous fast path for the unload window (ADR-0004 "Option C"; mind the ~64KB aggregate keepalive body cap when batching). `PerformanceObserver` for INP/CLS/LCP attribution. vitest for tests. GA4 Measurement Protocol as the external, machine-validatable contract.
 
 ## Module boundaries
 
@@ -69,7 +69,7 @@ Feeds `/jig:contracts`. Five surfaces, in priority order:
 *(No elicitation markers — populate via `/jig:adr-workflow new`. These are the proto-ADRs surfaced in the design conversation; promote and let `/jig:arch-review` attack them.)*
 
 - **AD-1 Client-first runtime; edge as pluggable drivers.** Two seams (decision source, egress) baked in on day one; only local variants ship in MVP so "add edge" is a driver swap, not a rewrite.
-- **AD-2 Capture-and-drain.** Main thread only captures and enqueues; the worker does mapping and egress. This is the single move that pays out in CWV, datalayer, and security at once.
+- **AD-2 Capture-and-drain.** Main thread only captures and enqueues; the worker does the expensive **mapping** off-thread (egress *dispatch* is main-thread by the orchestrator — ADR-0004 refined OQ10 to "Option C": map in the worker, dispatch on the main thread). This is the single move that pays out in CWV, datalayer, and security at once.
 - **AD-3 Event-sourced datalayer.** Append-only log + synchronous projection, not ACDL semantics; the compat `push()` surface sits on top.
 - **AD-4 No SharedArrayBuffer / COOP-COEP in MVP.** Batched `postMessage` (cycles) instead; preserves third-party embed compatibility.
 - **AD-5 Capability-mediated DOM/egress.** The only DOM-injection path routes through the CWV-safe helpers, making layout stability structural rather than a discipline; egress held at the seal.

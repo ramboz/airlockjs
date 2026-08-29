@@ -158,8 +158,23 @@ B-vs-C isolation choice and does **not** exercise Option C's WASM read-semantics
 reads) — a real *input* to the deferred model choice, not a premise-threatening
 no-go; that interpretation is 011-03's, not asserted here.
 
-**Outcome:** _Set at DONE — e.g. `spec 011-02 unblocked` (rig stands up; the
-out-of-band threats extend it)._
+> **Amendment (2026-08-29 — issue #125, owner-approved).** The **"B-specific
+> discriminator"** reading above is scoped to what this rig actually measured: a
+> **synchronous local mint** (the identity RMW generates the ECID atomically
+> in-cache). Real ECID minting is an **async Edge round-trip** (server-assigned from
+> the response body, R-004). For the *async* mint the concurrent-first-mint fault is
+> **model-independent** — both chambers read the empty seed during the
+> request→response gap and both mint, in Option B **and** the shared-cache C/D
+> topologies alike — so it does **not** discriminate the model choice.
+> [ADR-0008](../../decisions/adr-0008-oq9-coherency-sync-access.md) records the async
+> result and its fix (broker-side async request coalescing — model-independent, no
+> SAB). This slice's synchronous-mint *measurement* stands exactly as recorded; only
+> its forward *interpretation* as a B-vs-C discriminator is superseded for the async
+> case.
+
+**Outcome:** `spec 011-02 unblocked` (rig stands up; the out-of-band threats extend
+it). The concurrent-mint fault's model-scope is refined by ADR-0008 — see the
+Amendment above.
 
 **Anti-horizontal-phasing check:** after this slice, running the rig gives a
 real, reproducible answer to the simplest coherency threat (two chambers writing
