@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Alloy Option-B chamber rig (spec 012-01 AC2+AC3+AC4)</title>
+  </head>
+  <body>
+    <h1>Alloy chamber — AC2 + AC3 + AC4</h1>
+    <div id="status">booting…</div>
+    <script>
+      // The rig (rig/alloy-chamber.mjs) builds connectors/alloy/alloy-chamber.worker.js
+      // into a CLASSIC IIFE at the path below and serves the stock bundle. This
+      // harness seeds the sync cookie cache from the real main-thread
+      // document.cookie, drives configure (init) then ONE page event, and exposes
+      // the chamber's summary + the async write-backs it received.
+      //
+      // AC4: this harness ALSO plays the orchestrator's main-thread dispatcher — a
+      // PARALLEL mirror of core/airlock.js's ready-request dispatch (ADR-0004; the
+      // real core is untouched). When the chamber intercepts alloy's interact fetch
+      // and postMessages it here, we run the REAL network fetch ON MAIN (never in
+      // the worker) against the rig's minting-Edge stub, and post the response back.
+      const WORKER_URL = "/rig/out/alloy-chamber.worker.built.js";
+      const BUNDLE_URL = "/probes/alloy-worker/node_modules/@adobe/alloy/dist/alloy.js";
+
+      // Host-owned alloy config (R-004 shape) — passed via `config`, not baked
+      // into the connector.
+      const CONFIG = {
+        datastreamId: "00000000-0000-0000-0000-000000000000",
+        orgId: "SPIKE@AdobeOrg",
+        context: [],
+        debugEnabled: true,
+      };
+      const EVENT = {
+        seq: 1,
+        type: "page_view",
+        ts: 10,
+        params: { page_location: "https://airlock.example/", page_title: "airlock" },
+        payload: {},
+        snapshot: {},
+      };
+
+      const phases = [];
+      const writeBacks = [];
+      // AC4: the orchestrator's main-thread dispatch tally (mirror of core/airlock.js).
+      // Every real network fetch is dispatched HERE, on main — the rig asserts exactly
+      // one interact egressed this way and the worker did none.
+      const mainDispatch = { count: 0, requests: [] };
+      const statusEl = document.getElementById("status");
+      const worker = new Worker(WORKER_URL); // CLASSIC worker (no { type: "module" })
+
+      // Reconcile a vendor set-cookie into the broker's REAL jar (this page's origin).
+      // The chamber's shim computed a fake `airlock.example` domain + Secure/SameSite=None
+      // (the R-004 shim location); those attributes make localhost/http reject the cookie.
+      // The broker adapts the vendor's set-cookie to its own origin — name=value (the ECID)
+      // preserved, origin-incompatible attributes dropped — so the cookie actually lands.
+      function reconcileForBrokerJar(raw) {
+        return String(raw).split(";").map((s) => s.trim()).filter((seg) => {
+          const s = seg.toLowerCase();
+          return !s.startsWith("domain=") && s !== "secure" && !s.startsWith("samesite=");
+        }).join("; ");
+      }
+
+      // AC4 orchestrator dispatch: run the REAL network fetch on MAIN (mirrors
+      // core/airlock.js). Rewrite the vendor's absolute Edge URL to the same-origin
+      // rig minting-Edge stub — the broker controls the egress destination.
+      async function dispatchInterceptedFetch(m) {
+        mainDispatch.count++;
+        mainDispatch.requests.push({ url: m.url, method: m.method, body: m.body });
+        let target = m.url;
+        try { const u = new URL(m.url); target = u.pathname + u.search; } catch (err) {}
+        try {
+          const res = await fetch(target, { method: m.method || "POST", headers: m.headers || {}, body: m.body });
+          const body = await res.text();
+          worker.postMessage({
+            type: "intercepted-fetch-response", id: m.id,
+            status: res.status, statusText: res.statusText,
+            headers: { "content-type": res.headers.get("content-type") || "application/json" },
+            body,
+          });
+        } catch (err) {
+          worker.postMessage({ type: "intercepted-fetch-response", id: m.id, status: 0, statusText: String(err), body: "" });
+        }
+      }
+
+      worker.onmessage = (e) => {
+        const m = e.data || {};
+        if (m.type === "phase") {
+          phases.push(m.name);
+          if (m.name === "configured") {
+            // configure resolved — now drive exactly ONE page event (sendEvent).
+            worker.postMessage({ type: "event", event: EVENT });
+          }
+        } else if (m.type === "intercepted-fetch") {
+          dispatchInterceptedFetch(m); // AC4: real network fetch happens on MAIN
+        } else if (m.type === "cookie-writeback") {
+          writeBacks.push(m.value);
+          try { document.cookie = reconcileForBrokerJar(m.value); } catch (err) {} // async reconcile to the real jar
+        } else if (m.type === "result") {
+          statusEl.textContent = "DONE";
+          window.__ALLOY_CHAMBER_RESULT__ = { summary: m.summary, ready: m.ready, phases, writeBacks, mainDispatch };
+        } else if (m.type === "fatal") {
+          statusEl.textContent = "FATAL";
+          window.__ALLOY_CHAMBER_RESULT__ = { fatal: m.message, stack: m.stack, phase: m.phase, summary: m.summary, phases, writeBacks, mainDispatch };
+        }
+      };
+      worker.onerror = (e) => {
+        statusEl.textContent = "WORKER ONERROR";
+        window.__ALLOY_CHAMBER_RESULT__ = { workerError: e.message, filename: e.filename, lineno: e.lineno };
+      };
+
+      worker.postMessage({ type: "init", cookie: document.cookie, config: CONFIG, bundleUrl: BUNDLE_URL });
+    </script>
+  </body>
+</html>

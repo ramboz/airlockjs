@@ -51,6 +51,30 @@ export interface GrantedCapabilities {
   readonly cookies?: {
     get(name: string): Promise<string | null>;
     set(name: string, value: string, opts?: CookieOptions): Promise<void>;
+    /**
+     * SYNCHRONOUS cookie surface for the wrapped-SDK archetype (OQ9 / R-004),
+     * ADDED in slice 012-01 AC3 — the async `get`/`set` above are unchanged
+     * (additive-only; AC6 signature stability). A stock vendor SDK (alloy) reads
+     * `document.cookie` synchronously (the getApexDomain/getTld apex probe at
+     * first command, then identity reads); a worker has no `document.cookie`, so
+     * the chamber serves those from a synchronous in-worker string cache seeded
+     * at boot and reconciled to the broker's authoritative jar asynchronously
+     * (no SharedArrayBuffer — AD-4). The chamber's `document.cookie` shim
+     * delegates here.
+     *
+     *  - `readSync()` returns the full cookie string (the `document.cookie`
+     *    getter shape).
+     *  - `writeSync(setCookie)` takes a `name=value; attrs` string (the
+     *    `document.cookie` setter shape), updates the cache synchronously, and
+     *    queues the async write-back.
+     *
+     * Multi-chamber coherence of this cache is the remaining OQ9 axis (011 /
+     * 012-02), not resolved by exposing the surface.
+     */
+    readonly sync?: {
+      readSync(): string;
+      writeSync(setCookie: string): void;
+    };
   };
   /** In-chamber mediated key/value storage (not real localStorage). */
   readonly storage?: {
