@@ -1,10 +1,9 @@
 ---
-status: READY_FOR_REVIEW
+status: DONE
 kind: spike
 dependencies: [011-01, 011-02]
-last_verified:
+last_verified: 2026-08-29
 frame_review: true
-claimed_by: claude/airlock-mvp2-coherency-cf9527
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about
@@ -85,21 +84,68 @@ measurement; it consumes 011-01/011-02 and produces the ADR.
    deferred item (not left silently open, not marked resolved).
 
 **DoD:**
-- [ ] ACs 1–4 pass; the go/no-go is defensible from the recorded scoreboard (a
-      reader can trace the conclusion to the four measured verdicts).
-- [ ] The ADR is `Status: Accepted` (per this repo's direct-to-main ADR flow)
-      and linked from OQ9 + the ADR index.
-- [ ] Spike-light review on the measurement synthesis; the ADR itself carries
+- [x] ACs 1–4 pass; the go/no-go is defensible from the recorded scoreboard (a
+      reader can trace the conclusion to the four measured verdicts). *Compliance
+      review: pass (no findings).*
+- [x] The ADR is `Status: Accepted` (per this repo's direct-to-main ADR flow)
+      and linked from OQ9 + the ADR index. *ADR-0008 Accepted 2026-08-29.*
+- [x] Spike-light review on the measurement synthesis; the ADR itself carries
       `frame_review: true` and goes through `/jig:adr-workflow`'s own review
-      (ADRs are always frame-reviewed).
-- [ ] Deviation log + reconciliation sweep produced under this slice heading.
-- [ ] Primer hygiene: this slice **closes spec 011** — compress the Active-specs
-      entry per spec 025 and migrate the load-bearing coherency verdict to the
-      status-board Notes column.
+      (ADRs are always frame-reviewed). *Compliance + craft recorded pass;
+      ADR-0008 frame-critique recorded (owner authority, 7-round history).*
+- [x] Deviation log + reconciliation sweep produced under this slice heading.
+- [x] Primer hygiene: this slice **closes spec 011**. Active-specs compression is
+      a **no-op** (spec 011 was never in the `CLAUDE.md` primer — only 001 is);
+      the load-bearing coherency verdict is migrated to the status-board Notes
+      column at regen.
 
-**Findings:** _Filled during IN_PROGRESS — the scoreboard._
+**Findings:** the coherency scoreboard + the go/no-go, synthesized from 011-01
+(in-band) and 011-02 (out-of-band). Full data: `rig/out/coherency.json`, reproducible
+byte-identical.
 
-**Outcome:** _Set at DONE — `ADR-NNNN created; OQ9 coherency axis resolved`._
+**Coherency scoreboard** (every threat, its coherency verdict + window, and — for
+the identity-consuming scenarios — its correctness classification):
+
+| Threat (axis) | mechanism | coherent? | window | **correctness** |
+|---|---|---|---|---|
+| Concurrent two-chamber RMW (in-band) | seed + async write-back (A) | no (caches diverge) | 1 op, unreconciled | **FAULT — split identity** (ECID-c1 + ECID-c2) |
+| — control | single chamber | yes | none | coherent |
+| — control | broker-push invalidation (B) | yes | 2 ops | **self-heal** (reconciled before consumption) |
+| Foreign main-thread script (out-of-band) | seed + async (A) | no | 2 ops, unreconciled | **FAULT — split identity** (ECID-foreign + ECID-c1) |
+| — same source | broker-push on polling (B) | yes | detection 2 + propagation 1 = 3 | **self-heal** |
+| Second same-origin tab (out-of-band) | source-independent (same as foreign) | — | — | same correctness; **detected via `document.cookie` polling** |
+| Network `Set-Cookie`, same-origin (negative boundary) | — | identity cell untouched | — | **does not reach the cell** (a *different* cell written; `Set-Cookie` header unreadable, R-006 F4) |
+| Network `Set-Cookie`, cross-site demdex (negative boundary) | — | identity cell untouched | — | **does not reach the cell** (Adobe's domain / CHIPS-partitioned) |
+
+> **Reading the `(B)` self-heal rows.** The two `broker-push invalidation (B) → self-heal`
+> rows are the **measured synchronous-mint** result — 011-01 modeled minting as an atomic
+> *local* generate. For the **async** mint (the real server-assigned ECID round-trip,
+> R-004), broker-push **value**-invalidation does **not** self-heal (it cannot un-mint an
+> already-emitted ECID), and the fault is **model-independent**, not B-specific. The async
+> case is retired instead by broker-side request **coalescing** (below). See the go/no-go,
+> [ADR-0008](../../decisions/adr-0008-oq9-coherency-sync-access.md), and the 011-01
+> synchronous-vs-async reconciliation **held for owner approval (issue #125)** — 011-01 is
+> DONE and is not rewritten here.
+
+**Go/no-go — split by axis: GO, conditional (for the wrapped-SDK archetype).**
+[Converged through seven ADR-0008 frame-critique rounds; 011-04 was abandoned once the
+mechanism was established analytically.] The async concurrent-first-mint fault (two
+chambers both read empty and both mint → two ECIDs → split identity) is
+**model-independent**, and is retired by **broker-side async request coalescing** — the
+single-threaded broker holds the second concurrent identity-mint and returns the
+first's ECID (async, no SAB). Seed+async and broker-push **value**-invalidation are
+ruled out (fault / cannot un-mint an emitted ECID). The condition is egress-visibility
+of the mint: **wire-protocol connectors (GA4)** are already broker-visible (the
+orchestrator dispatches egress on the main thread — ADR-0004); the **wrapped-SDK
+archetype (Alloy)** issues its own opaque worker-side `fetch` (AD-7 / R-004), so the GO
+is **conditional on** chamber-side interception of that `fetch` into the orchestrator's
+existing dispatch **plus** parsing the vendor's XDM `interact` to recognize the identity
+mint. So the coherency axis is a **GO**, the **step-5 contract-freeze gate is HELD** for
+the wrapped-SDK until that mechanism is designed, and this axis does **not** constrain
+B-vs-C. `Set-Cookie` negative boundaries hold. Recorded in
+[ADR-0008](../../decisions/adr-0008-oq9-coherency-sync-access.md).
+
+**Outcome:** `ADR-0008 created + accepted; OQ9 coherency/sync-access axis resolved (conditional GO); 011-04 abandoned (mechanism established analytically).`
 
 **Anti-horizontal-phasing check:** after this slice, MVP2 has its precondition
 answered — the step-5 capability contract can be frozen (or MVP2 re-shaped)
@@ -110,17 +156,46 @@ narrowed and carried forward, not lifted here.)
 
 ### Deviation log (after reconciliation)
 
-_TODO._
+- **The verdict shape diverged from AC2's three anticipated outcomes.** AC2 pre-drew
+  three shapes — go via **broker-push value-invalidation**; out-of-band **no-go**;
+  in-band-only **B-specific** no-go. The converged answer is a **fourth** shape:
+  **conditional GO**, retired by broker-side async request **coalescing** (not
+  value-invalidation), **model-independent** (not B-specific), **conditional** (for the
+  wrapped-SDK archetype) on vendor-`fetch` interception + XDM mint-recognition. Cause:
+  the ADR frame-critique surfaced that the rig modeled a **synchronous** mint while real
+  ECID minting is an **async** Edge round-trip (R-004) — the fault, and its fix, live at
+  the mint `fetch`, not at write-back.
+- **011-04 inserted, then abandoned.** A measurement slice (011-04) was inserted to model
+  the async mint, then **abandoned** (2026-08-29) once seven ADR-0008 frame-critique
+  rounds established the mechanism analytically: the deterministic single-threaded op-model
+  cannot *measure* a race the broker serializes away, so a rig would only restate the
+  analysis. 011-03's `dependencies` were reverted to `[011-01, 011-02]`; spec.md's slice
+  list marks 011-04 ABANDONED.
+- **The result is analytical, not rig-measured** — disclosed in the go/no-go note, the
+  scoreboard's `(B)`-row bridge, and ADR-0008 (Context / Assumptions / kill-criteria).
+  This is an honest weakening from "measured" to "structural argument," forced by the
+  critique process; the kill-criteria name what a real-Alloy re-probe must falsify before
+  the freeze.
+- **011-01's synchronous-mint "B-specific" finding is NOT reconciled unilaterally.** It is
+  surfaced for owner approval (issue #125); 011-01 is DONE and untouched.
+- **ADR-0001 gets no back-edit** (immutability — Nygard): ADR-0008 does not supersede it
+  (it resolves a deferred axis, it does not replace the isolation-strength decision), so
+  the planned sweep "cross-link ADR-0001 → ADR-0008" is a **no-op**; the link is one-way
+  (ADR-0008 → ADR-0001).
 
 ### Reconciliation sweep
 
 | Artifact | Disposition | Rationale |
 |----------|-------------|-----------|
-| `docs/refinement-todo.md` | `updated` | _TODO: OQ9 marked RESOLVED with ADR link._ |
-| `docs/decisions/README.md` / ADR index | `updated` | _TODO: new resolving ADR indexed._ |
-| `docs/decisions/adr-0001-*.md` | `updated` | _TODO: cross-link to the new ADR — its deferred coherency axis is now resolved (ADR-0001 made no forward reservation; the coupling it recorded is amended)._ |
-| `docs/architecture.md` | `updated` | _TODO: MVP2 isolation model + sync-access mechanism reflected, if the go path lands one._ |
-| `docs/releases/mvp2.md` | `no-op` | _TODO: check whether the go/no-go changes the release plan's cutline/no-gos._ |
-| `docs/specs/README.md` | `updated` | _TODO: regenerated by `workflow.py status-board`; Notes carries the coherency verdict._ |
-| Primer surfaces: `CLAUDE.md` / `AGENTS.md` / scaffold templates | `updated` | _TODO: spec 011 closed — compress Active-specs entry._ |
-| `docs/memory/**` | `no-op` | _TODO: memory-sync result._ |
+| `docs/refinement-todo.md` | `updated` | OQ9 coherency/sync-access axis marked **RESOLVED** with the ADR-0008 link; the "one coupled decision" premise amended to *separable*; B-vs-C + read-semantics + the wrapped-SDK interception mechanism + the 011-01 reconciliation carried forward. |
+| `docs/decisions/adr-0008-*.md` | `created` | The resolving ADR — authored, frame-critique recorded (owner authority; 7-round history), **Accepted** 2026-08-29. |
+| `docs/decisions/README.md` / ADR index | `updated` | Regenerated (`adr.py index`); ADR-0008 indexed. |
+| `docs/decisions/adr-0001-*.md` | `no-op` | **Immutability (Nygard).** ADR-0008 does not supersede ADR-0001 — it resolves a deferred axis, it does not replace the isolation-strength decision — so no back-edit / back-link. The reference is one-way: ADR-0008 → ADR-0001. (Supersedes the sweep's original planned `updated`.) |
+| `docs/architecture.md` | `deferred` | **Canon conflict surfaced, not resolved here.** ADR-0008 flags the Tech-stack "egress from the worker" line as a superseded wizard draft that contradicts **accepted** ADR-0004 (main-thread dispatch). Reconciling a load-bearing doc line is owner-gated — surfaced for owner action, not rewritten in this slice. The MVP2 isolation model + sync-access mechanism is **contract-freeze-held**, so nothing lands in architecture.md yet. |
+| `docs/specs/011-…/slice-01-coherency-rig.md` | `deferred` | 011-01's synchronous-mint **"B-specific"** finding vs the async **model-independent** result — **surfaced for owner approval (issue #125)**; 011-01 is DONE and is not rewritten. |
+| `docs/specs/011-…/slice-04-async-mint.md` | `updated` | Marked **ABANDONED** (2026-08-29) with rationale; the mechanism was established analytically by ADR-0008's critique process, so the demonstration rig would only restate it. |
+| `docs/specs/011-…/spec.md` | `updated` | Slices list: item 3's stale "Depends on 011-04" removed; item 4 (011-04) marked **ABANDONED** with the analytical-supersession rationale + ADR-0008 link. |
+| `docs/releases/mvp2.md` | `no-op` | The conditional GO is consistent with MVP2's already-narrowed scope (isolation + wrapped-SDK proof); the freeze-held wrapped-SDK coalescing/interception mechanism is a recorded **downstream** constraint (step-5 / MVP3), not a cutline change. |
+| `docs/specs/README.md` | `updated` | Regenerated by `workflow.py status-board`; Notes carries the coherency verdict. |
+| Primer surfaces: `CLAUDE.md` / `AGENTS.md` / scaffold templates | `no-op` | Spec 011 was never added to the `CLAUDE.md` Active-specs primer (only 001 is listed) — nothing to compress; the load-bearing verdict rides the status-board Notes + OQ9 + ADR-0008. |
+| `docs/memory/**` | `no-op` | No new cross-session memory beyond what ADR-0008 + OQ9 + the status board already record. |

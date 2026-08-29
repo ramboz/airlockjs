@@ -14,6 +14,7 @@
 - [ADR-0005: Servo oracle design: AND-gate, isolation routing, and flicker (OQ6)](adr-0005-oracle-design.md) — Spec 007 (drive-order steps 8–9) wires the three servo oracle components named in [architecture.md:65](../architecture.md) and stands up CI, so a servo-unattended loop has a runnable truth-source. (2026-08-27, Accepted)
 - [ADR-0006: Capability manifest: authoritative, consent-gated I/O declaration](adr-0006-capability-manifest.md) — The connector manifest already exists as a pinned contract, but it governs a connector's inputs and outputs asymmetrically, and only the input half is load-bearing. (2026-08-28, Accepted)
 - [ADR-0007: Purpose-dimensioned consent for per-capability grants](adr-0007-consent-purpose-model.md) — Airlock gates egress on a single global consent state, which cannot express the per-purpose granularity that both privacy law and GA4's own Consent Mode v2 signals assume. (2026-08-28, Accepted)
+- [ADR-0008: OQ9 coherency axis — broker-side mint coalescing, conditional on vendor-fetch interception](adr-0008-oq9-coherency-sync-access.md) — OQ9 coupled two axes into one deferred decision: cross-thread **coherency** (can a chamber's synchronous cookie cache stay fresh without SharedArrayBuffer, AD-4-forbidden) and, for [ADR-0001](./adr-0001-chamber-isolation-strength.md) Option C, **read-semantics** (a WASM sandbox may have to marshal each read). (2026-08-29, Accepted)
 
 ## Format
 

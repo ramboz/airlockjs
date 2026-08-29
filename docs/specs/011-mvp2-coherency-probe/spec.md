@@ -1,5 +1,5 @@
 ---
-status: IN_PROGRESS
+status: DONE
 skill:
 use_cases: []
 ---
@@ -260,3 +260,12 @@ needle before the costlier out-of-band orchestration is built.
    OQ9 (ADR-0001 B-vs-C isolation model + the sync-host-access mechanism), or
    the stop-and-re-shape signal on a no-go. Delivers the recorded decision that
    unblocks the step-5 capability-contract freeze.
+4. **[011-04 — async-mint coherency](slice-04-async-mint.md)** — **ABANDONED
+   (2026-08-29).** Inserted after the 011-03 ADR frame-critique surfaced that the rig
+   modeled minting as synchronous while real ECID minting is an async Edge round-trip
+   (R-004). Abandoned once the seven-round ADR-0008 critique process established the
+   mechanism **analytically** (broker-side async mint coalescing, conditional on
+   wrapped-SDK vendor-`fetch` interception + XDM mint-recognition): the deterministic
+   op-model cannot *measure* a race the single-threaded broker serializes away, so a
+   demonstration rig would only restate the analysis. The converged result is recorded
+   in [ADR-0008](../../decisions/adr-0008-oq9-coherency-sync-access.md).
