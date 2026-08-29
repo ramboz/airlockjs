@@ -39,6 +39,10 @@
 | [011-mvp2-coherency-probe](011-mvp2-coherency-probe/spec.md) | 🔬 011-02 — out-of-band write coherency | **DONE** |  |
 | [011-mvp2-coherency-probe](011-mvp2-coherency-probe/spec.md) | 🔬 011-03 — coherency scoreboard + resolving ADR | **DONE** | **OQ9 coherency axis → [ADR-0008](../decisions/adr-0008-oq9-coherency-sync-access.md): conditional GO** — retired by broker-side async mint coalescing (no SAB); wire-protocol (GA4) ready, wrapped-SDK (Alloy) freeze-held on vendor-`fetch` interception + XDM mint-recognition; B-vs-C unconstrained. Result analytical, not rig-measured. |
 | [011-mvp2-coherency-probe](011-mvp2-coherency-probe/spec.md) | 🔬 011-04 — async-mint coalescing needs broker-proxied egress (the OQ9 mechanism + its condition) | ABANDONED |  |
+| [012-mvp2-alloy-chamber](012-mvp2-alloy-chamber/spec.md) | 012-01 — wrapped-SDK host + alloy boots + one Analytics event | DRAFT |  |
+| [012-mvp2-alloy-chamber](012-mvp2-alloy-chamber/spec.md) | 012-02 — concurrent-chamber mint coalescing (lift ADR-0008's hold) | DRAFT |  |
+| [012-mvp2-alloy-chamber](012-mvp2-alloy-chamber/spec.md) | 012-03 — Target personalization, decisions-as-data (headless) | DRAFT |  |
+| [012-mvp2-alloy-chamber](012-mvp2-alloy-chamber/spec.md) | 012-04 — manifest declaration-shape + alloy behaviour characterization | DRAFT |  |
 
 ## Abandoned slices
 
