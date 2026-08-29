@@ -12,7 +12,8 @@ they stop informing a current release decision.
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| [MVP2](mvp2.md) | Prove the connector abstraction generalizes to the wrapped-SDK archetype (Adobe stack via alloy). Starts now that MVP1 is shipped. | Gated on the OQ9 coherency probe; extends the connector/capability contracts. |
+| [MVP2](mvp2.md) | Isolation / generalization proof — prove the wrapped-SDK archetype (alloy) runs in a chamber against unchanged contracts. Narrowed 2026-08-28: secured seams moved to MVP3. | JIG handoff: [MVP3](mvp3.md) |
+| [MVP3](mvp3.md) | Secure the I/O seams — turn ADR-0006/0007 declaration into enforced least-privilege, designed against alloy's characterized config-driven behaviour. | No JIG handoff linked. |
 
 ## Committed
 
@@ -32,7 +33,7 @@ Recently shipped release plans stay here only while they inform current decision
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| [MVP1](mvp1.md) | **Shipped 2026-08-28 as `v0.1.0`.** Thesis retired (INP-safe by construction, ~19× over the naive stack, ~zero CWV cost); demo trio (UC-1/2/3) landed on the EDS testbed; `ga4_mp_conformance` + isolation oracle + CI; OQ14/OQ15 closed. GA4-only, in-house decisioning. | Deferred follow-ups: OQ9 (MVP2), OQ16 (unload-path isolation), live `/debug/mp/collect` + servo release-signal wiring. Frames MVP2. |
+| [MVP1](mvp1.md) | Martech is the dominant source of CWV regression and a live supply-chain risk, | JIG handoff: [probes/eds-testbed](../../probes/eds-testbed/), [contracts/](../../contracts/README.md) |
 
 ## Dropped
 

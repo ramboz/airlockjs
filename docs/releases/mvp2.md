@@ -16,6 +16,15 @@ decision. **MVP2 does not start until MVP1's risk-retirement bet is retired.**
 - The connector abstraction (AD-7) is only worth its name if it generalizes
   across both archetypes. MVP2's value is exercising the wrapped-SDK shape, not
   new product surface.
+- **Scope (narrowed 2026-08-28).** MVP2 is the **isolation / generalization
+  proof** — *does the wrapped SDK isolate and run?* The **secured I/O seams**
+  (ADR-0006/0007 *enforcement*) and the characterization of alloy's config-driven
+  behaviour move to **[MVP3](mvp3.md)** — you can't design the seams until MVP2
+  has measured what alloy actually collects and where it egresses. MVP2 keeps the
+  manifest *declaration shape* (forward-compat scaffolding) so MVP3's enforcement
+  is a switch-flip, not a breaking retrofit; the MVP1-pinned seal (host allow-list
+  + consent gate) stays on as MVP2's security floor. MVP2 is a **proof, not a
+  production rollout**.
 
 ## Appetite
 
@@ -44,9 +53,12 @@ decision. **MVP2 does not start until MVP1's risk-retirement bet is retired.**
   view that async write-back cannot give, and SharedArrayBuffer is AD-4-forbidden.
   **A model-agnostic coherency probe must run before the MVP2 capability contract
   freezes.** If it fails, MVP2's whole premise (no-SAB chambers) is at risk.
-- **OQ11 / OQ3 — event-payload governance and the event schema.** The
-  compromised-connector threat becomes real at MVP2 (vendor code); the payload
-  denylist and any pinned schema must be decided here, jointly.
+- **OQ11 / OQ3 — event-payload governance and the event schema → reassigned to
+  [MVP3](mvp3.md).** The compromised-connector threat is a *production* concern,
+  and the payload denylist is architecturally fragile for a wrapped-SDK (the
+  vendor builds the XDM body inside the chamber; stripping at the seal may break
+  it). MVP2 characterizes alloy's behaviour; MVP3 designs the governance against
+  it, archetype-split (GA4 natural, alloy probe-gated).
 - **Per-connector isolation (ADR-0001/0003 dependency).** The isolation upgrade
   (per-connector confidentiality) must land *with* the first wrapped-SDK
   connector, not after, or the read-boundary controls are nominal.
@@ -72,6 +84,9 @@ decision. **MVP2 does not start until MVP1's risk-retirement bet is retired.**
 | alloy Target personalization (decisions-as-data; host applies) | Headless mode (R-004) | Include |
 | Proof the MVP1 connector/capability contract hosts alloy unchanged | The generalization claim | Include — the release's point |
 | Per-connector isolation upgrade | ADR-0001 B-vs-C decision | Include (lands with the first wrapped-SDK connector) |
+| Manifest declaration-shape scaffolding (declare endpoints/reads/purposes, ADR-0006/0007) | Forward-compat; **declared, not enforced** in MVP2 | Include |
+| Characterize alloy's config-driven behaviour (auto-collected data; egress hosts) | The input MVP3's seam design needs | Include |
+| Secured I/O seams — ADR-0006/0007 *enforcement* (authoritative endpoints, payload governance, purpose-vector consent) | The compromised-connector defense | **Defer → [MVP3](mvp3.md)** |
 | Full identity resolution / first-party cookie store | OQ5 | Defer / TBD |
 
 ## JIG Handoff
@@ -81,8 +96,10 @@ decision. **MVP2 does not start until MVP1's risk-retirement bet is retired.**
 - **Precondition spec:** the OQ9 coherency probe → an ADR resolving the MVP2
   isolation model (ADR-0001 B-vs-C) + the synchronous-host-access mechanism,
   before extending the capability contract.
-- Resolve OQ11/OQ3 (payload governance + schema) as part of the connector
-  contract extension.
+- Extend the capability contract only for alloy's *functional* needs (mediated
+  sync cookie/storage, context injection, decisions-as-data) **plus the
+  declaration shape**; defer the *enforcement* + OQ11/OQ3 governance to
+  [MVP3](mvp3.md).
 - Spec the alloy wrapped-SDK connector against the extended contracts.
 - Detailed slices: **TBD** — draft once MVP1 lands and OQ9 resolves.
 
@@ -99,5 +116,8 @@ decision. **MVP2 does not start until MVP1's risk-retirement bet is retired.**
   MVP1's scoreboard).
 - `isolation_invariant` holds for the vendor chamber; the OQ9 sync-access
   mechanism is coherent under the probe's concurrent/out-of-band-write tests.
+- The manifest *declaration shape* (endpoints/reads/purposes) is present and
+  forward-compatible, so MVP3 can turn on enforcement without a breaking change —
+  enforcement itself is explicitly out of MVP2 scope.
 
-_Last shaped: 2026-08-26_
+_Last shaped: 2026-08-28_
