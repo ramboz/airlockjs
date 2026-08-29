@@ -36,7 +36,7 @@
 | [009-chamber-throw-isolation](009-chamber-throw-isolation/spec.md) | 009-02 — chamber failure observability (surface drops + crashes) | **DONE** |  |
 | [010-ga4-purchase-conformance](010-ga4-purchase-conformance/spec.md) | 010-01 — purchase schema shape + golden + validator coverage | **DONE** |  |
 | [011-mvp2-coherency-probe](011-mvp2-coherency-probe/spec.md) | 🔬 011-01 — coherency rig + concurrent two-chamber writes | **DONE** |  |
-| [011-mvp2-coherency-probe](011-mvp2-coherency-probe/spec.md) | 🔬 011-02 — out-of-band write coherency | REVIEWED (claude/chambers-io-security…) |  |
+| [011-mvp2-coherency-probe](011-mvp2-coherency-probe/spec.md) | 🔬 011-02 — out-of-band write coherency | **DONE** |  |
 | [011-mvp2-coherency-probe](011-mvp2-coherency-probe/spec.md) | 🔬 011-03 — coherency scoreboard + resolving ADR | READY_FOR_REVIEW (claude/airlock-mvp2-coheren…) |  |
 
 ## Richer-skill selection audit (spec 096-05)
