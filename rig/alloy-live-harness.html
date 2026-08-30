@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Alloy LIVE re-probe rig (spec 013-01 AC1)</title>
+  </head>
+  <body>
+    <h1>Alloy LIVE re-probe — real Edge round-trip (013-01)</h1>
+    <div id="status">booting…</div>
+    <script>
+      // spec 013-01: the SAME Option-B chamber as rig/alloy-chamber-harness.html,
+      // but pointed at a REAL Adobe Edge datastream. Two differences only:
+      //   1. CONFIG (datastreamId / orgId) is fetched from the node rig at runtime
+      //      (/__live_config__) so the real creds never live in this committed file.
+      //   2. the interact round-trip is published as soon as it completes — no AC5
+      //      egress self-probe (013-02 owns egress breadth), keeping this minimal.
+      // The main-thread dispatcher still rewrites alloy's absolute Edge URL to the
+      // same-origin path; the node rig PROXIES /ee/v1/interact to the real Edge and
+      // captures the real request + response there (out of the browser, no CORS).
+      const WORKER_URL = "/rig/out/alloy-live.worker.built.js";
+      const BUNDLE_URL = "/probes/alloy-worker/node_modules/@adobe/alloy/dist/alloy.js";
+
+      const EVENT = {
+        seq: 1,
+        type: "page_view",
+        ts: 10,
+        params: { page_location: "https://airlock.example/", page_title: "airlock" },
+        payload: {},
+        snapshot: {},
+      };
+
+      const phases = [];
+      const writeBacks = [];
+      const mainDispatch = { count: 0, requests: [] };
+      const statusEl = document.getElementById("status");
+
+      function reconcileForBrokerJar(raw) {
+        return String(raw).split(";").map((s) => s.trim()).filter((seg) => {
+          const s = seg.toLowerCase();
+          return !s.startsWith("domain=") && s !== "secure" && !s.startsWith("samesite=");
+        }).join("; ");
+      }
+
+      // AC1 orchestrator dispatch: run the REAL network fetch on MAIN. Rewrite the
+      // vendor's absolute Edge URL to the same-origin path; the node rig proxies it
+      // to the real Edge (the broker controls + observes the egress destination).
+      async function dispatchInterceptedFetch(worker, m) {
+        mainDispatch.count++;
+        mainDispatch.requests.push({ url: m.url, method: m.method, body: m.body });
+        let target = m.url;
+        try { const u = new URL(m.url); target = u.pathname + u.search; } catch (err) {}
+        try {
+          const res = await fetch(target, { method: m.method || "POST", headers: m.headers || {}, body: m.body });
+          const body = await res.text();
+          worker.postMessage({
+            type: "intercepted-fetch-response", id: m.id,
+            status: res.status, statusText: res.statusText,
+            headers: { "content-type": res.headers.get("content-type") || "application/json" },
+            body,
+          });
+        } catch (err) {
+          worker.postMessage({ type: "intercepted-fetch-response", id: m.id, status: 0, statusText: String(err), body: "" });
+        }
+      }
+
+      (async () => {
+        // Fetch host-owned alloy config from the node rig (creds from env, never
+        // committed). R-004 shape: renderDecisions handled by the connector.
+        const CONFIG = await (await fetch("/__live_config__")).json();
+        const worker = new Worker(WORKER_URL); // CLASSIC worker (no { type: "module" })
+
+        worker.onmessage = (e) => {
+          const m = e.data || {};
+          if (m.type === "phase") {
+            phases.push(m.name);
+            if (m.name === "configured") worker.postMessage({ type: "event", event: EVENT });
+          } else if (m.type === "intercepted-fetch") {
+            dispatchInterceptedFetch(worker, m); // AC1: real network fetch on MAIN → node proxy → real Edge
+          } else if (m.type === "cookie-writeback") {
+            writeBacks.push(m.value);
+            try { document.cookie = reconcileForBrokerJar(m.value); } catch (err) {}
+          } else if (m.type === "result") {
+            statusEl.textContent = "DONE";
+            window.__ALLOY_LIVE_RESULT__ = { summary: m.summary, ready: m.ready, phases, writeBacks, mainDispatch };
+          } else if (m.type === "fatal") {
+            statusEl.textContent = "FATAL";
+            window.__ALLOY_LIVE_RESULT__ = { fatal: m.message, stack: m.stack, phase: m.phase, summary: m.summary, phases, writeBacks, mainDispatch };
+          }
+        };
+        worker.onerror = (e) => {
+          statusEl.textContent = "WORKER ONERROR";
+          window.__ALLOY_LIVE_RESULT__ = { workerError: e.message, filename: e.filename, lineno: e.lineno };
+        };
+
+        worker.postMessage({ type: "init", cookie: document.cookie, config: CONFIG, bundleUrl: BUNDLE_URL });
+      })();
+    </script>
+  </body>
+</html>

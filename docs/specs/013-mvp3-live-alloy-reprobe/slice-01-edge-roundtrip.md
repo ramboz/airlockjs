@@ -1,8 +1,8 @@
 ---
-status: DRAFT
+status: DONE
 kind: spike
 dependencies: []
-last_verified:
+last_verified: 2026-08-30
 frame_review: true
 ---
 
@@ -76,30 +76,93 @@ gate-able stub for the real Edge).
    The verdict + evidence land in the Outcome + `docs/refinement-todo.md` (OQ9).
 
 **DoD:**
-- [ ] **Un-waivable floor (the spike's Question MUST be answered, not hedged away):**
+- [x] **Un-waivable floor (the spike's Question MUST be answered, not hedged away):**
       (i) AC1 — a real round-trip completes and the real request + response are **captured**;
       (ii) AC2 — the captured real request + response are **run through the
       recognizer/extractor** and the boolean + any shape-drift **recorded** (a FAILED
       recognition is a valid outcome; *not checking* is not); (iii) AC4 — a **CONFIRMED /
       FAILED verdict** is recorded. These three cannot be waived by "characterize honestly."
-- [ ] AC3's *live concurrent-coalescing determinism* is **best-effort** — and note the
+- [x] AC3's *live concurrent-coalescing determinism* is **best-effort** — and note the
       **method gap**: 012-02's determinism came from a **gate-able** stub (hold the first
       response until the second mint arrives at the broker); against **un-gateable** real Edge
       that lever is gone, so a *deterministic* live window may be unconstructable. Lean on
       012-02's **hermetic** coalescing-correctness proof for correctness; use the live run to
       confirm the mechanism **doesn't break** against real Edge, not to re-prove determinism.
-- [ ] Spike-light review: compliance + craft recorded pass.
-- [ ] Deviation log + reconciliation sweep produced under this slice heading.
-- [ ] `docs/refinement-todo.md` OQ9 updated with the kill-criterion verdict; if FAILED, the
+- [x] Spike-light review: compliance + craft recorded pass.
+- [x] Deviation log + reconciliation sweep produced under this slice heading.
+- [x] `docs/refinement-todo.md` OQ9 updated with the kill-criterion verdict; if FAILED, the
       host-seeded-identity fallback is filed (ADR or refinement item).
-- [ ] **No live identifiers / credentials committed** — ECIDs, datastreamId, org id stay
-      out of the repo (redact captured payloads).
+- [x] **No live identifiers / credentials committed** — ECIDs, datastreamId, org id stay
+      out of the repo — verified via **deny-by-default** redaction (only curated shape tokens
+      kept) + an open-set leak scan: datastream, org id (+ its `@`→`_` cookie-key form), ECID,
+      requestIds, and all server-assigned values (Target `eventToken` / `correlationID` included)
+      are absent from every committed file; the raw capture is gitignored.
 
-**Findings:** _Filled during IN_PROGRESS (once credentials land)._
+**Findings:** _Live re-probe run 2026-08-30 (`rig/alloy-live-reprobe.mjs` + `rig/alloy-live-harness.html`,
+one real `interact` to `adobedc.demdex.net` with the maintainer's test datastream; raw capture
+gitignored under `rig/out/`, redacted fixture committed)._
 
-**Outcome:** _Set at DONE — e.g. `ADR-0008 kill-criterion confirmed against live Alloy;
-wrapped-SDK contract-freeze unblocked on the mint axis` OR `kill-criterion failed → ADR-00NN
-host-seeded identity`._
+- **Kill-criterion CONFIRMED.** Edge returned **HTTP 200**. The genuine unmodified-alloy request
+  (`web.webpagedetails.pageViews`, `query.identity.fetch: [ECID, CORE]`, no ECID asserted) is
+  recognized by `recognizeInteract` as an `ecid-first-mint` — request-side recognition
+  **re-confirmed live** (AC2). The **real** Edge response's `identity:result` handle carries an
+  ECID under `namespace.code === "ECID"`, extracted by the same `extractEcidFromInteractResponse`
+  path — response-side recognition **established live** (the new probe). The server-assigned ECID
+  round-tripped into the `AMCV_*`/`kndctr_*` jar (AC1).
+- **Real response shape (handles):** `identity:result`, `personalization:decisions`,
+  `locationHint:result`, `state:store`. Notably the response ALSO carried a **real Target
+  `personalization:decisions`** for `__view__` (decisionProvider `TGT`) and a
+  **`locationHint:result`** (cluster hints `Target` / `AAM` / `EdgeNetwork`) — live inputs
+  013-02 (fan-out) and 013-03 build on.
+- **AC2 durable creds-free regression landed.** `test/fixtures/alloy-live-interact.redacted.json`
+  is **deny-by-default redacted** (every captured value scrubbed except a curated set of shape
+  tokens — `type` / `code` / `eventType` / `schema` / `scope` / …; identity ids tagged
+  `REDACTED_<namespace>` so the extractor test proves it selects the **ECID** entry, not just a
+  truthy id) + `test/alloy-live-mint-recognizability.test.js` (5 tests, green **without** creds).
+  Full suite green (454 tests). No live identifier survives — the enumerated secrets **and** all
+  harvested server-assigned values (incl. the Target `eventToken` / `correlationID` a first-cut
+  key-allowlist had leaked — 013-01 compliance+craft review) are absent; the fixture write is
+  gated on a CONFIRMED capture.
+- **AC3 (concurrent live coalescing) — best-effort, method gap confirmed.** Not run as a
+  deterministic two-chamber live probe: real Edge is **un-gateable** (it will not park a first
+  response until a second mint arrives — the lever 012-02's gate-able stub provided), so a
+  *deterministic* in-flight window is **unconstructable** live, exactly the gap the DoD names.
+  Coalescing **correctness** stands on 012-02's hermetic proof; this live round-trip confirms the
+  **mechanism** (chamber interception → main-thread dispatch → real Edge → ECID → jar) does not
+  break against real Alloy.
+
+**Outcome:** `ADR-0008 mint-recognizability kill-criterion CONFIRMED against live Alloy;
+wrapped-SDK contract-freeze mint-axis cleared (necessary, not sufficient — 013-02/03 remain);
+durable creds-free fixture + regression test landed; refinement-todo OQ9 updated`.
+
+### Deviation log
+
+_2026-08-30._
+- **Rig base.** The DoR/Time-box named `rig/alloy-coalescing.*` (two-chamber) as the base; the
+  single round-trip (AC1/AC2/AC4) reused the **single-chamber** `rig/alloy-chamber.*` pattern
+  instead (new `rig/alloy-live-reprobe.mjs` + `rig/alloy-live-harness.html`) — the coalescing rig
+  is the AC3 base, and AC3 is best-effort/unconstructable live. Faithful: same stock bundle, same
+  chamber worker, same recognizer/extractor.
+- **AC3 not run live.** Deterministic concurrent coalescing is unconstructable against un-gateable
+  real Edge (the corrected DoD's named method gap); correctness stands on 012-02's hermetic proof.
+  No superseding decision needed — the DoD sanctioned this as best-effort.
+- **Redaction hardened post-review.** The compliance + craft reviews caught a key-allowlist leak
+  (Target `eventToken` / `correlationID`); redaction was inverted to **deny-by-default** + an
+  open-set leak scan, the extract test sharpened to prove ECID-path selection, and the fixture
+  write gated on CONFIRMED. All applied; both reviews recorded pass.
+- **Environment.** `probes/alloy-worker/node_modules` was `npm ci`-installed (stock alloy 2.35.0,
+  sha256 pin `3cea73e1…` verified) — setup, not a code change. `.env` (gitignored) holds the test
+  creds; no creds committed.
+
+### Reconciliation sweep
+
+Parallel-and-minimal holds — `core/` + `connectors/` + `contracts/` untouched; only new rig / test
+/ fixture files + docs. Full suite green (454). No `architecture.md` / ADR / glossary drift (this
+slice is a measurement, not a contract change). ADR-0008's kill-criterion (mint axis) resolved →
+recorded in `docs/refinement-todo.md` OQ9; the wrapped-SDK contract-freeze remains gated on
+013-02/03. No new deferred decisions surfaced. Artifacts touched: `rig/alloy-live-reprobe.mjs`,
+`rig/alloy-live-harness.html`, `test/alloy-live-mint-recognizability.test.js`,
+`test/fixtures/alloy-live-interact.redacted.json`, this slice + `spec.md` + `refinement-todo.md`.
 
 **Anti-horizontal-phasing check:** after this slice we **know** whether the coalescing
 mechanism holds against real Alloy — the contract-freeze gate has a *measured* answer, not

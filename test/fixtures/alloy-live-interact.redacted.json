@@ -1,0 +1,169 @@
+{
+  "_comment": "Spec 013-01: a REAL Adobe Edge interact capture, DENY-BY-DEFAULT redacted (every captured value scrubbed except a curated set of shape tokens; identity ids tagged REDACTED_<namespace>). Durable creds-free regression for ADR-0008's mint-recognizability kill-criterion — replayed by test/alloy-live-mint-recognizability.test.js against rig/alloy-xdm-mint.js. No live identifiers here.",
+  "request": {
+    "url": "https://adobedc.demdex.net/ee/v1/interact?configId=REDACTED&requestId=REDACTED",
+    "body": {
+      "events": [
+        {
+          "xdm": {
+            "timestamp": "REDACTED",
+            "implementationDetails": {
+              "name": "https://ns.adobe.com/experience/alloy",
+              "version": "2.35.0",
+              "environment": "browser"
+            },
+            "eventType": "web.webpagedetails.pageViews",
+            "web": {
+              "webPageDetails": {
+                "URL": "REDACTED",
+                "name": "airlock"
+              }
+            }
+          },
+          "query": {
+            "personalization": {
+              "schemas": [
+                "https://ns.adobe.com/personalization/default-content-item",
+                "https://ns.adobe.com/personalization/html-content-item",
+                "https://ns.adobe.com/personalization/json-content-item",
+                "https://ns.adobe.com/personalization/redirect-item",
+                "https://ns.adobe.com/personalization/ruleset-item",
+                "https://ns.adobe.com/personalization/message/in-app",
+                "https://ns.adobe.com/personalization/message/content-card",
+                "https://ns.adobe.com/personalization/dom-action"
+              ],
+              "decisionScopes": [
+                "__view__"
+              ],
+              "surfaces": [
+                "web://airlock.example/"
+              ]
+            }
+          }
+        }
+      ],
+      "query": {
+        "identity": {
+          "fetch": [
+            "ECID",
+            "CORE"
+          ]
+        }
+      },
+      "meta": {
+        "queueTimeMillis": 3,
+        "state": {
+          "domain": "REDACTED",
+          "cookiesEnabled": true,
+          "entries": [
+            {
+              "key": "REDACTED",
+              "value": "REDACTED"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "response": {
+    "requestId": "REDACTED",
+    "handle": [
+      {
+        "payload": [
+          {
+            "id": "REDACTED_ECID",
+            "namespace": {
+              "code": "ECID"
+            }
+          },
+          {
+            "id": "REDACTED_CORE",
+            "namespace": {
+              "code": "CORE"
+            }
+          }
+        ],
+        "type": "identity:result"
+      },
+      {
+        "payload": [
+          {
+            "id": "REDACTED",
+            "scope": "__view__",
+            "scopeDetails": {
+              "decisionProvider": "TGT",
+              "activity": {
+                "id": "REDACTED"
+              },
+              "experience": {
+                "id": "REDACTED"
+              },
+              "strategies": [
+                {
+                  "step": "entry",
+                  "trafficType": "0"
+                },
+                {
+                  "step": "display",
+                  "trafficType": "0"
+                },
+                {
+                  "step": "conversion",
+                  "trafficType": "0"
+                }
+              ],
+              "characteristics": {
+                "eventToken": "REDACTED"
+              },
+              "correlationID": "REDACTED"
+            },
+            "items": [
+              {
+                "id": "REDACTED",
+                "schema": "https://ns.adobe.com/personalization/default-content-item",
+                "meta": {}
+              }
+            ]
+          }
+        ],
+        "type": "personalization:decisions",
+        "eventIndex": 0
+      },
+      {
+        "payload": [
+          {
+            "scope": "Target",
+            "hint": "REDACTED",
+            "ttlSeconds": 1800
+          },
+          {
+            "scope": "AAM",
+            "hint": "REDACTED",
+            "ttlSeconds": 1800
+          },
+          {
+            "scope": "EdgeNetwork",
+            "hint": "REDACTED",
+            "ttlSeconds": 1800
+          }
+        ],
+        "type": "locationHint:result"
+      },
+      {
+        "payload": [
+          {
+            "key": "REDACTED",
+            "value": "REDACTED",
+            "maxAge": 1800
+          },
+          {
+            "key": "REDACTED",
+            "value": "REDACTED",
+            "maxAge": 34128000
+          }
+        ],
+        "type": "state:store"
+      }
+    ]
+  }
+}
