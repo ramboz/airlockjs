@@ -1,0 +1,24 @@
+---
+slice: 012-03 — Target personalization, decisions-as-data (headless)
+pass: arch
+verdict: pass
+reviewer: general-purpose
+reviewed_at: 2026-08-30T02:45:26Z
+prompt_source: review.py arch-review --richer-skill none
+substrate: shown
+applied_skill: none
+shown_candidates: [arch-review:high-confidence, access:speculative, adobe-security-antipatterns:speculative, adobe-security-audit:speculative, adobe-security-client:speculative, adobe-security-cloud:speculative, adobe-security-foundations:speculative, adobe-security-lang:speculative, adobe-security-services:speculative, agent-development:speculative, audit-migrator:speculative, block-kit:speculative, build-mcp-app:speculative, build-mcp-server:speculative, build-mcpb:speculative, cardputer-buddy:speculative, claude-automation-recommender:speculative, claude-md-improver:speculative, claude-security:speculative, command-development:speculative, configure:speculative, create-slack-app:speculative, cutline:speculative, debug-workflow:speculative, design-eval:speculative, example-command:speculative, example-skill:speculative, frontend-design:speculative, get-content-scrape:speculative, hook-development:speculative, investigate-alert:speculative, local-dev:speculative, m5-onboard:speculative, math-olympiad:speculative, mcp-integration:speculative, morning-ai-radar:speculative, morning-assistant:speculative, morning-confluence:speculative, morning-github:speculative, morning-jira:speculative, morning-outlook:speculative, morning-slack:speculative, morning-spike:speculative, mysticat-debug:speculative, playground:speculative, plugin-settings:speculative, plugin-structure:speculative, pr-review:speculative, project-artifact:speculative, query-audits:speculative, query-opportunities:speculative, query-scrapes:speculative, query-sites:speculative, receipts:speculative, release-check:speculative, release-slate:speculative, run-preflight:speculative, scope-audit:speculative, scout-autotune:speculative, scout-bench-create:speculative, scout-memory-init:speculative, scout-pr-review:speculative, scout-scrum-master:speculative, servo:agent-loop:speculative, servo:edd-suitability:speculative, servo:heartbeat:speculative, servo:oracle-hook:speculative, servo:quality-gate:speculative, servo:scaffold-init:speculative, servo:spec-oracle:speculative, session-report:speculative, shape-release:speculative, silence-alert:speculative, skill-creator:speculative, skill-development:speculative, slack-api:speculative, slack-cli:speculative, slack-docs:speculative, slack-messaging:speculative, slack-search:speculative, spacecat-configuration:speculative, steward:speculative, test-pr-in-dev:speculative, webpage-replica:speculative, writing-hookify-rules:speculative]
+---
+
+**Verdict: pass** — no architectural blockers; every concern is a deviation-log/tracked follow-up (independent arch reviewer). Sound, genuinely additive contract evolution.
+
+**Strengths:** decisions-as-data boundary is clean — the connector extracts a pure `Decision[]` in the chamber (no DOM/`self`), pushes via `deliver`, the host applies via `reserveSpace`; the chamber never touches the DOM, preserving AD-5 (no ambient authority) + the no-DOM chamber. `deliver` is a side channel separate from the egress return — correctly refusing to conflate decisions with seal-gated egress. Exposure seam is minimal + right (generic `handle.push` + an additive proposition→`proposition_display` mapping, rejecting the ill-fitting `exposure.js` reader).
+
+**Flags — tracked (none block REVIEWED):**
+1. **[spec] `decisions.fetch` pull peer isn't as loudly "not-built"** as `insertAfterInteraction` (which rejects loudly). Retaining `fetch` is defensible (pre-pinned; removal would be a breaking subtraction), but only the docstring disambiguates. Follow-up: make its not-built status loud in the type.
+2. **[impl] "layout-stable by construction" is CONDITIONAL** on host config sizing `minHeight >= decision height` — an over-tall fill silently reflows; nothing clamps/overflow-hides. **Documented** in dom.js as the honest boundary; production overflow-clip hardening tracked.
+3. **[impl] AC3c depends on production wiring `reserveSpace` into the EDS eager pre-paint phase** (distinct from airlock's lazy boot). The capability can't self-guarantee this; the rig proves the mechanism. Open question tracked.
+4. **[nit] Proposition-shape parsing split across both airlock sides** (decisions.js `htmlOfDecision` + decisions-exposure.js `mapPropositionToExposure`), each re-narrowing `Decision.content: unknown` — consider a shared accessor. Tracked.
+5. **[note] The DOM capability (parallel to core, same OQ13/012-01 tracked debt) touches the "orchestrator is the only DOM-writer" invariant (architecture.md) more directly** than cookie sourcing did — weight when the `core/` migration is prioritized. Tracked.
+
+FINDINGS: (no blockers; flags 1–5 tracked in refinement-todo)

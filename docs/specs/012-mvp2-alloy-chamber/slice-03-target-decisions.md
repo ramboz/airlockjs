@@ -1,10 +1,9 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: [012-01]
-last_verified:
+last_verified: 2026-08-29
 frame_review: true
 arch_review: true
-claimed_by: claude/chambers-io-security-5867f9
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about
@@ -104,15 +103,63 @@ flicker).
    byte-identical (the `decisions` surface is an **addition**).
 
 **DoD:**
-- [ ] ACs 1–6 pass; full suite green.
-- [ ] Each new test shown to fail when its feature is removed.
-- [ ] Reviewed by `reviewer`; **compliance + craft + arch** recorded (arch: finalizes the
-      `decisions` capability surface + the host-apply wiring).
-- [ ] Frame-critique recorded.
-- [ ] Deviation log + reconciliation sweep; reconciliation review passed.
-- [ ] `docs/refinement-todo.md` updated if any decision deferred.
+- [x] ACs 1–6 pass; full suite green. *296 vitest + `rig:alloy-decisions` (AC1–5 + the
+      three AC3 legs, chromium); `rig:alloy` + `rig:alloy-coalescing` still green.*
+- [x] Each new test shown to fail when its feature is removed *(scope filter, prehide,
+      exposure event-name, the AC3 gate — post-paint reserve → `pass:false`).*
+- [x] Reviewed by `reviewer`; **compliance + craft + arch** recorded — all pass
+      (`reviews/slice-03-{compliance,craft,arch}.md`). *Craft nit (querySelector
+      error-contract) fixed; arch/craft follow-ups tracked.*
+- [x] Frame-critique recorded (2 rounds + a re-scope + the leg-(c) tightening)
+      (`reviews/slice-03-frame-critique.md`).
+- [x] Deviation log + reconciliation sweep produced (below); reconciliation review
+      recorded.
+- [x] `docs/refinement-todo.md` updated — 012-03 tracked debt (f)–(k): `decisions.fetch`
+      not-built-loud, overflow-clip hardening, eager-phase wiring, shared proposition
+      accessor, DOM-writer invariant, and the `innerHTML` sanitizer/TT trust boundary.
 
 **Anti-horizontal-phasing check:** after this slice, a Target personalization decision
 flows alloy → chamber → host and is applied CWV-safely above the fold — UC-1 realized
 for the wrapped-SDK archetype. Observable value: a rendered, exposure-reported
 personalization, not an internal decisions plumbing.
+
+### Deviation log (after reconciliation)
+
+1. **Re-scoped before implementation (owner decision 2026-08-29):** the slice originally
+   assumed the DOM-injection capability existed; it does **not** (declared in
+   `capability.d.ts`, implemented nowhere). Owner chose to **build the full capability**
+   here, not just the decisions channel. Re-scoped + frame-critiqued (2 rounds).
+2. **CWV-safety gated by a structural invariant, not headless CLS** (frame-critique
+   primary): `observeLayoutShifts` is unimplemented (prose-only), and headless
+   quantitative CLS is unreliable (R-005); the gate is the deterministic
+   `getBoundingClientRect` invariant (legs a/b/c, mirroring `rig/uc1.mjs`), with CLS +
+   raw-inject control + screenshot advisory (OQ6).
+3. **Scope trimmed to `reserveSpace`;** `insertAfterInteraction` left declared-not-built
+   (rejects loudly) — no deferred-injection consumer in this slice (frame-critique).
+4. **Exposure via the generic capture + a new proposition→exposure mapping**, not
+   `adapters/eds/exposure.js` (whose aem-experimentation `body[data-experiment]` reader an
+   alloy proposition doesn't populate).
+5. **Craft nit fixed:** `reserveSpace`'s `querySelector` now wraps a malformed-selector
+   `SyntaxError` into a `Promise.reject` (consistent error surface).
+6. **Non-blocking follow-ups tracked** (refinement-todo (f)–(k)): `decisions.fetch`
+   not-built-loudness + contract-stability pin; the over-tall-fill overflow-clip hardening
+   (documented as the honest boundary in `dom.js`); production eager-phase `reserveSpace`
+   wiring; a shared proposition accessor; the DOM-writer-invariant weight for the OQ13
+   core migration; and the `innerHTML` sanitizer/TT **security trust boundary**.
+
+### Reconciliation sweep
+
+| Artifact | Disposition | Rationale |
+|----------|-------------|-----------|
+| `adapters/eds/dom.js` | `created` | The AD-5 `reserveSpace` CWV-safe DOM-injection capability (eager reserve + mediated `fill` + main-thread prehide); `insertAfterInteraction` declared-not-built. |
+| `connectors/alloy/decisions.js` + `adapters/eds/decisions-exposure.js` | `created` | Decisions parse (pure) + the new proposition→`proposition_display` exposure mapping. |
+| `rig/generic-capture.js`, `rig/alloy-decisions.*` | `created` | Generic capture helper + the two-phase (eager reserve → lazy fill) rig gating the AC3 structural invariant. |
+| `test/**` (5 new) | `created` | Pure-piece coverage + the rig's falsifiable AC3 controls. |
+| `connectors/alloy/{connector.js, alloy-chamber.worker.js}` | `updated` | Additive decisions delivery (`caps.decisions.deliver`); no-op when the cap isn't granted (GA4/012-01/02 unchanged). |
+| `contracts/capability.d.ts` | `updated` | Finalized `decisions` surface (`+deliver`, reconciling the `fetch` pull sketch with alloy's push) + `DomHandle.fill?` — **additive**, MVP1 signatures byte-identical (contract-stability green). |
+| `rig/alloy-mint-stub.js`, `package.json` | `updated` | Target-decisions Edge response + `rig:alloy-decisions` script. |
+| `docs/refinement-todo.md` | `updated` | 012-03 tracked debt (f)–(k). |
+| `core/**`, `connectors/ga4/` | `no-op` | Parallel-and-minimal — untouched + green (`rig:alloy`/`rig:alloy-coalescing`/GA4 pass). The DOM capability sits at the adapter layer (sibling to `cookies.js`); core migration is tracked (OQ13). |
+| `docs/architecture.md` | `deferred` | The DOM-injection capability touches the "orchestrator is the only DOM-writer" invariant — tracked (debt j) for the core migration, not rewritten in a proof slice; no canon conflict. |
+| `docs/specs/README.md` | `updated` | Status board regenerated. |
+| Primer `CLAUDE.md` / `docs/memory/**` | `no-op` | Consistent with prior slices; result recorded in the slice + refinement-todo. |

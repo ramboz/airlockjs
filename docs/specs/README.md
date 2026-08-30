@@ -41,7 +41,7 @@
 | [011-mvp2-coherency-probe](011-mvp2-coherency-probe/spec.md) | 🔬 011-04 — async-mint coalescing needs broker-proxied egress (the OQ9 mechanism + its condition) | ABANDONED |  |
 | [012-mvp2-alloy-chamber](012-mvp2-alloy-chamber/spec.md) | 012-01 — wrapped-SDK host + alloy boots + one Analytics event | **DONE** |  |
 | [012-mvp2-alloy-chamber](012-mvp2-alloy-chamber/spec.md) | 012-02 — concurrent-chamber mint coalescing (lift ADR-0008's hold) | **DONE** |  |
-| [012-mvp2-alloy-chamber](012-mvp2-alloy-chamber/spec.md) | 012-03 — Target personalization, decisions-as-data (headless) | DRAFT |  |
+| [012-mvp2-alloy-chamber](012-mvp2-alloy-chamber/spec.md) | 012-03 — Target personalization, decisions-as-data (headless) | **DONE** |  |
 | [012-mvp2-alloy-chamber](012-mvp2-alloy-chamber/spec.md) | 012-04 — manifest declaration-shape + alloy behaviour characterization | DRAFT |  |
 
 ## Abandoned slices
@@ -58,9 +58,11 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
 
 - **0** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **28** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **5** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **7** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-02-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-02-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `012-mvp2-alloy-chamber/slice-03-arch.md` — applied `none`; declined: arch-review
+  - `012-mvp2-alloy-chamber/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
