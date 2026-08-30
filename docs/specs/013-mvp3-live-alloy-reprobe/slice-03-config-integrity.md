@@ -121,11 +121,17 @@ datastream._
     unload fast path, ADR-0006 / OQ16), not just one; (ii) the **orgId/body co-vector** — datastream
     (`configId`) pinning controls Edge *routing*; the `orgId` in the body is identity-namespacing, a
     **residual** to close via read-minimization / body inspection if it proves routing-relevant.
-- **AC1 — DEFERRED (creds-gated).** Proving real Edge *lands* data in an attacker tenant on the
-  shared host needs a **real second** ("attacker") datastream on `adobedc.demdex.net` — not
-  provided. A *simulated* second tenant begs the question (it assumes real Edge routes by
-  `configId`, which is what AC1 proves), so AC1 is honestly deferred; the core finding + mitigation
-  (AC2/AC3) are **not** blocked by it.
+- **AC1 — CONFIRMED live (post-DONE addendum, 2026-08-30).** The maintainer provided a real second
+  datastream (same org, same host). `rig/alloy-live-reroute.mjs` fired a minimal `interact` to real
+  Edge with the honest, the attacker (second), and a garbage configId: **honest → HTTP 200, attacker
+  → HTTP 200 on the byte-identical host (`adobedc.demdex.net`), garbage → HTTP 400**. The garbage-400
+  is the discriminator — **Edge validates / routes by `configId`**, so a re-pointed *valid* datastream
+  lands in a **different tenant on the same host** and the host / endpoint allow-list is genuinely
+  **blind** to it. The seam-side check **holds** the re-route. AC1 (end-to-end tenant-routing on a
+  shared host) is thus **CONFIRMED against real Edge**, not just grounded by inspection. _(Downstream
+  data-landing in the second tenant's report suite was not separately verified — that needs read
+  access to the second tenant; Edge's 200-accept of the re-pointed configId on the shared host is the
+  routing proof AC1 requires.)_
 - **AC4 — recorded.** The config-integrity requirement (seam-side datastream pinning;
   host-owned-config + read-minimization as necessary-not-sufficient support) + the ADR-0006 gap
   (its endpoint ceiling is tenant-blind) land in `docs/refinement-todo.md`, feeding an ADR-0006
@@ -135,8 +141,9 @@ datastream._
 config is chamber-mutable (the chamber owns the alloy instance); the SEAM-SIDE config-integrity
 check (dispatch pins the outbound datastream → hold on mismatch) demonstrated to catch a
 re-pointed / bypass chamber, host-owned-config necessary-not-sufficient; config-integrity
-requirement filed for the ADR-0006 addition; AC1 end-to-end repro deferred (needs a real second
-datastream)`.
+requirement filed for the ADR-0006 addition; **AC1 CONFIRMED live** (post-DONE: real Edge accepts a
+re-pointed valid datastream on the byte-identical host — honest/attacker 200, garbage 400 —
+tenant-blind end-to-end)`.
 
 ### Deviation log
 
@@ -145,6 +152,9 @@ _2026-08-30._
   *simulated* second tenant begs the question the frame-critique flagged. AC1 (end-to-end
   real-Edge repro) is deferred; AC2/AC3 (the load-bearing creds-free core) are delivered. Per the
   corrected DoD, AC1 is the only creds-gated AC and does not block the slice.
+  **Update (post-DONE, 2026-08-30):** the maintainer later provided a real second datastream (same
+  org / host) — **AC1 is now CONFIRMED live** (see Findings; `rig/alloy-live-reroute.mjs`: Edge
+  accepts the re-pointed valid datastream on the identical host, garbage rejected → tenant-blind).
 - **Mitigation reframed to the seam-side check.** Per the frame-critique, host-owned-config-at-boot
   alone can't bind a compromised chamber (it owns the alloy instance) — the demonstrated primary
   control is the seam-side integrity check (`rig/config-integrity.js`), with host-owned-config as

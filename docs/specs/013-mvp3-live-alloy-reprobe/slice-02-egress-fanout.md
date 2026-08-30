@@ -119,6 +119,13 @@ maintainer test datastream; two runs for roster stability; raw capture gitignore
   floor this is a **test-org-config artifact, NOT evidence of narrow egress** — the enforcement
   design is **barred** from reading this count as ceiling cardinality (R-004 / 012-04 flag the
   single-host result as "a probe artifact, not evidence of narrowness").
+- **AAM linked ≠ fan-out (post-DONE re-run, 2026-08-30).** After the maintainer **linked** the
+  Audience Manager service to the datastream, a re-run STILL fired **zero** third-party syncs (2 Adobe
+  origins, unchanged). So the demdex partner fan-out is gated not on AAM being *enabled* but on
+  **configured third-party destinations** (partner sinks needing an ID sync) — a fresh AAM link with
+  no destinations fans out to nobody. This **sharpens** the lower bound: the true fan-out breadth
+  tracks the customer's **destination config**, which varies per customer — reinforcing ADR-0006's
+  "FLOOR not map" (a manifest cannot enumerate what each customer's AAM destinations will be).
 - **Confined / escaped / shim-swallowed (AC2):** everything that fired is `fetch`/POST →
   **confined** (0 escaped, 0 shim-swallowed). The **shim-swallowed risk is real but UNMEASURED
   here** — the `<img>`-pixel surface only appears *with* 3rd-party syncs, which this org doesn't
