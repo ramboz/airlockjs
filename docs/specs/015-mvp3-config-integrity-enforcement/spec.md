@@ -10,85 +10,99 @@ use_cases: [UC-1]
 
 ## Overview
 
-This is **MVP3's first enforcement spec** — the seal starts to bite. Spec 014 landed the
-wrapped-SDK **dispatch seam** in `core/` (`core/wrapped-sdk-host.js`'s `caps.egress.dispatch`, the
-single chokepoint every intercepted interact crosses, [ADR-0010](../../decisions/adr-0010-roundtrip-egress-capability.md)),
-declared **gate-able but not yet gated**. Spec 013-03 grounded the **control** (`rig/config-integrity.js`)
-and confirmed the **threat live**: a compromised alloy chamber can re-point its **datastream** (alloy's
-`configId`) to an **attacker's Adobe tenant on the same allowed host** (`adobedc.demdex.net`) — real
-Edge accepts it (013-03 AC1: honest/attacker HTTP 200, garbage 400), so the user's identity/analytics
-flows to the attacker while every **host** allow-list check passes (the tenant rides *outside* the
-host/path the seal keys on). This spec wires that control into that seam: the dispatch **pins the
-outbound datastream to the host-set value** and **fails closed** on any deviation.
+This is **MVP3's first enforcement spec** — the seal starts to bite. Spec 014 landed the wrapped-SDK
+**dispatch seam** in `core/` (`core/wrapped-sdk-host.js`'s `caps.egress.dispatch`, the single chokepoint
+every intercepted interact crosses, [ADR-0010](../../decisions/adr-0010-roundtrip-egress-capability.md)),
+declared **gate-able but not yet gated**. Spec 013-03 grounded the **control** and confirmed the
+**threat live**: a compromised alloy chamber can re-point its **datastream** (alloy's `configId`) to an
+**attacker's Adobe tenant on the same allowed host** (`adobedc.demdex.net`) — real Edge accepts it
+(013-03 AC1: honest/attacker HTTP 200, garbage 400), so the user's identity/analytics flows to the
+attacker while every **host** allow-list check passes (the tenant rides *outside* the host/path the seal
+keys on). This spec wires enforcement of that at the seam.
 
-**The control (013-03, grounded).** Two paired postures:
-- **OVERRIDE (correct-and-send)** — `pinnedDispatchUrl`: the seam **re-derives** the dispatch URL with
-  exactly the host-pinned `configId`, discarding whatever the chamber supplied. **Evasion-proof** —
-  unlike a parse-and-compare, it never trusts the chamber's value, so parameter pollution
-  (`?configId=<honest>&configId=<attacker>`) / encoding cannot slip past.
-- **HOLD-AND-ALERT (detect-and-surface)** — `checkConfigIntegrity`: **fails closed** — an absent,
-  duplicated (pollution), or mismatched `configId` is a deviation, surfaced through the diagnostics
-  seam (009-02) so the re-route attempt is **observed**, not silent.
+**The disposition — HOLD (fail-closed) is the default (015-01 frame-critique).** On **any** deviation the
+dispatch is **held** — no real fetch leaves. A deviation is: the outbound **host** ≠ the host-pinned host
+(so the seam is **not host-blind** — a chamber egressing to `evil.com?configId=<honest>` is held, not
+"corrected-and-sent" to evil.com), **or** the outbound **tenant key** (`configId`) is absent, duplicated
+(pollution), or ≠ the host-pinned value. Failing closed on the clearest attack (a valid attacker tenant
+on the allowed host) is the point — silently correcting-and-sending it would forward the *attacker-shaped
+body* into the honest tenant (a data-integrity injection; the `orgId`/body co-vector 013-03 left open).
 
-**Scope — the wrapped-SDK datastream, not GA4.** Config-integrity is specifically the wrapped-SDK
-(alloy) `configId` re-routing 013-03 demonstrated. GA4's endpoints are **host-config** (not
-chamber-re-pointable), and GA4's fire-and-forget egress + the synchronous unload fast path are a
-separate matter. So this enforcement binds only to the **async `caps.egress.dispatch`** seam — which
-means it **side-steps the synchronous-gating sub-problem** spec 014 flagged (the unload path is
-GA4-only; there is no wrapped-SDK egress on it to gate).
+**OVERRIDE is a named availability OPTION, not the default (015-02).** For deployments that prefer
+*keep-working* over *block*, an opt-in **override** re-derives the dispatch to the host-pinned host +
+tenant (`pinnedDispatchUrl`, evasion-proof against pollution/encoding since it never trusts the chamber's
+value) and sends — but **always paired with the alert**, never silent, and only where the operator
+accepted the body-integrity trade.
 
-**Not in scope:** the endpoint-**ceiling** (host-owned endpoint allow-list — that's the separate
-endpoint-ceiling enforcement spec) and **purpose-vector consent** (ADR-0007). This spec is *only*
-config-integrity: the datastream pin. It is the **narrowest** first bite — one control, one seam, one
-threat — deliberately, so the seal's enforcement machinery is proven small before the broader teeth.
+**ALERT ships WITH the enforcement (in 015-01, not deferred).** Every deviation — held or overridden —
+is surfaced through the existing **009-02 diagnostics seam** (`onDiagnostic`), redacted of raw
+identifiers (013-01 discipline), so a re-route attempt is **observed**, never silent.
+
+**Generic mechanism, injected tenant-key (014-02 precedent).** `core/` holds the *generic* control —
+pin the **host** + a **tenant key** — but which query param IS the tenant key (`configId` for alloy;
+`measurement_id` for GA4) is a **connector/wire detail INJECTED** by the connector, not a hardcoded
+`"configId"` in `core/` (which would be Adobe-specific and couldn't serve GA4).
+
+**Scope — the wrapped-SDK async dispatch; GA4 is a deliberate DEFERRAL, not immune (013-03/015-01
+frame-critique).** GA4 has the **same-class** threat: its `handle` maps *in the chamber*, so a compromised
+GA4 chamber can emit `?measurement_id=<attacker>` on `google-analytics.com` — the identical same-host
+tenant re-route. It is scoped out **on purpose** (the first bite is one connector, one seam), **not**
+because GA4 "can't be re-pointed." Only GA4's **synchronous unload fast path** (`core/egress.js`,
+orchestrator-mapped from host `endpoints`) is genuinely chamber-immutable — so binding config-integrity
+to the **async** `caps.egress.dispatch` seam does side-step the 014 sync-gating sub-problem (there is no
+*wrapped-SDK* egress on the sync path), but the deferral of GA4's async re-route is a tracked follow-up,
+stated honestly.
+
+**Not in scope:** the endpoint-**ceiling** (host-owned endpoint allow-list, its own spec) and
+**purpose-vector consent** (ADR-0007). This spec is *only* config-integrity — but because the seal is
+otherwise unbuilt at this seam, config-integrity here **must itself verify the host** (above), so its
+override can never forward to an unconfined destination.
 
 ## Assumptions
 
-<!-- Grounded 2026-08-30 by reading rig/config-integrity.js (013-03), core/wrapped-sdk-host.js (014-01),
-     connectors/alloy/connector.js, ADR-0006, and the 013-03 slice; risk-gated. -->
+<!-- Grounded 2026-08-30 by reading rig/config-integrity.js (013-03), core/wrapped-sdk-host.js +
+     rig/alloy-core-host-harness.html (014-01), connectors/alloy/connector.js, ADR-0006/0010; risk-gated. -->
 
 - **The dispatch seam exists + is gate-able (014-01, ADR-0010).** `core/wrapped-sdk-host.js`'s
-  `dispatchInterceptedFetch` calls `caps.egress.dispatch(req)` — the single chokepoint; the gate lands
-  at the orchestrator's implementation of `dispatch`. Grounded (`core/wrapped-sdk-host.js`; ADR-0010
-  "gate-able, not yet gated").
+  `dispatchInterceptedFetch` calls `caps.egress.dispatch(req)` — the single chokepoint. Grounded.
 - **The control is demonstrated + the threat confirmed live (013-03).** `checkConfigIntegrity` +
-  `pinnedDispatchUrl` are proven (7 creds-free tests, incl. pollution + absent + override); AC1
-  confirmed real Edge routes by `configId` on the shared host. This spec **wires** the demonstrated
-  control into core, it does not re-litigate it. Grounded (`rig/config-integrity.js`; 013-03 DONE).
-- **The host pin is orchestrator-owned + chamber-immutable.** The pinned datastream is the connector's
-  **host-set** `config.datastreamId` (passed to `createWrappedSdkHost` / the connector factory by the
-  orchestrator, not reachable by chamber code post-boot). 013-03 established host-owned-config is
-  necessary-but-not-sufficient (a compromised chamber owns the alloy instance) — which is exactly why
-  the **seam-side** override is the enforceable control, not boot-time ownership alone. Grounded
-  (013-03 AC3; `connectors/alloy/connector.js` config path).
-- **`configId` is the tenant-routing key on the wire (013-03, verified vs ADR-0004/0006).** The seal
-  keys on host/path; the datastream rides as the `configId` query param, *outside* that key — so the
-  host allow-list is tenant-blind and the pin must be at the `configId`. Grounded (013-03 frame-critique).
-- **An ADR formalizes the control** — the config-integrity requirement 013-03 filed is **not yet in
-  ADR-0006** (its endpoint ceiling is tenant-blind). This spec authors the config-integrity ADR
-  (seam-side override + fail-closed) as its first step, so the decision is citable + the enforcement
-  implements a recorded control.
+  `pinnedDispatchUrl` (fail-closed, pollution-aware) are proven (7 creds-free tests); AC1 confirmed real
+  Edge routes by `configId` on the shared host. This spec **wires + hardens** it (adds the host check +
+  the injected key), it does not re-litigate it. Grounded (`rig/config-integrity.js`; 013-03 DONE).
+- **The host pin is real + chamber-immutable, but must be THREADED in (015-01 frame-critique [2]).** The
+  pin is the orchestrator-set `config.datastreamId` (+ the expected host), passed main-thread → chamber
+  via `host.init({ config })` (`rig/alloy-core-host-harness.html` L29-34/L123), never mutated by the
+  worker. But `createWrappedSdkHost` today takes only `{ chamber, caps, timeoutMs }` — the pin must be
+  threaded through (a new opt, or captured from the init message) at the seam, separate from the
+  chamber's outbound `m.url`. Grounded (`core/wrapped-sdk-host.js`).
+- **`configId` is the tenant key for alloy, `measurement_id` for GA4 — INJECTED, not hardcoded in core**
+  (015-01 frame-critique [4]). The tenant key + expected host are connector/manifest-declared and injected
+  into the generic core control. Grounded (`connectors/ga4/map.js` uses `measurement_id`).
+- **An ADR formalizes the disposition** — the config-integrity requirement 013-03 filed is not yet in
+  ADR-0006 (its endpoint ceiling is tenant-blind). This spec authors the config-integrity ADR
+  (**hold-fail-closed default incl. the host; override a named option; GA4 deferred; the `orgId`/body
+  residual**) as 015-01's first step, so the other MVP3 enforcement specs bind to a recorded disposition.
 
 ## Decomposition
 
-SPIDR = **Rules (R)** — the work is a gating rule (config-integrity) enforced at an existing seam;
-the mechanism (014 dispatch) + the control (013-03) both exist, so this is neither a Spike nor a new
-Path/Interface/Data. Split **simple-rule-first**: the *enforcement* (the seam corrects the egress —
-the security value) before the *observability* (the deviation is surfaced — the operator value). Each
-slice binds the rule at the real `core/` seam end-to-end (a re-pointed chamber's egress → the seam),
-so neither is horizontal.
+SPIDR = **Rules (R)** — a gating rule (config-integrity) enforced at an existing seam; the mechanism
+(014 dispatch) + the control (013-03) both exist. Split by **disposition strength** (the R-axis): the
+**fail-closed default** (hold + alert — the security value, complete on its own) first, then the
+**availability variant** (override — a softer, opt-in disposition). Each binds the rule at the real
+`core/` seam end-to-end (a re-pointed chamber's egress → the seam), so neither is horizontal.
 
-- **015-01 `[R]` override enforcement at the dispatch seam** — wire the 013-03 control into
-  `core/wrapped-sdk-host.js`'s `caps.egress.dispatch` path: before the real fetch, **re-derive the
-  outbound `configId` to the host-pinned datastream** (`pinnedDispatchUrl`) and **fail closed** on
-  absent/duplicate (`checkConfigIntegrity`). E2E: a re-pointed core-hosted chamber's interact egresses
-  to the **host** tenant (overridden), not the attacker's — the seal bites. + the config-integrity ADR.
-- **015-02 `[R]` hold-and-alert observability** — surface every config-integrity deviation (override
-  applied / held) through the **009-02 diagnostics seam**, so a re-route attempt is **observed**, not
-  silently corrected — the operator-visible half (OQ7-adjacent inspector food). E2E: a re-pointed
-  chamber produces a diagnostic record naming the deviation, alongside the corrected egress.
+- **015-01 `[R]` fail-closed enforcement (HOLD + ALERT)** — wire the generic control (host + injected
+  tenant-key) into `core/wrapped-sdk-host.js`'s dispatch: on **any** deviation (host mismatch, tenant
+  absent / duplicate / mismatch) **HOLD** — no fetch — and emit a redacted **diagnostic** through the
+  009-02 seam. E2E: a re-pointed core-hosted chamber (attacker tenant on the allowed host, or a foreign
+  host) is **blocked** + surfaced; the honest path is unchanged + silent. + the config-integrity ADR.
+- **015-02 `[R]` override availability option** — an **opt-in** disposition that, instead of holding,
+  **re-derives** the dispatch to the host-pinned host + tenant and sends (`pinnedDispatchUrl`) — still
+  **alerting** — for deployments that prefer availability, having accepted the attacker-shaped-body
+  trade. E2E: with override on, a re-pointed chamber egresses to the **host** tenant/host (corrected),
+  with a diagnostic; default (override off) still holds.
 
 ## Slices
 
-1. [015-01 — override enforcement at the dispatch seam](slice-01-override-enforcement.md)
-2. [015-02 — hold-and-alert observability](slice-02-hold-and-alert.md)
+1. [015-01 — fail-closed enforcement (hold + alert)](slice-01-fail-closed-enforcement.md)
+2. [015-02 — override availability option](slice-02-override-option.md)
