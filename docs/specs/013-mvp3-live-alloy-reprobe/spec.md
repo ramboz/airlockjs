@@ -62,7 +62,12 @@ that the enforcement specs depend on.
 - **The egress fan-out is unmeasured.** R-004 faked the Edge response, suppressing the
   server-directed demdex / ID-sync URLs the real response directs. The endpoint-ceiling
   enforcement (MVP3) cannot be designed without it. Grounded (R-004 "left open"; 012-04
-  §Findings Axis-1 marks it live-only).
+  §Findings Axis-1 marks it live-only). **Two measurement-validity constraints (013-02):**
+  (a) the classic partner sync is a DOM-`<img>` pixel the *no-DOM chamber swallows invisibly*,
+  so the true fan-out needs a **real-DOM main-thread reference run**, not a chamber-only run;
+  (b) fan-out breadth tracks the org's Audience-Manager third-party-destination config — a
+  fresh test org may fire ~zero syncs, so a null result is a **lower bound**, never evidence
+  of narrow egress.
 - **This runs live traffic to a real Adobe org.** It emits real Analytics/identity calls —
   use a **test/dev datastream + org**, never production, and treat captured identifiers as
   sensitive (do not commit them). Grounded (operational).
