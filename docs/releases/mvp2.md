@@ -89,6 +89,35 @@ decision. **MVP2 does not start until MVP1's risk-retirement bet is retired.**
 | Secured I/O seams — ADR-0006/0007 *enforcement* (authoritative endpoints, payload governance, purpose-vector consent) | The compromised-connector defense | **Defer → [MVP3](mvp3.md)** |
 | Full identity resolution / first-party cookie store | OQ5 | Defer / TBD |
 
+## Delivery status
+
+> Updated 2026-08-29 — the cutline is **delivered** and MVP2's proof is **complete**.
+> Status stays `candidate` pending an explicit release decision (see Status § above).
+
+Every **Include** cutline item is **DONE**, green end-to-end (307 vitest + all three alloy
+rigs in chromium; GA4 / MVP1 unregressed; `core/` untouched — parallel-and-minimal):
+
+- OQ9 coherency probe (RISK-FIRST) → **[spec 011](../specs/011-mvp2-coherency-probe/spec.md)**
+  + [ADR-0008](../decisions/adr-0008-oq9-coherency-sync-access.md).
+- alloy Analytics event in a chamber + the MVP1 contract hosts alloy **unchanged**
+  (additive-only) → **[012-01](../specs/012-mvp2-alloy-chamber/slice-01-host-and-boot.md)**.
+- Concurrent-chamber identity **coalescing** (ADR-0008's mechanism demonstrated) →
+  **[012-02](../specs/012-mvp2-alloy-chamber/slice-02-mint-coalescing.md)**.
+- alloy **Target** personalization (decisions-as-data) + the CWV-safe `reserveSpace`
+  capability → **[012-03](../specs/012-mvp2-alloy-chamber/slice-03-target-decisions.md)**.
+- Per-connector isolation (ADR-0001 B-vs-C) → **[ADR-0009](../decisions/adr-0009-mvp2-isolation-option-b.md)** (Option B).
+- Manifest declaration-shape + alloy behaviour characterization →
+  **[012-04](../specs/012-mvp2-alloy-chamber/slice-04-manifest-characterize.md)**.
+
+**Proven against faithful stubs.** The **live Adobe Edge credentials re-probe is an
+[MVP3](mvp3.md) item, not an MVP2 gap** — mint-recognition is already validated against real
+alloy-emitted XDM (012-02); what remains is egress-breadth / response-shape (real Edge
+response, demdex/ID-sync fan-out, cluster routing), the characterization MVP3 leads with
+Risk-First. The wrapped-SDK **capability contract-freeze**, the ADR-0006/0007 **enforcement**,
+and the **core-integration + hardening** debt (incl. the `reserveSpace` `innerHTML` /
+Trusted-Types **security trust boundary**) are the MVP3 handoff — tracked in
+[refinement-todo](../refinement-todo.md).
+
 ## JIG Handoff
 
 > Non-mutating pointers. Do not start until MVP1 is retired.
@@ -101,7 +130,9 @@ decision. **MVP2 does not start until MVP1's risk-retirement bet is retired.**
   declaration shape**; defer the *enforcement* + OQ11/OQ3 governance to
   [MVP3](mvp3.md).
 - Spec the alloy wrapped-SDK connector against the extended contracts.
-- Detailed slices: **TBD** — draft once MVP1 lands and OQ9 resolves.
+- Detailed slices: **DELIVERED** — [spec 011](../specs/011-mvp2-coherency-probe/spec.md)
+  (OQ9 probe) + [spec 012](../specs/012-mvp2-alloy-chamber/spec.md) (the alloy wrapped-SDK
+  connector, 4 slices) + ADR-0008 / ADR-0009. See **Delivery status** above.
 
 ## Release-Check Criteria
 
