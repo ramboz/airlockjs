@@ -23,8 +23,13 @@ unload fast path** (GA4-only, which an async `dispatch(req) → Promise` structu
 and which needs `keepalive` that `EgressDispatchRequest` lacks). The MVP3 enforcement seam binds to the
 **steady-state dispatch** (i + ii); the unload fast path stays a **separate synchronous path** a later
 enforcement spec handles on its own terms (unload-time — no interaction to protect — reusing the
-byte-identical `mapToMp`). So the deliverable is "one hosting path + a clearly-bounded set of egress
-paths," not the over-claim "all egress at one seam."
+byte-identical `mapToMp`). **⚠ Named for that enforcement spec (frame-critique [4]):** "no interaction
+to protect" justifies sync *mapping* (INP) but says nothing about *gating* — the sync unload egress
+(`core/egress.js`'s `fetch(endpoints[t])`) **bypasses the manifest + the seal**, and being synchronous
+**cannot call an async seal-gate**. So MVP3's endpoint/consent enforcement inherits a genuinely hard
+**synchronous-gating** sub-problem here — flagged now so it isn't discovered late. So the deliverable
+is "one hosting path + a clearly-bounded set of egress paths," not the over-claim "all egress at one
+seam."
 
 **DoR:**
 - ✅ [014-01] DONE — `core/airlock.js` can host a connector via `createConnectorHost` in a real
@@ -38,20 +43,35 @@ paths," not the over-claim "all egress at one seam."
 1. **GA4 hosted via the generic host.** GA4 is expressed as a `ConnectorFactory` (manifest → factory
    → init → `handle`) and hosted through `createConnectorHost` — **not** the hardcoded `mapToMp`
    import in `core/chamber.worker.js`. Observable: GA4 events route through `routeBatch` →
-   `ready: EgressRequest[]`, the same host alloy uses.
+   `ready: EgressRequest[]`, the same host alloy uses. **Impedances to bridge (frame-critique):**
+   (a) author a **GA4 manifest** (`connectors/ga4/` is only `map.js` + `cookies.js` today — no
+   manifest exists); (b) `mapToMp` reads `event.params`, but the contract's `AirlockEvent` is
+   `{payload, snapshot}` — so the generic GA4 worker feeds `handle` the legacy `{type, params}`
+   descriptor (the same `event.params || event.payload` bridge alloy already uses), leaving `mapToMp`
+   **untouched** (AC2 byte-identity); (c) the per-tracker `busy(workFactor)` loop is re-homed into
+   `handle` (no byte impact).
 2. **Fire-and-forget egress intact.** GA4's `ready` requests are dispatched by `core/airlock.js` on
    the main thread via `fetch(..., {keepalive})` (ADR-0004) — the wire-protocol model is unchanged;
    the round-trip surface (014-01) is used only by wrapped-SDK connectors. Observable: GA4 egress is
-   byte-identical to MVP1 (`mapToMp` output unchanged).
+   byte-identical to MVP1 (`mapToMp` output unchanged). **Note (frame-critique):** `routeBatch` / the
+   host's `init` are async (vs `mapBatch`'s sync path) — the generic worker glue must sequence
+   **init-before-events** (trivial for GA4's sync `mapToMp`, which resolves in a microtask before the
+   next message macrotask; the `{ready, dropped}` return shape is identical to `mapBatch`, so
+   `airlock.js`'s `onmessage`/`drain`/`ring`/`projection` stay **untouched** — only the Worker URL +
+   init payload change).
 3. **OQ10 unload fast path preserved AS A SEPARATE synchronous path (arch-4).** The synchronous
    main-thread `pushCritical` + the `visibilitychange`/`pagehide` ring-tail flush still map via the
    pure `mapToMp` (byte-identical), never entering the worker — and are **explicitly NOT** folded into
    the async `caps.egress.dispatch` seam (it can't serve a synchronous keepalive path). Observable:
    `test/egress-fastpath.test.js` green; no double-send; the unload path remains synchronous.
-4. **One hosting path.** The GA4-hardcoded `core/chamber.worker.js` path is **retired or converged**
-   onto the generic host — no two divergent hosting mechanisms remain. Observable: `core/airlock.js`
-   hosts both connectors through `core/connector-host.js`; any residual GA4-specific worker glue is
-   the generic chamber's, not a parallel hardcode.
+4. **One hosting MECHANISM (not one orchestrator).** The GA4-hardcoded `core/chamber.worker.js`
+   mapping path is **retired** — GA4's chamber now hosts its connector via `createConnectorHost`, the
+   **same mechanism** alloy's chamber uses, so no two divergent hosting mechanisms remain. Observable:
+   **both connectors' chambers** host via `createConnectorHost`. **Frame-critique [1] — do NOT
+   over-read:** `core/airlock.js` **stays the GA4 orchestrator** (egress path (i): the fire-and-forget
+   `onmessage` fetch + `unloadFlush`), and alloy stays orchestrated by the **separate**
+   `core/wrapped-sdk-host.js` (014-01). "One hosting path" = one hosting *mechanism inside the
+   chambers*, **not** one orchestrator — alloy is **not** routed through `airlock.js`.
 5. **No GA4 regression (UC-2).** Every GA4 test — mapping, cookies, purchase, conformance, the oracle
    gate — stays green; the MVP1/MVP2 connector/capability contract is unbroken (mvp3.md No-Gos).
    Observable: the full GA4 suite + `test/oracle-ga4.test.js` pass.
@@ -67,8 +87,10 @@ paths," not the over-claim "all egress at one seam."
 - [ ] **Retire the duplicate 012-02 rig broker (arch-2 follow-up).** `rig/alloy-coalescing-broker.js`
       is a verbatim copy of `core/coalescing-broker.js` (the drift hazard spec 014 exists to kill) —
       redirect its test/harness at `core/coalescing-broker.js` (injecting the alloy recognizer) or
-      delete it, so exactly one broker remains. _(Bundled here as the "retire duplicates" theme; the
-      frame-critique may split it out if it doesn't belong.)_
+      delete it, so exactly one broker remains. **Gate (frame-critique [5]):** this is an ALLOY
+      artifact orthogonal to GA4 hosting — keep it ONLY as a **mechanical** verbatim-copy delete +
+      test/harness redirect. **Split it into its own cleanup the moment the redirect proves
+      non-mechanical** — an unrelated alloy test-rewire must not block a GA4-green slice.
 
 **Anti-horizontal-phasing check:** after this slice, GA4 (UC-2) runs through the same generic host as
 alloy — one connector-hosting path in core, not two. Observable value: the GA4 analytics scenario,
