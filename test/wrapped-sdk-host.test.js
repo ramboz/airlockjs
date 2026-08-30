@@ -419,3 +419,121 @@ describe("createWrappedSdkHost — config-integrity enforcement (spec 015-01, AD
     expect(host.getState().held).toBe(0);
   }, 2000);
 });
+
+// createWrappedSdkHost — config-integrity OVERRIDE option (spec 015-02, ADR-0011 §7): the opt-in,
+// non-default disposition. Instead of holding, a deviation is RE-DERIVED to the host-pinned host +
+// tenant (pinnedDispatchUrl — evasion-proof, never trusts the chamber's value) and SENT, still
+// alerting (disposition: "overridden"). Availability-over-integrity; never silent. Default (hold)
+// is unchanged (015-01). An INCOMPLETE pin can't be re-derived, so it holds even under override.
+describe("createWrappedSdkHost — config-integrity override option (spec 015-02, ADR-0011)", () => {
+  const HONEST_DS = "11111111-1111-1111-1111-111111111111"; // synthetic
+  const ATTACKER_DS = "99999999-9999-9999-9999-999999999999"; // synthetic
+  const PIN_OVERRIDE = { pinnedHost: "adobedc.demdex.net", tenantKey: "configId", pinnedTenant: HONEST_DS, disposition: "override" };
+  const HONEST_URL = "https://adobedc.demdex.net/ee/v1/interact?configId=" + HONEST_DS + "&requestId=r";
+
+  function makeSpyingHost(opts) {
+    const chamber = makeFakeChamber();
+    const dispatched = [];
+    const diags = [];
+    const caps = {
+      egress: {
+        dispatch: async (req) => {
+          dispatched.push(req);
+          return { status: 200, statusText: "OK", headers: {}, body: "{}" };
+        },
+      },
+    };
+    const host = createWrappedSdkHost({ chamber, caps, onDiagnostic: (r) => diags.push(r), ...opts });
+    return { chamber, dispatched, diags, host };
+  }
+
+  it("override re-derives a same-host re-point to the pinned tenant + SENDS + alerts (not held)", async () => {
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN_OVERRIDE });
+    const url = `https://adobedc.demdex.net/ee/v1/interact?configId=${ATTACKER_DS}&requestId=r`;
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 1, url, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(1); // SENT, not held
+    const sent = new URL(dispatched[0].url);
+    expect(sent.host).toBe("adobedc.demdex.net");
+    expect(sent.searchParams.getAll("configId")).toEqual([HONEST_DS]); // re-derived to the pin
+    expect(dispatched[0].url).not.toContain(ATTACKER_DS); // attacker value gone
+    const diag = diags.find((d) => d.kind === "config-integrity");
+    expect(diag).toMatchObject({ level: "error", disposition: "overridden" });
+    // The alert must state the action ACTUALLY taken. reason names the deviation only —
+    // it must NOT say "held"/"hold" on a dispatch that was corrected-and-SENT (015-02 review),
+    // and must never carry the raw identifier value (013-01 redaction).
+    expect(diag.reason).toContain("same-host tenant re-route");
+    expect(diag.reason).not.toMatch(/hold|held/i);
+    expect(diag.reason).not.toContain(ATTACKER_DS);
+    expect(msg.status).toBe(200); // the chamber gets the real response
+    expect(host.getState().overridden).toBe(1);
+    expect(host.getState().held).toBe(0);
+  }, 2000);
+
+  it("override re-derives a FOREIGN host to the pinned host (never forwards to the attacker host)", async () => {
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN_OVERRIDE });
+    const url = `https://evil.com/ee/v1/interact?configId=${HONEST_DS}`; // honest tenant, foreign host
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 2, url, method: "POST", headers: {}, body: "{}" });
+    await posted;
+
+    expect(dispatched.length).toBe(1);
+    expect(new URL(dispatched[0].url).host).toBe("adobedc.demdex.net"); // corrected to the pinned host
+    expect(dispatched[0].url).not.toContain("evil.com");
+    const diag = diags.find((d) => d.kind === "config-integrity");
+    expect(diag).toMatchObject({ disposition: "overridden" });
+    expect(diag.reason).toContain("foreign-host egress");
+    expect(diag.reason).not.toMatch(/hold|held/i); // corrected-and-sent, not held
+    expect(host.getState().overridden).toBe(1);
+  }, 2000);
+
+  it("override leaves the HONEST path untouched — dispatched normally, no alert, overridden: 0", async () => {
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN_OVERRIDE });
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 3, url: HONEST_URL, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(1);
+    expect(dispatched[0].url).toBe(HONEST_URL); // untouched — no re-derive on a non-deviating dispatch
+    expect(msg.status).toBe(200);
+    expect(diags.find((d) => d.kind === "config-integrity")).toBeUndefined();
+    expect(host.getState().overridden).toBe(0);
+    expect(host.getState().held).toBe(0);
+  }, 2000);
+
+  it("override with an INCOMPLETE pin HOLDS (a misconfiguration can't be re-derived to a valid destination)", async () => {
+    const incompletePin = { pinnedHost: "adobedc.demdex.net", tenantKey: "configId", pinnedTenant: null, disposition: "override" };
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: incompletePin });
+    const url = `https://adobedc.demdex.net/ee/v1/interact?configId=${ATTACKER_DS}&requestId=r`;
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 4, url, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(0); // held — no re-derive possible
+    expect(msg.status).toBe(0);
+    expect(diags.find((d) => d.kind === "config-integrity")).toMatchObject({ disposition: "held" });
+    expect(host.getState().held).toBe(1);
+    expect(host.getState().overridden).toBe(0);
+  }, 2000);
+
+  it("an explicit disposition:'hold' holds (parity with the default)", async () => {
+    const holdPin = { pinnedHost: "adobedc.demdex.net", tenantKey: "configId", pinnedTenant: HONEST_DS, disposition: "hold" };
+    const { chamber, dispatched, host } = makeSpyingHost({ configIntegrity: holdPin });
+    const url = `https://adobedc.demdex.net/ee/v1/interact?configId=${ATTACKER_DS}&requestId=r`;
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 5, url, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(0);
+    expect(msg.status).toBe(0);
+    expect(host.getState().held).toBe(1);
+    expect(host.getState().overridden).toBe(0);
+  }, 2000);
+});

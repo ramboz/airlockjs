@@ -37,8 +37,13 @@
 //   2. OVERRIDE, don't just compare (pinnedDispatchUrl): re-derive the dispatch URL with BOTH the
 //      host-pinned host AND tenant — whatever the chamber supplied is discarded — so the control
 //      never depends on trusting the chamber's self-report. Relocated here, now host-aware, per
-//      ADR-0011 §7; it is NOT wired into the seam in this slice (015-02 is the override wiring —
-//      a named opt-in, never the default).
+//      ADR-0011 §7; wired into the seam under `disposition:"override"` (015-02) — a named opt-in,
+//      never the default.
+//
+// The detector's `reason` is DISPOSITION-NEUTRAL: it names only the deviation, never the action
+// ("held"/"overridden") — the seam's `disposition` field carries the verb. This lets the SAME
+// reason ride an overridden diagnostic without contradicting it (015-02 review): a re-pointed
+// dispatch that is corrected-and-sent must not be alerted as "held at the seal".
 
 /**
  * Parse ALL `tenantKey` query params from an outbound URL (getAll, not get — a hostile chamber
@@ -84,7 +89,7 @@ export function checkConfigIntegrity(url, pin) {
       verdict: "hold",
       host: hostOf(url),
       outboundTenants: outboundTenants(url, tenantKey),
-      reason: "config-integrity: incomplete pin (misconfiguration) — fail closed (hold)",
+      reason: "config-integrity: incomplete pin (misconfiguration)",
     };
   }
 
@@ -96,20 +101,20 @@ export function checkConfigIntegrity(url, pin) {
       verdict: "hold",
       host,
       outboundTenants: outboundTenants(url, tenantKey),
-      reason: "config-integrity: outbound host != pinned host — foreign-host egress held at the seal",
+      reason: "config-integrity: outbound host != pinned host (foreign-host egress)",
     };
   }
 
   // Tenant-key check — pollution-aware (getAll, not get).
   const tenants = outboundTenants(url, tenantKey);
   if (tenants.length === 0) {
-    return { verdict: "hold", host, outboundTenants: tenants, reason: `config-integrity: no ${tenantKey} on the interact — fail closed (hold)` };
+    return { verdict: "hold", host, outboundTenants: tenants, reason: `config-integrity: no ${tenantKey} on the interact` };
   }
   if (tenants.length > 1) {
-    return { verdict: "hold", host, outboundTenants: tenants, reason: `config-integrity: multiple ${tenantKey} params (parameter pollution) — fail closed (hold)` };
+    return { verdict: "hold", host, outboundTenants: tenants, reason: `config-integrity: multiple ${tenantKey} params (parameter pollution)` };
   }
   if (tenants[0] !== pinnedTenant) {
-    return { verdict: "hold", host, outboundTenants: tenants, reason: `config-integrity: outbound ${tenantKey} != host-pinned tenant — same-host tenant re-route held at the seal` };
+    return { verdict: "hold", host, outboundTenants: tenants, reason: `config-integrity: outbound ${tenantKey} != host-pinned tenant (same-host tenant re-route)` };
   }
   return { verdict: "allow", host, outboundTenants: tenants, reason: "ok" };
 }

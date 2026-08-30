@@ -59,10 +59,20 @@
  * gates `dispatchInterceptedFetch` BEFORE `caps.egress.dispatch` runs the real
  * fetch — the single chokepoint every intercepted interact crosses. On ANY
  * deviation (foreign host; tenant-key absent, polluted, or mismatched) the
- * dispatch is HELD (no real egress) and a redacted diagnostic is emitted;
- * absent the option, the host behaves exactly as before (back-compat).
+ * default disposition is to HOLD (no real egress) and emit a redacted
+ * diagnostic; absent the option, the host behaves exactly as before (back-compat).
+ *
+ * Disposition (spec 015-02): `configIntegrity.disposition` selects HOLD (the
+ * default — fail-closed, no egress) or `"override"` — an opt-in availability
+ * choice that, instead of holding, RE-DERIVES the dispatch to the host-pinned
+ * host + tenant (`pinnedDispatchUrl`, evasion-proof — it discards whatever the
+ * chamber supplied) and sends, STILL alerting (`disposition: "overridden"`).
+ * Override is availability-over-integrity (it forwards the chamber-built body to
+ * the honest tenant — the ADR-0011 body residual) and is never silent. An
+ * INCOMPLETE pin can't be re-derived to a valid destination, so it HOLDS even
+ * under override.
  */
-import { checkConfigIntegrity } from "./config-integrity.js";
+import { checkConfigIntegrity, pinnedDispatchUrl } from "./config-integrity.js";
 
 // Default diagnostics seam (mirrors core/airlock.js's `consoleDiagnostic`):
 // console-backed, so a caller that doesn't inject `onDiagnostic` still
@@ -88,7 +98,7 @@ function consoleDiagnostic(record) {
  *     cookies?: { reconcile: (reconciledSetCookie: string) => void },
  *   },
  *   timeoutMs?: number,
- *   configIntegrity?: ({ pinnedHost: string, tenantKey: string, pinnedTenant: string } | null),
+ *   configIntegrity?: ({ pinnedHost: string, tenantKey: string, pinnedTenant: string, disposition?: ("hold" | "override") } | null),
  *   onDiagnostic?: (record: { level: string, kind: string, [k: string]: unknown }) => void,
  * }} opts
  * @returns {{
@@ -102,6 +112,7 @@ function consoleDiagnostic(record) {
  *     ready: unknown[],
  *     fatal: object | null,
  *     held: number,
+ *     overridden: number,
  *   },
  * }}
  */
@@ -115,6 +126,7 @@ export function createWrappedSdkHost({ chamber, caps, timeoutMs = 5000, configIn
     ready: [],
     fatal: null,
     held: 0,
+    overridden: 0,
   };
 
   let queuedEvent = null;
@@ -129,19 +141,33 @@ export function createWrappedSdkHost({ chamber, caps, timeoutMs = 5000, configIn
    * settle, or vice versa) with a per-call `settled` flag.
    */
   function dispatchInterceptedFetch(m) {
-    // Config-integrity (spec 015-01, ADR-0011): checked BEFORE anything else
+    // Config-integrity (spec 015-01/02, ADR-0011): checked BEFORE anything else
     // — a HELD dispatch must not count as a real dispatch (mainDispatch stays
     // accurate) and must not reach caps.egress.dispatch (no real egress).
     if (configIntegrity) {
       const check = checkConfigIntegrity(m.url, configIntegrity);
       if (check.verdict === "hold") {
-        state.held += 1;
-        // ALERT (009-02) — redacted: name the deviation, never the raw identifier values.
-        diagnose({ level: "error", kind: "config-integrity", disposition: "held", reason: check.reason });
-        // HOLD: no real egress. Settle the chamber's pending fetch REJECTED (mirrors the AC6 error shape)
-        // so sendEvent rejects instead of hanging — the seal bites, fail-closed.
-        chamber.postMessage({ type: "intercepted-fetch-response", id: m.id, status: 0, statusText: "held at the seal: config-integrity", body: "" });
-        return;
+        // A complete pin can be re-derived to a valid destination; an incomplete
+        // one (a misconfiguration) cannot, so it HOLDS even under override.
+        const pinComplete = !!(configIntegrity.pinnedHost && configIntegrity.tenantKey && configIntegrity.pinnedTenant);
+        if (configIntegrity.disposition === "override" && pinComplete) {
+          // OVERRIDE (015-02, opt-in): re-derive to the host-pinned host+tenant and
+          // SEND (evasion-proof — discards whatever the chamber supplied), STILL
+          // alerting. Availability-over-integrity: the chamber-built body still
+          // reaches the honest tenant (the ADR-0011 body residual). Never silent.
+          state.overridden += 1;
+          diagnose({ level: "error", kind: "config-integrity", disposition: "overridden", reason: check.reason });
+          m = { ...m, url: pinnedDispatchUrl(m.url, configIntegrity) };
+          // fall through to dispatch the CORRECTED url below
+        } else {
+          state.held += 1;
+          // ALERT (009-02) — redacted: name the deviation, never the raw identifier values.
+          diagnose({ level: "error", kind: "config-integrity", disposition: "held", reason: check.reason });
+          // HOLD: no real egress. Settle the chamber's pending fetch REJECTED (mirrors the AC6 error shape)
+          // so sendEvent rejects instead of hanging — the seal bites, fail-closed.
+          chamber.postMessage({ type: "intercepted-fetch-response", id: m.id, status: 0, statusText: "held at the seal: config-integrity", body: "" });
+          return;
+        }
       }
     }
 
@@ -259,6 +285,7 @@ export function createWrappedSdkHost({ chamber, caps, timeoutMs = 5000, configIn
         ready: state.ready.slice(),
         fatal: state.fatal,
         held: state.held,
+        overridden: state.overridden,
       };
     },
   };
