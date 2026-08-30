@@ -306,3 +306,116 @@ describe("createWrappedSdkHost — driveEvent lifecycle (init -> configured -> e
     await expect(first).resolves.toMatchObject({ summary: { booted: true } });
   });
 });
+
+// createWrappedSdkHost — config-integrity enforcement (spec 015-01, ADR-0011): the E2E-at-the-seam
+// proof (AC6 of the slice) that a compromised chamber's re-pointed or foreign-host egress is HELD,
+// alerted, and produces ZERO real dispatch, driving the REAL core seam (this module, not a stub of
+// it) against the fake chamber + spying caps.egress.dispatch. The honest path stays unchanged and
+// silent; a host built WITHOUT the configIntegrity option is untouched (opt-in gate, 014-01
+// back-compat).
+describe("createWrappedSdkHost — config-integrity enforcement (spec 015-01, ADR-0011)", () => {
+  const HONEST_DS = "11111111-1111-1111-1111-111111111111"; // synthetic — not a live datastream
+  const ATTACKER_DS = "99999999-9999-9999-9999-999999999999"; // synthetic
+  const PIN = { pinnedHost: "adobedc.demdex.net", tenantKey: "configId", pinnedTenant: HONEST_DS };
+  const HONEST_URL = "https://adobedc.demdex.net/ee/v1/interact?configId=" + HONEST_DS + "&requestId=r";
+
+  /** A fresh fake chamber + spying dispatch + diagnostics collector, wired into a real host. */
+  function makeSpyingHost(opts) {
+    const chamber = makeFakeChamber();
+    const dispatched = [];
+    const diags = [];
+    const caps = {
+      egress: {
+        dispatch: async (req) => {
+          dispatched.push(req);
+          return { status: 200, statusText: "OK", headers: {}, body: "{}" };
+        },
+      },
+    };
+    const host = createWrappedSdkHost({ chamber, caps, onDiagnostic: (r) => diags.push(r), ...opts });
+    return { chamber, dispatched, diags, host };
+  }
+
+  it("honest host+tenant is dispatched normally and stays SILENT (no diagnostic, held: 0)", async () => {
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN });
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 1, url: HONEST_URL, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(1);
+    expect(msg.status).toBe(200);
+    expect(diags.find((d) => d.kind === "config-integrity")).toBeUndefined();
+    expect(host.getState().held).toBe(0);
+  }, 2000);
+
+  it("a same-host tenant re-point is HELD + alerted — zero real egress", async () => {
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN });
+    const url = `https://adobedc.demdex.net/ee/v1/interact?configId=${ATTACKER_DS}&requestId=r`;
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 2, url, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(0);
+    expect(diags.find((d) => d.kind === "config-integrity")).toMatchObject({ level: "error", kind: "config-integrity", disposition: "held" });
+    expect(msg.status).toBe(0);
+    expect(host.getState().held).toBe(1);
+  }, 2000);
+
+  it("a foreign-host egress is HELD + alerted, even carrying the honest tenant", async () => {
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN });
+    const url = `https://evil.com/ee/v1/interact?configId=${HONEST_DS}`;
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 3, url, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(0);
+    expect(diags.find((d) => d.kind === "config-integrity")).toMatchObject({ level: "error", kind: "config-integrity", disposition: "held" });
+    expect(msg.status).toBe(0);
+    expect(host.getState().held).toBe(1);
+  }, 2000);
+
+  it("parameter pollution (two configId params) is HELD, not slipped past on the first value", async () => {
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN });
+    const url = `https://adobedc.demdex.net/ee/v1/interact?configId=${HONEST_DS}&configId=${ATTACKER_DS}&requestId=r`;
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 4, url, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(0);
+    expect(diags.find((d) => d.kind === "config-integrity")).toMatchObject({ level: "error", kind: "config-integrity", disposition: "held" });
+    expect(msg.status).toBe(0);
+    expect(host.getState().held).toBe(1);
+  }, 2000);
+
+  it("an absent configId is HELD, not allowed", async () => {
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN });
+    const url = "https://adobedc.demdex.net/ee/v1/interact?requestId=r";
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 5, url, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(0);
+    expect(diags.find((d) => d.kind === "config-integrity")).toMatchObject({ level: "error", kind: "config-integrity", disposition: "held" });
+    expect(msg.status).toBe(0);
+    expect(host.getState().held).toBe(1);
+  }, 2000);
+
+  it("back-compat: with NO configIntegrity option, an attacker-tenant url still dispatches normally (the gate is opt-in)", async () => {
+    const { chamber, dispatched, diags, host } = makeSpyingHost({}); // no configIntegrity key at all
+    const url = `https://adobedc.demdex.net/ee/v1/interact?configId=${ATTACKER_DS}&requestId=r`;
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 6, url, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(1); // no gate installed — dispatched exactly as 014-01 always did
+    expect(msg.status).toBe(200);
+    expect(diags.find((d) => d.kind === "config-integrity")).toBeUndefined();
+    expect(host.getState().held).toBe(0);
+  }, 2000);
+});

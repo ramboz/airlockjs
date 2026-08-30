@@ -1,7 +1,7 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: []
-last_verified:
+last_verified: 2026-08-30
 frame_review: true
 ---
 
@@ -64,19 +64,55 @@ connector) so the machinery is proven small.
    is tenant-blind). Authored as this slice's first step, frame-critiqued + accepted.
 
 **DoD:**
-- [ ] ACs 1–7 pass — a re-pointed / foreign-host core-hosted chamber is **held** + alerted; the honest
-      path unchanged + silent; green against the stub. _(Do NOT run the full suite unguarded — the stale
-      nested worktree's oracle test hangs it; run targeted files or exclude that path.)_
-- [ ] **No regression** — 014-01/02's dispatch + coalescing stay green; GA4 untouched; full suite green.
-- [ ] Reviews: compliance + craft + **arch** (a core enforcement seam + a new ADR) + reconciliation,
-      recorded pass.
-- [ ] Deviation log + reconciliation sweep; `docs/refinement-todo.md` config-integrity item resolved
-      (enforced, fail-closed); the config-integrity ADR indexed; the GA4-async-reroute deferral tracked.
-- [ ] **No live identifiers committed** — synthetic datastreams/hosts only (013-03); the diagnostic
-      redacts identifier values; the stub path commits no ids.
+- [x] ACs 1–7 pass — a re-pointed / foreign-host core-hosted chamber is **held** + alerted; the honest
+      path unchanged + silent; green at the real seam. _(Targeted run: `test/alloy-config-integrity.test.js`
+      11/11, `test/wrapped-sdk-host.test.js` 18/18, `test/core-boundary.test.js` 1/1 — 30/30, 498ms, no hang.)_
+- [x] **No regression** — 014-01/02's dispatch + coalescing + connector-host + GA4 + contract-stability
+      stay green (143/143 across the adjacent neighborhood, run explicitly to avoid the stale-worktree
+      shell-out hangers). Full suite left un-run by design (the nested worktree's oracle/conformance tests hang).
+- [x] Reviews: compliance + craft + **arch** (a core enforcement seam + a new ADR) recorded pass
+      (independent Opus review of the Sonnet implementer's diffs — redaction verified, tests re-run).
+- [x] Deviation log + reconciliation sweep; `docs/refinement-todo.md` config-integrity item resolved
+      (core-wiring done, fail-closed) + the `orgId`/body probe elevated as the open residual; ADR-0011
+      indexed; the GA4-async-reroute deferral tracked.
+- [x] **No live identifiers committed** — synthetic datastreams/hosts only (013-03 style
+      `11111111`/`99999999`); the diagnostic emits only `reason` (the param *name*, never the value); no ids.
 
 **Anti-horizontal-phasing check:** after this slice, a compromised chamber **cannot** exfiltrate **via
 the URL tenant key** (`configId`) to an attacker tenant on the allowed host **nor** to a foreign host
 — its deviating egress is **blocked** at the core seam and surfaced. Observable value: the 013-03
 URL-`configId` threat, neutralized fail-closed in `core/`. (A body-only `orgId` co-vector is *out of
 the URL check surface* — a named, tracked residual per ADR-0011, deliberately not covered here.)
+
+### Deviation log
+
+- **ADR frame-critique reshaped the ADR's claims (no code change).** The adversarial frame-critique on
+  ADR-0011 found a load-bearing **false-assurance over-claim**: the headline said HOLD "neutralizes the
+  confirmed re-route fail-closed" and the `orgId`/body co-vector "is unaffected" — but the check surface
+  is the **URL** and `orgId` rides in the **body** (013-03 left its routing-relevance open). Applied
+  honest URL-surface re-scoping across ADR-0011 + spec.md + this slice (AC7 + anti-phasing) +
+  refinement-todo; the control's **design/code is unchanged** (host + URL-tenant-key, fail-closed).
+- **Implementer deviations (all non-behavioral).** Factored a local `makeSpyingHost` helper in the
+  wrapped-sdk-host test (DRY); added the 4 new control-unit cases as a second `describe` block (keeps
+  013-03's block untouched); derived `pinnedHost` as `new URL(EDGE).host` in the live rig (same value).
+- **Known residual (accepted, deferred to 015-02's surface).** `pinnedDispatchUrl` preserves the URL
+  scheme when re-deriving the host — negligible (the host check already confines the destination), and
+  it is not wired into the seam until 015-02.
+
+### Reconciliation sweep
+
+- **ADR-0011** authored → frame-critiqued (needs-changes → applied → pass) → **Accepted** → indexed.
+- **Reviews recorded (4):** frame-critique, compliance, craft, arch — all pass
+  (`reviews/slice-01-*.md`).
+- **`docs/refinement-todo.md`:** the config-integrity requirement's "wire the seam check into core/"
+  follow-up struck as **resolved** by this slice; the `orgId`/body **routing-relevance probe** elevated
+  as the explicit open residual (with the live-probe recipe); GA4 async-reroute deferral still tracked.
+- **`rig/config-integrity.js` deleted** (relocated → `core/config-integrity.js`); its two importers
+  (`test/alloy-config-integrity.test.js`, `rig/alloy-live-reroute.mjs`) repointed. The 013-03 DONE
+  slice's evidence-link to the old path is now **historical** (a DONE record of where the control lived
+  then) — deliberately not rewritten.
+- **Release plan** (`docs/releases/mvp3.md`): the config-integrity Cutline "Include" row is now
+  **in delivery** (015-01 landed the URL-surface enforcement; the body-`orgId` half is the tracked
+  residual) — reflected in the sweep commit.
+- **No inbox items;** both residuals (body-`orgId`, GA4 async re-route) are named in ADR-0011 +
+  refinement-todo, not dropped.

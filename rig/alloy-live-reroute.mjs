@@ -10,7 +10,10 @@
 // No identifiers committed: the datastreams stay in env; this rig writes NO fixture and prints
 // only HTTP statuses + hosts. Usage:
 //   ALLOY_DATASTREAM_ID=… ALLOY_ATTACKER_DATASTREAM_ID=… node rig/alloy-live-reroute.mjs
-import { checkConfigIntegrity } from "./config-integrity.js";
+//
+// The control now lives in core/config-integrity.js (spec 015-01, ADR-0011 — relocated +
+// generalized from the rig-only prototype this rig used to import).
+import { checkConfigIntegrity } from "../core/config-integrity.js";
 
 const EDGE = "https://adobedc.demdex.net/ee/v1/interact";
 const HONEST = process.env.ALLOY_DATASTREAM_ID;
@@ -20,6 +23,7 @@ if (!HONEST || !ATTACKER) {
   console.error("FAIL — set ALLOY_DATASTREAM_ID + ALLOY_ATTACKER_DATASTREAM_ID (source .env, gitignored).");
   process.exit(2);
 }
+const PIN = { pinnedHost: new URL(EDGE).host, tenantKey: "configId", pinnedTenant: HONEST };
 
 const body = JSON.stringify({
   events: [{ xdm: {
@@ -42,8 +46,8 @@ const honest = await fire("honest", HONEST);
 const attacker = await fire("attacker", ATTACKER);
 const garbage = await fire("garbage", GARBAGE);
 
-// the seam-side check on the re-pointed (attacker) URL, pinned to the honest datastream
-const seam = checkConfigIntegrity(`${EDGE}?configId=${ATTACKER}&requestId=x`, HONEST);
+// the seam-side check on the re-pointed (attacker) URL, pinned to the honest host + datastream
+const seam = checkConfigIntegrity(`${EDGE}?configId=${ATTACKER}&requestId=x`, PIN);
 
 const sameHost = honest.host === attacker.host && attacker.host === garbage.host;
 const edgeRoutesByTenant = attacker.accepted && sameHost;   // attacker datastream accepted on the SAME host

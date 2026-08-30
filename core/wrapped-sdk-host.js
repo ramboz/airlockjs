@@ -55,6 +55,26 @@
  * fake chamber + fake caps drive the same logic in the unit test, no Worker
  * required.
  *
+ * Config-integrity (spec 015-01, ADR-0011): an optional `configIntegrity` pin
+ * gates `dispatchInterceptedFetch` BEFORE `caps.egress.dispatch` runs the real
+ * fetch — the single chokepoint every intercepted interact crosses. On ANY
+ * deviation (foreign host; tenant-key absent, polluted, or mismatched) the
+ * dispatch is HELD (no real egress) and a redacted diagnostic is emitted;
+ * absent the option, the host behaves exactly as before (back-compat).
+ */
+import { checkConfigIntegrity } from "./config-integrity.js";
+
+// Default diagnostics seam (mirrors core/airlock.js's `consoleDiagnostic`):
+// console-backed, so a caller that doesn't inject `onDiagnostic` still
+// observes a held config-integrity deviation instead of it vanishing
+// silently. Callers may inject `onDiagnostic` (the same 009-02 sink) to
+// intercept the same records instead.
+function consoleDiagnostic(record) {
+  const fn = record.level === "error" ? console.error : console.warn;
+  fn("airlock:", record);
+}
+
+/**
  * @param {{
  *   chamber: {
  *     postMessage: (msg: Record<string, unknown>) => void,
@@ -68,6 +88,8 @@
  *     cookies?: { reconcile: (reconciledSetCookie: string) => void },
  *   },
  *   timeoutMs?: number,
+ *   configIntegrity?: ({ pinnedHost: string, tenantKey: string, pinnedTenant: string } | null),
+ *   onDiagnostic?: (record: { level: string, kind: string, [k: string]: unknown }) => void,
  * }} opts
  * @returns {{
  *   init: (initMsg?: Record<string, unknown>) => void,
@@ -79,10 +101,12 @@
  *     summary: object | null,
  *     ready: unknown[],
  *     fatal: object | null,
+ *     held: number,
  *   },
  * }}
  */
-export function createWrappedSdkHost({ chamber, caps, timeoutMs = 5000 }) {
+export function createWrappedSdkHost({ chamber, caps, timeoutMs = 5000, configIntegrity = null, onDiagnostic }) {
+  const diagnose = typeof onDiagnostic === "function" ? onDiagnostic : consoleDiagnostic;
   const state = {
     phases: [],
     writeBacks: [],
@@ -90,6 +114,7 @@ export function createWrappedSdkHost({ chamber, caps, timeoutMs = 5000 }) {
     summary: null,
     ready: [],
     fatal: null,
+    held: 0,
   };
 
   let queuedEvent = null;
@@ -104,6 +129,22 @@ export function createWrappedSdkHost({ chamber, caps, timeoutMs = 5000 }) {
    * settle, or vice versa) with a per-call `settled` flag.
    */
   function dispatchInterceptedFetch(m) {
+    // Config-integrity (spec 015-01, ADR-0011): checked BEFORE anything else
+    // — a HELD dispatch must not count as a real dispatch (mainDispatch stays
+    // accurate) and must not reach caps.egress.dispatch (no real egress).
+    if (configIntegrity) {
+      const check = checkConfigIntegrity(m.url, configIntegrity);
+      if (check.verdict === "hold") {
+        state.held += 1;
+        // ALERT (009-02) — redacted: name the deviation, never the raw identifier values.
+        diagnose({ level: "error", kind: "config-integrity", disposition: "held", reason: check.reason });
+        // HOLD: no real egress. Settle the chamber's pending fetch REJECTED (mirrors the AC6 error shape)
+        // so sendEvent rejects instead of hanging — the seal bites, fail-closed.
+        chamber.postMessage({ type: "intercepted-fetch-response", id: m.id, status: 0, statusText: "held at the seal: config-integrity", body: "" });
+        return;
+      }
+    }
+
     state.mainDispatch.count += 1;
     state.mainDispatch.requests.push({ url: m.url, method: m.method, body: m.body });
 
@@ -217,6 +258,7 @@ export function createWrappedSdkHost({ chamber, caps, timeoutMs = 5000 }) {
         summary: state.summary,
         ready: state.ready.slice(),
         fatal: state.fatal,
+        held: state.held,
       };
     },
   };
