@@ -103,7 +103,12 @@ export function createCoalescingBroker({ dispatch, coalescing = true, onHeldInFl
     // this line runs BEFORE the `await realDispatch` below, so a concurrently-
     // arriving second handler (single-threaded main) always sees it (AC2).
     let resolveInFlight;
-    const promise = new Promise((resolve) => { resolveInFlight = resolve; });
+    let rejectInFlight;
+    const promise = new Promise((resolve, reject) => { resolveInFlight = resolve; rejectInFlight = reject; });
+    // Observed synchronously so a first-mint failure with no held awaiter never
+    // surfaces as an unhandled rejection — held chambers still see the failure
+    // via their OWN `await pending` below (a promise supports many consumers).
+    promise.catch(() => {});
     inFlight.set(key, promise);
     if (typeof onFirstMint === "function") onFirstMint(key);
 
@@ -113,6 +118,13 @@ export function createCoalescingBroker({ dispatch, coalescing = true, onHeldInFl
       completed.set(key, { ecid, response }); // retain the association for late suppressions
       resolveInFlight(response); // release any chambers held in-flight
       return { ...response, ecid, coalesced: "first", recognition };
+    } catch (err) {
+      // The real dispatch failed (e.g. an Edge 5xx / network failure). Settle any
+      // chambers HELD in-flight with the same failure instead of leaving their
+      // `await pending` hanging forever — do NOT populate `completed`, so a retry
+      // mints fresh rather than replaying the failure.
+      rejectInFlight(err);
+      throw err;
     } finally {
       inFlight.delete(key);
     }

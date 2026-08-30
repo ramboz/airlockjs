@@ -1,0 +1,22 @@
+---
+slice: 012-02 — concurrent-chamber mint coalescing (lift ADR-0008's hold)
+pass: arch
+verdict: pass
+reviewer: general-purpose
+reviewed_at: 2026-08-30T01:32:39Z
+prompt_source: review.py arch-review --richer-skill none
+substrate: shown
+applied_skill: none
+shown_candidates: [arch-review:high-confidence, access:speculative, adobe-security-antipatterns:speculative, adobe-security-audit:speculative, adobe-security-client:speculative, adobe-security-cloud:speculative, adobe-security-foundations:speculative, adobe-security-lang:speculative, adobe-security-services:speculative, agent-development:speculative, audit-migrator:speculative, block-kit:speculative, build-mcp-app:speculative, build-mcp-server:speculative, build-mcpb:speculative, cardputer-buddy:speculative, claude-automation-recommender:speculative, claude-md-improver:speculative, claude-security:speculative, command-development:speculative, configure:speculative, create-slack-app:speculative, cutline:speculative, debug-workflow:speculative, design-eval:speculative, example-command:speculative, example-skill:speculative, frontend-design:speculative, get-content-scrape:speculative, hook-development:speculative, investigate-alert:speculative, local-dev:speculative, m5-onboard:speculative, math-olympiad:speculative, mcp-integration:speculative, morning-ai-radar:speculative, morning-assistant:speculative, morning-confluence:speculative, morning-github:speculative, morning-jira:speculative, morning-outlook:speculative, morning-slack:speculative, morning-spike:speculative, mysticat-debug:speculative, playground:speculative, plugin-settings:speculative, plugin-structure:speculative, pr-review:speculative, project-artifact:speculative, query-audits:speculative, query-opportunities:speculative, query-scrapes:speculative, query-sites:speculative, receipts:speculative, release-check:speculative, release-slate:speculative, run-preflight:speculative, scope-audit:speculative, scout-autotune:speculative, scout-bench-create:speculative, scout-memory-init:speculative, scout-pr-review:speculative, scout-scrum-master:speculative, servo:agent-loop:speculative, servo:edd-suitability:speculative, servo:heartbeat:speculative, servo:oracle-hook:speculative, servo:quality-gate:speculative, servo:scaffold-init:speculative, servo:spec-oracle:speculative, session-report:speculative, shape-release:speculative, silence-alert:speculative, skill-creator:speculative, skill-development:speculative, slack-api:speculative, slack-cli:speculative, slack-docs:speculative, slack-messaging:speculative, slack-search:speculative, spacecat-configuration:speculative, steward:speculative, test-pr-in-dev:speculative, webpage-replica:speculative, writing-hookify-rules:speculative]
+---
+
+**Verdict: pass** — no architectural blockers. Independent arch reviewer, seams/boundaries judged against the slice + broker + XDM + core/airlock.js + ADR-0008/0009.
+
+- **Sound seam, faithful to ADR-0008.** The `inFlight` map is exactly ADR-0008's named "broker in-flight-mint coalescing table"; synchronous registration before the first `await` is the load-bearing single-threaded invariant; model-independent (imports only the XDM module; zero Worker/SAB/COOP-COEP refs; `dispatch` injected), so it rides ADR-0009's Option-B two-Worker topology without coupling to it. Consistent with both ADRs, contradicts neither.
+- **XDM recognition at the correct layer** — parses vendor-payload semantics at the *trusted main-thread broker*, not inside the untrusted chamber (exactly the layer ADR-0008 names). Coheres with confinement/seal layering (coalescing is an egress-side broker decision distinct from the seal).
+- **The LATE-window `completed` association is a sound superset** of ADR-0008's literal "hold the concurrent second."
+- **Parallel-to-core is the SAME tracked debt** from 012-01 (refinement-todo (a); confirmed, not a new divergence; broker header declares it, core untouched).
+
+**Flag-for-follow-up (raised here) — the reject/hang path — now ADDRESSED:** the reviewer flagged the in-flight hold's missing reject semantics (a concurrently-held chamber would hang on a real Edge dispatch failure). Fixed in the rig broker during review (see craft verdict — `catch` settles held awaiters, self-heal). The **core-port carry-forward** ("preserve the reject path + consider `completed` invalidation-on-reset") is tracked in refinement-todo (e).
+
+FINDINGS: (no blockers; the reject-path flag addressed in the rig + core-port carry-forward tracked)

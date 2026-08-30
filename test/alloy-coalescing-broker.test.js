@@ -162,6 +162,49 @@ describe("createCoalescingBroker — AC3: non-mint passes through", () => {
   });
 });
 
+describe("createCoalescingBroker — liveness: first-mint dispatch failure settles held awaiters", () => {
+  it("rejects (does not hang) a held second mint when the first mint's dispatch REJECTS, then self-heals on retry", async () => {
+    // Without the fix, `pB` below awaits an in-flight promise that is only ever
+    // `resolve`d — a rejecting first-mint dispatch leaves it unsettled forever,
+    // so this assertion would time out (bounded below) instead of the suite
+    // hanging outright.
+    let release;
+    const gate = new Promise((r) => { release = r; });
+    let firstCall = true;
+    const dispatch = async (req) => {
+      if (firstCall) {
+        firstCall = false;
+        await gate; // hold the first mint in-flight until the second has arrived
+        throw new Error("edge-5xx"); // the first mint's REAL dispatch fails
+      }
+      // a later call (the post-failure retry) succeeds normally
+      return {
+        status: 200,
+        body: JSON.stringify({ handle: [{ type: "identity:result", payload: [{ id: "ECID-RETRY", namespace: { code: "ECID" } }] }] }),
+      };
+    };
+    const broker = createCoalescingBroker({
+      dispatch,
+      coalescing: true,
+      onHeldInFlight: () => release(), // second arrived → let the first's (failing) dispatch proceed
+    });
+
+    const pA = broker.handleInterceptedFetch(mintReq("A")); // first mint, will reject
+    const pB = broker.handleInterceptedFetch(mintReq("B")); // arrives while A in-flight → held
+
+    await expect(pA).rejects.toThrow("edge-5xx"); // the first-mint caller sees the real failure
+    await expect(pB).rejects.toThrow("edge-5xx"); // the HELD awaiter is settled, not stranded
+
+    expect(broker.inFlightCount()).toBe(0); // the failed mint's in-flight entry was cleared
+    expect(broker.completedCount()).toBe(0); // NOT populated on failure — a retry mints fresh
+
+    // Self-heal: a fresh mint for the same identity after the failure succeeds.
+    const rC = await broker.handleInterceptedFetch(mintReq("C"));
+    expect(rC.coalesced).toBe("first");
+    expect(rC.ecid).toBe("ECID-RETRY");
+  }, 2000); // bounded — a regression (the pre-fix hang) fails fast instead of hanging the suite
+});
+
 describe("createCoalescingBroker — AC1/AC5: coalescing OFF reproduces the fault", () => {
   it("with coalescing OFF, two concurrent mints BOTH egress and yield DISTINCT ECIDs (split identity)", async () => {
     const { dispatch, egress } = makeMintingDispatch();

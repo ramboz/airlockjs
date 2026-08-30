@@ -1,10 +1,9 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: [012-01]
-last_verified:
+last_verified: 2026-08-29
 frame_review: true
 arch_review: true
-claimed_by: claude/chambers-io-security-5867f9
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about
@@ -90,17 +89,65 @@ built.
    closed one. Update `docs/refinement-todo.md` OQ9 accordingly.
 
 **DoD:**
-- [ ] ACs 1–6 pass; full suite green (012-01 path + GA4 no regressions).
-- [ ] Each new test shown to fail when its feature is removed (coalescing off → red).
-- [ ] Reviewed by `reviewer` subagent; **compliance + craft + arch** recorded (arch: the
-      broker gains a coalescing/in-flight-mint table — a runtime-boundary change).
-- [ ] Frame-critique recorded — the "one interact, one ECID, model-independent, no SAB"
-      claim is the framed premise; the stub-vs-live-Alloy gap is honestly bounded.
-- [ ] Deviation log + reconciliation sweep; reconciliation review passed.
-- [ ] `docs/refinement-todo.md` OQ9 updated: mechanism demonstrated → wrapped-SDK
-      freeze hold lifted; live-Alloy mint-recognition carried forward.
+- [x] ACs 1–6 pass; full suite green (012-01 path + GA4 no regressions). *250 vitest +
+      `rig:alloy-coalescing` (AC1–6, chromium, deterministic ×3); `rig:alloy` (012-01)
+      still green.*
+- [x] Each new test shown to fail when its feature is removed *(register-after-await →
+      red; coalescing off → fault; reject-path removed → held awaiter times out).*
+- [x] Reviewed by `reviewer` subagent; **compliance + craft + arch** recorded — all pass
+      (`reviews/slice-02-{compliance,craft,arch}.md`). *Compliance + craft first-pass
+      needs-changes both addressed (OQ9 update; reject-path fix).*
+- [x] Frame-critique recorded (1 round + four tightenings applied)
+      (`reviews/slice-02-frame-critique.md`).
+- [x] Deviation log + reconciliation sweep produced (below); reconciliation review
+      recorded.
+- [x] `docs/refinement-todo.md` OQ9 updated: mechanism **demonstrated** → wrapped-SDK
+      freeze **hold** lifted (not the freeze); live-Alloy mint-recognition carried forward.
 
 **Anti-horizontal-phasing check:** after this slice, **two alloy chambers share one
 identity** — the split-identity fault ADR-0008 identified is demonstrably retired by the
 built mechanism, and the contract-freeze hold is lifted on evidence, not argument.
 Observable value: coherent identity across chambers, shown.
+
+### Deviation log (after reconciliation)
+
+1. **A new rig (`rig/alloy-coalescing.*`), not an extension of 012-01's `rig:alloy`** —
+   keeps 012-01's single-chamber rig green + separate; **reuses**
+   `connectors/alloy/alloy-chamber.worker.js` for both chambers. Conformant.
+2. **`extractEcidFromInteractResponse` relocated** into the browser-safe
+   `rig/alloy-xdm-mint.js`, **re-exported** from `rig/alloy-mint-stub.js` (the in-browser
+   broker cannot import `node:crypto`). 012-01's rig + `test/alloy-mint-stub.test.js` stay
+   green via the re-export.
+3. **Mint accounting counts identity-mint interacts** (broker `mintKey` + `recognizeInteract`
+   on the stub request body), not raw stub calls — because AC3's non-mint probe also hits
+   the always-minting stub. Documented in the rig.
+4. **Both suppression windows covered:** window (a) in-flight-hold is constructed in the
+   browser rig via the gate-able stub; window (b) late-suppression (completed-mint
+   association) is demonstrated hermetically in the broker unit test.
+5. **Reject-path fix applied during review (craft + arch blocker/flag):** the in-flight
+   hold was resolve-only, so a first-mint dispatch **rejection** (real Edge 5xx/network)
+   would strand held awaiters. Fixed — the in-flight promise now carries `reject`; a `catch`
+   settles held awaiters and re-throws to the first caller; `completed` populated only on
+   success (self-heal). Tested with a bounded timeout (a regression hangs the test, not the
+   suite). Not a scope change — a liveness fix. **Core-port carry-forward** tracked
+   (refinement-todo (e)).
+6. **Craft deviation-log nits (non-blocking):** `extractEcidFromInteractResponse` can return
+   `undefined` rather than the documented `null` on an ECID entry lacking `id`;
+   `releaseAll()` / `pendingReleaseCount()` are unused by rig/tests; `ecidOf` re-parses the
+   response body per call. Minor cleanup, not blocking a proof rig.
+
+### Reconciliation sweep
+
+| Artifact | Disposition | Rationale |
+|----------|-------------|-----------|
+| `rig/alloy-coalescing-broker.js`, `rig/alloy-xdm-mint.js` | `created` | The pure coalescing broker (in-flight table + completed-mint association, sync-register invariant, reject path) + XDM mint-recognition. |
+| `rig/alloy-coalescing.mjs`, `rig/alloy-coalescing-harness.html` | `created` | The two-chamber chromium rig (22 assertions, deterministic ×3) + gate coordination. |
+| `rig/alloy-mint-stub.js` | `updated` | `createGatedMintStub` (AC5 response-timing control) + re-export the relocated ECID parse (keeps 012-01 green). |
+| `test/alloy-{coalescing-broker,xdm-mint,gated-mint-stub}.test.js` | `created` | Pure-unit coverage (incl. the sync-register invariant + the reject-path failure-mode test). |
+| `package.json` | `updated` | `rig:alloy-coalescing` script. |
+| `docs/refinement-todo.md` | `updated` | OQ9: 012-02 **demonstrated** the coalescing → freeze **hold** lifted (not the freeze); live-Alloy re-probe carried forward; tracked-debt (e) reject-path fixed-in-rig + core-port carry-forward. |
+| `core/**`, `connectors/ga4/`, `connectors/alloy/*` (worker/connector/cache/confinement) | `no-op` | **Parallel-and-minimal** — untouched + green (`rig:alloy` (012-01) + GA4 still pass). The broker lives in the rig harness/host, parallel to core. |
+| `docs/architecture.md` | `deferred` | Same as 012-01 — the coalescing broker seam is arch-shaped, but tracked (refinement-todo (a)) not applied in a proof slice; no canon conflict. |
+| `docs/specs/README.md` | `updated` | Status board regenerated. |
+| Primer: `CLAUDE.md` Active-specs | `no-op` | Consistent with 011 / 012-01. |
+| `docs/memory/**` | `no-op` | Recorded in OQ9 + this slice + the commit. |
