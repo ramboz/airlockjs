@@ -105,7 +105,7 @@ vs live-Alloy (real Edge, creds-gated)**.
 | Egress host | What | Grounding | Status |
 |---|---|---|---|
 | `adobedc.demdex.net/ee/v1/interact` | the fixed Edge `interact` endpoint (Analytics event + personalization query + `identity.fetch`) | **stub-observed** — R-004 executed probe + the 012-01 chamber captured exactly this one `fetch` | KNOWN — declared as advisory `endpoints` (ADR-0006) |
-| server-directed ID-sync / `demdex` / Audience-Manager URLs | third-party sync URLs the Edge *response* returns and alloy then fires | **live-Alloy ONLY — NOT stub-observable** (R-004 faked the Edge response, suppressing the fan-out); **creds-gated** to MVP3 Risk-First | DEFERRED — unknowable at manifest-authoring; the manifest is a **FLOOR, not a complete map** (ADR-0006 Consequences / ADR-0008) |
+| server-directed ID-sync / `demdex` / Audience-Manager URLs | third-party sync URLs the Edge *response* returns and alloy then fires | **live-Alloy ONLY — NOT stub-observable** (R-004 faked the Edge response, suppressing the fan-out); **creds-gated** to MVP3 Risk-First | **MEASURED live** ([013-02](../013-mvp3-live-alloy-reprobe/slice-02-egress-fanout.md), 2026-08-30): the real-DOM reference run fired **2 Adobe-first-party origins, ZERO 3rd-party fan-out** = a **LOWER BOUND** (no AAM destinations — not narrowness); manifest stays a **FLOOR, not a complete map** (ADR-0006 Consequences / ADR-0008) |
 
 Honest limit: the stub's single-host result is a **probe artifact**, not evidence of
 narrowness — Alloy endpoint-narrowness is an **open question gated on a live-Alloy

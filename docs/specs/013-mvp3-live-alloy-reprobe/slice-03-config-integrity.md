@@ -1,8 +1,8 @@
 ---
-status: DRAFT
+status: DONE
 kind: spike
 dependencies: []
-last_verified:
+last_verified: 2026-08-30
 frame_review: true
 ---
 
@@ -74,24 +74,99 @@ the alloy instance* can defeat by re-`configure`-ing or bypassing alloy entirely
    ADR-0006 **config-integrity** addition (currently absent from ADR-0006).
 
 **DoD:**
-- [ ] **Creds-free core (un-waivable):** AC2 (config-mutability, stub-alloy unit) + AC3 (the
+- [x] **Creds-free core (un-waivable):** AC2 (config-mutability, stub-alloy unit) + AC3 (the
       seam-side config-integrity check demonstrated against a stub-alloy compromised chamber)
       + the ADR-0006 config-integrity requirement land **without** live creds or a second
       tenant. AC1 (end-to-end repro that real Edge lands data in the attacker tenant) is the
-      **only** creds-gated AC — it needs a real second datastream; if unavailable, AC1 is
-      deferred + honestly marked, and the core finding + mitigation are **not** blocked by it.
-- [ ] Spike-light review: compliance + craft recorded pass.
-- [ ] Deviation log + reconciliation sweep under this slice heading.
-- [ ] `docs/refinement-todo.md` updated with the config-integrity requirement + the
+      **only** creds-gated AC — it needs a real second datastream; **AC1 is DEFERRED** + honestly
+      marked, and the core finding + mitigation are **not** blocked by it.
+- [x] Spike-light review: compliance + craft recorded pass.
+- [x] Deviation log + reconciliation sweep under this slice heading.
+- [x] `docs/refinement-todo.md` updated with the config-integrity requirement + the
       ADR-0006 gap it exposes.
-- [ ] **No live identifiers committed** (redact both tenants' ids).
+- [x] **No live identifiers committed** (redact both tenants' ids) — the demonstration uses
+      **synthetic** datastreams (`1111…` / `9999…`); no real datastream/org appears.
 
-**Findings:** _Filled during IN_PROGRESS (once credentials land)._
+**Findings:** _Creds-free core demonstrated 2026-08-30 (`rig/config-integrity.js` +
+`test/alloy-config-integrity.test.js`, stub-alloy units, **synthetic** datastreams — no live
+traffic, no second tenant). AC1 (end-to-end real-Edge repro) deferred — needs a real second
+datastream._
 
-**Outcome:** _Set at DONE — e.g. `same-host re-routing confirmed tenant-blind (creds-free);
-seam-side config-integrity check (dispatch pins configId/orgId → hold on mismatch)
-demonstrated against a stub-alloy compromised chamber; host-owned-config necessary-not-
-sufficient; config-integrity requirement filed for the ADR-0006 addition`._
+- **AC2 — config is CHAMBER-MUTABLE (creds-free).** Grounded in `connectors/alloy/connector.js`
+  (`getAlloy()("configure", {datastreamId, orgId})`) + `core/connector-host.js` (`factory(config)`
+  closure-captures the config once): the closure disciplines only *honest* connector code. A
+  compromised chamber **owns the alloy instance** — it can re-`configure` alloy to an attacker
+  datastream **or** bypass alloy and craft its own `?configId=<attacker>` fetch. The stub-alloy
+  unit shows a re-pointed interact carries the attacker `configId` on the **same host**
+  (`adobedc.demdex.net`) — so the host allow-list is **blind** to it (verified tenant-blind vs
+  ADR-0004/0006 in the frame-critique: the tenant rides in `configId`, outside the host/path the
+  seal keys on).
+- **AC3 — the seam-side check is the enforceable mitigation (creds-free, demonstrated).**
+  `checkConfigIntegrity(interactUrl, pinnedDatastream)` — run at the orchestrator's main-thread
+  dispatch (ADR-0004), the chokepoint every intercepted interact crosses — pins the outbound
+  datastream to the host-set value and **HOLDS at the seal on mismatch**. Demonstrated: a
+  re-pointed chamber (whether via re-`configure` or a crafted bypass fetch) is **caught + held**
+  even though it owns the alloy instance; honest egress (matching datastream) is allowed.
+  **Host-owned-config-at-boot is necessary-but-NOT-sufficient** — it disciplines honest code, but
+  a compromised chamber crafts its own fetch, which only the seam check catches.
+  - **Robust shape (013-03 craft review).** A naive parse-and-compare **trusts the hostile
+    chamber's own URL**, so it is evadable (parameter pollution `?configId=<honest>&configId=<attacker>`
+    slips past a `.get()`; an omitted/encoded id). The demonstrated control therefore (a) **fails
+    CLOSED** — absent / duplicated / mismatched configId all HOLD (`getAll`, not `get`); and (b)
+    provides an **OVERRIDE** posture (`pinnedDispatchUrl`) that **re-derives** the dispatch URL with
+    only the host pin, discarding whatever the chamber supplied — evasion-proof because it never
+    trusts the chamber's value. **The ADR-0006 addition must say "re-derive / override," not
+    "parse-and-compare."**
+  - **Carry forward.** (i) the control must **bind at BOTH egress seams** (worker `mapBatch` + the
+    unload fast path, ADR-0006 / OQ16), not just one; (ii) the **orgId/body co-vector** — datastream
+    (`configId`) pinning controls Edge *routing*; the `orgId` in the body is identity-namespacing, a
+    **residual** to close via read-minimization / body inspection if it proves routing-relevant.
+- **AC1 — DEFERRED (creds-gated).** Proving real Edge *lands* data in an attacker tenant on the
+  shared host needs a **real second** ("attacker") datastream on `adobedc.demdex.net` — not
+  provided. A *simulated* second tenant begs the question (it assumes real Edge routes by
+  `configId`, which is what AC1 proves), so AC1 is honestly deferred; the core finding + mitigation
+  (AC2/AC3) are **not** blocked by it.
+- **AC4 — recorded.** The config-integrity requirement (seam-side datastream pinning;
+  host-owned-config + read-minimization as necessary-not-sufficient support) + the ADR-0006 gap
+  (its endpoint ceiling is tenant-blind) land in `docs/refinement-todo.md`, feeding an ADR-0006
+  config-integrity addition.
+
+**Outcome:** `same-host tenant re-routing confirmed tenant-blind (creds-free, vs ADR-0004/0006);
+config is chamber-mutable (the chamber owns the alloy instance); the SEAM-SIDE config-integrity
+check (dispatch pins the outbound datastream → hold on mismatch) demonstrated to catch a
+re-pointed / bypass chamber, host-owned-config necessary-not-sufficient; config-integrity
+requirement filed for the ADR-0006 addition; AC1 end-to-end repro deferred (needs a real second
+datastream)`.
+
+### Deviation log
+
+_2026-08-30._
+- **AC1 deferred (creds-gated).** No real second ("attacker") datastream was available, and a
+  *simulated* second tenant begs the question the frame-critique flagged. AC1 (end-to-end
+  real-Edge repro) is deferred; AC2/AC3 (the load-bearing creds-free core) are delivered. Per the
+  corrected DoD, AC1 is the only creds-gated AC and does not block the slice.
+- **Mitigation reframed to the seam-side check.** Per the frame-critique, host-owned-config-at-boot
+  alone can't bind a compromised chamber (it owns the alloy instance) — the demonstrated primary
+  control is the seam-side integrity check (`rig/config-integrity.js`), with host-owned-config as
+  necessary-not-sufficient support. New rig + test; `core/` untouched (the check is the MVP3
+  enforcement deliverable, not wired into core yet — tracked debt).
+- **Mitigation hardened post-review.** The craft review caught that a naive parse-and-compare
+  **trusts the hostile chamber's own URL** (evadable by parameter pollution; fails open on an
+  absent configId). Hardened to **fail-closed + pollution-aware (`getAll`) + an OVERRIDE posture**
+  (`pinnedDispatchUrl` re-derives the dispatch URL from the host pin); the ADR-0006
+  "re-derive not parse-and-compare", "bind at both seams", and "orgId/body residual" lessons are
+  recorded (Findings + refinement-todo). Test grew 4 → 7 (pollution / absent / override cases).
+- **Synthetic datastreams.** The demonstration uses synthetic UUIDs (`1111…` / `9999…`), not the
+  real datastream — creds-free + no identifiers.
+
+### Reconciliation sweep
+
+Parallel-and-minimal holds — `core/` + `connectors/` + `contracts/` untouched; new rig
+(`config-integrity.js`) + test only. Full suite green (465). `docs/refinement-todo.md` carries the
+config-integrity requirement + the ADR-0006 tenant-blind gap. No `architecture.md` / glossary
+drift. Tracked follow-ups (noted, not blockers): AC1 (live end-to-end repro with a second
+datastream) + wiring the seam-side check into `core/` (MVP3 enforcement). No live identifiers
+committed.
 
 **Anti-horizontal-phasing check:** after this slice, MVP3's config-integrity requirement is
 grounded in a **demonstrated** (or bounded) attack + a working mitigation — not a

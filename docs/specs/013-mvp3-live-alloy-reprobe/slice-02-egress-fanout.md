@@ -1,8 +1,8 @@
 ---
-status: DRAFT
+status: DONE
 kind: spike
 dependencies: []
-last_verified:
+last_verified: 2026-08-30
 frame_review: true
 ---
 
@@ -85,28 +85,81 @@ enumeration + classification.
    012-04 Axis-1, + `docs/refinement-todo.md`.
 
 **DoD:**
-- [ ] **The true fan-out is captured via a real-DOM main-thread reference run over the full
+- [x] **The true fan-out is captured via a real-DOM main-thread reference run over the full
       live chain** (multi-hop) — *not* a chamber-only or single-response run — and fixtured
-      redacted; classification/enumeration then run creds-free on the fixture.
-- [ ] **Validity floor (un-waivable):** a **zero-sync** test-org result is recorded as a config
+      redacted; classification/enumeration then run creds-free on the fixture. _(No multi-hop
+      chain occurred — no 3rd-party syncs fired; the real-DOM method was exercised regardless.)_
+- [x] **Validity floor (un-waivable):** a **zero-sync** test-org result is recorded as a config
       artifact + lower-bound, **never** as evidence of narrow egress; test-org-vs-production
       divergence is named as a measurement-validity risk; the enforcement design is barred from
       reading the test-org count as ceiling cardinality.
-- [ ] Each captured sync is tagged **confined / escaped / shim-swallowed**, and any
-      escape/swallow is called out as a confinement-gap / false-negative risk.
-- [ ] Spike-light review: compliance + craft recorded pass.
-- [ ] Deviation log + reconciliation sweep under this slice heading.
-- [ ] Characterization (012-04 Axis-1 live) + `docs/refinement-todo.md` updated with the
+- [x] Each captured sync is tagged **confined / escaped / shim-swallowed**, and any
+      escape/swallow is called out as a confinement-gap / false-negative risk. _(All confined;
+      the shim-swallowed risk is real but unmeasured here — needs AAM destinations.)_
+- [x] Spike-light review: compliance + craft recorded pass.
+- [x] Deviation log + reconciliation sweep under this slice heading.
+- [x] Characterization (012-04 Axis-1 live) + `docs/refinement-todo.md` updated with the
       fan-out (origin cardinality + roster stability) + the ceiling verdict.
-- [ ] **No live identifiers committed** (redact captured URLs of ECIDs / demdex ids).
+- [x] **No live identifiers committed** (redact captured URLs of ECIDs / demdex ids) — verified:
+      fixture is hosts + shape only; enumerated secrets absent; raw capture gitignored.
 
-**Findings:** _Filled during IN_PROGRESS (once credentials land)._
+**Findings:** _Real-DOM main-thread reference run 2026-08-30 (`rig/alloy-live-fanout.mjs` +
+`rig/alloy-live-fanout-harness.html`, stock alloy 2.35.0 on a real DOM, `renderDecisions:true`,
+maintainer test datastream; two runs for roster stability; raw capture gitignored)._
 
-**Outcome:** _Set at DONE — e.g. `real fan-out (real-DOM reference run) = interact + N
-multi-hop demdex/AAM origins; M confined / P escaped / Q shim-swallowed; origin-set
-[bounded|rotating] → endpoint-ceiling is [authoritative-at-origin|a FLOOR]; test-org
-destination coverage [representative|null → lower-bound]; input to MVP3 endpoint enforcement
-recorded`._
+- **The real-DOM reference run works (the method the frame-critique required).** alloy boots +
+  sends on a real DOM (`boot_ok:true`), so the `<img>`-pixel sync surface the no-DOM chamber
+  swallows *would* be visible here — the run a chamber-only measurement cannot do.
+- **Egress origin set = 2 Adobe-first-party origins:** `adobedc.demdex.net` + `edge.adobedc.net`,
+  both `fetch`/POST → **confined** (the chamber's mediated-fetch surface). **Roster-stable** across
+  both runs. Notably the real egress is **2** Adobe origins, not the single host the 012 / 013-01
+  stub+proxy assumed — a real input for the endpoint-ceiling's Adobe-first-party set.
+- **Zero third-party fan-out → LOWER BOUND (AC4 floor).** No demdex ID-sync / AAM partner origins
+  fired: this test org has **no AAM third-party destinations** provisioned. Per the un-waivable
+  floor this is a **test-org-config artifact, NOT evidence of narrow egress** — the enforcement
+  design is **barred** from reading this count as ceiling cardinality (R-004 / 012-04 flag the
+  single-host result as "a probe artifact, not evidence of narrowness").
+- **Confined / escaped / shim-swallowed (AC2):** everything that fired is `fetch`/POST →
+  **confined** (0 escaped, 0 shim-swallowed). The **shim-swallowed risk is real but UNMEASURED
+  here** — the `<img>`-pixel surface only appears *with* 3rd-party syncs, which this org doesn't
+  fire. The frame-critique's requirement (a real-DOM run is needed *because* the chamber swallows
+  img pixels) stands as a **design requirement**, validated by method; measuring an actual swallow
+  needs an org with AAM destinations.
+- **Ceiling verdict (AC3):** the observed origin set is **bounded, Adobe-owned, roster-stable** →
+  for the *observed* set an origin-granularity ceiling could be authoritative. But because the
+  3rd-party fan-out is unmeasured (lower bound), **ADR-0006's "FLOOR not map" holds** for the CDP
+  archetype: a production org with AAM destinations adds server-directed partner origins a manifest
+  cannot enumerate at authoring time.
+
+**Outcome:** `real fan-out (real-DOM reference run, test org) = 2 Adobe-first-party origins
+(adobedc.demdex.net + edge.adobedc.net), both confined, roster-stable; ZERO third-party fan-out =
+LOWER BOUND (no AAM destinations — test-org artifact, not narrow egress); shim-swallowed risk real
+but unmeasured (needs AAM destinations); endpoint-ceiling stays a FLOOR for the CDP archetype;
+input recorded to 012-04 Axis-1 + refinement-todo`.
+
+### Deviation log
+
+_2026-08-30._
+- **New real-DOM rig.** The slice requires a real-DOM main-thread reference run (the chamber
+  can't see `<img>`-pixel syncs); built as new `rig/alloy-live-fanout.mjs` +
+  `rig/alloy-live-fanout-harness.html` (stock alloy on a real DOM, `renderDecisions:true`, direct
+  to real Edge — no node proxy, since the fan-out + img pixels must fire from the page).
+  Parallel-and-minimal; `core/` untouched.
+- **Lower-bound outcome (expected).** The test org fired zero 3rd-party syncs (no AAM
+  destinations) — the AC4 validity floor engaged: recorded as a **lower bound / test-org
+  artifact**, not narrow egress. The shim-swallowed classification is therefore method-validated
+  but has no positive instance in this capture.
+- **No multi-hop chain.** With no 3rd-party syncs, there was no multi-hop demdex→partner chain to
+  follow; the reference run captured the interact + a second Adobe Edge origin only.
+
+### Reconciliation sweep
+
+Parallel-and-minimal holds — `core/` + `connectors/` + `contracts/` untouched; new rig + harness +
+test + fixture only. Full suite green (458). `docs/refinement-todo.md` (012-04 Axis-1 live) updated
+with the lower-bound + the 2-origin Adobe-first-party set + the FLOOR verdict. No `architecture.md`
+/ ADR / glossary drift. No new deferred decisions — the shim-swallowed measurement + an
+AAM-destinations re-run are production-org follow-ups, noted, not blockers. No live identifiers
+committed (fixture is hosts + shape only; raw gitignored).
 
 **Anti-horizontal-phasing check:** after this slice, MVP3's endpoint-ceiling enforcement has
 the **real** egress breadth (origin cardinality + roster stability) to design against — not

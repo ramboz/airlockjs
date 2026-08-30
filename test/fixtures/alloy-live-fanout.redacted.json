@@ -1,0 +1,37 @@
+{
+  "_comment": "Spec 013-02: the real-DOM main-thread reference-run egress ORIGIN set (hosts + how the no-DOM chamber would dispose of each: confined / shim-swallowed / escaped). No full URLs, no identifiers — origins + shape only. See slice 013-02 Findings for the verdict.",
+  "origin_set": [
+    {
+      "host": "adobedc.demdex.net",
+      "count": 1,
+      "resourceTypes": [
+        "fetch"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "chamberDisposition": [
+        "confined"
+      ]
+    },
+    {
+      "host": "edge.adobedc.net",
+      "count": 1,
+      "resourceTypes": [
+        "fetch"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "chamberDisposition": [
+        "confined"
+      ]
+    }
+  ],
+  "roster_stable_across_two_runs": true,
+  "chamber_disposition_totals": {
+    "confined": 2,
+    "shim-swallowed": 0,
+    "escaped": 0
+  }
+}

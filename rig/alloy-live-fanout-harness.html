@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Alloy LIVE fan-out reference run (spec 013-02 AC1)</title>
+  </head>
+  <body>
+    <h1>Alloy real-DOM fan-out reference run (013-02)</h1>
+    <div id="status">booting…</div>
+    <!-- 013-02: the REAL-DOM main-thread reference run. Unlike the 012 chamber
+         (no-DOM worker), alloy runs here with a real document + real Image(), so the
+         server-directed demdex / ID-sync / Audience-Manager syncs — which fire as
+         DOM-injected <img> pixels the chamber's shim swallows invisibly — actually
+         egress and are captured by the rig's page.on('request') net. renderDecisions
+         is true so alloy applies decisions + fires the full sync fan-out. -->
+    <script>
+      // Standard alloy base command-queue snippet (same install the chamber sets up).
+      (function (n, names) {
+        names.forEach(function (name) {
+          if (!n[name]) {
+            (n.__alloyNS = n.__alloyNS || []).push(name);
+            n[name] = function () {
+              var args = arguments;
+              return new Promise(function (res, rej) { n[name].q.push([res, rej, args]); });
+            };
+            n[name].q = n[name].q || [];
+          }
+        });
+      })(window, ["alloy"]);
+    </script>
+    <script src="/probes/alloy-worker/node_modules/@adobe/alloy/dist/alloy.js"></script>
+    <script>
+      (async () => {
+        const status = document.getElementById("status");
+        try {
+          const CONFIG = await (await fetch("/__live_config__")).json();
+          // defaultConsent "in" so alloy proceeds without a CMP gate and fires the
+          // full server-directed fan-out (the point of this reference run).
+          await window.alloy("configure", {
+            datastreamId: CONFIG.datastreamId,
+            orgId: CONFIG.orgId,
+            defaultConsent: "in",
+            debugEnabled: true,
+          });
+          const r = await window.alloy("sendEvent", {
+            renderDecisions: true,
+            xdm: {
+              eventType: "web.webpagedetails.pageViews",
+              web: { webPageDetails: { URL: "https://airlock.example/", name: "airlock" } },
+            },
+          });
+          window.__FANOUT_RESULT__ = { ok: true, handles: (r && r.propositions) ? r.propositions.length : 0 };
+        } catch (e) {
+          window.__FANOUT_RESULT__ = { ok: false, error: String(e && e.message || e) };
+        }
+        status.textContent = "DONE";
+      })();
+    </script>
+  </body>
+</html>
