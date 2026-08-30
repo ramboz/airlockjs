@@ -49,6 +49,8 @@
 | [014-mvp3-wrapped-sdk-core-integration](014-mvp3-wrapped-sdk-core-integration/spec.md) | 014-01 — round-trip egress + generic hosting in core (alloy driver) | **DONE** |  |
 | [014-mvp3-wrapped-sdk-core-integration](014-mvp3-wrapped-sdk-core-integration/spec.md) | 014-02 — concurrent-chamber coalescing in core | **DONE** |  |
 | [014-mvp3-wrapped-sdk-core-integration](014-mvp3-wrapped-sdk-core-integration/spec.md) | 014-03 — converge connector-hosting (GA4 retrofit) | **DONE** |  |
+| [015-mvp3-config-integrity-enforcement](015-mvp3-config-integrity-enforcement/spec.md) | 015-01 — override enforcement at the dispatch seam | DRAFT |  |
+| [015-mvp3-config-integrity-enforcement](015-mvp3-config-integrity-enforcement/spec.md) | 015-02 — hold-and-alert observability | DRAFT |  |
 
 ## Abandoned slices
 
