@@ -77,6 +77,19 @@ export interface GrantedCapabilities {
       readSync(): string;
       writeSync(setCookie: string): void;
     };
+    /**
+     * The async write-back SINK (main thread), ADDED in slice 014-01: receives the
+     * Set-Cookie string the chamber's `sync.writeSync` queued (012-01 AC3) and
+     * reconciles it into the broker's authoritative jar. Co-equal to
+     * `egress.dispatch` — an orchestrator-provided method the wrapped-SDK host
+     * (`core/wrapped-sdk-host.js`) calls on the main thread; documented here so it is
+     * not an undocumented parallel (014-01 arch-review). NOTE: origin-incompatible
+     * attribute handling is the **origin's** concern — a localhost/http rig strips
+     * `Secure`/`SameSite=None`/`Domain` (a plain-http jar rejects them), whereas a
+     * **production https** jar PRESERVES them (stripping `Secure` on https is a
+     * downgrade — tracked as a 014 production-cookie-semantics follow-up).
+     */
+    reconcile?(setCookie: string): void;
   };
   /** In-chamber mediated key/value storage (not real localStorage). */
   readonly storage?: {
@@ -107,6 +120,31 @@ export interface GrantedCapabilities {
     /** ADDED 012-03: push the decisions alloy returned across the chamber
      *  boundary as DATA (the chamber has no DOM — the host applies them). */
     deliver(decisions: readonly Decision[]): void;
+  };
+  /**
+   * Round-trip egress dispatch for the wrapped-SDK archetype — ADDED in slice
+   * 014-01 ([ADR-0010](../docs/decisions/adr-0010-roundtrip-egress-capability.md):
+   * "Wrapped-SDK round-trip egress as a declared-and-gated capability"),
+   * additive-only; the pinned MVP1 fire-and-forget model (`Connector.handle()`
+   * returning `EgressRequest[]`, response never read — see connector.d.ts) is
+   * UNCHANGED and coexists with this surface. The two egress models do NOT
+   * unify (ADR-0010 Option C, rejected): `EgressRequest` carries no response
+   * channel, and the wrapped SDK must read one.
+   *
+   * A stock vendor SDK (alloy, R-004) issues its OWN worker-side `fetch`; the
+   * chamber INTERCEPTS it (chamber-internal transport, unchanged by this
+   * slice) and the orchestrator must post the RESPONSE back so the SDK can
+   * read it synchronously (e.g. persist a server-assigned identity) — a shape
+   * `EgressRequest` cannot carry. `dispatch` is the documented, contract-home
+   * capability surface for that round-trip: declared here (this ADR) AND
+   * gate-able — the orchestrator's OWN implementation of `dispatch` is the
+   * single chokepoint a future seal gates `req` against the connector
+   * manifest's declared `endpoints` / `purposes` (declared-AND-gated, not
+   * either/or). This slice lands the gate-able surface, NOT the teeth — the
+   * seal itself is unbuilt (a later MVP3 enforcement spec).
+   */
+  readonly egress?: {
+    dispatch(req: EgressDispatchRequest): Promise<EgressDispatchResponse>;
   };
 }
 
@@ -143,4 +181,30 @@ export interface DomHandle {
 export interface Decision {
   readonly scope: string;
   readonly content: unknown;
+}
+
+/**
+ * The round-trip egress request descriptor (ADR-0010 / slice 014-01) — a
+ * plain, structured-clone-safe object (not a WHATWG `Request`), settled
+ * during 014-01 implementation against what the chamber's fetch-interception
+ * actually hands over (ADR-0010 Open questions).
+ */
+export interface EgressDispatchRequest {
+  readonly url: string;
+  readonly method?: string;
+  readonly headers?: Record<string, string>;
+  readonly body?: string;
+}
+
+/**
+ * The round-trip egress response descriptor (ADR-0010 / slice 014-01) — the
+ * wrapped SDK reads this synchronously (e.g. to persist a server-assigned
+ * identity), unlike the fire-and-forget `EgressRequest` model, which never
+ * reads a response.
+ */
+export interface EgressDispatchResponse {
+  readonly status: number;
+  readonly statusText?: string;
+  readonly headers?: Record<string, string>;
+  readonly body: string;
 }

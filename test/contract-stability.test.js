@@ -135,6 +135,40 @@ describe("contract stability guard (spec 012-01 AC6 — additive-only)", () => {
     });
   });
 
+  describe("contracts/capability.d.ts — 014-01 additive `egress.dispatch` capability (ADR-0010)", () => {
+    // 014-01 ADDS the round-trip egress capability (ADR-0010): the wrapped-SDK
+    // archetype's declared-AND-gated request/RESPONSE dispatch. ADDITIVE —
+    // every pre-014-01 signature pinned elsewhere in this file stays
+    // byte-identical; this only pins the NEW surface so a later slice cannot
+    // silently narrow/change it before the MVP3 seal binds to it.
+    it("pins the egress?.dispatch(req) method signature on GrantedCapabilities", () => {
+      expect(capabilityDts).toContain("readonly egress?: {");
+      expect(capabilityDts).toContain("dispatch(req: EgressDispatchRequest): Promise<EgressDispatchResponse>;");
+    });
+
+    it("pins the EgressDispatchRequest shape", () => {
+      expect(capabilityDts).toContain("export interface EgressDispatchRequest {");
+      expect(capabilityDts).toContain("readonly url: string;");
+      expect(capabilityDts).toContain("readonly method?: string;");
+      expect(capabilityDts).toContain("readonly headers?: Record<string, string>;");
+      expect(capabilityDts).toContain("readonly body?: string;");
+    });
+
+    it("pins the EgressDispatchResponse shape", () => {
+      expect(capabilityDts).toContain("export interface EgressDispatchResponse {");
+      expect(capabilityDts).toContain("readonly status: number;");
+      expect(capabilityDts).toContain("readonly statusText?: string;");
+      // the response also carries headers? (declared in EgressDispatchResponse) — pin
+      // it so the full serialized shape (per ADR-0010) is guarded, not just status/body.
+      expect(capabilityDts).toContain("readonly headers?: Record<string, string>;");
+      expect(capabilityDts).toContain("readonly body: string;");
+    });
+
+    it("pins the cookies.reconcile write-back sink signature (014-01 — documented, not an undocumented parallel)", () => {
+      expect(capabilityDts).toContain("reconcile?(setCookie: string): void;");
+    });
+  });
+
   describe("additive-only: AC3's new sync surface does not break this guard", () => {
     it("the sync cookie surface added by AC3 is present alongside the pinned async get/set, not in place of them", () => {
       // This guard's job is to fail on CHANGE/REMOVAL of a pinned signature,

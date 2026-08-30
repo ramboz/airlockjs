@@ -1,9 +1,8 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: []
-last_verified:
+last_verified: 2026-08-30
 frame_review: true
-claimed_by: main
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about
@@ -73,16 +72,50 @@ into one seam.
    tested with a bounded assertion (a regression hangs the test, not the suite).
 
 **DoD:**
-- [ ] ACs 1–6 pass — the 012-01 single-chamber scenario runs through `core/` (a `test/` +/or a
+- [x] ACs 1–6 pass — the 012-01 single-chamber scenario runs through `core/` (a `test/` +/or a
       `rig/` harness that drives **core**, not the parallel mirror), green against the stub.
-- [ ] **No GA4 regression** — the MVP1 fire-and-forget path + the OQ10 unload fast path + every GA4
+- [x] **No GA4 regression** — the MVP1 fire-and-forget path + the OQ10 unload fast path + every GA4
       test stay green (GA4 convergence is 014-03; this slice must not break it).
-- [ ] Reviews: compliance + craft + **arch** (this slice adds a core egress model + decides a
+- [x] Reviews: compliance + craft + **arch** (this slice adds a core egress model + decides a
       contract surface — arch-review warranted) + reconciliation, recorded pass.
-- [ ] Deviation log + reconciliation sweep under this slice heading; `docs/refinement-todo.md` (a)+(b)
+- [x] Deviation log + reconciliation sweep under this slice heading; `docs/refinement-todo.md` (a)+(b)
       updated (round-trip egress in core + its contract home resolved for the single-chamber case).
-- [ ] **No live identifiers committed** — if validated against real Edge, redact (deny-by-default,
+- [x] **No live identifiers committed** — if validated against real Edge, redact (deny-by-default,
       per 013-01); the stub path commits no ids by construction.
+
+### Deviation log
+
+_2026-08-30._
+- **Public API shape.** `createWrappedSdkHost` returns `{init, driveEvent, getState}` (not a
+  monolithic "drive") — cleaner mapping onto "boot, then one page event." `createConnectorHost` runs
+  **worker-side** inside the chamber (unchanged); this host is the **main-thread** side.
+- **AC4 probe rig-wired.** The 012-01 AC5 egress self-probe (`probe-egress`/`egress-probe-result`) is
+  driven by the rig harness's own listener, not the host — the host is transport-agnostic and owns the
+  production round-trip protocol only. Deliberate, disclosed in the host docstring.
+- **Contract-home fixes (arch-review [1], blocker).** Both orchestrator-provided main-thread sinks got
+  a documented, pinned contract home: `egress.dispatch` (AC5) **and** `cookies.reconcile` (the async
+  cookie write-back sink) — the latter was an undocumented parallel in the first cut; now in
+  `contracts/capability.d.ts` + `contract-stability`.
+- **Craft hardening (all nits applied).** `driveEvent` re-entry now REJECTS (silent-hang footgun +
+  regression test); the `caps.cookies.reconcile` sink call is try/catch-guarded; the near-timeout test
+  asserts exactly-one-post past `timeoutMs`; the rejecting-dispatch test is bounded. The error-path
+  `statusText` (`String(err.message||err)`) was kept (cleaner; the test expects it).
+
+### Reconciliation sweep
+
+Parallel-and-minimal holds — `core/airlock.js`, `core/chamber.worker.js`, and
+`connectors/alloy/alloy-chamber.worker.js` are **read-only, confirmed unchanged** (git diff empty);
+only a new `core/wrapped-sdk-host.js` + rig + tests + **additive** `contracts/` changes. Full suite
+green (481); the chromium rig (`rig:alloy-core`) green (26 assertions — AC1–4). `docs/refinement-todo.md`
+(a)+(b) resolved for the single-chamber case (round-trip egress in core + its contract home =
+[ADR-0010](../../decisions/adr-0010-roundtrip-egress-capability.md)). **New follow-ups logged** (arch
+concerns, not gates): (arch-2) `reconcileForBrokerJar` strips `Secure` for the localhost rig — a
+production **https** host must preserve it; (arch-3) `GrantedCapabilities` now mixes chamber-facing +
+host-side capabilities; (arch-4) **014-03's "one seam" must reconcile THREE fetch sites** — the async
+`dispatch` cannot host `core/egress.js`'s **synchronous unload fast path**, and `EgressDispatchRequest`
+carries no `keepalive` (ADR-0004); (arch-5) `CapabilityRequest.egress:boolean` can't distinguish the
+two egress models (both 4/5 deferred to 014-03 by ADR-0010's open question). No `architecture.md` drift
+(the new module is the main-thread sibling of the worker-side `connector-host.js`). No live identifiers.
 
 **Anti-horizontal-phasing check:** after this slice, the **shippable runtime gains wrapped-SDK
 round-trip egress + hosting for the first time** — a capability `core/` never had (the rig proof was

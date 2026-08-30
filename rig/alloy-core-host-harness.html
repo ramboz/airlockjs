@@ -1,0 +1,143 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Alloy core-hosted chamber rig (spec 014-01 AC1-4, regression of 012-01 AC5)</title>
+  </head>
+  <body>
+    <h1>Alloy core-hosted chamber — 014-01 AC1-4</h1>
+    <div id="status">booting…</div>
+    <script type="module">
+      // The rig (rig/alloy-core-host.mjs) builds connectors/alloy/alloy-chamber.worker.js
+      // (UNCHANGED — spec 012-01's chamber; this slice does not modify it) into
+      // a CLASSIC IIFE and serves the stock bundle exactly like
+      // rig/alloy-chamber.mjs. UNLIKE that rig, this harness's main-thread
+      // logic is NOT inline: the round-trip egress dispatch + cookie
+      // write-back reconciliation are core/wrapped-sdk-host.js (spec 014-01)
+      // — the code under test — imported as a real ES module and driven
+      // against a real Worker chamber + a real main-thread fetch to this
+      // rig's minting-Edge stub. This proves the 012-01 single-chamber
+      // scenario now runs through core/, not a rig-only mirror.
+      import { createWrappedSdkHost } from "/core/wrapped-sdk-host.js";
+
+      const WORKER_URL = "/rig/out/alloy-core-host.worker.built.js";
+      const BUNDLE_URL = "/probes/alloy-worker/node_modules/@adobe/alloy/dist/alloy.js";
+      const REMOTE_LOADER_URL = location.origin + "/__egress_probe_module__.mjs";
+
+      // Host-owned alloy config (R-004 shape) — passed via `config`, not baked
+      // into the connector. Byte-identical to rig/alloy-chamber.mjs's CONFIG.
+      const CONFIG = {
+        datastreamId: "00000000-0000-0000-0000-000000000000",
+        orgId: "SPIKE@AdobeOrg",
+        context: [],
+        debugEnabled: true,
+      };
+      const EVENT = {
+        seq: 1,
+        type: "page_view",
+        ts: 10,
+        params: { page_location: "https://airlock.example/", page_title: "airlock" },
+        payload: {},
+        snapshot: {},
+      };
+
+      const statusEl = document.getElementById("status");
+      const worker = new Worker(WORKER_URL); // CLASSIC worker (no { type: "module" })
+
+      // The chamber transport createWrappedSdkHost is driven through — a thin
+      // message-port-like adapter over the real Worker. `onMessage` wires via
+      // `addEventListener` (not the single-slot `worker.onmessage`) so this
+      // harness can ALSO independently listen for the 012-01 AC5 probe-result
+      // message below without stealing the host's own subscription.
+      const chamber = {
+        postMessage: (msg) => worker.postMessage(msg),
+        onMessage: (cb) => worker.addEventListener("message", (e) => cb(e.data)),
+      };
+
+      // caps.egress.dispatch — the ADR-0010 capability's orchestrator-side
+      // IMPLEMENTATION: the REAL network fetch, on MAIN (ADR-0004), rewriting
+      // alloy's absolute Edge URL to this rig's same-origin minting-Edge stub
+      // (the broker controls the egress destination — a real orchestrator
+      // would fetch the given URL directly; core/wrapped-sdk-host.js itself
+      // is transport-agnostic and knows nothing about this rig-only rewrite).
+      const caps = {
+        egress: {
+          async dispatch(req) {
+            let target = req.url;
+            try {
+              const u = new URL(req.url);
+              target = u.pathname + u.search;
+            } catch (err) {
+              /* keep the raw url if it doesn't parse */
+            }
+            const res = await fetch(target, { method: req.method || "POST", headers: req.headers || {}, body: req.body });
+            const body = await res.text();
+            return {
+              status: res.status,
+              statusText: res.statusText,
+              headers: { "content-type": res.headers.get("content-type") || "application/json" },
+              body,
+            };
+          },
+        },
+        cookies: {
+          // The REAL jar, this page's origin — core/wrapped-sdk-host.js has
+          // already reconciled away the origin-incompatible attributes.
+          reconcile: (reconciled) => {
+            try {
+              document.cookie = reconciled;
+            } catch (err) {
+              /* ignore */
+            }
+          },
+        },
+      };
+
+      const host = createWrappedSdkHost({ chamber, caps, timeoutMs: 5000 });
+
+      worker.onerror = (e) => {
+        statusEl.textContent = "WORKER ONERROR";
+        window.__ALLOY_CORE_HOST_RESULT__ = { workerError: e.message, filename: e.filename, lineno: e.lineno };
+      };
+
+      // AC4 (this slice's regression re-run of 012-01's AC5): listen
+      // INDEPENDENTLY for the chamber's adversarial egress-probe result
+      // (unchanged 012-01 chamber protocol) — a rig-only concern the host
+      // itself does not need to know about (see its own module docstring).
+      worker.addEventListener("message", (e) => {
+        const m = e.data || {};
+        if (m.type === "egress-probe-result") {
+          statusEl.textContent = "DONE";
+          const st = host.getState();
+          window.__ALLOY_CORE_HOST_RESULT__ = {
+            summary: st.summary,
+            ready: st.ready,
+            phases: st.phases,
+            writeBacks: st.writeBacks,
+            mainDispatch: st.mainDispatch,
+            egressProbe: { probes: m.probes, remoteLoader: m.remoteLoader, confinement: m.confinement },
+          };
+        }
+      });
+
+      host.init({ cookie: document.cookie, config: CONFIG, bundleUrl: BUNDLE_URL });
+      host.driveEvent(EVENT)
+        .then(() => {
+          statusEl.textContent = "PROBING EGRESS";
+          worker.postMessage({ type: "probe-egress", remoteLoaderUrl: REMOTE_LOADER_URL });
+        })
+        .catch((err) => {
+          statusEl.textContent = "FATAL";
+          const st = host.getState();
+          window.__ALLOY_CORE_HOST_RESULT__ = {
+            fatal: (err && err.message) || String(err),
+            fatalDetail: err && err.detail,
+            summary: st.summary,
+            phases: st.phases,
+            writeBacks: st.writeBacks,
+            mainDispatch: st.mainDispatch,
+          };
+        });
+    </script>
+  </body>
+</html>
