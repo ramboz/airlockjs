@@ -131,3 +131,53 @@ describe("alloy connector (spec 012-01 AC2)", () => {
     await expect(connector.init({})).rejects.toThrow(/alloy/i);
   });
 });
+
+// Spec 012-03 AC1/AC2: `sendEvent({ renderDecisions:false })` returns Target
+// decisions as DATA; the connector delivers the __view__ propositions to the host
+// through the granted `decisions` capability. The chamber touches no DOM.
+describe("alloy connector — decisions-as-data delivery (spec 012-03 AC1/AC2)", () => {
+  /** A fake alloy whose sendEvent resolves to a result carrying __view__ propositions. */
+  function fakeAlloyWithDecisions(propositions) {
+    return vi.fn((command) =>
+      Promise.resolve(command === "sendEvent" ? { propositions } : undefined),
+    );
+  }
+  const viewProp = { id: "AT:p1", scope: "__view__", scopeDetails: {}, items: [{ schema: "https://ns.adobe.com/personalization/html-content-item", data: { content: "<b/>" } }] };
+
+  it("delivers the __view__ decisions through caps.decisions.deliver (crossed as data)", async () => {
+    const alloy = fakeAlloyWithDecisions([viewProp]);
+    const deliver = vi.fn();
+    const connector = createAlloyConnector({ ...baseConfig(), alloy });
+    await connector.init({ decisions: { deliver } });
+
+    const out = await connector.handle(pageView());
+
+    expect(deliver).toHaveBeenCalledTimes(1);
+    const delivered = deliver.mock.calls[0][0];
+    expect(delivered).toHaveLength(1);
+    expect(delivered[0].scope).toBe("__view__");
+    expect(delivered[0].content.id).toBe("AT:p1");
+    expect(out).toEqual([]); // still no orchestrator EgressRequest
+  });
+
+  it("does NOT deliver when the response carries no propositions (no spurious call)", async () => {
+    const alloy = fakeAlloyWithDecisions([]);
+    const deliver = vi.fn();
+    const connector = createAlloyConnector({ ...baseConfig(), alloy });
+    await connector.init({ decisions: { deliver } });
+    await connector.handle(pageView());
+    expect(deliver).not.toHaveBeenCalled();
+  });
+
+  it("is a no-op (never throws) when NO decisions capability is granted — 012-01/012-02 unaffected", async () => {
+    const alloy = fakeAlloyWithDecisions([viewProp]);
+    const connector = createAlloyConnector({ ...baseConfig(), alloy });
+    await connector.init({}); // no decisions capability granted
+    await expect(connector.handle(pageView())).resolves.toEqual([]);
+  });
+
+  it("manifest requests the `decisions` capability (declares it produces decisions data)", () => {
+    const { manifest } = createAlloyConnector(baseConfig());
+    expect(manifest.capabilities.decisions).toBe(true);
+  });
+});

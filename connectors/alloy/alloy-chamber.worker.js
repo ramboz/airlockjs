@@ -103,6 +103,18 @@ function buildCaps(seedCookie) {
     storage: {
       get: async () => null, set: async () => {}, remove: async () => {},
     },
+    // 012-03: the decisions-as-data return channel. The connector calls
+    // `deliver` with the Target decisions alloy returned (renderDecisions:false);
+    // the chamber posts them to MAIN as DATA (the host applies them via
+    // reserveSpace — the worker touches NO DOM, AC2). `fetch` is the deferred
+    // capability.d.ts pull shape, reconciled to a no-op here since alloy PUSHES
+    // decisions on the sendEvent response rather than answering a separate fetch.
+    // Additive: 012-01/012-02 responses carry no propositions, so `deliver` is
+    // never called there and no "decisions" message is posted.
+    decisions: {
+      deliver: (decisions) => { post("decisions", { decisions }); },
+      fetch: async () => [],
+    },
   };
   summary.syncSurfacePresent = typeof caps.cookies.sync.readSync === "function"
     && typeof caps.cookies.sync.writeSync === "function";

@@ -78,6 +78,69 @@ export function mintInteractResponse(requestId = "airlock-mint-req") {
   return { response, ecid };
 }
 
+/** The html-content-item schema whose `data.content` is the HTML the host applies. */
+const HTML_CONTENT_ITEM_SCHEMA = "https://ns.adobe.com/personalization/html-content-item";
+let decisionCounter = 0;
+
+/**
+ * Build a `personalization:decisions` handle carrying ONE Target proposition for
+ * the `__view__` scope — spec 012-03, AC1. This is the Edge-side shape alloy
+ * surfaces as `result.propositions` under `renderDecisions:false` (headless):
+ * `{ id, scope, scopeDetails, items: [{ schema, data: { content } }] }` (the
+ * documented XDM Personalization proposition, grounded against alloy 2.35.0's
+ * `personalization:decisions` / `__view__` / `html-content-item` tokens).
+ *
+ * @param {{ html?: string, scope?: string, propositionId?: string,
+ *           activityId?: string, experienceId?: string }} [opts]
+ * @returns {{ type: string, payload: Array<object> }}
+ */
+export function personalizationDecisionsHandle(opts = {}) {
+  const {
+    html = "<div data-airlock-decision>Personalized</div>",
+    scope = "__view__",
+    propositionId = "AT:airlock-" + (++decisionCounter),
+    activityId = "airlock-activity-" + decisionCounter,
+    experienceId = "airlock-experience-0",
+  } = opts;
+  const proposition = {
+    id: propositionId,
+    scope,
+    scopeDetails: {
+      decisionProvider: "TGT",
+      activity: { id: activityId },
+      experience: { id: experienceId },
+      strategies: [{ algorithmID: "0", trafficType: "0" }],
+      characteristics: { eventToken: "airlock-token" },
+    },
+    items: [
+      {
+        id: "airlock-item-" + decisionCounter,
+        schema: HTML_CONTENT_ITEM_SCHEMA,
+        data: { id: "airlock-data-" + decisionCounter, format: "text/html", content: html, type: "text/html" },
+      },
+    ],
+  };
+  return { type: "personalization:decisions", payload: [proposition] };
+}
+
+/**
+ * Build an Edge `interact` response carrying BOTH the identity mint (012-01) AND a
+ * `__view__` Target decision (012-03) — the response the decisions rig's stub
+ * returns. alloy persists the ECID (unchanged 012-01 path) and surfaces the
+ * proposition as `result.propositions` (renderDecisions:false), which the host
+ * applies through `reserveSpace`.
+ *
+ * @param {{ html?: string, requestId?: string, activityId?: string, experienceId?: string }} [opts]
+ * @returns {{ response: { requestId: string, handle: Array<object> }, ecid: string, proposition: object }}
+ */
+export function mintDecisionsResponse(opts = {}) {
+  const { html, requestId, activityId, experienceId } = opts;
+  const { response, ecid } = mintInteractResponse(requestId);
+  const decisionsHandle = personalizationDecisionsHandle({ html, activityId, experienceId });
+  response.handle.push(decisionsHandle);
+  return { response, ecid, proposition: decisionsHandle.payload[0] };
+}
+
 /**
  * Gate-able minting-Edge stub — spec 012-02, AC5.
  *

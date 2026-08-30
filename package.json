@@ -19,6 +19,7 @@
     "rig:coherency": "node rig/coherency.mjs",
     "rig:alloy": "node rig/alloy-chamber.mjs",
     "rig:alloy-coalescing": "node rig/alloy-coalescing.mjs",
+    "rig:alloy-decisions": "node rig/alloy-decisions.mjs",
     "lh": "node rig/lh.mjs",
     "lh:eds": "node rig/lh-eds.mjs",
     "cwv:budget": "node rig/cwv-budget.mjs"

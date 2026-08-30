@@ -1,0 +1,199 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Alloy Target decisions — CWV-safe host-apply (spec 012-03)</title>
+    <style>
+      /* The page is born HIDDEN; first paint is gated on `appear` (R-005 / uc1):
+         so the eager reserve (before appear) can never flicker. */
+      html, body { margin: 0; padding: 0; }
+      body { visibility: hidden; }
+      #header { height: 120px; background: #eee; }
+      #below, #control-below, #raw-below { height: 80px; background: #ddd; }
+      #hero, #control-hero, #raw-hero { background: #cfe; }
+    </style>
+  </head>
+  <body>
+    <div id="header">header (above the fold)</div>
+    <!-- the eager-reserved personalization box: empty at reserve-time, filled lazily -->
+    <div id="hero"></div>
+    <div id="below">sentinel below hero</div>
+
+    <!-- CONTROL: a POST-paint reserve (must FAIL leg c — reserved after appear) -->
+    <div id="control-hero"></div>
+    <div id="control-below">sentinel below control</div>
+
+    <!-- ADVISORY control: a RAW un-reserved inject (shifts its sentinel — a reflow) -->
+    <div id="raw-hero"></div>
+    <div id="raw-below">sentinel below raw</div>
+
+    <script type="module">
+      // Spec 012-03 — Target personalization applied CWV-safely above the fold.
+      //
+      // MIRRORS rig/uc1.mjs's STRUCTURAL no-flicker invariant (R-005): from
+      // same-thread performance.now() marks, the reserve happens BEFORE body:appear
+      // (applied-before-paint), and the reserved box's geometry — and the position
+      // of surrounding content — is UNCHANGED reserve→fill (getBoundingClientRect,
+      // deterministic in headless, unlike paint timestamps). The reserve _spec_
+      // (selector + minHeight) is eager / config-sourced; the DECISION is lazy
+      // (alloy boots after appear, AD-8) and merely FILLS the pre-reserved box.
+      //
+      // The host applies the decision ONLY through the mediated reserveSpace
+      // capability (adapters/eds/dom.js) — never a raw DOM write. The worker
+      // touches NO DOM: the propositions cross the boundary as DATA (a "decisions"
+      // message). Exposure is reported through the GENERIC push→ring→beacon capture
+      // with a NEW proposition→exposure mapping.
+      import { createDomCapability } from "/adapters/eds/dom.js";
+      import { htmlOfDecision } from "/connectors/alloy/decisions.js";
+      import { createPropositionExposureReporter } from "/adapters/eds/decisions-exposure.js";
+      import { createGenericCapture } from "/rig/generic-capture.js";
+
+      const WORKER_URL = "/rig/out/alloy-decisions.worker.built.js";
+      const BUNDLE_URL = "/probes/alloy-worker/node_modules/@adobe/alloy/dist/alloy.js";
+      const CONFIG = { datastreamId: "00000000-0000-0000-0000-000000000000", orgId: "SPIKE@AdobeOrg", context: [], debugEnabled: true };
+      const EVENT = { seq: 1, type: "page_view", ts: 10, params: { page_location: "https://airlock.example/", page_title: "airlock" }, payload: {}, snapshot: {} };
+      // The eager / config-sourced reserve spec — known BEFORE paint (not from the
+      // decision). minHeight 300 > the decision's content height, so the fill fits.
+      const RESERVE_SPEC = { selector: "#hero", minHeight: 300, prehide: true, timeout: 5000 };
+
+      // ---- uc1-style same-thread marks (the reliable structural-order proof) ----
+      window.__flicker = { events: [] };
+      const mark = (name) => window.__flicker.events.push({ name, t: performance.now() });
+      const markT = (name) => { const e = window.__flicker.events.find((x) => x.name === name); return e ? e.t : null; };
+      const rectOf = (sel) => { const el = document.querySelector(sel); if (!el) return null; const r = el.getBoundingClientRect(); return { top: r.top, left: r.left, width: r.width, height: r.height }; };
+      const visOf = (sel) => { const el = document.querySelector(sel); return el ? getComputedStyle(el).visibility : null; };
+
+      const fail = (message, extra) => { window.__ALLOY_DECISIONS_RESULT__ = { fatal: message, ...(extra || {}) }; };
+
+      async function main() {
+        mark("script:start");
+        const caps = { dom: createDomCapability(document) };
+
+        // ---- 1. EAGER reserve (BEFORE appear), from the config-sourced spec ----
+        mark("reserve:#hero");
+        let handle;
+        try {
+          handle = await caps.dom.reserveSpace(RESERVE_SPEC);
+        } catch (e) { return fail("reserveSpace threw: " + (e && e.message)); }
+        const reserveRects = { hero: rectOf("#hero"), below: rectOf("#below") };
+        const reserveVisibility = visOf("#hero"); // prehidden → "hidden" (AC4)
+
+        // ---- 2. APPEAR — the paint gate (mirror uc1: born hidden, reveal here) ----
+        mark("body:appear");
+        document.body.style.visibility = "visible";
+
+        // ---- 3. LAZY: boot the alloy chamber, drive one event, get decisions ----
+        let decisions = null, chamberFatal = null;
+        try {
+          decisions = await runChamber();
+        } catch (e) { chamberFatal = String((e && e.message) || e); }
+        if (chamberFatal) return fail("chamber: " + chamberFatal);
+        if (!decisions || !decisions.length) return fail("no decisions delivered from the chamber", { decisions });
+        mark("decisions:received");
+        const decision = decisions[0];
+        const html = htmlOfDecision(decision);
+        if (!html) return fail("decision carried no renderable html", { decision });
+
+        // ---- 4. APPLY through the MEDIATED helper (leg a — never a raw write) ----
+        handle.fill(html);
+        mark("fill:#hero");
+        const fillRects = { hero: rectOf("#hero"), below: rectOf("#below") };
+        const fillVisibility = visOf("#hero"); // revealed on fill → "visible" (AC4)
+
+        // ---- 5. EXPOSURE via the GENERIC push→ring→beacon capture (AC5) ----
+        const beaconPromises = [];
+        const capture = createGenericCapture({
+          beacon: (evt) => {
+            beaconPromises.push(
+              fetch("/airlock-exposure", { method: "POST", body: JSON.stringify(evt), keepalive: true }).catch(() => {}),
+            );
+          },
+        });
+        createPropositionExposureReporter(capture, { seen: new Set() }).reportAll(decisions);
+        capture.flush(); // drain the ring → fire the exposure beacon(s)
+        await Promise.all(beaconPromises);
+
+        // ---- 6. CONTROL: a POST-paint reserve (must FAIL leg c — after appear) ----
+        mark("reserve:#control-hero");
+        try { await caps.dom.reserveSpace({ selector: "#control-hero", minHeight: 200, prehide: false }); } catch (e) {}
+
+        // ---- ADVISORY: a RAW un-reserved inject shifts its sentinel (a reflow) ----
+        const rawBefore = rectOf("#raw-below");
+        document.querySelector("#raw-hero").innerHTML = '<div style="height:300px">raw un-reserved inject</div>';
+        const rawAfter = rectOf("#raw-below");
+
+        window.__ALLOY_DECISIONS_RESULT__ = {
+          marks: window.__flicker.events.map((e) => e.name),
+          markTimes: {
+            reserveHero: markT("reserve:#hero"),
+            bodyAppear: markT("body:appear"),
+            fillHero: markT("fill:#hero"),
+            reserveControl: markT("reserve:#control-hero"),
+          },
+          decisions,
+          decision_html: html,
+          reserveRects, fillRects,
+          reserveVisibility, fillVisibility,
+          // leg a — the mediated markers the capability stamped (raw inject has none)
+          heroReservedAttr: document.querySelector("#hero").getAttribute("data-airlock-reserved"),
+          heroFilledAttr: document.querySelector("#hero").getAttribute("data-airlock-filled"),
+          heroInnerHtml: document.querySelector("#hero").innerHTML,
+          rawHeroReservedAttr: document.querySelector("#raw-hero").getAttribute("data-airlock-reserved"),
+          rawHeroFilledAttr: document.querySelector("#raw-hero").getAttribute("data-airlock-filled"),
+          // advisory CLS corroboration (NOT the gate)
+          rawInjectSentinelShiftPx: rawAfter && rawBefore ? rawAfter.top - rawBefore.top : null,
+          exposureBeaconsSent: capture.sent.slice(),
+          workerNoRealFetch: chamberSummary && chamberSummary.workerRealFetchCalls,
+        };
+      }
+
+      // ---- the alloy chamber (single classic worker; mirror of alloy-chamber-harness) ----
+      let chamberSummary = null;
+      function reconcileForBrokerJar(raw) {
+        return String(raw).split(";").map((s) => s.trim()).filter((seg) => {
+          const s = seg.toLowerCase();
+          return !s.startsWith("domain=") && s !== "secure" && !s.startsWith("samesite=");
+        }).join("; ");
+      }
+      async function dispatchInterceptedFetch(worker, m) {
+        let target = m.url;
+        try { const u = new URL(m.url); target = u.pathname + u.search; } catch (e) {}
+        try {
+          const res = await fetch(target, { method: m.method || "POST", headers: m.headers || {}, body: m.body });
+          const body = await res.text();
+          worker.postMessage({ type: "intercepted-fetch-response", id: m.id, status: res.status, statusText: res.statusText, headers: { "content-type": res.headers.get("content-type") || "application/json" }, body });
+        } catch (err) {
+          worker.postMessage({ type: "intercepted-fetch-response", id: m.id, status: 0, statusText: String(err), body: "" });
+        }
+      }
+      function runChamber() {
+        return new Promise((resolve, reject) => {
+          const worker = new Worker(WORKER_URL); // CLASSIC worker
+          let delivered = null;
+          worker.onmessage = (e) => {
+            const m = e.data || {};
+            if (m.type === "phase") {
+              if (m.name === "configured") worker.postMessage({ type: "event", event: EVENT });
+            } else if (m.type === "intercepted-fetch") {
+              dispatchInterceptedFetch(worker, m);
+            } else if (m.type === "cookie-writeback") {
+              try { document.cookie = reconcileForBrokerJar(m.value); } catch (err) {}
+            } else if (m.type === "decisions") {
+              delivered = m.decisions; // the propositions crossed the boundary as DATA
+            } else if (m.type === "result") {
+              chamberSummary = m.summary;
+              resolve(delivered); // decisions were delivered before this (or null)
+            } else if (m.type === "fatal") {
+              chamberSummary = m.summary;
+              reject(new Error(m.message || "chamber fatal"));
+            }
+          };
+          worker.onerror = (e) => reject(new Error("worker onerror: " + e.message));
+          worker.postMessage({ type: "init", cookie: "", config: CONFIG, bundleUrl: BUNDLE_URL });
+        });
+      }
+
+      main().catch((e) => fail("harness threw: " + ((e && e.stack) || e)));
+    </script>
+  </body>
+</html>

@@ -23,7 +23,9 @@
  *  - Event-payload read governance (OQ11): the payload reaches the connector via
  *    AirlockEvent.payload; a denylist model is deferred, coupled to OQ3.
  *  - decisions-as-data / host-applied personalization for the wrapped-SDK
- *    archetype (renderDecisions:false — R-004): sketched as `decisions` below.
+ *    archetype (renderDecisions:false — R-004): sketched as `decisions` below,
+ *    FINALIZED in slice 012-03 (push `deliver` reconciled with the `fetch` sketch;
+ *    `reserveSpace` / `DomHandle.fill` host-apply implemented — adapters/eds/dom.js).
  */
 
 /** What a connector requests in its manifest (default-deny; host grants a subset). */
@@ -93,9 +95,18 @@ export interface GrantedCapabilities {
     insertAfterInteraction(spec: InsertSpec): Promise<DomHandle>;
   };
   /** Personalization decisions delivered as data for the host to apply.
-   *  Deferred shape — finalized with the MVP2 wrapped-SDK connector. */
+   *  FINALIZED in slice 012-03 (the MVP2 wrapped-SDK connector): the deferred
+   *  `fetch(scopes)` PULL sketch is reconciled with alloy's actual flow. alloy
+   *  (renderDecisions:false — R-004) does not answer a separate fetch; it PUSHES
+   *  the propositions on the `sendEvent` interact response. So the connector calls
+   *  `deliver(decisions)` from inside the chamber and the orchestrator hands them
+   *  to the host (which applies them via `dom.reserveSpace`). `fetch` is retained
+   *  (additive-only; existing shape byte-identical) for a future pull consumer. */
   readonly decisions?: {
     fetch(scopes: readonly string[]): Promise<readonly Decision[]>;
+    /** ADDED 012-03: push the decisions alloy returned across the chamber
+     *  boundary as DATA (the chamber has no DOM — the host applies them). */
+    deliver(decisions: readonly Decision[]): void;
   };
 }
 
@@ -121,6 +132,11 @@ export interface InsertSpec {
 export interface DomHandle {
   readonly id: string;
   release(): void;
+  /** ADDED 012-03: fill the PRE-RESERVED box with the decision content. The box
+   *  was sized at reserve-time (before paint), so a fill of content <= the reserve
+   *  causes no reflow (UC-1 no-flicker). Optional (additive-only): a handle from a
+   *  future insert path need not implement it. */
+  fill?(content: string): void;
 }
 
 /** A personalization decision (data, not applied). Deferred detail. */

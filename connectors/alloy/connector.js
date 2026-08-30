@@ -1,3 +1,5 @@
+import { extractDecisions, VIEW_SCOPE } from "./decisions.js";
+
 /**
  * Alloy wrapped-SDK connector — spec 012-01.
  *
@@ -30,6 +32,16 @@
  * in the chamber (alloy-chamber.worker.js), not here — this connector stays free
  * of any direct global/DOM/network reach.
  *
+ * DECISIONS-AS-DATA (spec 012-03, AC1/AC2): `sendEvent({ renderDecisions:false })`
+ * fetches Target personalization from the Edge and returns it as DATA
+ * (propositions) — the chamber has no DOM, so nothing is rendered here. `handle`
+ * extracts the `__view__` decisions from the alloy result and pushes them across
+ * the boundary through the granted `caps.decisions.deliver` capability (the HOST
+ * applies them via `reserveSpace`). This RECONCILES the deferred `decisions.fetch`
+ * pull sketch (capability.d.ts) with alloy's actual push-from-`sendEvent`-response
+ * flow — additive, and a no-op when no `decisions` capability is granted (GA4 /
+ * 012-01 / 012-02 paths, whose responses carry no propositions, are unaffected).
+ *
  * @param {Readonly<Record<string, unknown>>} [config] host-owned alloy config:
  *   `{ datastreamId, orgId, context?, alloy?, ...configureExtras }`.
  * @returns {import("../../contracts/connector").Connector}
@@ -40,8 +52,14 @@ export function createAlloyConnector(config = {}) {
     orgId,
     context = [], // [] disables ambient auto-collection — the chamber is headless (R-004)
     alloy, // the injected command fn; defaults to the chamber's self.alloy global
+    decisionScope = VIEW_SCOPE, // the personalization scope the host applies (R-004)
     ...configureExtras // debugEnabled / edgeDomain / etc. pass through to configure
   } = config;
+
+  // The granted capabilities, captured at init — `handle` delivers decisions
+  // through `granted.decisions` (the push channel to the host). No capability
+  // granted → decisions delivery is a no-op (GA4/012-01/012-02 unchanged).
+  let granted = null;
 
   /** Resolve the alloy command fn (injected, else the chamber global). Throws a
    *  diagnosable error rather than a bare TypeError if the chamber is mis-wired. */
@@ -70,17 +88,21 @@ export function createAlloyConnector(config = {}) {
       cookies: ["com.adobe.alloy.getTld", "kndctr_", "AMCV_", "demdex", "s_ecid"],
       // it emits one interact request (captured in-chamber this slice).
       egress: true,
+      // it returns Target personalization as data for the host to apply (012-03).
+      decisions: true,
     },
   };
 
   /**
    * Boot alloy: `configure` exactly once (createConnectorHost guarantees a
-   * single call). `caps` is accepted for contract conformance; alloy consumes
-   * the sync-cookie capability INDIRECTLY through the chamber's document shim,
-   * so the connector body does not touch `caps`.
-   * @param {import("../../contracts/capability").GrantedCapabilities} _caps
+   * single call). alloy consumes the sync-cookie capability INDIRECTLY through
+   * the chamber's document shim, so the connector body does not touch cookies;
+   * `caps` is captured so `handle` can DELIVER decisions through
+   * `caps.decisions` (012-03) — a no-op when that capability is not granted.
+   * @param {import("../../contracts/capability").GrantedCapabilities} caps
    */
-  async function init(_caps) {
+  async function init(caps) {
+    granted = caps || null;
     await getAlloy()("configure", {
       datastreamId,
       orgId,
@@ -90,16 +112,25 @@ export function createAlloyConnector(config = {}) {
   }
 
   /**
-   * Map one event to an alloy `sendEvent`. Returns [] — no orchestrator
-   * EgressRequest this slice (see SCOPE above).
+   * Map one event to an alloy `sendEvent`, then DELIVER the returned Target
+   * decisions (headless, `renderDecisions:false`) to the host as DATA through the
+   * granted `decisions` capability — the chamber never touches the DOM (AC2).
+   * Returns [] — no orchestrator EgressRequest this slice (alloy's own interact
+   * fetch rides the intercepted→main-dispatch path, see SCOPE above).
    * @param {import("../../contracts/connector").AirlockEvent} event
    * @returns {Promise<import("../../contracts/connector").EgressRequest[]>}
    */
   async function handle(event) {
-    await getAlloy()("sendEvent", {
+    const result = await getAlloy()("sendEvent", {
       renderDecisions: false, // headless personalization: decisions as data (R-004)
       xdm: toXdm(event),
     });
+    // 012-03: the propositions cross the boundary as DATA via the granted
+    // decisions capability (push, reconciled with the deferred `fetch` sketch).
+    const decisions = extractDecisions(result, { scope: decisionScope });
+    if (decisions.length && granted && granted.decisions && typeof granted.decisions.deliver === "function") {
+      granted.decisions.deliver(decisions);
+    }
     return [];
   }
 
