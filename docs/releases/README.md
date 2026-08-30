@@ -12,7 +12,6 @@ they stop informing a current release decision.
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| [MVP2](mvp2.md) | Isolation / generalization proof — **proof complete 2026-08-29: cutline delivered (specs 011 + 012, ADR-0008/0009), green end-to-end.** alloy runs unmodified in a chamber, coalesced identity, CWV-safe personalization, against unchanged contracts. Awaiting a release decision; live-Alloy re-probe + seam enforcement → MVP3. | JIG handoff: [MVP3](mvp3.md) |
 | [MVP3](mvp3.md) | Secure the I/O seams — turn ADR-0006/0007 declaration into enforced least-privilege against alloy's characterized behaviour. **Risk-First lead: the creds-gated live-Alloy re-probe** (real Edge response / demdex fan-out / cluster routing); then the wrapped-SDK contract-freeze + core-integration/hardening debt. | Inputs: [012-04 characterization](../specs/012-mvp2-alloy-chamber/slice-04-manifest-characterize.md), [refinement-todo](../refinement-todo.md). |
 
 ## Committed
@@ -33,6 +32,7 @@ Recently shipped release plans stay here only while they inform current decision
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
+| [MVP2](mvp2.md) | **Cut `v0.2.0` (2026-08-29)** — the wrapped-SDK generalization proof: stock alloy runs unmodified in a chamber (coalesced identity, CWV-safe personalization) against the unchanged MVP1 contract. A proof, not a production rollout. | JIG handoff: [MVP3](mvp3.md) (live-Alloy re-probe + enforcement) |
 | [MVP1](mvp1.md) | Martech is the dominant source of CWV regression and a live supply-chain risk, | JIG handoff: [probes/eds-testbed](../../probes/eds-testbed/), [contracts/](../../contracts/README.md) |
 
 ## Dropped

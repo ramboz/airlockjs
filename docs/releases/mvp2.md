@@ -2,11 +2,22 @@
 
 ## Status
 
-`candidate`
+`shipped`
 
 Allowed statuses: `candidate`, `committed`, `shipping`, `shipped`, `dropped`.
 Do not move a plan from `candidate` to `committed` without an explicit user
 decision. **MVP2 does not start until MVP1's risk-retirement bet is retired.**
+
+> **Cut 2026-08-29 as `v0.2.0`** (explicit user decision; released on the public GitHub
+> repo `ramboz/airlockjs`). All Include cutline items DONE — the **wrapped-SDK
+> generalization is proven**: stock alloy runs unmodified in a chamber (egress-confined,
+> coalesced identity, CWV-safe personalization) against the additively-extended MVP1
+> contract (specs 011 + 012, ADR-0008 / ADR-0009); green end-to-end (307 vitest + 3 alloy
+> rigs in chromium; GA4 unregressed; `core/` untouched). A **proof, not a production
+> rollout** — proven against faithful stubs; the live-Alloy credentials re-probe, the
+> wrapped-SDK contract-freeze, ADR-0006/0007 enforcement, and the core-integration /
+> hardening debt (incl. the `reserveSpace` `innerHTML` / Trusted-Types security boundary)
+> are the deferred [MVP3](mvp3.md) follow-ups (see **Delivery status** below).
 
 ## Problem / Baseline
 
