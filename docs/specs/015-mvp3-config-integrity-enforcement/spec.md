@@ -27,6 +27,13 @@ dispatch is **held** — no real fetch leaves. A deviation is: the outbound **ho
 (pollution), or ≠ the host-pinned value. Failing closed on the clearest attack (a valid attacker tenant
 on the allowed host) is the point — silently correcting-and-sending it would forward the *attacker-shaped
 body* into the honest tenant (a data-integrity injection; the `orgId`/body co-vector 013-03 left open).
+**Scope of the check surface (015-01 ADR frame-critique).** The control keys on the outbound **URL**
+(host + query tenant key). alloy's `orgId` rides in the **body**, not the URL, and 013-03 left open
+whether `orgId` is an *independent* routing/identity vector — so an honest-`configId`-URL request
+carrying an attacker `orgId` in the body would pass **unheld and unalerted**. That body-only co-vector
+is an **unverified, currently-silent residual** ([ADR-0011](../../decisions/adr-0011-config-integrity-enforcement.md)
+Kill criteria + residual; tracked in [refinement-todo](../../refinement-todo.md)), **not** covered
+by this URL-surface control — named honestly rather than claimed neutralized.
 
 **OVERRIDE is a named availability OPTION, not the default (015-02).** For deployments that prefer
 *keep-working* over *block*, an opt-in **override** re-derives the dispatch to the host-pinned host +

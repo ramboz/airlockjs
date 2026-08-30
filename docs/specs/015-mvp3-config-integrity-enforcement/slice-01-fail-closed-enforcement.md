@@ -57,9 +57,11 @@ connector) so the machinery is proven small.
    chamber egressing to a foreign host → **held** + alerted; the honest host+tenant → **allowed** + silent.
 7. **The config-integrity ADR authored + Accepted.** The disposition — **hold-fail-closed default
    (incl. the host); override a named availability option (015-02); GA4 a deliberate deferral (same
-   `measurement_id` threat, not immune); the `orgId`/body co-vector a named residual** — is recorded (a
-   new ADR; ADR-0006's endpoint ceiling is tenant-blind). Authored as this slice's first step,
-   frame-critiqued + accepted.
+   `measurement_id` threat, not immune); the `orgId`/body co-vector an UNVERIFIED, currently-SILENT
+   residual (the check surface is the URL only — an honest-`configId`-URL + attacker-`orgId`-body
+   request passes unheld and unalerted; 013-03 left `orgId` routing-relevance open)** — is recorded
+   ([ADR-0011](../../decisions/adr-0011-config-integrity-enforcement.md); ADR-0006's endpoint ceiling
+   is tenant-blind). Authored as this slice's first step, frame-critiqued + accepted.
 
 **DoD:**
 - [ ] ACs 1–7 pass — a re-pointed / foreign-host core-hosted chamber is **held** + alerted; the honest
@@ -73,6 +75,8 @@ connector) so the machinery is proven small.
 - [ ] **No live identifiers committed** — synthetic datastreams/hosts only (013-03); the diagnostic
       redacts identifier values; the stub path commits no ids.
 
-**Anti-horizontal-phasing check:** after this slice, a compromised chamber **cannot** exfiltrate to an
-attacker tenant on the allowed host **nor** to a foreign host — its deviating egress is **blocked** at
-the core seam and surfaced. Observable value: the 013-03 threat, neutralized fail-closed in `core/`.
+**Anti-horizontal-phasing check:** after this slice, a compromised chamber **cannot** exfiltrate **via
+the URL tenant key** (`configId`) to an attacker tenant on the allowed host **nor** to a foreign host
+— its deviating egress is **blocked** at the core seam and surfaced. Observable value: the 013-03
+URL-`configId` threat, neutralized fail-closed in `core/`. (A body-only `orgId` co-vector is *out of
+the URL check surface* — a named, tracked residual per ADR-0011, deliberately not covered here.)

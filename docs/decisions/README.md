@@ -17,6 +17,7 @@
 - [ADR-0008: OQ9 coherency axis — broker-side mint coalescing, conditional on vendor-fetch interception](adr-0008-oq9-coherency-sync-access.md) — OQ9 coupled two axes into one deferred decision: cross-thread **coherency** (can a chamber's synchronous cookie cache stay fresh without SharedArrayBuffer, AD-4-forbidden) and, for [ADR-0001](./adr-0001-chamber-isolation-strength.md) Option C, **read-semantics** (a WASM sandbox may have to marshal each read). (2026-08-29, Accepted)
 - [ADR-0009: MVP2 chamber isolation — Option B (dedicated Worker), ratified](adr-0009-mvp2-isolation-option-b.md) — [ADR-0001](./adr-0001-chamber-isolation-strength.md) recorded the chamber isolation-strength question (Option B, a dedicated **Web Worker** per chamber, vs Option C, an in-worker **WASM sandbox** per connector) and **deferred** it, handing the coupling to OQ9. (2026-08-29, Accepted)
 - [ADR-0010: Wrapped-SDK round-trip egress as a declared-and-gated capability](adr-0010-roundtrip-egress-capability.md) — MVP1's egress is **fire-and-forget**: a connector's `handle(event)` returns `EgressRequest[]`, and the orchestrator `fetch`-dispatches each on the main thread (ADR-0004) without reading the response. (2026-08-30, Accepted)
+- [ADR-0011: Config-integrity enforcement — host + tenant pin, fail-closed hold](adr-0011-config-integrity-enforcement.md) — The airlock seal keys egress on endpoint **host/path** — ADR-0004's host allow-list and ADR-0006's endpoint ceiling both gate on *where* (which host, which path) a request goes. (2026-08-30, Accepted)
 
 ## Format
 
