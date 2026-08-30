@@ -46,6 +46,9 @@
 | [013-mvp3-live-alloy-reprobe](013-mvp3-live-alloy-reprobe/spec.md) | 🔬 013-01 — real Edge round-trip + mint-recognizability | **DONE** |  |
 | [013-mvp3-live-alloy-reprobe](013-mvp3-live-alloy-reprobe/spec.md) | 🔬 013-02 — egress-breadth fan-out | **DONE** |  |
 | [013-mvp3-live-alloy-reprobe](013-mvp3-live-alloy-reprobe/spec.md) | 🔬 013-03 — config-integrity / same-host-tenant re-routing | **DONE** |  |
+| [014-mvp3-wrapped-sdk-core-integration](014-mvp3-wrapped-sdk-core-integration/spec.md) | 014-01 — round-trip egress + generic hosting in core (alloy driver) | DRAFT |  |
+| [014-mvp3-wrapped-sdk-core-integration](014-mvp3-wrapped-sdk-core-integration/spec.md) | 014-02 — concurrent-chamber coalescing in core | DRAFT |  |
+| [014-mvp3-wrapped-sdk-core-integration](014-mvp3-wrapped-sdk-core-integration/spec.md) | 014-03 — converge connector-hosting (GA4 retrofit) | DRAFT |  |
 
 ## Abandoned slices
 
