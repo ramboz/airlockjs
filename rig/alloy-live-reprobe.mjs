@@ -27,7 +27,7 @@ import { extname, join, normalize, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 import { chromium } from "playwright";
-import { recognizeInteract, extractEcidFromInteractResponse } from "./alloy-xdm-mint.js";
+import { recognizeInteract, extractEcidFromInteractResponse } from "../connectors/alloy/xdm-mint.js";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const OUT = join(ROOT, "rig/out/alloy-live-reprobe.json"); // gitignored

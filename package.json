@@ -20,6 +20,7 @@
     "rig:alloy": "node rig/alloy-chamber.mjs",
     "rig:alloy-core": "node rig/alloy-core-host.mjs",
     "rig:alloy-coalescing": "node rig/alloy-coalescing.mjs",
+    "rig:alloy-coalescing-core": "node rig/alloy-coalescing-core.mjs",
     "rig:alloy-decisions": "node rig/alloy-decisions.mjs",
     "lh": "node rig/lh.mjs",
     "lh:eds": "node rig/lh-eds.mjs",

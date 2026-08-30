@@ -1,0 +1,283 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Alloy core-hosted concurrent-chamber mint coalescing (spec 014-02)</title>
+  </head>
+  <body>
+    <h1>Alloy mint coalescing through core — core-hosted chambers, one shared broker</h1>
+    <div id="status">booting…</div>
+    <script type="module">
+      // Spec 014-02 — concurrent-chamber mint coalescing carried into core/. The
+      // core-hosted sibling of rig/alloy-coalescing-harness.html (spec 012-02):
+      // instead of the rig-inline main-thread mirror, EACH chamber is hosted by
+      // core/wrapped-sdk-host.js (spec 014-01, unchanged) and BOTH chambers share
+      // ONE core/coalescing-broker.js instance (this slice) — the single
+      // coalescing point sitting ABOVE 014-01's per-chamber round-trip dispatch,
+      // exactly as core/airlock.js's dispatch would sit above a per-connector
+      // round trip in production. core/airlock.js + core/chamber.worker.js are
+      // untouched by this slice.
+      //
+      // ?scenario=off|on|reject (default "on"):
+      //   off    -> both mints egress -> two distinct ECIDs -> split-identity
+      //             fault (AC1/AC3 red side);
+      //   on     -> the broker holds the second mint in-flight and returns the
+      //             first's ECID -> ONE egress, one ECID in both chambers' own
+      //             jars (AC1), no fault; also runs the AC4 non-mint-passthrough
+      //             corroboration through the SAME shared broker;
+      //   reject -> AC2's reject-path. No real chamber is spawned: the "held
+      //             awaiter" IS the caller of handleInterceptedFetch, and a real
+      //             chamber's intercepted-fetch dispatch is exactly such a call
+      //             (wired 1:1 via caps.egress.dispatch below) — so two
+      //             concurrent calls driven DIRECTLY through a DEDICATED
+      //             core/coalescing-broker.js instance exercise the identical
+      //             broker code path a real held chamber would, deterministically
+      //             and isolated from any alloy-SDK-internal behavior. The first
+      //             mint's real dispatch is FORCED to fail server-side once
+      //             released; the held awaiter must REJECT with that error,
+      //             bounded — not hang.
+      import { createWrappedSdkHost } from "/core/wrapped-sdk-host.js";
+      import { createCoalescingBroker } from "/core/coalescing-broker.js";
+      import { recognizeInteract, extractEcidFromInteractResponse } from "/connectors/alloy/xdm-mint.js";
+
+      const params = new URLSearchParams(location.search);
+      const SCENARIO = params.get("scenario") || "on"; // off | on | reject
+      const COALESCING = SCENARIO !== "off";
+      const WORKER_URL = "/rig/out/alloy-coalescing-core.worker.built.js";
+      const BUNDLE_URL = "/probes/alloy-worker/node_modules/@adobe/alloy/dist/alloy.js";
+      const statusEl = document.getElementById("status");
+
+      // Host-owned alloy config (R-004 shape) — SAME datastream/org for both
+      // chambers, so their two first-mints are one coalescable identity.
+      const CONFIG = {
+        datastreamId: "00000000-0000-0000-0000-000000000000",
+        orgId: "SPIKE@AdobeOrg",
+        context: [],
+        debugEnabled: true,
+      };
+      const EVENT = {
+        seq: 1, type: "page_view", ts: 10,
+        params: { page_location: "https://airlock.example/", page_title: "airlock" },
+        payload: {}, snapshot: {},
+      };
+
+      // The REAL main-thread network dispatch (mirrors core/airlock.js's own
+      // fetch dispatch): rewrites alloy's absolute Edge URL to the same-origin
+      // minting stub and, for the FIRST mint in a coalescing-on run, adds
+      // ?gate=hold so the stub PARKS its response (deterministic in-flight
+      // construction — spec 012-02 AC5, carried here). A non-2xx Edge response is
+      // treated as a dispatch FAILURE (thrown), not a normal response — the
+      // "reject" scenario's server-forced 5xx turns into a REJECTING
+      // realDispatch, exercising the broker's reject-path (spec 014-02 AC2).
+      function makeDispatch() {
+        return async function dispatch(req, meta) {
+          let target = req.url;
+          try { const u = new URL(req.url); target = u.pathname + u.search; } catch (e) {}
+          if (meta && meta.role === "first-mint") {
+            target += (target.indexOf("?") === -1 ? "?" : "&") + "gate=hold";
+          }
+          const res = await fetch(target, { method: req.method || "POST", headers: req.headers || {}, body: req.body });
+          if (!res.ok) {
+            const errText = await res.text().catch(() => "");
+            throw new Error("edge-dispatch-failed: HTTP " + res.status + " " + (errText || res.statusText || ""));
+          }
+          const body = await res.text();
+          return {
+            status: res.status, statusText: res.statusText,
+            headers: { "content-type": res.headers.get("content-type") || "application/json" },
+            body,
+          };
+        };
+      }
+
+      if (SCENARIO === "reject") {
+        runRejectScenario();
+      } else {
+        runChamberScenario();
+      }
+
+      // ---- AC2 reject-path corroboration. Bounded by an in-page race so a
+      //      regression (an unsettled held awaiter) reports TIMED_OUT instead of
+      //      hanging the page (mirrors the vitest bounded-timeout pattern,
+      //      translated to the browser rig). A DEDICATED broker instance, isolated
+      //      from the off/on scenarios. ----
+      function runRejectScenario() {
+        statusEl.textContent = "REJECT-PATH CORROBORATION";
+        let heldSignals = 0;
+        const broker = createCoalescingBroker({
+          dispatch: makeDispatch(),
+          recognize: recognizeInteract, extractIdentity: extractEcidFromInteractResponse,
+          coalescing: true,
+          onHeldInFlight: () => {
+            heldSignals += 1;
+            fetch("/__gate/release", { method: "POST" }).catch(() => {});
+          },
+        });
+
+        const mintReq = (req) => ({
+          id: "af-reject-" + req,
+          url: "https://adobedc.demdex.net/ee/v1/interact?configId=" + CONFIG.datastreamId + "&requestId=" + req,
+          method: "POST",
+          body: JSON.stringify({
+            events: [{ xdm: { eventType: "web.webpagedetails.pageViews" } }],
+            query: { identity: { fetch: ["ECID", "CORE"] } },
+          }),
+        });
+
+        function bounded(p, ms) {
+          return Promise.race([
+            p.then(
+              (v) => ({ settled: "resolved", value: v }),
+              (e) => ({ settled: "rejected", message: String((e && e.message) || e) }),
+            ),
+            new Promise((resolve) => setTimeout(() => resolve({ settled: "TIMED_OUT" }), ms)),
+          ]);
+        }
+
+        // Arm the server to fail the NEXT held-then-released mint BEFORE issuing
+        // either call, so the forced failure can't race the first request in.
+        fetch("/__reject/arm", { method: "POST" }).then(() => {
+          const pA = broker.handleInterceptedFetch(mintReq("RA")); // first-mint — forced to fail once released
+          const pB = broker.handleInterceptedFetch(mintReq("RB")); // arrives while A in-flight -> held
+
+          Promise.all([bounded(pA, 5000), bounded(pB, 5000)]).then(([rA, rB]) => {
+            statusEl.textContent = "DONE";
+            window.__ALLOY_COALESCING_CORE_RESULT__ = {
+              scenario: "reject",
+              heldSignals,
+              rA, rB,
+              inFlightCountAfter: broker.inFlightCount(),
+              completedCountAfter: broker.completedCount(),
+              egressCountAfter: broker.egressCount(),
+              noSharedArrayBuffer: typeof SharedArrayBuffer === "undefined" ? "absent-in-context" : "present-in-realm-unused",
+            };
+          });
+        });
+      }
+
+      // ---- AC1/AC3/AC4: two REAL core-hosted chambers, sharing ONE broker. ----
+      function runChamberScenario() {
+        const broker = createCoalescingBroker({
+          dispatch: makeDispatch(),
+          recognize: recognizeInteract, extractIdentity: extractEcidFromInteractResponse,
+          coalescing: COALESCING,
+          // The second mint has arrived at the broker and is HELD in-flight —
+          // release the gate-able stub so the first mint's response now flows.
+          onHeldInFlight: () => { fetch("/__gate/release", { method: "POST" }).catch(() => {}); },
+        });
+
+        // per-chamber bookkeeping — each chamber has its OWN createWrappedSdkHost
+        // instance, hence its OWN independent writeBacks log (its "jar", for the
+        // detector), exactly as each chamber has an independent in-worker cache.
+        const chambers = {}; // label -> { worker, host, done, error }
+
+        function amcvEcid(writeBacks) {
+          for (const w of writeBacks || []) {
+            const m = /AMCV_[^=]*=[^;]*MCMID\|([^|;]+)/.exec(String(w));
+            if (m) return m[1];
+          }
+          return null;
+        }
+
+        let published = false;
+        function maybePublish() {
+          const labels = Object.keys(chambers);
+          if (labels.length < 2) return;
+          if (!labels.every((l) => chambers[l].done || chambers[l].error)) return;
+          if (published) return;
+          published = true;
+
+          // AC4 in-browser corroboration: after the two mints settle, drive a
+          // synthetic NON-mint interact through the SAME shared broker and confirm
+          // it is NOT coalesced (it egresses). The pure unit test pins this
+          // exhaustively; this is the end-to-end witness, through core.
+          const nonMintReq = {
+            id: "nonmint-probe",
+            url: "https://adobedc.demdex.net/ee/v1/interact?configId=" + CONFIG.datastreamId + "&requestId=nonmint",
+            method: "POST",
+            body: JSON.stringify({ events: [{ xdm: { eventType: "commerce.purchases" } }] }),
+          };
+          const nonMintRecognized = recognizeInteract(nonMintReq).isMint === false;
+
+          broker.handleInterceptedFetch(nonMintReq).then(
+            (r) => finish({ nonMintRecognized, nonMintCoalesced: r.coalesced }),
+            () => finish({ nonMintRecognized, nonMintCoalesced: "probe-error" }),
+          );
+        }
+
+        function finish(extra) {
+          statusEl.textContent = "DONE";
+          const out = {
+            scenario: SCENARIO,
+            coalescing: COALESCING,
+            chambers: {},
+            broker: {
+              egress: broker.egress,
+              decisions: broker.decisions,
+              egressCount: broker.egressCount(),
+              inFlightCount: broker.inFlightCount(),
+              completedCount: broker.completedCount(),
+            },
+            noSharedArrayBuffer: typeof SharedArrayBuffer === "undefined" ? "absent-in-context" : "present-in-realm-unused",
+            workerCount: Object.keys(chambers).length,
+            ...extra,
+          };
+          for (const [label, c] of Object.entries(chambers)) {
+            const st = c.host.getState();
+            out.chambers[label] = {
+              jarEcid: amcvEcid(st.writeBacks), // the ECID in THIS chamber's own jar
+              writeBacks: st.writeBacks,
+              booted: st.summary && st.summary.booted,
+              configureSettled: st.summary && st.summary.configureSettled,
+              sendEventSettled: st.summary && st.summary.sendEventSettled,
+              mainDispatch: st.mainDispatch,
+              error: c.error || null,
+            };
+          }
+          window.__ALLOY_COALESCING_CORE_RESULT__ = out;
+        }
+
+        function spawnChamber(label) {
+          const worker = new Worker(WORKER_URL); // CLASSIC worker (no { type: "module" })
+          // A thin message-port-like adapter over the real Worker — the seam
+          // core/wrapped-sdk-host.js is driven through (rig/alloy-core-host-harness.html's
+          // pattern, spec 014-01).
+          const chamber = {
+            postMessage: (msg) => worker.postMessage(msg),
+            onMessage: (cb) => worker.addEventListener("message", (e) => cb(e.data)),
+          };
+          // caps.egress.dispatch is the ONE shared broker — the architecture this
+          // slice adds: every chamber's round-trip egress funnels through the
+          // SAME coalescing point above its own 014-01 per-chamber dispatch.
+          const caps = {
+            egress: { dispatch: (req) => broker.handleInterceptedFetch(req) },
+          };
+          const host = createWrappedSdkHost({ chamber, caps, timeoutMs: 5000 });
+          const c = { worker, host, done: false, error: null };
+          chambers[label] = c;
+
+          worker.onerror = (e) => {
+            c.error = "worker onerror: " + e.message;
+            c.done = true;
+            maybePublish();
+          };
+
+          // EMPTY jar — both chambers read empty identity and both first-mint (AC1).
+          host.init({ cookie: "", config: CONFIG, bundleUrl: BUNDLE_URL });
+          host.driveEvent(EVENT).then(
+            () => { c.done = true; maybePublish(); },
+            (err) => {
+              c.error = "driveEvent rejected: " + String((err && err.message) || err);
+              c.done = true;
+              maybePublish();
+            },
+          );
+        }
+
+        statusEl.textContent = "SPAWNING TWO CORE-HOSTED CHAMBERS (" + (COALESCING ? "coalescing ON" : "coalescing OFF") + ")";
+        spawnChamber("A");
+        spawnChamber("B");
+      }
+    </script>
+  </body>
+</html>

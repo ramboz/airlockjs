@@ -15,7 +15,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
-import { recognizeInteract, extractEcidFromInteractResponse } from "../rig/alloy-xdm-mint.js";
+import { recognizeInteract, extractEcidFromInteractResponse } from "../connectors/alloy/xdm-mint.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const fixture = JSON.parse(

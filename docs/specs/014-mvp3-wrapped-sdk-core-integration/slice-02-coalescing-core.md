@@ -1,7 +1,7 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: [014-01]
-last_verified:
+last_verified: 2026-08-30
 frame_review: false
 ---
 
@@ -47,13 +47,42 @@ dispatch failure can't hang held chambers.
    path; runtime context has none.
 
 **DoD:**
-- [ ] ACs 1–5 pass through **core's** broker (a `test/` +/or `rig/` harness driving core), green.
-- [ ] **No GA4 regression**; the round-trip + confinement of 014-01 stay green.
-- [ ] Reviews: compliance + craft + **arch** (the broker is core concurrency architecture) +
+- [x] ACs 1–5 pass through **core's** broker (a `test/` +/or `rig/` harness driving core), green.
+- [x] **No GA4 regression**; the round-trip + confinement of 014-01 stay green.
+- [x] Reviews: compliance + craft + **arch** (the broker is core concurrency architecture) +
       reconciliation, recorded pass.
-- [ ] Deviation log + reconciliation sweep; `docs/refinement-todo.md` (e) updated (the reject-path is
+- [x] Deviation log + reconciliation sweep; `docs/refinement-todo.md` (e) updated (the reject-path is
       carried into core, still with the `completed`-association invalidation-on-reset note).
-- [ ] **No live identifiers committed** (redact if validated against real Edge).
+- [x] **No live identifiers committed** (redact if validated against real Edge).
+
+### Deviation log
+
+_2026-08-30._
+- **Broker made VENDOR-NEUTRAL (arch-review [1], blocker).** The first cut ported the broker into
+  `core/` but imported the recognizer from `../rig/alloy-xdm-mint.js` — the only `core/ → rig/` import
+  in the repo (architecture.md boundary violation + spec 014's "no rig mirror" thesis). Fixed: the
+  broker now takes **injected** `recognize` / `extractIdentity`; the alloy recognizer was relocated
+  `rig/alloy-xdm-mint.js → connectors/alloy/xdm-mint.js` (10 importers repointed); a new
+  `test/core-boundary.test.js` fails if any `core/ → rig/` import returns. A fix-time scope bug
+  (`ecidOf` used the injected `extractIdentity` at module scope) was caught by the ported unit tests +
+  fixed by threading it through.
+- **Rig reject scenario (implementer).** AC2's reject-path is driven in the rig via a dedicated broker
+  + two direct concurrent `handleInterceptedFetch` calls (forced HTTP 500) rather than two full alloy
+  chambers — faithful (the chamber's `caps.egress.dispatch` **is** `broker.handleInterceptedFetch`,
+  the identical held-awaiter entry point) and exceeding 012-02's unit-only precedent; bounded
+  (TIMED_OUT vs hang). The reject-path is ALSO proven at the Node unit level (bounded 2000ms).
+
+### Reconciliation sweep
+
+Parallel-and-minimal holds — `core/airlock.js` + `core/chamber.worker.js` **unchanged** (git diff
+empty). New `core/coalescing-broker.js` (vendor-neutral) + relocated `connectors/alloy/xdm-mint.js` +
+rig + tests + the boundary test; additive-only. Full suite green (490); the core rig
+(`rig:alloy-coalescing-core`, 30 assertions) + the repointed 012-02 rig (`rig:alloy-coalescing`) both
+green. `docs/refinement-todo.md` (e) reject-path-in-core recorded; the cross-boundary import is
+**resolved** (not tracked debt). **Logged 014-03 follow-ups:** (arch-2) retire the duplicate 012-02
+rig broker (`rig/alloy-coalescing-broker.js` — its import was repointed so it still builds); (arch-3)
+the seal-binding point (broker-entry vs real-egress) — adjacent to the 014-01 arch-4 follow-up. No
+live identifiers (stub-only).
 
 **Anti-horizontal-phasing check:** after this slice, concurrent alloy chambers coalesce through
 `core/`'s broker (reject-path included) — ADR-0008's mechanism lives in core, not a rig. Observable

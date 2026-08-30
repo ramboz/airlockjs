@@ -47,7 +47,7 @@
 | [013-mvp3-live-alloy-reprobe](013-mvp3-live-alloy-reprobe/spec.md) | 🔬 013-02 — egress-breadth fan-out | **DONE** |  |
 | [013-mvp3-live-alloy-reprobe](013-mvp3-live-alloy-reprobe/spec.md) | 🔬 013-03 — config-integrity / same-host-tenant re-routing | **DONE** |  |
 | [014-mvp3-wrapped-sdk-core-integration](014-mvp3-wrapped-sdk-core-integration/spec.md) | 014-01 — round-trip egress + generic hosting in core (alloy driver) | **DONE** |  |
-| [014-mvp3-wrapped-sdk-core-integration](014-mvp3-wrapped-sdk-core-integration/spec.md) | 014-02 — concurrent-chamber coalescing in core | DRAFT |  |
+| [014-mvp3-wrapped-sdk-core-integration](014-mvp3-wrapped-sdk-core-integration/spec.md) | 014-02 — concurrent-chamber coalescing in core | **DONE** |  |
 | [014-mvp3-wrapped-sdk-core-integration](014-mvp3-wrapped-sdk-core-integration/spec.md) | 014-03 — converge connector-hosting (GA4 retrofit) | DRAFT |  |
 
 ## Abandoned slices
@@ -63,7 +63,7 @@
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
 - **0** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **33** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **35** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **8** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review

@@ -27,7 +27,7 @@ import { randomBytes } from "node:crypto";
 // broker can read a coalesced response without importing node:crypto. It is
 // re-exported here so 012-01's importers (rig/alloy-chamber.mjs, the unit test)
 // keep working unchanged — single source of truth, two entry points.
-import { extractEcidFromInteractResponse } from "./alloy-xdm-mint.js";
+import { extractEcidFromInteractResponse } from "../connectors/alloy/xdm-mint.js";
 export { extractEcidFromInteractResponse };
 
 // The value the OLD in-chamber stub hardcoded (R-004's fetch stub). AC4's mint

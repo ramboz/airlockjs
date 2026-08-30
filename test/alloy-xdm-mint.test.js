@@ -14,7 +14,7 @@
 // first-mints for the SAME datastream coalesce, while different datastreams do
 // not. AC6 kill-criteria check rides on these being reliable against the stub XDM.
 import { describe, it, expect } from "vitest";
-import { recognizeInteract, extractEcidFromInteractResponse } from "../rig/alloy-xdm-mint.js";
+import { recognizeInteract, extractEcidFromInteractResponse } from "../connectors/alloy/xdm-mint.js";
 
 const DS = "00000000-0000-0000-0000-000000000000";
 const INTERACT_URL = `https://adobedc.demdex.net/ee/v1/interact?configId=${DS}&requestId=abc-123`;

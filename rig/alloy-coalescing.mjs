@@ -28,7 +28,7 @@ import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 import { chromium } from "playwright";
 import { createGatedMintStub } from "./alloy-mint-stub.js";
-import { recognizeInteract } from "./alloy-xdm-mint.js";
+import { recognizeInteract } from "../connectors/alloy/xdm-mint.js";
 import { parseAmcv, classifyIdentity } from "./coherency-model.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
@@ -62,7 +62,7 @@ await build({
 });
 const builtWorker = await readFile(WORKER_BUILT, "utf8");
 const brokerSrc = await readFile(join(ROOT, "rig/alloy-coalescing-broker.js"), "utf8");
-const xdmSrc = await readFile(join(ROOT, "rig/alloy-xdm-mint.js"), "utf8");
+const xdmSrc = await readFile(join(ROOT, "connectors/alloy/xdm-mint.js"), "utf8");
 const harnessSrc = await readFile(join(ROOT, "rig/alloy-coalescing-harness.html"), "utf8");
 
 // AC4: no SharedArrayBuffer CONSTRUCTED anywhere on the coalescing path (the

@@ -30,7 +30,7 @@
       // the SECOND chamber's mint has arrived at the broker, so the in-flight
       // window is CONSTRUCTED, not raced-for. No SharedArrayBuffer (AD-4).
       import { createCoalescingBroker } from "/rig/alloy-coalescing-broker.js";
-      import { recognizeInteract } from "/rig/alloy-xdm-mint.js";
+      import { recognizeInteract } from "/connectors/alloy/xdm-mint.js";
 
       const params = new URLSearchParams(location.search);
       const COALESCING = params.get("coalescing") !== "off"; // default on
