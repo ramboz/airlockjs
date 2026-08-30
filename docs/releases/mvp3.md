@@ -58,7 +58,7 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 
 ## JIG Handoff
 
-- Precondition: MVP2's alloy behaviour characterization + a server-directed-egress probe, before designing the secured-seam enforcement.
+- Precondition: MVP2's alloy behaviour characterization + a server-directed-egress probe, before designing the secured-seam enforcement. **The characterization is delivered** — [spec 012-04 §Findings](../specs/012-mvp2-alloy-chamber/slice-04-manifest-characterize.md) tags alloy's collected-data categories + egress hosts along two axes (egress-breadth: stub vs creds-gated live-Alloy; collection-breadth: chamber-observable `context:[]` vs shimmed-away default-context), with the seam-design inputs (authoritative endpoints, payload governance, purpose-vector consent) called out. The server-directed-egress probe stays a Risk-First MVP3 item (the live-only Axis-1 breadth).
 - Resolve OQ11/OQ3 (payload governance + schema) here, archetype-split: enforce for GA4/wire-protocol; probe feasibility for alloy/wrapped-SDK first.
 - Enforcement specs extend (never rewrite) the MVP1/MVP2 capability contract — the declaration shape is already established.
 - ADR-0006/0007 architecture stands; MVP3 re-times their enforcement. Their MVP2/MVP3 staging prose is release-plan-superseded — no superseding ADR needed (the ADRs defer sequencing to the release plan).

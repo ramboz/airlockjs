@@ -72,6 +72,46 @@ export interface EgressRequest {
 }
 
 /**
+ * A consent purpose (ADR-0007). The starter taxonomy is the Consent Mode v2
+ * four, extended with `functional` / `personalization` as connectors need them.
+ * The set is intentionally small and sits behind a consent-input seam, so a
+ * taxonomy revision is a driver change, not a contract break — hence a widenable
+ * string union rather than a closed enum. ADDED 012-04 (additive-only).
+ */
+export type ConsentPurpose =
+  | "analytics_storage"
+  | "ad_storage"
+  | "ad_user_data"
+  | "ad_personalization"
+  | "functional"
+  | "personalization"
+  | (string & {});
+
+/**
+ * The purpose annotation for a connector's declared I/O (ADR-0007), tagging each
+ * declared endpoint / cookie / read (and egress overall) with the consent
+ * purpose(s) it serves, so a grant resolves per declared I/O — not per connector
+ * (ADR-0007 Recommended Decision; kill-criterion: coarse per-connector tagging
+ * moves to per-capability/per-endpoint, which this shape already permits).
+ *
+ * DECLARED, NOT ENFORCED in MVP2: this is disclosure only. The grant resolver
+ * that reads this vector — ADR-0006's `granted = declared ∩ host-policy ∩
+ * consent/user-choice` law — is MVP3 (ADR-0006 §Staging); nothing gates on it
+ * yet (the seal is unbuilt). Present now so MVP3 enforcement is a switch-flip,
+ * not a breaking retrofit. ADDED 012-04 (additive-only).
+ */
+export interface ConnectorPurposes {
+  /** Purpose(s) the connector's egress serves overall. */
+  readonly egress?: readonly ConsentPurpose[];
+  /** Purpose(s) each declared endpoint serves, keyed by endpoint. */
+  readonly endpoints?: Readonly<Record<string, readonly ConsentPurpose[]>>;
+  /** Purpose(s) each declared cookie/storage capability serves, keyed by name. */
+  readonly cookies?: Readonly<Record<string, readonly ConsentPurpose[]>>;
+  /** Purpose(s) each declared projection read serves, keyed by read path. */
+  readonly reads?: Readonly<Record<string, readonly ConsentPurpose[]>>;
+}
+
+/**
  * A connector's static declaration, read by the orchestrator before any event
  * is routed. Default-deny: the connector receives only what it declares and the
  * host policy allows. The declared `endpoints` are advisory; the authoritative
@@ -88,6 +128,12 @@ export interface ConnectorManifest {
   readonly capabilities: CapabilityRequest;
   /** Endpoints the connector intends to emit to (advisory; host allow-list wins). */
   readonly endpoints?: readonly string[];
+  /**
+   * Consent-purpose annotation for the declared I/O (ADR-0007). Declared, NOT
+   * enforced in MVP2 — disclosure only; the grant resolver is MVP3. See
+   * ConnectorPurposes. Optional + additive: pre-012-04 manifests (GA4) omit it.
+   */
+  readonly purposes?: ConnectorPurposes;
 }
 
 /** The connector implementation. One instance per chamber. */

@@ -1,6 +1,20 @@
 import { extractDecisions, VIEW_SCOPE } from "./decisions.js";
 
 /**
+ * The one Adobe Edge host alloy is known to egress to — the `interact` endpoint,
+ * observed by R-004 and the executed 012-01 chamber probe
+ * (`https://adobedc.demdex.net/ee/v1/interact`). Declared as an ADVISORY endpoint
+ * (ADR-0006 — the host-owned allow-list wins; a connector cannot widen it).
+ *
+ * A FLOOR, NOT A COMPLETE MAP for this wrapped-SDK CDP: alloy also fires
+ * SERVER-DIRECTED ID-sync / demdex URLs the Edge *response* returns at runtime
+ * (ADR-0006 kill-criterion / ADR-0008 / R-004 open question), which a static
+ * up-front declaration cannot enumerate. That breadth is creds-gated to MVP3's
+ * live-Alloy Risk-First probe — see slice-04 Findings (egress-breadth axis).
+ */
+export const ALLOY_INTERACT_ENDPOINT = "https://adobedc.demdex.net/ee/v1/interact";
+
+/**
  * Alloy wrapped-SDK connector — spec 012-01.
  *
  * The wrapped-SDK archetype (contracts/connector.d.ts): a ConnectorFactory
@@ -90,6 +104,40 @@ export function createAlloyConnector(config = {}) {
       egress: true,
       // it returns Target personalization as data for the host to apply (012-03).
       decisions: true,
+    },
+    // 012-04 DECLARATION-SHAPE (declared, NOT enforced — the enforcement teeth are
+    // MVP3; the seal is unbuilt). ADVISORY endpoints (ADR-0006 — host allow-list
+    // wins) — a FLOOR, not a complete map: the server-directed demdex/ID-sync
+    // breadth is runtime-returned and creds-gated to MVP3 (see ALLOY_INTERACT_ENDPOINT).
+    endpoints: [ALLOY_INTERACT_ENDPOINT],
+    // ADR-0007 consent-purpose annotation: tags each declared endpoint / cookie /
+    // read (and egress overall) with the purpose(s) it serves, so a grant resolves
+    // per declared I/O — not per connector. DISCLOSURE ONLY in MVP2; the grant
+    // resolver that reads it is MVP3 (ADR-0006 §Staging). Values are declared INTENT
+    // grounded in alloy's functions (Adobe Analytics events, Target personalization,
+    // ECID identity) + ADR-0007's Consent-Mode-v2 starter taxonomy — not a legal audit.
+    purposes: {
+      // Analytics events + the Target personalization query ride the same interact.
+      egress: ["analytics_storage", "personalization"],
+      endpoints: {
+        [ALLOY_INTERACT_ENDPOINT]: ["analytics_storage", "personalization"],
+      },
+      cookies: {
+        // apex-domain probe cookie — functional infrastructure, no data use.
+        "com.adobe.alloy.getTld": ["functional"],
+        // Adobe Edge consent/identity + Visitor ECID — a SHARED identity serving
+        // BOTH analytics and personalization (ADR-0007: one I/O, several purposes).
+        "kndctr_": ["analytics_storage", "personalization"],
+        "AMCV_": ["analytics_storage", "personalization"],
+        // third-party Audience Manager sync — ad/identity (server-directed; MVP3).
+        "demdex": ["ad_storage"],
+        // Analytics ECID mirror.
+        "s_ecid": ["analytics_storage"],
+      },
+      reads: {
+        "page_view.params.page_location": ["analytics_storage"],
+        "page_view.params.page_title": ["analytics_storage"],
+      },
     },
   };
 
