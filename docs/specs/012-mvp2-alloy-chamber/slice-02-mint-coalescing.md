@@ -1,9 +1,10 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 dependencies: [012-01]
 last_verified:
 frame_review: true
 arch_review: true
+claimed_by: claude/chambers-io-security-5867f9
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about
@@ -17,7 +18,14 @@ concurrent chambers** both first-minting identity, and build
 request coalescing + XDM mint-recognition** so both chambers attach **one** ECID, not
 two — retiring the concurrent-first-mint **split-identity fault** for the async mint,
 demonstrated against the minting-Edge stub. This turns ADR-0008's *analytical* GO into
-a *demonstrated* one and **lifts the wrapped-SDK contract-freeze hold**.
+a *demonstrated* one and **lifts the freeze _hold_** on the wrapped-SDK identity path.
+(Distinct from *freezing* the contract: ADR-0008's kill-criterion still requires a
+creds-gated **live-Alloy** mint-recognition re-probe before the step-5 freeze — 012-02
+demonstrates the mechanism, it does **not** authorize the freeze.) 012-02 builds the
+**intercept-and-coalesce** path, **choosing it over** ADR-0008's flagged
+host-seeded-identity alternative (host supplies the ECID pre-boot so the vendor never
+mints) — consistent with the ADR's recommended decision; the alternative is noted, not
+built.
 
 **DoR:**
 - ✅ 012-01 DONE — the wrapped-SDK host, the chamber, the additive sync-cookie
@@ -39,12 +47,17 @@ a *demonstrated* one and **lifts the wrapped-SDK contract-freeze hold**.
    distinct ECIDs → split identity. Observable, deterministic: the detector reports the
    fault for the two-chamber concurrent case with coalescing off.
 
-2. **Broker-side async request coalescing built.** When a second identity-mint
-   `interact` arrives at the broker while a first mint is in flight, the broker
-   **holds** it and, on the first's response, returns the **one** server-assigned ECID
-   to **both** chambers — issuing **no** second Edge request. Observable: **exactly one**
-   `interact` egresses for two concurrent chambers; both attach the **same** ECID; the
-   detector reports **no** fault.
+2. **Broker-side async request coalescing built.** The broker registers a mint
+   **synchronously** in an in-flight-mint table — inside the `intercepted-fetch` handler,
+   **before** awaiting the real dispatch (the load-bearing invariant: main is
+   single-threaded, so a concurrently-arriving second handler always sees the first
+   already registered). A second identity-mint `interact` is then suppressed in **both**
+   windows: (a) arriving **while the first is in flight** → **held**, and on the first's
+   response receives the **one** server-assigned ECID; (b) arriving **after the first
+   completes but before the second chamber has minted** (a late B) → **suppressed** via a
+   retained **completed-mint association**, not re-dispatched. Either way: **no** second
+   Edge request. Observable: **exactly one** `interact` egresses for two concurrent
+   chambers; both attach the **same** ECID; the detector reports **no** fault.
 
 3. **XDM mint-recognition.** The broker parses the vendor XDM `interact` to recognize an
    **identity mint** (`query.identity.fetch` of ECID) as coalescable, distinguishing it
@@ -59,12 +72,19 @@ a *demonstrated* one and **lifts the wrapped-SDK contract-freeze hold**.
    chambers.
 
 5. **Detector fails both ways, reproducibly.** Coalescing **off** → split-identity
-   fault; coalescing **on** → one ECID, no fault. Both outcomes are deterministic and
-   retrievable programmatically (against the minting-Edge stub — no live creds).
+   fault; coalescing **on** → one ECID, no fault. Determinism comes from
+   **response-timing control** — the minting-Edge stub is **gate-able**, holding the
+   first mint's response until the second chamber's mint has arrived at the broker, so
+   the in-flight window is **constructed**, not raced-for. This is *deterministic
+   construction* of the fault + fix (what a real two-Worker chromium rig can do and 011's
+   op-model could not), not measuring a flaky emergent race. Both outcomes are retrievable
+   programmatically (stub — no live creds).
 
-6. **Freeze hold lifted; kill-criteria checked.** Record that ADR-0008's mechanism is
-   now **built + demonstrated**, lifting the wrapped-SDK contract-freeze hold for the
-   identity path. Explicitly check ADR-0008's kill-criteria against the *stub* XDM and
+6. **Freeze _hold_ lifted (not the freeze itself); kill-criteria checked.** Record that
+   ADR-0008's mechanism is now **built + demonstrated**, lifting the *hold* on the
+   wrapped-SDK identity path — but **not** authorizing the step-5 contract freeze, which
+   still awaits the creds-gated **live-Alloy** mint-recognition re-probe (ADR-0008
+   kill-criterion). Explicitly check ADR-0008's kill-criteria against the *stub* XDM and
    flag the residual: the **live-Alloy** XDM shape is not re-verified here (creds-gated),
    so mint-recognizability against real Alloy is a carried-forward validation, not a
    closed one. Update `docs/refinement-todo.md` OQ9 accordingly.

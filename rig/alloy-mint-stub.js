@@ -22,6 +22,13 @@
  * the `state:store` handle's `kndctr_*_identity` entry verbatim.
  */
 import { randomBytes } from "node:crypto";
+// The pure XDM parse `extractEcidFromInteractResponse` was relocated to the
+// browser-safe rig/alloy-xdm-mint.js (spec 012-02) so the in-browser coalescing
+// broker can read a coalesced response without importing node:crypto. It is
+// re-exported here so 012-01's importers (rig/alloy-chamber.mjs, the unit test)
+// keep working unchanged — single source of truth, two entry points.
+import { extractEcidFromInteractResponse } from "./alloy-xdm-mint.js";
+export { extractEcidFromInteractResponse };
 
 // The value the OLD in-chamber stub hardcoded (R-004's fetch stub). AC4's mint
 // must differ from it — the point is a SERVER-assigned ECID, not a chamber
@@ -72,21 +79,66 @@ export function mintInteractResponse(requestId = "airlock-mint-req") {
 }
 
 /**
- * Extract the ECID from an Edge interact response — the exact read alloy makes
- * to persist it: the first `identity:result` handle's payload entry whose
- * `namespace.code === "ECID"`. Defensive: returns `null` (never throws) on a
- * missing/empty handle or a response with no ECID namespace.
- * @param {{ handle?: Array<{ type?: string, payload?: Array<{ id?: string, namespace?: { code?: string } }> }> } | null | undefined} response
- * @returns {string | null}
+ * Gate-able minting-Edge stub — spec 012-02, AC5.
+ *
+ * The 012-01 stub minted a fresh ECID and responded immediately. To construct
+ * the in-flight coalescing window DETERMINISTICALLY (not race for it), 012-02
+ * needs RESPONSE-TIMING CONTROL: hold the FIRST mint's response until the SECOND
+ * chamber's mint has arrived at the broker. This factory wraps the mint with a
+ * park/release gate:
+ *   - `handle({ reqBody, hold })` mints an ECID; if `hold`, it PARKS the response
+ *     (returns a promise that resolves only when released) instead of replying;
+ *   - `releaseFirst()` releases the oldest parked response — the broker calls it
+ *     the moment the second mint is HELD in-flight, so the first can now complete
+ *     and both chambers receive that one ECID.
+ * With coalescing OFF the rig does not set `hold`, so both mints reply at once and
+ * yield two distinct ECIDs (the split-identity fault). The gate is what makes both
+ * outcomes deterministic + reproducible.
+ *
+ * @returns {{
+ *   handle: (opts: { reqBody?: string, hold?: boolean }) => Promise<{ response: object, ecid: string }>,
+ *   releaseFirst: () => boolean,
+ *   releaseAll: () => number,
+ *   parkedCount: () => number,
+ *   calls: Array<{ ecid: string, reqBody?: string, held: boolean }>,
+ * }}
  */
-export function extractEcidFromInteractResponse(response) {
-  const handles = (response && response.handle) || [];
-  for (const h of handles) {
-    if (h && h.type === "identity:result") {
-      for (const entry of h.payload || []) {
-        if (entry && entry.namespace && entry.namespace.code === "ECID") return entry.id;
-      }
-    }
-  }
-  return null;
+export function createGatedMintStub() {
+  const parked = []; // FIFO of { release, ecid }
+  let pendingReleases = 0; // releases that arrived BEFORE their parked interact
+  const calls = []; // every mint served, in order
+
+  return {
+    handle({ reqBody, hold } = {}) {
+      const { response, ecid } = mintInteractResponse();
+      calls.push({ ecid, reqBody, held: !!hold });
+      if (!hold) return Promise.resolve({ response, ecid });
+      // Park: the response is minted now (fixed, deterministic) but withheld until
+      // released — the in-flight window the broker's second mint lands inside.
+      return new Promise((resolve) => {
+        const entry = { release: () => resolve({ response, ecid }), ecid };
+        // Release-before-park: the broker's release signal (a separate HTTP
+        // request) can reach the server BEFORE this held interact does. An armed
+        // pending release is consumed here so the in-flight construction never
+        // deadlocks on that cross-request ordering.
+        if (pendingReleases > 0) { pendingReleases -= 1; entry.release(); }
+        else parked.push(entry);
+      });
+    },
+    releaseFirst() {
+      const p = parked.shift();
+      if (p) { p.release(); return true; }
+      // Nothing parked yet — arm a pending release for the next held interact.
+      pendingReleases += 1;
+      return false;
+    },
+    releaseAll() {
+      let n = 0;
+      while (parked.length) { parked.shift().release(); n += 1; }
+      return n;
+    },
+    parkedCount() { return parked.length; },
+    pendingReleaseCount() { return pendingReleases; },
+    calls,
+  };
 }

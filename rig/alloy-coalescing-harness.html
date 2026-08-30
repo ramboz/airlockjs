@@ -1,0 +1,209 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Alloy concurrent-chamber mint coalescing (spec 012-02)</title>
+  </head>
+  <body>
+    <h1>Alloy mint coalescing — two chambers, one identity</h1>
+    <div id="status">booting…</div>
+    <script type="module">
+      // Spec 012-02 — concurrent-chamber mint coalescing. This harness drives TWO
+      // concurrent alloy chambers (each a dedicated CLASSIC Worker running the
+      // REUSED connectors/alloy/alloy-chamber.worker.js from 012-01), BOTH booted
+      // from an EMPTY cookie jar so both read empty identity and both first-mint.
+      //
+      // The COALESCING BROKER lives here on the main thread — a PARALLEL mirror of
+      // core/airlock.js's ready-request dispatch (ADR-0004; the real core is
+      // untouched), exactly as 012-01's single-chamber harness mirrored it. It is
+      // the pure rig/alloy-coalescing-broker.js, imported as an ES module (the
+      // rig/coherency-harness.html pattern), so the SAME decision core the Node
+      // unit tests pin runs here end-to-end against two real Workers.
+      //
+      // Mode is chosen by ?coalescing=on|off:
+      //   off → both mints egress → two distinct ECIDs → split-identity fault (AC1);
+      //   on  → the broker holds the second mint in-flight and returns the first's
+      //         ECID → ONE egress, one ECID in both chambers' jars (AC2), no fault.
+      // Determinism (AC5): the minting-Edge stub is GATE-ABLE — in ON mode the
+      // first mint is dispatched with ?gate=hold so the stub PARKS its response;
+      // the broker releases it (onHeldInFlight → POST /__gate/release) only once
+      // the SECOND chamber's mint has arrived at the broker, so the in-flight
+      // window is CONSTRUCTED, not raced-for. No SharedArrayBuffer (AD-4).
+      import { createCoalescingBroker } from "/rig/alloy-coalescing-broker.js";
+      import { recognizeInteract } from "/rig/alloy-xdm-mint.js";
+
+      const params = new URLSearchParams(location.search);
+      const COALESCING = params.get("coalescing") !== "off"; // default on
+      const WORKER_URL = "/rig/out/alloy-coalescing.worker.built.js";
+      const BUNDLE_URL = "/probes/alloy-worker/node_modules/@adobe/alloy/dist/alloy.js";
+      const statusEl = document.getElementById("status");
+
+      // Host-owned alloy config (R-004 shape) — SAME datastream/org for both
+      // chambers, so their two first-mints are one coalescable identity (AC3 key).
+      const CONFIG = {
+        datastreamId: "00000000-0000-0000-0000-000000000000",
+        orgId: "SPIKE@AdobeOrg",
+        context: [],
+        debugEnabled: true,
+      };
+      const EVENT = {
+        seq: 1, type: "page_view", ts: 10,
+        params: { page_location: "https://airlock.example/", page_title: "airlock" },
+        payload: {}, snapshot: {},
+      };
+
+      // ---- the coalescing broker (ONE, shared by both chambers — the point) ----
+      // dispatch: the REAL main-thread network fetch (mirrors core/airlock.js). It
+      // rewrites alloy's absolute Edge URL to the same-origin minting stub and, for
+      // the FIRST mint in ON mode, adds ?gate=hold so the stub parks its response.
+      async function dispatch(req, meta) {
+        let target = req.url;
+        try { const u = new URL(req.url); target = u.pathname + u.search; } catch (e) {}
+        if (meta && meta.role === "first-mint") {
+          target += (target.indexOf("?") === -1 ? "?" : "&") + "gate=hold";
+        }
+        const res = await fetch(target, { method: req.method || "POST", headers: req.headers || {}, body: req.body });
+        const body = await res.text();
+        return {
+          status: res.status, statusText: res.statusText,
+          headers: { "content-type": res.headers.get("content-type") || "application/json" },
+          body,
+        };
+      }
+
+      const broker = createCoalescingBroker({
+        dispatch,
+        coalescing: COALESCING,
+        // The second mint has arrived at the broker and is HELD in-flight — release
+        // the gate-able stub so the first mint's response now flows to both.
+        onHeldInFlight: () => { fetch("/__gate/release", { method: "POST" }).catch(() => {}); },
+      });
+
+      // ---- per-chamber bookkeeping (each chamber has its OWN jar for the detector) ----
+      const chambers = {}; // label -> { worker, writeBacks, deliveredEcid, summary, done, error }
+      function amcvEcid(writeBacks) {
+        // The ECID that landed in THIS chamber's jar: parse MCMID|<ecid> out of its
+        // AMCV_<ORGID> write-back (the identity cell alloy persists into).
+        for (const w of writeBacks) {
+          const m = /AMCV_[^=]*=[^;]*MCMID\|([^|;]+)/.exec(String(w));
+          if (m) return m[1];
+        }
+        return null;
+      }
+      function extractDeliveredEcid(body) {
+        try {
+          const parsed = JSON.parse(body);
+          for (const h of parsed.handle || []) {
+            if (h && h.type === "identity:result") {
+              for (const e of h.payload || []) {
+                if (e && e.namespace && e.namespace.code === "ECID") return e.id;
+              }
+            }
+          }
+        } catch (e) {}
+        return null;
+      }
+
+      let published = false;
+      function maybePublish() {
+        const labels = Object.keys(chambers);
+        if (labels.length < 2) return;
+        if (!labels.every((l) => chambers[l].done || chambers[l].error)) return;
+        if (published) return;
+        published = true;
+
+        // AC3 in-browser corroboration: after the two mints coalesced, drive a
+        // synthetic NON-mint interact through the SAME broker and confirm it is NOT
+        // coalesced (it egresses). The pure unit test pins this exhaustively; this
+        // is the end-to-end witness.
+        const nonMintReq = {
+          id: "nonmint-probe",
+          url: "https://adobedc.demdex.net/ee/v1/interact?configId=" + CONFIG.datastreamId + "&requestId=nonmint",
+          method: "POST",
+          body: JSON.stringify({ events: [{ xdm: { eventType: "commerce.purchases" } }] }),
+        };
+        const nonMintRecognized = recognizeInteract(nonMintReq).isMint === false;
+
+        broker.handleInterceptedFetch(nonMintReq).then((r) => {
+          finish({ nonMintRecognized, nonMintCoalesced: r.coalesced });
+        }, () => {
+          finish({ nonMintRecognized, nonMintCoalesced: "probe-error" });
+        });
+      }
+
+      function finish(extra) {
+        statusEl.textContent = "DONE";
+        const out = {
+          coalescing: COALESCING,
+          chambers: {},
+          broker: {
+            egress: broker.egress,
+            decisions: broker.decisions,
+            egressCount: broker.egressCount(),
+            inFlightCount: broker.inFlightCount(),
+            completedCount: broker.completedCount(),
+          },
+          noSharedArrayBuffer: typeof SharedArrayBuffer === "undefined" ? "absent-in-context" : "present-in-realm-unused",
+          workerCount: Object.keys(chambers).length,
+          ...extra,
+        };
+        for (const [label, c] of Object.entries(chambers)) {
+          out.chambers[label] = {
+            jarEcid: amcvEcid(c.writeBacks), // the ECID in this chamber's AMCV jar
+            deliveredEcid: c.deliveredEcid, // the ECID the broker delivered to it
+            writeBacks: c.writeBacks,
+            booted: c.summary && c.summary.booted,
+            configureSettled: c.summary && c.summary.configureSettled,
+            sendEventSettled: c.summary && c.summary.sendEventSettled,
+            fetchCalls: c.summary && c.summary.fetchCalls,
+            workerRealFetchCalls: c.summary && c.summary.workerRealFetchCalls,
+            error: c.error || null,
+          };
+        }
+        window.__ALLOY_COALESCING_RESULT__ = out;
+      }
+
+      function spawnChamber(label) {
+        const worker = new Worker(WORKER_URL); // CLASSIC worker (no { type: "module" })
+        const c = { worker, writeBacks: [], deliveredEcid: null, summary: null, done: false, error: null };
+        chambers[label] = c;
+
+        worker.onmessage = (e) => {
+          const m = e.data || {};
+          if (m.type === "phase") {
+            if (m.name === "configured") worker.postMessage({ type: "event", event: EVENT });
+          } else if (m.type === "intercepted-fetch") {
+            // Hand the intercepted mint to the ONE shared broker; post its (possibly
+            // coalesced) response back to THIS chamber under the id it sent.
+            broker.handleInterceptedFetch({ id: m.id, url: m.url, method: m.method, headers: m.headers, body: m.body })
+              .then((resp) => {
+                if (resp && resp.ecid == null && resp.body) c.deliveredEcid = extractDeliveredEcid(resp.body);
+                else if (resp) c.deliveredEcid = resp.ecid != null ? resp.ecid : extractDeliveredEcid(resp.body || "");
+                worker.postMessage({
+                  type: "intercepted-fetch-response", id: m.id,
+                  status: resp.status, statusText: resp.statusText, headers: resp.headers, body: resp.body,
+                });
+              }, (err) => {
+                c.error = "dispatch failed: " + String(err && err.message || err);
+                worker.postMessage({ type: "intercepted-fetch-response", id: m.id, status: 0, statusText: String(err), body: "" });
+              });
+          } else if (m.type === "cookie-writeback") {
+            c.writeBacks.push(m.value);
+          } else if (m.type === "result") {
+            c.summary = m.summary; c.done = true; maybePublish();
+          } else if (m.type === "fatal") {
+            c.error = "fatal: " + m.message; c.done = true; maybePublish();
+          }
+        };
+        worker.onerror = (e) => { c.error = "worker onerror: " + e.message; c.done = true; maybePublish(); };
+
+        // EMPTY jar — both chambers read empty identity and both first-mint (AC1).
+        worker.postMessage({ type: "init", cookie: "", config: CONFIG, bundleUrl: BUNDLE_URL });
+      }
+
+      statusEl.textContent = "SPAWNING TWO CHAMBERS (" + (COALESCING ? "coalescing ON" : "coalescing OFF") + ")";
+      spawnChamber("A");
+      spawnChamber("B");
+    </script>
+  </body>
+</html>

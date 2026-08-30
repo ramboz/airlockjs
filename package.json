@@ -18,6 +18,7 @@
     "rig:isolation": "node rig/isolation.mjs",
     "rig:coherency": "node rig/coherency.mjs",
     "rig:alloy": "node rig/alloy-chamber.mjs",
+    "rig:alloy-coalescing": "node rig/alloy-coalescing.mjs",
     "lh": "node rig/lh.mjs",
     "lh:eds": "node rig/lh-eds.mjs",
     "cwv:budget": "node rig/cwv-budget.mjs"
