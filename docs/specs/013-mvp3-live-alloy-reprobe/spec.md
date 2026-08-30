@@ -18,12 +18,13 @@ Risk-First lead**: run stock `@adobe/alloy@2.35.0` against a **real Adobe Edge**
 datastream + IMS org) to **validate — or honestly bound —** what the stubs assumed, and
 so **unblock the wrapped-SDK capability contract-freeze and the seam-enforcement design**.
 
-**What is already validated (do not re-probe):** the interact *request* body is genuine,
-unmodified-alloy XDM (012-01/012-02 drove real alloy; only the *network* was faked), so
-**mint-recognizability on the request side is already established** — 012-02's broker parses
-real alloy XDM. This spec validates the **live-only** half the stubs could not: the real
-Edge **response**, the server-directed **egress fan-out**, and **config-integrity** under a
-real org.
+**What is expected to hold — re-confirmed, not re-invented:** the interact *request* body is
+genuine, unmodified-alloy XDM (012-01/012-02 drove real alloy; only the *network* was faked),
+so **request-side mint-recognition is _expected_ to hold** (same stock bundle) — and is
+cheaply **re-confirmed live** (013-01 AC2), since a real datastream's consent / provisioning
+can add request fields the stub never exercised. The load-bearing *new* validation is the
+**live-only** half the stubs could not touch: the real Edge **response** shape, the
+server-directed **egress fan-out**, and **config-integrity** under a real org.
 
 **Why Risk-First.** [ADR-0008](../../decisions/adr-0008-oq9-coherency-sync-access.md)'s
 kill-criterion is explicit: *re-probe mint-recognizability against real Alloy before the
@@ -48,10 +49,13 @@ that the enforcement specs depend on.
   stubs faked the *network*; alloy itself, its XDM request, its sync-cookie use, and the
   interception/coalescing/`reserveSpace` mechanisms are real (specs 011/012). Grounded
   (`rig/alloy-*.mjs`, `connectors/alloy/`).
-- **⛔ HARD EXTERNAL DEPENDENCY — credentials.** Implementing this spec needs a **real Adobe
-  Experience Platform datastream + IMS org** (a `datastreamId` + `orgId` with Edge +
-  Analytics + Target provisioned). Drafting is unblocked; **every slice's implementation is
-  credential-gated** (a DoR blocker). This is not a coding blocker — it is an access one.
+- **⛔ HARD EXTERNAL DEPENDENCY — credentials (scoped).** Implementing this spec needs a
+  **real Adobe Experience Platform datastream + IMS org** (a `datastreamId` + `orgId` with
+  Edge + Analytics + Target provisioned). Drafting is unblocked; **each slice's live-traffic
+  ACs are credential-gated** (a DoR blocker) — but the highest-value evidence (013-01's
+  response-shape mint-recognition, the ADR-0008 kill-criterion) is **captured once, then
+  replayed creds-free** against the existing extractor as a durable fixture, so it does not
+  need standing creds. This is a scoped access gate, not a code gate.
 - **ADR-0008 kill-criterion is open against real Alloy.** Mint-recognizability was validated
   on the alloy *request* XDM (012-02), not the real Edge *response*. Grounded (ADR-0008
   Kill-criteria).
@@ -78,7 +82,8 @@ Split by **probe axis** (each is one live question, independently credential-gat
 - **013-01 `[S]` real Edge round-trip + mint-recognizability** — boot alloy against a real
   datastream; capture the real `interact` **response**; verify the real (server-assigned)
   ECID round-trips into the jar, and that the broker's XDM mint-recognition + coalescing
-  hold against **real** Alloy. Resolves ADR-0008's kill-criterion; gates the contract-freeze.
+  hold against **real** Alloy. Clears ADR-0008's **mint-axis** kill-criterion (necessary,
+  **not sufficient** — the full contract-freeze also awaits 013-02/03).
 - **013-02 `[S]` egress-breadth fan-out** — capture the server-directed demdex / ID-sync
   URLs the real Edge response directs (the fan-out the stub suppressed). Answers whether the
   endpoint-ceiling / host-allow-list can enumerate real Alloy's egress — the enforcement
