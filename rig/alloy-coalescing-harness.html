@@ -16,9 +16,13 @@
       // The COALESCING BROKER lives here on the main thread — a PARALLEL mirror of
       // core/airlock.js's ready-request dispatch (ADR-0004; the real core is
       // untouched), exactly as 012-01's single-chamber harness mirrored it. It is
-      // the pure rig/alloy-coalescing-broker.js, imported as an ES module (the
+      // core/coalescing-broker.js (REDIRECTED here — spec 014-03 DoD arch-2: the
+      // rig-only verbatim fork this harness used to import,
+      // rig/alloy-coalescing-broker.js, is retired), imported as an ES module (the
       // rig/coherency-harness.html pattern), so the SAME decision core the Node
-      // unit tests pin runs here end-to-end against two real Workers.
+      // unit tests pin runs here end-to-end against two real Workers. core/ is
+      // vendor-neutral (014-02) — the alloy recognizer is INJECTED, not imported by
+      // the broker, so this harness supplies `recognize`/`extractIdentity` itself.
       //
       // Mode is chosen by ?coalescing=on|off:
       //   off → both mints egress → two distinct ECIDs → split-identity fault (AC1);
@@ -29,8 +33,8 @@
       // the broker releases it (onHeldInFlight → POST /__gate/release) only once
       // the SECOND chamber's mint has arrived at the broker, so the in-flight
       // window is CONSTRUCTED, not raced-for. No SharedArrayBuffer (AD-4).
-      import { createCoalescingBroker } from "/rig/alloy-coalescing-broker.js";
-      import { recognizeInteract } from "/connectors/alloy/xdm-mint.js";
+      import { createCoalescingBroker } from "/core/coalescing-broker.js";
+      import { recognizeInteract, extractEcidFromInteractResponse } from "/connectors/alloy/xdm-mint.js";
 
       const params = new URLSearchParams(location.search);
       const COALESCING = params.get("coalescing") !== "off"; // default on
@@ -73,6 +77,10 @@
 
       const broker = createCoalescingBroker({
         dispatch,
+        // core/coalescing-broker.js is vendor-neutral (014-02) — inject the alloy
+        // recognizer, exactly as rig/alloy-coalescing-core-harness.html does.
+        recognize: recognizeInteract,
+        extractIdentity: extractEcidFromInteractResponse,
         coalescing: COALESCING,
         // The second mint has arrived at the broker and is HELD in-flight — release
         // the gate-able stub so the first mint's response now flows to both.

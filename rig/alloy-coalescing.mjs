@@ -5,13 +5,15 @@
 // Drives TWO concurrent alloy chambers, each a dedicated CLASSIC Worker booted
 // from an EMPTY cookie jar, so both read empty identity and both FIRST-MINT.
 //
-// The coalescing BROKER (rig/alloy-coalescing-broker.js) lives on the MAIN thread
-// in the harness — a PARALLEL mirror of core/airlock.js's dispatch (ADR-0004; the
-// real core is UNTOUCHED). It holds an in-flight-mint table + a completed-mint
-// association and suppresses the second identity mint in both windows, so two
-// chambers attach ONE ECID, retiring ADR-0008's concurrent-first-mint split-
-// identity fault — demonstrated, not argued, lifting the freeze HOLD (not the
-// freeze itself, which awaits a creds-gated live-Alloy re-probe).
+// The coalescing BROKER (core/coalescing-broker.js — REDIRECTED here, spec
+// 014-03 DoD arch-2: the rig-only verbatim fork, rig/alloy-coalescing-broker.js,
+// is retired) lives on the MAIN thread in the harness — a PARALLEL mirror of
+// core/airlock.js's dispatch (ADR-0004; the real core is UNTOUCHED). It holds an
+// in-flight-mint table + a completed-mint association and suppresses the second
+// identity mint in both windows, so two chambers attach ONE ECID, retiring
+// ADR-0008's concurrent-first-mint split-identity fault — demonstrated, not
+// argued, lifting the freeze HOLD (not the freeze itself, which awaits a
+// creds-gated live-Alloy re-probe).
 //
 // Detector BOTH ways, deterministically (AC5): the minting-Edge stub is GATE-ABLE
 // (createGatedMintStub) — in ON mode the first mint is dispatched ?gate=hold so
@@ -61,7 +63,7 @@ await build({
   target: "es2022",
 });
 const builtWorker = await readFile(WORKER_BUILT, "utf8");
-const brokerSrc = await readFile(join(ROOT, "rig/alloy-coalescing-broker.js"), "utf8");
+const brokerSrc = await readFile(join(ROOT, "core/coalescing-broker.js"), "utf8");
 const xdmSrc = await readFile(join(ROOT, "connectors/alloy/xdm-mint.js"), "utf8");
 const harnessSrc = await readFile(join(ROOT, "rig/alloy-coalescing-harness.html"), "utf8");
 

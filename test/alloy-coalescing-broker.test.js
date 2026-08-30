@@ -1,5 +1,14 @@
 // Broker-side async mint coalescing — spec 012-02, AC1/AC2/AC3/AC5 (pure piece).
 //
+// REDIRECTED onto core/coalescing-broker.js (spec 014-03 DoD arch-2): the
+// verbatim rig-only copy this file used to pin (rig/alloy-coalescing-broker.js,
+// a byte-for-byte fork of core/coalescing-broker.js since spec 014-02) is
+// retired — a mechanical redirect, injecting the alloy recognizer
+// (connectors/alloy/xdm-mint.js) the way test/coalescing-broker-core.test.js
+// already does, so exactly ONE broker implementation remains. Every assertion
+// below is UNCHANGED from the rig-broker era; only the import + the
+// recognize/extractIdentity injection differ.
+//
 // ADR-0008's mechanism: the single-threaded main-thread broker holds a second
 // concurrent identity-mint and returns the FIRST's server-assigned ECID, so two
 // chambers that both read empty and both first-mint attach ONE ECID, not two.
@@ -17,7 +26,14 @@
 //     split-identity fault), the detector's red side — proving the fix is the
 //     coalescing, not the harness.
 import { describe, it, expect } from "vitest";
-import { createCoalescingBroker } from "../rig/alloy-coalescing-broker.js";
+import { createCoalescingBroker } from "../core/coalescing-broker.js";
+import { recognizeInteract, extractEcidFromInteractResponse } from "../connectors/alloy/xdm-mint.js";
+
+// core/coalescing-broker.js is vendor-neutral (014-02) — recognize/extractIdentity
+// are INJECTED, not imported. The alloy recognizer is injected here, exactly as
+// test/coalescing-broker-core.test.js's own mkBroker does.
+const mkBroker = (opts) =>
+  createCoalescingBroker({ recognize: recognizeInteract, extractIdentity: extractEcidFromInteractResponse, ...opts });
 
 const DS = "00000000-0000-0000-0000-000000000000";
 const url = (req = "r") => `https://adobedc.demdex.net/ee/v1/interact?configId=${DS}&requestId=${req}`;
@@ -77,7 +93,7 @@ describe("createCoalescingBroker — sync-register invariant (spec 012-02 AC2)",
       await gate; // hold the first mint in-flight
       return { status: 200, body: JSON.stringify({ handle: [{ type: "identity:result", payload: [{ id: "ECID-A", namespace: { code: "ECID" } }] }] }) };
     };
-    const broker = createCoalescingBroker({ dispatch, coalescing: true });
+    const broker = mkBroker({ dispatch, coalescing: true });
 
     const pA = broker.handleInterceptedFetch(mintReq("A")); // NOT awaited
     // The load-bearing invariant: registered synchronously, before any await settles.
@@ -103,7 +119,7 @@ describe("createCoalescingBroker — window (a): in-flight hold (spec 012-02 AC2
       if (egress.length === 0) { const r = await mint(req); await gate; return r; }
       return mint(req);
     };
-    const broker = createCoalescingBroker({
+    const broker = mkBroker({
       dispatch,
       coalescing: true,
       onHeldInFlight: () => { heldSignals += 1; release(); }, // second arrived → let the first complete
@@ -123,7 +139,7 @@ describe("createCoalescingBroker — window (a): in-flight hold (spec 012-02 AC2
 describe("createCoalescingBroker — window (b): late suppression (spec 012-02 AC2)", () => {
   it("suppresses a late second mint via the retained completed-mint association — no re-dispatch", async () => {
     const { dispatch, egress } = makeMintingDispatch();
-    const broker = createCoalescingBroker({ dispatch, coalescing: true });
+    const broker = mkBroker({ dispatch, coalescing: true });
 
     const rA = await broker.handleInterceptedFetch(mintReq("A")); // completes first
     expect(broker.completedCount()).toBe(1);
@@ -138,7 +154,7 @@ describe("createCoalescingBroker — window (b): late suppression (spec 012-02 A
 describe("createCoalescingBroker — AC3: non-mint passes through", () => {
   it("does NOT coalesce a non-mint interact — it dispatches every time", async () => {
     const { dispatch, egress } = makeMintingDispatch();
-    const broker = createCoalescingBroker({ dispatch, coalescing: true });
+    const broker = mkBroker({ dispatch, coalescing: true });
 
     const r1 = await broker.handleInterceptedFetch(nonMintReq("n1"));
     const r2 = await broker.handleInterceptedFetch(nonMintReq("n2"));
@@ -150,7 +166,7 @@ describe("createCoalescingBroker — AC3: non-mint passes through", () => {
 
   it("coalesces mints but still lets an interleaved non-mint through (mixed traffic)", async () => {
     const { dispatch, egress } = makeMintingDispatch();
-    const broker = createCoalescingBroker({ dispatch, coalescing: true });
+    const broker = mkBroker({ dispatch, coalescing: true });
 
     const rA = await broker.handleInterceptedFetch(mintReq("A"));   // mint → egress 1
     const rNon = await broker.handleInterceptedFetch(nonMintReq()); // non-mint → egress 2
@@ -183,7 +199,7 @@ describe("createCoalescingBroker — liveness: first-mint dispatch failure settl
         body: JSON.stringify({ handle: [{ type: "identity:result", payload: [{ id: "ECID-RETRY", namespace: { code: "ECID" } }] }] }),
       };
     };
-    const broker = createCoalescingBroker({
+    const broker = mkBroker({
       dispatch,
       coalescing: true,
       onHeldInFlight: () => release(), // second arrived → let the first's (failing) dispatch proceed
@@ -208,7 +224,7 @@ describe("createCoalescingBroker — liveness: first-mint dispatch failure settl
 describe("createCoalescingBroker — AC1/AC5: coalescing OFF reproduces the fault", () => {
   it("with coalescing OFF, two concurrent mints BOTH egress and yield DISTINCT ECIDs (split identity)", async () => {
     const { dispatch, egress } = makeMintingDispatch();
-    const broker = createCoalescingBroker({ dispatch, coalescing: false });
+    const broker = mkBroker({ dispatch, coalescing: false });
 
     const rA = await broker.handleInterceptedFetch(mintReq("A"));
     const rB = await broker.handleInterceptedFetch(mintReq("B"));
@@ -221,12 +237,12 @@ describe("createCoalescingBroker — AC1/AC5: coalescing OFF reproduces the faul
 
   it("the SAME two-mint sequence flips outcome purely on the coalescing flag (detector both ways)", async () => {
     const off = makeMintingDispatch();
-    const brokerOff = createCoalescingBroker({ dispatch: off.dispatch, coalescing: false });
+    const brokerOff = mkBroker({ dispatch: off.dispatch, coalescing: false });
     const offA = await brokerOff.handleInterceptedFetch(mintReq("A"));
     const offB = await brokerOff.handleInterceptedFetch(mintReq("B"));
 
     const on = makeMintingDispatch();
-    const brokerOn = createCoalescingBroker({ dispatch: on.dispatch, coalescing: true });
+    const brokerOn = mkBroker({ dispatch: on.dispatch, coalescing: true });
     const onA = await brokerOn.handleInterceptedFetch(mintReq("A"));
     const onB = await brokerOn.handleInterceptedFetch(mintReq("B")); // late → suppressed
 
