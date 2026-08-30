@@ -51,6 +51,8 @@
 | [014-mvp3-wrapped-sdk-core-integration](014-mvp3-wrapped-sdk-core-integration/spec.md) | 014-03 — converge connector-hosting (GA4 retrofit) | **DONE** |  |
 | [015-mvp3-config-integrity-enforcement](015-mvp3-config-integrity-enforcement/spec.md) | 015-01 — fail-closed enforcement (hold + alert) | **DONE** |  |
 | [015-mvp3-config-integrity-enforcement](015-mvp3-config-integrity-enforcement/spec.md) | 015-02 — override availability option | **DONE** |  |
+| [016-mvp3-endpoint-ceiling-enforcement](016-mvp3-endpoint-ceiling-enforcement/spec.md) | 016-01 — GA4 wire-protocol endpoint ceiling (the EXACT archetype) | DRAFT |  |
+| [016-mvp3-endpoint-ceiling-enforcement](016-mvp3-endpoint-ceiling-enforcement/spec.md) | 016-02 — alloy wrapped-SDK endpoint ceiling (the FLOOR archetype) | DRAFT |  |
 
 ## Abandoned slices
 
