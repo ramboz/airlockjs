@@ -6,19 +6,27 @@ use_cases: [UC-1, UC-2]
 
 <!-- jig self-defining vocabulary (soft, forward-only): expand each acronym on first use and link the term to docs/memory/glossary.md. -->
 
-# Spec 014: wrapped-SDK core integration — one egress model, one hosting path
+# Spec 014: wrapped-SDK core integration — one dispatch seam, one hosting path (no rig mirror)
 
 ## Overview
 
 MVP2 demonstrated the wrapped-SDK generalization (alloy in a chamber: fetch-interception →
 main-thread dispatch, concurrent-chamber mint coalescing, `reserveSpace`) — but **parallel to
-`core/`, in rig harnesses**, a deliberate proof shortcut. Today the runtime carries **two egress
-models** and **two connector-hosting paths** that must converge before MVP3's seam-enforcement
-(endpoint-ceiling, config-integrity, purpose-vector consent) has a single seam to bind to. This
-spec is that convergence — the **foundation** the rest of MVP3 enforcement sits on (mvp3.md
-Cutline: "one egress model in core, not two").
+`core/`, in rig harnesses**, a deliberate proof shortcut. That leaves the wrapped-SDK round-trip
+egress as a **rig mirror** of a core original that can drift, plus **two connector-hosting paths**.
 
-**The two egress models (to unify):**
+The two egress **models** — wire-protocol **fire-and-forget** (GA4: the worker returns
+`ready: EgressRequest[]`, main `fetch`-dispatches them, response never read) and wrapped-SDK
+**request/RESPONSE round-trip** (alloy: intercepted-fetch → main → response posted back) —
+**legitimately coexist**: GA4 never reads a response, alloy must; neither collapses into the other.
+So this spec does **not** unify the models. What it unifies is (a) the **dispatch SEAM** — both do
+the real `fetch` on the main thread (ADR-0004) — and (b) the **LOCATION** — the round-trip model
+**leaves the rig**, so no mirror-vs-core drift — plus (c) the **hosting path**. That single seam is
+what MVP3's enforcement binds to, and it must gate **two request shapes** arriving at it: a
+structured `EgressRequest` **and** a raw intercepted fetch. This spec is the **foundation** the rest
+of MVP3 enforcement sits on ("no rig mirror; one seam, one hosting path").
+
+**The two egress models (coexisting — the round-trip one leaves the rig):**
 - **Wire-protocol, fire-and-forget** — [`core/airlock.js`](../../core/airlock.js): the worker
   maps and returns `ready: EgressRequest[]`; the orchestrator `fetch(url, {keepalive})`-dispatches
   them on the main thread (ADR-0004/ADR-0002 Option C) and never reads a response. This is GA4
@@ -36,10 +44,13 @@ Cutline: "one egress model in core, not two").
 - **GA4-hardcoded** — [`core/chamber.worker.js`](../../core/chamber.worker.js): `core/airlock.js`
   hardcodes `new Worker(new URL("./chamber.worker.js", …))`, which imports GA4's `mapToMp` directly.
 
-**What this spec delivers:** the wrapped-SDK **round-trip egress** wired into `core/`, the
-**coalescing broker + its reject-path** carried into `core/`, and **GA4 retrofitted onto the generic
-host** so both connectors run one way. After it, ADR-0004's main-thread dispatch is a single core
-seam the enforcement specs extend — not a rig mirror and a core original that can drift.
+**What this spec delivers:** the wrapped-SDK **round-trip egress** wired into `core/` — in a **new
+sibling core module**, so the GA4-hardcoded `core/airlock.js` stays untouched until convergence — the
+**coalescing broker + its reject-path** carried into `core/`, and finally **GA4 retrofitted onto the
+generic host** so both connectors run one way. The **single dispatch seam is the 014-03 end-state**:
+after 014-01/02 core has two dispatch sites (the sibling wrapped-SDK host + `core/airlock.js`'s
+wire-protocol dispatch), and 014-03 converges the hosting so ADR-0004's main-thread dispatch is one
+core seam the enforcement specs extend — with no rig mirror to drift.
 
 **Not in scope:** `reserveSpace` security + hardening (the `innerHTML` sanitizer + Trusted-Types
 boundary) is its own MVP3 spec (refinement-todo f–k). This spec is the **egress + hosting**
@@ -57,14 +68,24 @@ at the seam this one lands.
   `intercepted-fetch` → real-fetch → `intercepted-fetch-response` path. Grounded
   ([`core/airlock.js`](../../core/airlock.js) lines 58–66). The round-trip surface is **new work**,
   not a re-wire.
-- **The round-trip egress surface's contract home is an open design choice.** Either lift it into
-  `contracts/*.d.ts` (a first-class capability) or keep it chamber-internal and gate it at the seal
-  — MVP2 left this open (tracked debt (b); arch-review flag 2: `handle → EgressRequest[]` models only
-  fire-and-forget). This spec must **pick and justify** one; it is the load-bearing design decision.
-- **The chamber's egress-confinement posture must survive the move to `core/`.** In the rig, the
-  chamber's mediated `fetch` is its sole network surface (012-01 AC5); moving the dispatch into
-  `core/airlock.js` must not open a second egress path or lose the confinement. Grounded
-  (`connectors/alloy/egress-confinement.js`, 012-01 AC5).
+- **The round-trip egress surface is a declared-AND-gated capability (settled here; an ADR
+  formalizes it).** The "contracts vs seal-gate" framing was a **false binary** conflating two
+  orthogonal axes — *declaration home* and *enforcement point*. Settled: the round-trip egress is a
+  **first-class capability** the chamber requests and the orchestrator provides —
+  `caps.egress.dispatch(req) → Response` — with a **documented contract home** (`contracts/*.d.ts`)
+  **and** seal-gating on the manifest's declared `endpoints` / `purposes` (**declared _and_ gated**,
+  not either/or). This closes tracked debt (b) / arch flag 2 (the `handle → EgressRequest[]` surface
+  only modelled fire-and-forget). Settled **here** (spec Assumptions) — **not** deferred to a slice-time
+  pick — because the MVP3 enforcement specs bind to this surface; the **ADR formalizing the
+  `caps.egress.dispatch` capability is authored as the first step of 014-01 implementation** (before
+  any enforcement spec is drafted, so a slice-time pick can't reopen 014-01).
+- **The chamber's egress-confinement is chamber-side, so the move to `core/` is confinement-neutral.**
+  `applyEgressConfinement` runs inside the worker's own scope at boot (`alloy-chamber.worker.js`), and
+  the AC5 adversarial probe runs in-chamber — where the main-thread dispatch *lives* (rig vs core) has
+  no bearing on it (main-thread egress is ADR-0004's **sanctioned** path, not a "second" one). So
+  014-01's confinement check is a **cheap regression re-run** against the core-hosted chamber, guarding
+  only against an incidental disturbance if the port touches chamber source (it should not need to) —
+  not a live risk. Grounded (`connectors/alloy/egress-confinement.js`, 012-01 AC5).
 - **The coalescing broker's reject-path must be carried, not dropped.** The rig broker settles held
   awaiters on a first-mint dispatch failure (012-02 craft fix; refinement-todo (e)); a naive core
   port that only resolves would hang held chambers forever. Grounded
@@ -85,14 +106,16 @@ connector scenario end-to-end through `core/`** (the user-facing layer: a connec
 write-back / analytics beacon), so none is horizontal plumbing — the vertical value is "this
 scenario now runs through core, not a rig."
 
-- **014-01 `[Path]` round-trip egress + generic hosting in core (alloy driver)** — `core/airlock.js`
-  hosts a wrapped-SDK connector via `core/connector-host.js` in a real Worker chamber, and gains the
-  **request/response round-trip** dispatch (intercepted-fetch → main-thread real fetch →
-  response-back), the surface the fire-and-forget model lacks — with the confinement posture
-  preserved and the round-trip surface's contract home **decided**. E2E: the 012-01 single-chamber
-  alloy scenario (interact intercepted → **core** dispatch → Edge → ECID → `AMCV_*`/`kndctr_*` jar)
-  runs through `core/`, not the rig. Includes the hardening for this mechanism (fetch-shim timeout so
-  a never-answered main response can't hang `sendEvent`; the dead-man real-fetch guard confined).
+- **014-01 `[Path]` round-trip egress + generic hosting in core (alloy driver)** — a **new sibling
+  core module** (e.g. `core/wrapped-sdk-host.js`) hosts a wrapped-SDK connector via
+  `core/connector-host.js` in a real Worker chamber, and owns the **request/response round-trip**
+  dispatch (intercepted-fetch → main-thread real fetch → response-back) — the surface the
+  fire-and-forget model lacks, implemented as the **declared-AND-gated `caps.egress.dispatch`
+  capability** (Assumptions) — **leaving `core/airlock.js` + its hardcoded GA4 worker untouched**
+  (convergence is 014-03). E2E: the 012-01 single-chamber alloy scenario (interact intercepted →
+  **core** dispatch → Edge → ECID → `AMCV_*`/`kndctr_*` jar) runs through `core/`, not the rig.
+  Includes the hardening for this mechanism (fetch-shim timeout so a never-answered main response
+  can't hang `sendEvent`; the dead-man real-fetch guard confined).
 - **014-02 `[Path]` concurrent-chamber coalescing in core** — the coalescing broker (in-flight-mint
   table + completed-mint association + **the reject-path**) carried into `core/`. E2E: two concurrent
   alloy chambers both first-minting are coalesced by **core's** broker to **one** ECID in both jars,

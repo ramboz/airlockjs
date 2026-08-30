@@ -10,14 +10,17 @@ frame_review: true
 
 ## Slice 014-01 — round-trip egress + generic hosting in core (alloy driver)
 
-**Goal:** Bring the wrapped-SDK **request/RESPONSE round-trip** egress into `core/airlock.js` and
-host the alloy connector through `core/connector-host.js` in a real Worker chamber — so the 012-01
-single-chamber scenario (alloy's `interact` intercepted in the chamber → **core's** main-thread
-dispatch (ADR-0004) → Edge → server-assigned ECID → `AMCV_*`/`kndctr_*` jar) runs through **`core/`,
-not the rig harness** — with the chamber's egress-confinement preserved and the round-trip surface's
-**contract home decided**. This is the missing egress model (`core/airlock.js` today dispatches only
-fire-and-forget `ready` requests); landing it makes ADR-0004's dispatch a single core seam the MVP3
-enforcement specs extend.
+**Goal:** Bring the wrapped-SDK **request/RESPONSE round-trip** egress into `core/` — in a **new
+sibling core module** (e.g. `core/wrapped-sdk-host.js`) that hosts the alloy connector through
+`core/connector-host.js` in a real Worker chamber, **leaving `core/airlock.js` + its hardcoded GA4
+worker untouched** (convergence is 014-03) — so the 012-01 single-chamber scenario (alloy's
+`interact` intercepted in the chamber → **core's** main-thread dispatch (ADR-0004) → Edge →
+server-assigned ECID → `AMCV_*`/`kndctr_*` jar) runs through **`core/`, not the rig harness**. The
+round-trip egress is implemented as the **declared-AND-gated `caps.egress.dispatch(req) → Response`
+capability** (spec Assumptions / the ADR): a documented contract surface that is also seal-gate-able.
+This is the missing egress model in core (today `core/airlock.js` dispatches only fire-and-forget
+`ready` requests); it is the first of the two dispatch sites the **014-03 convergence** later folds
+into one seam.
 
 **DoR:**
 - ✅ [012-01](../012-mvp2-alloy-chamber/slice-01-host-and-boot.md) DONE — the chamber (importScripts
@@ -26,34 +29,42 @@ enforcement specs extend.
 - ✅ [013-01](../013-mvp3-live-alloy-reprobe/slice-01-edge-roundtrip.md) DONE — the round-trip is
   validated live; the core port can be proven against the 012 minting-Edge **stub** (deterministic)
   and, optionally, real Edge (spec 013 `.env`).
-- ✅ [`core/airlock.js`](../../core/airlock.js) + [`core/connector-host.js`](../../core/connector-host.js)
-  exist to modify; the round-trip surface is confirmed absent from core (Assumptions).
+- ✅ [`core/connector-host.js`](../../core/connector-host.js) (generic host) + the alloy connector /
+  chamber exist to wire into a **new** sibling core module; [`core/airlock.js`](../../core/airlock.js)
+  + `core/chamber.worker.js` (GA4) are **read-only** for this slice (convergence is 014-03). The
+  round-trip surface is confirmed absent from core (Assumptions).
 
 **Acceptance Criteria:**
 
-1. **Core hosts a wrapped-SDK connector via the generic host.** `core/` instantiates the alloy
-   connector through `createConnectorHost(factory, config)` in a **real Worker chamber** (the
+1. **A sibling core module hosts a wrapped-SDK connector via the generic host.** A **new `core/`
+   module** (not `core/airlock.js`, not the GA4-hardcoded `core/chamber.worker.js`) instantiates the
+   alloy connector through `createConnectorHost(factory, config)` in a **real Worker chamber** (the
    012-01 `alloy-chamber.worker.js` route: importScripts the stock bundle, shim globals, sync-cookie
-   cache) — **not** the GA4-hardcoded `core/chamber.worker.js`. Observable: alloy boots in a
-   core-hosted chamber and sends one `interact`.
-2. **Round-trip egress dispatch in core.** `core/airlock.js` (or a core module it owns) handles the
-   chamber's `intercepted-fetch`: it runs the **real** fetch on the main thread (ADR-0004) and posts
-   the **response back** into the chamber. Observable: the worker does **no** real network fetch
-   (`workerRealFetchCalls === 0`); exactly one interact is dispatched by **core**; the response
-   round-trips to the chamber.
+   cache). Observable: alloy boots in a core-hosted chamber and sends one `interact`; `core/airlock.js`
+   + `core/chamber.worker.js` are **unchanged** by this slice.
+2. **Round-trip egress dispatch in the sibling module.** The new module handles the chamber's
+   `intercepted-fetch`: it runs the **real** fetch on the main thread (ADR-0004) and posts the
+   **response back** into the chamber, via the `caps.egress.dispatch(req) → Response` capability.
+   Observable: the worker does **no** real network fetch (`workerRealFetchCalls === 0`); exactly one
+   interact is dispatched by **core**; the response round-trips to the chamber. _(This is the second
+   request shape — a raw intercepted fetch — the future single seam (014-03) must gate, alongside the
+   wire-protocol `EgressRequest`.)_
 3. **ECID round-trips into the jar through core.** The server-assigned ECID (stub or live) lands in
    the `AMCV_*`/`kndctr_*` jar via **core's** dispatch + write-back reconciliation. Observable: a
    real (non-stub-constant) ECID in the broker jar, written by the core path.
-4. **Confinement preserved (no second egress path).** Moving the dispatch into `core/` keeps the
-   chamber's mediated `fetch` its **sole** network-capable surface (012-01 AC5) — the adversarial
-   egress set (XHR / sendBeacon / WebSocket / EventSource / WebTransport / nested Worker /
-   CacheStorage / post-load importScripts) stays unreachable, and alloy still boots + sends.
-   Observable: the AC5 adversarial probe passes against the **core-hosted** chamber.
-5. **Round-trip surface's contract home DECIDED + justified.** The request/response round-trip egress
-   is either (a) modelled in `contracts/*.d.ts` as a first-class capability **or** (b) kept
-   chamber-internal and governed at the seal — **one** is chosen, the trade-off recorded (tracked
-   debt (b) / arch flag 2: `handle → EgressRequest[]` models only fire-and-forget), and the choice is
-   pinned in `test/contract-stability.test.js`. Observable: the surface has a documented home, not an
+4. **Confinement regression re-run (cheap, chamber-side).** Confinement is chamber-side
+   (`applyEgressConfinement` runs in the worker's own scope), so it is **location-independent** — this
+   AC is a **regression re-run**, not a live risk: the 012-01 AC5 adversarial probe passes against the
+   **core-hosted** chamber (the mediated `fetch` stays the sole network surface; XHR / sendBeacon /
+   WebSocket / EventSource / WebTransport / nested Worker / CacheStorage / post-load importScripts
+   unreachable; alloy still boots + sends), guarding only against an incidental disturbance if the
+   port touched chamber source. Observable: the AC5 probe passes against the core-hosted chamber.
+5. **The round-trip surface is the declared-AND-gated capability (per the ADR).** Implement the
+   settled design (spec Assumptions / ADR): `caps.egress.dispatch(req) → Response` has a **documented
+   contract home** in `contracts/*.d.ts` **and** is routed so the seal can gate it on the manifest's
+   declared `endpoints` / `purposes` — this slice lands the **gate-able** surface, **not** the teeth
+   (the gate is a later enforcement spec). The surface is pinned in `test/contract-stability.test.js`.
+   Observable: the round-trip egress is a documented, contract-declared capability — not an
    undocumented parallel to the fire-and-forget model.
 6. **Hardening.** A **fetch-shim timeout** — a never-answered main-thread response **rejects**
    `sendEvent` within a bounded time instead of hanging it — and the **dead-man real-fetch guard** is
@@ -72,6 +83,7 @@ enforcement specs extend.
 - [ ] **No live identifiers committed** — if validated against real Edge, redact (deny-by-default,
       per 013-01); the stub path commits no ids by construction.
 
-**Anti-horizontal-phasing check:** after this slice, alloy's single-chamber egress runs through
-`core/` — the round-trip seam lives in core, not a rig mirror. Observable value: the 012-01 scenario,
-core-hosted, with confinement intact.
+**Anti-horizontal-phasing check:** after this slice, the **shippable runtime gains wrapped-SDK
+round-trip egress + hosting for the first time** — a capability `core/` never had (the rig proof was
+throwaway, never a product surface). Observable value: the product can run an alloy connector
+end-to-end (interact → ECID → jar), not just a rig.

@@ -14,7 +14,10 @@ frame_review: false
 wrapped-SDK alloy (014-01) and the wire-protocol GA4 (MVP1) — are hosted **one** way, and converge /
 retire the GA4-hardcoded `core/chamber.worker.js` path (`core/airlock.js` hardcodes
 `new Worker(new URL("./chamber.worker.js", …))` importing GA4's `mapToMp` directly). After it there is
-**one** connector-hosting path in core, not two that calcify — closing the MVP2 arch flag 3 debt.
+**one** connector-hosting path in core, not two that calcify — closing the MVP2 arch flag 3 debt. This
+is also where the **two dispatch sites** (014-01's sibling wrapped-SDK host + `core/airlock.js`'s
+wire-protocol dispatch) fold into the **single seam** the MVP3 enforcement binds to — both request
+shapes (a structured `EgressRequest` **and** a raw intercepted fetch) arriving at one place.
 
 **DoR:**
 - ✅ [014-01] DONE — `core/airlock.js` can host a connector via `createConnectorHost` in a real
