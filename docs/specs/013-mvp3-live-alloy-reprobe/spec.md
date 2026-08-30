@@ -1,27 +1,95 @@
 ---
 status: DRAFT
 skill:
-use_cases: []
+use_cases: [UC-1, UC-2]
 ---
 
-<!-- jig self-defining vocabulary (soft, forward-only): expand each acronym on first use and link the term to docs/memory/glossary.md (or jig's lexicon). See docs/workflow.md "Self-defining vocabulary". -->
+<!-- jig self-defining vocabulary (soft, forward-only): expand each acronym on first use and link the term to docs/memory/glossary.md. -->
 
-# Spec 013: Mvp3-live-alloy reprobe
-
-> Reserved on 2026-08-29 via `workflow.py new`. Body to be drafted in a feature branch.
+# Spec 013: live-Alloy re-probe — validate MVP2's stub-based proof against real Adobe Edge
 
 ## Overview
 
-_TBD_
+[MVP2](../../releases/mvp2.md) shipped (`v0.2.0`) the wrapped-SDK generalization proof —
+but against **faithful stubs**: the minting-Edge stub server-assigned an ECID, the
+decisions stub returned propositions, and the fan-out was suppressed. That is a legitimate
+*proof*, and it is honestly labelled as one. This spec is **[MVP3](../../releases/mvp3.md)'s
+Risk-First lead**: run stock `@adobe/alloy@2.35.0` against a **real Adobe Edge** (a real
+datastream + IMS org) to **validate — or honestly bound —** what the stubs assumed, and
+so **unblock the wrapped-SDK capability contract-freeze and the seam-enforcement design**.
+
+**What is already validated (do not re-probe):** the interact *request* body is genuine,
+unmodified-alloy XDM (012-01/012-02 drove real alloy; only the *network* was faked), so
+**mint-recognizability on the request side is already established** — 012-02's broker parses
+real alloy XDM. This spec validates the **live-only** half the stubs could not: the real
+Edge **response**, the server-directed **egress fan-out**, and **config-integrity** under a
+real org.
+
+**Why Risk-First.** [ADR-0008](../../decisions/adr-0008-oq9-coherency-sync-access.md)'s
+kill-criterion is explicit: *re-probe mint-recognizability against real Alloy before the
+freeze*. And the endpoint-ceiling + host-allow-list enforcement MVP3 designs cannot be
+designed against a fan-out no one has measured (R-004's offline probe suppressed it). If a
+probe here **fails** (e.g. the real Edge response is not mint-recognizable, or the fan-out
+is un-enumerable, or config is chamber-mutable), it re-shapes MVP3 — better learned now
+than after the enforcement seams are built.
+
+**Outcome (spike).** Each slice concludes by **recording** what real Alloy does — a
+resolving ADR and/or refinement-todo updates that either **confirm** the stub-based
+mechanisms hold live (→ unblock the contract-freeze) or **name the gap + the fallback**
+(e.g. host-seeded identity if mint-recognition fails; service-worker chokepoint if the
+fan-out escapes confinement). No production seam is built here — this is the measurement
+that the enforcement specs depend on.
 
 ## Assumptions
 
-_TBD — list load-bearing assumptions about runnable surfaces (library/API capability, version/perf behavior, behavior of existing code); probe-back (run it / cite source) or mark explicitly here. Risk-gated: omit (or write "None") when there are no unverified load-bearing assumptions — do not pad with boilerplate._
+<!-- Grounded 2026-08-29 by the MVP2 deliverables (specs 011/012) + R-004 + ADR-0008; risk-gated. -->
+
+- **MVP2 proved against stubs, with a genuine request side.** The minting-Edge + decisions
+  stubs faked the *network*; alloy itself, its XDM request, its sync-cookie use, and the
+  interception/coalescing/`reserveSpace` mechanisms are real (specs 011/012). Grounded
+  (`rig/alloy-*.mjs`, `connectors/alloy/`).
+- **⛔ HARD EXTERNAL DEPENDENCY — credentials.** Implementing this spec needs a **real Adobe
+  Experience Platform datastream + IMS org** (a `datastreamId` + `orgId` with Edge +
+  Analytics + Target provisioned). Drafting is unblocked; **every slice's implementation is
+  credential-gated** (a DoR blocker). This is not a coding blocker — it is an access one.
+- **ADR-0008 kill-criterion is open against real Alloy.** Mint-recognizability was validated
+  on the alloy *request* XDM (012-02), not the real Edge *response*. Grounded (ADR-0008
+  Kill-criteria).
+- **The egress fan-out is unmeasured.** R-004 faked the Edge response, suppressing the
+  server-directed demdex / ID-sync URLs the real response directs. The endpoint-ceiling
+  enforcement (MVP3) cannot be designed without it. Grounded (R-004 "left open"; 012-04
+  §Findings Axis-1 marks it live-only).
+- **This runs live traffic to a real Adobe org.** It emits real Analytics/identity calls —
+  use a **test/dev datastream + org**, never production, and treat captured identifiers as
+  sensitive (do not commit them). Grounded (operational).
 
 ## Decomposition
 
-_TBD — SPIDR analysis. See SKILL.md for the five axes (Spike / Paths / Interfaces / Data / Rules)._
+SPIDR = **Spike (S)** — the one case where S is right, not a last resort: this is a
+timeboxed **learning** activity (*does real Alloy behave as MVP2's stubs assumed?*), and
+none of Path / Interface / Data / Rules apply because the answer is unknown until measured.
+Each slice is `kind: spike`, **nested in this spec** (never a standalone `docs/spikes/`),
+and each concludes with a **downstream artifact** (a resolving ADR or a refinement-todo
+update) that the MVP3 enforcement + contract-freeze specs consume — the anti-pattern this
+avoids is "research, then build one big enforcement slab."
+
+Split by **probe axis** (each is one live question, independently credential-gated):
+
+- **013-01 `[S]` real Edge round-trip + mint-recognizability** — boot alloy against a real
+  datastream; capture the real `interact` **response**; verify the real (server-assigned)
+  ECID round-trips into the jar, and that the broker's XDM mint-recognition + coalescing
+  hold against **real** Alloy. Resolves ADR-0008's kill-criterion; gates the contract-freeze.
+- **013-02 `[S]` egress-breadth fan-out** — capture the server-directed demdex / ID-sync
+  URLs the real Edge response directs (the fan-out the stub suppressed). Answers whether the
+  endpoint-ceiling / host-allow-list can enumerate real Alloy's egress — the enforcement
+  design's required input.
+- **013-03 `[S]` config-integrity / same-host-tenant re-routing** — test whether a
+  compromised chamber can re-point `datastreamId` / `orgId` to an attacker's Adobe org on
+  the *allowed* host (which destination-allowlisting is blind to). Grounds the
+  config-integrity requirement MVP3 enforces.
 
 ## Slices
 
-- [013-01 — tbd](slice-01-tbd.md)
+1. [013-01 — real Edge round-trip + mint-recognizability](slice-01-edge-roundtrip.md)
+2. [013-02 — egress-breadth fan-out](slice-02-egress-fanout.md)
+3. [013-03 — config-integrity / same-host-tenant re-routing](slice-03-config-integrity.md)

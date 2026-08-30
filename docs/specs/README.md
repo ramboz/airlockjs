@@ -43,6 +43,9 @@
 | [012-mvp2-alloy-chamber](012-mvp2-alloy-chamber/spec.md) | 012-02 — concurrent-chamber mint coalescing (lift ADR-0008's hold) | **DONE** |  |
 | [012-mvp2-alloy-chamber](012-mvp2-alloy-chamber/spec.md) | 012-03 — Target personalization, decisions-as-data (headless) | **DONE** |  |
 | [012-mvp2-alloy-chamber](012-mvp2-alloy-chamber/spec.md) | 012-04 — manifest declaration-shape + alloy behaviour characterization | **DONE** |  |
+| [013-mvp3-live-alloy-reprobe](013-mvp3-live-alloy-reprobe/spec.md) | 🔬 013-01 — real Edge round-trip + mint-recognizability | DRAFT |  |
+| [013-mvp3-live-alloy-reprobe](013-mvp3-live-alloy-reprobe/spec.md) | 🔬 013-02 — egress-breadth fan-out | DRAFT |  |
+| [013-mvp3-live-alloy-reprobe](013-mvp3-live-alloy-reprobe/spec.md) | 🔬 013-03 — config-integrity / same-host-tenant re-routing | DRAFT |  |
 
 ## Abandoned slices
 
