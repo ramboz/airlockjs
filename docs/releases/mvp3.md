@@ -9,9 +9,10 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 ## Problem / Baseline
 
 - MVP2 proves alloy isolates and runs in a chamber but deliberately leaves its I/O seams unsecured and alloy's config-driven behaviour uncharacterized. MVP3 secures the seams (ADR-0006/0007 enforcement) against alloy's real, measured behaviour — turning the declaration shape established in MVP2 into enforced least-privilege.
+- **MVP2 shipped as `v0.2.0` (2026-08-29)** — the precondition is met. alloy's behaviour characterization is delivered (spec 012-04 §Findings, two-axis), the declaration shape is in the contract (`endpoints` / `purposes`), and the wrapped-SDK mechanisms (fetch-interception → main-thread dispatch, mint-coalescing, `reserveSpace`) are demonstrated — but **parallel to `core/`, in rig harnesses**, and against **faithful stubs**. So MVP3 has two jobs, not one: (a) **secure the seams** (the original scope), and (b) **land the wrapped-SDK mechanisms into `core/` + validate against live Alloy** — the productionization MVP2's proof-shortcut deferred.
 ## Appetite
 
-- TBD — set when MVP2 lands. Variable scope: how much ADR-0006/0007 enforcement is provable against alloy's characterized behaviour vs. honestly deferred.
+- **TBD — a user decision.** (MVP2 has now landed, so the "set when MVP2 lands" trigger has fired — this is ripe to set.) _Proposed scope shape (budget still the user's to fix):_ spend it **Risk-First** — the creds-gated live-Alloy re-probe first (it gates the wrapped-SDK contract-freeze), then as much of {seam enforcement, wrapped-SDK core-integration, the `reserveSpace` security/hardening} as the budget allows, deferring the rest honestly. Variable scope: how much ADR-0006/0007 enforcement is provable against alloy's characterized behaviour vs. deferred; whether the alloy payload-governance split proves feasible.
 ## Solution Outline
 
 - Turn on the ADR-0006/0007 enforcement teeth (authoritative endpoints, payload governance, purpose-vector consent), designed against a first-class characterization of alloy's config-driven data collection and egress — not guessed. Enforcement extends, never rewrites, the MVP1/MVP2 contract (the declaration shape already exists).
@@ -21,6 +22,8 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 - Server-directed egress: alloy's Edge response returns third-party ID-sync URLs (demdex / Audience Manager) a static manifest cannot enumerate — measure live-Alloy endpoint breadth (the fan-out R-004's offline probe suppressed).
 - Same-host-tenant re-routing: a compromised alloy can re-point its datastreamId/edgeConfigId to an attacker's Adobe org on the *allowed* host; the host/endpoint allow-list is blind to it. Needs config-integrity + read-minimization, not destination-allowlisting.
 - ADR-0007 purpose-vector consent depends on a CMP consent-input seam and the MP consent-field reshape landing at *both* mapping sites (worker mapBatch + unload fast path, OQ16).
+- **Security trust boundary (from MVP2's `reserveSpace`).** The CWV-safe DOM-injection `fill` uses `innerHTML` (by-design for authored Target offers, as alloy's own `renderDecisions:true` does). `innerHTML` won't run inserted `<script>`, but `on*` handlers survive — so hosting untrusted decision HTML needs a **sanitizer via the injectable `setContent` hook + a Trusted-Types policy**. Not optional for production; it is part of the seam-enforcement scope, not a nice-to-have.
+- **Core-integration divergence.** MVP2's wrapped-SDK egress (fetch-interception → main-thread dispatch, the coalescing broker, `reserveSpace`) lives in **rig harnesses parallel to `core/airlock.js`** — a deliberate proof shortcut. Wiring it into `core/` proper — with the coalescing reject-path carried over, and the request/**response** round-trip egress surface either modelled in `contracts/` or explicitly gated by the seal — is real work; leaving it parallel risks two divergent egress models (the harness's and core's).
 ## No-Gos
 
 - Designing the secured seams before MVP2 has characterized alloy's real config-driven collection + egress.
@@ -36,6 +39,8 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 | ADR-0006 payload governance (OQ11 denylist) — **GA4 / wire-protocol** | airlock builds the MP body ([map.js](../../connectors/ga4/map.js)) | Natural and tractable where airlock constructs the payload |
 | ADR-0007 purpose-vector consent **enforcement** — CMP consent-input seam + MP consent-field reshape at both mapping sites | ADR-0007 accepted | The consent half of ADR-0006's grant law |
 | **Config-integrity** — connector config (datastreamId / edgeConfigId) host-owned, not chamber-mutable | Same-host-tenant re-routing defense (brainstorm) | The endpoint ceiling is blind to same-host re-routing; not yet in ADR-0006 |
+| **Wrapped-SDK core integration** — wire MVP2's rig-parallel egress (fetch-interception → main-thread dispatch, the coalescing broker + its reject-path, `reserveSpace`) into `core/airlock.js`; converge the two connector-hosting paths (retrofit GA4 onto `core/connector-host.js`) | MVP2 tracked debt ([refinement-todo](../refinement-todo.md) a–e) | MVP2's proof shortcut; production needs **one** egress model in core, not two |
+| **`reserveSpace` security + hardening** — the `innerHTML` **sanitizer + Trusted-Types** boundary; overflow-clip; eager-phase wiring; the production-hardening nits (fetch-shim timeout, dead-man guard, eslint scope, `decisions.fetch` not-built-loudness + contract-stability pin, shared proposition accessor) | MVP2 tracked debt ([refinement-todo](../refinement-todo.md) f–k) | The `innerHTML` boundary is load-bearing for hosting untrusted vendor content |
 
 ### Defer
 
@@ -53,8 +58,8 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 
 | Item | Evidence | Rationale |
 |---|---|---|
-| Characterize alloy's config-driven behaviour — auto-collected data (context, ECID) + egress hosts (datastreamId / edge domain) | MVP2 output; R-004 partial | The seam design's required input — enforcement can't be designed without it |
-| Server-directed-egress probe (demdex / Audience-Manager sync) + same-host-tenant re-routing test | Unprobed — R-004 faked the network | Endpoint-ceiling & host-allow-list validity for alloy both hinge on it |
+| ~~Characterize alloy's config-driven behaviour~~ — **DELIVERED** (spec [012-04 §Findings](../specs/012-mvp2-alloy-chamber/slice-04-manifest-characterize.md), two-axis) | MVP2 output | The seam design's required input — done; the two axes (egress-breadth / collection-breadth) name what's stub-known vs. live-only |
+| **Live-Alloy re-probe — _the_ lead item** — real Edge response shape, demdex / ID-sync fan-out breadth, cluster routing, and **mint-recognizability against real Alloy** (ADR-0008 kill-criterion) + the same-host-tenant re-routing test | Unprobed — MVP2 proved against faithful stubs; **creds-gated** (needs a real Adobe datastream / org) | **The wrapped-SDK capability contract-freeze rides on it**; endpoint-ceiling + host-allow-list validity for alloy both hinge on it. Run before designing enforcement + before the freeze. |
 
 ## JIG Handoff
 
@@ -67,5 +72,8 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 - A compromised or misconfigured alloy cannot exfiltrate: it is confined by read-minimization + config-integrity + governed egress, verified against the characterized behaviour.
 - ADR-0006 endpoint ceiling + payload governance and ADR-0007 purpose-vector consent are enforced (not just declared) for the channels MVP2's characterization proved tractable.
 - No breaking change to the MVP1/MVP2 connector/capability contracts.
+- **The `reserveSpace` `innerHTML` path is gated by a sanitizer + Trusted-Types** — untrusted decision content cannot inject active markup (`on*` handlers included).
+- **The wrapped-SDK egress path runs through `core/`** (not a rig harness), with the coalescing reject-path in place — one egress model, not two.
+- **The live-Alloy re-probe has validated (or honestly bounded)** the real Edge response, the demdex fan-out breadth, and mint-recognizability against real Alloy — **before** the wrapped-SDK capability contract is frozen.
 
-_Last shaped: 2026-08-28_
+_Last shaped: 2026-08-29 (refined after MVP2 shipped `v0.2.0` — added the wrapped-SDK core-integration + `reserveSpace` security/hardening scope that MVP2's implementation surfaced, and named the live-Alloy re-probe as the Risk-First lead)._
