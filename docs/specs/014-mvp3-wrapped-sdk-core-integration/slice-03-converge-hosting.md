@@ -2,7 +2,7 @@
 status: DRAFT
 dependencies: [014-01]
 last_verified:
-frame_review: false
+frame_review: true
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about
@@ -14,10 +14,17 @@ frame_review: false
 wrapped-SDK alloy (014-01) and the wire-protocol GA4 (MVP1) — are hosted **one** way, and converge /
 retire the GA4-hardcoded `core/chamber.worker.js` path (`core/airlock.js` hardcodes
 `new Worker(new URL("./chamber.worker.js", …))` importing GA4's `mapToMp` directly). After it there is
-**one** connector-hosting path in core, not two that calcify — closing the MVP2 arch flag 3 debt. This
-is also where the **two dispatch sites** (014-01's sibling wrapped-SDK host + `core/airlock.js`'s
-wire-protocol dispatch) fold into the **single seam** the MVP3 enforcement binds to — both request
-shapes (a structured `EgressRequest` **and** a raw intercepted fetch) arriving at one place.
+**one connector-HOSTING path** in core, not two that calcify — closing the MVP2 arch flag 3 debt.
+
+**Honest scope (014-01 arch-4).** This converges the *hosting*, **not** the egress paths — THREE
+legitimately coexist and are **not** folded into one: (i) GA4 **fire-and-forget** `ready` dispatch,
+(ii) the wrapped-SDK **round-trip** dispatch (014-01), and (iii) `core/egress.js`'s **synchronous
+unload fast path** (GA4-only, which an async `dispatch(req) → Promise` structurally **cannot** serve,
+and which needs `keepalive` that `EgressDispatchRequest` lacks). The MVP3 enforcement seam binds to the
+**steady-state dispatch** (i + ii); the unload fast path stays a **separate synchronous path** a later
+enforcement spec handles on its own terms (unload-time — no interaction to protect — reusing the
+byte-identical `mapToMp`). So the deliverable is "one hosting path + a clearly-bounded set of egress
+paths," not the over-claim "all egress at one seam."
 
 **DoR:**
 - ✅ [014-01] DONE — `core/airlock.js` can host a connector via `createConnectorHost` in a real
@@ -36,9 +43,11 @@ shapes (a structured `EgressRequest` **and** a raw intercepted fetch) arriving a
    the main thread via `fetch(..., {keepalive})` (ADR-0004) — the wire-protocol model is unchanged;
    the round-trip surface (014-01) is used only by wrapped-SDK connectors. Observable: GA4 egress is
    byte-identical to MVP1 (`mapToMp` output unchanged).
-3. **OQ10 unload fast path preserved.** The synchronous main-thread `pushCritical` + the
-   `visibilitychange`/`pagehide` ring-tail flush still map via the pure `mapToMp` (byte-identical),
-   never entering the worker. Observable: `test/egress-fastpath.test.js` green; no double-send.
+3. **OQ10 unload fast path preserved AS A SEPARATE synchronous path (arch-4).** The synchronous
+   main-thread `pushCritical` + the `visibilitychange`/`pagehide` ring-tail flush still map via the
+   pure `mapToMp` (byte-identical), never entering the worker — and are **explicitly NOT** folded into
+   the async `caps.egress.dispatch` seam (it can't serve a synchronous keepalive path). Observable:
+   `test/egress-fastpath.test.js` green; no double-send; the unload path remains synchronous.
 4. **One hosting path.** The GA4-hardcoded `core/chamber.worker.js` path is **retired or converged**
    onto the generic host — no two divergent hosting mechanisms remain. Observable: `core/airlock.js`
    hosts both connectors through `core/connector-host.js`; any residual GA4-specific worker glue is
@@ -55,6 +64,11 @@ shapes (a structured `EgressRequest` **and** a raw intercepted fetch) arriving a
       converged); `architecture.md` module-boundary note reconciled if the hosting boundary moved.
 - [ ] **No breaking change** to the MVP1/MVP2 connector/capability contracts — `contracts/` diffs are
       additive; `test/contract-stability.test.js` green.
+- [ ] **Retire the duplicate 012-02 rig broker (arch-2 follow-up).** `rig/alloy-coalescing-broker.js`
+      is a verbatim copy of `core/coalescing-broker.js` (the drift hazard spec 014 exists to kill) —
+      redirect its test/harness at `core/coalescing-broker.js` (injecting the alloy recognizer) or
+      delete it, so exactly one broker remains. _(Bundled here as the "retire duplicates" theme; the
+      frame-critique may split it out if it doesn't belong.)_
 
 **Anti-horizontal-phasing check:** after this slice, GA4 (UC-2) runs through the same generic host as
 alloy — one connector-hosting path in core, not two. Observable value: the GA4 analytics scenario,
