@@ -53,6 +53,9 @@
 | [015-mvp3-config-integrity-enforcement](015-mvp3-config-integrity-enforcement/spec.md) | 015-02 — override availability option | **DONE** |  |
 | [016-mvp3-endpoint-ceiling-enforcement](016-mvp3-endpoint-ceiling-enforcement/spec.md) | 016-01 — GA4: confine the chamber + wire-protocol endpoint ceiling (the EXACT archetype) | **DONE** |  |
 | [016-mvp3-endpoint-ceiling-enforcement](016-mvp3-endpoint-ceiling-enforcement/spec.md) | 016-02 — alloy: wrapped-SDK endpoint ceiling reconciled with config-integrity (the FLOOR archetype) | **DONE** |  |
+| [017-mvp3-purpose-vector-consent](017-mvp3-purpose-vector-consent/spec.md) | 017-01 — data-use consent reshape + the consent machinery (the grounded first point) | DRAFT |  |
+| [017-mvp3-purpose-vector-consent](017-mvp3-purpose-vector-consent/spec.md) | 017-02 — storage consent deny (cookie capability + ephemeral id) | DRAFT |  |
+| [017-mvp3-purpose-vector-consent](017-mvp3-purpose-vector-consent/spec.md) | 017-03 — seal hold-pending + strict-drop | DRAFT |  |
 
 ## Abandoned slices
 
