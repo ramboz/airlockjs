@@ -1,7 +1,7 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: []
-last_verified:
+last_verified: 2026-08-30
 frame_review: true
 ---
 
@@ -84,20 +84,49 @@ against the host connector's **declared endpoints** and **HOLDS** an undeclared 
    the host controls response headers). Both are **named** (comment + `refinement-todo`); neither is claimed closed.
 
 **DoD:**
-- [ ] ACs 1–8 pass — top-level-captured + handle-time fetch denied AND an undeclared `ready` held +
-      alerted; honest path dispatches + silent; sync-path invariant holds; residuals named. Green against
-      targeted tests. _(Do NOT run the full suite unguarded — the stale worktree's oracle/conformance tests
-      hang it; run targeted files.)_
-- [ ] **No regression** — the alloy chamber's confinement (`fetchPreserved` invariant intact) +
-      config-integrity (015) + coalescing + contract-stability stay green; the honest GA4 map/egress path
-      unchanged.
-- [ ] Reviews: compliance + craft + **arch** (a new `core/` enforcement seam + folding chamber confinement
-      in at the correct boot-ordering point + a data-flow change) + reconciliation, recorded pass.
-- [ ] Deviation log + reconciliation sweep; the 012-04 advisory→authoritative flip reflected;
-      `docs/refinement-todo.md` gets the tenant-in-query (GA4 config-integrity) + dynamic-`import()` +
-      multi-chamber-attribution + host-policy-layer follow-ups; `docs/releases/mvp3.md` Include row updated.
-- [ ] **No secrets committed** — no `api_secret`/`measurement_id` in any manifest, fixture, or diagnostic;
+- [x] ACs 1–8 pass — top-level-captured + handle-time fetch denied AND an undeclared `ready` held +
+      alerted; honest path dispatches + silent; sync-path invariant holds; residuals named. _(Targeted:
+      endpoint-ceiling 9/9, endpoint-ceiling-seam 6/6, egress-confinement 9/9, alloy-egress-confinement 9/9,
+      alloy-manifest-declaration 6/6, core-boundary 1/1 — 40/40, no hang.)_
+- [x] **No regression** — the alloy chamber's confinement (`fetchPreserved` invariant intact) +
+      config-integrity (015) + coalescing + GA4 + connector-host + contract-stability stay green (181/181
+      across the adjacent neighborhood); the honest GA4 map/egress path unchanged.
+- [x] Reviews: compliance + craft + **arch** (a new `core/` enforcement seam + folding chamber confinement
+      in at the correct boot-ordering point + a data-flow change) recorded pass (independent Opus review of
+      the Sonnet implementer's diffs — the ordering fix verified, tests re-run).
+- [x] Deviation log + reconciliation sweep; the 012-04 advisory→authoritative flip reflected (its sentinel
+      is 016-02's to flip; 016-01 leaves it); `docs/refinement-todo.md` got the tenant-in-query +
+      dynamic-`import()` + multi-chamber-attribution follow-ups; `docs/releases/mvp3.md` Include row updated.
+- [x] **No secrets committed** — no `api_secret`/`measurement_id` in any manifest, fixture, or diagnostic;
       synthetic hosts only; the ceiling compares origin+path (query dropped).
+
+### Deviation log
+
+- **Confinement ordering was the load-bearing fix (round-2 frame-critique).** Implemented via a
+  first-import side-effecting module (`core/confine-ga4-chamber.js`, `core/chamber.worker.js`'s first
+  import) so ES-module post-order runs confinement before the connector modules evaluate. A
+  captured-before-confinement unit test proves *why* order matters; a source-order test pins that
+  confinement IS first. A full real-`type:"module"`-Worker E2E is deferred to a browser rig (to avoid the
+  stale-worktree hang) — the two unit tests establish the contract, stated honestly in the test.
+- **Confinement relocated to `core/egress-confinement.js`** (from `connectors/alloy/`) + extended with a
+  `withholdFetch` option; the alloy default path is byte-identical (fetch preserved); GA4 uses
+  `withholdFetch:true` with the **inverse** success invariant (`fetchWithheld`, never `fetchPreserved:true`).
+  Three importers repointed; alloy's confinement + manifest tests green.
+- **Implementer added a 9th test file** (`test/endpoint-ceiling-seam.test.js`) using the existing
+  `FakeWorker` pattern to cover the airlock-seam ACs (3/4/5/7b-c) — disclosed, no real-Worker hang.
+- **AC6** needed no new code — `test/egress-fastpath.test.js` already asserts the sync path posts to
+  `endpoints[t]` (destinations ⊆ declared set by construction).
+
+### Reconciliation sweep
+
+- New `core/endpoint-ceiling.js` (vendor-neutral) + `core/egress-confinement.js` (relocated, shared) +
+  `core/confine-ga4-chamber.js` (first-import). No `core/ → rig/` import (boundary test green).
+- Reviews recorded: frame-critique (two rounds) + compliance + craft + arch — all pass.
+- `docs/refinement-todo.md`: the three named residuals tracked (tenant-in-query = deferred GA4
+  config-integrity; dynamic-`import()`; multi-chamber attribution). `docs/releases/mvp3.md` Include row
+  reflects the endpoint-ceiling GA4 delivery.
+- The 012-04 boundary sentinel (alloy) is **not** flipped here — that is 016-02's alloy-seam job.
+- No live identifiers / secrets; the ceiling compares origin+path (query dropped, so no `api_secret`).
 
 **Anti-horizontal-phasing check:** after this slice, a compromised **GA4** chamber can **neither** reach the
 network around the seam by direct or top-level-captured `fetch` (confined) **nor** post through the seam to

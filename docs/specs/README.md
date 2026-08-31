@@ -51,8 +51,8 @@
 | [014-mvp3-wrapped-sdk-core-integration](014-mvp3-wrapped-sdk-core-integration/spec.md) | 014-03 — converge connector-hosting (GA4 retrofit) | **DONE** |  |
 | [015-mvp3-config-integrity-enforcement](015-mvp3-config-integrity-enforcement/spec.md) | 015-01 — fail-closed enforcement (hold + alert) | **DONE** |  |
 | [015-mvp3-config-integrity-enforcement](015-mvp3-config-integrity-enforcement/spec.md) | 015-02 — override availability option | **DONE** |  |
-| [016-mvp3-endpoint-ceiling-enforcement](016-mvp3-endpoint-ceiling-enforcement/spec.md) | 016-01 — GA4 wire-protocol endpoint ceiling (the EXACT archetype) | DRAFT |  |
-| [016-mvp3-endpoint-ceiling-enforcement](016-mvp3-endpoint-ceiling-enforcement/spec.md) | 016-02 — alloy wrapped-SDK endpoint ceiling (the FLOOR archetype) | DRAFT |  |
+| [016-mvp3-endpoint-ceiling-enforcement](016-mvp3-endpoint-ceiling-enforcement/spec.md) | 016-01 — GA4: confine the chamber + wire-protocol endpoint ceiling (the EXACT archetype) | **DONE** |  |
+| [016-mvp3-endpoint-ceiling-enforcement](016-mvp3-endpoint-ceiling-enforcement/spec.md) | 016-02 — alloy: wrapped-SDK endpoint ceiling reconciled with config-integrity (the FLOOR archetype) | DRAFT |  |
 
 ## Abandoned slices
 
@@ -67,7 +67,7 @@
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
 - **0** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **40** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **42** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **8** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review

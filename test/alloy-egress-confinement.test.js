@@ -14,7 +14,7 @@ import {
   denySendBeacon,
   WITHHELD_NETWORK_CONSTRUCTORS,
   CONFINEMENT_MESSAGE,
-} from "../connectors/alloy/egress-confinement.js";
+} from "../core/egress-confinement.js";
 
 // A fake worker-global scope with the ambient network primitives PRESENT (the
 // pre-confinement state), so a test that asserts they are withheld is red

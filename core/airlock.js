@@ -23,6 +23,7 @@
  * taken at unload, where there is no interaction left to protect.
  */
 import { createCriticalDispatcher } from "./egress.js";
+import { originPath, checkEndpointCeiling } from "./endpoint-ceiling.js";
 
 // Default diagnostics seam: console-backed, severity-differentiated (warn for a
 // per-descriptor drop, error for a chamber-level crash). Callers may inject
@@ -35,6 +36,13 @@ function consoleDiagnostic(record) {
 
 export function createAirlock({ trackers, workFactor, endpoints, ctx, unloadCritical, onDiagnostic }) {
   const diagnose = typeof onDiagnostic === "function" ? onDiagnostic : consoleDiagnostic;
+  // 016-01 AC3/AC5: the endpoint ceiling, reduced ONCE from the host's
+  // construction-time declared `endpoints` — never derived from a chamber's
+  // `ready` request, so a compromised chamber cannot widen its own ceiling.
+  // Gated below on `ceiling.length` so a caller with no declared endpoints is
+  // unaffected (back-compat); a connector with declared endpoints (GA4,
+  // always) gets the ceiling enforced on every dispatch.
+  const ceiling = (endpoints || []).map(originPath).filter(Boolean);
   const log = [];
   // Null-prototype: event names are object keys, so a pathological name like
   // "__proto__" must land as an own key, not rewire the projection's prototype.
@@ -60,6 +68,19 @@ export function createAirlock({ trackers, workFactor, endpoints, ctx, unloadCrit
     const ready = data && data.ready;
     if (ready) {
       for (const r of ready) {
+        // 016-01 AC3/AC4: fail-closed endpoint ceiling — before dispatching,
+        // hold any destination outside the connector's DECLARED endpoints
+        // (origin+pathname; ADR-0006's declared-as-ceiling law). An
+        // undeclared destination gets NO fetch and NO dispatched++ (the seal
+        // bites); it is surfaced via the 009-02 diagnostics sink so a held
+        // egress is never silently invisible.
+        if (ceiling.length) {
+          const c = checkEndpointCeiling(r.url, endpoints);
+          if (c.verdict === "hold") {
+            diagnose({ level: "error", kind: "endpoint-ceiling", disposition: "held", destination: c.destination, reason: c.reason });
+            continue;
+          }
+        }
         fetch(r.url, { method: "POST", body: r.body, keepalive: true })
           .then(() => { dispatched++; }, () => { dispatched++; });
       }

@@ -1,28 +1,55 @@
 /**
- * Egress confinement for the alloy chamber — spec 012-01, AC5.
+ * Egress confinement — the SHARED `core/` primitive both chambers apply
+ * (spec 012-01 AC5, originally alloy-only at
+ * `connectors/alloy/egress-confinement.js`; RELOCATED + EXTENDED to `core/`
+ * by spec 016-01 so the GA4 chamber can apply the same posture).
  *
- * ALLOW-LIST posture, not a (never-complete) enumerated deny-list: the chamber
- * exposes the mediated (intercepted) `fetch` as its SOLE network-capable
- * surface and WITHHOLDS every other ambient network primitive a classic
- * dedicated Worker retains. Each withheld primitive is made ABSENT or a
- * THROWING STUB in the target scope, so code running in the chamber post-boot
- * cannot reach the network by any path other than the mediated `fetch`.
+ * ALLOW-LIST posture, not a (never-complete) enumerated deny-list: withhold
+ * every ambient network primitive a classic/module Worker retains (XHR,
+ * WebSocket, EventSource, WebTransport, nested Worker, CacheStorage,
+ * `navigator.sendBeacon`), each made ABSENT or a THROWING STUB in the target
+ * scope, so code running in the chamber post-boot cannot reach the network by
+ * any of those paths.
+ *
+ * `fetch` is the ONE primitive whose disposition depends on the connector
+ * archetype (016-01 finding) — the two chambers need OPPOSITE outcomes:
+ *   - alloy (wrapped-SDK, default `opts.withholdFetch` falsy): `fetch` IS the
+ *     mediated surface (the chamber's intercepted-fetch shim posts to main —
+ *     `connectors/alloy/alloy-chamber.worker.js`), so it is PRESERVED — the
+ *     chamber's sole surviving network-capable path. `record.fetchPreserved`
+ *     is the success signal, unchanged from spec 012-01.
+ *   - GA4 (wire-protocol, `opts.withholdFetch: true`): `fetch` is NOT
+ *     mediated — GA4's egress is the `ready` postMessage
+ *     (`core/connector-host.js`'s `routeBatch` return value) — so `fetch` is
+ *     WITHHELD too, and the success signal is the INVERSE:
+ *     `record.fetchWithheld === true` / `record.fetchPreserved === false`.
+ *     Reporting `fetchPreserved: true` for GA4 would be a silently wrong
+ *     signal (alloy's invariant is not GA4's), so withholdFetch mode never
+ *     sets it.
  *
  * This is egress CONFINEMENT at the chamber boundary — distinct from the
- * seal's consent/allow-list ENFORCEMENT on the mediated path (MVP3).
+ * seal's consent/allow-list ENFORCEMENT on the mediated path (MVP3's
+ * `core/endpoint-ceiling.js`, spec 016-01) or the outbound-destination pin
+ * (`core/config-integrity.js`, spec 015-01).
  *
  * Pure + deterministic (operates on a passed-in scope object, no `self`/DOM at
  * module top level) so it is directly unit-testable in Node against a fake
  * global scope. The alloy chamber worker applies it to `self` right after the
  * stock bundle loads (at the same point importScripts is revoked), so alloy's
  * own configure + sendEvent run UNDER confinement — proving the allow-list did
- * not break alloy (R-004: alloy uses only `fetch`).
+ * not break alloy (R-004: alloy uses only `fetch`). The GA4 chamber applies it
+ * (withholdFetch mode) via `core/confine-ga4-chamber.js`, imported FIRST by
+ * `core/chamber.worker.js` — BEFORE the connector modules evaluate, closing
+ * the top-level `const f = self.fetch`-capture bypass a body/init-time call
+ * would leave open (016-01; see that module's header for the ES-module
+ * post-order argument).
  *
  * DELIBERATELY NOT here: dynamic `import()` of a remote specifier. That is a
  * language-level loader primitive a JS shim cannot reliably withhold — the
- * DISCLOSED residual (AC5). The adversarial rig probes it at runtime and
- * records the outcome honestly; it is gated by MVP3 seal enforcement (and a
- * worker `connect-src` CSP where the host controls response headers).
+ * DISCLOSED residual (spec 012-01 AC5; named again for GA4 by 016-01). The
+ * adversarial rig probes it at runtime and records the outcome honestly; it
+ * is gated by MVP3 seal enforcement (and a worker `connect-src` CSP where the
+ * host controls response headers).
  */
 
 export const CONFINEMENT_MESSAGE =
@@ -113,25 +140,39 @@ export function denySendBeacon(navigator) {
 
 /**
  * Apply egress confinement to a (worker-global-like) scope: withhold every
- * ambient network primitive except the mediated `fetch`. Idempotent and
- * side-effect-scoped to `scope` (+ `scope.navigator`).
+ * ambient network primitive. Idempotent and side-effect-scoped to `scope`
+ * (+ `scope.navigator`).
+ *
+ * `fetch` handling depends on `opts.withholdFetch` (016-01):
+ *   - default (falsy) — UNCHANGED spec-012-01 alloy behavior: `fetch` is
+ *     PRESERVED (the chamber's sole surviving network-capable surface).
+ *   - `true` — GA4's inverse: `fetch` is ALSO replaced with a throwing stub.
+ *     `record.fetchPreserved` is never reported `true` in this mode (that
+ *     success signal is alloy's, and reporting it here would silently invert
+ *     its meaning); the success signal is `record.fetchWithheld`.
  *
  * @param {Record<string, unknown> & { navigator?: object, fetch?: unknown }} scope
+ * @param {{ withholdFetch?: boolean }} [opts] `withholdFetch:true` also
+ *   withholds `fetch` itself (GA4 — its egress is the `ready` postMessage,
+ *   not a mediated fetch); omitted/falsy preserves `fetch` (alloy, unchanged).
  * @returns {{
  *   withheld: Record<string, string>,
  *   caches: string,
  *   sendBeacon: string,
  *   fetchPreserved: boolean,
+ *   fetchWithheld: boolean,
  *   message: string,
- * }} a record of what was withheld and how (surfaced for the AC5 assertions).
+ * }} a record of what was withheld and how (surfaced for the AC5/016-01 assertions).
  */
-export function applyEgressConfinement(scope) {
+export function applyEgressConfinement(scope, opts = {}) {
+  const withholdFetch = opts.withholdFetch === true;
   const fetchBefore = scope.fetch;
   const record = {
     withheld: {},
     caches: null,
     sendBeacon: null,
     fetchPreserved: false,
+    fetchWithheld: false,
     message: CONFINEMENT_MESSAGE,
   };
   for (const name of WITHHELD_NETWORK_CONSTRUCTORS) {
@@ -139,9 +180,20 @@ export function applyEgressConfinement(scope) {
   }
   record.caches = forceProp(scope, "caches", throwingCacheStorage());
   record.sendBeacon = scope.navigator ? denySendBeacon(scope.navigator) : "no-navigator";
-  // Allow-list invariant: the mediated `fetch` is UNTOUCHED — it stays the
-  // chamber's sole network-capable surface. A regression that clobbered it
-  // (or that this function overreached into) trips `fetchPreserved: false`.
-  record.fetchPreserved = typeof scope.fetch === "function" && scope.fetch === fetchBefore;
+  if (withholdFetch) {
+    // GA4 (016-01): fetch is NOT the mediated surface here — withhold it too,
+    // same throwing-stub mechanism as the other constructors. Never report
+    // `fetchPreserved: true` in this mode — that is alloy's inverted signal.
+    forceProp(scope, "fetch", throwingConstructor("fetch"));
+    record.fetchPreserved = false;
+    record.fetchWithheld = typeof scope.fetch === "function";
+  } else {
+    // Allow-list invariant (alloy, unchanged): the mediated `fetch` is
+    // UNTOUCHED — it stays the chamber's sole network-capable surface. A
+    // regression that clobbered it (or that this function overreached into)
+    // trips `fetchPreserved: false`.
+    record.fetchPreserved = typeof scope.fetch === "function" && scope.fetch === fetchBefore;
+    record.fetchWithheld = false;
+  }
   return record;
 }

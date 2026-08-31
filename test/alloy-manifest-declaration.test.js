@@ -16,7 +16,7 @@
 // declaration SHAPE and the absence-of-gating boundary against that fake.
 import { describe, it, expect, vi } from "vitest";
 import { createAlloyConnector } from "../connectors/alloy/connector.js";
-import { applyEgressConfinement } from "../connectors/alloy/egress-confinement.js";
+import { applyEgressConfinement } from "../core/egress-confinement.js";
 
 /** ADR-0007's starter taxonomy — the Consent Mode v2 four + functional/personalization. */
 const ADR_0007_TAXONOMY = new Set([

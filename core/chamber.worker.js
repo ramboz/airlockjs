@@ -28,6 +28,20 @@
  * here, exactly as before this slice (unchanged realm/isolation properties;
  * see rig/isolation.mjs).
  */
+// CONFINEMENT MUST BE THE FIRST IMPORT (spec 016-01 — load-bearing ordering
+// fix, not stylistic). This is a `type:"module"` worker that statically
+// imports its connector below; ES-module evaluation is POST-ORDER, so a
+// STATICALLY-imported module's own top-level runs before THIS file's body —
+// but imports are themselves evaluated in SOURCE ORDER, so putting this
+// import FIRST guarantees its top-level (which applies egress confinement to
+// `self`, withholding `fetch` too — GA4's egress is the `ready` postMessage,
+// not a mediated fetch) runs BEFORE the `createConnectorHost`/
+// `createGa4Connector` imports below evaluate. Confining from this file's own
+// body/init handler instead would be too late: a compromised connector
+// module's top-level `const f = self.fetch` would already have captured the
+// live `fetch` before confinement could reassign it. See
+// core/confine-ga4-chamber.js for the full argument.
+import "./confine-ga4-chamber.js";
 import { createConnectorHost } from "./connector-host.js";
 import { createGa4Connector } from "../connectors/ga4/connector.js";
 

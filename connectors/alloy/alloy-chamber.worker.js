@@ -49,7 +49,7 @@
 import { createConnectorHost } from "../../core/connector-host.js";
 import { createAlloyConnector } from "./connector.js";
 import { createSyncCookieCache } from "./sync-cookie-cache.js";
-import { applyEgressConfinement, denySendBeacon } from "./egress-confinement.js";
+import { applyEgressConfinement, denySendBeacon } from "../../core/egress-confinement.js";
 
 const summary = {
   booted: false,
