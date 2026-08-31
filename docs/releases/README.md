@@ -12,7 +12,8 @@ they stop informing a current release decision.
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| _None yet_ | _-_ | _-_ |
+| [MVP4 — Inspector & Value Proof](mvp4.md) | MVP3 shipped the enforcement teeth (endpoint ceiling, config-integrity, purpose-vector consent, payload | No JIG handoff linked. |
+| [MVP5 — Adoption & 1.0 Readiness](mvp5.md) | The runtime (MVP1), both connector archetypes (MVP2), the enforcement teeth (MVP3), and — pending MVP4 — | No JIG handoff linked. |
 
 ## Committed
 
