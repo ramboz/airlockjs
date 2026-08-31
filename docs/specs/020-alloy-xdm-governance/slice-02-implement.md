@@ -1,8 +1,9 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 dependencies: [020-01]
 last_verified: 2026-08-31
 frame_review: false
+claimed_by: main
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about
@@ -24,7 +25,7 @@ Edge-safe strip.** Unblocked by 020-01's Outcome.
 - ✅ The seam is `core/wrapped-sdk-host.js` `dispatchInterceptedFetch`, where endpoint-ceiling + config-integrity
   already bind; the consent vector can thread into the chamber `init` like other ctx. **Grounded** (020-01).
 
-**Acceptance Criteria (to be finalized when picked up — the probe fixed the approach):**
+**Acceptance Criteria (finalized — implemented + reviewed PASS ×3):**
 
 1. **Seam-side egress drop (the TRUSTED enforcement — does NOT trust the chamber).** At
    `dispatchInterceptedFetch`, apply the ADR-0007 `egressVerdict` (`core/consent.js`) to alloy's intercepted
@@ -50,15 +51,59 @@ Edge-safe strip.** Unblocked by 020-01's Outcome.
 4. **No regression** — the GA4 seal (017-03), endpoint-ceiling (016), config-integrity (015), and the alloy
    round-trip (012/014) stay green; the no-consent path is byte-unchanged.
 
-**DoD (to finalize):**
-- [ ] ACs pass — the alloy seam-drop (egressVerdict-parity with GA4) + the chamber `setConsent` drive + the
-      optional strip; targeted tests + a live `setConsent(collect:n)` chamber-rig confirmation (013 infra).
-- [ ] Reviews (compliance + craft + arch — the untrusted-chamber seam-enforce-vs-delegate design + the
-      egressVerdict reuse) + reconciliation.
-- [ ] **Supersede ADR-0012's alloy-Split disposition** (and ADR-0007's alloy residual) — record that alloy
-      consent is *feasible* via seam-drop + `setConsent`, not the feared fragile strip-at-seal; an ADR update
-      at 020's close.
-- [ ] **No live identifiers committed.**
+**DoD:**
+- [x] ACs pass — the alloy seam-drop (`egressVerdict` **strict**) + the chamber `setConsent` drive + the
+      optional strip. **104/104 targeted** (`wrapped-sdk-host`, `alloy-consent`, `consent`, `consent-seal`,
+      `coalescing-broker-core`, `core-boundary`, `alloy-config-integrity`); the load-bearing property (a
+      compromised chamber is still held at the seam) machine-verified by a fake-chamber-no-`setConsent` test.
+      The live `setConsent(collect:n)` chamber-rig confirmation is a named creds-gated follow-on (013 infra).
+- [x] Reviews: compliance + craft + arch — **all PASS** (independent Opus over the Sonnet diffs) + this
+      reconciliation. Nits folded (fail-loud misconfig warn; never-throw strip tests; corrected test name;
+      fail-open-at-swallow comment).
+- [x] **ADR-0013 supersedes ADR-0012's alloy-Split disposition + resolves ADR-0007's alloy residual** — alloy
+      consent is *feasible* via the trusted seam-drop + `setConsent` delegate, not the feared fragile
+      strip-at-seal.
+- [x] **No live identifiers committed** — synthetic consent vectors; the live rig stays creds-gated + redacted.
+
+### Deviation log
+
+- **`strict:true` is hardcoded, not a caller opt (intentional).** alloy has no body-consent field to
+  reshape-and-send (unlike GA4's configurable `consentStrict`), so a denied/pending purpose MUST drop —
+  there is no valid non-strict value. Spec-compliant (AC1) + review-endorsed; not a deviation, recorded as a
+  design choice.
+- **`pending → drop` (not hold+buffer+flush) is the first-impl choice.** The alloy interact is a synchronous
+  vendor-SDK round-trip (alloy's own `sendEvent` promise), not a queued `{url,body}` beacon like GA4's async
+  seal (017-03) — a `pending → hold+flush` refinement needs a replay decouple that does not exist for the
+  wrapped-SDK path. Fail-closed + safe; tracked as a follow-on (open question: is pending-window data loss
+  acceptable for alloy, or prioritize hold+flush? — arch review).
+- **Delegate fails OPEN on a `setConsent` error** (chamber swallows, `sendEvent` proceeds) — by design: the
+  delegate runs in the untrusted chamber and is never the enforcement; the trusted seam-drop is the backstop.
+  A comment at the swallow makes this legible; a delegate-ONLY wiring (consent without `egressPurposes`) now
+  **fail-louds** a construction warn.
+- **Diagnostic level `warn` for a consent hold** (vs `error` for ceiling/config-integrity) — a consent hold
+  is a routine user choice, not an integrity violation; matches GA4's seal (`core/airlock.js`).
+- **HTML/live rig callers not wired for the new opts** — `rig/alloy-core-host-harness.html` /
+  `alloy-coalescing-core-harness.html` still construct the host with default opts (gates skipped, back-compat
+  by construction). Wiring them for a live/browser consent exercise + the live `setConsent(collect:n)` flow is
+  a named follow-on.
+
+### Reconciliation sweep
+
+- **Surface:** `core/wrapped-sdk-host.js` (the consent gate + optional strip + the fail-loud misconfig warn);
+  NEW `connectors/alloy/consent.js` (`shapeAlloyConsent`, fail-closed); `connectors/alloy/alloy-chamber.worker.js`
+  (the `configure → setConsent → sendEvent` drive); the tests. Reuses `core/consent.js` `egressVerdict` +
+  `core/payload-governance.js` `governPayload` — no new primitive.
+- **Boundaries:** `core/` imports only core siblings; `connectors/alloy/consent.js` imports `resolveConsent`
+  from `core/` (connector→core, allowed) — `core-boundary` green. No core→connector coupling.
+- **Reviews recorded:** compliance + craft + arch (all pass) + reconciliation, under `reviews/`.
+- **Docs:** `docs/refinement-todo.md` gains the alloy-governance follow-ons (pending→hold+flush;
+  purpose-list mirror drift; the live-rig/HTML-wiring); `docs/releases/mvp3.md`… (MVP3 shipped — the alloy
+  governance is MVP4, recorded in mvp4.md's completion). **ADR-0013** authored + resolves ADR-0012 alloy-Split
+  + ADR-0007 alloy-residual.
+- **Named residuals (tracked):** the `pending → hold+flush` refinement; the live `setConsent(collect:n)` flow
+  + HTML-rig wiring; the purpose-list mirror drift risk; the disclosed dynamic-`import()` residual
+  (pre-existing, 016) bounds the "held at the seam" claim for ALL seam controls, not just consent.
+- **No live identifiers committed.**
 
 **Anti-horizontal-phasing check:** a consent-denied alloy event is held/dropped at the seal (trusted seam
 enforcement) AND self-suppressed by alloy (idiomatic delegate) — an end-to-end, user-observable governance

