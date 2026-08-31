@@ -43,6 +43,20 @@
  *
  * SCOPE — AC2/AC3/AC4/AC5. The contract-guard ADR is AC6 — a later stage,
  * deliberately NOT built here.
+ *
+ * 020-02 addition — consent (`setConsent`, the idiomatic DELEGATE lever,
+ * ADR-0007): the `init` message MAY carry a `consent` vector (the same
+ * ADR-0007 shape core/consent.js defines). `boot()` maps it via
+ * ./consent.js's `shapeAlloyConsent` and, right after `configure` succeeds
+ * and BEFORE the first `sendEvent`, drives alloy's OWN `setConsent` command
+ * (order: configure -> setConsent -> sendEvent) — so alloy self-gates +
+ * propagates the `kndctr_<orgId>_consent` cookie. This runs INSIDE the
+ * untrusted chamber (honored-by-the-vendor, not seam-enforced) — it
+ * complements, never substitutes for, the TRUSTED seam-side consent DROP in
+ * core/wrapped-sdk-host.js's `dispatchInterceptedFetch` (020-02 AC1). No
+ * `consent` key in the init message -> `shapeAlloyConsent` returns
+ * undefined -> `setConsent` is never driven (byte-unchanged; alloy's own
+ * default-`"in"` `defaultConsent` window is unaffected).
  */
 
 /* eslint-disable */
@@ -50,12 +64,14 @@ import { createConnectorHost } from "../../core/connector-host.js";
 import { createAlloyConnector } from "./connector.js";
 import { createSyncCookieCache } from "./sync-cookie-cache.js";
 import { applyEgressConfinement, denySendBeacon } from "../../core/egress-confinement.js";
+import { shapeAlloyConsent } from "./consent.js";
 
 const summary = {
   booted: false,
   importScriptsRevoked: false,
   configureSettled: null,
   sendEventSettled: null,
+  consentDriven: null, // 020-02: "fulfilled"/"rejected: …" once setConsent is driven; null if no consent vector was supplied (skipped)
   syncSurfacePresent: false, // caps.cookies.sync exists (AC3 additive surface)
   firstCookieRead: null, // { value, stack } — must be alloy's getApexDomain probe
   firstCookieReadServedFromSyncSurface: false, // the read went through caps.cookies.sync.readSync
@@ -354,7 +370,7 @@ function install(seedCookie) {
 
 let host = null;
 
-async function boot({ cookie, config, bundleUrl }) {
+async function boot({ cookie, config, bundleUrl, consent }) {
   try {
     install(cookie);
     post("phase", { name: "install" });
@@ -386,6 +402,35 @@ async function boot({ cookie, config, bundleUrl }) {
     try {
       await host.init(caps); // -> alloy configure({ datastreamId, orgId, context:[] })
       summary.configureSettled = "fulfilled";
+
+      // 020-02 AC2 — the idiomatic DELEGATE lever: drive alloy's OWN
+      // `setConsent` command right after configure and BEFORE the first
+      // sendEvent (order: configure -> setConsent -> sendEvent), so alloy
+      // self-gates + propagates the kndctr_<orgId>_consent cookie. Runs
+      // INSIDE the untrusted chamber (honored-by-the-vendor, not
+      // seam-enforced) — complements, never substitutes for, the TRUSTED
+      // seam-side drop in core/wrapped-sdk-host.js's
+      // dispatchInterceptedFetch (020-02 AC1). No `consent` vector supplied
+      // at init -> shapeAlloyConsent returns undefined -> skipped entirely
+      // (byte-unchanged; alloy's own default-"in" defaultConsent window is
+      // unaffected).
+      const consentOptions = shapeAlloyConsent(consent);
+      if (consentOptions) {
+        try {
+          await self.alloy("setConsent", consentOptions);
+          summary.consentDriven = "fulfilled";
+        } catch (e) {
+          // FAIL-OPEN by design: a rejected setConsent is recorded but does NOT
+          // block sendEvent. This DELEGATE half runs inside the UNTRUSTED chamber
+          // and is never the enforcement — the TRUSTED seam-side drop
+          // (core/wrapped-sdk-host.js `egressVerdict` strict) is the backstop that
+          // holds a denied interact regardless of what alloy does here. (A
+          // delegate-ONLY wiring — chamber `consent` set but the host given no
+          // `egressPurposes` — would therefore fail open; the host warns on that
+          // misconfiguration, see createWrappedSdkHost.)
+          summary.consentDriven = "rejected: " + (e && e.message);
+        }
+      }
     } catch (e) {
       summary.configureSettled = "rejected: " + (e && e.message);
     }

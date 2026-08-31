@@ -691,3 +691,250 @@ describe("createWrappedSdkHost — endpoint ceiling + config-integrity compositi
     expect(host.getState().ceilingHeld).toBe(0);
   }, 2000);
 });
+
+// createWrappedSdkHost — consent enforcement (spec 020-02 AC1, ADR-0007): the
+// TRUSTED seam-side egress DROP — does NOT trust the chamber. Runs AFTER
+// endpoint-ceiling/config-integrity, BEFORE mainDispatch/caps.egress.dispatch,
+// gated on `egressPurposes.length` (opt-in — a caller that never wires
+// consent/egressPurposes is byte-unchanged, 014-01/015/016 back-compat).
+// `strict: true` is REQUIRED at this seam (020-01 craft catch): alloy has NO
+// body-consent field, so unlike GA4's non-strict `egressVerdict` use at the
+// async seal (017-03 — a denied DATA-USE purpose still SENDS, delegate-and-
+// send), a denied OR pending governing purpose here must be DROPPED, never
+// sent.
+describe("createWrappedSdkHost — consent enforcement (spec 020-02 AC1, ADR-0007)", () => {
+  // connectors/alloy/connector.js's manifest: purposes.egress.
+  const EGRESS_PURPOSES = ["analytics_storage", "personalization"];
+  const INTERACT = "https://adobedc.demdex.net/ee/v1/interact";
+
+  function makeSpyingHost(opts) {
+    const chamber = makeFakeChamber();
+    const dispatched = [];
+    const diags = [];
+    const caps = {
+      egress: {
+        dispatch: async (req) => {
+          dispatched.push(req);
+          return { status: 200, statusText: "OK", headers: {}, body: "{}" };
+        },
+      },
+    };
+    const host = createWrappedSdkHost({ chamber, caps, onDiagnostic: (r) => diags.push(r), ...opts });
+    return { chamber, dispatched, diags, host };
+  }
+
+  it("a DENIED governing purpose HOLDS the interact — zero real egress, alerted, consentHeld+1", async () => {
+    const { chamber, dispatched, diags, host } = makeSpyingHost({
+      egressPurposes: EGRESS_PURPOSES,
+      consent: { analytics_storage: "denied", personalization: "granted" },
+    });
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 1, url: INTERACT, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(0);
+    expect(msg.status).toBe(0);
+    expect(msg.statusText).toBe("held at the seal: consent");
+    expect(diags.find((d) => d.kind === "consent")).toMatchObject({
+      level: "warn",
+      kind: "consent",
+      disposition: "held",
+      purpose: "analytics_storage,personalization",
+    });
+    expect(host.getState().consentHeld).toBe(1);
+  }, 2000);
+
+  // NOTE: a PENDING purpose → non-"send" under BOTH strict and non-strict egressVerdict,
+  // so this test proves the gate HOLDS on pending but does NOT distinguish strict from
+  // the GA4 default — that distinction is pinned by the DENIED test above (a denied
+  // purpose SENDS under non-strict, so its dispatched.length===0 fails without strict:true).
+  it("a PENDING governing purpose (no signal at all) HOLDS at the seal (fail-closed)", async () => {
+    const { chamber, dispatched, host } = makeSpyingHost({ egressPurposes: EGRESS_PURPOSES, consent: {} });
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 2, url: INTERACT, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(0);
+    expect(msg.status).toBe(0);
+    expect(host.getState().consentHeld).toBe(1);
+  }, 2000);
+
+  it("ALL governing purposes GRANTED dispatches normally — silent, no held", async () => {
+    const { chamber, dispatched, diags, host } = makeSpyingHost({
+      egressPurposes: EGRESS_PURPOSES,
+      consent: { analytics_storage: "granted", personalization: "granted" },
+    });
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 3, url: INTERACT, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(1);
+    expect(msg.status).toBe(200);
+    expect(diags.find((d) => d.kind === "consent")).toBeUndefined();
+    expect(host.getState().consentHeld).toBe(0);
+  }, 2000);
+
+  it("back-compat: NO egressPurposes wired -> dispatched normally even with a fully-denied vector (the gate is opt-in)", async () => {
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ consent: { analytics_storage: "denied", personalization: "denied" } });
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 4, url: INTERACT, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(1); // no seam gate installed — dispatched exactly as before this slice
+    expect(msg.status).toBe(200);
+    // 020-02 arch review: a consent vector wired WITHOUT egressPurposes now emits a
+    // construction-time FAIL-LOUD warn (the trusted seam drop is OFF — only the
+    // in-chamber delegate would enforce) — but NO per-dispatch "held": the interact
+    // still dispatches (the seam gate is opt-in), so this stays back-compat behaviourally.
+    expect(diags.find((d) => d.kind === "consent" && d.disposition === "not-enforced")).toBeDefined();
+    expect(diags.find((d) => d.kind === "consent" && d.disposition === "held")).toBeUndefined();
+    expect(host.getState().consentHeld).toBe(0);
+  }, 2000);
+
+  it("back-compat: egressPurposes wired but NO consent vector at all -> pending -> strict-held (unset consent fails closed, not open)", async () => {
+    const { chamber, dispatched, host } = makeSpyingHost({ egressPurposes: EGRESS_PURPOSES }); // no consent key at all
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 5, url: INTERACT, method: "POST", headers: {}, body: "{}" });
+    await posted;
+
+    expect(dispatched.length).toBe(0);
+    expect(host.getState().consentHeld).toBe(1);
+  }, 2000);
+
+  it("composes with config-integrity: an honest/pinned destination with a denied purpose is held by CONSENT, not config-integrity", async () => {
+    const HONEST_DS = "11111111-1111-1111-1111-111111111111"; // synthetic
+    const PIN = { pinnedHost: "adobedc.demdex.net", tenantKey: "configId", pinnedTenant: HONEST_DS };
+    const { chamber, dispatched, diags, host } = makeSpyingHost({
+      configIntegrity: PIN,
+      egressPurposes: EGRESS_PURPOSES,
+      consent: { analytics_storage: "denied", personalization: "denied" },
+    });
+    const url = `${INTERACT}?configId=${HONEST_DS}&requestId=r`;
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 6, url, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(0);
+    expect(msg.status).toBe(0);
+    expect(diags.find((d) => d.kind === "config-integrity")).toBeUndefined(); // config-integrity stayed silent — it never held this
+    expect(diags.find((d) => d.kind === "consent")).toMatchObject({ disposition: "held" });
+    expect(host.getState().held).toBe(0); // config-integrity's own held counter untouched
+    expect(host.getState().consentHeld).toBe(1);
+  }, 2000);
+});
+
+// createWrappedSdkHost — optional payload strip (spec 020-02 AC3): thin
+// defense-in-depth, non-load-bearing (the alloy interact body is already
+// read-minimized by construction — connectors/alloy/connector.js's `toXdm`
+// 2-field allowlist + `context:[]`, 020-01 Finding). Gated on a non-empty
+// `payloadDenylist`; parses the intercepted body, strips denylisted fields
+// from EVERY `events[].xdm` via core/payload-governance.js's `governPayload`,
+// re-serializes (020-01 live-confirmed this round-trip is Edge-safe).
+describe("createWrappedSdkHost — optional payload strip (spec 020-02 AC3)", () => {
+  const INTERACT = "https://adobedc.demdex.net/ee/v1/interact";
+  const eventBody = (xdm) => JSON.stringify({ events: [{ xdm }] });
+
+  function makeSpyingHost(opts) {
+    const chamber = makeFakeChamber();
+    const dispatched = [];
+    const diags = [];
+    const caps = {
+      egress: {
+        dispatch: async (req) => {
+          dispatched.push(req);
+          return { status: 200, statusText: "OK", headers: {}, body: "{}" };
+        },
+      },
+    };
+    const host = createWrappedSdkHost({ chamber, caps, onDiagnostic: (r) => diags.push(r), ...opts });
+    return { chamber, dispatched, diags, host };
+  }
+
+  it("strips a denylisted field from events[].xdm before dispatch, and diagnoses the FIELD NAME only, never the value", async () => {
+    const { chamber, dispatched, diags } = makeSpyingHost({ payloadDenylist: ["_airlocktest"] });
+    const body = eventBody({ eventType: "web.webpagedetails.pageViews", _airlocktest: "s3cr3t" });
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 1, url: INTERACT, method: "POST", headers: {}, body });
+    await posted;
+
+    expect(dispatched.length).toBe(1);
+    const sentBody = JSON.parse(dispatched[0].body);
+    expect(sentBody.events[0].xdm._airlocktest).toBeUndefined();
+    expect(sentBody.events[0].xdm.eventType).toBe("web.webpagedetails.pageViews"); // benign field untouched
+    expect(diags.find((d) => d.kind === "payload-governance")).toMatchObject({
+      level: "warn",
+      kind: "payload-governance",
+      disposition: "stripped",
+      field: "_airlocktest",
+    });
+    for (const d of diags) expect(JSON.stringify(d)).not.toContain("s3cr3t"); // never the value
+  }, 2000);
+
+  it("back-compat: no payloadDenylist wired -> the body is byte-unchanged (same string reference)", async () => {
+    const { chamber, dispatched, diags } = makeSpyingHost({});
+    const body = eventBody({ eventType: "web.webpagedetails.pageViews", _airlocktest: "s3cr3t" });
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 2, url: INTERACT, method: "POST", headers: {}, body });
+    await posted;
+
+    expect(dispatched[0].body).toBe(body);
+    expect(diags.find((d) => d.kind === "payload-governance")).toBeUndefined();
+  }, 2000);
+
+  it("a denylist with no matching field leaves the body byte-unchanged (no needless re-serialize)", async () => {
+    const { chamber, dispatched } = makeSpyingHost({ payloadDenylist: ["ssn"] });
+    const body = eventBody({ eventType: "web.webpagedetails.pageViews" });
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 3, url: INTERACT, method: "POST", headers: {}, body });
+    await posted;
+
+    expect(dispatched[0].body).toBe(body);
+  }, 2000);
+
+  it("an empty payloadDenylist array leaves the body byte-unchanged (same gate as absent)", async () => {
+    const { chamber, dispatched } = makeSpyingHost({ payloadDenylist: [] });
+    const body = eventBody({ eventType: "web.webpagedetails.pageViews", _airlocktest: "x" });
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 4, url: INTERACT, method: "POST", headers: {}, body });
+    await posted;
+
+    expect(dispatched[0].body).toBe(body);
+  }, 2000);
+
+  // The strip must NEVER throw on a malformed body — a crash in the seam would
+  // break alloy egress (020-02 craft/arch note: the never-throw property was
+  // unproven). A non-JSON body / a body with no events[] fails safe (dispatched
+  // as-is), not thrown.
+  it("a non-JSON intercepted body with a denylist wired does NOT throw — fails safe, dispatches unchanged", async () => {
+    const { chamber, dispatched } = makeSpyingHost({ payloadDenylist: ["ssn"] });
+    const body = "not-json-at-all{{{";
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 5, url: INTERACT, method: "POST", headers: {}, body });
+    const msg = await posted;
+
+    expect(msg.status).not.toBe(undefined); // it responded (did not throw/hang)
+    expect(dispatched[0].body).toBe(body); // unparseable -> left byte-unchanged
+  }, 2000);
+
+  it("an intercepted body with no events[] and a denylist wired does NOT throw — dispatches unchanged", async () => {
+    const { chamber, dispatched } = makeSpyingHost({ payloadDenylist: ["ssn"] });
+    const body = JSON.stringify({ query: { identity: { fetch: ["ECID"] } } }); // no events[]
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 6, url: INTERACT, method: "POST", headers: {}, body });
+    await posted;
+
+    expect(dispatched[0].body).toBe(body);
+  }, 2000);
+});

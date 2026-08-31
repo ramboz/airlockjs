@@ -71,9 +71,43 @@
  * the honest tenant — the ADR-0011 body residual) and is never silent. An
  * INCOMPLETE pin can't be re-derived to a valid destination, so it HOLDS even
  * under override.
+ *
+ * Consent (spec 020-02, ADR-0007 — the TRUSTED seam-side enforcement, does
+ * NOT trust the chamber): an optional `consent` vector + `egressPurposes`
+ * gate `dispatchInterceptedFetch` AFTER config-integrity, BEFORE
+ * mainDispatch/caps.egress.dispatch — the same chokepoint. alloy carries NO
+ * body-consent field (020-01 Finding), so unlike 017-03's NON-STRICT
+ * `egressVerdict` use at the GA4 seal (a denied DATA-USE purpose still
+ * sends — delegate-and-send, premised on a body-consent field to reshape),
+ * a denied/pending governing purpose here must be DROPPED, never sent:
+ * `egressVerdict(consent, egressPurposes, { strict: true })` is REQUIRED,
+ * not the non-strict default. A non-"send" verdict HOLDS (status:0,
+ * `statusText: "held at the seal: consent"`, `consentHeld` incremented, a
+ * redacted `kind:"consent"` diagnostic) — the same fail-closed shape the
+ * ceiling/config-integrity holds use above. pending -> DROP (not
+ * hold+buffer) is the first-impl choice: the alloy interact is a
+ * synchronous vendor-SDK round trip, not a queued beacon like GA4's async
+ * seal — a pending->hold+flush refinement mirroring 017-03 is a named
+ * follow-on. This seam gate is independent of, and complements, alloy's OWN
+ * `setConsent` command driven in the chamber's alloy-boot glue
+ * (connectors/alloy/alloy-chamber.worker.js + connectors/alloy/consent.js):
+ * defense-in-depth — seam-enforce (trusted) + delegate (idiomatic, but
+ * inside the untrusted chamber). Gated on `egressPurposes.length`
+ * (back-compat: no purposes wired -> skipped entirely, byte-unchanged).
+ *
+ * Payload strip (spec 020-02 AC3, optional, non-load-bearing): an optional
+ * `payloadDenylist` strips denylisted fields from every intercepted
+ * `events[].xdm` (parse -> core/payload-governance.js's `governPayload` ->
+ * re-serialize; 020-01 live-confirmed the round-trip is Edge-safe) before
+ * dispatch. The alloy body is already read-minimized by construction
+ * (connectors/alloy/connector.js's `toXdm` 2-field allowlist + `context:[]`)
+ * — this is thin defense-in-depth, gated on `payloadDenylist` being
+ * non-empty (byte-unchanged otherwise).
  */
 import { checkEndpointCeiling } from "./endpoint-ceiling.js";
 import { checkConfigIntegrity, pinnedDispatchUrl, hostOf } from "./config-integrity.js";
+import { egressVerdict } from "./consent.js";
+import { governPayload } from "./payload-governance.js";
 
 // Default diagnostics seam (mirrors core/airlock.js's `consoleDiagnostic`):
 // console-backed, so a caller that doesn't inject `onDiagnostic` still
@@ -101,6 +135,9 @@ function consoleDiagnostic(record) {
  *   timeoutMs?: number,
  *   configIntegrity?: ({ pinnedHost: string, tenantKey: string, pinnedTenant: string, disposition?: ("hold" | "override") } | null),
  *   endpointCeiling?: (readonly string[] | null),
+ *   consent?: (Record<string, string> | null),
+ *   egressPurposes?: readonly string[],
+ *   payloadDenylist?: (readonly string[] | null),
  *   onDiagnostic?: (record: { level: string, kind: string, [k: string]: unknown }) => void,
  * }} opts
  * @returns {{
@@ -116,11 +153,36 @@ function consoleDiagnostic(record) {
  *     held: number,
  *     overridden: number,
  *     ceilingHeld: number,
+ *     consentHeld: number,
  *   },
  * }}
  */
-export function createWrappedSdkHost({ chamber, caps, timeoutMs = 5000, configIntegrity = null, endpointCeiling = null, onDiagnostic }) {
+export function createWrappedSdkHost({
+  chamber,
+  caps,
+  timeoutMs = 5000,
+  configIntegrity = null,
+  endpointCeiling = null,
+  consent = null,
+  egressPurposes = [],
+  payloadDenylist = null,
+  onDiagnostic,
+}) {
   const diagnose = typeof onDiagnostic === "function" ? onDiagnostic : consoleDiagnostic;
+  // FAIL-LOUD on a consent misconfiguration (020-02 arch review): a `consent`
+  // vector wired WITHOUT `egressPurposes` skips the TRUSTED seam-side drop
+  // entirely (the gate below is `egressPurposes.length`-gated), leaving only the
+  // in-chamber `setConsent` DELEGATE — which runs inside the untrusted chamber
+  // and is never enforcement. Warn once at construction so this never silently
+  // disables the trusted control (the in-chamber delegate alone is not the seal).
+  if (consent && !egressPurposes.length) {
+    diagnose({
+      level: "warn",
+      kind: "consent",
+      disposition: "not-enforced",
+      reason: "consent vector wired without egressPurposes — the TRUSTED seam-side drop is OFF; only the in-chamber setConsent delegate is active",
+    });
+  }
   const state = {
     phases: [],
     writeBacks: [],
@@ -131,6 +193,7 @@ export function createWrappedSdkHost({ chamber, caps, timeoutMs = 5000, configIn
     held: 0,
     overridden: 0,
     ceilingHeld: 0,
+    consentHeld: 0,
   };
 
   let queuedEvent = null;
@@ -216,6 +279,61 @@ export function createWrappedSdkHost({ chamber, caps, timeoutMs = 5000, configIn
         disposition: "unpinned-declared-origin",
         reason: "config-integrity: declared origin is not the tenant-pinned host — tenant NOT checked here (multi-tenant-pin follow-up)",
       });
+    }
+
+    // AC1 (spec 020-02, ADR-0007) — the TRUSTED seam-side consent gate: does
+    // NOT trust the chamber. Runs AFTER config-integrity/endpoint-ceiling,
+    // BEFORE mainDispatch/caps.egress.dispatch — same chokepoint, same
+    // fail-closed shape. Gated on `egressPurposes.length` (back-compat: no
+    // purposes wired -> skipped entirely, byte-unchanged).
+    //
+    // `strict: true` is REQUIRED here (020-01 craft catch) — NOT
+    // `egressVerdict`'s non-strict default. The non-strict default returns
+    // "send" on a data-use denial because that path is premised on a
+    // body-consent field (GA4's MP `consent` object — 017-01's reshape-and-
+    // send). alloy has NO body-consent field, so a denied/pending governing
+    // purpose sent anyway would LEAK, not reshape — it must be SUPPRESSED.
+    //
+    // pending -> DROP here (not hold+buffer) is the first-impl fail-closed
+    // choice: the alloy interact is a synchronous vendor-SDK round trip
+    // (alloy's own pending `sendEvent` promise), not a queued { url, body }
+    // beacon like GA4's async seal (017-03) — a pending->hold+flush
+    // refinement mirroring that seal is a named follow-on, not built here.
+    if (egressPurposes.length) {
+      const verdict = egressVerdict(consent, egressPurposes, { strict: true });
+      if (verdict !== "send") {
+        state.consentHeld += 1;
+        // ALERT (009-02) — redacted: names the governing purpose(s) only,
+        // never the resolved identity/XDM values.
+        diagnose({
+          level: "warn",
+          kind: "consent",
+          disposition: "held",
+          purpose: egressPurposes.join(","),
+          reason: "un-granted governing purpose — alloy interact held at the seal",
+        });
+        // HOLD: no real egress. Settle the chamber's pending fetch REJECTED
+        // (same shape as the ceiling/config-integrity holds above) so
+        // sendEvent rejects instead of hanging — fail-closed.
+        chamber.postMessage({ type: "intercepted-fetch-response", id: m.id, status: 0, statusText: "held at the seal: consent", body: "" });
+        return;
+      }
+    }
+
+    // AC3 (spec 020-02) — optional thin defense-in-depth payload strip: gated
+    // on a non-empty `payloadDenylist` (back-compat: absent/empty leaves
+    // `m.body` byte-unchanged). Non-load-bearing — the alloy interact body
+    // is already read-minimized by construction
+    // (connectors/alloy/connector.js's `toXdm` 2-field allowlist +
+    // `context:[]`; 020-01 Finding).
+    if (payloadDenylist && payloadDenylist.length && m.body) {
+      const strippedBody = stripInterceptedXdmBody(
+        m.body,
+        payloadDenylist,
+        (field) => diagnose({ level: "warn", kind: "payload-governance", disposition: "stripped", field }),
+        (reason) => diagnose({ level: "error", kind: "payload-governance", disposition: "skipped", reason }),
+      );
+      if (strippedBody !== m.body) m = { ...m, body: strippedBody };
     }
 
     state.mainDispatch.count += 1;
@@ -334,6 +452,7 @@ export function createWrappedSdkHost({ chamber, caps, timeoutMs = 5000, configIn
         held: state.held,
         overridden: state.overridden,
         ceilingHeld: state.ceilingHeld,
+        consentHeld: state.consentHeld,
       };
     },
   };
@@ -359,4 +478,46 @@ export function reconcileForBrokerJar(raw) {
       return !s.startsWith("domain=") && s !== "secure" && !s.startsWith("samesite=");
     })
     .join("; ");
+}
+
+/**
+ * AC3 (spec 020-02) — parse the intercepted alloy interact body, strip every
+ * `denylist`-denied field from EVERY `events[].xdm` via
+ * core/payload-governance.js's `governPayload`, and re-serialize (020-01
+ * live-confirmed this parse -> strip -> re-serialize round-trip is
+ * Edge-safe). Calls `onStripped(field)` once per stripped field NAME (never
+ * the value — redaction discipline) and `onError(reason)` if governance
+ * failed safe on a given event's xdm. Never throws: a body that is not valid
+ * JSON, or carries no `events` array, is returned UNCHANGED (the identical
+ * string reference) — same when nothing actually matched the denylist,
+ * mirroring `governPayload`'s own no-needless-copy contract.
+ * @param {string} rawBody
+ * @param {readonly string[]} denylist
+ * @param {(field: string) => void} onStripped
+ * @param {(reason: string) => void} onError
+ * @returns {string}
+ */
+function stripInterceptedXdmBody(rawBody, denylist, onStripped, onError) {
+  let parsed;
+  try {
+    parsed = JSON.parse(rawBody);
+  } catch (e) {
+    return rawBody; // not JSON — leave untouched, never throw
+  }
+  if (!parsed || !Array.isArray(parsed.events)) return rawBody;
+
+  let changed = false;
+  const events = parsed.events.map((evt) => {
+    if (!evt || typeof evt !== "object" || evt.xdm == null || typeof evt.xdm !== "object") return evt;
+    const { governed, stripped, error } = governPayload(evt.xdm, denylist);
+    if (error && typeof onError === "function") onError("govern-failed");
+    if (!stripped.length) return evt;
+    changed = true;
+    for (const field of stripped) {
+      if (typeof onStripped === "function") onStripped(field);
+    }
+    return { ...evt, xdm: governed };
+  });
+
+  return changed ? JSON.stringify({ ...parsed, events }) : rawBody;
 }
