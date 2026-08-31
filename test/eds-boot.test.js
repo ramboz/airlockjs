@@ -157,3 +157,51 @@ describe("bootEdsAnalytics consent wiring (spec 017-03 — the seal's egressPurp
     expect(fetchMock).toHaveBeenCalledWith(collectUrl, expect.objectContaining({ body: '{"x":1}' }));
   });
 });
+
+// Spec 019-01 (ADR-0012) — `payloadDenylist` threads through to `createAirlock`
+// in parallel to endpoints/consent/egressPurposes (adapters/eds/index.js).
+// `requestIdleCallback` is stubbed per-test (not in the shared beforeEach
+// above) since none of the OTHER eds-boot tests ever call push() directly.
+describe("bootEdsAnalytics payload-denylist wiring (spec 019-01 — ADR-0012)", () => {
+  it("no `payloadDenylist` opt at all -> byte-unchanged: a pushed field crosses to the worker untouched (back-compat)", async () => {
+    vi.stubGlobal("requestIdleCallback", (cb) => { cb({ didTimeout: false, timeRemaining: () => 0 }); return 1; });
+    const handle = await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" } });
+
+    handle.push({ event: "cta_engage", email: "a@b.c" });
+
+    const events = FakeWorker.last.messages.find((m) => m.type === "events");
+    expect(events.batch[0].params.email).toBe("a@b.c");
+  });
+
+  it("a wired `payloadDenylist` strips the denied field before it crosses to the worker (AC5 async leg)", async () => {
+    vi.stubGlobal("requestIdleCallback", (cb) => { cb({ didTimeout: false, timeRemaining: () => 0 }); return 1; });
+    const handle = await bootEdsAnalytics({
+      ctx: { clientId: "1.1", sessionId: "2" },
+      payloadDenylist: ["email"],
+    });
+
+    handle.push({ event: "cta_engage", email: "a@b.c", link_text: "Buy" });
+
+    const events = FakeWorker.last.messages.find((m) => m.type === "events");
+    expect(events.batch[0].params.email).toBeUndefined();
+    expect(events.batch[0].params.link_text).toBe("Buy"); // benign field passes through
+    // local log/projection is unaffected — governance strips only what crosses
+    expect(handle.getState("cta_engage.params.email")).toBe("a@b.c");
+  });
+
+  it("a wired `payloadDenylist` strips the denied field from the sync pushCritical GA4 beacon body (AC5 sync leg)", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const handle = await bootEdsAnalytics({
+      ctx: { clientId: "1.1", sessionId: "2" },
+      payloadDenylist: ["email"],
+    });
+
+    handle.pushCritical({ event: "page_view", email: "a@b.c", link_text: "Buy" });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.events[0].params.email).toBeUndefined();
+    expect(body.events[0].params.link_text).toBe("Buy");
+  });
+});

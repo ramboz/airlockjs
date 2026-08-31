@@ -1,7 +1,7 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: []
-last_verified: 2026-08-30
+last_verified: 2026-08-31
 frame_review: true
 ---
 
@@ -45,7 +45,10 @@ Demonstrated E2E for GA4. Resolves OQ11.
    never solely relied on (defense-in-depth, CLAUDE.md security-MUST). Observable:
    `governPayload({a:1, password:"x"}, ["password"])` → `{ governed:{a:1}, stripped:["password"] }`; the input
    is unmutated (incl. a nested `{user:{email}}` case); `governPayload(p, [])` → `{ governed:p (same ref),
-   stripped:[] }`.
+   stripped:[] }`; and when the denylist matches **nothing present**, `governPayload` also returns `p` (the
+   SAME reference — the internal copy is discarded), so a clean payload is byte- *and* reference-identical.
+   **Every case-variant** of a denied name at a matched level is stripped (both `password` and `Password`),
+   not just the first (a value-leak fix, craft review).
 2. **Point (A) — the async `sendBatch` chokepoint (drain + flushNow), with an empty-denylist short-circuit.**
    Extract the shared `worker.postMessage({type:"events", batch})` in `core/airlock.js` into a single
    `sendBatch(batch)` helper that **both** `drain()` and `flushNow()` route through. When a denylist is wired,
@@ -69,11 +72,14 @@ Demonstrated E2E for GA4. Resolves OQ11.
    event likewise; a `pushCritical({event:"page_view", email:"a@b.c"})` → the sync beacon body has no
    `email`. A benign field (`link_text`) passes through unchanged. Observable end-to-end (the mapped body,
    not just `governPayload`).
-6. **Back-compat: no denylist → byte-unchanged.** A caller that wires no `payloadDenylist` (every current
-   rig/testbed boot) gets the identity — `sendBatch` and the sync path behave byte-identically to before this
-   slice (the governed copy equals the input when the denylist is empty; ideally the same object reference, to
-   avoid a needless clone on the hot drain path). Observable: the no-denylist path allocates no governed copy
-   / changes no bytes; existing airlock/egress-fastpath/eds-boot tests stay green.
+6. **Back-compat: a CLEAN payload is byte-unchanged (the built-in default is ALWAYS-ON — maintainer
+   decision).** `DEFAULT_DENYLIST` strips even when the host wires no `payloadDenylist`, so back-compat is a
+   **content** property, not "no governance runs": an event carrying **none** of the denied fields (every
+   current rig/testbed event — none push a `password`/`ssn`/etc. field) is byte-identical *and*
+   reference-identical after governance (`governPayload` returns the original `params` reference when nothing
+   is stripped), and the diagnostic fires only when a denied field is actually present. Observable: existing
+   airlock/egress-fastpath/eds-boot tests stay green (their events are clean); a NEW test confirms an
+   unconfigured boot DOES strip a `password` field (the always-on behaviour — the whole point).
 7. **Surfaced (009-02), redacted — emitted by the impure caller, not the pure primitive.** The
    governance callers (`sendBatch` / the sync dispatcher) emit a redacted diagnostic from `governPayload`'s
    returned `stripped` names — `{ level, kind:"payload-governance", disposition:"stripped", field:<name>, … }`
@@ -82,29 +88,68 @@ Demonstrated E2E for GA4. Resolves OQ11.
    one diagnostic per stripped field, carrying the field NAME only, never its value.
 
 **DoD:**
-- [ ] ACs 1–7 pass. Tests (targeted, node — this is pure/hermetic, NO DOM): `test/payload-governance.test.js`
-      (governPayload strip semantics: name + dotted-path, non-mutation, default list, identity-when-empty,
-      never-throws); an `airlock`-level test driving ALL THREE crossings (drain, flushNow, and the sync
-      critical/unload path) asserting the denied field is absent from each `postMessage` batch / mapped body
-      + present in `getState()` (non-mutation) + a redacted diagnostic; `eds-boot` (the adapter threads
-      `payloadDenylist` + the no-denylist back-compat identity).
-- [ ] **No regression** — targeted sweep: `payload-governance`, the airlock/egress core tests
-      (`egress-fastpath` + any `core/airlock` test), `eds-boot`, `core-boundary` (new import-free `core/`
-      module), and the GA4 map/oracle tests. _(Named files only — full vitest suite hangs on the stale
-      worktree.)_
-- [ ] Reviews: **frame-critique** (the load-bearing claim — governance at the two chokepoints covers all
-      three crossings without a fourth-path hole, and the non-mutating copy preserves the local log — is the
-      exact premise to attack) + compliance + craft + arch (a new `core/` governance primitive + the
-      `sendBatch` extraction on the hot drain path + the sync-path placement) + reconciliation, recorded pass
-      (independent Opus review of the Sonnet diffs).
-- [ ] Deviation log + reconciliation sweep. Resolve **OQ11** (`adr.py resolve-todo`) + mark it in
-      `docs/refinement-todo.md`; update `docs/releases/mvp3.md` (the payload-governance Include row →
-      delivered **for GA4** — must NOT claim alloy input governed). Name the residuals: **alloy-INPUT
-      governance** (bind the same `governPayload` at the separate `core/wrapped-sdk-host.js:265` crossing — a
-      deferred second placement, 019-01 frame-critique; not free); alloy ambient-collection
-      (read-minimization); the egress-side XDM strip (ADR-0012 Option B, deferred); an OQ3 allowlist
-      tightening; value-level PII (ADR-0003).
-- [ ] **No live identifiers committed** — synthetic denied fields only.
+- [x] ACs 1–7 pass. `test/payload-governance.test.js` (strip semantics incl. every-case-variant + nested COW,
+      non-mutation, default list, identity-when-empty + identity-when-nothing-matches, never-throws);
+      `test/payload-governance-seam.test.js` (ALL THREE crossings — drain, flushNow, sync — denied field
+      absent from each `postMessage` batch / real mapped body, raw field kept in `getState()`, redacted
+      diagnostic, always-on strips even unconfigured); `eds-boot` (adapter threads `payloadDenylist`).
+- [x] **No regression** — 266 tests across 26 files green (targeted sweep, named files only).
+- [x] Reviews: **frame-critique** (pass) + compliance (pass) + craft (needs-changes → the case-variant
+      value-leak BLOCKER fixed → verified) + arch (pass) + reconciliation, recorded (independent Opus review
+      of the Sonnet diffs). The off-by-default posture arch flagged for sign-off was **escalated to the
+      maintainer → ALWAYS-ON** (below).
+- [x] Deviation log + reconciliation sweep (below). OQ11 already RESOLVED by ADR-0012 (2026-08-30) — 019-01
+      **implements** it; `docs/refinement-todo.md` gains the Implemented note; `docs/releases/mvp3.md`
+      payload-governance row → **delivered for GA4** (NOT alloy); residuals named; ADR-0012 §3
+      "governed for free" annotated with the scope correction.
+- [x] **No live identifiers committed** — synthetic denied fields only.
+
+### Deviation log
+
+- **ALWAYS-ON built-in default (maintainer decision 2026-08-31 — the one design fork surfaced for sign-off).**
+  Arch flagged that off-by-default gives zero PII protection to the footgun population (the *unconfigured*
+  deployment), unlike 015/016/017's *structural* gates. Escalated; the maintainer chose **always-on** for the
+  tiny high-confidence built-in set. Implemented: `effectiveDenylist = [...DEFAULT_DENYLIST, ...payloadDenylist]`
+  (no longer gated on the host opting in). AC6 back-compat reframed from "no governance runs" to a **content**
+  property: a payload with none of the denied fields is byte- + reference-identical (`governPayload` returns
+  the original reference when nothing is stripped — added so the always-on default keeps no needless clone on
+  the hot path). Tests updated (the two "short-circuit / default-inactive" tests flipped to "clean payload
+  unchanged" + "unconfigured strips a password").
+- **BLOCKER fixed (craft review) — strip EVERY case-variant, not just the first.** `findKeyCaseInsensitive`
+  returned only the first match, so `params` with both `password` AND `Password` leaked the second's value.
+  Fixed with `matchingKeysCaseInsensitive` (deletes all case-variants at the matched top-level + nested-leaf);
+  new tests cover both and would fail the old code.
+- **Fail-open is surfaced, not silent (arch+craft).** `governPayload`'s catch now returns `error: true`; the
+  caller (`governParams`) emits an error-level diagnostic — a security control skipping governance must not do
+  so invisibly.
+- **Match semantics pinned** (bare = top-level only, dotted = nested leaf, case-insensitive, exact-not-substring)
+  — ADR-0012 explicitly delegated this to spec 019; documented in the module docstring. (`passwordConfirm` not
+  stripped by `password` — hosts extend the list; documented, intended.)
+- **Default merge lives in the caller** (`core/airlock.js`), not `governPayload` (which strips exactly what
+  it's handed — keeps the primitive vendor-neutral + opinion-free).
+- **Dead assertion fixed** (`expect(() => result).not.toThrow;` → an invoked `.not.toThrow()` around the real
+  call — compliance nit).
+- **Not done (out of scope / deferred):** alloy-INPUT governance (separate `core/wrapped-sdk-host.js` seam —
+  `wrapped-sdk-host.js` left untouched, a named residual); a precomputed lowercased-key set micro-opt (arch
+  nit, negligible on the idle/teardown paths); a `__proto__`/`constructor` path-segment guard (pathological,
+  host-trusted config, out of threat model — noted by craft).
+
+### Reconciliation sweep
+
+- **Surface:** NEW `core/payload-governance.js` (vendor-neutral, import-free, no-global — the core-boundary
+  guard extended via `it.each` to cover it); `governParams` + `sendBatch` extraction + sync-path governance in
+  `core/airlock.js`; `payloadDenylist` threaded through `adapters/eds/index.js`; the two new test files. All
+  additive / a new host-policy control — the granted egress paths for a clean payload are byte-unchanged.
+- **Boundaries:** no `core/→rig/` breach; `core/payload-governance.js` is import-free (machine-guarded);
+  `core/wrapped-sdk-host.js` (alloy input) deliberately untouched.
+- **Reviews recorded:** frame-critique + compliance + craft (needs-changes→fixed) + arch + reconciliation — all
+  pass, under `reviews/`.
+- **Docs:** `docs/refinement-todo.md` OQ11 Implemented-note added (residuals a–f); `docs/releases/mvp3.md`
+  payload-governance row → delivered for GA4; ADR-0012 §3 annotated with the alloy-scope correction. No inbox
+  items.
+- **Named residuals (tracked):** alloy-input governance (deferred 2nd placement), alloy ambient-collection
+  (read-minimization), egress-side XDM strip (ADR-0012 Option B), OQ3 allowlist tightening, value-level PII
+  (ADR-0003), and the stale `contracts/connector.d.ts:39-44` OQ11 pass-through comment.
 
 **Anti-horizontal-phasing check:** after this slice, a sensitive field a site `push()`es is stripped before
 it can reach the untrusted connector or egress to the GA4 vendor — an end-to-end, observable change to what

@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: DONE
 skill:
 use_cases: [UC-2]
 ---
@@ -54,9 +54,15 @@ async consumer cannot silently bypass it), and **(B)** the shared sync dispatche
 `mapToMp` (covering both `pushCritical` and `unloadFlush`). Governing only one point ships exactly the hole
 ADR-0012 warns about — so this is one indivisible slice, not a per-seam split.
 
-**Back-compat by construction.** `governPayload` with no host denylist configured is the **identity** (a
-caller that wires no policy is byte-unchanged) — the same no-config→legacy idiom as consent (017) /
-endpoint-ceiling (016) / config-integrity (015).
+**Always-on built-in default (maintainer decision, 2026-08-31).** The tiny high-confidence built-in set
+(`password`/`ssn`/`cvv`/card-number family — fields that must **never** reach an analytics vendor) strips even
+on an **unconfigured** deployment. This is a deliberate departure from the 015/016/017 opt-in pattern (whose
+gates are *structural* — no endpoints → no ceiling), because a PII-stripper's footgun population is exactly
+the unconfigured one, and the set is a **near-no-op for real payloads** (none legitimately carry those exact
+field names). The host `payloadDenylist` **extends** the built-in set. **Back-compat (AC6) holds in
+CONTENT, not as "no governance runs":** a payload carrying **none** of the denied fields is
+byte-identical *and* reference-identical after governance (`governPayload` returns the original reference
+when nothing is stripped), so a clean event is unchanged and the hot path keeps no needless clone.
 
 **Scope + honest boundary.** GA4 / wire-protocol is enforced + demonstrated E2E. **alloy / wrapped-SDK input
 is NOT governed by this slice** — its input crosses at the separate `core/wrapped-sdk-host.js` seam (above);

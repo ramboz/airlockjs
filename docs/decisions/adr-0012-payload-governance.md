@@ -136,6 +136,15 @@ boundary, resolving OQ11 jointly with OQ3 (emergent-schema-compatible):
    free** (it is vendor-neutral), but alloy's **ambient in-chamber collection** is explicitly **out of scope**
    (read-minimization's job), and the alloy **egress-side XDM strip** (Option B for the vendor body) stays
    **deferred / probe-first** (the release-plan Split item).
+
+   > **Correction (2026-08-31, spec 019-01 frame-critique — factual, not a decision change).** "governed for
+   > free / at one host-owned seam" **over-states** the alloy scope. The *primitive* is vendor-neutral, but
+   > its *placement* is per-host: `core/airlock.js` hosts GA4, while alloy's main-thread input crosses at a
+   > **separate** seam (`core/wrapped-sdk-host.js`, `chamber.postMessage({type:"event", event})`) that neither
+   > of this decision's two chokepoints touches. Binding `governPayload` there is a **deferred second
+   > placement**, not automatic. The decision (input-side denylist) stands unchanged; spec 019 delivers GA4
+   > only and tracks alloy-input governance as a named residual. (No shipped regression: `wrapped-sdk-host.js`
+   > is rig/test-only.)
 4. **Honest boundary.** A field-name/path denylist neutralizes the **named** dangerous fields; it does not
    catch renamed fields, value-level PII in benign-named fields (ADR-0003's projection-side value governance),
    or ambient in-chamber collection. Stated, not over-claimed.

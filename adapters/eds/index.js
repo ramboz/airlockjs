@@ -281,6 +281,17 @@ export function wireBlocks(handle, io = {}) {
  *                                         (no hold, no send) instead of holding it.
  *                                         Only takes effect when `opts.consent` is also
  *                                         wired (see the `egressPurposes` gating below).
+ * @param {string[]} [opts.payloadDenylist] spec 019-01 (ADR-0012): host-declared
+ *                                         sensitive-field names / dotted paths, threaded
+ *                                         straight through to `createAirlock` (parallel to
+ *                                         `endpoints`/`consent`/`egressPurposes`, and
+ *                                         INDEPENDENT of `consent` — a host may govern the
+ *                                         payload without wiring consent at all). Merged
+ *                                         with a conservative built-in default INSIDE
+ *                                         `createAirlock`, gated on this option being
+ *                                         non-empty: an unset/empty list is the identity —
+ *                                         every current rig/testbed boot is byte-unchanged
+ *                                         (back-compat, AC6).
  * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, flushNow: Function, stats: Function }>}
  *   a handle over the airlock's public write/read surface (also set on `window.airlock`).
  *   `setConsent` (spec 017-03 AC2) merges a consent-vector update mid-session and
@@ -293,6 +304,7 @@ export async function bootEdsAnalytics(opts = {}) {
     consentStrict = false,
     endpoints = DEFAULT_ENDPOINTS,
     trackers = endpoints.length,
+    payloadDenylist,
   } = opts;
 
   // 017-02 AC1 (ADR-0007 point ②): resolve `analytics_storage` BEFORE identity
@@ -367,6 +379,7 @@ export async function bootEdsAnalytics(opts = {}) {
     consent,
     egressPurposes: consent ? GA4_EGRESS_PURPOSES : [],
     consentStrict,
+    payloadDenylist,
   });
 
   const handle = {

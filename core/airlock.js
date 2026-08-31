@@ -25,6 +25,7 @@
 import { createCriticalDispatcher } from "./egress.js";
 import { originPath, checkEndpointCeiling } from "./endpoint-ceiling.js";
 import { egressVerdict } from "./consent.js";
+import { governPayload, DEFAULT_DENYLIST } from "./payload-governance.js";
 
 // Default diagnostics seam: console-backed, severity-differentiated (warn for a
 // per-descriptor drop, error for a chamber-level crash). Callers may inject
@@ -45,8 +46,43 @@ export function createAirlock({
   consent = null,
   egressPurposes = [],
   consentStrict = false,
+  payloadDenylist = [],
 }) {
   const diagnose = typeof onDiagnostic === "function" ? onDiagnostic : consoleDiagnostic;
+  // 019-01 AC1/AC6 (ADR-0012): the EFFECTIVE denylist merges the conservative
+  // built-in DEFAULT_DENYLIST with the host's own `payloadDenylist`, reduced
+  // ONCE at construction. **ALWAYS-ON built-in default (maintainer decision,
+  // 2026-08-31):** the tiny high-confidence set (password/ssn/cvv/card-number
+  // family — fields that must NEVER reach an analytics vendor) strips even on
+  // an UNCONFIGURED deployment, because the footgun population (a site that
+  // never considered PII) is exactly the unconfigured one, and this set is a
+  // near-no-op for real GA4 payloads (none legitimately carry those exact
+  // field names). This is a deliberate departure from the 015/016/017 opt-in
+  // pattern: those gates are STRUCTURAL (no endpoints -> no ceiling), whereas
+  // this default is a constant that CAN be always-on. Back-compat (AC6) is
+  // preserved in CONTENT, not reference: a payload with none of the denied
+  // fields is byte-identical after governance (governPayload returns the same
+  // reference when nothing is stripped). The host `payloadDenylist` EXTENDS
+  // the built-in set (defense-in-depth — the default is never the sole
+  // protection, CLAUDE.md security-MUST).
+  const effectiveDenylist = [...DEFAULT_DENYLIST, ...(payloadDenylist || [])];
+  // 019-01 AC7: the IMPURE caller — both governance points below share this
+  // ONE closure — emits a redacted diagnostic per stripped field (the field
+  // NAME only, never the value) via the existing `diagnose` seam.
+  // `governPayload` itself stays pure (DoR) and never touches `diagnose`.
+  function governParams(params) {
+    if (!effectiveDenylist.length) return params; // identity — mirrors governPayload's own check
+    const { governed, stripped, error } = governPayload(params, effectiveDenylist);
+    // 019-01 arch+craft review: a fail-open (governPayload caught a throwing
+    // getter and skipped governance) must NOT be silent — surface it error-level.
+    if (error) {
+      diagnose({ level: "error", kind: "payload-governance", disposition: "skipped", reason: "govern-failed" });
+    }
+    for (const field of stripped) {
+      diagnose({ level: "warn", kind: "payload-governance", disposition: "stripped", field });
+    }
+    return governed;
+  }
   // 016-01 AC3/AC5: the endpoint ceiling, reduced ONCE from the host's
   // construction-time declared `endpoints` — never derived from a chamber's
   // `ready` request, so a compromised chamber cannot widen its own ceiling.
@@ -101,7 +137,12 @@ export function createAirlock({
         return;
       }
     }
-    critical.dispatch(d);
+    // 019-01 AC3 (ADR-0012 point B): govern BEFORE mapToMp — this single
+    // dispatcher is shared by BOTH pushCritical() and the unloadFlush
+    // ring-tail below, so governing once here covers both call sites.
+    // Non-mutating: `d.params` may be the SAME object the log/ring still
+    // holds (the unloadFlush case) — `governParams` never writes through it.
+    critical.dispatch({ ...d, params: governParams(d.params) });
   };
 
   const worker = new Worker(new URL("./chamber.worker.js", import.meta.url), { type: "module" });
@@ -187,11 +228,27 @@ export function createAirlock({
     });
   };
 
+  // 019-01 AC2/AC6 (ADR-0012 point A): the SINGLE governed exit both drain()
+  // and flushNow() route through, extracted from the pre-019-01 shared
+  // `worker.postMessage({ type: "events", batch })` — so a future third
+  // async consumer cannot silently bypass governance. Empty effective
+  // denylist -> SHORT-CIRCUIT: post the ORIGINAL batch as-is, allocating no
+  // governed copy / new descriptor wrappers (byte-unchanged on the hot
+  // INP-sensitive drain path).
+  const sendBatch = (batch) => {
+    if (!effectiveDenylist.length) {
+      worker.postMessage({ type: "events", batch });
+      return;
+    }
+    const governedBatch = batch.map((d) => ({ ...d, params: governParams(d.params) }));
+    worker.postMessage({ type: "events", batch: governedBatch });
+  };
+
   const drain = () => {
     scheduled = false;
     if (!ring.length) return;
     const batch = ring.splice(0, 50); // chunk
-    worker.postMessage({ type: "events", batch });
+    sendBatch(batch);
     if (ring.length) schedule();
   };
   function schedule() {
@@ -307,7 +364,7 @@ export function createAirlock({
       }
       return cur;
     },
-    flushNow() { while (ring.length) worker.postMessage({ type: "events", batch: ring.splice(0, 50) }); },
+    flushNow() { while (ring.length) sendBatch(ring.splice(0, 50)); },
     stats() { return { dispatched, logged: log.length, ...critical.stats() }; },
   };
 }
