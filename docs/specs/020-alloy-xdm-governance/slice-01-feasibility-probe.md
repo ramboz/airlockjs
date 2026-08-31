@@ -11,11 +11,22 @@ frame_review: true
 
 ## Slice 020-01 — alloy XDM-governance feasibility probe
 
-**Question:** Can airlock govern alloy's vendor-built XDM request body — (a) **strip** host-denylisted
-sensitive fields from `events[].xdm`, and (b) **enforce/inject** the ADR-0007 consent vector into alloy's XDM
-consent shape — at [`core/wrapped-sdk-host.js`](../../core/wrapped-sdk-host.js)'s `dispatchInterceptedFetch`
-seam, **WITHOUT breaking** alloy's client-side structure (the response round-trip, ECID mint-recognition) or
-Adobe Edge's acceptance of the request?
+**Question (reframed by the 020-01 frame-critique + the maintainer's consent correction — the two halves are
+SEPARATE questions with different answers):**
+- **(a) Payload** — is a seam-strip of `events[].xdm` even *needed*? Grounded: `toXdm`
+  ([connector.js:195-206](../../connectors/alloy/connector.js)) is a hardcoded **2-field allowlist**
+  (`eventType` + `web.webPageDetails.{URL,name}`, forwarding **no** arbitrary `params`), and
+  `connector.js:67` sets **`context:[]`** (disabling alloy's ambient auto-collection) — so the body is
+  **already read-minimized by construction** (a *third* read-minimization placement, at body-build time). Are
+  there any residual vendor-added fields worth a thin defense-in-depth strip, and is such a strip
+  **Edge-safe**?
+- **(b) Consent** — alloy consent is the **`setConsent` command** (`configure → setConsent → sendEvent`),
+  **NOT** an XDM body field (maintainer, 2026-08-31 — [Adobe setConsent
+  docs](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/setconsent)).
+  Can airlock map the ADR-0007 vector → Adobe's consent shape → drive `setConsent` in the **chamber's
+  alloy-boot flow** (the vector crosses in at init; the glue does `configure → setConsent → sendEvent`), as
+  **delegate-and-send** (parallel to GA4's MP-consent point ①)? And how does `setConsent(collect:n)` affect
+  what alloy sends (gate/queue vs send-with-consent)?
 
 **Time-box:** 3 days (front-loaded within MVP4's fixed 2-week box — the outcome gates the rest of the box, so
 it must resolve early: feasible → implement; fragile → read-minimization).
@@ -32,37 +43,57 @@ it must resolve early: feasible → implement; fragile → read-minimization).
 **Acceptance Criteria (a spike — the ACs are that the investigation yields a *grounded verdict*, not a
 feature):**
 
-1. **XDM strip-safety characterized.** Against the alloy stubs + a representative XDM body (+ Adobe XDM schema
-   docs), determine whether stripping host-denylisted fields from `events[].xdm` keeps the body **XDM-valid +
-   Edge-acceptable**: enumerate what is **safe to strip** (custom `_<tenant>` namespaces / PII / form fields)
-   vs **unsafe** (required / identity fields). Show a concrete **parse→strip→re-serialize** on that body that
-   does **not** break alloy's client-side round-trip — the response handling + the `xdm-mint` ECID
-   mint-recognition still work on the governed body.
-2. **XDM consent mechanism characterized.** Verify Adobe's XDM consent shape (`xdm.consents` / the Adobe
-   Consent standard) against current docs; determine whether airlock can enforce the ADR-0007 vector by
-   injecting/overriding it in the body at the seam, and whether **Edge honors a body-injected consent** (vs
-   the SDK's own `setConsent` state) — and whether it **conflicts** with the SDK. Name the mechanism or the
-   blocker.
-3. **Grounded verdict + scoped fallback.** Conclude **feasible** (→ name the 020-02 implementation approach:
-   bind the existing `governPayload` + the ADR-0007 vector to the XDM body at the seam) **OR fragile** (→
-   **read-minimization** is the alloy defense; scope *exactly* what it covers — the `AirlockEvent` input —
-   and the **ambient in-chamber collection gap** it does not, 012-04 Axis-2; and whether the disposition rises
-   to an ADR superseding ADR-0012's alloy-Split).
-4. **Creds-gated leg named, not faked.** The hermetic design feasibility is the spike's core. The live-Edge
-   acceptance check (**real** Edge accepts a governed XDM body) is a **named creds-gated follow-on** (spec 013
-   precedent) — run only if the maintainer provides the test datastream, redacting identifiers; never asserted
+1. **Payload — confirm already-read-minimized; scope any residual strip as thin defense-in-depth.** Ground
+   that `toXdm`'s 2-field allowlist (`connector.js:195-206`) + `context:[]` (`connector.js:67`) already
+   minimize the egress `events[].xdm` — the live capture holds only `eventType` / `web.webPageDetails` + the
+   vendor envelope (`implementationDetails`, `timestamp`, `meta.state` cookies), **none** of the PII / custom
+   / form classes a strip would target. **Enumerate any residual vendor-added fields** and classify each
+   strip-safe (droppable) vs required (identity/envelope). If a defense-in-depth seam-strip is warranted at
+   all, confirm via the live rig that a field-**stripped** body is **Edge-accepted** (the strip mechanism is
+   Edge-safe). Expect the finding to be *"little/no strip needed — the body is already minimal by
+   construction."*
+2. **Consent — characterize the `setConsent` COMMAND path (NOT body-injection — maintainer correction).**
+   alloy consent is the client `setConsent` command, not an XDM field. Verify the argument shape (the Adobe
+   2.0 consent standard — `{ consent: [{ standard: "Adobe", version: "2.0", value: { collect: { val: "y"|"n"
+   } } }] }`) against the [docs](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/setconsent)
+   + the alloy SDK source. Determine: **(i)** how airlock maps its ADR-0007 purpose vector → that shape;
+   **(ii)** WHERE it drives it — the chamber's alloy-boot glue does `configure → setConsent(mapped) →
+   sendEvent`, the vector crossing in at `init` like other ctx; **(iii)** how `setConsent(collect:n)` affects
+   what alloy sends (does it **gate/queue** the interact, or send with a consent signal?). Name the mechanism
+   + any blocker. This is **delegate-and-send** — alloy honors its own consent, parallel to GA4 delegating
+   data-use denial to Google (ADR-0007 point ①).
+3. **Grounded verdict (per-half, not a binary).** Dispose EACH half separately:
+   - **Payload →** already read-minimized by construction (a seam-strip is optional thin defense-in-depth,
+     Edge-safe if added) — likely *not* the open work; OR a residual field genuinely warrants a strip.
+   - **Consent →** feasible via `setConsent` in the chamber boot flow (name the 020-02 approach: thread the
+     ADR-0007 vector into the chamber `init` + drive `configure → setConsent → sendEvent`) OR a blocker (→
+     read-minimization / honest boundary, superseding ADR-0012's alloy-Split disposition).
+   Note the **untrusted-chamber posture:** `setConsent` runs *inside* the chamber (delegate-to-alloy) — it is
+   honored-by-the-vendor, not seam-enforced, the same delegate-and-send trust as GA4's point ①; the seam
+   still enforces endpoint-ceiling + config-integrity around it.
+4. **Live legs — the test datastream is wired (running).** The **strip Edge-safety** check runs live against
+   real Edge with the maintainer's test datastream (`rig/alloy-live-xdm-governance.mjs`), redacting all
+   identifiers (013 discipline). The **`setConsent` live-flow** (real alloy `configure → setConsent(collect:n)
+   → sendEvent`, observing whether alloy gates or sends) is the deeper leg — run if tractable with the 013
+   chamber-rig infra, else characterized from the SDK source + docs and named as the follow-on. Never asserted
    without evidence.
 
 **Findings:** _(filled during IN_PROGRESS — evidence collected)_
 
-- _TBD: where sensitive fields + consent live in the XDM body; strip-safety per field class._
-- _TBD: Adobe `xdm.consents` shape + whether a body-injected consent is Edge-honored / SDK-conflicting._
-- _TBD: parse→govern→re-serialize preserves the alloy round-trip + `xdm-mint` recognition._
-- _TBD: read-minimization fallback coverage (input-governed) vs the ambient-collection gap._
+- **Payload:** _TBD — confirm `toXdm` (2-field allowlist) + `context:[]` already minimize the body; enumerate
+  residual vendor fields; is a field-strip Edge-safe (live rig)?_
+- **Consent:** _TBD — the `setConsent` argument shape (Adobe 2.0 standard) + how `collect:n` affects the
+  interact (gate/queue vs send-with-signal); the ADR-0007-vector → `setConsent` map + the chamber
+  `configure → setConsent → sendEvent` placement._
 
-**Outcome:** _(set at DONE — one of)_ `strip-at-seal feasible → spec 020-02 unblocked (implement the alloy
-payload strip + consent enforcement at the seam)` / `read-minimization fallback (recorded; ADR-00NN if it
-rises to a decision)` / `abandoned (reason)`.
+**Outcome:** _(set at DONE — per-half, no longer a single binary)_
+- **Payload:** `already read-minimized by construction (optional defense-in-depth strip, Edge-safe)` |
+  `residual-field strip warranted`.
+- **Consent:** `feasible via setConsent command → 020-02 (thread the ADR-0007 vector into chamber init + drive
+  configure→setConsent→sendEvent)` | `blocker → read-minimization / honest boundary (supersede ADR-0012's
+  alloy-Split)`.
+- _Trending (pre-evidence): **both halves feasible via idiomatic paths** — payload already minimal; consent
+  via the supported `setConsent` API._
 
 **DoD:**
 - [ ] The four spike blocks filled (Question / Time-box / Findings / Outcome).

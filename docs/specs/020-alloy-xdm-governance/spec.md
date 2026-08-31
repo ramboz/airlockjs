@@ -31,12 +31,19 @@ The request `body` is the XDM JSON (`{ events: [{ xdm: {…} }], … }`), and
 `events.map(e => e.xdm)`, `xdm.identityMap.ECID`). So parse→inspect at the seam is proven; the open question is
 whether **govern** (strip sensitive fields / inject-enforce XDM consent) at that seam is safe.
 
-**What "governed" means for alloy (the two halves, mirroring the GA4 work):**
-- **Payload** — strip host-denylisted sensitive fields from the vendor-built `xdm` (the ADR-0012 second
-  placement, at the wrapped-SDK seam rather than GA4's `sendBatch`/sync chokepoints).
-- **Consent** — enforce/inject the ADR-0007 purpose vector into alloy's XDM consent shape (Adobe's
-  `xdm.consents` / the Consent-standard fields) — a *different mechanism* than GA4's MP `consent` field, but
-  the same vendor-neutral consent seam.
+**What "governed" means for alloy (two SEPARATE halves — the 020-01 frame-critique + the maintainer's consent
+correction reframed both from the original "strip + inject at the seam" premise):**
+- **Payload — already read-minimized by construction.** Unlike GA4's `mapToMp` (which spreads `params`
+  verbatim), alloy's egress `xdm` is built by `toXdm` — a **2-field allowlist** (`eventType` +
+  `web.webPageDetails`) — with `context:[]` disabling alloy's ambient auto-collection. So there is little
+  sensitive data in the airlock-built body to strip; this half is mostly **confirming** that minimization + an
+  **optional thin defense-in-depth** seam-strip if any residual vendor field warrants it — NOT the fragile
+  "strip a rich vendor body" the ADR-0012 Split feared.
+- **Consent — the `setConsent` command, not a body field.** alloy consent is the client `setConsent` command
+  (`configure → setConsent → sendEvent`), NOT an XDM body injection. airlock maps the ADR-0007 vector →
+  Adobe's 2.0 consent shape → drives `setConsent` in the **chamber's alloy-boot glue** (the vector crosses in
+  at `init`) — **delegate-and-send**, parallel to GA4's MP-consent point ①. The vendor-idiomatic, non-fragile
+  path (its supported API), so consent — not payload — is the genuine open work.
 
 **Honest fallback (named up front).** If the probe finds strip/inject at the seal fragile (breaks XDM
 validity or Edge acceptance), alloy's governed defense is **read-minimization** (ADR-0003 — govern what
