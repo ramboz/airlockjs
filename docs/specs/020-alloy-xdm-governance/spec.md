@@ -63,12 +63,11 @@ read-minimization horizon, not this spec's.
   + config-integrity already bind. **Grounded** (read).
 - **The XDM body is parseable JSON and airlock already parses it** (`xdm-mint.js` reads `parsed.xdm` /
   `events[].xdm` / `identityMap.ECID`). So parse→govern→re-serialize is mechanically available. **Grounded.**
-- **Whether stripping / consent-injecting the XDM body breaks alloy or Edge is UNKNOWN** — the probe's core
-  question. XDM is Edge-schema-validated; stripping a custom/PII field is likely safe, stripping a required
-  field is not; injecting `xdm.consents` may conflict with the SDK's own consent state. **Assumption, probed
-  in 020-01.**
-- **Adobe's XDM consent shape is external domain knowledge** (the `xdm.consents` / Adobe Consent standard) —
-  to be verified against current Adobe docs during the probe, not asserted here. **Listed, not asserted.**
+- **RESOLVED by 020-01 — payload strip is Edge-safe; consent is the `setConsent` command, NOT a body field.**
+  A field-strip at the seam is Edge-accepted + round-trip-preserving (live-confirmed). Consent is **not**
+  injected into the XDM body (the original "inject `xdm.consents`" premise was wrong — maintainer correction):
+  it is alloy's client `setConsent` command (in→send / out→never-send / pending→queue) + a separate
+  `privacy/set-consent` call + the `kndctr_<orgId>_consent` cookie. **Resolved** (020-01 Findings).
 - **A live-Edge acceptance check is creds-gated** (mirrors spec 013's live-Alloy legs) — the hermetic design
   feasibility is investigable against the alloy stubs + the known XDM shape; the "real Edge accepts a governed
   XDM body" leg needs the maintainer's test datastream. **Grounded** (013 precedent).
@@ -79,16 +78,18 @@ SPIDR = **Spike first (legitimately), then Rules.** The strip-at-seal feasibilit
 the whole approach — none of Path/Interface/Data/Rules can be picked until 020-01 settles *strip-at-seal vs
 read-minimization*. The spike is **nested in this real spec** (never a standalone), and articulates its
 downstream change up front (below). After it:
-- **If feasible →** Rules slices implement the alloy payload strip + consent enforcement at the seam (binding
-  the existing `governPayload` + the ADR-0007 consent vector to the XDM body).
-- **If fragile →** a slice records read-minimization + the honest boundary (and, if it rises to a decision, an
-  ADR superseding ADR-0012's alloy-Split disposition).
+**020-01 concluded: both halves feasible** (the read-minimization fallback did not fire — the body is already
+minimized + consent has a clean command path). So the Rules slice implements the consent enforcement + the
+optional strip:
 
-- **020-01 `[S]` feasibility probe** — can alloy's vendor-built XDM body be governed (strip sensitive fields +
-  enforce/inject XDM consent) at the `dispatchInterceptedFetch` seam without breaking alloy/Edge? Time-boxed;
-  outcome gates 020-02+.
-- **020-02+ `[R]` (gated on 020-01's outcome)** — implement the governance (strip + consent at the seam) OR
-  record read-minimization as the alloy defense. Drafted after the spike concludes.
+- **020-01 `[S]` feasibility probe** — is alloy's egress governable (payload + consent) without breaking
+  alloy/Edge? **DONE** — payload already read-minimized + Edge-safe strip; consent via the `setConsent`
+  command + a **seam-side drop**, NOT body-injection.
+- **020-02 `[R]`** (gated on 020-01, done) — the **consent seam-drop** (reuse `core/consent.js` `egressVerdict`
+  at `dispatchInterceptedFetch` to hold/**drop** the alloy interact per the ADR-0007 vector — the trusted
+  enforcement; note it needs *drop* semantics, not `egressVerdict`'s send-on-data-use-denial default, since
+  alloy has no body-consent to send-with) **+ drive alloy `setConsent`** in the chamber boot glue (idiomatic
+  delegate) **+ the optional Edge-safe payload strip**.
 
 ## Slices
 

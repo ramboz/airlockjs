@@ -27,12 +27,16 @@ Edge-safe strip.** Unblocked by 020-01's Outcome.
 **Acceptance Criteria (to be finalized when picked up — the probe fixed the approach):**
 
 1. **Seam-side egress drop (the TRUSTED enforcement — does NOT trust the chamber).** At
-   `dispatchInterceptedFetch`, apply the ADR-0007 `egressVerdict` (reuse `core/consent.js`, GA4-parity) to
-   alloy's intercepted interact: a **denied/pending** governing purpose → **hold/drop at the seal** (never
-   dispatched), surfaced (009-02), exactly as 017-03 does for the GA4 async seal. This is airlock's real
-   consent enforcement for alloy — the seam is trusted main-thread code, so a compromised chamber that ignores
-   its own `setConsent` gate is still held here. Observable: consent-denied → the alloy interact does NOT reach
-   Edge (independent of alloy's own gate).
+   `dispatchInterceptedFetch`, apply the ADR-0007 `egressVerdict` (`core/consent.js`) to alloy's intercepted
+   interact: a **denied/pending** governing purpose → **hold/drop at the seal** (never dispatched), surfaced
+   (009-02). **Semantics catch (020-01 craft review — load-bearing):** `egressVerdict`'s *non-strict default*
+   returns **send** on a *data-use* denial (that path is premised on GA4 carrying `consent:denied` in the MP
+   body — delegate-and-send). **alloy has NO body-consent field**, so a collect-**denied** interact would leak
+   if sent — it must be **suppressed (dropped)**, not sent. So the alloy seam maps a denied/pending `collect`
+   purpose → **DROP** (strict-like semantics, e.g. `egressVerdict(…, { strict:true })` or an explicit
+   drop-on-denied for alloy), NOT the GA4 send-on-data-use-denial default. Observable: consent-denied → the
+   alloy interact does NOT reach Edge (independent of alloy's own `setConsent` gate — so a compromised chamber
+   is still held).
 2. **Drive `setConsent` in the chamber alloy-boot glue (the idiomatic DELEGATE).** Map the ADR-0007 vector →
    Adobe 2.0 consent shape (`{ consent:[{ standard:"Adobe", version:"2.0", value:{ collect:{ val } } }] }`);
    the chamber glue does `configure → setConsent(mapped) → sendEvent` (the vector crosses in at `init`). So

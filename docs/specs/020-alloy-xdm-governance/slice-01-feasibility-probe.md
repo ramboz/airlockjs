@@ -1,10 +1,9 @@
 ---
-status: IN_PROGRESS
+status: DONE
 kind: spike
 dependencies: []
 last_verified: 2026-08-31
 frame_review: true
-claimed_by: main
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about
@@ -131,5 +130,46 @@ feature):**
 
 **Anti-horizontal-phasing check (spike variant):** this slice is a **nested** feasibility spike (never a
 standalone `docs/spikes/` artifact) whose downstream change is articulated up front — its Outcome directly
-unblocks 020-02 (implement) or records the read-minimization defense. It does not "research then build a
-slab": the implementation is a *separate*, outcome-gated slice.
+unblocks 020-02 (implement). It does not "research then build a slab": the implementation is a *separate*,
+outcome-gated slice.
+
+### Deviation log
+
+- **The probe was reshaped mid-flight (not the original framing).** The initial spike co-weighted a
+  payload-strip against consent and assumed consent was an XDM body injection. Both premises were corrected —
+  the frame-critique (needs-changes) surfaced that `toXdm`+`context:[]` already read-minimize the body, and
+  the maintainer corrected that alloy consent is the `setConsent` command, not a body field. The reshape split
+  the halves + re-anchored consent; the live evidence + the re-confirm vindicated it. A correction of a wrong
+  premise before the time-box was spent — exactly the frame-critique's purpose.
+- **The live `setConsent`-flow leg was NOT run** (deferred). The consent mechanism is characterized from the
+  alloy@2.35.0 source + Adobe docs (unambiguous); the live `configure → setConsent(collect:n) → sendEvent`
+  suppression run is a named follow-on on the 013 chamber rig. AC2/AC4 explicitly permit source-characterization
+  for this pass.
+- **Rig note (craft review):** `governedStripped()` ≡ `base()` by construction (add-then-delete), so the
+  baseline-vs-stripped comparison is structurally identical (modulo per-call `timestamp`). The check confirms
+  the parse→delete→re-serialize round-trip is Edge-valid (meaningful) but cannot fail except on gross
+  corruption; a sharper `sensitive`-vs-`stripped` diff was not computed. Tracked for a 020-02 rig refinement
+  if the defense-in-depth strip is built.
+
+### Reconciliation sweep
+
+- **Deliverables:** the live-Edge strip-safety rig (`rig/alloy-live-xdm-governance.mjs` + `rig:alloy-xdm-gov`)
+  + the source-grounded consent characterization → the Findings + Outcome. **No `core/` / production change**
+  (a spike); the implementation is 020-02.
+- **Reviews recorded:** frame-critique (needs-changes → reshaped → **re-confirm pass**) + craft (**pass**),
+  independent Opus reviewers. The reshape corrected the two load-bearing premises (co-weighted strip;
+  body-injection consent) per the frame-critique + the maintainer's `setConsent` correction; the re-confirm +
+  the live evidence vindicated it.
+- **spec.md reconciled:** the Overview, Slices, **Assumptions**, and **Decomposition** all now carry the
+  corrected two-halves frame (the body-injection premise removed — craft-review reconciliation note).
+- **Folded into 020-02 (craft note):** `egressVerdict`'s non-strict default *sends* on a data-use denial
+  (GA4 body-consent premise); alloy has no body-consent → a collect-denied interact must **drop** — 020-02
+  AC1 now specifies strict-like/drop semantics.
+- **Deviation (in-doc, sound):** the live `setConsent`-flow leg (`configure → setConsent(collect:n) →
+  sendEvent`, observe suppression) was **not run** — characterized from alloy@2.35.0 source + docs, named as
+  a follow-on on the 013 chamber rig (AC2/AC4 permit). The live 200/handle-shape rests on
+  orchestrator-verification with no committed artifact (per the redaction/no-fixture discipline; 013 precedent).
+- **ADR update deferred to 020's close:** the Outcome **supersedes ADR-0012's "probe-first fragile" alloy
+  disposition** (+ ADR-0007's alloy residual) — recorded as a 020-02 DoD item, not asserted done here.
+- **No live identifiers committed** — rig verified redaction-clean by the orchestrator (env-only datastream;
+  only generic schema tokens read; synthetic PII; no fixture written).
