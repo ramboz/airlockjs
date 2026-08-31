@@ -92,5 +92,8 @@ downstream change up front (below). After it:
 
 ## Slices
 
-1. [020-01 — alloy XDM-governance feasibility probe](slice-01-feasibility-probe.md) `kind: spike`
-2. _020-02+ — implement (or read-minimization fallback): drafted after 020-01's Outcome._
+1. [020-01 — alloy XDM-governance feasibility probe](slice-01-feasibility-probe.md) `kind: spike` — **DONE.**
+   Outcome: **both halves feasible via idiomatic paths** (payload already minimal + Edge-safe strip; consent
+   via the `setConsent` command + a seam-side drop). Unblocks 020-02.
+2. [020-02 — implement alloy consent enforcement (seam drop + setConsent) + optional payload strip](slice-02-implement.md)
+   — the implementation the probe unblocked.

@@ -78,22 +78,45 @@ feature):**
    chamber-rig infra, else characterized from the SDK source + docs and named as the follow-on. Never asserted
    without evidence.
 
-**Findings:** _(filled during IN_PROGRESS — evidence collected)_
+**Findings:**
 
-- **Payload:** _TBD — confirm `toXdm` (2-field allowlist) + `context:[]` already minimize the body; enumerate
-  residual vendor fields; is a field-strip Edge-safe (live rig)?_
-- **Consent:** _TBD — the `setConsent` argument shape (Adobe 2.0 standard) + how `collect:n` affects the
-  interact (gate/queue vs send-with-signal); the ADR-0007-vector → `setConsent` map + the chamber
-  `configure → setConsent → sendEvent` placement._
+- **Payload — already minimal + strip Edge-safe (live-confirmed).** `toXdm` (2-field allowlist) + `context:[]`
+  mean the egress body holds only `eventType` / `web.webPageDetails` + the vendor envelope
+  (`implementationDetails` / `timestamp` / `meta.state` cookies) — none of the PII / custom / form classes.
+  **Live** (`rig/alloy-live-xdm-governance.mjs`, real Edge `/ee/v1/interact`, maintainer datastream, verified
+  by the orchestrator): baseline / `+_airlocktest={email,ssn}` (synthetic) / field-**stripped** all → **HTTP
+  200, identical handle shape** (`identity:result` / `locationHint:result` / `state:store`) — a
+  `parse→delete→re-serialize` at the seam is **Edge-SAFE** and preserves the identity round-trip. Edge also
+  *tolerates* an un-stripped field (validation is downstream), so a seam-strip has real defense-in-depth value
+  on an `AirlockEvent`→XDM body — though the airlock-built body is already minimal.
+- **Consent — the `setConsent` command (source-characterized, alloy@2.35.0 + docs).**
+  `setConsent({ consent:[{ standard:"Adobe", version:"2.0", value:{ collect:{ val:"y"|"n" } } }] })` drives a
+  client consent **state machine** (in / out / pending); every egress is gated by
+  `consent.awaitConsent().then(sendEdgeNetworkRequest)` — **in→** fires (body carries no consent field),
+  **out→** the promise **rejects** → the interact is **never sent** (client-side drop), **pending→**
+  queued/discarded. `setConsent` ALSO issues a separate `/ee/v1/privacy/set-consent` call → the
+  `kndctr_<orgId>_consent` cookie (`general=in|out`), read back to flip the gate. So consent is **not** a body
+  field; the opt-out signal is a **suppressed request**, not a body diff. `defaultConsent` (default `in`)
+  governs the pre-`setConsent` window.
+- **The airlock consent lever (the load-bearing threat-model finding).** Two options: **(a) drive alloy's
+  `setConsent`** — idiomatic, but the gate runs **inside the untrusted chamber** (a compromised alloy could
+  ignore its own gate and send anyway); **(b) an independent seam-side egress drop** at
+  `dispatchInterceptedFetch` — airlock holds/drops the interact per its OWN ADR-0007 vector (reusing 017-03's
+  `egressVerdict`), **not trusting the chamber**. **(b) is the airlock-thesis-consistent TRUE enforcement**
+  (the seam is trusted main-thread code, already enforcing endpoint-ceiling + config-integrity); (a)
+  complements it so alloy self-gates + the consent cookie propagates. Defense-in-depth: **seam-enforce +
+  delegate**.
 
-**Outcome:** _(set at DONE — per-half, no longer a single binary)_
-- **Payload:** `already read-minimized by construction (optional defense-in-depth strip, Edge-safe)` |
-  `residual-field strip warranted`.
-- **Consent:** `feasible via setConsent command → 020-02 (thread the ADR-0007 vector into chamber init + drive
-  configure→setConsent→sendEvent)` | `blocker → read-minimization / honest boundary (supersede ADR-0012's
-  alloy-Split)`.
-- _Trending (pre-evidence): **both halves feasible via idiomatic paths** — payload already minimal; consent
-  via the supported `setConsent` API._
+**Outcome:** `spec 020-02 unblocked — BOTH halves feasible via idiomatic paths.`
+- **Payload:** already read-minimized by construction; an optional thin defense-in-depth field-strip at the
+  seam is **Edge-SAFE** (live-confirmed) — 020-02 may add it (low cost), not load-bearing.
+- **Consent:** feasible — 020-02 implements the **seam-side egress drop** (reuse 017-03 `egressVerdict` at
+  `dispatchInterceptedFetch`, holding/dropping the alloy interact per the ADR-0007 vector — trusted
+  enforcement) **+ drives `setConsent`** in the chamber alloy-boot glue (map the vector → Adobe 2.0 shape;
+  delegate so alloy self-gates + propagates the consent cookie). This **supersedes ADR-0012's "probe-first
+  fragile" alloy disposition** with "feasible via idiomatic + seam-enforced paths" (record as an ADR update at
+  020's close). A live `setConsent`-flow confirmation (real alloy `configure → setConsent(collect:n) →
+  sendEvent`, assert the interact is suppressed) is a named follow-on on the 013 chamber rig.
 
 **DoD:**
 - [ ] The four spike blocks filled (Question / Time-box / Findings / Outcome).
