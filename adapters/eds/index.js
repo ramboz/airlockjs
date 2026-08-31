@@ -32,6 +32,7 @@
  * stays `aem-experimentation`'s; the airlock only reports the exposure.
  */
 import { createAirlock } from "../../core/airlock.js";
+import { resolveConsent } from "../../core/consent.js";
 import { sourceGa4Ctx } from "../../connectors/ga4/cookies.js";
 import { shapeMpConsent } from "../../connectors/ga4/consent.js";
 import { createCookieCapability } from "./cookies.js";
@@ -259,7 +260,10 @@ export function wireBlocks(handle, io = {}) {
  *                                         BEFORE `createAirlock` runs — the
  *                                         017-01 pre-construction ordering
  *                                         (load-bearing, see the fold comment
- *                                         below).
+ *                                         below). Also resolves `analytics_storage`
+ *                                         (017-02, ADR-0007 ②), threaded into
+ *                                         `sourceGa4Ctx` as `storageGranted` —
+ *                                         see that computation below.
  * @param {string[]} [opts.endpoints]      per-tracker collect URLs.
  * @param {number}   [opts.trackers]       tracker count (defaults to endpoints.length).
  * @returns {Promise<{ push: Function, pushCritical: Function, getState: Function, flushNow: Function, stats: Function }>}
@@ -273,15 +277,27 @@ export async function bootEdsAnalytics(opts = {}) {
     trackers = endpoints.length,
   } = opts;
 
+  // 017-02 AC1 (ADR-0007 point ②): resolve `analytics_storage` BEFORE identity
+  // sourcing, threaded INTO sourceGa4Ctx — not gated here (the `_ga` read+write
+  // live inside that function, downstream of the adapter). Back-compat default
+  // TRUE: no consent vector wired at all -> the legacy always-persist behavior
+  // (004-03, unaffected). A PROVIDED vector enforces per-purpose: analytics_storage
+  // unset resolves to "pending" (core/consent.js's fail-to-pending default), which
+  // is NOT "granted" -> same non-persisted/ephemeral branch as an explicit denial.
+  const storageGranted = consent ? resolveConsent(consent, "analytics_storage") === "granted" : true;
+
   // 004-03 host-side sourcing: read (or generate + persist) the `_ga` identity via
   // the mediated accessor; hand the runtime ONLY the minimal snapshot (ADR-0003).
   // `document.cookie` is passed solely for `_ga_<stream>` discovery and never
-  // enters the ctx.
+  // enters the ctx. `storageGranted` (017-02) gates the read+write INSIDE
+  // sourceGa4Ctx: not granted -> a fresh ephemeral client_id/session_id,
+  // ignoring any persisted `_ga` / `_ga_<stream>` already in the jar.
   const ctx =
     providedCtx ??
     (await sourceGa4Ctx({
       cookies: createCookieCapability(document),
       cookieString: document.cookie,
+      storageGranted,
     }));
 
   // 017-01 AC2/AC4 consent fold — PRE-createAirlock, load-bearing (frame-critique

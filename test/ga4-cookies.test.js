@@ -183,6 +183,107 @@ describe("sourceGa4Ctx (host-side identity sourcing, ADR-0003 minimal snapshot)"
   });
 });
 
+// 017-02 (ADR-0007 point ②): analytics_storage gates the READ+WRITE inside
+// sourceGa4Ctx itself, not just the write (frame-critique — a write-only gate
+// would leak an already-persisted `_ga`). `storageGranted` defaults `true`
+// (back-compat, 004-03 unwired); these cases pin BOTH branches explicitly.
+describe("sourceGa4Ctx storage-consent gating (017-02, analytics_storage)", () => {
+  it("storageGranted:true, empty jar -> generates + PERSISTS (cookies.set called) — 004-03 unchanged", async () => {
+    const jar = makeJar();
+    const ctx = await sourceGa4Ctx({
+      cookies: jar,
+      now: () => 1700000123456,
+      random: () => 0.5,
+      storageGranted: true,
+    });
+    expect(ctx.clientId).toBe("5500000000.1700000123");
+    expect(jar.sets).toEqual([
+      {
+        name: "_ga",
+        value: "GA1.1.5500000000.1700000123",
+        opts: { maxAge: GA_COOKIE_MAX_AGE_S, path: "/", sameSite: "lax" },
+      },
+    ]);
+  });
+
+  it("storageGranted:true, existing _ga -> reads + uses it, NO set — 004-03 unchanged", async () => {
+    const jar = makeJar({ _ga: "GA1.1.1234567890.1700000000" });
+    const ctx = await sourceGa4Ctx({
+      cookies: jar,
+      now: () => 1800000000000,
+      storageGranted: true,
+    });
+    expect(ctx.clientId).toBe("1234567890.1700000000");
+    expect(jar.sets).toEqual([]);
+  });
+
+  it("storageGranted:false, empty jar -> ephemeral client_id, NO cookies.set", async () => {
+    const jar = makeJar();
+    const ctx = await sourceGa4Ctx({
+      cookies: jar,
+      now: () => 1700000123456,
+      random: () => 0.5,
+      storageGranted: false,
+    });
+    expect(ctx.clientId).toBe("5500000000.1700000123"); // same mint formula, just never persisted
+    expect(jar.sets).toEqual([]);
+  });
+
+  it("storageGranted:false, PRE-EXISTING valid _ga in jar -> fresh ephemeral, NOT the persisted id, NO set (the leak case)", async () => {
+    const jar = makeJar({ _ga: "GA1.1.12345.678" });
+    const getSpy = vi.spyOn(jar, "get");
+    const ctx = await sourceGa4Ctx({
+      cookies: jar,
+      now: () => 1700000123456,
+      random: () => 0.5,
+      storageGranted: false,
+    });
+    expect(ctx.clientId).not.toBe("12345.678"); // NOT the persisted id — no leak, no cross-page continuity
+    expect(ctx.clientId).toBe("5500000000.1700000123"); // fresh ephemeral, minted exactly as an empty jar would be
+    expect(jar.sets).toEqual([]); // never written
+    expect(getSpy).not.toHaveBeenCalled(); // never even READ — the read-and-use gate (frame-critique), not just write
+  });
+
+  it("storageGranted:false, two boots (different random) -> two different client_ids (no continuity)", async () => {
+    const jar = makeJar({ _ga: "GA1.1.12345.678" });
+    const ctxA = await sourceGa4Ctx({
+      cookies: jar,
+      now: () => 1700000000000,
+      random: () => 0.1,
+      storageGranted: false,
+    });
+    const ctxB = await sourceGa4Ctx({
+      cookies: jar,
+      now: () => 1700000000000,
+      random: () => 0.9,
+      storageGranted: false,
+    });
+    expect(ctxA.clientId).not.toBe(ctxB.clientId);
+    expect(jar.sets).toEqual([]);
+  });
+
+  it("storageGranted:false, _ga_<stream> present -> sessionId is the per-page fallback, NOT the persisted session", async () => {
+    const ctx = await sourceGa4Ctx({
+      cookies: makeJar({ _ga: "GA1.1.1.2" }),
+      cookieString: "_ga=GA1.1.1.2; _ga_ABC=GS1.1.1724668790.5.1.1724668795.60.0.0",
+      now: () => 1800000000000, // bootSeconds -> "1800000000"
+      storageGranted: false,
+    });
+    expect(ctx.sessionId).toBe("1800000000"); // per-page fallback
+    expect(ctx.sessionId).not.toBe("1724668790"); // NOT the persisted _ga_<stream> session
+  });
+
+  it("storageGranted:true, _ga_<stream> present -> sessionId is the persisted session — 004-03 unchanged", async () => {
+    const ctx = await sourceGa4Ctx({
+      cookies: makeJar({ _ga: "GA1.1.1.2" }),
+      cookieString: "_ga=GA1.1.1.2; _ga_ABC=GS1.1.1724668790.5.1.1724668795.60.0.0",
+      now: () => 1800000000000,
+      storageGranted: true,
+    });
+    expect(ctx.sessionId).toBe("1724668790");
+  });
+});
+
 // AC5: the ga4_mp_conformance link over a COOKIE-SOURCED ctx — schema-valid AND
 // an exact match of the pinned golden fixture (the golden is what catches a
 // typo'd event name; contracts/ga4-mp.md § oracle).

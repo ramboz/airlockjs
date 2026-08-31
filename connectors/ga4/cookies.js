@@ -117,9 +117,15 @@ export function formatGaCookieValue(clientId) {
  *    falls back to a per-page session id (unix-seconds at boot) — on a gtag-free
  *    site this fallback is the steady state (slice Assumptions).
  *
- * Consent note: this identity write is NOT gated by the seal — the seal gates
- * egress only (declared in the slice Assumptions, registered as refinement-todo
- * OQ13 item 1).
+ * Consent note (017-02, ADR-0007 point ②): this identity sourcing IS gated on
+ * `analytics_storage` now — resolves refinement-todo OQ13 item 1. `storageGranted:
+ * false` (denied OR pending — anything short of an explicit grant) skips the `_ga`
+ * READ too, not just the write: parsing/returning an already-persisted `_ga` under
+ * denial would itself be USING denied storage (the leak a write-only gate would
+ * miss — frame-critique). `session_id` gets the same treatment, never reading
+ * `_ga_<stream>`. The `storageGranted:true` (default) branch below is
+ * byte-identical to 004-03 — a caller that never wires consent at all keeps the
+ * legacy always-persist behavior (back-compat).
  *
  * @param {object} opts
  * @param {{ get(name: string): Promise<string|null>,
@@ -130,16 +136,38 @@ export function formatGaCookieValue(clientId) {
  *   has no enumeration). It never enters the returned ctx.
  * @param {() => number} [opts.now]    injectable clock (ms), default Date.now.
  * @param {() => number} [opts.random] injectable [0,1) source, default Math.random.
+ * @param {boolean} [opts.storageGranted] the resolved `analytics_storage` grant
+ *   (`resolveConsent(vector, "analytics_storage") === "granted"`, `core/consent.js`).
+ *   Defaults to `true` — back-compat for a caller with no consent vector wired at
+ *   all (keeps 004-03's unconditional persist). `false` → no `_ga`/`_ga_<stream>`
+ *   read or write; a fresh ephemeral `client_id` + per-page `session_id` instead.
  * @returns {Promise<{ clientId: string, sessionId: string }>} the minimal snapshot.
  */
-export async function sourceGa4Ctx({ cookies, cookieString = "", now = Date.now, random = Math.random }) {
+export async function sourceGa4Ctx({
+  cookies,
+  cookieString = "",
+  now = Date.now,
+  random = Math.random,
+  storageGranted = true,
+}) {
   const bootSeconds = Math.floor(now() / 1000);
+  const mintEphemeralClientId = () =>
+    `${String(1_000_000_000 + Math.floor(random() * 9_000_000_000))}.${bootSeconds}`;
 
+  if (!storageGranted) {
+    // 017-02: analytics_storage NOT granted (denied/pending). NO read, NO write —
+    // a FRESH ephemeral client_id + per-page session, IGNORING any persisted
+    // _ga / _ga_<stream> (reading a persisted id is itself using denied storage;
+    // ADR-0007 "drop the persistent client_id"). Fresh random each boot → no
+    // cross-page continuity.
+    return { clientId: mintEphemeralClientId(), sessionId: String(bootSeconds) };
+  }
+
+  // GRANTED (004-03, UNCHANGED): read existing _ga, else generate+persist; read _ga_<stream> session.
   const rawGa = await cookies.get("_ga");
   let clientId = parseGaClientId(rawGa);
   if (clientId === null) {
-    const tenDigits = String(1_000_000_000 + Math.floor(random() * 9_000_000_000));
-    clientId = `${tenDigits}.${bootSeconds}`;
+    clientId = mintEphemeralClientId();
     if (rawGa == null) {
       await cookies.set("_ga", formatGaCookieValue(clientId), {
         maxAge: GA_COOKIE_MAX_AGE_S,
@@ -148,7 +176,6 @@ export async function sourceGa4Ctx({ cookies, cookieString = "", now = Date.now,
       });
     }
   }
-
   const sessionId = parseGaSessionId(findGaStreamCookie(cookieString)) ?? String(bootSeconds);
   return { clientId, sessionId };
 }
