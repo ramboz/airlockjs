@@ -41,12 +41,18 @@ every channel; the consent vector is *consumed* at three places:
   per purpose (AD-9, now per purpose); **strict / TCF no-processing regime** → **drop** (no beacon).
   `017-03`.
 
-**Both mapping sites (grounded — the reshape lands at both for free).** The MP reshape (①) is `ctx`-threaded,
-and **both** mapping sites call the same `mapToMp(event, ctx)`: the worker path (the chamber's
-`handle` → `mapToMp`, `ctx` host-sourced via `config.ctx`) **and** the synchronous unload fast path
-(`core/egress.js` `createCriticalDispatcher({ ctx })` → `mapToMp(event, ctx)`). So populating `ctx.consent`
-enforces the reshape at both — closing the OQ16 fast-path-parity gap for the *consent* reshape by
-construction (not a second code path). Grounded (read both).
+**Both mapping sites (grounded — but only under a pre-construction ordering, 017-01 frame-critique).** The
+MP reshape (①) is `ctx`-threaded, and **both** mapping sites call the same `mapToMp(event, ctx)`: the worker
+path (the chamber's `handle` → `mapToMp`, `ctx` host-sourced via `config.ctx`) **and** the synchronous unload
+fast path (`core/egress.js` `createCriticalDispatcher({ ctx })` → `mapToMp(event, ctx)`). But the two sites
+are **not symmetric**: the worker receives a **structured-clone snapshot** of `ctx` at `init`, while the fast
+path closes over a **live reference**. So the reshape lands at both **iff `ctx.consent` is folded in BEFORE
+`createAirlock({ ctx })`** — a **pre-construction** fold in `adapters/eds/index.js` (parallel to the existing
+identity fold), *not* a post-construction `setConsent` handle method (which would reach only the fast-path
+reference). Under that ordering it closes the OQ16 fast-path-parity gap for the *consent* reshape by
+construction (one `ctx`, one `mapToMp`, no second code path); a **mid-session** change needs a worker `ctx`
+re-send and is the deferred follow-up (same frozen-clone mechanism). Grounded (read both `mapToMp` sites +
+the worker `init` clone).
 
 **The consent-input seam is minimal here (a host-provided vector); CMP drivers are later.** ADR-0007's seam
 accepts consent through a driver (Consent Mode `gtag`, IAB `__tcfapi`, or a host callback). This spec builds
@@ -72,10 +78,13 @@ purpose-vector consent enforcement for GA4/wire-protocol, three points, host-cal
   object + **required** `client_id`; both the worker (`connectors/ga4/connector.js` `handle` → `mapToMp`) and
   the sync fast path (`core/egress.js` → `mapToMp`) call `mapToMp(event, ctx)` with host-sourced `ctx`. So
   ①'s reshape is *populate `ctx.consent`* and it lands at both sites. **Grounded.**
-- **`ctx` is host-built (`adapters/eds/index.js`) and flows to the worker at init + to the sync path at
-  construction.** So the consent vector → `ctx.consent` mapping happens where `ctx` is built. The **worker
-  caches `ctx` at init**, so a **mid-session consent update** needs a re-send to the worker — a **named
-  residual** (017-01 sources consent at boot; live-update is a follow-up). **Grounded** (read the flow).
+- **`ctx` reaches the two sites asymmetrically (017-01 frame-critique).** The worker gets a **structured-clone
+  snapshot** of `ctx` at `init` (`core/airlock.js` `postMessage({type:"init", …, ctx})`); the sync path holds
+  a **live reference** (`core/egress.js`'s captured `ctx`). So the consent vector → `ctx.consent` fold must
+  happen **pre-construction** (in `adapters/eds/index.js`, before `createAirlock({ ctx })`) to reach both. A
+  **mid-session update** needs a worker `ctx` re-send (`core/airlock.js` has only `init`/`events` messages —
+  no ctx-update path today) — a **named residual** (017-01 folds consent at boot; live-update is a follow-up).
+  **Grounded** (read the init clone + both `mapToMp` sites).
 - **MP `consent` carries only the two data-use signals; the two storage signals are NOT MP payload fields**
   (they gate the cookie capability — ②). So the vector→enforcement split is: `{ad_user_data,
   ad_personalization}` → `ctx.consent` (①); `{analytics_storage, ad_storage}` → the cookie write gate + the

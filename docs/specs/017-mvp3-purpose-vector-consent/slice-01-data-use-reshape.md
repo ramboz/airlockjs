@@ -36,21 +36,31 @@ boot-time source).
    `resolveConsent(purpose) → "granted" | "denied" | "pending"`. **Vendor-neutral** — no GA4/MP specifics in
    `core/consent.js` (`test/core-boundary.test.js` stays green); the MP-`consent`-object *shaping* is the
    GA4 connector's job (AC3).
-2. **Host-callback consent-input seam (the minimal driver).** The host supplies the vector through a
-   callback/API (e.g. `setConsent({ ad_user_data: "denied", … })` on the airlock boot surface / adapter),
-   the simplest ADR-0007 driver. Observable: the host can set/replace the vector; Consent Mode `gtag` /
-   TCF `__tcfapi` are **named follow-up drivers on this seam** (a driver swap, not a rewrite), not built here.
+2. **Consent-input seam = a PRE-CONSTRUCTION source folded into `ctx` (017-01 frame-critique).** The host
+   supplies the consent vector **at/before boot**, and the adapter folds it into `ctx` in
+   `adapters/eds/index.js` **before** `createAirlock({ ctx })` runs (parallel to the existing `sourceGa4Ctx`
+   identity fold). **This ordering is load-bearing, not incidental:** the worker receives a
+   **structured-clone snapshot** of `ctx` at `init` (`core/airlock.js` `postMessage({type:"init", …, ctx})`),
+   while the sync fast path closes over a **live reference** (`core/egress.js`'s captured `ctx`) — so consent
+   must be on `ctx` **before the init-clone** to reach **both** (AC4). A **post-construction / live
+   `setConsent(...)`** handle method is therefore **NOT** this slice's seam — it would reach only the
+   fast-path reference, never the frozen worker clone — it is the **mid-session-update follow-up** (AC6,
+   which needs a worker `ctx` re-send). Consent Mode `gtag` / TCF `__tcfapi` are named follow-up drivers on
+   this same pre-construction seam.
 3. **Grant resolver → the MP `consent` object (GA4 shaping, injected — not in `core/`).** The **data-use**
    purposes (`ad_user_data`, `ad_personalization`) resolve into `ctx.consent = { ad_user_data:
    "GRANTED"|"DENIED", ad_personalization: "GRANTED"|"DENIED" }` (the MP shape `map.js:74` already consumes).
    This GA4-specific mapping lives in the GA4 connector/adapter (the 016 vendor-injection precedent), reading
    `core/consent.js`'s generic resolver. Observable: a denied data-use purpose → the MP-shaped object marks
    it `"DENIED"`.
-4. **Threaded into BOTH mapping sites (the OQ16 parity, by construction).** `ctx.consent` is populated where
-   `ctx` is host-built (`adapters/eds/index.js`) and flows to **both** `mapToMp(event, ctx)` call sites — the
-   worker (via the chamber's init `ctx`) **and** the sync unload fast path (`core/egress.js`'s `ctx`).
-   Observable: a denied data-use purpose → `body.consent` DENIED in the mapped beacon at **both** sites (no
-   second reshape code path — both use `mapToMp(ctx)`).
+4. **Threaded into BOTH mapping sites — because consent is on `ctx` BEFORE construction (017-01
+   frame-critique).** Since `ctx.consent` is folded **pre-construction** (AC2), it is captured by **both** the
+   worker's `init` structured-clone **and** the sync fast path's live `ctx` reference — the two
+   `mapToMp(event, ctx)` sites. This is the OQ16 fast-path parity for the *consent reshape*, achieved by
+   construction (one `ctx`, one `mapToMp`) — **not** a second code path, but it holds **only** under the
+   pre-construction ordering (a symmetry the two sites do not otherwise have: init-clone vs live-reference).
+   Observable: a denied data-use purpose → `body.consent` DENIED in the mapped beacon at **both** the worker
+   site (the connector's `handle`/`mapToMp`) **and** the sync site (`core/egress.js`).
 5. **Delegate-and-send: the beacon STILL POSTs (ADR-0007's named departure, stated honestly).** A denied
    data-use purpose does **not** hold the beacon — the full event crosses the seal with `consent` DENIED,
    *delegating* data-use-denial to Google's server-side honoring (lawful + Consent-Mode-correct for GA4:
@@ -58,11 +68,15 @@ boot-time source).
    the `consent` field is DENIED. A comment + the spec name this as the deliberate departure from "nothing
    crosses the seal unhonoured," and that a future connector with **no** server-side consent flag would need
    a different path (the ADR's kill-criterion row) — not this slice's concern.
-6. **Boot-time source; mid-session update is a NAMED residual.** Consent is sourced at boot (before events
-   flow) and the worker caches `ctx` at init, so a **mid-session consent update** (re-sending `ctx` to the
-   worker + a per-purpose replay/stop) is **out of scope** — tracked in `refinement-todo` (ADR-0007's
-   consent-update open question). Observable: the enforcement reflects the boot-time vector; the residual is
-   named, not silently unhandled.
+6. **Boot-time (pre-construction) source; mid-session update is the SAME mechanism, deferred (017-01
+   frame-critique).** Boot works **because** consent is folded **pre-clone** (AC2/AC4); a **mid-session
+   update** does **not** — the worker's `ctx` is a frozen `init`-clone, so honoring a *later* consent change
+   needs a **worker `ctx` re-send** (`core/airlock.js` has only `init`/`events` messages today — no ctx-update
+   path) **plus** a per-purpose replay/stop. That re-send is exactly what the boot-time fold avoids, so
+   mid-session is the honest deferral (tracked in `refinement-todo`, ADR-0007's consent-update open question):
+   the boot claim and the residual are the **same** frozen-clone mechanism, split cleanly at construction.
+   Observable: the enforcement reflects the pre-construction vector; a post-construction change is out of
+   scope + named, not silently half-applied.
 7. **E2E at both sites.** A `test/` harness: host sets `{ ad_user_data: "denied" }` → drive a GA4 event →
    the mapped beacon carries `consent.ad_user_data: "DENIED"` **and still POSTs**, asserted at the worker
    mapping (via the connector's `handle`/`mapToMp`) **and** the sync fast path (`core/egress.js`'s
