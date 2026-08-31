@@ -33,6 +33,7 @@
  */
 import { createAirlock } from "../../core/airlock.js";
 import { sourceGa4Ctx } from "../../connectors/ga4/cookies.js";
+import { shapeMpConsent } from "../../connectors/ga4/consent.js";
 import { createCookieCapability } from "./cookies.js";
 import { createExposureReporter } from "./exposure.js";
 import { createBlockInstrumenter } from "./blocks.js";
@@ -251,6 +252,14 @@ export function wireBlocks(handle, io = {}) {
  * @param {object} [opts]
  * @param {object}   [opts.ctx]            explicit ctx override for `mapToMp` (skips
  *                                         cookie sourcing — rig/test escape hatch).
+ * @param {Record<string, string>} [opts.consent] host-supplied ADR-0007 consent
+ *                                         vector (core/consent.js's shape, e.g.
+ *                                         `{ ad_user_data: "denied" }`). Folded
+ *                                         into `ctx.consent` (GA4 MP-shaped)
+ *                                         BEFORE `createAirlock` runs — the
+ *                                         017-01 pre-construction ordering
+ *                                         (load-bearing, see the fold comment
+ *                                         below).
  * @param {string[]} [opts.endpoints]      per-tracker collect URLs.
  * @param {number}   [opts.trackers]       tracker count (defaults to endpoints.length).
  * @returns {Promise<{ push: Function, pushCritical: Function, getState: Function, flushNow: Function, stats: Function }>}
@@ -259,6 +268,7 @@ export function wireBlocks(handle, io = {}) {
 export async function bootEdsAnalytics(opts = {}) {
   const {
     ctx: providedCtx,
+    consent,
     endpoints = DEFAULT_ENDPOINTS,
     trackers = endpoints.length,
   } = opts;
@@ -274,12 +284,32 @@ export async function bootEdsAnalytics(opts = {}) {
       cookieString: document.cookie,
     }));
 
+  // 017-01 AC2/AC4 consent fold — PRE-createAirlock, load-bearing (frame-critique
+  // ordering, not incidental): `core/airlock.js` hands the worker a
+  // structured-clone SNAPSHOT of `ctx` at `init` (`postMessage({type:"init", …,
+  // ctx})`), while the sync unload fast path (`core/egress.js`) closes over a
+  // LIVE REFERENCE to this same `ctx`. Folding consent in HERE — before
+  // `createAirlock({ ctx })` runs — is what makes BOTH the worker's frozen clone
+  // and the sync path's live reference carry it (the two `mapToMp(event, ctx)`
+  // call sites, AC4). A post-construction `setConsent(...)` handle method would
+  // reach only the live reference and never the already-cloned worker ctx, so it
+  // is deliberately NOT this slice's seam (that's the mid-session-update
+  // follow-up, AC6/refinement-todo — it needs a worker ctx re-send).
+  //
+  // Non-mutating (spreads into a new object) and only adds the `consent` key
+  // when there is something to add: no `consent` opt, or a vector with no
+  // data-use purpose signaled, leaves `ctx` untouched, so `map.js`'s
+  // `if (ctx.consent)` guard keeps omitting `body.consent` — back-compat, an
+  // unset-consent host sees a byte-identical mapped body to before this slice.
+  const shapedConsent = consent ? shapeMpConsent(consent) : undefined;
+  const ctxWithConsent = shapedConsent ? { ...ctx, consent: shapedConsent } : ctx;
+
   // workFactor is a synthetic per-tracker cost knob for the rigs that call
   // createAirlock DIRECTLY; production is always 0 (OQ12 prune — arch review 004-04).
   // No ring-tail-priority events here: every unload-critical beacon (outbound_click,
   // page_view) goes via pushCritical, which bypasses the ring, so `unloadCritical`
   // (the ring-tail sort) stays the core default (empty).
-  const airlock = createAirlock({ trackers, workFactor: 0, endpoints, ctx });
+  const airlock = createAirlock({ trackers, workFactor: 0, endpoints, ctx: ctxWithConsent });
 
   const handle = {
     push: (evt) => airlock.push(evt),

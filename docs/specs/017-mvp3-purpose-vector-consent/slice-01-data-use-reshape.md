@@ -1,7 +1,7 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: []
-last_verified:
+last_verified: 2026-08-30
 frame_review: true
 ---
 
@@ -84,17 +84,43 @@ boot-time source).
    absent (unchanged `map.js` behavior — `body.consent` omitted, back-compat).
 
 **DoD:**
-- [ ] ACs 1–7 pass — a denied data-use purpose → MP `consent` DENIED at both mapping sites, beacon still
-      POSTs; granted → GRANTED; unset → omitted (back-compat). Green against targeted tests. _(Do NOT run
-      the full suite unguarded — the stale worktree's oracle/conformance tests hang it; run targeted files.)_
-- [ ] **No regression** — the ungated `mapToMp` behavior (no `ctx.consent` → no `body.consent`) is
-      byte-identical; the `ga4_mp_conformance` golden path (where reachable) + contract-stability stay green.
-- [ ] Reviews: compliance + craft + **arch** (a new `core/` consent seam + resolver + a data-flow threading
-      consent into `ctx` at both mapping sites) + reconciliation, recorded pass.
-- [ ] Deviation log + reconciliation sweep; `docs/refinement-todo.md` gets the mid-session-consent-update +
-      the Consent-Mode-`gtag`/TCF-driver + the alloy-wrapped-SDK-consent follow-ups; the Google-Consent-Mode
-      semantic detail verified against current Google docs (or the check noted); `docs/releases/mvp3.md` updated.
-- [ ] **No secrets committed** — no `api_secret`/`measurement_id`/live ids; synthetic consent vectors only.
+- [x] ACs 1–7 pass — a denied data-use purpose → MP `consent` DENIED (tested via `mapToMp` — the mechanism
+      both sites share — **and** the sync fast path `createCriticalDispatcher`), beacon still POSTs; granted
+      → GRANTED; unset → omitted (back-compat). _(Targeted: consent 6/6, ga4-consent 8/8, ga4-map 5/5,
+      egress-fastpath 6/6, core-boundary 1/1 — green.)_
+- [x] **No regression** — `map.js` is **untouched** (`git diff` empty — the `body.consent = ctx.consent`
+      hook already existed); the EDS adapter suite (143/143 incl. `eds-boot`'s exact-`ctx`-equality when no
+      consent) + contract-stability stay green.
+- [x] Reviews: compliance + craft + **arch** (a new `core/` consent seam + resolver + the pre-construction
+      `ctx` fold reaching both mapping sites) recorded pass (independent Opus review of the Sonnet diffs).
+- [x] Deviation log + reconciliation sweep; `docs/refinement-todo.md` got the mid-session-consent-update +
+      Consent-Mode-`gtag`/TCF-driver + alloy-wrapped-SDK-consent follow-ups + the Google-Consent-Mode
+      semantic-detail re-verify flag; `docs/releases/mvp3.md` updated.
+- [x] **No secrets committed** — no `api_secret`/`measurement_id`/live ids; synthetic consent vectors only.
+
+### Deviation log
+
+- **`map.js` untouched — the reshape hook pre-existed.** 017-01 is purely additive: `core/consent.js`
+  (vendor-neutral vector + `resolveConsent`), `connectors/ga4/consent.js` (`shapeMpConsent` — the MP shape,
+  reads the core resolver), and the pre-construction fold in `adapters/eds/index.js`. The `body.consent =
+  ctx.consent` hook (`map.js:74`) was already there.
+- **Pre-construction ordering honored (frame-critique).** The consent fold is computed BEFORE
+  `createAirlock({ ctx: ctxWithConsent })` (adjacent statements), so both the worker's init structured-clone
+  and the sync path's live `ctx` reference carry it. No post-construction `setConsent` handle.
+- **Pending data-use omitted, not fail-safe DENIED.** `shapeMpConsent` omits an unset data-use purpose (its
+  seal-hold semantics are 017-03's, not the reshape's) — a deliberate scope boundary, tested.
+- **Both-sites proof is pragmatic (no real worker).** The worker + sync sites share `mapToMp(event, ctx)`;
+  the reshape is proven at the `mapToMp` level (both sites' mechanism) + concretely at the sync site
+  (`createCriticalDispatcher` + a fetch spy). A real-worker E2E is the rig's job.
+
+### Reconciliation sweep
+
+- New `core/consent.js` (vendor-neutral, zero imports) + `connectors/ga4/consent.js` (connector→core only);
+  the adapter fold. No `core/ → rig/` or `core/ → connector/` import (boundary test green).
+- Reviews recorded: frame-critique + compliance + craft + arch — all pass.
+- `docs/refinement-todo.md`: mid-session-update, CMP `gtag`/TCF drivers, alloy consent, and the Google-doc
+  semantic re-verify tracked. `docs/releases/mvp3.md` reflects the 017-01 delivery.
+- No inbox items; the delegate-and-send posture + the deferrals are named, not hidden.
 
 **Anti-horizontal-phasing check:** after this slice, a host that denies a data-use purpose (`ad_user_data` /
 `ad_personalization`) sees the GA4 beacon carry `consent` DENIED at **both** mapping sites — the first

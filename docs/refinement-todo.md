@@ -187,3 +187,44 @@ path — mirror `mapBatch`'s per-descriptor try/catch (or route the critical map
 through the same guarded helper) in `core/egress.js`'s critical dispatcher.
 Related to OQ14 (this is the same containment guarantee at a second seam) and
 OQ10 (the egress model).
+
+## Spec 017-01 (data-use consent reshape + the consent machinery) follow-ups
+
+**Delivered (2026-08-30):** `core/consent.js` (vendor-neutral ADR-0007 taxonomy +
+`resolveConsent`) and `connectors/ga4/consent.js` (`shapeMpConsent`, the GA4
+data-use → MP `consent`-object shaping) are folded into `ctx` PRE-`createAirlock`
+in `adapters/eds/index.js`, so a denied `ad_user_data`/`ad_personalization`
+reaches the MP `consent` body field at BOTH mapping sites (the worker's
+`mapToMp` and the sync fast path's `core/egress.js`) — see
+[slice-01](specs/017-mvp3-purpose-vector-consent/slice-01-data-use-reshape.md).
+Named follow-ups from this slice, not attempted here:
+
+- **Mid-session consent update.** The 017-01 seam is boot-time/pre-construction
+  only (AC6): the worker's `ctx` is a frozen structured-clone snapshot taken at
+  `init`, so a consent change arriving mid-session cannot reach it via the
+  current `ctx` fold alone. Honoring it needs (a) a NEW worker message type —
+  `core/airlock.js` currently only speaks `init`/`events` — carrying a `ctx`
+  (or consent-delta) re-send, and (b) per-purpose replay/stop semantics (ADR-0007
+  Open questions: on grant, replay *pending*-held events per Q2's
+  flush-on-arrival; on revoke, stop future egress for that purpose —
+  already-sent cannot be unsent). A post-construction `setConsent(...)` handle
+  method alone is NOT sufficient — it would reach only the sync path's live
+  `ctx` reference, never the already-cloned worker `ctx` (017-01 frame-critique).
+- **Consent-Mode `gtag` / TCF `__tcfapi` seam drivers.** ADR-0007 names these as
+  drivers onto the SAME pre-construction consent-input seam `adapters/eds/index.js`
+  now folds through (a host-provided vector today); a `gtag('consent', …)`
+  listener or a `__tcfapi` bridge would source that same vector, not replace the
+  seam. Neither driver is built.
+- **Alloy / wrapped-SDK consent.** 017-01 shapes only the GA4 Measurement-Protocol
+  `consent` body field; Alloy's XDM body has its own vendor consent shape
+  (Adobe Experience Platform's `consent` array on the XDM event / `setConsent`
+  API), unaddressed by this slice's GA4-specific shaper. A wrapped-SDK consent
+  reshape is a separate follow-up, parallel to `connectors/ga4/consent.js` but
+  reading Alloy's own vendor shape.
+- **Google Consent Mode semantic detail.** ADR-0007's Assumptions flag that the
+  *transport split* (MP `consent` object vs gtag's gcs/gcd) is repo-grounded,
+  but the exact current semantics of `ad_user_data`/`ad_personalization` under
+  Google's Consent Mode v2 docs were not re-verified against Google's live
+  documentation as part of this slice — a wrong or aged semantic detail there is
+  a driver revision, not a structural bet, but should be checked before this
+  reshape is relied on for real compliance posture.
