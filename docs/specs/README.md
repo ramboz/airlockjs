@@ -61,6 +61,9 @@
 | [019-payload-governance](019-payload-governance/spec.md) | 019-01 — input-side payload denylist governance (all crossings, GA4 E2E) | **DONE** |  |
 | [020-alloy-xdm-governance](020-alloy-xdm-governance/spec.md) | 🔬 020-01 — alloy XDM-governance feasibility probe | **DONE** |  |
 | [020-alloy-xdm-governance](020-alloy-xdm-governance/spec.md) | 020-02 — implement alloy consent enforcement (seam drop + setConsent) + the optional payload strip | **DONE** |  |
+| [021-mvp4-hardening](021-mvp4-hardening/spec.md) | 021-01 — dispose() + idempotent-boot guard | DRAFT |  |
+| [021-mvp4-hardening](021-mvp4-hardening/spec.md) | 021-02 — egress transport pin (http-downgrade), grounding-first | DRAFT |  |
+| [021-mvp4-hardening](021-mvp4-hardening/spec.md) | 021-03 — narrow the alloy-chamber eslint-disable | DRAFT |  |
 
 ## Abandoned slices
 
