@@ -1,7 +1,7 @@
 ---
-status: Proposed
+status: Accepted
 dependencies: []
-last_verified:
+last_verified: 2026-08-31
 frame_review: true
 ---
 
@@ -9,7 +9,7 @@ frame_review: true
 
 ## Status
 
-Proposed (2026-08-31)
+Accepted (2026-08-31)
 
 ## Context
 
@@ -46,9 +46,11 @@ Enforce consent at **two** layers: (b) a **trusted seam-side egress drop** at `c
 `dispatchInterceptedFetch` (airlock's main-thread code, before the real dispatch), and (a) drive alloy's
 `setConsent` in the chamber's alloy-boot glue as an idiomatic delegate.
 - **Pros:** The **seam** is the real enforcement — it runs on the trusted main thread against the host-supplied
-  vector, so a compromised chamber that forges `collect:y` is **still held** (machine-verified against a fake
-  chamber with no `setConsent`). Reuses the existing `core/consent.js` `egressVerdict` (GA4-parity) — one
-  vendor-neutral seal primitive. The `setConsent` delegate is genuinely complementary: correct vendor
+  vector, so a chamber that **ignores or forges its own `setConsent` gate is still held at the seam**
+  (*delegate-independence* — machine-verified against a fake chamber with no `setConsent`) for any egress that
+  **crosses** the intercepted-fetch seam. (This is not a claim that a *fully* compromised chamber is held —
+  see the Kill criteria's dynamic-`import()` bound.) Reuses the existing `core/consent.js` `egressVerdict`
+  (GA4-parity) — one vendor-neutral seal primitive. The `setConsent` delegate is genuinely complementary: correct vendor
   behaviour + the consent cookie propagates to Edge (so other/future requests are consent-correct). Defense-
   in-depth: seam-enforce (trusted) + delegate (idiomatic).
 - **Cons:** Two layers to keep coherent (mitigated: a fail-loud warn on a consent-vector-without-`egressPurposes`
@@ -96,9 +98,15 @@ Accepted historical records; this ADR updates only their *alloy* dispositions (a
 ## Consequences
 
 **Becomes easier:**
-- The security thesis is complete for **both** archetypes: a compromised alloy chamber cannot exfiltrate to a
-  foreign sink (confinement + ceiling), re-route its tenant (config-integrity), **or egress under denied
-  consent** (this ADR's seam-drop) — the trusted seam is the single chokepoint.
+- For an **honest-but-untrusted** chamber (one whose egress crosses the mediated intercepted-fetch seam), the
+  security thesis is complete for **both** archetypes: it cannot exfiltrate to a foreign sink (confinement +
+  ceiling), re-route its tenant (config-integrity), **or egress under denied consent** (this ADR's seam-drop)
+  — the trusted seam is the single chokepoint **for seam-crossing egress**. This is the disciplined bound its
+  upstream sources already hold to (spec 016: "neither is claimed closed"; ADR-0012: "defense-in-depth, not a
+  guarantee"). A **fully compromised** chamber retains the disclosed dynamic-`import()` escape hatch (016 /
+  012-01 AC5) that bypasses **all** seam controls — bounded only by a host-deployed worker `connect-src` CSP
+  airlock does not ship (see Kill criteria); so the claim is "held at the seam **given** egress confinement",
+  **not unconditional**.
 - One vendor-neutral seal primitive (`egressVerdict`) now governs GA4 *and* alloy egress; a future wrapped-SDK
   connector reuses the same seam-drop + a vendor `shapeXConsent` delegate.
 
@@ -116,7 +124,8 @@ Accepted historical records; this ADR updates only their *alloy* dispositions (a
 
 - **The seam is the trusted enforcement point.** `dispatchInterceptedFetch` runs on the main thread against a
   host-supplied `consent` vector; the chamber only posts `intercepted-fetch`. **Grounded** (read + a
-  fake-chamber-no-`setConsent` test proves the drop is chamber-independent).
+  fake-chamber-no-`setConsent` test proves the drop is **delegate-independent** — it holds regardless of the
+  in-chamber `setConsent`, for egress that crosses the seam; NOT a claim that a seam-bypassing chamber is held).
 - **`egressVerdict(…, {strict:true})` drops on denied AND pending.** `core/consent.js`: strict → any
   un-granted → drop. **Grounded** (read + tests).
 - **alloy consent = the `setConsent` command + `privacy/set-consent` cookie, not a body field.** **Grounded**
