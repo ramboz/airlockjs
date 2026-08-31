@@ -59,6 +59,7 @@
 | [018-reservespace-security](018-reservespace-security/spec.md) | 018-01 — the active-markup sanitizer boundary | **DONE** |  |
 | [018-reservespace-security](018-reservespace-security/spec.md) | 018-02 — reserveSpace hardening (overflow-clip + shared accessor + contract loudness) | **DONE** |  |
 | [019-payload-governance](019-payload-governance/spec.md) | 019-01 — input-side payload denylist governance (all crossings, GA4 E2E) | **DONE** |  |
+| [020-alloy-xdm-governance](020-alloy-xdm-governance/spec.md) | 🔬 020-01 — alloy XDM-governance feasibility probe | DRAFT |  |
 
 ## Abandoned slices
 
