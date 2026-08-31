@@ -16,18 +16,42 @@
  * `{ event, ...params }` descriptor), so a Target exposure and a GA4 event ride the
  * exact same push→ring→beacon plumbing. Pure + null-safe, mirroring exposure.js.
  */
+import { contentOf } from "../../connectors/alloy/decisions.js";
 
 /** The custom GA4-style event name for a Target proposition exposure. Distinct
  *  from exposure.js's `experiment_impression` — a proposition is a different
  *  decision source (Target/Offers) with its own identity params. */
 export const PROPOSITION_EXPOSURE_EVENT = "proposition_display";
 
-/** Unwrap a Decision (`{ scope, content }`) to its proposition, or pass a bare
- *  proposition through. */
+/**
+ * Unwrap a Decision (`{ scope, content }`) to its proposition, or pass a bare
+ * proposition through. Delegates the actual `.content` unwrap to the SHARED
+ * `contentOf` accessor (`connectors/alloy/decisions.js`, 018-02 AC2 - one
+ * accessor, no third private copy), but keeps its OWN extra gate on top: only
+ * unwrap when the candidate content actually carries a proposition IDENTITY
+ * (`scope`/`id`).
+ *
+ * This gate is kept for STRICT byte-identity with the pre-018-02 behavior, not
+ * because it changes any real input (018-02 review correction): on every
+ * contract shape the two predicates AGREE. A Decision `{ scope, content }`
+ * whose `content` lacks `scope`/`id` (e.g. `{ items: [...] }`) yields `null`
+ * BOTH ways - `propositionOf` returns the outer `x` (no `id`) and plain
+ * `contentOf` returns the inner content (no `scope`), and `mapPropositionToExposure`
+ * needs both, so either path -> `null`. The ONLY input where they diverge is a
+ * non-contract CHIMERA `{ scope, id, content: { ...no scope/id } }` (outer
+ * carries both identity fields, inner carries neither) - neither a Decision
+ * (`{scope,content}`, no top-level `id`) nor a proposition (`{id,scope,items}`,
+ * no `.content`), so nothing in the airlock produces it. There the gate returns
+ * the outer wrapper (-> an exposure) while plain `contentOf` returns the
+ * identity-less inner (-> `null`). `htmlOfDecision` (the other `contentOf`
+ * consumer) needs no such gate. Preserving the gate is the byte-identical call;
+ * the difference is prose-only + untested (a non-contract shape) - see the
+ * 018-02 deviation log.
+ */
 function propositionOf(x) {
   if (x && typeof x === "object" && x.content && typeof x.content === "object"
       && ("scope" in x.content || "id" in x.content)) {
-    return x.content;
+    return contentOf(x); // shared unwrap - equals x.content here (guard above already confirmed it)
   }
   return x;
 }

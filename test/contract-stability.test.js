@@ -169,6 +169,62 @@ describe("contract stability guard (spec 012-01 AC6 — additive-only)", () => {
     });
   });
 
+  describe("contracts/capability.d.ts — 018-02 AC3: DomHandle + `decisions` shapes pinned; decisions.fetch loud-not-built", () => {
+    // 018-02 tracked-debt item (f), refinement-todo.md: `decisions.fetch` was a
+    // silent no-op (`async () => []`), ambiguous between "no decisions this
+    // cycle" and "not built" — unlike insertAfterInteraction (dom.js), which
+    // rejects loudly. This block pins the DomHandle shape (not previously
+    // guarded at all) and re-affirms the decisions.fetch/deliver .d.ts
+    // signatures pinned above, then asserts the ACTUAL granted-capability
+    // construction (connectors/alloy/alloy-chamber.worker.js, the only site
+    // that builds it) makes `fetch` loud.
+    it("pins the DomHandle interface — id, release(), and the optional fill(content) (previously unguarded)", () => {
+      expect(capabilityDts).toContain("export interface DomHandle {");
+      expect(capabilityDts).toContain("readonly id: string;");
+      expect(capabilityDts).toContain("release(): void;");
+      expect(capabilityDts).toContain("fill?(content: string): void;");
+    });
+
+    it("re-affirms the decisions shape's fetch/deliver .d.ts signatures (already pinned above by 012-04) stay in place", () => {
+      expect(capabilityDts).toContain("fetch(scopes: readonly string[]): Promise<readonly Decision[]>;");
+      expect(capabilityDts).toContain("deliver(decisions: readonly Decision[]): void;");
+    });
+
+    it("the granted decisions.fetch (alloy-chamber.worker.js) is LOUD-not-built — no longer a silent `async () => []`", () => {
+      const chamberSrc = readFileSync(
+        new URL("../connectors/alloy/alloy-chamber.worker.js", import.meta.url),
+        "utf8",
+      );
+      // Bound the search to the granted `decisions` capability object literal
+      // (buildCaps), not the whole file — a precise pin, not a loose grep.
+      const start = chamberSrc.indexOf("decisions: {");
+      expect(start).toBeGreaterThan(-1);
+      const decisionsBlock = chamberSrc.slice(start, start + 800);
+
+      expect(decisionsBlock).not.toMatch(/fetch:\s*async\s*\(\)\s*=>\s*\[\]/);
+      expect(decisionsBlock).toMatch(/fetch:\s*async\s*\(\)\s*=>\s*{[\s\S]*?throw new Error\(/);
+      expect(decisionsBlock).toMatch(/declared-not-built/);
+      // deliver stays BUILT (the push channel alloy actually uses) — never
+      // collaterally hollowed out while making fetch loud.
+      expect(decisionsBlock).toMatch(/deliver:\s*\(decisions\)\s*=>\s*{\s*post\(\s*["']decisions["']/);
+    });
+  });
+
+  describe("contracts/capability.d.ts — 018-02 additive `ReserveSpaceSpec.grow` opt-out (AC1)", () => {
+    // AC1: the reserved box clips an over-tall fill by default (a CWV-safety
+    // default); `grow: true` opts a specific reserve OUT of the clip. Additive
+    // field on the pinned ReserveSpaceSpec — selector/minHeight stay
+    // byte-identical.
+    it("pins the new grow? opt-out field is PRESENT on ReserveSpaceSpec (additive guard)", () => {
+      expect(capabilityDts).toContain("readonly grow?: boolean;");
+    });
+
+    it("the additive grow field did NOT disturb the pinned selector/minHeight signatures (still byte-identical)", () => {
+      expect(capabilityDts).toContain("readonly selector: string;");
+      expect(capabilityDts).toContain("readonly minHeight: number;");
+    });
+  });
+
   describe("additive-only: AC3's new sync surface does not break this guard", () => {
     it("the sync cookie surface added by AC3 is present alongside the pinned async get/set, not in place of them", () => {
       // This guard's job is to fail on CHANGE/REMOVAL of a pinned signature,

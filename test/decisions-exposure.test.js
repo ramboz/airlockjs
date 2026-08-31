@@ -6,6 +6,9 @@
 // is a NEW mapping (a `propositionDisplay`-style event), reusing only the GENERIC
 // `handle.push` → ring → beacon capture runtime. Deduped by proposition identity.
 import { describe, it, expect, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { join, dirname } from "node:path";
 import {
   PROPOSITION_EXPOSURE_EVENT,
   mapPropositionToExposure,
@@ -100,5 +103,23 @@ describe("createPropositionExposureReporter — push through the GENERIC capture
     const reporter = createPropositionExposureReporter(handle, { seen: new Set() });
     reporter.report(decision({ id: undefined }));
     expect(handle.push).not.toHaveBeenCalled();
+  });
+});
+
+// 018-02 AC2: this module's private propositionOf() used to re-narrow
+// Decision.content on its own (a second, near-duplicate of
+// connectors/alloy/decisions.js's htmlOfDecision unwrap). Rule-of-three: one
+// shared base accessor (`contentOf`), imported here, with this module's own
+// extra scope/id predicate layered on top locally (the two sites' predicates
+// are NOT identical — see the 018-02 deviation log) — "no third private copy"
+// means no independent re-implementation of the base unwrap, not that the
+// extra gate must vanish too.
+describe("shared proposition/content accessor — no third private copy (018-02 AC2)", () => {
+  it("adapters/eds/decisions-exposure.js imports the shared contentOf accessor from connectors/alloy/decisions.js", () => {
+    const src = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "..", "adapters", "eds", "decisions-exposure.js"),
+      "utf8",
+    );
+    expect(src).toMatch(/import\s*{\s*contentOf\s*}\s*from\s*["'][^"']*connectors\/alloy\/decisions\.js["']/);
   });
 });

@@ -51,6 +51,32 @@ export function extractDecisions(result, { scope = VIEW_SCOPE } = {}) {
 }
 
 /**
+ * Unwrap a Decision (`{ scope, content }`) to its `content` object, or pass a
+ * bare proposition (or any other non-Decision value) through unchanged.
+ *
+ * SHARED (018-02 AC2 — a rule-of-three extraction) with
+ * `adapters/eds/decisions-exposure.js`'s `propositionOf`, which imports this
+ * accessor but layers its OWN extra scope/id predicate on top rather than
+ * delegating to it wholesale: this accessor unwraps `.content` whenever it is
+ * an object, with no proposition-IDENTITY check. `htmlOfDecision` below can
+ * tolerate that (a content object with no items just yields no html match,
+ * same as no content at all), but `decisions-exposure.js`'s exposure mapping
+ * cannot — it needs a `scope`+`id` to report anything, so unwrapping an
+ * ID-less `.content` there would silently paper over a malformed proposition
+ * instead of correctly falling through to `null`. So the two sites are NOT
+ * byte-identical in their gating, and forcing full unification would change
+ * `decisions-exposure.js`'s behavior on that edge case (see the 018-02
+ * deviation log). This is not a third private copy, though: the base unwrap
+ * lives here once; only the extra gate is local to the one site that needs it.
+ *
+ * @param {{ content?: unknown } | unknown} x a Decision or a bare proposition.
+ * @returns {unknown} `x.content` when it is an object, else `x` itself.
+ */
+export function contentOf(x) {
+  return x && x.content && typeof x.content === "object" ? x.content : x;
+}
+
+/**
  * The renderable HTML a decision fills its reserved box with — the first
  * html-content-item's `data.content` string, or `null` when the proposition
  * carries no HTML item (e.g. a JSON offer, a redirect). Null-safe, never throws.
@@ -60,9 +86,7 @@ export function extractDecisions(result, { scope = VIEW_SCOPE } = {}) {
  * @returns {string | null}
  */
 export function htmlOfDecision(decision) {
-  const proposition = decision && decision.content && typeof decision.content === "object"
-    ? decision.content
-    : decision;
+  const proposition = contentOf(decision);
   const items = proposition && Array.isArray(proposition.items) ? proposition.items : [];
   for (const item of items) {
     if (!item || typeof item !== "object") continue;

@@ -57,7 +57,7 @@
 | [017-mvp3-purpose-vector-consent](017-mvp3-purpose-vector-consent/spec.md) | 017-02 — storage consent deny (cookie capability + ephemeral id) | **DONE** |  |
 | [017-mvp3-purpose-vector-consent](017-mvp3-purpose-vector-consent/spec.md) | 017-03 — seal hold-pending + strict-drop | **DONE** |  |
 | [018-reservespace-security](018-reservespace-security/spec.md) | 018-01 — the active-markup sanitizer boundary | **DONE** |  |
-| [018-reservespace-security](018-reservespace-security/spec.md) | 018-02 — reserveSpace hardening (overflow-clip + shared accessor + contract loudness) | DRAFT |  |
+| [018-reservespace-security](018-reservespace-security/spec.md) | 018-02 — reserveSpace hardening (overflow-clip + shared accessor + contract loudness) | **DONE** |  |
 
 ## Abandoned slices
 
@@ -72,7 +72,7 @@
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
 - **0** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **50** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **51** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **8** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review

@@ -187,4 +187,55 @@ describe("createDomCapability.reserveSpace — the mediated CWV-safe injection (
     const caps = createDomCapability(fakeDoc({ "#hero": fakeEl() }));
     await expect(caps.insertAfterInteraction({ selector: "#hero", html: "x", position: "after" })).rejects.toThrow(/declared-not-built|not built/i);
   });
+
+  // 018-02 AC1: the reserved box CLIPS an over-tall fill instead of growing (a
+  // CWV-safety default). `min-height` alone is a FLOOR, not a ceiling — an
+  // `auto`-height box still grows past it for taller content regardless of
+  // `overflow` — so the clip needs BOTH a `max-height` ceiling pinned to the
+  // same reserve AND `overflow: clip` to hide what does not fit. This is a
+  // style-property proof over the element shim (mirrors how minHeight/
+  // visibility are proven above); the real getBoundingClientRect geometry
+  // proof stays the browser rig's job (rig/alloy-decisions.mjs), per this
+  // file's header note.
+  it("CLIPS by default: reserve carries a max-height ceiling + overflow:clip alongside minHeight, so an over-tall fill cannot grow the box (018-02 AC1)", async () => {
+    const hero = fakeEl();
+    const caps = createDomCapability(fakeDoc({ "#hero": hero }));
+    await caps.reserveSpace({ selector: "#hero", minHeight: 300 });
+    expect(hero.style.minHeight).toBe("300px");
+    expect(hero.style.maxHeight).toBe("300px");
+    expect(hero.style.overflow).toBe("clip");
+  });
+
+  it("spec.grow === true opts OUT of the clip — a host that legitimately wants a growable box is not silently truncated (018-02 AC1)", async () => {
+    const hero = fakeEl();
+    const caps = createDomCapability(fakeDoc({ "#hero": hero }));
+    await caps.reserveSpace({ selector: "#hero", minHeight: 300, grow: true });
+    expect(hero.style.minHeight).toBe("300px");
+    expect(hero.style.maxHeight).toBeUndefined();
+    expect(hero.style.overflow).toBeUndefined();
+  });
+
+  // 018-02 review (both compliance + craft, blocker): release() must undo EVERY
+  // style reserve set — including the clip default's max-height + overflow — or
+  // an "un-reserved" box stays permanently height-capped + clipping later
+  // natural content taller than the old reserve (an asymmetry the clip default
+  // introduced; release() was previously untested).
+  it("release() clears the clip cap (maxHeight + overflow) too, not just minHeight — the un-reserved box is not left height-capped (018-02 AC4)", async () => {
+    const hero = fakeEl();
+    const caps = createDomCapability(fakeDoc({ "#hero": hero }));
+    const handle = await caps.reserveSpace({ selector: "#hero", minHeight: 300 });
+    // reserve set all three (clip mode) + the reserved marker
+    expect(hero.style.minHeight).toBe("300px");
+    expect(hero.style.maxHeight).toBe("300px");
+    expect(hero.style.overflow).toBe("clip");
+    expect(hero.getAttribute("data-airlock-reserved")).toBeTruthy();
+
+    handle.release();
+    // release undoes ALL of them (no lingering height cap / clip)
+    expect(hero.style.minHeight).toBe("");
+    expect(hero.style.maxHeight).toBe("");
+    expect(hero.style.overflow).toBe("");
+    expect(hero.getAttribute("data-airlock-reserved")).toBeNull();
+    expect(hero.style.visibility).toBe("visible"); // released → revealed
+  });
 });

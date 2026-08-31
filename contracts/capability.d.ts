@@ -168,6 +168,16 @@ export interface ReserveSpaceSpec {
   readonly selector: string;
   /** Reserve height up front so the later insert causes no layout shift. */
   readonly minHeight: number;
+  /**
+   * ADDED 018-02 (AC1): opt OUT of the default overflow-clip. By default the
+   * reserved box's height is capped at `minHeight` (a `max-height` ceiling +
+   * `overflow: clip`) so a decision taller than the reserve CLIPS instead of
+   * growing the box and reflowing surrounding content — the CWV-safety
+   * default (no layout shift by construction). Set `grow: true` when a host
+   * legitimately wants a growable box and accepts the reflow risk for that
+   * specific reserve. Default (omitted or any non-`true` value): clip.
+   */
+  readonly grow?: boolean;
 }
 export interface InsertSpec {
   readonly selector: string;

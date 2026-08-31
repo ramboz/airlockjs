@@ -113,7 +113,14 @@ function buildCaps(seedCookie) {
     // never called there and no "decisions" message is posted.
     decisions: {
       deliver: (decisions) => { post("decisions", { decisions }); },
-      fetch: async () => [],
+      // 018-02 AC3 (refinement-todo.md item f): declared-not-built made LOUD —
+      // mirrors adapters/eds/dom.js's insertAfterInteraction. alloy PUSHES
+      // decisions via `deliver` on the sendEvent response; there is no pull
+      // consumer, so a call rejects rather than silently resolving [], which
+      // was ambiguous between "no decisions this cycle" and "not built".
+      fetch: async () => {
+        throw new Error("decisions.fetch: declared-not-built — alloy pushes via deliver; no pull consumer");
+      },
     },
   };
   summary.syncSurfacePresent = typeof caps.cookies.sync.readSync === "function"

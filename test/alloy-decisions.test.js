@@ -7,7 +7,7 @@
 // null-safe so the connector can call it in the chamber without a DOM — the
 // decision crosses the boundary as DATA, never applied in the worker (AC2).
 import { describe, it, expect } from "vitest";
-import { extractDecisions, htmlOfDecision, VIEW_SCOPE } from "../connectors/alloy/decisions.js";
+import { extractDecisions, htmlOfDecision, contentOf, VIEW_SCOPE } from "../connectors/alloy/decisions.js";
 
 // A grounded alloy sendEvent result for renderDecisions:false: `propositions` is
 // an array of Personalization propositions (id/scope/scopeDetails/items), the
@@ -93,5 +93,35 @@ describe("htmlOfDecision — the renderable HTML the host fills the box with", (
     expect(htmlOfDecision(undefined)).toBeNull();
     expect(htmlOfDecision({})).toBeNull();
     expect(htmlOfDecision({ content: {} })).toBeNull();
+  });
+});
+
+// 018-02 AC2: `contentOf` is the SHARED Decision/proposition content-unwrap
+// accessor, extracted out of htmlOfDecision's former inline ternary so
+// `adapters/eds/decisions-exposure.js` can use the same base unwrap instead of
+// a third private re-narrowing (rule-of-three). `htmlOfDecision` above must
+// keep behaving byte-identically through this refactor — the tests above stay
+// unchanged and green; this block additionally pins `contentOf` itself.
+describe("contentOf — shared Decision/proposition content-unwrap accessor (018-02 AC2)", () => {
+  it("unwraps a Decision's object content", () => {
+    expect(contentOf({ content: { a: 1 } })).toEqual({ a: 1 });
+  });
+
+  it("passes a bare (non-Decision) value through unchanged", () => {
+    const bare = { items: [] };
+    expect(contentOf(bare)).toBe(bare);
+  });
+
+  it("is null-safe on garbage input (never throws)", () => {
+    expect(() => contentOf(undefined)).not.toThrow();
+    expect(contentOf(undefined)).toBeUndefined();
+    expect(contentOf(null)).toBeNull();
+    expect(contentOf(42)).toBe(42);
+  });
+
+  it("is what htmlOfDecision uses internally to unwrap a Decision wrapper (same reference, not a copy)", () => {
+    const [decision] = extractDecisions(resultWith(viewProposition()));
+    expect(contentOf(decision)).toBe(decision.content);
+    expect(htmlOfDecision(decision)).toBe(HTML);
   });
 });

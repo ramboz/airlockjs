@@ -188,13 +188,26 @@ export function createDomCapability(
 
     // --- reserve the layout box UP FRONT (before paint): min-height holds the
     //     space so a later fill of content <= minHeight reflows nothing around it.
-    //     HONEST BOUNDARY (012-03 arch review): "layout-stable by construction" is
-    //     CONDITIONAL on the host sizing `minHeight >= decision height` — an over-tall
-    //     fill grows the box and reflows surrounding content (a host-config error; the
-    //     rig proves only the content-fits case). Production-hardening option (tracked):
-    //     overflow-clip the box so an over-tall fill clips rather than reflows.
+    //     CLIP BY DEFAULT (018-02 AC1 — supersedes the 012-03 "honest boundary"
+    //     this comment used to document): "layout-stable by construction" no
+    //     longer depends on the host sizing `minHeight >= decision height`. An
+    //     over-tall fill now CLIPS instead of growing the box and reflowing
+    //     surrounding content — the CLIP enforces layout-stability, not host
+    //     sizing discipline. `spec.grow === true` opts a specific reserve OUT
+    //     of the clip (a host that legitimately wants a growable box and
+    //     accepts the reflow risk for that reserve).
     const style = target.style || (target.style = {});
     style.minHeight = n.minHeight + "px";
+    if (spec.grow !== true) {
+      // `min-height` alone is a FLOOR, not a ceiling — an `auto`-height box
+      // still grows past it for taller content regardless of `overflow`, so
+      // `overflow` alone (with no height ceiling) would clip nothing. Pinning
+      // `max-height` to the SAME reserve caps growth; `overflow: clip` then
+      // hides whatever does not fit, so the box's occupied geometry never
+      // changes between reserve-time and fill-time.
+      style.maxHeight = n.minHeight + "px";
+      style.overflow = "clip";
+    }
     const id = "reserve-" + (++seq) + "-" + Math.random().toString(36).slice(2, 8);
     target.setAttribute(RESERVED_ATTR, id);
     const reservedAt = now();
@@ -224,10 +237,19 @@ export function createDomCapability(
         target.setAttribute(FILLED_ATTR, "1");
         reveal();
       },
-      /** Undo the reservation (release the min-height + markers, reveal). */
+      /** Undo the reservation (release the min-height + the clip cap + markers,
+       *  reveal). Symmetric with reserve: clears EVERY style reserve set —
+       *  `minHeight` AND the `maxHeight`/`overflow:clip` the clip default adds
+       *  (018-02 review) — so an un-reserved box is not left permanently
+       *  height-capped + clipping later natural content. Blanking a property
+       *  reserve never set (grow mode) is a harmless no-op. */
       release() {
         target.removeAttribute(RESERVED_ATTR);
-        if (target.style) target.style.minHeight = "";
+        if (target.style) {
+          target.style.minHeight = "";
+          target.style.maxHeight = "";
+          target.style.overflow = "";
+        }
         reveal();
       },
     });
