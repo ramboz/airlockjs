@@ -1,9 +1,10 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 kind: spike
 dependencies: []
 last_verified: 2026-08-31
 frame_review: true
+claimed_by: main
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about
