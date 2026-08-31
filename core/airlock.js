@@ -24,6 +24,7 @@
  */
 import { createCriticalDispatcher } from "./egress.js";
 import { originPath, checkEndpointCeiling } from "./endpoint-ceiling.js";
+import { egressVerdict } from "./consent.js";
 
 // Default diagnostics seam: console-backed, severity-differentiated (warn for a
 // per-descriptor drop, error for a chamber-level crash). Callers may inject
@@ -34,7 +35,17 @@ function consoleDiagnostic(record) {
   fn("airlock:", record);
 }
 
-export function createAirlock({ trackers, workFactor, endpoints, ctx, unloadCritical, onDiagnostic }) {
+export function createAirlock({
+  trackers,
+  workFactor,
+  endpoints,
+  ctx,
+  unloadCritical,
+  onDiagnostic,
+  consent = null,
+  egressPurposes = [],
+  consentStrict = false,
+}) {
   const diagnose = typeof onDiagnostic === "function" ? onDiagnostic : consoleDiagnostic;
   // 016-01 AC3/AC5: the endpoint ceiling, reduced ONCE from the host's
   // construction-time declared `endpoints` — never derived from a chamber's
@@ -43,6 +54,18 @@ export function createAirlock({ trackers, workFactor, endpoints, ctx, unloadCrit
   // unaffected (back-compat); a connector with declared endpoints (GA4,
   // always) gets the ceiling enforced on every dispatch.
   const ceiling = (endpoints || []).map(originPath).filter(Boolean);
+  // 017-03 AC1/AC2 (ADR-0007 point ③ — the seal): `consentVector` is a
+  // MUTABLE main-thread copy seeded from the boot-time `consent` opt — the
+  // returned handle's `setConsent` updates it (this slice's OWN
+  // consent-update path; 017-01's seam is boot-time-only, see `setConsent`'s
+  // doc comment below). `heldBeacons` retains the already-mapped `{ url,
+  // body }` ready requests a pending governing purpose holds — flushing them
+  // is a pure main-thread re-`fetch`, never a re-map/worker round-trip.
+  // Gated below on `egressPurposes.length`, exactly like the ceiling's own
+  // `ceiling.length` gate: a caller with no declared egress purpose is
+  // unaffected (back-compat).
+  let consentVector = consent || {};
+  const heldBeacons = [];
   const log = [];
   // Null-prototype: event names are object keys, so a pathological name like
   // "__proto__" must land as an own key, not rewire the projection's prototype.
@@ -58,6 +81,29 @@ export function createAirlock({ trackers, workFactor, endpoints, ctx, unloadCrit
   const criticalTypes = new Set(unloadCritical || []);
   const critical = createCriticalDispatcher({ ctx, endpoints, trackers });
 
+  // 017-03 AC4 (ADR-0007 point ③, both-sites parity): the sync/unload path has
+  // NO "later" to flush a held beacon to — the page is tearing down, so a hold
+  // here could never be released. Unlike the async seal above (hold + flush),
+  // an un-granted governing purpose on this path is DROPPED outright, never
+  // held. Gated on `egressPurposes.length` exactly like the async gate
+  // (back-compat: a caller with no declared egress purpose is unaffected).
+  const criticalDispatchGated = (d) => {
+    if (egressPurposes.length) {
+      const v = egressVerdict(consentVector, egressPurposes, { strict: consentStrict });
+      if (v !== "send") {
+        diagnose({
+          level: "warn",
+          kind: "consent",
+          disposition: "dropped",
+          purpose: egressPurposes.join(","),
+          reason: "sync/unload path — un-granted purpose dropped (no hold at teardown)",
+        });
+        return;
+      }
+    }
+    critical.dispatch(d);
+  };
+
   const worker = new Worker(new URL("./chamber.worker.js", import.meta.url), { type: "module" });
   worker.postMessage({ type: "init", trackers, workFactor, endpoints, ctx });
 
@@ -68,6 +114,36 @@ export function createAirlock({ trackers, workFactor, endpoints, ctx, unloadCrit
     const ready = data && data.ready;
     if (ready) {
       for (const r of ready) {
+        // 017-03 AC1/AC3/AC5 (ADR-0007 point ③): the consent gate runs BEFORE
+        // the 016-01 endpoint ceiling — a held/dropped beacon must never reach
+        // the ceiling/fetch at all. Gated on `egressPurposes.length`, so a
+        // caller with no declared egress purpose (back-compat) skips this
+        // block entirely — byte-identical to pre-017-03 behaviour.
+        if (egressPurposes.length) {
+          const v = egressVerdict(consentVector, egressPurposes, { strict: consentStrict });
+          if (v === "drop") {
+            diagnose({
+              level: "warn",
+              kind: "consent",
+              disposition: "dropped",
+              purpose: egressPurposes.join(","),
+              reason: "strict regime — un-granted purpose dropped",
+            });
+            continue;
+          }
+          if (v === "hold") {
+            heldBeacons.push({ url: r.url, body: r.body });
+            diagnose({
+              level: "warn",
+              kind: "consent",
+              disposition: "held",
+              purpose: egressPurposes.join(","),
+              reason: "purpose pending — held at the seal",
+            });
+            continue;
+          }
+          // v === "send" -> fall through to the 016-01 ceiling check + fetch (unchanged)
+        }
         // 016-01 AC3/AC4: fail-closed endpoint ceiling — before dispatching,
         // hold any destination outside the connector's DECLARED endpoints
         // (origin+pathname; ADR-0006's declared-as-ceiling law). An
@@ -133,7 +209,7 @@ export function createAirlock({ trackers, workFactor, endpoints, ctx, unloadCrit
     remaining.sort(
       (a, b) => (criticalTypes.has(b.type) ? 1 : 0) - (criticalTypes.has(a.type) ? 1 : 0),
     );
-    for (const d of remaining) critical.dispatch({ type: d.type, params: d.params });
+    for (const d of remaining) criticalDispatchGated({ type: d.type, params: d.params });
   };
   if (typeof addEventListener === "function") {
     addEventListener("visibilitychange", () => {
@@ -181,7 +257,41 @@ export function createAirlock({ trackers, workFactor, endpoints, ctx, unloadCrit
         console.warn("airlock: pushCritical() dropped — missing/empty `event` name", evt);
         return;
       }
-      critical.dispatch({ type, params });
+      criticalDispatchGated({ type, params });
+    },
+    /**
+     * 017-03 AC2 (ADR-0007 point ③ — THIS slice's own main-thread
+     * consent-update path; NOT 017-01's deferred worker `ctx` re-send, which
+     * governs only the mapper reshape ① and stays deferred). Merges `vector`
+     * into the mutable main-thread consent state. On a pending→granted edge
+     * for a HELD egress purpose, the buffered beacons are FLUSHED — a pure
+     * main-thread re-`fetch(url, body)` (they are already mapped; no worker,
+     * no re-map), so a flushed beacon still carries its BOOT-TIME mapper
+     * reshape (a named residual — docs/refinement-todo.md). A still-pending
+     * purpose's beacons stay held.
+     * @param {Record<string, string>} vector a partial consent-vector update
+     *   (core/consent.js's shape), merged over the existing state.
+     */
+    setConsent(vector) {
+      consentVector = { ...consentVector, ...(vector || {}) };
+      if (
+        egressPurposes.length &&
+        heldBeacons.length &&
+        egressVerdict(consentVector, egressPurposes, { strict: consentStrict }) === "send"
+      ) {
+        const flushing = heldBeacons.splice(0, heldBeacons.length);
+        for (const b of flushing) {
+          fetch(b.url, { method: "POST", body: b.body, keepalive: true })
+            .then(() => { dispatched++; }, () => { dispatched++; });
+          diagnose({
+            level: "warn",
+            kind: "consent",
+            disposition: "flushed",
+            purpose: egressPurposes.join(","),
+            reason: "purpose granted — held beacon flushed",
+          });
+        }
+      }
     },
     /**
      * Synchronous read (AD-3): no argument → the whole projection; a dotted path

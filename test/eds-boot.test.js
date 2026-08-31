@@ -101,3 +101,59 @@ describe("bootEdsAnalytics ctx sourcing (AC4 — minimal cookie-sourced snapshot
     expect(initMsg().ctx).toEqual(provided);
   });
 });
+
+// Spec 017-03: the seal's `egressPurposes` gate is wired conditionally on
+// `opts.consent` being provided at all — mirroring the SAME `consent ? … : …`
+// idiom 017-01 (`shapedConsent`) and 017-02 (`storageGranted`) already use.
+// This is deliberate, NOT the literal "pass egressPurposes unconditionally"
+// reading: `core/consent.js` fails an ABSENT vector to "pending" exactly like
+// an EXPLICIT-but-unresolved one (there is no way to tell "no CMP wired" from
+// "CMP wired, not yet resolved" at the resolver), and nothing would ever call
+// `setConsent` to release a hold on a page that never wires consent at all —
+// so gating unconditionally would silently HOLD EVERY beacon forever on any
+// caller that never wires a consent vector (every current rig/testbed boot).
+// These tests pin BOTH halves of that back-compat contract.
+const collectUrl = "https://www.google-analytics.com/mp/collect"; // DEFAULT_ENDPOINTS[0]
+const readyOne = (body) => ({ data: { ready: [{ url: collectUrl, body }], dropped: [] } });
+
+describe("bootEdsAnalytics consent wiring (spec 017-03 — the seal's egressPurposes gate)", () => {
+  it("no `consent` opt at all -> the gate stays OFF: a ready beacon dispatches normally (back-compat)", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" } });
+    FakeWorker.last.onmessage(readyOne("{}"));
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("a wired `consent` vector with analytics_storage unresolved HOLDS a ready beacon (the gate engages once a host wires consent at all)", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" }, consent: {} });
+    FakeWorker.last.onmessage(readyOne("{}"));
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      "airlock:",
+      expect.objectContaining({ kind: "consent", disposition: "held", purpose: "analytics_storage" }),
+    );
+    warnSpy.mockRestore();
+  });
+
+  it("handle.setConsent grants analytics_storage mid-session and flushes the held beacon", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+
+    const handle = await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" }, consent: {} });
+    FakeWorker.last.onmessage(readyOne('{"x":1}'));
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    handle.setConsent({ analytics_storage: "granted" });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(collectUrl, expect.objectContaining({ body: '{"x":1}' }));
+  });
+});

@@ -65,3 +65,57 @@ export function resolveConsent(vector, purpose) {
   if (normalized === "denied") return "denied";
   return "pending";
 }
+
+/**
+ * The THIRD ADR-0007 enforcement point: the SEAL (spec 017-03, point ③).
+ * `resolveConsent` above is a per-purpose lookup; `egressVerdict` folds a
+ * beacon's GOVERNING purpose(s) — the connector's declared `purposes.egress`
+ * (AC5, vendor-neutral: this file has no GA4/MP specifics) — into ONE
+ * dispatch verdict, per ADR-0007's denial-behaviour matrix:
+ *
+ *   - **pending** (no signal yet) -> **hold** (AC1/AC2: buffer at the seal,
+ *     flush-on-arrival once the purpose grants — the caller's job, not this
+ *     pure function's).
+ *   - **denied** (non-strict) -> **send**: a STORAGE-purpose denial is
+ *     017-02's cookie-capability concern (deny the `_ga` write) and a
+ *     DATA-USE-purpose denial is 017-01's mapper-reshape concern (MP
+ *     `consent` DENIED, still POSTs) — neither holds the beacon at the seal.
+ *     Do NOT collapse denied into hold/drop here; that would double-enforce a
+ *     denial ADR-0007 already routes elsewhere.
+ *   - **granted** -> **send**.
+ *   - **strict** regime (AC3, a declared no-processing regime) -> **drop** on
+ *     ANY purpose that is not `"granted"` (pending OR denied) — no beacon at
+ *     all, distinct from a held beacon (which still exists, buffered).
+ *
+ * Severity order is `send < hold < drop`: across MULTIPLE governing purposes
+ * (AC5, fail-closed), the WORST verdict wins — once any purpose escalates the
+ * verdict, a later purpose's `"send"` never downgrades it back.
+ *
+ * Pure — no DOM, no mutable state, no GA4/MP specifics. The caller (the seal
+ * in `core/airlock.js`) owns the buffer/flush/drop side effects; this
+ * function only classifies.
+ *
+ * @param {Record<string, string>|null|undefined} vector the host-supplied
+ *   consent vector (`resolveConsent`'s shape).
+ * @param {string[]|null|undefined} purposes the beacon's governing purpose(s)
+ *   (a connector's declared `purposes.egress`, e.g. GA4's
+ *   `["analytics_storage"]`). An empty/absent list resolves to `"send"` — no
+ *   governing purpose means nothing for the seal to gate on.
+ * @param {{ strict?: boolean }} [opts] `strict`: a declared strict/
+ *   no-processing regime (ADR-0007 AC3 — this slice's chosen boot-property
+ *   option among the ADR's still-open "where is the regime declared"
+ *   question, not a pinned seam contract).
+ * @returns {"send"|"hold"|"drop"}
+ */
+export function egressVerdict(vector, purposes, { strict = false } = {}) {
+  let verdict = "send"; // severity: send < hold < drop
+  for (const p of purposes || []) {
+    const state = resolveConsent(vector, p);
+    if (strict && state !== "granted") return "drop"; // strict: any un-granted -> drop
+    if (state === "pending" && verdict === "send") verdict = "hold"; // pending -> hold (no signal yet)
+    // denied (non-strict) -> send (a storage-purpose denial is 017-02's cookie
+    // concern, a data-use denial is 017-01's mapper-reshape concern; the
+    // beacon still egresses); granted -> send.
+  }
+  return verdict;
+}

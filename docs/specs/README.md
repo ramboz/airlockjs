@@ -54,8 +54,8 @@
 | [016-mvp3-endpoint-ceiling-enforcement](016-mvp3-endpoint-ceiling-enforcement/spec.md) | 016-01 — GA4: confine the chamber + wire-protocol endpoint ceiling (the EXACT archetype) | **DONE** |  |
 | [016-mvp3-endpoint-ceiling-enforcement](016-mvp3-endpoint-ceiling-enforcement/spec.md) | 016-02 — alloy: wrapped-SDK endpoint ceiling reconciled with config-integrity (the FLOOR archetype) | **DONE** |  |
 | [017-mvp3-purpose-vector-consent](017-mvp3-purpose-vector-consent/spec.md) | 017-01 — data-use consent reshape + the consent machinery (the grounded first point) | **DONE** |  |
-| [017-mvp3-purpose-vector-consent](017-mvp3-purpose-vector-consent/spec.md) | 017-02 — storage consent deny (cookie capability + ephemeral id) | DRAFT |  |
-| [017-mvp3-purpose-vector-consent](017-mvp3-purpose-vector-consent/spec.md) | 017-03 — seal hold-pending + strict-drop | DRAFT |  |
+| [017-mvp3-purpose-vector-consent](017-mvp3-purpose-vector-consent/spec.md) | 017-02 — storage consent deny (cookie capability + ephemeral id) | **DONE** |  |
+| [017-mvp3-purpose-vector-consent](017-mvp3-purpose-vector-consent/spec.md) | 017-03 — seal hold-pending + strict-drop | REVIEWED (main) |  |
 
 ## Abandoned slices
 
@@ -70,7 +70,7 @@
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
 - **0** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **45** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **48** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **8** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review

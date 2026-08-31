@@ -44,6 +44,15 @@ import { createBlockInstrumenter } from "./blocks.js";
 const DEFAULT_ENDPOINTS = ["https://www.google-analytics.com/mp/collect"];
 
 /**
+ * GA4's declared egress `purposes.egress` (spec 017-03 AC5 — the purpose→beacon
+ * binding is the connector's MANIFEST, not a hardcoded literal at the seal;
+ * `connectors/ga4/connector.js`'s manifest carries the same value). GA4 is
+ * analytics-only, so its egress is governed by the single Consent Mode
+ * `analytics_storage` purpose (ADR-0007).
+ */
+const GA4_EGRESS_PURPOSES = ["analytics_storage"];
+
+/**
  * The DISTINCT GA4 event names the UC-2 interaction wiring emits (slice 004-04).
  * Distinct so the push()-XOR-pushCritical() caller rule holds by construction
  * (ADR-0004): each logical event has exactly one sender, so the runtime never
@@ -266,13 +275,22 @@ export function wireBlocks(handle, io = {}) {
  *                                         see that computation below.
  * @param {string[]} [opts.endpoints]      per-tracker collect URLs.
  * @param {number}   [opts.trackers]       tracker count (defaults to endpoints.length).
- * @returns {Promise<{ push: Function, pushCritical: Function, getState: Function, flushNow: Function, stats: Function }>}
+ * @param {boolean}  [opts.consentStrict]  spec 017-03 AC3 (ADR-0007 point ③): declare a
+ *                                         strict/no-processing regime — an un-granted
+ *                                         `analytics_storage` purpose DROPS the beacon
+ *                                         (no hold, no send) instead of holding it.
+ *                                         Only takes effect when `opts.consent` is also
+ *                                         wired (see the `egressPurposes` gating below).
+ * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, flushNow: Function, stats: Function }>}
  *   a handle over the airlock's public write/read surface (also set on `window.airlock`).
+ *   `setConsent` (spec 017-03 AC2) merges a consent-vector update mid-session and
+ *   flushes any beacon the update just granted.
  */
 export async function bootEdsAnalytics(opts = {}) {
   const {
     ctx: providedCtx,
     consent,
+    consentStrict = false,
     endpoints = DEFAULT_ENDPOINTS,
     trackers = endpoints.length,
   } = opts;
@@ -307,10 +325,14 @@ export async function bootEdsAnalytics(opts = {}) {
   // LIVE REFERENCE to this same `ctx`. Folding consent in HERE — before
   // `createAirlock({ ctx })` runs — is what makes BOTH the worker's frozen clone
   // and the sync path's live reference carry it (the two `mapToMp(event, ctx)`
-  // call sites, AC4). A post-construction `setConsent(...)` handle method would
-  // reach only the live reference and never the already-cloned worker ctx, so it
-  // is deliberately NOT this slice's seam (that's the mid-session-update
-  // follow-up, AC6/refinement-todo — it needs a worker ctx re-send).
+  // call sites, AC4). A post-construction consent-update handle method reaching
+  // only the live `ctx` reference (never the already-cloned worker `ctx`) is
+  // deliberately NOT this slice's seam (that's the mid-session-RESHAPE-update
+  // follow-up, AC6/refinement-todo — it needs a worker ctx re-send). NOTE: 017-03
+  // later adds its OWN `setConsent` to the returned handle below — a DIFFERENT
+  // mechanism (the seal's dispatch gate, not the mapper reshape this paragraph is
+  // about); a flushed beacon still carries whatever reshape was folded in HERE,
+  // at boot (a named residual — docs/refinement-todo.md).
   //
   // Non-mutating (spreads into a new object) and only adds the `consent` key
   // when there is something to add: no `consent` opt, or a vector with no
@@ -325,11 +347,32 @@ export async function bootEdsAnalytics(opts = {}) {
   // No ring-tail-priority events here: every unload-critical beacon (outbound_click,
   // page_view) goes via pushCritical, which bypasses the ring, so `unloadCritical`
   // (the ring-tail sort) stays the core default (empty).
-  const airlock = createAirlock({ trackers, workFactor: 0, endpoints, ctx: ctxWithConsent });
+  //
+  // 017-03: `egressPurposes` is gated on `consent` being wired at all — mirroring
+  // `storageGranted`/`shapedConsent` above — NOT passed unconditionally. GA4's
+  // `analytics_storage` purpose is PENDING (no signal) whenever no vector is
+  // supplied at all (core/consent.js fails-to-pending on an absent vector, and
+  // nothing distinguishes "no CMP wired" from "CMP wired, not yet resolved" at
+  // the resolver), and nothing would ever call `setConsent` to release a hold on
+  // an unconfigured page — so passing the purpose unconditionally would silently
+  // hold EVERY beacon forever on any caller that never wires a consent vector
+  // (every current rig/testbed boot). Gating on `consent` keeps that legacy
+  // always-dispatch behavior back-compat, exactly like 017-01/017-02, and only
+  // engages the seal-hold once a host actually wires a consent-input driver.
+  const airlock = createAirlock({
+    trackers,
+    workFactor: 0,
+    endpoints,
+    ctx: ctxWithConsent,
+    consent,
+    egressPurposes: consent ? GA4_EGRESS_PURPOSES : [],
+    consentStrict,
+  });
 
   const handle = {
     push: (evt) => airlock.push(evt),
     pushCritical: (evt) => airlock.pushCritical(evt),
+    setConsent: (v) => airlock.setConsent(v), // 017-03 AC2: mid-session grant -> flushes held beacons
     getState: (path) => airlock.getState(path), // whole projection or dotted-path read (push-api.md)
     flushNow: () => airlock.flushNow(), // force-drain the ring to the worker (deterministic teardown/test)
     stats: () => airlock.stats(),

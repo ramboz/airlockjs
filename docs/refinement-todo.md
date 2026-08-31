@@ -212,6 +212,11 @@ Named follow-ups from this slice, not attempted here:
   already-sent cannot be unsent). A post-construction `setConsent(...)` handle
   method alone is NOT sufficient — it would reach only the sync path's live
   `ctx` reference, never the already-cloned worker `ctx` (017-01 frame-critique).
+  **Partially resolved by [017-03](specs/017-mvp3-purpose-vector-consent/slice-03-seal-hold-drop.md),
+  2026-08-30** — see that slice's own follow-ups section below: the SEAL side
+  (hold-pending -> flush-on-arrival) now has its own main-thread `setConsent`;
+  the worker `ctx` re-send this bullet describes is specifically for the
+  mapper's *reshape* ① and remains open.
 - **Consent-Mode `gtag` / TCF `__tcfapi` seam drivers.** ADR-0007 names these as
   drivers onto the SAME pre-construction consent-input seam `adapters/eds/index.js`
   now folds through (a host-provided vector today); a `gtag('consent', …)`
@@ -230,3 +235,57 @@ Named follow-ups from this slice, not attempted here:
   documentation as part of this slice — a wrong or aged semantic detail there is
   a driver revision, not a structural bet, but should be checked before this
   reshape is relied on for real compliance posture.
+
+## Spec 017-03 (seal hold-pending + strict-drop) follow-ups — spec 017 COMPLETE
+
+**Delivered (2026-08-30):** the THIRD ADR-0007 enforcement point — the seal
+(point ③) — now holds a beacon whose governing purpose (the connector's
+declared `purposes.egress`, e.g. GA4 -> `analytics_storage`) resolves
+**pending**, at the async `worker.onmessage` dispatch seam in
+`core/airlock.js` (`core/consent.js`'s new vendor-neutral `egressVerdict`),
+composed BEFORE 016-01's endpoint ceiling. This slice builds its OWN
+main-thread consent-update path — a mutable `consentVector` + the returned
+handle's `setConsent(vector)` — DISTINCT from 017-01's still-deferred worker
+`ctx` re-send: held beacons are already-mapped `{ url, body }`, so a flush on
+a pending→granted edge is a pure main-thread re-`fetch`, no worker round-trip
+and no re-map. A declared **strict** regime (a boot property on the `consent`
+input — ADR-0007 leaves *where* the regime is declared an open question; this
+slice picked the simplest available option, not a pinned seam contract) drops
+an un-granted beacon outright instead of holding it. The sync/unload fast
+path (`pushCritical` + the `unloadFlush` ring tail) can only DROP, never hold
+— there is no "later" at teardown to flush to. `adapters/eds/index.js` wires
+GA4's `["analytics_storage"]` purpose into `egressPurposes`, gated on
+`opts.consent` being provided at all (mirroring 017-01/017-02's own
+`consent ? … : …` back-compat idiom) — see
+[slice-03](specs/017-mvp3-purpose-vector-consent/slice-03-seal-hold-drop.md).
+**ADR-0007's three-point consent model is now fully enforced for GA4** (mapper
+reshape ①, cookie-capability deny ②, seal hold/strict-drop ③) — see
+[docs/releases/mvp3.md](releases/mvp3.md). Named follow-ups, not attempted here:
+
+- **The worker `ctx` re-send for the mapper *reshape* ①.** A flushed beacon
+  carries whatever `consent`-reshape (017-01) was folded into `ctx` at BOOT
+  time, never a mid-session reshape update — this slice gates *dispatch*
+  (send/hold/drop), not the *payload*. Still needs the new worker message
+  type + re-send the 017-01 "Mid-session consent update" bullet above
+  describes.
+- **Per-purpose replay/STOP on revoke.** 017-03 only handles the
+  pending→granted direction (flush). A granted→denied/pending edge mid-session
+  does not retroactively un-send already-dispatched beacons (ADR-0007: "already-
+  sent cannot be unsent") — and does not currently stop a THEN-pending purpose's
+  future beacons from newly holding either (that falls out of `egressVerdict`
+  being re-evaluated per-dispatch, but no explicit revoke-driven test/behavior
+  was authored here).
+- **Prerender-aware per-purpose holding.** AD-9's existing prerender-aware
+  held-until-activation model is binary; making IT per-purpose (as opposed to
+  just the pending-consent hold this slice delivers) is not addressed.
+- **Strict-regime declaration site.** This slice declares strict via a `consent`
+  input **boot property** (`consentStrict`) — the simplest available option
+  among ADR-0007's still-open "where is the regime declared" question, not a
+  pinned seam-contract answer. A CMP driver or per-connector manifest property
+  are both still open alternatives if a real deployment needs finer control.
+- **Alloy / wrapped-SDK seal enforcement.** Like 017-01's mapper reshape, the
+  seal's `egressPurposes` gate is wired for GA4 only (`adapters/eds/index.js`);
+  alloy's `purposes` manifest annotation (012-04) remains declared-not-enforced
+  — no `egressPurposes` gate is wired at alloy's wrapped-SDK dispatch seam
+  (`core/wrapped-sdk-host.js`). Consent enforcement for alloy is out of scope
+  for spec 017 (GA4-only, per the spec's own framing).
