@@ -26,11 +26,17 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 
 ## Appetite
 
-- **TBD — a user decision.** _Proposed scope shape:_ spend it **Risk-First** — the **alloy XDM-governance
-  feasibility probe first** (it decides whether alloy governance is a strip-at-seal or a read-minimization
-  fallback), then the `helix-rum-js` connector + the alloy governance + the low-hanging fruit as the budget
-  allows. Variable scope: how much alloy governance proves feasible (strip vs read-minimization); how much
-  low-hanging fruit closes.
+- **2 weeks (fixed — small-batch).** Time is fixed; **scope flexes to fit.**
+  - **Fixed core (must land):** the **alloy XDM-governance feasibility probe** (Risk-First, *front-loaded* —
+    it tells us by mid-box whether a deep strip is feasible), a **governed-or-read-minimized alloy outcome**,
+    and the **`helix-rum` connector**.
+  - **Variable scope (gives first if the box tightens):** the *depth* of the alloy payload strip (probe finds
+    XDM-strip hard → ship **read-minimization + the existing confinement**, defer the deep strip); *which*
+    low-hanging-fruit items close (the **dispose/idempotent-boot guard** is the must-close; the eslint scope +
+    protocol pin flex).
+  - **Note:** MVP4 is the most ambitious 2-week box. If you'd rather split it, it cleaves cleanly into
+    **`alloy-governance`** | **`helix-rum + fruit`** (two 2-week boxes). Kept as one here, de-risked by
+    front-loading the probe.
 
 ## Solution Outline
 
@@ -128,4 +134,5 @@ evidence, not measured signals._
 
 _Last shaped: 2026-08-31 (set by the maintainer as "the core of any AEM stack — RUM + governed alloy + the
 low-hanging fruit"; the inspector/value-proof + airlock-as-RUM-layer moved to MVP5, adoption/1.0 to MVP6, the
-broader breadth to MVP7+/R-007). Appetite TBD — proposed alloy-probe-first shape._
+broader breadth to MVP7+/R-007). Appetite: **2 weeks (fixed, small-batch)** — alloy-probe-first,
+scope-flexes._

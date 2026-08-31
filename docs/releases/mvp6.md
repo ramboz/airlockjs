@@ -28,20 +28,23 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 
 ## Appetite
 
-- **TBD — a user decision.** _Proposed scope shape:_ the **turn-the-proof-into-a-product** release. Spend it:
-  the **distribution decision + setup first** (it gates how everything is consumed), then the
-  production-hardening residuals + `reserveSpace` production wiring, then the **1.0 API pin**, validated on a
-  **real production site** (the customer stack — see the breadth benchmark). Variable scope: how much of the
-  API is frozen at 1.0 vs left pre-1.0; whether the real-site validation is the customer site or a
-  representative EDS project.
+- **2 weeks (fixed — small-batch).** Time fixed; **scope flexes.**
+  - **Fixed core (must land):** the **distribution decision + setup** (it gates all consumption) + the
+    **name-scoped cookie-grant wrapper** (OQ13-4, security-safe) + `reserveSpace` **eager-phase production
+    wiring** (018-h).
+  - **Variable scope (gives first if the box tightens):** the **1.0 API pin** (freeze only the surfaces
+    MVP1–5 proved; the rest stays pre-1.0) + the **real-production-site validation** (flexes on the customer
+    stack being available — distribution + hardening is the floor).
+  - _(The dispose/idempotent-boot guard, OQ12-4, is closed earlier as MVP4 low-hanging fruit — not repeated
+    here.)_
 
 ## Solution Outline
 
 - Decide + implement **distribution** (OQ8) — the consumption channel for the EDS audience (git-subtree à la
   aem-martech, and/or npm), so a site can drop airlock in.
-- Land the **production-hardening residuals**: dispose/idempotent-boot guard (OQ12-4), name-scoped
-  cookie-grant wrapper + name validation (OQ13-4), `reserveSpace` eager-phase production wiring (018-h),
-  eslint-scope nit.
+- Land the **remaining production-hardening residuals**: name-scoped cookie-grant wrapper + name validation
+  (OQ13-4), `reserveSpace` eager-phase production wiring (018-h). _(The dispose/idempotent-boot guard, OQ12-4,
+  and the alloy-chamber eslint scope are closed earlier as MVP4 low-hanging fruit.)_
 - Commit a **1.0 API stability contract** — the connector interface + capability API + `push()` surface,
   pinned as stable (the surfaces MVP1–4 proved).
 - **Validate on a real production site** (the customer prod stack) with CWV preserved — the adoption proof.
@@ -77,7 +80,7 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 | Item | Evidence | Rationale |
 |---|---|---|
 | **Distribution decision + setup** (OQ8: git-subtree and/or npm) | OQ8; aem-martech convention | A site cannot adopt what it cannot consume |
-| **Production-hardening residuals** — dispose/idempotent-boot guard (OQ12-4), name-scoped cookie-grant wrapper + name-validation (OQ13-4), `reserveSpace` eager-phase production wiring (018-h), eslint scope | refinement-todo OQ12/OQ13; spec 018 item h | Library-safe, security-safe, production-wired |
+| **Remaining production-hardening residuals** — name-scoped cookie-grant wrapper + name-validation (OQ13-4), `reserveSpace` eager-phase production wiring (018-h) _(dispose guard + eslint scope closed in MVP4)_ | refinement-todo OQ13; spec 018 item h | Security-safe, production-wired |
 | **1.0 API stability pin** — connector interface + capability API + `push()` surface | contracts/; every release note's pre-1.0 caveat | Adoption needs a stability contract |
 | **Real-production-site validation** — supported subset (GA4 + Adobe/alloy) on a real page, CWV preserved | Customer prod stack (R-007) | The adoption proof: airlock runs on a real site at ~zero CWV cost |
 
@@ -125,4 +128,4 @@ _No servo release-signal artifact exists for this plan yet; the release-check cr
 evidence, not measured signals._
 
 _Last shaped: 2026-08-31 (renumbered MVP5→MVP6 when MVP4 became "the core AEM stack" and MVP5 became the
-inspector/value-proof; after MVP3 shipped `v0.3.0`; appetite TBD — proposed distribution-first shape)._
+inspector/value-proof; after MVP3 shipped `v0.3.0`; appetite **2 weeks (fixed, small-batch)** — distribution-first, scope-flexes)._

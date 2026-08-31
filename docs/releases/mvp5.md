@@ -28,11 +28,13 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 
 ## Appetite
 
-- **TBD — a user decision.** _Proposed scope shape:_ **inspector-first** (the visibility that de-risks
-  adoption), then the **airlock-as-RUM-layer** subsume + the **CWV scoreboard** as a first-class output.
-  Variable scope: how rich the inspector goes (a data API + console panel vs a visual overlay); whether the
-  RUM subsume *replaces* `helix-rum` or runs alongside it; whether the CWV proof runs on the testbed only or
-  the real customer stack.
+- **2 weeks (fixed — small-batch).** Time fixed; **scope flexes.**
+  - **Fixed core (must land):** the **enforcement-decision inspector** — the visibility that de-risks adoption
+    (why did this beacon fire / hold / get gated / get stripped, across GA4 + alloy).
+  - **Variable scope (gives first if the box tightens):** the **airlock-as-RUM-layer** subsume (*replace*
+    `helix-rum`) + the **before/after CWV scoreboard** — both ride the same diagnostics substrate; ship the
+    inspector + scoreboard first, defer the RUM *replace* to a follow-on. The scoreboard's realistic-load run
+    flexes on the customer stack being available.
 
 ## Solution Outline
 
@@ -119,4 +121,4 @@ evidence, not measured signals._
 
 _Last shaped: 2026-08-31 (became MVP5 when MVP4 was set to "the core AEM stack"; folds in the
 airlock-as-RUM-layer subsume that MVP4's host-`helix-rum` choice deferred; after MVP3 shipped `v0.3.0`;
-appetite TBD — proposed inspector-first shape)._
+appetite **2 weeks (fixed, small-batch)** — inspector-first, scope-flexes)._
