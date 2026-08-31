@@ -254,10 +254,11 @@ export function wireBlocks(handle, io = {}) {
 /**
  * Boot the airlock analytics runtime for an EDS page.
  *
- * Note (recorded, accepted for this slice): boot is once-per-page by design — a
- * second call would create a second Worker + global unload listeners (createAirlock
- * registers `visibilitychange`/`pagehide` with no teardown) and overwrite
- * `window.airlock`. Low risk on EDS (loadLazy runs once), parked for a later slice.
+ * Idempotent re-boot (spec 021-01 AC2, OQ12 item 4): if `window.airlock` already
+ * exists, this call **disposes the prior instance first** (`window.airlock.dispose()`
+ * — its Worker + unload listeners) before installing the new one. A second boot on
+ * the same page therefore never stacks a second Worker or a second set of unload
+ * listeners; `window.airlock` always ends up pointing at the live instance.
  *
  * @param {object} [opts]
  * @param {object}   [opts.ctx]            explicit ctx override for `mapToMp` (skips
@@ -292,10 +293,11 @@ export function wireBlocks(handle, io = {}) {
  *                                         non-empty: an unset/empty list is the identity —
  *                                         every current rig/testbed boot is byte-unchanged
  *                                         (back-compat, AC6).
- * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, flushNow: Function, stats: Function }>}
+ * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, flushNow: Function, stats: Function, dispose: Function }>}
  *   a handle over the airlock's public write/read surface (also set on `window.airlock`).
  *   `setConsent` (spec 017-03 AC2) merges a consent-vector update mid-session and
- *   flushes any beacon the update just granted.
+ *   flushes any beacon the update just granted. `dispose` (spec 021-01 AC1) tears
+ *   this instance's Worker + unload listeners down; idempotent + null-safe.
  */
 export async function bootEdsAnalytics(opts = {}) {
   const {
@@ -389,9 +391,22 @@ export async function bootEdsAnalytics(opts = {}) {
     getState: (path) => airlock.getState(path), // whole projection or dotted-path read (push-api.md)
     flushNow: () => airlock.flushNow(), // force-drain the ring to the worker (deterministic teardown/test)
     stats: () => airlock.stats(),
+    dispose: () => airlock.dispose(), // 021-01 AC1: tear down this instance's Worker + unload listeners
   };
 
-  if (typeof window !== "undefined") window.airlock = handle;
+  // 021-01 AC2 (OQ12 item 4): idempotent re-boot — dispose the PRIOR instance
+  // (its Worker + unload listeners) before this new one takes over
+  // `window.airlock`, so a second bootEdsAnalytics on the same page never stacks
+  // a second Worker or a second set of unload listeners. Dispose-prior-then-reboot
+  // (not a return-the-existing-handle short-circuit): every call still gets a
+  // live, freshly-constructed runtime. `dispose()` is already idempotent +
+  // null-safe (AC1), so calling it unconditionally on whatever prior handle is
+  // present is safe; a first boot (no prior `window.airlock`) skips it entirely
+  // (AC3 — byte-unchanged single-boot path).
+  if (typeof window !== "undefined") {
+    if (window.airlock && typeof window.airlock.dispose === "function") window.airlock.dispose();
+    window.airlock = handle;
+  }
 
   // 004-04 AC1+AC2: capture real interactions on the EDS page. Guarded + idempotent
   // (a no-op off a real page — e.g. the node unit env — and never double-wires), so

@@ -15,11 +15,14 @@ class FakeWorker {
     this.opts = opts;
     this.messages = [];
     this.onmessage = null;
+    this.terminated = 0;
   }
   postMessage(m) {
     this.messages.push(m);
   }
-  terminate() {}
+  terminate() {
+    this.terminated++;
+  }
 }
 
 const fakeDocument = (initialCookie = "") => {
@@ -203,5 +206,85 @@ describe("bootEdsAnalytics payload-denylist wiring (spec 019-01 — ADR-0012)", 
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(body.events[0].params.email).toBeUndefined();
     expect(body.events[0].params.link_text).toBe("Buy");
+  });
+});
+
+// Spec 021-01 AC2 (OQ12 item 4): a second bootEdsAnalytics on a page that already
+// has `window.airlock` disposes the prior instance FIRST (its Worker + unload
+// listeners) before installing the new one — never stacks a second Worker or a
+// second set of unload listeners. `window` is not defined in the default Node
+// vitest env (confirmed: none of the OTHER eds-boot tests stub it either), so
+// these tests stub it explicitly as a plain object; the `fakeDocument()` helper
+// above deliberately carries no `addEventListener`, so `wireInteractions` /
+// `wireExposure` / `wireBlocks` all no-op here exactly as they do in every other
+// describe block in this file — only createAirlock's OWN bare-global
+// addEventListener/removeEventListener (visibilitychange/pagehide) are in play.
+function makeListenerRegistry() {
+  const map = new Map();
+  return {
+    addEventListener: (type, fn) => {
+      if (!map.has(type)) map.set(type, new Set());
+      map.get(type).add(fn);
+    },
+    removeEventListener: (type, fn) => {
+      const set = map.get(type);
+      if (set) set.delete(fn);
+    },
+    count(type) {
+      return map.has(type) ? map.get(type).size : 0;
+    },
+  };
+}
+
+describe("bootEdsAnalytics idempotent boot (spec 021-01 AC2 — dispose-prior-then-reboot)", () => {
+  let registry;
+
+  beforeEach(() => {
+    FakeWorker.last = null;
+    registry = makeListenerRegistry();
+    vi.stubGlobal("Worker", FakeWorker);
+    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve()));
+    vi.stubGlobal("addEventListener", registry.addEventListener);
+    vi.stubGlobal("removeEventListener", registry.removeEventListener);
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("document", fakeDocument());
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("a second boot disposes the prior instance — one live Worker, one listener set, window.airlock is the live one", async () => {
+    const handle1 = await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" } });
+    const worker1 = FakeWorker.last;
+    expect(window.airlock).toBe(handle1);
+    expect(registry.count("pagehide")).toBe(1);
+    expect(registry.count("visibilitychange")).toBe(1);
+
+    const handle2 = await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" } });
+    const worker2 = FakeWorker.last;
+
+    expect(worker2).not.toBe(worker1);
+    expect(worker1.terminated).toBe(1); // the prior Worker was torn down
+    expect(worker2.terminated).toBe(0); // the live one was not
+    expect(registry.count("pagehide")).toBe(1); // NOT 2 — no stacked listener
+    expect(registry.count("visibilitychange")).toBe(1);
+    expect(window.airlock).toBe(handle2); // window.airlock is the live one
+  });
+
+  it("three successive boots still leave exactly one live Worker + one listener set", async () => {
+    await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" } });
+    await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" } });
+    const handle3 = await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" } });
+
+    expect(registry.count("pagehide")).toBe(1);
+    expect(registry.count("visibilitychange")).toBe(1);
+    expect(window.airlock).toBe(handle3);
+  });
+
+  it("the returned handle exposes a working dispose() (additive to the internal idempotent-boot guard)", async () => {
+    const handle = await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" } });
+
+    expect(typeof handle.dispose).toBe("function");
+    expect(() => handle.dispose()).not.toThrow();
+    expect(FakeWorker.last.terminated).toBe(1);
+    expect(() => handle.dispose()).not.toThrow(); // idempotent
   });
 });

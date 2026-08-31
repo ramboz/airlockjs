@@ -692,6 +692,115 @@ describe("createWrappedSdkHost — endpoint ceiling + config-integrity compositi
   }, 2000);
 });
 
+// createWrappedSdkHost — transport pin defense-in-depth (spec 021-02, ADR-0011 scheme-aware): closes
+// the 015-02-named protocol-blindness residual AT THE SEAM. AC1 grounding: `runConfigIntegrity` above
+// (`configIntegrity && (!endpointCeiling || hostOf(m.url) === configIntegrity.pinnedHost)`) runs
+// config-integrity STANDALONE whenever no ceiling is co-wired — exactly the shape the 015-01/015-02
+// describes above exercise (`makeSpyingHost({ configIntegrity: PIN })`, no `endpointCeiling` key) — so a
+// ceiling-LESS config-integrity path is a supported, tested configuration, not a hypothetical. The fix
+// lives entirely in core/config-integrity.js (checkConfigIntegrity + pinnedDispatchUrl); nothing here in
+// wrapped-sdk-host.js changes — these tests prove it holds/re-derives correctly through the real seam.
+describe("createWrappedSdkHost — transport pin defense-in-depth (spec 021-02, ADR-0011 scheme-aware)", () => {
+  const HONEST_DS = "11111111-1111-1111-1111-111111111111"; // synthetic
+  const PIN = { pinnedHost: "adobedc.demdex.net", tenantKey: "configId", pinnedTenant: HONEST_DS };
+  const INTERACT = "https://adobedc.demdex.net/ee/v1/interact";
+
+  function makeSpyingHost(opts) {
+    const chamber = makeFakeChamber();
+    const dispatched = [];
+    const diags = [];
+    const caps = {
+      egress: {
+        dispatch: async (req) => {
+          dispatched.push(req);
+          return { status: 200, statusText: "OK", headers: {}, body: "{}" };
+        },
+      },
+    };
+    const host = createWrappedSdkHost({ chamber, caps, onDiagnostic: (r) => diags.push(r), ...opts });
+    return { chamber, dispatched, diags, host };
+  }
+
+  it("AC1 grounded: a ceiling-LESS config-integrity path HOLDS an http:// downgrade to the honest host+tenant", async () => {
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN }); // no endpointCeiling key
+    const downgraded = `http://adobedc.demdex.net/ee/v1/interact?configId=${HONEST_DS}&requestId=r`;
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 1, url: downgraded, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(0); // held — no real egress over cleartext
+    expect(msg.status).toBe(0);
+    const diag = diags.find((d) => d.kind === "config-integrity");
+    expect(diag).toMatchObject({ level: "error", disposition: "held" });
+    expect(diag.reason).toContain("transport downgrade");
+    expect(host.getState().held).toBe(1);
+  }, 2000);
+
+  it("AC1(c) confirmed: WITH the ceiling co-wired, the SAME downgrade is already held by the CEILING (origin includes scheme) — config-integrity never runs", async () => {
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN, endpointCeiling: [INTERACT] });
+    const downgraded = `http://adobedc.demdex.net/ee/v1/interact?configId=${HONEST_DS}&requestId=r`;
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 2, url: downgraded, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(0);
+    expect(msg.status).toBe(0);
+    expect(diags.find((d) => d.kind === "endpoint-ceiling")).toMatchObject({ disposition: "held" });
+    expect(diags.find((d) => d.kind === "config-integrity")).toBeUndefined(); // ceiling short-circuits first
+    expect(host.getState().ceilingHeld).toBe(1);
+    expect(host.getState().held).toBe(0);
+  }, 2000);
+
+  it("override re-derives an http downgrade to https and SENDS (still alerting) — the seam-level override path", async () => {
+    const PIN_OVERRIDE = { ...PIN, disposition: "override" };
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN_OVERRIDE });
+    const downgraded = `http://adobedc.demdex.net/ee/v1/interact?configId=${HONEST_DS}&requestId=r`;
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 3, url: downgraded, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(1); // corrected-and-sent, not held
+    expect(new URL(dispatched[0].url).protocol).toBe("https:"); // re-derived — never sent over http
+    expect(msg.status).toBe(200);
+    const diag = diags.find((d) => d.kind === "config-integrity");
+    expect(diag).toMatchObject({ disposition: "overridden" });
+    expect(diag.reason).not.toMatch(/hold|held/i);
+    expect(host.getState().overridden).toBe(1);
+  }, 2000);
+
+  it("honest https path through the full seam is unchanged — silent, dispatched normally", async () => {
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN });
+    const honestUrl = `${INTERACT}?configId=${HONEST_DS}&requestId=r`;
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 4, url: honestUrl, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(1);
+    expect(msg.status).toBe(200);
+    expect(diags.find((d) => d.kind === "config-integrity")).toBeUndefined();
+    expect(host.getState().held).toBe(0);
+  }, 2000);
+
+  it("origin-aware: a localhost/http-pinned config (pinnedScheme:'http:') dispatches its honest http:// origin normally — not broken by the pin", async () => {
+    const LOCAL_PIN = { pinnedHost: "localhost:5173", tenantKey: "configId", pinnedTenant: HONEST_DS, pinnedScheme: "http:" };
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: LOCAL_PIN });
+    const localUrl = `http://localhost:5173/ee/v1/interact?configId=${HONEST_DS}&requestId=r`;
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 5, url: localUrl, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(1);
+    expect(msg.status).toBe(200);
+    expect(diags.find((d) => d.kind === "config-integrity")).toBeUndefined();
+    expect(host.getState().held).toBe(0);
+  }, 2000);
+});
+
 // createWrappedSdkHost — consent enforcement (spec 020-02 AC1, ADR-0007): the
 // TRUSTED seam-side egress DROP — does NOT trust the chamber. Runs AFTER
 // endpoint-ceiling/config-integrity, BEFORE mainDispatch/caps.egress.dispatch,

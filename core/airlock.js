@@ -268,11 +268,33 @@ export function createAirlock({
     );
     for (const d of remaining) criticalDispatchGated({ type: d.type, params: d.params });
   };
+  // 021-01 AC1 (OQ12 item 4): a NAMED reference, not an inline anonymous fn — an
+  // anonymous listener can never be individually removeEventListener'd, which is
+  // exactly what dispose() below needs to do.
+  function onVisibilityChange() {
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") unloadFlush();
+  }
   if (typeof addEventListener === "function") {
-    addEventListener("visibilitychange", () => {
-      if (typeof document !== "undefined" && document.visibilityState === "hidden") unloadFlush();
-    });
+    addEventListener("visibilitychange", onVisibilityChange);
     addEventListener("pagehide", unloadFlush);
+  }
+
+  // 021-01 AC1 (OQ12 item 4): make the runtime library-safe — a host can tear this
+  // instance down. Removes the two unload listeners (by the SAME named references
+  // registered above) and terminates the Worker. Idempotent (the `disposed` guard
+  // makes a second call a no-op — no double-terminate, no throw) and null-safe (no
+  // `removeEventListener` global, or a Worker stand-in with no `.terminate`, both
+  // silently skip that step rather than throw). Purely additive: nothing above ever
+  // calls `dispose()` itself, so the single-boot path (AC3) is byte-unchanged.
+  let disposed = false;
+  function dispose() {
+    if (disposed) return;
+    disposed = true;
+    if (typeof removeEventListener === "function") {
+      removeEventListener("visibilitychange", onVisibilityChange);
+      removeEventListener("pagehide", unloadFlush);
+    }
+    if (worker && typeof worker.terminate === "function") worker.terminate();
   }
 
   return {
@@ -366,5 +388,12 @@ export function createAirlock({
     },
     flushNow() { while (ring.length) sendBatch(ring.splice(0, 50)); },
     stats() { return { dispatched, logged: log.length, ...critical.stats() }; },
+    /**
+     * 021-01 AC1 (OQ12 item 4): tear this instance down — removes the
+     * visibilitychange/pagehide listeners and terminates the Worker. Idempotent
+     * (a second call is a no-op) and null-safe (no addEventListener/Worker.terminate
+     * -> skipped, never throws). See the `dispose` closure above for the guard.
+     */
+    dispose,
   };
 }

@@ -58,7 +58,9 @@
  * Config-integrity (spec 015-01, ADR-0011): an optional `configIntegrity` pin
  * gates `dispatchInterceptedFetch` BEFORE `caps.egress.dispatch` runs the real
  * fetch — the single chokepoint every intercepted interact crosses. On ANY
- * deviation (foreign host; tenant-key absent, polluted, or mismatched) the
+ * deviation (foreign host; tenant-key absent, polluted, or mismatched; a
+ * transport downgrade off the pinned scheme — spec 021-02, defense-in-depth
+ * against a config-integrity path with no endpoint-ceiling co-wired) the
  * default disposition is to HOLD (no real egress) and emit a redacted
  * diagnostic; absent the option, the host behaves exactly as before (back-compat).
  *
@@ -133,7 +135,7 @@ function consoleDiagnostic(record) {
  *     cookies?: { reconcile: (reconciledSetCookie: string) => void },
  *   },
  *   timeoutMs?: number,
- *   configIntegrity?: ({ pinnedHost: string, tenantKey: string, pinnedTenant: string, disposition?: ("hold" | "override") } | null),
+ *   configIntegrity?: ({ pinnedHost: string, tenantKey: string, pinnedTenant: string, pinnedScheme?: string, disposition?: ("hold" | "override") } | null),
  *   endpointCeiling?: (readonly string[] | null),
  *   consent?: (Record<string, string> | null),
  *   egressPurposes?: readonly string[],

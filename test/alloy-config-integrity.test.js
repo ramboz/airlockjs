@@ -127,3 +127,57 @@ describe("015-01 — config-integrity generalization: host pin + injected tenant
     expect(checkConfigIntegrity(honestUrl, incompletePin).verdict).toBe("hold");
   });
 });
+
+// 021-02 — transport pin (http-downgrade), defense-in-depth (ADR-0011, config-integrity generalized).
+// Grounding (021-02 AC1): the 016 endpoint-ceiling ALREADY holds an http-downgrade wherever it is
+// CO-WIRED with config-integrity (`origin` includes the scheme) — see the composed-seam confirmation
+// in test/wrapped-sdk-host.test.js. The REAL residual is that a config-integrity path can ship with NO
+// ceiling co-wired (`createWrappedSdkHost`'s `runConfigIntegrity` runs standalone whenever
+// `!endpointCeiling`, and 015-01/015-02's own tests exercise exactly that shape) — there,
+// `checkConfigIntegrity` was scheme-BLIND (`hostOf` reads `.host`, which excludes the scheme), so an
+// `http://` downgrade to the honest host+tenant PASSED. This block pins the scheme directly in
+// config-integrity.js (defense-in-depth — correct standalone, not just when a ceiling happens to be
+// co-wired), origin-aware: the pin's `pinnedScheme` defaults to `https:` (every shipped pin targets a
+// real Adobe/GA host) but a caller may declare a different EXPECTED scheme (e.g. a localhost/http test
+// origin) — the rule is scheme MATCH, not "must be https literally".
+describe("021-02 — transport pin (http-downgrade), defense-in-depth (ADR-0011 scheme-aware)", () => {
+  it("an http:// downgrade to the honest host+tenant is HELD (transport downgrade) — standalone, no ceiling co-wired, default pin (no pinnedScheme)", () => {
+    const downgraded = `http://adobedc.demdex.net/ee/v1/interact?configId=${HONEST_DS}&requestId=abc`;
+    const check = checkConfigIntegrity(downgraded, PIN); // PIN carries no pinnedScheme — defaults to https:
+    expect(check.verdict).toBe("hold");
+    expect(check.reason).toContain("transport downgrade");
+    expect(check.reason).not.toMatch(/hold|held/i); // disposition-neutral (015-02 discipline) — usable under override too
+  });
+
+  it("the honest https:// path is unchanged — still allowed, no scheme false-positive", () => {
+    const chamber = makeStubAlloyChamber(HONEST_DS);
+    expect(checkConfigIntegrity(chamber.craftInteractUrl(), PIN).verdict).toBe("allow");
+  });
+
+  it("override re-derives the dispatch URL to the pinned (https) scheme — never preserves a downgraded http:", () => {
+    const downgraded = `http://adobedc.demdex.net/ee/v1/interact?configId=${ATTACKER_DS}&requestId=abc`;
+    const corrected = pinnedDispatchUrl(downgraded, PIN);
+    expect(new URL(corrected).protocol).toBe("https:");
+    expect(outboundTenants(corrected, "configId")).toEqual([HONEST_DS]); // host+tenant re-derive unaffected
+  });
+
+  it("origin-aware: a pin with an explicit pinnedScheme:'http:' allows a legitimate localhost/http test origin (not force-https)", () => {
+    const LOCAL_PIN = { pinnedHost: "localhost:5173", tenantKey: "configId", pinnedTenant: HONEST_DS, pinnedScheme: "http:" };
+    const localUrl = `http://localhost:5173/ee/v1/interact?configId=${HONEST_DS}`;
+    expect(checkConfigIntegrity(localUrl, LOCAL_PIN).verdict).toBe("allow");
+  });
+
+  it("scheme-MATCH semantics, not https-literal: an https dispatch against an http-pinned (localhost) target is also held", () => {
+    const LOCAL_PIN = { pinnedHost: "localhost:5173", tenantKey: "configId", pinnedTenant: HONEST_DS, pinnedScheme: "http:" };
+    const upgradedUrl = `https://localhost:5173/ee/v1/interact?configId=${HONEST_DS}`;
+    expect(checkConfigIntegrity(upgradedUrl, LOCAL_PIN).verdict).toBe("hold"); // pin says http: — https: doesn't MATCH it
+  });
+
+  it("override re-derives to the pin's OWN scheme (http:) on a localhost pin — never force-upgrades to https", () => {
+    const LOCAL_PIN_OVERRIDE = { pinnedHost: "localhost:5173", tenantKey: "configId", pinnedTenant: HONEST_DS, pinnedScheme: "http:", disposition: "override" };
+    const evilUrl = `https://evil.example/x?configId=${ATTACKER_DS}`;
+    const corrected = pinnedDispatchUrl(evilUrl, LOCAL_PIN_OVERRIDE);
+    expect(new URL(corrected).protocol).toBe("http:");
+    expect(new URL(corrected).host).toBe("localhost:5173");
+  });
+});
