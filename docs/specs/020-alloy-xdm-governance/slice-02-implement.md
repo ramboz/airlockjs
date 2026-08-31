@@ -1,9 +1,8 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: [020-01]
 last_verified: 2026-08-31
 frame_review: false
-claimed_by: main
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about

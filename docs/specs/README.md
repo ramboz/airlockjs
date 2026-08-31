@@ -60,7 +60,7 @@
 | [018-reservespace-security](018-reservespace-security/spec.md) | 018-02 — reserveSpace hardening (overflow-clip + shared accessor + contract loudness) | **DONE** |  |
 | [019-payload-governance](019-payload-governance/spec.md) | 019-01 — input-side payload denylist governance (all crossings, GA4 E2E) | **DONE** |  |
 | [020-alloy-xdm-governance](020-alloy-xdm-governance/spec.md) | 🔬 020-01 — alloy XDM-governance feasibility probe | **DONE** |  |
-| [020-alloy-xdm-governance](020-alloy-xdm-governance/spec.md) | 020-02 — implement alloy consent enforcement (seam drop + setConsent) + the optional payload strip | DRAFT |  |
+| [020-alloy-xdm-governance](020-alloy-xdm-governance/spec.md) | 020-02 — implement alloy consent enforcement (seam drop + setConsent) + the optional payload strip | **DONE** |  |
 
 ## Abandoned slices
 
@@ -75,7 +75,7 @@
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
 - **0** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **54** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **56** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **8** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
