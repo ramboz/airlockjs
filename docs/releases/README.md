@@ -12,7 +12,6 @@ they stop informing a current release decision.
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| [MVP4 — The Core AEM Stack (governed alloy + RUM)](mvp4.md) | **The maintainer's framing (2026-08-31):** the *core of any AEM / Adobe site* is **GA4 + Adobe Experience | No JIG handoff linked. |
 | [MVP5 — Inspector & the RUM Layer (make it visible, own the observability)](mvp5.md) | MVP4 completed **the core AEM stack** — GA4 + **governed** alloy + a hosted `helix-rum` connector. But two | No JIG handoff linked. |
 | [MVP6 — Adoption & 1.0 Readiness](mvp6.md) | The runtime (MVP1), both connector archetypes (MVP2), the enforcement teeth (MVP3), the core AEM stack | No JIG handoff linked. |
 
@@ -20,7 +19,7 @@ they stop informing a current release decision.
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| _None yet_ | _-_ | _-_ |
+| [MVP4 — The Core AEM Stack (governed alloy + RUM)](mvp4.md) | **The maintainer's framing (2026-08-31):** the *core of any AEM / Adobe site* is **GA4 + Adobe Experience | No JIG handoff linked. |
 
 ## Shipping
 

@@ -2,7 +2,12 @@
 
 ## Status
 
-`candidate`
+`committed`
+
+**Committed 2026-08-31** (maintainer: "commit as is") — kept as **one 2-week box** (not split into
+`alloy-governance` | `helix-rum + fruit`). Appetite fixed at 2 weeks; scope flexes per the cutline. The bet:
+the core of any AEM stack — GA4 + **governed** alloy + `helix-rum` — running in airlock, de-risked by
+front-loading the alloy XDM-governance feasibility probe. First slice: that probe.
 
 Allowed statuses: `candidate`, `committed`, `shipping`, `shipped`, `dropped`.
 Do not move a plan from `candidate` to `committed` without an explicit user decision.
