@@ -29,22 +29,32 @@ Demonstrated E2E for GA4. Resolves OQ11.
 
 **Acceptance Criteria:**
 
-1. **`governPayload(params, denylist)` — non-mutating strip, identity when unconfigured.** A new
-   vendor-neutral `core/payload-governance.js` exports `governPayload(params, denylist)` that returns a
-   **shallow (deep for dotted paths) COPY** of `params` with every denied field name / dotted path removed —
-   **never mutating** the input. An empty/absent `denylist` returns `params` **unchanged** (identity —
-   back-compat). Matching is by field name (and dotted path for nested objects); case sensitivity + the exact
-   match semantics are fixed here and documented. It never throws (a malformed `params`/`denylist` fails safe
-   to a best-effort copy). A conservative built-in **default** denylist (common sensitive names — e.g.
-   `password`, `cvv`, `ssn`, card-number-ish) is provided and is **extended**, never solely relied on
-   (defense-in-depth, CLAUDE.md security-MUST). Observable: `governPayload({a:1, password:"x"}, ["password"])`
-   → `{a:1}`; the input object is unmutated; `governPayload(p, [])` === structurally-equal to `p`.
-2. **Point (A) — the async `sendBatch` chokepoint (drain + flushNow).** Extract the shared
-   `worker.postMessage({type:"events", batch})` in `core/airlock.js` into a single `sendBatch(batch)` helper
-   that governs each batched descriptor's `params` (via `governPayload`, **non-mutating** — a governed copy
-   crosses) and posts; **both** `drain()` and `flushNow()` route through it. Observable: a denied field in a
+1. **`governPayload(params, denylist)` — non-mutating strip, identity when unconfigured, stays PURE (returns
+   the stripped names for the caller to surface).** A new vendor-neutral `core/payload-governance.js` exports
+   `governPayload(params, denylist)` returning **`{ governed, stripped }`** — `governed` is a copy of `params`
+   with every denied field removed; `stripped` is the array of removed field names (so the impure caller can
+   emit AC7's diagnostic without `governPayload` itself touching a `diagnose` global — the DoR "pure" property
+   is preserved). **Never mutates** the input. An empty/absent `denylist` returns **`{ governed: params,
+   stripped: [] }`** — the SAME `params` reference (identity — no clone on the hot drain path, AC6).
+   **Non-mutation for NESTED / dotted paths is copy-on-write along the path** (clone only the objects on a
+   denied dotted path — `governed.user = {...params.user}; delete governed.user.email` — leaving off-path
+   subtrees structurally shared; NOT a full deep clone, NOT a shallow copy that would mutate the shared
+   sub-object the local event log holds). Matching by field name + dotted path; case + exact-match semantics
+   fixed + documented here. Never throws (malformed input fails safe to a best-effort copy). A conservative
+   built-in **default** denylist (e.g. `password`, `cvv`, `ssn`, card-number-ish) is provided + host-extended,
+   never solely relied on (defense-in-depth, CLAUDE.md security-MUST). Observable:
+   `governPayload({a:1, password:"x"}, ["password"])` → `{ governed:{a:1}, stripped:["password"] }`; the input
+   is unmutated (incl. a nested `{user:{email}}` case); `governPayload(p, [])` → `{ governed:p (same ref),
+   stripped:[] }`.
+2. **Point (A) — the async `sendBatch` chokepoint (drain + flushNow), with an empty-denylist short-circuit.**
+   Extract the shared `worker.postMessage({type:"events", batch})` in `core/airlock.js` into a single
+   `sendBatch(batch)` helper that **both** `drain()` and `flushNow()` route through. When a denylist is wired,
+   it maps each batched descriptor to a governed copy (`{...d, params: governPayload(d.params, denylist).governed}`,
+   **non-mutating** — the ring's descriptor is untouched) before posting. **When no denylist is wired (AC6),
+   `sendBatch` short-circuits — it posts the original `batch` as-is**, allocating no governed copy / new
+   descriptor wrappers (byte-unchanged on the hot INP-sensitive drain path). Observable: a denied field in a
    `push()`ed event is ABSENT from the batch the worker receives on the normal `drain()` cycle AND on a
-   `flushNow()`.
+   `flushNow()`; with no denylist, the posted batch is the original `ring.splice` array.
 3. **Point (B) — the sync/unload dispatcher.** Govern the descriptor's `params` (via `governPayload`) BEFORE
    `mapToMp` in the synchronous critical path (`criticalDispatchGated` / `createCriticalDispatcher`), covering
    **both** `pushCritical` and the `unloadFlush` ring-tail — one placement, both call sites. Observable: a
@@ -64,10 +74,12 @@ Demonstrated E2E for GA4. Resolves OQ11.
    slice (the governed copy equals the input when the denylist is empty; ideally the same object reference, to
    avoid a needless clone on the hot drain path). Observable: the no-denylist path allocates no governed copy
    / changes no bytes; existing airlock/egress-fastpath/eds-boot tests stay green.
-7. **Surfaced (009-02), redacted.** A stripped field emits a redacted diagnostic
-   (`{ level, kind:"payload-governance", disposition:"stripped", field:<name>, … }`) — **never the value**
-   (the whole point is the value is sensitive). Observable: one diagnostic per stripped field, carrying the
-   field NAME only, never its value.
+7. **Surfaced (009-02), redacted — emitted by the impure caller, not the pure primitive.** The
+   governance callers (`sendBatch` / the sync dispatcher) emit a redacted diagnostic from `governPayload`'s
+   returned `stripped` names — `{ level, kind:"payload-governance", disposition:"stripped", field:<name>, … }`
+   — **never the value** (the whole point is the value is sensitive), via the existing `diagnose` seam in
+   `core/airlock.js`. `governPayload` itself touches no `diagnose` global (DoR "pure" preserved). Observable:
+   one diagnostic per stripped field, carrying the field NAME only, never its value.
 
 **DoD:**
 - [ ] ACs 1–7 pass. Tests (targeted, node — this is pure/hermetic, NO DOM): `test/payload-governance.test.js`
@@ -87,8 +99,11 @@ Demonstrated E2E for GA4. Resolves OQ11.
       (independent Opus review of the Sonnet diffs).
 - [ ] Deviation log + reconciliation sweep. Resolve **OQ11** (`adr.py resolve-todo`) + mark it in
       `docs/refinement-todo.md`; update `docs/releases/mvp3.md` (the payload-governance Include row →
-      delivered for GA4). Name the residuals: alloy ambient-collection (read-minimization); the egress-side
-      XDM strip (ADR-0012 Option B, deferred); an OQ3 allowlist tightening; value-level PII (ADR-0003).
+      delivered **for GA4** — must NOT claim alloy input governed). Name the residuals: **alloy-INPUT
+      governance** (bind the same `governPayload` at the separate `core/wrapped-sdk-host.js:265` crossing — a
+      deferred second placement, 019-01 frame-critique; not free); alloy ambient-collection
+      (read-minimization); the egress-side XDM strip (ADR-0012 Option B, deferred); an OQ3 allowlist
+      tightening; value-level PII (ADR-0003).
 - [ ] **No live identifiers committed** — synthetic denied fields only.
 
 **Anti-horizontal-phasing check:** after this slice, a sensitive field a site `push()`es is stripped before

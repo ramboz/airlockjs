@@ -21,10 +21,20 @@ untrusted).
 **What this spec delivers (ADR-0012 Option A).** A **host-owned, input-side sensitive-field denylist**
 (`governPayload`) that strips dangerous field names / dotted paths from a captured event's `params`
 **before** they cross into the chamber — so the field never enters the untrusted connector and, because the
-connector builds egress from what it received, never reaches the vendor. **Vendor-neutral** (it governs any
-connector's input at one host-owned seam); **demonstrated E2E for GA4** (a denied field is provably absent
-from the MP body at every crossing). This is the **payload half** of ADR-0006's host-policy least-privilege,
-sibling to ADR-0003's projection-snapshot allowlist half.
+connector builds egress from what it received, never reaches the vendor. The **primitive** is vendor-neutral;
+its **placement** this slice is the **GA4 host** (`core/airlock.js`'s chamber-crossing chokepoints), where it
+is **demonstrated E2E** (a denied field is provably absent from the MP body at every crossing). This is the
+**payload half** of ADR-0006's host-policy least-privilege, sibling to ADR-0003's projection-snapshot
+allowlist half.
+
+**Scope-honest on alloy (019-01 frame-critique correction).** The alloy / wrapped-SDK archetype has a
+**separate** main-thread input host — `core/wrapped-sdk-host.js` (its event crosses at
+`wrapped-sdk-host.js:265` `chamber.postMessage({type:"event", event})`) — which is **not** `core/airlock.js`
+and which **neither** of this slice's two chokepoints touches (airlock.js:107 hardcodes the GA4
+`chamber.worker.js`). So alloy input is **NOT** governed "for free" by this slice: `governPayload` is reusable
+there, but **binding it at the wrapped-SDK host is a deferred second placement** (a named residual, below),
+not an automatic consequence. (No shipped regression today: `core/wrapped-sdk-host.js` is rig/test-only —
+absent from `adapters/`.)
 
 **Denylist, not allowlist (the OQ11/OQ3 reconciliation, from ADR-0012).** The payload is *site-defined*
 (UC-2 custom events, the open `push({event, ...params})` object, OQ3's still-unpinned emergent-schema
@@ -48,13 +58,14 @@ ADR-0012 warns about — so this is one indivisible slice, not a per-seam split.
 caller that wires no policy is byte-unchanged) — the same no-config→legacy idiom as consent (017) /
 endpoint-ceiling (016) / config-integrity (015).
 
-**Scope + honest boundary.** GA4 / wire-protocol is enforced + demonstrated E2E. alloy / wrapped-SDK **input**
-is governed by the same vendor-neutral boundary for free, but alloy's **ambient in-chamber collection**
-(default device/web context, which never flows through `AirlockEvent.payload`, spec 012-04 Axis-2) is **out
-of scope** — that is read-minimization's surface, not this channel's. A field-name/path denylist is
-**defense-in-depth, not a complete PII defense** (renamed fields, value-level PII in a benign-named field —
-ADR-0003's projection-side concern — escape a name match). The egress-side XDM strip (ADR-0012 Option B) and
-an OQ3 allowlist tightening stay **deferred**.
+**Scope + honest boundary.** GA4 / wire-protocol is enforced + demonstrated E2E. **alloy / wrapped-SDK input
+is NOT governed by this slice** — its input crosses at the separate `core/wrapped-sdk-host.js` seam (above);
+binding `governPayload` there is a **named deferred residual** (the same reusable primitive, a second
+placement). Separately, alloy's **ambient in-chamber collection** (default device/web context, which never
+flows through `AirlockEvent.payload` at all, spec 012-04 Axis-2) is **out of scope** — read-minimization's
+surface, not this channel's. A field-name/path denylist is **defense-in-depth, not a complete PII defense**
+(renamed fields, value-level PII in a benign-named field — ADR-0003's projection-side concern — escape a name
+match). The egress-side XDM strip (ADR-0012 Option B) and an OQ3 allowlist tightening stay **deferred**.
 
 ## Assumptions
 
