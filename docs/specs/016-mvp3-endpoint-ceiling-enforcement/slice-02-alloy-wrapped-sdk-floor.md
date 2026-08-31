@@ -1,7 +1,7 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: [016-01]
-last_verified:
+last_verified: 2026-08-30
 frame_review: true
 ---
 
@@ -86,20 +86,49 @@ silently admitted.
    the gap is demonstrated + named, never silent.
 
 **DoD:**
-- [ ] ACs 1–6 pass — the composed seam holds an undeclared destination (incl. wrong path) AND an attacker
+- [x] ACs 1–6 pass — the composed seam holds an undeclared destination (incl. wrong path) AND an attacker
       tenant on the interact, allows a no-tenant second origin, and demonstrates+surfaces the tenant-keyed
-      second-origin gap. Green against targeted tests.
-- [ ] **No regression** — 015 config-integrity (hold + override) **standalone** tests stay green (no ceiling
-      passed); the honest wrapped-SDK dispatch + coalescing stay green; 016-01's GA4 seam untouched.
-- [ ] Reviews: compliance + craft + reconciliation recorded pass (spike-light — reuses 016-01's control +
-      015's already-arch-reviewed seam; the composition reconciliation + tenant-gap + FLOOR scoping are the
-      craft/frame concerns).
-- [ ] Deviation log + reconciliation sweep; the 012-04 sentinel flip recorded; the
+      second-origin gap. _(Targeted: wrapped-sdk-host 30/30 (7 new composed-seam cases),
+      alloy-config-integrity 11/11, alloy-manifest-declaration 5/5, core-boundary 1/1 — 47/47, no hang.)_
+- [x] **No regression** — 015 config-integrity (hold + override) **standalone** tests stay green (no ceiling
+      passed; the config-integrity inner block is byte-identical, the guard reduces to `configIntegrity` when
+      no ceiling); the honest wrapped-SDK dispatch + coalescing + 016-01's GA4 seam stay green (83/83 neighborhood).
+- [x] Reviews: compliance + craft + reconciliation recorded pass (spike-light — reuses 016-01's control +
+      015's already-arch-reviewed seam; independent Opus review of the Sonnet implementer's diffs).
+- [x] Deviation log + reconciliation sweep; the 012-04 sentinel flip recorded; the
       chamber-grounded-egress-probe + multi-tenant-pin (second-origin tenant coverage) + dynamic-sync-allowlist
       + representative-AAM-re-run residuals tracked in `docs/refinement-todo.md`; `docs/releases/mvp3.md`
       updated (spec 016 complete).
-- [ ] **No live identifiers committed** — synthetic datastreams; real Adobe **hostnames** are public infra
-      (not secrets); the diagnostic names the destination origin+path, never a user identifier.
+- [x] **No live identifiers committed** — synthetic datastreams (`11111111`/`99999999`); real Adobe
+      **hostnames** are public infra (not secrets); the diagnostic names the destination origin+path, never a
+      user identifier.
+
+### Deviation log
+
+- **The reconciliation is a seam-only behavior; 015 config-integrity is untouched.** In
+  `dispatchInterceptedFetch`: (A) the ceiling runs first on every egress (hold undeclared); (B)
+  config-integrity is gated `configIntegrity && (!endpointCeiling || hostOf(m.url) === pinnedHost)` — with
+  no ceiling that reduces to `configIntegrity` (015 standalone, byte-identical inner block); (C) an else-branch
+  emits a `unpinned-declared-origin` **warn** disclosure when both controls are wired and a declared origin ≠
+  `pinnedHost` (the tenant-coverage gap made observable — dormant in the single-origin shipped config).
+- **Sentinel flip collapsed 2 tests → 1 + dead-code removal (implementer, disclosed).** The old 012-04
+  companion drove fetches through the egress-confinement seam (the wrong seam — enforcement now lives at the
+  wrapped-SDK seam); it was replaced by asserting `checkEndpointCeiling` directly against the manifest
+  (declared → allow, undeclared → hold), and the now-unused fake-alloy helpers were removed. The real
+  E2E-at-the-seam proof is in `test/wrapped-sdk-host.test.js`.
+- **Accepted (minor):** no new top-of-file docstring paragraph in `core/wrapped-sdk-host.js` (the
+  reconciliation is thoroughly inline-commented) — a convention-consistency nit the implementer flagged, not
+  a defect.
+
+### Reconciliation sweep
+
+- The endpoint ceiling now bites at the wrapped-SDK seam, reconciled with config-integrity (clean host+path /
+  tenant axis split); no new `core/` control (reuses 016-01's), no `core/ → rig/` import.
+- Reviews recorded: frame-critique (two rounds) + compliance + craft + reconciliation — all pass.
+- The 012-04 boundary sentinel is **flipped** (absence-of-gating → presence-of-gating).
+- `docs/refinement-todo.md`: the multi-tenant-pin, chamber-grounded-egress-probe, and
+  dynamic-sync-allowlist residuals tracked. `docs/releases/mvp3.md` marked **spec 016 complete**.
+- No inbox items; the tenant-coverage gap + floor breadth are named, surfaced, and probe-gated.
 
 **Anti-horizontal-phasing check:** after this slice, a compromised **alloy** chamber cannot redirect its
 egress to an undeclared destination (incl. a wrong path on the allowed host) — held at the (confined)

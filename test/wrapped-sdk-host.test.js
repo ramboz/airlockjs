@@ -537,3 +537,157 @@ describe("createWrappedSdkHost — config-integrity override option (spec 015-02
     expect(host.getState().overridden).toBe(0);
   }, 2000);
 });
+
+// createWrappedSdkHost — endpoint ceiling + config-integrity composition (spec 016-02, ADR-0006):
+// the E2E-at-the-COMPOSED-seam proof (AC6) that core/endpoint-ceiling.js's `checkEndpointCeiling`
+// (016-01) is wired into this SAME seam, reconciled with 015's config-integrity onto non-overlapping
+// axes — the ceiling runs FIRST on every intercepted egress (owns HOST+PATH); config-integrity's
+// tenant check is scoped to run only when there is NO ceiling, OR the destination host equals its OWN
+// `pinnedHost` (the interact) — so 015's control CODE is unchanged, and its no-ceiling standalone
+// tests (above, and test/alloy-config-integrity.test.js) stay green. Case (f) below re-confirms that
+// back-compat directly, against this same describe's fixtures.
+describe("createWrappedSdkHost — endpoint ceiling + config-integrity composition (spec 016-02)", () => {
+  const HONEST_DS = "11111111-1111-1111-1111-111111111111"; // synthetic — not a live datastream
+  const ATTACKER_DS = "99999999-9999-9999-9999-999999999999"; // synthetic
+  const INTERACT = "https://adobedc.demdex.net/ee/v1/interact";
+  const PIN = { pinnedHost: "adobedc.demdex.net", tenantKey: "configId", pinnedTenant: HONEST_DS };
+
+  /** A fresh fake chamber + spying dispatch + diagnostics collector, wired into a real host. */
+  function makeSpyingHost(opts) {
+    const chamber = makeFakeChamber();
+    const dispatched = [];
+    const diags = [];
+    const caps = {
+      egress: {
+        dispatch: async (req) => {
+          dispatched.push(req);
+          return { status: 200, statusText: "OK", headers: {}, body: "{}" };
+        },
+      },
+    };
+    const host = createWrappedSdkHost({ chamber, caps, onDiagnostic: (r) => diags.push(r), ...opts });
+    return { chamber, dispatched, diags, host };
+  }
+
+  it("(a) an UNDECLARED origin is HELD by the ceiling — zero real egress, before config-integrity ever runs", async () => {
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN, endpointCeiling: [INTERACT] });
+    const url = `https://evil.com/x?configId=${HONEST_DS}`; // honest tenant — the ceiling doesn't care, it never gets that far
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 1, url, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(0);
+    expect(msg.status).toBe(0);
+    expect(diags.find((d) => d.kind === "endpoint-ceiling")).toMatchObject({ level: "error", kind: "endpoint-ceiling", disposition: "held" });
+    expect(host.getState().ceilingHeld).toBe(1);
+    // config-integrity never ran — the ceiling short-circuited before it (non-overlapping axes).
+    expect(diags.find((d) => d.kind === "config-integrity")).toBeUndefined();
+    expect(host.getState().held).toBe(0);
+  }, 2000);
+
+  it("(a2) a WRONG PATH on the ALLOWED host is HELD by the ceiling — the path confinement 015 lacks", async () => {
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN, endpointCeiling: [INTERACT] });
+    const url = `https://adobedc.demdex.net/steal?configId=${HONEST_DS}`; // right host, wrong path, honest tenant
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 2, url, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(0);
+    expect(msg.status).toBe(0);
+    expect(diags.find((d) => d.kind === "endpoint-ceiling")).toMatchObject({ disposition: "held" });
+    expect(host.getState().ceilingHeld).toBe(1);
+    expect(host.getState().held).toBe(0); // config-integrity never reached
+  }, 2000);
+
+  it("(b) the declared interact + HONEST tenant is ALLOWED — dispatched, silent (no diagnostic)", async () => {
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN, endpointCeiling: [INTERACT] });
+    const url = `${INTERACT}?configId=${HONEST_DS}&requestId=r`;
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 3, url, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(1);
+    expect(msg.status).toBe(200);
+    expect(diags.length).toBe(0);
+    expect(host.getState().ceilingHeld).toBe(0);
+    expect(host.getState().held).toBe(0);
+  }, 2000);
+
+  it("(c) the declared interact + ATTACKER tenant is HELD by config-integrity — unchanged from 015", async () => {
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN, endpointCeiling: [INTERACT] });
+    const url = `${INTERACT}?configId=${ATTACKER_DS}&requestId=r`;
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 4, url, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(0);
+    expect(msg.status).toBe(0);
+    expect(diags.find((d) => d.kind === "config-integrity")).toMatchObject({ level: "error", kind: "config-integrity", disposition: "held" });
+    expect(host.getState().held).toBe(1);
+    expect(host.getState().ceilingHeld).toBe(0); // the ceiling allowed it (declared origin+path) — this hold is config-integrity's
+  }, 2000);
+
+  it("(d) the BENIGN reconciliation case: a declared 2nd origin with NO tenant key is ALLOWED, and the coverage gap is DISCLOSED", async () => {
+    const twoOrigins = [INTERACT, "https://edge.adobedc.net/ee/v2/collect"];
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN, endpointCeiling: twoOrigins });
+    const url = "https://edge.adobedc.net/ee/v2/collect"; // declared, but no configId at all
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 5, url, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(1); // ceiling allows it (declared); config-integrity is scoped OUT (not its pinnedHost)
+    expect(msg.status).toBe(200);
+    expect(diags.find((d) => d.kind === "config-integrity")).toMatchObject({
+      level: "warn",
+      kind: "config-integrity",
+      disposition: "unpinned-declared-origin",
+    });
+    expect(host.getState().held).toBe(0);
+    expect(host.getState().ceilingHeld).toBe(0);
+  }, 2000);
+
+  it("(e) the GAP case: an ATTACKER configId on the declared 2nd (non-pinnedHost) origin is ALLOWED by the controls — but SURFACED, never silent", async () => {
+    const twoOrigins = [INTERACT, "https://edge.adobedc.net/ee/v2/collect"];
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN, endpointCeiling: twoOrigins });
+    const url = `https://edge.adobedc.net/ee/v2/collect?configId=${ATTACKER_DS}`;
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 6, url, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    // The tenant-coverage gap is REAL: neither control holds an attacker tenant
+    // on a declared non-pinnedHost origin (the ceiling only owns host+path;
+    // config-integrity is scoped to pinnedHost) — proven here, not just
+    // asserted in prose (016-02 AC4/AC6e).
+    expect(dispatched.length).toBe(1);
+    expect(msg.status).toBe(200);
+    // ...but it is NEVER silent: the same disclosure diagnostic fires regardless
+    // of which tenant rides the declared-but-unpinned origin.
+    expect(diags.find((d) => d.kind === "config-integrity")).toMatchObject({
+      level: "warn",
+      disposition: "unpinned-declared-origin",
+    });
+    expect(host.getState().held).toBe(0);
+    expect(host.getState().ceilingHeld).toBe(0);
+  }, 2000);
+
+  it("(f) back-compat: config-integrity with NO endpointCeiling still holds a foreign host on its OWN host check (015 standalone, unweakened)", async () => {
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN }); // no endpointCeiling key at all
+    const url = `https://evil.com/ee/v1/interact?configId=${HONEST_DS}`;
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 7, url, method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(0);
+    expect(msg.status).toBe(0);
+    expect(diags.find((d) => d.kind === "config-integrity")).toMatchObject({ level: "error", kind: "config-integrity", disposition: "held" });
+    expect(host.getState().held).toBe(1);
+    expect(host.getState().ceilingHeld).toBe(0);
+  }, 2000);
+});

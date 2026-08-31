@@ -72,7 +72,8 @@
  * INCOMPLETE pin can't be re-derived to a valid destination, so it HOLDS even
  * under override.
  */
-import { checkConfigIntegrity, pinnedDispatchUrl } from "./config-integrity.js";
+import { checkEndpointCeiling } from "./endpoint-ceiling.js";
+import { checkConfigIntegrity, pinnedDispatchUrl, hostOf } from "./config-integrity.js";
 
 // Default diagnostics seam (mirrors core/airlock.js's `consoleDiagnostic`):
 // console-backed, so a caller that doesn't inject `onDiagnostic` still
@@ -99,6 +100,7 @@ function consoleDiagnostic(record) {
  *   },
  *   timeoutMs?: number,
  *   configIntegrity?: ({ pinnedHost: string, tenantKey: string, pinnedTenant: string, disposition?: ("hold" | "override") } | null),
+ *   endpointCeiling?: (readonly string[] | null),
  *   onDiagnostic?: (record: { level: string, kind: string, [k: string]: unknown }) => void,
  * }} opts
  * @returns {{
@@ -113,10 +115,11 @@ function consoleDiagnostic(record) {
  *     fatal: object | null,
  *     held: number,
  *     overridden: number,
+ *     ceilingHeld: number,
  *   },
  * }}
  */
-export function createWrappedSdkHost({ chamber, caps, timeoutMs = 5000, configIntegrity = null, onDiagnostic }) {
+export function createWrappedSdkHost({ chamber, caps, timeoutMs = 5000, configIntegrity = null, endpointCeiling = null, onDiagnostic }) {
   const diagnose = typeof onDiagnostic === "function" ? onDiagnostic : consoleDiagnostic;
   const state = {
     phases: [],
@@ -127,6 +130,7 @@ export function createWrappedSdkHost({ chamber, caps, timeoutMs = 5000, configIn
     fatal: null,
     held: 0,
     overridden: 0,
+    ceilingHeld: 0,
   };
 
   let queuedEvent = null;
@@ -141,10 +145,36 @@ export function createWrappedSdkHost({ chamber, caps, timeoutMs = 5000, configIn
    * settle, or vice versa) with a per-call `settled` flag.
    */
   function dispatchInterceptedFetch(m) {
+    // (A) ENDPOINT CEILING (spec 016-01/016-02, ADR-0006): owns HOST+PATH, runs
+    // on EVERY intercepted egress, BEFORE config-integrity and BEFORE
+    // caps.egress.dispatch — an undeclared destination must never reach the
+    // tenant check or the real fetch. Absent `endpointCeiling`, this control is
+    // skipped entirely (back-compat with 014-01/015 callers that never pass it).
+    if (endpointCeiling) {
+      const c = checkEndpointCeiling(m.url, endpointCeiling);
+      if (c.verdict === "hold") {
+        state.ceilingHeld += 1;
+        diagnose({ level: "error", kind: "endpoint-ceiling", disposition: "held", destination: c.destination, reason: c.reason });
+        // HOLD: no real egress, and config-integrity never runs on this dispatch
+        // — same fail-closed response shape as a config-integrity hold below.
+        chamber.postMessage({ type: "intercepted-fetch-response", id: m.id, status: 0, statusText: "held at the seal: endpoint-ceiling", body: "" });
+        return;
+      }
+    }
+
     // Config-integrity (spec 015-01/02, ADR-0011): checked BEFORE anything else
-    // — a HELD dispatch must not count as a real dispatch (mainDispatch stays
-    // accurate) and must not reach caps.egress.dispatch (no real egress).
-    if (configIntegrity) {
+    // reaches egress — a HELD dispatch must not count as a real dispatch
+    // (mainDispatch stays accurate) and must not reach caps.egress.dispatch (no
+    // real egress).
+    //
+    // (B) AXIS RECONCILIATION (016-02 AC2): once a ceiling is ALSO wired, it has
+    // already confirmed (above) that this destination is a DECLARED host+path —
+    // config-integrity's remaining job narrows to the TENANT, so it is scoped to
+    // requests aimed at its OWN `pinnedHost` (the interact). Absent a ceiling,
+    // config-integrity runs on every egress exactly as 015 shipped it
+    // (standalone, unchanged — the block below is byte-identical to 015).
+    const runConfigIntegrity = configIntegrity && (!endpointCeiling || hostOf(m.url) === configIntegrity.pinnedHost);
+    if (runConfigIntegrity) {
       const check = checkConfigIntegrity(m.url, configIntegrity);
       if (check.verdict === "hold") {
         // A complete pin can be re-derived to a valid destination; an incomplete
@@ -169,6 +199,23 @@ export function createWrappedSdkHost({ chamber, caps, timeoutMs = 5000, configIn
           return;
         }
       }
+    } else if (endpointCeiling && configIntegrity && hostOf(m.url) !== configIntegrity.pinnedHost) {
+      // (C) DISCLOSURE (016-02 AC4/AC6d-e — the tenant-coverage gap made
+      // OBSERVABLE, never opened silently). Both controls are wired, and this
+      // destination is a DECLARED origin (the ceiling above already allowed it)
+      // that is NOT config-integrity's pinnedHost — so config-integrity did NOT
+      // check a tenant on it. The ceiling's host+path confinement is real, but
+      // this dispatch is tenant-BLIND. Only fires once a 2nd declared origin
+      // exists — the single-origin FLOOR this slice ships (016-02 AC3) has no
+      // non-pinnedHost declared origin, so this branch is dormant in the shipped
+      // alloy config; it exists for the day a second tenant-keyed origin is
+      // declared (which needs the multi-tenant-pin follow-up, not a blind add).
+      diagnose({
+        level: "warn",
+        kind: "config-integrity",
+        disposition: "unpinned-declared-origin",
+        reason: "config-integrity: declared origin is not the tenant-pinned host — tenant NOT checked here (multi-tenant-pin follow-up)",
+      });
     }
 
     state.mainDispatch.count += 1;
@@ -286,6 +333,7 @@ export function createWrappedSdkHost({ chamber, caps, timeoutMs = 5000, configIn
         fatal: state.fatal,
         held: state.held,
         overridden: state.overridden,
+        ceilingHeld: state.ceilingHeld,
       };
     },
   };

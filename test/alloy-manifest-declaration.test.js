@@ -1,22 +1,29 @@
-// Alloy manifest declaration-shape + declared-not-enforced sentinel — spec 012-04.
+// Alloy manifest declaration-shape + endpoint-ceiling boundary sentinel — spec 012-04, FLIPPED by 016-02.
 //
 // This slice is the forward-compat scaffolding half of MVP2: the alloy connector
 // DECLARES its full I/O surface (reads / capabilities / endpoints / purposes) so
-// MVP3's ADR-0006/0007 enforcement is a switch-flip, not a breaking retrofit. The
-// declaration is DECLARED, NOT ENFORCED (mvp2.md): no egress gate exists in core/
-// yet (the seal is unbuilt).
+// MVP3's ADR-0006/0007 enforcement is a switch-flip, not a breaking retrofit.
+// MVP2 (012-04) declared this WITHOUT enforcing it (no egress gate existed in
+// core/ yet — the seal was unbuilt). MVP3 (spec 016-02) FLIPS that: the reused
+// 016-01 control (`core/endpoint-ceiling.js`'s `checkEndpointCeiling`) is now
+// wired into the wrapped-SDK dispatch seam (`core/wrapped-sdk-host.js`'s
+// `dispatchInterceptedFetch` — see test/wrapped-sdk-host.test.js's composed-seam
+// describe block for the full E2E proof AT that seam) and enforces
+// `manifest.endpoints` as a CEILING, not advisory.
 //
-//   AC1 — the manifest populates `endpoints` (advisory, ADR-0006) + `purposes`
-//         (the ADR-0007 per-declared-I/O consent-purpose annotation).
-//   AC2 — a boundary SENTINEL: an alloy `interact` egresses WHETHER OR NOT its
-//         host matches a declared endpoint (manifest.endpoints is advisory).
+//   AC1 — the manifest populates `endpoints` (ADR-0006) + `purposes` (the
+//         ADR-0007 per-declared-I/O consent-purpose annotation).
+//   AC2 — a boundary SENTINEL, FLIPPED (016-02 AC3): an alloy `interact` to a
+//         DECLARED origin+path is ALLOWED by the reused control; to an
+//         UNDECLARED origin+path it is HELD. manifest.endpoints is now an
+//         enforced ceiling, not advisory.
 //
 // Alloy is faked here exactly as every other alloy unit test fakes it (the real
-// stock bundle needs a browser — that is the rig's job); these pin the
-// declaration SHAPE and the absence-of-gating boundary against that fake.
+// stock bundle needs a browser — that is the rig's job); this pins the
+// declaration SHAPE and the (now-enforced) boundary against that fake.
 import { describe, it, expect, vi } from "vitest";
 import { createAlloyConnector } from "../connectors/alloy/connector.js";
-import { applyEgressConfinement } from "../core/egress-confinement.js";
+import { checkEndpointCeiling } from "../core/endpoint-ceiling.js";
 
 /** ADR-0007's starter taxonomy — the Consent Mode v2 four + functional/personalization. */
 const ADR_0007_TAXONOMY = new Set([
@@ -32,16 +39,6 @@ const baseConfig = () => ({
   datastreamId: "00000000-0000-0000-0000-000000000000",
   orgId: "SPIKE@AdobeOrg",
   alloy: vi.fn(() => Promise.resolve()),
-});
-
-const pageView = (overrides = {}) => ({
-  seq: 1,
-  type: "page_view",
-  ts: 10,
-  params: { page_location: "https://airlock.example/", page_title: "airlock" },
-  payload: {},
-  snapshot: {},
-  ...overrides,
 });
 
 describe("alloy manifest declaration-shape (spec 012-04 AC1)", () => {
@@ -97,116 +94,36 @@ describe("alloy manifest declaration-shape (spec 012-04 AC1)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// AC2 — the declared-NOT-enforced boundary SENTINEL.
+// AC2 — the endpoint-ceiling boundary SENTINEL (FLIPPED, spec 016-02 AC3).
 //
-// The manifest does NOT gate egress in MVP2: no egress gate exists in core/ at
-// all (the seal is unbuilt — spec Assumptions). The sentinel shows an `interact`
-// egresses whether or not it matches a declared endpoint — proving
-// manifest.endpoints is ADVISORY (ADR-0006), not a ceiling.
+// MVP2 (012-04) this sentinel asserted an ABSENCE of gating: an `interact`
+// egressed whether or not it matched a declared endpoint, proving
+// manifest.endpoints was advisory. Enforcement now EXISTS (spec 016):
+// core/endpoint-ceiling.js's `checkEndpointCeiling` (016-01) is wired into the
+// wrapped-SDK dispatch seam (core/wrapped-sdk-host.js's
+// `dispatchInterceptedFetch`, 016-02), reconciled with 015's config-integrity —
+// see test/wrapped-sdk-host.test.js's composed-seam describe block for the full
+// E2E proof AT that seam. This sentinel now asserts the PRESENCE of the gate
+// directly against the real manifest + the real reused control: a declared
+// origin+path verdicts "allow"; an undeclared one verdicts "hold".
 //
-// FRAMING: this sentinel asserts an ABSENCE of gating, so it does NOT map to the
-// "fail on feature-removal" rule. It fails the moment MVP3 enforcement is *added*
-// (an endpoint ceiling that blocks the undeclared host makes the "undeclared still
-// egresses" assertion go red). The companion test below exercises exactly that red
-// condition against a HYPOTHETICAL ceiling, proving the sentinel is non-vacuous.
-//
-// HONEST LIMIT: this sentinel cannot distinguish "the manifest is deliberately
-// non-enforcing" from "the seal is simply unbuilt" — both hold in MVP2. It guards
-// the declared-not-enforced boundary until MVP3, no finer.
+// HONEST LIMIT (unchanged framing from 012-04): this sentinel pins the
+// manifest's declared set against the control's verdict; that the seam actually
+// CALLS this control on every egress, before any real dispatch, is proven in
+// test/wrapped-sdk-host.js, not here.
 // ---------------------------------------------------------------------------
-
-/**
- * A fake alloy that models alloy's real egress: on `sendEvent` it issues its own
- * worker-side `fetch` to the interact endpoint (the egress the chamber intercepts,
- * R-004). The interact host is a parameter so the sentinel can target a DECLARED
- * vs an UNDECLARED endpoint. `configure` is a no-op.
- */
-function fakeAlloyEgressingTo(interactUrl, mediatedFetch) {
-  return vi.fn(async (command) => {
-    if (command === "sendEvent") {
-      await mediatedFetch(interactUrl, {
-        method: "POST",
-        body: JSON.stringify({
-          events: [{ xdm: { eventType: "web.webpagedetails.pageViews" } }],
-          query: { identity: { fetch: ["ECID", "CORE"] } },
-        }),
-      });
-      return {};
-    }
-    return undefined;
-  });
-}
-
-/**
- * The chamber's SOLE network surface in MVP2: the mediated `fetch` preserved by
- * egress confinement (spec 012-01 AC5). It is host-AGNOSTIC — it withholds other
- * network primitives, not particular hosts. Records every URL it dispatches.
- */
-function confinedMediatedFetch() {
-  const egressed = [];
-  const scope = {
-    fetch: (url) => {
-      egressed.push(url);
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
-    },
-    navigator: {},
-  };
-  const record = applyEgressConfinement(scope);
-  return { fetch: scope.fetch, egressed, record };
-}
-
-describe("alloy declared-NOT-enforced boundary sentinel (spec 012-04 AC2)", () => {
-  it("SENTINEL: an alloy `interact` egresses WHETHER OR NOT its host is a declared endpoint (manifest.endpoints is advisory)", async () => {
+describe("alloy endpoint-ceiling boundary sentinel (spec 012-04 AC2, flipped by 016-02 AC3)", () => {
+  it("SENTINEL: an interact to the DECLARED endpoint is ALLOWED; to an UNDECLARED origin+path it is HELD (checkEndpointCeiling now enforces manifest.endpoints, spec 016)", () => {
     const { manifest } = createAlloyConnector(baseConfig());
     const declared = manifest.endpoints[0]; // the demdex interact host, declared
     const undeclared = "https://sink.not-declared.example/ee/v1/interact";
     expect(manifest.endpoints).toContain(declared);
     expect(manifest.endpoints).not.toContain(undeclared);
 
-    const { fetch: mediatedFetch, egressed, record } = confinedMediatedFetch();
-    // Confinement leaves the mediated fetch as the sole surviving network surface...
-    expect(record.fetchPreserved).toBe(true);
-
-    // ...and drive the real connector to an interact at the DECLARED host, then at
-    // an UNDECLARED host. Nothing consults manifest.endpoints on the way out.
-    for (const url of [declared, undeclared]) {
-      const connector = createAlloyConnector({ ...baseConfig(), alloy: fakeAlloyEgressingTo(url, mediatedFetch) });
-      await connector.init({});
-      await connector.handle(pageView());
-    }
-
-    // The load-bearing assertion: the UNDECLARED host egressed unblocked. No
-    // manifest-endpoint gate exists in MVP2. This is an ABSENCE of gating — it
-    // goes RED the moment MVP3 adds an endpoint ceiling that holds the undeclared
-    // host at the seal.
-    expect(egressed).toContain(declared);
-    expect(egressed).toContain(undeclared);
-  });
-
-  it("SENTINEL is non-vacuous: a HYPOTHETICAL MVP3 endpoint ceiling BLOCKS the undeclared host — the red condition the sentinel guards", async () => {
-    const { manifest } = createAlloyConnector(baseConfig());
-    const undeclared = "https://sink.not-declared.example/ee/v1/interact";
-    const raw = confinedMediatedFetch();
-
-    // Model MVP3's endpoint ceiling: wrap the mediated fetch to enforce
-    // manifest.endpoints (declared∩ host — ADR-0006 flip advisory→authoritative).
-    const originOf = (u) => { try { return new URL(u).origin; } catch (e) { return u; } };
-    const declaredOrigins = new Set(manifest.endpoints.map(originOf));
-    const ceilingFetch = (url, opts) => {
-      if (!declaredOrigins.has(originOf(url))) {
-        throw new Error("held at the seal: undeclared endpoint (MVP3 endpoint ceiling)");
-      }
-      return raw.fetch(url, opts);
-    };
-
-    const connector = createAlloyConnector({ ...baseConfig(), alloy: fakeAlloyEgressingTo(undeclared, ceilingFetch) });
-    await connector.init({});
-
-    // Under the hypothetical ceiling the undeclared interact is HELD — so the
-    // sentinel above (which asserts it egresses) necessarily fails once MVP3
-    // enforcement lands. Proves the sentinel is a real boundary guard, not a
-    // tautology.
-    await expect(connector.handle(pageView())).rejects.toThrow(/held at the seal/i);
-    expect(raw.egressed).not.toContain(undeclared);
+    // The load-bearing assertion: enforcement now EXISTS — the inverse of the
+    // 012-04 "egresses either way" assertion. The declared origin+path is
+    // allowed; the undeclared one is held at the seal.
+    expect(checkEndpointCeiling(declared, manifest.endpoints)).toMatchObject({ verdict: "allow" });
+    expect(checkEndpointCeiling(undeclared, manifest.endpoints)).toMatchObject({ verdict: "hold" });
   });
 });
