@@ -1,8 +1,9 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 dependencies: []
 last_verified: 2026-08-30
 frame_review: true
+claimed_by: main
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about
@@ -47,7 +48,7 @@ correction) and stays **injectable** (a stricter policy slots via the same seam)
 **Acceptance Criteria:**
 
 1. **`setContent`'s default sanitizes before writing.** The default `setContent` in `createDomCapability`
-   (dom.js) becomes `(el, content) => el.innerHTML = sanitizeHtml(content)` (via the TT/DI write path, AC6) —
+   (dom.js) becomes `(el, content) => el.innerHTML = sanitizeHtml(content)` (via the TT/DI write path, AC5) —
    **not** raw `content`. A caller that passes its own `opts.setContent` still overrides completely
    (injectable, unchanged). Observable: with the default seam, `fill('<img src=x onerror="alert(1)">')`
    leaves the box's content **free of the `onerror` attribute**; the `<img>` (benign) may remain.
@@ -80,11 +81,16 @@ correction) and stays **injectable** (a stricter policy slots via the same seam)
    **whose `createHTML` runs `sanitizeHtml`** when TT is available (so sanitization and TT-stringify are one
    atomic step — there is no window where an *un*sanitized string is trusted), and falls back to
    `sanitizeHtml` + a plain-string assignment when TT is absent (non-TT browsers, the vitest shim) or when
-   creating a policy throws (a restrictive `trusted-types` CSP directive — caught, not fatal). **Grounding-
-   honest:** whether airlock may create a *named* TT policy depends on the host's `trusted-types` CSP
-   directive (R-005:79 shows `require-trusted-types-for 'script'` but does not pin the policy-name
-   allowlist) — so policy creation is **best-effort with a sanitize-anyway fallback**, never a hard
-   dependency. Observable (rig, browser): under the testbed CSP, a `fill` of a malicious offer writes the
+   creating a policy throws (a restrictive `trusted-types` CSP directive — caught, not fatal). **Never breaks
+   the page:** the whole write stays inside a try/catch (dom.js:98's existing swallow posture) — even the
+   pathological edge (active `require-trusted-types-for 'script'` + no registered `default` policy + a blocked
+   named-policy creation, where a plain-string `innerHTML` assignment would itself throw) is caught, not
+   fatal. On EDS this edge does not arise (the boilerplate always registers a `default` policy, scripts.js:61,
+   and 012-03 already ships the raw write under this same model), so it is not a regression — covered for
+   defensiveness. **Grounding-honest:** whether airlock may create a *named* TT policy depends on the host's
+   `trusted-types` CSP directive (R-005:79 shows `require-trusted-types-for 'script'` but does not pin the
+   policy-name allowlist) — so policy creation is **best-effort with a sanitize-anyway fallback**, never a
+   hard dependency. Observable (rig, browser): under the testbed CSP, a `fill` of a malicious offer writes the
    sanitized markup with no `securitypolicyviolation` and no thrown error; the `onerror` never runs.
 6. **No behavioural regression to reserve/prehide/fill/release.** The layout-box reserve, prehide/reveal,
    timeout backstop, markers (`data-airlock-reserved`/`-filled`), and `release()` are byte-unchanged; only
@@ -101,9 +107,13 @@ correction) and stays **injectable** (a stricter policy slots via the same seam)
         **No real parse here** (Node has no `DOMParser`).
       - **Playwright rig** (real chromium) — the parse→strip→serialize **security vector table**: each
         vector (`<img src=x onerror=…>`, `<a href=javascript:…>`, `<script>`, `<iframe>`/`<object>`/…)
-        absent from the output; a benign authored offer round-trips unchanged (modulo parser normalization);
-        the mXSS-adjacent cases. This is the meaningful proof — it MUST run against a real DOM, not be
-        skipped or faked.
+        absent from the output; a benign authored offer round-trips unchanged (modulo parser normalization).
+        **mXSS scoping (reconcile with AC4):** the rig asserts only that the **denylist-reachable** cases are
+        neutralized — i.e. that parse-normalization does not *resurrect* a stripped vector (a `<noscript>`/
+        nesting case where the strip must still hold after re-serialize). Genuinely **parser-differential
+        mXSS bypasses are NOT asserted defended** (AC4's honest boundary — the injectable seam's job); if the
+        rig includes such a case it is a **documented known-boundary** (xfail/annotated), never a green
+        "defended" claim. This is the meaningful proof — it MUST run against a real DOM, not be faked.
       - `test/eds-dom-reserve.test.js` updated: the default `fill` now sanitizes — assert via the DI seam
         (inject a `setContent`/parser spy) that sanitization is invoked and a passed `setContent` still
         overrides; the real-`onerror`-stripped assertion belongs to the rig leg, not this Node file.
@@ -115,7 +125,10 @@ correction) and stays **injectable** (a stricter policy slots via the same seam)
       CSP-honest rig, running the real-chromium parse: a malicious offer's `onerror`/`javascript:` is
       stripped **and does not fire** under `require-trusted-types-for 'script'` (no `securitypolicyviolation`,
       no thrown error, the handler never runs), plus the benign round-trip. Wire it as an `npm run rig:*`
-      script (browser-CI leg, like `rig:isolation`). This is the security proof — do NOT downgrade it to a
+      script **AND as a GATING step in `.github/workflows/ci.yml`'s `browser-oracle` job** (alongside
+      `rig:isolation`/`rig:uc1`) — merely adding the npm script does NOT gate it (frame-critique
+      reconciliation note); the reconciliation sweep must verify the CI wire-up, not just the script's
+      existence. This is the security proof — do NOT downgrade it to a
       DI'd `trustedTypes`/parser shim in a Node test (a shimmed parse is the false-confidence the frame-
       critique flagged); the Node test covers only the pure predicates.
 - [ ] Reviews: **frame-critique** (this slice's load-bearing claim — "the TT policy is compatibility not
@@ -124,7 +137,13 @@ correction) and stays **injectable** (a stricter policy slots via the same seam)
       vs adapter home + the DI'd-parser boundary) + reconciliation, recorded pass (independent Opus review of
       the Sonnet diffs).
 - [ ] Deviation log + reconciliation sweep; refinement-todo item **k** marked RESOLVED; mvp3.md release-check
-      security criterion (`reserveSpace innerHTML path gated by a sanitizer`) checked.
+      security criterion (`reserveSpace innerHTML path gated by a sanitizer`) checked. **Log the deliberate
+      deviations (frame-critique reconciliation notes):** (a) this slice's load-bearing AC (the active-markup
+      vector table) is intentionally proven ONLY in the browser-CI leg, NOT `npm test` — consistent with the
+      project's real-DOM-proof posture (007-02/007-05), logged so a future reader does not read the vitest
+      suite as the security gate; (b) confirm + record which `sanitizeHtml` home was chosen (`core/` with a
+      DI'd parser vs alongside `dom.js`) and, if `core/`, that `test/core-boundary.test.js` was updated for
+      the injected-parser (import-free) boundary.
 - [ ] **No live identifiers committed** — synthetic offer HTML only (no real ECIDs/datastream/org in
       fixtures).
 
