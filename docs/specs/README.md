@@ -55,7 +55,7 @@
 | [016-mvp3-endpoint-ceiling-enforcement](016-mvp3-endpoint-ceiling-enforcement/spec.md) | 016-02 — alloy: wrapped-SDK endpoint ceiling reconciled with config-integrity (the FLOOR archetype) | **DONE** |  |
 | [017-mvp3-purpose-vector-consent](017-mvp3-purpose-vector-consent/spec.md) | 017-01 — data-use consent reshape + the consent machinery (the grounded first point) | **DONE** |  |
 | [017-mvp3-purpose-vector-consent](017-mvp3-purpose-vector-consent/spec.md) | 017-02 — storage consent deny (cookie capability + ephemeral id) | **DONE** |  |
-| [017-mvp3-purpose-vector-consent](017-mvp3-purpose-vector-consent/spec.md) | 017-03 — seal hold-pending + strict-drop | REVIEWED (main) |  |
+| [017-mvp3-purpose-vector-consent](017-mvp3-purpose-vector-consent/spec.md) | 017-03 — seal hold-pending + strict-drop | **DONE** |  |
 
 ## Abandoned slices
 
