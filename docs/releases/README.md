@@ -12,7 +12,7 @@ they stop informing a current release decision.
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| [MVP3](mvp3.md) | Secure the I/O seams — turn ADR-0006/0007 declaration into enforced least-privilege against alloy's characterized behaviour. **Risk-First lead: the creds-gated live-Alloy re-probe** (real Edge response / demdex fan-out / cluster routing); then the wrapped-SDK contract-freeze + core-integration/hardening debt. | Inputs: [012-04 characterization](../specs/012-mvp2-alloy-chamber/slice-04-manifest-characterize.md), [refinement-todo](../refinement-todo.md). |
+| _None yet_ | _-_ | _-_ |
 
 ## Committed
 
@@ -32,8 +32,9 @@ Recently shipped release plans stay here only while they inform current decision
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| [MVP2](mvp2.md) | **Cut `v0.2.0` (2026-08-29)** — the wrapped-SDK generalization proof: stock alloy runs unmodified in a chamber (coalesced identity, CWV-safe personalization) against the unchanged MVP1 contract. A proof, not a production rollout. | JIG handoff: [MVP3](mvp3.md) (live-Alloy re-probe + enforcement) |
 | [MVP1](mvp1.md) | Martech is the dominant source of CWV regression and a live supply-chain risk, | JIG handoff: [probes/eds-testbed](../../probes/eds-testbed/), [contracts/](../../contracts/README.md) |
+| [MVP2](mvp2.md) | MVP1 proves the runtime and the **wire-protocol** connector archetype (GA4, | JIG handoff: [MVP3](mvp3.md), [spec 011](../specs/011-mvp2-coherency-probe/spec.md), [spec 012](../specs/012-mvp2-alloy-chamber/spec.md) |
+| [MVP3](mvp3.md) | MVP2 proves alloy isolates and runs in a chamber but deliberately leaves its I/O seams unsecured and alloy's config-driven behaviour uncharacterized. MVP3 secures the seams (ADR-0006/0007 enforcement) against alloy's real, measured behaviour — turning the declaration shape established in MVP2 into enforced least-privilege. | JIG handoff: [spec 012-04 §Findings](../specs/012-mvp2-alloy-chamber/slice-04-manifest-characterize.md) |
 
 ## Dropped
 

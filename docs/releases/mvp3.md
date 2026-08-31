@@ -2,7 +2,17 @@
 
 ## Status
 
-`candidate`
+`shipped`
+
+**Shipped as `v0.3.0` (2026-08-31).** Release-check verdict: **ship** — all Include cutline items + both
+Risk-First items DONE and landed on `main`, CI-green (incl. the new gating sanitizer security rig), no no-go
+conflicts, no unresolved rabbit holes, no breaking change to the MVP1/MVP2 contracts. **Honest caveats
+(neither blocking):** (1) the appetite was never formally fixed (`TBD` below) — moot now that the full
+Include arc delivered; (2) release-check criterion 1 ("a compromised alloy cannot exfiltrate") is met for
+alloy via **confinement + config-integrity + endpoint-ceiling**, while alloy-side **payload/consent
+governance** is the deliberately-**Split** item (probe-feasibility-first) — a named residual, not in the
+committed Include. Enforcement is delivered **GA4 / wire-protocol first**; the alloy-side governance second
+placement is tracked in [refinement-todo](../refinement-todo.md).
 
 Allowed statuses: `candidate`, `committed`, `shipping`, `shipped`, `dropped`.
 Do not move a plan from `candidate` to `committed` without an explicit user decision.
