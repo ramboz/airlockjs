@@ -1,4 +1,4 @@
-# Release Plan: MVP5 — Adoption & 1.0 Readiness
+# Release Plan: MVP5 — Inspector & the RUM Layer (make it visible, own the observability)
 
 ## Status
 
@@ -9,65 +9,67 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 
 ## Problem / Baseline
 
-- The runtime (MVP1), both connector archetypes (MVP2), the enforcement teeth (MVP3), and — pending MVP4 —
-  the inspector are all **proven**, but airlock is **not yet adoptable** by a real EDS team:
-  - **Distribution is unresolved (OQ8):** git-subtree (matching the aem-martech / aem-experimentation
-    convention) vs npm. There is no decided way for an EDS site to *consume* airlock.
-  - **Production-hardening residuals remain:** the **dispose / idempotent-boot guard** (OQ12 item 4 — a
-    re-boot leaks a Worker + unload listeners and overwrites `window.airlock`); the **name-scoped cookie-grant
-    wrapper** (OQ13 item 4 — `adapters/eds/cookies.js` is the raw whole-jar backing; a connector grant needs a
-    default-deny name-scope + name-validation-on-set against attribute injection); **`reserveSpace`'s
-    eager-phase production wiring** (spec 018 item h — the rig proves the mechanism, not the pre-paint
-    production wiring); and smaller nits (the `alloy-chamber` blanket `eslint-disable` scope).
-  - **The API is pre-1.0** — every release note says "not yet a stability commitment." Adoption needs a
-    stability contract.
-  - **airlock has never run on a real production site** — only the synthetic testbed + rigs.
-- **Why now:** after MVP4 makes the enforcement *visible*, the remaining gap to adoption is *consumption +
-  hardening + stability + a real-site proof.*
+- MVP4 completed **the core AEM stack** — GA4 + **governed** alloy + a hosted `helix-rum` connector. But two
+  gaps remain before the trust + value story is complete:
+  - **The enforcement + governance is still invisible.** MVP3's seal/ceiling/consent/payload decisions and
+    MVP4's alloy governance surface only as redacted 009-02 console/diagnostic records. A developer cannot
+    see, for a given beacon, **why it fired, held at the seal, was gated, or had a field stripped.** The
+    vision names **"first-class diagnostics/inspector"** as in-scope (§ Scope) + a differentiator vs Zaraz's
+    opacity (§ Competitive); **OQ7** left its scope open. An enforced-and-governed-but-invisible boundary is
+    hard to trust, debug, or sell.
+  - **RUM is *hosted* but not *owned*.** MVP4 sandboxes `helix-rum` as a connector (the safe, generic choice).
+    But airlock is **CWV-first and already measures the same CWV/INP/CLS signals off-thread** for its own
+    diagnostics — so it can **subsume** the RUM layer: emit its own **governed** RUM and *replace* the hosted
+    `helix-rum` where the deployment wants it ([R-007](../research/R-007-real-prod-stack-breadth.md) §5). And
+    the before/after **CWV scoreboard** (the vision's punchline, OQ6) is still only an advisory rig on the
+    synthetic testbed.
+- **Why now:** MVP4 built the core stack + all the governance *decisions* (the inspector's raw material) and
+  *hosted* RUM (the subsume's foundation). Now make it all **visible** and **own the observability layer.**
 
 ## Appetite
 
-- **TBD — a user decision.** _Proposed scope shape:_ the **turn-the-proof-into-a-product** release. Spend it:
-  the **distribution decision + setup first** (it gates how everything is consumed), then the
-  production-hardening residuals + `reserveSpace` production wiring, then the **1.0 API pin**, validated on a
-  **real production site** (the customer stack — see the breadth benchmark). Variable scope: how much of the
-  API is frozen at 1.0 vs left pre-1.0; whether the real-site validation is the customer site or a
-  representative EDS project.
+- **TBD — a user decision.** _Proposed scope shape:_ **inspector-first** (the visibility that de-risks
+  adoption), then the **airlock-as-RUM-layer** subsume + the **CWV scoreboard** as a first-class output.
+  Variable scope: how rich the inspector goes (a data API + console panel vs a visual overlay); whether the
+  RUM subsume *replaces* `helix-rum` or runs alongside it; whether the CWV proof runs on the testbed only or
+  the real customer stack.
 
 ## Solution Outline
 
-- Decide + implement **distribution** (OQ8) — the consumption channel for the EDS audience (git-subtree à la
-  aem-martech, and/or npm), so a site can drop airlock in.
-- Land the **production-hardening residuals**: dispose/idempotent-boot guard (OQ12-4), name-scoped
-  cookie-grant wrapper + name validation (OQ13-4), `reserveSpace` eager-phase production wiring (018-h),
-  eslint-scope nit.
-- Commit a **1.0 API stability contract** — the connector interface + capability API + `push()` surface,
-  pinned as stable (the surfaces MVP1–4 proved).
-- **Validate on a real production site** (the customer prod stack) with CWV preserved — the adoption proof.
+- **An event-sourced developer inspector.** airlock already has the append-only **event log** + the
+  synchronous **projection** + the **009-02 diagnostic stream** (drops, crashes, seal holds, ceiling denies,
+  consent verdicts, payload strips — now including MVP4's alloy governance). Surface a queryable **"why did
+  this beacon fire / hold at the seal / get gated / get stripped"** view — the vision's named inspector.
+  Reuse `ramboz/aem-cwv-helper`'s `observeSlowInteractions`/`observeLayoutShifts` (§ Stack). **Zero
+  interaction-path cost** (it measures INP; it cannot wreck it).
+- **airlock as the RUM layer (subsume).** airlock emits its own **governed** RUM from the CWV/INP/CLS it
+  already measures — resolving the MVP4 `helix-rum` *feed/replace/coexist* decision toward **replace** where
+  the deployment wants one governed, off-thread RUM emitter instead of a hosted vendor tag. *"airlock replaces
+  your RUM tag — off-thread, governed, and it's already measuring."*
+- **The CWV scoreboard as a first-class output.** Promote the advisory `cwv_budget` oracle into a reproducible
+  before/after scoreboard (airlock vs the naive multi-tracker stack — the 152ms→8ms story), ideally on a
+  realistic martech load (the customer stack).
 
 ## Risks / Rabbit Holes
 
-- **Distribution choice (subtree vs npm) shapes the whole consumption story** — a rabbit hole if litigated
-  forever; decide early with the EDS convention as the default.
-- **Real-site integration surfaces unknowns the testbed hides** (real CSP, real theme, real martech
-  interactions). The customer stack is the ideal substrate but is **beyond current connector support** (GA4 +
-  Adobe/alloy today), so the adoption proof is "airlock hosts the **supported subset** on a real page + CWV
-  preserved," **not** "airlock hosts the whole stack." Full-stack breadth is the long-term target — see
-  [R-007 the real-prod-stack breadth benchmark](../research/R-007-real-prod-stack-breadth.md).
-- **1.0 is a real commitment** — freezing the API before it is settled locks in mistakes. Freeze only the
-  surfaces MVP1–4 proved stable; keep the rest pre-1.0.
-- **The cookie-grant wrapper touches the identity/cookie boundary (OQ13)** — a security-sensitive surface; the
-  name-validation-on-set (attribute-injection defense) must be right.
+- **The inspector + the RUM emitter must be zero-CWV-cost *themselves*** — a diagnostics/RUM tool that adds
+  main-thread cost would violate the very INP-safe-by-construction invariant they exist to demonstrate. Read
+  the log/projection/diagnostic stream **off the hot path**; never fold work into capture.
+- **RUM double-counting / pipeline coexistence** — if airlock emits RUM *and* the EDS `sampleRUM` is still on
+  the page (or MVP4's hosted `helix-rum` is), the deployment must pick one authority or double-count. The
+  subsume must own the *replace* decision cleanly.
+- **Is the enforcement-decision stream already event-shaped?** Probe how much of the 009-02 surface is already
+  structured, queryable records vs needs new instrumentation, before scoping the inspector's data model.
+- **Inspector scope creep** — a hosted/remote trace-collection backend + UI is a rabbit hole; keep MVP5 to a
+  **local, drop-in dev inspector** (data API + a lightweight panel).
 
 ## No-Gos
 
-- No **1.0 stability commitment before the API is actually settled** (don't freeze prematurely).
-- No **non-EDS framework adapters** yet (Astro/Vercel/Jamstack are post-1.0 breadth — vision § Scope no-go for
-  first releases).
-- No **service-worker egress chokepoint / edge account requirement** (drop-in-JS default; SW is a later
-  progressive enhancement).
-- No **identity resolution / first-party cookie store** (vision no-go) — the cookie-grant wrapper *scopes
-  existing mediated access*, it does not build identity.
+- The inspector / RUM emitter must **not add interaction-path cost**.
+- No **session-replay / full DOM-mutation streaming** (vision no-go).
+- No **remote/hosted trace backend or account requirement** (drop-in-JS default).
+- **No new enforcement** — MVP5 makes MVP3/MVP4's teeth *visible* + owns RUM; it does not add teeth.
+- **No broader connector breadth** (pixel/forms/Segment/OneTrust) — MVP7+ ([R-007](../research/R-007-real-prod-stack-breadth.md)).
 
 ## Cutline
 
@@ -75,53 +77,46 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 
 | Item | Evidence | Rationale |
 |---|---|---|
-| **Distribution decision + setup** (OQ8: git-subtree and/or npm) | OQ8; aem-martech convention | A site cannot adopt what it cannot consume |
-| **Production-hardening residuals** — dispose/idempotent-boot guard (OQ12-4), name-scoped cookie-grant wrapper + name-validation (OQ13-4), `reserveSpace` eager-phase production wiring (018-h), eslint scope | refinement-todo OQ12/OQ13; spec 018 item h | Library-safe, security-safe, production-wired |
-| **1.0 API stability pin** — connector interface + capability API + `push()` surface | contracts/; every release note's pre-1.0 caveat | Adoption needs a stability contract |
-| **Real-production-site validation** — supported subset (GA4 + Adobe/alloy) on a real page, CWV preserved | Customer prod stack (R-007) | The adoption proof: airlock runs on a real site at ~zero CWV cost |
+| **Enforcement-decision inspector** — a queryable view over the event-log + 009-02 diagnostic stream ("why did this beacon fire / hold / get gated / get stripped"), + a lightweight dev panel | MVP3/MVP4 emit the decisions; vision § Scope | An enforced+governed boundary must be legible to be trusted; the differentiator vs Zaraz opacity |
+| **airlock as the RUM layer (subsume)** — airlock emits its own governed RUM, resolving MVP4's `helix-rum` feed/replace toward *replace* | R-007 §5; the MVP5 diagnostics substrate | The sharpest form of "one boundary, N payoffs" — airlock proves its own CWV payoff |
+| **Before/after CWV scoreboard as a first-class output** — promote `cwv_budget` from advisory | OQ6 / spec 007-03 | The vision's punchline, shown |
 
 ### Defer
 
 | Item | Evidence | Rationale |
 |---|---|---|
-| Non-EDS adapters (Astro / Vercel / Jamstack) | vision § Identity ("next") / § Scope no-go | Post-1.0 portability breadth |
-| Service-worker egress chokepoint; edge decision/egress drivers | vision § Scope | Later progressive enhancement; the seams exist, the drivers come later |
-
-### Split
-
-| Item | Evidence | Rationale |
-|---|---|---|
-| **Hosting the customer's *full* prod martech stack** — beyond current connectors | [R-007](../research/R-007-real-prod-stack-breadth.md) | A **breadth-validation target** that scopes the eventual connector roadmap (the pixel archetype, Segment, Marketo Forms, the OneTrust consent driver), NOT an MVP5 commit — and some tools (session-replay, live-chat, identity-resolution) are **architecturally excluded by design** (vision no-gos), so "100% of the stack" is never the goal |
+| Hosted/remote trace-collection UI + persisted historical traces | — | Drop-in dev inspector first |
+| Adoption / distribution / 1.0 | [MVP6](mvp6.md) | Productionize after observability |
+| Broader connector breadth (pixel, forms, Segment, OneTrust) | [R-007](../research/R-007-real-prod-stack-breadth.md) | MVP7+ |
 
 ### Risk-First
 
 | Item | Evidence | Rationale |
 |---|---|---|
-| **The distribution decision** (it gates consumption) | OQ8 | Everything downstream consumes through it |
-| **A real-site dry-run** — does airlock's supported subset run cleanly on the customer site's real page/CSP/theme, CWV preserved? | Customer stack (R-007) | Surfaces the real-integration unknowns before the 1.0 pin |
+| **Probe the 009-02 diagnostic stream** — are the enforcement decisions already emitted as structured, queryable events? | specs 009/015/016/017/019 + MVP4 alloy governance | Determines whether the inspector is a read-layer or needs new instrumentation |
+| **The RUM replace-vs-coexist decision** — one RUM authority (airlock) vs alongside `sampleRUM`/`helix-rum` | R-007 §5; MVP4 `helix-rum` connector | Avoids double-counting; settles the subsume's shape |
 
 ## JIG Handoff
 
-- Resolve **OQ8** (distribution) + **OQ12 item 4** (dispose/idempotent-boot) + **OQ13 item 4** (name-scoped
-  cookie-grant wrapper) + **spec 018 item h** (`reserveSpace` eager-phase wiring) here.
-- Pin the **1.0 API surface** as an external contract (`/jig:contracts`) — the connector interface, capability
-  API, `push()` surface.
-- New specs for distribution, the hardening residuals, the 1.0 pin, and the real-site validation.
+- Resolve **OQ7** (inspector scope) here.
+- The inspector **reads existing surfaces** (log, projection, 009-02 stream) — extend, don't rewrite. The RUM
+  emitter rides the same CWV-measurement substrate. New specs for the inspector data API + panel, the RUM
+  emitter (+ the `helix-rum` replace decision), and the CWV scoreboard headline.
+- Pin the inspector query/record shape + the RUM-emit shape as external contracts (`/jig:contracts`).
 
 ## Release-Check Criteria
 
-- An EDS site can **install + boot airlock via the decided distribution channel** (drop-in, no edge account
-  for the common case).
-- A **second boot does not leak** a Worker / listeners (dispose/idempotent-boot guard) — library-safe.
-- A connector cookie grant is **name-scoped + name-validated** (no raw whole-jar access; no attribute
-  injection).
-- `reserveSpace` is **wired into the EDS eager pre-paint phase in production** (not just rig-demonstrated).
-- The API carries a documented **1.0 stability commitment** for its frozen surfaces.
-- A **real production site runs airlock's supported connectors with CWV preserved** (before/after — the MVP4
-  scoreboard on a real page).
+- For any egress beacon, a developer can see **why** it fired / held / was gated / had a field stripped —
+  across GA4 **and** alloy.
+- airlock can **emit its own governed RUM** off-thread (the airlock-as-RUM-layer), with the
+  replace/coexist story clean (no double-count).
+- The **before/after CWV scoreboard** is a first-class, reproducible output (airlock vs naive multi-tracker).
+- The inspector + RUM emitter add **zero interaction-path cost** (measured).
+- No new enforcement behaviour changed.
 
 _No servo release-signal artifact exists for this plan yet; the release-check criteria are desired future
 evidence, not measured signals._
 
-_Last shaped: 2026-08-31 (shaped alongside MVP4, after MVP3 shipped `v0.3.0`; appetite TBD — proposed
-distribution-first shape)._
+_Last shaped: 2026-08-31 (became MVP5 when MVP4 was set to "the core AEM stack"; folds in the
+airlock-as-RUM-layer subsume that MVP4's host-`helix-rum` choice deferred; after MVP3 shipped `v0.3.0`;
+appetite TBD — proposed inspector-first shape)._

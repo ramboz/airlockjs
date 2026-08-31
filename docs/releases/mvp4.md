@@ -1,4 +1,4 @@
-# Release Plan: MVP4 — Inspector & Value Proof
+# Release Plan: MVP4 — The Core AEM Stack (governed alloy + RUM)
 
 ## Status
 
@@ -9,67 +9,63 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 
 ## Problem / Baseline
 
-- MVP3 shipped the enforcement teeth (endpoint ceiling, config-integrity, purpose-vector consent, payload
-  governance, `reserveSpace` sanitizer — all landed, `v0.3.0`) — but **every enforcement decision is
-  invisible.** It surfaces only as a redacted 009-02 console/diagnostic record. A developer cannot see, for a
-  given beacon, **why it fired, held at the seal, was gated by the ceiling, or had a field stripped.** An
-  enforced-but-invisible boundary is hard to trust, debug, or sell.
-- The vision names **"first-class diagnostics/inspector"** as **in scope** (product-vision § Scope) and a
-  **differentiator vs Cloudflare Zaraz's opacity** (§ Competitive landscape). **OQ7** ("inspector scope in
-  MVP1 vs later") is still open — this is where it lands.
-- Separately, the headline **value proof** — the before/after CWV scoreboard, the vision's *punchline* and the
-  servo oracle (OQ6) — exists only as an **advisory `cwv_budget` rig on the synthetic testbed**. It has never
-  been made a first-class, reproducible output on a realistic martech load. "Measure before optimizing —
-  diagnostics are first-class" is a stated design principle; today they are bolted-on.
-- **Why now:** MVP3 built all the enforcement *decisions* (seal holds, ceiling denies, consent verdicts,
-  payload strips) — the raw material for an inspector now **exists as events**. This is the moment to surface
-  them, before adoption (MVP5) needs them.
+- **The maintainer's framing (2026-08-31):** the *core of any AEM / Adobe site* is **GA4 + Adobe Experience
+  Cloud (alloy) + RUM.** Get those three running **and governed** in airlock and you cover the core of any
+  AEM stack. GA4 is done (governed, MVP1–3). The other two have gaps:
+  - **alloy is isolated but not *governed*.** MVP2 wrapped it; MVP3 gave it endpoint-ceiling + config-integrity
+    + confinement — but its **payload + consent governance was deliberately split** (probe-gated: stripping /
+    consent-injecting a *vendor-built XDM body* is fragile — [ADR-0012](../decisions/adr-0012-payload-governance.md)
+    Split, ADR-0007 alloy residual). So the security/compliance thesis is only *half* true for the archetype
+    (a stock untrusted vendor SDK) that most needs it.
+  - **RUM is unhosted.** `helix-rum-js` — Adobe/AEM's sampled RUM, on **every EDS page** already (`sampleRUM`
+    in `aem.js`) — is the third core piece and airlock doesn't yet host it ([R-007](../research/R-007-real-prod-stack-breadth.md)).
+  - **Low-hanging production residuals** from MVP1–3 "need to be closed" (see Cutline).
+- **Why now:** MVP3 built the governance machinery and [R-007](../research/R-007-real-prod-stack-breadth.md)
+  measured the real stack. The core is **one governance-completion + one connector + a handful of closures**
+  away.
 
 ## Appetite
 
-- **TBD — a user decision** (ripe to set now that MVP3 shipped). _Proposed scope shape (budget still the
-  user's to fix):_ this is a **make-visible** release, not new enforcement — spend it **inspector-first**: the
-  enforcement-decision inspector over the *existing* event-log + 009-02 diagnostic stream, then the CWV
-  scoreboard as a first-class output. Variable scope: how rich the inspector goes (a data API + console panel
-  vs a visual overlay), and whether the CWV proof runs on the synthetic testbed only or the **real customer
-  prod stack** (Risk-First, below).
+- **TBD — a user decision.** _Proposed scope shape:_ spend it **Risk-First** — the **alloy XDM-governance
+  feasibility probe first** (it decides whether alloy governance is a strip-at-seal or a read-minimization
+  fallback), then the `helix-rum-js` connector + the alloy governance + the low-hanging fruit as the budget
+  allows. Variable scope: how much alloy governance proves feasible (strip vs read-minimization); how much
+  low-hanging fruit closes.
 
 ## Solution Outline
 
-- **An event-sourced developer inspector.** airlock already has the append-only **event log** + the
-  synchronous **projection** + the **009-02 diagnostic stream** (drops, crashes, seal holds, ceiling denies,
-  consent verdicts, payload strips — emitted across specs 009/015/016/017/019). Surface a queryable **"why did
-  this beacon fire / hold at the seal / get gated / get stripped"** view over that existing stream — the
-  vision's named inspector. Reuse `ramboz/aem-cwv-helper`'s `observeSlowInteractions`/`observeLayoutShifts`
-  (per § Stack) as the perf-diagnostic substrate. Local + drop-in, dev-facing.
-- **The CWV scoreboard as a first-class output.** Promote the advisory `cwv_budget` oracle into a
-  **reproducible before/after scoreboard** (airlock vs the naive multi-tracker stack — the measured 152ms→8ms
-  INP p75 story), the vision's punchline, ideally on a realistic martech load (the customer stack), not just
-  the synthetic testbed.
+- **Host the `helix-rum-js` connector.** Bring Adobe's sampled RUM into airlock as a connector (wrapped-SDK /
+  beacon shape). On EDS, decide **feed / replace / coexist** with the `sampleRUM` already on the page.
+  (Airlock *being* the RUM layer — the subsume path — is deferred to MVP5; MVP4 **hosts** it.)
+- **Finish alloy governance.** Lead with a **feasibility probe** (à la MVP3's live-Alloy re-probe): can the
+  vendor-built XDM body be governed — sensitive-field strip + XDM consent injection — **without breaking it**?
+  Then bind airlock's *existing* governance (the MVP3 payload denylist + purpose-vector consent) at alloy's
+  wrapped-SDK seam ([`core/wrapped-sdk-host.js`](../../core/wrapped-sdk-host.js), the deferred *second
+  placement*). If the probe finds strip-at-seal infeasible, **fall back honestly to read-minimization** +
+  the confinement/config-integrity already in place.
+- **Close the low-hanging fruit** — the tracked, genuinely-quick production residuals (below).
 
 ## Risks / Rabbit Holes
 
-- **The inspector must be zero-CWV-cost *itself*.** A diagnostics tool that adds main-thread / interaction
-  cost would violate the very *INP-safe-by-construction* invariant it exists to demonstrate. It must read the
-  log/projection/diagnostic stream **off the hot path** — never fold work into capture.
-- **Is the enforcement-decision stream already event-shaped?** Probe how much of the 009-02 diagnostic surface
-  is already emitted as *structured, queryable* records vs needs new instrumentation, before scoping the
-  inspector's data model.
-- **The CWV proof is only credible under a *realistic* load.** The synthetic testbed under-represents a real
-  stack. The customer prod stack is the ideal substrate — but airlock hosts only GA4 + alloy today, so the
-  proof is "the **supported subset** on a real page + CWV preserved," not "the whole stack" (full-stack
-  hosting is a long-term breadth target — see MVP5 Split + the roadmap note).
-- **Inspector scope creep.** A hosted/remote trace-collection backend + UI is a rabbit hole — keep MVP4 to a
-  **local, drop-in dev inspector** (data API + a lightweight panel).
+- **Alloy XDM governance is genuinely fragile** — the reason MVP3 split it. The vendor builds the XDM body
+  inside the chamber; a blind strip / consent-inject can break its structure. The Risk-First probe must settle
+  feasibility **before** committing the governance scope; the honest fallback is read-minimization (which the
+  confinement already partly provides). Alloy's **XDM `consent` shape** is a different mechanism than GA4's MP
+  `consent` field — the ADR-0007 seam is vendor-neutral but the alloy driver is new.
+- **`helix-rum` coexistence on EDS.** `sampleRUM` is already on the page; hosting `helix-rum` in airlock must
+  decide feed/replace/coexist **without double-counting RUM** or breaking the AEM RUM pipeline.
+- **"Low-hanging fruit" scope creep.** The residual list is long — cut it to the genuinely-quick, must-close
+  items; don't let it balloon into a governance/consent-completion project (that's MVP5+).
 
 ## No-Gos
 
-- The inspector must **not add interaction-path cost** — it measures INP; it cannot wreck it. No synchronous
-  work on capture.
-- No **session-replay / full DOM-mutation streaming** (vision no-go — antagonistic to "no DOM access").
-- No **remote/hosted trace backend or account requirement** (drop-in-JS portability default).
-- **Not new enforcement.** MVP4 makes MVP3's teeth *visible*; it does not add teeth. Alloy-governance-symmetry
-  (payload/consent enforcement for the wrapped-SDK) stays a separate, probe-gated item.
+- **Not the inspector / airlock-as-RUM-layer / value-proof** — those are MVP5. MVP4 *hosts* `helix-rum`; it
+  does not *subsume* RUM.
+- **Don't break the existing EDS `sampleRUM` pipeline.**
+- **Don't force alloy governance if the probe says infeasible** — fall back honestly to read-minimization;
+  never ship a strip that breaks alloy.
+- **No broader connector breadth** (pixel/ads connectors, forms, Segment, OneTrust) — that is MVP7+
+  ([R-007](../research/R-007-real-prod-stack-breadth.md)).
 
 ## Cutline
 
@@ -77,49 +73,59 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 
 | Item | Evidence | Rationale |
 |---|---|---|
-| **Enforcement-decision inspector** — a queryable view over the event-log + 009-02 diagnostic stream answering "why did this beacon fire / hold / get gated / get stripped," + a lightweight dev panel | MVP3 emits the decisions; product-vision § Scope names the inspector | An enforced boundary must be legible to be trusted; the named differentiator vs Zaraz opacity |
-| **Before/after CWV scoreboard as a first-class output** — promote `cwv_budget` from advisory to a reproducible airlock-vs-naive scoreboard | OQ6 / spec 007-03; the 152ms→8ms measurement | The vision's punchline (the value proof), shown — not bolted-on |
+| **`helix-rum-js` connector** — host Adobe's sampled RUM; EDS `sampleRUM` coexistence decided | R-007 | The third core piece of any AEM stack |
+| **Alloy-side payload + consent governance** — Risk-First probe → strip-at-seal *or* read-minimization fallback, binding the MVP3 governance at `core/wrapped-sdk-host.js` | ADR-0012 Split; ADR-0007 alloy residual | Turns "alloy isolated" into "alloy governed" — the half of the thesis MVP3 left | 
+| **Low-hanging fruit** — dispose/idempotent-boot guard (OQ12-4); the alloy-chamber blanket `eslint-disable` scope; config-integrity **protocol pin** (http-downgrade on the egress allow-list, ADR-0004) | refinement-todo OQ12 / 014-01 / 015-02 residuals | Genuinely-quick, must-close before real use |
 
 ### Defer
 
 | Item | Evidence | Rationale |
 |---|---|---|
-| Hosted/remote trace-collection UI + persisted historical traces across sessions | — | Backend + account; drop-in dev inspector first |
-| A production end-user-facing surface | — | Dev-facing inspector is the MVP4 scope |
+| Inspector / airlock-as-RUM-layer (subsume) / before-after CWV value-proof | [MVP5](mvp5.md) | Make it visible + own the RUM layer — the next milestone |
+| Adoption / distribution / 1.0 | [MVP6](mvp6.md) | Productionize after the core stack is complete |
+| Broader connector breadth (pixel connector, forms, Segment, OneTrust driver) | [R-007](../research/R-007-real-prod-stack-breadth.md) | MVP7+ roadmap |
+| Deeper consent residuals — mid-session reshape worker-`ctx` re-send, per-purpose revoke-stop | refinement-todo 017 follow-ups | Not low-hanging; consent-completion is MVP5+ |
 
 ### Split
 
 | Item | Evidence | Rationale |
 |---|---|---|
-| The CWV proof **on the real customer prod stack** (vs the synthetic testbed) | Customer offered a recent real prod martech stack | Do the testbed proof for sure; the real-stack run is a stretch gated on the stack being available + the supported-subset caveat |
+| **Alloy governance *depth*** — if the XDM-strip probe is infeasible, the deep payload strip defers and MVP4 ships **read-minimization + the existing confinement** as the honest alloy defense | ADR-0012 Split rationale ("strip-at-seal fragile; else rely on read-minimization + config-integrity") | The probe outcome determines the scope; the fallback is already-strong (confined + config-integrity + ceiling) |
+| The body-`orgId` co-vector for alloy config-integrity (ADR-0011 residual) | refinement-todo 013-03 / ADR-0011 open residual | Fold into the alloy-governance probe if cheap; else keep tracked |
 
 ### Risk-First
 
 | Item | Evidence | Rationale |
 |---|---|---|
-| **Probe the 009-02 diagnostic stream** — confirm the enforcement decisions (holds/denies/verdicts/strips) are already emitted as structured, queryable events (the inspector's data source) | specs 009/015/016/017/019 | Determines whether the inspector is a read-layer over existing events or needs new instrumentation |
-| **Secure the CWV-proof substrate** — the customer prod stack, if pulled | Customer offer | A realistic martech load makes the before/after credible |
+| **The alloy XDM-governance feasibility probe** — the lead item (mirrors MVP3's live-Alloy re-probe): can alloy's vendor-built XDM body be governed (strip sensitive fields, inject XDM consent) without breaking it? | ADR-0012 Split; ADR-0007 | Determines the entire alloy-governance scope (strip vs read-minimization) — settle before committing |
+| **`helix-rum` coexistence probe** — feed / replace / coexist with the EDS `sampleRUM` already on the page | R-007 | Avoids double-counting / breaking the AEM RUM pipeline |
 
 ## JIG Handoff
 
-- Resolve **OQ7** (inspector scope) here — MVP4 is where the inspector lands.
-- The inspector **reads existing surfaces** (the append-only log, the O(1) projection, the 009-02 diagnostic
-  stream) — extend, do not rewrite. New specs for the inspector data API + panel + the CWV scoreboard headline.
-- Pin the inspector's query/record shape as an external contract (`/jig:contracts`) before implementation, per
-  the anti-drift principle.
+- Resolve the **alloy-governance split** here (ADR-0012's deferred second placement + ADR-0007's alloy consent
+  driver), **probe-first** — the probe may conclude read-minimization, which is a design outcome to record.
+- The **`helix-rum` connector** is a new connector (`airlock/rum` / `airlock/helix-rum`) — pin its manifest +
+  contract (`/jig:contracts`) before implementation.
+- Close the residuals: **OQ12 item 4** (dispose/idempotent-boot), the alloy-chamber **eslint scope**, and the
+  config-integrity **protocol pin** (route to the ADR-0004 egress allow-list, not config-integrity's
+  host+tenant surface).
+- New specs for: the alloy-governance probe + implementation, the `helix-rum` connector, the low-hanging
+  closures.
 
 ## Release-Check Criteria
 
-- For any egress beacon, a developer can see **why** it fired / held at the seal / was gated by the ceiling /
-  had a field stripped — the enforcement is legible, not just enforced.
-- The **before/after CWV scoreboard** is a first-class, reproducible output (airlock vs naive multi-tracker) —
-  the vision's punchline, shown.
-- The inspector adds **zero interaction-path cost** (the INP-safe-by-construction invariant holds with the
-  inspector active — measured).
-- No new enforcement behaviour changed (MVP4 is visibility, not teeth).
+- **The core AEM stack — GA4 + Adobe/alloy + `helix-rum` — all run in airlock.**
+- **Alloy is not just isolated but *governed*:** a sensitive / unconsented field is stripped or held for alloy
+  too — *or*, if the probe found strip-at-seal infeasible, alloy is **read-minimized** and the honest boundary
+  is documented (never a strip that breaks alloy).
+- **`helix-rum` runs in airlock without breaking the EDS `sampleRUM` pipeline** (no double-count).
+- **The named low-hanging residuals are closed** (dispose/idempotent-boot guard; alloy-chamber eslint scope;
+  the egress-allow-list protocol pin).
+- **No regression** to the GA4 enforcement or the MVP1–3 connector/capability contracts.
 
 _No servo release-signal artifact exists for this plan yet; the release-check criteria are desired future
 evidence, not measured signals._
 
-_Last shaped: 2026-08-31 (shaped alongside MVP5, after MVP3 shipped `v0.3.0`; appetite TBD — proposed
-inspector-first shape)._
+_Last shaped: 2026-08-31 (set by the maintainer as "the core of any AEM stack — RUM + governed alloy + the
+low-hanging fruit"; the inspector/value-proof + airlock-as-RUM-layer moved to MVP5, adoption/1.0 to MVP6, the
+broader breadth to MVP7+/R-007). Appetite TBD — proposed alloy-probe-first shape._
