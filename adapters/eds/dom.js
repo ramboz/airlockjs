@@ -1,3 +1,5 @@
+import { sanitizeHtml } from "../../core/sanitize-html.js";
+
 /**
  * CWV-safe DOM-injection capability (`reserveSpace`) — spec 012-03, AC3/AC4.
  *
@@ -74,6 +76,37 @@ export function rectsEqual(a, b, epsilon = 0) {
     && Math.abs(a.height - b.height) <= epsilon;
 }
 
+// Lazily-created, MEMOIZED Trusted-Types policy whose `createHTML` runs the
+// (injected or default) sanitizer — spec 018-01 AC5. Sanitize + TT-stringify
+// are ONE atomic step this way: there is no window where an *un*sanitized
+// string is trusted. Memoized at module scope because a NAMED policy can
+// only be created ONCE per page under a `trusted-types` CSP directive — a
+// second `createPolicy` call with the same name throws "already exists"
+// unless the directive allows duplicates (the EDS boilerplate's CSP,
+// R-005:79, does not) — so every `fill()` after the first must REUSE this
+// policy, never attempt to recreate it (a per-call create would swallow
+// every write after the first the moment TT is available).
+let ttPolicyCache; // undefined = not yet attempted this module/page load
+function sanitizingTrustedTypesPolicy(sanitize) {
+  if (ttPolicyCache !== undefined) return ttPolicyCache;
+  ttPolicyCache = null;
+  try {
+    const tt = typeof trustedTypes !== "undefined"
+      ? trustedTypes
+      : (typeof window !== "undefined" ? window.trustedTypes : undefined);
+    if (tt && typeof tt.createPolicy === "function") {
+      ttPolicyCache = tt.createPolicy("airlock-sanitize", { createHTML: (input) => sanitize(input) });
+    }
+  } catch {
+    // Policy creation blocked (e.g. a restrictive `trusted-types` CSP
+    // policy-name allowlist that does not include "airlock-sanitize") —
+    // sanitize-anyway fallback below; best-effort, never a hard dependency
+    // (grounding-honest: R-005:79 does not pin the policy-name allowlist).
+    ttPolicyCache = null;
+  }
+  return ttPolicyCache;
+}
+
 /**
  * Create the host-side DOM-injection capability over a document.
  *
@@ -82,9 +115,38 @@ export function rectsEqual(a, b, epsilon = 0) {
  *   now?: () => number,
  *   schedule?: (fn: () => void, ms: number) => unknown,
  *   setContent?: (el: object, content: string) => void,
+ *   sanitize?: (html: string) => string,
  * }} [opts] `now` (default performance.now), `schedule` (default setTimeout —
- *   the anti-flicker reveal backstop), `setContent` (the Trusted-Types-safe write
- *   seam; default `innerHTML`, which the EDS default TT policy accepts — R-005).
+ *   the anti-flicker reveal backstop).
+ *
+ *   `setContent` — the write seam; DEFAULT is SANITIZE-then-write, not raw
+ *   `innerHTML` (spec 018-01 AC1). CORRECTION to the prior (012-03) framing:
+ *   the EDS default Trusted-Types policy "accepting" the write
+ *   (probes/eds-testbed/scripts/scripts.js:61-78) is a COMPATIBILITY
+ *   property for the `Element innerHTML` sink (it does not strip `on*` or
+ *   `<script>` there) — NOT a sanitization property, so relying on it alone
+ *   would leave the `on*`-handler / `javascript:`-URL surface open. The
+ *   default now runs `sanitize` (see below) and assigns the result through a
+ *   Trusted-Types policy when one is available, else as a plain string — the
+ *   whole write stays inside a try/catch (never breaks the page, even the
+ *   edge case of an active `require-trusted-types-for 'script'` CSP with no
+ *   registered `default` policy and a blocked named-policy creation, where a
+ *   plain-string assignment would itself throw). A caller-supplied
+ *   `setContent` FULLY OVERRIDES this default (unchanged contract) — a
+ *   deployment hosting genuinely untrusted content can slot a stricter
+ *   sanitizer (e.g. DOMPurify) + a dedicated TT policy here. The shipped
+ *   default is conservative defense-in-depth, NOT a complete XSS guarantee
+ *   (mutation-XSS / parser-differential bypasses are the injectable seam's
+ *   job, not this denylist's).
+ *
+ *   `sanitize` (default: `sanitizeHtml` from `core/sanitize-html.js`) — an
+ *   INTERNAL DI seam for just the sanitize step the default `setContent` (and
+ *   its Trusted-Types policy's `createHTML`) both call. Mainly for tests: no
+ *   real `DOMParser` exists in Node/vitest, so injecting a stand-in here lets
+ *   the write-path WIRING be asserted (sanitize runs; its result — not the
+ *   raw content — is what gets written) without a real parse. The real
+ *   parse->strip->serialize proof runs in the Playwright rig
+ *   (rig/sanitize-boundary.mjs), not against this seam.
  * @returns {{ reserveSpace: Function, insertAfterInteraction: Function }}
  */
 export function createDomCapability(
@@ -93,9 +155,20 @@ export function createDomCapability(
 ) {
   const now = opts.now || (() => (typeof performance !== "undefined" ? performance.now() : Date.now()));
   const schedule = opts.schedule || ((fn, ms) => (typeof setTimeout !== "undefined" ? setTimeout(fn, ms) : undefined));
+  const sanitize = typeof opts.sanitize === "function" ? opts.sanitize : sanitizeHtml;
   const setContent = typeof opts.setContent === "function"
     ? opts.setContent
-    : (el, content) => { try { el.innerHTML = content; } catch { /* TT policy rejected — swallow, never break the page */ } };
+    : (el, content) => {
+      try {
+        const policy = sanitizingTrustedTypesPolicy(sanitize);
+        el.innerHTML = policy ? policy.createHTML(content) : sanitize(content);
+      } catch {
+        // TT policy rejected the value, or — the pathological edge — a
+        // plain-string assignment itself threw under a restrictive
+        // trusted-types CSP with no registered `default` policy. Swallow,
+        // never break the page (unchanged posture from 012-03).
+      }
+    };
   let seq = 0;
 
   function reserveSpace(spec) {

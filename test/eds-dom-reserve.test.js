@@ -93,16 +93,69 @@ describe("createDomCapability.reserveSpace — the mediated CWV-safe injection (
     expect(hero.style.visibility).toBe("visible"); // revealed on fill
   });
 
-  it("fill() is the ONLY mediated write — it fills the pre-reserved box + marks it filled", async () => {
+  it("fill() is the ONLY mediated write — it sanitizes then fills the pre-reserved box + marks it filled (018-01: default write path runs through sanitize)", async () => {
     const hero = fakeEl();
-    const caps = createDomCapability(fakeDoc({ "#hero": hero }));
+    // Node has no DOMParser (018-01 DoR pillar 4 — vitest runs in Node, no
+    // jsdom/happy-dom/linkedom is shipped) — inject a passthrough `sanitize`
+    // so this test can assert the WRITE-PATH WIRING (the sanitize step runs
+    // and its RESULT is what gets written) without needing a real parse. The
+    // real parse->strip->serialize proof (an actual onerror stripped by a
+    // real DOMParser) is the Playwright rig's job (rig/sanitize-boundary.mjs),
+    // not this file's (018-01 DoD).
+    const sanitize = vi.fn((html) => html);
+    const caps = createDomCapability(fakeDoc({ "#hero": hero }), { sanitize });
     const handle = await caps.reserveSpace({ selector: "#hero", minHeight: 300 });
 
     handle.fill('<div class="hero">Personalized</div>');
+    expect(sanitize).toHaveBeenCalledWith('<div class="hero">Personalized</div>');
     expect(hero.innerHTML).toBe('<div class="hero">Personalized</div>');
     expect(hero.getAttribute("data-airlock-filled")).toBe("1");
     // the box height was reserved BEFORE the fill, so min-height is still in force
     expect(hero.style.minHeight).toBe("300px");
+  });
+
+  it("the default write path routes content through sanitize BEFORE writing — the WRITTEN bytes are sanitize's result, not the raw input (018-01 AC1)", async () => {
+    const hero = fakeEl();
+    // A Node-safe stand-in sanitize (string-regex-based) — NOT the real
+    // parser-based strip algorithm (core/sanitize-html.js, proven against a
+    // real DOMParser only in the Playwright rig). This test's job is only to
+    // prove the SEAM: the default `setContent` calls `sanitize(content)` and
+    // writes ITS return value, never the raw content directly.
+    const sanitize = vi.fn((html) => html.replace(/ onerror="[^"]*"/gi, ""));
+    const caps = createDomCapability(fakeDoc({ "#hero": hero }), { sanitize });
+    const handle = await caps.reserveSpace({ selector: "#hero", minHeight: 300 });
+
+    const malicious = '<img src="x" onerror="alert(1)">';
+    handle.fill(malicious);
+
+    expect(sanitize).toHaveBeenCalledWith(malicious);
+    expect(hero.innerHTML).not.toBe(malicious); // NOT a raw passthrough of the dangerous string
+    expect(hero.innerHTML).toBe('<img src="x">'); // sanitize's result is what was actually written
+  });
+
+  it("a caller-supplied setContent still fully overrides the default sanitize-then-write (AC4 — the seam stays injectable)", async () => {
+    const hero = fakeEl();
+    const sanitize = vi.fn(() => "SHOULD-NOT-BE-CALLED");
+    const setContent = vi.fn((el, content) => { el.innerHTML = content; }); // a caller's own (raw) write
+    const caps = createDomCapability(fakeDoc({ "#hero": hero }), { sanitize, setContent });
+    const handle = await caps.reserveSpace({ selector: "#hero", minHeight: 300 });
+
+    const raw = '<img src="x" onerror="alert(1)">';
+    handle.fill(raw);
+
+    expect(setContent).toHaveBeenCalledWith(hero, raw);
+    expect(hero.innerHTML).toBe(raw); // the override's own (unsanitized) write wins, byte-for-byte
+    expect(sanitize).not.toHaveBeenCalled(); // the default sanitize step never ran — full override, not a wrapper
+  });
+
+  it("the TRUE default (no injected sanitize/setContent) fails SAFE in this no-DOMParser (Node) env — writes \"\", never leaks the raw dangerous content (documents the Node-specific fallback; the real strip proof is the Playwright rig)", async () => {
+    const hero = fakeEl();
+    const caps = createDomCapability(fakeDoc({ "#hero": hero })); // zero opts — the REAL production default
+    const handle = await caps.reserveSpace({ selector: "#hero", minHeight: 300 });
+
+    handle.fill('<img src="x" onerror="alert(1)">');
+    expect(hero.innerHTML).toBe(""); // sanitizeHtml fails SAFE (no DOMParser in Node) — never the raw dangerous string
+    expect(hero.getAttribute("data-airlock-filled")).toBe("1"); // fill() still completes — never breaks the page
   });
 
   it("the prehide TIMEOUT reveals the box even if no decision ever fills it (backstop)", async () => {

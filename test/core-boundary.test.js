@@ -26,4 +26,19 @@ describe("core/ boundary — no import from throwaway rig/ (014-02 arch-review)"
     }
     expect(offenders).toEqual([]);
   });
+
+  // spec 018-01 arch-review: core/sanitize-html.js justifies its core/ home by
+  // being IMPORT-FREE + injected-parser (a vendor-neutral security primitive,
+  // like core/consent.js / core/endpoint-ceiling.js), yet it references the
+  // ambient DOMParser global. The home-justification leaned on "import-free by
+  // inspection" — machine-enforce it so a future edit that adds an import (and
+  // thus a hidden dependency the core/ home forbids) fails here, not silently.
+  it("core/sanitize-html.js is import-free (its core/ home depends on it)", () => {
+    const src = readFileSync(join(CORE, "sanitize-html.js"), "utf8");
+    // No top-level ES import / dynamic import() / require — a security
+    // primitive that claims zero dependencies must actually have zero.
+    expect(/^\s*import\s/m.test(src)).toBe(false);
+    expect(/\bimport\s*\(/.test(src)).toBe(false);
+    expect(/\brequire\s*\(/.test(src)).toBe(false);
+  });
 });

@@ -100,8 +100,15 @@ export interface GrantedCapabilities {
   /**
    * CWV-safe DOM injection — the ONLY DOM path (AD-5). Fulfilled by the
    * orchestrator on the main thread so injected content is layout-stable by
-   * construction. Trusted-Types-compatible (the EDS boilerplate ships a
-   * default TT policy — R-005), so injection flows through it.
+   * construction. CORRECTION (spec 018-01): the EDS boilerplate's default
+   * Trusted-Types policy makes the write COMPATIBLE (it does not throw under
+   * `require-trusted-types-for 'script'`, R-005) — that is a compatibility
+   * property, not a sanitization one (the default policy does not strip
+   * `on*` handlers or active markup for the `Element innerHTML` sink,
+   * probes/eds-testbed/scripts/scripts.js:61-78). The mediated
+   * implementation (`adapters/eds/dom.js`) therefore runs its OWN sanitizer
+   * before the write, then assigns the result through a Trusted-Types
+   * policy — conservative defense-in-depth, not a complete XSS guarantee.
    */
   readonly dom?: {
     reserveSpace(spec: ReserveSpaceSpec): Promise<DomHandle>;

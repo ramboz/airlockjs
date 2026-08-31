@@ -1,0 +1,227 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Active-markup sanitizer boundary (spec 018-01, AC2/AC3/AC5)</title>
+  </head>
+  <body>
+    <script type="module" nonce="aem">
+      // nonce="aem" — matches this rig's own served CSP (`script-src
+      // 'nonce-aem' 'strict-dynamic' ...`, the real EDS boilerplate value,
+      // rig/sanitize-boundary.mjs's BOILERPLATE_CSP). Without it this inline
+      // module script is itself blocked from executing at all (Chrome logs
+      // "Executing inline script violates..." and NOTHING below ever runs) —
+      // mirrors probes/eds-testbed/head.html's own nonce="aem" scripts and
+      // rig/csp-probe.html's nonce'd harness script.
+      //
+      // Spec 018-01 — the security proof for the active-markup sanitizer that
+      // now gates `reserveSpace().fill()`'s default write path (adapters/eds/
+      // dom.js). Runs the REAL parse->strip->serialize path against a real
+      // chromium DOMParser (Node/vitest has none — see core/sanitize-html.js's
+      // header) under the EXACT EDS boilerplate CSP
+      // (`require-trusted-types-for 'script'`, R-005:79).
+      //
+      // GATE (deterministic, environment-independent — mirrors this project's
+      // preference for structural invariants over quantitative/behavioural
+      // signals, R-005): for every vector, the DANGEROUS CONSTRUCT IS ABSENT
+      // from the filled box's resulting innerHTML. `securitypolicyviolation`
+      // events, thrown page errors, and the `window.__xssFired` marker are
+      // captured as CORROBORATING evidence (reported, not solely gating —
+      // CSP's own `strict-dynamic` inline-handler semantics are a separate,
+      // env-sensitive layer this rig does not need to arbitrate to prove the
+      // sanitizer itself stripped the construct).
+      //
+      // KNOWN-BOUNDARY PROBE (mXSS-adjacent, AC4's honest limit — reported,
+      // NEVER gated in EITHER direction): a <noscript> scripting-context
+      // mismatch is the theory (the sanitizer's inert DOMParser has scripting
+      // DISABLED, so <noscript> content parses as normal markup; a LIVE page
+      // has scripting ENABLED, so the same bytes could re-tokenize
+      // differently) — a class of attack a hand-rolled denylist has no
+      // principled defense against. Whether THIS specific payload actually
+      // reproduces a live bypass is browser/serialization-detail-dependent;
+      // see rig/sanitize-boundary.mjs's `known_boundary_NOT_GATED` for the
+      // observed (not asserted either way) result.
+
+      import { createDomCapability } from "/adapters/eds/dom.js";
+
+      // Register the SAME EDS default Trusted-Types policy the real
+      // boilerplate ships (probes/eds-testbed/scripts/scripts.js:56-79,
+      // copied verbatim) — realism: on real EDS this 'default' policy always
+      // exists (018-01 AC5's grounding note), so the rig proves airlock's own
+      // "airlock-sanitize" named policy AND the fallback-to-plain-string path
+      // both coexist correctly with it, not just in a vacuum.
+      if (window.trustedTypes && window.trustedTypes.createPolicy) {
+        const innerTT = window.trustedTypes.createPolicy("tt-inner", { createHTML: (s) => s });
+        window.trustedTypes.createPolicy("default", {
+          createHTML: (input, type, sink) => {
+            let processedInput = input;
+            if (/srcdoc\s*=/i.test(processedInput)) {
+              const doc = new DOMParser().parseFromString(innerTT.createHTML(processedInput), "text/html");
+              doc.querySelectorAll("iframe[srcdoc]").forEach((el) => el.removeAttribute("srcdoc"));
+              processedInput = doc.body.innerHTML;
+            }
+            if (sink.includes("createContextualFragment") || sink.includes("Document write")) {
+              const doc = new DOMParser().parseFromString(innerTT.createHTML(processedInput), "text/html");
+              doc.querySelectorAll("script").forEach((el) => el.remove());
+              processedInput = doc.body.innerHTML;
+            }
+            return processedInput;
+          },
+          createScriptURL: (input) => input,
+          createScript: (input) => input,
+        });
+      }
+
+      window.__xssFired = false;
+      window.__cspViolations = [];
+      document.addEventListener("securitypolicyviolation", (e) => {
+        window.__cspViolations.push({
+          directive: e.violatedDirective,
+          blockedURI: e.blockedURI,
+          sample: e.sample,
+        });
+      });
+      const mediaErrors = [];
+      document.addEventListener("error", (e) => {
+        if (e.target && e.target.id) mediaErrors.push(e.target.id);
+      }, true); // capture phase — media `error` events don't bubble
+
+      // --- the vector table (AC2/AC3) ---------------------------------------
+      const VECTORS = [
+        // deny patterns require "=" right after the handler name — the
+        // element ids below ("errimg-el", "svgld-el") are deliberately named
+        // to NOT contain "onerror"/"onload" as a substring, so a naive
+        // denylist match can't false-positive on the id attribute itself.
+        { id: "v-onerror-img", html: '<img id="errimg-el" src="/rig/__nope__.png" onerror="window.__xssFired=true">', deny: [/onerror\s*=/i] },
+        { id: "v-svg-onload", html: '<svg id="svgld-el" onload="window.__xssFired=true"></svg>', deny: [/onload\s*=/i] },
+        // NOTE: every closing script tag inside a vector string below is
+        // deliberately split with a backslash before the slash. An
+        // UNESCAPED closing-script-tag sequence anywhere in this element's
+        // raw source text (even inside a JS comment or string literal, since
+        // HTML tokenizes <script> raw text as a byte scan BEFORE any JS
+        // parsing happens) terminates the HTML PARSER's script element right
+        // there, shredding this whole harness script. The backslash defeats
+        // the HTML tokenizer's literal match while JS's string parser treats
+        // a backslash-slash as a plain slash.
+        { id: "v-script-tag", html: "<script>window.__xssFired=true<\/script>", deny: [/<script/i] },
+        { id: "v-iframe-src", html: '<iframe src="javascript:window.__xssFired=true"></iframe>', deny: [/<iframe/i, /javascript:/i] },
+        { id: "v-object-data", html: '<object data="javascript:window.__xssFired=true"></object>', deny: [/<object/i] },
+        { id: "v-embed-src", html: '<embed src="javascript:window.__xssFired=true">', deny: [/<embed/i] },
+        { id: "v-base-href", html: '<p>before</p><base href="https://evil.test/">', deny: [/<base/i] },
+        { id: "v-meta-refresh", html: '<p>before</p><meta http-equiv="refresh" content="0;url=https://evil.test/">', deny: [/<meta/i] },
+        { id: "v-link-css", html: '<p>before</p><link rel="stylesheet" href="https://evil.test/x.css">', deny: [/<link/i] },
+        { id: "v-template-script", html: "<template><script>window.__xssFired=true<\/script></template>", deny: [/<script/i] },
+        { id: "v-formaction", html: '<form><button formaction="javascript:window.__xssFired=true">go</button></form>', deny: [/formaction/i, /javascript:/i] },
+        { id: "v-form-action", html: '<form action="javascript:window.__xssFired=true"><input></form>', deny: [/javascript:/i] },
+        { id: "v-background", html: '<table background="javascript:window.__xssFired=true"><tr><td>x</td></tr></table>', deny: [/background="javascript:/i] },
+        { id: "v-poster", html: '<video poster="javascript:window.__xssFired=true"></video>', deny: [/poster="javascript:/i] },
+        { id: "v-xlink-href", html: '<svg><a xlink:href="javascript:window.__xssFired=true">x</a></svg>', deny: [/xlink:href="javascript:/i, /javascript:/i] },
+        { id: "v-js-href", html: '<a id="js-href-el" href="javascript:window.__xssFired=true">click</a>', deny: [/javascript:/i], click: "#v-js-href a" },
+        // vbscript: on a SURVIVING element (compliance review 018-01) — the <a>
+        // is not a stripped tag, so this proves the dangerous-scheme href is
+        // removed in the real DOM, not just element-stripped away.
+        { id: "v-vbscript-href", html: '<a href="vbscript:window.__xssFired=true">click</a>', deny: [/vbscript:/i] },
+        { id: "v-data-html", html: '<a href="data:text/html,<script>window.__xssFired=true<\/script>">click</a>', deny: [/data:text\/html/i] },
+        // HTML entity decoding (&#09; -> a real tab char) happens DURING
+        // PARSING, before our walk ever reads the attribute value via
+        // getAttribute — so isDangerousUrl's control-char stripping still
+        // catches this obfuscation; it is denylist-reachable, not a bypass.
+        { id: "v-obfuscated", html: '<a href="jav&#09;ascript:window.__xssFired=true">click</a>', deny: [/javascript:/i] },
+      ];
+      // Known-boundary (mXSS-adjacent) — NOT gated, reported only.
+      const KNOWN_BOUNDARY = {
+        id: "v-noscript-mxss",
+        html: '<noscript><p title="</noscript><img id=noscript-mxss-el src=x onerror=window.__xssFired=true>"></p></noscript>',
+      };
+      const BENIGN = {
+        id: "v-benign",
+        html: '<div class="hero" data-x="1" aria-label="promo"><p>Hi <b>there</b></p><a href="https://example.test/x?y=1">a link</a><img src="https://example.test/y.png" class="thumb"></div>',
+      };
+
+      const caps = { dom: createDomCapability(document) };
+      const results = {};
+
+      function mkTarget(id) {
+        const el = document.createElement("div");
+        el.id = id;
+        document.body.appendChild(el);
+        return el;
+      }
+
+      async function fillVector(id, html) {
+        mkTarget(id);
+        const handle = await caps.dom.reserveSpace({ selector: "#" + id, minHeight: 10, prehide: false });
+        handle.fill(html);
+        return document.querySelector("#" + id).innerHTML;
+      }
+
+      async function main() {
+        for (const v of VECTORS) {
+          results[v.id] = { raw: v.html, sanitized: await fillVector(v.id, v.html) };
+        }
+        results[BENIGN.id] = { raw: BENIGN.html, sanitized: await fillVector(BENIGN.id, BENIGN.html) };
+        results[KNOWN_BOUNDARY.id] = { raw: KNOWN_BOUNDARY.html, sanitized: await fillVector(KNOWN_BOUNDARY.id, KNOWN_BOUNDARY.html) };
+
+        // --- AC4 contrast: a caller-supplied setContent FULLY overrides the
+        //     default — relying only on the pre-registered EDS 'default' TT
+        //     policy (compatibility-only), so the dangerous construct SURVIVES.
+        //     This demonstrates the override seam works AND why the new
+        //     default matters (the 012-03 boundary this spec closes).
+        const rawCaps = createDomCapability(document, {
+          setContent: (el, content) => { el.innerHTML = content; }, // a naive caller's own raw write
+        });
+        mkTarget("v-override-raw");
+        const rawHandle = await rawCaps.reserveSpace({ selector: "#v-override-raw", minHeight: 10, prehide: false });
+        let overrideThrew = null;
+        try {
+          rawHandle.fill('<img id="override-onerror-el" src="/rig/__nope__.png" onerror="window.__xssFired=true">');
+        } catch (e) { overrideThrew = String((e && e.message) || e); }
+        results["v-override-raw"] = { sanitized: document.querySelector("#v-override-raw").innerHTML, threw: overrideThrew };
+
+        // --- multi-fill / TT-policy-memoization proof: fill TWO MORE boxes
+        //     through TWO SEPARATE default capability instances AFTER the
+        //     many fills above — a per-call (non-memoized) policy-create
+        //     would throw "already exists" on every call after the first,
+        //     which the default setContent's try/catch would SWALLOW,
+        //     silently writing "" instead of sanitized content.
+        const capsA = createDomCapability(document);
+        const capsB = createDomCapability(document);
+        results["v-multi-a"] = { sanitized: await (async () => {
+          mkTarget("v-multi-a");
+          const h = await capsA.reserveSpace({ selector: "#v-multi-a", minHeight: 10, prehide: false });
+          h.fill('<div onclick="window.__xssFired=true">multi-a</div>');
+          return document.querySelector("#v-multi-a").innerHTML;
+        })() };
+        results["v-multi-b"] = { sanitized: await (async () => {
+          mkTarget("v-multi-b");
+          const h = await capsB.reserveSpace({ selector: "#v-multi-b", minHeight: 10, prehide: false });
+          h.fill('<div onclick="window.__xssFired=true">multi-b</div>');
+          return document.querySelector("#v-multi-b").innerHTML;
+        })() };
+
+        // --- click-based vectors (safe: javascript: URL clicks execute
+        //     in-place, never navigate away) ---
+        for (const v of VECTORS.filter((x) => x.click)) {
+          const a = document.querySelector(v.click);
+          if (a) a.click();
+        }
+        document.querySelector("#v-override-raw a")?.click();
+
+        // give same-origin 404 image loads (onerror) a moment to settle
+        await new Promise((r) => setTimeout(r, 500));
+
+        window.__SANITIZE_RIG_RESULT__ = {
+          results,
+          vectorDenylists: Object.fromEntries(VECTORS.map((v) => [v.id, v.deny.map((r) => r.source)])),
+          xssFired: window.__xssFired,
+          cspViolations: window.__cspViolations,
+          mediaErrorTargets: mediaErrors,
+        };
+      }
+
+      main().catch((e) => {
+        window.__SANITIZE_RIG_RESULT__ = { fatal: String((e && e.stack) || e) };
+      });
+    </script>
+  </body>
+</html>

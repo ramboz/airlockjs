@@ -1,9 +1,8 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: []
 last_verified: 2026-08-30
 frame_review: true
-claimed_by: main
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about
@@ -99,7 +98,7 @@ correction) and stays **injectable** (a stricter policy slots via the same seam)
    to expect the sanitized result, with a comment).
 
 **DoD:**
-- [ ] ACs 1–6 pass, split by substrate (DoR pillar 4):
+- [x] ACs 1–6 pass, split by substrate (DoR pillar 4):
       - **Node/vitest** `test/sanitize-html.test.js` — the **pure** logic only: the strip-predicate helpers
         (`isEventHandlerAttr` over an `on*` sample; `isDangerousUrl` over `javascript:`/`vbscript:`/
         `data:text/html` vs benign `https:`/relative; `isStrippedTag` over the tag set), non-string/empty→
@@ -117,10 +116,10 @@ correction) and stays **injectable** (a stricter policy slots via the same seam)
       - `test/eds-dom-reserve.test.js` updated: the default `fill` now sanitizes — assert via the DI seam
         (inject a `setContent`/parser spy) that sanitization is invoked and a passed `setContent` still
         overrides; the real-`onerror`-stripped assertion belongs to the rig leg, not this Node file.
-- [ ] **No regression** — targeted sweep: `sanitize-html`, `eds-dom-reserve`, `decisions-exposure`,
+- [x] **No regression** — targeted sweep: `sanitize-html`, `eds-dom-reserve`, `decisions-exposure`,
       `alloy-decisions`, `alloy-decisions-stub`, `contract-stability`, `core-boundary` (if the sanitizer
       lands in `core/`). _(Full vitest suite hangs on the stale worktree — run named files only.)_
-- [ ] **Browser/rig leg (AC5 + the AC2/AC3 vector table) — REQUIRED, not optional.** Extend an existing
+- [x] **Browser/rig leg (AC5 + the AC2/AC3 vector table) — REQUIRED, not optional.** Extend an existing
       decisions rig (`rig/alloy-decisions.mjs` / `rig/alloy-decisions-harness.html`) OR add a focused
       CSP-honest rig, running the real-chromium parse: a malicious offer's `onerror`/`javascript:` is
       stripped **and does not fire** under `require-trusted-types-for 'script'` (no `securitypolicyviolation`,
@@ -131,12 +130,11 @@ correction) and stays **injectable** (a stricter policy slots via the same seam)
       existence. This is the security proof — do NOT downgrade it to a
       DI'd `trustedTypes`/parser shim in a Node test (a shimmed parse is the false-confidence the frame-
       critique flagged); the Node test covers only the pure predicates.
-- [ ] Reviews: **frame-critique** (this slice's load-bearing claim — "the TT policy is compatibility not
-      sanitization, so the sanitizer must be airlock's own" — is the exact premise a reviewer should attack)
-      + compliance + craft + arch (a new security primitive on the one mediated DOM-writer path; its `core/`
-      vs adapter home + the DI'd-parser boundary) + reconciliation, recorded pass (independent Opus review of
-      the Sonnet diffs).
-- [ ] Deviation log + reconciliation sweep; refinement-todo item **k** marked RESOLVED; mvp3.md release-check
+- [x] Reviews: **frame-critique** (2 rounds — pass) + compliance + craft + arch + reconciliation, all
+      **recorded pass** (independent Opus review of the Sonnet diffs — verdicts under `reviews/`). The
+      security-critical findings converged (the module-global TT policy's first-write-wins-over-`sanitize`
+      coupling; the `core/` import-free invariant) and were folded in; no blocker survived.
+- [x] Deviation log + reconciliation sweep; refinement-todo item **k** marked RESOLVED; mvp3.md release-check
       security criterion (`reserveSpace innerHTML path gated by a sanitizer`) checked. **Log the deliberate
       deviations (frame-critique reconciliation notes):** (a) this slice's load-bearing AC (the active-markup
       vector table) is intentionally proven ONLY in the browser-CI leg, NOT `npm test` — consistent with the
@@ -144,10 +142,129 @@ correction) and stays **injectable** (a stricter policy slots via the same seam)
       suite as the security gate; (b) confirm + record which `sanitizeHtml` home was chosen (`core/` with a
       DI'd parser vs alongside `dom.js`) and, if `core/`, that `test/core-boundary.test.js` was updated for
       the injected-parser (import-free) boundary.
-- [ ] **No live identifiers committed** — synthetic offer HTML only (no real ECIDs/datastream/org in
+- [x] **No live identifiers committed** — synthetic offer HTML only (no real ECIDs/datastream/org in
       fixtures).
 
 **Anti-horizontal-phasing check:** after this slice, a real decision's HTML flowing through the one mediated
 DOM path (`fill`) has its active markup neutralized by default — an end-to-end change to what bytes reach the
 user's DOM (a stripped `onerror` is observable in the filled box), not an internal-only helper. The
 capability is safe-by-default where it was safe-only-if-the-caller-knew.
+
+### Deviation log
+
+- **`sanitizeHtml` home: `core/sanitize-html.js`, vendor-neutral and IMPORT-FREE** (no `import` statement at
+  all — mirrors `core/consent.js` / `core/endpoint-ceiling.js`'s "this file simply never imports anything"
+  posture, not just the `core/`-may-not-import-`rig/` guard). The parser is injected via `opts.parse`
+  (default: the ambient `DOMParser` global, `null` when absent — Node/vitest). `test/core-boundary.test.js`
+  needed **no edit**: it only guards `core/ -> rig/` imports, and the new module has zero imports of any kind,
+  so it is trivially compliant. `adapters/eds/dom.js` imports `sanitizeHtml` from `core/` — the same
+  adapter-imports-from-core direction `adapters/eds/index.js` already uses (`createAirlock`,
+  `resolveConsent`), not a new coupling shape.
+- **Internal DI seam added beyond the spec's literal text: `opts.sanitize` on `createDomCapability`.** The
+  spec names `opts.setContent` (unchanged) as the injectable override; to satisfy the DoD's "assert via the
+  DI seam ... that sanitization is invoked" for `test/eds-dom-reserve.test.js` — Node has no `DOMParser`, so
+  the TRUE default write path cannot be exercised meaningfully there — `createDomCapability` also accepts an
+  internal `opts.sanitize` (default: `sanitizeHtml`), used by both the default `setContent` and its
+  Trusted-Types policy's `createHTML`. This is additive, undocumented in `contracts/capability.d.ts` (not a
+  public contract surface — `setContent`/`sanitize` are `createDomCapability`'s own `opts`, never pinned by
+  `contract-stability.test.js`), and mirrors the existing `now`/`schedule` DI pattern already on this
+  function. Flagged for arch review as a design choice, not hidden.
+- **Fixed a real gap found while building the rig, not just documented it: `<template>` content recursion.**
+  A `<template>` element's children live in a separate `.content` `DocumentFragment` that plain
+  `querySelectorAll("*")` does not reach, yet DOES serialize back out through an ancestor's `.innerHTML` — a
+  well-known sanitizer-bypass vector (`<template><script>...</script></template>` would otherwise survive
+  untouched). `core/sanitize-html.js`'s walk now recurses into `.content` (nested templates included). Judged
+  in-scope (not "more than the AC requires") because AC2's own text says "removes ... before re-serializing"
+  and template contents ARE re-serialized — leaving them unwalked would contradict AC2's stated intent, not
+  just fall outside a boundary case. Covered by both a Node algorithm-wiring test (hand-built fake tree) and
+  the real-chromium rig (`v-template-script` vector — PASS).
+- **The `<noscript>` mXSS-adjacent vector (`v-noscript-mxss`) is included in the rig exactly as the DoD's
+  named example, but reported HONESTLY rather than left with the originally-drafted framing.** My first draft
+  described it as "a classic parser-differential mutation-XSS this denylist cannot reach," implying a
+  demonstrated bypass. Running it for real showed the OPPOSITE this run: Chromium's attribute-value
+  serialization HTML-entity-escaped the smuggled `<`/`>` characters, so the specific payload used here did
+  NOT reproduce a live bypass (`xssFiredAfterAllVectors: false`). Rewrote the rig's + harness's comments to
+  say exactly that — a non-reproduction is NOT proof of safety against noscript-based (or other
+  scripting-context) mXSS in general, and is NOT counted toward `pass` in either direction. Flagging this
+  because the DoD explicitly warns against a "green 'defended' claim," and an unexamined bypass claim that
+  didn't actually reproduce would have been the mirror-image dishonesty.
+- **Memoized (module-level) Trusted-Types policy, not created per-call.** Not explicit in the spec text, but
+  necessary for correctness: a NAMED `trustedTypes.createPolicy` call throws "already exists" on a second
+  call with the same name (R-005's CSP does not set `trusted-types` to allow duplicates), and a naive
+  per-call-create design would have that throw silently swallowed by the existing try/catch — meaning every
+  `fill()` after the FIRST would write `""` instead of sanitized content. Caught this by reasoning through the
+  multi-fill case before running the rig, then added a dedicated rig proof (`v-multi-a`/`v-multi-b`, two
+  separate `createDomCapability` instances filled AFTER many prior fills) — PASS, the memoization holds.
+- **KNOWN LIMITATION of the memoized policy (all three review passes flagged — non-blocking, zero current
+  blast radius):** because the module-global policy is created ONCE and its `createHTML` closes over the
+  `sanitize` it was FIRST called with, a second `createDomCapability` built with a DIFFERENT `opts.sanitize`
+  would, when Trusted-Types is available, reuse the first policy — so its own `sanitize` is honored only on
+  the non-TT plain-string fallback, silently dropped on the TT path (first-write-wins on the closure
+  identity). UNREACHABLE today: `opts.sanitize` is an internal test-only DI seam (Node tests run without TT
+  → they hit the direct `sanitize` fallback, not the policy), there is no production caller, and a production
+  deployment wanting a stricter sanitizer routes through `opts.setContent` (which bypasses this policy
+  entirely). Recorded so a future dev who promotes `opts.sanitize` to a public seam knows the constraint; a
+  proportionate fix then would be a per-`sanitize` policy name, not a restructure.
+- **Post-review nits applied (compliance/craft/arch passes, all PASS):** (1) `.github/workflows/ci.yml`'s
+  `browser-oracle` header comment updated "two structural asserts" → "three" (the sanitizer rig is now a
+  third gating rig — craft nit); (2) `test/core-boundary.test.js` gained a focused **import-free guard** for
+  `core/sanitize-html.js` (machine-enforcing the invariant its `core/` home leans on, which previously held
+  only "by inspection" — arch open question); (3) the rig's AC3 benign gate now asserts `data-x`/`aria-label`
+  preservation (AC3 names them — compliance nit), and a `v-vbscript-href` vector was added so a `vbscript:`
+  scheme on a SURVIVING `<a>` is stripped in the real DOM (not only in the Node predicate test — compliance
+  nit). Rig re-run PASS; core-boundary 2/2.
+- **`contracts/capability.d.ts`'s `dom?:` docstring updated (comment-only, no signature change)** to remove
+  the same "Trusted-Types-compatible … so injection flows through it" framing the spec names as needing
+  correction at `dom.js:87` — it carried the identical false-sense-of-security claim. Verified
+  `contract-stability.test.js` stays green (24/24) since it only pins literal signature substrings, never this
+  surrounding prose.
+- **CSP reality check that reshaped the rig's gating design (not a deviation from the AC, but worth logging):**
+  under the exact EDS boilerplate CSP, `'strict-dynamic'` causes Chromium to ignore `'unsafe-inline'`
+  ENTIRELY for `script-src` (confirmed empirically: `script-src-attr` falls back to `script-src`), so inline
+  event handlers are CSP-blocked regardless of whether the sanitizer stripped them. This makes
+  `window.__xssFired` and the full CSP-violation list unreliable as a sole PASS/FAIL gate (a marker that never
+  fires either way proves nothing) — so the rig's actual gate is the deterministic structural check (the
+  denylisted construct is ABSENT from the sanitized output), with `xssFired`/CSP violations/page errors kept
+  as corroborating evidence, exactly mirroring this project's existing structural-over-quantitative posture
+  (`rig/alloy-decisions.mjs`'s CLS-is-advisory precedent). AC5's literal "no `securitypolicyviolation`" text is
+  interpreted narrowly as "no `trusted-types`-directive violation" (the one AC5 is actually about — the
+  sanitized write itself must not be TT-rejected), not "zero violations of any kind" — a `base-uri` violation
+  from the sanitizer's OWN inert `DOMParser` processing a `<base>` start tag (before that element is stripped)
+  and a `script-src-attr` violation from the AC4 override-control's DELIBERATELY-unsanitized `onerror=` both
+  fire in a clean run and are neither a sanitizer failure nor a TT rejection.
+- **`test/eds-dom-reserve.test.js`'s "fill() is the ONLY mediated write" test was rewritten, not just extended**
+  — its old assertion (`hero.innerHTML` equals the raw benign string, no sanitize step existed) no longer
+  reflects reality now that the default sanitizes; per the spec's own instruction this was expected, not an
+  unplanned deviation. Three new tests were added alongside it (default-routes-through-sanitize,
+  override-fully-bypasses, true-Node-default-fails-safe) rather than folding everything into one, for
+  assertion clarity.
+
+### Reconciliation sweep
+
+- **New surface:** `core/sanitize-html.js` (vendor-neutral, import-free, DI'd parser — mirrors
+  `core/consent.js` / `core/endpoint-ceiling.js`); the sanitize-then-write default + memoized Trusted-Types
+  policy in `adapters/eds/dom.js`; `test/sanitize-html.test.js` (pure predicates + DI wiring) and the
+  real-chromium `rig/sanitize-boundary.mjs` + harness (the security vector table), wired as a **gating**
+  `browser-oracle` step in `.github/workflows/ci.yml`.
+- **No new `core/` boundary breach** — `core/sanitize-html.js` imports nothing (the new
+  `test/core-boundary.test.js` guard machine-enforces it); `contracts/capability.d.ts` change is comment-only
+  (`contract-stability.test.js` green, 24/24).
+- **Reviews recorded:** frame-critique (2 rounds) + compliance + craft + arch + reconciliation — all pass,
+  under `reviews/`. The convergent TT-memoization first-write-wins coupling is a disclosed, zero-blast-radius
+  known limitation; the coverage nits were folded in and re-verified (node sweep + rig PASS).
+- **Docs:** `docs/refinement-todo.md` item **k** RESOLVED (f/g/h/i/j stay tracked — g/i land in 018-02; h/j
+  remain deferred with their triggers); `docs/releases/mvp3.md` release-check criterion MET (scoped to the
+  sanitizer, not the 018-02 hardening nits). No inbox items.
+- **Named residuals (tracked, not closed):** mutation-XSS / parser-differential bypasses (AC4's honest
+  boundary — the injectable `opts.setContent` seam's job, slot DOMPurify for genuinely-untrusted content);
+  the `opts.sanitize` first-write-wins constraint (test-only seam today); production eager-phase wiring of
+  `reserveSpace().fill()` (refinement-todo **h**, a separate adapter-integration concern).
+
+### Reviews / reconciliation — recorded
+
+All gating passes ran as independent Opus reviewers over the Sonnet diffs and are recorded under `reviews/`:
+**frame-critique** (2 rounds → pass), **compliance** (pass), **craft** (pass), **arch** (pass),
+**reconciliation** (pass). The convergent security findings (the module-global TT policy's
+first-write-wins-over-`sanitize` coupling — non-blocking, zero current blast radius; the `core/` import-free
+invariant now machine-guarded) and the coverage nits (rig `data-x`/`aria-label` + `v-vbscript-href`; the
+`ci.yml` three-asserts comment) were folded in and re-verified green before the RECONCILED → DONE transition.

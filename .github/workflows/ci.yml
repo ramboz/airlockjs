@@ -59,8 +59,9 @@ jobs:
   # chromium-install failure or browser flake here must not block the fast
   # hermetic gate above. No `needs:` coupling to hermetic-oracle on purpose.
   #
-  # Gates on two structural asserts (07-02 real-Worker isolation, UC-1
-  # no-flicker + conformant exposure beacon); reports the cwv_budget
+  # Gates on three structural asserts (07-02 real-Worker isolation, UC-1
+  # no-flicker + conformant exposure beacon, 018-01 active-markup sanitizer
+  # boundary); reports the cwv_budget
   # statistical rigs as advisory (07-03) — continue-on-error, per the
   # slice's wiring caveat (cwv:budget exits 1 on an over-budget miss, and
   # its advisory nature lives in the CI step, not the script).
@@ -95,6 +96,16 @@ jobs:
           # rig/uc1.mjs defaults to the original 20000/8000ms locally).
           UC1_BOOT_TIMEOUT_MS: "60000"
           UC1_BEACON_TIMEOUT_MS: "20000"
+
+      - name: GATING — active-markup sanitizer boundary (018-01)
+        # The load-bearing security proof for spec 018-01: reserveSpace().
+        # fill()'s DEFAULT write path strips on*/dangerous-URL/denylisted-
+        # element vectors under the real EDS boilerplate CSP. This is a
+        # Node/vitest-INELIGIBLE proof (Node has no DOMParser, and the
+        # project deliberately ships no jsdom/happy-dom/linkedom — see
+        # core/sanitize-html.js's header) — this step, not `npm test`, is the
+        # actual security gate for this slice's load-bearing AC.
+        run: npm run rig:sanitize
 
       - name: ADVISORY — cwv_budget (Lighthouse + INP delta + drain delivery, 07-03)
         # Advisory only (spec.md routing table) — cwv:budget exits 1 on a
