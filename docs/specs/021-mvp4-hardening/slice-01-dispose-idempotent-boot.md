@@ -1,8 +1,9 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 dependencies: []
 last_verified: 2026-08-31
 frame_review: false
+claimed_by: main
 ---
 
 ## Slice 021-01 — dispose() + idempotent-boot guard

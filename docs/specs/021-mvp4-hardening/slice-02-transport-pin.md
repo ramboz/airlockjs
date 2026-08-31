@@ -23,15 +23,20 @@ speculatively.
 
 **Acceptance Criteria:**
 
-1. **Ground the ACTUAL coverage first (the frame-critique target).** Enumerate, from source, whether an
-   `http://` downgrade is already held: (a) does `checkEndpointCeiling` reject `http://<declared-host>/<path>`
-   when the declared endpoint is `https://…` (origin includes scheme → likely YES for both GA4 and alloy
-   where a ceiling is wired)? (b) does the config-integrity **override** re-derive over `http://` via
-   `pinnedDispatchUrl` (a candidate real gap)? (c) any egress path with **no** ceiling wired (GA4's declared
-   `endpoints` are `https://…`, so the ceiling covers it — confirm). Record the true gap set; if the ceiling
-   already covers all paths, the "pin" collapses to a **confirmation + a regression test**, not new gating.
-2. **Pin `https` exactly where a gap remains — fail-closed, surfaced.** For each grounded gap (most likely the
-   override re-derive, or any allow-list path that keys on host-not-scheme), require `https` (or the page's
+1. **Ground the ACTUAL coverage first (the frame-critique GROUNDED this — re-ranked candidates below).** The
+   016 ceiling ALREADY rejects an `http://` downgrade wherever wired: `checkEndpointCeiling` compares
+   `origin + pathname` and `origin` includes the scheme, so `http://h/p ∉ ["https://h/p"]` → HOLD (GA4 seam +
+   alloy seam both wire it). So enumerate the candidate gaps in this order: **(a) [LEADING] a config-integrity
+   (or allow-list) egress path with NO ceiling co-wired** — config-integrity keys on `.host` (scheme-blind),
+   so a downgrade there is NOT caught; enumerate the shipped rig/adapter wiring to see if a ceiling-less path
+   exists. **(b) [already-closed when a ceiling is co-wired] the config-integrity `override` re-derive** — the
+   ceiling runs FIRST + holds the http original before override runs, and `pinnedDispatchUrl` only re-derives
+   the tenant on an already-ceiling-granted (scheme-included) origin, so it cannot escape to http; confirm.
+   **(c) [confirmed-covered] the ceiling-wired GA4 + alloy paths.** Record the true gap set — likely just (a),
+   possibly empty. If empty, the "pin" collapses to a **confirmation + regression test**, not new gating.
+2. **Pin `https` exactly where a gap remains — fail-closed, surfaced.** For each grounded gap (most likely a
+   **config-integrity path with no ceiling co-wired** — pin scheme in `checkConfigIntegrity` itself so it is
+   not scheme-blind even standalone, defense-in-depth), require `https` (or the page's
    own scheme if the page is `http` — do not force `https` on a localhost/http *test* origin, mirroring the
    014-01 cookie-attribute origin-awareness): a downgraded destination is **held** + a redacted 009-02 alert.
    Observable: an `http://` downgrade to the honest host is held (not forwarded); the honest `https://` path
