@@ -230,7 +230,7 @@ describe("sanitizeHtml — the DI'd-parser seam (wiring only; NOT a real-HTML-pa
       body: {
         get innerHTML() {
           return bodyContainer.children
-            .map((c) => "<template>" + templateContent.innerHTML + "</template>")
+            .map((_c) => "<template>" + templateContent.innerHTML + "</template>")
             .join("");
         },
       },

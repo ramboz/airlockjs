@@ -149,7 +149,7 @@ await page.waitForTimeout(200); // let the IntersectionObserver callback run
 await drainAndWait((b) => b.name === "view_block" && b.block_name === "promo", 8000);
 const afterPromoScroll = viewBlockBeacons();
 const promoBeacon = afterPromoScroll.find((b) => b.block_name === "promo") || null;
-let promoConformant = false;
+let promoConformant;
 try { promoConformant = promoBeacon ? validate(JSON.parse(promoBeacon.body)) === true : false; } catch { promoConformant = false; }
 
 // --- 3. Scroll away (to top) and back to `.promo` → still exactly one (no re-fire). ---

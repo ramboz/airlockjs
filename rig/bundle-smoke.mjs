@@ -157,6 +157,6 @@ const out = {
     ? "PASS — bundled runtime booted after body:appear, persisted a GA1-format _ga, and cycled a contract-shaped event whose beacon carries the persisted identity, under the boilerplate CSP"
     : "FAIL — see flags above",
 };
-// eslint-disable-next-line no-console
+ 
 console.log(JSON.stringify(out, null, 2));
 process.exit(pass ? 0 : 1);

@@ -137,7 +137,7 @@ const clicked = await page.evaluate(() => {
 });
 const ctaArrivedAlive = await waitForBeacon((b) => b.name === "cta_engage", 8000);
 const ctaBeacon = beacons.find((b) => b.name === "cta_engage") || null;
-let ctaConformant = false;
+let ctaConformant;
 try { ctaConformant = ctaBeacon ? validate(JSON.parse(ctaBeacon.body)) === true : false; } catch { ctaConformant = false; }
 // Worker-path proof: the beacon arrived and NO unload had been dispatched when it did.
 const workerPathProven = ctaArrivedAlive && ctaConformant && ctaBeacon?.name === "cta_engage"
@@ -172,7 +172,6 @@ const outboundInWindow = outboundBeacon !== null;
 // AC2(b) — pagehide → page_view critical beacon carrying the CURRENT page_location.
 // ---------------------------------------------------------------------------
 const currentUrl = await page.evaluate(() => location.href); // still the testbed page (nav suppressed)
-unloadDispatchedAt = Date.now();
 await page.evaluate(() => window.dispatchEvent(new Event("pagehide")));
 await page.waitForTimeout(200);
 const pageViewBeacon = beacons.find((b) => b.name === "page_view") || null;

@@ -36,7 +36,7 @@ const body = JSON.stringify({
 async function fire(label, configId) {
   const url = `${EDGE}?configId=${configId}&requestId=reroute-probe`;
   let host = null; try { host = new URL(url).host; } catch {}
-  let status = 0, accepted = false;
+  let status, accepted = false;
   try { const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body }); status = r.status; accepted = r.ok; }
   catch (e) { status = -1; }
   return { label, host, status, accepted };

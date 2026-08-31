@@ -189,7 +189,7 @@ const interactDispatchesOnMain = (md.requests || []).filter((r) => /\/ee\/v1\/in
 const exactlyOneInteractDispatchedByCore = interactDispatchesOnMain.length === 1 && md.count === 1;
 
 let xdmInteractValidates = false;
-let xdmDetail = null;
+let xdmDetail;
 try {
   const parsed = JSON.parse((interactDispatchesOnMain[0] || {}).body || "null");
   const ev = ((parsed && parsed.events) || [])[0] || {};

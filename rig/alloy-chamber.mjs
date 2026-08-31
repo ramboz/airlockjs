@@ -226,7 +226,7 @@ const ecidLandedInBrokerJarOnMain =
 // --- AC4: the intercepted XDM interact payload validates — pageView + top-level
 //     query.identity.fetch includes "ECID" (grounded against the executed probe). ---
 let xdmInteractValidates = false;
-let xdmDetail = null;
+let xdmDetail;
 try {
   const parsed = JSON.parse((interactDispatchesOnMain[0] || {}).body || "null");
   const ev = ((parsed && parsed.events) || [])[0] || {};

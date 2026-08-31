@@ -187,7 +187,7 @@ describe("createCoalescingBroker — liveness: first-mint dispatch failure settl
     let release;
     const gate = new Promise((r) => { release = r; });
     let firstCall = true;
-    const dispatch = async (req) => {
+    const dispatch = async (_req) => {
       if (firstCall) {
         firstCall = false;
         await gate; // hold the first mint in-flight until the second has arrived

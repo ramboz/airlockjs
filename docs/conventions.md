@@ -61,9 +61,20 @@ nowhere). Probe directories keep a thin README pointing at their note and how to
 
 ## Code style
 
-> **Deferred — no signal from initial pitch.** Will be filled in as the project
-> encounters style decisions worth recording. Each addition follows the
-> Rule/Why/How format above.
+**Rule:** JavaScript is linted with **ESLint** (flat config, `eslint.config.js`) on the `@eslint/js`
+**recommended** baseline — a real-bug ruleset (`no-undef`, `no-unused-vars`, `no-empty`,
+`no-useless-assignment`, …), not a stylistic one. Run `npm run lint`; CI gates on it. Adopted 2026-08-31
+(human-approved — see [lightweight-decisions.md](decisions/lightweight-decisions.md)).
+**Why:** the source was written against the AEM/Airbnb habit (the scoped `no-empty` disables on busy-wait loops
+predate the config) but was never actually enforced. A linter catches real defects — undefined globals, dead
+code, unreachable branches — without forcing a repo-wide style cleanup. A stricter AEM/Airbnb ruleset stays a
+**deferred** option (it would surface hundreds of purely stylistic findings — out of scope for "turn linting on").
+**How to apply:** per-environment globals are set by glob in `eslint.config.js` (browser / worker / node /
+vitest) — a chamber `*.worker.js` must **not** inherit browser globals, or `no-undef` would silently pass code
+referencing a global the worker doesn't have. Prefer fixing a finding over disabling it; when a disable is
+genuinely warranted (e.g. the intentional control-char regex in `core/sanitize-html.js`) scope it to the exact
+rule + line with a one-line justification — **never** a whole-file `/* eslint-disable */`. Vendored trees
+(`probes/`) and build output (`rig/out/`) are ignored, not linted.
 
 ## Testing
 

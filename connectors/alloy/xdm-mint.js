@@ -60,7 +60,7 @@ export function recognizeInteract(req) {
   const url = req && typeof req === "object" ? req.url : undefined;
   const rawBody = typeof req === "string" ? req : req && req.body;
 
-  let parsed = null;
+  let parsed;
   try {
     parsed = typeof rawBody === "string" ? JSON.parse(rawBody) : rawBody;
   } catch (e) {

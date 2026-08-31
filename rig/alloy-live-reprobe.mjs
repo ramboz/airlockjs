@@ -215,7 +215,7 @@ function redactObj(obj) {
 const redactedReq = reqObj ? redactObj(reqObj) : { __unparseable__: true };
 const redactedResp = respObj ? redactObj(respObj) : { __unparseable__: true };
 // redact the URL (configId + requestId live in the query string)
-let redactedUrl = interact.url;
+let redactedUrl;
 try {
   const u = new URL(interact.url);
   if (u.searchParams.has("configId")) u.searchParams.set("configId", "REDACTED");

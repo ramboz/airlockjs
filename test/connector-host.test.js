@@ -131,7 +131,7 @@ describe("connector host (spec 012-01 AC1)", () => {
       manifest,
       init: () => {},
       handle: (event) => {
-        if (event.type === "boom") throw "not an Error instance"; // eslint-disable-line no-throw-literal
+        if (event.type === "boom") throw "not an Error instance";  
         return [];
       },
     });

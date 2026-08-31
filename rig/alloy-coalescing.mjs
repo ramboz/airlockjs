@@ -31,7 +31,7 @@ import { build } from "esbuild";
 import { chromium } from "playwright";
 import { createGatedMintStub } from "./alloy-mint-stub.js";
 import { recognizeInteract } from "../connectors/alloy/xdm-mint.js";
-import { parseAmcv, classifyIdentity } from "./coherency-model.mjs";
+import { classifyIdentity } from "./coherency-model.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const OUT = join(ROOT, "rig/out/alloy-coalescing.json");

@@ -128,7 +128,7 @@ export function createGa4Connector(config = {}) {
    * the chamber's "init" message). Accepted for contract conformance only.
    * @param {import("../../contracts/capability").GrantedCapabilities} caps
    */
-  function init(caps) {
+  function init(_caps) {
     // no-op — see doc comment above.
   }
 

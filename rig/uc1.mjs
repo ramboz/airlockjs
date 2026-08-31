@@ -155,7 +155,7 @@ async function runArm(variant, screenshotPath) {
 
   // --- 2. Conformant exposure beacon (AC3+AC5). ---
   const beacon = beacons.find((b) => b.name === "experiment_impression") || null;
-  let mpConformant = false;
+  let mpConformant;
   try { mpConformant = beacon ? validate(JSON.parse(beacon.body)) === true : false; } catch { mpConformant = false; }
   const exposureOk = beacon !== null && mpConformant
     && beacon.params.experiment_id === "hero-cta" && beacon.params.variant_id === variant;
@@ -208,6 +208,6 @@ const out = {
     ? "PASS — variant applied before body:appear in both arms (structural no-flicker invariant), and a schema-conformant experiment_impression exposure beacon fired for each variant through the airlock's lazy boot"
     : "FAIL — see per-arm flags above",
 };
-// eslint-disable-next-line no-console
+ 
 console.log(JSON.stringify(out, null, 2));
 process.exit(pass ? 0 : 1);

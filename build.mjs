@@ -92,12 +92,12 @@ const workerIsSameOriginFileUrl =
   !/\bblob:|\bdata:/.test(emitted) && !/\bblob:|\bdata:/.test(emittedWorker);
 
 if (failures.length) {
-  // eslint-disable-next-line no-console
+   
   console.error(JSON.stringify({ built: outputs, failures }, null, 2));
   throw new Error(`build.mjs: bundle layout assertion failed:\n- ${failures.join("\n- ")}`);
 }
 
-// eslint-disable-next-line no-console
+ 
 console.log(
   JSON.stringify(
     {

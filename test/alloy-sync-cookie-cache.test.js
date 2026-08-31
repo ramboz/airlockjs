@@ -10,7 +10,7 @@
 //
 // These tests pin the cache mechanics (the R-004 shape); the browser rig proves
 // the real bundle's first sync cookie access is served from it.
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { createSyncCookieCache } from "../connectors/alloy/sync-cookie-cache.js";
 
 describe("sync cookie cache (spec 012-01 AC3)", () => {

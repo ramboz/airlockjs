@@ -79,7 +79,7 @@ async function runOnce() {
     if (u.origin === ORIGIN) return; // skip same-origin harness/bundle/config traffic
     egress.push({ url: r.url(), origin: u.origin, host: u.host, resourceType: r.resourceType(), method: r.method(), disposition: chamberDisposition(r.resourceType()) });
   });
-  let result = null, pageErrors = [];
+  let result, pageErrors = [];
   page.on("pageerror", (e) => pageErrors.push(String(e)));
   try {
     await page.goto(`${ORIGIN}/rig/alloy-live-fanout-harness.html`);

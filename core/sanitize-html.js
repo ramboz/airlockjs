@@ -72,6 +72,7 @@ const DANGEROUS_URL_SCHEMES = ["javascript:", "vbscript:", "data:text/html"];
 // ASCII control chars (0x00-0x1F, 0x7F) + all whitespace — a classic
 // denylist-evasion trick splits a scheme with a stray tab/newline
 // ("jav\tascript:"), which browsers ignore when resolving a URL scheme.
+// eslint-disable-next-line no-control-regex -- matching control chars is the point (scheme-splitting evasion defense, see comment above)
 const CONTROL_OR_WHITESPACE_RE = /[\u0000-\u001F\u007F\s]+/g;
 
 /**

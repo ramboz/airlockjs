@@ -128,7 +128,7 @@ if (evalError) {
 const ac1 = !!isolation && isolation.domThrew === true && isolation.errName === "ReferenceError";
 
 // --- AC2: the chamber's real mapping path produced its expected output. ---
-let mappedBody = null;
+let mappedBody;
 try { mappedBody = mapping && mapping[0] ? JSON.parse(mapping[0].body) : null; } catch { mappedBody = null; }
 const ac2 =
   Array.isArray(mapping) &&
@@ -149,6 +149,6 @@ const out = {
     ? "PASS — bare `document` threw ReferenceError in the chamber's own Worker realm (AC1), and the shipped chamber's real init/events/mapToMp path ran to completion with the expected MP-shaped output in that same realm (AC2)"
     : "FAIL — see ac1_isolation / ac2_positive_control above",
 };
-// eslint-disable-next-line no-console
+ 
 console.log(JSON.stringify(out, null, 2));
 process.exit(pass ? 0 : 1);

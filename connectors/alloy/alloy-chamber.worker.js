@@ -59,7 +59,6 @@
  * default-`"in"` `defaultConsent` window is unaffected).
  */
 
-/* eslint-disable */
 import { createConnectorHost } from "../../core/connector-host.js";
 import { createAlloyConnector } from "./connector.js";
 import { createSyncCookieCache } from "./sync-cookie-cache.js";
@@ -105,7 +104,7 @@ function buildCaps(seedCookie) {
   caps = {
     cookies: {
       get: async (name) => {
-        const m = new RegExp("(?:^|; )" + name.replace(/[.$?*|{}()\[\]\\\/+^]/g, "\\$&") + "=([^;]*)").exec(cache.readSync());
+        const m = new RegExp("(?:^|; )" + name.replace(/[.$?*|{}()[\]\\/+^]/g, "\\$&") + "=([^;]*)").exec(cache.readSync());
         return m ? decodeURIComponent(m[1]) : null;
       },
       set: async (name, value, opts = {}) => {

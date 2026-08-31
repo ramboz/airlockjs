@@ -154,7 +154,7 @@ describe("AC3 — no surfacing noise on the happy path", () => {
   it("existing ready-dispatch behavior is unchanged alongside a clean reply", () => {
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal("fetch", fetchMock);
-    const airlock = make();
+    make();
 
     FakeWorker.last.onmessage({
       data: { ready: [{ url: endpoints[0], body: "{}" }], dropped: [] },

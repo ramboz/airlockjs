@@ -64,3 +64,11 @@ fields), so the documented shape and the helper output agree.
 **Context:** Slice 004-02's bundle assumptions were probe-grounded against exactly 0.21.5 (no auto worker bundling; literal new URL worker reference preserved), and build.mjs's layout assertions are calibrated to that behavior. A silent minor bump could change worker-reference rewriting and invalidate the 004-01 CSP envelope enforcement.
 
 **Scope:** package.json devDependencies; revisit deliberately (re-run npm run build + rig:bundle) when bumping esbuild
+
+### 2026-08-31 — Adopt ESLint (flat config) on the recommended baseline
+
+**Decision:** JavaScript is linted with ESLint 10 (flat config, `eslint.config.js`) on the `@eslint/js` **recommended** ruleset — a real-bug baseline, not a stylistic one. `npm run lint` runs it; CI gates on it. Per-environment globals are set by glob (browser / worker / node / vitest); vendored `probes/` and build output `rig/out/` are ignored. Whole-file `/* eslint-disable */` is disallowed — the one that lived in `connectors/alloy/alloy-chamber.worker.js` (from the read-only 014-01 era) was removed; disables must be scoped to a rule + line with a justification.
+
+**Context:** User direction "add the linter now" (2026-08-31) resolved the long-`Deferred` Code-style convention. Spec 021-03 had assumed a linter already existed (from the AEM/Airbnb-flavored disable comments); grounding at implementation showed none was ever wired. Chose `recommended` over the heavier AEM/Airbnb ruleset deliberately: it catches genuine defects (undefined globals, dead code, unreachable branches) without a repo-wide stylistic cleanup. The stricter ruleset remains a deferred option. This is a convention change, made with explicit human approval per CLAUDE.md.
+
+**Scope:** repo-wide JS linting (`eslint.config.js`, `npm run lint`, CI); see [conventions.md](../conventions.md) → Code style. Delivered under spec 021-03.
