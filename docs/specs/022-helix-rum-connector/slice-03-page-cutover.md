@@ -1,11 +1,19 @@
 ---
-status: DRAFT
+status: DEFERRED
 dependencies: [022-02, 022-04]
 last_verified: 2026-09-01
 frame_review: false
 ---
 
 ## Slice 022-03 — page-side sampleRUM cutover + integration proof
+
+> **DEFERRED (2026-09-01).** The cutover is parked, not cancelled. **Resolution trigger:** full RUM parity is
+> reached *without* natively reimplementing Adobe's evolving enhancer — i.e. via the **worker-dom compatibility
+> layer** (host the real enhancer off-thread, govern its egress/mutations) or a **community-contributed** full
+> connector — AND the creds-gated live-collector wire-shape check passes. Native full reproduction (022-05) is
+> explicitly NOT the path (maintainer decision 2026-09-01; see [R-008](../../research/R-008-costly-dom-martech-containment.md)).
+> Until then airlock's RUM is the governance exemplar (`top`/`error`/`cwv`), coexisting with the page's
+> `sampleRUM` (the honest double-emit 022-01 AC3 named) rather than replacing it.
 
 > The cutover — **lands last**, only safe once airlock is a COMPLETE `sampleRUM`+enhancer stand-in: 022-02
 > (the `top`+`error` checkpoints + sampling) AND 022-04 (the CWV/interaction checkpoints). `sampleRUM` is a

@@ -1,5 +1,5 @@
 ---
-status: IN_PROGRESS
+status: DONE
 skill: jig:spec-workflow
 use_cases: []
 ---
@@ -10,6 +10,21 @@ use_cases: []
 
 > MVP4's third core-AEM-stack piece (GA4 ✅ + governed alloy ✅ + **RUM**). Appetite: fits inside MVP4's
 > 2-week box alongside the now-DONE 021 hardening. Release: [mvp4.md](../../releases/mvp4.md).
+
+## Status (2026-09-01) — governance exemplar; full parity + cutover DEFERRED
+
+**Delivered as an egress-governance exemplar:** 022-01 (`top`) ✅ · 022-02 (`error` + sampling) ✅ ·
+022-04 (`cwv` via `web-vitals/attribution`) ✅ — the core RUM checkpoints reproduced natively and governed
+(confined to `ot.aem.live`, **not consent-gated**, no-exfil). This proves airlock's **governance** half of
+the thesis on a real Adobe connector.
+
+**Full parity + the page-side cutover are DEFERRED** (maintainer, 2026-09-01 — see
+[lightweight-decisions](../../decisions/lightweight-decisions.md) + [R-008](../../research/R-008-costly-dom-martech-containment.md)):
+reproducing the enhancer's *entire* evolving, plugin-extended checkpoint set **natively** is the wrong bet for
+a governance runtime. The interaction/lifecycle checkpoints (022-05) and the `sampleRUM` cutover (022-03) wait
+on the **worker-dom compatibility layer** (host the real enhancer off-thread, govern its egress) or a
+community connector, plus the creds-gated live-collector wire-shape check. RUM proved the governance story;
+the **performance** story (containing costly-DOM martech) is taken up separately (R-008 + the nasty-tag POC).
 
 ## Overview
 
@@ -134,9 +149,10 @@ they get their own slice rather than bloating 022-02.
 _Execution order 01 → 02 → 04 → 03 (numbers = reservation order; dependencies define execution)._
 
 - [022-01 — governed page-view RUM beacon (+ A/B grounding)](slice-01-governed-rum-beacon.md) — **DONE**
-- [022-02 — error checkpoints + sampling-rate fidelity](slice-02-checkpoint-surface.md)
-- [022-04 — `cwv` checkpoint via `web-vitals/attribution` (native runtime capture)](slice-04-cwv-checkpoints.md)
-- _022-05 (planned, not yet reserved) — the enhancer's interaction/lifecycle checkpoints
-  (`click`/`viewblock`/`viewmedia`/`enter`/`navigate`/`formsubmit`/`pagesviewed`), DOM-event capture like
-  022-02's `error`. Reserved when 022-04 lands; 022-03's cutover then depends on it too._
-- [022-03 — page-side sampleRUM cutover (gated on 022-02 + 022-04 + 022-05)](slice-03-page-cutover.md)
+- [022-02 — error checkpoints + sampling-rate fidelity](slice-02-checkpoint-surface.md) — **DONE**
+- [022-04 — `cwv` checkpoint via `web-vitals/attribution` (native runtime capture)](slice-04-cwv-checkpoints.md) — **DONE**
+- _022-05 — the enhancer's interaction/lifecycle checkpoints — **DEFERRED / not pursued natively**
+  (2026-09-01). Native reimplementation of Adobe's evolving, plugin-extended checkpoint set is the wrong bet;
+  full parity comes via the worker-dom compat layer or a community connector ([R-008](../../research/R-008-costly-dom-martech-containment.md)), not a native 022-05._
+- [022-03 — page-side sampleRUM cutover](slice-03-page-cutover.md) — **DEFERRED** (trigger: full parity via
+  worker-dom/community + the creds-gated live-collector check; see the slice).

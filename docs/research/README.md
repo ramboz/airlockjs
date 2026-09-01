@@ -43,6 +43,8 @@ you create a note; update its status/promotion when it resolves.
 | [R-004](R-004-alloy-in-worker.md) | Alloy (AEP Web SDK) in a no-DOM Worker chamber | CONCLUDED | [ADR-0001](../decisions/adr-0001-chamber-isolation-strength.md); capability contract (step 5); probe: [probes/alloy-worker](../../probes/alloy-worker/) |
 | [R-005](R-005-eds-no-flicker-eager-swap.md) | EDS no-flicker eager swap mechanism + timing | CONCLUDED | UC-1 spec (arch-review G1); OQ6 flicker oracle; probe: [probes/eds-testbed](../../probes/eds-testbed/) |
 | [R-006](R-006-cross-chamber-cookie-coherency-mechanisms.md) | AD-4-compatible sync host-access + cross-chamber cookie coherency mechanisms | CONCLUDED | [OQ9](../refinement-todo.md); [spec 011](../specs/011-mvp2-coherency-probe/spec.md) (scope + option set); [ADR-0001](../decisions/adr-0001-chamber-isolation-strength.md) |
+| [R-007](R-007-real-prod-stack-breadth.md) | Real prod martech stack (21 tools) classified by airlock-fit — breadth-validation benchmark | OPEN | [mvp4](../releases/mvp4.md); [mvp5](../releases/mvp5.md); [R-008](R-008-costly-dom-martech-containment.md) |
+| [R-008](R-008-costly-dom-martech-containment.md) | Containing costly-DOM martech (the INP/CWV thesis) — 3 levers; worker-dom-compat / govern+schedule strategy | OPEN | [spec 022](../specs/022-helix-rum-connector/spec.md); nasty-tag POC (next); [R-007](R-007-real-prod-stack-breadth.md) |
 
 ## Hand-offs
 

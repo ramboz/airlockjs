@@ -66,8 +66,16 @@
 | [021-mvp4-hardening](021-mvp4-hardening/spec.md) | 021-03 — adopt ESLint + delint the alloy chamber | **DONE** |  |
 | [022-helix-rum-connector](022-helix-rum-connector/spec.md) | 022-01 — governed page-view RUM beacon (+ A/B grounding) | **DONE** |  |
 | [022-helix-rum-connector](022-helix-rum-connector/spec.md) | 022-02 — error checkpoints + sampling-rate fidelity | **DONE** |  |
-| [022-helix-rum-connector](022-helix-rum-connector/spec.md) | 022-03 — page-side sampleRUM cutover + integration proof | DRAFT |  |
+| [022-helix-rum-connector](022-helix-rum-connector/spec.md) | 022-03 — page-side sampleRUM cutover + integration proof | DEFERRED |  |
 | [022-helix-rum-connector](022-helix-rum-connector/spec.md) | 022-04 — CWV checkpoint via `web-vitals` (native runtime capture) | **DONE** |  |
+
+## Deferred slices
+
+> Slices parked with a stated resolution trigger. Re-open by transitioning to DRAFT.
+
+| Spec | Slice | Resolution trigger |
+|------|-------|--------------------|
+| [022-helix-rum-connector](022-helix-rum-connector/spec.md) | 022-03 — page-side sampleRUM cutover + integration proof |  |
 
 ## Abandoned slices
 
