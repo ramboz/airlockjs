@@ -45,14 +45,20 @@ shape (heavy per-element processing) and **names** the monolithic-sync boundary 
 
 - **[LOAD-BEARING — the POC's whole point] A chunk-and-yield scheduler genuinely contains INP** for chunkable
   DOM work: interleaving `yieldToMain` between batches keeps the longest task (and thus INP) small while the
-  total work still completes (across frames). If the measured INP contrast is not decisive, the POC has
-  falsified its own thesis — that is a valid, publishable outcome, not a failure to paper over.
+  total work still completes (across frames). **With the mechanically-critical precondition (frame-critique):**
+  INP counts the interaction's **first task**, so the first synchronous chunk (any un-chunked prefix + the
+  first batch, or a yield-first discipline) must itself fit the frame budget — later yields cannot rescue a
+  large first task. If the measured contrast is not decisive, the POC has falsified its own thesis — a valid,
+  publishable outcome, not a failure to paper over.
 - **[LOAD-BEARING] The nasty-tag work must be CHUNKABLE.** The fixture does heavy *per-element* processing (a
   loop over many nodes), which is yieldable. A monolithic sync op (one giant browser call) is out of Lever 1's
   reach by construction — named as the boundary (→ Lever 2 / POC-B), not smuggled past.
-- **[to confirm at implementation] The INP measurement is valid + reproducible** — a Playwright harness firing
-  N scripted interactions and reading INP (via `web-vitals` `onINP`, already a dep) yields a stable p75
-  contrast between the naive and scheduled runs on the same fixture page.
+- **[to confirm at implementation] The INP measurement is valid + reproducible** — measured the repo's proven
+  way (`rig/harness.html:30-74`): a raw Event-Timing `PerformanceObserver` over a pinned-cadence click storm →
+  the within-storm p75/p98/max, run N page loads per mode + median + a noise band (`rig/cwv-budget.mjs:16-20`).
+  **NOT** `web-vitals` `onINP` (one per-page p98-estimate at page-hide — wrong instrument for a within-page
+  naive-vs-scheduled contrast). Fairness is *observable* (pinned cadence + work-completed reported per mode),
+  not asserted.
 - **`scheduler.yield()` availability** — prefer the platform `scheduler.yield()`/`postTask` where present;
   fall back to a `MessageChannel`/`isInputPending` yield. Ground the fallback at implementation.
 
