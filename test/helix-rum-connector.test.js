@@ -26,14 +26,15 @@ const UNSELECTED_DRAW = 0.999999;
 afterEach(() => vi.restoreAllMocks());
 
 describe("helix-rum connector manifest (spec 022-01 AC2 — declared per ADR-0006/0007)", () => {
-  it("declares name/events (top-only, 022-01 scope) + EMPTY reads (no projection)", () => {
+  it("declares name/events (top + error, 022-02 widened scope) + EMPTY reads (no projection)", () => {
     vi.spyOn(Math, "random").mockReturnValue(SELECTED_DRAW);
     const { manifest } = createHelixRumConnector({ ctx });
 
     expect(manifest.name).toBe("airlock/helix-rum");
-    // 022-01 core scope: the `top` checkpoint only — `error` + the CWV/
-    // interaction enhancer checkpoints widen this in 022-02.
-    expect(manifest.events).toEqual(["top"]);
+    // 022-02 AC1: widens the 022-01 top-only scope to the `error` checkpoints
+    // (3 window listeners, aem.js:68-92). The CWV/interaction enhancer
+    // checkpoints remain out of scope (022-04 — a new runtime capture).
+    expect(manifest.events).toEqual(["top", "error"]);
     // reads = PROJECTION fields (ADR-0003). RUM reads host-sourced ctx.referer,
     // never a projection snapshot field -> reads is EMPTY, mirroring GA4.
     expect(manifest.reads).toEqual([]);
@@ -136,6 +137,138 @@ describe("helix-rum connector handle() — the grounded beacon shape (spec 022-0
 
     const requests = connector.handle({ type: "top", ts: 1 });
     expect(requests.length).toBe(1);
+  });
+});
+
+describe("helix-rum connector handle() — the `error` checkpoint (spec 022-02 AC1)", () => {
+  it("shapes the grounded 7-field error body: the 5 base fields + {source, target}, matching dataFromErrorObj's shape", () => {
+    vi.spyOn(Math, "random").mockReturnValue(SELECTED_DRAW);
+    const connector = createHelixRumConnector({ ctx });
+
+    const [request] = connector.handle({
+      type: "error",
+      ts: 55,
+      // errData rides on `event.params` — the internal `{ type, params }`
+      // descriptor `core/airlock.js`'s `push({ event, ...params })` produces
+      // (contracts/push-api.md), the SAME channel GA4/alloy's own `handle`
+      // already read per-event data from.
+      params: { source: "foo@https://example.com/a.js:1:2", target: "TypeError: x is not a function" },
+    });
+    const body = JSON.parse(request.body);
+
+    expect(Object.keys(body).sort()).toEqual([
+      "checkpoint", "id", "referer", "source", "t", "target", "weight",
+    ]);
+    expect(body).toEqual({
+      weight: DEFAULT_WEIGHT,
+      id: expect.any(String),
+      referer: ctx.referer,
+      checkpoint: "error",
+      t: 55,
+      source: "foo@https://example.com/a.js:1:2",
+      target: "TypeError: x is not a function",
+    });
+  });
+
+  it("also accepts errData via event.payload (the pinned AirlockEvent contract shape) — the SAME params||payload bridge GA4/alloy use", () => {
+    vi.spyOn(Math, "random").mockReturnValue(SELECTED_DRAW);
+    const connector = createHelixRumConnector({ ctx });
+
+    const [request] = connector.handle({
+      type: "error",
+      ts: 1,
+      payload: { source: "csp", target: "https://blocked.example/script.js" },
+    });
+    const body = JSON.parse(request.body);
+
+    expect(body.source).toBe("csp");
+    expect(body.target).toBe("https://blocked.example/script.js");
+  });
+
+  it("posts to the SAME confined endpoint as `top` — one URL for the whole page, keyed only by weight", () => {
+    vi.spyOn(Math, "random").mockReturnValue(SELECTED_DRAW);
+    const connector = createHelixRumConnector({ ctx });
+
+    const [request] = connector.handle({ type: "error", ts: 1, params: { source: "s", target: "t" } });
+    expect(request.url).toBe(`${DEFAULT_COLLECT_BASE_URL}/.rum/${DEFAULT_WEIGHT}`);
+  });
+
+  it("returns AT MOST ONE request for an error checkpoint too — no fan-out", () => {
+    vi.spyOn(Math, "random").mockReturnValue(SELECTED_DRAW);
+    const connector = createHelixRumConnector({ ctx });
+
+    const requests = connector.handle({ type: "error", ts: 1, params: { source: "s", target: "t" } });
+    expect(requests.length).toBe(1);
+  });
+});
+
+describe("helix-rum connector — sampling-rate fidelity (spec 022-02 AC2)", () => {
+  // The grounded rate table (aem.js:27-34), asserted literally here (not
+  // imported from the connector) so the test verifies the GROUNDED contract,
+  // not just mirrors whatever the implementation happens to export.
+  it.each([
+    ["on", 1],
+    ["high", 10],
+    ["medium", 100],
+    ["low", 1000],
+    ["off", 0],
+  ])("rate:'%s' resolves to weight %i in the declared endpoint (and the runtime URL)", (rate, expectedWeight) => {
+    vi.spyOn(Math, "random").mockReturnValue(SELECTED_DRAW);
+    const connector = createHelixRumConnector({ ctx, rate });
+
+    expect(connector.manifest.endpoints).toEqual([`${DEFAULT_COLLECT_BASE_URL}/.rum/${expectedWeight}`]);
+  });
+
+  it("the resolved weight rides in the BODY too, not just the endpoint URL", () => {
+    vi.spyOn(Math, "random").mockReturnValue(SELECTED_DRAW);
+    const connector = createHelixRumConnector({ ctx, rate: "high" });
+
+    const [request] = connector.handle({ type: "top", ts: 1 });
+    expect(JSON.parse(request.body).weight).toBe(10);
+  });
+
+  it("an unrecognized rate name falls back to the grounded default (medium/100), mirroring aem.js's own fallback", () => {
+    vi.spyOn(Math, "random").mockReturnValue(SELECTED_DRAW);
+    const connector = createHelixRumConnector({ ctx, rate: "bogus-rate-name" });
+
+    expect(connector.manifest.endpoints).toEqual([`${DEFAULT_COLLECT_BASE_URL}/.rum/${DEFAULT_WEIGHT}`]);
+  });
+
+  it("an explicit numeric `weight` OVERRIDES a `rate` name — 022-01's raw escape hatch wins over the friendlier name", () => {
+    vi.spyOn(Math, "random").mockReturnValue(SELECTED_DRAW);
+    const connector = createHelixRumConnector({ ctx, rate: "high", weight: 5 });
+
+    expect(connector.manifest.endpoints).toEqual([`${DEFAULT_COLLECT_BASE_URL}/.rum/5`]);
+  });
+
+  it("rate:'off' (weight 0) never selects, regardless of the random draw — same guarantee as an explicit weight:0", () => {
+    vi.spyOn(Math, "random").mockReturnValue(SELECTED_DRAW); // would select at weight>0
+    const connector = createHelixRumConnector({ ctx, rate: "off" });
+
+    expect(connector.handle({ type: "top", ts: 1 })).toEqual([]);
+  });
+});
+
+describe("helix-rum connector — one identity across top + error (spec 022-02 AC3)", () => {
+  it("id AND weight are IDENTICAL across a page's `top` and `error` checkpoints (one connector instance, fixed once)", () => {
+    vi.spyOn(Math, "random").mockReturnValue(SELECTED_DRAW);
+    const connector = createHelixRumConnector({ ctx });
+
+    const [topReq] = connector.handle({ type: "top", ts: 1 });
+    const [errReq] = connector.handle({ type: "error", ts: 2, params: { source: "s", target: "t" } });
+    const topBody = JSON.parse(topReq.body);
+    const errBody = JSON.parse(errReq.body);
+
+    expect(errBody.id).toBe(topBody.id);
+    expect(errBody.weight).toBe(topBody.weight);
+  });
+
+  it("an UNSELECTED page-load emits NOTHING for EITHER checkpoint (top AND error), from the SAME connector instance", () => {
+    vi.spyOn(Math, "random").mockReturnValue(UNSELECTED_DRAW);
+    const connector = createHelixRumConnector({ ctx });
+
+    expect(connector.handle({ type: "top", ts: 1 })).toEqual([]);
+    expect(connector.handle({ type: "error", ts: 2, params: { source: "s", target: "t" } })).toEqual([]);
   });
 });
 

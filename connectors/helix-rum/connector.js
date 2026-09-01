@@ -1,4 +1,4 @@
-import { mapToRum, rumUrl } from "./map.js";
+import { mapToRum, rumUrl, resolveWeight, RATE_WEIGHTS } from "./map.js";
 
 /**
  * The default AEM RUM collector base — `sampleRUM`'s own default
@@ -7,8 +7,13 @@ import { mapToRum, rumUrl } from "./map.js";
  */
 export const DEFAULT_COLLECT_BASE_URL = "https://ot.aem.live";
 
-/** `sampleRUM`'s own sampling-rate table (`aem.js:27-34`) — `medium` (100) is the default. */
-export const DEFAULT_WEIGHT = 100;
+/**
+ * `sampleRUM`'s own sampling-rate table (`aem.js:27-34`) — `medium` (100) is
+ * the default. Single source of truth is `map.js`'s `RATE_WEIGHTS`; kept as
+ * its own named export (022-01) since callers may want the bare default
+ * number without the full rate-name table.
+ */
+export const DEFAULT_WEIGHT = RATE_WEIGHTS.medium;
 
 /**
  * helix-rum connector — spec 022-01, mechanism B: reproduce the AEM RUM `top`
@@ -16,7 +21,10 @@ export const DEFAULT_WEIGHT = 100;
  * a hosted/wrapped `helix-rum-enhancer` (that A/B fork is grounded + recorded
  * in docs/specs/022-helix-rum-connector/spec.md § Assumptions; this connector
  * implements the grounded lean for the core `top` checkpoint, which needs no
- * CWV/enhancer). The enhancer decision itself is deferred to 022-02.
+ * CWV/enhancer). 022-02 (this slice) extends the SAME mechanism-B native
+ * reproduction to the `error` checkpoints + sampling-rate fidelity — no new
+ * capture machinery, no enhancer involved. The enhancer/CWV decision itself
+ * is deferred to 022-04 (spec reshaped 2026-09-01 — "do the split").
  *
  * Wire-protocol archetype (contracts/connector.d.ts), hosted by the SAME generic
  * core/connector-host.js GA4/alloy use — mirrors connectors/ga4/connector.js's
@@ -54,16 +62,30 @@ export const DEFAULT_WEIGHT = 100;
  * flagged, deferred design question — see this slice's deviation log); it
  * establishes the connector's shape only, per the slice's own scope note.
  *
+ * SAMPLING-RATE FIDELITY (022-02 AC2): `config.rate` accepts a host-supplied
+ * rate NAME (`on`/`high`/`medium`/`low`/`off` -> `1`/`10`/`100`/`1000`/`0`,
+ * `map.js`'s `RATE_WEIGHTS` table, grounded against aem.js's own table). The
+ * raw numeric `config.weight` (022-01's escape hatch) still WINS when both are
+ * given — see `map.js`'s `resolveWeight` doc for why. Either way the resolved
+ * `weight` is what feeds `isSelected`/the endpoint/the beacon body below —
+ * there is only ONE weight per connector instance, regardless of which knob
+ * set it.
+ *
  * @param {Readonly<Record<string, unknown>>} [config] host-owned RUM config:
- *   `{ collectBaseURL, weight, ctx: { referer } }`.
+ *   `{ collectBaseURL, rate, weight, ctx: { referer } }`.
  * @returns {import("../../contracts/connector").Connector}
  */
 export function createHelixRumConnector(config = {}) {
   const {
     collectBaseURL = DEFAULT_COLLECT_BASE_URL,
-    weight = DEFAULT_WEIGHT,
+    rate,
+    weight: weightConfig,
     ctx = {},
   } = config;
+
+  // Sampling-rate fidelity (022-02 AC2) — resolve ONCE, same as id/isSelected
+  // below (see this connector's PER-PAGE SAMPLING STATE header note).
+  const weight = resolveWeight({ rate, weight: weightConfig });
 
   // Per-page sampling state, fixed ONCE (see header) — computed at
   // construction, never re-rolled per handle() call.
@@ -73,10 +95,13 @@ export function createHelixRumConnector(config = {}) {
 
   const manifest = {
     name: "airlock/helix-rum",
-    // 022-01 core scope: the `top`/page-view checkpoint only. `error` (3 window
-    // listeners) + the CWV/interaction enhancer checkpoints join in 022-02 —
-    // widening this array (+ map.js, additively) is that slice's job.
-    events: ["top"],
+    // 022-01 shipped the `top`/page-view checkpoint only. 022-02 (this slice)
+    // widens to the `error` checkpoints (3 window listeners — error/
+    // unhandledrejection/securitypolicyviolation, aem.js:68-92); the CWV/
+    // interaction enhancer checkpoints remain 022-04 (need a NEW runtime
+    // capture — 022-01's grounding showed the enhancer can't host in a
+    // chamber).
+    events: ["top", "error"],
     reads: [], // RUM reads no projection snapshot field — only host-sourced ctx.referer
     capabilities: {
       // NO cookie capability requested — `id` is ephemeral/per-page (never
@@ -113,7 +138,9 @@ export function createHelixRumConnector(config = {}) {
    * beacon per page-load (AC3): the checkpoint is captured/pushed at most once,
    * and this either maps it or drops it — it never fans a single event out into
    * more than one request (unlike GA4's per-tracker loop; RUM has one destination).
-   * @param {{ type: string, ts?: number }} event
+   * @param {{ type: string, ts?: number, params?: Record<string, unknown>, payload?: Record<string, unknown> }} event
+   *   `params`/`payload` carry the `error` checkpoint's `{ source, target }`
+   *   errData (022-02 AC1) — see map.js's header for the descriptor bridge.
    * @returns {import("../../contracts/connector").EgressRequest[]}
    */
   function handle(event) {

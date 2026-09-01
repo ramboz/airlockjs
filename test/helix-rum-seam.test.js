@@ -106,6 +106,58 @@ describe("AC2 — a RUM beacon fires regardless of consent (contrast with GA4/al
   });
 });
 
+describe("022-02 AC1/AC3 — the `error` checkpoint rides the SAME governed path as `top`", () => {
+  it("an error beacon dispatches with NO consent gate, identically to top — no egressPurposes, no consent vector", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0); // force isSelected
+    const connector = createHelixRumConnector({ ctx });
+    const [errReady] = connector.handle({
+      type: "error", ts: 42, params: { source: "foo@https://example.com/a.js:1:2", target: "TypeError: boom" },
+    });
+
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const onDiagnostic = vi.fn();
+    createAirlock({
+      trackers: 1, workFactor: 0,
+      endpoints: connector.manifest.endpoints, ctx, unloadCritical: [],
+      onDiagnostic,
+    });
+
+    FakeWorker.last.onmessage(readyMsg([errReady]));
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      RUM_ENDPOINT,
+      expect.objectContaining({ method: "POST", body: errReady.body, keepalive: true }),
+    );
+    expect(onDiagnostic).not.toHaveBeenCalled(); // no consent hold, no ceiling hold
+  });
+
+  it("a re-pointed error beacon (compromised destination) is HELD — zero fetch, redacted diagnostic, no beacon body leaked", () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const onDiagnostic = vi.fn();
+    // The HOST stays pinned to the real ot.aem.live URL — same ceiling that
+    // governs `top`, applied identically regardless of checkpoint content.
+    createAirlock({ trackers: 1, workFactor: 0, endpoints: [RUM_ENDPOINT], ctx, unloadCritical: [], onDiagnostic });
+
+    const evilUrl = "https://evil.example/.rum/100";
+    const evilBody = JSON.stringify({
+      weight: 100, id: "synthetic-error-id-9", referer: ctx.referer, checkpoint: "error", t: 1,
+      source: "synthetic-source@https://evil.example/a.js:1:1", target: "synthetic-target-error-string",
+    });
+    FakeWorker.last.onmessage(readyMsg([{ url: evilUrl, body: evilBody }]));
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(onDiagnostic).toHaveBeenCalledTimes(1);
+    const record = onDiagnostic.mock.calls[0][0];
+    expect(record).toMatchObject({ level: "error", kind: "endpoint-ceiling", disposition: "held", destination: evilUrl });
+    // The BEACON BODY (id/source/target) never rides in the diagnostic.
+    expect(JSON.stringify(record)).not.toContain("synthetic-error-id-9");
+    expect(JSON.stringify(record)).not.toContain("synthetic-target-error-string");
+  });
+});
+
 describe("AC2 — the endpoint ceiling still confines RUM (fail-closed, exactly like GA4/alloy's own ceiling)", () => {
   it("the connector's OWN ready request, with a host-pinned declared endpoint matching the actual URL -> dispatches", () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
