@@ -1,9 +1,10 @@
 ---
-status: DRAFT
+status: REVIEWED
 dependencies: []
 last_verified: 2026-09-01
 frame_review: false
 kind: spike
+claimed_by: main
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about
@@ -45,14 +46,60 @@ compat layer, or not — with the limits documented so a "won't work" tag is a k
    verify)? A number, or an honest "couldn't get a clean number in the box + why."
 
 **DoD (spike close-out):**
-- [ ] **Findings** filled (mechanism grounded; the works/won't-work map; the probe number or why-not).
-- [ ] **Outcome** set (`ADR-NNNN created` for the build/no-build decision, or `abandoned (reason)` if
-      worker-dom is infeasible for airlock). Promote to R-008 + refinement-todo.
-- [ ] Probe code under `probes/` (per R-008); no live identifiers (synthetic / public tags only).
+- [x] **Findings** filled (mechanism grounded + AD-4-compat confirmed; the works/won't-work map; the INP probe
+      deferred to the build-spec per the time-box, with why).
+- [x] **Outcome** set (ADR *recommended*, awaiting the maintainer's build/no-build call — not auto-created;
+      worker-dom is viable for a real subset, not infeasible). Promoted to R-008 + refinement-todo.
+- [x] No live identifiers (grounding only — public docs/sources; **no probe code this spike** — the INP
+      integration probe is the downstream build-spec's first step, deferred per the 1-day time-box).
 
-**Findings:** _(filled during IN_PROGRESS)_
+**Findings (2026-09-01 — grounded: worker-dom README + its arch/issue sources + the R-003/AD-4 corpus):**
 
-**Outcome:** _(set at DONE — `ADR-NNNN created` / downstream spec unblocked / `abandoned (reason)`)_
+- **Mechanism — async, postMessage, NO SharedArrayBuffer → AD-4-COMPATIBLE (the load-bearing confirmation).**
+  worker-dom runs author JS in a Web Worker against a **mirror DOM**; a worker-side `MutationObserver`
+  serializes mutations and **`postMessage`s** them to a main-thread coordinator that applies them (batched, and
+  able to prioritise by frame budget — "retain main thread availability... by async updating elsewhere").
+  Plain `postMessage`; **no SharedArrayBuffer / no COOP-COEP** (the README never mentions them; async-dom is the
+  variant that uses SAB — worker-dom does not). So unlike Partytown (whose sync-proxy *fast* path needs exactly
+  the cross-origin isolation [AD-4](../../architecture.md) refuses, per [R-003](../../research/R-003-partytown-mechanism-check.md)),
+  **worker-dom needs none of it** — it is the AD-4-fit mechanism, and its async-mutation shape matches airlock's
+  "capture on main, do the work behind the airlock" model.
+- **Bootstrap API:** `upgradeElement(el, workerScriptUrl)` upgrades a `<div src="tag.js" id="…">`-marked
+  element to run its script in the worker. Three builds ship (standard / amp-with-safety-hooks / debug).
+- **THE load-bearing limit — the SYNC-READ boundary (confirmed).** An async mirror cannot answer a
+  *synchronous* live-layout read. `getBoundingClientRect()` / `offsetWidth` / `offsetHeight` /
+  `getComputedStyle()` called synchronously, and read-after-write, do not return live values. AMP's `amp-script`
+  (the productionised worker-dom) **replaces** them with async Promise variants (`getBoundingClientRectAsync()`)
+  — i.e. the tag must be **rewritten**, so it is no longer "unmodified." The only way to keep them synchronous
+  is SharedArrayBuffer (async-dom's route) — **which AD-4 refuses.** `querySelector` has only partial support.
+- **The works / won't-work map (the deliverable):**
+  - **WORKS unmodified (INP contained):** write/compute-heavy tags — DOM injection/building, off-thread
+    analytics computation, element manipulation — that do **not** synchronously read live layout. Computation
+    runs off-thread; mutations flush async + frame-budgeted. A real, useful slice of the long tail.
+  - **WON'T WORK unmodified:** sync-layout-read / measurement-driven tags (`getBoundingClientRect`/`offsetHeight`
+    /`getComputedStyle` sync, read-after-write, focus/selection, sync storage, tags loading own sub-resources
+    expecting a real `window`). They need rewriting (amp-script's async variants) or are incompatible.
+  - **The irony (important + a bit sharp):** the WORST INP offenders — **layout-thrash** (write-then-sync-read,
+    exactly the 023-01 nasty tag's `el.style=…; void el.offsetHeight`) — fall in worker-dom's **won't-work**
+    set. So worker-dom and Lever 1 are **complementary, not overlapping**: Lever 1 (main-thread, *scheduled*)
+    contains *adapted* layout-thrash; worker-dom moves *unmodified write/compute-heavy* tags off-thread. Neither
+    is universal — together they cover more of the space than either alone.
+- **worker-dom's own state (a risk to weigh):** `@ampproject/worker-dom@0.36.0` — pre-1.0, created 2018, last
+  modified 2025; semi-maintained, and AMP itself is declining. Partytown (v0.10, actively maintained 2026) is
+  the better-kept analog but is SAB-dependent (AD-4-refused). So the real choice is **wrap the semi-maintained
+  @ampproject/worker-dom** vs **build a minimal airlock-owned mirror** of just the mutation-serialize +
+  frame-budget-coordinator core (a small DOM subset, aligned with airlock's vanilla/minimal ethos + full
+  control), *informed by* worker-dom's proven design.
+
+**Outcome:** **ADR recommended (build/no-build) — not yet created; awaits the maintainer's call.** The spike is
+CONCLUDED: worker-dom's async-mutation model is **viable + AD-4-compatible** as airlock's Lever-2 compat layer
+for the **write/compute-heavy unmodified-tag subset**, with a real, documented **sync-read "won't work"**
+boundary (and the sharp finding that layout-thrash is *in* that boundary — Lever 1's job, not Lever 2's). The
+open decision for the ADR: **wrap `@ampproject/worker-dom` vs build a minimal airlock mirror** (leaning
+minimal-mirror, given the pre-1.0/semi-maintained state + airlock's ethos). The confirming **INP probe** (an
+unmodified write-heavy tag off-thread → contained INP with the mutation-apply staying frame-budgeted) is the
+**downstream build-spec's first step**, deferred here per the 1-day time-box (a full worker-dom integration
+would balloon the spike). Promote to R-008 + refinement-todo.
 
 **Anti-horizontal-phasing check:** a spike is exempt (it ships *knowledge*, not a user-facing layer) — but the
 knowledge is decision-shaped: the works/won't-work map + a build/no-build call, not open-ended research.

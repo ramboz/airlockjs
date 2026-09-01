@@ -341,15 +341,19 @@ defense-in-depth strip. Recorded in [ADR-0013](decisions/adr-0013-alloy-consent-
 The DOM-cost-containment investigation ([R-008](research/R-008-costly-dom-martech-containment.md)) — how
 airlock contains costly-DOM martech (the INP/CWV thesis). Named deferred items:
 
-### Decision: worker-dom compatibility layer (POC-B) — DEFERRED
+### Decision: worker-dom compatibility layer (POC-B) — SPIKE CONCLUDED (2026-09-01); ADR pending
 **Deferred:** the short-term compatibility/migration layer (Lever 2) — run an **unmodified** third-party tag
 in a chamber against a virtual DOM (à la `@ampproject/worker-dom`), its computation off-thread, mutations
 budgeted onto the main thread. The thing that unlocks the martech long tail whose vendors won't rewrite. NOT
 the end-state (govern+schedule connectors are), and with **documented limits** (tags needing live layout
-reads / sync storage / their own `window` won't work). **Resolution trigger:** after POC-A (Lever 1, the
-scheduled-capability proof) lands its INP scoreboard + DOM-capability — then a worker-dom feasibility spike
-probes `@ampproject/worker-dom` (or a minimal mirror) against the R-007 real-stack tags. **Do not forget**
-(maintainer, 2026-09-01). Detail + the "won't work" set: R-008.
+reads / sync storage / their own `window` won't work). ~~**Resolution trigger:** after POC-A lands its INP
+scoreboard — then a worker-dom feasibility spike.~~ **Spike DONE ([spec 024](specs/024-worker-dom-compat-spike/spec.md),
+2026-09-01):** worker-dom's async-mutation model is **AD-4-compatible** (postMessage, no SAB — the reason it,
+not Partytown, is the base); **works** unmodified for write/compute-heavy tags, **won't work** for
+sync-layout-read tags (layout-thrash included — a Lever-1 job). **Now-pending decision (an ADR):** adopt the
+async model as the Lever-2 compat layer — **wrap `@ampproject/worker-dom` (pre-1.0/semi-maintained) vs build a
+minimal airlock mirror** (leaning minimal) — then a downstream build-spec (its first AC: the confirming INP
+integration probe). Detail + the works/won't-work map: R-008 + the spike's Findings.
 
 ### Decision: Lever 3 circuit-breaker (budget enforcement) — DEFERRED
 **Deferred:** POC-A builds Lever 3's **measurement** half (the before/after INP scoreboard). The

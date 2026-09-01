@@ -94,7 +94,14 @@ not this POC's scope.
 ## Hand-offs
 
 - **Feeds a spec now:** the nasty-tag before/after-CWV POC (Lever 1 + Lever 3). ← next action.
-- **Feeds a spike later:** worker-dom compatibility-layer feasibility (Lever 2).
+- **Lever 2 spike DONE (2026-09-01 — [spec 024](../specs/024-worker-dom-compat-spike/spec.md)):** worker-dom's
+  **async-mutation-flush** model (postMessage, **no SharedArrayBuffer**) is **AD-4-compatible** — the reason it,
+  not Partytown (SAB fast path / slow sync-XHR default, R-003), is the Lever-2 base. **Works** unmodified for
+  write/compute-heavy tags (INP contained off-thread); **won't work** for sync-layout-read/measurement tags
+  (`getBoundingClientRect`/`offsetHeight`/read-after-write) — and *sharply*, layout-thrash (Lever 1's job) is IN
+  that won't-work set, so the two levers are **complementary, not overlapping**. Recommends an ADR (adopt the
+  async model; **wrap `@ampproject/worker-dom`** — pre-1.0/semi-maintained — **vs a minimal airlock mirror**,
+  leaning minimal). The confirming INP integration probe is the build-spec's first step.
 - **Promotes to an ADR** once airlock commits to building the worker-dom compat layer and/or the
   govern+schedule DOM-capability surface as a product bet (the strategy above is the pre-ADR open phase).
 - **Recasts spec 022:** RUM is the governance exemplar; its full-parity/cutover (022-03/05) are deferred to
