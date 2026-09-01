@@ -47,43 +47,65 @@ the note in the Anti-horizontal-phasing check).
 
 **Acceptance Criteria:**
 
-1. **Ground the `cwv` wire shape + the `web-vitals/attribution` API.** Add `web-vitals` as a dependency (pin
-   the major); read the **`web-vitals/attribution`** entry's API (`onLCP`/`onCLS`/`onINP` + the metric object
-   incl. its `attribution` sub-object) from `node_modules`. Ground the enhancer's exact `cwv` payload (metric
-   name + value + which attribution fields; one-beacon-per-metric vs combined) from the enhancer source / a
-   real payload, and record it. **Parity-superset check:** if the stock enhancer's `cwv` is lighter than the
-   attribution build, airlock's `cwv` is a deliberate superset — confirm the AEM RUM collector accepts the
-   extra attribution fields. Build against the grounded shape, not a guess.
+1. **Ground the `cwv` wire shape, the `web-vitals/attribution` API, AND the structured-cloneable scalar
+   subset.** `web-vitals` is already installed (`^6.2.1`, a runtime dependency); read the
+   **`web-vitals/attribution`** entry's API (`onLCP`/`onCLS`/`onINP` + the metric object incl. its
+   `attribution` sub-object) from `node_modules`. **CRITICAL (frame-critique must-fix):** the raw
+   `attribution` object carries **non-structured-cloneable** `PerformanceEntry` sub-objects
+   (`processedEventEntries`, `longAnimationFrameEntries`, `longestScript.entry` —
+   `web-vitals/dist/modules/attribution/onINP.js`); pushing them through airlock's `push()`→worker
+   `postMessage` would throw **`DataCloneError`** and break the whole drain. So AC1 **enumerates the
+   structured-cloneable SCALAR** attribution fields airlock projects (e.g. INP's `interactionTarget` selector
+   + `interactionType` + the timing numbers; LCP's `target`/`element` selector + timing scalars; CLS's
+   `largestShiftTarget` + value), **NOT** the raw entries. Ground the enhancer's exact `cwv` payload
+   (checkpoint name + metric fields + which attribution scalars) from the enhancer source / a real payload,
+   and record it. **Parity-superset + fallback:** airlock fully controls the payload (`map.js` whitelists), so
+   the DEFAULT is **whitelist-to-enhancer-parity**; a superset (extra attribution scalars) ships only if a
+   live collector probe confirms the AEM RUM pipeline accepts it — an AC1 rejection **narrows the whitelist**,
+   it does not block the slice.
 2. **`web-vitals/attribution` CWV capture → governed `cwv` checkpoint.** A **capture-layer** (main-thread)
-   module subscribes to `onLCP`/`onCLS`/`onINP` from `web-vitals/attribution`; each finalized metric is
-   `push`ed as a `cwv` checkpoint carrying the metric name + value + the grounded attribution fields (on the
-   `event.params` bridge 022-02 established), and the connector maps it to the grounded RUM `cwv` body and
-   egresses it through the **022-01** confined, not-consent-gated path (same `id`/`weight` as the page's
-   `top`/`error`). Observable: a real LCP/CLS/INP → the grounded `cwv` beacon (with attribution); held if the
-   endpoint is re-pointed; fired regardless of consent; sampling-gated (unselected → silent).
-3. **CWV-safe by construction + no regression.** The capture must not itself regress CWV — `web-vitals` is
-   `PerformanceObserver`-based (passive, off the interaction path), and the mapping/egress stay behind the
-   airlock (INP-safe-by-construction, airlock's core thesis). The `top`/`error` paths are byte-unchanged; the
-   `cwv` checkpoint rides the identical governance.
+   module subscribes to `onLCP`/`onCLS`/`onINP` from `web-vitals/attribution`; on each finalized metric it
+   **projects the attribution to the grounded structured-cloneable SCALARS on the main thread** (per AC1 —
+   never the raw non-cloneable entries) and `push`es a `cwv` checkpoint carrying `{ name, value,
+   ...attributionScalars }` on the `event.params` bridge (022-02); the connector maps it to the grounded RUM
+   `cwv` body and egresses it through the **022-01** confined, not-consent-gated path (same `id`/`weight` as
+   `top`/`error`). **Emission model (design fork — resolve from AC1's grounding):** one `cwv` beacon per
+   metric (the callbacks finalize at different times) vs one **combined** `cwv` — if the enhancer combines,
+   this slice needs a buffering/combination step, not just per-callback push. Observable: a **stubbed**
+   `web-vitals` callback → a `cwv` push carrying **only cloneable scalars** → the governed beacon (held if
+   re-pointed; fired regardless of consent; sampling-gated). (Real end-to-end LCP/CLS/INP needs the production
+   capture wiring — deferred, like 022-01's `push()` adapter.)
+3. **CWV-safe (no new INTERACTION-PATH cost) + no regression.** The attribution build DOES add main-thread
+   work — a second `PerformanceObserver` (`long-animation-frame`) + report-time attribution compute — but it
+   is **off the interaction hot path**: `web-vitals` defers per-interaction bookkeeping via its own
+   `whenIdleOrHidden` and computes attribution only at report-time (visibility-hidden), so INP is unaffected
+   (verified against `node_modules/web-vitals` in the frame-critique). The mapping/egress stay behind the
+   airlock. The `top`/`error` paths are byte-unchanged; the `cwv` checkpoint rides the identical governance.
 
 **DoD:**
-- [ ] AC1 grounding recorded (`web-vitals` API + the `cwv` wire shape, with evidence). ACs 2–3 pass. Tests
-      (targeted — suite hangs): `web-vitals` callbacks (stubbed) → a `cwv` push → the grounded beacon shape +
-      governed path; CWV-safe (capture is passive); sampling gates it; `top`/`error` unchanged. Sweep:
-      `helix-rum-*`, `endpoint-ceiling-seam`.
-- [ ] **Frame-critique** (the load-bearing premise: `web-vitals` is the right, CWV-safe capture source and the
-      capture→chamber split holds for CWV — the metric callbacks fire on the main thread and only the mapped
-      beacon crosses; confirm no new main-thread cost + the `cwv` wire shape is grounded, not guessed) +
-      compliance + craft + reconciliation.
-- [ ] Deviation log + reconciliation sweep; `web-vitals` dependency recorded (a lightweight decision already
-      captures the *why*); the interaction-checkpoint remainder (022-05) + the production-wiring fork are
-      explicitly carried forward; `mvp4.md` row updated.
+- [ ] AC1 grounding recorded (`web-vitals/attribution` API + the `cwv` wire shape + **the cloneable scalar
+      subset**, with evidence). ACs 2–3 pass. Tests (targeted — suite hangs): stubbed `web-vitals` callbacks →
+      a `cwv` push → the grounded beacon shape + governed path; **the pushed `params` survive a
+      `structuredClone()` round-trip / contain only scalars** (guards the `DataCloneError` hazard the raw
+      attribution object would cause — must NOT be masked by an over-simplified stub; feed the projection a
+      realistic attribution-shaped input incl. mock entry objects and assert they're stripped to scalars);
+      sampling gates it; `top`/`error` unchanged. Sweep: `helix-rum-*`, `endpoint-ceiling-seam`.
+- [x] **Frame-critique** — PASS (verified the INP-safety premise directly against `node_modules/web-vitals`;
+      surfaced the structured-clone must-fix now folded into AC1/AC2). Still needed: compliance + craft +
+      reconciliation.
+- [ ] Deviation log + reconciliation sweep. Log explicitly: (a) the **accepted grounded deviation** — CWV
+      measurement lives in a **main-thread capture layer** outside the chamber (a Worker can't observe the
+      LCP/CLS/INP entry types); the chamber isolates only mapping+egress, and INP-safety is inherited from
+      `web-vitals`'s `whenIdleOrHidden`-deferred design, not airlock's off-thread architecture. (b) **022-05**
+      (interaction/lifecycle checkpoints) is a new dependency of 022-03's cutover, post-dating 022-03's
+      framing. (c) the production-wiring fork carried forward. `mvp4.md` row updated.
 - [ ] **No live identifiers committed.**
 
 **Anti-horizontal-phasing check:** real CWV telemetry (LCP/CLS/INP, via `web-vitals`) crosses the seal,
 governed + confined — the observability payoff airlock's CWV-first thesis promises, sourced by airlock itself.
 **Parity note:** with 022-02 (`top`+`error`) this covers the CWV metrics, but the enhancer's
-**interaction/lifecycle** checkpoints (`click`/`viewblock`/`viewmedia`/`enter`/`navigate`/`formsubmit`/
-`pagesviewed`) remain — a follow-up **022-05** (DOM-event capture, mechanically like 022-02) is needed before
+**interaction/lifecycle** checkpoints (`click`/`viewblock`/`viewmedia`/`enter`/`navigate`/`reload`/
+`formsubmit`/`pagesviewed`) remain — a follow-up **022-05** (DOM-event capture, mechanically like 022-02) is
+needed before
 022-03's cutover can remove the page's `sampleRUM` without losing those signals. 022-03's dependency set grows
 to include 022-05 when it lands.
