@@ -1,10 +1,9 @@
 ---
-status: REVIEWED
+status: DONE
 dependencies: []
 last_verified: 2026-09-01
 frame_review: false
 kind: spike
-claimed_by: main
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about
@@ -103,3 +102,30 @@ would balloon the spike). Promote to R-008 + refinement-todo.
 
 **Anti-horizontal-phasing check:** a spike is exempt (it ships *knowledge*, not a user-facing layer) — but the
 knowledge is decision-shaped: the works/won't-work map + a build/no-build call, not open-ended research.
+
+### Deviation log
+
+- **AC3 (the INP probe) deferred, per the time-box — not dropped.** The 1-day box's own escape clause ("if the
+  probe balloons... stop at the grounded map + a build/no-build recommendation") fired: a real
+  `@ampproject/worker-dom` integration (build variant + `upgradeElement` bootstrap + a worker-dom-compatible
+  write-heavy fixture + the Event-Timing harness) is a multi-hour build, disproportionate to a spike whose
+  DECISION does not hinge on the number (the works/won't-work map + AD-4-compat already decide viability). The
+  probe is named as the downstream **build-spec's first AC**, where a measured containment number belongs.
+- **Grounding by citation, not executed probe (a spike-appropriate choice).** The runnable claims (mechanism,
+  no-SAB, the sync-read boundary) are grounded from worker-dom's README + its arch/issue sources + amp-script's
+  documented async-read replacements, not a local run. The one thing this leaves open — does `@ampproject/worker-dom@0.36`
+  actually run cleanly in a modern chromium — is immaterial to the decision (if 0.36 is too stale, airlock
+  builds the minimal mirror; the *model* is what the spike validated), and is the build-spec's probe to close.
+
+### Reconciliation sweep
+
+- **Question answered + Outcome set** (the spike's contract): viable + AD-4-compatible for the write/compute
+  subset; sync-read is the won't-work boundary; ADR recommended (awaiting the maintainer — correctly not
+  auto-created for a load-bearing architecture decision needing human acceptance).
+- **Promoted, no orphans:** [R-008](../../research/R-008-costly-dom-martech-containment.md)'s Lever-2 hand-off
+  updated to DONE-with-findings; [refinement-todo](../../refinement-todo.md)'s POC-B entry struck
+  `DEFERRED` → `SPIKE CONCLUDED` with the now-pending ADR decision; the spec status board reflects 024-01.
+- **Downstream named:** the ADR (build/no-build, wrap-vs-minimal-mirror) + the build-spec (whose first AC is
+  the confirming INP integration probe). No dependency left dangling.
+- **No live identifiers, no probe code, no new dependency** committed (worker-dom was inspected via npm
+  metadata + public docs, not added to `package.json` — adoption is the ADR's call).
