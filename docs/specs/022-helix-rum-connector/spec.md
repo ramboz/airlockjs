@@ -116,11 +116,13 @@ they get their own slice rather than bloating 022-02.
   `error`/`unhandledrejection`/`securitypolicyviolation`) + **sampling-rate fidelity** (the `on/high/medium/
   low` rate table + `SAMPLE_PAGEVIEWS_AT_RATE`/URL-param resolution — 022-01 fixed `weight`/`isSelected` once
   but hardcoded the default rate). These ride the 022-01 connector path directly — **no CWV capture needed**.
-- **022-04 (Data — the CWV/interaction checkpoints, NEW):** build airlock's own **runtime per-page CWV
-  capture** (LCP/CLS/INP — mechanism **B-extended**, since 022-01's grounding showed the enhancer can't host
-  in a chamber) and emit the CWV/interaction checkpoints natively through the 022-01 governed path. airlock is
-  CWV-first with the `aem-cwv-helper` primitives (`observeLayoutShifts`/`observeSlowInteractions`, vision
-  §Tech) — the aligned home. The meaty slice; split out of 022-02 so each stays vertical + inside the box.
+- **022-04 (Data — the `cwv` checkpoint via `web-vitals`, NEW):** build airlock's own **runtime CWV capture**
+  using Google's **`web-vitals/attribution`** build (LCP/CLS/INP + attribution — the reliable source Adobe RUM
+  uses behind the scenes; maintainer 2026-09-01) in the **main-thread capture layer** (a Worker can't observe
+  those PerformanceObserver entry types), and emit the `cwv` checkpoint through the 022-01 governed path
+  (mapping + egress behind the airlock). Mechanism **B-extended**. The meaty slice. **The enhancer's
+  interaction/lifecycle checkpoints** (`click`/`viewblock`/`viewmedia`/`enter`/`navigate`/`formsubmit`/
+  `pagesviewed`) are DOM-event-driven (like 022-02's `error`) — a follow-up **022-05** before the cutover.
 - **022-03 (Interface — the page-side cutover):** the `sampleRUM` removal (an `aem.js` cleanup) + integration
   guidance, **demonstrated** in `probes/eds-testbed`. **Gated on FULL parity — depends on 022-02 AND 022-04:**
   `sampleRUM` is a single function, so removing it drops `top`+`error`+CWV **at once**; airlock must cover all
@@ -133,5 +135,8 @@ _Execution order 01 → 02 → 04 → 03 (numbers = reservation order; dependenc
 
 - [022-01 — governed page-view RUM beacon (+ A/B grounding)](slice-01-governed-rum-beacon.md) — **DONE**
 - [022-02 — error checkpoints + sampling-rate fidelity](slice-02-checkpoint-surface.md)
-- [022-04 — CWV/interaction checkpoints (native runtime capture)](slice-04-cwv-checkpoints.md)
-- [022-03 — page-side sampleRUM cutover (gated on 022-02 + 022-04)](slice-03-page-cutover.md)
+- [022-04 — `cwv` checkpoint via `web-vitals/attribution` (native runtime capture)](slice-04-cwv-checkpoints.md)
+- _022-05 (planned, not yet reserved) — the enhancer's interaction/lifecycle checkpoints
+  (`click`/`viewblock`/`viewmedia`/`enter`/`navigate`/`formsubmit`/`pagesviewed`), DOM-event capture like
+  022-02's `error`. Reserved when 022-04 lands; 022-03's cutover then depends on it too._
+- [022-03 — page-side sampleRUM cutover (gated on 022-02 + 022-04 + 022-05)](slice-03-page-cutover.md)
