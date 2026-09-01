@@ -14,9 +14,10 @@ frame_review: true
 main thread, shaped into the AEM RUM wire contract, and egressed under airlock's **RUM governance class**
 (endpoint ceiling on `ot.aem.live` + payload-hygiene — **NOT** consent-gated; RUM is PII-compliant performance
 telemetry not subject to consent, maintainer 2026-08-31) to the AEM RUM collector. Along the way, **ground the
-load-bearing hosting fork** (A: wrap the enhancer in a chamber vs B: reproduce the beacon natively, fed by
-airlock's CWV capture) and record which mechanism 022-02 builds on. This is the vertical minimum: a confined
-RUM ping exists.
+load-bearing hosting fork** (A: wrap the enhancer in a chamber vs B: reproduce the beacon natively) and record
+which mechanism 022-02 builds on. (The `top` beacon uses **no** CWV; the "fed by airlock's CWV capture" part
+of mechanism B is 022-02's enhancer concern, not this slice's.) This is the vertical minimum: a confined RUM
+ping exists.
 
 **DoR:**
 - ✅ The `sampleRUM` **core beacon contract** is grounded (`probes/eds-testbed/scripts/aem.js:14-135`, read
@@ -36,9 +37,10 @@ RUM ping exists.
 1. **Ground the hosting mechanism (A vs B) and RECORD it.** Probe `helix-rum-enhancer`'s actual runtime
    dependencies (read its source / a real load) — specifically whether its CWV/interaction collection needs
    main-thread `PerformanceObserver` + `document` a chamber cannot provide. Record the finding + the chosen
-   mechanism for the **core** path (lean B: reproduce the small beacon contract, fed by airlock's existing
-   main-thread CWV capture) and note the **enhancer** decision explicitly for 022-02. If the probe shows (A)
-   is cleanly feasible, record that instead — the grounding decides, not the lean.
+   mechanism for the **core** path (lean B: reproduce the small `top` beacon contract — which needs no CWV;
+   the enhancer's runtime CWV feed is 022-02's concern) and note the **enhancer** decision explicitly for
+   022-02. If the probe shows (A) is cleanly feasible, record that instead — the grounding decides, not the
+   lean.
 2. **One confined page-view beacon, end-to-end (NOT consent-gated).** A `top`/page-view checkpoint is
    captured on the main thread, shaped into the grounded RUM payload (`{ weight, id, referer,
    checkpoint:"top", t }`), and egressed under the RUM governance class: an **endpoint ceiling pinned to
