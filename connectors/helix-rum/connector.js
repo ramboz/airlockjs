@@ -23,8 +23,15 @@ export const DEFAULT_WEIGHT = RATE_WEIGHTS.medium;
  * implements the grounded lean for the core `top` checkpoint, which needs no
  * CWV/enhancer). 022-02 (this slice) extends the SAME mechanism-B native
  * reproduction to the `error` checkpoints + sampling-rate fidelity — no new
- * capture machinery, no enhancer involved. The enhancer/CWV decision itself
- * is deferred to 022-04 (spec reshaped 2026-09-01 — "do the split").
+ * capture machinery, no enhancer involved. 022-04 (this slice) widens once
+ * more to the `cwv` checkpoint (LCP/CLS/INP), fed by a NEW main-thread
+ * capture module (`connectors/helix-rum/cwv-capture.js`, native
+ * `web-vitals/attribution` subscription — NOT the hosted enhancer, per
+ * 022-01's grounding that the enhancer cannot host in a chamber). This
+ * connector's OWN code (`handle()`, below) needs no `cwv`-specific branch —
+ * only `manifest.events` widens and `map.js`'s `mapToRum` gains a `cwv`
+ * branch; the sampling gate + endpoint + governance are identical for every
+ * checkpoint type, by construction.
  *
  * Wire-protocol archetype (contracts/connector.d.ts), hosted by the SAME generic
  * core/connector-host.js GA4/alloy use — mirrors connectors/ga4/connector.js's
@@ -95,13 +102,15 @@ export function createHelixRumConnector(config = {}) {
 
   const manifest = {
     name: "airlock/helix-rum",
-    // 022-01 shipped the `top`/page-view checkpoint only. 022-02 (this slice)
-    // widens to the `error` checkpoints (3 window listeners — error/
-    // unhandledrejection/securitypolicyviolation, aem.js:68-92); the CWV/
-    // interaction enhancer checkpoints remain 022-04 (need a NEW runtime
-    // capture — 022-01's grounding showed the enhancer can't host in a
-    // chamber).
-    events: ["top", "error"],
+    // 022-01 shipped the `top`/page-view checkpoint only. 022-02 widened to
+    // the `error` checkpoints (3 window listeners — error/
+    // unhandledrejection/securitypolicyviolation, aem.js:68-92). 022-04
+    // (this slice) widens again to `cwv` (LCP/CLS/INP via
+    // `connectors/helix-rum/cwv-capture.js`'s new `web-vitals/attribution`
+    // main-thread capture — 022-01's grounding showed the enhancer itself
+    // can't host in a chamber). The remaining interaction/lifecycle
+    // enhancer checkpoints stay out of scope (022-05).
+    events: ["top", "error", "cwv"],
     reads: [], // RUM reads no projection snapshot field — only host-sourced ctx.referer
     capabilities: {
       // NO cookie capability requested — `id` is ephemeral/per-page (never

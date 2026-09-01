@@ -39,5 +39,8 @@
     "lighthouse": "^13.4.1",
     "playwright": "^1.48.0",
     "vitest": "^3.2.7"
+  },
+  "dependencies": {
+    "web-vitals": "^6.2.1"
   }
 }

@@ -158,6 +158,63 @@ describe("022-02 AC1/AC3 — the `error` checkpoint rides the SAME governed path
   });
 });
 
+describe("022-04 AC2/AC3 — the `cwv` checkpoint rides the SAME governed path as top/error", () => {
+  it("a cwv beacon dispatches with NO consent gate, identically to top/error — no egressPurposes, no consent vector", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0); // force isSelected
+    const connector = createHelixRumConnector({ ctx });
+    const [cwvReady] = connector.handle({
+      type: "cwv",
+      ts: 42,
+      params: {
+        name: "LCP", value: 2345.6, target: "#hero", timeToFirstByte: 120,
+        resourceLoadDelay: 30, resourceLoadDuration: 600, elementRenderDelay: 50,
+      },
+    });
+
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const onDiagnostic = vi.fn();
+    createAirlock({
+      trackers: 1, workFactor: 0,
+      endpoints: connector.manifest.endpoints, ctx, unloadCritical: [],
+      onDiagnostic,
+    });
+
+    FakeWorker.last.onmessage(readyMsg([cwvReady]));
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      RUM_ENDPOINT,
+      expect.objectContaining({ method: "POST", body: cwvReady.body, keepalive: true }),
+    );
+    expect(onDiagnostic).not.toHaveBeenCalled(); // no consent hold, no ceiling hold
+  });
+
+  it("a re-pointed cwv beacon (compromised destination) is HELD — zero fetch, redacted diagnostic, no beacon body leaked", () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const onDiagnostic = vi.fn();
+    // The HOST stays pinned to the real ot.aem.live URL — same ceiling that
+    // governs `top`/`error`, applied identically regardless of checkpoint.
+    createAirlock({ trackers: 1, workFactor: 0, endpoints: [RUM_ENDPOINT], ctx, unloadCritical: [], onDiagnostic });
+
+    const evilUrl = "https://evil.example/.rum/100";
+    const evilBody = JSON.stringify({
+      weight: 100, id: "synthetic-cwv-id-9", referer: ctx.referer, checkpoint: "cwv", t: 1,
+      name: "LCP", value: 9999.9, target: "synthetic-target-selector",
+    });
+    FakeWorker.last.onmessage(readyMsg([{ url: evilUrl, body: evilBody }]));
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(onDiagnostic).toHaveBeenCalledTimes(1);
+    const record = onDiagnostic.mock.calls[0][0];
+    expect(record).toMatchObject({ level: "error", kind: "endpoint-ceiling", disposition: "held", destination: evilUrl });
+    // The BEACON BODY (id/target) never rides in the diagnostic.
+    expect(JSON.stringify(record)).not.toContain("synthetic-cwv-id-9");
+    expect(JSON.stringify(record)).not.toContain("synthetic-target-selector");
+  });
+});
+
 describe("AC2 — the endpoint ceiling still confines RUM (fail-closed, exactly like GA4/alloy's own ceiling)", () => {
   it("the connector's OWN ready request, with a host-pinned declared endpoint matching the actual URL -> dispatches", () => {
     vi.spyOn(Math, "random").mockReturnValue(0);

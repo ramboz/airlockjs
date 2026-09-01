@@ -26,15 +26,17 @@ const UNSELECTED_DRAW = 0.999999;
 afterEach(() => vi.restoreAllMocks());
 
 describe("helix-rum connector manifest (spec 022-01 AC2 — declared per ADR-0006/0007)", () => {
-  it("declares name/events (top + error, 022-02 widened scope) + EMPTY reads (no projection)", () => {
+  it("declares name/events (top + error + cwv, 022-04 widened scope) + EMPTY reads (no projection)", () => {
     vi.spyOn(Math, "random").mockReturnValue(SELECTED_DRAW);
     const { manifest } = createHelixRumConnector({ ctx });
 
     expect(manifest.name).toBe("airlock/helix-rum");
-    // 022-02 AC1: widens the 022-01 top-only scope to the `error` checkpoints
-    // (3 window listeners, aem.js:68-92). The CWV/interaction enhancer
-    // checkpoints remain out of scope (022-04 — a new runtime capture).
-    expect(manifest.events).toEqual(["top", "error"]);
+    // 022-02 AC1 widened top-only to `error`; 022-04 (this slice) widens
+    // again to `cwv` (LCP/CLS/INP via web-vitals/attribution, a NEW
+    // main-thread capture — see connectors/helix-rum/cwv-capture.js). The
+    // remaining interaction/lifecycle enhancer checkpoints stay out of scope
+    // (022-05).
+    expect(manifest.events).toEqual(["top", "error", "cwv"]);
     // reads = PROJECTION fields (ADR-0003). RUM reads host-sourced ctx.referer,
     // never a projection snapshot field -> reads is EMPTY, mirroring GA4.
     expect(manifest.reads).toEqual([]);
@@ -199,6 +201,142 @@ describe("helix-rum connector handle() — the `error` checkpoint (spec 022-02 A
 
     const requests = connector.handle({ type: "error", ts: 1, params: { source: "s", target: "t" } });
     expect(requests.length).toBe(1);
+  });
+});
+
+describe("helix-rum connector handle() — the `cwv` checkpoint (spec 022-04 AC1/AC2)", () => {
+  // Grounded LCP attribution scalars (web-vitals@6.2.1, node_modules/web-vitals/
+  // dist/modules/types/lcp.d.ts:14-67) — see connectors/helix-rum/map.js's
+  // CWV_ATTRIBUTION_FIELDS for the full grounded whitelist across all 3 metrics.
+  const lcpParams = {
+    name: "LCP",
+    value: 2345.6,
+    target: "#hero > img.banner",
+    url: "https://example.test/hero.jpg",
+    timeToFirstByte: 120.4,
+    resourceLoadDelay: 30.1,
+    resourceLoadDuration: 600.2,
+    elementRenderDelay: 50.3,
+  };
+
+  it("shapes the grounded cwv body: 5 base fields + name/value + the whitelisted LCP attribution scalars", () => {
+    vi.spyOn(Math, "random").mockReturnValue(SELECTED_DRAW);
+    const connector = createHelixRumConnector({ ctx });
+
+    const [request] = connector.handle({ type: "cwv", ts: 77, params: lcpParams });
+    const body = JSON.parse(request.body);
+
+    expect(Object.keys(body).sort()).toEqual([
+      "checkpoint", "elementRenderDelay", "id", "name", "referer", "resourceLoadDelay",
+      "resourceLoadDuration", "t", "target", "timeToFirstByte", "url", "value", "weight",
+    ]);
+    expect(body).toEqual({
+      weight: DEFAULT_WEIGHT,
+      id: expect.any(String),
+      referer: ctx.referer,
+      checkpoint: "cwv",
+      t: 77,
+      ...lcpParams,
+    });
+  });
+
+  it("whitelists ONLY the grounded field set — an unrecognized/injected param on a cwv push is DROPPED (payload hygiene, same guarantee as error's source/target whitelist)", () => {
+    vi.spyOn(Math, "random").mockReturnValue(SELECTED_DRAW);
+    const connector = createHelixRumConnector({ ctx });
+
+    const [request] = connector.handle({
+      type: "cwv",
+      ts: 1,
+      params: { ...lcpParams, secretField: "should-never-leak", processedEventEntries: [{ evil: true }] },
+    });
+    const body = JSON.parse(request.body);
+
+    expect(body).not.toHaveProperty("secretField");
+    expect(body).not.toHaveProperty("processedEventEntries");
+  });
+
+  it("also accepts cwv params via event.payload (the SAME params||payload bridge error uses)", () => {
+    vi.spyOn(Math, "random").mockReturnValue(SELECTED_DRAW);
+    const connector = createHelixRumConnector({ ctx });
+
+    const [request] = connector.handle({ type: "cwv", ts: 1, payload: { name: "CLS", value: 0.05 } });
+    const body = JSON.parse(request.body);
+
+    expect(body.name).toBe("CLS");
+    expect(body.value).toBe(0.05);
+  });
+
+  it("CLS and INP shapes: only THEIR OWN grounded attribution scalars ride (no LCP fields bleeding in, no metric-name branching in the connector)", () => {
+    vi.spyOn(Math, "random").mockReturnValue(SELECTED_DRAW);
+    const connector = createHelixRumConnector({ ctx });
+
+    const [clsReq] = connector.handle({
+      type: "cwv",
+      ts: 1,
+      params: {
+        name: "CLS", value: 0.12,
+        largestShiftTarget: "#promo-banner", largestShiftTime: 1801.2, largestShiftValue: 0.09, loadState: "complete",
+      },
+    });
+    const clsBody = JSON.parse(clsReq.body);
+    expect(Object.keys(clsBody).sort()).toEqual([
+      "checkpoint", "id", "largestShiftTarget", "largestShiftTime", "largestShiftValue",
+      "loadState", "name", "referer", "t", "value", "weight",
+    ]);
+
+    const [inpReq] = connector.handle({
+      type: "cwv",
+      ts: 2,
+      params: {
+        name: "INP", value: 187,
+        interactionTarget: "#add-to-cart", interactionType: "pointer", interactionTime: 4501.7,
+        nextPaintTime: 4689.2, inputDelay: 12, processingDuration: 40, presentationDelay: 8, loadState: "complete",
+      },
+    });
+    const inpBody = JSON.parse(inpReq.body);
+    expect(Object.keys(inpBody).sort()).toEqual([
+      "checkpoint", "id", "inputDelay", "interactionTarget", "interactionTime", "interactionType",
+      "loadState", "name", "nextPaintTime", "presentationDelay", "processingDuration", "referer",
+      "t", "value", "weight",
+    ]);
+  });
+
+  it("posts to the SAME confined endpoint as top/error — one URL for the whole page", () => {
+    vi.spyOn(Math, "random").mockReturnValue(SELECTED_DRAW);
+    const connector = createHelixRumConnector({ ctx });
+
+    const [request] = connector.handle({ type: "cwv", ts: 1, params: lcpParams });
+    expect(request.url).toBe(`${DEFAULT_COLLECT_BASE_URL}/.rum/${DEFAULT_WEIGHT}`);
+  });
+
+  it("returns AT MOST ONE request for a cwv checkpoint too — no fan-out", () => {
+    vi.spyOn(Math, "random").mockReturnValue(SELECTED_DRAW);
+    const connector = createHelixRumConnector({ ctx });
+
+    const requests = connector.handle({ type: "cwv", ts: 1, params: lcpParams });
+    expect(requests.length).toBe(1);
+  });
+});
+
+describe("helix-rum connector — cwv shares the SAME per-page identity + sampling gate (spec 022-04 AC3)", () => {
+  it("id AND weight are IDENTICAL across top/error/cwv from ONE connector instance", () => {
+    vi.spyOn(Math, "random").mockReturnValue(SELECTED_DRAW);
+    const connector = createHelixRumConnector({ ctx });
+
+    const [topReq] = connector.handle({ type: "top", ts: 1 });
+    const [cwvReq] = connector.handle({ type: "cwv", ts: 2, params: { name: "LCP", value: 1 } });
+    const topBody = JSON.parse(topReq.body);
+    const cwvBody = JSON.parse(cwvReq.body);
+
+    expect(cwvBody.id).toBe(topBody.id);
+    expect(cwvBody.weight).toBe(topBody.weight);
+  });
+
+  it("an UNSELECTED page-load emits NOTHING for cwv either — sampling-gated, same as top/error", () => {
+    vi.spyOn(Math, "random").mockReturnValue(UNSELECTED_DRAW);
+    const connector = createHelixRumConnector({ ctx });
+
+    expect(connector.handle({ type: "cwv", ts: 1, params: { name: "LCP", value: 1 } })).toEqual([]);
   });
 });
 

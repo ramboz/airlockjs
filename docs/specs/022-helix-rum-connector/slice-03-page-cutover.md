@@ -18,13 +18,24 @@ frame_review: false
 in `probes/eds-testbed`), and prove there is **no double-count** and the AEM RUM pipeline still receives its
 beacons (now governed, from airlock). This is the coexistence decision (**replace**) landing observably.
 
-**DoR (provisional — firm up post-022-02 + 022-04):**
-- ⚠️ Depends on 022-02 **and** 022-04 (FULL checkpoint parity: `top`+`error`+CWV) — cutting over before full
-  parity drops whatever airlock doesn't yet cover, since removing `sampleRUM` is all-or-nothing.
+**DoR (provisional — firm up post-022-02 + 022-04 + 022-05):**
+- ⚠️ Depends on 022-02, 022-04, **and 022-05** (FULL parity: `top`+`error`+`cwv`+the interaction/lifecycle
+  checkpoints) — cutting over before full parity drops whatever airlock doesn't yet cover, since removing
+  `sampleRUM` is all-or-nothing. (022-05 not yet reserved — add to this frontmatter's `dependencies` when it
+  is.)
 - `probes/eds-testbed/scripts/aem.js` is the in-repo demonstration surface (the `sampleRUM` to remove).
-- The production-wiring question (a RUM-dedicated `createAirlock` instance; dedicated worker vs
-  connector-generic `core/airlock.js`) must be resolved by 022-04 at the latest — the cutover needs a real
-  hosted instance to point the page at.
+- **The production-wiring question is resolved HERE** (022-04 deferred it): a RUM-dedicated `createAirlock`
+  instance with empty `egressPurposes`, and the main-thread capture wiring (`push({event:"top"})` +
+  `startCwvCapture` importing the real `web-vitals/attribution` `onLCP`/`onCLS`/`onINP`) — dedicated worker vs
+  connector-generic `core/airlock.js` decided at this point. The cutover needs a real hosted instance to
+  point the page at.
+- **⚠️ CREDS-GATED, load-bearing before cutover — confirm the `cwv` wire shape against the LIVE AEM RUM
+  collector.** 022-04 grounded the CWV *scalar fields* from `web-vitals` types, but the `cwv` *beacon shape*
+  (airlock's flat `{name,value,...scalars}` — a possible **superset**) vs what the current enhancer sends +
+  what `ot.aem.live` accepts was only corroborated against a stale (2024, pre-attribution) enhancer clone.
+  A live probe must confirm the collector accepts airlock's `cwv` (and `top`/`error`) shape; a rejection
+  **narrows the `map.js` whitelist to enhancer-parity** (022-04's named fallback) — it does not block, but the
+  page must not be cut over onto an unaccepted shape.
 
 **Acceptance Criteria:** _TBD — the eds-testbed page emits RUM via airlock only (no inline `sampleRUM`); a
 rig/probe shows exactly one governed RUM beacon per checkpoint (no double-count); the beacon still reaches the

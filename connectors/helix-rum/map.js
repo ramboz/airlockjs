@@ -40,6 +40,27 @@
  * (spec 022-02 AC1's named payload-hygiene boundary: `target` is a faithful
  * `error.toString()` reproduction, same as `sampleRUM` sends today — no
  * *additional* fields are ever added on top of that).
+ *
+ * CWV CHECKPOINT (022-04 AC1/AC2, grounded against `node_modules/
+ * web-vitals@6.2.1`'s `dist/modules/types/{lcp,cls,inp}.d.ts`): the captured
+ * checkpoint's per-event data is `connectors/helix-rum/cwv-capture.js`'s
+ * `projectCwv(metric)` output — `{ name, value, ...attributionScalars }`,
+ * ALREADY filtered on the main thread to structured-cloneable scalars only
+ * (that file's header has the full DataCloneError must-fix rationale). This
+ * is a SECOND, independent whitelist layer here — `cwvFields` picks exactly
+ * the grounded field-name set (`CWV_ATTRIBUTION_FIELDS`, below) off
+ * `event.params`, the SAME payload-hygiene-by-construction reason
+ * `errorFields` whitelists rather than spreads: a `cwv` body can never grow a
+ * field beyond this named set, even if a future/misbehaving capture call (or
+ * a compromised main-thread caller) pushes extra params on a `cwv` event —
+ * independent of whatever `projectCwv`'s structural (`typeof`-based) filter
+ * happens to allow through. The two layers currently pass through the SAME
+ * field set in practice (projectCwv's filter and this whitelist were both
+ * grounded off the same three `.d.ts` files), but they guard DIFFERENT
+ * boundaries: `projectCwv` guards the postMessage/structured-clone boundary
+ * (name-agnostic, structural); `cwvFields` guards the wire-payload boundary
+ * (named, wire-contract-hygiene). See `cwv-capture.js`'s header for why
+ * `projectCwv` is deliberately NOT a hardcoded whitelist.
  */
 
 /**
@@ -93,6 +114,64 @@ function errorFields(event) {
 }
 
 /**
+ * The whitelisted `cwv` checkpoint attribution fields (022-04 AC1) — the
+ * UNION of every grounded structured-cloneable SCALAR field across
+ * `LCPAttribution` / `CLSAttribution` / `INPAttribution`
+ * (`node_modules/web-vitals@6.2.1`'s `dist/modules/types/{lcp,cls,inp}.d.ts`,
+ * read 2026-09-01). A single flat union (not a per-metric-name branch): each
+ * metric only ever populates ITS OWN subset (an LCP push never carries
+ * `interactionTarget`; an INP push never carries `elementRenderDelay` — see
+ * `cwv-capture.js`'s `projectCwv`), so `cwvFields` picking from this union is
+ * a no-op for whichever fields a given metric didn't set — mirrors
+ * `mapToRum`'s existing branch-free style (no `if (name === "LCP") …`
+ * anywhere in this connector).
+ *
+ * Deliberate SUPERSET beyond bare `{name,value}` enhancer-parity (spec 022-04
+ * AC1's "parity-superset + fallback": airlock fully controls the payload, so
+ * the richer attribution data ships whitelisted now; a live-collector probe
+ * confirming/narrowing it against the real AEM RUM pipeline is a follow-up,
+ * not a slice blocker — see this slice's deviation log for the caveat and
+ * the (stale, non-attribution-build) reference this was cross-checked
+ * against).
+ */
+const CWV_ATTRIBUTION_FIELDS = [
+  // LCPAttribution (lcp.d.ts:14-67) — excludes navigationEntry/
+  // lcpResourceEntry/lcpEntry (each PerformanceEntry-shaped).
+  "target", "url", "timeToFirstByte", "resourceLoadDelay", "resourceLoadDuration", "elementRenderDelay",
+  // CLSAttribution (cls.d.ts:14-51) — excludes largestShiftEntry (a
+  // LayoutShift entry) and largestShiftSource (carries a live DOM Node ref).
+  "largestShiftTarget", "largestShiftTime", "largestShiftValue", "loadState",
+  // INPAttribution (inp.d.ts:36-155) — excludes processedEventEntries /
+  // longAnimationFrameEntries (entry arrays) and longestScript (nests a
+  // PerformanceScriptTiming `.entry`; its two safe sub-scalars, `subpart`/
+  // `intersectingDuration`, are dropped WHOLESALE along with it by
+  // `projectCwv`'s shallow filter rather than partially unwrapped — see that
+  // function's doc). `loadState` is shared with CLSAttribution, listed once.
+  "interactionTarget", "interactionTime", "interactionType", "nextPaintTime",
+  "inputDelay", "processingDuration", "presentationDelay",
+  "totalScriptDuration", "totalStyleAndLayoutDuration", "totalPaintDuration", "totalUnattributedDuration",
+];
+
+/**
+ * Extract the whitelisted `cwv` checkpoint fields off a captured event's
+ * per-event data (the SAME `event.params || event.payload` bridge
+ * `errorFields` uses, above) — `name`/`value` (the metric identity) plus
+ * whichever of `CWV_ATTRIBUTION_FIELDS` the caller actually set. See this
+ * file's header ("CWV CHECKPOINT") for why this is a SECOND, independent
+ * whitelist layer on top of `cwv-capture.js`'s own structural filter.
+ * @param {{ params?: Record<string, unknown>, payload?: Record<string, unknown> }} event
+ * @returns {{ name: unknown, value: unknown, [scalarAttributionField: string]: unknown }}
+ */
+function cwvFields(event) {
+  const data = (event && (event.params || event.payload)) || {};
+  const fields = { name: data.name, value: data.value };
+  for (const key of CWV_ATTRIBUTION_FIELDS) {
+    if (Object.prototype.hasOwnProperty.call(data, key)) fields[key] = data[key];
+  }
+  return fields;
+}
+
+/**
  * Shape one captured checkpoint into the RUM beacon body.
  *
  * `ctx.referer` is HOST-SOURCED (`window.location.origin + pathname`,
@@ -104,14 +183,15 @@ function errorFields(event) {
  * and is never regenerated inside this (off-thread) connector.
  *
  * @param {{ type: string, ts?: number, params?: Record<string, unknown>, payload?: Record<string, unknown> }} event
- *   the captured checkpoint (`type` is the RUM checkpoint name, e.g. "top" or
- *   "error"; `ts` its main-thread capture time; `params`/`payload` carry the
- *   `error` checkpoint's `{ source, target }` errData — see header).
+ *   the captured checkpoint (`type` is the RUM checkpoint name, e.g. "top",
+ *   "error", or "cwv"; `ts` its main-thread capture time; `params`/`payload`
+ *   carry the `error` checkpoint's `{ source, target }` errData, or the
+ *   `cwv` checkpoint's `{ name, value, ...attributionScalars }` — see header).
  * @param {{ referer: string }} ctx host-sourced page context.
  * @param {{ weight: number, id: string }} sampling this connector instance's
  *   PER-PAGE sampling state (weight + the ephemeral id), fixed at connector
  *   construction — see connector.js's header for why these are NOT per-event.
- * @returns {{ weight: number, id: string, referer: string, checkpoint: string, t: number, source?: unknown, target?: unknown }}
+ * @returns {{ weight: number, id: string, referer: string, checkpoint: string, t: number, source?: unknown, target?: unknown, name?: unknown, value?: unknown }}
  */
 export function mapToRum(event, ctx, sampling) {
   const body = {
@@ -122,6 +202,10 @@ export function mapToRum(event, ctx, sampling) {
     t: typeof event.ts === "number" ? event.ts : 0,
   };
   // `top` stays EXACTLY the 5-field body (byte-unchanged, spec 022-02 AC3);
-  // only `error` gains the whitelisted source/target fields.
-  return event.type === "error" ? { ...body, ...errorFields(event) } : body;
+  // `error` gains the whitelisted source/target fields; `cwv` (022-04) gains
+  // the whitelisted name/value/attribution-scalar fields. Branch-free
+  // otherwise — no metric-name/checkpoint-specific logic beyond this dispatch.
+  if (event.type === "error") return { ...body, ...errorFields(event) };
+  if (event.type === "cwv") return { ...body, ...cwvFields(event) };
+  return body;
 }
