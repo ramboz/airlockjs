@@ -64,7 +64,7 @@
 | [021-mvp4-hardening](021-mvp4-hardening/spec.md) | 021-01 — dispose() + idempotent-boot guard | **DONE** |  |
 | [021-mvp4-hardening](021-mvp4-hardening/spec.md) | 021-02 — egress transport pin (http-downgrade), grounding-first | **DONE** |  |
 | [021-mvp4-hardening](021-mvp4-hardening/spec.md) | 021-03 — adopt ESLint + delint the alloy chamber | **DONE** |  |
-| [022-helix-rum-connector](022-helix-rum-connector/spec.md) | 022-01 — governed page-view RUM beacon (+ A/B grounding) | DRAFT |  |
+| [022-helix-rum-connector](022-helix-rum-connector/spec.md) | 022-01 — governed page-view RUM beacon (+ A/B grounding) | **DONE** |  |
 | [022-helix-rum-connector](022-helix-rum-connector/spec.md) | 022-02 — full checkpoint surface + sampling fidelity | DRAFT |  |
 | [022-helix-rum-connector](022-helix-rum-connector/spec.md) | 022-03 — page-side sampleRUM cutover + integration proof | DRAFT |  |
 
@@ -81,7 +81,7 @@
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
 - **0** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **59** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **60** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **8** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
