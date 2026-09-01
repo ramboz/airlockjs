@@ -72,3 +72,11 @@ fields), so the documented shape and the helper output agree.
 **Context:** User direction "add the linter now" (2026-08-31) resolved the long-`Deferred` Code-style convention. Spec 021-03 had assumed a linter already existed (from the AEM/Airbnb-flavored disable comments); grounding at implementation showed none was ever wired. Chose `recommended` over the heavier AEM/Airbnb ruleset deliberately: it catches genuine defects (undefined globals, dead code, unreachable branches) without a repo-wide stylistic cleanup. The stricter ruleset remains a deferred option. This is a convention change, made with explicit human approval per CLAUDE.md.
 
 **Scope:** repo-wide JS linting (`eslint.config.js`, `npm run lint`, CI); see [conventions.md](../conventions.md) → Code style. Delivered under spec 021-03.
+
+### 2026-08-31 — RUM is a distinct governance class: confined, not consent-gated
+
+**Decision:** The `helix-rum` connector's egress is governed as **performance telemetry**, not marketing analytics: airlock confines it (endpoint ceiling pinned to `ot.aem.live` + a payload-hygiene guard) but does **NOT** put it behind the consent seam (`egressVerdict(..., {strict})`) that gates GA4/alloy. RUM beacons fire regardless of consent.
+
+**Context:** Maintainer direction (2026-08-31): "RUM is not consent gated. It's fully PII compliant and not subject to consent." Grounded against `sampleRUM` (eds-testbed `aem.js`): sampled, an **ephemeral per-page** `id` (`crypto.randomUUID().slice(-9)`, not a cross-site/persistent identifier), no PII — and it fires regardless of consent today. Consent-gating it would make airlock collect *less* RUM than the unmodified page, defeating the parity goal of hosting it. Establishes that airlock's seal is **class-appropriate** per connector, not one-size-fits-all — a reusable precedent for future performance/observability connectors (mPulse, etc.). If a future RUM variant carried a persistent identifier or PII, this decision is revisited.
+
+**Scope:** the `helix-rum` connector (spec 022) and the RUM/observability connector class; not GA4/alloy (which stay consent-gated).
