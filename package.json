@@ -25,6 +25,7 @@
     "rig:alloy-decisions": "node rig/alloy-decisions.mjs",
     "rig:alloy-xdm-gov": "node rig/alloy-live-xdm-governance.mjs",
     "rig:sanitize": "node rig/sanitize-boundary.mjs",
+    "rig:nasty-tag": "node rig/nasty-tag.mjs",
     "lh": "node rig/lh.mjs",
     "lh:eds": "node rig/lh-eds.mjs",
     "cwv:budget": "node rig/cwv-budget.mjs"
