@@ -102,23 +102,36 @@ separate main-thread script — this is the load-bearing unknown below.
 
 ## Decomposition
 
-SPIDR — **Path**-first (the RUM beacon is the vertical), then **Data** (the full checkpoint surface), then
-**Interface** (the page-side cutover). No standalone spike: 022-01 folds the (A/B) grounding into the first
-real governed-beacon slice (per SKILL.md — research goes *inside* the slice that ships).
+SPIDR — **Path**-first (the RUM beacon is the vertical), then **Data** (the checkpoint surface, **split by
+capture cost**), then **Interface** (the page-side cutover). No standalone spike: 022-01 folded the (A/B)
+grounding into the first real governed-beacon slice. **Data split (maintainer, 2026-09-01):** the CWV
+checkpoints need a *new* runtime capture (022-01's grounding showed the enhancer can't host in a chamber), so
+they get their own slice rather than bloating 022-02.
 
-- **022-01 (Path — happy path + grounding):** the minimal confined RUM path. Ground the enhancer runtime
-  (A vs B) and wire ONE checkpoint (`top`/page-view) captured on the main thread → connector → **confined**
-  beacon (endpoint ceiling on `ot.aem.live` + payload-hygiene — **NOT** consent-gated) → the AEM RUM
-  collector. Delivers one real, confined RUM beacon end-to-end. (`error` checkpoints → 022-02.)
-- **022-02 (Data — the full checkpoint surface):** the `error` checkpoints + the CWV/interaction (enhancer)
-  checkpoints + sampling-rate fidelity (`weight`/`isSelected`), so airlock's RUM is a **complete** stand-in
-  for `sampleRUM`+enhancer — removing the page copy loses no signal. Payload governance on `id`/`referer`.
+- **022-01 (Path — happy path + grounding) — ✅ DONE:** the minimal confined RUM path — one `top`/page-view
+  checkpoint captured on the main thread → connector → **confined** beacon (endpoint ceiling on `ot.aem.live`
+  + payload-hygiene, **NOT** consent-gated) → the AEM RUM collector. Grounded: core = mechanism B (native);
+  the enhancer is **not** cleanly chamber-hostable (A), so CWV needs a native capture → 022-04.
+- **022-02 (Data — the no-new-capture checkpoints):** the `error` checkpoints (3 window listeners —
+  `error`/`unhandledrejection`/`securitypolicyviolation`) + **sampling-rate fidelity** (the `on/high/medium/
+  low` rate table + `SAMPLE_PAGEVIEWS_AT_RATE`/URL-param resolution — 022-01 fixed `weight`/`isSelected` once
+  but hardcoded the default rate). These ride the 022-01 connector path directly — **no CWV capture needed**.
+- **022-04 (Data — the CWV/interaction checkpoints, NEW):** build airlock's own **runtime per-page CWV
+  capture** (LCP/CLS/INP — mechanism **B-extended**, since 022-01's grounding showed the enhancer can't host
+  in a chamber) and emit the CWV/interaction checkpoints natively through the 022-01 governed path. airlock is
+  CWV-first with the `aem-cwv-helper` primitives (`observeLayoutShifts`/`observeSlowInteractions`, vision
+  §Tech) — the aligned home. The meaty slice; split out of 022-02 so each stays vertical + inside the box.
 - **022-03 (Interface — the page-side cutover):** the `sampleRUM` removal (an `aem.js` cleanup) + integration
-  guidance, **demonstrated** in `probes/eds-testbed` (page RUM flows via airlock only; no double-count; the
-  AEM RUM pipeline still receives its beacons, now governed).
+  guidance, **demonstrated** in `probes/eds-testbed`. **Gated on FULL parity — depends on 022-02 AND 022-04:**
+  `sampleRUM` is a single function, so removing it drops `top`+`error`+CWV **at once**; airlock must cover all
+  of them first, or the cutover loses CWV signal. (Corrects an earlier "cutover can proceed partially" framing
+  — it cannot; the cutover is all-or-nothing and lands **last**.)
 
 ## Slices
 
-- [022-01 — governed page-view RUM beacon (+ A/B grounding)](slice-01-governed-rum-beacon.md)
-- [022-02 — full checkpoint surface + sampling fidelity](slice-02-checkpoint-surface.md)
-- [022-03 — page-side sampleRUM cutover + integration proof](slice-03-page-cutover.md)
+_Execution order 01 → 02 → 04 → 03 (numbers = reservation order; dependencies define execution)._
+
+- [022-01 — governed page-view RUM beacon (+ A/B grounding)](slice-01-governed-rum-beacon.md) — **DONE**
+- [022-02 — error checkpoints + sampling-rate fidelity](slice-02-checkpoint-surface.md)
+- [022-04 — CWV/interaction checkpoints (native runtime capture)](slice-04-cwv-checkpoints.md)
+- [022-03 — page-side sampleRUM cutover (gated on 022-02 + 022-04)](slice-03-page-cutover.md)

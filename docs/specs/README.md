@@ -65,8 +65,9 @@
 | [021-mvp4-hardening](021-mvp4-hardening/spec.md) | 021-02 — egress transport pin (http-downgrade), grounding-first | **DONE** |  |
 | [021-mvp4-hardening](021-mvp4-hardening/spec.md) | 021-03 — adopt ESLint + delint the alloy chamber | **DONE** |  |
 | [022-helix-rum-connector](022-helix-rum-connector/spec.md) | 022-01 — governed page-view RUM beacon (+ A/B grounding) | **DONE** |  |
-| [022-helix-rum-connector](022-helix-rum-connector/spec.md) | 022-02 — full checkpoint surface + sampling fidelity | DRAFT |  |
+| [022-helix-rum-connector](022-helix-rum-connector/spec.md) | 022-02 — error checkpoints + sampling-rate fidelity | DRAFT |  |
 | [022-helix-rum-connector](022-helix-rum-connector/spec.md) | 022-03 — page-side sampleRUM cutover + integration proof | DRAFT |  |
+| [022-helix-rum-connector](022-helix-rum-connector/spec.md) | 022-04 — CWV/interaction checkpoints (native runtime capture) | DRAFT |  |
 
 ## Abandoned slices
 
