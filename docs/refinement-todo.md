@@ -341,7 +341,7 @@ defense-in-depth strip. Recorded in [ADR-0013](decisions/adr-0013-alloy-consent-
 The DOM-cost-containment investigation ([R-008](research/R-008-costly-dom-martech-containment.md)) — how
 airlock contains costly-DOM martech (the INP/CWV thesis). Named deferred items:
 
-### Decision: worker-dom compatibility layer (POC-B) — SPIKE CONCLUDED (2026-09-01); ADR pending
+### ~~Decision: worker-dom compatibility layer (POC-B)~~ — RESOLVED 2026-09-02 ([ADR-0014](decisions/adr-0014-worker-dom-compat-minimal-mirror.md))
 **Deferred:** the short-term compatibility/migration layer (Lever 2) — run an **unmodified** third-party tag
 in a chamber against a virtual DOM (à la `@ampproject/worker-dom`), its computation off-thread, mutations
 budgeted onto the main thread. The thing that unlocks the martech long tail whose vendors won't rewrite. NOT

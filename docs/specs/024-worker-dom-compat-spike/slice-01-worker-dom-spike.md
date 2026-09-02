@@ -90,7 +90,7 @@ compat layer, or not — with the limits documented so a "won't work" tag is a k
   frame-budget-coordinator core (a small DOM subset, aligned with airlock's vanilla/minimal ethos + full
   control), *informed by* worker-dom's proven design.
 
-**Outcome:** **ADR recommended (build/no-build) — not yet created; awaits the maintainer's call.** The spike is
+**Outcome:** **ADR-0014 created + ACCEPTED (2026-09-02).** The spike is
 CONCLUDED: worker-dom's async-mutation model is **viable + AD-4-compatible** as airlock's Lever-2 compat layer
 for the **write/compute-heavy unmodified-tag subset**, with a real, documented **sync-read "won't work"**
 boundary (and the sharp finding that layout-thrash is *in* that boundary — Lever 1's job, not Lever 2's). The
