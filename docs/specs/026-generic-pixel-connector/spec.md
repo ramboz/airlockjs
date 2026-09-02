@@ -34,11 +34,16 @@ connectors as another "option for adoption." worker-dom (025) is the *long-tail 
 - The connector machinery exists + is proven: `core/connector-host.js`, the `ConnectorManifest`
   (ADR-0006/0007), the seal (endpoint-ceiling + consent + payload governance). GA4
   (`connectors/ga4/connector.js`) is the wire-protocol exemplar to generalise from.
-- **Archetype grounded (2026-09-02 recon).** A wire-protocol connector is `handle(event) → EgressRequest[]`,
-  hosted worker-side by `core/connector-host.js`; the seal binds on **main-thread dispatch** — consent gate
-  (`core/airlock.js:163`), endpoint ceiling (`:194`), payload governance (`:73-85`). So a new pixel connector
-  **rides the same seam with zero core changes** — GA4's retrofit onto the generic host left
-  `git diff core/airlock.js` empty (refinement-todo).
+- **Archetype grounded (2026-09-02 recon + frame-critique correction).** A wire-protocol connector is
+  `handle(event) → EgressRequest[]`, hosted worker-side by `core/connector-host.js`. The seal's **governance
+  verdicts** — consent gate (`core/airlock.js:163`), endpoint ceiling (`:194`), payload governance (`:73-85`) —
+  are **method- and connector-agnostic and ride for free**. **BUT** (the frame-critique catch, verified in
+  source) the *dispatch* and *connector-selection* are **GA4-shaped, not free**: dispatch is POST-hardcoded
+  (`airlock.js:201` / `:363` ignore `EgressRequest.method`, though the contract defines it at
+  `connector.d.ts:63`; dispatch is explicitly **OQ10**, `:21-24`), and the connector factory + worker URL are
+  hardcoded to GA4 (`chamber.worker.js:46,62`; `airlock.js:148`). So a **GET** pixel needs two **bounded**
+  core generalizations (026-01 builds them, resolving OQ10 for GET) — the "zero core changes" premise held only
+  for GA4's own POST/JSON shape.
 - **Of the config triple, endpoint + consent are already config-shaped, but the param/payload map is net-new.**
   GA4 takes `endpoints` as config and declares consent via a `purposes.egress` array + a matching
   `egressPurposes` to `createAirlock`. But `mapToMp`/`mapToRum` are **bespoke per-connector code** — nothing
@@ -77,9 +82,13 @@ spike: the mechanism (wire-protocol seam + seal) is already proven by GA4 — th
 - **026-01 (Path — the archetype proof):** one real vendor pixel — **Meta Pixel**, the `facebook.com/tr`
   image-GET wire form — as a **declarative config** against a new `createPixelConnector(config)` (the generic,
   vendor-neutral connector whose `handle` interprets a declarative endpoint + event-name + param map, replacing
-  bespoke `mapToX` code), routed through the existing wire-protocol seam and governed end-to-end. Non-PII event
-  params + pixel ID only (advanced matching → 026-03). Proves the interpreter on one vendor; the seal rides for
-  free (zero core changes); consent-gating + endpoint-confinement + input-strip all bind.
+  bespoke `mapToX` code), **dispatched as a real GET and governed end-to-end**. Getting there builds the two
+  **bounded** core seams the archetype needs (frame-critique-mandated): a **connector-selection seam** (a
+  non-GA4 connector reaches a chamber) + **method-aware dispatch** (honor `EgressRequest.method` → GET),
+  resolving OQ10 for GET. The seal's governance **verdicts** ride unchanged (GA4 regression-tested); the "zero
+  core changes" claim is **withdrawn**. Identity is **out of scope** (no `_fbp`/`fbc`/advanced-matching → a
+  de-identified but real, dispatchable beacon; identity → follow-ups). Proves the interpreter + the runtime
+  generalization on one shippable vendor.
 - **026-02 (Data — the archetype generalises):** add 2 more real vendors as configs (e.g. LinkedIn Insight +
   Bing UET, or Google Ads/Floodlight) — **same connector, no per-vendor code** — proving one archetype covers N.
   Include one **POST-body** vendor to prove both wire shapes. Surfaces what actually varies vendor-to-vendor
