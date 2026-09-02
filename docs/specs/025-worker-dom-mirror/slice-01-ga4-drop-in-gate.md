@@ -9,59 +9,77 @@ kind: spike
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about
      runnable surfaces by probe first (run it / read source) or a citation. -->
 
-## Slice 025-01 — GA4-drop-in de-risk gate (GO / KILL)
+## Slice 025-01 — Tier-0 mechanism de-risk gate (GO / KILL) + GA4 adoption litmus
 
-**Question:** Does **unmodified `gtag.js`** boot + run in a worker-dom mirror (`@ampproject/worker-dom`), is the
-main-thread **mutation-apply INP-safe** under a real load, and does a **useful population** of drop-in-compatible
-common tags exist — i.e. **GO or KILL** for building airlock's own minimal mirror (spec 025-02+)?
+> Reframed 2026-09-02 after the frame-critique: the earlier draft wired the maintainer's **GA4 adoption** kill
+> switch to the **Tier-0 mechanism** build decision — but they are **orthogonal**. GA4 (gtag.js) is
+> network/sub-resource-shaped, not write/compute-heavy; its likely failure (loading `googletagmanager.com` —
+> a 024-documented won't-work case) says nothing about ADR-0014's two mechanism bets, is plausibly fixable in
+> airlock's own mirror (a mediated sub-resource proxy), and **GA4 is already supported via the connector**
+> (spec 004/008 + pixel connector 026). So this gate runs **two independent verdicts**.
 
-**Time-box:** 2 days. Probe `@ampproject/worker-dom` (the existing lib — do NOT build airlock's mirror yet).
-If the integration balloons, stop at the **GA4 result + the GO/KILL call** — the gate's job is the decision,
-not a polished harness.
+**Question:** **(Mechanism)** Do ADR-0014's two unproven bets hold — the main-thread mutation-apply INP-safe
+under a *DOM-mutation-heavy* unmodified tag, AND a useful population of unmodified write/compute-heavy-*without*-
+sync-read tags exists — **GO/KILL** for building airlock's own minimal mirror (025-02)? **(Adoption, separate)**
+Does the unmodified drop-in path handle **GA4**, and if not, on which **axis** (model-inherent vs fixable
+sub-resource/proxy gap)?
 
-**Goal:** Spend the *cheapest* effort that can KILL the Tier-0 mirror build before airlock invests in building
-its own mirror — with **unmodified GA4 as the litmus** (maintainer, 2026-09-02: a common tag that won't run is
-a kill switch).
+**Time-box:** 2 days. Probe `@ampproject/worker-dom` (the lib, not airlock's mirror yet). **Under a balloon,
+preserve the MECHANISM ACs (AC1 on a synthetic DOM-heavy load — which does NOT need gtag.js to boot — + AC2)
+and let the GA4 datum (AC3) degrade** — the opposite of the old clause; the mechanism bets are the decision.
+
+**Goal:** The cheapest probe that can KILL (or greenlight) the Tier-0 mirror build **on ADR-0014's actual
+kill criteria** (apply re-tanks / population mirage — `adr-0014:105-109`), while separately reading GA4's
+drop-in axis so 025-02 knows whether it needs a sub-resource proxy.
 
 **DoR:**
-- ✅ [ADR-0014](../../decisions/adr-0014-worker-dom-compat-minimal-mirror.md) (Accepted) names the two unproven
-  bets (apply-INP-safety; useful-population) this gate validates; [024](../024-worker-dom-compat-spike/spec.md)
-  grounded worker-dom's mechanism + the sync-read boundary.
-- ✅ `@ampproject/worker-dom@0.36` is installable (`upgradeElement(el, workerUrl)` bootstrap); [023](../023-dom-cost-containment-poc/spec.md)
-  provides the Event-Timing within-storm-p75 INP instrument (`rig/nasty-tag.mjs` / `rig/harness.html`) to reuse.
-- ✅ `gtag.js` is a public script (GA4 Measurement) — a real, common drop-in tag; no credentials needed to load
-  it (a synthetic/`debug` measurement id keeps beacons harmless).
+- ✅ [ADR-0014](../../decisions/adr-0014-worker-dom-compat-minimal-mirror.md) (Accepted) — the two mechanism
+  bets + the kill criteria this gate keys GO/KILL on; [024](../024-worker-dom-compat-spike/spec.md) grounded
+  the async model + the won't-work set (incl. **sub-resource loading**, 024 slice-01 §Findings).
+- ✅ The 023 INP instrument to reuse is **`rig/nasty-tag-harness.html` + `rig/nasty-tag.mjs`** (Event-Timing
+  within-storm p75, N-runs + median + band) — it already ships a synthetic DOM-mutation-heavy tag.
+- ⚠️ `@ampproject/worker-dom@0.36` is **not yet installed** (024 inspected npm metadata only) — AC1/AC3 install
+  it + confirm a clean `upgradeElement` boot; the DoR-level "installable" is unproven-by-run.
 
-**Acceptance Criteria (a spike's ACs are the investigation, not shipped behavior):**
+**Acceptance Criteria (a spike's ACs are the investigation; the MECHANISM ones decide GO/KILL):**
 
-1. **GA4 boot + run (the litmus).** Install `@ampproject/worker-dom`; `upgradeElement` a fixture whose worker
-   script is **unmodified `gtag.js`** + a `gtag('event', …)` call. Record precisely what **works vs breaks**:
-   does it boot? Fire a `page_view` / custom event? Where does it hit the won't-work set — cookies (`_ga`,
-   airlock mediates), the beacon (`fetch`/`sendBeacon`/`img` pixel — governed), its own sub-resource loads
-   (`googletagmanager.com` — "loads own sub-resources expecting a real window", a known worker-dom limit)? The
-   honest boot/run map is the deliverable.
-2. **Mutation-apply INP probe (bet #1).** With a write-heavy drop-in load (gtag.js's own DOM work if
-   sufficient, else a synthetic write-heavy unmodified tag) under the worker-dom mirror, measure the
-   **main-thread mutation-apply** INP the 023 way (Event-Timing within-storm p75, N-runs + median + band). Does
-   the apply stay INP-safe (the coordinator frame-budgets it), or does it **re-tank INP** (the long task moved,
-   not removed)? A number.
-3. **Useful-population read (bet #2).** GA4 is the litmus; try **2–3 more common tags** (e.g. a pixel, a simple
-   widget) drop-in. Estimate honestly whether a *useful* population of unmodified write/compute-heavy-*without*-
-   sync-read common tags exists — or whether the common tags are mostly connector-shaped (→ the pixel
-   connector, spec 026) or sync-read (→ the Tier-0 gap).
+1. **[MECHANISM bet #1 — the central bet] The mutation-apply is INP-safe under a DOM-heavy load.** Run a
+   **verifiably DOM-mutation-heavy unmodified tag** (reuse/port 023's synthetic write-heavy fixture — NOT
+   gtag.js, which is not DOM-heavy) inside `@ampproject/worker-dom`, and measure the **main-thread
+   mutation-apply** INP the 023 way (Event-Timing within-storm p75, N-runs + median + band, work-completed
+   observable). Does the frame-budgeted apply stay INP-safe, or does it **re-tank** (the long task moved, not
+   removed)? A number. **This is the primary GO/KILL input** (ADR-0014's central unproven bet).
+2. **[MECHANISM bet #2 — the population] At least one REAL target-shape tag runs off-thread.** Find + run at
+   least one **real, unmodified, write/compute-heavy-*without*-sync-read** tag (the actual Tier-0 target shape —
+   NOT gtag.js/pixels, which are the wrong shape) in the mirror; does it run off-thread with INP contained?
+   Plus an honest read: is such a population **common enough** to justify the build, or are most common tags
+   connector-shaped (→ 026) / sync-read (→ the Tier-0 gap)?
+3. **[ADOPTION litmus — SEPARATE verdict, not a mechanism KILL] GA4 drop-in + its failure axis.** Try
+   unmodified `gtag.js` (+ a `gtag('event', …)`, a synthetic/`debug` measurement id so beacons are harmless).
+   Boot/run? Where does it break — and **classify the axis**: **(a) model-inherent** (sync-read / needs a real
+   `window` even a proxy can't fake → does NOT transfer to airlock's own mirror as fixable) vs **(b)
+   lib-completeness / sub-resource-proxy gap** (e.g. the `googletagmanager.com` config fetch — a mediated
+   sub-resource proxy airlock's own mirror could add). **Confirm** whether gtag.js's sub-resource config fetch
+   (keyed to the id) even boots in the worker — "loads harmlessly" ≠ "sub-resource boots off-thread." GA4's
+   result feeds **025-02's feature set** (does the mirror need a sub-resource proxy?) + the adoption story
+   (drop-in bonus vs stays-on-the-connector), **not** the build's existence.
 
 **DoD (spike close-out):**
-- [ ] **Findings** — the GA4 boot/run map; the apply-INP number; the population read.
-- [ ] **Outcome** — **GO** (GA4 + a couple common tags run drop-in AND the apply is INP-safe → build airlock's
-      minimal mirror, reserve 025-02) **or KILL** (GA4 won't run, or the apply re-tanks INP → do NOT build Tier 0
-      standalone; route effort to Lever-1 adaptation / the pixel connector (026) / reconsider Tier 1). Set
-      plainly; promote to ADR-0014's kill-criteria + refinement-todo.
-- [ ] Probe code under `probes/` or `rig/`; no live identifiers (a synthetic/`debug` GA4 measurement id; no
-      real ids/endpoints beyond public `gtag.js`).
+- [ ] **Findings** — the apply-INP number (AC1); the target-shape tag result + population read (AC2); the GA4
+      boot/run map + failure-axis classification (AC3).
+- [ ] **Outcome — two verdicts, stated separately:**
+      **MECHANISM: GO** (AC1 INP-safe AND AC2 a useful population → build airlock's minimal mirror, reserve
+      025-02) **or KILL** (AC1 re-tanks OR AC2 population-mirage → do NOT build Tier 0 standalone; re-route to
+      Lever-1 adaptation / the pixel connector (026) / reconsider Tier 1) — keyed on ADR-0014's kill criteria,
+      reconciled with them. **ADOPTION (GA4):** drops-in-clean / needs-sub-resource-proxy (a 025-02 feature) /
+      fundamentally-can't (stays on the connector path — still supported). Promote both to ADR-0014 +
+      refinement-todo.
+- [ ] Probe code under `probes/`/`rig/`; no live identifiers (synthetic/`debug` GA4 id; public `gtag.js` only).
 
 **Findings:** _(filled during IN_PROGRESS)_
 
-**Outcome:** _(GO → reserve 025-02 minimal-mirror build / KILL → reason + the re-routed effort)_
+**Outcome:** _(MECHANISM GO/KILL + the ADOPTION-GA4 axis verdict)_
 
-**Anti-horizontal-phasing check:** a spike is exempt — but this one ships a **GO/KILL decision** on a real
-adoption criterion (GA4 drop-in), the cheapest thing that can stop a large mirror build before it starts.
+**Anti-horizontal-phasing check:** a spike is exempt — this ships a **mechanism GO/KILL** (on ADR-0014's real
+bets) + a **separate GA4 adoption axis**, the cheapest thing that can stop the mirror build for the *right*
+reason.

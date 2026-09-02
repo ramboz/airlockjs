@@ -26,14 +26,23 @@ set a hard adoption criterion: **a common tag that won't run is a kill switch.**
    and R-007 is the wrong yardstick (connector-fit, not DOM-cost shape). Tier 0 may cover a *minority* of
    costly tags (the worst/most-common are sync-read = the Tier-0 gap).
 
-## The litmus (maintainer, 2026-09-02): **unmodified GA4 is the kill switch**
+## Two orthogonal verdicts (frame-critique, 2026-09-02) — the gate must NOT conflate them
 
-The de-risk gate tries to run **unmodified `gtag.js`** in a worker-dom mirror. **GA4 fails → stop** (don't
-build Tier 0 standalone). GA4 is the most common tag and the honest adoption test — a real drop-in, not a
-synthetic ideal. **Clarification (not a contradiction):** airlock *already* supports GA4 via the wire-protocol
-GA4 connector (spec 004/008) — the maintained "adapted" path. This gate tests the *second* adoption path (the
-**unmodified drop-in** mirror), i.e. the "offer options / easy migration" story. So the kill switch is: *does
-the drop-in path handle GA4?* — not *does airlock support GA4* (it does).
+The maintainer set "unmodified GA4 = kill switch." The frame-critique showed GA4 tests **adoption**, not the
+Tier-0 **mechanism** — they are orthogonal, and wiring GA4 to the build decision would kill it for the wrong
+reason:
+
+- **Mechanism verdict (decides the build).** ADR-0014's two bets: is the mutation-apply INP-safe under a
+  *DOM-mutation-heavy* load, and does a useful population of unmodified write/compute-heavy-*without*-sync-read
+  tags exist? GA4 answers **neither** — gtag.js is network/data-shaped, not DOM-heavy. So the mechanism verdict
+  is measured on a **DOM-heavy synthetic load** (bet #1) + a **real target-shape tag** (bet #2), NOT GA4.
+- **Adoption verdict (GA4 — separate).** Does the *drop-in* path handle GA4? GA4's most-likely failure is
+  loading its own `googletagmanager.com` sub-resource — a 024-documented won't-work case **orthogonal** to
+  both bets and **plausibly fixable** in airlock's own mirror (a mediated sub-resource proxy the library
+  lacks). And **GA4 is already supported** via the wire-protocol connector (spec 004/008) + the pixel connector
+  (026). So a GA4 drop-in failure is an *adoption/feature* signal (does 025-02 need a sub-resource proxy? does
+  GA4 stay on the connector path?), **not** a mechanism KILL. The maintainer's intent — GA4 must be supported —
+  is honored: it is, via the connector; the drop-in is the bonus "easy migration" option.
 
 ## Current state (grounded)
 
@@ -48,9 +57,12 @@ the drop-in path handle GA4?* — not *does airlock support GA4* (it does).
 
 - Carried from ADR-0014: the apply-INP-safety (central unproven bet) + the useful-population assumption are
   what 025-01 **validates or kills** — they are not assumed true here, they are the gate's job.
-- `@ampproject/worker-dom@0.36` can host unmodified `gtag.js` well enough to *probe* the mechanism (even if
-  airlock ultimately builds its own mirror) — **to confirm in 025-01**; if the lib itself can't boot gtag.js,
-  that is itself a strong signal about the drop-in path.
+- A `@ampproject/worker-dom@0.36` result **transfers to airlock's own mirror only when the failure is inherent
+  to the async mutation-flush MODEL** (sync-read; needs a real `window` even a proxy can't fake). A failure
+  that is **lib-completeness or a sub-resource-proxy gap** (the `googletagmanager.com` config fetch) is a 0.36
+  limitation airlock's own mirror could fix (024: "0.36 staleness is immaterial... the *model* is what the
+  spike validated") — so 025-01 must **classify each failure by axis** before letting it inform the build, and
+  never treat a lib-completeness gap as a model verdict.
 
 ## Decomposition
 
@@ -58,12 +70,15 @@ SPIDR — **S then P**: a de-risk **spike** gates a **path** build. 025-01 is ge
 activity (the two bets are unknown) whose Outcome decides whether 025-02+ happens at all — the honest shape
 for a bet ADR-0014 itself flagged as unproven.
 
-- **025-01 (Spike — the de-risk gate):** run **unmodified `gtag.js`** in `@ampproject/worker-dom` (cheap probe,
-  not airlock's own mirror yet); does it **boot + run**? Measure the main-thread mutation-apply INP (the 023
-  way); assess whether a **useful population** of drop-in-compatible common tags exists (GA4 the litmus, plus a
-  couple more common tags). **Outcome: GO** (build airlock's minimal mirror, 025-02) **or KILL** (GA4/common
-  tags don't run, or the apply re-tanks INP → don't build Tier 0 standalone; route effort to Lever-1
-  adaptation / the pixel connector / reconsider Tier 1).
+- **025-01 (Spike — the de-risk gate):** two orthogonal verdicts (probe `@ampproject/worker-dom`, not airlock's
+  mirror yet). **MECHANISM (decides the build):** measure the mutation-apply INP under a **DOM-mutation-heavy
+  synthetic** load (bet #1, 023 instrument) + run at least one **real write/compute-heavy-*without*-sync-read**
+  tag (bet #2, the target shape). **GO** (apply INP-safe AND a useful population → build the minimal mirror,
+  025-02) **or KILL** (apply re-tanks OR population-mirage → don't build Tier 0 standalone; re-route to Lever-1
+  / the pixel connector / Tier 1) — keyed on ADR-0014's kill criteria. **ADOPTION (GA4, separate):** does
+  unmodified `gtag.js` drop in, and if not, on which axis (model-inherent vs a fixable sub-resource-proxy
+  gap)? Feeds 025-02's feature set + the adoption story, **not** the build's existence (GA4 is already
+  supported via the connector).
 - **025-02+ (Path — the minimal mirror build, GATED on 025-01 = GO):** airlock's own worker-side DOM mirror
   (minimal subset) + the worker→main mutation-serialize channel + the frame-budgeting coordinator, replacing
   the probe's `@ampproject/worker-dom`. Detailed only after the gate passes; the minimal DOM subset is defined
