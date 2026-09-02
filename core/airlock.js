@@ -36,6 +36,18 @@ function consoleDiagnostic(record) {
   fn("airlock:", record);
 }
 
+// Method-aware dispatch (spec 026-01 AC4 — resolves OQ10 for the GET case,
+// three sites: the held-beacon record below, this helper's two call sites at
+// the steady-state `worker.onmessage` dispatch and the `setConsent` flush).
+// `undefined`/anything-but-"GET" -> the historical `{ method: "POST", body,
+// keepalive: true }` shape, BYTE-UNCHANGED for every existing POST connector
+// (GA4's EgressRequest never sets `method` at all — a GA4 regression test
+// pins this). "GET" -> `{ method: "GET", keepalive: true }`, deliberately
+// OMITTING `body` — a real `fetch(url, { method: "GET", body })` throws.
+function fetchInit(method, body) {
+  return method === "GET" ? { method: "GET", keepalive: true } : { method: "POST", body, keepalive: true };
+}
+
 export function createAirlock({
   trackers,
   workFactor,
@@ -47,6 +59,17 @@ export function createAirlock({
   egressPurposes = [],
   consentStrict = false,
   payloadDenylist = [],
+  // Connector-selection seam (spec 026-01 AC3, resolving the "GA4-hardcoded
+  // connector factory + worker URL" gap): `connector: "pixel"` hosts
+  // `connectors/pixel/connector.js`'s createPixelConnector via
+  // `core/pixel-chamber.worker.js` instead of the default GA4 chamber, and
+  // generalizes the `worker.postMessage({type:"init", …})` payload below to
+  // carry `connectorConfig` (the declarative pixel config) instead of the
+  // GA4-shaped `{trackers, workFactor, endpoints, ctx}` fields. Omitted (or
+  // any value other than "pixel") -> the GA4 default path, BYTE-UNCHANGED
+  // (a regression test pins the worker URL + the exact init message shape).
+  connector,
+  connectorConfig,
 }) {
   const diagnose = typeof onDiagnostic === "function" ? onDiagnostic : consoleDiagnostic;
   // 019-01 AC1/AC6 (ADR-0012): the EFFECTIVE denylist merges the conservative
@@ -145,8 +168,29 @@ export function createAirlock({
     critical.dispatch({ ...d, params: governParams(d.params) });
   };
 
-  const worker = new Worker(new URL("./chamber.worker.js", import.meta.url), { type: "module" });
-  worker.postMessage({ type: "init", trackers, workFactor, endpoints, ctx });
+  // 026-01 AC3 — the connector-selection seam. Both `new Worker(new URL(…))`
+  // call sites below are STATIC STRING LITERALS (a runtime-computed
+  // specifier would still work in a browser at runtime, but build.mjs's own
+  // bundle-layout assertion greps the emitted bundle for a literal
+  // `new Worker(new URL("…"` — keeping GA4's literal call FIRST in source
+  // order, byte-unchanged, keeps that assertion honest for the untouched
+  // default path). `core/pixel-chamber.worker.js` is not yet wired into
+  // build.mjs as a third bundle entry — a disclosed residual for a real EDS
+  // rollout, out of this slice's tested scope (Node/vitest only).
+  const worker =
+    connector !== "pixel"
+      ? new Worker(new URL("./chamber.worker.js", import.meta.url), { type: "module" })
+      : new Worker(new URL("./pixel-chamber.worker.js", import.meta.url), { type: "module" });
+  // Init-message generalization (:149 -> here): GA4's shape
+  // (`{trackers, workFactor, endpoints, ctx}`) is unrelated to what the pixel
+  // chamber's createPixelConnector(config) needs (`{endpoint, eventMap,
+  // paramMap, …}`) — so a pixel instance posts `connectorConfig` verbatim
+  // instead, never the GA4-shaped fields.
+  worker.postMessage(
+    connector === "pixel"
+      ? { type: "init", ...(connectorConfig || {}) }
+      : { type: "init", trackers, workFactor, endpoints, ctx },
+  );
 
   // Orchestrator dispatch: the worker returns mapped requests; send them on the
   // MAIN thread immediately (fetch keepalive is cheap + survives page teardown).
@@ -173,7 +217,10 @@ export function createAirlock({
             continue;
           }
           if (v === "hold") {
-            heldBeacons.push({ url: r.url, body: r.body });
+            // 026-01 AC4 (frame-critique #2b): capture `method` too — else a
+            // held GET can never flush as a GET (setConsent's flush below
+            // would default it back to POST, corrupting a pixel beacon).
+            heldBeacons.push({ url: r.url, method: r.method, body: r.body });
             diagnose({
               level: "warn",
               kind: "consent",
@@ -198,7 +245,7 @@ export function createAirlock({
             continue;
           }
         }
-        fetch(r.url, { method: "POST", body: r.body, keepalive: true })
+        fetch(r.url, fetchInit(r.method, r.body))
           .then(() => { dispatched++; }, () => { dispatched++; });
       }
     }
@@ -274,7 +321,19 @@ export function createAirlock({
   function onVisibilityChange() {
     if (typeof document !== "undefined" && document.visibilityState === "hidden") unloadFlush();
   }
-  if (typeof addEventListener === "function") {
+  // 026-01 AC10 (frame-critique #2a) — connector-conditional: a pixel
+  // instance does NOT wire the unload listeners at all. Without this gate, a
+  // pixel event still ring-resident at teardown would hit `unloadFlush` ->
+  // `criticalDispatchGated` -> the UNCONDITIONALLY-constructed GA4 `critical`
+  // dispatcher below (:118, deliberately left constructing for every
+  // connector so `stats()`/`pushCritical` need no null-guards) — mapping it
+  // via GA4's OWN `mapToMp` and POSTing it to `facebook.com/tr` as if it
+  // were a GA4 event (a mis-map, not a beacon). Gating the WIRING (not the
+  // construction) is the minimal neutralization: the event is instead simply
+  // DROPPED at teardown (an unload-loss deferred, bounded + disclosed;
+  // unload-critical GET dispatch for pixels is a later slice). GA4's own
+  // path (connector !== "pixel") is untouched — still wires both listeners.
+  if (connector !== "pixel" && typeof addEventListener === "function") {
     addEventListener("visibilitychange", onVisibilityChange);
     addEventListener("pagehide", unloadFlush);
   }
@@ -331,6 +390,25 @@ export function createAirlock({
      * only justified when the page is going away.
      */
     pushCritical(evt) {
+      // 026-01 (craft-review): the SECOND mis-map entry AC10 must also close.
+      // `criticalDispatchGated` routes through the unconditionally-constructed
+      // GA4 `critical` dispatcher (:141 -> mapToMp), so on a pixel instance
+      // this would GA4-map + POST a pixel event to `facebook.com/tr` — the
+      // exact mis-map AC10 neutralizes on the UNLOAD wiring (:336), reachable
+      // here as a second entry on the raw createAirlock handle (the adapter's
+      // bootMetaPixel omits pushCritical, but that is convention, not enforced
+      // — rigs/tests call createAirlock directly). A pixel has NO main-thread
+      // critical mapper (its map lives in the worker), so DROP + diagnose,
+      // symmetric with the gated unload wiring; unload-critical GET dispatch
+      // for pixels is a later slice.
+      if (connector === "pixel") {
+        diagnose({
+          level: "warn",
+          kind: "dropped",
+          reason: "pushCritical unsupported for a pixel connector (no main-thread critical mapper; routing to the GA4 critical dispatcher would mis-map)",
+        });
+        return;
+      }
       const { event: type, ...params } = evt || {}; // same contract shape as push()
       if (typeof type !== "string" || type.length === 0) {
         console.warn("airlock: pushCritical() dropped — missing/empty `event` name", evt);
@@ -360,7 +438,7 @@ export function createAirlock({
       ) {
         const flushing = heldBeacons.splice(0, heldBeacons.length);
         for (const b of flushing) {
-          fetch(b.url, { method: "POST", body: b.body, keepalive: true })
+          fetch(b.url, fetchInit(b.method, b.body))
             .then(() => { dispatched++; }, () => { dispatched++; });
           diagnose({
             level: "warn",

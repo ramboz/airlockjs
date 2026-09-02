@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: []
 last_verified: 2026-09-02
 frame_review: true
@@ -113,21 +113,23 @@ shippable vendor before 026-02 generalises across vendors.
 9. **Identity honesty (scope).** The beacon carries **no identity** (`id` + `ev` + non-PII params) — basic
    `_fbp` / `fbc` cookie identity **and** advanced-matching `ud[...]` both **out of scope**; a test asserts
    neither leaks. Basic cookie identity → a follow-up (chamber cookie capability); advanced matching → 026-03.
-10. **No GA4 mis-map at unload (verdict-preservation completeness — frame-critique #2a).** A pixel-connector
-    instance does **not** wire the GA4-`mapToMp` unload dispatcher (`airlock.js:277-280` is connector-conditional).
-    Test: a pixel event still ring-resident when the tab hides (`visibilitychange` / `pagehide`) is **not**
-    mapped-and-POSTed to `facebook.com/tr` — the fetch spy sees **no GA4-shaped POST** on the unload path for a
-    pixel instance (the event is *dropped* — unload-loss deferred, bounded + disclosed; unload-critical GET
-    dispatch for pixels is a later slice). GA4's own unload path is unchanged (regression test).
+10. **No GA4 mis-map to the ad endpoint (verdict-preservation completeness — frame-critique #2a + craft-review).**
+    A pixel-connector instance neither **wires** the GA4-`mapToMp` unload dispatcher (`airlock.js:277-280` gated on
+    `connector !== "pixel"`) **nor routes `pushCritical` through it** (`pushCritical` early-returns + diagnoses for
+    a pixel instance — the **SECOND** mis-map entry the frame-critique's enumeration missed, caught by the craft
+    review). Both tests grant consent (`ad_storage: granted`) so the counterfactual actually fetches: a ring-resident
+    pixel event at `pagehide`, and a `pushCritical` call, each emit **no GA4-shaped POST** to `facebook.com/tr` —
+    the event is *dropped* (unload-loss deferred, bounded + disclosed; unload-critical GET dispatch for pixels is a
+    later slice). GA4's own unload path **and** `pushCritical` are unchanged (regression tests).
 
 **DoD:**
-- [ ] `createPixelConnector` + Meta config fixture + the selection seam + method-aware dispatch + adapter wiring,
+- [x] `createPixelConnector` + Meta config fixture + the selection seam + method-aware dispatch + adapter wiring,
       **TDD** (tests first).
-- [ ] All 10 ACs proven by **targeted** tests — map correctness (AC2), the selection seam + GA4 regression (AC3),
+- [x] All 10 ACs proven by **targeted** tests — map correctness (AC2), the selection seam + GA4 regression (AC3),
       the three-site method-aware dispatch + GA4 regression (AC4), the end-to-end GET (AC5), consent + GET-flush
       (AC6), endpoint-confinement (AC7), the no-PII **absence** proof (AC8), the no-identity-leak proof (AC9), and
       the no-GA4-mis-map-at-unload proof (AC10).
-- [ ] **The core change is bounded + generally-useful + verdict-preserving — honestly enumerated:** a close-out
+- [x] **The core change is bounded + generally-useful + verdict-preserving — honestly enumerated:** a close-out
       diff note listing **exactly** the core sites touched — `core/airlock.js` `:149` (init-message
       generalization), `:176` (held record captures `method`), `:201` + `:363` (method-aware dispatch), `:277-280`
       (conditional unload wiring) + a new `core/pixel-chamber.worker.js`; `core/airlock.js:118` and
@@ -135,15 +137,134 @@ shippable vendor before 026-02 generalises across vendors.
       only the unload wiring, avoiding null-guards; `egress.js` neutralized by not-wiring) — plus a GA4
       **regression test** proving the seal's governance verdicts, GA4's POST dispatch, **and** GA4's unload path
       are all unchanged. (This replaces the withdrawn "zero core changes" AC — honest, since the frame-critique
-      proved that false; the surface is larger than the first reframe claimed, and now fully named.)
-- [ ] **No live identifiers** (synthetic pixel id; public documented endpoint; no live beacon — assert on the
+      proved that false; the surface is larger than the first reframe claimed, and now fully named.) See
+      "Core-change diff note" below.
+- [x] **No live identifiers** (synthetic pixel id; public documented endpoint; no live beacon — assert on the
       dispatch spy).
-- [ ] `npm run lint` clean; **targeted** vitest green (not the hanging full suite).
-- [ ] **Frame-critique RE-PASS recorded** (this reframe must clear the pass the first draft failed) before REVIEWED.
-- [ ] Close-out: `### Reconciliation sweep` + `### Deviation log`; promote the config-contract + the
+- [x] `npm run lint` clean; **targeted** vitest green (not the hanging full suite).
+- [x] **Frame-critique RE-PASS recorded** (this reframe cleared the pass the first draft failed) — see
+      `reviews/slice-01-frame-critique.md` (PASS on the 3rd revision).
+- [x] Close-out: `### Reconciliation sweep` + `### Deviation log`; promote the config-contract + the
       method-aware-dispatch / selection-seam learnings toward 026-02 (+ the identity/cookie follow-up).
 
 **Anti-horizontal-phasing check:** 026-01 is **vertical** — a real site can route Meta Pixel through airlock via a
 config and a **real governed `/tr` GET is dispatched** (consent-held / endpoint-confined / PII-stripped). The two
 core seams (selection + method-aware dispatch) are built **because this vendor needs them to ship**, not as
 speculative infrastructure — and they are the minimal generalization that also unblocks every later 026 vendor.
+
+### Core-change diff note
+
+Exactly the sites named in the DoD's own honest enumeration, confirmed against the landed implementation — no
+more, no less:
+
+- `core/airlock.js` — new `fetchInit(method, body)` helper (the shared implementation for the two method-aware
+  dispatch call sites below); the `connector`/`connectorConfig` constructor options; the worker-construction +
+  init-message block (was `:148-149`, GA4-shaped `{trackers, workFactor, endpoints, ctx}`) now branches on
+  `connector === "pixel"` — GA4's literal `new Worker(new URL("./chamber.worker.js", …))` call stays FIRST in
+  source order (load-bearing for `build.mjs`'s own bundle-layout assertion, which greps the emitted bundle for
+  the first `new Worker(new URL("…"` literal — see the Deviation log); the held-beacon record (was `:176`) now
+  captures `method`; the steady-state dispatch (was `:201`) and the `setConsent` flush (was `:363`) both route
+  through `fetchInit`; the unload-listener registration (was `:277-280`) is now gated on `connector !== "pixel"`;
+  **and (craft-review) `pushCritical` early-returns + diagnoses for a pixel instance** — the second mis-map entry
+  the unload-wiring gate alone did not close (it routes through the same GA4 `critical` dispatcher).
+- `core/airlock.js:118`'s `critical = createCriticalDispatcher(…)` — **left unchanged**, still constructs
+  unconditionally for every connector (no null-guards needed at `stats()`/`pushCritical()`; `pushCritical` is
+  neutralized by its own connector guard, not by dropping the construction).
+- `core/egress.js` — **left unchanged** (neutralized for a pixel instance purely by the two connector guards
+  above, never invoked).
+- `core/pixel-chamber.worker.js` — **new file**, mirroring `core/chamber.worker.js` (including its first-import
+  egress-confinement guard) — swaps the hosted factory to `createPixelConnector`, drops the GA4-shaped init fields.
+- `core/confine-pixel-chamber.js` — **new file (craft-review — security parity for an ad-vendor chamber)**,
+  mirroring `core/confine-ga4-chamber.js`: `applyEgressConfinement(self, { withholdFetch: true })` as the pixel
+  chamber's FIRST import. Source-order + withholdFetch regression-pinned in `test/egress-confinement.test.js`.
+- GA4 regression proof: co-located in `test/pixel-seam.test.js` (one focused assertion per touched site, tagged
+  `REGRESSION`) **and** the full pre-existing GA4/adapter test suite (`consent-seal`, `endpoint-ceiling-seam`,
+  `chamber-observability`, `airlock-dispose`, `egress-fastpath`, `ga4-connector`, `ga4-map`, `ga4-consent`,
+  `ga4-cookies`, `ga4-purchase`, `chamber-isolation`, `connector-host`, `eds-boot`, `eds-interactions`,
+  `eds-exposure`, `eds-blocks`, `eds-cookies`, `eds-dom-reserve`, `helix-rum-seam`, `helix-rum-connector`,
+  `helix-rum-cwv`, `push-contract`, `payload-governance(-seam)`, `endpoint-ceiling`, `consent`,
+  `contract-stability`, `core-boundary`, `egress-confinement`, `generic-capture`) re-run unmodified and green.
+
+### Deviation log
+
+- **The declarative `paramMap` entry shape (`{ from: "static" | "event" | "params", … }`) is this slice's own
+  design choice, not pinned by the spec text.** AC1 names the config's top-level shape
+  (`{ endpoint, eventMap, paramMap }`) but not `paramMap`'s per-entry vocabulary. A three-source tag (a static
+  literal, the event-mapped name, or a projected `event.params` field) is the minimal interpreter Meta's `/tr`
+  needs — it is also what lets the `id`/`ev` query-key NAMES themselves be config-supplied rather than hardcoded
+  in the connector (proven by `test/pixel-connector.test.js`'s unrelated fake-vendor-config case). Named
+  explicitly because 026-02 (2-3 more vendors, including a POST-body one) is where this vocabulary gets stressed
+  — the residual bet the parent spec already flags ("is a *data* map expressive enough… without a code escape?").
+- **`adapters/eds/index.js` gained a real `bootMetaPixel()` function, not just a re-exported constant.** AC6 says
+  "a matching `egressPurposes` wired for Meta **in the adapter**" — read literally (mirroring how
+  `GA4_EGRESS_PURPOSES` is wired inside `bootEdsAnalytics`, not just exported), so a genuine adapter-level boot
+  function was added (`test/eds-meta-pixel.test.js`), deliberately MINIMAL relative to `bootEdsAnalytics`: no
+  cookie-sourced `ctx` (this connector reads none, by design), no `wireInteractions`/`wireExposure`/`wireBlocks`,
+  no `window` global slot, and no `pushCritical` on the returned handle. (Post craft-review this is now
+  **belt-and-suspenders**: the core `pushCritical` itself early-returns + diagnoses for a pixel instance, so the
+  adapter omission is defense-in-depth, not the sole guard against the GA4-`critical`-dispatcher mis-map.)
+- **~~`core/pixel-chamber.worker.js` has no egress-confinement first-import guard~~ — RESOLVED (craft-review).**
+  The craft review judged deferring a one-line security-parity control for an *ad-vendor* egress chamber a
+  questionable scope call. Built: `core/confine-pixel-chamber.js` (`applyEgressConfinement(self,
+  { withholdFetch: true })`) is now `pixel-chamber.worker.js`'s **first import**, mirroring
+  `core/confine-ga4-chamber.js` — the pixel connector's egress is the `ready` postMessage, not a mediated worker
+  fetch, so the `withholdFetch: true` inversion applies verbatim. Source-order + withholdFetch regression-pinned
+  in `test/egress-confinement.test.js`. (A future slice may fold both `confine-*-chamber.js` modules into one
+  shared `confine-chamber.js` — 026-02.)
+- **`build.mjs` was not updated to add `core/pixel-chamber.worker.js` as a third bundle entry point.** The
+  connector-selection seam (AC3) is proven at the Node/vitest runtime level (FakeWorker-driven) and confirmed not
+  to break `build.mjs`'s existing bundle-layout assertion (re-run after landing — see below); but a REAL EDS page
+  calling `createAirlock({ connector: "pixel", … })` today would 404 fetching the worker file, since it is not
+  yet emitted alongside `chamber.worker.js`/`eds.js`. This is a genuine gap before a real deployment, out of this
+  slice's DoD-named scope (not listed among the touched core sites) — flagged for a follow-up (parked below).
+- **Self-caught build-gate bug, fixed before reporting done.** The first implementation of the two
+  `new Worker(new URL(…))` call sites used a ternary with the pixel branch as the `?` consequent (textually
+  FIRST in source), the opposite of the intended "GA4's literal stays first" ordering — `npm run build` (run as
+  an extra, cheap, side-effect-free sanity check beyond the targeted vitest files, since it directly exercises
+  the load-bearing literal-first assumption) caught it immediately via `build.mjs`'s own bundle-layout assertion
+  (`worker specifier is "./pixel-chamber.worker.js", expected "./chamber.worker.js"`); fixed by flipping the
+  ternary's condition (`connector !== "pixel" ? <ga4> : <pixel>`), re-verified both by `npm run build` passing
+  and by re-running the full pixel/GA4 targeted test set (behavior is unaffected — a pure condition-flip).
+- **AC4's `:176` "method captured" claim is proven indirectly**, via the held-GET-flushes-as-GET test's success
+  (not a direct unit read of the private `heldBeacons` closure array, which the seam's own public surface never
+  exposes) — the SAME indirect-proof pattern `test/consent-seal.test.js` already uses for the pre-existing
+  `:176`→`:363` pairing, so this is not a new testing gap this slice introduced.
+- **Craft-review remediation round (post-implementation gating reviews — compliance PASS, craft NEEDS-CHANGES →
+  resolved).** Both independent reviews converged on one gap the frame-critique's own enumeration missed:
+  `pushCritical` is a **second** raw-`createAirlock`-handle entry into the GA4 `critical` dispatcher, so on a pixel
+  instance it would GA4-map + POST to `facebook.com/tr` — the exact mis-map AC10 neutralizes on the unload path.
+  Fixed (craft **blocker**): `pushCritical` early-returns + diagnoses for a pixel instance (a *core* guard, not
+  merely the adapter omission); AC10 reworded to "no GA4 mis-map to the ad endpoint," covering **both** entries,
+  with a new `pushCritical` no-op test + a GA4 `pushCritical` regression. Fixed (craft **causality nit**): AC10's
+  unload test now grants consent, so the sync/unload consent gate can no longer mask the `:277-280` wiring gate —
+  the counterfactual (gate removed) genuinely fetches + fails. Pulled in (craft nit): the pixel-chamber
+  egress-confinement guard (see the RESOLVED entry above). Re-verified: 20 `pixel-seam` + 11 `egress-confinement`
+  tests green, full GA4/adapter suite unmodified + green, `npm run lint` clean.
+
+### Reconciliation sweep
+
+- **Question answered + Outcome set** (the slice's contract, post-reframe): Meta's `/tr` GET ships end-to-end
+  through a genuinely declarative interpreter (`createPixelConnector` + the Meta config fixture), governed by the
+  existing seal (consent-held/flushed-as-GET/dropped, endpoint-confined, PII-stripped, no identity leak), via the
+  two bounded core generalizations the archetype needs (the connector-selection seam + method-aware dispatch,
+  three sites) — resolving OQ10 for the GET case. GA4's own verdicts, POST dispatch, and unload path are proven
+  unchanged by co-located regression tests plus the full pre-existing GA4/adapter suite, unmodified and green.
+- **Promoted, no orphans:** the config-contract learning (the `paramMap` `from`-tagged vocabulary, and where it
+  might need a code-escape hatch) and the selection-seam/method-aware-dispatch learnings (the literal-first
+  `new Worker(new URL(…))` build-gate constraint) both belong to 026-02's grounding, which should cite this
+  slice directly rather than re-derive them. The basic first-party cookie identity (`_fbp`/`fbc`) follow-up named
+  in the slice's own "Identity honesty" framing, and the one remaining out-of-DoD-scope residual (`build.mjs`'s
+  missing third bundle entry point), are parked in `docs/inbox.md` rather than left only in this file. (The pixel
+  chamber's egress-confinement guard, previously parked, was **built** in the craft-review round — see the
+  Deviation log.)
+- **Downstream named:** 026-02 (2-3 more vendors as configs, including one POST-body vendor, stress-testing the
+  `paramMap` vocabulary's generality). **Explicit extension point for 026-02 (both reviewers):** the interpreter
+  hardcodes `method: "GET"` with no body vocabulary (`connectors/pixel/connector.js`), so a POST-body vendor is
+  the first code-escape — but a **clean, non-breaking** one, since `fetchInit` already honors `EgressRequest.method`;
+  026-02's grounding should **cite this slice** for the `method`/body extension rather than re-derive it. 026-03
+  (the `PixelVendorConfig` type + advanced-matching/hashed-identity);
+  the basic-cookie-identity follow-up (a chamber cookie-capability question); the remaining `build.mjs` inbox
+  item. No dependency left dangling.
+- **No live identifiers, no probe code, no new dependency** committed — synthetic pixel id
+  (`000000000000000`), the real public `facebook.com/tr` documented endpoint, every assertion against a `fetch`
+  spy (never a live network call).

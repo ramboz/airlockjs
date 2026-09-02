@@ -35,6 +35,7 @@ import { createAirlock } from "../../core/airlock.js";
 import { resolveConsent } from "../../core/consent.js";
 import { sourceGa4Ctx } from "../../connectors/ga4/cookies.js";
 import { shapeMpConsent } from "../../connectors/ga4/consent.js";
+import { createMetaPixelConfig, META_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/meta.js";
 import { createCookieCapability } from "./cookies.js";
 import { createExposureReporter } from "./exposure.js";
 import { createBlockInstrumenter } from "./blocks.js";
@@ -51,6 +52,16 @@ const DEFAULT_ENDPOINTS = ["https://www.google-analytics.com/mp/collect"];
  * `analytics_storage` purpose (ADR-0007).
  */
 const GA4_EGRESS_PURPOSES = ["analytics_storage"];
+
+/**
+ * spec 026-01 AC6 — re-exported here (its home is
+ * `connectors/pixel/vendors/meta.js`) so a caller wiring the SAME
+ * `egressPurposes` -> `createAirlock` pattern GA4's constant above documents
+ * can import both from this one adapter module. `bootMetaPixel` below wires
+ * it into its own `createAirlock` call the same way `bootEdsAnalytics` wires
+ * `GA4_EGRESS_PURPOSES`.
+ */
+export { META_EGRESS_PURPOSES };
 
 /**
  * The DISTINCT GA4 event names the UC-2 interaction wiring emits (slice 004-04).
@@ -424,6 +435,84 @@ export async function bootEdsAnalytics(opts = {}) {
   wireBlocks(handle);
 
   return handle;
+}
+
+/**
+ * Boot a Meta Pixel connector instance for an EDS page (spec 026-01 AC6) —
+ * the adapter's Meta wiring, mirroring `bootEdsAnalytics`'s GA4 pattern:
+ * a vendor config fixture (`createMetaPixelConfig`) feeds the SAME
+ * `createAirlock` seam through the connector-selection option
+ * (`connector: "pixel"`), with `META_EGRESS_PURPOSES` wired into
+ * `egressPurposes` the SAME `consent ? … : []` back-compat gate
+ * `bootEdsAnalytics` uses for `GA4_EGRESS_PURPOSES` (see that function's own
+ * doc comment for the full rationale — an unconditional wire would silently
+ * hold every beacon forever on a caller that never wires a consent vector).
+ *
+ * Deliberately MINIMAL relative to `bootEdsAnalytics` (026-01's scope is the
+ * connector + core seams + the seal bindings, not a full UC-2-style
+ * interaction-capture wiring for Meta — a real site's `push()` calls into
+ * this handle are the caller's own event-vocabulary decision, spec 026-01's
+ * "Identity honesty" scope note): no cookie-sourced `ctx` (this connector
+ * reads none, by design — AC8/AC9), no `wireInteractions`/`wireExposure`/
+ * `wireBlocks`, and no `window` global slot (a caller decides where to keep
+ * the handle; unlike `window.airlock`, there is no established convention
+ * for a second, vendor-specific instance yet).
+ *
+ * `pushCritical` is deliberately NOT exposed on the returned handle: a
+ * pixel-connector airlock instance does not wire the unload-critical path at
+ * all (026-01 AC10 — `core/airlock.js`'s `:277-280` unload wiring is
+ * connector-conditional), and `pushCritical` would otherwise silently run a
+ * pixel event through the UNCONDITIONALLY-constructed GA4 `critical`
+ * dispatcher (GA4's own `mapToMp`) — a mis-map, not a beacon. Unload-critical
+ * GET dispatch for pixels is a later slice.
+ *
+ * @param {object} [opts]
+ * @param {string} [opts.pixelId]           the Meta pixel id (defaults to a
+ *                                          clearly-synthetic placeholder —
+ *                                          NO live identifier ships here).
+ * @param {string} [opts.endpoint]          override for Meta's `/tr` endpoint
+ *                                          (test/rig escape hatch).
+ * @param {Record<string, string>} [opts.consent] host-supplied ADR-0007
+ *                                          consent vector, folded into
+ *                                          `egressPurposes` exactly like
+ *                                          `bootEdsAnalytics`'s own gate.
+ * @param {boolean} [opts.consentStrict]    spec 017-03 AC3 — a strict/
+ *                                          no-processing regime.
+ * @param {string[]} [opts.payloadDenylist] spec 019-01 (ADR-0012) — threaded
+ *                                          straight through to `createAirlock`,
+ *                                          merged with the always-on built-in
+ *                                          default inside it.
+ * @returns {Promise<{ push: Function, setConsent: Function, getState: Function, flushNow: Function, stats: Function, dispose: Function }>}
+ */
+export async function bootMetaPixel(opts = {}) {
+  const { pixelId, endpoint, consent, consentStrict = false, payloadDenylist } = opts;
+
+  const connectorConfig = createMetaPixelConfig({ pixelId, endpoint });
+
+  // Host-owned ceiling (ADR-0006): declared INDEPENDENTLY of the connector's
+  // own advisory manifest.endpoints, exactly like DEFAULT_ENDPOINTS above —
+  // a compromised/misconfigured connector config cannot widen its own egress.
+  const airlock = createAirlock({
+    trackers: 1,
+    workFactor: 0,
+    endpoints: [connectorConfig.endpoint],
+    ctx: {}, // no host-sourced identity crosses into a pixel instance (026-01 scope)
+    connector: "pixel",
+    connectorConfig,
+    consent,
+    egressPurposes: consent ? META_EGRESS_PURPOSES : [],
+    consentStrict,
+    payloadDenylist,
+  });
+
+  return {
+    push: (evt) => airlock.push(evt),
+    setConsent: (v) => airlock.setConsent(v),
+    getState: (path) => airlock.getState(path),
+    flushNow: () => airlock.flushNow(),
+    stats: () => airlock.stats(),
+    dispose: () => airlock.dispose(),
+  };
 }
 
 export default bootEdsAnalytics;

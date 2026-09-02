@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: DONE
 skill: jig:spec-workflow
 use_cases: [UC-2]
 ---

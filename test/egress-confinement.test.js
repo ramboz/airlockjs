@@ -108,3 +108,27 @@ describe("import ORDER guarantee (spec 016-01 AC2/AC7a — the load-bearing orde
     expect(src).toMatch(/applyEgressConfinement\(self,\s*\{\s*withholdFetch:\s*true\s*\}\)/);
   });
 });
+
+describe("import ORDER guarantee — pixel chamber (spec 026-01 craft-review, security parity with GA4)", () => {
+  const PIXEL_CHAMBER = join(dirname(fileURLToPath(import.meta.url)), "..", "core", "pixel-chamber.worker.js");
+
+  it("core/pixel-chamber.worker.js's FIRST import statement names ./confine-pixel-chamber.js", () => {
+    const src = readFileSync(PIXEL_CHAMBER, "utf8");
+    const firstImportLine = src.match(/^import\s.+$/m);
+    expect(firstImportLine).not.toBeNull();
+    // Same post-order argument as GA4's chamber: this being the FIRST import
+    // pins confinement's top-level to run before the connector-module imports
+    // below it evaluate — so a compromised connector's top-level fetch-capture
+    // already sees the withheld stub (an ad-vendor egress chamber must not ship
+    // less-confined than the GA4 chamber).
+    expect(firstImportLine[0]).toMatch(/["']\.\/confine-pixel-chamber\.js["']/);
+  });
+
+  it("core/confine-pixel-chamber.js applies withholdFetch confinement at its own top level", () => {
+    const src = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "..", "core", "confine-pixel-chamber.js"),
+      "utf8",
+    );
+    expect(src).toMatch(/applyEgressConfinement\(self,\s*\{\s*withholdFetch:\s*true\s*\}\)/);
+  });
+});
