@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Airlock worker-dom real-tag INP rig (spec 025-01 AC2 — Prism.js)</title>
+    <style>
+      body { font: 14px system-ui, sans-serif; margin: 0; padding: 2rem; }
+      #target { width: 240px; height: 80px; font-size: 18px; cursor: pointer; }
+      #out { white-space: pre-wrap; margin-top: 1rem; color: #333; }
+    </style>
+  </head>
+  <body>
+    <h1>Airlock worker-dom real-tag INP rig (spec 025-01 AC2)</h1>
+    <p>ADR-0014 mechanism bet #2: does a REAL, unmodified, write/compute-heavy-<em>without</em>-sync-read tag
+      (Prism.js — an unmodified syntax highlighter) run off-thread via <code>@ampproject/worker-dom</code> with
+      INP contained?</p>
+    <button id="target">interact</button>
+    <pre id="out"></pre>
+    <div id="wd-host" src="/rig/worker-dom-prism-author.built.js" style="display: none"></div>
+    <script type="module">
+      // ?repeat=60 — how many times the sample code block is repeated (controls the
+      // per-click highlighting workload size); templated into the author script server-side.
+      import { upgradeElement } from "/node_modules/@ampproject/worker-dom/dist/main.mjs";
+
+      const q = new URLSearchParams(location.search);
+      const REPEAT = Number(q.get("repeat") || 60);
+
+      const host = document.getElementById("wd-host");
+      const workerUrl = "/node_modules/@ampproject/worker-dom/dist/worker/worker.mjs";
+
+      let booted = false;
+      let bootError = null;
+      upgradeElement(host, workerUrl)
+        .then((w) => { booted = !!w; window.__booted = booted; })
+        .catch((e) => { bootError = String((e && e.message) || e); window.__bootError = bootError; });
+      window.addEventListener("error", (e) => { window.__lateError = String(e.message || e.error || e); });
+
+      // --- INP-under-storm collector — VERBATIM from rig/nasty-tag-harness.html:97-119
+      const latencies = [];
+      const seen = new Set();
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries()) {
+          if (!e.interactionId) continue;
+          if (!seen.has(e.interactionId)) { seen.add(e.interactionId); latencies.push(e.duration); }
+        }
+      }).observe({ type: "event", durationThreshold: 16, buffered: true });
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries()) {
+          const key = "fi" + (e.interactionId ?? 0);
+          if (!seen.has(key)) { seen.add(key); latencies.push(e.duration); }
+        }
+      }).observe({ type: "first-input", buffered: true });
+
+      const pct = (arr, p) => {
+        if (!arr.length) return 0;
+        const s = [...arr].sort((a, b) => a - b);
+        return s[Math.min(s.length - 1, Math.floor((p / 100) * s.length))];
+      };
+
+      let clicksFired = 0;
+      document.getElementById("target").addEventListener("click", () => { clicksFired++; });
+
+      window.__rig = {
+        snapshot() {
+          const status = document.getElementById("wd-status");
+          return {
+            repeat: REPEAT,
+            booted, bootError, lateError: window.__lateError || null,
+            workCompleted: status ? Number(status.getAttribute("data-completed")) : 0,
+            workerClicks: status ? Number(status.getAttribute("data-clicks")) : 0,
+            rawLen: status ? Number(status.getAttribute("data-raw-len")) : 0,
+            highlightedLen: status ? Number(status.getAttribute("data-highlighted-len")) : 0,
+            clicksFired,
+            interactions: latencies.length,
+            inp_p75: Math.round(pct(latencies, 75)),
+            inp_p98: Math.round(pct(latencies, 98)),
+            inp_max: Math.round(Math.max(0, ...latencies)),
+          };
+        },
+      };
+      document.getElementById("out").textContent = "rig ready (repeat=" + REPEAT + ")";
+    </script>
+  </body>
+</html>

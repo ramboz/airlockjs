@@ -355,6 +355,25 @@ async model as the Lever-2 compat layer — **wrap `@ampproject/worker-dom` (pre
 minimal airlock mirror** (leaning minimal) — then a downstream build-spec (its first AC: the confirming INP
 integration probe). Detail + the works/won't-work map: R-008 + the spike's Findings.
 
+**Mechanism VALIDATED — spike [025-01](specs/025-worker-dom-mirror/slice-01-ga4-drop-in-gate.md) DONE (2026-09-02).**
+ADR-0014 chose the minimal airlock-owned mirror; 025-01 ran the confirming probe against
+`@ampproject/worker-dom@0.36` and returned a **MECHANISM GO** — neither ADR-0014 kill criterion fired:
+**(a)** the main-thread mutation-apply is **INP-safe** (apply p75=**8ms** vs naive 200ms, band [8,8], all 6000
+mutations applied; orchestrator-re-run, not just trusted) — the ADR's central unproven bet, now grounded;
+**(b)** a **real target-shape tag** (Prism 1.30) runs off-thread INP-safe — not a population-mirage (but the
+population **SIZE stays open** — one worked example, not a census). **New scope input for 025-02:** the mirror
+needs **ambient-global proxying beyond DOM APIs** — `screen`/`sendBeacon` are absent in the Worker global
+(model-inherent → a mediated proxy the mirror must add) and `document.cookie` is unimplemented (lib-fixable).
+This is anticipated by ADR-0014's open question "the exact minimal DOM-API subset — the build-spec defines it";
+025-02's subset must include these ambient globals, not just DOM. **GA4 adoption axis (separate verdict, per the
+ratified "drop-in is the bonus"):** unmodified gtag.js boots + runs but can't beacon for exactly those
+ambient-global reasons — an **adoption/feature** signal, **not** a mechanism KILL (GA4 stays supported via the
+wire-protocol connector; the drop-in is the bonus migration path). **Two benign worker-side open threads** (a
+20000-element apply stall; a Prism throughput ceiling) folded in as 025-02 worker-backpressure investigation
+items — not INP. **PENDING (maintainer's strategic call):** 025-02 (build the minimal mirror now, mechanism-GO'd)
+**vs** prioritising [026](specs/026-generic-pixel-connector/spec.md) (the proven common-tag pixel-connector
+leverage) first. ADR-0014 stands **validated, not amended** (immutable). Detail: 025-01 Findings/Outcome.
+
 ### Decision: Lever 3 circuit-breaker (budget enforcement) — DEFERRED
 **Deferred:** POC-A builds Lever 3's **measurement** half (the before/after INP scoreboard). The
 **enforcement** half — a per-tag INP/TBT budget that throttles/trips a runaway tag, + the inspector surfacing

@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <head><meta charset="utf-8" /><title>GA4 control (spec 025-01 AC3, main-thread, NOT worker-dom)</title></head>
+  <body>
+    <!-- CONTROL for AC3: the SAME synthetic-id gtag.js install, on a PLAIN main-thread
+         page (no worker-dom at all) — disambiguates "gtag.js itself no-ops for an
+         unrecognized synthetic id" from "worker-dom broke something". -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function () { window.dataLayer.push(arguments); };
+      window.gtag('js', new Date());
+      window.gtag('config', 'G-DEBUGTEST0');
+    </script>
+    <script src="https://www.googletagmanager.com/gtag/js?id=G-DEBUGTEST0"></script>
+    <script>
+      window.addEventListener("load", () => {
+        setTimeout(() => {
+          window.gtag('event', 'debug_test_event', { debug_mode: true, value: 1 });
+          window.__ran = true;
+        }, 200);
+      });
+    </script>
+  </body>
+</html>

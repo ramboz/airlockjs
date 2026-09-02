@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Airlock worker-dom nasty-tag INP rig (spec 025-01 AC1)</title>
+    <style>
+      body { font: 14px system-ui, sans-serif; margin: 0; padding: 2rem; }
+      #target { width: 240px; height: 80px; font-size: 18px; cursor: pointer; }
+      #out { white-space: pre-wrap; margin-top: 1rem; color: #333; }
+    </style>
+  </head>
+  <body>
+    <h1>Airlock worker-dom nasty-tag INP rig (spec 025-01 AC1)</h1>
+    <p>ADR-0014 mechanism bet #1: is the main-thread mutation-apply INP-safe under a DOM-mutation-heavy load
+      run off-thread via <code>@ampproject/worker-dom</code>?</p>
+    <!-- The click target is a REAL, always-sized, plain button — DECOUPLED from the
+         worker-dom-upgraded host element (below), matching how many real tags attach a
+         document-level listener rather than requiring the click to land on the tag's own
+         (async-populated, so unreliably-sized before boot) subtree. -->
+    <button id="target">interact</button>
+    <pre id="out"></pre>
+    <!-- The worker-dom host: upgradeElement() reads its `src` attribute as the AUTHOR
+         script URL (the "unmodified tag"); the second upgradeElement() argument (below)
+         is worker-dom's OWN worker-side DOM-implementation bundle URL. -->
+    <div id="wd-host" src="/rig/worker-dom-nasty-tag-author.js" style="display: none"></div>
+    <script type="module">
+      // ?elements=400&workUs=500 — same defaults/meaning as rig/nasty-tag-harness.html's
+      // ?elements=&workUs= (023-01), for direct comparability against the naive baseline.
+      import { upgradeElement } from "/node_modules/@ampproject/worker-dom/dist/main.mjs";
+
+      const q = new URLSearchParams(location.search);
+      const ELEMENTS = Number(q.get("elements") || 400);
+      const WORK_US = Number(q.get("workUs") || 500);
+
+      const host = document.getElementById("wd-host");
+      const workerUrl = "/node_modules/@ampproject/worker-dom/dist/worker/worker.mjs";
+
+      let booted = false;
+      let bootError = null;
+      upgradeElement(host, workerUrl)
+        .then((w) => { booted = !!w; window.__booted = booted; })
+        .catch((e) => { bootError = String((e && e.message) || e); window.__bootError = bootError; });
+      window.addEventListener("error", (e) => {
+        // worker onerror surfaces here too (Worker errors bubble as window "error" events
+        // in some browsers) — capture so a mid-run worker crash is visible, not silent.
+        window.__lateError = String(e.message || e.error || e);
+      });
+
+      // --- INP-under-storm collector — VERBATIM from rig/nasty-tag-harness.html:97-119
+      //     (023-01 AC4: the repo's PROVEN raw Event-Timing PerformanceObserver method,
+      //     NOT web-vitals onINP).
+      const latencies = [];
+      const seen = new Set();
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries()) {
+          if (!e.interactionId) continue;
+          if (!seen.has(e.interactionId)) { seen.add(e.interactionId); latencies.push(e.duration); }
+        }
+      }).observe({ type: "event", durationThreshold: 16, buffered: true });
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries()) {
+          const key = "fi" + (e.interactionId ?? 0);
+          if (!seen.has(key)) { seen.add(key); latencies.push(e.duration); }
+        }
+      }).observe({ type: "first-input", buffered: true });
+
+      const pct = (arr, p) => {
+        if (!arr.length) return 0;
+        const s = [...arr].sort((a, b) => a - b);
+        return s[Math.min(s.length - 1, Math.floor((p / 100) * s.length))];
+      };
+
+      let clicksFired = 0;
+      document.getElementById("target").addEventListener("click", () => { clicksFired++; });
+
+      window.__rig = {
+        snapshot() {
+          const status = document.getElementById("wd-status"); // appended by the author script, inside wd-host
+          return {
+            elements: ELEMENTS, workUs: WORK_US,
+            booted, bootError, lateError: window.__lateError || null,
+            collectMs: status ? Number(status.getAttribute("data-collect-ms")) : null,
+            workCompleted: status ? Number(status.getAttribute("data-completed")) : 0,
+            workerClicks: status ? Number(status.getAttribute("data-clicks")) : 0,
+            clicksFired,
+            interactions: latencies.length,
+            inp_p75: Math.round(pct(latencies, 75)),
+            inp_p98: Math.round(pct(latencies, 98)),
+            inp_max: Math.round(Math.max(0, ...latencies)),
+          };
+        },
+      };
+      document.getElementById("out").textContent = "rig ready (elements=" + ELEMENTS + ", workUs=" + WORK_US + ")";
+    </script>
+  </body>
+</html>

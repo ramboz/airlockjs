@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Airlock worker-dom GA4 drop-in litmus (spec 025-01 AC3)</title>
+  </head>
+  <body>
+    <h1>worker-dom GA4 (gtag.js) drop-in litmus (spec 025-01 AC3 — ADOPTION, not a mechanism KILL)</h1>
+    <p>Unmodified <code>gtag.js</code> (public CDN, a synthetic/debug measurement id — no live identifiers,
+      no real beacons expected to land anywhere meaningful) as the worker-dom worker script.</p>
+    <pre id="out"></pre>
+    <!-- src points at a tiny local glue script (rig/worker-dom-ga4-author.js) that seeds
+         window.dataLayer/gtag (the documented public GA4 install snippet) then
+         importScripts()s the REAL, UNMODIFIED, public gtag.js — worker-dom's upgradeElement()
+         only fetches ONE authorURL, so this mirrors "inline snippet + async-loaded gtag.js"
+         the same way rig/worker-dom-prism-glue.js mirrors "glue + a real library". -->
+    <div id="wd-host" src="/rig/worker-dom-ga4-author.js" style="display: none"></div>
+    <script type="module">
+      import { upgradeElement } from "/node_modules/@ampproject/worker-dom/dist/main.mjs";
+
+      const host = document.getElementById("wd-host");
+      const workerUrl = "/node_modules/@ampproject/worker-dom/dist/worker/worker.mjs";
+
+      window.__events = [];
+      window.addEventListener("error", (e) => { window.__events.push({ kind: "window-error", message: String(e.message || e.error || e) }); });
+
+      upgradeElement(host, workerUrl)
+        .then((w) => {
+          window.__booted = !!w;
+          window.__events.push({ kind: "upgrade-resolved", worker: !!w });
+        })
+        .catch((e) => {
+          window.__bootError = String((e && e.message) || e);
+          window.__events.push({ kind: "upgrade-rejected", message: window.__bootError });
+        });
+
+      window.__rig = {
+        snapshot: () => {
+          const status = document.getElementById("wd-status");
+          return {
+            booted: !!window.__booted, bootError: window.__bootError || null, events: window.__events,
+            phase: status ? status.getAttribute("data-phase") : null,
+            importOk: status ? status.getAttribute("data-import-ok") : null,
+            importError: status ? status.getAttribute("data-import-error") : null,
+            eventOk: status ? status.getAttribute("data-event-ok") : null,
+            eventError: status ? status.getAttribute("data-event-error") : null,
+            dataLayerLength: status ? status.getAttribute("data-datalayer-length") : null,
+            hasScreen: status ? status.getAttribute("data-has-screen") : null,
+            screenWH: status ? status.getAttribute("data-screen-wh") : null,
+            hasSendBeacon: status ? status.getAttribute("data-has-sendbeacon") : null,
+            hasUaData: status ? status.getAttribute("data-has-uadata") : null,
+            cookie: status ? status.getAttribute("data-cookie") : null,
+            cookieError: status ? status.getAttribute("data-cookie-error") : null,
+            hasFetch: status ? status.getAttribute("data-has-fetch") : null,
+            hasXhr: status ? status.getAttribute("data-has-xhr") : null,
+          };
+        },
+      };
+      document.getElementById("out").textContent = "rig ready";
+    </script>
+  </body>
+</html>
