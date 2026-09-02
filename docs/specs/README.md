@@ -70,6 +70,7 @@
 | [022-helix-rum-connector](022-helix-rum-connector/spec.md) | 022-04 — CWV checkpoint via `web-vitals` (native runtime capture) | **DONE** |  |
 | [023-dom-cost-containment-poc](023-dom-cost-containment-poc/spec.md) | 023-01 — costly tag contained + measured (the INP scoreboard) | **DONE** |  |
 | [024-worker-dom-compat-spike](024-worker-dom-compat-spike/spec.md) | 🔬 024-01 — worker-dom feasibility spike (POC-B) | **DONE** |  |
+| [025-worker-dom-mirror](025-worker-dom-mirror/spec.md) | 🔬 025-01 — GA4-drop-in de-risk gate (GO / KILL) | DRAFT |  |
 
 ## Deferred slices
 
