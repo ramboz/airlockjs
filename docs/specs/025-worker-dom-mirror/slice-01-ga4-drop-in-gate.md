@@ -16,7 +16,9 @@ kind: spike
 > network/sub-resource-shaped, not write/compute-heavy; its likely failure (loading `googletagmanager.com` —
 > a 024-documented won't-work case) says nothing about ADR-0014's two mechanism bets, is plausibly fixable in
 > airlock's own mirror (a mediated sub-resource proxy), and **GA4 is already supported via the connector**
-> (spec 004/008 + pixel connector 026). So this gate runs **two independent verdicts**.
+> (spec 004/008 + pixel connector 026). So this gate runs **two independent verdicts**. **Awaiting maintainer
+> ratification** that "GA4 supported via the connector" satisfies the "GA4 = kill switch" intent (vs "GA4 must
+> drop in") — this reframe reinterprets a maintainer-stated gate, so it is not proceeding until confirmed.
 
 **Question:** **(Mechanism)** Do ADR-0014's two unproven bets hold — the main-thread mutation-apply INP-safe
 under a *DOM-mutation-heavy* unmodified tag, AND a useful population of unmodified write/compute-heavy-*without*-
@@ -48,12 +50,17 @@ drop-in axis so 025-02 knows whether it needs a sub-resource proxy.
    gtag.js, which is not DOM-heavy) inside `@ampproject/worker-dom`, and measure the **main-thread
    mutation-apply** INP the 023 way (Event-Timing within-storm p75, N-runs + median + band, work-completed
    observable). Does the frame-budgeted apply stay INP-safe, or does it **re-tank** (the long task moved, not
-   removed)? A number. **This is the primary GO/KILL input** (ADR-0014's central unproven bet).
+   removed)? A number — **or**, if worker-dom@0.36 is too stale to boot even the synthetic, an **axis-classified
+   "couldn't-measure-in-0.36 (lib-staleness, NOT a model KILL)"** (mirror 024 AC3's honest escape), measured on
+   airlock's own minimal mirror instead: a lib-boot failure must **never** be read as the mechanism re-tanking.
+   **This is the primary GO/KILL input** (ADR-0014's central unproven bet).
 2. **[MECHANISM bet #2 — the population] At least one REAL target-shape tag runs off-thread.** Find + run at
    least one **real, unmodified, write/compute-heavy-*without*-sync-read** tag (the actual Tier-0 target shape —
    NOT gtag.js/pixels, which are the wrong shape) in the mirror; does it run off-thread with INP contained?
    Plus an honest read: is such a population **common enough** to justify the build, or are most common tags
-   connector-shaped (→ 026) / sync-read (→ the Tier-0 gap)?
+   connector-shaped (→ 026) / sync-read (→ the Tier-0 gap)? **"Population-mirage" (the KILL trigger) means the
+   corpus lacks real target-shape tags — a *corpus* judgment**, explicitly distinct from "found one but stale
+   0.36 couldn't boot it" (a lib-completeness gap, NOT a mechanism KILL → measure on airlock's own mirror).
 3. **[ADOPTION litmus — SEPARATE verdict, not a mechanism KILL] GA4 drop-in + its failure axis.** Try
    unmodified `gtag.js` (+ a `gtag('event', …)`, a synthetic/`debug` measurement id so beacons are harmless).
    Boot/run? Where does it break — and **classify the axis**: **(a) model-inherent** (sync-read / needs a real

@@ -16,7 +16,9 @@ use_cases: []
 Build airlock's **minimal, own** worker-dom mirror so an *unmodified* write/compute-heavy tag runs off-thread
 (computation in a chamber; mutations serialized async + frame-budgeted onto the main thread), containing its
 INP. **But gate the build on a cheap de-risk first** — ADR-0014 flagged two unproven bets, and the maintainer
-set a hard adoption criterion: **a common tag that won't run is a kill switch.**
+set an adoption criterion (**a common tag that won't run is a concern**) — but see **Two orthogonal verdicts**
+below: that is an *adoption* signal (GA4 is already supported via the connector), **decoupled** from the
+mechanism build decision, not a blunt build kill switch.
 
 ## The two bets to validate BEFORE building (ADR-0014, honest)
 
@@ -86,5 +88,5 @@ for a bet ADR-0014 itself flagged as unproven.
 
 ## Slices
 
-- [025-01 — GA4-drop-in de-risk gate (GO/KILL)](slice-01-ga4-drop-in-gate.md)
+- [025-01 — Tier-0 mechanism de-risk gate (GO/KILL) + GA4 adoption litmus](slice-01-ga4-drop-in-gate.md)
 - _025-02+ (not yet reserved) — the minimal mirror build, gated on 025-01 = GO. Framed when the gate passes._
