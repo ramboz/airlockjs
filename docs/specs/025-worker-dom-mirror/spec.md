@@ -1,7 +1,7 @@
 ---
-status: DONE
+status: IN_PROGRESS
 skill: jig:spec-workflow
-use_cases: []
+use_cases: [UC-2]
 ---
 
 # Spec 025: worker-dom minimal mirror (Lever-2 compat layer, Tier 0)
@@ -81,12 +81,19 @@ for a bet ADR-0014 itself flagged as unproven.
   unmodified `gtag.js` drop in, and if not, on which axis (model-inherent vs a fixable sub-resource-proxy
   gap)? Feeds 025-02's feature set + the adoption story, **not** the build's existence (GA4 is already
   supported via the connector).
-- **025-02+ (Path — the minimal mirror build, GATED on 025-01 = GO):** airlock's own worker-side DOM mirror
-  (minimal subset) + the worker→main mutation-serialize channel + the frame-budgeting coordinator, replacing
-  the probe's `@ampproject/worker-dom`. Detailed only after the gate passes; the minimal DOM subset is defined
-  by what the gate's tags actually need.
+- **025-02 (Path — the mirror CORE, GATED on 025-01 = GO ✅):** airlock's own worker-side DOM mirror (the
+  minimal subset the synthetic DOM-mutation-heavy tag needs) + the worker→main mutation-serialize channel + a
+  frame-budgeted main-thread apply coordinator (**reusing `core/scheduler.js`**, 023) + a mutation-apply safety
+  policy — replacing the probe's `@ampproject/worker-dom`. Proven by the **deferred INP integration probe**
+  (ADR-0014's named first AC): the synthetic write-heavy tag runs off-thread through airlock's OWN mirror,
+  INP-safe (reproducing 025-01's ~8ms on airlock's own code). `innerHTML` + sanitizer, ambient globals, and the
+  Lever-3 budget are OUT (→ 025-03+).
+- **025-03+ (Data/Rules — broaden, gated on 025-02):** a REAL tag through the mirror (Prism → `innerHTML` + a
+  Trusted-Types / sanitizer write path); ambient-global proxies (`screen` / `sendBeacon` / `cookie`, 025-01 AC3's
+  scope input) for broader tags; the Lever-3 budget / circuit-breaker. Each its own slice, framed when picked up.
 
 ## Slices
 
 - [025-01 — Tier-0 mechanism de-risk gate (GO/KILL) + GA4 adoption litmus](slice-01-ga4-drop-in-gate.md)
-- _025-02+ (not yet reserved) — the minimal mirror build, gated on 025-01 = GO. Framed when the gate passes._
+- [025-02 — the mirror core: synthetic tag off-thread through airlock's own mirror, INP-safe](slice-02-mirror-core.md)
+- _025-03+ (not yet reserved) — a real tag (Prism / `innerHTML` + sanitizer), ambient globals, Lever-3 budget._
