@@ -1,9 +1,10 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 dependencies: []
 last_verified: 2026-09-02
 frame_review: true
 kind: spike
+claimed_by: main
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about
@@ -16,9 +17,9 @@ kind: spike
 > network/sub-resource-shaped, not write/compute-heavy; its likely failure (loading `googletagmanager.com` —
 > a 024-documented won't-work case) says nothing about ADR-0014's two mechanism bets, is plausibly fixable in
 > airlock's own mirror (a mediated sub-resource proxy), and **GA4 is already supported via the connector**
-> (spec 004/008 + pixel connector 026). So this gate runs **two independent verdicts**. **Awaiting maintainer
-> ratification** that "GA4 supported via the connector" satisfies the "GA4 = kill switch" intent (vs "GA4 must
-> drop in") — this reframe reinterprets a maintainer-stated gate, so it is not proceeding until confirmed.
+> (spec 004/008 + pixel connector 026). So this gate runs **two independent verdicts**. **RATIFIED by the
+> maintainer (2026-09-02): "drop-in is the bonus"** — GA4 supported via the connector satisfies the intent; a
+> GA4 drop-in miss is an adoption/feature signal, not a build KILL.
 
 **Question:** **(Mechanism)** Do ADR-0014's two unproven bets hold — the main-thread mutation-apply INP-safe
 under a *DOM-mutation-heavy* unmodified tag, AND a useful population of unmodified write/compute-heavy-*without*-
