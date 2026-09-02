@@ -1,7 +1,7 @@
 ---
 status: DRAFT
 skill: jig:spec-workflow
-use_cases: []
+use_cases: [UC-2]
 ---
 
 # Spec 026: generic pixel connector (the most-common-tags adoption thread)
@@ -34,22 +34,62 @@ connectors as another "option for adoption." worker-dom (025) is the *long-tail 
 - The connector machinery exists + is proven: `core/connector-host.js`, the `ConnectorManifest`
   (ADR-0006/0007), the seal (endpoint-ceiling + consent + payload governance). GA4
   (`connectors/ga4/connector.js`) is the wire-protocol exemplar to generalise from.
+- **Archetype grounded (2026-09-02 recon).** A wire-protocol connector is `handle(event) → EgressRequest[]`,
+  hosted worker-side by `core/connector-host.js`; the seal binds on **main-thread dispatch** — consent gate
+  (`core/airlock.js:163`), endpoint ceiling (`:194`), payload governance (`:73-85`). So a new pixel connector
+  **rides the same seam with zero core changes** — GA4's retrofit onto the generic host left
+  `git diff core/airlock.js` empty (refinement-todo).
+- **Of the config triple, endpoint + consent are already config-shaped, but the param/payload map is net-new.**
+  GA4 takes `endpoints` as config and declares consent via a `purposes.egress` array + a matching
+  `egressPurposes` to `createAirlock`. But `mapToMp`/`mapToRum` are **bespoke per-connector code** — nothing
+  today reads a declarative mapping table. **That interpreter is 026's core deliverable** (the unproven-generality
+  bet), not a reuse of existing machinery.
 
 ## Assumptions
 
-- **[to ground when picked up]** A pixel's variability across vendors is capturable in a **declarative config**
-  (endpoint + a param/payload map + which fields are identity/consent-relevant) — i.e. the ~10 vendors really
-  do share one archetype rather than each needing bespoke logic. R-007 asserts this; the first slice grounds it
-  by expressing 2–3 real vendors (e.g. Meta Pixel + Google Ads) as configs against the generic connector.
-- Each vendor's governance class (consent-gated like marketing analytics? endpoints? identity cookies) is
-  declared per config, reusing the GA4/alloy consent + endpoint-ceiling machinery.
+- **The param/payload-map interpreter can express a real vendor's event→wire transform as *data* (not code)** —
+  the central unproven-generality bet. R-007 asserts the ~10-vendor population; 026-01 grounds the *interpreter*
+  on one real vendor, 026-02 tests the *generality* across 2–3. **Risk (frame-critique target):** a vendor needs
+  a transform (hashing, conditional/derived fields, nested structures) the declarative map can't express → a
+  bespoke-code escape hatch, eroding the "one connector + N configs" win. The endpoint + consent surfaces are
+  **grounded** as already config-shaped (recon); only the map is the bet.
+- **The GET-query-string wire shape is governed because payload governance runs input-side, BEFORE the chamber.**
+  The common tracking pixel is a 1×1 image GET (Meta `/tr`, LinkedIn, Bing UET), not a POST body; `governParams`
+  strips denylisted PII from `event.params` before postMessage (ADR-0019), so the connector serializes
+  *already-governed* params into the query string. **Load-bearing condition (an AC, not a free lunch):** the
+  connector must put **only governed `event.params`** into the URL and inject **no un-governed identity from
+  `ctx`** — else PII re-enters via the query string (violating "no PII in URL params"). Hashed-identity /
+  advanced-matching fields (which *do* handle PII) are therefore **deferred to 026-03** with their own governance.
+- **Consent wiring stays two-places-must-agree (grounded); 026 does NOT build the MVP3 grant resolver.** The
+  manifest's `purposes.egress` is *declared, not enforced*; real enforcement is the caller's `egressPurposes` to
+  `createAirlock`, hand-wired in the adapter. A vendor config declares its consent class once, but until the
+  MVP3 grant resolver derives `egressPurposes` from the manifest, the adapter still wires it per vendor. 026-01
+  **accepts** this two-places wiring (deferring the loop-close to MVP3) rather than building enforcement plumbing
+  — aligned with "focus on the most common tags / offer adoption options," not "build the seal's grant resolver."
 
 ## Decomposition
 
-_TBD when picked up — likely **Path**-first: one real vendor pixel (e.g. Meta Pixel) through the generic
-connector, governed end-to-end (endpoint-ceiling + consent + payload governance), then **Data** (add vendors
-as configs; prove the archetype holds across 2–3), then the config contract._
+SPIDR — **Path → Data → Rules.** The generic connector + its **declarative-map interpreter** is genuinely
+novel machinery (nothing reads a mapping table today — recon), so it's proven first on **one** vendor (Path),
+then generalised **across** vendors (Data), then the config contract + identity surface pinned (Rules). Not a
+spike: the mechanism (wire-protocol seam + seal) is already proven by GA4 — this builds breadth on it.
+
+- **026-01 (Path — the archetype proof):** one real vendor pixel — **Meta Pixel**, the `facebook.com/tr`
+  image-GET wire form — as a **declarative config** against a new `createPixelConnector(config)` (the generic,
+  vendor-neutral connector whose `handle` interprets a declarative endpoint + event-name + param map, replacing
+  bespoke `mapToX` code), routed through the existing wire-protocol seam and governed end-to-end. Non-PII event
+  params + pixel ID only (advanced matching → 026-03). Proves the interpreter on one vendor; the seal rides for
+  free (zero core changes); consent-gating + endpoint-confinement + input-strip all bind.
+- **026-02 (Data — the archetype generalises):** add 2 more real vendors as configs (e.g. LinkedIn Insight +
+  Bing UET, or Google Ads/Floodlight) — **same connector, no per-vendor code** — proving one archetype covers N.
+  Include one **POST-body** vendor to prove both wire shapes. Surfaces what actually varies vendor-to-vendor
+  (→ the config contract).
+- **026-03 (Rules — the config contract + identity surface):** pin the `PixelVendorConfig` type + handle
+  **advanced-matching / hashed-identity** fields (in-chamber hashing, per-field consent class) — the "identity"
+  third of the config triple, deferred from 026-01.
 
 ## Slices
 
-- _026-01 (tbd) — one real vendor pixel through the generic connector, governed (the archetype proof)._
+- [026-01 — Meta Pixel through the generic connector, governed (the archetype proof)](slice-01-meta-pixel.md)
+- _026-02 (tbd) — 2–3 more vendors as configs; the archetype generalises across vendors + wire shapes._
+- _026-03 (tbd) — the config contract + advanced-matching / identity surface._
