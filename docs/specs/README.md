@@ -73,6 +73,7 @@
 | [025-worker-dom-mirror](025-worker-dom-mirror/spec.md) | 🔬 025-01 — Tier-0 mechanism de-risk gate (GO / KILL) + GA4 adoption litmus | **DONE** |  |
 | [025-worker-dom-mirror](025-worker-dom-mirror/spec.md) | 025-02 — the mirror core: synthetic tag off-thread through airlock's own mirror, INP-safe | **DONE** |  |
 | [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-01 — Meta Pixel through the generic connector, governed + dispatched (the archetype proof) | **DONE** |  |
+| [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-02 — more vendors as configs: the archetype generalises across real GET pixels | DRAFT |  |
 
 ## Deferred slices
 

@@ -1,5 +1,5 @@
 ---
-status: DONE
+status: IN_PROGRESS
 skill: jig:spec-workflow
 use_cases: [UC-2]
 ---
@@ -100,5 +100,5 @@ spike: the mechanism (wire-protocol seam + seal) is already proven by GA4 — th
 ## Slices
 
 - [026-01 — Meta Pixel through the generic connector, governed (the archetype proof)](slice-01-meta-pixel.md)
-- _026-02 (tbd) — 2–3 more vendors as configs; the archetype generalises across vendors + wire shapes._
+- [026-02 — 2–3 more vendors as configs; the archetype generalises across vendors + wire shapes](slice-02-more-vendors.md)
 - _026-03 (tbd) — the config contract + advanced-matching / identity surface._
