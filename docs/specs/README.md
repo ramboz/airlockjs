@@ -84,7 +84,7 @@
 | [029-cwv-scoreboard](029-cwv-scoreboard/spec.md) | 029-01 — the INP scoreboard artifact | **DONE** | Scoreboard is HONEST: naive/deferred/worker triple; fast arms reported BELOW the 16ms Event-Timing floor (not a false-precise p75); durable card `docs/scoreboard.md` in tolerance bands; advisory (ADR-0005), NOT in oracle.sh. |
 | [029-cwv-scoreboard](029-cwv-scoreboard/spec.md) | 029-02 — the load-CWV arm + CI | **DONE** |  |
 | [029-cwv-scoreboard](029-cwv-scoreboard/spec.md) | 029-03 — a realistic martech load (the honest synthetic-representative version) | **DONE** |  |
-| [030-rum-subsume](030-rum-subsume/spec.md) | 030-01 — the connector-generic unload dispatcher | DRAFT |  |
+| [030-rum-subsume](030-rum-subsume/spec.md) | 030-01 — the connector-generic unload dispatcher | **DONE** |  |
 | [030-rum-subsume](030-rum-subsume/spec.md) | 030-02 — the production RUM authority | DRAFT |  |
 | [030-rum-subsume](030-rum-subsume/spec.md) | 030-03 — the page-side replace + no double-count | DRAFT |  |
 | [030-rum-subsume](030-rum-subsume/spec.md) | 030-04 — the scoped-replace boundary + the decision landed | DRAFT |  |
@@ -110,7 +110,7 @@
 
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
-- **7** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
+- **8** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **70** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **8** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review

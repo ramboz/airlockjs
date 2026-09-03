@@ -45,6 +45,13 @@ export function createCriticalDispatcher({
   ctx,
   endpoints,
   trackers,
+  // 030-01: the main-thread unload mapper is connector-generic. Default = GA4's
+  // `mapToMp` (byte-unchanged for every existing caller); a worker-mapped connector
+  // whose map lives in the chamber (e.g. helix-rum) passes a closure binding its own
+  // main-thread mapper — `(event, ctx) => mapToRum(event, ctx, sampling)` — so its
+  // unload-critical events (RUM's INP/late-CLS at page-hide) egress correctly instead
+  // of being GA4-mis-mapped or dropped.
+  mapper = mapToMp,
   budgetBytes = KEEPALIVE_BUDGET_BYTES,
   fetchImpl = typeof fetch !== "undefined" ? fetch : null,
   encode = (s) => new TextEncoder().encode(s).length,
@@ -62,7 +69,7 @@ export function createCriticalDispatcher({
    */
   function dispatch(event) {
     for (let t = 0; t < n; t++) {
-      const body = JSON.stringify(mapToMp(event, ctx));
+      const body = JSON.stringify(mapper(event, ctx));
       const bytes = encode(body);
       if (used + bytes > budgetBytes) {
         dropped++;

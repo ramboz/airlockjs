@@ -23,6 +23,7 @@
  * taken at unload, where there is no interaction left to protect.
  */
 import { createCriticalDispatcher } from "./egress.js";
+import { mapToRum } from "../connectors/helix-rum/map.js";
 import { originPath, checkEndpointCeiling } from "./endpoint-ceiling.js";
 import { egressVerdict } from "./consent.js";
 import { governPayload, DEFAULT_DENYLIST } from "./payload-governance.js";
@@ -153,7 +154,31 @@ export function createAirlock({
   // beacons and the ring tail at teardown. Reuses the pure `mapToMp` (byte-for-byte
   // the same payload the worker builds) and never touches the worker.
   const criticalTypes = new Set(unloadCritical || []);
-  const critical = createCriticalDispatcher({ ctx, endpoints, trackers });
+  // 030-01: the main-thread unload dispatcher is connector-generic. A helix-rum
+  // instance maps via `mapToRum` bound with its per-page sampling (`{weight, id}`,
+  // passed in `connectorConfig.sampling` so the main-thread unload path and the
+  // worker connector agree), so RUM's INP/late-CLS finalizing at page-hide egress
+  // the RUM shape to `ot.aem.live` instead of being GA4-mis-mapped or dropped. Every
+  // other connector omits `mapper` and gets egress.js's default `mapToMp`
+  // (byte-unchanged). The unload WIRING gate (`connector !== "pixel"`, below) already
+  // includes helix-rum, so no wiring change is needed here.
+  // 030-01 (craft review): a helix-rum instance MUST carry its per-page sampling
+  // (`{weight, id}`), or its unload CWV silently falls back to GA4 mapping — the exact
+  // mis-map this slice fixes. bootHelixRum (030-02) always passes it; a raw createAirlock
+  // misuse is surfaced LOUDLY, not degraded silently.
+  if (connector === "helix-rum" && !(connectorConfig && connectorConfig.sampling)) {
+    console.error(
+      "airlock: helix-rum instance constructed without connectorConfig.sampling — its unload CWV would fall back to GA4 mapping; bootHelixRum must pass { sampling: { weight, id } }.",
+    );
+  }
+  const critical = createCriticalDispatcher({
+    ctx,
+    endpoints,
+    trackers,
+    ...(connector === "helix-rum" && connectorConfig && connectorConfig.sampling
+      ? { mapper: (event, mapCtx) => mapToRum(event, mapCtx, connectorConfig.sampling) }
+      : {}),
+  });
 
   // 017-03 AC4 (ADR-0007 point ③, both-sites parity): the sync/unload path has
   // NO "later" to flush a held beacon to — the page is tearing down, so a hold
@@ -338,7 +363,11 @@ export function createAirlock({
     remaining.sort(
       (a, b) => (criticalTypes.has(b.type) ? 1 : 0) - (criticalTypes.has(a.type) ? 1 : 0),
     );
-    for (const d of remaining) criticalDispatchGated({ type: d.type, params: d.params });
+    // 030-01: forward the descriptor's `ts` (its `push()`-time stamp). GA4's `mapToMp`
+    // ignores it (byte-unchanged), but a connector-generic mapper (RUM's `mapToRum`)
+    // reads it as the beacon's `t` — dropping it would make a page-hide INP beacon carry
+    // `t:0` instead of its capture time (030-01 craft review).
+    for (const d of remaining) criticalDispatchGated({ type: d.type, params: d.params, ts: d.ts });
   };
   // 021-01 AC1 (OQ12 item 4): a NAMED reference, not an inline anonymous fn — an
   // anonymous listener can never be individually removeEventListener'd, which is
@@ -439,7 +468,9 @@ export function createAirlock({
         console.warn("airlock: pushCritical() dropped — missing/empty `event` name", evt);
         return;
       }
-      criticalDispatchGated({ type, params });
+      // 030-01: stamp `ts` (there is no prior push() to inherit it from on this direct
+      // entry). GA4's mapToMp ignores it (byte-unchanged); RUM's mapToRum reads it as `t`.
+      criticalDispatchGated({ type, params, ts: performance.now() });
     },
     /**
      * 017-03 AC2 (ADR-0007 point ③ — THIS slice's own main-thread
