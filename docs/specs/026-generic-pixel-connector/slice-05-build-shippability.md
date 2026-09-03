@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: []
 last_verified: 2026-09-02
 frame_review: false
@@ -61,16 +61,57 @@ between "proven at Node/vitest" and "deployable."
 7. **No live identifiers** (build config only).
 
 **DoD:**
-- [ ] The `pixel-chamber.worker.js` entry + the N-worker generalized assertion in `build.mjs`.
-- [ ] `npm run build` green — both worker siblings emitted + referenced (AC1/AC3); a demonstrated proof the
-      generalized assertion catches a dropped/renamed worker (AC4).
-- [ ] `npm run lint` clean; the existing bundle-smoke rig (`npm run rig:bundle`, if it exercises this) + targeted
-      tests green; **no live identifiers**.
-- [ ] `frame_review: false` — no frame-critique gate (grounded build-config, no risk-gated assumptions); compliance
-      + craft reviews still recorded; close-out `### Reconciliation sweep` + `### Deviation log`; resolve the
-      `docs/inbox.md` `build.mjs` item (pixel done; dom-chamber's entry remains deferred + noted).
+- [x] The `pixel-chamber.worker.js` entry + the N-worker generalized assertion (`matchAll` over every
+      `new Worker(new URL(...))` ref; each must be a known, emitted sibling; no `blob:`/`data:` URL in any chunk)
+      in `build.mjs`.
+- [x] `npm run build` green — emits `eds.js` + `chamber.worker.js` + `pixel-chamber.worker.js`, both refs resolve
+      (AC1/AC3); AC4 demonstrated — dropping the pixel entry makes the build THROW ("worker specifier
+      ./pixel-chamber.worker.js is not a known sibling worker"), restored + re-verified.
+- [x] `npm run lint` clean; `npm run rig:bundle` PASS (GA4 default path boots + governs under the CSP — no
+      regression); airlock regression green; **no live identifiers** (build config only).
+- [x] `frame_review: false` — no frame-critique gate (grounded build-config); compliance + craft reviews recorded
+      (both PASS); close-out `### Deviation log` + `### Reconciliation sweep` below; `docs/inbox.md`'s `build.mjs`
+      item resolved (pixel done; dom-chamber deferred).
 
 **Anti-horizontal-phasing check:** 026-05 delivers the pixel connector's **live-shippability** — its user is the
 site owner deploying a pixel vendor, who today would hit a 404 on the pixel worker. Vertical (a real deployment
 outcome, not internal refactor), grounded, and minimal (one entry + a proportionate assertion generalization). It
 turns 026 from "proven in tests" into "deployable," honoring the maintainer's "real path, not theoretical" thesis.
+
+### Deviation log
+
+- **Implemented by the orchestrator directly.** The first implementer subagent got stuck (68 min, repeated
+  restarts on a ~10-min task — likely a hung command); it was stopped (`TaskStop`) having made **no edits**
+  (clean slate), and the orchestrator did the bounded build-config change + verified it (build, AC4 demo, lint,
+  `rig:bundle`). Reviewed independently by fresh compliance + craft passes (both PASS) — the orchestrator is not
+  exempt from review.
+- **Cross-file staleness fixed (both reviews' reconciliation note).** `core/airlock.js:171-179`'s comment (a) said
+  `pixel-chamber.worker.js` "is not yet wired into build.mjs" — **falsified by this slice** — and (b) contained a
+  verbatim `` `new Worker(new URL("…"` `` "grep-trap" literal that was the source of a dormant regex-fragility nit
+  (if esbuild ever kept that comment in the bundle, the assertion's `matchAll` could false-capture it). Rewrote the
+  comment: corrected the now-true "wired as a build.mjs entry (026-05)", updated the assertion description to the
+  order-independent N-worker `matchAll`, and removed the trap literal — fixing both at the source. (A comment-only
+  edit; airlock regression green.)
+- **`blob:`/`data:` scan hardened (both reviews).** `build.mjs`'s CSP-envelope check was a bare-substring
+  `/\bblob:|\bdata:/`, which would false-fail on a future ordinary `{ data: … }` object key in any bundled module.
+  Anchored to a URL-literal context (`/(["'`])(?:blob|data):/` — a quote-prefixed scheme). Inert today (zero
+  `blob:`/`data:` in the output); a robustness fix on the security-relevant assertion.
+- **Left as-is (harmless, both reviews):** the "referenced-but-not-emitted" assertion branch is belt-and-suspenders
+  with the positive emit check (both throw); the `allWorkersAreSameOriginFileUrls` derived signal is a
+  success-path flourish (logged after the throw). Kept as defensive/documentary, not simplified away.
+
+### Reconciliation sweep
+
+- **Question answered + Outcome:** the pixel connector is now **genuinely live-shippable** — `build.mjs` emits
+  `core/pixel-chamber.worker.js` as a same-origin sibling (verified: `npm run build` emits all three siblings,
+  both `new Worker` refs resolve, `all_workers_are_same_origin_file_urls: true`), and its single-worker
+  sibling-layout assertion is generalized to **N workers** with the guard proven non-vacuous (a dropped entry
+  throws). 026 is no longer "proven in tests only." **No regression** (`rig:bundle` PASS; airlock tests green).
+- **Promoted / resolved, no orphans:** the `docs/inbox.md` `build.mjs` item is **resolved** for the pixel worker;
+  the stale `core/airlock.js` residual comment is **corrected**. The **dom-chamber** worker's bundle entry stays
+  **deferred** (grounded: never `new Worker`'d in production — nothing in `eds.js` references it), named for a
+  real worker-dom tag adapter (025-03+).
+- **Downstream named:** 026-04 (identity/advanced-matching + POST/body, real-driver-gated); the dom-chamber
+  bundle entry (025-03+); a pixel-path runtime bundle-smoke (a follow-up beyond this slice — `rig:bundle` only
+  exercises the GA4 default path today). No dependency left dangling.
+- **No live identifiers** (build config); the emitted bundle outputs are gitignored (not committed).

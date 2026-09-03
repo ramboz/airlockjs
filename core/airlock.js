@@ -168,15 +168,14 @@ export function createAirlock({
     critical.dispatch({ ...d, params: governParams(d.params) });
   };
 
-  // 026-01 AC3 — the connector-selection seam. Both `new Worker(new URL(…))`
-  // call sites below are STATIC STRING LITERALS (a runtime-computed
-  // specifier would still work in a browser at runtime, but build.mjs's own
-  // bundle-layout assertion greps the emitted bundle for a literal
-  // `new Worker(new URL("…"` — keeping GA4's literal call FIRST in source
-  // order, byte-unchanged, keeps that assertion honest for the untouched
-  // default path). `core/pixel-chamber.worker.js` is not yet wired into
-  // build.mjs as a third bundle entry — a disclosed residual for a real EDS
-  // rollout, out of this slice's tested scope (Node/vitest only).
+  // 026-01 AC3 — the connector-selection seam. Both worker call sites below use
+  // STATIC STRING LITERAL specifiers (a runtime-computed specifier would still
+  // work in a browser, but build.mjs's bundle-layout assertion scans the emitted
+  // bundle for every worker reference and requires each to resolve to an emitted
+  // same-origin sibling — 026-05's N-worker generalization, order-independent).
+  // Both `./chamber.worker.js` (GA4, default) and `./pixel-chamber.worker.js`
+  // (pixel, 026-01) ARE wired as build.mjs bundle entries (026-05), so a real
+  // EDS page resolves each to its sibling file.
   const worker =
     connector !== "pixel"
       ? new Worker(new URL("./chamber.worker.js", import.meta.url), { type: "module" })

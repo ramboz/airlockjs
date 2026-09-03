@@ -75,7 +75,7 @@
 | [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-01 — Meta Pixel through the generic connector, governed + dispatched (the archetype proof) | **DONE** |  |
 | [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-02 — more vendors as configs: the archetype generalises across real GET pixels | **DONE** |  |
 | [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-03 — the config contract (`PixelVendorConfig`): pin + validate + conformance | **DONE** |  |
-| [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-05 — live-shippability: the `pixel-chamber.worker.js` bundle entry + N-worker build assertion | DRAFT |  |
+| [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-05 — live-shippability: the `pixel-chamber.worker.js` bundle entry + N-worker build assertion | **DONE** |  |
 
 ## Deferred slices
 
@@ -98,7 +98,7 @@
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
 - **0** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **69** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **70** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **8** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review

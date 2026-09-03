@@ -1,29 +1,32 @@
-// Bundle the airlock GA4 runtime for the EDS testbed (spec 004-02, AC1).
+// Bundle the airlock runtime for the EDS testbed (spec 004-02 AC1; 026-05 N-worker generalization).
 //
-// TWO entry points, ONE outdir — not a single self-resolving file. esbuild has no
-// automatic Web-Worker bundling (that is a Vite/Rollup-plugin behavior), so we emit
-// two sibling bundles:
+// N+1 entry points, ONE outdir — not a single self-resolving file. esbuild has no automatic
+// Web-Worker bundling (that is a Vite/Rollup-plugin behavior), so we emit the adapter entry plus
+// one sibling bundle per chamber worker the runtime may spawn:
 //
-//   adapters/eds/index.js    →  probes/eds-testbed/scripts/airlock/eds.js
-//   core/chamber.worker.js   →  probes/eds-testbed/scripts/airlock/chamber.worker.js
+//   adapters/eds/index.js          →  probes/eds-testbed/scripts/airlock/eds.js
+//   core/chamber.worker.js         →  probes/eds-testbed/scripts/airlock/chamber.worker.js        (GA4, default)
+//   core/pixel-chamber.worker.js   →  probes/eds-testbed/scripts/airlock/pixel-chamber.worker.js  (026 pixel connector)
 //
-// The adapter entry imports the runtime SOURCE (`core/airlock.js`) directly, so the
-// emitted eds.js is fully self-contained (no multi-module load chain). The outdir is
-// INSIDE the testbed's served tree, so the real page's `scripts.js#loadLazy` can
-// `import('/scripts/airlock/eds.js')` and the runtime's `new Worker(new
-// URL("./chamber.worker.js", import.meta.url), { type: "module" })` resolves against
-// the served eds.js URL to its SIBLING file. Both emitted files are gitignored
-// (generated output, not source).
+// The adapter entry imports the runtime SOURCE (`core/airlock.js`) directly, so the emitted eds.js
+// is fully self-contained. `createAirlock` selects a chamber worker by `connector` — the default
+// GA4 `./chamber.worker.js`, or `./pixel-chamber.worker.js` for `connector:"pixel"` (the pixel boot
+// functions, `airlock.js:181-183`) — so the emitted eds.js references BOTH by their sibling
+// specifier, and each MUST be emitted as a sibling in the served tree or a real page 404s it.
 //
-// HARD CONSTRAINT (load-bearing — 004-01 CSP verdict): the emitted worker MUST stay
-// a same-origin file URL, never a `blob:`/`data:` URL. 004-01 validated a same-origin
-// module worker under the boilerplate CSP (`worker-src` absent → falls back to
-// `script-src 'nonce-aem' 'strict-dynamic' …`); a blob/data worker leaves that
-// retired-risk envelope (its `worker-src 'self' blob:` escalation is untested). The
-// assertions below enforce BOTH directions on every build: negatively (no blob:/data:
-// anywhere) and positively (the worker sibling file exists in the emitted outputs and
-// the emitted entry references it by exactly the expected sibling specifier) — so a
-// hashed rename or a dropped worker entry fails the BUILD, not just the smoke rig.
+// NOT bundled: `core/dom-chamber.worker.js` (spec 025-02). It is never `new Worker`'d in production
+// (only exercised via `core/dom-chamber-host.js` + a FakeWorker in tests) — nothing in the emitted
+// eds.js references it — so bundling it would be speculative. Add it here when a real worker-dom tag
+// adapter wires `new Worker(new URL("./dom-chamber.worker.js"))` (a 025-03+ concern).
+//
+// HARD CONSTRAINT (load-bearing — 004-01 CSP verdict): every emitted worker MUST stay a same-origin
+// file URL, never a `blob:`/`data:` URL. 004-01 validated a same-origin module worker under the
+// boilerplate CSP (`worker-src` absent → falls back to `script-src 'nonce-aem' 'strict-dynamic' …`);
+// a blob/data worker leaves that retired-risk envelope. The assertions below enforce BOTH directions
+// on every build, generalized over N workers: negatively (no blob:/data: in ANY emitted chunk) and
+// positively (every worker sibling referenced by eds.js exists in the emitted outputs and is referenced
+// by exactly its expected sibling specifier) — so a hashed rename or a dropped worker entry fails the
+// BUILD, not just the smoke rig.
 import { build } from "esbuild";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -32,14 +35,19 @@ const ROOT = fileURLToPath(new URL(".", import.meta.url));
 
 const OUTDIR = "probes/eds-testbed/scripts/airlock";
 const ENTRY_OUT = "eds"; // → eds.js
-const WORKER_OUT = "chamber.worker"; // → chamber.worker.js
-const EXPECTED_WORKER_SPECIFIER = `./${WORKER_OUT}.js`; // the sibling-file reference
+
+// Every same-origin sibling chamber worker the emitted eds.js may spawn. The `out` name is derived
+// from the source basename (so `core/pixel-chamber.worker.js` → `pixel-chamber.worker` → the sibling
+// `./pixel-chamber.worker.js`). Add an entry here when a new chamber worker becomes eds-reachable.
+const WORKER_ENTRIES = ["core/chamber.worker.js", "core/pixel-chamber.worker.js"];
+const workerOut = (inPath) => inPath.replace(/^core\//, "").replace(/\.js$/, "");
+const EXPECTED_WORKER_SPECIFIERS = new Set(WORKER_ENTRIES.map((p) => `./${workerOut(p)}.js`));
 
 const result = await build({
   absWorkingDir: ROOT,
   entryPoints: [
     { in: "adapters/eds/index.js", out: ENTRY_OUT },
-    { in: "core/chamber.worker.js", out: WORKER_OUT },
+    ...WORKER_ENTRIES.map((p) => ({ in: p, out: workerOut(p) })),
   ],
   outdir: OUTDIR,
   bundle: true,
@@ -51,59 +59,72 @@ const result = await build({
   metafile: true,
 });
 
-// --- Assertions: the two-sibling same-origin-file layout, enforced at build time. ---
+// --- Assertions: the (N+1)-sibling same-origin-file layout, enforced at build time. ---
 const failures = [];
 const outputs = Object.keys(result.metafile.outputs).sort();
 
-// Positive: both expected outputs were emitted, as siblings in OUTDIR.
+// Positive: the adapter entry + every declared worker were emitted as siblings in OUTDIR.
 const entryPath = `${OUTDIR}/${ENTRY_OUT}.js`;
-const workerPath = `${OUTDIR}/${WORKER_OUT}.js`;
 if (!outputs.includes(entryPath)) failures.push(`missing emitted entry ${entryPath} (outputs: ${outputs})`);
-if (!outputs.includes(workerPath)) {
-  failures.push(`missing emitted worker sibling ${workerPath} — a dropped/renamed worker entry (outputs: ${outputs})`);
+const workerPaths = WORKER_ENTRIES.map((p) => `${OUTDIR}/${workerOut(p)}.js`);
+for (const wp of workerPaths) {
+  if (!outputs.includes(wp)) {
+    failures.push(`missing emitted worker sibling ${wp} — a dropped/renamed worker entry (outputs: ${outputs})`);
+  }
 }
 
-// Positive: the emitted entry references the worker by EXACTLY the sibling specifier.
+// Positive: EVERY `new Worker(new URL(...))` reference in the emitted entry resolves to a KNOWN,
+// EMITTED sibling worker (026-05: matchAll, not just the first — eds.js references N workers).
 const emitted = readFileSync(new URL(`./${entryPath}`, import.meta.url), "utf8");
-const workerRef = /new Worker\(\s*new URL\(\s*(["'`])(.*?)\1/.exec(emitted);
-const workerSpecifier = workerRef ? workerRef[2] : null;
-if (!workerRef) {
+const referencedSpecifiers = [...emitted.matchAll(/new Worker\(\s*new URL\(\s*(["'`])(.*?)\1/g)].map((m) => m[2]);
+if (referencedSpecifiers.length === 0) {
   failures.push("no `new Worker(new URL(...))` reference found in the emitted entry — esbuild rewrote the worker away from the sibling-file layout");
-} else if (workerSpecifier !== EXPECTED_WORKER_SPECIFIER) {
-  failures.push(
-    `worker specifier is ${JSON.stringify(workerSpecifier)}, expected ${JSON.stringify(EXPECTED_WORKER_SPECIFIER)} — ` +
-      "a hashed rename or path rewrite would break sibling resolution under the served tree",
-  );
+}
+for (const spec of referencedSpecifiers) {
+  if (!EXPECTED_WORKER_SPECIFIERS.has(spec)) {
+    failures.push(
+      `worker specifier ${JSON.stringify(spec)} is not a known sibling worker (expected one of ` +
+        `${[...EXPECTED_WORKER_SPECIFIERS].map((s) => JSON.stringify(s)).join(", ")}) — a hashed rename or path ` +
+        "rewrite would break sibling resolution under the served tree",
+    );
+  } else if (!outputs.includes(`${OUTDIR}/${spec.replace(/^\.\//, "")}`)) {
+    failures.push(
+      `worker specifier ${JSON.stringify(spec)} is referenced by the emitted entry but was NOT emitted as a ` +
+        "sibling — a real page would 404 it (a missing build.mjs worker entry)",
+    );
+  }
 }
 
-// Negative: no blob:/data: anywhere in EITHER emitted file (004-01 envelope) —
-// the scan covers the worker chunk too, so the header comment's "anywhere" is true.
-const emittedWorker = outputs.includes(workerPath)
-  ? readFileSync(new URL(`./${workerPath}`, import.meta.url), "utf8")
-  : "";
-if (/\bblob:|\bdata:/.test(emitted) || /\bblob:|\bdata:/.test(emittedWorker)) {
-  failures.push("emitted output contains a blob:/data: URL — the worker must stay a same-origin file URL");
+// Negative: no blob:/data: anywhere in the emitted entry OR any emitted worker chunk (004-01 envelope).
+const emittedWorkerChunks = workerPaths
+  .filter((wp) => outputs.includes(wp))
+  .map((wp) => readFileSync(new URL(`./${wp}`, import.meta.url), "utf8"));
+if ([emitted, ...emittedWorkerChunks].some((chunk) => /(["'`])(?:blob|data):/.test(chunk))) {
+  failures.push("emitted output contains a blob:/data: URL — every worker must stay a same-origin file URL");
 }
 
-// Derived, not hardcoded: same-origin file URL ⇔ the reference is the expected
-// relative sibling specifier and nothing blob:/data: is present in either output.
-const workerIsSameOriginFileUrl =
-  workerSpecifier === EXPECTED_WORKER_SPECIFIER && !/^(blob:|data:)/.test(workerSpecifier ?? "") &&
-  !/\bblob:|\bdata:/.test(emitted) && !/\bblob:|\bdata:/.test(emittedWorker);
+// Derived, not hardcoded: all workers are same-origin file URLs ⇔ every referenced specifier is a
+// known expected sibling that was emitted, and nothing blob:/data: is present in any chunk.
+const allWorkersAreSameOriginFileUrls =
+  referencedSpecifiers.length > 0 &&
+  referencedSpecifiers.every(
+    (spec) => EXPECTED_WORKER_SPECIFIERS.has(spec) && outputs.includes(`${OUTDIR}/${spec.replace(/^\.\//, "")}`),
+  ) &&
+  ![emitted, ...emittedWorkerChunks].some((chunk) => /(["'`])(?:blob|data):/.test(chunk));
 
 if (failures.length) {
-   
+
   console.error(JSON.stringify({ built: outputs, failures }, null, 2));
   throw new Error(`build.mjs: bundle layout assertion failed:\n- ${failures.join("\n- ")}`);
 }
 
- 
+
 console.log(
   JSON.stringify(
     {
       built: outputs,
-      worker_reference: workerSpecifier, // "./chamber.worker.js" (sibling file)
-      worker_is_same_origin_file_url: workerIsSameOriginFileUrl,
+      worker_references: [...new Set(referencedSpecifiers)].sort(), // e.g. ["./chamber.worker.js", "./pixel-chamber.worker.js"]
+      all_workers_are_same_origin_file_urls: allWorkersAreSameOriginFileUrls,
     },
     null,
     2,
