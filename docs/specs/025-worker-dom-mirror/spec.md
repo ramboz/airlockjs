@@ -1,5 +1,5 @@
 ---
-status: DONE
+status: IN_PROGRESS
 skill: jig:spec-workflow
 use_cases: [UC-2]
 ---
@@ -88,12 +88,21 @@ for a bet ADR-0014 itself flagged as unproven.
   (ADR-0014's named first AC): the synthetic write-heavy tag runs off-thread through airlock's OWN mirror,
   INP-safe (reproducing 025-01's ~8ms on airlock's own code). `innerHTML` + sanitizer, ambient globals, and the
   Lever-3 budget are OUT (→ 025-03+).
-- **025-03+ (Data/Rules — broaden, gated on 025-02):** a REAL tag through the mirror (Prism → `innerHTML` + a
-  Trusted-Types / sanitizer write path); ambient-global proxies (`screen` / `sendBeacon` / `cookie`, 025-01 AC3's
-  scope input) for broader tags; the Lever-3 budget / circuit-breaker. Each its own slice, framed when picked up.
+- **025-03 (Data/Rules — a REAL tag through the mirror, gated on 025-02 ✅):** the UNMODIFIED Prism tag off-thread
+  through airlock's OWN mirror, adding **`innerHTML`** (the mirror records it; the main-thread apply routes through
+  the **existing `core/sanitize-html.js`** sanitizer — the security write-path) + wiring the **dom-chamber's
+  `build.mjs` entry** (now production-wired). The load-bearing bet is **DIFFERENT from 025-02's**: Prism's ~148KB
+  `innerHTML =` is a **monolithic, UNCHUNKABLE** DOM parse (+ the sanitizer's own parse), so 025-02's frame-budgeted
+  chunking does NOT apply — the question is whether a fast monolithic sanitized parse stays INP-safe, or re-tanks
+  (the honest Tier-0-viability boundary for `innerHTML`-heavy tags). Also folds in the two 025-01 worker-backpressure
+  threads.
+- **025-04+ (deferred — broaden further):** ambient-global proxies (`screen` / `sendBeacon` / `cookie`, 025-01 AC3's
+  scope input) for the GA4-drop-in axis; the Lever-3 budget / circuit-breaker (R-008's enforcement half); Tier 1
+  (SAB) for unmodified sync-read tags (ADR-0014, real-isolatable-customer-gated). Each its own slice, framed when picked up.
 
 ## Slices
 
 - [025-01 — Tier-0 mechanism de-risk gate (GO/KILL) + GA4 adoption litmus](slice-01-ga4-drop-in-gate.md)
 - [025-02 — the mirror core: synthetic tag off-thread through airlock's own mirror, INP-safe](slice-02-mirror-core.md)
-- _025-03+ (not yet reserved) — a real tag (Prism / `innerHTML` + sanitizer), ambient globals, Lever-3 budget._
+- [025-03 — a real tag (Prism) through the mirror: `innerHTML` + a sanitized apply, INP-measured](slice-03-real-tag-innerhtml.md)
+- _025-04+ (not yet reserved) — ambient globals (`screen`/`sendBeacon`/`cookie`); Lever-3 budget; Tier 1 (SAB)._
