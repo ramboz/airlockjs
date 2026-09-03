@@ -84,6 +84,9 @@
 | [029-cwv-scoreboard](029-cwv-scoreboard/spec.md) | 029-01 — the INP scoreboard artifact | **DONE** | Scoreboard is HONEST: naive/deferred/worker triple; fast arms reported BELOW the 16ms Event-Timing floor (not a false-precise p75); durable card `docs/scoreboard.md` in tolerance bands; advisory (ADR-0005), NOT in oracle.sh. |
 | [029-cwv-scoreboard](029-cwv-scoreboard/spec.md) | 029-02 — the load-CWV arm + CI | **DONE** |  |
 | [029-cwv-scoreboard](029-cwv-scoreboard/spec.md) | 029-03 — a realistic martech load (the honest synthetic-representative version) | **DONE** |  |
+| [030-rum-subsume](030-rum-subsume/spec.md) | 030-01 — the production RUM authority | DRAFT |  |
+| [030-rum-subsume](030-rum-subsume/spec.md) | 030-02 — the page-side replace + no double-count | DRAFT |  |
+| [030-rum-subsume](030-rum-subsume/spec.md) | 030-03 — the scoped-replace boundary + the decision landed | DRAFT |  |
 
 ## Deferred slices
 
