@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 skill:
 frame_review: true
 use_cases: []
@@ -59,10 +59,19 @@ real sites actually run.* A naive-vs-worker-only "19×" headline, absent the def
   principle + spec 003's triple + the deliberate design of `cwv-budget.mjs` (it measures deferred-vs-worker
   precisely to avoid the overclaim). If a reviewer argues the punchline should be naive-vs-worker only (simpler,
   bigger number), that is the frame to attack.
-- **The naive/deferred/worker engines reproduce 152/8/8 stably enough for a headline** — grounded (spec 003 +
-  the 2026-09-03 re-probe): reproducible today via `rig/measure.mjs`. STABILITY across runs (median + noise band,
-  fresh browser per run) is a **craft** requirement the fairness AC + craft review guard, reusing
-  `nasty-tag.mjs`/`cwv-budget.mjs`'s proven discipline — not an unproven measurement premise.
+- **The engines reproduce — DEMONSTRATED 2026-09-03 (not asserted), and the fast arms are FLOOR/single-sample.**
+  Fresh `rig/measure.mjs` re-probe on the dev machine: **naive `inp_p75 = 152ms` over 61 interactions** (a real
+  p75 — `baseline/naive.js` = `5 × busy(30000µs)`, wall-clock, hardware-independent); **deferred `inp_p75 = 0` /
+  worker `inp_p75 = 8`, each over 1 interaction** — because `rig/harness.html`'s Event-Timing observer uses
+  `durationThreshold: 16`, the fast arms' sub-16ms steady-state interactions are **below the INP measurement
+  floor and dropped**, leaving only the cold `first-input`. So the honest artifact reports the fast arms as
+  **at/below the 16ms floor** (single-digit ms, `interactions` count disclosed), **never a precise "8ms" p75**,
+  and the headline is a **band** (`~150ms → sub-16ms floor; ~19× vs naive; ties deferred`). This is a **craft**
+  measurement-honesty requirement (the fairness AC + craft review guard it), not a wrong frame.
+- **Durable ≠ regenerable (frame-critique #1).** `rig/out/` is **gitignored** — the per-run JSON/card there is
+  the reproducible *cache*, not the durable artifact. The durable first-class output is a **committed**
+  `docs/scoreboard.md` in **tolerance-band + provenance** language (never raw run output), so a fresh run on
+  other hardware cannot contradict the committed headline.
 - **No gating-design question.** ADR-0005 already routed the scoreboard advisory/jig-supervised, outside
   `oracle.sh`. This spec does not change gating; a reviewer need not re-litigate it.
 
