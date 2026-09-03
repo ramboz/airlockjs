@@ -37,9 +37,10 @@
 **Resolution trigger:** When designing the servo oracle components for the spike (drive-order step 8).
 **Resolved by:** [ADR-0005: Servo oracle design: AND-gate, isolation routing, and flicker (OQ6)](decisions/adr-0005-oracle-design.md).
 
-### OQ7 — Inspector scope in MVP1
-**Deferred:** How much of the "why did this beacon fire / hold at the seal / get gated" panel ships in MVP1 vs later.
+### ~~OQ7 — Inspector scope in MVP1~~ — RESOLVED 2026-09-03 (spec 028)
+~~**Deferred:** How much of the "why did this beacon fire / hold at the seal / get gated" panel ships in MVP1 vs later.~~
 **Resolution trigger:** When the diagnostics/inspector surface is specced.
+**Resolved by:** [spec 028 — enforcement inspector](specs/028-enforcement-inspector/spec.md) (MVP5 fixed core). Scope shipped: a **read-layer** over the existing 009-02 `onDiagnostic` stream — one shared collector on all three seams (028-01), per-beacon decision chains via a collector-unique `beaconId` (028-02), and a drop-in, local, XSS-safe dev **panel** (028-03). Grounded that the inspector is a read-layer (no new instrumentation), so it lands cheaply. Deliberately NOT in scope (deferred beyond MVP5): a hosted/remote trace backend + persisted historical traces (MVP5 no-go); correlating a beacon back to the originating `push()` event type (worker-stripped — beacon-keyed only); the `unpinned-declared-origin`/payload-governance strip-chain correlation.
 
 ### OQ8 — Distribution channel
 **Deferred:** git subtree (matching aem-martech/aem-experimentation) vs npm for the EDS audience. (Repo/package slug settled: `airlockjs`.)

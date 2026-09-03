@@ -88,7 +88,7 @@ Feeds `/jig:contracts`. Five surfaces, in priority order:
 - **OQ4 — Projection snapshot privacy boundary.** Exactly what projection state is allowed to cross the airlock to the worker per event. Blocks MVP1 (it's part of the boundary contract).
 - **OQ5 — Identity / first-party cookie store home.** A no-go for MVP1, but where it eventually lives (orchestrator, main thread) and how connectors get scoped access.
 - **OQ6 — Flicker oracle design.** Screenshot-diff between pre- and post-decoration paint vs a CLS-after-apply proxy. This is a servo oracle-component question; the proxy-gap here is why the PZN item stays jig-supervised.
-- **OQ7 — Inspector scope in MVP1.** How much of the "why did this beacon fire / hold at the seal / get gated" panel ships in MVP1 vs later.
+- **OQ7 — Inspector scope in MVP1.** ~~How much of the "why did this beacon fire / hold at the seal / get gated" panel ships in MVP1 vs later.~~ **RESOLVED 2026-09-03 (spec 028, MVP5):** a read-layer over the 009-02 `onDiagnostic` stream (collector + per-beacon `beaconId` chains + a drop-in local panel); no new instrumentation, no remote backend. See [refinement-todo OQ7](refinement-todo.md).
 - **OQ8 — Distribution.** git subtree (matching aem-martech/aem-experimentation) vs npm for the EDS audience. (Repo slug settled: `airlockjs`.)
 
 ### Risk-retirement bet — RETIRED 2026-08-26 (reframed)
