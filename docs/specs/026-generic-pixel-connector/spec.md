@@ -1,5 +1,5 @@
 ---
-status: DONE
+status: IN_PROGRESS
 skill: jig:spec-workflow
 use_cases: [UC-2]
 ---
@@ -93,12 +93,23 @@ spike: the mechanism (wire-protocol seam + seal) is already proven by GA4 — th
   Bing UET, or Google Ads/Floodlight) — **same connector, no per-vendor code** — proving one archetype covers N.
   Include one **POST-body** vendor to prove both wire shapes. Surfaces what actually varies vendor-to-vendor
   (→ the config contract).
-- **026-03 (Rules — the config contract + identity surface):** pin the `PixelVendorConfig` type + handle
-  **advanced-matching / hashed-identity** fields (in-chamber hashing, per-field consent class) — the "identity"
-  third of the config triple, deferred from 026-01.
+- **026-03 (Rules — the config CONTRACT):** pin the `PixelVendorConfig` type from 026-02's proven findings
+  (endpoint; `eventMap` value typed **`string | null`** — the sharpest 026-02 finding; the `paramMap`
+  `{from: "static"|"event"|"params"}` vocabulary; consent class; confinement origin) + a
+  `validatePixelVendorConfig()` guard (reject a malformed config with a clear error) + conformance of the three
+  shipped configs (Meta/LinkedIn/Bing). Formalizes the "one connector + N configs" archetype as a documented,
+  validated contract — the Rules axis that CLOSES 026's proven core.
+- **026-04+ (deferred, real-driver-gated — NOT built speculatively):** the **identity / advanced-matching**
+  surface (hashed email/phone `ud[...]`, first-party cookie identity `_fbp`/`_uetsid`) — PII handling that the
+  connector was **deliberately designed without** (the AC8 identity-free invariant both 026-01/02 reviews
+  praised); it needs in-chamber hashing + a per-field consent class + a new governance path (an identity field
+  must survive the input-side PII strip to be hashed, then egress only hashed) — **security-critical, gated on a
+  real vendor requirement**, not built ahead of one. The **POST/`ctx`-body** wire shape (deferred from 026-02 —
+  a nested-body vocabulary + `ctx` access, no real POST pixel yet) rides the same gate.
 
 ## Slices
 
 - [026-01 — Meta Pixel through the generic connector, governed (the archetype proof)](slice-01-meta-pixel.md)
 - [026-02 — 2–3 more vendors as configs; the archetype generalises across vendors + wire shapes](slice-02-more-vendors.md)
-- _026-03 (tbd) — the config contract + advanced-matching / identity surface._
+- [026-03 — the config contract (`PixelVendorConfig`): pin + validate + conformance](slice-03-config-contract.md)
+- _026-04+ (deferred, real-driver-gated) — the identity / advanced-matching surface + the POST/`ctx`-body wire shape._
