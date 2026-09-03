@@ -10,7 +10,7 @@
  * config carries `id` + `ev` + a small set of NON-PII standard event params
  * only. No `_fbp`/`fbc` first-party cookie identity (that needs a chamber
  * cookie-capability — a follow-up slice) and no `ud[...]` advanced-matching
- * hashed identity (deferred to 026-03) — both deliberately absent, not
+ * hashed identity (deferred to 026-04) — both deliberately absent, not
  * hardcoded elsewhere. A site that maps a PII-shaped field into this
  * connector's `paramMap` (e.g. a raw `email`) relies on
  * `core/airlock.js`'s own `payloadDenylist` (ADR-0012) to strip it BEFORE

@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: []
 last_verified: 2026-09-02
 frame_review: true
@@ -80,17 +80,20 @@ configs** (Meta / LinkedIn / Bing) conform. This is the **Rules** axis that CLOS
 7. **No live identifiers.** The type's examples + validator tests use synthetic values.
 
 **DoD:**
-- [ ] `PixelVendorConfig` type + `validatePixelVendorConfig()` + conformance tests (3 shipped configs) + rejection
-      tests (malformed) + the coverage-bound docs, **TDD**.
-- [ ] All 7 ACs proven by **targeted** tests — the type matches the interpreter (AC1, grounded read), the validator
-      rejects/accepts correctly (AC2/AC4), the 3 configs conform (AC3), the empty connector/core diff (AC5).
-- [ ] `npm run lint` clean; **targeted** vitest green; **no live identifiers**.
-- [ ] **Frame-critique PASS recorded** (`frame_review: true`) before REVIEWED — the pass on (a) the
-      identity/POST deferral being sound (not a spec-scope violation), (b) the contract being genuinely
-      descriptive of the shipped interpreter (not a divergent ideal), and (c) this being a vertical
-      config-author-facing deliverable (the validator guard), not horizontal type-only infra.
-- [ ] Compliance + craft reviews recorded; close-out `### Reconciliation sweep` + `### Deviation log`; the
-      identity/advanced-matching + POST/`ctx`-body axes remain named + real-driver-gated for 026-04.
+- [x] `PixelVendorConfig` type (`contracts/pixel-connector.d.ts`) + `validatePixelVendorConfig()`
+      (`connectors/pixel/validate.js`) + conformance tests (3 shipped configs) + rejection tests (malformed) +
+      the coverage-bound docs, **TDD**.
+- [x] All 7 ACs proven by **targeted** tests (`test/pixel-config-contract.test.js`, 22) — the type matches the
+      interpreter (AC1, grounded field-by-field, review-confirmed), the validator rejects/accepts correctly
+      (AC2/AC4, incl. the review-hardened non-`string|number` static-value reject), the 3 configs conform (AC3),
+      the empty connector/core diff (AC5), fossils fixed (AC6).
+- [x] `npm run lint` clean; **targeted** vitest green (1002+ non-oracle); **no live identifiers**.
+- [x] **Frame-critique PASS recorded** — `reviews/slice-03-frame-critique.md` (first-pass PASS: the identity/POST
+      deferral is a settled/justified decision, the contract is descriptive not fiction, the validator is a real
+      config-author guard).
+- [x] Compliance + craft reviews recorded (both PASS with nits → the two cheap nits applied); close-out
+      `### Deviation log` + `### Reconciliation sweep` below; the identity/advanced-matching + POST/`ctx`-body axes
+      remain named + real-driver-gated for 026-04.
 
 **Anti-horizontal-phasing check:** 026-03 is **vertical for its user — the config author** (a developer adding a
 pixel vendor): the `validatePixelVendorConfig` guard turns a silent mis-map into a clear, actionable error at
@@ -98,3 +101,37 @@ authoring time (the user-facing behavior), and the type documents the shape. It 
 validator is a real guard, proven non-vacuous by the reject-tests, and its accuracy is anchored by validating the
 three REAL shipped configs. It CLOSES the archetype (Path → Data → **Rules**) as a documented, checkable contract,
 with the speculative/security-critical expansions (identity, POST) honestly deferred to a real driver.
+
+### Deviation log
+
+- **`PixelParamSpec` `from:"static".value` is typed `string | number` — a disclosed authoring narrowing stricter
+  than BOTH the interpreter (which `String()`s any scalar, `connector.js:143`) and, in the first draft, the
+  validator (presence-only).** Both review passes flagged the type↔validator gap; **review-hardened:** the
+  validator now rejects a non-`string|number` static value (`validate.js`), closing the `value:{}` →
+  `"[object Object]"`-in-a-URL footgun it exists to catch, and the type's JSDoc no longer overstates `number`
+  usage (no shipped config uses one; it is supported-but-unused). Type ↔ validator now agree; the interpreter
+  stays deliberately looser (soft `String()`), as documented.
+- **AC5's embedded `git diff` tests are a weak *standing* guard** (both reviews): `git diff -- <path>` is
+  working-tree-vs-index, so post-commit they are green-by-construction regardless of a committed interpreter
+  change, and they couple the unit suite to VCS/cwd state. The **durable** proof that this slice left the
+  interpreter untouched is the **additive file structure** (the type + validator are new files) + the grep
+  showing `validatePixelVendorConfig` is imported only by the test (never `connector.js`/`core/`) + the
+  orchestrator's external empty-diff confirmation. Kept as a dev-time belt; noted as not the load-bearing guard.
+- **The validator is intentionally silent on `endpoints`/`capabilities`/`name` type errors** (spec-omitted, AC2's
+  named checks only) — a candidate hardening if those footguns surface; recorded, not built (YAGNI).
+
+### Reconciliation sweep
+
+- **Question answered + Outcome:** the `PixelVendorConfig` type + `validatePixelVendorConfig()` **pin 026's proven
+  archetype as a documented, validated, author-facing contract** — descriptive of the shipped interpreter
+  (verified field-by-field by both review passes), conformed by all three shipped configs (incl. LinkedIn's
+  `eventMap: { page_view: null }`), with a non-vacuous reject guard. **ZERO interpreter/core change** (connector.js
+  + core/ + the pinned contracts diffs all empty). This CLOSES 026's Rules axis.
+- **Promoted, no orphans:** the identity/advanced-matching + POST/`ctx`-body axes stay **named + real-driver-gated
+  for 026-04** (security-critical PII handling / a nested-body vocabulary the connector was deliberately built
+  without — no driver yet). The `build.mjs` bundle-entry (pixel + dom-chamber workers) stays tracked in
+  `docs/inbox.md` for the live-shippability slice. The 3 vendor configs' stale "026-03" identity forward-refs
+  were corrected to "026-04" (AC6).
+- **Downstream named:** 026-04 (identity/advanced-matching + POST/body, real-driver-gated); the `build.mjs`
+  live-shippability step. No dependency left dangling.
+- **No live identifiers, no new dependency, zero interpreter/core code.**

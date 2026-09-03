@@ -31,7 +31,7 @@
  * IDENTITY-HONEST BY CONSTRUCTION (mirrors meta.js): this config carries
  * `pid`/`fmt`/`conversionId` only — no `li_fat_id` first-party click-id
  * cookie identity (a chamber cookie-capability follow-up, out of this
- * slice's scope) and no hashed advanced-matching field (deferred to 026-03).
+ * slice's scope) and no hashed advanced-matching field (deferred to 026-04).
  * A site that maps a PII-shaped field into this connector's `paramMap` still
  * relies on `core/airlock.js`'s own `payloadDenylist` (ADR-0012) to strip it
  * BEFORE this config's `handle()` ever runs — this fixture's own default
