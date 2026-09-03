@@ -26,15 +26,29 @@
  * (escape-bypassable, e.g. CSS `\75rl(` decodes to `url(` at parse time —
  * AC7's honest caveat); full value-level style sanitization is a NAMED
  * 025-03 deliverable (its sanitizer write path), not claimed here.
+ *
+ * `SET_INNER_HTML` (spec 025-03 AC1/AC3) is OUT of this module's remit —
+ * it carries a raw-HTML STRING, not a tag/attribute name this allowlist can
+ * inspect, so `evaluateOp` always ALLOWS it at this layer; the markup
+ * content itself is gated by `../sanitize-html.js`'s sanitizer at apply time
+ * (`adapters/eds/dom-apply.js`), never here. The split is deliberate:
+ * structured ops (createElement/setAttribute/style/class) -> THIS allowlist;
+ * raw HTML -> the sanitizer.
  */
 import { OP } from "./protocol.js";
 
-/** The element-tag allowlist (AC6/AC7) — the layout/text elements the
- *  025-02 fixture needs + a small, clearly-safe superset. */
+/** The element-tag allowlist (AC6/AC7, extended by spec 025-03 AC1) — the
+ *  layout/text elements the 025-02 fixture needs + a small, clearly-safe
+ *  superset, PLUS `pre`/`code` (spec 025-03 AC1, grounded by running the
+ *  REAL Prism fixture — its canonical `<pre><code class="language-…">`
+ *  shape is exactly the ordinary layout/text superset this allowlist
+ *  already covers; neither carries any injection surface beyond what
+ *  `div`/`span` already do). */
 export const ALLOWED_TAGS = new Set([
   "div", "span", "p", "ul", "ol", "li",
   "a", "b", "i", "strong", "em", "small", "br",
   "h1", "h2", "h3", "h4", "h5", "h6",
+  "pre", "code",
   "button", "label", "section", "article", "header", "footer", "nav",
 ]);
 
@@ -112,6 +126,16 @@ export function evaluateOp(mutOp) {
       // layer (a hostile append CYCLE would throw HierarchyRequestError, caught
       // by dom-apply.js's try/catch — it can't be validated here without the
       // tree state).
+      return { allow: true };
+
+    case OP.SET_INNER_HTML:
+      // spec 025-03 AC3: setInnerHTML carries a raw-HTML STRING, not a
+      // tag/attribute name this element/attribute-name allowlist has any
+      // way to inspect — always allow AT THIS LAYER; the markup content
+      // itself is gated by core/sanitize-html.js's sanitizer at apply time
+      // (adapters/eds/dom-apply.js), never by this module. Mirrors this
+      // slice's own "structured ops -> the allowlist; raw HTML -> the
+      // sanitizer" split (025-03 AC3).
       return { allow: true };
 
     case OP.CLASS_ADD:

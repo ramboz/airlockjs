@@ -292,6 +292,236 @@ describe("drainMutations — queue semantics", () => {
   });
 });
 
+// spec 025-03 AC1: innerHTML — the raw-HTML write surface a REAL tag
+// (Prism) needs beyond 025-02's structured subset. Records a { op:
+// setInnerHTML, id, html } — a plain string, gated by the SANITIZER on
+// apply (adapters/eds/dom-apply.js), not by this mirror.
+describe("innerHTML (spec 025-03 AC1)", () => {
+  it("the setter records { op: setInnerHTML, id, html }", () => {
+    const { document, drainMutations } = createMirrorDocument();
+    const el = document.createElement("code");
+    drainMutations();
+    el.innerHTML = '<span class="token keyword">const</span>';
+    expect(drainMutations()).toEqual([
+      { op: OP.SET_INNER_HTML, id: el.__id, html: '<span class="token keyword">const</span>' },
+    ]);
+  });
+
+  it("the getter reads back the LAST value the setter recorded", () => {
+    const { document } = createMirrorDocument();
+    const el = document.createElement("code");
+    el.innerHTML = "<b>hi</b>";
+    expect(el.innerHTML).toBe("<b>hi</b>");
+  });
+
+  it("an unset innerHTML reads back as '' (matches real Element), never undefined", () => {
+    const { document } = createMirrorDocument();
+    const el = document.createElement("div");
+    expect(el.innerHTML).toBe("");
+  });
+
+  it("coerces a non-string value to a string (matches real innerHTML)", () => {
+    const { document, drainMutations } = createMirrorDocument();
+    const el = document.createElement("div");
+    drainMutations();
+    el.innerHTML = 42;
+    expect(drainMutations()[0].html).toBe("42");
+    expect(el.innerHTML).toBe("42");
+  });
+
+  it("setting innerHTML clears any prior `children` (real innerHTML replaces the whole subtree) — a stale child is not left dangling", () => {
+    const { document } = createMirrorDocument();
+    const el = document.createElement("div");
+    const child = document.createElement("span");
+    el.appendChild(child);
+    expect(el.children).toHaveLength(1);
+    el.innerHTML = "<p>new</p>";
+    expect(el.children).toHaveLength(0);
+  });
+
+  it("repeated innerHTML writes each record their OWN op, in order (a re-highlight pass, e.g. Prism on a second click)", () => {
+    const { document, drainMutations } = createMirrorDocument();
+    const el = document.createElement("code");
+    drainMutations();
+    el.innerHTML = "<span>pass1</span>";
+    el.innerHTML = "<span>pass2</span>";
+    const ops = drainMutations();
+    expect(ops.map((o) => o.html)).toEqual(["<span>pass1</span>", "<span>pass2</span>"]);
+  });
+});
+
+// spec 025-03 AC1: className — a serviceable sync READ/WRITE Prism's
+// Prism.util.getLanguage/setLanguage exercise unconditionally on every
+// Prism.highlightElement() call. Backed by the SAME store as `classList`
+// (not the `class` ATTRIBUTE store `setAttribute`/`getAttribute` use) —
+// real DOM's className/classList are two views of ONE backing store, and
+// Prism's own setLanguage() reads className, strips a token via a regex
+// REPLACE, writes className back, THEN calls classList.add() in the SAME
+// call — if className and classList were independent (as
+// setAttribute("class",...) already is, unchanged by this slice), that
+// sequence would silently LOSE the language class after the first
+// highlight pass (grounded by running Prism twice — see
+// test/dom-chamber-host.test.js's two-click proof).
+describe("className (spec 025-03 AC1) — classList-backed, matches real DOM's className/classList unification", () => {
+  it("the setter records classList ops (via the SAME CLASS_ADD op classList.add emits) and the getter reads the space-joined result", () => {
+    const { document, drainMutations } = createMirrorDocument();
+    const el = document.createElement("code");
+    drainMutations();
+    el.className = "language-javascript";
+    const ops = drainMutations();
+    expect(ops).toEqual([{ op: OP.CLASS_ADD, id: el.__id, name: "language-javascript" }]);
+    expect(el.className).toBe("language-javascript");
+  });
+
+  it("an unset className reads back as '' (matches real Element), never undefined/null", () => {
+    const { document } = createMirrorDocument();
+    const el = document.createElement("div");
+    expect(el.className).toBe("");
+  });
+
+  it("classList.add() (not className) is ALSO reflected by the className getter — one shared backing store", () => {
+    const { document } = createMirrorDocument();
+    const el = document.createElement("div");
+    el.classList.add("x");
+    expect(el.className).toBe("x");
+  });
+
+  it("re-assigning className DIFFS against the current classList (only the delta is recorded, matching real DOM's own no-op-preserving behavior)", () => {
+    const { document, drainMutations } = createMirrorDocument();
+    const el = document.createElement("div");
+    el.className = "a b";
+    drainMutations();
+    el.className = "b c"; // drop "a", keep "b", add "c"
+    const ops = drainMutations();
+    expect(ops).toEqual(
+      expect.arrayContaining([
+        { op: OP.CLASS_REMOVE, id: el.__id, name: "a" },
+        { op: OP.CLASS_ADD, id: el.__id, name: "c" },
+      ]),
+    );
+    expect(ops).toHaveLength(2); // "b" is unchanged -> no redundant op
+    expect(el.className.split(" ").sort()).toEqual(["b", "c"]);
+  });
+
+  it("SURVIVES the exact Prism setLanguage() sequence TWICE — className stays readable after a strip-then-readd cycle (the grounded bug this design fixes)", () => {
+    const { document } = createMirrorDocument();
+    const el = document.createElement("code");
+    el.className = "language-javascript";
+    // Pass 1: Prism.util.setLanguage — strip any existing `language-xxxx`/`lang-xxxx`
+    // token via regex-replace, then classList.add() the fresh one back.
+    const lang = /(?:^|\s)lang(?:uage)?-([\w-]+)(?=\s|$)/i;
+    el.className = el.className.replace(RegExp(lang, "gi"), "");
+    el.classList.add("language-javascript");
+    expect(el.className).toBe("language-javascript");
+    // Pass 2 (a second highlightElement() call, e.g. a second click): getLanguage()
+    // must still find it — this is exactly what broke under an attribute-backed
+    // (rather than classList-backed) className.
+    expect(lang.exec(el.className)[1]).toBe("javascript");
+    el.className = el.className.replace(RegExp(lang, "gi"), "");
+    el.classList.add("language-javascript");
+    expect(el.className).toBe("language-javascript");
+  });
+
+  it("setAttribute('class', ...) / getAttribute('class') remain a SEPARATE, unrelated attribute store (unchanged 025-02 behavior — Prism never calls this path)", () => {
+    const { document } = createMirrorDocument();
+    const el = document.createElement("div");
+    el.setAttribute("class", "z");
+    expect(el.className).toBe(""); // classList-backed className is untouched by setAttribute("class", …)
+    expect(el.getAttribute("class")).toBe("z");
+  });
+});
+
+describe("nodeName (spec 025-03 AC1) — Prism's file-highlight hook reads parent.nodeName.toLowerCase()", () => {
+  it("aliases tagName (uppercase, matches real Element.nodeName)", () => {
+    const { document } = createMirrorDocument();
+    const el = document.createElement("pre");
+    expect(el.nodeName).toBe("PRE");
+    expect(el.nodeName).toBe(el.tagName);
+  });
+});
+
+describe("hasAttribute (spec 025-03 AC1) — Prism's file-highlight hook reads parent.hasAttribute('tabindex')", () => {
+  it("false before the attribute is set, true after", () => {
+    const { document } = createMirrorDocument();
+    const el = document.createElement("pre");
+    expect(el.hasAttribute("tabindex")).toBe(false);
+    el.setAttribute("tabindex", "0");
+    expect(el.hasAttribute("tabindex")).toBe(true);
+  });
+
+  it("never throws on a missing/unknown attribute name", () => {
+    const { document } = createMirrorDocument();
+    const el = document.createElement("div");
+    expect(() => el.hasAttribute("data-ghost")).not.toThrow();
+  });
+});
+
+describe("parentElement (spec 025-03 AC1) — Prism's highlightElement() walks element.parentElement (getLanguage's ancestor walk + the pre/code parent-styling step)", () => {
+  it("null before any append", () => {
+    const { document } = createMirrorDocument();
+    const el = document.createElement("code");
+    expect(el.parentElement).toBeNull();
+  });
+
+  it("appendChild sets the child's parentElement to the real parent (Element parent)", () => {
+    const { document } = createMirrorDocument();
+    const pre = document.createElement("pre");
+    const code = document.createElement("code");
+    pre.appendChild(code);
+    expect(code.parentElement).toBe(pre);
+  });
+
+  it("appendChild onto document.body sets parentElement to document.body", () => {
+    const { document } = createMirrorDocument();
+    const pre = document.createElement("pre");
+    document.body.appendChild(pre);
+    expect(pre.parentElement).toBe(document.body);
+  });
+
+  it("append() (the variadic helper) also wires parentElement", () => {
+    const { document } = createMirrorDocument();
+    const parent = document.createElement("div");
+    const child = document.createElement("span");
+    parent.append(child);
+    expect(child.parentElement).toBe(parent);
+  });
+});
+
+describe("matches (spec 025-03 AC1) — a minimal INERT stub (Prism's bundled file-highlight plugin hook calls element.matches() unconditionally on every highlightElement() call)", () => {
+  it("always returns false, never throws — a lib-completeness stub (needs zero live-layout info), not a model-inherent gap", () => {
+    const { document } = createMirrorDocument();
+    const el = document.createElement("code");
+    expect(() => el.matches("pre[data-src]")).not.toThrow();
+    expect(el.matches("pre[data-src]")).toBe(false);
+    expect(el.matches("*")).toBe(false);
+  });
+
+  it("is NOT itself recorded as a mutation (it's a read, not a write)", () => {
+    const { document, drainMutations } = createMirrorDocument();
+    const el = document.createElement("div");
+    drainMutations();
+    el.matches("div");
+    expect(drainMutations()).toEqual([]);
+  });
+});
+
+describe("document.getElementsByTagName (spec 025-03 AC1) — grounded by running Prism in a REAL Worker: WorkerGlobalScope makes Prism's own `_self` resolve to the REAL worker global once `globalThis.document` is assigned (unlike Node/vitest, where it stays `{}`), so Prism's IE11 currentScript() fallback unconditionally calls document.getElementsByTagName('script') on every boot", () => {
+  it("always returns an empty, iterable, array-like result — an HONEST inert default (this mirror is a write-record, not a re-queryable tree, per this module's own header) — never throws", () => {
+    const { document } = createMirrorDocument();
+    expect(() => document.getElementsByTagName("script")).not.toThrow();
+    const result = document.getElementsByTagName("script");
+    expect(Array.from(result)).toEqual([]);
+    expect(result.length).toBe(0);
+  });
+
+  it("is NOT recorded as a mutation (it's a read, not a write)", () => {
+    const { document, drainMutations } = createMirrorDocument();
+    drainMutations();
+    document.getElementsByTagName("div");
+    expect(drainMutations()).toEqual([]);
+  });
+});
+
 describe("every recorded op is structured-cloneable (AC1 <-> AC3 tie-in)", () => {
   it("a representative drained batch survives a real structuredClone round-trip", () => {
     const { document, drainMutations } = createMirrorDocument();
@@ -301,6 +531,8 @@ describe("every recorded op is structured-cloneable (AC1 <-> AC3 tie-in)", () =>
     el.id = "y";
     el.style.transform = "translateY(1px)";
     el.classList.add("z");
+    el.className = "z w"; // spec 025-03 AC1
+    el.innerHTML = '<span class="token">hi</span>'; // spec 025-03 AC1
     const t = document.createTextNode("hi");
     el.appendChild(t);
     t.textContent = "bye";

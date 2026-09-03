@@ -1,6 +1,7 @@
 import { createScheduler } from "../../core/scheduler.js";
 import { BODY_ID } from "../../core/worker-dom/protocol.js";
 import { evaluateOp } from "../../core/worker-dom/apply-policy.js";
+import { sanitizeHtml } from "../../core/sanitize-html.js";
 
 /**
  * The main-thread mutation-APPLY coordinator (spec 025-02 AC4) — receives
@@ -28,6 +29,19 @@ import { evaluateOp } from "../../core/worker-dom/apply-policy.js";
  * onto (see `core/worker-dom/protocol.js`'s header). An op referencing an
  * id not yet in the map (never created, or refused at creation time) is
  * safely SKIPPED + diagnosed — never throws, never crashes the batch.
+ *
+ * `setInnerHTML` (spec 025-03 AC1/AC3 — the innerHTML SECURITY WRITE-PATH):
+ * applied via `el.innerHTML = sanitize(html)` — REUSING `core/sanitize-
+ * html.js`'s `sanitizeHtml` (the SAME sanitizer `adapters/eds/dom.js`'s
+ * `fill()` already uses for a host-applied decision, spec 018-01), never
+ * rebuilt. The sanitizer runs BEFORE the real write, completing 025-02's
+ * safety story for the write surface: structured ops (createElement/
+ * setAttribute/style/class) -> `core/worker-dom/apply-policy.js`'s
+ * allowlist; raw HTML (from `innerHTML`) -> this sanitizer. `opts.sanitize`
+ * is an injectable DI seam (default `sanitizeHtml`) mirroring `adapters/
+ * eds/dom.js`'s OWN `opts.sanitize` escape hatch — mainly for tests (no real
+ * `DOMParser` in Node/vitest, `core/sanitize-html.js`'s own documented
+ * substrate boundary) and for a deployment needing a stricter sanitizer.
  */
 
 const DEFAULT_BUDGET_MS = 5;
@@ -50,6 +64,7 @@ function consoleDiagnostic(record) {
  *   scheduler?: ReturnType<typeof createScheduler>,
  *   budgetMs?: number,
  *   onDiagnostic?: (record: object) => void,
+ *   sanitize?: (html: string) => string,
  *   [schedulerDep: string]: unknown,
  * }} [opts] `root` seeds the id map's BODY_ID anchor (the real element the
  *   mirror's `document.body` writes land under). `scheduler` FULLY
@@ -57,6 +72,9 @@ function consoleDiagnostic(record) {
  *   (so `now`/`yieldToMain`/`schedulerYield`/etc. reach it exactly as
  *   core/scheduler.js documents). `budgetMs` is this coordinator's own
  *   default (`opts.budgetMs` per-call in `applyOps` overrides it further).
+ *   `sanitize` (spec 025-03 AC1/AC3, default `sanitizeHtml` from
+ *   `core/sanitize-html.js`) — the injectable seam `setInnerHTML` applies
+ *   through; see the module doc comment above.
  * @returns {{
  *   applyOps: (ops: object[], opts?: { budgetMs?: number }) => Promise<{ applied: number, refused: number, total: number }>,
  *   resolve: (id: string) => object | null,
@@ -71,6 +89,7 @@ export function createDomApplyCoordinator(
   const diagnose = typeof opts.onDiagnostic === "function" ? opts.onDiagnostic : consoleDiagnostic;
   const scheduler = opts.scheduler || createScheduler(opts);
   const defaultBudgetMs = typeof opts.budgetMs === "number" ? opts.budgetMs : DEFAULT_BUDGET_MS;
+  const sanitize = typeof opts.sanitize === "function" ? opts.sanitize : sanitizeHtml;
 
   const nodes = new Map();
   if (opts.root) nodes.set(BODY_ID, opts.root);
@@ -123,6 +142,14 @@ export function createDomApplyCoordinator(
         const node = resolve(op.id);
         if (!node) return refuseUnknownId(op, { id: op.id });
         node.textContent = op.text;
+        return "applied";
+      }
+      case "setInnerHTML": {
+        // spec 025-03 AC1/AC3: the innerHTML SECURITY WRITE-PATH — the
+        // sanitizer runs BEFORE the real write (never the raw op.html).
+        const el = resolve(op.id);
+        if (!el) return refuseUnknownId(op, { id: op.id });
+        el.innerHTML = sanitize(op.html);
         return "applied";
       }
       case "classAdd": case "classRemove": case "classToggle": {

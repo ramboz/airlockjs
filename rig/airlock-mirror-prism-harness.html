@@ -1,0 +1,289 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Airlock's OWN mirror — REAL Prism, governed-vs-naive (spec 025-03 AC4/AC5)</title>
+    <style>
+      body { font: 14px system-ui, sans-serif; margin: 0; padding: 2rem; }
+      button { width: 260px; height: 60px; font-size: 16px; cursor: pointer; margin-right: 1rem; }
+      #out { white-space: pre-wrap; margin-top: 1rem; color: #333; }
+    </style>
+    <!-- NAIVE phase's own on-page Prism instance — a PLAIN CLASSIC script
+         (not the worker's copy; a worker has no shared global scope, so it
+         loads its OWN copy of the same file — see the module script below).
+         `Prism.manual = true` (a documented public config, prism.js:34-56)
+         is set BEFORE prism.js loads, the SAME supported integration mode
+         the governed/worker path uses — not a code change to Prism, and
+         harmless here regardless (no `pre[class*=language-]` element exists
+         in this page's static markup for an auto-highlight pass to find). -->
+    <script>window.Prism = { manual: true };</script>
+    <script src="/node_modules/prismjs/prism.js"></script>
+  </head>
+  <body>
+    <h1>Airlock's OWN mirror — REAL Prism, governed-vs-naive (spec 025-03 AC4/AC5)</h1>
+    <p>THE load-bearing question: does GOVERNED off-thread Prism (tokenize in the dom-chamber worker, against
+      airlock's OWN mirror + a SANITIZED apply) beat NAIVE on-page Prism (tokenize + ONE unsanitized
+      <code>el.innerHTML =</code>), same page/CPU? Three outcomes: win / net-regression / re-tank — see
+      rig/airlock-mirror-prism.mjs.</p>
+    <button id="target-naive">interact (naive)</button>
+    <button id="target-governed">interact (governed)</button>
+    <pre id="out"></pre>
+    <!-- The naive <pre><code> pair — ordinary on-page DOM, no worker involved. -->
+    <div id="naive-host"></div>
+    <!-- The apply host: the REAL element the DOM-chamber worker's mirror document.body
+         mirrors onto (adapters/eds/dom-apply.js's `root` option, pre-seeded under
+         core/worker-dom/protocol.js's BODY_ID). -->
+    <div id="governed-host"></div>
+    <script type="module">
+      import { createAirlock } from "/core/airlock.js";
+      import { createDomApplyCoordinator } from "/adapters/eds/dom-apply.js";
+      import { isMutationsMessage, OP } from "/core/worker-dom/protocol.js";
+
+      const q = new URLSearchParams(location.search);
+      const REPEAT = Number(q.get("repeat") || 60);
+
+      // ---------------------------------------------------------------
+      // Shared sample code — BYTE-IDENTICAL to rig/airlock-mirror-prism-author.js's
+      // own (server-templated) copy, so naive and governed tokenize the SAME input.
+      // ---------------------------------------------------------------
+      const SAMPLE_LINES = [
+        "function fibonacci(n) {",
+        "  if (n <= 1) return n;",
+        "  return fibonacci(n - 1) + fibonacci(n - 2);",
+        "}",
+        "const cache = new Map();",
+        "for (let i = 0; i < 50; i++) {",
+        "  cache.set(i, fibonacci(i % 20));",
+        "}",
+        "export default cache;",
+      ];
+      const CODE = new Array(REPEAT).fill(SAMPLE_LINES.join("\n")).join("\n\n");
+
+      // --- Long Tasks — CORROBORATING evidence only (its 50ms reporting floor
+      //     means a governed batch kept comfortably under budget may never
+      //     surface here at all; the GATING numbers are the performance.now()
+      //     wraps below, mirroring how rig/sanitize-boundary.mjs treats CSP
+      //     violation counts as corroborating, not solely gating).
+      const longTasks = [];
+      try {
+        new PerformanceObserver((list) => {
+          for (const e of list.getEntries()) longTasks.push({ start: e.startTime, duration: e.duration });
+        }).observe({ type: "longtask", buffered: true });
+      } catch { /* longtask not supported in this browser — corroborating only */ }
+
+      // --- raw Event-Timing collector — VERBATIM idiom from
+      //     rig/airlock-mirror-nasty-tag-harness.html / rig/worker-dom-prism-harness.html
+      //     (023's proven within-storm p75 method). Phase-tagged by timestamp window
+      //     (AC4's "matched click cadence" governed-INP-vs-naive-INP sharpening).
+      const interactions = [];
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries()) {
+          if (!e.interactionId) continue;
+          interactions.push({ id: e.interactionId, start: e.startTime, duration: e.duration });
+        }
+      }).observe({ type: "event", durationThreshold: 16, buffered: true });
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries()) {
+          interactions.push({ id: "fi" + (e.interactionId ?? 0), start: e.startTime, duration: e.duration });
+        }
+      }).observe({ type: "first-input", buffered: true });
+      const seenInteractionIds = new Set();
+      function dedupedInteractionsBetween(startTs, endTs) {
+        const out = [];
+        for (const it of interactions) {
+          if (it.start < startTs || it.start > endTs) continue;
+          if (seenInteractionIds.has(it.id)) continue;
+          seenInteractionIds.add(it.id);
+          out.push(it.duration);
+        }
+        return out;
+      }
+      const pct = (arr, p) => {
+        if (!arr.length) return 0;
+        const s = [...arr].sort((a, b) => a - b);
+        return s[Math.min(s.length - 1, Math.floor((p / 100) * s.length))];
+      };
+
+      // ===================================================================
+      // NAIVE phase — on-page tokenize + ONE unsanitized el.innerHTML write.
+      // ===================================================================
+      const naiveHost = document.getElementById("naive-host");
+      const naivePre = document.createElement("pre");
+      const naiveCodeEl = document.createElement("code");
+      naiveCodeEl.className = "language-javascript";
+      naivePre.appendChild(naiveCodeEl);
+      naiveHost.appendChild(naivePre);
+
+      const naiveApplyMs = [];
+      let naiveClicks = 0;
+      document.getElementById("target-naive").addEventListener("click", () => {
+        naiveClicks++;
+        naiveCodeEl.textContent = CODE; // reset before each pass, matches the governed fixture
+        const t0 = performance.now();
+        Prism.highlightElement(naiveCodeEl); // REAL, UNMODIFIED — tokenize + ONE el.innerHTML=, NO sanitizer
+        const t1 = performance.now();
+        naiveApplyMs.push(t1 - t0);
+      });
+
+      // ===================================================================
+      // GOVERNED phase — off-thread tokenize (airlock's OWN mirror, via the
+      // dom-chamber + createAirlock's connector:"dom" selection seam, spec
+      // 025-03 AC6 — "the Prism rig's production path") + a SANITIZED apply
+      // (adapters/eds/dom-apply.js, spec 025-03 AC3).
+      // ===================================================================
+      const governedHost = document.getElementById("governed-host");
+      const coordinator = createDomApplyCoordinator(document, { root: governedHost });
+
+      let booted = false;
+      let bootError = null;
+      let mutationsApplied = 0;
+      let codeElId = null; // captured from the boot-time createElement(code) op — AC3's hostile-op target
+      const governedApplyMs = []; // apply-window cost, ONLY for a flush carrying the big setInnerHTML op
+
+      const authorSourceRaw = await fetch("/rig/airlock-mirror-prism-author.js").then((r) => r.text());
+      const prismJs = await fetch("/node_modules/prismjs/prism.js").then((r) => r.text());
+      // __REPEAT__ substitution — the SAME server-templating convention
+      // core/dom-chamber-host.js's own boot() applies to __ELEMENTS__/
+      // __WORK_US__ (that module has no knowledge of __REPEAT__, a
+      // Prism-fixture-specific placeholder, so THIS harness substitutes it
+      // before posting `authorSource`).
+      const authorSource = authorSourceRaw.replaceAll("__REPEAT__", String(REPEAT));
+      // PREFIX (grounded by running Prism against this host — see
+      // test/dom-chamber-host-prism.test.js's own header for the full
+      // grounding note): (1) `Prism.manual = true` — a documented public
+      // config read BEFORE Prism's own auto-highlight-on-load path runs;
+      // portable (works inside the real Worker AND a Node/vitest test —
+      // unlike 025-01's `self.Prism`, which assumed a real Worker's `self`).
+      // (2) a minimal `Element` global stub — prism.js's bundled
+      // file-highlight component's IE11-era polyfill guard
+      // (`if (!Element.prototype.matches) {...}`, prism.js:1759) runs
+      // UNCONDITIONALLY at load and references a bare `Element` global,
+      // absent from a Worker's global scope (lib-completeness, not
+      // model-inherent — see the grounding note referenced above).
+      const PREFIX = "globalThis.Prism = { manual: true };\n"
+        + "globalThis.Element = function () {};\n"
+        + "globalThis.Element.prototype.matches = function () { return false; };\n";
+      const combinedAuthorSource = PREFIX + prismJs + "\n" + authorSource;
+
+      const airlock = createAirlock({
+        // GA4-shaped fields are irrelevant for a dom connector — left empty/zero
+        // (mirrors bootMetaPixel's own "no host-sourced identity" convention).
+        trackers: 0, workFactor: 0, endpoints: [], ctx: {},
+        connector: "dom",
+        connectorConfig: { authorSource: combinedAuthorSource, elements: 0, workUs: 0 },
+      });
+      airlock.worker.onerror = (e) => {
+        bootError = String(e.message || e.error || e);
+        window.__bootError = bootError;
+      };
+      airlock.worker.onmessage = (e) => {
+        const m = e.data;
+        if (!isMutationsMessage(m)) return;
+        for (const op of m.ops) {
+          if (op.op === OP.CREATE_ELEMENT && op.tag === "code" && codeElId === null) codeElId = op.id;
+        }
+        const hasBigWrite = m.ops.some((op) => op.op === OP.SET_INNER_HTML);
+        const t0 = performance.now();
+        coordinator.applyOps(m.ops).then(({ applied }) => {
+          const t1 = performance.now();
+          mutationsApplied += applied;
+          if (hasBigWrite) governedApplyMs.push(t1 - t0);
+          if (!booted) { booted = true; window.__booted = true; }
+        });
+      };
+      window.addEventListener("error", (e) => {
+        window.__lateError = String(e.message || e.error || e);
+      });
+
+      let governedClicks = 0;
+      document.getElementById("target-governed").addEventListener("click", () => {
+        governedClicks++;
+        // main->worker event forwarding (spec 025-02 AC3a) — a TRIVIAL
+        // main-thread task; the storm (tokenize) fires OFF-THREAD.
+        airlock.worker.postMessage({ type: "event", targetId: "document", eventType: "click" });
+      });
+
+      // ===================================================================
+      // AC3 — the sanitizer proof: a DIRECTLY-crafted hostile setInnerHTML op
+      // (AD-5's untrusted-chamber threat model — NOT something real Prism
+      // would ever emit; its own tokenizer HTML-entity-escapes source text)
+      // applied through the SAME real apply path, covering AC3's THREE named
+      // vectors: `<script>` (a STRIPPED_TAGS element — the whole element is
+      // REMOVED), `onerror=` (an event-handler attribute — the ATTRIBUTE is
+      // removed, but `<img>` ITSELF is not a stripped tag and legitimately
+      // survives, core/sanitize-html.js's real, documented contract — an
+      // earlier draft of this check wrongly expected the whole <img> gone),
+      // and a `javascript:` URL on an ACTIVE_URL_ATTRS attribute (`href` —
+      // the ATTRIBUTE is removed).
+      // ===================================================================
+      async function runHostilePayloadCheck() {
+        if (codeElId === null) return { ran: false };
+        window.__xssFired = false;
+        // NOTE: `<\/script>` below is escaped (backslash before the slash) —
+        // NOT a JS requirement (a plain string literal would be fine) but an
+        // HTML-embedding one: the HTML PARSER tokenizes this <script> tag's
+        // own extent by looking for a literal `</script` byte sequence
+        // BEFORE any JS parsing happens; an unescaped one inside this string
+        // literal would truncate THIS <script type="module"> block itself
+        // mid-statement (a classic JS-in-HTML gotcha, caught by running).
+        const hostileHtml =
+          '<span class="token">benign</span>'
+          + '<script>window.__xssFired = true;<\/script>'
+          + '<a href="javascript:window.__xssFired = true">click</a>'
+          + '<img src="x" onerror="window.__xssFired = true">';
+        await coordinator.applyOps([{ op: OP.SET_INNER_HTML, id: codeElId, html: hostileHtml }]);
+        // let a real <img> error event (if unsanitized) have a chance to fire
+        await new Promise((r) => setTimeout(r, 200));
+        const el = coordinator.resolve(codeElId);
+        const appliedHtml = el ? el.innerHTML : null;
+        const applied = typeof appliedHtml === "string";
+        return {
+          ran: true,
+          appliedHtml,
+          benignSurvived: applied && appliedHtml.includes('<span class="token">benign</span>'),
+          scriptTagStripped: applied && !/<script/i.test(appliedHtml),
+          onerrorAttrStripped: applied && !/onerror/i.test(appliedHtml),
+          javascriptUrlStripped: applied && !/javascript:/i.test(appliedHtml),
+          imgTagSurvives: applied && /<img/i.test(appliedHtml), // correct, documented sanitizer behavior — img is not a STRIPPED_TAG
+          xssFired: window.__xssFired === true,
+        };
+      }
+
+      document.getElementById("out").textContent = "rig ready (repeat=" + REPEAT + ")";
+
+      window.__rig = {
+        naiveClickPhase(startTs, endTs) {
+          return { p75: Math.round(pct(dedupedInteractionsBetween(startTs, endTs), 75)) };
+        },
+        governedClickPhase(startTs, endTs) {
+          return { p75: Math.round(pct(dedupedInteractionsBetween(startTs, endTs), 75)) };
+        },
+        runHostilePayloadCheck,
+        snapshot() {
+          const longTaskDurationsInWindow = (startTs, endTs) =>
+            longTasks.filter((t) => t.start >= startTs && t.start <= endTs).map((t) => t.duration);
+          return {
+            booted, bootError, lateError: window.__lateError || null,
+            rawLen: CODE.length,
+            naive: {
+              clicksFired: naiveClicks,
+              applyMs: [...naiveApplyMs],
+              highlightedLen: naiveCodeEl.innerHTML.length,
+            },
+            governed: {
+              clicksFired: governedClicks,
+              mutationsApplied,
+              applyMs: [...governedApplyMs],
+              highlightedLen: (() => {
+                const el = coordinator.resolve(codeElId);
+                return el ? el.innerHTML.length : 0;
+              })(),
+            },
+            longTasksTotal: longTasks.length,
+            longTaskWindow: longTaskDurationsInWindow,
+          };
+        },
+      };
+    </script>
+  </body>
+</html>

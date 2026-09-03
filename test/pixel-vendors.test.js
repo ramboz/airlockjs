@@ -15,7 +15,6 @@
 // actually cares about is no vendor-specific LOGIC, so the grep is scoped to
 // interpreted code) never names a vendor.
 import { describe, it, expect } from "vitest";
-import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { createPixelConnector } from "../connectors/pixel/connector.js";
 import { createMetaPixelConfig, META_TR_ENDPOINT, SYNTHETIC_META_PIXEL_ID } from "../connectors/pixel/vendors/meta.js";
@@ -199,16 +198,11 @@ describe("AC3 — the archetype generalises: ONE connector, N configs (Meta + Li
     },
   );
 
-  it("ENUMERABLE — `git diff -- connectors/pixel/connector.js` is empty (026-02 adds configs/adapter wiring/tests only)", () => {
-    const diff = execSync("git diff -- connectors/pixel/connector.js", { encoding: "utf8", cwd: process.cwd() });
-    expect(diff.trim()).toBe("");
-  });
-
-  it("ENUMERABLE — `git diff -- core/` is empty (AC5: zero core changes)", () => {
-    const diff = execSync("git diff -- core/", { encoding: "utf8", cwd: process.cwd() });
-    expect(diff.trim()).toBe("");
-  });
-
+  // The two `git diff -- connectors/pixel/connector.js` / `-- core/` canaries were REMOVED in the
+  // 025-03 reconciliation: a bare `git diff` (working-tree-vs-index) is green-by-construction after
+  // commit and spuriously fails on any LATER slice legitimately touching core/ (025-03 does) — the
+  // fragility 026-02's + 026-03's own reviews flagged. The no-vendor-string grep below is the DURABLE
+  // guard for the real "zero vendor logic in the interpreter" invariant (it inspects current content).
   it("ENUMERABLE — connector.js's CODE (comments stripped) names no vendor: meta/facebook/linkedin/bing//tr/collect/action live in the config fixtures only", () => {
     const src = readFileSync(new URL("../connectors/pixel/connector.js", import.meta.url), "utf8");
     // Strip block comments + FULL-LINE `//` comments before checking — the file's

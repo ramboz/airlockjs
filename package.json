@@ -28,6 +28,7 @@
     "rig:nasty-tag": "node rig/nasty-tag.mjs",
     "rig:wd-nasty-tag": "node rig/worker-dom-nasty-tag.mjs",
     "rig:airlock-mirror": "node rig/airlock-mirror-nasty-tag.mjs",
+    "rig:airlock-mirror-prism": "node rig/airlock-mirror-prism.mjs",
     "rig:wd-prism": "node rig/worker-dom-prism.mjs",
     "rig:wd-ga4": "node rig/worker-dom-ga4.mjs",
     "lh": "node rig/lh.mjs",

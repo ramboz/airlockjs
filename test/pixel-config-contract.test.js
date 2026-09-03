@@ -17,7 +17,6 @@
 // SYNTHETIC_* constants) or clearly-fake ad-hoc literals — no live
 // identifiers (AC7).
 import { describe, it, expect } from "vitest";
-import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { validatePixelVendorConfig } from "../connectors/pixel/validate.js";
 import { createMetaPixelConfig } from "../connectors/pixel/vendors/meta.js";
@@ -108,17 +107,14 @@ describe("AC4 — malformed configs are rejected with a specific, actionable err
   });
 });
 
-describe("AC5 — descriptive, not new behavior: connector.js + core/ stay byte-for-byte unchanged", () => {
-  it("ENUMERABLE — `git diff -- connectors/pixel/connector.js` is empty", () => {
-    const diff = execSync("git diff -- connectors/pixel/connector.js", { encoding: "utf8", cwd: process.cwd() });
-    expect(diff.trim()).toBe("");
-  });
-
-  it("ENUMERABLE — `git diff -- core/` is empty", () => {
-    const diff = execSync("git diff -- core/", { encoding: "utf8", cwd: process.cwd() });
-    expect(diff.trim()).toBe("");
-  });
-});
+// AC5 — "descriptive, not new behavior: connector.js + core/ byte-unchanged" was TRUE for THIS
+// slice (026-03) and was verified at authoring time via `git diff`. Its two `git diff` canaries were
+// REMOVED in the 025-03 reconciliation: they are NOT a durable runtime invariant — a bare
+// `git diff -- core/` compares the working tree to the index, so a LATER slice legitimately changing
+// core/ (025-03 extends the mirror + core/airlock.js's connector-selection seam) spuriously fails
+// them — exactly the green-by-construction fragility 026-02's AND 026-03's own reviews flagged. The
+// DURABLE guard for the real invariant ("no vendor-specific logic in the interpreter") is the
+// no-vendor-string grep in test/pixel-vendors.test.js, which inspects current file content.
 
 describe("AC6 — the 3 vendor configs' stale 'deferred to 026-03' forward-refs are corrected to 026-04", () => {
   it.each(["meta.js", "linkedin.js", "bing.js"])(

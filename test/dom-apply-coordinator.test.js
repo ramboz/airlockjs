@@ -40,6 +40,8 @@ function fakeEl(tag) {
     },
     get textContent() { return this.__text || ""; },
     set textContent(v) { this.__text = v; },
+    get innerHTML() { return this.__html || ""; },
+    set innerHTML(v) { this.__html = v; },
   };
 }
 
@@ -269,6 +271,70 @@ describe("safety allowlist integration — hostile vs benign op streams (AC6)", 
       { op: OP.SET_ATTRIBUTE, id: "n1", name: "id", value: "x" }, // ok
     ]);
     expect(result).toEqual({ applied: 2, refused: 1, total: 3 });
+  });
+});
+
+describe("setInnerHTML — SANITIZED apply (spec 025-03 AC1/AC3, the innerHTML security write-path)", () => {
+  it("applies via el.innerHTML = sanitize(html) — the INJECTED sanitize seam runs BEFORE the real write (hermetic wiring proof — no DOMParser in Node, see core/sanitize-html.js's own substrate note)", async () => {
+    const doc = fakeDocument();
+    const sanitize = vi.fn((html) => html.replace(/<script>.*?<\/script>/g, ""));
+    const coordinator = createDomApplyCoordinator(doc, {
+      now: () => 0, yieldToMain: () => Promise.resolve(), sanitize,
+    });
+    await coordinator.applyOps([{ op: OP.CREATE_ELEMENT, id: "n1", tag: "code" }]);
+    const raw = '<span class="token">ok</span><script>alert(1)</script>';
+    const result = await coordinator.applyOps([{ op: OP.SET_INNER_HTML, id: "n1", html: raw }]);
+    expect(result).toEqual({ applied: 1, refused: 0, total: 1 });
+    expect(sanitize).toHaveBeenCalledWith(raw);
+    expect(coordinator.resolve("n1").innerHTML).toBe('<span class="token">ok</span>'); // sanitized, not raw
+  });
+
+  it("defaults `sanitize` to the REAL core/sanitize-html.js sanitizeHtml (no injection needed to construct the coordinator)", async () => {
+    const doc = fakeDocument();
+    const coordinator = createDomApplyCoordinator(doc, { now: () => 0, yieldToMain: () => Promise.resolve() });
+    await coordinator.applyOps([{ op: OP.CREATE_ELEMENT, id: "n1", tag: "code" }]);
+    // No DOMParser in Node (core/sanitize-html.js's own documented substrate
+    // boundary) -> the REAL default sanitizer fails SAFE to "" here; this
+    // proves the DEFAULT is actually wired (not merely documented), not that
+    // it strips real HTML (that proof is the browser rig — AC3's real proof).
+    const result = await coordinator.applyOps([{ op: OP.SET_INNER_HTML, id: "n1", html: "<b>hi</b>" }]);
+    expect(result.applied).toBe(1);
+    expect(coordinator.resolve("n1").innerHTML).toBe("");
+  });
+
+  it("an op referencing an UNKNOWN id is safely skipped, never throws", async () => {
+    const doc = fakeDocument();
+    const coordinator = createDomApplyCoordinator(doc, { now: () => 0, yieldToMain: () => Promise.resolve() });
+    const result = await coordinator.applyOps([{ op: OP.SET_INNER_HTML, id: "ghost", html: "<b>hi</b>" }]);
+    expect(result).toEqual({ applied: 0, refused: 1, total: 1 });
+  });
+
+  it("a non-string html is coerced safely (sanitizeHtml's own non-string -> \"\" contract), never throws", async () => {
+    const doc = fakeDocument();
+    const sanitize = vi.fn(() => "");
+    const coordinator = createDomApplyCoordinator(doc, { now: () => 0, yieldToMain: () => Promise.resolve(), sanitize });
+    await coordinator.applyOps([{ op: OP.CREATE_ELEMENT, id: "n1", tag: "code" }]);
+    const result = await coordinator.applyOps([{ op: OP.SET_INNER_HTML, id: "n1", html: null }]);
+    expect(result.applied).toBe(1);
+    expect(sanitize).toHaveBeenCalledWith(null);
+  });
+
+  it("the mixed BENIGN Prism-shaped stream (createElement/appendChild/className via classAdd/setInnerHTML) applies fully — zero refused", async () => {
+    const root = fakeEl("body");
+    const doc = fakeDocument();
+    const sanitize = (html) => html; // identity — proves the STREAM shape, not the sanitizer's own strip logic
+    const coordinator = createDomApplyCoordinator(doc, { root, now: () => 0, yieldToMain: () => Promise.resolve(), sanitize });
+    const ops = [
+      { op: OP.CREATE_ELEMENT, id: "pre1", tag: "pre" },
+      { op: OP.APPEND_CHILD, parentId: BODY_ID, childId: "pre1" },
+      { op: OP.CREATE_ELEMENT, id: "code1", tag: "code" },
+      { op: OP.APPEND_CHILD, parentId: "pre1", childId: "code1" },
+      { op: OP.CLASS_ADD, id: "code1", name: "language-javascript" }, // className's classList-backed write
+      { op: OP.SET_INNER_HTML, id: "code1", html: '<span class="token keyword">const</span> x = 1;' },
+    ];
+    const result = await coordinator.applyOps(ops);
+    expect(result).toEqual({ applied: ops.length, refused: 0, total: ops.length });
+    expect(coordinator.resolve("code1").innerHTML).toBe('<span class="token keyword">const</span> x = 1;');
   });
 });
 

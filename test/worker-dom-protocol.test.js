@@ -44,6 +44,12 @@ describe("OP — the mutation-op vocabulary (AC3/AC7)", () => {
       CLASS_TOGGLE: "classToggle",
     });
   });
+
+  // spec 025-03 AC1: the innerHTML write surface — a raw-HTML string, gated
+  // by the sanitizer (not the structured allowlist) on apply.
+  it("names SET_INNER_HTML (spec 025-03 AC1)", () => {
+    expect(OP.SET_INNER_HTML).toBe("setInnerHTML");
+  });
 });
 
 describe("createEventMessage / isEventMessage — main->worker event forwarding (AC3a)", () => {
@@ -91,6 +97,12 @@ describe("isStructuredCloneable — the DataCloneError boundary guard (AC3, the 
     expect(isStructuredCloneable(ops)).toBe(true);
     // the round-trip itself must not throw and must deep-equal the input —
     // the actual proof, not just a boolean.
+    expect(structuredClone(ops)).toEqual(ops);
+  });
+
+  it("true for a batch carrying a setInnerHTML op (spec 025-03 AC1 — a plain string `html` field)", () => {
+    const ops = [{ op: OP.SET_INNER_HTML, id: "n1", html: '<span class="token">x</span>' }];
+    expect(isStructuredCloneable(ops)).toBe(true);
     expect(structuredClone(ops)).toEqual(ops);
   });
 

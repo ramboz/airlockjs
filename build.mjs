@@ -7,17 +7,19 @@
 //   adapters/eds/index.js          →  probes/eds-testbed/scripts/airlock/eds.js
 //   core/chamber.worker.js         →  probes/eds-testbed/scripts/airlock/chamber.worker.js        (GA4, default)
 //   core/pixel-chamber.worker.js   →  probes/eds-testbed/scripts/airlock/pixel-chamber.worker.js  (026 pixel connector)
+//   core/dom-chamber.worker.js     →  probes/eds-testbed/scripts/airlock/dom-chamber.worker.js    (025 worker-dom mirror)
 //
 // The adapter entry imports the runtime SOURCE (`core/airlock.js`) directly, so the emitted eds.js
 // is fully self-contained. `createAirlock` selects a chamber worker by `connector` — the default
-// GA4 `./chamber.worker.js`, or `./pixel-chamber.worker.js` for `connector:"pixel"` (the pixel boot
-// functions, `airlock.js:181-183`) — so the emitted eds.js references BOTH by their sibling
+// GA4 `./chamber.worker.js`, `./pixel-chamber.worker.js` for `connector:"pixel"`, or
+// `./dom-chamber.worker.js` for `connector:"dom"` (the selection seam, `airlock.js`'s
+// connector-selection block) — so the emitted eds.js references ALL THREE by their sibling
 // specifier, and each MUST be emitted as a sibling in the served tree or a real page 404s it.
 //
-// NOT bundled: `core/dom-chamber.worker.js` (spec 025-02). It is never `new Worker`'d in production
-// (only exercised via `core/dom-chamber-host.js` + a FakeWorker in tests) — nothing in the emitted
-// eds.js references it — so bundling it would be speculative. Add it here when a real worker-dom tag
-// adapter wires `new Worker(new URL("./dom-chamber.worker.js"))` (a 025-03+ concern).
+// `core/dom-chamber.worker.js` (spec 025-02 build, spec 025-03 AC6 wires it here) is now
+// production-reachable: `createAirlock`'s selection seam constructs it via `connector:"dom"` (a
+// real worker-dom tag adapter's own path — the 025-03 AC4 rig's "production path" — un-defers
+// 026-05's original grounded exclusion, which held while the dom chamber was test/rig-only).
 //
 // HARD CONSTRAINT (load-bearing — 004-01 CSP verdict): every emitted worker MUST stay a same-origin
 // file URL, never a `blob:`/`data:` URL. 004-01 validated a same-origin module worker under the
@@ -39,7 +41,7 @@ const ENTRY_OUT = "eds"; // → eds.js
 // Every same-origin sibling chamber worker the emitted eds.js may spawn. The `out` name is derived
 // from the source basename (so `core/pixel-chamber.worker.js` → `pixel-chamber.worker` → the sibling
 // `./pixel-chamber.worker.js`). Add an entry here when a new chamber worker becomes eds-reachable.
-const WORKER_ENTRIES = ["core/chamber.worker.js", "core/pixel-chamber.worker.js"];
+const WORKER_ENTRIES = ["core/chamber.worker.js", "core/pixel-chamber.worker.js", "core/dom-chamber.worker.js"];
 const workerOut = (inPath) => inPath.replace(/^core\//, "").replace(/\.js$/, "");
 const EXPECTED_WORKER_SPECIFIERS = new Set(WORKER_ENTRIES.map((p) => `./${workerOut(p)}.js`));
 

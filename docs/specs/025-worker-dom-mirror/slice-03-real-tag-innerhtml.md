@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: []
 last_verified: 2026-09-02
 frame_review: true
@@ -118,25 +118,83 @@ run off-thread + governed, with its INP value measured against naive, not assume
    from 025-02 AC8 holds). **No live identifiers** — Prism is a local devDep; a synthetic code sample.
 
 **DoD:**
-- [ ] The mirror `innerHTML` + the sanitized apply (reusing `sanitize-html.js`) + the Prism rig/adapter + the
-      dom-chamber build entry, **TDD**.
-- [ ] AC4's **governed-vs-naive** INP measurement — the governed apply-window cost vs a grounded naive-Prism
-      baseline on Prism's ~148KB output, reporting the outcome explicitly as **win / net-regression / re-tank**
-      (NOT a two-outcome absolute-budget number), with the run command; AC5's tokenization-off-thread +
-      lands-assertion (NOT an off-thread-win claim).
-- [ ] The sanitizer proof (AC3): Prism's benign markup applies; a hostile injected payload is stripped.
-- [ ] `npm run build` green (dom-chamber emitted + referenced, N-worker assertion); `npm run lint` clean; targeted
-      vitest green; no live identifiers.
-- [ ] **Frame-critique PASS recorded** (`frame_review: true`) — the pass on (a) the monolithic-unchunkable-apply
-      INP bet (a re-tank is an honest documented Outcome, not a fail), (b) the sanitizer being sufficient for the
-      `innerHTML` write surface (with its honest denylist boundary carried forward), (c) the real-Prism DOM surface
-      being grounded by running, not assumed.
-- [ ] Compliance + craft reviews recorded; close-out `### Reconciliation sweep` + `### Deviation log`; promote the
-      AC4 Outcome (Tier-0 innerHTML-viability) to ADR-0014 / refinement-todo; ambient globals + Lever-3 + Tier 1
-      remain named for 025-04+.
+- [x] The mirror `innerHTML` + `className` + the sanitized apply (reusing `sanitize-html.js`) + the Prism rig +
+      the 3-way (dom) selection seam + the dom-chamber build entry, **TDD**.
+- [x] AC4's **governed-vs-naive** INP measurement — `npm run rig:airlock-mirror-prism` (N=3, orchestrator-re-run):
+      naive apply-window **p75=11.5ms**, governed **p75=24.1ms** (median 11 vs 23) → **NET-REGRESSION** (governed
+      ~2× naive; the sanitize round-trip ate the off-thread win; both under the 160ms reference). Reported as a
+      documented Outcome (the rig's exit does NOT gate on the verdict). AC5 tokenization-off-thread + lands = PASS
+      (`highlightedLen 148,918 > rawLen 12,718`; `mutationsApplied` > 0 every run); click-p75 = 0ms (the decoupled
+      false-green empirically confirmed — NOT the INP verdict).
+- [x] The sanitizer proof (AC3): Prism's benign `<span class="token">` applies; injected `<script>`/`onerror=`/
+      `javascript:` stripped, `xssFired=false` every run.
+- [x] `npm run build` green (dom-chamber = 4th sibling, N-worker assertion passes); `npm run lint` clean; full
+      non-oracle suite 1045 pass / 84 files (after the canary reconciliation); no live identifiers.
+- [x] **Frame-critique PASS recorded** — `reviews/slice-03-frame-critique.md` (PASS after the reframe from
+      absolute-budget to governed-vs-naive, three outcomes — the net-regression false-green named).
+- [x] Compliance + craft reviews recorded (both PASS; craft confirmed the rig is FAIR — residual asymmetries are
+      sub-ms + partially offsetting, cannot flip the verdict); close-out `### Deviation log` + `### Reconciliation
+      sweep` below; the AC4 Outcome promoted to `refinement-todo` (ADR-0014's central bet, measured — adverse for
+      `innerHTML`-heavy tags; the immutable ADR is not amended, the finding is recorded); ambient globals + Lever-3
+      + Tier 1 remain named for 025-04+.
 
 **Anti-horizontal-phasing check:** 025-03 is **vertical** — a REAL, unmodified martech-shaped tag (Prism) runs
 off-thread through airlock's own mirror, its output **sanitized + applied** to the real DOM, and shippable on a
 real page (the dom-chamber build entry). It delivers the worker-dom thread's first REAL-tag end-to-end proof (025-02
 was synthetic) + completes the `innerHTML` security write-path — not internal refactor. The load-bearing INP bet is
 measured on real work, honestly (a re-tank is a documented boundary). Builds directly on 025-02's proven mechanism.
+
+### Deviation log
+
+- **`className` is backed by `classList`'s own Set, DECOUPLED from the `class` attribute store**
+  (`core/worker-dom/mirror.js`) — required by Prism's `setLanguage()` read/regex-strip/`classList.add` pattern; an
+  attribute-backed `className` would silently lose the language class after the first highlight pass. A real
+  DOM-semantics divergence scoped to Prism's grounded need; pinned by a run-Prism-twice test.
+- **`worker` exposed on the `createAirlock` handle ONLY for `connector:"dom"`** (`core/airlock.js`) — a dom-tag
+  adapter/rig needs the chamber's event-forward/mutation-flush protocol (architecturally distinct from GA4/pixel
+  egress); GA4/pixel handles are byte-unchanged (regression-pinned); egress stays confined by
+  `confine-dom-chamber.js`. **Doc gap (craft nit):** the seam doc notes the `onmessage` takeover but not that
+  `onerror`-diagnostic ownership passes to the adapter once it reassigns `worker.onerror`.
+- **The bare `Element` global stub lives in the rig glue PREFIX, not `mirror.js`** — Prism's plugin's IE-compat
+  `if (!Element.prototype.matches)` guard needs a bare `Element`; kept out of the mirror so it stays free of new
+  ambient globals (ADR-0001). **`getElementsByTagName()` is inert-`[]`** (Prism's `currentScript` IE11 fallback,
+  only reachable in a real Worker). Both axis-classified lib-completeness, not model limits.
+- **AC6 took the "rig's production path" branch** (not a `bootWorkerDomTag` adapter) — the spec offered it as the
+  alternative; a bootWorkerDomTag API would be a speculative, untested-need surface.
+- **Canary reconciliation** — 025-03's legitimate `core/` change (the 3-way selection seam + the mirror) broke
+  026-02/03's `git diff -- core/` canaries, which are **green-by-construction post-commit** and spuriously fail on
+  any later `core/` work (the fragility BOTH 026-02's and 026-03's own reviews flagged). Removed the 2 brittle
+  git-diff canaries (+ the now-unused `execSync` imports) from `test/pixel-config-contract.test.js` +
+  `test/pixel-vendors.test.js`; **kept** the durable no-vendor-string grep (content-inspecting). No real coverage
+  lost — the git-diff checks asserted an authoring-time scope fact, not a runtime invariant. Full suite 1045 pass.
+- **Rig fairness (both reviews confirmed FAIR) — two disclosed residuals, neither can flip the verdict:**
+  (a) the governed apply-window includes a sub-ms `SET_TEXT` reset + 3 status `setAttribute` ops that naive's
+  window excludes — biasing governed slightly WORSE (<1ms vs the 12.6ms gap); (b) `SAMPLE_LINES` is hand-duplicated
+  across the naive harness + governed author with no sync-assertion (current copies verified identical; a
+  byte-identity assertion is a follow-up when the rig is next touched). Also: the verdict keys off median while the
+  headline cites p75 — they agree (governed ~2× at both), so net-regression is robust across both statistics; a
+  `GAP≈150ms` piling run to watch click-p75 convergence is a follow-up.
+
+### Reconciliation sweep
+
+- **Question answered + Outcome (the load-bearing de-risk finding):** the governed off-thread mirror is a **NET INP
+  REGRESSION for the real `innerHTML`-heavy tag** — governed apply-window **p75 = 24.1ms vs naive 11.5ms (~2×)**,
+  orchestrator-re-run, both reviews confirming the rig is FAIR. The sanitize round-trip (parse + whole-tree walk +
+  reserialize over the **148KB output**) exceeds the off-thread tokenization savings (the **12KB input**). **This
+  is the honest Tier-0-viability boundary:** airlock's mirror contains INP for the **chunkable-write** subset
+  (025-02's synthetic tag) but is a main-thread **LOSS** for `innerHTML`-heavy tags — which are **most** real
+  DOM-heavy tags. The de-risk the maintainer green-lit is answered, and the answer is **adverse** — surfaced, not
+  hidden (per ADR-0014's honest-coverage-bound discipline, which already warned Tier 0 may cover a MINORITY).
+- **AC7 backpressure — grounded-deferral:** neither 025-01 thread reproduces under airlock's own mirror,
+  **structurally**: Prism emits ONE unchunkable `setInnerHTML` (not a 20000-structured-op storm), and airlock's
+  per-cycle drain is not `@ampproject`'s throughput channel. Verified by RUNNING (20k-el → 100000/100000, no stall;
+  Prism 15/15 @ 20ms, no drops). Not a threat under airlock's mirror; recorded as grounded, not a fix owed.
+- **Promoted, no orphans:** the AC4 net-regression Outcome → **`refinement-todo`** (ADR-0014's central apply-INP
+  bet, now measured on a REAL `innerHTML`-heavy tag with an **adverse** result; the immutable ADR is
+  recorded-against, not amended). The dom-chamber `build.mjs` entry un-defers 026-05's grounded exclusion. The
+  026-02/03 canary fragility is resolved. Ambient globals + Lever-3 + Tier 1 → **025-04+**.
+- **Downstream named:** 025-04+ (ambient-global proxies; Lever-3 budget; Tier 1 SAB — the last of which could serve
+  sync-read tags but re-incurs the AD-4 embed breakage); the **strategic implication** (the mirror's realized value
+  is narrow — chunkable-write only; `innerHTML`-heavy tags are better left on the main thread or need a lighter
+  sanitize / chunked DOM-building) surfaced to the maintainer for the thread's direction. No dependency dangling.
+- **No live identifiers; `@ampproject/worker-dom` stays devDep-only; no new runtime dependency.**

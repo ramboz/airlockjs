@@ -20,6 +20,11 @@ describe("isAllowedTag — the element-tag ALLOWLIST (AC6)", () => {
     }
   });
 
+  it("allows pre/code (spec 025-03 AC1 — Prism's real, canonical <pre><code> shape, grounded by running it)", () => {
+    expect(isAllowedTag("pre")).toBe(true);
+    expect(isAllowedTag("code")).toBe(true);
+  });
+
   it("is case-insensitive", () => {
     expect(isAllowedTag("DIV")).toBe(true);
     expect(isAllowedTag("Span")).toBe(true);
@@ -162,6 +167,15 @@ describe("evaluateOp — the per-op verdict the apply coordinator drives (AC6)",
     ]) {
       expect(evaluateOp(op)).toEqual({ allow: true });
     }
+  });
+
+  // spec 025-03 AC3: setInnerHTML is allowed AT THIS LAYER unconditionally —
+  // the raw-HTML STRING content is gated by the sanitizer at apply time
+  // (adapters/eds/dom-apply.js), not by this element/attribute-name
+  // allowlist (which has no way to inspect markup INSIDE an HTML string).
+  it("setInnerHTML carries no name/tag injection surface at THIS layer — always allowed (the sanitizer gates the content)", () => {
+    expect(evaluateOp({ op: OP.SET_INNER_HTML, id: "n1", html: "<span>ok</span>" })).toEqual({ allow: true });
+    expect(evaluateOp({ op: OP.SET_INNER_HTML, id: "n1", html: '<script>alert(1)</script>' })).toEqual({ allow: true });
   });
 
   it("an unknown op name is refused (fail-closed on anything outside the wire contract)", () => {

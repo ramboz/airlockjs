@@ -72,7 +72,7 @@
 | [024-worker-dom-compat-spike](024-worker-dom-compat-spike/spec.md) | 🔬 024-01 — worker-dom feasibility spike (POC-B) | **DONE** |  |
 | [025-worker-dom-mirror](025-worker-dom-mirror/spec.md) | 🔬 025-01 — Tier-0 mechanism de-risk gate (GO / KILL) + GA4 adoption litmus | **DONE** |  |
 | [025-worker-dom-mirror](025-worker-dom-mirror/spec.md) | 025-02 — the mirror core: synthetic tag off-thread through airlock's own mirror, INP-safe | **DONE** |  |
-| [025-worker-dom-mirror](025-worker-dom-mirror/spec.md) | 025-03 — a real tag (Prism) through the mirror: `innerHTML` + a sanitized apply, INP-measured | DRAFT |  |
+| [025-worker-dom-mirror](025-worker-dom-mirror/spec.md) | 025-03 — a real tag (Prism) through the mirror: `innerHTML` + a sanitized apply, INP-measured | **DONE** |  |
 | [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-01 — Meta Pixel through the generic connector, governed + dispatched (the archetype proof) | **DONE** |  |
 | [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-02 — more vendors as configs: the archetype generalises across real GET pixels | **DONE** |  |
 | [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-03 — the config contract (`PixelVendorConfig`): pin + validate + conformance | **DONE** |  |
@@ -98,7 +98,7 @@
 
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
-- **0** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
+- **1** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **70** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **8** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review

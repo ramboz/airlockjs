@@ -50,6 +50,13 @@ export const OP = Object.freeze({
   CLASS_ADD: "classAdd",
   CLASS_REMOVE: "classRemove",
   CLASS_TOGGLE: "classToggle",
+  // spec 025-03 AC1 — the raw-HTML write surface a REAL tag (Prism) needs
+  // beyond 025-02's structured subset. `html` is a plain string (never
+  // parsed/walked by the mirror or this contract); it is gated by
+  // `core/sanitize-html.js`'s sanitizer on apply (adapters/eds/dom-apply.js),
+  // NOT by core/worker-dom/apply-policy.js's structured-op allowlist (AC3 —
+  // "structured ops -> the allowlist; raw HTML -> the sanitizer").
+  SET_INNER_HTML: "setInnerHTML",
 });
 
 /**

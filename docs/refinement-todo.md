@@ -390,6 +390,30 @@ DOM-clobbering hardening; ambient-global proxies (`screen`/`sendBeacon`/`cookie`
 budget/circuit-breaker; and the DOM-chamber's `build.mjs` bundle entry (the same live-rollout gap the pixel
 worker has). ADR-0014 remains **validated, not amended**.
 
+**Real tag through the mirror — slice [025-03](specs/025-worker-dom-mirror/slice-03-real-tag-innerhtml.md) DONE
+(2026-09-02): the central apply-INP bet, measured on a REAL `innerHTML`-heavy tag, is a NET INP REGRESSION.**
+025-02 proved the mechanism on a **synthetic** chunkable-write tag (8ms). 025-03 ran a **real** one — Prism syntax
+highlighting via `element.innerHTML` — governed-through-the-mirror **vs** the naive main-thread `innerHTML`
+baseline, apply-window p75 (023's within-storm method, NOT the async-decoupled click-p75 false-green 025-02
+flagged). Result, orchestrator-re-run, both review passes confirming the rig is FAIR: **governed apply-window
+p75 = 24.1ms vs naive 11.5ms (~2×) — a net regression**. The sanitize round-trip (main-thread `DOMParser` parse +
+whole-tree walk + reserialize over the **148KB output**) exceeds the off-thread tokenization savings (the **12KB
+input**), so moving Prism behind the airlock makes the apply *slower* on the main thread than just letting Prism
+write. **This is the honest Tier-0-viability boundary** ADR-0014 itself warned about ("Tier 0 covers a MINORITY of
+costly tags"): airlock's mirror contains INP for the **chunkable-write** subset (many structured DOM ops that the
+frame-budgeted coordinator can spread across frames) but is a main-thread **LOSS** for **`innerHTML`-heavy** tags —
+which are most real DOM-heavy tags. ADR-0014 is **recorded-against, not amended** (immutable): the central bet is
+now measured on real work with an **adverse** result on this tag class. **Strategic implication for the thread:** the
+mirror's realized value is **narrow** — it helps chunkable structured-write tags, not blob-`innerHTML` tags. Options
+for the innerHTML class (none built): a **cheaper sanitize** (streaming/tokenizing sanitizer that avoids the full
+parse+reserialize round-trip), **chunked DOM-building** (turn one `innerHTML` blob into many budget-schedulable
+structured ops so it re-enters the subset the mirror *does* help), or simply **leaving innerHTML-heavy tags on the
+main thread** and reserving the mirror for the tags it measurably helps. **Deferred → 025-04+:** ambient-global
+proxies (`screen`/`sendBeacon`/`cookie`); the Lever-3 budget/circuit-breaker; Tier-1 SAB (could serve sync-read
+tags but re-incurs the AD-4 embed breakage ADR-0014 ruled out for Tier 0). A full value-level style sanitizer
+(layout-abuse / clickjacking, not just URL schemes) also remains — 025-03 shipped the URL/`on*`/tag-strip denylist
+(`core/sanitize-html.js`), an honest denylist boundary (mutation-XSS out of scope), not the value-level allowlist.
+
 ### Decision: Lever 3 circuit-breaker (budget enforcement) — DEFERRED
 **Deferred:** POC-A builds Lever 3's **measurement** half (the before/after INP scoreboard). The
 **enforcement** half — a per-tag INP/TBT budget that throttles/trips a runaway tag, + the inspector surfacing

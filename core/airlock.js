@@ -60,14 +60,20 @@ export function createAirlock({
   consentStrict = false,
   payloadDenylist = [],
   // Connector-selection seam (spec 026-01 AC3, resolving the "GA4-hardcoded
-  // connector factory + worker URL" gap): `connector: "pixel"` hosts
-  // `connectors/pixel/connector.js`'s createPixelConnector via
-  // `core/pixel-chamber.worker.js` instead of the default GA4 chamber, and
-  // generalizes the `worker.postMessage({type:"init", …})` payload below to
-  // carry `connectorConfig` (the declarative pixel config) instead of the
+  // connector factory + worker URL" gap; spec 025-03 AC6 adds a THIRD
+  // branch): `connector: "pixel"` hosts `connectors/pixel/connector.js`'s
+  // createPixelConnector via `core/pixel-chamber.worker.js`; `connector:
+  // "dom"` hosts airlock's own worker-side DOM mirror
+  // (`core/worker-dom/mirror.js`) via `core/dom-chamber.worker.js` — instead
+  // of the default GA4 chamber. Both non-GA4 branches generalize the
+  // `worker.postMessage({type:"init", …})` payload below to carry
+  // `connectorConfig` VERBATIM (a free-form bag the specific chamber
+  // interprets — the pixel chamber reads its declarative config fields, the
+  // dom chamber reads `{authorSource, elements, workUs}`) instead of the
   // GA4-shaped `{trackers, workFactor, endpoints, ctx}` fields. Omitted (or
-  // any value other than "pixel") -> the GA4 default path, BYTE-UNCHANGED
-  // (a regression test pins the worker URL + the exact init message shape).
+  // any value other than "pixel"/"dom") -> the GA4 default path,
+  // BYTE-UNCHANGED (a regression test pins the worker URL + the exact init
+  // message shape for both GA4 AND pixel).
   connector,
   connectorConfig,
 }) {
@@ -168,25 +174,31 @@ export function createAirlock({
     critical.dispatch({ ...d, params: governParams(d.params) });
   };
 
-  // 026-01 AC3 — the connector-selection seam. Both worker call sites below use
-  // STATIC STRING LITERAL specifiers (a runtime-computed specifier would still
-  // work in a browser, but build.mjs's bundle-layout assertion scans the emitted
-  // bundle for every worker reference and requires each to resolve to an emitted
-  // same-origin sibling — 026-05's N-worker generalization, order-independent).
-  // Both `./chamber.worker.js` (GA4, default) and `./pixel-chamber.worker.js`
-  // (pixel, 026-01) ARE wired as build.mjs bundle entries (026-05), so a real
-  // EDS page resolves each to its sibling file.
+  // 026-01 AC3 / 025-03 AC6 — the connector-selection seam, THREE branches.
+  // Every worker call site below uses a STATIC STRING LITERAL specifier (a
+  // runtime-computed specifier would still work in a browser, but
+  // build.mjs's bundle-layout assertion scans the emitted bundle for every
+  // worker reference and requires each to resolve to an emitted same-origin
+  // sibling — 026-05's N-worker generalization, order-independent).
+  // `./chamber.worker.js` (GA4, default), `./pixel-chamber.worker.js`
+  // (pixel, 026-01), and `./dom-chamber.worker.js` (dom, 025-03) are ALL
+  // wired as build.mjs bundle entries, so a real EDS page resolves each to
+  // its sibling file.
   const worker =
-    connector !== "pixel"
-      ? new Worker(new URL("./chamber.worker.js", import.meta.url), { type: "module" })
-      : new Worker(new URL("./pixel-chamber.worker.js", import.meta.url), { type: "module" });
+    connector === "pixel"
+      ? new Worker(new URL("./pixel-chamber.worker.js", import.meta.url), { type: "module" })
+      : connector === "dom"
+        ? new Worker(new URL("./dom-chamber.worker.js", import.meta.url), { type: "module" })
+        : new Worker(new URL("./chamber.worker.js", import.meta.url), { type: "module" });
   // Init-message generalization (:149 -> here): GA4's shape
-  // (`{trackers, workFactor, endpoints, ctx}`) is unrelated to what the pixel
-  // chamber's createPixelConnector(config) needs (`{endpoint, eventMap,
-  // paramMap, …}`) — so a pixel instance posts `connectorConfig` verbatim
+  // (`{trackers, workFactor, endpoints, ctx}`) is unrelated to what the
+  // pixel chamber's createPixelConnector(config) needs (`{endpoint,
+  // eventMap, paramMap, …}`) or what the dom chamber's
+  // createDomChamberHost().boot() needs (`{authorSource, elements,
+  // workUs}`) — so a pixel OR dom instance posts `connectorConfig` verbatim
   // instead, never the GA4-shaped fields.
   worker.postMessage(
-    connector === "pixel"
+    connector === "pixel" || connector === "dom"
       ? { type: "init", ...(connectorConfig || {}) }
       : { type: "init", trackers, workFactor, endpoints, ctx },
   );
@@ -472,5 +484,20 @@ export function createAirlock({
      * -> skipped, never throws). See the `dispose` closure above for the guard.
      */
     dispose,
+    // spec 025-03 AC6: expose the raw `worker` ONLY for connector:"dom" —
+    // GA4/pixel stay byte-unchanged (no `worker` key at all — this handle's
+    // shape for those two connectors is unaffected). A dom-chamber tag's
+    // protocol (main->worker event-forward, worker->main mutation-flush,
+    // `core/worker-dom/protocol.js`) is architecturally DIFFERENT from GA4/
+    // pixel's ready/dropped egress protocol this handle's `push`/
+    // `pushCritical`/`worker.onmessage` machinery is built for — a dom-tag
+    // adapter (a `bootWorkerDomTag`-style boot, or a rig) drives that
+    // DIFFERENT protocol directly against the SAME underlying worker this
+    // seam already constructed + initialized, rather than this module
+    // growing a second, unrelated dispatch shape it would otherwise need to
+    // understand. Freely reassigning `worker.onmessage` is expected (this
+    // module's OWN ready/dropped handler is a harmless no-op for the
+    // `{type:"mutations"}` shape the dom chamber posts).
+    ...(connector === "dom" ? { worker } : {}),
   };
 }
