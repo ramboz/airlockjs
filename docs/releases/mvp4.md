@@ -2,7 +2,23 @@
 
 ## Status
 
-`committed`
+`shipped`
+
+**Shipped as `v0.4.0` (2026-09-03).** Release-check verdict: **ship** — the full Include arc delivered and
+landed on `main`: the **`helix-rum` connector** (`top`/`error`/`cwv` — [spec 022](../specs/022-helix-rum-connector/spec.md)
+022-01/02/04), alloy payload + consent **governance** ([spec 020](../specs/020-alloy-xdm-governance/spec.md),
+both slices; [ADR-0013](../decisions/adr-0013-alloy-consent-enforcement.md)), and the three hardening residuals
+([spec 021](../specs/021-mvp4-hardening/spec.md) 021-01/02/03 — dispose/idempotent-boot guard, egress transport
+pin, ESLint adoption + alloy delint). Both Risk-First items settled: the **alloy XDM-governance probe** (020-01
+— alloy is already read-minimized by construction, consent is the `setConsent` command not a body field) and the
+**`helix-rum` coexistence probe** (hosted, governed, not-consent-gated). Real-repo test suite **green** (70/70
+files, 909 tests), lint clean, build green (all four worker siblings same-origin). **Honest caveats (neither
+blocking):** (1) RUM ships as **host, not subsume** — the connector runs governed, but the page-side `sampleRUM`
+cutover + full parity ([022-03](../specs/022-helix-rum-connector/spec.md), DEFERRED) go to MVP5's RUM-subsume /
+the worker-dom or community path; real-page double-count avoidance is settled at **MVP5**, not here (MVP4's
+committed scope was *host* it, which is delivered). (2) Alloy named residuals remain — `pending→hold+flush`
+(deployment-triggered) and the live `setConsent(collect:n)` flow (creds-gated) — deferred, never in the
+committed must-close. **GA4 (MVP1–3) + Adobe/alloy are both fully governed; the core AEM stack runs in airlock.**
 
 **Committed 2026-08-31** (maintainer: "commit as is") — kept as **one 2-week box** (not split into
 `alloy-governance` | `helix-rum + fruit`). Appetite fixed at 2 weeks; scope flexes per the cutline. The bet:
