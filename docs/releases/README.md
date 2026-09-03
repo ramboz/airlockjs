@@ -14,6 +14,7 @@ they stop informing a current release decision.
 |---|---|---|
 | [MVP5 — Inspector & the RUM Layer (make it visible, own the observability)](mvp5.md) | MVP4 completed **the core AEM stack** — GA4 + **governed** alloy + a hosted `helix-rum` connector. But two | No JIG handoff linked. |
 | [MVP6 — Adoption & 1.0 Readiness](mvp6.md) | The runtime (MVP1), both connector archetypes (MVP2), the enforcement teeth (MVP3), the core AEM stack | No JIG handoff linked. |
+| [MVP7 — Connector Breadth (the pixel archetype)](mvp7.md) | **Breadth is where the adoption leverage is, and it was deferred to "MVP7+".** MVP1–3 shipped the runtime + | JIG handoff: [026](../specs/026-generic-pixel-connector/spec.md), [`connectors/pixel/`](../../connectors/pixel/), [contracts/pixel-connector.d.ts](../../contracts/pixel-connector.d.ts) |
 
 ## Committed
 
