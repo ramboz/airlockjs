@@ -414,6 +414,15 @@ tags but re-incurs the AD-4 embed breakage ADR-0014 ruled out for Tier 0). A ful
 (layout-abuse / clickjacking, not just URL schemes) also remains — 025-03 shipped the URL/`on*`/tag-strip denylist
 (`core/sanitize-html.js`), an honest denylist boundary (mutation-XSS out of scope), not the value-level allowlist.
 
+**DECISION 2026-09-03 — Lever 2 triage posture; 025-04 + Tier-1 SAB PAUSED** (see
+[lightweight-decisions.md](decisions/lightweight-decisions.md#2026-09-03--worker-dom-mirror-lever-2-triage-posture-pause-deeper-infra)).
+The maintainer, reading the 025-03 net-regression above, chose to **triage and move on**: the mirror stays shipped for
+the **chunkable-write** subset it measurably helps, `innerHTML`-heavy tags stay on the main thread, and the deeper
+worker-dom infra here — **025-04 ambient-global proxies** and **Tier-1 SAB** — is **PAUSED** (not killed) in favor of
+the proven **026 pixel-connector** leverage. The two `innerHTML`-class escape hatches (cheaper streaming sanitizer;
+chunked DOM-building) remain the named revisit conditions, alongside a real-stack breadth survey sizing the
+chunkable-write subset. Lever-3 (below) is a **separate**, cross-cutting deferral, unaffected by this call.
+
 ### Decision: Lever 3 circuit-breaker (budget enforcement) — DEFERRED
 **Deferred:** POC-A builds Lever 3's **measurement** half (the before/after INP scoreboard). The
 **enforcement** half — a per-tag INP/TBT budget that throttles/trips a runaway tag, + the inspector surfacing
