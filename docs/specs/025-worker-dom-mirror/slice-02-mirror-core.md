@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: []
 last_verified: 2026-09-02
 frame_review: true
@@ -156,20 +156,25 @@ honest piece of the Lever-2 compat layer
    set is closed). The whole point of Option C over Option A.
 
 **DoD:**
-- [ ] The bidirectional mirror (event-forward + mutation-flush) + apply coordinator + the DOM-chamber worker +
-      the safety allowlist + the rig, **TDD** (tests first).
-- [ ] AC5a **compute-off-thread green** — a real click-p75 on airlock's own mirror, low, **with
-      `workCompleted == ELEMENTS × CLICKS`** (a stall must fail). AC5b **apply-INP green** — a heavy apply stream,
-      measured over the apply window, produces no over-budget task under frame-budgeting vs one long task naive
-      (the falsifiable contrast). Both documented with the run command + baselines.
-- [ ] The mutation-apply **safety allowlist** proven (a hostile op stream refused; the benign stream applies).
-- [ ] `npm run lint` clean; **targeted** vitest green (not the hanging full suite); no live identifiers (synthetic
-      tag only — no vendor scripts).
-- [ ] **Frame-critique RE-PASS recorded** (`frame_review: true`) before REVIEWED — the reframe (bidirectional
-      channel + `workCompleted` assertion + allowlist safety) must clear the pass the first draft failed.
-- [ ] Compliance + craft reviews recorded; close-out `### Reconciliation sweep` + `### Deviation log`; promote the
-      pinned minimal subset + the two 025-01 worker-backpressure threads (20k-el stall, throughput ceiling) toward
-      025-03; update ADR-0014 / refinement-todo (the central INP bet now measured on airlock's own mirror).
+- [x] The bidirectional mirror (`core/worker-dom/mirror.js` + `protocol.js`) + apply coordinator
+      (`adapters/eds/dom-apply.js`) + the DOM-chamber worker (`core/dom-chamber.worker.js` + `dom-chamber-host.js`
+      + `confine-dom-chamber.js`) + the safety allowlist (`core/worker-dom/apply-policy.js`) + the rig, **TDD**.
+- [x] AC5a **compute-off-thread green** — `npm run rig:airlock-mirror` (N=3, 025-01's params): **click-p75 = 8ms
+      (band [8,8])**, **`workCompleted = 6000/6000/6000` == `clicksFired × ELEMENTS`** every run (the driver
+      exits non-zero on mismatch — a stall fails). Independently re-run by the orchestrator. AC5b **apply-INP
+      green** — `test/dom-apply-coordinator.test.js`: a 6000-op heavy stream is frame-budgeted (>1 yield, no batch
+      over the ~5ms budget) vs a naive one-blast = 2000ms single run (the falsifiable contrast).
+- [x] The mutation-apply **safety allowlist** proven (hostile `script`/`iframe`/`on*`/`style-url(`/invalid-token
+      ops refused + diagnosed; benign stream applies) — plus review-hardened: a real-DOM throw is caught +
+      diagnosed, never crashes the batch.
+- [x] `npm run lint` clean; **targeted** vitest green (945 across 78 files, no regressions); no live identifiers
+      (synthetic tag only; assertions on a dispatch spy / the built ops).
+- [x] **Frame-critique RE-PASS recorded** (`frame_review: true`) — `reviews/slice-02-frame-critique.md` (PASS on
+      the 3rd revision — the bidirectional channel + the AC5 5a/5b measurement split).
+- [x] Compliance + craft reviews recorded (both NEEDS-CHANGES → PASS after the throw-safety remediation);
+      close-out `### Deviation log` + `### Reconciliation sweep` below; ADR-0014 / refinement-todo updated (the
+      central INP bet now measured on airlock's own mirror); the minimal subset + the two 025-01
+      worker-backpressure threads promoted toward 025-03.
 
 **Anti-horizontal-phasing check:** 025-02 delivers airlock's **own** working, safe, INP-proven **bidirectional**
 mirror — the foundational Lever-2 mechanism ADR-0014 gated the whole spec on. It is a **mechanism-proof** slice in
@@ -179,3 +184,53 @@ airlock's OWN code — main→worker event forward → worker mirror storm → w
 frame-budgeted main-thread apply → **measured INP with the storm asserted to have fired** — end-to-end, INP-safe
 **and** safe against DOM injection, is the real, vertical deliverable. A REAL tag (Prism, `innerHTML`) is the very
 next slice (025-03).
+
+### Deviation log
+
+- **Extra module `core/dom-chamber-host.js`** (beyond the spec's named file list) — the testable host core
+  (`boot`/`dispatchEvent`) split out from the `self`-guarded thin `dom-chamber.worker.js` glue, mirroring the
+  established `core/connector-host.js` / `core/chamber.worker.js` testability convention (chamber tests never
+  import a `*.worker.js` directly). Sound.
+- **AC1's implemented surface is broader than what `rig/worker-dom-nasty-tag-author.js` actually calls** — the
+  fixture uses only `createElement`/`appendChild`/`.id=`/`setAttribute`/`style`/`offsetHeight`/`addEventListener`;
+  `createTextNode`/`textContent`/`append`/`classList` are implemented too (AC1 named the broader set, each with a
+  unit test). This is over-*coverage*, not over-implementation-vs-spec — but the honest "minimal subset the
+  synthetic tag needs" is *narrower* than AC1's list; the extra primitives are the clearly-safe layout/text
+  superset, not scope creep. (Confirmed by both review passes.)
+- **AC5b realized as a deterministic fake-clock unit test** (`test/dom-apply-coordinator.test.js`, chunk-boundary
+  `yieldToMain`-spy instrumentation), not a browser Long-Tasks rig — the AC explicitly permits "…or chunk-boundary
+  instrumentation." It measures the apply's own budget-boundedness (the frame-critique's requirement) rather than
+  a coincidental interaction timing; the only browser rig is AC5a's (the light ~400-write compute-off-thread path).
+- **`void el.offsetHeight` is an inert no-op off-thread** (returns 0, records nothing) — the documented Tier-0
+  sync-read boundary (025-01), commented inline in the ported fixture.
+- **Review remediation (both passes' blocker — throw-safety).** The reviews found the apply path could throw
+  synchronously under AC6's hostile-op threat model (`classList.add("a b")`→InvalidCharacterError;
+  `setAttribute("data-x y",…)`; a cyclic `appendChild`→HierarchyRequestError) and reject the whole batch,
+  contradicting the module's "never crashes the batch" contract. Fixed: (a) `adapters/eds/dom-apply.js` `applyOne`
+  wraps the real-DOM apply in try/catch → `diagnose({kind:"dom-apply-threw"})` + refuse, batch continues; (b)
+  `core/worker-dom/apply-policy.js` token-validation (`isValidNameToken`, an explicit `/[^A-Za-z0-9_-]/` allowlist
+  — the prior regex carried `\x00-\x1f` control chars, `no-control-regex`) wired into `isAllowedAttributeName` +
+  the class-op case so those ops are cleanly REFUSED pre-apply (defense-in-depth); (c) a coverage test with a
+  throwing fake proves the batch survives. Also: the misleading "by default" AC4 test title reworded; the
+  unreachable `default:` branch in `applyAllowed` kept as harmless defensive code (both passes flagged it a nit).
+
+### Reconciliation sweep
+
+- **Question answered + Outcome set:** airlock's **own** bidirectional worker-dom mirror works end-to-end
+  (main→worker event forward → off-thread compute → worker→main mutation flush → frame-budgeted main-thread apply),
+  and ADR-0014's **central apply-INP bet — previously UNMEASURED on airlock's own code — is now measured** (AC5a
+  click-p75 = 8ms reproducing 025-01's `@ampproject/worker-dom` band on airlock's OWN mirror, orchestrator-re-run;
+  AC5b the falsifiable heavy-apply budget-boundedness proof). The mutation-apply **safety allowlist** gates the
+  real-DOM write surface (hostile ops refused + never crash the batch). `@ampproject/worker-dom` stays
+  **devDep-only** (enumerably not imported by any runtime module — AC8).
+- **Promoted, no orphans:** **ADR-0014** (its central bet, flagged UNMEASURED at authoring, is now measured on
+  airlock's own mirror; the Tier-0 mirror is built — Option C realized) + **refinement-todo**. Toward **025-03**:
+  the pinned minimal subset; a **full value-level style sanitizer that covers LAYOUT abuse (position:fixed
+  full-screen overlay / clickjacking), not just URL schemes** (craft reconciliation note — 025-02's style guard is
+  minimal/escape-bypassable, AC7's disclosed bound); the **DOM-clobbering via `id`** note (spec-required for the
+  fixture's `getElementById` readback, accepted here, hardened there); `innerHTML` + its sanitizer write path; the
+  two 025-01 **worker-backpressure** threads (20k-el stall, throughput ceiling). Ambient globals → **025-04**.
+- **Downstream named:** 025-03 (Prism/`innerHTML` + the full sanitizer + the above hardening); 025-04 (ambient
+  globals); the Lever-3 budget/circuit-breaker; and the DOM-chamber's **`build.mjs` bundle entry** (the same
+  live-rollout gap the pixel worker has — folds into the shared `build.mjs` step). No dependency left dangling.
+- **No live identifiers, no new runtime dependency** — synthetic tag only; the mirror is airlock's own code.

@@ -374,6 +374,22 @@ items — not INP. **PENDING (maintainer's strategic call):** 025-02 (build the 
 **vs** prioritising [026](specs/026-generic-pixel-connector/spec.md) (the proven common-tag pixel-connector
 leverage) first. ADR-0014 stands **validated, not amended** (immutable). Detail: 025-01 Findings/Outcome.
 
+**Mirror BUILT — slice [025-02](specs/025-worker-dom-mirror/slice-02-mirror-core.md) DONE (2026-09-02).** airlock's
+**own** minimal bidirectional worker-dom mirror ships (Option C realized) — a worker-side DOM mirror + a
+main→worker event-forward + worker→main mutation-flush channel + a frame-budgeted main-thread apply coordinator
+(reusing `core/scheduler.js`) + a mutation-apply **safety allowlist** over the real-DOM write surface.
+**ADR-0014's central apply-INP bet — flagged UNMEASURED at authoring — is now MEASURED on airlock's own code:**
+AC5a click-p75 = **8ms** (band [8,8], `workCompleted` full) reproducing 025-01's `@ampproject/worker-dom` band on
+airlock's OWN mirror (orchestrator-re-run), and AC5b a **falsifiable** heavy-apply budget-boundedness proof
+(frame-budgeted vs a naive 2000ms one-blast). `@ampproject/worker-dom` is now **devDep-only** (enumerably not
+imported by any runtime module). A 3-round frame-critique caught two deep issues pre-code (the missing
+main→worker event channel; an apply-INP measurement confound); both review passes then caught + fixed a
+real-DOM-throw batch-crash. **Deferred → 025-03+:** a REAL tag (Prism / `innerHTML`) + a full value-level style
+sanitizer covering **layout abuse** (fixed/absolute overlay clickjacking), not just URL schemes; `id`-based
+DOM-clobbering hardening; ambient-global proxies (`screen`/`sendBeacon`/`cookie`) → 025-04; the Lever-3
+budget/circuit-breaker; and the DOM-chamber's `build.mjs` bundle entry (the same live-rollout gap the pixel
+worker has). ADR-0014 remains **validated, not amended**.
+
 ### Decision: Lever 3 circuit-breaker (budget enforcement) — DEFERRED
 **Deferred:** POC-A builds Lever 3's **measurement** half (the before/after INP scoreboard). The
 **enforcement** half — a per-tag INP/TBT budget that throttles/trips a runaway tag, + the inspector surfacing

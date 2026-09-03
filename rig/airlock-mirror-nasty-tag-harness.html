@@ -1,0 +1,126 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Airlock's OWN mirror nasty-tag INP rig (spec 025-02 AC5a)</title>
+    <style>
+      body { font: 14px system-ui, sans-serif; margin: 0; padding: 2rem; }
+      #target { width: 240px; height: 80px; font-size: 18px; cursor: pointer; }
+      #out { white-space: pre-wrap; margin-top: 1rem; color: #333; }
+    </style>
+  </head>
+  <body>
+    <h1>Airlock's OWN mirror nasty-tag INP rig (spec 025-02 AC5a)</h1>
+    <p>ADR-0014's deferred INP integration probe, run on airlock's OWN bidirectional mirror
+      (core/worker-dom/*, core/dom-chamber.worker.js, adapters/eds/dom-apply.js) instead of
+      025-01's <code>@ampproject/worker-dom</code> probe.</p>
+    <!-- The click target is a REAL, always-sized, plain button — DECOUPLED from the
+         mirror's apply host (below), matching 025-01's own rig + how many real tags
+         attach a document-level listener rather than requiring the click to land on
+         the tag's own (async-populated) subtree. -->
+    <button id="target">interact</button>
+    <pre id="out"></pre>
+    <!-- The apply host: the REAL element the DOM-chamber worker's mirror `document.body`
+         mirrors onto (adapters/eds/dom-apply.js's `root` option, pre-seeded under
+         core/worker-dom/protocol.js's BODY_ID) — mirrors how @ampproject/worker-dom's
+         upgradeElement() mirrors its host element as the worker's document.body. -->
+    <div id="am-host"></div>
+    <script type="module">
+      // ?elements=400&workUs=500 — SAME defaults/meaning as rig/worker-dom-nasty-tag-harness.html
+      // (025-01), for direct comparability.
+      import { createDomApplyCoordinator } from "/adapters/eds/dom-apply.js";
+      import { createEventMessage, isMutationsMessage, DOCUMENT_ID } from "/core/worker-dom/protocol.js";
+
+      const q = new URLSearchParams(location.search);
+      const ELEMENTS = Number(q.get("elements") || 400);
+      const WORK_US = Number(q.get("workUs") || 500);
+
+      const host = document.getElementById("am-host");
+      const coordinator = createDomApplyCoordinator(document, { root: host });
+
+      let booted = false;
+      let bootError = null;
+      let mutationsApplied = 0;
+      const worker = new Worker("/core/dom-chamber.worker.js", { type: "module" });
+      worker.onerror = (e) => {
+        bootError = String(e.message || e.error || e);
+        window.__bootError = bootError;
+      };
+      worker.onmessage = (e) => {
+        const m = e.data;
+        if (!isMutationsMessage(m)) return;
+        // Fire-and-forget from this handler's perspective: the APPLY runs in
+        // its own (frame-budgeted) task, DECOUPLED from the click's own task
+        // (the round-2 frame-critique's point) — exactly how a real tag's
+        // off-thread mutation flush would be handled.
+        coordinator.applyOps(m.ops).then(({ applied }) => {
+          mutationsApplied += applied;
+          if (!booted) { booted = true; window.__booted = true; }
+        });
+      };
+      window.addEventListener("error", (e) => {
+        window.__lateError = String(e.message || e.error || e);
+      });
+
+      // Fetch the BYTE-UNMODIFIED author script text (no server-side templating —
+      // the raw file, exactly as it sits in rig/worker-dom-nasty-tag-author.js;
+      // the __ELEMENTS__/__WORK_US__ placeholders are substituted WORKER-SIDE by
+      // core/dom-chamber-host.js's boot(), from the elements/workUs fields below).
+      const authorSource = await fetch("/rig/worker-dom-nasty-tag-author.js").then((r) => r.text());
+      worker.postMessage({ type: "init", authorSource, elements: ELEMENTS, workUs: WORK_US });
+
+      // --- INP-under-storm collector — VERBATIM from rig/worker-dom-nasty-tag-harness.html
+      //     (023-01 AC4 / 025-01: the repo's PROVEN raw Event-Timing PerformanceObserver
+      //     method, NOT web-vitals onINP).
+      const latencies = [];
+      const seen = new Set();
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries()) {
+          if (!e.interactionId) continue;
+          if (!seen.has(e.interactionId)) { seen.add(e.interactionId); latencies.push(e.duration); }
+        }
+      }).observe({ type: "event", durationThreshold: 16, buffered: true });
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries()) {
+          const key = "fi" + (e.interactionId ?? 0);
+          if (!seen.has(key)) { seen.add(key); latencies.push(e.duration); }
+        }
+      }).observe({ type: "first-input", buffered: true });
+
+      let clicksFired = 0;
+      document.getElementById("target").addEventListener("click", () => {
+        clicksFired++;
+        // main->worker event forwarding (AC3a, the frame-critique fix): a
+        // TRIVIAL main-thread task (serialize + post) — the storm itself
+        // fires OFF-THREAD, inside the worker's mirror-registered listener.
+        worker.postMessage(createEventMessage(DOCUMENT_ID, "click"));
+      });
+
+      const pct = (arr, p) => {
+        if (!arr.length) return 0;
+        const s = [...arr].sort((a, b) => a - b);
+        return s[Math.min(s.length - 1, Math.floor((p / 100) * s.length))];
+      };
+
+      window.__rig = {
+        snapshot() {
+          const status = document.getElementById("wd-status"); // applied by adapters/eds/dom-apply.js under #am-host
+          return {
+            elements: ELEMENTS, workUs: WORK_US,
+            booted, bootError, lateError: window.__lateError || null,
+            collectMs: status ? Number(status.getAttribute("data-collect-ms")) : null,
+            workCompleted: status ? Number(status.getAttribute("data-completed")) : 0,
+            workerClicks: status ? Number(status.getAttribute("data-clicks")) : 0,
+            mutationsApplied,
+            clicksFired,
+            interactions: latencies.length,
+            inp_p75: Math.round(pct(latencies, 75)),
+            inp_p98: Math.round(pct(latencies, 98)),
+            inp_max: Math.round(Math.max(0, ...latencies)),
+          };
+        },
+      };
+      document.getElementById("out").textContent = "rig ready (elements=" + ELEMENTS + ", workUs=" + WORK_US + ")";
+    </script>
+  </body>
+</html>

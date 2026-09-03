@@ -132,3 +132,26 @@ describe("import ORDER guarantee — pixel chamber (spec 026-01 craft-review, se
     expect(src).toMatch(/applyEgressConfinement\(self,\s*\{\s*withholdFetch:\s*true\s*\}\)/);
   });
 });
+
+describe("import ORDER guarantee — DOM chamber (spec 025-02, security parity with GA4/pixel)", () => {
+  const DOM_CHAMBER = join(dirname(fileURLToPath(import.meta.url)), "..", "core", "dom-chamber.worker.js");
+
+  it("core/dom-chamber.worker.js's FIRST import statement names ./confine-dom-chamber.js", () => {
+    const src = readFileSync(DOM_CHAMBER, "utf8");
+    const firstImportLine = src.match(/^import\s.+$/m);
+    expect(firstImportLine).not.toBeNull();
+    // Same post-order argument as GA4/pixel's chambers: this being the FIRST
+    // import pins confinement's top-level to run before the host/mirror
+    // imports below evaluate — a tag running off-thread through airlock's
+    // OWN mirror must not be able to reach the network by any ambient path.
+    expect(firstImportLine[0]).toMatch(/["']\.\/confine-dom-chamber\.js["']/);
+  });
+
+  it("core/confine-dom-chamber.js applies withholdFetch confinement at its own top level", () => {
+    const src = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "..", "core", "confine-dom-chamber.js"),
+      "utf8",
+    );
+    expect(src).toMatch(/applyEgressConfinement\(self,\s*\{\s*withholdFetch:\s*true\s*\}\)/);
+  });
+});
