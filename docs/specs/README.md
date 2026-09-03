@@ -81,9 +81,9 @@
 | [028-enforcement-inspector](028-enforcement-inspector/spec.md) | 028-01 — the decision-stream read-layer + query | **DONE** | Inspector = read-layer over 009-02; ONE collector MUST wire all 3 `onDiagnostic` seams (createAirlock + createWrappedSdkHost + createDomApplyCoordinator) — a createAirlock-only wiring is blind to config-integrity. |
 | [028-enforcement-inspector](028-enforcement-inspector/spec.md) | 028-02 — per-beacon correlation | **DONE** |  |
 | [028-enforcement-inspector](028-enforcement-inspector/spec.md) | 028-03 — the drop-in dev panel | **DONE** |  |
-| [029-cwv-scoreboard](029-cwv-scoreboard/spec.md) | 029-01 — the INP scoreboard artifact | **DONE** |  |
+| [029-cwv-scoreboard](029-cwv-scoreboard/spec.md) | 029-01 — the INP scoreboard artifact | **DONE** | Scoreboard is HONEST: naive/deferred/worker triple; fast arms reported BELOW the 16ms Event-Timing floor (not a false-precise p75); durable card `docs/scoreboard.md` in tolerance bands; advisory (ADR-0005), NOT in oracle.sh. |
 | [029-cwv-scoreboard](029-cwv-scoreboard/spec.md) | 029-02 — the load-CWV arm + CI | **DONE** |  |
-| [029-cwv-scoreboard](029-cwv-scoreboard/spec.md) | 029-03 — realistic martech load (DEFERRABLE) | DRAFT |  |
+| [029-cwv-scoreboard](029-cwv-scoreboard/spec.md) | 029-03 — a realistic martech load (the honest synthetic-representative version) | **DONE** |  |
 
 ## Deferred slices
 
@@ -106,7 +106,7 @@
 
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
-- **6** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
+- **7** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **70** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **8** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review

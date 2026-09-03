@@ -35,7 +35,7 @@
 ### ~~OQ6 — Flicker oracle design~~ — RESOLVED 2026-08-27
 ~~**Deferred:** Screenshot-diff between pre- and post-decoration paint vs a CLS-after-apply proxy. A servo oracle-component question; the proxy-gap here is why the PZN demo item stays jig-supervised. This is also where the before/after CWV scoreboard (the "punchline" use case) becomes a pinned measurement surface (analyze finding #7).~~
 **Resolution trigger:** When designing the servo oracle components for the spike (drive-order step 8).
-**Resolved by:** [ADR-0005: Servo oracle design: AND-gate, isolation routing, and flicker (OQ6)](decisions/adr-0005-oracle-design.md).
+**Resolved by:** [ADR-0005: Servo oracle design: AND-gate, isolation routing, and flicker (OQ6)](decisions/adr-0005-oracle-design.md) (the flicker-oracle routing half). **Scoreboard-surface residual RESOLVED 2026-09-03 by [spec 029 — the before/after CWV scoreboard](specs/029-cwv-scoreboard/spec.md):** the punchline is now a first-class, reproducible, honestly-hedged output — `npm run cwv:scoreboard` emits the naive/deferred/worker triple (`docs/scoreboard.md`, the committed durable card in tolerance-band language) + the Lighthouse load-CWV arm + a grounded `PROFILE=realistic` load; advisory (ADR-0005), not gating. Deferred beyond MVP5: varied per-tracker cost + the real customer-stack load (creds-gated); the RUM subsume (separate spec).
 
 ### ~~OQ7 — Inspector scope in MVP1~~ — RESOLVED 2026-09-03 (spec 028)
 ~~**Deferred:** How much of the "why did this beacon fire / hold at the seal / get gated" panel ships in MVP1 vs later.~~

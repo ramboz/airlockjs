@@ -28,6 +28,30 @@ export const MEASUREMENT_FLOOR_MS = 16;
 // cold first-input was captured) — report it as "below the floor", not a precise p75.
 const FLOOR_INTERACTIONS = 2;
 
+// 029-03: load profiles. `micro` is the 5-tracker synthetic micro-fixture; `realistic`
+// is a grounded HEAVIER synthetic load — ~12 uniform trackers, reflecting R-007's ~10-15
+// INP-relevant real-stack tags. HONEST LIMIT: uniform WORK per tracker (not a varied real
+// mix), and NOT the real customer stack (creds/availability-gated — deferred, per mvp5.md).
+export const PROFILES = {
+  micro: { trackers: 5, work_us: 30000 },
+  realistic: { trackers: 12, work_us: 20000 },
+};
+
+// Resolve the load profile from env: PROFILE picks the base fixture; TRACKERS/WORK override.
+export function resolveProfile(env = {}) {
+  const name = env.PROFILE && PROFILES[env.PROFILE] ? env.PROFILE : "micro";
+  const base = PROFILES[name];
+  return {
+    profile: name,
+    // `Number(x) || base` — a non-numeric/empty override (NaN) falls back to the profile base
+    // rather than passing "NaN" through to measure.mjs's harness (craft-review robustness).
+    trackers: Number(env.TRACKERS) || base.trackers,
+    work_us: Number(env.WORK) || base.work_us,
+    // realistic is a representative uniform-work synthetic — NOT the varied real customer stack.
+    synthetic: true,
+  };
+}
+
 export function median(xs) {
   const s = [...xs].sort((a, b) => a - b);
   const m = Math.floor(s.length / 2);
@@ -125,9 +149,18 @@ export function renderCard(model) {
   return [
     `# airlock CWV scoreboard — INP under a multi-tracker storm`,
     ``,
-    `_Generated ${model.generated_at} · synthetic ${fx.trackers ?? "?"}-tracker load ` +
-      `(work ${fx.work_us ?? "?"}µs) · N=${model.n_runs} per arm · advisory (not a gate)._`,
+    `_Generated ${model.generated_at} · **${fx.profile ?? "micro"}** profile: synthetic ` +
+      `${fx.trackers ?? "?"}-tracker load (uniform work ${fx.work_us ?? "?"}µs) · N=${model.n_runs} per arm · ` +
+      `advisory (not a gate)._`,
     ``,
+    ...(fx.profile === "realistic"
+      ? [
+          `> _Realistic profile: a grounded heavier **synthetic** load (~${fx.trackers} uniform trackers, R-007's ` +
+            `INP-relevant count) — a representative average, NOT a varied real mix, and NOT the real customer stack ` +
+            `(creds-gated, deferred)._`,
+          ``,
+        ]
+      : []),
     `| arm | INP p75 | interactions | note |`,
     `|---|---|---|---|`,
     row("naive (sync multi-tracker)", a.naive, "real p75 — every interaction is above the 16ms floor"),
@@ -149,9 +182,9 @@ export function renderCard(model) {
 }
 
 // --- script entry (guarded so importing for tests never launches a browser) ---
-function runMeasure(mode) {
+function runMeasure(mode, fixture) {
   const out = execFileSync("node", ["rig/measure.mjs"], {
-    env: { ...process.env, MODE: mode },
+    env: { ...process.env, MODE: mode, TRACKERS: String(fixture.trackers), WORK: String(fixture.work_us) },
     encoding: "utf8",
     timeout: Number(process.env.CWV_CHILD_TIMEOUT_MS || 180000),
   });
@@ -179,22 +212,17 @@ function runLighthouse() {
 
 async function main() {
   const N = Math.max(1, Number(process.env.INP_N || 3)); // guard: >=1 (median([]) is NaN)
+  const fixture = resolveProfile(process.env); // 029-03: micro | realistic (+ TRACKERS/WORK override)
   const modes = ["naive", "deferred", "worker"];
   const runs = {};
   for (const mode of modes) {
-    process.stderr.write(`cwv:scoreboard — ${mode} x${N}...\n`);
+    process.stderr.write(`cwv:scoreboard — ${fixture.profile} · ${mode} x${N}...\n`);
     runs[mode] = [];
-    for (let i = 0; i < N; i++) runs[mode].push(runMeasure(mode));
+    for (let i = 0; i < N; i++) runs[mode].push(runMeasure(mode, fixture));
   }
   let model = buildScoreboard({
     ...runs,
-    meta: {
-      generated_at: new Date().toISOString(),
-      fixture: {
-        trackers: Number(process.env.TRACKERS || 5),
-        work_us: Number(process.env.WORK || 30000),
-      },
-    },
+    meta: { generated_at: new Date().toISOString(), fixture },
   });
   // 029-02: opt-in load-CWV arm (lh-eds is slow — build + Lighthouse). Default stays INP-only + fast.
   if (process.env.WITH_LH) {

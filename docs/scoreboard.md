@@ -34,5 +34,10 @@ Lighthouse arm (`rig/lh-eds.mjs`, the real `probes/eds-testbed` page) shows a **
 a **CLS delta ~0 (|Δ| ≤ 0.01)**, with **LCP ~0 by construction** (airlock boots lazily, post-LCP). Add this arm to a
 run with `WITH_LH=1 npm run cwv:scoreboard` (slower — it builds + runs Lighthouse); CI runs it advisory-only.
 
-_The RUM subsume and the realistic-customer-stack load are separate/later MVP5 work (029-03, and a separate RUM
-spec); this card is the synthetic-load punchline._
+**Load profiles (the fidelity ladder).** The card above is the **`micro`** profile (5 synthetic trackers). A
+grounded heavier synthetic load runs with **`PROFILE=realistic npm run cwv:scoreboard`** — ~12 uniform trackers,
+reflecting [R-007](research/R-007-real-prod-stack-breadth.md)'s ~10–15 INP-relevant real-stack tags. **Honest
+limits:** the realistic profile is still **synthetic + uniform-work** (a representative average, not a real
+stack's varied 5–50ms spread), and it is **NOT the real customer stack** — that load is creds/availability-gated
+and remains **deferred** (a later MVP5 rung), as is the **RUM subsume** (a separate MVP5 spec). The naive arm
+scales with the load (more/heavier trackers → higher naive INP); airlock stays below the floor.

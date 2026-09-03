@@ -3,7 +3,7 @@
 // deferred p75=0/1, worker p75=8/1), plus the committed durable card + advisory routing.
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { median, summarizeArm, buildScoreboard, renderCard, foldLoadCwv, MEASUREMENT_FLOOR_MS } from "../rig/cwv-scoreboard.mjs";
+import { median, summarizeArm, buildScoreboard, renderCard, foldLoadCwv, resolveProfile, PROFILES, MEASUREMENT_FLOOR_MS } from "../rig/cwv-scoreboard.mjs";
 
 // A measure.mjs run snapshot (the fields the scoreboard consumes).
 const run = (inp_p75, interactions) => ({ inp_p75, interactions, egress_requests: 300, expected_egress: 300 });
@@ -134,6 +134,44 @@ describe("029-02 — the load-CWV arm (foldLoadCwv) + CI wiring", () => {
     expect(card).toMatch(/Load CWV/i);
     expect(card).toMatch(/TBT delta within band/i);
     expect(card).toMatch(/WITH_LH=1 npm run cwv:scoreboard/);
+  });
+});
+
+describe("029-03 — load profiles (resolveProfile) + honest bounding", () => {
+  it("AC1 — resolveProfile: micro is the default; realistic is the grounded heavier load; TRACKERS/WORK override", () => {
+    expect(resolveProfile({})).toMatchObject({ profile: "micro", trackers: 5, work_us: 30000, synthetic: true });
+    expect(resolveProfile({ PROFILE: "realistic" })).toMatchObject({ profile: "realistic", trackers: 12, work_us: 20000 });
+    expect(resolveProfile({ PROFILE: "bogus" }).profile).toBe("micro"); // unknown -> micro
+    expect(resolveProfile({ PROFILE: "realistic", TRACKERS: "20", WORK: "5000" })).toMatchObject({ profile: "realistic", trackers: 20, work_us: 5000 });
+    expect(PROFILES.realistic.trackers).toBeGreaterThan(PROFILES.micro.trackers); // realistic is heavier
+  });
+
+  it("AC2 — the scoreboard model records the profile in its fixture", () => {
+    const m = buildScoreboard({ naive: NAIVE, deferred: DEFERRED, worker: WORKER, meta: { fixture: resolveProfile({ PROFILE: "realistic" }), generated_at: "x" } });
+    expect(m.fixture.profile).toBe("realistic");
+    expect(m.fixture.trackers).toBe(12);
+  });
+
+  it("AC3 — the card labels the realistic profile AND discloses the synthetic limit + the deferred real stack (no overclaim)", () => {
+    const m = buildScoreboard({ naive: NAIVE, deferred: DEFERRED, worker: WORKER, meta: { fixture: resolveProfile({ PROFILE: "realistic" }), generated_at: "x" } });
+    const card = renderCard(m);
+    expect(card).toMatch(/\*\*realistic\*\* profile/i);
+    expect(card).toMatch(/NOT the real customer stack/i); // the honest bound — never claims to be the real stack
+    expect(card).toMatch(/representative average/i); // note-only string (independent teeth for the disclosure block)
+    expect(card).toMatch(/deferred/i);
+  });
+
+  it("AC1 — a non-numeric TRACKERS/WORK override falls back to the profile base (no NaN through to the harness)", () => {
+    expect(resolveProfile({ PROFILE: "realistic", TRACKERS: "abc" }).trackers).toBe(12); // NaN -> base, not "NaN"
+    expect(resolveProfile({ WORK: "" }).work_us).toBe(30000); // empty -> micro base
+  });
+
+  it("AC4 — docs/scoreboard.md documents the realistic profile + the honest limits + the deferred real stack", () => {
+    const doc = readFileSync(new URL("../docs/scoreboard.md", import.meta.url), "utf8");
+    expect(doc).toMatch(/PROFILE=realistic npm run cwv:scoreboard/);
+    expect(doc).toMatch(/NOT the real customer stack/i);
+    expect(doc).toMatch(/deferred/i);
+    expect(doc).toMatch(/uniform-work|uniform work/i); // the synthetic limit
   });
 });
 
