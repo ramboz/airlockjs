@@ -93,7 +93,26 @@ export function buildScoreboard({ naive, deferred, worker, meta = {} }) {
         `sub-threshold, ~${arms.worker.interactions_median} interaction(s) captured (cold first-input only), so ` +
         `their number is a floor, not a precise p75. The robust contrast is naive's real ~${arms.naive.p75_median}ms p75.`,
     },
+    // 029-02: the load-CWV (page-load Lighthouse before/after) arm — null until
+    // folded in by `foldLoadCwv` (opt-in via WITH_LH, since lh-eds is slow).
+    load_cwv: null,
     routing: "advisory — jig-supervised, NOT in oracle.sh's gating composite (ADR-0005)",
+  };
+}
+
+// 029-02: fold rig/lh-eds.mjs's off-vs-on Lighthouse deltas into the model as the
+// load-CWV half of the before/after. Pure — the test feeds a fake lh JSON. LCP
+// delta is ~0 by construction (lazy post-LCP boot), so TBT + CLS are the arms.
+export function foldLoadCwv(model, lh) {
+  if (!lh || !lh.delta_median) return model;
+  return {
+    ...model,
+    load_cwv: {
+      tbt_delta_ms: lh.delta_median.TBT_ms,
+      cls_delta: lh.delta_median.CLS,
+      within_band: lh.acceptance ? lh.acceptance.within_band : null,
+      lcp_note: "LCP delta ~0 by construction (airlock boots lazily, post-LCP)",
+    },
   };
 }
 
@@ -119,6 +138,12 @@ export function renderCard(model) {
     ``,
     `> ${model.contrast.honest_note}`,
     ``,
+    model.load_cwv
+      ? `**Load CWV (airlock OFF→ON, real testbed):** TBT delta **${model.load_cwv.tbt_delta_ms}ms**, ` +
+        `CLS delta **${model.load_cwv.cls_delta}** (LCP ~0 by construction) — ` +
+        `${model.load_cwv.within_band === true ? "within band (~zero page-load cost)" : model.load_cwv.within_band === false ? "OVER band" : "band unknown"}.`
+      : "_Load CWV: run `WITH_LH=1 npm run cwv:scoreboard` to add the off-vs-on Lighthouse TBT/CLS arm._",
+    ``,
     `_${model.routing}._`,
   ].join("\n");
 }
@@ -133,6 +158,25 @@ function runMeasure(mode) {
   return JSON.parse(out);
 }
 
+// lh-eds.mjs shells `npm run build` with stdio:"inherit", prefixing an npm banner
+// ahead of its JSON — so parse from the last top-level object (mirrors cwv-budget.mjs's
+// extractTrailingJSON). The lh-eds source-side fix (build output → stderr) is tracked in
+// docs/inbox.md; consuming robustly here keeps this slice non-invasive to lh-eds's callers.
+function extractTrailingJSON(text) {
+  const idx = text.lastIndexOf("\n{\n");
+  const start = text.startsWith("{\n") ? 0 : idx < 0 ? -1 : idx + 1;
+  if (start < 0) throw new Error(`no JSON object found in output:\n${text}`);
+  return JSON.parse(text.slice(start).trim());
+}
+
+function runLighthouse() {
+  const out = execFileSync("node", ["rig/lh-eds.mjs"], {
+    encoding: "utf8",
+    timeout: Number(process.env.CWV_CHILD_TIMEOUT_MS || 180000),
+  });
+  return extractTrailingJSON(out);
+}
+
 async function main() {
   const N = Math.max(1, Number(process.env.INP_N || 3)); // guard: >=1 (median([]) is NaN)
   const modes = ["naive", "deferred", "worker"];
@@ -142,7 +186,7 @@ async function main() {
     runs[mode] = [];
     for (let i = 0; i < N; i++) runs[mode].push(runMeasure(mode));
   }
-  const model = buildScoreboard({
+  let model = buildScoreboard({
     ...runs,
     meta: {
       generated_at: new Date().toISOString(),
@@ -152,6 +196,11 @@ async function main() {
       },
     },
   });
+  // 029-02: opt-in load-CWV arm (lh-eds is slow — build + Lighthouse). Default stays INP-only + fast.
+  if (process.env.WITH_LH) {
+    process.stderr.write("cwv:scoreboard — load-CWV (rig/lh-eds.mjs)...\n");
+    model = foldLoadCwv(model, runLighthouse());
+  }
   mkdirSync("rig/out", { recursive: true });
   writeFileSync("rig/out/cwv-scoreboard.json", JSON.stringify(model, null, 2));
   const card = renderCard(model);

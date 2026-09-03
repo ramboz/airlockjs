@@ -124,6 +124,17 @@ jobs:
         continue-on-error: true
         run: mkdir -p rig/out && npm run cwv:budget | tee rig/out/cwv-report.txt
 
+      - name: ADVISORY — cwv_scoreboard (naive/deferred/worker INP triple + load-CWV, 029)
+        # The before/after punchline artifact (spec 029). Advisory only (ADR-0005) —
+        # do NOT add to the gating steps above and NOT to oracle.sh's COMPONENTS.
+        # INP_N=1 keeps the INP arms fast; LH_N=1 is REQUIRED — the cwv:budget step
+        # above already runs a full LH_N=5 lh-eds sweep, so leaving LH_N default (5)
+        # would run a SECOND 10-run Lighthouse sweep and could push this job past its
+        # 30-min timeout (which continue-on-error does NOT cover). The advisory card's
+        # robust number is naive's wall-clock p75, not a 5-median LH delta.
+        continue-on-error: true
+        run: mkdir -p rig/out && INP_N=1 LH_N=1 WITH_LH=1 npm run cwv:scoreboard
+
       - name: Upload rig artifacts (AC4 — scoreboard + challenger screenshot)
         if: always()
         uses: actions/upload-artifact@v4

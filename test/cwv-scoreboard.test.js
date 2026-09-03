@@ -3,7 +3,7 @@
 // deferred p75=0/1, worker p75=8/1), plus the committed durable card + advisory routing.
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { median, summarizeArm, buildScoreboard, renderCard, MEASUREMENT_FLOOR_MS } from "../rig/cwv-scoreboard.mjs";
+import { median, summarizeArm, buildScoreboard, renderCard, foldLoadCwv, MEASUREMENT_FLOOR_MS } from "../rig/cwv-scoreboard.mjs";
 
 // A measure.mjs run snapshot (the fields the scoreboard consumes).
 const run = (inp_p75, interactions) => ({ inp_p75, interactions, egress_requests: 300, expected_egress: 300 });
@@ -90,6 +90,50 @@ describe("the committed durable card (AC2b) — docs/scoreboard.md", () => {
     expect(card).toMatch(/2026-09-03/); // provenance
     expect(card).toMatch(/ties a competently-deferred|tying a competently-deferred/i); // honesty, not overclaim
     expect(card).not.toMatch(/\|\s*worker[^|]*\|\s*~8ms/i); // the committed worker row is NOT a false-precise 8ms
+  });
+});
+
+// A fake rig/lh-eds.mjs JSON (its real shape: delta_median{TBT_ms,CLS} + acceptance).
+const LH = { delta_median: { TBT_ms: 4, CLS: 0.001 }, acceptance: { within_band: true } };
+
+describe("029-02 — the load-CWV arm (foldLoadCwv) + CI wiring", () => {
+  it("AC2 — the default model has load_cwv: null (opt-in; no Lighthouse spawned by default)", () => {
+    expect(build().load_cwv).toBeNull();
+    expect(renderCard(build())).toMatch(/run `WITH_LH=1 npm run cwv:scoreboard`/i); // the opt-in note
+  });
+
+  it("AC1 — foldLoadCwv adds the load_cwv section from lh-eds's JSON; renderCard shows the row", () => {
+    const m = foldLoadCwv(build(), LH);
+    expect(m.load_cwv).toEqual({
+      tbt_delta_ms: 4,
+      cls_delta: 0.001,
+      within_band: true,
+      lcp_note: expect.stringMatching(/LCP delta ~0 by construction/i),
+    });
+    const card = renderCard(m);
+    expect(card).toMatch(/Load CWV.*TBT delta \*\*4ms\*\*/i);
+    expect(card).toMatch(/CLS delta \*\*0\.001\*\*/);
+    expect(card).toMatch(/within band/i);
+  });
+
+  it("AC1/AC2 — foldLoadCwv is a no-op when the lh JSON is absent or malformed (default stays INP-only)", () => {
+    expect(foldLoadCwv(build(), null).load_cwv).toBeNull();
+    expect(foldLoadCwv(build(), {}).load_cwv).toBeNull(); // no delta_median
+  });
+
+  it("AC3 — CI's browser-oracle runs the scoreboard as an ADVISORY (continue-on-error) step, WITH_LH", () => {
+    const ci = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
+    expect(ci).toMatch(/cwv_scoreboard/);
+    // THIS step's own continue-on-error binds to its WITH_LH run (advisory, like cwv:budget) — not just
+    // some continue-on-error elsewhere in the file. The lazy spans stay inside the one step block.
+    expect(ci).toMatch(/cwv_scoreboard[\s\S]*?continue-on-error: true[\s\S]*?WITH_LH=1 npm run cwv:scoreboard/);
+  });
+
+  it("AC4 — the committed card notes the load-CWV arm (TBT/CLS band + how to run it)", () => {
+    const card = readFileSync(new URL("../docs/scoreboard.md", import.meta.url), "utf8");
+    expect(card).toMatch(/Load CWV/i);
+    expect(card).toMatch(/TBT delta within band/i);
+    expect(card).toMatch(/WITH_LH=1 npm run cwv:scoreboard/);
   });
 });
 

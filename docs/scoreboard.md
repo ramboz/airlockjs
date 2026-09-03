@@ -29,5 +29,10 @@ reproduces hardware-independently). The honest positioning airlock claims (`docs
 principles): **INP-safe-by-construction + wins-the-common-case (vs naive) + wins-heavy/indivisible-load + per-tracker
 isolation — NOT a blanket "beats a competent main thread"** (a well-deferred one ties it).
 
+**Load CWV (the other half of the before/after).** airlock also costs **~zero page-load CWV**: the off-vs-on
+Lighthouse arm (`rig/lh-eds.mjs`, the real `probes/eds-testbed` page) shows a **TBT delta within band (≤50ms)** and
+a **CLS delta ~0 (|Δ| ≤ 0.01)**, with **LCP ~0 by construction** (airlock boots lazily, post-LCP). Add this arm to a
+run with `WITH_LH=1 npm run cwv:scoreboard` (slower — it builds + runs Lighthouse); CI runs it advisory-only.
+
 _The RUM subsume and the realistic-customer-stack load are separate/later MVP5 work (029-03, and a separate RUM
 spec); this card is the synthetic-load punchline._
