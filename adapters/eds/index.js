@@ -36,6 +36,8 @@ import { resolveConsent } from "../../core/consent.js";
 import { sourceGa4Ctx } from "../../connectors/ga4/cookies.js";
 import { shapeMpConsent } from "../../connectors/ga4/consent.js";
 import { createMetaPixelConfig, META_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/meta.js";
+import { createLinkedInInsightConfig, LINKEDIN_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/linkedin.js";
+import { createBingUetConfig, BING_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/bing.js";
 import { createCookieCapability } from "./cookies.js";
 import { createExposureReporter } from "./exposure.js";
 import { createBlockInstrumenter } from "./blocks.js";
@@ -60,8 +62,14 @@ const GA4_EGRESS_PURPOSES = ["analytics_storage"];
  * can import both from this one adapter module. `bootMetaPixel` below wires
  * it into its own `createAirlock` call the same way `bootEdsAnalytics` wires
  * `GA4_EGRESS_PURPOSES`.
+ *
+ * spec 026-02 AC1/AC2 — `LINKEDIN_EGRESS_PURPOSES`/`BING_EGRESS_PURPOSES` are
+ * re-exported the SAME way (their homes are `connectors/pixel/vendors/
+ * linkedin.js` / `connectors/pixel/vendors/bing.js`); `bootLinkedInInsight`/
+ * `bootBingUet` below wire them into their own `createAirlock` calls the SAME
+ * `consent ? … : []` back-compat gate `bootMetaPixel` uses.
  */
-export { META_EGRESS_PURPOSES };
+export { META_EGRESS_PURPOSES, LINKEDIN_EGRESS_PURPOSES, BING_EGRESS_PURPOSES };
 
 /**
  * The DISTINCT GA4 event names the UC-2 interaction wiring emits (slice 004-04).
@@ -501,6 +509,132 @@ export async function bootMetaPixel(opts = {}) {
     connectorConfig,
     consent,
     egressPurposes: consent ? META_EGRESS_PURPOSES : [],
+    consentStrict,
+    payloadDenylist,
+  });
+
+  return {
+    push: (evt) => airlock.push(evt),
+    setConsent: (v) => airlock.setConsent(v),
+    getState: (path) => airlock.getState(path),
+    flushNow: () => airlock.flushNow(),
+    stats: () => airlock.stats(),
+    dispose: () => airlock.dispose(),
+  };
+}
+
+/**
+ * Boot a LinkedIn Insight connector instance for an EDS page (spec 026-02
+ * AC1) — mirrors `bootMetaPixel`'s own adapter pattern verbatim (see that
+ * function's doc comment above for the full "why minimal relative to
+ * `bootEdsAnalytics`" rationale, identical here): a vendor config fixture
+ * (`createLinkedInInsightConfig`) feeds the SAME `createAirlock`
+ * connector-selection option (`connector: "pixel"`), with
+ * `LINKEDIN_EGRESS_PURPOSES` wired into `egressPurposes` behind the SAME
+ * `consent ? … : []` back-compat gate `bootMetaPixel` uses for
+ * `META_EGRESS_PURPOSES`. `pushCritical` is likewise NOT exposed on the
+ * returned handle, for the SAME reason `bootMetaPixel`'s doc comment states
+ * (no main-thread critical mapper for a pixel connector — a mis-map, not a
+ * beacon).
+ *
+ * @param {object} [opts]
+ * @param {string} [opts.partnerId]         the LinkedIn partner id (defaults
+ *                                          to a clearly-synthetic placeholder
+ *                                          — NO live identifier ships here).
+ * @param {string} [opts.conversionId]      the LinkedIn conversion id for the
+ *                                          `lead` event (defaults to a
+ *                                          clearly-synthetic placeholder).
+ * @param {string} [opts.endpoint]          override for LinkedIn's
+ *                                          `/collect` endpoint (test/rig
+ *                                          escape hatch).
+ * @param {Record<string, string>} [opts.consent] host-supplied ADR-0007
+ *                                          consent vector, folded into
+ *                                          `egressPurposes` exactly like
+ *                                          `bootMetaPixel`'s own gate.
+ * @param {boolean} [opts.consentStrict]    spec 017-03 AC3 — a strict/
+ *                                          no-processing regime.
+ * @param {string[]} [opts.payloadDenylist] spec 019-01 (ADR-0012) — threaded
+ *                                          straight through to `createAirlock`,
+ *                                          merged with the always-on built-in
+ *                                          default inside it.
+ * @returns {Promise<{ push: Function, setConsent: Function, getState: Function, flushNow: Function, stats: Function, dispose: Function }>}
+ */
+export async function bootLinkedInInsight(opts = {}) {
+  const { partnerId, conversionId, endpoint, consent, consentStrict = false, payloadDenylist } = opts;
+
+  const connectorConfig = createLinkedInInsightConfig({ partnerId, conversionId, endpoint });
+
+  // Host-owned ceiling (ADR-0006): declared INDEPENDENTLY of the connector's
+  // own advisory manifest.endpoints, exactly like bootMetaPixel above — a
+  // compromised/misconfigured connector config cannot widen its own egress.
+  const airlock = createAirlock({
+    trackers: 1,
+    workFactor: 0,
+    endpoints: [connectorConfig.endpoint],
+    ctx: {}, // no host-sourced identity crosses into a pixel instance (026-01/026-02 scope)
+    connector: "pixel",
+    connectorConfig,
+    consent,
+    egressPurposes: consent ? LINKEDIN_EGRESS_PURPOSES : [],
+    consentStrict,
+    payloadDenylist,
+  });
+
+  return {
+    push: (evt) => airlock.push(evt),
+    setConsent: (v) => airlock.setConsent(v),
+    getState: (path) => airlock.getState(path),
+    flushNow: () => airlock.flushNow(),
+    stats: () => airlock.stats(),
+    dispose: () => airlock.dispose(),
+  };
+}
+
+/**
+ * Boot a Bing UET connector instance for an EDS page (spec 026-02 AC2) —
+ * mirrors `bootLinkedInInsight`/`bootMetaPixel`'s own adapter pattern
+ * verbatim: a vendor config fixture (`createBingUetConfig`) feeds the SAME
+ * `createAirlock` connector-selection option (`connector: "pixel"`), with
+ * `BING_EGRESS_PURPOSES` wired into `egressPurposes` behind the SAME
+ * `consent ? … : []` back-compat gate. `pushCritical` is likewise NOT
+ * exposed on the returned handle, for the SAME reason `bootMetaPixel`'s doc
+ * comment states.
+ *
+ * @param {object} [opts]
+ * @param {string} [opts.tagId]             the Bing UET tag id (defaults to
+ *                                          a clearly-synthetic placeholder —
+ *                                          NO live identifier ships here).
+ * @param {string} [opts.endpoint]          override for Bing's `/action/0`
+ *                                          endpoint (test/rig escape hatch).
+ * @param {Record<string, string>} [opts.consent] host-supplied ADR-0007
+ *                                          consent vector, folded into
+ *                                          `egressPurposes` exactly like
+ *                                          `bootMetaPixel`'s own gate.
+ * @param {boolean} [opts.consentStrict]    spec 017-03 AC3 — a strict/
+ *                                          no-processing regime.
+ * @param {string[]} [opts.payloadDenylist] spec 019-01 (ADR-0012) — threaded
+ *                                          straight through to `createAirlock`,
+ *                                          merged with the always-on built-in
+ *                                          default inside it.
+ * @returns {Promise<{ push: Function, setConsent: Function, getState: Function, flushNow: Function, stats: Function, dispose: Function }>}
+ */
+export async function bootBingUet(opts = {}) {
+  const { tagId, endpoint, consent, consentStrict = false, payloadDenylist } = opts;
+
+  const connectorConfig = createBingUetConfig({ tagId, endpoint });
+
+  // Host-owned ceiling (ADR-0006): declared INDEPENDENTLY of the connector's
+  // own advisory manifest.endpoints, exactly like bootMetaPixel above — a
+  // compromised/misconfigured connector config cannot widen its own egress.
+  const airlock = createAirlock({
+    trackers: 1,
+    workFactor: 0,
+    endpoints: [connectorConfig.endpoint],
+    ctx: {}, // no host-sourced identity crosses into a pixel instance (026-01/026-02 scope)
+    connector: "pixel",
+    connectorConfig,
+    consent,
+    egressPurposes: consent ? BING_EGRESS_PURPOSES : [],
     consentStrict,
     payloadDenylist,
   });

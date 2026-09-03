@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: []
 last_verified: 2026-09-02
 frame_review: true
@@ -83,18 +83,72 @@ R-007 GET-pixel population. Surface **what varies vendor-to-vendor** toward the 
    endpoints; no live beacon (assert on a `fetch` spy / the built `EgressRequest`).
 
 **DoD:**
-- [ ] The 2 vendor config fixtures (LinkedIn GET, Bing UET GET) + adapter wiring + the table-driven generality
-      test (+ the empty-connector-diff / no-vendor-string enumeration), **TDD**.
-- [ ] All 6 ACs proven by **targeted** tests — the per-vendor GET maps + governance (AC1/AC2/AC5), the
-      one-connector-N-configs generality + empty-connector-diff (AC3), the "what varies" write-up (AC4).
-- [ ] `npm run lint` clean; **targeted** vitest green; **no live identifiers** (synthetic ids; fetch-spy assertions).
-- [ ] **Frame-critique RE-PASS recorded** (`frame_review: true`) before REVIEWED — the reframe (POST deferred;
-      the generality bet tested on the real GET population) must clear the pass the first draft failed.
-- [ ] Compliance + craft reviews recorded; close-out `### Reconciliation sweep` + `### Deviation log`; promote the
-      config-contract shape (AC4) + the deferred POST/`ctx`-body axis toward 026-03.
+- [x] The 2 vendor config fixtures (`connectors/pixel/vendors/{linkedin,bing}.js`) + adapter wiring
+      (`bootLinkedInInsight`/`bootBingUet`) + the table-driven generality test + the empty-diff / no-vendor-string
+      enumeration, **TDD**.
+- [x] All 6 ACs proven by **targeted** tests — per-vendor GET maps + governance (AC1/AC2/AC5, incl. all three
+      consent states + selective PII strip), the one-connector-N-configs generality + empty-diff + strengthened
+      no-vendor-string grep (AC3), the "what varies" write-up (AC4, in the Reconciliation sweep below).
+- [x] `npm run lint` clean; **targeted** vitest green (981 across the non-oracle suite); **no live identifiers**
+      (synthetic `0000000`/`00000000` ids; fetch-spy assertions).
+- [x] **Frame-critique RE-PASS recorded** — `reviews/slice-02-frame-critique.md` (PASS after the POST-deferral reframe).
+- [x] Compliance + craft reviews recorded (both NEEDS-CHANGES → PASS after the remediation below); close-out
+      `### Deviation log` + `### Reconciliation sweep` below promote the config-contract shape + deferred
+      POST/`ctx`-body axis toward 026-03.
 
 **Anti-horizontal-phasing check:** 026-02 is **vertical** — each vendor config is a real, governed, dispatchable
 GET beacon a site could route through airlock. It proves the 026 thesis (the config-driven archetype generalises
 across R-007's real ~10-vendor GET-pixel population) by adding **real vendors end-to-end**, governed at the seal —
 not speculative infrastructure (the speculative POST proof was cut). It is the **Data** axis of the SPIDR split
 (more vendors as data/config), building directly on 026-01's proven Path, with **zero connector/core code**.
+
+### Deviation log
+
+- **AC3's no-vendor-string grep is scoped to comment-stripped code** (026-01's `connector.js` JSDoc header narrates
+  "Meta"/"LinkedIn Insight"/"Bing UET"/`/tr` as illustrative prose, so a literal whole-file grep is incompatible
+  with the empty-diff constraint). The invariant under test is "no vendor-specific **logic**." **Review-hardened:**
+  the stripper now removes block comments + **full-line** `//` comments only — **NOT inline `//`** — because an
+  inline strip also eats string-literal URLs (`"https://vendor…"`), which would let a hardcoded vendor endpoint in
+  `connector.js` *code* (the likeliest AC3 violation) evade the grep behind its own `//`. Full-line-only stripping
+  keeps such a string in the grepped code (026-02 compliance review).
+- **The empty-`git diff` tests are a worktree-vs-index check** — they catch *uncommitted* local edits (a dev belt)
+  but are effectively always-green in the committed steady state (026-02 craft review). The **durable** zero-code
+  guarantee is therefore the strengthened no-vendor-string grep (it inspects current file content), not the diff
+  check. Both retained; the grep is the load-bearing guard.
+- **Bing's `gv`/`ec`/`evt=custom` param abbreviations are MODERATE-confidence fixture data** — not a captured live
+  `bat.js` beacon; `ti` + `evt=pageLoad` + the endpoint are solidly grounded (R-007:37). Disclosed in `docs/inbox.md`
+  + the (softened, per review) `bing.js` header. Within AC1/AC2 scope ("keys grounded in the fixture"); param-name
+  fidelity is config data and does not move the zero-code generality thesis. A tracked follow-up tightens it if a
+  live UET probe ever runs.
+- **Not a deviation (reclassified per compliance):** the per-vendor "consent denied + strict → dropped" tests are
+  AC1/AC5-**required** coverage (the third of held/flushed/dropped), not extra.
+- **Review remediation:** the LinkedIn PII test now asserts a surviving non-denied field (selective strip, matching
+  Bing); the grep stripper + the `bing.js` grounding prose fixed as above.
+
+### Reconciliation sweep
+
+- **Question answered + Outcome:** the 026-01 declarative-map interpreter **generalises across real vendors** —
+  LinkedIn Insight + Bing UET ship as flat GET configs with **zero connector/core code** (both diffs empty; the
+  central generality bet HELD, **no code escape**). The elegant proof: LinkedIn — a vendor with **no event-name
+  key at all** — is expressed as pure config (`eventMap: { page_view: null }`) riding the interpreter's existing
+  `hasOwnProperty` + null-omit rules, no new code.
+- **AC4 — what varies vendor-to-vendor (the `PixelVendorConfig` shape 026-03 pins):**
+  1. **Endpoint** — 3 distinct origins+paths (varies trivially).
+  2. **`eventMap`'s SEMANTIC role (the sharpest finding):** for Meta/Bing the mapped value *is* an event name; for
+     LinkedIn it is a conversion **id** or `null`. Same mechanical shape (`{from:"event"}`), different meaning →
+     026-03 should type `eventMap`'s value as **`string | null`** (not "name"), and document the `null`-omits idiom
+     as first-class.
+  3. **Param mix** varies — Meta 6 keys, LinkedIn 2 static + **0** `params`, Bing 4; `{from:"params"}` entries are
+     optional/vendor-dependent.
+  4. **Static params can be protocol boilerplate** (LinkedIn's `fmt: "gif"`), not only ids.
+  5. **Consent class did NOT vary** in this sample (all `ad_storage`) — the field exists to vary (a future
+     analytics-classed pixel → `analytics_storage`).
+  6. **Multi-endpoint** (`config.endpoints[]`) exists in the interpreter but was unexercised — a named, ungrounded axis.
+  7. **Wire method (GET/POST)** — POST **deferred to 026-03** (a nested-body vocabulary + `ctx` access; no real
+     POST pixel motivates it yet).
+- **Promoted, no orphans:** the config-contract axes above + the deferred POST/`ctx`-body axis → **026-03**. The
+  Bing param-fidelity caveat + the `build.mjs` bundle-entry (now 3-vendor-wide, shared with the dom-chamber worker)
+  → `docs/inbox.md` (tracked). The seal/manifest machinery (ADR-0006/0007) is unchanged.
+- **Downstream named:** 026-03 (the `PixelVendorConfig` type + the identity/advanced-matching surface + POST/body);
+  the shared `build.mjs` bundle-entry step. No dependency left dangling.
+- **No live identifiers, no new dependency, zero connector/core code.**
