@@ -1,5 +1,5 @@
 ---
-status: DONE
+status: IN_PROGRESS
 skill: jig:spec-workflow
 use_cases: [UC-2]
 ---
@@ -99,17 +99,26 @@ spike: the mechanism (wire-protocol seam + seal) is already proven by GA4 — th
   `validatePixelVendorConfig()` guard (reject a malformed config with a clear error) + conformance of the three
   shipped configs (Meta/LinkedIn/Bing). Formalizes the "one connector + N configs" archetype as a documented,
   validated contract — the Rules axis that CLOSES 026's proven core.
-- **026-04+ (deferred, real-driver-gated — NOT built speculatively):** the **identity / advanced-matching**
+- **026-04 (deferred, real-driver-gated — NOT built speculatively):** the **identity / advanced-matching**
   surface (hashed email/phone `ud[...]`, first-party cookie identity `_fbp`/`_uetsid`) — PII handling that the
   connector was **deliberately designed without** (the AC8 identity-free invariant both 026-01/02 reviews
   praised); it needs in-chamber hashing + a per-field consent class + a new governance path (an identity field
   must survive the input-side PII strip to be hashed, then egress only hashed) — **security-critical, gated on a
   real vendor requirement**, not built ahead of one. The **POST/`ctx`-body** wire shape (deferred from 026-02 —
   a nested-body vocabulary + `ctx` access, no real POST pixel yet) rides the same gate.
+- **026-05 (live-shippability — `build.mjs` bundle entry):** the pixel connector is adapter-wired
+  (`bootMetaPixel`/`bootLinkedInInsight`/`bootBingUet` → `createAirlock({connector:"pixel"})` →
+  `new Worker(new URL("./pixel-chamber.worker.js"))`, `airlock.js:183`), but `build.mjs` only emits `eds.js` +
+  `chamber.worker.js` — so a real EDS page 404s the pixel worker. Add `core/pixel-chamber.worker.js` as a bundle
+  entry + generalize build.mjs's single-worker sibling-layout assertion to **N workers**. Closes the parked
+  inbox gap → 026 is genuinely shippable, not just Node/vitest-proven. (The **dom-chamber** worker is NOT
+  bundled here — grounded: it is never `new Worker`'d in production, only via its testable host + FakeWorker, so
+  bundling it is premature; deferred to when a real worker-dom tag adapter wires it, a 025-03+ concern.)
 
 ## Slices
 
 - [026-01 — Meta Pixel through the generic connector, governed (the archetype proof)](slice-01-meta-pixel.md)
 - [026-02 — 2–3 more vendors as configs; the archetype generalises across vendors + wire shapes](slice-02-more-vendors.md)
 - [026-03 — the config contract (`PixelVendorConfig`): pin + validate + conformance](slice-03-config-contract.md)
-- _026-04+ (deferred, real-driver-gated) — the identity / advanced-matching surface + the POST/`ctx`-body wire shape._
+- _026-04 (deferred, real-driver-gated) — the identity / advanced-matching surface + the POST/`ctx`-body wire shape._
+- [026-05 — live-shippability: the `pixel-chamber.worker.js` bundle entry + N-worker build assertion](slice-05-build-shippability.md)
