@@ -68,14 +68,16 @@ the de-risk MVP5's Risk-First called for.
   `diagnose()` **zero** times; it emits `{ready, dropped}` via `postMessage` (→ the `dropped` record at
   `airlock.js:268`) and crashes cross via `worker.onerror` (`airlock.js:280`), so drops + crashes already
   reach a main-thread collector.
-- **Threading an originating-event correlation id through the egress-decision emit sites is a small,
-  non-invasive enrichment** (pass the beacon/event ref already in scope at each `diagnose(` call into the
-  record), not a signature change to the enforcement functions. The sites span **both egress hosts** —
-  `createAirlock` (the `consent`/`ceiling`/`dropped` sites inside `for (const r of ready)`, where `r` is the
-  mapped request) **and** `createWrappedSdkHost` (its `consent`/`ceiling`/`config-integrity` sites, per the
-  frame-critique's three-seam correction) — not `airlock.js` alone; the `dom-apply-*` sites correlate to a DOM
-  mutation, not an egress beacon, so they are out of correlation scope. **Assumption** — slice 02 verifies the
-  ref is in lexical scope at each site, per host.
+- **Per-beacon correlation is a small, non-invasive enrichment — and it is BEACON-keyed, not event-type-keyed**
+  (grounded 2026-09-03, pre-draft — mirrors 028-01's three-seam catch). The worker maps events → bare
+  `EgressRequest{url,method,body}` (`core/chamber.worker.js`'s `{ready, dropped}` shape), so the originating
+  push() **event type is stripped** before airlock's ready-path emit sites; it survives only on `dropped`
+  (`d.type`). The correlation ref that IS in scope: airlock's `heldBeacons` (`airlock.js:234`) carried into the
+  `setConsent` flush (`:450-461`) — the held→flushed chain; and `createWrappedSdkHost`'s existing intercepted-fetch
+  `m.id` at its `config-integrity`/`consent`/`ceiling` emits. So slice-02 correlates by a synthetic per-beacon id
+  (+ destination), threaded where the beacon identity already lives — NOT the event type, and NOT the
+  `dom-apply-*` sites (a DOM mutation, not an egress beacon). The enrichment is additive (an added record field),
+  preserving the flat-record invariant and every existing record shape.
 - **The collector + panel add zero interaction-path cost** — they read the log/stream *off* the hot path
   (`push()`/projection never touches them). This is a hard MVP5 no-go; the design must not fold any collector
   work into capture. **Frame-critique target** (a diagnostics tool that regresses INP violates the invariant

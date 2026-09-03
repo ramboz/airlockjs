@@ -79,7 +79,7 @@
 | [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-05 — live-shippability: the `pixel-chamber.worker.js` bundle entry + N-worker build assertion | **DONE** |  |
 | [027-mvp4-residuals](027-mvp4-residuals/spec.md) | 027-01 — tbd | ABANDONED |  |
 | [028-enforcement-inspector](028-enforcement-inspector/spec.md) | 028-01 — the decision-stream read-layer + query | **DONE** |  |
-| [028-enforcement-inspector](028-enforcement-inspector/spec.md) | 028-02 — per-beacon correlation | DRAFT |  |
+| [028-enforcement-inspector](028-enforcement-inspector/spec.md) | 028-02 — per-beacon correlation | **DONE** |  |
 | [028-enforcement-inspector](028-enforcement-inspector/spec.md) | 028-03 — the drop-in dev panel | DRAFT |  |
 
 ## Deferred slices
@@ -103,7 +103,7 @@
 
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
-- **2** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
+- **3** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **70** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **8** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review

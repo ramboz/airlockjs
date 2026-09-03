@@ -218,6 +218,75 @@ describe("AC1 — ONE shared collector taps all THREE onDiagnostic seams (the fr
 });
 
 // ============================================================================
+// (2b) per-beacon correlation — spec 028-02 (beacon-keyed, collector-unique id)
+// ============================================================================
+describe("028-02 — per-beacon correlation (collector-unique beaconId, reconstructed chains)", () => {
+  beforeEach(() => {
+    FakeWorker.last = null;
+    vi.stubGlobal("Worker", FakeWorker);
+    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({ ok: true })));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("AC1/AC3 — the held→flushed chain shares one beaconId + destination; query({beaconId}) returns the ordered chain", () => {
+    const c = createInspectorCollector();
+    const handle = createAirlock({ trackers: 1, workFactor: 0, endpoints: GA4_ENDPOINTS, ctx: GA4_CTX, unloadCritical: [], onDiagnostic: c.onDiagnostic, egressPurposes: ["analytics_storage"], consent: { analytics_storage: "pending" } });
+    FakeWorker.last.onmessage(readyMsg([{ url: "https://t0.example/collect", method: "POST", body: "b" }]));
+
+    const held = c.query({ kind: "consent", disposition: "held" });
+    expect(held).toHaveLength(1);
+    const id = held[0].beaconId;
+    expect(id).toBeTruthy();
+    expect(held[0].destination).toBe("https://t0.example/collect");
+
+    handle.setConsent({ analytics_storage: "granted" }); // grant -> flush the held beacon
+    const chain = c.query({ beaconId: id });
+    expect(chain.map((r) => r.disposition)).toEqual(["held", "flushed"]); // the reconstructed chain, in emission order
+    expect(chain.every((r) => r.destination === "https://t0.example/collect")).toBe(true);
+  });
+
+  it("AC2 — a wrapped-sdk-host config-integrity record carries beaconId = <tag>#<m.id>", () => {
+    const c = createInspectorCollector();
+    const chamber = makeFakeChamber();
+    createWrappedSdkHost({ chamber, caps: { egress: { dispatch: async () => ({ status: 200, body: "{}" }) } }, configIntegrity: CI_PIN, onDiagnostic: c.onDiagnostic });
+    chamber.emit({ type: "intercepted-fetch", id: "cf-77", url: `${CI_HOST}?configId=${ATTACKER_DS}`, method: "POST", body: "{}" });
+
+    const [rec] = c.query({ kind: "config-integrity" });
+    expect(rec.beaconId).toBeTruthy();
+    expect(rec.beaconId.endsWith("#cf-77")).toBe(true); // reuses the intercepted-fetch id, namespaced
+  });
+
+  it("AC4/AC5 — two co-wired instances mint DIFFERENT beaconIds (even with identical destinations); query does not conflate", () => {
+    const c = createInspectorCollector();
+    const holdOne = () => {
+      createAirlock({ trackers: 1, workFactor: 0, endpoints: GA4_ENDPOINTS, ctx: GA4_CTX, unloadCritical: [], onDiagnostic: c.onDiagnostic, egressPurposes: ["analytics_storage"], consent: { analytics_storage: "pending" } });
+      const w = FakeWorker.last; // capture THIS instance's worker before the next construction overwrites .last
+      w.onmessage(readyMsg([{ url: "https://t0.example/collect", method: "POST", body: "x" }]));
+    };
+    holdOne();
+    holdOne();
+
+    const held = c.query({ kind: "consent", disposition: "held" });
+    expect(held).toHaveLength(2);
+    const [idA, idB] = held.map((r) => r.beaconId);
+    expect(idA).not.toBe(idB); // different instance tags -> no collision. WOULD be equal ("...#1" vs "...#1") if instance-local.
+    expect(held[0].destination).toBe(held[1].destination); // identical destination — uniqueness is in the id, NOT the destination
+    expect(c.query({ beaconId: idA })).toHaveLength(1); // the query returns ONLY that beacon's records, never the other instance's
+    expect(c.query({ beaconId: idA })[0].beaconId).toBe(idA);
+  });
+
+  it("AC6 — additive: a record with no beaconId (e.g. `dropped`) still collects + queries unchanged", () => {
+    const c = createInspectorCollector();
+    createAirlock({ trackers: 1, workFactor: 0, endpoints: GA4_ENDPOINTS, ctx: GA4_CTX, unloadCritical: [], onDiagnostic: c.onDiagnostic });
+    FakeWorker.last.onmessage(readyMsg([], [{ type: "page_view", reason: "malformed", index: 0 }]));
+    const [rec] = c.query({ kind: "dropped" });
+    expect(rec.type).toBe("page_view"); // event type survives on `dropped` (the worker provides it)
+    expect("beaconId" in rec).toBe(false); // no beaconId — collects + queries fine
+    expect(c.query({ beaconId: "anything" })).toHaveLength(0); // filtering by a beaconId simply excludes no-id records
+  });
+});
+
+// ============================================================================
 // (3) AC4 (off the hot path) / AC5 (console default preserved)
 // ============================================================================
 describe("AC4 zero-interaction-path-cost + AC5 console default", () => {

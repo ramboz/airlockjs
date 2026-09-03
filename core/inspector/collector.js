@@ -30,7 +30,7 @@ const DEFAULT_CAPACITY = 500;
  * @param {{ capacity?: number }} [opts] - ring capacity (drop-oldest); default 500.
  * @returns {{
  *   onDiagnostic: (record: { level?: string, kind?: string, disposition?: string, [k: string]: unknown }) => void,
- *   query: (filter?: { kind?: string, disposition?: string, purpose?: string }) => object[],
+ *   query: (filter?: { kind?: string, disposition?: string, purpose?: string, beaconId?: string }) => object[],
  *   size: () => number,
  *   clear: () => void,
  *   capacity: number,
@@ -53,10 +53,11 @@ export function createInspectorCollector({ capacity = DEFAULT_CAPACITY } = {}) {
   // FLAT-RECORD INVARIANT (deliberate — 028-01 craft review): the shallow copy is
   // sufficient because EVERY 009-02 record is flat — its values are primitives
   // (`level`/`kind`/`disposition`/`purpose`/`reason`/`destination`/`field`/`type`/
-  // `index`/`message`/`op`/`id`/`parentId`/`childId`, all string|number). No emit
-  // site stores a nested object/array, so there is no shared reference to leak
-  // across the buffer or a query result. If a future emit site adds a nested-value
-  // record, this must become a deep copy/freeze on write (tracked: refinement-todo).
+  // `index`/`message`/`op`/`id`/`parentId`/`childId`/`beaconId`, all string|number).
+  // No emit site stores a nested object/array, so there is no shared reference to
+  // leak across the buffer or a query result. If a future emit site adds a
+  // nested-value record, this must become a deep copy/freeze on write (tracked:
+  // inbox). `beaconId` (028-02) is a collector-unique `<instanceTag>#<local>` string.
   function onDiagnostic(record) {
     if (!record || typeof record !== "object") return;
     ring[head] = { ...record };
@@ -83,7 +84,8 @@ export function createInspectorCollector({ capacity = DEFAULT_CAPACITY } = {}) {
           r &&
           (f.kind === undefined || r.kind === f.kind) &&
           (f.disposition === undefined || r.disposition === f.disposition) &&
-          (f.purpose === undefined || r.purpose === f.purpose),
+          (f.purpose === undefined || r.purpose === f.purpose) &&
+          (f.beaconId === undefined || r.beaconId === f.beaconId), // 028-02: reconstruct a beacon's chain
       )
       .map((r) => ({ ...r }));
   }

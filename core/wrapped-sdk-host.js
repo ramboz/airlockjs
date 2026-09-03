@@ -171,6 +171,11 @@ export function createWrappedSdkHost({
   onDiagnostic,
 }) {
   const diagnose = typeof onDiagnostic === "function" ? onDiagnostic : consoleDiagnostic;
+  // 028-02 per-beacon correlation: a per-INSTANCE random tag namespaces this host's
+  // beacon ids so they stay unique in the SHARED inspector collector. The beacon id
+  // reuses the intercepted-fetch's own `m.id` (already unique per fetch): `<tag>#<m.id>`.
+  // Fixed 6-char tag even for the ~2^-53 degenerate Math.random() values (028-02 craft review).
+  const inspectorTag = (Math.random().toString(36).slice(2) + "000000").slice(0, 6);
   // FAIL-LOUD on a consent misconfiguration (020-02 arch review): a `consent`
   // vector wired WITHOUT `egressPurposes` skips the TRUSTED seam-side drop
   // entirely (the gate below is `egressPurposes.length`-gated), leaving only the
@@ -219,7 +224,7 @@ export function createWrappedSdkHost({
       const c = checkEndpointCeiling(m.url, endpointCeiling);
       if (c.verdict === "hold") {
         state.ceilingHeld += 1;
-        diagnose({ level: "error", kind: "endpoint-ceiling", disposition: "held", destination: c.destination, reason: c.reason });
+        diagnose({ level: "error", kind: "endpoint-ceiling", disposition: "held", destination: c.destination, reason: c.reason, beaconId: `${inspectorTag}#${m.id}` });
         // HOLD: no real egress, and config-integrity never runs on this dispatch
         // — same fail-closed response shape as a config-integrity hold below.
         chamber.postMessage({ type: "intercepted-fetch-response", id: m.id, status: 0, statusText: "held at the seal: endpoint-ceiling", body: "" });
@@ -251,13 +256,13 @@ export function createWrappedSdkHost({
           // alerting. Availability-over-integrity: the chamber-built body still
           // reaches the honest tenant (the ADR-0011 body residual). Never silent.
           state.overridden += 1;
-          diagnose({ level: "error", kind: "config-integrity", disposition: "overridden", reason: check.reason });
+          diagnose({ level: "error", kind: "config-integrity", disposition: "overridden", reason: check.reason, beaconId: `${inspectorTag}#${m.id}`, destination: hostOf(m.url) });
           m = { ...m, url: pinnedDispatchUrl(m.url, configIntegrity) };
           // fall through to dispatch the CORRECTED url below
         } else {
           state.held += 1;
           // ALERT (009-02) — redacted: name the deviation, never the raw identifier values.
-          diagnose({ level: "error", kind: "config-integrity", disposition: "held", reason: check.reason });
+          diagnose({ level: "error", kind: "config-integrity", disposition: "held", reason: check.reason, beaconId: `${inspectorTag}#${m.id}`, destination: hostOf(m.url) });
           // HOLD: no real egress. Settle the chamber's pending fetch REJECTED (mirrors the AC6 error shape)
           // so sendEvent rejects instead of hanging — the seal bites, fail-closed.
           chamber.postMessage({ type: "intercepted-fetch-response", id: m.id, status: 0, statusText: "held at the seal: config-integrity", body: "" });
@@ -313,6 +318,8 @@ export function createWrappedSdkHost({
           disposition: "held",
           purpose: egressPurposes.join(","),
           reason: "un-granted governing purpose — alloy interact held at the seal",
+          beaconId: `${inspectorTag}#${m.id}`,
+          destination: hostOf(m.url),
         });
         // HOLD: no real egress. Settle the chamber's pending fetch REJECTED
         // (same shape as the ceiling/config-integrity holds above) so

@@ -78,6 +78,15 @@ export function createAirlock({
   connectorConfig,
 }) {
   const diagnose = typeof onDiagnostic === "function" ? onDiagnostic : consoleDiagnostic;
+  // 028-02 per-beacon correlation: a per-INSTANCE random tag (minted once) namespaces
+  // this airlock's beacon ids so they stay unique in the SHARED inspector collector —
+  // two co-wired instances (e.g. a GA4 airlock + a pixel airlock) must not collide on
+  // `1,2,3…`. A held beacon's id is minted once (below) and reused at flush, so its
+  // `consent held` and `consent flushed` records share one `beaconId`.
+  // Pad-then-slice guarantees a fixed 6-char tag even for the ~2^-53 degenerate
+  // Math.random() values (0 → "", 0.5 → "i") a bare slice(2,8) would shorten (028-02 craft review).
+  const inspectorTag = (Math.random().toString(36).slice(2) + "000000").slice(0, 6);
+  let beaconSeq = 0;
   // 019-01 AC1/AC6 (ADR-0012): the EFFECTIVE denylist merges the conservative
   // built-in DEFAULT_DENYLIST with the host's own `payloadDenylist`, reduced
   // ONCE at construction. **ALWAYS-ON built-in default (maintainer decision,
@@ -231,13 +240,18 @@ export function createAirlock({
             // 026-01 AC4 (frame-critique #2b): capture `method` too — else a
             // held GET can never flush as a GET (setConsent's flush below
             // would default it back to POST, corrupting a pixel beacon).
-            heldBeacons.push({ url: r.url, method: r.method, body: r.body });
+            // 028-02: mint the beacon id ONCE here + carry it on the held beacon
+            // so the later flush record shares it (the held→flushed chain).
+            const beaconId = `${inspectorTag}#${(beaconSeq += 1)}`;
+            heldBeacons.push({ url: r.url, method: r.method, body: r.body, beaconId });
             diagnose({
               level: "warn",
               kind: "consent",
               disposition: "held",
               purpose: egressPurposes.join(","),
               reason: "purpose pending — held at the seal",
+              beaconId,
+              destination: r.url,
             });
             continue;
           }
@@ -457,6 +471,8 @@ export function createAirlock({
             disposition: "flushed",
             purpose: egressPurposes.join(","),
             reason: "purpose granted — held beacon flushed",
+            beaconId: b.beaconId, // 028-02: same id as this beacon's `held` record → the held→flushed chain
+            destination: b.url,
           });
         }
       }
