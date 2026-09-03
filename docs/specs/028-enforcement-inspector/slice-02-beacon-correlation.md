@@ -17,9 +17,12 @@ stripped"* — as one correlated causal chain, not a flat stream.
 
 **DoR:**
 - ☐ 028-01 DONE (the read-layer + query exist to correlate over).
-- ☐ Grounded per-site: confirm the event/beacon ref is in lexical scope at each `diagnose(` call
-  (`consent`/`ceiling` sit inside `for (const r of ready)` where `r` is the mapped request; the descriptor /
-  event `type` is reachable) — if any site lacks it, scope the enrichment there.
+- ☐ Grounded per-site across **both egress hosts** (the frame-critique's three-seam correction):
+  `createAirlock`'s `consent`/`ceiling`/`dropped` sites (inside `for (const r of ready)`, where `r` is the
+  mapped request and the descriptor/event `type` is reachable) **and** `createWrappedSdkHost`'s
+  `consent`/`ceiling`/`config-integrity` sites — confirm the event/beacon ref is in lexical scope at each; if
+  any site lacks it, scope the enrichment there. (`dom-apply-*` correlates to a DOM mutation, not a beacon —
+  out of scope.)
 
 **Acceptance Criteria (draft — sharpened at READY):**
 

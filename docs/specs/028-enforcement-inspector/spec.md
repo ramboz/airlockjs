@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 skill:
 frame_review: true
 use_cases: []
@@ -38,6 +38,14 @@ complete set):
   and `adapters/eds/dom-apply.js`, defaulting to `consoleDiagnostic`. `core/airlock.js:32` reserves it
   verbatim: *"`onDiagnostic` (e.g. the future OQ7 inspector) to intercept the same records."* The inspector's
   data tap was designed in.
+- **`onDiagnostic` is three SEPARATE constructor injectables, not one** (frame-critique correction,
+  2026-09-03): `createAirlock` (`core/airlock.js:57`, 10 emit sites), `createWrappedSdkHost`
+  (`core/wrapped-sdk-host.js:171`, 8 sites — **including every `config-integrity` decision** and the whole
+  alloy / wrapped-SDK round-trip egress path), and `createDomApplyCoordinator` (`adapters/eds/dom-apply.js:89`,
+  3 `dom-apply-*` sites). A collector wired on `createAirlock` **alone** is blind to 11 of the 21 sites — incl.
+  all config-integrity — which would ship an inspector *worse* than the console baseline. So the collector is
+  **one shared instance wired as the `onDiagnostic` sink on all three constructors** (still zero new
+  instrumentation — three wire points, not one).
 - **What is genuinely missing** (the inspector's real work): (1) no **collector** — records are console-backed
   by default, nothing captures them into a queryable buffer (enumerated: `grep` for any
   sink/subscriber/buffer/collector finds only the `onDiagnostic` injection points, none). (2) No **query
@@ -46,22 +54,28 @@ complete set):
   fire→hold→flush / strip chain for *one specific beacon* needs a small correlation-id enrichment, not a
   rearchitecture.
 
-So the inspector is a **read-layer over an existing, already-structured stream**, plus a modest per-beacon
-correlation enrichment and a local panel. This is the de-risk MVP5's Risk-First called for.
+So the inspector is a **read-layer over an existing, already-structured stream** — one shared collector tapped
+at all three `onDiagnostic` seams — plus a modest per-beacon correlation enrichment and a local panel. This is
+the de-risk MVP5's Risk-First called for.
 
 ## Assumptions
 
-- **The `onDiagnostic` seam captures every enforcement decision the inspector must show.** Grounded by the
-  21-site enumeration above (all main-thread egress-gate decisions emit through it). **Residual:** worker-side
-  `diagnose` calls in `core/chamber.worker.js` — `chamber-error` already crosses to main (caught at
-  `airlock.js:280`), but any *other* in-worker diagnostic that stays worker-console-only would be invisible to
-  a main-thread collector. Slice 01 must confirm the worker forwards (or that only `chamber-error` is
-  worker-emitted and it already crosses). **Frame-critique target.**
-- **Threading an originating-event correlation id through the ~9 main-thread emit sites is a small,
+- **One shared collector wired on all THREE `onDiagnostic` injectables captures every enforcement decision.**
+  Grounded by the 21-site enumeration split across `createAirlock` (10), `createWrappedSdkHost` (8 — incl. all
+  `config-integrity`), `createDomApplyCoordinator` (3). The frame-critique (2026-09-03) **corrected the original
+  single-seam framing**: a `createAirlock`-only collector is blind to 11 sites incl. config-integrity, so
+  slice-01 wires all three. **Worker residual — verified BENIGN, not a gap:** `core/chamber.worker.js` calls
+  `diagnose()` **zero** times; it emits `{ready, dropped}` via `postMessage` (→ the `dropped` record at
+  `airlock.js:268`) and crashes cross via `worker.onerror` (`airlock.js:280`), so drops + crashes already
+  reach a main-thread collector.
+- **Threading an originating-event correlation id through the egress-decision emit sites is a small,
   non-invasive enrichment** (pass the beacon/event ref already in scope at each `diagnose(` call into the
-  record), not a signature change to the enforcement functions. **Assumption** — slice 02 verifies the ref is
-  in lexical scope at each site (the `consent`/`ceiling` sites sit inside `for (const r of ready)` where `r`
-  is the mapped request, and the descriptor `d`/event type is reachable; to be confirmed per-site).
+  record), not a signature change to the enforcement functions. The sites span **both egress hosts** —
+  `createAirlock` (the `consent`/`ceiling`/`dropped` sites inside `for (const r of ready)`, where `r` is the
+  mapped request) **and** `createWrappedSdkHost` (its `consent`/`ceiling`/`config-integrity` sites, per the
+  frame-critique's three-seam correction) — not `airlock.js` alone; the `dom-apply-*` sites correlate to a DOM
+  mutation, not an egress beacon, so they are out of correlation scope. **Assumption** — slice 02 verifies the
+  ref is in lexical scope at each site, per host.
 - **The collector + panel add zero interaction-path cost** — they read the log/stream *off* the hot path
   (`push()`/projection never touches them). This is a hard MVP5 no-go; the design must not fold any collector
   work into capture. **Frame-critique target** (a diagnostics tool that regresses INP violates the invariant
