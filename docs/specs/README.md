@@ -78,6 +78,9 @@
 | [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-03 — the config contract (`PixelVendorConfig`): pin + validate + conformance | **DONE** |  |
 | [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-05 — live-shippability: the `pixel-chamber.worker.js` bundle entry + N-worker build assertion | **DONE** |  |
 | [027-mvp4-residuals](027-mvp4-residuals/spec.md) | 027-01 — tbd | ABANDONED |  |
+| [028-enforcement-inspector](028-enforcement-inspector/spec.md) | 028-01 — the decision-stream read-layer + query | DRAFT |  |
+| [028-enforcement-inspector](028-enforcement-inspector/spec.md) | 028-02 — per-beacon correlation | DRAFT |  |
+| [028-enforcement-inspector](028-enforcement-inspector/spec.md) | 028-03 — the drop-in dev panel | DRAFT |  |
 
 ## Deferred slices
 
