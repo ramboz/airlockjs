@@ -1,6 +1,6 @@
 ---
 status: DRAFT
-dependencies: [030-01]
+dependencies: [030-02]
 last_verified:
 ---
 
@@ -9,7 +9,7 @@ last_verified:
      the honest boundary 022-01 AC3 named. "Replace" = neutralize inline sampleRUM + boot
      airlock's RUM. -->
 
-## Slice 030-02 — the page-side replace + no double-count
+## Slice 030-03 — the page-side replace + no double-count
 
 **Goal:** Demonstrate the **replace** end-to-end on `probes/eds-testbed`: neutralize the inline `sampleRUM` and
 boot airlock's RUM (030-01's `bootHelixRum`) as the **single** governed RUM authority, with a rig proving
@@ -17,7 +17,7 @@ boot airlock's RUM (030-01's `bootHelixRum`) as the **single** governed RUM auth
 RUM".
 
 **DoR:**
-- ☐ 030-01 DONE (bootHelixRum + the governed RUM instance exist to boot on the page).
+- ☐ 030-02 DONE (bootHelixRum + the governed RUM instance exist to boot on the page).
 - ☐ Grounded: where inline `sampleRUM` fires on the testbed (`aem.js`), and how to neutralize it (the integrator
   cleanup pattern — 022 scoped the `aem.js` edit as the integrator's job).
 

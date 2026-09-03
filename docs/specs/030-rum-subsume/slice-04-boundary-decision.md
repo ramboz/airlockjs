@@ -1,17 +1,17 @@
 ---
 status: DRAFT
-dependencies: [030-01, 030-02]
+dependencies: [030-02, 030-03]
 last_verified:
 ---
 
-## Slice 030-03 — the scoped-replace boundary + the decision landed
+## Slice 030-04 — the scoped-replace boundary + the decision landed
 
 **Goal:** Land the MVP4 helix-rum **feed/replace/coexist** decision as **replace (core checkpoints)** and
 document the **honest adoption boundary** — what "airlock replaces your RUM tag" covers vs what it does not — so
 an integrator (and the release plans) have a clear, honest contract. Closes spec 030.
 
 **DoR:**
-- ☐ 030-01 + 030-02 DONE (the governed RUM authority + the demonstrated replace exist).
+- ☐ 030-02 + 030-03 DONE (the governed RUM authority + the demonstrated replace exist).
 
 **Acceptance Criteria (draft — sharpened at READY):**
 
