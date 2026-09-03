@@ -81,6 +81,9 @@
 | [028-enforcement-inspector](028-enforcement-inspector/spec.md) | 028-01 — the decision-stream read-layer + query | **DONE** | Inspector = read-layer over 009-02; ONE collector MUST wire all 3 `onDiagnostic` seams (createAirlock + createWrappedSdkHost + createDomApplyCoordinator) — a createAirlock-only wiring is blind to config-integrity. |
 | [028-enforcement-inspector](028-enforcement-inspector/spec.md) | 028-02 — per-beacon correlation | **DONE** |  |
 | [028-enforcement-inspector](028-enforcement-inspector/spec.md) | 028-03 — the drop-in dev panel | **DONE** |  |
+| [029-cwv-scoreboard](029-cwv-scoreboard/spec.md) | 029-01 — the INP scoreboard artifact | DRAFT |  |
+| [029-cwv-scoreboard](029-cwv-scoreboard/spec.md) | 029-02 — the load-CWV arm + CI | DRAFT |  |
+| [029-cwv-scoreboard](029-cwv-scoreboard/spec.md) | 029-03 — realistic martech load (DEFERRABLE) | DRAFT |  |
 
 ## Deferred slices
 
