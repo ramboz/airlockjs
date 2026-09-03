@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: ABANDONED
 dependencies: []
 last_verified:
 # arch_review: true  # set to true when this slice changes module

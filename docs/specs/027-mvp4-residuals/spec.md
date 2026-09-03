@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: ABANDONED
 skill:
 use_cases: []
 ---

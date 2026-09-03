@@ -77,6 +77,7 @@
 | [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-02 — more vendors as configs: the archetype generalises across real GET pixels | **DONE** |  |
 | [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-03 — the config contract (`PixelVendorConfig`): pin + validate + conformance | **DONE** |  |
 | [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-05 — live-shippability: the `pixel-chamber.worker.js` bundle entry + N-worker build assertion | **DONE** |  |
+| [027-mvp4-residuals](027-mvp4-residuals/spec.md) | 027-01 — tbd | ABANDONED |  |
 
 ## Deferred slices
 
@@ -93,6 +94,7 @@
 | Spec | Slice | Abandonment reason |
 |------|-------|---------------------|
 | [011-mvp2-coherency-probe](011-mvp2-coherency-probe/spec.md) | 🔬 011-04 — async-mint coalescing needs broker-proxied egress (the OQ9 mechanism + its condition) |  |
+| [027-mvp4-residuals](027-mvp4-residuals/spec.md) | 027-01 — tbd |  |
 
 ## Richer-skill selection audit (spec 096-05)
 
