@@ -12,7 +12,6 @@ they stop informing a current release decision.
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| [MVP5 — Inspector & the RUM Layer (make it visible, own the observability)](mvp5.md) | MVP4 completed **the core AEM stack** — GA4 + **governed** alloy + a hosted `helix-rum` connector. But two | No JIG handoff linked. |
 | [MVP6 — Adoption & 1.0 Readiness](mvp6.md) | The runtime (MVP1), both connector archetypes (MVP2), the enforcement teeth (MVP3), the core AEM stack | No JIG handoff linked. |
 | [MVP7 — Connector Breadth (the pixel archetype)](mvp7.md) | **Breadth is where the adoption leverage is, and it was deferred to "MVP7+".** MVP1–3 shipped the runtime + | JIG handoff: [026](../specs/026-generic-pixel-connector/spec.md), [`connectors/pixel/`](../../connectors/pixel/), [contracts/pixel-connector.d.ts](../../contracts/pixel-connector.d.ts) |
 
@@ -38,6 +37,7 @@ Recently shipped release plans stay here only while they inform current decision
 | [MVP2](mvp2.md) | MVP1 proves the runtime and the **wire-protocol** connector archetype (GA4, | JIG handoff: [MVP3](mvp3.md), [spec 011](../specs/011-mvp2-coherency-probe/spec.md), [spec 012](../specs/012-mvp2-alloy-chamber/spec.md) |
 | [MVP3](mvp3.md) | MVP2 proves alloy isolates and runs in a chamber but deliberately leaves its I/O seams unsecured and alloy's config-driven behaviour uncharacterized. MVP3 secures the seams (ADR-0006/0007 enforcement) against alloy's real, measured behaviour — turning the declaration shape established in MVP2 into enforced least-privilege. | JIG handoff: [spec 012-04 §Findings](../specs/012-mvp2-alloy-chamber/slice-04-manifest-characterize.md) |
 | [MVP4 — The Core AEM Stack (governed alloy + RUM)](mvp4.md) | **The maintainer's framing (2026-08-31):** the *core of any AEM / Adobe site* is **GA4 + Adobe Experience | No JIG handoff linked. |
+| [MVP5 — Inspector & the RUM Layer (make it visible, own the observability)](mvp5.md) | Shipped as **v0.5.0** — the enforcement inspector (028), the before/after CWV scoreboard (029), and airlock-as-RUM-authority / the *replace* decision (030) | JIG handoff: [028](../specs/028-enforcement-inspector/spec.md), [029](../specs/029-cwv-scoreboard/spec.md), [030](../specs/030-rum-subsume/spec.md) |
 
 ## Dropped
 

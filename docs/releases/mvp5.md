@@ -2,10 +2,34 @@
 
 ## Status
 
-`candidate`
+`shipped`
+
+**Shipped as `v0.5.0` (2026-09-03).** Release-check verdict: **ship** — all three Include items delivered and
+landed on `main`:
+- **Enforcement-decision inspector** — [spec 028](../specs/028-enforcement-inspector/spec.md) (028-01 shared
+  collector on all three `onDiagnostic` seams · 028-02 collector-unique correlation ids · 028-03 the drop-in dev
+  panel): for any egress beacon a developer can see **why** it fired / held at the seal / was gated / had a field
+  stripped, across GA4 **and** alloy.
+- **Before/after CWV scoreboard** — [spec 029](../specs/029-cwv-scoreboard/spec.md) (029-01 the INP-storm
+  scoreboard artifact · 029-02 the load-CWV half + CI advisory step · 029-03 a grounded heavier-synthetic load):
+  a first-class, reproducible `npm run cwv:scoreboard` output (airlock vs the naive multi-tracker stack).
+- **airlock as the RUM layer (subsume → replace)** — [spec 030](../specs/030-rum-subsume/spec.md) (030-01
+  connector-generic unload dispatcher · 030-02 `bootHelixRum` the governed RUM authority · 030-03 the page-side
+  replace, no double-count · 030-04 the boundary + the landed **replace (core checkpoints)** decision).
+
+Real-repo test suite **green** (74/74 files, 969 tests), lint clean, build green (all **five** worker siblings
+same-origin — eds/chamber/pixel-chamber/dom-chamber/helix-rum-chamber). **No new enforcement behaviour changed**
+(MVP5 makes MVP3/MVP4's teeth *visible* + owns RUM). **Honest caveats (none blocking):**
+1. **The RUM replace is page-side demonstrated, not live-verified.** The 030-03 rig proves the no-double-count
+   story with `ot.aem.live` **network-stubbed**; the creds-gated live wire-shape gate (does the live collector
+   accept airlock's `cwv` **superset** shape?) stays a **named deferral** (030-04 / the connector README).
+2. **The CWV scoreboard runs on a grounded *synthetic* load, not the live customer stack.** The customer-stack
+   realistic run was the plan's variable-scope arm (flexes on that stack being available) — deferred, non-blocking.
+3. **"Zero interaction-path cost" is by construction** (the inspector reads the log / projection / 009-02 stream
+   **off the hot path**; the RUM emitter rides the existing CWV-measurement substrate) — a dedicated head-to-head
+   measurement of the inspector's *own* cost is not separately reported.
 
 Allowed statuses: `candidate`, `committed`, `shipping`, `shipped`, `dropped`.
-Do not move a plan from `candidate` to `committed` without an explicit user decision.
 
 ## Problem / Baseline
 
