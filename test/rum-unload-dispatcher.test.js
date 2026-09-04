@@ -74,8 +74,6 @@ describe("createAirlock — a helix-rum instance's critical dispatch is RUM-shap
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  const bodyOf = (call) => JSON.parse(call[1].body);
-
   it("AC3/AC4 — pushCritical('cwv') on a helix-rum instance egresses the RUM shape to ot.aem.live (never GA4-mis-mapped)", () => {
     const handle = createAirlock({
       connector: "helix-rum",
