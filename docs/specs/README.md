@@ -90,6 +90,8 @@
 | [030-rum-subsume](030-rum-subsume/spec.md) | 030-04 — the scoped-replace boundary + the decision landed | **DONE** |  |
 | [031-distribution-setup](031-distribution-setup/spec.md) | 031-01 — the distributable build target + subtree-install proof (boots on a clean EDS checkout, CWV preserved) | **DONE** |  |
 | [031-distribution-setup](031-distribution-setup/spec.md) | 031-02 — the update path: versioning marker + `git subtree pull` (generated-release overwrite) | **DONE** | Closes spec 031 (distribution, [ADR-0015](../decisions/adr-0015-distribution-git-subtree.md) / architecture OQ8). Channel: git-subtree of a **dist-rooted `dist` branch** (root = `eds.js` + 4 `*.worker.js` + VERSION) consumed at **`scripts/airlock/`** same-origin (004-01), buildless. Immutable per-release **`dist-vX.Y.Z` tag** pin (marker==tag; non-force push, `--force-tag` to re-cut); `git subtree add`/`pull … dist-vX.Y.Z --squash`. Targets: `build:dist` → `dist/`, `publish:dist --target <t> [--release]`, proof `rig:subtree`. |
+| [032-instrumentation-config](032-instrumentation-config/spec.md) | 032-01 — the config-driven `boot(config)`: connector dispatch + collapse the pixel-boot duplication | DRAFT |  |
+| [032-instrumentation-config](032-instrumentation-config/spec.md) | 032-02 — the config contract (validated JSON Schema, pre-1.0) + breadth + the few-lines-instrument story | DRAFT |  |
 
 ## Deferred slices
 
