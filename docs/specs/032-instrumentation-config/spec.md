@@ -61,9 +61,13 @@ deliberate **out-of-scope follow-up**, not this spec. (c) Back-compat: the exist
 - **Governance is per governance class, not uniform:** consent/`consentStrict`/`payloadDenylist` apply to the
   **consent-governed** connectors (GA4, pixels); **helix-rum is exempt** (spec 022 — not consent-gated, no
   denylist, sync, no-op-when-unselected) and the config must not gate or strip it. 032-01 AC3 owns this.
-- **alloy (the wrapped-SDK connector) has no `adapters/eds/` boot function** — it boots via a different core path
-  (specs 012/014). Whether it is config-expressible in the same shape is an open question 032-02 resolves (it may
-  be deferred). Marked, not assumed.
+- **alloy config-wiring is DEFERRED to its own spec (decided in 032-02 after the frame-critique).** alloy has no
+  `adapters/eds/` boot function — it is hosted via a different core path (`core/wrapped-sdk-host.js` +
+  `connectors/alloy/*`, specs 012/014) with a different handle shape, so a `{type:"alloy"}` config entry is alloy's
+  **first-ever adapter boot — spike-sized**, out of scope for 032 (which is scoped to the `createAirlock`-shaped
+  connectors). The config surface therefore covers GA4 + pixels + helix-rum but **not Adobe/alloy** — half of
+  MVP6's named "GA4 + Adobe/alloy" supported subset — until the alloy-config spec lands (recorded in
+  `docs/refinement-todo.md`).
 
 ## Decomposition
 
@@ -78,8 +82,9 @@ instruments my site with the declared connectors."*
   few-lines-instrument story.
 - **Not a Spike.** The config model is *buildable* against the known `createAirlock` shape — the proof is 032-01's
   behavioral tests (config in → the same connector wiring the per-function boots produce), not a timeboxed probe.
-- **Deferred (out of scope):** declarative event-capture rules (config-expressed selectors→events); freezing the
-  config schema as a 1.0-stable contract (the later 1.0 pin owns that).
+- **Deferred (out of scope):** **alloy config-wiring** (its first adapter boot — spike-sized, its own spec);
+  declarative event-capture rules (config-expressed selectors→events); freezing the config schema as a 1.0-stable
+  contract (the later 1.0 pin owns that).
 
 ## Slices
 

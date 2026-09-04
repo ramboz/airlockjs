@@ -1,0 +1,6 @@
+{
+  "connectors": [
+    { "type": "pixel", "vendor": "meta", "pixelId": "111111111111111" }
+  ],
+  "consent": { "ad_storage": "granted" }
+}

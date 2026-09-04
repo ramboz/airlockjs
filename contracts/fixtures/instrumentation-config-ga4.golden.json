@@ -1,0 +1,6 @@
+{
+  "connectors": [
+    { "type": "ga4" }
+  ],
+  "consent": { "analytics_storage": "granted" }
+}

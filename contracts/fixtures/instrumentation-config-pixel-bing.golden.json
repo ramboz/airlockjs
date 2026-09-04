@@ -1,0 +1,6 @@
+{
+  "connectors": [
+    { "type": "pixel", "vendor": "bing", "tagId": "87654321" }
+  ],
+  "consent": { "ad_storage": "granted" }
+}

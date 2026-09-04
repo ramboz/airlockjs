@@ -463,3 +463,17 @@ non-`["*"]` vocabulary — extract the shared accessor then (rule-of-three).
 composite does not surface helix-rum's `sampled` flag. Terminal pre-1.0 choices; a per-connector read namespace
 (e.g. `getState({connector})`) would resolve both.
 **Resolution trigger:** a caller needs a specific connector's projection from a multi-connector composite; or the 1.0 pin.
+
+### Decision: alloy config-wiring (`{type:"alloy"}` in `boot(config)`) — DEFERRED to its own spec
+**Deferred:** 032 (the config-driven `boot(config)` + its schema) covers the `createAirlock`-shaped, adapter-booted
+connectors — GA4, the three pixel vendors, helix-rum. **alloy is not among them:** it has no `adapters/eds/` boot,
+being hosted via `core/wrapped-sdk-host.js` + `connectors/alloy/*` (async stock-SDK load, `createConnectorHost`,
+`alloy-chamber.worker.js`, `handle` returns `[]` — a different handle shape than the composite fans to), exercised
+only in `rig/`/`test/`. So a `{type:"alloy"}` config entry is alloy's **first-ever adapter boot — spike-sized**,
+deliberately out of 032's scope. **Consequence to track:** until this lands, airlock's config/authoring surface
+covers GA4 + pixels + RUM but **NOT Adobe/alloy** — half of MVP6's named "GA4 + Adobe/alloy" supported subset
+(`docs/releases/mvp6.md`). alloy still runs today via its own host path + rigs; only its *config-driven boot* is
+missing.
+**Resolution trigger:** before the MVP6 real-production-site validation on an Adobe/alloy stack (the adoption proof
+needs alloy instrumentable via the config surface), OR when a real EDS adopter needs alloy in `boot(config)`. Likely
+a spike (alloy's adapter-boot path + a composite-compatible handle) then a slice.

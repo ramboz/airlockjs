@@ -1,10 +1,9 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: []
 last_verified: 2026-09-04
 arch_review: true  # introduces a new PUBLIC authoring surface (`boot(config)` + the project config shape).
 frame_review: true  # core bet: one config can express heterogeneous connectors without losing GA4's rich wiring.
-claimed_by: claude/mvp6-e4550f
 ---
 
 <!-- jig self-defining vocabulary (soft, forward-only): expand each acronym on

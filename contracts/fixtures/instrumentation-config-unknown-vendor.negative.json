@@ -1,0 +1,5 @@
+{
+  "connectors": [
+    { "type": "pixel", "vendor": "tiktok", "pixelId": "111111111111111" }
+  ]
+}

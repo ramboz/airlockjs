@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://airlockjs.dev/contracts/instrumentation-config.schema.json",
+  "title": "airlock instrumentation config — the boot(config) project config (PRE-1.0, NOT frozen)",
+  "description": "The project JSON config `boot(config)` (adapters/eds/index.js) consumes: which connectors to instrument (+ their ids/endpoints) and the top-level consent/payload governance. Modelled as the DISCRIMINATED UNION it is: each connector entry's `type` selects one of ga4 / pixel / helix-rum (oneOf on a `type` const), with a nested `vendor` (meta / linkedin / bing) under `pixel`, and helix-rum's governance-free shape (spec 022 exempts RUM from consent/denylist). PRE-1.0 — explicitly NOT frozen: the MVP6 real-site validation is meant to exercise this shape and the later 1.0 API pin freezes what settles (this is NOT one of architecture.md's five frozen contract surfaces yet). COVERAGE GAP (honest): this config contract covers GA4 + the three pixel vendors + helix-rum, but does NOT cover Adobe/alloy — alloy has no adapter boot (it is hosted via core/wrapped-sdk-host.js + connectors/alloy/*), so a {type:\"alloy\"} entry is alloy's first-ever adapter boot, spike-sized, deferred to its own spec (see docs/refinement-todo.md § 'alloy config-wiring'). So MVP6's named 'GA4 + Adobe/alloy' supported subset is only PARTIALLY covered by this authoring surface until that spec lands. Reference schema only: `boot(config)`'s RUNTIME validation is a lightweight hand-rolled SUBSET (no ajv in the shipped bundle); ajv validates THIS schema in the contracts dev harness (npm run validate).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["connectors"],
+  "properties": {
+    "connectors": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The connectors to instrument, in order. `boot(config)` boots each and returns a composite over them. NOTE: `{type:\"alloy\"}` is NOT a member — alloy's config-wiring is deferred (see the top-level coverage-gap note).",
+      "items": { "$ref": "#/$defs/connector" }
+    },
+    "consent": {
+      "type": "object",
+      "description": "ADR-0007 consent vector: purpose name -> state (e.g. {\"analytics_storage\":\"granted\",\"ad_storage\":\"denied\"}). Applies to the CONSENT-GOVERNED connectors (GA4, pixels); helix-rum is EXEMPT (spec 022 — RUM is not consent-gated). An open taxonomy, so purpose names are unconstrained; values are strings resolved case-insensitively (granted/denied; anything else -> pending).",
+      "additionalProperties": { "type": "string" }
+    },
+    "consentStrict": {
+      "type": "boolean",
+      "description": "spec 017-03 AC3 — a strict / no-processing regime for the consent-governed connectors."
+    },
+    "payloadDenylist": {
+      "type": "array",
+      "description": "spec 019-01 (ADR-0012) — extra payload keys stripped before egress, merged with the always-on built-in default. Applies to consent-governed connectors; helix-rum is exempt.",
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "connector": {
+      "type": "object",
+      "required": ["type"],
+      "description": "A single connector entry — a discriminated union on `type` (ga4 / pixel / helix-rum). alloy is deliberately NOT a member (deferred; see the schema-level coverage-gap note).",
+      "oneOf": [
+        { "$ref": "#/$defs/ga4Connector" },
+        { "$ref": "#/$defs/pixelConnector" },
+        { "$ref": "#/$defs/helixRumConnector" }
+      ]
+    },
+    "ga4Connector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "GA4 (analytics). Consent-governed; the top-level consent/consentStrict/payloadDenylist are threaded in. GA4's measurement_id/api_secret live in the collect endpoint URL, not as a config id.",
+      "properties": {
+        "type": { "const": "ga4" },
+        "endpoints": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" },
+          "description": "Optional collect endpoint(s); defaults to the placeholder GA4 MP collect URL."
+        },
+        "trackers": { "type": "integer", "minimum": 1 },
+        "ctx": {
+          "type": "object",
+          "description": "Optional pre-sourced identity snapshot; when absent, sourced host-side from the _ga cookie (004-03)."
+        }
+      }
+    },
+    "pixelConnector": {
+      "type": "object",
+      "required": ["type", "vendor"],
+      "description": "An ads/remarketing pixel. Consent-governed (ad_storage). Nested discrimination on `vendor` (meta / linkedin / bing), each requiring its own vendor id.",
+      "properties": { "type": { "const": "pixel" } },
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "required": ["type", "vendor", "pixelId"],
+          "properties": {
+            "type": { "const": "pixel" },
+            "vendor": { "const": "meta" },
+            "pixelId": { "type": "string", "minLength": 1, "description": "Meta pixel id (REQUIRED)." },
+            "endpoint": { "type": "string" }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["type", "vendor", "partnerId"],
+          "properties": {
+            "type": { "const": "pixel" },
+            "vendor": { "const": "linkedin" },
+            "partnerId": { "type": "string", "minLength": 1, "description": "LinkedIn partner id (REQUIRED)." },
+            "conversionId": { "type": "string", "minLength": 1, "description": "Optional LinkedIn conversion id for the `lead` event." },
+            "endpoint": { "type": "string" }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["type", "vendor", "tagId"],
+          "properties": {
+            "type": { "const": "pixel" },
+            "vendor": { "const": "bing" },
+            "tagId": { "type": "string", "minLength": 1, "description": "Bing UET tag id (REQUIRED)." },
+            "endpoint": { "type": "string" }
+          }
+        }
+      ]
+    },
+    "helixRumConnector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "helix-rum (RUM authority). GOVERNANCE-FREE shape (spec 022): NOT consent-gated, no payload denylist — the top-level consent/consentStrict/payloadDenylist do NOT gate or strip it, and it carries none of those fields itself.",
+      "properties": {
+        "type": { "const": "helix-rum" },
+        "collectBaseURL": { "type": "string", "description": "RUM collector base (default ot.aem.live)." },
+        "rate": { "type": "string", "description": "A sampleRUM rate name (on/high/medium/low/off)." },
+        "weight": { "type": "number", "description": "A raw sampling weight (wins over `rate`)." },
+        "referer": { "type": "string", "description": "Host-sourced page referer (default document.referrer)." }
+      }
+    }
+  }
+}

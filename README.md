@@ -98,6 +98,56 @@ update path — `git subtree add` a `dist-vA` tag, `git subtree pull` `dist-vB`,
 plus the seeded hand-edit conflict that proves the no-hand-edit discipline — is proven by
 `npm run rig:subtree`.
 
+## Configure airlock (multiple connectors, one JSON config)
+
+`bootEdsAnalytics()` above wires GA4 alone. To instrument **several connectors at once** —
+GA4, an ads pixel, RUM — keep the project-specific parts (which connectors, their ids, the
+consent/payload governance) in **one JSON config your site owns**, and boot with **two lines**:
+
+```json
+{
+  "connectors": [
+    { "type": "ga4" },
+    { "type": "pixel", "vendor": "meta", "pixelId": "1234567890" },
+    { "type": "helix-rum", "rate": "high" }
+  ],
+  "consent": { "analytics_storage": "granted", "ad_storage": "denied" },
+  "consentStrict": false,
+  "payloadDenylist": ["email"]
+}
+```
+
+```js
+import { boot } from './scripts/airlock/eds.js';
+await boot(config); // boots every declared connector; returns (and installs on window.airlock) one composite handle
+```
+
+(In an EDS **lazy** phase, use the dynamic-import form section 2 shows:
+`const { boot } = await import(`${window.hlx.codeBasePath}/scripts/airlock/eds.js`); await boot(config);`.)
+
+Each connector entry is a **discriminated union** on `type`: `ga4`, `pixel` (with a nested
+`vendor` ∈ `meta` / `linkedin` / `bing` and that vendor's required id — `pixelId` / `partnerId` /
+`tagId`), or `helix-rum`. Top-level `consent` / `consentStrict` / `payloadDenylist` govern the
+consent-governed connectors (GA4, pixels); **helix-rum is exempt** (RUM governance class, spec 022).
+A malformed config (unknown `type`/`vendor`, a missing required id, a wrong-typed field) is rejected
+at boot with a **loud, actionable error naming the offending connector** — never a silent no-op.
+
+**The pinned reference is the schema:**
+[`contracts/instrumentation-config.schema.json`](contracts/instrumentation-config.schema.json)
+(validated by `npm run validate`). `boot(config)`'s runtime check is a lightweight hand-rolled
+**subset** of it, so **no validator dependency ships** in the bundle.
+
+> **Pre-1.0 — NOT frozen.** This config shape is deliberately iterable: the MVP6 real-site
+> validation exercises it and the later 1.0 API pin freezes what settles. It is not yet one of
+> airlock's frozen contract surfaces.
+>
+> **Coverage gap (honest).** This config covers **GA4 + the three pixel vendors + helix-rum**,
+> but **NOT Adobe/alloy**: alloy has no adapter boot yet, so a `{ "type": "alloy" }` entry is
+> **deferred to its own spec** (see [`docs/refinement-todo.md`](docs/refinement-todo.md) §
+> *alloy config-wiring*). So MVP6's *"GA4 + Adobe/alloy"* supported subset is only partially
+> covered by this config surface until that spec lands. (alloy still runs today via its own
+> host path + rigs; only its config-driven boot is missing.)
+
 ## Maintaining the distribution (airlock maintainers)
 
 The distribution is a **generated release**, produced from source — not hand-edited:

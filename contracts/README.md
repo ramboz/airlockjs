@@ -26,6 +26,39 @@ for data shapes (GA4 MP request, push envelope), validated with **ajv**; a
 type-checked with **tsc**. These are the pinned reference; the runtime implements
 against them.
 
+## Pre-1.0 contracts (documented + validated, but NOT frozen)
+
+Distinct from the five surfaces above (external, versioned, frozen), this surface is
+pinned **PRE-1.0 — explicitly NOT frozen** (spec 032-02): the MVP6 real-site validation
+is meant to *exercise* the shape, and the later **1.0 API pin** freezes what settles.
+It is documented + ajv-validated here so drift is caught, but it is **not** yet one of
+architecture.md's five frozen contract surfaces.
+
+| # | Surface | Artifact | Validation | Status |
+|---|---|---|---|---|
+| 6 | **Instrumentation config** (`boot(config)`) | [instrumentation-config.schema.json](instrumentation-config.schema.json) + [fixtures/](fixtures/) (`instrumentation-config-*.golden.json` / `*.negative.json`) | `npm run validate` (ajv) | **PRE-1.0 / NOT frozen** — the shape iterates until the 1.0 pin |
+
+The project JSON config `boot(config)` (`adapters/eds/index.js`) consumes:
+`{ connectors: [...], consent?, consentStrict?, payloadDenylist? }`, where each connector
+entry is a **discriminated union** on `type` (`ga4` / `pixel` / `helix-rum`; nested `vendor`
+∈ {`meta`,`linkedin`,`bing`} under `pixel`; helix-rum's governance-free shape). Modelled with
+`oneOf` on the `type` const, golden fixtures one-per-connector + a breadth golden (ga4 + pixel +
+helix-rum), and negative controls (unknown type/vendor, missing required id, wrong-typed field).
+
+**Reference-only — no ajv in the shipped bundle.** This schema is the pinned *reference*, ajv
+compiled here (a `contracts/` dev-dependency). `boot(config)`'s **runtime** validation is a
+**lightweight hand-rolled subset** (loud, actionable errors) — ajv never reaches `dist/` (a
+`build.mjs` assertion enforces it).
+
+**Coverage gap (honest).** This config contract covers **GA4 + the three pixel vendors +
+helix-rum**, but **NOT Adobe/alloy**: alloy has no adapter boot (it is hosted via
+`core/wrapped-sdk-host.js` + `connectors/alloy/*`), so a `{type:"alloy"}` entry is alloy's
+first-ever adapter boot — spike-sized, **deferred to its own spec** (recorded in
+[`docs/refinement-todo.md`](../docs/refinement-todo.md) § *alloy config-wiring* with a resolution
+trigger). So MVP6's named *"GA4 + Adobe/alloy"* supported subset is only **partially** covered by
+this authoring surface until that spec lands. The gap is also stated in the schema's own
+top-level `description` and in the root `README.md` "Configure airlock" section.
+
 ## What is deliberately deferred (and where it resolves)
 
 | Open question | What it blocks in these contracts | Resolves at |

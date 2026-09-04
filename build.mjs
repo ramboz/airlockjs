@@ -144,6 +144,16 @@ export async function buildAirlock({
     failures.push("emitted output contains a blob:/data: URL — every worker must stay a same-origin file URL");
   }
 
+  // Negative (spec 032-02 AC2): NO `ajv` (a contracts/ DEV-dependency, used only by the
+  // dev validation harness) may reach the shipped bundle. `boot(config)`'s runtime config
+  // validation is a hand-rolled SUBSET of the pinned JSON Schema precisely so the dev-only
+  // validator dependency never ships — a runtime `import … "ajv"` would smuggle ~100KB of
+  // dev tooling into every consumer's page. No-minify keeps identifiers readable, so a bare
+  // `/ajv/i` reference in any emitted chunk means ajv was bundled.
+  if ([emitted, ...emittedWorkerChunks].some((chunk) => /ajv/i.test(chunk))) {
+    failures.push("emitted output references `ajv` — a contracts/ dev-dependency must not reach the shipped bundle (032-02 AC2: runtime config validation is hand-rolled)");
+  }
+
   // Derived, not hardcoded: all workers are same-origin file URLs ⇔ every referenced specifier is a
   // known expected sibling that was emitted, and nothing blob:/data: is present in any chunk.
   const allWorkersAreSameOriginFileUrls =

@@ -12,6 +12,8 @@ const load = (p) => JSON.parse(readFileSync(new URL(p, import.meta.url)));
 // Compile each schema exactly once (its $id may only be registered once).
 const ga4 = ajv.compile(load("./ga4-mp-request.schema.json"));
 const push = ajv.compile(load("./push-event.schema.json"));
+// spec 032-02 AC1 — the PRE-1.0 instrumentation config contract (boot(config)).
+const instrumentationConfig = ajv.compile(load("./instrumentation-config.schema.json"));
 
 let failures = 0;
 
@@ -85,6 +87,24 @@ for (const ex of pushSchema.examples ?? []) {
   else { failures++; console.error(`FAIL  push example ${JSON.stringify(ex)}`); }
 }
 mustFail(push, { page_location: "x" }, "push without event name");
+
+// instrumentation config (spec 032-02 AC1): the golden config per supported connector
+// (GA4, the three pixel vendors, helix-rum) + the AC3 breadth golden must validate.
+mustPass(instrumentationConfig, "./fixtures/instrumentation-config-ga4.golden.json");
+mustPass(instrumentationConfig, "./fixtures/instrumentation-config-pixel-meta.golden.json");
+mustPass(instrumentationConfig, "./fixtures/instrumentation-config-pixel-linkedin.golden.json");
+mustPass(instrumentationConfig, "./fixtures/instrumentation-config-pixel-bing.golden.json");
+mustPass(instrumentationConfig, "./fixtures/instrumentation-config-helix-rum.golden.json");
+mustPass(instrumentationConfig, "./fixtures/instrumentation-config-multi.golden.json"); // AC3: ga4 + pixel + helix-rum
+
+// instrumentation config negative controls the schema MUST reject — the SAME malformed
+// shapes boot(config)'s hand-rolled runtime validator rejects (032-02 AC2 subset), proving
+// the discriminated union bites: unknown type (incl. the deferred `alloy`), unknown vendor,
+// a missing required vendor id, and a wrong-typed top-level field.
+mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-unknown-type.negative.json"), "unknown connector type (alloy is deferred, not a member)");
+mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-unknown-vendor.negative.json"), "unknown pixel vendor");
+mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-missing-id.negative.json"), "pixel(meta) missing required pixelId");
+mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-wrong-type.negative.json"), "consentStrict wrong-typed (string, not boolean)");
 
 console.log(failures === 0 ? "\nAll contract checks passed." : `\n${failures} contract check(s) FAILED.`);
 process.exit(failures ? 1 : 0);

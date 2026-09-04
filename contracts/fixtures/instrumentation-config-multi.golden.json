@@ -1,0 +1,10 @@
+{
+  "connectors": [
+    { "type": "ga4" },
+    { "type": "pixel", "vendor": "meta", "pixelId": "111111111111111" },
+    { "type": "helix-rum", "rate": "high" }
+  ],
+  "consent": { "analytics_storage": "granted", "ad_storage": "granted" },
+  "consentStrict": false,
+  "payloadDenylist": ["email", "phone"]
+}

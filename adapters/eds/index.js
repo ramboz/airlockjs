@@ -852,6 +852,91 @@ const GA4_MANIFEST_EVENTS = ["*"];
 const HELIX_RUM_MANIFEST_EVENTS = ["top", "error", "cwv"];
 
 /**
+ * The connector `type`s `boot(config)` can dispatch (spec 032-02 AC2/AC3). The
+ * discriminated union's tags — GA4, the three pixel vendors (nested under `pixel`),
+ * helix-rum. **alloy is deliberately NOT a member:** it has no adapter boot (hosted
+ * via `core/wrapped-sdk-host.js` + `connectors/alloy/*`), so a `{type:"alloy"}` entry
+ * is alloy's first-ever adapter boot — spike-sized, deferred to its own spec (recorded
+ * in `docs/refinement-todo.md`; the coverage gap is stated in the config schema + README).
+ */
+const KNOWN_CONNECTOR_TYPES = ["ga4", "pixel", "helix-rum"];
+
+/**
+ * Each pixel vendor's REQUIRED id field (spec 032-02 AC2). Keys mirror `PIXEL_VENDORS`;
+ * the config path REQUIRES the vendor's real id (a production authoring surface), unlike
+ * the standalone `bootMetaPixel`/… boots which default to a synthetic placeholder for
+ * rigs/tests (back-compat, unchanged).
+ */
+const PIXEL_REQUIRED_ID = { meta: "pixelId", linkedin: "partnerId", bing: "tagId" };
+
+/**
+ * Validate the config's TOP-LEVEL governance shape (spec 032-02 AC2) — loud + actionable,
+ * BEFORE the connector loop, so a wrong-typed field never becomes a cryptic downstream
+ * throw (`connectors is not iterable`) or a silently-mis-threaded governance value. This is
+ * the hand-rolled RUNTIME validator: a documented SUBSET of `contracts/instrumentation-
+ * config.schema.json` (the pinned reference, ajv-validated in the dev harness) — NO ajv in
+ * the shipped bundle (a `build.mjs` assertion enforces it). Back-compat: `connectors` absent
+ * stays a no-op boot (the schema requires it; the runtime tolerates its absence).
+ */
+function validateConfig(config) {
+  if (config === null || typeof config !== "object" || Array.isArray(config)) {
+    throw new Error("airlock boot(config): config must be an object");
+  }
+  const { connectors, consent, consentStrict, payloadDenylist } = config;
+  if (connectors !== undefined && !Array.isArray(connectors)) {
+    throw new Error('airlock boot(config): "connectors" must be an array');
+  }
+  if (consent !== undefined && (consent === null || typeof consent !== "object" || Array.isArray(consent))) {
+    throw new Error('airlock boot(config): "consent" must be an object (a purpose -> state map)');
+  }
+  if (consentStrict !== undefined && typeof consentStrict !== "boolean") {
+    throw new Error('airlock boot(config): "consentStrict" must be a boolean');
+  }
+  if (payloadDenylist !== undefined && (!Array.isArray(payloadDenylist) || payloadDenylist.some((k) => typeof k !== "string"))) {
+    throw new Error('airlock boot(config): "payloadDenylist" must be an array of strings');
+  }
+}
+
+/**
+ * Validate ONE connector entry (spec 032-02 AC2) — the discriminated-union tag checks the
+ * hand-rolled runtime validator owns: an unknown connector `type`, an unknown pixel `vendor`,
+ * a missing required vendor id, and a representative wrong-typed field (helix-rum `weight`).
+ * Every error NAMES the offending connector (by index) + field, never a silent no-op. A
+ * documented SUBSET of the JSON Schema (the schema stays the fuller pinned reference).
+ *
+ * @param {object} entry a `config.connectors` entry.
+ * @param {number} index its position (for an actionable, connector-scoped error message).
+ */
+function validateConnectorEntry(entry, index) {
+  const at = `connectors[${index}]`;
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    throw new Error(`airlock boot(config): ${at} must be a connector object`);
+  }
+  const { type } = entry;
+  if (!KNOWN_CONNECTOR_TYPES.includes(type)) {
+    throw new Error(
+      `airlock boot(config): ${at} has unknown connector type ${JSON.stringify(type)} — expected one of: ${KNOWN_CONNECTOR_TYPES.join(", ")}`,
+    );
+  }
+  if (type === "pixel") {
+    const idField = PIXEL_REQUIRED_ID[entry.vendor];
+    if (!idField) {
+      throw new Error(
+        `airlock boot(config): ${at} (pixel) has unknown vendor ${JSON.stringify(entry.vendor)} — expected one of: ${Object.keys(PIXEL_REQUIRED_ID).join(", ")}`,
+      );
+    }
+    if (typeof entry[idField] !== "string" || entry[idField].length === 0) {
+      throw new Error(
+        `airlock boot(config): ${at} (pixel/${entry.vendor}) is missing required id field ${JSON.stringify(idField)} (a non-empty string)`,
+      );
+    }
+  }
+  if (type === "helix-rum" && "weight" in entry && typeof entry.weight !== "number") {
+    throw new Error(`airlock boot(config): ${at} (helix-rum) field "weight" must be a number`);
+  }
+}
+
+/**
  * Dispatch ONE config connector entry to its per-connector boot (spec 032-01
  * AC1/AC3), returning the connector's handle PAIRED WITH its declared
  * `manifest.events` (so the composite can GATE the fan-out — craft-review blocker).
@@ -867,11 +952,18 @@ const HELIX_RUM_MANIFEST_EVENTS = ["top", "error", "cwv"];
  * checkpoints. This honors the connector's EXISTING declaration; config-declared
  * routing is a deferred follow-up, not this.
  *
+ * spec 032-02 AC2: the entry is VALIDATED first (loud + actionable, naming the connector
+ * by index) — a documented subset of the config JSON Schema — so an unknown type/vendor,
+ * a missing required id, or a wrong-typed field rejects with a clear error rather than a
+ * silent placeholder or a cryptic downstream throw.
+ *
  * @param {{ type: string }} entry a connector entry from `config.connectors`.
  * @param {{ consent?, consentStrict?, payloadDenylist? }} governance top-level governance.
+ * @param {number} index the entry's position in `config.connectors` (for error messages).
  * @returns {Promise<{ handle: object, events: string[] }>} the handle + its declared vocabulary.
  */
-async function bootConnector(entry, governance) {
+async function bootConnector(entry, governance, index) {
+  validateConnectorEntry(entry, index);
   const { type, ...rest } = entry || {};
   switch (type) {
     case "ga4":
@@ -917,14 +1009,19 @@ async function bootConnector(entry, governance) {
  *   the composite handle (also set on `window.airlock`).
  */
 export async function boot(config = {}) {
+  // spec 032-02 AC2: validate the config's top-level shape BEFORE booting anything, so a
+  // wrong-typed field rejects loud + actionable instead of becoming a cryptic downstream
+  // throw. Per-connector validation happens inside bootConnector (naming the connector by
+  // index), on the partial-boot-cleanup path so a bad LATER entry disposes earlier ones.
+  validateConfig(config);
   const { connectors = [], consent, consentStrict, payloadDenylist } = config;
   const governance = { consent, consentStrict, payloadDenylist };
   const booted = [];
   try {
-    for (const entry of connectors) {
+    for (let i = 0; i < connectors.length; i++) {
       // Sequential (config order) so `getState`/`stats` read the declared-first
       // connector deterministically and any boot side effects order predictably.
-      booted.push(await bootConnector(entry, governance));
+      booted.push(await bootConnector(connectors[i], governance, i));
     }
   } catch (err) {
     // Partial-boot cleanup (craft-review nit): a later entry's throw (unknown

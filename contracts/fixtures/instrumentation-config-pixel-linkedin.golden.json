@@ -1,0 +1,6 @@
+{
+  "connectors": [
+    { "type": "pixel", "vendor": "linkedin", "partnerId": "7654321", "conversionId": "12345678" }
+  ],
+  "consent": { "ad_storage": "granted" }
+}
