@@ -42,9 +42,10 @@
 **Resolution trigger:** When the diagnostics/inspector surface is specced.
 **Resolved by:** [spec 028 — enforcement inspector](specs/028-enforcement-inspector/spec.md) (MVP5 fixed core). Scope shipped: a **read-layer** over the existing 009-02 `onDiagnostic` stream — one shared collector on all three seams (028-01), per-beacon decision chains via a collector-unique `beaconId` (028-02), and a drop-in, local, XSS-safe dev **panel** (028-03). Grounded that the inspector is a read-layer (no new instrumentation), so it lands cheaply. Deliberately NOT in scope (deferred beyond MVP5): a hosted/remote trace backend + persisted historical traces (MVP5 no-go); correlating a beacon back to the originating `push()` event type (worker-stripped — beacon-keyed only); the `unpinned-declared-origin`/payload-governance strip-chain correlation.
 
-### OQ8 — Distribution channel
-**Deferred:** git subtree (matching aem-martech/aem-experimentation) vs npm for the EDS audience. (Repo/package slug settled: `airlockjs`.)
+### ~~OQ8 — Distribution channel~~ — RESOLVED 2026-09-04
+~~**Deferred:** git subtree (matching aem-martech/aem-experimentation) vs npm for the EDS audience. (Repo/package slug settled: `airlockjs`.)~~
 **Resolution trigger:** Before the first external release cut.
+**Resolved by:** [ADR-0015: Distribution channel: git-subtree (EDS convention)](decisions/adr-0015-distribution-git-subtree.md).
 
 ### OQ9 — MVP2 chamber isolation model + synchronous-host-access mechanism (coupled)
 **Deferred:** The per-connector isolation model for MVP2 (worker-per-chamber vs QuickJS/WASM sandbox) and the synchronous cookie/storage access mechanism it requires are one coupled decision. R-004 grounded sync-access feasibility only in the plain-Worker single-realm model (host globals by reference); both MVP2 models break that precondition — separate-thread caches cannot share a synchronous cookie view without SharedArrayBuffer + Atomics (AD-4-forbidden); a WASM sandbox must marshal each read, losing the unmodified-stock-bundle property. Also unresolved: out-of-band-write staleness (a credentialed fetch `Set-Cookie`, a second tab, or a main-thread write leaving the worker's synchronous view stale). The MVP1 single-connector case (GA4 `client_id`) is served by a simple per-worker sync-cache; the multi-chamber case is not grounded. Promoted from [ADR-0001](decisions/adr-0001-chamber-isolation-strength.md) (its exposed forward-commitment).

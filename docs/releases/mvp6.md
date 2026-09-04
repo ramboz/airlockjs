@@ -108,6 +108,10 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 
 - Resolve **OQ8** (distribution) + **OQ12 item 4** (dispose/idempotent-boot) + **OQ13 item 4** (name-scoped
   cookie-grant wrapper) + **spec 018 item h** (`reserveSpace` eager-phase wiring) here.
+  - **OQ8 RESOLVED (2026-09-04)** → [ADR-0015: git-subtree of ready-to-serve built artifacts](../decisions/adr-0015-distribution-git-subtree.md)
+    (npm deferred, not rejected). Next: the distribution-**setup** spec (served-artifact layout decoupled from the
+    testbed + documented `git subtree add`/`pull`), whose first proof is subtree-onto-a-clean-EDS-checkout → boot,
+    CWV preserved.
 - Pin the **1.0 API surface** as an external contract (`/jig:contracts`) — the connector interface, capability
   API, `push()` surface.
 - New specs for distribution, the hardening residuals, the 1.0 pin, and the real-site validation.
