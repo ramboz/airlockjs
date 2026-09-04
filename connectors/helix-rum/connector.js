@@ -88,16 +88,24 @@ export function createHelixRumConnector(config = {}) {
     rate,
     weight: weightConfig,
     ctx = {},
+    // 030-02: OPTIONAL main-thread-minted sampling overrides. When airlock runs
+    // this connector in a chamber, the SAME per-page `{weight, id, isSelected}`
+    // must also drive the main-thread unload dispatcher (mapToRum) + the endpoint
+    // ceiling — so `bootHelixRum` mints them ONCE on the main thread and passes
+    // them here, keeping main↔worker byte-identical. Absent (022's own seam tests),
+    // they fall back to per-construction generation — byte-unchanged.
+    id: idOverride,
+    isSelected: isSelectedOverride,
   } = config;
 
   // Sampling-rate fidelity (022-02 AC2) — resolve ONCE, same as id/isSelected
   // below (see this connector's PER-PAGE SAMPLING STATE header note).
   const weight = resolveWeight({ rate, weight: weightConfig });
 
-  // Per-page sampling state, fixed ONCE (see header) — computed at
-  // construction, never re-rolled per handle() call.
-  const id = crypto.randomUUID().slice(-9);
-  const isSelected = weight > 0 && Math.random() * weight < 1;
+  // Per-page sampling state, fixed ONCE (see header) — computed at construction,
+  // never re-rolled per handle() call; overridable by the main thread (030-02).
+  const id = idOverride || crypto.randomUUID().slice(-9);
+  const isSelected = isSelectedOverride !== undefined ? isSelectedOverride : weight > 0 && Math.random() * weight < 1;
   const endpoint = rumUrl(collectBaseURL, weight);
 
   const manifest = {

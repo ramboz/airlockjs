@@ -41,7 +41,12 @@ const ENTRY_OUT = "eds"; // → eds.js
 // Every same-origin sibling chamber worker the emitted eds.js may spawn. The `out` name is derived
 // from the source basename (so `core/pixel-chamber.worker.js` → `pixel-chamber.worker` → the sibling
 // `./pixel-chamber.worker.js`). Add an entry here when a new chamber worker becomes eds-reachable.
-const WORKER_ENTRIES = ["core/chamber.worker.js", "core/pixel-chamber.worker.js", "core/dom-chamber.worker.js"];
+const WORKER_ENTRIES = [
+  "core/chamber.worker.js",
+  "core/pixel-chamber.worker.js",
+  "core/dom-chamber.worker.js",
+  "core/helix-rum-chamber.worker.js", // 030-02: airlock-as-RUM-authority (connector:"helix-rum")
+];
 const workerOut = (inPath) => inPath.replace(/^core\//, "").replace(/\.js$/, "");
 const EXPECTED_WORKER_SPECIFIERS = new Set(WORKER_ENTRIES.map((p) => `./${workerOut(p)}.js`));
 

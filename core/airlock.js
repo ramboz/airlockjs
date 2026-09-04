@@ -223,7 +223,9 @@ export function createAirlock({
       ? new Worker(new URL("./pixel-chamber.worker.js", import.meta.url), { type: "module" })
       : connector === "dom"
         ? new Worker(new URL("./dom-chamber.worker.js", import.meta.url), { type: "module" })
-        : new Worker(new URL("./chamber.worker.js", import.meta.url), { type: "module" });
+        : connector === "helix-rum"
+          ? new Worker(new URL("./helix-rum-chamber.worker.js", import.meta.url), { type: "module" })
+          : new Worker(new URL("./chamber.worker.js", import.meta.url), { type: "module" });
   // Init-message generalization (:149 -> here): GA4's shape
   // (`{trackers, workFactor, endpoints, ctx}`) is unrelated to what the
   // pixel chamber's createPixelConnector(config) needs (`{endpoint,
@@ -232,7 +234,7 @@ export function createAirlock({
   // workUs}`) — so a pixel OR dom instance posts `connectorConfig` verbatim
   // instead, never the GA4-shaped fields.
   worker.postMessage(
-    connector === "pixel" || connector === "dom"
+    connector === "pixel" || connector === "dom" || connector === "helix-rum"
       ? { type: "init", ...(connectorConfig || {}) }
       : { type: "init", trackers, workFactor, endpoints, ctx },
   );

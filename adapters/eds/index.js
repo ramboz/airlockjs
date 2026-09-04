@@ -41,6 +41,14 @@ import { createBingUetConfig, BING_EGRESS_PURPOSES } from "../../connectors/pixe
 import { createCookieCapability } from "./cookies.js";
 import { createExposureReporter } from "./exposure.js";
 import { createBlockInstrumenter } from "./blocks.js";
+import { startCwvCapture } from "../../connectors/helix-rum/cwv-capture.js";
+import { rumUrl, resolveWeight } from "../../connectors/helix-rum/map.js";
+import { DEFAULT_COLLECT_BASE_URL } from "../../connectors/helix-rum/connector.js";
+// 030-02: the REAL web-vitals/attribution subscribers — the production wiring the DONE
+// 022-04 slice deferred (cwv-capture.js is DI'd). Import is side-effect-free (web-vitals
+// registers observers only when onLCP/onCLS/onINP are CALLED), so it is safe at module
+// load; `bootHelixRum` accepts overrides so tests inject stubs (no PerformanceObserver).
+import { onLCP, onCLS, onINP } from "web-vitals/attribution";
 
 /** Placeholder collect endpoint — the live GA4 MP URL (measurement_id/api_secret)
  *  is deferred; no real GA4 credentials ship in this slice. */
@@ -646,6 +654,96 @@ export async function bootBingUet(opts = {}) {
     flushNow: () => airlock.flushNow(),
     stats: () => airlock.stats(),
     dispose: () => airlock.dispose(),
+  };
+}
+
+/**
+ * Boot airlock as the page's GOVERNED RUM authority (spec 030-02) — *"airlock
+ * replaces your RUM tag: off-thread, governed, already measuring."* Emits the
+ * core RUM checkpoints (`top`/`error`/`cwv`, incl. INP at page-hide via 030-01's
+ * connector-generic unload dispatcher), confined to `ot.aem.live`, **NOT**
+ * consent-gated (RUM's governance class, spec 022).
+ *
+ * SAMPLING is minted ONCE here on the MAIN thread (`{weight, id, isSelected}`)
+ * and passed to (a) the worker connector (via `connectorConfig`, so the chamber
+ * maps the SAME id/weight) and (b) the endpoint ceiling + the unload mapper — so
+ * main and worker agree byte-for-byte (the 030-01/030-02 endpoint-ceiling
+ * coupling the frame-critique flagged). An UNSELECTED page emits nothing
+ * (sampleRUM parity).
+ *
+ * SCOPED replace: covers `top`/`error`/`cwv` only — NOT the enhancer's
+ * interaction/lifecycle checkpoints (deferred — spec 030 § honest bounds); a real
+ * production cutover is gated on the creds-gated live `ot.aem.live` wire-shape
+ * check (030-04). `web-vitals/attribution` subscribers are DI'd (overridable) so
+ * this boots headlessly in tests.
+ *
+ * @param {object} [opts]
+ * @param {string} [opts.collectBaseURL] RUM collector base (default `ot.aem.live`)
+ * @param {string} [opts.rate]           a sampleRUM rate name (on/high/medium/low/off)
+ * @param {number} [opts.weight]         a raw sampling weight (wins over `rate`)
+ * @param {string} [opts.referer]        host-sourced page ref (default `document.referrer`)
+ * @param {boolean} [opts.forceSelect]   test seam: force `isSelected` past the random gate
+ * @param {Function} [opts.onLCP] [opts.onCLS] [opts.onINP] web-vitals subscriber overrides (tests inject stubs)
+ * @returns {{ push, pushCritical, setConsent, getState, flushNow, stats, dispose, sampled: boolean }}
+ */
+export function bootHelixRum(opts = {}) {
+  const {
+    collectBaseURL = DEFAULT_COLLECT_BASE_URL,
+    rate,
+    weight: weightOverride,
+    referer = (typeof document !== "undefined" && document.referrer) || "",
+    forceSelect,
+    onLCP: onLCPImpl = onLCP,
+    onCLS: onCLSImpl = onCLS,
+    onINP: onINPImpl = onINP,
+  } = opts;
+
+  // Mint the per-page sampling ONCE on the MAIN thread — the worker connector, the
+  // endpoint ceiling, and the unload dispatcher (mapToRum) all use THESE values.
+  const weight = resolveWeight({ rate, weight: weightOverride });
+  const id = crypto.randomUUID().slice(-9);
+  const isSelected = forceSelect !== undefined ? !!forceSelect : weight > 0 && Math.random() * weight < 1;
+  const endpoint = rumUrl(collectBaseURL, weight);
+
+  // Unselected page-load: emit NOTHING (sampleRUM parity — an unsampled page fires no beacon).
+  if (!isSelected) {
+    const noop = () => {};
+    return { push: noop, pushCritical: noop, setConsent: noop, getState: () => undefined, flushNow: noop, stats: () => ({}), dispose: noop, sampled: false };
+  }
+
+  const ctx = { referer };
+  const airlock = createAirlock({
+    connector: "helix-rum",
+    // The worker connector gets the SAME sampling (id/weight/isSelected) so its
+    // steady-state beacons match; `sampling` also drives the main-thread unload
+    // mapper (mapToRum) via core/airlock.js's 030-01 criticalMapper selection.
+    connectorConfig: { collectBaseURL, weight, id, isSelected: true, ctx, sampling: { weight, id } },
+    endpoints: [endpoint], // host-owned ceiling (ADR-0006) — byte-matches the connector's endpoint
+    ctx,
+    egressPurposes: [], // RUM governance class: confined, NOT consent-gated (spec 022)
+    trackers: 1,
+  });
+
+  const push = (evt) => airlock.push(evt);
+
+  // Capture wiring — the one-call-site changes 022-01/02/04 deferred to "a production adapter".
+  push({ event: "top" }); // page-view on load
+  if (typeof addEventListener === "function") {
+    addEventListener("error", (e) => push({ event: "error", source: e && e.filename, target: e && e.message }));
+    addEventListener("unhandledrejection", (e) => push({ event: "error", source: "unhandledrejection", target: e && String(e.reason) }));
+    addEventListener("securitypolicyviolation", (e) => push({ event: "error", source: e && e.blockedURI, target: e && e.violatedDirective }));
+  }
+  startCwvCapture({ push, onLCP: onLCPImpl, onCLS: onCLSImpl, onINP: onINPImpl }); // LCP/CLS/INP (incl. INP at page-hide)
+
+  return {
+    push,
+    pushCritical: (evt) => airlock.pushCritical(evt),
+    setConsent: (v) => airlock.setConsent(v),
+    getState: (p) => airlock.getState(p),
+    flushNow: () => airlock.flushNow(),
+    stats: () => airlock.stats(),
+    dispose: () => airlock.dispose(),
+    sampled: true,
   };
 }
 
