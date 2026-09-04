@@ -88,6 +88,8 @@
 | [030-rum-subsume](030-rum-subsume/spec.md) | 030-02 — the production RUM authority | **DONE** |  |
 | [030-rum-subsume](030-rum-subsume/spec.md) | 030-03 — the page-side replace + no double-count | **DONE** |  |
 | [030-rum-subsume](030-rum-subsume/spec.md) | 030-04 — the scoped-replace boundary + the decision landed | **DONE** |  |
+| [031-distribution-setup](031-distribution-setup/spec.md) | 031-01 — the distributable build target + subtree-install proof (boots on a clean EDS checkout, CWV preserved) | DRAFT |  |
+| [031-distribution-setup](031-distribution-setup/spec.md) | 031-02 — the update path: versioning marker + `git subtree pull` (generated-release overwrite) | DRAFT |  |
 
 ## Deferred slices
 
