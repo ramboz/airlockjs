@@ -40,10 +40,12 @@ frame-critique's merge-hostility residual (treat the tree as a generated release
    version marker (e.g. `dist/VERSION` and/or a field in a small `dist/manifest.json`) stamped at build time from
    `package.json` version + the git tag/short-SHA. Observable: after a build, the marker reports the current
    airlock version; a build at a different version reports the new value.
-2. **A release-tag convention (the semver substitute).** Cutting a distributable at a release is tied to a git tag
-   (`vX.Y.Z`), documented so a consumer `git subtree add`/`pull`s a **specific tagged ref** — the version-pinning
-   ADR-0015 said subtree lacks. Observable: the install/update doc references pulling a tagged ref, and the
-   VERSION marker in that ref matches the tag.
+2. **A release-tag convention (the semver substitute).** Cutting a release tags the **dist-rooted ref** 031-01
+   publishes (the `dist` branch) — e.g. a `dist-vX.Y.Z` tag whose root is the servable tree — so a consumer
+   `git subtree add`/`pull`s a **specific tagged dist ref**, the version-pinning ADR-0015 said subtree lacks. (The
+   tag is on the dist-rooted tree, NOT a source tag on `main` — a source tag would pull the whole project, the
+   031-01 correction.) Observable: the install/update doc references pulling a tagged dist ref, and the VERSION
+   marker in that ref matches the tag.
 3. **Documented `git subtree pull` update, generated-release posture.** The doc gives the exact
    `git subtree pull --prefix <served-path> <airlock-remote> <ref> --squash` command and states plainly that the
    tree is a **generated release overwritten wholesale** — consumers must not hand-edit the vendored tree (that is

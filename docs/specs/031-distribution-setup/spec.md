@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 skill:
 use_cases: []
 ---
@@ -22,9 +22,12 @@ Today the build ([`build.mjs`](../../../build.mjs)) emits its N+1 sibling-worker
 `probes/eds-testbed/scripts/airlock/` — the testbed reaches airlock by *direct build-emit*, not a subtree pull.
 So no artifact yet demonstrates that a real EDS site can `git subtree add` airlock and boot it. This spec:
 
-1. Decouples the build's distributable output from the testbed into a **first-class, ready-to-serve tree**, and
-2. Proves — on a **clean EDS checkout** (not the testbed's emit path) — that a `git subtree add` install **boots
-   airlock same-origin with no build step, CWV preserved**, and that a later `git subtree pull` **updates cleanly**.
+1. Decouples the build's distributable output from the testbed into a **first-class, ready-to-serve tree** and
+   **publishes it to a dist-rooted ref** (a `dist` branch/tag whose root *is* the artifacts) a consumer can
+   `git subtree add`, and
+2. Proves — on a **clean EDS checkout** (not the testbed's emit path) — that a `git subtree add` of that ref
+   **boots airlock same-origin with no build step, CWV preserved**, and that a later `git subtree pull` **updates
+   cleanly**.
 
 **Scope boundary — this is the *mechanism* proof, not the customer-prod proof.** The adoption proof here runs on a
 **clean EDS-boilerplate fixture**. Validating airlock's supported connectors on the **actual customer production
@@ -42,10 +45,13 @@ this spec's surfaces stay **pre-1.0**.
   `pixel-chamber.worker.js`, `dom-chamber.worker.js`, `helix-rum-chamber.worker.js`) into
   `probes/eds-testbed/scripts/airlock/`, and asserts no `blob:`/`data:` worker on every build — **grounded** (read
   [`build.mjs`](../../../build.mjs) this session; `OUTDIR`, `WORKER_ENTRIES`, the positive/negative assertions).
-- **The core bet (slice 031-01 proves it):** a clean EDS/aem-boilerplate checkout can `git subtree add` a
-  ready-to-serve tree, serve those files **same-origin with no build step**, and airlock **boots** from them (the
-  runtime's `new Worker(new URL('./x.worker.js', import.meta.url))` resolves to a same-origin file URL under the
-  004-01 CSP envelope). This is asserted by ADR-0015, **not yet probed** — it is exactly what this spec validates.
+- **The core bet (slice 031-01 pins + proves it):** `git subtree add --prefix` sets the *local* landing path and
+  pulls a ref's **root** (not a remote subdirectory), so airlock must **publish its generated servable tree to a
+  dist-rooted ref** (a `dist` branch/tag whose root IS `eds.js` + the worker siblings) — a clean EDS checkout then
+  `git subtree add`s THAT ref and boots same-origin with no build step (the runtime's `new Worker(new
+  URL('./x.worker.js', import.meta.url))` resolves to a same-origin file URL under the 004-01 CSP envelope).
+  ADR-0015 delegated "the exact served-artifact layout" to this spec; the mechanism is **unproven until 031-01's
+  rig** exercises the real publish → add → boot path (not a scratch root).
 - **The update bet (slice 031-02 proves it):** `git subtree pull` **overwrites** the generated (non-mergeable)
   tree wholesale — treating it as a *generated release*, per ADR-0015's "Becomes harder" note — sidestepping the
   bundle-merge-hostility the ADR-0015 frame-critique flagged. Unproven until 031-02.
