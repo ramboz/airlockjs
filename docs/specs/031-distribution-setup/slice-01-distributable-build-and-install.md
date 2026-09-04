@@ -1,10 +1,9 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [adr-0015]
 last_verified: 2026-09-04
 arch_review: true  # defines the distribution layout + served-path convention — a public consumption contract.
 frame_review: true  # core bet: subtree-add → serve → boot on a clean EDS checkout is asserted, not yet probed.
-claimed_by: claude/mvp6-e4550f
 ---
 
 <!-- jig self-defining vocabulary (soft, forward-only): expand each acronym on

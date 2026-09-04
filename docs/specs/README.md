@@ -88,7 +88,7 @@
 | [030-rum-subsume](030-rum-subsume/spec.md) | 030-02 — the production RUM authority | **DONE** |  |
 | [030-rum-subsume](030-rum-subsume/spec.md) | 030-03 — the page-side replace + no double-count | **DONE** |  |
 | [030-rum-subsume](030-rum-subsume/spec.md) | 030-04 — the scoped-replace boundary + the decision landed | **DONE** |  |
-| [031-distribution-setup](031-distribution-setup/spec.md) | 031-01 — the distributable build target + subtree-install proof (boots on a clean EDS checkout, CWV preserved) | DRAFT |  |
+| [031-distribution-setup](031-distribution-setup/spec.md) | 031-01 — the distributable build target + subtree-install proof (boots on a clean EDS checkout, CWV preserved) | **DONE** |  |
 | [031-distribution-setup](031-distribution-setup/spec.md) | 031-02 — the update path: versioning marker + `git subtree pull` (generated-release overwrite) | DRAFT |  |
 
 ## Deferred slices
@@ -113,7 +113,7 @@
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
 - **8** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **73** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **75** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **8** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
