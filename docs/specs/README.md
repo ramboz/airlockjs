@@ -89,7 +89,7 @@
 | [030-rum-subsume](030-rum-subsume/spec.md) | 030-03 — the page-side replace + no double-count | **DONE** |  |
 | [030-rum-subsume](030-rum-subsume/spec.md) | 030-04 — the scoped-replace boundary + the decision landed | **DONE** |  |
 | [031-distribution-setup](031-distribution-setup/spec.md) | 031-01 — the distributable build target + subtree-install proof (boots on a clean EDS checkout, CWV preserved) | **DONE** |  |
-| [031-distribution-setup](031-distribution-setup/spec.md) | 031-02 — the update path: versioning marker + `git subtree pull` (generated-release overwrite) | DRAFT |  |
+| [031-distribution-setup](031-distribution-setup/spec.md) | 031-02 — the update path: versioning marker + `git subtree pull` (generated-release overwrite) | **DONE** | Closes spec 031 (distribution, [ADR-0015](../decisions/adr-0015-distribution-git-subtree.md) / architecture OQ8). Channel: git-subtree of a **dist-rooted `dist` branch** (root = `eds.js` + 4 `*.worker.js` + VERSION) consumed at **`scripts/airlock/`** same-origin (004-01), buildless. Immutable per-release **`dist-vX.Y.Z` tag** pin (marker==tag; non-force push, `--force-tag` to re-cut); `git subtree add`/`pull … dist-vX.Y.Z --squash`. Targets: `build:dist` → `dist/`, `publish:dist --target <t> [--release]`, proof `rig:subtree`. |
 
 ## Deferred slices
 
@@ -113,7 +113,7 @@
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
 - **8** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **75** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **76** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **8** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
