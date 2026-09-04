@@ -11,6 +11,8 @@
     "build": "node build.mjs",
     "build:dist": "node build.mjs --outdir dist",
     "publish:dist": "node publish-dist.mjs",
+    "release:dist": "npm run build:dist && node publish-dist.mjs --target origin --release",
+    "postversion": "npm run release:dist",
     "rig": "node rig/measure.mjs",
     "rig:teardown": "node rig/teardown.mjs",
     "rig:csp": "node rig/csp-probe.mjs",

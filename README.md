@@ -127,6 +127,28 @@ npm run publish:dist -- --target origin              # OR: update the floating `
   (`--target git@github.com:ramboz/airlockjs.git`), or a local bare-repo **path** (what the rig uses
   for a hermetic proof).
 
+### Cutting a release (the dist tag is automatic)
+
+A source release (`vX.Y.Z`) and its distribution cut (`dist-vX.Y.Z`) share one version. The
+`postversion` hook wires them together, so **`npm version` cuts the dist tag for you**:
+
+```sh
+# 1. update docs/releases/* + CHANGELOG.md for the new version, commit them.
+npm version X.Y.Z    # bumps package.json + commits + creates the vX.Y.Z source tag,
+                     # then postversion → `npm run release:dist` (build:dist + publish
+                     # --target origin --release): pushes the dist branch + the immutable
+                     # dist-vX.Y.Z tag to origin. AUTOMATIC — no separate dist step to forget.
+git push --follow-tags   # 2. publish the source commit + the vX.Y.Z tag.
+```
+
+- **`npm run release:dist`** = `build:dist && publish:dist --target origin --release` — the same
+  cut, runnable standalone (e.g. to publish `dist-v0.5.0` retroactively for the current version).
+- **Heads-up:** `postversion` reaches the network — `npm version` now **pushes the dist branch + tag
+  to `origin`**. The source commit + `vX.Y.Z` tag stay your explicit `git push --follow-tags` (step 2),
+  so briefly `dist-vX.Y.Z` is on origin before the source tag; the push in step 2 catches it up.
+- The dist tag is **immutable** (above): if `npm version` re-runs a version already released, the dist
+  push fails loudly — bump the version, don't reuse it.
+
 ## Development
 
 - `npm test` — vitest unit + integration suites.
