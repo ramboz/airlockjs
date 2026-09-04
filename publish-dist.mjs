@@ -66,10 +66,22 @@ export function resolveTarget(target) {
   }
 }
 
-/** The VERSION marker: package.json version + airlock HEAD short-sha (031-02 extends to
- *  per-release tags). One greppable line so a consumer can pin/read the vendored snapshot. */
-export function computeVersion({ version, sha }) {
-  return `airlockjs v${version}+${sha}`;
+/** The VERSION marker. One greppable line so a consumer can pin/read the vendored snapshot.
+ *  - 031-01 default (`release: false`): `airlockjs vX.Y.Z+<sha>` — the FLOATING "latest" of the
+ *    `dist` branch (a publish-time short-SHA; a dev/CI build between releases).
+ *  - 031-02 RELEASE variant (`release: true`): `airlockjs vX.Y.Z` with NO `+<sha>` — the marker
+ *    reconciled to the `dist-vX.Y.Z` tag (AC1). Both the tag and this marker derive from ONE
+ *    version, so they cannot drift ("marker == tag by construction"). */
+export function computeVersion({ version, sha, release = false }) {
+  return release ? `airlockjs v${version}` : `airlockjs v${version}+${sha}`;
+}
+
+/** The dist-rooted release-tag name for a version (031-02 AC1): `dist-vX.Y.Z`. The tag rides the
+ *  DIST-rooted commit (root = the servable artifacts), NEVER a source tag on `main` — a source tag
+ *  would pull the whole project (the 031-01 correction). Single source of truth so the tag and the
+ *  reconciled `airlockjs vX.Y.Z` marker share one version, used by the docs and the update rig. */
+export function releaseTag(version) {
+  return `dist-v${version}`;
 }
 
 /**
@@ -82,10 +94,17 @@ export function computeVersion({ version, sha }) {
  * @param {string} opts.target   the push target: a local bare repo path (hermetic), a remote URL,
  *                               or a remote NAME (e.g. "origin") — a name is resolved to its URL
  *                               (see `resolveTarget`) because the throwaway staging repo has no remotes.
- * @param {string} [opts.ref]    the dist-rooted branch name (default "dist").
- * @returns {{ref:string, version:string, artifacts:string[], target:string}}
+ * @param {string} [opts.ref]      the dist-rooted branch name (default "dist").
+ * @param {boolean} [opts.release] RELEASE mode (031-02 AC1): additionally tag the dist-rooted
+ *                                 commit `dist-vX.Y.Z` and push the tag, and reconcile the VERSION
+ *                                 marker to `airlockjs vX.Y.Z` (NO `+<sha>`) — the authoritative
+ *                                 version pin a consumer `git subtree add`/`pull`s.
+ * @param {string} [opts.version]  override the semver used for the marker + tag. Defaults to
+ *                                 package.json's version (the production path); an explicit value is
+ *                                 the test/rig seam for simulating distinct releases A and B.
+ * @returns {{ref:string, version:string, tag:(string|null), artifacts:string[], target:string, pushTarget:string}}
  */
-export async function publishDist({ distDir, target, ref = "dist" } = {}) {
+export async function publishDist({ distDir, target, ref = "dist", release = false, version, forceTag = false } = {}) {
   if (!distDir) throw new Error("publishDist: `distDir` is required");
   if (!target) throw new Error("publishDist: `target` is required (a bare repo path or a remote)");
   if (!existsSync(join(distDir, `${ENTRY_OUT}.js`))) {
@@ -97,12 +116,16 @@ export async function publishDist({ distDir, target, ref = "dist" } = {}) {
     // 1. Stage the built artifacts at the ROOT (so they become the ref's root tree).
     cpSync(distDir, stage, { recursive: true });
 
-    // 2. Stamp VERSION from package.json + the airlock HEAD short-sha (best-effort sha).
+    // 2. Stamp VERSION. The semver SOURCE is the explicit `version` (the test/rig seam), else
+    //    package.json (production). The marker + the `dist-vX.Y.Z` tag both derive from this ONE
+    //    value, so a release's marker == its tag by construction (031-02 AC1). A best-effort HEAD
+    //    short-sha only feeds the NON-release floating marker.
     const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+    const semver = version || pkg.version;
     let sha = "nogit";
     try { sha = git(["rev-parse", "--short", "HEAD"], ROOT); } catch { /* detached/no-git → "nogit" */ }
-    const version = computeVersion({ version: pkg.version, sha });
-    writeFileSync(join(stage, "VERSION"), `${version}\n`);
+    const marker = computeVersion({ version: semver, sha, release });
+    writeFileSync(join(stage, "VERSION"), `${marker}\n`);
 
     // 3. Commit the dist-rooted tree in the throwaway repo and push it to <target>:<ref>.
     //    Resolve a bare remote NAME (e.g. "origin") to its URL first — the staging repo has no
@@ -110,26 +133,52 @@ export async function publishDist({ distDir, target, ref = "dist" } = {}) {
     const pushTarget = resolveTarget(target);
     git(["init", "-q"], stage);
     git(["add", "-A"], stage);
-    git(["commit", "-q", "-m", `airlock dist ${version}`], stage);
+    git(["commit", "-q", "-m", `airlock dist ${marker}`], stage);
     git(["push", "--force", pushTarget, `HEAD:refs/heads/${ref}`], stage);
 
-    return { ref, version, artifacts: [...DIST_ARTIFACTS], target, pushTarget };
+    // 4. RELEASE mode: tag the SAME dist-rooted commit `dist-vX.Y.Z` and push the tag to <target>.
+    //    This is the authoritative version pin ADR-0015 said subtree lacks — the tag rides the
+    //    dist-rooted tree (its root is the servable artifacts), never a source tag on `main`.
+    let tag = null;
+    if (release) {
+      tag = releaseTag(semver);
+      git(["tag", tag], stage); // fresh staging repo — no -f needed
+      // A release tag is the IMMUTABLE pin (AC1 / ADR-0015 "tagged snapshot" / semver substitute):
+      // push it WITHOUT --force, so re-publishing an un-bumped version FAILS LOUDLY (`! [rejected]
+      // … already exists`) instead of silently relocating a published tag — two consumers who pull
+      // the "same" `dist-vX.Y.Z` must get the same bytes (craft-review blocker fix). Bump the version
+      // for a new release; a deliberate re-cut opts in via `forceTag`/`--force-tag`. NOTE: the `dist`
+      // BRANCH above stays force-pushed — it is the floating "latest", correctly re-pushable.
+      git(["push", ...(forceTag ? ["--force"] : []), pushTarget, `refs/tags/${tag}`], stage);
+    }
+
+    return { ref, version: marker, tag, artifacts: [...DIST_ARTIFACTS], target, pushTarget };
   } finally {
     rmSync(stage, { recursive: true, force: true });
   }
 }
 
 // --- script entry (guarded so importing for tests never pushes) ---
-// `npm run publish:dist -- --target <repo|remote> [--ref dist] [--dist-dir dist]`.
+// `npm run publish:dist -- --target <repo|remote> [--ref dist] [--dist-dir dist] [--release]`.
 // A target is REQUIRED (no `origin` default) so re-running the command can never accidentally
 // push to the real remote — the documented production form passes `--target origin` explicitly
 // (a remote NAME is resolved to its URL, since the throwaway staging repo has no remotes).
+// `--release` (031-02) additionally tags `dist-vX.Y.Z` (from package.json's version) and reconciles
+// the VERSION marker to that tag — the authoritative pin a consumer pulls. The tag is pushed WITHOUT
+// force (immutable): re-publishing an un-bumped version fails loudly. `--force-tag` opts into a
+// deliberate re-cut (moves an existing release tag — use only when you mean to).
 function parseArgs(argv) {
   const get = (flag) => {
     const i = argv.indexOf(flag);
     return i >= 0 && argv[i + 1] ? argv[i + 1] : undefined;
   };
-  return { target: get("--target"), ref: get("--ref"), distDir: get("--dist-dir") };
+  return {
+    target: get("--target"),
+    ref: get("--ref"),
+    distDir: get("--dist-dir"),
+    release: argv.includes("--release"),
+    forceTag: argv.includes("--force-tag"),
+  };
 }
 
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
@@ -143,6 +192,6 @@ if (fileURLToPath(import.meta.url) === process.argv[1]) {
     process.exit(2);
   }
   const distDir = args.distDir || join(ROOT, "dist");
-  const res = await publishDist({ distDir, target, ref: args.ref || "dist" });
-  console.log(JSON.stringify({ published_ref: res.ref, version: res.version, target: res.target, artifacts: res.artifacts }, null, 2));
+  const res = await publishDist({ distDir, target, ref: args.ref || "dist", release: args.release, forceTag: args.forceTag });
+  console.log(JSON.stringify({ published_ref: res.ref, published_tag: res.tag, version: res.version, target: res.target, artifacts: res.artifacts }, null, 2));
 }

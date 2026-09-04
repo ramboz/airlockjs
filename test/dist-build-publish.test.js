@@ -12,12 +12,12 @@
 //         drop OR rename of a worker entry throws from the build (red→green witness).
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, existsSync, readFileSync } from "node:fs";
+import { mkdtempSync, rmSync, existsSync, readFileSync, appendFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildAirlock, WORKER_ENTRIES, ENTRY_OUT } from "../build.mjs";
-import { publishDist, DIST_ARTIFACTS, resolveTarget } from "../publish-dist.mjs";
+import { publishDist, DIST_ARTIFACTS, resolveTarget, computeVersion, releaseTag } from "../publish-dist.mjs";
 
 const REPO = fileURLToPath(new URL("..", import.meta.url));
 // The four sibling chamber workers a served eds.js may spawn (026-05 N-worker set).
@@ -162,6 +162,142 @@ describe("031-01 AC2 (craft-review fix) — a remote NAME target resolves to a U
     const resolved = resolveTarget("origin");
     expect(resolved).not.toBe("origin");
     expect(resolved).toMatch(/[:/]/); // a real remote URL/path, not a bare name
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Spec 031-02 — the UPDATE path (the node-side criteria). The browser end (subtree add dist-vA →
+// subtree pull dist-vB → re-boot, + the seeded hand-edit conflict) is rig/subtree-install.mjs's
+// update arms (AC3); these tests own AC1 (the release-tag pin + the reconciled marker) and AC2's
+// doc-consistency (the documented, tagged, --squash pull).
+// ---------------------------------------------------------------------------------------------
+
+describe("031-02 AC1 — the release-tag pin (semver substitute) + the marker reconciled to the tag", () => {
+  it("computeVersion RELEASE variant emits `airlockjs vX.Y.Z` with NO +sha (the pinned marker)", () => {
+    expect(computeVersion({ version: "1.2.3", sha: "deadbee", release: true })).toBe("airlockjs v1.2.3");
+  });
+
+  it("computeVersion NON-release variant still carries the +sha floating-latest marker (031-01 unchanged)", () => {
+    expect(computeVersion({ version: "1.2.3", sha: "deadbee" })).toBe("airlockjs v1.2.3+deadbee");
+  });
+
+  it("releaseTag derives the dist-rooted tag name from the version (tag == marker version, by construction)", () => {
+    expect(releaseTag("1.2.3")).toBe("dist-v1.2.3");
+  });
+
+  describe("publishDist({ release: true }) — tags the dist-rooted ref + reconciles VERSION to the tag", () => {
+    const VER = "9.9.9"; // an injected release version (never the real pkg.version) so the pin is unambiguous
+    let distDir;
+    let bare;
+    let published;
+    beforeAll(async () => {
+      distDir = mktmp("airlock-0302-rel-dist-");
+      await buildAirlock({ outdir: distDir });
+      bare = join(mktmp("airlock-0302-rel-remote-"), "origin.git");
+      git(["init", "-q", "--bare", bare], REPO);
+      published = await publishDist({ distDir, target: bare, release: true, version: VER });
+    }, 60000);
+
+    it("creates a `dist-vX.Y.Z` tag and reports it back to the caller", () => {
+      expect(published.tag).toBe(`dist-v${VER}`);
+    });
+
+    it("`git show dist-vX.Y.Z:VERSION` equals the tag's marker — `airlockjs vX.Y.Z`, NO +sha", () => {
+      const marker = git(["--git-dir", bare, "show", `${published.tag}:VERSION`], REPO);
+      expect(marker).toBe(`airlockjs v${VER}`);
+      expect(marker).not.toMatch(/\+/); // reconciled to the tag — not the floating +sha "latest"
+    });
+
+    it("the TAGGED ref's ROOT is EXACTLY the servable artifacts + VERSION (a DIST-rooted tag, not a source tag on main)", () => {
+      const root = git(["--git-dir", bare, "ls-tree", "--name-only", published.tag], REPO)
+        .split("\n")
+        .filter(Boolean)
+        .sort();
+      expect(root).toEqual([...SIBLING_WORKERS, "VERSION", `${ENTRY_OUT}.js`].sort());
+    });
+
+    it("airlock's SOURCE project is ABSENT from the tagged ref root (never a whole-project source tag)", () => {
+      const root = git(["--git-dir", bare, "ls-tree", "--name-only", published.tag], REPO).split("\n");
+      for (const src of ["build.mjs", "core", "adapters", "connectors", "test", "package.json"]) {
+        expect(root).not.toContain(src);
+      }
+    });
+
+    it("the tag and the marker derive from the SAME version, so they cannot drift", () => {
+      const marker = git(["--git-dir", bare, "show", `${published.tag}:VERSION`], REPO);
+      expect(published.tag).toBe(`dist-v${VER}`);
+      expect(marker).toBe(`airlockjs v${VER}`);
+    });
+  });
+
+  describe("031-02 AC1 — the release tag is IMMUTABLE by default (craft-review blocker fix)", () => {
+    const VER = "9.9.9";
+    const setup = async (name) => {
+      const distDir = mktmp(`airlock-0302-${name}-dist-`);
+      await buildAirlock({ outdir: distDir });
+      const bare = join(mktmp(`airlock-0302-${name}-remote-`), "origin.git");
+      git(["init", "-q", "--bare", bare], REPO);
+      return { distDir, bare };
+    };
+
+    it("re-publishing an un-bumped version with DIFFERENT bytes FAILS LOUDLY — the pin is not silently relocated", async () => {
+      const { distDir, bare } = await setup("immut");
+      await publishDist({ distDir, target: bare, release: true, version: VER }); // dist-v9.9.9 lands (commit A)
+      // The footgun: change the built bytes but NOT the version → a DIFFERENT tree under the SAME pin.
+      // (Mutating bytes makes the second commit deterministically distinct, not reliant on clock skew.)
+      appendFileSync(join(distDir, `${ENTRY_OUT}.js`), "\n// second cut, same version\n");
+      // The non-force tag push must REJECT (else two consumers pulling dist-v9.9.9 get different bytes).
+      // Without the fix (force-push) this silently succeeded and moved a published release.
+      let err;
+      try {
+        await publishDist({ distDir, target: bare, release: true, version: VER });
+      } catch (e) {
+        err = e;
+      }
+      expect(err, "second --release of an un-bumped version must throw").toBeDefined();
+      expect(String((err && (err.stderr || err.message)) || "")).toMatch(/already exists|rejected|failed to push/i);
+    }, 60000);
+
+    it("`forceTag: true` opts into a deliberate re-cut (force-moves the existing tag to the new bytes)", async () => {
+      const { distDir, bare } = await setup("recut");
+      await publishDist({ distDir, target: bare, release: true, version: VER });
+      appendFileSync(join(distDir, `${ENTRY_OUT}.js`), "\n// deliberate re-cut, same version\n");
+      await expect(
+        publishDist({ distDir, target: bare, release: true, version: VER, forceTag: true }),
+      ).resolves.toMatchObject({ tag: `dist-v${VER}` });
+    }, 60000);
+  });
+
+  it("release mode defaults the version to package.json (the production path — tag == the package version)", async () => {
+    const distDir = mktmp("airlock-0302-pkgver-dist-");
+    await buildAirlock({ outdir: distDir });
+    const bare = join(mktmp("airlock-0302-pkgver-remote-"), "origin.git");
+    git(["init", "-q", "--bare", bare], REPO);
+    const pkg = JSON.parse(readFileSync(join(REPO, "package.json"), "utf8"));
+    const res = await publishDist({ distDir, target: bare, release: true });
+    expect(res.tag).toBe(`dist-v${pkg.version}`);
+    const marker = git(["--git-dir", bare, "show", `${res.tag}:VERSION`], REPO);
+    expect(marker).toBe(`airlockjs v${pkg.version}`);
+  }, 60000);
+});
+
+describe("031-02 AC2 — the documented `git subtree pull` update (generated-release, tagged, --squash)", () => {
+  const readme = readFileSync(join(REPO, "README.md"), "utf8");
+
+  it("documents the exact `git subtree pull ... dist-vX.Y.Z --squash` update command (a TAGGED dist ref)", () => {
+    // --squash is LOAD-BEARING: each release is an unrelated orphan root, so a non-squash pull hits
+    // `refusing to merge unrelated histories`. The doc's command must keep it (and target a tag).
+    expect(readme).toMatch(/git subtree pull --prefix \S+ \S+ dist-v[\w.]+ --squash/);
+  });
+
+  it("shifts the `git subtree add` example onto a `dist-vX.Y.Z` TAG (not the floating `dist` branch)", () => {
+    expect(readme).toMatch(/git subtree add --prefix \S+ \S+ dist-v[\w.]+ --squash/);
+  });
+
+  it("states the generated-release / overwritten-wholesale / never-hand-edit posture", () => {
+    expect(readme).toMatch(/generated release/i);
+    expect(readme).toMatch(/overwritten wholesale|overwrite\w* wholesale|wholesale/i);
+    expect(readme).toMatch(/never hand-edit/i);
   });
 });
 

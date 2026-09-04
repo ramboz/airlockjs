@@ -1,8 +1,9 @@
 ---
-status: DRAFT
+status: RECONCILED
 dependencies: [031-01, adr-0015]
-last_verified:
+last_verified: 2026-09-04
 frame_review: true  # bet: `git subtree pull` overwrites the generated tree cleanly (generated-release posture).
+claimed_by: claude/mvp6-e4550f
 ---
 
 <!-- jig self-defining vocabulary (soft, forward-only): expand each acronym on
@@ -66,16 +67,16 @@ mergeable source tree).
    un-disciplined path (red→green witnessed).
 
 **DoD:**
-- [ ] All ACs pass; full test suite green (no regressions).
-- [ ] Implementer test coverage exercises each AC with at least one fixture; edge cases covered explicitly.
-- [ ] Each new test shown to fail when its feature is removed (red→green witnessed) — notably AC3's A→B marker flip
-      and the seeded hand-edit conflict.
-- [ ] Reviewed by `reviewer` subagent (compliance + craft; **frame-critique**, since `frame_review: true`).
-- [ ] Implementation review passed.
-- [ ] Deviation log produced under this slice heading.
-- [ ] Reconciliation sweep produced under this slice heading.
-- [ ] Reconciliation review passed.
-- [ ] `docs/refinement-todo.md` updated if any decisions were deferred during implementation.
+- [x] All ACs pass; full test suite green (no regressions — modulo the pre-existing, out-of-scope prism load failure).
+- [x] Implementer test coverage exercises each AC with at least one fixture; edge cases covered explicitly.
+- [x] Each new test shown to fail when its feature is removed (red→green witnessed) — AC3's A→B marker flip, the
+      seeded hand-edit conflict, and the immutability regression (fails on the pre-fix force-push code).
+- [x] Reviewed by `reviewer` subagent (compliance + craft; **frame-critique**, since `frame_review: true`; no arch pass — no new public boundary).
+- [x] Implementation review passed.
+- [x] Deviation log produced under this slice heading.
+- [x] Reconciliation sweep produced under this slice heading.
+- [x] Reconciliation review passed.
+- [x] `docs/refinement-todo.md` updated if any decisions were deferred during implementation (none deferred — see sweep row).
 
 ### Close-out (post-DONE)
 
@@ -92,19 +93,66 @@ complete update story, not intermediate state.
 
 The original spec is preserved above. Implementation notes:
 
-_TODO (implementer): deviations, reviewer findings folded back, doc updates, plan adherence._
+- **Re-scoped 4 ACs → 3 before implementation.** 031-01 already ships the `VERSION` marker + `dist` branch
+  (`publish-dist.mjs`), so this slice does not re-add a marker — it adds the authoritative **tag pin** on top. The
+  standalone "add a version marker" AC was folded into AC1 (the release-tag pin + marker reconciled to the tag),
+  resolving 031-01's arch-review "the `dist`-branch marker is only 'latest'" note.
+- **AC1 (release-tag pin).** `computeVersion({release})` gains a release variant (`airlockjs vX.Y.Z`, no `+sha`);
+  new `releaseTag(version)` → `dist-vX.Y.Z`; `publishDist({release})` tags the SAME dist-rooted commit and pushes
+  the tag. Tag + marker derive from one `semver`, so marker == tag by construction. Release mode pushes **both**
+  the `dist` branch (force — the floating "latest") and the `dist-vX.Y.Z` tag.
+- **AC2 (documented pull).** README §3 gives `git subtree pull --prefix scripts/airlock airlock dist-vX.Y.Z
+  --squash` + the generated-release / overwrite-wholesale / never-hand-edit posture; the add example was shifted to
+  a `dist-vX.Y.Z` tag so the pin story is consistent. AC2 doc-consistency is guarded by tests.
+- **AC3 (update-path proof).** `rig:subtree` was **extended in-place** (the frame-critique's preferred option, which
+  reaches the in-module `probeBoot`) rather than adding a `rig/subtree-update.mjs` — so there is **no
+  `rig:subtree-update` script and no `probeBoot` export** (the tentative reconciliation-table TODO assumed the
+  separate-file route). Arms: clean `dist-vA`→`dist-vB` pull (VERSION flips, workers replaced, no conflict,
+  re-boots + beacon), hand-edit → conflict, and a **third** arm (non-squash → unrelated-histories rejection) added
+  beyond AC3's two, honoring the frame note that `--squash` is load-bearing. "Workers replaced" is byte-observable
+  (a trailing `//__airlock_dist_vB__`-style boot-safe comment on B's worker). Added `-c core.editor=true` to the
+  rig git helper (defensive — a subtree-pull merge never blocks on an interactive editor in CI).
+- **`publishDist` seams:** an optional `version` param (test/rig seam to simulate releases A/B; NOT on the CLI —
+  production uses `package.json`), and `forceTag` (below).
+- **Reviewer findings folded in (post-review).** Passes recorded under `reviews/` (frame-critique → pass;
+  compliance → pass; craft → pass after one needs-changes fix). 031-02 declares no `arch_review` (no new public
+  boundary beyond 031-01's), so no arch pass.
+  - **Craft [blocker], FIXED — release-tag immutability.** The tag was force-created + force-pushed like the `dist`
+    branch, so re-running `--release` on an un-bumped version silently relocated a published `dist-vX.Y.Z` (two
+    consumers pulling the "same" pin get different bytes) — contradicting AC1 / README / ADR-0015's "authoritative
+    pin". **Fix:** the tag is created without `-f` and pushed **without --force**, so an un-bumped re-release is
+    **rejected loudly** (`! [rejected] … already exists`); bump `package.json` per release. A `forceTag` /
+    `--force-tag` opt gates a deliberate re-cut. The `dist` BRANCH stays force-pushed (the mutable "latest"). Added
+    an immutability regression test (same-version, different-bytes re-publish throws; `forceTag` re-cut resolves) —
+    a genuine red→green guard (it fails on the pre-fix force-push code). README maintainer section documents the
+    immutability + `--force-tag`.
+  - **Craft nits, FIXED (now load-bearing in the rig pass gate):** the non-squash arm asserts
+    `no_squash.unrelated_histories` (`/refusing to merge unrelated histories/i` on stderr); the hand-edit arm
+    asserts `hand_edit.is_merge_conflict` (`/(^|\n)UU /` on the porcelain) — the arms now pin the *specific* failure
+    mechanism, not just "threw".
+  - **Non-blocking observation (by design, no action):** in release mode the `dist` branch is force-pushed before
+    the tag push, so a botched un-bumped re-release advances the floating branch to the new untagged bytes while the
+    tag correctly refuses. Docs steer consumers to pin a TAG (the branch is the mutable "latest"); the loud tag
+    rejection is the operator's signal to bump. Worth awareness only if a future change lets consumers track the
+    branch as a pin.
+  - **Pre-existing, out-of-scope (not a regression):** `test/dom-chamber-host-prism.test.js` fails to load
+    (missing `node_modules/prismjs/prism.js`); untouched by this slice, flagged as a separate task.
+- **Plan adherence.** ACs 1–3 implemented as (re-)specified; no scope creep. Full suite green modulo the
+  pre-existing prism failure; `test/dist-build-publish.test.js` 28/28; lint clean; `rig:subtree` PASS (6 arms).
 
 ### Reconciliation sweep
 
 | Artifact | Disposition | Rationale |
 |----------|-------------|-----------|
-| `README.md` | `updated` | _TODO: the `git subtree pull` update + release-tag/version-pin convention (AC2/AC3)._ |
-| `docs/specs/README.md` | `updated` | _TODO: regenerated by `workflow.py status-board`._ |
-| `docs/product-vision.md` | `no-op` | _TODO: checked for scope drift._ |
-| `docs/architecture.md` | `no-op` | _TODO: checked for distribution-layout / versioning-contract drift._ |
-| Primer surfaces: `CLAUDE.md` / `AGENTS.md` / scaffold templates | `no-op` | _TODO: primer hygiene; spec-close compression._ |
-| `docs/inbox.md` | `no-op` | _TODO._ |
-| `docs/refinement-todo.md` | `updated` | _TODO: ADR-0015's versioning-marker open question is now resolved by this slice — note it._ |
-| `docs/memory/**` | `no-op` | _TODO: memory-sync result._ |
-| `docs/decisions/README.md` / ADR index | `no-op` | _TODO: note if the versioning convention warranted an ADR amendment._ |
-| `build.mjs` / `package.json` scripts | `updated` | _TODO: the VERSION-marker stamping + `rig:subtree-update` script._ |
+| `README.md` | `updated` | §3 `git subtree pull … dist-vX.Y.Z --squash` update + generated-release/never-hand-edit posture; add example shifted to a tag; maintainer immutability + `--force-tag` note (craft fix). AC2 doc-consistency guarded by tests. |
+| `publish-dist.mjs` | `updated` | release variant `computeVersion` + `releaseTag` + `publishDist({release, forceTag, version})`; the immutable non-force tag push (craft-blocker fix). |
+| `rig/subtree-install.mjs` | `updated` | update arms extended IN-PLACE (clean / hand-edit / non-squash) with mechanism-pinning assertions (`is_merge_conflict`, `unrelated_histories`). No new `rig:subtree-update` script / `probeBoot` export (deviation log). |
+| `test/dist-build-publish.test.js` | `updated` | AC1 (release-tag pin + reconciled marker) + AC2 doc-consistency + the immutability regression (same-version/different-bytes throws; `forceTag` re-cut resolves). |
+| `docs/architecture.md` | `updated` | OQ8 extended to name the per-release `dist-vX.Y.Z` tag pin + the `--squash` update path (031-02). |
+| `docs/specs/README.md` | `deferred` | status-board regen is close-out (orchestrator `workflow.py status-board`), not hand-edited here. |
+| `docs/product-vision.md` | `no-op` | checked — distribution/update is enablement, no new UC or behavior/scope drift. |
+| Primer surfaces: `CLAUDE.md` / `AGENTS.md` / scaffold templates | `no-op` | new `--release`/`--force-tag` documented in README; no Hot-Cache term warranted. Spec-close primer compression is close-out (this slice closes spec 031). |
+| `docs/inbox.md` | `no-op` | nothing to park. |
+| `docs/refinement-todo.md` | `no-op` | OQ8 already RESOLVED by ADR-0015; the versioning-marker question lived in ADR-0015's Open Questions (now addressed by this slice's tag pin), NOT a refinement-todo entry — nothing to strike. (Corrects the pre-implementation TODO's assumption of an `updated` row.) |
+| `docs/memory/**` | `no-op` | captured in spec 031 + architecture OQ8 + ADR-0015; no new reusable domain term. |
+| `docs/decisions/README.md` / ADR index | `no-op` | ADR-0015 covers the channel + delegated the layout to this spec; the tag-pin/immutability is a delegated implementation captured in AC1 + guarded by the immutability regression test — no new/amended ADR (consistent with 031-01's in-spec decision). |

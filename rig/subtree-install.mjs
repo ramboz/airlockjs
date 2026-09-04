@@ -36,12 +36,19 @@
 // the airlock repo is only READ (build:dist output + HEAD sha via publishDist). Nothing is pushed
 // to origin and no branch is created in the airlock repo.
 //
-// Usage: npm run rig:subtree            (boot + beacon proof + the two seeded breaks)
+// 031-02 (AC3) extends this rig IN-PLACE with the UPDATE path: `git subtree add` a `dist-vA` tag →
+// `git subtree pull` a `dist-vB` tag with --squash → the served tree flips A→B (VERSION + workers
+// replaced), the pull applies WITHOUT a conflict, and airlock re-boots (reusing probeBoot). Two more
+// seeded breaks bite: a HAND-EDIT to the vendored tree makes the pull conflict (the merge-hostility
+// ADR-0015 warns of), and a pull WITHOUT --squash is rejected (`unrelated histories`) — proving
+// --squash is load-bearing (each release is an unrelated orphan root).
+//
+// Usage: npm run rig:subtree            (install boot+beacon + update re-land + all seeded breaks)
 //        WITH_CWV=1 npm run rig:subtree (also the Lighthouse OFF/ON CWV arm — slower)
 import http from "node:http";
 import { readFile } from "node:fs/promises";
 import { execFileSync, execSync } from "node:child_process";
-import { cpSync, mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync } from "node:fs";
+import { appendFileSync, cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -67,11 +74,12 @@ const BOILERPLATE_CSP =
   "require-trusted-types-for 'script';";
 
 // git with global hooks disabled (skip the machine's gitleaks/pre-commit hook on throwaway
-// commits) + a fixed identity (throwaway repos have no user config).
+// commits) + a fixed identity (throwaway repos have no user config) + a no-op editor (so a
+// `git subtree pull` merge never blocks on an interactive editor in CI).
 const git = (args, cwd) =>
   execFileSync(
     "git",
-    ["-c", "core.hooksPath=/dev/null", "-c", "user.email=airlock-rig@local", "-c", "user.name=airlock rig", ...args],
+    ["-c", "core.hooksPath=/dev/null", "-c", "core.editor=true", "-c", "user.email=airlock-rig@local", "-c", "user.name=airlock rig", ...args],
     { cwd, encoding: "utf8" },
   );
 
@@ -218,6 +226,93 @@ async function cwvArm(root) {
   return { lh_n: N, tbt_delta_ms: tbtDelta, cls_delta: clsDelta, within_band: withinBand, band: "TBT delta <= 50ms AND |CLS delta| <= 0.01" };
 }
 
+// --- 031-02 AC3: the UPDATE path — subtree add dist-vA → subtree pull dist-vB → clean re-land. ---
+// Two INJECTED release versions (never the real pkg.version) so the A→B marker flip is unambiguous
+// and hermetic. B's tree carries a distinguishing marker in a worker so "workers replaced" is
+// byte-observable after the pull (not just a VERSION-file swap).
+const VER_A = "9.9.9";
+const VER_B = "9.9.10";
+const B_WORKER_MARK = "//__airlock_dist_vB__"; // a harmless trailing comment (valid JS; boot-safe)
+
+// Publish A (the real built DIST) and B (a copy of DIST with the B marker appended to a worker) as
+// `dist-vA` / `dist-vB` RELEASE tags in a fresh bare repo, then exercise three arms into their OWN
+// fresh EDS checkouts:
+//   (clean)     add dist-vA → pull dist-vB --squash → VERSION flips A→B, workers replaced, no
+//               conflict, airlock re-boots (boot + beacon, reusing probeBoot). The disciplined path.
+//   (hand-edit) add dist-vA → HAND-EDIT the vendored tree → pull dist-vB --squash → CONFLICT. The
+//               un-disciplined path the doc warns against (a generated bundle is merge-hostile).
+//   (no-squash) add dist-vA → pull dist-vB WITHOUT --squash → `refusing to merge unrelated
+//               histories`. Proves --squash is LOAD-BEARING (each release is an unrelated orphan root).
+async function updatePathArms(browser) {
+  const originRel = join(mktmp("airlock-remote-release-"), "origin.git");
+  git(["init", "-q", "--bare", originRel], REPO);
+
+  const relA = await publishDist({ distDir: DIST, target: originRel, release: true, version: VER_A });
+  const distB = mktmp("airlock-dist-vb-");
+  cpSync(DIST, distB, { recursive: true });
+  appendFileSync(join(distB, "chamber.worker.js"), `\n${B_WORKER_MARK}\n`);
+  const relB = await publishDist({ distDir: distB, target: originRel, release: true, version: VER_B });
+  const tagA = relA.tag; // dist-v9.9.9
+  const tagB = relB.tag; // dist-v9.9.10
+
+  const workerPath = (co) => join(co, SERVED_PATH, "chamber.worker.js");
+  const versionAt = (co) => readFileSync(join(co, SERVED_PATH, "VERSION"), "utf8").trim();
+  const workerHasBMark = (co) => existsSync(workerPath(co)) && readFileSync(workerPath(co), "utf8").includes(B_WORKER_MARK);
+  const addA = (co) => git(["subtree", "add", "--prefix", SERVED_PATH, originRel, tagA, "--squash", "-q"], co);
+  const pullB = (co, squash) =>
+    git(["subtree", "pull", "--prefix", SERVED_PATH, originRel, tagB, ...(squash ? ["--squash"] : []), "-q", "-m", "update airlock A→B"], co);
+
+  // ARM: clean update A→B (the disciplined path).
+  const clean = makeEdsCheckout();
+  addA(clean);
+  const before = { version: versionAt(clean), workerHasBMark: workerHasBMark(clean) };
+  let cleanPullFailed = false;
+  try { pullB(clean, true); } catch { cleanPullFailed = true; }
+  const after = { version: versionAt(clean), workerHasBMark: workerHasBMark(clean) };
+  const s = await serve(clean);
+  const boot = await probeBoot(browser, s.port);
+  s.server.close();
+
+  // ARM: hand-edit the vendored tree before pulling → conflict (the un-disciplined path).
+  const edited = makeEdsCheckout();
+  addA(edited);
+  appendFileSync(workerPath(edited), "\n// LOCAL HAND EDIT — never do this to a generated release\n");
+  git(["add", "-A"], edited);
+  git(["commit", "-q", "-m", "hand-edit the vendored airlock tree (anti-pattern)"], edited);
+  let handEditConflict = false;
+  try { pullB(edited, true); } catch { handEditConflict = true; }
+  let unmerged = "";
+  try { unmerged = git(["status", "--porcelain"], edited).trim(); } catch { /* best effort */ }
+
+  // ARM: pull WITHOUT --squash → unrelated-histories rejection (--squash is load-bearing).
+  const nosquash = makeEdsCheckout();
+  addA(nosquash);
+  let nonSquashRejected = false;
+  let nonSquashReason = "";
+  try { pullB(nosquash, false); } catch (e) { nonSquashRejected = true; nonSquashReason = String((e && (e.stderr || e.message)) || ""); }
+
+  return {
+    tag_a: tagA,
+    tag_b: tagB,
+    update_command: `git subtree pull --prefix ${SERVED_PATH} <airlock-remote> ${tagB} --squash`,
+    clean: {
+      version_before: before.version,
+      version_after: after.version,
+      version_flipped: before.version === `airlockjs v${VER_A}` && after.version === `airlockjs v${VER_B}`,
+      worker_had_b_mark_before: before.workerHasBMark,
+      worker_has_b_mark_after: after.workerHasBMark,
+      workers_replaced: before.workerHasBMark === false && after.workerHasBMark === true,
+      pull_applied_without_conflict: cleanPullFailed === false,
+      ...boot,
+    },
+    // hand_edit: assert the throw is a real MERGE CONFLICT (a `UU` unmerged entry), not just any error.
+    hand_edit: { conflict_surfaced: handEditConflict, unmerged, is_merge_conflict: /(^|\n)UU /.test(unmerged) },
+    // no_squash: assert the throw is specifically the unrelated-histories rejection (the mechanism the
+    // README promises), not any error — pins WHY --squash is load-bearing.
+    no_squash: { rejected: nonSquashRejected, unrelated_histories: /refusing to merge unrelated histories/i.test(nonSquashReason) },
+  };
+}
+
 async function main() {
   // (a) Build the first-class distributable (self-asserts the same-origin-file-worker layout, AC3).
   execSync("npm run build:dist", { cwd: REPO, stdio: "inherit" });
@@ -248,6 +343,7 @@ async function main() {
   const browser = await chromium.launch();
   const arms = {};
   let cwv = null;
+  let update; // assigned unconditionally in the try below, before the verdict reads it
   try {
     // --- HAPPY PATH: subtree add the dist ref → boot + beacon. ---
     const happyCheckout = makeEdsCheckout();
@@ -273,6 +369,10 @@ async function main() {
     arms.break_add_from_main = { subtree_ref: "main", served_eds_present: !edsAbsentFromMain, ...(await probeBoot(browser, s.port)) };
     s.server.close();
 
+    // --- 031-02 AC3: the UPDATE path — subtree add dist-vA → pull dist-vB → clean re-land, plus the
+    //     seeded hand-edit conflict + the non-squash rejection (both RED). ---
+    update = await updatePathArms(browser);
+
     // --- AC6: CWV preserved on the subtree-installed page (opt-in). ---
     if (process.env.WITH_CWV) cwv = await cwvArm(happyCheckout);
   } finally {
@@ -287,11 +387,24 @@ async function main() {
   const breakMissingRed = arms.break_missing_sibling.chamber_worker_absent && arms.break_missing_sibling.beaconFired === false;
   const breakFromMainRed = !arms.break_add_from_main.served_eds_present && arms.break_add_from_main.bootFailed !== null;
   const cwvOk = cwv === null ? true : cwv.within_band;
-  const pass = happyOk && breakMissingRed && breakFromMainRed && cwvOk;
+  // 031-02 AC3: the disciplined update re-lands cleanly (VERSION flips A→B, workers replaced, no
+  // conflict, airlock re-boots); the two seeded breaks (hand-edit conflict, non-squash rejection)
+  // both go RED. A break that did NOT go red means the merge-hostility guard isn't real → rig fails.
+  const updateCleanOk =
+    update.clean.version_flipped &&
+    update.clean.workers_replaced &&
+    update.clean.pull_applied_without_conflict &&
+    update.clean.hasAirlock &&
+    update.clean.bootFailed === null &&
+    update.clean.beaconFired;
+  const updateHandEditRed = update.hand_edit.conflict_surfaced === true && update.hand_edit.is_merge_conflict === true;
+  const updateNonSquashRed = update.no_squash.rejected === true && update.no_squash.unrelated_histories === true;
+  const pass =
+    happyOk && breakMissingRed && breakFromMainRed && cwvOk && updateCleanOk && updateHandEditRed && updateNonSquashRed;
 
   const out = {
     question:
-      "does publishing a dist-rooted ref, `git subtree add`-ing it into a CLEAN EDS checkout, and serving it same-origin boot airlock (beacon fires, CWV preserved) — and do the two seeded breaks go red?",
+      "does publishing a dist-rooted ref, `git subtree add`-ing it into a CLEAN EDS checkout, and serving it same-origin boot airlock (beacon fires, CWV preserved) — and does a `git subtree pull` of a newer dist-vX.Y.Z tag re-land cleanly (VERSION flips, workers replaced, re-boots) — and do all the seeded breaks go red?",
     pass,
     served_path_convention: SERVED_PATH,
     published_ref: published.ref,
@@ -300,12 +413,19 @@ async function main() {
     happy_path_ok: happyOk,
     break_missing_sibling_red: breakMissingRed,
     break_add_from_main_red: breakFromMainRed,
+    update_command: update.update_command,
+    update_path_clean_ok: updateCleanOk,
+    update_hand_edit_conflict_red: updateHandEditRed,
+    update_non_squash_rejected_red: updateNonSquashRed,
     cwv_within_band: cwv === null ? "not run (set WITH_CWV=1)" : cwv.within_band,
     cwv,
     arms,
+    update,
     verdict: pass
       ? "PASS — a dist-rooted subtree add boots airlock same-origin on a clean EDS checkout (beacon fires" +
-        (cwv ? ", CWV within band" : "; CWV arm opt-in") + "); the missing-sibling and add-from-main breaks both went red"
+        (cwv ? ", CWV within band" : "; CWV arm opt-in") + "); the missing-sibling and add-from-main breaks both went red; " +
+        "and the update path re-lands cleanly (dist-vA→dist-vB: VERSION flips, workers replaced, re-boots) with the " +
+        "hand-edit-conflict and non-squash-rejection breaks both red"
       : "FAIL — see arms/flags above",
   };
   console.log(JSON.stringify(out, null, 2));
