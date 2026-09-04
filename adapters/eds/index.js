@@ -279,13 +279,41 @@ export function wireBlocks(handle, io = {}) {
 }
 
 /**
- * Boot the airlock analytics runtime for an EDS page.
+ * The hoisted `window.airlock` lifecycle (spec 032-01 AC4, preserving 021-01's
+ * no-leak invariant). Installs `handle` as the page singleton, **disposing whatever
+ * prior instance held the slot FIRST** (its Worker + unload listeners) — so a
+ * re-boot never stacks a second Worker or a second unload-listener set.
  *
- * Idempotent re-boot (spec 021-01 AC2, OQ12 item 4): if `window.airlock` already
- * exists, this call **disposes the prior instance first** (`window.airlock.dispose()`
- * — its Worker + unload listeners) before installing the new one. A second boot on
- * the same page therefore never stacks a second Worker or a second set of unload
- * listeners; `window.airlock` always ends up pointing at the live instance.
+ * FACTORED OUT of the per-connector boot logic ON PURPOSE (frame-critique): if only
+ * `bootGa4Core` took the slot, a multi-connector `boot(config)` would leave
+ * `window.airlock` GA4-only and **leak the pixel/rum Worker on dispose/re-boot**.
+ * So this lifecycle is owned by exactly two places — the back-compat
+ * `bootEdsAnalytics` wrapper (single GA4 instance) and the `boot(config)` composite
+ * (the whole config) — and NEVER by the shared core or a per-connector boot, so
+ * there is no double-ownership / double-dispose.
+ *
+ * `dispose()` is idempotent + null-safe (021-01 AC1), so disposing whatever is
+ * present is safe; a first boot (no prior `window.airlock`) skips it. No-op off a
+ * real page (no `window`), returning the handle unchanged.
+ *
+ * @template T
+ * @param {T} handle the freshly-booted handle to install + return.
+ * @returns {T}
+ */
+function installOnWindow(handle) {
+  if (typeof window === "undefined") return handle;
+  if (window.airlock && typeof window.airlock.dispose === "function") window.airlock.dispose();
+  window.airlock = handle;
+  return handle;
+}
+
+/**
+ * The shared GA4 boot core (spec 032-01) — everything `bootEdsAnalytics` does
+ * EXCEPT taking the `window.airlock` slot (that lifecycle is hoisted to
+ * `installOnWindow`). Reused VERBATIM by the config-driven `ga4` entry so its rich
+ * wiring — host-side `_ga` sourcing, the pre-`createAirlock` consent fold, and the
+ * UC-1/2/3 capture listeners — cannot drift from the per-function boot
+ * (frame-critique: reuse the boot logic, hoist only the lifecycle).
  *
  * @param {object} [opts]
  * @param {object}   [opts.ctx]            explicit ctx override for `mapToMp` (skips
@@ -321,12 +349,13 @@ export function wireBlocks(handle, io = {}) {
  *                                         every current rig/testbed boot is byte-unchanged
  *                                         (back-compat, AC6).
  * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, flushNow: Function, stats: Function, dispose: Function }>}
- *   a handle over the airlock's public write/read surface (also set on `window.airlock`).
+ *   a handle over the airlock's public write/read surface (the `window.airlock`
+ *   lifecycle is the caller's — `bootEdsAnalytics` / `boot`, via `installOnWindow`).
  *   `setConsent` (spec 017-03 AC2) merges a consent-vector update mid-session and
  *   flushes any beacon the update just granted. `dispose` (spec 021-01 AC1) tears
  *   this instance's Worker + unload listeners down; idempotent + null-safe.
  */
-export async function bootEdsAnalytics(opts = {}) {
+async function bootGa4Core(opts = {}) {
   const {
     ctx: providedCtx,
     consent,
@@ -421,20 +450,6 @@ export async function bootEdsAnalytics(opts = {}) {
     dispose: () => airlock.dispose(), // 021-01 AC1: tear down this instance's Worker + unload listeners
   };
 
-  // 021-01 AC2 (OQ12 item 4): idempotent re-boot — dispose the PRIOR instance
-  // (its Worker + unload listeners) before this new one takes over
-  // `window.airlock`, so a second bootEdsAnalytics on the same page never stacks
-  // a second Worker or a second set of unload listeners. Dispose-prior-then-reboot
-  // (not a return-the-existing-handle short-circuit): every call still gets a
-  // live, freshly-constructed runtime. `dispose()` is already idempotent +
-  // null-safe (AC1), so calling it unconditionally on whatever prior handle is
-  // present is safe; a first boot (no prior `window.airlock`) skips it entirely
-  // (AC3 — byte-unchanged single-boot path).
-  if (typeof window !== "undefined") {
-    if (window.airlock && typeof window.airlock.dispose === "function") window.airlock.dispose();
-    window.airlock = handle;
-  }
-
   // 004-04 AC1+AC2: capture real interactions on the EDS page. Guarded + idempotent
   // (a no-op off a real page — e.g. the node unit env — and never double-wires), so
   // it is safe to call unconditionally at boot. The adapter owns both senders here,
@@ -451,6 +466,92 @@ export async function bootEdsAnalytics(opts = {}) {
   wireBlocks(handle);
 
   return handle;
+}
+
+/**
+ * Boot the airlock GA4 analytics runtime for an EDS page and install it as the page
+ * singleton `window.airlock` (spec 004-02/03/04). Back-compat public entry (the
+ * testbed + rigs depend on this exact behavior): delegates the GA4 boot to the
+ * shared `bootGa4Core` and adds only the `window.airlock` lifecycle — an idempotent
+ * re-boot disposes the prior instance first (021-01 AC2), so a second boot never
+ * stacks a second Worker or a second unload-listener set. See `bootGa4Core` for the
+ * `opts` contract and the returned handle's surface. (The multi-connector
+ * `boot(config)` composite owns `window.airlock` the SAME way — via `installOnWindow`
+ * — so ownership is never split between the core and its callers.)
+ *
+ * @param {object} [opts] — see `bootGa4Core`.
+ * @returns {Promise<{ push, pushCritical, setConsent, getState, flushNow, stats, dispose }>}
+ */
+export async function bootEdsAnalytics(opts = {}) {
+  return installOnWindow(await bootGa4Core(opts));
+}
+
+/**
+ * The pixel-vendor dispatch table (spec 032-01 AC2) — the ONE place the three
+ * near-identical pixel boots differ: a vendor config factory + that vendor's egress
+ * purposes. `createXxxConfig` + `*_EGRESS_PURPOSES` were always the seed of a
+ * config-driven model; collapsing them here replaces three copy-pasted boot bodies
+ * with one parameterized path. `bootMetaPixel`/`bootLinkedInInsight`/`bootBingUet`
+ * are now thin delegating wrappers over `bootPixelConnector`, and the config-driven
+ * `{type:"pixel", vendor}` entry dispatches through the SAME table — so the two
+ * paths cannot drift (proven byte-for-byte in test/eds-boot-config-equivalence.test.js).
+ */
+const PIXEL_VENDORS = {
+  meta: { createConfig: createMetaPixelConfig, egressPurposes: META_EGRESS_PURPOSES },
+  linkedin: { createConfig: createLinkedInInsightConfig, egressPurposes: LINKEDIN_EGRESS_PURPOSES },
+  bing: { createConfig: createBingUetConfig, egressPurposes: BING_EGRESS_PURPOSES },
+};
+
+/**
+ * The single parameterized pixel boot (spec 032-01 AC2) the three per-vendor
+ * functions AND the config `{type:"pixel"}` entry all route through. Identical to
+ * the pre-032 per-vendor bodies: build the vendor connector config from its
+ * id/endpoint opts, then feed the SAME `createAirlock({connector:"pixel", …})` seam
+ * with the vendor's egress purposes under the established `consent ? … : []`
+ * back-compat gate (see `bootGa4Core`'s own gate rationale — an unconditional wire
+ * would silently hold every beacon forever on a caller that never wires consent).
+ * No `pushCritical` on the returned handle and no `window` slot: a pixel instance
+ * wires no main-thread critical mapper (026-01 AC10) and takes no page singleton.
+ *
+ * @param {"meta"|"linkedin"|"bing"} vendor a key of `PIXEL_VENDORS`.
+ * @param {object} [opts] `{ …vendorIds, endpoint?, consent?, consentStrict?, payloadDenylist? }`.
+ * @returns {{ push: Function, setConsent: Function, getState: Function, flushNow: Function, stats: Function, dispose: Function }}
+ */
+function bootPixelConnector(vendor, opts = {}) {
+  const entry = PIXEL_VENDORS[vendor];
+  if (!entry) {
+    throw new Error(`airlock: unknown pixel vendor "${vendor}" (expected one of ${Object.keys(PIXEL_VENDORS).join(", ")})`);
+  }
+  // Pull governance out; whatever remains is the vendor's own id/endpoint bag, which
+  // its `createConfig` destructures (ignoring extras) — byte-matching the per-vendor
+  // boots' explicit `createXxxConfig({ …ids, endpoint })` calls.
+  const { consent, consentStrict = false, payloadDenylist, ...ids } = opts;
+  const connectorConfig = entry.createConfig(ids);
+
+  // Host-owned ceiling (ADR-0006): declared INDEPENDENTLY of the connector's own
+  // advisory manifest.endpoints — a compromised/misconfigured connector config
+  // cannot widen its own egress.
+  const airlock = createAirlock({
+    trackers: 1,
+    workFactor: 0,
+    endpoints: [connectorConfig.endpoint],
+    ctx: {}, // no host-sourced identity crosses into a pixel instance (026-01 scope)
+    connector: "pixel",
+    connectorConfig,
+    consent,
+    egressPurposes: consent ? entry.egressPurposes : [],
+    consentStrict,
+    payloadDenylist,
+  });
+
+  return {
+    push: (evt) => airlock.push(evt),
+    setConsent: (v) => airlock.setConsent(v),
+    getState: (path) => airlock.getState(path),
+    flushNow: () => airlock.flushNow(),
+    stats: () => airlock.stats(),
+    dispose: () => airlock.dispose(),
+  };
 }
 
 /**
@@ -501,34 +602,7 @@ export async function bootEdsAnalytics(opts = {}) {
  * @returns {Promise<{ push: Function, setConsent: Function, getState: Function, flushNow: Function, stats: Function, dispose: Function }>}
  */
 export async function bootMetaPixel(opts = {}) {
-  const { pixelId, endpoint, consent, consentStrict = false, payloadDenylist } = opts;
-
-  const connectorConfig = createMetaPixelConfig({ pixelId, endpoint });
-
-  // Host-owned ceiling (ADR-0006): declared INDEPENDENTLY of the connector's
-  // own advisory manifest.endpoints, exactly like DEFAULT_ENDPOINTS above —
-  // a compromised/misconfigured connector config cannot widen its own egress.
-  const airlock = createAirlock({
-    trackers: 1,
-    workFactor: 0,
-    endpoints: [connectorConfig.endpoint],
-    ctx: {}, // no host-sourced identity crosses into a pixel instance (026-01 scope)
-    connector: "pixel",
-    connectorConfig,
-    consent,
-    egressPurposes: consent ? META_EGRESS_PURPOSES : [],
-    consentStrict,
-    payloadDenylist,
-  });
-
-  return {
-    push: (evt) => airlock.push(evt),
-    setConsent: (v) => airlock.setConsent(v),
-    getState: (path) => airlock.getState(path),
-    flushNow: () => airlock.flushNow(),
-    stats: () => airlock.stats(),
-    dispose: () => airlock.dispose(),
-  };
+  return bootPixelConnector("meta", opts); // spec 032-01 AC2: delegates to the collapsed pixel path
 }
 
 /**
@@ -568,34 +642,7 @@ export async function bootMetaPixel(opts = {}) {
  * @returns {Promise<{ push: Function, setConsent: Function, getState: Function, flushNow: Function, stats: Function, dispose: Function }>}
  */
 export async function bootLinkedInInsight(opts = {}) {
-  const { partnerId, conversionId, endpoint, consent, consentStrict = false, payloadDenylist } = opts;
-
-  const connectorConfig = createLinkedInInsightConfig({ partnerId, conversionId, endpoint });
-
-  // Host-owned ceiling (ADR-0006): declared INDEPENDENTLY of the connector's
-  // own advisory manifest.endpoints, exactly like bootMetaPixel above — a
-  // compromised/misconfigured connector config cannot widen its own egress.
-  const airlock = createAirlock({
-    trackers: 1,
-    workFactor: 0,
-    endpoints: [connectorConfig.endpoint],
-    ctx: {}, // no host-sourced identity crosses into a pixel instance (026-01/026-02 scope)
-    connector: "pixel",
-    connectorConfig,
-    consent,
-    egressPurposes: consent ? LINKEDIN_EGRESS_PURPOSES : [],
-    consentStrict,
-    payloadDenylist,
-  });
-
-  return {
-    push: (evt) => airlock.push(evt),
-    setConsent: (v) => airlock.setConsent(v),
-    getState: (path) => airlock.getState(path),
-    flushNow: () => airlock.flushNow(),
-    stats: () => airlock.stats(),
-    dispose: () => airlock.dispose(),
-  };
+  return bootPixelConnector("linkedin", opts); // spec 032-01 AC2: delegates to the collapsed pixel path
 }
 
 /**
@@ -627,34 +674,7 @@ export async function bootLinkedInInsight(opts = {}) {
  * @returns {Promise<{ push: Function, setConsent: Function, getState: Function, flushNow: Function, stats: Function, dispose: Function }>}
  */
 export async function bootBingUet(opts = {}) {
-  const { tagId, endpoint, consent, consentStrict = false, payloadDenylist } = opts;
-
-  const connectorConfig = createBingUetConfig({ tagId, endpoint });
-
-  // Host-owned ceiling (ADR-0006): declared INDEPENDENTLY of the connector's
-  // own advisory manifest.endpoints, exactly like bootMetaPixel above — a
-  // compromised/misconfigured connector config cannot widen its own egress.
-  const airlock = createAirlock({
-    trackers: 1,
-    workFactor: 0,
-    endpoints: [connectorConfig.endpoint],
-    ctx: {}, // no host-sourced identity crosses into a pixel instance (026-01/026-02 scope)
-    connector: "pixel",
-    connectorConfig,
-    consent,
-    egressPurposes: consent ? BING_EGRESS_PURPOSES : [],
-    consentStrict,
-    payloadDenylist,
-  });
-
-  return {
-    push: (evt) => airlock.push(evt),
-    setConsent: (v) => airlock.setConsent(v),
-    getState: (path) => airlock.getState(path),
-    flushNow: () => airlock.flushNow(),
-    stats: () => airlock.stats(),
-    dispose: () => airlock.dispose(),
-  };
+  return bootPixelConnector("bing", opts); // spec 032-01 AC2: delegates to the collapsed pixel path
 }
 
 /**
@@ -745,6 +765,180 @@ export function bootHelixRum(opts = {}) {
     dispose: () => airlock.dispose(),
     sampled: true,
   };
+}
+
+/**
+ * Does a connector's declared event vocabulary accept this event name? `["*"]` is
+ * the analytics CATCH-ALL sentinel (GA4's `manifest.events`); otherwise the name
+ * must be in the declared list. Used to GATE the composite fan-out (below).
+ */
+const acceptsEvent = (events, name) => events.includes("*") || events.includes(name);
+
+/**
+ * The COMPOSITE handle (spec 032-01 AC4) — the unified public surface `boot(config)`
+ * returns and installs on `window.airlock`, wrapping every booted connector's handle
+ * together with that connector's declared event vocabulary (`manifest.events`).
+ *
+ * FAN-OUT SEMANTICS (the pinned decision — the arch reviewer's checkpoint):
+ *   - `push(evt)` / `pushCritical(evt)` FAN OUT, but GATED by each connector's
+ *     declared `manifest.events`: an event is delivered to a connector ONLY IF its
+ *     vocabulary is `["*"]` (GA4 — the analytics catch-all, receives everything) OR
+ *     explicitly lists `evt.event` (a pixel: its `eventMap` keys; helix-rum: its RUM
+ *     checkpoints `top`/`error`/`cwv`). This is the dataLayer-style model — the site
+ *     pushes ONE semantic event and each configured tag that DECLARES it reacts —
+ *     and the gate is load-bearing: helix-rum's `mapToRum` turns ANY event.type into
+ *     an `ot.aem.live` checkpoint, so WITHOUT the gate an arbitrary site event would
+ *     LEAK to the RUM collector as a spurious checkpoint. `pushCritical` additionally
+ *     fans only to connectors that EXPOSE it (a pixel handle does not — 026-01 AC10).
+ *   - `setConsent(v)` / `dispose()` / `flushNow()` are LIFECYCLE (not event delivery),
+ *     so they FAN OUT to EVERY connector unconditionally: `setConsent` reaches every
+ *     consent-governed connector (helix-rum's is a harmless no-op — `egressPurposes:[]`),
+ *     closing the governance hole a GA4-only handle would leave; `dispose` tears down
+ *     EVERY Worker + listener set, so the 021-01 no-leak invariant holds across the
+ *     WHOLE config, not just GA4.
+ *   - `getState()` / `stats()` READ from the FIRST booted connector (config order):
+ *     a composite read has no single answer, so this slice delegates to the
+ *     declared-first connector (a deliberate terminal choice — per-connector read
+ *     namespacing would be a follow-up only if a real need surfaces). CAVEAT: reads
+ *     track connector[0], and return `undefined`/`{}` if connector[0] is, e.g., an
+ *     unselected helix-rum (its handle's `getState` is a no-op). For a single-connector
+ *     config (e.g. ga4-only) this makes the composite behave exactly like the
+ *     standalone handle.
+ *
+ * CAPTURE BOUNDARY (honest): a connector's BUILT-IN capture (GA4's
+ * `wireInteractions`/`wireExposure`/`wireBlocks`; helix-rum's own `top`/`error`/`cwv`
+ * capture inside `bootHelixRum`) stays wired to ITS OWN handle — the composite gate
+ * applies ONLY to site-initiated `composite.push()`, never to a connector's internal
+ * capture. So the composite neither invents cross-connector capture nor suppresses a
+ * connector's own.
+ *
+ * @param {Array<{ handle: object, events: string[] }>} connectors per-connector
+ *   handles + their declared `manifest.events`, in config order.
+ */
+function createComposite(connectors) {
+  return {
+    push: (evt) => {
+      const name = evt && evt.event;
+      for (const c of connectors) if (acceptsEvent(c.events, name)) c.handle.push(evt);
+    },
+    pushCritical: (evt) => {
+      const name = evt && evt.event;
+      for (const c of connectors) {
+        if (typeof c.handle.pushCritical === "function" && acceptsEvent(c.events, name)) c.handle.pushCritical(evt);
+      }
+    },
+    setConsent: (v) => { for (const c of connectors) if (typeof c.handle.setConsent === "function") c.handle.setConsent(v); },
+    getState: (path) => (connectors.length ? connectors[0].handle.getState(path) : undefined),
+    flushNow: () => { for (const c of connectors) if (typeof c.handle.flushNow === "function") c.handle.flushNow(); },
+    stats: () => (connectors.length ? connectors[0].handle.stats() : {}),
+    dispose: () => { for (const c of connectors) if (typeof c.handle.dispose === "function") c.handle.dispose(); },
+  };
+}
+
+/**
+ * GA4's declared `manifest.events` — the analytics CATCH-ALL sentinel
+ * (`connectors/ga4/connector.js`: `events: ["*"]`; GA4 maps every event type). Kept
+ * here as the composite fan-out gate's view of GA4's vocabulary.
+ */
+const GA4_MANIFEST_EVENTS = ["*"];
+
+/**
+ * helix-rum's declared `manifest.events` — its RUM checkpoints only
+ * (`connectors/helix-rum/connector.js`: `["top", "error", "cwv"]`). NOT a site-event
+ * catch-all: the composite gate uses this so an arbitrary `composite.push()` event
+ * name never becomes a spurious `ot.aem.live` checkpoint. Keep in sync with that
+ * manifest (its home) — if 022-05 widens the checkpoints, widen here too.
+ */
+const HELIX_RUM_MANIFEST_EVENTS = ["top", "error", "cwv"];
+
+/**
+ * Dispatch ONE config connector entry to its per-connector boot (spec 032-01
+ * AC1/AC3), returning the connector's handle PAIRED WITH its declared
+ * `manifest.events` (so the composite can GATE the fan-out — craft-review blocker).
+ * Consent-governed connectors (ga4, pixels) receive the config's top-level
+ * `governance` (`consent`/`consentStrict`/`payloadDenylist`) threaded into the SAME
+ * per-connector gating the per-function boots use. **helix-rum is EXEMPT** (spec 022
+ * governance class): it is booted from ONLY its own entry fields, so no top-level
+ * consent/denylist can gate, strip, or force-async it (AC3 carve-out).
+ *
+ * The `events` vocabulary MIRRORS each connector's existing worker-side
+ * `manifest.events`: GA4 `["*"]`, a pixel `Object.keys(eventMap)` (derived from the
+ * SAME vendor config the worker manifest derives from — no drift), helix-rum its
+ * checkpoints. This honors the connector's EXISTING declaration; config-declared
+ * routing is a deferred follow-up, not this.
+ *
+ * @param {{ type: string }} entry a connector entry from `config.connectors`.
+ * @param {{ consent?, consentStrict?, payloadDenylist? }} governance top-level governance.
+ * @returns {Promise<{ handle: object, events: string[] }>} the handle + its declared vocabulary.
+ */
+async function bootConnector(entry, governance) {
+  const { type, ...rest } = entry || {};
+  switch (type) {
+    case "ga4":
+      return { handle: await bootGa4Core({ ...rest, ...governance }), events: GA4_MANIFEST_EVENTS };
+    case "pixel": {
+      const { vendor, ...ids } = rest;
+      const handle = bootPixelConnector(vendor, { ...ids, ...governance });
+      // Derive the pixel's vocabulary from the SAME vendor config factory its worker
+      // manifest uses (`manifest.events = Object.keys(eventMap)`) — the eventMap keys
+      // are id-independent, so this matches the chamber manifest exactly.
+      const events = Object.keys(PIXEL_VENDORS[vendor].createConfig(ids).eventMap);
+      return { handle, events };
+    }
+    case "helix-rum":
+      // AC3 carve-out: booted from its OWN fields only — top-level governance is NOT
+      // threaded, so `egressPurposes` stays [], no denylist, sync boot (byte-identical
+      // to a standalone bootHelixRum). Its vocabulary is the RUM checkpoints only.
+      return { handle: bootHelixRum(rest), events: HELIX_RUM_MANIFEST_EVENTS };
+    default:
+      // 032-02 owns full JSON-Schema validation with actionable errors; here we fail
+      // LOUD rather than silently dropping an unknown connector.
+      throw new Error(`airlock boot(config): unknown connector type ${JSON.stringify(type)}`);
+  }
+}
+
+/**
+ * The config-driven boot (spec 032-01 AC1) — *"a few lines + a rich JSON config"*.
+ * Takes a project config declaring WHICH connectors (+ ids/endpoints) and the
+ * top-level consent/payload governance, boots each declared connector through the
+ * SAME per-connector boot logic the per-function boots use, and returns a COMPOSITE
+ * handle (AC4) installed on `window.airlock` — its `dispose()`/`setConsent()` fan out
+ * across the whole config, and a re-`boot()` disposes the ENTIRE prior composite
+ * first (021-01 no-leak, now config-wide).
+ *
+ * The config SELECTS + PARAMETERIZES connectors; event CAPTURE stays built-in (GA4's
+ * UC-1/2/3 wiring; `push()` for custom events) — declarative capture rules are a
+ * stated out-of-scope follow-up (spec 032 scope). Config VALIDATION (loud, actionable
+ * errors on a malformed config) is spec 032-02; this slice dispatches a well-formed
+ * config and fails loud only on an unknown connector type.
+ *
+ * @param {{ connectors?: Array<{ type: string }>, consent?: Record<string,string>, consentStrict?: boolean, payloadDenylist?: string[] }} [config]
+ * @returns {Promise<{ push, pushCritical, setConsent, getState, flushNow, stats, dispose }>}
+ *   the composite handle (also set on `window.airlock`).
+ */
+export async function boot(config = {}) {
+  const { connectors = [], consent, consentStrict, payloadDenylist } = config;
+  const governance = { consent, consentStrict, payloadDenylist };
+  const booted = [];
+  try {
+    for (const entry of connectors) {
+      // Sequential (config order) so `getState`/`stats` read the declared-first
+      // connector deterministically and any boot side effects order predictably.
+      booted.push(await bootConnector(entry, governance));
+    }
+  } catch (err) {
+    // Partial-boot cleanup (craft-review nit): a later entry's throw (unknown
+    // type/vendor) must NOT orphan the Workers of connectors that already booted —
+    // that would regress the very 021-01 no-leak invariant AC4 establishes. Dispose
+    // what we booted (idempotent + null-safe), then rethrow. `window.airlock` is
+    // never touched on this path (installOnWindow below is unreached), so no broken
+    // composite is installed.
+    for (const c of booted) {
+      if (c && c.handle && typeof c.handle.dispose === "function") c.handle.dispose();
+    }
+    throw err;
+  }
+  return installOnWindow(createComposite(booted));
 }
 
 export default bootEdsAnalytics;

@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 skill:
 use_cases: [UC-2]
 ---
@@ -53,6 +53,14 @@ deliberate **out-of-scope follow-up**, not this spec. (c) Back-compat: the exist
   honest hypothesis is that the config **selects + parameterizes** connectors while GA4's built-in capture stays
   built-in — not that all capture becomes declarative. If GA4's wiring can't be cleanly reached from a config
   entry, the boundary is wrong.
+- **The multi-connector lifecycle is a composition layer, not a reuse freebie (frame-critique correction):** the
+  per-connector *boot* logic is reused, but `boot(config)` must **hoist** `window.airlock` ownership + a composite
+  `dispose()`/`setConsent()` into a new layer over the per-connector boots — otherwise a reuse-only multi-connector
+  boot leaves `window.airlock` GA4-only and **leaks the pixel/rum Worker on dispose/re-boot** (regressing the
+  021-01 no-leak invariant) and misses non-GA4 connectors on `setConsent`. 032-01 AC4 owns this.
+- **Governance is per governance class, not uniform:** consent/`consentStrict`/`payloadDenylist` apply to the
+  **consent-governed** connectors (GA4, pixels); **helix-rum is exempt** (spec 022 — not consent-gated, no
+  denylist, sync, no-op-when-unselected) and the config must not gate or strip it. 032-01 AC3 owns this.
 - **alloy (the wrapped-SDK connector) has no `adapters/eds/` boot function** — it boots via a different core path
   (specs 012/014). Whether it is config-expressible in the same shape is an open question 032-02 resolves (it may
   be deferred). Marked, not assumed.

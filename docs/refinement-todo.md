@@ -431,3 +431,35 @@ chunkable-write subset. Lever-3 (below) is a **separate**, cross-cutting deferra
 "tag X cost you N ms" — is deferred. **Resolution trigger:** once the measurement rig exists (POC-A) and a
 tag is shown to blow a budget; also needs the "what does trip do (defer/throttle/kill), and does killing
 mid-mutation leave the DOM half-written?" question answered. Detail: R-008 Open questions.
+
+## Spec 032 (config-driven instrumentation) follow-ups — surfaced by the 032-01 reviews (2026-09-04)
+
+> Deferred during 032-01 (`boot(config)` + the composite handle). The config surface is deliberately **pre-1.0**;
+> the later **1.0 API pin** (MVP6) is where any of these that survive get frozen. None blocked 032-01.
+
+### Decision: Declarative event capture / per-event routing — DEFERRED
+**Deferred:** 032 ships the config that **selects + parameterizes** connectors + declares governance; **event
+capture stays built-in** (GA4's EDS wiring) or the site's explicit `push()`. Config-expressed capture rules
+(selectors→events) and **per-event routing** (which event goes to which connector) are out of scope. A specific
+sub-question the 032-01 arch pass raised: GA4 is a declared **`["*"]` catch-all** while pixels are default-deny, so
+`composite.push({event:"lead"})` in a `[ga4, pixel]` config **also** emits a GA4 `lead` — should a multi-connector
+`ga4` entry gain an optional `eventMap`-style gate so "each tag reacts" is symmetric? (The composite fan-out is
+already gated by each connector's declared `manifest.events`, so nothing leaks to a connector that doesn't declare
+the event; this is about GA4's *intended* catch-all, not a leak.)
+**Resolution trigger:** a real adopter needs event-name→connector routing the built-in capture + `push()` don't
+cover; or the 1.0 pin.
+
+### Decision: `*_MANIFEST_EVENTS` single source of truth — DEFERRED (craft nit)
+**Deferred:** `boot(config)`'s fan-out gate uses local mirrors `GA4_MANIFEST_EVENTS = ["*"]` /
+`HELIX_RUM_MANIFEST_EVENTS = ["top","error","cwv"]` of the connectors' own `manifest.events`, kept correct by a
+"keep in sync" comment (the pixel path avoids this by deriving from the vendor factory). A single source of truth
+(importing the vocabularies from the connector modules — whose manifests are instance-constructed inside factories)
+would remove the drift risk. Pragmatic pre-1.0 choice.
+**Resolution trigger:** helix-rum's checkpoint set widens again (spec 022-05), or a third connector needs a
+non-`["*"]` vocabulary — extract the shared accessor then (rule-of-three).
+
+### Decision: Composite read-namespacing + `sampled` surfacing — DEFERRED (minor)
+**Deferred:** the composite `getState`/`stats` read `handles[0]` (declaration-order-coupled; documented), and the
+composite does not surface helix-rum's `sampled` flag. Terminal pre-1.0 choices; a per-connector read namespace
+(e.g. `getState({connector})`) would resolve both.
+**Resolution trigger:** a caller needs a specific connector's projection from a multi-connector composite; or the 1.0 pin.
