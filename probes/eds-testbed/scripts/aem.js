@@ -94,6 +94,10 @@ function sampleRUM(checkpoint, data) {
         sampleRUM.baseURL = sampleRUM.baseURL || new URL(window.RUM_BASE || '/', new URL('https://ot.aem.live'));
         sampleRUM.collectBaseURL = sampleRUM.collectBaseURL || sampleRUM.baseURL;
         sampleRUM.sendPing = (ck, time, pingData = {}) => {
+          // spec 030-03: airlock owns RUM (?rum=airlock) — neutralize the inline
+          // sampleRUM egress so the two authorities don't double-count. One point:
+          // every checkpoint (top/error/…) funnels through sendPing.
+          if (window.__airlockOwnsRum) return;
           const uaExtra = navigator.webdriver && !navigator.userAgent.includes('+http')
             ? { ua: `${navigator.userAgent} +http://navigator.webdriver` }
             : {};

@@ -225,6 +225,24 @@ async function loadLazy(doc) {
     // eslint-disable-next-line no-console
     console.warn('airlock analytics boot FAILED (page unaffected):', e);
   }
+
+  // Spec 030-03: the RUM replace. When the integrator hands RUM to airlock
+  // (?rum=airlock → window.__airlockOwnsRum, set in head.html; the inline sampleRUM
+  // egress is neutralized in aem.js), boot airlock as the single governed RUM
+  // authority (top/error/cwv incl. INP at page-hide, confined to ot.aem.live, not
+  // consent-gated). forceSelect makes the demonstration deterministic (testbed only).
+  // Independent try — a RUM boot failure must not affect the page or GA4 analytics.
+  if (window.__airlockOwnsRum) {
+    try {
+      const { bootHelixRum } = await import(`${window.hlx.codeBasePath}/scripts/airlock/eds.js`);
+      bootHelixRum({ forceSelect: true });
+      rec('airlock:rum');
+    } catch (e) {
+      window.__airlockRumBootFailed = String(e);
+      // eslint-disable-next-line no-console
+      console.warn('airlock RUM boot FAILED (page unaffected):', e);
+    }
+  }
 }
 
 /**

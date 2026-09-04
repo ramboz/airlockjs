@@ -5,6 +5,9 @@
 />
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <link rel="modulepreload" href="/scripts/experiment-loader.js" />
+<!-- spec 030-03: ?rum=airlock hands RUM to airlock (opt-in). Set BEFORE aem.js loads,
+     because aem.js's init() fires its inline sampleRUM `top` beacon at import time. -->
+<script nonce="aem">if (new URLSearchParams(location.search).get('rum') === 'airlock') window.__airlockOwnsRum = true;</script>
 <script nonce="aem" src="/scripts/aem.js" type="module"></script>
 <script nonce="aem" src="/scripts/scripts.js" type="module"></script>
 <link rel="stylesheet" href="/styles/styles.css"/>
