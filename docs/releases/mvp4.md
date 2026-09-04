@@ -130,7 +130,7 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 | Item | Evidence | Rationale |
 |---|---|---|
 | **The alloy XDM-governance feasibility probe** — the lead item (mirrors MVP3's live-Alloy re-probe): can alloy's vendor-built XDM body be governed (strip sensitive fields, inject XDM consent) without breaking it? | ADR-0012 Split; ADR-0007 | Determines the entire alloy-governance scope (strip vs read-minimization) — settle before committing |
-| **`helix-rum` coexistence probe** — feed / replace / coexist with the EDS `sampleRUM` already on the page | R-007 | Avoids double-counting / breaking the AEM RUM pipeline |
+| **`helix-rum` coexistence probe** — feed / replace / coexist with the EDS `sampleRUM` already on the page | R-007 | Avoids double-counting / breaking the AEM RUM pipeline — → **resolved in MVP5 (spec 030): replace (core checkpoints)** |
 
 ## JIG Handoff
 

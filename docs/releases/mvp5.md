@@ -48,6 +48,10 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
   already measures — resolving the MVP4 `helix-rum` *feed/replace/coexist* decision toward **replace** where
   the deployment wants one governed, off-thread RUM emitter instead of a hosted vendor tag. *"airlock replaces
   your RUM tag — off-thread, governed, and it's already measuring."*
+  - ✅ **Shipped + decided (spec 030, 2026-09-03).** `bootHelixRum` boots airlock as the governed RUM authority
+    (030-02); the replace is demonstrated end-to-end with **no double-count** (030-03); the decision is landed as
+    **replace (core checkpoints)** with the honest boundary + the creds-gated live gate — see the
+    [decision](../decisions/lightweight-decisions.md) + the adopter [`helix-rum` README](../../connectors/helix-rum/README.md).
 - **The CWV scoreboard as a first-class output.** Promote the advisory `cwv_budget` oracle into a reproducible
   before/after scoreboard (airlock vs the naive multi-tracker stack — the 152ms→8ms story), ideally on a
   realistic martech load (the customer stack).
@@ -96,7 +100,7 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 | Item | Evidence | Rationale |
 |---|---|---|
 | **Probe the 009-02 diagnostic stream** — are the enforcement decisions already emitted as structured, queryable events? | specs 009/015/016/017/019 + MVP4 alloy governance | Determines whether the inspector is a read-layer or needs new instrumentation |
-| **The RUM replace-vs-coexist decision** — one RUM authority (airlock) vs alongside `sampleRUM`/`helix-rum` | R-007 §5; MVP4 `helix-rum` connector | Avoids double-counting; settles the subsume's shape |
+| **The RUM replace-vs-coexist decision** — one RUM authority (airlock) vs alongside `sampleRUM`/`helix-rum` | R-007 §5; MVP4 `helix-rum` connector | ✅ **Resolved (spec 030): replace (core checkpoints)** — [decision](../decisions/lightweight-decisions.md) |
 
 ## JIG Handoff
 
