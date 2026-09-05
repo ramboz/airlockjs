@@ -62,18 +62,35 @@ decision: 037 pins the API; the v1.0.0 version-bump/tag/dist is a separate later
    experimental carve-out)** — so the composite adopter is told exactly what is stable (the call + the handle) vs
    evolving (the config), and the frozen-set listing does not over-read. It also notes the egress surfaces are
    post-OQ10 (ADR-0004) / ADR-0010 — see AC2.
-2. **Reconcile the stale "provisional" language BEFORE guarding, THEN add the guards.** OQ10 is **RESOLVED** (ADR-0004,
-   `refinement-todo.md:73`) — but `contracts/seams.d.ts` (:15/:18/:52) still says `EgressDriver.dispatch` is "provisional
-   on OQ10" and `contracts/README.md` (:21/:67, + the :19-20 OQ10 caveats) still says "dispatch deferred (OQ10)".
-   Freezing a file that self-disclaims "provisional" ships a self-contradictory contract. So FIRST strip/correct those
-   stale notes (the signature is settled by ADR-0004; `caps.egress.dispatch` by ADR-0010) so the frozen file, its guard,
-   the contracts index, and the ADR all agree. THEN add **contract-stability guards for the net-new frozen surfaces**,
-   additive to `test/contract-stability.test.js` (the existing `capability.d.ts`/`connector.d.ts` pins unchanged):
-   `seams.d.ts` (the `DecisionSourceDriver`/`EgressDriver` + their request/result type text), and the **adopter
-   boot/handle shape** (the two `window.airlock`-installing entrypoints + the frozen handle method set) — the guard
-   mechanism is proven: `contract-stability.test.js` already reads runtime `.js` source + regex-asserts shape
-   (`:193-210`), and the `eds-boot` suites boot the composite + inspect `window.airlock`. The `push()`/`pushCritical()`→void
-   contract is pinned (behaviorally in `test/push-contract.test.js`, + a handle-shape assertion if ratified).
+2. **Reconcile EVERY frozen surface's stale now-resolved-OQ self-disclaimers BEFORE guarding, THEN add the guards** — a
+   frozen file must never self-disclaim "provisional / deferred / intentionally absent" about something that shipped.
+   **Resolved OQs to STRIP/correct** (keyed to their resolving ADR), swept across ALL frozen-surface files
+   (`contracts/{seams,connector,capability}.d.ts`, `contracts/push-api.md`, `contracts/README.md`):
+   - **OQ10** (egress dispatch/delivery) — RESOLVED, ADR-0004/`refinement-todo:73`: `seams.d.ts` (:15/:18/:52
+     "provisional on OQ10"), `connector.d.ts` (:22-23/:59/:66-71 "not the dispatch / is OQ10"), `README.md` (:21/:67);
+     `caps.egress.dispatch` settled by ADR-0010.
+   - **OQ11** (payload governance) — RESOLVED, ADR-0012/019-01/`refinement-todo:80,84(f)`: `connector.d.ts:39-44`
+     ("pass-through for MVP1 only … deferred to MVP2" — explicitly flagged stale at 84(f)), `capability.d.ts:22-24`,
+     `push-api.md:107` ("Do not rely on payload minimization until OQ11 lands").
+   - **OQ9 sync-access** — the surface EXISTS (`sync.readSync/writeSync`, 012-01; `refinement-todo:57` mint axis
+     cleared): correct `capability.d.ts:63-66`'s "a synchronous variant … is OQ9 and is intentionally absent here"
+     (flatly contradicted by the `sync` surface at `:90-93`). (The multi-chamber-coherence OQ9 sub-axis stays a named
+     residual — see the OQ3/coherence carve-out below.)
+
+   THEN add the **contract-stability guards for the net-new frozen surfaces**, additive to `test/contract-stability.test.js`
+   (the existing `capability.d.ts`/`connector.d.ts` pins unchanged): `seams.d.ts` (the `DecisionSourceDriver`/`EgressDriver`
+   + their request/result type text), and the **adopter boot/handle shape** (the two `window.airlock`-installing
+   entrypoints + the frozen handle method set) — the guard mechanism is proven: `contract-stability.test.js` already
+   reads runtime `.js` source + regex-asserts shape (`:193-210`), and the `eds-boot` suites boot the composite + inspect
+   `window.airlock`. The `push()`/`pushCritical()`→void contract is pinned (behaviorally in `test/push-contract.test.js`,
+   + a handle-shape assertion if ratified).
+2b. **Still-OPEN deferrals inside the frozen surfaces are CARVED OUT, not frozen (like the config schema).** **OQ3**
+   (vendor-neutral event schema) is genuinely open (`refinement-todo:22`, not struck): freeze `AirlockEvent.payload` as
+   a `Readonly<Record<string, unknown>>` **pass-through property** but state explicitly that its **shape/schema is NOT
+   frozen** (`connector.d.ts:44` "site-defined shape (OQ3)", `push-api.md:97` "OQ3 emergent schema" stay LIVE, not
+   stripped). Likewise the **multi-chamber sync-coherence** OQ9 sub-axis (`capability.d.ts:25`) stays a named residual:
+   the single-chamber `sync` surface is frozen (proven, 012-01), multi-chamber coherence is not. The ADR names both as
+   explicit not-1.0 aspects, mirroring the config carve-out.
 3. **`composite.accepts` resolved per the ruling.** If physical removal: the installed `window.airlock` handle no longer
    exposes `accepts`, the alloy exposure reporter routes through an internal predicate, and a test asserts `accepts` is
    NOT on the installed handle (while the alloy-only-exposure drop+diagnose behavior from 034-03 stays green). If
@@ -85,7 +102,8 @@ decision: 037 pins the API; the v1.0.0 version-bump/tag/dist is a separate later
 5. **Docs reconciled.** `docs/architecture.md`'s five-surfaces section references the accepted capstone ADR (the frozen
    set is now enforced); `docs/releases/mvp6.md`'s 1.0-pin item is marked shipped (API pinned; release cut deferred);
    `docs/refinement-todo.md` closes the `composite.accepts` flag (:547-549), the 032 read-namespacing/`sampled` deferral
-   (:462-466, ruled unfrozen), and the 035 reconcile-coupling input (~:94 iii, ruled host-internal).
+   (:462-466, ruled unfrozen), the 035 reconcile-coupling input (~:94 iii, ruled host-internal), and the stale-comment
+   residual :84(f) (connector.d.ts's OQ11 note — struck when AC2 corrects the comment).
 6. **No-regression + no release cut.** `npm test` + `node build.mjs` + `contracts/validate.mjs` + `npm run lint` green;
    the existing guarded surfaces + the 034-03 exposure behavior unaffected; NO version bump / git tag / dist publish
    (owner decision — a separate later step).
