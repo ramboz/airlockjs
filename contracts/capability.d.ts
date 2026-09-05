@@ -30,7 +30,21 @@
 
 /** What a connector requests in its manifest (default-deny; host grants a subset). */
 export interface CapabilityRequest {
-  /** Cookie names it may read/write (e.g. GA4's client_id cookie). */
+  /**
+   * Cookie names it may read/write (e.g. GA4's client_id cookie). Default-deny:
+   * the host grants only the declared names (ADR-0006 `granted = declared ∩
+   * allowed`), enforced on the trusted host seams (spec 035-01 —
+   * `core/cookie-scope.js`).
+   *
+   * MATCH SEMANTIC (spec 035-01): a declared entry ENDING IN `_` matches by
+   * PREFIX (e.g. `kndctr_` grants `kndctr_org`, `AMCV_` grants `AMCV_1234`);
+   * every other entry matches EXACT only (e.g. `demdex` grants `demdex` but NOT
+   * `demdex_evil`). Consequence to be aware of when declaring: an exact cookie
+   * whose literal name ends in `_`, or a prefix intent whose base does not end
+   * in `_`, cannot be expressed under this convention (no such name occurs in
+   * any current declaration). On write, the name is additionally validated
+   * against the RFC 6265 cookie-name token before it reaches the jar.
+   */
   readonly cookies?: readonly string[];
   /** In-chamber key/value persistence. */
   readonly storage?: boolean;

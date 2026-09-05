@@ -38,7 +38,13 @@ describe("core/ boundary — no import from throwaway rig/ (014-02 arch-review)"
   // NEW vendor-neutral security primitive (governPayload, ADR-0012) with the
   // SAME import-free obligation, and stricter still (no ambient global either
   // — see its own module docstring).
-  it.each(["sanitize-html.js", "payload-governance.js"])(
+  //
+  // spec 035-01: core/cookie-scope.js joins too — the vendor-neutral cookie
+  // name-scope + validation primitive (isValidCookieName / matchesGrantedName /
+  // scopeSeedCookies). Its module docstring justifies its core/ home on being
+  // import-free (so it is safe to import from EITHER side of the core/connector
+  // boundary); machine-enforce that claim so a future import fails here.
+  it.each(["sanitize-html.js", "payload-governance.js", "cookie-scope.js"])(
     "core/%s is import-free (its core/ home depends on it)",
     (file) => {
       const src = readFileSync(join(CORE, file), "utf8");

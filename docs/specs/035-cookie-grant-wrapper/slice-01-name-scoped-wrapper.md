@@ -116,3 +116,31 @@ follow-on); board synced.
   `toBe` (same array reference) `ALLOY_COOKIE_NAMES` — a same-reference build (`cookies: ALLOY_COOKIE_NAMES`, not a
   parallel literal) is what the manifest now does, so the stronger assertion holds and rules out silent divergence by
   construction, not just by accident.
+
+### Review dispositions (REVIEWED — compliance + craft PASS; arch needs-changes → fixed)
+
+- **Compliance — PASS.** All 6 ACs met; tests non-vacuous (each AC assertion fails if the feature is removed; the
+  WRITE-side no-regression is proven end-to-end through the real `boot`→`bootAlloy` seam with the gate active). One
+  cosmetic nit (a control-char test's description claimed NUL) — turned out the test DID exercise NUL, but via a
+  **raw NUL byte** in the source literal (invisible; it broke grep/Read/Edit tooling). Fixed to the portable `\0`
+  escape (same NUL char, greppable source) — `test/cookie-scope.test.js:60`.
+- **Craft — PASS.** Security primitives confirmed correct (RFC 7230 `tchar` whitelist rejecting a trailing `\n` via
+  JS `$`-without-`m`; the exact-vs-prefix rule; the value-redacting fail-closed drop). One nit **declined with reason**:
+  the "redundant `.trim()`" at `core/cookie-scope.js:110` is NOT redundant — the pair-level trim (`:108`) does not
+  remove whitespace *between* the name and `=` (e.g. `"foo = bar"` → name slice `"foo "`), so the inner trim is
+  load-bearing for that defensive case; left as-is. (Craft also logged the deliberate read=scope / write=scope+validate
+  asymmetry as safe-by-design — the seed is never written back unvalidated; every write-back is independently
+  token-validated. Noted, no action.)
+- **Arch — needs-changes → all findings dispositioned:**
+  - **(blocker) contract doc.** The exact-vs-prefix semantic is now load-bearing over the `CapabilityRequest.cookies`
+    contract surface but was documented only at the enforcement sites. **Fixed:** documented the match semantic (+ the
+    trailing-`_` convention's sharp edge) at the declaration site, `contracts/capability.d.ts:33` (doc-only; the type
+    is unchanged, `contract-stability` + `contracts/validate.mjs` still green).
+  - **(nit) import-free machine-guard.** `core/cookie-scope.js` justifies its `core/` home on import-freeness (like
+    `sanitize-html.js`/`payload-governance.js`) but wasn't in the 018-01/019-01 guard. **Fixed:** added
+    `"cookie-scope.js"` to `test/core-boundary.test.js`'s `it.each` (the invariant now fails fast on a future import).
+  - **(follow-ons, recorded in refinement-todo OQ13-4, not closed here):** (iii) fail-open-by-omission — a future
+    connector wiring `caps.cookies.reconcile` without `grantedCookieNames` reverts to unscoped writes → a **037 1.0-pin**
+    input (couple the sink to a required scope set, or pin the coupling); (iv) the NAME-only scope leaves the cookie
+    VALUE + `path`/`expires`/`max-age` unvalidated on the reconcile path (incl. the Overview-item-2 newline-in-value
+    case) → a candidate hardening follow-on.
