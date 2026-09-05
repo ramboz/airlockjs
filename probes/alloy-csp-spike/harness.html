@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>alloy classic-worker CSP spike (033-01)</title>
+    <!-- CSP is delivered as an HTTP RESPONSE HEADER by probe.mjs (faithful to the
+         EDS boilerplate's move-to-http-header="true"), on EVERY response — so the
+         worker scripts inherit the SAME script-src the page carries. -->
+  </head>
+  <body>
+    <!-- NEGATIVE CONTROL: a non-nonce'd inline script. Under
+         `script-src 'nonce-aem' 'strict-dynamic'` the 'unsafe-inline' token is
+         ignored, so this MUST be blocked. If it runs, the CSP is not enforced and
+         any "importScripts admitted" verdict is a false positive (004-01's honesty guard). -->
+    <script>window.__cspControlRan = true;</script>
+    <script type="module" nonce="aem">
+      const R = {
+        cspControlRan: null,        // negative control: must end up false (blocked)
+        ttPolicyInstalled: false,
+        violations: [],             // main-thread securitypolicyviolation events
+        errors: [],
+        // Probe A — minimal classic worker + same-origin importScripts
+        classic: { constructed: null, constructError: null, workerRan: null, bundleExecuted: null, importScriptsThrew: null, importScriptsError: null },
+        // Probe B — the REAL built chamber worker (connectors/alloy/alloy-chamber.worker.js)
+        realWorker: { constructed: null, constructError: null, phases: [], fatal: null, reachedLoaded: null, reachedConfigured: null },
+      };
+      window.__RESULT = R;
+
+      document.addEventListener("securitypolicyviolation", (e) => {
+        R.violations.push({ violatedDirective: e.violatedDirective, blockedURI: e.blockedURI, sourceFile: e.sourceFile, sample: e.sample });
+      });
+      window.addEventListener("error", (e) => R.errors.push("window.error: " + String(e && e.message)));
+
+      // Replicate the EDS boilerplate's `default` Trusted Types policy (scripts.js
+      // installs one) so the Worker constructor's TrustedScriptURL sink is exercised
+      // exactly as on a real EDS page — identical to rig/csp-probe.html.
+      if (window.trustedTypes && window.trustedTypes.createPolicy) {
+        try {
+          window.trustedTypes.createPolicy("default", { createHTML: (s) => s, createScriptURL: (s) => s, createScript: (s) => s });
+          R.ttPolicyInstalled = true;
+        } catch (e) { R.errors.push("tt-policy: " + String(e)); }
+      }
+
+      // ---- Probe A: minimal CLASSIC worker (NO { type: "module" }) ----
+      const classicDone = new Promise((resolve) => {
+        let w;
+        try {
+          w = new Worker(new URL("./classic-importscripts.worker.js", import.meta.url)); // classic
+          R.classic.constructed = true;
+        } catch (e) {
+          R.classic.constructed = false;
+          R.classic.constructError = String(e);
+          return resolve();
+        }
+        w.onmessage = (ev) => {
+          const m = ev.data || {};
+          if (m.kind === "classic-importscripts-result") {
+            R.classic.workerRan = m.workerRan;
+            R.classic.bundleExecuted = m.bundleExecuted;
+            R.classic.importScriptsThrew = m.importScriptsThrew;
+            R.classic.importScriptsError = m.importScriptsError;
+            resolve();
+          }
+        };
+        w.onerror = (e) => { R.classic.constructError = "worker.onerror: " + String(e && (e.message || e.type)); resolve(); };
+      });
+
+      // ---- Probe B: the REAL built chamber worker (faithfulness cross-check) ----
+      const realDone = new Promise((resolve) => {
+        let w;
+        try {
+          w = new Worker(new URL("./out/alloy-chamber.worker.built.js", import.meta.url)); // classic (as shipped)
+          R.realWorker.constructed = true;
+        } catch (e) {
+          R.realWorker.constructed = false;
+          R.realWorker.constructError = String(e);
+          return resolve();
+        }
+        w.onmessage = (ev) => {
+          const m = ev.data || {};
+          if (m.type === "phase") {
+            R.realWorker.phases.push(m.name);
+            if (m.name === "loaded") R.realWorker.reachedLoaded = true;   // importScripts ADMITTED
+            if (m.name === "configured") { R.realWorker.reachedConfigured = true; resolve(); }
+          } else if (m.type === "fatal") {
+            // boot() posts fatal{phase:"load"} iff importScripts (or earlier) threw — the CSP-block signal.
+            R.realWorker.fatal = { phase: m.phase, message: m.message };
+            if (R.realWorker.reachedLoaded == null) R.realWorker.reachedLoaded = false;
+            resolve();
+          }
+        };
+        w.onerror = (e) => { R.realWorker.constructError = "worker.onerror: " + String(e && (e.message || e.type)); resolve(); };
+        // Drive the shipped init protocol: bundleUrl points at the same-origin stub.
+        w.postMessage({ type: "init", cookie: "", bundleUrl: new URL("./alloy-stub-bundle.js", import.meta.url).href, config: { datastreamId: "probe", orgId: "PROBE@AdobeOrg" } });
+        // If neither loaded nor fatal arrives, resolve on a timeout so the harness still reports.
+        setTimeout(resolve, 4000);
+      });
+
+      await Promise.all([classicDone, realDone]);
+      R.cspControlRan = window.__cspControlRan === true; // false == blocked == CSP enforced
+      window.__cspReady = true;
+    </script>
+  </body>
+</html>

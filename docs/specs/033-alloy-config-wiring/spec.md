@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: DONE
 skill:
 use_cases: [UC-1, UC-2]
 ---
@@ -54,21 +54,28 @@ supply alloy itself")? This spec **leads with a spike (033-01)** to answer that 
 - `createWrappedSdkHost` is `init`/`driveEvent` (single-slot)/`getState`, not the composite's
   `push`/`pushCritical`/`setConsent`/`dispose` — **grounded** (read this session).
 - **The spike's whole job is to convert the following from unknowns to a GO/KILL + design** (they are NOT asserted
-  here): (a) the classic-worker + 766 KB-bundle **distribution** for a buildless EDS site (same-origin, 031's
-  dist/served-path story assumes ESM module workers); (b) the `driveEvent`→composite-handle **reconciliation**;
-  (c) the **adapter-boot** wrapping (`createWrappedSdkHost` + the chamber + the stock-SDK load); (d) **decisions +
-  seam-consent** wiring through the composite.
+  here): (a) **CSP admission — the PRIMARY KILL risk (frame-critique):** whether a *classic* `importScripts` worker +
+  a same-origin 766 KB bundle even **loads/executes under the enforced EDS boilerplate CSP** (`'strict-dynamic'` +
+  Trusted Types, no `worker-src`) — 004-01 proved that CSP *only for a `{type:"module"}` worker*, and `importScripts`
+  isn't covered by that trust chain; every alloy rig ran CSP-less; (b) the classic-worker + 766 KB-bundle
+  **distribution** for a buildless EDS site (same-origin + the bundle's ship-vs-site-supplies + licensing; 031's
+  dist story assumes ESM module workers); (c) the `driveEvent`→composite-handle **reconciliation** (the host has no
+  `dispose` + doesn't spawn the Worker); (d) the **adapter-boot** wrapping (`createWrappedSdkHost` + the chamber +
+  the stock-SDK load); (e) **decisions + seam-consent** wiring through the composite (the chamber's
+  `{type:"decisions"}` message is un-consumed by the host today).
 
 ## Decomposition
 
 **SPIDR — Spike first (the last-resort S, justified).** The team cannot pick the P/I/D/R design for alloy in
-`boot(config)` without first de-risking whether the classic-worker + 766 KB-bundle distribution and the
-`driveEvent`→composite reconciliation are even feasible for the buildless EDS audience — the exact "don't yet know
-enough to pick" case SPIDR reserves S for (and the 032 frame-critique + this framing both size it as spike-work).
+`boot(config)` without first de-risking whether a classic `importScripts` worker + a 766 KB bundle even **loads
+under the real EDS CSP** (the primary KILL risk), whether that worker + bundle can be **distributed** for the
+buildless EDS audience, and whether the `driveEvent`→composite reconciliation is feasible — the exact "don't yet
+know enough to pick" case SPIDR reserves S for (and the 032 frame-critique + this framing both size it as
+spike-work).
 Resisting the eager-spike default is not the failure here; jumping to a build slice on an unproven wrapped-SDK
 integration would be.
 
-- **033-01 (spike, `kind: spike`):** de-risk (a)–(d) above; conclude **GO** (a concrete design for 033-02) /
+- **033-01 (spike, `kind: spike`):** de-risk (a)–(e) above; conclude **GO** (a concrete design for 033-02) /
   **reshape** / **KILL (reason)**. Timeboxed; may produce a throwaway probe under `probes/`.
 - **033-02 (build, DEFERRED):** wire `{type:"alloy"}` into `boot(config)` per the spike's design + the config
   schema entry (extends 032-02's schema) + a golden fixture + the boot proof. **Gated on 033-01 = GO.**

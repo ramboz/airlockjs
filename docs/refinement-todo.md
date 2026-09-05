@@ -477,3 +477,8 @@ missing.
 **Resolution trigger:** before the MVP6 real-production-site validation on an Adobe/alloy stack (the adoption proof
 needs alloy instrumentable via the config surface), OR when a real EDS adopter needs alloy in `boot(config)`. Likely
 a spike (alloy's adapter-boot path + a composite-compatible handle) then a slice.
+**Progress (2026-09-04):** [spec 033](specs/033-alloy-config-wiring/spec.md)'s spike **033-01 returned GO** — the
+classic `importScripts` alloy worker + a same-origin stock bundle *do* load under the enforced EDS CSP (the block is
+Trusted Types, not `strict-dynamic`; fix = a worker-realm TT policy in airlock's own worker), and the
+`driveEvent`→composite reconciliation is feasible. The stock-bundle **ship-vs-site-supplies** call is recorded as
+**ADR-0016** (site-supplied default; licensing). The gap CLOSES when **033-02** lands the build.

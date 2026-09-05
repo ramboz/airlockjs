@@ -15,6 +15,16 @@ frame_review: true  # rests on the spike's GO design being sound; re-framed once
 **reshape** or **KILL**, this slice is re-drafted (re-open via DRAFT) or ABANDONED per the spike's Outcome — do NOT
 advance it out of DEFERRED without the spike's GO (that is the whole point of the spike-first structure).
 
+> **Trigger MET — 033-01 returned GO (2026-09-04).** The spike's recorded design (see
+> [slice-01 Findings/Outcome](slice-01-alloy-feasibility-spike.md)) supersedes the provisional sketch below:
+> classic `importScripts` worker + a same-origin stock bundle *load* under the enforced EDS CSP (the block is
+> **Trusted Types**, not `strict-dynamic`; fix = a **worker-realm TT policy** in airlock's own worker, ~4 lines);
+> `driveEvent`→composite handle reconciliation is feasible (adapter-owned Worker teardown + a sequential single-slot
+> queue); `{type:"decisions"}` gets a host `reserveSpace` listener; strict consent gate. The stock-bundle
+> **ship-vs-site-supplies** call is **ADR-0016** (site-supplied default). This slice **will be reopened
+> (DEFERRED→DRAFT) and its ACs fleshed per that design** as the immediate follow-on to the spike + ADR-0016 — it
+> stays `DEFERRED` here; only this trigger-MET marker is added.
+
 **Goal (provisional — the spike's design refines it):** make `boot({ connectors: [{ type: "alloy", … }] })` boot
 Adobe/alloy through the wrapped-SDK path — a `bootAlloy` adapter producing a composite-compatible handle, the alloy
 chamber worker + its stock-SDK load distributed/served same-origin, `{type:"alloy"}` added to the config schema

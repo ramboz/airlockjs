@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+  <head><meta charset="utf-8" /><title>alloy classic-worker TT-fix spike (033-01)</title></head>
+  <body>
+    <script>window.__cspControlRan = true;</script>
+    <script type="module" nonce="aem">
+      const R = { cspControlRan: null, violations: [], classic: { constructed: null, constructError: null }, ttFix: null };
+      window.__RESULT = R;
+      document.addEventListener("securitypolicyviolation", (e) => R.violations.push({ violatedDirective: e.violatedDirective, blockedURI: e.blockedURI }));
+      if (window.trustedTypes && window.trustedTypes.createPolicy) {
+        try { window.trustedTypes.createPolicy("default", { createHTML: (s) => s, createScriptURL: (s) => s, createScript: (s) => s }); } catch (e) {}
+      }
+      const crossOriginUrl = window.__CROSS_ORIGIN_MARK || null; // injected by probe2.mjs
+      await new Promise((resolve) => {
+        let w;
+        try {
+          w = new Worker(new URL("./classic-tt-fix.worker.js", import.meta.url)); // classic
+          R.classic.constructed = true;
+        } catch (e) { R.classic.constructed = false; R.classic.constructError = String(e); return resolve(); }
+        w.onmessage = (ev) => { const m = ev.data || {}; if (m.kind === "tt-fix-result") { R.ttFix = m; resolve(); } };
+        w.onerror = (e) => { R.classic.constructError = "worker.onerror: " + String(e && (e.message || e.type)); resolve(); };
+        w.postMessage({ kind: "go", sameOriginUrl: new URL("./mark.js", import.meta.url).href, crossOriginUrl });
+        setTimeout(resolve, 4000);
+      });
+      R.cspControlRan = window.__cspControlRan === true;
+      window.__cspReady = true;
+    </script>
+  </body>
+</html>
