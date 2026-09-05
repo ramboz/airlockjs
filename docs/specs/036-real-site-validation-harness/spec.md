@@ -62,18 +62,26 @@ carries a **named live gate** (does the live `ot.aem.live` collector accept airl
   **Pre-flight (034-02:117):** a fresh `node build.mjs` (+ rig rebuilds) must precede any validation so stale pre-034
   bytes are never exercised — stale built copies live under `probes/eds-testbed/scripts/airlock/` + `rig/out/`.
 - **The frame-critique must ground the load-bearing forks (NOT asserted here):**
-  - **Fork A — the live before/after mechanism.** `lh-eds`'s OFF/ON is a local server swap; a live remote site cannot
-    be toggled that way. Candidate: **EDS per-ref preview URLs** (`<ref>--<repo>--<owner>.aem.page`) — a `main`
-    baseline vs an `airlock`-adopted branch give two real URLs that differ (ideally) only by the adoption, so the
-    harness takes **two operator-supplied URLs** and stays URL-shape-agnostic (hardcodes no host). The confound to name:
-    two branch deployments can differ by more than airlock (content, CDN warmth), and LCP is no longer ~0-by-construction
-    across two deployments — so the operator-procedure must pin "the two arms differ ONLY by airlock adoption," and the
-    honest note must be re-derived for the live case. Alternative: a query-gated boot on ONE deployment. Frame-critique ratifies.
-  - **Fork B — the testability bridge (how this is proven without a live site or creds).** The harness must be provable
-    by me against the **local testbed served as a live-shaped URL** (the existing local OFF/ON substrate), with the live
-    remote run being the operator's creds-gated step — mirroring how `rig/alloy-live-*.mjs` are validated. Is a
-    local-testbed dry-run a sufficient mechanical proof, or does the two-URL live path introduce logic the local mode
-    can't exercise? Frame-critique grounds what "done for the harness" means absent a live run.
+  - **Fork A — the live before/after mechanism (RATIFIED at 036-01's frame-critique).** `lh-eds`'s OFF/ON is a local
+    server swap; a live remote site cannot be toggled that way. **Ratified PRIMARY: a query-gated boot on ONE live
+    deployment** — the same URL served OFF (plain) vs ON (`?airlock=1`), the boot skipped client-side unless the flag is
+    present. This holds cache / edge PoP / content / origin CONSTANT and toggles only the (lazy, post-LCP) airlock boot —
+    so LCP Δ≈0 **by construction** (exactly `lh-eds`'s invariant) and the carried **TBT Δ≤50 ms / |CLS Δ|≤0.01** band is
+    meaningful. The gate is a **one-line client-side check on the operator's throwaway validation branch**
+    (`probes/eds-testbed/scripts/scripts.js:246` shows where it slots in `loadLazy`) — NOT a flag shipped in the airlock
+    runtime or an adopter's production `scripts.js`, so `lh-eds`'s "no test flag ships" principle is preserved for
+    production. **DEMOTED to a caveated fallback: two separate deployments** (e.g. EDS per-ref preview URLs, `main`
+    baseline vs an `airlock` branch). The frame-critique established this is UNSOUND against the ~50 ms band: two
+    `.aem.page` deployments carry a **fixed** between-deployment bias (cold-vs-warm CDN cache, different edge PoP,
+    per-hostname routing) that is plausibly 10–100× the band, and `lh-eds`'s interleaving cancels only *time-varying*
+    drift against one server — it does NOT remove a fixed two-host offset. So the fallback ships only with its band
+    **explicitly withheld/widened** and a loud caveat (it answers "grossly regressed?", not "preserved within 50 ms").
+  - **Fork B — the testability bridge (rescued by Fork A's ratification).** Because the primary is a **single-deployment
+    query toggle**, the existing `lh-eds` local substrate (one server, no-op OFF vs real ON) is now a **faithful analog**
+    of the live path — same-origin, same-content, single post-LCP toggle — so the local dry-run genuinely exercises the
+    harness's real semantics (not just its plumbing); the only live-specific variable is the network/CDN, which the
+    operator's run supplies. (Under the demoted two-deployment fallback the local dry-run would prove only plumbing —
+    another reason the query-gate is the primary.)
   - **Fork C — the supported-subset boundary + the live residuals.** GA4 + alloy in; helix-rum with its live wire-shape
     gate; pixels out. Which named creds-gated residuals (RUM `ot.aem.live` shape; alloy endpoint-ceiling breadth,
     `refinement-todo` ~L563; live-host Trusted-Types + real ~766 KB bundle boot, ADR-0016 kill-criterion ~L575) the
@@ -84,9 +92,10 @@ carries a **named live gate** (does the live `ot.aem.live` collector accept airl
 **SPIDR — Path/Interface** split by the **two observable adoption-proof outcomes** (each vertical: a runnable rig + its
 operator-procedure fragment, each provable against the local testbed):
 
-- **036-01 — CWV preserved before/after on a real EDS page.** The live two-URL before/after CWV harness (reusing
-  `lh-eds`'s engine + `cwv-scoreboard`'s card/hedging), + the operator procedure to produce the two arms (fork A) and
-  read the delta against the band. Proven against the local testbed (fork B).
+- **036-01 — CWV preserved before/after on a real EDS page.** The live before/after CWV harness — PRIMARY: a
+  **query-gated single-deployment** toggle (`URL` vs `URL?airlock=1`, cache/edge/content held constant → the band is
+  meaningful); FALLBACK: two deployments with the band withheld (fork A) — reusing `lh-eds`'s engine + `cwv-scoreboard`'s
+  card/hedging, + the operator procedure. Proven against the local testbed, now a faithful analog (fork B).
 - **036-02 — the supported subset boots + emits conformant beacons live.** The live supported-subset smoke (GA4 + alloy
   boot-health via `__airlockBootFailed` + conformant-beacon capture, reusing `e2e`'s pattern against a remote URL), the
   named-live-residuals checklist (fork C), + the consolidated operator run-procedure doc (its home is NOT the
@@ -97,5 +106,5 @@ doc split into 036-03; the default is two slices — the two halves of the MVP6 
 
 ## Slices
 
-- [036-01 — live CWV before/after harness (two-URL) + procedure](slice-01-live-cwv-harness.md)
+- [036-01 — live CWV before/after harness (query-gated single-deployment primary; two-deployment fallback) + procedure](slice-01-live-cwv-harness.md)
 - 036-02 — supported-subset live smoke (GA4 + alloy) + residuals checklist + run-procedure doc (drafted after 036-01's frame-critique ratifies the shared forks)

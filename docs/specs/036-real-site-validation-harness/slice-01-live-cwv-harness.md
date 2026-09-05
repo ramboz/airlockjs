@@ -22,40 +22,54 @@ site).
   `rig/cwv-scoreboard.mjs` + `docs/scoreboard.md` (card/hedging/provenance, ADR-0005 advisory); the EDS per-ref preview
   URL model + the `README.md` adopter integration; the 034-02:117 pre-flight-rebuild flag.
 
-**Design focus (the frame-critique ratifies forks A + B — NOT asserted here):**
-- **Fork A — the live before/after mechanism.** The harness takes **two operator-supplied URLs** and stays
-  URL-shape-agnostic (hardcodes no host). The recommended way to produce them is **EDS per-ref preview URLs**
-  (`<ref>--<repo>--<owner>.aem.page`): a `main` baseline vs an `airlock`-adopted branch. Confound to pin in the
-  procedure: two branch deployments can differ by more than airlock, and LCP is **not** ~0-by-construction across two
-  deployments (unlike `lh-eds`'s single-page local toggle) — the operator must ensure the arms differ ONLY by
-  adoption. Alternative to weigh: a **query-gated boot** on ONE deployment (same URL, `?airlock=1` ON). Frame-critique
-  ratifies the primary + whether the alternative ships.
-- **Fork B — the testability bridge.** The harness is proven by running against the **local testbed** as the two arms
-  (the existing `lh-eds` local OFF/ON substrate serves as the dry-run I can execute) — the live remote run is the
-  operator's. Frame-critique grounds whether a local dry-run sufficiently exercises the two-URL path, or whether the
-  URL-driven logic needs its own local two-URL proof (e.g. two local servers).
-- **New-file vs generalize `lh-eds.mjs`.** Either a new `rig/lh-live.mjs`, or generalize `lh-eds.mjs` to accept optional
-  `BASELINE_URL`/`ADOPTED_URL` (falling back to today's local OFF/ON when unset — additive, back-compat). A craft call;
-  the frame-critique need only ensure the reuse is real (not a parallel re-implementation of the median/band logic).
+**Design focus (RATIFIED at the frame-critique — the primary/fallback ranking below is load-bearing):**
+- **Fork A — the live before/after mechanism (query-gate PRIMARY; two-deployment DEMOTED).** The frame-critique
+  established that a two-deployment before/after (two `.aem.page` branch previews) is **unsound against the carried
+  ~50 ms TBT / 0.01 CLS band**: two deployments carry a **fixed** between-deployment bias (cold-vs-warm CDN cache,
+  different edge PoP, per-hostname routing) plausibly 10–100× the band, and `lh-eds`'s interleaving cancels only
+  *time-varying* drift against one server — NOT a fixed two-host offset. **Ratified PRIMARY: a query-gated boot on ONE
+  deployment** — the same live URL served OFF (plain) vs ON (`?airlock=1`), the boot skipped client-side unless the flag
+  is present (a one-line gate in `loadLazy`, `probes/eds-testbed/scripts/scripts.js:246`, on the operator's THROWAWAY
+  validation branch — NOT shipped runtime, preserving `lh-eds`'s "no test flag ships in production" principle). This
+  holds cache / edge / content / origin constant, restores **LCP Δ≈0 by construction**, and makes the band meaningful.
+  The harness's two arms are then two URL *variants* of one deployment (`URL` vs `URL?airlock=1`). The **two-deployment
+  path ships only as a caveated FALLBACK** with its band explicitly **withheld/widened** (answers "grossly regressed?",
+  not "preserved within 50 ms").
+- **Fork B — the testability bridge (rescued by the query-gate primary).** Because the primary is a single-deployment
+  toggle, the existing `lh-eds` local substrate (one server, no-op OFF vs real ON) is a **faithful analog** of the live
+  path (same-origin, same-content, single post-LCP toggle) — so the local dry-run genuinely exercises the harness's real
+  semantics, not just its plumbing. The only live-specific variable is the network/CDN, supplied by the operator's run.
+- **New-file vs generalize `lh-eds.mjs`.** Either a new `rig/lh-live.mjs`, or generalize `lh-eds.mjs` to accept an
+  optional live `URL` (running the two query-variant arms against it; falling back to today's local OFF/ON server-swap
+  when unset — additive, back-compat). A craft call; ensure the reuse of the `runOne`/median/`armSummary`/delta/band
+  logic is real, not a parallel re-implementation.
 
 **Acceptance Criteria (ratified at the frame-critique):**
 
-1. **Two-URL live before/after CWV harness.** A rig accepts two operator-supplied URLs (baseline + adopted; e.g. via
-   `BASELINE_URL`/`ADOPTED_URL` env), runs `LH_N` **interleaved** Lighthouse iterations against each, and emits per-arm
-   **median** LCP/TBT/CLS/perf + median deltas + the acceptance band (**TBT Δ≤50 ms & |CLS Δ|≤0.01**, carried from
-   `lh-eds`), reusing `lh-eds`'s `runOne`/median/summary machinery (not a re-implementation). URL-shape-agnostic
-   (hardcodes no host).
-2. **Honest note re-derived for the live case.** The card states that across two live deployments LCP is NOT
-   ~0-by-construction and the arms must differ ONLY by airlock (vs `lh-eds`'s single-page toggle), and carries the
-   `cwv-scoreboard` tolerance-band + provenance + human-read/advisory discipline (ADR-0005 — never a gate).
-3. **Proven against the local testbed (fork B).** The harness runs green against the local testbed as its two arms
-   (a dry-run I can execute), producing a valid delta card; the live remote run is the operator's creds-gated step.
-4. **Documented run-procedure.** A doc (under `docs/`, NOT the scaffold-squatted `docs/adoption-readiness.md`) walks the
-   operator through: the pre-flight `node build.mjs` rebuild (034-02:117); producing the two arms (fork A — the EDS
-   branch-preview recipe, with the "arms differ only by airlock" discipline + the branch-confound/CDN-warmth caveats);
-   running the harness with the two URLs; reading the delta against the band; and the honest caveats.
-5. **No-regression.** If the harness generalizes `lh-eds.mjs`, `npm run lh:eds` (the local OFF/ON path) stays
-   byte-behaviour-identical when the live URLs are unset; `cwv:scoreboard`/`cwv:budget` unaffected. `npm test` +
+1. **Query-gated single-deployment before/after CWV harness (PRIMARY).** A rig accepts ONE operator-supplied live `URL`
+   and measures two arms that differ ONLY by a client-side boot flag — OFF (`URL`) vs ON (`URL?airlock=1`) — running
+   `LH_N` **interleaved** Lighthouse iterations against each, emitting per-arm **median** LCP/TBT/CLS/perf + median
+   deltas + the acceptance band (**TBT Δ≤50 ms & |CLS Δ|≤0.01**, carried from `lh-eds` and MEANINGFUL because the toggle
+   holds cache/edge/content constant → LCP Δ≈0 by construction). Reuses `lh-eds`'s `runOne`/median/`armSummary`/delta
+   machinery (not a re-implementation). URL-agnostic (hardcodes no host); the query-param name is configurable.
+2. **Two-deployment FALLBACK, band withheld.** The rig also accepts two distinct URLs (baseline + adopted) for the case
+   an operator cannot query-gate — but this path emits the deltas with the **acceptance band explicitly withheld** and a
+   loud caveat that a fixed between-deployment bias (CDN warmth, edge PoP, hostname routing) is not cancelled by
+   interleaving, so it answers only "grossly regressed?" not "preserved within 50 ms."
+3. **Honest note per mode + advisory discipline.** The card's note is mode-aware: the query-gate mode states LCP
+   Δ≈0-by-construction holds (single-deployment post-LCP toggle); the two-deployment mode states the band is withheld
+   and why. Both carry the `cwv-scoreboard` tolerance/provenance/human-read discipline (ADR-0005 — advisory, never a gate).
+4. **Proven against the local testbed (fork B — now a faithful analog).** The harness runs green against the local
+   testbed (the existing `lh-eds` single-server no-op-OFF vs real-ON substrate is the faithful local stand-in for the
+   query-gate mode), producing a valid delta card — a dry-run I can execute. The live remote run is the operator's
+   creds-gated step.
+5. **Documented run-procedure.** A doc (under `docs/`, NOT the scaffold-squatted `docs/adoption-readiness.md`) walks the
+   operator through: the pre-flight `node build.mjs` rebuild (034-02:117); the PRIMARY recipe — add the one-line
+   client-side query-gate to the throwaway validation branch's `loadLazy` (skip the boot unless `?airlock=1`), deploy,
+   run the harness against that one URL; reading the delta against the band; and the FALLBACK (two deployments,
+   band-withheld) with its caveats. The gate is throwaway validation scaffolding, never shipped runtime.
+6. **No-regression.** If the harness generalizes `lh-eds.mjs`, `npm run lh:eds` (the local OFF/ON path) stays
+   byte-behaviour-identical when no live `URL` is given; `cwv:scoreboard`/`cwv:budget` unaffected. `npm test` +
    `node build.mjs` + `contracts/validate.mjs` + `npm run lint` stay green.
 
 **DoD:** all ACs pass; the harness runs against the local testbed producing a valid card (mechanical dry-run); the
