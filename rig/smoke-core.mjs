@@ -161,7 +161,7 @@ export function ga4Disposition({ exercised, present, conformant }) {
  * Alloy interact PRESENCE disposition (AC1) — presence ONLY, NEVER shape/acceptance:
  * the XDM shape + ECID write-back ride the spec-013 `rig/alloy-live-*.mjs`
  * redacted-fixture rigs, never this smoke. `exercised:false` (no alloy connector in
- * this arm) and `locallyExercisable:false` (the local CSP-proof stub bundle performs
+ * this arm) and `networkExercisable:false` (the local CSP-proof stub bundle performs
  * no network call — AC3's local-provability split, honestly reported, never faked)
  * are both informational and never fail the verdict; only a run that genuinely
  * attempted the network-level check and saw nothing is a fail.

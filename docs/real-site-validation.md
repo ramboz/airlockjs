@@ -255,6 +255,13 @@ granted, GA4 reads ABSENT and alloy NOT FIRED — an honest FAIL that is a *cons
 signal, not a boot defect. Grant consent (or run on a consent-free validation page) before
 reading the smoke's beacon checks.
 
+**Expect ~20 s per arm on a real page.** The rig waits for the testbed's `airlock:init`
+`__flicker` mark to short-circuit the boot wait; a real adopter page normally has no
+`__flicker` probe, so the wait runs its full ~20 s timeout before the positive
+`window.airlock`-installed read. The verdict is still correct — just don't mistake the
+wait for a hang. (If you copied the reference `rec('airlock:init')` probe onto your
+throwaway branch, it short-circuits as on the testbed.)
+
 **No Adobe org/datastream credentials are read by this rig** (unlike
 `rig/alloy-live-*.mjs`, spec 013) — it only needs your page's URL. If your validation
 branch is the SAME one spec 036-01's query-gate procedure uses, you can run both rigs
