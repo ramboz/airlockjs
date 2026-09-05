@@ -44,24 +44,42 @@ testbed for what is locally provable; the real-Edge / real-RUM-collector steps a
 
 **Acceptance Criteria (ratified at the frame-critique):**
 
-1. **Supported-subset live smoke rig.** A rig loads an operator-supplied live URL, asserts **boot-health** (no
-   `__airlockBootFailed` / `__airlockRumBootFailed`; the `airlock:init` mark fired), and captures + checks the subset's
-   beacons: GA4 `/collect` conformance against `contracts/ga4-mp-request.schema.json` (reusing `e2e.mjs`'s
-   capture+Ajv pattern); the **alloy interact** fired to the pinned datastream host; the **RUM** beacon shape when
-   `__airlockOwnsRum`. Creds-gated for the live alloy/RUM arms (env `ALLOY_*`, per the spec 013 convention — run
-   manually, NOT wired into a hermetic `npm test`).
-2. **The named-live-residuals checklist (Fork C).** A documented checklist naming each creds-gated live gate + how the
-   operator confirms it: RUM `ot.aem.live` `cwv`-superset acceptance (030-04); endpoint-ceiling breadth (the ceiling
-   HOLDS the server-directed `demdex`/ID-sync URLs, surfaced fail-closed not silently dropped); real ~766 KB bundle boot
-   under live-host Trusted-Types (ADR-0016 kill-criterion). Each item says what "pass" looks like + which diagnostic /
-   boot-health hook / captured beacon reveals it — so no residual is assumed-passed.
+1. **Supported-subset live smoke rig — presence + client-side conformance ONLY (never presence-as-acceptance).** A rig
+   loads an operator-supplied live URL, asserts **boot-health** (no `__airlockBootFailed` / `__airlockRumBootFailed`;
+   the `airlock:init` mark fired), and captures the subset's beacons: **GA4** `/collect` — checked for **MP-schema
+   conformance** against `contracts/ga4-mp-request.schema.json` (reusing `e2e.mjs`'s capture+Ajv pattern; a legitimate
+   client-side acceptance oracle for GA4); **alloy** interact — asserted only **FIRED** to the pinned datastream host
+   (a presence signal — a malformed XDM still POSTs and can get an error handle back, so the interact SHAPE + ECID
+   write-back is NOT confirmed here; it rides the spec-013 `rig/alloy-live-*.mjs` redacted-fixture rigs); **RUM** —
+   the SENT beacon shape captured when `__airlockOwnsRum` (what airlock sent, NOT what the collector kept — see AC2).
+   Creds-gated for the live alloy/RUM arms (env `ALLOY_*`, spec 013 convention — run manually, NOT in a hermetic
+   `npm test`).
+2. **The named-live-residuals checklist (Fork C) — each item names an HONEST reveal (a wire-side signal is forbidden
+   for a downstream-acceptance gate).**
+   - **RUM `ot.aem.live` `cwv`-superset acceptance (030-04, a HARD gate).** This is a **DOWNSTREAM** property — the live
+     collector must keep the superset's extra fields, "not rejected/**truncated in a way that breaks the pipeline**"
+     (`connectors/helix-rum/README.md`). `ot.aem.live` is fire-and-forget (2xx, no synchronous validation), so a
+     captured beacon / a 2xx / boot-health reveals only what airlock **sent**, NEVER what the collector **kept** —
+     confirming acceptance from those is a structural FALSE-GREEN. The checklist REQUIRES **downstream AEM RUM-data
+     inspection** (the RUM bundler/explorer — is the superset present in the collected data?), ideally a **differential
+     against a stock `sampleRUM` run**. Stakes: RUM-replace neutralizes inline `sampleRUM` (`README.md` — "Replacing
+     will silently stop collecting them"), so a false-green ships airlock as the RUM authority while the site silently
+     loses CWV telemetry with no error anywhere. **A captured beacon is explicitly NOT a sufficient reveal for this item.**
+   - **alloy endpoint-ceiling breadth** — the wrapped-SDK host HOLDS a server-directed `demdex`/ID-sync URL the live
+     Edge returns, surfaced fail-closed via the `kind:"endpoint-ceiling"` held diagnostic (`core/wrapped-sdk-host.js`,
+     captured through `onDiagnostic`), NOT silently dropped (refinement-todo ~L563). Reveal: the captured diagnostic.
+   - **real ~766 KB bundle boot under live-host Trusted-Types** (ADR-0016 kill-criterion ~L575) — genuinely a boot-side
+     property: reveal is boot-health (no `__airlockBootFailed`; `airlock:init` fired) with the REAL bundle, not the stub.
+   Each item names what "pass" looks like + its HONEST reveal; a downstream-only gate (RUM) must not admit a wire-side reveal.
 3. **Proven against the local testbed (local-provability split).** The rig runs green locally for what is locally
    provable — GA4 beacon capture + MP conformance + boot-health; alloy **chamber** boot-health via the stub bundle — a
    dry-run I can execute. The real-Edge alloy interact + real `ot.aem.live` RUM shapes are honestly scoped to the
    operator's creds-gated run (redacted-fixture discipline, spec 013), never faked locally.
 4. **Consolidated operator run-procedure.** Extend `docs/real-site-validation.md` (or a linked sibling) with the subset
    smoke: env/creds handling (`ALLOY_*`, redacted fixtures — never commit raw identifiers); how to run the smoke against
-   the live URL; the residuals checklist (AC2); and how boot-health + captured beacons + diagnostics surface each gate.
+   the live URL; the residuals checklist (AC2) with each residual's HONEST reveal — explicitly including that the RUM
+   `cwv`-superset gate needs **downstream RUM-data inspection** (a captured beacon / 2xx is NOT sufficient) and that the
+   alloy interact SHAPE rides the spec-013 rigs (the smoke only proves it FIRED).
 5. **No-regression.** `rig/e2e.mjs` + the 036-01 harness are unaffected (shared capture/health helpers extracted, not
    forked, where reused); `npm test` + `node build.mjs` + `contracts/validate.mjs` + `npm run lint` stay green.
 
