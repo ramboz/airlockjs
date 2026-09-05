@@ -135,3 +135,53 @@ the operator's"; board synced. (No `arch_review`: rig + docs only — exercises 
   airlock's own code — cosmetic only, it never affected MP-schema conformance or pass/fail). Rather than editing
   testbed serving code (out of this slice's declared scope), `page_title` was simply dropped from the pushed
   descriptor — it was never needed for any check.
+
+**Orchestrator craft-review fixes (after the craft pass returned needs-changes on two robustness blockers):**
+- **boot-health now gates on the POSITIVE signal `window.airlock` installed** (via `installOnWindow`, the production
+  signal — NOT the testbed-only `airlock:init` `__flicker` mark) in addition to `__airlockBootFailed`, so a silently
+  HUNG boot (never threw) is caught rather than reported "clean" — the AC3 alloy-chamber-boot-health false-green the
+  craft review flagged (`bootHealthDisposition(bootFailed, {installed})`; `runArm` reads `airlockInstalled`; the main
+  check gates `installed: arms.every(a => a.airlockInstalled)`).
+- **live RUM sampling no longer false-FAILs a healthy page:** `rumSentDisposition` takes `beaconGuaranteed`
+  (`MODE !== "live"`); absent+guaranteed (local force-select) = fail, absent+sampled (live) = informational (a broken
+  RUM *boot* is still caught by the separate `rum_boot_health` check).
+- **RUM flakiness fixed:** the RUM check selects the `top` checkpoint (`rumBeacons.find(checkpoint==="top")`) instead
+  of `rumBeacons[0]` (several checkpoints race; a non-top lacks fields → non-deterministic fail). Local dry-run stably
+  green across repeated runs.
+- **nits:** the trigger drops the explicit `page_location` (optional in the MP schema; a long live URL would trip the
+  schema's generic `maxLength:100` — a smoke artifact); `locallyExercisable`→`networkExercisable` (the flag reads true
+  in LIVE mode); doc notes added (RUM sampling/force-select, the consent-granted assumption, the page_location caveat).
+- **craft re-run notes (applied):** stale JSDoc param name corrected (`smoke-core.mjs`); the pre-existing ~20 s
+  live-wait latency (no `__flicker` mark on a real page → full timeout before the positive read) documented as an
+  operator note. Verdict is correct throughout — the wait is latency, not a hang.
+
+### Review dispositions (compliance PASS; craft PASS after the r2 re-run)
+
+- **Compliance — PASS.** All 5 ACs met with real substance; the honest presence-≠-acceptance labeling holds in both
+  the disposition strings and the doc; unit tests non-vacuous. (The compliance reviewer's non-blocking consent-note
+  suggestion is now folded into the doc.)
+- **Craft — needs-changes (r1) → PASS (r2).** r1 found the two robustness blockers above + nits (all fixed). r2
+  verified the fixes sound against source (the positive signal is the production `window.airlock`/`installOnWindow`,
+  confirmed in `adapters/eds/index.js`; the sampled/guaranteed split correct; the top-checkpoint selection
+  deterministic), the new tests non-vacuous, and no new defect; the two r2 notes were applied.
+
+### Reconciliation sweep
+
+| Artifact | Disposition | Rationale |
+|----------|-------------|-----------|
+| `rig/smoke-core.mjs` | `created` | Shared browser-rig primitives (`compileGa4Validator`/`captureCollectBeacons`/`waitForBootHealth`, extracted from `e2e.mjs`) + the pure verdict/disposition logic (boot-health w/ the installed gate, GA4-conformance, alloy presence, RUM sent-shape w/ the sampled/guaranteed split, `buildSmokeVerdict`). Honest labels: never "accepted" for alloy/RUM. |
+| `rig/subset-smoke.mjs` | `created` | The smoke rig (`npm run rig:subset-smoke` local; `LIVE_URL` for the operator's creds-gated live run). Site-agnostic public-`push` trigger; `__airlockConfig` connector detection; the `top`-checkpoint RUM selection; `airlockInstalled` positive-boot read. |
+| `rig/e2e.mjs` | `updated` | Refactored to import the 3 shared primitives from `smoke-core.mjs` (genuine reuse, not fork); behaviour-preserving (re-ran, `pass:true`; its imports untouched by the disposition changes). |
+| `test/smoke-core.test.js` | `created` | 31 unit tests (TDD red→green): the disposition logic never claims acceptance; the installed-gate, the RUM sampled-vs-guaranteed split, and bootFailed/non-conformant all fail correctly. |
+| `docs/real-site-validation.md` | `updated` | Part 2 (subset smoke) + the named-live-residuals checklist (RUM cwv-superset = downstream inspection, NOT a beacon; alloy endpoint-ceiling via `onDiagnostic`; real-bundle TT boot; alloy shape via 013 rigs) + env/creds + the sampling/consent/latency/page_location operator notes. |
+| `docs/releases/mvp6.md` | `updated` | The adoption-proof row → "harness + procedure shipped (036, both slices); the live run is the operator's creds-gated step." |
+| `package.json` | `updated` | `"rig:subset-smoke"` (the local dry-run; the live run is manual per the spec-013 creds convention). |
+| SDD process records | `excluded` | This slice doc, `spec.md`, and the `reviews/slice-02-*.md` verdicts — review scaffolding, changes narrated here + in the reviews, not deliverables. |
+| `docs/specs/README.md` (board) | `deferred` | Flips to DONE at the DONE transition (close-out). |
+
+### Definition of Done — verification
+- [x] All 5 ACs pass. **TDD red→green** (the pure disposition logic). `npm test`: **84 files, 1256 tests** (1225 baseline + 31). `node build.mjs` OK; `node contracts/validate.mjs` all pass; `npm run lint` clean. `rig/e2e.mjs` still `pass:true` post-refactor; the local dry-run `pass:true`, stable across repeated runs.
+- [x] Smoke asserts boot-health (incl. the positive `window.airlock`-installed signal) + GA4 MP-conformance + alloy FIRED (presence only) + RUM sent-shape — never presence-as-acceptance; the residuals checklist requires downstream RUM-data inspection (a captured beacon is NOT sufficient), and the alloy interact shape rides the spec-013 rigs.
+- [x] Genuine `smoke-core` reuse (e2e imports it); the run-procedure + residuals checklist written + linked (`README.md` / `docs/releases/mvp6.md`); the mvp6 adoption-proof row updated. No `arch_review` (rig + docs).
+- [x] Reviewed: **frame-critique** PASS (2 rounds); **compliance** PASS; **craft** PASS (r2 after the robustness fixes). Deviation log + review dispositions + reconciliation sweep produced.
+- [ ] Reconciliation review passed; board synced (pending — this close-out, then the reconciliation pass + DONE).
