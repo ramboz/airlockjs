@@ -480,5 +480,7 @@ a spike (alloy's adapter-boot path + a composite-compatible handle) then a slice
 **Progress (2026-09-04):** [spec 033](specs/033-alloy-config-wiring/spec.md)'s spike **033-01 returned GO** — the
 classic `importScripts` alloy worker + a same-origin stock bundle *do* load under the enforced EDS CSP (the block is
 Trusted Types, not `strict-dynamic`; fix = a worker-realm TT policy in airlock's own worker), and the
-`driveEvent`→composite reconciliation is feasible. The stock-bundle **ship-vs-site-supplies** call is recorded as
-**ADR-0016** (site-supplied default; licensing). The gap CLOSES when **033-02** lands the build.
+`driveEvent`→composite reconciliation is feasible. The stock-bundle load is decided by
+**[ADR-0016](decisions/adr-0016-alloy-stock-bundle-site-supplied.md)**: adopter-supplied `bundleUrl` (airlock does
+not ship it), same-origin byte-pinned recommended, cross-origin (Adobe CDN) supported. The gap CLOSES when **033-02**
+lands the build.
