@@ -1,9 +1,10 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 dependencies: []
 last_verified:
 arch_review: true  # changes the consent → interact egress gating (a governance surface, spec 017/020).
 frame_review: true  # the "analytics-only interact" reshape is load-bearing + could be wrong (render vs egress).
+claimed_by: claude/mvp6-e4550f
 ---
 
 <!-- jig self-defining vocabulary (soft, forward-only): expand each acronym on first use; link to docs/memory/glossary.md. -->
@@ -27,35 +28,60 @@ whole interact** (fail-closed — no analytics to send).
   any un-granted purpose (`core/wrapped-sdk-host.js:300-320`, `core/consent.js`); consent is a LIVE ref updated by
   `setConsent` (033-02).
 
-**Design focus for the frame-critique (the load-bearing question):** *how* to make the interact analytics-only when
-personalization is denied. Two coupled pieces:
-- **Suppress the personalization egress at the source (not just render).** The reshape must stop alloy from *querying*
-  personalization (so the egress genuinely carries no personalization intent), e.g. `decisionScopes: []` /
-  `personalization: { sendDisplayEvent:false, decisionScopes: [] }` on `sendEvent`, or a consent-scoped `configure` —
-  the slice grounds which alloy control actually omits the personalization query (renderDecisions:false alone does
-  NOT). If none cleanly does, reshape falls back to "hold the whole interact" + a documented limitation (but that is
-  the status quo — the slice's value is the true split).
-- **Consent-conditional egress purposes.** The effective `egressPurposes` for the interact must be computed from the
-  **live consent** at drive time: personalization denied → `["analytics_storage"]` (so the strict gate passes it for
-  analytics); both granted → both; analytics denied → the gate holds regardless. Where this lives (the host reading
-  consent per-drive, vs `bootAlloy` recomputing) is the design call.
+**Design (frame-critique 2026-09-05 — TRUSTED SEAM-SIDE; the chamber-side reshape was rejected).** The frame-critique
+traced alloy 2.35.0: the personalization query is built by `fetchDataHandler`'s `mergeQuery` only when
+`shouldRequestDefaultPersonalization()` is true, and `personalization:{ defaultPersonalizationEnabled:false }` (NOT
+`decisionScopes:[]`, which is already the default, and NOT `sendDisplayEvent:false`) suppresses it. So alloy CAN emit
+an analytics-only interact — the premise holds. **But the suppression must NOT be chamber-side:** the chamber is
+untrusted (ADR-0016 bundle) and is notified of consent only ONCE at boot (no mid-session re-delegate), so a chamber-side
+reshape + a relaxed main-thread gate would (a) LEAK `query.personalization` under an analytics-only gate after a
+granted→denied flip, and (b) invert the seam's "does NOT trust the chamber" invariant (020-02). Also alloy's own
+`setConsent` collapses both purposes to one y/n (`connectors/alloy/consent.js` — pzn-denied kills analytics collection
+too), so the split cannot ride it.
 
-**Acceptance Criteria (ratified at the frame-critique):**
+**Therefore: do it at the TRUSTED SEAM, driven by the live `consentRef`, per intercepted interact.** In
+`core/wrapped-sdk-host.js`'s intercepted-fetch path (where `configIntegrity`/`endpointCeiling`/`egressVerdict` already
+run): when `personalization` is un-granted but `analytics_storage` is granted, **strip `query.personalization` from
+the intercepted interact body** (a body surgery distinct from the existing `stripInterceptedXdmBody` XDM strip) and
+gate the now-analytics-only interact on `["analytics_storage"]` — both driven by the SAME live `consentRef` the seam
+already reads, so AC4 needs no chamber re-notify. The chamber may still *build* the query (harmless — the seam removes
+it; Edge then returns no decisions, so `deliver` no-ops). A chamber-side `defaultPersonalizationEnabled:false` to avoid
+the wasted build is an optional optimization → a named follow-on, NOT the enforcement.
 
-1. **Per-purpose gate.** With `analytics_storage: granted, personalization: denied`, the alloy interact **is dispatched**
-   (analytics flows) — no longer held. With `analytics_storage: denied`, the interact **is held** regardless of
-   personalization (fail-closed). Both-granted → dispatched. Test asserts each of the four consent combinations.
-2. **Personalization genuinely suppressed (not just un-rendered) when denied.** When personalization is denied, the
-   dispatched interact carries **no personalization query** (grounded reshape: `decisionScopes:[]` or the equivalent
-   alloy control the frame-critique ratifies) and **no decisions are delivered** (`caps.decisions.deliver` not called)
-   — so a denied personalization purpose leaks no personalization egress, consistent with the seam's suppress-not-reshape
-   rule (020-02).
-3. **Both-granted unchanged.** Full interact + decisions delivered (033-02/03 behavior byte-unchanged — no regression;
-   the existing 033 tests stay green).
-4. **Live consent.** `setConsent` flipping personalization granted→denied (or back) changes subsequent interacts
-   accordingly (the effective purposes are read per-drive from the live consent ref, not frozen at boot).
-5. **End-to-end proof.** A rig/test drives the four consent combinations and asserts: dispatched-vs-held + decisions
-   delivered-vs-not + (for the analytics-only case) no personalization query on the intercepted interact.
+**Grounding the strip is Edge-safe:** the stripped shape (analytics XDM + `query.identity.fetch`, no
+`query.personalization`) is exactly what alloy itself sends with personalization off (012-04 / an analytics-only
+config) — a valid analytics interact, not a malformed body. A live-Edge confirmation is a **creds-gated residual**
+(like 013); the hermetic proof asserts the stripped body's shape.
+
+**Acceptance Criteria (ratified at the frame-critique — trusted seam-side):**
+
+1. **Per-purpose gate (seam-side).** With `analytics_storage:granted, personalization:denied`, the interact **is
+   dispatched** (analytics flows). With `analytics_storage:denied`, the interact **is held** regardless of
+   personalization (fail-closed). Both-granted → dispatched. Test asserts each of the four combinations (on a FRESH
+   boot each — alloy's `shouldRequestDefaultPersonalization` fires only on the first cache-uninitialized interact).
+2. **Personalization suppressed at the TRUSTED SEAM when denied.** The seam strips `query.personalization` from the
+   intercepted interact body (driven by the live `consentRef`) so the egress carries no personalization query — a
+   compromised chamber cannot leak it (the seam removes it; NOT chamber-trust). **PATH PRECISION (grounded — required):
+   `query.personalization` is written PER-EVENT (`alloy-core createEvent.js` → `events[i].query.personalization`),
+   while the ECID `query.identity.fetch` is TOP-LEVEL (`query.identity.fetch`).** So the strip MUST iterate
+   `parsed.events[]` and `delete evt.query.personalization` (and delete an emptied `evt.query` to byte-match alloy's
+   native-off shape) — NOT a top-level `parsed.query.personalization`, which never exists (a naive top-level delete is
+   a silent no-op that ships a LEAK while a wrong-path test stays green). Reuse the per-event scaffold of the existing
+   `stripInterceptedXdmBody` (`core/wrapped-sdk-host.js:558`, which already iterates `parsed.events[]` — operate on
+   `evt.query` instead of `evt.xdm`). No decisions are delivered (Edge sees no query → none returned).
+3. **Both-granted unchanged.** No strip, gate on both, full interact + decisions delivered — 033-02/03 byte-unchanged,
+   existing 033 tests green (no regression).
+4. **Live consent, no chamber re-notify.** `setConsent` flipping personalization granted↔denied changes the NEXT
+   interact's strip+gate (the seam reads the live `consentRef` per-interact) — no mid-session chamber re-delegate
+   needed (that INFEASIBILITY was the frame-critique's core finding; seam-side sidesteps it).
+5. **End-to-end proof.** A rig/test drives the four consent combinations (fresh boot each) and asserts: dispatched-vs-held
+   + decisions delivered-vs-not + (analytics-only case) **no `events[].query.personalization`** in the intercepted
+   body AND the top-level `query.identity.fetch` (+ the analytics XDM) retained.
+6. **Differential Edge-safe proof (grounds the "= alloy's own analytics-off interact" claim, creds-free).** A hermetic
+   test asserts that an interact built with personalization ON then seam-stripped **deep-equals** the interact alloy
+   builds natively with `defaultPersonalizationEnabled:false` — both produced from the installed `@adobe/alloy@2.35.0`
+   bundle. This grounds Edge-safety without creds and catches the emptied-`evt.query` cleanup a shape-only assertion
+   would miss. (Live-Edge confirmation remains a creds-gated residual, 013 pattern.)
 
 **DoD:** all ACs pass; **TDD red→green**; reviewed (compliance + craft + **arch** [`arch_review: true`] + **frame-critique**
 [`frame_review: true`]); deviation log + reconciliation sweep; reconciliation review; `docs/refinement-todo.md` alloy
