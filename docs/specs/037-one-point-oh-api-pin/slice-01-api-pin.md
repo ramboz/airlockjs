@@ -24,12 +24,17 @@ decision: 037 pins the API; the v1.0.0 version-bump/tag/dist is a separate later
   ~:94 iii reconcile, :462-466 read-namespacing/sampled).
 
 **Design focus (the frame-critique + arch review ratify the 1.0 commitments — NOT asserted here):**
-- **`composite.accepts(name)` — INTERNAL (proposed).** Keep it off the frozen 1.0 handle contract. The lean is
-  *physical removal* from the installed `window.airlock` (bind the alloy exposure reporter's ref to a local/internal
-  predicate over the composite's connectors, not the public handle), so the frozen handle is exactly
-  `{ push, pushCritical, setConsent, getState, flushNow, stats, dispose }`. The alternative (keep the method, document
-  it "not 1.0, may change") is lower-churn but leaves an unfrozen method reachable on `window.airlock`. Frame-critique
-  + arch pick; a 1.0 freeze is the moment to shrink the public surface, so removal is the lean.
+- **`composite.accepts(name)` — INTERNAL, via physical removal (ratified clean at the frame-critique).** Keep it off
+  the frozen 1.0 handle so the installed `window.airlock` is exactly
+  `{ push, pushCritical, setConsent, getState, flushNow, stats, dispose }`. The removal is clean (verified): the alloy
+  exposure reporter reads `ref.accepts` on the `compositeEmit` object (`adapters/eds/index.js:874-878`), NOT
+  `window.airlock.accepts` — so rebinding the ref at `:1497` from `composite.accepts(name)` to a **local predicate over
+  the booted connectors** (`booted` + `acceptsEvent` are both in scope there) removes the only reference to the
+  composite's method; `window.airlock === composite` is a non-issue, no wrapper needed. Implementation flag: ~6 existing
+  `expect(window.airlock.accepts(...))` assertions (`test/eds-boot-config.test.js:361-371`,
+  `test/eds-boot-alloy.test.js:759-760`) flip to exercise the gating BEHAVIORALLY (the 034-03 alloy-only-exposure
+  drop+diagnose stays green). (The lower-churn alternative — keep the method, document it unfrozen — is available if arch
+  prefers, but a 1.0 freeze is the moment to shrink the public surface, and removal is proven clean.)
 - **The 035 `reconcile`/`grantedCookieNames` coupling — reconcile stays HOST-INTERNAL + unfrozen (proposed).**
   `caps.cookies.reconcile` is host-wired, not connector-granted, so the 1.0 pin freezes the *connector-facing* grant
   surface and leaves reconcile (+ its scope coupling, 035 arch #1) host-internal — no fail-open contract ships. Ratify.
@@ -40,6 +45,10 @@ decision: 037 pins the API; the v1.0.0 version-bump/tag/dist is a separate later
   boot/handle-shape assertion — the installed handle's method set — via a runtime shape test or a doc-pin) and where
   the push-api void contract is pinned (it is behaviorally in `test/push-contract.test.js`; the freeze may add a
   handle-shape assertion). Keep it additive (the existing guards unchanged).
+- **Documented residual (not a blocker): `seams.d.ts` freezes on a single implementation per driver type.** No second
+  decision-source or egress driver has ever been written against the seam interface, so its second-implementer fitness
+  is unvalidated at 1.0 — the ADR should record this honestly (freezing the interface as proven-for-one, not
+  proven-general) rather than imply battle-tested generality.
 
 **Acceptance Criteria (ratified at the frame-critique + arch review):**
 
@@ -48,12 +57,23 @@ decision: 037 pins the API; the v1.0.0 version-bump/tag/dist is a separate later
    boot layer: `bootEdsAnalytics()` + `boot(config)` and the installed handle shape), the EXPERIMENTAL carve-out (the
    instrumentation-config schema + the per-connector handle variance + `composite.accepts` + host-internal `reconcile`),
    and the three rulings (accepts internal, reconcile host-internal, read-namespacing/`sampled` unfrozen). References —
-   not re-litigates — ADRs 0002/0003/0004/0006/0007/0010/0016.
-2. **Contract-stability guards for the net-new frozen surfaces**, added to `test/contract-stability.test.js` (additive;
-   the existing `capability.d.ts`/`connector.d.ts` pins unchanged): `seams.d.ts` (the `DecisionSourceDriver`/`EgressDriver`
-   + their request/result type text), and the **adopter boot/handle shape** (the two `window.airlock`-installing
-   entrypoints and the frozen handle method set). The `push()`/`pushCritical()`→void contract is pinned (behaviorally in
-   `test/push-contract.test.js`, + a handle-shape assertion if ratified).
+   not re-litigates — ADRs 0002/0003/0004/0006/0007/0010/0016. **The ADR states crisply that `boot(config)`'s freeze
+   covers the ENTRYPOINT (it exists, returns the frozen handle shape) but NOT its `config` argument's schema (the
+   experimental carve-out)** — so the composite adopter is told exactly what is stable (the call + the handle) vs
+   evolving (the config), and the frozen-set listing does not over-read. It also notes the egress surfaces are
+   post-OQ10 (ADR-0004) / ADR-0010 — see AC2.
+2. **Reconcile the stale "provisional" language BEFORE guarding, THEN add the guards.** OQ10 is **RESOLVED** (ADR-0004,
+   `refinement-todo.md:73`) — but `contracts/seams.d.ts` (:15/:18/:52) still says `EgressDriver.dispatch` is "provisional
+   on OQ10" and `contracts/README.md` (:21/:67, + the :19-20 OQ10 caveats) still says "dispatch deferred (OQ10)".
+   Freezing a file that self-disclaims "provisional" ships a self-contradictory contract. So FIRST strip/correct those
+   stale notes (the signature is settled by ADR-0004; `caps.egress.dispatch` by ADR-0010) so the frozen file, its guard,
+   the contracts index, and the ADR all agree. THEN add **contract-stability guards for the net-new frozen surfaces**,
+   additive to `test/contract-stability.test.js` (the existing `capability.d.ts`/`connector.d.ts` pins unchanged):
+   `seams.d.ts` (the `DecisionSourceDriver`/`EgressDriver` + their request/result type text), and the **adopter
+   boot/handle shape** (the two `window.airlock`-installing entrypoints + the frozen handle method set) — the guard
+   mechanism is proven: `contract-stability.test.js` already reads runtime `.js` source + regex-asserts shape
+   (`:193-210`), and the `eds-boot` suites boot the composite + inspect `window.airlock`. The `push()`/`pushCritical()`→void
+   contract is pinned (behaviorally in `test/push-contract.test.js`, + a handle-shape assertion if ratified).
 3. **`composite.accepts` resolved per the ruling.** If physical removal: the installed `window.airlock` handle no longer
    exposes `accepts`, the alloy exposure reporter routes through an internal predicate, and a test asserts `accepts` is
    NOT on the installed handle (while the alloy-only-exposure drop+diagnose behavior from 034-03 stays green). If
