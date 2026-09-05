@@ -95,6 +95,9 @@
 | [033-alloy-config-wiring](033-alloy-config-wiring/spec.md) | 🔬 033-01 — spike: de-risk alloy adapter-boot + distribution + the composite-handle reconciliation (GO/KILL) | **DONE** | **GO.** Classic `importScripts` alloy worker + same-origin stock bundle *load* under the enforced EDS CSP — the block is Trusted Types (not `strict-dynamic`), fixable with a ~4-line worker-realm TT policy in airlock's own worker (also explains the shipped worker's `fatal{phase:"load"}` today); `driveEvent`→composite reconciliation feasible (adapter-owned Worker teardown + a sequential single-slot queue); distribution = a 5th classic-IIFE dist entry; stock-bundle load → **[ADR-0016](../decisions/adr-0016-alloy-stock-bundle-site-supplied.md)** (adopter-supplied `bundleUrl`; same-origin recommended, cross-origin supported). 3 real CSP probes under `probes/alloy-csp-spike/`. Unblocks 033-02. |
 | [033-alloy-config-wiring](033-alloy-config-wiring/spec.md) | 033-02 — build: config-boot alloy (the analytics vertical) — `{type:"alloy"}` in `boot(config)` | **DONE** |  |
 | [033-alloy-config-wiring](033-alloy-config-wiring/spec.md) | 033-03 — build: config-boot alloy (the personalization vertical) — decisions-as-data → `reserveSpace` | **DONE** |  |
+| [034-alloy-config-followups](034-alloy-config-followups/spec.md) | 034-01 — coarse-consent split: analytics flows when only personalization is denied | DRAFT |  |
+| [034-alloy-config-followups](034-alloy-config-followups/spec.md) | 034-02 — multi-scope personalization: `decisionScopes` + N placements | DRAFT |  |
+| [034-alloy-config-followups](034-alloy-config-followups/spec.md) | 034-03 — composite/exposure refinements: `accepts(name)` + a wired emit hook | DRAFT |  |
 
 ## Deferred slices
 
