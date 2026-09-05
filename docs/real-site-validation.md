@@ -228,11 +228,32 @@ LIVE_URL="https://<your-preview-url>/" node rig/subset-smoke.mjs
 The rig loads your page as-is, reads its own `window.__airlockConfig` to see which
 connectors it declares (absent config → `bootEdsAnalytics()`'s GA4-only shape, mirroring
 `scripts.js`'s own dispatch), then fires ONE generic trigger — `window.airlock.push({
-event: "page_view", page_location })` — the same public `push()` contract every airlock
-boot path installs on `window.airlock`. This needs no testbed-specific selector (a real
-page has no `#cta-engage`): GA4's `["*"]` catch-all and alloy's `["page_view"]` manifest
-both accept it, so one call exercises both connectors. RUM needs no trigger — a RUM-owning
-page auto-sends its `top` checkpoint on boot.
+event: "page_view" })` — the same public `push()` contract every airlock boot path
+installs on `window.airlock`. This needs no testbed-specific selector (a real page has no
+`#cta-engage`): GA4's `["*"]` catch-all and alloy's `["page_view"]` manifest both accept
+it, so one call exercises both connectors. (The trigger deliberately carries **no**
+`page_location`: the GA4 MP schema's generic param cap is `maxLength: 100`, so injecting a
+long live URL would trip a *smoke artifact* non-conformance, not a real airlock fault; a
+bare `page_view` is still MP-conformant. That 100-char cap on a real long URL is a
+pre-existing schema limit, shared with `rig/e2e.mjs` — not this smoke's to fix.)
+
+**Boot-health is gated on the POSITIVE signal** `window.airlock` being installed (set by
+`installOnWindow` only on a completed boot) in addition to no `__airlock*BootFailed` — so
+a boot that silently *hung* (never threw) is caught, not reported "clean".
+
+**RUM is SAMPLED live.** A RUM-owning page auto-sends its `top` checkpoint on boot, but
+live RUM sampling may not select a given load — so an **absent** RUM beacon on a live run
+is reported **informational, not a failure** (a genuinely broken RUM *boot* is caught
+separately by the `rum_boot_health` `__airlockRumBootFailed` check; and acceptance is
+downstream regardless — see [the residuals checklist](#1-rum-otaemlive-cwv-superset-acceptance--a-hard-gate-030-04)).
+For a *definitive* SENT-shape capture, force-select RUM (as the local dry-run does) or
+re-run until a beacon appears.
+
+**The smoke assumes consent is GRANTED** for the exercised connectors. Airlock holds
+egress at the seal until consent is granted, so on a consent-gated live page with nothing
+granted, GA4 reads ABSENT and alloy NOT FIRED — an honest FAIL that is a *consent-state*
+signal, not a boot defect. Grant consent (or run on a consent-free validation page) before
+reading the smoke's beacon checks.
 
 **No Adobe org/datastream credentials are read by this rig** (unlike
 `rig/alloy-live-*.mjs`, spec 013) — it only needs your page's URL. If your validation

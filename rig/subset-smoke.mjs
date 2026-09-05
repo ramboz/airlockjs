@@ -4,8 +4,11 @@
 // CWV harness, spec 036-01, is the first).
 //
 // PRESENCE + CLIENT-SIDE CONFORMANCE ONLY (AC1) — never presence-as-acceptance:
-//   - boot-health: no window.__airlockBootFailed / __airlockRumBootFailed; the
-//     `airlock:init` (and, when RUM is owned, `airlock:rum`) __flicker mark fired.
+//   - boot-health: no window.__airlockBootFailed / __airlockRumBootFailed, AND the
+//     POSITIVE production signal window.airlock installed (set by installOnWindow only
+//     on a completed boot) — this catches a silent hang that never threw. (The
+//     testbed-only `airlock:init` __flicker mark is used to WAIT for boot, but is NOT
+//     the pass signal — a real adopter page need not carry the __flicker probe.)
 //   - GA4: the /collect beacon is checked for MP-schema conformance against
 //     contracts/ga4-mp-request.schema.json — a LEGITIMATE client-side acceptance
 //     oracle for GA4 (unlike alloy/RUM below).
@@ -170,6 +173,10 @@ async function runArm(browser, { url, passthrough }) {
   await page.goto(url);
   await waitForBootHealth(page); // airlock:init / __airlockBootFailed
   const bootFailed = await page.evaluate(() => window.__airlockBootFailed ?? null);
+  // The POSITIVE boot signal (catches a silent hang that never threw): window.airlock
+  // is installed by installOnWindow ONLY on a completed boot (the universal PRODUCTION
+  // signal — not the testbed-only airlock:init __flicker mark).
+  const airlockInstalled = await page.evaluate(() => !!(window.airlock && typeof window.airlock.push === "function"));
 
   // Which connectors does THIS page declare? Mirrors scripts.js's own dispatch
   // (no window.__airlockConfig -> bootEdsAnalytics()'s GA4-only shape).
@@ -190,8 +197,12 @@ async function runArm(browser, { url, passthrough }) {
   // The universal trigger (AC1) — see this file's header. A no-op (guarded) if boot
   // never installed window.airlock (e.g. a boot failure already recorded above).
   await page.evaluate(() => {
+    // No explicit page_location: it is optional in the MP schema (not required), the GA4
+    // connector does not source it, and injecting `location.href` would trip the schema's
+    // generic param maxLength:100 on a long live URL — a smoke artifact, not an airlock
+    // fault. A bare page_view still yields a conformant beacon (client_id + events[].name).
     if (window.airlock && typeof window.airlock.push === "function") {
-      window.airlock.push({ event: "page_view", page_location: location.href });
+      window.airlock.push({ event: "page_view" });
     }
   });
 
@@ -206,14 +217,17 @@ async function runArm(browser, { url, passthrough }) {
   if (ga4Beacon) {
     try { ga4Conformant = validate(JSON.parse(ga4Beacon.body)) === true; } catch { ga4Conformant = false; }
   }
-  const rumBeacon = rumBeacons[0] || null;
+  // Prefer the `top` checkpoint (the universal boot beacon with the full field set) rather
+  // than blindly `rumBeacons[0]` — several RUM checkpoints (top / cwv / …) can race, and a
+  // non-top one lacks fields, which would non-deterministically fail the SENT-shape check.
+  const rumBeacon = rumBeacons.find((b) => b.parsed && b.parsed.checkpoint === "top") || rumBeacons[0] || null;
   const rumFields = rumBeacon && rumBeacon.parsed ? rumBeacon.parsed : null;
   const rumHasExpectedFields = !!rumFields && RUM_EXPECTED_FIELDS.every((k) => Object.prototype.hasOwnProperty.call(rumFields, k));
 
   await context.close();
 
   return {
-    url, bootFailed, hasGa4, hasAlloy, ownsRum, rumBootFailed,
+    url, bootFailed, airlockInstalled, hasGa4, hasAlloy, ownsRum, rumBootFailed,
     ga4Beacon, ga4Conformant, alloyFired: interacts.length > 0, interacts,
     rumBeacon, rumHasExpectedFields,
   };
@@ -244,8 +258,12 @@ async function main() {
   const alloyArm = arms.find((a) => a.hasAlloy) || null;
   const rumArm = arms.find((a) => a.ownsRum) || null;
 
+  // The positive boot signal: EVERY exercised arm must have installed window.airlock
+  // (a silent hang leaves it absent). anyBootFailedArm carries a thrown-boot flag; the
+  // installed gate additionally catches a hang that never threw.
+  const allInstalled = arms.every((a) => a.airlockInstalled === true);
   const checks = {
-    boot_health: bootHealthDisposition(anyBootFailedArm ? anyBootFailedArm.bootFailed : null),
+    boot_health: bootHealthDisposition(anyBootFailedArm ? anyBootFailedArm.bootFailed : null, { installed: allInstalled }),
     ga4: ga4Disposition({
       exercised: !!ga4Arm,
       present: ga4Arm ? !!ga4Arm.ga4Beacon : null,
@@ -253,13 +271,14 @@ async function main() {
     }),
     alloy: alloyPresenceDisposition({
       exercised: !!alloyArm,
-      locallyExercisable: MODE === "live",
+      networkExercisable: MODE === "live",
       fired: alloyArm ? alloyArm.alloyFired : null,
     }),
     rum: rumSentDisposition({
       owns: !!rumArm,
       captured: rumArm ? !!rumArm.rumBeacon : null,
       hasExpectedFields: rumArm ? rumArm.rumHasExpectedFields : null,
+      beaconGuaranteed: MODE !== "live", // the local dry-run force-selects RUM; a live page is sampled
     }),
   };
   if (rumArm) checks.rum_boot_health = bootHealthDisposition(rumArm.rumBootFailed);

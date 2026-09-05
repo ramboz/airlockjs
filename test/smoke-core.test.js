@@ -131,6 +131,26 @@ describe("bootHealthDisposition — pure verdict logic (item 3)", () => {
     expect(d.ok).toBe(false);
     expect(d.disposition).toMatch(/boom/);
   });
+
+  it("installed:false (a silent hang that never threw) -> FAIL even with no bootFailed flag", () => {
+    const d = bootHealthDisposition(null, { installed: false });
+    expect(d.ok).toBe(false);
+    expect(d.disposition).toMatch(/never installed|silent hang/i);
+  });
+
+  it("installed:true -> PASS, disposition confirms window.airlock installed", () => {
+    const d = bootHealthDisposition(null, { installed: true });
+    expect(d.ok).toBe(true);
+    expect(d.disposition).toMatch(/installed/i);
+  });
+
+  it("a bootFailed flag wins even if installed:true (a throw is still a fail)", () => {
+    expect(bootHealthDisposition("boom", { installed: true }).ok).toBe(false);
+  });
+
+  it("installed omitted (the RUM call — no separate global) stays failure-flag-only", () => {
+    expect(bootHealthDisposition(null).ok).toBe(true); // RUM: healthy on no flag, no install gate
+  });
 });
 
 describe("ga4Disposition — presence + MP-conformance (a legitimate client-side oracle for GA4)", () => {
@@ -165,14 +185,14 @@ describe("alloyPresenceDisposition — presence ONLY, never shape/acceptance (AC
     expect(d.ok).toBe(true);
   });
 
-  it("not locally exercisable (the CSP stub performs no network call) -> informational pass, honestly labeled (AC3)", () => {
-    const d = alloyPresenceDisposition({ exercised: true, locallyExercisable: false, fired: null });
+  it("not network-exercisable (the CSP stub performs no network call locally) -> informational pass, honestly labeled (AC3)", () => {
+    const d = alloyPresenceDisposition({ exercised: true, networkExercisable: false, fired: null });
     expect(d.ok).toBe(true);
     expect(d.disposition).toMatch(/not exercised locally/i);
   });
 
-  it("exercised + fired -> PASS, labeled presence-only, and the disposition NEVER claims acceptance", () => {
-    const d = alloyPresenceDisposition({ exercised: true, locallyExercisable: true, fired: true });
+  it("exercised + fired (live) -> PASS, labeled presence-only, and the disposition NEVER claims acceptance", () => {
+    const d = alloyPresenceDisposition({ exercised: true, networkExercisable: true, fired: true });
     expect(d.ok).toBe(true);
     expect(d.disposition).toMatch(/fired/i);
     expect(d.disposition).toMatch(/presence only/i);
@@ -180,7 +200,7 @@ describe("alloyPresenceDisposition — presence ONLY, never shape/acceptance (AC
   });
 
   it("exercised + NOT fired (live) -> FAIL", () => {
-    const d = alloyPresenceDisposition({ exercised: true, locallyExercisable: true, fired: false });
+    const d = alloyPresenceDisposition({ exercised: true, networkExercisable: true, fired: false });
     expect(d.ok).toBe(false);
     expect(d.disposition).toMatch(/not fired/i);
   });
@@ -193,10 +213,17 @@ describe("rumSentDisposition — the SENT beacon shape only, never collector acc
     expect(d.disposition).toMatch(/not applicable/i);
   });
 
-  it("owns RUM but nothing captured -> FAIL", () => {
-    const d = rumSentDisposition({ owns: true, captured: false });
+  it("owns RUM, nothing captured, beacon GUARANTEED (local force-select) -> FAIL (a real send fault)", () => {
+    const d = rumSentDisposition({ owns: true, captured: false, beaconGuaranteed: true });
     expect(d.ok).toBe(false);
     expect(d.disposition).toMatch(/not sent/i);
+  });
+
+  it("owns RUM, nothing captured, NOT guaranteed (live sampling) -> INFORMATIONAL pass (a sampled-out load is not a fault; a broken boot is caught by rum_boot_health)", () => {
+    const d = rumSentDisposition({ owns: true, captured: false, beaconGuaranteed: false });
+    expect(d.ok).toBe(true);
+    expect(d.disposition).toMatch(/sampled/i);
+    expect(d.disposition.toLowerCase()).not.toContain("accepted");
   });
 
   it("captured with the expected fields -> PASS, labeled sent-shape-only, and NEVER claims collector acceptance", () => {
@@ -252,7 +279,7 @@ describe("buildSmokeVerdict — assembles the full card (pass iff every check's 
     const checks = {
       boot_health: bootHealthDisposition(null),
       ga4: ga4Disposition({ exercised: true, present: true, conformant: true }),
-      alloy: alloyPresenceDisposition({ exercised: true, locallyExercisable: true, fired: true }),
+      alloy: alloyPresenceDisposition({ exercised: true, networkExercisable: true, fired: true }),
       rum: rumSentDisposition({ owns: true, captured: true, hasExpectedFields: true }),
     };
     const v = buildSmokeVerdict({ mode: "live", checks });

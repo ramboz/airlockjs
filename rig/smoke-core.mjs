@@ -95,16 +95,40 @@ export async function waitForBootHealth(page, { timeout = 20000, successMark = "
 /**
  * Boot-health disposition, shared by the generic GA4/alloy boot AND the separate RUM
  * boot check (`rig/subset-smoke.mjs` calls this twice — once per `window.__airlock*
- * BootFailed` flag). A present `bootFailed` value is ALWAYS a fail; absent
- * (null/undefined) is healthy.
+ * BootFailed` flag). A present `bootFailed` value is ALWAYS a fail.
+ *
+ * A `bootFailed` flag catches a boot that THREW; it does NOT catch a boot that
+ * silently HUNG (never threw → the flag stays null). So the primary boot check also
+ * gates on the POSITIVE production signal `installed` — `window.airlock` present +
+ * pushable (set by `installOnWindow` only on a completed boot). `installed:false`
+ * fails ("silent hang"); `installed` omitted (the RUM call — RUM installs no separate
+ * global, its positive signal is its beacon/sampling-dependent) stays failure-flag-only.
+ * NB `installed` is the universal PRODUCTION signal, NOT the testbed-only `airlock:init`
+ * `__flicker` mark (absent on a real adopter page).
  * @param {string|null|undefined} bootFailed
+ * @param {{ installed?: boolean }} [opts]
  */
-export function bootHealthDisposition(bootFailed) {
+export function bootHealthDisposition(bootFailed, { installed } = {}) {
   const failed = bootFailed !== null && bootFailed !== undefined;
+  const notInstalled = installed === false;
+  if (failed) {
+    return { ok: false, bootFailed, installed: installed ?? null, disposition: `BOOT FAILED: ${bootFailed}` };
+  }
+  if (notInstalled) {
+    return {
+      ok: false,
+      bootFailed: null,
+      installed: false,
+      disposition: "BOOT DID NOT COMPLETE — window.airlock never installed (silent hang / never reached installOnWindow)",
+    };
+  }
   return {
-    ok: !failed,
-    bootFailed: failed ? bootFailed : null,
-    disposition: failed ? `BOOT FAILED: ${bootFailed}` : "booted cleanly (no __airlock*BootFailed)",
+    ok: true,
+    bootFailed: null,
+    installed: installed ?? null,
+    disposition: installed === true
+      ? "booted cleanly (no __airlock*BootFailed; window.airlock installed)"
+      : "booted cleanly (no __airlock*BootFailed)",
   };
 }
 
@@ -141,16 +165,18 @@ export function ga4Disposition({ exercised, present, conformant }) {
  * no network call — AC3's local-provability split, honestly reported, never faked)
  * are both informational and never fail the verdict; only a run that genuinely
  * attempted the network-level check and saw nothing is a fail.
- * @param {{exercised: boolean, locallyExercisable?: boolean, fired?: boolean|null}} args
+ * @param {{exercised: boolean, networkExercisable?: boolean, fired?: boolean|null}} args
+ *   `networkExercisable` is true only in LIVE mode (the local CSP-proof stub bundle
+ *   performs no network call, so the interact-fired check is not decidable locally).
  */
-export function alloyPresenceDisposition({ exercised, locallyExercisable, fired }) {
+export function alloyPresenceDisposition({ exercised, networkExercisable, fired }) {
   if (!exercised) {
-    return { exercised: false, locallyExercisable: null, fired: null, ok: true, disposition: "not exercised (no alloy connector in this arm)" };
+    return { exercised: false, networkExercisable: null, fired: null, ok: true, disposition: "not exercised (no alloy connector in this arm)" };
   }
-  if (!locallyExercisable) {
+  if (!networkExercisable) {
     return {
       exercised: true,
-      locallyExercisable: false,
+      networkExercisable: false,
       fired: null,
       ok: true,
       disposition:
@@ -160,7 +186,7 @@ export function alloyPresenceDisposition({ exercised, locallyExercisable, fired 
   }
   return {
     exercised: true,
-    locallyExercisable: true,
+    networkExercisable: true,
     fired,
     ok: fired === true,
     disposition: fired
@@ -175,14 +201,32 @@ export function alloyPresenceDisposition({ exercised, locallyExercisable, fired 
  * RUM-data inspection, never a captured-beacon reveal (a structural false-green —
  * see docs/real-site-validation.md's residuals checklist). `owns:false` (the page
  * never set `window.__airlockOwnsRum`) is informational and never fails the verdict.
- * @param {{owns: boolean, captured?: boolean, hasExpectedFields?: boolean|null}} args
+ *
+ * ABSENCE is verdict-relevant ONLY when a beacon was GUARANTEED: the local dry-run
+ * force-selects RUM (`forceSelect`, testbed `scripts.js`) so a missing beacon there is
+ * a real send fault (fail). A LIVE page is SAMPLED — RUM may legitimately not select
+ * this load — so an absent beacon live is INFORMATIONAL, never a fail (a genuinely
+ * broken RUM BOOT is caught separately by the `rum_boot_health` `__airlockRumBootFailed`
+ * check; acceptance is downstream regardless).
+ * @param {{owns: boolean, captured?: boolean, hasExpectedFields?: boolean|null, beaconGuaranteed?: boolean}} args
  */
-export function rumSentDisposition({ owns, captured, hasExpectedFields }) {
+export function rumSentDisposition({ owns, captured, hasExpectedFields, beaconGuaranteed }) {
   if (!owns) {
     return { owns: false, captured: null, hasExpectedFields: null, ok: true, disposition: "not applicable (window.__airlockOwnsRum not set)" };
   }
   if (!captured) {
-    return { owns: true, captured: false, hasExpectedFields: null, ok: false, disposition: "NOT SENT — no RUM beacon captured after boot" };
+    if (beaconGuaranteed) {
+      return { owns: true, captured: false, hasExpectedFields: null, ok: false, disposition: "NOT SENT — no RUM beacon captured after a force-selected boot (a real send fault)" };
+    }
+    return {
+      owns: true,
+      captured: false,
+      hasExpectedFields: null,
+      ok: true,
+      disposition:
+        "no RUM beacon this load — RUM is SAMPLED live (not necessarily selected this load); force-select or retry " +
+        "for a definitive SENT-shape capture. A broken RUM BOOT is caught by rum_boot_health; acceptance is downstream regardless.",
+    };
   }
   return {
     owns: true,
