@@ -6,55 +6,87 @@ use_cases: [UC-2]
 
 <!-- jig self-defining vocabulary (soft, forward-only): expand each acronym on first use and link the term to docs/memory/glossary.md (or jig's lexicon). See docs/workflow.md "Self-defining vocabulary". -->
 
-# Spec 035: Name-scoped cookie-grant wrapper (OQ13-4)
+# Spec 035: Name-scoped cookie-grant hardening (OQ13-4)
 
-> Land the MVP6 fixed-core **security** residual [OQ13 item 4](../../refinement-todo.md): `adapters/eds/cookies.js` is
-> the **RAW whole-jar** host cookie backing. Before a connector's cookie grant is trustworthy it needs a **default-deny
-> name-scope** (per `CapabilityRequest.cookies`) + the cookie **name validated on set** (an unvalidated name is an
-> attribute-injection surface). See the [MVP6 release plan](../../releases/mvp6.md) (fixed core: "name-scoped
-> cookie-grant wrapper + name validation, security-safe").
+> Land the MVP6 fixed-core **security** residual [OQ13 item 4](../../refinement-todo.md): the ONE live connector cookie
+> grant (alloy) reaches the **whole `document.cookie` jar** on read and writes to the **real jar with the cookie name
+> unvalidated + unscoped**. Before that grant is trustworthy it needs a **default-deny name-scope** (per
+> `CapabilityRequest.cookies`; ADR-0006 `granted = declared ∩ allowed`) on **both halves** of the boundary + the cookie
+> **name validated** (an unvalidated name is an attribute-injection surface). See the [MVP6 release plan](../../releases/mvp6.md)
+> (fixed core: "name-scoped cookie-grant wrapper + name validation, security-safe").
 
 ## Overview
 
-`createCookieCapability` (`adapters/eds/cookies.js`) implements `GrantedCapabilities.cookies` over `document.cookie`.
-Two security gaps (arch review 004-03, tracked as OQ13-4):
+**Frame-critique retarget (2026-09-05).** The first draft pinned both gaps on `createCookieCapability`
+(`adapters/eds/cookies.js`) — a `{get,set}` accessor — and proposed a `scopeCookieCapability(cap, grantedNames)` wrapper
+over it. The frame-critique (verdict `needs-changes`, verified against source) showed that surface is **host-side only,
+granted to NO connector**: its own docstring says "no connector grant flow is exercised yet, and the chamber stays
+cookie-free"; the adapter uses it host-side for GA4-ctx sourcing (`index.js:391-395`) with attribute-safe literals. A
+`{get,set}` wrapper there hardens a surface no connector uses. **The real, live connector-grant cookie boundary is the
+alloy chamber's**, and it has two distinct gaps on two distinct code paths:
 
-1. **No name-scope (whole-jar).** `get(name)`/`set(name,…)` reach ANY cookie. `CapabilityRequest.cookies` (a connector's
-   *declared* cookie names — GA4 `["_ga","_ga_"]`, alloy `["com.adobe.alloy.getTld","kndctr_","AMCV_","demdex","s_ecid"]`)
-   is not enforced, so a connector granted `_ga` could read/write `kndctr_` etc. ADR-0006's grant law
-   (`granted = declared ∩ allowed`) is unenforced for cookies.
-2. **Name used verbatim on set (attribute-injection surface).** `set` does `${name}=…`; the value is percent-encoded
-   (safe) but the NAME is not validated — a name like `x; domain=evil.com` or one with a newline injects cookie
-   attributes. (The current host callers use attribute-safe literals `_ga`/`_ga_<stream>`, so this is latent — but the
-   primitive is unsafe the moment an arbitrary granted name reaches it.)
+1. **Whole-jar READ leak (confidentiality).** `bootAlloy` seeds the chamber with the **entire** origin jar —
+   `seedCookie = (document.cookie) || ""` (`adapters/eds/index.js:1077`) → `host.init({cookie: seedCookie})` →
+   `buildCaps(seedCookie)` → `createSyncCookieCache(seedCookie)` (`alloy-chamber.worker.js:124`); the chamber's
+   `readSync()` returns the **whole jar** (`connectors/alloy/sync-cookie-cache.js:35-37`), and alloy's document-cookie
+   shim reads through it (`alloy-chamber.worker.js:206-214`). So a connector that declared only
+   `["com.adobe.alloy.getTld","kndctr_","AMCV_","demdex","s_ecid"]` can still read `_ga`, a session cookie, an auth
+   cookie — everything. ADR-0006's grant law is **unenforced for the read side**, and this leak is **live today**.
+2. **Unvalidated + unscoped WRITE to the real jar (integrity + injection).** The chamber's `writeSync` posts a raw
+   `name=value; attrs` string as `cookie-writeback` (`sync-cookie-cache.js:49`, `alloy-chamber.worker.js:127`); the host
+   handler reconciles it (`reconcileForBrokerJar` drops `domain=`/`secure`/`samesite=` only —
+   `core/wrapped-sdk-host.js:466,565-574`) and writes it **verbatim** to the real jar via
+   `caps.cookies.reconcile` → `document.cookie = reconciled` (`adapters/eds/index.js:1017-1019`). The **cookie name is
+   never validated** (a name like `x` carrying an injected attribute, or a newline, is written as-is) and **never
+   scoped** (the untrusted chamber can persist `_ga` or any name to the real jar, not just its declared cookies). The
+   chamber is UNTRUSTED (034-01), so this is a real integrity + attribute-injection surface, **live today**.
 
-Both are **security hardening a real grant must not ship without** — the MVP6 no-go "the cookie-grant wrapper touches
-the identity/cookie boundary; the name-validation-on-set must be right."
+Both are **security hardening a real grant must not ship without** — the MVP6 no-go "the cookie-grant wrapper touches the
+identity/cookie boundary; the name-validation-on-set must be right." Both enforcement points are **host-side / on the
+trusted seam** (the seed is filtered before it crosses to the worker; the write-back is validated + scoped on the host
+as it comes back from the untrusted chamber) — consistent with 034-01's trusted-seam principle (never trust the chamber
+to scope itself).
 
 ## Assumptions
 
 <!-- Spec 064-02 / ADR-0020 §1–§2 — grounding-by-probe (risk-gated). -->
 
-- Grounded (read 2026-09-05): `createCookieCapability(document)` = whole-jar async get/set, **name verbatim on set**
-  (`adapters/eds/cookies.js`); used HOST-side for GA4-ctx sourcing (`adapters/eds/index.js:392` — not a connector grant).
-  The **alloy chamber** builds its OWN cookie caps over a **seeded cache** (`createSyncCookieCache(seedCookie)`,
-  `connectors/alloy/alloy-chamber.worker.js:121-145`) with async write-back via `caps.cookies.reconcile`
-  (`core/wrapped-sdk-host.js:466-470` → `reconcileForBrokerJar`). Connector cookie declarations are exact + PREFIX
-  (`kndctr_`, `AMCV_`, `_ga_`). `CapabilityRequest.cookies: readonly string[]` (`contracts/capability.d.ts:33`);
-  ADR-0006 `granted = declared ∩ allowed` (`core/consent.js`).
-- **The frame-critique must ground WHICH surfaces the wrapper scopes + the exact-vs-prefix semantics** (NOT asserted
-  here): (a) the host accessor `createCookieCapability`; (b) the **seedCookie** the host hands the chamber (scoped to the
-  connector's declared names, so the chamber's cache never holds the whole jar); (c) the **reconcile write-back**
-  (a connector may only write its declared names; the written name validated). Whether all three, and whether the
-  `SecurityError`→graceful-null-identity rider (OQ13-4) is in-scope, is the frame-critique's to ratify.
+- **Grounded (read 2026-09-05, verified at the frame-critique):**
+  - `createCookieCapability(document)` is a whole-jar `{get,set}` (`adapters/eds/cookies.js`), used **HOST-side** for
+    GA4-ctx sourcing (`index.js:391-395`) — its docstring states no connector is granted it; the GA4 connector is
+    "cookie-free … unwired" (`connectors/ga4/connector.js`). ⇒ NOT the live grant surface (a `{get,set}` wrapper is a
+    **named follow-on** for whenever a connector is actually granted it, not this slice).
+  - The alloy chamber's async `get`/`set` are "present for SHAPE (unused by alloy)"; alloy reads/writes
+    `document.cookie` through the chamber shim → `caps.cookies.sync.readSync/writeSync` (`alloy-chamber.worker.js:130-131,
+    206-224`). The caps are built **inside the worker** (`buildCaps`, `:124-145`) — beyond a host-side `{get,set}`
+    wrapper's reach; the enforceable seams are the **seed in** and the **write-back out**.
+  - READ path: `index.js:1077` seeds the whole `document.cookie`; `readSync()` returns the whole jar
+    (`sync-cookie-cache.js:35-37`).
+  - WRITE path: `writeSync` → `cookie-writeback` → `reconcileForBrokerJar` (drops domain/secure/samesite,
+    keeps `name=value` verbatim) → `caps.cookies.reconcile` → `document.cookie = reconciled` (`wrapped-sdk-host.js:466`,
+    `index.js:1017-1019`).
+  - Declarations are exact + PREFIX (`kndctr_`, `AMCV_`, `_ga_`; `demdex`/`s_ecid`/`com.adobe.alloy.getTld` exact).
+    `CapabilityRequest.cookies: readonly string[]` (`contracts/capability.d.ts:33`) — **no prefix marker in the type**.
+    ADR-0006 `granted = declared ∩ allowed` (`core/consent.js`) — the grant *law*, but **silent on the enforcement
+    *shape***, so the shape is this spec's to design (not a settled residual).
+- **The frame-critique must ground the remaining load-bearing specifics** (NOT asserted here): (a) how the connector's
+  granted cookie-name set is **threaded** to the two host enforcement points (`bootAlloy` at `:1077` has the alloy entry;
+  the `cookie-writeback` handler lives in `createWrappedSdkHost` — does the granted set reach it via `host.init`, or is a
+  new thread needed?); (b) the **exact-vs-prefix match rule** over a `readonly string[]` with no prefix marker; (c) the
+  **name-validation grammar** (RFC 6265 token) + throw-vs-drop; (d) whether a **scoped seed still round-trips alloy**
+  (alloy reads only its own declared names + the getTld probe cookie it writes itself, so a declared-name-scoped seed
+  SHOULD preserve function — but this is the no-regression hypothesis the slice must PROVE, not assume); (e) whether the
+  `SecurityError`→graceful-null-identity rider is in-scope.
 
 ## Decomposition
 
-**SPIDR — Rules, no spike** (the grant law + the name grammar are Rules over an existing surface; 004-03/017-02
-already built the cookie machinery). One cohesive security-hardening slice — the name-scope and the name-validation are
-the two halves of "make a cookie grant safe" and share the wrapper. (If the frame-critique finds the multi-surface
-application too large, it splits validation from scope; the default is one slice.)
+**SPIDR — Rules, no spike** (the grant law + the name grammar are Rules over existing surfaces; 004-03/012-01/017-02
+already built the cookie machinery). One cohesive security-hardening slice: the **read-scope** (seed filter) and the
+**write-scope + name-validation** (write-back reconcile) are the two halves of "make the alloy cookie grant safe" and
+share the granted-name set, the exact/prefix match rule, and the name-validator. (If the frame-critique finds the
+two-surface application too large, it splits read-scope from write-scope+validation; the default is one slice, since a
+half-scoped grant — read closed, write open, or vice versa — is an awkward, misleading intermediate.)
 
 ## Slices
 
-- [035-01 — the name-scoped, name-validated cookie-grant wrapper (default-deny per `CapabilityRequest.cookies` + name-validation-on-set)](slice-01-name-scoped-wrapper.md)
+- [035-01 — name-scope + name-validate the live alloy cookie grant (seed-read filter + write-back scope/validation, default-deny per `CapabilityRequest.cookies`)](slice-01-name-scoped-wrapper.md)
