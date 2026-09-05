@@ -92,6 +92,8 @@
 | [031-distribution-setup](031-distribution-setup/spec.md) | 031-02 — the update path: versioning marker + `git subtree pull` (generated-release overwrite) | **DONE** | Closes spec 031 (distribution, [ADR-0015](../decisions/adr-0015-distribution-git-subtree.md) / architecture OQ8). Channel: git-subtree of a **dist-rooted `dist` branch** (root = `eds.js` + 4 `*.worker.js` + VERSION) consumed at **`scripts/airlock/`** same-origin (004-01), buildless. Immutable per-release **`dist-vX.Y.Z` tag** pin (marker==tag; non-force push, `--force-tag` to re-cut); `git subtree add`/`pull … dist-vX.Y.Z --squash`. Targets: `build:dist` → `dist/`, `publish:dist --target <t> [--release]`, proof `rig:subtree`. |
 | [032-instrumentation-config](032-instrumentation-config/spec.md) | 032-01 — the config-driven `boot(config)`: connector dispatch + collapse the pixel-boot duplication | **DONE** |  |
 | [032-instrumentation-config](032-instrumentation-config/spec.md) | 032-02 — the config contract (validated JSON Schema, pre-1.0) + breadth + the few-lines-instrument story | **DONE** | Closes spec 032 (config-driven instrumentation, the MVP6 authoring ergonomic). `boot(config)`: a project JSON config declares connectors (ga4 / pixel-vendors / helix-rum) + consent + governance; collapses the per-vendor boots; returns a composite `window.airlock` handle whose `push` fan-out is gated by each connector's `manifest.events` (helix-rum gets only its RUM checkpoints). Pinned **PRE-1.0** (not frozen) schema `contracts/instrumentation-config.schema.json` + hand-rolled runtime validation (no `ajv` in `dist`). README "Configure airlock". **alloy config-wiring DEFERRED** to its own spec (its first adapter boot — spike-sized; refinement-todo) — the config surface covers GA4+pixels+RUM, NOT Adobe/alloy, until then. |
+| [033-alloy-config-wiring](033-alloy-config-wiring/spec.md) | 🔬 033-01 — spike: de-risk alloy adapter-boot + distribution + the composite-handle reconciliation (GO/KILL) | DRAFT |  |
+| [033-alloy-config-wiring](033-alloy-config-wiring/spec.md) | 033-02 — build: wire `{type:"alloy"}` into `boot(config)` + the config schema + the proof | DEFERRED |  |
 
 ## Deferred slices
 
@@ -100,6 +102,7 @@
 | Spec | Slice | Resolution trigger |
 |------|-------|--------------------|
 | [022-helix-rum-connector](022-helix-rum-connector/spec.md) | 022-03 — page-side sampleRUM cutover + integration proof |  |
+| [033-alloy-config-wiring](033-alloy-config-wiring/spec.md) | 033-02 — build: wire `{type:"alloy"}` into `boot(config)` + the config schema + the proof | 033-01 (the feasibility spike) returns **GO** with a concrete design. If the spike returns |
 
 ## Abandoned slices
 
