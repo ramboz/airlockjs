@@ -22,6 +22,7 @@ import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { boot, bootAlloy } from "../adapters/eds/index.js";
 import { reservePersonalization } from "../adapters/eds/reserve-personalization.js";
+import { shapeAlloyConsent } from "../connectors/alloy/consent.js";
 
 const REPO = fileURLToPath(new URL("..", import.meta.url));
 
@@ -144,6 +145,103 @@ class DecisionsAlloyWorker {
   }
 }
 DecisionsAlloyWorker.instances = [];
+
+// 034-01 (coarse-consent split): a self-reacting chamber Worker that drives the
+// REAL delegate + seam path. On init it runs the REAL `shapeAlloyConsent` over
+// the init `consent` vector to derive alloy's single `collect` switch — modeling
+// alloy's own `awaitConsent()` gate (`createEventManager.js:70` gates the send at
+// `:99`; `createConsentStateMachine.js` `awaitOut` rejects on `collect:"n"`). So:
+//   - `collect:"y"` → alloy SENDS → the worker fires an intercepted-fetch shaped
+//     like real alloy@2.35.0 on a FRESH boot (PER-EVENT `events[].query.
+//     personalization` + TOP-LEVEL `query.identity.fetch` + analytics XDM); the
+//     TRUSTED seam then strips the personalization query iff pzn is un-granted.
+//   - `collect:"n"` → alloy SUPPRESSES the interact UPSTREAM of the seam → the
+//     worker fires NO intercepted-fetch (only settles the event) — so a
+//     final-body check alone cannot tell "sent+stripped" from "suppressed": the
+//     e2e asserts the intercepted-fetch actually FIRED for analytics-yes/pzn-no.
+// Decisions are derived from the EDGE RESPONSE (as real alloy does): the
+// personalization-aware fetch mock returns propositions ONLY when the DISPATCHED
+// request still carried the personalization query — so a seam-stripped
+// analytics-only interact yields NO decisions → no fill.
+class CoarseSplitAlloyWorker {
+  constructor(url, opts) {
+    CoarseSplitAlloyWorker.instances.push(this);
+    this.url = String(url);
+    this.opts = opts;
+    this.messages = [];
+    this.handlers = [];
+    this.terminated = 0;
+    this.seq = 0;
+    this.collectVal = "y"; // set on init from the REAL shapeAlloyConsent(consent)
+    this.proposition = {
+      id: "AT:airlock-1",
+      scope: "__view__",
+      scopeDetails: { decisionProvider: "TGT", activity: { id: "act-1" }, experience: { id: "exp-0" } },
+      items: [{ id: "i1", schema: "https://ns.adobe.com/personalization/html-content-item", data: { format: "text/html", content: DECISION_HTML } }],
+    };
+  }
+  addEventListener(type, fn) { if (type === "message") this.handlers.push(fn); }
+  removeEventListener() {}
+  terminate() { this.terminated++; }
+  emit(msg) { for (const h of this.handlers.slice()) h({ data: msg }); }
+  postMessage(m) {
+    this.messages.push(m);
+    if (m.type === "init") {
+      this.datastreamId = (m.config && m.config.datastreamId) || null;
+      // The REAL in-chamber delegate: shape the init consent vector into alloy's
+      // collect switch. undefined (no consent wired) → alloy's default-"in" → "y".
+      const shaped = shapeAlloyConsent(m.consent);
+      this.collectVal = shaped ? shaped.consent[0].value.collect.val : "y";
+      setTimeout(() => { this.emit({ type: "phase", name: "install" }); this.emit({ type: "phase", name: "configured" }); }, 0);
+    } else if (m.type === "event") {
+      const id = "af-" + (++this.seq);
+      if (this.collectVal !== "y") {
+        // alloy's awaitConsent REJECTS on collect:"n" — the interact is
+        // SUPPRESSED upstream of the seam (no intercepted-fetch). Settle the
+        // host's driveEvent via a result (the sendEvent rejection → dropped).
+        setTimeout(() => this.emit({ type: "result", summary: { booted: true, sendEventSettled: "rejected: The user declined consent." }, ready: [] }), 0);
+        return;
+      }
+      // Real-alloy fresh-boot shape: PER-EVENT personalization query + TOP-LEVEL ECID fetch + analytics XDM.
+      const body = JSON.stringify({
+        events: [{
+          xdm: { eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { URL: "https://site/x", name: "x" } } },
+          query: { personalization: { schemas: ["https://ns.adobe.com/personalization/html-content-item"], decisionScopes: ["__view__"], surfaces: ["web://site/x"] } },
+        }],
+        query: { identity: { fetch: ["ECID"] } },
+      });
+      const url = interactUrlFor ? interactUrlFor(this.datastreamId) : `${INTERACT}?configId=${this.datastreamId}`;
+      setTimeout(() => this.emit({ type: "intercepted-fetch", id, url, method: "POST", headers: { "content-type": "application/json" }, body }), 0);
+    } else if (m.type === "intercepted-fetch-response") {
+      setTimeout(() => {
+        if (m.status === 200) {
+          let resp;
+          try { resp = JSON.parse(m.body || "{}"); } catch (e) { resp = {}; }
+          const handles = Array.isArray(resp.handle) ? resp.handle.filter((h) => h && h.type === "personalization:decisions") : [];
+          if (handles.length) this.emit({ type: "decisions", decisions: [{ scope: "__view__", content: this.proposition }] });
+        }
+        this.emit({ type: "result", summary: { booted: true }, ready: [] });
+      }, 0);
+    }
+  }
+}
+CoarseSplitAlloyWorker.instances = [];
+
+// A fetch mock modeling the real Edge for the 034-01 e2e: it returns a
+// `personalization:decisions` handle ONLY when the dispatched request body still
+// carries a personalization query (i.e. NOT seam-stripped). It records each
+// request body so the e2e can assert the analytics-only body shape.
+function makePersonalizationAwareFetch(seenBodies) {
+  return vi.fn((url, opts) => {
+    const body = opts && opts.body != null ? String(opts.body) : "";
+    if (seenBodies) seenBodies.push(body);
+    const hasPzn = body.includes('"personalization"');
+    const respBody = hasPzn
+      ? JSON.stringify({ handle: [{ type: "personalization:decisions", payload: [] }] })
+      : JSON.stringify({ handle: [] });
+    return Promise.resolve({ status: 200, statusText: "OK", headers: { get: () => "application/json" }, text: async () => respBody });
+  });
+}
 
 const alloyWorker = () => RecordingWorker.instances.find((w) => w.url.includes("alloy-chamber.worker.js"));
 
@@ -597,18 +695,49 @@ describe("boot(config) — AC4: exposure routes to the analytics sink, NOT alloy
   });
 });
 
-describe("boot(config) — AC6: consent all-or-nothing (personalization denied HOLDS the whole interact)", () => {
+// spec 034-01 (coarse-consent split) SUPERSEDES the pre-034 "all-or-nothing"
+// behavior (personalization-denied held the WHOLE interact, so analytics-granted
+// got nothing). AC5 — end-to-end, four consent combinations, FRESH boot each,
+// driven through the REAL `shapeAlloyConsent`→`setConsent` delegate path (NOT a
+// mock that sends regardless). Because alloy's one general `collect` switch
+// suppresses the interact UPSTREAM when `collect:"n"`, an analytics-granted/
+// pzn-denied send must be shown to have ACTUALLY FIRED (delegate liveness fix:
+// collect:"y") — a final-body-only check cannot distinguish "sent → seam
+// stripped pzn" from "suppressed everything". analytics-denied → the delegate
+// yields collect:"n" → NO intercepted-fetch (suppressed upstream). The seam's
+// TRUSTED hold of a denied interact — for a MISBEHAVING chamber that fires
+// anyway — is separately unit-tested in test/wrapped-sdk-host.test.js AC1
+// (defense-in-depth: delegate suppresses OR seam holds).
+describe("boot(config) — AC5 (spec 034-01): coarse-consent split end-to-end via the REAL delegate (four combinations, fresh boot each)", () => {
+  let seenBodies;
   beforeEach(() => {
-    DecisionsAlloyWorker.instances = [];
+    CoarseSplitAlloyWorker.instances = [];
     interactUrlFor = null;
-    vi.stubGlobal("Worker", DecisionsAlloyWorker);
+    seenBodies = [];
+    vi.stubGlobal("Worker", CoarseSplitAlloyWorker);
     vi.stubGlobal("window", {});
+    vi.stubGlobal("fetch", makePersonalizationAwareFetch(seenBodies));
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it("personalization DENIED -> no interact (fetch never called) -> no fill, no proposition_display (inherited 020-02 strict gate)", async () => {
-    const fetchMock = vi.fn(() => Promise.resolve({ status: 200, statusText: "OK", headers: { get: () => "application/json" }, text: async () => JSON.stringify({ handle: [] }) }));
-    vi.stubGlobal("fetch", fetchMock);
+  it("both GRANTED → delegate collect:'y' → full interact FIRES (personalization RETAINED) → decisions delivered → box filled", async () => {
+    const fillSpy = vi.fn();
+    const reservedPlacements = { __view__: Promise.resolve({ id: "r1", fill: fillSpy, release() {} }) };
+    window.airlock = { push: vi.fn(() => 1) };
+
+    const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements, consent: { analytics_storage: "granted", personalization: "granted" } }));
+    const w = CoarseSplitAlloyWorker.instances[0];
+    h.push({ event: "page_view", page_location: "https://site/x" });
+
+    await waitFor(() => globalThis.fetch.mock.calls.length >= 1);
+    expect(w.collectVal).toBe("y"); // the REAL delegate kept alloy live
+    expect(seenBodies[0]).toContain('"personalization"'); // full interact — NOT stripped
+    await waitFor(() => fillSpy.mock.calls.length >= 1); // decisions came back → box filled
+    expect(fillSpy).toHaveBeenCalledWith(DECISION_HTML);
+    expect(h.getState().consentHeld).toBe(0);
+  });
+
+  it("analytics GRANTED + personalization DENIED → delegate collect:'y' → interact FIRES (proven), seam strips pzn → ANALYTICS-ONLY body (ECID fetch + xdm retained) → NO decisions → NO fill", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const fillSpy = vi.fn();
     const pushSpy = vi.fn(() => 1);
@@ -616,15 +745,57 @@ describe("boot(config) — AC6: consent all-or-nothing (personalization denied H
     window.airlock = { push: pushSpy };
 
     const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements, consent: { analytics_storage: "granted", personalization: "denied" } }));
-    h.push({ event: "page_view", page_location: "https://site/held" });
+    const w = CoarseSplitAlloyWorker.instances[0];
+    h.push({ event: "page_view", page_location: "https://site/x" });
 
-    await waitFor(() => h.getState().consentHeld >= 1); // the strict gate HELD the whole interact
-    expect(fetchMock).not.toHaveBeenCalled(); // no real egress at all
-    // let the (held) round-trip settle — the worker emits NO decisions on a status:0 held interact.
-    await new Promise((r) => setTimeout(r, 30));
-    expect(fillSpy).not.toHaveBeenCalled(); // no decisions -> no fill (personalization got nothing)
-    expect(pushSpy).not.toHaveBeenCalled(); // and no proposition_display exposure either
+    // The KEY assertion — the interact ACTUALLY FIRED (delegate liveness collect:"y"),
+    // NOT suppressed. This is what a final-body-only check can't distinguish.
+    await waitFor(() => globalThis.fetch.mock.calls.length >= 1);
+    expect(w.collectVal).toBe("y");                               // real delegate: analytics granted → alloy SENDS
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);            // the analytics-only interact fired (not suppressed)
+    const sent = JSON.parse(seenBodies[0]);
+    expect(sent.events[0].query).toBeUndefined();                 // personalization query STRIPPED by the seam (emptied query removed)
+    expect(JSON.stringify(sent)).not.toContain("personalization");
+    expect(sent.events[0].xdm.eventType).toBe("web.webpagedetails.pageViews"); // analytics XDM RETAINED
+    expect(sent.query).toEqual({ identity: { fetch: ["ECID"] } });            // top-level ECID fetch RETAINED
+    await new Promise((r) => setTimeout(r, 30));                  // let the (decisions-less) round-trip settle
+    expect(fillSpy).not.toHaveBeenCalled();                       // Edge returned no propositions → no fill
+    expect(pushSpy).not.toHaveBeenCalled();                       // and no proposition_display exposure
     warnSpy.mockRestore();
+  });
+
+  it("analytics DENIED + personalization GRANTED → delegate collect:'n' → interact SUPPRESSED upstream → NO intercepted-fetch, no fill", async () => {
+    const fillSpy = vi.fn();
+    const reservedPlacements = { __view__: Promise.resolve({ id: "r1", fill: fillSpy, release() {} }) };
+    window.airlock = { push: vi.fn(() => 1) };
+
+    const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements, consent: { analytics_storage: "denied", personalization: "granted" } }));
+    const w = CoarseSplitAlloyWorker.instances[0];
+    h.push({ event: "page_view", page_location: "https://site/x" });
+
+    // The event reached the chamber, but the REAL delegate (collect:"n") suppressed
+    // it BEFORE any interact — so no intercepted-fetch, and thus fetch is never called.
+    await waitFor(() => w.messages.some((m) => m.type === "event"));
+    expect(w.collectVal).toBe("n");
+    await new Promise((r) => setTimeout(r, 30)); // let the suppressed round-trip settle (result, no fetch)
+    expect(globalThis.fetch).not.toHaveBeenCalled(); // suppressed upstream — zero egress
+    expect(fillSpy).not.toHaveBeenCalled();
+  });
+
+  it("both DENIED → delegate collect:'n' → interact SUPPRESSED upstream → NO intercepted-fetch, no fill", async () => {
+    const fillSpy = vi.fn();
+    const reservedPlacements = { __view__: Promise.resolve({ id: "r1", fill: fillSpy, release() {} }) };
+    window.airlock = { push: vi.fn(() => 1) };
+
+    const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements, consent: { analytics_storage: "denied", personalization: "denied" } }));
+    const w = CoarseSplitAlloyWorker.instances[0];
+    h.push({ event: "page_view", page_location: "https://site/x" });
+
+    await waitFor(() => w.messages.some((m) => m.type === "event"));
+    expect(w.collectVal).toBe("n");
+    await new Promise((r) => setTimeout(r, 30));
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(fillSpy).not.toHaveBeenCalled();
   });
 });
 

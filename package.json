@@ -28,6 +28,7 @@
     "rig:alloy-coalescing": "node rig/alloy-coalescing.mjs",
     "rig:alloy-coalescing-core": "node rig/alloy-coalescing-core.mjs",
     "rig:alloy-decisions": "node rig/alloy-decisions.mjs",
+    "rig:alloy-consent-diff": "node rig/alloy-consent-diff.mjs",
     "rig:alloy-xdm-gov": "node rig/alloy-live-xdm-governance.mjs",
     "rig:sanitize": "node rig/sanitize-boundary.mjs",
     "rig:nasty-tag": "node rig/nasty-tag.mjs",

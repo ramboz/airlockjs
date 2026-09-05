@@ -996,6 +996,222 @@ describe("createWrappedSdkHost — consent enforcement (spec 020-02 AC1, ADR-000
   }, 2000);
 });
 
+// createWrappedSdkHost — COARSE-CONSENT SPLIT (spec 034-01, ADR-0007): the
+// TRUSTED seam makes consent gating PER-PURPOSE, not all-or-nothing. alloy's
+// analytics + personalization ride ONE interact gated over
+// ["analytics_storage","personalization"]; pre-034 that held the WHOLE interact
+// if EITHER was un-granted, so "analytics granted, personalization denied" got
+// NEITHER. After 034-01: personalization-denied + analytics-granted dispatches
+// an ANALYTICS-ONLY interact — the seam STRIPS the per-event
+// `events[].query.personalization` (driven by the LIVE consentRef; a compromised
+// chamber cannot leak it) and gates on ["analytics_storage"] alone. analytics-
+// denied still HOLDS the whole interact (fail-closed). Both-granted is unchanged.
+describe("createWrappedSdkHost — coarse-consent split (spec 034-01, ADR-0007)", () => {
+  const EGRESS_PURPOSES = ["analytics_storage", "personalization"]; // connectors/alloy/connector.js manifest
+  const INTERACT = "https://adobedc.demdex.net/ee/v1/interact";
+  const XDM = { eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { URL: "https://airlock.example/", name: "airlock" } } };
+
+  // A synthetic intercepted interact body shaped like alloy@2.35.0's on a FRESH
+  // boot: the personalization query is PER-EVENT (`events[i].query.personalization`
+  // — alloy-core event.js's mergeQuery), while the ECID fetch is TOP-LEVEL
+  // (`query.identity.fetch`). `withPersonalization:false` models alloy's own
+  // personalization-off shape (no per-event `query` at all).
+  const interactBody = ({ withPersonalization }) =>
+    JSON.stringify({
+      events: [
+        withPersonalization
+          ? { xdm: XDM, query: { personalization: { schemas: ["https://ns.adobe.com/personalization/html-content-item"], decisionScopes: ["__view__"], surfaces: ["web://airlock.example/"] } } }
+          : { xdm: XDM },
+      ],
+      query: { identity: { fetch: ["ECID"] } },
+    });
+
+  function makeSpyingHost(opts) {
+    const chamber = makeFakeChamber();
+    const dispatched = [];
+    const diags = [];
+    const caps = {
+      egress: {
+        dispatch: async (req) => {
+          dispatched.push(req);
+          return { status: 200, statusText: "OK", headers: {}, body: "{}" };
+        },
+      },
+    };
+    const host = createWrappedSdkHost({ chamber, caps, onDiagnostic: (r) => diags.push(r), ...opts });
+    return { chamber, dispatched, diags, host };
+  }
+
+  it("AC1/AC3 both-granted → dispatched, body BYTE-UNCHANGED (personalization retained, full interact)", async () => {
+    const body = interactBody({ withPersonalization: true });
+    const { chamber, dispatched, diags, host } = makeSpyingHost({
+      egressPurposes: EGRESS_PURPOSES,
+      consent: { analytics_storage: "granted", personalization: "granted" },
+    });
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 1, url: INTERACT, method: "POST", headers: {}, body });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(1);
+    expect(msg.status).toBe(200);
+    expect(dispatched[0].body).toBe(body); // 033 byte-unchanged — same string reference, no strip
+    expect(host.getState().consentHeld).toBe(0);
+    expect(diags.find((d) => d.disposition === "personalization-stripped")).toBeUndefined();
+  }, 2000);
+
+  it("AC1/AC2 analytics-granted + personalization-DENIED → dispatched ANALYTICS-ONLY: events[].query.personalization stripped, top-level query.identity.fetch + xdm retained", async () => {
+    const body = interactBody({ withPersonalization: true });
+    const { chamber, dispatched, diags, host } = makeSpyingHost({
+      egressPurposes: EGRESS_PURPOSES,
+      consent: { analytics_storage: "granted", personalization: "denied" },
+    });
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 2, url: INTERACT, method: "POST", headers: {}, body });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(1); // analytics flows — NOT held
+    expect(msg.status).toBe(200);
+    expect(host.getState().consentHeld).toBe(0);
+    const sent = JSON.parse(dispatched[0].body);
+    // personalization QUERY gone (the seam strip) — and the emptied per-event `query` removed entirely.
+    expect(sent.events[0].query).toBeUndefined();
+    expect(JSON.stringify(sent)).not.toContain("personalization");
+    // the analytics XDM + the TOP-LEVEL ECID identity fetch are RETAINED.
+    expect(sent.events[0].xdm).toEqual(XDM);
+    expect(sent.query).toEqual({ identity: { fetch: ["ECID"] } });
+    // redacted diagnostic names the purpose only, never any value.
+    expect(diags.find((d) => d.kind === "consent" && d.disposition === "personalization-stripped")).toBeTruthy();
+  }, 2000);
+
+  it("AC1 analytics-DENIED + personalization-granted → HELD (whole interact, fail-closed) — zero egress", async () => {
+    const body = interactBody({ withPersonalization: true });
+    const { chamber, dispatched, host } = makeSpyingHost({
+      egressPurposes: EGRESS_PURPOSES,
+      consent: { analytics_storage: "denied", personalization: "granted" },
+    });
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 3, url: INTERACT, method: "POST", headers: {}, body });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(0);
+    expect(msg.status).toBe(0);
+    expect(msg.statusText).toBe("held at the seal: consent");
+    expect(host.getState().consentHeld).toBe(1);
+  }, 2000);
+
+  it("AC1 analytics-DENIED + personalization-DENIED → HELD (fail-closed) — zero egress", async () => {
+    const body = interactBody({ withPersonalization: true });
+    const { chamber, dispatched, host } = makeSpyingHost({
+      egressPurposes: EGRESS_PURPOSES,
+      consent: { analytics_storage: "denied", personalization: "denied" },
+    });
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 4, url: INTERACT, method: "POST", headers: {}, body });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(0);
+    expect(msg.status).toBe(0);
+    expect(host.getState().consentHeld).toBe(1);
+  }, 2000);
+
+  it("AC2 PATH PRECISION: a top-level `query.personalization` is NOT what alloy writes — the strip targets PER-EVENT and leaves the analytics-only dispatch clean", async () => {
+    // Guards the silent-no-op trap the slice calls out: a naive top-level
+    // `delete parsed.query.personalization` would leave the real per-event leak
+    // in place. Here the body carries the per-event personalization query (as
+    // alloy actually emits); the strip must remove it.
+    const body = interactBody({ withPersonalization: true });
+    const { chamber, dispatched } = makeSpyingHost({
+      egressPurposes: EGRESS_PURPOSES,
+      consent: { analytics_storage: "granted", personalization: "denied" },
+    });
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 5, url: INTERACT, method: "POST", headers: {}, body });
+    await posted;
+
+    const sent = JSON.parse(dispatched[0].body);
+    expect(sent.events.every((e) => !e.query || !Object.prototype.hasOwnProperty.call(e.query, "personalization"))).toBe(true);
+  }, 2000);
+
+  it("AC1 personalization-denied but the interact ALREADY carries no personalization query → dispatched unchanged (strip is a no-op, never throws)", async () => {
+    const body = interactBody({ withPersonalization: false }); // already analytics-only
+    const { chamber, dispatched, host } = makeSpyingHost({
+      egressPurposes: EGRESS_PURPOSES,
+      consent: { analytics_storage: "granted", personalization: "denied" },
+    });
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 6, url: INTERACT, method: "POST", headers: {}, body });
+    const msg = await posted;
+
+    expect(dispatched.length).toBe(1);
+    expect(msg.status).toBe(200);
+    expect(dispatched[0].body).toBe(body); // nothing to strip → same string reference (no needless re-serialize)
+    expect(host.getState().consentHeld).toBe(0);
+  }, 2000);
+
+  it("AC4 LIVE consent: mutating the same consentRef (as setConsent does) flips the NEXT interact's strip+gate — no chamber re-notify", async () => {
+    // The seam reads the LIVE consentRef per-interact. Boot both-granted (full
+    // interact), then mutate the SAME object to deny personalization — the NEXT
+    // interact is stripped to analytics-only, with no re-delegate to the chamber.
+    const consent = { analytics_storage: "granted", personalization: "granted" };
+    const body = interactBody({ withPersonalization: true });
+    const { chamber, dispatched } = makeSpyingHost({ egressPurposes: EGRESS_PURPOSES, consent });
+
+    let posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 7, url: INTERACT, method: "POST", headers: {}, body });
+    await posted;
+    expect(dispatched[0].body).toBe(body); // interact #1: both granted → full, unchanged
+
+    // setConsent's live mutation (bootAlloy: `Object.assign(consentRef, v)`).
+    consent.personalization = "denied";
+
+    posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 8, url: INTERACT, method: "POST", headers: {}, body });
+    await posted;
+    const sent2 = JSON.parse(dispatched[1].body); // interact #2: personalization now denied → stripped
+    expect(sent2.events[0].query).toBeUndefined();
+    expect(sent2.query).toEqual({ identity: { fetch: ["ECID"] } }); // ECID fetch still retained
+  }, 2000);
+
+  it("back-compat: with EGRESS_PURPOSES wired but personalization NOT in them, the split never fires (a denied 'personalization' can't strip a non-personalization gate)", async () => {
+    // A connector whose egress purposes do not include personalization gates
+    // exactly as strict 020-02 did — the 034 split is scoped to the
+    // personalization purpose only.
+    const body = interactBody({ withPersonalization: true });
+    const { chamber, dispatched, host } = makeSpyingHost({
+      egressPurposes: ["analytics_storage"],
+      consent: { analytics_storage: "granted", personalization: "denied" },
+    });
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 9, url: INTERACT, method: "POST", headers: {}, body });
+    await posted;
+
+    expect(dispatched.length).toBe(1);
+    expect(dispatched[0].body).toBe(body); // no strip — personalization is not a governing purpose here
+    expect(host.getState().consentHeld).toBe(0);
+  }, 2000);
+});
+
+// createWrappedSdkHost — DIFFERENTIAL Edge-safe proof (spec 034-01 AC6): the
+// seam-stripped analytics-only interact must be EXACTLY what alloy itself emits
+// with personalization off. That proof is grounded against the REAL, installed
+// @adobe/alloy@2.35.0 bundle — which is adopter-supplied (ADR-0016) and lives
+// ONLY under the gitignored, probe-local probes/alloy-worker/node_modules, so it
+// is NOT importable from this hermetic vitest suite (CI runs `npm test` after a
+// ROOT-ONLY `npm ci`). It therefore lives in the RIG tier:
+// `npm run rig:alloy-consent-diff` (rig/alloy-consent-diff.mjs), mirroring
+// rig:alloy / rig:alloy-decisions which read the probe-local bundle as a file.
+// The HERMETIC shape-only coverage (stripped body has no
+// events[].query.personalization + retains top-level query.identity.fetch + the
+// analytics xdm) is already asserted by the coarse-consent-split AC1/AC2 tests
+// above and the AC5 e2e in test/eds-boot-alloy.test.js — no real bundle needed.
+
 // createWrappedSdkHost — optional payload strip (spec 020-02 AC3): thin
 // defense-in-depth, non-load-bearing (the alloy interact body is already
 // read-minimized by construction — connectors/alloy/connector.js's `toXdm`

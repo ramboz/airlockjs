@@ -490,10 +490,34 @@ geometry unchanged, exposure captured by GA4 / ignored by alloy) + `test/eds-boo
 "GA4 + Adobe/alloy" config-surface gap is now CLOSED for BOTH analytics and personalization.**
 
 **Documented limitations parked as named follow-ons (033-03):**
-- **analytics-yes / personalization-no coarse consent.** Decisions ride the SHARED interact, held all-or-nothing by the
-  strict `egressVerdict` over `["analytics_storage","personalization"]` (020-02): a `personalization` denial HOLDS the
-  WHOLE interact, so the common "analytics-yes / personalization-no" posture gets NEITHER. A finer per-purpose split (an
-  analytics-only interact when personalization is denied) is the follow-on. Trigger: an adopter needs the split posture.
+- **analytics-yes / personalization-no coarse consent — RESOLVED end-to-end (2026-09-05, spec [034-01](specs/034-alloy-config-followups/slice-01-coarse-consent-split.md)).** The all-or-nothing hold is GONE, via TWO
+  reconciled halves: **(A) the chamber-delegate LIVENESS fix** — `connectors/alloy/consent.js`'s `shapeAlloyConsent` now
+  sets alloy's single `collect` switch to `"y"` iff **`analytics_storage`** resolves granted (was: iff BOTH governing
+  purposes granted). This is required because alloy's one general consent purpose (`consentPurpose.js` GENERAL) cannot
+  express analytics-yes/pzn-no, and `collect:"n"` makes alloy's `awaitConsent()` REJECT the send BEFORE the request is
+  built (`createEventManager.js:70` gates `sendEdgeNetworkRequest` at `:99`) — so the old both-required gate suppressed
+  analytics upstream of the seam on any pzn denial. Now alloy SENDS whenever analytics is consented. **(B) the TRUSTED
+  seam ENFORCEMENT** — `core/wrapped-sdk-host.js`'s intercepted-fetch path, when `personalization` is un-granted but
+  `analytics_storage` is granted, STRIPS the per-event `events[].query.personalization` (driven by the LIVE `consentRef`)
+  and gates the analytics-only interact on `["analytics_storage"]`. Defense-in-depth: delegate = liveness, seam = trusted
+  per-event enforcement. analytics-denied → `collect:"n"` suppresses the interact upstream (and the seam would hold it
+  too if a misbehaving chamber fired anyway); both-granted unchanged (full interact + decisions). Grounded creds-free
+  against the installed `@adobe/alloy@2.35.0`: the seam-stripped body deep-equals alloy's own
+  `defaultPersonalizationEnabled:false` interact (`test/wrapped-sdk-host.test.js` AC6 differential); the four-combo e2e
+  (`test/eds-boot-alloy.test.js`) drives the REAL delegate and asserts the analytics-only interact actually FIRED
+  (distinguishing "sent → seam-stripped" from "suppressed"). **Residual — OQ13-1 (`demdex`/`ad_storage` cookie-write),
+  STAYS OPEN:** relaxing `collect` authorizes alloy's full identity/collect on every analytics-yes/pzn-no send. (i) The
+  shared identity cookies (`kndctr_`/`AMCV_`/`s_ecid`) + `query.identity.fetch` serve `analytics_storage` —
+  consent-consistent, and the seam correctly does NOT strip `query.identity.fetch`. (ii) The genuine residual: a
+  `demdex`/`ad_storage` cookie WRITE under denied `ad_storage` is now reachable (before, `collect:"n"` suppressed all
+  writes) — pre-existing + orthogonal (`ad_storage` gates neither the old nor new `collect`). **Bound (do NOT
+  over-claim):** the endpoint ceiling gates FETCH dispatch, so it holds the demdex.net ad-sync NETWORK EGRESS — but the
+  cookie-write-back path (`core/wrapped-sdk-host.js` `cookie-writeback` → `caps.cookies.reconcile`) is UNGATED, so a
+  `demdex`/`ad_storage` cookie WRITE landing client-side under denied `ad_storage` is UNCOMPENSATED. Whether that write
+  is sync-dependent (then held with the egress) or client-side (a real new write in this posture) is the exact
+  creds-gated question OQ13-1 must resolve. Live-Edge confirmation of the stripped-interact shape remains a creds-gated
+  residual (013 pattern). Trigger for OQ13-1: cookie-write consent-gating work (the OQ13 item-1 family) OR a creds-gated
+  live-Alloy re-probe.
 - **alloy-only exposure telemetry.** The `proposition_display` DISPLAY works standalone, but its EXPOSURE needs an
   analytics `["*"]` connector in the same `boot(config)` to land — an alloy-only boot drops+diagnoses the exposure
   (never throws). Follow-on: a dedicated exposure sink independent of an analytics connector. Trigger: an adopter runs

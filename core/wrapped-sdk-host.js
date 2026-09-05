@@ -108,7 +108,7 @@
  */
 import { checkEndpointCeiling } from "./endpoint-ceiling.js";
 import { checkConfigIntegrity, pinnedDispatchUrl, hostOf } from "./config-integrity.js";
-import { egressVerdict } from "./consent.js";
+import { egressVerdict, resolveConsent } from "./consent.js";
 import { governPayload } from "./payload-governance.js";
 
 // Default diagnostics seam (mirrors core/airlock.js's `consoleDiagnostic`):
@@ -312,11 +312,34 @@ export function createWrappedSdkHost({
     // beacon like GA4's async seal (017-03) — a pending->hold+flush
     // refinement mirroring that seal is a named follow-on, not built here.
     if (egressPurposes.length) {
-      const verdict = egressVerdict(consent, egressPurposes, { strict: true });
+      // AC1 (spec 034-01, ADR-0007) — COARSE-CONSENT SPLIT: consent gating is
+      // PER-PURPOSE, not all-or-nothing. `personalization` is the one egress
+      // purpose whose query alloy builds PER-EVENT (alloy-core `utils/event.js`'s
+      // `mergeQuery` -> `events[i].query.personalization`), so the TRUSTED seam
+      // can STRIP it and let an ANALYTICS-ONLY interact flow when personalization
+      // is un-granted but the remaining (analytics) purposes are granted.
+      //
+      // Compute the EFFECTIVE gated purposes from the LIVE consentRef, read
+      // per-interact (AC4 — `setConsent` mutating the ref changes the NEXT
+      // interact; no chamber re-notify): drop `personalization` from the gated
+      // set IFF it is un-granted AND some OTHER governing purpose remains to
+      // carry the interact. analytics-denied still HOLDS the whole interact
+      // (fail-closed) — the remaining set still includes analytics, which is
+      // un-granted -> strict-drop -> hold. Both-granted -> no split -> gate on
+      // both -> full interact + decisions (033 byte-unchanged).
+      const splitPersonalization =
+        egressPurposes.includes("personalization") &&
+        resolveConsent(consent, "personalization") !== "granted" &&
+        egressPurposes.some((p) => p !== "personalization");
+      const effectivePurposes = splitPersonalization
+        ? egressPurposes.filter((p) => p !== "personalization")
+        : egressPurposes;
+      const verdict = egressVerdict(consent, effectivePurposes, { strict: true });
       if (verdict !== "send") {
         state.consentHeld += 1;
         // ALERT (009-02) — redacted: names the governing purpose(s) only,
-        // never the resolved identity/XDM values.
+        // never the resolved identity/XDM values. Reports the full declared
+        // `egressPurposes` (the governing set), not the post-split subset.
         diagnose({
           level: "warn",
           kind: "consent",
@@ -331,6 +354,28 @@ export function createWrappedSdkHost({
         // sendEvent rejects instead of hanging — fail-closed.
         chamber.postMessage({ type: "intercepted-fetch-response", id: m.id, status: 0, statusText: "held at the seal: consent", body: "" });
         return;
+      }
+      // SEND — but if we dropped `personalization` from the gated set, the
+      // egress must NOT carry the personalization QUERY (the TRUSTED seam
+      // removes it; a compromised chamber is NOT trusted to have omitted it —
+      // AC2, the 020-02 "does NOT trust the chamber" invariant). PATH PRECISION:
+      // the query is PER-EVENT (`events[i].query.personalization`) — a top-level
+      // `parsed.query.personalization` never exists, so a naive top-level delete
+      // is a silent no-op that ships a LEAK. The strip iterates `events[]`.
+      if (splitPersonalization && m.body) {
+        const strippedBody = stripInterceptedPersonalizationQuery(
+          m.body,
+          () => diagnose({
+            level: "warn",
+            kind: "consent",
+            disposition: "personalization-stripped",
+            purpose: "personalization",
+            reason: "personalization un-granted — per-event query stripped; analytics-only interact dispatched",
+            beaconId: `${inspectorTag}#${m.id}`,
+            destination: hostOf(m.url),
+          }),
+        );
+        if (strippedBody !== m.body) m = { ...m, body: strippedBody };
       }
     }
 
@@ -565,6 +610,70 @@ function stripInterceptedXdmBody(rawBody, denylist, onStripped, onError) {
       if (typeof onStripped === "function") onStripped(field);
     }
     return { ...evt, xdm: governed };
+  });
+
+  return changed ? JSON.stringify({ ...parsed, events }) : rawBody;
+}
+
+/**
+ * AC2 (spec 034-01) — parse the intercepted alloy interact body and strip the
+ * PER-EVENT personalization query (`events[i].query.personalization`) from
+ * EVERY event, then re-serialize. This is the coarse-consent-split's TRUSTED
+ * seam-side suppression: when personalization is un-granted but analytics is,
+ * the interact still egresses (analytics flows) but must carry NO
+ * personalization query — the seam removes it (NOT chamber-trust).
+ *
+ * PATH PRECISION (grounded against @adobe/alloy@2.35.0): the personalization
+ * query is written PER-EVENT — alloy-core `utils/event.js`'s `mergeQuery`
+ * deep-assigns `{ personalization: {...} }` into each event's `content.query`,
+ * so it lands at `events[i].query.personalization`. The ECID
+ * `query.identity.fetch` is TOP-LEVEL (request-scoped) and is LEFT UNTOUCHED. A
+ * naive top-level `parsed.query.personalization` delete would be a silent no-op
+ * that ships a LEAK, so this iterates `events[]` (mirroring
+ * `stripInterceptedXdmBody`'s per-event scaffold, operating on `evt.query`
+ * instead of `evt.xdm`).
+ *
+ * BYTE-MATCH: when removing `personalization` empties an event's `query`, the
+ * whole `query` key is deleted — alloy's own personalization-off shape omits
+ * `events[i].query` entirely (verified: `defaultPersonalizationEnabled:false`
+ * on a fresh boot never merges the query), so the stripped body deep-equals
+ * alloy's native analytics-off interact (034-01 AC6). Any OTHER per-event query
+ * key is preserved (the strip is minimal).
+ *
+ * Never throws: a body that is not valid JSON, or carries no `events` array, or
+ * no per-event personalization query, is returned UNCHANGED (the identical
+ * string reference) — mirroring `stripInterceptedXdmBody`'s no-needless-copy
+ * contract. Calls `onStripped()` once per event whose personalization query was
+ * removed (redacted — names nothing but the field it already knows).
+ * @param {string} rawBody
+ * @param {() => void} [onStripped]
+ * @returns {string}
+ */
+function stripInterceptedPersonalizationQuery(rawBody, onStripped) {
+  let parsed;
+  try {
+    parsed = JSON.parse(rawBody);
+  } catch (e) {
+    return rawBody; // not JSON — leave untouched, never throw
+  }
+  if (!parsed || !Array.isArray(parsed.events)) return rawBody;
+
+  let changed = false;
+  const events = parsed.events.map((evt) => {
+    if (!evt || typeof evt !== "object" || evt.query == null || typeof evt.query !== "object") return evt;
+    if (!Object.prototype.hasOwnProperty.call(evt.query, "personalization")) return evt;
+    changed = true;
+    if (typeof onStripped === "function") onStripped();
+    const nextQuery = { ...evt.query };
+    delete nextQuery.personalization;
+    // An emptied per-event `query` is DELETED — byte-match alloy's native
+    // personalization-off event shape (no `events[i].query` at all).
+    if (Object.keys(nextQuery).length === 0) {
+      const nextEvt = { ...evt };
+      delete nextEvt.query;
+      return nextEvt;
+    }
+    return { ...evt, query: nextQuery };
   });
 
   return changed ? JSON.stringify({ ...parsed, events }) : rawBody;
