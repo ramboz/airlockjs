@@ -1,5 +1,5 @@
 ---
-status: IN_PROGRESS
+status: REVIEWED
 dependencies: []
 last_verified:
 frame_review: true  # forks A (live before/after mechanism) + B (testability bridge — proven without a live site) are load-bearing.
@@ -130,8 +130,9 @@ runtime, it does not alter it.)
   refactored to import the median/`armSummary`/delta/band/`runLighthouseOnce` engine from `lh-core.mjs` — genuine reuse,
   behaviour verified byte-identical (`lh:eds` + `cwv:budget` run live post-refactor; AC7). This is the stronger reading
   of AC1's "reuse, not re-implement."
-- **Local Lighthouse dry-run EXECUTED (stronger than the slice anticipated).** The slice hedged that the sandbox might
-  not launch headless chromium; it could. The harness ran live against the local testbed for **all three profiles**
+- **Local Lighthouse dry-run EXECUTED (stronger than anticipated).** The implementer brief hedged that the sandbox
+  might not launch headless chromium (AC5 only requires "a dry-run I can execute"); it could. The harness ran live
+  against the local testbed for **all three profiles**
   (`ga4` on `index.html`; `alloy-analytics` + `personalization` on the authored `index-alloy.html` fixture with a stub
   `bundleUrl`) **plus** the two-deployment fallback — each emitting a valid card. A throwaway Playwright probe confirmed
   the personalization ON arm's `airlock:reserve` mark fires BEFORE `body:appear` (the pre-LCP path) while OFF has no
@@ -153,8 +154,10 @@ runtime, it does not alter it.)
   nonetheless enforces via `!clsRegressed`; the asymmetric CLS treatment (improvement passes, only a regression >0.01
   fails) is carried by the separate `cls_held`/`cls_improved`/`cls_regressed` flags + the note. Intentional; the flags
   are the source of truth.
-- **(compliance nit, harmless) `query_param` is echoed into the two-deployment card's config block** where it is
-  irrelevant. Cosmetic; left as-is.
+- **(cosmetic, harmless — left as-is)** `query_param` is echoed into the two-deployment card's config block where it is
+  irrelevant (compliance nit); and `probes/eds-testbed/index-alloy.html:5`'s canonical link hardcodes `localhost:3111`
+  which never matches the harness's dynamic server port (craft nit) — deliberately consistent with the existing
+  `index.html:5` convention.
 
 ### Reconciliation sweep
 
@@ -171,9 +174,11 @@ runtime, it does not alter it.)
 | `docs/inbox.md` | `updated` | Parked the `subtree-install.mjs` third-copy median/band observation (implementer); the two craft follow-ons above join it. |
 | `docs/specs/README.md` (board) | `deferred` | Flips to DONE at the DONE transition (close-out). |
 
+**Excluded as SDD process/review scaffolding (not deliverables; changes narrated in this Close-out + the reviews, not silent drift):** this slice's own `spec.md` (the frame-critique retargets — narrated in its Overview + the deviation log), this slice doc (carries the deviation log + sweep), and the `reviews/slice-01-{frame-critique,compliance,craft}.md` verdict records.
+
 ### Definition of Done — verification
 - [x] All 7 ACs pass. **TDD red→green** (the pure engine's tests written failing first, then green). `npm test`: **83 files, 1225 tests** (1203 baseline + 22 new). `node build.mjs` OK; `node contracts/validate.mjs` all pass; `npm run lint` clean. `npm run lh:eds` + `cwv:budget` still run live (AC7 no-regression).
 - [x] Query-gate PRIMARY (both airlock entrypoints gated, OFF = bare page) + two-deployment band-withheld FALLBACK; band discriminated on `__airlockConfig` presence (ga4 by-construction/tight, alloy measured); genuine `lh-core` engine reuse; local dry-run EXECUTED for all 3 profiles + fallback.
 - [x] The run-procedure doc written + linked (`README.md`, `docs/releases/mvp6.md`). No `arch_review` (rig + docs).
 - [x] Reviewed: **frame-critique** PASS (4 rounds); **compliance** PASS; **craft** PASS. Deviation log + reconciliation sweep produced; follow-ons recorded (not closed).
-- [ ] Reconciliation review passed; board synced (pending — this close-out, then the reconciliation pass + DONE transition).
+- [x] Reconciliation review PASSED (Close-out honest + complete; sweep accounts for every changed path incl. the visible SDD-scaffolding exclusion note); board synced at the DONE transition.
