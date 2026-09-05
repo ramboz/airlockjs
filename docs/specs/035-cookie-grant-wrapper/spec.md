@@ -65,8 +65,10 @@ to scope itself).
   - WRITE path: `writeSync` → `cookie-writeback` → `reconcileForBrokerJar` (drops domain/secure/samesite,
     keeps `name=value` verbatim) → `caps.cookies.reconcile` → `document.cookie = reconciled` (`wrapped-sdk-host.js:466`,
     `index.js:1017-1019`).
-  - Declarations are exact + PREFIX (`kndctr_`, `AMCV_`, `_ga_`; `demdex`/`s_ecid`/`com.adobe.alloy.getTld` exact).
-    `CapabilityRequest.cookies: readonly string[]` (`contracts/capability.d.ts:33`) — **no prefix marker in the type**.
+  - Declarations mix exact + PREFIX. **alloy** (`connector.js:117`) declares `["com.adobe.alloy.getTld", "kndctr_",
+    "AMCV_", "demdex", "s_ecid"]` — `kndctr_`/`AMCV_` are prefixes, the other three exact; it declares **no `_ga_`**
+    (that is a GA4 cookie: GA4 declares `_ga` exact + `_ga_` prefix). `CapabilityRequest.cookies: readonly string[]`
+    (`contracts/capability.d.ts:33`) — **no prefix marker in the type**.
     ADR-0006 `granted = declared ∩ allowed` (`core/consent.js`) — the grant *law*, but **silent on the enforcement
     *shape***, so the shape is this spec's to design (not a settled residual).
 - **Seam threading (verified at the frame-critique re-run 2026-09-05 — corrects the first draft's two wrong hints):**
