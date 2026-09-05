@@ -1,9 +1,10 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 dependencies: []
 last_verified:
 arch_review: true  # the identity/cookie capability boundary — a security surface (ADR-0006 grant law).
 frame_review: true  # RETARGETED at the frame-critique (needs-changes r1); the enforcement seams + name grammar are load-bearing + must be right.
+claimed_by: claude/mvp6-e4550f
 ---
 
 <!-- jig self-defining vocabulary (soft, forward-only); jig grounding (064-02/ADR-0020): probe/cite or mark assumptions. -->
