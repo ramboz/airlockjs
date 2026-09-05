@@ -19,6 +19,7 @@
     "rig:alloy-csp": "node rig/alloy-csp.mjs",
     "rig:bundle": "node rig/bundle-smoke.mjs",
     "rig:e2e": "node rig/e2e.mjs",
+    "rig:subset-smoke": "node rig/subset-smoke.mjs",
     "rig:uc1": "node rig/uc1.mjs",
     "rig:uc3": "node rig/uc3.mjs",
     "rig:isolation": "node rig/isolation.mjs",

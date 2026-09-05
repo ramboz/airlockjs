@@ -34,14 +34,16 @@ import { execSync } from "node:child_process";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import Ajv2020 from "ajv/dist/2020.js";
+import { compileGa4Validator, captureCollectBeacons, waitForBootHealth } from "./smoke-core.mjs";
 
 const REPO = fileURLToPath(new URL("..", import.meta.url));
 const ROOT = join(REPO, "probes/eds-testbed"); // the SERVED root, as under aem up
 const TEARDOWN_MS = Number(process.env.TEARDOWN_MS || 100);
 
-// Hermetic conformance oracle (same schema the worker + fast path map against).
-const validate = new Ajv2020({ allErrors: true, strict: false }).compile(
+// Hermetic conformance oracle (same schema the worker + fast path map against) — the
+// SHARED Ajv compile (spec 036-02 AC5, rig/smoke-core.mjs), reused not re-implemented,
+// so rig/subset-smoke.mjs's GA4 check validates against the exact same oracle.
+const validate = compileGa4Validator(
   JSON.parse(readFileSync(new URL("../contracts/ga4-mp-request.schema.json", import.meta.url))),
 );
 
@@ -80,21 +82,10 @@ const port = server.address().port;
 const browser = await chromium.launch();
 const page = await browser.newPage();
 
-// Capture every /collect* beacon: parsed name + identity + page_location + arrival ts.
+// Capture every /collect* beacon: parsed name + identity + page_location + arrival ts —
+// the SHARED capture route (spec 036-02 AC5, rig/smoke-core.mjs), reused verbatim.
 const beacons = [];
-await page.route("**/collect*", (route) => {
-  const raw = route.request().postData();
-  let parsed = {};
-  try { parsed = JSON.parse(raw); } catch { /* keep {} */ }
-  beacons.push({
-    name: parsed?.events?.[0]?.name ?? null,
-    clientId: parsed?.client_id ?? null,
-    pageLocation: parsed?.events?.[0]?.params?.page_location ?? null,
-    body: raw,
-    t: Date.now(),
-  });
-  return route.fulfill({ status: 204, body: "" });
-});
+await captureCollectBeacons(page, beacons);
 
 const consoleNoise = [];
 page.on("console", (m) => { if (m.type() === "error" || m.type() === "warning") consoleNoise.push(m.text()); });
@@ -110,13 +101,9 @@ const waitForBeacon = async (pred, timeoutMs) => {
 };
 
 await page.goto(`http://localhost:${port}/index.html`);
-await page
-  .waitForFunction(
-    () => (window.__flicker && window.__flicker.events.some((e) => e.name === "airlock:init"))
-      || window.__airlockBootFailed !== undefined,
-    { timeout: 20000 },
-  )
-  .catch(() => {});
+// SHARED boot-health wait (spec 036-02 AC5, rig/smoke-core.mjs) — its defaults
+// reproduce this rig's original inline wait byte-for-byte (airlock:init / 20s).
+await waitForBootHealth(page);
 
 const bootFailed = await page.evaluate(() => window.__airlockBootFailed ?? null);
 const pageUrl = await page.evaluate(() => location.href);

@@ -1,10 +1,15 @@
-# Real-site CWV validation (spec 036-01)
+# Real-site validation (spec 036 — CWV + supported-subset smoke)
 
-> The run-procedure for `rig/lh-live.mjs` — the operator-run half of the MVP6 adoption
-> proof: *"does adopting airlock preserve Core Web Vitals on a real EDS site?"* I (the
-> implementer) build + mechanically prove the harness against the local testbed; **you
-> (the operator) hold the creds and run it against your real site** — the same
-> build/run split spec 013's live-Alloy rigs use (env creds, never handled here).
+> The consolidated run-procedure for the MVP6 adoption proof's two rigs:
+> `rig/lh-live.mjs` (spec 036-01 — *"does adopting airlock preserve Core Web Vitals on a
+> real EDS site?"*) and `rig/subset-smoke.mjs` (spec 036-02 — *"does the supported
+> connector subset boot cleanly and emit conformant/present beacons on a real EDS
+> page?"*, [below](#supported-subset-smoke-spec-036-02)). I (the implementer) build +
+> mechanically prove both harnesses against the local testbed; **you (the operator) hold
+> the creds and run them against your real site** — the same build/run split spec 013's
+> live-Alloy rigs use (env creds, never handled here).
+
+## Part 1 — CWV before/after (spec 036-01)
 
 ## Before you start (pre-flight)
 
@@ -182,9 +187,147 @@ The alloy profiles' local fixture uses a **stub** `bundleUrl` (`rig/alloy-csp-st
 — it proves the eager-reserve pre-`appear` code path runs, not a live Adobe Edge
 round-trip (that live behavior is what your `LIVE_URL` run above validates).
 
+## Part 2 — Supported-subset smoke (spec 036-02)
+
+`rig/subset-smoke.mjs` answers the SECOND half of the MVP6 adoption proof: *"does the
+supported connector subset (GA4 + Adobe/alloy) boot cleanly and emit conformant/present
+beacons on a real EDS page?"* It asserts **presence + client-side conformance ONLY —
+never presence-as-acceptance**:
+
+| Check | What "pass" means | Is this acceptance? |
+|---|---|---|
+| boot-health | no `window.__airlockBootFailed` / `__airlockRumBootFailed`; the `airlock:init` (and, when RUM is owned, `airlock:rum`) mark fired | n/a — a boot-side property |
+| GA4 | a `/collect` beacon is captured AND validates against `contracts/ga4-mp-request.schema.json` | **Yes** — MP-schema conformance is a legitimate client-side oracle for GA4 |
+| alloy | the interact **FIRED** to the pinned datastream host | **No** — presence only. A malformed XDM still POSTs and can get an error handle back; the SHAPE + ECID write-back is NOT confirmed here (see [Named live residuals](#named-live-residuals-spec-036-02) below) |
+| RUM | the beacon airlock **SENT** (when `window.__airlockOwnsRum`) is captured and shaped correctly | **No** — sent-shape only, never collector acceptance (see below) |
+
+### Running it
+
+Local dry run (no creds, no live URL — proves the mechanism against the local testbed):
+
+```sh
+npm run rig:subset-smoke
+```
+
+This drives two arms against `probes/eds-testbed/`: `index.html?rum=airlock` (GA4,
+booted via `bootEdsAnalytics()`, plus the `?rum=airlock` opt-in from spec 030-03 so the
+RUM `top` checkpoint's SENT shape is captured too) and `index-alloy.html` (alloy, booted
+via `boot(config)` against the SAME CSP stub bundle `rig/lh-live.mjs`'s own local dry run
+uses, `rig/alloy-csp-stub-bundle.js`). The stub performs **no network call**, so the
+card honestly reports alloy's interact-FIRED check as **"not exercised locally"** rather
+than faking a pass — chamber **boot-health** is what the local run actually proves for
+alloy (the local-provability split, spec 036-02 AC3).
+
+Live run (your creds-gated preview URL — same `LIVE_URL` convention as `rig/lh-live.mjs`
+and spec 013's live-Alloy rigs; run manually, never wired into `npm test`):
+
+```sh
+LIVE_URL="https://<your-preview-url>/" node rig/subset-smoke.mjs
+```
+
+The rig loads your page as-is, reads its own `window.__airlockConfig` to see which
+connectors it declares (absent config → `bootEdsAnalytics()`'s GA4-only shape, mirroring
+`scripts.js`'s own dispatch), then fires ONE generic trigger — `window.airlock.push({
+event: "page_view", page_location })` — the same public `push()` contract every airlock
+boot path installs on `window.airlock`. This needs no testbed-specific selector (a real
+page has no `#cta-engage`): GA4's `["*"]` catch-all and alloy's `["page_view"]` manifest
+both accept it, so one call exercises both connectors. RUM needs no trigger — a RUM-owning
+page auto-sends its `top` checkpoint on boot.
+
+**No Adobe org/datastream credentials are read by this rig** (unlike
+`rig/alloy-live-*.mjs`, spec 013) — it only needs your page's URL. If your validation
+branch is the SAME one spec 036-01's query-gate procedure uses, you can run both rigs
+against it.
+
+### Env / creds handling
+
+- `LIVE_URL` — your page's URL. Never commit it if it embeds anything sensitive (a
+  preview URL is normally fine to share).
+- This rig never reads `ALLOY_*` (those belong to spec 013's org-level live-Edge rigs,
+  `rig/alloy-live-*.mjs`, used for the interact-SHAPE residual below) and writes no
+  fixtures — its own captured beacons only appear in this run's stdout JSON card, never
+  committed.
+- If you separately run the spec-013 rigs for the SHAPE/ECID residual, follow their own
+  redacted-fixture discipline (`ALLOY_DATASTREAM_ID` / `ALLOY_ORG_ID` from `.env`,
+  gitignored; only the DENY-BY-DEFAULT-redacted fixture is ever committed) — **never
+  paste a raw datastream id, org id, or ECID into chat, a commit, or this doc.**
+
+## Named live residuals (spec 036-02)
+
+The smoke actively exercises boot-health + GA4 conformance + presence (above). The
+following are **creds-gated live gates it does NOT decide** — each is named here with its
+HONEST reveal, so a residual is never silently assumed-passed by a green smoke card.
+
+### 1. RUM `ot.aem.live` `cwv`-superset acceptance — a HARD gate (030-04)
+
+airlock's `cwv` RUM beacon is a **superset** of the stock enhancer's (it carries the
+`web-vitals/attribution` build's extra LCP/CLS/INP fields —
+[`connectors/helix-rum/README.md`](../connectors/helix-rum/README.md)). `ot.aem.live` is
+**fire-and-forget** (a bare 2xx, no synchronous validation), so a captured beacon, a 2xx
+status, or clean boot-health reveals only what airlock **SENT** — it can **NEVER** confirm
+what the collector **KEPT**.
+
+> **A captured beacon is explicitly NOT a sufficient reveal for this item.** The required
+> reveal is **downstream AEM RUM-data inspection** — open the RUM bundler/explorer for
+> your site and confirm the superset's extra fields are present in the COLLECTED data
+> (not truncated/rejected in a way that breaks the pipeline). Ideally run this as a
+> **differential against a stock `sampleRUM` run** on the same page, so a silent field
+> drop is visible by comparison.
+
+**Stakes:** `window.__airlockOwnsRum` neutralizes ALL inline `sampleRUM` egress —
+`cwv` included (the testbed's own `sampleRUM`-neutralize guard in `aem.js`, spec 030-03).
+If the downstream collector rejects/truncates the superset, the site silently loses CWV
+telemetry with airlock as the sole (now-broken) RUM authority and **no error anywhere** —
+this is exactly the false-green this residual exists to prevent.
+
+### 2. alloy endpoint-ceiling breadth
+
+`bootAlloy`'s ceiling is the grounded interact **floor**
+(`connectors/alloy/connector.js`'s `ALLOY_INTERACT_ENDPOINT`). The server-directed
+`demdex`/ID-sync URLs a real Adobe Edge *response* returns at runtime are **held**, not
+silently dropped, when they land outside that floor — surfaced fail-closed as a
+`kind:"endpoint-ceiling"` diagnostic (`core/wrapped-sdk-host.js`, captured through your
+host's `onDiagnostic` callback: `{ level:"error", kind:"endpoint-ceiling",
+disposition:"held", destination, reason, beaconId }`). See
+[`docs/refinement-todo.md`](refinement-todo.md) (~L563) for the grounded gap this closes.
+
+**Reveal:** wire an `onDiagnostic` sink (or your inspector, spec 040-series) on your live
+run and confirm you see the held diagnostic (not silence) if your Adobe org's Edge
+response ever returns a server-directed sync URL outside the floor.
+
+### 3. Real ~766 KB bundle boot under live-host Trusted-Types
+
+The hermetic CSP proof (`rig:alloy-csp`) uses a **stub** bundle under a captured
+boilerplate CSP. The real `@adobe/alloy` bundle (~766 KB) booting under YOUR live host's
+actual `trusted-types <names>` directive is a genuinely deploy-side property — a
+restrictive policy that omits the worker's policy name would block it
+([`docs/refinement-todo.md`](refinement-todo.md) ~L575, ADR-0016's kill-criterion).
+
+**Reveal:** run `rig/subset-smoke.mjs` (or just load the page) against your LIVE deployed
+bundle and confirm **boot-health** — no `__airlockBootFailed`, the `airlock:init` mark
+fires. A failure here means the real bundle didn't boot on your real CSP; the local dry
+run's stub cannot tell you this.
+
+### 4. alloy interact SHAPE + ECID
+
+The smoke proves the interact **FIRED** — presence only. Confirming the XDM SHAPE is
+recognizable + that the response's identity handle yields a real ECID that round-trips
+into your jar is [spec 013](specs/013-mvp3-live-alloy-reprobe/spec.md)'s job:
+
+```sh
+ALLOY_DATASTREAM_ID=… ALLOY_ORG_ID=… node rig/alloy-live-reprobe.mjs
+```
+
+This rig (creds-gated, run manually — see its own header for the redaction discipline)
+captures a REAL Edge round-trip, redacts it (DENY-BY-DEFAULT — every value scrubbed
+except a curated shape-token allowlist), and writes the durable, creds-free regression
+fixture (`test/fixtures/alloy-live-interact.redacted.json`) this repo's hermetic suite
+replays. **Never paste a raw datastream id, org id, or minted ECID into chat, a commit,
+or this doc** — only the redacted fixture is safe to commit.
+
 ## Advisory discipline (ADR-0005)
 
-Like `docs/scoreboard.md`, every card this harness emits is **advisory** — a
+Like `docs/scoreboard.md`, every card these harnesses emit is **advisory** — a
 human-read, jig-supervised signal, never a CI gate. Read the `note` field; it is
 written in tolerance-band + provenance language on purpose, so it survives a
 noisy single run.

@@ -1,8 +1,9 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 dependencies: [036-01]
 last_verified:
 frame_review: true  # Fork C (which named live residuals the harness EXERCISES vs the procedure DOCUMENTS) + the subset-smoke local-provability split are load-bearing.
+claimed_by: claude/mvp6-e4550f
 ---
 
 <!-- jig self-defining vocabulary (soft, forward-only); jig grounding (064-02/ADR-0020): probe/cite or mark assumptions. -->
@@ -89,3 +90,48 @@ boot-health); the residuals checklist + consolidated procedure written + linked 
 reviewed (compliance + craft + **frame-critique** [`frame_review: true`]); deviation log + reconciliation sweep;
 reconciliation review; `docs/releases/mvp6.md` adoption-proof row updated to "harness + procedure shipped; live run is
 the operator's"; board synced. (No `arch_review`: rig + docs only — exercises the runtime, does not alter it.)
+
+## Close-out
+
+### Deviation log
+
+- **Shared `rig/smoke-core.mjs` extracted (AC5), not forked.** `rig/e2e.mjs`'s three genuinely-shared pieces — the Ajv
+  `ga4-mp-request.schema.json` oracle compile, the `page.route("**/collect*")` beacon-capture route, and the
+  boot-health `waitForFunction` wait on `window.__flicker`'s marks / `window.__airlockBootFailed` — were extracted
+  verbatim (DI'd against `page`/`beacons`/`schemaJson`, not re-implemented) into a new `rig/smoke-core.mjs`, imported
+  by both `rig/e2e.mjs` and the new `rig/subset-smoke.mjs`. `e2e.mjs`'s own UC-2-specific assertions (the
+  worker-cycle / `pushCritical` timing proofs) were left untouched. **Verified**: `npm run rig:e2e` re-run
+  post-refactor still emits `"pass": true` (its full worker-path + unload-critical-fast-path + identity assertions
+  all hold byte-identical) — the extraction is behaviour-preserving, not just lint-clean.
+- **Local dry-run EXECUTED (not merely mechanically-argued).** `npm run rig:subset-smoke` ran against the local
+  testbed under real headless chromium: the GA4 arm (`index.html?rum=airlock`) captured a real `/collect` beacon and
+  validated it MP-conformant; the alloy arm (`index-alloy.html` + the CSP-proof stub bundle) booted clean with no
+  `__airlockBootFailed`. Full card: `pass: true`, every check's disposition read back honestly (see this slice's
+  implementer report for the verbatim card).
+- **Universal `window.airlock.push()` trigger, not a testbed-only selector (a judgment call, not asked for
+  verbatim).** `rig/e2e.mjs`'s own trigger (a real click on `#cta-engage`) only exists on the testbed fixture; a real
+  operator's live page has no such element. Both the local and live arms instead call the PUBLIC `push()` contract
+  every airlock boot path installs on `window.airlock` (`adapters/eds/index.js`'s `installOnWindow`) —
+  `window.airlock.push({event:"page_view", page_location})` — which GA4's `["*"]` catch-all and alloy's
+  `["page_view"]` manifest both accept, so one site-agnostic call exercises both connectors on ANY airlock-booted
+  page. RUM needs no trigger (`bootHelixRum` auto-pushes its own `top` checkpoint synchronously on boot).
+- **Live-mode connector detection: config introspection, not an operator-declared `PROFILE=` flag.** Unlike
+  `rig/lh-live.mjs` (036-01), which asks the operator to declare `PROFILE=` because it cannot see the remote page's
+  config, `rig/subset-smoke.mjs` directly reads the live page's own `window.__airlockConfig` via `page.evaluate`
+  (absent config → `bootEdsAnalytics()`'s GA4-only shape, mirroring `scripts.js`'s own dispatch) to decide which of
+  GA4/alloy is actually configured. This is directly-observed ground truth rather than a manual declaration, and
+  needs no extra env var from the operator — recorded as a deliberate divergence from the sibling rig's convention,
+  not an oversight.
+- **RUM's SENT-shape capture exercised in the local dry run too (an additive read of AC1, not asked verbatim by
+  AC3).** AC3's local-provability list names "GA4 conformance + alloy chamber boot-health" only. Because RUM's SENT
+  beacon capture needs no live collector (it is fed by the testbed's existing `?rum=airlock` opt-in, spec 030-03)
+  it is mechanically local-provable too, so the local GA4 arm also exercises it — giving the residuals checklist's
+  sent-vs-kept distinction (AC2) a running, honestly-labeled example (`"SENT (shape only — NOT collector
+  acceptance...)"`) rather than prose alone. The local run stays green either way; nothing here is faked live
+  acceptance.
+- **Dropped `page_title` from the trigger's pushed event (a small in-flight correction).** An early draft of the
+  universal trigger included `page_title: document.title`; the testbed's `index.html` has no `<meta charset>`, so
+  its em-dash title round-tripped through the browser mangled (a pre-existing testbed encoding gap, unrelated to
+  airlock's own code — cosmetic only, it never affected MP-schema conformance or pass/fail). Rather than editing
+  testbed serving code (out of this slice's declared scope), `page_title` was simply dropped from the pushed
+  descriptor — it was never needed for any check.
