@@ -90,8 +90,8 @@
 | [030-rum-subsume](030-rum-subsume/spec.md) | 030-04 — the scoped-replace boundary + the decision landed | **DONE** |  |
 | [031-distribution-setup](031-distribution-setup/spec.md) | 031-01 — the distributable build target + subtree-install proof (boots on a clean EDS checkout, CWV preserved) | **DONE** |  |
 | [031-distribution-setup](031-distribution-setup/spec.md) | 031-02 — the update path: versioning marker + `git subtree pull` (generated-release overwrite) | **DONE** | Closes spec 031 (distribution, [ADR-0015](../decisions/adr-0015-distribution-git-subtree.md) / architecture OQ8). Channel: git-subtree of a **dist-rooted `dist` branch** (root = `eds.js` + 4 `*.worker.js` + VERSION) consumed at **`scripts/airlock/`** same-origin (004-01), buildless. Immutable per-release **`dist-vX.Y.Z` tag** pin (marker==tag; non-force push, `--force-tag` to re-cut); `git subtree add`/`pull … dist-vX.Y.Z --squash`. Targets: `build:dist` → `dist/`, `publish:dist --target <t> [--release]`, proof `rig:subtree`. |
-| [032-instrumentation-config](032-instrumentation-config/spec.md) | 032-01 — the config-driven `boot(config)`: connector dispatch + collapse the pixel-boot duplication | DRAFT |  |
-| [032-instrumentation-config](032-instrumentation-config/spec.md) | 032-02 — the config contract (validated JSON Schema, pre-1.0) + breadth + the few-lines-instrument story | DRAFT |  |
+| [032-instrumentation-config](032-instrumentation-config/spec.md) | 032-01 — the config-driven `boot(config)`: connector dispatch + collapse the pixel-boot duplication | **DONE** |  |
+| [032-instrumentation-config](032-instrumentation-config/spec.md) | 032-02 — the config contract (validated JSON Schema, pre-1.0) + breadth + the few-lines-instrument story | **DONE** | Closes spec 032 (config-driven instrumentation, the MVP6 authoring ergonomic). `boot(config)`: a project JSON config declares connectors (ga4 / pixel-vendors / helix-rum) + consent + governance; collapses the per-vendor boots; returns a composite `window.airlock` handle whose `push` fan-out is gated by each connector's `manifest.events` (helix-rum gets only its RUM checkpoints). Pinned **PRE-1.0** (not frozen) schema `contracts/instrumentation-config.schema.json` + hand-rolled runtime validation (no `ajv` in `dist`). README "Configure airlock". **alloy config-wiring DEFERRED** to its own spec (its first adapter boot — spike-sized; refinement-todo) — the config surface covers GA4+pixels+RUM, NOT Adobe/alloy, until then. |
 
 ## Deferred slices
 
@@ -115,7 +115,7 @@
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
 - **8** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **76** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **80** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **8** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
