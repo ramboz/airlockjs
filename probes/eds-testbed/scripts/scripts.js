@@ -53,6 +53,14 @@ const experimentationConfig = {
   },
 };
 
+// spec 033-03 — the two-phase alloy personalization wiring (OPT-IN, gated on
+// window.__airlockConfig). When an integrator declares an alloy `__view__` placement,
+// loadEager reserves the box BEFORE body.appear (the no-flicker fix — via the lightweight
+// reserve-personalization.js module, NOT the full runtime), and loadLazy hands those
+// reserve handles to boot(config) so the lazy interact FILLS the pre-reserved box. Absent
+// window.__airlockConfig, the testbed's default GA4/RUM boot below is byte-unchanged.
+let airlockReservedPlacements;
+
 if (window.trustedTypes && window.trustedTypes.createPolicy) {
   const innerTT = window.trustedTypes.createPolicy('tt-inner', {
     createHTML: (s) => s, // avoid stack overflow
@@ -167,6 +175,24 @@ async function loadEager(doc) {
   const main = doc.querySelector('main');
   if (main) {
     decorateMain(main);
+
+    // spec 033-03 — EAGER personalization reserve, BEFORE body.appear (pre-paint, the
+    // no-flicker fix). Gated on an opt-in alloy config; imports ONLY the lightweight
+    // reserve-personalization.js (createDomCapability + placement parsing), never the full
+    // runtime — keeping the pre-paint critical path lean (AD-8). The returned handles are
+    // handed off to boot(config) in loadLazy. Guarded — must never break the page.
+    if (window.__airlockConfig) {
+      try {
+        const { reservePersonalization } = await import(`${window.hlx.codeBasePath}/scripts/airlock/reserve-personalization.js`);
+        ({ reservedPlacements: airlockReservedPlacements } = reservePersonalization(window.__airlockConfig));
+        rec('airlock:reserve');
+      } catch (e) {
+        window.__airlockReserveFailed = String(e);
+        // eslint-disable-next-line no-console
+        console.warn('airlock personalization reserve FAILED (page unaffected):', e);
+      }
+    }
+
     document.body.classList.add('appear');
     rec('body:appear');
     await loadSection(main.querySelector('.section'), waitForFirstImage);
@@ -217,8 +243,17 @@ async function loadLazy(doc) {
   // from a silent no-op. (004-04 wires the real GA4 endpoint + the
   // interaction→beacon path.)
   try {
-    const { bootEdsAnalytics } = await import(`${window.hlx.codeBasePath}/scripts/airlock/eds.js`);
-    await bootEdsAnalytics();
+    if (window.__airlockConfig) {
+      // spec 033-03 — the two-phase LAZY boot: hand the EAGER reserve handles (from
+      // loadEager's reservePersonalization) to boot(config), so alloy's lazy interact fills
+      // the pre-reserved box (never reserving post-paint). This is the config-driven boot
+      // (composite over the declared connectors), used INSTEAD OF the default GA4 boot below.
+      const { boot } = await import(`${window.hlx.codeBasePath}/scripts/airlock/eds.js`);
+      await boot(window.__airlockConfig, { reservedPlacements: airlockReservedPlacements });
+    } else {
+      const { bootEdsAnalytics } = await import(`${window.hlx.codeBasePath}/scripts/airlock/eds.js`);
+      await bootEdsAnalytics();
+    }
     rec('airlock:init');
   } catch (e) {
     window.__airlockBootFailed = String(e);

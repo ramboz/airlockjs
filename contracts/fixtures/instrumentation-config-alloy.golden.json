@@ -1,6 +1,6 @@
 {
   "connectors": [
-    { "type": "alloy", "bundleUrl": "/scripts/airlock/vendor/alloy.js", "datastreamId": "12345678-1234-1234-1234-123456789012", "orgId": "ABCDEF0123456789ABCDEF01@AdobeOrg" }
+    { "type": "alloy", "bundleUrl": "/scripts/airlock/vendor/alloy.js", "datastreamId": "12345678-1234-1234-1234-123456789012", "orgId": "ABCDEF0123456789ABCDEF01@AdobeOrg", "placements": [{ "scope": "__view__", "selector": "#hero", "minHeight": 300, "prehide": true }] }
   ],
   "consent": { "analytics_storage": "granted", "personalization": "granted" }
 }

@@ -27,7 +27,7 @@ import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { ENTRY_OUT, WORKER_ENTRIES, CLASSIC_WORKER_ENTRIES } from "./build.mjs";
+import { ENTRY_OUT, RESERVE_ENTRY_OUT, WORKER_ENTRIES, CLASSIC_WORKER_ENTRIES } from "./build.mjs";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 
@@ -38,6 +38,9 @@ const ROOT = fileURLToPath(new URL(".", import.meta.url));
 // Basenames (the served sibling names), matching build.mjs's generalized out-namer.
 export const DIST_ARTIFACTS = [
   `${ENTRY_OUT}.js`,
+  // 033-03: the eager pre-paint personalization reserve module (a 2nd non-worker ESM
+  // entry) — a served sibling the integrator imports from loadEager before body.appear.
+  `${RESERVE_ENTRY_OUT}.js`,
   ...[...WORKER_ENTRIES, ...CLASSIC_WORKER_ENTRIES].map((p) => p.split("/").pop()),
 ];
 

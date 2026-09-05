@@ -161,6 +161,13 @@ const ac5_exposure_beacon_via_generic_capture =
 const ac5_exposure_drained_through_ring = Array.isArray(result.exposureBeaconsSent)
   && result.exposureBeaconsSent.some((e) => e && e.event === "proposition_display");
 
+// --- 033-03 AC2/AC4: the REAL two-phase eager entrypoint + no-loop exposure routing. ---
+// The eager reserve went through the production reservePersonalization (not an inline
+// reserveSpace), and the proposition_display exposure fanned to the GA4 ["*"] sink while
+// alloy's ["page_view"] handle IGNORED it (no second interact / proposition loop).
+const ac033_two_phase_via_reserve_personalization = result.twoPhaseViaReservePersonalization === true && ac3c_reserved_before_appear;
+const ac033_exposure_routed_to_ga4_not_alloy = result.exposureRoutedToAlloyCount === 0 && ac5_exposure_beacon_via_generic_capture;
+
 // --- Advisory (NOT the gate, OQ6): the raw un-reserved inject's sentinel shift. ---
 const rawShiftPx = result.rawInjectSentinelShiftPx;
 
@@ -181,6 +188,9 @@ const assertions = {
   // AC5
   ac5_exposure_beacon_via_generic_capture,
   ac5_exposure_drained_through_ring,
+  // 033-03 — the two-phase promotion + no-loop exposure routing
+  ac033_two_phase_via_reserve_personalization,
+  ac033_exposure_routed_to_ga4_not_alloy,
 };
 
 const pass = Object.values(assertions).every(Boolean);

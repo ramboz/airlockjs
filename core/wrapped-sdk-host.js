@@ -403,6 +403,19 @@ export function createWrappedSdkHost({
       }
     } else if (m.type === "intercepted-fetch") {
       dispatchInterceptedFetch(m);
+    } else if (m.type === "decisions") {
+      // 033-03 AC1: the chamber posts `{type:"decisions", decisions}` when alloy
+      // returns Target propositions as DATA (renderDecisions:false —
+      // connectors/alloy/alloy-chamber.worker.js's `granted.decisions.deliver`).
+      // Hand them to the adapter's wired sink (caps.decisions.deliver) — which
+      // applies them host-side via reserveSpace (the worker touches NO DOM).
+      // ADDITIVE + opt-in: NO caps.decisions (GA4 / analytics-only alloy) -> the
+      // message is IGNORED exactly as pre-033-03 (033-02 byte-unchanged). Never
+      // throws on a mis-shaped/absent sink — a bad decisions message can't take
+      // down the message handler (mirrors the cookie-writeback sink guard below).
+      if (caps.decisions && typeof caps.decisions.deliver === "function") {
+        try { caps.decisions.deliver(m.decisions); } catch (e) { /* sink self-guards */ }
+      }
     } else if (m.type === "cookie-writeback") {
       state.writeBacks.push(m.value);
       const reconciled = reconcileForBrokerJar(m.value);

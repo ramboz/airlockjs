@@ -108,6 +108,7 @@ mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-unknown-
 mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-missing-id.negative.json"), "pixel(meta) missing required pixelId");
 mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-alloy-missing-bundleUrl.negative.json"), "alloy missing required bundleUrl (ADR-0016 adopter-supplied prerequisite)");
 mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-alloy-missing-datastream.negative.json"), "alloy missing datastream id (config-integrity tenant pin — 015/ADR-0011)");
+mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-alloy-nonview-scope.negative.json"), "alloy placement with a non-__view__ scope (multi-scope is a 033-03 follow-on — only __view__ supported)");
 mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-wrong-type.negative.json"), "consentStrict wrong-typed (string, not boolean)");
 
 console.log(failures === 0 ? "\nAll contract checks passed." : `\n${failures} contract check(s) FAILED.`);

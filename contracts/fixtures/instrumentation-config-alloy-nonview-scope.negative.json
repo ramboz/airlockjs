@@ -1,0 +1,5 @@
+{
+  "connectors": [
+    { "type": "alloy", "bundleUrl": "/scripts/airlock/vendor/alloy.js", "datastreamId": "12345678-1234-1234-1234-123456789012", "placements": [{ "scope": "products", "selector": "#recs", "minHeight": 200 }] }
+  ]
+}

@@ -1,10 +1,9 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: [033-02]
-last_verified:
+last_verified: 2026-09-04
 arch_review: true  # extends the wrapped-SDK host message contract + the decisions→reserveSpace delivery path.
 frame_review: true  # rests on 033-02's config-boot design; the {type:"decisions"} path is genuinely un-built today.
-claimed_by: claude/mvp6-e4550f
 ---
 
 <!-- jig self-defining vocabulary (soft, forward-only): expand each acronym on
@@ -129,3 +128,68 @@ multi-scope personalization / `decisionScopes` request-wiring); board synced.
 
 _Created 2026-09-04 as the personalization half of the 033-02 SPIDR-Path split; ACs fleshed + grounded, then reshaped
 per the frame-critique (eager entrypoint, real consent behavior, scope plumbing, exposure sink) — 2026-09-04._
+
+## Close-out
+
+### Deviation log (implementation, 2026-09-04)
+
+Implemented strict TDD (red→green). Full suite green (81 files, 1104 tests; baseline 80/1071), `node build.mjs` +
+`node contracts/validate.mjs` + `npm run lint` clean, `rig/alloy-decisions.mjs` PASS (deps-gated — needs `@adobe/alloy`
+installed in `probes/alloy-worker/`).
+
+**Deviations from the grounded build plan (all deliberate, reviewed):**
+1. **build.mjs blob:/data: scan scoping.** The plan said "the blob/data/ajv negative scans cover" the eager chunk, but
+   the reserve module legitimately carries a `data:text/html` token (`core/sanitize-html.js`'s XSS URL-scheme denylist,
+   via `dom.js`). The blob:/data: scan enforces the WORKER same-origin-file-URL invariant, and the eager module spawns
+   no Worker — so including it there is a false positive. Instead the eager chunk is ajv-scanned + gets a NEW
+   `createAirlock` lightweight-invariant scan AND (post-review nit #1) a `new Worker(` scan (self-defending the
+   no-Worker premise that justifies the blob/data exclusion — seed-tested via a `reserveEntry` build param).
+2. **Testbed config source.** The plan assumed 033-02 had added an alloy config path to `scripts.js`; it had not (still
+   `bootEdsAnalytics`). Wired the two-phase as an OPT-IN `window.__airlockConfig` hook (eager `reservePersonalization` →
+   lazy `boot(config, { reservedPlacements })`); absent it, the default GA4/RUM boot is byte-unchanged.
+3. **`reservedPlacements` shape** = `{ "__view__": <handlePromise> }` (scope→promise), per the pinned implementation
+   order (the plan offered `{selector, handlePromise}` as an alternative).
+4. **Shared `adapters/eds/placements.js`** extracted (vs an inline parser) so the eager module and `index.js`'s
+   validator share the placement/scope shape without either importing the other.
+5. **Composite `push`/`pushCritical` return the fan-out count** (additive) so the exposure sink detects an alloy-only
+   "nowhere to land" (count 0) and diagnoses it (AC4).
+6. **`caps.decisions` gated on personalization being CONFIGURED** (`placements` present OR `reservedPlacements`
+   non-empty) — post-review nit #2 (arch #3): an analytics-only alloy boot leaves it UNWIRED so the host ignores
+   `{type:"decisions"}` (033-02 byte-parity), while the mis-wire case (placements configured, eager reserve skipped)
+   still wires + drops+diagnoses so the adopter sees it (AC3).
+
+**Post-review nits fixed (TDD red→green):** (#1) build.mjs `new Worker(` self-defense on the eager chunk; (#2)
+`caps.decisions` gate above; (#3) runtime `minHeight` validation parity with the schema (a missing/non-numeric
+`minHeight` now rejects loud instead of NaN-rejecting `reserveSpace` into a silent no-op).
+
+**Reviewer-documented follow-ons (NOT fixed — backward-compatible, bounded; parked in `docs/refinement-todo.md`):**
+(a) exposure routing couples to the mutable `window.airlock` global — a wired composite-emit hook would decouple it;
+(b) the composite fan-out COUNT conflates "no connector accepted" with "no analytics sink" (correct only while GA4 is
+the sole `["*"]` sink) — a scoped `composite.accepts(name)` would leave `push()` untouched; (c) the AC7 vitest uses a
+hand-rolled composite stand-in (the real `createComposite` gate is covered by the AC4 count test + the browser rig).
+
+### Reconciliation sweep
+
+| Artifact | Disposition | Rationale |
+|----------|-------------|-----------|
+| `core/wrapped-sdk-host.js` | `updated` | AC1 additive `{type:"decisions"}` branch → `caps.decisions.deliver` iff wired (guarded, no-throw; analytics-only/GA4 byte-unchanged). |
+| `adapters/eds/index.js` | `updated` | `bootAlloy` wires `caps.decisions` (via `wireAlloyDecisions`) gated on personalization configured; the handed-off fill + `proposition_display` exposure via the composite; `createComposite.push`/`pushCritical` return the fan-out count; `boot(config,{reservedPlacements})` threading; `validateConnectorEntry` rejects non-`__view__` scope + bad `minHeight`. |
+| `adapters/eds/reserve-personalization.js` | `updated` (NEW) | AC2 eager pre-paint entrypoint — imports only `createDomCapability` + `placements.js` (no `createAirlock`/connectors/web-vitals). |
+| `adapters/eds/placements.js` | `updated` (NEW) | Shared pure `parseViewPlacement` + `VIEW_SCOPE`, imported by both the eager module and `index.js` (neither imports the other). |
+| `build.mjs` | `updated` | AC2 2nd non-worker ESM dist entry (`reserve-personalization`) + a `reserveEntry` seed param; the eager chunk is ajv- + `createAirlock`- + `new Worker(`-scanned (self-defending the blob/data exclusion), NOT in the worker-URL blob/data scan (spawns no Worker). |
+| `publish-dist.mjs` | `updated` | AC2 `DIST_ARTIFACTS` gains the eager module. |
+| `contracts/instrumentation-config.schema.json` + `contracts/validate.mjs` + fixtures | `updated` | AC5 single-`__view__` `placements` subschema; golden gains a placement; `…-alloy-nonview-scope.negative.json` (NEW) wired. |
+| `probes/eds-testbed/scripts/scripts.js` | `updated` | AC2 loader wiring — an OPT-IN `window.__airlockConfig` two-phase hook (eager reserve + lazy boot hand-off); absent → the default GA4/RUM boot is byte-unchanged. |
+| `rig/alloy-decisions.mjs` + `rig/alloy-decisions-harness.html` | `updated` | AC7 promoted to the real two-phase (eager `reservePersonalization` → handed-off fill → composite exposure); `reserve<appear` + geometry-unchanged + GA4-captured/alloy-ignored assertions. |
+| `test/eds-boot-alloy.test.js`, `test/reserve-personalization.test.js` (NEW), `test/wrapped-sdk-host.test.js`, `test/dist-build-publish.test.js` | `updated` | AC1–AC7 tests + the 3 post-review nit tests (build no-Worker seed; analytics-only no-diagnostic parity; `minHeight` rejection). |
+| `docs/refinement-todo.md` | `updated` | alloy config-wiring entry **FULLY CLOSED** (analytics 033-02 + personalization 033-03); the 3 follow-ons parked (coarse consent; alloy-only exposure telemetry; multi-scope/`decisionScopes` + the exposure-hook + push→accepts refinements). |
+| `docs/architecture.md` | `no-op` | the Contract-surfaces instrumentation-config note (032) is connector-agnostic; alloy personalization is covered by the same pre-1.0 surface — no per-connector enumeration to update. |
+| `docs/specs/README.md` (board) | `deferred` | the 033-03 row flips IN_PROGRESS→**DONE** at the DONE transition (close-out). |
+| `docs/specs/033-alloy-config-wiring/spec.md` | `no-op` | the SPIDR split + the 033-03 Slices entry were committed in `b2b5232`/`792bf8d`; the implementation did not touch it. |
+
+### Definition of Done — verification
+- [x] All 7 ACs pass; **TDD red→green**. `npm test`: **81 files, 1104 tests** (baseline 1071 → +33; +4 in the post-review nit round). Zero regressions.
+- [x] `node build.mjs` OK (eager `reserve-personalization.js` emitted; `all_workers_are_same_origin_file_urls: true`); `node contracts/validate.mjs` all pass; `npm run lint` clean; **`rig/alloy-decisions.mjs` PASS** (real-browser two-phase: reserve<appear, geometry unchanged, GA4-captured/alloy-ignored exposure).
+- [x] Reviewed: **compliance + craft + arch** (`arch_review: true`) + **frame-critique** (`frame_review: true`, 3 rounds) — all recorded pass; the 3 reviewer nits fixed, the deeper follow-ons documented.
+- [x] Deviation log + Reconciliation sweep produced; reconciliation review passed.
+- [x] `docs/refinement-todo.md` alloy entry **FULLY CLOSED** (analytics + personalization). Board synced.

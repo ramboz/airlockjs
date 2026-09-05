@@ -1105,3 +1105,44 @@ describe("createWrappedSdkHost — optional payload strip (spec 020-02 AC3)", ()
     expect(dispatched[0].body).toBe(body);
   }, 2000);
 });
+
+// createWrappedSdkHost — decisions delivery (spec 033-03 AC1): the host now
+// consumes the chamber's `{type:"decisions"}` message (produced by the alloy
+// chamber's `granted.decisions.deliver` when alloy returns Target propositions,
+// renderDecisions:false) and hands the decisions to the adapter's wired
+// `caps.decisions.deliver`. ADDITIVE + opt-in: a host WITHOUT a `caps.decisions`
+// sink ignores the message exactly as it did pre-033-03 (GA4 / analytics-only
+// alloy byte-unchanged — 033-02 no regression). The worker touches no DOM; the
+// propositions cross as DATA and the host applies them (033-03 AC3).
+describe("createWrappedSdkHost — decisions delivery (spec 033-03 AC1)", () => {
+  it("delivers a chamber `{type:'decisions'}` message to the wired caps.decisions.deliver", () => {
+    const chamber = makeFakeChamber();
+    const delivered = [];
+    const caps = {
+      egress: { dispatch: async () => ({ status: 200, body: "" }) },
+      decisions: { deliver: (decisions) => delivered.push(decisions) },
+    };
+    createWrappedSdkHost({ chamber, caps });
+
+    const propositions = [{ scope: "__view__", content: { id: "p1", scope: "__view__" } }];
+    chamber.emit({ type: "decisions", decisions: propositions });
+
+    expect(delivered).toEqual([propositions]);
+  });
+
+  it("a host WITHOUT caps.decisions IGNORES the message (no throw) — 033-02 byte-unchanged", () => {
+    const chamber = makeFakeChamber();
+    const caps = { egress: { dispatch: async () => ({ status: 200, body: "" }) } };
+    createWrappedSdkHost({ chamber, caps });
+
+    expect(() => chamber.emit({ type: "decisions", decisions: [{ scope: "__view__" }] })).not.toThrow();
+  });
+
+  it("a caps.decisions with a NON-function deliver is tolerated (no throw)", () => {
+    const chamber = makeFakeChamber();
+    const caps = { egress: { dispatch: async () => ({ status: 200, body: "" }) }, decisions: {} };
+    createWrappedSdkHost({ chamber, caps });
+
+    expect(() => chamber.emit({ type: "decisions", decisions: [{ scope: "__view__" }] })).not.toThrow();
+  });
+});

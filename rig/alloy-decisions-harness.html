@@ -43,7 +43,13 @@
       // touches NO DOM: the propositions cross the boundary as DATA (a "decisions"
       // message). Exposure is reported through the GENERIC push→ring→beacon capture
       // with a NEW proposition→exposure mapping.
-      import { createDomCapability } from "/adapters/eds/dom.js";
+      // 033-03: the REAL two-phase eager/lazy split. The eager reserve goes through the
+      // production `reservePersonalization` entrypoint (NOT an inline reserveSpace) — it
+      // parses the alloy connector's `__view__` placement from the SAME boot config and
+      // reserves the box synchronously BEFORE paint; the handle is HANDED OFF to the lazy
+      // fill. The exposure routes through a COMPOSITE-shaped fan-out (alloy vocab ignores
+      // proposition_display; a GA4 vocab captures it) — AC4's no-loop routing.
+      import { reservePersonalization } from "/adapters/eds/reserve-personalization.js";
       import { htmlOfDecision } from "/connectors/alloy/decisions.js";
       import { createPropositionExposureReporter } from "/adapters/eds/decisions-exposure.js";
       import { createGenericCapture } from "/rig/generic-capture.js";
@@ -53,8 +59,13 @@
       const CONFIG = { datastreamId: "00000000-0000-0000-0000-000000000000", orgId: "SPIKE@AdobeOrg", context: [], debugEnabled: true };
       const EVENT = { seq: 1, type: "page_view", ts: 10, params: { page_location: "https://airlock.example/", page_title: "airlock" }, payload: {}, snapshot: {} };
       // The eager / config-sourced reserve spec — known BEFORE paint (not from the
-      // decision). minHeight 300 > the decision's content height, so the fill fits.
+      // decision). minHeight 300 > the decision's content height, so the fill fits. Declared
+      // as an alloy `__view__` PLACEMENT in a boot config, exactly as a production integrator
+      // authors it (parsed by reservePersonalization -> reserveSpace).
       const RESERVE_SPEC = { selector: "#hero", minHeight: 300, prehide: true, timeout: 5000 };
+      const PERSONALIZATION_CONFIG = {
+        connectors: [{ type: "alloy", bundleUrl: BUNDLE_URL, datastreamId: CONFIG.datastreamId, placements: [{ scope: "__view__", ...RESERVE_SPEC }] }],
+      };
 
       // ---- uc1-style same-thread marks (the reliable structural-order proof) ----
       window.__flicker = { events: [] };
@@ -67,14 +78,19 @@
 
       async function main() {
         mark("script:start");
-        const caps = { dom: createDomCapability(document) };
 
-        // ---- 1. EAGER reserve (BEFORE appear), from the config-sourced spec ----
+        // ---- 1. EAGER reserve (BEFORE appear), via the REAL reservePersonalization ----
+        // (033-03 AC2): parses the alloy `__view__` placement from the boot config and
+        // reserves the box SYNCHRONOUSLY (reserveSpace sizes before its handle Promise
+        // resolves) — so the reserve is pre-paint even though the handle is awaited. The
+        // handle is HANDED OFF (reservedPlacements) to the lazy fill below.
         mark("reserve:#hero");
         let handle;
         try {
-          handle = await caps.dom.reserveSpace(RESERVE_SPEC);
-        } catch (e) { return fail("reserveSpace threw: " + (e && e.message)); }
+          const { reservedPlacements } = reservePersonalization(PERSONALIZATION_CONFIG);
+          if (!reservedPlacements || !reservedPlacements["__view__"]) return fail("reservePersonalization returned no __view__ handle");
+          handle = await reservedPlacements["__view__"];
+        } catch (e) { return fail("reservePersonalization threw: " + (e && e.message)); }
         const reserveRects = { hero: rectOf("#hero"), below: rectOf("#below") };
         const reserveVisibility = visOf("#hero"); // prehidden → "hidden" (AC4)
 
@@ -100,7 +116,10 @@
         const fillRects = { hero: rectOf("#hero"), below: rectOf("#below") };
         const fillVisibility = visOf("#hero"); // revealed on fill → "visible" (AC4)
 
-        // ---- 5. EXPOSURE via the GENERIC push→ring→beacon capture (AC5) ----
+        // ---- 5. EXPOSURE routed through a COMPOSITE fan-out (AC4/AC5) ----
+        // The proposition_display rides the composite (window.airlock.push): alloy's own
+        // ["page_view"] vocabulary IGNORES it (no second interact / no proposition loop),
+        // while a GA4 ["*"] catch-all CAPTURES it → the generic push→ring→beacon path.
         const beaconPromises = [];
         const capture = createGenericCapture({
           beacon: (evt) => {
@@ -109,13 +128,24 @@
             );
           },
         });
-        createPropositionExposureReporter(capture, { seen: new Set() }).reportAll(decisions);
+        const alloyReceivedExposure = [];
+        const accepts = (voc, name) => voc.includes("*") || voc.includes(name);
+        const compositePush = (evt) => {
+          if (accepts(["page_view"], evt.event)) alloyReceivedExposure.push(evt); // alloy: ignores proposition_display
+          if (accepts(["*"], evt.event)) capture.push(evt); // GA4: catch-all → generic capture
+        };
+        createPropositionExposureReporter({ push: compositePush }, { seen: new Set() }).reportAll(decisions);
         capture.flush(); // drain the ring → fire the exposure beacon(s)
         await Promise.all(beaconPromises);
 
         // ---- 6. CONTROL: a POST-paint reserve (must FAIL leg c — after appear) ----
+        // Also via reservePersonalization (the real entrypoint), so the gate is proven to
+        // discriminate on the SAME path — a post-appear reserve here is the caught negative.
         mark("reserve:#control-hero");
-        try { await caps.dom.reserveSpace({ selector: "#control-hero", minHeight: 200, prehide: false }); } catch (e) {}
+        try {
+          const ctl = reservePersonalization({ connectors: [{ type: "alloy", bundleUrl: BUNDLE_URL, datastreamId: CONFIG.datastreamId, placements: [{ scope: "__view__", selector: "#control-hero", minHeight: 200, prehide: false }] }] });
+          await ctl.reservedPlacements["__view__"];
+        } catch (e) { /* control reserve failure is not the gate */ }
 
         // ---- ADVISORY: a RAW un-reserved inject shifts its sentinel (a reflow) ----
         const rawBefore = rectOf("#raw-below");
@@ -144,6 +174,9 @@
           rawInjectSentinelShiftPx: rawAfter && rawBefore ? rawAfter.top - rawBefore.top : null,
           exposureBeaconsSent: capture.sent.slice(),
           workerNoRealFetch: chamberSummary && chamberSummary.workerRealFetchCalls,
+          // 033-03: the two-phase promotion proofs
+          twoPhaseViaReservePersonalization: true, // the eager reserve used the real entrypoint
+          exposureRoutedToAlloyCount: alloyReceivedExposure.length, // must be 0 (alloy ignores it — no loop)
         };
       }
 

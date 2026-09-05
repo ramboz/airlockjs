@@ -47,6 +47,15 @@ const ROOT = fileURLToPath(new URL(".", import.meta.url));
 export const DEFAULT_OUTDIR = "probes/eds-testbed/scripts/airlock";
 export const ENTRY_OUT = "eds"; // → eds.js
 
+// 033-03: the EAGER pre-paint personalization reserve module — a SECOND non-worker
+// ESM entry emitted alongside eds.js. It is deliberately its OWN dist entry (NOT
+// exported from eds.js) so an eager `import()` before paint pulls only
+// createDomCapability + the pure placement parser onto the critical path, never the
+// full runtime (createAirlock + every connector + web-vitals). The build asserts
+// below that the emitted eager chunk carries NO `createAirlock` (the lightweight
+// invariant, AC2) and no blob:/data:/ajv (the shared envelope).
+export const RESERVE_ENTRY_OUT = "reserve-personalization"; // → reserve-personalization.js
+
 // Every same-origin sibling chamber worker the emitted eds.js may spawn. The `out` name is derived
 // from the source basename (so `core/pixel-chamber.worker.js` → `pixel-chamber.worker` → the sibling
 // `./pixel-chamber.worker.js`). Add an entry here when a new chamber worker becomes eds-reachable.
@@ -90,12 +99,16 @@ const defaultWorkerOut = (inPath) => inPath.split("/").pop().replace(/\.js$/, ""
  *                                        SECOND `format:"iife"` build call (default: the alloy chamber, 033-02).
  * @param {(inPath:string)=>string} [opts.outNameFor] out-name deriver (default: the source basename minus `.js`).
  *                                        Overriding it seeds the AC3 "hashed rename" regression.
+ * @param {string} [opts.reserveEntry]    the eager pre-paint reserve module source (default the real
+ *                                        adapters/eds/reserve-personalization.js). Overriding it seeds the
+ *                                        033-03 "a Worker entered the eager reserve graph" regression.
  */
 export async function buildAirlock({
   outdir = DEFAULT_OUTDIR,
   workerEntries = WORKER_ENTRIES,
   classicWorkerEntries = CLASSIC_WORKER_ENTRIES,
   outNameFor = defaultWorkerOut,
+  reserveEntry = "adapters/eds/reserve-personalization.js",
 } = {}) {
   const absOutdir = isAbsolute(outdir) ? outdir : join(ROOT, outdir);
   // Every same-origin sibling worker eds.js may reference — the ESM set AND the classic
@@ -108,6 +121,8 @@ export async function buildAirlock({
     absWorkingDir: ROOT,
     entryPoints: [
       { in: "adapters/eds/index.js", out: ENTRY_OUT },
+      // 033-03: the eager pre-paint reserve module — a 2nd non-worker ESM entry.
+      { in: reserveEntry, out: RESERVE_ENTRY_OUT },
       ...workerEntries.map((p) => ({ in: p, out: outNameFor(p) })),
     ],
     outdir: absOutdir,
@@ -160,6 +175,13 @@ export async function buildAirlock({
     }
   }
 
+  // Positive (033-03 AC2): the eager pre-paint reserve module was emitted as a sibling.
+  const reserveBase = `${RESERVE_ENTRY_OUT}.js`;
+  if (!emittedBasenames.has(reserveBase)) {
+    failures.push(`missing emitted eager reserve module ${reserveBase} — the 033-03 personalization pre-paint entry (outputs: ${outputs})`);
+  }
+  const reserveChunk = emittedBasenames.has(reserveBase) ? readFileSync(join(absOutdir, reserveBase), "utf8") : "";
+
   // Positive: EVERY `new Worker(new URL(...))` reference in the emitted entry resolves to a KNOWN,
   // EMITTED sibling worker (026-05: matchAll, not just the first — eds.js references N workers).
   const emitted = emittedBasenames.has(entryBase) ? readFileSync(join(absOutdir, entryBase), "utf8") : "";
@@ -186,6 +208,11 @@ export async function buildAirlock({
   const emittedWorkerChunks = workerBasenames
     .filter((wb) => emittedBasenames.has(wb))
     .map((wb) => readFileSync(join(absOutdir, wb), "utf8"));
+  // The blob:/data: scan enforces the WORKER same-origin-file-URL invariant, so it
+  // covers eds.js (which constructs Workers) + the worker chunks — NOT the eager
+  // reserve module, which spawns no Worker and legitimately carries a `data:text/html`
+  // token in core/sanitize-html.js's XSS URL-scheme denylist (a security feature that
+  // STRIPS such URLs, not a worker-load URL). The reserve chunk is still ajv-scanned below.
   if ([emitted, ...emittedWorkerChunks].some((chunk) => /(["'`])(?:blob|data):/.test(chunk))) {
     failures.push("emitted output contains a blob:/data: URL — every worker must stay a same-origin file URL");
   }
@@ -196,8 +223,30 @@ export async function buildAirlock({
   // validator dependency never ships — a runtime `import … "ajv"` would smuggle ~100KB of
   // dev tooling into every consumer's page. No-minify keeps identifiers readable, so a bare
   // `/ajv/i` reference in any emitted chunk means ajv was bundled.
-  if ([emitted, ...emittedWorkerChunks].some((chunk) => /ajv/i.test(chunk))) {
+  if ([emitted, reserveChunk, ...emittedWorkerChunks].some((chunk) => /ajv/i.test(chunk))) {
     failures.push("emitted output references `ajv` — a contracts/ dev-dependency must not reach the shipped bundle (032-02 AC2: runtime config validation is hand-rolled)");
+  }
+
+  // Negative (spec 033-03 AC2 — the LIGHTWEIGHT invariant): the eager pre-paint reserve
+  // module must NOT pull the full runtime onto the critical path. `createAirlock` is the
+  // runtime factory (adapters/eds/index.js -> core/airlock.js); its identifier appearing in
+  // the eager chunk means an `import(eds.js)`-equivalent leaked in (a connector/web-vitals
+  // graph regressing LCP). No-minify keeps identifiers readable, so a bare `createAirlock`
+  // token in the eager chunk means the lightweight boundary broke. eds.js legitimately
+  // carries it (the full runtime) — this scan is the EAGER chunk only.
+  if (reserveChunk && /createAirlock/.test(reserveChunk)) {
+    failures.push(`the eager reserve module ${reserveBase} references \`createAirlock\` — it must stay lightweight (only createDomCapability + placement parsing), never pull the full runtime onto the pre-paint critical path (033-03 AC2)`);
+  }
+
+  // Negative (spec 033-03 AC2 — the eager module's WORKER-URL invariant, self-defended).
+  // The reserve chunk is EXCLUDED from the blob:/data: worker-URL scan above BECAUSE it
+  // spawns no Worker (and legitimately carries a `data:text/html` sanitizer token) — so make
+  // THAT premise a build failure, not a fact only a (deletable) test asserts: a `new Worker(`
+  // in the eager chunk means a Worker entered the pre-paint reserve graph, and its URL is no
+  // longer covered by the same-origin-file-URL invariant the blob:/data: scan enforces on
+  // eds.js + the worker chunks. Fail the build so the exclusion above stays sound.
+  if (reserveChunk && /new Worker\(/.test(reserveChunk)) {
+    failures.push(`the eager reserve module ${reserveBase} constructs a \`new Worker(\` — the pre-paint reserve module must spawn NO Worker (its URL would escape the same-origin-file-URL invariant the blob:/data: scan enforces on the worker-spawning chunks) (033-03 AC2)`);
   }
 
   // Derived, not hardcoded: all workers are same-origin file URLs ⇔ every referenced specifier is a

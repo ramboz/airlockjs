@@ -36,6 +36,9 @@ import { createWrappedSdkHost } from "../../core/wrapped-sdk-host.js";
 import { hostOf } from "../../core/config-integrity.js";
 import { resolveConsent } from "../../core/consent.js";
 import { ALLOY_INTERACT_ENDPOINT } from "../../connectors/alloy/connector.js";
+import { htmlOfDecision } from "../../connectors/alloy/decisions.js";
+import { createPropositionExposureReporter } from "./decisions-exposure.js";
+import { VIEW_SCOPE } from "./placements.js";
 import { sourceGa4Ctx } from "../../connectors/ga4/cookies.js";
 import { shapeMpConsent } from "../../connectors/ga4/consent.js";
 import { createMetaPixelConfig, META_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/meta.js";
@@ -790,6 +793,92 @@ const ALLOY_MANIFEST_EVENTS = ["page_view"];
 const ALLOY_EGRESS_PURPOSES = ["analytics_storage", "personalization"];
 
 /**
+ * Console-backed diagnostic sink for bootAlloy's DECISIONS path (spec 033-03) —
+ * mirrors core/wrapped-sdk-host.js's `consoleDiagnostic` so a dropped decision /
+ * exposure is OBSERVABLE (never silent) even when a caller injects no `onDiagnostic`.
+ * A caller (test/rig) may inject `opts.onDiagnostic` to intercept the same records.
+ */
+function decisionDiagnostic(record) {
+  const fn = record.level === "error" ? console.error : console.warn;
+  fn("airlock:", record);
+}
+
+/**
+ * Wire alloy's decisions-as-data delivery (spec 033-03) onto `caps.decisions` — the sink
+ * the wrapped-SDK host calls with the chamber's `{type:"decisions"}` payload. Called by
+ * `bootAlloy` ONLY when personalization is CONFIGURED (a `placements` entry OR handed-off
+ * `reservedPlacements`); an analytics-only alloy boot never wires it, so the host IGNORES
+ * `{type:"decisions"}` exactly as 033-02 did (arch #3 byte-parity). Extracted to module
+ * scope so bootAlloy's body stays flat + this delivery logic reads as one unit.
+ *
+ * Per decision (ALREADY `__view__`-filtered by the connector, decisionScope=VIEW_SCOPE —
+ * the worker touches NO DOM): match it to its EAGERLY-reserved box (handed off via
+ * `reserved`), fill through the awaited reserveSpace handle (the 018 sanitizer boundary —
+ * never a raw write), then report a `proposition_display` exposure through the COMPOSITE.
+ *
+ * INVARIANT (the flicker fix, AC2/AC3): NEVER lazily reserve as a fallback — this module
+ * imports no DOM capability, so a post-paint reserve is structurally impossible; a decision
+ * with no handed-off handle / no match / no html is DROPPED + diagnosed, never thrown (the
+ * reserved box's own prehide-timeout backstop still reveals it).
+ *
+ * @param {{ caps: object, reserved: Record<string, Promise<{fill:Function}>>, diagnose: (r:object)=>void }} args
+ */
+function wireAlloyDecisions({ caps, reserved, diagnose }) {
+  const exposureReporter = createPropositionExposureReporter(
+    {
+      // The exposure sink pushes through the COMPOSITE (window.airlock.push), late-bound
+      // because the composite installs at boot AFTER bootAlloy returns. It fans to an
+      // analytics connector that ACCEPTS proposition_display (GA4, ["*"]); alloy's own
+      // ["page_view"] handle IGNORES it (no second interact / no proposition loop). GUARDED:
+      // window.airlock absent / push-less (a standalone bootAlloy) OR a composite that
+      // delivered the exposure NOWHERE (alloy-only, no ["*"] sink) -> drop + diagnose, never
+      // throw. The DISPLAY still works (fill already happened); only exposure telemetry needs
+      // an analytics connector in the same boot(config) (documented limitation, AC4).
+      push: (evt) => {
+        const w = typeof window !== "undefined" ? window.airlock : undefined;
+        if (!w || typeof w.push !== "function") {
+          diagnose({ level: "warn", kind: "decisions", disposition: "exposure-dropped", reason: "no analytics sink for the proposition_display exposure (window.airlock absent or push-less — a standalone bootAlloy)", scope: evt && evt.scope });
+          return;
+        }
+        const deliveredTo = w.push(evt);
+        // A composite returns its fan-out count; 0 means no ["*"] analytics sink accepted it
+        // (alloy-only boot). A non-composite handle returns undefined -> assume delivered.
+        if (deliveredTo === 0) {
+          diagnose({ level: "warn", kind: "decisions", disposition: "exposure-dropped", reason: "no analytics ['*'] sink accepted the proposition_display exposure (alloy-only boot) — the display works; exposure telemetry needs an analytics connector in the same boot(config)", scope: evt && evt.scope });
+        }
+      },
+    },
+    { seen: new Set() },
+  );
+  caps.decisions = {
+    deliver: async (decisions) => {
+      for (const decision of decisions || []) {
+        const scope = decision && decision.scope;
+        const handlePromise = scope != null ? reserved[scope] : undefined;
+        if (!handlePromise) {
+          diagnose({ level: "warn", kind: "decisions", disposition: "dropped", reason: "no reserved placement for this scope — the eager reservePersonalization was skipped/mis-wired, or the scope is unconfigured (NOT lazily reserved — that would reintroduce the flicker AC2 fixes)", scope });
+          continue;
+        }
+        let handle;
+        try {
+          handle = await handlePromise;
+        } catch (e) {
+          diagnose({ level: "warn", kind: "decisions", disposition: "dropped", reason: "the reserved placement handle rejected (selector matched nothing at reserve time) — the prehide-timeout backstop reveals the box", scope });
+          continue;
+        }
+        const html = htmlOfDecision(decision);
+        if (!html) {
+          diagnose({ level: "warn", kind: "decisions", disposition: "dropped", reason: "the decision carried no renderable html-content-item (a JSON offer / redirect)", scope });
+          continue;
+        }
+        handle.fill(html); // the pre-reserved box, filled via the 018 sanitizer boundary (never raw)
+        exposureReporter.report(decision); // then the proposition_display exposure (AC4)
+      }
+    },
+  };
+}
+
+/**
  * Boot Adobe/alloy through the wrapped-SDK path (spec 033-02 — the analytics
  * vertical). Unlike the `createAirlock`-shaped boots (GA4/pixel/helix-rum), alloy is
  * hosted by `core/wrapped-sdk-host.js` over airlock's CLASSIC alloy chamber Worker,
@@ -822,10 +911,21 @@ const ALLOY_EGRESS_PURPOSES = ["analytics_storage", "personalization"];
  * @param {string[]} [opts.payloadDenylist] optional seam-side XDM strip (020-02 AC3).
  * @param {string|URL} [opts.workerUrl]    test/rig seam: override the chamber Worker
  *                                         URL (default the built same-origin sibling).
+ * @param {Record<string, Promise<{fill:Function}>>} [opts.reservedPlacements] spec 033-03:
+ *                                         scope -> the EAGERLY-reserved box's handle promise,
+ *                                         handed off from `reservePersonalization` (loadEager,
+ *                                         pre-paint). `caps.decisions.deliver` awaits + fills
+ *                                         these; a decision with NO handed-off handle is dropped
+ *                                         + diagnosed (NEVER lazily reserved — the flicker
+ *                                         invariant). Absent -> personalization is inert (the
+ *                                         033-02 analytics path is byte-unchanged).
+ * @param {(record: object) => void} [opts.onDiagnostic] spec 033-03: intercept the DECISIONS
+ *                                         diagnostics (dropped decision / exposure); default a
+ *                                         console-backed sink.
  * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, stats: Function, dispose: Function }>}
  */
 export async function bootAlloy(opts = {}) {
-  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, context = [], consent, payloadDenylist, workerUrl } = opts;
+  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, context = [], consent, payloadDenylist, workerUrl, reservedPlacements } = opts;
 
   // ADR-0016 prerequisite — fail LOUD here too (validateConnectorEntry also checks it
   // on the config path) so a direct bootAlloy caller gets an actionable error rather
@@ -886,6 +986,21 @@ export async function bootAlloy(opts = {}) {
       },
     },
   };
+
+  // 033-03: decisions-as-data delivery (Target personalization) — wired onto caps.decisions
+  // by wireAlloyDecisions (see its docstring for the fill + exposure + never-lazily-reserve
+  // invariant), but ONLY when personalization is configured (see the gate below, arch #3).
+  const diagnose = typeof opts.onDiagnostic === "function" ? opts.onDiagnostic : decisionDiagnostic;
+  const reserved = reservedPlacements && typeof reservedPlacements === "object" ? reservedPlacements : {};
+  // arch #3 — wire caps.decisions ONLY when personalization is CONFIGURED: the alloy entry
+  // declared `placements`, OR reserve handles were handed off. An analytics-only alloy boot
+  // (no placements, no reservedPlacements) leaves caps.decisions UNWIRED, so the host IGNORES
+  // `{type:"decisions"}` exactly as 033-02 did (byte-parity — no spurious per-decision drop
+  // diagnostics on a Target-enabled page). The mis-wire case (placements CONFIGURED but the
+  // eager reserve skipped) still wires + drops+diagnoses, so the adopter SEES the mis-wire (AC3).
+  const personalizationConfigured =
+    (Array.isArray(opts.placements) && opts.placements.length > 0) || Object.keys(reserved).length > 0;
+  if (personalizationConfigured) wireAlloyDecisions({ caps, reserved, diagnose });
 
   const host = createWrappedSdkHost({
     chamber,
@@ -1011,15 +1126,24 @@ const acceptsEvent = (events, name) => events.includes("*") || events.includes(n
  */
 function createComposite(connectors) {
   return {
+    // push/pushCritical RETURN the fan-out count — how many connectors ACCEPTED this
+    // event (their declared vocabulary matched). Additive (existing callers ignore it):
+    // 033-03's proposition_display exposure sink reads it to detect an alloy-only boot
+    // where the exposure landed NOWHERE (count 0 -> no ["*"] analytics sink) and diagnose
+    // that documented limitation, rather than silently dropping it (AC4).
     push: (evt) => {
       const name = evt && evt.event;
-      for (const c of connectors) if (acceptsEvent(c.events, name)) c.handle.push(evt);
+      let delivered = 0;
+      for (const c of connectors) if (acceptsEvent(c.events, name)) { c.handle.push(evt); delivered += 1; }
+      return delivered;
     },
     pushCritical: (evt) => {
       const name = evt && evt.event;
+      let delivered = 0;
       for (const c of connectors) {
-        if (typeof c.handle.pushCritical === "function" && acceptsEvent(c.events, name)) c.handle.pushCritical(evt);
+        if (typeof c.handle.pushCritical === "function" && acceptsEvent(c.events, name)) { c.handle.pushCritical(evt); delivered += 1; }
       }
+      return delivered;
     },
     setConsent: (v) => { for (const c of connectors) if (typeof c.handle.setConsent === "function") c.handle.setConsent(v); },
     getState: (path) => (connectors.length ? connectors[0].handle.getState(path) : undefined),
@@ -1142,6 +1266,34 @@ function validateConnectorEntry(entry, index) {
       // the tenant — a re-tenant attack (ADR-0016 untrusted bundle) could go unheld.
       throw new Error(`airlock boot(config): ${at} (alloy) is missing a datastream id — set "datastreamId" (or its "datastream"/"edgeConfigId" alias); alloy configure() + the config-integrity tenant pin both require it`);
     }
+    // 033-03 AC5: personalization placements. This slice supports EXACTLY ONE __view__
+    // placement — alloy's interact requests __view__ by default (renderDecisions:false, no
+    // decisionScopes in the request; connectors/alloy/connector.js), so a NON-__view__ scope
+    // would silently never populate. Reject it loud with a clear follow-on pointer rather
+    // than ship a placement that never fills. Multi-scope (wiring decisionScopes into the
+    // interact + a multi-placement host-side map) is a named follow-on (docs/refinement-todo.md).
+    if ("placements" in entry && entry.placements !== undefined) {
+      if (!Array.isArray(entry.placements)) {
+        throw new Error(`airlock boot(config): ${at} (alloy) field "placements" must be an array of { scope: "${VIEW_SCOPE}", selector, minHeight }`);
+      }
+      for (const p of entry.placements) {
+        if (!p || typeof p !== "object" || Array.isArray(p)) {
+          throw new Error(`airlock boot(config): ${at} (alloy) each placement must be an object { scope: "${VIEW_SCOPE}", selector, minHeight }`);
+        }
+        if (p.scope !== VIEW_SCOPE) {
+          throw new Error(`airlock boot(config): ${at} (alloy) placement scope ${JSON.stringify(p.scope)} is not supported — only "${VIEW_SCOPE}" this slice (alloy requests it by default); multi-scope personalization (wiring decisionScopes into the interact) is a named follow-on`);
+        }
+        if (typeof p.selector !== "string" || p.selector.length === 0) {
+          throw new Error(`airlock boot(config): ${at} (alloy) placement is missing required "selector" (a non-empty CSS selector string)`);
+        }
+        // Parity with the schema (`minHeight` required, number >= 0): reject a missing/
+        // non-numeric minHeight LOUDLY here too — else `Number(minHeight)`->NaN makes
+        // reserveSpace reject and personalization SILENTLY no-ops (a box that never fills).
+        if (typeof p.minHeight !== "number" || !Number.isFinite(p.minHeight) || p.minHeight < 0) {
+          throw new Error(`airlock boot(config): ${at} (alloy) placement has a missing/invalid "minHeight" (a finite number >= 0 — the box's reserved height in px, sized before paint)`);
+        }
+      }
+    }
   }
 }
 
@@ -1169,9 +1321,12 @@ function validateConnectorEntry(entry, index) {
  * @param {{ type: string }} entry a connector entry from `config.connectors`.
  * @param {{ consent?, consentStrict?, payloadDenylist? }} governance top-level governance.
  * @param {number} index the entry's position in `config.connectors` (for error messages).
+ * @param {Record<string, Promise<object>>} [reservedPlacements] spec 033-03: the eager
+ *   pre-paint reserve handles (scope -> handle promise) from `reservePersonalization`,
+ *   threaded ONLY into alloy's `bootAlloy` (the sole connector with a personalization path).
  * @returns {Promise<{ handle: object, events: string[] }>} the handle + its declared vocabulary.
  */
-async function bootConnector(entry, governance, index) {
+async function bootConnector(entry, governance, index, reservedPlacements) {
   validateConnectorEntry(entry, index);
   const { type, ...rest } = entry || {};
   switch (type) {
@@ -1197,7 +1352,10 @@ async function bootConnector(entry, governance, index) {
       // payloadDenylist) threaded into bootAlloy's strict seam gate — same as ga4/
       // pixels. Its vocabulary is the ONE Analytics pageView (["page_view"]), so the
       // composite fans only page_view to the Edge interact.
-      return { handle: await bootAlloy({ ...rest, ...governance }), events: ALLOY_MANIFEST_EVENTS };
+      // 033-03: the personalization vertical — the eagerly-reserved box handles
+      // (reservedPlacements, from loadEager's reservePersonalization) are handed off HERE
+      // so bootAlloy's caps.decisions.deliver fills them (never lazily re-reserving).
+      return { handle: await bootAlloy({ ...rest, ...governance, reservedPlacements }), events: ALLOY_MANIFEST_EVENTS };
     default:
       // 032-02 owns full JSON-Schema validation with actionable errors; here we fail
       // LOUD rather than silently dropping an unknown connector.
@@ -1220,11 +1378,19 @@ async function bootConnector(entry, governance, index) {
  * errors on a malformed config) is spec 032-02; this slice dispatches a well-formed
  * config and fails loud only on an unknown connector type.
  *
+ * spec 033-03: `boot(config, { reservedPlacements })` — the loader hands off the
+ * eager pre-paint personalization reserve handles (from `reservePersonalization` in
+ * loadEager, BEFORE body.appear) so the lazy alloy boot FILLS the already-sized boxes
+ * rather than reserving post-paint (the flicker invariant). Absent -> personalization is
+ * inert; the analytics path (033-02) is byte-unchanged.
+ *
  * @param {{ connectors?: Array<{ type: string }>, consent?: Record<string,string>, consentStrict?: boolean, payloadDenylist?: string[] }} [config]
+ * @param {{ reservedPlacements?: Record<string, Promise<object>> }} [opts] spec 033-03:
+ *   the eager reserve handles (scope -> handle promise) handed off to alloy's bootAlloy.
  * @returns {Promise<{ push, pushCritical, setConsent, getState, flushNow, stats, dispose }>}
  *   the composite handle (also set on `window.airlock`).
  */
-export async function boot(config = {}) {
+export async function boot(config = {}, opts = {}) {
   // spec 032-02 AC2: validate the config's top-level shape BEFORE booting anything, so a
   // wrong-typed field rejects loud + actionable instead of becoming a cryptic downstream
   // throw. Per-connector validation happens inside bootConnector (naming the connector by
@@ -1232,12 +1398,14 @@ export async function boot(config = {}) {
   validateConfig(config);
   const { connectors = [], consent, consentStrict, payloadDenylist } = config;
   const governance = { consent, consentStrict, payloadDenylist };
+  // 033-03: the eager pre-paint reserve handles handed off from reservePersonalization.
+  const reservedPlacements = opts && opts.reservedPlacements ? opts.reservedPlacements : undefined;
   const booted = [];
   try {
     for (let i = 0; i < connectors.length; i++) {
       // Sequential (config order) so `getState`/`stats` read the declared-first
       // connector deterministically and any boot side effects order predictably.
-      booted.push(await bootConnector(connectors[i], governance, i));
+      booted.push(await bootConnector(connectors[i], governance, i, reservedPlacements));
     }
   } catch (err) {
     // Partial-boot cleanup (craft-review nit): a later entry's throw (unknown

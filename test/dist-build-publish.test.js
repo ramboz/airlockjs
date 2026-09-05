@@ -12,11 +12,11 @@
 //         drop OR rename of a worker entry throws from the build (red→green witness).
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, existsSync, readFileSync, appendFileSync } from "node:fs";
+import { mkdtempSync, rmSync, existsSync, readFileSync, appendFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildAirlock, WORKER_ENTRIES, CLASSIC_WORKER_ENTRIES, ENTRY_OUT } from "../build.mjs";
+import { buildAirlock, WORKER_ENTRIES, CLASSIC_WORKER_ENTRIES, ENTRY_OUT, RESERVE_ENTRY_OUT } from "../build.mjs";
 import { publishDist, DIST_ARTIFACTS, resolveTarget, computeVersion, releaseTag } from "../publish-dist.mjs";
 
 const REPO = fileURLToPath(new URL("..", import.meta.url));
@@ -102,6 +102,50 @@ describe("033-02 AC4 — the classic alloy chamber worker is a 5th dist entry (A
   });
 });
 
+describe("033-03 AC2 — the eager pre-paint reserve module is a lightweight dist entry", () => {
+  let distDir;
+  let reserveJs;
+  beforeAll(async () => {
+    distDir = mktmp("airlock-0333-reserve-dist-");
+    await buildAirlock({ outdir: distDir });
+    reserveJs = readFileSync(join(distDir, `${RESERVE_ENTRY_OUT}.js`), "utf8");
+  }, 60000);
+
+  it("emits reserve-personalization.js as a served sibling (a 2nd non-worker ESM entry)", () => {
+    expect(existsSync(join(distDir, `${RESERVE_ENTRY_OUT}.js`))).toBe(true);
+  });
+
+  it("is LIGHTWEIGHT — the eager chunk pulls NO createAirlock (never the full runtime on the pre-paint path)", () => {
+    // The load-bearing AC2 invariant: an eager import before paint must not drag
+    // createAirlock + every connector + web-vitals onto the critical path.
+    expect(/createAirlock/.test(reserveJs)).toBe(false);
+    expect(reserveJs).toMatch(/reservePersonalization/); // …but it IS the reserve entry
+  });
+
+  it("carries no ajv and constructs no Worker (so the blob/data worker-URL invariant does not apply to it)", () => {
+    expect(/ajv/i.test(reserveJs)).toBe(false);
+    // It spawns no Worker — the blob:/data: worker-URL invariant is about worker LOAD
+    // urls, and this module has none. (It DOES carry `data:text/html` — core/sanitize-html.js's
+    // XSS URL-scheme denylist token, a security feature that strips such URLs, NOT a worker url.)
+    expect(/new Worker\(/.test(reserveJs)).toBe(false);
+  });
+
+  it("DIST_ARTIFACTS names the eager reserve module (the served tree the ref root must carry)", () => {
+    expect(DIST_ARTIFACTS).toContain(`${RESERVE_ENTRY_OUT}.js`);
+  });
+
+  it("FAILS the build if a Worker enters the eager reserve graph — the worker-URL invariant is self-defended at BUILD time (not just test-asserted)", async () => {
+    // The eager module must spawn NO Worker (a Worker URL is the same-origin-file-URL
+    // security invariant). Seed a reserve entry that pathologically constructs one and
+    // confirm the BUILD throws — so a future Worker in the reserve graph fails the build,
+    // not just this deletable test. (Mirrors the AC3 worker drop/rename seed tests.)
+    const out = mktmp("airlock-0333-reserve-worker-");
+    const seed = join(mktmp("airlock-0333-reserve-seed-"), "reserve-with-worker.js");
+    writeFileSync(seed, "export function reservePersonalization(){ if (globalThis.__never) new Worker(globalThis.__u); return { reservedPlacements: {} }; }\n");
+    await expect(buildAirlock({ outdir: out, reserveEntry: seed })).rejects.toThrow(/new Worker|eager reserve module/i);
+  }, 60000);
+});
+
 describe("031-01 AC3 — the same-origin-file-worker invariant is enforced at BUILD time", () => {
   it("throws when a worker entry is DROPPED (eds.js still references the missing sibling)", async () => {
     const out = mktmp("airlock-ac3-drop-");
@@ -144,7 +188,7 @@ describe("031-01 AC2 — publish the servable tree to a DIST-ROOTED ref", () => 
       .split("\n")
       .filter(Boolean)
       .sort();
-    expect(root).toEqual([...SIBLING_WORKERS, "VERSION", `${ENTRY_OUT}.js`].sort());
+    expect(root).toEqual([...SIBLING_WORKERS, "VERSION", `${ENTRY_OUT}.js`, `${RESERVE_ENTRY_OUT}.js`].sort());
   });
 
   it("airlock's SOURCE project (build.mjs / core / adapters / test) is ABSENT from the ref root", () => {
@@ -165,7 +209,7 @@ describe("031-01 AC2 — publish the servable tree to a DIST-ROOTED ref", () => 
   it("DIST_ARTIFACTS names exactly the servable tree the ref root must carry", () => {
     // The publish contract's artifact list is the single source of truth the rig and
     // docs reference — keep it aligned with the emitted sibling set.
-    expect([...DIST_ARTIFACTS].sort()).toEqual([...SIBLING_WORKERS, `${ENTRY_OUT}.js`].sort());
+    expect([...DIST_ARTIFACTS].sort()).toEqual([...SIBLING_WORKERS, `${ENTRY_OUT}.js`, `${RESERVE_ENTRY_OUT}.js`].sort());
   });
 
   it("reports the ref and a version string back to the caller", () => {
@@ -247,7 +291,7 @@ describe("031-02 AC1 — the release-tag pin (semver substitute) + the marker re
         .split("\n")
         .filter(Boolean)
         .sort();
-      expect(root).toEqual([...SIBLING_WORKERS, "VERSION", `${ENTRY_OUT}.js`].sort());
+      expect(root).toEqual([...SIBLING_WORKERS, "VERSION", `${ENTRY_OUT}.js`, `${RESERVE_ENTRY_OUT}.js`].sort());
     });
 
     it("airlock's SOURCE project is ABSENT from the tagged ref root (never a whole-project source tag)", () => {

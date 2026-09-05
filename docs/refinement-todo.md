@@ -464,7 +464,7 @@ composite does not surface helix-rum's `sampled` flag. Terminal pre-1.0 choices;
 (e.g. `getState({connector})`) would resolve both.
 **Resolution trigger:** a caller needs a specific connector's projection from a multi-connector composite; or the 1.0 pin.
 
-### Decision: alloy config-wiring (`{type:"alloy"}` in `boot(config)`) — ANALYTICS vertical LANDED (033-02); personalization → 033-03
+### Decision: alloy config-wiring (`{type:"alloy"}` in `boot(config)`) — ANALYTICS (033-02) + PERSONALIZATION (033-03) LANDED — config-surface gap CLOSED
 **Analytics config-surface gap CLOSED (2026-09-04, spec 033-02):** `{type:"alloy", bundleUrl, …}` now boots Adobe/alloy
 through the config surface via `bootAlloy` (`adapters/eds/index.js`) over `core/wrapped-sdk-host.js` (extended for N
 sequential events) + airlock's classic alloy chamber worker (CSP-load fixed: a worker-realm Trusted Types policy +
@@ -476,9 +476,53 @@ config-integrity (spec 015 — pins the `configId` tenant to the host-owned data
 is HELD, load-bearing because ADR-0016 permits an untrusted cross-origin bundle), the endpoint-ceiling (spec 016 — the
 grounded interact FLOOR), and the strict consent drop (020-02).
 
-**Still open / follow-ons:**
-- **[033-03](specs/033-alloy-config-wiring/slice-03-alloy-decisions.md): alloy personalization / decisions-as-data**
-  (Target propositions → `reserveSpace`) — the host still ignores `{type:"decisions"}` (no regression).
+**Personalization config-surface gap CLOSED (2026-09-04, spec 033-03):** the alloy chamber's `{type:"decisions"}`
+message — previously un-consumed by `createWrappedSdkHost` — is now delivered through `caps.decisions.deliver` to the
+composite handle and applied host-side via `reserveSpace` (the worker touches NO DOM; propositions cross as DATA,
+012-03/018). The no-flicker design is a TWO-PHASE eager/lazy split (frame-critique): a NEW lightweight eager entrypoint
+`reservePersonalization(config)` (`adapters/eds/reserve-personalization.js`, its OWN `build.mjs` dist entry — build
+asserts it carries no `createAirlock`) reserves the configured `__view__` box BEFORE paint in `loadEager`; the handle is
+handed off to `boot(config, { reservedPlacements })`, and `bootAlloy` awaits + fills it lazily — NEVER lazily reserving
+as a fallback (a post-paint reserve reintroduces the flicker). The `proposition_display` exposure routes through the
+composite to an analytics `["*"]` sink (GA4); alloy's `["page_view"]` handle ignores it (no loop). Schema `placements`
+(single `__view__`) + golden/negative fixtures landed; proven end-to-end in `rig/alloy-decisions.mjs` (reserve < appear,
+geometry unchanged, exposure captured by GA4 / ignored by alloy) + `test/eds-boot-alloy.test.js`. **So MVP6's named
+"GA4 + Adobe/alloy" config-surface gap is now CLOSED for BOTH analytics and personalization.**
+
+**Documented limitations parked as named follow-ons (033-03):**
+- **analytics-yes / personalization-no coarse consent.** Decisions ride the SHARED interact, held all-or-nothing by the
+  strict `egressVerdict` over `["analytics_storage","personalization"]` (020-02): a `personalization` denial HOLDS the
+  WHOLE interact, so the common "analytics-yes / personalization-no" posture gets NEITHER. A finer per-purpose split (an
+  analytics-only interact when personalization is denied) is the follow-on. Trigger: an adopter needs the split posture.
+- **alloy-only exposure telemetry.** The `proposition_display` DISPLAY works standalone, but its EXPOSURE needs an
+  analytics `["*"]` connector in the same `boot(config)` to land — an alloy-only boot drops+diagnoses the exposure
+  (never throws). Follow-on: a dedicated exposure sink independent of an analytics connector. Trigger: an adopter runs
+  alloy personalization without a co-booted analytics connector and needs exposure telemetry.
+- **multi-scope personalization / `decisionScopes` request-wiring.** This slice supports a SINGLE `__view__` placement —
+  alloy's interact requests `__view__` by default (`connector.js:172-175` sends no `decisionScopes`), so a non-`__view__`
+  scope is REJECTED at validation (it would silently never populate). The follow-on wires `decisionScopes` into the
+  interact + a multi-placement host-side map. Trigger: an adopter needs personalization outside the `__view__` scope.
+
+**Reviewer-flagged design follow-ons (033-03 gating review — backward-compatible, bounded, NOT fixed this slice):**
+- **exposure routing couples to the mutable `window.airlock` global.** `bootAlloy`'s exposure sink LATE-BINDS
+  `window.airlock.push` inside `deliver` (so it reaches the composite that installs at boot). A re-boot mid-session
+  (`installOnWindow` disposes+replaces the singleton) would route a later exposure to a DIFFERENT composite. A wired
+  composite-emit hook — a deferred emit ref `boot()` populates and hands to `bootAlloy` — would decouple the exposure
+  from the global. Bounded (a single-boot page is unaffected; EDS boots once). Trigger: a mid-session re-boot flow, or
+  the adapter→`core/` migration (OQ13). 
+- **`push`/`pushCritical` return the fan-out count to serve the exposure sink's alloy-only detection.** `count === 0`
+  conflates "no connector accepted the event" with "no analytics `["*"]` sink present" — correct ONLY while GA4 is the
+  sole `["*"]` sink. A scoped `composite.accepts(name)` predicate, or an explicit emit-result object, would give the
+  sink an unambiguous signal and leave `push()`'s return untouched. Trigger: a second `["*"]`-vocabulary connector, or
+  the 1.0 composite-surface pin.
+- **AC7 vitest fidelity note (not a follow-on, a test-scope disclosure):** the AC7 end-to-end vitest
+  (`test/eds-boot-alloy.test.js`) uses a hand-rolled composite fan-out STAND-IN (alloy vocab ignores / GA4 vocab
+  captures) rather than the real `createComposite` — because booting a real GA4 chamber alongside alloy under the
+  stubbed `Worker` is impractical in the unit harness. The REAL composite gate is covered by the AC4 fan-out-count test
+  (`push` returns 1 for `page_view`, 0 for `proposition_display` on an alloy-only composite) + GA4's `["*"]` catch-all
+  tests; the full browser geometry/CWV/GA4-capture proof is `rig/alloy-decisions.mjs`.
+
+**Still open / follow-ons (from 033-02, unchanged):**
 - **endpoint-ceiling BREADTH grounding (creds-gated live-Alloy).** `bootAlloy`'s ceiling is the grounded interact
   FLOOR (`ALLOY_INTERACT_ENDPOINT`, 016-02 AC3/AC5): the honest interact passes; the server-directed demdex/ID-sync
   breadth the Edge *response* returns at runtime is HELD+surfaced fail-closed (NOT a silent drop). Grounding that
