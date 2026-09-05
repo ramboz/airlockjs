@@ -133,7 +133,7 @@ GA4-only.
 ## `window.__airlockOwnsRum` — a SEPARATE toggle axis
 
 If your deployment also sets `window.__airlockOwnsRum` (the RUM-replace toggle,
-`scripts.js:270` → `bootHelixRum`, `:272`), know that it is a **distinct axis** from
+`scripts.js:270` guard → the `bootHelixRum` import at `:272`, invoked `:273`), know that it is a **distinct axis** from
 `window.__airlockConfig`:
 
 - `bootHelixRum` boots **post-`appear`** (post-LCP) regardless of your profile, so it

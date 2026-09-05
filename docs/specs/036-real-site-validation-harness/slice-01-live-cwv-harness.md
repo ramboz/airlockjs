@@ -107,7 +107,7 @@ site).
    equivalent edge cache-state / comparable TTFB before the measured run, so the query variant is not silently
    origin-rendered while plain is edge-cached — else the fixed-offset confound returns); which profile's band to read;
    and the FALLBACK (two deployments, band-withheld). The gate is throwaway validation scaffolding, never shipped runtime.
-   The procedure names `window.__airlockOwnsRum` (`scripts.js:270` → a post-`appear` `bootHelixRum`, `:272`) as a
+   The procedure names `window.__airlockOwnsRum` (`scripts.js:270` guard → the post-`appear` `bootHelixRum` import `:272`, invoked `:273`) as a
    **distinct toggle axis** from `__airlockConfig`: it is post-LCP (so it does not touch the LCP-by-construction
    discriminant; its cost rides the TBT band), so the operator gates the axis under test and does not conflate the
    RUM-replace toggle with the connector-config axis (RUM-replace boot-health is 036-02's territory).
@@ -120,3 +120,60 @@ run-procedure doc is written + linked from where an adopter would look (`README.
 (compliance + craft + **frame-critique** [`frame_review: true`]); deviation log + reconciliation sweep; reconciliation
 review; board synced. (No `arch_review`: rig + docs only — no `core/` or `contracts/` change; the harness exercises the
 runtime, it does not alter it.)
+
+## Close-out
+
+### Deviation log
+
+- **Craft fork taken (an allowed slice option, recorded per the reviews):** implemented as a **new `rig/lh-live.mjs`
+  plus an extracted shared engine `rig/lh-core.mjs`** (rather than generalizing `lh-eds.mjs` in place). `lh-eds.mjs` was
+  refactored to import the median/`armSummary`/delta/band/`runLighthouseOnce` engine from `lh-core.mjs` — genuine reuse,
+  behaviour verified byte-identical (`lh:eds` + `cwv:budget` run live post-refactor; AC7). This is the stronger reading
+  of AC1's "reuse, not re-implement."
+- **Local Lighthouse dry-run EXECUTED (stronger than the slice anticipated).** The slice hedged that the sandbox might
+  not launch headless chromium; it could. The harness ran live against the local testbed for **all three profiles**
+  (`ga4` on `index.html`; `alloy-analytics` + `personalization` on the authored `index-alloy.html` fixture with a stub
+  `bundleUrl`) **plus** the two-deployment fallback — each emitting a valid card. A throwaway Playwright probe confirmed
+  the personalization ON arm's `airlock:reserve` mark fires BEFORE `body:appear` (the pre-LCP path) while OFF has no
+  `__airlockConfig` — proving the local gate covers BOTH entrypoints (fork B faithful analog).
+- **`bootHelixRum` line-ref corrected (compliance + craft nit):** the doc + slice cited `scripts.js:272` for
+  `bootHelixRum`; `:270` is the `__airlockOwnsRum` guard, `:272` the dynamic import, `:273` the invocation. Fixed in
+  `docs/real-site-validation.md` + this slice.
+
+**Review-flagged follow-ons (compliance + craft both PASS; non-blocking, recorded — not closed here):**
+- **(craft nit → inbox) shared local-server plumbing is duplicated** (`BOILERPLATE_CSP`/`MIME`/`NOOP_EDS` + the static
+  http-serve skeleton) across `lh-eds.mjs` and `lh-live.mjs` (and the median/band math had a THIRD copy in
+  `subtree-install.mjs`, already parked). As the rig family grows (036-02), factor a shared rig-server helper.
+- **(craft nit → inbox) `lh-live.mjs`'s mode-selection / guard / URL-construction has no CI coverage** — only
+  `lh-core`'s pure `bandDisposition` is unit-tested, and only the query-gate local path is exercised by the dry-run; the
+  two-deployment + guard branches are operator-only. The URL logic is already correct (`new URL()` + `searchParams.set`,
+  not naive concatenation), so this is regression-protection, not a bug — extract a pure `resolveRunPlan(env)` +
+  unit-test it when the rig family grows.
+- **(craft nit, intentional — logged) the alloy `band` field is `{tbtMs:50}`** and omits the CLS side that `within_band`
+  nonetheless enforces via `!clsRegressed`; the asymmetric CLS treatment (improvement passes, only a regression >0.01
+  fails) is carried by the separate `cls_held`/`cls_improved`/`cls_regressed` flags + the note. Intentional; the flags
+  are the source of truth.
+- **(compliance nit, harmless) `query_param` is echoed into the two-deployment card's config block** where it is
+  irrelevant. Cosmetic; left as-is.
+
+### Reconciliation sweep
+
+| Artifact | Disposition | Rationale |
+|----------|-------------|-----------|
+| `rig/lh-core.mjs` | `created` | The pure Lighthouse-independent engine: median/`summ`/`armSummary`/`computeDeltaMedian`/`withinTightBand` (extracted from `lh-eds`) + DI'd `runLighthouseOnce` + the new `bandDisposition`/`renderNote`/`buildResult` (profile→band + card). No browser import; vitest-safe. |
+| `rig/lh-live.mjs` | `created` | The harness (`npm run lh:live`): query-gate PRIMARY (one `LIVE_URL`, OFF plain vs ON `?airlock=1`), two-deployment band-withheld FALLBACK, local dry-run (both-entrypoint gate + authored alloy fixture). |
+| `rig/lh-eds.mjs` | `updated` | Refactored to import the shared engine from `lh-core.mjs` (net −23 lines); output shape + values byte-identical (AC7, run live to confirm). |
+| `probes/eds-testbed/index-alloy.html` | `created` | The authored `window.__airlockConfig` fixture (none existed — it was set nowhere) for the alloy-profile local dry-run; a dedicated non-LCP promo slot for the personalization reserve. |
+| `test/lh-core.test.js` | `created` | 22 unit tests (TDD red→green): median/delta math, the profile→band decision (3 profiles × both modes, incl. improved-CLS-is-a-pass), note + card rendering — non-vacuous (a wrong band decision fails). |
+| `docs/real-site-validation.md` | `created` | The operator run-procedure (pre-flight rebuild, both-entrypoint client-side gate, cache-parity pre-check, profile→band table, `__airlockOwnsRum` distinct axis, fallback, local dry-run, advisory discipline). |
+| `package.json` | `updated` | `"lh:live": "node rig/lh-live.mjs"`. |
+| `README.md`, `docs/releases/mvp6.md` | `updated` | Link the run-procedure doc from where an adopter looks (DoD). |
+| `docs/inbox.md` | `updated` | Parked the `subtree-install.mjs` third-copy median/band observation (implementer); the two craft follow-ons above join it. |
+| `docs/specs/README.md` (board) | `deferred` | Flips to DONE at the DONE transition (close-out). |
+
+### Definition of Done — verification
+- [x] All 7 ACs pass. **TDD red→green** (the pure engine's tests written failing first, then green). `npm test`: **83 files, 1225 tests** (1203 baseline + 22 new). `node build.mjs` OK; `node contracts/validate.mjs` all pass; `npm run lint` clean. `npm run lh:eds` + `cwv:budget` still run live (AC7 no-regression).
+- [x] Query-gate PRIMARY (both airlock entrypoints gated, OFF = bare page) + two-deployment band-withheld FALLBACK; band discriminated on `__airlockConfig` presence (ga4 by-construction/tight, alloy measured); genuine `lh-core` engine reuse; local dry-run EXECUTED for all 3 profiles + fallback.
+- [x] The run-procedure doc written + linked (`README.md`, `docs/releases/mvp6.md`). No `arch_review` (rig + docs).
+- [x] Reviewed: **frame-critique** PASS (4 rounds); **compliance** PASS; **craft** PASS. Deviation log + reconciliation sweep produced; follow-ons recorded (not closed).
+- [ ] Reconciliation review passed; board synced (pending — this close-out, then the reconciliation pass + DONE transition).
