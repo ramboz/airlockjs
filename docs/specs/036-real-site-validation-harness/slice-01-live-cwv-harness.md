@@ -1,9 +1,8 @@
 ---
-status: REVIEWED
+status: DONE
 dependencies: []
-last_verified:
+last_verified: 2026-09-05
 frame_review: true  # forks A (live before/after mechanism) + B (testability bridge — proven without a live site) are load-bearing.
-claimed_by: claude/mvp6-e4550f
 ---
 
 <!-- jig self-defining vocabulary (soft, forward-only); jig grounding (064-02/ADR-0020): probe/cite or mark assumptions. -->
