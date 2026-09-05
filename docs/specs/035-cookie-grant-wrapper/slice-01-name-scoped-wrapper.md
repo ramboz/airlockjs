@@ -1,5 +1,5 @@
 ---
-status: IN_PROGRESS
+status: REVIEWED
 dependencies: []
 last_verified:
 arch_review: true  # the identity/cookie capability boundary — a security surface (ADR-0006 grant law).
@@ -144,3 +144,30 @@ follow-on); board synced.
     input (couple the sink to a required scope set, or pin the coupling); (iv) the NAME-only scope leaves the cookie
     VALUE + `path`/`expires`/`max-age` unvalidated on the reconcile path (incl. the Overview-item-2 newline-in-value
     case) → a candidate hardening follow-on.
+- **Arch re-run — PASS.** After the two fixes, a fresh arch pass confirmed both findings genuinely resolved, the
+  trusted-side/default-deny/SSOT architecture intact, and no new defect introduced (the fixes were doc-only + test-only).
+
+### Reconciliation sweep
+
+| Artifact | Disposition | Rationale |
+|----------|-------------|-----------|
+| `core/cookie-scope.js` | `created` | The shared pure primitive: `isValidCookieName` (RFC 6265/7230 token), `matchesGrantedName` (exact-vs-prefix), `scopeSeedCookies` (READ filter). Import-free (machine-guarded), imported by both the core WRITE seam and the adapter READ seam. |
+| `connectors/alloy/connector.js` | `updated` | Hoisted `export const ALLOY_COOKIE_NAMES` (the SSOT); the manifest's `capabilities.cookies` now references it by the same array reference (AC3). |
+| `adapters/eds/index.js` | `updated` | READ seam: `bootAlloy` filters the boot seed through `scopeSeedCookies(…, ALLOY_COOKIE_NAMES)` before `host.init` (AC1); threads the same `ALLOY_COOKIE_NAMES` as `grantedCookieNames` into `createWrappedSdkHost` (AC2/AC3). |
+| `core/wrapped-sdk-host.js` | `updated` | WRITE seam: opt-in `grantedCookieNames`; the `cookie-writeback` handler validates + scopes the name before `caps.cookies.reconcile`, dropping+diagnosing (`kind:"cookie-scope"`, name-only) on failure; `cookieScopeHeld` counter. `null` ⇒ byte-identical to pre-035-01. |
+| `contracts/capability.d.ts` | `updated` | Doc-only (arch blocker fix): documented the exact-vs-prefix match semantic + RFC-token write-validation + the trailing-`_` sharp edge at the `CapabilityRequest.cookies` declaration site. Type unchanged (`contract-stability` green). |
+| `test/cookie-scope.test.js` | `created` | 43 unit tests: the match rule (incl. AC4 `demdex_evil` negative), the validator (every AC2 separator + controls + NUL), `scopeSeedCookies` (AC1). |
+| `test/wrapped-sdk-host.test.js` | `updated` | +11 tests: WRITE-seam scope/validation drops + granted-writes + injection vectors + `grantedCookieNames:null` back-compat. |
+| `test/eds-boot-alloy.test.js` | `updated` | +4 tests: AC1/AC5 READ-seam scoping + the no-regression round-trip with the gate active. One pre-existing fixture literal corrected (`@`→`%40`, deviation log). |
+| `test/alloy-connector.test.js` | `updated` | +2 tests: AC3 SSOT (`toEqual` + `toBe` same-reference). |
+| `test/core-boundary.test.js` | `updated` | Arch nit fix: added `cookie-scope.js` to the import-free machine-guard `it.each`. |
+| `docs/refinement-todo.md` | `updated` | OQ13-4 marked RESOLVED for the live grant (035-01); the four carried follow-ons recorded (incl. the two arch follow-ons → 037 1.0-pin + value-side residual). |
+| `adapters/eds/cookies.js` | `no-op` | AC6 named follow-on — the host-only `createCookieCapability` `{get,set}` accessor is granted to no connector; deliberately untouched. |
+| `docs/specs/README.md` (board) | `deferred` | Flips to DONE at the DONE transition (close-out). |
+
+### Definition of Done — verification
+- [x] All 6 ACs pass; **TDD red→green** (implementer wrote failing tests first per section, then implemented to green). `npm test`: **82 files, 1203 tests** (1142 baseline + 61: 60 impl + 1 import-free-guard case). `node build.mjs` OK; `node contracts/validate.mjs` all pass; `npm run lint` clean.
+- [x] READ scope (seed filter) + WRITE scope+validation (write-back seam) both enforced host-side on the trusted seam; one SSOT (`ALLOY_COOKIE_NAMES`); opt-in null ⇒ byte-identical back-compat; alloy round-trips under the scoped grant (AC5).
+- [x] Reviewed: **frame-critique** PASS (3 rounds: retarget → seam-grounding → pass); **compliance** PASS; **craft** PASS; **arch** PASS (re-run after the 1 blocker + 1 nit were fixed). Deviation log + review dispositions + reconciliation sweep produced.
+- [x] `docs/refinement-todo.md` OQ13-4 RESOLVED for the live grant; carried follow-ons recorded (the `createCookieCapability` wrapper, the `SecurityError` rider, the fail-open coupling → 037, the value-side residual).
+- [ ] Reconciliation review passed; board synced (pending — this close-out, then the reconciliation pass + DONE transition).
