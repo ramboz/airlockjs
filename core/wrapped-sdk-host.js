@@ -47,6 +47,23 @@
  * `caps.cookies.reconcile` sink — byte-for-byte the harness's proven logic
  * (rig/alloy-chamber-harness.html), just relocated.
  *
+ * Cookie name-scope + validation (spec 035-01, ADR-0006 default-deny; the
+ * WRITE-side twin of the READ boot-seed filter, `adapters/eds/index.js`'s
+ * `scopeSeedCookies`): an optional `grantedCookieNames` pins the write-back to
+ * the connector's declared cookie names BEFORE `caps.cookies.reconcile` ever
+ * runs — the chamber is UNTRUSTED (034-01), so its write-back name is (a)
+ * validated against the RFC 6265 cookie-name token
+ * (`core/cookie-scope.js`'s `isValidCookieName` — rejects an
+ * attribute-injection / header-splitting name) and (b) scoped to the granted
+ * set (`matchesGrantedName`). A violation of EITHER SKIPS the reconcile
+ * entirely (dropped, fail-closed — never reaches the real jar) and emits a
+ * redacted `kind:"cookie-scope"` diagnostic naming the cookie only, never the
+ * value (mirrors the config-integrity/endpoint-ceiling held-diagnostic
+ * shape). Absent `grantedCookieNames` (the default, `null`), this gate is
+ * OFF and every write-back reconciles exactly as before this slice
+ * (back-compat, the same opt-in shape as `configIntegrity`/`endpointCeiling`/
+ * `consent`).
+ *
  * Pure — no `self`/`postMessage`/DOM at module top level (only `setTimeout` /
  * `clearTimeout` / `Promise`, all present in Node) — so it imports and
  * unit-tests directly in Node (test/wrapped-sdk-host.test.js), exactly like
@@ -110,6 +127,7 @@ import { checkEndpointCeiling } from "./endpoint-ceiling.js";
 import { checkConfigIntegrity, pinnedDispatchUrl, hostOf } from "./config-integrity.js";
 import { egressVerdict, resolveConsent } from "./consent.js";
 import { governPayload } from "./payload-governance.js";
+import { isValidCookieName, matchesGrantedName } from "./cookie-scope.js";
 
 // Default diagnostics seam (mirrors core/airlock.js's `consoleDiagnostic`):
 // console-backed, so a caller that doesn't inject `onDiagnostic` still
@@ -140,6 +158,7 @@ function consoleDiagnostic(record) {
  *   consent?: (Record<string, string> | null),
  *   egressPurposes?: readonly string[],
  *   payloadDenylist?: (readonly string[] | null),
+ *   grantedCookieNames?: (readonly string[] | null),
  *   onDiagnostic?: (record: { level: string, kind: string, [k: string]: unknown }) => void,
  * }} opts
  * @returns {{
@@ -156,6 +175,7 @@ function consoleDiagnostic(record) {
  *     overridden: number,
  *     ceilingHeld: number,
  *     consentHeld: number,
+ *     cookieScopeHeld: number,
  *   },
  * }}
  */
@@ -168,6 +188,7 @@ export function createWrappedSdkHost({
   consent = null,
   egressPurposes = [],
   payloadDenylist = null,
+  grantedCookieNames = null,
   onDiagnostic,
 }) {
   const diagnose = typeof onDiagnostic === "function" ? onDiagnostic : consoleDiagnostic;
@@ -201,6 +222,7 @@ export function createWrappedSdkHost({
     overridden: 0,
     ceilingHeld: 0,
     consentHeld: 0,
+    cookieScopeHeld: 0,
   };
 
   let queuedEvent = null;
@@ -463,11 +485,43 @@ export function createWrappedSdkHost({
       }
     } else if (m.type === "cookie-writeback") {
       state.writeBacks.push(m.value);
-      const reconciled = reconcileForBrokerJar(m.value);
-      if (caps.cookies && typeof caps.cookies.reconcile === "function") {
-        // Guard a throwing sink so one bad write-back can't take down the message
-        // handler (mirrors the harness's `try { document.cookie = … } catch {}`).
-        try { caps.cookies.reconcile(reconciled); } catch (e) { /* sink self-guards */ }
+      // spec 035-01 (ADR-0006 default-deny) — gated on `grantedCookieNames`
+      // being wired (back-compat: null/unset behaves byte-identically to
+      // pre-035-01 — every write-back reconciles unconditionally). When
+      // wired, the untrusted chamber's write-back name must be BOTH a valid
+      // RFC 6265 cookie-name token AND scoped to the connector's declared
+      // names — the WRITE-side twin of the READ-side scopeSeedCookies
+      // (adapters/eds/index.js's bootAlloy). Same name-extraction as
+      // sync-cookie-cache.js's writeSync (`split("=")[0].trim()`).
+      const cookieName = String(m.value).split("=")[0].trim();
+      const invalidName = grantedCookieNames && !isValidCookieName(cookieName);
+      const ungranted = grantedCookieNames && !invalidName && !matchesGrantedName(cookieName, grantedCookieNames);
+      if (invalidName || ungranted) {
+        state.cookieScopeHeld += 1;
+        // ALERT (009-02) — redacted: the cookie NAME only, NEVER the value (a
+        // cookie value can carry identity/session material — the same
+        // redaction discipline as payload-governance's field-name-only strip
+        // diagnostic). Mirrors the endpoint-ceiling/config-integrity
+        // held-diagnostic shape.
+        diagnose({
+          level: "error",
+          kind: "cookie-scope",
+          disposition: "dropped",
+          reason: invalidName
+            ? "invalid cookie-name token — write-back dropped at the seal"
+            : "un-granted cookie name — write-back dropped at the seal",
+          name: cookieName,
+        });
+        // DROP: never reconciled, never reaches document.cookie — fail-closed,
+        // the untrusted chamber cannot persist an arbitrary/malformed name to
+        // the real jar.
+      } else {
+        const reconciled = reconcileForBrokerJar(m.value);
+        if (caps.cookies && typeof caps.cookies.reconcile === "function") {
+          // Guard a throwing sink so one bad write-back can't take down the message
+          // handler (mirrors the harness's `try { document.cookie = … } catch {}`).
+          try { caps.cookies.reconcile(reconciled); } catch (e) { /* sink self-guards */ }
+        }
       }
     } else if (m.type === "result") {
       state.summary = m.summary;
@@ -546,6 +600,7 @@ export function createWrappedSdkHost({
         overridden: state.overridden,
         ceilingHeld: state.ceilingHeld,
         consentHeld: state.consentHeld,
+        cookieScopeHeld: state.cookieScopeHeld,
       };
     },
   };

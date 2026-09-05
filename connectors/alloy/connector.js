@@ -15,6 +15,28 @@ import { extractDecisions, VIEW_SCOPE } from "./decisions.js";
 export const ALLOY_INTERACT_ENDPOINT = "https://adobedc.demdex.net/ee/v1/interact";
 
 /**
+ * Alloy's declared cookie names — the SAME set the manifest's
+ * `capabilities.cookies` (below) declares, hoisted to a static, module-level
+ * export (spec 035-01 AC3) so it is ONE source of truth. Before this slice
+ * the declared set lived ONLY inline in the manifest, which is instantiated
+ * exclusively inside the worker (`createAlloyConnector`, used by
+ * `alloy-chamber.worker.js`) — unreachable from the main thread. The
+ * host-side enforcement seams (the READ boot-seed filter, `adapters/eds/index.js`'s
+ * `bootAlloy`; the WRITE write-back scope, `core/wrapped-sdk-host.js`) both
+ * import THIS export, so they can never drift from what the manifest actually
+ * declares. Mirrors `ALLOY_INTERACT_ENDPOINT` immediately above.
+ *
+ * Mixed exact + PREFIX (R-004-grounded, no separate marker in
+ * `CapabilityRequest.cookies: readonly string[]` — `contracts/capability.d.ts`):
+ * `kndctr_`/`AMCV_` are prefixes (the real name carries a dynamic per-org/per-
+ * property suffix); `com.adobe.alloy.getTld`/`demdex`/`s_ecid` are exact. The
+ * ratified exact-vs-prefix convention (`core/cookie-scope.js`'s
+ * `matchesGrantedName`) is: a trailing `_` is a prefix marker, everything else
+ * is exact.
+ */
+export const ALLOY_COOKIE_NAMES = ["com.adobe.alloy.getTld", "kndctr_", "AMCV_", "demdex", "s_ecid"];
+
+/**
  * Alloy wrapped-SDK connector — spec 012-01.
  *
  * The wrapped-SDK archetype (contracts/connector.d.ts): a ConnectorFactory
@@ -114,7 +136,10 @@ export function createAlloyConnector(config = {}) {
       // alloy persists first-party identity + the getTld apex probe cookie
       // synchronously (R-004) -> it requests cookie access, served by the AC3
       // sync-read surface (caps.cookies.sync) via the chamber's document shim.
-      cookies: ["com.adobe.alloy.getTld", "kndctr_", "AMCV_", "demdex", "s_ecid"],
+      // spec 035-01 AC3: declared FROM the module-level export above — the
+      // SAME array reference — so this manifest and the host-side enforcement
+      // seams can never drift apart.
+      cookies: ALLOY_COOKIE_NAMES,
       // it emits one interact request (captured in-chamber this slice).
       egress: true,
       // it returns Target personalization as data for the host to apply (012-03).

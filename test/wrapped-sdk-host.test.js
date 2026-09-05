@@ -256,6 +256,120 @@ describe("createWrappedSdkHost — cookie write-back reconciliation (spec 014-01
   });
 });
 
+// createWrappedSdkHost — WRITE-side cookie-name scope + validation (spec
+// 035-01 AC2, ADR-0006 default-deny — the write-back twin of the READ-side
+// scopeSeedCookies filter, test/eds-boot-alloy.test.js AC1). Gated on the NEW
+// `grantedCookieNames` option (opt-in — back-compat: absent/null leaves every
+// describe block above byte-unchanged, re-confirmed explicitly here too).
+// When wired, the untrusted chamber's write-back name must be BOTH a valid
+// RFC 6265 cookie-name token (core/cookie-scope.js's isValidCookieName — never
+// an attribute-injection / header-splitting string) AND scoped to the
+// connector's declared names (matchesGrantedName) — a violation of EITHER
+// SKIPS caps.cookies.reconcile entirely (dropped, never reaches the real jar)
+// and is diagnosed, naming the cookie but never the value (redaction
+// discipline, mirrors config-integrity/endpoint-ceiling's `destination`-only
+// alerts).
+describe("createWrappedSdkHost — cookie write-back name-scope + validation (spec 035-01 AC2)", () => {
+  // connectors/alloy/connector.js's ALLOY_COOKIE_NAMES (grounded 2026-09-05).
+  const ALLOY_NAMES = ["com.adobe.alloy.getTld", "kndctr_", "AMCV_", "demdex", "s_ecid"];
+
+  function makeSpyingCookieHost(opts) {
+    const chamber = makeFakeChamber();
+    const reconciled = [];
+    const diags = [];
+    const caps = {
+      egress: { dispatch: async () => ({ status: 200, body: "" }) },
+      cookies: { reconcile: (v) => reconciled.push(v) },
+    };
+    const host = createWrappedSdkHost({ chamber, caps, onDiagnostic: (r) => diags.push(r), ...opts });
+    return { chamber, reconciled, diags, host };
+  }
+
+  it("a granted, valid PREFIX name (kndctr_org) is reconciled as before — silent, no diagnostic", () => {
+    const { chamber, reconciled, diags } = makeSpyingCookieHost({ grantedCookieNames: ALLOY_NAMES });
+    chamber.emit({ type: "cookie-writeback", value: "kndctr_org=abc123; Domain=airlock.example; Path=/" });
+    expect(reconciled).toEqual(["kndctr_org=abc123; Path=/"]);
+    expect(diags.find((d) => d.kind === "cookie-scope")).toBeUndefined();
+  });
+
+  it("a granted, valid EXACT name (s_ecid) is reconciled as before", () => {
+    const { chamber, reconciled } = makeSpyingCookieHost({ grantedCookieNames: ALLOY_NAMES });
+    chamber.emit({ type: "cookie-writeback", value: "s_ecid=xyz" });
+    expect(reconciled).toEqual(["s_ecid=xyz"]);
+  });
+
+  it("a NON-GRANTED name (_ga) is DROPPED — never reaches caps.cookies.reconcile — and diagnosed, cookieScopeHeld+1", () => {
+    const { chamber, reconciled, diags, host } = makeSpyingCookieHost({ grantedCookieNames: ALLOY_NAMES });
+    chamber.emit({ type: "cookie-writeback", value: "_ga=GA1.2.123.456" });
+    expect(reconciled).toEqual([]);
+    expect(diags.find((d) => d.kind === "cookie-scope")).toMatchObject({
+      level: "error",
+      kind: "cookie-scope",
+      disposition: "dropped",
+      name: "_ga",
+    });
+    expect(host.getState().cookieScopeHeld).toBe(1);
+  });
+
+  it("a NON-GRANTED name (session) is DROPPED + diagnosed (the chamber can't persist an arbitrary cookie to the real jar)", () => {
+    const { chamber, reconciled, diags } = makeSpyingCookieHost({ grantedCookieNames: ALLOY_NAMES });
+    chamber.emit({ type: "cookie-writeback", value: "session=s3cr3t; Path=/" });
+    expect(reconciled).toEqual([]);
+    expect(diags.find((d) => d.kind === "cookie-scope")).toMatchObject({ disposition: "dropped", name: "session" });
+  });
+
+  it("the diagnostic NAMES the cookie but never carries the value (redaction discipline)", () => {
+    const { chamber, diags } = makeSpyingCookieHost({ grantedCookieNames: ALLOY_NAMES });
+    chamber.emit({ type: "cookie-writeback", value: "_ga=TOP-SECRET-VALUE" });
+    const d = diags.find((x) => x.kind === "cookie-scope");
+    expect(d.name).toBe("_ga");
+    for (const rec of diags) expect(JSON.stringify(rec)).not.toContain("TOP-SECRET-VALUE");
+  });
+
+  it("an attribute-injection write-back ('x; domain=evil.com' — no real name=value, an invalid token) is REJECTED, never reconciled", () => {
+    const { chamber, reconciled, diags, host } = makeSpyingCookieHost({ grantedCookieNames: ALLOY_NAMES });
+    chamber.emit({ type: "cookie-writeback", value: "x; domain=evil.com" });
+    expect(reconciled).toEqual([]);
+    expect(diags.find((d) => d.kind === "cookie-scope")).toMatchObject({ level: "error", kind: "cookie-scope", disposition: "dropped" });
+    expect(host.getState().cookieScopeHeld).toBe(1);
+  });
+
+  it("a header/response-splitting write-back ('a\\nSet-Cookie: b', no '=' at all) is REJECTED as an invalid name, never reconciled", () => {
+    const { chamber, reconciled, diags } = makeSpyingCookieHost({ grantedCookieNames: ALLOY_NAMES });
+    chamber.emit({ type: "cookie-writeback", value: "a\nSet-Cookie: b" });
+    expect(reconciled).toEqual([]);
+    expect(diags.find((d) => d.kind === "cookie-scope")).toMatchObject({ level: "error", kind: "cookie-scope", disposition: "dropped" });
+  });
+
+  it("a name surviving the trim() (a leading-space-corrupted but otherwise valid token) still fails on SCOPE if not granted", () => {
+    // " s_ecidx=v" -> split('=')[0].trim() -> "s_ecidx": a VALID RFC 6265 token,
+    // but not granted (alloy's s_ecid is EXACT — no trailing-`_` prefix widening).
+    const { chamber, reconciled, diags } = makeSpyingCookieHost({ grantedCookieNames: ALLOY_NAMES });
+    chamber.emit({ type: "cookie-writeback", value: " s_ecidx=v" });
+    expect(reconciled).toEqual([]);
+    expect(diags.find((d) => d.kind === "cookie-scope")).toBeTruthy();
+  });
+
+  it("BACK-COMPAT: grantedCookieNames omitted entirely — every write reconciles exactly as pre-035-01, no new diagnostic", () => {
+    const { chamber, reconciled, diags } = makeSpyingCookieHost({}); // no grantedCookieNames key at all
+    chamber.emit({ type: "cookie-writeback", value: "_ga=GA1.2.123.456; Domain=airlock.example" });
+    expect(reconciled).toEqual(["_ga=GA1.2.123.456"]); // reconcileForBrokerJar's pre-existing behavior, untouched
+    expect(diags.find((d) => d.kind === "cookie-scope")).toBeUndefined();
+  });
+
+  it("BACK-COMPAT: an explicit grantedCookieNames: null is identical to omitting the option (byte-unchanged)", () => {
+    const { chamber, reconciled, diags } = makeSpyingCookieHost({ grantedCookieNames: null });
+    chamber.emit({ type: "cookie-writeback", value: "anything=goes; Secure" });
+    expect(reconciled).toEqual(["anything=goes"]);
+    expect(diags.find((d) => d.kind === "cookie-scope")).toBeUndefined();
+  });
+
+  it("BACK-COMPAT: getState() carries cookieScopeHeld:0 when nothing was ever held (new field, non-breaking default)", () => {
+    const { host } = makeSpyingCookieHost({});
+    expect(host.getState().cookieScopeHeld).toBe(0);
+  });
+});
+
 describe("createWrappedSdkHost — driveEvent lifecycle (init -> configured -> event -> result)", () => {
   it("queues the event on driveEvent(), posts it once the chamber reports phase:configured, and resolves on result", async () => {
     const chamber = makeFakeChamber();

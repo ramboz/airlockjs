@@ -94,3 +94,25 @@ identity/cookie security boundary] + **frame-critique** [`frame_review: true`, r
 log + reconciliation sweep; reconciliation review; `docs/refinement-todo.md` **OQ13-4 closed** (read-scope +
 write-scope + name-validation landed for the live grant; the `createCookieCapability` wrapper carried as a named
 follow-on); board synced.
+
+### Deviation log
+
+- **Grammar-vs-real-data conflict found during implementation (AMCV_'s `@`), resolved by fixing an unrealistic
+  pre-existing test fixture, NOT by loosening the validator.** Wiring `grantedCookieNames` end-to-end broke the
+  existing AC6 end-to-end round-trip test (`test/eds-boot-alloy.test.js`'s `RoundTripAlloyWorker`), which hard-codes a
+  simulated ECID write-back named literally `AMCV_TEST@AdobeOrg`. The ratified RFC 6265/7230 token grammar (this
+  slice's `isValidCookieName`) correctly rejects `@` — it is an RFC 7230 separator, explicitly one of AC2's named
+  reject characters — so this pre-existing fixture value is not a valid cookie-name token. Investigated whether the
+  grammar was wrong for this real vendor cookie: the codebase's own `rig/alloy-live-reprobe.mjs` grounds that the
+  REAL `kndctr_` cookie name already transforms the org id's `@` to `_` (`kndctr_<orgNum>_AdobeOrg_*`) rather than
+  carrying a literal `@` — i.e., real alloy avoids emitting an RFC-invalid cookie-name character, it does not rely on
+  browsers' leniency. By the same convention, Adobe's real `AMCV_` cookie percent-encodes the org id's `@` as `%40`
+  (`AMCV_<org>%40AdobeOrg`), not a literal `@`. The test fixture's literal `@` was a pre-035-01 simplification that
+  predates any cookie-name-grammar scrutiny, not a considered claim about the real wire format. **Fix:** the fixture
+  was corrected to `AMCV_TEST%40AdobeOrg` (matching alloy's real percent-encoded shape; `%`/`4`/`0` are all valid
+  token characters) rather than carving an `@` exception into `isValidCookieName` — the full ratified reject set
+  (including `@`) ships unweakened. No production code changed for this; only the one hard-coded test literal.
+- Strengthened (not weakened) AC3's SSOT test: `manifest.capabilities.cookies` is asserted both `toEqual` AND
+  `toBe` (same array reference) `ALLOY_COOKIE_NAMES` — a same-reference build (`cookies: ALLOY_COOKIE_NAMES`, not a
+  parallel literal) is what the manifest now does, so the stronger assertion holds and rules out silent divergence by
+  construction, not just by accident.

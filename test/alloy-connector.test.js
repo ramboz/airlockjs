@@ -14,7 +14,7 @@
 // main-thread dispatch + ECID mint/write-back is AC4 — the NEXT stage — and is
 // deliberately NOT built here.
 import { describe, it, expect, vi } from "vitest";
-import { createAlloyConnector } from "../connectors/alloy/connector.js";
+import { createAlloyConnector, ALLOY_COOKIE_NAMES } from "../connectors/alloy/connector.js";
 import { createConnectorHost } from "../core/connector-host.js";
 
 /** A fake alloy command fn (R-004 shape: `alloy(command, options) -> Promise`). */
@@ -272,5 +272,26 @@ describe("alloy connector — multi-scope decisionScopes on the interact (spec 0
 
     const { options } = alloy.calls[alloy.calls.length - 1];
     expect(options.decisionScopes).toEqual(["__view__", "products"]);
+  });
+});
+
+// spec 035-01 AC3 — the granted cookie-name set has ONE source of truth. The
+// declared list used to live inline in the manifest only (worker-only
+// reachability — see the slice's design focus); ALLOY_COOKIE_NAMES is now a
+// static, module-level export (mirroring ALLOY_INTERACT_ENDPOINT) that BOTH
+// the manifest AND main-thread bootAlloy (adapters/eds/index.js) import, so
+// the read-filter seed and the write-back scope can never drift from the
+// manifest's own declaration.
+describe("alloy connector (spec 035-01 AC3): ALLOY_COOKIE_NAMES is the manifest's single source of truth", () => {
+  it("manifest.capabilities.cookies deep-equals the exported ALLOY_COOKIE_NAMES — not a hard-coded copy", () => {
+    const { manifest } = createAlloyConnector(baseConfig());
+    expect(manifest.capabilities.cookies).toEqual(ALLOY_COOKIE_NAMES);
+    // the SAME array reference — the manifest is built FROM the export, not a
+    // parallel literal that could silently diverge from it.
+    expect(manifest.capabilities.cookies).toBe(ALLOY_COOKIE_NAMES);
+  });
+
+  it("names alloy's real declared set (exact + prefix mix, grounded 2026-09-05)", () => {
+    expect(ALLOY_COOKIE_NAMES).toEqual(["com.adobe.alloy.getTld", "kndctr_", "AMCV_", "demdex", "s_ecid"]);
   });
 });

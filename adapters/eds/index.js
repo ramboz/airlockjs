@@ -35,7 +35,8 @@ import { createAirlock } from "../../core/airlock.js";
 import { createWrappedSdkHost } from "../../core/wrapped-sdk-host.js";
 import { hostOf } from "../../core/config-integrity.js";
 import { resolveConsent } from "../../core/consent.js";
-import { ALLOY_INTERACT_ENDPOINT } from "../../connectors/alloy/connector.js";
+import { ALLOY_INTERACT_ENDPOINT, ALLOY_COOKIE_NAMES } from "../../connectors/alloy/connector.js";
+import { scopeSeedCookies } from "../../core/cookie-scope.js";
 import { htmlOfDecision } from "../../connectors/alloy/decisions.js";
 import { createPropositionExposureReporter, PROPOSITION_EXPOSURE_EVENT } from "./decisions-exposure.js";
 import { VIEW_SCOPE, firstDuplicateScope } from "./placements.js";
@@ -1060,6 +1061,10 @@ export async function bootAlloy(opts = {}) {
     // no consent → [] → gate off, byte-unchanged), mirroring every other boot.
     egressPurposes: consent ? ALLOY_EGRESS_PURPOSES : [],
     payloadDenylist,
+    // spec 035-01 AC2/AC3 — the WRITE-side name-scope + validation gate, wired to
+    // the SAME ALLOY_COOKIE_NAMES the READ-side seed filter uses (above) — one
+    // source of truth, both enforcement seams.
+    grantedCookieNames: ALLOY_COOKIE_NAMES,
   });
 
   // spec 034-02: derive the decision scope set the connector requests on the interact
@@ -1072,9 +1077,14 @@ export async function bootAlloy(opts = {}) {
 
   // Boot the chamber: the adopter-supplied bundleUrl + the alloy config + the consent
   // vector (the chamber's in-chamber setConsent delegate reads it). The seed cookie is
-  // this origin's jar (guarded — a node/SSR boot has no document).
+  // this origin's jar (guarded — a node/SSR boot has no document), SCOPED (spec 035-01
+  // AC1, ADR-0006 default-deny) to ONLY alloy's declared ALLOY_COOKIE_NAMES BEFORE it
+  // crosses into the untrusted chamber — so createSyncCookieCache is seeded with
+  // nothing the connector didn't declare, and a chamber read can never surface a
+  // foreign cookie (closes the live whole-jar READ leak).
   const config = { datastreamId: resolvedDatastreamId, orgId, context, ...(decisionScopes.length ? { decisionScopes } : {}) };
-  const seedCookie = (typeof document !== "undefined" && document.cookie) || "";
+  const rawSeedCookie = (typeof document !== "undefined" && document.cookie) || "";
+  const seedCookie = scopeSeedCookies(rawSeedCookie, ALLOY_COOKIE_NAMES);
   host.init({ cookie: seedCookie, config, bundleUrl, consent });
 
   // Serialize push/pushCritical through the single-slot driveEvent: a sequential

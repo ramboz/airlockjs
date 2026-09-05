@@ -89,7 +89,15 @@ class RoundTripAlloyWorker {
       setTimeout(() => this.emit({ type: "intercepted-fetch", id, url, method: "POST", headers: { "content-type": "application/json" }, body }), 0);
     } else if (m.type === "intercepted-fetch-response") {
       setTimeout(() => {
-        this.emit({ type: "cookie-writeback", value: `AMCV_TEST@AdobeOrg=MCMID|${ECID}; Domain=airlock.example; Path=/; Secure; SameSite=None` });
+        // spec 035-01 finding: the AMCV_ cookie NAME carries the org id with its
+        // "@" PERCENT-ENCODED (%40) — mirroring how kndctr_ already transforms it
+        // to "_" (rig/alloy-live-reprobe.mjs's grounded redaction note) — real
+        // alloy avoids a literal "@" in a cookie NAME (an RFC 6265 token
+        // separator, `core/cookie-scope.js`'s isValidCookieName). A raw "@" here
+        // was this fixture's pre-035-01 simplification; %40 is the realistic
+        // on-the-wire shape AND a valid token, so this write-back still survives
+        // the new name-scope + validation gate (035-01 AC2/AC5 no-regression).
+        this.emit({ type: "cookie-writeback", value: `AMCV_TEST%40AdobeOrg=MCMID|${ECID}; Domain=airlock.example; Path=/; Secure; SameSite=None` });
         this.emit({ type: "result", summary: { booted: true }, ready: [] });
       }, 0);
     }
@@ -511,6 +519,56 @@ describe("boot(config) — AC6: end-to-end boot → page_view → interact dispa
     window.airlock.push({ event: "page_view", page_location: "https://site/2" }); // the soft-nav case
     await waitFor(() => globalThis.fetch.mock.calls.length >= 2); // would hang pre-033-02 (event #2 never dispatched)
     expect(globalThis.fetch.mock.calls.length).toBe(2);
+  });
+});
+
+// spec 035-01 AC1/AC5 (OQ13-4) — the READ scope: bootAlloy filters
+// document.cookie to ONLY alloy's declared cookie names (ALLOY_COOKIE_NAMES)
+// BEFORE host.init({cookie}), so the chamber's synchronous cookie cache is
+// seeded with nothing the connector didn't declare — a chamber read (readSync)
+// can never surface a foreign cookie (the whole-jar READ leak this slice
+// closes). AC5's no-regression proof rides the SAME assertion from the other
+// direction: every one of alloy's own declared names survives the filter
+// unharmed.
+describe("boot(config) — AC1/AC5 (spec 035-01): the boot seed is scoped to alloy's declared cookie names", () => {
+  beforeEach(() => {
+    RecordingWorker.instances = [];
+    vi.stubGlobal("Worker", RecordingWorker);
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({ status: 200, statusText: "OK", headers: { get: () => "application/json" }, text: async () => "{}" })));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("AC1: a jar of _ga/kndctr_org/sid/demdex seeds host.init with ONLY the granted names — _ga and sid are ABSENT", async () => {
+    vi.stubGlobal("document", { cookie: "_ga=1; kndctr_org=2; sid=secret; demdex=3" });
+    await bootAlloy(alloyEntry());
+    const init = initOf(alloyWorker());
+    expect(init.cookie).toBe("kndctr_org=2; demdex=3");
+  });
+
+  it("AC5 no-regression: EVERY one of alloy's declared names (kndctr_/AMCV_/demdex/s_ecid/getTld) survives the filter, every foreign cookie is dropped", async () => {
+    vi.stubGlobal("document", {
+      cookie: "_ga=g; AMCV_ORG=MCMID|123; sessionid=x; kndctr_ORG_identity=abc; auth=secret; demdex=d; s_ecid=e; com.adobe.alloy.getTld=cookie",
+    });
+    await bootAlloy(alloyEntry());
+    const init = initOf(alloyWorker());
+    for (const kept of ["AMCV_ORG=MCMID|123", "kndctr_ORG_identity=abc", "demdex=d", "s_ecid=e", "com.adobe.alloy.getTld=cookie"]) {
+      expect(init.cookie).toContain(kept);
+    }
+    for (const dropped of ["_ga=g", "sessionid=x", "auth=secret"]) {
+      expect(init.cookie).not.toContain(dropped);
+    }
+  });
+
+  it("an empty document.cookie still boots (no throw) and seeds an empty scoped jar", async () => {
+    vi.stubGlobal("document", { cookie: "" });
+    await expect(bootAlloy(alloyEntry())).resolves.toBeTruthy();
+    expect(initOf(alloyWorker()).cookie).toBe("");
+  });
+
+  it("no `document` global at all (node/SSR boot) still boots — the pre-existing guard, unaffected by scoping", async () => {
+    await expect(bootAlloy(alloyEntry())).resolves.toBeTruthy();
+    expect(initOf(alloyWorker()).cookie).toBe("");
   });
 });
 
