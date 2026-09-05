@@ -165,9 +165,11 @@ follow-on); board synced.
 | `adapters/eds/cookies.js` | `no-op` | AC6 named follow-on — the host-only `createCookieCapability` `{get,set}` accessor is granted to no connector; deliberately untouched. |
 | `docs/specs/README.md` (board) | `deferred` | Flips to DONE at the DONE transition (close-out). |
 
+**Excluded as SDD process/review scaffolding (not deliverable surfaces; changes narrated elsewhere, not silent drift):** this slice's own `spec.md` (the frame-critique retarget — narrated in its Overview "Frame-critique retarget (2026-09-05)" note), this slice doc (carries the deviation log + dispositions + sweep), and the four `reviews/slice-01-{frame-critique,compliance,craft,arch}.md` verdict records. **Also deliberate (not a missed twin of the `@`→`%40` fixture fix):** `test/wrapped-sdk-host.test.js:225` retains a literal `@` cookie name on the `grantedCookieNames:null` back-compat path — the gate is OFF there (verbatim reconcile), so the name is never validated; that literal proves the byte-identical pre-035-01 path, and correcting it would defeat the test's purpose.
+
 ### Definition of Done — verification
 - [x] All 6 ACs pass; **TDD red→green** (implementer wrote failing tests first per section, then implemented to green). `npm test`: **82 files, 1203 tests** (1142 baseline + 61: 60 impl + 1 import-free-guard case). `node build.mjs` OK; `node contracts/validate.mjs` all pass; `npm run lint` clean.
 - [x] READ scope (seed filter) + WRITE scope+validation (write-back seam) both enforced host-side on the trusted seam; one SSOT (`ALLOY_COOKIE_NAMES`); opt-in null ⇒ byte-identical back-compat; alloy round-trips under the scoped grant (AC5).
 - [x] Reviewed: **frame-critique** PASS (3 rounds: retarget → seam-grounding → pass); **compliance** PASS; **craft** PASS; **arch** PASS (re-run after the 1 blocker + 1 nit were fixed). Deviation log + review dispositions + reconciliation sweep produced.
 - [x] `docs/refinement-todo.md` OQ13-4 RESOLVED for the live grant; carried follow-ons recorded (the `createCookieCapability` wrapper, the `SecurityError` rider, the fail-open coupling → 037, the value-side residual).
-- [ ] Reconciliation review passed; board synced (pending — this close-out, then the reconciliation pass + DONE transition).
+- [x] Reconciliation review PASSED (Close-out honest + complete; sweep accounts for every changed path incl. the SDD-scaffolding exclusion note); board synced at the DONE transition.
