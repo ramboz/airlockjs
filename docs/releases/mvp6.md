@@ -82,7 +82,7 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 | **Distribution decision + setup** (OQ8: git-subtree and/or npm) | OQ8; aem-martech convention | A site cannot adopt what it cannot consume |
 | **Remaining production-hardening residuals** — name-scoped cookie-grant wrapper + name-validation (OQ13-4), `reserveSpace` eager-phase production wiring (018-h) _(dispose guard + eslint scope closed in MVP4)_ | refinement-todo OQ13; spec 018 item h | Security-safe, production-wired |
 | **1.0 API stability pin** — connector interface + capability API + `push()` surface | contracts/; every release note's pre-1.0 caveat | Adoption needs a stability contract |
-| **Real-production-site validation** — supported subset (GA4 + Adobe/alloy) on a real page, CWV preserved | Customer prod stack (R-007) | The adoption proof: airlock runs on a real site at ~zero CWV cost |
+| **Real-production-site validation** — supported subset (GA4 + Adobe/alloy) on a real page, CWV preserved | Customer prod stack (R-007); harness + run-procedure: [docs/real-site-validation.md](../real-site-validation.md) (spec 036-01) | The adoption proof: airlock runs on a real site at ~zero CWV cost |
 
 ### Defer
 

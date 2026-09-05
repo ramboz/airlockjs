@@ -35,6 +35,11 @@ import { fileURLToPath } from "node:url";
 import { launch } from "chrome-launcher";
 import lighthouse from "lighthouse";
 import { chromium } from "playwright";
+// spec 036-01 AC1: the median/armSummary/delta/band engine now lives in lh-core.mjs so
+// rig/lh-live.mjs's live/local query-gate harness REUSES it — not a parallel
+// re-implementation. Pure logic, unit-tested in test/lh-core.test.js; this file's own
+// behavior is byte-unchanged (AC7) — only WHERE the math lives moved.
+import { armSummary, computeDeltaMedian, runLighthouseOnce, withinTightBand } from "./lh-core.mjs";
 
 const REPO = fileURLToPath(new URL("..", import.meta.url));
 const ROOT = join(REPO, "probes/eds-testbed");
@@ -85,19 +90,7 @@ const url = `http://localhost:${port}/index.html`;
 const chrome = await launch({ chromePath: chromium.executablePath(), chromeFlags: ["--headless=new", "--no-sandbox"] });
 
 async function runOne() {
-  const res = await lighthouse(url, {
-    port: chrome.port,
-    onlyCategories: ["performance"],
-    formFactor: "desktop",
-    screenEmulation: { disabled: true },
-  });
-  const a = res.lhr.audits;
-  return {
-    performance: Math.round(res.lhr.categories.performance.score * 100),
-    LCP_ms: Math.round(a["largest-contentful-paint"].numericValue),
-    TBT_ms: Math.round(a["total-blocking-time"].numericValue),
-    CLS: Number(a["cumulative-layout-shift"].numericValue.toFixed(3)),
-  };
+  return runLighthouseOnce(lighthouse, url, { port: chrome.port });
 }
 
 const arms = { off: [], on: [] };
@@ -109,32 +102,10 @@ for (let i = 0; i < LH_N; i++) {
 await chrome.kill();
 server.close();
 
-const median = (xs) => {
-  const s = [...xs].sort((a, b) => a - b);
-  const m = Math.floor(s.length / 2);
-  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
-};
-const summ = (rows, key) => {
-  const xs = rows.map((r) => r[key]);
-  return { median: median(xs), min: Math.min(...xs), max: Math.max(...xs) };
-};
-const armSummary = (rows) => ({
-  performance: summ(rows, "performance"),
-  LCP_ms: summ(rows, "LCP_ms"),
-  TBT_ms: summ(rows, "TBT_ms"),
-  CLS: summ(rows, "CLS"),
-  raw: rows,
-});
-
 const off = armSummary(arms.off);
 const on = armSummary(arms.on);
-const deltaMedian = {
-  performance: on.performance.median - off.performance.median,
-  LCP_ms: on.LCP_ms.median - off.LCP_ms.median,
-  TBT_ms: on.TBT_ms.median - off.TBT_ms.median,
-  CLS: Number((on.CLS.median - off.CLS.median).toFixed(3)),
-};
-const withinBand = deltaMedian.TBT_ms <= 50 && Math.abs(deltaMedian.CLS) <= 0.01;
+const deltaMedian = computeDeltaMedian(off, on);
+const withinBand = withinTightBand(deltaMedian);
 
 const out = {
   question: "does loading the airlock runtime (bundled + lazy) cost ~zero page-load CWV on the REAL testbed page?",

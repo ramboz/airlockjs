@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Airlock EDS testbed — alloy fixture (spec 036-01 harness)</title>
+    <link rel="canonical" href="http://localhost:3111/index-alloy">
+    <meta name="description" content="Local mock document with a window.__airlockConfig (alloy) fixture — spec 036-01's local dry-run, fork B. No experiment wiring (unrelated to the index.html hero-cta demo).">
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="script-src 'nonce-aem' 'strict-dynamic' 'unsafe-inline' http: https:; base-uri 'self'; object-src 'none'; frame-src 'self' https:; require-trusted-types-for 'script';"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link rel="modulepreload" href="/scripts/experiment-loader.js" />
+    <!-- spec 036-01 fork B: rig/lh-live.mjs's local server injects (or omits) the
+         window.__airlockConfig script HERE, BEFORE aem.js/scripts.js load — gated on the
+         SAME query flag the live procedure uses (docs/real-site-validation.md), so the OFF
+         arm never sees window.__airlockConfig (a genuinely bare page for BOTH airlock
+         entrypoints — scripts.js:184 eager + :246 lazy). A STUB bundleUrl only (NOT the
+         real ~766 KB @adobe/alloy, NOT a live Adobe Edge endpoint) — this fixture proves the
+         eager-reserve pre-appear PATH runs locally, not a live Edge round-trip. -->
+    <!--AIRLOCK_CONFIG-->
+    <script nonce="aem" src="/scripts/aem.js" type="module"></script>
+    <script nonce="aem" src="/scripts/scripts.js" type="module"></script>
+    <link rel="stylesheet" href="/styles/styles.css"/>
+  </head>
+  <body>
+    <header></header>
+    <main>
+      <div>
+        <h1 id="hero-heading">Alloy fixture: does the eager reserve cost ~zero LCP?</h1>
+        <p>The largest-contentful-paint candidate on this page — deliberately NOT the
+           personalization placement target below, so a reserved/hidden promo box cannot
+           itself delay LCP; the eager import's OWN cost is what 036-01 measures.</p>
+      </div>
+      <div>
+        <h2>Personalization slot (PROFILE=personalization only)</h2>
+        <p>An empty box a "personalization" alloy connector entry can declare as a
+           placement (`selector: "#airlock-harness-promo-slot"`). Reserved pre-paint by
+           reserve-personalization.js when declared; inert (no min-height, no visibility
+           change) for the "alloy-analytics" / "ga4" profiles, which never declare it.</p>
+        <div id="airlock-harness-promo-slot"></div>
+      </div>
+    </main>
+    <footer></footer>
+  </body>
+</html>

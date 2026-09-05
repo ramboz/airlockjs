@@ -212,6 +212,10 @@ git push --follow-tags   # 2. publish the source commit + the vX.Y.Z tag.
 - `npm run lint` — ESLint (real-bug ruleset; CI gates on it).
 - `npm run build` — bundle the runtime into the EDS testbed (`probes/eds-testbed/`) for the rigs.
 - `npm run rig:*` — Playwright/chromium proof rigs (see `package.json`).
+- `npm run lh:live` — the live before/after CWV harness (spec 036-01): points at your own
+  real EDS site to check "does adopting airlock preserve Core Web Vitals?" See
+  [docs/real-site-validation.md](docs/real-site-validation.md) for the full run-procedure
+  (creds-gated — you run it, this repo never handles your site's credentials).
 
 See [docs/workflow.md](docs/workflow.md) for the spec-driven workflow and
 [docs/conventions.md](docs/conventions.md) for coding rules.

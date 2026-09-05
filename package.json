@@ -41,6 +41,7 @@
     "rig:subtree": "node rig/subtree-install.mjs",
     "lh": "node rig/lh.mjs",
     "lh:eds": "node rig/lh-eds.mjs",
+    "lh:live": "node rig/lh-live.mjs",
     "cwv:budget": "node rig/cwv-budget.mjs",
     "cwv:scoreboard": "node rig/cwv-scoreboard.mjs"
   },
