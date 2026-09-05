@@ -69,13 +69,19 @@ to scope itself).
     `CapabilityRequest.cookies: readonly string[]` (`contracts/capability.d.ts:33`) — **no prefix marker in the type**.
     ADR-0006 `granted = declared ∩ allowed` (`core/consent.js`) — the grant *law*, but **silent on the enforcement
     *shape***, so the shape is this spec's to design (not a settled residual).
-- **The frame-critique must ground the remaining load-bearing specifics** (NOT asserted here): (a) how the connector's
-  granted cookie-name set is **threaded** to the two host enforcement points (`bootAlloy` at `:1077` has the alloy entry;
-  the `cookie-writeback` handler lives in `createWrappedSdkHost` — does the granted set reach it via `host.init`, or is a
-  new thread needed?); (b) the **exact-vs-prefix match rule** over a `readonly string[]` with no prefix marker; (c) the
-  **name-validation grammar** (RFC 6265 token) + throw-vs-drop; (d) whether a **scoped seed still round-trips alloy**
-  (alloy reads only its own declared names + the getTld probe cookie it writes itself, so a declared-name-scoped seed
-  SHOULD preserve function — but this is the no-regression hypothesis the slice must PROVE, not assume); (e) whether the
+- **Seam threading (verified at the frame-critique re-run 2026-09-05 — corrects the first draft's two wrong hints):**
+  the declared set is **NOT reachable on main today** (`index.js:38` imports only `ALLOY_INTERACT_ENDPOINT`;
+  `createAlloyConnector` + its `capabilities.cookies` manifest — `connector.js:67,113` — is worker-only), so the
+  single-source-of-truth needs a **static `ALLOY_COOKIE_NAMES` export from `connector.js`** (mirroring
+  `ALLOY_INTERACT_ENDPOINT`) imported by both the worker manifest and main-thread `bootAlloy`. And the write-back
+  handler enforces off the **`createWrappedSdkHost({…})` construction closure** (`wrapped-sdk-host.js:464-471`), NOT
+  `host.init` (which only `postMessage`s into the untrusted chamber, `:499-501`) — so the scope set is a
+  `createWrappedSdkHost` option alongside `configIntegrity`/`endpointCeiling` (`index.js:1046-1063`).
+- **The frame-critique must ground the remaining load-bearing specifics** (NOT asserted here): (a) the
+  **exact-vs-prefix match rule** over a `readonly string[]` with no prefix marker; (b) the **name-validation grammar**
+  (RFC 6265 token) + throw-vs-drop; (c) whether a **scoped seed still round-trips alloy** (alloy reads only its own
+  declared names + the getTld probe cookie it writes itself, so a declared-name-scoped seed SHOULD preserve function —
+  but this is the no-regression hypothesis the slice must PROVE, not assume); (d) whether the
   `SecurityError`→graceful-null-identity rider is in-scope.
 
 ## Decomposition

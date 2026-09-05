@@ -30,11 +30,20 @@ chamber to scope itself — 034-01).
   host-side-only (NOT this slice's target); `CapabilityRequest.cookies: readonly string[]` (`capability.d.ts:33`);
   ADR-0006 grant law (`core/consent.js`).
 
-**Design focus for the frame-critique (grounds the load-bearing specifics — NOT asserted here):**
-- **Threading the granted-name set to the two host seams.** `bootAlloy` (`:1077`) has the alloy config entry (its
-  declared `cookies` are reachable there); the `cookie-writeback` handler lives inside `createWrappedSdkHost` and today
-  gets its config via `host.init`. Ground whether the granted set reaches the write-back handler already, or needs a new
-  thread through `host.init({…, grantedCookieNames})`. **This wiring is the primary implementer grounding task.**
+**Design focus (seam mechanics — verified at the frame-critique re-run, 2026-09-05; the two threads below are the
+primary implementer wiring):**
+- **The declared cookie set is NOT reachable on main today** — `adapters/eds/index.js:38` imports only
+  `ALLOY_INTERACT_ENDPOINT` from `connectors/alloy/connector.js`; `createAlloyConnector` + its
+  `capabilities.cookies` manifest (`connector.js:67,113`) is instantiated **only in the worker**
+  (`alloy-chamber.worker.js`). ⇒ AC3's single-source-of-truth needs a **new static export from `connector.js`**
+  (mirroring `ALLOY_INTERACT_ENDPOINT` — e.g. `export const ALLOY_COOKIE_NAMES = [...]`) that BOTH the worker manifest
+  and main-thread `bootAlloy` import, so the read-filter and the write-scope share one definition (not a hard-coded copy).
+- **Write-seam threading — via `createWrappedSdkHost({…})` options, NOT `host.init`.** `host.init` (`wrapped-sdk-host.js:499-501`)
+  only `postMessage`s `{type:"init", …}` INTO the (untrusted) worker — threading the scope set there would hand it to
+  the chamber, inverting the trusted-seam principle. The `cookie-writeback` handler (`wrapped-sdk-host.js:464-471`)
+  enforces off the `caps`/config **closure captured at `createWrappedSdkHost(...)` construction**, so `grantedCookieNames`
+  must be passed as a `createWrappedSdkHost({…})` option alongside `configIntegrity`/`endpointCeiling`/`consent`
+  (`index.js:1046-1063`), captured host-side by the handler's closure.
 - **Exact-vs-prefix match rule** over a `readonly string[]` with no prefix marker (alloy declares both — `kndctr_`/`AMCV_`
   prefix, `demdex`/`s_ecid`/`com.adobe.alloy.getTld` exact). Ratify the convention (trailing `_` ⇒ prefix? explicit?)
   and pin it against the real declarations.
@@ -59,9 +68,12 @@ chamber to scope itself — 034-01).
    `document.cookie`) + diagnosed; and (b) **name-scoped** — a write whose name is not in the granted set (e.g. the
    chamber posts `_ga=…` or `session=…`) is dropped + diagnosed, never written. A granted, valid name (`kndctr_org=…`,
    `s_ecid=…`) is written as before.
-3. **The granted-name set is threaded from `CapabilityRequest.cookies` ∩ allowlist (ADR-0006)** to BOTH seams (per the
-   frame-critique's grounding) — a single source of truth for the scope, derived from the alloy connector's declared
-   cookies, not a hard-coded list.
+3. **The granted-name set is threaded from the connector's declared cookies (∩ allowlist, ADR-0006) to BOTH seams from
+   ONE source of truth.** Since the manifest is worker-only today (see design focus), add a static `ALLOY_COOKIE_NAMES`
+   export to `connectors/alloy/connector.js` (mirroring `ALLOY_INTERACT_ENDPOINT`), used by the worker manifest AND by
+   main-thread `bootAlloy` — so the read-filter seed (AC1) and the write-back scope (AC2) derive from the same declared
+   list, not a hard-coded copy. Test: the manifest's `capabilities.cookies` and the main-thread scope resolve to the
+   identical set.
 4. **Exact-vs-prefix semantics** grounded + tested against alloy's real manifest: `kndctr_`/`AMCV_` match by prefix
    (`kndctr_org`, `AMCV_1234`); `demdex`/`s_ecid`/`com.adobe.alloy.getTld` match exact (a stray `demdex_evil` is NOT
    granted by the `demdex` exact entry).
