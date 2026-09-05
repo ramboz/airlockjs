@@ -1,9 +1,8 @@
 ---
-status: REVIEWED
+status: DONE
 dependencies: [036-01]
-last_verified:
+last_verified: 2026-09-05
 frame_review: true  # Fork C (which named live residuals the harness EXERCISES vs the procedure DOCUMENTS) + the subset-smoke local-provability split are load-bearing.
-claimed_by: claude/mvp6-e4550f
 ---
 
 <!-- jig self-defining vocabulary (soft, forward-only); jig grounding (064-02/ADR-0020): probe/cite or mark assumptions. -->
