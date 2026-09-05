@@ -44,7 +44,8 @@ site).
   - **GA4-only** (`bootEdsAnalytics()`, no `__airlockConfig`): all airlock work post-LCP ⇒ LCP Δ≈0 **by construction** ⇒
     the tight **TBT Δ≤50 ms / |CLS Δ|≤0.01** band is meaningful.
   - **ANY `__airlockConfig` (all alloy — analytics-only AND personalization; there is no non-`__airlockConfig` alloy
-    path, `boot(config)` at `:246`/`:251` requires it):** the eager import fires pre-`appear` ⇒ LCP is a **MEASURED
+    path — `boot(config)` is gated at `:246`, imported at `:251`, invoked at `:252`, all requiring `__airlockConfig`):**
+    the eager import fires pre-`appear` ⇒ LCP is a **MEASURED
     delta, NOT ≈0 by construction** (a real pre-paint import cost — a live-CDN round-trip — is exactly what 036 exists to
     MEASURE, not assert). Two sub-reads within this profile: **alloy-analytics-only** (no `placements`) reserves no box,
     so the LCP delta is just the lightweight-import cost and CLS should be ~unaffected; **personalization**
@@ -105,6 +106,10 @@ site).
    equivalent edge cache-state / comparable TTFB before the measured run, so the query variant is not silently
    origin-rendered while plain is edge-cached — else the fixed-offset confound returns); which profile's band to read;
    and the FALLBACK (two deployments, band-withheld). The gate is throwaway validation scaffolding, never shipped runtime.
+   The procedure names `window.__airlockOwnsRum` (`scripts.js:270` → a post-`appear` `bootHelixRum`, `:272`) as a
+   **distinct toggle axis** from `__airlockConfig`: it is post-LCP (so it does not touch the LCP-by-construction
+   discriminant; its cost rides the TBT band), so the operator gates the axis under test and does not conflate the
+   RUM-replace toggle with the connector-config axis (RUM-replace boot-health is 036-02's territory).
 7. **No-regression.** If the harness generalizes `lh-eds.mjs`, `npm run lh:eds` (the local OFF/ON path) stays
    byte-behaviour-identical when no live `URL` is given; `cwv:scoreboard`/`cwv:budget` unaffected. `npm test` +
    `node build.mjs` + `contracts/validate.mjs` + `npm run lint` stay green.
