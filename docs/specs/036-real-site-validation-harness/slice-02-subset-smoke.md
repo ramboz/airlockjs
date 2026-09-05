@@ -62,9 +62,10 @@ testbed for what is locally provable; the real-Edge / real-RUM-collector steps a
      captured beacon / a 2xx / boot-health reveals only what airlock **sent**, NEVER what the collector **kept** —
      confirming acceptance from those is a structural FALSE-GREEN. The checklist REQUIRES **downstream AEM RUM-data
      inspection** (the RUM bundler/explorer — is the superset present in the collected data?), ideally a **differential
-     against a stock `sampleRUM` run**. Stakes: RUM-replace neutralizes inline `sampleRUM` (`README.md` — "Replacing
-     will silently stop collecting them"), so a false-green ships airlock as the RUM authority while the site silently
-     loses CWV telemetry with no error anywhere. **A captured beacon is explicitly NOT a sufficient reveal for this item.**
+     against a stock `sampleRUM` run**. Stakes: the `__airlockOwnsRum` cutover neutralizes ALL inline `sampleRUM` egress
+     — `cwv` included (`connectors/helix-rum/README.md`; testbed `scripts.js` `sampleRUM`-neutralize comment) — so a
+     downstream superset rejection ships airlock as the RUM authority while the site silently loses CWV telemetry with
+     no error anywhere. **A captured beacon is explicitly NOT a sufficient reveal for this item.**
    - **alloy endpoint-ceiling breadth** — the wrapped-SDK host HOLDS a server-directed `demdex`/ID-sync URL the live
      Edge returns, surfaced fail-closed via the `kind:"endpoint-ceiling"` held diagnostic (`core/wrapped-sdk-host.js`,
      captured through `onDiagnostic`), NOT silently dropped (refinement-todo ~L563). Reveal: the captured diagnostic.
