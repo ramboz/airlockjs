@@ -464,9 +464,40 @@ composite does not surface helix-rum's `sampled` flag. Terminal pre-1.0 choices;
 (e.g. `getState({connector})`) would resolve both.
 **Resolution trigger:** a caller needs a specific connector's projection from a multi-connector composite; or the 1.0 pin.
 
-### Decision: alloy config-wiring (`{type:"alloy"}` in `boot(config)`) — DEFERRED to its own spec
-**Deferred:** 032 (the config-driven `boot(config)` + its schema) covers the `createAirlock`-shaped, adapter-booted
-connectors — GA4, the three pixel vendors, helix-rum. **alloy is not among them:** it has no `adapters/eds/` boot,
+### Decision: alloy config-wiring (`{type:"alloy"}` in `boot(config)`) — ANALYTICS vertical LANDED (033-02); personalization → 033-03
+**Analytics config-surface gap CLOSED (2026-09-04, spec 033-02):** `{type:"alloy", bundleUrl, …}` now boots Adobe/alloy
+through the config surface via `bootAlloy` (`adapters/eds/index.js`) over `core/wrapped-sdk-host.js` (extended for N
+sequential events) + airlock's classic alloy chamber worker (CSP-load fixed: a worker-realm Trusted Types policy +
+`importScripts(policy.createScriptURL(bundleUrl))`, emitted as a 5th `format:"iife"` `dist` entry). The stock
+`@adobe/alloy` bundle is **adopter-supplied** via `bundleUrl` ([ADR-0016](decisions/adr-0016-alloy-stock-bundle-site-supplied.md));
+airlock does not ship it. Schema `{type:"alloy"}` branch + golden/negative fixtures + README landed. So MVP6's named
+"GA4 + Adobe/alloy" config-surface gap is **CLOSED for the analytics case**. `bootAlloy` wires the TRUSTED seam gates:
+config-integrity (spec 015 — pins the `configId` tenant to the host-owned datastream; a re-tenant to an attacker org
+is HELD, load-bearing because ADR-0016 permits an untrusted cross-origin bundle), the endpoint-ceiling (spec 016 — the
+grounded interact FLOOR), and the strict consent drop (020-02).
+
+**Still open / follow-ons:**
+- **[033-03](specs/033-alloy-config-wiring/slice-03-alloy-decisions.md): alloy personalization / decisions-as-data**
+  (Target propositions → `reserveSpace`) — the host still ignores `{type:"decisions"}` (no regression).
+- **endpoint-ceiling BREADTH grounding (creds-gated live-Alloy).** `bootAlloy`'s ceiling is the grounded interact
+  FLOOR (`ALLOY_INTERACT_ENDPOINT`, 016-02 AC3/AC5): the honest interact passes; the server-directed demdex/ID-sync
+  breadth the Edge *response* returns at runtime is HELD+surfaced fail-closed (NOT a silent drop). Grounding that
+  breadth into the declared set needs a live-Alloy run (creds-gated, like the 013 live re-probe) — until then the floor
+  holds it. Trigger: a real-Alloy adopter needs the server-directed syncs, or the MVP6 live-site validation.
+- **`pushCritical` unload fast-path for the wrapped-SDK interact.** alloy's interact is a synchronous vendor round-trip
+  (not a sync `sendBeacon`), so `bootAlloy`'s `pushCritical` currently rides the SAME queued `driveEvent` — best-effort
+  on unload, no true fast path. A closing `page_view` may not complete before teardown. Trigger: an adopter needs a
+  reliable unload-time alloy beacon.
+- **config-integrity `disposition:"override"` opt-in (optional).** `bootAlloy` pins `disposition:"hold"` (fail-closed).
+  015-02's `"override"` (re-derive a re-pointed interact to the honest host+tenant and SEND, still alerting) could be a
+  documented config opt-in for availability-over-integrity. Not built — hold is the safe default.
+- **Residual (carried, not retired here):** the hermetic CSP proof (`rig:alloy-csp`, PASS) uses a stub bundle under the
+  captured boilerplate CSP; the **live-host Trusted-Types re-confirm + real ~766 KB bundle boot** is deploy/creds-gated
+  (ADR-0016 kill-criterion — a restrictive `trusted-types <names>` directive omitting the worker's policy name).
+
+**Original deferral (preserved):** 032 (the config-driven `boot(config)` + its schema) covers the
+`createAirlock`-shaped, adapter-booted connectors — GA4, the three pixel vendors, helix-rum. **alloy was not among
+them:** it had no `adapters/eds/` boot,
 being hosted via `core/wrapped-sdk-host.js` + `connectors/alloy/*` (async stock-SDK load, `createConnectorHost`,
 `alloy-chamber.worker.js`, `handle` returns `[]` — a different handle shape than the composite fans to), exercised
 only in `rig/`/`test/`. So a `{type:"alloy"}` config entry is alloy's **first-ever adapter boot — spike-sized**,

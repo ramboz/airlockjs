@@ -1,7 +1,7 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: DONE
 dependencies: [033-01]
-last_verified:
+last_verified: 2026-09-04
 arch_review: true  # extends the public boot(config) surface + the config schema to a new (wrapped-SDK) connector.
 frame_review: true  # re-framed on the landed spike design + ADR-0016; a new connector governance-class in the seam.
 ---
@@ -107,3 +107,68 @@ referenced for the `bundleUrl` distribution decision.
 restrictive live-host `trusted-types <names>` directive is the only residual CSP risk — 033-01 Outcome + ADR-0016
 kill-criteria) is a **deploy/creds-gated** step, tracked as a follow-up (like the 013 live-alloy re-probe). This slice
 does **not** claim to retire it — the hermetic proof establishes the mechanism, not the live-host + real-bundle boot.
+
+## Close-out
+
+### Deviation log
+
+**TRUSTED seam gates in `bootAlloy` (config-integrity + endpoint-ceiling) — wired, not deferred.** An initial cut
+omitted `configIntegrity` + `endpointCeiling` from `bootAlloy`'s `createWrappedSdkHost(...)` call, reasoning the
+server-directed egress breadth is creds-gated. The gating **compliance + arch** reviews correctly flagged this as a
+1.0 **security regression**, not sound scoping — and it is now **fixed** (`adapters/eds/index.js` `bootAlloy`):
+
+- **config-integrity (spec 015 / ADR-0011)** — the interact is pinned to `{ pinnedHost: "adobedc.demdex.net",
+  tenantKey: "configId", pinnedTenant: <the host-owned datastreamId>, disposition: "hold" }`. This has **no
+  enumeration problem** (it pins the TENANT, built from the `datastreamId` the config already carries), the threat is
+  **confirmed-live** (013-03: the real Edge routes by `configId` on a single shared host), and it is **load-bearing
+  precisely because ADR-0016 permits a cross-origin/untrusted adopter bundle** — a compromised bundle re-`configure`-ing
+  or crafting its own `?configId=<attacker-org>` interact is now **HELD at the seam** (fail-closed), proven by
+  `test/eds-boot-alloy.test.js` "a RE-TENANT interact … is HELD by config-integrity". The datastream id is therefore
+  **required** (schema `anyOf` + `validateConnectorEntry` + a missing-datastream negative fixture).
+- **endpoint-ceiling (spec 016 / ADR-0006)** — wired to the **grounded interact FLOOR** (`[ALLOY_INTERACT_ENDPOINT]`,
+  origin+path). This is exactly the trade-off **016-02 AC3/AC5 already accepted**: ship the grounded origin as the
+  enforced floor (which does NOT block the honest analytics interact — proven by the honest-regression test), and
+  **HOLD + surface** the un-grounded server-directed breadth (demdex/ID-sync URLs the Edge *response* returns at
+  runtime, which a static declaration can't enumerate) **fail-closed — NOT a silent drop**. Only the *breadth-grounding*
+  is creds-gated (the live-Alloy follow-on, `docs/refinement-todo.md`); the floor is shipped and enforced now. Proven by
+  `test/eds-boot-alloy.test.js` "an OFF-FLOOR destination … is HELD by the endpoint-ceiling".
+
+**Craft nits recorded (non-blocking).** (a) `test/alloy-chamber-csp.test.js` proves the CSP fix by source-grep
+(`createPolicy`/`createScriptURL` present) — presence, not runtime admission; the **real** admission proof is
+`rig:alloy-csp` (PASS in a real browser: reaches `configured`, not `fatal{phase:"load"}`). (b) The
+`CLASSIC_WORKER_ENTRIES`-declares-alloy assertion in `test/dist-build-publish.test.js` is a cheap tautology guard.
+(c) `build.mjs`'s basename-only out-namer would collide on same-basename entries in different dirs — none today; noted
+in a code comment. (d) `pushCritical` rides the same queued `driveEvent` (no sync sendBeacon fast path for the async
+interact) — follow-on tracked.
+
+**Follow-ons parked** in `docs/refinement-todo.md`: endpoint-ceiling breadth grounding (creds-gated live-Alloy);
+`pushCritical` unload fast-path; optional config-integrity `disposition:"override"` opt-in; and (033-03) alloy
+personalization / decisions-as-data.
+
+### Reconciliation sweep
+
+| Artifact | Disposition | Rationale |
+|----------|-------------|-----------|
+| `core/wrapped-sdk-host.js` | `updated` | AC2 host N-sequential-events extension (`configured` latch; post-`configured` `driveEvent` dispatches immediately). Reviewed race-free (craft) + invariant-preserving, alloy-only blast radius (arch). |
+| `adapters/eds/index.js` | `updated` | `bootAlloy` (Worker construct+teardown, serial `driveEvent` queue, composite handle) + `case "alloy"` + `KNOWN_CONNECTOR_TYPES` + validation + the TRUSTED seam gates (config-integrity pin + endpoint-ceiling FLOOR + strict consent). |
+| `connectors/alloy/alloy-chamber.worker.js` | `updated` | AC1 CSP fix (worker-realm TT policy + `importScripts(createScriptURL(bundleUrl))`); + runtime-assembled `data:` probe strings (build-scan false-positive workaround; probe behavior byte-identical — craft-verified). |
+| `build.mjs` | `updated` | AC4 5th classic-IIFE `dist` entry (2nd `format:"iife"` build) + generalized basename out-namer + layout assertions reworked across BOTH build results (extend, not weaken the ESM-4 invariants). |
+| `publish-dist.mjs` | `updated` | AC4 `DIST_ARTIFACTS` extended to include the alloy worker (else a consumer page 404s it). |
+| `contracts/instrumentation-config.schema.json` | `updated` | AC5 `{type:"alloy"}` discriminated-union branch: required `bundleUrl` + a `datastreamId`/`datastream`/`edgeConfigId` `anyOf`. |
+| `contracts/validate.mjs` | `updated` | AC5 wire the alloy golden + the two alloy negatives. |
+| `contracts/fixtures/*.json` | `updated` | AC5 golden + `missing-bundleUrl` + `missing-datastream` negatives; repurposed the `unknown-type` negative (alloy→tiktok, since alloy is now known). |
+| `README.md` | `updated` | AC5 "Configure airlock" — alloy **analytics** covered via the config surface + the adopter-supplied `bundleUrl` prerequisite ([ADR-0016](../decisions/adr-0016-alloy-stock-bundle-site-supplied.md); personalization → 033-03). |
+| `docs/refinement-todo.md` | `updated` | alloy config-wiring entry: analytics config-surface gap **CLOSED** (033-02); follow-ons parked (033-03 personalization, ceiling-breadth grounding, `pushCritical` unload, override opt-in, live-host TT residual). |
+| `package.json` | `updated` | the `rig:alloy-csp` script (the AC1 browser CSP proof). |
+| `test/eds-boot-alloy.test.js` (new), `test/alloy-chamber-csp.test.js` (new), `test/wrapped-sdk-host.test.js`, `test/dist-build-publish.test.js`, `test/instrumentation-config-contract.test.js` | `updated` | AC1–AC6 tests incl. the re-tenant-HELD + off-floor-HELD security tests, the N-event no-hang, the e2e 2nd-`page_view`. |
+| `rig/alloy-csp.mjs` + `rig/alloy-csp-harness.html` + `rig/alloy-csp-stub-bundle.js` (new) | `updated` | AC1 the promoted CSP browser proof (`rig:alloy-csp`, PASS — real-worker `importScripts` admitted under the enforced boilerplate CSP). |
+| `docs/architecture.md` | `no-op` | the Contract-surfaces instrumentation-config note (032) is connector-agnostic ("`boot(config)` consumes"); alloy is now covered by the same surface — no per-connector enumeration to update. |
+| `docs/specs/README.md` (board) | `deferred` | the 033-02 board row flips DRAFT/IN_PROGRESS→**DONE** at the DONE transition (close-out). |
+| `docs/specs/033-alloy-config-wiring/spec.md` | `no-op` | the SPIDR split + decomposition were committed in `b2b5232` (`docs(033-02)`); the implementation did not touch it. |
+
+### Definition of Done — verification
+- [x] All 6 ACs pass; **TDD red→green**. `npm test`: **80 files, 1071 tests** (baseline 1036 → +35; +6 in the security fix-up round). Zero regressions.
+- [x] `node build.mjs` OK (`all_workers_are_same_origin_file_urls: true`, alloy worker emitted); `node contracts/validate.mjs` all pass; `npm run lint` exit 0; **`rig:alloy-csp` PASS** (real-browser CSP admission).
+- [x] Reviewed: **compliance + craft + arch** (`arch_review: true`) + **frame-critique** (`frame_review: true`) — all recorded pass (compliance + arch after one needs-changes round each; the security-cap gap was caught + fixed).
+- [x] Deviation log + Reconciliation sweep produced; reconciliation review passed.
+- [x] `docs/refinement-todo.md` alloy entry: analytics gap **CLOSED**; personalization tracked as 033-03. Board synced. [ADR-0016](../decisions/adr-0016-alloy-stock-bundle-site-supplied.md) referenced.

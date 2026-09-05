@@ -307,6 +307,64 @@ describe("createWrappedSdkHost — driveEvent lifecycle (init -> configured -> e
   });
 });
 
+// createWrappedSdkHost — N sequential events (spec 033-02 AC2, ARCH-RELEVANT). The
+// 014-01 host dispatched its queued event ONLY on the one-time phase:"configured"
+// message; a SECOND driveEvent on the retained chamber set queuedEvent but was never
+// re-triggered → it hung. 033-02 extends the host so a post-configured driveEvent
+// dispatches IMMEDIATELY (alloy is already configured), enabling N sequential events
+// (soft-nav / multi-pageview) without a hang — while event #1 and every existing
+// single-event caller behave identically (queued-on-configure).
+describe("createWrappedSdkHost — N sequential events (spec 033-02 AC2)", () => {
+  it("a SECOND driveEvent after the first resolves dispatches immediately (already configured) and settles — no hang", async () => {
+    const chamber = makeFakeChamber();
+    const caps = { egress: { dispatch: async () => ({ status: 200, body: "" }) } };
+    const host = createWrappedSdkHost({ chamber, caps });
+
+    host.init({});
+    // Event #1: queued until the chamber reports configured (unchanged 014-01 flow).
+    const first = host.driveEvent({ type: "page_view", seq: 1 });
+    chamber.emit({ type: "phase", name: "configured" });
+    expect(chamber.posted.filter((m) => m.type === "event")).toHaveLength(1);
+    chamber.emit({ type: "result", summary: { n: 1 }, ready: [] });
+    await expect(first).resolves.toMatchObject({ summary: { n: 1 } });
+
+    // Event #2: the chamber is ALREADY configured — driveEvent must post it right
+    // away (pre-033-02 this set queuedEvent but never re-fired → the promise hung).
+    const second = host.driveEvent({ type: "page_view", seq: 2 });
+    const eventMsgs = chamber.posted.filter((m) => m.type === "event");
+    expect(eventMsgs).toHaveLength(2);
+    expect(eventMsgs[1]).toEqual({ type: "event", event: { type: "page_view", seq: 2 } });
+    chamber.emit({ type: "result", summary: { n: 2 }, ready: [] });
+    await expect(second).resolves.toMatchObject({ summary: { n: 2 } });
+  }, 2000); // bounded — the pre-033-02 hang fails FAST instead of hanging the suite
+
+  it("single-event callers are unaffected: event #1 still WAITS for configured (queued, not posted early)", async () => {
+    const chamber = makeFakeChamber();
+    const caps = { egress: { dispatch: async () => ({ status: 200, body: "" }) } };
+    const host = createWrappedSdkHost({ chamber, caps });
+
+    host.init({});
+    host.driveEvent({ type: "page_view" });
+    // No event message before configured — the queued-on-configure contract is intact.
+    expect(chamber.posted.some((m) => m.type === "event")).toBe(false);
+    chamber.emit({ type: "phase", name: "configured" });
+    expect(chamber.posted.some((m) => m.type === "event")).toBe(true);
+  }, 2000);
+
+  it("the re-entry guard still holds across the extension: a driveEvent while one is in flight (post-configured) rejects", async () => {
+    const chamber = makeFakeChamber();
+    const caps = { egress: { dispatch: async () => ({ status: 200, body: "" }) } };
+    const host = createWrappedSdkHost({ chamber, caps });
+
+    host.init({});
+    chamber.emit({ type: "phase", name: "configured" });
+    const inFlight = host.driveEvent({ type: "page_view", seq: 1 }); // posts immediately, unsettled
+    await expect(host.driveEvent({ type: "page_view", seq: 2 })).rejects.toThrow(/already in flight/i);
+    chamber.emit({ type: "result", summary: { n: 1 }, ready: [] });
+    await expect(inFlight).resolves.toMatchObject({ summary: { n: 1 } });
+  }, 2000);
+});
+
 // createWrappedSdkHost — config-integrity enforcement (spec 015-01, ADR-0011): the E2E-at-the-seam
 // proof (AC6 of the slice) that a compromised chamber's re-pointed or foreign-host egress is HELD,
 // alerted, and produces ZERO real dispatch, driving the REAL core seam (this module, not a stub of

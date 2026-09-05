@@ -1,0 +1,5 @@
+{
+  "connectors": [
+    { "type": "alloy", "bundleUrl": "/scripts/airlock/vendor/alloy.js", "orgId": "ABCDEF0123456789ABCDEF01@AdobeOrg" }
+  ]
+}

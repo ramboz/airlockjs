@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>alloy classic-worker CSP rig (spec 033-02 AC1)</title>
+    <!-- CSP is delivered as an HTTP RESPONSE HEADER by rig/alloy-csp.mjs (faithful to
+         the EDS boilerplate's move-to-http-header), on EVERY response — so the worker
+         script inherits the SAME script-src + require-trusted-types-for the page carries. -->
+  </head>
+  <body>
+    <!-- NEGATIVE CONTROL (004-01 honesty guard): a non-nonce'd inline script. Under
+         `script-src 'nonce-aem' 'strict-dynamic'` the 'unsafe-inline' token is IGNORED,
+         so this MUST be blocked. If it runs, the CSP is not enforced and any "admitted"
+         verdict is a false positive. -->
+    <script>window.__cspControlRan = true;</script>
+    <script type="module" nonce="aem">
+      const R = {
+        cspControlRan: null,       // negative control: must end up false (blocked) => CSP enforced
+        pageTtPolicyInstalled: false,
+        violations: [],
+        constructed: null, constructError: null,
+        phases: [], fatal: null,
+        reachedLoaded: null,       // phase:"loaded" => importScripts ADMITTED (the CSP verdict)
+        reachedConfigured: null,
+      };
+      window.__RESULT = R;
+
+      document.addEventListener("securitypolicyviolation", (e) => {
+        R.violations.push({ violatedDirective: e.violatedDirective, blockedURI: e.blockedURI, sample: e.sample });
+      });
+
+      // Replicate the EDS boilerplate's page `default` Trusted Types policy (scripts.js
+      // installs one) so the Worker constructor's TrustedScriptURL sink is exercised
+      // exactly as on a real EDS page. This policy is PER-REALM — it does NOT reach the
+      // worker, which is the whole point: the worker must install its OWN policy (033-02 AC1).
+      if (window.trustedTypes && window.trustedTypes.createPolicy) {
+        try {
+          window.trustedTypes.createPolicy("default", { createHTML: (s) => s, createScriptURL: (s) => s, createScript: (s) => s });
+          R.pageTtPolicyInstalled = true;
+        } catch (e) { /* ignore */ }
+      }
+
+      await new Promise((resolve) => {
+        let w;
+        try {
+          // The REAL built chamber worker (connectors/alloy/alloy-chamber.worker.js, IIFE),
+          // classic (NO { type: "module" }) — as shipped.
+          w = new Worker(new URL("./out/alloy-csp.worker.built.js", import.meta.url));
+          R.constructed = true;
+        } catch (e) {
+          R.constructed = false;
+          R.constructError = String(e);
+          return resolve();
+        }
+        w.onmessage = (ev) => {
+          const m = ev.data || {};
+          if (m.type === "phase") {
+            R.phases.push(m.name);
+            if (m.name === "loaded") R.reachedLoaded = true;      // importScripts ADMITTED (033-02 AC1 fix works)
+            if (m.name === "configured") { R.reachedConfigured = true; resolve(); }
+          } else if (m.type === "fatal") {
+            // boot() posts fatal{phase:"load"} iff importScripts (or earlier) threw — the CSP-block signal.
+            R.fatal = { phase: m.phase, message: m.message };
+            if (R.reachedLoaded == null) R.reachedLoaded = false;
+            resolve();
+          }
+        };
+        w.onerror = (e) => { R.constructError = "worker.onerror: " + String(e && (e.message || e.type)); resolve(); };
+        // Drive the shipped init protocol: bundleUrl points at the same-origin stub bundle.
+        w.postMessage({ type: "init", cookie: "", bundleUrl: new URL("./alloy-csp-stub-bundle.js", import.meta.url).href, config: { datastreamId: "rig", orgId: "RIG@AdobeOrg" } });
+        // If neither loaded nor fatal arrives, resolve on a timeout so the rig still reports.
+        setTimeout(resolve, 6000);
+      });
+
+      R.cspControlRan = window.__cspControlRan === true; // false == blocked == CSP enforced
+      window.__cspReady = true;
+    </script>
+  </body>
+</html>

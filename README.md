@@ -109,9 +109,10 @@ consent/payload governance) in **one JSON config your site owns**, and boot with
   "connectors": [
     { "type": "ga4" },
     { "type": "pixel", "vendor": "meta", "pixelId": "1234567890" },
-    { "type": "helix-rum", "rate": "high" }
+    { "type": "helix-rum", "rate": "high" },
+    { "type": "alloy", "bundleUrl": "/scripts/airlock/vendor/alloy.js", "datastreamId": "12345678-1234-1234-1234-123456789012", "orgId": "ABCDEF0123456789ABCDEF01@AdobeOrg" }
   ],
-  "consent": { "analytics_storage": "granted", "ad_storage": "denied" },
+  "consent": { "analytics_storage": "granted", "ad_storage": "denied", "personalization": "granted" },
   "consentStrict": false,
   "payloadDenylist": ["email"]
 }
@@ -127,10 +128,12 @@ await boot(config); // boots every declared connector; returns (and installs on 
 
 Each connector entry is a **discriminated union** on `type`: `ga4`, `pixel` (with a nested
 `vendor` ∈ `meta` / `linkedin` / `bing` and that vendor's required id — `pixelId` / `partnerId` /
-`tagId`), or `helix-rum`. Top-level `consent` / `consentStrict` / `payloadDenylist` govern the
-consent-governed connectors (GA4, pixels); **helix-rum is exempt** (RUM governance class, spec 022).
-A malformed config (unknown `type`/`vendor`, a missing required id, a wrong-typed field) is rejected
-at boot with a **loud, actionable error naming the offending connector** — never a silent no-op.
+`tagId`), `helix-rum`, or `alloy` (Adobe/alloy — the **analytics** vertical; requires `bundleUrl`).
+Top-level `consent` / `consentStrict` / `payloadDenylist` govern the consent-governed connectors
+(GA4, pixels, **alloy** — analytics_storage + personalization); **helix-rum is exempt** (RUM
+governance class, spec 022). A malformed config (unknown `type`/`vendor`, a missing required id or
+alloy `bundleUrl`, a wrong-typed field) is rejected at boot with a **loud, actionable error naming
+the offending connector** — never a silent no-op.
 
 **The pinned reference is the schema:**
 [`contracts/instrumentation-config.schema.json`](contracts/instrumentation-config.schema.json)
@@ -141,12 +144,16 @@ at boot with a **loud, actionable error naming the offending connector** — nev
 > validation exercises it and the later 1.0 API pin freezes what settles. It is not yet one of
 > airlock's frozen contract surfaces.
 >
-> **Coverage gap (honest).** This config covers **GA4 + the three pixel vendors + helix-rum**,
-> but **NOT Adobe/alloy**: alloy has no adapter boot yet, so a `{ "type": "alloy" }` entry is
-> **deferred to its own spec** (see [`docs/refinement-todo.md`](docs/refinement-todo.md) §
-> *alloy config-wiring*). So MVP6's *"GA4 + Adobe/alloy"* supported subset is only partially
-> covered by this config surface until that spec lands. (alloy still runs today via its own
-> host path + rigs; only its config-driven boot is missing.)
+> **Adobe/alloy (spec 033-02) — analytics covered; personalization is the follow-on.** A
+> `{ "type": "alloy", "bundleUrl": … }` entry boots Adobe/alloy through airlock's classic chamber
+> and egresses one Analytics pageView via the Edge interact — closing MVP6's *"GA4 + Adobe/alloy"*
+> config-surface gap for the analytics case. **Prerequisite (ADR-0016):** the stock `@adobe/alloy`
+> SDK bundle is **adopter-supplied** via `bundleUrl` — airlock does **not** ship it; a **same-origin,
+> byte-pinned** vendored copy is recommended (supply-chain integrity + CSP portability), and a
+> cross-origin Adobe-CDN URL is supported with the stated trade-off. alloy **personalization /
+> decisions-as-data** (Target propositions → `reserveSpace`) is the **follow-on vertical**
+> ([spec 033-03](docs/specs/033-alloy-config-wiring/slice-03-alloy-decisions.md)), not yet in this
+> config surface.
 
 ## Maintaining the distribution (airlock maintainers)
 

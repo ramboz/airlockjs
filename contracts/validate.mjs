@@ -95,15 +95,19 @@ mustPass(instrumentationConfig, "./fixtures/instrumentation-config-pixel-meta.go
 mustPass(instrumentationConfig, "./fixtures/instrumentation-config-pixel-linkedin.golden.json");
 mustPass(instrumentationConfig, "./fixtures/instrumentation-config-pixel-bing.golden.json");
 mustPass(instrumentationConfig, "./fixtures/instrumentation-config-helix-rum.golden.json");
+mustPass(instrumentationConfig, "./fixtures/instrumentation-config-alloy.golden.json"); // spec 033-02: the alloy analytics vertical
 mustPass(instrumentationConfig, "./fixtures/instrumentation-config-multi.golden.json"); // AC3: ga4 + pixel + helix-rum
 
 // instrumentation config negative controls the schema MUST reject — the SAME malformed
 // shapes boot(config)'s hand-rolled runtime validator rejects (032-02 AC2 subset), proving
-// the discriminated union bites: unknown type (incl. the deferred `alloy`), unknown vendor,
-// a missing required vendor id, and a wrong-typed top-level field.
-mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-unknown-type.negative.json"), "unknown connector type (alloy is deferred, not a member)");
+// the discriminated union bites: unknown type, unknown vendor, a missing required vendor id,
+// an alloy entry missing its adopter-supplied bundleUrl (033-02 / ADR-0016), and a
+// wrong-typed top-level field.
+mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-unknown-type.negative.json"), "unknown connector type (tiktok — not a member)");
 mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-unknown-vendor.negative.json"), "unknown pixel vendor");
 mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-missing-id.negative.json"), "pixel(meta) missing required pixelId");
+mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-alloy-missing-bundleUrl.negative.json"), "alloy missing required bundleUrl (ADR-0016 adopter-supplied prerequisite)");
+mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-alloy-missing-datastream.negative.json"), "alloy missing datastream id (config-integrity tenant pin — 015/ADR-0011)");
 mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-wrong-type.negative.json"), "consentStrict wrong-typed (string, not boolean)");
 
 console.log(failures === 0 ? "\nAll contract checks passed." : `\n${failures} contract check(s) FAILED.`);

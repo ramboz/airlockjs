@@ -56,7 +56,27 @@ export const WORKER_ENTRIES = [
   "core/dom-chamber.worker.js",
   "core/helix-rum-chamber.worker.js", // 030-02: airlock-as-RUM-authority (connector:"helix-rum")
 ];
-const defaultWorkerOut = (inPath) => inPath.replace(/^core\//, "").replace(/\.js$/, "");
+
+// 033-02: airlock's CLASSIC alloy chamber worker. It is an `importScripts` worker
+// (NOT a `{type:"module"}` worker), so it CANNOT join the `format:"esm"` WORKER_ENTRIES
+// build above — it needs a SECOND `format:"iife"` esbuild call (rig/alloy-chamber.mjs's
+// pattern). It is a same-origin `dist` sibling like the others, referenced by
+// `bootAlloy`'s `new Worker(new URL("./alloy-chamber.worker.js", …))`, so eds.js's
+// same-origin-sibling assertions below cover it too (the alloy specifier is added to
+// EXPECTED_WORKER_SPECIFIERS and its output merged into emittedBasenames + the negative
+// blob:/data:/ajv scans). The adopter-supplied STOCK bundle is NOT shipped (ADR-0016).
+export const CLASSIC_WORKER_ENTRIES = [
+  "connectors/alloy/alloy-chamber.worker.js",
+];
+
+// The `out` name = the source basename minus `.js` (so `core/pixel-chamber.worker.js`
+// → `pixel-chamber.worker` → the sibling `./pixel-chamber.worker.js`, and
+// `connectors/alloy/alloy-chamber.worker.js` → `alloy-chamber.worker`). Generalized
+// from the old `core/`-only strip so a connectors/-rooted worker names correctly (033-02).
+// LATENT (no collision today): basename-only would clash if two entries in different dirs
+// shared a basename (e.g. `core/x.worker.js` + `connectors/y/x.worker.js`) — all current
+// entries are basename-unique; a future clash would need a dir-qualified out name.
+const defaultWorkerOut = (inPath) => inPath.split("/").pop().replace(/\.js$/, "");
 
 /**
  * Build the airlock runtime (eds.js + the N sibling chamber workers) into `outdir` and enforce the
@@ -64,18 +84,25 @@ const defaultWorkerOut = (inPath) => inPath.replace(/^core\//, "").replace(/\.js
  *
  * @param {object} [opts]
  * @param {string} [opts.outdir]        repo-relative or absolute output dir (default: the testbed tree).
- * @param {string[]} [opts.workerEntries] source worker entries to emit (default: the four eds-reachable
- *                                        chambers). Dropping one seeds the AC3 "missing sibling" regression.
- * @param {(inPath:string)=>string} [opts.outNameFor] out-name deriver (default: strip `core/` + `.js`).
+ * @param {string[]} [opts.workerEntries] source ESM (module) worker entries to emit (default: the four
+ *                                        eds-reachable chambers). Dropping one seeds the AC3 "missing sibling" regression.
+ * @param {string[]} [opts.classicWorkerEntries] source CLASSIC (importScripts) worker entries emitted by a
+ *                                        SECOND `format:"iife"` build call (default: the alloy chamber, 033-02).
+ * @param {(inPath:string)=>string} [opts.outNameFor] out-name deriver (default: the source basename minus `.js`).
  *                                        Overriding it seeds the AC3 "hashed rename" regression.
  */
 export async function buildAirlock({
   outdir = DEFAULT_OUTDIR,
   workerEntries = WORKER_ENTRIES,
+  classicWorkerEntries = CLASSIC_WORKER_ENTRIES,
   outNameFor = defaultWorkerOut,
 } = {}) {
   const absOutdir = isAbsolute(outdir) ? outdir : join(ROOT, outdir);
-  const EXPECTED_WORKER_SPECIFIERS = new Set(workerEntries.map((p) => `./${outNameFor(p)}.js`));
+  // Every same-origin sibling worker eds.js may reference — the ESM set AND the classic
+  // set (033-02): a `new Worker(new URL("./x", …))` in eds.js must resolve to one of these,
+  // regardless of which build call (esm or iife) emitted it.
+  const allWorkerEntries = [...workerEntries, ...classicWorkerEntries];
+  const EXPECTED_WORKER_SPECIFIERS = new Set(allWorkerEntries.map((p) => `./${outNameFor(p)}.js`));
 
   const result = await build({
     absWorkingDir: ROOT,
@@ -93,21 +120,40 @@ export async function buildAirlock({
     metafile: true,
   });
 
+  // 033-02: the CLASSIC alloy chamber worker(s) — an `importScripts` worker that cannot
+  // join the `format:"esm"` call above. A SECOND `format:"iife"` build emits it into the
+  // SAME outdir as a same-origin sibling; its output is merged into the layout assertions
+  // below so eds.js's `./alloy-chamber.worker.js` reference resolves to a known, emitted
+  // sibling and the no-blob:/data:/ajv invariant is enforced on it too.
+  const classicResult = classicWorkerEntries.length
+    ? await build({
+        absWorkingDir: ROOT,
+        entryPoints: classicWorkerEntries.map((p) => ({ in: p, out: outNameFor(p) })),
+        outdir: absOutdir,
+        bundle: true,
+        format: "iife",
+        platform: "browser",
+        target: "es2022",
+        metafile: true,
+      })
+    : { metafile: { outputs: {} } };
+
   // --- Assertions: the (N+1)-sibling same-origin-file layout, enforced at build time. ---
   // Basename-keyed so the checks are robust to an absolute vs repo-relative outdir (031-01: the
   // distributable target may be `dist/`, a temp dir, or the testbed) — the invariant is about the
-  // SIBLING FILE NAMES a served eds.js resolves against, not the metafile's key format.
+  // SIBLING FILE NAMES a served eds.js resolves against, not the metafile's key format. Merges BOTH
+  // build results (the esm N-worker call + the classic iife call) so the alloy worker is covered too.
   const failures = [];
-  const outputs = Object.keys(result.metafile.outputs).sort();
+  const outputs = [...Object.keys(result.metafile.outputs), ...Object.keys(classicResult.metafile.outputs)].sort();
   const baseOf = (p) => p.split(/[\\/]/).pop();
   const emittedBasenames = new Set(outputs.map(baseOf));
 
-  // Positive: the adapter entry + every declared worker were emitted as siblings in outdir.
+  // Positive: the adapter entry + every declared worker (esm AND classic) were emitted as siblings.
   const entryBase = `${ENTRY_OUT}.js`;
   if (!emittedBasenames.has(entryBase)) {
     failures.push(`missing emitted entry ${entryBase} (outputs: ${outputs})`);
   }
-  const workerBasenames = workerEntries.map((p) => `${outNameFor(p)}.js`);
+  const workerBasenames = allWorkerEntries.map((p) => `${outNameFor(p)}.js`);
   for (const wb of workerBasenames) {
     if (!emittedBasenames.has(wb)) {
       failures.push(`missing emitted worker sibling ${wb} — a dropped/renamed worker entry (outputs: ${outputs})`);

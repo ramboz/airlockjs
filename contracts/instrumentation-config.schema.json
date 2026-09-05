@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://airlockjs.dev/contracts/instrumentation-config.schema.json",
   "title": "airlock instrumentation config — the boot(config) project config (PRE-1.0, NOT frozen)",
-  "description": "The project JSON config `boot(config)` (adapters/eds/index.js) consumes: which connectors to instrument (+ their ids/endpoints) and the top-level consent/payload governance. Modelled as the DISCRIMINATED UNION it is: each connector entry's `type` selects one of ga4 / pixel / helix-rum (oneOf on a `type` const), with a nested `vendor` (meta / linkedin / bing) under `pixel`, and helix-rum's governance-free shape (spec 022 exempts RUM from consent/denylist). PRE-1.0 — explicitly NOT frozen: the MVP6 real-site validation is meant to exercise this shape and the later 1.0 API pin freezes what settles (this is NOT one of architecture.md's five frozen contract surfaces yet). COVERAGE GAP (honest): this config contract covers GA4 + the three pixel vendors + helix-rum, but does NOT cover Adobe/alloy — alloy has no adapter boot (it is hosted via core/wrapped-sdk-host.js + connectors/alloy/*), so a {type:\"alloy\"} entry is alloy's first-ever adapter boot, spike-sized, deferred to its own spec (see docs/refinement-todo.md § 'alloy config-wiring'). So MVP6's named 'GA4 + Adobe/alloy' supported subset is only PARTIALLY covered by this authoring surface until that spec lands. Reference schema only: `boot(config)`'s RUNTIME validation is a lightweight hand-rolled SUBSET (no ajv in the shipped bundle); ajv validates THIS schema in the contracts dev harness (npm run validate).",
+  "description": "The project JSON config `boot(config)` (adapters/eds/index.js) consumes: which connectors to instrument (+ their ids/endpoints) and the top-level consent/payload governance. Modelled as the DISCRIMINATED UNION it is: each connector entry's `type` selects one of ga4 / pixel / helix-rum / alloy (oneOf on a `type` const), with a nested `vendor` (meta / linkedin / bing) under `pixel`, and helix-rum's governance-free shape (spec 022 exempts RUM from consent/denylist). PRE-1.0 — explicitly NOT frozen: the MVP6 real-site validation is meant to exercise this shape and the later 1.0 API pin freezes what settles (this is NOT one of architecture.md's five frozen contract surfaces yet). ALLOY COVERAGE (spec 033-02): Adobe/alloy is now covered for the ANALYTICS vertical — a {type:\"alloy\"} entry boots alloy via bootAlloy through the Edge interact (the stock @adobe/alloy SDK bundle is ADOPTER-SUPPLIED via `bundleUrl`, ADR-0016 — airlock does NOT ship it). alloy PERSONALIZATION / decisions-as-data (Target propositions → reserveSpace) is the follow-on vertical (spec 033-03), NOT yet in this config surface. So MVP6's named 'GA4 + Adobe/alloy' supported subset is covered for analytics; personalization lands with 033-03. Reference schema only: `boot(config)`'s RUNTIME validation is a lightweight hand-rolled SUBSET (no ajv in the shipped bundle); ajv validates THIS schema in the contracts dev harness (npm run validate).",
   "type": "object",
   "additionalProperties": false,
   "required": ["connectors"],
@@ -10,7 +10,7 @@
     "connectors": {
       "type": "array",
       "minItems": 1,
-      "description": "The connectors to instrument, in order. `boot(config)` boots each and returns a composite over them. NOTE: `{type:\"alloy\"}` is NOT a member — alloy's config-wiring is deferred (see the top-level coverage-gap note).",
+      "description": "The connectors to instrument, in order. `boot(config)` boots each and returns a composite over them. `{type:\"alloy\"}` is a member for the ANALYTICS vertical (spec 033-02); alloy personalization is the 033-03 follow-on.",
       "items": { "$ref": "#/$defs/connector" }
     },
     "consent": {
@@ -32,11 +32,12 @@
     "connector": {
       "type": "object",
       "required": ["type"],
-      "description": "A single connector entry — a discriminated union on `type` (ga4 / pixel / helix-rum). alloy is deliberately NOT a member (deferred; see the schema-level coverage-gap note).",
+      "description": "A single connector entry — a discriminated union on `type` (ga4 / pixel / helix-rum / alloy). alloy is the analytics vertical (spec 033-02); its personalization path is the 033-03 follow-on.",
       "oneOf": [
         { "$ref": "#/$defs/ga4Connector" },
         { "$ref": "#/$defs/pixelConnector" },
-        { "$ref": "#/$defs/helixRumConnector" }
+        { "$ref": "#/$defs/helixRumConnector" },
+        { "$ref": "#/$defs/alloyConnector" }
       ]
     },
     "ga4Connector": {
@@ -109,6 +110,26 @@
         "rate": { "type": "string", "description": "A sampleRUM rate name (on/high/medium/low/off)." },
         "weight": { "type": "number", "description": "A raw sampling weight (wins over `rate`)." },
         "referer": { "type": "string", "description": "Host-sourced page referer (default document.referrer)." }
+      }
+    },
+    "alloyConnector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "bundleUrl"],
+      "anyOf": [
+        { "required": ["datastreamId"] },
+        { "required": ["datastream"] },
+        { "required": ["edgeConfigId"] }
+      ],
+      "description": "Adobe/alloy — the ANALYTICS vertical (spec 033-02): boots the stock @adobe/alloy Web SDK in airlock's classic chamber and egresses one Analytics pageView via the Edge interact. Requires `bundleUrl` AND a datastream id (`datastreamId`, or its `datastream`/`edgeConfigId` alias) — alloy configure() needs it AND it is the config-integrity tenant pin (spec 015 / ADR-0011: the `configId` the honest Edge interact carries; a re-tenant to an attacker org is HELD at the seam). The endpoint-ceiling pins the grounded interact FLOOR (016-02). Consent-governed (analytics_storage + personalization) — the top-level consent/consentStrict/payloadDenylist are threaded in (the strict seam gate: a denied OR pending governing purpose DROPS the interact). The stock SDK bundle is ADOPTER-SUPPLIED via `bundleUrl` (ADR-0016 — airlock does NOT ship it; same-origin byte-pinned recommended, cross-origin supported). Personalization / decisions-as-data (Target propositions → reserveSpace) is the 033-03 follow-on, NOT this entry.",
+      "properties": {
+        "type": { "const": "alloy" },
+        "bundleUrl": { "type": "string", "minLength": 1, "description": "URL to the ADOPTER-SUPPLIED stock @adobe/alloy bundle the chamber importScripts (REQUIRED — ADR-0016; airlock does not ship it). Same-origin byte-pinned recommended; a cross-origin Adobe-CDN URL is supported with the stated integrity/CSP trade-off." },
+        "datastreamId": { "type": "string", "description": "alloy configure() datastream id (the Edge config id)." },
+        "orgId": { "type": "string", "description": "alloy configure() IMS org id." },
+        "datastream": { "type": "string", "description": "Alias for datastreamId." },
+        "edgeConfigId": { "type": "string", "description": "Alias for datastreamId." },
+        "context": { "type": "array", "description": "alloy configure() context array (default [] — the chamber is headless, no ambient auto-collection)." }
       }
     }
   }

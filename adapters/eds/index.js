@@ -32,7 +32,10 @@
  * stays `aem-experimentation`'s; the airlock only reports the exposure.
  */
 import { createAirlock } from "../../core/airlock.js";
+import { createWrappedSdkHost } from "../../core/wrapped-sdk-host.js";
+import { hostOf } from "../../core/config-integrity.js";
 import { resolveConsent } from "../../core/consent.js";
+import { ALLOY_INTERACT_ENDPOINT } from "../../connectors/alloy/connector.js";
 import { sourceGa4Ctx } from "../../connectors/ga4/cookies.js";
 import { shapeMpConsent } from "../../connectors/ga4/consent.js";
 import { createMetaPixelConfig, META_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/meta.js";
@@ -768,6 +771,197 @@ export function bootHelixRum(opts = {}) {
 }
 
 /**
+ * alloy's declared `manifest.events` — its ONE Analytics pageView
+ * (`connectors/alloy/connector.js`: `events: ["page_view"]`). NOT a catch-all: the
+ * composite gate uses this so only `page_view` fans to alloy — no arbitrary site
+ * event becomes a spurious Edge interact. Keep in sync with that manifest (its home).
+ */
+const ALLOY_MANIFEST_EVENTS = ["page_view"];
+
+/**
+ * alloy's declared egress `purposes.egress` (`connectors/alloy/connector.js`:
+ * `["analytics_storage", "personalization"]` — analytics events + the Target
+ * personalization query ride the same interact). Threaded into the wrapped-SDK
+ * host's TRUSTED strict seam gate (spec 020-02: `egressVerdict(consent, …, {strict:
+ * true})` — alloy carries NO body-consent field, so a denied OR pending governing
+ * purpose is DROPPED, never sent). Kept local mirroring `GA4_EGRESS_PURPOSES`'s
+ * pattern (the manifest is the home; this is the seal's view of it).
+ */
+const ALLOY_EGRESS_PURPOSES = ["analytics_storage", "personalization"];
+
+/**
+ * Boot Adobe/alloy through the wrapped-SDK path (spec 033-02 — the analytics
+ * vertical). Unlike the `createAirlock`-shaped boots (GA4/pixel/helix-rum), alloy is
+ * hosted by `core/wrapped-sdk-host.js` over airlock's CLASSIC alloy chamber Worker,
+ * which `importScripts` the ADOPTER-SUPPLIED stock `@adobe/alloy` bundle via
+ * `bundleUrl` ([ADR-0016] — airlock does NOT ship it; same-origin byte-pinned
+ * recommended, cross-origin supported). Two things the host does NOT provide, so
+ * bootAlloy owns them (033-01 Finding): it **constructs + tears down the Worker**
+ * (`dispose()` → `worker.terminate()`, honoring the 021-01 no-leak invariant), and it
+ * **serializes `push`/`pushCritical` through the single-slot `driveEvent`** via a
+ * sequential promise chain so two never overlap (the re-entry guard is respected) —
+ * N page events in sequence, riding the 033-02 host extension (post-`configured`
+ * `driveEvent` dispatches immediately, no hang on event #2).
+ *
+ * Consent threads through the TRUSTED strict seam gate (`egressPurposes` +
+ * `egressVerdict(strict)`, gated on `consent` being wired — the established
+ * back-compat gate); `payloadDenylist` threads the optional seam-side XDM strip. The
+ * in-chamber `setConsent` DELEGATE is driven at boot from the same vector (the
+ * chamber's boot glue: configure → setConsent → sendEvent) — defense-in-depth, never
+ * the enforcement. Decisions-as-data (Target personalization delivery) is OUT of
+ * scope → 033-03; the host already ignores `{type:"decisions"}` (no regression).
+ *
+ * @param {object} [opts]
+ * @param {string}   opts.bundleUrl        REQUIRED (ADR-0016) — the adopter-supplied
+ *                                         stock alloy bundle URL the chamber loads.
+ * @param {string}  [opts.datastreamId]    alloy `configure()` datastream id
+ *                                         (`datastream`/`edgeConfigId` accepted as aliases).
+ * @param {string}  [opts.orgId]           alloy `configure()` IMS org id.
+ * @param {unknown[]} [opts.context]       alloy `configure()` context (default `[]` — headless).
+ * @param {Record<string,string>} [opts.consent] host consent vector (ADR-0007).
+ * @param {string[]} [opts.payloadDenylist] optional seam-side XDM strip (020-02 AC3).
+ * @param {string|URL} [opts.workerUrl]    test/rig seam: override the chamber Worker
+ *                                         URL (default the built same-origin sibling).
+ * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, stats: Function, dispose: Function }>}
+ */
+export async function bootAlloy(opts = {}) {
+  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, context = [], consent, payloadDenylist, workerUrl } = opts;
+
+  // ADR-0016 prerequisite — fail LOUD here too (validateConnectorEntry also checks it
+  // on the config path) so a direct bootAlloy caller gets an actionable error rather
+  // than a downstream chamber fatal{phase:"load"}.
+  if (typeof bundleUrl !== "string" || bundleUrl.length === 0) {
+    throw new Error("airlock bootAlloy: `bundleUrl` is required (the adopter-supplied stock @adobe/alloy bundle URL — ADR-0016)");
+  }
+
+  // The datastream id (aka Edge config id) is REQUIRED: alloy can't `configure()` without
+  // it, AND it is the config-integrity pin's `pinnedTenant` (the `configId` the honest Edge
+  // interact carries — 013-03). Fail LOUD rather than boot an un-pinnable chamber that would
+  // hold every interact (an incomplete pin) or mis-configure alloy.
+  const resolvedDatastreamId = datastreamId ?? datastream ?? edgeConfigId;
+  if (typeof resolvedDatastreamId !== "string" || resolvedDatastreamId.length === 0) {
+    throw new Error("airlock bootAlloy: a datastream id is required (`datastreamId`, or its `datastream`/`edgeConfigId` alias) — alloy configure() + the config-integrity tenant pin both need it");
+  }
+
+  // bootAlloy OWNS the Worker. Classic worker (NO { type: "module" }): the chamber
+  // `importScripts` the stock bundle (033-02 AC1's TT-policy'd load). The default
+  // resolves to the same-origin sibling emitted next to eds.js (004-01 / build.mjs
+  // asserts it); `workerUrl` is the rig/test override. The literal `new Worker(new
+  // URL("./alloy-chamber.worker.js", import.meta.url))` is load-bearing for the build
+  // assertion (build.mjs scans for it) — keep it verbatim in the else branch.
+  const worker = workerUrl
+    ? new Worker(workerUrl)
+    : new Worker(new URL("./alloy-chamber.worker.js", import.meta.url));
+
+  // The chamber transport the host drives. `addEventListener` (not the single-slot
+  // `onmessage`) so a future decisions listener (033-03) can coexist independently.
+  const chamber = {
+    postMessage: (msg) => worker.postMessage(msg),
+    onMessage: (cb) => worker.addEventListener("message", (e) => cb(e.data)),
+  };
+
+  // A LIVE consent ref the host reads inside its strict seam gate — so `setConsent`
+  // (below) updates enforcement by mutating this same object. `null` when no consent
+  // is wired: `egressPurposes` is then `[]` and the gate is off (the established
+  // back-compat gate — see bootGa4Core's rationale).
+  const consentRef = consent ? { ...consent } : null;
+
+  const caps = {
+    egress: {
+      // The ADR-0010 capability's orchestrator-side implementation: the REAL
+      // main-thread fetch (ADR-0004). The host runs the endpoint/consent/config
+      // gates BEFORE calling this, so a held interact never reaches the network.
+      async dispatch(req) {
+        const res = await fetch(req.url, { method: req.method || "POST", headers: req.headers || {}, body: req.body });
+        const body = typeof res.text === "function" ? await res.text() : "";
+        const ct = res.headers && typeof res.headers.get === "function" ? res.headers.get("content-type") : null;
+        return { status: res.status, statusText: res.statusText, headers: { "content-type": ct || "application/json" }, body };
+      },
+    },
+    cookies: {
+      // The chamber's async cookie write-back (the server-assigned ECID), reconciled
+      // by the host into a form the real jar accepts (Domain/Secure/SameSite dropped).
+      reconcile: (reconciled) => {
+        try { if (typeof document !== "undefined") document.cookie = reconciled; } catch (e) { /* jar self-guards */ }
+      },
+    },
+  };
+
+  const host = createWrappedSdkHost({
+    chamber,
+    caps,
+    // ADR-0011 / spec 015 — the TRUSTED config-integrity TENANT pin. A cross-origin/untrusted
+    // adopter bundle (ADR-0016) can re-`configure` alloy or craft its own interact fetch to an
+    // ATTACKER's Adobe org; the seam pins the tenant to the host-owned datastream (`configId` on
+    // adobedc.demdex.net — the live Edge routes by it, 013-03) and HOLDS (fail-closed) any
+    // re-tenant. The pin is chamber-immutable (built here, on main), not chamber-supplied.
+    configIntegrity: {
+      pinnedHost: hostOf(ALLOY_INTERACT_ENDPOINT),
+      tenantKey: "configId",
+      pinnedTenant: resolvedDatastreamId,
+      disposition: "hold",
+    },
+    // ADR-0006 / spec 016 — the host-owned endpoint CEILING, wired to the GROUNDED interact FLOOR
+    // (016-02 AC3/AC5's accepted trade-off): the honest interact origin+path passes; any off-floor
+    // destination is HELD. The un-grounded server-directed breadth (demdex/ID-sync URLs the Edge
+    // response returns at runtime) is held+surfaced fail-closed — grounding that breadth is the
+    // creds-gated live-Alloy follow-on (docs/refinement-todo.md), NOT a silent drop.
+    endpointCeiling: [ALLOY_INTERACT_ENDPOINT],
+    consent: consentRef,
+    // 020-02: the TRUSTED strict seam gate. Gated on `consent` being wired (back-compat:
+    // no consent → [] → gate off, byte-unchanged), mirroring every other boot.
+    egressPurposes: consent ? ALLOY_EGRESS_PURPOSES : [],
+    payloadDenylist,
+  });
+
+  // Boot the chamber: the adopter-supplied bundleUrl + the alloy config + the consent
+  // vector (the chamber's in-chamber setConsent delegate reads it). The seed cookie is
+  // this origin's jar (guarded — a node/SSR boot has no document).
+  const config = { datastreamId: resolvedDatastreamId, orgId, context };
+  const seedCookie = (typeof document !== "undefined" && document.cookie) || "";
+  host.init({ cookie: seedCookie, config, bundleUrl, consent });
+
+  // Serialize push/pushCritical through the single-slot driveEvent: a sequential
+  // promise chain so two events never overlap (the re-entry guard at
+  // wrapped-sdk-host.js is respected — one page event per host round-trip).
+  let tail = Promise.resolve();
+  const enqueue = (event) => {
+    const run = tail.then(() => host.driveEvent(event));
+    // Keep the chain alive past a per-event fatal, and attach a handler to `run` so a
+    // rejection is never unhandled (push discards the returned promise).
+    tail = run.catch(() => {});
+    return run;
+  };
+  // Map a composite site event `{ event: name, ...fields }` to the chamber descriptor
+  // `{ type: name, params: fields }`: routeBatch requires a string `type`, and the
+  // alloy connector's `toXdm` reads `params.page_location`/`params.page_title`.
+  const toDescriptor = (evt) => {
+    const { event, ...params } = evt || {};
+    return { type: event, params };
+  };
+
+  let disposed = false;
+  return {
+    push: (evt) => { enqueue(toDescriptor(evt)); },
+    // alloy's interact is a synchronous vendor round-trip (not a sync sendBeacon), so
+    // pushCritical rides the SAME queued driveEvent — best-effort on unload; a true
+    // unload fast path for the wrapped-SDK interact is a named follow-on.
+    pushCritical: (evt) => { enqueue(toDescriptor(evt)); },
+    // Update the TRUSTED seam gate live (mutating the ref the host reads). A boot with
+    // no consent leaves the gate off (egressPurposes stayed []), same as every other
+    // connector; a mid-session in-chamber re-delegate is a named follow-on.
+    setConsent: (v) => { if (consentRef && v) Object.assign(consentRef, v); },
+    getState: () => host.getState(),
+    stats: () => host.getState(),
+    dispose: () => {
+      if (disposed) return; // idempotent (021-01 AC1)
+      disposed = true;
+      if (worker && typeof worker.terminate === "function") worker.terminate();
+    },
+  };
+}
+
+/**
  * Does a connector's declared event vocabulary accept this event name? `["*"]` is
  * the analytics CATCH-ALL sentinel (GA4's `manifest.events`); otherwise the name
  * must be in the declared list. Used to GATE the composite fan-out (below).
@@ -852,14 +1046,14 @@ const GA4_MANIFEST_EVENTS = ["*"];
 const HELIX_RUM_MANIFEST_EVENTS = ["top", "error", "cwv"];
 
 /**
- * The connector `type`s `boot(config)` can dispatch (spec 032-02 AC2/AC3). The
- * discriminated union's tags — GA4, the three pixel vendors (nested under `pixel`),
- * helix-rum. **alloy is deliberately NOT a member:** it has no adapter boot (hosted
- * via `core/wrapped-sdk-host.js` + `connectors/alloy/*`), so a `{type:"alloy"}` entry
- * is alloy's first-ever adapter boot — spike-sized, deferred to its own spec (recorded
- * in `docs/refinement-todo.md`; the coverage gap is stated in the config schema + README).
+ * The connector `type`s `boot(config)` can dispatch (spec 032-02 AC2/AC3, 033-02 AC3).
+ * The discriminated union's tags — GA4, the three pixel vendors (nested under
+ * `pixel`), helix-rum, and (033-02) **alloy** — the analytics vertical: alloy's
+ * first-ever adapter boot, hosted via `core/wrapped-sdk-host.js` + `bootAlloy`
+ * (adopter-supplied `bundleUrl`, ADR-0016). Personalization / decisions-as-data is
+ * the follow-on vertical (033-03); this entry covers the Edge-interact analytics use.
  */
-const KNOWN_CONNECTOR_TYPES = ["ga4", "pixel", "helix-rum"];
+const KNOWN_CONNECTOR_TYPES = ["ga4", "pixel", "helix-rum", "alloy"];
 
 /**
  * Each pixel vendor's REQUIRED id field (spec 032-02 AC2). Keys mirror `PIXEL_VENDORS`;
@@ -934,6 +1128,21 @@ function validateConnectorEntry(entry, index) {
   if (type === "helix-rum" && "weight" in entry && typeof entry.weight !== "number") {
     throw new Error(`airlock boot(config): ${at} (helix-rum) field "weight" must be a number`);
   }
+  if (type === "alloy") {
+    if (typeof entry.bundleUrl !== "string" || entry.bundleUrl.length === 0) {
+      // ADR-0016: the stock alloy SDK bundle is ADOPTER-SUPPLIED; without `bundleUrl`
+      // the chamber has nothing to importScripts. Reject loud rather than boot a chamber
+      // that would fatal{phase:"load"} (a documented subset of the JSON Schema's required).
+      throw new Error(`airlock boot(config): ${at} (alloy) is missing required field "bundleUrl" (a non-empty string — the adopter-supplied stock @adobe/alloy bundle URL, ADR-0016)`);
+    }
+    const dsId = entry.datastreamId ?? entry.datastream ?? entry.edgeConfigId;
+    if (typeof dsId !== "string" || dsId.length === 0) {
+      // The datastream id is REQUIRED: alloy configure() needs it, AND it is the
+      // config-integrity tenant pin (spec 015 / ADR-0011). Without it the seam can't pin
+      // the tenant — a re-tenant attack (ADR-0016 untrusted bundle) could go unheld.
+      throw new Error(`airlock boot(config): ${at} (alloy) is missing a datastream id — set "datastreamId" (or its "datastream"/"edgeConfigId" alias); alloy configure() + the config-integrity tenant pin both require it`);
+    }
+  }
 }
 
 /**
@@ -982,6 +1191,13 @@ async function bootConnector(entry, governance, index) {
       // threaded, so `egressPurposes` stays [], no denylist, sync boot (byte-identical
       // to a standalone bootHelixRum). Its vocabulary is the RUM checkpoints only.
       return { handle: bootHelixRum(rest), events: HELIX_RUM_MANIFEST_EVENTS };
+    case "alloy":
+      // 033-02: the analytics vertical. alloy is consent-governed (NOT exempt like
+      // helix-rum), so it receives the top-level governance (consent/consentStrict/
+      // payloadDenylist) threaded into bootAlloy's strict seam gate — same as ga4/
+      // pixels. Its vocabulary is the ONE Analytics pageView (["page_view"]), so the
+      // composite fans only page_view to the Edge interact.
+      return { handle: await bootAlloy({ ...rest, ...governance }), events: ALLOY_MANIFEST_EVENTS };
     default:
       // 032-02 owns full JSON-Schema validation with actionable errors; here we fail
       // LOUD rather than silently dropping an unknown connector.

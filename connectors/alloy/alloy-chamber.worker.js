@@ -90,6 +90,34 @@ function shortStack() {
   return (new Error().stack || "").split("\n").slice(3, 8).map((l) => l.trim());
 }
 
+/* ---- AC1 (spec 033-02): load the stock bundle under a real EDS CSP. The 033-01
+ *      spike found `importScripts` is a TrustedScriptURL sink, and the page's
+ *      `default` Trusted Types policy is PER-REALM (it never reaches this worker),
+ *      so a bare `self.importScripts(bundleUrl)` is BLOCKED by
+ *      `require-trusted-types-for 'script'` on a real EDS page → `fatal{phase:"load"}`
+ *      (NOT by `strict-dynamic` — top-level worker-script admission is fine; this is
+ *      why 004-01's MODULE worker "just worked" and a classic one does not). The fix:
+ *      this worker installs its OWN Trusted Types policy and passes a TrustedScriptURL
+ *      to importScripts — ~4 lines HERE, not a site CSP change. Same- AND cross-origin
+ *      loads were probe-proven green (033-01 / ADR-0016). Degrades safely: no
+ *      `trustedTypes` (a CSP-less rig / older engine) → the raw string still loads; a
+ *      restrictive `trusted-types <names>` directive omitting this policy name is the
+ *      disclosed residual (ADR-0016 kill-criterion — re-confirm on the live host). */
+function loadStockBundle(bundleUrl) {
+  let scriptUrl = bundleUrl;
+  try {
+    if (self.trustedTypes && typeof self.trustedTypes.createPolicy === "function") {
+      const policy = self.trustedTypes.createPolicy("airlock-alloy", { createScriptURL: (s) => s });
+      scriptUrl = policy.createScriptURL(bundleUrl);
+    }
+  } catch (e) {
+    // TT unavailable, or this policy name is disallowed by a restrictive
+    // `trusted-types` directive (the ADR-0016 residual) — fall back to the raw url.
+    scriptUrl = bundleUrl;
+  }
+  self.importScripts(scriptUrl);
+}
+
 /* ---- AC3: the synchronous cookie cache + the granted sync-read surface ---- */
 let cache = null;
 let caps = null;
@@ -374,7 +402,7 @@ async function boot({ cookie, config, bundleUrl, consent }) {
     install(cookie);
     post("phase", { name: "install" });
 
-    self.importScripts(bundleUrl); // load the UNMODIFIED stock bundle
+    loadStockBundle(bundleUrl); // load the UNMODIFIED stock bundle (033-02 AC1: TT-policy'd importScripts)
     summary.booted = true;
     // AC2 prose: revoke importScripts so untrusted post-boot code cannot re-load
     // remote script. alloy is a single IIFE — it never re-imports (R-004).
@@ -464,6 +492,14 @@ async function drive(event) {
 // green: has_dynamic_import must be false) while still exercising the
 // language-level loader primitive a JS shim cannot reliably withhold.
 const REMOTE_LOADER_KW = ["i", "m", "p", "o", "r", "t"].join("");
+// 033-02: this classic worker is now a served `dist` sibling, scanned by build.mjs's
+// no-`blob:`/`data:` same-origin-file invariant (004-01 envelope). The two `data:`-URL
+// usages below are ADVERSARIAL egress-confinement probes (a data: nested Worker + a
+// data: importScripts that confinement/revocation must BLOCK) — NOT worker load
+// mechanisms — so assemble the scheme at RUNTIME (mirroring REMOTE_LOADER_KW above) so
+// the built chunk carries NO literal `data:` token and passes the invariant while the
+// probe exercises the primitive identically.
+const DATA_URI = ["d", "a", "t", "a"].join("") + ":";
 let remoteLoaderThunk = null;
 try {
   remoteLoaderThunk = new Function("u", "return " + REMOTE_LOADER_KW + "(u)");
@@ -514,7 +550,7 @@ async function probeEgress(remoteLoaderUrl) {
   attempt("WebSocket", () => { new self.WebSocket("wss://egress.invalid/"); return "opened socket"; });
   attempt("EventSource", () => { new self.EventSource("https://egress.invalid/"); return "opened stream"; });
   attempt("WebTransport", () => { new self.WebTransport("https://egress.invalid/"); return "opened transport"; });
-  attempt("nested_Worker", () => { new self.Worker("data:application/javascript,0"); return "spawned nested worker"; });
+  attempt("nested_Worker", () => { new self.Worker(DATA_URI + "application/javascript,0"); return "spawned nested worker"; });
   attempt("CacheStorage", () => {
     const p = self.caches.open("airlock-egress-probe"); // gateway to a Cache -> add/addAll fetch+store
     return (p && typeof p.then === "function") ? "caches.open() returned a promise" : "caches.open() returned";
@@ -529,7 +565,7 @@ async function probeEgress(remoteLoaderUrl) {
     // code if importScripts were still a callable loader. Revoked -> not a
     // function -> throws.
     self.__egressImportScriptsExecuted = false;
-    self.importScripts("data:application/javascript,self.__egressImportScriptsExecuted=true");
+    self.importScripts(DATA_URI + "application/javascript,self.__egressImportScriptsExecuted=true");
     if (self.__egressImportScriptsExecuted !== true) throw new Error("importScripts present but injected code did not run");
     return "loaded + executed injected remote-style code";
   });

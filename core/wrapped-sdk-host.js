@@ -205,6 +205,11 @@ export function createWrappedSdkHost({
 
   let queuedEvent = null;
   let onResult = null; // { resolve, reject } for the in-flight driveEvent() call
+  // 033-02 AC2 (N sequential events): once the chamber reports phase:"configured",
+  // it stays ready for MORE events — so a driveEvent AFTER this flag is set posts
+  // immediately rather than parking in `queuedEvent` waiting for a configured that
+  // never fires again. Event #1 (before configured) still queues, unchanged (014-01).
+  let configured = false;
 
   /**
    * Answer one intercepted-fetch: call the injected `caps.egress.dispatch`
@@ -385,11 +390,16 @@ export function createWrappedSdkHost({
     if (m.type === "phase") {
       state.phases.push(m.name);
       // Mirrors the harness's reactive drive: the moment the chamber reports
-      // it configured, send the ONE queued page event (see driveEvent below).
-      if (m.name === "configured" && queuedEvent) {
-        const event = queuedEvent;
-        queuedEvent = null;
-        chamber.postMessage({ type: "event", event });
+      // it configured, send the queued page event (see driveEvent below) — and
+      // latch `configured` so every LATER driveEvent dispatches immediately
+      // (033-02 AC2: N sequential events, no re-wait for a one-time message).
+      if (m.name === "configured") {
+        configured = true;
+        if (queuedEvent) {
+          const event = queuedEvent;
+          queuedEvent = null;
+          chamber.postMessage({ type: "event", event });
+        }
       }
     } else if (m.type === "intercepted-fetch") {
       dispatchInterceptedFetch(m);
@@ -432,21 +442,37 @@ export function createWrappedSdkHost({
       chamber.postMessage({ type: "init", ...(initMsg || {}) });
     },
     /**
-     * Drive ONE page event through the chamber: queues `event` to be sent the
-     * moment the chamber reports `phase:"configured"`, and settles when the
-     * chamber reports back — resolves `{ summary, ready }` on `result`,
-     * rejects on `fatal`. Call once, after `init()`.
+     * Drive one page event through the chamber, and settle when the chamber
+     * reports back — resolves `{ summary, ready }` on `result`, rejects on
+     * `fatal`. Single-slot: exactly one event may be in flight at a time
+     * (re-entry is rejected), but — unlike 014-01 — the host may be driven
+     * REPEATEDLY once configured (033-02 AC2). Before the chamber reports
+     * `phase:"configured"`, the event is QUEUED and sent on that message (the
+     * unchanged 014-01 boot flow); AFTER configured, the chamber is already
+     * live, so the event is posted IMMEDIATELY. The adapter (bootAlloy)
+     * serializes its `push`/`pushCritical` through this call so the re-entry
+     * guard is never tripped — one page event per host round-trip, N in
+     * sequence.
      */
     driveEvent(event) {
       return new Promise((resolve, reject) => {
-        // Single-slot by design (one page event per host). Guard re-entry so a
-        // second call can't silently clobber the first's resolve/reject and hang it.
+        // Single-slot by design (one page event per host round-trip). Guard
+        // re-entry so a second call can't silently clobber the first's
+        // resolve/reject and hang it.
         if (onResult) {
           reject(new Error("driveEvent already in flight — call once, after init()"));
           return;
         }
-        queuedEvent = event;
         onResult = { resolve, reject };
+        if (configured) {
+          // Post-configure: the chamber is already live and stays ready for the
+          // next event — dispatch NOW (no configured message will fire again).
+          chamber.postMessage({ type: "event", event });
+        } else {
+          // Pre-configure (event #1): queue it; handleMessage posts it the
+          // moment the chamber reports configured (unchanged 014-01 flow).
+          queuedEvent = event;
+        }
       });
     },
     /** A snapshot of everything observed so far (for rig/test assertions). */

@@ -16,6 +16,7 @@
     "rig": "node rig/measure.mjs",
     "rig:teardown": "node rig/teardown.mjs",
     "rig:csp": "node rig/csp-probe.mjs",
+    "rig:alloy-csp": "node rig/alloy-csp.mjs",
     "rig:bundle": "node rig/bundle-smoke.mjs",
     "rig:e2e": "node rig/e2e.mjs",
     "rig:uc1": "node rig/uc1.mjs",

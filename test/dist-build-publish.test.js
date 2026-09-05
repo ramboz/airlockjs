@@ -16,16 +16,19 @@ import { mkdtempSync, rmSync, existsSync, readFileSync, appendFileSync } from "n
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildAirlock, WORKER_ENTRIES, ENTRY_OUT } from "../build.mjs";
+import { buildAirlock, WORKER_ENTRIES, CLASSIC_WORKER_ENTRIES, ENTRY_OUT } from "../build.mjs";
 import { publishDist, DIST_ARTIFACTS, resolveTarget, computeVersion, releaseTag } from "../publish-dist.mjs";
 
 const REPO = fileURLToPath(new URL("..", import.meta.url));
-// The four sibling chamber workers a served eds.js may spawn (026-05 N-worker set).
+// The sibling chamber workers a served eds.js may spawn: the four ESM (module) workers
+// (026-05 N-worker set) PLUS the CLASSIC alloy chamber worker (033-02 — an importScripts
+// worker emitted by a second format:"iife" build call, referenced by bootAlloy).
 const SIBLING_WORKERS = [
   "chamber.worker.js",
   "pixel-chamber.worker.js",
   "dom-chamber.worker.js",
   "helix-rum-chamber.worker.js",
+  "alloy-chamber.worker.js",
 ];
 
 const tmps = [];
@@ -65,6 +68,37 @@ describe("031-01 AC1 — a first-class distributable build target (decoupled fro
     const specs = [...eds.matchAll(/new Worker\(\s*new URL\(\s*(["'`])(.*?)\1/g)].map((m) => m[2]);
     expect(specs.length).toBeGreaterThan(0);
     for (const s of specs) expect(s.startsWith("./")).toBe(true);
+  });
+});
+
+describe("033-02 AC4 — the classic alloy chamber worker is a 5th dist entry (ADR-0016)", () => {
+  let distDir;
+  let edsJs;
+  beforeAll(async () => {
+    distDir = mktmp("airlock-0332-alloy-dist-");
+    await buildAirlock({ outdir: distDir });
+    edsJs = readFileSync(join(distDir, `${ENTRY_OUT}.js`), "utf8");
+  }, 60000);
+
+  it("emits the classic alloy chamber worker as a same-origin sibling (a second format:iife build call)", () => {
+    expect(existsSync(join(distDir, "alloy-chamber.worker.js"))).toBe(true);
+  });
+
+  it("bootAlloy references it by its same-origin SIBLING specifier ./alloy-chamber.worker.js in eds.js", () => {
+    const specs = [...edsJs.matchAll(/new Worker\(\s*new URL\(\s*(["'`])(.*?)\1/g)].map((m) => m[2]);
+    expect(specs).toContain("./alloy-chamber.worker.js");
+    // ...and it resolves to an EMITTED sibling (the build asserts this too; re-confirm here).
+    expect(existsSync(join(distDir, "alloy-chamber.worker.js"))).toBe(true);
+  });
+
+  it("the emitted alloy worker chunk holds no blob:/data: URL (004-01 envelope) and no ajv", () => {
+    const chunk = readFileSync(join(distDir, "alloy-chamber.worker.js"), "utf8");
+    expect(/(["'`])(?:blob|data):/.test(chunk)).toBe(false); // adversarial data: probes are runtime-assembled
+    expect(/ajv/i.test(chunk)).toBe(false);
+  });
+
+  it("CLASSIC_WORKER_ENTRIES declares the alloy worker (the second-build source list)", () => {
+    expect(CLASSIC_WORKER_ENTRIES).toContain("connectors/alloy/alloy-chamber.worker.js");
   });
 });
 

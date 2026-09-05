@@ -174,6 +174,33 @@ describe("AC3 — the golden multi-connector config (ga4 + pixel + helix-rum) va
   });
 });
 
+describe("033-02 AC5 — the {type:'alloy'} config branch (analytics vertical, ADR-0016)", () => {
+  const alloyGolden = loadJson(join(CONTRACTS, "fixtures/instrumentation-config-alloy.golden.json"));
+  const alloyMissingBundle = loadJson(join(CONTRACTS, "fixtures/instrumentation-config-alloy-missing-bundleUrl.negative.json"));
+  const alloyMissingDatastream = loadJson(join(CONTRACTS, "fixtures/instrumentation-config-alloy-missing-datastream.negative.json"));
+
+  it("the alloy golden fixture validates against the pinned schema (alloy is now a member)", () => {
+    const ok = validateSchema(alloyGolden);
+    if (!ok) console.error(validateSchema.errors);
+    expect(ok).toBe(true);
+  });
+
+  it("declares { type: 'alloy' } with a bundleUrl — the analytics vertical", () => {
+    const alloy = alloyGolden.connectors.find((c) => c.type === "alloy");
+    expect(alloy).toBeTruthy();
+    expect(typeof alloy.bundleUrl).toBe("string");
+    expect(alloy.bundleUrl.length).toBeGreaterThan(0);
+  });
+
+  it("an alloy entry MISSING bundleUrl is REJECTED (the ADR-0016 adopter-supplied prerequisite bites)", () => {
+    expect(validateSchema(alloyMissingBundle)).toBe(false);
+  });
+
+  it("an alloy entry MISSING a datastream id is REJECTED (the config-integrity tenant pin needs it — 015/ADR-0011)", () => {
+    expect(validateSchema(alloyMissingDatastream)).toBe(false);
+  });
+});
+
 describe("AC4 — the README 'Configure airlock' story is drift-free + matches boot()'s signature", () => {
   const readme = readFileSync(join(REPO, "README.md"), "utf8");
   const sectionOf = (heading) => {
