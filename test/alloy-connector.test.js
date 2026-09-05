@@ -181,3 +181,96 @@ describe("alloy connector — decisions-as-data delivery (spec 012-03 AC1/AC2)",
     expect(manifest.capabilities.decisions).toBe(true);
   });
 });
+
+// Spec 034-02 (multi-scope personalization): the connector learns the decision
+// scopes from its config and CARRIES them on the interact so alloy fetches EVERY
+// declared scope (grounded: sendEvent accepts a top-level `decisionScopes[]`;
+// `renderDecisions:false` does NOT gate the fetch). It then delivers ALL returned
+// scopes (`extractDecisions(result,{scope:null})`), so the host can map each to its
+// placement by scope. Absent scopes → the __view__ default, byte-unchanged (033-03).
+describe("alloy connector — multi-scope decisionScopes on the interact (spec 034-02 AC1)", () => {
+  function fakeAlloyWithDecisions(propositions) {
+    return vi.fn((command) =>
+      Promise.resolve(command === "sendEvent" ? { propositions } : undefined),
+    );
+  }
+  const prop = (scope, id) => ({ id, scope, scopeDetails: {}, items: [{ schema: "https://ns.adobe.com/personalization/html-content-item", data: { content: `<b>${scope}</b>` } }] });
+
+  it("carries the configured decisionScopes on the sendEvent interact (deduped)", async () => {
+    const alloy = fakeAlloy();
+    const connector = createAlloyConnector({ ...baseConfig(), alloy, decisionScopes: ["__view__", "products", "products"] });
+    await connector.init({});
+    alloy.mockClear();
+
+    await connector.handle(pageView());
+
+    const { command, options } = alloy.calls[alloy.calls.length - 1];
+    expect(command).toBe("sendEvent");
+    expect(options.renderDecisions).toBe(false);
+    expect(options.decisionScopes).toEqual(["__view__", "products"]); // both scopes fetched, deduped
+  });
+
+  it("delivers ALL returned scopes (not just __view__) — the host maps each by scope", async () => {
+    const alloy = fakeAlloyWithDecisions([prop("__view__", "AT:v"), prop("products", "AT:p")]);
+    const deliver = vi.fn();
+    const connector = createAlloyConnector({ ...baseConfig(), alloy, decisionScopes: ["__view__", "products"] });
+    await connector.init({ decisions: { deliver } });
+
+    await connector.handle(pageView());
+
+    const delivered = deliver.mock.calls[0][0];
+    expect(delivered).toHaveLength(2);
+    expect(delivered.map((d) => d.scope).sort()).toEqual(["__view__", "products"]);
+  });
+
+  it("ABSENT decisionScopes → sendEvent options byte-unchanged (no decisionScopes / no personalization key — the __view__ default)", async () => {
+    const alloy = fakeAlloy();
+    const connector = createAlloyConnector({ ...baseConfig(), alloy }); // no decisionScopes configured
+    await connector.init({});
+    alloy.mockClear();
+
+    await connector.handle(pageView());
+
+    const { options } = alloy.calls[alloy.calls.length - 1];
+    expect(options.decisionScopes).toBeUndefined();
+    expect(options.personalization).toBeUndefined();
+    expect(Object.keys(options).sort()).toEqual(["renderDecisions", "xdm"]); // exactly the 033-02 shape
+  });
+
+  it("NO __view__ scope configured → sets personalization.defaultPersonalizationEnabled:false (the live-Alloy caveat — no auto-added __view__)", async () => {
+    const alloy = fakeAlloy();
+    const connector = createAlloyConnector({ ...baseConfig(), alloy, decisionScopes: ["products", "cart"] });
+    await connector.init({});
+    alloy.mockClear();
+
+    await connector.handle(pageView());
+
+    const { options } = alloy.calls[alloy.calls.length - 1];
+    expect(options.decisionScopes).toEqual(["products", "cart"]);
+    expect(options.personalization).toEqual({ defaultPersonalizationEnabled: false });
+  });
+
+  it("a __view__ scope AMONG the configured scopes → NO defaultPersonalizationEnabled suppression", async () => {
+    const alloy = fakeAlloy();
+    const connector = createAlloyConnector({ ...baseConfig(), alloy, decisionScopes: ["__view__", "products"] });
+    await connector.init({});
+    alloy.mockClear();
+
+    await connector.handle(pageView());
+
+    const { options } = alloy.calls[alloy.calls.length - 1];
+    expect(options.personalization).toBeUndefined(); // __view__ requested → real alloy won't auto-add it
+  });
+
+  it("merges config.personalization.decisionScopes with the top-level (deduped) — faithful to alloy's own merge", async () => {
+    const alloy = fakeAlloy();
+    const connector = createAlloyConnector({ ...baseConfig(), alloy, decisionScopes: ["__view__"], personalization: { decisionScopes: ["products", "__view__"] } });
+    await connector.init({});
+    alloy.mockClear();
+
+    await connector.handle(pageView());
+
+    const { options } = alloy.calls[alloy.calls.length - 1];
+    expect(options.decisionScopes).toEqual(["__view__", "products"]);
+  });
+});

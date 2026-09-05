@@ -532,7 +532,7 @@ describe("boot(config) — AC5: the alloy GOLDEN config fixture boots through th
 const alloyEntryWithPlacement = (extra = {}) =>
   alloyEntry({ placements: [{ scope: "__view__", selector: "#hero", minHeight: 300, prehide: true }], ...extra });
 
-describe("boot(config) — AC5: single __view__ placement; a non-__view__ scope is rejected (multi-scope deferred)", () => {
+describe("boot(config) — AC3 (spec 034-02): N placements of arbitrary scopes accepted; duplicate scopes rejected", () => {
   beforeEach(() => {
     RecordingWorker.instances = [];
     vi.stubGlobal("Worker", RecordingWorker);
@@ -545,9 +545,38 @@ describe("boot(config) — AC5: single __view__ placement; a non-__view__ scope 
     await expect(boot({ connectors: [alloyEntryWithPlacement()] })).resolves.toBeTruthy();
   });
 
-  it("REJECTS a non-__view__ placement scope with a clear multi-scope-follow-on message, naming the connector", async () => {
+  it("ACCEPTS a non-__view__ placement scope now (multi-scope is wired, 034-02 — decisionScopes carries it)", async () => {
     await expect(boot({ connectors: [alloyEntry({ placements: [{ scope: "products", selector: "#p", minHeight: 100 }] })] }))
-      .rejects.toThrow(/connectors\[0\].*alloy.*(__view__|multi-scope|follow-on)/i);
+      .resolves.toBeTruthy();
+  });
+
+  it("ACCEPTS N placements of arbitrary scopes (__view__ + a named scope)", async () => {
+    await expect(boot({ connectors: [alloyEntry({ placements: [
+      { scope: "__view__", selector: "#hero", minHeight: 300 },
+      { scope: "products", selector: "#recs", minHeight: 200 },
+    ] })] })).resolves.toBeTruthy();
+  });
+
+  it("derives decisionScopes from placements[].scope and passes them to the chamber connector config", async () => {
+    await boot({ connectors: [alloyEntry({ placements: [
+      { scope: "__view__", selector: "#hero", minHeight: 300 },
+      { scope: "products", selector: "#recs", minHeight: 200 },
+    ] })] });
+    const init = initOf(alloyWorker());
+    expect(init.config.decisionScopes).toEqual(["__view__", "products"]);
+  });
+
+  it("an analytics-only alloy (NO placements) passes NO decisionScopes — the __view__ default stays byte-unchanged (033-02)", async () => {
+    await boot({ connectors: [alloyEntry()] });
+    const init = initOf(alloyWorker());
+    expect(init.config.decisionScopes).toBeUndefined();
+  });
+
+  it("REJECTS DUPLICATE scopes — the scope-keyed reserve/deliver map would collapse last-wins — naming the connector", async () => {
+    await expect(boot({ connectors: [alloyEntry({ placements: [
+      { scope: "__view__", selector: "#a", minHeight: 100 },
+      { scope: "__view__", selector: "#b", minHeight: 200 },
+    ] })] })).rejects.toThrow(/connectors\[0\].*alloy.*duplicate.*scope/i);
   });
 
   it("REJECTS a placement missing its selector", async () => {
@@ -838,5 +867,118 @@ describe("boot(config) — AC7: end-to-end two-phase (eager reserve -> lazy fill
     expect(filled[0]).toBe(DECISION_HTML); // the box filled with the decision (reserve -> fill, same box)
     await waitFor(() => ga4Captured.length >= 1);
     expect(ga4Captured[0]).toMatchObject({ event: "proposition_display", scope: "__view__" }); // GA4 captured
+  });
+});
+
+// ---- spec 034-02: multi-scope end-to-end (AC5) ----
+// A self-reacting chamber Worker that, on a SUCCESSFUL interact, returns a
+// PER-SCOPE proposition (one for __view__, one for `products`) as DATA — modeling
+// an Edge/Target response to a decisionScopes:["__view__","products"] interact. The
+// per-scope RESPONSE is server behavior — rig-proven here with a STUB; live-Alloy is
+// a creds-gated residual (013 pattern), NOT claimed. The host maps each decision to
+// its reserved box BY SCOPE and reports one exposure per scope.
+const VIEW_HTML = '<div class="airlock-hero" style="height:180px">Above the fold</div>';
+const PRODUCTS_HTML = '<div class="airlock-recs" style="height:120px">Recommended for you</div>';
+class MultiScopeAlloyWorker {
+  constructor(url, opts) {
+    MultiScopeAlloyWorker.instances.push(this);
+    this.url = String(url);
+    this.opts = opts;
+    this.messages = [];
+    this.handlers = [];
+    this.terminated = 0;
+    this.seq = 0;
+    this.propositions = [
+      { scope: "__view__", content: { id: "AT:view-1", scope: "__view__", scopeDetails: { activity: { id: "act-v" }, experience: { id: "exp-v" } }, items: [{ schema: "https://ns.adobe.com/personalization/html-content-item", data: { format: "text/html", content: VIEW_HTML } }] } },
+      { scope: "products", content: { id: "AT:prod-1", scope: "products", scopeDetails: { activity: { id: "act-p" }, experience: { id: "exp-p" } }, items: [{ schema: "https://ns.adobe.com/personalization/html-content-item", data: { format: "text/html", content: PRODUCTS_HTML } }] } },
+    ];
+  }
+  addEventListener(type, fn) { if (type === "message") this.handlers.push(fn); }
+  removeEventListener() {}
+  terminate() { this.terminated++; }
+  emit(msg) { for (const h of this.handlers.slice()) h({ data: msg }); }
+  postMessage(m) {
+    this.messages.push(m);
+    if (m.type === "init") {
+      this.datastreamId = (m.config && m.config.datastreamId) || null;
+      this.decisionScopes = (m.config && m.config.decisionScopes) || null;
+      setTimeout(() => { this.emit({ type: "phase", name: "install" }); this.emit({ type: "phase", name: "configured" }); }, 0);
+    } else if (m.type === "event") {
+      const id = "af-" + (++this.seq);
+      const body = JSON.stringify({ events: [{ xdm: { eventType: "web.webpagedetails.pageViews" } }] });
+      const url = interactUrlFor ? interactUrlFor(this.datastreamId) : `${INTERACT}?configId=${this.datastreamId}`;
+      setTimeout(() => this.emit({ type: "intercepted-fetch", id, url, method: "POST", headers: {}, body }), 0);
+    } else if (m.type === "intercepted-fetch-response") {
+      setTimeout(() => {
+        // A per-scope proposition each (the connector delivered ALL scopes, extractDecisions scope:null).
+        if (m.status === 200) this.emit({ type: "decisions", decisions: this.propositions });
+        this.emit({ type: "result", summary: { booted: true }, ready: [] });
+      }, 0);
+    }
+  }
+}
+MultiScopeAlloyWorker.instances = [];
+
+describe("boot(config) — AC5 (spec 034-02): 2 placements → both scopes fetched → both boxes filled by scope → both exposures reported", () => {
+  beforeEach(() => {
+    MultiScopeAlloyWorker.instances = [];
+    interactUrlFor = null;
+    vi.stubGlobal("Worker", MultiScopeAlloyWorker);
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({ status: 200, statusText: "OK", headers: { get: () => "application/json" }, text: async () => JSON.stringify({ handle: [] }) })));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  const twoPlacementEntry = (extra = {}) => alloyEntry({ placements: [
+    { scope: "__view__", selector: "#hero", minHeight: 300, prehide: true },
+    { scope: "products", selector: "#recs", minHeight: 200, prehide: true },
+  ], ...extra });
+
+  it("fills EACH box by scope via its own reserved handle, and reports one proposition_display exposure per scope", async () => {
+    const viewFill = vi.fn();
+    const productsFill = vi.fn();
+    const reservedPlacements = {
+      __view__: Promise.resolve({ id: "r-view", fill: viewFill, release() {} }),
+      products: Promise.resolve({ id: "r-prod", fill: productsFill, release() {} }),
+    };
+    const exposures = [];
+    window.airlock = { push: (evt) => { exposures.push(evt); return 1; } };
+
+    const h = await bootAlloy(twoPlacementEntry({ reservedPlacements }));
+    // The connector learned BOTH scopes from the config (derived from placements[].scope).
+    expect(initOf(MultiScopeAlloyWorker.instances[0]).config.decisionScopes).toEqual(["__view__", "products"]);
+    h.push({ event: "page_view", page_location: "https://site/x" });
+
+    // Each box is filled by ITS scope's decision html (mapped host-side by scope).
+    await waitFor(() => viewFill.mock.calls.length >= 1 && productsFill.mock.calls.length >= 1);
+    expect(viewFill).toHaveBeenCalledWith(VIEW_HTML);
+    expect(productsFill).toHaveBeenCalledWith(PRODUCTS_HTML);
+
+    // One proposition_display exposure per scope (both reported through the composite).
+    await waitFor(() => exposures.length >= 2);
+    const byScope = Object.fromEntries(exposures.map((e) => [e.scope, e]));
+    expect(byScope.__view__).toMatchObject({ event: "proposition_display", proposition_id: "AT:view-1", activity_id: "act-v" });
+    expect(byScope.products).toMatchObject({ event: "proposition_display", proposition_id: "AT:prod-1", activity_id: "act-p" });
+  });
+
+  it("end-to-end through reservePersonalization: eager reserves BOTH boxes pre-appear, lazy fills each by scope", async () => {
+    // PHASE 1 (eager, pre-paint): the REAL reservePersonalization sizes BOTH boxes.
+    const heroEl = { style: {}, _attrs: {}, setAttribute(k, v) { this._attrs[k] = v; }, getAttribute(k) { return k in this._attrs ? this._attrs[k] : null; } };
+    const recsEl = { style: {}, _attrs: {}, setAttribute(k, v) { this._attrs[k] = v; }, getAttribute(k) { return k in this._attrs ? this._attrs[k] : null; } };
+    const doc = { querySelector: (sel) => (sel === "#hero" ? heroEl : sel === "#recs" ? recsEl : null) };
+    const config = { connectors: [twoPlacementEntry()] };
+    const { reservedPlacements } = reservePersonalization(config, { document: doc });
+    expect(heroEl.style.minHeight).toBe("300px"); // both reserved BEFORE appear (no-flicker order)
+    expect(recsEl.style.minHeight).toBe("200px");
+    expect(Object.keys(reservedPlacements).sort()).toEqual(["__view__", "products"]);
+
+    window.airlock = { push: () => 1 };
+    // PHASE 2 (lazy): bootAlloy with the handed-off reservedPlacements, drive page_view.
+    const h = await bootAlloy(twoPlacementEntry({ reservedPlacements }));
+    h.push({ event: "page_view", page_location: "https://site/x" });
+
+    await waitFor(() => heroEl.getAttribute("data-airlock-filled") === "1" && recsEl.getAttribute("data-airlock-filled") === "1");
+    expect(heroEl.getAttribute("data-airlock-filled")).toBe("1"); // both pre-reserved boxes filled (reserve -> fill, same boxes)
+    expect(recsEl.getAttribute("data-airlock-filled")).toBe("1");
   });
 });

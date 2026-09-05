@@ -1,10 +1,9 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: [033-02, 034-01]
-last_verified:
+last_verified: 2026-09-05
 arch_review: true  # extends the interact request shape + the public config placements surface to N scopes.
 frame_review: true  # rests on the decisionScopes request-wiring being correct (033-03 deferred it unproven).
-claimed_by: claude/mvp6-e4550f
 ---
 
 <!-- jig self-defining vocabulary (soft, forward-only). jig grounding (064-02/ADR-0020): probe/cite or mark assumptions. -->
@@ -76,3 +75,88 @@ as a **live-Alloy caveat**.
 
 **DoD:** all ACs pass; TDD red→green; reviewed (compliance + craft + **arch** + **frame-critique**); deviation log +
 reconciliation sweep; reconciliation review; `docs/refinement-todo.md` multi-scope follow-on **closed**; board synced.
+
+## Close-out
+
+Implemented red→green; compliance + craft + arch reviews PASSED (no blockers — doc/leanness nits, addressed below);
+frame-critique was done at authoring (`frame_review: true`). The three close-out doc fixes (stale `wireAlloyDecisions`
+docstring, the duplicate-scope fixture/label note, this close-out) carry NO code-logic change — `npm test` / `node
+contracts/validate.mjs` / `npm run lint` stayed green.
+
+### Deviation log
+
+1. **`decisionScopes` derivation unions `Object.keys(reserved)` beyond `placements[].scope`.** AC1 said "derives the scope
+   set from the config's `placements[].scope`". `deriveDecisionScopes` (`adapters/eds/index.js`) additionally unions the
+   handed-off reserved-map keys as a FALLBACK, so a standalone `bootAlloy` given only `reservedPlacements` (no
+   `placements`) still requests those scopes. Placements drive when present (order-preserving, deduped); additive
+   robustness, no behavior change for the config-boot path. Reviewed — accepted.
+2. **Schema duplicate-scope check is COARSE; the runtime validator is the load-bearing guard.** Standard JSON Schema
+   (draft 2020-12) cannot express "unique by the `scope` sub-property", so the schema uses `uniqueItems: true` (catches
+   byte-identical entries only) and the negative fixture is two identical placements. The real guard — rejecting two
+   placements sharing a `scope` even with DIFFERENT selectors (the scope-keyed reserve/deliver maps would otherwise
+   collapse last-wins) — is the RUNTIME `validateConnectorEntry` via `firstDuplicateScope` (`adapters/eds/placements.js`),
+   unit-tested in `test/eds-boot-alloy.test.js`. Noted in `contracts/validate.mjs`'s label + the schema description.
+3. **`parseViewPlacement` → `parsePlacements` (rename + generalize, not additive).** The single-`__view__` parser was
+   replaced by an N-placement/any-scope parser; the one importer (`reserve-personalization.js`) + its test were updated.
+   No dual-API left behind (dead code avoided). The `probes/eds-testbed/scripts/airlock/` copy still carries the old name
+   — a testbed deployment artifact, out of scope, not imported by the shipped tree (see note b).
+
+**Review-noted follow-ons / notes (NOT fixed this slice — no blocker):**
+
+- (a) **`config.personalization` sub-keys other than `decisionScopes` are silently inert.** The connector merges
+  `personalization.decisionScopes` (faithful to alloy's own sendEvent merge) but ignores any other `personalization.*`
+  sub-key. This is unreachable via `bootAlloy` (which only ever passes `decisionScopes`) and `personalization` is not an
+  `alloyConnector` schema field — so no adopter config can set it. A leanness note, not a gap. Trigger: a future need to
+  pass richer `personalization` options through the connector.
+- (b) **Pre-034 built copies of the connector exist on disk — the rebuild-on-demand class, PRE-EXISTING, NOT a 034-02
+  regression.** `rig/out/*.worker.built.js` (alloy-csp / alloy-core-host / alloy-decisions) are **git-ignored** and
+  rebuilt fresh on each rig run (my `rig:alloy-multiscope` + `rig:alloy-decisions` runs rebuilt theirs from source).
+  `probes/alloy-csp-spike/out/alloy-chamber.worker.built.js` is **tracked** and still carries the pre-034 connector
+  (`decisionScope = VIEW_SCOPE`) — a 033-01 CSP probe spike build, not part of the shipped runtime or any active rig, not
+  rebuilt by any slice since. The `probes/eds-testbed/scripts/airlock/` copies are untracked testbed deployment copies.
+  None are load-bearing; all regenerate from source. Flagged for MVP6's spec-036 real-site/testbed validation harness: a
+  fresh `node build.mjs` (+ rig rebuilds) must precede any validation so stale pre-034 bytes are never exercised.
+
+### Reconciliation sweep
+
+| Path | Change | AC / rationale |
+|---|---|---|
+| `connectors/alloy/connector.js` | mod | AC1 — `decisionScopes` config field, `mergeDecisionScopes`, sendEvent carries scopes + `defaultPersonalizationEnabled:false` when no `__view__`, deliver `scope:null` |
+| `adapters/eds/placements.js` | mod | AC3/AC4 — `parseViewPlacement`→`parsePlacements` (N/any scope), `firstDuplicateScope` |
+| `adapters/eds/reserve-personalization.js` | mod | AC4 — reserve one box per scope; duplicate→reserve-nothing (defers to loud boot reject) |
+| `adapters/eds/index.js` | mod | AC1/AC2/AC3 — `deriveDecisionScopes`, config threading, `validateConnectorEntry` any-scope + duplicate reject, `wireAlloyDecisions` docstring fix |
+| `contracts/instrumentation-config.schema.json` | mod | AC3 — scope `type:string minLength:1` (lifted `const:__view__`), `uniqueItems:true`, descriptions |
+| `contracts/validate.mjs` | mod | AC3 — wire multiscope golden (pass) + duplicate-scope negative (fail); coarse-vs-runtime note |
+| `contracts/fixtures/instrumentation-config-alloy-multiscope.golden.json` | new | AC3 — golden, 2 scopes (`__view__` + `products`) |
+| `contracts/fixtures/instrumentation-config-alloy-duplicate-scope.negative.json` | new | AC3 — negative, byte-identical duplicate (schema `uniqueItems`) |
+| `contracts/fixtures/instrumentation-config-alloy-nonview-scope.negative.json` | deleted | AC3 — scenario now VALID (non-`__view__` accepted) |
+| `test/alloy-connector.test.js` | mod | AC1 — decisionScopes carried/deduped/merged, absent byte-unchanged, `defaultPersonalizationEnabled` |
+| `test/alloy-decisions.test.js` | mod | AC1/AC2 — `extractDecisions({scope:null})` returns every scope |
+| `test/reserve-personalization.test.js` | mod | AC4 — `parsePlacements`/`firstDuplicateScope`, N-box reserve, per-scope drop, duplicate→nothing |
+| `test/eds-boot-alloy.test.js` | mod | AC1/AC3/AC5 — accepts N/non-`__view__`, derives scopes, rejects duplicate, multi-scope E2E (2 boxes + 2 exposures) |
+| `rig/alloy-mint-stub.js` | mod | AC5 — additive `mintMultiScopeDecisionsResponse` (per-scope propositions) |
+| `rig/alloy-multiscope.mjs` | new | AC1/AC5 — real-alloy browser rig: REQUEST carries both scopes; per-scope fill + exposure (stub RESPONSE) |
+| `rig/alloy-multiscope-harness.html` | new | AC5 — the rig's page harness (reserve 2 boxes → fill by scope → exposures) |
+| `package.json` | mod | AC5 — `rig:alloy-multiscope` script |
+| `docs/refinement-todo.md` | mod | close-out — multi-scope follow-on marked RESOLVED (residual: live per-scope RESPONSE) |
+| `docs/specs/034-alloy-config-followups/slice-02-multi-scope.md` | mod | close-out — this section |
+
+No new inbox items. No `docs/conventions.md` / `docs/memory/` changes.
+
+### Definition of Done — verification
+
+| DoD item | Status |
+|---|---|
+| All ACs pass (AC1–AC5) | ✅ proving tests + rigs green (see sweep) |
+| TDD red→green | ✅ 23 tests failed pre-impl, all green post-impl |
+| Reviewed: compliance + craft + arch | ✅ PASSED (coordinator) |
+| Reviewed: frame-critique | ✅ at authoring (`frame_review: true`) |
+| Deviation log + reconciliation sweep | ✅ above |
+| `docs/refinement-todo.md` multi-scope follow-on closed | ✅ RESOLVED (residual recorded) |
+| Reconciliation review | ⏳ downstream (the gated RECONCILED transition) |
+| Board synced | ⏳ downstream reconciliation (not in this close-out's scope) |
+
+**Gate re-run (post close-out):** `npm test` 81 files / 1139 passed; `node contracts/validate.mjs` all pass; `npm run
+lint` clean; `node build.mjs` exit 0; `rig:alloy-multiscope` PASS; `rig:alloy-decisions` (033-03) PASS. Per-scope Edge
+RESPONSE is **rig-stub-proven** + REAL-alloy REQUEST rig-proven (alloy@2.35.0); **live per-scope RESPONSE NOT claimed**
+(creds-gated residual, 013 pattern).

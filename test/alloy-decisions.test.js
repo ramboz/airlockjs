@@ -62,6 +62,13 @@ describe("extractDecisions — alloy result.propositions → Decision[] (AC1/AC2
     expect(decisions[0].scope).toBe("some-mbox");
   });
 
+  it("scope:null returns EVERY scope — the multi-scope delivery the connector relies on (034-02)", () => {
+    const other = viewProposition({ scope: "products", id: "AT:prop-2" });
+    const decisions = extractDecisions(resultWith(viewProposition(), other), { scope: null });
+    expect(decisions).toHaveLength(2);
+    expect(decisions.map((d) => d.scope).sort()).toEqual(["__view__", "products"]);
+  });
+
   it("returns [] when the result has no propositions (non-personalized response)", () => {
     expect(extractDecisions({ propositions: [] })).toEqual([]);
     expect(extractDecisions({})).toEqual([]);

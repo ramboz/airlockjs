@@ -142,6 +142,30 @@ export function mintDecisionsResponse(opts = {}) {
 }
 
 /**
+ * Build an Edge `interact` response carrying the identity mint (012-01) AND ONE
+ * Target proposition PER requested scope (spec 034-02 — multi-scope). One
+ * `personalization:decisions` handle per scope (real alloy aggregates every such
+ * handle's payload into `result.propositions`), so the host maps each returned
+ * proposition to its box BY SCOPE. Used by the multi-scope rig's stub Edge to model a
+ * per-scope Target response (the per-scope RESPONSE is server behavior — rig-proven
+ * with this stub; live-Alloy is a creds-gated residual, NOT claimed here).
+ *
+ * @param {{ scopes?: Array<{ scope: string, html?: string, activityId?: string, experienceId?: string }>, requestId?: string }} [opts]
+ * @returns {{ response: { requestId: string, handle: Array<object> }, ecid: string, propositions: Array<object> }}
+ */
+export function mintMultiScopeDecisionsResponse(opts = {}) {
+  const { scopes = [], requestId } = opts;
+  const { response, ecid } = mintInteractResponse(requestId);
+  const propositions = [];
+  for (const s of scopes) {
+    const handle = personalizationDecisionsHandle({ scope: s.scope, html: s.html, activityId: s.activityId, experienceId: s.experienceId });
+    response.handle.push(handle);
+    propositions.push(handle.payload[0]);
+  }
+  return { response, ecid, propositions };
+}
+
+/**
  * Gate-able minting-Edge stub — spec 012-02, AC5.
  *
  * The 012-01 stub minted a fresh ECID and responded immediately. To construct

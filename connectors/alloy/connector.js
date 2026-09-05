@@ -46,18 +46,22 @@ export const ALLOY_INTERACT_ENDPOINT = "https://adobedc.demdex.net/ee/v1/interac
  * in the chamber (alloy-chamber.worker.js), not here — this connector stays free
  * of any direct global/DOM/network reach.
  *
- * DECISIONS-AS-DATA (spec 012-03, AC1/AC2): `sendEvent({ renderDecisions:false })`
- * fetches Target personalization from the Edge and returns it as DATA
+ * DECISIONS-AS-DATA (spec 012-03, AC1/AC2; spec 034-02 multi-scope):
+ * `sendEvent({ renderDecisions:false, decisionScopes })` fetches Target
+ * personalization for EVERY configured scope from the Edge and returns it as DATA
  * (propositions) — the chamber has no DOM, so nothing is rendered here. `handle`
- * extracts the `__view__` decisions from the alloy result and pushes them across
- * the boundary through the granted `caps.decisions.deliver` capability (the HOST
- * applies them via `reserveSpace`). This RECONCILES the deferred `decisions.fetch`
- * pull sketch (capability.d.ts) with alloy's actual push-from-`sendEvent`-response
- * flow — additive, and a no-op when no `decisions` capability is granted (GA4 /
- * 012-01 / 012-02 paths, whose responses carry no propositions, are unaffected).
+ * extracts ALL returned decisions from the alloy result and pushes them across the
+ * boundary through the granted `caps.decisions.deliver` capability (the HOST maps
+ * each to its reserved box BY SCOPE and applies it via `reserveSpace`). This
+ * RECONCILES the deferred `decisions.fetch` pull sketch (capability.d.ts) with
+ * alloy's actual push-from-`sendEvent`-response flow — additive, and a no-op when no
+ * `decisions` capability is granted (GA4 / 012-01 / 012-02 paths, whose responses
+ * carry no propositions, are unaffected).
  *
  * @param {Readonly<Record<string, unknown>>} [config] host-owned alloy config:
- *   `{ datastreamId, orgId, context?, alloy?, ...configureExtras }`.
+ *   `{ datastreamId, orgId, context?, alloy?, decisionScopes?, ...configureExtras }`.
+ *   `decisionScopes` (spec 034-02) is the declared personalization scope set (from
+ *   `placements[].scope`); absent → alloy's `__view__` default.
  * @returns {import("../../contracts/connector").Connector}
  */
 export function createAlloyConnector(config = {}) {
@@ -66,9 +70,20 @@ export function createAlloyConnector(config = {}) {
     orgId,
     context = [], // [] disables ambient auto-collection — the chamber is headless (R-004)
     alloy, // the injected command fn; defaults to the chamber's self.alloy global
-    decisionScope = VIEW_SCOPE, // the personalization scope the host applies (R-004)
+    // spec 034-02: the personalization decision scopes the host declared (from
+    // `placements[].scope`, derived by bootAlloy). Carried on the interact so alloy
+    // fetches EVERY declared scope. `personalization.decisionScopes` is accepted +
+    // merged too (alloy's own sendEvent merges both forms). Destructured OUT of
+    // `configureExtras` so neither leaks into `configure` (they are sendEvent-only).
+    decisionScopes,
+    personalization,
     ...configureExtras // debugEnabled / edgeDomain / etc. pass through to configure
   } = config;
+
+  // The merged, deduped scope set to request on every interact. EMPTY when none are
+  // configured → the interact carries NO `decisionScopes` (alloy's `__view__` default,
+  // byte-unchanged from 033-02/033-03).
+  const configuredScopes = mergeDecisionScopes(decisionScopes, personalization);
 
   // The granted capabilities, captured at init — `handle` delivers decisions
   // through `granted.decisions` (the push channel to the host). No capability
@@ -169,13 +184,34 @@ export function createAlloyConnector(config = {}) {
    * @returns {Promise<import("../../contracts/connector").EgressRequest[]>}
    */
   async function handle(event) {
-    const result = await getAlloy()("sendEvent", {
+    const options = {
       renderDecisions: false, // headless personalization: decisions as data (R-004)
       xdm: toXdm(event),
-    });
-    // 012-03: the propositions cross the boundary as DATA via the granted
-    // decisions capability (push, reconciled with the deferred `fetch` sketch).
-    const decisions = extractDecisions(result, { scope: decisionScope });
+    };
+    // spec 034-02: carry the declared decision scopes on the interact so alloy fetches
+    // EVERY configured scope (source-grounded: sendEvent accepts a top-level
+    // `decisionScopes[]`, merged+deduped into the interact query; `renderDecisions:false`
+    // does NOT gate the fetch). ABSENT scopes → no `decisionScopes` key → alloy's
+    // `__view__` default, byte-unchanged (033-02/033-03).
+    if (configuredScopes.length) {
+      options.decisionScopes = configuredScopes;
+      // Live-Alloy caveat (the analogue of 034-01's split): on a cache-uninitialized
+      // event real alloy's shouldRequestDefaultPersonalization() AUTO-ADDS `__view__`
+      // even when only named scopes are configured — a spurious extra proposition. When
+      // NO `__view__` scope is declared, suppress it so only the declared scopes are
+      // fetched. (Not observable in the rig — the injected config.alloy bypasses this
+      // real-alloy path — so it is documented as a live-Alloy caveat.)
+      if (!configuredScopes.includes(VIEW_SCOPE)) {
+        options.personalization = { defaultPersonalizationEnabled: false };
+      }
+    }
+    const result = await getAlloy()("sendEvent", options);
+    // 012-03 + 034-02: the propositions cross the boundary as DATA via the granted
+    // decisions capability. Deliver ALL returned scopes (`scope:null`) — the HOST maps
+    // each decision to its reserved box BY SCOPE (adapters/eds/index.js), not a single
+    // filtered scope. In the single-`__view__`/analytics-only paths this is unchanged
+    // (only `__view__` — or nothing — comes back).
+    const decisions = extractDecisions(result, { scope: null });
     if (decisions.length && granted && granted.decisions && typeof granted.decisions.deliver === "function") {
       granted.decisions.deliver(decisions);
     }
@@ -183,6 +219,27 @@ export function createAlloyConnector(config = {}) {
   }
 
   return { manifest, init, handle };
+}
+
+/**
+ * Merge the decision scopes from the top-level config `decisionScopes` and a
+ * `personalization.decisionScopes` (alloy's own sendEvent accepts + merges both
+ * forms), deduped + order-preserving. Non-string / empty entries are dropped. Pure,
+ * null-safe — returns `[]` when neither is configured (the caller then omits the key
+ * so the interact keeps alloy's `__view__` default, byte-unchanged).
+ * @param {unknown} top the config's top-level `decisionScopes`.
+ * @param {{ decisionScopes?: unknown } | undefined} personalization the config's `personalization`.
+ * @returns {string[]}
+ */
+function mergeDecisionScopes(top, personalization) {
+  const fromTop = Array.isArray(top) ? top : [];
+  const fromPzn = personalization && Array.isArray(personalization.decisionScopes) ? personalization.decisionScopes : [];
+  const out = [];
+  const seen = new Set();
+  for (const s of [...fromTop, ...fromPzn]) {
+    if (typeof s === "string" && s && !seen.has(s)) { seen.add(s); out.push(s); }
+  }
+  return out;
 }
 
 /**

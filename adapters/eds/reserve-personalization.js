@@ -1,6 +1,6 @@
 /**
  * Eager pre-paint personalization reserve — spec 033-03 AC2 (the no-flicker fix,
- * AD-8 / UC-1).
+ * AD-8 / UC-1) + spec 034-02 AC4 (N placements — one pre-paint box per scope).
  *
  * THE SEPARATE, LIGHTWEIGHT EAGER ENTRYPOINT. `eds.js`/`boot(config)`/`bootAlloy`
  * are dynamically imported + run in `loadLazy`, AFTER `body.appear` (paint) — a
@@ -33,11 +33,12 @@
  * that rejection is never an unhandled-rejection warning in the eager window.
  */
 import { createDomCapability } from "./dom.js";
-import { parseViewPlacement } from "./placements.js";
+import { parsePlacements, firstDuplicateScope } from "./placements.js";
 
 /**
- * Synchronously initiate the reserve of the configured `__view__` personalization
- * box, returning the reserve handle promise(s) for the lazy fill to hand off to.
+ * Synchronously initiate the reserve of EACH configured personalization box (spec
+ * 034-02 — N placements, one box per scope), returning the reserve handle promises
+ * keyed by scope for the lazy fill to hand off to.
  *
  * @param {{ connectors?: Array<object> }} config the boot(config) project config
  *   (the SAME config the lazy `boot(config)` consumes — it carries the alloy
@@ -49,16 +50,26 @@ import { parseViewPlacement } from "./placements.js";
  */
 export function reservePersonalization(config, opts = {}) {
   const doc = opts.document || (typeof document !== "undefined" ? document : undefined);
-  const spec = parseViewPlacement(config);
-  if (!spec || !doc) return { reservedPlacements: {} };
+  const specs = parsePlacements(config);
+  if (!specs.length || !doc) return { reservedPlacements: {} };
 
-  // reserveSpace SIZES the box synchronously (before the returned Promise resolves),
-  // so this reserve is pre-paint when called from loadEager before body.appear.
-  const handlePromise = createDomCapability(doc).reserveSpace(spec);
-  // Swallow a rejection HERE (selector matched nothing) so it is never an unhandled
-  // rejection in the eager window — bootAlloy attaches its OWN await+catch on the
-  // same promise later (drop + diagnose), so both consumers are covered.
-  handlePromise.catch(() => {});
+  // DUPLICATE scopes would collapse the scope-keyed map (last-wins) — the lazy boot
+  // REJECTS them loudly (validateConnectorEntry). The eager reserve DEFERS to that:
+  // reserve NOTHING for a doomed config rather than an orphaned box, and never throw
+  // here (the eager window's no-throw contract; the boot rejection is the loud signal).
+  if (firstDuplicateScope(specs)) return { reservedPlacements: {} };
 
-  return { reservedPlacements: { [spec.scope]: handlePromise } };
+  const dom = createDomCapability(doc);
+  const reservedPlacements = {};
+  for (const spec of specs) {
+    // reserveSpace SIZES the box synchronously (before the returned Promise resolves),
+    // so each reserve is pre-paint when called from loadEager before body.appear.
+    const handlePromise = dom.reserveSpace(spec);
+    // Swallow a rejection HERE (selector matched nothing) so it is never an unhandled
+    // rejection in the eager window — bootAlloy attaches its OWN await+catch on the
+    // same promise later (drop + diagnose per scope), so both consumers are covered.
+    handlePromise.catch(() => {});
+    reservedPlacements[spec.scope] = handlePromise;
+  }
+  return { reservedPlacements };
 }

@@ -38,7 +38,7 @@ import { resolveConsent } from "../../core/consent.js";
 import { ALLOY_INTERACT_ENDPOINT } from "../../connectors/alloy/connector.js";
 import { htmlOfDecision } from "../../connectors/alloy/decisions.js";
 import { createPropositionExposureReporter } from "./decisions-exposure.js";
-import { VIEW_SCOPE } from "./placements.js";
+import { VIEW_SCOPE, firstDuplicateScope } from "./placements.js";
 import { sourceGa4Ctx } from "../../connectors/ga4/cookies.js";
 import { shapeMpConsent } from "../../connectors/ga4/consent.js";
 import { createMetaPixelConfig, META_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/meta.js";
@@ -804,6 +804,29 @@ function decisionDiagnostic(record) {
 }
 
 /**
+ * Derive the personalization scope set the connector requests on the interact (spec
+ * 034-02) from the declared `placements[].scope` plus any handed-off reserved scopes
+ * (the fallback for a standalone `bootAlloy` given only `reservedPlacements`), deduped
+ * + order-preserving (placements first). EMPTY when no personalization is configured →
+ * `bootAlloy` omits `decisionScopes` and alloy keeps its `__view__` default (byte-
+ * unchanged, 033-02/033-03). Duplicate scopes are rejected upstream (validateConnectorEntry).
+ *
+ * @param {Array<{ scope?: unknown }> | undefined} placements the alloy entry's placements.
+ * @param {Record<string, unknown>} reserved the handed-off reserved map (scope-keyed).
+ * @returns {string[]}
+ */
+function deriveDecisionScopes(placements, reserved) {
+  const fromPlacements = Array.isArray(placements) ? placements.map((p) => p && p.scope) : [];
+  const fromReserved = reserved && typeof reserved === "object" ? Object.keys(reserved) : [];
+  const out = [];
+  const seen = new Set();
+  for (const s of [...fromPlacements, ...fromReserved]) {
+    if (typeof s === "string" && s && !seen.has(s)) { seen.add(s); out.push(s); }
+  }
+  return out;
+}
+
+/**
  * Wire alloy's decisions-as-data delivery (spec 033-03) onto `caps.decisions` — the sink
  * the wrapped-SDK host calls with the chamber's `{type:"decisions"}` payload. Called by
  * `bootAlloy` ONLY when personalization is CONFIGURED (a `placements` entry OR handed-off
@@ -811,10 +834,12 @@ function decisionDiagnostic(record) {
  * `{type:"decisions"}` exactly as 033-02 did (arch #3 byte-parity). Extracted to module
  * scope so bootAlloy's body stays flat + this delivery logic reads as one unit.
  *
- * Per decision (ALREADY `__view__`-filtered by the connector, decisionScope=VIEW_SCOPE —
- * the worker touches NO DOM): match it to its EAGERLY-reserved box (handed off via
- * `reserved`), fill through the awaited reserveSpace handle (the 018 sanitizer boundary —
- * never a raw write), then report a `proposition_display` exposure through the COMPOSITE.
+ * Per decision (spec 034-02: the connector delivers ALL returned scopes —
+ * `extractDecisions(result,{scope:null})` — the worker touches NO DOM): match it to its
+ * EAGERLY-reserved box BY its arbitrary `decision.scope` (handed off via `reserved`, keyed
+ * by scope), fill through the awaited reserveSpace handle (the 018 sanitizer boundary —
+ * never a raw write), then report a `proposition_display` exposure through the COMPOSITE. A
+ * scope with no reserved box (e.g. a real-alloy auto-added `__view__`) is dropped+diagnosed.
  *
  * INVARIANT (the flicker fix, AC2/AC3): NEVER lazily reserve as a fallback — this module
  * imports no DOM capability, so a post-paint reserve is structurally impossible; a decision
@@ -1029,10 +1054,18 @@ export async function bootAlloy(opts = {}) {
     payloadDenylist,
   });
 
+  // spec 034-02: derive the decision scope set the connector requests on the interact
+  // from the declared `placements[].scope` (+ any handed-off reserved scopes, for a
+  // standalone bootAlloy given only reservedPlacements), deduped + order-preserving.
+  // EMPTY → the interact carries NO `decisionScopes` (alloy's `__view__` default,
+  // byte-unchanged, 033-02/033-03). The host maps each returned decision back to its box
+  // by scope (wireAlloyDecisions.deliver).
+  const decisionScopes = deriveDecisionScopes(opts.placements, reserved);
+
   // Boot the chamber: the adopter-supplied bundleUrl + the alloy config + the consent
   // vector (the chamber's in-chamber setConsent delegate reads it). The seed cookie is
   // this origin's jar (guarded — a node/SSR boot has no document).
-  const config = { datastreamId: resolvedDatastreamId, orgId, context };
+  const config = { datastreamId: resolvedDatastreamId, orgId, context, ...(decisionScopes.length ? { decisionScopes } : {}) };
   const seedCookie = (typeof document !== "undefined" && document.cookie) || "";
   host.init({ cookie: seedCookie, config, bundleUrl, consent });
 
@@ -1266,22 +1299,23 @@ function validateConnectorEntry(entry, index) {
       // the tenant — a re-tenant attack (ADR-0016 untrusted bundle) could go unheld.
       throw new Error(`airlock boot(config): ${at} (alloy) is missing a datastream id — set "datastreamId" (or its "datastream"/"edgeConfigId" alias); alloy configure() + the config-integrity tenant pin both require it`);
     }
-    // 033-03 AC5: personalization placements. This slice supports EXACTLY ONE __view__
-    // placement — alloy's interact requests __view__ by default (renderDecisions:false, no
-    // decisionScopes in the request; connectors/alloy/connector.js), so a NON-__view__ scope
-    // would silently never populate. Reject it loud with a clear follow-on pointer rather
-    // than ship a placement that never fills. Multi-scope (wiring decisionScopes into the
-    // interact + a multi-placement host-side map) is a named follow-on (docs/refinement-todo.md).
+    // 033-03 AC5 + 034-02 AC3: personalization placements — N entries of ARBITRARY
+    // scopes. The connector now carries the declared scopes on the interact
+    // (`decisionScopes`, connectors/alloy/connector.js) so alloy fetches each, and the
+    // host maps every returned decision to its box BY SCOPE. Each placement needs a
+    // non-empty scope + selector + a finite minHeight >= 0 (schema parity: a NaN minHeight
+    // makes reserveSpace reject and personalization silently no-op). DUPLICATE scopes are
+    // REJECTED (below) — the scope-keyed reserved + deliver maps would collapse last-wins.
     if ("placements" in entry && entry.placements !== undefined) {
       if (!Array.isArray(entry.placements)) {
-        throw new Error(`airlock boot(config): ${at} (alloy) field "placements" must be an array of { scope: "${VIEW_SCOPE}", selector, minHeight }`);
+        throw new Error(`airlock boot(config): ${at} (alloy) field "placements" must be an array of { scope, selector, minHeight }`);
       }
       for (const p of entry.placements) {
         if (!p || typeof p !== "object" || Array.isArray(p)) {
-          throw new Error(`airlock boot(config): ${at} (alloy) each placement must be an object { scope: "${VIEW_SCOPE}", selector, minHeight }`);
+          throw new Error(`airlock boot(config): ${at} (alloy) each placement must be an object { scope, selector, minHeight }`);
         }
-        if (p.scope !== VIEW_SCOPE) {
-          throw new Error(`airlock boot(config): ${at} (alloy) placement scope ${JSON.stringify(p.scope)} is not supported — only "${VIEW_SCOPE}" this slice (alloy requests it by default); multi-scope personalization (wiring decisionScopes into the interact) is a named follow-on`);
+        if (typeof p.scope !== "string" || p.scope.length === 0) {
+          throw new Error(`airlock boot(config): ${at} (alloy) placement is missing required "scope" (a non-empty personalization scope string, e.g. "${VIEW_SCOPE}")`);
         }
         if (typeof p.selector !== "string" || p.selector.length === 0) {
           throw new Error(`airlock boot(config): ${at} (alloy) placement is missing required "selector" (a non-empty CSS selector string)`);
@@ -1292,6 +1326,14 @@ function validateConnectorEntry(entry, index) {
         if (typeof p.minHeight !== "number" || !Number.isFinite(p.minHeight) || p.minHeight < 0) {
           throw new Error(`airlock boot(config): ${at} (alloy) placement has a missing/invalid "minHeight" (a finite number >= 0 — the box's reserved height in px, sized before paint)`);
         }
+      }
+      // 034-02 AC3: DUPLICATE scopes are REJECTED — both the eager reserved map
+      // (reserve-personalization.js) and the host-side deliver map (wireAlloyDecisions,
+      // keyed by scope) would silently collapse two same-scope placements last-wins.
+      // Reject loud (connector-indexed) rather than drop one silently.
+      const dup = firstDuplicateScope(entry.placements);
+      if (dup) {
+        throw new Error(`airlock boot(config): ${at} (alloy) has a duplicate placement scope ${JSON.stringify(dup)} — each scope may appear at most once (the scope→placement map is keyed by scope; a duplicate would collapse last-wins)`);
       }
     }
   }

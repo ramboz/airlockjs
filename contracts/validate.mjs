@@ -96,6 +96,7 @@ mustPass(instrumentationConfig, "./fixtures/instrumentation-config-pixel-linkedi
 mustPass(instrumentationConfig, "./fixtures/instrumentation-config-pixel-bing.golden.json");
 mustPass(instrumentationConfig, "./fixtures/instrumentation-config-helix-rum.golden.json");
 mustPass(instrumentationConfig, "./fixtures/instrumentation-config-alloy.golden.json"); // spec 033-02: the alloy analytics vertical
+mustPass(instrumentationConfig, "./fixtures/instrumentation-config-alloy-multiscope.golden.json"); // spec 034-02: N placements of arbitrary scopes (__view__ + products)
 mustPass(instrumentationConfig, "./fixtures/instrumentation-config-multi.golden.json"); // AC3: ga4 + pixel + helix-rum
 
 // instrumentation config negative controls the schema MUST reject — the SAME malformed
@@ -108,7 +109,13 @@ mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-unknown-
 mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-missing-id.negative.json"), "pixel(meta) missing required pixelId");
 mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-alloy-missing-bundleUrl.negative.json"), "alloy missing required bundleUrl (ADR-0016 adopter-supplied prerequisite)");
 mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-alloy-missing-datastream.negative.json"), "alloy missing datastream id (config-integrity tenant pin — 015/ADR-0011)");
-mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-alloy-nonview-scope.negative.json"), "alloy placement with a non-__view__ scope (multi-scope is a 033-03 follow-on — only __view__ supported)");
+// The fixture is two BYTE-IDENTICAL placements, so it exercises the SCHEMA's COARSE
+// `uniqueItems` check (JSON Schema can't express "unique by the `scope` sub-property").
+// The LOAD-BEARING duplicate-scope guard — rejecting two placements sharing a `scope`
+// even with DIFFERENT selectors (the scope-keyed reserve/deliver map would collapse
+// last-wins) — is the RUNTIME `validateConnectorEntry` (adapters/eds/index.js, via
+// `firstDuplicateScope`), unit-tested in test/eds-boot-alloy.test.js, NOT this schema.
+mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-alloy-duplicate-scope.negative.json"), "alloy placements with a DUPLICATE scope — byte-identical entries caught by the schema's coarse `uniqueItems` (the runtime validator additionally rejects same-scope/different-selector)");
 mustFail(instrumentationConfig, load("./fixtures/instrumentation-config-wrong-type.negative.json"), "consentStrict wrong-typed (string, not boolean)");
 
 console.log(failures === 0 ? "\nAll contract checks passed." : `\n${failures} contract check(s) FAILED.`);

@@ -522,10 +522,16 @@ geometry unchanged, exposure captured by GA4 / ignored by alloy) + `test/eds-boo
   analytics `["*"]` connector in the same `boot(config)` to land — an alloy-only boot drops+diagnoses the exposure
   (never throws). Follow-on: a dedicated exposure sink independent of an analytics connector. Trigger: an adopter runs
   alloy personalization without a co-booted analytics connector and needs exposure telemetry.
-- **multi-scope personalization / `decisionScopes` request-wiring.** This slice supports a SINGLE `__view__` placement —
-  alloy's interact requests `__view__` by default (`connector.js:172-175` sends no `decisionScopes`), so a non-`__view__`
-  scope is REJECTED at validation (it would silently never populate). The follow-on wires `decisionScopes` into the
-  interact + a multi-placement host-side map. Trigger: an adopter needs personalization outside the `__view__` scope.
+- **multi-scope personalization / `decisionScopes` request-wiring.** ✅ RESOLVED by spec 034-02 (the text below is
+  FALSIFIED — kept struck-through for provenance). The connector now derives `decisionScopes` from the config's
+  `placements[].scope` and carries them on the interact (`connectors/alloy/connector.js`), N placements of ARBITRARY
+  scopes are accepted (the non-`__view__` rejection was lifted; duplicate scopes are rejected instead), the eager reserve
+  reserves one box per scope, and the host maps each returned decision to its box by scope (`wireAlloyDecisions.deliver`).
+  RESIDUAL: whether the Edge/Target returns a proposition PER scope is server behavior — rig-stub-proven
+  (`rig/alloy-multiscope.mjs` + `test/eds-boot-alloy.test.js` AC5) and additionally the REAL-alloy REQUEST carries both
+  scopes (rig-proven, alloy@2.35.0); LIVE per-scope RESPONSE remains a creds-gated residual (013 pattern). ~~This slice
+  supports a SINGLE `__view__` placement — alloy's interact requests `__view__` by default (sends no `decisionScopes`),
+  so a non-`__view__` scope is REJECTED at validation.~~
 
 **Reviewer-flagged design follow-ons (033-03 gating review — backward-compatible, bounded, NOT fixed this slice):**
 - **exposure routing couples to the mutable `window.airlock` global.** `bootAlloy`'s exposure sink LATE-BINDS
