@@ -261,6 +261,13 @@ const waitFor = async (pred, { timeout = 1000, interval = 5 } = {}) => {
   }
 };
 
+// A composite-emit ref stand-in (spec 034-03 AC2): the DEFERRED `{ accepts, emit }` that
+// `boot()` populates after `createComposite` and threads into `bootAlloy` (via the entry's
+// `compositeEmit` opt) so the exposure reporter closes over it — NOT the mutable
+// `window.airlock` global. `accepts(name)` gates the proposition_display exposure (true iff
+// an analytics `["*"]` sink is present); `emit(evt)` fans the exposure out to the composite.
+const emitRef = ({ accepts = () => true, emit = vi.fn() } = {}) => ({ accepts, emit });
+
 describe("boot(config) — AC2: bootAlloy owns a classic chamber Worker + a composite-compatible handle", () => {
   beforeEach(() => {
     RecordingWorker.instances = [];
@@ -613,10 +620,9 @@ describe("boot(config) — AC3: bootAlloy fills the eagerly-reserved box + repor
   it("fills the HANDED-OFF reserved box via reserveSpace's handle.fill(html) — never a raw write, worker touches no DOM", async () => {
     const fillSpy = vi.fn();
     const reservedPlacements = { __view__: Promise.resolve({ id: "r1", fill: fillSpy, release() {} }) };
-    const pushSpy = vi.fn(() => 1); // a composite that delivered the exposure to 1 analytics connector
-    window.airlock = { push: pushSpy };
+    const compositeEmit = emitRef(); // a wired composite-emit ref that accepts the exposure
 
-    const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements }));
+    const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements, compositeEmit }));
     h.push({ event: "page_view", page_location: "https://site/x" });
 
     await waitFor(() => fillSpy.mock.calls.length >= 1);
@@ -624,22 +630,22 @@ describe("boot(config) — AC3: bootAlloy fills the eagerly-reserved box + repor
     void h;
   });
 
-  it("reports a proposition_display exposure (scope + proposition_id + activity/experience) through the composite", async () => {
+  it("reports a proposition_display exposure (scope + proposition_id + activity/experience) through the wired composite-emit ref", async () => {
     const reservedPlacements = { __view__: Promise.resolve({ id: "r1", fill() {}, release() {} }) };
-    const pushSpy = vi.fn(() => 1);
-    window.airlock = { push: pushSpy };
+    const emit = vi.fn();
+    const compositeEmit = emitRef({ emit });
 
-    await bootAlloy(alloyEntryWithPlacement({ reservedPlacements })).then((h) => h.push({ event: "page_view", page_location: "https://site/x" }));
+    await bootAlloy(alloyEntryWithPlacement({ reservedPlacements, compositeEmit })).then((h) => h.push({ event: "page_view", page_location: "https://site/x" }));
 
-    await waitFor(() => pushSpy.mock.calls.length >= 1);
-    expect(pushSpy.mock.calls[0][0]).toMatchObject({ event: "proposition_display", scope: "__view__", proposition_id: "AT:airlock-1", activity_id: "act-1", experience_id: "exp-0" });
+    await waitFor(() => emit.mock.calls.length >= 1);
+    expect(emit.mock.calls[0][0]).toMatchObject({ event: "proposition_display", scope: "__view__", proposition_id: "AT:airlock-1", activity_id: "act-1", experience_id: "exp-0" });
   });
 
   it("a decision with NO handed-off handle is DROPPED + diagnosed (never lazily reserved — the flicker invariant), never thrown", async () => {
     const diags = [];
-    window.airlock = { push: vi.fn(() => 1) };
     // The mis-wire case (AC3): a PLACEMENT is CONFIGURED, but the loader skipped/mis-wired the
     // eager reservePersonalization — so decisions are expected, yet no handle was handed off.
+    // (The decision is dropped BEFORE the exposure reporter runs, so no composite-emit ref needed.)
     const h = await bootAlloy(alloyEntryWithPlacement({ onDiagnostic: (r) => diags.push(r) }));
     h.push({ event: "page_view", page_location: "https://site/x" });
 
@@ -651,7 +657,6 @@ describe("boot(config) — AC3: bootAlloy fills the eagerly-reserved box + repor
 
   it("analytics-only alloy (NO placements) IGNORES {type:decisions} — NO diagnostic (033-02 byte-parity, arch #3)", async () => {
     const diags = [];
-    window.airlock = { push: vi.fn(() => 1) };
     // No placements AND no reservedPlacements: personalization is not configured, so the host
     // must IGNORE {type:decisions} exactly as 033-02 did — NOT wire caps.decisions and emit a
     // per-decision drop warn (which would break the "analytics-only alloy byte-unchanged" claim).
@@ -665,7 +670,6 @@ describe("boot(config) — AC3: bootAlloy fills the eagerly-reserved box + repor
 
   it("a reserved handle that REJECTED (selector matched nothing at reserve time) is dropped + diagnosed, never thrown", async () => {
     const diags = [];
-    window.airlock = { push: vi.fn(() => 1) };
     const reservedPlacements = { __view__: Promise.reject(new Error("reserveSpace: selector matched nothing: #hero")) };
     reservedPlacements.__view__.catch(() => {}); // pre-handle so the test env sees no unhandled rejection
     const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements, onDiagnostic: (r) => diags.push(r) }));
@@ -686,41 +690,78 @@ describe("boot(config) — AC4: exposure routes to the analytics sink, NOT alloy
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it("composite.push RETURNS the fan-out count: page_view -> 1 (alloy accepts), proposition_display -> 0 (alloy ignores, no loop)", async () => {
+  it("no proposition loop: alloy's vocabulary accepts page_view but NOT proposition_display (accepts-gated, no count return)", async () => {
     vi.stubGlobal("Worker", RecordingWorker);
     await boot({ connectors: [alloyEntry()] });
-    alloyWorker().emit({ type: "phase", name: "configured" });
+    const w = alloyWorker();
+    w.emit({ type: "phase", name: "configured" });
 
-    expect(window.airlock.push({ event: "page_view", page_location: "https://site/x" })).toBe(1);
-    // alloy's vocabulary is ["page_view"], so a proposition_display exposure is NOT delivered to
-    // alloy (no second interact / no proposition loop) — and in an alloy-only boot it lands nowhere.
-    expect(window.airlock.push({ event: "proposition_display", scope: "__view__", proposition_id: "p1" })).toBe(0);
+    // composite.accepts(name) — the scoped predicate that REPLACES push's fan-out count return
+    // (034-03 AC1): true iff a booted connector's vocabulary accepts the name.
+    expect(window.airlock.accepts("page_view")).toBe(true);            // in alloy's ["page_view"] vocabulary
+    expect(window.airlock.accepts("proposition_display")).toBe(false); // alloy-only: no ["*"] sink accepts it
+
+    // The no-loop BEHAVIOR, re-expressed via CAPTURED EVENTS (not push's count): page_view crosses
+    // to the alloy chamber; a proposition_display does NOT (gated out of alloy's ["page_view"] vocab
+    // — no second interact / no proposition loop).
+    window.airlock.push({ event: "page_view", page_location: "https://site/x" });
+    window.airlock.push({ event: "proposition_display", scope: "__view__", proposition_id: "p1" });
+
+    await waitFor(() => eventsOf(w).length >= 1);
+    expect(eventsOf(w).length).toBe(1);              // only page_view reached the chamber
+    expect(eventsOf(w)[0].event.type).toBe("page_view");
   });
 
-  it("window.airlock ABSENT (standalone bootAlloy) — the DISPLAY still fills, the exposure is dropped + diagnosed, never thrown", async () => {
+  it("standalone bootAlloy (no wired composite-emit ref) — the DISPLAY still fills, the exposure is dropped + diagnosed, never thrown", async () => {
     vi.stubGlobal("Worker", DecisionsAlloyWorker);
     const diags = [];
     const fillSpy = vi.fn();
     const reservedPlacements = { __view__: Promise.resolve({ id: "r1", fill: fillSpy, release() {} }) };
-    // window has no .airlock (standalone bootAlloy never installOnWindow).
+    // No compositeEmit opt (standalone bootAlloy is never wired into a composite) — the exposure
+    // reporter sees no ref to route through, so it drops + diagnoses (the display already happened).
     const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements, onDiagnostic: (r) => diags.push(r) }));
     h.push({ event: "page_view", page_location: "https://site/x" });
 
     await waitFor(() => fillSpy.mock.calls.length >= 1); // the DISPLAY still works
     await waitFor(() => diags.some((d) => d.disposition === "exposure-dropped"));
-    expect(diags.find((d) => d.disposition === "exposure-dropped").reason).toMatch(/absent or push-less|no analytics sink/i);
+    expect(diags.find((d) => d.disposition === "exposure-dropped").reason).toMatch(/no analytics sink|standalone bootAlloy/i);
   });
 
-  it("alloy-only composite (delivered to 0) — the exposure is dropped + diagnosed (documented limitation)", async () => {
+  it("alloy-only boot (accepts('proposition_display') === false) — the exposure is dropped + diagnosed (documented limitation)", async () => {
     vi.stubGlobal("Worker", DecisionsAlloyWorker);
     const diags = [];
     const reservedPlacements = { __view__: Promise.resolve({ id: "r1", fill() {}, release() {} }) };
-    window.airlock = { push: () => 0 }; // a composite that accepted the exposure NOWHERE (no ["*"] sink)
-    const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements, onDiagnostic: (r) => diags.push(r) }));
+    // A wired composite with NO analytics ["*"] sink — accepts("proposition_display") is false.
+    const compositeEmit = emitRef({ accepts: () => false, emit: vi.fn() });
+    const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements, onDiagnostic: (r) => diags.push(r), compositeEmit }));
     h.push({ event: "page_view", page_location: "https://site/x" });
 
     await waitFor(() => diags.some((d) => d.disposition === "exposure-dropped"));
     expect(diags.find((d) => d.disposition === "exposure-dropped").reason).toMatch(/no analytics.*sink|alloy-only/i);
+    expect(compositeEmit.emit).not.toHaveBeenCalled(); // dropped at the accepts-gate, not fanned out
+  });
+
+  it("re-boot no-misroute: an exposure routes to the composite alloy booted under (the wired ref), NOT a re-booted window.airlock", async () => {
+    vi.stubGlobal("Worker", DecisionsAlloyWorker);
+    const capturedByBootComposite = [];
+    const reservedPlacements = { __view__: Promise.resolve({ id: "r1", fill() {}, release() {} }) };
+    // The composite THIS alloy booted under — wired via the deferred emit-ref (034-03 AC2).
+    const compositeEmit = emitRef({ emit: (evt) => capturedByBootComposite.push(evt) });
+    const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements, compositeEmit }));
+
+    // Simulate a mid-session re-boot: installOnWindow disposes+replaces the singleton (021-01),
+    // so window.airlock now points at a DIFFERENT composite. The OLD design late-bound
+    // window.airlock.push inside deliver and WOULD have misrouted the pending exposure to it.
+    const rebootedGlobalPush = vi.fn();
+    window.airlock = { push: rebootedGlobalPush };
+
+    h.push({ event: "page_view", page_location: "https://site/x" }); // -> interact -> decisions -> exposure
+
+    await waitFor(() => capturedByBootComposite.length >= 1);
+    // The exposure went to the composite alloy booted under (the wired ref) ...
+    expect(capturedByBootComposite[0]).toMatchObject({ event: "proposition_display", scope: "__view__" });
+    // ... NOT the re-booted window.airlock global (no misroute — the reachable bug this fixes).
+    expect(rebootedGlobalPush).not.toHaveBeenCalled();
   });
 });
 
@@ -752,9 +793,9 @@ describe("boot(config) — AC5 (spec 034-01): coarse-consent split end-to-end vi
   it("both GRANTED → delegate collect:'y' → full interact FIRES (personalization RETAINED) → decisions delivered → box filled", async () => {
     const fillSpy = vi.fn();
     const reservedPlacements = { __view__: Promise.resolve({ id: "r1", fill: fillSpy, release() {} }) };
-    window.airlock = { push: vi.fn(() => 1) };
+    const compositeEmit = emitRef();
 
-    const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements, consent: { analytics_storage: "granted", personalization: "granted" } }));
+    const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements, consent: { analytics_storage: "granted", personalization: "granted" }, compositeEmit }));
     const w = CoarseSplitAlloyWorker.instances[0];
     h.push({ event: "page_view", page_location: "https://site/x" });
 
@@ -769,11 +810,11 @@ describe("boot(config) — AC5 (spec 034-01): coarse-consent split end-to-end vi
   it("analytics GRANTED + personalization DENIED → delegate collect:'y' → interact FIRES (proven), seam strips pzn → ANALYTICS-ONLY body (ECID fetch + xdm retained) → NO decisions → NO fill", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const fillSpy = vi.fn();
-    const pushSpy = vi.fn(() => 1);
+    const emit = vi.fn();
     const reservedPlacements = { __view__: Promise.resolve({ id: "r1", fill: fillSpy, release() {} }) };
-    window.airlock = { push: pushSpy };
+    const compositeEmit = emitRef({ emit });
 
-    const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements, consent: { analytics_storage: "granted", personalization: "denied" } }));
+    const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements, consent: { analytics_storage: "granted", personalization: "denied" }, compositeEmit }));
     const w = CoarseSplitAlloyWorker.instances[0];
     h.push({ event: "page_view", page_location: "https://site/x" });
 
@@ -789,16 +830,16 @@ describe("boot(config) — AC5 (spec 034-01): coarse-consent split end-to-end vi
     expect(sent.query).toEqual({ identity: { fetch: ["ECID"] } });            // top-level ECID fetch RETAINED
     await new Promise((r) => setTimeout(r, 30));                  // let the (decisions-less) round-trip settle
     expect(fillSpy).not.toHaveBeenCalled();                       // Edge returned no propositions → no fill
-    expect(pushSpy).not.toHaveBeenCalled();                       // and no proposition_display exposure
+    expect(emit).not.toHaveBeenCalled();                          // and no proposition_display exposure (never fired)
     warnSpy.mockRestore();
   });
 
   it("analytics DENIED + personalization GRANTED → delegate collect:'n' → interact SUPPRESSED upstream → NO intercepted-fetch, no fill", async () => {
     const fillSpy = vi.fn();
     const reservedPlacements = { __view__: Promise.resolve({ id: "r1", fill: fillSpy, release() {} }) };
-    window.airlock = { push: vi.fn(() => 1) };
+    const compositeEmit = emitRef();
 
-    const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements, consent: { analytics_storage: "denied", personalization: "granted" } }));
+    const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements, consent: { analytics_storage: "denied", personalization: "granted" }, compositeEmit }));
     const w = CoarseSplitAlloyWorker.instances[0];
     h.push({ event: "page_view", page_location: "https://site/x" });
 
@@ -814,9 +855,9 @@ describe("boot(config) — AC5 (spec 034-01): coarse-consent split end-to-end vi
   it("both DENIED → delegate collect:'n' → interact SUPPRESSED upstream → NO intercepted-fetch, no fill", async () => {
     const fillSpy = vi.fn();
     const reservedPlacements = { __view__: Promise.resolve({ id: "r1", fill: fillSpy, release() {} }) };
-    window.airlock = { push: vi.fn(() => 1) };
+    const compositeEmit = emitRef();
 
-    const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements, consent: { analytics_storage: "denied", personalization: "denied" } }));
+    const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements, consent: { analytics_storage: "denied", personalization: "denied" }, compositeEmit }));
     const w = CoarseSplitAlloyWorker.instances[0];
     h.push({ event: "page_view", page_location: "https://site/x" });
 
@@ -846,21 +887,26 @@ describe("boot(config) — AC7: end-to-end two-phase (eager reserve -> lazy fill
     const appearMark = doc.el.style.minHeight; // captured "at appear" — the reserve already happened
     expect(appearMark).toBe("300px"); // reserved BEFORE appear (the no-flicker order)
 
-    // A faithful composite stand-in: alloy vocab (["page_view"]) IGNORES proposition_display;
-    // a GA4 vocab (["*"]) CAPTURES it. (The real createComposite gate is covered by the fan-out
-    // tests above + the GA4 ["*"] catch-all; the full browser geometry/CWV proof is rig/alloy-decisions.)
+    // A faithful composite-emit ref (034-03 AC2): alloy vocab (["page_view"]) IGNORES
+    // proposition_display; a GA4 vocab (["*"]) CAPTURES it — proving GA4-capture + no-loop via
+    // CAPTURED EVENTS + accepts, NOT a push count-return. (The real createComposite.accepts gate
+    // is covered by the config-boot fan-out/accepts unit tests; the full browser geometry/CWV
+    // proof is rig/alloy-decisions.)
     const ga4Captured = [];
     const fanout = [
       { events: ["page_view"], push: () => {} }, // alloy: ignores proposition_display
       { events: ["*"], push: (e) => ga4Captured.push(e) }, // GA4: catch-all, captures
     ];
-    const accepts = (voc, name) => voc.includes("*") || voc.includes(name);
-    window.airlock = { push: (evt) => { let n = 0; for (const c of fanout) if (accepts(c.events, evt.event)) { c.push(evt); n++; } return n; } };
+    const vocabAccepts = (voc, name) => voc.includes("*") || voc.includes(name);
+    const compositeEmit = {
+      accepts: (name) => fanout.some((c) => vocabAccepts(c.events, name)),
+      emit: (evt) => { for (const c of fanout) if (vocabAccepts(c.events, evt.event)) c.push(evt); },
+    };
 
     // PHASE 2 (lazy): bootAlloy with the handed-off reservedPlacements, drive page_view.
     const filled = [];
     reservedPlacements.__view__ = reservedPlacements.__view__.then((hnd) => ({ ...hnd, fill: (html) => filled.push(html) }));
-    const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements }));
+    const h = await bootAlloy(alloyEntryWithPlacement({ reservedPlacements, compositeEmit }));
     h.push({ event: "page_view", page_location: "https://site/x" });
 
     await waitFor(() => filled.length >= 1);
@@ -942,9 +988,9 @@ describe("boot(config) — AC5 (spec 034-02): 2 placements → both scopes fetch
       products: Promise.resolve({ id: "r-prod", fill: productsFill, release() {} }),
     };
     const exposures = [];
-    window.airlock = { push: (evt) => { exposures.push(evt); return 1; } };
+    const compositeEmit = emitRef({ emit: (evt) => exposures.push(evt) });
 
-    const h = await bootAlloy(twoPlacementEntry({ reservedPlacements }));
+    const h = await bootAlloy(twoPlacementEntry({ reservedPlacements, compositeEmit }));
     // The connector learned BOTH scopes from the config (derived from placements[].scope).
     expect(initOf(MultiScopeAlloyWorker.instances[0]).config.decisionScopes).toEqual(["__view__", "products"]);
     h.push({ event: "page_view", page_location: "https://site/x" });
@@ -954,7 +1000,7 @@ describe("boot(config) — AC5 (spec 034-02): 2 placements → both scopes fetch
     expect(viewFill).toHaveBeenCalledWith(VIEW_HTML);
     expect(productsFill).toHaveBeenCalledWith(PRODUCTS_HTML);
 
-    // One proposition_display exposure per scope (both reported through the composite).
+    // One proposition_display exposure per scope (both reported through the wired composite-emit ref).
     await waitFor(() => exposures.length >= 2);
     const byScope = Object.fromEntries(exposures.map((e) => [e.scope, e]));
     expect(byScope.__view__).toMatchObject({ event: "proposition_display", proposition_id: "AT:view-1", activity_id: "act-v" });
@@ -972,9 +1018,9 @@ describe("boot(config) — AC5 (spec 034-02): 2 placements → both scopes fetch
     expect(recsEl.style.minHeight).toBe("200px");
     expect(Object.keys(reservedPlacements).sort()).toEqual(["__view__", "products"]);
 
-    window.airlock = { push: () => 1 };
+    const compositeEmit = emitRef(); // the exposure fires but this test asserts the box fills
     // PHASE 2 (lazy): bootAlloy with the handed-off reservedPlacements, drive page_view.
-    const h = await bootAlloy(twoPlacementEntry({ reservedPlacements }));
+    const h = await bootAlloy(twoPlacementEntry({ reservedPlacements, compositeEmit }));
     h.push({ event: "page_view", page_location: "https://site/x" });
 
     await waitFor(() => heroEl.getAttribute("data-airlock-filled") === "1" && recsEl.getAttribute("data-airlock-filled") === "1");

@@ -346,6 +346,30 @@ describe("boot(config) — fan-out gate: composite.push honors each connector's 
     expect(crossedTypes(helixWorker()).filter((t) => t === "top").length).toBe(before + 1);
     expect(crossedTypes(ga4Worker())).toContain("top"); // GA4 catch-all gets it too
   });
+
+  // spec 034-03 AC1: composite.accepts(name) — the scoped predicate that REPLACES 033-03's
+  // push-returns-fan-out-count overload. The alloy exposure sink reads accepts("proposition_
+  // display") to decide whether an analytics ["*"] sink exists, an unambiguous signal that no
+  // longer conflates "no connector accepted this event" with "no analytics sink".
+  it("composite.accepts(name): TRUE iff a booted connector's vocabulary accepts the name (GA4 ['*'] catch-all + helix-rum checkpoints)", async () => {
+    await boot({
+      connectors: [
+        { type: "ga4", ctx: gaCtx },
+        { type: "helix-rum", weight: 100, forceSelect: true, ...stubWebVitals() },
+      ],
+    });
+    expect(window.airlock.accepts("newsletter_signup")).toBe(true);  // GA4's ["*"] catch-all
+    expect(window.airlock.accepts("proposition_display")).toBe(true); // GA4 is an analytics ["*"] sink → present
+    expect(window.airlock.accepts("top")).toBe(true);                 // helix-rum checkpoint (and GA4)
+  });
+
+  it("composite.accepts(name): FALSE when NO booted connector's vocabulary accepts it (no ['*'] sink)", async () => {
+    await boot({ connectors: [{ type: "helix-rum", weight: 100, forceSelect: true, ...stubWebVitals() }] });
+    // helix-rum's vocab is ["top","error","cwv"] only — no analytics ["*"] catch-all.
+    expect(window.airlock.accepts("top")).toBe(true);                 // a declared checkpoint
+    expect(window.airlock.accepts("proposition_display")).toBe(false); // no ["*"] sink → the alloy exposure would drop+diagnose
+    expect(window.airlock.accepts("newsletter_signup")).toBe(false);
+  });
 });
 
 // Craft-review nit: a partial-boot throw must not orphan already-booted connectors'

@@ -518,10 +518,11 @@ geometry unchanged, exposure captured by GA4 / ignored by alloy) + `test/eds-boo
   creds-gated question OQ13-1 must resolve. Live-Edge confirmation of the stripped-interact shape remains a creds-gated
   residual (013 pattern). Trigger for OQ13-1: cookie-write consent-gating work (the OQ13 item-1 family) OR a creds-gated
   live-Alloy re-probe.
-- **alloy-only exposure telemetry.** The `proposition_display` DISPLAY works standalone, but its EXPOSURE needs an
-  analytics `["*"]` connector in the same `boot(config)` to land — an alloy-only boot drops+diagnoses the exposure
-  (never throws). Follow-on: a dedicated exposure sink independent of an analytics connector. Trigger: an adopter runs
-  alloy personalization without a co-booted analytics connector and needs exposure telemetry.
+- **alloy-only exposure telemetry.** ✅ GUARDED by spec 034-03 (`composite.accepts("proposition_display")`===false →
+  the exposure is cleanly dropped+diagnosed, never thrown; the DISPLAY still works). RESIDUAL (the deeper follow-on, NOT
+  built): a **dedicated exposure sink independent of an analytics connector**, so alloy-only personalization can emit
+  exposure telemetry without a co-booted `["*"]` connector. Trigger: an adopter runs alloy personalization standalone
+  and needs the exposure telemetry.
 - **multi-scope personalization / `decisionScopes` request-wiring.** ✅ RESOLVED by spec 034-02 (the text below is
   FALSIFIED — kept struck-through for provenance). The connector now derives `decisionScopes` from the config's
   `placements[].scope` and carries them on the interact (`connectors/alloy/connector.js`), N placements of ARBITRARY
@@ -534,17 +535,22 @@ geometry unchanged, exposure captured by GA4 / ignored by alloy) + `test/eds-boo
   so a non-`__view__` scope is REJECTED at validation.~~
 
 **Reviewer-flagged design follow-ons (033-03 gating review — backward-compatible, bounded, NOT fixed this slice):**
-- **exposure routing couples to the mutable `window.airlock` global.** `bootAlloy`'s exposure sink LATE-BINDS
-  `window.airlock.push` inside `deliver` (so it reaches the composite that installs at boot). A re-boot mid-session
-  (`installOnWindow` disposes+replaces the singleton) would route a later exposure to a DIFFERENT composite. A wired
-  composite-emit hook — a deferred emit ref `boot()` populates and hands to `bootAlloy` — would decouple the exposure
-  from the global. Bounded (a single-boot page is unaffected; EDS boots once). Trigger: a mid-session re-boot flow, or
-  the adapter→`core/` migration (OQ13). 
-- **`push`/`pushCritical` return the fan-out count to serve the exposure sink's alloy-only detection.** `count === 0`
-  conflates "no connector accepted the event" with "no analytics `["*"]` sink present" — correct ONLY while GA4 is the
-  sole `["*"]` sink. A scoped `composite.accepts(name)` predicate, or an explicit emit-result object, would give the
-  sink an unambiguous signal and leave `push()`'s return untouched. Trigger: a second `["*"]`-vocabulary connector, or
-  the 1.0 composite-surface pin.
+- **exposure routing couples to the mutable `window.airlock` global.** ✅ RESOLVED by spec 034-03. `boot()` now
+  populates a **deferred composite-emit ref** (`{ accepts, emit }` bound to THE composite this boot assembles) and
+  threads it through `bootConnector`→`bootAlloy`; the exposure reporter routes through that ref, NOT the mutable
+  `window.airlock`. A mid-session re-boot (`installOnWindow` swapping the singleton) can no longer misroute an
+  in-flight exposure to a different composite — proven by the `re-boot no-misroute` test (`test/eds-boot-alloy.test.js`).
+  RESIDUALS (034-03 arch review, non-blocking): (a) a mid-session re-boot's in-flight exposure is a SILENT drop (the
+  ref stays bound to the now-disposed original composite whose `accepts` still returns true → `emit` lands in a
+  terminated-worker ring, non-throwing, no diagnostic) — consider nulling the ref on `dispose` for a consistent
+  drop+diagnose; (b) **`composite.accepts(name)` is now a semi-public `window.airlock` method** consumed only
+  internally — the **1.0 API pin (spec 037)** must decide whether to document it public or keep it off the installed
+  handle (a local predicate). Flagged for 037's surface-freeze.
+- **`push`/`pushCritical` return the fan-out count to serve the exposure sink's alloy-only detection.** ✅ RESOLVED by
+  spec 034-03. `createComposite` now exposes a scoped **`accepts(name)`** predicate; the exposure sink reads
+  `accepts("proposition_display")` (unambiguous — distinguishes "no connector accepted" from "no analytics sink"), and
+  `push`/`pushCritical` **revert to void** (the 033-03 count-return is gone; the only reader was the exposure sink).
+  The write-surface return is no longer overloaded.
 - **AC7 vitest fidelity note (not a follow-on, a test-scope disclosure):** the AC7 end-to-end vitest
   (`test/eds-boot-alloy.test.js`) uses a hand-rolled composite fan-out STAND-IN (alloy vocab ignores / GA4 vocab
   captures) rather than the real `createComposite` — because booting a real GA4 chamber alongside alloy under the

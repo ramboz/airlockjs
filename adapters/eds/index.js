@@ -37,7 +37,7 @@ import { hostOf } from "../../core/config-integrity.js";
 import { resolveConsent } from "../../core/consent.js";
 import { ALLOY_INTERACT_ENDPOINT } from "../../connectors/alloy/connector.js";
 import { htmlOfDecision } from "../../connectors/alloy/decisions.js";
-import { createPropositionExposureReporter } from "./decisions-exposure.js";
+import { createPropositionExposureReporter, PROPOSITION_EXPOSURE_EVENT } from "./decisions-exposure.js";
 import { VIEW_SCOPE, firstDuplicateScope } from "./placements.js";
 import { sourceGa4Ctx } from "../../connectors/ga4/cookies.js";
 import { shapeMpConsent } from "../../connectors/ga4/consent.js";
@@ -846,31 +846,39 @@ function deriveDecisionScopes(placements, reserved) {
  * with no handed-off handle / no match / no html is DROPPED + diagnosed, never thrown (the
  * reserved box's own prehide-timeout backstop still reveals it).
  *
- * @param {{ caps: object, reserved: Record<string, Promise<{fill:Function}>>, diagnose: (r:object)=>void }} args
+ * @param {{ caps: object, reserved: Record<string, Promise<{fill:Function}>>, diagnose: (r:object)=>void, compositeEmit?: { accepts?: Function, emit?: Function } }} args
+ *   `compositeEmit` (034-03 AC2): the DEFERRED composite-emit ref `boot()` populates AFTER
+ *   `createComposite` (bootAlloy runs first, so it is empty at wire time and read LAZILY at
+ *   report time). Bound to THE composite this alloy booted under — the exposure routes through
+ *   it, not the mutable `window.airlock` global (fixing the reachable re-boot misroute). Absent
+ *   on a standalone bootAlloy (never wired into a composite) -> the exposure is dropped+diagnosed.
  */
-function wireAlloyDecisions({ caps, reserved, diagnose }) {
+function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit }) {
   const exposureReporter = createPropositionExposureReporter(
     {
-      // The exposure sink pushes through the COMPOSITE (window.airlock.push), late-bound
-      // because the composite installs at boot AFTER bootAlloy returns. It fans to an
-      // analytics connector that ACCEPTS proposition_display (GA4, ["*"]); alloy's own
-      // ["page_view"] handle IGNORES it (no second interact / no proposition loop). GUARDED:
-      // window.airlock absent / push-less (a standalone bootAlloy) OR a composite that
-      // delivered the exposure NOWHERE (alloy-only, no ["*"] sink) -> drop + diagnose, never
-      // throw. The DISPLAY still works (fill already happened); only exposure telemetry needs
-      // an analytics connector in the same boot(config) (documented limitation, AC4).
+      // The exposure routes through the WIRED composite-emit ref (034-03 AC2/AC3) — `{ accepts,
+      // emit }` bound by boot() to THE composite this alloy booted under, NOT the mutable
+      // window.airlock global (which a mid-session re-boot swaps — the reachable misroute this
+      // fixes). The ref is deferred (populated after createComposite), so this closure reads it
+      // LAZILY at report time. GATE via accepts("proposition_display") — the unambiguous
+      // analytics-["*"]-sink signal (034-03 AC1, replacing 033-03's push count-return):
+      //   - no ref / un-populated ref (a standalone bootAlloy, never wired) -> drop + diagnose;
+      //   - ref present but accepts()===false (alloy-only boot, no ["*"] sink) -> drop + diagnose;
+      //   - else emit() -> the composite fans the exposure to GA4 (["*"], captures); alloy's own
+      //     ["page_view"] handle IGNORES it (no second interact / no proposition loop).
+      // Either drop is never a throw: the DISPLAY already happened (fill); only exposure
+      // TELEMETRY needs an analytics connector in the same boot(config) (documented, AC3).
       push: (evt) => {
-        const w = typeof window !== "undefined" ? window.airlock : undefined;
-        if (!w || typeof w.push !== "function") {
-          diagnose({ level: "warn", kind: "decisions", disposition: "exposure-dropped", reason: "no analytics sink for the proposition_display exposure (window.airlock absent or push-less — a standalone bootAlloy)", scope: evt && evt.scope });
+        const ref = compositeEmit;
+        if (!ref || typeof ref.accepts !== "function" || typeof ref.emit !== "function") {
+          diagnose({ level: "warn", kind: "decisions", disposition: "exposure-dropped", reason: "no analytics sink for the proposition_display exposure (no wired composite-emit ref — a standalone bootAlloy)", scope: evt && evt.scope });
           return;
         }
-        const deliveredTo = w.push(evt);
-        // A composite returns its fan-out count; 0 means no ["*"] analytics sink accepted it
-        // (alloy-only boot). A non-composite handle returns undefined -> assume delivered.
-        if (deliveredTo === 0) {
+        if (!ref.accepts(PROPOSITION_EXPOSURE_EVENT)) {
           diagnose({ level: "warn", kind: "decisions", disposition: "exposure-dropped", reason: "no analytics ['*'] sink accepted the proposition_display exposure (alloy-only boot) — the display works; exposure telemetry needs an analytics connector in the same boot(config)", scope: evt && evt.scope });
+          return;
         }
+        ref.emit(evt);
       },
     },
     { seen: new Set() },
@@ -950,7 +958,7 @@ function wireAlloyDecisions({ caps, reserved, diagnose }) {
  * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, stats: Function, dispose: Function }>}
  */
 export async function bootAlloy(opts = {}) {
-  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, context = [], consent, payloadDenylist, workerUrl, reservedPlacements } = opts;
+  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, context = [], consent, payloadDenylist, workerUrl, reservedPlacements, compositeEmit } = opts;
 
   // ADR-0016 prerequisite — fail LOUD here too (validateConnectorEntry also checks it
   // on the config path) so a direct bootAlloy caller gets an actionable error rather
@@ -1025,7 +1033,7 @@ export async function bootAlloy(opts = {}) {
   // eager reserve skipped) still wires + drops+diagnoses, so the adopter SEES the mis-wire (AC3).
   const personalizationConfigured =
     (Array.isArray(opts.placements) && opts.placements.length > 0) || Object.keys(reserved).length > 0;
-  if (personalizationConfigured) wireAlloyDecisions({ caps, reserved, diagnose });
+  if (personalizationConfigured) wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit });
 
   const host = createWrappedSdkHost({
     chamber,
@@ -1159,25 +1167,29 @@ const acceptsEvent = (events, name) => events.includes("*") || events.includes(n
  */
 function createComposite(connectors) {
   return {
-    // push/pushCritical RETURN the fan-out count — how many connectors ACCEPTED this
-    // event (their declared vocabulary matched). Additive (existing callers ignore it):
-    // 033-03's proposition_display exposure sink reads it to detect an alloy-only boot
-    // where the exposure landed NOWHERE (count 0 -> no ["*"] analytics sink) and diagnose
-    // that documented limitation, rather than silently dropping it (AC4).
+    // push/pushCritical FAN OUT (void — the public write-surface contract 032-01 established),
+    // gated by each connector's declared vocabulary. (033-03 briefly overloaded these to RETURN
+    // the fan-out count for the exposure sink's alloy-only detection; 034-03 AC1 reverts that in
+    // favor of the scoped `accepts(name)` predicate below — an unambiguous signal that no longer
+    // conflates "no connector accepted this event" with "no analytics ['*'] sink present", and
+    // leaves the write-surface untouched.)
     push: (evt) => {
       const name = evt && evt.event;
-      let delivered = 0;
-      for (const c of connectors) if (acceptsEvent(c.events, name)) { c.handle.push(evt); delivered += 1; }
-      return delivered;
+      for (const c of connectors) if (acceptsEvent(c.events, name)) c.handle.push(evt);
     },
     pushCritical: (evt) => {
       const name = evt && evt.event;
-      let delivered = 0;
       for (const c of connectors) {
-        if (typeof c.handle.pushCritical === "function" && acceptsEvent(c.events, name)) { c.handle.pushCritical(evt); delivered += 1; }
+        if (typeof c.handle.pushCritical === "function" && acceptsEvent(c.events, name)) c.handle.pushCritical(evt);
       }
-      return delivered;
     },
+    // accepts(name) (034-03 AC1): does ANY booted connector's declared vocabulary accept this
+    // event name (a `["*"]` analytics catch-all, or an explicit listing)? The alloy
+    // proposition_display exposure sink reads `accepts("proposition_display")` to decide whether
+    // an analytics `["*"]` sink exists (an alloy-only boot -> false -> the exposure is
+    // dropped+diagnosed; a co-booted GA4 -> true -> the exposure fans to GA4). A pure predicate
+    // over the declared vocabularies — no side effect, no write.
+    accepts: (name) => connectors.some((c) => acceptsEvent(c.events, name)),
     setConsent: (v) => { for (const c of connectors) if (typeof c.handle.setConsent === "function") c.handle.setConsent(v); },
     getState: (path) => (connectors.length ? connectors[0].handle.getState(path) : undefined),
     flushNow: () => { for (const c of connectors) if (typeof c.handle.flushNow === "function") c.handle.flushNow(); },
@@ -1368,7 +1380,7 @@ function validateConnectorEntry(entry, index) {
  *   threaded ONLY into alloy's `bootAlloy` (the sole connector with a personalization path).
  * @returns {Promise<{ handle: object, events: string[] }>} the handle + its declared vocabulary.
  */
-async function bootConnector(entry, governance, index, reservedPlacements) {
+async function bootConnector(entry, governance, index, reservedPlacements, compositeEmit) {
   validateConnectorEntry(entry, index);
   const { type, ...rest } = entry || {};
   switch (type) {
@@ -1397,7 +1409,7 @@ async function bootConnector(entry, governance, index, reservedPlacements) {
       // 033-03: the personalization vertical — the eagerly-reserved box handles
       // (reservedPlacements, from loadEager's reservePersonalization) are handed off HERE
       // so bootAlloy's caps.decisions.deliver fills them (never lazily re-reserving).
-      return { handle: await bootAlloy({ ...rest, ...governance, reservedPlacements }), events: ALLOY_MANIFEST_EVENTS };
+      return { handle: await bootAlloy({ ...rest, ...governance, reservedPlacements, compositeEmit }), events: ALLOY_MANIFEST_EVENTS };
     default:
       // 032-02 owns full JSON-Schema validation with actionable errors; here we fail
       // LOUD rather than silently dropping an unknown connector.
@@ -1442,12 +1454,18 @@ export async function boot(config = {}, opts = {}) {
   const governance = { consent, consentStrict, payloadDenylist };
   // 033-03: the eager pre-paint reserve handles handed off from reservePersonalization.
   const reservedPlacements = opts && opts.reservedPlacements ? opts.reservedPlacements : undefined;
+  // 034-03 AC2: the DEFERRED composite-emit ref. bootAlloy's exposure reporter closes over it
+  // (read lazily at deliver-time) and routes proposition_display through it — bound BELOW to THE
+  // composite this boot assembles, so a re-boot (installOnWindow swapping window.airlock) can't
+  // misroute an in-flight exposure to a different composite. Created empty; populated after
+  // createComposite (bootAlloy runs before the composite exists).
+  const compositeEmit = { accepts: null, emit: null };
   const booted = [];
   try {
     for (let i = 0; i < connectors.length; i++) {
       // Sequential (config order) so `getState`/`stats` read the declared-first
       // connector deterministically and any boot side effects order predictably.
-      booted.push(await bootConnector(connectors[i], governance, i, reservedPlacements));
+      booted.push(await bootConnector(connectors[i], governance, i, reservedPlacements, compositeEmit));
     }
   } catch (err) {
     // Partial-boot cleanup (craft-review nit): a later entry's throw (unknown
@@ -1461,7 +1479,14 @@ export async function boot(config = {}, opts = {}) {
     }
     throw err;
   }
-  return installOnWindow(createComposite(booted));
+  const composite = createComposite(booted);
+  // 034-03 AC2: populate the deferred ref (bound to THIS composite) that bootAlloy's exposure
+  // reporter closes over — accepts("proposition_display") gates the alloy-only drop, emit fans it
+  // to an analytics ["*"] sink. Bound here (not via window.airlock) so a later re-boot can't
+  // reroute this composite's alloy exposures to a replacement singleton.
+  compositeEmit.accepts = (name) => composite.accepts(name);
+  compositeEmit.emit = (evt) => composite.push(evt);
+  return installOnWindow(composite);
 }
 
 export default bootEdsAnalytics;
