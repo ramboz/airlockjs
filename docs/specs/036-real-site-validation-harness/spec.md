@@ -107,4 +107,4 @@ doc split into 036-03; the default is two slices — the two halves of the MVP6 
 ## Slices
 
 - [036-01 — live CWV before/after harness (query-gated single-deployment primary; two-deployment fallback) + procedure](slice-01-live-cwv-harness.md)
-- 036-02 — supported-subset live smoke (GA4 + alloy) + residuals checklist + run-procedure doc (drafted after 036-01's frame-critique ratifies the shared forks)
+- [036-02 — supported-subset live smoke (GA4 + alloy) + named-live-residuals checklist + consolidated run-procedure](slice-02-subset-smoke.md)
