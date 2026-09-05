@@ -1,5 +1,5 @@
 ---
-status: DONE
+status: IN_PROGRESS
 skill:
 use_cases: [UC-1, UC-2]
 ---
@@ -11,8 +11,9 @@ use_cases: [UC-1, UC-2]
 > Close the **"GA4 + Adobe/alloy" supported-subset gap** that spec 032 deferred: make **Adobe/alloy** — the marquee
 > connector for the AEM/EDS audience — instrumentable via `boot(config)`. See
 > [refinement-todo § alloy config-wiring](../../refinement-todo.md) and the [MVP6 release plan](../../releases/mvp6.md).
-> **Spike-first** (owner decision, 2026-09-04): the feasibility is genuinely uncertain, so 033-01 is a de-risking
-> spike; the build slice (033-02) is DEFERRED until the spike returns GO.
+> **Spike-first** (owner decision, 2026-09-04): the feasibility was genuinely uncertain, so 033-01 de-risked it first
+> (→ **GO**; distribution decided by [ADR-0016](../decisions/adr-0016-alloy-stock-bundle-site-supplied.md)). The build
+> is SPIDR-Path-split into **033-02** (the analytics vertical) + **033-03** (personalization).
 
 ## Overview
 
@@ -37,8 +38,8 @@ use_cases: [UC-1, UC-2]
 So the load-bearing question is **not** "add a `bootConnector` case." It is: **can a classic-worker + a 766 KB
 stock vendor bundle be distributed + served same-origin for a *buildless* EDS site, and the wrapped-SDK host be
 adapter-booted into a composite-compatible handle** — a clean GO, a reshape, or a partial KILL (e.g. "the site must
-supply alloy itself")? This spec **leads with a spike (033-01)** to answer that with evidence, then a build slice
-(033-02, DEFERRED) gated on the spike's GO.
+supply alloy itself")? This spec **led with a spike (033-01 — DONE, GO)** to answer that with evidence; the build
+follows, SPIDR-Path-split into **033-02** (the analytics vertical) + **033-03** (personalization).
 
 ## Assumptions
 
@@ -75,12 +76,19 @@ spike-work).
 Resisting the eager-spike default is not the failure here; jumping to a build slice on an unproven wrapped-SDK
 integration would be.
 
-- **033-01 (spike, `kind: spike`):** de-risk (a)–(e) above; conclude **GO** (a concrete design for 033-02) /
-  **reshape** / **KILL (reason)**. Timeboxed; may produce a throwaway probe under `probes/`.
-- **033-02 (build, DEFERRED):** wire `{type:"alloy"}` into `boot(config)` per the spike's design + the config
-  schema entry (extends 032-02's schema) + a golden fixture + the boot proof. **Gated on 033-01 = GO.**
+- **033-01 (spike, `kind: spike`) — DONE:** de-risked (a)–(e); concluded **GO** with a concrete design + probes
+  under `probes/alloy-csp-spike/`. The stock-bundle distribution call is **[ADR-0016](../decisions/adr-0016-alloy-stock-bundle-site-supplied.md)**.
+- **The build, SPIDR-Path-split into two verticals** (the spike's GO design is large — ~7 areas across two
+  independent user outcomes):
+  - **033-02 (build) — the analytics vertical:** `bootAlloy` + `{type:"alloy"}` in `boot(config)` + the classic-worker
+    CSP fix + the 5th classic-IIFE `dist` entry + the adopter-supplied `bundleUrl` (ADR-0016) + the schema branch +
+    the strict consent gate + a boot→`sendEvent`→intercepted-interact proof. **Closes MVP6's config-surface gap for
+    the analytics adopter.**
+  - **033-03 (build) — the personalization vertical:** decisions-as-data (`{type:"decisions"}` → `caps.decisions.deliver`
+    → `reserveSpace`), the un-built path. **Gated on 033-02 DONE.**
 
 ## Slices
 
-- [033-01 — spike: de-risk alloy adapter-boot + distribution + the composite-handle reconciliation (GO/KILL)](slice-01-alloy-feasibility-spike.md)
-- [033-02 — build: wire `{type:"alloy"}` into `boot(config)` + the config schema + the proof (DEFERRED — gated on 033-01 GO)](slice-02-alloy-config-build.md)
+- [033-01 — spike: de-risk alloy adapter-boot + distribution + the composite-handle reconciliation (GO/KILL)](slice-01-alloy-feasibility-spike.md) — **DONE (GO)**
+- [033-02 — build: config-boot alloy (the analytics vertical) — `{type:"alloy"}` in `boot(config)`](slice-02-alloy-config-build.md)
+- [033-03 — build: config-boot alloy (the personalization vertical) — decisions-as-data → `reserveSpace`](slice-03-alloy-decisions.md) — gated on 033-02
