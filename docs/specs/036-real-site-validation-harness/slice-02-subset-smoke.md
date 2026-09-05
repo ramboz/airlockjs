@@ -1,5 +1,5 @@
 ---
-status: IN_PROGRESS
+status: REVIEWED
 dependencies: [036-01]
 last_verified:
 frame_review: true  # Fork C (which named live residuals the harness EXERCISES vs the procedure DOCUMENTS) + the subset-smoke local-provability split are load-bearing.
@@ -184,4 +184,4 @@ the operator's"; board synced. (No `arch_review`: rig + docs only — exercises 
 - [x] Smoke asserts boot-health (incl. the positive `window.airlock`-installed signal) + GA4 MP-conformance + alloy FIRED (presence only) + RUM sent-shape — never presence-as-acceptance; the residuals checklist requires downstream RUM-data inspection (a captured beacon is NOT sufficient), and the alloy interact shape rides the spec-013 rigs.
 - [x] Genuine `smoke-core` reuse (e2e imports it); the run-procedure + residuals checklist written + linked (`README.md` / `docs/releases/mvp6.md`); the mvp6 adoption-proof row updated. No `arch_review` (rig + docs).
 - [x] Reviewed: **frame-critique** PASS (2 rounds); **compliance** PASS; **craft** PASS (r2 after the robustness fixes). Deviation log + review dispositions + reconciliation sweep produced.
-- [ ] Reconciliation review passed; board synced (pending — this close-out, then the reconciliation pass + DONE).
+- [x] Reconciliation review PASSED (Close-out honest + complete; every changed path dispositioned incl. the visible SDD-scaffolding exclusion; all deviations + craft-fixes verified against source); board synced at the DONE transition.
