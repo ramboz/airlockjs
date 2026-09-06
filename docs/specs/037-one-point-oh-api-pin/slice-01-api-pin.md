@@ -179,3 +179,56 @@ transparency (none blocked an AC; all reasoned from "carve-out over strip when u
   be a disproportionate lift for a slice whose scope is narrowing the public surface, not adding integration-test
   infrastructure. That test's stale comment (referencing "the real `createComposite.accepts` gate," a method that
   no longer exists) was corrected to reflect the new reality.
+
+**Orchestrator note (post-review):** the arch review asked the `purposes` mirror-drift disclosure to spell out its
+consequence for its actual audience — an external connector author who sets `manifest.purposes.egress` but does not
+wire the parallel `egressPurposes` config gets NO purpose gate. Added that consequence sentence to
+`connector.d.ts`'s `purposes` docstring (comment-only, disjoint from the pinned `readonly purposes?: ConnectorPurposes;`
+line). Out-of-scope find (flagged, NOT fixed — not a frozen contract file): `connectors/alloy/connector.js:148-149`
+carries the same stale "seal is unbuilt / MVP3" comment as the six frozen files did — recorded in `docs/inbox.md` as a
+tiny doc-hygiene follow-on (an impl comment, not part of the 1.0 contract surface).
+
+### Review dispositions (frame-critique + compliance + craft + arch — ALL PASS)
+
+- **Frame-critique — PASS (6 rounds).** Each round found a real stale-disclaimer form (r1 seams/OQ10 → r2 field
+  docstrings → r3 header blocks + README rows → r4 bare-`deferred` → r5 seal-staging), driving the reconciliation
+  mechanism from phrase-enumeration to a **complete per-file read-through** (r6 ratified it approach-complete: a closed
+  file set, greps as backstops).
+- **Compliance — PASS.** All 6 ACs met; the read-through is complete (scoped grep → only carve-outs/resolved-refs);
+  the boot/handle guard is non-vacuous. (Non-blocking: ADR-0017 doesn't explicitly cite ADR-0003/0016 — the intent
+  holds, and the ADR is Accepted+immutable, so not edited.)
+- **Craft — PASS.** The `accepts` rebind is byte-equivalent; the flipped tests are behavioral-and-stronger; the guards
+  non-vacuous; the rewords comment-only + accurate; the two judgment-call rewords confirmed accurate, not overclaims.
+  (Non-blocking: the dual-path alloy+GA4 `compositeEmit` integration gap is disclosed above; the AC2 grep-family lists
+  OQ9 though OQ9-coherence is a legit survivor — spec-wording tidiness, the rewords are correct.)
+- **Arch — PASS.** The frozen/experimental boundary is architecturally right; the `accepts` removal sound; the
+  mirror-drift is a correctly-recorded residual (freeze pins the field SHAPE; egress IS gated via the mirror, so
+  ADR-0006/0007 honored; the not-reading is additively fixable — no major break). Note-1 hardened (above).
+
+### Reconciliation sweep
+
+| Artifact | Disposition | Rationale |
+|----------|-------------|-----------|
+| `docs/decisions/adr-0017-airlock-1-0-api-contract.md` | `created` (Accepted) | The capstone 1.0 contract: frozen set / experimental carve-out / three rulings. Its own frame-critique gate cleared. |
+| `contracts/seams.d.ts` | `updated` | Read-through: OQ10/OQ7 stale staging → present tense; `unloadCritical` declared-but-not-read; guarded (new seams pins). Comment-only. |
+| `contracts/connector.d.ts` | `updated` | Read-through: RESOLVED-vs-NOT-FROZEN split (OQ10/OQ11 resolved; OQ3 + coherence carved out); the seal + `purposes` mirror-drift reworded + the external-author consequence added. Comment-only (pins intact). |
+| `contracts/capability.d.ts` | `updated` | Read-through: OQ9-sync (shipped) / OQ10 / OQ11 / decisions-012-03 → present tense; coherence + reconcile carved out. Comment-only (pins intact). |
+| `contracts/push-api.md` | `updated` | Read-through: the OQ11 "do not rely on payload minimization" row → resolved (ADR-0012/019-01). |
+| `contracts/README.md` | `updated` | Read-through: the index rows + deferred table reconciled (OQ9/10/11 resolved; the pre-033-02 alloy coverage-gap paragraph corrected). |
+| `adapters/eds/index.js` | `updated` | `composite.accepts` removed from the installed handle; `boot()` rebinds `compositeEmit.accepts` to a local `booted` predicate (byte-equivalent). |
+| `test/contract-stability.test.js` | `updated` | +new guards: `seams.d.ts` types + the exact-7-key boot/handle shape (both entrypoints; `accepts` absent). |
+| `test/eds-boot-config.test.js`, `test/eds-boot-alloy.test.js` | `updated` | The ~8 `window.airlock.accepts(...)` assertions flipped behavioral; +a `'accepts' in window.airlock === false` regression; a stale AC7 comment corrected. |
+| `docs/architecture.md` | `updated` | Five-surfaces section references ADR-0017; the config carve-out wording reconciled. |
+| `docs/releases/mvp6.md` | `updated` | The 1.0-API-pin item marked SHIPPED (API pinned via ADR-0017 + guards; the release cut deferred, separate). |
+| `docs/refinement-todo.md` | `updated` | Closed 4: the `composite.accepts` flag (:547), read-namespacing/`sampled` (:462, ruled unfrozen), the 035 reconcile-coupling (:94 iii, ruled host-internal), the stale-OQ11-comment residual (:84 f). |
+| `docs/inbox.md` | `updated` | Parked the `connectors/alloy/connector.js:148-149` stale-comment follow-on (out of the frozen-contract scope) + the dual-path `compositeEmit` integration-test + the AC2 grep-family/OQ9 tidiness. |
+| `contracts/instrumentation-config.schema.json` | `no-op` | AC4 — the config carve-out: keeps its PRE-1.0 self-declaration; NO guard freezes it. |
+| `package.json` | `no-op` | AC6 — NO release cut (version stays 0.5.0; no tag; no dist). |
+| SDD process records | `excluded` | This slice doc, `spec.md`, `docs/decisions/reviews/adr-0017-frame-critique.md`, the `reviews/slice-01-*.md` verdicts — review scaffolding, narrated here. |
+| `docs/specs/README.md` (board) | `deferred` | Flips at the DONE transition. |
+
+### Definition of Done — verification
+- [x] All 6 ACs pass. The capstone **ADR-0017 is Accepted** (its own frame-critique gate cleared). **TDD red→green** for the code changes (the `accepts` removal + the new guards). `npm test`: **84 files, 1263 tests** (1256 baseline + 7 guards). `node build.mjs` OK; `node contracts/validate.mjs` all pass; `npm run lint` clean.
+- [x] Every frozen file reconciled to present-tense-as-of-1.0 (scoped grep → only labeled carve-outs / resolved-refs); `composite.accepts` off the installed handle (exactly 7 frozen keys); the config schema carve-out unguarded; docs reconciled; **no release cut**.
+- [x] Reviewed: frame-critique (6 rounds) + compliance + craft + **arch** all PASS. Deviation log + review dispositions + reconciliation sweep produced.
+- [ ] Reconciliation review passed; board + ADR index synced (pending — this close-out, then the reconciliation pass + DONE).
