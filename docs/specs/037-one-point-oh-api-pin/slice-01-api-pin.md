@@ -1,5 +1,5 @@
 ---
-status: IN_PROGRESS
+status: REVIEWED
 dependencies: []
 last_verified:
 arch_review: true  # freezing the public surface IS an architectural commitment (what adopters may rely on at 1.0).
@@ -210,6 +210,7 @@ tiny doc-hygiene follow-on (an impl comment, not part of the 1.0 contract surfac
 | Artifact | Disposition | Rationale |
 |----------|-------------|-----------|
 | `docs/decisions/adr-0017-airlock-1-0-api-contract.md` | `created` (Accepted) | The capstone 1.0 contract: frozen set / experimental carve-out / three rulings. Its own frame-critique gate cleared. |
+| `docs/decisions/README.md` (ADR index) | `updated` | `adr.py index` added the ADR-0017 row (Accepted 2026-09-05) — already synced + committed. |
 | `contracts/seams.d.ts` | `updated` | Read-through: OQ10/OQ7 stale staging → present tense; `unloadCritical` declared-but-not-read; guarded (new seams pins). Comment-only. |
 | `contracts/connector.d.ts` | `updated` | Read-through: RESOLVED-vs-NOT-FROZEN split (OQ10/OQ11 resolved; OQ3 + coherence carved out); the seal + `purposes` mirror-drift reworded + the external-author consequence added. Comment-only (pins intact). |
 | `contracts/capability.d.ts` | `updated` | Read-through: OQ9-sync (shipped) / OQ10 / OQ11 / decisions-012-03 → present tense; coherence + reconcile carved out. Comment-only (pins intact). |
@@ -231,4 +232,4 @@ tiny doc-hygiene follow-on (an impl comment, not part of the 1.0 contract surfac
 - [x] All 6 ACs pass. The capstone **ADR-0017 is Accepted** (its own frame-critique gate cleared). **TDD red→green** for the code changes (the `accepts` removal + the new guards). `npm test`: **84 files, 1263 tests** (1256 baseline + 7 guards). `node build.mjs` OK; `node contracts/validate.mjs` all pass; `npm run lint` clean.
 - [x] Every frozen file reconciled to present-tense-as-of-1.0 (scoped grep → only labeled carve-outs / resolved-refs); `composite.accepts` off the installed handle (exactly 7 frozen keys); the config schema carve-out unguarded; docs reconciled; **no release cut**.
 - [x] Reviewed: frame-critique (6 rounds) + compliance + craft + **arch** all PASS. Deviation log + review dispositions + reconciliation sweep produced.
-- [ ] Reconciliation review passed; board + ADR index synced (pending — this close-out, then the reconciliation pass + DONE).
+- [x] Reconciliation review PASSED; the **ADR index is already synced** (`docs/decisions/README.md` — `adr.py index`, committed); the board (`docs/specs/README.md`) syncs at the DONE transition.
