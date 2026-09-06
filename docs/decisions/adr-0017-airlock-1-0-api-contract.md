@@ -1,7 +1,7 @@
 ---
-status: Proposed
+status: Accepted
 dependencies: []
-last_verified:
+last_verified: 2026-09-05
 frame_review: true
 ---
 
@@ -9,7 +9,7 @@ frame_review: true
 
 ## Status
 
-Proposed (2026-09-05)
+Accepted (2026-09-05)
 
 ## Context
 
@@ -78,8 +78,10 @@ Adopt **Option C**. The airlock 1.0 public API contract is:
   `connectors[]`, per-`type` fields, `placements`, …). Recent, still settling; a later minor freezes what survives.
 - The **standalone per-connector boot handles** beyond the two that install `window.airlock` — their shapes vary by
   design (pixels lack `pushCritical`, alloy lacks `flushNow`, helix-rum adds `sampled`).
-- **`composite.accepts(name)`** — an internal fan-out detail, kept OFF the installed `window.airlock` handle (the alloy
-  exposure reporter routes through an internal predicate, not the public handle).
+- **`composite.accepts(name)`** — an internal fan-out detail, EXCLUDED from the frozen handle contract (item 6's seven
+  methods). It is presently reachable on the installed composite; slice 037-01 removes it from the installed
+  `window.airlock` (rebinding the alloy exposure reporter to an internal predicate, not the public handle) so the frozen
+  shape holds exactly. Either way it is unfrozen — adopters must not rely on it.
 - The **host-internal `cookies.reconcile`** and its 035 name-scope coupling — host-wired, not a connector-facing grant.
 - **OQ3** (the event-payload schema): `AirlockEvent.payload` is frozen as a `Readonly<Record<string, unknown>>`
   pass-through container, but its **shape/schema is not frozen**.

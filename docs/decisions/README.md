@@ -23,6 +23,7 @@
 - [ADR-0014: Lever-2 compat layer: a minimal airlock-owned worker-dom mirror (Tier 0)](adr-0014-worker-dom-compat-minimal-mirror.md) — airlock's performance thesis ([R-008](../research/R-008-costly-dom-martech-containment.md)) is to contain costly-DOM martech (the INP/CWV killer). (2026-09-02, Accepted)
 - [ADR-0015: Distribution channel: git-subtree (EDS convention)](adr-0015-distribution-git-subtree.md) — OQ8 fixes how an EDS site consumes airlock — the gate MVP6 puts first, since everything downstream flows through it. (2026-09-04, Accepted)
 - [ADR-0016: Stock alloy bundle: adopter-supplied `bundleUrl`, same-origin recommended](adr-0016-alloy-stock-bundle-site-supplied.md) — To boot **Adobe/alloy** via `boot(config)` on a *buildless* EDS site (spec 033), the classic alloy chamber worker `importScripts` the ~766 KB stock **Adobe Experience Platform Web SDK** (`@adobe/alloy`, byte-pinned per AD-7 at **v2.35.0**). (2026-09-04, Accepted)
+- [ADR-0017: The airlock 1.0 public API contract (frozen surface + experimental carve-out)](adr-0017-airlock-1-0-api-contract.md) — airlock has reached MVP6. (2026-09-05, Accepted)
 
 ## Format
 
