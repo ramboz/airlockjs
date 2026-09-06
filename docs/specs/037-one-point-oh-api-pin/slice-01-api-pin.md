@@ -62,40 +62,38 @@ decision: 037 pins the API; the v1.0.0 version-bump/tag/dist is a separate later
    experimental carve-out)** — so the composite adopter is told exactly what is stable (the call + the handle) vs
    evolving (the config), and the frozen-set listing does not over-read. It also notes the egress surfaces are
    post-OQ10 (ADR-0004) / ADR-0010 — see AC2.
-2. **Reconcile EVERY frozen surface's stale now-resolved-OQ self-disclaimers BEFORE guarding — a grep-gated COMPLETE
-   sweep, not a hand-enumerated line list** (r1→r2→r3 kept finding missed spots: the inline field docstrings, then the
-   file-header "DEFERRED" summary blocks, then the `README.md` index rows — so completeness must be *verifiable*, not
-   enumerated). A frozen file must never self-disclaim "provisional / deferred / sketched / not exposed /
-   do-not-rely / intentionally absent" about something that has SHIPPED. Sweep ALL frozen-surface files —
-   `contracts/seams.d.ts`, `connector.d.ts`, `capability.d.ts`, `push-api.md`, `ga4-mp.md`, and `contracts/README.md`
-   (header blocks + inline docstrings + index rows + the deferred table) — and STRIP/correct every disclaimer tied to a
-   RESOLVED question or a SHIPPED surface:
-   - **OQ7** (inspector) — RESOLVED, spec 028/`refinement-todo:40`: the stale `(OQ7)` pointer at `seams.d.ts:69`.
-   - **OQ9 sync-ACCESS surface** — SHIPPED (`capability.d.ts` `sync.readSync/writeSync` :90-93, 012-01): the "sync … is
-     OQ9 and is intentionally absent here" (:63-64) + header "not exposed here yet" claims + `README.md:20,:66` "only
-     async". (The multi-chamber-COHERENCE OQ9 sub-axis is the one carve-out survivor — 2b.)
-   - **OQ10** (egress dispatch/delivery) — RESOLVED, ADR-0004 (`caps.egress.dispatch` by ADR-0010/014-01): the header
-     "not the send" (`capability.d.ts:21-22`, `connector.d.ts:22`) + inline "provisional on OQ10" (`seams.d.ts:15/:18/:52`,
-     `connector.d.ts:59/:69`) + `README.md:19,:20,:21,:67`.
-   - **OQ11** (payload read-governance) — RESOLVED, ADR-0012/019-01 (`refinement-todo:80,84(f)`): `connector.d.ts:24-26`
-     ("crosses as-is") + `:41-42` ("MVP1 only … deferred to MVP2"), `capability.d.ts:23-24`, `push-api.md:107`,
-     `README.md:19,:68` (the `capability.d.ts:23-24` note reads "a denylist model is deferred" — the denylist SHIPPED
-     (019-01); only the OQ3 allowlist-tightening remains, so reword to that, do not leave it "deferred").
-   - **decisions-as-data** — FINALIZED, slice 012-03 (`capability.d.ts:27/:131-133`): the stale "deferred"/"sketched"
-     disclaimers at `capability.d.ts:55` ("wrapped-SDK; deferred") + the header (:25-26 "sketched") + `README.md:20`
-     ("decisions-as-data sketched"). NOT OQ-tagged — caught by pass (b) below, not the OQ-grep.
-   **Verification gate — TWO complementary passes (an OQ-grep alone is insufficient — r4):** (a) an **OQ-grep** over the
-   frozen files (`OQ7|OQ9|OQ10|OQ11|provisional|do not rely|not exposed|not the send|crosses as-is|only async|
-   intentionally absent|MVP1 only|deferred to MVP2`) returns ONLY the permitted still-open survivors (2b); AND (b) a
-   **`deferred|sketch|finalized|for now` classification pass** over the same files — a pure grep can neither catch bare
-   "deferred/sketched" (`:55` decisions carries no OQ term) nor tell stale-about-shipped from legitimately-open, so EACH
-   such hit is hand-classified: **strip/reword** if it disclaims a SHIPPED surface (decisions 012-03 at `:55`/header/
-   `README:20`; the OQ11 denylist at `:24`), **keep** if genuinely open (the 2b carve-outs) or plain historical prose
-   (`capability.d.ts:132` "the deferred `fetch` sketch is reconciled", `README:56` alloy config "deferred to its own
-   spec", `push-api.md:105` dropped-ACDL listeners). Freeze/guard is gated on BOTH passes clean — no disclaimer about a
-   resolved question OR a shipped surface survives in a frozen file.
+2. **Reconcile EVERY frozen file to present-tense-as-of-1.0 by a COMPLETE per-file READ-THROUGH — greps are backstops,
+   not the completeness mechanism.** Five frame-critique rounds each found a stale disclaimer of a NEW form/location
+   (r1 seams `provisional`; r2 field docstrings; r3 header "DEFERRED" blocks + README rows; r4 bare `deferred`
+   [decisions 012-03]; r5 the "seal is unbuilt / NOT ENFORCED in MVP2 / grant resolver is MVP3" family) — proving a
+   phrase-blocklist grep is structurally incomplete for contracts that accreted MVP-relative staging language across
+   30+ specs. So the mechanism is a **positive read-through**: the implementer reads EACH frozen-surface file in full
+   (`contracts/seams.d.ts`, `connector.d.ts`, `capability.d.ts`, `push-api.md`, `ga4-mp.md`, `contracts/README.md` —
+   headers + every docstring + index rows + deferred table) and classifies **every** forward-looking / staging /
+   MVP-relative / deferral claim as either **(strip/reword to present tense)** if the thing has SHIPPED, or **(explicit
+   "NOT FROZEN at 1.0" carve-out)** if genuinely open. The verification GATE is: (gate-1) a reviewer read-through
+   confirms no un-carve-out staging claim remains; backed by (gate-2) grep BACKSTOPS whose union must return only the 2b
+   carve-outs — the OQ family (`OQ7|OQ9|OQ10|OQ11`), the deferral family (`deferred|sketch|finalized|provisional|for
+   now|not exposed|do not rely|crosses as-is|only async|intentionally absent`), AND the staging family
+   (`unbuilt|not enforced|nothing gates|MVP1 only|MVP2|MVP3|not the teeth|disclosure only`). Known stale-about-shipped
+   instances to fix (a STARTER list for the read-through, NOT the whole list):
+   - **OQ7** inspector (spec 028): `seams.d.ts:69`.
+   - **OQ9 sync-ACCESS** SHIPPED (012-01, `capability.d.ts` sync :90-93): the "sync … is OQ9 and is intentionally
+     absent" (:63-64) + header "not exposed here yet" + `README.md:20,:66` "only async".
+   - **OQ10** egress dispatch RESOLVED (ADR-0004; `caps.egress.dispatch` ADR-0010): `seams.d.ts:15/:18/:52`,
+     `connector.d.ts:22/:59/:69`, `capability.d.ts:21-22`, `README.md:19-21,:67`.
+   - **OQ11** payload governance RESOLVED (ADR-0012/019-01): `connector.d.ts:24-26/:41-42`, `capability.d.ts:23-24`
+     ("denylist deferred" — the denylist SHIPPED; only the OQ3 allowlist-tightening remains), `push-api.md:107`,
+     `README.md:19,:68`.
+   - **decisions-as-data** FINALIZED (012-03): `capability.d.ts:55` + header :25-26, `README.md:20`.
+   - **the seal** SHIPPED + ENFORCING (017-03 seal-hold / 020-02 `egressVerdict` / 022): `connector.d.ts:97-101,:131-135`
+     ("DECLARED, NOT ENFORCED in MVP2 … the grant resolver … is MVP3 … the seal is unbuilt"), `capability.d.ts:162-165`
+     ("lands the gate-able surface, NOT the teeth — the seal itself is unbuilt"). Reword to the true post-017-03/020-02
+     state (the seal gates egress on the declared purposes today); if a finer per-I/O host-policy grant resolution
+     genuinely remains open, make it an explicit 2b carve-out, NOT "unbuilt".
 
-   THEN add the **contract-stability guards for the net-new frozen surfaces**, additive to `test/contract-stability.test.js`
+   The read-through is what makes completeness real; the greps only prove no KNOWN form slipped. THEN add the
+   **contract-stability guards for the net-new frozen surfaces**, additive to `test/contract-stability.test.js`
    (the existing `capability.d.ts`/`connector.d.ts` pins unchanged): `seams.d.ts` (the `DecisionSourceDriver`/`EgressDriver`
    + their request/result type text), and the **adopter boot/handle shape** (the two `window.airlock`-installing
    entrypoints + the frozen handle method set) — the guard mechanism is proven: `contract-stability.test.js` already
