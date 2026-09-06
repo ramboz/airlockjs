@@ -152,6 +152,13 @@ export interface ConnectorManifest {
    * matching `egressPurposes` config — see ConnectorPurposes. Optional +
    * additive: an omitted `purposes` means no consent-purpose gate is wired
    * for that connector's I/O.
+   *
+   * IMPORTANT (external connector authors): enforcement today reads the
+   * host-wired `egressPurposes` config, NOT this manifest field directly, so
+   * declaring `purposes` here WITHOUT the host wiring the matching config
+   * yields NO purpose gate on that connector's egress. Closing that mirror so
+   * the manifest field gates mechanically is a tracked additive follow-on
+   * (refinement-todo; a tightening within this frozen shape, no major break).
    */
   readonly purposes?: ConnectorPurposes;
 }
