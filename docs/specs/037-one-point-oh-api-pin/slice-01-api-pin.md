@@ -65,11 +65,11 @@ decision: 037 pins the API; the v1.0.0 version-bump/tag/dist is a separate later
 2. **Reconcile EVERY frozen surface's stale now-resolved-OQ self-disclaimers BEFORE guarding — a grep-gated COMPLETE
    sweep, not a hand-enumerated line list** (r1→r2→r3 kept finding missed spots: the inline field docstrings, then the
    file-header "DEFERRED" summary blocks, then the `README.md` index rows — so completeness must be *verifiable*, not
-   enumerated). A frozen file must never self-disclaim "provisional / deferred / not exposed / do-not-rely /
-   intentionally absent" about something that has SHIPPED. Sweep ALL frozen-surface files — `contracts/seams.d.ts`,
-   `connector.d.ts`, `capability.d.ts`, `push-api.md`, `ga4-mp-request.md`, and `contracts/README.md` (header blocks +
-   inline docstrings + index rows + the deferred table) — and STRIP/correct every disclaimer tied to a RESOLVED
-   question:
+   enumerated). A frozen file must never self-disclaim "provisional / deferred / sketched / not exposed /
+   do-not-rely / intentionally absent" about something that has SHIPPED. Sweep ALL frozen-surface files —
+   `contracts/seams.d.ts`, `connector.d.ts`, `capability.d.ts`, `push-api.md`, `ga4-mp.md`, and `contracts/README.md`
+   (header blocks + inline docstrings + index rows + the deferred table) — and STRIP/correct every disclaimer tied to a
+   RESOLVED question or a SHIPPED surface:
    - **OQ7** (inspector) — RESOLVED, spec 028/`refinement-todo:40`: the stale `(OQ7)` pointer at `seams.d.ts:69`.
    - **OQ9 sync-ACCESS surface** — SHIPPED (`capability.d.ts` `sync.readSync/writeSync` :90-93, 012-01): the "sync … is
      OQ9 and is intentionally absent here" (:63-64) + header "not exposed here yet" claims + `README.md:20,:66` "only
@@ -79,10 +79,21 @@ decision: 037 pins the API; the v1.0.0 version-bump/tag/dist is a separate later
      `connector.d.ts:59/:69`) + `README.md:19,:20,:21,:67`.
    - **OQ11** (payload read-governance) — RESOLVED, ADR-0012/019-01 (`refinement-todo:80,84(f)`): `connector.d.ts:24-26`
      ("crosses as-is") + `:41-42` ("MVP1 only … deferred to MVP2"), `capability.d.ts:23-24`, `push-api.md:107`,
-     `README.md:19,:68`.
-   **Verification gate:** a grep over the frozen files for the disclaimer patterns (`OQ7|OQ9|OQ10|OQ11|provisional|do
-   not rely|not exposed|not the send|crosses as-is|only async|intentionally absent|MVP1 only|deferred to MVP2`) returns
-   ONLY the permitted still-open survivors (2b) — nothing tied to a resolved question survives in a frozen file.
+     `README.md:19,:68` (the `capability.d.ts:23-24` note reads "a denylist model is deferred" — the denylist SHIPPED
+     (019-01); only the OQ3 allowlist-tightening remains, so reword to that, do not leave it "deferred").
+   - **decisions-as-data** — FINALIZED, slice 012-03 (`capability.d.ts:27/:131-133`): the stale "deferred"/"sketched"
+     disclaimers at `capability.d.ts:55` ("wrapped-SDK; deferred") + the header (:25-26 "sketched") + `README.md:20`
+     ("decisions-as-data sketched"). NOT OQ-tagged — caught by pass (b) below, not the OQ-grep.
+   **Verification gate — TWO complementary passes (an OQ-grep alone is insufficient — r4):** (a) an **OQ-grep** over the
+   frozen files (`OQ7|OQ9|OQ10|OQ11|provisional|do not rely|not exposed|not the send|crosses as-is|only async|
+   intentionally absent|MVP1 only|deferred to MVP2`) returns ONLY the permitted still-open survivors (2b); AND (b) a
+   **`deferred|sketch|finalized|for now` classification pass** over the same files — a pure grep can neither catch bare
+   "deferred/sketched" (`:55` decisions carries no OQ term) nor tell stale-about-shipped from legitimately-open, so EACH
+   such hit is hand-classified: **strip/reword** if it disclaims a SHIPPED surface (decisions 012-03 at `:55`/header/
+   `README:20`; the OQ11 denylist at `:24`), **keep** if genuinely open (the 2b carve-outs) or plain historical prose
+   (`capability.d.ts:132` "the deferred `fetch` sketch is reconciled", `README:56` alloy config "deferred to its own
+   spec", `push-api.md:105` dropped-ACDL listeners). Freeze/guard is gated on BOTH passes clean — no disclaimer about a
+   resolved question OR a shipped surface survives in a frozen file.
 
    THEN add the **contract-stability guards for the net-new frozen surfaces**, additive to `test/contract-stability.test.js`
    (the existing `capability.d.ts`/`connector.d.ts` pins unchanged): `seams.d.ts` (the `DecisionSourceDriver`/`EgressDriver`
