@@ -1,9 +1,10 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 dependencies: []
 last_verified:
 arch_review: true  # freezing the public surface IS an architectural commitment (what adopters may rely on at 1.0).
 frame_review: true  # the frozen/experimental boundary + the three open rulings (accepts/reconcile/read-namespacing) are load-bearing 1.0 commitments.
+claimed_by: claude/mvp6-e4550f
 ---
 
 <!-- jig self-defining vocabulary (soft, forward-only); jig grounding (064-02/ADR-0020): probe/cite or mark assumptions. -->
@@ -139,3 +140,42 @@ changes (the `accepts` resolution + the new guards red→green); reviewed (compl
 — the surface freeze] + **frame-critique** [`frame_review: true`]); deviation log + reconciliation sweep; reconciliation
 review; refinement-todo items closed; `docs/specs/README.md` + `docs/decisions/README.md` (ADR index) synced; board
 synced. Spec 037 closes → MVP6 fixed core + 1.0 API pin complete.
+
+### Deviation log
+
+No deviations from the ACs or the design focus. Judgment calls made during implementation, recorded for
+transparency (none blocked an AC; all reasoned from "carve-out over strip when unclear"):
+
+- **Strip-vs-carve-out calls found close (resolved by re-grounding in the actual runtime, not just the ADR's
+  summary):**
+  - `EgressRequest.unloadCritical` (`connector.d.ts`) and `EgressDriver`/`SealedEgressRequest` (`seams.d.ts`):
+    OQ10 (the overall dispatch/delivery model) is resolved per ADR-0004/ADR-0010, but a targeted grep of
+    `core/airlock.js`/`core/connector-host.js` confirmed the connector-returned `EgressRequest.unloadCritical`
+    boolean hint is declared but genuinely **not read** anywhere on the async `handle()` path (the real
+    unload-critical route is the separate `pushCritical()` fast path). Reworded to state this precisely — "declared
+    but not read" — rather than either leaving the stale "is OQ10" framing or overclaiming the runtime "honors" it.
+  - `ConnectorPurposes`/`ConnectorManifest.purposes` (`connector.d.ts`) and the round-trip `egress.dispatch`
+    docstring (`capability.d.ts`): confirmed the seal is genuinely SHIPPED and ENFORCING (017-03 GA4, 020-02 alloy,
+    016-02 endpoint ceiling) — not "unbuilt" — but a deeper grep found the enforcement point reads each caller's
+    OWN hand-declared `egressPurposes`/`endpointCeiling` config (`adapters/eds/index.js`), which MIRRORS but does
+    not mechanically read the manifest's `purposes`/`endpoints` fields (a real, documented mirror-drift gap, same
+    idiom as GA4's `DATA_USE_PURPOSES`). Reworded to say "enforced" + name the mirror precisely, rather than
+    either the stale "unbuilt" claim or a new overclaim that the manifest field itself gates dispatch.
+  - `capability.d.ts`'s `Decision.content` docstring ("Deferred detail") and `contracts/README.md`'s alloy
+    "coverage gap" paragraph: not in the task's starter list, surfaced by the full read-through. Both were stale
+    (the former implied more specificity was pending on an intentionally-permanent `unknown` type; the latter
+    predated 033-02/033-03 shipping alloy config-wiring). Reworded present-tense per the same discipline.
+- **`composite.accepts` removal + the "with-GA4 routing" behavioral flip:** landed as specified — physical removal
+  from `createComposite`'s returned object, `boot()` rebound to a local `booted`-array predicate (byte-for-byte the
+  same `acceptsEvent` logic, so a behavior-preserving refactor, not a new rule), the ~8 direct
+  `window.airlock.accepts(...)` assertions across `test/eds-boot-config.test.js` and `test/eds-boot-alloy.test.js`
+  flipped to behavioral push+observe equivalents, and two new tests assert `'accepts' in window.airlock` is
+  `false` (one colocated in `eds-boot-config.test.js`, one as part of the new `contract-stability.test.js`
+  boot/handle-shape guard). For the "with-GA4 routing" half specifically: rather than building new dual-worker
+  (alloy + GA4) integration-test infrastructure, the existing hand-rolled `compositeEmit` stub convention already
+  established in `eds-boot-alloy.test.js` (e.g. the AC7 end-to-end test) is relied on as-is, since it already
+  behaviorally proves the routing claim and the `boot()` code change is a transparent refactor over the same
+  predicate/array/helper the old `composite.accepts` used — building real multi-worker alloy+GA4 emulation would
+  be a disproportionate lift for a slice whose scope is narrowing the public surface, not adding integration-test
+  infrastructure. That test's stale comment (referencing "the real `createComposite.accepts` gate," a method that
+  no longer exists) was corrected to reflect the new reality.

@@ -1179,10 +1179,12 @@ function createComposite(connectors) {
   return {
     // push/pushCritical FAN OUT (void — the public write-surface contract 032-01 established),
     // gated by each connector's declared vocabulary. (033-03 briefly overloaded these to RETURN
-    // the fan-out count for the exposure sink's alloy-only detection; 034-03 AC1 reverts that in
-    // favor of the scoped `accepts(name)` predicate below — an unambiguous signal that no longer
-    // conflates "no connector accepted this event" with "no analytics ['*'] sink present", and
-    // leaves the write-surface untouched.)
+    // the fan-out count for the exposure sink's alloy-only detection; 034-03 AC1 reverted that in
+    // favor of a scoped `accepts(name)` predicate — 037-01's 1.0 API pin (ADR-0017) then removed
+    // `accepts` from the INSTALLED handle entirely (an internal fan-out detail, not part of the
+    // frozen `window.airlock` surface, which is exactly `{ push, pushCritical, setConsent,
+    // getState, flushNow, stats, dispose }`). `boot()` rebinds the alloy exposure reporter's
+    // `compositeEmit.accepts` to a LOCAL predicate over `booted` instead — see `boot()` below.)
     push: (evt) => {
       const name = evt && evt.event;
       for (const c of connectors) if (acceptsEvent(c.events, name)) c.handle.push(evt);
@@ -1193,13 +1195,6 @@ function createComposite(connectors) {
         if (typeof c.handle.pushCritical === "function" && acceptsEvent(c.events, name)) c.handle.pushCritical(evt);
       }
     },
-    // accepts(name) (034-03 AC1): does ANY booted connector's declared vocabulary accept this
-    // event name (a `["*"]` analytics catch-all, or an explicit listing)? The alloy
-    // proposition_display exposure sink reads `accepts("proposition_display")` to decide whether
-    // an analytics `["*"]` sink exists (an alloy-only boot -> false -> the exposure is
-    // dropped+diagnosed; a co-booted GA4 -> true -> the exposure fans to GA4). A pure predicate
-    // over the declared vocabularies — no side effect, no write.
-    accepts: (name) => connectors.some((c) => acceptsEvent(c.events, name)),
     setConsent: (v) => { for (const c of connectors) if (typeof c.handle.setConsent === "function") c.handle.setConsent(v); },
     getState: (path) => (connectors.length ? connectors[0].handle.getState(path) : undefined),
     flushNow: () => { for (const c of connectors) if (typeof c.handle.flushNow === "function") c.handle.flushNow(); },
@@ -1494,7 +1489,13 @@ export async function boot(config = {}, opts = {}) {
   // reporter closes over — accepts("proposition_display") gates the alloy-only drop, emit fans it
   // to an analytics ["*"] sink. Bound here (not via window.airlock) so a later re-boot can't
   // reroute this composite's alloy exposures to a replacement singleton.
-  compositeEmit.accepts = (name) => composite.accepts(name);
+  //
+  // 037-01 AC3 (the 1.0 API pin, ADR-0017): a LOCAL predicate over `booted` (NOT
+  // `composite.accepts` — removed from the installed handle so the frozen `window.airlock`
+  // surface holds exactly `{ push, pushCritical, setConsent, getState, flushNow, stats,
+  // dispose }`). Same semantics as the removed method (it iterated this exact `booted` array via
+  // the same `acceptsEvent` helper), so this is a behavior-preserving rebind, not a new rule.
+  compositeEmit.accepts = (name) => booted.some((c) => acceptsEvent(c.events, name));
   compositeEmit.emit = (evt) => composite.push(evt);
   return installOnWindow(composite);
 }

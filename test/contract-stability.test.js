@@ -1,5 +1,7 @@
 // Contract stability guard — spec 012 additive-only guard (012-01 AC6; extended
-// by 012-03 decisions + 012-04 `purposes` pins).
+// by 012-03 decisions + 012-04 `purposes` pins; 037-01 extends it again for the
+// 1.0 API pin, ADR-0017 — the seams.d.ts driver interfaces + the adopter
+// boot/handle shape, both previously unguarded per the slice's DoR).
 //
 // AC6: "Contract signatures unchanged (additive-only) + GA4 green." Every
 // existing PINNED signature in contracts/capability.d.ts and
@@ -19,7 +21,8 @@
 // test/ga4-purchase.test.js suites, which run unchanged as part of the same
 // `vitest run` this guard is part of.
 import { readFileSync } from "node:fs";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { boot, bootEdsAnalytics } from "../adapters/eds/index.js";
 
 const capabilityDts = readFileSync(
   new URL("../contracts/capability.d.ts", import.meta.url),
@@ -27,6 +30,10 @@ const capabilityDts = readFileSync(
 );
 const connectorDts = readFileSync(
   new URL("../contracts/connector.d.ts", import.meta.url),
+  "utf8",
+);
+const seamsDts = readFileSync(
+  new URL("../contracts/seams.d.ts", import.meta.url),
   "utf8",
 );
 
@@ -234,6 +241,82 @@ describe("contract stability guard (spec 012-01 AC6 — additive-only)", () => {
       // to duplicate its coverage.
       expect(capabilityDts).toContain("readSync(): string;");
       expect(capabilityDts).toContain("writeSync(setCookie: string): void;");
+    });
+  });
+
+  describe("contracts/seams.d.ts — 037-01 (the 1.0 API pin, ADR-0017): both seam driver interfaces, previously unguarded", () => {
+    // seams.d.ts was read + typechecked but never substring-pinned before this slice (the
+    // DoR explicitly names this a gap: "seams.d.ts + the boot/handle shape are NOT guarded").
+    // ADR-0017 item 5 freezes both driver interfaces (honestly, as proven-for-one).
+    it("pins the DecisionSourceDriver interface + its decide(request) signature", () => {
+      expect(seamsDts).toContain("export interface DecisionSourceDriver {");
+      expect(seamsDts).toContain(
+        "decide(request: DecisionRequest): DecisionResult | Promise<DecisionResult>;",
+      );
+    });
+
+    it("pins the DecisionRequest/DecisionResult request/result shapes", () => {
+      expect(seamsDts).toContain("export interface DecisionRequest {");
+      expect(seamsDts).toContain("readonly scope: string;");
+      expect(seamsDts).toContain("readonly audiences?: readonly string[];");
+      expect(seamsDts).toContain("export interface DecisionResult {");
+      expect(seamsDts).toContain("readonly variant: string;");
+      expect(seamsDts).toContain("readonly apply?: unknown;");
+    });
+
+    it("pins the EgressDriver interface + its dispatch(request) signature", () => {
+      expect(seamsDts).toContain("export interface EgressDriver {");
+      expect(seamsDts).toContain("dispatch(request: SealedEgressRequest): Promise<EgressResult>;");
+    });
+
+    it("pins the SealedEgressRequest/EgressResult request/result shapes", () => {
+      expect(seamsDts).toContain("export interface SealedEgressRequest {");
+      expect(seamsDts).toContain("readonly url: string;");
+      expect(seamsDts).toContain('readonly method: "POST" | "GET";');
+      expect(seamsDts).toContain("readonly headers?: Readonly<Record<string, string>>;");
+      expect(seamsDts).toContain("readonly body?: string | ArrayBufferView;");
+      expect(seamsDts).toContain("readonly unloadCritical?: boolean;");
+      expect(seamsDts).toContain("export interface EgressResult {");
+      expect(seamsDts).toContain('readonly status: "sent" | "sent-unknown" | "held";');
+    });
+  });
+
+  describe("adopter boot/handle shape — 037-01 (the 1.0 API pin, ADR-0017 item 6): the installed `window.airlock` handle is EXACTLY the frozen 7-method shape", () => {
+    // Runtime shape assertion (not a .d.ts substring pin — there is no boot/handle .d.ts): boot
+    // through BOTH entrypoints ADR-0017 names (`bootEdsAnalytics()` and `boot(config)`) and
+    // inspect the INSTALLED `window.airlock`'s OWN keys. `accepts` (037-01 AC3) must be absent —
+    // it is an internal fan-out detail, excluded from the frozen handle by design. Mirrors the
+    // eds-boot suites' established boot+inspect pattern (test/eds-boot-config.test.js).
+    const FROZEN_HANDLE_KEYS = ["push", "pushCritical", "setConsent", "getState", "flushNow", "stats", "dispose"];
+
+    class MinimalWorker {
+      constructor(url) { this.url = String(url); }
+      postMessage() {}
+      addEventListener() {}
+      removeEventListener() {}
+      terminate() {}
+    }
+
+    beforeEach(() => {
+      vi.stubGlobal("window", {});
+      vi.stubGlobal("Worker", MinimalWorker);
+      vi.stubGlobal("fetch", vi.fn(() => Promise.resolve()));
+      vi.stubGlobal("addEventListener", () => {});
+      vi.stubGlobal("removeEventListener", () => {});
+      vi.stubGlobal("requestIdleCallback", (cb) => { cb({ didTimeout: false, timeRemaining: () => 0 }); return 1; });
+    });
+    afterEach(() => vi.unstubAllGlobals());
+
+    it("bootEdsAnalytics()'s installed handle has EXACTLY the frozen 7 keys — no accepts", async () => {
+      await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" } });
+      expect(Object.keys(window.airlock).sort()).toEqual([...FROZEN_HANDLE_KEYS].sort());
+      expect("accepts" in window.airlock).toBe(false);
+    });
+
+    it("boot(config)'s installed composite handle has EXACTLY the frozen 7 keys — no accepts", async () => {
+      await boot({ connectors: [{ type: "ga4", ctx: { clientId: "1.1", sessionId: "2" } }] });
+      expect(Object.keys(window.airlock).sort()).toEqual([...FROZEN_HANDLE_KEYS].sort());
+      expect("accepts" in window.airlock).toBe(false);
     });
   });
 });

@@ -14,16 +14,23 @@
  * in a chamber IF the capability API exposes mediated cookie/storage, async
  * context injection, and decisions-as-data. This interface is shaped for both.
  *
- * DEFERRED — do not rely on these being final:
- *  - Synchronous host-call semantics for the wrapped-SDK archetype in a
- *    multi-chamber MVP2 world (OQ9). MVP1's single first-party connector uses a
- *    simple per-worker sync-cache; multi-chamber coherence is unproven.
- *  - How an egress request is actually dispatched — worker vs orchestrator,
- *    delivery-under-load, the unload/last-beacon path (OQ10). This interface
- *    pins the egress REQUEST shape, not the dispatch.
- *  - Event-payload read governance beyond the projection snapshot (OQ11 / OQ3).
- *    For MVP1 (first-party GA4, no compromised-connector threat) the payload
- *    crosses as-is.
+ * NOT FROZEN at 1.0 (ADR-0017) — do not rely on these being final:
+ *  - Multi-chamber coherence of the synchronous cookie surface for the
+ *    wrapped-SDK archetype (OQ9's remaining axis). The single-chamber
+ *    sync-cache (`GrantedCapabilities.cookies.sync`, capability.d.ts, shipped
+ *    012-01) is frozen; cross-chamber coherence of that cache is not.
+ *  - The event-payload SCHEMA (OQ3): `AirlockEvent.payload` below is frozen as
+ *    a pass-through container; its shape is site-defined and not frozen.
+ *
+ * RESOLVED since this interface was first pinned (present-tense as of 1.0):
+ *  - How an egress request is dispatched — settled by ADR-0004 (the two-path
+ *    fire-and-forget model) and ADR-0010 (the wrapped-SDK round-trip
+ *    `caps.egress.dispatch`, capability.d.ts). This interface still pins only
+ *    the egress REQUEST shape, not the dispatch mechanics — see the
+ *    `EgressRequest` docstring below for the current state.
+ *  - Event-payload read governance beyond the projection snapshot (OQ11):
+ *    resolved by ADR-0012 / spec 019-01's host-owned denylist — see the
+ *    `AirlockEvent.payload` docstring below.
  */
 
 import type { CapabilityRequest, GrantedCapabilities } from "./capability";
@@ -37,9 +44,10 @@ export interface AirlockEvent {
   /** High-resolution capture timestamp (performance.now() time origin). */
   readonly ts: number;
   /**
-   * The event payload the connector maps. Open, site-defined shape (OQ3).
-   * Read governance for this channel is OQ11 — pinned as pass-through for MVP1
-   * only; a broad/compromised connector threat model is deferred to MVP2.
+   * The event payload the connector maps. A host-owned sensitive-field
+   * denylist governs it before it reaches a connector (OQ11, resolved —
+   * ADR-0012 / spec 019-01's `governPayload`). The payload's SHAPE remains
+   * open and site-defined, and is NOT FROZEN at 1.0 (OQ3 — refinement-todo.md).
    */
   readonly payload: Readonly<Record<string, unknown>>;
   /**
@@ -55,8 +63,12 @@ export interface AirlockEvent {
 /**
  * An egress request a connector produces. The connector does NOT send it: it
  * returns it to the runtime, which applies the seal (consent + host-owned
- * endpoint allow-list) and dispatches via the egress seam. Dispatch mechanism,
- * delivery, and the unload path are OQ10.
+ * endpoint allow-list) and dispatches via the egress seam — resolved as
+ * `fetch(url, { keepalive: true })` on the main thread (ADR-0004); the
+ * wrapped-SDK round-trip variant is `caps.egress.dispatch` (ADR-0010,
+ * capability.d.ts). The canonical unload/last-beacon path is the separate
+ * `pushCritical()` fast path (push-api.md), which bypasses this
+ * connector-returned request entirely.
  */
 export interface EgressRequest {
   readonly url: string;
@@ -65,8 +77,11 @@ export interface EgressRequest {
   readonly body?: string | ArrayBufferView;
   /**
    * Hint that this request should be delivered best-effort at page unload
-   * (e.g. a closing pageview). How the runtime honors it — and whether such
-   * events even reach the connector in time to be mapped — is OQ10.
+   * (e.g. a closing pageview). The resolved unload strategy (ADR-0004) is a
+   * distinct main-thread fast path, `pushCritical()` (push-api.md), which
+   * bypasses the worker/connector `handle()` path entirely for the canonical
+   * last-beacon case; this hint is declared but not read by the runtime on
+   * the async `handle()`-returned path.
    */
   readonly unloadCritical?: boolean;
 }
@@ -94,11 +109,14 @@ export type ConsentPurpose =
  * (ADR-0007 Recommended Decision; kill-criterion: coarse per-connector tagging
  * moves to per-capability/per-endpoint, which this shape already permits).
  *
- * DECLARED, NOT ENFORCED in MVP2: this is disclosure only. The grant resolver
- * that reads this vector — ADR-0006's `granted = declared ∩ host-policy ∩
- * consent/user-choice` law — is MVP3 (ADR-0006 §Staging); nothing gates on it
- * yet (the seal is unbuilt). Present now so MVP3 enforcement is a switch-flip,
- * not a breaking retrofit. ADDED 012-04 (additive-only).
+ * DECLARED AND GATED: the seal now enforces ADR-0006's `granted = declared ∩
+ * host-policy ∩ consent/user-choice` law — shipped for GA4 (017-03's
+ * hold-pending / strict-drop seal) and alloy (ADR-0013 / spec 020's XDM
+ * governance); nothing here is "unbuilt" any more. The enforcement point
+ * currently reads each caller's own `egressPurposes` config
+ * (adapters/eds/index.js), which mirrors — but does not yet mechanically
+ * read — this manifest's `egress` vector (a documented, unclosed
+ * mirror-drift residual; refinement-todo.md). ADDED 012-04 (additive-only).
  */
 export interface ConnectorPurposes {
   /** Purpose(s) the connector's egress serves overall. */
@@ -129,9 +147,11 @@ export interface ConnectorManifest {
   /** Endpoints the connector intends to emit to (advisory; host allow-list wins). */
   readonly endpoints?: readonly string[];
   /**
-   * Consent-purpose annotation for the declared I/O (ADR-0007). Declared, NOT
-   * enforced in MVP2 — disclosure only; the grant resolver is MVP3. See
-   * ConnectorPurposes. Optional + additive: pre-012-04 manifests (GA4) omit it.
+   * Consent-purpose annotation for the declared I/O (ADR-0007). The seal
+   * enforces on it (ADR-0006's grant law) for the connectors that wire a
+   * matching `egressPurposes` config — see ConnectorPurposes. Optional +
+   * additive: an omitted `purposes` means no consent-purpose gate is wired
+   * for that connector's I/O.
    */
   readonly purposes?: ConnectorPurposes;
 }

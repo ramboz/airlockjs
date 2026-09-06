@@ -81,7 +81,7 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 |---|---|---|
 | **Distribution decision + setup** (OQ8: git-subtree and/or npm) | OQ8; aem-martech convention | A site cannot adopt what it cannot consume |
 | **Remaining production-hardening residuals** — name-scoped cookie-grant wrapper + name-validation (OQ13-4), `reserveSpace` eager-phase production wiring (018-h) _(dispose guard + eslint scope closed in MVP4)_ | refinement-todo OQ13; spec 018 item h | Security-safe, production-wired |
-| **1.0 API stability pin** — connector interface + capability API + `push()` surface | contracts/; every release note's pre-1.0 caveat | Adoption needs a stability contract |
+| **1.0 API stability pin** — connector interface + capability API + `push()` surface | contracts/; every release note's pre-1.0 caveat; **SHIPPED** (2026-09-05) — [spec 037-01](../specs/037-one-point-oh-api-pin/slice-01-api-pin.md) / [ADR-0017](../decisions/adr-0017-airlock-1-0-api-contract.md): the five contract surfaces + the adopter boot layer are frozen + enforced (`test/contract-stability.test.js`); the config schema stays an explicit experimental carve-out. The v1.0.0 version-bump/tag/dist release cut is a separate, deferred step (owner decision) | Adoption needs a stability contract |
 | **Real-production-site validation** — supported subset (GA4 + Adobe/alloy) on a real page, CWV preserved | Customer prod stack (R-007); harness + procedure shipped (spec 036, both slices): [docs/real-site-validation.md](../real-site-validation.md) — `rig/lh-live.mjs` (036-01, CWV before/after) + `rig/subset-smoke.mjs` (036-02, supported-subset presence/conformance + the named live residuals checklist); **the live run is the operator's creds-gated step** | The adoption proof: airlock runs on a real site at ~zero CWV cost |
 
 ### Defer
@@ -114,6 +114,11 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
     CWV preserved.
 - Pin the **1.0 API surface** as an external contract (`/jig:contracts`) — the connector interface, capability
   API, `push()` surface.
+  - **RESOLVED (2026-09-05)** → [spec 037-01](../specs/037-one-point-oh-api-pin/slice-01-api-pin.md) /
+    [ADR-0017: The airlock 1.0 public API contract](../decisions/adr-0017-airlock-1-0-api-contract.md): the five
+    documented contract surfaces + the adopter boot layer are frozen, with contract-stability guards enforcing
+    them; the instrumentation-config schema stays an explicit, unguarded experimental carve-out. No version bump /
+    git tag / dist publish (a separate, deferred step).
 - New specs for distribution, the hardening residuals, the 1.0 pin, and the real-site validation.
 
 ## Release-Check Criteria

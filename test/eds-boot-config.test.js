@@ -295,6 +295,15 @@ describe("boot(config) — AC1: parity of the public surface with bootEdsAnalyti
       expect(typeof composite[key]).toBe(typeof standalone[key]);
     }
   });
+
+  // 037-01 AC3 (the 1.0 API pin, ADR-0017): the installed `window.airlock` handle is EXACTLY
+  // `{ push, pushCritical, setConsent, getState, flushNow, stats, dispose }` — `accepts` (an
+  // internal fan-out detail) is excluded so the frozen 7-method shape holds exactly.
+  it("does NOT expose accepts on the installed handle (037-01 1.0 API pin — internal fan-out detail, not part of the frozen 7-method surface)", async () => {
+    const composite = await boot({ connectors: [{ type: "ga4", ctx: gaCtx }] });
+    expect("accepts" in composite).toBe(false);
+    expect("accepts" in window.airlock).toBe(false);
+  });
 });
 
 // Craft-review BLOCKER: the composite fan-out must be GATED by each connector's
@@ -347,28 +356,42 @@ describe("boot(config) — fan-out gate: composite.push honors each connector's 
     expect(crossedTypes(ga4Worker())).toContain("top"); // GA4 catch-all gets it too
   });
 
-  // spec 034-03 AC1: composite.accepts(name) — the scoped predicate that REPLACES 033-03's
-  // push-returns-fan-out-count overload. The alloy exposure sink reads accepts("proposition_
-  // display") to decide whether an analytics ["*"] sink exists, an unambiguous signal that no
-  // longer conflates "no connector accepted this event" with "no analytics sink".
-  it("composite.accepts(name): TRUE iff a booted connector's vocabulary accepts the name (GA4 ['*'] catch-all + helix-rum checkpoints)", async () => {
+  // spec 034-03 AC1 established the vocabulary-gate the alloy exposure sink relies on via
+  // `compositeEmit.accepts`; the 037-01 1.0 API pin (ADR-0017) removes the PUBLIC `accepts(name)`
+  // method from the installed `window.airlock` handle — an internal fan-out detail, not part of
+  // the frozen 7-method surface. `boot()` now binds the exposure reporter's `compositeEmit.accepts`
+  // to a LOCAL predicate over the booted connectors instead of a public composite method. So the
+  // underlying gate is exercised BEHAVIORALLY here (push + observe which chamber receives it),
+  // not via a direct `accepts()` call — see "does NOT expose accepts" below for the removal itself.
+  it("a GA4 ['*'] catch-all admits an arbitrary event AND a proposition_display-shaped one (the analytics-sink signal the alloy exposure gate relies on)", async () => {
     await boot({
       connectors: [
         { type: "ga4", ctx: gaCtx },
         { type: "helix-rum", weight: 100, forceSelect: true, ...stubWebVitals() },
       ],
     });
-    expect(window.airlock.accepts("newsletter_signup")).toBe(true);  // GA4's ["*"] catch-all
-    expect(window.airlock.accepts("proposition_display")).toBe(true); // GA4 is an analytics ["*"] sink → present
-    expect(window.airlock.accepts("top")).toBe(true);                 // helix-rum checkpoint (and GA4)
+    window.airlock.push({ event: "newsletter_signup" });
+    window.airlock.push({ event: "proposition_display", scope: "__view__", proposition_id: "p1" });
+    window.airlock.push({ event: "top" }); // helix-rum's own declared checkpoint
+
+    expect(crossedTypes(ga4Worker())).toContain("newsletter_signup");   // GA4's ["*"] catch-all
+    expect(crossedTypes(ga4Worker())).toContain("proposition_display"); // GA4 is an analytics ["*"] sink → present
+    expect(crossedTypes(helixWorker())).toContain("top");               // helix-rum checkpoint (and GA4, catch-all)
   });
 
-  it("composite.accepts(name): FALSE when NO booted connector's vocabulary accepts it (no ['*'] sink)", async () => {
+  it("a helix-rum-only boot has NO analytics ['*'] sink: only its declared checkpoint crosses, nothing else", async () => {
     await boot({ connectors: [{ type: "helix-rum", weight: 100, forceSelect: true, ...stubWebVitals() }] });
-    // helix-rum's vocab is ["top","error","cwv"] only — no analytics ["*"] catch-all.
-    expect(window.airlock.accepts("top")).toBe(true);                 // a declared checkpoint
-    expect(window.airlock.accepts("proposition_display")).toBe(false); // no ["*"] sink → the alloy exposure would drop+diagnose
-    expect(window.airlock.accepts("newsletter_signup")).toBe(false);
+    // helix-rum's vocab is ["top","error","cwv"] only — no analytics ["*"] catch-all, so the
+    // alloy exposure gate would see "no sink" against this boot.
+    const before = crossedTypes(helixWorker()).length;
+
+    window.airlock.push({ event: "top" });                                                        // declared — crosses
+    window.airlock.push({ event: "proposition_display", scope: "__view__", proposition_id: "p1" }); // NOT declared
+    window.airlock.push({ event: "newsletter_signup" });                                           // NOT declared
+
+    expect(crossedTypes(helixWorker()).length).toBe(before + 1); // only "top" added
+    expect(crossedTypes(helixWorker())).not.toContain("proposition_display");
+    expect(crossedTypes(helixWorker())).not.toContain("newsletter_signup");
   });
 });
 

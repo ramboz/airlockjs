@@ -96,15 +96,15 @@ airlock.getState("a.b.c");   // path read into the projection
 | Event routing by `event` name | ✅ | Connectors declare the events they map. |
 | Arbitrary custom params on an event | ✅ | Pass-through (OQ3 emergent schema). |
 
-## Deliberately dropped / deferred (NOT drop-in)
+## Deliberately dropped / not built (NOT drop-in)
 
 | GTM / ACDL feature | Status | Rationale |
 |---|---|---|
 | Function push `push(function(){…})` (gtag `arguments` pattern) | ❌ dropped | Executes caller code inside the datalayer; incompatible with the capture-and-drain model (AD-2). Use a connector, not an inline callback. |
-| ACDL computed/merged state semantics | ❌ dropped for MVP1 | AD-3 is event-sourcing, **not** ACDL merge semantics. The projection fold is our own reducer, not ACDL's deep-merge. |
-| ACDL event listeners `addEventListener` / `.on()` | ⏸ deferred | A subscribe-to-projection-changes surface may come later; not MVP1. |
+| ACDL computed/merged state semantics | ❌ dropped | AD-3 is event-sourcing, **not** ACDL merge semantics. The projection fold is our own reducer, not ACDL's deep-merge. |
+| ACDL event listeners `addEventListener` / `.on()` | ⛔ not built | A subscribe-to-projection-changes surface is a candidate future addition; not part of the 1.0 surface. |
 | ACDL `getState()` returning a deep clone with ACDL's guarantees | 🟡 partial | We expose `getState()`, but the returned shape is our projection, not an ACDL-computed state object. |
-| Pushing PII / form-field values in event params | ⚠️ ungoverned (MVP1) | The payload read boundary for connectors is OQ11 (coupled to OQ3); for MVP1 (first-party GA4) it passes through. Do not rely on payload minimization until OQ11 lands. |
+| Pushing PII / form-field values in event params | 🟡 governed (default-on; one named gap) | A host-owned sensitive-field denylist ([ADR-0012](../docs/decisions/adr-0012-payload-governance.md) / spec 019-01) strips known-dangerous fields before a `push()`/`pushCritical()` event reaches a connector routed through `core/airlock.js`'s standard dispatch. **Named gap:** alloy's separate wrapped-SDK input seam (`core/wrapped-sdk-host.js`) is not yet wired to the same denylist (refinement-todo.md). The payload's field vocabulary stays site-defined and unfrozen (OQ3). |
 
 ## Compatibility note
 

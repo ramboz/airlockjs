@@ -748,20 +748,16 @@ describe("boot(config) — AC4: exposure routes to the analytics sink, NOT alloy
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it("no proposition loop: alloy's vocabulary accepts page_view but NOT proposition_display (accepts-gated, no count return)", async () => {
+  it("no proposition loop: alloy's manifest vocabulary admits page_view but NOT proposition_display (vocabulary-gated fan-out, no count return)", async () => {
     vi.stubGlobal("Worker", RecordingWorker);
     await boot({ connectors: [alloyEntry()] });
     const w = alloyWorker();
     w.emit({ type: "phase", name: "configured" });
 
-    // composite.accepts(name) — the scoped predicate that REPLACES push's fan-out count return
-    // (034-03 AC1): true iff a booted connector's vocabulary accepts the name.
-    expect(window.airlock.accepts("page_view")).toBe(true);            // in alloy's ["page_view"] vocabulary
-    expect(window.airlock.accepts("proposition_display")).toBe(false); // alloy-only: no ["*"] sink accepts it
-
-    // The no-loop BEHAVIOR, re-expressed via CAPTURED EVENTS (not push's count): page_view crosses
-    // to the alloy chamber; a proposition_display does NOT (gated out of alloy's ["page_view"] vocab
-    // — no second interact / no proposition loop).
+    // The no-loop BEHAVIOR, expressed via CAPTURED EVENTS (not a public accepts() call — the
+    // 037-01 1.0 API pin removes that method from the installed handle, ADR-0017): page_view
+    // crosses to the alloy chamber; a proposition_display does NOT (gated out of alloy's
+    // ["page_view"] vocab — no second interact / no proposition loop).
     window.airlock.push({ event: "page_view", page_location: "https://site/x" });
     window.airlock.push({ event: "proposition_display", scope: "__view__", proposition_id: "p1" });
 
@@ -947,9 +943,11 @@ describe("boot(config) — AC7: end-to-end two-phase (eager reserve -> lazy fill
 
     // A faithful composite-emit ref (034-03 AC2): alloy vocab (["page_view"]) IGNORES
     // proposition_display; a GA4 vocab (["*"]) CAPTURES it — proving GA4-capture + no-loop via
-    // CAPTURED EVENTS + accepts, NOT a push count-return. (The real createComposite.accepts gate
-    // is covered by the config-boot fan-out/accepts unit tests; the full browser geometry/CWV
-    // proof is rig/alloy-decisions.)
+    // CAPTURED EVENTS + accepts, NOT a push count-return. (The 1.0 API pin, 037-01/ADR-0017,
+    // removes `accepts` from the PUBLIC installed handle — this ref's `accepts` is the same
+    // internal predicate `boot()` now binds to a local `booted`-array check, proven by
+    // test/eds-boot-config.test.js's fan-out-gate suite; the full browser geometry/CWV proof is
+    // rig/alloy-decisions.)
     const ga4Captured = [];
     const fanout = [
       { events: ["page_view"], push: () => {} }, // alloy: ignores proposition_display

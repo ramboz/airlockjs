@@ -5,27 +5,32 @@
  * connector has NO ambient authority (AD-5); it can only do what it was granted,
  * default-deny throughout. See ./connector.d.ts.
  *
- * PINNED for MVP1 (grounded):
- *  - mediated cookie get/set (GA4 needs client_id persistence — R-002)
- *  - mediated egress REQUEST via Connector.handle()'s return value; the seal
- *    (consent + host-owned endpoint allow-list) gates it (AD-9)
+ * FROZEN at 1.0 (ADR-0017), grounded:
+ *  - mediated cookie get/set (GA4 needs client_id persistence — R-002), incl.
+ *    the single-chamber SYNCHRONOUS surface for the wrapped-SDK archetype
+ *    (shipped 012-01 — see the `sync` docstring below for its residual)
+ *  - mediated egress REQUEST via Connector.handle()'s return value, AND the
+ *    round-trip `egress.dispatch` capability (ADR-0010) for the wrapped-SDK
+ *    archetype; the seal (consent + host-owned endpoint allow-list) gates
+ *    both (AD-9), enforced for GA4 (017-03), alloy (020-02), and the
+ *    round-trip dispatch chokepoint (016-02 endpoint ceiling)
  *  - CWV-safe DOM injection (reserveSpace / insertAfterInteraction — AD-5)
  *  - projection snapshot declaration + default-deny filtering (ADR-0003)
- *
- * DEFERRED — sketched here, finalized with the resolving open question:
- *  - SYNCHRONOUS cookie/storage semantics for the wrapped-SDK archetype across
- *    chambers, and whether that needs SharedArrayBuffer (OQ9). The async
- *    get/set below serves MVP1's single first-party connector; a stock vendor
- *    SDK that reads document.cookie synchronously (R-004) needs a sync-cache
- *    shim whose multi-chamber coherence is unproven — NOT exposed here yet.
- *  - The egress DISPATCH mechanism (OQ10): this API pins the request + the
- *    seal, not the send.
- *  - Event-payload read governance (OQ11): the payload reaches the connector via
- *    AirlockEvent.payload; a denylist model is deferred, coupled to OQ3.
  *  - decisions-as-data / host-applied personalization for the wrapped-SDK
- *    archetype (renderDecisions:false — R-004): sketched as `decisions` below,
- *    FINALIZED in slice 012-03 (push `deliver` reconciled with the `fetch` sketch;
- *    `reserveSpace` / `DomHandle.fill` host-apply implemented — adapters/eds/dom.js).
+ *    archetype (renderDecisions:false — R-004): FINALIZED in slice 012-03
+ *    (push `deliver` reconciled with the `fetch` pull sketch; `reserveSpace` /
+ *    `DomHandle.fill` host-apply implemented — adapters/eds/dom.js)
+ *
+ * NOT FROZEN at 1.0:
+ *  - Multi-chamber COHERENCE of the synchronous cookie/storage cache for the
+ *    wrapped-SDK archetype (OQ9's remaining axis) — the single-chamber `sync`
+ *    surface above is frozen; coherence of that cache across chambers is not.
+ *  - The event-payload SCHEMA (OQ3): the payload reaches the connector via
+ *    AirlockEvent.payload (connector.d.ts) — pass-through, and read-governed
+ *    by a host-owned denylist (OQ11, resolved — ADR-0012 / spec 019-01); the
+ *    payload's shape remains site-defined and unfrozen.
+ *  - The host-internal `cookies.reconcile` write-back sink and its 035
+ *    name-scope coupling — see its docstring below.
  */
 
 /** What a connector requests in its manifest (default-deny; host grants a subset). */
@@ -52,17 +57,19 @@ export interface CapabilityRequest {
   readonly egress?: boolean;
   /** May request CWV-safe DOM injection. */
   readonly dom?: boolean;
-  /** May request personalization decisions as data (wrapped-SDK; deferred). */
+  /** May request personalization decisions as data (wrapped-SDK; FINALIZED
+   *  012-03 — see GrantedCapabilities.decisions). */
   readonly decisions?: boolean;
 }
 
 /** The mediated capabilities actually granted, passed to Connector.init(). */
 export interface GrantedCapabilities {
   /**
-   * Mediated cookie access. MVP1: ASYNC get/set backed by the orchestrator on
-   * the main thread. A synchronous variant for stock vendor SDKs is OQ9 and is
-   * intentionally absent here so no connector is written against an unproven
-   * shape.
+   * Mediated cookie access. ASYNC get/set backed by the orchestrator on the
+   * main thread, serving any connector archetype. A SYNCHRONOUS variant for
+   * stock vendor SDKs is also exposed below (`sync`, shipped 012-01) for the
+   * single-chamber case; multi-chamber coherence of that sync-cache is the
+   * remaining OQ9 axis, NOT frozen at 1.0 (see the header carve-out).
    */
   readonly cookies?: {
     get(name: string): Promise<string | null>;
@@ -85,7 +92,8 @@ export interface GrantedCapabilities {
      *    queues the async write-back.
      *
      * Multi-chamber coherence of this cache is the remaining OQ9 axis (011 /
-     * 012-02), not resolved by exposing the surface.
+     * 012-02), not resolved by exposing the surface, and is explicitly NOT
+     * FROZEN at 1.0 (ADR-0017) — the single-chamber surface above is.
      */
     readonly sync?: {
       readSync(): string;
@@ -102,6 +110,13 @@ export interface GrantedCapabilities {
      * `Secure`/`SameSite=None`/`Domain` (a plain-http jar rejects them), whereas a
      * **production https** jar PRESERVES them (stripping `Secure` on https is a
      * downgrade — tracked as a 014 production-cookie-semantics follow-up).
+     *
+     * NOT FROZEN at 1.0 (ADR-0017): this is a HOST-INTERNAL write-back sink,
+     * not a connector-facing grant, so it — and its name-scope coupling to
+     * `grantedCookieNames` (spec 035-01) — may change without a major-version
+     * break. A caller that wires `reconcile` without `grantedCookieNames`
+     * gets unscoped/unvalidated writes; this is a named, unpinned risk for the
+     * integrator to manage, not a shipped guarantee (refinement-todo.md).
      */
     reconcile?(setCookie: string): void;
   };
@@ -158,11 +173,14 @@ export interface GrantedCapabilities {
    * read it synchronously (e.g. persist a server-assigned identity) — a shape
    * `EgressRequest` cannot carry. `dispatch` is the documented, contract-home
    * capability surface for that round-trip: declared here (this ADR) AND
-   * gate-able — the orchestrator's OWN implementation of `dispatch` is the
-   * single chokepoint a future seal gates `req` against the connector
-   * manifest's declared `endpoints` / `purposes` (declared-AND-gated, not
-   * either/or). This slice lands the gate-able surface, NOT the teeth — the
-   * seal itself is unbuilt (a later MVP3 enforcement spec).
+   * GATED — the orchestrator's OWN implementation of `dispatch`
+   * (`core/wrapped-sdk-host.js`'s `dispatchInterceptedFetch`) is the single
+   * chokepoint the seal gates `req` against a host-configured endpoint
+   * ceiling (spec 016-02) and consent-purpose vector (`egressVerdict`, spec
+   * 020-02) — declared-AND-gated, not either/or. Those host-side controls
+   * mirror, but do not yet mechanically read, the connector manifest's
+   * declared `endpoints` / `purposes` (a documented mirror-drift residual;
+   * refinement-todo.md) — nothing here is "unbuilt" any more.
    */
   readonly egress?: {
     dispatch(req: EgressDispatchRequest): Promise<EgressDispatchResponse>;
@@ -208,7 +226,9 @@ export interface DomHandle {
   fill?(content: string): void;
 }
 
-/** A personalization decision (data, not applied). Deferred detail. */
+/** A personalization decision (data, not applied); `content` is intentionally
+ *  opaque (`unknown`) — a connector/adapter narrows it itself (e.g. the
+ *  `contentOf` / `propositionOf` accessors). */
 export interface Decision {
   readonly scope: string;
   readonly content: unknown;
