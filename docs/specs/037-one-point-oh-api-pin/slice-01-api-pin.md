@@ -71,11 +71,17 @@ decision: 037 pins the API; the v1.0.0 version-bump/tag/dist is a separate later
    (`contracts/seams.d.ts`, `connector.d.ts`, `capability.d.ts`, `push-api.md`, `ga4-mp.md`, `contracts/README.md` —
    headers + every docstring + index rows + deferred table) and classifies **every** forward-looking / staging /
    MVP-relative / deferral claim as either **(strip/reword to present tense)** if the thing has SHIPPED, or **(explicit
-   "NOT FROZEN at 1.0" carve-out)** if genuinely open. The verification GATE is: (gate-1) a reviewer read-through
-   confirms no un-carve-out staging claim remains; backed by (gate-2) grep BACKSTOPS whose union must return only the 2b
-   carve-outs — the OQ family (`OQ7|OQ9|OQ10|OQ11`), the deferral family (`deferred|sketch|finalized|provisional|for
-   now|not exposed|do not rely|crosses as-is|only async|intentionally absent`), AND the staging family
-   (`unbuilt|not enforced|nothing gates|MVP1 only|MVP2|MVP3|not the teeth|disclosure only`). Known stale-about-shipped
+   "NOT FROZEN at 1.0" carve-out)** if genuinely open. **When it is unclear whether something shipped, CARVE OUT — never
+   strip** (over-stripping makes the 1.0 contract *overclaim* stability, the more dangerous error; the labeled carve-out
+   is the safe default). The verification GATE is: (gate-1, the completeness guarantee) a reviewer read-through confirms
+   no un-carve-out staging claim remains; backed by (gate-2, a backstop) greps **scoped to exactly the frozen
+   read-through file set** (NOT the whole repo — else the legitimately-unfrozen `pixel-connector.d.ts`, the config
+   schema's own "PRE-1.0" self-declaration, and MVP references in specs/tests would fire) that return **no STRIP-class
+   hit** — the OQ family (`OQ7|OQ9|OQ10|OQ11`), the deferral family (`deferred|sketch|finalized|provisional|for now|not
+   exposed|do not rely|crosses as-is|only async|intentionally absent`), and the staging family
+   (`unbuilt|not enforced|nothing gates|MVP1 only|MVP2|MVP3|not the teeth|disclosure only`). (The 2b carve-out survivors
+   are labeled "NOT FROZEN" prose the read-through verifies, not necessarily grep-matched — e.g. the OQ3 carve-out is
+   not in the OQ-family pattern; the greps only prove no KNOWN strip-form slipped.) Known stale-about-shipped
    instances to fix (a STARTER list for the read-through, NOT the whole list):
    - **OQ7** inspector (spec 028): `seams.d.ts:69`.
    - **OQ9 sync-ACCESS** SHIPPED (012-01, `capability.d.ts` sync :90-93): the "sync … is OQ9 and is intentionally
@@ -94,7 +100,9 @@ decision: 037 pins the API; the v1.0.0 version-bump/tag/dist is a separate later
 
    The read-through is what makes completeness real; the greps only prove no KNOWN form slipped. THEN add the
    **contract-stability guards for the net-new frozen surfaces**, additive to `test/contract-stability.test.js`
-   (the existing `capability.d.ts`/`connector.d.ts` pins unchanged): `seams.d.ts` (the `DecisionSourceDriver`/`EgressDriver`
+   (the existing `capability.d.ts`/`connector.d.ts` pins unchanged — confirm the AC2 rewords are DISJOINT from the
+   pinned substrings: the pins target the type/grant-law text, not the disclaimer comments, so a present-tense reword
+   cannot alter a frozen type's documented meaning): `seams.d.ts` (the `DecisionSourceDriver`/`EgressDriver`
    + their request/result type text), and the **adopter boot/handle shape** (the two `window.airlock`-installing
    entrypoints + the frozen handle method set) — the guard mechanism is proven: `contract-stability.test.js` already
    reads runtime `.js` source + regex-asserts shape (`:193-210`), and the `eds-boot` suites boot the composite + inspect
