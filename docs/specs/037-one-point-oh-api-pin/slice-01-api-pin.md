@@ -62,20 +62,27 @@ decision: 037 pins the API; the v1.0.0 version-bump/tag/dist is a separate later
    experimental carve-out)** — so the composite adopter is told exactly what is stable (the call + the handle) vs
    evolving (the config), and the frozen-set listing does not over-read. It also notes the egress surfaces are
    post-OQ10 (ADR-0004) / ADR-0010 — see AC2.
-2. **Reconcile EVERY frozen surface's stale now-resolved-OQ self-disclaimers BEFORE guarding, THEN add the guards** — a
-   frozen file must never self-disclaim "provisional / deferred / intentionally absent" about something that shipped.
-   **Resolved OQs to STRIP/correct** (keyed to their resolving ADR), swept across ALL frozen-surface files
-   (`contracts/{seams,connector,capability}.d.ts`, `contracts/push-api.md`, `contracts/README.md`):
-   - **OQ10** (egress dispatch/delivery) — RESOLVED, ADR-0004/`refinement-todo:73`: `seams.d.ts` (:15/:18/:52
-     "provisional on OQ10"), `connector.d.ts` (:22-23/:59/:66-71 "not the dispatch / is OQ10"), `README.md` (:21/:67);
-     `caps.egress.dispatch` settled by ADR-0010.
-   - **OQ11** (payload governance) — RESOLVED, ADR-0012/019-01/`refinement-todo:80,84(f)`: `connector.d.ts:39-44`
-     ("pass-through for MVP1 only … deferred to MVP2" — explicitly flagged stale at 84(f)), `capability.d.ts:22-24`,
-     `push-api.md:107` ("Do not rely on payload minimization until OQ11 lands").
-   - **OQ9 sync-access** — the surface EXISTS (`sync.readSync/writeSync`, 012-01; `refinement-todo:57` mint axis
-     cleared): correct `capability.d.ts:63-66`'s "a synchronous variant … is OQ9 and is intentionally absent here"
-     (flatly contradicted by the `sync` surface at `:90-93`). (The multi-chamber-coherence OQ9 sub-axis stays a named
-     residual — see the OQ3/coherence carve-out below.)
+2. **Reconcile EVERY frozen surface's stale now-resolved-OQ self-disclaimers BEFORE guarding — a grep-gated COMPLETE
+   sweep, not a hand-enumerated line list** (r1→r2→r3 kept finding missed spots: the inline field docstrings, then the
+   file-header "DEFERRED" summary blocks, then the `README.md` index rows — so completeness must be *verifiable*, not
+   enumerated). A frozen file must never self-disclaim "provisional / deferred / not exposed / do-not-rely /
+   intentionally absent" about something that has SHIPPED. Sweep ALL frozen-surface files — `contracts/seams.d.ts`,
+   `connector.d.ts`, `capability.d.ts`, `push-api.md`, `ga4-mp-request.md`, and `contracts/README.md` (header blocks +
+   inline docstrings + index rows + the deferred table) — and STRIP/correct every disclaimer tied to a RESOLVED
+   question:
+   - **OQ7** (inspector) — RESOLVED, spec 028/`refinement-todo:40`: the stale `(OQ7)` pointer at `seams.d.ts:69`.
+   - **OQ9 sync-ACCESS surface** — SHIPPED (`capability.d.ts` `sync.readSync/writeSync` :90-93, 012-01): the "sync … is
+     OQ9 and is intentionally absent here" (:63-64) + header "not exposed here yet" claims + `README.md:20,:66` "only
+     async". (The multi-chamber-COHERENCE OQ9 sub-axis is the one carve-out survivor — 2b.)
+   - **OQ10** (egress dispatch/delivery) — RESOLVED, ADR-0004 (`caps.egress.dispatch` by ADR-0010/014-01): the header
+     "not the send" (`capability.d.ts:21-22`, `connector.d.ts:22`) + inline "provisional on OQ10" (`seams.d.ts:15/:18/:52`,
+     `connector.d.ts:59/:69`) + `README.md:19,:20,:21,:67`.
+   - **OQ11** (payload read-governance) — RESOLVED, ADR-0012/019-01 (`refinement-todo:80,84(f)`): `connector.d.ts:24-26`
+     ("crosses as-is") + `:41-42` ("MVP1 only … deferred to MVP2"), `capability.d.ts:23-24`, `push-api.md:107`,
+     `README.md:19,:68`.
+   **Verification gate:** a grep over the frozen files for the disclaimer patterns (`OQ7|OQ9|OQ10|OQ11|provisional|do
+   not rely|not exposed|not the send|crosses as-is|only async|intentionally absent|MVP1 only|deferred to MVP2`) returns
+   ONLY the permitted still-open survivors (2b) — nothing tied to a resolved question survives in a frozen file.
 
    THEN add the **contract-stability guards for the net-new frozen surfaces**, additive to `test/contract-stability.test.js`
    (the existing `capability.d.ts`/`connector.d.ts` pins unchanged): `seams.d.ts` (the `DecisionSourceDriver`/`EgressDriver`
@@ -84,13 +91,15 @@ decision: 037 pins the API; the v1.0.0 version-bump/tag/dist is a separate later
    reads runtime `.js` source + regex-asserts shape (`:193-210`), and the `eds-boot` suites boot the composite + inspect
    `window.airlock`. The `push()`/`pushCritical()`→void contract is pinned (behaviorally in `test/push-contract.test.js`,
    + a handle-shape assertion if ratified).
-2b. **Still-OPEN deferrals inside the frozen surfaces are CARVED OUT, not frozen (like the config schema).** **OQ3**
-   (vendor-neutral event schema) is genuinely open (`refinement-todo:22`, not struck): freeze `AirlockEvent.payload` as
-   a `Readonly<Record<string, unknown>>` **pass-through property** but state explicitly that its **shape/schema is NOT
-   frozen** (`connector.d.ts:44` "site-defined shape (OQ3)", `push-api.md:97` "OQ3 emergent schema" stay LIVE, not
-   stripped). Likewise the **multi-chamber sync-coherence** OQ9 sub-axis (`capability.d.ts:25`) stays a named residual:
-   the single-chamber `sync` surface is frozen (proven, 012-01), multi-chamber coherence is not. The ADR names both as
-   explicit not-1.0 aspects, mirroring the config carve-out.
+2b. **Still-OPEN deferrals inside the frozen surfaces are CARVED OUT, not stripped (like the config schema) — the ONLY
+   permitted grep survivors.** **OQ3** (vendor-neutral event schema) is genuinely open (`refinement-todo:22`, not
+   struck): freeze `AirlockEvent.payload` as a `Readonly<Record<string, unknown>>` **pass-through property** but state
+   its **shape/schema is NOT frozen** (`connector.d.ts:44` "site-defined shape (OQ3)", `push-api.md:97` "OQ3 emergent
+   schema" stay LIVE). The **multi-chamber sync-COHERENCE** OQ9 sub-axis (`capability.d.ts:87-88` "the remaining OQ9
+   axis"; the header residual at `:17`/`:20` re-pointed to coherence-only) stays a named residual: the single-chamber
+   `sync` surface is frozen (proven, 012-01), multi-chamber coherence is not. The ADR names both as explicit not-1.0
+   aspects, mirroring the config carve-out. (These two — reworded to "not frozen", not "deferred/provisional" — are the
+   only disclaimers the AC2 grep gate permits to survive.)
 3. **`composite.accepts` resolved per the ruling.** If physical removal: the installed `window.airlock` handle no longer
    exposes `accepts`, the alloy exposure reporter routes through an internal predicate, and a test asserts `accepts` is
    NOT on the installed handle (while the alloy-only-exposure drop+diagnose behavior from 034-03 stays green). If
