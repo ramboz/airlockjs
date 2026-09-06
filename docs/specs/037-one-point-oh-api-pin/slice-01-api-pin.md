@@ -1,10 +1,9 @@
 ---
-status: REVIEWED
+status: DONE
 dependencies: []
-last_verified:
+last_verified: 2026-09-05
 arch_review: true  # freezing the public surface IS an architectural commitment (what adopters may rely on at 1.0).
 frame_review: true  # the frozen/experimental boundary + the three open rulings (accepts/reconcile/read-namespacing) are load-bearing 1.0 commitments.
-claimed_by: claude/mvp6-e4550f
 ---
 
 <!-- jig self-defining vocabulary (soft, forward-only); jig grounding (064-02/ADR-0020): probe/cite or mark assumptions. -->
