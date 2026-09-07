@@ -162,3 +162,5 @@ _Last shaped: 2026-08-31 (set by the maintainer as "the core of any AEM stack �
 low-hanging fruit"; the inspector/value-proof + airlock-as-RUM-layer moved to MVP5, adoption/1.0 to MVP6, the
 broader breadth to MVP7+/R-007). Appetite: **2 weeks (fixed, small-batch)** — alloy-probe-first,
 scope-flexes._
+
+_Amended 2026-09-07 ([ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md)): the "Adoption / distribution / 1.0 → MVP6" defer row now reads — MVP6 shipped as **"Stable Core & Validation Harness" (v0.6.0)**, and 1.0 (adoptable with confirmed parity) lands with **MVP9**, not the API pin._

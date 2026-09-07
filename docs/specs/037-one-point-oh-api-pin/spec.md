@@ -85,3 +85,7 @@ physical-removal materially larger than a pin, it splits into its own slice; the
 ## Slices
 
 - [037-01 — the capstone 1.0-API-pin ADR + contract-stability enforcement (frozen surface guarded; config carved out; accepts/reconcile ruled)](slice-01-api-pin.md)
+
+## Amendments
+
+> **Amendment (2026-09-07, [ADR-0018](../../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md) — reframe re-read; this spec's work is unchanged).** What 037 pinned is the **stable core**, not "1.0" in the release sense. Since the owner's 2026-09-05 reframe, "1.0" means *adoptable with confirmed parity* (ADR-0018), cut when MVP9's release-check passes; MVP6 ships as **v0.6.0**. The "v1.0.0 version-bump/tag/dist cut as a separate later step" that this spec deferred is **retired** — superseded by the v0.6.0 cut. The frozen surface, the guards, and the three rulings are untouched; only the "1.0" label decouples from the pin (title and prose read historically).

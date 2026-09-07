@@ -1,7 +1,7 @@
 ---
 status: Accepted
 dependencies: []
-last_verified: 2026-09-05
+last_verified: 2026-09-07
 frame_review: true
 ---
 
@@ -135,3 +135,14 @@ decisions-as-data 012-03, and the "seal is unbuilt / MVP3 enforcement" family �
 - OQ3 (a pinned event-payload schema) and multi-chamber sync-coherence remain open; each, when resolved, extends this
   contract via a follow-on ADR.
 - The v1.0.0 release cut (version bump + tag + dist publish) — deliberately deferred by owner decision; a separate step.
+  **(Amended 2026-09-07, ADR-0018 — see Amendments.)**
+
+## Amendments
+
+> **Amendment (2026-09-07, [ADR-0018](adr-0018-reframe-onto-adoptable-one-point-oh.md) — a reframe re-read; the decision text above is unchanged).** The owner moved the definition of "1.0" on 2026-09-05 from "the public API is frozen" (this ADR) to "adoptable with confirmed parity" (ADR-0018). Three consequences for reading this record:
+>
+> 1. **Label re-read (a re-read, not a change).** Everywhere this ADR says "FROZEN at 1.0" / "the 1.0 … contract", read **the stable core**: the frozen surface below is the stable-core contract airlock ships *on*, effective since spec 037-01 landed. What "1.0" *means* is now ADR-0018's adoption bar, not this API pin. The frozen surface, the experimental carve-out, and the three rulings are untouched.
+> 2. **Consequence amendment (a partial change, decided in ADR-0018 and pointed to here — not a re-read).** This ADR's break rule ("a change requires a superseding ADR + a **major-version break**", and adopters may "trust it across minor versions") is **partially amended for the pre-1.0 (0.x) window**: because v1.0.0 does not yet exist, a stable-core break in 0.x is expressed as a **minor bump carrying the superseding ADR + a CHANGELOG break notice**, not a major bump. The literal major-break rule resumes at v1.0.0. The invariant that survives unchanged: a stable-core break is **never silent** — always a named superseding ADR.
+> 3. **Open-questions item 3 retired.** "The v1.0.0 release cut … deferred" is retired: v1.0.0 is cut when ADR-0018's MVP9 release-check passes, never by an API pin alone. MVP6 ships as **v0.6.0** ("Stable Core & Validation Harness").
+>
+> (Mechanism precedent: ADR-0012's 2026-08-31 "Correction" block — a dated post-acceptance annotation, decision text untouched. That precedent was factual-only; ADR-0018 establishes that a *consequence* amendment lives in the amending ADR and is referenced from the amended one, never rewritten in place.)

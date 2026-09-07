@@ -150,3 +150,5 @@ evidence, not measured signals._
 _Last shaped: 2026-08-31 (became MVP5 when MVP4 was set to "the core AEM stack"; folds in the
 airlock-as-RUM-layer subsume that MVP4's host-`helix-rum` choice deferred; after MVP3 shipped `v0.3.0`;
 appetite **2 weeks (fixed, small-batch)** — inspector-first, scope-flexes)._
+
+_Amended 2026-09-07 ([ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md)): the "Adoption / distribution / 1.0 → MVP6" defer row now reads — MVP6 shipped as **"Stable Core & Validation Harness" (v0.6.0)**, and 1.0 (adoptable with confirmed parity) lands with **MVP9**, not the API pin._

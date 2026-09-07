@@ -1,7 +1,7 @@
 ---
 status: Accepted
 dependencies: []
-last_verified: 2026-09-04
+last_verified: 2026-09-07
 frame_review: true
 ---
 
@@ -149,4 +149,8 @@ This is the **primary channel for the EDS audience**, not a claim that npm is wr
 - Whether the 1.0 release **also** publishes `airlockjs` to npm for the non-EDS audience, or holds npm until the
   first bundler adopter is real.
 - How the **1.0 API stability pin** (MVP6) references a subtree'd version — the versioning-marker convention subtree
-  lacks.
+  lacks. **(Amended 2026-09-07, ADR-0018 — see Amendments.)**
+
+## Amendments
+
+> **Amendment (2026-09-07, [ADR-0018](adr-0018-reframe-onto-adoptable-one-point-oh.md) — reframe re-read; decision unchanged).** The subtree decision stands. Two label reads: (1) "the 1.0 API stability pin" this ADR's open questions refer to is the **stable core** (spec 037-01 / ADR-0017), and the versioning marker it lacked was settled as the **`dist-vX.Y.Z` tag family** (spec 031); (2) "the 1.0 release" — for the still-open npm-at-1.0 question — now means **MVP9's cut** (ADR-0018's adoption bar), not the API pin. The npm-second-channel question stays open against that.
