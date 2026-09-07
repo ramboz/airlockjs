@@ -6,10 +6,14 @@ egress happen behind the airlock, in isolated worker "chambers". See
 [docs/product-vision.md](docs/product-vision.md) for the vision and
 [docs/architecture.md](docs/architecture.md) for the module boundaries.
 
-> Pre-1.0 — surfaces (including the distribution layout below) may change until the 1.0
-> API-stability pin. Distribution is **git-subtree of ready-to-serve built artifacts**
-> ([ADR-0015](docs/decisions/adr-0015-distribution-git-subtree.md)); npm is a deferred
-> second channel for the future bundler audience.
+> Pre-1.0. The **stable core** — the connector, capability, `push()`, seam-driver, and adopter-boot surfaces — is
+> **frozen** ([ADR-0017](docs/decisions/adr-0017-airlock-1-0-api-contract.md)); the instrumentation-config layer
+> below is still experimental and may change. **1.0 means *adoptable with confirmed parity***
+> ([ADR-0018](docs/decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md)) — cut when a real intuit-class site's
+> vendor tags are rewired onto airlock with vendor-boundary parity (see [the release slate](docs/releases/README.md)),
+> not by the API pin alone. Distribution is **git-subtree of ready-to-serve built artifacts**
+> ([ADR-0015](docs/decisions/adr-0015-distribution-git-subtree.md)); npm is a deferred second channel for the future
+> bundler audience.
 
 ## Install into an EDS site (git subtree, no build step)
 
@@ -140,9 +144,9 @@ the offending connector** — never a silent no-op.
 (validated by `npm run validate`). `boot(config)`'s runtime check is a lightweight hand-rolled
 **subset** of it, so **no validator dependency ships** in the bundle.
 
-> **Pre-1.0 — NOT frozen.** This config shape is deliberately iterable: the MVP6 real-site
-> validation exercises it and the later 1.0 API pin freezes what settles. It is not yet one of
-> airlock's frozen contract surfaces.
+> **Experimental — NOT frozen.** This config shape is deliberately iterable: the real-site
+> validation exercises it and a later config-surface freeze (a follow-on ADR to ADR-0017) pins what settles. It is
+> not yet one of airlock's frozen contract surfaces.
 >
 > **Adobe/alloy (spec 033-02) — analytics covered; personalization is the follow-on.** A
 > `{ "type": "alloy", "bundleUrl": … }` entry boots Adobe/alloy through airlock's classic chamber

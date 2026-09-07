@@ -62,18 +62,20 @@ Feeds `/jig:contracts`. Five surfaces, in priority order:
 4. **The capability API** — what the orchestrator grants across the airlock (mediated DOM injection, mediated egress) and how scopes are declared.
 5. **The seam driver interfaces** — decision-source and egress driver contracts.
 
-> **The five surfaces above (plus the adopter boot layer) are now FROZEN at 1.0** —
-> [ADR-0017](decisions/adr-0017-airlock-1-0-api-contract.md) (spec 037-01) is the recorded, enforced 1.0 API
+> **The five surfaces above (plus the adopter boot layer) are FROZEN — the stable core** —
+> [ADR-0017](decisions/adr-0017-airlock-1-0-api-contract.md) (spec 037-01) is the recorded, enforced stable-core
 > contract: contract-stability guards (`test/contract-stability.test.js`) pin the frozen surfaces, so a future
 > regression fails a test rather than surfacing as a broken integration. Two aspects stay explicit carve-outs — the
-> event-payload SCHEMA (OQ3) and multi-chamber sync-coherence (OQ9's remaining axis) — see the ADR.
+> event-payload SCHEMA (OQ3) and multi-chamber sync-coherence (OQ9's remaining axis) — see the ADR. **What "1.0"
+> *means* is not this pin** — since the 2026-09-05 reframe ([ADR-0018](decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md))
+> 1.0 is *adoptable with confirmed parity*, cut at MVP9; this frozen surface is the stable core airlock ships *on*.
 >
-> **Plus one PRE-1.0 surface, deliberately NOT among the frozen five (spec 032):** the **instrumentation config**
+> **Plus one experimental surface, deliberately NOT among the frozen five (spec 032):** the **instrumentation config**
 > schema (`contracts/instrumentation-config.schema.json`) — the project JSON config `boot(config)` consumes. It is
-> validated (ajv) + documented in [contracts/README](../contracts/README.md)'s "Pre-1.0 contracts" section, but is
-> **iterable/not-frozen** — ADR-0017's 1.0 API pin deliberately keeps it experimental (its break-attribution
-> semantics differ from the five above); a later minor freezes what survives. Listed here only so a
-> `/jig:contracts` scan sees the authoring boundary.
+> validated (ajv) + documented in [contracts/README](../contracts/README.md)'s "Not-yet-frozen contracts" section, but is
+> **iterable/not-frozen** — ADR-0017 deliberately keeps it experimental (its break-attribution
+> semantics differ from the five above); a later config-surface freeze (a follow-on ADR extending ADR-0017) pins what
+> survives. Listed here only so a `/jig:contracts` scan sees the authoring boundary.
 
 > **Measurement surface (not a caller-facing API).** The before/after CWV scoreboard — the "punchline" success criterion in product-vision § Use cases — doubles as the servo oracle. Its measurement contract (INP threshold, Lighthouse score, the `ga4_mp_conformance` / `cwv_budget` / `isolation_invariant` oracle components) is not a public interface but must be pinned before the spike loop runs; tracked as OQ6. **Resolved by spec 007 / [ADR-0005](decisions/adr-0005-oracle-design.md):** the three are routed by oracle strength — `ga4_mp_conformance` is the hermetic servo-unattended gate (`oracle.sh`, AND-gated at `THRESHOLD=1.0`), `isolation_invariant` is a real-Worker browser-CI rig, and `cwv_budget` is a jig-supervised advisory invocation (not in the gating composite; INP pinned as a cross-invocation delta, not an absolute).
 

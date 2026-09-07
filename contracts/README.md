@@ -7,21 +7,23 @@ tooling/agent failure, not spec ambiguity.** The five surfaces are
 architecture.md § Contract surfaces, in priority order.
 
 Initially pinned to what MVP1 evidence grounded; the five surfaces below (plus
-the adopter boot layer) are now **frozen at 1.0**
-([ADR-0017](../docs/decisions/adr-0017-airlock-1-0-api-contract.md)). Two
-genuinely open aspects remain explicit carve-outs — the event-payload SCHEMA
-(OQ3) and multi-chamber sync-coherence (OQ9's remaining axis) — see
-"What remains open past 1.0" below.
+the adopter boot layer) are the **frozen stable core**
+([ADR-0017](../docs/decisions/adr-0017-airlock-1-0-api-contract.md); since the
+2026-09-05 reframe, [ADR-0018](../docs/decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md),
+"1.0" denotes the adoption bar, and this frozen surface is called the stable
+core). Two genuinely open aspects remain explicit carve-outs — the event-payload
+SCHEMA (OQ3) and multi-chamber sync-coherence (OQ9's remaining axis) — see
+"What remains open" below.
 
 ## The five surfaces
 
 | # | Surface | Artifact | Validation | Status |
 |---|---|---|---|---|
-| 1 | **GA4 Measurement Protocol** | [ga4-mp-request.schema.json](ga4-mp-request.schema.json) + [fixtures/](fixtures/) + [ga4-mp.md](ga4-mp.md) | `npm run validate` (ajv) + live `/debug/mp/collect` | **Frozen at 1.0** (external, versioned; ADR-0017) |
-| 2 | **`push()` datalayer API** | [push-event.schema.json](push-event.schema.json) + [push-api.md](push-api.md) | `npm run validate` (ajv) | **Frozen at 1.0** — envelope + `push()`/`pushCritical()`→void; the event/param SCHEMA stays emergent, NOT frozen (OQ3) |
-| 3 | **Connector interface** | [connector.d.ts](connector.d.ts) | `npm run typecheck` (tsc) | **Frozen at 1.0** — `AirlockEvent`/`EgressRequest`/`ConnectorManifest`/`Connector` shapes; NOT frozen: `payload`'s schema (OQ3) and multi-chamber sync-coherence (OQ9's remaining axis, capability.d.ts) |
-| 4 | **Capability API** | [capability.d.ts](capability.d.ts) | `npm run typecheck` (tsc) | **Frozen at 1.0** — cookie get/set (async + single-chamber sync), CWV-safe DOM, projection snapshot, the round-trip `egress.dispatch` capability (ADR-0010), decisions-as-data (finalized 012-03); NOT frozen: multi-chamber sync-coherence and the host-internal `cookies.reconcile` sink |
-| 5 | **Seam drivers** | [seams.d.ts](seams.d.ts) | `npm run typecheck` (tsc) | **Frozen at 1.0** — both driver interfaces; honestly recorded **proven-for-one** (no second implementation of either driver type has been written) |
+| 1 | **GA4 Measurement Protocol** | [ga4-mp-request.schema.json](ga4-mp-request.schema.json) + [fixtures/](fixtures/) + [ga4-mp.md](ga4-mp.md) | `npm run validate` (ajv) + live `/debug/mp/collect` | **Frozen — stable core** (external, versioned; ADR-0017) |
+| 2 | **`push()` datalayer API** | [push-event.schema.json](push-event.schema.json) + [push-api.md](push-api.md) | `npm run validate` (ajv) | **Frozen — stable core** — envelope + `push()`/`pushCritical()`→void; the event/param SCHEMA stays emergent, NOT frozen (OQ3) |
+| 3 | **Connector interface** | [connector.d.ts](connector.d.ts) | `npm run typecheck` (tsc) | **Frozen — stable core** — `AirlockEvent`/`EgressRequest`/`ConnectorManifest`/`Connector` shapes; NOT frozen: `payload`'s schema (OQ3) and multi-chamber sync-coherence (OQ9's remaining axis, capability.d.ts) |
+| 4 | **Capability API** | [capability.d.ts](capability.d.ts) | `npm run typecheck` (tsc) | **Frozen — stable core** — cookie get/set (async + single-chamber sync), CWV-safe DOM, projection snapshot, the round-trip `egress.dispatch` capability (ADR-0010), decisions-as-data (finalized 012-03); NOT frozen: multi-chamber sync-coherence and the host-internal `cookies.reconcile` sink |
+| 5 | **Seam drivers** | [seams.d.ts](seams.d.ts) | `npm run typecheck` (tsc) | **Frozen — stable core** — both driver interfaces; honestly recorded **proven-for-one** (no second implementation of either driver type has been written) |
 
 Artifact choice follows the `/jig:contracts` recommendation table: **JSON Schema**
 for data shapes (GA4 MP request, push envelope), validated with **ajv**; a
@@ -29,18 +31,19 @@ for data shapes (GA4 MP request, push envelope), validated with **ajv**; a
 type-checked with **tsc**. These are the pinned reference; the runtime implements
 against them.
 
-## Pre-1.0 contracts (documented + validated, but NOT frozen)
+## Not-yet-frozen contracts (documented + validated, experimental)
 
 Distinct from the five surfaces above (external, versioned, frozen), this surface is
-pinned **PRE-1.0 — explicitly NOT frozen** (spec 032-02), ratified by
-[ADR-0017](../docs/decisions/adr-0017-airlock-1-0-api-contract.md)'s 1.0 API pin, which
+pinned **experimental — explicitly NOT frozen** (spec 032-02), ratified by
+[ADR-0017](../docs/decisions/adr-0017-airlock-1-0-api-contract.md), which
 deliberately keeps this surface experimental (it is recent — 033/034 — and still
-settling): a later minor freezes what survives. It is documented + ajv-validated here so
-drift is caught, but it is **not** one of architecture.md's five frozen contract surfaces.
+settling): a later config-surface freeze (a follow-on ADR extending ADR-0017) pins what
+survives. It is documented + ajv-validated here so drift is caught, but it is **not** one
+of architecture.md's five frozen contract surfaces.
 
 | # | Surface | Artifact | Validation | Status |
 |---|---|---|---|---|
-| 6 | **Instrumentation config** (`boot(config)`) | [instrumentation-config.schema.json](instrumentation-config.schema.json) + [fixtures/](fixtures/) (`instrumentation-config-*.golden.json` / `*.negative.json`) | `npm run validate` (ajv) | **PRE-1.0 / NOT frozen** — the shape iterates until the 1.0 pin |
+| 6 | **Instrumentation config** (`boot(config)`) | [instrumentation-config.schema.json](instrumentation-config.schema.json) + [fixtures/](fixtures/) (`instrumentation-config-*.golden.json` / `*.negative.json`) | `npm run validate` (ajv) | **Experimental / NOT frozen** — the shape iterates until a later config-surface freeze |
 
 The project JSON config `boot(config)` (`adapters/eds/index.js`) consumes:
 `{ connectors: [...], consent?, consentStrict?, payloadDenylist? }`, where each connector
@@ -72,14 +75,14 @@ covered for both verticals through this authoring surface. The schema's own top-
 | **OQ10** — egress dispatch/delivery model | Resolved: [ADR-0004](../docs/decisions/adr-0004-egress-dispatch-delivery.md) (the two-path dispatch/delivery model) + [ADR-0010](../docs/decisions/adr-0010-roundtrip-egress-capability.md) (the wrapped-SDK round-trip `egress.dispatch` capability). |
 | **OQ11** — event-payload read-boundary governance | Resolved: [ADR-0012](../docs/decisions/adr-0012-payload-governance.md) — a host-owned sensitive-field denylist (spec 019-01) governs `AirlockEvent.payload` before it reaches a connector routed through the standard dispatch path. |
 
-## What remains open past 1.0 (the only two carve-outs; [ADR-0017](../docs/decisions/adr-0017-airlock-1-0-api-contract.md))
+## What remains open (the only two carve-outs; [ADR-0017](../docs/decisions/adr-0017-airlock-1-0-api-contract.md))
 
 | Open question | What it blocks in these contracts | Resolves at |
 |---|---|---|
 | **OQ3** — event-payload schema | `AirlockEvent.payload` is frozen as a pass-through container; its SHAPE/field-vocabulary is site-defined and not frozen | A future connector/schema spec, recorded via a follow-on ADR |
 | **OQ9's remaining axis** — multi-chamber sync-coherence | The single-chamber `cookies.sync` surface (capability.d.ts) is frozen; coherence of that cache across concurrent chambers is not | A future coherence spec, recorded via a follow-on ADR |
 
-The five surfaces (plus the adopter boot layer) are otherwise **frozen at 1.0** — see
+The five surfaces (plus the adopter boot layer) are otherwise **frozen — the stable core** — see
 ADR-0017.
 
 ## Validating
@@ -102,5 +105,7 @@ These are external-interface contracts; a breaking change is load-bearing.
 Capture the rationale in an ADR (`/jig:adr-workflow`) and update the artifact in
 the same change-set. The jig boundary-change hook nudges on edits to these files.
 For the surfaces that [ADR-0017](../docs/decisions/adr-0017-airlock-1-0-api-contract.md) froze
-at 1.0, a breaking change additionally requires a major-version break — a superseding ADR alone
-is not sufficient once a surface is frozen.
+(the stable core), a breaking change additionally requires a superseding ADR **and** a version
+break. Per ADR-0018's amendment, in the pre-1.0 (0.x) window that break is expressed as a **minor
+bump carrying the superseding ADR + a CHANGELOG break notice** (the literal major-version rule
+resumes at v1.0.0); either way a stable-core break is never silent — always a named superseding ADR.
