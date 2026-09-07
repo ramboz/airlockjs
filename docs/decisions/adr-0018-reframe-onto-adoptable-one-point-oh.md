@@ -1,7 +1,7 @@
 ---
 status: Proposed
-dependencies: []
-last_verified:
+dependencies: [ADR-0017]
+last_verified: 2026-09-07
 frame_review: true
 ---
 
@@ -13,52 +13,174 @@ Proposed (2026-09-07)
 
 ## Context
 
-_TODO: describe the situation, forces, and constraints driving this decision._
+The owner moved airlock's definition of 1.0 on 2026-09-05 — from "the public API is frozen" to "a developer can rewire a real site's TBT-dominant tags onto airlock with confirmed parity" — and the corpus still encodes the old definition as settled truth. This is a **reframe** (jig spec 067 / ADR-0024 in jig): a load-bearing *product-positioning* reference changed from outside the system, so the consistency machinery would otherwise carry the dead premise forward. This keystone ADR makes the new reference authoritative, names what it supersedes, and carries the re-baselining manifest + coverage floor that a session executes.
+
+**The dead premise** — *1.0 = the API pin*. It was encoded as settled truth by: the MVP6 release plan (`docs/releases/mvp6.md`, titled "Adoption & 1.0 Readiness", whose Include row 3 treats the "1.0 API stability pin" as the adoption-readiness deliverable and defers "the v1.0.0 version-bump/tag/dist release cut" as its follow-on); [ADR-0017](adr-0017-airlock-1-0-api-contract.md)'s title and its "FROZEN at 1.0" labels (mirrored verbatim into `contracts/README.md`, `contracts/{capability,connector,seams}.d.ts`, `docs/architecture.md` § Contract surfaces, and the root `README.md`'s "Pre-1.0 … until the 1.0 API-stability pin"); spec 037's title ("The 1.0 API pin (MVP6 capstone)"); and — the other half of the premise — [R-007](../research/R-007-real-prod-stack-breadth.md)'s self-description as "**deliberately beyond current scope** — a north-star benchmark", i.e. the real production stack was explicitly *not* the bar.
+
+**The new reference (owner decision, 2026-09-05; ratified with the Segment clarification 2026-09-07).** A version 1.0 of airlock is one a developer with automation skills can **adopt on an intuit-class site** — an AEM EDS migration whose Lighthouse score collapses (100 → ~60) under a Tealium/GTM/Launch container — by **rewiring the TBT-dominant *generic* vendor tags (GA4, Meta Pixel, Google Ads, Floodlight) from the container to airlock, with beacon-level parity confirmed by a vendor-generic parity harness**, through a documented, scripted path. The evidence behind the bar: on the reference site, the three ad/marketing runtimes (Meta `fbevents.js`, Google Ads `gtag.js`, Floodlight) account for roughly two-thirds of martech TBT (the owner's attribution report, 2026-09-05: 601.5 ms → 204 ms with those three removed), and all three are beacon-shaped — exactly the wire-protocol/pixel archetype airlock already proves for GA4. Without that rewire-with-parity, the owner expects no adoption: an API freeze is necessary but is not what makes airlock adoptable.
+
+**What is *not* moving.** ADR-0017's *contract* — the five frozen surfaces plus the adopter boot layer, the experimental carve-out, its three rulings, and its break rule — stands unchanged. Only the *label* "1.0" decouples from it: the frozen surface is **the stable core**, effective since spec 037-01 landed, and 1.0 ships *on* it. That is why this is a re-read of ADR-0017, not a supersession.
 
 ## Decision Options Considered
 
-### Option A: _TODO_
-- **Pros:** _TODO_
-- **Cons:** _TODO_
+### Option A: Keep 1.0 = the API pin; cut v1.0.0 now (the deferred follow-on in mvp6.md / ADR-0017 OQ3)
+- **Pros:** honours the recorded plan; the stable core is genuinely frozen and guarded, so a 1.0 label is defensible on API grounds.
+- **Cons:** ships a "1.0" that no real site can adopt for its actual problem (the TBT-dominant tags are unsupported: no Google Ads / Floodlight connector, Meta Pixel identity/POST deferred, no parity evidence for any vendor). The owner's stated adoption bar is unmet; the label would mislead the exact audience 1.0 exists for. Rejected.
 
-### Option B: _TODO_
-- **Pros:** _TODO_
-- **Cons:** _TODO_
+### Option B: Supersede ADR-0017 with a new "1.0 contract" ADR
+- **Pros:** one clean decision record for "what 1.0 is".
+- **Cons:** ADR-0017's *content* is not wrong — the frozen surface, the carve-out, the rulings and the break rule all survive intact; superseding it would retire a correct contract and force every "FROZEN (ADR-0017)" reference in the corpus to re-point. Only the label moved. Over-built for a re-read. Rejected.
+
+### Option C: Patch the release plans only (retitle MVP6, add MVP8/9) and leave the corpus as is
+- **Pros:** cheapest; the slate reads right.
+- **Cons:** the corpus keeps saying "FROZEN at 1.0" / "the 1.0 pin" / "beyond scope" — the next session to draft against the contracts or R-007 inherits the dead premise under fresh authority (the exact failure a reframe exists to prevent). Rejected.
+
+### Option D (chosen): A keystone reframe-ADR — new reference authoritative, old premise named + dispositioned artifact-by-artifact, ADR-0017 re-read not superseded
+- **Pros:** the new bar becomes an accepted decision the corpus can cite; every artifact that encoded the old premise gets a deliberate disposition (no silent carry-forward); the correct contract survives untouched; the ladder and versioning are re-baselined in one place.
+- **Cons:** a corpus-wide edit set (mostly relabels) and a manifest that is only as good as its read — mitigated by the two-level coverage floor below, confirmed at this ADR's frame-critique gate.
 
 ## Recommended Decision
 
-_TODO: state the chosen option and the reasoning._
+Adopt **Option D**. As of **2026-09-05** the authoritative definition of airlock 1.0 is:
+
+> **1.0 = adoptable with confirmed parity.** A developer with automation skills can rewire an intuit-class site's TBT-dominant *generic* vendor tags — **GA4, Meta Pixel, Google Ads, Floodlight** — from its tag-manager container (Tealium / GTM / Launch) to airlock, with **beacon-level parity confirmed by a vendor-generic parity harness**, the TBT/CWV win **measured** by the spec-036 real-site harness, through a **documented, scripted adoption path**. [R-007](../research/R-007-real-prod-stack-breadth.md) — the classified real production stack — is **the 1.0 benchmark**, promoted from "north-star, beyond scope".
+
+### The rulings
+
+- **R1 — ADR-0017 is re-read, not superseded.** Its frozen surface is **the stable core** (effective now); its experimental carve-out, three rulings, and prerequisite stand. Every "FROZEN at 1.0 (ADR-0017)" label in the corpus reads **"FROZEN — stable core (ADR-0017)"**; every "pre-1.0 / not frozen" label reads **"not frozen (experimental)"** — the fact is unchanged, only the tie to a release date is dropped. A change to the stable core still requires a superseding ADR; because the codebase is pre-1.0, the "major-version break" ADR-0017 demands is expressed under 0.x semver as a **minor bump carrying the superseding ADR** (the ADR, not the number, is the commitment) and becomes a literal major break once 1.0.0 is cut.
+- **R2 — Customer-custom tags are validation-only, never release scope.** A customer's own tag logic — on the reference site, Intuit's **ECS / TrackStar / UX-Fabric** click-tracking chain (Tealium UID 26) and the 161-beacon golden sample it produces — is **never** a shipped connector, deliverable, or release gate. It may serve as a *local* validation input (a regression guard that a rewire left the untouched custom chain intact). Release scope names **generic vendors only**. Corollary: **Segment** (Twilio Segment, `analytics.js`, the HTTP tracking API) is a *generic* vendor and a legitimate connector target, but it is **not** on the 1.0 critical path — on the reference site the cost sits in the custom chain around it, not in Segment itself — so it moves to variable/later scope and R-007's host-vs-replace question stays open, unforced.
+- **R3 — Parity is a co-equal success criterion.** The vision's implicit success criterion ("all three use cases land at ~zero CWV cost, on a before/after scoreboard") gains a second, co-equal half: **beacon-level parity with the container airlock replaces**, confirmed by the parity harness. CWV without parity is a demo; parity without CWV is a port.
+- **R4 — Versioning.** The existing `MVPn ↔ v0.n.0` convention continues (MVP5 shipped as v0.5.0). **v1.0.0 is cut when MVP9's release-check passes — never by an API pin alone.** The deferred "v1.0.0 cut" follow-on of the pin is retired; MVP6 cuts **v0.6.0**.
+- **R5 — Real-site inputs stay local and redacted.** The parity harness is the release deliverable; each real site supplies its own vendor-beacon captures as its oracle. Committed fixtures are synthetic/redacted (the standing "no live vendor identifiers" no-go; spec-013 redaction discipline); the reference site's captures are "LOCAL ONLY".
+
+### The re-baselined ladder
+
+| Release | Title (new) | Version | Content |
+|---|---|---|---|
+| **MVP6** | **Stable Core & Validation Harness** (was "Adoption & 1.0 Readiness") | **v0.6.0** — cut now; every Include item is DONE | distribution (031 / ADR-0015) · cookie-grant hardening (035) · the stable-core contract (037 / ADR-0017) · the real-site CWV harness + subset smoke (036) |
+| **MVP7** | **Pixel Parity & the Parity Harness** (was "Connector Breadth") | v0.7.0 | the vendor-generic golden-replay **parity harness** · **Meta Pixel parity** — 026-04 un-deferred (identity/advanced-matching + POST), now groundable on redacted real captures · **GA4 parity** through the harness · breadth-as-configs + drop-in ergonomics become *variable* |
+| **MVP8** (new) | **Ad-Conversion Offloading** | v0.8.0 | risk-first **R-009 spike**: gtag AW/DC conversion-ping fidelity (Consent Mode v2, `gclid`/`_gcl_au`, linker, `wbraid`/`gbraid`) · **Google Ads** + **Floodlight** connectors · the **OneTrust consent-input driver** (R-007 §4) · Segment → variable/later |
+| **MVP9** (new) | **Real-Site Rewire & Adoption Path** | v0.9.0 → **v1.0.0** | rewire the four generic vendors on an intuit-class site · parity confirmed by the harness · TBT measured by `rig/lh-live.mjs` · attribution checked in vendor consoles · a scripted rewire path + adopter docs. Passing its release-check **is** the 1.0 cut |
+| post-1.0 | Container translator (Tealium / GTM / Launch container → airlock config) | 1.1 | the "adoption is a breeze" direction; bounded by connector coverage |
+
+## Re-baselining manifest
+
+Dispositions per the jig reframe vocabulary (`retire-draft` first). "No edit" rows are dispositions nonetheless — the row *is* the reaffirmation.
+
+### retire-draft (do first)
+
+| Artifact | Disposition | Detail |
+|---|---|---|
+| The deferred **"v1.0.0 release cut" follow-on** — `docs/releases/mvp6.md` Include row 3 ("the v1.0.0 version-bump/tag/dist release cut is a separate, deferred step") + ADR-0017 § Open questions item 3 | `retire-draft` → **discard** | Dead-premise future work (a 1.0 cut premised on the pin). Replaced by the **v0.6.0** cut (Emergent E1). The mvp6.md wording is rewritten (row below); the ADR-0017 item is covered by its amendment pointer. |
+
+### rewrite (live, non-record prose)
+
+| Artifact | Disposition | Detail |
+|---|---|---|
+| `docs/releases/mvp6.md` | `rewrite` | Retitle **"MVP6 — Stable Core & Validation Harness"**; Include row 3 → "the **stable-core contract** (frozen surface + guards)"; release-check "a documented 1.0 stability commitment" → "a documented stable-core contract"; the Split row (full-stack hosting → R-007) → points at R-007 as **the 1.0 benchmark** owned by MVP7–9; status → `shipped` as **v0.6.0** when E1 lands (the ship block mirrors mvp5.md's). Historical rationale lines ("the API is pre-1.0 — adoption needs a stability contract") stay as the problem statement they were. |
+| `docs/releases/mvp7.md` | `rewrite` | Re-scope to **"MVP7 — Pixel Parity & the Parity Harness"** (v0.7.0): fixed core = the vendor-generic golden-replay parity harness + Meta Pixel parity (026-04 un-deferred) + GA4 parity via the harness; variable = breadth-as-configs, drop-in ergonomics; no-gos = customer-custom tags (R2), Google Ads/Floodlight (MVP8), OneTrust driver (MVP8), live identifiers (R5). Keep the reconciliation history paragraph as history. |
+| `docs/releases/README.md` (the slate) | `rewrite` | Re-row: MVP6 → Shipped (v0.6.0, after E1); MVP7 retitled; **MVP8 + MVP9 added** as `candidate`; a one-line "1.0 = MVP9's release-check — ADR-0018" note. |
+| `docs/product-vision.md` § Use cases (implicit success criterion) + § Scope | `rewrite` | R3: parity co-equal with the CWV scoreboard, confirmed by the parity harness (cite this ADR). § Scope: name the **container translator** as the post-1.0 adoption direction (explicitly *not* a first-release deliverable) — it is otherwise invisible to the vision. |
+| `docs/research/R-007-real-prod-stack-breadth.md` | `rewrite` | Header: "deliberately beyond current scope — a north-star" → "**the 1.0 benchmark** (ADR-0018)". Add a short **"Customer-custom vs generic"** section (R2: ECS/TrackStar/UX-Fabric = customer-custom → validation-only; Segment-the-vendor = generic, variable/later; the §1 TBT-dominant four = the 1.0 rewire set). `Promoted to:` → ADR-0018 + the MVP7/8/9 plans (partial promotion; status stays OPEN — the Segment and RUM forks remain open questions). |
+| `docs/research/README.md` (R-007 row) | `rewrite` | Related/promoted column: add ADR-0018, mvp7–9. |
+| `docs/architecture.md` § Contract surfaces (the two blockquotes after surface 5) | `rewrite` | Relabel per R1: "now FROZEN at 1.0" → "FROZEN — the stable core (ADR-0017)"; "PRE-1.0 surface … ADR-0017's 1.0 API pin keeps it experimental … a later minor freezes what survives" → "not frozen (experimental) … a later config-surface freeze (a follow-on ADR extending ADR-0017)". Add one sentence pointing at this ADR for what 1.0 means. |
+| `contracts/README.md` | `rewrite` | Relabel per R1: "frozen at 1.0" → "frozen — stable core (ADR-0017)"; § "Pre-1.0 contracts" → "Not-yet-frozen contracts (experimental)"; row 6 "the shape iterates until the 1.0 pin" → "until a later config-surface freeze"; § "What remains open past 1.0" → "What remains open"; § Changing a contract: the break rule reworded per R1's 0.x reading. Must keep the literal "not frozen" (asserted by `test/instrumentation-config-contract.test.js:236`, grounded). |
+| `contracts/push-api.md:105` | `rewrite` | "not part of the 1.0 surface" → "not part of the frozen stable-core surface". |
+| `README.md` (:9–12 banner; :143–145 config note) | `rewrite` | Banner: the stable core is frozen (ADR-0017); 1.0 is defined by this ADR (adoptable with parity); the config surface is the experimental part. Config note: "the later 1.0 API pin freezes what settles" → "a later config-surface freeze". |
+| `docs/refinement-todo.md` — the spec-032 follow-ups header (~:438–439), the live "or the 1.0 pin" trigger (~:451), the 033 trigger "or the MVP6 live-site validation" (~:578) | `rewrite` | Retarget the dead triggers: "the later 1.0 API pin (MVP6) is where … get frozen" → "a later config-surface freeze (follow-on ADR to ADR-0017)"; "or the 1.0 pin" → "or that config-surface freeze"; "the MVP6 live-site validation" → "the MVP9 real-site rewire". Struck-through (already-ruled) text is left verbatim. |
+| `docs/real-site-validation.md` (header) | `rewrite` | One line: this harness is the **CWV half** of the adoption proof; the **parity half** is MVP7's parity harness (ADR-0018). The "MVP6 adoption proof" phrasing stays (historically accurate). |
+| `docs/memory/glossary.md` | `rewrite` (additive) | Add: **stable core**, **parity (beacon-level)**, **parity harness**, **rewire**, **tag-manager container**, **customer-custom tag**. |
+| `CLAUDE.md` Hot Cache | `rewrite` (additive, one line) | Under "Project codenames / active work": the 1.0 bar + ladder pointer (this ADR; the slate). |
+| `docs/decisions/README.md` (Index) | `rewrite` (derived) | Regenerate via `adr.py index` after acceptance — never hand-edited. |
+
+### amend (closed records — a dated pointer, content untouched)
+
+| Artifact | Disposition | Detail |
+|---|---|---|
+| [ADR-0017](adr-0017-airlock-1-0-api-contract.md) (Accepted) | `amend` + `reaffirm` | Append a `## Amendments` pointer (2026-09-07, ADR-0018 — a re-read, not a decision change): "1.0" in this record reads "the stable core"; 1.0 itself is defined by ADR-0018; § Open questions item 3 (the v1.0.0 cut) is retired. Refresh `last_verified`. Precedent for a post-acceptance factual pointer on an Accepted ADR: ADR-0012's 2026-08-31 "Correction" block. The decision text is not edited. |
+| Spec 037 `spec.md` + `slice-01-api-pin.md` (DONE) | `amend` | Append a `## Amendments` pointer: what this spec pinned is the **stable core**; 1.0 is ADR-0018's bar; the "v1.0.0 cut as a separate later step" is retired in favour of v0.6.0. Titles untouched (records). |
+| `docs/releases/mvp4.md` + `mvp5.md` (shipped) — Defer rows "Adoption / distribution / 1.0 → MVP6" | `amend` | One-line dated pointer at the end of each: "1.0 now lands with MVP9 (ADR-0018); MVP6 shipped as 'Stable Core & Validation Harness' v0.6.0". |
+
+### reaffirm (premise survives)
+
+| Artifact | Disposition | Detail |
+|---|---|---|
+| [ADR-0015](adr-0015-distribution-git-subtree.md) (Accepted) | `reaffirm` | The subtree decision stands; its "1.0" mentions are the release label whose *date* moved (its open questions on npm-at-1.0 and the version marker remain open, now against MVP9). Refresh `last_verified`. |
+| Specs **031, 032, 033, 034, 035, 036** (DONE) | `reaffirm` (no edit) | Their "pre-1.0 / not frozen" and "MVP6's named GA4 + Adobe/alloy subset" statements remain true as facts and as history; none claims 1.0 = the pin. Records keep their DONE-date `last_verified`. |
+| Spec **026** (the pixel archetype; 026-04 deferred, real-driver-gated) | `reaffirm` (no edit) | The archetype and the 026-04 deferral design survive; the new reference makes the deferral trigger **reachable** (redacted real captures) — the un-deferral is MVP7 execution (Emergent E4), recorded in `spec.md` when that slice is drafted. |
+| Release plans **mvp1, mvp2, mvp3** (shipped) | `reaffirm` (no edit) | "API is pre-1.0 and not yet a stability commitment" was true when shipped; historical. |
+| `docs/specs/README.md` rows 032 / 037 | `reaffirm` (no edit) | Board text names the specs by title; regenerated from records by `workflow.py`, not hand-edited. |
+| `docs/inbox.md:25` (the 037 follow-ons entry) | `reaffirm` (no edit) | Names spec 037 by title; its residuals are unaffected. (Reframe follow-ons are *added* — Emergent.) |
+| `test/*.test.js`, `adapters/eds/index.js` comments referencing "037-01 / the 1.0 API pin (ADR-0017)" | `reaffirm` (no edit) | Spec-name references, not claims that 1.0 = the pin. |
+| `docs/specs/*/reviews/*`, `docs/decisions/reviews/*`, `docs/reviews/*` | `reaffirm` (class; no edit) | Immutable review evidence, read as of their dates. |
+| False positives: ADR-0005 / `test/oracle-ga4.test.js` (`THRESHOLD=1.0`), ADR-0014 / R-008 / refinement-todo:357 (`worker-dom` "pre-1.0"), `package-lock.json` versions | n/a | Not the premise; listed so the token hits are accounted for. |
+
+### retrofit (shipped code)
+
+| Artifact | Disposition | Detail |
+|---|---|---|
+| `contracts/capability.d.ts`, `contracts/connector.d.ts`, `contracts/seams.d.ts` (header + inline "FROZEN at 1.0" / "NOT FROZEN at 1.0" / "present-tense as of 1.0" / "unvalidated at 1.0" comments); `contracts/instrumentation-config.schema.json` `title`/`description` ("PRE-1.0 … the later 1.0 API pin freezes what settles"); `contracts/validate.mjs:15` comment | `retrofit` — **executed directly under this ADR; no retrofit spec drafted** | **Reason (recorded per the reframe contract):** comment/label-only, zero behaviour change, and **disjoint from the contract-stability pins** — grounded 2026-09-07: `test/contract-stability.test.js` pins signature substrings via `toContain` (e.g. `"get(name: string): Promise<string | null>;"`), never comment text; `test/instrumentation-config-contract.test.js:236` asserts `/pre-1\.0|not frozen/i` on the README, satisfied by "not frozen". Verified by `npm test` + `contracts/` `npm run validate` / `typecheck` in the execution commit. A spec-with-gates for a relabel would be ceremony without a decision. |
+
+## Emergent work
+
+Net-new forward work the reference reveals (not dispositions — nothing prior to dispose of):
+
+- **E1 — Cut v0.6.0** (closes MVP6 honestly): `package.json` 0.5.0 → 0.6.0 (`npm version minor` → `postversion` runs `release:dist` → `dist-v0.6.0`), CHANGELOG entry, mvp6.md → `shipped`. Outward-facing (pushes tags + the dist branch) — owner-confirmed before running.
+- **E2 — `docs/releases/mvp8.md`** — "Ad-Conversion Offloading" release plan (candidate).
+- **E3 — `docs/releases/mvp9.md`** — "Real-Site Rewire & Adoption Path" release plan (candidate); its release-check is the 1.0 check, phrased vendor-generically (R2).
+- **E4 — Un-defer 026-04** under MVP7 once redacted real captures ground the Meta Pixel identity/POST wire shape (R5).
+- **E5 — The parity-harness spec** (MVP7 fixed core): vendor-generic golden-replay — capture (container) vs replay (airlock) beacon-level diff, per vendor, redacted fixtures.
+- **E6 — R-009 research note**: gtag AW/DC conversion-ping fidelity (the MVP8 risk-first spike question + sources to probe).
+- **E7 — Google Ads + Floodlight connector specs** (MVP8, after R-009) and **the OneTrust consent-input driver spec** (MVP8; R-007 §4).
+- **E8 — The scripted rewire adoption path + adopter docs** (MVP9).
+- **E9 — Container translator** (post-1.0 / 1.1) — parked in `docs/inbox.md` with the decomposition (config translation · vendor-runtime replacement via protocol connectors · worker-wrapping the container).
+
+## Coverage floor
+
+**Level 1 — whole corpus, class-level** (the authority-bearing corpus; the code tree is retrofit territory, not an L1 class):
+
+| Class | Status |
+|---|---|
+| `docs/decisions/` — 18 ADRs (0001–0018), `lightweight-decisions.md`, `reviews/` | **scanned** (L2 below) |
+| `docs/specs/` — 38 spec directories (specs + slices + reviews), `README.md` board | **scanned** (L2 below) |
+| Live prose under `docs/` — `product-vision.md`, `architecture.md`, `workflow.md`, `conventions.md`, `governance.md`, `scoreboard.md`, `adoption-readiness.md`, `real-site-validation.md`, `refinement-todo.md`, `inbox.md`, `memory/glossary.md`, `releases/` (README + mvp1–7), `research/` (README + R-001–R-008), `bugs/README.md`, `reviews/` | **scanned** (L2 below) |
+| `contracts/` — the pinned contract artifacts + `contracts/README.md` + `push-api.md` (a project-specific authority-bearing class, named here per the reframe skill's maintenance note) | **scanned** (L2 below) |
+| `skills/*/SKILL.md` | **excused** — class absent: no `skills/` and no `.claude/skills/` directory in this project (`ls`, 2026-09-07) |
+| Root primer `CLAUDE.md` | **scanned** — no dead-premise statement; gains a Hot-Cache pointer |
+| `README.md` (+ `CHANGELOG.md`, `brief.md`, `START_PROMPT.md`) | **scanned** — README carries the premise (two blocks); the other three have no hit |
+
+**Level 2 — artifact-level, within the touched classes.** Method: a signature-token enumeration with `rg --pcre2` over each class — `(?<![0-9.])1\.0(?![0-9])` (the literal "1.0" excluding sub-versions), `MVP ?6|MVP ?7`, `R-007`, `north.star`, `beyond (the current )?scope|deliberately beyond`, `capstone`, and a supplementary pass for premise phrasings without the literal — `stability (pin|commitment|contract)|adoption[- ]ready|adoption proof|api[- ]stability|freeze what settles|until the .*pin`. **Every hit was read in context** and classified as (a) a dead-premise carrier → a manifest row; (b) a still-true statement ("not frozen" / "pre-1.0" as a factual state, spec-name references, historical shipped-plan text) → `reaffirm`; or (c) a false positive (`THRESHOLD=1.0`, `worker-dom` pre-1.0, lockfile versions) → listed. Independently of hits, the artifacts the owner decision names were read in full: `mvp6.md`, `mvp7.md`, `releases/README.md`, ADR-0017, `product-vision.md`, R-007 (header, §1–§7, open questions, conclusion), `contracts/README.md`, `architecture.md` § Contract surfaces, the 037 spec/slice heads, and spec 026's 026-04 entry.
+
+**Residual uncertainty (owned, not hidden).** The floor *reduces and surfaces* the enumeration risk; it does not eliminate it: (i) an artifact that encodes the premise with none of the tokens above (e.g. a bare "before 1.0 ships" phrased without the literal) survives the read; (ii) a class judged untouched by the search gets only L1 (`workflow.md`, `conventions.md`, `governance.md`, `adoption-readiness.md`, `bugs/`: zero hits under both passes — an intra-class miss there would survive); (iii) the human gate can rubber-stamp the one `excused`. Backstop: **post-reframe discovery** — a later session finding a surviving dead-premise artifact inside a class marked `scanned` is the T1 trigger that un-parks systematic detection (jig ADR-0024 §7).
 
 ## Consequences
 
 **Becomes easier:**
-- _TODO_
+- The corpus says one thing about 1.0: the slate, the vision, R-007, the contracts and the primer all point at the same bar, so the next spec drafts against the parity/rewire goal, not the pin.
+- MVP6 closes honestly (v0.6.0), and the ladder to 1.0 is explicit and evidence-shaped: harness (MVP7) → the offloading connectors (MVP8) → the rewire proof (MVP9).
+- The customer-custom boundary (R2) is written down before any real-site work starts, so the reference site's golden sample cannot drift into a shipped gate.
 
 **Becomes harder:**
-- _TODO_
+- 1.0 is further away and gated on real-world evidence (captures, consoles, a live rewire) that airlock does not control — a slower, more honest 1.0.
+- Three new release plans and one research note to shape; the relabel set touches every contract file (comment-only, guarded by the existing pins).
+- The 0.x reading of ADR-0017's break rule (R1) must be applied consistently until 1.0.0 exists.
 
 ## Assumptions
 
 <!-- Spec 064-02 / ADR-0020 §1–§2 — grounding-by-probe (risk-gated). -->
 
-_Load-bearing factual claims about runnable surfaces (library/API capability,
-version/perf behavior, behavior of existing code) must be backed by an executed
-probe (run a command, read source/`node_modules`) or a citation — or listed
-here explicitly as an assumption. Never assert an unverified claim as fact._
-
-_Risk-gated: omit this section (or write "None") when the decision has no
-unverified load-bearing assumptions — do not pad with boilerplate._
-
-- _TODO_
+- Grounded (read 2026-09-07): the token enumeration + full reads listed under the coverage floor; the contract-stability guard's `toContain`-on-signatures pin mechanism (`test/contract-stability.test.js`); the README wording assertion (`test/instrumentation-config-contract.test.js:236`); `package.json` `version: 0.5.0` + the `postversion → release:dist` wiring and the existing `v0.5.0` / `dist-v0.5.0` tags; the absence of a `skills/` class; spec 026's 026-04 deferral text; the reference site's stack + load sequence (`intuit-erp/MARTECH.md`) and the owner's TBT attribution report (2026-09-05) for the "two-thirds of TBT is the three ad runtimes" claim.
+- **Assumed, not probed:** that Google Ads (`gtag` AW conversion pings) and Floodlight (DC activity pings) can be reproduced off-thread with attribution parity — including Consent Mode v2, `gclid`/`_gcl_au` capture and linker behaviour. This is exactly why MVP8 is spike-first (R-009); if the spike shows an unbridgeable gap, see Kill criteria.
+- Assumed: the reference site's operators can supply redacted vendor-beacon captures for the parity harness (R5); without any real capture the harness runs on synthetic fixtures only and MVP9's proof is withheld, not faked.
 
 ## Kill criteria
 
-_What would make this decision wrong? List the conditions that, if observed,
-should reverse or shelve it. Risk-gated like Assumptions — write "None" or omit
-when there is no meaningful kill condition; do not invent ceremonial ones._
-
-- _TODO_
+- If the R-009 spike shows ad-conversion pings **cannot** reach attribution parity from a worker (e.g. Consent Mode / linker semantics that require the vendor runtime on the main thread), MVP8's connector scope is cut to what *can* reach parity and the 1.0 rewire set (R-decision) shrinks accordingly — recorded by a follow-on ADR, not by quietly widening "parity".
+- If no intuit-class site is available for MVP9 within the ladder's horizon, 1.0 is **not** cut on synthetic evidence; the ladder pauses at v0.9.0 and the owner re-decides the bar.
+- If a post-reframe session discovers a dead-premise artifact inside a class this floor marks `scanned`, that is the T1 trigger: un-park systematic detection before the next reframe.
 
 ## Open questions
 
-_TODO: list any unresolved questions. If none, write "None."_
+- Segment host-vs-replace (R-007) — still open; not on the 1.0 path (R2 corollary).
+- The container translator's shape (config translation only, vs. also worker-wrapping the container) — post-1.0; parked in the inbox (E9).
+- Whether the Meta Pixel parity target includes the Conversions-API-style POST path or only the pixel GET — decided when 026-04 is un-deferred on real captures (E4).
