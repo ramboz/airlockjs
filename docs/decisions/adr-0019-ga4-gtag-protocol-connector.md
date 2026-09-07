@@ -1,7 +1,7 @@
 ---
-status: Proposed
+status: Accepted
 dependencies: [ADR-0017, ADR-0018]
-last_verified:
+last_verified: 2026-09-07
 frame_review: true
 ---
 
@@ -9,7 +9,7 @@ frame_review: true
 
 ## Status
 
-Proposed (2026-09-07)
+Accepted (2026-09-07)
 
 ## Context
 
@@ -52,18 +52,27 @@ ADR-0018; it resolves that ADR's GA4 kill-criterion into exit (a).
 
 ### Option B: Add an off-thread `/g/collect` gtag-protocol GA4 connector (keep MP for server-side use)
 - **Pros:** speaks the container's **own** protocol, so parity is a **same-protocol beacon diff**, not a semantic
-  field-map; needs **no `api_secret`** (`tid` + origin, like the container); can **maintain `_ga_<stream>`** →
-  native session continuity (closes OQ13-2); carries **Consent Mode** (`gcs`/`gcd`); **additive** — leaves the frozen MP
-  schema (surface 1, ADR-0017) **untouched → no stable-core break**; protocol reproducible (GET beacon; `connectors/pixel/`
-  precedent).
-- **Cons:** a new connector to build and govern (MVP7 GA4-parity scope); a **second** GA4 egress path to maintain; the
-  connector becomes a **cookie writer** (`_ga`/`_ga_<stream>`) → a new cookie-write governance surface; the wire shape
-  and console parity are not yet retired (need a redacted capture, then MVP9).
+  field-map; needs **no `api_secret`** (`tid` + origin, like the container); **additive** — leaves the frozen MP schema
+  (surface 1, ADR-0017) **untouched → no stable-core break**; the GET *transport* it needs is already a shipped
+  capability (`connectors/pixel/` emits governed GET beacons off-thread); it is the only path that can reproduce gtag's
+  session (`sid`/`sct`/`seg`) and Consent-Mode (`gcs`/`gcd`) values **on the protocol the console expects**.
+- **Cons:** unlike a pixel config this is a **stateful** connector — it must reproduce gtag's session/engagement and
+  Consent-Mode *values* (not just emit the fields) and become a `_ga`/`_ga_<stream>` **writer**, a new cookie-write
+  governance surface — real implementation work, not a GET-beacon config; a **second** GA4 egress path to build, govern,
+  and maintain (MVP7 scope); the wire shape and console parity are not yet retired (need a redacted capture, then MVP9).
 
 ### Option C: Owner re-decides the 1.0 GA4 bar (ADR-0018 exit b)
 - **Pros:** the honest exit **iff** the protocol proved irreproducible off-thread.
 - **Cons:** not triggered — R-009(a) finds `/g/collect` reproducible (a GET beacon airlock's pixel path already emits).
   Choosing this now would shelve a reachable path.
+
+### Option D: A first-party server-side Measurement-Protocol proxy (server-side tagging)
+- **Pros:** would also close the `api_secret` exposure (the secret lives server-side, never in page JS) while staying
+  MP-native — no new client-side connector.
+- **Cons:** requires a **server / edge-function tier** to receive and forward events. airlock's runtime is a
+  **client-side, off-main-thread worker** (main thread captures → worker egresses; no origin server in its trust model),
+  so a server-side proxy is a **different architecture**, not an airlock connector. Out of airlock's scope by
+  construction — named here to rule it out explicitly.
 
 ## Recommended Decision
 
@@ -73,9 +82,13 @@ contexts — it stays the frozen surface 1 (ADR-0017); this ADR adds a path, it 
 takes ADR-0018 GA4 kill-criterion **exit (a)**.
 
 The reasoning is that the `api_secret` blocker is decisive and **capture-independent** — it settles the question before a
-wire capture is even in hand — and the additive connector closes all three MP gaps (secret, session, consent) *by
-construction*, because it speaks the container's own protocol, while leaving the frozen contract untouched. Exit (b) is
-not taken because the protocol is reproducible.
+wire capture is even in hand — and speaking the container's own protocol is the natural parity path regardless (ADR-0018
+defines GA4 parity as same-protocol fidelity). The connector closes the `api_secret` gap **by construction** (the
+protocol carries no secret); it makes the **session and Consent-Mode** gaps *closable* by reproducing, off-thread, the
+stateful `sid`/`sct`/`seg`/`gcs`/`gcd` computation `gtag.js` does on-page — the *fields* map by construction, but the
+*values* require reimplementing that state machine and a `_ga_<stream>` writer, which the connector spec must size
+honestly (it is **not** a GET-beacon-sized task). All of this leaves the frozen contract untouched. Exit (b) is not taken
+because the protocol is reproducible off-thread.
 
 Scope note: this ADR decides the **protocol path** only. The connector's wire shape, its cookie-write governance, and
 whether it writes `_ga_<stream>`, are the committed connector spec's to settle (MVP7), grounded on a redacted
@@ -85,13 +98,16 @@ whether it writes `_ga_<stream>`, are the committed connector spec's to settle (
 
 **Becomes easier:**
 - GA4 parity is verified by a **same-protocol beacon diff** (the strongest oracle), not a lossy semantic field-map.
-- Session and Consent-Mode parity come **by construction** (same protocol, same cookie maintenance) rather than via MP
-  workarounds; OQ13-2 becomes closable by the connector acting as the `_ga_<stream>` session writer.
+- Session and Consent-Mode parity become **reachable on the protocol the console expects** — the connector reproduces
+  gtag's `sid`/`sct`/`seg`/`gcs`/`gcd` and writes `_ga_<stream>`, closing OQ13-2 (the state is *built*, not free — see
+  Cons and open questions), rather than being structurally out of reach as under MP.
 - MVP7's "GA4 parity" scope resolves to a **concrete connector** with a known target protocol.
 
 **Becomes harder:**
 - **Two GA4 egress paths** (MP + gtag-protocol) to maintain and document — a page/property must choose, and the choice
   needs a deployment policy.
+- The connector is **stateful**: reproducing gtag's session/engagement and Consent-Mode computation is real
+  implementation work, not a GET-beacon config — the MVP7 connector spec must size it as such.
 - A **new cookie-write governance surface**: the connector writing `_ga`/`_ga_<stream>` under consent must be gated as
   carefully as the MP identity path already is (`analytics_storage`, 017-02).
 - The decision is **grounded but not fully retired**: the `/g/collect` field shape needs a redacted capture, and
