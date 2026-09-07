@@ -13,8 +13,16 @@ Two tag families:
 
 ## [Unreleased]
 
+- _Nothing yet — MVP7 (Pixel Parity & the Parity Harness) is next; see [docs/releases/README.md](docs/releases/README.md)._
+
+## [0.6.0] — 2026-09-07 — MVP6 (Stable Core & Validation Harness)
+
 ### Added
 
+- **The stable-core API contract** (spec 037 / [ADR-0017](docs/decisions/adr-0017-airlock-1-0-api-contract.md)):
+  the five contract surfaces (GA4 MP, `push()`, connector interface, capability API, seam drivers) + the adopter
+  boot layer are **frozen and enforced** (`test/contract-stability.test.js`); the instrumentation-config schema
+  stays an explicit experimental carve-out.
 - **Distribution channel** (spec 031 / [ADR-0015](docs/decisions/adr-0015-distribution-git-subtree.md)):
   airlock ships as ready-to-serve built artifacts over **git subtree** (npm deferred as the future
   bundler-audience channel). `npm run build:dist` emits `dist/`; `npm run publish:dist -- --target <t>
@@ -24,6 +32,26 @@ Two tag families:
   end-to-end by `npm run rig:subtree` (install + update paths, on a clean EDS checkout, CWV preserved).
 - **Release wiring:** `npm run release:dist` cuts the `dist-vX.Y.Z` tag for the current version, and a
   `postversion` hook runs it so `npm version X.Y.Z` cuts the distribution tag automatically.
+- **Name-scoped cookie-grant hardening** (spec 035): default-deny name-scope + RFC-6265 name-validation on
+  **both** halves of the live alloy cookie grant (the boot-seed read filter and the write-back sink), so a
+  chamber granted `kndctr_`/`AMCV_`/`demdex` can neither read nor write outside its declared names.
+- **Real-site validation harness** (spec 036): the CWV before/after harness (`rig/lh-live.mjs`) + the
+  supported-subset smoke (`rig/subset-smoke.mjs`) + the run procedure
+  ([docs/real-site-validation.md](docs/real-site-validation.md)). The live run is the operator's creds-gated
+  step (carried to MVP9). `reserveSpace` eager pre-paint production wiring landed via `reservePersonalization`
+  (spec 033-03), closing OQ13/018-h.
+
+### Changed
+
+- **1.0 redefined** ([ADR-0018](docs/decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md), a reframe):
+  1.0 now means *adoptable with confirmed parity* — a developer rewires a real intuit-class site's TBT-dominant
+  generic vendor tags (GA4, Meta Pixel, Google Ads, Floodlight) onto airlock with vendor-boundary parity, cut at
+  **MVP9** — **not** the API pin. ADR-0017's frozen surface is re-read as **"the stable core"** (contract
+  unchanged). Release ladder re-scoped: MVP6 Stable Core → MVP7 Pixel Parity & the Parity Harness → MVP8
+  Ad-Conversion Offloading → MVP9 Real-Site Rewire → **v1.0.0** (container translator post-1.0).
+
+**Distribution:** **`dist-v0.6.0`** — the git-subtree cut of the v0.6.0 runtime (`eds.js` +
+`reserve-personalization.js` + 5 worker siblings), byte-pinned to the `v0.6.0` source tag.
 
 ## [0.5.0] — 2026-09-03 — MVP5 (inspector + CWV scoreboard + RUM subsume)
 
