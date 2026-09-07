@@ -1,9 +1,9 @@
 /**
  * Airlock seam driver interfaces — pinned contract (drive-order step 5).
- * FROZEN at 1.0 (ADR-0017) — both driver interfaces below.
+ * FROZEN — the stable core (ADR-0017) — both driver interfaces below.
  *
  * Two seams make edge swappable from day one (AD-1); only local drivers ship
- * at 1.0, so "add edge" is a driver swap, not a rewrite.
+ * on the stable core, so "add edge" is a driver swap, not a rewrite.
  *
  *  - DECISION-SOURCE seam: local | edge. The in-house eager-window decisioning
  *    ships AS the local driver (clarification Q4). It runs on the main thread
@@ -20,7 +20,7 @@
  *
  * HONESTLY RECORDED (ADR-0017): frozen PROVEN-FOR-ONE, not proven-general —
  * no second decision-source or egress driver has ever been written against
- * either interface, so second-implementer fitness is unvalidated at 1.0.
+ * either interface, so second-implementer fitness is unvalidated (proven-for-one).
  */
 
 /* ---- decision-source seam ---- */

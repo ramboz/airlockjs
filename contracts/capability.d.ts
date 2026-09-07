@@ -5,7 +5,7 @@
  * connector has NO ambient authority (AD-5); it can only do what it was granted,
  * default-deny throughout. See ./connector.d.ts.
  *
- * FROZEN at 1.0 (ADR-0017), grounded:
+ * FROZEN — the stable core (ADR-0017), grounded:
  *  - mediated cookie get/set (GA4 needs client_id persistence — R-002), incl.
  *    the single-chamber SYNCHRONOUS surface for the wrapped-SDK archetype
  *    (shipped 012-01 — see the `sync` docstring below for its residual)
@@ -21,7 +21,7 @@
  *    (push `deliver` reconciled with the `fetch` pull sketch; `reserveSpace` /
  *    `DomHandle.fill` host-apply implemented — adapters/eds/dom.js)
  *
- * NOT FROZEN at 1.0:
+ * NOT frozen — experimental (ADR-0017):
  *  - Multi-chamber COHERENCE of the synchronous cookie/storage cache for the
  *    wrapped-SDK archetype (OQ9's remaining axis) — the single-chamber `sync`
  *    surface above is frozen; coherence of that cache across chambers is not.
@@ -69,7 +69,7 @@ export interface GrantedCapabilities {
    * main thread, serving any connector archetype. A SYNCHRONOUS variant for
    * stock vendor SDKs is also exposed below (`sync`, shipped 012-01) for the
    * single-chamber case; multi-chamber coherence of that sync-cache is the
-   * remaining OQ9 axis, NOT frozen at 1.0 (see the header carve-out).
+   * remaining OQ9 axis, not frozen — experimental (see the header carve-out).
    */
   readonly cookies?: {
     get(name: string): Promise<string | null>;
@@ -93,7 +93,7 @@ export interface GrantedCapabilities {
      *
      * Multi-chamber coherence of this cache is the remaining OQ9 axis (011 /
      * 012-02), not resolved by exposing the surface, and is explicitly NOT
-     * FROZEN at 1.0 (ADR-0017) — the single-chamber surface above is.
+     * frozen — experimental (ADR-0017) — the single-chamber surface above is.
      */
     readonly sync?: {
       readSync(): string;
@@ -111,7 +111,7 @@ export interface GrantedCapabilities {
      * **production https** jar PRESERVES them (stripping `Secure` on https is a
      * downgrade — tracked as a 014 production-cookie-semantics follow-up).
      *
-     * NOT FROZEN at 1.0 (ADR-0017): this is a HOST-INTERNAL write-back sink,
+     * NOT frozen — experimental (ADR-0017): this is a HOST-INTERNAL write-back sink,
      * not a connector-facing grant, so it — and its name-scope coupling to
      * `grantedCookieNames` (spec 035-01) — may change without a major-version
      * break. A caller that wires `reconcile` without `grantedCookieNames`

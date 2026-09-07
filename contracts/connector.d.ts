@@ -14,7 +14,7 @@
  * in a chamber IF the capability API exposes mediated cookie/storage, async
  * context injection, and decisions-as-data. This interface is shaped for both.
  *
- * NOT FROZEN at 1.0 (ADR-0017) — do not rely on these being final:
+ * NOT frozen — experimental (ADR-0017) — do not rely on these being final:
  *  - Multi-chamber coherence of the synchronous cookie surface for the
  *    wrapped-SDK archetype (OQ9's remaining axis). The single-chamber
  *    sync-cache (`GrantedCapabilities.cookies.sync`, capability.d.ts, shipped
@@ -22,7 +22,7 @@
  *  - The event-payload SCHEMA (OQ3): `AirlockEvent.payload` below is frozen as
  *    a pass-through container; its shape is site-defined and not frozen.
  *
- * RESOLVED since this interface was first pinned (present-tense as of 1.0):
+ * RESOLVED since this interface was first pinned (present-tense as of the stable-core pin):
  *  - How an egress request is dispatched — settled by ADR-0004 (the two-path
  *    fire-and-forget model) and ADR-0010 (the wrapped-SDK round-trip
  *    `caps.egress.dispatch`, capability.d.ts). This interface still pins only
@@ -47,7 +47,7 @@ export interface AirlockEvent {
    * The event payload the connector maps. A host-owned sensitive-field
    * denylist governs it before it reaches a connector (OQ11, resolved —
    * ADR-0012 / spec 019-01's `governPayload`). The payload's SHAPE remains
-   * open and site-defined, and is NOT FROZEN at 1.0 (OQ3 — refinement-todo.md).
+   * open and site-defined, and is NOT frozen — experimental (OQ3 — refinement-todo.md).
    */
   readonly payload: Readonly<Record<string, unknown>>;
   /**

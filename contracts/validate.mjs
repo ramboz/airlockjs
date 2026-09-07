@@ -12,7 +12,7 @@ const load = (p) => JSON.parse(readFileSync(new URL(p, import.meta.url)));
 // Compile each schema exactly once (its $id may only be registered once).
 const ga4 = ajv.compile(load("./ga4-mp-request.schema.json"));
 const push = ajv.compile(load("./push-event.schema.json"));
-// spec 032-02 AC1 — the PRE-1.0 instrumentation config contract (boot(config)).
+// spec 032-02 AC1 — the not-yet-frozen (experimental) instrumentation config contract (boot(config)).
 const instrumentationConfig = ajv.compile(load("./instrumentation-config.schema.json"));
 
 let failures = 0;
