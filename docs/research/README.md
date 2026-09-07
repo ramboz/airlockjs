@@ -45,6 +45,8 @@ you create a note; update its status/promotion when it resolves.
 | [R-006](R-006-cross-chamber-cookie-coherency-mechanisms.md) | AD-4-compatible sync host-access + cross-chamber cookie coherency mechanisms | CONCLUDED | [OQ9](../refinement-todo.md); [spec 011](../specs/011-mvp2-coherency-probe/spec.md) (scope + option set); [ADR-0001](../decisions/adr-0001-chamber-isolation-strength.md) |
 | [R-007](R-007-real-prod-stack-breadth.md) | Real prod martech stack (21 tools) classified by airlock-fit — breadth-validation benchmark | OPEN | [mvp4](../releases/mvp4.md); [mvp5](../releases/mvp5.md); [R-008](R-008-costly-dom-martech-containment.md); [ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md) (the 1.0 benchmark); [mvp7](../releases/mvp7.md); [mvp8](../releases/mvp8.md); [mvp9](../releases/mvp9.md) |
 | [R-008](R-008-costly-dom-martech-containment.md) | Containing costly-DOM martech (the INP/CWV thesis) — 3 levers; worker-dom-compat / govern+schedule strategy | OPEN | [spec 022](../specs/022-helix-rum-connector/spec.md); nasty-tag POC (next); [R-007](R-007-real-prod-stack-breadth.md) |
+| [R-009](R-009-gtag-family-fidelity.md) | gtag-family fidelity — GA4/Ads/Floodlight beacon + attribution parity from off-thread governed egress (the MVP7 risk-first spike) | OPEN | [ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md); [mvp7](../releases/mvp7.md); [mvp8](../releases/mvp8.md) |
+| [R-010](R-010-rewire-cwv-upper-bound.md) | The rewire's indicative CWV bound — shipped page vs the four vendor runtimes network-blocked (no container-owner needed) | OPEN | [ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md); [mvp7](../releases/mvp7.md); [mvp9](../releases/mvp9.md) |
 
 ## Hand-offs
 
