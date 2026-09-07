@@ -40,6 +40,8 @@ In scope: the runtime substrate (main-thread capture-and-enqueue, worker-side dr
 
 Out of scope (explicit no-gos for the first releases): session replay / full DOM-mutation streaming (antagonistic to "no DOM access"); identity resolution and a first-party cookie store; the service-worker egress chokepoint (MVP uses direct keepalive; SW is a later progressive enhancement); edge decision/egress *drivers* (the seams exist from day one, the drivers come later); non-EDS framework adapters.
 
+**The adoption direction, post-1.0 ([ADR-0018](decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md)).** The 1.0 rewire (MVP9) is a *manual, two-party, documented* procedure — a developer, working with the container owner, moves the TBT-dominant generic vendor tags onto airlock. The longer-horizon simplifier is a **container translator**: take a Tealium / GTM / Adobe Launch container as input and auto-translate it to an airlock config (self-hosting + rewrapped loading of the individual tags). It is explicitly **not a first-release deliverable** — it is post-1.0 (1.1), bounded by connector coverage; parked with its decomposition in [docs/inbox.md](inbox.md).
+
 ## Use cases
 
 <!-- elicited: 2026-08-25 / status: filled -->
@@ -51,6 +53,8 @@ The three recurrent customer requests every EDS project faces, which together fo
 3. **UC-3 · Automatic block-decoration instrumentation for EDS** — an EDS developer gets instrumentation without touching markup. It hangs off block `decorate()` rather than markup — no `data-track-*` clutter, associations held in WeakMaps.
 
 Implicit success criterion (not a use case — it's the oracle): prove all three land at ~zero CWV cost, shown on a before/after Lighthouse + field-metric scoreboard. That scoreboard is also the servo oracle; its measurement contract (INP threshold, Lighthouse score) is tracked as OQ6.
+
+**Co-equal success criterion — parity (added 2026-09-07, [ADR-0018](decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md)).** The CWV scoreboard is only half the 1.0 bar. The other half is **parity at the vendor boundary**: when a real site rewires a vendor tag (GA4, Meta Pixel, Google Ads, Floodlight) from its tag-manager container onto airlock, the same events with the same attribution-bearing fields must reach the vendor as before — confirmed by a vendor-generic **parity harness** (per-protocol semantic oracle) and the vendor consoles. CWV without parity is a demo; parity without CWV is a port. 1.0 (adoptable with confirmed parity) is cut when a real intuit-class rewire proves both — see [the release slate](releases/README.md) and R-007, now the 1.0 benchmark.
 
 ## Stack
 

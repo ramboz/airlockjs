@@ -10,16 +10,30 @@ related:
 
 # R-007: Real prod martech stack — the breadth-validation benchmark
 
-> This is an **open investigation**, not a decision and not committed work. It classifies a *real* customer
-> production martech stack (21 tools, from a recent EDS/site engagement) against airlock's proven archetypes,
-> to validate the architecture at breadth and shape the eventual connector roadmap. It is **deliberately
-> beyond current scope** (airlock hosts GA4 + Adobe/alloy today) — a north-star benchmark, per the maintainer.
+> This classifies a *real* customer production martech stack (21 tools, from a recent EDS/site engagement) against
+> airlock's proven archetypes, to validate the architecture at breadth and shape the connector roadmap.
+>
+> **Promoted 2026-09-07 to the 1.0 benchmark ([ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md)).**
+> It was "deliberately beyond current scope — a north-star". The owner's 2026-09-05 reframe made *adoptable with
+> confirmed parity* the 1.0 bar, so this stack is no longer aspirational: its TBT-dominant **generic** vendor tags
+> (GA4, Meta Pixel, Google Ads, Floodlight) are the **1.0 rewire set** (MVP7–9). The note stays `OPEN` — the Segment
+> host-vs-replace and the RUM host-vs-subsume forks (Open questions) are genuinely undecided — but its *classification*
+> is now the roadmap's benchmark, not a distant horizon. **Read the "Customer-custom vs generic" boundary below before
+> citing any tool as release scope.**
 
 ## Question
 
 Does airlock's architecture (two proven connector archetypes + capability-mediated egress + consent-at-the-seal)
 actually cover a *real* production martech stack — and where is the honest boundary of "what we want to
 support"?
+
+## Customer-custom vs generic — the release-scope boundary ([ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md) R2)
+
+A load-bearing distinction the reframe pins, because this stack mixes both: **release scope names generic vendors only; a customer's own tag logic is validation-only, never a shipped connector, deliverable, or release gate.**
+
+- **Generic vendor** — a third-party product any site can adopt, with a public wire protocol or SDK: GA4, Meta Pixel, Google Ads, Floodlight, LinkedIn, Bing, Reddit, The Trade Desk, Outbrain, OpenAI Pixel, Adobe/alloy, Marketo, Demandbase, **and Segment** (Twilio Segment — `analytics.js` / the HTTP tracking API; a legitimate connector target). These are what a connector may target and a release may name.
+- **Customer-custom** — a specific customer's own logic. On this stack that is the **ECS / TrackStar / UX-Fabric** chain (Tealium UID 26): Intuit's in-house event-enrichment + click-tracking that *emits Intuit-enriched events to Segment* (its golden sample carries `context.ecs_version`, `icom_user_action`, `akes_geo`, `ivid`, `pseudonym_id`, … — enrichment layered on a Segment envelope). This is **not** a vendor airlock connects to; it is customer code. It may serve as a **local validation input** — the regression guard that a rewire left the untouched custom chain intact — but it is never shipped and never a release gate.
+- **The corollary on Segment.** Segment-the-vendor is generic and legitimate scope, but it is **not on the 1.0 critical path**: on this site the TBT cost sits in the custom ECS chain *around* Segment, not in Segment itself, so a generic Segment connector is variable/later (MVP8+) and R-007's host-vs-replace fork (Open questions) stays open, unforced. The **1.0 rewire set is the four TBT-dominant generic tags** — GA4, Meta Pixel, Google Ads, Floodlight — none of them customer-custom.
 
 ## Sources / findings
 
@@ -167,6 +181,11 @@ can *be* the RUM layer (`helix-rum-js`/mPulse — host or subsume), which on EDS
 (the big leverage win), **airlock-as-RUM-layer**, **a OneTrust consent driver**, **governed form capture**,
 and decisions on **Segment (host vs replace)** and the **RUM host-vs-subsume** fork.
 
-Promoted to: n/a yet — feeds the MVP5 breadth Split + the post-MVP5 connector roadmap; promote a `pixel`
-connector archetype, an RUM-layer decision (host vs subsume, EDS `sampleRUM` coexistence), and a OneTrust
-consent driver to specs/ADRs when that roadmap is picked up.
+Promoted to (partial — status stays OPEN): **[ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md)**
+promotes this note to the **1.0 benchmark** and routes its concrete roadmap into the re-scoped ladder —
+[mvp7](../releases/mvp7.md) (pixel parity + the parity harness; the `pixel` archetype is spec 026, DONE),
+[mvp8](../releases/mvp8.md) (Google Ads + Floodlight connectors + the OneTrust consent-input driver), and
+[mvp9](../releases/mvp9.md) (the real-site rewire of the four generic tags → v1.0.0). The note remains OPEN because
+its two Open-questions forks are undecided: **Segment host-vs-replace** (a generic vendor, but variable/later — not on
+the 1.0 path) and the **RUM host-vs-subsume** fork (`helix-rum`/mPulse; EDS `sampleRUM` coexistence). Promote those to
+their own specs/ADRs when picked up.

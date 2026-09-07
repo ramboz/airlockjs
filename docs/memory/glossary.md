@@ -24,6 +24,10 @@ A single connector's sandbox inside the worker runtime. Each connector runs in i
 
 The unit of martech integration that runs inside a chamber. Two archetypes: **wire-protocol** (reimplement the beacon directly, e.g. `airlock/ga4` via the GA4 Measurement Protocol — the MVP1 shape) and **wrapped-SDK** (contain a vendor library in a chamber, e.g. `airlock/alloy` — MVP2). Registry namespace `airlock/*`.
 
+## customer-custom tag
+
+A tag that is a specific customer's own logic (e.g. an in-house event-enrichment or click-tracking chain like the reference site's ECS/TrackStar/UX-Fabric chain), as opposed to a generic third-party vendor tag. Per ADR-0018, customer-custom tags are validation-only inputs — never a shipped airlock connector, deliverable, or release gate.
+
 ## cycle / lock-through
 
 Two names for one thing: a batch of events crossing the airlock from the main thread to the worker. Each drain of the ring buffer produces one cycle. Delivered by batched `postMessage` (structured clone), ordering preserved across the crossing. ("Lock-through" is the same operation described from the airlock's point of view.)
@@ -44,6 +48,18 @@ The append-only, ordered source of truth for the datalayer. Cycles to the worker
 
 The only martech code with DOM access, running on the main thread. Owns the append-only event log, the synchronous state projection, the `WeakMap` element→data associations, consent state, and the capability broker. Drains the ring buffer on idle and cycles batches to the worker.
 
+## parity (vendor-boundary)
+
+The property that, after a tag is rewired from its tag-manager container to airlock, the same events with the same attribution-bearing fields reach the vendor as before. Confirmed by a per-vendor oracle (a same-protocol beacon diff where airlock speaks the container's protocol, or a semantic field-map where it legitimately speaks a different one, e.g. GA4 Measurement Protocol) and by the vendor's console. ADR-0018 makes it a co-equal 1.0 success criterion alongside the CWV scoreboard.
+
+## parity harness
+
+The vendor-generic capture → replay → oracle → report tool (MVP7) that confirms vendor-boundary parity for a rewired tag, with per-protocol oracles and the request's credential/cookie context captured and replayed. The release deliverable; each real site supplies its own redacted vendor-beacon captures as its oracle input.
+
+## rewire
+
+Moving a vendor tag's execution from a main-thread tag-manager container (Tealium / GTM / Adobe Launch) to an airlock connector: the container stops firing the tag, airlock emits the equivalent governed, off-thread beacon. The 1.0 adoption motion (ADR-0018).
+
 ## the seal
 
 The consent/allowlist gate on egress. Events whose egress is blocked are "held at the seal" — queued (in a bounded ring, oldest-dropped past the cap) until consent arrives or the page unloads (architecture.md § Clarifications Q2). Consent defaults to pending; egress is prerender-aware.
@@ -52,6 +68,14 @@ The consent/allowlist gate on egress. Events whose egress is blocked are "held a
 
 A swappable driver boundary baked in from day one. Two seams: a **decision-source** seam (local | edge) and an **egress** seam (direct keepalive | service-worker chokepoint | edge-proxied). Only local variants ship in MVP; "add edge" is a driver swap, not a rewrite. MVP1's in-house decisioning ships *as* the local decision-source driver (architecture.md § Clarifications Q4).
 
+## stable core
+
+Airlock's frozen public API surface (the five contract surfaces + the adopter boot layer) pinned by ADR-0017 / spec 037-01. Since ADR-0018 it is called "the stable core" rather than "the 1.0 API": it is the contract airlock ships *on*, while "1.0" now denotes the adoption bar (adoptable with confirmed parity), cut at MVP9.
+
 ## state projection
 
 The current-state view derived from the event log, held in the orchestrator and read synchronously (`Map` for keyed state, `WeakMap` for element associations). A `push()` folds its event into the projection synchronously so synchronous readers see current state — this fold is on the main thread's interaction path and must stay cheap. The **projection snapshot slice** is the bounded, privacy-filtered subset that crosses the airlock to the worker per event (what may cross is OQ4).
+
+## tag-manager container
+
+A main-thread tag-management runtime (Tealium iQ, Google Tag Manager, Adobe Launch) that loads and fires vendor tags on the page. The thing airlock rewires tags *out of*; on the reference site it is a customer-owned Tealium profile, which is why the 1.0 rewire is a two-party effort (developer + container owner).

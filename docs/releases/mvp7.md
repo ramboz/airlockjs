@@ -1,90 +1,106 @@
-# Release Plan: MVP7 — Connector Breadth (the pixel archetype)
+# Release Plan: MVP7 — Pixel Parity & the Parity Harness
+
+> **Re-scoped 2026-09-07 ([ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md)).** Was "Connector
+> Breadth (the pixel archetype)". The owner's 2026-09-05 reframe made **confirmed parity** the 1.0 bar, so MVP7's centre
+> of gravity moves from *breadth* (more vendor configs) to *parity* — the vendor-generic parity harness plus proven
+> beacon-level parity for the first real vendors. Breadth-as-configs and the drop-in ergonomics stay, but as *variable*
+> scope. The original reconciliation framing (spec 026 built ahead of plan) is preserved below as history.
 
 ## Status
 
 `candidate`
 
-**Shaped 2026-09-03 as a reconciliation** — spec 026 (the generic pixel connector) was built *ahead of the
-committed MVP4→5→6 path*, and both MVP4 and MVP5 explicitly no-go "broader connector breadth (pixel/…) — that
-is MVP7+." This plan gives that already-built work an honest release home so the board offers a real
-**MVP5-vs-MVP7** sequencing choice. **It is `candidate`, not committed** — which release goes next is the
-maintainer's call.
-
 Allowed statuses: `candidate`, `committed`, `shipping`, `shipped`, `dropped`.
 Do not move a plan from `candidate` to `committed` without an explicit user decision.
 
+**Ships as v0.7.0** (the `MVPn ↔ v0.n.0` convention). `candidate` until the maintainer commits it — MVP6 (v0.6.0) is
+the immediate predecessor.
+
+> **History (shaped 2026-09-03 as a reconciliation).** Spec 026 (the generic pixel connector) was built *ahead of the
+> committed MVP4→5→6 path*, and both MVP4 and MVP5 explicitly no-go "broader connector breadth (pixel/…) — that is
+> MVP7+." This plan originally existed to give that already-built work an honest release home. ADR-0018 then re-scoped
+> it around parity; the banked pixel-archetype work (026-01/02/03/05) is now the *substrate* the parity harness proves.
+
 ## Problem / Baseline
 
-- **Breadth is where the adoption leverage is, and it was deferred to "MVP7+".** MVP1–3 shipped the runtime +
-  both connector archetypes + the enforcement teeth; MVP4 (committed) covers the *core AEM stack* — GA4 +
-  governed alloy + `helix-rum`. Everything beyond those three vendors — the long tail of martech a real site
-  actually runs — was pushed to MVP7+ ([R-007](../research/R-007-real-prod-stack-breadth.md); MVP4/MVP5
-  no-gos).
-- **[R-007](../research/R-007-real-prod-stack-breadth.md) named the single biggest leverage win: a generic
-  *pixel* connector.** ~10 of the ~21 classified real-stack tools are GET-pixel vendors that fit **one
-  config-driven archetype** — declare `{endpoint, eventMap, paramMap}`, get a governed, off-thread,
-  never-reads-`ctx` GET beacon, with **zero per-vendor connector code.**
-- **Spec [026](../specs/026-generic-pixel-connector/spec.md) already built that archetype — ahead of plan.**
-  026-01 (Meta Pixel through the generic connector, governed + dispatched — the archetype proof), 026-02
-  (LinkedIn Insight + Bing UET as **pure configs, zero connector code** — the generalization proof), 026-03
-  (the `PixelVendorConfig` contract: pinned, validated, conformance-tested), 026-05 (live-shippability — the
-  `pixel-chamber.worker.js` bundle entry + the N-worker build assertion). **All DONE.** The archetype is
-  proven and shippable at the Node/vitest level; what remains is the identity/POST depth, real vendor breadth,
-  and the authoring ergonomics.
-- **Why now (or not-now):** the leverage is real and the head-start is large (4 slices banked). But it is
-  **off the committed value path** — MVP4 is one residual-close from shipping and MVP5 (the inspector +
-  scoreboard, the *visible* value story) is untouched. MVP7 exists so that choice is made on an honest board,
-  not by continuing to build breadth off-plan.
+- **1.0 is "adoptable with confirmed parity" (ADR-0018), and nothing yet *confirms* parity.** airlock can emit a Meta /
+  LinkedIn / Bing pixel through the generic connector (spec 026, DONE), and GA4 via the Measurement Protocol — but
+  there is **no tool that proves a rewired tag reaches the vendor with the same attribution-bearing fields as the
+  container's tag did**. That proof is the gate every real-site rewire (MVP9) depends on.
+- **The parity question is not uniform across vendors, and the corpus does not yet answer it.** GA4 is the sharpest
+  case: airlock's connector speaks the server-side **Measurement Protocol** (`/mp/collect`), while a container's GA4 tag
+  loads `gtag.js` and emits `/g/collect` — a different endpoint, encoding and field vocabulary. Whether MP-only egress
+  reaches **console-level** parity (sessions, engagement, attribution, Consent Mode state) is **assumed, not probed**
+  (ADR-0018 Assumptions), and one divergence is already recorded open — OQ13-2 (`_ga_<stream>` session minting on an
+  MPA). MP also carries an *adoption* blocker no parity check sees: it needs an `api_secret`, which airlock places in
+  browser-side config.
+- **Transport is part of parity.** The container's pixels fire credentialed cross-site requests carrying the vendor's
+  cookie (`fr`, `IDE`); airlock's `fetch` egress omits it by construction. Whether that matters — and whether airlock
+  should re-attach a purpose-gated credentialed transport — is a security-boundary decision (ADR-0018 E10) MVP7 must
+  surface, not absorb.
+- **Spec [026](../specs/026-generic-pixel-connector/spec.md) already built the pixel archetype** — 026-01 (Meta Pixel,
+  governed + dispatched), 026-02 (LinkedIn + Bing as **pure configs, zero connector code**), 026-03 (the
+  `PixelVendorConfig` contract), 026-05 (live-shippability). **All DONE.** 026-04 (identity/advanced-matching + POST)
+  was deferred, real-driver-gated — the reframe makes that gate *reachable* via redacted real captures.
 
 ## Appetite
 
-- **TBD — the maintainer sets this when sequencing MVP5-vs-MVP7.**
-  - **Proposed scope note (not a commitment):** likely a **2-week small-batch box** like the others — but the
-    4-slice head-start means MVP7 may run *lighter* than a from-scratch box. Time fixed, scope flexes per the
-    cutline.
-  - **Fixed core (if committed):** a bounded **vendor-breadth set** shipped as pure configs (the archetype's
-    payoff) + the **drop-in authoring ergonomics** for pixels.
-  - **Variable / gives first:** the **026-04 identity/POST depth** (real-driver-gated — flexes on a live
-    captured beacon being available); the *size* of the vendor-breadth set.
+- **2-week small-batch box (proposed).** Time fixed; scope flexes per the cutline. The 4-slice pixel head-start means
+  the parity harness — not connector code — is the real build.
+  - **Fixed core (if committed):** the **vendor-generic parity harness** + **Meta Pixel parity** (026-04 un-deferred) +
+    **GA4 parity** through the harness.
+  - **Variable / gives first:** the **breadth-as-configs** set (more GET pixels) and the **drop-in authoring
+    ergonomics** — both real, both cut first if the box tightens.
 
 ## Solution Outline
 
-- **Finish the pixel archetype's depth — spec [026-04](../specs/026-generic-pixel-connector/spec.md)
-  (identity / advanced-matching + POST/`ctx`-body).** This is the one genuine scope step, not a config add:
-  the current archetype is **GET-only and never reads `ctx`** (the AC8 invariant that keeps a compromised
-  chamber from exfiltrating identity). Advanced matching / Conversions-API-style beacons need POST bodies and
-  `ctx` reads, which *break that invariant deliberately* and must be re-governed. **Real-driver-gated** — it
-  needs a live captured beacon to ground the wire shape (per the ADR-0020 grounding discipline; a speculative
-  POST proof already failed 026-02's frame-critique).
-- **Vendor breadth — add more GET-pixel vendors as pure configs.** The archetype's whole point: each new
-  vendor is a config fixture + tests, zero connector code. Cut to the highest-leverage vendors (don't
-  enumerate the long tail).
-- **"Drop-in is the bonus" — pixel authoring ergonomics.** The author-facing path to declare a pixel config
-  and boot it on an EDS page, so breadth is *consumable*, not just *expressible*.
+- **The vendor-generic parity harness** — capture (the container's beacon, with its credential/cookie context) → replay
+  (airlock's beacon) → **per-protocol semantic oracle** (a same-protocol field-diff where airlock speaks the container's
+  protocol; a semantic field-map where it legitimately speaks a different one, e.g. GA4 MP) → report. Vendor-generic in
+  *shape*, per-protocol in its oracles. Each real site supplies its own **redacted** vendor-beacon captures as oracle
+  input (ADR-0018 R5; no live identifiers, spec-013 discipline).
+- **R-009 (the whole gtag-family fidelity spike) — risk-first, no code dependency, the 1.0 bar rests on it.**
+  **(a) GA4:** the `/g/collect` → MP semantic field-map, session/engagement on an MPA (OQ13-2), Consent Mode state, the
+  console-level check, and MP's `api_secret` fitness for a public property — decides MP-only vs an additive
+  gtag-protocol GA4 connector. **(b) Google Ads + Floodlight:** conversion-ping fidelity (Consent Mode v2 incl. the
+  `ad_storage`-denied path; `gclid`/`_gcl_*`, linker, `wbraid`/`gbraid`). **(c) transport:** per vendor and cookie
+  cohort, which attribution rides the cross-site cookie vs first-party params → feeds the E10 credentialed-transport
+  ADR.
+- **R-010 (an indicative CWV bound) — risk-first, no container-owner dependency.** Lighthouse `blockedUrlPatterns` on
+  the reference site (shipped + phase-split configs) turns the reported 601→204 ms into repo-recorded numbers and tells
+  us whether the ladder is worth walking. Indicative, not a hard ceiling (it strips runtimes, not per-template init).
+- **Meta Pixel parity — un-defer [026-04](../specs/026-generic-pixel-connector/spec.md)** (identity / advanced-matching
+  + POST/`ctx` body), now groundable on redacted real captures. This breaks the archetype's GET-only / no-`ctx`
+  invariant deliberately and must be re-governed.
+- **Breadth-as-configs + drop-in ergonomics (variable).** More GET-pixel vendors as pure configs; the author-facing
+  path to declare a pixel config and boot it on an EDS page.
 
 ## Risks / Rabbit Holes
 
-- **026-04's POST/`ctx` path breaks the clean GET-only invariant** — it is the one place identity can leak,
-  so it must be re-governed, not just enabled. Real-driver-gated: without a real captured beacon it
-  rabbit-holes on speculative wire-fidelity (the exact failure 026-02's frame-critique caught). Do not build
-  it until a live capture grounds it.
-- **Vendor-breadth list can balloon.** ~10 vendors fit; shipping all of them is not the proof. Ship a bounded
-  set that demonstrates the archetype generalizes; leave the rest as trivially-addable configs.
-- **Breadth without the value story is a weaker adoption pitch.** MVP7 widens *what airlock governs*; MVP5
-  makes *why that matters* visible. Shipping breadth before the inspector risks "more connectors, still can't
-  see the governance."
+- **GA4 parity is the sharpest unknown** — MP-vs-`gtag` is a *different protocol*, not a confirmation step. Do not
+  assume MP reaches console parity; R-009(a) decides it. If it can't (or `api_secret` exposure sinks it for a public
+  property), the exit is an additive gtag-protocol connector or an owner re-decision — never a redefinition of "parity".
+- **026-04's POST/`ctx` path breaks the clean GET-only invariant** — the one place identity can leak; re-govern, don't
+  just enable. Real-driver-gated: without a real captured beacon it rabbit-holes on speculative wire-fidelity (the exact
+  failure 026-02's frame-critique caught).
+- **The parity oracle must be semantic, never raw URL equality** — vendor hits carry nondeterministic fields; the
+  reference site's own diff tool already refuses raw URL comparison. Every per-vendor oracle normalizes to the
+  attribution-bearing field set.
+- **Breadth without the harness is the old trap.** Shipping more configs does not prove parity; the harness does. Keep
+  breadth variable.
 
 ## No-Gos
 
-- **Not the wider R-007 breadth** — **no** forms (Marketo Forms2 / formjacking), **no** Segment
-  host-vs-replace, **no** OneTrust consent driver. Those are **MVP8+** ([R-007](../research/R-007-real-prod-stack-breadth.md));
-  they are different patterns, not the pixel archetype.
-- **No identity resolution / first-party cookie store** (standing vision no-go). 026-04 governs a vendor's
-  *own* advanced-matching beacon; it does not build airlock identity.
-- **No live vendor identifiers** — synthetic only (`000000000000000`, `G-DEBUGTEST0`, `evil.example`, …),
-  per the standing session constraint and ADR-0020 grounding.
-- **No architecturally-excluded classes** (session-replay, live-chat, heatmap) — excluded by mechanism
-  (R-007), not deferred.
+- **No customer-custom tags as release scope** (ADR-0018 R2) — the reference site's ECS/TrackStar/UX-Fabric chain and
+  its golden sample are **validation-only** inputs, never a shipped connector or a hard gate.
+- **Not the wider R-007 breadth this box** — **no** Google Ads / Floodlight connectors (those are **MVP8**, gated on the
+  AW/DC half of R-009), **no** OneTrust consent driver (MVP8), **no** forms (Marketo Forms2), **no** Segment
+  host-vs-replace (variable/later — R-007's fork stays open).
+- **No identity resolution / first-party cookie store** (standing vision no-go). 026-04 governs a vendor's *own*
+  advanced-matching beacon; it does not build airlock identity.
+- **No live vendor identifiers** — synthetic / redacted only (`000000000000000`, `G-DEBUGTEST0`, …), per the standing
+  session constraint and ADR-0020 grounding (ADR-0018 R5).
+- **No architecturally-excluded classes** (session-replay, live-chat, heatmap) — excluded by mechanism (R-007).
 
 ## Cutline
 
@@ -92,47 +108,51 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 
 | Item | Evidence | Rationale |
 |---|---|---|
-| **The pixel archetype** — generic config-driven GET-pixel connector, governed + off-thread + never-reads-`ctx` | [spec 026](../specs/026-generic-pixel-connector/spec.md) 026-01/02/03/05 **DONE** | Already built ahead of plan; this plan homes it |
-| **A bounded vendor-breadth set** — more GET pixels as pure configs (zero connector code) | R-007 (~10 vendors fit); 026-02 proved 3 (Meta/LinkedIn/Bing) | The archetype's payoff — breadth at config cost |
-| **Drop-in pixel authoring ergonomics** — declare a config + boot on an EDS page | "drop-in is the bonus" (session direction) | Breadth must be consumable, not just expressible |
+| **The vendor-generic parity harness** — capture → replay → per-protocol semantic oracle → report; credential context captured + replayed | ADR-0018 (parity definition, E5) | The 1.0 gate every rewire depends on |
+| **R-009 (whole) — risk-first** the gtag-family fidelity spike (GA4 MP-vs-gtag incl. `api_secret`; Ads/Floodlight ping fidelity; transport per cohort) | ADR-0018 E6; OQ13-2; `connectors/ga4/map.js` | The bar rests on it; no code dependency, so it runs first |
+| **R-010 — risk-first** the indicative CWV bound on the reference site (`blockedUrlPatterns`) | ADR-0018 E11 | Repo-records the win's rough size before the ladder is walked; no container-owner needed |
+| **Meta Pixel parity** — un-defer 026-04 (identity/advanced-matching + POST), grounded on redacted real captures | [spec 026-04](../specs/026-generic-pixel-connector/spec.md) | The first real vendor proven at parity |
+| **GA4 parity** through the harness (MP-only, or an additive gtag-protocol connector if R-009(a) demands) | ADR-0018 (GA4 kill criterion) | The analytics anchor |
 
-### Defer / Split
+### Defer / Variable
 
 | Item | Evidence | Rationale |
 |---|---|---|
-| **026-04 identity / advanced-matching + POST/`ctx` body** | [spec 026-04](../specs/026-generic-pixel-connector/spec.md) (deferred, real-driver-gated) | Breaks the GET-only/no-`ctx` invariant; needs a live captured beacon to ground — gives first if the box tightens |
-| **Wider breadth: forms (Marketo), Segment, OneTrust consent driver** | R-007 | Different patterns, not the pixel archetype — **MVP8+** |
+| **Breadth-as-configs** — more GET-pixel vendors as pure configs | R-007 (~10 vendors fit); 026-02 proved 3 | The archetype's payoff — but breadth doesn't prove parity; gives first |
+| **Drop-in pixel authoring ergonomics** | "drop-in is the bonus" (session direction) | Consumable, not just expressible — variable |
+| **Google Ads / Floodlight connectors, OneTrust consent driver, Segment, forms** | R-007; ADR-0018 ladder | **MVP8+** — different patterns / gated on R-009's AW/DC findings |
 
 ### Risk-First
 
 | Item | Evidence | Rationale |
 |---|---|---|
-| **Capture a real pixel beacon** (a live vendor request) to ground any POST/advanced-matching wire shape | ADR-0020 grounding; 026-02 frame-critique (speculative POST failed) | Determines whether 026-04 is in-scope this box or defers |
+| **R-009 (a) GA4 MP-vs-gtag parity + `api_secret` fitness** | ADR-0018 E6, GA4 kill criterion | Decides whether GA4 — the parity anchor — is rewirable at all, and how |
+| **R-010 indicative CWV bound** | ADR-0018 E11 | Decides whether the whole ladder is worth walking |
+| **Capture a real (redacted) pixel beacon** to ground 026-04's POST/advanced-matching shape | ADR-0020 grounding; 026-02 frame-critique | Determines whether 026-04's POST path is in-scope this box |
 
 ## JIG Handoff
 
-- Spec [026](../specs/026-generic-pixel-connector/spec.md) is the anchor: 026-01/02/03/05 **DONE**; **026-04**
-  (identity/POST) deferred + real-driver-gated. Link [`connectors/pixel/`](../../connectors/pixel/).
-- New slices for: the bounded vendor-breadth set, the drop-in authoring path, and — **iff** a live capture
-  grounds it — 026-04.
-- The `PixelVendorConfig` contract ([contracts/pixel-connector.d.ts](../../contracts/pixel-connector.d.ts))
-  is already pinned (026-03); extend it, don't rewrite, if 026-04 adds a POST shape.
+- New research notes: **R-009** (gtag-family fidelity, three parts) and **R-010** (indicative CWV bound) — both
+  MVP7 risk-first (ADR-0018 E6, E11).
+- New spec: **the parity harness** (ADR-0018 E5) — vendor-generic capture/replay/oracle/report, redacted fixtures.
+- Un-defer **026-04** (ADR-0018 E4) once a redacted real capture grounds the Meta Pixel identity/POST shape; extend
+  `PixelVendorConfig` ([contracts/pixel-connector.d.ts](../../contracts/pixel-connector.d.ts)), don't rewrite.
+- The E10 **credentialed-transport ADR** is decided here (before the harness oracle is specced), with its own
+  frame-critique — a security-boundary decision, not absorbed into the harness.
 
 ## Release-Check Criteria
 
-- The pixel archetype ships **N real GET-pixel vendors as pure configs with zero per-vendor connector code**
-  (N and the vendor set are the maintainer's scope call).
-- An EDS author can **declare a pixel config and boot it** (drop-in ergonomics).
-- **Any** POST / advanced-matching path added is grounded on a **real captured beacon** — never a speculative
-  wire shape.
-- **CWV preserved**; **no live identifiers** anywhere.
-- No regression to the GA4 / alloy / RUM connectors or the MVP1–4 capability contracts.
+- The parity harness confirms **Meta Pixel and GA4 reach vendor-boundary parity** on redacted real captures (per-protocol
+  semantic oracle), on both cookie cohorts.
+- **GA4's protocol question is decided** (MP-only reaches parity, or an additive gtag-protocol connector ships) —
+  never by redefining "parity".
+- The **E10 credentialed-transport decision** is recorded (an ADR), so the transport gap is visible, not absorbed.
+- **R-010 gives a repo-recorded indicative CWV bound**; a modest result trips the CWV kill criterion (ADR-0018).
+- **No customer-custom tag** is a release deliverable or gate; **no live identifiers** anywhere.
+- No regression to the GA4 / alloy / RUM connectors or the stable-core contract (MVP1–6).
 
 _No servo release-signal artifact exists for this plan yet; the release-check criteria are desired future
 evidence, not measured signals._
 
-_Last shaped: 2026-09-03 (reconciliation — homes the off-plan spec-026 pixel work so the board offers an
-honest MVP5-vs-MVP7 choice; status `candidate`, appetite **TBD** pending the maintainer's sequencing call).
-The R-008 worker-dom / costly-DOM containment thread (specs 023–025, Lever 2) is a **separate, paused**
-investigation — see [lightweight-decisions.md](../decisions/lightweight-decisions.md) 2026-09-03 — not part
-of this breadth plan._
+_Last shaped: 2026-09-03 (reconciliation — homed the off-plan spec-026 pixel work). Re-scoped 2026-09-07 (ADR-0018):
+"Pixel Parity & the Parity Harness", ships as v0.7.0; parity is the centre, breadth is variable._

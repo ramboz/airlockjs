@@ -13,6 +13,7 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 
 ### Project codenames / active work
 - **Airlock** (pkg `airlockjs`) - capability-secured, off-main-thread martech runtime for edge/static sites (EDS first). Main thread only captures + enqueues; all mapping and egress happen behind the airlock. See [docs/product-vision.md](docs/product-vision.md).
+- **1.0 = adoptable with confirmed parity** (ADR-0018, 2026-09-05 reframe) — a dev rewires an intuit-class site's TBT-dominant vendor tags (GA4, Meta, Google Ads, Floodlight) from its Tealium/GTM/Launch container to airlock with vendor-boundary parity. Ladder: MVP6 "Stable Core & Validation Harness" (v0.6.0) → MVP7 pixel parity + parity harness (0.7.0) → MVP8 ad-conversion offloading (0.8.0) → MVP9 real-site rewire (0.9.0 → **1.0.0**). ADR-0017's frozen surface is now "the stable core". See [docs/releases/README.md](docs/releases/README.md).
 
 ### Airlock vocabulary (full defs in [glossary](docs/memory/glossary.md))
 - **airlock** - the mediated main-thread↔worker boundary; nothing crosses without going through the capability bridge.

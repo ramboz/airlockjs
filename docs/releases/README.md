@@ -8,18 +8,21 @@ Keep entries short. Link to release plans and, when useful, JIG specs or slices
 without copying JIG lifecycle status. Remove dropped or deferred ideas once
 they stop informing a current release decision.
 
+> **1.0 = MVP9's release-check** ([ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md), 2026-09-05 reframe): 1.0 means *adoptable with confirmed parity* — a dev rewires an intuit-class site's TBT-dominant generic vendor tags onto airlock with vendor-boundary parity. The `MVPn ↔ v0.n.0` convention continues; passing **MVP9**'s release-check cuts **v1.0.0**. ADR-0017's frozen API is now "the stable core", not "the 1.0 pin".
+
 ## Candidate
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| [MVP6 — Adoption & 1.0 Readiness](mvp6.md) | The runtime (MVP1), both connector archetypes (MVP2), the enforcement teeth (MVP3), the core AEM stack | No JIG handoff linked. |
-| [MVP7 — Connector Breadth (the pixel archetype)](mvp7.md) | **Breadth is where the adoption leverage is, and it was deferred to "MVP7+".** MVP1–3 shipped the runtime + | JIG handoff: [026](../specs/026-generic-pixel-connector/spec.md), [`connectors/pixel/`](../../connectors/pixel/), [contracts/pixel-connector.d.ts](../../contracts/pixel-connector.d.ts) |
+| [MVP7 — Pixel Parity & the Parity Harness](mvp7.md) | **Parity is the 1.0 bar (ADR-0018).** The vendor-generic parity harness + Meta Pixel parity (026-04 un-deferred) + GA4 parity; R-009 (gtag-family fidelity) + R-010 (indicative CWV bound) risk-first. Breadth-as-configs → variable. Ships v0.7.0 | JIG handoff: parity-harness spec (E5), R-009/R-010 (E6/E11), [026](../specs/026-generic-pixel-connector/spec.md), [`connectors/pixel/`](../../connectors/pixel/) |
+| [MVP8 — Ad-Conversion Offloading](mvp8.md) | The TBT that motivates the rewire lives here: **Google Ads + Floodlight** connectors (gated on R-009's AW/DC findings) + the **OneTrust consent-input driver**; Segment variable/later. Ships v0.8.0 | JIG handoff: Google Ads / Floodlight connector specs + OneTrust driver (E7), gated on R-009 |
+| [MVP9 — Real-Site Rewire & Adoption Path](mvp9.md) | **Passing its release-check cuts v1.0.0.** Rewire the four generic vendors on an intuit-class site (two-party, with the container owner), parity-confirmed by the harness + vendor consoles, CWV measured; the scripted adoption path. Ships v0.9.0 → **v1.0.0** | JIG handoff: real-site rewire spec, 036-instrument extension (E12), scripted adoption path (E8) |
 
 ## Committed
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| _None yet_ | _-_ | _-_ |
+| [MVP6 — Stable Core & Validation Harness](mvp6.md) | All Include work **DONE + landed** — distribution (031), cookie-grant hardening (035), the stable-core contract (037/ADR-0017), the real-site CWV harness + subset smoke (036). Ships as **v0.6.0**; the version-bump/dist-tag cut (E1) is the pending outward-facing step, owner-gated | JIG handoff: [031](../specs/031-distribution-setup/spec.md), [035](../specs/035-cookie-grant-wrapper/spec.md), [036](../specs/036-real-site-validation-harness/spec.md), [037](../specs/037-one-point-oh-api-pin/spec.md) |
 
 ## Shipping
 

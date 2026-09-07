@@ -9,6 +9,13 @@
 > the creds and run them against your real site** — the same build/run split spec 013's
 > live-Alloy rigs use (env creds, never handled here).
 
+> This harness covers the **CWV half** of the MVP6 adoption proof only —
+> before/after Core Web Vitals on a real EDS site. The **parity half** —
+> confirming beacon-level parity with the tag-manager container airlock
+> replaces — is MVP7's vendor-generic parity harness; the real-site rewire
+> proof that consumes both halves lands in MVP9 (see
+> [ADR-0018](decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md)).
+
 ## Part 1 — CWV before/after (spec 036-01)
 
 ## Before you start (pre-flight)
