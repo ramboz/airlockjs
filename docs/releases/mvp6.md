@@ -9,14 +9,17 @@
 
 ## Status
 
-`committed`
+`shipped`
 
 Allowed statuses: `candidate`, `committed`, `shipping`, `shipped`, `dropped`.
 Do not move a plan from `candidate` to `committed` without an explicit user decision.
 
-**Committed 2026-09-07** (owner ratified the re-scoped ladder). **All Include work is DONE and landed on `main`**;
-it ships as **v0.6.0**. The one remaining step is the outward-facing **v0.6.0 cut** (version bump → `dist-v0.6.0` tag +
-dist branch — ADR-0018 Emergent E1), owner-gated; this plan flips to `shipped` when that cut runs.
+**Shipped as `v0.6.0` (2026-09-07).** Owner ratified the re-scoped ladder (ADR-0018); all Include work is DONE and
+landed on `main`, and the v0.6.0 cut (Emergent E1 — version bump → source `v0.6.0` tag + `dist-v0.6.0` tree/tag) ran.
+Release-check verdict: **ship** — with the two honest caveats below (018-h de-facto closed via 033-03; the live
+real-site run carried to MVP9). This is the "Stable Core & Validation Harness" milestone: the stable-core contract
+(037 / ADR-0017), distribution (031), cookie-grant hardening (035), and the real-site validation harness (036) — the
+instrument the adoption proof (MVP9) runs.
 
 **Honest ship caveats (none blocking the v0.6.0 cut — the work shipped; these are scope truths carried forward):**
 1. **`reserveSpace` eager-phase production wiring (018-h)** — recorded "still open" in `docs/refinement-todo.md`, but
