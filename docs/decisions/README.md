@@ -25,6 +25,7 @@
 - [ADR-0016: Stock alloy bundle: adopter-supplied `bundleUrl`, same-origin recommended](adr-0016-alloy-stock-bundle-site-supplied.md) — To boot **Adobe/alloy** via `boot(config)` on a *buildless* EDS site (spec 033), the classic alloy chamber worker `importScripts` the ~766 KB stock **Adobe Experience Platform Web SDK** (`@adobe/alloy`, byte-pinned per AD-7 at **v2.35.0**). (2026-09-04, Accepted)
 - [ADR-0017: The airlock 1.0 public API contract (frozen surface + experimental carve-out)](adr-0017-airlock-1-0-api-contract.md) — airlock has reached MVP6. (2026-09-05, Accepted)
 - [ADR-0018: Reframe: 1.0 means adoptable with confirmed parity (re-baselining the release ladder)](adr-0018-reframe-onto-adoptable-one-point-oh.md) — The owner moved airlock's definition of 1.0 on 2026-09-05 — from "the public API is frozen" to "a developer can rewire a real site's TBT-dominant tags onto airlock with confirmed parity" — and the corpus still encodes the old definition as settled truth. (2026-09-07, Accepted)
+- [ADR-0019: GA4 rewire path — additive gtag-protocol connector](adr-0019-ga4-gtag-protocol-connector.md) — ADR-0018 made confirmed vendor-boundary parity the airlock 1.0 bar with GA4 as the analytics anchor, and set a GA4 kill criterion for when airlock's Measurement-Protocol egress cannot match a container's `gtag.js` tag. (2026-09-07, Proposed)
 
 ## Format
 
