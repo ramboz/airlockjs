@@ -116,3 +116,13 @@ fields), so the documented shape and the helper output agree.
 **Hard deferral — the creds-gated live wire-shape gate (unchanged, re-stated for the cutover):** a **real production cutover** must first confirm the **live** `ot.aem.live` collector accepts airlock's `cwv` **superset** shape (the `web-vitals/attribution` build's extra fields — flagged in the 2026-09-01 web-vitals decision, **never verified live**). The 030-03 in-repo demonstration network-**stubs** `ot.aem.live` (hermetic; it proves the page-side no-double-count, **not** live acceptance). This gate is named in the README's "before a real cutover" section; do not read "replace is demonstrated" as "replace is live-verified."
 
 **Scope:** spec 030 (RUM subsume) — resolves the MVP4 `helix-rum` feed/replace/coexist open item (release plans updated). The interaction/lifecycle parity + the creds-gated live wire-shape check stay **deferred** (per 2026-09-01). **Not to be misread:** this is a **core-checkpoint** page-side replace — it is **not** the *full-parity* page-side cutover (the deferred 022-03/05 "remove `sampleRUM` + reproduce the entire enhancer checkpoint set" work), which stays deferred. "Replace" here means "airlock owns the core checkpoints on the page," not "airlock reproduces the whole enhancer." Revisit the mode default if a deployment's needs (full checkpoint parity, or a feed-into-existing-pipeline requirement) make feed/coexist the better fit.
+
+### 2026-09-07 — Release process auto-cuts the dist-vX.Y.Z distribution tag (postversion hook)
+
+**Decision:** A package.json `postversion` hook runs `release:dist` (= `build:dist && publish:dist --target origin --release`), so `npm version X.Y.Z` publishes the immutable `dist-vX.Y.Z` tag + updates the `dist` branch on origin automatically. The source commit + `vX.Y.Z` tag stay the maintainer's explicit `git push --follow-tags` (so briefly dist-vX.Y.Z is on origin before the source tag; the source push catches it up). `release:dist` is also runnable standalone.
+
+**Context:** Spec 031 / ADR-0015 added the git-subtree distribution channel (a dist-rooted `dist` branch + per-release immutable `dist-vX.Y.Z` tags). Tying the dist cut to the version bump keeps a source release and its distribution cut in lockstep and removes a manual step to forget. Kept lightweight (not an ADR): tooling ergonomics with no load-bearing rejected alternatives; the mechanism itself is ADR-0015.
+
+**Scope:** package.json (`release:dist` + `postversion` scripts); README 'Cutting a release' section; CHANGELOG.md
+
+**Commit:** dcff878
