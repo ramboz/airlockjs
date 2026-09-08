@@ -90,8 +90,10 @@ The same-protocol descriptor is the field-map's **identity-heavy special case** 
 `cd[value]`↔`value`), not a full protocol translation — so 038-01 builds the engine + classification + that minimal
 table, and 038-02 adds the *full* R-009 translation table to the *same* engine. **Where airlock's beacon is not
 wire-faithful to the container's field names** (a probable Meta `meta.js` `cd[...]` gap, to be confirmed on the capture),
-the descriptor either maps it or the mismatch is **owned** — a **gap-map entry (026 wire-fidelity)** or a 026 fix —
-never a silent `dropped`. **Grounding the reference set:** the attribution-bearing set is the *container's* (from a
+the descriptor may reconcile it **only if the vendor accepts both spellings**; where the vendor reads only its
+namespaced form (Meta ingests only `cd[...]`), a bare-name airlock field is **not parity** — it is a **026 fix or a
+gap-map entry (026 wire-fidelity)**, never a descriptor "map" (mapping a spelling the vendor won't ingest is a false pass
+on a beacon it never reads — the false-shim ADR-0020 forbids). Never a silent `dropped`. **Grounding the reference set:** the attribution-bearing set is the *container's* (from a
 redacted capture + the vendor's documented params), **not** airlock's connector — grounding it in the artifact under test
 would blind the oracle to exactly the fields airlock drops.
 

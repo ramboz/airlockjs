@@ -31,8 +31,9 @@ This oracle judges the beacon's fields only.
   (`www.facebook.com/tr`) — so this slice adds the beacon endpoint to the capture pattern set and confirms, on the
   capture, both the **identity fields** (`_fbp`/`fbc`/`ud`) **and the event-data wire names** (Meta's
   `cd[value]`/`cd[currency]` vs airlock's bare `value`/`currency` — a probable `meta.js` wire-fidelity gap). A
-  non-wire-faithful `meta.js` is **owned** — a descriptor wire-name map, a **gap-map entry (026 wire-fidelity)**, or a
-  026 fix — decided at the capture; never a silent `dropped`.
+  non-wire-faithful `meta.js` is **owned** at the capture: a descriptor wire-name map **only if Meta accepts both
+  spellings**, otherwise a **gap-map entry (026 wire-fidelity)** or a **026 fix** — never a descriptor "map" of a
+  spelling Meta won't ingest (that is a false pass, ADR-0020), and never a silent `dropped`.
 - ✅ ADR-0020 (accepted) — the parity contract this slice's oracle enforces: per-field classification + the gap map.
 
 **Acceptance Criteria:**
