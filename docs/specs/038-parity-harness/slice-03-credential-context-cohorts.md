@@ -1,10 +1,9 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [038-01, adr-0018, adr-0020]
 last_verified: 2026-09-08
 frame_review: true
 arch_review: true
-claimed_by: claude/mvp7-db84f1
 ---
 
 ## Slice 038-03 — credential/cookie transport-parity report (feeds E10)
