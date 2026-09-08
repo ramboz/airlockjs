@@ -1,7 +1,7 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: [038-01, adr-0019, adr-0020]
-last_verified:
+last_verified: 2026-09-08
 frame_review: true
 arch_review: true
 ---
@@ -84,15 +84,15 @@ a row") and is a named follow-up.
    fixture, exiting non-zero on any divergent field or any field dropped outside the gap map.
 
 **DoD:**
-- [ ] All ACs pass; full suite green (no regressions).
-- [ ] Coverage: a fixture WITH a redacted `_ga`/`_ga_<stream>` context → `cid`/`sid` `maps` (AC1, non-tautological — the
+- [x] All ACs pass; full suite green (no regressions).
+- [x] Coverage: a fixture WITH a redacted `_ga`/`_ga_<stream>` context → `cid`/`sid` `maps` (AC1, non-tautological — the
       test asserts the beacon `cid` is NOT fed into `ctx`); a `dropped`+owned field (`sct`) → `expected-dropped` green;
       an un-owned drop → red; a divergent-value field → red; `_et` → `normalised-out` (not divergent); the Consent-Mode
       gap reported; the session-continuity residual note present; the `mapToMp`-replay path and a supplied-field-set path.
-- [ ] Each new test shown to fail when its feature is removed (mutate → red → restore).
-- [ ] Reviewed by `reviewer` — compliance + craft + **arch** (`arch_review: true`: the flatten adapter + the
+- [x] Each new test shown to fail when its feature is removed (mutate → red → restore).
+- [x] Reviewed by `reviewer` — compliance + craft + **arch** (`arch_review: true`: the flatten adapter + the
       `ctx`-sourcing rule + the translation-table descriptor extend the descriptor/oracle input contract).
-- [ ] Deviation log + reconciliation sweep produced.
+- [x] Deviation log + reconciliation sweep produced.
 
 ## Assumptions
 
@@ -117,8 +117,53 @@ engine 038-01 landed.
 
 ### Deviation log (after reconciliation)
 
-_TBD at implementation._
+**Shape (as built).** `rig/parity/`: `descriptors/ga4.js` (the GA4 `ParityDescriptor` — R-009 `wireNameMap` translation
+table incl. `tid`→`measurement_id` + enumerated `ep.`/`epn.` rows, `gapMap` owned by 039, `_et` in `normaliseDenylist`),
+`ga4-ctx.js` (AC1 ctx-sourcing via the *unmodified* `connectors/ga4/cookies.js` `sourceGa4Ctx`), `ga4-egress.js` (the
+flatten adapter surfacing `measurement_id` from the collect URL), `ga4-replay.js` (the shared replay pipeline — added at
+reconciliation, below), `report-ga4.js` (a thin wrapper over the *unmodified* `report.js` adding the residual note),
+`run-ga4.mjs` (`npm run parity:ga4`); `test/parity-ga4.test.js` (18 tests); `test/fixtures/parity-ga4-collect.redacted.json`
+(synthetic, real-shaped); `docs/inbox.md` (ecommerce follow-up). Verdicts: frame-critique pass (2 rounds), compliance /
+craft / arch all pass.
+
+1. **Reuse, no fork.** The 038-01 engine (`oracle.js`) + generic report (`report.js`) + `verdictExitCode` are reused
+   **unmodified** (grep-confirmed single definitions, 0 GA4 refs); `sourceGa4Ctx` reused unmodified behind a capability
+   shim. The GA4-specific seams (descriptor, `ga4-ctx`, `ga4-egress` flatten) are genuinely necessary because GA4 is a
+   *different protocol* than the container (POST `/mp/collect` vs GET `/g/collect`).
+2. **Decisive AC1 modelling (frame-critique):** `ctx` is sourced from the fixture's `_ga`/`_ga_<stream>`, never the
+   beacon's own `cid`/`sid` (a tautological false-green) — enforced structurally and proven by the "different cookie
+   wins" test.
+3. **Review nits folded (this reconciliation):** **(a)** the craft "primary" nit — factored the
+   ctx→`mapToMp`→`mpUrl`→flatten pipeline that `run-ga4.mjs` and the test duplicated into a shared **`ga4-replay.js`
+   `replayGa4Egress`** (mirrors 038-01's `replay.js`), so the CLI + tests share one path and **`emitted` is derived, not
+   hardcoded**; removed 4 now-unused test imports. **(b)** widened the shared `ParityDescriptor.deriveLogicalEvent`
+   typedef to `Record<string, string|number>` (arch + craft — a 1-line JSDoc alignment; 038-02 is the first numeric-param
+   consumer). **(c)** captured the ecommerce/`purchase` scope-out in `docs/inbox.md` (compliance). 18/18 parity tests +
+   full suite 1304 green, ESLint clean.
+4. **Deferred / logged (non-blocking):** `report-ga4.js`'s per-vendor wrapper → a generic `residualNotes` descriptor
+   field rendered by the shared report (arch — a **post-slice** consistency refactor that would touch the DONE
+   `report.js`; kept the thin wrapper for now, no duplication); naming unevenness (`report-ga4` vs `ga4-ctx`/`ga4-egress`)
+   and the unread `fixture.endpoint` provenance field (cosmetic); the AC4 Consent-Mode gap is asserted at `diffParity`
+   level and reaches the report transitively (compliance — functionally met, no dedicated report-output assertion); an
+   un-enumerated custom `ep.<k>`/`epn.<k>` param is silently skipped (inherited 038-01 curated-set behavior, documented).
+5. **Flagged to owner, NOT amended:** ADR-0020 (Accepted, immutable) kill-criterion #1's parenthetical "(038-02 models
+   `partial`)" is now stale — 038-02 retires `partial` for the residual framing. The ADR's *substance* still holds
+   (038-02's session-continuity residual is an instance of "field present/equal yet semantics diverge"). Amending a
+   closed record needs owner approval (reconciliation rule); surfaced, not written.
 
 ### Reconciliation sweep
 
-_TBD at implementation._
+| Artifact | Disposition | Rationale |
+|----------|-------------|-----------|
+| `README.md` | `no-op` | rig-level validation tooling; no front-door change. |
+| `docs/specs/README.md` | `deferred` (close-out) | regenerated by `workflow.py status-board` **after** the `→ DONE` transition; the board correctly still shows pre-`DONE` here. |
+| `rig/parity/oracle.js` | `updated` | 1-line JSDoc typedef widening (`deriveLogicalEvent` params → `string\|number`) to reflect 038-02's numeric-param consumer — a live-code inline fix (ADR-0010); engine behaviour unchanged. |
+| `docs/product-vision.md` | `no-op` | no behavior/scope drift — parity is already the co-equal success criterion. |
+| `docs/architecture.md` | `no-op` | `rig/parity/` is dev/validation tooling; no runtime module boundary; arch review confirmed clean reuse. |
+| Primer surfaces: `CLAUDE.md` / `AGENTS.md` / templates | `no-op` | 038 still in flight (slice 02 of 3; 038-03 DRAFT). |
+| `docs/inbox.md` | `updated` | GA4 ecommerce/`purchase` structural-translation scope-out parked as a tracked follow-up. |
+| `docs/refinement-todo.md` | `no-op` (for 038-02) | its Spec-038/ADR-0020 section is the prior E10 item; 038-02 adds no new deferral beyond the deviation-log follow-ups. |
+| `docs/memory/**` | `no-op` | the parity vocabulary lives in ADR-0020 + spec 038; the reference-page operational fact is already in auto-memory. |
+| `docs/decisions/README.md` / ADR index | `no-op` | no new ADR; ADR-0020's stale `partial` parenthetical is **flagged to the owner** (deviation log #5), not amended (immutable record, needs approval). |
+| `connectors/**` | `no-op` (intentional) | reused unmodified (`map.js`/`cookies.js`/`consent.js`); no connector touched. |
+| `package.json` | `updated` | added the `parity:ga4` entrypoint (AC7). |

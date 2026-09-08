@@ -36,7 +36,7 @@
  *   to not (yet) emit, each owned by a named closing artifact (ADR-0020 commitment 1).
  * @property {string} [endpoint] - the vendor's beacon endpoint (report provenance; read by
  *   report.js). Part of the de-facto descriptor contract a new-vendor author must supply.
- * @property {(containerFields: Readonly<Record<string,string>>) => { type: string|null, params: Record<string,string> }} [deriveLogicalEvent] -
+ * @property {(containerFields: Readonly<Record<string,string>>) => { type: string|null, params: Record<string, string|number> }} [deriveLogicalEvent] -
  *   the capture->logical-event derivation for the REPLAY half (AC2/AC7): reconstructs the airlock
  *   `{type, params}` `createPixelConnector(...).handle()` consumes from a captured container beacon.
  *   Same-protocol-scoped / replay-input only — it does NOT imply the derived params "map" for the
