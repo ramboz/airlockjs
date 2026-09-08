@@ -32,9 +32,12 @@ first-party-identity drop** that is *not* trivially readable off ADR-0020.
 **Acceptance Criteria:**
 
 1. **Per-vendor `transport` declaration.** Each vendor descriptor gains a `transport` declaration naming its two
-   attribution transports: the **cross-site-cookie** paths (Meta `fr`; Google/DoubleClick `IDE`/`_gcl_*` — a
-   **documented** vendor fact, since the cookie is opaque to page JS + absent from the beacon URL) and the **first-party**
-   identity paths (Meta `_fbp`/`fbc`; GA4 `cid` via `_ga`). **Cookie NAMES / presence only — never values** (R5).
+   attribution transports: the **cross-site-cookie** paths — a **third-party** cookie on the *vendor's* own domain (Meta
+   `fr`; DoubleClick `IDE`), owner **E10**, documented because the cookie is opaque to page JS + absent from the beacon
+   URL — and the **first-party** identity paths (Meta `_fbp`/`fbc`; Google `gclid`/`_gcl_*` — first-party cookies gtag
+   sets on the *publisher's* origin, so owner **cookie-capability, not E10**; GA4 `cid` via `_ga`). The E10-vs-cookie-cap
+   owner is fixed by *where the cookie lives* (vendor origin = cross-site = E10; publisher origin = first-party =
+   cookie-cap), not by vendor. **Cookie NAMES / presence only — never values** (R5).
 2. **Per-cohort gap classification (reasoned from the declaration + the grounded `gapMap`/egress facts).** For each
    vendor × cohort, the ledger reports each gap class and its owner:
    - **3p-cookies-allowed:** the vendor cross-site cookie rides the container's request, airlock's cookieless egress
