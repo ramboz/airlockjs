@@ -102,7 +102,7 @@
 | [036-real-site-validation-harness](036-real-site-validation-harness/spec.md) | 036-01 — live CWV before/after harness (two-URL) + procedure | **DONE** |  |
 | [036-real-site-validation-harness](036-real-site-validation-harness/spec.md) | 036-02 — supported-subset live smoke (GA4 + alloy) + residuals checklist + run-procedure | **DONE** |  |
 | [037-one-point-oh-api-pin](037-one-point-oh-api-pin/spec.md) | 037-01 — the capstone 1.0-API-pin ADR + contract-stability enforcement | **DONE** |  |
-| [038-parity-harness](038-parity-harness/spec.md) | 038-01 — vendor-generic harness core + same-protocol oracle (Meta Pixel) | DRAFT |  |
+| [038-parity-harness](038-parity-harness/spec.md) | 038-01 — vendor-generic harness core + same-protocol oracle (Meta Pixel) | **DONE** |  |
 | [038-parity-harness](038-parity-harness/spec.md) | 038-02 — semantic field-map oracle (GA4) | DRAFT |  |
 | [038-parity-harness](038-parity-harness/spec.md) | 038-03 — credential/cookie context + per-cohort report (feeds E10) | DRAFT |  |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-01 — core /g/collect page_view beacon | DRAFT |  |
@@ -131,7 +131,7 @@
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
 - **8** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **91** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **93** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **14** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
