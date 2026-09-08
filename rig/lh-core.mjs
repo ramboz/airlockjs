@@ -55,13 +55,33 @@ export function withinTightBand(deltaMedian) {
 // ---- the DI'd Lighthouse-once runner (shared shape; the actual `lighthouse` call is the
 // one impure bit — callers pass the real `lighthouse` import, tests pass a fake) ----
 
-export async function runLighthouseOnce(lighthouseFn, url, { port } = {}) {
-  const res = await lighthouseFn(url, {
+export async function runLighthouseOnce(
+  lighthouseFn,
+  url,
+  {
+    port,
+    blockedUrlPatterns,
+    formFactor = "desktop",
+    screenEmulation = { disabled: true },
+    throttling,
+  } = {},
+) {
+  const flags = {
     port,
     onlyCategories: ["performance"],
-    formFactor: "desktop",
-    screenEmulation: { disabled: true },
-  });
+    // Defaults are the un-throttled desktop read the before/after rigs (lh-eds, lh-live) use —
+    // a caller that passes only `{ port }` gets byte-identical behavior. R-010 overrides them
+    // for a mobile-throttled read.
+    formFactor,
+    screenEmulation,
+  };
+  // R-010 (indicative CWV bound): block the four TBT-dominant vendor runtimes at the network
+  // layer via Lighthouse's `blockedUrlPatterns` flag, so the ON arm measures the same URL with
+  // those runtimes removed. Absent for the lh-eds/lh-live callers; set only when an arm opts in.
+  if (blockedUrlPatterns) flags.blockedUrlPatterns = blockedUrlPatterns;
+  // R-010: mobile CPU/network throttling (the before/after rigs run un-throttled by design).
+  if (throttling) flags.throttling = throttling;
+  const res = await lighthouseFn(url, flags);
   const a = res.lhr.audits;
   return {
     performance: Math.round(res.lhr.categories.performance.score * 100),

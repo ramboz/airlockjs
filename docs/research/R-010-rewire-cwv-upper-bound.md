@@ -15,6 +15,12 @@ related:
 > cooperation**, so it can run before the two-party MVP9 rewire — it tells us early whether the whole ladder is worth
 > walking.
 
+> **Progress — harness built 2026-09-07 (this note).** The measurement rig is implemented and green; only the live run
+> remains, gated on **one input: the reference page URL** (see Method → Two gates). Built: `blockedUrlPatterns` +
+> mobile-throttle support added to `rig/lh-core.mjs`'s `runLighthouseOnce` (backward-compatible — the lh-eds/lh-live
+> callers are byte-identical; `test/lh-core.test.js` green, 24 tests), and a dedicated runner `rig/lh-r010.mjs`
+> (`npm run lh:r010`) that reuses the lh-core median/summary/delta engine. Status stays `OPEN`: no numbers yet.
+
 ## Question
 
 Roughly how much Core-Web-Vitals headroom does removing the four TBT-dominant vendor runtimes (Meta `fbevents.js`,
@@ -24,12 +30,33 @@ the MVP9 rewire can achieve.
 
 ## Method
 
-- Lighthouse runs of the shipped page (`erp.intuit.com` or an equivalent intuit-class page) **vs the same URL with the
-  four vendor runtimes network-blocked** via Lighthouse `blockedUrlPatterns` — a one-line `settings` addition to
-  `rig/lh-core.mjs` (grounded 2026-09-07: `blockedUrlPatterns` is used by no rig today).
-- Both container configurations: shipped (phase-split off) and `?martech-phase-split=on` (which defers Floodlight,
-  Google Ads and Meta to `delayed_ready`).
-- Mobile-throttled, N runs, report the median + the TBT/LCP/CLS deltas (reuse `rig/lh-core.mjs`'s median/band engine).
+Implemented as `rig/lh-r010.mjs` (`npm run lh:r010`), reusing `rig/lh-core.mjs`'s median/summary/delta engine (the same
+one lh-eds/lh-live use — not a parallel impl):
+
+- **OFF vs ON on the same URL.** OFF = the shipped page; ON = the *same* URL with the four TBT-dominant vendor runtimes
+  **network-blocked** via Lighthouse `blockedUrlPatterns` (added to `runLighthouseOnce` 2026-09-07; it was used by no rig
+  before). Same host/cache/edge/origin → only the block varies, so the delta is meaningful (lh-eds's query-gate
+  invariant). No page edit, no container-owner cooperation.
+- **The four runtimes (default block set — confirm per page).** `*connect.facebook.net*` (Meta `fbevents.js`),
+  `*googletagmanager.com/gtag/js*` (GA4 **and** Google Ads `gtag.js` — one runtime file, two ids), `*doubleclick.net*`
+  (Floodlight `fls.` + Google Ads `googleads.g.`), `*google-analytics.com*` (GA4 collect residual). The reference site's
+  exact runtime URLs live in its container (`intuit-erp/MARTECH.md`, **not in this repo**), so the set is best-effort and
+  **overridable** (`BLOCK_PATTERNS=…`).
+- **A recon pass grounds the set (R5 discipline).** Before any delta, one un-blocked Lighthouse pass lists which *real*
+  requests the block set matches, with transfer sizes — so we confirm the patterns actually hit the four runtimes on
+  *this* page rather than assuming (a speculative match would make the delta meaningless). `RECON_ONLY=1` runs just this.
+- **Both container configurations:** shipped (phase-split off) and `?martech-phase-split=on` (defers Floodlight, Google
+  Ads and Meta to `delayed_ready`) — configurable via `PHASE_SPLIT`.
+- **Mobile-throttled** (slow-4G, 4× CPU — explicit preset), **N interleaved runs** (`LH_N`, default 5), report the median
+  + the TBT/LCP/CLS/perf deltas per config (`delta_median = ON−OFF`; a negative TBT/LCP delta is headroom gained).
+
+**Two gates before the live run:**
+1. **The reference URL** — not pinned in this repo (the `intuit-erp/MARTECH.md` reference lives with the container owner).
+   Needs a concrete intuit-class page that is **public and Lighthouse-loadable** (a marketing/landing page, not an
+   authenticated ERP app the harness can't load).
+2. **Running it against a third-party production site** — a bounded set of Lighthouse loads (N per arm × 2 arms × 2
+   configs ≈ 20 page loads at N=5), read-only, no data submitted. Chrome + Lighthouse + network egress are all confirmed
+   available in this environment, so once the URL is set the run produces real numbers here.
 
 ## What this bounds — and what it does not
 

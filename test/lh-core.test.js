@@ -90,6 +90,42 @@ describe("runLighthouseOnce — DI'd Lighthouse-result parser (no browser; a fak
     expect(seenUrl).toBe("http://y/");
     expect(seenOpts).toMatchObject({ port: 42, onlyCategories: ["performance"], formFactor: "desktop", screenEmulation: { disabled: true } });
   });
+
+  it("omits blockedUrlPatterns/throttling by default (byte-identical to the before/after rigs' call)", async () => {
+    let seenOpts;
+    const fakeLighthouse = async (_url, opts) => {
+      seenOpts = opts;
+      return { lhr: { categories: { performance: { score: 1 } }, audits: { "largest-contentful-paint": { numericValue: 0 }, "total-blocking-time": { numericValue: 0 }, "cumulative-layout-shift": { numericValue: 0 } } } };
+    };
+    await runLighthouseOnce(fakeLighthouse, "http://y/", { port: 7 });
+    expect(seenOpts).not.toHaveProperty("blockedUrlPatterns");
+    expect(seenOpts).not.toHaveProperty("throttling");
+  });
+
+  it("R-010: passes blockedUrlPatterns + a mobile-throttled override through to lighthouse()", async () => {
+    let seenOpts;
+    const fakeLighthouse = async (_url, opts) => {
+      seenOpts = opts;
+      return { lhr: { categories: { performance: { score: 1 } }, audits: { "largest-contentful-paint": { numericValue: 0 }, "total-blocking-time": { numericValue: 0 }, "cumulative-layout-shift": { numericValue: 0 } } } };
+    };
+    const blockedUrlPatterns = ["*connect.facebook.net*", "*googletagmanager.com/gtag/js*"];
+    const throttling = { cpuSlowdownMultiplier: 4 };
+    await runLighthouseOnce(fakeLighthouse, "http://z/", {
+      port: 9,
+      blockedUrlPatterns,
+      formFactor: "mobile",
+      screenEmulation: { mobile: true, disabled: false },
+      throttling,
+    });
+    expect(seenOpts).toMatchObject({
+      port: 9,
+      onlyCategories: ["performance"],
+      formFactor: "mobile",
+      screenEmulation: { mobile: true, disabled: false },
+      blockedUrlPatterns,
+      throttling,
+    });
+  });
 });
 
 describe("normalizeProfile — operator-declared input, soft fallback (mirrors cwv-scoreboard's resolveProfile)", () => {
