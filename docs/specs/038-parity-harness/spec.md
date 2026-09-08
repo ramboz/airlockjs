@@ -83,13 +83,17 @@ into two different oracles and mis-modelled the same-protocol case as pure equal
 
 | Descriptor | When | Shape |
 |---|---|---|
-| **Same-protocol** | airlock speaks the container's own protocol — Meta Pixel `/tr` GET (026); GA4 once the gtag connector (039) ships | field names match 1:1 (an identity translation); compare values **and** classify container fields airlock omits as **dropped** |
-| **Semantic field-map** | airlock legitimately speaks a *different* protocol — GA4 via the Measurement Protocol today | a per-vendor translation table (the R-009 map) resolves container field → airlock field, then the same three-bucket classification |
+| **Same-protocol** | airlock speaks the container's own protocol — Meta Pixel `/tr` GET (026); GA4 once the gtag connector (039) ships | field names are **predominantly 1:1**, with a **minimal wire-name mapping** where the container namespaces fields (e.g. Meta sends event data as `cd[value]`/`cd[currency]`; airlock's `meta.js` emits bare `value`/`currency`); compare values **and** classify container fields airlock omits as **dropped** |
+| **Semantic field-map** | airlock legitimately speaks a *different* protocol — GA4 via the Measurement Protocol today | a full per-vendor translation table (the R-009 map) resolves container field → airlock field, then the same three-bucket classification |
 
-The same-protocol descriptor is just the field-map's **identity-translation special case** — so 038-01 builds the engine
-+ the classification, and 038-02 adds a translation table to the *same* engine. **Grounding the reference set:** the
-attribution-bearing set is the *container's* (from a redacted capture + the vendor's documented params), **not** airlock's
-connector — grounding it in the artifact under test would blind the oracle to exactly the fields airlock drops.
+The same-protocol descriptor is the field-map's **identity-heavy special case** — a *minimal* wire-name table (e.g.
+`cd[value]`↔`value`), not a full protocol translation — so 038-01 builds the engine + classification + that minimal
+table, and 038-02 adds the *full* R-009 translation table to the *same* engine. **Where airlock's beacon is not
+wire-faithful to the container's field names** (a probable Meta `meta.js` `cd[...]` gap, to be confirmed on the capture),
+the descriptor either maps it or the mismatch is **owned** — a **gap-map entry (026 wire-fidelity)** or a 026 fix —
+never a silent `dropped`. **Grounding the reference set:** the attribution-bearing set is the *container's* (from a
+redacted capture + the vendor's documented params), **not** airlock's connector — grounding it in the artifact under test
+would blind the oracle to exactly the fields airlock drops.
 
 ## Assumptions
 

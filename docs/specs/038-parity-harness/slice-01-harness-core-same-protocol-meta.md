@@ -28,8 +28,11 @@ This oracle judges the beacon's fields only.
   `id`/`ev` + non-PII standard params, **omitting** `_fbp`/`fbc`/`ud[...]` by construction.
 - ⚠️ **Capture front-end needs a beacon-endpoint pattern (grounded correction 2026-09-08).** `rig/lh-r010.mjs`'s recon
   matches vendor **runtime loaders** (`*connect.facebook.net*` = `fbevents.js`), **not** the `/tr` beacon
-  (`www.facebook.com/tr`) — so this slice adds the beacon endpoint to the capture pattern set and confirms the reference
-  `/tr` GET carries `_fbp`/`fbc`/`ud`.
+  (`www.facebook.com/tr`) — so this slice adds the beacon endpoint to the capture pattern set and confirms, on the
+  capture, both the **identity fields** (`_fbp`/`fbc`/`ud`) **and the event-data wire names** (Meta's
+  `cd[value]`/`cd[currency]` vs airlock's bare `value`/`currency` — a probable `meta.js` wire-fidelity gap). A
+  non-wire-faithful `meta.js` is **owned** — a descriptor wire-name map, a **gap-map entry (026 wire-fidelity)**, or a
+  026 fix — decided at the capture; never a silent `dropped`.
 - ✅ ADR-0020 (accepted) — the parity contract this slice's oracle enforces: per-field classification + the gap map.
 
 **Acceptance Criteria:**
