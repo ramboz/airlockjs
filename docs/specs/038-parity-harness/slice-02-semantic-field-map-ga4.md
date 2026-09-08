@@ -48,16 +48,22 @@ a row") and is a named follow-up.
    (AC5).
 2. **GA4 descriptor = the R-009 translation table + the GA4 gap map, keyed to the FLATTENED airlock field-set.** A
    `ParityDescriptor` (038-01's shape) whose `wireNameMap` maps each `/g/collect` field → the **flattened** airlock key
-   AC3's adapter produces (`cid`→`client_id`, `en`→`event_name`, `ep.<k>`/`epn.<k>`→`<k>`, `dl`/`dr`/`dt`→
-   `page_location`/`page_referrer`/`page_title`, `sid`→`session_id`); whose `gapMap` declares the no-MP-equivalent fields
+   AC3's adapter produces — `tid`→`measurement_id` (the destination property; airlock's is surfaced from the collect-URL
+   query, AC3 — so sending to the *wrong* property is a caught `divergent`, not a false `dropped`), `cid`→`client_id`,
+   `en`→`event_name`, `dl`/`dr`/`dt`→`page_location`/`page_referrer`/`page_title`, `sid`→`session_id`, and **one
+   enumerated row per observed event param** (`ep.<k>`/`epn.<k>`→`<k>` is *shorthand* — `wireNameMap` is a static
+   `Record<string,string>`, so each concrete `k` seen in the capture is its own row, **never** a wildcard-strip); whose
+   `gapMap` declares the no-MP-equivalent fields
    (`sct`/`seg`/`_fv`/`_ss`/`_nsi`, and the Consent-Mode `gcs`/`gcd` signal) owned by **spec 039**; and whose
    `normaliseDenylist` covers both `/g/collect`'s nondeterministic fields (`_p`/`_z`/`_s`/`_dbg`/cache-busters) **and
    runtime-measured values airlock cannot/should not reproduce** — notably **`_et`** (`map.js:65` defaults
    `engagement_time_msec` to `100`, so its *field* maps but its *value* is not a parity check → `normalised-out`, **not**
    `maps`).
 3. **The oracle is 038-01's `diffParity`, fed the GA4 descriptor + a flatten adapter.** A **flatten adapter** turns
-   `mapToMp`'s nested body into the flat `{field: value}` shape `diffParity` compares (body-level `client_id`, a derived
-   `event_name`, one entry per `params.<k>`; mirrors 038-01 parsing the pixel GET URL). The `wireNameMap` RHS (AC2) is
+   airlock's MP egress into the flat `{field: value}` shape `diffParity` compares: the body's `client_id` + a derived
+   `event_name` + one entry per `params.<k>`, **plus the `measurement_id` from the collect-URL query** (`mpUrl`,
+   `map.js:79-85` — the destination property lives in the URL, not the body, so surfacing it keeps `tid`→`measurement_id`
+   checkable rather than a false `dropped`). Mirrors 038-01 parsing the pixel GET URL. The `wireNameMap` RHS (AC2) is
    keyed to this adapter's output, so a name→name lookup never falsely `dropped`s a present field. Classification is the
    *same* engine: `cid`/`sid` (shared-cookie-sourced) + event params → `maps`; `_et` → `normalised-out`; `sct`/`seg`/…,
    `gcs`/`gcd` → `dropped`→`expected-dropped` (owned 039); a translated field present-but-value-divergent → `divergent`.
