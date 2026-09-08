@@ -1,9 +1,10 @@
 ---
-status: DRAFT
+status: RECONCILED
 dependencies: [adr-0018, adr-0020]
-last_verified:
+last_verified: 2026-09-08
 frame_review: true
 arch_review: true
+claimed_by: claude/mvp7-db84f1
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about runnable
@@ -73,13 +74,13 @@ This oracle judges the beacon's fields only.
    change (proven by a second descriptor in a test).
 
 **DoD:**
-- [ ] All ACs pass; full test suite green (no regressions).
-- [ ] Coverage: redaction test (AC1); the three AC4 fixtures — **(a)** expected-dropped → green, **(b)** un-owned drop →
+- [x] All ACs pass; full test suite green (no regressions).
+- [x] Coverage: redaction test (AC1); the three AC4 fixtures — **(a)** expected-dropped → green, **(b)** un-owned drop →
       red, **(c)** owners-landed → `maps`; a divergent-value fixture; a second GET-vendor descriptor (AC7).
-- [ ] Each new test shown to fail when its feature is removed (mutate → red → restore).
-- [ ] Reviewed by `reviewer` — compliance + craft + **arch** (`arch_review: true`: new rig module boundary + the
+- [x] Each new test shown to fail when its feature is removed (mutate → red → restore).
+- [x] Reviewed by `reviewer` — compliance + craft + **arch** (`arch_review: true`: new rig module boundary + the
       vendor-descriptor public shape, incl. the gap-map contract).
-- [ ] Deviation log + reconciliation sweep produced.
+- [x] Deviation log + reconciliation sweep produced.
 
 ## Assumptions
 
@@ -100,8 +101,54 @@ working two-way regression guard for Meta beacon-field parity, end-to-end.
 
 ### Deviation log (after reconciliation)
 
-_TBD at implementation._
+**Shape (as built).** `rig/parity/` — `oracle.js` (pure, DI, vendor-agnostic classified-diff + gap-map
+engine), `descriptors/meta.js` (the Meta `ParityDescriptor` — curated container set, gap map, capture→logical-event
+derivation), `replay.js`, `redact.js`, `capture-patterns.js`, `report.js`, `run-meta.mjs`; `test/parity-oracle.test.js`
++ `test/parity-meta.test.js` (28 tests); `test/fixtures/parity-meta-tr.redacted.json` (synthetic, real-shaped);
+`package.json` `parity:meta`; `docs/inbox.md` (the 026 wire-fidelity gap parked). Verdicts: frame-critique pass (5
+rounds), compliance/craft/arch all pass.
+
+1. **Reuse calls.** `generic-capture.js` was named a reuse candidate in the spec's Assumptions but **dis-confirmed** at
+   build (it is a push→ring→flush spy, not a `handle()`+URL-parse) — a leaner `replayPixelBeacon` was written instead
+   (the honest, leaner call). `lh-core.mjs` (a CWV engine) has nothing the parity oracle can reuse — not force-fit.
+2. **`cd[...]` wire-fidelity (the ceremony's byproduct).** Meta's documented `/tr` namespaces event data as `cd[...]`;
+   airlock's `meta.js` emits **bare** `value`/`currency` (`meta.js:74-81`). Modelled as **owned `gapMap` entries ("026
+   wire-fidelity")**, never a `wireNameMap` "map" of a spelling Meta may not ingest (the false-shim ADR-0020 forbids).
+   `connectors/**` was **not** touched (026 out of scope); the 026 fix is parked in `docs/inbox.md`.
+3. **AC4(b) example deviation.** The AC's parenthetical said drop "`currency`" as the un-owned field; but `cd[currency]`
+   is an owned gap-map entry, so `id` (a genuinely un-owned field that maps today) is used instead — a correct reading
+   of the AC's intent (confirmed by all three reviewers).
+4. **Review nits folded (this reconciliation):** completed the public `ParityDescriptor` typedef with `endpoint` +
+   `deriveLogicalEvent` (arch + craft nit); **hardened `redact.js`** to scrub `fbclid`/click-ids from URL-valued fields
+   (`dl`/`dr`) + softened the docstring + added a regression test — a real R5 hole (a live `fbclid` in `dl` is the id
+   `fbc` encodes) to close before any real local capture (craft nit); made the vacuous `emitted` assertion use the real
+   replay result (compliance nit). 28/28 parity tests green, ESLint clean.
+5. **Deferred / logged (not fixed — non-blocking):** the `wireNameMap` branch is delivered but untested (identity
+   fallback; a non-empty map lands with the first vendor that needs one); `matchesPattern` is copied from
+   `rig/lh-r010.mjs` (importing it runs its import-time `process.exit(2)`) — the **2nd copy** of the glob matcher;
+   extracting it into `lh-core.mjs` is a follow-up (out of this slice's scope — it would touch lh-r010); the
+   **completeness-guard open question** (a container field the descriptor author forgets to
+   curate yields a false pass — the spec's central risk) is **owned by ADR-0020's capture-refresh cadence + kill
+   criteria**, with a per-capture curated-or-denylisted guard as a possible future hardening.
 
 ### Reconciliation sweep
 
-_TBD at implementation._
+_Scope: this sweep covers **038-01's own changes only**. The branch (`claude/mvp7-db84f1`) also carries prior MVP7 units
+— ADR-0019 / ADR-0020 (+ their reviews), R-009 / R-010, `docs/releases/{README,mvp7}.md`, spec 039, and
+`rig/lh-core.mjs` / `rig/lh-r010.mjs` (spec 036 / R-010) — each reconciled in its own unit; they are **not** 038-01
+deliverables._
+
+| Artifact | Disposition | Rationale |
+|----------|-------------|-----------|
+| `README.md` | `no-op` | rig-level validation tooling; no project-front-door change. |
+| `docs/specs/README.md` | `deferred` (close-out) | the board is regenerated by `workflow.py status-board` **after** the `→ DONE` transition (a post-DONE close-out step); the slice is `REVIEWED` → `RECONCILED` here, so the board correctly still shows the pre-`DONE` state. |
+| `docs/product-vision.md` | `no-op` | no behavior/scope drift — parity is already the co-equal success criterion (added 2026-09-07). |
+| `docs/architecture.md` | `no-op` | `rig/parity/` is dev/validation tooling (like `rig/lh-*`), not a runtime module boundary; `ParityDescriptor` is an internal rig contract, not an external interface (`contracts/`). Arch review confirmed the boundary is clean. |
+| Primer surfaces: `CLAUDE.md` / `AGENTS.md` / templates | `no-op` | 038 still in flight (slice 01 of 3); Active-specs entry stays until close-out. |
+| `docs/inbox.md` | `updated` | the **026 wire-fidelity** gap (airlock's `meta.js` emits bare `value` vs Meta's documented `cd[...]`) parked as a real-driver-gated follow-up. |
+| `docs/refinement-todo.md` | `no-op` (for 038-01) | its "Spec 038 / ADR-0020 follow-ups" section is prior ADR-0020 work (the E10 credentialed-transport item), **not** this slice's; 038-01 adds no new deferral beyond the deviation-log follow-ups (the `matchesPattern`→`lh-core` extraction; the completeness-guard, owned by ADR-0020). |
+| `docs/memory/**` | `no-op` | the parity vocabulary (classified-diff oracle, gap map, beacon-field parity, expected-dropped/gap-closed) is defined in the linked **ADR-0020 + spec 038** (hot-cache-reachable); no separate glossary entry earns its keep, and no dead-end learning to persist (the `cd[...]` finding is in `docs/inbox.md`). Glossary/hot-cache primer hygiene deferred to spec close-out (038 still in flight). |
+| `package.json` | `updated` | added the `parity:meta` entrypoint (AC6) — a real 038-01 deliverable. |
+| spec 038 `spec.md` / `slice-02` / `slice-03` | `updated` | spec-authoring scaffolding — the 5-round frame-critique reframe (classified-diff + gap-map) + the gap-map alignment carried into the sibling slices; disclosed in the frame-critique review + this slice's history. |
+| `docs/decisions/README.md` / ADR index | `no-op` (for 038-01) | its only change was the ADR-index regen when ADR-0019/0020 landed (prior units); 038-01 introduces no ADR. |
+| `connectors/**` | `no-op` (intentional) | the `cd[...]` gap is **owned, not fixed** here (026 out of this slice's scope); no connector touched — confirmed by all three reviewers. |

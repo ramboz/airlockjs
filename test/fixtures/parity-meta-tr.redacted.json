@@ -1,0 +1,21 @@
+{
+  "_comment": "Spec 038-01 — a REDACTED, REAL-SHAPED (not real) fixture standing in for a container's Meta Pixel `/tr` beacon (a Lead conversion). Real captures are local-only and uncommittable (ADR-0020 R5): the pixel id, _fbp/fbc, and ud[...] hashed-match values below are clearly-synthetic placeholders (all-zero / literal SYNTHETIC-* markers) carrying the real Meta /tr field VOCABULARY only, per rig/parity/redact.js's redactMetaBeacon(). No live identifier of any kind appears in this file — see test/parity-meta.test.js's redaction coverage.",
+  "endpoint": "https://www.facebook.com/tr",
+  "container_fields": {
+    "id": "000000000000000",
+    "ev": "Lead",
+    "cd[value]": "25",
+    "cd[currency]": "USD",
+    "cd[content_name]": "Newsletter Signup",
+    "cd[content_category]": "signup",
+    "_fbp": "fb.1.0000000000000.0000000000",
+    "fbc": "fb.1.0000000000000.SYNTHETIC-FBCLID-0000",
+    "ud[em]": "0000000000000000000000000000000000000000000000000000000000000000",
+    "ud[ph]": "0000000000000000000000000000000000000000000000000000000000000000",
+    "rdp": "0",
+    "v": "2.9.999",
+    "dl": "https://example.test/synthetic-landing-page",
+    "ts": "0000000000000",
+    "cb": "0000000000000"
+  }
+}
