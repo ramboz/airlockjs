@@ -47,7 +47,8 @@
     "cwv:budget": "node rig/cwv-budget.mjs",
     "cwv:scoreboard": "node rig/cwv-scoreboard.mjs",
     "parity:meta": "node rig/parity/run-meta.mjs",
-    "parity:ga4": "node rig/parity/run-ga4.mjs"
+    "parity:ga4": "node rig/parity/run-ga4.mjs",
+    "parity:transport": "node rig/parity/run-transport.mjs"
   },
   "devDependencies": {
     "@ampproject/worker-dom": "^0.36.0",

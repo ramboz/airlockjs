@@ -74,6 +74,17 @@ export const metaParityDescriptor = {
     "ud[ph]": { owner: "026-04" },
   },
 
+  // spec 038-03's transport declaration (feeds ADR-0018 E10, ADR-0020 commitment 3): Meta's
+  // THIRD-PARTY cross-site cookie (`fr`, set on facebook.com — opaque to page JS, absent from the
+  // beacon URL, owner E10) and its FIRST-PARTY identity fields (`_fbp`/`fbc`, publisher-origin
+  // cookies fbevents.js sets). Owner for the first-party fields is deliberately NOT declared here —
+  // rig/parity/transport-report.js reads it from THIS descriptor's own `gapMap` above, so the two
+  // can never drift apart.
+  transport: {
+    crossSiteCookies: [{ cookie: "fr", owner: "E10" }],
+    firstPartyIdentity: ["_fbp", "fbc"],
+  },
+
   /**
    * Capture -> logical-event derivation (AC2/AC7): reconstructs the airlock-shaped
    * `{type, params}` `createPixelConnector(...).handle()` consumes FROM a captured container

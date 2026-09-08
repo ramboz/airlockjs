@@ -36,6 +36,11 @@
  *   to not (yet) emit, each owned by a named closing artifact (ADR-0020 commitment 1).
  * @property {string} [endpoint] - the vendor's beacon endpoint (report provenance; read by
  *   report.js). Part of the de-facto descriptor contract a new-vendor author must supply.
+ * @property {{crossSiteCookies: readonly {cookie: string, owner: string}[], firstPartyIdentity: readonly string[]}} [transport] -
+ *   spec 038-03's transport declaration (feeds ADR-0018 E10) — invisible to `diffParity` itself
+ *   (the cross-site cookie is opaque to page JS, never a beacon field); read only by
+ *   rig/parity/transport-report.js, which sources first-party-field gap ownership from this same
+ *   descriptor's `gapMap` above rather than duplicating it here.
  * @property {(containerFields: Readonly<Record<string,string>>) => { type: string|null, params: Record<string, string|number> }} [deriveLogicalEvent] -
  *   the capture->logical-event derivation for the REPLAY half (AC2/AC7): reconstructs the airlock
  *   `{type, params}` `createPixelConnector(...).handle()` consumes from a captured container beacon.

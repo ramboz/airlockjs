@@ -24,8 +24,10 @@
  * descriptor extension (a structured translation), not "add a row" (see spec's Assumptions).
  */
 
-/** A clearly-synthetic, real-SHAPED (`G-XXXXXXXXXX`) GA4 measurement id — mirrors
- *  `descriptors/meta.js`'s `SYNTHETIC_META_PIXEL_ID` convention. Never a live property id. */
+/** A clearly-synthetic, real-SHAPED (`G-XXXXXXXXXX`) GA4 measurement id — mirrors the
+ *  synthetic-placeholder convention of `connectors/pixel/vendors/meta.js`'s
+ *  `SYNTHETIC_META_PIXEL_ID` (that constant lives in the connector, not the parity descriptor).
+ *  Never a live property id. */
 export const SYNTHETIC_GA4_MEASUREMENT_ID = "G-DEBUGTEST0";
 
 // NOTE: the harness passes an EMPTY MP api_secret (ga4-replay.js) — it never sends the beacon and
@@ -105,6 +107,17 @@ export const ga4ParityDescriptor = {
     _nsi: { owner: "spec 039" },
     gcs: { owner: "spec 039" },
     gcd: { owner: "spec 039" },
+  },
+
+  // spec 038-03's transport declaration (feeds ADR-0018 E10, ADR-0020 commitment 3): GA4 analytics
+  // has NO cross-site cookie of its own (only Google Ads' `IDE`/DoubleClick would — no Google Ads
+  // descriptor exists yet, not invented here) and one first-party identity field, `cid` (sourced
+  // from `_ga`, 038-02's `sourceGa4Ctx`). Owner is deliberately NOT declared here —
+  // rig/parity/transport-report.js reads it from THIS descriptor's own `gapMap` above; `cid` is
+  // absent from it, so airlock already emits it and this vendor reports gap-free.
+  transport: {
+    crossSiteCookies: [],
+    firstPartyIdentity: ["cid"],
   },
 
   /**
