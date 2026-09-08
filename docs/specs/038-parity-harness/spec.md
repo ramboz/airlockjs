@@ -14,7 +14,9 @@ use_cases: [UC-2]
 > co-equal half of the 1.0 bar (see the vision `## Use cases` — "CWV without parity is a demo; parity without CWV is a
 > port"), and it is the gate every real-site rewire (MVP9) depends on. Grounded by [R-009(a)](../../research/R-009-gtag-family-fidelity.md)
 > (the GA4 field-map, capture-confirmed 2026-09-07) and [ADR-0019](../../decisions/adr-0019-ga4-gtag-protocol-connector.md)
-> (GA4's rewire path → a same-protocol gtag connector).
+> (GA4's rewire path → a same-protocol gtag connector). The **parity contract this harness enforces** — beacon-field
+> parity, per-field gap ownership, drift-as-regression-guard, hard gaps owner-re-decided — is
+> [ADR-0020](../../decisions/adr-0020-parity-contract-anti-drift.md).
 
 ## Overview
 
@@ -36,29 +38,51 @@ redacted captures are fed through it (the MVP6-036 build/run split, reused here)
 
 ## What already exists (reuse — grounded 2026-09-08)
 
-- **Capture front-end** — `rig/lh-r010.mjs`'s recon (built 2026-09-07) already extracts the container's live vendor
-  beacons from a Lighthouse `network-requests` log (it matched Meta `fbevents.js`/`signals`, GA4 `gtag/js` + `/g/collect`,
-  Google Ads `gtag/js`, Floodlight `gtag/js` + `ad.doubleclick.net/activity` on `stage.erp.intuit.com`). The harness
-  reuses this to source captures; the new work is the **redaction step** + a stable fixture format.
+- **Capture front-end** — `rig/lh-r010.mjs`'s recon (built 2026-09-07) extracts vendor requests from a Lighthouse
+  `network-requests` log. Its default pattern set targets **runtime loaders** for CWV-blocking (matched Meta
+  `fbevents.js`, GA4/Ads/Floodlight `gtag/js`) and **some beacons** (GA4 `/g/collect`, Floodlight
+  `ad.doubleclick.net/activity`) — but **not Meta's `/tr` beacon** (`www.facebook.com/tr`), which the harness must add
+  (grounded correction 2026-09-08). The harness reuses this to source captures; the new work is **beacon-endpoint
+  patterns** + a **redaction step** + a stable fixture format (real captures stay local — R5 / ADR-0020).
 - **airlock replay primitives** — `connectors/pixel/connector.js` `createPixelConnector(config).handle(evt)` returns
-  `{ url, method: "GET" }` (the Meta/pixel beacon; `connector.js:149`); `connectors/ga4/map.js` `mapToMp(evt, ctx)`
-  returns the MP body (`map.js:56-76`); `rig/generic-capture.js` `createGenericCapture({beacon})` drains descriptors to
-  a beacon spy the airlock way (browser + Node).
+  **`[{ url, method: "GET" }]`** (an **array** — zero-or-one; `[]` for an unmapped event; `connector.js:149`) to the Meta
+  `/tr` beacon (`connectors/pixel/vendors/meta.js`). **airlock's Meta connector is identity-free by construction** — it
+  projects `id`/`ev` + non-PII standard params only and **deliberately omits `_fbp`/`fbc` (first-party cookie identity)
+  and `ud[...]` (advanced-matching, which browser `fbevents.js` sends on the *GET* query string)** (`meta.js:10-14`) — so
+  the oracle's *expected* result on a real Meta capture is a **dropped-identity gap** (closed by 026-04 + the
+  first-party-cookie follow-up), not a green pass. `connectors/ga4/map.js` `mapToMp(evt, ctx)` returns the MP body
+  (`map.js:56-76`); `rig/generic-capture.js` `createGenericCapture({beacon})` drains descriptors to a beacon spy.
 - **The GA4 oracle seed** — R-009(a)'s `/g/collect` → airlock field-map (maps / partial / none), capture-confirmed on
   the reference page 2026-09-07.
 - **NOT the oracle** — `connectors/pixel/validate.js` validates a `PixelVendorConfig`'s *shape*, not beacon *parity*
   (its own docstring: "matches the documented shape — never read it as the interpreter would have thrown"). The
   semantic beacon diff is **new**.
 
-## The two per-protocol oracle shapes (ADR-0018)
+## The oracle: one classified-diff engine, two descriptor kinds (ADR-0018)
 
-| Shape | When airlock uses it | How it judges parity |
+The oracle is **never raw URL equality** (ADR-0018 Rabbit Holes). It is a **classified diff** over the *container's*
+attribution-bearing field set — every field lands in one of three buckets, and a **`pass` means no attribution-bearing
+field is dropped or divergent**:
+
+- **maps** — the container field is present in airlock's beacon and equal after normalisation.
+- **normalised-out** — a nondeterministic field (cache-buster, timestamp, hit-sequence, ordering) excluded before the
+  compare.
+- **dropped / none** — an **attribution-bearing field the container sends that airlock does not emit**. This is the
+  category a naive equality diff misses, and it is **first-class**: reported, never silently excluded (which would be a
+  false pass) and never collapsed into an unreachable always-diff.
+
+Two **descriptor kinds** feed the one engine (a *frame-critique correction*, 2026-09-08 — the earlier draft split these
+into two different oracles and mis-modelled the same-protocol case as pure equality):
+
+| Descriptor | When | Shape |
 |---|---|---|
-| **Same-protocol beacon diff** | airlock speaks the container's own protocol — Meta Pixel GET (spec 026), and GA4 once [ADR-0019](../../decisions/adr-0019-ga4-gtag-protocol-connector.md)'s gtag connector (spec 039) ships | Normalise nondeterministic fields (cache-busters, timestamps), then compare the attribution-bearing field set for **equality** |
-| **Semantic field-map** | airlock legitimately speaks a *different* protocol — GA4 via the Measurement Protocol today | Map container fields → airlock fields via a per-vendor table (the R-009 field-map); classify each **maps / partial / none** and surface the gaps (session, consent) as first-class report output, never paper over them |
+| **Same-protocol** | airlock speaks the container's own protocol — Meta Pixel `/tr` GET (026); GA4 once the gtag connector (039) ships | field names match 1:1 (an identity translation); compare values **and** classify container fields airlock omits as **dropped** |
+| **Semantic field-map** | airlock legitimately speaks a *different* protocol — GA4 via the Measurement Protocol today | a per-vendor translation table (the R-009 map) resolves container field → airlock field, then the same three-bucket classification |
 
-The oracle is **semantic, never raw URL equality** (ADR-0018 Rabbit Holes): vendor hits carry nondeterministic fields;
-every per-vendor oracle normalises to the attribution-bearing set first.
+The same-protocol descriptor is just the field-map's **identity-translation special case** — so 038-01 builds the engine
++ the classification, and 038-02 adds a translation table to the *same* engine. **Grounding the reference set:** the
+attribution-bearing set is the *container's* (from a redacted capture + the vendor's documented params), **not** airlock's
+connector — grounding it in the artifact under test would blind the oracle to exactly the fields airlock drops.
 
 ## Assumptions
 
@@ -68,10 +92,12 @@ every per-vendor oracle normalises to the attribution-bearing set first.
   the MP replay (`connectors/ga4/map.js:56-76`), and the GA4 field-map seed (R-009). `rig/generic-capture.js` exposes a
   connector-agnostic drain-to-beacon primitive (header read 2026-09-08) — a replay-dispatch reuse candidate, exact fit
   to confirm at implementation.
-- **Assumption (per vendor):** the *attribution-bearing field set* — which fields "count" for parity vs which are
-  nondeterministic noise — is grounded per vendor from R-009 (GA4) and spec 026 (`PixelVendorConfig`), and each new
-  vendor's set is confirmed on a redacted capture before its oracle is trusted. Getting this set wrong is the harness's
-  central risk (a false pass hides a real attribution loss), so slice frame-critiques target it.
+- **Assumption (per vendor):** the *attribution-bearing field set* is the **container's** — grounded from a redacted
+  capture of the container's beacon **plus the vendor's documented params** (Meta: `id`/`ev`/`_fbp`/`fbc`/`ud[...]` +
+  event data; GA4: R-009's map), **never** from airlock's own connector (that would blind the oracle to exactly the
+  fields airlock drops — the frame-critique's central correction, 2026-09-08). Each container field is classified
+  **maps / normalised-out / dropped**; getting the set or a classification wrong is the harness's central risk (a false
+  pass hides a real attribution loss), so slice frame-critiques target it.
 - **Assumption:** redaction is complete — the fixture format carries the field *vocabulary* and synthetic values only;
   no live `cid`/`tid`/pixel-id/hashed-match survives into the repo (R5 / ADR-0020). Enforced by a redaction step with a
   denylist + a test that a fixture contains no known-identifier shapes.

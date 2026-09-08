@@ -7,9 +7,11 @@ frame_review: true
 
 ## Slice 038-02 — semantic field-map oracle (GA4)
 
-**Goal:** Add the harness's **second oracle shape — the semantic field-map** (the different-protocol case) — on **GA4**:
-map the container's `/g/collect` beacon to airlock's egress via the R-009 field-map, classify each attribution-bearing
-field **maps / partial / none**, and surface the session/consent gaps as first-class report output.
+**Goal:** Extend 038-01's **classified-diff engine** with a **translation-table descriptor** (the different-protocol
+case) on **GA4**: resolve the container's `/g/collect` field → airlock's egress field via the R-009 field-map, then run
+the same three-bucket classification — **maps / normalised-out / dropped** (with `dropped` covering the session fields
+`sct`/`seg`/`_fv`/`_ss`/`_nsi` and the Consent-Mode storage purposes that have no MP equivalent), surfacing those gaps
+as first-class report output.
 
 **DoR:**
 - ✅ 038-01 done — the harness core (capture/replay/report) + the entrypoint pattern exist.
