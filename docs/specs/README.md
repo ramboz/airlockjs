@@ -105,6 +105,9 @@
 | [038-parity-harness](038-parity-harness/spec.md) | 038-01 — vendor-generic harness core + same-protocol oracle (Meta Pixel) | DRAFT |  |
 | [038-parity-harness](038-parity-harness/spec.md) | 038-02 — semantic field-map oracle (GA4) | DRAFT |  |
 | [038-parity-harness](038-parity-harness/spec.md) | 038-03 — credential/cookie context + per-cohort report (feeds E10) | DRAFT |  |
+| [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-01 — core /g/collect page_view beacon | DRAFT |  |
+| [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-02 — Consent Mode carriage (gcs/gcd) | DRAFT |  |
+| [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-03 — session-state reproduction + `_ga_<stream>` writer (closes OQ13-2) | DRAFT |  |
 
 ## Deferred slices
 

@@ -1,0 +1,56 @@
+---
+status: DRAFT
+dependencies: [adr-0019]
+last_verified:
+frame_review: true
+---
+
+## Slice 039-01 — core /g/collect page_view beacon
+
+**Goal:** Ship `createGa4GtagConnector(config)` — a new module, sibling to the MP connector — that maps a captured event
+into a container-shaped **`/g/collect` GET beacon** carrying the core attribution fields, sourcing `cid`/`sid` exactly as
+the MP path does today, and emits it off-thread through the governed GET egress. No new session state yet.
+
+**DoR:**
+- ✅ Identity sourcing exists — `connectors/ga4/cookies.js` `sourceGa4Ctx` (`cookies.js:146`, reuse).
+- ✅ Off-thread GET egress proven — `connectors/pixel/connector.js:149` pattern + `core/airlock.js`.
+- ✅ Target field set — R-009(a)'s `/g/collect` `page_view` map, capture-confirmed 2026-09-07.
+
+**Acceptance Criteria:**
+
+1. **`createGa4GtagConnector(config).handle(evt)`** returns `{ url, method: "GET" }` where `url` is a `/g/collect` request
+   carrying `v=2`, `tid`, `cid`, `en`, `dl`/`dr`/`dt`, `ep.<k>` (string params) / `epn.<k>` (numeric params), and `_et`
+   (engagement time) — the core attribution set.
+2. **`cid`/`sid` via reuse.** `cid` comes from `sourceGa4Ctx` (`_ga`), `sid` from `_ga_<stream>` or the per-page fallback
+   (byte-for-byte the MP path's sourcing — no new cookie behavior in this slice).
+3. **No `api_secret`.** The URL carries `tid` + origin only; a test asserts no `api_secret`/secret param is present
+   (the ADR-0019 adoption fix).
+4. **Additive — MP untouched.** `connectors/ga4/map.js` and `contracts/ga4-mp*` are unchanged (a test/grep asserts the
+   frozen MP surface is not modified by this slice).
+5. **Same-protocol oracle passes.** The emitted beacon passes the [038](../038-parity-harness/spec.md) same-protocol
+   oracle against a redacted `/g/collect` `page_view` fixture on the core field set (until 038-01 lands, a unit assertion
+   of the exact query field set stands in).
+
+**DoD:**
+- [ ] All ACs pass; full suite green.
+- [ ] Coverage: a happy-path `page_view`, a numeric-vs-string param split (`ep.`/`epn.`), and the no-`api_secret`
+      assertion.
+- [ ] Each new test shown to fail when its feature is removed.
+- [ ] Reviewed by `reviewer` (compliance + craft; `arch_review: true` — a new connector module boundary).
+- [ ] Deviation log + reconciliation sweep produced.
+
+## Assumptions
+
+- **The `page_view` field set is capture-confirmed (R-009), but other event names may add fields** — each event type is
+  confirmed on a redacted capture before its mapping is trusted. (Why `frame_review: true`.)
+
+**Anti-horizontal-phasing check:** After this slice a rewired GA4 `page_view` reaches `/g/collect` off-thread with the
+core attribution fields, verifiable by the parity harness — the analytics anchor's rewire path, working end-to-end.
+
+### Deviation log (after reconciliation)
+
+_TBD at implementation._
+
+### Reconciliation sweep
+
+_TBD at implementation._
