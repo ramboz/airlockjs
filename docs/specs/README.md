@@ -102,6 +102,9 @@
 | [036-real-site-validation-harness](036-real-site-validation-harness/spec.md) | 036-01 — live CWV before/after harness (two-URL) + procedure | **DONE** |  |
 | [036-real-site-validation-harness](036-real-site-validation-harness/spec.md) | 036-02 — supported-subset live smoke (GA4 + alloy) + residuals checklist + run-procedure | **DONE** |  |
 | [037-one-point-oh-api-pin](037-one-point-oh-api-pin/spec.md) | 037-01 — the capstone 1.0-API-pin ADR + contract-stability enforcement | **DONE** |  |
+| [038-parity-harness](038-parity-harness/spec.md) | 038-01 — vendor-generic harness core + same-protocol oracle (Meta Pixel) | DRAFT |  |
+| [038-parity-harness](038-parity-harness/spec.md) | 038-02 — semantic field-map oracle (GA4) | DRAFT |  |
+| [038-parity-harness](038-parity-harness/spec.md) | 038-03 — credential/cookie context + per-cohort report (feeds E10) | DRAFT |  |
 
 ## Deferred slices
 
