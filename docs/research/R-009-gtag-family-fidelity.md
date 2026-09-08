@@ -55,14 +55,23 @@ a speculative wire shape already failed 026-02's frame-critique. Below, the **ai
   container's `gtag.js` fires credentialed requests carrying `_gcl_au` and, on the 3p-cookies-allowed cohort,
   google/doubleclick cross-site cookies). Feeds part (c) / E10, not part (a).
 
-### the container's `/g/collect` side — documented gtag MP-v2 (confirm on a redacted capture)
+### the container's `/g/collect` side — gtag MP-v2, confirmed on a real redacted capture (2026-09-07)
 
+- **Grounded by a live capture (redacted).** A Lighthouse network log of the intuit-class reference page
+  (`stage.erp.intuit.com`, an EDS marketing page — captured incidentally by the R-010 recon, `rig/lh-r010.mjs`) shows the
+  container firing exactly this family: **GA4** `gtag/js?id=G-…` + a `/g/collect` `page_view` beacon, **Google Ads**
+  `gtag/js?id=AW-…`, **Floodlight** `gtag/js?id=DC-…` + `ad.doubleclick.net/activity` pings, and **Meta** `fbevents.js`
+  + a `signals/config` call. The `/g/collect` beacon carried every field the map below predicted — **no live identifiers
+  are recorded here** (ADR-0018 R5 / ADR-0020); only the field *vocabulary* is.
 - A container GA4 tag loads `gtag.js` and emits a **GET** beacon to `/g/collect` (region-prefixed for EU), query-string
-  encoded, **no `api_secret`** — auth is `tid` + request origin/referer.
+  encoded, **no `api_secret`** — auth is `tid` + request origin/referer. *(Confirmed: the captured beacon was a bare GET
+  bearing `tid`, no secret.)*
 - `gtag.js` **reads and writes** `_ga` and `_ga_<stream>`, maintaining `sid`/`sct`/`seg`/session-start across pages
-  (the session-writer airlock's MP path lacks — OQ13-2).
+  (the session-writer airlock's MP path lacks — OQ13-2). *(Confirmed: the beacon carried `sid`, `sct=1`, `seg=0`, plus
+  `_fv` first-visit, `_ss` session-start and `_nsi` new-session-id — rich session state MP has no field for.)*
 - Consent Mode rides as `gcs` (state, e.g. `G111`) + `gcd` (defaults) and — under `analytics_storage` denied — drives
-  cookieless *modeling* pings, a mechanism MP has no equivalent for.
+  cookieless *modeling* pings, a mechanism MP has no equivalent for. *(Confirmed: the beacon carried both `gcs` and
+  `gcd`.)*
 
 ## Three parts
 
@@ -81,7 +90,7 @@ surface, not paper over:
 | `_et` | engagement time (ms) | `params.engagement_time_msec` | **maps** (defaults 100) |
 | `dl` / `dr` / `dt` | location / referrer / title | `params.page_location` / `page_referrer` / `page_title` | **maps** (host-supplied) |
 | `sid` | session id | `params.session_id` | **partial** — per-page mint on a gtag-free MPA (OQ13-2) |
-| `sct` / `seg` / `_s` | session count / engaged flag / hit seq | — | **none** — no MP field (engagement inferred from `engagement_time_msec`) |
+| `sct` / `seg` / `_s` / `_fv` / `_ss` / `_nsi` | session count / engaged / hit-seq / first-visit / session-start / new-session-id | — | **none** — no MP field (all confirmed present on the 2026-09-07 capture; engagement inferred from `engagement_time_msec`) |
 | `gcs` / `gcd` | Consent Mode state / defaults | `consent{ ad_user_data, ad_personalization }` | **partial** — no storage-purpose field, no modeling ping |
 | `ul` / `sr` / UA hints | language / screen / device | request-derived by GA, or a permissive param | **different-by-design** — MP derives device/geo from the request |
 | `_p` / `_z` / `_dbg` … | cache-buster / internal | — | **none** — nondeterministic; normalised out of any oracle |
@@ -144,9 +153,10 @@ MP-only would require redefining parity to fit MP, which the kill criterion forb
 
 ## Open questions
 
-- **(capture-gated)** Field-for-field, does a redacted `/g/collect` capture carry any attribution-bearing field with no
-  MP equivalent beyond those mapped above? (Confirms the map; unlikely to reverse the lean — the `api_secret` blocker is
-  capture-independent.)
+- **(capture-gated — CONFIRMED 2026-09-07)** A real redacted `/g/collect` capture from the reference page (via the R-010
+  recon) carried the full mapped field set **plus** richer session state (`_fv`/`_ss`/`_nsi`) with no MP equivalent —
+  confirming the map and *strengthening* the lean (the session gap is wider than first mapped). No field was found that
+  only an on-page runtime could compute, so ADR-0019's kill-criterion #1 (protocol not reproducible) is **not** tripped.
 - **(MVP9-gated)** Does the additive `/g/collect` connector reach GA4 **console-level** session/engagement/attribution
   parity under live traffic + DebugView? (The lab spike retires the *protocol* risk; the console leg is MVP9.)
 - **(connector-scope)** Must the additive connector itself **write** `_ga_<stream>` (become the session writer) to close
