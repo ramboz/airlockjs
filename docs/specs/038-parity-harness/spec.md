@@ -61,15 +61,22 @@ redacted captures are fed through it (the MVP6-036 build/run split, reused here)
 ## The oracle: one classified-diff engine, two descriptor kinds (ADR-0018)
 
 The oracle is **never raw URL equality** (ADR-0018 Rabbit Holes). It is a **classified diff** over the *container's*
-attribution-bearing field set — every field lands in one of three buckets, and a **`pass` means no attribution-bearing
-field is dropped or divergent**:
+attribution-bearing field set — every field lands in one of three buckets:
 
 - **maps** — the container field is present in airlock's beacon and equal after normalisation.
-- **normalised-out** — a nondeterministic field (cache-buster, timestamp, hit-sequence, ordering) excluded before the
-  compare.
+- **normalised-out** — a nondeterministic *or* deterministic-non-attribution field (cache-buster, timestamp,
+  hit-sequence, ordering, protocol version) excluded before the compare.
 - **dropped / none** — an **attribution-bearing field the container sends that airlock does not emit**. This is the
-  category a naive equality diff misses, and it is **first-class**: reported, never silently excluded (which would be a
-  false pass) and never collapsed into an unreachable always-diff.
+  category a naive equality diff misses, and it is **first-class**: reported, never silently excluded (a false pass) and
+  never collapsed into an unreachable always-diff.
+
+**The verdict consumes the connector's gap map (ADR-0020 commitment 1), not just presence.** Each connector declares a
+**gap map** — the attribution fields it does not yet emit, with their owning artifact (Meta `_fbp`/`fbc` →
+cookie-capability; `ud[...]` → 026-04; GA4 session/consent → 039). A **`pass` = no divergent field AND no field dropped
+*outside* the gap map**: an owned gap is `expected-dropped` (green), an **un-owned** drop is a **regression** (red), and a
+gap-map field that appears as `maps` is `gap-closed` (green + "owner landed — remove from gap map"). Without this, an
+identity-free-by-construction connector would fail permanently and drown a real regression under its known gaps — the
+oracle would be a constant, not a guard.
 
 Two **descriptor kinds** feed the one engine (a *frame-critique correction*, 2026-09-08 — the earlier draft split these
 into two different oracles and mis-modelled the same-protocol case as pure equality):

@@ -7,11 +7,12 @@ frame_review: true
 
 ## Slice 038-02 — semantic field-map oracle (GA4)
 
-**Goal:** Extend 038-01's **classified-diff engine** with a **translation-table descriptor** (the different-protocol
-case) on **GA4**: resolve the container's `/g/collect` field → airlock's egress field via the R-009 field-map, then run
-the same three-bucket classification — **maps / normalised-out / dropped** (with `dropped` covering the session fields
-`sct`/`seg`/`_fv`/`_ss`/`_nsi` and the Consent-Mode storage purposes that have no MP equivalent), surfacing those gaps
-as first-class report output.
+**Goal:** Extend 038-01's **classified-diff engine + gap map** with a **translation-table descriptor** (the
+different-protocol case) on **GA4**: resolve the container's `/g/collect` field → airlock's egress field via the R-009
+field-map, then run the same three-bucket classification — **maps / normalised-out / dropped** — where GA4's **gap map**
+(owner: spec 039, per ADR-0020 commitment 1) declares the session fields `sct`/`seg`/`_fv`/`_ss`/`_nsi` and the
+Consent-Mode storage purposes as owned gaps. So the GA4 oracle is **green on those owned gaps and red on an un-owned
+regression**, and they flip to `maps` when 039's gtag connector lands.
 
 **DoR:**
 - ✅ 038-01 done — the harness core (capture/replay/report) + the entrypoint pattern exist.
