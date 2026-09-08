@@ -609,3 +609,26 @@ Trusted Types, not `strict-dynamic`; fix = a worker-realm TT policy in airlock's
 **[ADR-0016](decisions/adr-0016-alloy-stock-bundle-site-supplied.md)**: adopter-supplied `bundleUrl` (airlock does
 not ship it), same-origin byte-pinned recommended, cross-origin (Adobe CDN) supported. The gap CLOSES when **033-02**
 lands the build.
+
+## Spec 038 / ADR-0020 (parity harness + parity contract) follow-ups — MVP7
+
+### E10 — purpose-gated credentialed cross-site transport (the "bounded booster") — DEFERRED
+
+**Deferred:** carrying a vendor's cross-site cookie (`fr`/`IDE`) requires a **credentialed egress**
+(`fetch(credentials:'include', mode:'no-cors')` from the chamber, per-endpoint allowlisted, `ad_storage`-gated) — the
+browser attaches the cookie only where third-party cookies are allowed (Chrome's default as of 2026; blocked on
+Safari/Firefox). It is **parity-critical for the Chrome-majority cohort** ([ADR-0020](decisions/adr-0020-parity-contract-anti-drift.md)
+commitment 3), but building it is a **security-boundary decision** (it re-attaches the ambient cross-site authority the
+seal deliberately strips), and MVP7 only *measures* the gap (038-03), it does not close it. Parked here per the owner's
+2026-09-08 call: implement only if a real parity need surfaces. `mode:'no-cors'` yields an opaque response — fine for
+fire-and-forget pixels (`/tr`, `/g/collect`, Floodlight), **not** the alloy wrapped-SDK round-trip that reads its
+response.
+
+**Resolution trigger:** a real parity need surfaces (a vendor's console shows a material attribution loss attributable
+to the missing cross-site cookie, on the allowed cohort) → open the **E10 credentialed-transport ADR** (its own
+frame-critique), which also decides the cohort-size question ADR-0020 hands it. The durable cookieless path
+(first-party `_fbp`/`fbc`/`gclid` + server-side CAPI) is pursued independently of this trigger.
+
+**Watch-list:** the long-term third-party-cookie trend is **contested, not settled** (Chrome reversed its deprecation
+plan in 2024–2025); if Chrome later removes third-party cookies by default, this item's *need* mostly evaporates (the
+cookieless first-party + CAPI path becomes the only path) — which is why it is need-triggered, not scheduled.
