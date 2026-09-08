@@ -129,3 +129,15 @@ Three structural commitments:
   is parity-critical on the Chrome-majority cohort, cookieless first-party + CAPI on Safari/Firefox; the long-term cohort
   trend is E10's to assess, not this ADR's) but does not make it; the transport implementation is parked as a
   need-triggered refinement-todo, and E10 is its own ADR with its own frame-critique.
+
+## Amendments
+
+- **2026-09-08 — kill-criterion #1's "(038-02 models `partial`)" parenthetical is superseded (owner-approved).** When
+  this ADR was accepted, spec 038-02 (the GA4 field-map oracle) was DRAFT and modelled the "present but lossy" case as a
+  `partial` bucket. 038-02 **as built** (DONE 2026-09-08) **retired `partial`**: it reuses 038-01's engine buckets
+  (`maps` / `normalised-out` / `dropped` / `expected-dropped` / `gap-closed` / `divergent`) and models GA4 **session
+  continuity** (OQ13-2) as a **scope residual** — owned here + by spec 039's gtag connector, surfaced as a report note
+  rather than a per-field bucket. That residual is itself an instance of kill-criterion #1's "field present/equal yet
+  semantics diverge (across beacons)," so the criterion's **substance is unchanged and confirmed**; only the
+  parenthetical example is corrected. The original Kill-criteria prose above is preserved per the immutability convention
+  (ADR-0010).
