@@ -1,5 +1,5 @@
 ---
-status: OPEN
+status: CONCLUDED
 topic: An indicative CWV bound for the intuit-class rewire — the shipped page vs the same URL with the four vendor runtimes network-blocked
 created: 2026-09-07
 related:
@@ -19,7 +19,9 @@ related:
 > remains, gated on **one input: the reference page URL** (see Method → Two gates). Built: `blockedUrlPatterns` +
 > mobile-throttle support added to `rig/lh-core.mjs`'s `runLighthouseOnce` (backward-compatible — the lh-eds/lh-live
 > callers are byte-identical; `test/lh-core.test.js` green, 24 tests), and a dedicated runner `rig/lh-r010.mjs`
-> (`npm run lh:r010`) that reuses the lh-core median/summary/delta engine. Status stays `OPEN`: no numbers yet.
+> (`npm run lh:r010`) that reuses the lh-core median/summary/delta engine. **Run 2026-09-07 on `stage.erp.intuit.com`
+> (N=5, mobile slow-4G): GO — the four vendor runtimes are ~70% of TBT (330→101 ms shipped); see Results + Conclusion.**
+> Status → `CONCLUDED`.
 
 ## Question
 
@@ -69,11 +71,53 @@ one lh-eds/lh-live use — not a parallel impl):
   ECS chain, OneTrust — all out of 1.0 scope by R2) dominates, the ladder's premise is weak and the owner re-decides
   before MVP8/MVP9 are built.
 
+## Results (2026-09-07 — `stage.erp.intuit.com`, N=5 interleaved, mobile slow-4G / 4× CPU)
+
+The recon confirmed the block set hits the real runtimes on this page (Meta `fbevents.js` + `signals/config`, GA4
+`gtag/js?id=G-…`, Google Ads `gtag/js?id=AW-…`, Floodlight `gtag/js?id=DC-…` + `ad.doubleclick.net/activity`) with no
+false matches. Aggregate medians (no live identifiers recorded — ADR-0018 R5 / ADR-0020):
+
+| Config | Arm | Perf | LCP (ms) | TBT (ms) | CLS |
+|---|---|---|---|---|---|
+| **shipped** | OFF (as shipped) | 88 | 1504 | **330** | 0.008 |
+| **shipped** | ON (4 runtimes blocked) | 98 | 1389 | **101** | 0.007 |
+| **shipped Δ (ON−OFF)** | | **+10** | −115 | **−229 (−69%)** | −0.001 |
+| **phase-split=on** | OFF | 92 | 1392 | **344** | 0.007 |
+| **phase-split=on** | ON (blocked) | 98 | 1391 | **92** | 0.007 |
+| **phase-split Δ (ON−OFF)** | | +6 | −1 | **−252 (−73%)** | 0 |
+
+- **TBT is the whole story.** The four vendor runtimes are **~70% of the page's blocking time** (shipped 330→101 ms;
+  phase-split 344→92 ms). Removing them lifts the Lighthouse perf score to **98** (from 88 shipped / 92 phased) and the
+  blocked-arm TBT (~90–100 ms) sits comfortably in the "good" band. LCP improves modestly on shipped (−115 ms), flat on
+  phased; CLS is already negligible.
+- **Phase-split is not a TBT substitute for the rewire.** `?martech-phase-split=on`'s OFF-arm TBT (344 ms) ≈ the shipped
+  OFF-arm (330 ms) — on this measurement the container's own best phased config did **not** reduce load-time blocking
+  (the deferred tags still execute within the mobile trace window, or the stage deployment doesn't honor the param —
+  worth confirming). Blocking the runtimes helps equally in both arms, so the win comes from *removing* the runtimes,
+  not from phasing them. This is exactly the "what airlock buys beyond what the container can already do" baseline
+  ADR-0018 asks the MVP9 win to report against.
+
 ## Open questions
 
-- What is the actual repo-recorded TBT/CWV delta, on each configuration?
-- Does it corroborate the owner's 601.5 → 204 ms figure (and under which configuration was that measured)?
+- ~~What is the actual repo-recorded TBT/CWV delta, on each configuration?~~ **Answered above.**
+- **Owner's 601.5 → 204 ms figure** — *direction* corroborated (the vendor runtimes are the dominant TBT source, ~70%
+  here), but not the *absolute* numbers: this run is mobile slow-4G / 4× CPU; the configuration and throttle behind the
+  owner's report are unrecorded, so the two aren't directly comparable. A like-for-like reproduction would need the
+  owner's throttle profile.
+- **Does phase-split actually defer on the stage deployment**, or is the param inert there? (Secondary — doesn't change
+  the go/no-go.)
 
 ## Conclusion
 
-_Open._ Promoted to: — (feeds MVP7's go/no-go on the ladder + MVP9's win semantics, ADR-0018 E12).
+**GO — the ladder is worth walking.** Removing the four TBT-dominant vendor runtimes cuts the reference page's blocking
+time by ~70% (−229 ms shipped, −252 ms phased) and lifts Lighthouse performance to 98. This is a **large** headroom, not
+a modest one, and the residual blocked-arm TBT (~90–100 ms — the container core + out-of-scope tags, R2) does **not**
+dominate — so ADR-0018's **CWV kill criterion is not tripped**. The premise behind MVP7→MVP9 holds on real, repo-recorded
+numbers.
+
+**Indicative, not a hard ceiling (E11).** `blockedUrlPatterns` strips the vendors' *runtime* cost but not the
+container's per-template `PINIT`/`INIT` init, which MVP9's native tag-exclusion also removes — so the true MVP9 win is
+**≥** this, and the ~90–100 ms blocked-arm TBT is an approximate *floor*, not the achievable minimum.
+
+_Measured — the MVP7 risk-first go/no-go is answered (GO)._ Promoted to: — (feeds MVP7's go-decision + MVP9's win
+semantics and before/after baselines, ADR-0018 E12; MVP9 re-measures the true rewire win on the native-exclusion arm).
