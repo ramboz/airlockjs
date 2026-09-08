@@ -8,13 +8,17 @@
 
 ## Status
 
-`candidate`
+`committed`
 
 Allowed statuses: `candidate`, `committed`, `shipping`, `shipped`, `dropped`.
 Do not move a plan from `candidate` to `committed` without an explicit user decision.
 
-**Ships as v0.7.0** (the `MVPn ↔ v0.n.0` convention). `candidate` until the maintainer commits it — MVP6 (v0.6.0) is
-the immediate predecessor.
+**Ships as v0.7.0** (the `MVPn ↔ v0.n.0` convention). **Committed 2026-09-08** (owner decision) — both MVP7 risk-first
+gates are retired with a GO: **R-009(a)** decided the GA4 protocol path
+([ADR-0019](../decisions/adr-0019-ga4-gtag-protocol-connector.md), Accepted — an additive off-thread `/g/collect`
+gtag-protocol connector, field-map capture-grounded on the reference page), and **R-010** measured the indicative CWV
+bound as a **GO** (the four TBT-dominant vendor runtimes are ~70% of blocking time on `stage.erp.intuit.com` —
+330→101 ms shipped; the CWV kill criterion is not tripped). MVP6 (v0.6.0) is the immediate predecessor.
 
 > **History (shaped 2026-09-03 as a reconciliation).** Spec 026 (the generic pixel connector) was built *ahead of the
 > committed MVP4→5→6 path*, and both MVP4 and MVP5 explicitly no-go "broader connector breadth (pixel/…) — that is
@@ -126,8 +130,8 @@ the immediate predecessor.
 
 | Item | Evidence | Rationale |
 |---|---|---|
-| **R-009 (a) GA4 MP-vs-gtag parity + `api_secret` fitness** | ADR-0018 E6, GA4 kill criterion | Decides whether GA4 — the parity anchor — is rewirable at all, and how |
-| **R-010 indicative CWV bound** | ADR-0018 E11 | Decides whether the whole ladder is worth walking |
+| **R-009 (a) GA4 MP-vs-gtag parity + `api_secret` fitness** | ADR-0018 E6, GA4 kill criterion | Decides whether GA4 — the parity anchor — is rewirable at all, and how. **→ DONE: [ADR-0019](../decisions/adr-0019-ga4-gtag-protocol-connector.md) (additive gtag-protocol connector); field-map capture-grounded (2026-09-07)** |
+| **R-010 indicative CWV bound** | ADR-0018 E11 | Decides whether the whole ladder is worth walking. **→ DONE: GO** (2026-09-07 — 4 runtimes ≈ 70% of TBT on the reference page; kill criterion not tripped) |
 | **Capture a real (redacted) pixel beacon** to ground 026-04's POST/advanced-matching shape | ADR-0020 grounding; 026-02 frame-critique | Determines whether 026-04's POST path is in-scope this box |
 
 ## JIG Handoff

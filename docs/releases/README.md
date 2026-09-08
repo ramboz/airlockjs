@@ -14,7 +14,6 @@ they stop informing a current release decision.
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| [MVP7 — Pixel Parity & the Parity Harness](mvp7.md) | **Parity is the 1.0 bar (ADR-0018).** The vendor-generic parity harness + Meta Pixel parity (026-04 un-deferred) + GA4 parity; R-009 (gtag-family fidelity) + R-010 (indicative CWV bound) risk-first. Breadth-as-configs → variable. Ships v0.7.0 | JIG handoff: parity-harness spec (E5), R-009/R-010 (E6/E11), [026](../specs/026-generic-pixel-connector/spec.md), [`connectors/pixel/`](../../connectors/pixel/) |
 | [MVP8 — Ad-Conversion Offloading](mvp8.md) | The TBT that motivates the rewire lives here: **Google Ads + Floodlight** connectors (gated on R-009's AW/DC findings) + the **OneTrust consent-input driver**; Segment variable/later. Ships v0.8.0 | JIG handoff: Google Ads / Floodlight connector specs + OneTrust driver (E7), gated on R-009 |
 | [MVP9 — Real-Site Rewire & Adoption Path](mvp9.md) | **Passing its release-check cuts v1.0.0.** Rewire the four generic vendors on an intuit-class site (two-party, with the container owner), parity-confirmed by the harness + vendor consoles, CWV measured; the scripted adoption path. Ships v0.9.0 → **v1.0.0** | JIG handoff: real-site rewire spec, 036-instrument extension (E12), scripted adoption path (E8) |
 
@@ -23,6 +22,7 @@ they stop informing a current release decision.
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
 | [MVP6 — Stable Core & Validation Harness](mvp6.md) | All Include work **DONE + landed** — distribution (031), cookie-grant hardening (035), the stable-core contract (037/ADR-0017), the real-site CWV harness + subset smoke (036). Ships as **v0.6.0**; the version-bump/dist-tag cut (E1) is the pending outward-facing step, owner-gated | JIG handoff: [031](../specs/031-distribution-setup/spec.md), [035](../specs/035-cookie-grant-wrapper/spec.md), [036](../specs/036-real-site-validation-harness/spec.md), [037](../specs/037-one-point-oh-api-pin/spec.md) |
+| [MVP7 — Pixel Parity & the Parity Harness](mvp7.md) | **Committed 2026-09-08.** Both risk-first gates GO: the GA4 protocol path is decided ([ADR-0019](../decisions/adr-0019-ga4-gtag-protocol-connector.md) — additive `/g/collect` gtag-protocol connector) and R-010 measured the CWV bound (four vendor runtimes ≈ 70% of TBT on the reference page). Building: the vendor-generic parity harness (E5) + the GA4 gtag-protocol connector + Meta Pixel parity (026-04). Ships v0.7.0 | JIG handoff: parity-harness spec (E5), GA4 gtag-protocol connector spec (ADR-0019), [026](../specs/026-generic-pixel-connector/spec.md), R-010 (CONCLUDED) |
 
 ## Shipping
 
