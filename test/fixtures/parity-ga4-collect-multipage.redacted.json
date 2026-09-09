@@ -1,0 +1,64 @@
+{
+  "_comment": "Spec 039-03 — a REDACTED, REAL-SHAPED (not real) multi-page fixture standing in for a container's gtag.js /g/collect session across an MPA. ADR-0020 R5: real captures are local-only and uncommittable; the measurement id, client/session ids, timestamps, and cookie values below are clearly-synthetic — no live identifier appears here. The session-state TRANSITION RULES encoded below were DIRECTLY OBSERVED on the intuit-class reference page (stage.erp.intuit.com, GA4 stream, 2026-09-08) by driving _ga_<stream> cookie transitions across reloads: (1) first visit mints cid + o1/g0/s=t=now; (2) continuation within 30min keeps s and o, flips g 0->1 on engagement, advances t; (3) a new session after a >30min inactivity gap increments o, mints a fresh s, resets g to 0, sets t=s. Beacon fields map from the GS2 cookie: sid<-s, sct<-o, seg<-g; _ss/_nsi present iff the beacon is the first of a NEW session; _fv present iff _ga was just minted. cid/sid are DERIVED from the cookies (never a beacon back-feed). gcs/gcd carry the LIVE-OBSERVED granted-consent Consent-Mode values (gcs=G111, gcd=13r3r3r3r5l1) — these are consent-defaults/state strings, not identifiers, so they are the real observed values, not synthesized; gcd derivation itself is slice 039-05's concern, gcs is 039-02's.",
+  "endpoint": "https://www.google-analytics.com/g/collect",
+  "client": { "_ga": "GA1.1.1111111111.1700000000" },
+  "pages": [
+    {
+      "label": "page-1 first visit (new client, new session start)",
+      "cookie_before": null,
+      "ga_stream_after": "GS2.1.s1700000000$o1$g0$t1700000000$j60$l0$h0",
+      "beacon": {
+        "tid": "G-DEBUGTEST0",
+        "cid": "1111111111.1700000000",
+        "en": "page_view",
+        "dl": "https://example.test/synthetic-landing-page",
+        "dt": "Synthetic Landing Page",
+        "sid": "1700000000",
+        "sct": "1",
+        "seg": "0",
+        "_fv": "1",
+        "_ss": "1",
+        "_nsi": "1",
+        "gcs": "G111",
+        "gcd": "13r3r3r3r5l1"
+      }
+    },
+    {
+      "label": "page-2 continuation (same session, now engaged)",
+      "cookie_before": "GS2.1.s1700000000$o1$g0$t1700000000$j60$l0$h0",
+      "ga_stream_after": "GS2.1.s1700000000$o1$g1$t1700000300$j60$l0$h0",
+      "beacon": {
+        "tid": "G-DEBUGTEST0",
+        "cid": "1111111111.1700000000",
+        "en": "page_view",
+        "dl": "https://example.test/synthetic-second-page",
+        "dr": "https://example.test/synthetic-landing-page",
+        "dt": "Synthetic Second Page",
+        "sid": "1700000000",
+        "sct": "1",
+        "seg": "1",
+        "gcs": "G111",
+        "gcd": "13r3r3r3r5l1"
+      }
+    },
+    {
+      "label": "page-3 new session (>30min inactivity gap → o increments, fresh sid, g reset)",
+      "cookie_before": "GS2.1.s1700000000$o1$g1$t1700000300$j60$l0$h0",
+      "ga_stream_after": "GS2.1.s1700002400$o2$g0$t1700002400$j60$l0$h0",
+      "beacon": {
+        "tid": "G-DEBUGTEST0",
+        "cid": "1111111111.1700000000",
+        "en": "page_view",
+        "dl": "https://example.test/synthetic-return-page",
+        "dt": "Synthetic Return Page",
+        "sid": "1700002400",
+        "sct": "2",
+        "seg": "0",
+        "_ss": "1",
+        "_nsi": "1",
+        "gcs": "G111",
+        "gcd": "13r3r3r3r5l1"
+      }
+    }
+  ]
+}

@@ -106,8 +106,11 @@
 | [038-parity-harness](038-parity-harness/spec.md) | 038-02 — semantic field-map oracle (GA4) | **DONE** |  |
 | [038-parity-harness](038-parity-harness/spec.md) | 038-03 — credential/cookie transport-parity report (feeds E10) | **DONE** |  |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-01 — core /g/collect page_view beacon | DRAFT |  |
-| [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-02 — Consent Mode carriage (gcs/gcd) | DRAFT |  |
+| [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-02 — Consent Mode state carriage (gcs) | DRAFT |  |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-03 — session-state reproduction + `_ga_<stream>` writer (closes OQ13-2) | DRAFT |  |
+| [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-04 — batched POST transport (per-cycle event coalescing) | DEFERRED |  |
+| [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-05 — Consent-Mode defaults carriage (gcd derivation) | DEFERRED |  |
+| [040-core-egress-batching](040-core-egress-batching/spec.md) | 040-01 — tbd | DRAFT |  |
 
 ## Deferred slices
 
@@ -116,6 +119,8 @@
 | Spec | Slice | Resolution trigger |
 |------|-------|--------------------|
 | [022-helix-rum-connector](022-helix-rum-connector/spec.md) | 022-03 — page-side sampleRUM cutover + integration proof |  |
+| [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-04 — batched POST transport (per-cycle event coalescing) |  |
+| [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-05 — Consent-Mode defaults carriage (gcd derivation) |  |
 
 ## Abandoned slices
 
