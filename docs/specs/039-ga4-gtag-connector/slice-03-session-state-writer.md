@@ -1,10 +1,9 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [039-01, 004-03, 017-02]
 last_verified: 2026-09-08
 frame_review: true
 arch_review: true
-claimed_by: claude/spec-039-jigceremony-d53c78
 ---
 
 ## Slice 039-03 — session-state reproduction + `_ga_<stream>` writer (closes OQ13-2)
