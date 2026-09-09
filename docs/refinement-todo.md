@@ -677,6 +677,12 @@ as 2 events, not 1 (or 0).
 **Resolution trigger:** a GA4 test property WE control becomes available (never Intuit's stage property, per
 ADR-0018/ADR-0020) — tracked as a follow-up validation pass, not blocking 040-03's landing.
 
+**Also covered by this same re-check (040-05 payload-ceiling split residuals):** two additional non-parity batch-shape
+divergences on the rare split/backstop path — (1) `_ss`/`_fv` session-start flags are repeated on each split POST
+(gtag emits them once per session), and (2) a post-split SINGLETON chunk (a split remainder, or an unsplittable
+oversized event) is emitted as a single-line POST where gtag would GET a lone event. Same fidelity class; the live-accept
+DebugView re-check above closes all of them together.
+
 ## Spec 040-04 (dispatch-failure observability) follow-up
 
 ### The `setConsent` held-beacon flush still swallows fetch failures

@@ -1,5 +1,5 @@
 ---
-status: IN_PROGRESS
+status: DONE
 skill:
 use_cases: []
 ---
@@ -8,22 +8,30 @@ use_cases: []
 
 # Spec 040: Core-egress batching (cross-connector)
 
-> **RE-OPENED (2026-09-09) for hardening — core batching (040-01/02/03) is DONE + landed; 040-04/05 harden the ADR-0021
-> open questions (failure semantics + payload-ceiling split).** Opened from spec 039's deferred 039-04. Batch/coalesced
-> egress is a first-class, cross-cutting
-> **performance** capability the runtime now offers out-of-the-box across all connectors — not a gtag-specific parity
-> detail. The gating decision was settled by [ADR-0021](../../decisions/adr-0021-core-egress-batching.md) (Accepted
-> 2026-09-09, Option C — core-egress coalescing at the shared dispatch, after the per-request egress seal + endpoint
-> ceiling and before the `fetch`, protocol-pluggable per connector, per lock-through cycle, justified on request-count
-> efficiency **not** parity), and all three slices are DONE:
+> **DONE (2026-09-09) — all five slices complete + landed; [ADR-0021](../../decisions/adr-0021-core-egress-batching.md)
+> fully discharged (no open questions left).** Opened from spec 039's deferred 039-04. Batch/coalesced egress is a
+> first-class, cross-cutting **performance** capability the runtime now offers out-of-the-box across all connectors —
+> not a gtag-specific parity detail. The gating decision was settled by ADR-0021 (Accepted 2026-09-09, Option C —
+> core-egress coalescing at the shared dispatch, after the per-request egress seal + endpoint ceiling and before the
+> `fetch`, protocol-pluggable per connector, per lock-through cycle, justified on request-count efficiency **not**
+> parity). Slices:
 > - **040-01** (spike — measurement gate): **GO** — a material request-count benefit on realistic bursts cleared
 >   ADR-0021 kill-criterion #1, so the core seam was built (no dead surface).
 > - **040-02** (core coalescing seam): the two-phase dispatch restructure in `core/airlock.js` + the optional
 >   per-connector `coalesce(requests) -> EgressRequest[]` hook, governance-safe on inputs AND outputs, default
 >   no-coalesce (every existing connector byte-identical until it opts in).
 > - **040-03** (GA4 adapter): `connectors/ga4/coalesce.js` — the first real strategy, synthesizing gtag's observed
->   multi-`en` batched POST (revives 039-04 on the shared seam). One n=1 fidelity residual (a deferred live-accept GA4
->   DebugView re-check) is tracked in `docs/refinement-todo.md`.
+>   multi-`en` batched POST (revives 039-04 on the shared seam).
+> - **040-04** (failure semantics + observability, ADR-0021 OQ#1): the shared `dispatch` closure surfaces an
+>   `egress-failure` diagnostic (previously swallowed) at both dispatch sites; NO retry (best-effort keepalive stays
+>   uniform; retry risks duplicate ingestion).
+> - **040-05** (payload-ceiling split, ADR-0021 OQ#2): a conservative self-imposed byte-OR-count ceiling with a
+>   lossless, order-preserving, adapter-side split into multiple bounded POSTs.
+>
+> Tracked fidelity residuals (all on the rare backstop path, same class, closed together by ONE deferred live-accept GA4
+> DebugView re-check needing a GA4 test property we control): the n=1 batch-marker grounding (040-03), `_ss`/`_fv`
+> repeated per split POST, and a post-split singleton emitted as a single-line POST (both 040-05). See
+> `docs/refinement-todo.md`.
 
 ## Overview
 

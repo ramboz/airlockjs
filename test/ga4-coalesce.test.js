@@ -15,7 +15,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
 
-import { coalesceGa4 } from "../connectors/ga4/coalesce.js";
+import { coalesceGa4, GA4_BATCH_MAX_BYTES, GA4_BATCH_MAX_EVENTS } from "../connectors/ga4/coalesce.js";
 import { createGa4GtagConnector, GA4_GTAG_COLLECT_ENDPOINT } from "../connectors/ga4/gtag.js";
 import { createAirlock } from "../core/airlock.js";
 
@@ -280,5 +280,173 @@ describe("040-02 integration — coalesceGa4 wired as the real `coalesce` hook t
       fixture.expected.url,
       expect.objectContaining({ method: "POST", body: fixture.expected.body, keepalive: true }),
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Slice 040-05 — payload-ceiling split (per-adapter). `coalesceGa4` now packs
+// a >=2-event same-context group into as FEW POSTs as possible while keeping
+// each POST's body under BOTH GA4_BATCH_MAX_BYTES and GA4_BATCH_MAX_EVENTS
+// (AC1/AC2), never dropping/duplicating an event and never backfilling a
+// later event into an already-closed earlier POST (AC1), except a single
+// event whose OWN body line already exceeds the byte ceiling, which is
+// emitted alone, unsplit (AC4). A group under BOTH ceilings — including the
+// 040-03 fixture — still yields exactly ONE POST byte-for-byte (AC3).
+// ---------------------------------------------------------------------------
+
+/** Builds one gtag-shaped event carrying an `ep.padding` custom param whose
+ *  value is `${marker}` followed by `paddingLength - 1` filler `x` chars —
+ *  the LEADING digit lets a test recover which original event a given split
+ *  POST's body line came from, without needing to re-derive body-line byte
+ *  overhead analytically (single-digit markers only — callers stay <10 events). */
+function buildPaddedEvent(marker, paddingLength) {
+  const padding = `${marker}${"x".repeat(Math.max(paddingLength - String(marker).length, 0))}`;
+  return { type: "e", params: { page_location: "https://example.test/p", padding } };
+}
+
+describe("040-05 AC2 — the exported ceiling constants are conservative, self-imposed safety bounds", () => {
+  it("GA4_BATCH_MAX_BYTES is well under GA4 MP's documented ~130KB request-size limit", () => {
+    expect(GA4_BATCH_MAX_BYTES).toBeGreaterThan(0);
+    expect(GA4_BATCH_MAX_BYTES).toBeLessThan(130000);
+  });
+
+  it("GA4_BATCH_MAX_EVENTS is at/under GA4 MP's documented ~25-events-per-request cap", () => {
+    expect(GA4_BATCH_MAX_EVENTS).toBeGreaterThan(0);
+    expect(GA4_BATCH_MAX_EVENTS).toBeLessThanOrEqual(25);
+  });
+});
+
+describe("040-05 AC1 — a group whose COMBINED body exceeds GA4_BATCH_MAX_BYTES splits into multiple POSTs, each under the byte ceiling", () => {
+  it("packs 3 ~40%-of-ceiling events into 2 split POSTs, losslessly covering every event in cycle order", () => {
+    // Two such events combined (~80% of ceiling + overhead) fit under it; a
+    // third pushes the running total over — so this must split 3 -> 2 POSTs
+    // (2 events, then 1), never 1 (that would mean the split never fired).
+    const paddingLength = Math.floor(GA4_BATCH_MAX_BYTES * 0.4);
+    const config = { measurementId: fixture.measurementId, ctx: fixture.ctx };
+    const gets = [0, 1, 2].map((i) => buildGet(config, buildPaddedEvent(i, paddingLength)));
+
+    const outputs = coalesceGa4(gets);
+
+    // Load-bearing: WITHOUT the split, this stays ONE POST whose body is
+    // ~3x the per-event padding — comfortably over GA4_BATCH_MAX_BYTES. This
+    // assertion fails (outputs.length === 1) if the split is reverted.
+    expect(outputs.length).toBeGreaterThan(1);
+    for (const output of outputs) {
+      expect(output.method).toBe("POST");
+      expect(new TextEncoder().encode(output.body).length).toBeLessThanOrEqual(GA4_BATCH_MAX_BYTES);
+    }
+
+    // Lossless + in order: reconstruct the marker sequence from every body
+    // line across every split POST — must equal the 3 input events, in order.
+    const allLines = outputs.flatMap((o) => o.body.split("\r\n"));
+    expect(allLines).toHaveLength(3);
+    const markers = allLines.map((line) => line.match(/ep\.padding=(\d)/)[1]);
+    expect(markers).toEqual(["0", "1", "2"]);
+  });
+});
+
+describe("040-05 AC1/AC2 — a group whose EVENT COUNT exceeds GA4_BATCH_MAX_EVENTS splits by count, even though total bytes stay tiny", () => {
+  it("packs GA4_BATCH_MAX_EVENTS + 1 low-byte events into ceil(N / ceiling) POSTs, order preserved", () => {
+    const config = { measurementId: fixture.measurementId, ctx: fixture.ctx };
+    const n = GA4_BATCH_MAX_EVENTS + 1;
+    const gets = Array.from({ length: n }, (_, i) =>
+      buildGet(config, { type: "s", params: { page_location: "https://example.test/p", idx: i } }),
+    );
+
+    const outputs = coalesceGa4(gets);
+
+    // Load-bearing: total body bytes here are tiny (far under
+    // GA4_BATCH_MAX_BYTES) — a byte-only split would keep this ONE POST. If
+    // the count clause is removed, `outputs.length` collapses to 1 and the
+    // per-POST line-count assertions below fail.
+    expect(outputs).toHaveLength(2);
+    expect(outputs.every((o) => o.method === "POST")).toBe(true);
+    expect(outputs[0].body.split("\r\n")).toHaveLength(GA4_BATCH_MAX_EVENTS);
+    expect(outputs[1].body.split("\r\n")).toHaveLength(1);
+
+    const allLines = outputs.flatMap((o) => o.body.split("\r\n"));
+    expect(allLines).toHaveLength(n);
+    const idxs = allLines.map((line) => Number(line.match(/epn\.idx=(\d+)/)[1]));
+    expect(idxs).toEqual(Array.from({ length: n }, (_, i) => i));
+  });
+});
+
+describe("040-05 AC3 — an under-both-ceilings group is unaffected by the split (040-03 preserved)", () => {
+  it("the 040-03 fixture's 2-event group still yields exactly ONE POST, byte-for-byte identical", () => {
+    const outputs = coalesceGa4(buildFixtureGets());
+    expect(outputs).toHaveLength(1);
+    expect(outputs[0]).toEqual({ url: fixture.expected.url, method: "POST", body: fixture.expected.body });
+  });
+
+  it("a lone event's context group still emits the 039-01 GET, never a POST", () => {
+    const [onlyGet] = buildFixtureGets();
+    const outputs = coalesceGa4([onlyGet]);
+    expect(outputs).toHaveLength(1);
+    expect(outputs[0]).toEqual(onlyGet);
+    expect(outputs[0].method).toBe("GET");
+  });
+});
+
+describe("040-05 AC4 — a single event whose OWN body line already exceeds the byte ceiling is emitted alone, unsplit, never dropped", () => {
+  it("a normal event + a hugely-oversized event split into two single-line POSTs, both present", () => {
+    const config = { measurementId: fixture.measurementId, ctx: fixture.ctx };
+    const normalGet = buildGet(config, buildPaddedEvent(0, 10));
+    const hugeGet = buildGet(config, buildPaddedEvent(1, GA4_BATCH_MAX_BYTES + 1000));
+
+    const outputs = coalesceGa4([normalGet, hugeGet]);
+
+    expect(outputs).toHaveLength(2);
+    expect(outputs.every((o) => o.method === "POST")).toBe(true);
+
+    // The normal event stays under the ceiling on its own; the huge event's
+    // single-line POST is, by construction, OVER the ceiling — the documented
+    // AC4 exception (a single event cannot be split further, and is never
+    // dropped in spite of exceeding the ceiling alone).
+    const normalLines = outputs[0].body.split("\r\n");
+    const hugeLines = outputs[1].body.split("\r\n");
+    expect(normalLines).toHaveLength(1);
+    expect(hugeLines).toHaveLength(1);
+    expect(normalLines[0]).toMatch(/ep\.padding=0/);
+    expect(hugeLines[0]).toMatch(/ep\.padding=1/);
+    expect(new TextEncoder().encode(outputs[1].body).length).toBeGreaterThan(GA4_BATCH_MAX_BYTES);
+  });
+
+  it("small / huge-alone / small interleaving preserves cycle order across split POSTs — no backfill into an already-closed POST", () => {
+    const config = { measurementId: fixture.measurementId, ctx: fixture.ctx };
+    const smallBefore = buildGet(config, buildPaddedEvent(0, 10));
+    const huge = buildGet(config, buildPaddedEvent(1, GA4_BATCH_MAX_BYTES + 1000));
+    const smallAfter = buildGet(config, buildPaddedEvent(2, 10));
+
+    const outputs = coalesceGa4([smallBefore, huge, smallAfter]);
+
+    // Load-bearing no-backfill assertion: 3 separate POSTs, each a single
+    // line, in strict cycle order — if `smallAfter` were ever backfilled into
+    // the already-closed first POST, that POST would carry 2 lines instead
+    // of 1, and the marker sequence below would be out of order.
+    expect(outputs).toHaveLength(3);
+    for (const output of outputs) {
+      expect(output.body.split("\r\n")).toHaveLength(1);
+    }
+    const markers = outputs.map((o) => o.body.match(/ep\.padding=(\d)/)[1]);
+    expect(markers).toEqual(["0", "1", "2"]);
+  });
+});
+
+describe("040-05 AC1 — the shared query (incl. `_ss`/`_fv`) repeats verbatim on EVERY split POST", () => {
+  it("both split POSTs (a count-ceiling split) carry the same _ss/_fv values on their query", () => {
+    const richCtx = { ...fixture.ctx, sessionState: { sct: "1", seg: "1", _fv: "1", _ss: "1" } };
+    const config = { measurementId: fixture.measurementId, ctx: richCtx };
+    const n = GA4_BATCH_MAX_EVENTS + 1;
+    const gets = Array.from({ length: n }, (_, i) =>
+      buildGet(config, { type: "s", params: { page_location: "https://example.test/p", idx: i } }),
+    );
+
+    const outputs = coalesceGa4(gets);
+    expect(outputs.length).toBeGreaterThan(1);
+    for (const output of outputs) {
+      const params = new URL(output.url).searchParams;
+      expect(params.get("_ss")).toBe("1");
+      expect(params.get("_fv")).toBe("1");
+    }
   });
 });

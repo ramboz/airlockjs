@@ -24,6 +24,33 @@
  * `createAirlock({ coalesce: coalesceGa4 })`.
  */
 
+/**
+ * Slice 040-05 AC2 — a SELF-IMPOSED, conservative BYTE ceiling on a single
+ * split POST's `\r\n`-joined body (measured in UTF-8 bytes). This is NOT an
+ * observed gtag `/g/collect` limit — that internal limit is unpublished and
+ * we have never captured a gtag-emitted split (see the slice's "decision
+ * this slice settles"). 60000 is chosen well under GA4's Measurement
+ * Protocol's DOCUMENTED ~130KB per-request size limit (the closest published
+ * GA4 byte reference) while staying far above any realistic single-cycle
+ * burst — a backstop for the pathological/abnormal case, not a routine path.
+ * EXPORTED so tests size fixtures relative to it instead of hardcoding a
+ * magic number.
+ */
+export const GA4_BATCH_MAX_BYTES = 60000;
+
+/**
+ * Slice 040-05 AC2 — a SELF-IMPOSED, conservative EVENT-COUNT ceiling on the
+ * number of body lines in a single split POST. Also NOT an observed gtag
+ * `/g/collect` limit (unpublished, unobserved in both dimensions). Set AT
+ * GA4 Measurement Protocol's DOCUMENTED ~25-events-per-request cap (the
+ * closest published GA4 count reference) — for a burst of many SMALL events
+ * this count ceiling binds well before the byte ceiling above (many tiny
+ * events reach ~25 long before ~60000 bytes), which is why both dimensions
+ * must be checked independently (AC1). EXPORTED for the same reason as
+ * `GA4_BATCH_MAX_BYTES`.
+ */
+export const GA4_BATCH_MAX_EVENTS = 25;
+
 /** AC4's fixed param-key TAXONOMY over the closed set `mapToGtagCollect` can
  *  produce (`connectors/ga4/gtag.js:251-292`): a key is PER-EVENT iff it is
  *  exactly `en`/`_et`, or starts with the `ep.`/`epn.` custom-param prefixes —
@@ -118,11 +145,18 @@ function buildBodyLine(perEventPairs) {
 }
 
 /**
- * Synthesize the batched POST for one sub-group of >=2 same-shared-context
- * requests (AC1): the url carries the FIRST request's shared pairs, in their
- * original GET order (every request in the group shares the identical set by
+ * Synthesize ONE batched POST for a chunk of >=1 same-shared-context requests
+ * (AC1): the url carries the FIRST request's shared pairs, in their original
+ * GET order (every request in the chunk shares the identical set by
  * construction of the AC2 sub-grouping above); the body is one `\r\n`-joined
- * line per request, in cycle (array) order.
+ * line per request, in cycle (array) order. Post-040-05 a chunk may hold a
+ * single item (a split remainder or an unsplittable oversized event) — still a
+ * single-line POST, since its parent context group had >=2 members (AC1/AC4).
+ *
+ * Also used (040-05) to build EACH split POST for a sub-group's chunk of
+ * `>=1` items — the shared-param serialization is unconditionally reused, so
+ * the shared query (including `_ss`/`_fv` when present) repeats verbatim on
+ * every split POST, per AC1.
  * @param {Array<ReturnType<typeof parseRequest>>} items
  * @returns {{ url: string, method: "POST", body: string }}
  */
@@ -131,6 +165,73 @@ function buildBatchPost(items) {
   const url = sharedPairs.length ? `${base}?${sharedPairs.map((p) => p.pair).join("&")}` : base;
   const body = items.map((item) => buildBodyLine(item.perEventPairs)).join("\r\n");
   return { url, method: "POST", body };
+}
+
+/**
+ * UTF-8 byte length of a string (040-05 AC1's byte-ceiling measure).
+ * @param {string} str
+ * @returns {number}
+ */
+function byteLength(str) {
+  return new TextEncoder().encode(str).length;
+}
+
+/**
+ * Slice 040-05 AC1/AC2/AC4 — greedily pack a same-context sub-group's
+ * already-parsed ITEMS (the caller's invariant: `items.length >= 2`) into as
+ * FEW in-order chunks as possible such that each chunk's eventual `\r\n`-
+ * joined body stays under BOTH `GA4_BATCH_MAX_BYTES` (bytes) and
+ * `GA4_BATCH_MAX_EVENTS` (line count) — one chunk becomes one split POST via
+ * `buildBatchPost`.
+ *
+ * Walks strictly in cycle (array) order, accumulating into the CURRENT open
+ * chunk; a new chunk starts the moment adding the next item's body line
+ * would push the current chunk over EITHER ceiling (AC1). Once a chunk is
+ * closed (a new one started), no later item is ever added back to it — no
+ * backfill, so cycle order is preserved across the emitted chunks even when
+ * an unsplittable oversized item closes a chunk mid-group (AC1's
+ * "small / huge-alone / small" interleaving case).
+ *
+ * AC4: a SINGLE item whose own body line already exceeds
+ * `GA4_BATCH_MAX_BYTES` cannot be merged with any neighbor (a single event
+ * cannot be split further) — it is closed into its own one-item chunk
+ * immediately, over-ceiling, rather than dropped or forced into a neighbor.
+ * @param {Array<ReturnType<typeof parseRequest>>} items
+ * @returns {Array<Array<ReturnType<typeof parseRequest>>>}
+ */
+function splitIntoPostGroups(items) {
+  const groups = [];
+  let current = [];
+  let currentLines = [];
+
+  for (const item of items) {
+    const line = buildBodyLine(item.perEventPairs);
+    const candidateLines = [...currentLines, line];
+    const fitsCount = candidateLines.length <= GA4_BATCH_MAX_EVENTS;
+    const fitsBytes = byteLength(candidateLines.join("\r\n")) <= GA4_BATCH_MAX_BYTES;
+
+    if (current.length > 0 && (!fitsCount || !fitsBytes)) {
+      // Adding this item to the current (non-empty) chunk would breach a
+      // ceiling — close it now; it is never reopened (no backfill).
+      groups.push(current);
+      current = [];
+      currentLines = [];
+    }
+
+    current.push(item);
+    currentLines.push(line);
+
+    // AC4: this item's OWN line already exceeds the byte ceiling — it can
+    // never be merged with a neighbor, so close its one-item chunk right away.
+    if (current.length === 1 && byteLength(line) > GA4_BATCH_MAX_BYTES) {
+      groups.push(current);
+      current = [];
+      currentLines = [];
+    }
+  }
+
+  if (current.length > 0) groups.push(current);
+  return groups;
 }
 
 /**
@@ -143,7 +244,10 @@ function buildBatchPost(items) {
  *  - a lone sub-group member UNCHANGED (AC3 — still the 039-01 GET), or
  *  - ONE synthesized batched POST per sub-group of >=2 (AC1/AC4).
  * Sub-group (and cross-sub-group output) order follows first-seen cycle
- * order.
+ * order. Slice 040-05: a sub-group of >=2 that would exceed either payload
+ * ceiling (bytes or event count) is greedily packed into MULTIPLE split
+ * POSTs via `splitIntoPostGroups` instead of always one — a group under both
+ * ceilings still collapses back to exactly one (AC3, unchanged from 040-03).
  * @param {Array<{ url: string, method: string }>} requests
  * @returns {Array<{ url: string, method: string, body?: string }>}
  */
@@ -166,7 +270,12 @@ export function coalesceGa4(requests) {
     if (group.items.length === 1) {
       outputs.push(group.items[0].original); // AC3 — unchanged
     } else {
-      outputs.push(buildBatchPost(group.items)); // AC1/AC4 — synthesized POST
+      // AC1/AC2/AC4 — greedily split by ceiling; an under-ceiling group
+      // yields exactly one chunk, so this is byte-for-byte AC3-equivalent to
+      // the pre-040-05 single `buildBatchPost(group.items)` call.
+      for (const chunk of splitIntoPostGroups(group.items)) {
+        outputs.push(buildBatchPost(chunk));
+      }
     }
   }
   return outputs;

@@ -1,7 +1,7 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: [040-03]
-last_verified:
+last_verified: 2026-09-09
 frame_review: true
 ---
 
@@ -62,17 +62,17 @@ and is the split lossless?
    039-01 / browser-URL-limit concern OUTSIDE this slice's (POST-body) frame.
 
 **DoD:**
-- [ ] All ACs pass; full suite green.
-- [ ] Coverage: a group whose combined body exceeds the BYTE ceiling → N split POSTs, each under it, union of body
+- [x] All ACs pass; full suite green (91 files / 1418 tests).
+- [x] Coverage: a group whose combined body exceeds the BYTE ceiling → N split POSTs, each under it, union of body
       lines == input events (order preserved); a group exceeding the EVENT-COUNT ceiling (many small events, low bytes)
       → split by count; an under-both-ceilings group → ONE POST (040-03 fixture still byte-for-byte); a single
       over-byte-ceiling event → its own unsplit single-line POST; a lone event → still the 039-01 GET; the shared query
       (incl. `_ss`/`_fv`) is repeated on each split POST; and a **small / huge-alone / small interleaving** (an
       unsplittable event mid-group) preserves cycle order across the split POSTs (no backfill into a closed POST).
-- [ ] Each new-feature test shown to fail when its feature is removed (e.g. removing the split → one over-ceiling body;
-      removing the count clause → a high-count low-byte burst stays one POST).
-- [ ] Reviewed by `reviewer` (compliance + craft).
-- [ ] Deviation log + reconciliation sweep produced.
+- [x] Each new-feature test shown to fail when its feature is removed (the 7 new tests all failed on revert; the count
+      test pins `[25, 1]` from 26 events so removing the count clause fails it).
+- [x] Reviewed by `reviewer` (compliance + craft — both PASS).
+- [x] Deviation log + reconciliation sweep produced.
 
 ## Assumptions
 
@@ -106,8 +106,46 @@ across BOTH rejection dimensions, a user-facing reliability behavior on the real
 
 ### Deviation log (after reconciliation)
 
-_TBD at implementation._
+Implemented in `connectors/ga4/coalesce.js` (two exported constants `GA4_BATCH_MAX_BYTES`=60000 / `GA4_BATCH_MAX_EVENTS`=25,
+a `byteLength` helper, a `splitIntoPostGroups` greedy packer, and `coalesceGa4`'s ≥2 branch iterating the chunks) +
+`test/ga4-coalesce.test.js` (7 new-feature tests — all fail on revert — plus 2 AC3-preservation regression guards, i.e.
+9 new `it` blocks total). No change to `core/airlock.js`, `contracts/`, `gtag.js`, or
+`core/coalescing-broker.js`. Landed on ACs 1–4. Notes/decisions (both reviewers ruled all AC-compliant, no blockers):
+
+1. **A post-split SINGLETON chunk is emitted as a single-line POST, not a GET (compliance-ruled AC-compliant; tracked
+   non-parity residual).** A small event isolated by an oversized neighbor's split, or a trailing count-remainder of 1,
+   is a member of a ≥2 context group, so AC1 ("split → multiple POSTs, every event in exactly one") requires it be a
+   POST — emitting a GET would violate AC1 and force the forbidden backfill/reorder. Only a genuine context-group-of-1
+   (input) stays the 039-01 GET (AC3). Consequence: on the rare split path, a single event can leave as a single-line
+   POST where gtag would GET it — same class as the `_ss`/`_fv`-repeat non-parity residual (fidelity closed, if ever,
+   by the deferred live-accept GA4 DebugView re-check).
+2. **The byte ceiling measures the POST BODY only, not url+body (accepted in-frame decision).** `byteLength` is applied
+   to the `\r\n`-joined body (the growing part), consistent with AC1's "combined body size" wording; the 60000 body
+   ceiling leaves a >70KB margin under GA4 MP's documented ~130KB whole-request limit, comfortably absorbing the
+   repeated shared query. Logged so the body-only scope is explicit for the future live-accept re-check.
+3. **Measured == emitted, by construction.** `splitIntoPostGroups` builds candidate bodies with the SAME `buildBodyLine`
+   + `\r\n` join `buildBatchPost` uses, so the size checked against the ceiling is exactly the size shipped — the
+   ceiling can never disagree with the actual POST body (craft-noted strength). A stale `buildBatchPost` docstring
+   (">=2") was corrected to ">=1 chunk".
+4. **Considered + declined micro-opt:** the byte fits-check re-encodes the whole candidate body per item (O(n²) over a
+   chunk's ≤25 lines) rather than keeping a running total. Both reviewers flagged it negligible ("worth noting, not
+   fixing"); kept the re-join form deliberately because it guarantees measured==emitted (item 3) — clarity/exactness
+   over a micro-optimization on a rare backstop path.
+
+**No deviation from:** the greedy lossless byte-OR-count split, cycle order + no-backfill, the unsplittable-single-event
+edge (AC4), the under-both-ceilings byte-for-byte 040-03 preservation (AC3), or the adapter-only placement (no core
+change).
 
 ### Reconciliation sweep
 
-_TBD at implementation._
+- **ADR-0021 OQ#2 (payload ceiling) closed** → struck RESOLVED, pointing at this slice + the two self-imposed constants.
+  With OQ#1 (040-04) and OQ#3 (040-03) already closed, **ADR-0021 has no open questions left** — spec 040 fully
+  discharges the ADR.
+- **`docs/refinement-todo.md`:** nothing new — the only residuals are the already-tracked fidelity ones (the n=1
+  batch-marker + deferred live-accept DebugView re-check, 040-03 entries), which the two non-parity notes above
+  (singleton-POST, `_ss`/`_fv` repeat) fall under the same class of and the same deferred re-check would close.
+- **`docs/inbox.md`:** nothing to park.
+- **Deferred / carried forward:** none new — the payload-ceiling was the last ADR-0021 open question.
+- **Spec 040 roll-up:** with 040-04 + 040-05 DONE, the hardening pass is complete; spec 040 returns to DONE (spec-level
+  status + board updated at close-out).
+- **Full suite:** 91 files / 1418 tests green.

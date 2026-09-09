@@ -152,9 +152,13 @@ The question this ADR settles: **where does batch/coalesced egress live, and wha
   and only the response leg failed — worse for conversion connectors, where it would double-count). The hardening is
   observability, not retry: a rejection now emits a `kind:"egress-failure"` diagnostic (previously swallowed), closing
   the gap the coalescing blast-radius made higher-stakes.
-- **Payload ceiling** — when a coalesced body would exceed a vendor's size limit, split into multiple requests; the
-  threshold and split policy are per-adapter. → [slice 040-05](../specs/040-core-egress-batching/slice-05-payload-ceiling-split.md)
-  (in progress: a conservative self-imposed byte-OR-count ceiling, adapter-side lossless split).
+- ~~**Payload ceiling**~~ — **RESOLVED 2026-09-09 by
+  [slice 040-05](../specs/040-core-egress-batching/slice-05-payload-ceiling-split.md) (DONE).** The GA4 adapter
+  (`coalesceGa4`) greedily splits a same-context group into multiple bounded POSTs (lossless, cycle-order-preserving)
+  when it would exceed EITHER of two **self-imposed conservative** ceilings — `GA4_BATCH_MAX_BYTES` (60000, well under
+  GA4 MP's documented ~130KB) or `GA4_BATCH_MAX_EVENTS` (25, GA4 MP's documented per-request cap). `/g/collect`'s real
+  limits are unpublished, so these are safety backstops (measured on the POST body), not a gtag reproduction — the
+  threshold/split policy is per-adapter, as this ADR specified.
 - ~~**Coalescing key precision**~~ — **RESOLVED 2026-09-09 by
   [slice 040-03](../specs/040-core-egress-batching/slice-03-ga4-batch-adapter.md) (DONE).** The core key is
   endpoint (origin+path) only; the connector `coalesce` hook refines it — GA4 merges on the **entire shared-context
