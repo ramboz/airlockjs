@@ -151,3 +151,30 @@ The question this ADR settles: **where does batch/coalesced egress live, and wha
   threshold and split policy are per-adapter. → a 040 slice.
 - **Coalescing key precision** — is endpoint+verdict+credential sufficient, or do some vendors need finer keys (e.g.
   per-`tid`)? GA4 needs same-`tid`; confirm per adapter. → 040.
+
+## Amendments
+
+### 2026-09-09 — Relationship to the existing `core/coalescing-broker.js` (prior art; decision unchanged)
+
+Surfaced while framing spec 040-02: a module named "coalescing broker" already exists —
+`core/coalescing-broker.js` (spec 014-02 / [ADR-0008](./adr-0008-alloy-concurrent-first-mint.md)). It is **not**
+this ADR's seam, and the two must not be conflated. That broker is Adobe Alloy's **identity-mint deduper**: it wraps
+`core/wrapped-sdk-host.js`'s **round-trip** egress dispatch (a `Promise<{status,body,…}>`, since ECID minting needs the
+server response) and suppresses concurrent/late duplicate `interact` first-mints so exactly one `interact` egresses per
+*identity* — a **correctness** mechanism keyed by identity mint. Its docstring is explicit that "`core/airlock.js` and
+`core/chamber.worker.js` are UNTOUCHED — this is a new, parallel module" (`:5-7`), and it has no production wiring today
+(`createCoalescingBroker`/`handleInterceptedFetch` referenced only in `test/coalescing-broker-core.test.js`, grepped
+2026-09-09).
+
+This ADR's Option C is a **different** mechanism on a **different** path: cross-connector **request-count** batching
+(perf), keyed by **endpoint** (origin+path), on the connector-host `{ready}`→`core/airlock.js` **fire-and-forget
+keepalive `fetch`** dispatch (`:244-312`). So the decision (insertion point, key, default-no-coalesce, protocol-pluggable
+hook) is **unchanged** by this discovery. Two notes for the record:
+
+1. **Prior-art precedent (strengthens Option C).** The broker already established the exact shape this ADR chose — a
+   vendor-neutral core coalescing mechanism with an **injected per-connector strategy** (`recognize`/`extractIdentity`
+   from `connectors/alloy/xdm-mint.js`). ADR-0021's `coalesce(requests)->EgressRequest[]` hook is the same idea for the
+   keepalive path; the precedent is evidence the pattern is sound and vendor-neutral in this codebase.
+2. **Naming.** Spec 040's implementation must **name its seam to disambiguate** from the broker (e.g. "egress
+   batch-coalesce"), and must **not** import, extend, or route through `createCoalescingBroker` — the paths and purposes
+   differ. Recorded as an implementer constraint in slice 040-02's Assumptions.
