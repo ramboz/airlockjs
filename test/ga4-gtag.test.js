@@ -147,6 +147,86 @@ describe("createGa4GtagConnector — AC2 cid/sid sourced exactly as the MP path 
   });
 });
 
+// Spec 039-02 — Consent Mode STATE carriage (gcs), ADR-0019. `gcs` is a PURE
+// function of the resolved host consent vector (core/consent.js's
+// `resolveConsent`), threaded via `config.ctx.consent` — the SAME `ctx`
+// object 039-01 already uses to carry host context, mirroring the existing
+// single-sourcing-path convention rather than inventing a second one. Both
+// anchors below (`G111`/`G100`) are LIVE-OBSERVED (slice-02-consent-mode.md's
+// Grounding note + fixtures/parity-ga4-collect.redacted.json's own `gcs:
+// "G111"` value) — not author-invented synthetic strings.
+describe("createGa4GtagConnector — AC1/AC3 gcs Consent Mode STATE (039-02)", () => {
+  it("all-granted vector encodes gcs=G111 (live-observed anchor)", () => {
+    const connector = createGa4GtagConnector({
+      measurementId: "G-XXXX",
+      ctx: { ...ctx, consent: { ad_storage: "granted", analytics_storage: "granted" } },
+    });
+    const [{ url }] = connector.handle({ type: "page_view", params: {} });
+    expect(new URL(url).searchParams.get("gcs")).toBe("G111");
+  });
+
+  it("all-denied vector encodes gcs=G100 (live-observed anchor)", () => {
+    const connector = createGa4GtagConnector({
+      measurementId: "G-XXXX",
+      ctx: { ...ctx, consent: { ad_storage: "denied", analytics_storage: "denied" } },
+    });
+    const [{ url }] = connector.handle({ type: "page_view", params: {} });
+    expect(new URL(url).searchParams.get("gcs")).toBe("G100");
+  });
+
+  it("asymmetric vector (ad_storage denied, analytics_storage granted) encodes gcs=G101 — LIVE-CONFIRMED 2026-09-08 on the reference page, and guards digit ORDER (G111/G100 are symmetric under swapping the two purposes and would stay green even if GCS_PURPOSES were reversed; this vector is not)", () => {
+    const connector = createGa4GtagConnector({
+      measurementId: "G-XXXX",
+      ctx: { ...ctx, consent: { ad_storage: "denied", analytics_storage: "granted" } },
+    });
+    const [{ url }] = connector.handle({ type: "page_view", params: {} });
+    expect(new URL(url).searchParams.get("gcs")).toBe("G101");
+  });
+
+  it("the complementary asymmetric vector (ad_storage granted, analytics_storage denied) encodes gcs=G110 — same confirmed digit-order rule, reversed", () => {
+    const connector = createGa4GtagConnector({
+      measurementId: "G-XXXX",
+      ctx: { ...ctx, consent: { ad_storage: "granted", analytics_storage: "denied" } },
+    });
+    const [{ url }] = connector.handle({ type: "page_view", params: {} });
+    expect(new URL(url).searchParams.get("gcs")).toBe("G110");
+  });
+
+  it("all-pending (no consent vector at all) omits gcs entirely — never a fail-safe-denied guess", () => {
+    const connector = createGa4GtagConnector({ measurementId: "G-XXXX", ctx });
+    const [{ url }] = connector.handle({ type: "page_view", params: {} });
+    expect(new URL(url).searchParams.get("gcs")).toBeNull();
+    expect(url).not.toContain("gcs=");
+  });
+
+  it("mixed-pending (ad_storage decided, analytics_storage pending) omits gcs entirely — no partial G1XY guess", () => {
+    const connector = createGa4GtagConnector({
+      measurementId: "G-XXXX",
+      ctx: { ...ctx, consent: { ad_storage: "granted" } }, // analytics_storage has no signal
+    });
+    const [{ url }] = connector.handle({ type: "page_view", params: {} });
+    expect(new URL(url).searchParams.get("gcs")).toBeNull();
+    expect(url).not.toContain("gcs=");
+  });
+
+  it("gcs depends ONLY on ad_storage/analytics_storage — a denied data-use purpose does not flip it", () => {
+    const connector = createGa4GtagConnector({
+      measurementId: "G-XXXX",
+      ctx: {
+        ...ctx,
+        consent: {
+          ad_storage: "granted",
+          analytics_storage: "granted",
+          ad_user_data: "denied",
+          ad_personalization: "denied",
+        },
+      },
+    });
+    const [{ url }] = connector.handle({ type: "page_view", params: {} });
+    expect(new URL(url).searchParams.get("gcs")).toBe("G111");
+  });
+});
+
 describe("AC4 — additive: the frozen MP surface is BYTE-IDENTICAL to before this slice", () => {
   // Golden hashes captured from the tree BEFORE connectors/ga4/gtag.js existed
   // (2026-09-08) — a hash mismatch means map.js or the pinned MP contract was
@@ -179,11 +259,22 @@ describe("AC5 — same-protocol oracle (038, DONE): the emitted beacon passes on
   /** Same replay shape as rig/parity/ga4-replay.js's `replayGa4Egress`, for the
    * gtag connector: ctx from the fixture's OWN cookies (never the captured
    * beacon's cid/sid — the decisive AC1 rule 038-02 established), event derived
-   * from the container's fields via the descriptor's `deriveLogicalEvent`. */
+   * from the container's fields via the descriptor's `deriveLogicalEvent`.
+   *
+   * 039-02: `consent` is NOT cookie-derived (unlike cid/sid), so it has no
+   * `sourceGa4CtxFromFixture` equivalent — the fixture's `container_fields.gcs`
+   * is the ALREADY-ENCODED live-observed all-granted anchor (`"G111"`), so the
+   * host consent vector a real page would have resolved to produce it is
+   * `{ ad_storage: "granted", analytics_storage: "granted" }`; threading that
+   * here (rather than leaving `ctx.consent` unset) is what lets `gcs` classify
+   * `maps` instead of a false `dropped` regression. */
   async function replayGtagFields() {
     const ctxFromFixture = await sourceGa4CtxFromFixture({ cookies: fixture.cookies });
     const logicalEvent = ga4GtagParityDescriptor.deriveLogicalEvent(fixture.container_fields);
-    const connector = createGa4GtagConnector({ measurementId: SYNTHETIC_GA4_MEASUREMENT_ID, ctx: ctxFromFixture });
+    const connector = createGa4GtagConnector({
+      measurementId: SYNTHETIC_GA4_MEASUREMENT_ID,
+      ctx: { ...ctxFromFixture, consent: { ad_storage: "granted", analytics_storage: "granted" } },
+    });
     const [{ url }] = connector.handle({ type: logicalEvent.type, params: logicalEvent.params });
     return Object.fromEntries(new URL(url).searchParams.entries());
   }
@@ -211,7 +302,21 @@ describe("AC5 — same-protocol oracle (038, DONE): the emitted beacon passes on
     }
   });
 
-  it("overall verdict is `pass` — the not-yet-emitted session/consent fields are OWNED gaps, not regressions", async () => {
+  it("039-02: gcs now classifies `maps` (gap CLOSED, removed from the descriptor's gapMap) — not expected-dropped", async () => {
+    const airlockFields = await replayGtagFields();
+    const { fields } = diffParity({
+      descriptor: ga4GtagParityDescriptor,
+      containerFields: fixture.container_fields,
+      airlockFields,
+    });
+    expect(fields.find((f) => f.field === "gcs")).toMatchObject({
+      bucket: "maps",
+      containerValue: "G111",
+      airlockValue: "G111",
+    });
+  });
+
+  it("overall verdict is `pass` — the not-yet-emitted session state / gcd defaults are OWNED gaps, not regressions", async () => {
     const airlockFields = await replayGtagFields();
     const { verdict, fields } = diffParity({
       descriptor: ga4GtagParityDescriptor,
@@ -219,7 +324,7 @@ describe("AC5 — same-protocol oracle (038, DONE): the emitted beacon passes on
       airlockFields,
     });
     expect(verdict).toBe("pass");
-    for (const name of ["sct", "seg", "_fv", "_ss", "_nsi", "gcs", "gcd"]) {
+    for (const name of ["sct", "seg", "_fv", "_ss", "_nsi", "gcd"]) {
       expect(fields.find((f) => f.field === name).bucket).toBe("expected-dropped");
     }
   });

@@ -13,12 +13,19 @@
  * — one container capture, two descriptors, because ONE gtag beacon is being
  * compared against TWO airlock rewire paths (MP today; gtag as of 039).
  *
- * GAP MAP (ADR-0020 commitment 1): 039-01 ships only the CORE attribution set
- * — session state (`sct`/`seg`/`_fv`/`_ss`/`_nsi`, owned by 039-03's
- * `_ga_<stream>` writer) and Consent Mode (`gcs` owned by 039-02, `gcd` by
- * 039-05) are not yet emitted. As each lands, `diffParity` reclassifies its
- * row from `expected-dropped` to `gap-closed` automatically (the connector's
- * gap map shrinks; the pipeline and this field list do not change).
+ * GAP MAP (ADR-0020 commitment 1): 039-01 shipped only the CORE attribution
+ * set; session state (`sct`/`seg`/`_fv`/`_ss`/`_nsi`, owned by 039-03's
+ * `_ga_<stream>` writer) and the Consent Mode DEFAULTS string (`gcd`, owned
+ * by 039-05 — it co-varies with consent, so it isn't a pure vector function
+ * like `gcs`) are still not emitted. 039-02 closed the `gcs` (Consent Mode
+ * STATE) gap — `connectors/ga4/gtag.js`'s `encodeGcs` now emits it as a pure
+ * function of the host consent vector, so its row is REMOVED from `gapMap`
+ * below (not left as `gap-closed`: `gap-closed` is `diffParity`'s transient
+ * "owner landed, still gap-map-listed" flag for a row not yet cleaned up; a
+ * shipped slice removes the row outright, same as every prior closed gap in
+ * this map's history). As each remaining row lands, `diffParity` reclassifies
+ * it the same way (the connector's gap map shrinks; the pipeline and this
+ * field list do not change).
  */
 import { GA4_GTAG_COLLECT_ENDPOINT } from "../../../connectors/ga4/gtag.js";
 
@@ -74,7 +81,7 @@ export const ga4GtagParityDescriptor = {
     _fv: { owner: "039-03" },
     _ss: { owner: "039-03" },
     _nsi: { owner: "039-03" },
-    gcs: { owner: "039-02" },
+    // gcs: CLOSED by 039-02 (encodeGcs) — row removed, now classifies `maps`.
     gcd: { owner: "039-05" },
   },
 

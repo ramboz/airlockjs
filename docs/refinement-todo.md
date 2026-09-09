@@ -632,3 +632,19 @@ frame-critique), which also decides the cohort-size question ADR-0020 hands it. 
 **Watch-list:** the long-term third-party-cookie trend is **contested, not settled** (Chrome reversed its deprecation
 plan in 2024–2025); if Chrome later removes third-party cookies by default, this item's *need* mostly evaporates (the
 cookieless first-party + CAPI path becomes the only path) — which is why it is need-triggered, not scheduled.
+
+### `ctx.consent` shape overload across the two GA4 connectors — host-wiring hazard (039-02)
+
+**Latent, not a live bug** (surfaced by the 039-02 compliance + craft reviews). `connectors/ga4/map.js` (MP path) reads
+`ctx.consent` as the **shaped MP object** (`{ad_user_data?, ad_personalization?}`, `"GRANTED"|"DENIED"`), while
+`connectors/ga4/gtag.js`'s `encodeGcs` reads `ctx.consent` as the **raw ADR-0007 vector** (`{ad_storage,
+analytics_storage, …}`, lowercase `granted|denied`). Same field name, same `connectors/ga4/` dir, opposite shape. No
+collision today: the gtag connector is not yet host-wired (each factory gets its own `config.ctx`; tests pass a raw
+vector).
+
+**Resolution trigger:** the gtag-connector host-wiring slice (the future `manifest`/`init` wrapper, per 039-01's
+deviation log — likely grown in 039-03). That slice **must pass the RAW consent vector** to the gtag connector and must
+**NOT** reuse the MP shaping path (`adapters/eds/index.js` `ctxWithConsent = shapeMpConsent(...)`): a shaped object
+reaching `encodeGcs` resolves every storage purpose to `pending`, so `gcs` is **silently omitted** (no crash, no wrong
+value — passes all validity checks, just never emits). Fix at wiring time via a distinct field (e.g. `ctx.consentVector`)
+or a shape assertion in `encodeGcs`.

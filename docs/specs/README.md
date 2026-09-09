@@ -106,7 +106,7 @@
 | [038-parity-harness](038-parity-harness/spec.md) | 038-02 — semantic field-map oracle (GA4) | **DONE** |  |
 | [038-parity-harness](038-parity-harness/spec.md) | 038-03 — credential/cookie transport-parity report (feeds E10) | **DONE** |  |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-01 — core /g/collect page_view beacon | **DONE** |  |
-| [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-02 — Consent Mode state carriage (gcs) | DRAFT |  |
+| [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-02 — Consent Mode state carriage (gcs) | RECONCILED (claude/spec-039-jigceremony…) |  |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-03 — session-state reproduction + `_ga_<stream>` writer (closes OQ13-2) | DRAFT |  |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-04 — batched POST transport (per-cycle event coalescing) | DEFERRED |  |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-05 — Consent-Mode defaults carriage (gcd derivation) | DEFERRED |  |
@@ -137,7 +137,7 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
 
 - **8** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **97** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **15** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **16** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
@@ -153,3 +153,4 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
   - `037-one-point-oh-api-pin/slice-01-arch.md` — applied `none`; declined: arch-review
   - `037-one-point-oh-api-pin/slice-01-craft.md` — applied `none`; declined: pr-review, scout-pr-review
   - `039-ga4-gtag-connector/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `039-ga4-gtag-connector/slice-02-craft.md` — applied `pr-review`; declined: scout-pr-review
