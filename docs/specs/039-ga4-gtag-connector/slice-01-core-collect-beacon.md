@@ -1,10 +1,9 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [adr-0019]
 last_verified: 2026-09-08
 frame_review: true
 arch_review: true
-claimed_by: claude/spec-039-jigceremony-d53c78
 ---
 
 ## Slice 039-01 — core /g/collect page_view beacon

@@ -105,7 +105,7 @@
 | [038-parity-harness](038-parity-harness/spec.md) | 038-01 — vendor-generic harness core + same-protocol oracle (Meta Pixel) | **DONE** |  |
 | [038-parity-harness](038-parity-harness/spec.md) | 038-02 — semantic field-map oracle (GA4) | **DONE** |  |
 | [038-parity-harness](038-parity-harness/spec.md) | 038-03 — credential/cookie transport-parity report (feeds E10) | **DONE** |  |
-| [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-01 — core /g/collect page_view beacon | RECONCILED (claude/spec-039-jigceremony…) |  |
+| [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-01 — core /g/collect page_view beacon | **DONE** |  |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-02 — Consent Mode state carriage (gcs) | DRAFT |  |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-03 — session-state reproduction + `_ga_<stream>` writer (closes OQ13-2) | DRAFT |  |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-04 — batched POST transport (per-cycle event coalescing) | DEFERRED |  |
