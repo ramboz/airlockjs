@@ -144,3 +144,31 @@ whether it writes `_ga_<stream>`, are the committed connector spec's to settle (
 - **Coexistence policy:** does the gtag-protocol connector replace the MP connector on a page, or may a property run MP
   server-side deliberately? → deployment/config policy in the connector spec.
 - Field-for-field confirmation of the `/g/collect` → connector map on a redacted capture (carried from R-009(a)).
+
+## Amendments
+
+### 2026-09-09 — spec 039 implementation closed the open questions (owner-approved)
+
+The decision stands unchanged; this records that spec 039 (GA4 gtag-protocol connector) implemented it and, in doing so,
+**closed the three open questions above** and confirmed the pending `## Assumptions` wire-shape. The original text above is
+preserved. Evidence: R-009(a) plus a **live `/g/collect` capture on the intuit-class reference page (stage.erp.intuit.com,
+2026-09-08)** — a Tealium-managed GA4 tag on the 4-vendor stack under OneTrust consent (see spec 039's `## Assumptions`
+and `test/fixtures/parity-ga4-collect-multipage.redacted.json`).
+
+- **Wire-shape assumption (`## Assumptions`) — CONFIRMED, no longer "documented, not measured".** The `/g/collect` beacon
+  was captured live: GET for a single event, POST (multi-line `en=` body) for a batch; `tid`+origin auth, no `api_secret`;
+  the `_ga_<stream>` GS2 grammar (`GS2.1.s$o$g$t$j$l$h`) and Consent-Mode `gcs`/`gcd` all observed. This retires the third
+  open question ("field-for-field confirmation … carried from R-009(a)").
+- **Open question 1 (must the connector WRITE `_ga_<stream>`?) — ANSWERED: yes.** Slice 039-03 built
+  `writeGa4SessionState` (the read-modify-write `_ga_<stream>` session writer), consent-gated on `analytics_storage`
+  exactly like the `_ga` identity write (017-02), **closing OQ13-2**. Governance note: the writer lives **host-side**
+  (`connectors/ga4/cookies.js`, host-called like `sourceGa4Ctx`) — cookies are an orchestrator concern (architecture.md
+  OQ5) — rather than inside a capability-holding connector; the connector (`connectors/ga4/gtag.js`) stays a pure mapper.
+- **Open question 2 (coexistence) — resolved by construction.** The gtag connector is purely additive: the frozen MP
+  connector (`connectors/ga4/map.js` + `contracts/ga4-mp*`, ADR-0017) is byte-identical (golden-hash guarded), so a
+  property may run MP server-side and the gtag path client-side simultaneously; on-page replacement is a deployment/config
+  choice, unconstrained here.
+- **Scope note:** transport batching (batched POST) proved **not** parity-relevant under the 038 field-level oracle (N
+  GETs ≡ one batched POST) and was lifted to a dedicated cross-connector effort (**spec 040**); the Consent-Mode DEFAULTS
+  string `gcd` (co-varies with consent) is deferred to slice 039-05 pending cleaner multi-state captures. Neither affects
+  this decision.

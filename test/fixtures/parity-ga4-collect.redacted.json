@@ -1,9 +1,9 @@
 {
-  "_comment": "Spec 038-02 — a REDACTED, REAL-SHAPED (not real) fixture standing in for a container's gtag.js /g/collect beacon (a page_view) PLUS the _ga/_ga_<stream> cookie context gtag.js read to produce it (ADR-0020 R5: real captures are local-only and uncommittable; the measurement id, client/session ids, and cookie values below are clearly-synthetic — no live identifier of any kind appears in this file). The field vocabulary mirrors docs/research/R-009-gtag-family-fidelity.md's confirmed page_view capture (2026-09-07). cid/sid are DERIVED from the cookies below (parseGaClientId/parseGaSessionId) — the same first-party-cookie coupling the harness's ctx-sourcing rule (rig/parity/ga4-ctx.js) reproduces, never a beacon back-feed.",
+  "_comment": "Spec 038-02 — a REDACTED, REAL-SHAPED (not real) fixture standing in for a container's gtag.js /g/collect beacon (a page_view) PLUS the _ga/_ga_<stream> cookie context gtag.js read to produce it (ADR-0020 R5: real captures are local-only and uncommittable; the measurement id, client/session ids, and cookie values below are clearly-synthetic — no live identifier of any kind appears in this file). The field vocabulary mirrors docs/research/R-009-gtag-family-fidelity.md's confirmed page_view capture (2026-09-07). cid/sid are DERIVED from the cookies below (parseGaClientId/parseGaSessionId) — the same first-party-cookie coupling the harness's ctx-sourcing rule (rig/parity/ga4-ctx.js) reproduces, never a beacon back-feed. The session-state fields are a self-consistent FIRST-VISIT page_view (corrected 2026-09-09 against the live-observed GS2 rules, spec 039): cookie o1/g0/s==t (fresh session) ⇒ beacon sct=1, seg=0, _fv=_ss=_nsi=1. (The prior o3/g1/t≫s cookie paired with sct=1/_ss=1/_nsi=1 was a shape real gtag never emits.)",
   "endpoint": "https://www.google-analytics.com/g/collect",
   "cookies": {
     "_ga": "GA1.1.0000000000.1000000000",
-    "_ga_DEBUGTEST0": "GS2.1.s1000000100$o3$g1$t1000003700$j60$l0$h0"
+    "_ga_DEBUGTEST0": "GS2.1.s1000000100$o1$g0$t1000000100$j60$l0$h0"
   },
   "container_fields": {
     "tid": "G-DEBUGTEST0",
@@ -16,7 +16,7 @@
     "ep.page_type": "article",
     "epn.reading_time_sec": "42",
     "sct": "1",
-    "seg": "1",
+    "seg": "0",
     "_fv": "1",
     "_ss": "1",
     "_nsi": "1",
