@@ -1,5 +1,5 @@
 ---
-status: DONE
+status: IN_PROGRESS
 skill:
 use_cases: []
 ---
@@ -8,7 +8,9 @@ use_cases: []
 
 # Spec 040: Core-egress batching (cross-connector)
 
-> **DONE (2026-09-09).** Opened from spec 039's deferred 039-04. Batch/coalesced egress is a first-class, cross-cutting
+> **RE-OPENED (2026-09-09) for hardening — core batching (040-01/02/03) is DONE + landed; 040-04/05 harden the ADR-0021
+> open questions (failure semantics + payload-ceiling split).** Opened from spec 039's deferred 039-04. Batch/coalesced
+> egress is a first-class, cross-cutting
 > **performance** capability the runtime now offers out-of-the-box across all connectors — not a gtag-specific parity
 > detail. The gating decision was settled by [ADR-0021](../../decisions/adr-0021-core-egress-batching.md) (Accepted
 > 2026-09-09, Option C — core-egress coalescing at the shared dispatch, after the per-request egress seal + endpoint
@@ -77,11 +79,20 @@ Once 040-01 clears the gate, Interface then Data.
 - **040-03 (Interface — GA4 adapter):** the GA4 `coalesce` strategy (shared context params on the query string, one
   `en=…` line per event in the POST body) — reviving spec 039's deferred 039-04 as the first real adapter, grounded on
   the 2026-09-08 batched-POST capture. Same-`tid` keying (Open Question #3).
-- **Later (Data / Rules — deferred to their own slices):** retry/failure semantics for a merged request (a failed batch
-  drops N events); payload-ceiling split (ADR-0021 open questions).
+- **040-04 (Rules — failure semantics + observability):** define what happens when a coalesced dispatch FAILS. Today's
+  egress is best-effort keepalive with NO retry and NO failure diagnostic for ANY beacon (`core/airlock.js` dispatch
+  `.then(ok, err)` both `dispatched++`); coalescing does not change that contract but CONCENTRATES the loss (one failed
+  POST = N events, not 1). The hardening (ADR-0021 open question #1): surface batch failures + bound the blast radius,
+  without inventing per-request retry the rest of the runtime doesn't have.
+- **040-05 (Data — payload-ceiling split):** when a coalesced body would exceed a conservative size ceiling, the adapter
+  splits the same-context group into multiple POSTs each under the ceiling (ADR-0021 open question #2). Per-adapter (the
+  GA4 `coalesce` hook already returns `EgressRequest[]`, so a split is natural); the exact gtag `/g/collect` internal
+  ceiling is unobserved, so airlock picks a documented conservative bound.
 
 ## Slices
 
 - [040-01 — request-count measurement gate (spike)](slice-01-measurement-gate.md)
 - [040-02 — core coalescing seam (post-verdict, per-cycle, protocol-pluggable)](slice-02-core-coalescing-seam.md)
 - [040-03 — GA4 multi-`en` POST coalesce adapter (revives 039-04)](slice-03-ga4-batch-adapter.md)
+- [040-04 — coalesced-dispatch failure semantics + observability](slice-04-failure-semantics.md)
+- [040-05 — payload-ceiling split (per-adapter)](slice-05-payload-ceiling-split.md)

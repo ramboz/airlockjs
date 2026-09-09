@@ -676,3 +676,22 @@ as 2 events, not 1 (or 0).
 
 **Resolution trigger:** a GA4 test property WE control becomes available (never Intuit's stage property, per
 ADR-0018/ADR-0020) — tracked as a follow-up validation pass, not blocking 040-03's landing.
+
+## Spec 040-04 (dispatch-failure observability) follow-up
+
+### The `setConsent` held-beacon flush still swallows fetch failures
+
+**Deferred:** 040-04 added the `egress-failure` diagnostic at the two `worker.onmessage` dispatch sites (single +
+coalesced), but the THIRD dispatch site — `setConsent`'s held-beacon flush (`core/airlock.js` ~`:604`, the held→flushed
+path when consent arrives) — still uses the pre-040-04 swallow pattern
+(`fetch(...).then(() => { dispatched++; }, () => { dispatched++; })`, no `diagnose`). It is a live-page, observable
+dispatch (page alive on consent-grant), so the slice's own AC1 principle ("the swallowed-failure gap is real for all
+[dispatch sites]") reads onto it. It was left out of 040-04 on scope grounds — the slice grounded on and covered only the
+two `worker.onmessage` sites; the flush never coalesces (per-beacon re-fetch), so it sits outside the coalescing
+blast-radius motivation; and the `dispatch(req)` closure is local to `worker.onmessage`, so covering the flush needs
+hoisting it to `createAirlock` scope. Compliance + craft both ruled the omission AC1-compliant-as-written but a real
+residual to track (mirrors the existing `setConsent` boot-mapper residual).
+
+**Resolution trigger:** hoist the `dispatch(req)` closure to `createAirlock` scope (or add the same diagnostic at the
+flush site) so held-beacon flush failures surface identically — a small follow-up whenever failure-observability parity
+across all three steady-state dispatch sites is wanted.

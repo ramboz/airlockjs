@@ -323,3 +323,134 @@ describe("AC3 — default path (no `coalesce` declared) stays BYTE-IDENTICAL to 
     }
   });
 });
+
+// 040-04 (ADR-0021 OQ#1) — dispatch-failure observability. Both dispatch
+// sites (default single-beacon + coalesced POST) previously swallowed a
+// rejected `fetch` (`.then(() => dispatched++, () => dispatched++)` — the SAME
+// increment on both branches, no diagnose). This closes the swallowed-failure
+// gap additively: `dispatched++` still fires on rejection (a delivery WAS
+// attempted; AC1/DoD "no behavior regression"), and a `kind:"egress-failure"`
+// diagnostic now surfaces it. AC2 (no retry) is pinned by the exactly-once
+// fetch-call-count assertions below.
+describe("040-04 — egress-failure diagnostic on a rejected dispatch fetch", () => {
+  it("AC1: a rejecting single-beacon GET fetch emits egress-failure (previously silent)", async () => {
+    const fetchMock = vi.fn(() => Promise.reject(new Error("network down")));
+    vi.stubGlobal("fetch", fetchMock);
+    const onDiagnostic = vi.fn();
+    make({ onDiagnostic });
+
+    FakeWorker.last.onmessage(readyMsg([{ url: `${DECLARED_A}?tid=1`, method: "GET" }]));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const record = onDiagnostic.mock.calls.map((c) => c[0]).find((r) => r.kind === "egress-failure");
+    expect(record).toBeDefined();
+    expect(record).toMatchObject({ level: "warn", kind: "egress-failure", destination: DECLARED_A, method: "GET" });
+    // AC3: byte-length is a POST-only signal — a GET (no body) carries no `bytes` key.
+    expect(record).not.toHaveProperty("bytes");
+    // AC1 additive: the failed dispatch is still counted (no regression).
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("AC1/AC3: a rejecting coalesced POST emits egress-failure with method POST and the body's byte length", async () => {
+    const body = JSON.stringify({ n: 1, list: [1, 2, 3] });
+    const fetchMock = vi.fn(() => Promise.reject(new Error("boom")));
+    vi.stubGlobal("fetch", fetchMock);
+    const onDiagnostic = vi.fn();
+    const coalesce = vi.fn(() => [{ url: DECLARED_A, method: "POST", body }]);
+    make({ coalesce, onDiagnostic });
+
+    FakeWorker.last.onmessage(readyMsg([{ url: DECLARED_A, method: "POST", body: "1" }]));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const record = onDiagnostic.mock.calls.map((c) => c[0]).find((r) => r.kind === "egress-failure");
+    expect(record).toBeDefined();
+    expect(record).toMatchObject({
+      level: "warn",
+      kind: "egress-failure",
+      destination: DECLARED_A,
+      method: "POST",
+      bytes: new TextEncoder().encode(body).length,
+    });
+  });
+
+  it("dispatched (via stats()) is still incremented on a rejected fetch — no count regression", async () => {
+    const fetchMock = vi.fn(() => Promise.reject(new Error("boom")));
+    vi.stubGlobal("fetch", fetchMock);
+    const airlock = make({ onDiagnostic: vi.fn() });
+
+    FakeWorker.last.onmessage(readyMsg([{ url: DECLARED_A, method: "POST", body: "1" }]));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(airlock.stats().dispatched).toBe(1);
+  });
+
+  it("AC2 (no retry): a rejected dispatch results in EXACTLY ONE fetch call, not a second attempt", async () => {
+    const fetchMock = vi.fn(() => Promise.reject(new Error("boom")));
+    vi.stubGlobal("fetch", fetchMock);
+    make({ onDiagnostic: vi.fn() });
+
+    FakeWorker.last.onmessage(readyMsg([{ url: DECLARED_A, method: "POST", body: "1" }]));
+    await Promise.resolve();
+    await Promise.resolve();
+    // A microtask flush AFTER the rejection settles is the exact place a
+    // (wrongly-added) retry would fire a second fetch — assert none did.
+    await Promise.resolve();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("destination is origin+path only — the query string never leaks into the diagnostic", async () => {
+    const fetchMock = vi.fn(() => Promise.reject(new Error("boom")));
+    vi.stubGlobal("fetch", fetchMock);
+    const onDiagnostic = vi.fn();
+    make({ onDiagnostic });
+
+    FakeWorker.last.onmessage(readyMsg([{ url: `${DECLARED_A}?cid=SECRET123`, method: "POST", body: "1" }]));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const record = onDiagnostic.mock.calls.map((c) => c[0]).find((r) => r.kind === "egress-failure");
+    expect(record).toBeDefined();
+    expect(record.destination).toBe(DECLARED_A);
+    expect(record.destination).not.toContain("?");
+    expect(record.destination).not.toContain("SECRET123");
+  });
+
+  it("AC3 edge: an empty-string POST body reports bytes: 0 (present, not omitted)", async () => {
+    const fetchMock = vi.fn(() => Promise.reject(new Error("boom")));
+    vi.stubGlobal("fetch", fetchMock);
+    const onDiagnostic = vi.fn();
+    const coalesce = vi.fn(() => [{ url: DECLARED_A, method: "POST", body: "" }]);
+    make({ coalesce, onDiagnostic });
+
+    FakeWorker.last.onmessage(readyMsg([{ url: DECLARED_A, method: "POST", body: "1" }]));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const record = onDiagnostic.mock.calls.map((c) => c[0]).find((r) => r.kind === "egress-failure");
+    expect(record).toBeDefined();
+    // An empty body is still a POST body — `bytes: 0` is reported, not omitted.
+    expect(record).toMatchObject({ method: "POST", bytes: 0 });
+  });
+
+  it("bytes is keyed off METHOD, not body-presence: a GET carrying a stray body reports NO bytes (guard fix)", async () => {
+    const fetchMock = vi.fn(() => Promise.reject(new Error("boom")));
+    vi.stubGlobal("fetch", fetchMock);
+    const onDiagnostic = vi.fn();
+    // A GET request with a stray `body` — `fetchInit` never sends it, so the
+    // diagnostic must NOT report bytes for a payload that never went on the wire.
+    make({ onDiagnostic });
+
+    FakeWorker.last.onmessage(readyMsg([{ url: DECLARED_A, method: "GET", body: "stray" }]));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const record = onDiagnostic.mock.calls.map((c) => c[0]).find((r) => r.kind === "egress-failure");
+    expect(record).toBeDefined();
+    expect(record).toMatchObject({ method: "GET" });
+    expect(record).not.toHaveProperty("bytes");
+  });
+});

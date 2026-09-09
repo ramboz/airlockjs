@@ -37,6 +37,11 @@ function consoleDiagnostic(record) {
   fn("airlock:", record);
 }
 
+// 040-04: one shared encoder for the egress-failure diagnostic's UTF-8 body
+// byte count — TextEncoder.encode() is stateless, so a module-level instance is
+// safe and avoids constructing one per (rare) failure.
+const EGRESS_TEXT_ENCODER = new TextEncoder();
+
 // Method-aware dispatch (spec 026-01 AC4 — resolves OQ10 for the GET case,
 // three sites: the held-beacon record below, this helper's two call sites at
 // the steady-state `worker.onmessage` dispatch and the `setConsent` flush).
@@ -278,6 +283,39 @@ export function createAirlock({
         }
         return false;
       };
+      // 040-04 (ADR-0021 OQ#1) — the shared dispatch closure BOTH the
+      // no-coalesce (single-beacon) and coalesced-POST sites below call, so
+      // the two cannot drift (mirrors `holdIfOffCeiling`'s dedup above).
+      // Additive: `dispatched++` still fires on EITHER branch (a delivery WAS
+      // attempted — byte-identical to pre-040-04 on the success path); a
+      // rejection ALSO emits a `kind:"egress-failure"` diagnostic, closing the
+      // previously-swallowed-failure gap. `destination` is `originPath(url)`
+      // (origin+path only — never the full URL/query, which carries cid/event
+      // data), consistent with the endpoint-ceiling diagnostic above. `bytes`
+      // (UTF-8 byte length of the body) is present only for a POST (body
+      // defined) — a generic size signal, no body-structure/event-count
+      // assumption (AC3; precise event-count is deferred to 040-05). No
+      // retry: exactly one `fetch` call per request, win or lose (AC2).
+      const dispatch = (req) => {
+        fetch(req.url, fetchInit(req.method, req.body)).then(
+          () => { dispatched++; },
+          () => {
+            dispatched++;
+            // `bytes` is keyed off METHOD (not just body-presence): a GET never
+            // sends a body (`fetchInit` omits it), so a stray `body` on a GET
+            // request must NOT report bytes that never went on the wire — this
+            // mirrors `fetchInit`'s own GET/POST asymmetry (craft/compliance nit).
+            const isPost = req.method !== "GET";
+            diagnose({
+              level: "warn",
+              kind: "egress-failure",
+              destination: originPath(req.url),
+              method: isPost ? "POST" : "GET",
+              ...(isPost && req.body != null ? { bytes: EGRESS_TEXT_ENCODER.encode(req.body).length } : {}),
+            });
+          },
+        );
+      };
       // 040-02 (ADR-0021 Option C) — PHASE 1: collect survivors. Governance
       // (the 017-03 consent seal, then the 016-01 endpoint ceiling) runs
       // UNCHANGED, in the SAME order, with the SAME diagnose/heldBeacons/
@@ -341,8 +379,7 @@ export function createAirlock({
       // unchanged until it opts in.
       if (typeof coalesce !== "function") {
         for (const r of survivors) {
-          fetch(r.url, fetchInit(r.method, r.body))
-            .then(() => { dispatched++; }, () => { dispatched++; });
+          dispatch(r);
         }
       } else {
         // A `coalesce` hook is present: group survivors by endpoint
@@ -369,8 +406,7 @@ export function createAirlock({
             // `checkEndpointCeiling` mechanism); a hook cannot egress outside
             // it.
             if (holdIfOffCeiling(out.url)) continue;
-            fetch(out.url, fetchInit(out.method, out.body))
-              .then(() => { dispatched++; }, () => { dispatched++; });
+            dispatch(out);
           }
         }
       }

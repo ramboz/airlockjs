@@ -145,12 +145,21 @@ The question this ADR settles: **where does batch/coalesced egress live, and wha
 
 ## Open questions
 
-- **Retry/failure semantics for a coalesced request** — a failed merged POST drops N events; does the runtime retry the
-  batch, split-and-retry, or accept the loss (keepalive is already best-effort)? → a 040 slice.
+- ~~**Retry/failure semantics for a coalesced request**~~ — **RESOLVED 2026-09-09 by
+  [slice 040-04](../specs/040-core-egress-batching/slice-04-failure-semantics.md) (DONE): "accept the loss, surface
+  it."** A failed dispatch (coalesced or not) is NOT retried — the best-effort keepalive contract is uniform for every
+  beacon, and a retry after a keepalive POST rejection risks **duplicate ingestion** (the request may have been received
+  and only the response leg failed — worse for conversion connectors, where it would double-count). The hardening is
+  observability, not retry: a rejection now emits a `kind:"egress-failure"` diagnostic (previously swallowed), closing
+  the gap the coalescing blast-radius made higher-stakes.
 - **Payload ceiling** — when a coalesced body would exceed a vendor's size limit, split into multiple requests; the
-  threshold and split policy are per-adapter. → a 040 slice.
-- **Coalescing key precision** — is endpoint+verdict+credential sufficient, or do some vendors need finer keys (e.g.
-  per-`tid`)? GA4 needs same-`tid`; confirm per adapter. → 040.
+  threshold and split policy are per-adapter. → [slice 040-05](../specs/040-core-egress-batching/slice-05-payload-ceiling-split.md)
+  (in progress: a conservative self-imposed byte-OR-count ceiling, adapter-side lossless split).
+- ~~**Coalescing key precision**~~ — **RESOLVED 2026-09-09 by
+  [slice 040-03](../specs/040-core-egress-batching/slice-03-ga4-batch-adapter.md) (DONE).** The core key is
+  endpoint (origin+path) only; the connector `coalesce` hook refines it — GA4 merges on the **entire shared-context
+  param set** (`tid` + `cid`/`sid`/session-state/`dl`/`dr`/`dt`/`gcs`/`gcd`), which is both finer than the core key and
+  finer than "same `tid`" alone (a cross-page `dl` or differing consent forbids merging).
 
 ## Amendments
 

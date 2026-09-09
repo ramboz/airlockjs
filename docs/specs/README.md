@@ -113,6 +113,8 @@
 | [040-core-egress-batching](040-core-egress-batching/spec.md) | 🔬 040-01 — request-count measurement gate (spike) | **DONE** |  |
 | [040-core-egress-batching](040-core-egress-batching/spec.md) | 040-02 — core coalescing seam (post-verdict, per-cycle, protocol-pluggable) | **DONE** |  |
 | [040-core-egress-batching](040-core-egress-batching/spec.md) | 040-03 — GA4 multi-`en` POST coalesce adapter (revives 039-04) | **DONE** |  |
+| [040-core-egress-batching](040-core-egress-batching/spec.md) | 040-04 — coalesced-dispatch failure semantics + observability | **DONE** |  |
+| [040-core-egress-batching](040-core-egress-batching/spec.md) | 040-05 — payload-ceiling split (per-adapter) | DRAFT |  |
 
 ## Deferred slices
 
@@ -138,7 +140,7 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
 
 - **8** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **97** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **22** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **23** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
@@ -161,3 +163,4 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
   - `040-core-egress-batching/slice-02-arch.md` — applied `none`; declined: arch-review
   - `040-core-egress-batching/slice-02-craft.md` — applied `none`; declined: pr-review, scout-pr-review
   - `040-core-egress-batching/slice-03-craft.md` — applied `none`; declined: pr-review, scout-pr-review
+  - `040-core-egress-batching/slice-04-craft.md` — applied `none`; declined: pr-review, scout-pr-review
