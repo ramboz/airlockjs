@@ -1,10 +1,9 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [adr-0021]
 last_verified: 2026-09-09
 frame_review: true
 kind: spike
-claimed_by: claude/spec-039-jigceremony-d53c78
 ---
 
 ## Slice 040-01 — request-count measurement gate (spike)
