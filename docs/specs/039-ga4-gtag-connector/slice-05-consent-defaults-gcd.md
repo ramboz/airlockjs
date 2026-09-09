@@ -1,5 +1,5 @@
 ---
-status: DEFERRED
+status: DRAFT
 dependencies: [039-02]
 last_verified:
 frame_review: true
@@ -7,86 +7,105 @@ frame_review: true
 
 ## Slice 039-05 — Consent-Mode defaults carriage (gcd derivation)
 
-> **DEFERRED (2026-09-08).** Frame-critique (round 1) correctly found this under-grounded to build: both live `gcd`
-> anchors (`r` granted / `q` denied) were captured via consent *update* on one page whose *declared default is denied*
-> — so they ground only the resolved-vector dimension at a fixed default, and a pure-vector encoder would pass every
-> stated AC while the load-bearing declared-default input (AC1) stays untested. An attempt to add the discriminating
-> grounding (mixed-vector + default-varying captures) failed: rapid `gtag('consent','update')` calls race the event
-> dispatch on the live page, yielding internally-inconsistent beacons (see `captures/observed-rules.md`). `gcd` cannot be
-> honestly derived from available evidence yet.
->
-> **Resolution trigger:** obtain clean grounding for the declared-default dimension and per-signal independence — either
-> (a) captures from a page/config whose declared Consent-Mode default differs (default-granted row), plus non-racing
-> mixed-vector captures, or (b) an authoritative Consent Mode v2 `gcd` (default × update) letter table — THEN build the
-> derive-from-(default+vector) encoder. Consent-STATE parity (`gcs`) ships now in 039-02; this is the modeling-defaults
-> half and can follow. (Deferred, not abandoned: the two clean default-denied anchors + the declared-default read are a
-> real head start.)
+**Goal:** Carry the Consent-Mode **DEFAULTS** string `gcd` on the `/g/collect` beacon for the **default-denied**
+deployment (the standard Consent Mode config — deny-by-default + update-on-grant, which is airlock's consent-governed
+target), **derived** from the resolved consent vector. This is the modeling-signal half of Consent Mode that `gcs`
+(039-02) does not cover. Split out from 039-02 because `gcd` co-varies with consent and is not a pure `gcs`-style function.
 
-**Goal:** Carry the Consent-Mode **DEFAULTS** string `gcd` on the `/g/collect` beacon, **derived** from the container's
-declared Consent-Mode default **plus** the resolved consent vector — the modeling-signal half of Consent Mode that
-`gcs` (039-02) does not cover. Split out from 039-02 because `gcd` proved (live, 2026-09-08) to be neither a pure
-function of the runtime vector nor a carry-verbatim constant: it **co-varies with consent state**.
+**Grounding note (2026-09-09 — now live-grounded).** The reference page's **declared default is denied for all four
+signals** (read from dataLayer: `gtag('consent','default',{ad_storage:denied, analytics_storage:denied, ad_user_data:denied,
+ad_personalization:denied, wait_for_update:10})`). Careful single-update captures (one update + ~2.8s settle + one fire —
+avoiding the earlier rapid-update race) ground the per-signal mapping and its independence:
 
-**Grounding note (2026-09-08).** The page's **declared default is denied for all four signals** (read from dataLayer:
-`gtag('consent','default',{ad_storage:denied, analytics_storage:denied, ad_user_data:denied, ad_personalization:denied,
-wait_for_update:10})`). Observed live by flipping the *update* via `gtag('consent','update', …)` — so both anchors are
-the **default-denied row**, varying only the update:
+| update vector (default = denied) | `gcs` | `gcd` | interior letters `[ad, analytics, ad_user_data, ad_personalization]` |
+|---|---|---|---|
+| all granted | `G111` | `13r3r3r3r5l1` | `[r,r,r,r]` |
+| all denied  | `G100` | `13q3q3q3q5l1` | `[q,q,q,q]` |
+| only `ad_storage` granted | `G110` | `13r3q3q3q5l1` | `[r,q,q,q]` |
+| only `analytics_storage` granted | `G101` | `13q3r3q3q5l1` | `[q,r,q,q]` |
+| only `ad_user_data` granted | `G100` | `13q3q3r3q5l1` | `[q,q,r,q]` |
+| only `ad_personalization` granted | `G100` | `13q3q3q3r5l1` | `[q,q,q,r]` |
 
-| declared default | update | `gcd` | `gcs` | `npa` |
-|---|---|---|---|---|
-| denied | granted | `13r3r3r3r5l1` | `G111` | 0 |
-| denied | denied  | `13q3q3q3q5l1` | `G100` | 1 |
+The **four single-signal-granted** captures **each pin one position independently** — so both per-signal independence
+AND the full **position order** (`ad_storage`, `analytics_storage`, `ad_user_data`, `ad_personalization`) are
+**live-grounded, not asserted** (the lone `r` walks positions 1→4 as the granted signal walks the vector). All six anchors
+are committed at `test/fixtures/parity-ga4-consent-gcd.redacted.json`. So for the default-denied config:
 
-So `r` = (default-denied → update-granted) and `q` = (default-denied → update-denied). Per documented Consent Mode v2 the
-four interior letters encode a per-signal **(declared-default × update)** pair — so `gcd` needs **both** the declared
-default (config) **and** the resolved vector. **What is NOT grounded:** the default-**granted** row (a different letter,
-never observed here — this page's default is denied), and per-signal independence (the mixed-vector captures raced —
-`observed-rules.md`). That gap is exactly why this slice is deferred.
+```
+gcd = "13" + L(ad_storage) + "3" + L(analytics_storage) + "3" + L(ad_user_data) + "3" + L(ad_personalization) + "5l1"
+      where L(update=granted) = "r",  L(update=denied) = "q"
+```
+
+The `13…3…3…3…5l1` framing (leading `13`, `3` separators, trailing `5l1`) is the **structural constant for this declared
+default** (denied-all + `wait_for_update:10`).
 
 **DoR:**
-- ✅ 039-02 done — the `gcs` encoder + the consent-vector resolution seam (`core/consent.js` `resolveConsent`,
-  `connectors/ga4/consent.js`) exist; this slice adds the second Consent-Mode string alongside `gcs`.
-- ✅ Two live anchors captured (granted `13r3r3r3r5l1`, denied `13q3q3q3q5l1`) as encoder test targets.
+- ✅ 039-02 done — the `gcs` encoder + the consent-vector resolution seam (`core/consent.js` `resolveConsent`) exist;
+  this slice adds the second Consent-Mode string alongside `gcs`.
+- ✅ Three clean live anchors captured (`[r,r,r,r]`, `[q,q,q,q]`, `[r,q,q,q]`) establishing the per-signal r/q mapping,
+  independence, and position order for the default-denied deployment — **committed** at
+  `test/fixtures/parity-ga4-consent-gcd.redacted.json` (gcs/gcd are Consent-Mode strings, not identifiers → R5-committable),
+  so the anchors are verifiable, not only in a local capture log.
+- ✅ Fixture prerequisite done — `test/fixtures/parity-ga4-collect.redacted.json`'s `gcd` was corrected from the earlier
+  synthetic `13p3p3p2p1p1` to the live-observed granted value `13r3r3r3r5l1` (matching its `gcs=G111`), so the 038
+  same-protocol oracle can diff airlock's emitted `gcd` against a real reference value once this slice closes the gap row.
 
 **Acceptance Criteria:**
 
-1. **A `gcd` encoder** produces the Consent-Mode defaults string from the **declared default** (`config.consentModeDefault`
-   per signal) **and** the resolved consent vector, per documented Consent Mode v2 per-signal codes.
-2. **Both live anchors reproduce exactly.** With declared-default **denied**: an update-granted input yields
-   `13r3r3r3r5l1`, an update-denied input yields `13q3q3q3q5l1` — asserted against the live-observed values, not
-   synthetic strings. (The default-granted row must be grounded by a fresh capture before it is encoded — see the
-   deferral trigger.)
-3. **`gcd` co-variance is honored.** Changing the resolved vector changes `gcd`'s per-signal letters (the encoder is a
-   function of the vector, not a constant); the `gcs`/`gcd` pair on a single beacon is internally consistent (never a
-   granted `gcs` beside a denied-signal `gcd` letter, or vice-versa).
-4. **Omit when undecidable.** With no declared default configured (or a `pending` signal per 039-02's discipline), the
-   corresponding `gcd` position is omitted / the string is omitted rather than fabricated — never a misleading default.
+1. **A `gcd` encoder** for the default-denied deployment maps the resolved consent vector's four signals
+   (`ad_storage`, `analytics_storage`, `ad_user_data`, `ad_personalization`) to the per-signal letters
+   (`granted`→`r`, `denied`→`q`) and emits `13<L>3<L>3<L>3<L>5l1` in that position order. Gated to the default-denied
+   config (see AC4).
+2. **All six live anchors reproduce exactly** (`test/fixtures/parity-ga4-consent-gcd.redacted.json`) — all-granted →
+   `13r3r3r3r5l1`, all-denied → `13q3q3q3q5l1`, and the **four single-signal-granted** anchors that pin each position:
+   `ad_storage`→`13r3q3q3q5l1`, `analytics_storage`→`13q3r3q3q5l1`, `ad_user_data`→`13q3q3r3q5l1`,
+   `ad_personalization`→`13q3q3q3r5l1`. Together they fail on any signal-order swap or per-signal-independence break.
+   Asserted against the live-observed values, not synthetic strings.
+3. **`gcd` co-varies per-signal and stays internally consistent with `gcs`.** Changing one signal's update flips exactly
+   its own letter (`r`↔`q`); on a single beacon the `gcs` storage digits and the corresponding `gcd` letters never
+   disagree (e.g. `gcs` shows `analytics_storage` granted while `gcd`'s analytics letter says denied).
+4. **Scoped to the default-denied config; omit when out-of-scope or undecidable — a KNOWN GAP, not a parity claim.** If the
+   host declares a **non-denied** default (unsupported — the default-granted letters are unobservable here, see
+   Assumptions), or a governing signal is `pending` (039-02 discipline), `gcd` is **omitted** rather than emitting a
+   possibly-wrong string. **Honesty note:** against a container that *does* send `gcd` under a non-denied default, omission
+   is a dropped-field **non-parity** (the same-protocol oracle scores it a miss), NOT a safe default — so this is an
+   explicit, tracked **unsupported-config gap** for the rare default-granted deployment, not a parity guarantee. For
+   airlock's target (the default-denied config, which the reference page uses), `gcd` is emitted and achieves parity.
 
 **DoD:**
 - [ ] All ACs pass; full suite green.
-- [ ] Coverage: all-granted anchor, all-denied anchor, a mixed vector (some signals granted / some denied), and the
-      no-default / pending omission path.
-- [ ] Each new test shown to fail when its feature is removed.
+- [ ] Coverage: the four single-signal anchors (each position, from the fixture), all-granted, all-denied, a
+      `pending`-signal omission, and a non-denied-default omission (the tracked known gap).
+- [ ] Each new test shown to fail when its feature is removed (encoder deletion → gcd absent; signal-order swap → the
+      asymmetric anchor fails).
+- [ ] Descriptor: the `gcd` gap row (currently owned `039-05`) closes → `gcd` classifies `maps` in the 038 oracle.
 - [ ] Reviewed by `reviewer` (compliance + craft).
 - [ ] Deviation log + reconciliation sweep produced.
 
 ## Assumptions
 
-- **The full Consent-Mode-v2 `gcd` letter grammar is grounded on two anchors + documentation, not exhaustively
-  observed.** Only the all-granted (`r`) and all-denied (`q`) per-signal letters are live-captured; the codes for
-  `default≠update` combinations (e.g. default-denied → update-granted) and any signals beyond the four observed are
-  taken from documented Consent Mode v2 and **confirmed on captures spanning more consent-default/update combinations
-  before the encoder is frozen**. A wrong letter yields a beacon whose `gcd` diffs clean field-presence-wise yet
-  mis-signals modeling consent — the exact "diffs clean but mis-attributes" trap, surfacing at MVP9 live console. (Why
-  `frame_review: true`.) **Kill-criterion:** if the observed per-signal code cannot be reproduced as a function of
-  (declared default, resolved state), the derive-from-inputs frame is void and `gcd` falls back to a
-  capture-provisioned per-state table.
-- **`npa` (non-personalized ads) also tracks consent** (0 granted / 1 denied, observed) — if `npa` is in this
-  connector's field set it derives from `ad_personalization` the same way; scoped with `gcd` here, not 039-02.
+- **The default-denied per-signal mapping is live-grounded (committed); the default-GRANTED row is NOT (a tracked
+  unsupported-config gap).** Six captures — committed at `test/fixtures/parity-ga4-consent-gcd.redacted.json` —
+  establish `(default=denied, update=granted)→r` / `(default=denied, update=denied)→q` per signal, independent; the
+  **four single-signal-granted anchors each pin one position**, so the position order (`ad_storage`,
+  `analytics_storage`, `ad_user_data`, `ad_personalization`) is **live-grounded, not asserted from documentation**. The
+  `(default=granted, update=X)` letters (documented Consent Mode v2 uses other codes, e.g. `p`)
+  are **not observable on this page** (its declared default is fixed denied). A default-granted deployment is unusual for
+  consent-required regions (airlock's target is default-deny + update-on-grant), so this slice **scopes to the
+  default-denied config** and **omits `gcd`** for any other declared default rather than guessing. **This omission is a
+  known non-parity for the default-granted config** (a container that sends `gcd` there → the oracle scores airlock's
+  omission a dropped-field miss), tracked — NOT a claim that omission is parity-safe. (Why `frame_review: true`.)
+  **Resolution trigger for the default-granted row:** a capture from a page/config declaring a granted default, or an
+  authoritative CMv2 (default×update) letter table → then extend the encoder + drop the omission.
+- **The `13…5l1` framing is tied to the declared default** (denied-all + `wait_for_update:10`), observed constant across
+  all captures. A different declared default (or `wait_for_update`) could change the framing — another reason the encoder
+  is scoped to the observed default-denied config and omits otherwise.
+- **`npa` (non-personalized ads) also tracks consent** (0 granted / 1 denied, observed) — out of this slice's scope
+  (`gcd` only); flagged for whoever adds `npa` to the connector's field set (derives from `ad_personalization`).
 
-**Anti-horizontal-phasing check:** After this slice a consent-governed rewired page carries BOTH Consent-Mode strings
-(`gcs` state + `gcd` defaults) GA4 needs to drive modeling — full Consent-Mode parity, end-to-end and verifiable by the
-parity harness against the observed anchors.
+**Anti-horizontal-phasing check:** After this slice a consent-governed (default-denied) rewired page carries BOTH
+Consent-Mode strings — `gcs` state (039-02) + `gcd` defaults — the pair GA4 needs to drive consent-mode modeling, verified
+by the parity harness against the live-observed anchors. Full Consent-Mode parity for the standard config.
 
 ### Deviation log (after reconciliation)
 

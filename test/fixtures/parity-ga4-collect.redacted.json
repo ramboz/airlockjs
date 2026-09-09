@@ -1,5 +1,5 @@
 {
-  "_comment": "Spec 038-02 — a REDACTED, REAL-SHAPED (not real) fixture standing in for a container's gtag.js /g/collect beacon (a page_view) PLUS the _ga/_ga_<stream> cookie context gtag.js read to produce it (ADR-0020 R5: real captures are local-only and uncommittable; the measurement id, client/session ids, and cookie values below are clearly-synthetic — no live identifier of any kind appears in this file). The field vocabulary mirrors docs/research/R-009-gtag-family-fidelity.md's confirmed page_view capture (2026-09-07). cid/sid are DERIVED from the cookies below (parseGaClientId/parseGaSessionId) — the same first-party-cookie coupling the harness's ctx-sourcing rule (rig/parity/ga4-ctx.js) reproduces, never a beacon back-feed. The session-state fields are a self-consistent FIRST-VISIT page_view (corrected 2026-09-09 against the live-observed GS2 rules, spec 039): cookie o1/g0/s==t (fresh session) ⇒ beacon sct=1, seg=0, _fv=_ss=_nsi=1. (The prior o3/g1/t≫s cookie paired with sct=1/_ss=1/_nsi=1 was a shape real gtag never emits.)",
+  "_comment": "Spec 038-02 — a REDACTED, REAL-SHAPED (not real) fixture standing in for a container's gtag.js /g/collect beacon (a page_view) PLUS the _ga/_ga_<stream> cookie context gtag.js read to produce it (ADR-0020 R5: real captures are local-only and uncommittable; the measurement id, client/session ids, and cookie values below are clearly-synthetic — no live identifier of any kind appears in this file). The field vocabulary mirrors docs/research/R-009-gtag-family-fidelity.md's confirmed page_view capture (2026-09-07). cid/sid are DERIVED from the cookies below (parseGaClientId/parseGaSessionId) — the same first-party-cookie coupling the harness's ctx-sourcing rule (rig/parity/ga4-ctx.js) reproduces, never a beacon back-feed. The session-state fields are a self-consistent FIRST-VISIT page_view (corrected 2026-09-09 against the live-observed GS2 rules, spec 039): cookie o1/g0/s==t (fresh session) ⇒ beacon sct=1, seg=0, _fv=_ss=_nsi=1. (The prior o3/g1/t≫s cookie paired with sct=1/_ss=1/_nsi=1 was a shape real gtag never emits.) gcs/gcd carry the LIVE-OBSERVED granted-consent Consent-Mode values (gcs=G111, gcd=13r3r3r3r5l1 for the reference page's default-denied config, corrected 2026-09-09 from the earlier synthetic 13p3p3p2p1p1) — these are consent-mode strings, not identifiers, so they are the real observed values.",
   "endpoint": "https://www.google-analytics.com/g/collect",
   "cookies": {
     "_ga": "GA1.1.0000000000.1000000000",
@@ -21,7 +21,7 @@
     "_ss": "1",
     "_nsi": "1",
     "gcs": "G111",
-    "gcd": "13p3p3p2p1p1",
+    "gcd": "13r3r3r3r5l1",
     "_p": "0000000000000",
     "_z": "0000000000",
     "_s": "1",

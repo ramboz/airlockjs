@@ -1,0 +1,57 @@
+{
+  "_comment": "Spec 039-05 — LIVE-OBSERVED Consent-Mode gcs/gcd anchors for the intuit-class reference page (stage.erp.intuit.com, GA4 stream, 2026-09-09), captured via careful single gtag('consent','update',…) + settle + fire (avoiding the rapid-update race). The page's DECLARED DEFAULT is denied for all four signals (read from dataLayer: gtag('consent','default',{ad_storage:denied,analytics_storage:denied,ad_user_data:denied,ad_personalization:denied,wait_for_update:10})). gcs/gcd are Consent-Mode strings, NOT identifiers (the same for every visitor at a given consent state) — so these are the real observed values, committable under ADR-0020 R5 (no live cid/sid/measurement-id appears). These anchors are the committed grounding for slice 039-05's gcd encoder. The four single-signal-granted anchors (only ad_storage / only analytics_storage / only ad_user_data / only ad_personalization) EACH pin one position independently, so the full position order [ad_storage, analytics_storage, ad_user_data, ad_personalization] is live-grounded (not asserted from documentation), with r=(default-denied→update-granted), q=(default-denied→update-denied). The default-GRANTED row is NOT represented (unobservable on this page — its default is fixed denied).",
+  "declared_default": {
+    "ad_storage": "denied",
+    "analytics_storage": "denied",
+    "ad_user_data": "denied",
+    "ad_personalization": "denied",
+    "wait_for_update": 10
+  },
+  "anchors": [
+    {
+      "label": "all granted",
+      "update": { "ad_storage": "granted", "analytics_storage": "granted", "ad_user_data": "granted", "ad_personalization": "granted" },
+      "gcs": "G111",
+      "gcd": "13r3r3r3r5l1",
+      "gcd_letters": ["r", "r", "r", "r"]
+    },
+    {
+      "label": "all denied",
+      "update": { "ad_storage": "denied", "analytics_storage": "denied", "ad_user_data": "denied", "ad_personalization": "denied" },
+      "gcs": "G100",
+      "gcd": "13q3q3q3q5l1",
+      "gcd_letters": ["q", "q", "q", "q"]
+    },
+    {
+      "label": "only ad_storage granted (position 1)",
+      "update": { "ad_storage": "granted", "analytics_storage": "denied", "ad_user_data": "denied", "ad_personalization": "denied" },
+      "gcs": "G110",
+      "gcd": "13r3q3q3q5l1",
+      "gcd_letters": ["r", "q", "q", "q"]
+    },
+    {
+      "label": "only analytics_storage granted (position 2)",
+      "update": { "ad_storage": "denied", "analytics_storage": "granted", "ad_user_data": "denied", "ad_personalization": "denied" },
+      "gcs": "G101",
+      "gcd": "13q3r3q3q5l1",
+      "gcd_letters": ["q", "r", "q", "q"]
+    },
+    {
+      "label": "only ad_user_data granted (position 3)",
+      "update": { "ad_storage": "denied", "analytics_storage": "denied", "ad_user_data": "granted", "ad_personalization": "denied" },
+      "gcs": "G100",
+      "gcd": "13q3q3r3q5l1",
+      "gcd_letters": ["q", "q", "r", "q"]
+    },
+    {
+      "label": "only ad_personalization granted (position 4)",
+      "update": { "ad_storage": "denied", "analytics_storage": "denied", "ad_user_data": "denied", "ad_personalization": "granted" },
+      "gcs": "G100",
+      "gcd": "13q3q3q3r5l1",
+      "gcd_letters": ["q", "q", "q", "r"]
+    }
+  ],
+  "encoding": {
+    "note": "For the default-denied config: gcd = '13' + L(ad_storage) + '3' + L(analytics_storage) + '3' + L(ad_user_data) + '3' + L(ad_personalization) + '5l1', where L(granted)='r', L(denied)='q'. gcs = 'G1' + D(ad_storage) + D(analytics_storage), where D(granted)='1', D(denied)='0'. The '13…3…3…3…5l1' framing is the structural constant for this declared default (denied-all + wait_for_update=10)."
+  }
+}

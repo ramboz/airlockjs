@@ -1,5 +1,5 @@
 ---
-status: DONE
+status: IN_PROGRESS
 skill:
 use_cases: [UC-2]
 ---
@@ -74,10 +74,13 @@ ADR-0019's kill-criterion #1 and open questions flagged, and the reason this is 
   separately.** `gcs` = the Consent-Mode STATE string, `G1<ad_storage><analytics_storage>` (documented Consent Mode v2) —
   both anchors **live-observed** 2026-09-08 (`G111` all-granted / `G100` all-denied); slice 039-02. `gcd` was observed to
   **co-vary with consent** (`13r3r3r3r5l1` granted / `13q3q3q3q5l1` denied), so it is neither a carry-verbatim constant
-  nor a pure vector function — it is derived from (declared default + resolved vector) per Consent Mode v2, with the full
-  letter grammar grounded on the two anchors + documentation and confirmed on more captures before freezing; slice
-  039-05. (This corrects an intermediate draft that mis-modeled `gcd` as a carried constant, itself correcting the
-  original mis-citation of `gcd` as "reproduced from the R-009 capture" — R-009 recorded presence only.)
+  nor a pure vector function — it is derived per-signal from the update state. **Now grounded (2026-09-09):** three clean
+  captures (all-granted `[r,r,r,r]`, all-denied `[q,q,q,q]`, only-`ad_storage`-granted `[r,q,q,q]`) confirm per-signal
+  independence + the position order for the **default-denied** deployment (`r`=granted, `q`=denied); slice 039-05 builds
+  the encoder for that config and omits `gcd` for any other declared default (the default-granted row is not observable
+  on this page — its default is fixed denied). (This corrects an intermediate draft that mis-modeled `gcd` as a carried
+  constant, itself correcting the original mis-citation of `gcd` as "reproduced from the R-009 capture" — R-009 recorded
+  presence only.)
 - **Cookie-write governance reuses the MP consent GATE, but the write DISCIPLINE is new.** Writing `_ga_<stream>` is
   gated on `analytics_storage` exactly as `sourceGa4Ctx`'s `_ga` write already is (017-02) — that consent seam is
   reused. But the existing `_ga` write is create-if-absent (`connectors/ga4/cookies.js:171`, `if (rawGa == null)`) and
