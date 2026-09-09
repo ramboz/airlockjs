@@ -110,7 +110,9 @@
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-03 — session-state reproduction + `_ga_<stream>` writer (closes OQ13-2) | **DONE** |  |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-04 — batched POST transport (per-cycle event coalescing) | DEFERRED |  |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-05 — Consent-Mode defaults carriage (gcd derivation) | **DONE** |  |
-| [040-core-egress-batching](040-core-egress-batching/spec.md) | 040-01 — tbd | DRAFT |  |
+| [040-core-egress-batching](040-core-egress-batching/spec.md) | 🔬 040-01 — request-count measurement gate (spike) | DRAFT |  |
+| [040-core-egress-batching](040-core-egress-batching/spec.md) | 040-02 — core coalescing seam (post-verdict, per-cycle, protocol-pluggable) | DRAFT |  |
+| [040-core-egress-batching](040-core-egress-batching/spec.md) | 040-03 — GA4 multi-`en` POST coalesce adapter (revives 039-04) | DRAFT |  |
 
 ## Deferred slices
 

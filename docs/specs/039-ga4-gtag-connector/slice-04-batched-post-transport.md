@@ -16,9 +16,10 @@ arch_review: true
 > parity detail. It is therefore lifted OUT of spec 039 (a parity spec) and INTO a dedicated cross-connector
 > egress-batching effort (see the batching spec + its ADR). This slice is parked here for provenance only.
 >
-> **Resolution trigger:** Superseded by the cross-connector core egress-batching spec (batching as a core OOTB perf
-> feature across all connectors, with its own ADR). Re-open a gtag-specific slice here only if a GA4-specific batching
-> need survives that spec.
+> **Resolution trigger:** Superseded by [ADR-0021](../../decisions/adr-0021-core-egress-batching.md) (Accepted) + spec
+> [040-core-egress-batching](../040-core-egress-batching/spec.md) — batching as a core OOTB perf feature across all
+> connectors. The GA4 multi-`en` POST specifically is revived as **slice 040-03** (on the shared core seam, 040-02),
+> gated on 040-01's measurement. Re-open a gtag-specific slice here only if a GA4-specific batching need survives that spec.
 
 **Goal:** When a single **lock-through cycle** (one ring-buffer drain crossing the airlock) carries **≥2 events for the
 same GA4 stream**, coalesce them into **one** `/g/collect` **POST** — shared/context params on the query string, one

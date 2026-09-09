@@ -8,11 +8,14 @@ use_cases: []
 
 # Spec 040: Core-egress batching (cross-connector)
 
-> **FRAME-STUB (2026-09-08).** Opened from spec 039's deferred 039-04. Batch/coalesced egress is a first-class,
+> **FRAMED (2026-09-09).** Opened from spec 039's deferred 039-04. Batch/coalesced egress is a first-class,
 > cross-cutting **performance** capability the runtime should offer out-of-the-box across all connectors — not a
-> gtag-specific parity detail. This spec is reserved and framed at a high level; **it needs its own ADR before slicing**
-> (the batching *policy* and its *home* are a load-bearing architectural decision with real alternatives — see
-> Decomposition). Its full ceremony has not yet run.
+> gtag-specific parity detail. **The gating decision is settled: [ADR-0021](../../decisions/adr-0021-core-egress-batching.md)
+> (Accepted 2026-09-09)** chose Option C — core-egress coalescing at the shared dispatch, inserted after the per-request
+> egress seal (`egressVerdict`, `core/airlock.js:254-286`) + endpoint-ceiling (`:287-299`) and before the `fetch`
+> (`:300`), protocol-pluggable per connector, per lock-through cycle, justified on request-count efficiency **not**
+> parity. Slices are framed below; **the build is gated on 040-01's measurement** (ADR-0021 kill-criterion #1 — no
+> demonstrated benefit → shelve, no dead core surface).
 
 ## Overview
 
@@ -38,10 +41,12 @@ justified on **performance/efficiency**, never on parity. Its acceptance criteri
 
 <!-- Frame-stub — assumptions to be probe-grounded when this spec's ceremony runs. -->
 
-- **The efficiency win is real off-thread.** Egress is already off the main thread (keepalive `fetch`), so batching does
-  **not** obviously improve main-thread CWV/INP; the win is request-count / connection / battery / downstream-load, and
-  possibly matching a vendor's own request cadence. This rationale must be **grounded (measured)** before the spec is
-  accepted — a batching feature with no demonstrated benefit is over-engineering. (This is the ADR's central question.)
+- **The efficiency win is off-thread — so it is request-count, not INP, and NOT connections.** Egress is already off the
+  main thread (keepalive `fetch`), so batching does **not** improve main-thread CWV/INP, and HTTP/2 multiplexing means it
+  does not obviously cut connections either (per ADR-0021 Assumption 2). The defensible win is request-count / downstream
+  ingest / matching a vendor's request cadence, and it must be **grounded (measured) in 040-01 before the core seam
+  (040-02) is built** — ADR-0021 kill-criterion #1: no demonstrated benefit → shelve. A batching feature with no measured
+  benefit is over-engineering.
 - **Vendor batch protocols vary.** GA4 `/g/collect` accepts a multi-`en`-line POST body (observed 2026-09-08); other
   vendors batch differently or not at all. A core batching seam must be **protocol-pluggable** (a connector declares how
   its beacons coalesce), not assume one wire shape.
@@ -50,18 +55,27 @@ justified on **performance/efficiency**, never on parity. Its acceptance criteri
 
 ## Decomposition
 
-_TBD — needs an ADR first (see below), then SPIDR slicing._ Likely axes once the ADR settles the policy:
-- **Rules** — the coalescing policy: what may merge (same endpoint + same governing verdict + same cycle) and what may
-  never (cross-endpoint, cross-verdict, cross-credential).
-- **Interface** — a core egress-batching seam + a per-connector "how do my beacons coalesce" declaration (protocol-
-  pluggable), with GA4's multi-`en` POST as the first adapter and a generic same-URL-batch as the baseline.
-- **Data** — batch-size / payload-ceiling handling (split when a vendor's limit is hit).
+**SPIDR — Spike first here (deliberately), because ADR-0021's kill-criterion #1 gates the build on a measured benefit.**
+Once 040-01 clears the gate, Interface then Data.
 
-**ADR needed (before slicing):** *Where does batching live, and what is the coalescing policy?* Alternatives include
-core-egress coalescing (proposed) vs. per-connector batching vs. no batching (status quo); the decision is load-bearing
-(it touches the shared egress path + the seal) and has rejected alternatives → an ADR, per the spec-workflow ADR
-trigger. Route via `/jig:adr-workflow` when this spec's ceremony begins.
+- **040-01 (Spike — measurement gate):** ground the request-count benefit. On a realistic event burst (multiple
+  same-stream events in one lock-through cycle), how many requests does the status-quo one-`fetch`-per-`EgressRequest`
+  path issue vs. a coalesced path, and how often do such bursts actually occur? Outcome: GO (material reduction → build
+  040-02) or SHELVE (ADR-0021 kill-criterion #1 — no dead core surface). This is the honest first step the ADR mandates.
+- **040-02 (Interface — the core coalescing seam):** add the coalescing step in `core/airlock.js` **after** the
+  per-request egress verdict (`:254-286`) + endpoint-ceiling (`:287-299`) and **before** the `fetch` (`:300`), keyed by
+  the coalescing group (endpoint + governing verdict + credential/mode), over one cycle's `ready` set. A per-connector
+  `coalesce(requests) -> EgressRequest[]` hook; **default = no-coalesce** (strictly additive — Meta/LinkedIn/pixel/Alloy
+  unchanged until they opt in). ACs are perf/behavior: fewer requests on a same-group burst, **no event loss**, **no
+  cross-group merge** (a denied/ceiling-blocked/other-endpoint event never enters a merged request).
+- **040-03 (Interface — GA4 adapter):** the GA4 `coalesce` strategy (shared context params on the query string, one
+  `en=…` line per event in the POST body) — reviving spec 039's deferred 039-04 as the first real adapter, grounded on
+  the 2026-09-08 batched-POST capture. Same-`tid` keying (Open Question #3).
+- **Later (Data / Rules — deferred to their own slices):** retry/failure semantics for a merged request (a failed batch
+  drops N events); payload-ceiling split (ADR-0021 open questions).
 
 ## Slices
 
-- [040-01 — tbd](slice-01-tbd.md) _(placeholder — real slices follow the ADR)_
+- [040-01 — request-count measurement gate (spike)](slice-01-measurement-gate.md)
+- [040-02 — core coalescing seam (post-verdict, per-cycle, protocol-pluggable)](slice-02-core-coalescing-seam.md)
+- [040-03 — GA4 multi-`en` POST coalesce adapter (revives 039-04)](slice-03-ga4-batch-adapter.md)
