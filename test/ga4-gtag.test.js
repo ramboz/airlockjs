@@ -17,14 +17,15 @@
 // AC5: the beacon passes the 038 same-protocol oracle on the core field set,
 //      against a redacted `/g/collect` page_view fixture (038 is DONE, so this
 //      wires into the REAL oracle, not a stand-in unit assertion).
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
 
 import { createGa4GtagConnector, GA4_GTAG_COLLECT_ENDPOINT } from "../connectors/ga4/gtag.js";
-import { sourceGa4Ctx } from "../connectors/ga4/cookies.js";
+import { sourceGa4Ctx, writeGa4SessionState } from "../connectors/ga4/cookies.js";
+import { resolveConsent } from "../core/consent.js";
 import { diffParity } from "../rig/parity/oracle.js";
 import { ga4GtagParityDescriptor } from "../rig/parity/descriptors/ga4-gtag.js";
 import { SYNTHETIC_GA4_MEASUREMENT_ID } from "../rig/parity/descriptors/ga4.js";
@@ -267,13 +268,40 @@ describe("AC5 — same-protocol oracle (038, DONE): the emitted beacon passes on
    * host consent vector a real page would have resolved to produce it is
    * `{ ad_storage: "granted", analytics_storage: "granted" }`; threading that
    * here (rather than leaving `ctx.consent` unset) is what lets `gcs` classify
-   * `maps` instead of a false `dropped` regression. */
+   * `maps` instead of a false `dropped` regression.
+   *
+   * 039-03: `sessionState` gets the SAME "thread the already-encoded value"
+   * treatment, for a DIFFERENT reason than `consent` above. This fixture
+   * predates the GS2 state-machine grounding (038-02, before 039-03's live
+   * observation) — its `container_fields` carry a combination (`_fv`/`_ss`/
+   * `_nsi` all set together with `seg="1"`) that no single observed transition
+   * regime (first-visit / continuation / new-session, slice-03's Assumptions)
+   * produces, and its `cookies` (`_ga`, `_ga_DEBUGTEST0`) are PINNED by
+   * `test/parity-ga4.test.js`'s own MP-path assertions (exact `sid`/`cid`
+   * parity, the streamless-fallback contrast) so they cannot be edited to fit
+   * a consistent history without breaking that unrelated, already-passing
+   * suite. Threading the fixture's OWN sct/seg/_fv/_ss/_nsi values here (the
+   * known target this replay must reproduce) is the honest choice given that
+   * constraint — the REAL writer's transition math is exercised end-to-end
+   * against the dedicated multi-page fixture instead
+   * (`parity-ga4-collect-multipage.redacted.json`, see the "039-03 —
+   * `_ga_<stream>` read-modify-write session writer" describe block below). */
   async function replayGtagFields() {
     const ctxFromFixture = await sourceGa4CtxFromFixture({ cookies: fixture.cookies });
     const logicalEvent = ga4GtagParityDescriptor.deriveLogicalEvent(fixture.container_fields);
     const connector = createGa4GtagConnector({
       measurementId: SYNTHETIC_GA4_MEASUREMENT_ID,
-      ctx: { ...ctxFromFixture, consent: { ad_storage: "granted", analytics_storage: "granted" } },
+      ctx: {
+        ...ctxFromFixture,
+        consent: { ad_storage: "granted", analytics_storage: "granted" },
+        sessionState: {
+          sct: fixture.container_fields.sct,
+          seg: fixture.container_fields.seg,
+          _fv: fixture.container_fields._fv,
+          _ss: fixture.container_fields._ss,
+          _nsi: fixture.container_fields._nsi,
+        },
+      },
     });
     const [{ url }] = connector.handle({ type: logicalEvent.type, params: logicalEvent.params });
     return Object.fromEntries(new URL(url).searchParams.entries());
@@ -316,7 +344,23 @@ describe("AC5 — same-protocol oracle (038, DONE): the emitted beacon passes on
     });
   });
 
-  it("overall verdict is `pass` — the not-yet-emitted session state / gcd defaults are OWNED gaps, not regressions", async () => {
+  it("039-03: session state (sct/seg/_fv/_ss/_nsi) now classifies `maps` (gap CLOSED, removed from the descriptor's gapMap) — not expected-dropped", async () => {
+    const airlockFields = await replayGtagFields();
+    const { fields } = diffParity({
+      descriptor: ga4GtagParityDescriptor,
+      containerFields: fixture.container_fields,
+      airlockFields,
+    });
+    for (const name of ["sct", "seg", "_fv", "_ss", "_nsi"]) {
+      expect(fields.find((f) => f.field === name)).toMatchObject({
+        bucket: "maps",
+        containerValue: fixture.container_fields[name],
+        airlockValue: fixture.container_fields[name],
+      });
+    }
+  });
+
+  it("overall verdict is `pass` — the not-yet-emitted gcd DEFAULTS string is the sole remaining OWNED gap, not a regression", async () => {
     const airlockFields = await replayGtagFields();
     const { verdict, fields } = diffParity({
       descriptor: ga4GtagParityDescriptor,
@@ -324,9 +368,7 @@ describe("AC5 — same-protocol oracle (038, DONE): the emitted beacon passes on
       airlockFields,
     });
     expect(verdict).toBe("pass");
-    for (const name of ["sct", "seg", "_fv", "_ss", "_nsi", "gcd"]) {
-      expect(fields.find((f) => f.field === name).bucket).toBe("expected-dropped");
-    }
+    expect(fields.find((f) => f.field === "gcd").bucket).toBe("expected-dropped");
   });
 
   it("an UN-OWNED drop (en missing) is a real regression — the gap map does not swallow it", async () => {
@@ -339,5 +381,191 @@ describe("AC5 — same-protocol oracle (038, DONE): the emitted beacon passes on
     });
     expect(verdict).toBe("fail");
     expect(fields.find((f) => f.field === "en").bucket).toBe("dropped");
+  });
+});
+
+// Spec 039-03 — the `_ga_<stream>` session-state READ-MODIFY-WRITE writer that closes OQ13-2.
+// `writeGa4SessionState` (connectors/ga4/cookies.js) is the genuinely NEW write discipline (in
+// contrast to sourceGa4Ctx's create-if-absent `_ga` write, cookies.js:171): it reads the EXISTING
+// `_ga_<stream>` cookie, advances its GS2 fields per the OBSERVED transition rules, and writes it
+// back every cycle. Values below are asserted field-for-field against
+// test/fixtures/parity-ga4-collect-multipage.redacted.json — the LIVE-OBSERVED (2026-09-08)
+// three-regime capture (first visit / continuation / new session) the slice's Assumptions ground.
+describe("writeGa4SessionState + createGa4GtagConnector — 039-03 session-state writer (closes OQ13-2)", () => {
+  const FIXTURE_PATH = join(HERE, "fixtures/parity-ga4-collect-multipage.redacted.json");
+  const multipageFixture = JSON.parse(readFileSync(FIXTURE_PATH, "utf8"));
+  const STREAM_COOKIE = "_ga_DEBUGTEST0";
+
+  /** A minimal in-memory cookie jar (capability.d.ts-shaped async get/set), mirroring
+   *  ga4-cookies.test.js's own `makeJar` helper. */
+  function makeJar(initial = {}) {
+    const store = new Map(Object.entries(initial));
+    return {
+      async get(name) {
+        return store.has(name) ? store.get(name) : null;
+      },
+      async set(name, value) {
+        store.set(name, value);
+      },
+    };
+  }
+
+  /** Assembles ONE page's beacon via the REAL connector, given the writer's session state for
+   *  that page — cid/tid/en/dl/dr/dt come straight from the fixture's own beacon (never inferred),
+   *  mirroring how a real host's identity ctx and this writer's session ctx are two independently-
+   *  sourced inputs merged onto the SAME `ctx` object (039-01/039-02's single-sourcing-path
+   *  convention, extended here). */
+  async function beaconParamsFor(pageIndex, sessionState) {
+    const page = multipageFixture.pages[pageIndex];
+    const params = { page_location: page.beacon.dl, page_title: page.beacon.dt };
+    if (page.beacon.dr !== undefined) params.page_referrer = page.beacon.dr;
+    const connector = createGa4GtagConnector({
+      measurementId: page.beacon.tid,
+      ctx: {
+        clientId: page.beacon.cid,
+        sessionId: sessionState.sessionId,
+        sessionState,
+        consent: { ad_storage: "granted", analytics_storage: "granted" }, // reproduces the fixture's gcs=G111
+      },
+    });
+    const [{ url }] = connector.handle({ type: page.beacon.en, params });
+    return Object.fromEntries(new URL(url).searchParams.entries());
+  }
+
+  /** Asserts every fixture-declared beacon field matches, except `skip`-listed ones (`gcd` stays a
+   *  039-05 gap — this connector does not emit it yet). */
+  function assertBeaconMatches(params, expectedBeacon, { skip = [] } = {}) {
+    for (const [key, value] of Object.entries(expectedBeacon)) {
+      if (skip.includes(key)) continue;
+      expect(params[key]).toBe(value);
+    }
+  }
+
+  it("page 1 — first visit (no existing _ga_<stream>): mints sid=now, sct=1, seg=0, beacon carries _fv/_ss/_nsi — matches the fixture field-for-field", async () => {
+    const jar = makeJar();
+    const sessionState = await writeGa4SessionState({
+      cookies: jar,
+      streamCookieName: STREAM_COOKIE,
+      now: () => 1700000000 * 1000,
+    });
+    expect(sessionState).toEqual({ sessionId: "1700000000", sct: "1", seg: "0", _fv: "1", _ss: "1", _nsi: "1" });
+    expect(await jar.get(STREAM_COOKIE)).toBe(multipageFixture.pages[0].ga_stream_after);
+
+    const params = await beaconParamsFor(0, sessionState);
+    assertBeaconMatches(params, multipageFixture.pages[0].beacon, { skip: ["gcd"] });
+  });
+
+  it("page 2 — continuation, same session (<=30min gap): sid+sct REUSED (not a fresh mint), seg flips 0->1, t advances, NO _fv/_ss/_nsi — matches the fixture", async () => {
+    const jar = makeJar({ [STREAM_COOKIE]: multipageFixture.pages[1].cookie_before });
+    const sessionState = await writeGa4SessionState({
+      cookies: jar,
+      streamCookieName: STREAM_COOKIE,
+      now: () => 1700000300 * 1000,
+    });
+    expect(sessionState).toEqual({ sessionId: "1700000000", sct: "1", seg: "1" }); // exactly 3 keys — no _fv/_ss/_nsi at all
+    expect(sessionState.sessionId).toBe(multipageFixture.pages[0].beacon.sid); // AC3's decisive check: REUSE, not a fresh per-page mint
+    expect(await jar.get(STREAM_COOKIE)).toBe(multipageFixture.pages[1].ga_stream_after);
+
+    const params = await beaconParamsFor(1, sessionState);
+    assertBeaconMatches(params, multipageFixture.pages[1].beacon, { skip: ["gcd"] });
+    expect(params._fv).toBeUndefined();
+    expect(params._ss).toBeUndefined();
+    expect(params._nsi).toBeUndefined();
+  });
+
+  it("page 3 — new session after a >30min inactivity gap: sct increments, FRESH sid (not reused), seg resets to 0, _ss/_nsi set, NO _fv — matches the fixture", async () => {
+    const jar = makeJar({ [STREAM_COOKIE]: multipageFixture.pages[2].cookie_before });
+    const sessionState = await writeGa4SessionState({
+      cookies: jar,
+      streamCookieName: STREAM_COOKIE,
+      now: () => 1700002400 * 1000,
+    });
+    expect(sessionState).toEqual({ sessionId: "1700002400", sct: "2", seg: "0", _ss: "1", _nsi: "1" }); // no _fv key
+    expect(sessionState.sessionId).not.toBe(multipageFixture.pages[1].beacon.sid); // FRESH sid, never a first-ever visit
+    expect(await jar.get(STREAM_COOKIE)).toBe(multipageFixture.pages[2].ga_stream_after);
+
+    const params = await beaconParamsFor(2, sessionState);
+    assertBeaconMatches(params, multipageFixture.pages[2].beacon, { skip: ["gcd"] });
+    expect(params._fv).toBeUndefined();
+  });
+
+  it("consent DENIED — gated on the RAW ADR-0007 analytics_storage vector (core/consent.js's resolveConsent), NEVER the MP-shaped consent object: no _ga_<stream> read or write; per-page sid fallback stays the caller's (sourceGa4Ctx's) job", async () => {
+    const jar = makeJar({ [STREAM_COOKIE]: multipageFixture.pages[0].ga_stream_after });
+    const getSpy = vi.spyOn(jar, "get");
+    const setSpy = vi.spyOn(jar, "set");
+    const rawVector = { analytics_storage: "denied" }; // the RAW ADR-0007 vector, resolved via resolveConsent below —
+    // NEVER connectors/ga4/consent.js's shaped { ad_user_data, ad_personalization } MP object,
+    // which carries no storage-purpose signal to gate on at all (the 039-02 hazard).
+    const storageGranted = resolveConsent(rawVector, "analytics_storage") === "granted";
+    expect(storageGranted).toBe(false);
+
+    const sessionState = await writeGa4SessionState({
+      cookies: jar,
+      streamCookieName: STREAM_COOKIE,
+      now: () => 1700000000 * 1000,
+      storageGranted,
+    });
+    expect(sessionState).toBeNull();
+    expect(getSpy).not.toHaveBeenCalled(); // never even read — mirrors sourceGa4Ctx's own leak-prevention gate
+    expect(setSpy).not.toHaveBeenCalled();
+  });
+
+  it("sessionTimeoutMinutes is CONFIGURABLE (GA4's session timeout is a per-property Admin setting, not hardcoded) — the SAME 11-min gap classifies differently under a shorter configured timeout", async () => {
+    const gapSeconds = 11 * 60; // <= the 30min default, but > a 10min configured timeout
+    const now = () => (1700000000 + gapSeconds) * 1000;
+
+    const underDefault = await writeGa4SessionState({
+      cookies: makeJar({ [STREAM_COOKIE]: multipageFixture.pages[0].ga_stream_after }),
+      streamCookieName: STREAM_COOKIE,
+      now,
+    });
+    expect(underDefault._ss).toBeUndefined(); // 11min <= the 30min default -> continuation
+    expect(underDefault.sct).toBe("1");
+
+    const underShortTimeout = await writeGa4SessionState({
+      cookies: makeJar({ [STREAM_COOKIE]: multipageFixture.pages[0].ga_stream_after }),
+      streamCookieName: STREAM_COOKIE,
+      now,
+      sessionTimeoutMinutes: 10,
+    });
+    expect(underShortTimeout._ss).toBe("1"); // the SAME gap -> a new session under the shorter config
+    expect(underShortTimeout.sct).toBe("2");
+  });
+
+  it("a gap EXACTLY equal to the timeout boundary is a continuation (<=), not a new session", async () => {
+    const jar = makeJar({ [STREAM_COOKIE]: multipageFixture.pages[0].ga_stream_after });
+    const sessionState = await writeGa4SessionState({
+      cookies: jar,
+      streamCookieName: STREAM_COOKIE,
+      now: () => (1700000000 + 30 * 60) * 1000, // exactly 30 minutes later
+    });
+    expect(sessionState._ss).toBeUndefined();
+    expect(sessionState.sct).toBe("1");
+  });
+
+  it("the GS2 opaque j/l/h tail is carried VERBATIM, never authored — a non-default tail from an existing cookie survives the rewrite untouched", async () => {
+    const jar = makeJar({ [STREAM_COOKIE]: "GS2.1.s1700000000$o1$g0$t1700000000$j999$l7$h3$xNEW" });
+    await writeGa4SessionState({ cookies: jar, streamCookieName: STREAM_COOKIE, now: () => 1700000300 * 1000 });
+    expect(await jar.get(STREAM_COOKIE)).toBe("GS2.1.s1700000000$o1$g1$t1700000300$j999$l7$h3$xNEW");
+  });
+
+  it("wired into the 038 same-protocol oracle: page 1's session-state fields classify `maps`; gcd (039-05) is the sole remaining owned gap; overall verdict is `pass`", async () => {
+    const jar = makeJar();
+    const sessionState = await writeGa4SessionState({
+      cookies: jar,
+      streamCookieName: STREAM_COOKIE,
+      now: () => 1700000000 * 1000,
+    });
+    const airlockFields = await beaconParamsFor(0, sessionState);
+    const { verdict, fields } = diffParity({
+      descriptor: ga4GtagParityDescriptor,
+      containerFields: multipageFixture.pages[0].beacon,
+      airlockFields,
+    });
+    expect(verdict).toBe("pass");
+    for (const name of ["sct", "seg", "_fv", "_ss", "_nsi"]) {
+      expect(fields.find((f) => f.field === name)).toMatchObject({ bucket: "maps" });
+    }
+    expect(fields.find((f) => f.field === "gcd")).toMatchObject({ bucket: "expected-dropped", owner: "039-05" });
   });
 });

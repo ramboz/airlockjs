@@ -15,7 +15,7 @@ A framework-agnostic runtime core, with EDS as the first adapter and connectors 
 - `core/` — the orchestrator, event log, state projection, capability broker, and worker-runtime host. No framework or vendor coupling.
 - `core/worker/` — the connector runtime (chambers) that runs inside the Web Worker.
 - `adapters/eds/` — EDS integration: the three-phase hooks, block-decoration instrumentation, in-house decisioning for the eager window.
-- `connectors/ga4/` — MVP1 wire-protocol connector (Measurement Protocol). `connectors/alloy/` — MVP2 wrapped-SDK connector. Registry namespace `airlock/ga4`, `airlock/alloy`.
+- `connectors/ga4/` — GA4 connectors. `map.js` = the MVP1 Measurement-Protocol (server-side / trusted-secret) path (frozen surface, ADR-0017). `gtag.js` = the additive MVP7 gtag-protocol path (`createGa4GtagConnector`, spec 039 / ADR-0019): a pure mapper whose `handle()` returns the `/g/collect` GET `EgressRequest[]` the generic host dispatches — no `api_secret`, so GA4 parity is a same-protocol beacon diff (038 harness). `cookies.js` holds the host-called identity+session cookie surface: `sourceGa4Ctx` (reads `_ga`/`_ga_<stream>` for `cid`/`sid`, consent-gated 017-02) and `writeGa4SessionState` (the `_ga_<stream>` read-modify-write session writer that reproduces gtag's GS2 state machine, `analytics_storage`-gated — the new cookie-WRITE governance surface, 039-03). `connectors/alloy/` — MVP2 wrapped-SDK connector. Registry namespace `airlock/ga4`, `airlock/alloy`.
 - `diagnostics/` — the `PerformanceObserver` wrappers and the inspector surface (reuses/vendors `aem-cwv-helper` primitives).
 - `test/` — vitest suites, including the oracle components servo will score.
 - `.jig/` — durable workflow state.

@@ -13,17 +13,23 @@
  * that SAME wire protocol off-thread, through the SAME governed GET egress
  * `connectors/pixel/connector.js` already proves (spec 026).
  *
- * SCOPE (039-01 core + 039-02 Consent-Mode STATE): the CORE, single-event
- * `/g/collect` beacon — `v`, `tid`, `cid`, `sid`, `en`, `dl`/`dr`/`dt`,
- * `ep.<k>`/`epn.<k>` custom params, `_et` (engagement time) — PLUS `gcs`, the
- * Consent-Mode STATE string (039-02, see `encodeGcs` below). Session-state
- * carriage (`sct`/`seg`/`_fv`/`_ss`/`_nsi`, the `_ga_<stream>` writer) is
- * 039-03; the Consent-Mode DEFAULTS string `gcd` is 039-05 (it co-varies with
+ * SCOPE (039-01 core + 039-02 Consent-Mode STATE + 039-03 session state): the
+ * CORE, single-event `/g/collect` beacon — `v`, `tid`, `cid`, `sid`, `en`,
+ * `dl`/`dr`/`dt`, `ep.<k>`/`epn.<k>` custom params, `_et` (engagement time) —
+ * PLUS `gcs`, the Consent-Mode STATE string (039-02, see `encodeGcs` below),
+ * PLUS `sct`/`seg`/`_fv`/`_ss`/`_nsi`, the session-state fields (039-03, see
+ * `appendSessionState` below) projected verbatim from the host-computed
+ * `ctx.sessionState` — the STATEFUL half, since those values depend on cookie
+ * history advanced by `connectors/ga4/cookies.js`'s `writeGa4SessionState`
+ * (the `_ga_<stream>` read-modify-write writer that closes OQ13-2), called by
+ * the HOST before this connector runs, mirroring how `ctx.clientId`/
+ * `ctx.sessionId` are already host-sourced rather than derived here. The
+ * Consent-Mode DEFAULTS string `gcd` remains 039-05 (it co-varies with
  * consent, so it is not a pure vector function like `gcs` is — see
  * docs/specs/039-ga4-gtag-connector/slice-02-consent-mode.md's Grounding
- * note). None of that is read or written here. Transport is GET-only (a
- * single captured event) — the batched-POST form gtag uses for >=2 events is
- * 039-04 (DEFERRED), out of scope.
+ * note) — not read or written here. Transport is GET-only (a single captured
+ * event) — the batched-POST form gtag uses for >=2 events is 039-04
+ * (DEFERRED), out of scope.
  *
  * IDENTITY (039-01 AC2): `cid`/`sid` are NOT sourced by this module — they
  * arrive via `config.ctx`, sourced by the HOST exactly as the MP path does
@@ -106,6 +112,30 @@ function encodeGcs(vector) {
 }
 
 /**
+ * Append the 039-03 session-state fields (`sct`/`seg`/`_fv`/`_ss`/`_nsi`) from the host-computed
+ * `ctx.sessionState` — the STATEFUL counterpart to `encodeGcs` above (that one is a pure function
+ * of the consent vector this module itself resolves; this one is not a pure function of anything
+ * gtag.js holds, since the values depend on `_ga_<stream>` cookie HISTORY advanced by
+ * `connectors/ga4/cookies.js`'s `writeGa4SessionState`, called by the HOST before this connector
+ * runs — mirrors how `ctx.clientId`/`ctx.sessionId` are host-sourced, never derived here). Absent
+ * `sessionState` (e.g. `analytics_storage` not granted, `writeGa4SessionState` returned `null`)
+ * omits all five fields, same as an unset `ctx.consent` omits `gcs` (039-02's back-compat rule).
+ * Each field is appended individually via `appendParam` — a key `writeGa4SessionState` never sets
+ * for a given transition (e.g. `_fv` on a continuation) is `undefined` here and omitted, exactly
+ * reproducing the observed "no `_fv`/`_ss`/`_nsi` on a continuation" rule (slice 039-03 AC2).
+ * @param {string[]} query
+ * @param {{ sct?: string, seg?: string, _fv?: string, _ss?: string, _nsi?: string }|null|undefined} sessionState
+ */
+function appendSessionState(query, sessionState) {
+  if (!sessionState) return;
+  appendParam(query, "sct", sessionState.sct);
+  appendParam(query, "seg", sessionState.seg);
+  appendParam(query, "_fv", sessionState._fv);
+  appendParam(query, "_ss", sessionState._ss);
+  appendParam(query, "_nsi", sessionState._nsi);
+}
+
+/**
  * @param {{ type: string, params?: Record<string, unknown> }} event
  *   The captured event — a GA4 event name + its params (the SAME
  *   `{ type, params }` descriptor shape `connectors/ga4/map.js`'s `mapToMp`
@@ -113,13 +143,18 @@ function encodeGcs(vector) {
  *   `dl`/`dr`/`dt`; every OTHER param fans out to `ep.<k>` (string) /
  *   `epn.<k>` (number) — the container's own custom-param convention
  *   (R-009(a), capture-confirmed 2026-09-07).
- * @param {{ measurementId: string, ctx: { clientId: string, sessionId: string|number, engagementTimeMsec?: number, consent?: Record<string, string> }, endpoint?: string }} config
+ * @param {{ measurementId: string, ctx: { clientId: string, sessionId: string|number, engagementTimeMsec?: number, consent?: Record<string, string>, sessionState?: { sct?: string, seg?: string, _fv?: string, _ss?: string, _nsi?: string } }, endpoint?: string }} config
  *   `ctx.consent` (039-02): the RAW ADR-0007 host consent vector (NOT the
  *   MP-shaped object `connectors/ga4/consent.js` produces) — the SAME single
  *   `config.ctx` sourcing path 039-01 already uses for identity, extended
  *   with the one field `encodeGcs` needs. Absent/`undefined` resolves every
  *   purpose to `"pending"` (`core/consent.js`'s fail-to-pending default), so
  *   an unset-consent host omits `gcs` — back-compat with pre-039-02 beacons.
+ *   `ctx.sessionState` (039-03): the host-computed session-state snapshot —
+ *   normally `connectors/ga4/cookies.js`'s `writeGa4SessionState`'s return
+ *   value, threaded the SAME single-sourcing-path way, and projected verbatim
+ *   by `appendSessionState` above. Absent/`undefined` omits `sct`/`seg`/
+ *   `_fv`/`_ss`/`_nsi` entirely — back-compat with pre-039-03 beacons.
  * @returns {{ url: string, method: "GET" }} A single beacon descriptor — wrapped
  *   into the `EgressRequest[]` array shape by `handle()` below (the
  *   `Connector.handle` contract, `contracts/connector.d.ts`).
@@ -132,6 +167,9 @@ function mapToGtagCollect(event, { measurementId, ctx, endpoint }) {
   appendParam(query, "tid", measurementId);
   appendParam(query, "cid", ctx && ctx.clientId);
   appendParam(query, "sid", ctx && ctx.sessionId);
+  // 039-03: session-state carriage, projected verbatim from the host-computed ctx.sessionState —
+  // see appendSessionState's doc comment for why this is not a pure function like encodeGcs.
+  appendSessionState(query, ctx && ctx.sessionState);
   appendParam(query, "en", event && event.type);
   appendParam(query, "dl", source.page_location);
   appendParam(query, "dr", source.page_referrer);
@@ -161,11 +199,18 @@ function mapToGtagCollect(event, { measurementId, ctx, endpoint }) {
 
 /**
  * Ship the core `/g/collect` gtag-protocol connector (039-01) + Consent-Mode
- * STATE carriage (039-02). NOT (yet) a full `contracts/connector.d.ts`
- * `Connector` — like `map.js`'s `mapToMp`, this is the pure mapping half; a
- * `Connector`-conforming wrapper (mirroring `connectors/ga4/connector.js`'s
- * relationship to `map.js`) is host-wiring work for a later slice once
- * session-state carriage (`gcd`, 039-05) lands too.
+ * STATE carriage (039-02) + session-state carriage (039-03, the `_ga_<stream>`
+ * writer that closes OQ13-2). NOT (yet) a full `contracts/connector.d.ts`
+ * `Connector` — like `map.js`'s `mapToMp`, this remains the pure mapping half
+ * (config/ctx threading was chosen over growing this into a capability-holding
+ * `init(caps)` Connector, see `writeGa4SessionState`'s doc comment in
+ * `connectors/ga4/cookies.js` — the cookie-write capability lives entirely on
+ * the HOST side, the SAME place `sourceGa4Ctx`'s own `_ga` write already
+ * lives, never inside this connector); a `Connector`-conforming wrapper
+ * (mirroring `connectors/ga4/connector.js`'s relationship to `map.js`) is
+ * host-wiring work for a later slice once the Consent-Mode DEFAULTS string
+ * (`gcd`, 039-05 — it co-varies with consent, so it isn't a pure vector
+ * function like `gcs`) lands too.
  *
  * @param {Readonly<{
  *   measurementId: string,

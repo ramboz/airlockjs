@@ -14,18 +14,23 @@
  * compared against TWO airlock rewire paths (MP today; gtag as of 039).
  *
  * GAP MAP (ADR-0020 commitment 1): 039-01 shipped only the CORE attribution
- * set; session state (`sct`/`seg`/`_fv`/`_ss`/`_nsi`, owned by 039-03's
- * `_ga_<stream>` writer) and the Consent Mode DEFAULTS string (`gcd`, owned
- * by 039-05 — it co-varies with consent, so it isn't a pure vector function
- * like `gcs`) are still not emitted. 039-02 closed the `gcs` (Consent Mode
- * STATE) gap — `connectors/ga4/gtag.js`'s `encodeGcs` now emits it as a pure
- * function of the host consent vector, so its row is REMOVED from `gapMap`
- * below (not left as `gap-closed`: `gap-closed` is `diffParity`'s transient
- * "owner landed, still gap-map-listed" flag for a row not yet cleaned up; a
- * shipped slice removes the row outright, same as every prior closed gap in
- * this map's history). As each remaining row lands, `diffParity` reclassifies
- * it the same way (the connector's gap map shrinks; the pipeline and this
- * field list do not change).
+ * set; session state and Consent Mode were both still not emitted. 039-02
+ * closed the `gcs` (Consent Mode STATE) gap — `connectors/ga4/gtag.js`'s
+ * `encodeGcs` now emits it as a pure function of the host consent vector.
+ * 039-03 closes the SESSION-STATE gap — `sct`/`seg`/`_fv`/`_ss`/`_nsi` are now
+ * emitted from the host-computed `ctx.sessionState`, itself produced by
+ * `connectors/ga4/cookies.js`'s `writeGa4SessionState` (the `_ga_<stream>`
+ * read-modify-write writer that closes OQ13-2; see
+ * `test/fixtures/parity-ga4-collect-multipage.redacted.json` for the
+ * field-for-field values these rows now classify `maps` against). Each closed
+ * gap's row is REMOVED from `gapMap` below (not left as `gap-closed`:
+ * `gap-closed` is `diffParity`'s transient "owner landed, still gap-map-listed"
+ * flag for a row not yet cleaned up; a shipped slice removes the row outright,
+ * same as every prior closed gap in this map's history). The Consent Mode
+ * DEFAULTS string (`gcd`, owned by 039-05 — it co-varies with consent, so it
+ * isn't a pure vector function like `gcs` is) is the sole remaining row. As it
+ * lands, `diffParity` reclassifies it the same way (the connector's gap map
+ * shrinks; the pipeline and this field list do not change).
  */
 import { GA4_GTAG_COLLECT_ENDPOINT } from "../../../connectors/ga4/gtag.js";
 
@@ -76,12 +81,9 @@ export const ga4GtagParityDescriptor = {
   // "spec 039" bucket — precise enough that landing 039-02 (say) shrinks
   // exactly the `gcs` row, not the whole map at once.
   gapMap: {
-    sct: { owner: "039-03" },
-    seg: { owner: "039-03" },
-    _fv: { owner: "039-03" },
-    _ss: { owner: "039-03" },
-    _nsi: { owner: "039-03" },
     // gcs: CLOSED by 039-02 (encodeGcs) — row removed, now classifies `maps`.
+    // sct/seg/_fv/_ss/_nsi: CLOSED by 039-03 (writeGa4SessionState + appendSessionState) — rows
+    // removed, now classify `maps` (see test/ga4-gtag.test.js's dedicated 039-03 describe block).
     gcd: { owner: "039-05" },
   },
 
