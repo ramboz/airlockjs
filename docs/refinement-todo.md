@@ -650,3 +650,29 @@ deviation log — likely grown in 039-03). That slice **must pass the RAW consen
 reaching `encodeGcs` resolves every storage purpose to `pending`, so `gcs` is **silently omitted** (no crash, no wrong
 value — passes all validity checks, just never emits). Fix at wiring time via a distinct field (e.g. `ctx.consentVector`)
 or a shape assertion in `encodeGcs`.
+
+## Spec 040-03 (GA4 multi-`en` POST coalesce adapter) follow-ups
+
+### The batch-body marker semantics (`_ee=1` per line; `_et` per-event) are grounded on a SINGLE capture (n=1)
+
+**Deferred:** `connectors/ga4/coalesce.js`'s `coalesceGa4` reproduces the OBSERVED batch **structure** (2026-09-08,
+`docs/specs/039-ga4-gtag-connector/slice-04-batched-post-transport.md:28` — `en=page_view&_ee=1\r\nen=<e2>&_ee=1&_et=1`,
+gtag's own traffic, demonstrably GA4-accepted) but the sample size is n=1. Two residuals this single observation cannot
+close: whether `_ee` is ever CONDITIONAL (the way `_ss`/`_fv` are on a session continuation, `gtag.js:207-209`) rather
+than unconditional on every batched line; and whether `_et`'s line-1 absence / exact value matters to GA4 ingest (the
+sole capture carried `_et` on line 2 ONLY — airlock instead carries each event's own `_et` per line, a KNOWN, deliberate
+divergence from the byte-verbatim capture, see the slice's Assumptions).
+
+**Resolution trigger:** a second independent live batch capture (a different page/property) either confirms or
+contradicts the unconditional-`_ee`-per-line / per-event-`_et` model above.
+
+### Deferred live-accept re-validation (GA4 DebugView) of the synthesized batch shape
+
+**Deferred:** `coalesceGa4`'s output is verified against `test/fixtures/parity-ga4-collect-batch.redacted.json`, a
+**code-matches-spec-structure** assertion (the fixture is airlock's own synthesized shape, not a raw capture) — it does
+NOT close the "does GA4 actually ACCEPT this exact synthesized POST as 2 distinct events" fidelity question. Closing
+that requires egressing a fabricated 2-event batch to a live GA4 property and confirming via DebugView that it ingests
+as 2 events, not 1 (or 0).
+
+**Resolution trigger:** a GA4 test property WE control becomes available (never Intuit's stage property, per
+ADR-0018/ADR-0020) — tracked as a follow-up validation pass, not blocking 040-03's landing.

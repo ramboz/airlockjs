@@ -1,0 +1,33 @@
+{
+  "_comment": "Spec 040-03 — a SYNTHESIZED fixture (NOT a raw R5-local capture): airlock's own coalesceGa4 batch-POST output for a 2-event same-context cycle, built from two 039-01 GET beacons over gtag.js's closed field taxonomy (connectors/ga4/gtag.js:251-292). This encodes CODE-MATCHES-SPEC-STRUCTURE (the shape 040-03's ACs prescribe: shared params once on the query, one body line per event with an injected `_ee=1` batch marker and the relocated per-event `_et`) — it does NOT close the GA4-accepts-our-shape fidelity residual (see docs/refinement-todo.md's 040-03 entry); only the deferred live-accept DebugView re-check does that. The measurement id / client id / session id below follow the same clearly-synthetic, all-zeros-plus-fixed-epoch convention as the other redacted GA4 fixtures in this directory (no live identifier of any kind).",
+  "measurementId": "G-DEBUGTEST0",
+  "ctx": {
+    "clientId": "0000000000.1000000000",
+    "sessionId": "1000000100"
+  },
+  "events": [
+    {
+      "type": "page_view",
+      "params": {
+        "page_location": "https://example.test/pricing",
+        "page_referrer": "https://example.test/",
+        "page_title": "Pricing",
+        "page_type": "article"
+      }
+    },
+    {
+      "type": "scroll",
+      "params": {
+        "page_location": "https://example.test/pricing",
+        "page_referrer": "https://example.test/",
+        "page_title": "Pricing",
+        "percent_scrolled": 90
+      }
+    }
+  ],
+  "expected": {
+    "url": "https://www.google-analytics.com/g/collect?v=2&tid=G-DEBUGTEST0&cid=0000000000.1000000000&sid=1000000100&dl=https%3A%2F%2Fexample.test%2Fpricing&dr=https%3A%2F%2Fexample.test%2F&dt=Pricing",
+    "method": "POST",
+    "body": "en=page_view&_ee=1&ep.page_type=article&_et=100\r\nen=scroll&_ee=1&epn.percent_scrolled=90&_et=100"
+  }
+}

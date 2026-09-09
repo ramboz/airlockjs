@@ -107,9 +107,11 @@ same-protocol oracle can verify end-to-end — never an internal-only layer.
   resolved vector); it co-varies with consent (`13r…` granted / `13q…` denied, observed), so it is neither
   carry-verbatim nor a pure vector function. Delivers: the modeling-signal half of Consent-Mode parity `gcs` doesn't
   cover.
-- **039-04 (Rules) — DEFERRED:** batched POST transport / per-cycle coalescing. Lifted out to a dedicated cross-connector
-  egress-batching spec: under the 038 field-level oracle it buys no verifiable *parity*, and batching is a core
-  cross-cutting perf capability, not a gtag detail. Parked for provenance.
+- **039-04 (Rules) — ~~DEFERRED~~ SUPERSEDED (2026-09-09) → [spec 040-03](../040-core-egress-batching/slice-03-ga4-batch-adapter.md) (DONE):**
+  batched POST transport / per-cycle coalescing. Lifted out to a dedicated cross-connector egress-batching spec (under
+  the 038 field-level oracle it buys no verifiable *parity*, and batching is a core cross-cutting perf capability, not a
+  gtag detail), and DELIVERED there: the GA4 multi-`en` POST is now the first `coalesce` adapter on spec 040's core seam
+  (040-02). Parked here for provenance only.
 
 ## Slices
 
@@ -117,4 +119,4 @@ same-protocol oracle can verify end-to-end — never an internal-only layer.
 - [039-02 — Consent Mode state carriage (gcs)](slice-02-consent-mode.md)
 - [039-03 — session-state + _ga_<stream> writer (closes OQ13-2)](slice-03-session-state-writer.md)
 - [039-05 — Consent-Mode defaults carriage (gcd derivation)](slice-05-consent-defaults-gcd.md)
-- [039-04 — batched POST transport (per-cycle coalescing) — DEFERRED → cross-connector egress-batching spec](slice-04-batched-post-transport.md)
+- ~~[039-04 — batched POST transport (per-cycle coalescing)](slice-04-batched-post-transport.md)~~ — **SUPERSEDED → DONE as [040-03](../040-core-egress-batching/slice-03-ga4-batch-adapter.md)** (the GA4 multi-`en` POST `coalesce` adapter on spec 040's core seam)

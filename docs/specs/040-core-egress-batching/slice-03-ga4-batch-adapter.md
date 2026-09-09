@@ -1,9 +1,8 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: [040-02, 039-01]
-last_verified:
+last_verified: 2026-09-09
 frame_review: true
-claimed_by: claude/spec-039-jigceremony-d53c78
 ---
 
 ## Slice 040-03 — GA4 multi-`en` POST coalesce adapter (revives 039-04)
@@ -53,19 +52,21 @@ the core seam instead of inside the connector.
    fixture of the observed shape.
 
 **DoD:**
-- [ ] All ACs pass; full suite green.
-- [ ] A NEW redacted fixture encodes the SYNTHESIZED batch shape (shared params on the query; per-line `en`/per-event
+- [x] All ACs pass; full suite green (91 files / 1402 tests).
+- [x] A NEW redacted fixture encodes the SYNTHESIZED batch shape (shared params on the query; per-line `en`/per-event
       params + injected `_ee=1` + per-event relocated `_et`); the coalesce output is asserted byte-for-byte against it.
       NOTE: this is a **code-matches-spec-structure** assertion (the fixture is airlock's synthesized shape, not the raw
       R5-local observed capture) — it does NOT close the GA4-accepts-our-shape fidelity residual; only the deferred
       live-accept DebugView re-check does.
-- [ ] Coverage: a 2-event same-context cycle → one POST, 2 body lines; a 1-event cycle → still the 039-01 GET; a
-      mixed-`tid` cycle AND a mixed-`dl` (same-`tid`, different page) cycle → NO merge (separate POSTs/GETs); the
-      query-vs-body partition; **`_et` lands per-line (not once on the shared query)**; **`_ee=1` is injected per line**.
-- [ ] Each new test shown to fail when its feature is removed.
-- [ ] Reviewed by `reviewer` (compliance + craft).
-- [ ] Deviation log + reconciliation sweep produced; the DEFERRED 039-04 slice is struck through with a pointer here.
-- [ ] The n=1 batch-marker residual + the deferred live-accept re-validation are recorded (assumptions above + a
+- [x] Coverage: a 2-event same-context cycle → one POST, 2 body lines; a 1-event cycle → still the 039-01 GET; a
+      mixed-`tid` cycle AND a mixed-`dl` (same-`tid`, different page) cycle → NO merge (separate POSTs/GETs); a
+      mixed-`gcs` (different consent) cycle → NO merge (governance guard); the query-vs-body partition; **`_et` lands
+      per-line (not once on the shared query)**; **`_ee=1` is injected per line**; shared `gcs`/`gcd`/session-state land
+      once on a merged POST query; hook edge returns handled.
+- [x] Each new-feature test shown to fail when its feature is removed.
+- [x] Reviewed by `reviewer` (compliance + craft — both PASS).
+- [x] Deviation log + reconciliation sweep produced; the DEFERRED 039-04 slice is struck through with a pointer here.
+- [x] The n=1 batch-marker residual + the deferred live-accept re-validation are recorded (assumptions above + a
       `docs/refinement-todo.md` entry).
 
 ## Assumptions
@@ -114,8 +115,52 @@ next vendor's adapter is a small addition rather than a fork.
 
 ### Deviation log (after reconciliation)
 
-_TBD at implementation._
+Implemented in `connectors/ga4/coalesce.js` (pure `coalesceGa4(requests) -> EgressRequest[]`) +
+`test/ga4-coalesce.test.js` (10 tests) + `test/fixtures/parity-ga4-collect-batch.redacted.json` (synthesized fixture).
+`core/airlock.js`, `core/coalescing-broker.js`, `contracts/connector.d.ts`, and the MP path are untouched. Landed on the
+ACs and ADR-0021's Option-C seam. Deviations and review-driven fold-ins:
+
+1. **Intentional divergence from the sole n=1 capture in the `_et` dimension (all reviewers noted; documented).** airlock
+   carries each event's own `_et` per body line (default `100`, its existing single-GET model), whereas the 2026-09-08
+   capture carried `_et` on line 2 only (value `1`). airlock has no per-event engagement-time source, so it reproduces
+   the observed *structure* (per-event `_et` on the body line, injected `_ee=1`), NOT a byte-verbatim copy. Recorded in
+   Assumptions + `docs/refinement-todo.md`; the fidelity of the synthesized shape is closed only by the DEFERRED
+   live-accept DebugView re-check (needs a GA4 test property we control).
+2. **Fixture uses a hand-constructed event set (`page_view` + `scroll`, one `ep.*` + one `epn.*`), not every taxonomy
+   field.** Chosen to exercise both custom-param spellings in one byte-for-byte fixture. The `classifyKey` taxonomy is
+   fully general (any non-per-event key → SHARED), and the initial fixture omitted `gcs`/`gcd`/session-state. **[FOLDED
+   at craft review: added a merged-shared-consent/session-state test — two identical-context events (all four consent
+   purposes decided → `gcd` emits; session-state present) merge into one POST, asserting `gcs`/`gcd`/`sct`/`seg` land
+   once on the merged query, never in the body.]** So the shared-consent-params-on-a-merged-POST path is now covered
+   directly, not only transitively.
+3. **Governance guard test strengthened (compliance round 1 → round 2).** The mixed-`gcs` (differing-consent →
+   no-merge) test was already valid — an absent consent purpose resolves to `pending` (`core/consent.js:59-66`), so
+   `encodeGcd` omitted `gcd` and `gcs` was the sole differing shared param — but the round-1 reviewer misread it as
+   `gcd`-co-varying/vacuous. Strengthened to make the isolation unmistakable and robust: both requests set an
+   all-granted `consentDefault` (so `isDeniedAllDefault` is false → `encodeGcd` returns `undefined` → `gcd` omitted via
+   that independent gate), with `gcd`-absent asserted on both. Round 2: pass. Also removed a redundant `.slice()` in the
+   shared-signature builder (craft nit) — cosmetic, no behavior change.
+
+**No deviation from:** the two-operation model (parse+classify by taxonomy, then synthesize), the full-shared-context
+merge key (AC2), the single-event-unchanged GET (AC3), `_et` relocation + `_ee` injection (AC4), or the
+`core/coalescing-broker.js` non-overlap (not imported/wired).
 
 ### Reconciliation sweep
 
-_TBD at implementation._
+- **DEFERRED 039-04 struck through with a pointer here** — done in `docs/specs/039-ga4-gtag-connector/spec.md` in BOTH
+  places: the SPIDR decomposition line (`:110`, now `~~DEFERRED~~ SUPERSEDED → 040-03 (DONE)`) and the Slices list
+  (`:122`, struck through with the 040-03 pointer). The 039-04 slice itself already carried its `Resolution trigger`
+  pointing at spec 040 / this slice; its review artifacts (`reviews/slice-03-*.md`, incl. the round-2 frame-critique)
+  are part of this slice's own doc bundle.
+- **`docs/refinement-todo.md`:** the two 040-03 residuals are recorded — (1) the n=1 batch-marker semantics (`_ee=1` per
+  line; `_et` value/placement) grounded on a single capture; (2) the DEFERRED live-accept GA4 DebugView re-validation on
+  a controlled test property. Need-triggered, non-blocking.
+- **`docs/inbox.md`:** nothing new to park — all surfaced work is captured by the residual entries above.
+- **Deferred / carried forward:** the payload-ceiling split for an over-size coalesced body is homed in
+  **ADR-0021's open questions** (`adr-0021-core-egress-batching.md:150`, "→ a 040 slice"), cross-referenced from spec 040
+  (`spec.md:75`) — NOT in `docs/refinement-todo.md` (which holds only the two 040-03 residuals above). Not reached here.
+  Separately, a real GA4 batch may vary `_ss`/`_fv`/`seg` per hit while airlock threads one per-cycle `ctx.sessionState`
+  snapshot (a 039-03 model property, not a new divergence).
+- **Spec 040 roll-up:** with 040-01 (GO), 040-02 (seam), and 040-03 (this) all DONE, spec 040 is complete — the
+  spec-level status + status board are updated at close-out.
+- **Full suite:** 91 files / 1402 tests green.
