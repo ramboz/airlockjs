@@ -228,6 +228,128 @@ describe("createGa4GtagConnector — AC1/AC3 gcs Consent Mode STATE (039-02)", (
   });
 });
 
+// Spec 039-05 — Consent Mode DEFAULTS carriage (gcd), ADR-0019. Unlike `gcs`
+// (a pure function of the vector alone), `gcd` co-varies with consent AND is
+// gated on the host's DECLARED Consent-Mode default (`config.ctx.consentDefault`)
+// — scoped to the live-grounded default-denied deployment (slice-05-consent-
+// defaults-gcd.md's Grounding note: the reference page's declared default is
+// denied-all + wait_for_update:10). All SIX anchors below are loaded straight
+// from the COMMITTED fixture (test/fixtures/parity-ga4-consent-gcd.redacted.json)
+// — the test IS the grounding, not a re-typed synthetic string.
+describe("createGa4GtagConnector — AC1/AC2/AC3/AC4 gcd Consent Mode DEFAULTS (039-05)", () => {
+  const GCD_FIXTURE_PATH = join(HERE, "fixtures/parity-ga4-consent-gcd.redacted.json");
+  const gcdFixture = JSON.parse(readFileSync(GCD_FIXTURE_PATH, "utf8"));
+
+  function gcdFor(consent, consentDefault) {
+    const connector = createGa4GtagConnector({
+      measurementId: "G-XXXX",
+      ctx: { ...ctx, consent, ...(consentDefault ? { consentDefault } : {}) },
+    });
+    const [{ url }] = connector.handle({ type: "page_view", params: {} });
+    return new URL(url).searchParams.get("gcd");
+  }
+
+  it("the committed fixture carries all SIX grounding anchors (guards against a silent coverage shrink if the fixture is trimmed)", () => {
+    // all-granted + all-denied + the four single-signal-granted position anchors
+    expect(gcdFixture.anchors).toHaveLength(6);
+  });
+
+  for (const anchor of gcdFixture.anchors) {
+    it(`${anchor.label} -> gcd=${anchor.gcd} (live-observed anchor, committed fixture; guards per-signal independence + position order)`, () => {
+      expect(gcdFor(anchor.update)).toBe(anchor.gcd);
+    });
+  }
+
+  it("AC3 — gcd and gcs never disagree on a single beacon: flipping ONLY analytics_storage flips ONLY its own gcs digit and its own gcd letter", () => {
+    const connector = createGa4GtagConnector({
+      measurementId: "G-XXXX",
+      ctx: {
+        ...ctx,
+        consent: {
+          ad_storage: "denied",
+          analytics_storage: "granted",
+          ad_user_data: "denied",
+          ad_personalization: "denied",
+        },
+      },
+    });
+    const [{ url }] = connector.handle({ type: "page_view", params: {} });
+    const params = new URL(url).searchParams;
+    expect(params.get("gcs")).toBe("G101"); // analytics_storage digit granted
+    expect(params.get("gcd")).toBe("13q3r3q3q5l1"); // analytics_storage letter (position 2) granted, nothing else
+  });
+
+  it("AC4 — a pending governing signal (ad_personalization has no signal yet) omits gcd entirely — never a partial guess (039-02's joint-string discipline, mirrored)", () => {
+    const connector = createGa4GtagConnector({
+      measurementId: "G-XXXX",
+      ctx: {
+        ...ctx,
+        consent: { ad_storage: "granted", analytics_storage: "granted", ad_user_data: "granted" }, // ad_personalization: no signal
+      },
+    });
+    const [{ url }] = connector.handle({ type: "page_view", params: {} });
+    expect(new URL(url).searchParams.get("gcd")).toBeNull();
+    expect(url).not.toContain("gcd=");
+  });
+
+  it("AC4 — a declared NON-denied-all default (e.g. ad_storage granted at boot) omits gcd entirely: a tracked KNOWN NON-PARITY gap for the unsupported default-granted config, never a guessed default-granted letter", () => {
+    const connector = createGa4GtagConnector({
+      measurementId: "G-XXXX",
+      ctx: {
+        ...ctx,
+        consent: {
+          ad_storage: "granted",
+          analytics_storage: "granted",
+          ad_user_data: "granted",
+          ad_personalization: "granted",
+        },
+        consentDefault: {
+          ad_storage: "granted",
+          analytics_storage: "denied",
+          ad_user_data: "denied",
+          ad_personalization: "denied",
+        },
+      },
+    });
+    const [{ url }] = connector.handle({ type: "page_view", params: {} });
+    expect(new URL(url).searchParams.get("gcd")).toBeNull();
+    expect(url).not.toContain("gcd=");
+  });
+
+  it("an UNSET consentDefault defaults to the denied-all config (airlock's own consent-governed target) — gcd is emitted, not omitted", () => {
+    const connector = createGa4GtagConnector({
+      measurementId: "G-XXXX",
+      ctx: {
+        ...ctx,
+        consent: {
+          ad_storage: "denied",
+          analytics_storage: "denied",
+          ad_user_data: "denied",
+          ad_personalization: "denied",
+        },
+      },
+    });
+    const [{ url }] = connector.handle({ type: "page_view", params: {} });
+    expect(new URL(url).searchParams.get("gcd")).toBe("13q3q3q3q5l1");
+  });
+
+  it("an EXPLICIT denied-all consentDefault also emits gcd (same result as the unset-default back-compat case)", () => {
+    const gcd = gcdFor(
+      { ad_storage: "granted", analytics_storage: "granted", ad_user_data: "granted", ad_personalization: "granted" },
+      { ad_storage: "denied", analytics_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" },
+    );
+    expect(gcd).toBe("13r3r3r3r5l1");
+  });
+
+  it("AC4 — a PARTIAL/empty consentDefault (not every signal explicitly denied) is NOT denied-all → gcd omitted (conservative: only the grounded denied-all config emits)", () => {
+    const allGranted = { ad_storage: "granted", analytics_storage: "granted", ad_user_data: "granted", ad_personalization: "granted" };
+    // empty object: no signal is explicitly "denied" → not denied-all → omit
+    expect(gcdFor(allGranted, {})).toBeNull();
+    // partial: only some signals declared denied → still not denied-all → omit
+    expect(gcdFor(allGranted, { ad_storage: "denied", analytics_storage: "denied" })).toBeNull();
+  });
+});
+
 describe("AC4 — additive: the frozen MP surface is BYTE-IDENTICAL to before this slice", () => {
   // Golden hashes captured from the tree BEFORE connectors/ga4/gtag.js existed
   // (2026-09-08) — a hash mismatch means map.js or the pinned MP contract was
@@ -262,13 +384,17 @@ describe("AC5 — same-protocol oracle (038, DONE): the emitted beacon passes on
    * beacon's cid/sid — the decisive AC1 rule 038-02 established), event derived
    * from the container's fields via the descriptor's `deriveLogicalEvent`.
    *
-   * 039-02: `consent` is NOT cookie-derived (unlike cid/sid), so it has no
-   * `sourceGa4CtxFromFixture` equivalent — the fixture's `container_fields.gcs`
-   * is the ALREADY-ENCODED live-observed all-granted anchor (`"G111"`), so the
-   * host consent vector a real page would have resolved to produce it is
-   * `{ ad_storage: "granted", analytics_storage: "granted" }`; threading that
-   * here (rather than leaving `ctx.consent` unset) is what lets `gcs` classify
-   * `maps` instead of a false `dropped` regression.
+   * 039-02/039-05: `consent` is NOT cookie-derived (unlike cid/sid), so it has
+   * no `sourceGa4CtxFromFixture` equivalent — the fixture's
+   * `container_fields.gcs`/`gcd` are the ALREADY-ENCODED live-observed
+   * all-granted anchors (`"G111"`/`"13r3r3r3r5l1"`), so the host consent
+   * vector a real page would have resolved to produce BOTH is all four
+   * purposes granted; threading that here (rather than leaving `ctx.consent`
+   * unset, or only the two `gcs`-governing purposes) is what lets `gcs` AND
+   * `gcd` classify `maps` instead of a false `dropped` regression (`gcd`'s
+   * declared default is left unset, defaulting to denied-all per
+   * `encodeGcd`'s back-compat rule — the reference page's own declared
+   * default, per slice-05's Grounding note).
    *
    * 039-03: `sessionState` gets the SAME "thread the already-encoded value"
    * treatment, for a DIFFERENT reason than `consent` above. This fixture
@@ -293,7 +419,12 @@ describe("AC5 — same-protocol oracle (038, DONE): the emitted beacon passes on
       measurementId: SYNTHETIC_GA4_MEASUREMENT_ID,
       ctx: {
         ...ctxFromFixture,
-        consent: { ad_storage: "granted", analytics_storage: "granted" },
+        consent: {
+          ad_storage: "granted",
+          analytics_storage: "granted",
+          ad_user_data: "granted",
+          ad_personalization: "granted",
+        },
         sessionState: {
           sct: fixture.container_fields.sct,
           seg: fixture.container_fields.seg,
@@ -360,7 +491,21 @@ describe("AC5 — same-protocol oracle (038, DONE): the emitted beacon passes on
     }
   });
 
-  it("overall verdict is `pass` — the not-yet-emitted gcd DEFAULTS string is the sole remaining OWNED gap, not a regression", async () => {
+  it("039-05: gcd now classifies `maps` (gap CLOSED, removed from the descriptor's gapMap) — not expected-dropped", async () => {
+    const airlockFields = await replayGtagFields();
+    const { fields } = diffParity({
+      descriptor: ga4GtagParityDescriptor,
+      containerFields: fixture.container_fields,
+      airlockFields,
+    });
+    expect(fields.find((f) => f.field === "gcd")).toMatchObject({
+      bucket: "maps",
+      containerValue: "13r3r3r3r5l1",
+      airlockValue: "13r3r3r3r5l1",
+    });
+  });
+
+  it("overall verdict is `pass` — every curated attribution field now classifies `maps` (gapMap is empty after 039-05 closes the last row)", async () => {
     const airlockFields = await replayGtagFields();
     const { verdict, fields } = diffParity({
       descriptor: ga4GtagParityDescriptor,
@@ -368,7 +513,7 @@ describe("AC5 — same-protocol oracle (038, DONE): the emitted beacon passes on
       airlockFields,
     });
     expect(verdict).toBe("pass");
-    expect(fields.find((f) => f.field === "gcd").bucket).toBe("expected-dropped");
+    expect(fields.every((f) => f.bucket !== "dropped" && f.bucket !== "expected-dropped")).toBe(true);
   });
 
   it("an UN-OWNED drop (en missing) is a real regression — the gap map does not swallow it", async () => {
@@ -425,15 +570,22 @@ describe("writeGa4SessionState + createGa4GtagConnector — 039-03 session-state
         clientId: page.beacon.cid,
         sessionId: sessionState.sessionId,
         sessionState,
-        consent: { ad_storage: "granted", analytics_storage: "granted" }, // reproduces the fixture's gcs=G111
+        consent: {
+          ad_storage: "granted",
+          analytics_storage: "granted",
+          ad_user_data: "granted",
+          ad_personalization: "granted",
+        }, // reproduces the fixture's gcs=G111 + gcd=13r3r3r3r5l1 (039-05; consentDefault left
+        // unset, defaulting to denied-all per encodeGcd's back-compat rule — the reference
+        // page's own declared default, per slice-05's Grounding note)
       },
     });
     const [{ url }] = connector.handle({ type: page.beacon.en, params });
     return Object.fromEntries(new URL(url).searchParams.entries());
   }
 
-  /** Asserts every fixture-declared beacon field matches, except `skip`-listed ones (`gcd` stays a
-   *  039-05 gap — this connector does not emit it yet). */
+  /** Asserts every fixture-declared beacon field matches, `skip`-listed ones excepted (none, by
+   *  default — 039-05 closed the last gap, `gcd` now matches the fixture field-for-field too). */
   function assertBeaconMatches(params, expectedBeacon, { skip = [] } = {}) {
     for (const [key, value] of Object.entries(expectedBeacon)) {
       if (skip.includes(key)) continue;
@@ -452,7 +604,7 @@ describe("writeGa4SessionState + createGa4GtagConnector — 039-03 session-state
     expect(await jar.get(STREAM_COOKIE)).toBe(multipageFixture.pages[0].ga_stream_after);
 
     const params = await beaconParamsFor(0, sessionState);
-    assertBeaconMatches(params, multipageFixture.pages[0].beacon, { skip: ["gcd"] });
+    assertBeaconMatches(params, multipageFixture.pages[0].beacon);
   });
 
   it("page 2 — continuation, same session (<=30min gap): sid+sct REUSED (not a fresh mint), seg flips 0->1, t advances, NO _fv/_ss/_nsi — matches the fixture", async () => {
@@ -467,7 +619,7 @@ describe("writeGa4SessionState + createGa4GtagConnector — 039-03 session-state
     expect(await jar.get(STREAM_COOKIE)).toBe(multipageFixture.pages[1].ga_stream_after);
 
     const params = await beaconParamsFor(1, sessionState);
-    assertBeaconMatches(params, multipageFixture.pages[1].beacon, { skip: ["gcd"] });
+    assertBeaconMatches(params, multipageFixture.pages[1].beacon);
     expect(params._fv).toBeUndefined();
     expect(params._ss).toBeUndefined();
     expect(params._nsi).toBeUndefined();
@@ -485,7 +637,7 @@ describe("writeGa4SessionState + createGa4GtagConnector — 039-03 session-state
     expect(await jar.get(STREAM_COOKIE)).toBe(multipageFixture.pages[2].ga_stream_after);
 
     const params = await beaconParamsFor(2, sessionState);
-    assertBeaconMatches(params, multipageFixture.pages[2].beacon, { skip: ["gcd"] });
+    assertBeaconMatches(params, multipageFixture.pages[2].beacon);
     expect(params._fv).toBeUndefined();
   });
 
@@ -549,7 +701,7 @@ describe("writeGa4SessionState + createGa4GtagConnector — 039-03 session-state
     expect(await jar.get(STREAM_COOKIE)).toBe("GS2.1.s1700000000$o1$g1$t1700000300$j999$l7$h3$xNEW");
   });
 
-  it("wired into the 038 same-protocol oracle: page 1's session-state fields classify `maps`; gcd (039-05) is the sole remaining owned gap; overall verdict is `pass`", async () => {
+  it("wired into the 038 same-protocol oracle: page 1's session-state fields AND gcd (039-05, gap CLOSED) classify `maps`; overall verdict is `pass`", async () => {
     const jar = makeJar();
     const sessionState = await writeGa4SessionState({
       cookies: jar,
@@ -566,6 +718,10 @@ describe("writeGa4SessionState + createGa4GtagConnector — 039-03 session-state
     for (const name of ["sct", "seg", "_fv", "_ss", "_nsi"]) {
       expect(fields.find((f) => f.field === name)).toMatchObject({ bucket: "maps" });
     }
-    expect(fields.find((f) => f.field === "gcd")).toMatchObject({ bucket: "expected-dropped", owner: "039-05" });
+    expect(fields.find((f) => f.field === "gcd")).toMatchObject({
+      bucket: "maps",
+      containerValue: "13r3r3r3r5l1",
+      airlockValue: "13r3r3r3r5l1",
+    });
   });
 });

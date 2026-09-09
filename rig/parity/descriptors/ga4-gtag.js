@@ -26,11 +26,14 @@
  * gap's row is REMOVED from `gapMap` below (not left as `gap-closed`:
  * `gap-closed` is `diffParity`'s transient "owner landed, still gap-map-listed"
  * flag for a row not yet cleaned up; a shipped slice removes the row outright,
- * same as every prior closed gap in this map's history). The Consent Mode
- * DEFAULTS string (`gcd`, owned by 039-05 — it co-varies with consent, so it
- * isn't a pure vector function like `gcs` is) is the sole remaining row. As it
- * lands, `diffParity` reclassifies it the same way (the connector's gap map
- * shrinks; the pipeline and this field list do not change).
+ * same as every prior closed gap in this map's history). 039-05 closes the
+ * LAST remaining row: the Consent Mode DEFAULTS string `gcd`
+ * (`connectors/ga4/gtag.js`'s `encodeGcd`, scoped to the live-grounded
+ * default-denied deployment — a non-denied declared default or a pending
+ * governing signal still omits it, a tracked known non-parity gap for that
+ * unsupported case, not represented in this descriptor's gap map; see
+ * `encodeGcd`'s doc comment). `gapMap` is now EMPTY — every attribution field
+ * this descriptor curates classifies `maps` when airlock emits it.
  */
 import { GA4_GTAG_COLLECT_ENDPOINT } from "../../../connectors/ga4/gtag.js";
 
@@ -80,12 +83,15 @@ export const ga4GtagParityDescriptor = {
   // the NAMED slice that closes it (039's own Decomposition), not a generic
   // "spec 039" bucket — precise enough that landing 039-02 (say) shrinks
   // exactly the `gcs` row, not the whole map at once.
-  gapMap: {
-    // gcs: CLOSED by 039-02 (encodeGcs) — row removed, now classifies `maps`.
-    // sct/seg/_fv/_ss/_nsi: CLOSED by 039-03 (writeGa4SessionState + appendSessionState) — rows
-    // removed, now classify `maps` (see test/ga4-gtag.test.js's dedicated 039-03 describe block).
-    gcd: { owner: "039-05" },
-  },
+  // gcs: CLOSED by 039-02 (encodeGcs) — row removed, now classifies `maps`.
+  // sct/seg/_fv/_ss/_nsi: CLOSED by 039-03 (writeGa4SessionState + appendSessionState) — rows
+  // removed, now classify `maps` (see test/ga4-gtag.test.js's dedicated 039-03 describe block).
+  // gcd: CLOSED by 039-05 (encodeGcd, scoped to the live-grounded default-denied deployment) —
+  // row removed, now classifies `maps` for that config (see test/ga4-gtag.test.js's dedicated
+  // 039-05 describe block). A non-denied declared default / pending signal still omits gcd — a
+  // tracked known non-parity gap for that unsupported config, deliberately NOT re-added here (see
+  // `encodeGcd`'s doc comment in connectors/ga4/gtag.js).
+  gapMap: {},
 
   /**
    * Capture -> logical-event derivation (a REPLAY-INPUT convenience, mirrors

@@ -1,8 +1,9 @@
 ---
-status: DRAFT
+status: RECONCILED
 dependencies: [039-02]
-last_verified:
+last_verified: 2026-09-09
 frame_review: true
+claimed_by: claude/spec-039-jigceremony-d53c78
 ---
 
 ## Slice 039-05 — Consent-Mode defaults carriage (gcd derivation)
@@ -42,10 +43,10 @@ default** (denied-all + `wait_for_update:10`).
 **DoR:**
 - ✅ 039-02 done — the `gcs` encoder + the consent-vector resolution seam (`core/consent.js` `resolveConsent`) exist;
   this slice adds the second Consent-Mode string alongside `gcs`.
-- ✅ Three clean live anchors captured (`[r,r,r,r]`, `[q,q,q,q]`, `[r,q,q,q]`) establishing the per-signal r/q mapping,
-  independence, and position order for the default-denied deployment — **committed** at
-  `test/fixtures/parity-ga4-consent-gcd.redacted.json` (gcs/gcd are Consent-Mode strings, not identifiers → R5-committable),
-  so the anchors are verifiable, not only in a local capture log.
+- ✅ Six clean live anchors captured (all-granted, all-denied, + the four single-signal-granted anchors that each pin one
+  position) establishing the per-signal r/q mapping, independence, and full position order for the default-denied
+  deployment — **committed** at `test/fixtures/parity-ga4-consent-gcd.redacted.json` (gcs/gcd are Consent-Mode strings, not
+  identifiers → R5-committable), so the anchors are verifiable, not only in a local capture log.
 - ✅ Fixture prerequisite done — `test/fixtures/parity-ga4-collect.redacted.json`'s `gcd` was corrected from the earlier
   synthetic `13p3p3p2p1p1` to the live-observed granted value `13r3r3r3r5l1` (matching its `gcs=G111`), so the 038
   same-protocol oracle can diff airlock's emitted `gcd` against a real reference value once this slice closes the gap row.
@@ -73,14 +74,14 @@ default** (denied-all + `wait_for_update:10`).
    airlock's target (the default-denied config, which the reference page uses), `gcd` is emitted and achieves parity.
 
 **DoD:**
-- [ ] All ACs pass; full suite green.
-- [ ] Coverage: the four single-signal anchors (each position, from the fixture), all-granted, all-denied, a
-      `pending`-signal omission, and a non-denied-default omission (the tracked known gap).
-- [ ] Each new test shown to fail when its feature is removed (encoder deletion → gcd absent; signal-order swap → the
-      asymmetric anchor fails).
-- [ ] Descriptor: the `gcd` gap row (currently owned `039-05`) closes → `gcd` classifies `maps` in the 038 oracle.
-- [ ] Reviewed by `reviewer` (compliance + craft).
-- [ ] Deviation log + reconciliation sweep produced.
+- [x] All ACs pass; full suite green (89 files / 1379 tests, independently re-run).
+- [x] Coverage: the four single-signal anchors (each position, from the fixture) + all-granted + all-denied + a fixture
+      count guard, a `pending`-signal omission, a non-denied-default omission, and a partial/empty-object default omission.
+- [x] Each new test shown to fail when its feature is removed (implementer verified: encoder deletion → gcd null;
+      `GCD_PURPOSES` order swap → the single-signal anchors fail).
+- [x] Descriptor: the `gcd` gap row closed → `gcd` classifies `maps`; the descriptor `gapMap` is now empty `{}`.
+- [x] Reviewed by `reviewer` (compliance + craft — both pass; evidence in `reviews/slice-05-*.md`).
+- [x] Deviation log + reconciliation sweep produced.
 
 ## Assumptions
 
@@ -109,8 +110,46 @@ by the parity harness against the live-observed anchors. Full Consent-Mode parit
 
 ### Deviation log (after reconciliation)
 
-_TBD at implementation._
+- **Two frame-critique rounds of re-grounding before build (r3→r4).** The slice was re-opened from DEFERRED once the
+  gcd grounding gap could be closed. Round-3 frame-critique found the interior position order still asserted (the first
+  three anchors had homogeneous tails, pinning only position 1); this was closed by capturing the **four
+  single-signal-granted** states live (long-poll past gtag dedup), each pinning one position — committed to
+  `test/fixtures/parity-ga4-consent-gcd.redacted.json` (6 anchors). Round-4: PASS.
+- **`consentDefault` gate — absent/`undefined` is treated as denied-all (interpretation of AC4).** `encodeGcd` emits
+  `gcd` only when the declared Consent-Mode default is denied-all; an **absent** `ctx.consentDefault` defaults to
+  denied-all (airlock's own consent-governed target, so an unset host emits out-of-the-box), while an **explicitly
+  present** default must have all four signals exactly `"denied"` or `gcd` is omitted. AC4's prose only spelled out the
+  "declares a non-denied default → omit" branch; the absent→denied-all default is an interpretation, documented in-code
+  and here.
+- **Default-granted config is a tracked KNOWN NON-PARITY gap, deliberately excluded from the descriptor.** Omitting
+  `gcd` for a non-denied declared default is a dropped-field miss against a container that sends it — NOT parity-safe;
+  it is the rare, unobservable-on-this-page default-granted config, tracked with a resolution trigger (Assumptions).
+- **Reconciliation-time test hardening (from the review nits):** added a `toHaveLength(6)` guard on the fixture-anchor
+  loop (compliance note — prevents a silent coverage shrink if the fixture is trimmed) and a partial/empty-object
+  `consentDefault` omission test (craft nit — pins the documented omit-on-partial-declaration behavior). Full suite green.
+- **Nits → later sweep (non-blocking):** the resolve-states+pending-omit pattern is now an inline mirror across
+  `encodeGcs`/`encodeGcd` (rule-of-three at **N=2** — extract a shared `resolveStatesOrPending` on a 3rd Consent-Mode
+  string; within the ADR-0002 inline-mirror budget for now); the `gcd` assembly destructures four named letters (vs
+  `encodeGcs`'s `.join`) — kept because it documents the live-grounded position order.
 
 ### Reconciliation sweep
 
-_TBD at implementation._
+- **`connectors/ga4/gtag.js`**: **updated** — `encodeGcd` (mirrors `encodeGcs`; reuses `resolveConsent`), the
+  `isDeniedAllDefault` gate, `GCD_PURPOSES`/`GCD_LETTER`, and `gcd` wired onto the beacon after `gcs`. 039-01/02/03
+  behavior unchanged.
+- **`rig/parity/descriptors/ga4-gtag.js`**: **updated** — the last gap row (`gcd`) removed; `gapMap` is now **empty
+  `{}`** → every curated gtag field classifies `maps` in the 038 oracle.
+- **`test/ga4-gtag.test.js`**: **updated** — the 039-05 gcd suite (6-anchor loop + count guard + pending/omit +
+  partial-default omit + gcs/gcd lockstep); the AC5 + 039-03 multipage replay helpers thread all four consent purposes to
+  the fixtures' real values (so the now-mapped `gcd` isn't a false dropped-field regression).
+- **`test/fixtures/parity-ga4-consent-gcd.redacted.json`**: **added** — the six live gcd anchors (committed grounding).
+- **`test/fixtures/parity-ga4-collect.redacted.json`**: **already corrected** (prior commit) — `gcd` = the observed
+  `13r3r3r3r5l1` (was synthetic `13p3p3p2p1p1`), so the oracle diffs against a real reference value.
+- **Frozen MP surface** (`connectors/ga4/map.js`, `contracts/ga4-mp*`): **no-op** — untouched (golden-hash guard passes).
+- **ADR trigger**: **no new ADR** — implements ADR-0019's Consent-Mode carriage; no load-bearing choice with rejected
+  alternatives (the gate/scope decisions follow the established `encodeGcs` pattern + are documented here).
+- **`docs/architecture.md` / glossary / primer**: **no-op** — the gtag connector's module-inventory line (added at
+  039-03 close-out) already covers the Consent-Mode encoding; no new always-loaded term.
+- **Milestone**: with `gcd` mapped, the gtag connector's descriptor `gapMap` is empty — **full same-protocol parity on
+  the observed field set** (the only deferred item is transport batching, spec 040, which the field-level oracle does
+  not score).
