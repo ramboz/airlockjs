@@ -163,8 +163,9 @@ this ADR's seam, and the two must not be conflated. That broker is Adobe Alloy's
 server response) and suppresses concurrent/late duplicate `interact` first-mints so exactly one `interact` egresses per
 *identity* — a **correctness** mechanism keyed by identity mint. Its docstring is explicit that "`core/airlock.js` and
 `core/chamber.worker.js` are UNTOUCHED — this is a new, parallel module" (`:5-7`), and it has no production wiring today
-(`createCoalescingBroker`/`handleInterceptedFetch` referenced only in `test/coalescing-broker-core.test.js`, grepped
-2026-09-09).
+(`createCoalescingBroker`/`handleInterceptedFetch` appear in no production module — nothing under core/connectors/eds/src
+outside the module's own file — only in its tests + rig harnesses: `test/coalescing-broker-core.test.js`,
+`test/alloy-coalescing-broker.test.js`, `rig/alloy-coalescing-*`; grepped 2026-09-09).
 
 This ADR's Option C is a **different** mechanism on a **different** path: cross-connector **request-count** batching
 (perf), keyed by **endpoint** (origin+path), on the connector-host `{ready}`→`core/airlock.js` **fire-and-forget

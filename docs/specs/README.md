@@ -111,7 +111,7 @@
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-04 — batched POST transport (per-cycle event coalescing) | DEFERRED |  |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-05 — Consent-Mode defaults carriage (gcd derivation) | **DONE** |  |
 | [040-core-egress-batching](040-core-egress-batching/spec.md) | 🔬 040-01 — request-count measurement gate (spike) | **DONE** |  |
-| [040-core-egress-batching](040-core-egress-batching/spec.md) | 040-02 — core coalescing seam (post-verdict, per-cycle, protocol-pluggable) | DRAFT |  |
+| [040-core-egress-batching](040-core-egress-batching/spec.md) | 040-02 — core coalescing seam (post-verdict, per-cycle, protocol-pluggable) | **DONE** |  |
 | [040-core-egress-batching](040-core-egress-batching/spec.md) | 040-03 — GA4 multi-`en` POST coalesce adapter (revives 039-04) | DRAFT |  |
 
 ## Deferred slices
@@ -138,7 +138,7 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
 
 - **8** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **97** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **19** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **21** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
@@ -158,3 +158,5 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
   - `039-ga4-gtag-connector/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `039-ga4-gtag-connector/slice-05-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `040-core-egress-batching/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `040-core-egress-batching/slice-02-arch.md` — applied `none`; declined: arch-review
+  - `040-core-egress-batching/slice-02-craft.md` — applied `none`; declined: pr-review, scout-pr-review

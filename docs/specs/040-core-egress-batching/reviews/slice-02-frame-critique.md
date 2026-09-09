@@ -66,8 +66,10 @@ and dispositioned as a **note, not a re-block** — the frame survives:
   round-trip dispatch (suppress duplicate ECID first-mints per *identity*; correctness), whereas 040-02 is
   request-count batching on the connector-host `{ready}`→`core/airlock.js` keepalive-`fetch` dispatch (perf, keyed by
   endpoint). Its docstring states `core/airlock.js` is "UNTOUCHED — a new, parallel module" (`:5-7`), and it has **no
-  production wiring** today (referenced only in `test/coalescing-broker-core.test.js`, grepped 2026-09-09). None of
-  040-02's load-bearing assumptions are falsified by it.
+  production wiring** today (`createCoalescingBroker`/`handleInterceptedFetch` in no production module — nothing under
+  core/connectors/eds/src outside the module's own file — only in its tests + rig harnesses:
+  `test/coalescing-broker-core.test.js`, `test/alloy-coalescing-broker.test.js`, `rig/alloy-coalescing-*`; grepped
+  2026-09-09). None of 040-02's load-bearing assumptions are falsified by it.
 - **Dispositioned durably** so the implementer cannot trip on it: slice-02 Assumptions now carries an explicit
   "do NOT extend or wire into `createCoalescingBroker`; name to disambiguate; build inline in `core/airlock.js`
   dispatch" constraint, and ADR-0021 gained a dated Amendment citing the broker as prior-art precedent for the

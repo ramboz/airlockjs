@@ -77,6 +77,19 @@ export function createAirlock({
   // message shape for both GA4 AND pixel).
   connector,
   connectorConfig,
+  // 040-02 (ADR-0021 Option C): the OPTIONAL core-egress coalescing hook —
+  // `(requests: EgressRequest[]) => EgressRequest[]` — a connector-agnostic
+  // main-thread seam a caller may inject to merge same-endpoint (origin+path)
+  // `ready` requests within ONE lock-through cycle, AFTER the per-request
+  // egress verdict + endpoint-ceiling gates and BEFORE dispatch (never across
+  // cycles, never on inputs those gates already dropped/held). Absent, or not
+  // a function -> NO-COALESCE (the default): every survivor dispatches as its
+  // own `fetch`, byte-identical to pre-040-02 behavior. This slice wires ONLY
+  // the seam; the GA4-specific batching strategy is a later connector-level
+  // concern (040-03), not this parameter. Distinct from — and NOT wired to —
+  // `core/coalescing-broker.js` (Alloy's identity-mint deduper on a different,
+  // round-trip path; ADR-0021 Amendment 2026-09-09).
+  coalesce,
 }) {
   const diagnose = typeof onDiagnostic === "function" ? onDiagnostic : consoleDiagnostic;
   // 028-02 per-beacon correlation: a per-INSTANCE random tag (minted once) namespaces
@@ -245,6 +258,33 @@ export function createAirlock({
     const data = e.data;
     const ready = data && data.ready;
     if (ready) {
+      // 040-02: the endpoint-ceiling gate, shared VERBATIM by phase 1 (inputs)
+      // and phase 2 (coalescer outputs) so the two sides can never drift
+      // (craft + arch review). Returns true (and emits the 009-02
+      // endpoint-ceiling diagnostic) when `url` is outside the connector's
+      // DECLARED endpoints and must be held; false when it may dispatch. Gated
+      // on `ceiling.length` (back-compat: a caller with no declared endpoints
+      // is unaffected). NOTE (arch review): phase 2 re-checks ONLY the endpoint
+      // ceiling on outputs, NOT the consent verdict — `egressVerdict` is
+      // URL-independent and cycle-uniform, so every survivor in this cycle
+      // already shares the SAME "send" verdict and the output verdict is
+      // preserved by construction. Do NOT add a per-endpoint verdict here.
+      const holdIfOffCeiling = (url) => {
+        if (!ceiling.length) return false;
+        const c = checkEndpointCeiling(url, endpoints);
+        if (c.verdict === "hold") {
+          diagnose({ level: "error", kind: "endpoint-ceiling", disposition: "held", destination: c.destination, reason: c.reason });
+          return true;
+        }
+        return false;
+      };
+      // 040-02 (ADR-0021 Option C) — PHASE 1: collect survivors. Governance
+      // (the 017-03 consent seal, then the 016-01 endpoint ceiling) runs
+      // UNCHANGED, in the SAME order, with the SAME diagnose/heldBeacons/
+      // beaconSeq side effects — only the terminal `fetch` moved out of this
+      // loop, into phase 2 below. A request that passes both gates is a
+      // "survivor"; a denied/held one never reaches phase 2 at all.
+      const survivors = [];
       for (const r of ready) {
         // 017-03 AC1/AC3/AC5 (ADR-0007 point ③): the consent gate runs BEFORE
         // the 016-01 endpoint ceiling — a held/dropped beacon must never reach
@@ -282,23 +322,57 @@ export function createAirlock({
             });
             continue;
           }
-          // v === "send" -> fall through to the 016-01 ceiling check + fetch (unchanged)
+          // v === "send" -> fall through to the 016-01 ceiling check (unchanged)
         }
-        // 016-01 AC3/AC4: fail-closed endpoint ceiling — before dispatching,
-        // hold any destination outside the connector's DECLARED endpoints
-        // (origin+pathname; ADR-0006's declared-as-ceiling law). An
-        // undeclared destination gets NO fetch and NO dispatched++ (the seal
-        // bites); it is surfaced via the 009-02 diagnostics sink so a held
-        // egress is never silently invisible.
-        if (ceiling.length) {
-          const c = checkEndpointCeiling(r.url, endpoints);
-          if (c.verdict === "hold") {
-            diagnose({ level: "error", kind: "endpoint-ceiling", disposition: "held", destination: c.destination, reason: c.reason });
-            continue;
+        // 016-01 AC3/AC4: fail-closed endpoint ceiling (ADR-0006's
+        // declared-as-ceiling law) — hold any destination outside the
+        // connector's DECLARED endpoints (origin+pathname); an undeclared
+        // destination gets NO fetch and NO dispatched++, surfaced via the
+        // 009-02 diagnostics sink so a held egress is never silently invisible.
+        // Shared with the phase-2 output re-check via `holdIfOffCeiling`.
+        if (holdIfOffCeiling(r.url)) continue;
+        survivors.push(r);
+      }
+
+      // 040-02 — PHASE 2: dispatch. No `coalesce` hook (the default) -> one
+      // `fetch` per survivor, in ready-order, BYTE-IDENTICAL to the pre-040-02
+      // inline loop — no grouping, no re-checking the ceiling (already passed
+      // above). This keeps every existing connector's observable egress
+      // unchanged until it opts in.
+      if (typeof coalesce !== "function") {
+        for (const r of survivors) {
+          fetch(r.url, fetchInit(r.method, r.body))
+            .then(() => { dispatched++; }, () => { dispatched++; });
+        }
+      } else {
+        // A `coalesce` hook is present: group survivors by endpoint
+        // (origin+path, ignoring query — ADR-0021's coalescing-group key),
+        // first-seen order, ONE lock-through cycle only (this `ready` array;
+        // never across `worker.onmessage` deliveries). Each group is handed
+        // to the connector's hook; its returned `EgressRequest[]` is the
+        // dispatch set for that group.
+        const groups = new Map();
+        for (const r of survivors) {
+          const key = originPath(r.url);
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key).push(r);
+        }
+        for (const groupRequests of groups.values()) {
+          const outputs = coalesce(groupRequests) || [];
+          for (const out of outputs) {
+            // AC1 (ADR-0021:88 output-ceiling-bypass hazard): the coalescer's
+            // OUTPUT re-enters `fetch` here, so it is re-validated against the
+            // SAME pure endpoint ceiling before dispatch (via the shared
+            // `holdIfOffCeiling`) — a hook emitting an off-endpoint URL is
+            // held, not egressed, exactly like an ungoverned input. The
+            // ceiling is the declared-endpoint set (AC1's prescribed
+            // `checkEndpointCeiling` mechanism); a hook cannot egress outside
+            // it.
+            if (holdIfOffCeiling(out.url)) continue;
+            fetch(out.url, fetchInit(out.method, out.body))
+              .then(() => { dispatched++; }, () => { dispatched++; });
           }
         }
-        fetch(r.url, fetchInit(r.method, r.body))
-          .then(() => { dispatched++; }, () => { dispatched++; });
       }
     }
     // 009-02 AC2: surface each 009-01 per-descriptor drop — otherwise a
