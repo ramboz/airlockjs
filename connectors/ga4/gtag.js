@@ -295,16 +295,16 @@ function mapToGtagCollect(event, { measurementId, ctx, endpoint }) {
  * Ship the core `/g/collect` gtag-protocol connector (039-01) + Consent-Mode
  * STATE carriage (039-02) + session-state carriage (039-03, the `_ga_<stream>`
  * writer that closes OQ13-2) + Consent-Mode DEFAULTS carriage (039-05, scoped
- * to the live-grounded default-denied deployment). NOT (yet) a full
- * `contracts/connector.d.ts` `Connector` — like `map.js`'s `mapToMp`, this
- * remains the pure mapping half (config/ctx threading was chosen over growing
- * this into a capability-holding `init(caps)` Connector, see
- * `writeGa4SessionState`'s doc comment in `connectors/ga4/cookies.js` — the
- * cookie-write capability lives entirely on the HOST side, the SAME place
- * `sourceGa4Ctx`'s own `_ga` write already lives, never inside this
- * connector); a `Connector`-conforming wrapper (mirroring
- * `connectors/ga4/connector.js`'s relationship to `map.js`) remains host-
- * wiring work for a later slice.
+ * to the live-grounded default-denied deployment) — now (041-01 AC1) a full
+ * `contracts/connector.d.ts` `Connector` (`{ manifest, init, handle }`),
+ * mirroring `connectors/ga4/connector.js`'s own relationship to `map.js`:
+ * `mapToGtagCollect` stays the pure mapping half (UNCHANGED by this slice —
+ * config/ctx threading, not a capability-holding reshape; see
+ * `writeGa4SessionState`'s doc comment in `connectors/ga4/cookies.js` for why
+ * the cookie-write capability lives entirely on the HOST side), while this
+ * factory adds the manifest declaration + a no-op `init` so `core/
+ * connector-host.js` (and thus `core/ga4-gtag-chamber.worker.js`) can host it
+ * the SAME way it hosts GA4-MP/alloy/pixel.
  *
  * @param {Readonly<{
  *   measurementId: string,
@@ -316,10 +316,62 @@ function mapToGtagCollect(event, { measurementId, ctx, endpoint }) {
  *   `mapToGtagCollect`'s doc comment); `ctx.consentDefault` (039-05) -> gates
  *   `gcd` to the live-grounded denied-all deployment (see `isDeniedAllDefault`'s
  *   doc comment); `endpoint` defaults to `GA4_GTAG_COLLECT_ENDPOINT`.
- * @returns {{ handle(event: { type: string, params?: Record<string, unknown> }): Array<{ url: string, method: "GET" }> }}
+ * @returns {import("../../contracts/connector").Connector}
  */
 export function createGa4GtagConnector(config = {}) {
   const { measurementId, ctx = {}, endpoint = GA4_GTAG_COLLECT_ENDPOINT } = config;
+
+  const manifest = {
+    name: "airlock/ga4-gtag",
+    // Catch-all, mirroring connectors/ga4/connector.js's own `events`
+    // annotation: gtag maps every event type to /g/collect and accepts
+    // arbitrary custom event names by design — enumeration is impossible.
+    events: ["*"],
+    // reads = PROJECTION snapshot fields (ADR-0003 default-deny). handle()
+    // reads the event PAYLOAD (event.params/event.payload) + host-sourced
+    // ctx, never event.snapshot -> EMPTY, same as the MP connector's manifest.
+    reads: [],
+    capabilities: {
+      // Same client_id (_ga) / session_id (_ga_<stream>) identity model as
+      // the MP connector (connectors/ga4/connector.js's own declaration) —
+      // sourced host-side via connectors/ga4/cookies.js's sourceGa4Ctx,
+      // unwired here (config.ctx arrives already-sourced).
+      cookies: ["_ga", "_ga_"],
+      // it emits one /g/collect GET per event (the ready EgressRequest[] below).
+      egress: true,
+    },
+    // ADVISORY endpoint (ADR-0006 — host allow-list wins): the resolved
+    // /g/collect endpoint this instance was configured with.
+    endpoints: [endpoint],
+    // ADR-0007 consent-purpose annotation — gtag's OWN rationale, NOT
+    // inherited from createGa4Connector's "no ads/personalization signal it
+    // emits" wording (that wording does not hold for gtag, frame-critique
+    // note): the beacon DOES carry `gcs`/`gcd` (Consent-Mode STATE/DEFAULTS,
+    // 039-02/039-05) — but those fields COMMUNICATE the container's consent
+    // DECISION (state carriage); they do not PERFORM ad egress themselves.
+    // The beacon's own egress is a single analytics hit to /g/collect, so
+    // `analytics_storage` is the sole governing purpose — `gcs`/`gcd` are
+    // carried STATE, not a second egress purpose.
+    purposes: {
+      egress: ["analytics_storage"],
+      endpoints: { [endpoint]: ["analytics_storage"] },
+      cookies: {
+        _ga: ["analytics_storage"],
+        _ga_: ["analytics_storage"],
+      },
+    },
+  };
+
+  /**
+   * gtag has no vendor SDK to boot (unlike alloy's `configure`) — ctx/
+   * measurementId/endpoint all arrive via `config` at construction (mirrors
+   * `createGa4Connector`'s own no-op `init`, connectors/ga4/connector.js:131-133).
+   * Accepted for contract conformance only.
+   * @param {import("../../contracts/capability").GrantedCapabilities} caps
+   */
+  function init(_caps) {
+    // no-op — see doc comment above.
+  }
 
   /**
    * Map one event to a single-element `EgressRequest[]` carrying ONE
@@ -328,7 +380,7 @@ export function createGa4GtagConnector(config = {}) {
    * `Connector.handle` contract (`contracts/connector.d.ts`) that
    * `core/connector-host.js` consumes via `for (const req of requests)`,
    * mirroring the sibling `connectors/pixel/connector.js` /
-   * `connectors/ga4/connector.js` return shape.
+   * `connectors/ga4/connector.js` return shape. UNCHANGED by 041-01 (AC1).
    * @param {{ type: string, params?: Record<string, unknown>, payload?: Record<string, unknown> }} event
    * @returns {Array<{ url: string, method: "GET" }>}
    */
@@ -336,5 +388,5 @@ export function createGa4GtagConnector(config = {}) {
     return [mapToGtagCollect(event, { measurementId, ctx, endpoint })];
   }
 
-  return { handle };
+  return { manifest, init, handle };
 }

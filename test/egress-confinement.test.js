@@ -133,6 +133,30 @@ describe("import ORDER guarantee — pixel chamber (spec 026-01 craft-review, se
   });
 });
 
+describe("import ORDER guarantee — gtag chamber (spec 041-01, security parity with GA4/pixel)", () => {
+  const GTAG_CHAMBER = join(dirname(fileURLToPath(import.meta.url)), "..", "core", "ga4-gtag-chamber.worker.js");
+
+  it("core/ga4-gtag-chamber.worker.js's FIRST import statement names ./confine-ga4-gtag-chamber.js", () => {
+    const src = readFileSync(GTAG_CHAMBER, "utf8");
+    const firstImportLine = src.match(/^import\s.+$/m);
+    expect(firstImportLine).not.toBeNull();
+    // Same post-order argument as GA4/pixel's chambers: this being the FIRST
+    // import pins confinement's top-level to run before the connector-module
+    // imports below evaluate — gtag is GET/postMessage-egress like pixel
+    // (never a mediated fetch in-worker), so the same withholdFetch posture
+    // applies verbatim.
+    expect(firstImportLine[0]).toMatch(/["']\.\/confine-ga4-gtag-chamber\.js["']/);
+  });
+
+  it("core/confine-ga4-gtag-chamber.js applies withholdFetch confinement at its own top level", () => {
+    const src = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "..", "core", "confine-ga4-gtag-chamber.js"),
+      "utf8",
+    );
+    expect(src).toMatch(/applyEgressConfinement\(self,\s*\{\s*withholdFetch:\s*true\s*\}\)/);
+  });
+});
+
 describe("import ORDER guarantee — DOM chamber (spec 025-02, security parity with GA4/pixel)", () => {
   const DOM_CHAMBER = join(dirname(fileURLToPath(import.meta.url)), "..", "core", "dom-chamber.worker.js");
 

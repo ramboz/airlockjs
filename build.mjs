@@ -6,18 +6,20 @@
 // the adapter entry plus one sibling bundle per chamber worker the runtime may spawn:
 //
 //   adapters/eds/index.js          →  <outdir>/eds.js
-//   core/chamber.worker.js         →  <outdir>/chamber.worker.js        (GA4, default)
+//   core/chamber.worker.js         →  <outdir>/chamber.worker.js        (GA4-MP, default)
 //   core/pixel-chamber.worker.js   →  <outdir>/pixel-chamber.worker.js  (026 pixel connector)
 //   core/dom-chamber.worker.js     →  <outdir>/dom-chamber.worker.js    (025 worker-dom mirror)
 //   core/helix-rum-chamber.worker.js → <outdir>/helix-rum-chamber.worker.js (030 RUM authority)
+//   core/ga4-gtag-chamber.worker.js  → <outdir>/ga4-gtag-chamber.worker.js  (041 GA4 gtag-protocol connector)
 //
 // The adapter entry imports the runtime SOURCE (`core/airlock.js`) directly, so the emitted eds.js
 // is fully self-contained. `createAirlock` selects a chamber worker by `connector` — the default
-// GA4 `./chamber.worker.js`, `./pixel-chamber.worker.js` for `connector:"pixel"`,
-// `./dom-chamber.worker.js` for `connector:"dom"`, or `./helix-rum-chamber.worker.js` for
-// `connector:"helix-rum"` (the selection seam, `airlock.js`'s connector-selection block) — so the
-// emitted eds.js references ALL FOUR by their sibling specifier, and each MUST be emitted as a
-// sibling in the served tree or a real page 404s it.
+// GA4-MP `./chamber.worker.js`, `./pixel-chamber.worker.js` for `connector:"pixel"`,
+// `./dom-chamber.worker.js` for `connector:"dom"`, `./helix-rum-chamber.worker.js` for
+// `connector:"helix-rum"`, or `./ga4-gtag-chamber.worker.js` for `connector:"ga4-gtag"` (the
+// selection seam, `airlock.js`'s connector-selection block) — so the emitted eds.js references
+// ALL FIVE by their sibling specifier, and each MUST be emitted as a sibling in the served tree or
+// a real page 404s it.
 //
 // 031-01: the build target is a PARAMETER (`outdir`), no longer hardwired to the testbed. The
 // default `npm run build` still emits into probes/eds-testbed/ (so the testbed keeps its own
@@ -64,6 +66,7 @@ export const WORKER_ENTRIES = [
   "core/pixel-chamber.worker.js",
   "core/dom-chamber.worker.js",
   "core/helix-rum-chamber.worker.js", // 030-02: airlock-as-RUM-authority (connector:"helix-rum")
+  "core/ga4-gtag-chamber.worker.js", // 041-01: the gtag-protocol chamber (connector:"ga4-gtag")
 ];
 
 // 033-02: airlock's CLASSIC alloy chamber worker. It is an `importScripts` worker

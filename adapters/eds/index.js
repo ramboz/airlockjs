@@ -42,6 +42,7 @@ import { createPropositionExposureReporter, PROPOSITION_EXPOSURE_EVENT } from ".
 import { VIEW_SCOPE, firstDuplicateScope } from "./placements.js";
 import { sourceGa4Ctx } from "../../connectors/ga4/cookies.js";
 import { shapeMpConsent } from "../../connectors/ga4/consent.js";
+import { GA4_GTAG_COLLECT_ENDPOINT } from "../../connectors/ga4/gtag.js";
 import { createMetaPixelConfig, META_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/meta.js";
 import { createLinkedInInsightConfig, LINKEDIN_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/linkedin.js";
 import { createBingUetConfig, BING_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/bing.js";
@@ -491,6 +492,109 @@ async function bootGa4Core(opts = {}) {
  */
 export async function bootEdsAnalytics(opts = {}) {
   return installOnWindow(await bootGa4Core(opts));
+}
+
+/**
+ * Boot the GA4 gtag-protocol connector for an EDS page (spec 041-01 AC4) — the
+ * boot-happy-path skeleton: a container's own GA4 tag beacon (`/g/collect`,
+ * authed by `tid` + origin, no `api_secret`), reproduced off-thread through
+ * the governed gtag chamber (`connectors/ga4/gtag.js`'s now-`Connector`
+ * `createGa4GtagConnector`, hosted by `core/ga4-gtag-chamber.worker.js`).
+ *
+ * Mirrors `bootGa4Core`'s ctx-sourcing structure: `analytics_storage` is
+ * resolved BEFORE identity sourcing (017-02), then `ctx` is sourced host-side
+ * via the SAME `sourceGa4Ctx` the MP path uses (`bootGa4Core:382,390-396`) —
+ * identical `{ clientId, sessionId }` snapshot, no raw cookie material
+ * crosses (ADR-0003). Endpoint ceiling is `/g/collect`
+ * (`GA4_GTAG_COLLECT_ENDPOINT`), NOT the MP `DEFAULT_ENDPOINTS`.
+ *
+ * DELIBERATELY MINIMAL relative to `bootGa4Core` (this slice's own "boot-
+ * happy-path skeleton" scope note): no `ctx.consent` gcs/gcd fold (039-02/
+ * 039-05's Consent-Mode carriage is 041-02), no session-state (041-02), no
+ * batching (041-03), and — mirroring `bootPixelConnector`'s own documented
+ * rationale for a worker-mapped, GET-egress connector — no `pushCritical` on
+ * the returned handle and no `wireInteractions`/`wireExposure`/`wireBlocks`
+ * capture wiring. `pushCritical` would otherwise reach the UNCONDITIONALLY-
+ * constructed GA4-MP `critical` dispatcher (`core/egress.js`'s default
+ * `mapToMp` mapper) — a mis-map (an MP-shaped JSON POST body to a GET-only
+ * `/g/collect` endpoint), not a beacon; the SAME class of gap 026-01 AC10
+ * closed for pixel, and 030-01 closed for helix-rum via a connector-specific
+ * `mapper` override (a strategy that does not fit gtag's GET-only shape).
+ * This mis-map is CLOSED for `ga4-gtag`, exactly as for pixel: `core/airlock.js`
+ * gates BOTH mis-map entry points on `workerMappedGetEgress` (`= connector ===
+ * "pixel" || connector === "ga4-gtag"`) — the unload-listener wiring
+ * (`visibilitychange`/`pagehide`) is NOT registered, and `pushCritical` drops +
+ * diagnoses. So a still-buffered ring event at teardown is DROPPED (a bounded,
+ * disclosed unload-loss, same as pixel), NOT mis-mapped — for both this
+ * function's returned handle (which omits `pushCritical` anyway) AND a raw
+ * `createAirlock({connector:"ga4-gtag"})` caller. KNOWN RESIDUAL (tracked, not
+ * silently accepted): the CORRECT unload-critical flush — a GET-shaped critical
+ * dispatcher so the ring tail egresses (rather than dropping) at teardown — does
+ * not exist yet (`createCriticalDispatcher` is POST/`mapToMp`-only); it is the
+ * SAME follow-up pixel already defers ("unload-critical GET dispatch is a later
+ * slice"), not a redesign here.
+ *
+ * @param {object} [opts]
+ * @param {object}   [opts.ctx]            explicit ctx override (skips cookie
+ *                                         sourcing — rig/test escape hatch,
+ *                                         mirrors `bootGa4Core`).
+ * @param {string}   [opts.measurementId]  the GA4 measurement id (`tid`).
+ * @param {Record<string, string>} [opts.consent] host-supplied ADR-0007
+ *                                         consent vector, gating
+ *                                         `analytics_storage` exactly like
+ *                                         `bootGa4Core`'s own gate.
+ * @param {boolean}  [opts.consentStrict]  spec 017-03 AC3 — a strict/
+ *                                         no-processing regime.
+ * @param {string[]} [opts.payloadDenylist] spec 019-01 (ADR-0012) — threaded
+ *                                         straight through to `createAirlock`,
+ *                                         merged with the always-on built-in
+ *                                         default inside it.
+ * @returns {Promise<{ push: Function, setConsent: Function, getState: Function, flushNow: Function, stats: Function, dispose: Function }>}
+ */
+export async function bootGa4Gtag(opts = {}) {
+  const {
+    ctx: providedCtx,
+    measurementId,
+    consent,
+    consentStrict = false,
+    payloadDenylist,
+  } = opts;
+
+  // 017-02 (ADR-0007 point ②): resolve analytics_storage BEFORE identity
+  // sourcing — exactly bootGa4Core's own gate (see that function's doc
+  // comment for the full back-compat rationale).
+  const storageGranted = consent ? resolveConsent(consent, "analytics_storage") === "granted" : true;
+
+  // Host-side sourcing: the SAME sourceGa4Ctx the MP path uses
+  // (bootGa4Core:390-396) — only the minimal { clientId, sessionId }
+  // snapshot crosses into the runtime (ADR-0003).
+  const ctx =
+    providedCtx ??
+    (await sourceGa4Ctx({
+      cookies: createCookieCapability(document),
+      cookieString: document.cookie,
+      storageGranted,
+    }));
+
+  const airlock = createAirlock({
+    connector: "ga4-gtag",
+    connectorConfig: { measurementId, ctx, endpoint: GA4_GTAG_COLLECT_ENDPOINT },
+    endpoints: [GA4_GTAG_COLLECT_ENDPOINT],
+    ctx,
+    consent,
+    egressPurposes: consent ? GA4_EGRESS_PURPOSES : [],
+    consentStrict,
+    payloadDenylist,
+  });
+
+  return {
+    push: (evt) => airlock.push(evt),
+    setConsent: (v) => airlock.setConsent(v),
+    getState: (path) => airlock.getState(path),
+    flushNow: () => airlock.flushNow(),
+    stats: () => airlock.stats(),
+    dispose: () => airlock.dispose(),
+  };
 }
 
 /**

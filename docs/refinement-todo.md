@@ -701,3 +701,23 @@ residual to track (mirrors the existing `setConsent` boot-mapper residual).
 **Resolution trigger:** hoist the `dispatch(req)` closure to `createAirlock` scope (or add the same diagnostic at the
 flush site) so held-beacon flush failures surface identically — a small follow-up whenever failure-observability parity
 across all three steady-state dispatch sites is wanted.
+
+## Spec 041-01 (gtag live boot) follow-up — GET-shaped unload-critical dispatcher
+
+### Worker-mapped GET-egress connectors DROP their ring tail at teardown (no GET critical dispatcher)
+
+**Deferred:** `core/airlock.js` gates the unload-listener wiring on `workerMappedGetEgress` (`connector === "pixel" ||
+connector === "ga4-gtag"`), so those connectors do NOT wire `visibilitychange`/`pagehide` — a still-buffered ring event
+at teardown is DROPPED (a bounded, disclosed unload-loss), NOT mis-mapped. The reason: the synchronous unload flush
+(`unloadFlush` → `criticalDispatchGated`) routes through the unconditionally-constructed GA4 `critical` dispatcher, which
+is POST/`mapToMp`-only (`core/egress.js`'s `createCriticalDispatcher`) — it has no GET-shaped strategy, so wiring it for
+a GET-egress connector would MP-mis-map the beacon. Dropping is the safe neutralization (spec 026 AC10 for pixel; 041-01
+generalized it to gtag). The CORRECT behavior — flushing the ring tail as GET beacons at teardown — needs a GET-shaped
+critical dispatcher (analogous to 030-01's helix-rum `mapper` override, but that mechanism is POST-only). This is a
+CLASS-level follow-up covering **both** pixel and ga4-gtag (pixel already disclosed "unload-critical GET dispatch is a
+later slice"; gtag joins it).
+
+**Resolution trigger:** extend `createCriticalDispatcher` (`core/egress.js`) to support a GET wire shape (or accept a
+per-connector critical `mapper` like helix-rum's), then wire the unload listeners for `workerMappedGetEgress` connectors
+with that GET dispatcher instead of gating them out — so the unload-window tail egresses correctly rather than dropping.
+Not blocking any current slice; the steady-state path (the common case) is unaffected.

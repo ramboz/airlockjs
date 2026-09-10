@@ -28,6 +28,7 @@ const SIBLING_WORKERS = [
   "pixel-chamber.worker.js",
   "dom-chamber.worker.js",
   "helix-rum-chamber.worker.js",
+  "ga4-gtag-chamber.worker.js", // 041-01: the gtag-protocol chamber (connector:"ga4-gtag")
   "alloy-chamber.worker.js",
 ];
 
