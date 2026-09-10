@@ -43,6 +43,7 @@ import { VIEW_SCOPE, firstDuplicateScope } from "./placements.js";
 import { sourceGa4Ctx, writeGa4SessionState } from "../../connectors/ga4/cookies.js";
 import { shapeMpConsent } from "../../connectors/ga4/consent.js";
 import { GA4_GTAG_COLLECT_ENDPOINT } from "../../connectors/ga4/gtag.js";
+import { coalesceGa4 } from "../../connectors/ga4/coalesce.js";
 import { createMetaPixelConfig, META_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/meta.js";
 import { createLinkedInInsightConfig, LINKEDIN_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/linkedin.js";
 import { createBingUetConfig, BING_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/bing.js";
@@ -682,6 +683,17 @@ export async function bootGa4Gtag(opts = {}) {
     egressPurposes: consent ? GA4_EGRESS_PURPOSES : [],
     consentStrict,
     payloadDenylist,
+    // 041-03: wire the 040-03/040-05 GA4 batching strategy onto the 040-02 core
+    // coalescing seam — a same-context cycle of >=2 /g/collect GETs now
+    // egresses as gtag's own batched-POST convention (split when oversized),
+    // matching the container tag this connector reproduces. `coalesceGa4` is
+    // GA4-specific and DEFAULT-OFF everywhere else (no other `createAirlock`
+    // caller in this file passes `coalesce` — the pixel/RUM/MP paths are
+    // byte-unchanged; Alloy boots via `core/wrapped-sdk-host.js`, not
+    // `createAirlock`, so it is trivially unaffected); governance (seal +
+    // endpoint ceiling) is unaffected — it already runs on every input AND
+    // every coalesced output (040-02 AC1).
+    coalesce: coalesceGa4,
   });
 
   return {

@@ -1,7 +1,7 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: [041-01, 040-03, 040-05]
-last_verified:
+last_verified: 2026-09-09
 ---
 
 ## Slice 041-03 — batching on the live path (coalesceGa4 wired)
@@ -31,12 +31,13 @@ batched (and, when oversized, split) POSTs through the live core seam — the 04
    040-02, re-asserted here through the gtag boot).
 
 **DoD:**
-- [ ] All ACs pass; full suite green.
-- [ ] Coverage: a `bootGa4Gtag` + 2-event same-context cycle → one POST (not 2 GETs); a 1-event cycle → GET; the
-      governance-through-the-boot re-assertion. Each new-feature test fails on revert (removing `coalesce: coalesceGa4`
-      → 2 GETs).
-- [ ] Reviewed by `reviewer` (compliance + craft).
-- [ ] Deviation log + reconciliation sweep produced.
+- [x] All ACs pass; full suite green (95 files / 1458 tests).
+- [x] Coverage: a `bootGa4Gtag` + 2-event same-context cycle → one POST (not 2 GETs); a 1-event cycle → GET; the
+      governance-through-the-boot re-assertion. The 2-event batching test is the revert-inverse (removing
+      `coalesce: coalesceGa4` → 2 GETs → fails); the 1-event + governance tests are honest re-assertions of behavior
+      that holds regardless of the wiring (disclosed — see deviation log).
+- [x] Reviewed by `reviewer` (compliance + craft — both PASS).
+- [x] Deviation log + reconciliation sweep produced.
 
 ## Assumptions
 
@@ -51,8 +52,34 @@ container's own tag would send — the full 039+040 stack running end-to-end on 
 
 ### Deviation log (after reconciliation)
 
-_TBD at implementation._
+A one-parameter wiring: `adapters/eds/index.js` imports `coalesceGa4` (`:46`) and passes `coalesce: coalesceGa4` to
+`bootGa4Gtag`'s `createAirlock` (`:696`, after the `:686-695` comment block) + `test/eds-ga4-gtag.test.js` (3 new tests). No connector, seam,
+or governance change. Both gating passes (compliance + craft) PASS. Notes:
+
+1. **DoD "each new-feature test fails on revert" is loose (craft note; disclosed).** Only the 2-event batching test is a
+   true revert-inverse (removing the wiring → 2 GETs → fails). The 1-event GET-passthrough and the governance tests are
+   honest RE-ASSERTIONS — they hold with or without the wiring (single-event GET is coalesceGa4's AC3; seal-before-
+   coalesce is 040-02's, structural) — so they pass on revert BY DESIGN. Not vacuous (they guard against wiring
+   regressions); the test comments say so. The DoD wording is tightened accordingly.
+2. **AC2 governance test is an all-held cohort, not a mixed granted/held cohort (compliance note; rationale recorded).**
+   The stronger "one granted + one held → held absent from the merged POST" test the reviewer suggested is NOT
+   constructible for gtag: the egress consent verdict is CYCLE-UNIFORM (the property 040-02/040-04 established — every
+   event in one `worker.onmessage` cycle gets the same verdict), and gtag's endpoint is uniform (`/g/collect`), so a
+   single cycle cannot mix granted+held or on/off-endpoint events. The all-held cohort (0 fetches) is the achievable
+   form; the "held event never enters a MERGED POST" clause is guaranteed STRUCTURALLY (Phase-1 collects survivors
+   BEFORE Phase-2 coalesce grouping, `core/airlock.js`) and already tested at the seam by 040-02. Same reasoning as
+   040-02's send/hold/drop-can't-coexist-in-one-array deviation.
+3. **Craft comment nit folded:** the wiring comment listed "Alloy" among the `createAirlock`-caller paths; corrected —
+   Alloy boots via `core/wrapped-sdk-host.js`, not `createAirlock` (trivially unaffected either way).
+
+**No deviation from:** the one-parameter scope, the connector/seam/governance boundary (untouched), or the
+default-off-elsewhere property (no other `createAirlock` caller gained `coalesce`).
 
 ### Reconciliation sweep
 
-_TBD at implementation._
+- **`docs/refinement-todo.md` / `docs/inbox.md`:** nothing new — the batching residuals (n=1 marker grounding, deferred
+  live-accept DebugView re-check) are already tracked from 040-03/040-05 and now apply on the LIVE path; no new item.
+- **Deferred / carried forward:** none new.
+- **Downstream:** 041-04 (declarative config selection) is the last slice; it makes `bootGa4Gtag` (now fully featured:
+  boot + session/consent + batching) selectable from a page's instrumentation config.
+- **Full suite:** 95 files / 1458 tests green.

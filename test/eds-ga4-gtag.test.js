@@ -348,3 +348,82 @@ describe("bootGa4Gtag (spec 041-02 — session-state + Consent-Mode carriage)", 
     expect(doc.writes).toEqual([]); // writeGa4SessionState never called
   });
 });
+
+// Spec 041-03 — batching on the live path (coalesceGa4 wired). `bootGa4Gtag`'s
+// `createAirlock({...})` call now passes `coalesce: coalesceGa4` — the 040-02
+// core seam + 040-03/040-05 GA4 strategy were already governed + tested; this
+// slice is the one-parameter wiring that turns the hook ON for a real boot.
+// Every test drives the REAL `createGa4GtagConnector` (mirrors
+// test/ga4-coalesce.test.js's own "040-02 integration" pattern), now through
+// `bootGa4Gtag` instead of a raw `createAirlock` call, so a revert of the one
+// wiring line (removing `coalesce: coalesceGa4`) fails these on the exact
+// assertions that matter: fetch call COUNT and POST/GET method.
+describe("bootGa4Gtag (spec 041-03 — coalesceGa4 wired on the live path)", () => {
+  it("AC1: a same-context 2-event cycle merges into ONE batched POST through the real seam (load-bearing inverse — without the wiring this would be 2 GETs)", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const ctx = { clientId: "1234567890.1700000000", sessionId: "1724668790" };
+    await bootGa4Gtag({ ctx, measurementId: "G-XXXX" });
+
+    // Mirrors the 041-01 "real page_view" pattern — never a hand-built beacon.
+    const connector = createGa4GtagConnector({ measurementId: "G-XXXX", ctx, endpoint: GA4_GTAG_COLLECT_ENDPOINT });
+    const [reqA] = connector.handle({ type: "page_view", params: { page_location: "https://spike.example/" } });
+    const [reqB] = connector.handle({
+      type: "scroll",
+      params: { page_location: "https://spike.example/", percent_scrolled: 90 },
+    });
+
+    FakeWorker.last.onmessage({ data: { ready: [reqA, reqB], dropped: [] } });
+
+    // Load-bearing: without `coalesce: coalesceGa4` wired, the core's default
+    // path fetches one GET per survivor — this would be 2 calls, both GET.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.method).toBe("POST");
+    expect(init.body).toContain("en=page_view");
+    expect(init.body).toContain("en=scroll");
+  });
+
+  it("AC1: a 1-event cycle still egresses as a single GET (coalesceGa4's own AC3 — a lone request in its group is unchanged)", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const ctx = { clientId: "1234567890.1700000000", sessionId: "1724668790" };
+    await bootGa4Gtag({ ctx, measurementId: "G-XXXX" });
+
+    const connector = createGa4GtagConnector({ measurementId: "G-XXXX", ctx, endpoint: GA4_GTAG_COLLECT_ENDPOINT });
+    const [req] = connector.handle({ type: "page_view", params: { page_location: "https://spike.example/" } });
+
+    FakeWorker.last.onmessage({ data: { ready: [req], dropped: [] } });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.method).toBe("GET");
+    expect(init.body).toBeUndefined();
+  });
+
+  it("AC2: governance still holds end-to-end — an unresolved-consent 2-event cycle is held at the seal and never enters a merged POST", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const ctx = { clientId: "1234567890.1700000000", sessionId: "1724668790" };
+    // A wired-but-unresolved consent vector (mirrors the 041-01 gating test) —
+    // the seal holds every ready beacon BEFORE 040-02's coalesce grouping runs.
+    await bootGa4Gtag({ ctx, measurementId: "G-XXXX", consent: {} });
+
+    const connector = createGa4GtagConnector({ measurementId: "G-XXXX", ctx, endpoint: GA4_GTAG_COLLECT_ENDPOINT });
+    const [reqA] = connector.handle({ type: "page_view", params: { page_location: "https://spike.example/" } });
+    const [reqB] = connector.handle({
+      type: "scroll",
+      params: { page_location: "https://spike.example/", percent_scrolled: 90 },
+    });
+
+    FakeWorker.last.onmessage({ data: { ready: [reqA, reqB], dropped: [] } });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      "airlock:",
+      expect.objectContaining({ kind: "consent", disposition: "held", purpose: "analytics_storage" }),
+    );
+    warnSpy.mockRestore();
+  });
+});
