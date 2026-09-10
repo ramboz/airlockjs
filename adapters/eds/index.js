@@ -597,6 +597,17 @@ export async function bootEdsAnalytics(opts = {}) {
  *                                         straight through to `createAirlock`,
  *                                         merged with the always-on built-in
  *                                         default inside it.
+ * @param {string}   [opts.endpoint]       gtag collect-endpoint override (e.g.
+ *                                         a regional GA4 collect endpoint).
+ *                                         Defaults to
+ *                                         `GA4_GTAG_COLLECT_ENDPOINT`. Threaded
+ *                                         into BOTH the connector config (so
+ *                                         the emitted beacon targets it) and
+ *                                         the `endpoints` ceiling (so the
+ *                                         override is actually allowed to
+ *                                         egress there) — mirrors the `ga4`/
+ *                                         pixel boots' own endpoint-override
+ *                                         handling.
  * @returns {Promise<{ push: Function, setConsent: Function, getState: Function, flushNow: Function, stats: Function, dispose: Function }>}
  */
 export async function bootGa4Gtag(opts = {}) {
@@ -608,6 +619,7 @@ export async function bootGa4Gtag(opts = {}) {
     consentStrict = false,
     payloadDenylist,
     streamCookieName,
+    endpoint = GA4_GTAG_COLLECT_ENDPOINT,
   } = opts;
 
   // 017-02 (ADR-0007 point ②): resolve analytics_storage BEFORE identity
@@ -676,8 +688,8 @@ export async function bootGa4Gtag(opts = {}) {
 
   const airlock = createAirlock({
     connector: "ga4-gtag",
-    connectorConfig: { measurementId, ctx: ctxWithConsent, endpoint: GA4_GTAG_COLLECT_ENDPOINT },
-    endpoints: [GA4_GTAG_COLLECT_ENDPOINT],
+    connectorConfig: { measurementId, ctx: ctxWithConsent, endpoint },
+    endpoints: [endpoint],
     ctx: ctxWithConsent,
     consent,
     egressPurposes: consent ? GA4_EGRESS_PURPOSES : [],
@@ -1424,6 +1436,17 @@ function createComposite(connectors) {
 const GA4_MANIFEST_EVENTS = ["*"];
 
 /**
+ * The gtag-protocol GA4 connector's (`bootGa4Gtag`) declared vocabulary (spec
+ * 041-04) — mirrors `GA4_MANIFEST_EVENTS`: the gtag connector maps every event type
+ * the same way the MP GA4 connector does (`connectors/ga4/gtag.js`'s
+ * `createGa4GtagConnector`), so the composite fan-out gate admits everything, exactly
+ * like GA4-MP. Kept as its OWN const (not a reuse of `GA4_MANIFEST_EVENTS`) so a
+ * future divergence between the MP and gtag protocols' vocabularies doesn't require
+ * touching GA4's own const.
+ */
+const GA4_GTAG_MANIFEST_EVENTS = ["*"];
+
+/**
  * helix-rum's declared `manifest.events` — its RUM checkpoints only
  * (`connectors/helix-rum/connector.js`: `["top", "error", "cwv"]`). NOT a site-event
  * catch-all: the composite gate uses this so an arbitrary `composite.push()` event
@@ -1433,14 +1456,16 @@ const GA4_MANIFEST_EVENTS = ["*"];
 const HELIX_RUM_MANIFEST_EVENTS = ["top", "error", "cwv"];
 
 /**
- * The connector `type`s `boot(config)` can dispatch (spec 032-02 AC2/AC3, 033-02 AC3).
- * The discriminated union's tags — GA4, the three pixel vendors (nested under
- * `pixel`), helix-rum, and (033-02) **alloy** — the analytics vertical: alloy's
- * first-ever adapter boot, hosted via `core/wrapped-sdk-host.js` + `bootAlloy`
- * (adopter-supplied `bundleUrl`, ADR-0016). Personalization / decisions-as-data is
- * the follow-on vertical (033-03); this entry covers the Edge-interact analytics use.
+ * The connector `type`s `boot(config)` can dispatch (spec 032-02 AC2/AC3, 033-02 AC3,
+ * 041-04 AC1). The discriminated union's tags — GA4 (MP), **ga4-gtag** (041-04: the
+ * gtag-protocol GA4 connector, `bootGa4Gtag` — a container's own GA4 tag beacon
+ * reproduced off-thread), the three pixel vendors (nested under `pixel`), helix-rum,
+ * and (033-02) **alloy** — the analytics vertical: alloy's first-ever adapter boot,
+ * hosted via `core/wrapped-sdk-host.js` + `bootAlloy` (adopter-supplied `bundleUrl`,
+ * ADR-0016). Personalization / decisions-as-data is the follow-on vertical (033-03);
+ * this entry covers the Edge-interact analytics use.
  */
-const KNOWN_CONNECTOR_TYPES = ["ga4", "pixel", "helix-rum", "alloy"];
+const KNOWN_CONNECTOR_TYPES = ["ga4", "ga4-gtag", "pixel", "helix-rum", "alloy"];
 
 /**
  * Each pixel vendor's REQUIRED id field (spec 032-02 AC2). Keys mirror `PIXEL_VENDORS`;
@@ -1509,6 +1534,18 @@ function validateConnectorEntry(entry, index) {
     if (typeof entry[idField] !== "string" || entry[idField].length === 0) {
       throw new Error(
         `airlock boot(config): ${at} (pixel/${entry.vendor}) is missing required id field ${JSON.stringify(idField)} (a non-empty string)`,
+      );
+    }
+  }
+  if (type === "ga4-gtag") {
+    // 041-04 AC1: unlike "ga4" (whose measurement_id/api_secret live embedded in the MP
+    // collect endpoint URL, not a config id), the gtag protocol's `tid` is an explicit
+    // top-level field `bootGa4Gtag` requires — reject loud + actionable here (a documented
+    // subset of the schema's `required`) rather than let a missing tid surface later as an
+    // unauthenticated/malformed `/g/collect` beacon.
+    if (typeof entry.measurementId !== "string" || entry.measurementId.length === 0) {
+      throw new Error(
+        `airlock boot(config): ${at} (ga4-gtag) is missing required field "measurementId" (a non-empty string — the GA4 measurement id, "tid")`,
       );
     }
   }
@@ -1604,6 +1641,11 @@ async function bootConnector(entry, governance, index, reservedPlacements, compo
   switch (type) {
     case "ga4":
       return { handle: await bootGa4Core({ ...rest, ...governance }), events: GA4_MANIFEST_EVENTS };
+    case "ga4-gtag":
+      // 041-04 AC2: consent-governed exactly like "ga4"/"pixel" — the top-level
+      // governance (consent/consentStrict/payloadDenylist) is threaded straight into
+      // bootGa4Gtag's own gate, with NO helix-rum-style exemption.
+      return { handle: await bootGa4Gtag({ ...rest, ...governance }), events: GA4_GTAG_MANIFEST_EVENTS };
     case "pixel": {
       const { vendor, ...ids } = rest;
       const handle = bootPixelConnector(vendor, { ...ids, ...governance });

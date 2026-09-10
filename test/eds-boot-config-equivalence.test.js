@@ -27,6 +27,7 @@ import { createAirlock } from "../core/airlock.js";
 import {
   boot,
   bootEdsAnalytics,
+  bootGa4Gtag,
   bootMetaPixel,
   bootLinkedInInsight,
   bootBingUet,
@@ -101,6 +102,32 @@ describe("AC3 — governance threads to consent-governed connectors (GA4, pixels
 
     expect(argsOf(1)).toEqual(argsOf(0));
     expect(argsOf(1).egressPurposes).toEqual(["ad_storage"]);
+    expect(argsOf(1).payloadDenylist).toEqual(["email"]);
+  });
+});
+
+describe("041-04 AC1/AC2 — a {type:'ga4-gtag'} config entry produces the SAME createAirlock inputs as bootGa4Gtag, governance threaded like GA4/pixel", () => {
+  it("an absent consent vector yields egressPurposes:[] on BOTH paths (legacy always-dispatch)", async () => {
+    await bootGa4Gtag({ ctx: gaCtx, measurementId: "G-XXXX" });
+    await boot({ connectors: [{ type: "ga4-gtag", ctx: gaCtx, measurementId: "G-XXXX" }] });
+
+    expect(argsOf(1)).toEqual(argsOf(0));
+    expect(argsOf(1).egressPurposes).toEqual([]);
+  });
+
+  it("a top-level consent vector threads through identically to bootGa4Gtag({consent}) — no helix-rum-style exemption", async () => {
+    const consent = { analytics_storage: "granted" };
+    await bootGa4Gtag({ ctx: gaCtx, measurementId: "G-XXXX", consent, consentStrict: true, payloadDenylist: ["email"] });
+    await boot({
+      connectors: [{ type: "ga4-gtag", ctx: gaCtx, measurementId: "G-XXXX" }],
+      consent,
+      consentStrict: true,
+      payloadDenylist: ["email"],
+    });
+
+    expect(argsOf(1)).toEqual(argsOf(0));
+    expect(argsOf(1).egressPurposes).toEqual(["analytics_storage"]); // gate engaged, same as GA4
+    expect(argsOf(1).consentStrict).toBe(true);
     expect(argsOf(1).payloadDenylist).toEqual(["email"]);
   });
 });

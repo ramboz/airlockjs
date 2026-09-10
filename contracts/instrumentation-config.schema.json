@@ -32,9 +32,10 @@
     "connector": {
       "type": "object",
       "required": ["type"],
-      "description": "A single connector entry — a discriminated union on `type` (ga4 / pixel / helix-rum / alloy). alloy covers analytics (spec 033-02) AND personalization (spec 033-03, via `placements`).",
+      "description": "A single connector entry — a discriminated union on `type` (ga4 / ga4-gtag / pixel / helix-rum / alloy). alloy covers analytics (spec 033-02) AND personalization (spec 033-03, via `placements`).",
       "oneOf": [
         { "$ref": "#/$defs/ga4Connector" },
+        { "$ref": "#/$defs/ga4GtagConnector" },
         { "$ref": "#/$defs/pixelConnector" },
         { "$ref": "#/$defs/helixRumConnector" },
         { "$ref": "#/$defs/alloyConnector" }
@@ -57,6 +58,27 @@
         "ctx": {
           "type": "object",
           "description": "Optional pre-sourced identity snapshot; when absent, sourced host-side from the _ga cookie (004-03)."
+        }
+      }
+    },
+    "ga4GtagConnector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "measurementId"],
+      "description": "GA4 gtag protocol (spec 041) — a container's own GA4 tag beacon (`/g/collect`, authed by `tid` + origin, no `api_secret`) reproduced off-thread (`bootGa4Gtag`). Consent-governed; the top-level consent/consentStrict/payloadDenylist are threaded in exactly like `ga4`/`pixel` (no exemption). Unlike `ga4` (whose measurement_id/api_secret live embedded in the MP collect endpoint URL), the gtag protocol's `tid` is an explicit REQUIRED top-level field.",
+      "properties": {
+        "type": { "const": "ga4-gtag" },
+        "measurementId": { "type": "string", "minLength": 1, "description": "The GA4 measurement id (`tid`, REQUIRED)." },
+        "streamCookieName": { "type": "string", "description": "The concrete `_ga_<STREAM>` cookie name for session-state read-modify-write (039-03/041-02). Absent -> the session-state write is skipped entirely." },
+        "consentDefault": {
+          "type": "object",
+          "description": "Host-declared ADR-0007 Consent-Mode default vector (`gtag('consent','default',…)`), gating `gcd` (039-05/041-02).",
+          "additionalProperties": { "type": "string" }
+        },
+        "endpoint": { "type": "string", "description": "Optional /g/collect endpoint override (default the pinned GA4_GTAG_COLLECT_ENDPOINT)." },
+        "ctx": {
+          "type": "object",
+          "description": "Optional pre-sourced identity snapshot; when absent, sourced host-side from the _ga/_ga_<stream> cookies (mirrors the ga4 connector's own ctx sourcing)."
         }
       }
     },

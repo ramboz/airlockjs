@@ -170,6 +170,67 @@ describe("bootGa4Gtag (spec 041-01 AC4 — the boot-happy-path skeleton)", () =>
   });
 });
 
+// gap fix (post-041-04): the `contracts/instrumentation-config.schema.json` + the
+// `bootConnector` switch already thread a config-supplied `endpoint` through to
+// `bootGa4Gtag` via `...rest`, but `bootGa4Gtag` itself hardcoded
+// `GA4_GTAG_COLLECT_ENDPOINT` at both the connectorConfig site AND the endpoint
+// ceiling — silently ignoring the override. Mirrors the "a real page_view drives a
+// GET..." 041-01 test above, but with a regional collect endpoint override; the
+// ceiling MUST widen to match, or the override would dispatch straight into a
+// ceiling-hold (an override that can never egress is worse than no override).
+describe("bootGa4Gtag (opts.endpoint override — regional GA4 collect endpoints)", () => {
+  const CUSTOM_ENDPOINT = "https://region1.google-analytics.com/g/collect";
+
+  it("an opts.endpoint override egresses the beacon there, and the ceiling widens to allow it (no ceiling-hold diagnostic)", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const ctx = { clientId: "1234567890.1700000000", sessionId: "1724668790" };
+    await bootGa4Gtag({ ctx, measurementId: "G-XXXX", endpoint: CUSTOM_ENDPOINT });
+
+    // The override reaches the CONNECTOR too, not only the ceiling: the posted
+    // init message's connectorConfig carries the custom endpoint (so the in-worker
+    // mapper builds the beacon against it). Proves the connectorConfig.endpoint
+    // side of the wiring, complementing the ceiling assertion below.
+    expect(initMsg().endpoint).toBe(CUSTOM_ENDPOINT);
+
+    // Same "never a hand-built URL" pattern as the 041-01 real-page_view test:
+    // the SAME gtag connector, told about the SAME override, maps the event.
+    const connector = createGa4GtagConnector({ measurementId: "G-XXXX", ctx, endpoint: CUSTOM_ENDPOINT });
+    const [req] = connector.handle({ type: "page_view", params: { page_location: "https://spike.example/" } });
+    FakeWorker.last.onmessage({ data: { ready: [req], dropped: [] } });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url] = fetchMock.mock.calls[0];
+    const parsed = new URL(url);
+    expect(parsed.origin + parsed.pathname).toBe(CUSTOM_ENDPOINT);
+    expect(parsed.origin + parsed.pathname).not.toBe(GA4_GTAG_COLLECT_ENDPOINT);
+    // A held beacon never reaches fetch at all (016-01 fail-closed ceiling) — the
+    // single fetch call above already proves no hold, but assert the diagnostic
+    // seam directly too: no endpoint-ceiling record was ever raised.
+    for (const [, record] of errorSpy.mock.calls) {
+      expect(record?.kind).not.toBe("endpoint-ceiling");
+    }
+    errorSpy.mockRestore();
+  });
+
+  it("no opts.endpoint -> unchanged default: the beacon still egresses to GA4_GTAG_COLLECT_ENDPOINT", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const ctx = { clientId: "1234567890.1700000000", sessionId: "1724668790" };
+    await bootGa4Gtag({ ctx, measurementId: "G-XXXX" });
+
+    const connector = createGa4GtagConnector({ measurementId: "G-XXXX", ctx, endpoint: GA4_GTAG_COLLECT_ENDPOINT });
+    const [req] = connector.handle({ type: "page_view", params: { page_location: "https://spike.example/" } });
+    FakeWorker.last.onmessage({ data: { ready: [req], dropped: [] } });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url] = fetchMock.mock.calls[0];
+    const parsed = new URL(url);
+    expect(parsed.origin + parsed.pathname).toBe(GA4_GTAG_COLLECT_ENDPOINT);
+  });
+});
+
 // Spec 041-02 — session-state + Consent-Mode carriage on the live path (frame-critique
 // PASSED round 2). `bootGa4Gtag` now sources `writeGa4SessionState`'s return BEFORE
 // `createAirlock`, overriding sourceGa4Ctx's pre-write `sid` (frame-critique's

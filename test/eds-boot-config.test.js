@@ -36,6 +36,7 @@ FakeWorker.instances = [];
 const ga4Worker = () => FakeWorker.instances.find((w) => w.url.endsWith("/chamber.worker.js"));
 const pixelWorker = () => FakeWorker.instances.find((w) => w.url.includes("pixel-chamber.worker.js"));
 const helixWorker = () => FakeWorker.instances.find((w) => w.url.includes("helix-rum-chamber.worker.js"));
+const gtagWorker = () => FakeWorker.instances.find((w) => w.url.includes("ga4-gtag-chamber.worker.js"));
 const initOf = (w) => w.messages.find((m) => m.type === "init");
 const eventsOf = (w) => w.messages.find((m) => m.type === "events");
 // every event `type` that actually crossed to a worker (across all drained batches)
@@ -392,6 +393,56 @@ describe("boot(config) — fan-out gate: composite.push honors each connector's 
     expect(crossedTypes(helixWorker()).length).toBe(before + 1); // only "top" added
     expect(crossedTypes(helixWorker())).not.toContain("proposition_display");
     expect(crossedTypes(helixWorker())).not.toContain("newsletter_signup");
+  });
+});
+
+// Spec 041-04 AC1/AC2: a declarative `{type:"ga4-gtag"}` config entry boots the
+// gtag connector through boot(config) — the SAME dispatch shape as `{type:"ga4"}`/
+// `{type:"pixel"}` — with the composite governance (consent/consentStrict/
+// payloadDenylist) threaded in exactly like GA4/pixel (NOT exempt like helix-rum).
+describe("boot(config) — AC1/AC2 (041-04): a ga4-gtag config entry boots the gtag connector, with governance threaded", () => {
+  beforeEach(() => {
+    vi.stubGlobal("addEventListener", () => {});
+    vi.stubGlobal("removeEventListener", () => {});
+    vi.stubGlobal("window", {});
+  });
+
+  it("boots the ga4-gtag chamber (ceiled to /g/collect) with the entry's measurementId/ctx", async () => {
+    const handle = await boot({ connectors: [{ type: "ga4-gtag", ctx: gaCtx, measurementId: "G-XXXX" }] });
+
+    expect(handle).toBe(window.airlock);
+    expect(gtagWorker()).toBeTruthy();
+    const init = initOf(gtagWorker());
+    expect(init.measurementId).toBe("G-XXXX");
+    expect(init.ctx).toEqual(gaCtx);
+  });
+
+  it("a top-level consent vector HOLDS the gtag beacon until granted (governance threads through, no exemption)", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await boot({
+      connectors: [{ type: "ga4-gtag", ctx: gaCtx, measurementId: "G-XXXX" }],
+      consent: {}, // analytics_storage unresolved -> the gtag beacon holds at the seal
+    });
+    gtagWorker().onmessage({ data: { ready: [{ url: "https://x.example/g/collect?tid=G-XXXX", method: "GET" }], dropped: [] } });
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    window.airlock.setConsent({ analytics_storage: "granted" });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    warnSpy.mockRestore();
+  });
+
+  it("dispose() tears down the gtag connector's Worker too (composite no-leak lifecycle)", async () => {
+    await boot({ connectors: [{ type: "ga4-gtag", ctx: gaCtx, measurementId: "G-XXXX" }] });
+    const gtag = gtagWorker();
+    expect(gtag).toBeTruthy();
+
+    window.airlock.dispose();
+
+    expect(gtag.terminated).toBe(1);
   });
 });
 

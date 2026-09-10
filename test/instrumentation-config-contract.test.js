@@ -92,6 +92,25 @@ describe("AC2 — boot(config) rejects a malformed config, loud + actionable", (
       .rejects.toThrow(/tagId/);
   });
 
+  // Spec 041-04 AC1: a well-formed ga4-gtag entry is a NEW acceptance; a malformed one
+  // (missing its required measurementId, or an unknown type) is rejected loud + actionable,
+  // exactly like the other connector types.
+  it("non-string measurementId (ga4-gtag): the runtime guard rejects a number, not only an absent field", async () => {
+    // The `typeof entry.measurementId !== "string"` branch of validateConnectorEntry
+    // (distinct from the missing-field case below) — a mistyped tid is rejected loud.
+    await expect(boot({ connectors: [{ type: "ga4-gtag", ctx: gaCtx, measurementId: 12345 }] }))
+      .rejects.toThrow(/connectors\[0\].*missing required.*"measurementId"/);
+  });
+
+  it("missing required id (ga4-gtag): rejects naming measurementId", async () => {
+    await expect(boot({ connectors: [{ type: "ga4-gtag", ctx: gaCtx }] }))
+      .rejects.toThrow(/connectors\[0\].*missing required.*"measurementId"/);
+  });
+
+  it("a well-formed ga4-gtag entry does NOT throw (the validator is not over-eager)", async () => {
+    await expect(boot({ connectors: [{ type: "ga4-gtag", ctx: gaCtx, measurementId: "G-XXXX" }] })).resolves.toBeTruthy();
+  });
+
   it("wrong-typed top-level field (consentStrict must be boolean): rejects naming it", async () => {
     await expect(boot({ connectors: [{ type: "ga4", ctx: gaCtx }], consentStrict: "yes" }))
       .rejects.toThrow(/consentStrict.*boolean/);
@@ -198,6 +217,44 @@ describe("033-02 AC5 — the {type:'alloy'} config branch (analytics vertical, A
 
   it("an alloy entry MISSING a datastream id is REJECTED (the config-integrity tenant pin needs it — 015/ADR-0011)", () => {
     expect(validateSchema(alloyMissingDatastream)).toBe(false);
+  });
+});
+
+// Spec 041-04 AC1 — the JSON Schema gains a "ga4-gtag" type const + config shape
+// (measurementId REQUIRED; streamCookieName/consentDefault/endpoint optional), mirroring
+// the "ga4" entry's shape. The schema-contract's existing describes above (AC2/AC3) still
+// pass unchanged with the new type const added to the discriminated union.
+describe("041-04 AC1 — the schema gains a 'ga4-gtag' type const + config shape", () => {
+  it("a well-formed ga4-gtag entry (measurementId only) validates", () => {
+    const config = { connectors: [{ type: "ga4-gtag", measurementId: "G-XXXX" }] };
+    const ok = validateSchema(config);
+    if (!ok) console.error(validateSchema.errors);
+    expect(ok).toBe(true);
+  });
+
+  it("a ga4-gtag entry with the full optional field set (streamCookieName/consentDefault/endpoint) validates", () => {
+    const config = {
+      connectors: [
+        {
+          type: "ga4-gtag",
+          measurementId: "G-XXXX",
+          streamCookieName: "G-XXXX",
+          consentDefault: { analytics_storage: "denied" },
+          endpoint: "https://example.com/g/collect",
+        },
+      ],
+    };
+    const ok = validateSchema(config);
+    if (!ok) console.error(validateSchema.errors);
+    expect(ok).toBe(true);
+  });
+
+  it("a ga4-gtag entry MISSING measurementId is REJECTED by the schema", () => {
+    expect(validateSchema({ connectors: [{ type: "ga4-gtag" }] })).toBe(false);
+  });
+
+  it("an unknown connector type is still rejected by the schema (the discriminated union is closed)", () => {
+    expect(validateSchema({ connectors: [{ type: "tiktok" }] })).toBe(false);
   });
 });
 

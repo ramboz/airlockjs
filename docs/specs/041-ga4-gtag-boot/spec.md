@@ -1,5 +1,5 @@
 ---
-status: IN_PROGRESS
+status: DONE
 skill:
 use_cases: []
 ---
@@ -8,16 +8,26 @@ use_cases: []
 
 # Spec 041: GA4 gtag connector — live boot wiring
 
-> **FRAMED (2026-09-09).** Specs 039 + 040 built the GA4 **gtag** (`/g/collect`) connector — the pure field mapper
-> (`createGa4GtagConnector`, `connectors/ga4/gtag.js`: `handle(event) -> EgressRequest[]`, with Consent-Mode `gcs`/`gcd`
-> + `_ga_<stream>` session-state carriage) and the coalescing/batching stack (`coalesceGa4`, `connectors/ga4/coalesce.js`
-> on the 040-02 core seam). **But none of it is wired into a live boot path — it is built + tested but DORMANT.** This
-> spec turns it on: make the gtag connector a hostable `Connector`, host it in a worker chamber, add its
-> `createAirlock` selection branch, and boot it from the EDS adapter with host-sourced identity/session-state/consent —
-> so a real page's GA4 events reach `/g/collect` through the governed off-thread path, with batching. This applies the
-> **established connector-hosting pattern** (pixel / dom / helix-rum precedents + the GA4-MP `bootGa4Core` ctx-sourcing
-> precedent), so **no new ADR** — it is execution of decisions already made (ADR-0001/0002 off-thread; ADR-0006/0007
-> declaration+consent; ADR-0019 gtag protocol; ADR-0021 batching).
+> **DONE (2026-09-10) — the GA4 gtag connector is fully live.** Specs 039 + 040 built the gtag (`/g/collect`) field
+> mapper + Consent-Mode/session-state carriage + the coalescing/batching stack, but it was DORMANT (not wired into any
+> boot path). This spec turned it on, applying the established connector-hosting pattern (no new ADR — execution of
+> ADR-0001/0002 off-thread, ADR-0006/0007 declaration+consent, ADR-0019 gtag protocol, ADR-0021 batching). All four
+> slices DONE + landed:
+> - **041-01** — `createGa4GtagConnector` is a `Connector` (`{manifest, init, handle}`); a new egress-confined
+>   `core/ga4-gtag-chamber.worker.js`; the `"ga4-gtag"` `createAirlock` branch + `build.mjs` entry; a minimal
+>   `bootGa4Gtag` (cid/sid + consent seal). A page's `page_view` fires a real `/g/collect` GET. (Generalized pixel's
+>   AC10 mis-map guard to `workerMappedGetEgress`.)
+> - **041-02** — host-side `writeGa4SessionState` (its first caller) + the raw consent-vector fold, so live beacons
+>   carry session-state + `gcs`/`gcd`, with the write's `sessionId` overriding the pre-write `sid` for consistency.
+> - **041-03** — `coalesce: coalesceGa4` wired, so same-context bursts egress as batched `/g/collect` POSTs.
+> - **041-04** — declarative `type: "ga4-gtag"` config selection (KNOWN_CONNECTOR_TYPES + `bootConnector` switch + JSON
+>   Schema), governance threaded like ga4/pixel; the config `endpoint` override wired end-to-end.
+>
+> **End-to-end:** declarative config → egress-confined worker chamber → session-state + Consent-Mode payload → batched
+> `/g/collect` egress, governed throughout. Tracked follow-ups (non-blocking, in `docs/refinement-todo.md`): the
+> boot-snapshot-ctx post-boot-update deferral (017-01 residual, shared with MP); a GET-shaped unload-critical dispatcher
+> (shared with pixel — the ring tail is dropped, not mis-mapped, at teardown); and the n=1 batch-marker live-accept
+> DebugView re-validation (from spec 040).
 
 ## Overview
 
