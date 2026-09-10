@@ -119,6 +119,8 @@
 | [041-ga4-gtag-boot](041-ga4-gtag-boot/spec.md) | 041-02 — session-state + Consent-Mode carriage on the live path | **DONE** |  |
 | [041-ga4-gtag-boot](041-ga4-gtag-boot/spec.md) | 041-03 — batching on the live path (coalesceGa4 wired) | **DONE** |  |
 | [041-ga4-gtag-boot](041-ga4-gtag-boot/spec.md) | 041-04 — declarative instrumentation-config selection | **DONE** |  |
+| [042-get-critical-unload-dispatcher](042-get-critical-unload-dispatcher/spec.md) | 042-01 — GET-critical dispatcher + ga4-gtag unload flush | DRAFT |  |
+| [042-get-critical-unload-dispatcher](042-get-critical-unload-dispatcher/spec.md) | 042-02 — generalize the GET-critical unload flush to pixel | DRAFT |  |
 
 ## Deferred slices
 
