@@ -4,6 +4,8 @@
 // already use — no real Worker, avoids the stale-worktree hang risk).
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createAirlock } from "../core/airlock.js";
+import { createGa4GtagConnector } from "../connectors/ga4/gtag.js";
+import { createConnectorHost } from "../core/connector-host.js";
 
 class FakeWorker {
   constructor(url, opts) {
@@ -109,11 +111,16 @@ describe("AC3 — the gtag connector-selection seam", () => {
 });
 
 // Mirrors test/pixel-seam.test.js's "AC10 — no GA4 mis-map at unload" section,
-// for the ga4-gtag connector: it is the SAME class as pixel (worker-mapped,
-// GET-egress, NO main-thread critical mapper), so it needs the SAME
-// neutralization at the SAME two gates (core/airlock.js's unload-wiring gate
-// and pushCritical gate) — a residual the 041-01 pass disclosed but deferred.
-describe("AC10 (041-01 follow-up) — no GA4 mis-map at unload for connector:'ga4-gtag'", () => {
+// for the ga4-gtag connector: it was the SAME class as pixel (worker-mapped,
+// GET-egress, NO main-thread critical mapper) — 041-01 neutralized the mis-map
+// by dropping (gating the unload wiring out + dropping pushCritical). Spec
+// 042-01 resolves the drop half of that residual for gtag: the unload/
+// pushCritical paths now flush via a `requestMapper` (gtag's own `handle`,
+// the SAME EgressRequest[]-returning function the worker chamber hosts) wired
+// into the SAME `critical` dispatcher (core/egress.js's createCriticalDispatcher).
+// So the three drop assertions below are FLIPPED to GET-flush assertions.
+// Pixel stays gated/dropped until 042-02.
+describe("AC10/042-01 — a ga4-gtag instance flushes at unload via its OWN GET requestMapper (was: dropped, to avoid a GA4 mis-map)", () => {
   let registry;
   beforeEach(() => {
     registry = makeListenerRegistry();
@@ -124,31 +131,38 @@ describe("AC10 (041-01 follow-up) — no GA4 mis-map at unload for connector:'ga
 
   // Consent granted on the connector's own declared purpose (ga4-gtag-connector.test.js:
   // manifest.purposes.egress === ["analytics_storage"]) so the counterfactual is real —
-  // WITHOUT the gate, the (then-wired) pagehide listener -> unloadFlush ->
-  // criticalDispatchGated -> the unconditionally-constructed GA4 `critical` dispatcher
-  // (mapToMp) WOULD map+POST to `/mp/collect`-shaped output, mis-mapping the GET-only
-  // /g/collect connector.
+  // WITHOUT 042-01's requestMapper wiring, the (now-wired) pagehide listener ->
+  // unloadFlush -> criticalDispatchGated -> the unconditionally-constructed GA4
+  // `critical` dispatcher (mapToMp) WOULD map+POST to `/mp/collect`-shaped output,
+  // mis-mapping the GET-only /g/collect connector. 042-01 closes that counterfactual
+  // by correct GET dispatch, not by dropping.
   const grantedOpts = { egressPurposes: ["analytics_storage"], consent: { analytics_storage: "granted" } };
+  const gtagConnectorConfig = { measurementId: "G-XXXX", ctx: ga4Ctx, endpoint: "https://www.google-analytics.com/g/collect" };
 
-  it("a ga4-gtag instance registers NO visibilitychange/pagehide listener at all", () => {
+  it("a ga4-gtag instance registers exactly one visibilitychange and one pagehide listener (unload wiring is no longer gated)", () => {
     makeGtag(grantedOpts);
 
-    expect(registry.count("visibilitychange")).toBe(0);
-    expect(registry.count("pagehide")).toBe(0);
+    expect(registry.count("visibilitychange")).toBe(1);
+    expect(registry.count("pagehide")).toBe(1);
   });
 
-  it("a ga4-gtag event still ring-resident at pagehide is NOT mapped-and-POSTed — dropped, not GA4-mis-mapped", () => {
+  it("a ga4-gtag event still ring-resident at pagehide flushes as a /g/collect GET — not GA4-mis-mapped, no longer dropped", () => {
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal("fetch", fetchMock);
     const airlock = makeGtag(grantedOpts);
 
     airlock.push({ event: "page_view" }); // enqueued into the ring, never drained
-    registry.fire("pagehide"); // the ga4-gtag instance wired NO pagehide listener, so nothing runs
+    registry.fire("pagehide"); // now wired -> unloadFlush -> criticalDispatchGated -> the gtag requestMapper
 
-    expect(fetchMock).not.toHaveBeenCalled(); // no GA4-mis-mapped POST, no beacon at all — dropped
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url.startsWith("https://www.google-analytics.com/g/collect")).toBe(true);
+    expect(init.method).toBe("GET");
+    expect(init.body).toBeUndefined(); // a GET carries no body (A2)
+    expect(init.keepalive).toBe(true);
   });
 
-  it("pushCritical on a ga4-gtag instance DROPS + emits a diagnose warn, never GA4-maps+POSTs", () => {
+  it("pushCritical on a ga4-gtag instance maps + issues a /g/collect GET, no longer drops", () => {
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal("fetch", fetchMock);
     const onDiagnostic = vi.fn();
@@ -156,13 +170,89 @@ describe("AC10 (041-01 follow-up) — no GA4 mis-map at unload for connector:'ga
 
     airlock.pushCritical({ event: "page_view" });
 
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(onDiagnostic).toHaveBeenCalledWith(
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url.startsWith("https://www.google-analytics.com/g/collect")).toBe(true);
+    expect(init.method).toBe("GET");
+    expect(onDiagnostic).not.toHaveBeenCalledWith(
       expect.objectContaining({ level: "warn", kind: "dropped" }),
     );
   });
 
-  it("REGRESSION — pushCritical on a GA4 instance is UNCHANGED: it still maps+POSTs (the gtag guard is connector-scoped)", () => {
+  it("AC5 witnessed hazard — a page_view pushed then flushed at a REAL visibilitychange->hidden egresses a /g/collect GET (before 042-01: silently dropped)", () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("document", { visibilityState: "hidden" });
+    const airlock = makeGtag(grantedOpts);
+
+    airlock.push({ event: "page_view" }); // ring-resident; the stubbed requestIdleCallback never drains it
+    registry.fire("visibilitychange"); // the REAL unload path: onVisibilityChange -> unloadFlush
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url.startsWith("https://www.google-analytics.com/g/collect")).toBe(true);
+    expect(init.method).toBe("GET");
+  });
+
+  it("AC5 cross-path parity — the flushed unload GET URL equals the URL the WORKER path (createConnectorHost.routeBatch) produces for the SAME governed descriptor", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const airlock = makeGtag(grantedOpts);
+
+    airlock.push({ event: "page_view", page_location: "https://spike.example/pricing" });
+    registry.fire("pagehide");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [mainThreadUrl] = fetchMock.mock.calls[0];
+
+    // The WORKER path, constructed INDEPENDENTLY (a fresh createConnectorHost
+    // instance with the SAME config makeGtag() uses internally) — a genuine
+    // cross-path comparison, not a self-comparison of the same main-thread
+    // requestMapper/handle instance.
+    const host = createConnectorHost(createGa4GtagConnector, gtagConnectorConfig);
+    await host.init({});
+    const { ready } = await host.routeBatch([
+      { type: "page_view", params: { page_location: "https://spike.example/pricing" } },
+    ]);
+
+    expect(mainThreadUrl).toBe(ready[0].url);
+  });
+
+  it("AC6 — governParams still strips a denylisted field (e.g. `password`) before the gtag GET mapper ever sees it", () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const airlock = makeGtag(grantedOpts);
+
+    airlock.push({ event: "page_view", password: "hunter2" });
+    registry.fire("pagehide");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1); // still flushes — governance strips the field, doesn't drop the beacon
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(init.method).toBe("GET"); // the gtag GET mapper ran, not a GA4-mis-mapped POST
+    expect(new URL(url).searchParams.has("ep.password")).toBe(false); // stripped before the mapper ever saw it
+  });
+
+  it("AC6 — an un-granted analytics_storage purpose still DROPs a gtag unload flush (no hold at teardown — 017-03 AC4), diagnosing kind:'consent'", () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const onDiagnostic = vi.fn();
+    const airlock = makeGtag({
+      egressPurposes: ["analytics_storage"],
+      consent: { analytics_storage: "denied" },
+      consentStrict: true, // non-strict "denied" alone SENDs (017-02's cookie concern) — strict is required to DROP
+      onDiagnostic,
+    });
+
+    airlock.push({ event: "page_view" });
+    registry.fire("pagehide");
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(onDiagnostic).toHaveBeenCalledWith(
+      expect.objectContaining({ level: "warn", kind: "consent", disposition: "dropped" }),
+    );
+  });
+
+  it("REGRESSION — pushCritical on a GA4 instance is UNCHANGED: it still maps+POSTs (the gtag wiring is connector-scoped)", () => {
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal("fetch", fetchMock);
     const airlock = makeGa4({ unloadCritical: [] });

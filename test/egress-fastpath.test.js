@@ -80,3 +80,87 @@ describe("critical dispatcher (OQ10 unload fast path)", () => {
     expect(KEEPALIVE_BUDGET_BYTES).toBe(64 * 1024);
   });
 });
+
+// spec 042-01 — a connector-generic GET requestMapper path, additive to the
+// POST-only dispatcher above. Present -> dispatch(event) issues one fetch per
+// EgressRequest the mapper returns, GET/POST-aware via the SAME fetchInit
+// shape the steady-state worker seam uses (core/airlock.js). Absent -> the
+// POST per-tracker path above runs byte-unchanged (AC1's default clause).
+describe("createCriticalDispatcher — requestMapper GET path (spec 042-01)", () => {
+  it("AC1/AC2 — a requestMapper returning one GET request issues ONE bodyless keepalive GET; bytesUsed() stays 0 (A2)", () => {
+    const fetchImpl = vi.fn(() => Promise.resolve());
+    const requestMapper = () => [
+      { url: "https://www.google-analytics.com/g/collect?v=2&tid=G-XXXX", method: "GET" },
+    ];
+    const d = createCriticalDispatcher({ requestMapper, fetchImpl });
+
+    d.dispatch({ type: "page_view", params: {} });
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe("https://www.google-analytics.com/g/collect?v=2&tid=G-XXXX");
+    expect(init.method).toBe("GET");
+    expect(init.body).toBeUndefined(); // a real fetch(url, {method:"GET", body}) throws — must be omitted
+    expect(init.keepalive).toBe(true);
+    expect(d.bytesUsed()).toBe(0); // a GET carries no body -> no budget consumed
+    expect(d.stats().fastDispatched).toBe(1);
+  });
+
+  it("AC2 — a requestMapper returning [] is a clean no-op: no fetch, no fastDropped, no throw", () => {
+    const fetchImpl = vi.fn(() => Promise.resolve());
+    const requestMapper = () => [];
+    // endpoints/trackers ALSO supplied (unlike a requestMapper-only construction) so
+    // this is a genuine discriminator: if `requestMapper` were ever ignored, dispatch
+    // would silently fall through to the legacy per-tracker POST path below and issue
+    // an UNWANTED POST to this endpoint instead of staying a no-op.
+    const d = createCriticalDispatcher({
+      requestMapper, fetchImpl, endpoints: ["https://should-not-be-hit.example/collect"], trackers: 1,
+    });
+
+    expect(() => d.dispatch({ type: "unmapped", params: {} })).not.toThrow();
+
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(d.stats().fastDropped).toBe(0);
+    expect(d.stats().fastDispatched).toBe(0);
+  });
+
+  it("AC1 — multiple requests from one requestMapper call are each dispatched", () => {
+    const fetchImpl = vi.fn(() => Promise.resolve());
+    const requestMapper = () => [
+      { url: "https://a.example/collect?x=1", method: "GET" },
+      { url: "https://a.example/collect?x=2", method: "GET" },
+      { url: "https://a.example/collect?x=3", method: "GET" },
+    ];
+    const d = createCriticalDispatcher({ requestMapper, fetchImpl });
+
+    d.dispatch({ type: "page_view", params: {} });
+
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    expect(d.stats().fastDispatched).toBe(3);
+  });
+
+  it("AC1 — a thrown fetchImpl on the requestMapper path counts fastDropped (fire-and-forget, never throws out of dispatch())", () => {
+    const fetchImpl = vi.fn(() => { throw new Error("network down"); });
+    const requestMapper = () => [{ url: "https://a.example/collect", method: "GET" }];
+    const d = createCriticalDispatcher({ requestMapper, fetchImpl });
+
+    expect(() => d.dispatch({ type: "page_view", params: {} })).not.toThrow();
+
+    expect(d.stats().fastDropped).toBe(1);
+    expect(d.stats().fastDispatched).toBe(0);
+  });
+
+  it("AC1 REGRESSION — with NO requestMapper, the default POST per-tracker path runs byte-unchanged", () => {
+    const fetchImpl = vi.fn(() => Promise.resolve());
+    const d = createCriticalDispatcher({ ctx, endpoints, trackers: 1, fetchImpl }); // no requestMapper
+
+    d.dispatch({ type: "page_view", params: { page_location: "https://spike.example/" } });
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(endpoints).toContain(url);
+    expect(init.method).toBe("POST"); // the default is POST, never GET, absent a requestMapper
+    expect(typeof init.body).toBe("string");
+    expect(init.keepalive).toBe(true);
+  });
+});

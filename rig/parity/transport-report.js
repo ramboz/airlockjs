@@ -9,7 +9,7 @@
  * docs/specs/038-parity-harness/reviews/slice-03-frame-critique.md):
  *
  *  - **cross-site cookie** (Meta `fr`, DoubleClick `IDE`) — a THIRD-PARTY cookie on the VENDOR's
- *    own origin. airlock's egress carries no cookies at all (`core/airlock.js`'s `fetchInit` sets
+ *    own origin. airlock's egress carries no cookies at all (`core/egress.js`'s `fetchInit` sets
  *    only `method`/`body`/`keepalive` — no `credentials`/`mode`), so this is a gap wherever the
  *    container's request would have carried it — the 3p-cookies-**allowed** cohort only. On
  *    **blocked**, the browser drops the cookie from the container's own request too, so there is
@@ -49,7 +49,7 @@ const NOTE =
 /** @param {string} cookie */
 function crossSiteConsequence(cookie) {
   return (
-    "airlock's egress carries no cross-site cookies (core/airlock.js's fetchInit sets only " +
+    "airlock's egress carries no cross-site cookies (core/egress.js's fetchInit sets only " +
     `method/body/keepalive — no credentials/mode), so \`${cookie}\` never reaches the vendor from ` +
     "airlock on this cohort, even though the container's credentialed request would carry it."
   );

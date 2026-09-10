@@ -706,18 +706,8 @@ across all three steady-state dispatch sites is wanted.
 
 ### Worker-mapped GET-egress connectors DROP their ring tail at teardown (no GET critical dispatcher)
 
-**Deferred:** `core/airlock.js` gates the unload-listener wiring on `workerMappedGetEgress` (`connector === "pixel" ||
-connector === "ga4-gtag"`), so those connectors do NOT wire `visibilitychange`/`pagehide` — a still-buffered ring event
-at teardown is DROPPED (a bounded, disclosed unload-loss), NOT mis-mapped. The reason: the synchronous unload flush
-(`unloadFlush` → `criticalDispatchGated`) routes through the unconditionally-constructed GA4 `critical` dispatcher, which
-is POST/`mapToMp`-only (`core/egress.js`'s `createCriticalDispatcher`) — it has no GET-shaped strategy, so wiring it for
-a GET-egress connector would MP-mis-map the beacon. Dropping is the safe neutralization (spec 026 AC10 for pixel; 041-01
-generalized it to gtag). The CORRECT behavior — flushing the ring tail as GET beacons at teardown — needs a GET-shaped
-critical dispatcher (analogous to 030-01's helix-rum `mapper` override, but that mechanism is POST-only). This is a
-CLASS-level follow-up covering **both** pixel and ga4-gtag (pixel already disclosed "unload-critical GET dispatch is a
-later slice"; gtag joins it).
+**Resolved — gtag half ([spec 042-01](specs/042-get-critical-unload-dispatcher/slice-01-get-critical-dispatcher-gtag.md), 2026-09-10):** `createCriticalDispatcher` (`core/egress.js`) gained a connector-generic GET `requestMapper` path (`(event) => EgressRequest[]`, dispatched GET/POST-aware via the now-shared `fetchInit`, no per-tracker POST loop, no body budget for GET — A2); `core/airlock.js` wires `requestMapper: createGa4GtagConnector(connectorConfig).handle` for `connector === "ga4-gtag"` (byte-identical to the worker chamber's `handle`, A1) and REMOVES it from the `workerMappedGetEgress` gate — so a gtag ring-tail event (or `pushCritical`) now flushes as a `/g/collect` GET at teardown instead of dropping. The POST unload path (GA4-MP, helix-rum) stays byte-identical. **Remaining — pixel half:** being resolved by [spec 042-02](specs/042-get-critical-unload-dispatcher/slice-02-pixel-unload-flush.md) (generalize the same `requestMapper` wiring to `pixel`, then retire the now-pixel-only gate).
 
-**Resolution trigger:** extend `createCriticalDispatcher` (`core/egress.js`) to support a GET wire shape (or accept a
-per-connector critical `mapper` like helix-rum's), then wire the unload listeners for `workerMappedGetEgress` connectors
-with that GET dispatcher instead of gating them out — so the unload-window tail egresses correctly rather than dropping.
-Not blocking any current slice; the steady-state path (the common case) is unaffected.
+**Deferred (pixel only, post-042-01):** `core/airlock.js` gates the unload-listener wiring on `workerMappedGetEgress` (now `connector === "pixel"` alone — narrowed from `pixel || ga4-gtag` by 042-01), so pixel does NOT wire `visibilitychange`/`pagehide` — a still-buffered ring event at teardown is DROPPED (a bounded, disclosed unload-loss), NOT mis-mapped. The reason it was ever dropped: the synchronous unload flush (`unloadFlush` → `criticalDispatchGated`) routes through the unconditionally-constructed GA4 `critical` dispatcher, POST/`mapToMp`-only before 042-01. Dropping was the safe neutralization (spec 026 AC10 for pixel; 041-01 generalized it to gtag, now un-generalized by 042-01).
+
+**Resolution trigger (pixel):** the GET `requestMapper` mechanism now exists (042-01) — 042-02 wires `requestMapper: createPixelConnector(connectorConfig).handle` for `connector === "pixel"`, removes pixel from the gate (leaving it empty → retired), and flips `test/pixel-seam.test.js`'s drop assertions to GET-flush. Not blocking any current slice; the steady-state path (the common case) is unaffected.
