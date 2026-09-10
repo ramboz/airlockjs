@@ -25,6 +25,7 @@
 import { createCriticalDispatcher, fetchInit } from "./egress.js";
 import { mapToRum } from "../connectors/helix-rum/map.js";
 import { createGa4GtagConnector } from "../connectors/ga4/gtag.js";
+import { createPixelConnector } from "../connectors/pixel/connector.js";
 import { originPath, checkEndpointCeiling } from "./endpoint-ceiling.js";
 import { egressVerdict } from "./consent.js";
 import { governPayload, DEFAULT_DENYLIST } from "./payload-governance.js";
@@ -175,9 +176,9 @@ export function createAirlock({
   // worker connector agree), so RUM's INP/late-CLS finalizing at page-hide egress
   // the RUM shape to `ot.aem.live` instead of being GA4-mis-mapped or dropped. Every
   // other connector omits `mapper` and gets egress.js's default `mapToMp`
-  // (byte-unchanged). The unload WIRING gate (`!workerMappedGetEgress`, below —
-  // 041-01 generalized it from the original `connector !== "pixel"`) still
-  // includes helix-rum, so no wiring change is needed here.
+  // (byte-unchanged). The unload wiring below is unconditional (042-02 retired
+  // the `workerMappedGetEgress` gate) and always included helix-rum, so no
+  // wiring change is needed here.
   // 030-01 (craft review): a helix-rum instance MUST carry its per-page sampling
   // (`{weight, id}`), or its unload CWV silently falls back to GA4 mapping — the exact
   // mis-map this slice fixes. bootHelixRum (030-02) always passes it; a raw createAirlock
@@ -203,6 +204,17 @@ export function createAirlock({
     // directly as `requestMapper` is safe.
     ...(connector === "ga4-gtag"
       ? { requestMapper: createGa4GtagConnector(connectorConfig || {}).handle }
+      : {}),
+    // 042-02: generalizes the SAME mechanism to pixel. pixel's `handle` reads
+    // NO `ctx` at all (only the declarative `{endpoint, eventMap, paramMap}`
+    // config, unlike gtag's `ctx`-reading `handle` above) — the SIMPLER case,
+    // still a pure closure over `config` (no `this`), so passing it directly
+    // as `requestMapper` is safe. Constructed ONCE here, mirroring both
+    // branches above. An unmapped `event.type` -> `handle` returns `[]`,
+    // which `critical.dispatch` already tolerates as a clean no-op (042-01
+    // AC2).
+    ...(connector === "pixel"
+      ? { requestMapper: createPixelConnector(connectorConfig || {}).handle }
       : {}),
   });
 
@@ -500,28 +512,26 @@ export function createAirlock({
   function onVisibilityChange() {
     if (typeof document !== "undefined" && document.visibilityState === "hidden") unloadFlush();
   }
-  // 026-01 AC10 (frame-critique #2a) / 041-01 follow-up — a connector whose
-  // map lives entirely in the WORKER and whose egress is GET, with NO
-  // main-thread critical mapper: pixel (026-01) and ga4-gtag (041-01) were
-  // the SAME class. Spec 042-01 closes the gap for ga4-gtag — its `critical`
-  // dispatcher above now carries a `requestMapper` (the connector's own
-  // `handle`), so it is no longer mis-mapped/dropped and is REMOVED from this
-  // gate. `pixel` stays gated (dropped) until 042-02 generalizes the same
-  // `requestMapper` wiring to it; without the gate, a still-gated pixel event
-  // ring-resident at teardown (or handed to pushCritical) would hit the
-  // UNCONDITIONALLY-constructed GA4 `critical` dispatcher's `mapToMp` default
-  // (deliberately left constructing for every connector so `stats()`/
-  // `pushCritical` need no null-guards), mis-mapping it as a GA4 event and
-  // POSTing it to the wrong (POST-shaped) destination instead of pixel's
-  // real GET-only endpoint.
-  const workerMappedGetEgress = connector === "pixel";
-  // Gating the WIRING (not the construction) is the minimal neutralization:
-  // a pixel instance does NOT wire the unload listeners at all, so its event
-  // is instead simply DROPPED at teardown (an unload-loss deferred, bounded +
-  // disclosed; unload-critical GET dispatch for pixel is 042-02). A ga4-gtag
-  // instance (042-01) and every other main-thread/requestMapper-mapped
-  // connector is untouched — still wires both listeners.
-  if (!workerMappedGetEgress && typeof addEventListener === "function") {
+  // 026-01 AC10 (frame-critique #2a) / 041-01 follow-up / 042-01 / 042-02 —
+  // pixel and ga4-gtag used to be a connector class whose map lives entirely
+  // in the WORKER, whose egress is GET, and which had NO main-thread critical
+  // mapper: wiring the unload listeners unconditionally for them would have
+  // hit the UNCONDITIONALLY-constructed GA4 `critical` dispatcher's `mapToMp`
+  // default (deliberately left constructing for every connector so `stats()`/
+  // `pushCritical` need no null-guards) and mis-mapped their beacon as a GA4
+  // POST to the wrong (POST-shaped) destination. 042-01 (ga4-gtag) and 042-02
+  // (pixel) each closed that gap by giving the `critical` dispatcher above
+  // its OWN `requestMapper` (the connector's own `handle`) instead of gating
+  // the wiring out — so the `workerMappedGetEgress` boolean that used to gate
+  // pixel out here is retired: no connector is gated out of the unload path
+  // anymore.
+  //
+  // INVARIANT for a FUTURE worker-mapped connector: it MUST supply the
+  // `critical` dispatcher above a critical mapper — a POST `mapper` (like
+  // helix-rum's) or a GET `requestMapper` (like ga4-gtag's/pixel's) — or its
+  // unload/`pushCritical` tail will silently mis-map through the default
+  // `mapToMp` instead of being neutralized or correctly flushed.
+  if (typeof addEventListener === "function") {
     addEventListener("visibilitychange", onVisibilityChange);
     addEventListener("pagehide", unloadFlush);
   }
@@ -578,26 +588,16 @@ export function createAirlock({
      * only justified when the page is going away.
      */
     pushCritical(evt) {
-      // 026-01 (craft-review) / 041-01 follow-up / 042-01: the SECOND mis-map
-      // entry AC10 flagged, for the (now pixel-only) `workerMappedGetEgress`
-      // class. `criticalDispatchGated` routes through `critical.dispatch`,
-      // which for ga4-gtag now carries a `requestMapper` (the connector's own
-      // `handle`, wired at construction above) — so a ga4-gtag instance maps +
-      // GETs correctly here too, and this drop no longer fires for it. A pixel
-      // instance still has no main-thread critical mapper (its map lives in
-      // the worker; pixel wiring is 042-02), so it still hits this DROP +
-      // diagnose, reachable here as a second entry on the raw createAirlock
-      // handle (the adapters' bootMetaPixel/bootGa4Gtag omit pushCritical, but
-      // that is convention, not enforced — rigs/tests call createAirlock
-      // directly).
-      if (workerMappedGetEgress) {
-        diagnose({
-          level: "warn",
-          kind: "dropped",
-          reason: "pushCritical unsupported for a worker-mapped GET-egress connector (pixel) — no main-thread critical mapper",
-        });
-        return;
-      }
+      // 026-01 (craft-review) / 041-01 follow-up / 042-01 / 042-02: this used
+      // to be the SECOND mis-map entry AC10 flagged, for the worker-mapped
+      // GET-egress class (pixel, ga4-gtag) — a DROP + diagnose lived here to
+      // neutralize it. `criticalDispatchGated` routes through
+      // `critical.dispatch`, which now carries a `requestMapper` (the
+      // connector's own `handle`, wired at construction above) for BOTH
+      // connectors, so a pixel or ga4-gtag instance maps + GETs correctly
+      // here too and no longer needs a drop-guard. See the unload-wiring `if`
+      // above for the invariant a future worker-mapped connector must satisfy
+      // instead.
       const { event: type, ...params } = evt || {}; // same contract shape as push()
       if (typeof type !== "string" || type.length === 0) {
         console.warn("airlock: pushCritical() dropped — missing/empty `event` name", evt);

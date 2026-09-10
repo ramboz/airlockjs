@@ -16,6 +16,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createAirlock } from "../core/airlock.js";
 import { createPixelConnector } from "../connectors/pixel/connector.js";
 import { createMetaPixelConfig, SYNTHETIC_META_PIXEL_ID, META_TR_ENDPOINT } from "../connectors/pixel/vendors/meta.js";
+import { createConnectorHost } from "../core/connector-host.js";
 
 class FakeWorker {
   constructor(url, opts) {
@@ -354,7 +355,7 @@ describe("AC9 — identity honesty: no _fbp/fbc cookie identity, no ud[...] adva
   });
 });
 
-describe("AC10 — no GA4 mis-map at unload (airlock.js:277-280 is connector-conditional)", () => {
+describe("AC10/042-02 — a pixel instance flushes at unload via its OWN GET requestMapper (was: dropped, to avoid a GA4 mis-map)", () => {
   let registry;
   beforeEach(() => {
     registry = makeListenerRegistry();
@@ -363,50 +364,111 @@ describe("AC10 — no GA4 mis-map at unload (airlock.js:277-280 is connector-con
     vi.stubGlobal("requestIdleCallback", () => 1);
   });
 
-  it("a pixel instance registers NO visibilitychange/pagehide listener at all", () => {
+  it("a pixel instance registers exactly one visibilitychange and one pagehide listener (unload wiring is no longer gated)", () => {
     makeMeta();
 
-    expect(registry.count("visibilitychange")).toBe(0);
-    expect(registry.count("pagehide")).toBe(0);
+    expect(registry.count("visibilitychange")).toBe(1);
+    expect(registry.count("pagehide")).toBe(1);
   });
 
-  it("a pixel event still ring-resident at pagehide is NOT mapped-and-POSTed to facebook.com/tr — dropped, not GA4-mis-mapped (consent GRANTED so the consent gate can't mask the unload-gate)", () => {
+  it("a pixel event still ring-resident at pagehide flushes as a /tr GET — not GA4-mis-mapped, no longer dropped (consent GRANTED so the consent gate can't mask the requestMapper wiring)", () => {
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal("fetch", fetchMock);
-    // Consent GRANTED (craft-review causality fix): WITHOUT it, the sync/unload
-    // consent gate (criticalDispatchGated) drops the event regardless of the
-    // :336 unload-wiring gate — the test would pass even if :336 were deleted.
-    // Granting consent makes the counterfactual real: were :336 removed, the
-    // (then-wired) pagehide listener -> unloadFlush -> critical.dispatch(mapToMp)
-    // WOULD POST to facebook.com/tr and fail this assertion.
+    // Consent GRANTED (mirrors the pre-042-02 causality fix): WITHOUT the
+    // requestMapper wiring, the (now-wired) pagehide listener -> unloadFlush ->
+    // critical.dispatch(mapToMp) WOULD POST a GA4-shaped body to facebook.com/tr
+    // and fail this assertion — granting consent makes that counterfactual real.
     const airlock = makeMeta({ consent: { ad_storage: "granted" } });
 
     airlock.push({ event: "page_view" }); // enqueued into the ring, never drained
-    registry.fire("pagehide"); // the pixel instance wired NO pagehide listener, so nothing runs
+    registry.fire("pagehide"); // now wired -> unloadFlush -> criticalDispatchGated -> the pixel requestMapper
 
-    expect(fetchMock).not.toHaveBeenCalled(); // no GA4-shaped POST, no beacon at all — the event is simply dropped
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url.startsWith(META_TR_ENDPOINT)).toBe(true);
+    expect(init.method).toBe("GET");
+    expect(init.body).toBeUndefined(); // a GET carries no body (A2)
+    expect(init.keepalive).toBe(true);
   });
 
-  it("pushCritical on a pixel instance is a NO-OP — the SECOND mis-map entry (the frame-critique #2a enumeration missed it), never GA4-maps+POSTs to facebook.com/tr even with consent granted", () => {
+  it("pushCritical on a pixel instance maps + issues a /tr GET, no longer drops", () => {
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal("fetch", fetchMock);
     const onDiagnostic = vi.fn();
-    // Consent GRANTED so the counterfactual is real: without the
-    // connector==="pixel" guard in pushCritical, criticalDispatchGated ->
-    // critical.dispatch (mapToMp) WOULD POST a GA4-shaped body to
-    // facebook.com/tr. AC10's neutralization closed the UNLOAD wiring (:336)
-    // but pushCritical is a second entry on the raw createAirlock handle.
     const airlock = makeMeta({ consent: { ad_storage: "granted" }, onDiagnostic });
 
     airlock.pushCritical({ event: "page_view" });
 
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(onDiagnostic).toHaveBeenCalledWith(
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url.startsWith(META_TR_ENDPOINT)).toBe(true);
+    expect(init.method).toBe("GET");
+    expect(onDiagnostic).not.toHaveBeenCalledWith(
       expect.objectContaining({ level: "warn", kind: "dropped" }),
     );
   });
 
-  it("REGRESSION — pushCritical on a GA4 instance is UNCHANGED: it still maps+POSTs (the pixel guard is connector-scoped)", () => {
+  it("AC3 — an unmapped pixel event (absent from eventMap) at teardown is a clean no-op: no fetch, no drop-count, no throw", () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const airlock = makeMeta({ consent: { ad_storage: "granted" } });
+
+    expect(() => {
+      airlock.push({ event: "not_in_event_map" }); // absent from metaConfig.eventMap -> handle() returns []
+      registry.fire("pagehide");
+    }).not.toThrow();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(airlock.stats().fastDropped).toBe(0);
+    expect(airlock.stats().fastDispatched).toBe(0);
+  });
+
+  it("AC5 witnessed hazard — a Meta pixel event pushed then flushed at a REAL visibilitychange->hidden egresses a /tr GET (before 042-02: silently dropped)", () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("document", { visibilityState: "hidden" });
+    const airlock = makeMeta({ consent: { ad_storage: "granted" } });
+
+    airlock.push({ event: "page_view" }); // ring-resident; the stubbed requestIdleCallback never drains it
+    registry.fire("visibilitychange"); // the REAL unload path: onVisibilityChange -> unloadFlush
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url.startsWith(META_TR_ENDPOINT)).toBe(true);
+    expect(init.method).toBe("GET");
+  });
+
+  it("AC5 cross-path parity — the flushed unload GET URL equals the URL the WORKER path (createConnectorHost.routeBatch) produces for the SAME governed descriptor", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const airlock = makeMeta({ consent: { ad_storage: "granted" } });
+
+    // A CLEAN descriptor (no denylisted fields) — the unload path maps AFTER
+    // governParams while the worker-path witness below does not, so both sides
+    // must see IDENTICAL params for the comparison to be meaningful (frame-
+    // critique note; mirrors 042-01 AC5's own clean-descriptor choice). "lead"
+    // (not "page_view") also exercises the paramMap projection, not just the
+    // static id/ev fields.
+    airlock.push({ event: "lead", value: 42, currency: "USD", content_name: "Trial" });
+    registry.fire("pagehide");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [mainThreadUrl] = fetchMock.mock.calls[0];
+
+    // The WORKER path, constructed INDEPENDENTLY (a fresh createConnectorHost
+    // instance with the SAME metaConfig makeMeta() uses internally) — a genuine
+    // cross-path comparison, not a self-comparison of the same main-thread
+    // requestMapper/handle instance.
+    const host = createConnectorHost(createPixelConnector, metaConfig);
+    await host.init({});
+    const { ready } = await host.routeBatch([
+      { type: "lead", params: { value: 42, currency: "USD", content_name: "Trial" } },
+    ]);
+
+    expect(mainThreadUrl).toBe(ready[0].url);
+  });
+
+  it("REGRESSION — pushCritical on a GA4 instance is UNCHANGED: it still maps+POSTs (the pixel wiring is connector-scoped)", () => {
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal("fetch", fetchMock);
     const airlock = makeGa4({ unloadCritical: [] });

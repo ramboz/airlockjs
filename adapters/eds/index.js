@@ -534,28 +534,24 @@ export async function bootEdsAnalytics(opts = {}) {
  * (+ `gcd` for a denied-all default, 039-05).
  *
  * STILL DELIBERATELY MINIMAL relative to `bootGa4Core` otherwise: no
- * batching (041-03), and — mirroring `bootPixelConnector`'s own documented
- * rationale for a worker-mapped, GET-egress connector — no `pushCritical` on
- * the returned handle and no `wireInteractions`/`wireExposure`/`wireBlocks`
- * capture wiring. `pushCritical` would otherwise reach the UNCONDITIONALLY-
- * constructed GA4-MP `critical` dispatcher (`core/egress.js`'s default
- * `mapToMp` mapper) — a mis-map (an MP-shaped JSON POST body to a GET-only
- * `/g/collect` endpoint), not a beacon; the SAME class of gap 026-01 AC10
- * closed for pixel, and 030-01 closed for helix-rum via a connector-specific
- * `mapper` override (a strategy that does not fit gtag's GET-only shape).
- * This mis-map is CLOSED for `ga4-gtag`, exactly as for pixel: `core/airlock.js`
- * gates BOTH mis-map entry points on `workerMappedGetEgress` (`= connector ===
- * "pixel" || connector === "ga4-gtag"`) — the unload-listener wiring
- * (`visibilitychange`/`pagehide`) is NOT registered, and `pushCritical` drops +
- * diagnoses. So a still-buffered ring event at teardown is DROPPED (a bounded,
- * disclosed unload-loss, same as pixel), NOT mis-mapped — for both this
- * function's returned handle (which omits `pushCritical` anyway) AND a raw
- * `createAirlock({connector:"ga4-gtag"})` caller. KNOWN RESIDUAL (tracked, not
- * silently accepted): the CORRECT unload-critical flush — a GET-shaped critical
- * dispatcher so the ring tail egresses (rather than dropping) at teardown — does
- * not exist yet (`createCriticalDispatcher` is POST/`mapToMp`-only); it is the
- * SAME follow-up pixel already defers ("unload-critical GET dispatch is a later
- * slice"), not a redesign here.
+ * `pushCritical` on the returned handle and no
+ * `wireInteractions`/`wireExposure`/`wireBlocks` capture wiring — mirroring
+ * `bootPixelConnector`'s own minimal-analytics-boot rationale.
+ *
+ * Historical note (RESOLVED by spec 042-01): omitting `pushCritical` was once
+ * ALSO a mis-map guard — a worker-mapped GET-egress connector had no
+ * main-thread critical mapper, so `pushCritical`/the unload flush would reach
+ * the UNCONDITIONALLY-constructed GA4-MP `critical` dispatcher (`core/egress.js`'s
+ * default `mapToMp`) and MP-mis-map the beacon (a JSON POST to a GET-only
+ * `/g/collect`), and the ring tail was DROPPED at teardown (gated on the old
+ * `workerMappedGetEgress` boolean). Spec 042-01 CLOSED that: `core/airlock.js`
+ * now wires `requestMapper: createGa4GtagConnector(connectorConfig).handle` into
+ * `core/egress.js`'s critical dispatcher for `ga4-gtag`, so the unload ring tail
+ * (and a raw `createAirlock({connector:"ga4-gtag"})` caller's `pushCritical`)
+ * flushes CORRECTLY as a `/g/collect` GET; the drop-gate is retired (042-02
+ * removed the boolean once pixel was wired too). This boot still omits
+ * `pushCritical` + capture wiring as a SCOPE choice (a minimal analytics boot),
+ * not because of any remaining mis-map risk.
  *
  * @param {object} [opts]
  * @param {object}   [opts.ctx]            explicit ctx override (skips cookie
@@ -807,13 +803,15 @@ function bootPixelConnector(vendor, opts = {}) {
  * the handle; unlike `window.airlock`, there is no established convention
  * for a second, vendor-specific instance yet).
  *
- * `pushCritical` is deliberately NOT exposed on the returned handle: a
- * pixel-connector airlock instance does not wire the unload-critical path at
- * all (026-01 AC10 — `core/airlock.js`'s `:277-280` unload wiring is
- * connector-conditional), and `pushCritical` would otherwise silently run a
- * pixel event through the UNCONDITIONALLY-constructed GA4 `critical`
- * dispatcher (GA4's own `mapToMp`) — a mis-map, not a beacon. Unload-critical
- * GET dispatch for pixels is a later slice.
+ * `pushCritical` is deliberately NOT exposed on the returned handle — a scope
+ * choice (a minimal pixel boot, like `bootGa4Gtag`), NOT a mis-map guard. Spec
+ * 042-02 wired `requestMapper: createPixelConnector(connectorConfig).handle`
+ * into `core/airlock.js`'s critical dispatcher for `pixel`, so a pixel instance
+ * now DOES wire the unload path (`visibilitychange`/`pagehide`) and its ring
+ * tail flushes CORRECTLY as a `/tr` GET at teardown (and a raw
+ * `createAirlock({connector:"pixel"})` caller's `pushCritical` GET-maps too) —
+ * the historical drop-at-teardown / GA4-`mapToMp`-mis-map posture (026-01 AC10)
+ * is retired. This boot simply omits `pushCritical` from its convenience surface.
  *
  * @param {object} [opts]
  * @param {string} [opts.pixelId]           the Meta pixel id (defaults to a
