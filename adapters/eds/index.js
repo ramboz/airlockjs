@@ -40,7 +40,7 @@ import { scopeSeedCookies } from "../../core/cookie-scope.js";
 import { htmlOfDecision } from "../../connectors/alloy/decisions.js";
 import { createPropositionExposureReporter, PROPOSITION_EXPOSURE_EVENT } from "./decisions-exposure.js";
 import { VIEW_SCOPE, firstDuplicateScope } from "./placements.js";
-import { sourceGa4Ctx } from "../../connectors/ga4/cookies.js";
+import { sourceGa4Ctx, writeGa4SessionState } from "../../connectors/ga4/cookies.js";
 import { shapeMpConsent } from "../../connectors/ga4/consent.js";
 import { GA4_GTAG_COLLECT_ENDPOINT } from "../../connectors/ga4/gtag.js";
 import { createMetaPixelConfig, META_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/meta.js";
@@ -508,9 +508,31 @@ export async function bootEdsAnalytics(opts = {}) {
  * crosses (ADR-0003). Endpoint ceiling is `/g/collect`
  * (`GA4_GTAG_COLLECT_ENDPOINT`), NOT the MP `DEFAULT_ENDPOINTS`.
  *
- * DELIBERATELY MINIMAL relative to `bootGa4Core` (this slice's own "boot-
- * happy-path skeleton" scope note): no `ctx.consent` gcs/gcd fold (039-02/
- * 039-05's Consent-Mode carriage is 041-02), no session-state (041-02), no
+ * ENRICHED by 041-02 (this slice): BEFORE `createAirlock`, when the host has
+ * configured `opts.streamCookieName`, `bootGa4Gtag` calls `writeGa4SessionState`
+ * (`connectors/ga4/cookies.js`) — the `_ga_<stream>` read-modify-write session
+ * writer (039-03) — and threads its return onto `ctx` on TWO destinations: the
+ * returned `sessionId` OVERRIDES the pre-write `sid` `sourceGa4Ctx` sourced
+ * above (frame-critique correction — the write is authoritative once it
+ * advances the transition, so `sid` and `sct` on the emitted beacon come from
+ * the SAME post-write transition), and the rest (`sct`/`seg`/`_fv`/`_ss`/
+ * `_nsi`) lands on `ctx.sessionState` (`gtag.js`'s `appendSessionState`
+ * projects it verbatim). `writeGa4SessionState` returns `null` when
+ * `analytics_storage` is not granted (no cookie write, no session-state, and
+ * `ctx.sessionId` stays `sourceGa4Ctx`'s pre-write value — 039-03 back-compat).
+ * An absent `streamCookieName` skips this entirely (back-compat: the writer
+ * needs a concrete, stable cookie name — it cannot scan like `sourceGa4Ctx`'s
+ * read-only `findGaStreamCookie` — and a caller that hasn't configured one yet
+ * sees byte-identical pre-041-02 behavior), as does an explicit `opts.ctx`
+ * override (the SAME rig/test escape hatch `sourceGa4Ctx`'s own bypass above
+ * uses — no document access at all). 041-02 also folds the RAW ADR-0007
+ * consent vector into `ctx.consent` (+ `ctx.consentDefault` from host config)
+ * — NOT `shapeMpConsent`'s MP-shaped output (that shape has no `ad_storage`/
+ * `analytics_storage` fields at all; gtag's `encodeGcs`/`encodeGcd` need the
+ * raw vector directly) — so a resolved consent vector now reaches `gcs`
+ * (+ `gcd` for a denied-all default, 039-05).
+ *
+ * STILL DELIBERATELY MINIMAL relative to `bootGa4Core` otherwise: no
  * batching (041-03), and — mirroring `bootPixelConnector`'s own documented
  * rationale for a worker-mapped, GET-egress connector — no `pushCritical` on
  * the returned handle and no `wireInteractions`/`wireExposure`/`wireBlocks`
@@ -542,7 +564,32 @@ export async function bootEdsAnalytics(opts = {}) {
  * @param {Record<string, string>} [opts.consent] host-supplied ADR-0007
  *                                         consent vector, gating
  *                                         `analytics_storage` exactly like
- *                                         `bootGa4Core`'s own gate.
+ *                                         `bootGa4Core`'s own gate. 041-02:
+ *                                         also folded VERBATIM (the raw
+ *                                         vector, never `shapeMpConsent`'s
+ *                                         output) into `ctx.consent`, so
+ *                                         gtag's `encodeGcs`/`encodeGcd` can
+ *                                         resolve `ad_storage`/
+ *                                         `analytics_storage` — fields
+ *                                         `shapeMpConsent`'s MP shape never
+ *                                         carries.
+ * @param {Record<string, string>} [opts.consentDefault] 041-02/039-05:
+ *                                         host-supplied ADR-0007 vector
+ *                                         describing the container's
+ *                                         DECLARED Consent-Mode default
+ *                                         (`gtag('consent','default',…)`) —
+ *                                         folded into `ctx.consentDefault`,
+ *                                         gating `gcd` to the live-grounded
+ *                                         denied-all deployment (see
+ *                                         `gtag.js`'s `isDeniedAllDefault`).
+ * @param {string}   [opts.streamCookieName] 041-02: the concrete
+ *                                         `_ga_<STREAM>` cookie name (host
+ *                                         config — `writeGa4SessionState`
+ *                                         needs a stable, known name; it
+ *                                         cannot scan like `sourceGa4Ctx`'s
+ *                                         read-only `findGaStreamCookie`).
+ *                                         Absent -> the session-state write
+ *                                         is skipped entirely (back-compat).
  * @param {boolean}  [opts.consentStrict]  spec 017-03 AC3 — a strict/
  *                                         no-processing regime.
  * @param {string[]} [opts.payloadDenylist] spec 019-01 (ADR-0012) — threaded
@@ -556,8 +603,10 @@ export async function bootGa4Gtag(opts = {}) {
     ctx: providedCtx,
     measurementId,
     consent,
+    consentDefault,
     consentStrict = false,
     payloadDenylist,
+    streamCookieName,
   } = opts;
 
   // 017-02 (ADR-0007 point ②): resolve analytics_storage BEFORE identity
@@ -568,19 +617,67 @@ export async function bootGa4Gtag(opts = {}) {
   // Host-side sourcing: the SAME sourceGa4Ctx the MP path uses
   // (bootGa4Core:390-396) — only the minimal { clientId, sessionId }
   // snapshot crosses into the runtime (ADR-0003).
+  // One cookie capability for BOTH host-side cookie ops below (sourceGa4Ctx read
+  // + writeGa4SessionState write) — `null` when `providedCtx` is set so the
+  // escape hatch touches `document` ZERO times (rig/test seam, 041-01).
+  const cookies = providedCtx ? null : createCookieCapability(document);
   const ctx =
     providedCtx ??
     (await sourceGa4Ctx({
-      cookies: createCookieCapability(document),
+      cookies,
       cookieString: document.cookie,
       storageGranted,
     }));
 
+  // 041-02 AC1: session-state + sid reconciliation — BEFORE createAirlock.
+  // Skipped entirely on the SAME `opts.ctx` override escape hatch
+  // `sourceGa4Ctx` bypasses above (no document access at all — the rig/test
+  // seam 041-01 already established), or when the host has not configured a
+  // `streamCookieName` (writeGa4SessionState needs a concrete, stable cookie
+  // name every cycle — it cannot scan like sourceGa4Ctx's read-only
+  // findGaStreamCookie — so an unconfigured caller sees byte-identical
+  // pre-041-02 behavior). `writeGa4SessionState` itself owns the
+  // analytics_storage gate (returns `null`, no read/no write, when
+  // `storageGranted` is false) — see its own doc comment.
+  let ctxWithSessionState = ctx;
+  if (!providedCtx && streamCookieName) {
+    const sessionWrite = await writeGa4SessionState({
+      streamCookieName,
+      cookies,
+      storageGranted,
+    });
+    if (sessionWrite) {
+      const { sessionId, ...sessionState } = sessionWrite;
+      // The write is AUTHORITATIVE once it advances the transition
+      // (frame-critique correction): OVERRIDE sourceGa4Ctx's pre-write sid
+      // so `sid` and `sct` on the emitted beacon come from the SAME
+      // post-write transition — never a stale sid paired with an advanced
+      // sct. Unconditional on this granted path (a no-op on continuation,
+      // corrective on new-session, harmless+consistent on first-visit).
+      ctxWithSessionState = { ...ctx, sessionId, sessionState };
+    }
+    // sessionWrite === null (analytics_storage not granted): no override, no
+    // session-state — ctx.sessionId stays sourceGa4Ctx's pre-write value
+    // (039-03 back-compat).
+  }
+
+  // 041-02 AC2: Consent-Mode carriage — the RAW ADR-0007 vector (NOT
+  // shapeMpConsent's MP-shaped output; gtag's encodeGcs/encodeGcd read
+  // ad_storage/analytics_storage directly, fields that MP shape never
+  // carries). Absent `consent` → no vector to resolve → BOTH `gcs` and `gcd`
+  // omitted. Absent `consentDefault` (with a present `consent` vector) does
+  // NOT omit `gcd`: `isDeniedAllDefault(undefined)` is true (039-05's
+  // live-grounded denied-all default), so `gcd` IS emitted — only `gcs`
+  // depends purely on the vector. Back-compat with a caller that wires neither
+  // holds because the omission is driven by an absent `consent`, not
+  // `consentDefault`.
+  const ctxWithConsent = { ...ctxWithSessionState, consent, consentDefault };
+
   const airlock = createAirlock({
     connector: "ga4-gtag",
-    connectorConfig: { measurementId, ctx, endpoint: GA4_GTAG_COLLECT_ENDPOINT },
+    connectorConfig: { measurementId, ctx: ctxWithConsent, endpoint: GA4_GTAG_COLLECT_ENDPOINT },
     endpoints: [GA4_GTAG_COLLECT_ENDPOINT],
-    ctx,
+    ctx: ctxWithConsent,
     consent,
     egressPurposes: consent ? GA4_EGRESS_PURPOSES : [],
     consentStrict,

@@ -9,6 +9,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { bootGa4Gtag } from "../adapters/eds/index.js";
 import { GA4_GTAG_COLLECT_ENDPOINT, createGa4GtagConnector } from "../connectors/ga4/gtag.js";
+import { shapeMpConsent } from "../connectors/ga4/consent.js";
 
 class FakeWorker {
   constructor(url, opts) {
@@ -166,5 +167,184 @@ describe("bootGa4Gtag (spec 041-01 AC4 — the boot-happy-path skeleton)", () =>
     expect(handle.pushCritical).toBeUndefined();
     expect(() => handle.dispose()).not.toThrow();
     expect(FakeWorker.last.terminated).toBe(1);
+  });
+});
+
+// Spec 041-02 — session-state + Consent-Mode carriage on the live path (frame-critique
+// PASSED round 2). `bootGa4Gtag` now sources `writeGa4SessionState`'s return BEFORE
+// `createAirlock`, overriding sourceGa4Ctx's pre-write `sid` (frame-critique's
+// sid-reconciliation correction) and folding the RAW ADR-0007 consent vector into
+// `ctx.consent`/`ctx.consentDefault`. Every test drives the REAL `createGa4GtagConnector`
+// against the posted `init` message (never a hand-built beacon), mirroring the 041-01
+// suite's own "real page_view" pattern.
+describe("bootGa4Gtag (spec 041-02 — session-state + Consent-Mode carriage)", () => {
+  const STREAM = "_ga_STREAM1";
+  const GA_COOKIE = "_ga=GA1.1.1111111111.1600000000";
+
+  /** Builds a `_ga_<STREAM>=GS2...` cookie pair, the writer's ONLY supported grammar. */
+  const gs2Cookie = (sid, sct, engaged, lastHit) =>
+    `${STREAM}=GS2.1.s${sid}$o${sct}$g${engaged}$t${lastHit}$j60$l0$h0`;
+
+  const fakeDocWithWrites = (cookieString) => {
+    const writes = [];
+    return {
+      writes,
+      get cookie() { return cookieString; },
+      set cookie(v) { writes.push(v); },
+      visibilityState: "visible",
+    };
+  };
+
+  /** Runs the REAL connector against the exact `connectorConfig` bootGa4Gtag posted as
+   *  `init`, returning the beacon's decoded query params — mirrors 039-03's own
+   *  `beaconParamsFor` helper. */
+  function beaconParams(init, params = {}) {
+    const connector = createGa4GtagConnector(init);
+    const [{ url }] = connector.handle({ type: "page_view", params });
+    return Object.fromEntries(new URL(url).searchParams.entries());
+  }
+
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("analytics-granted first-visit boot: session-state (_fv/_ss/_nsi) + gcs/gcd land on the beacon, sid is the write's fresh sessionId", async () => {
+    const fixedMs = 1700000000000;
+    vi.setSystemTime(fixedMs);
+    const nowSeconds = String(Math.floor(fixedMs / 1000));
+    const doc = fakeDocWithWrites(GA_COOKIE); // no existing _ga_<stream> cookie -> first visit
+    vi.stubGlobal("document", doc);
+
+    const consent = {
+      ad_storage: "granted",
+      analytics_storage: "granted",
+      ad_user_data: "denied",
+      ad_personalization: "denied",
+    };
+
+    await bootGa4Gtag({ measurementId: "G-XXXX", streamCookieName: STREAM, consent });
+
+    const init = initMsg();
+    expect(init.ctx.sessionId).toBe(nowSeconds);
+    expect(init.ctx.sessionState).toEqual({ sct: "1", seg: "0", _fv: "1", _ss: "1", _nsi: "1" });
+    expect(doc.writes.some((w) => w.startsWith(`${STREAM}=`))).toBe(true); // the write landed under the configured name
+
+    const params = beaconParams(init, { page_location: "https://spike.example/" });
+    expect(params.sid).toBe(nowSeconds);
+    expect(params.sct).toBe("1");
+    expect(params.seg).toBe("0");
+    expect(params._fv).toBe("1");
+    expect(params._ss).toBe("1");
+    expect(params._nsi).toBe("1");
+    expect(params.gcs).toBe("G111");
+    expect(params.gcd).toBe("13r3r3q3q5l1");
+  });
+
+  it("new-session-at-boot (existing _ga_<stream>, gap > the 30min default timeout): beacon sid == the write's FRESH sessionId, sct is the incremented value from the SAME transition — never the stale sourceGa4Ctx sid", async () => {
+    const fixedMs = 1700100000000;
+    vi.setSystemTime(fixedMs);
+    const nowSeconds = Math.floor(fixedMs / 1000);
+    const oldLastHit = nowSeconds - 40 * 60; // 40min ago > the 30min default timeout
+    const oldSid = String(oldLastHit - 5); // the pre-write sid sourceGa4Ctx would read
+    const cookieString = `${GA_COOKIE}; ${gs2Cookie(oldSid, "3", "1", oldLastHit)}`;
+    vi.stubGlobal("document", fakeDocWithWrites(cookieString));
+
+    await bootGa4Gtag({ measurementId: "G-XXXX", streamCookieName: STREAM });
+
+    const init = initMsg();
+    const freshSid = String(nowSeconds);
+    expect(init.ctx.sessionId).toBe(freshSid);
+    expect(init.ctx.sessionId).not.toBe(oldSid); // NOT the stale sourceGa4Ctx pre-write sid
+    expect(init.ctx.sessionState.sct).toBe("4"); // existing "3" + 1, from the SAME post-write transition
+
+    const params = beaconParams(init);
+    expect(params.sid).toBe(freshSid);
+    expect(params.sct).toBe("4");
+  });
+
+  it("continuation boot (existing _ga_<stream>, gap within the timeout): sid unchanged (override is a no-op), _fv/_ss/_nsi omitted", async () => {
+    const fixedMs = 1700200000000;
+    vi.setSystemTime(fixedMs);
+    const nowSeconds = Math.floor(fixedMs / 1000);
+    const lastHit = nowSeconds - 5 * 60; // 5min ago, within the 30min default timeout
+    const sid = "1699999999";
+    const cookieString = `${GA_COOKIE}; ${gs2Cookie(sid, "2", "0", lastHit)}`;
+    vi.stubGlobal("document", fakeDocWithWrites(cookieString));
+
+    await bootGa4Gtag({ measurementId: "G-XXXX", streamCookieName: STREAM });
+
+    const init = initMsg();
+    expect(init.ctx.sessionId).toBe(sid); // override is a no-op — matches sourceGa4Ctx's own pre-write read
+    expect(init.ctx.sessionState).toEqual({ sct: "2", seg: "1" }); // no _fv/_ss/_nsi keys at all
+
+    const params = beaconParams(init);
+    expect(params.sid).toBe(sid);
+    expect(params.sct).toBe("2");
+    expect(params._fv).toBeUndefined();
+    expect(params._ss).toBeUndefined();
+    expect(params._nsi).toBeUndefined();
+  });
+
+  it("analytics-denied boot: no cookie write, no session-state fields, ctx.sessionId stays the sourceGa4Ctx value, seal behavior unchanged", async () => {
+    const fixedMs = 1700300000000;
+    vi.setSystemTime(fixedMs);
+    const nowSeconds = Math.floor(fixedMs / 1000);
+    const cookieString = `${GA_COOKIE}; ${gs2Cookie("1699999999", "2", "0", nowSeconds - 60)}`;
+    const doc = fakeDocWithWrites(cookieString);
+    vi.stubGlobal("document", doc);
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await bootGa4Gtag({ measurementId: "G-XXXX", streamCookieName: STREAM, consent: {} });
+
+    const init = initMsg();
+    expect(init.ctx.sessionState).toBeUndefined();
+    expect(init.ctx.sessionId).toBe(String(nowSeconds)); // sourceGa4Ctx's own not-granted ephemeral fallback
+    expect(doc.writes).toEqual([]); // no cookie write without analytics consent
+
+    // AC3: the seal is unchanged — an unresolved (pending) analytics_storage still HOLDS
+    // a ready beacon exactly like 041-01's own gating test.
+    FakeWorker.last.onmessage({
+      data: { ready: [{ url: `${GA4_GTAG_COLLECT_ENDPOINT}?tid=G-XXXX`, method: "GET" }], dropped: [] },
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      "airlock:",
+      expect.objectContaining({ kind: "consent", disposition: "held", purpose: "analytics_storage" }),
+    );
+    warnSpy.mockRestore();
+  });
+
+  it("ctx.consent carries the RAW ADR-0007 vector, not shapeMpConsent's MP-shaped output (encodeGcs/encodeGcd read ad_storage/analytics_storage, fields shapeMpConsent never carries)", async () => {
+    vi.setSystemTime(1700400000000);
+    vi.stubGlobal("document", fakeDocWithWrites(GA_COOKIE));
+    const consent = {
+      ad_storage: "granted",
+      analytics_storage: "granted",
+      ad_user_data: "granted",
+      ad_personalization: "granted",
+    };
+
+    await bootGa4Gtag({ measurementId: "G-XXXX", consent });
+
+    const init = initMsg();
+    expect(init.ctx.consent).toEqual(consent); // the RAW vector, verbatim
+    expect(init.ctx.consent).not.toEqual(shapeMpConsent(consent)); // never the MP-shaped object
+
+    const params = beaconParams(init);
+    expect(params.gcs).toBe("G111"); // only resolvable from the RAW vector (shapeMpConsent has no ad_storage/analytics_storage keys)
+  });
+
+  it("an absent streamCookieName skips the session-state write entirely (back-compat: no host config yet)", async () => {
+    vi.setSystemTime(1700500000000);
+    const doc = fakeDocWithWrites(`${GA_COOKIE}; ${gs2Cookie("1699999999", "2", "0", 1700499000)}`);
+    vi.stubGlobal("document", doc);
+
+    await bootGa4Gtag({ measurementId: "G-XXXX" }); // no streamCookieName opt
+
+    const init = initMsg();
+    expect(init.ctx.sessionState).toBeUndefined();
+    expect(init.ctx.sessionId).toBe("1699999999"); // sourceGa4Ctx's own pre-write read stands, untouched
+    expect(doc.writes).toEqual([]); // writeGa4SessionState never called
   });
 });

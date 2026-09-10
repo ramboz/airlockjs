@@ -1,7 +1,7 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: [041-01, 039-03, 039-05]
-last_verified:
+last_verified: 2026-09-09
 frame_review: true
 arch_review: true
 ---
@@ -62,17 +62,18 @@ tracked follow-up 041-01 named).
    `egressPurposes`); this slice only enriches `connectorConfig.ctx` — it does not change the seal verdict.
 
 **DoD:**
-- [ ] All ACs pass; full suite green.
-- [ ] Coverage: analytics-granted boot → beacon carries session-state + `gcs`/`gcd`; **a NEW-session-at-boot (existing
+- [x] All ACs pass; full suite green (95 files / 1455 tests).
+- [x] Coverage: analytics-granted boot → beacon carries session-state + `gcs`/`gcd`; **a NEW-session-at-boot (existing
       `_ga_<stream>` cookie, `now - lastHit > timeout`) → the beacon's `sid` == the write's fresh `sessionId` AND `sct`
       is the incremented value from the SAME transition (NOT the stale `sourceGa4Ctx` sid — the sid/sct-consistency
       guard)**; analytics-denied boot → no cookie write, no session-state, `ctx.sessionId` stays the `sourceGa4Ctx`
       value, seal behavior unchanged; a **continuation boot (existing cookie within timeout)** → `sid` unchanged
       (override is a no-op), `_fv`/`_ss`/`_nsi` omitted per 039-03; the `streamCookieName` is threaded from host config;
-      the raw (not `shapeMpConsent`) vector reaches `ctx.consent`. Each new-feature test fails on revert.
-- [ ] Reviewed by `reviewer` (compliance + craft; `arch_review: true` — first caller of the host-side `_ga_<stream>`
+      the raw (not `shapeMpConsent`) vector reaches `ctx.consent`. Each new-feature test fails on revert (the 4 positive
+      tests; the analytics-denied + absent-streamCookieName tests are back-compat guards, correct-to-pass-on-revert).
+- [x] Reviewed by `reviewer` (compliance + craft + arch — all PASS; first caller of the host-side `_ga_<stream>`
       cookie write).
-- [ ] Deviation log + reconciliation sweep produced.
+- [x] Deviation log + reconciliation sweep produced.
 
 ## Assumptions
 
@@ -99,8 +100,43 @@ gtag would send (spec 039's field parity), end-to-end on a real page — not a b
 
 ### Deviation log (after reconciliation)
 
-_TBD at implementation._
+Implemented entirely in `adapters/eds/index.js`'s `bootGa4Gtag` (~+85 lines) + `test/eds-ga4-gtag.test.js` (6 new tests).
+No connector/chamber/core change. All three gating passes (compliance + craft + arch) PASS. Deviations + fold-ins:
+
+1. **Session-state write gated on `opts.streamCookieName` presence (compliance ruled: executing the spec, not
+   deviating).** `writeGa4SessionState` needs a concrete, stable cookie name every cycle (it cannot scan like the
+   read-side `findGaStreamCookie`), so an unconfigured caller sees byte-identical pre-041-02 behavior.
+2. **Session-state write gated on `!providedCtx` (reuses 041-01's ctx-override escape hatch).** The write is a cookie
+   op; skipping it under the same hatch that bypasses `sourceGa4Ctx` is consistent (no `document` access at all when a
+   caller supplies `ctx` — the rig/test seam).
+3. **`sessionId` override of the pre-write `sourceGa4Ctx` sid (the frame-critique's load-bearing fix, arch confirmed).**
+   On the granted path the write's `sessionId` overrides — unconditional (no-op on continuation, corrective on
+   new-session, consistent on first-visit) — so beacon `sid` and `sct` come from the SAME post-write transition.
+4. **Consent fold is UNCONDITIONAL, diverging from `bootGa4Core`'s conditional fold (arch nit; kept, deliberate).**
+   `ctxWithConsent = { ...ctxWithSessionState, consent, consentDefault }` sets both keys even when undefined; inert
+   (encodeGcs/encodeGcd treat undefined as no-signal; `toEqual` ignores undefined props), documented. Both reviewers
+   ruled it net-neutral; kept rather than churn a 3-pass-clean line. A future consolidation could align the two GA4
+   boot paths' ctx-fold conventions.
+5. **Craft/arch nits folded (post-pass polish, suite re-run green):** hoisted the duplicated
+   `createCookieCapability(document)` into one `const cookies = providedCtx ? null : createCookieCapability(document)`
+   (null under the escape hatch → zero document access); corrected the loose consent-fold inline comment (an absent
+   `consentDefault` does NOT omit `gcd` — `isDeniedAllDefault(undefined)` is true, so `gcd` emits as the denied-all
+   default with a resolved consent vector; only `gcs` depends purely on the vector).
+6. **Minor test-label imprecision (compliance note, no change):** the "analytics-denied" test passes `consent: {}`,
+   which `resolveConsent` maps to `pending` (not explicit `denied`); both yield `storageGranted=false`, so the no-write
+   assertion is valid. Left as-is (accurate assertion, slightly loose label).
+
+**No deviation from:** the ordering (sourceGa4Ctx → write override → consent fold → createAirlock), the analytics gate
+(single source of truth via the writer's null return), the seal params (unchanged from 041-01), or the connector/host
+boundary (no connector edit, no worker capability wiring, cookie write purely host-side).
 
 ### Reconciliation sweep
 
-_TBD at implementation._
+- **`docs/refinement-todo.md`:** nothing new — the only tracked residuals are the already-recorded ones (the 041-01
+  boot-snapshot post-boot-update deferral; the GET-critical-flush follow-up). This slice's initial-boot carriage sits
+  squarely inside the 041-01 boot-snapshot frame.
+- **`docs/inbox.md`:** nothing to park.
+- **Deferred / carried forward:** the unconditional-vs-conditional consent-fold alignment between `bootGa4Gtag` and
+  `bootGa4Core` (deviation 4) — a cosmetic consolidation, net-neutral, noted here; not worth its own slice.
+- **Downstream:** 041-03 (coalesce) + 041-04 (config selection) build on this enriched `bootGa4Gtag`.
+- **Full suite:** 95 files / 1455 tests green.

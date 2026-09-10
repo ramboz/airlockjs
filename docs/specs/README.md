@@ -116,7 +116,7 @@
 | [040-core-egress-batching](040-core-egress-batching/spec.md) | 040-04 — coalesced-dispatch failure semantics + observability | **DONE** |  |
 | [040-core-egress-batching](040-core-egress-batching/spec.md) | 040-05 — payload-ceiling split (per-adapter) | **DONE** |  |
 | [041-ga4-gtag-boot](041-ga4-gtag-boot/spec.md) | 041-01 — gtag connector boots + egresses (Connector wrapper + chamber + createAirlock branch + minimal boot) | **DONE** |  |
-| [041-ga4-gtag-boot](041-ga4-gtag-boot/spec.md) | 041-02 — session-state + Consent-Mode carriage on the live path | DRAFT |  |
+| [041-ga4-gtag-boot](041-ga4-gtag-boot/spec.md) | 041-02 — session-state + Consent-Mode carriage on the live path | **DONE** |  |
 | [041-ga4-gtag-boot](041-ga4-gtag-boot/spec.md) | 041-03 — batching on the live path (coalesceGa4 wired) | DRAFT |  |
 | [041-ga4-gtag-boot](041-ga4-gtag-boot/spec.md) | 041-04 — declarative instrumentation-config selection | DRAFT |  |
 
@@ -144,7 +144,7 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
 
 - **8** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **97** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **26** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **28** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
@@ -171,3 +171,5 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
   - `040-core-egress-batching/slice-05-craft.md` — applied `none`; declined: pr-review, scout-pr-review
   - `041-ga4-gtag-boot/slice-01-arch.md` — applied `none`; declined: arch-review
   - `041-ga4-gtag-boot/slice-01-craft.md` — applied `none`; declined: pr-review, scout-pr-review
+  - `041-ga4-gtag-boot/slice-02-arch.md` — applied `none`; declined: arch-review
+  - `041-ga4-gtag-boot/slice-02-craft.md` — applied `none`; declined: pr-review, scout-pr-review
