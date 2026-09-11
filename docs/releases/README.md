@@ -27,7 +27,7 @@ they stop informing a current release decision.
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| [MVP7 — Pixel Parity & the Parity Harness](mvp7.md) | **Build-complete (advanced to `shipping` 2026-09-11).** All three fixed-core Include items are DONE — the vendor-generic parity harness (038), the GA4 gtag-protocol connector (039/ADR-0019), and Meta advanced matching (026-04, GET-only). The last release-check piece is **038-04** (confirm Meta advanced-matching field-presence parity — in progress); the v0.7.0 cut (E1) is owner-gated and waits on it. No E10 blocker (measured by 038-03, deferred per ADR-0020). Ships v0.7.0 | JIG handoff: [038](../specs/038-parity-harness/spec.md), [039](../specs/039-ga4-gtag-connector/spec.md), [026](../specs/026-generic-pixel-connector/spec.md) |
+| [MVP7 — Pixel Parity & the Parity Harness](mvp7.md) | **Build-complete (advanced to `shipping` 2026-09-11).** All three fixed-core Include items are DONE — the vendor-generic parity harness (038), the GA4 gtag-protocol connector (039/ADR-0019), and Meta advanced matching (026-04, GET-only). The last release-check piece — **038-04** (Meta advanced-matching field-presence parity) — is **DONE** (spec 038 complete), so the release-check is **met**; the remaining step is the owner-gated v0.7.0 cut (E1). No E10 blocker (measured by 038-03, deferred per ADR-0020). Ships v0.7.0 | JIG handoff: [038](../specs/038-parity-harness/spec.md), [039](../specs/039-ga4-gtag-connector/spec.md), [026](../specs/026-generic-pixel-connector/spec.md) |
 
 ## Shipped
 

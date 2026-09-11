@@ -61,7 +61,7 @@ Default to collaborative and solution-forward — answer what's asked, propose r
 
 ## Current Sprint Focus
 
-MVP7 (pixel parity): connectors + unload dispatcher shipped (spec 026 all six slices; 039-042 DONE); finishing the parity-harness confirmation (038-04) toward the v0.7.0 release-check.
+MVP7 (pixel parity): **build + release-check complete** — parity harness (spec 038, all four slices), GA4 gtag connector (039), Meta advanced matching (026-04) + its field-presence parity confirmation (038-04) all DONE. Remaining: the owner-gated v0.7.0 cut (E1 version-bump/dist-tag).
 
 ## Development Conventions
 

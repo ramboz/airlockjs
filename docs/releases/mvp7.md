@@ -12,8 +12,9 @@
 
 > **Advanced `committed` → `shipping` (owner decision, 2026-09-11).** All three fixed-core Include items are built —
 > the vendor-generic parity harness (038-01/02/03), GA4 parity via the gtag-protocol connector (spec 039), and Meta
-> advanced matching (026-04, GET-only). The last release-check piece is **038-04** (confirm Meta advanced-matching
-> field-presence parity — in progress); the v0.7.0 cut (E1 version-bump/dist-tag) is owner-gated and waits on it. There
+> advanced matching (026-04, GET-only). The last release-check piece — **038-04** (Meta advanced-matching
+> field-presence parity) — is now **DONE** (spec 038 complete), so the release-check is **met**; the remaining step is the
+> owner-gated v0.7.0 cut (E1 version-bump/dist-tag). There
 > is **no E10 blocker** (see Release-Check — E10 was measured by 038-03 and deferred as need-triggered per ADR-0020).
 
 Allowed statuses: `candidate`, `committed`, `shipping`, `shipped`, `dropped`.
@@ -128,7 +129,7 @@ bound as a **GO** (the four TBT-dominant vendor runtimes are ~70% of blocking ti
 | **The vendor-generic parity harness** — capture → replay → per-protocol semantic oracle → report; credential context captured + replayed | ADR-0018 (parity definition, E5) | The 1.0 gate every rewire depends on |
 | **R-009 (whole) — risk-first** the gtag-family fidelity spike (GA4 MP-vs-gtag incl. `api_secret`; Ads/Floodlight ping fidelity; transport per cohort) | ADR-0018 E6; OQ13-2; `connectors/ga4/map.js` | The bar rests on it; no code dependency, so it runs first |
 | **R-010 — risk-first** the indicative CWV bound on the reference site (`blockedUrlPatterns`) | ADR-0018 E11 | Repo-records the win's rough size before the ladder is walked; no container-owner needed |
-| **Meta Pixel parity** — 026-04 DONE (identity/advanced-matching, GET-only; POST dropped), grounded on a redacted real capture; harness field-presence confirmation is 038-04 (in progress) | [spec 026-04](../specs/026-generic-pixel-connector/spec.md) | The first real vendor proven at parity |
+| **Meta Pixel parity** — 026-04 DONE (identity/advanced-matching, GET-only; POST dropped), grounded on a redacted real capture; harness field-presence confirmation is 038-04 (**DONE** 2026-09-11) | [spec 026-04](../specs/026-generic-pixel-connector/spec.md) | The first real vendor proven at parity |
 | **GA4 parity** through the harness (MP-only, or an additive gtag-protocol connector if R-009(a) demands) | ADR-0018 (GA4 kill criterion) | The analytics anchor |
 
 ### Defer / Variable
@@ -164,8 +165,8 @@ bound as a **GO** (the four TBT-dominant vendor runtimes are ~70% of blocking ti
 
 - The parity harness confirms **GA4 and Meta Pixel reach vendor-boundary field parity** on redacted real captures
   (per-protocol semantic oracle): GA4 via the gtag-protocol connector (spec 039); the Meta GET/`cd[...]` shape via
-  026-06 + 038; and Meta advanced-matching **`ud[external_id]` field-presence** parity via **038-04** (in progress — the
-  last release-check piece). **Named, non-blocking residuals:** the signed-in `ud[em]`/`ph` capture (Meta-doc-grounded
+  026-06 + 038; and Meta advanced-matching **`ud[external_id]` field-presence** parity via **038-04** (**DONE** 2026-09-11
+  — spec 038 complete). **Named, non-blocking residuals:** the signed-in `ud[em]`/`ph` capture (Meta-doc-grounded
   today) and same-`external_id`-**input efficacy** (an MVP9 rewire/adoption property, ADR-0020 kill-criterion #1) — the
   harness confirms field presence, not that airlock's identity input equals the container's.
 - **GA4's protocol question is decided** (MP-only reaches parity, or an additive gtag-protocol connector ships) —

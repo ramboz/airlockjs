@@ -1,10 +1,9 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [026-04, adr-0020, adr-0022]
 last_verified: 2026-09-11
 frame_review: true
 arch_review: true
-claimed_by: claude/deferred-get-critical-unload-fe9eb7
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about runnable
