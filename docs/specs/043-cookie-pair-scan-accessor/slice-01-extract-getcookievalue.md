@@ -12,7 +12,7 @@ arch_review: false
 
 ## Slice 043-01 — extract `getCookieValue` + repoint the two exact-name copies
 
-**Goal:** Extract the byte-identical "read a cookie value by exact name" scan into one shared pure primitive
+**Goal:** Extract the duplicated "read a cookie value by exact name" scan into one shared pure primitive
 `getCookieValue(cookieString, name)` in `core/`, and repoint the two copies (`adapters/eds/index.js`'s
 `readCookieValue`, added by 026-04, and `adapters/eds/cookies.js`'s mediated `get(name)` inner loop) to it —
 **behavior-preserving**, killing the triplication [ADR-0002](../../decisions/adr-0002-extract-helper-on-third-caller.md)
@@ -21,16 +21,18 @@ flags before a fourth copy accretes. The prefix-match / first-pair / filter / sc
 
 **The load-bearing claim (what the frame-critique checks).** Both target bodies were read (`adapters/eds/index.js:747-756`,
 `adapters/eds/cookies.js:30-40`) and appear identical in scan logic (`split(";")` → `indexOf("=")` skip-on-`-1` →
-`slice(0,eq).trim()===name` → `decodeURIComponent(slice(eq+1).trim())` with raw-on-throw), differing only in input shape
-(a `cookieString` param vs `doc.cookie`). The collapse-safety of that equivalence — and that no caller of either body
-relies on a behavior the accessor drops — is the assumption the frame-critique adversarially tests; AC1's edge-case
-tests + the full suite are the implementation-time guard.
+`slice(0,eq).trim()===name` → `decodeURIComponent(slice(eq+1).trim())` with raw-on-throw), differing in input shape
+(a `cookieString` param vs `doc.cookie`) **and in the absent-value sentinel** — `readCookieValue` returns `undefined`
+(index.js:748,760), `get()` returns `null` (cookies.js:31,43, preserving its `Promise<string|null>` capability
+contract). Both are reconciled at the `get()` call site (AC2). The collapse-safety of the loop equivalence plus the
+sentinel reconciliation is what the frame-critique tested; AC1's edge-case tests + the full suite guard implementation.
 
 **DoR:**
-- ✅ Rule-of-three tripped: `readCookieValue` (026-04) is the third exact-name copy; the two adapter copies are
-  byte-identical (grounded above). ADR-0002 is the governing decision.
-- ✅ `core/` is dependency-free and importable by both `adapters/` and `connectors/` (architecture § Module boundaries),
-  so a `core/` home lets the one accessor serve every current + future caller.
+- ✅ Rule-of-three tripped: `readCookieValue` (026-04) is the third exact-name copy; the two adapter copies share the
+  same scan/decode loop (differing only in the absent sentinel, reconciled in AC2). ADR-0002 is the governing decision.
+- ✅ The **new leaf module** `core/cookie-parse.js` imports nothing, so `adapters/*` / `connectors/* → core/cookie-parse.js`
+  creates no cycle (note: `core/` *composition roots* like `core/airlock.js` do import from connectors — the layering
+  rests on the leaf being import-free, not on all of `core/` being dependency-free).
 - ✅ The accessor is parse-only — no `document`, no consent gate. Callers keep their own 017-02 grant-gating; this moves
   *where the parse lives*, never *whether a read is allowed*.
 
@@ -43,10 +45,12 @@ tests + the full suite are the implementation-time guard.
    throws). Unit tests cover each edge the originals handle: non-string/empty → `undefined`; absent name → `undefined`;
    present → decoded value; `=` inside the value (only the first `=` splits); surrounding whitespace on key and value;
    malformed `%`-escape → raw (no throw); **first-match-wins** on a duplicate name (preserving current behavior).
-2. **Both exact-name copies repointed, behavior byte-identical.** `adapters/eds/index.js` drops `readCookieValue`'s
-   open-coded loop and uses `getCookieValue` (import from `core/cookie-parse.js`); `adapters/eds/cookies.js`'s `get(name)`
-   returns `getCookieValue((doc && doc.cookie) || "", name)`. No call-site behavior changes — the existing adapter/GA4
-   cookie tests pass unmodified.
+2. **Both exact-name copies repointed, sentinel preserved per call site.** `adapters/eds/index.js` drops
+   `readCookieValue`'s open-coded loop and uses `getCookieValue` (import from `core/cookie-parse.js`) — its `undefined`
+   sentinel unchanged. `adapters/eds/cookies.js`'s `get(name)` returns `getCookieValue((doc && doc.cookie) || "", name) ?? null`
+   — the **`?? null` preserves its `Promise<string|null>` contract** (cookies.js:23), so `test/eds-cookies.test.js`'s
+   `.toBeNull()` assertions on the empty-jar/absent-cookie paths (`:48-51`) still pass. No call-site behavior changes;
+   the existing adapter/GA4 cookie tests pass unmodified.
 3. **Variants explicitly untouched, with rationale.** `connectors/ga4/cookies.js` `findGaStreamCookie` (prefix match),
    `connectors/alloy/sync-cookie-cache.js` (first-pair/filter), `core/cookie-scope.js` + `core/wrapped-sdk-host.js`
    (scoping) are **not** repointed; a one-line note (in the spec's Overview, already present) records why each is a
@@ -69,11 +73,11 @@ tests + the full suite are the implementation-time guard.
 
 ## Assumptions
 
-**A1 (collapse-safety).** The two exact-name copies are behaviorally identical and safe to collapse to one accessor.
-Grounded by reading both bodies (`adapters/eds/index.js:747-756`, `adapters/eds/cookies.js:30-40`) — same split,
-`=`-handling, trim, and `decodeURIComponent`-with-raw-fallback — but a subtle divergence (duplicate-name handling, or
-behavior in `get()` *after* the matched-value return) would make the collapse a regression. Guarded by AC1's edge-case
-tests + the full suite. See spec 043 § A1.
+**A1 (collapse-safety).** The two exact-name copies share the same scan/decode loop (same split, `=`-handling, trim,
+`decodeURIComponent`-with-raw-fallback) but **differ at the absent-value sentinel** — `readCookieValue`→`undefined`,
+`get()`→`null` (its `Promise<string|null>` contract). The frame-critique caught this; AC2 reconciles it (`get()` wraps
+the accessor `?? null`). Remaining risk: a further missed divergence (e.g. duplicate-name handling) — guarded by AC1's
+edge-case tests + the full suite. See spec 043 § A1 (corrected 2026-09-11).
 
 **A2 (scope boundary).** The prefix-match / first-pair / filter / scoping variants are genuinely different accessors, not
 lazy non-extractions — collapsing them would lose semantics or force an over-general primitive. See spec 043 § A2.

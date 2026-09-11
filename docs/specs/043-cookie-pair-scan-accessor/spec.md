@@ -20,7 +20,7 @@ Several sites open-code the same `document.cookie` pair-scan. Grounded enumerati
 - `adapters/eds/index.js:747` `readCookieValue(cookieString, name)` (added by 026-04).
 - `adapters/eds/cookies.js:30` the mediated `get(name)` accessor's inner loop.
 
-Both do exactly: `split(";")` → `indexOf("=")` (skip on -1) → `slice(0,eq).trim() === name` → `decodeURIComponent(slice(eq+1).trim())` with a raw-on-throw fallback. Identical, byte for byte.
+Both do exactly: `split(";")` → `indexOf("=")` (skip on -1) → `slice(0,eq).trim() === name` → `decodeURIComponent(slice(eq+1).trim())` with a raw-on-throw fallback — **identical in the scan/decode loop**. They differ only in the **absent-value sentinel** (`readCookieValue`→`undefined`, `get()`→`null`), reconciled at the `get()` call site (§ A1).
 
 **Variants — related but NOT the same accessor (deliberately left alone):**
 - `connectors/ga4/cookies.js:88` `findGaStreamCookie` — **prefix** match (`_ga_<stream>`), returns the whole cookie, not a value-by-exact-name.
