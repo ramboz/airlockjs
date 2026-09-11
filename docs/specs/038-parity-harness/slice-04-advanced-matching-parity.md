@@ -1,9 +1,10 @@
 ---
-status: DRAFT
+status: RECONCILED
 dependencies: [026-04, adr-0020, adr-0022]
-last_verified:
+last_verified: 2026-09-11
 frame_review: true
 arch_review: true
+claimed_by: claude/deferred-get-critical-unload-fe9eb7
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about runnable
@@ -159,11 +160,46 @@ than it states.
 
 ### Deviation log (after reconciliation)
 
-_(pending implementation)_
+1. **Advanced-matching replay is a local test helper, not a `replay.js` export.** `handle()` is identity-free by
+   construction (026-01 AC1), so `replayPixelBeacon` never emits `ud[...]`. The confirmation uses a local
+   `replayWithAdvancedMatching()` in the test file that reuses production's **pure** `hashField` + `mergeAdvancedMatching`
+   (`connectors/pixel/advanced-matching.js`) — verified faithful to `core/airlock.js:208` (config strip), the worker
+   `ingestIdentity` skip-undefined loop, and `core/airlock.js:247` (merge). Chosen over adding a Meta-specific branch to
+   the vendor-generic `replay.js` (DoD's "test **or** a small harness helper" → test). It confirms the merge **output** +
+   field parity; the real orchestration (requestMapper / `identityCache` / worker) stays guarded by 026-04's e2e
+   (`test/pixel-advanced-matching-e2e.test.js`), so an orchestration drift surfaces there (red), not silently here.
+2. **AC4 `_fbp`/`fbp` wire-name — scoped, not reconciled.** The descriptor keys on `_fbp` (cookie name) but the real `/tr`
+   wire param is `fbp` (no underscore). Took AC4's "scope + name" branch: the `_fbp`/`fbc` raw-diff regression guard runs
+   against the **synthetic** fixture (`test/parity-meta.test.js`); against the real capture `_fbp` is skipped ("never
+   sent"), so that owned gap is under-reported there. A pre-existing **038-01** descriptor-modeling gap — named in the
+   descriptor comment + a refinement-todo follow-up, deliberately **not** fixed in this slice.
+3. **AC7 efficacy residual via refinement-todo, not the report `SCOPE_NOTE`.** AC7's either/or is satisfied by the
+   first-class refinement-todo entry; `report.js`'s `SCOPE_NOTE` is shared across all vendors, so widening it for a
+   Meta-only presence-weakening was left as a follow-up (arch nit → "report-note coherence", logged in refinement-todo).
+4. **Craft-nit hardening applied here:** the AC5(b) negative witness now also asserts the base beacon (`ev=PageView`)
+   still emits, isolating "`ud[external_id]` specifically dropped" from "airlock emitted nothing at all" (still 11/11).
 
 ### Reconciliation sweep
 
-_(pending implementation)_
+- **`rig/parity/descriptors/meta.js`** — `updated`: `ud[external_id]` added to `attributionFields` (not `gapMap`);
+  `ud[em]`/`ph` gap re-owned "026-04" → "signed-in ud[em]/ph live-capture follow-up"; `_fbp`/`fbc` byte-unchanged;
+  `aud`/`cud`/`ncud` exclusion + `fbp`/`_fbp` wire-name comments added.
+- **`rig/parity/oracle.js` / `redact.js` / `replay.js` / `report.js`** — `no-op`: public shapes unchanged (A2's leaner
+  path — redact-both-sides reuses `redactMetaBeacon` as-is; no oracle field-class added).
+- **`docs/refinement-todo.md`** — `updated`: AC3 signed-in `em`/`ph` cross-ref (Landed 2026-09-11) + AC7 same-input
+  efficacy residual; plus (this reconciliation) the report-note-coherence follow-up, the ADR-0020 kill-criterion-#1
+  accumulation signal, and the `_fbp`/`fbp` wire-name residual (AC4) — five 038-related entries total.
+- **`docs/releases/mvp7.md`** (release-check) — `updated` (prior session, verified consistent): reads "Meta
+  advanced-matching `ud[external_id]` field-presence parity via 038-04" with the `em`/`ph`-capture + efficacy residuals
+  named — satisfies the DoD close-out wording.
+- **`docs/architecture.md`** — `no-op`: no module-boundary or public-contract change (descriptor is data; no `oracle.js`
+  change), so no architecture update and no ADR warranted for the slice itself.
+- **Existing witnesses + full suite** — `no-op` (behavior-preserving): `test/parity-{meta,oracle,ga4,transport}.test.js`
+  66/66 unchanged; full suite **1538** green; lint clean.
+- **ADR-0020 kill-criterion #1 accumulation** — `deferred`: two "present/equal yet value-semantics diverge" residuals now
+  exist (GA4 session-continuity `adr-0020:135-143` + this slice's Meta `ud[external_id]` efficacy). 038-04 follows the
+  established report-note precedent faithfully; whether the accumulation crosses ADR-0020's amendment threshold is an
+  **owner call**, logged as a refinement-todo signal (not blocking).
 
 ### Close-out (post-DONE)
 

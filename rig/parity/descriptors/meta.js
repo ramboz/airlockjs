@@ -39,6 +39,30 @@ export const metaParityDescriptor = {
   // + attribution), the four documented cd[...] event-data params, first-party cookie identity
   // (_fbp/fbc), and hashed advanced-matching (ud[...]). NOT every wire field fbevents.js could
   // ever send — deliberately curated (spec 038-01 AC3).
+  //
+  // ud[external_id] (spec 038-04 AC1): 026-04 shipped the capability to emit it
+  // (createMetaPixelConfig({externalId})). This field was NEVER a gapMap member in this
+  // descriptor — only ud[em]/ud[ph] were; it simply wasn't curated here at all before this slice
+  // — so adding it directly to attributionFields (skipping a gapMap detour) is the correct move.
+  // Confirmation is PRESENCE, not value-equality (A1 — a hashed field is a per-user SHA-256, so
+  // byte-comparing it against any committed fixture is meaningless by construction): the
+  // confirmation path redacts BOTH sides through redactMetaBeacon before the diff, so the real
+  // capture's "REDACTED_SHA256" and airlock's real hash collapse to the same SYNTHETIC_HASH
+  // sentinel (see test/parity-meta-advanced-matching.test.js). Same-INPUT efficacy (did airlock
+  // hash the SAME external_id the container did) is NOT confirmed here — an MVP9 rewire/adoption
+  // residual, docs/refinement-todo.md.
+  //
+  // DELIBERATELY EXCLUDED (spec 038-04 AC4): Meta's aud[external_id]/cud[external_id]/
+  // ncud[external_id] — alternate encodings of the SAME external_id identity (automatic-AM /
+  // masked/normalized variants Meta's own pixel derives), not distinct attribution, and airlock
+  // emits none of them (only ud[external_id]) — see
+  // test/fixtures/meta-tr-pageview.redacted.json's _ud_note.
+  //
+  // WIRE-NAME FOLLOW-UP (spec 038-04 AC4 — a pre-existing 038-01 gap, not fixed by this slice):
+  // the real capture's first-party cookie query param is `fbp` (no underscore), but this
+  // descriptor (and redactMetaBeacon) key on `_fbp` — so `_fbp` never matches against a real
+  // capture's field set today, only against the synthetic fixture below (which uses `_fbp`).
+  // Named, not rabbit-holed.
   attributionFields: [
     "id",
     "ev",
@@ -50,6 +74,7 @@ export const metaParityDescriptor = {
     "fbc",
     "ud[em]",
     "ud[ph]",
+    "ud[external_id]",
   ],
 
   // Nondeterministic + deterministic-non-attribution — excluded before the compare (AC3's literal
@@ -67,11 +92,21 @@ export const metaParityDescriptor = {
   // The four cd[...] fields (value/currency/content_name/content_category) were REMOVED from here
   // by spec 026-06 (closes docs/inbox.md:27) — meta.js now emits them directly, so they classify
   // as a real `maps` match, not an owned gap.
+  //
+  // ud[em]/ud[ph] RE-OWNED (spec 038-04 AC3): 026-04 shipped the CAPABILITY to emit them
+  // (Meta-doc-grounded normalization + hashing, ADR-0022 A4), but confirming them HERE needs a
+  // real signed-in capture that actually carries them — un-obtainable in-repo today (the
+  // intuit-class reference page is an anonymous visit; captures are local-only, R5/ADR-0020).
+  // Re-owned from "026-04" (capability shipped) to this capture-gated follow-up so the false-shim
+  // prohibition (ADR-0020) isn't violated by marking them `maps` with nothing to confirm against —
+  // see docs/refinement-todo.md's "Signed-in ud[em]/ph live capture" entry (§ Spec 026-04 (Meta
+  // advanced matching) follow-ups) for the resolution trigger. They stay green
+  // (`expected-dropped`), never `maps`.
   gapMap: {
     _fbp: { owner: "chamber cookie-capability follow-up" },
     fbc: { owner: "chamber cookie-capability follow-up" },
-    "ud[em]": { owner: "026-04" },
-    "ud[ph]": { owner: "026-04" },
+    "ud[em]": { owner: "signed-in ud[em]/ph live-capture follow-up" },
+    "ud[ph]": { owner: "signed-in ud[em]/ph live-capture follow-up" },
   },
 
   // spec 038-03's transport declaration (feeds ADR-0018 E10, ADR-0020 commitment 3): Meta's

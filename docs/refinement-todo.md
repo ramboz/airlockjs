@@ -665,6 +665,67 @@ reuse `shapeMpConsent` (that shaping stays scoped to the MP path's private `boot
 `gtag.js`'s `encodeGcs`/`encodeGcd` resolve `ad_storage`/`analytics_storage` correctly from the live vector — the
 silent-omission hazard this item warned against did not materialize.
 
+### `ud[external_id]` same-input efficacy — presence confirmed (038-04), matching NOT confirmed (MVP9 residual)
+
+**Deferred:** [spec 038-04](specs/038-parity-harness/slice-04-advanced-matching-parity.md) confirms Meta advanced-matching
+FIELD-**PRESENCE** parity for `ud[external_id]` — airlock attaches a well-formed 64-hex SHA-256 wherever the container's
+real capture does (retiring the 026-04 "excused gap" framing; a real `maps` classification via redact-both-sides against
+`test/fixtures/meta-tr-pageview.redacted.json`, `test/parity-meta-advanced-matching.test.js`). It does **not** confirm
+that airlock hashed the **SAME** `external_id` the container's tag did — the same-input **efficacy** property that
+actually makes Meta match the user, which is exactly [ADR-0020](decisions/adr-0020-parity-contract-anti-drift.md)
+kill-criterion #1's shape: "present/equal yet value semantics diverge." No redacted-fixture harness can measure this —
+both fixtures carry synthetic hash placeholders by construction (R5/ADR-0020) and there is no live "did Meta actually
+match" signal available offline. Whether an adopter's airlock deployment sources `external_id` from the identical
+first-party identifier the tag-manager container hashed is a **rewire/wiring** decision made when a real site migrates
+onto airlock — an **MVP9 real-site rewire/adoption** property, not a parity-harness one. Mirrors ADR-0020's GA4
+session-continuity report-note-residual precedent (`adr-0020:135-143`) — a scope residual named in prose, not modeled as
+a field bucket.
+
+**Resolution trigger:** the MVP9 real-site rewire spec, when a real adopter's identity wiring for Meta advanced matching
+is designed — confirm that airlock's `external_id` source resolves to the identical identifier the container's tag
+hashed (or, if a signed-in same-session dual capture becomes available first, fixture-ground it the same way).
+
+### ADR-0020 value-semantics amendment — two kill-criterion #1 residuals now exist (owner signal)
+
+**Signal (not deferred work — an owner decision point surfaced by the 038-04 arch review):** ADR-0020 states that if the
+"present/equal yet value-semantics diverge" shape **generalizes**, beacon-field parity becomes "necessary but not
+sufficient and this ADR is amended." There are now **two** such residuals: **GA4 session-continuity** (`adr-0020:135-143`)
+and **Meta `ud[external_id]` same-input efficacy** (038-04, above). Each slice locally follows the report-note precedent
+correctly, but no single diff surfaces the accumulation. **Owner call ([ADR-0020](decisions/adr-0020-parity-contract-anti-drift.md)
+owner):** does two crossing the threshold warrant an ADR-0020 value-semantics amendment (e.g. a report-modeled
+"presence-only" / "value-unconfirmed" field class), or is the prose report-note disposition the intended standing answer?
+Does **not** block 038-04, which follows the established precedent faithfully.
+
+**Resolution trigger:** the owner rules on whether the accumulation warrants an ADR-0020 amendment (or a third instance
+forces the question).
+
+### Parity report does not self-document the presence-only `maps` weakening (038-04 arch nit)
+
+**Deferred:** under redact-both-sides, `ud[external_id]` classifies `maps`, but that means **presence + well-formedness
+only**, not value-parity — yet `buildParityReport` (`rig/parity/report.js`) renders it identically to genuine value-parity
+fields (`id`/`ev`/`cd[...]`), and `SCOPE_NOTE` caveats only cross-site **transport**, not the hashed-field presence-only
+weakening. The durable, machine-consumed report thus self-documents the weaker claim **nowhere** (the caveat lives only in
+the descriptor comment + the efficacy entry above). `SCOPE_NOTE` is shared across all vendors, so widening it for a
+Meta-only weakening was out of 038-04's blast radius.
+
+**Resolution trigger:** a report consumer needs the presence-vs-value distinction machine-visible (e.g. an MVP9 parity
+dashboard), or the ADR-0020 amendment above lands a "presence-only" field class — then thread the caveat through the
+report (a per-field note or a `maps`-subtype), not just the descriptor.
+
+### Meta descriptor keys `_fbp`/`fbc` (cookie names) but the real `/tr` wire param is `fbp` (038-04 AC4 residual)
+
+**Deferred (pre-existing 038-01 descriptor-modeling gap, named by 038-04, not fixed there):** `rig/parity/descriptors/meta.js`
+lists `_fbp`/`fbc` in `attributionFields` (the COOKIE names) with matching `gapMap` owners, but the real Meta `/tr` beacon
+sends the first-party cookie as the query param `fbp` (**no** underscore — see `test/fixtures/meta-tr-pageview.redacted.json`).
+So against a REAL capture the descriptor's `_fbp` is skipped as "container never sent it" (`oracle.js:104`) rather than
+surfacing as `expected-dropped` — the `_fbp`/`fbc` owned gap is **under-reported** against real captures, and its raw-diff
+regression guard is real only against the synthetic fixture (`test/parity-meta.test.js`, which uses `_fbp`). 038-04 took
+the AC4 "scope + name" branch (a descriptor comment, `meta.js:61-65`) rather than reconciling the key.
+
+**Resolution trigger:** the chamber cookie-capability follow-up (which makes airlock actually emit `_fbp`/`fbc`) lands, or
+a real capture's first-party-cookie parity must be confirmed — then reconcile the descriptor key to the real wire param
+(`fbp`) and add a `wireNameMap` / descriptor entry so the gap is surfaced (not skipped) against real captures.
+
 ## Spec 040-03 (GA4 multi-`en` POST coalesce adapter) follow-ups
 
 ### The batch-body marker semantics (`_ee=1` per line; `_et` per-event) are grounded on a SINGLE capture (n=1)
@@ -735,6 +796,8 @@ across all three steady-state dispatch sites is wanted.
 **Deferred:** 026-04 shipped the *capability* to emit `ud[em]`/`ud[ph]` (Meta-doc-grounded normalization + SHA-256 hashing, [ADR-0022](decisions/adr-0022-pixel-advanced-matching-hashing.md) A4) — but end-to-end parity **confirmation** ([spec 038-04](specs/038-parity-harness/slice-04-advanced-matching-parity.md)) needs a real, signed-in beacon capture that actually carries them. That capture is currently un-obtainable in-repo: the intuit-class parity reference page (`stage.erp.intuit.com`) is an anonymous visit carrying no PII, and captures are local-only (R5 / ADR-0020) — so no committed fixture can carry `ud[em]`/`ud[ph]`. Until then, these two fields stay Meta-doc-grounded-by-analogy (not capture-witnessed) and are re-owned as an excused `gapMap` entry in the parity harness rather than confirmed `maps`.
 
 **Resolution trigger:** a real signed-in (redacted) capture becomes available — carrying `ud[em]`/`ud[ph]` — so the 038-04 parity oracle can confirm them the same way it confirms `ud[external_id]` today.
+
+**Landed 2026-09-11 ([spec 038-04](specs/038-parity-harness/slice-04-advanced-matching-parity.md) AC3):** the re-own described above is now built — `rig/parity/descriptors/meta.js`'s `gapMap["ud[em]"]`/`["ud[ph]"]` owner changed from `"026-04"` (capability shipped) to `"signed-in ud[em]/ph live-capture follow-up"` (this entry), staying `expected-dropped` (green), never `maps`. `ud[external_id]` — the sibling field this same slice DID confirm `maps` (via redact-both-sides against the real capture, `test/parity-meta-advanced-matching.test.js`) — is the worked precedent this entry's resolution trigger points at. The capture-availability trigger above is unchanged and still open.
 
 ### Pixel advanced-matching observability: identity cache/miss state is invisible to the 028 inspector
 
