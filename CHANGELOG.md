@@ -13,7 +13,37 @@ Two tag families:
 
 ## [Unreleased]
 
-- _Nothing yet — MVP7 (Pixel Parity & the Parity Harness) is next; see [docs/releases/README.md](docs/releases/README.md)._
+- _Nothing yet — MVP8 (Ad-Conversion Offloading) is next; see [docs/releases/README.md](docs/releases/README.md)._
+
+## [0.7.0] — 2026-09-11 — MVP7 (Pixel Parity & the Parity Harness)
+
+### Added
+
+- **The vendor-generic parity harness** (spec 038 / [ADR-0020](docs/decisions/adr-0020-parity-contract-anti-drift.md)):
+  capture → replay → per-protocol semantic oracle → report, confirming a rewired tag reaches the vendor boundary with
+  the same attribution-bearing fields its tag-manager container carried. Per-field gap ownership,
+  drift-as-regression-guard, and hard-gap owner-re-decision are the enforced parity contract. Meta advanced-matching
+  `ud[external_id]` **field-presence** parity is confirmed (038-04, via redact-both-sides); GA4 rides the same engine.
+- **The generic pixel connector** (spec 026): one config-driven `createPixelConnector` interpreting a declarative
+  `PixelVendorConfig` — Meta / LinkedIn / Bing as pure configs on the GET `/tr` wire shape, governed end-to-end.
+  **Meta advanced matching** (026-04 / [ADR-0022](docs/decisions/adr-0022-pixel-advanced-matching-hashing.md)): the
+  egress-confined worker normalizes + SHA-256-hashes `ud[external_id]` + `ud[em]`/`ph`/… eagerly and posts only the
+  hash back to a main-thread hash-only cache; a dedicated `setIdentity`/`init` channel feeds raw PII to in-chamber
+  hashing (bypassing `push()` governance by design, safe under egress confinement). Only hashes egress.
+- **The GA4 gtag-protocol connector** (spec 039 / [ADR-0019](docs/decisions/adr-0019-ga4-gtag-protocol-connector.md)):
+  an additive off-thread `/g/collect` connector carrying Consent-Mode `gcs`/`gcd` + `_ga_<stream>` session-state,
+  coalescing same-context bursts into gtag's batched `/g/collect` POST (spec 040).
+- **The GET-critical unload dispatcher** (spec 042): `createCriticalDispatcher`'s `requestMapper` GET path flushes a
+  worker-mapped GET connector's ring tail at page teardown (pixel `/tr` + ga4-gtag `/g/collect`), retiring the
+  `workerMappedGetEgress` drop-gate.
+
+### Changed
+
+- **`setIdentity(raw)`** — an additive, pixel-only method on the frozen stable core (ADR-0017 permits additive,
+  non-breaking extensions), present only on an advanced-matching-capable pixel boot handle (Meta today); pinned in
+  `test/contract-stability.test.js`.
+
+**Distribution:** **`dist-v0.7.0`** — the git-subtree cut of the v0.7.0 runtime, byte-pinned to the `v0.7.0` source tag.
 
 ## [0.6.0] — 2026-09-07 — MVP6 (Stable Core & Validation Harness)
 

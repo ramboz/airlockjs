@@ -8,14 +8,14 @@
 
 ## Status
 
-`shipping`
+`shipped`
 
-> **Advanced `committed` → `shipping` (owner decision, 2026-09-11).** All three fixed-core Include items are built —
-> the vendor-generic parity harness (038-01/02/03), GA4 parity via the gtag-protocol connector (spec 039), and Meta
-> advanced matching (026-04, GET-only). The last release-check piece — **038-04** (Meta advanced-matching
-> field-presence parity) — is now **DONE** (spec 038 complete), so the release-check is **met**; the remaining step is the
-> owner-gated v0.7.0 cut (E1 version-bump/dist-tag). There
-> is **no E10 blocker** (see Release-Check — E10 was measured by 038-03 and deferred as need-triggered per ADR-0020).
+> **Shipped as v0.7.0 (2026-09-11).** All three fixed-core Include items DONE — the vendor-generic parity harness (spec
+> 038, all four slices incl. 038-04's Meta advanced-matching field-presence confirmation), GA4 parity via the
+> gtag-protocol connector (spec 039), and Meta advanced matching (026-04, GET-only). The release-check is **met**; the
+> v0.7.0 version-bump/dist-tag cut (E1) runs via `npm version minor` (→ the immutable `dist-v0.7.0` tag). **No E10
+> blocker** (measured by 038-03, deferred as need-triggered per ADR-0020). Named non-blocking residuals carried to MVP9:
+> the signed-in `ud[em]`/`ph` capture + the same-input efficacy property.
 
 Allowed statuses: `candidate`, `committed`, `shipping`, `shipped`, `dropped`.
 Do not move a plan from `candidate` to `committed` without an explicit user decision.
