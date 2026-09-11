@@ -9,7 +9,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createHash } from "node:crypto";
 import { createAirlock } from "../core/airlock.js";
-import { createMetaPixelConfig, META_TR_ENDPOINT } from "../connectors/pixel/vendors/meta.js";
+import { createMetaPixelConfig } from "../connectors/pixel/vendors/meta.js";
 
 const sha256hex = (s) => createHash("sha256").update(String(s), "utf8").digest("hex");
 async function waitFor(pred, tries = 200) {

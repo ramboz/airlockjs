@@ -180,7 +180,7 @@ describe("AC6 — ud[...] rides the existing ad_storage seal (denied drops the W
     const onDiagnostic = vi.fn();
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal("fetch", fetchMock);
-    const airlock = makeMeta({ onDiagnostic, consentStrict: true, consent: { ad_storage: "denied" } });
+    makeMeta({ onDiagnostic, consentStrict: true, consent: { ad_storage: "denied" } });
 
     FakeWorker.last.onmessage(identityMsg({ external_id: HEX_XID }));
     // the chamber's ready already carries ud[...] (merged worker-side); the seal still gates it.
