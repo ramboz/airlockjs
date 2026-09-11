@@ -1,7 +1,7 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: [adr-0002]
-last_verified:
+last_verified: 2026-09-11
 frame_review: true
 arch_review: false
 ---
@@ -63,8 +63,10 @@ sentinel reconciliation is what the frame-critique tested; AC1's edge-case tests
 - All ACs met; full `npx vitest run` green; new `test/cookie-parse.test.js` (or equivalent) witnesses AC1's edges.
 - `core/cookie-parse.js` created; `readCookieValue` removed and its callers repointed; `adapters/eds/cookies.js` `get()`
   delegates. Grounding comments where useful.
-- Compliance + craft review passes recorded (no arch/frame pass — `arch_review`/`frame_review` false); reconciliation
-  walked; `docs/refinement-todo.md` OQ13 item 5 struck as RESOLVED (spec 043).
+- Compliance + craft review passes recorded; the pre-implementation **frame-critique pass ran** (`frame_review: true` —
+  it caught the `undefined`/`null` sentinel divergence and folded the fix into A1 / AC2 / DoR before implementation;
+  see `reviews/slice-01-frame-critique.md`). No arch or code-health pass (`arch_review: false`; no `code_health_review`).
+  Reconciliation walked; `docs/refinement-todo.md` OQ13 item 5 struck as RESOLVED (spec 043).
 
 **Out of scope (explicit):**
 - The prefix-match / first-pair / filter / scoping variants (spec 043 § A2) — different accessors, left open-coded.
@@ -84,14 +86,54 @@ lazy non-extractions — collapsing them would lose semantics or force an over-g
 
 ### Deviation log (after reconciliation)
 
-_(pending implementation)_
+Behavior-preserving extraction, implemented exactly as framed — **no deviations from the ACs**.
+
+- **Verbatim extraction (AC1).** `core/cookie-parse.js` `getCookieValue(cookieString, name)` copies the scan/decode
+  loop byte-for-byte from the two originals (`split(";")` → `indexOf("=")` skip-on-`-1` → `slice(0,eq).trim() !== name`
+  → `decodeURIComponent(slice(eq+1).trim())` with raw-on-throw), including `readCookieValue`'s leading `typeof`/`length`
+  guard. Absent-value sentinel is `undefined`. Pure, import-free leaf — mirrors `core/cookie-scope.js`'s shape.
+- **Sentinel reconciled per call site (AC2).** `adapters/eds/index.js` keeps `undefined` (call site repointed 1:1;
+  `readCookieValue` + its JSDoc deleted, not left as a wrapper). `adapters/eds/cookies.js` `get()` returns
+  `getCookieValue((doc && doc.cookie) || "", name) ?? null`, preserving its `Promise<string|null>` contract — so
+  `test/eds-cookies.test.js:48-51`'s `.toBeNull()` assertions pass unmodified.
+- **Benign guard note (compliance + craft reviewers).** The original `get()` inner loop had no non-string guard but
+  always received a string (`(doc && doc.cookie) || ""`), so `getCookieValue`'s leading guard is behaviorally equivalent
+  for every real input on that path. The craft pass flagged the `length === 0` clause as redundant-with-the-loop but
+  recommended keeping it (harmless, mirrors the original, clearer/faster for the empty case) — **kept**, no churn.
+- **Leanness held (AC3).** Only the exact-name accessor was extracted; the prefix-match / first-pair / filter / scoping
+  variants stay open-coded (spec 043 §A2). No generic pair-iterator, no options, a single export.
+- **Behavior-preservation proof (AC4).** Full `npx vitest run` green — 101 files / 1548 tests — witnessed by the
+  orchestrator (the read-only review passes could not run it). New `test/cookie-parse.test.js` (10 edge tests) witnesses
+  AC1; `git grep readCookieValue` returns no code references.
 
 ### Reconciliation sweep
 
-_(pending implementation)_
+Drift-prone surfaces checked (`updated` / `no-op` / `deferred`):
+
+- **`docs/refinement-todo.md` OQ13 item 5** — `updated`: struck as RESOLVED (spec 043-01) with a Resolved note; the
+  OQ13 header, "Still open", and "Resolution trigger" lines reconciled (item 5 → DONE; item 3 remains the only open
+  OQ13 item).
+- **`docs/specs/README.md` (generated status board)** — `deferred`: still renders 043 as DRAFT; it is a derived
+  artifact (regenerated, never hand-edited) and is refreshed at close via `workflow.py status-board` once the slice
+  reaches DONE and spec 043 rolls up (trigger: the post-DONE close-out step, tracked by close-out item 2 below).
+- **Primer surfaces (`CLAUDE.md` / `AGENTS.md`)** — `no-op`: grep found no `043` / `cookie-parse` / `readCookieValue`
+  reference; 043 had no active-spec primer entry, so the spec-close compress is a no-op (close-out confirmed).
+- **`docs/architecture.md`** — `no-op`: no module boundary or public contract changed. The `adapters/* → core/` edge
+  and the pure import-free leaf pattern both pre-exist (`core/cookie-scope.js`, added by 035-01, is the exact precedent
+  and is likewise not enumerated in architecture.md); `getCookieValue` is an internal helper, not part of the frozen
+  1.0 surface (ADR-0017). No ADR — the decision is governed by the pre-existing ADR-0002.
+- **`docs/inbox.md`** — `no-op`: the one cookie-related inbox item (2026-09-05, coarse-consent / OQ13-1) is unrelated
+  to pair-scan duplication.
+- **Closed-spec drift (ADR-0010)** — `no-op`: 026-04 (DONE) introduced `readCookieValue`; its record accurately
+  describes that point-in-time addition and is not rewritten. No live prose (architecture / skill / README) names
+  `readCookieValue`, so there is nothing to correct inline.
+- **Use-case coverage (advisory)** — `no-op`: `workflow.py coverage` reports no coverage gaps; 043 appears under
+  scope-creep (empty `use_cases:`) alongside the other infra/refactor specs — expected and legitimately untraced (no
+  user-facing behavior), non-blocking (ADR-0025).
+- **Lightweight decisions / conventions** — `no-op`: no UI/visual/copy decision and no new or changed convention.
 
 ### Close-out (post-DONE)
 
-- [ ] `docs/refinement-todo.md` OQ13 item 5 struck as RESOLVED (spec 043).
-- [ ] Spec 043 rolls to DONE (single slice); regenerate the board.
-- [ ] Primer hygiene: 043 has no active-spec primer entry — spec-close compress is a no-op; confirm at close.
+- [x] `docs/refinement-todo.md` OQ13 item 5 struck as RESOLVED (spec 043) — Resolved note added; OQ13 header / "Still open" / "Resolution trigger" reconciled.
+- [x] Spec 043 rolls to DONE (single slice); regenerate the board — done (`workflow.py status-board`: 110 slices / 43 specs; board row 043-01 → **DONE**).
+- [x] Primer hygiene: 043 has no active-spec primer entry — spec-close compress is a no-op; confirmed (grep: no `043` / `cookie-parse` / `readCookieValue` in `CLAUDE.md` / `AGENTS.md`).

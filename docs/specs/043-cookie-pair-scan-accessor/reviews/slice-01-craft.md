@@ -1,0 +1,29 @@
+---
+slice: 043-01 — extract `getCookieValue` + repoint the two exact-name copies
+pass: craft
+verdict: pass
+reviewer: pr-review
+reviewed_at: 2026-09-11T23:04:41Z
+prompt_source: review.py pr-review docs/specs/043-cookie-pair-scan-accessor/spec.md 043-01 core/cookie-parse.js test/cookie-parse.test.js adapters/eds/index.js adapters/eds/cookies.js --richer-skill pr-review
+substrate: shown
+applied_skill: pr-review
+shown_candidates: [pr-review:high-confidence, scout-pr-review:high-confidence, servo:agent-loop:high-confidence, servo:autonomy-readiness:high-confidence, servo:quality-gate:high-confidence, access:speculative, adobe-security-antipatterns:speculative, adobe-security-audit:speculative, adobe-security-client:speculative, adobe-security-cloud:speculative, adobe-security-foundations:speculative, adobe-security-lang:speculative, adobe-security-services:speculative, agent-development:speculative, arch-review:speculative, audit-migrator:speculative, block-kit:speculative, build-mcp-app:speculative, build-mcp-server:speculative, build-mcpb:speculative, cardputer-buddy:speculative, claude-automation-recommender:speculative, claude-md-improver:speculative, claude-security:speculative, command-development:speculative, configure:speculative, content-fidelity:speculative, create-slack-app:speculative, cutline:speculative, debug-workflow:speculative, design-eval:speculative, eval-authoring:speculative, example-command:speculative, example-skill:speculative, frontend-design:speculative, get-content-scrape:speculative, hook-development:speculative, investigate-alert:speculative, local-dev:speculative, m5-onboard:speculative, math-olympiad:speculative, mcp-integration:speculative, morning-ai-radar:speculative, morning-assistant:speculative, morning-confluence:speculative, morning-github:speculative, morning-jira:speculative, morning-outlook:speculative, morning-slack:speculative, morning-spike:speculative, mysticat-debug:speculative, playground:speculative, plugin-settings:speculative, plugin-structure:speculative, project-artifact:speculative, query-audits:speculative, query-opportunities:speculative, query-scrapes:speculative, query-sites:speculative, receipts:speculative, release-check:speculative, release-slate:speculative, run-preflight:speculative, scope-audit:speculative, scout-autotune:speculative, scout-bench-create:speculative, scout-memory-init:speculative, scout-scrum-master:speculative, servo:edd-suitability:speculative, servo:execution-planner:speculative, servo:heartbeat:speculative, servo:oracle-hook:speculative, servo:scaffold-init:speculative, servo:spec-oracle:speculative, session-report:speculative, shape-release:speculative, silence-alert:speculative, skill-creator:speculative, skill-development:speculative, slack-api:speculative, slack-cli:speculative, slack-docs:speculative, slack-messaging:speculative, slack-search:speculative, spacecat-configuration:speculative, steward:speculative, test-pr-in-dev:speculative, webpage-replica:speculative, writing-hookify-rules:speculative]
+---
+
+VERDICT: pass
+
+REASONING:
+This is a clean, minimal, behavior-preserving ADR-0002 extraction. The git diff confirms both byte-identical loops were removed and repointed 1:1 (net -42/+8), with each call site's absent-value sentinel preserved exactly (`undefined` at the index.js call site via the existing `!= null` guard; `null` at the cookies.js `get()` via `?? null`). The new `cookie-parse.test.js` witnesses every edge the originals handled with behavior-named, non-vacuous tests, and the untouched `eds-cookies.test.js` continues to exercise the delegation boundary. No blockers, no should-fix, no genuine nits.
+
+SPECIFIC ISSUES:
+- [strength][impl] core/cookie-parse.js:37-51 — Verbatim extraction of the byte-identical scan/decode loop with the never-throws raw-fallback intact; import-free leaf keeps the adapters→core edge cycle-free, and the JSDoc records provenance (026-04 + the mediated get()) and the deliberate leanness boundary.
+- [strength][impl] adapters/eds/cookies.js:33 — `?? null` reconciles the primitive's `undefined` sentinel to the `Promise<string|null>` capability contract at the call site, so the shared primitive stays option-free. The `(doc && doc.cookie) || ""` guard is preserved verbatim.
+- [strength][impl] test/cookie-parse.test.js — Thorough, behavior-named edge coverage (non-string, empty jar, absent name, prefix non-confusion `_ga` vs `_ga_S1`, first-`=`-splits, whitespace trim, percent-decode, malformed→raw, first-match-wins). Non-vacuous: each asserts observable behavior that breaks if its branch is removed.
+- [strength][impl] adapters/eds/index.js — Full removal of the duplicated `readCookieValue` (not a wrapper left behind) with the single call site repointed 1:1; the 026-04 "read-only, never mints an ad id" rationale is preserved in the surviving call-site comment.
+
+RECONCILIATION NOTES:
+- Non-blocking observation, not a nit: the primitive's leading `cookieString.length === 0` clause is redundant with the loop (an empty string already falls through to `return undefined`). It is harmless, faithfully mirrors the original `readCookieValue` guard, and is arguably clearer/faster for the empty case — leave it; removing it would be churn for no behavioral gain.
+- `test/eds-cookies.test.js`'s malformed-escape and prefix cases overlap `cookie-parse.test.js` by design (capability-boundary vs primitive), not duplication to trim.
+- AC4's full-suite green was not run here (read-only craft pass); the orchestrator ran it green (101 files / 1548 tests). The slice's `### Deviation log` and `### Reconciliation sweep` are still pending, as expected before REVIEWED→RECONCILED.
+
+Craft substrate: general-purpose subagent applying the installed `pr-review` skill rubric (/Users/ramboz/.claude/skills/pr-review/SKILL.md); read-only, no prior implementation context.

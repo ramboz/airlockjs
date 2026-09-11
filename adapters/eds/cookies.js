@@ -18,6 +18,8 @@
  * Tracked in refinement-todo OQ13.
  */
 
+import { getCookieValue } from "../../core/cookie-parse.js";
+
 /**
  * @param {{ cookie: string }} [doc] the document to mediate (default: the global).
  * @returns {{ get(name: string): Promise<string|null>,
@@ -28,19 +30,7 @@
 export function createCookieCapability(doc = typeof document !== "undefined" ? document : undefined) {
   return {
     async get(name) {
-      const jar = (doc && doc.cookie) || "";
-      for (const pair of jar.split(";")) {
-        const eq = pair.indexOf("=");
-        if (eq === -1) continue;
-        if (pair.slice(0, eq).trim() !== name) continue;
-        const raw = pair.slice(eq + 1).trim();
-        try {
-          return decodeURIComponent(raw);
-        } catch {
-          return raw; // malformed %-escape: surface the raw value, never throw
-        }
-      }
-      return null;
+      return getCookieValue((doc && doc.cookie) || "", name) ?? null;
     },
 
     async set(name, value, opts = {}) {

@@ -37,6 +37,7 @@ import { hostOf } from "../../core/config-integrity.js";
 import { resolveConsent } from "../../core/consent.js";
 import { ALLOY_INTERACT_ENDPOINT, ALLOY_COOKIE_NAMES } from "../../connectors/alloy/connector.js";
 import { scopeSeedCookies } from "../../core/cookie-scope.js";
+import { getCookieValue } from "../../core/cookie-parse.js";
 import { htmlOfDecision } from "../../connectors/alloy/decisions.js";
 import { createPropositionExposureReporter, PROPOSITION_EXPOSURE_EVENT } from "./decisions-exposure.js";
 import { VIEW_SCOPE, firstDuplicateScope } from "./placements.js";
@@ -735,32 +736,6 @@ const PIXEL_VENDORS = {
 };
 
 /**
- * 026-04: read one cookie value from a raw `document.cookie` string, SYNCHRONOUSLY
- * (so bootPixelConnector stays sync). Read-only host-side sourcing of a first-party
- * `external_id` — mirrors GA4's own `_ga` sourcing shape (`connectors/ga4/cookies.js`)
- * but never mints/persists: an absent cookie yields `undefined` (no advanced matching),
- * deliberately NOT auto-generating an advertising identifier. Never throws.
- * @param {string} cookieString a raw `document.cookie`.
- * @param {string} name the cookie name to read.
- * @returns {string|undefined} the decoded value, or `undefined` when absent.
- */
-function readCookieValue(cookieString, name) {
-  if (typeof cookieString !== "string" || cookieString.length === 0) return undefined;
-  for (const pair of cookieString.split(";")) {
-    const eq = pair.indexOf("=");
-    if (eq === -1) continue;
-    if (pair.slice(0, eq).trim() !== name) continue;
-    const raw = pair.slice(eq + 1).trim();
-    try {
-      return decodeURIComponent(raw);
-    } catch {
-      return raw; // malformed %-escape: surface raw, never throw (mirrors createCookieCapability)
-    }
-  }
-  return undefined;
-}
-
-/**
  * The single parameterized pixel boot (spec 032-01 AC2) the three per-vendor
  * functions AND the config `{type:"pixel"}` entry all route through. Identical to
  * the pre-032 per-vendor bodies: build the vendor connector config from its
@@ -797,7 +772,7 @@ function bootPixelConnector(vendor, opts = {}) {
     ? externalId != null && externalId !== ""
       ? String(externalId)
       : externalIdCookie
-        ? readCookieValue(typeof document !== "undefined" ? document.cookie : "", externalIdCookie)
+        ? getCookieValue(typeof document !== "undefined" ? document.cookie : "", externalIdCookie)
         : undefined
     : undefined;
   const connectorConfig = entry.createConfig(
