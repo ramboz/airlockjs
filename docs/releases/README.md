@@ -21,14 +21,13 @@ they stop informing a current release decision.
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| [MVP6 — Stable Core & Validation Harness](mvp6.md) | All Include work **DONE + landed** — distribution (031), cookie-grant hardening (035), the stable-core contract (037/ADR-0017), the real-site CWV harness + subset smoke (036). Ships as **v0.6.0**; the version-bump/dist-tag cut (E1) is the pending outward-facing step, owner-gated | JIG handoff: [031](../specs/031-distribution-setup/spec.md), [035](../specs/035-cookie-grant-wrapper/spec.md), [036](../specs/036-real-site-validation-harness/spec.md), [037](../specs/037-one-point-oh-api-pin/spec.md) |
-| [MVP7 — Pixel Parity & the Parity Harness](mvp7.md) | **Committed 2026-09-08.** Both risk-first gates GO: the GA4 protocol path is decided ([ADR-0019](../decisions/adr-0019-ga4-gtag-protocol-connector.md) — additive `/g/collect` gtag-protocol connector) and R-010 measured the CWV bound (four vendor runtimes ≈ 70% of TBT on the reference page). Building: the vendor-generic parity harness (E5) + the GA4 gtag-protocol connector + Meta Pixel parity (026-04). Ships v0.7.0 | JIG handoff: parity-harness spec (E5), GA4 gtag-protocol connector spec (ADR-0019), [026](../specs/026-generic-pixel-connector/spec.md), R-010 (CONCLUDED) |
+| _None yet_ | _-_ | _-_ |
 
 ## Shipping
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| _None yet_ | _-_ | _-_ |
+| [MVP7 — Pixel Parity & the Parity Harness](mvp7.md) | **Build-complete (advanced to `shipping` 2026-09-11).** All three fixed-core Include items are DONE — the vendor-generic parity harness (038), the GA4 gtag-protocol connector (039/ADR-0019), and Meta advanced matching (026-04, GET-only). The last release-check piece is **038-04** (confirm Meta advanced-matching field-presence parity — in progress); the v0.7.0 cut (E1) is owner-gated and waits on it. No E10 blocker (measured by 038-03, deferred per ADR-0020). Ships v0.7.0 | JIG handoff: [038](../specs/038-parity-harness/spec.md), [039](../specs/039-ga4-gtag-connector/spec.md), [026](../specs/026-generic-pixel-connector/spec.md) |
 
 ## Shipped
 
@@ -41,6 +40,7 @@ Recently shipped release plans stay here only while they inform current decision
 | [MVP3](mvp3.md) | MVP2 proves alloy isolates and runs in a chamber but deliberately leaves its I/O seams unsecured and alloy's config-driven behaviour uncharacterized. MVP3 secures the seams (ADR-0006/0007 enforcement) against alloy's real, measured behaviour — turning the declaration shape established in MVP2 into enforced least-privilege. | JIG handoff: [spec 012-04 §Findings](../specs/012-mvp2-alloy-chamber/slice-04-manifest-characterize.md) |
 | [MVP4 — The Core AEM Stack (governed alloy + RUM)](mvp4.md) | **The maintainer's framing (2026-08-31):** the *core of any AEM / Adobe site* is **GA4 + Adobe Experience | No JIG handoff linked. |
 | [MVP5 — Inspector & the RUM Layer (make it visible, own the observability)](mvp5.md) | Shipped as **v0.5.0** — the enforcement inspector (028), the before/after CWV scoreboard (029), and airlock-as-RUM-authority / the *replace* decision (030) | JIG handoff: [028](../specs/028-enforcement-inspector/spec.md), [029](../specs/029-cwv-scoreboard/spec.md), [030](../specs/030-rum-subsume/spec.md) |
+| [MVP6 — Stable Core & Validation Harness](mvp6.md) | Shipped as **v0.6.0** (2026-09-07) — distribution (031), cookie-grant hardening (035), the stable-core contract (037/ADR-0017), the real-site CWV harness + subset smoke (036); the v0.6.0 version-bump/dist-tag cut (E1) ran | JIG handoff: [031](../specs/031-distribution-setup/spec.md), [035](../specs/035-cookie-grant-wrapper/spec.md), [036](../specs/036-real-site-validation-harness/spec.md), [037](../specs/037-one-point-oh-api-pin/spec.md) |
 
 ## Dropped
 

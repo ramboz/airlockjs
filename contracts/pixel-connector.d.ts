@@ -26,21 +26,27 @@
  * COVERAGE BOUND (AC6 — R-007 / ADR-0014 coverage-honesty discipline): this
  * type covers **GET wire-protocol pixels only** — the archetype 026-01/026-02
  * proved end-to-end against three real vendors (Meta Pixel, LinkedIn Insight,
- * Bing UET). Two axes are explicitly OUT OF SCOPE here, deferred to
- * **026-04** (real-driver-gated — not built speculatively, per spec 026's
- * "Of the config triple..." decomposition):
- *   - **Identity / advanced-matching** — hashed email/phone (`ud[...]`-style
- *     fields) and first-party cookie identity (`_fbp`/`fbc`, `_uetsid`/
- *     `_uetvid`, `li_fat_id`). This connector was DELIBERATELY designed
- *     without that surface (the AC8 identity-free invariant both 026-01 and
- *     026-02 reviews praised) — it needs in-chamber hashing, a per-field
- *     consent class, and a new governance path, none of which this type
- *     pins.
- *   - **POST / a JSON request body.** No real POST pixel motivated it as of
- *     026-02; `ctx`-body access is a security-relevant surface this
+ * Bing UET). Of the two axes 026-02 named as deferred to **026-04**, one has
+ * since SHIPPED (but deliberately stays outside this type) and one remains
+ * genuinely out of scope:
+ *   - **Identity / advanced-matching** — hashed email/phone/external-id
+ *     (`ud[...]`-style fields) SHIPPED in 026-04 (ADR-0022: worker-side eager
+ *     SHA-256 hashing, posted back to a main-thread hash-only cache and
+ *     merged onto the beacon by the host/chamber) — but it deliberately lives
+ *     OUTSIDE `PixelVendorConfig`. `createPixelConnector` stays
+ *     identity-agnostic by construction (the AC8/AC9 identity-free invariant
+ *     both 026-01 and 026-02 reviews praised): the pixel chamber strips an
+ *     `advancedMatching` field from the config before constructing the
+ *     connector and hashes it off to the side, never through this type's
+ *     `handle()`. First-party cookie identity (`_fbp`/`fbc`, `_uetsid`/
+ *     `_uetvid`, `li_fat_id`) did NOT ship and stays genuinely OUT OF SCOPE —
+ *     no per-field consent class or cookie-governance path exists for it.
+ *   - **POST / a JSON request body.** Still OUT OF SCOPE. No real POST pixel
+ *     has motivated it; `ctx`-body access is a security-relevant surface this
  *     connector structurally lacks today (it never reads `ctx`).
  * A `PixelVendorConfig` therefore describes a SUBSET of martech — config-
- * shaped wire-protocol GET pixels — not "everything a tag could need."
+ * shaped, identity-agnostic wire-protocol GET pixels — not "everything a tag
+ * could need."
  */
 
 import type { ConsentPurpose } from "./connector";

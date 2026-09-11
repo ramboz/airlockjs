@@ -61,7 +61,7 @@ Default to collaborative and solution-forward — answer what's asked, propose r
 
 ## Current Sprint Focus
 
-> Updated each session by the team: what are we building right now?
+MVP7 (pixel parity): connectors + unload dispatcher shipped (spec 026 all six slices; 039-042 DONE); finishing the parity-harness confirmation (038-04) toward the v0.7.0 release-check.
 
 ## Development Conventions
 

@@ -31,6 +31,7 @@
 ### OQ5 — Identity / first-party cookie store home
 **Deferred:** A no-go for MVP1, but where it eventually lives (orchestrator, main thread) and how connectors get scoped access.
 **Resolution trigger:** When identity resolution leaves the no-go list (post-MVP2).
+**Still open, 2026-09-11 cross-reference:** main-thread, per-vendor identity machinery has accreted piecemeal since this was written (GA4 `client_id`/`_ga` sourcing — 004-03, 017-02, 035-01, 039-03 — and most recently 026-04's pixel `identityCache`/`setIdentity` for Meta advanced-matching, `core/airlock.js`). Each is a narrow, per-connector read/cache, not the GENERAL first-party cookie store this OQ asks about — that remains a deliberate vision no-go.
 
 ### ~~OQ6 — Flicker oracle design~~ — RESOLVED 2026-08-27
 ~~**Deferred:** Screenshot-diff between pre- and post-decoration paint vs a CLS-after-apply proxy. A servo oracle-component question; the proxy-gap here is why the PZN demo item stays jig-supervised. This is also where the before/after CWV scoreboard (the "punchline" use case) becomes a pinned measurement surface (analyze finding #7).~~
@@ -285,7 +286,13 @@ reshape ①, cookie-capability deny ②, seal hold/strict-drop ③) — see
   time, never a mid-session reshape update — this slice gates *dispatch*
   (send/hold/drop), not the *payload*. Still needs the new worker message
   type + re-send the 017-01 "Mid-session consent update" bullet above
-  describes.
+  describes. **Cross-reference (spec 042):** the GET-shaped unload/critical
+  `requestMapper` (ga4-gtag/pixel, `core/airlock.js`) is itself a closure over
+  a main-thread `ctx`/config snapshot taken once at `createAirlock`-time — a
+  future 017-01 ctx-resend into the worker's copy would need a matching
+  main-thread refresh here too, or the unload beacon would silently diverge
+  from the worker's cycle path (see the spec-042 resolution note under
+  "Spec 041-01 … follow-up" above).
 - **Per-purpose replay/STOP on revoke.** 017-03 only handles the
   pending→granted direction (flush). A granted→denied/pending edge mid-session
   does not retroactively un-send already-dispatched beacons (ADR-0007: "already-
@@ -635,14 +642,14 @@ frame-critique), which also decides the cohort-size question ADR-0020 hands it. 
 plan in 2024–2025); if Chrome later removes third-party cookies by default, this item's *need* mostly evaporates (the
 cookieless first-party + CAPI path becomes the only path) — which is why it is need-triggered, not scheduled.
 
-### `ctx.consent` shape overload across the two GA4 connectors — host-wiring hazard (039-02)
+### ~~`ctx.consent` shape overload across the two GA4 connectors — host-wiring hazard (039-02)~~ — RESOLVED 2026-09-11
 
-**Latent, not a live bug** (surfaced by the 039-02 compliance + craft reviews). `connectors/ga4/map.js` (MP path) reads
+~~**Latent, not a live bug** (surfaced by the 039-02 compliance + craft reviews). `connectors/ga4/map.js` (MP path) reads
 `ctx.consent` as the **shaped MP object** (`{ad_user_data?, ad_personalization?}`, `"GRANTED"|"DENIED"`), while
 `connectors/ga4/gtag.js`'s `encodeGcs` reads `ctx.consent` as the **raw ADR-0007 vector** (`{ad_storage,
 analytics_storage, …}`, lowercase `granted|denied`). Same field name, same `connectors/ga4/` dir, opposite shape. No
 collision today: the gtag connector is not yet host-wired (each factory gets its own `config.ctx`; tests pass a raw
-vector).
+vector).~~
 
 **Resolution trigger:** the gtag-connector host-wiring slice (the future `manifest`/`init` wrapper, per 039-01's
 deviation log — likely grown in 039-03). That slice **must pass the RAW consent vector** to the gtag connector and must
@@ -650,6 +657,13 @@ deviation log — likely grown in 039-03). That slice **must pass the RAW consen
 reaching `encodeGcs` resolves every storage purpose to `pending`, so `gcs` is **silently omitted** (no crash, no wrong
 value — passes all validity checks, just never emits). Fix at wiring time via a distinct field (e.g. `ctx.consentVector`)
 or a shape assertion in `encodeGcs`.
+
+**Resolved 2026-09-11 (`bootGa4Gtag`, spec 041-02):** the gtag connector is now host-wired, and the wiring honored this
+exact requirement — `adapters/eds/index.js`'s `bootGa4Gtag` builds `ctxWithConsent = { ...ctxWithSessionState, consent,
+consentDefault }` (`adapters/eds/index.js:683`), folding the RAW ADR-0007 vector straight through, and does **not**
+reuse `shapeMpConsent` (that shaping stays scoped to the MP path's private `bootGa4Core`, `adapters/eds/index.js:421-422`).
+`gtag.js`'s `encodeGcs`/`encodeGcd` resolve `ad_storage`/`analytics_storage` correctly from the live vector — the
+silent-omission hazard this item warned against did not materialize.
 
 ## Spec 040-03 (GA4 multi-`en` POST coalesce adapter) follow-ups
 
@@ -708,10 +722,28 @@ across all three steady-state dispatch sites is wanted.
 
 **Resolved by [spec 042](specs/042-get-critical-unload-dispatcher/spec.md) (both slices, 2026-09-10):** `createCriticalDispatcher` (`core/egress.js`) gained a connector-generic GET `requestMapper` path (`(event) => EgressRequest[]`, dispatched GET/POST-aware via the now-shared `fetchInit`, no per-tracker POST loop, no body budget for GET — A2). `core/airlock.js` wires the connector's own pure `handle` as that `requestMapper` — `createGa4GtagConnector(connectorConfig).handle` for `ga4-gtag` (042-01) and `createPixelConnector(connectorConfig).handle` for `pixel` (042-02) — so a still-buffered ring event (or a `pushCritical`) flushes as a correct GET beacon at teardown (`/g/collect` for gtag, the vendor `/tr` for a pixel) instead of dropping. With both connectors wired, the `workerMappedGetEgress` drop-gate is **retired** (no connector is gated out of the unload path); the invariant it enforced now lives as a `core/airlock.js` comment — a future worker-mapped connector MUST supply a critical mapper (a POST `mapper` like helix-rum's, or a GET `requestMapper`), else its teardown tail mis-maps through the default `mapToMp`. The POST unload path (GA4-MP, helix-rum) stays byte-identical throughout. Byte-parity re-verified against the worker `routeBatch` path (both slices' AC5); gtag carries a documented ctx-frozen-boot-snapshot bound (A1 — a future 017-01 ctx-resend into the worker would need a matching main-thread refresh), while pixel has none (it reads no `ctx`).
 
-## Spec 026-04 (Meta advanced matching) follow-up
+## Spec 026-04 (Meta advanced matching) follow-ups
 
 ### Mid-session identity invalidation (logout/clear) for pixel advanced matching
 
 **Deferred:** `setIdentity` (`core/airlock.js`) only ADDS/OVERWRITES per-field hashes in the advanced-matching identity cache — a null/absent field on a later `setIdentity` call is simply skipped, never invalidated. So a once-hashed field (e.g. `em`) persists for the rest of the SPA page lifetime: a visitor who logs out or clears their identity WITHOUT a full page navigation still has their previously-hashed `em`/`ph`/… ride the closing/unload beacon within the same page instance — there is no mechanism to clear a cached field mid-session. [ADR-0022](decisions/adr-0022-pixel-advanced-matching-hashing.md) § Consequences names this explicitly as future work ("a mid-session identity change must invalidate/refresh the cache (re-hash + re-post); the common session-stable case is a no-op") — only the overwrite-refresh half is built (a later `setIdentity({ em: newValue })` correctly replaces the cached hash); explicit invalidation (clearing a field on logout) is not.
 
 **Resolution trigger:** when a real SPA logout-without-navigation flow needs the pixel's advanced-matching identity cache cleared mid-session (rather than relying on a full page reload/re-boot to reset the in-memory cache). See [ADR-0022](decisions/adr-0022-pixel-advanced-matching-hashing.md) + spec [026-04](specs/026-generic-pixel-connector/slice-04-advanced-matching.md).
+
+### Signed-in `ud[em]`/`ph` live capture to ground the hashed-PII advanced-matching fields
+
+**Deferred:** 026-04 shipped the *capability* to emit `ud[em]`/`ud[ph]` (Meta-doc-grounded normalization + SHA-256 hashing, [ADR-0022](decisions/adr-0022-pixel-advanced-matching-hashing.md) A4) — but end-to-end parity **confirmation** ([spec 038-04](specs/038-parity-harness/slice-04-advanced-matching-parity.md)) needs a real, signed-in beacon capture that actually carries them. That capture is currently un-obtainable in-repo: the intuit-class parity reference page (`stage.erp.intuit.com`) is an anonymous visit carrying no PII, and captures are local-only (R5 / ADR-0020) — so no committed fixture can carry `ud[em]`/`ud[ph]`. Until then, these two fields stay Meta-doc-grounded-by-analogy (not capture-witnessed) and are re-owned as an excused `gapMap` entry in the parity harness rather than confirmed `maps`.
+
+**Resolution trigger:** a real signed-in (redacted) capture becomes available — carrying `ud[em]`/`ud[ph]` — so the 038-04 parity oracle can confirm them the same way it confirms `ud[external_id]` today.
+
+### Pixel advanced-matching observability: identity cache/miss state is invisible to the 028 inspector
+
+**Deferred:** the advanced-matching identity cache (`core/airlock.js`'s `identityCache`) and its cold-miss path (a `ud[...]` field omitted from a beacon because the eager hash hadn't resolved yet at read time) emit no [028 inspector](specs/028-enforcement-inspector/spec.md) diagnostic — a cold-miss omission is currently undiagnosable from outside the code, only inferable by comparing a beacon against the expected field set. [ADR-0022](decisions/adr-0022-pixel-advanced-matching-hashing.md) § Open questions names this explicitly ("should the orchestrator also expose the cache/miss state to the inspector (028) so a cold-miss omission is diagnosable rather than silent? Deferred to 026-04") — not built there either.
+
+**Resolution trigger:** a diagnosable cold-miss is needed on a real property (a field silently missing from a live beacon with no way to tell why from the inspector).
+
+### Pixel identity-error diagnostic
+
+**Deferred:** the pixel chamber's WebCrypto-unavailable throw (no `crypto.subtle` in a no-WebCrypto realm) is swallowed by a bare `.catch(() => {})` in the worker, so hashing would silently no-op rather than surface anywhere — no value-free `{type:"identity-error", field}` signal is emitted ([026-04 slice doc](specs/026-generic-pixel-connector/slice-04-advanced-matching.md), craft review). Near-unreachable today (an HTTPS worker or Node 18+ both expose `crypto.subtle`), and the chamber has no log channel by design (ADR-0001) — building a new protocol surface for a currently-unreachable path was deliberately skipped.
+
+**Resolution trigger:** a real WebCrypto-absent environment surfaces (a runtime/embed where `crypto.subtle` is genuinely unavailable to the pixel chamber).

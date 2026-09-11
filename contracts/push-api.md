@@ -75,8 +75,11 @@ airlock.setIdentity(raw);   // { em, ph, external_id, … } — raw Meta advance
 
 A pixel-only, **additive** method (spec 026-04, [ADR-0022](../docs/decisions/adr-0022-pixel-advanced-matching-hashing.md))
 present only on a handle booted for an advanced-matching-capable pixel vendor (Meta today);
-absent — a no-op surface, not a thrown error — on every other handle (non-pixel connectors, and
-the other pixel vendors).
+**absent on every other handle** (non-pixel connectors, and the other pixel vendors) — so adopters
+feature-detect (`if (handle.setIdentity)`) before calling, since invoking an absent method throws a
+`TypeError`. (The raw `createAirlock(...)` handle always carries a `setIdentity`, a genuine no-op
+for non-pixel workers; it is the adapter boots that expose it only for Meta — `adapters/eds/index.js`
+gates `handle.setIdentity` on `entry.advancedMatching`.)
 
 - **Feeds raw identity to the pixel chamber on a DEDICATED `identity` channel — not `push()`.** The
   egress-confined pixel chamber normalizes + SHA-256-hashes each field per Meta's Customer
@@ -92,8 +95,9 @@ the other pixel vendors).
   appear on the wire.
 - **Synchronous, fire-and-forget, like `pushCritical`.** Returns nothing; the hash resolves
   asynchronously off-thread and is merged in once ready.
-- **No-op on a handle without advanced-matching support** (a non-pixel connector, or a pixel vendor
-  other than Meta) — the method is simply absent from that handle.
+- **Absent on a handle without advanced-matching support** (a non-pixel connector, or a pixel vendor
+  other than Meta) — the method is simply not present on that boot handle, so calling it throws a
+  `TypeError`; feature-detect (`if (handle.setIdentity)`) before use.
 
 ## The read surface
 

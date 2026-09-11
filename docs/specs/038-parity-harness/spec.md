@@ -1,5 +1,5 @@
 ---
-status: DONE
+status: IN_PROGRESS
 skill:
 use_cases: [UC-2]
 ---
@@ -138,3 +138,4 @@ vendor that exercises it most cheaply first (simplest data first).
 - [038-01 — vendor-generic harness core + same-protocol oracle (Meta Pixel)](slice-01-harness-core-same-protocol-meta.md)
 - [038-02 — semantic field-map oracle (GA4)](slice-02-semantic-field-map-ga4.md)
 - [038-03 — credential/cookie context + per-cohort report (feeds E10)](slice-03-credential-context-cohorts.md)
+- [038-04 — confirm Meta advanced-matching parity (retire the `ud[...]` gap)](slice-04-advanced-matching-parity.md) — un-blocked by [026-04](../026-generic-pixel-connector/slice-04-advanced-matching.md); `ud[external_id]` confirmed as `maps` (redact-both-sides presence parity), `ud[em]`/`ph` re-owned to the signed-in live-capture follow-up ([ADR-0020](../../decisions/adr-0020-parity-contract-anti-drift.md) commitment 1). The MVP7 advanced-matching release-check step.
