@@ -79,3 +79,6 @@ The current-state view derived from the event log, held in the orchestrator and 
 ## tag-manager container
 
 A main-thread tag-management runtime (Tealium iQ, Google Tag Manager, Adobe Launch) that loads and fires vendor tags on the page. The thing airlock rewires tags *out of*; on the reference site it is a customer-owned Tealium profile, which is why the 1.0 rewire is a two-party effort (developer + container owner).
+
+## advanced matching
+Meta/Facebook Pixel feature that attaches hashed first-party identifiers (ud[external_id], ud[em]/ph/fn/ln/db/ge/ct/st/zp/country — SHA-256 hex of Meta-normalized values) to /tr beacons to raise match rates. In airlock (spec 026-04, ADR-0022): raw PII feeds via a dedicated setIdentity/init channel that bypasses payload governance BY DESIGN to reach in-chamber hashing; the confined worker normalizes + SHA-256-hashes eagerly and posts only the hex back; the main thread holds a hash-only identityCache read synchronously to merge ud[...] onto the spec-042 GET-critical unload beacon. Only hashes ever egress (degrade-to-omit, never raw, if a field is unhashed at teardown). See connectors/pixel/advanced-matching.js.
