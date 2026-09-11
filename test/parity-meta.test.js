@@ -112,8 +112,9 @@ describe("oracle input contract — the airlock field-set is substitutable (AC2)
     expect(emitted).toBe(true); // the REAL replay result, not a hardcoded literal (compliance-review tidy)
     expect(fields.id).toBe(SYNTHETIC_META_PIXEL_ID);
     expect(fields.ev).toBe("Lead");
-    expect(fields.value).toBe("25");
-    expect(fields.currency).toBe("USD");
+    // spec 026-06 — cd[...]-namespaced OUTPUT keys, not bare.
+    expect(fields["cd[value]"]).toBe("25");
+    expect(fields["cd[currency]"]).toBe("USD");
   });
 
   it("an unmapped logical event replays to [] -> emitted:false, a REPORTABLE result, never a throw", () => {
@@ -127,14 +128,24 @@ describe("oracle input contract — the airlock field-set is substitutable (AC2)
     const { verdict } = diffParity({
       descriptor: metaParityDescriptor,
       containerFields: fixture.container_fields,
-      airlockFields: { id: SYNTHETIC_META_PIXEL_ID, ev: "Lead" }, // hand-built, no createPixelConnector anywhere
+      // hand-built, no createPixelConnector anywhere — id/ev/cd[...] supplied to match the fixture
+      // (cd[...] is a real match since 026-06, no longer a gap-map member); every REMAINING
+      // container field (_fbp/fbc/ud[...]) is still a gap-map member.
+      airlockFields: {
+        id: SYNTHETIC_META_PIXEL_ID,
+        ev: "Lead",
+        "cd[value]": "25",
+        "cd[currency]": "USD",
+        "cd[content_name]": "Newsletter Signup",
+        "cd[content_category]": "signup",
+      },
     });
-    expect(verdict).toBe("pass"); // every other container field on this fixture is a gap-map member
+    expect(verdict).toBe("pass");
   });
 });
 
 describe("AC4 — two-way regression guard: three keystone fixtures", () => {
-  it("(a) the real-shaped Meta fixture through REAL replay: green — every drop is an owned gap", () => {
+  it("(a) the real-shaped Meta fixture through REAL replay: green — every remaining drop is an owned gap, cd[...] now MATCHES (026-06)", () => {
     const replayed = replayFixtureFields();
     const { verdict, fields } = diffParity({
       descriptor: metaParityDescriptor,
@@ -142,16 +153,24 @@ describe("AC4 — two-way regression guard: three keystone fixtures", () => {
       airlockFields: replayed,
     });
     expect(verdict).toBe("pass");
-    const owned = ["cd[value]", "cd[currency]", "cd[content_name]", "cd[content_category]", "_fbp", "fbc", "ud[em]", "ud[ph]"];
+    // _fbp/fbc/ud[...] remain owned gaps (unaffected by 026-06 — a chamber cookie-capability /
+    // advanced-matching follow-up respectively).
+    const owned = ["_fbp", "fbc", "ud[em]", "ud[ph]"];
     for (const f of owned) {
       const entry = fields.find((x) => x.field === f);
       expect(entry).toBeTruthy();
       expect(entry.bucket).toBe("expected-dropped");
       expect(entry.owner).toBeTruthy();
     }
-    // id/ev genuinely map today — the healthy baseline this guard protects.
-    expect(fields.find((x) => x.field === "id").bucket).toBe("maps");
-    expect(fields.find((x) => x.field === "ev").bucket).toBe("maps");
+    // id/ev/cd[...] genuinely map today (spec 026-06 closed the wire-fidelity gap: meta.js now
+    // emits cd[value]/cd[currency]/cd[content_name]/cd[content_category] directly, matching the
+    // container's real /tr namespace) — the healthy baseline this guard protects.
+    const matched = ["id", "ev", "cd[value]", "cd[currency]", "cd[content_name]", "cd[content_category]"];
+    for (const f of matched) {
+      const entry = fields.find((x) => x.field === f);
+      expect(entry).toBeTruthy();
+      expect(entry.bucket).toBe("maps");
+    }
   });
 
   it("(b) an UN-OWNED drop (id missing from airlock's side) is a regression: red, not drowned under the owned gaps", () => {
@@ -185,7 +204,8 @@ describe("AC4 — two-way regression guard: three keystone fixtures", () => {
     expect(fbp.flag).toMatch(/owner landed/i);
     const fbc = fields.find((x) => x.field === "fbc");
     expect(fbc.bucket).toBe("gap-closed");
-    // the still-unowned-by-anything-else gaps (ud[...] / cd[...]) remain expected-dropped, unaffected.
+    // the still-owned ud[...] gaps remain expected-dropped, unaffected (cd[...] is no longer a
+    // gap at all since 026-06 — it classifies `maps` on this replayed set, see AC4(a) above).
     expect(fields.find((x) => x.field === "ud[em]").bucket).toBe("expected-dropped");
   });
 });

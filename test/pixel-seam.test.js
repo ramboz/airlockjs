@@ -191,9 +191,10 @@ describe("AC5 — the beacon ships end-to-end (event -> connector.handle -> seal
     expect(parsed.origin + parsed.pathname).toBe(META_TR_ENDPOINT);
     expect(parsed.searchParams.get("id")).toBe(SYNTHETIC_META_PIXEL_ID);
     expect(parsed.searchParams.get("ev")).toBe("Lead");
-    expect(parsed.searchParams.get("value")).toBe("42");
-    expect(parsed.searchParams.get("currency")).toBe("USD");
-    expect(parsed.searchParams.get("content_name")).toBe("Trial");
+    // spec 026-06 — cd[...]-namespaced OUTPUT keys, not bare (source event.params keys stay bare).
+    expect(parsed.searchParams.get("cd[value]")).toBe("42");
+    expect(parsed.searchParams.get("cd[currency]")).toBe("USD");
+    expect(parsed.searchParams.get("cd[content_name]")).toBe("Trial");
   });
 });
 

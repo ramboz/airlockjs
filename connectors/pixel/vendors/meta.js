@@ -17,6 +17,18 @@
  * this config's `handle()` ever runs — this fixture's own default
  * `paramMap` never does that itself (AC8's proof lives in the seam test,
  * not here).
+ *
+ * `cd[...]` WIRE-FIDELITY FIX (spec 026-06, closes docs/inbox.md:27): Meta's
+ * real `/tr` beacon namespaces standard-event data under `cd[...]`
+ * (`cd[value]`, `cd[currency]`, `cd[content_name]`, `cd[content_category]`),
+ * confirmed both by Meta's Customer Information / standard-event params docs
+ * and by a real captured beacon (test/fixtures/meta-tr-pageview.redacted.json,
+ * `cd[region]=us`). This config's `paramMap` projects those four fields under
+ * their `cd[...]`-namespaced OUTPUT query keys (the `event.params` SOURCE keys
+ * stay bare — `value`/`currency`/`content_name`/`content_category` — only the
+ * wire-facing key changed); `connectors/pixel/connector.js`'s `handle()`
+ * url-encodes the brackets unchanged (`cd[value]` -> `cd%5Bvalue%5D=…`),
+ * matching the real wire form with no connector-core change.
  */
 
 /** Public documented Meta Pixel wire endpoint (fbevents.js's own `/tr` beacon). */
@@ -52,8 +64,11 @@ export const META_EGRESS_PURPOSES = ["ad_storage"];
  * `paramMap`: `id` (Meta's pixel-id query key) is a STATIC value from
  * `pixelId`; `ev` (Meta's event-name query key) is sourced from the
  * `eventMap`-mapped name; the rest are Meta's own documented standard
- * event-parameter names (value/currency/content_name/content_category),
- * projected from `event.params` ONLY when present.
+ * event-data params, projected from `event.params` (bare
+ * value/currency/content_name/content_category keys) ONLY when present, and
+ * emitted under Meta's real `cd[...]` custom-data OUTPUT keys (`cd[value]`,
+ * `cd[currency]`, `cd[content_name]`, `cd[content_category]` — spec 026-06,
+ * see the module doc comment above).
  *
  * @param {{ pixelId?: string, endpoint?: string }} [opts]
  * @returns {{
@@ -74,10 +89,10 @@ export function createMetaPixelConfig({ pixelId = SYNTHETIC_META_PIXEL_ID, endpo
     paramMap: {
       id: { from: "static", value: pixelId },
       ev: { from: "event" },
-      value: { from: "params", key: "value" },
-      currency: { from: "params", key: "currency" },
-      content_name: { from: "params", key: "content_name" },
-      content_category: { from: "params", key: "content_category" },
+      "cd[value]": { from: "params", key: "value" },
+      "cd[currency]": { from: "params", key: "currency" },
+      "cd[content_name]": { from: "params", key: "content_name" },
+      "cd[content_category]": { from: "params", key: "content_category" },
     },
     egressPurposes: META_EGRESS_PURPOSES,
   };

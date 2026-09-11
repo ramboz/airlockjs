@@ -93,20 +93,23 @@ describe("AC2 — Meta maps to a correct GET EgressRequest (table-driven — the
   const pixelId = SYNTHETIC_META_PIXEL_ID;
   const connector = createPixelConnector(createMetaPixelConfig({ pixelId }));
 
+  // spec 026-06: the four standard-event params are emitted under Meta's real `cd[...]`
+  // custom-data OUTPUT keys (`cd[value]`/`cd[currency]`/`cd[content_name]`/`cd[content_category]`),
+  // not the bare names — the `event.params` SOURCE keys stay bare (unchanged).
   const table = [
     {
       name: "PageView with no extra params",
       event: { type: "page_view", params: {} },
       expectEv: "PageView",
       expectParams: {},
-      absentParams: ["value", "currency", "content_name", "content_category"],
+      absentParams: ["cd[value]", "cd[currency]", "cd[content_name]", "cd[content_category]"],
     },
     {
       name: "Lead with value + currency",
       event: { type: "lead", params: { value: 25, currency: "USD" } },
       expectEv: "Lead",
-      expectParams: { value: "25", currency: "USD" },
-      absentParams: ["content_name", "content_category"],
+      expectParams: { "cd[value]": "25", "cd[currency]": "USD" },
+      absentParams: ["cd[content_name]", "cd[content_category]"],
     },
     {
       name: "Lead with the full standard param set",
@@ -115,15 +118,20 @@ describe("AC2 — Meta maps to a correct GET EgressRequest (table-driven — the
         params: { value: 10, currency: "EUR", content_name: "Newsletter", content_category: "signup" },
       },
       expectEv: "Lead",
-      expectParams: { value: "10", currency: "EUR", content_name: "Newsletter", content_category: "signup" },
+      expectParams: {
+        "cd[value]": "10",
+        "cd[currency]": "EUR",
+        "cd[content_name]": "Newsletter",
+        "cd[content_category]": "signup",
+      },
       absentParams: [],
     },
     {
       name: "the contract-shaped AirlockEvent form (event.payload, not event.params)",
       event: { type: "lead", payload: { value: 5, currency: "GBP" }, snapshot: {} },
       expectEv: "Lead",
-      expectParams: { value: "5", currency: "GBP" },
-      absentParams: ["content_name", "content_category"],
+      expectParams: { "cd[value]": "5", "cd[currency]": "GBP" },
+      absentParams: ["cd[content_name]", "cd[content_category]"],
     },
   ];
 
@@ -145,6 +153,19 @@ describe("AC2 — Meta maps to a correct GET EgressRequest (table-driven — the
     for (const key of absentParams) {
       expect(url.searchParams.has(key)).toBe(false);
     }
+    // spec 026-06 AC3 — the pre-fix BARE names must never appear as query keys either,
+    // regardless of which cd[...] fields this row's event actually carries.
+    for (const bare of ["value", "currency", "content_name", "content_category"]) {
+      expect(url.searchParams.has(bare)).toBe(false);
+    }
+  });
+
+  it("026-06 AC3 witness — the RAW (undecoded) query string carries the wire-encoded cd%5B...%5D form, never a bare value=/currency=", () => {
+    const [req] = connector.handle({ type: "lead", params: { value: 25, currency: "USD" } });
+    expect(req.url).toContain("cd%5Bvalue%5D=25");
+    expect(req.url).toContain("cd%5Bcurrency%5D=USD");
+    expect(req.url).not.toMatch(/[?&]value=/);
+    expect(req.url).not.toMatch(/[?&]currency=/);
   });
 });
 

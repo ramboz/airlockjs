@@ -1,5 +1,5 @@
 ---
-status: DONE
+status: IN_PROGRESS
 skill: jig:spec-workflow
 use_cases: [UC-2]
 ---
@@ -120,5 +120,6 @@ spike: the mechanism (wire-protocol seam + seal) is already proven by GA4 — th
 - [026-01 — Meta Pixel through the generic connector, governed (the archetype proof)](slice-01-meta-pixel.md)
 - [026-02 — 2–3 more vendors as configs; the archetype generalises across vendors + wire shapes](slice-02-more-vendors.md)
 - [026-03 — the config contract (`PixelVendorConfig`): pin + validate + conformance](slice-03-config-contract.md)
-- _026-04 (deferred, real-driver-gated) — the identity / advanced-matching surface + the POST/`ctx`-body wire shape._
+- [026-04 — Meta advanced matching: `ud[external_id]` (worker-hashed, unload-cached)](slice-04-advanced-matching.md) — un-deferred 2026-09-10 on a real capture ([ADR-0022](../../decisions/adr-0022-pixel-advanced-matching-hashing.md)); POST/`ctx`-body dropped from scope (the capture is GET), hashed-PII fields (`em`/`ph`/…) deferred to a signed-in capture.
 - [026-05 — live-shippability: the `pixel-chamber.worker.js` bundle entry + N-worker build assertion](slice-05-build-shippability.md)
+- [026-06 — Meta custom-data `cd[...]` wire-fidelity fix](slice-06-cd-namespace-fix.md)

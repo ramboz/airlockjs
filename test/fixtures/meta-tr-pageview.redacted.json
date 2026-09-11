@@ -1,0 +1,56 @@
+{
+  "_comment": "Spec 026-04 grounding — a REAL Meta Pixel `/tr` PageView beacon captured 2026-09-10 from erp.intuit.com (production, Tealium-managed: `a=tmtealium`), DENY-BY-DEFAULT redacted: identity VALUES scrubbed, wire SHAPE preserved (the alloy/ga4 `*.redacted.json` pattern). This is the real-driver capture 026-04 was gated on (ADR-0020). It VALIDATES the 038-01 harness's hand-built synthetic `parity-meta-tr.redacted.json` against reality — confirming (a) `cd[...]`-namespaced custom data, (b) `ud[...]` advanced matching, (c) GET-only even WITH advanced matching. NO live identifier here: the pixel id is the synthetic all-zero placeholder; external_id (a first-party GUID) + `_fbp` are REDACTED to shape tokens.",
+  "source": "erp.intuit.com (production) — Meta Pixel fired via Tealium (`a=tmtealium`)",
+  "captured": "2026-09-10",
+  "method": "GET",
+  "endpoint": "https://www.facebook.com/tr",
+  "beacons": [
+    {
+      "_variant": "initial page load (custom data present)",
+      "id": "000000000000000",
+      "_id_note": "REDACTED — real advertiser pixel id replaced by the synthetic all-zero placeholder (SYNTHETIC_META_PIXEL_ID)",
+      "ev": "PageView",
+      "dl": "https://erp.intuit.com/",
+      "rl": "",
+      "if": "false",
+      "cd[region]": "us",
+      "_cd_note": "custom data IS `cd[...]`-namespaced on the wire — validates the harness's cd[value]/cd[currency] shape and confirms the meta.js bare-name gap (docs/inbox.md:27)",
+      "sw": "412",
+      "sh": "823",
+      "ud[external_id]": "REDACTED_SHA256",
+      "aud[external_id]": "REDACTED_SHA256",
+      "cud[external_id]": "REDACTED_GUID_MASK",
+      "ncud[external_id]": "REDACTED_GUID_MASK",
+      "_ud_note": "advanced matching = a first-party GUID (shape 8-4-4-4-12, revealed by Meta's own `cud`/`ncud` character-class mask) hashed to SHA-256 (64 hex). `ud`=hashed, `aud`=automatic-AM variant (same hash), `cud`/`ncud`=Meta-internal masked/normalized forms. The connector emits ONLY `ud[external_id]`.",
+      "v": "2.9.397",
+      "r": "stable",
+      "a": "tmtealium",
+      "ec": "0",
+      "fbp": "REDACTED_FBP",
+      "_fbp_note": "the `_fbp` first-party cookie (shape: fb.1.<creation_ts>.<random>.<suffix>) — a separate cookie-identity follow-up, not 026-04's advanced-matching scope",
+      "tz": "-420",
+      "client_hints": { "chmd": "REDACTED_DEVICE", "chpv": "REDACTED", "chfv": "REDACTED" },
+      "_experiments_note": "38 `expv2[0..37]` Meta A/B flags omitted — Meta-internal, not wire-shape-relevant for parity",
+      "rqm": "GET"
+    },
+    {
+      "_variant": "SPA hash-route change (#schedule) — re-fires PageView, NO cd[...] custom data",
+      "id": "000000000000000",
+      "ev": "PageView",
+      "dl": "https://erp.intuit.com/#schedule",
+      "_dl_note": "the `#schedule` hash fragment => the site is a SPA that re-fires PageView on route change (an ADAPTER wiring signal — when the EDS page calls push({event:'page_view'}) — not a connector wire-shape change)",
+      "ud[external_id]": "REDACTED_SHA256",
+      "aud[external_id]": "REDACTED_SHA256",
+      "ec": "2",
+      "a": "tmtealium",
+      "rqm": "GET"
+    }
+  ],
+  "_findings": {
+    "method": "GET even WITH advanced matching (`ud[external_id]` present) — no POST `/tr` observed; the POST/`ctx`-body path is NOT exercised at this payload size, so it is OUT of 026-04's grounded base scope (GET-only).",
+    "advanced_matching": "`ud[external_id]` only (a hashed first-party GUID). No `ud[em]`/`ud[ph]`/`ud[fn]`/`ud[ln]` on an anonymous visit — those require a signed-in / PII context, DEFERRED to a richer capture.",
+    "custom_data_namespace": "`cd[...]` CONFIRMED (`cd[region]`). Validates the 038-01 synthetic fixture's cd[...] shape and confirms the docs/inbox.md:27 wire-fidelity gap — `connectors/pixel/vendors/meta.js` currently emits BARE `value`/`currency`/`content_name`/`content_category`, which must become `cd[...]`.",
+    "source": "Tealium (`a=tmtealium`) — the container class airlock's parity story rewires from.",
+    "not_captured_yet": "a conversion event (Lead/Purchase/SubmitApplication) with `cd[value]`/`cd[currency]`; email/phone advanced matching (`ud[em]`/`ud[ph]`); any POST `/tr`."
+  }
+}

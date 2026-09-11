@@ -10,17 +10,17 @@
  * grounding it in the artifact under test would blind the oracle to exactly the fields airlock
  * drops (spec 038 § "The oracle", the frame-critique's central correction).
  *
- * THE cd[...] WIRE-FIDELITY GAP (spec 038-01 DoR, ADR-0020): Meta's documented `/tr` wire form
- * namespaces event data under `cd[...]` (`cd[value]`, `cd[currency]`, `cd[content_name]`,
- * `cd[content_category]`); airlock's `connectors/pixel/vendors/meta.js` emits the BARE names
- * (`value`, `currency`, …) instead (verified `meta.js:74-81`). Absent a live capture to confirm
- * Meta's endpoint accepts the bare spelling too, this descriptor does NOT reconcile the two via
- * `wireNameMap` — doing so would be a "map" of a spelling the vendor may never ingest, a false
- * pass the false-shim ADR-0020 forbids. Instead each `cd[...]` field is an OWNED gap-map entry
- * ("026 wire-fidelity") — reported, green, and flagged for the connector to fix, never silently
- * dropped and never falsely mapped. `026 wire-fidelity` deliberately does NOT edit
- * `connectors/pixel/vendors/meta.js` or `connectors/pixel/connector.js` — 026 is out of this
- * slice's scope.
+ * THE cd[...] WIRE-FIDELITY GAP — RESOLVED (spec 026-06, closes docs/inbox.md:27): Meta's
+ * documented `/tr` wire form namespaces event data under `cd[...]` (`cd[value]`, `cd[currency]`,
+ * `cd[content_name]`, `cd[content_category]`); `connectors/pixel/vendors/meta.js` used to emit
+ * the BARE names (`value`, `currency`, …) instead, recorded here as an OWNED gap-map entry
+ * ("026 wire-fidelity", green, `expected-dropped`) rather than a `wireNameMap` reconciliation —
+ * mapping a spelling the vendor might never ingest would have been a false pass (ADR-0020's
+ * false-shim prohibition). A real Meta `/tr` capture
+ * (test/fixtures/meta-tr-pageview.redacted.json, `cd[region]=us`) since confirmed Meta's endpoint
+ * DOES require the `cd[...]` namespace, so 026-06 fixed `meta.js` to emit it directly — these four
+ * fields are no longer gap-map members (removed, not just flagged `gap-closed`) and now classify
+ * as a real `maps` match against this descriptor's `attributionFields` below.
  */
 import { createMetaPixelConfig, META_TR_ENDPOINT } from "../../../connectors/pixel/vendors/meta.js";
 
@@ -58,16 +58,16 @@ export const metaParityDescriptor = {
   normaliseDenylist: ["rdp", "v", "dl", "ts", "cb"],
 
   // The same-protocol descriptor's MINIMAL wire-name table (spec 038 "two descriptor kinds") —
-  // empty for Meta. id/ev/_fbp/fbc/ud[...] are already 1:1 by name; the cd[...] namespace is
-  // DELIBERATELY left untranslated (see the module doc comment above) and lives in gapMap instead.
+  // empty for Meta. id/ev/_fbp/fbc/ud[...] are already 1:1 by name; the cd[...] namespace is ALSO
+  // 1:1 by name now that meta.js emits it directly (spec 026-06) — no translation needed either
+  // way (identity, not a gap-map member — see the module doc comment above).
   wireNameMap: {},
 
   // ADR-0020 commitment 1 — every dropped attribution field owned by a named closing artifact.
+  // The four cd[...] fields (value/currency/content_name/content_category) were REMOVED from here
+  // by spec 026-06 (closes docs/inbox.md:27) — meta.js now emits them directly, so they classify
+  // as a real `maps` match, not an owned gap.
   gapMap: {
-    "cd[value]": { owner: "026 wire-fidelity" },
-    "cd[currency]": { owner: "026 wire-fidelity" },
-    "cd[content_name]": { owner: "026 wire-fidelity" },
-    "cd[content_category]": { owner: "026 wire-fidelity" },
     _fbp: { owner: "chamber cookie-capability follow-up" },
     fbc: { owner: "chamber cookie-capability follow-up" },
     "ud[em]": { owner: "026-04" },
@@ -88,10 +88,11 @@ export const metaParityDescriptor = {
   /**
    * Capture -> logical-event derivation (AC2/AC7): reconstructs the airlock-shaped
    * `{type, params}` `createPixelConnector(...).handle()` consumes FROM a captured container
-   * beacon's fields. A REPLAY-INPUT convenience only — it does NOT imply `cd[value]` "maps" to
-   * `value` for the oracle's own diff (see `wireNameMap` above); it only answers "which event
-   * should be replayed", using the reverse of meta.js's own `eventMap` so the two can never
-   * silently drift apart.
+   * beacon's fields — i.e. `event.params`' bare source keys (`value`/`currency`/…), which
+   * `meta.js`'s `paramMap` then re-projects onto its `cd[...]` OUTPUT keys (spec 026-06). A
+   * REPLAY-INPUT convenience only, independent of the oracle's own diff (`wireNameMap`/`gapMap`
+   * above); it only answers "which event should be replayed", using the reverse of meta.js's own
+   * `eventMap` so the two can never silently drift apart.
    * @param {Readonly<Record<string,string>>} containerFields
    * @returns {{ type: string|null, params: Record<string,string> }}
    */
