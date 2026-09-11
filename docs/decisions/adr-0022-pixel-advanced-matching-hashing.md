@@ -1,7 +1,7 @@
 ---
-status: Proposed
+status: Accepted
 dependencies: []
-last_verified:
+last_verified: 2026-09-11
 frame_review: true
 ---
 
@@ -9,7 +9,7 @@ frame_review: true
 
 ## Status
 
-Proposed (2026-09-10)
+Accepted (2026-09-11)
 
 ## Context
 
@@ -80,17 +80,34 @@ on the airlock instance. The 042 unload `requestMapper` reads the cache
 
 ## Recommended Decision
 
-**Option C.** Hash `ud[…]` identity in the worker chamber; the worker posts the
-computed hashes back to the main thread on a dedicated identity channel; the
-orchestrator caches them; the spec-042 synchronous unload path reads the cache and
-merges `ud[…]` into the closing beacon. `cd[…]` custom data stays per-event,
-plaintext, mapped synchronously as today.
+**Option C, hashed EAGERLY (owner decision 2026-09-11).** Hash `ud[…]` identity in
+the worker chamber; the worker posts the computed hashes back on a dedicated
+`identity` channel; the orchestrator caches them; the spec-042 synchronous unload
+path reads the cache and merges `ud[…]` into the closing beacon. Each field is
+hashed **as early as its raw value exists** — `external_id` on the `init` message
+(boot), the PII fields (`em`/`ph`/…) the moment the host sets them — **not** lazily
+on first `handle`. Eager hashing warms the cache as close to boot / identification
+as possible, minimising the race window with teardown.
 
-**Degradation guarantee (load-bearing):** on a **cache miss** (the hash has not
-round-tripped yet — see kill criteria), the unload beacon **omits `ud[…]`**. It
-**never** emits a raw identity value. This is enforced by a test, not merely
-documented: the cache holds only hashes, and the raw identity never leaves the
-worker, so "omit" is the only reachable miss behaviour.
+**Identity feed channel (frame-critique).** Raw identity reaches the worker on a
+**dedicated** channel — the `init` message for `external_id`, a `setIdentity`-style
+message for PII fields set later — **not** via `push()`/events. This deliberately
+bypasses the host `payloadDenylist` (ADR-0012), which would otherwise strip
+`email`/`phone` before the worker could hash them; the ungoverned raw feed is safe
+because the worker is egress-confined (A5) — a raw value can only ever leave as the
+hash, never on the wire.
+
+`cd[…]` custom data stays per-event, plaintext, mapped synchronously as today.
+
+**Degradation guarantee (load-bearing) — eager first, omit only if still missing.**
+Eager hashing is the primary path; the cache is warm well before a normal
+teardown. **If a teardown still races an incomplete hash** (the eager digest has
+not resolved yet — the narrow residual window), the unload beacon **omits that
+`ud[…]` field** and no other. It **never** emits a raw identity value — enforced by
+a test, not merely documented: the cache holds only hashes, and the raw identity
+never leaves the worker, so "omit" is the only reachable miss behaviour. The merge
+is per-field: a field whose eager hash is ready ships; one still in flight is
+omitted; no field ships raw.
 
 ## Consequences
 
@@ -99,14 +116,18 @@ worker, so "omit" is the only reachable miss behaviour.
   moving hashing to the main thread.
 - Keeping the pixel connector vendor-clean — Meta's normalization + hashing live
   in the connector/config, not the host adapter.
-- Extending to `em`/`ph`/other `ud[…]` fields later: same worker-hash → cache →
-  sync-read path; no new mechanism.
+- The full documented `ud[…]` field set (`em`/`ph`/`fn`/`ln`/`db`/`ge`/`ct`/`st`/
+  `zp`/`country` + `external_id`) rides one mechanism: the connector normalizes
+  each per Meta's spec (A4) then hashes; the host sources whichever raw values it
+  has (`external_id` always; the PII fields when the visitor is identified).
 
 **Becomes harder:**
 - The worker→main protocol grows a second message type (`identity`) alongside
   `{ ready, dropped }`; both the pixel chamber and `core/airlock.js` must learn it.
-- There is now a small window (cold cache) where the unload beacon degrades to
-  omitting `ud[…]`; it must be tested, not just asserted.
+- Eager per-field hashing fills the identity cache incrementally (each field when
+  its raw value arrives); the unload merge is per-field (ship the ready ones, omit
+  any still in flight), and the residual race window — narrowed by eager hashing —
+  must still be tested, not just asserted.
 - A mid-session identity change must invalidate/refresh the cache (re-hash +
   re-post); the common session-stable case is a no-op.
 
@@ -126,20 +147,31 @@ worker, so "omit" is the only reachable miss behaviour.
   event) — then a single cached hash is wrong for later beacons, and this design
   must move to per-event worker hashing with the unload beacon omitting the
   varying field. (Watched via A3.)
-- **The cold-cache window is not narrow in practice** — if real teardowns
-  frequently fire before the boot-time `external_id` hash round-trips (so unload
-  beacons routinely lack `ud[…]`), the identity hash must be computed earlier /
-  differently (e.g. main-thread at boot for `external_id` specifically), trading
-  a little layering purity for coverage. The 026-04 frame-critique + a
-  teardown-race test decide this.
+- **Even eager hashing leaves the race window too wide — especially for
+  identification-time PII (frame-critique).** Boot-time `external_id` (hashed on
+  `init`) is reliably far from teardown; but **identification-time `em`/`ph`** in a
+  submit-then-navigate conversion flow can be **teardown-adjacent** — the exact
+  high-value closing PageView. If that window is wide, the omit fallback fires
+  routinely on the beacons that matter most, and the hash would have to be computed
+  synchronously (a bundled sync SHA-256 — A1's rejected option) or main-thread,
+  trading layering/bundle purity for coverage. **The 026-04 teardown-race test MUST
+  specifically exercise the identification-then-immediate-navigate PII profile**
+  (not just boot-time `external_id`), or it validates the easy profile and misses
+  the exposed one.
 
 ## Open questions
 
-- **Cache-warm timing.** `external_id` can be hashed on the `init` message (warm
-  almost immediately); is that early enough, or should the orchestrator also
-  expose the cache state for the inspector (028) to surface a cold-miss? Deferred
-  to 026-04.
-- **Deferred fields.** `em`/`ph`/`fn`/`ln`/`db`/`ge`/`ct`/`st`/`zp`/`country` ride
-  the same worker-hash → cache path but need a signed-in/PII source; 026-04
-  builds `external_id` first (grounded by the capture) and leaves the PII fields
-  as a config-declared extension on the same mechanism.
+- **Cache-warm timing / observability.** `external_id` is hashed on `init` (warm
+  almost immediately); should the orchestrator also expose the cache/miss state to
+  the inspector (028) so a cold-miss omission is diagnosable rather than silent?
+  Deferred to 026-04.
+- **Grounding split for the in-scope fields (owner decision — ALL fields, 2026-09-11).**
+  `external_id` is **capture-grounded** (`ud[external_id]` present, GET, the
+  `ud[<key>]` form). The PII fields (`em`/`ph`/`fn`/…) are **doc-grounded**: their
+  normalization + SHA-256 comes from Meta's published spec (A4 — the authoritative
+  source a one-way hash in a capture cannot provide), and their wire form is the
+  same `ud[<key>]` the capture confirms for `external_id`. The one residual: no
+  *real* `ud[em]`/`ud[ph]` beacon was captured (the anonymous visit carried no
+  PII), so the PII fields' end-to-end wire presence is doc-grounded-by-analogy, not
+  capture-witnessed — recorded honestly (a live PII capture would only confirm what
+  docs + `external_id` already establish; not a blocker).

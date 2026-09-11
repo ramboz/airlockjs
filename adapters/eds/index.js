@@ -725,10 +725,40 @@ export async function bootGa4Gtag(opts = {}) {
  * paths cannot drift (proven byte-for-byte in test/eds-boot-config-equivalence.test.js).
  */
 const PIXEL_VENDORS = {
-  meta: { createConfig: createMetaPixelConfig, egressPurposes: META_EGRESS_PURPOSES },
+  // 026-04: `advancedMatching: true` marks the vendors whose connector supports
+  // hashed `ud[...]` advanced matching — bootPixelConnector then sources
+  // `external_id` host-side and exposes `setIdentity` for that vendor. Meta is
+  // the grounded case; linkedin/bing stay identity-free (no flag -> byte-identical).
+  meta: { createConfig: createMetaPixelConfig, egressPurposes: META_EGRESS_PURPOSES, advancedMatching: true },
   linkedin: { createConfig: createLinkedInInsightConfig, egressPurposes: LINKEDIN_EGRESS_PURPOSES },
   bing: { createConfig: createBingUetConfig, egressPurposes: BING_EGRESS_PURPOSES },
 };
+
+/**
+ * 026-04: read one cookie value from a raw `document.cookie` string, SYNCHRONOUSLY
+ * (so bootPixelConnector stays sync). Read-only host-side sourcing of a first-party
+ * `external_id` — mirrors GA4's own `_ga` sourcing shape (`connectors/ga4/cookies.js`)
+ * but never mints/persists: an absent cookie yields `undefined` (no advanced matching),
+ * deliberately NOT auto-generating an advertising identifier. Never throws.
+ * @param {string} cookieString a raw `document.cookie`.
+ * @param {string} name the cookie name to read.
+ * @returns {string|undefined} the decoded value, or `undefined` when absent.
+ */
+function readCookieValue(cookieString, name) {
+  if (typeof cookieString !== "string" || cookieString.length === 0) return undefined;
+  for (const pair of cookieString.split(";")) {
+    const eq = pair.indexOf("=");
+    if (eq === -1) continue;
+    if (pair.slice(0, eq).trim() !== name) continue;
+    const raw = pair.slice(eq + 1).trim();
+    try {
+      return decodeURIComponent(raw);
+    } catch {
+      return raw; // malformed %-escape: surface raw, never throw (mirrors createCookieCapability)
+    }
+  }
+  return undefined;
+}
 
 /**
  * The single parameterized pixel boot (spec 032-01 AC2) the three per-vendor
@@ -750,11 +780,29 @@ function bootPixelConnector(vendor, opts = {}) {
   if (!entry) {
     throw new Error(`airlock: unknown pixel vendor "${vendor}" (expected one of ${Object.keys(PIXEL_VENDORS).join(", ")})`);
   }
-  // Pull governance out; whatever remains is the vendor's own id/endpoint bag, which
-  // its `createConfig` destructures (ignoring extras) — byte-matching the per-vendor
-  // boots' explicit `createXxxConfig({ …ids, endpoint })` calls.
-  const { consent, consentStrict = false, payloadDenylist, ...ids } = opts;
-  const connectorConfig = entry.createConfig(ids);
+  // Pull governance + the 026-04 advanced-matching opts out; whatever remains is
+  // the vendor's own id/endpoint bag, which its `createConfig` destructures
+  // (ignoring extras) — byte-matching the per-vendor boots' explicit
+  // `createXxxConfig({ …ids, endpoint })` calls.
+  const { consent, consentStrict = false, payloadDenylist, externalId, externalIdCookie, ...ids } = opts;
+
+  // 026-04 (ADR-0022): advanced-matching `external_id` sourcing — META only
+  // (gated on `entry.advancedMatching`; linkedin/bing stay identity-free, byte-
+  // unchanged). Host-side like GA4's `_ga`: an explicit `externalId` wins; else
+  // read the configured first-party cookie SYNCHRONOUSLY (read-only — never mints
+  // an ad id; a no-op off a real page). Absent -> no `advancedMatching`, so the
+  // connectorConfig is byte-identical to the pre-026-04 default (back-compat, and
+  // the config-driven boot path stays equivalent since it too passes no externalId).
+  const resolvedExternalId = entry.advancedMatching
+    ? externalId != null && externalId !== ""
+      ? String(externalId)
+      : externalIdCookie
+        ? readCookieValue(typeof document !== "undefined" ? document.cookie : "", externalIdCookie)
+        : undefined
+    : undefined;
+  const connectorConfig = entry.createConfig(
+    resolvedExternalId != null && resolvedExternalId !== "" ? { ...ids, externalId: resolvedExternalId } : ids,
+  );
 
   // Host-owned ceiling (ADR-0006): declared INDEPENDENTLY of the connector's own
   // advisory manifest.endpoints — a compromised/misconfigured connector config
@@ -763,7 +811,7 @@ function bootPixelConnector(vendor, opts = {}) {
     trackers: 1,
     workFactor: 0,
     endpoints: [connectorConfig.endpoint],
-    ctx: {}, // no host-sourced identity crosses into a pixel instance (026-01 scope)
+    ctx: {}, // no host-sourced ctx crosses into a pixel instance (026-01 scope); advanced-matching identity rides the dedicated channel, not ctx
     connector: "pixel",
     connectorConfig,
     consent,
@@ -772,7 +820,7 @@ function bootPixelConnector(vendor, opts = {}) {
     payloadDenylist,
   });
 
-  return {
+  const handle = {
     push: (evt) => airlock.push(evt),
     setConsent: (v) => airlock.setConsent(v),
     getState: (path) => airlock.getState(path),
@@ -780,6 +828,12 @@ function bootPixelConnector(vendor, opts = {}) {
     stats: () => airlock.stats(),
     dispose: () => airlock.dispose(),
   };
+  // 026-04: expose `setIdentity` ONLY for advanced-matching-capable vendors (meta)
+  // — the host feeds raw PII (em/ph/…) on the dedicated identity channel after
+  // boot; the chamber hashes it and the closing/unload beacon carries `ud[...]`.
+  // Absent for linkedin/bing (their handle surface stays byte-identical).
+  if (entry.advancedMatching) handle.setIdentity = (raw) => airlock.setIdentity(raw);
+  return handle;
 }
 
 /**

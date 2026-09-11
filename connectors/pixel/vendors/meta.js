@@ -7,16 +7,25 @@
  * config, WITHOUT loading `fbevents.js` (a wire-protocol job, not the SDK).
  *
  * IDENTITY-HONEST BY CONSTRUCTION (spec 026-01 "Identity honesty", AC9): this
- * config carries `id` + `ev` + a small set of NON-PII standard event params
- * only. No `_fbp`/`fbc` first-party cookie identity (that needs a chamber
- * cookie-capability — a follow-up slice) and no `ud[...]` advanced-matching
- * hashed identity (deferred to 026-04) — both deliberately absent, not
- * hardcoded elsewhere. A site that maps a PII-shaped field into this
- * connector's `paramMap` (e.g. a raw `email`) relies on
+ * config's `paramMap` carries `id` + `ev` + a small set of NON-PII standard
+ * event params only. No `_fbp`/`fbc` first-party cookie identity (that needs a
+ * chamber cookie-capability — a follow-up slice). A site that maps a PII-shaped
+ * field into this connector's `paramMap` (e.g. a raw `email`) relies on
  * `core/airlock.js`'s own `payloadDenylist` (ADR-0012) to strip it BEFORE
  * this config's `handle()` ever runs — this fixture's own default
  * `paramMap` never does that itself (AC8's proof lives in the seam test,
  * not here).
+ *
+ * `ud[...]` ADVANCED MATCHING (spec 026-04, [ADR-0022] Option C): the hashed
+ * advanced-matching identity does NOT live in the `paramMap` (which would make
+ * the connector's `handle` identity-AWARE, violating 026-01 AC1). Instead the
+ * host-sourced raw `external_id` (this factory's `externalId` arg → a top-level
+ * `advancedMatching` config field) rides the pixel chamber's DEDICATED identity
+ * channel: the chamber normalizes + SHA-256-hashes it (never `handle`), caches
+ * the hash main-side, and merges `ud[external_id]=<hex>` onto both the
+ * steady-state and the closing/unload `/tr` GET. PII fields (`em`/`ph`/…) are
+ * fed later via the handle's `setIdentity`. Absent `externalId` -> no
+ * `advancedMatching` field, byte-identical to the pre-026-04 config.
  *
  * `cd[...]` WIRE-FIDELITY FIX (spec 026-06, closes docs/inbox.md:27): Meta's
  * real `/tr` beacon namespaces standard-event data under `cd[...]`
@@ -70,15 +79,21 @@ export const META_EGRESS_PURPOSES = ["ad_storage"];
  * `cd[currency]`, `cd[content_name]`, `cd[content_category]` — spec 026-06,
  * see the module doc comment above).
  *
- * @param {{ pixelId?: string, endpoint?: string }} [opts]
+ * @param {{ pixelId?: string, endpoint?: string, externalId?: string }} [opts]
+ *   `externalId` (spec 026-04): the host-sourced raw first-party
+ *   `external_id` (a cookie/GUID, sourced main-side like GA4's `_ga`). When
+ *   present it is declared under a top-level `advancedMatching` field the pixel
+ *   chamber hashes on its dedicated identity channel (NEVER the `paramMap`/
+ *   `handle`). Absent -> no `advancedMatching` field (byte-identical pre-026-04).
  * @returns {{
  *   name: string, endpoint: string,
  *   eventMap: Record<string, string>,
  *   paramMap: Record<string, { from: "static", value: unknown } | { from: "event" } | { from: "params", key: string }>,
  *   egressPurposes: string[],
+ *   advancedMatching?: { external_id: string },
  * }}
  */
-export function createMetaPixelConfig({ pixelId = SYNTHETIC_META_PIXEL_ID, endpoint = META_TR_ENDPOINT } = {}) {
+export function createMetaPixelConfig({ pixelId = SYNTHETIC_META_PIXEL_ID, endpoint = META_TR_ENDPOINT, externalId } = {}) {
   return {
     name: "airlock/pixel/meta",
     endpoint,
@@ -95,5 +110,11 @@ export function createMetaPixelConfig({ pixelId = SYNTHETIC_META_PIXEL_ID, endpo
       "cd[content_category]": { from: "params", key: "content_category" },
     },
     egressPurposes: META_EGRESS_PURPOSES,
+    // 026-04: the boot-time raw identity for the chamber's DEDICATED advanced-
+    // matching channel — present ONLY when the host supplied `externalId`, so a
+    // default Meta config stays byte-identical (no `advancedMatching` key, no
+    // identity channel, no `ud[...]`). This is NOT a `paramMap` entry: `handle`
+    // never reads it (026-01 AC1); the chamber hashes it off-`handle`.
+    ...(externalId != null && externalId !== "" ? { advancedMatching: { external_id: String(externalId) } } : {}),
   };
 }

@@ -26,6 +26,7 @@ import { createCriticalDispatcher, fetchInit } from "./egress.js";
 import { mapToRum } from "../connectors/helix-rum/map.js";
 import { createGa4GtagConnector } from "../connectors/ga4/gtag.js";
 import { createPixelConnector } from "../connectors/pixel/connector.js";
+import { mergeAdvancedMatching } from "../connectors/pixel/advanced-matching.js";
 import { originPath, checkEndpointCeiling } from "./endpoint-ceiling.js";
 import { egressVerdict } from "./consent.js";
 import { governPayload, DEFAULT_DENYLIST } from "./payload-governance.js";
@@ -157,6 +158,14 @@ export function createAirlock({
   // unaffected (back-compat).
   let consentVector = consent || {};
   const heldBeacons = [];
+  // 026-04 (ADR-0022 Option C): the main-side advanced-matching hash cache —
+  // per-field `ud[...]` hashes the pixel chamber posts back on the `identity`
+  // channel (worker→main), keyed by field. HASH-ONLY: raw identity never
+  // crosses back, so this can never hold a raw value. Read SYNCHRONOUSLY (no
+  // await) by the 042 unload `requestMapper` below to merge `ud[...]` into the
+  // closing beacon. Null-prototype so a pathological field name can't rewire it.
+  // Empty for every non-pixel / non-advanced-matching instance -> no effect.
+  const identityCache = Object.create(null);
   const log = [];
   // Null-prototype: event names are object keys, so a pathological name like
   // "__proto__" must land as an own key, not rewire the projection's prototype.
@@ -188,6 +197,16 @@ export function createAirlock({
       "airlock: helix-rum instance constructed without connectorConfig.sampling — its unload CWV would fall back to GA4 mapping; bootHelixRum must pass { sampling: { weight, id } }.",
     );
   }
+  // 026-04: the pixel unload connector, built ONCE from an advancedMatching-
+  // STRIPPED config — its `handle` produces the identity-agnostic base `/tr`
+  // (the `ud[...]` is merged from `identityCache` in the requestMapper below).
+  // Stripping keeps the raw boot `external_id` out of the connector entirely
+  // (it only ever reaches the worker's eager hasher, never this main-thread
+  // connector). Non-pixel connectors never touch it.
+  const pixelUnloadConnector =
+    connector === "pixel"
+      ? createPixelConnector((({ advancedMatching, ...rest }) => rest)(connectorConfig || {}))
+      : null;
   const critical = createCriticalDispatcher({
     ctx,
     endpoints,
@@ -213,8 +232,20 @@ export function createAirlock({
     // branches above. An unmapped `event.type` -> `handle` returns `[]`,
     // which `critical.dispatch` already tolerates as a clean no-op (042-01
     // AC2).
+    //
+    // 026-04 (ADR-0022): the pixel unload `requestMapper` merges the cached
+    // advanced-matching hashes into the closing `/tr` GET — SYNCHRONOUSLY (read
+    // the `identityCache`, no await; the eager hashing already warmed it). The
+    // connector's own `handle` stays identity-agnostic (it built the base
+    // `/tr`); `mergeAdvancedMatching` appends `ud[...]` per-field (a still-cold
+    // field is omitted, never blanked, never raw). `pixelUnloadConnector` is
+    // built ONCE from an advancedMatching-stripped config (defense: the connector
+    // never even receives the raw boot identity).
     ...(connector === "pixel"
-      ? { requestMapper: createPixelConnector(connectorConfig || {}).handle }
+      ? {
+          requestMapper: (event) =>
+            mergeAdvancedMatching(pixelUnloadConnector.handle(event), identityCache),
+        }
       : {}),
   });
 
@@ -286,6 +317,18 @@ export function createAirlock({
   // MAIN thread immediately (fetch keepalive is cheap + survives page teardown).
   worker.onmessage = (e) => {
     const data = e.data;
+    // 026-04 (ADR-0022): the worker→main advanced-matching IDENTITY channel —
+    // the pixel chamber posts `{ type: "identity", ud: { <field>: <hex> } }` as
+    // each eager hash resolves. Cache them per-field (hash-only) for the
+    // synchronous unload merge. This carries NO `ready`, so it must be handled
+    // BEFORE the ready/dropped dispatch below and return early.
+    if (data && data.type === "identity" && data.ud && typeof data.ud === "object") {
+      for (const field of Object.keys(data.ud)) {
+        const hex = data.ud[field];
+        if (hex != null) identityCache[field] = hex;
+      }
+      return;
+    }
     const ready = data && data.ready;
     if (ready) {
       // 040-02: the endpoint-ceiling gate, shared VERBATIM by phase 1 (inputs)
@@ -642,6 +685,22 @@ export function createAirlock({
           });
         }
       }
+    },
+    /**
+     * 026-04 (ADR-0022): feed raw advanced-matching identity to the pixel
+     * chamber on the DEDICATED `identity` channel — `{ em, ph, fn, … }` set once
+     * the visitor is identified (`external_id` rides the boot `init` message
+     * instead). This posts the raw values straight to the worker, BYPASSING the
+     * input `governParams`/`payloadDenylist` (which would strip email/phone
+     * before they could be hashed) — safe because the worker is egress-confined
+     * (A5): it eager-normalizes + SHA-256-hashes each field and posts back ONLY
+     * the hash (cached above for the unload merge). The raw value is not retained
+     * on the main thread. A no-op for a non-pixel worker (its chamber ignores the
+     * `identity` message type).
+     * @param {Record<string, string>} raw the raw PII fields to hash (em/ph/…).
+     */
+    setIdentity(raw) {
+      worker.postMessage({ type: "identity", raw });
     },
     /**
      * Synchronous read (AD-3): no argument → the whole projection; a dotted path

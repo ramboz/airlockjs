@@ -76,7 +76,7 @@
 | [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-01 — Meta Pixel through the generic connector, governed + dispatched (the archetype proof) | **DONE** |  |
 | [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-02 — more vendors as configs: the archetype generalises across real GET pixels | **DONE** |  |
 | [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-03 — the config contract (`PixelVendorConfig`): pin + validate + conformance | **DONE** |  |
-| [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-04 — Meta advanced matching: `ud[external_id]` (worker-hashed, unload-cached) | DRAFT |  |
+| [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-04 — Meta advanced matching (worker-hashed, eager, unload-cached) | **DONE** | `ud[external_id]`+`em`/`ph`/… normalized+SHA-256-hashed in the confined worker (eager), main-cached (hashes only), merged onto steady-state + the 042 unload beacon; raw identity feeds via a dedicated `setIdentity`/`init` channel that bypasses governance to hash — only the hash egresses ([ADR-0022](../decisions/adr-0022-pixel-advanced-matching-hashing.md)). |
 | [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-05 — live-shippability: the `pixel-chamber.worker.js` bundle entry + N-worker build assertion | **DONE** |  |
 | [026-generic-pixel-connector](026-generic-pixel-connector/spec.md) | 026-06 — Meta custom-data `cd[...]` wire-fidelity fix | **DONE** | `meta.js` emits custom data as `cd[value]`/`cd[currency]`/… (real-capture-confirmed); closes the inbox:27 wire-fidelity gap, parity-harness gap flipped to a match. |
 | [027-mvp4-residuals](027-mvp4-residuals/spec.md) | 027-01 — tbd | ABANDONED |  |
@@ -148,7 +148,7 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
 
 - **8** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **97** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **33** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **34** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
@@ -157,6 +157,7 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
   - `012-mvp2-alloy-chamber/slice-03-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-04-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `026-generic-pixel-connector/slice-04-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `026-generic-pixel-connector/slice-06-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `035-cookie-grant-wrapper/slice-01-arch.md` — applied `none`; declined: arch-review
   - `035-cookie-grant-wrapper/slice-01-craft.md` — applied `none`; declined: pr-review, scout-pr-review

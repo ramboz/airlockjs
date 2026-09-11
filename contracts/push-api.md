@@ -67,6 +67,34 @@ The main-thread synchronous **fast path** for the unload window ([ADR-0004](../d
 > `page_view` via `pushCritical`); a site mixing a hand-rolled generic tracker with
 > the adapter's fast path is the realistic trigger for the double-count.
 
+### Pixel-only identity feed — `setIdentity()`
+
+```js
+airlock.setIdentity(raw);   // { em, ph, external_id, … } — raw Meta advanced-matching identity
+```
+
+A pixel-only, **additive** method (spec 026-04, [ADR-0022](../docs/decisions/adr-0022-pixel-advanced-matching-hashing.md))
+present only on a handle booted for an advanced-matching-capable pixel vendor (Meta today);
+absent — a no-op surface, not a thrown error — on every other handle (non-pixel connectors, and
+the other pixel vendors).
+
+- **Feeds raw identity to the pixel chamber on a DEDICATED `identity` channel — not `push()`.** The
+  egress-confined pixel chamber normalizes + SHA-256-hashes each field per Meta's Customer
+  Information Parameters, then posts back ONLY the hash for the main-thread cache; the raw value
+  never crosses back and is not retained on the main thread.
+- **Bypasses `push()`/`payloadDenylist` by design.** Because this is not a `push()` event, the
+  host-declared sensitive-field denylist ([ADR-0012](../docs/decisions/adr-0012-payload-governance.md))
+  never sees the raw `em`/`ph`/… before they are hashed — safe specifically because the pixel
+  chamber is egress-confined (ADR-0022 A5), so the only value that can ever leave the worker is the
+  one-way hash.
+- **Only the hash ever egresses** — `ud[<field>]=<64-hex-SHA-256>` on the pixel `/tr` beacon (both
+  the steady-state and the closing/unload beacon once cached); a raw identity value can never
+  appear on the wire.
+- **Synchronous, fire-and-forget, like `pushCritical`.** Returns nothing; the hash resolves
+  asynchronously off-thread and is merged in once ready.
+- **No-op on a handle without advanced-matching support** (a non-pixel connector, or a pixel vendor
+  other than Meta) — the method is simply absent from that handle.
+
 ## The read surface
 
 ```js

@@ -22,7 +22,7 @@
 // `vitest run` this guard is part of.
 import { readFileSync } from "node:fs";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { boot, bootEdsAnalytics } from "../adapters/eds/index.js";
+import { boot, bootEdsAnalytics, bootMetaPixel } from "../adapters/eds/index.js";
 
 const capabilityDts = readFileSync(
   new URL("../contracts/capability.d.ts", import.meta.url),
@@ -317,6 +317,12 @@ describe("contract stability guard (spec 012-01 AC6 — additive-only)", () => {
       await boot({ connectors: [{ type: "ga4", ctx: { clientId: "1.1", sessionId: "2" } }] });
       expect(Object.keys(window.airlock).sort()).toEqual([...FROZEN_HANDLE_KEYS].sort());
       expect("accepts" in window.airlock).toBe(false);
+    });
+
+    it("bootMetaPixel()'s handle gains `setIdentity` — an ADDITIVE extension, not a breaking change to the frozen shape", async () => {
+      const handle = await bootMetaPixel({});
+      // 026-04: additive method — ADR-0017 frozen surface allows additive, non-breaking extensions.
+      expect(typeof handle.setIdentity).toBe("function");
     });
   });
 });
