@@ -691,13 +691,16 @@ hashed (or, if a signed-in same-session dual capture becomes available first, fi
 "present/equal yet value-semantics diverge" shape **generalizes**, beacon-field parity becomes "necessary but not
 sufficient and this ADR is amended." There are now **two** such residuals: **GA4 session-continuity** (`adr-0020:135-143`)
 and **Meta `ud[external_id]` same-input efficacy** (038-04, above). Each slice locally follows the report-note precedent
-correctly, but no single diff surfaces the accumulation. **Owner call ([ADR-0020](decisions/adr-0020-parity-contract-anti-drift.md)
-owner):** does two crossing the threshold warrant an ADR-0020 value-semantics amendment (e.g. a report-modeled
-"presence-only" / "value-unconfirmed" field class), or is the prose report-note disposition the intended standing answer?
-Does **not** block 038-04, which follows the established precedent faithfully.
+correctly, but no single diff surfaces the accumulation.
 
-**Resolution trigger:** the owner rules on whether the accumulation warrants an ADR-0020 amendment (or a third instance
-forces the question).
+**Owner ruling (2026-09-11): the prose report-note disposition STANDS at two — wait for a third hit (rule of three).**
+Two "present/equal yet value-semantics diverge" residuals do **not** cross ADR-0020's amendment threshold; each is
+correctly dispositioned as a named prose report-note residual. **No ADR-0020 amendment now**, and no report-modeled
+"presence-only"/"value-unconfirmed" field class is built speculatively.
+
+**Resolution trigger:** a **third** independent value-semantics-diverge residual surfaces → re-open the ADR-0020
+value-semantics amendment question (a report-modeled presence-only/value-unconfirmed field class vs. keeping the prose
+disposition), per the owner's rule of three.
 
 ### Parity report does not self-document the presence-only `maps` weakening (038-04 arch nit)
 
