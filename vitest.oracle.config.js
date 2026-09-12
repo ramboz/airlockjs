@@ -10,12 +10,14 @@ export default defineConfig({
   test: {
     include: ["test/oracle-ga4.test.js"],
     // Every test here shells out to `bash oracle.sh`, which itself spawns a
-    // full `vitest run` over the default suite (~3s each). The gate-flip test
-    // does TWO oracle runs back-to-back (break fixture → run → restore → run),
-    // so on a slow/loaded CI runner it blows vitest's 5s default (observed
-    // 6.2s on ubuntu-latest → CI red). 60s gives ~10x headroom over a real run
-    // while staying far under the job's 15-min budget, so a genuine hang is
-    // still caught.
-    testTimeout: 60000,
+    // full `vitest run` over the default suite. On a slow/loaded CI runner one
+    // oracle.sh run is 16-32s, and the gate-flip test does TWO back-to-back
+    // (break fixture → run → restore → run), so a single test can approach a
+    // minute. 120s keeps a comfortable margin as the suite grows while staying
+    // far under the job's 15-min budget, so a genuine hang is still caught.
+    // NOTE: the test awaits execFile (not execFileSync) precisely so this
+    // per-test timeout — not vitest's fixed 60s worker-RPC ceiling — is the
+    // only clock that governs it; see the runOracle() comment in the test.
+    testTimeout: 120000,
   },
 });

@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+
+const execFileAsync = promisify(execFile);
 
 // Slice 007-01 AC1/AC2 (ga4_mp_conformance, servo-unattended gate): oracle.sh's
 // score_ga4_mp_conformance() wraps contracts/validate.mjs as a BINARY 1.0/0.0
@@ -25,43 +28,53 @@ const goldenPath = fileURLToPath(
   new URL("../contracts/fixtures/ga4-mp-custom-event.golden.json", import.meta.url),
 );
 
-const runOracle = () => {
+// Async on purpose. `oracle.sh` shells out to a FULL nested `vitest run` and
+// takes 16-32s per invocation on a shared CI runner. execFileSync would block
+// THIS worker's event loop for the whole ~65s file, so vitest's worker->main
+// `onTaskUpdate` RPC can't complete its round-trip inside birpc's fixed 60s
+// ceiling: the three tests pass but vitest then throws an unhandled
+// `Timeout calling "onTaskUpdate"` and exits 1 (CI red on every push, though
+// the local ~29s run stays under the ceiling and passes). Awaiting execFile
+// keeps the loop free so the RPC drains promptly; a genuine oracle.sh hang is
+// still caught by the per-test testTimeout (see vitest.oracle.config.js).
+// A generous maxBuffer covers the chatty nested-suite output.
+const runOracle = async () => {
   try {
-    execFileSync("bash", ["oracle.sh"], {
+    await execFileAsync("bash", ["oracle.sh"], {
       cwd: repoRoot,
-      stdio: "pipe",
+      maxBuffer: 64 * 1024 * 1024,
     });
     return 0;
   } catch (err) {
-    return err.status;
+    return err.code; // async execFile surfaces the exit code as `code` (number)
   }
 };
 
 describe("oracle.sh — ga4_mp_conformance gate (007-01)", () => {
-  it("exits 0 (composite==1.0) on a clean tree", () => {
-    expect(runOracle()).toBe(0);
+  it("exits 0 (composite==1.0) on a clean tree", async () => {
+    expect(await runOracle()).toBe(0);
   });
 
-  it("exits non-zero when a golden fixture is broken, and is restorable", () => {
+  it("exits non-zero when a golden fixture is broken, and is restorable", async () => {
     const original = readFileSync(goldenPath, "utf8");
     try {
       const broken = JSON.parse(original);
       delete broken.client_id; // required field — schema MUST reject this
       writeFileSync(goldenPath, JSON.stringify(broken, null, 2));
 
-      const rc = runOracle();
+      const rc = await runOracle();
       expect(rc).toBe(1); // score_ga4_mp_conformance -> 0.0 -> composite < THRESHOLD=1.0
     } finally {
       writeFileSync(goldenPath, original);
     }
 
     // restored: the gate is green again
-    expect(runOracle()).toBe(0);
+    expect(await runOracle()).toBe(0);
   });
 });
 
 describe("contracts/mp-live-check.mjs — non-blocking live complement (007-01 AC3)", () => {
-  it("self-skips with exit 0 when no endpoint is configured, and does not affect oracle.sh", () => {
+  it("self-skips with exit 0 when no endpoint is configured, and does not affect oracle.sh", async () => {
     // Explicitly unset the live-check env vars so a developer with real
     // GA4_MEASUREMENT_ID/GA4_API_SECRET exported doesn't cause this to POST
     // to the real GA4 endpoint (007-01 review nit — hermeticity).
@@ -69,13 +82,13 @@ describe("contracts/mp-live-check.mjs — non-blocking live complement (007-01 A
     delete env.GA4_MEASUREMENT_ID;
     delete env.GA4_API_SECRET;
 
-    const out = execFileSync("node", ["mp-live-check.mjs"], {
+    const { stdout } = await execFileAsync("node", ["mp-live-check.mjs"], {
       cwd: fileURLToPath(new URL("../contracts", import.meta.url)),
-      stdio: "pipe",
+      maxBuffer: 64 * 1024 * 1024,
       env,
-    }).toString();
+    });
 
-    expect(out).toMatch(/live check skipped \(no endpoint configured\)/);
-    expect(runOracle()).toBe(0); // oracle verdict unchanged
+    expect(stdout).toMatch(/live check skipped \(no endpoint configured\)/);
+    expect(await runOracle()).toBe(0); // oracle verdict unchanged
   });
 });
