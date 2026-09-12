@@ -48,6 +48,13 @@ Airlock's seal (`core/consent.js` `egressVerdict`, spec 017-03) folds a beacon's
 
 **Option E — per-connector opt-in.** The seal gains a per-instance `holdOnDenied` flag (mirroring `consentStrict`): when a connector opts in, a **denied** governing purpose → **hold** (buffer + flush-on-grant) instead of send; pending → hold and strict → drop are unchanged. Opt-in is driven by **captured vendor behavior**, not purpose alone: **g-ads opts in** (grounded hold); **GA4 does not** (grounded send-cookieless); **Meta/Floodlight** are grounded-to-hold and opt in as follow-ups in their own specs; **LinkedIn/Bing** stay opted-out (ungrounded) until captured. GA4/analytics behavior is untouched.
 
+**Re-map on grant (folded from the 045-01 frame-critique, 2026-09-11 — load-bearing).** A held ad beacon flushed on
+consent-grant is **re-mapped** with the current consent/ctx (fresh `auid`, granted `gcs`/`npa`) via the connector's
+main-thread mapper — NOT the stale under-denial payload the existing flush re-sends (`core/airlock.js:666-687`, the
+residual named at `:660`). Without this, hold-until-granted would fire an unattributable "user-declined" beacon on accept
+(no `auid`, `gcs`=denied) — the exact non-parity it exists to prevent. This resolves the deferred **mid-session
+ctx-refresh** residual (`docs/refinement-todo.md`) for the seal path; it is part of the 045-01 mechanism.
+
 **Two independent enforcement paths (grounded 2026-09-11).** g-ads and alloy do NOT share a seal:
 - **g-ads (and any `core/airlock.js`-hosted connector)** uses the **core seal** — `egressVerdict` (non-strict) + the `heldBeacons`/`setConsent` buffer+flush. This is where Option D's classification lands (spec 045-01).
 - **alloy (wrapped-SDK)** is enforced by **`core/wrapped-sdk-host.js`** — its OWN path: `egressVerdict(..., { strict: true })` + a **per-purpose seam strip** (034-01: `personalization` stripped, `analytics_storage` interact flows; `core/wrapped-sdk-host.js:336-338`), and today **pending → DROP** with a **pending→hold+flush refinement mirroring 017-03 already named as a follow-up** in that module (`core/wrapped-sdk-host.js:106-109`).
