@@ -1,6 +1,6 @@
 ---
 status: DRAFT
-dependencies: [044-01, 017-03]
+dependencies: [044-01, 045-01, adr-0023]
 last_verified:
 frame_review: true
 arch_review: false
@@ -10,57 +10,55 @@ arch_review: false
      surfaces by probe first (run it / read source) or a citation, else mark them
      as assumptions in `## Assumptions` — never assert an unverified claim as fact. -->
 
-## Slice 044-02 — seal-hold under `ad_storage`-denied
+## Slice 044-02 — g-ads opts into hold-until-granted (denied-consent parity)
 
-**Goal:** Make the Google Ads connector **hold the AW beacon at the seal** when `ad_storage` is not granted — matching
-the reference container's own grounded behavior (under denial the entire Google Ads family is suppressed; the container
-does **not** do a cookieless ad send). This reuses airlock's existing seal (017-03 hold-pending / strict-drop); it wires
-the gate, it does not invent one. Consent parity for the denied state, closing the `ad_storage`-denied half of the AW
-page-load family.
+**Goal:** Make the Google Ads connector **opt into** the core seal's `holdOnDenied` mode (spec 045-01 / [ADR-0023](../../decisions/adr-0023-ad-pzn-egress-hold-until-consent.md)
+Option E), so under `ad_storage`-denied the AW beacon **holds at the seal** (buffers + flushes on a later grant) instead
+of sending — matching the reference container's **captured** behavior (R-009 §(b): the container held the whole ad family
+under reject-all). This is a **grounded, per-connector opt-in**, NOT a blanket rule: g-ads opts in *because its vendor
+was captured holding*; GA4 does not (it sends cookieless); ungrounded vendors (LinkedIn/Bing) are untouched.
 
 **The load-bearing claim (grounded 2026-09-11).** The denied re-capture (Playwright `OneTrust.RejectAll()` → reload,
-R-009 §(b)) collapsed the ad-family egress **23 → 2 requests**: under `gcs=G100` / `npa=1` **no** Google Ads beacon fired
-(only GA4 emitted a cookieless modeling ping). So the parity-correct denied behavior for the AW connector is **seal-hold**
-(emit nothing), NOT a cookieless AW send — grounded on the container, not chosen speculatively.
+R-009 §(b)) collapsed the ad-family egress **23 → 2**: under reject-all **no** Google Ads beacon fired (only GA4
+cookieless-modeled). So the parity-correct denied behavior for the AW connector is **hold** (buffer, flush on grant),
+grounded on the container — not chosen speculatively, and not a cookieless AW send.
 
 **DoR:**
-- ✅ 044-01 built the AW beacon on the granted path; this slice adds the denied-state gate.
-- ✅ Denied behavior GROUNDED (R-009 §(b) denied-consent finding): the container holds the whole ad family under
-  `ad_storage`-denied.
-- ✅ The mechanism exists: 017-03's seal (`ad_storage` gating egress, hold-pending / strict-drop) is the exact gate —
-  the connector declares its egress purpose so the seal holds it under denial, exactly as the pixel/GA4 connectors do.
+- ✅ 044-01 shipped the AW beacon (granted path) + the connector's `purposes.egress: ["ad_storage"]`.
+- ✅ 045-01 provides the **mechanism** — the per-instance `holdOnDenied` opt-in on the core seal (denied governing
+  purpose → hold+flush). This slice **sets the flag** for g-ads; it does not build the mechanism.
+- ✅ Grounded (R-009 §(b)): the container held AW under `ad_storage`-denied — the opt-in is evidence-backed, not opinion.
 
 **Acceptance Criteria:**
 
-1. **AW egress is held at the seal under `ad_storage`-denied.** With `ad_storage` = denied (or pending), the connector
-   emits **no** AW beacon — the seal holds/drops it per 017-03, and the enforcement inspector (028) records the hold with
-   the connector's purpose. With `ad_storage` = granted, 044-01's beacon fires unchanged (no regression).
-2. **No cookieless AW send under denial (parity).** The connector does **not** fall back to a cookieless AW ping when
-   `ad_storage` is denied — asserted against the grounded container behavior (R-009 §(b): the container holds, GA4-only
-   cookieless-models). The cookieless-modeling behavior belongs to the GA4/analytics path (039), not this ad connector.
-3. **`gcs`/`npa` reflect the denied state when the seal is (later) lifted.** If consent transitions denied→granted, the
-   subsequently-emitted beacon carries the denied-then-granted Consent-Mode state via the reused 039 encoders (044-01
-   AC2) — i.e. the encoder is consent-vector-driven, not pinned to granted.
-4. **Behavior-preserving.** `npx vitest run` green (full suite); the seal wiring adds no main-thread interaction-path
-   cost (the hold is at egress, behind the airlock — vision "held at the seal, capture never waits"). Unit tests cover
-   granted-fires / denied-holds / pending-holds, and the no-cookieless-fallback assertion.
+1. **g-ads opts into `holdOnDenied`.** The google-ads connector's airlock instance is configured `holdOnDenied: true`
+   (wired at whatever boot/config seam is in scope — mirroring how `consentStrict`/`egressPurposes` are threaded; note
+   044-01 deferred full boot wiring, so this AC is satisfied at the connector-config + seal level the 044-01 tests use,
+   with runtime boot wiring following in the deferred boot slice). A one-line rationale cites R-009 §(b) as the grounding.
+2. **AW egress holds under `ad_storage`-denied.** With `holdOnDenied: true` + `ad_storage` denied (or pending), the AW
+   beacon **buffers at the seal** (no egress) and the inspector records the hold; on a later `setConsent({ ad_storage:
+   "granted" })` it **flushes** (fires). With `ad_storage` granted, 044-01's beacon fires unchanged.
+3. **No cookieless AW fallback (parity).** The connector emits exactly one beacon shape (044-01's ccm/collect); under
+   denial the seal **holds** it — the connector does **not** produce a separate cookieless AW variant (contrast GA4's
+   analytics path). Asserted against R-009 §(b) (the container held, it did not cookieless-send ads).
+4. **Behavior-preserving.** Full `npx vitest run` green; unit tests cover granted→fires / denied→held / pending→held /
+   grant→flushed, and the no-cookieless-fallback assertion. No arch pass (reuses 045-01's mechanism; `arch_review: false`).
 
 **DoD:**
-- All ACs met; full `npx vitest run` green; the denied-hold is witnessed by a test driving `ad_storage`-denied and
-  asserting zero AW egress + an inspector hold record.
-- Compliance + craft passes recorded (no arch pass — reuses the existing seal boundary; `arch_review: false`).
-- Reconciliation walked.
+- All ACs met; full suite green; the denied-hold + grant-flush witnessed by tests.
+- Compliance + craft passes recorded; reconciliation walked.
 
 **Out of scope (explicit):**
-- Any change to the seal mechanism itself (017-03) — this slice *wires* it, not *rebuilds* it.
+- The `holdOnDenied` **mechanism** itself — 045-01.
+- Meta/Floodlight opt-ins (grounded follow-ups, their own specs); LinkedIn/Bing (ungrounded).
 - The true conversion ping / enhanced-match hashes (MVP9); the cross-site DMP sync (E10).
 
 ## Assumptions
 
-**A1 (denied = hold, grounded).** The container holds the entire Google Ads family under `ad_storage`-denied (R-009
-§(b), 23→2 re-capture). *Risk if wrong:* a profile that DID cookieless-send AW under denial would need a cookieless
-adapter — but this is grounded on the reference profile, and matching the container is the parity definition. A
-different adopter profile that cookieless-sends is a named future variant, not this slice.
+**A1 (denied = hold, grounded).** The container holds the Google Ads family under `ad_storage`-denied (R-009 §(b),
+23→2). *Risk if wrong:* a different adopter profile that cookieless-sends AW under denial would opt out (leave
+`holdOnDenied` unset) or need a per-profile override — a named future variant, per ADR-0023 A2; this slice grounds the
+reference profile.
 
 ### Deviation log (after reconciliation)
 
@@ -72,4 +70,4 @@ _(pending implementation)_
 
 ### Close-out (post-DONE)
 
-- [ ] Spec 044 rolls up when both slices are DONE; regenerate the board.
+- [ ] Spec 044 rolls up when 044-02 is DONE (044-01 already DONE); regenerate the board.
