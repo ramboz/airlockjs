@@ -28,7 +28,7 @@ import { createGa4GtagConnector } from "../connectors/ga4/gtag.js";
 import { createPixelConnector } from "../connectors/pixel/connector.js";
 import { mergeAdvancedMatching } from "../connectors/pixel/advanced-matching.js";
 import { originPath, checkEndpointCeiling } from "./endpoint-ceiling.js";
-import { egressVerdict } from "./consent.js";
+import { egressVerdict, resolveConsent } from "./consent.js";
 import { governPayload, DEFAULT_DENYLIST } from "./payload-governance.js";
 
 // Default diagnostics seam: console-backed, severity-differentiated (warn for a
@@ -63,6 +63,22 @@ export function createAirlock({
   consent = null,
   egressPurposes = [],
   consentStrict = false,
+  // 045-01 (ADR-0023 Option E): the per-connector `holdOnDenied` opt-in,
+  // mirroring `consentStrict` above. When true, a DENIED governing egress
+  // purpose HOLDS (buffer + flush-on-grant) instead of the default send —
+  // grounded per vendor by the consumer (g-ads 044-02), never blanket-by-
+  // purpose. Default false -> the seal behaves exactly as today (denied ->
+  // send). Threaded to all three `egressVerdict` sites below.
+  holdOnDenied = false,
+  // 045-01: the per-connector main-thread RE-MAPPER a `holdOnDenied` consumer
+  // supplies — `(event, consentVector) => EgressRequest`. On a grant-flush, a
+  // beacon HELD under denial is REBUILT from its source event under the
+  // now-current consent/ctx (fresh `auid`, granted `gcs`/`npa`) instead of
+  // re-sending the stale under-denial `{url,body}` (which would fire an
+  // unattributable "user-declined" beacon — ADR-0023's load-bearing
+  // correction). Absent -> a held beacon falls back to the 017-03 verbatim
+  // re-send. This slice wires NO real connector; 044-02 supplies g-ads' `remap`.
+  remap,
   payloadDenylist = [],
   // Connector-selection seam (spec 026-01 AC3, resolving the "GA4-hardcoded
   // connector factory + worker URL" gap; spec 025-03 AC6 adds a THIRD
@@ -150,12 +166,15 @@ export function createAirlock({
   // MUTABLE main-thread copy seeded from the boot-time `consent` opt — the
   // returned handle's `setConsent` updates it (this slice's OWN
   // consent-update path; 017-01's seam is boot-time-only, see `setConsent`'s
-  // doc comment below). `heldBeacons` retains the already-mapped `{ url,
-  // body }` ready requests a pending governing purpose holds — flushing them
-  // is a pure main-thread re-`fetch`, never a re-map/worker round-trip.
-  // Gated below on `egressPurposes.length`, exactly like the ceiling's own
-  // `ceiling.length` gate: a caller with no declared egress purpose is
-  // unaffected (back-compat).
+  // doc comment below). `heldBeacons` retains what a `hold` verdict buffers:
+  // a 017-03 RE-SEND item (the already-mapped `{ url, method, body }`, flushed
+  // by a pure main-thread re-`fetch`), OR — for a `holdOnDenied` hold with a
+  // `remap` wired (045-01) — a RE-MAP item (`{ event }`, REBUILT under the
+  // now-current consent at flush, never the stale under-denial payload). Both
+  // carry the once-minted `beaconId` so the held→flushed diagnostic chain is
+  // preserved. Gated below on `egressPurposes.length`, exactly like the
+  // ceiling's own `ceiling.length` gate: a caller with no declared egress
+  // purpose is unaffected (back-compat).
   let consentVector = consent || {};
   const heldBeacons = [];
   // 026-04 (ADR-0022 Option C): the main-side advanced-matching hash cache —
@@ -253,11 +272,16 @@ export function createAirlock({
   // NO "later" to flush a held beacon to — the page is tearing down, so a hold
   // here could never be released. Unlike the async seal above (hold + flush),
   // an un-granted governing purpose on this path is DROPPED outright, never
-  // held. Gated on `egressPurposes.length` exactly like the async gate
-  // (back-compat: a caller with no declared egress purpose is unaffected).
+  // held. 045-01 (AC3): this covers a `holdOnDenied` hold too — a denied
+  // purpose resolves to `hold` here, which is `!== "send"`, so it DROPS at
+  // teardown. That is correct "no ping" for the page-load family under
+  // persistent denial (there is no buffer to re-map into at unload; the
+  // teardown-conversion case is MVP9). Gated on `egressPurposes.length` exactly
+  // like the async gate (back-compat: a caller with no declared egress purpose
+  // is unaffected).
   const criticalDispatchGated = (d) => {
     if (egressPurposes.length) {
-      const v = egressVerdict(consentVector, egressPurposes, { strict: consentStrict });
+      const v = egressVerdict(consentVector, egressPurposes, { strict: consentStrict, holdOnDenied });
       if (v !== "send") {
         diagnose({
           level: "warn",
@@ -398,7 +422,7 @@ export function createAirlock({
         // caller with no declared egress purpose (back-compat) skips this
         // block entirely — byte-identical to pre-017-03 behaviour.
         if (egressPurposes.length) {
-          const v = egressVerdict(consentVector, egressPurposes, { strict: consentStrict });
+          const v = egressVerdict(consentVector, egressPurposes, { strict: consentStrict, holdOnDenied });
           if (v === "drop") {
             diagnose({
               level: "warn",
@@ -416,13 +440,47 @@ export function createAirlock({
             // 028-02: mint the beacon id ONCE here + carry it on the held beacon
             // so the later flush record shares it (the held→flushed chain).
             const beaconId = `${inspectorTag}#${(beaconSeq += 1)}`;
-            heldBeacons.push({ url: r.url, method: r.method, body: r.body, beaconId });
+            // 045-01 (ADR-0023): a `holdOnDenied` hold with a `remap` wired AND
+            // the ready beacon carrying its SOURCE EVENT buffers a RE-MAP item —
+            // the flush REBUILDS it under the now-current consent (fresh `auid`,
+            // granted `gcs`/`npa`), never the stale under-denial `{url,body}`
+            // (which would fire an unattributable "user-declined" beacon on
+            // grant). Any OTHER hold — 017-03 pending (not opted in), or a
+            // `holdOnDenied` hold missing its re-map inputs — buffers the
+            // verbatim RE-SEND item exactly as before (byte-unchanged for the
+            // un-opted-in pending path).
+            const canRemap = holdOnDenied && typeof remap === "function" && r.event != null;
+            if (canRemap) {
+              heldBeacons.push({ event: r.event, remap: true, beaconId });
+            } else {
+              heldBeacons.push({ url: r.url, method: r.method, body: r.body, beaconId });
+            }
+            // The held diagnostic's `reason` names the ACTUAL governing state
+            // (denied vs pending), derived from the consent vector — NOT the
+            // buffering strategy (compliance + craft review: keying the reason
+            // off `canRemap` mislabels a pending opted-in hold as "denied" and a
+            // no-remap denied hold as "pending"). And when an OPTED-IN instance
+            // buffers a verbatim RE-SEND (no `remap`/`event`), the reason FLAGS
+            // the footgun: the flush will re-send the under-consent payload,
+            // which is non-parity for a consent-dependent beacon (arch review
+            // blocker — a connector opts in precisely because its denied payload
+            // must NOT egress; a silent verbatim re-send would defeat that).
+            const deniedCause = holdOnDenied && egressPurposes.some((p) => resolveConsent(consentVector, p) === "denied");
+            const stateWord = deniedCause ? "denied" : "pending";
+            let heldReason;
+            if (canRemap) {
+              heldReason = `purpose ${stateWord} under holdOnDenied — held at the seal; re-maps on grant`;
+            } else if (holdOnDenied) {
+              heldReason = `purpose ${stateWord} under holdOnDenied — held at the seal; NO re-map wired (source event or remap fn missing) — flush will RE-SEND the under-consent payload verbatim`;
+            } else {
+              heldReason = "purpose pending — held at the seal"; // 017-03 pending (not opted in) — byte-unchanged
+            }
             diagnose({
               level: "warn",
               kind: "consent",
               disposition: "held",
               purpose: egressPurposes.join(","),
-              reason: "purpose pending — held at the seal",
+              reason: heldReason,
               beaconId,
               destination: r.url,
             });
@@ -654,12 +712,23 @@ export function createAirlock({
      * 017-03 AC2 (ADR-0007 point ③ — THIS slice's own main-thread
      * consent-update path; NOT 017-01's deferred worker `ctx` re-send, which
      * governs only the mapper reshape ① and stays deferred). Merges `vector`
-     * into the mutable main-thread consent state. On a pending→granted edge
-     * for a HELD egress purpose, the buffered beacons are FLUSHED — a pure
-     * main-thread re-`fetch(url, body)` (they are already mapped; no worker,
-     * no re-map), so a flushed beacon still carries its BOOT-TIME mapper
-     * reshape (a named residual — docs/refinement-todo.md). A still-pending
-     * purpose's beacons stay held.
+     * into the mutable main-thread consent state. On a hold→send edge for a
+     * HELD egress purpose (now granted), the buffered beacons are FLUSHED:
+     *   - a 017-03 RE-SEND item re-`fetch`es its already-mapped `{ url, body }`
+     *     verbatim (no worker, no re-map) — so it still carries its BOOT-TIME
+     *     mapper reshape (a named residual — docs/refinement-todo.md);
+     *   - a 045-01 RE-MAP item (a `holdOnDenied` hold with `remap` wired) is
+     *     REBUILT from its source event under the NOW-CURRENT consent/ctx
+     *     (fresh `auid`, granted `gcs`/`npa`) via the connector's `remap`, then
+     *     fired — resolving the stale-payload residual for the seal path
+     *     (ADR-0023's load-bearing correction: a re-sent under-denial beacon
+     *     would be an unattributable "user-declined" ping, the exact non-parity
+     *     hold-until-granted exists to prevent).
+     * A re-mapped URL is re-checked against the host-owned endpoint ceiling
+     * before egress (a connector cannot widen its declared ceiling via the flush
+     * path); a re-map that declines (produces no beacon) emits a terminal
+     * `dropped` record so the held→flushed chain is never silently broken.
+     * A still-un-granted purpose's beacons stay held.
      * @param {Record<string, string>} vector a partial consent-vector update
      *   (core/consent.js's shape), merged over the existing state.
      */
@@ -668,20 +737,68 @@ export function createAirlock({
       if (
         egressPurposes.length &&
         heldBeacons.length &&
-        egressVerdict(consentVector, egressPurposes, { strict: consentStrict }) === "send"
+        egressVerdict(consentVector, egressPurposes, { strict: consentStrict, holdOnDenied }) === "send"
       ) {
         const flushing = heldBeacons.splice(0, heldBeacons.length);
         for (const b of flushing) {
-          fetch(b.url, fetchInit(b.method, b.body))
+          // 045-01: a RE-MAP item rebuilds under the now-current consent via the
+          // connector's `remap`; a RE-SEND item re-fires its buffered
+          // `{ url, method, body }` (017-03, byte-unchanged).
+          const req = b.remap ? remap(b.event, consentVector) : { url: b.url, method: b.method, body: b.body };
+          // A re-map that DECLINES (returns nothing / no url) must not vanish
+          // silently (craft review): emit a terminal `dropped` record so the
+          // held→flushed diagnostic chain stays honest — the held beacon
+          // existed, and its final disposition is now known. No fetch.
+          if (!req || req.url == null) {
+            diagnose({
+              level: "warn",
+              kind: "consent",
+              disposition: "dropped",
+              purpose: egressPurposes.join(","),
+              reason: "purpose granted — re-map declined (produced no beacon); held beacon discarded",
+              beaconId: b.beaconId,
+            });
+            continue;
+          }
+          // 016-01 / ADR-0006 / AD-5 (arch review): a RE-MAP recomputes the URL
+          // with connector code at flush time, so re-apply the host-owned
+          // endpoint ceiling before egress — a connector must not widen its
+          // declared ceiling via the flush path. Scoped to `b.remap`: a RE-SEND
+          // item carries the async cycle's already-mapped URL and keeps its
+          // pre-existing 017-03 flush behavior unchanged (only re-map newly
+          // makes the flushed destination connector-controlled). Gated on
+          // `ceiling.length` (back-compat: no declared endpoints -> no ceiling).
+          if (b.remap && ceiling.length) {
+            const c = checkEndpointCeiling(req.url, endpoints);
+            if (c.verdict === "hold") {
+              diagnose({
+                level: "error",
+                kind: "endpoint-ceiling",
+                disposition: "held",
+                destination: c.destination,
+                reason: c.reason,
+                beaconId: b.beaconId,
+              });
+              continue;
+            }
+          }
+          fetch(req.url, fetchInit(req.method, req.body))
             .then(() => { dispatched++; }, () => { dispatched++; });
           diagnose({
             level: "warn",
             kind: "consent",
             disposition: "flushed",
             purpose: egressPurposes.join(","),
-            reason: "purpose granted — held beacon flushed",
+            // A verbatim RE-SEND on an OPTED-IN instance (no re-map wired) flags
+            // the footgun (arch review): the flushed payload was mapped under
+            // denial and may be stale/non-parity for a consent-dependent beacon.
+            reason: b.remap
+              ? "purpose granted — held beacon re-mapped + flushed"
+              : holdOnDenied
+                ? "purpose granted — held beacon flushed VERBATIM (no re-map wired — a consent-dependent payload may be stale/non-parity)"
+                : "purpose granted — held beacon flushed",
             beaconId: b.beaconId, // 028-02: same id as this beacon's `held` record → the held→flushed chain
-            destination: b.url,
+            destination: req.url,
           });
         }
       }

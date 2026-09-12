@@ -101,19 +101,29 @@ export function resolveConsent(vector, purpose) {
  *   (a connector's declared `purposes.egress`, e.g. GA4's
  *   `["analytics_storage"]`). An empty/absent list resolves to `"send"` — no
  *   governing purpose means nothing for the seal to gate on.
- * @param {{ strict?: boolean }} [opts] `strict`: a declared strict/
- *   no-processing regime (ADR-0007 AC3 — this slice's chosen boot-property
- *   option among the ADR's still-open "where is the regime declared"
- *   question, not a pinned seam contract).
+ * @param {{ strict?: boolean, holdOnDenied?: boolean }} [opts] `strict`: a
+ *   declared strict/no-processing regime (ADR-0007 AC3 — this slice's chosen
+ *   boot-property option among the ADR's still-open "where is the regime
+ *   declared" question, not a pinned seam contract). `holdOnDenied` (spec
+ *   045-01, ADR-0023 Option E): a per-connector opt-in — when true, a
+ *   **denied** governing purpose escalates to **hold** (buffer+flush-on-grant)
+ *   instead of the default send, grounded per vendor by the consumer (g-ads
+ *   044-02), never blanket-by-purpose. `strict` (drop) still takes precedence.
+ *   Absent/false -> the verdict is byte-identical to pre-045-01 (denied -> send).
  * @returns {"send"|"hold"|"drop"}
  */
-export function egressVerdict(vector, purposes, { strict = false } = {}) {
+export function egressVerdict(vector, purposes, { strict = false, holdOnDenied = false } = {}) {
   let verdict = "send"; // severity: send < hold < drop
   for (const p of purposes || []) {
     const state = resolveConsent(vector, p);
-    if (strict && state !== "granted") return "drop"; // strict: any un-granted -> drop
+    if (strict && state !== "granted") return "drop"; // strict: any un-granted -> drop (precedence over holdOnDenied)
     if (state === "pending" && verdict === "send") verdict = "hold"; // pending -> hold (no signal yet)
-    // denied (non-strict) -> send (a storage-purpose denial is 017-02's cookie
+    // 045-01 (ADR-0023 Option E): an OPTED-IN connector escalates a *denied*
+    // governing purpose to hold too (buffer+flush-on-grant — the OneTrust-accept
+    // flow), instead of the default send. Only reached when `holdOnDenied` is
+    // set, so the un-opted-in path below is untouched.
+    if (holdOnDenied && state === "denied" && verdict === "send") verdict = "hold";
+    // denied (NOT opted in) -> send (a storage-purpose denial is 017-02's cookie
     // concern, a data-use denial is 017-01's mapper-reshape concern; the
     // beacon still egresses); granted -> send.
   }

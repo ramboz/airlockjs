@@ -84,6 +84,25 @@ export interface EgressRequest {
    * the async `handle()`-returned path.
    */
   readonly unloadCritical?: boolean;
+  /**
+   * Optional RE-MAP channel (spec 045-01 / ADR-0023 Option E). A connector
+   * that opts into hold-until-granted (`holdOnDenied`) attaches its SOURCE
+   * `event` here so the main-thread seal can REBUILD this request under the
+   * now-current consent when a held beacon is flushed on grant — re-reading
+   * consent-gated ctx (e.g. `_gcl_au` → `auid`) and re-encoding `gcs`/`npa`
+   * granted, rather than re-sending the stale under-denial payload (which
+   * would fire an unattributable "user-declined" beacon — the exact
+   * non-parity hold-until-granted exists to prevent). Read by the seal only
+   * when a `remap` is wired on the airlock instance; ignored otherwise.
+   * ADDITIVE-OPTIONAL (ADR-0017 frozen-core rule): a connector that does not
+   * opt in never sets it, so the stable-core surface is unchanged. The
+   * producer is the connector's own `handle(event)`, threaded verbatim by
+   * `createConnectorHost`; g-ads wires this end-to-end in 044-02. Known
+   * limitation (044-02 / refinement-todo): the `remap` rebuilds ONE request,
+   * so a connector whose `handle` fans one event out to N held beacons is not
+   * yet supported by re-map (g-ads is 1:1 event→beacon).
+   */
+  readonly event?: AirlockEvent;
 }
 
 /**

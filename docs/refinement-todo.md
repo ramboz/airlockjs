@@ -251,6 +251,19 @@ Named follow-ups from this slice, not attempted here:
   (hold-pending -> flush-on-arrival) now has its own main-thread `setConsent`;
   the worker `ctx` re-send this bullet describes is specifically for the
   mapper's *reshape* ① and remains open.
+  **Further resolved for the seal path by [045-01](specs/045-consent-hold-until-granted/slice-01-seal-hold-mode.md),
+  2026-09-12** — a `holdOnDenied` held beacon is RE-MAPPED on grant (rebuilt under
+  the now-current consent/ctx via the connector's `remap` — fresh consent-gated ctx
+  like `_gcl_au`→`auid`, granted `gcs`/`npa`), resolving the *grant-flush* direction
+  for opted-in connectors so the flush no longer re-sends the stale under-denial
+  payload. Two known limits remain: (a) the re-map path is **wired-but-inactive**
+  until a consumer supplies `remap` AND attaches its source `event` on ready beacons
+  (the additive optional `EgressRequest.event` channel) — g-ads wires it end-to-end
+  in [044-02](specs/044-google-ads-connector/slice-02-denied-seal-hold.md); and
+  (b) `remap` rebuilds **one** request per held item, so a connector that fans one
+  event out to N held beacons is not yet supported (g-ads is 1:1 event→beacon). The
+  *revoke* direction (stop future egress) and the worker `ctx` re-send for the
+  mapper reshape ① remain open.
 - **Consent-Mode `gtag` / TCF `__tcfapi` seam drivers.** ADR-0007 names these as
   drivers onto the SAME pre-construction consent-input seam `adapters/eds/index.js`
   now folds through (a host-provided vector today); a `gtag('consent', …)`

@@ -26,23 +26,34 @@ grounded on the container — not chosen speculatively, and not a cookieless AW 
 **DoR:**
 - ✅ 044-01 shipped the AW beacon (granted path) + the connector's `purposes.egress: ["ad_storage"]`.
 - ✅ 045-01 provides the **mechanism** — the per-instance `holdOnDenied` opt-in on the core seal (denied governing
-  purpose → hold+flush). This slice **sets the flag** for g-ads; it does not build the mechanism.
+  purpose → hold+flush) **plus the re-map-on-grant channel** (`createAirlock({ remap })` + the additive optional
+  `EgressRequest.event` field), landed **wired-but-inactive** (no connector supplies them yet). This slice **sets the
+  flag AND supplies the re-map inputs** for g-ads (activating the channel); it does not build the mechanism.
 - ✅ Grounded (R-009 §(b)): the container held AW under `ad_storage`-denied — the opt-in is evidence-backed, not opinion.
 
 **Acceptance Criteria:**
 
-1. **g-ads opts into `holdOnDenied`.** The google-ads connector's airlock instance is configured `holdOnDenied: true`
-   (wired at whatever boot/config seam is in scope — mirroring how `consentStrict`/`egressPurposes` are threaded; note
-   044-01 deferred full boot wiring, so this AC is satisfied at the connector-config + seal level the 044-01 tests use,
-   with runtime boot wiring following in the deferred boot slice). A one-line rationale cites R-009 §(b) as the grounding.
-2. **AW egress holds under `ad_storage`-denied.** With `holdOnDenied: true` + `ad_storage` denied (or pending), the AW
-   beacon **buffers at the seal** (no egress) and the inspector records the hold; on a later `setConsent({ ad_storage:
-   "granted" })` it **flushes** (fires). With `ad_storage` granted, 044-01's beacon fires unchanged.
+1. **g-ads opts into `holdOnDenied` AND supplies the re-map inputs.** The google-ads connector's airlock instance is
+   configured `holdOnDenied: true` (wired at whatever boot/config seam is in scope — mirroring how
+   `consentStrict`/`egressPurposes` are threaded; note 044-01 deferred full boot wiring, so this AC is satisfied at the
+   connector-config + seal level the 044-01 tests use, with runtime boot wiring following in the deferred boot slice). To
+   make the hold-until-granted flush **re-map** (not re-send) — the load-bearing 045-01 correction — the connector also
+   (a) **attaches its source `event`** to each ready `EgressRequest` (the additive optional `EgressRequest.event`
+   channel, 045-01), and (b) is wired with g-ads' **main-thread `remap(event, consent)`** that re-reads `_gcl_au`→`auid`
+   and re-encodes `gcs`/`npa` under the passed consent (reusing `sourceGoogleAdsCtx` / the 042 main-thread mapper path).
+   A one-line rationale cites R-009 §(b) as the grounding.
+2. **AW egress holds under `ad_storage`-denied, then RE-MAPS on grant (not a stale re-send).** With `holdOnDenied: true` +
+   `ad_storage` denied (or pending), the AW beacon **buffers at the seal** (no egress) and the inspector records the hold;
+   on a later `setConsent({ ad_storage: "granted" })` it **flushes RE-MAPPED under the now-granted consent** — the fired
+   beacon carries a fresh `auid` (re-read now that `_gcl_au` is ad_storage-ungated) and `gcs`=granted, **NOT** the stale
+   under-denial payload (no `auid`, `gcs`=denied) a verbatim re-send would fire (the unattributable "user-declined" beacon
+   045-01 forbids). With `ad_storage` granted from the start, 044-01's beacon fires unchanged.
 3. **No cookieless AW fallback (parity).** The connector emits exactly one beacon shape (044-01's ccm/collect); under
    denial the seal **holds** it — the connector does **not** produce a separate cookieless AW variant (contrast GA4's
    analytics path). Asserted against R-009 §(b) (the container held, it did not cookieless-send ads).
 4. **Behavior-preserving.** Full `npx vitest run` green; unit tests cover granted→fires / denied→held / pending→held /
-   grant→flushed, and the no-cookieless-fallback assertion. No arch pass (reuses 045-01's mechanism; `arch_review: false`).
+   grant→**re-mapped** (the flushed beacon carries `auid` + `gcs`=granted, **not** the stale under-denial payload), and the
+   no-cookieless-fallback assertion. No arch pass (reuses 045-01's mechanism; `arch_review: false`).
 
 **DoD:**
 - All ACs met; full suite green; the denied-hold + grant-flush witnessed by tests.

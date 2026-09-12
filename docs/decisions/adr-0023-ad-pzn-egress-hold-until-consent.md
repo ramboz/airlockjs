@@ -1,5 +1,5 @@
 ---
-status: Proposed
+status: Accepted
 dependencies: [adr-0007]
 last_verified: 2026-09-11
 frame_review: true
@@ -9,7 +9,7 @@ frame_review: true
 
 ## Status
 
-Proposed (2026-09-11) — **amends [ADR-0007](adr-0007-purpose-vector-consent.md)** (the consent-purpose seal model; point ③, the egress seal). Does not supersede it; adds a per-purpose enforcement mode.
+Accepted (2026-09-12, implemented by spec 045-01) — **amends [ADR-0007](adr-0007-purpose-vector-consent.md)** (the consent-purpose seal model; point ③, the egress seal). Does not supersede it; adds a per-purpose enforcement mode. The core-seal `holdOnDenied` opt-in + the re-map-on-grant flush landed in 045-01 (`core/consent.js` `egressVerdict`, `core/airlock.js` `createAirlock`); alloy's separate-path refinement is 045-02.
 
 ## Context
 
@@ -53,7 +53,18 @@ consent-grant is **re-mapped** with the current consent/ctx (fresh `auid`, grant
 main-thread mapper — NOT the stale under-denial payload the existing flush re-sends (`core/airlock.js:666-687`, the
 residual named at `:660`). Without this, hold-until-granted would fire an unattributable "user-declined" beacon on accept
 (no `auid`, `gcs`=denied) — the exact non-parity it exists to prevent. This resolves the deferred **mid-session
-ctx-refresh** residual (`docs/refinement-todo.md`) for the seal path; it is part of the 045-01 mechanism.
+ctx-refresh** residual (`docs/refinement-todo.md`) for the seal path (the grant-flush direction); it is part of the
+045-01 mechanism.
+
+**Landed shape + scope (2026-09-12, post-arch-review).** 045-01 landed the re-map MECHANISM: an additive optional
+`EgressRequest.event` re-map channel (a connector attaches its source event; ADR-0017 additive), `createAirlock({ remap })`,
+and a flush that re-maps a `holdOnDenied` held beacon under the now-current consent. It is **wired-but-inactive** until a
+consumer both supplies a `remap` and attaches `event` on its ready beacons — **g-ads wires it end-to-end in 044-02**; with
+no `remap`/`event` the flush falls back to the 017-03 verbatim re-send and **emits a footgun diagnostic** so the
+stale-payload risk is observable, never silent. The re-mapped URL is **re-checked against the host endpoint ceiling** at
+flush (a connector cannot widen its ceiling via re-map; ADR-0006). **Known limit:** `remap` rebuilds **one** request per
+held item, so a connector whose `handle` fans one event out to N held beacons is a future variant (g-ads is 1:1
+event→beacon).
 
 **Two independent enforcement paths (grounded 2026-09-11).** g-ads and alloy do NOT share a seal:
 - **g-ads (and any `core/airlock.js`-hosted connector)** uses the **core seal** — `egressVerdict` (non-strict) + the `heldBeacons`/`setConsent` buffer+flush. This is where Option D's classification lands (spec 045-01).

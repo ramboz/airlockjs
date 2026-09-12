@@ -134,4 +134,63 @@ describe("core/consent.js: egressVerdict", () => {
       expect(egressVerdict({}, [], { strict: true })).toBe("send");
     });
   });
+
+  // spec 045-01 (ADR-0023 Option E) — the per-connector `holdOnDenied` opt-in.
+  // When set, a DENIED governing purpose HOLDS (buffer+flush) instead of
+  // sending; `strict` (drop) still takes precedence, and pending→hold /
+  // granted→send are unchanged. When unset/false the verdict is BYTE-IDENTICAL
+  // to today — the rest of this suite already pins the holdOnDenied:false column.
+  describe("holdOnDenied opt-in (AC1)", () => {
+    it("denied (non-strict) -> HOLD instead of send — the one cell this flag changes", () => {
+      expect(egressVerdict({ ad_storage: "denied" }, ["ad_storage"], { holdOnDenied: true })).toBe("hold");
+    });
+
+    it("denied WITHOUT the flag still sends (opt-in only — byte-identical to today)", () => {
+      expect(egressVerdict({ ad_storage: "denied" }, ["ad_storage"], { holdOnDenied: false })).toBe("send");
+      expect(egressVerdict({ ad_storage: "denied" }, ["ad_storage"])).toBe("send");
+    });
+
+    it("pending -> hold and granted -> send are unchanged under the flag", () => {
+      expect(egressVerdict({}, ["ad_storage"], { holdOnDenied: true })).toBe("hold");
+      expect(egressVerdict({ ad_storage: "pending" }, ["ad_storage"], { holdOnDenied: true })).toBe("hold");
+      expect(egressVerdict({ ad_storage: "granted" }, ["ad_storage"], { holdOnDenied: true })).toBe("send");
+    });
+
+    it("strict takes PRECEDENCE over holdOnDenied — denied/pending still DROP (not hold) under strict", () => {
+      expect(egressVerdict({ ad_storage: "denied" }, ["ad_storage"], { strict: true, holdOnDenied: true })).toBe("drop");
+      expect(egressVerdict({}, ["ad_storage"], { strict: true, holdOnDenied: true })).toBe("drop");
+      expect(egressVerdict({ ad_storage: "granted" }, ["ad_storage"], { strict: true, holdOnDenied: true })).toBe("send");
+    });
+
+    it("multiple purposes (fail-closed): a denied purpose among granted holds the whole beacon under the flag, order-independent", () => {
+      expect(
+        egressVerdict(
+          { analytics_storage: "granted", ad_storage: "denied" },
+          ["analytics_storage", "ad_storage"],
+          { holdOnDenied: true },
+        ),
+      ).toBe("hold");
+      expect(
+        egressVerdict(
+          { ad_storage: "denied", analytics_storage: "granted" },
+          ["ad_storage", "analytics_storage"],
+          { holdOnDenied: true },
+        ),
+      ).toBe("hold");
+    });
+
+    it("multiple purposes: denied + pending under the flag both escalate to the same worst verdict (hold)", () => {
+      expect(
+        egressVerdict(
+          { ad_storage: "denied", ad_user_data: "pending" },
+          ["ad_storage", "ad_user_data"],
+          { holdOnDenied: true },
+        ),
+      ).toBe("hold");
+    });
+
+    it("no governing purposes -> send even under the flag (nothing to gate on)", () => {
+      expect(egressVerdict({}, [], { holdOnDenied: true })).toBe("send");
+    });
+  });
 });
