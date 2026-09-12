@@ -27,9 +27,10 @@ related:
 > recon rig, redacted, R5) grounded the previously-stubbed Ads/Floodlight half: the Google Ads (`AW`) + Floodlight (`DC`)
 > page-load conversion/activity pings are **GET beacons carrying Consent Mode v2 (`gcs`/`gcd`) — protocol-reproducible
 > off-thread** (same egress class as connectors 026/039), so the MVP8 connector gate is **not** tripped for the page-load
-> family (see §(b)/(c) + Conclusion). Status stays `OPEN`: three residuals remain — the `ad_storage`-denied cookieless
-> path (a consent-toggled re-capture), the true conversion ping with enhanced-match hashes (MVP9), and the cross-site DMP
-> sync (E10).
+> family (see §(b)/(c) + Conclusion). A **consent-DENIED re-capture** (2026-09-11) further grounds the denied path — the
+> container **holds** the whole Ads/Floodlight family under `ad_storage`-denied (23 ad reqs → 2; only GA4 sends a
+> cookieless modeling ping), so the ad connectors' denied path is **seal-hold**. Status stays `OPEN`: two residuals
+> remain — the true conversion ping with enhanced-match hashes (MVP9) and the cross-site DMP sync (E10).
 
 ## Question
 
@@ -153,11 +154,31 @@ and the gtag connector (039, `/g/collect` GET) already emit off-thread. Endpoint
 - **Reproducibility verdict (the gate question): the page-load Ads + Floodlight pings ARE reproducible off-thread** —
   they are governed GET beacons of exactly the shape airlock already emits, carrying Consent Mode by query param.
   ADR-0019's kill-criterion #1 (protocol not reproducible) is **not** tripped for the page-load family.
-- **Residuals (not retired by this capture):** (i) the **`ad_storage`-denied path** — this capture is granted-state
-  (`G111`); the denied-state cookieless/modeling pings (`gcs=G100…`, hold-vs-cookieless) need a **consent-toggled
-  re-capture** (reject the OneTrust banner → reload), the immediate next probe; (ii) the **true conversion ping** (an AW
-  conversion / a Floodlight sales/counter activity carrying the enhanced-match hashes) fires on a **conversion event**,
-  not page load — MVP9 / a conversion-page capture; (iii) **inbound click identifiers** — see part (c).
+- **Residuals:** (i) the **`ad_storage`-denied path is now GROUNDED** — see the denied-consent finding below; (ii) the
+  **true conversion ping** (an AW conversion / a Floodlight sales/counter activity carrying the enhanced-match hashes)
+  fires on a **conversion event**, not page load — MVP9 / a conversion-page capture; (iii) **inbound click identifiers**
+  — see part (c).
+
+**Grounded — consent-DENIED re-capture (2026-09-11, Playwright `OneTrust.RejectAll()` → reload, redacted).** Toggling the
+reference site's OneTrust CMP to reject-all and reloading collapses the ad-family egress **from 23 requests to 2**:
+
+| | Baseline (default, US) | Denied (RejectAll) |
+|---|---|---|
+| Ad-family requests | 23 | **2** |
+| `gcs` (Consent-Mode state) | `G111` (granted) | **`G100`** (ad + analytics denied) |
+| `npa` (non-personalized) | `0` | **`1`** |
+| Google Ads (`viewthroughconversion`/`rmkt`/`ccm`) | fires | **none — fully held** |
+| Floodlight (`ad.doubleclick.net/activity`) | fires | **none — fully held** |
+| DMP sync (`cm.g.doubleclick`) | fires | **none — held** |
+| GA4 (`/g/collect`) | fires | **fires cookieless-modeling** (`gcs=G100`, `npa=1`) |
+
+**The container HOLDS the entire Google Ads + Floodlight family under `ad_storage`-denied — it does NOT do a cookieless
+ad send.** Only GA4 (analytics) emits a cookieless modeling ping. So for ADR-0007's "hold-at-the-seal vs cookieless
+send" question, the grounded answer for the **ad connectors is HOLD** (match the container: no ad ping under
+`ad_storage`-denied); the cookieless-modeling behavior belongs to the **GA4/analytics** path (already the gtag
+connector's domain, `gcs` carriage — 039). This retires residual (i): the ad connectors' denied-path is **seal-hold**,
+grounded on the container's own behavior, not a speculative choice — and it aligns exactly with airlock's existing seal
+(017-03 hold-pending / strict-drop).
 
 ### (c) Transport — per vendor, per cookie cohort [feeds the E10 ADR]
 - Which attribution paths ride the **cross-site cookie** (`fr`, `IDE`) vs **first-party params** (`_fbp`/`fbc`, `gclid`),
@@ -247,15 +268,16 @@ governed **GET beacons carrying Consent Mode v2 (`gcs`/`gcd`)** — the exact eg
 (gtag) already emit off-thread — with the linker id (`_gcl_au`→`auid`) riding as a first-party param, host-sourceable
 like `_ga`. So MVP8's connectors can be specced: a **Google Ads** connector + a **Floodlight** connector,
 Consent-Mode-carrying, applying the **E10** decision only for the one cross-site DMP-sync pixel. **Three residuals gate
-full parity, none of them the connector's core page-load wire:** the `ad_storage`-**denied** cookieless path (next
-probe: a consent-toggled re-capture), the **true conversion ping** with enhanced-match hashes (MVP9 / a conversion-page
-capture), and console-level attribution (MVP9). The note stays `OPEN`, but the **connector-scope gate is cleared for the
-page-load family** — MVP8 spec authoring can begin against this grounding.
+full parity, none of them the connector's core page-load wire:** the **true conversion ping** with enhanced-match
+hashes (MVP9 / a conversion-page capture) and console-level attribution (MVP9); the cross-site DMP sync is **E10**. The
+`ad_storage`-**denied** path is now **grounded** (2026-09-11 re-capture): the container holds the ad family under
+denial, so the connectors' denied path is **seal-hold**. The note stays `OPEN`, but the **connector-scope gate is
+cleared for the page-load family** — MVP8 spec authoring can begin against this grounding.
 
 **Next step (part (a)):** obtain a redacted `/g/collect` capture to confirm the GA4 field-map, then promote to a
-**GA4-protocol-path ADR**. **Next step (parts (b)/(c)):** a consent-toggled re-capture to ground the denied-state
-path, then author the MVP8 **Google Ads** + **Floodlight** connector specs (page-load family) with the E10 transport
-decision applied to the DMP sync.
+**GA4-protocol-path ADR**. **Next step (parts (b)/(c)):** author the MVP8 **Google Ads** + **Floodlight** connector
+specs (page-load family, **seal-hold** under `ad_storage`-denied per the grounded re-capture) with the E10 transport
+decision applied to the DMP sync; a conversion-page capture + console-level parity are MVP9.
 
 _Open (full note)._ Promoted to: — (part (a) feeds MVP7's GA4-parity ADR + GA4 connector scope; parts (b)/(c) now ground
 MVP8's Ads/Floodlight connector scope for the page-load family — denied-path / conversion / console residuals remain —
