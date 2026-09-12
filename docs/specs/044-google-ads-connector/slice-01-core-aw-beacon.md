@@ -1,10 +1,9 @@
 ---
-status: REVIEWED
+status: DONE
 dependencies: [adr-0019, 039-02, 039-05, 026-01, 038-01]
-last_verified:
+last_verified: 2026-09-11
 frame_review: true
 arch_review: true
-claimed_by: claude/043-01-jig-ceremony-bb71b2
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about runnable
@@ -115,14 +114,59 @@ an MVP9 live-rewire question. This slice claims the former, explicitly not the l
 
 ### Deviation log (after reconciliation)
 
-_(pending implementation)_
+Implemented as framed, with three review-driven corrections (all folded before REVIEWED; no scope change):
+
+- **Consent-Mode encoder home corrected (arch review).** AC2 said "extract to a neutral module"; the arch pass caught
+  that `gcs`/`gcd` emit Google-specific wire strings, so the home is **connector-side** `connectors/consent-mode.js`
+  (reused by ga4-gtag + google-ads), NOT `core/` (which carries no vendor coupling). The generic `appendParam` builder
+  DID go to a vendor-neutral core leaf `core/query-params.js`. Both extractions are verbatim + behavior-preserving
+  (gtag's tests stay green). Recorded as the `docs/conventions.md` § Code extract-on-third-caller convention.
+- **Phantom "ADR-0002" de-cited (arch review; owner ruled convention-not-ADR).** 039/043/044 mis-cited a nonexistent
+  airlock `adr-0002-extract-helper-on-third-caller.md` (that's the jig *plugin's* ADR-0002; airlock's ADR-0002 is
+  event-descriptor-cycle-semantics). De-cited across code + the 039/043/044 specs + refinement-todo → the new
+  convention; the connector-shape is a **lightweight decision**, not an ADR (owner call 2026-09-11). airlock's real
+  ADR-0002 citations untouched.
+- **AC1 softened to contract-level (compliance review).** The slice ships the connector contract (`handle()` → GET
+  `EgressRequest[]`) + the 038 parity replay only; boot/worker wiring is an explicit Out-of-scope item owned by a
+  future 041-style boot slice (mirrors 039-01→041).
+- **A1 endpoint decision:** `ccm/collect` (full `gcs`/`gcd`/`npa` + clean `tid`/`en`/`dl`/`dt`/`auid`), over the
+  `viewthroughconversion`/`rmkt` mirror pair (only `gcd`, opaque `data=event…`, device-noise-dominated) and the
+  `ccm/form-data` enhanced-conversions channel (hashes egress only on a conversion event — MVP9). Grounded on R-009.
+- **auid is shape-parity only** (§A3): identity-presence on a rewired page is the named OQ13-b residual (MVP9).
+- Craft nits (npa-under-pending integration assertion; redactor cookie-scrub doc; `readClickIds` empty-value edge) are
+  logged as non-blocking follow-ups.
 
 ### Reconciliation sweep
 
-_(pending implementation)_
+Drift-prone surfaces (`updated` / `no-op` / `deferred`):
+
+- **`docs/architecture.md`** — `updated`: connectors section names `connectors/google-ads/` + the shared
+  `connectors/consent-mode.js`; the registry namespace gains `airlock/google-ads`. (Module boundary changed — a new
+  connector + a shared gtag-family module; recorded as a lightweight decision + the `docs/conventions.md` § Code
+  convention, not an ADR, per the owner ruling.)
+- **`docs/conventions.md`** — `updated`: new § Code extract-on-third-caller + core-vs-connector home convention (owner
+  approved). **`docs/decisions/lightweight-decisions.md`** — `updated`: the gtag-family connector-shape decision.
+- **`docs/refinement-todo.md`** — `updated`: OQ13-b (`_gcl_au`-writer gap, MVP9) added; phantom ADR-0002 de-cited.
+- **Closed-spec drift (ADR-0010; owner-approved)** — `updated`: the phantom extract-concept "ADR-0002" citations in the
+  DONE specs **039** + **043** de-cited to the convention — **all forms**: the broken `adr-0002-extract-helper` links,
+  the plain-text "ADR-0002 is the governing decision" / "inline-mirror budget" references, AND the 043 slice frontmatter
+  `dependencies: [adr-0002]` (dropped — the extraction rule is a convention, not a dep-able ADR). airlock's **real**
+  ADR-0002 (event-descriptor-cycle-semantics) citations across core/connectors/ADRs/003/006/014/037 are left intact
+  (verified by a full classify-each grep). Historical `reviews/*.md` records left as-is (point-in-time).
+- **Primer (`CLAUDE.md`/`AGENTS.md`)** — `no-op`: no 044 primer entry; spec-close compress waits (slice 044-02 remains).
+- **`docs/inbox.md`** — `no-op`: nothing surfaced (the DC-1996823 Floodlight id pre-existing in R-007 belongs to the
+  sibling Floodlight spec).
+- **Leanness** — `no-op`: arch ratified the shape; the `core/query-params.js` vs pixel-inline-copy question is a logged
+  nit (refactor-pixel-or-reword), not over-build.
+- **Use-case coverage (advisory)** — `no-op`: 044 traces UC-2; non-blocking.
+- **Memory-sync** — the reference-page URL switch + ad-family recon technique were persisted this session; the
+  phantom-ADR-0002 confusion is now canon in `conventions.md`.
 
 ### Close-out (post-DONE)
 
-- [ ] `docs/architecture.md` connectors section names `connectors/google-ads/`.
-- [ ] If the connector-shape decision is ratified load-bearing, its ADR is authored + linked here.
-- [ ] Register namespace `airlock/google-ads` (mirroring `airlock/ga4-gtag` etc.).
+- [x] `docs/architecture.md` connectors section names `connectors/google-ads/` + `connectors/consent-mode.js`.
+- [x] Connector-shape recorded as a **lightweight decision** + the `docs/conventions.md` § Code convention (owner ruled
+  convention-not-ADR, 2026-09-11) — supersedes the earlier conditional-ADR plan.
+- [x] Namespace `airlock/google-ads` declared in the connector manifest + listed in `docs/architecture.md`; runtime boot
+  registration lands with the deferred boot slice.
+- [ ] Spec 044 closes when slice 044-02 (denied-path seal-hold) is also DONE; regenerate the board then.

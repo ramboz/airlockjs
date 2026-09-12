@@ -1,6 +1,6 @@
 ---
 status: DONE
-dependencies: [adr-0002]
+dependencies: []
 last_verified: 2026-09-11
 frame_review: true
 arch_review: false
@@ -29,7 +29,8 @@ sentinel reconciliation is what the frame-critique tested; AC1's edge-case tests
 
 **DoR:**
 - ✅ Rule-of-three tripped: `readCookieValue` (026-04) is the third exact-name copy; the two adapter copies share the
-  same scan/decode loop (differing only in the absent sentinel, reconciled in AC2). ADR-0002 is the governing decision.
+  same scan/decode loop (differing only in the absent sentinel, reconciled in AC2). The extract-on-third-caller
+  convention ([docs/conventions.md](../../conventions.md) § Code) is the governing rule.
 - ✅ The **new leaf module** `core/cookie-parse.js` imports nothing, so `adapters/*` / `connectors/* → core/cookie-parse.js`
   creates no cycle (note: `core/` *composition roots* like `core/airlock.js` do import from connectors — the layering
   rests on the leaf being import-free, not on all of `core/` being dependency-free).
@@ -121,7 +122,7 @@ Drift-prone surfaces checked (`updated` / `no-op` / `deferred`):
 - **`docs/architecture.md`** — `no-op`: no module boundary or public contract changed. The `adapters/* → core/` edge
   and the pure import-free leaf pattern both pre-exist (`core/cookie-scope.js`, added by 035-01, is the exact precedent
   and is likewise not enumerated in architecture.md); `getCookieValue` is an internal helper, not part of the frozen
-  1.0 surface (ADR-0017). No ADR — the decision is governed by the pre-existing ADR-0002.
+  1.0 surface (ADR-0017). No ADR — the decision is governed by the pre-existing extract-on-third-caller convention ([docs/conventions.md](../../conventions.md) § Code).
 - **`docs/inbox.md`** — `no-op`: the one cookie-related inbox item (2026-09-05, coarse-consent / OQ13-1) is unrelated
   to pair-scan duplication.
 - **Closed-spec drift (ADR-0010)** — `no-op`: 026-04 (DONE) introduced `readCookieValue`; its record accurately

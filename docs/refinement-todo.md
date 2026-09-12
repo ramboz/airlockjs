@@ -99,7 +99,7 @@
 **Still open — item 3:** (2 RESOLVED — 039-03, the `_ga_<stream>` session writer; see the Resolved note above.) (3) **Multi-stream `_ga_*` selection policy** — current policy is first-in-jar-order wins (documented in `connectors/ga4/cookies.js`); also open: whether the capability shape grows a `list()` for chamber-side discovery or discovery stays a host duty feeding ctx. (4) **Name-scoped cookie grant wrapper** — RESOLVED for the live grant (035-01, above); its carried follow-ons (the `createCookieCapability` `{get,set}` wrapper, the `SecurityError`→null-identity rider, the fail-open-by-omission coupling for the 1.0 pin, and the value-side reconcile-path residual) are listed there. ~~(5) **Pair-scan loop duplication** (adapter accessor vs connector parser) — rule-of-three: extract on a third copy.~~ **RESOLVED — 043-01 (see the Resolved note above).**
 **Resolution trigger:** (2) DONE (039-03 — the `_ga_<stream>` writer; see the Resolved note above). (3) with the first connector-requested cookie grant (OQ9/MVP2 capability work). (4) DONE (035-01); its follow-on (iii) was ruled by 037-01 (see item 4 above). (5) DONE (043-01).
 
-### OQ13-b — the `_gcl_au` linker-cookie writer on a rewired page (MVP8, from the 044-01 frame-critique)
+### OQ13-b — the `_gcl_au` linker-cookie writer on a rewired page (named MVP8; resolves MVP9 — from the 044-01 frame-critique)
 **Named 2026-09-11 (spec [044-01](specs/044-google-ads-connector/slice-01-core-aw-beacon.md) frame-critique).** `_gcl_au`
 (the Google Ads first-party linker id → the `auid` beacon param) is written by the **conversion-linker runtime** — the
 container tag airlock replaces (repo-wide: **zero** `_gcl_au` writers in airlock). Sourcing it is fine while the

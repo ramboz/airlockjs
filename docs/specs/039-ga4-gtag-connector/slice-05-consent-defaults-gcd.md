@@ -128,7 +128,7 @@ by the parity harness against the live-observed anchors. Full Consent-Mode parit
   `consentDefault` omission test (craft nit — pins the documented omit-on-partial-declaration behavior). Full suite green.
 - **Nits → later sweep (non-blocking):** the resolve-states+pending-omit pattern is now an inline mirror across
   `encodeGcs`/`encodeGcd` (rule-of-three at **N=2** — extract a shared `resolveStatesOrPending` on a 3rd Consent-Mode
-  string; within the ADR-0002 inline-mirror budget for now); the `gcd` assembly destructures four named letters (vs
+  string; within the extract-on-third-caller convention's inline-mirror budget for now — `docs/conventions.md` § Code); the `gcd` assembly destructures four named letters (vs
   `encodeGcs`'s `.join`) — kept because it documents the live-grounded position order.
 
 ### Reconciliation sweep

@@ -10,10 +10,12 @@
  * unchanged — test/ga4-gtag.test.js's `gcs`/`gcd` assertions stay green), rather than each
  * gtag-family connector re-authoring the same live-grounded strings.
  *
- * A pure module — the ONE dependency is `core/consent.js`'s `resolveConsent` (a connector→core
- * import — allowed and correct, per this module's `connectors/` home). No DOM, no globals, no
- * vendor specifics. See each function's doc comment for the live-grounding provenance (carried
- * over from the 039 slices this code was proven under).
+ * A pure module — no DOM, no globals; the ONE dependency is `core/consent.js`'s `resolveConsent`
+ * (a connector→core import — allowed and correct, per this module's `connectors/` home). It DOES
+ * encode Google-specific Consent-Mode wire-shape (the `gcs`/`gcd` strings) — that vendor coupling is
+ * exactly why it lives connector-side, NOT in the vendor-neutral `core/` (docs/conventions.md
+ * § Code home rule). See each function's doc comment for the live-grounding provenance (carried over
+ * from the 039 slices this code was proven under).
  */
 import { resolveConsent } from "../core/consent.js";
 
