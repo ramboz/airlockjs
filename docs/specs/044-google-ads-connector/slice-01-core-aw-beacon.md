@@ -47,10 +47,14 @@ alternatives, it warrants an ADR at reconciliation (the gtag-family analogue of 
    produced by spec 039's existing `gcs`/`gcd` encoders (imported/reused, **not** re-authored) — asserted byte-equal to
    the captured granted-state carriage (`gcs=G111`, the observed `gcd`, `npa=0`). If reuse needs a shared home (the
    encoders live under `connectors/ga4/`), extract to a neutral module rather than duplicating (ADR-0002).
-3. **First-party linker id + inbound click ids.** `auid` is sourced host-side from the `_gcl_au` cookie
-   (`analytics_storage`/`ad_storage`-gated, mirroring `sourceGa4Ctx`'s `_ga`→`cid`, 017-02); an inbound
-   `gclid`/`wbraid`/`gbraid` present in `document.location` is forwarded as the corresponding param, absent otherwise (a
-   direct load carries none — R-009 §(c)).
+3. **First-party linker id + inbound click ids — read-when-present, NEVER minted.** `auid` is sourced host-side from the
+   `_gcl_au` cookie **when it exists** (`ad_storage`-gated), and **omitted when absent — airlock does NOT mint
+   `_gcl_au`.** This deliberately diverges from `sourceGa4Ctx`'s `_ga`→`cid` (which mints an arbitrary-but-valid client
+   id when absent): `_gcl_au` encodes a real Google-Ads click signal that a fabricated value would corrupt (polluting
+   remarketing audiences), so airlock forwards it or omits it, never invents it (see **A3** — the `_gcl_au`-writer gap
+   on a rewired page). An inbound `gclid`/`wbraid`/`gbraid` in `document.location` is forwarded as the corresponding
+   param when present, omitted otherwise (a direct load carries none — R-009 §(c)). Unit tests cover present→forwarded
+   and absent→omitted for both `auid` and the click ids.
 4. **Parity-confirmed by the 038 same-protocol oracle on a redacted AW capture.** A new AW redactor (`rig/parity/`,
    mirroring `redactMetaBeacon`/the GA4 redactor: synthetic-shaped `AW-id`/`auid`/`gclid`, scrub URL-embedded click ids)
    produces a committed `test/fixtures/parity-google-ads-*.redacted.json`; the connector's replayed beacon classifies as
@@ -83,6 +87,19 @@ reproducing a redundant mirror (or missing the significant one) shows as an orac
 **A2 (Consent-Mode encoder reuse is clean).** 039's `gcs`/`gcd` encoders are vendor-neutral enough to reuse for AW
 without GA4-specific coupling. *Risk:* if they carry `/g/collect`-specific assumptions, AC2's ADR-0002 extract applies
 (shared neutral module). Grounded by: the captured AW `gcs`/`gcd` are byte-identical to GA4's on the same page.
+
+**A3 (the `_gcl_au`-writer gap — NAMED, not assumed away; folded from the 044-01 frame-critique 2026-09-11).** `_gcl_au`
+is written by the Google **conversion-linker runtime** — the container tag airlock replaces (repo-wide search: **zero**
+`_gcl_au` writers in airlock). R-009 §(c) read `_gcl_au` only because the capture ran on the live *container-driven*
+`erp.intuit.com` page (linker present); on a fully-rewired, container-removed page nothing writes it, so a pure read
+yields **no `auid`** and the remarketing beacon loses first-party identity. This is the strict analogue of GA4's
+`_ga_<stream>` no-writer gap (**OQ13-2**, `docs/refinement-todo.md`). **Disposition (AC3): read-when-present /
+omit-when-absent / never-mint** — a fabricated `_gcl_au` is a garbage remarketing-audience key (unlike an arbitrary
+`_ga` cid). The "who writes `_gcl_au` after the container is removed, and is airlock ever justified minting one?"
+question is a **named residual** ([refinement-todo](../../refinement-todo.md), MVP9-triggered), *not* silently deferred.
+*Consequence for AC4:* the 038 oracle diffs a **synthetic** `auid` on both sides → it confirms `auid` **shape/position**
+parity, **not identity presence**; identity-presence (does a real remarketing key reach the vendor on a rewired page) is
+an MVP9 live-rewire question. This slice claims the former, explicitly not the latter.
 
 ### Deviation log (after reconciliation)
 

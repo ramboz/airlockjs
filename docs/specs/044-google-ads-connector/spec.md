@@ -30,7 +30,8 @@ family of **GET** beacons — grounded on the 2026-09-11 `erp.intuit.com` captur
 
 Every beacon carries **Consent Mode v2** (`gcs=G111` granted / `gcs=G100` denied, `gcd`, `npa`, `dma`) — **byte-identical
 to the carriage the GA4 gtag connector already reproduces** (spec 039), and the first-party linker id (`_gcl_au` →
-`auid` query param), host-sourceable exactly as GA4 sources `_ga` (017-02).
+`auid` query param), **read** host-side like `_ga` — but **read-only, never minted** (unlike `_ga`→`cid`), because
+`_gcl_au` is written by the linker runtime airlock replaces (§A5).
 
 This connector reproduces the **page-load AW beacon(s) off-thread** through airlock's existing governed GET egress (spec
 026 pixel path), carrying Consent Mode via the **reused 039 encoders**, holding at the seal under `ad_storage`-denied
@@ -58,8 +59,10 @@ would entangle two unrelated wire shapes.
   this is the single biggest reuse win and the reason Google Ads is cheap after GA4 gtag.
 - **The seal** — hold-pending / strict-drop (017-03) is exactly the `ad_storage`-denied behavior the container exhibits
   (below); the connector wires the seal, it does not invent a new gate.
-- **First-party identity sourcing** — the `_ga`→`cid` host-sourcing pattern (`connectors/ga4/cookies.js`, consent-gated
-  017-02) is the template for `_gcl_au`→`auid` (a new cookie source, same shape).
+- **First-party identity sourcing (the READ half only)** — the `_ga` *read* path (`connectors/ga4/cookies.js`,
+  consent-gated 017-02) is the template for reading `_gcl_au`→`auid`. The **mint-when-absent** half is deliberately NOT
+  reused: airlock owns an arbitrary `_ga` client id, but it must **never fabricate** a `_gcl_au` (a real Google-Ads
+  click signal) — read-when-present / omit-when-absent (§A5).
 - **Parity harness** — spec 038's same-protocol oracle + redact pipeline (`rig/parity/`) verifies the beacon diff; a new
   AW redactor is needed (Ads has none yet — Meta/GA4 only).
 
@@ -84,6 +87,15 @@ capture. This spec is the **page-load remarketing/linker family** only. Console-
 
 **A4 (the cross-site DMP-sync pixel is OUT — E10).** `cm.g.doubleclick.net/pixel` (a third-party cookie-match) rides
 cross-site cookies and belongs to the **E10 credentialed-transport ADR**, not this connector's first-party GET wire.
+
+**A5 (the `_gcl_au`-writer gap — NAMED; folded from the 044-01 frame-critique 2026-09-11).** `_gcl_au` is written by the
+Google conversion-linker (the container tag airlock replaces — **zero** `_gcl_au` writers in airlock), so on a rewired,
+container-removed page a pure read yields **no `auid`**. `auid` is therefore **read-when-present / omit-when-absent /
+never minted** (a fabricated remarketing key is garbage, unlike an arbitrary `_ga` cid). The "who writes `_gcl_au`
+post-rewire, and is airlock ever justified minting one?" question is a **named residual** (`docs/refinement-todo.md`,
+MVP9-triggered) — the strict analogue of GA4's `_ga_<stream>` gap (OQ13-2). *Consequence:* identity-**presence** parity
+(a real remarketing key reaching the vendor on a rewired page) is an MVP9 question; this spec claims `auid`
+**shape/position** parity only, which the 038 oracle (synthetic `auid` both sides) can actually verify.
 
 ## Decomposition
 
