@@ -14,14 +14,13 @@ they stop informing a current release decision.
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| [MVP8 — Ad-Conversion Offloading](mvp8.md) | The TBT that motivates the rewire lives here: **Google Ads + Floodlight** connectors (gated on R-009's AW/DC findings) + the **OneTrust consent-input driver**; Segment variable/later. Ships v0.8.0 | JIG handoff: Google Ads / Floodlight connector specs + OneTrust driver (E7), gated on R-009 |
 | [MVP9 — Real-Site Rewire & Adoption Path](mvp9.md) | **Passing its release-check cuts v1.0.0.** Rewire the four generic vendors on an intuit-class site (two-party, with the container owner), parity-confirmed by the harness + vendor consoles, CWV measured; the scripted adoption path. Ships v0.9.0 → **v1.0.0** | JIG handoff: real-site rewire spec, 036-instrument extension (E12), scripted adoption path (E8) |
 
 ## Committed
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| _None yet_ | _-_ | _-_ |
+| [MVP8 — Ad-Conversion Offloading](mvp8.md) | **Committed 2026-09-11.** R-009 gate cleared for the page-load family (Ads/Floodlight pings are governed GET + Consent Mode v2; denied = seal-hold). Building **Google Ads** ([spec 044](../specs/044-google-ads-connector/spec.md)) → Floodlight → OneTrust driver. Ships v0.8.0 | JIG handoff: spec 044 (Google Ads) authored DRAFT; Floodlight + OneTrust (E7) next; conversion-ping/console = MVP9, DMP-sync = E10 |
 
 ## Shipping
 

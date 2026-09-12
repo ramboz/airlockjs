@@ -125,6 +125,8 @@
 | [042-get-critical-unload-dispatcher](042-get-critical-unload-dispatcher/spec.md) | 042-01 — GET-critical dispatcher + ga4-gtag unload flush | **DONE** | `requestMapper` GET-critical unload path added to `createCriticalDispatcher`; `fetchInit` shared to `core/egress.js`; gtag ring tail flushes `/g/collect` GET at teardown. |
 | [042-get-critical-unload-dispatcher](042-get-critical-unload-dispatcher/spec.md) | 042-02 — generalize the GET-critical unload flush to pixel | **DONE** | Pixel flushes vendor `/tr` GET at teardown; `workerMappedGetEgress` gate retired. **Invariant:** every worker-mapped connector supplies its own critical mapper (POST `mapper` / GET `requestMapper`) or its teardown tail mis-maps through `mapToMp`. |
 | [043-cookie-pair-scan-accessor](043-cookie-pair-scan-accessor/spec.md) | 043-01 — extract `getCookieValue` + repoint the two exact-name copies | **DONE** |  |
+| [044-google-ads-connector](044-google-ads-connector/spec.md) | 044-01 — core AW page-load beacon off-thread (Consent-Mode + auid, parity-confirmed) | DRAFT |  |
+| [044-google-ads-connector](044-google-ads-connector/spec.md) | 044-02 — seal-hold under `ad_storage`-denied | DRAFT |  |
 
 ## Deferred slices
 

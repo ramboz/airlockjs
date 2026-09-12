@@ -8,14 +8,17 @@
 
 ## Status
 
-`candidate`
+`committed`
 
 Allowed statuses: `candidate`, `committed`, `shipping`, `shipped`, `dropped`.
 Do not move a plan from `candidate` to `committed` without an explicit user decision.
 
-**Ships as v0.8.0.** `candidate`; sequenced after MVP7 (v0.7.0). Its scope is **gated on R-009's findings** (the AW/DC
-half + the transport decision), which MVP7 runs risk-first — so MVP8 does not commit connector scope until that spike
-has decided what is reachable.
+**Committed 2026-09-11 (explicit owner decision).** Ships as **v0.8.0**; sequenced after MVP7 (v0.7.0). The R-009 gate is
+**cleared for the page-load family** — R-009(b)/(c) grounded the Ads/Floodlight page-load pings on a redacted
+`erp.intuit.com` capture (governed GET beacons carrying Consent Mode v2; `ad_storage`-denied = seal-hold). First
+committed connector: **[spec 044 — Google Ads (AW)](../specs/044-google-ads-connector/spec.md)** (DRAFT); Floodlight +
+the OneTrust consent-input driver follow. The **conversion-ping proper** (enhanced-match hashes) and **console-level
+attribution** remain MVP9; the **cross-site DMP sync** is E10 — none blocks the page-load connector scope.
 
 ## Problem / Baseline
 
