@@ -126,7 +126,7 @@
 | [042-get-critical-unload-dispatcher](042-get-critical-unload-dispatcher/spec.md) | 042-02 — generalize the GET-critical unload flush to pixel | **DONE** | Pixel flushes vendor `/tr` GET at teardown; `workerMappedGetEgress` gate retired. **Invariant:** every worker-mapped connector supplies its own critical mapper (POST `mapper` / GET `requestMapper`) or its teardown tail mis-maps through `mapToMp`. |
 | [043-cookie-pair-scan-accessor](043-cookie-pair-scan-accessor/spec.md) | 043-01 — extract `getCookieValue` + repoint the two exact-name copies | **DONE** |  |
 | [044-google-ads-connector](044-google-ads-connector/spec.md) | 044-01 — core AW page-load beacon off-thread (Consent-Mode + auid, parity-confirmed) | **DONE** |  |
-| [044-google-ads-connector](044-google-ads-connector/spec.md) | 044-02 — g-ads opts into hold-until-granted (denied-consent parity) | DRAFT |  |
+| [044-google-ads-connector](044-google-ads-connector/spec.md) | 044-02 — g-ads opts into hold-until-granted (denied-consent parity) | **DONE** |  |
 | [045-consent-hold-until-granted](045-consent-hold-until-granted/spec.md) | 045-01 — the core seal `holdOnDenied` opt-in mode (egressVerdict + createAirlock) | **DONE** |  |
 | [045-consent-hold-until-granted](045-consent-hold-until-granted/spec.md) | 045-02 — apply hold-until-granted to alloy (preserving 034-01) | DRAFT |  |
 
@@ -154,7 +154,7 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
 
 - **9** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **97** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **38** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **39** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
@@ -192,4 +192,5 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
   - `042-get-critical-unload-dispatcher/slice-02-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `043-cookie-pair-scan-accessor/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `044-google-ads-connector/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `044-google-ads-connector/slice-02-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `045-consent-hold-until-granted/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review

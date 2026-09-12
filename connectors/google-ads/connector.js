@@ -28,15 +28,19 @@
  * CONSENT (AC2): `gcs`/`gcd` are the REUSED `connectors/consent-mode.js` encoders (byte-identical to the
  * GA4 gtag carriage); `npa` (non-personalized ads) is a small AW-local derivation (039 emits no
  * `npa`). The manifest declares `purposes.egress: ["ad_storage"]` so THE SEAL can gate the whole
- * beacon under `ad_storage`-denial (slice 044-02, seal-hold) — this slice wires only the granted
- * (happy) path; it does not implement the denied-path hold.
+ * beacon under `ad_storage`-denial. Slice 044-02 activates that gate: the connector opts into the
+ * core seal's `holdOnDenied` mode (spec 045-01 / ADR-0023 Option E, grounded on R-009 §(b) — the
+ * container HELD the AW family under reject-all, 23→2 beacons) and supplies `createGoogleAdsRemap`
+ * below so a held beacon RE-MAPS (not re-sends) on grant — see that function's doc comment.
  *
  * Pure — no `self`/`postMessage`/DOM — directly importable/testable in Node, exactly like
- * `connectors/ga4/gtag.js` and `connectors/pixel/connector.js`.
+ * `connectors/ga4/gtag.js` and `connectors/pixel/connector.js`. `createGoogleAdsRemap` keeps the SAME
+ * discipline: no `document`/global cookie read — the host injects a `readCookieString` reader.
  */
 import { appendParam } from "../../core/query-params.js";
 import { encodeGcs, encodeGcd } from "../consent-mode.js";
 import { resolveConsent } from "../../core/consent.js";
+import { sourceGoogleAdsCtx } from "./cookies.js";
 
 /** The Consent-Mode collect endpoint for the AW tag (production) — the AW conversion id rides the
  *  `tid=AW-<id>` query param, NOT the path, unlike the `viewthroughconversion`/`rmkt` mirrors. */
@@ -156,14 +160,67 @@ export function createGoogleAdsConnector(config = {}) {
   /**
    * Map one event to a zero-or-one `EgressRequest[]` carrying the AW ccm/collect GET beacon. Only
    * `page_view` maps (the page-load remarketing beacon); any other event -> `[]`, never a throw and
-   * never a partial beacon — mirroring the pixel/RUM connectors' zero-or-one gate.
+   * never a partial beacon — mirroring the pixel/RUM connectors' zero-or-one gate. No separate
+   * cookieless AW variant is ever produced (AC3, 044-02) — the ONE beacon shape either sends or is
+   * held at the seal under `ad_storage`-denial (grounded on R-009 §(b): the container held, it did
+   * not cookieless-send ads).
    * @param {import("../../contracts/connector").AirlockEvent} event
    * @returns {import("../../contracts/connector").EgressRequest[]}
    */
   function handle(event) {
     if (!event || event.type !== PAGE_LOAD_EVENT) return []; // this connector maps only the page-load beacon
-    return [mapToAwCollect(event, { conversionId, ctx, endpoint })];
+    // 044-02 (045-01's additive-optional `EgressRequest.event` channel): attach the SOURCE event to
+    // the ready request so a `holdOnDenied` seal can REBUILD this beacon under the now-current
+    // consent on a grant-flush (`createGoogleAdsRemap` below) instead of re-sending the stale
+    // under-denial payload. A connector that does not opt in never reads this field — additive-only.
+    return [{ ...mapToAwCollect(event, { conversionId, ctx, endpoint }), event }];
   }
 
   return { manifest, init, handle };
+}
+
+/**
+ * Build the g-ads main-thread RE-MAP function (spec 045-01's `remap(event, consentVector)` channel,
+ * ADR-0023 Option E) — the "supplies the re-map inputs" half of slice 044-02's `holdOnDenied` opt-in.
+ * Wired as `createAirlock({ holdOnDenied: true, remap: createGoogleAdsRemap({...}) })`; on a
+ * grant-flush the seal calls this with the HELD beacon's source `event` + the now-current consent
+ * vector, and this REBUILDS the beacon from scratch rather than letting the seal re-send the stale
+ * under-denial `{url}` (which would fire an unattributable "user-declined" beacon — the exact
+ * non-parity hold-until-granted exists to prevent).
+ *
+ * Re-sourcing, not replay: `sourceGoogleAdsCtx` re-reads `_gcl_au`→`auid` (via the INJECTED
+ * `readCookieString`, so a linker cookie that arrived WHILE the beacon was held — or was already
+ * present but unreadable under the prior `ad_storage`-denial gate — is picked up at flush time; still
+ * `ad_storage`-gated and NEVER minted, §A5, mirroring `sourceGoogleAdsCtx`'s own read-when-present
+ * discipline) and re-encodes `gcs`/`gcd`/`npa` under the PASSED (now-current) `consent` vector — the
+ * load-bearing Consent-Mode flip (AC2), always available independent of any cookie.
+ *
+ * PURE (mirrors `createGoogleAdsConnector`): no `document`/global cookie read. `readCookieString` is
+ * the injected raw-cookie-string reader a real host wires as `() => document.cookie` (the SAME shape
+ * `adapters/eds/index.js` already injects into `sourceGa4Ctx`); a test injects a fake. Reuses the SAME
+ * private `mapToAwCollect` + the SAME `sourceGoogleAdsCtx` (cookies.js) the granted (044-01) path
+ * already uses — no forked encoding.
+ *
+ * @param {object} opts
+ * @param {string} opts.conversionId the `AW-<id>` (mirrors `createGoogleAdsConnector`'s config).
+ * @param {string} [opts.endpoint] defaults to `GOOGLE_ADS_CCM_COLLECT_ENDPOINT`.
+ * @param {Record<string, string>} [opts.consentDefault] the declared Consent-Mode default (`gcd`'s
+ *   scope gate — `connectors/consent-mode.js`'s `encodeGcd`).
+ * @param {() => string} opts.readCookieString injected raw cookie-string reader (e.g.
+ *   `() => document.cookie`) — invoked fresh on every re-map call, never cached.
+ * @param {string} [opts.landingUrl] the page's landing URL, for inbound click-id re-discovery.
+ * @returns {(event: import("../../contracts/connector").AirlockEvent, consent: Record<string, string>) => import("../../contracts/connector").EgressRequest}
+ */
+export function createGoogleAdsRemap({
+  conversionId,
+  endpoint = GOOGLE_ADS_CCM_COLLECT_ENDPOINT,
+  consentDefault,
+  readCookieString,
+  landingUrl,
+}) {
+  return (event, consent) => {
+    const adStorageGranted = resolveConsent(consent, "ad_storage") === "granted";
+    const sourced = sourceGoogleAdsCtx({ cookieString: readCookieString(), landingUrl, adStorageGranted });
+    return mapToAwCollect(event, { conversionId, ctx: { ...sourced, consent, consentDefault }, endpoint });
+  };
 }
