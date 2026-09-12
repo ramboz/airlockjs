@@ -44,7 +44,15 @@ describe("core/ boundary — no import from throwaway rig/ (014-02 arch-review)"
   // scopeSeedCookies). Its module docstring justifies its core/ home on being
   // import-free (so it is safe to import from EITHER side of the core/connector
   // boundary); machine-enforce that claim so a future import fails here.
-  it.each(["sanitize-html.js", "payload-governance.js", "cookie-scope.js"])(
+  //
+  // spec 044-01: core/query-params.js joins too — the vendor-neutral
+  // omit-when-undefined query-param builder (appendParam) the gtag-family
+  // connectors share. Its core/ home rests on being import-free (importable from
+  // either side of the boundary); machine-enforce it. (consent-mode.js, extracted
+  // the same slice, lives in connectors/ — not core/ — since it imports
+  // core/consent.js's resolveConsent, a connector->core dependency; it is out of
+  // this core/-only guard's scope entirely, not merely omitted from the list.)
+  it.each(["sanitize-html.js", "payload-governance.js", "cookie-scope.js", "query-params.js"])(
     "core/%s is import-free (its core/ home depends on it)",
     (file) => {
       const src = readFileSync(join(CORE, file), "utf8");

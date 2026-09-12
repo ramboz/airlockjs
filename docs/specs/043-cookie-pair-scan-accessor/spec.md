@@ -9,8 +9,8 @@ use_cases: []
 # Spec 043: Cookie-pair-scan accessor
 
 > Un-parked from `docs/refinement-todo.md` OQ13 item 5 (rule-of-three on the cookie pair-scan loop). 026-04 added the
-> third byte-identical copy (`adapters/eds/index.js` `readCookieValue`), tripping [ADR-0002](../../decisions/adr-0002-extract-helper-on-third-caller.md)
-> (extract-helper-on-third-caller).
+> third byte-identical copy (`adapters/eds/index.js` `readCookieValue`), tripping the
+> [extract-on-third-caller convention](../../conventions.md) (rule of three — airlock records this as a convention, not an ADR; corrected 2026-09-11).
 
 ## Overview
 
@@ -27,7 +27,7 @@ Both do exactly: `split(";")` → `indexOf("=")` (skip on -1) → `slice(0,eq).t
 - `connectors/alloy/sync-cookie-cache.js:42-43` — first-pair-only (`split(";")[0]`) and a filter-out-a-name (`split("; ")`).
 - `core/cookie-scope.js:107` `scopeSeedCookies` and `core/wrapped-sdk-host.js:622` — cookie **scoping**, not value lookup.
 
-The move is the lean [ADR-0002](../../decisions/adr-0002-extract-helper-on-third-caller.md) one: extract **one** shared exact-name accessor `getCookieValue(cookieString, name)` into `core/` (importable by adapters + connectors), repoint the two byte-identical copies, and **stop there** — a generic "iterate cookie pairs" primitive that swallowed the variants too would be premature generality (the leanness sweep's target), because each variant's match/return semantics genuinely differ.
+The move is the lean [extract-on-third-caller](../../conventions.md) one: extract **one** shared exact-name accessor `getCookieValue(cookieString, name)` into `core/` (importable by adapters + connectors), repoint the two byte-identical copies, and **stop there** — a generic "iterate cookie pairs" primitive that swallowed the variants too would be premature generality (the leanness sweep's target), because each variant's match/return semantics genuinely differ.
 
 The accessor is a **pure string-parse primitive**: no `document`, no consent logic. Callers keep their own consent/governance gating (e.g. 017-02 grant-gated reads) — this refactor changes *where the parse lives*, never *whether a read is allowed*.
 

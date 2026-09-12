@@ -1,9 +1,9 @@
 /**
- * Cookie-value scan primitive (spec 043-01, ADR-0002 extract-helper-on-third-caller)
- * — the shared exact-name "read a cookie value out of a raw `document.cookie`
+ * Cookie-value scan primitive (spec 043-01, the extract-on-third-caller convention,
+ * docs/conventions.md § Code) — the shared exact-name "read a cookie value out of a raw `document.cookie`
  * string" accessor that `adapters/eds/index.js`'s `readCookieValue` (026-04)
  * and `adapters/eds/cookies.js`'s mediated `get(name)` open-coded identically
- * (the third + prior copies, tripping ADR-0002's rule-of-three).
+ * (the third + prior copies, tripping the extract-on-third-caller convention's rule-of-three).
  *
  * A PURE string-parse primitive: no `document`, no globals, no consent or
  * governance gating. Callers keep their own gating (e.g. 017-02 grant-gated

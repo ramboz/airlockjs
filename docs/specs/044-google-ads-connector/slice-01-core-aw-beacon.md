@@ -1,9 +1,10 @@
 ---
-status: DRAFT
+status: REVIEWED
 dependencies: [adr-0019, 039-02, 039-05, 026-01, 038-01]
 last_verified:
 frame_review: true
 arch_review: true
+claimed_by: claude/043-01-jig-ceremony-bb71b2
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about runnable
@@ -38,15 +39,18 @@ alternatives, it warrants an ADR at reconciliation (the gtag-family analogue of 
 
 **Acceptance Criteria:**
 
-1. **A new `connectors/google-ads/` connector emits the AW page-load beacon as a governed GET off-thread.** Given a
-   granted-consent vector + an `AW-…` conversion id, the connector produces the parity-significant page-load beacon
-   (`googleads.g.doubleclick.net/pagead/viewthroughconversion/<id>/` and/or its `rmkt`/`ccm` peers — the subset the 038
-   oracle confirms carries attribution, A1) with `method: "GET"`, dispatched through `core/airlock.js` egress from the
-   worker exactly as the pixel connector does. No `api_secret`; auth is `tid`/`AW-id` + origin (ADR-0019 model).
+1. **A new `connectors/google-ads/` connector emits the AW page-load beacon as a governed GET.** Given a
+   granted-consent vector + an `AW-…` conversion id, the connector's `handle()` returns the parity-significant
+   page-load beacon as a `{ method: "GET" }` `EgressRequest[]` — the same `contracts/connector.d.ts` contract
+   `core/airlock.js` already dispatches for the pixel/gtag connectors (verified end-to-end by the 038 parity replay,
+   AC4). No `api_secret`; auth is `tid`/`AW-id` + origin (ADR-0019 model). **Boot/worker wiring is out of scope** (see
+   Out of scope) — this slice ships the connector contract + parity, mirroring 039-01 (whose boot landed later, spec 041).
 2. **Consent Mode v2 carriage via the reused 039 encoders.** The beacon carries `gcs` (state) + `gcd` (defaults) + `npa`,
    produced by spec 039's existing `gcs`/`gcd` encoders (imported/reused, **not** re-authored) — asserted byte-equal to
-   the captured granted-state carriage (`gcs=G111`, the observed `gcd`, `npa=0`). If reuse needs a shared home (the
-   encoders live under `connectors/ga4/`), extract to a neutral module rather than duplicating (ADR-0002).
+   the captured granted-state carriage (`gcs=G111`, the observed `gcd`, `npa=0`). Because the encoders live under
+   `connectors/ga4/`, extract to a shared module rather than duplicating (the extract-on-third-caller convention,
+   `docs/conventions.md` § Code) — and, since `gcs`/`gcd` are Google-specific wire-shape, that home is **connector-side**
+   (`connectors/consent-mode.js`), never `core/` (which carries no vendor coupling — `docs/architecture.md`).
 3. **First-party linker id + inbound click ids — read-when-present, NEVER minted.** `auid` is sourced host-side from the
    `_gcl_au` cookie **when it exists** (`ad_storage`-gated), and **omitted when absent — airlock does NOT mint
    `_gcl_au`.** This deliberately diverges from `sourceGa4Ctx`'s `_ga`→`cid` (which mints an arbitrary-but-valid client
@@ -66,9 +70,11 @@ alternatives, it warrants an ADR at reconciliation (the gtag-family analogue of 
 
 **DoD:**
 - All ACs met; full `npx vitest run` green; the AW redactor + redacted fixture committed; the 038 oracle reports a match.
-- `arch_review: true` pass recorded (the connector-shape decision) alongside compliance + craft; if the shape decision is
-  ratified as load-bearing with rejected alternatives, an ADR is authored at reconciliation.
-- Reconciliation walked; `docs/architecture.md` connectors section updated to name `connectors/google-ads/`.
+- `arch_review: true` pass recorded (the connector-shape decision) alongside compliance + craft; the shape decision is
+  recorded as a **lightweight decision** + the `docs/conventions.md` § Code extract-on-third-caller convention (owner
+  ruled convention-not-ADR, 2026-09-11), not an ADR.
+- Reconciliation walked; `docs/architecture.md` connectors section updated to name `connectors/google-ads/` +
+  `connectors/consent-mode.js`.
 
 **Out of scope (explicit):**
 - The `ad_storage`-**denied** path — seal-hold (slice 044-02).
@@ -76,6 +82,9 @@ alternatives, it warrants an ADR at reconciliation (the gtag-family analogue of 
 - The **cross-site DMP-sync** pixel (`cm.g.doubleclick`) — E10 (spec 044 §A4).
 - Console-level attribution parity — MVP9.
 - The **Floodlight** (`DC-…`) connector — its own sibling spec.
+- **Boot / worker wiring** — a `core/airlock.js` branch + a `google-ads` chamber worker + adapter/config selection. A
+  future 041-style boot slice for `connectors/google-ads/` (mirrors GA4-gtag: 039-01 shipped the connector, spec 041
+  wired the boot). This slice delivers the connector contract + the 038 parity replay only (compliance-review reconciliation, 2026-09-11).
 
 ## Assumptions
 
@@ -84,9 +93,12 @@ alternatives, it warrants an ADR at reconciliation (the gtag-family analogue of 
 are redundant remarketing mirrors is decided against the 038 oracle during implementation, not assumed. *Risk if wrong:*
 reproducing a redundant mirror (or missing the significant one) shows as an oracle gap, caught by AC4. See spec 044 §A1.
 
-**A2 (Consent-Mode encoder reuse is clean).** 039's `gcs`/`gcd` encoders are vendor-neutral enough to reuse for AW
-without GA4-specific coupling. *Risk:* if they carry `/g/collect`-specific assumptions, AC2's ADR-0002 extract applies
-(shared neutral module). Grounded by: the captured AW `gcs`/`gcd` are byte-identical to GA4's on the same page.
+**A2 (Consent-Mode encoder reuse is clean).** 039's `gcs`/`gcd` encoders are **gtag-family** (Google Consent Mode v2)
+wire-shapers, reusable across the family (GA4-gtag, Google Ads, Floodlight) without `/g/collect`-specific coupling. They
+are **not** vendor-neutral (they emit Google wire strings like `G111`), so their shared home is **connector-side**
+(`connectors/consent-mode.js`), NOT `core/` — the extract-on-third-caller convention applied to a vendor wire-shape
+(`docs/conventions.md` § Code; corrected from the 044-01 arch review). Grounded: the captured AW `gcs`/`gcd` are
+byte-identical to GA4's on the same page (a pure function of the consent vector + declared default).
 
 **A3 (the `_gcl_au`-writer gap — NAMED, not assumed away; folded from the 044-01 frame-critique 2026-09-11).** `_gcl_au`
 is written by the Google **conversion-linker runtime** — the container tag airlock replaces (repo-wide search: **zero**

@@ -84,7 +84,7 @@ the parity harness. (Runtime host *registration* of this connector — the `mani
 - **Transport GET/POST split.** Single-event GET confirmed the parity-faithful transport (live 2026-09-08); the batched
   POST form gtag uses for ≥2 events was lifted to spec 040 (via DEFERRED 039-04) — not built here.
 - **Craft/arch nits logged (non-blocking, no code churn post-review):** (1) `deriveLogicalEvent`/`EP_STRING`/`EP_NUMBER`
-  are an inline mirror of `rig/parity/descriptors/ga4.js` — 2 callers, within the ADR-0002 extract-on-3rd-caller budget;
+  are an inline mirror of `rig/parity/descriptors/ga4.js` — 2 callers, within the extract-on-third-caller convention's budget (`docs/conventions.md` § Code — airlock records it as a convention, not an ADR; corrected 2026-09-11);
   extract a shared `deriveGa4CollectEvent` when a 3rd `/g/collect` descriptor appears. (2) `gtag.js:102`
   `query.length ? … : endpoint` ternary is unreachable (`v`+`_et` always present) — dead defensive code copied from
   pixel; safe to simplify on next touch. (3) `v=2` is not in the descriptor's `attributionFields`/denylist — benign now

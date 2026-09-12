@@ -1,0 +1,22 @@
+{
+  "_comment": "Spec 044-01 — a REDACTED, REAL-SHAPED (not real) fixture standing in for a container's Google Ads (AW) gtag.js `ccm/collect` page-load beacon (a page_view) PLUS the _gcl_au conversion-linker cookie gtag.js read to produce its `auid`. Real captures are local-only and uncommittable (ADR-0018 R5): the AW conversion id (tid), the auid, and the _gcl_au cookie value below are clearly-synthetic all-zero placeholders carrying only the real AW ccm/collect field VOCABULARY, per rig/parity/redact-google-ads.js's redactAwBeacon(). No live identifier of any kind appears in this file — see test/parity-google-ads.test.js's redaction coverage. The A1 endpoint choice (ccm/collect, over the viewthroughconversion/rmkt mirror pair and the ccm/form-data enhanced-conversions channel) is grounded on the 2026-09-11 R-009 §(b) erp.intuit.com capture and justified in connectors/google-ads/connector.js. auid is DERIVED from the _gcl_au cookie below (parseGclAuId) — the same first-party-cookie coupling the harness's ctx-sourcing reproduces (rig/parity/google-ads-replay.js), never a beacon back-feed. gcs/gcd/npa carry the LIVE-OBSERVED granted-consent Consent-Mode values (gcs=G111, gcd=13r3r3r3r5l1, npa=0 for the reference page's default-denied config) — these are consent-mode strings, not identifiers, so they are the real observed values.",
+  "endpoint": "https://www.google.com/ccm/collect",
+  "cookies": {
+    "_gcl_au": "1.1.0000000000.0000000000"
+  },
+  "container_fields": {
+    "tid": "AW-0000000000",
+    "en": "page_view",
+    "dl": "https://example.test/synthetic-landing-page",
+    "dt": "Synthetic Enterprise Landing Page",
+    "auid": "0000000000.0000000000",
+    "gcs": "G111",
+    "gcd": "13r3r3r3r5l1",
+    "npa": "0",
+    "dma": "0",
+    "rnd": "0000000000.0000000000",
+    "rcb": "7",
+    "tft": "0000000000000",
+    "tfd": "0000"
+  }
+}

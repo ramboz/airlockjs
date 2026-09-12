@@ -17,10 +17,11 @@
  * 039-05 Consent-Mode DEFAULTS): the CORE, single-event `/g/collect` beacon —
  * `v`, `tid`, `cid`, `sid`, `en`, `dl`/`dr`/`dt`, `ep.<k>`/`epn.<k>` custom
  * params, `_et` (engagement time) — PLUS `gcs`, the Consent-Mode STATE string
- * (039-02, see `encodeGcs` below), PLUS `gcd`, the Consent-Mode DEFAULTS
- * string (039-05, see `encodeGcd` below — scoped to the live-grounded
- * default-denied deployment; omitted for any other declared default, a
- * tracked known non-parity gap, see that function's doc comment), PLUS
+ * (039-02, `encodeGcs`, now in `connectors/consent-mode.js` per 044-01's extract),
+ * PLUS `gcd`, the Consent-Mode DEFAULTS string (039-05, `encodeGcd`, likewise
+ * in `connectors/consent-mode.js` — scoped to the live-grounded default-denied
+ * deployment; omitted for any other declared default, a tracked known
+ * non-parity gap, see that function's doc comment), PLUS
  * `sct`/`seg`/`_fv`/`_ss`/`_nsi`, the session-state fields (039-03, see
  * `appendSessionState` below) projected verbatim from the host-computed
  * `ctx.sessionState` — the STATEFUL half, since those values depend on cookie
@@ -40,7 +41,13 @@
  * Pure — no `self`/`postMessage`/DOM — directly importable/testable in Node,
  * exactly like `connectors/ga4/map.js` and `connectors/pixel/connector.js`.
  */
-import { resolveConsent } from "../../core/consent.js";
+// 044-01 (the extract-on-third-caller convention, docs/conventions.md § Code): the `gcs`/`gcd`
+// Consent-Mode encoders (039-02/039-05) and the omit-when-undefined `appendParam` builder now live
+// in shared, gtag-family-neutral leaves — Google Ads (spec 044) is their 2nd caller. This slice's
+// behavior is UNCHANGED (byte-identical beacon): the definitions moved out verbatim; only the
+// import site is new.
+import { appendParam } from "../../core/query-params.js";
+import { encodeGcs, encodeGcd } from "../consent-mode.js";
 
 /** GA4's public collect endpoint (production; region-prefixed variants exist
  *  but are out of this slice's scope — `mapToMp`'s sibling doesn't need one
@@ -57,148 +64,9 @@ const PROTOCOL_VERSION = "2";
 const CORE_PAYLOAD_KEYS = new Set(["page_location", "page_referrer", "page_title"]);
 
 /**
- * Append `key=value` to a query-part array, `encodeURIComponent`-escaping
- * both sides — omitted (never an empty-string param) when `value` is
- * `undefined`/`null`, mirroring `connectors/pixel/connector.js`'s own
- * omission rule.
- * @param {string[]} query
- * @param {string} key
- * @param {unknown} value
- */
-function appendParam(query, key, value) {
-  if (value === undefined || value === null) return;
-  query.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
-}
-
-/** The two Consent-Mode v2 STORAGE purposes `gcs` carries, in the
- *  documented digit ORDER (`G1<ad_storage><analytics_storage>`) — `gcs`
- *  ignores the two DATA-USE purposes (`ad_user_data`/`ad_personalization`),
- *  unlike the MP path's `connectors/ga4/consent.js` shaper (039-02's Goal). */
-const GCS_PURPOSES = ["ad_storage", "analytics_storage"];
-
-/** `resolveConsent`'s `"granted"|"denied"` states, keyed to their `gcs`
- *  digit. `"pending"` is deliberately ABSENT — a pending purpose is handled
- *  by `encodeGcs`'s early-return, never reaches this lookup. */
-const GCS_DIGIT = { granted: "1", denied: "0" };
-
-/**
- * Encode the Consent-Mode v2 **STATE** string `gcs` (`G1<ad_storage>
- * <analytics_storage>`, e.g. `G111` all-granted / `G100` all-denied — both
- * live-observed anchors, `docs/specs/039-ga4-gtag-connector/slice-02-consent-
- * mode.md`) from a host-supplied ADR-0007 consent vector. A pure function of
- * the vector — no default-config input, unlike `gcd` (`encodeGcd` below,
- * 039-05: `gcd` co-varies with consent AND the host's declared Consent-Mode
- * default, so it is not a pure vector function).
- *
- * PENDING omission (mirrors `connectors/ga4/consent.js:48`'s "no signal yet
- * — omit, don't fail-safe to DENIED"): `gcs` is a JOINT positional string —
- * a single digit cannot be omitted while keeping the other — so if EITHER
- * governing purpose (`ad_storage`/`analytics_storage`) is `"pending"`, this
- * returns `undefined` and `gcs` is omitted from the beacon ENTIRELY, never a
- * partial/guessed `G1XY` (039-02 AC2's mixed-pending rule).
- *
- * @param {Record<string, string>|null|undefined} vector the host-supplied
- *   ADR-0007 consent vector (`core/consent.js`'s shape) — the SAME raw
- *   vector `resolveConsent`/`shapeMpConsent` read, NOT the MP-shaped
- *   `{ ad_user_data, ad_personalization }` object `connectors/ga4/consent.js`
- *   produces (that shape has no storage-purpose fields at all).
- * @returns {string|undefined} the `gcs` STATE string, or `undefined` when
- *   either governing purpose has no signal yet.
- */
-function encodeGcs(vector) {
-  const states = GCS_PURPOSES.map((purpose) => resolveConsent(vector, purpose));
-  if (states.some((state) => state === "pending")) return undefined; // joint string — omit entirely, never a partial guess
-  return `G1${states.map((state) => GCS_DIGIT[state]).join("")}`;
-}
-
-/** The four Consent-Mode v2 purposes `gcd` carries, in the live-grounded
- *  POSITION ORDER (`docs/specs/039-ga4-gtag-connector/slice-05-consent-
- *  defaults-gcd.md`'s Grounding note) — the four single-signal-granted
- *  anchors in `test/fixtures/parity-ga4-consent-gcd.redacted.json` each pin
- *  ONE position independently, so this order is live-grounded, not asserted
- *  from documentation. Unlike `GCS_PURPOSES`, `gcd` carries all four —
- *  including the two DATA-USE purposes `gcs` ignores. */
-const GCD_PURPOSES = ["ad_storage", "analytics_storage", "ad_user_data", "ad_personalization"];
-
-/** `resolveConsent`'s `"granted"|"denied"` states, keyed to their `gcd`
- *  letter — for the live-grounded default-DENIED config only (see
- *  `encodeGcd`'s doc comment). `"pending"` is deliberately ABSENT — a
- *  pending signal is handled by `encodeGcd`'s early-return, never reaches
- *  this lookup. */
-const GCD_LETTER = { granted: "r", denied: "q" };
-
-/**
- * Is the host's DECLARED Consent-Mode default denied for all four `gcd`
- * purposes? `consentDefault` mirrors `ctx.consent`'s vector shape (the SAME
- * `resolveConsent` reads) but carries the container's boot-time
- * `gtag('consent','default',{...})` declaration — a DIFFERENT axis than the
- * CURRENT per-visit `ctx.consent` vector `encodeGcs`/`encodeGcd` resolve.
- *
- * Absent/`undefined`/`null` `consentDefault` defaults to denied-all: airlock's
- * own consent-governed target IS deny-by-default + update-on-grant (ADR-0007's
- * posture), so an unset declaration is treated as that common case, not as
- * "unknown -> omit" — this is what lets `gcd` emit out of the box for
- * airlock's target deployment (the slice's WHAT-TO-BUILD gating note). A
- * PRESENT `consentDefault` is checked per-signal via the SAME `resolveConsent`
- * `encodeGcs` uses; any purpose absent from it or not exactly `"denied"` fails
- * the check (039-05 AC4 scopes to the live-grounded denied-all default only —
- * the default-GRANTED letters are unobserved, see `encodeGcd`'s doc comment).
- * @param {Record<string, string>|null|undefined} consentDefault
- * @returns {boolean}
- */
-function isDeniedAllDefault(consentDefault) {
-  if (consentDefault === undefined || consentDefault === null) return true;
-  return GCD_PURPOSES.every((purpose) => resolveConsent(consentDefault, purpose) === "denied");
-}
-
-/**
- * Encode the Consent-Mode v2 **DEFAULTS** string `gcd` for the live-grounded
- * default-denied deployment (039-05, `docs/specs/039-ga4-gtag-connector/
- * slice-05-consent-defaults-gcd.md`'s Grounding note) —
- * `13<L>3<L>3<L>3<L>5l1` over `[ad_storage, analytics_storage, ad_user_data,
- * ad_personalization]`, `L(granted)="r"` / `L(denied)="q"`. Unlike `encodeGcs`
- * (a pure function of the vector alone), `gcd` ALSO depends on the host's
- * DECLARED default (`consentDefault` below) — the `"13…3…3…3…5l1"` framing
- * (leading `13`, `3` separators, trailing `5l1`) is the STRUCTURAL CONSTANT
- * observed for THAT declared default (denied-all + `wait_for_update:10`), not
- * something this function derives from the vector.
- *
- * Scope gate (AC4) — returns `undefined` (omitted from the beacon via
- * `appendParam`'s existing omission rule, never a guessed value) when:
- *  - the DECLARED default is not denied-all (`isDeniedAllDefault` false): the
- *    default-GRANTED letters are UNOBSERVED on the reference page (its
- *    declared default is fixed denied), so guessing here risks emitting a
- *    WRONG string. This is a tracked, HONEST **known non-parity gap** for the
- *    unsupported default-granted config (the 038 oracle scores the omission
- *    `expected-dropped`/`dropped` there, not a false parity claim) — NOT a
- *    claim that omission is safe against every container. See the slice's
- *    Assumptions for the resolution trigger.
- *  - ANY of the four governing signals is `"pending"` (039-02's discipline,
- *    mirrored): `gcd` is a JOINT positional string like `gcs`, so a single
- *    pending signal omits the WHOLE string rather than guess a partial one.
- *
- * @param {Record<string, string>|null|undefined} vector the SAME raw
- *   ADR-0007 consent vector `encodeGcs` reads (`config.ctx.consent`) — the
- *   CURRENT per-visit update state, not the declared default.
- * @param {Record<string, string>|null|undefined} consentDefault the host's
- *   declared Consent-Mode default (`config.ctx.consentDefault`) — see
- *   `isDeniedAllDefault`'s doc comment for shape/semantics/back-compat default.
- * @returns {string|undefined} the `gcd` DEFAULTS string, or `undefined` when
- *   out of scope (non-denied-all declared default) or undecidable (a pending
- *   governing signal).
- */
-function encodeGcd(vector, consentDefault) {
-  if (!isDeniedAllDefault(consentDefault)) return undefined; // unsupported config — known non-parity gap, never guessed
-  const states = GCD_PURPOSES.map((purpose) => resolveConsent(vector, purpose));
-  if (states.some((state) => state === "pending")) return undefined; // joint string — omit entirely, never a partial guess
-  const [adStorage, analyticsStorage, adUserData, adPersonalization] = states.map((state) => GCD_LETTER[state]);
-  return `13${adStorage}3${analyticsStorage}3${adUserData}3${adPersonalization}5l1`;
-}
-
-/**
  * Append the 039-03 session-state fields (`sct`/`seg`/`_fv`/`_ss`/`_nsi`) from the host-computed
- * `ctx.sessionState` — the STATEFUL counterpart to `encodeGcs` above (that one is a pure function
- * of the consent vector this module itself resolves; this one is not a pure function of anything
+ * `ctx.sessionState` — the STATEFUL counterpart to `encodeGcs` (`connectors/consent-mode.js`, a pure
+ * function of the consent vector); this one is not a pure function of anything
  * gtag.js holds, since the values depend on `_ga_<stream>` cookie HISTORY advanced by
  * `connectors/ga4/cookies.js`'s `writeGa4SessionState`, called by the HOST before this connector
  * runs — mirrors how `ctx.clientId`/`ctx.sessionId` are host-sourced, never derived here). Absent

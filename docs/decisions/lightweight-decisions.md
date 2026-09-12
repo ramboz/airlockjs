@@ -126,3 +126,11 @@ fields), so the documented shape and the helper output agree.
 **Scope:** package.json (`release:dist` + `postversion` scripts); README 'Cutting a release' section; CHANGELOG.md
 
 **Commit:** dcff878
+
+### 2026-09-11 — Google Ads / gtag-family connector shape
+
+**Decision:** Google Ads (AW) ships as a NEW connectors/google-ads/ connector that reuses the gtag-family Consent-Mode encoders (connectors/consent-mode.js) + spec 026's governed GET egress + the 017-03 seal — NOT a pixel vendor config (no Consent-Mode carriage) and NOT an extension of the 039 GA4-gtag connector (no shared _ga session semantics). Recorded as a lightweight decision (owner chose convention-not-ADR, 2026-09-11) rather than the ADR-0019-analogue the 044-01 arch review suggested; the extraction rule-of-three home is the new docs/conventions.md 'Code' convention.
+
+**Context:** 044-01 arch review flagged the connector-shape as load-bearing with rejected alternatives (ADR-worthy); owner ruled convention-not-ADR to keep it light. Floodlight will be the gtag-family sibling.
+
+**Scope:** connectors/google-ads/, connectors/consent-mode.js (gtag family)

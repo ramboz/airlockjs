@@ -37,6 +37,12 @@ locking it down only invites churn.
 record. Git history is the deep audit trail; the struck-through prose is the
 one a reader sees without digging.
 
+## Code
+
+**Rule:** Extract a shared helper on the *third* caller (rule of three); inline-mirror the first two.
+**Why:** Two occurrences are cheaper left inline than coupled through a premature abstraction; a third proves the shape is real and worth one governed source. Extracting too early invents indirection with no proven need; extracting too late lets copies drift. (This is a jig-ecosystem principle — the jig *plugin* records it as **its** ADR-0002; airlock adopts it as a **local convention**, deliberately NOT airlock's own [ADR-0002](decisions/adr-0002-event-descriptor-cycle-semantics.md) "Event descriptor shape and cycle semantics". Earlier specs (039/043/044) mis-cited a nonexistent `adr-0002-extract-helper-on-third-caller.md`; those citations now point here.)
+**How to apply:** On a third byte-identical (or behavior-identical) copy, extract one shared primitive to the leanest correct home — a **vendor-neutral** leaf in `core/` only when it carries no vendor specifics (e.g. `core/cookie-parse.js`, `core/query-params.js`); **connector-side** when it encodes a vendor wire-shape (e.g. the Google Consent-Mode `gcs`/`gcd` encoders live in `connectors/consent-mode.js`, NOT `core/`, because `core/` carries no vendor coupling — see `docs/architecture.md`). Stop at the proven callers — do not generalize further (leanness). A genuine reuse (not duplication) MAY extract on the 2nd caller when a 3rd is imminent; record the call.
+
 ## Specs
 
 **Rule:** Every non-trivial change starts with a spec, SPIDR-split into vertical slices.

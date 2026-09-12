@@ -15,7 +15,7 @@ arch_review: false
 **Goal:** Extract the duplicated "read a cookie value by exact name" scan into one shared pure primitive
 `getCookieValue(cookieString, name)` in `core/`, and repoint the two copies (`adapters/eds/index.js`'s
 `readCookieValue`, added by 026-04, and `adapters/eds/cookies.js`'s mediated `get(name)` inner loop) to it —
-**behavior-preserving**, killing the triplication [ADR-0002](../../decisions/adr-0002-extract-helper-on-third-caller.md)
+**behavior-preserving**, killing the triplication the [extract-on-third-caller convention](../../conventions.md)
 flags before a fourth copy accretes. The prefix-match / first-pair / filter / scoping **variants stay open-coded**
 (spec 043 § Overview + A2) — this is not a generic cookie-iterator.
 

@@ -48,6 +48,7 @@
     "cwv:scoreboard": "node rig/cwv-scoreboard.mjs",
     "parity:meta": "node rig/parity/run-meta.mjs",
     "parity:ga4": "node rig/parity/run-ga4.mjs",
+    "parity:google-ads": "node rig/parity/run-google-ads.mjs",
     "parity:transport": "node rig/parity/run-transport.mjs"
   },
   "devDependencies": {

@@ -101,7 +101,7 @@ session continuity parity, the last gap between the gtag connector and the conta
   cross-invocation corruption guard; full suite re-run green (89 files / 1365 tests).
 - **Nits → later sweep (non-blocking):** `createGa4GtagConnector` config typedef omits `sessionState?` (JSDoc drift);
   `parseGa4SessionState` re-implements the GS2-body-scan idiom from `parseGaSessionId` (differing return shapes + GS1
-  support justify two fns; extract a shared `parseGs2Body` on a 3rd caller per ADR-0002); a malformed-but-present
+  support justify two fns; extract a shared `parseGs2Body` on a 3rd caller per the extract-on-third-caller convention); a malformed-but-present
   `_ga_<stream>` is treated as a first visit (opposite of `sourceGa4Ctx`'s never-overwrite-malformed `_ga` — fine for the
   sole-writer gtag-free MPA target, a rationale comment would close the asymmetry).
 - **Engagement heuristic (documented residual).** The continuation branch flips `engaged→1` on every continuation
