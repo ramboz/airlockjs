@@ -13,7 +13,19 @@ Two tag families:
 
 ## [Unreleased]
 
-- _Nothing yet — MVP8 (Ad-Conversion Offloading) is next; see [docs/releases/README.md](docs/releases/README.md)._
+### Added
+
+- **The Floodlight (DoubleClick / DC) ad-conversion connector** (spec 046, MVP8): `connectors/floodlight/` reproduces
+  DC's two page-load beacons off-thread — the query-delimited `www.google.com/ccm/collect` and the `;`-delimited
+  matrix-path `ad.doubleclick.net/activity;src=…` (Floodlight-native `src`/`type`/`cat` + `auiddc`) — both carrying
+  Consent Mode v2 + a read-only `_gcl_au`-derived linker (never minted), parity-confirmed by the 038 harness. Under
+  `ad_storage`-denied both hold at the seal and re-map on grant (no cookieless DC send).
+- **Seal fan-out re-map** (spec 045-03 / [ADR-0024](docs/decisions/adr-0024-fanout-remap-per-beacon-key.md)): a
+  per-beacon `EgressRequest.remapKey` lets a connector that fans one event out to N held beacons re-map **each** to its
+  own form on grant (the 1:1 seal could not); 1:1 connectors are byte-unchanged.
+- **Endpoint-ceiling matrix-URI granularity** (spec 046-02 / [ADR-0025](docs/decisions/adr-0025-endpoint-ceiling-matrix-prefix-match.md)):
+  a declared `;`-matrix path opts into a segment-anchored prefix match (admitting a per-request path cachebuster); exact
+  match preserved for every query-delimited endpoint.
 
 ## [0.7.0] — 2026-09-11 — MVP7 (Pixel Parity & the Parity Harness)
 

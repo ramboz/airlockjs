@@ -40,6 +40,8 @@
 import { appendParam } from "../../core/query-params.js";
 import { appendMatrixParam, joinMatrixUrl } from "../../core/path-matrix.js";
 import { encodeGcs, encodeGcd, encodeNpa } from "../consent-mode.js";
+import { resolveConsent } from "../../core/consent.js";
+import { sourceGoogleAdsCtx } from "../google-ads/cookies.js";
 
 /** The Consent-Mode collect endpoint DC's `ccm/collect` page-load beacon shares with AW (spec 046
  *  §A2) — the DC conversion id rides the SAME `tid=DC-<id>` query param position AW uses for
@@ -240,13 +242,105 @@ export function createFloodlightConnector(config = {}) {
     // the now-current consent on a grant-flush, instead of re-sending the stale under-denial payload.
     // Additive-only — a connector/seal that does not opt in never reads this field; harmless here.
     // AC5: the ccm/collect beacon is byte-UNCHANGED from 046-01 and stays index 0.
-    const requests = [{ ...mapToDcCollect(event, { conversionId, ctx, endpoint }), event }];
+    //
+    // 046-03 (045-03's `EgressRequest.remapKey` fan-out disambiguator, ADR-0024): each beacon ALSO
+    // gets a DISTINCT `remapKey` — "ccm" / "activity" — so a key-aware `remap` (createFloodlightRemap
+    // below) can tell the seal's two held records apart on a grant-flush and rebuild each to its OWN
+    // form (not swapped, not duplicated — the colliding-key footgun ADR-0024 names). Distinct BY
+    // CONSTRUCTION: the two literals below can never collide. Additive-optional, exactly like `event`
+    // — inert until a `remap` is wired.
+    const requests = [{ ...mapToDcCollect(event, { conversionId, ctx, endpoint }), event, remapKey: "ccm" }];
     // The activity beacon is OPT-IN — see hasActivityIdentity's own doc comment above.
     if (hasActivityIdentity) {
-      requests.push({ ...mapToDcActivity(event, { src, type, cat, ctx, endpoint: activityEndpoint }), event });
+      requests.push({
+        ...mapToDcActivity(event, { src, type, cat, ctx, endpoint: activityEndpoint }),
+        event,
+        remapKey: "activity",
+      });
     }
     return requests;
   }
 
   return { manifest, init, handle };
+}
+
+/**
+ * Build the DC main-thread RE-MAP function (spec 046-03, spec 045-01's `remap(event, consentVector,
+ * remapKey?)` channel / spec 045-03's `remapKey` fan-out disambiguator, ADR-0024) — the "supplies the
+ * re-map inputs" half of this slice's `holdOnDenied` opt-in. Mirrors `createGoogleAdsRemap` above, but
+ * KEY-AWARE: `createFloodlightConnector`'s `handle` fans ONE `page_view` out to up to TWO held beacons
+ * (`remapKey: "ccm"` / `"activity"`, see above), so a single 1:1 `remap` cannot rebuild both — this
+ * dispatches on the seal's THIRD `remap` argument to rebuild the correct wire form per beacon.
+ *
+ * Wired as `createAirlock({ holdOnDenied: true, remap: createFloodlightRemap({...}) })`; on a
+ * grant-flush the seal calls this once PER held beacon with that beacon's SOURCE `event` + the
+ * now-current consent vector + its preserved `remapKey`, and this REBUILDS the beacon from scratch —
+ * `remapKey === "activity"` rebuilds via `mapToDcActivity` (the `;`-wire, `auiddc`); any other value
+ * (the `"ccm"` case, and any absent/unrecognized key) rebuilds via `mapToDcCollect` (`auid`) — rather
+ * than letting the seal re-send the stale under-denial `{url}` (which would fire an unattributable
+ * "user-declined" beacon, the exact non-parity hold-until-granted exists to prevent).
+ *
+ * Re-sourcing, not replay: `sourceGoogleAdsCtx` re-reads `_gcl_au` -> `auid`/`auiddc` (via the
+ * INJECTED `readCookieString`, exactly like `createGoogleAdsRemap`; §A4 — DC's linker id IS the SAME
+ * `_gcl_au`-derived value AW's own `sourceGoogleAdsCtx` already sources, no separate Floodlight
+ * reader) and re-encodes `gcs`/`gcd`/`npa` under the PASSED (now-current) `consent` vector for BOTH
+ * forms, via the SAME shared `../consent-mode.js` encoders the granted (046-01/046-02) path already
+ * uses — no forked encoding.
+ *
+ * NON-THROWING PER FORM (the 045-03 fan-out robustness note, spec 046-03's Robustness section):
+ * `core/airlock.js`'s flush splices `heldBeacons` empty BEFORE iterating and calls `remap` unguarded,
+ * so an exception escaping from ONE beacon's rebuild would abort the shared loop and silently drop its
+ * ALREADY-SPLICED sibling (blast radius 1 for a 1:1 connector like g-ads, N for this fan-out). This
+ * function therefore never throws: the whole rebuild (ctx re-sourcing + the per-form call) runs
+ * inside a `try`; any failure resolves to `undefined` for THAT call only. The seal's own
+ * `!req || req.url == null` branch then emits its terminal `dropped` diagnostic for just that beacon,
+ * and the loop continues on to flush the sibling normally.
+ *
+ * PURE (mirrors `createGoogleAdsRemap`): no `document`/global cookie read — `readCookieString` is the
+ * injected raw-cookie-string reader a real host wires, invoked fresh on every call, never cached.
+ *
+ * @param {object} opts
+ * @param {string} opts.conversionId the `DC-<id>` (mirrors `createFloodlightConnector`'s config; the
+ *   ccm/collect `tid`).
+ * @param {string} [opts.src] the Floodlight-native activity identity (mirrors
+ *   `createFloodlightConnector`'s config) — used only for the `"activity"` remapKey.
+ * @param {string} [opts.type]
+ * @param {string} [opts.cat]
+ * @param {string} [opts.endpoint] the ccm/collect endpoint; defaults to `FLOODLIGHT_CCM_COLLECT_ENDPOINT`.
+ * @param {string} [opts.activityEndpoint] the activity endpoint; defaults to `FLOODLIGHT_ACTIVITY_ENDPOINT`.
+ * @param {Record<string, string>} [opts.consentDefault] the declared Consent-Mode default (`gcd`'s
+ *   scope gate — `connectors/consent-mode.js`'s `encodeGcd`), shared by both forms.
+ * @param {() => string} opts.readCookieString injected raw cookie-string reader (e.g.
+ *   `() => document.cookie`) — invoked fresh on every re-map call, never cached.
+ * @param {string} [opts.landingUrl] the page's landing URL, forwarded to `sourceGoogleAdsCtx` (unused
+ *   by DC's own ctx today — no inbound click ids on this beacon family — but threaded for parity with
+ *   `createGoogleAdsRemap`'s signature and any future `sourceGoogleAdsCtx` growth).
+ * @returns {(event: import("../../contracts/connector").AirlockEvent, consent: Record<string, string>, remapKey?: string) => import("../../contracts/connector").EgressRequest | undefined}
+ */
+export function createFloodlightRemap({
+  conversionId,
+  src,
+  type,
+  cat,
+  endpoint = FLOODLIGHT_CCM_COLLECT_ENDPOINT,
+  activityEndpoint = FLOODLIGHT_ACTIVITY_ENDPOINT,
+  consentDefault,
+  readCookieString,
+  landingUrl,
+}) {
+  return (event, consent, remapKey) => {
+    try {
+      const adStorageGranted = resolveConsent(consent, "ad_storage") === "granted";
+      const sourced = sourceGoogleAdsCtx({ cookieString: readCookieString(), landingUrl, adStorageGranted });
+      const ctx = { ...sourced, consent, consentDefault };
+      if (remapKey === "activity") {
+        return mapToDcActivity(event, { src, type, cat, ctx, endpoint: activityEndpoint });
+      }
+      return mapToDcCollect(event, { conversionId, ctx, endpoint });
+    } catch {
+      // Non-throwing per form (see doc comment above) — the seal's terminal `dropped` diagnostic
+      // fires for just THIS beacon; the sibling's own `remap` call is unaffected.
+      return undefined;
+    }
+  };
 }

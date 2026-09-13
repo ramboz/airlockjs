@@ -900,3 +900,18 @@ host+path; no new-destination escape, since origin+path+`src` stay pinned).
 
 **Resolution trigger:** the matrix-tail append surface is deemed to warrant tightening — pin `type`/`cat` in the declared
 prefix, or apply payload-governance ([ADR-0012](decisions/adr-0012-payload-governance.md)) to the matrix tail.
+
+### Seal-hold connectors: single `{ connector, remap }` factory for the deferred real boot
+
+**Deferred (surfaced by the 046-03 arch review, 2026-09-13; applies to AW 044-02 too):** a `holdOnDenied` connector today
+exposes TWO separate factories that each take overlapping config — `createGoogleAdsConnector` + `createGoogleAdsRemap`
+(044-02), and now `createFloodlightConnector` + `createFloodlightRemap` (046-03, config = `conversionId`/`src`/`type`/`cat`/
+`endpoint`/`activityEndpoint`). The re-map path is proven in tests; the real `adapters/eds` boot is deferred. When that
+boot lands it MUST feed both factories from ONE config — otherwise a grant-flush would re-map under a different identity
+(e.g. a different `src`) than the held beacon declared, and the endpoint-ceiling would then correctly HOLD the flush. For
+the fan-out (Floodlight) this lockstep spans more fields than AW's 1:1 case, widening the drift surface.
+
+**Resolution trigger:** the `adapters/eds` boot wiring for a seal-hold connector lands (AW or Floodlight) — then converge
+on a single factory returning `{ connector, remap }` (or a shared config object both consume) so the connector's declared
+identity/endpoints and its re-map are guaranteed to agree. Applies equally to 044-02 — belongs in the boot follow-up, not
+a connector slice.
