@@ -1,21 +1,34 @@
 /**
- * Consent Mode v2 STATE (`gcs`) + DEFAULTS (`gcd`) encoders — spec 044-01 (the extract-on-third-caller
- * convention, docs/conventions.md § Code).
- * EXTRACTED VERBATIM (behavior-preserving) from `connectors/ga4/gtag.js` (spec 039-02/039-05),
- * where they were module-internal, because the gtag-family carries the SAME `gcs`/`gcd` across
- * vendors: GA4 gtag (spec 039, 1st caller), Google Ads (spec 044, 2nd caller), and Floodlight
- * (a sibling spec, prospective 3rd) all emit byte-identical Consent-Mode carriage (verified on the
+ * Consent Mode v2 STATE (`gcs`) + DEFAULTS (`gcd`) + the `npa` (non-personalized-ads) flag — spec
+ * 044-01 (the extract-on-third-caller convention, docs/conventions.md § Code); `npa` folded in by
+ * spec 046-01.
+ *
+ * `gcs`/`gcd` EXTRACTED VERBATIM (behavior-preserving) from `connectors/ga4/gtag.js` (spec
+ * 039-02/039-05), where they were module-internal, because the gtag-family carries the SAME
+ * `gcs`/`gcd` across vendors: GA4 gtag (spec 039, 1st caller), Google Ads (spec 044, 2nd caller), and
+ * Floodlight (spec 046, 3rd caller) all emit byte-identical Consent-Mode carriage (verified on the
  * 2026-09-11 R-009 §(b) capture, where the AW/DC/GA4 pings share `gcs=G111`/`gcd=13r3r3r3r5l1`).
- * The encoders are now the SINGLE home; `connectors/ga4/gtag.js` imports them (its 039 behavior is
- * unchanged — test/ga4-gtag.test.js's `gcs`/`gcd` assertions stay green), rather than each
- * gtag-family connector re-authoring the same live-grounded strings.
+ *
+ * `npa` EXTRACTED (spec 046-01) from `connectors/google-ads/connector.js` (spec 044-01, where it was
+ * connector-local — AW's 1st, sole caller) now that Floodlight is its 2nd caller. Two callers is
+ * technically ahead of the strict rule-of-three, but the convention explicitly allows this ("a
+ * genuine reuse ... MAY extract on the 2nd caller when a 3rd is imminent", docs/conventions.md
+ * § Code): `npa` is byte-identical gtag-family Consent-Mode carriage exactly like `gcs`/`gcd`, this
+ * module is already the proven home for that carriage (a 3rd `npa` caller is exactly as plausible as
+ * `gcs`/`gcd`'s own 3rd-caller Floodlight arrival was), and leaving `npa` connector-local while its
+ * `gcs`/`gcd` siblings moved here would fork the SAME encoder family across two homes for no reason.
+ *
+ * The encoders are now the SINGLE home; `connectors/ga4/gtag.js` and `connectors/google-ads/
+ * connector.js` import them (their prior behavior unchanged — test/ga4-gtag.test.js's and
+ * test/google-ads.test.js's assertions stay green), rather than each gtag-family connector
+ * re-authoring the same live-grounded strings/flag.
  *
  * A pure module — no DOM, no globals; the ONE dependency is `core/consent.js`'s `resolveConsent`
  * (a connector→core import — allowed and correct, per this module's `connectors/` home). It DOES
- * encode Google-specific Consent-Mode wire-shape (the `gcs`/`gcd` strings) — that vendor coupling is
- * exactly why it lives connector-side, NOT in the vendor-neutral `core/` (docs/conventions.md
- * § Code home rule). See each function's doc comment for the live-grounding provenance (carried over
- * from the 039 slices this code was proven under).
+ * encode Google-specific Consent-Mode wire-shape (the `gcs`/`gcd`/`npa` strings/flag) — that vendor
+ * coupling is exactly why it lives connector-side, NOT in the vendor-neutral `core/` (docs/
+ * conventions.md § Code home rule). See each function's doc comment for the live-grounding
+ * provenance (carried over from the 039/044 slices this code was proven under).
  */
 import { resolveConsent } from "../core/consent.js";
 
@@ -109,4 +122,24 @@ export function encodeGcd(vector, consentDefault) {
   if (states.some((state) => state === "pending")) return undefined; // joint string — omit entirely, never a partial guess
   const [adStorage, analyticsStorage, adUserData, adPersonalization] = states.map((state) => GCD_LETTER[state]);
   return `13${adStorage}3${analyticsStorage}3${adUserData}3${adPersonalization}5l1`;
+}
+
+/** The two DATA-USE purposes governing `npa` (non-personalized ads) — the SAME two purposes `gcd`
+ *  carries under its `ad_user_data`/`ad_personalization` positions, read jointly here. */
+const NPA_PURPOSES = ["ad_user_data", "ad_personalization"];
+
+/**
+ * Encode the `npa` (non-personalized ads) flag from the host consent vector: `"0"` (personalized
+ * ads OK — the live-observed granted-state anchor `npa=0`, R-009 §(b)) when BOTH `ad_user_data` and
+ * `ad_personalization` are granted, `"1"` (non-personalized) otherwise. A pure function of the
+ * vector alone (like `encodeGcs`, unlike `encodeGcd`'s extra `consentDefault` axis). `npa` is always
+ * present (a single digit; unlike the joint `gcs`/`gcd` strings, it is never omitted) — EXTRACTED
+ * here (spec 046-01) from `connectors/google-ads/connector.js` (spec 044-01), see the module doc
+ * comment above for the extraction rationale.
+ * @param {Record<string, string>|null|undefined} vector the host consent vector.
+ * @returns {"0"|"1"}
+ */
+export function encodeNpa(vector) {
+  const granted = NPA_PURPOSES.every((purpose) => resolveConsent(vector, purpose) === "granted");
+  return granted ? "0" : "1";
 }

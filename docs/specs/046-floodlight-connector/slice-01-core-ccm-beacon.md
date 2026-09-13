@@ -1,7 +1,7 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: [044-01, adr-0019]
-last_verified:
+last_verified: 2026-09-13
 frame_review: false
 arch_review: false
 ---
@@ -58,8 +58,25 @@ ccm/collect beacon reaches the vendor off-thread with consent + linker parity.
 
 ### Deviation log (after reconciliation)
 
-_(pending implementation)_
+The slice as framed (a reuse-complete AW mirror) held up; all five ACs met, full suite green (1643), `parity:floodlight-ccm` PASS. Deviations decided during implementation + the compliance/craft passes (all folded):
+
+- **`encodeNpa` extracted on its 2nd caller, not the 3rd.** AC2's shorthand said "Floodlight = the 3rd caller"; for `npa` Floodlight is the 2nd consumer (AW was the sole prior). Extracted under the conventions' explicit allowance (`docs/conventions.md` § Code — "a genuine reuse MAY extract on the 2nd caller when a 3rd is imminent; record the call"); rationale recorded in the `connectors/consent-mode.js` module doc-comment. Behavior byte-identical (GA4-gtag + AW consumers green unmodified).
+- **New per-vendor redactor/descriptor modules, not literal "reuse VERBATIM."** The spec's "reuse the AW redactor/descriptor VERBATIM" was realized as NEW mirrored modules (`rig/parity/redact-floodlight-ccm.js`, `descriptors/floodlight-ccm.js`), matching the established per-vendor-module pattern (AW's redactor is itself separate from Meta's). Reused VERBATIM (imported): `oracle.js` `diffParity`, `replay.js` `fieldsFromUrl`, `core/query-params.js` `appendParam`, the `connectors/consent-mode.js` encoders, and `connectors/google-ads/cookies.js` `sourceGoogleAdsCtx`.
+- **Forward-shipped the 045-01 `EgressRequest.event` re-map channel.** `handle()` attaches the source `event` to the ready beacon (the additive 045-01 channel) here in 046-01, whereas its consumer — the seal-hold — is **two slices later** in 046-03 (046-02 sits between). It is additive and inert here (stripped before dispatch; only read once a `remap` is wired in 046-03). This differs from AW, which attached its `event` inside its *own* consumer slice **044-02** (commit 534d2ec), not ahead of it; Floodlight forward-ships harmlessly because the connector is one module built across 046-01/02/03.
+- **Cross-slice edit to DONE spec 044 (behavior-preserving).** The `encodeNpa` extraction removed the local definition from `connectors/google-ads/connector.js` and repointed its import to `connectors/consent-mode.js` (+ updated the encoder-home assertion in `test/google-ads.test.js`). Sanctioned by the extract-on-Nth-caller convention; 044's runtime behavior is byte-identical and its behavioral assertions pass unchanged (though `test/google-ads.test.js` itself WAS modified — the import repoint + a new encoder-home meta-test — so it is "updated," not "unmodified"). No 044 record amendment needed.
+- **Comment-accuracy fixes during review (compliance + craft).** Corrected stale/imprecise doc comments the extraction touched: the `connectors/google-ads/connector.js` consent-block `npa`-home note + its module-header gtag-carriage over-scope; the `redact-floodlight-ccm.js` rule-of-three claim (the `scrubUrlIdentifiers` FUNCTION is now a 3rd byte-identical copy — `CLICK_ID_PARAMS` matches AW, Meta differs); and the now-stale "2 callers, not 3" note in `redact-google-ads.js`.
+- **Deferred cleanup (tracked):** the now-rule-of-three `scrubUrlIdentifiers` helper extraction (touches the 038 Meta + 044 AW redactors) is recorded in `docs/refinement-todo.md` (§ Spec 038 follow-ups), deferred out of 046-01 to keep its reuse-complete scope from widening into two DONE specs.
 
 ### Reconciliation sweep
 
-_(pending implementation)_
+- **Tests / lint — updated.** Full `npx vitest run` → 106 files / 1643 passed, 0 fail (incl. 14 new `test/floodlight.test.js` + 8 new `test/parity-floodlight-ccm.test.js` cases); `npx eslint .` clean. `npm run parity:floodlight-ccm` exits 0 (verdict `pass`, 8 fields map / 7 normalised-out).
+- **`encodeNpa` single-home — updated.** Defined once in `connectors/consent-mode.js`; imported by `connectors/google-ads/connector.js` + `connectors/floodlight/connector.js`; the encoder-home assertion in `test/google-ads.test.js` updated.
+- **AW default behavior — no-op (byte-identical).** `test/google-ads-seal.test.js` + `test/parity-google-ads.test.js` pass **unmodified**; `test/google-ads.test.js` was **modified** (encodeNpa import repoint + a new encoder-home meta-test) but AW's behavioral assertions are unchanged.
+- **`docs/architecture.md` — partially updated.** The `connectors/consent-mode.js` encoder-home line IS updated now (`gcs`/`gcd` → `gcs`/`gcd`/`npa`; reusers + `floodlight`) — per the 044-01 precedent of updating it at the extraction, since that fact is complete as of 046-01 and would otherwise misstate the shared module through 046-02/03. The `connectors/floodlight/` connector-inventory entry + the `airlock/floodlight` registry namespace are deferred to spec 046 close-out (incomplete until 046-02 activity + 046-03 seal-hold), per compress-on-close-out.
+- **`docs/specs/README.md` (status board) — regenerated.** The 046-01 row + a shown-and-declined craft-anomaly line were regenerated (`workflow.py status-board`); re-run at each transition + at close so the row tracks the frontmatter.
+- **`CHANGELOG.md` [Unreleased] — deferred to spec 046 close-out.** The Floodlight connector is one MVP8 feature bullet, added when the spec closes (the CHANGELOG is per-feature, not per-slice).
+- **`docs/refinement-todo.md` — updated.** Added the `scrubUrlIdentifiers` rule-of-three extraction follow-up (§ Spec 038 follow-ups).
+- **Boot/worker wiring — out of scope (no-op).** Like AW (044), `connectors/floodlight/` has no `adapters/eds` registration; end-to-end proof is via the parity replay + unit tests (a boot slice is the 039→041 precedent).
+- **ADR trigger — none.** 046-01 is a reuse mirror of the ratified gtag-family pattern (ADR-0019); no new load-bearing decision. (The fan-out re-map decision is ADR-0024 / slice 045-03, separate.)
+- **Lightweight decisions / conventions / inbox — none.** No UI/strings/visual choices; no convention change; nothing to park.
+- **Memory-sync — deferred to spec close** (the Floodlight connector pattern + the DC ccm/activity wire-shape split is worth a glossary/memory note once the connector is complete).

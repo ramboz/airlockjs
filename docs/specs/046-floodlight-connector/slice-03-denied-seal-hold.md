@@ -1,9 +1,9 @@
 ---
 status: DRAFT
-dependencies: [046-01, 046-02, 045-01, adr-0023]
+dependencies: [046-01, 046-02, 045-01, 045-03, adr-0023, adr-0024]
 last_verified:
 frame_review: false
-arch_review: false
+arch_review: true
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about runnable

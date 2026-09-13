@@ -18,7 +18,6 @@ import { join } from "node:path";
 
 import {
   createGoogleAdsConnector,
-  encodeNpa,
   GOOGLE_ADS_CCM_COLLECT_ENDPOINT,
 } from "../connectors/google-ads/connector.js";
 import {
@@ -26,7 +25,7 @@ import {
   readClickIds,
   sourceGoogleAdsCtx,
 } from "../connectors/google-ads/cookies.js";
-import { encodeGcs, encodeGcd } from "../connectors/consent-mode.js";
+import { encodeGcs, encodeGcd, encodeNpa } from "../connectors/consent-mode.js";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -146,6 +145,14 @@ describe("createGoogleAdsConnector — AC2 Consent Mode v2 carriage via the REUS
     // the extraction moved the definitions OUT of gtag.js — it no longer re-declares them.
     expect(gtagSrc).not.toMatch(/function encodeGcs\b/);
     expect(gtagSrc).not.toMatch(/function encodeGcd\b/);
+  });
+
+  it("encodeNpa now shares that SAME home too (spec 046-01's extraction — Floodlight is its 2nd caller): imported here, no longer re-declared in this file", () => {
+    const awSrc = readFileSync(join(repoRoot, "connectors/google-ads/connector.js"), "utf8");
+    const consentModeSrc = readFileSync(join(repoRoot, "connectors/consent-mode.js"), "utf8");
+    expect(consentModeSrc).toMatch(/export function encodeNpa\b/);
+    expect(awSrc).not.toMatch(/function encodeNpa\b/); // no longer re-declared — imported instead
+    expect(awSrc).toMatch(/import\s*\{[^}]*encodeNpa[^}]*\}\s*from ["']\.\.\/consent-mode\.js["']/);
   });
 });
 

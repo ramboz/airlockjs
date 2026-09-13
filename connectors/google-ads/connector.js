@@ -25,9 +25,11 @@
  * `sourceGoogleAdsCtx` (read-when-present / omit-when-absent / NEVER minted, §A5). This connector
  * never touches cookies, the DOM, or any ambient global.
  *
- * CONSENT (AC2): `gcs`/`gcd` are the REUSED `connectors/consent-mode.js` encoders (byte-identical to the
- * GA4 gtag carriage); `npa` (non-personalized ads) is a small AW-local derivation (039 emits no
- * `npa`). The manifest declares `purposes.egress: ["ad_storage"]` so THE SEAL can gate the whole
+ * CONSENT (AC2): `gcs`/`gcd`/`npa` are ALL REUSED `connectors/consent-mode.js` encoders; `gcs`/`gcd`
+ * are byte-identical to the GA4 gtag carriage (039 itself emits no `npa`). `npa` (non-personalized ads)
+ * moved into that shared module in spec 046-01 (Floodlight's arrival as its 2nd caller — extract-on-third-caller, docs/conventions.md
+ * § Code); this file only imports the encoder now, it is no longer defined here. The manifest declares
+ * `purposes.egress: ["ad_storage"]` so THE SEAL can gate the whole
  * beacon under `ad_storage`-denial. Slice 044-02 activates that gate: the connector opts into the
  * core seal's `holdOnDenied` mode (spec 045-01 / ADR-0023 Option E, grounded on R-009 §(b) — the
  * container HELD the AW family under reject-all, 23→2 beacons) and supplies `createGoogleAdsRemap`
@@ -38,7 +40,7 @@
  * discipline: no `document`/global cookie read — the host injects a `readCookieString` reader.
  */
 import { appendParam } from "../../core/query-params.js";
-import { encodeGcs, encodeGcd } from "../consent-mode.js";
+import { encodeGcs, encodeGcd, encodeNpa } from "../consent-mode.js";
 import { resolveConsent } from "../../core/consent.js";
 import { sourceGoogleAdsCtx } from "./cookies.js";
 
@@ -50,26 +52,6 @@ export const GOOGLE_ADS_CCM_COLLECT_ENDPOINT = "https://www.google.com/ccm/colle
  *  event of any OTHER type maps to `[]` (the zero-or-one gate, mirroring the pixel/RUM connectors) —
  *  the true AW CONVERSION ping (a conversion event) is MVP9, out of scope (spec 044 §A3). */
 const PAGE_LOAD_EVENT = "page_view";
-
-/** The two DATA-USE purposes governing `npa` (non-personalized ads). */
-const NPA_PURPOSES = ["ad_user_data", "ad_personalization"];
-
-/**
- * Encode the `npa` (non-personalized ads) flag from the host consent vector: `"0"` (personalized
- * ads OK — the live-observed granted-state anchor `npa=0`, R-009 §(b)) when BOTH `ad_user_data` and
- * `ad_personalization` are granted, `"1"` (non-personalized) otherwise. A NEW AW-local derivation:
- * spec 039's gtag connector emits no `npa`, so it is not one of the extracted `connectors/consent-mode.js`
- * encoders — kept connector-local until a 2nd consumer (Floodlight, a sibling spec) triggers
- * the extract-on-third-caller convention (docs/conventions.md § Code). `npa` is always present (a single digit; unlike the joint `gcs`/`gcd`
- * strings, it is never omitted). This slice asserts only the granted anchor (`npa=0`); the denied
- * beacon is held at the seal (slice 044-02) rather than sent with `npa=1`.
- * @param {Record<string, string>|null|undefined} vector the host consent vector.
- * @returns {"0"|"1"}
- */
-export function encodeNpa(vector) {
-  const granted = NPA_PURPOSES.every((purpose) => resolveConsent(vector, purpose) === "granted");
-  return granted ? "0" : "1";
-}
 
 /**
  * Map one page-load event to the AW `ccm/collect` GET beacon.
@@ -94,9 +76,9 @@ function mapToAwCollect(event, { conversionId, ctx, endpoint }) {
   appendParam(query, "wbraid", ctx && ctx.wbraid);
   appendParam(query, "gbraid", ctx && ctx.gbraid);
 
-  // AC2: Consent Mode v2 carriage. `gcs`/`gcd` are the REUSED connectors/consent-mode.js encoders (each
-  // returns `undefined` -> omitted for a pending governing signal / non-denied-all default); `npa`
-  // is the AW-local derivation above.
+  // AC2: Consent Mode v2 carriage. `gcs`/`gcd`/`npa` all come from the shared connectors/consent-mode.js
+  // encoders (`gcs`/`gcd` each return `undefined` -> omitted for a pending governing signal /
+  // non-denied-all default). `encodeNpa` was lifted out of this module into consent-mode.js by spec 046-01.
   appendParam(query, "gcs", encodeGcs(ctx && ctx.consent));
   appendParam(query, "gcd", encodeGcd(ctx && ctx.consent, ctx && ctx.consentDefault));
   appendParam(query, "npa", encodeNpa(ctx && ctx.consent));

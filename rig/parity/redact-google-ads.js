@@ -18,8 +18,9 @@
  * fabricated "raw" object that is itself never written to disk or committed (see
  * test/parity-google-ads.test.js). A separate module from `redact.js` (Meta): the two vendors'
  * scrub sets differ, and this keeps `redact.js` untouched (the extract-on-third-caller convention,
- * docs/conventions.md § Code: Meta's + AW's URL scrub are 2 callers, not 3 — no shared
- * `scrubUrlIdentifiers` extraction yet).
+ * docs/conventions.md § Code). NOTE: spec 046-01's DC redactor (`redact-floodlight-ccm.js`) is now a
+ * THIRD byte-identical copy of `scrubUrlIdentifiers` — a genuine rule-of-three; extracting the shared
+ * function is tracked in docs/refinement-todo.md (§ Spec 038 follow-ups).
  */
 
 /** A clearly-synthetic, real-SHAPED (`AW-<10 digits>`), all-zero AW conversion id placeholder. */
