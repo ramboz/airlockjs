@@ -93,3 +93,11 @@ _(pending implementation)_
 ### Close-out (post-DONE)
 
 - [ ] Spec 046 rolls up when both slices are DONE; regenerate the board.
+
+### Capture resolution (2026-09-13)
+
+The 2026-09-13 capture (spec §Capture resolution) confirms DC's denied behavior is unchanged (A1 holds) and clarifies A2's
+contingency: if 046-01 targets the recommended `ccm/collect` form, this slice's `holdOnDenied` re-map + granted-flush reuse
+AW's machinery cleanly — `ccm/collect`'s FIXED `/ccm/collect` pathname clears `core/endpoint-ceiling.js`'s re-check with no
+cachebuster-in-path issue (the ceiling break named in A2 applies ONLY to the `;`-delimited `activity` follow-on). So under
+the recommended target 046-02 is a clean 044-02 mirror; the ceiling handling is deferred with the activity form.

@@ -1,0 +1,28 @@
+{
+  "_comment": "Spec 046-01 — REDACTED, REAL-SHAPED (not real) fixture: a container's Floodlight (DC) classic `ad.doubleclick.net/activity` page-load beacon, the ;-DELIMITED Floodlight-native form (params ride the URL PATH, not a query string). Captured from erp.intuit.com via the R-010 recon rig (RECON_ONLY, 2026-09-13, default US = granted-state baseline, gcs=G111); raw is LOCAL-ONLY (ADR-0018 R5). The Floodlight identity (src/type/cat), auiddc (from _gcl_au; SAME value as this page's auid — §A4), the visitor uuid u20, the num cachebuster and dc-env label u99 are clearly-synthetic placeholders. IMPORTANT (spec 046 §A2): this is the form R-009 enumerated; it carries the Floodlight-native identity src/type/cat that ccm/collect does NOT, but NO existing connector (appendParam/& builder) or 038 oracle (URL.searchParams) handles a ;-delimited wire — reproducing it needs a NEW ;-delimited encoder + redactor/descriptor/oracle, and the per-request `num`/`ord` in the PATH breaks core/endpoint-ceiling.js's pathname match (the frame-critique's named downstream break). gcs/gcd/npa/dma are live-observed consent-mode strings. Device/emulation fields (ua*, uam, etc. = the rig's mobile emulation) and pure-transport noise (gtm/tag_exp/_tu/rcb/frm/pscdl/dc_random) are omitted as non-parity-meaningful.",
+  "endpoint": "https://ad.doubleclick.net/activity",
+  "cookies": {
+    "_gcl_au": "1.1.0000000000.0000000000"
+  },
+  "container_fields": {
+    "src": "0000000",
+    "type": "syntc000",
+    "cat": "syntw000",
+    "ord": "1",
+    "num": "0000000000000",
+    "npa": "0",
+    "auiddc": "0000000000.0000000000",
+    "u10": "US",
+    "u12": "USD",
+    "u20": "00000000-0000-0000-0000-000000000000",
+    "u99": "synthetic-env",
+    "gcs": "G111",
+    "gcd": "13r3r3r3r5l1",
+    "dma": "0",
+    "dc_fmt": "6",
+    "epver": "2",
+    "em": "tv.1",
+    "user_data_mode": "c",
+    "~oref": "https://example.test/"
+  }
+}

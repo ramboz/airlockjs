@@ -1,0 +1,24 @@
+{
+  "_comment": "Spec 046-01 — REDACTED, REAL-SHAPED (not real) fixture: a container's Floodlight (DC) gtag.js `ccm/collect` page-load beacon (a page_view), the query-delimited Consent-Mode collect. Captured from erp.intuit.com via the R-010 recon rig (RECON_ONLY, 2026-09-13, default US = granted-state baseline, gcs=G111); raw is LOCAL-ONLY and uncommittable (ADR-0018 R5). The DC conversion id (tid/tids), the auid (from _gcl_au), and dl/dt are clearly-synthetic placeholders carrying only the real ccm/collect field VOCABULARY. IMPORTANT (spec 046 §A2/§A4 resolution): this DC ccm/collect beacon carries `auid` (NOT `auiddc`) with the SAME value as AW's auid and the DC activity beacon's auiddc — i.e. auid==auiddc==_gcl_au-derived (NOT a distinct _gcl_dc). Field vocabulary (auid/gcs/gcd/npa/dma/en/dt/dl/fmt) is IDENTICAL to the AW ccm/collect beacon (test/fixtures/parity-google-ads-ccm.redacted.json) — this is the reuse-friendly DC target: same query builder, same 039 consent-mode encoders, same URL.searchParams oracle, a DC redactor nearly identical to redactAwBeacon. gcs/gcd/npa/dma are live-observed consent-mode strings, not identifiers, kept as observed.",
+  "endpoint": "https://www.google.com/ccm/collect",
+  "cookies": {
+    "_gcl_au": "1.1.0000000000.0000000000"
+  },
+  "container_fields": {
+    "tid": "DC-0000000",
+    "en": "page_view",
+    "dl": "https://example.test/",
+    "dt": "Synthetic Enterprise Landing Page",
+    "auid": "0000000000.0000000000",
+    "gcs": "G111",
+    "gcd": "13r3r3r3r5l1",
+    "npa": "0",
+    "dma": "0",
+    "rnd": "0000000000.0000000000",
+    "rcb": "10",
+    "tft": "0000000000000",
+    "tfd": "0000",
+    "tids": "DC-0000000",
+    "fmt": "8"
+  }
+}

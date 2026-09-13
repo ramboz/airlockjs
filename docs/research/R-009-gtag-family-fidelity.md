@@ -282,3 +282,18 @@ decision applied to the DMP sync; a conversion-page capture + console-level pari
 _Open (full note)._ Promoted to: — (part (a) feeds MVP7's GA4-parity ADR + GA4 connector scope; parts (b)/(c) now ground
 MVP8's Ads/Floodlight connector scope for the page-load family — denied-path / conversion / console residuals remain —
 plus the E10 transport ADR).
+
+## Amendment — field-level DC re-capture (2026-09-13, spec 046)
+
+A follow-up R-010 recon (`RECON_ONLY`, `erp.intuit.com`, default US baseline, `gcs=G111`) captured the Floodlight (DC)
+page-load beacons at FIELD level for spec 046. Committed redacted fixtures:
+`test/fixtures/parity-floodlight-ccm.redacted.json` + `test/fixtures/parity-floodlight-activity.redacted.json` (raw
+local-only per R5). Findings refining §(b):
+
+- DC fires BOTH `www.google.com/ccm/collect?tid=DC-<id>&en=page_view` (query-delimited; `auid` + `gcs`/`gcd`/`npa`/`dma`,
+  AW-identical vocabulary) AND `ad.doubleclick.net/activity;src;type;cat;…` (`;`-delimited; Floodlight-native identity +
+  `auiddc`). The §(b) `:146` "Consent-Mode collect" row is the former — and it DOES carry `auid` + consent (not
+  attribution-thin).
+- The linker id is shared: `auid` (AW & DC ccm/collect) == `auiddc` (DC activity) == the `_gcl_au`-derived id (same value
+  on the page) — `_gcl_au`-derived, NOT a distinct `_gcl_dc`.
+- Denied behavior unchanged (seal-hold; the §(b) 23→2 reject-all finding holds).

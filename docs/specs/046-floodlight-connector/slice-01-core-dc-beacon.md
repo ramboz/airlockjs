@@ -30,7 +30,7 @@ page-load beacon reaches the vendor off-thread with attribution parity.
   045 shipped the `holdOnDenied` seal 046-02 will opt into.
 - ✅ The DC page-load wire shape + Consent-Mode carriage + `auiddc` are grounded at the R-009 §(b) vocabulary level
   (`docs/research/R-009-gtag-family-fidelity.md:145-150`).
-- ⛔ **A committed redacted DC capture that confirms, PER ENDPOINT, which page-load beacon carries the parity-significant
+- ✅ **A committed redacted DC capture (DONE 2026-09-13 — both shapes committed; see the Capture resolution note) that confirms, PER ENDPOINT, which page-load beacon carries the parity-significant
   attribution** — `auiddc` AND the Floodlight identity (`src`/`type`/`cat`) + Consent Mode — i.e. `;`-delimited
   `ad.doubleclick.net/activity` vs query-delimited `ccm/collect?tid=DC-…` (spec §A2). It is NOT enough that some
   `ccm/collect` request fires; the DoR is carriage of those fields on the endpoint the ACs target. Captures are
@@ -101,3 +101,15 @@ _(pending implementation)_
 ### Reconciliation sweep
 
 _(pending implementation)_
+
+### Capture resolution (2026-09-13)
+
+The R-010 recon committed `test/fixtures/parity-floodlight-{ccm,activity}.redacted.json` (DoR satisfied) and resolved the
+open axes: **both** the query-delimited `ccm/collect?tid=DC-<id>` (reuse-friendly — `auid` + consent, AW-identical vocab,
+fixed pathname → no ceiling break) and the `;`-delimited `ad.doubleclick.net/activity` (Floodlight-native
+`src`/`type`/`cat` + `auiddc`, needs a new `;`-encoder + oracle + the ceiling path fix) fire on page load. **AC0
+recommendation:** target `ccm/collect` for this slice (the reuse-complete parity win), deferring the `;`-delimited
+`activity` `src`/`type`/`cat` richness to a follow-on; the arch pass ratifies. §A4 resolved: `auid`==`auiddc`==`_gcl_au`-
+derived → reuse `google-ads/cookies.js` (only the emitted param name differs). Under the `ccm/collect` target, AC5's
+ceiling concern is moot (fixed `/ccm/collect` pathname) and AC4 reuses the AW oracle/redactor; the `;`-encoder + ceiling
+work move to the `activity` follow-on.

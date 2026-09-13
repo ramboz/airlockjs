@@ -164,3 +164,28 @@ encoder + oracle may be NEW, not reused, if the capture confirms the `;`-delimit
 
 - [046-01 — core DC page-load beacon off-thread (Consent-Mode + auiddc, parity-confirmed)](slice-01-core-dc-beacon.md)
 - [046-02 — DC opts into hold-until-granted (ad_storage-denied parity)](slice-02-denied-seal-hold.md)
+
+## Capture resolution (2026-09-13)
+
+The R-010 recon (`RECON_ONLY`, `erp.intuit.com`, default US = granted baseline, `gcs=G111`) resolved §A1/§A2/§A4
+empirically. Committed redacted fixtures: `test/fixtures/parity-floodlight-ccm.redacted.json` +
+`test/fixtures/parity-floodlight-activity.redacted.json` (raw local-only per R5; redacted via an allowlist redactor,
+leak-checked — no live identifier survives).
+
+- **§A2 — both forms fire; the pick is a SCOPING choice, not an existence question.** DC's page-load family carries TWO
+  shapes: (1) `www.google.com/ccm/collect?tid=DC-<id>&en=page_view` — **query-delimited**, carrying `auid` +
+  `gcs`/`gcd`/`npa`/`dma`, the SAME field vocabulary as AW's `ccm/collect` (044) → reuses the `appendParam`/`&` builder, the
+  039 consent-mode encoders, the `URL.searchParams` oracle, and a redactor ~identical to `redactAwBeacon`, AND its fixed
+  `/ccm/collect` pathname sidesteps the endpoint-ceiling break; (2) `ad.doubleclick.net/activity;src;type;cat;…auiddc` —
+  **`;`-delimited**, carrying the Floodlight-native identity `src`/`type`/`cat` that `ccm/collect` does NOT, but needing a
+  NEW `;`-delimited encoder + oracle/redactor AND the ceiling path/cachebuster fix (the `num`/`ord` ride the pathname).
+  **This corrects BOTH prior positions:** the first draft was right that `ccm/collect` is viable + carries attribution
+  (refuting the frame-critique's "attribution-thin" worry); the frame-critique was right that `activity` carries extra
+  Floodlight identity + the ceiling risk. **Recommendation for 046-01's AC0 / arch pass:** target `ccm/collect` (the cheap,
+  reuse-complete parity win — consent + linker page-load parity for DC off-thread, no new wire machinery, no ceiling
+  break); treat the `;`-delimited `activity` form (src/type/cat) as a documented **richer follow-on** slice.
+- **§A4 — RESOLVED: `auid` == `auiddc` == `_gcl_au`-derived (NOT `_gcl_dc`).** The captured `auid` (DC ccm/collect),
+  `auiddc` (DC activity), and AW's `auid` are the SAME value on this page → the shared `_gcl_au`-derived linker id. DC
+  reuses `connectors/google-ads/cookies.js`'s `_gcl_au` read directly; only the emitted param NAME differs (`auid` on
+  ccm/collect, `auiddc` on activity). No `_gcl_dc` read path is needed.
+- **§A1 — DoR satisfied:** both redacted fixtures are committed; granted-state (`gcs=G111`) matches the R-009 §(b) baseline.
