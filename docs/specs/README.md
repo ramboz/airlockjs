@@ -129,6 +129,8 @@
 | [044-google-ads-connector](044-google-ads-connector/spec.md) | 044-02 — g-ads opts into hold-until-granted (denied-consent parity) | **DONE** |  |
 | [045-consent-hold-until-granted](045-consent-hold-until-granted/spec.md) | 045-01 — the core seal `holdOnDenied` opt-in mode (egressVerdict + createAirlock) | **DONE** |  |
 | [045-consent-hold-until-granted](045-consent-hold-until-granted/spec.md) | 045-02 — apply hold-until-granted to alloy (via alloy's native `defaultConsent:"pending"` queue, preserving 034-01) | **DONE** |  |
+| [046-floodlight-connector](046-floodlight-connector/spec.md) | 046-01 — core DC page-load beacon off-thread (Consent-Mode + auiddc, parity-confirmed) | DRAFT |  |
+| [046-floodlight-connector](046-floodlight-connector/spec.md) | 046-02 — DC opts into hold-until-granted (ad_storage-denied parity) | DRAFT |  |
 
 ## Deferred slices
 
