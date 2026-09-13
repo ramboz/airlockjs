@@ -533,4 +533,144 @@ describe("AC2/AC3 — holdOnDenied HOLDS a denied beacon, then RE-MAPS it on gra
       beaconId: heldId,
     });
   });
+
+  // spec 045-03 (ADR-0024) AC3 — backward-compat: a 1:1 connector (like g-ads
+  // above) sets NO `remapKey`, so the held record's `remapKey` is `undefined`
+  // and the seal's `remap(event, consent, remapKey)` call passes it through
+  // unused — byte-identical to the shipped 045-01 mechanism.
+  it("045-03 backward-compat — a 1:1 held beacon with NO remapKey still re-maps correctly; remap's third arg is undefined", () => {
+    const onDiagnostic = vi.fn();
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const remap = makeRemap();
+    const airlock = makeAd({ onDiagnostic, remap, consent: { ad_storage: "denied" } });
+
+    FakeWorker.last.onmessage(heldReadyMsg()); // no `remapKey` on this held item at all
+    airlock.setConsent({ ad_storage: "granted" });
+
+    expect(remap).toHaveBeenCalledTimes(1);
+    expect(remap.mock.calls[0][2]).toBeUndefined(); // no remapKey set -> the third arg is undefined
+    expect(remap).toHaveBeenCalledWith({ type: "conversion" }, expect.objectContaining({ ad_storage: "granted" }));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const firedUrl = fetchMock.mock.calls[0][0];
+    expect(firedUrl).toContain("auid=AA.BB");
+    expect(firedUrl).toContain("gcs=G111");
+  });
+});
+
+// spec 045-03 (ADR-0024) — the seal's N-beacon FAN-OUT re-map: a per-beacon
+// `EgressRequest.remapKey` (contracts/connector.d.ts) is threaded hold->flush
+// so ONE key-aware `remap(event, consent, remapKey)` can rebuild EACH of a
+// fan-out connector's held beacons to its OWN correct wire form — lifting the
+// 045-01/ADR-0023 1:1 limit proven above (a single `remap(event, consent)`
+// call cannot distinguish which of N held items it is rebuilding). Synthetic
+// 2-beacon connector proof only — the MECHANISM; Floodlight (spec 046-03,
+// ccm + activity) is its first real consumer, not wired here.
+describe("045-03 (ADR-0024) — seal N-beacon fan-out re-map via a per-beacon remapKey", () => {
+  const FORM_A_ENDPOINT = "https://form-a.example/collect";
+  const FORM_B_ENDPOINT = "https://form-b.example/activity";
+
+  // A single key-aware remap standing in for a fan-out connector's own
+  // main-thread mapper (Floodlight's eventual createFloodlightRemap, spec
+  // 046-03): dispatches on the THIRD arg (`remapKey`) to rebuild each
+  // beacon's own correct GRANTED form; declines (returns null) when denied.
+  const makeFanoutRemap = () =>
+    vi.fn((event, vector, remapKey) => {
+      if (!vector || vector.ad_storage !== "granted") return null;
+      if (remapKey === "a") return { url: `${FORM_A_ENDPOINT}?ev=${event.type}&form=A`, method: "GET" };
+      if (remapKey === "b") return { url: `${FORM_B_ENDPOINT}?ev=${event.type}&form=B`, method: "GET" };
+      return null;
+    });
+
+  // The worker-mapped `ready` message: TWO beacons fanned out from ONE
+  // `page_view` — the exact shape a fan-out connector's `handle()` returns
+  // (contracts/connector.d.ts's `EgressRequest.remapKey`) — sharing the SAME
+  // source `event` but carrying DISTINCT `remapKey`s.
+  const fanoutReadyMsg = () =>
+    readyMsg([
+      { url: `${FORM_A_ENDPOINT}?stale=1`, method: "GET", event: { type: "page_view" }, remapKey: "a" },
+      { url: `${FORM_B_ENDPOINT}?stale=1`, method: "GET", event: { type: "page_view" }, remapKey: "b" },
+    ]);
+
+  const makeFanout = (opts) =>
+    make({
+      egressPurposes: ["ad_storage"],
+      holdOnDenied: true,
+      endpoints: [FORM_A_ENDPOINT, FORM_B_ENDPOINT],
+      ...opts,
+    });
+
+  it("AC2 — both fan-out beacons are HELD under denied ad_storage (2 held, zero egress)", () => {
+    const onDiagnostic = vi.fn();
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    makeFanout({ onDiagnostic, remap: makeFanoutRemap(), consent: { ad_storage: "denied" } });
+
+    FakeWorker.last.onmessage(fanoutReadyMsg());
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(onDiagnostic).toHaveBeenCalledTimes(2); // one held diagnostic per fan-out beacon
+    for (const [record] of onDiagnostic.mock.calls) {
+      expect(record).toMatchObject({ level: "warn", kind: "consent", disposition: "held", purpose: "ad_storage" });
+    }
+  });
+
+  it("AC2 — granting flushes BOTH, each re-mapped to its OWN distinct granted form keyed by remapKey (not swapped, not duplicated)", () => {
+    const onDiagnostic = vi.fn();
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const remap = makeFanoutRemap();
+    const airlock = makeFanout({ onDiagnostic, remap, consent: { ad_storage: "denied" } });
+
+    FakeWorker.last.onmessage(fanoutReadyMsg());
+    expect(fetchMock).not.toHaveBeenCalled();
+    onDiagnostic.mockClear();
+
+    airlock.setConsent({ ad_storage: "granted" });
+
+    // one key-aware `remap` call PER held beacon, each keyed correctly.
+    expect(remap).toHaveBeenCalledTimes(2);
+    expect(remap).toHaveBeenCalledWith({ type: "page_view" }, expect.objectContaining({ ad_storage: "granted" }), "a");
+    expect(remap).toHaveBeenCalledWith({ type: "page_view" }, expect.objectContaining({ ad_storage: "granted" }), "b");
+
+    // exactly two fetches, one per form — each carrying its OWN correct wire
+    // form, proving the fan-out is disambiguated (not swapped, not
+    // duplicated): the exact 1:1-limit failure this slice fixes, since a
+    // single remap(event, consent) call cannot tell the two held items apart.
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const urlA = fetchMock.mock.calls.find(([url]) => url.startsWith(FORM_A_ENDPOINT))?.[0];
+    const urlB = fetchMock.mock.calls.find(([url]) => url.startsWith(FORM_B_ENDPOINT))?.[0];
+    expect(urlA).toBe(`${FORM_A_ENDPOINT}?ev=page_view&form=A`); // not swapped: A's own form
+    expect(urlB).toBe(`${FORM_B_ENDPOINT}?ev=page_view&form=B`); // not swapped: B's own form
+    expect(fetchMock.mock.calls.filter(([url]) => url.startsWith(FORM_A_ENDPOINT)).length).toBe(1); // not duplicated
+    expect(fetchMock.mock.calls.filter(([url]) => url.startsWith(FORM_B_ENDPOINT)).length).toBe(1); // not duplicated
+  });
+
+  it("declined-key: a remap returning nothing for ONE key drops just that beacon (terminal `dropped`); the other still flushes", () => {
+    const onDiagnostic = vi.fn();
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    // declines key "a" (produces no beacon), still rebuilds key "b".
+    const remap = vi.fn((event, vector, remapKey) =>
+      remapKey === "b" ? { url: `${FORM_B_ENDPOINT}?ev=${event.type}&form=B`, method: "GET" } : null,
+    );
+    const airlock = makeFanout({ onDiagnostic, remap, consent: { ad_storage: "denied" } });
+
+    FakeWorker.last.onmessage(fanoutReadyMsg());
+    const heldIds = onDiagnostic.mock.calls.map(([r]) => r.beaconId);
+    onDiagnostic.mockClear();
+
+    airlock.setConsent({ ad_storage: "granted" });
+
+    expect(remap).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(1); // only key "b" egresses
+    expect(fetchMock.mock.calls[0][0]).toBe(`${FORM_B_ENDPOINT}?ev=page_view&form=B`);
+
+    expect(onDiagnostic).toHaveBeenCalledTimes(2); // one dropped (key "a") + one flushed (key "b")
+    const dropped = onDiagnostic.mock.calls.find(([r]) => r.disposition === "dropped")[0];
+    const flushed = onDiagnostic.mock.calls.find(([r]) => r.disposition === "flushed")[0];
+    expect(dropped.reason).toContain("re-map declined");
+    expect(heldIds).toContain(dropped.beaconId); // held->dropped chain preserved
+    expect(heldIds).toContain(flushed.beaconId); // held->flushed chain preserved
+  });
 });

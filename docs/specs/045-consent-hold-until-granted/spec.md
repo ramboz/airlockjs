@@ -90,8 +90,20 @@ the value is enforcement parity. Each slice ships observable behavior verifiable
   *prove* g-ads holds under `ad_storage`-denied via this mode (declared purpose + tests: denied→held, grant→flush, never
   a cookieless AW send). Depends on 045-01.
 
+**Extension (post-DONE, 2026-09-13 — Rules, lifting the 1:1 limit).** 045-01 shipped the re-map as **1:1 event→beacon**
+and named the **fan-out** case a future variant (ADR-0023 "Landed shape + scope"). Spec 046 (Floodlight/DC) is the first
+consumer that fans one `page_view` out to two held beacons (ccm + activity), so this extension lands the general
+mechanism:
+
+- **045-03 (Rules — seal N-beacon fan-out re-map):** add an additive-optional `EgressRequest.remapKey`; the seal carries
+  it hold→flush and threads it into `remap(event, consent, remapKey)`, so a fan-out connector's held beacons each rebuild
+  to their correct form on grant. 1:1 connectors (no `remapKey`) are byte-identical. Mechanism + synthetic proof only —
+  Floodlight opts in at [046-03](../046-floodlight-connector/slice-03-denied-seal-hold.md). Implements + accepts
+  [ADR-0024](../../decisions/adr-0024-fanout-remap-per-beacon-key.md). `arch_review: true` (frozen contract + core seal).
+
 ## Slices
 
 - [045-01 — the seal hold-until-granted mode (egressVerdict purpose classification)](slice-01-seal-hold-mode.md)
 - [045-02 — apply hold-until-granted to alloy (preserving 034-01)](slice-02-alloy-hold.md)
+- [045-03 — seal N-beacon fan-out re-map (per-beacon `remapKey`)](slice-03-fanout-remap.md)
 - (g-ads consumer: [044-02](../044-google-ads-connector/slice-02-denied-seal-hold.md), depends on 045-01)

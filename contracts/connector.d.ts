@@ -97,12 +97,31 @@ export interface EgressRequest {
    * ADDITIVE-OPTIONAL (ADR-0017 frozen-core rule): a connector that does not
    * opt in never sets it, so the stable-core surface is unchanged. The
    * producer is the connector's own `handle(event)`, threaded verbatim by
-   * `createConnectorHost`; g-ads wires this end-to-end in 044-02. Known
-   * limitation (044-02 / refinement-todo): the `remap` rebuilds ONE request,
-   * so a connector whose `handle` fans one event out to N held beacons is not
-   * yet supported by re-map (g-ads is 1:1 event→beacon).
+   * `createConnectorHost`; g-ads wires this end-to-end in 044-02. Fan-out (a
+   * `handle` that fans one event out to N held beacons) IS supported via
+   * `remapKey` (spec 045-03 / ADR-0024) — see below.
    */
   readonly event?: AirlockEvent;
+  /**
+   * Optional per-beacon RE-MAP disambiguator (spec 045-03 / ADR-0024 Option
+   * B), the fan-out re-map disambiguator. A connector whose `handle` fans ONE
+   * event out to N held beacons (e.g. a Floodlight-style ccm + activity pair,
+   * spec 046-03) sets a DISTINCT `remapKey` per beacon (e.g. `"ccm"` /
+   * `"activity"`) alongside the shared source `event` above. The seal
+   * preserves it on the held record and passes it as the seal's `remap`
+   * THIRD argument on grant-flush — `remap(event, consentVector, remapKey)`
+   * — so one key-aware `remap` can dispatch on the key and rebuild each
+   * fan-out beacon to its own correct wire form. A connector that never sets
+   * it (the 1:1 case, e.g. g-ads, 044-02) stores `undefined` on the held
+   * record and its `(event, consent) => …` remap simply ignores the unused
+   * third argument — BYTE-IDENTICAL to the shipped 045-01 path
+   * (ADR-0017 frozen-core rule: additive-optional). Only
+   * INDEPENDENTLY-RECONSTRUCTABLE fan-outs are supported this way — a
+   * fan-out whose beacons must share a non-derivable coordinated value (e.g.
+   * a single server-assigned batch id) is out of scope (ADR-0024 Open
+   * questions).
+   */
+  readonly remapKey?: string;
 }
 
 /**

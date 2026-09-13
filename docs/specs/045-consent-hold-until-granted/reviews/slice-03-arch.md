@@ -1,0 +1,30 @@
+---
+slice: 045-03 — seal N-beacon fan-out re-map (per-beacon `remapKey`)
+pass: arch
+verdict: pass
+reviewer: general-purpose
+reviewed_at: 2026-09-13T17:21:10Z
+prompt_source: review.py arch-review ... 045-03 --richer-skill arch-review
+substrate: shown
+applied_skill: arch-review
+shown_candidates: [arch-review:high-confidence, access:speculative, adobe-security-antipatterns:speculative, adobe-security-audit:speculative, adobe-security-client:speculative, adobe-security-cloud:speculative, adobe-security-foundations:speculative, adobe-security-lang:speculative, adobe-security-services:speculative, agent-development:speculative, audit-migrator:speculative, block-kit:speculative, build-mcp-app:speculative, build-mcp-server:speculative, build-mcpb:speculative, cardputer-buddy:speculative, claude-automation-recommender:speculative, claude-md-improver:speculative, claude-security:speculative, command-development:speculative, configure:speculative, content-fidelity:speculative, create-slack-app:speculative, cutline:speculative, debug-workflow:speculative, design-eval:speculative, eval-authoring:speculative, example-command:speculative, example-skill:speculative, frontend-design:speculative, get-content-scrape:speculative, hook-development:speculative, investigate-alert:speculative, local-dev:speculative, m5-onboard:speculative, math-olympiad:speculative, mcp-integration:speculative, morning-ai-radar:speculative, morning-assistant:speculative, morning-confluence:speculative, morning-github:speculative, morning-jira:speculative, morning-outlook:speculative, morning-slack:speculative, morning-spike:speculative, mysticat-debug:speculative, playground:speculative, plugin-settings:speculative, plugin-structure:speculative, pr-review:speculative, project-artifact:speculative, query-audits:speculative, query-opportunities:speculative, query-scrapes:speculative, query-sites:speculative, receipts:speculative, release-check:speculative, release-slate:speculative, run-preflight:speculative, scope-audit:speculative, scout-autotune:speculative, scout-bench-create:speculative, scout-memory-init:speculative, scout-pr-review:speculative, scout-scrum-master:speculative, servo:agent-loop:speculative, servo:autonomy-readiness:speculative, servo:edd-suitability:speculative, servo:execution-planner:speculative, servo:heartbeat:speculative, servo:oracle-hook:speculative, servo:quality-gate:speculative, servo:scaffold-init:speculative, servo:spec-oracle:speculative, session-report:speculative, shape-release:speculative, silence-alert:speculative, skill-creator:speculative, skill-development:speculative, slack-api:speculative, slack-cli:speculative, slack-docs:speculative, slack-messaging:speculative, slack-search:speculative, spacecat-configuration:speculative, steward:speculative, test-pr-in-dev:speculative, webpage-replica:speculative, writing-hookify-rules:speculative]
+---
+
+VERDICT: pass (arch pass — ratified; no blockers)
+
+REASONING:
+The architecture is sound. EgressRequest.remapKey? is genuinely additive-optional; the flush passes it as a 3rd arg only when set (core/airlock.js:762-766), so a 1:1 connector's remap is called with the exact 2-arg shape as 045-01 (pinned by consent-seal.test.js:552). The seam is right: the seal already owns hold/flush/re-map and already calls remap, so threading an opaque key through that one call keeps the seal connector-agnostic while the connector owns the vocabulary. ADR-0024 rejects Option A (event-overload) and Option C (array-return, N×N) on concrete grounds. Scope bounded honestly (independently-reconstructable fan-outs only; coordinated fan-outs carved out with a re-open trigger). Outstanding work is documented-artifact sync (DoD schedules it post-review) → reconciliation notes, not blocking.
+
+SPECIFIC ISSUES:
+- [strength][impl] contracts/connector.d.ts:124 + core/airlock.js:762-766 — additive-optional field + arity-preserving flush; 1:1 path call-arity byte-identical to 045-01. Clean, low-blast-radius contract evolution.
+- [strength][spec] adr-0024:55-73 — right seam, well-argued; seal round-trips the key opaquely and never branches on a key value (grep-confirmed: no "ccm"/"activity" literals in core/airlock.js). Options A/C rejected with specific reasons.
+- [strength][spec] adr-0024:84-98,108-115 — failure modes handled honestly (declined-key reuses terminal dropped, tested; per-URL ceiling re-check; coordinated fan-outs out of scope with re-open trigger).
+- [nit][spec] adr-0024:96-98 — "colliding key ... not a seal-detectable error" OVERSTATES it. The flush splices the whole held set into an array before iterating (core/airlock.js:749-750), so the seal has every flushing record and could detect two items sharing a non-undefined remapKey in O(n). It can't judge a single beacon's semantic correctness, but a duplicate key within one flush batch IS structurally visible. Honest framing: "chosen not to detect" (deferred), not "cannot detect."
+- [nit][spec] adr-0017:60 vs adr-0024:56 — ADR-0017's frozen rule ("superseding ADR + major-version break") doesn't write in the additive-optional carve-out this slice leans on. Substance is fine (semver-minor, non-breaking; precedent = EgressRequest.event in ADR-0023, ConsentPurpose additive-only in 012-04; ADR-0024 is the governing ADR). Open question: capture the carve-out authoritatively (ADR-0017 amendment or conventions.md) vs infer from precedent.
+
+RECONCILIATION NOTES (must land before DONE; DoD schedules post-review, so non-blocking for this pass):
+1. PRIORITY: docs/refinement-todo.md:263-264 still says fan-out "not yet supported" — now contradicts the shipped contract (connector.d.ts:101-102 "fan-out IS supported via remapKey"). Mark limit (b) resolved.
+2. docs/architecture.md:38 seal re-map note doesn't mention the remapKey fan-out path — DoD requires the mention.
+3. adr-0024 frontmatter still status: Proposed — AC4/DoD require Proposed → Accepted.
+
+Reviewer: general-purpose subagent, arch pass (arch-review baseline), read-only, no implementation context; covered only 045-03's deliverables (concurrent spec-046 changes explicitly out of scope).

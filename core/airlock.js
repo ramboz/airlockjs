@@ -71,13 +71,17 @@ export function createAirlock({
   // send). Threaded to all three `egressVerdict` sites below.
   holdOnDenied = false,
   // 045-01: the per-connector main-thread RE-MAPPER a `holdOnDenied` consumer
-  // supplies — `(event, consentVector) => EgressRequest`. On a grant-flush, a
-  // beacon HELD under denial is REBUILT from its source event under the
-  // now-current consent/ctx (fresh `auid`, granted `gcs`/`npa`) instead of
-  // re-sending the stale under-denial `{url,body}` (which would fire an
-  // unattributable "user-declined" beacon — ADR-0023's load-bearing
+  // supplies — `(event, consentVector, remapKey?) => EgressRequest`. On a
+  // grant-flush, a beacon HELD under denial is REBUILT from its source event
+  // under the now-current consent/ctx (fresh `auid`, granted `gcs`/`npa`)
+  // instead of re-sending the stale under-denial `{url,body}` (which would
+  // fire an unattributable "user-declined" beacon — ADR-0023's load-bearing
   // correction). Absent -> a held beacon falls back to the 017-03 verbatim
   // re-send. This slice wires NO real connector; 044-02 supplies g-ads' `remap`.
+  // 045-03 (ADR-0024): the optional third `remapKey` arg lets a single
+  // key-aware `remap` disambiguate WHICH of a fan-out connector's N held
+  // beacons is being rebuilt (`EgressRequest.remapKey`, connector.d.ts) — a
+  // 1:1 remap that ignores the third arg is byte-unchanged.
   remap,
   payloadDenylist = [],
   // Connector-selection seam (spec 026-01 AC3, resolving the "GA4-hardcoded
@@ -451,7 +455,10 @@ export function createAirlock({
             // un-opted-in pending path).
             const canRemap = holdOnDenied && typeof remap === "function" && r.event != null;
             if (canRemap) {
-              heldBeacons.push({ event: r.event, remap: true, beaconId });
+              // 045-03 (ADR-0024): preserve the fan-out disambiguator on the
+              // held record (undefined for a 1:1 connector — byte-unchanged)
+              // so the flush below can thread it into `remap` as its third arg.
+              heldBeacons.push({ event: r.event, remap: true, beaconId, remapKey: r.remapKey });
             } else {
               heldBeacons.push({ url: r.url, method: r.method, body: r.body, beaconId });
             }
@@ -743,8 +750,20 @@ export function createAirlock({
         for (const b of flushing) {
           // 045-01: a RE-MAP item rebuilds under the now-current consent via the
           // connector's `remap`; a RE-SEND item re-fires its buffered
-          // `{ url, method, body }` (017-03, byte-unchanged).
-          const req = b.remap ? remap(b.event, consentVector) : { url: b.url, method: b.method, body: b.body };
+          // `{ url, method, body }` (017-03, byte-unchanged). 045-03
+          // (ADR-0024): thread the preserved `remapKey` as a third arg so a
+          // fan-out connector's key-aware `remap` can rebuild the correct
+          // form. Passed ONLY when set (not merely `undefined`-valued): a 1:1
+          // connector's held record carries no `remapKey` at all, so its
+          // `remap` is invoked with the EXACT SAME two-argument call shape as
+          // 045-01 — not just behaviorally equivalent but call-arity
+          // byte-identical, which the 045-01 seal test's existing `remap` spy
+          // assertion (`test/consent-seal.test.js`) already pins.
+          const req = b.remap
+            ? b.remapKey !== undefined
+              ? remap(b.event, consentVector, b.remapKey)
+              : remap(b.event, consentVector)
+            : { url: b.url, method: b.method, body: b.body };
           // A re-map that DECLINES (returns nothing / no url) must not vanish
           // silently (craft review): emit a terminal `dropped` record so the
           // held→flushed diagnostic chain stays honest — the held beacon

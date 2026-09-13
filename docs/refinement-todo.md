@@ -260,8 +260,14 @@ Named follow-ups from this slice, not attempted here:
   until a consumer supplies `remap` AND attaches its source `event` on ready beacons
   (the additive optional `EgressRequest.event` channel) — g-ads wires it end-to-end
   in [044-02](specs/044-google-ads-connector/slice-02-denied-seal-hold.md); and
-  (b) `remap` rebuilds **one** request per held item, so a connector that fans one
-  event out to N held beacons is not yet supported (g-ads is 1:1 event→beacon). The
+  (b) ~~`remap` rebuilds **one** request per held item, so a connector that fans one
+  event out to N held beacons is not yet supported~~ — **RESOLVED 2026-09-13 by
+  [045-03](specs/045-consent-hold-until-granted/slice-03-fanout-remap.md) /
+  [ADR-0024](decisions/adr-0024-fanout-remap-per-beacon-key.md)**: a fan-out connector
+  tags each beacon with an additive-optional `EgressRequest.remapKey`, threaded into
+  `remap(event, consent, remapKey)`, so each held beacon re-maps to its own form (1:1
+  connectors byte-identical). Coordinated fan-outs (beacons sharing a non-derivable
+  value) remain out of scope (ADR-0024 Open questions). The
   *revoke* direction (stop future egress) and the worker `ctx` re-send for the
   mapper reshape ① remain open.
 - **Consent-Mode `gtag` / TCF `__tcfapi` seam drivers.** ADR-0007 names these as
@@ -757,6 +763,20 @@ the AC4 "scope + name" branch (a descriptor comment, `meta.js:61-65`) rather tha
 a real capture's first-party-cookie parity must be confirmed — then reconcile the descriptor key to the real wire param
 (`fbp`) and add a `wireNameMap` / descriptor entry so the gap is surfaced (not skipped) against real captures.
 
+### Shared parity click-id scrub helper is a rule-of-three (extract `scrubUrlIdentifiers`)
+
+**Deferred (surfaced by spec 046-01 reviews, 2026-09-13):** the click-id scrub function `scrubUrlIdentifiers` is now
+byte-identical across THREE parity redactors — `rig/parity/redact.js` (Meta), `rig/parity/redact-google-ads.js` (AW), and
+`rig/parity/redact-floodlight-ccm.js` (DC, 046-01) — a genuine rule-of-three (docs/conventions.md § Code). The per-vendor
+`CLICK_ID_PARAMS` set differs (AW == DC; Meta adds `ttclid`, omits `gclaw`/`gclsrc`), so the extraction is the shared
+FUNCTION parameterized by each vendor's param list, not a single shared constant. Deliberately deferred out of 046-01
+because it edits two DONE specs' files (the 038 Meta redactor + the 044 AW redactor), which would widen 046-01's
+reuse-complete scope.
+
+**Resolution trigger:** a 4th parity redactor is added, or a dedicated parity-redactor cleanup slice is picked up — then
+extract a shared `scrubUrlIdentifiers(value, clickIdParams)` (e.g. into a `rig/parity/redact-common.js`) and repoint the
+Meta / AW / DC redactors.
+
 ## Spec 040-03 (GA4 multi-`en` POST coalesce adapter) follow-ups
 
 ### The batch-body marker semantics (`_ee=1` per line; `_et` per-event) are grounded on a SINGLE capture (n=1)
@@ -841,3 +861,17 @@ across all three steady-state dispatch sites is wanted.
 **Deferred:** the pixel chamber's WebCrypto-unavailable throw (no `crypto.subtle` in a no-WebCrypto realm) is swallowed by a bare `.catch(() => {})` in the worker, so hashing would silently no-op rather than surface anywhere — no value-free `{type:"identity-error", field}` signal is emitted ([026-04 slice doc](specs/026-generic-pixel-connector/slice-04-advanced-matching.md), craft review). Near-unreachable today (an HTTPS worker or Node 18+ both expose `crypto.subtle`), and the chamber has no log channel by design (ADR-0001) — building a new protocol surface for a currently-unreachable path was deliberately skipped.
 
 **Resolution trigger:** a real WebCrypto-absent environment surfaces (a runtime/embed where `crypto.subtle` is genuinely unavailable to the pixel chamber).
+
+## Spec 045-03 / ADR-0024 (fan-out re-map) follow-up
+
+### Capture the additive-optional contract carve-out authoritatively
+
+**Deferred (surfaced by the 045-03 arch review, 2026-09-13):** [ADR-0017](decisions/adr-0017-airlock-1-0-api-contract.md)'s
+frozen-core rule reads "a superseding ADR + a major-version break," but the project routinely evolves the frozen
+`EgressRequest` contract with **additive-optional** fields (`event` — ADR-0023; `remapKey` — ADR-0024) as semver-minor,
+non-breaking changes, each governed case-by-case by the adding ADR. That carve-out is established by precedent, not written
+into ADR-0017 or `docs/conventions.md`.
+
+**Resolution trigger:** the next additive-optional contract field, or an ADR-0017 revisit — then either amend ADR-0017 with
+the additive-optional carve-out or record it in `docs/conventions.md` § Code, so a future contributor need not infer it from
+precedent.
