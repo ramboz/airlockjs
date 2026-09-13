@@ -52,7 +52,13 @@ describe("core/ boundary — no import from throwaway rig/ (014-02 arch-review)"
   // the same slice, lives in connectors/ — not core/ — since it imports
   // core/consent.js's resolveConsent, a connector->core dependency; it is out of
   // this core/-only guard's scope entirely, not merely omitted from the list.)
-  it.each(["sanitize-html.js", "payload-governance.js", "cookie-scope.js", "query-params.js"])(
+  //
+  // spec 046-02: core/path-matrix.js joins too — the vendor-neutral `;`-delimited
+  // matrix-URL builder (appendMatrixParam / joinMatrixUrl) the DC activity beacon
+  // shares between its emitted URL and its declared endpoint-ceiling prefix. Its
+  // core/ home rests on being import-free (importable from either side of the
+  // boundary); machine-enforce it so a future import fails here.
+  it.each(["sanitize-html.js", "payload-governance.js", "cookie-scope.js", "query-params.js", "path-matrix.js"])(
     "core/%s is import-free (its core/ home depends on it)",
     (file) => {
       const src = readFileSync(join(CORE, file), "utf8");

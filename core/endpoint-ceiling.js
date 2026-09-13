@@ -10,7 +10,29 @@
 // chamber-killing throw — ADR-0006 §Consequences).
 //
 // Granularity is origin + PATHNAME, with query + fragment DROPPED before
-// comparison:
+// comparison. TWO match modes, selected PER DECLARED ENDPOINT by the declared
+// endpoint's own shape (spec 046-02 AC4):
+//   - EXACT (the default, and the ONLY mode before 046-02): the outbound
+//     origin+path must EQUAL a declared origin+path. Every query-delimited
+//     endpoint (GA4 `/g/collect`, `ccm/collect`, pixel `/tr`, alloy interact)
+//     stays here — its path is fixed, its variability lives in the (dropped)
+//     query, so exact origin+path is the correct, unweakened ceiling.
+//   - SEGMENT-ANCHORED PREFIX (opt-in, 046-02): a declared endpoint whose PATH
+//     itself carries a `;`-matrix segment (DoubleClick's Floodlight
+//     `ad.doubleclick.net/activity;src=<id>`) admits an outbound whose
+//     origin+path is the declared prefix, OR the declared prefix followed by a
+//     `;` segment boundary. This is what lets the granted activity beacon
+//     through despite the per-request `num`/`ord` CACHEBUSTER that rides its
+//     PATH (a matrix-URI beacon has no query to hide the cachebuster in, so an
+//     exact match could never hold). It does NOT weaken the ceiling: (a) it is
+//     triggered ONLY by a `;` in the DECLARED path — no query-delimited
+//     endpoint is affected; (b) the match is anchored from the origin through
+//     the full declared identity prefix (`/activity;src=<id>`), so a different
+//     origin or path is still held; (c) the `;`-boundary requirement means a
+//     src-VALUE extension (`src=00000001` vs declared `src=0000000`) is held —
+//     an attacker cannot lengthen a declared value to reach a new destination.
+//
+// The two granularities themselves:
 //   - dropping the query resolves ADR-0006 Kill #4 — a site-configured
 //     deploy-time URL legitimately carries tenant/secret query params (GA4's
 //     `measurement_id`/`api_secret`, a cluster-hint), and a byte-exact URL
@@ -73,20 +95,36 @@ export function originPath(url) {
 export function checkEndpointCeiling(url, declaredEndpoints) {
   const destination = originPath(url);
 
-  const ceiling = new Set();
+  // Partition the declared set by match mode, keyed on the DECLARED endpoint's
+  // own shape (a `;` in its origin+path — origins never contain `;`, so this
+  // reliably means a `;`-matrix PATH). Exact endpoints keep the strict, unchanged
+  // set-membership match; matrix endpoints opt into the segment-anchored prefix.
+  const exact = new Set();
+  const prefixes = [];
   for (const endpoint of declaredEndpoints || []) {
     const reduced = originPath(endpoint);
-    if (reduced) ceiling.add(reduced);
+    if (!reduced) continue;
+    if (reduced.includes(";")) prefixes.push(reduced);
+    else exact.add(reduced);
   }
 
-  if (ceiling.size === 0) {
+  if (exact.size === 0 && prefixes.length === 0) {
     return { verdict: "hold", destination, reason: "endpoint-ceiling: no declared endpoints — fail closed (hold)" };
   }
   if (destination === null) {
     return { verdict: "hold", destination, reason: "endpoint-ceiling: unparseable outbound url — fail closed (hold)" };
   }
-  if (ceiling.has(destination)) {
+  if (exact.has(destination)) {
     return { verdict: "allow", destination, reason: "ok" };
+  }
+  // Segment-anchored prefix: the destination is the declared prefix itself, or
+  // the declared prefix followed by a `;` (a new matrix segment) — never a bare
+  // string startsWith, which would admit a value EXTENSION of the last declared
+  // segment (`src=00000001` vs declared `src=0000000`).
+  for (const prefix of prefixes) {
+    if (destination === prefix || destination.startsWith(`${prefix};`)) {
+      return { verdict: "allow", destination, reason: "ok" };
+    }
   }
   return {
     verdict: "hold",

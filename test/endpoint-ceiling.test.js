@@ -80,3 +80,74 @@ describe("checkEndpointCeiling (spec 016-01 AC1)", () => {
     expect(result.reason).toContain("no declared endpoints");
   });
 });
+
+// ---------------------------------------------------------------------------
+// spec 046-02 AC4 — the ;-matrix path-prefix admission (the frame-critique's
+// named ceiling break). A declared endpoint whose PATH itself carries a
+// ;-matrix segment (DC's `ad.doubleclick.net/activity;src=<id>`) opts into a
+// SEGMENT-ANCHORED prefix match: the outbound activity beacon carries a
+// per-request `num`/`ord` cachebuster IN THE PATH, so an exact origin+pathname
+// match can never hold it. This is ADDITIVE + OPT-IN — every query-delimited
+// declared endpoint (no ';' in its path) keeps the strict EXACT match, so the
+// fail-closed ceiling is unweakened for GA4 /g/collect, ccm/collect, pixel /tr,
+// alloy interact. The prefix is anchored to the DECLARED identity segment
+// (`/activity;src=<id>`) and matched at a `;` boundary, so neither a different
+// origin/path nor a src-VALUE extension (`src=00000001` vs declared
+// `src=0000000`) is admitted.
+// ---------------------------------------------------------------------------
+const DECLARED_MATRIX = "https://ad.doubleclick.net/activity;src=0000000";
+
+describe("checkEndpointCeiling — ;-matrix path-prefix admission (spec 046-02 AC4)", () => {
+  it("admits a ;-matrix outbound that extends a declared ;-matrix prefix — the per-request num/ord cachebuster rides the path", () => {
+    const outbound = `${DECLARED_MATRIX};type=syntc000;cat=syntw000;ord=1;num=9999999999999`;
+    expect(checkEndpointCeiling(outbound, [DECLARED_MATRIX])).toEqual({
+      verdict: "allow",
+      destination: outbound,
+      reason: "ok",
+    });
+  });
+
+  it("admits the SAME matrix prefix under a VARYING cachebuster — num is per-request, never part of the ceiling identity", () => {
+    const a = `${DECLARED_MATRIX};type=t;num=1111111111111`;
+    const b = `${DECLARED_MATRIX};type=t;num=2222222222222`;
+    expect(checkEndpointCeiling(a, [DECLARED_MATRIX]).verdict).toBe("allow");
+    expect(checkEndpointCeiling(b, [DECLARED_MATRIX]).verdict).toBe("allow");
+  });
+
+  it("admits the bare declared prefix itself (destination === prefix, no extra segments)", () => {
+    expect(checkEndpointCeiling(DECLARED_MATRIX, [DECLARED_MATRIX]).verdict).toBe("allow");
+  });
+
+  it("HOLDS a matrix outbound whose src VALUE extends the declared src — segment-boundary anchored, not a raw startsWith", () => {
+    // src=00000001 literally startsWith declared src=0000000, but the next char
+    // is `1`, not the `;` segment delimiter — so it is a DIFFERENT advertiser id
+    // and must be held.
+    const outbound = "https://ad.doubleclick.net/activity;src=00000001;type=x;num=1";
+    expect(checkEndpointCeiling(outbound, [DECLARED_MATRIX]).verdict).toBe("hold");
+  });
+
+  it("HOLDS a matrix-declared connector's outbound to a DIFFERENT path — the identity prefix is anchored", () => {
+    expect(checkEndpointCeiling("https://ad.doubleclick.net/evil;src=0000000;num=1", [DECLARED_MATRIX]).verdict).toBe("hold");
+  });
+
+  it("HOLDS a matrix-declared connector's outbound to a DIFFERENT origin", () => {
+    expect(checkEndpointCeiling("https://evil.example/activity;src=0000000;num=1", [DECLARED_MATRIX]).verdict).toBe("hold");
+  });
+
+  it("REGRESSION: a query-delimited declared endpoint keeps EXACT origin+path match — a ;-suffixed impostor path is HELD, exact allows", () => {
+    // DECLARED has no ';' in its path -> it stays an EXACT-match endpoint, NOT a
+    // prefix. An outbound that merely appends a ;-segment to the declared path
+    // must still be held (the prefix behavior is opt-in via the DECLARED shape,
+    // never a blanket prefix-match).
+    const impostor = `${DECLARED};evil=1`;
+    expect(checkEndpointCeiling(impostor, [DECLARED]).verdict).toBe("hold");
+    expect(checkEndpointCeiling(DECLARED, [DECLARED]).verdict).toBe("allow");
+  });
+
+  it("a connector declaring BOTH a query-delimited (exact) and a ;-matrix (prefix) endpoint matches each by its own rule", () => {
+    const declared = [DECLARED, DECLARED_MATRIX];
+    expect(checkEndpointCeiling(DECLARED, declared).verdict).toBe("allow"); // exact
+    expect(checkEndpointCeiling(`${DECLARED_MATRIX};num=1`, declared).verdict).toBe("allow"); // prefix
+    expect(checkEndpointCeiling("https://collect.example/mp/exfiltrate", declared).verdict).toBe("hold"); // neither
+  });
+});

@@ -875,3 +875,28 @@ into ADR-0017 or `docs/conventions.md`.
 **Resolution trigger:** the next additive-optional contract field, or an ADR-0017 revisit — then either amend ADR-0017 with
 the additive-optional carve-out or record it in `docs/conventions.md` § Code, so a future contributor need not infer it from
 precedent.
+
+## Spec 046 (Floodlight/DC) follow-ups
+
+### DC activity gap-owned fields (custom vars, wire-fidelity, enhanced-match) — MVP9
+
+**Deferred (surfaced by 046-02, 2026-09-13):** the DC `activity` beacon's parity descriptor
+(`rig/parity/descriptors/floodlight-activity.js`) gap-owns fields airlock has no honest source for yet: `u10`/`u12`/`u99`
+(container data-layer **custom variables** — "DC custom-variable mapping follow-up (MVP9)"), `em`/`user_data_mode`/`epver`
+(**enhanced-match conversion activity** — MVP9, spec §A5), and `dc_fmt` ("DC activity wire-fidelity follow-up"). They are
+`expected-dropped` (green, each with a named owner), never `maps` — airlock emits only the 7 honestly-derivable fields
+(`src`/`type`/`cat`/`npa`/`gcs`/`gcd`/`auiddc`).
+
+**Resolution trigger:** the DC custom-variable mapping surface (a container data-layer → activity `u<n>` mapping) or the
+MVP9 enhanced-match conversion-activity work lands — then re-own the relevant fields from `expected-dropped` to `maps`.
+
+### ADR-0025 endpoint-ceiling residuals (matrix-tail append + anchor granularity)
+
+**Deferred (surfaced by the 046-02 arch review, 2026-09-13):**
+[ADR-0025](decisions/adr-0025-endpoint-ceiling-matrix-prefix-match.md)'s segment-anchored prefix pins origin +
+`/activity;src=<id>` but NOT `type`/`cat`, and admits any trailing `;`-segments after the anchor — the matrix-path
+analogue of ADR-0006 residual (i) (a compromised chamber could append `;type=<evil>;exfil=<data>` to the pinned
+host+path; no new-destination escape, since origin+path+`src` stay pinned).
+
+**Resolution trigger:** the matrix-tail append surface is deemed to warrant tightening — pin `type`/`cat` in the declared
+prefix, or apply payload-governance ([ADR-0012](decisions/adr-0012-payload-governance.md)) to the matrix tail.

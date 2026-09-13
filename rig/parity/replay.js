@@ -30,6 +30,33 @@ export function fieldsFromUrl(url) {
 }
 
 /**
+ * Parse a `;`-delimited MATRIX-URI beacon's PATH into a flat `{ [param]: string }` field-set — the
+ * path-matrix SIBLING of `fieldsFromUrl` (spec 046-02). `URLSearchParams` cannot help here: the
+ * params ride the URL PATH (`/activity;src=…;type=…`), not the query string, so `.searchParams` is
+ * empty for these beacons. Splits `.pathname` on `;`, drops the base-path segment (`/activity`), and
+ * `decodeURIComponent`s each `key=value` segment — the exact inverse of `core/path-matrix.js`'s
+ * `appendMatrixParam`, so a value carrying an escaped `;`/`=` round-trips intact. A segment with no
+ * `=` (a bare path element) is skipped, not mis-parsed as a param. Generic URL parsing, not a
+ * per-vendor concern — it belongs here alongside `fieldsFromUrl`, not in a descriptor (AC7).
+ * @param {string} url
+ * @returns {Record<string,string>}
+ */
+export function fieldsFromMatrixUrl(url) {
+  const { pathname } = new URL(url);
+  /** @type {Record<string,string>} */
+  const fields = {};
+  const segments = pathname.split(";");
+  for (let i = 1; i < segments.length; i++) {
+    const seg = segments[i];
+    if (!seg) continue;
+    const eq = seg.indexOf("=");
+    if (eq === -1) continue; // a bare segment with no `=` — not a key=value param
+    fields[decodeURIComponent(seg.slice(0, eq))] = decodeURIComponent(seg.slice(eq + 1));
+  }
+  return fields;
+}
+
+/**
  * Replay one logical event through a GET-pixel connector config and return airlock's beacon
  * field-set. `handle()` returning `[]` (an unmapped event) becomes `{ emitted: false, fields: {} }`
  * — a REPORTABLE result (AC2), never a thrown error and never silently treated as a pass (an

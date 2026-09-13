@@ -21,6 +21,7 @@ import { join } from "node:path";
 import {
   createFloodlightConnector,
   FLOODLIGHT_CCM_COLLECT_ENDPOINT,
+  FLOODLIGHT_ACTIVITY_ENDPOINT,
 } from "../connectors/floodlight/connector.js";
 import { sourceGoogleAdsCtx } from "../connectors/google-ads/cookies.js";
 import { encodeGcs, encodeGcd, encodeNpa } from "../connectors/consent-mode.js";
@@ -28,6 +29,11 @@ import { encodeGcs, encodeGcd, encodeNpa } from "../connectors/consent-mode.js";
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 
 const CONVERSION_ID = "DC-1234567890";
+// The Floodlight-native activity identity (046-02) — src/type/cat, the config-provided triple the
+// ccm/collect beacon does NOT carry.
+const DC_SRC = "1234567";
+const DC_TYPE = "grptag00";
+const DC_CAT = "acttag00";
 const GRANTED = {
   ad_storage: "granted",
   analytics_storage: "granted",
@@ -35,7 +41,8 @@ const GRANTED = {
   ad_personalization: "granted",
 };
 
-/** Build the beacon for a granted page_view with the given ctx overrides, return its parsed query. */
+/** Build the ccm/collect beacon (requests[0]) for a granted page_view with the given ctx overrides,
+ *  return its parsed query. handle() is now length-2 — this reads the FIRST (ccm) beacon. */
 function beaconParams(ctx = {}) {
   const connector = createFloodlightConnector({
     conversionId: CONVERSION_ID,
@@ -48,8 +55,45 @@ function beaconParams(ctx = {}) {
   return new URL(url).searchParams;
 }
 
+/** Parse the ;-delimited activity beacon PATH into a flat { field: value } map (the same job the
+ *  oracle-side flattener does): split the pathname on `;`, drop the base path, decode each
+ *  key=value segment. */
+function parseActivityPath(url) {
+  const { pathname } = new URL(url);
+  /** @type {Record<string,string>} */
+  const fields = {};
+  const segments = pathname.split(";");
+  for (let i = 1; i < segments.length; i++) {
+    const seg = segments[i];
+    if (!seg) continue;
+    const eq = seg.indexOf("=");
+    if (eq === -1) continue;
+    fields[decodeURIComponent(seg.slice(0, eq))] = decodeURIComponent(seg.slice(eq + 1));
+  }
+  return fields;
+}
+
+/** Build the activity beacon (requests[1]) for a granted page_view with the given ctx overrides,
+ *  return its flat path-segment field map. */
+function activityFields(ctx = {}, config = {}) {
+  const connector = createFloodlightConnector({
+    conversionId: CONVERSION_ID,
+    src: DC_SRC,
+    type: DC_TYPE,
+    cat: DC_CAT,
+    ctx: { consent: GRANTED, ...ctx },
+    ...config,
+  });
+  const requests = connector.handle({
+    type: "page_view",
+    params: { page_location: "https://spike.example/pricing", page_title: "Pricing" },
+  });
+  const activity = requests.find((r) => r.url.startsWith(FLOODLIGHT_ACTIVITY_ENDPOINT));
+  return { request: activity, fields: parseActivityPath(activity.url) };
+}
+
 describe("createFloodlightConnector — AC1 ccm/collect DC page-load beacon", () => {
-  it("handle() returns a length-1 EgressRequest[] carrying { url, method:'GET' } to ccm/collect with tid=DC-id/en/dl/dt", () => {
+  it("handle() returns ONLY the ccm/collect beacon { url, method:'GET' } with tid=DC-id/en/dl/dt when no activity identity (src) is configured — length-1, byte-identical to 046-01 (046-02's src-guard)", () => {
     const connector = createFloodlightConnector({ conversionId: CONVERSION_ID, ctx: { consent: GRANTED } });
     const requests = connector.handle({
       type: "page_view",
@@ -57,6 +101,8 @@ describe("createFloodlightConnector — AC1 ccm/collect DC page-load beacon", ()
     });
 
     expect(Array.isArray(requests)).toBe(true);
+    // No `src` configured -> the activity beacon does NOT emit (046-02's identity-presence guard) ->
+    // length-1, the ccm/collect beacon ONLY (no activity beacon at all).
     expect(requests).toHaveLength(1);
     const [result] = requests;
     expect(result.method).toBe("GET");
@@ -95,13 +141,32 @@ describe("createFloodlightConnector — AC1 ccm/collect DC page-load beacon", ()
   });
 
   it("manifest declares egress under ad_storage so the seal CAN gate it (046-03), and the _gcl_au cookie capability", () => {
-    const { manifest } = createFloodlightConnector({ conversionId: CONVERSION_ID });
+    const { manifest } = createFloodlightConnector({ conversionId: CONVERSION_ID, src: DC_SRC });
     expect(manifest.name).toBe("airlock/floodlight");
     expect(manifest.capabilities.egress).toBe(true);
     expect(manifest.capabilities.cookies).toContain("_gcl_au");
     expect(manifest.purposes.egress).toContain("ad_storage");
     expect(manifest.purposes.cookies._gcl_au).toContain("ad_storage");
     expect(manifest.endpoints).toContain(FLOODLIGHT_CCM_COLLECT_ENDPOINT);
+  });
+
+  it("manifest declares ONLY the ccm/collect endpoint (no activity endpoint/purpose) when src is NOT configured — exactly like 046-01 (046-02's src-guard)", () => {
+    const { manifest } = createFloodlightConnector({ conversionId: CONVERSION_ID });
+    expect(manifest.endpoints).toEqual([FLOODLIGHT_CCM_COLLECT_ENDPOINT]);
+    expect(Object.keys(manifest.purposes.endpoints)).toEqual([FLOODLIGHT_CCM_COLLECT_ENDPOINT]);
+  });
+
+  it("manifest ALSO declares the ;-matrix activity endpoint prefix under ad_storage (046-02 AC4 — the ceiling admits it)", () => {
+    const { manifest } = createFloodlightConnector({ conversionId: CONVERSION_ID, src: DC_SRC });
+    // The activity ceiling endpoint is the DECLARED ;-matrix PREFIX (/activity;src=<id>), NOT the
+    // full per-request URL — the endpoint-ceiling's segment-anchored prefix match admits the beacon
+    // despite the per-request num/ord cachebuster in the path.
+    const activityCeiling = `${FLOODLIGHT_ACTIVITY_ENDPOINT};src=${DC_SRC}`;
+    expect(manifest.endpoints).toContain(activityCeiling);
+    expect(manifest.purposes.endpoints[activityCeiling]).toContain("ad_storage");
+    // The emitted activity URL starts with the declared prefix at a ;-boundary (ceiling admission).
+    const { request } = activityFields();
+    expect(request.url.startsWith(`${activityCeiling};`)).toBe(true);
   });
 });
 
@@ -170,5 +235,120 @@ describe("createFloodlightConnector — AC3 auid read-when-present / omit-when-a
     const replaySrc = readFileSync(join(repoRoot, "rig/parity/floodlight-ccm-replay.js"), "utf8");
     expect(replaySrc).toMatch(/sourceGoogleAdsCtx/);
     expect(replaySrc).toMatch(/from ["']\.\.\/\.\.\/connectors\/google-ads\/cookies\.js["']/);
+  });
+});
+
+describe("createFloodlightConnector — AC1 ;-delimited activity DC page-load beacon (046-02)", () => {
+  it("handle() returns TWO beacons — [ccm, activity]; the activity one is a GET to ad.doubleclick.net/activity, ;-delimited", () => {
+    const connector = createFloodlightConnector({
+      conversionId: CONVERSION_ID,
+      src: DC_SRC,
+      type: DC_TYPE,
+      cat: DC_CAT,
+      ctx: { consent: GRANTED },
+    });
+    const requests = connector.handle({ type: "page_view", params: {} });
+
+    expect(requests).toHaveLength(2);
+    const activity = requests[1];
+    expect(activity.method).toBe("GET");
+    expect(activity.body).toBeUndefined();
+    // The wire is ;-delimited: params ride the PATH, there is NO query string.
+    const url = new URL(activity.url);
+    expect(url.origin + "/activity").toBe(FLOODLIGHT_ACTIVITY_ENDPOINT);
+    expect(url.search).toBe("");
+    expect(url.pathname.startsWith("/activity;")).toBe(true);
+  });
+
+  it("the activity beacon carries the Floodlight-native identity src/type/cat as PATH segments (the ccm/collect beacon does NOT)", () => {
+    const { fields } = activityFields();
+    expect(fields.src).toBe(DC_SRC);
+    expect(fields.type).toBe(DC_TYPE);
+    expect(fields.cat).toBe(DC_CAT);
+    // src is the FIRST segment (the ceiling prefix anchor).
+    const { request } = activityFields();
+    expect(request.url.startsWith(`${FLOODLIGHT_ACTIVITY_ENDPOINT};src=${DC_SRC};`)).toBe(true);
+  });
+
+  it("a value containing a ; is percent-encoded so it can NEVER inject a stray path segment (no query builder reuse)", () => {
+    const { fields, request } = activityFields({}, { cat: "a;src=evil;b" });
+    // decoded back, the value is intact...
+    expect(fields.cat).toBe("a;src=evil;b");
+    // ...and the injected `src=evil` never became a real segment (the raw URL has no literal `;src=evil;`).
+    expect(request.url).toContain("%3Bsrc%3Devil%3B");
+    expect(request.url).not.toContain(";src=evil;");
+  });
+
+  it("an event this connector does not map (not page_view) replays to [] — neither beacon fires", () => {
+    const connector = createFloodlightConnector({
+      conversionId: CONVERSION_ID,
+      src: DC_SRC,
+      ctx: { consent: GRANTED },
+    });
+    expect(connector.handle({ type: "add_to_cart", params: {} })).toEqual([]);
+  });
+});
+
+describe("createFloodlightConnector — AC2 activity Consent Mode v2 + auiddc (values identical to ccm; only the layout differs)", () => {
+  it("gcs/gcd/npa on the activity path are byte-identical to the shared encoders AND to the ccm beacon", () => {
+    const { fields } = activityFields();
+    expect(fields.gcs).toBe("G111");
+    expect(fields.gcd).toBe("13r3r3r3r5l1");
+    expect(fields.npa).toBe("0");
+    // Same values the shared encoders produce...
+    expect(fields.gcs).toBe(encodeGcs(GRANTED));
+    expect(fields.gcd).toBe(encodeGcd(GRANTED));
+    expect(fields.npa).toBe(encodeNpa(GRANTED));
+    // ...and byte-identical to the ccm beacon's own carriage (only the URL layout differs).
+    const ccm = beaconParams();
+    expect(fields.gcs).toBe(ccm.get("gcs"));
+    expect(fields.gcd).toBe(ccm.get("gcd"));
+    expect(fields.npa).toBe(ccm.get("npa"));
+  });
+
+  it("a pending consent vector omits gcs/gcd from the activity path entirely (inherited joint-string discipline)", () => {
+    const { request } = activityFields({ consent: undefined }, {});
+    // ctx.consent undefined -> encodeGcs/encodeGcd return undefined -> omitted.
+    expect(request.url).not.toContain("gcs=");
+    expect(request.url).not.toContain("gcd=");
+  });
+
+  it("auiddc reuses 046-01's _gcl_au read (ctx.auid) — emitted under the auiddc param name (§A4), same value as ccm's auid", () => {
+    const auid = "9988776655.1610000000";
+    const { fields } = activityFields({ auid });
+    expect(fields.auiddc).toBe(auid);
+    // §A4: auid == auiddc == the SAME _gcl_au-derived value — the ccm beacon carries it as `auid`.
+    expect(beaconParams({ auid }).get("auid")).toBe(auid);
+    // absent ctx.auid -> auiddc omitted entirely, never minted.
+    const { request } = activityFields({ auid: undefined });
+    expect(request.url).not.toContain("auiddc=");
+  });
+});
+
+describe("createFloodlightConnector — AC5 the ccm/collect beacon is byte-unchanged (no 046-01 regression)", () => {
+  it("requests[0] (ccm) is identical whether or not the activity identity (src/type/cat) is configured", () => {
+    const base = {
+      conversionId: CONVERSION_ID,
+      ctx: { consent: GRANTED, auid: "9988776655.1610000000" },
+    };
+    const event = { type: "page_view", params: { page_location: "https://x.example/p", page_title: "P" } };
+    const withActivity = createFloodlightConnector({ ...base, src: DC_SRC, type: DC_TYPE, cat: DC_CAT }).handle(event);
+    const ccmRef = createFloodlightConnector(base).handle(event);
+    // The ccm beacon is a pure function of conversionId/ctx/endpoint — adding the activity identity
+    // config does not perturb requests[0] at all.
+    expect(withActivity[0]).toEqual(ccmRef[0]);
+    expect(withActivity[0].url).toBe(ccmRef[0].url);
+    expect(withActivity[0].method).toBe("GET");
+  });
+
+  it("both beacons carry the source `event` (the 045-01 re-map channel — 046-03 will read it)", () => {
+    const event = { type: "page_view", params: { page_title: "P" } };
+    const requests = createFloodlightConnector({
+      conversionId: CONVERSION_ID,
+      src: DC_SRC,
+      ctx: { consent: GRANTED },
+    }).handle(event);
+    expect(requests[0].event).toBe(event);
+    expect(requests[1].event).toBe(event);
   });
 });

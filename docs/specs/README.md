@@ -131,7 +131,7 @@
 | [045-consent-hold-until-granted](045-consent-hold-until-granted/spec.md) | 045-02 — apply hold-until-granted to alloy (via alloy's native `defaultConsent:"pending"` queue, preserving 034-01) | **DONE** |  |
 | [045-consent-hold-until-granted](045-consent-hold-until-granted/spec.md) | 045-03 — seal N-beacon fan-out re-map (per-beacon `remapKey`) | **DONE** |  |
 | [046-floodlight-connector](046-floodlight-connector/spec.md) | 046-01 — core DC ccm/collect beacon off-thread (query-delimited, reuse-complete) | **DONE** |  |
-| [046-floodlight-connector](046-floodlight-connector/spec.md) | 046-02 — core DC activity beacon off-thread (;-delimited, Floodlight-native identity) | DRAFT |  |
+| [046-floodlight-connector](046-floodlight-connector/spec.md) | 046-02 — core DC activity beacon off-thread (;-delimited, Floodlight-native identity) | **DONE** |  |
 | [046-floodlight-connector](046-floodlight-connector/spec.md) | 046-03 — DC opts into hold-until-granted, both forms (ad_storage-denied parity) | DRAFT |  |
 
 ## Deferred slices
@@ -158,7 +158,7 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
 
 - **9** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **97** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **42** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **43** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
@@ -201,3 +201,4 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
   - `045-consent-hold-until-granted/slice-02-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `045-consent-hold-until-granted/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `046-floodlight-connector/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `046-floodlight-connector/slice-02-craft.md` — applied `pr-review`; declined: scout-pr-review
