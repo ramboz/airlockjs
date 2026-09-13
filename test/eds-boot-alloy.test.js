@@ -429,6 +429,51 @@ describe("boot(config) — AC3/AC6: the strict consent seam gate holds a denied 
   });
 });
 
+describe("boot(config) — AC3 (spec 045-02): host→chamber setConsent flips the seam gate + posts the flush message", () => {
+  beforeEach(() => {
+    RoundTripAlloyWorker.instances = [];
+    interactUrlFor = null; // honest interact (?configId=<datastreamId>)
+    vi.stubGlobal("Worker", RoundTripAlloyWorker);
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({ status: 200, statusText: "OK", headers: { get: () => "application/json" }, text: async () => "{}" })));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("pending analytics HOLDS at the seam; setConsent(grant) posts {type:setConsent} to the chamber AND lets the NEXT interact egress", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    // CMP wired but analytics unresolved ({} -> pending): egressPurposes is wired, so the
+    // strict seam HOLDS a pending interact (the TRUSTED backstop). In the REAL chamber alloy
+    // ALSO natively queues via defaultConsent:"pending" (grounded by rig/alloy-consent-pending.mjs);
+    // this fake worker fires regardless, so it exercises the seam backstop + the grant-time flip.
+    const h = await bootAlloy(alloyEntry({ consent: {} }));
+    const w = RoundTripAlloyWorker.instances[0];
+
+    h.push({ event: "page_view", page_location: "https://site/pending" });
+    await waitFor(() => h.getState().consentHeld >= 1);
+    expect(globalThis.fetch).not.toHaveBeenCalled(); // held at the seal under pending — zero egress
+
+    // Grant: (a) posts the setConsent message to the chamber (alloy's native-flush trigger),
+    // (b) updates the seam's LIVE consentRef so the NEXT interact passes the strict gate.
+    h.setConsent({ analytics_storage: "granted", personalization: "granted" });
+    const setConsentMsg = w.messages.find((m) => m.type === "setConsent");
+    expect(setConsentMsg).toBeTruthy();
+    expect(setConsentMsg.consent).toMatchObject({ analytics_storage: "granted", personalization: "granted" });
+
+    // The NEXT interact now egresses (consent granted → the seam SENDS).
+    h.push({ event: "page_view", page_location: "https://site/granted" });
+    await waitFor(() => globalThis.fetch.mock.calls.length >= 1);
+    expect(String(globalThis.fetch.mock.calls[0][0])).toBe(`${INTERACT}?configId=${DATASTREAM_ID}`);
+    warnSpy.mockRestore();
+  });
+
+  it("back-compat: a boot with NO consent wired never posts a setConsent message (the channel is opt-in via consentRef)", async () => {
+    const h = await bootAlloy(alloyEntry()); // no consent -> consentRef null -> gate off
+    const w = RoundTripAlloyWorker.instances[0];
+    h.setConsent({ analytics_storage: "granted" }); // no-op: no consentRef to update
+    expect(w.messages.some((m) => m.type === "setConsent")).toBe(false);
+  });
+});
+
 describe("boot(config) — AC3 (security): the config-integrity + endpoint-ceiling seam gates are wired", () => {
   // The seam MUST bite even though ADR-0016 permits a cross-origin/untrusted adopter bundle: a
   // compromised bundle can re-`configure` alloy or craft its own interact fetch. config-integrity

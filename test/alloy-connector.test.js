@@ -130,6 +130,26 @@ describe("alloy connector (spec 012-01 AC2)", () => {
     const connector = createAlloyConnector({ datastreamId: "DS", orgId: "ORG", alloy: null });
     await expect(connector.init({})).rejects.toThrow(/alloy/i);
   });
+
+  // spec 045-02 (ADR-0023): the chamber's boot glue threads alloy's native
+  // `defaultConsent` (from shapeAlloyBoot — "pending" under unresolved consent) into
+  // the connector config; it must reach alloy `configure` (through configureExtras) so
+  // alloy QUEUES its sendEvents natively under pending consent.
+  it("threads a `defaultConsent` config option through to alloy `configure` (the native-queue boot posture)", async () => {
+    const alloy = fakeAlloy();
+    const connector = createAlloyConnector({ ...baseConfig(), alloy, defaultConsent: "pending" });
+    await connector.init({});
+    expect(alloy.calls[0].command).toBe("configure");
+    expect(alloy.calls[0].options.defaultConsent).toBe("pending");
+  });
+
+  it("byte-parity: NO `defaultConsent` in config → alloy `configure` carries no defaultConsent key (back-compat, alloy's default window)", async () => {
+    const alloy = fakeAlloy();
+    const connector = createAlloyConnector({ ...baseConfig(), alloy }); // no defaultConsent
+    await connector.init({});
+    expect(alloy.calls[0].command).toBe("configure");
+    expect("defaultConsent" in alloy.calls[0].options).toBe(false);
+  });
 });
 
 // Spec 012-03 AC1/AC2: `sendEvent({ renderDecisions:false })` returns Target

@@ -128,7 +128,7 @@
 | [044-google-ads-connector](044-google-ads-connector/spec.md) | 044-01 — core AW page-load beacon off-thread (Consent-Mode + auid, parity-confirmed) | **DONE** |  |
 | [044-google-ads-connector](044-google-ads-connector/spec.md) | 044-02 — g-ads opts into hold-until-granted (denied-consent parity) | **DONE** |  |
 | [045-consent-hold-until-granted](045-consent-hold-until-granted/spec.md) | 045-01 — the core seal `holdOnDenied` opt-in mode (egressVerdict + createAirlock) | **DONE** |  |
-| [045-consent-hold-until-granted](045-consent-hold-until-granted/spec.md) | 045-02 — apply hold-until-granted to alloy (preserving 034-01) | DRAFT |  |
+| [045-consent-hold-until-granted](045-consent-hold-until-granted/spec.md) | 045-02 — apply hold-until-granted to alloy (via alloy's native `defaultConsent:"pending"` queue, preserving 034-01) | **DONE** |  |
 
 ## Deferred slices
 
@@ -154,7 +154,7 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
 
 - **9** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **97** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **39** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **40** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
@@ -194,3 +194,4 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
   - `044-google-ads-connector/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `044-google-ads-connector/slice-02-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `045-consent-hold-until-granted/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `045-consent-hold-until-granted/slice-02-craft.md` — applied `pr-review`; declined: scout-pr-review

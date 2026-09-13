@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { shapeAlloyConsent } from "../connectors/alloy/consent.js";
+import { shapeAlloyConsent, shapeAlloyBoot } from "../connectors/alloy/consent.js";
 
 // Alloy consent shaper (spec 020-02 AC2 + spec 034-01 AC1(A), ADR-0007) — the
 // vendor-specific half of the idiomatic DELEGATE lever (020-01 Finding: alloy
@@ -94,5 +94,62 @@ describe("connectors/alloy/consent.js: shapeAlloyConsent", () => {
     expect(shapeAlloyConsent({ analytics_storage: "GRANTED", personalization: "GRANTED" })).toEqual({
       consent: [{ standard: "Adobe", version: "2.0", value: { collect: { val: "y" } } }],
     });
+  });
+});
+
+// spec 045-02 (ADR-0023) — shapeAlloyBoot: the BOOT-time posture mapping that gives
+// alloy hold-until-granted via its OWN native `defaultConsent:"pending"` queue. Unlike
+// shapeAlloyConsent (the y/n `setConsent` shaper, UNCHANGED and reused for grant/deny +
+// the mid-session path), this decides HOW alloy is configured at boot:
+//   - analytics_storage PENDING (CMP wired, no signal yet) → configure
+//     defaultConsent:"pending" (alloy QUEUES its sendEvents natively; no interact
+//     egresses) and DO NOT drive setConsent (driving collect:"n" would self-SUPPRESS,
+//     the pre-045-02 behavior this slice REPLACES). Grounded: rig/alloy-consent-pending.mjs.
+//   - analytics_storage GRANTED → drive setConsent(collect:"y") (034-01 liveness — a pzn
+//     denial does NOT force "n"); omit defaultConsent (alloy's default).
+//   - analytics_storage DENIED → drive setConsent(collect:"n") (self-suppress, byte-unchanged).
+//   - NO vector at all (no CMP wired) → neither defaultConsent NOR setConsent — byte-unchanged
+//     back-compat (AC5: "no consent vector wired → no defaultConsent:pending").
+describe("connectors/alloy/consent.js: shapeAlloyBoot (spec 045-02, ADR-0023)", () => {
+  it("analytics_storage PENDING (absent, CMP wired) → defaultConsent:'pending', NO setConsent (native queue, not suppress)", () => {
+    const boot = shapeAlloyBoot({ personalization: "granted" }); // analytics_storage absent -> pending
+    expect(boot.defaultConsent).toBe("pending");
+    expect(boot.setConsentOptions).toBeUndefined();
+  });
+
+  it("an empty vector (CMP wired, no signal at all) → defaultConsent:'pending', NO setConsent (queue, was collect:'n' suppress pre-045-02)", () => {
+    const boot = shapeAlloyBoot({});
+    expect(boot.defaultConsent).toBe("pending");
+    expect(boot.setConsentOptions).toBeUndefined();
+  });
+
+  it("analytics_storage GRANTED → NO defaultConsent, setConsent collect:'y' (drive at boot, as today)", () => {
+    const boot = shapeAlloyBoot({ analytics_storage: "granted", personalization: "granted" });
+    expect(boot.defaultConsent).toBeUndefined();
+    expect(boot.setConsentOptions).toEqual({
+      consent: [{ standard: "Adobe", version: "2.0", value: { collect: { val: "y" } } }],
+    });
+  });
+
+  it("034-01 LIVENESS preserved: analytics GRANTED + personalization DENIED → setConsent collect:'y' (alloy SENDS; the seam strips pzn)", () => {
+    const boot = shapeAlloyBoot({ analytics_storage: "granted", personalization: "denied" });
+    expect(boot.defaultConsent).toBeUndefined();
+    expect(boot.setConsentOptions.consent[0].value.collect.val).toBe("y");
+  });
+
+  it("analytics_storage DENIED → NO defaultConsent, setConsent collect:'n' (self-suppress, byte-unchanged from today)", () => {
+    const boot = shapeAlloyBoot({ analytics_storage: "denied", personalization: "granted" });
+    expect(boot.defaultConsent).toBeUndefined();
+    expect(boot.setConsentOptions).toEqual({
+      consent: [{ standard: "Adobe", version: "2.0", value: { collect: { val: "n" } } }],
+    });
+  });
+
+  it("NO vector at all (null/undefined — no CMP wired) → NEITHER defaultConsent NOR setConsent (back-compat, byte-unchanged)", () => {
+    for (const none of [null, undefined]) {
+      const boot = shapeAlloyBoot(none);
+      expect(boot.defaultConsent).toBeUndefined();
+      expect(boot.setConsentOptions).toBeUndefined();
+    }
   });
 });

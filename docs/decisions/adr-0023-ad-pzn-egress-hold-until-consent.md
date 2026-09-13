@@ -85,6 +85,19 @@ So the core-seal change (045-01) **cannot regress 034-01** — it doesn't touch 
 ## Assumptions
 
 - **A1 (alloy's exact hold seam — grounded in 045-02).** Alloy's `personalization` is co-carried on the interact beacon and today **stripped** (034-01) when pzn-denied while the analytics interact flows; `core/wrapped-sdk-host.js` enforces alloy consent in **strict** mode with **pending → DROP** (a pending→hold+flush refinement already named there, `:106-109`). "Alloy holds pzn until consent" is therefore realized in wrapped-sdk-host.js as: **pending → hold+flush** (instead of drop); and the denied-pzn case **keeps 034-01's per-purpose strip** (analytics interact flows, pzn data absent) rather than holding the analytics interact. Whether a *personalization-only* alloy egress exists that should itself buffer+flush is grounded in 045-02 against `connectors/alloy/`. *Risk if wrong:* holding the analytics interact under pzn-denial would regress 034-01 — avoided by refining the existing per-purpose seam, not the analytics flow.
+
+  **AMENDMENT (2026-09-12, 045-02 landed).** A1's "realized in `wrapped-sdk-host.js` as pending → hold+flush" is
+  SUPERSEDED. Two frame-critiques + a creds-free grounding probe found a **seam-side** hold+flush INFEASIBLE for alloy:
+  its interact is a synchronous request-response round trip, so leaving the intercepted fetch pending HANGS (before the
+  `timeoutMs` timer) and DEADLOCKS single-slot `driveEvent`; a seam fire-and-forget flush would DISCARD the interact's
+  response; and under pending alloy already self-suppresses (`collect:"n"`). 045-02 instead realizes the hold via alloy's
+  **OWN native `defaultConsent:"pending"` queue** (chamber-side, the vendor's designed hold-until-consent): under pending
+  the chamber configures `defaultConsent:"pending"` (alloy queues its `sendEvent`s), and on grant a host→chamber
+  `setConsent` message drives alloy's `setConsent(collect:"y")`, which natively FLUSHES the queue with the full round-trip.
+  GROUNDED creds-free against the real `@adobe/alloy@2.35.0` bundle by `rig/alloy-consent-pending.mjs`. This IS this ADR's
+  kill-criterion "hold+flush the whole interact when consent is unresolved" — realized in the chamber (vendor mechanism =
+  liveness delegate), not the seam. The seam's strict `egressVerdict` (untouched) remains the TRUSTED backstop. 034-01's
+  analytics-flows/pzn-strip is preserved (granted analytics still sends + the seam strips pzn).
 - **A2 (grounded — the ad-hold requirement).** The container holds ads under `ad_storage`-denied (R-009 §(b) denied re-capture, 23→2). *Risk:* a different adopter profile that fires cookieless ads under denial would need a per-profile override — named as a future variant, not this ADR.
 
 ## Kill criteria

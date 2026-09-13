@@ -1,5 +1,5 @@
 ---
-status: IN_PROGRESS
+status: DONE
 skill:
 use_cases: [UC-2]
 ---
@@ -52,12 +52,17 @@ Enforcement stays **at the seal** (one mechanism); the opt-in is grounded per co
 
 **A1 (two independent enforcement paths — GROUNDED 2026-09-11).** g-ads uses the **core seal** (`core/airlock.js`
 `egressVerdict` non-strict + `heldBeacons`/`setConsent` buffer+flush); **alloy** uses its OWN path
-`core/wrapped-sdk-host.js` (strict `egressVerdict` + a per-purpose seam **strip** — 034-01, `:336-338`; today
-**pending → DROP**, with a hold+flush refinement already **named** at `:106-109`). So the core-seal change (045-01)
-**does not touch alloy and cannot regress 034-01.** Alloy's hold-until-granted (045-02) refines wrapped-sdk-host.js's
-pending→drop to **hold+flush**, preserving 034-01's strip (the analytics interact still flows under
-analytics-granted/pzn-denied). Residual (grounded in 045-02): whether a *personalization-only* alloy egress exists to
-buffer independently, vs pzn being strip-only on the shared interact — the ADR-0023 kill criterion scopes the limit.
+`core/wrapped-sdk-host.js` (strict `egressVerdict` + a per-purpose seam **strip** — 034-01, `:336-338`; **pending → DROP**
+at the seam, byte-unchanged). So the core-seal change (045-01) **does not touch alloy and cannot regress 034-01.** Alloy's
+hold-until-granted (045-02, GROUNDED 2026-09-12) is realized via alloy's **OWN native `defaultConsent:"pending"` queue**
+(chamber-side), **NOT** a seam hold+flush — the seam-side refinement once named at `wrapped-sdk-host.js:106-109` was found
+**infeasible** (alloy's synchronous request-response interact hangs/deadlocks a seam-pending hold; see
+[slice-02](slice-02-alloy-hold.md) + the [ADR-0023](../../decisions/adr-0023-ad-pzn-egress-hold-until-consent.md) A1
+amendment). Under pending, alloy queues its own `sendEvent`s; a host→chamber `setConsent` flushes on grant (full
+round-trip). The seam is byte-unchanged and stays the trusted backstop; 034-01's strip is preserved (analytics interact
+still flows under analytics-granted/pzn-denied). Resolved residual: pzn is strip-only on the shared interact (no separable
+*personalization-only* egress), so the hold is of the whole interact under pending analytics — exactly ADR-0023's
+kill-criterion scope, realized natively.
 
 **A2 (ad-hold requirement — GROUNDED).** The container holds ads under `ad_storage`-denied (R-009 §(b) denied re-capture,
 23→2). A different adopter profile that fires cookieless ads under denial is a named future variant, not this spec.
@@ -73,10 +78,14 @@ the value is enforcement parity. Each slice ships observable behavior verifiable
   pending→hold, granted→send, strict→drop). The existing `heldBeacons`/`setConsent` flush is reused as-is. **No connector
   opts in within this slice** — GA4 stays default (send); the flag is proven by unit tests. Accepts ADR-0023.
   `arch_review: true` (seal-model change). Delivers: the opt-in hold-until-granted mechanism, connector-agnostic.
-- **045-02 (Rules — alloy):** refine **`core/wrapped-sdk-host.js`**'s consent handling (the already-named `:106-109`
-  follow-up) from **pending → DROP** to **hold+flush**, preserving 034-01's per-purpose strip; ground the exact alloy
-  egress topology (A1). Delivers: alloy buffers under unresolved consent + flushes on grant, analytics interact still
-  flows under pzn-denial.
+- **045-02 (Rules — alloy):** give alloy hold-until-granted via alloy's **OWN native `defaultConsent:"pending"` queue**
+  (the seam-side "refine pending→DROP to hold+flush" originally framed here was found INFEASIBLE — alloy's synchronous
+  request-response interact hangs/deadlocks a seam hold; see [slice-02](slice-02-alloy-hold.md) + [ADR-0023](../../decisions/adr-0023-ad-pzn-egress-hold-until-consent.md)
+  A1's 2026-09-12 amendment). Under pending the chamber configures `defaultConsent:"pending"` (alloy queues natively) and
+  a host→chamber `setConsent` message flushes on grant (full round-trip); the TRUSTED seam (`core/wrapped-sdk-host.js`) is
+  byte-unchanged and stays the backstop; 034-01's per-purpose strip is preserved. GROUNDED creds-free by
+  `rig/alloy-consent-pending.mjs`. Delivers: alloy holds under unresolved consent + fires on grant, analytics interact
+  still flows under pzn-denial.
 - **[044-02](../044-google-ads-connector/slice-02-denied-seal-hold.md) (the g-ads consumer, in spec 044):** reframed to
   *prove* g-ads holds under `ad_storage`-denied via this mode (declared purpose + tests: denied→held, grant→flush, never
   a cookieless AW send). Depends on 045-01.

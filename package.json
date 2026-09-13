@@ -31,6 +31,7 @@
     "rig:alloy-decisions": "node rig/alloy-decisions.mjs",
     "rig:alloy-multiscope": "node rig/alloy-multiscope.mjs",
     "rig:alloy-consent-diff": "node rig/alloy-consent-diff.mjs",
+    "rig:alloy-consent-pending": "node rig/alloy-consent-pending.mjs",
     "rig:alloy-xdm-gov": "node rig/alloy-live-xdm-governance.mjs",
     "rig:sanitize": "node rig/sanitize-boundary.mjs",
     "rig:nasty-tag": "node rig/nasty-tag.mjs",

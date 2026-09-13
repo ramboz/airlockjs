@@ -1110,6 +1110,43 @@ describe("createWrappedSdkHost — consent enforcement (spec 020-02 AC1, ADR-000
   }, 2000);
 });
 
+// createWrappedSdkHost — host→chamber `setConsent` message channel (spec 045-02,
+// ADR-0023): the host handle gains an ADDITIVE `setConsent(vector)` that posts a
+// `{ type: "setConsent", consent }` message to the chamber, where alloy's boot glue
+// drives its OWN `setConsent` → alloy natively FLUSHES its defaultConsent:"pending"
+// queue (grounded: rig/alloy-consent-pending.mjs). This does NOT touch the TRUSTED
+// seam enforcement (egressVerdict strict + the 034-01 strip) — that stays the
+// backstop, byte-unchanged; the adapter mutates the seam's live consentRef separately.
+describe("createWrappedSdkHost — host→chamber setConsent message channel (spec 045-02)", () => {
+  it("exposes setConsent on the handle and posts { type:'setConsent', consent } to the chamber", () => {
+    const chamber = makeFakeChamber();
+    const caps = { egress: { dispatch: async () => ({ status: 200, statusText: "OK", headers: {}, body: "{}" }) } };
+    const host = createWrappedSdkHost({ chamber, caps });
+
+    expect(typeof host.setConsent).toBe("function");
+
+    const grant = { analytics_storage: "granted", personalization: "granted" };
+    host.setConsent(grant);
+
+    const msg = chamber.posted.find((m) => m.type === "setConsent");
+    expect(msg).toBeTruthy();
+    expect(msg.consent).toEqual(grant);
+  });
+
+  it("the setConsent message is INDEPENDENT of the seam gate — it does not itself dispatch or change consentHeld", async () => {
+    const chamber = makeFakeChamber();
+    const dispatched = [];
+    const caps = { egress: { dispatch: async (r) => { dispatched.push(r); return { status: 200, statusText: "OK", headers: {}, body: "{}" }; } } };
+    const host = createWrappedSdkHost({ chamber, caps, egressPurposes: ["analytics_storage"], consent: {} });
+
+    host.setConsent({ analytics_storage: "granted" }); // posts the chamber message only
+
+    expect(chamber.posted.some((m) => m.type === "setConsent")).toBe(true);
+    expect(dispatched.length).toBe(0); // no egress from a setConsent call
+    expect(host.getState().consentHeld).toBe(0); // seam enforcement untouched by the channel
+  });
+});
+
 // createWrappedSdkHost — COARSE-CONSENT SPLIT (spec 034-01, ADR-0007): the
 // TRUSTED seam makes consent gating PER-PURPOSE, not all-or-nothing. alloy's
 // analytics + personalization ride ONE interact gated over

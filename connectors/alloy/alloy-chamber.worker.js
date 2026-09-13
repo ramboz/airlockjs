@@ -47,23 +47,33 @@
  * 020-02 addition — consent (`setConsent`, the idiomatic DELEGATE lever,
  * ADR-0007): the `init` message MAY carry a `consent` vector (the same
  * ADR-0007 shape core/consent.js defines). `boot()` maps it via
- * ./consent.js's `shapeAlloyConsent` and, right after `configure` succeeds
+ * ./consent.js's `shapeAlloyBoot` and, right after `configure` succeeds
  * and BEFORE the first `sendEvent`, drives alloy's OWN `setConsent` command
- * (order: configure -> setConsent -> sendEvent) — so alloy self-gates +
- * propagates the `kndctr_<orgId>_consent` cookie. This runs INSIDE the
- * untrusted chamber (honored-by-the-vendor, not seam-enforced) — it
+ * for granted/denied (order: configure -> setConsent -> sendEvent) — so alloy
+ * self-gates + propagates the `kndctr_<orgId>_consent` cookie. This runs INSIDE
+ * the untrusted chamber (honored-by-the-vendor, not seam-enforced) — it
  * complements, never substitutes for, the TRUSTED seam-side consent DROP in
  * core/wrapped-sdk-host.js's `dispatchInterceptedFetch` (020-02 AC1). No
- * `consent` key in the init message -> `shapeAlloyConsent` returns
+ * `consent` key in the init message -> `shapeAlloyBoot` returns both fields
  * undefined -> `setConsent` is never driven (byte-unchanged; alloy's own
  * default-`"in"` `defaultConsent` window is unaffected).
+ *
+ * 045-02 addition — hold-until-granted via alloy's NATIVE queue (ADR-0023):
+ * under PENDING `analytics_storage` (a CMP wired but unresolved), `shapeAlloyBoot`
+ * yields `defaultConsent:"pending"` (threaded into `configure`) instead of
+ * `setConsent(collect:"n")` — so alloy's OWN queue holds every `sendEvent` (no
+ * interact egresses) rather than self-suppressing. A later host->chamber
+ * `{ type:"setConsent" }` message (`applyConsent`) drives alloy's
+ * `setConsent(collect:"y")`, which natively FLUSHES the queue with the full
+ * round-trip (grounded: rig/alloy-consent-pending.mjs). The consent vector is
+ * RETAINED in chamber state for that flush.
  */
 
 import { createConnectorHost } from "../../core/connector-host.js";
 import { createAlloyConnector } from "./connector.js";
 import { createSyncCookieCache } from "./sync-cookie-cache.js";
 import { applyEgressConfinement, denySendBeacon } from "../../core/egress-confinement.js";
-import { shapeAlloyConsent } from "./consent.js";
+import { shapeAlloyBoot } from "./consent.js";
 
 const summary = {
   booted: false,
@@ -396,11 +406,18 @@ function install(seedCookie) {
 }
 
 let host = null;
+// 045-02 (ADR-0023): the ADR-0007 consent vector is RETAINED in chamber state so a
+// mid-session `setConsent` message can drive alloy's OWN `setConsent` (the native
+// `defaultConsent:"pending"` queue FLUSH) — see `applyConsent` / the `setConsent`
+// message below. `null` until a boot supplies one (no CMP wired -> stays null).
+let consentVector = null;
 
 async function boot({ cookie, config, bundleUrl, consent }) {
   try {
     install(cookie);
     post("phase", { name: "install" });
+    // 045-02: retain the vector for the mid-session `setConsent` flush trigger.
+    consentVector = consent == null ? null : { ...consent };
 
     loadStockBundle(bundleUrl); // load the UNMODIFIED stock bundle (033-02 AC1: TT-policy'd importScripts)
     summary.booted = true;
@@ -420,9 +437,24 @@ async function boot({ cookie, config, bundleUrl, consent }) {
 
     post("phase", { name: "loaded" });
 
+    // 045-02 (ADR-0023): map the host consent vector to alloy's BOOT posture.
+    // Under PENDING analytics_storage this yields `defaultConsent:"pending"` — so
+    // alloy's OWN native queue holds every sendEvent (no interact egresses) until a
+    // later `setConsent(collect:"y")` FLUSHES it (grounded: rig/alloy-consent-pending.mjs).
+    // granted/denied yield `setConsentOptions` (drive setConsent below); no vector
+    // wired yields BOTH undefined (byte-unchanged — alloy's default-"in" window).
+    const bootConsent = shapeAlloyBoot(consent);
+
     // AC1 reuse: host the alloy connector exactly like GA4. `self.alloy` (the
     // queue fn the bundle now drives) is injected as the connector's command fn.
-    host = createConnectorHost(createAlloyConnector, { ...(config || {}), alloy: self.alloy });
+    // `defaultConsent` (when defined) threads through the connector's configureExtras
+    // into alloy `configure` — only present under PENDING, so granted/denied/no-consent
+    // boots carry NO defaultConsent key (byte-unchanged).
+    host = createConnectorHost(createAlloyConnector, {
+      ...(config || {}),
+      ...(bootConsent.defaultConsent !== undefined ? { defaultConsent: bootConsent.defaultConsent } : {}),
+      alloy: self.alloy,
+    });
     summary.syncSurfacePresent = summary.syncSurfacePresent
       && typeof host.manifest === "object" && Array.isArray(host.manifest.capabilities.cookies);
 
@@ -437,11 +469,16 @@ async function boot({ cookie, config, bundleUrl, consent }) {
       // INSIDE the untrusted chamber (honored-by-the-vendor, not
       // seam-enforced) — complements, never substitutes for, the TRUSTED
       // seam-side drop in core/wrapped-sdk-host.js's
-      // dispatchInterceptedFetch (020-02 AC1). No `consent` vector supplied
-      // at init -> shapeAlloyConsent returns undefined -> skipped entirely
-      // (byte-unchanged; alloy's own default-"in" defaultConsent window is
-      // unaffected).
-      const consentOptions = shapeAlloyConsent(consent);
+      // dispatchInterceptedFetch (020-02 AC1).
+      //
+      // 045-02 (ADR-0023): drive `setConsent` ONLY when shapeAlloyBoot yields
+      // `setConsentOptions` — i.e. granted (collect:"y") or denied (collect:"n").
+      // Under PENDING it is undefined (alloy queues natively via
+      // `defaultConsent:"pending"` threaded above — driving setConsent(collect:"n")
+      // here would self-SUPPRESS the queue instead of holding it). No `consent`
+      // vector supplied at all -> also undefined -> skipped (byte-unchanged;
+      // alloy's own default-"in" defaultConsent window is unaffected).
+      const consentOptions = bootConsent.setConsentOptions;
       if (consentOptions) {
         try {
           await self.alloy("setConsent", consentOptions);
@@ -478,6 +515,40 @@ async function drive(event) {
   } catch (err) {
     post("fatal", { phase: "sendEvent", message: err && err.message, stack: (err && err.stack) || "", summary });
   }
+}
+
+/* ---- 045-02 (ADR-0023): mid-session consent update → alloy's OWN setConsent →
+ *      native FLUSH of the `defaultConsent:"pending"` queue. The host posts
+ *      `{ type:"setConsent", consent }` (core/wrapped-sdk-host.js's handle.setConsent,
+ *      driven by the adapter on a grant); this drives alloy's `setConsent(collect:"y")`
+ *      which, per the grounded rig (rig/alloy-consent-pending.mjs), flushes every queued
+ *      sendEvent — each queued interact fires through the now-open seal (consent granted
+ *      -> the TRUSTED seam SENDS) with its FULL round-trip preserved (a real sendEvent,
+ *      not a mapped replay). This DELEGATE runs inside the UNTRUSTED chamber and is never
+ *      the enforcement — the seam's strict egressVerdict is the backstop. Fire-and-forget
+ *      (the flushed interact rides the intercepted-fetch -> main dispatch path). ---- */
+function applyConsent(vector) {
+  // Merge the update into the retained ADR-0007 vector (a partial update from either
+  // direction still yields the full picture for the mapping below).
+  if (vector) consentVector = { ...(consentVector || {}), ...vector };
+  post("phase", { name: "consent-updated" }); // observability (the diagnostic phase)
+  // 045-02 (craft + arch review): use the SAME pending-aware mapping as boot
+  // (`shapeAlloyBoot`), NOT `shapeAlloyConsent` unconditionally. A mid-session
+  // update that leaves `analytics_storage` STILL pending must KEEP alloy's native
+  // `defaultConsent:"pending"` queue holding — `shapeAlloyBoot` yields
+  // `setConsentOptions: undefined` there, so we skip the drive. Routing through
+  // `shapeAlloyConsent` would map still-pending → `collect:"n"`, which rejects
+  // `awaitConsent()` (consent.js) and DISCARDS the held queue — the boot/mid-session
+  // asymmetry the reviews flagged. Only a RESOLVED update drives setConsent
+  // (granted→"y" flush; denied→"n" suppress).
+  const options = shapeAlloyBoot(consentVector).setConsentOptions;
+  if (!options || typeof self.alloy !== "function") return;
+  Promise.resolve()
+    .then(() => self.alloy("setConsent", options))
+    .then(
+      () => { summary.consentDriven = "fulfilled"; },
+      (e) => { summary.consentDriven = "rejected: " + (e && e.message); },
+    );
 }
 
 /* ---- AC5: post-boot adversarial self-probe. Runs INSIDE the chamber, as
@@ -591,6 +662,9 @@ self.onmessage = (e) => {
   const m = e.data || {};
   if (m.type === "init") return void boot(m);
   if (m.type === "event") return void drive(m.event);
+  // 045-02 (ADR-0023): a mid-session consent update — drive alloy's OWN setConsent
+  // so alloy natively FLUSHES its defaultConsent:"pending" queue (grant-time flush).
+  if (m.type === "setConsent") return void applyConsent(m.consent);
   // AC4: the main-thread dispatcher's response to an intercepted fetch.
   if (m.type === "intercepted-fetch-response") return void resolveInterceptedFetch(m);
   // AC5: the harness asks the chamber to run the adversarial egress self-probe.

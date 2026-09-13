@@ -99,3 +99,61 @@ export function shapeAlloyConsent(vector) {
     ],
   };
 }
+
+/**
+ * Shape a host consent vector into alloy's BOOT-time consent posture (spec
+ * 045-02, ADR-0023) — the hold-until-granted mapping that uses alloy's OWN
+ * native `defaultConsent:"pending"` queue instead of self-suppressing under
+ * unresolved consent. Decides HOW the chamber configures alloy at boot; the
+ * y/n `setConsent` shaping is delegated to `shapeAlloyConsent` (above,
+ * UNCHANGED — reused here for the grant/deny paths AND the mid-session
+ * setConsent flush path).
+ *
+ * The three states of the PRIMARY collection purpose `analytics_storage`
+ * (`core/consent.js`'s `resolveConsent`), plus the no-vector back-compat case:
+ *
+ *   - **pending** (a CMP is wired but `analytics_storage` has no signal yet) →
+ *     `{ defaultConsent: "pending", setConsentOptions: undefined }`. Configure
+ *     alloy with `defaultConsent:"pending"` so alloy's OWN queue holds every
+ *     `sendEvent` (no interact egresses), and do NOT drive `setConsent` —
+ *     driving `collect:"n"` here would self-SUPPRESS (the pre-045-02 behavior
+ *     this slice REPLACES), which discards the queue instead of holding it. A
+ *     later host→chamber `setConsent(collect:"y")` FLUSHES the queue with the
+ *     full round-trip (grounded: `rig/alloy-consent-pending.mjs`).
+ *   - **granted** → `{ defaultConsent: undefined, setConsentOptions:
+ *     shapeAlloyConsent(vector) }`. Omit `defaultConsent` (alloy's default) and
+ *     drive `setConsent(collect:"y")` at boot, exactly as pre-045-02 — 034-01
+ *     LIVENESS is preserved (a personalization denial does NOT force `"n"`; the
+ *     TRUSTED seam strips the per-event personalization query).
+ *   - **denied** → `{ defaultConsent: undefined, setConsentOptions:
+ *     shapeAlloyConsent(vector) }`. Drive `setConsent(collect:"n")` — alloy
+ *     self-suppresses upstream of the seam, byte-unchanged from today.
+ *   - **no vector at all** (`null`/`undefined` — no CMP wired) →
+ *     `{ defaultConsent: undefined, setConsentOptions: undefined }`. Neither
+ *     configure `defaultConsent` NOR drive `setConsent`: alloy's own
+ *     default-`"in"` window sends, byte-unchanged (spec 045-02 AC5 — "no
+ *     consent vector wired → no `defaultConsent:"pending"`"; the same
+ *     "no CMP wired vs. CMP-wired-but-pending" distinction GA4 draws).
+ *
+ * Pure — no DOM, no `self`, no alloy/command-fn reach (the chamber owns the
+ * `configure`/`setConsent` calls; this only SHAPES). Reads only
+ * `core/consent.js`'s `resolveConsent` via `shapeAlloyConsent`.
+ *
+ * @param {Record<string, string>|null|undefined} vector the host-supplied
+ *   ADR-0007 consent vector (`core/consent.js`'s shape).
+ * @returns {{ defaultConsent: ("pending"|undefined), setConsentOptions: (ReturnType<typeof shapeAlloyConsent>) }}
+ */
+export function shapeAlloyBoot(vector) {
+  if (vector == null) {
+    // No CMP wired — byte-unchanged back-compat: neither posture is applied.
+    return { defaultConsent: undefined, setConsentOptions: undefined };
+  }
+  if (resolveConsent(vector, PRIMARY_COLLECT_PURPOSE) === "pending") {
+    // CMP wired, analytics unresolved — alloy's OWN native queue, NOT suppress.
+    return { defaultConsent: "pending", setConsentOptions: undefined };
+  }
+  // granted → setConsent(collect:"y"); denied → setConsent(collect:"n"). Both
+  // omit defaultConsent (alloy's default) — shapeAlloyConsent is never undefined
+  // here (vector is non-null).
+  return { defaultConsent: undefined, setConsentOptions: shapeAlloyConsent(vector) };
+}

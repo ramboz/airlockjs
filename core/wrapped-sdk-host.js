@@ -164,6 +164,7 @@ function consoleDiagnostic(record) {
  * @returns {{
  *   init: (initMsg?: Record<string, unknown>) => void,
  *   driveEvent: (event: object) => Promise<{ summary: object, ready: unknown[] }>,
+ *   setConsent: (vector: (Record<string, string> | null)) => void,
  *   getState: () => {
  *     phases: string[],
  *     writeBacks: string[],
@@ -586,6 +587,20 @@ export function createWrappedSdkHost({
           queuedEvent = event;
         }
       });
+    },
+    /**
+     * Post a mid-session consent update to the chamber (spec 045-02, ADR-0023).
+     * ADDITIVE — the chamber's alloy-boot glue drives alloy's OWN `setConsent`
+     * on this message, which natively FLUSHES alloy's `defaultConsent:"pending"`
+     * queue (grounded: rig/alloy-consent-pending.mjs). This does NOT touch the
+     * TRUSTED seam enforcement (the strict `egressVerdict` + the 034-01 strip in
+     * `dispatchInterceptedFetch`), which reads the caller's LIVE `consent` ref
+     * and stays the byte-unchanged backstop — the adapter (bootAlloy) mutates
+     * that ref separately, so a flushed interact is still gated by the seam.
+     * @param {Record<string, string>|null} vector the ADR-0007 consent vector.
+     */
+    setConsent(vector) {
+      chamber.postMessage({ type: "setConsent", consent: vector });
     },
     /** A snapshot of everything observed so far (for rig/test assertions). */
     getState() {

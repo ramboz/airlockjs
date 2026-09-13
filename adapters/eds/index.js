@@ -1365,10 +1365,22 @@ export async function bootAlloy(opts = {}) {
     // pushCritical rides the SAME queued driveEvent — best-effort on unload; a true
     // unload fast path for the wrapped-SDK interact is a named follow-on.
     pushCritical: (evt) => { enqueue(toDescriptor(evt)); },
-    // Update the TRUSTED seam gate live (mutating the ref the host reads). A boot with
-    // no consent leaves the gate off (egressPurposes stayed []), same as every other
-    // connector; a mid-session in-chamber re-delegate is a named follow-on.
-    setConsent: (v) => { if (consentRef && v) Object.assign(consentRef, v); },
+    // spec 045-02 (ADR-0023): a mid-session consent update does BOTH halves, so a
+    // grant that releases a pending hold is honored end-to-end:
+    //   (a) mutate the TRUSTED seam's LIVE consent ref (the object the host reads
+    //       per-interact) — so the flushed interact AND the set-consent request pass
+    //       the strict seam gate (they are granted then), and the 034-01 strip re-derives;
+    //   (b) drive alloy's OWN setConsent in the chamber (host.setConsent -> the
+    //       {type:"setConsent"} message) — alloy natively FLUSHES its
+    //       defaultConsent:"pending" queue (grounded: rig/alloy-consent-pending.mjs).
+    // Gated on `consentRef` (opt-in via a boot that wired consent): a no-consent boot
+    // leaves the gate off (egressPurposes stayed []) and posts NO chamber message —
+    // byte-unchanged, mirroring every other connector.
+    setConsent: (v) => {
+      if (!consentRef || !v) return;
+      Object.assign(consentRef, v); // (a) seam live ref
+      host.setConsent(consentRef); // (b) chamber alloy setConsent -> native flush
+    },
     getState: () => host.getState(),
     stats: () => host.getState(),
     dispose: () => {
