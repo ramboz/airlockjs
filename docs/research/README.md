@@ -47,6 +47,7 @@ you create a note; update its status/promotion when it resolves.
 | [R-008](R-008-costly-dom-martech-containment.md) | Containing costly-DOM martech (the INP/CWV thesis) — 3 levers; worker-dom-compat / govern+schedule strategy | OPEN | [spec 022](../specs/022-helix-rum-connector/spec.md); nasty-tag POC (next); [R-007](R-007-real-prod-stack-breadth.md) |
 | [R-009](R-009-gtag-family-fidelity.md) | gtag-family fidelity — GA4/Ads/Floodlight beacon + attribution parity from off-thread governed egress (the MVP7 risk-first spike) | OPEN | [ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md); [mvp7](../releases/mvp7.md); [mvp8](../releases/mvp8.md) |
 | [R-010](R-010-rewire-cwv-upper-bound.md) | The rewire's indicative CWV bound — shipped page vs the four vendor runtimes network-blocked (no container-owner needed) | OPEN | [ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md); [mvp7](../releases/mvp7.md); [mvp9](../releases/mvp9.md) |
+| [R-011](R-011-offender-per-vendor-tbt-inp.md) | Per-vendor TBT attribution + INP null result for the reference-site offenders (the flip-the-offenders experiment) | CONCLUDED | [ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md); [R-008](R-008-costly-dom-martech-containment.md); [R-010](R-010-rewire-cwv-upper-bound.md); [mvp8](../releases/mvp8.md) (feeds Floodlight/Google-Ads connector priority); [mvp9](../releases/mvp9.md) |
 
 ## Hand-offs
 
