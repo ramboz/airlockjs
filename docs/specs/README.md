@@ -133,6 +133,8 @@
 | [046-floodlight-connector](046-floodlight-connector/spec.md) | 046-01 — core DC ccm/collect beacon off-thread (query-delimited, reuse-complete) | **DONE** |  |
 | [046-floodlight-connector](046-floodlight-connector/spec.md) | 046-02 — core DC activity beacon off-thread (;-delimited, Floodlight-native identity) | **DONE** |  |
 | [046-floodlight-connector](046-floodlight-connector/spec.md) | 046-03 — DC opts into hold-until-granted, both forms (ad_storage-denied parity) | **DONE** |  |
+| [047-onetrust-consent-input-driver](047-onetrust-consent-input-driver/spec.md) | 047-01 — OneTrust boot consent vector → the seam's `consent` param | DRAFT |  |
+| [047-onetrust-consent-input-driver](047-onetrust-consent-input-driver/spec.md) | 047-02 — OneTrust consent-change → `handle.setConsent` (accept-flow flush) | DRAFT |  |
 
 ## Deferred slices
 
