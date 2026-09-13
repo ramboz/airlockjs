@@ -13,10 +13,11 @@ arch_review: false
 
 ## Slice 047-02 — OneTrust consent-change → `handle.setConsent` (accept-flow flush)
 
-> **Partly grounded 2026-09-13.** GROUNDED: `handle.setConsent(v)` (017-03 AC2, `adapters/eds/index.js:456`) + the 045
-> `holdOnDenied` hold/flush on the grant edge (044-02 / 046-03) — the update sink and flush behavior this slice drives.
-> UNVERIFIED (spec §A2): which OneTrust change signal fires on the reference deployment and whether it carries the new state
-> — grounded as an extension of the 047-01 DoR capture.
+> **Grounded 2026-09-13 (mechanism).** `handle.setConsent(v)` (017-03 AC2, `adapters/eds/index.js:456`) + the 045
+> `holdOnDenied` hold/flush on the grant edge (044-02 / 046-03) — the update sink and flush behavior this slice drives — plus
+> the OneTrust change-signal surface: `OneTrust.OnConsentChanged` and `OptanonWrapper` are both `function` on the reference
+> site (`rig/onetrust-consent-probe.mjs`, spec §A2). RESIDUAL: that the signal *fires with the updated set on a real banner
+> toggle* is unobserved (the probe did not click) — confirmed at implementation with one live toggle.
 
 **Goal:** The OneTrust driver subscribes to OneTrust's consent-change signal (`OneTrust.OnConsentChanged`, and/or the
 `OptanonWrapper()` global), re-maps the updated active groups through 047-01's contract, and calls the runtime handle's
@@ -28,9 +29,10 @@ held Google Ads / Floodlight beacons egress.
 - ✅ 047-01 shipped the read + map contract + the driver module this extends.
 - ✅ `handle.setConsent(v)` (017-03) + 045 `holdOnDenied` hold/flush (044-02 / 046-03) are built — the update sink + the
   flush behavior this slice drives.
-- ⛔ **NOT YET MET (spec §A2):** the OneTrust change-signal grounding — which of `OnConsentChanged` / `OptanonWrapper` fires
-  on the reference deployment, and whether it carries the new active-group set or requires a re-read (the 047-01 DoR capture
-  extended to the change event).
+- ✅ **Change-signal surface grounded (2026-09-13, `rig/onetrust-consent-probe.mjs`):** `OneTrust.OnConsentChanged` +
+  `OptanonWrapper` are both present as functions (spec §A2) — the subscription seam exists.
+- ◻️ (soft, non-blocking) observe one **real** consent toggle at implementation to confirm the signal delivers the updated
+  group set (vs requiring a re-read) — the §A2 live-delivery residual.
 
 **Acceptance Criteria:**
 
