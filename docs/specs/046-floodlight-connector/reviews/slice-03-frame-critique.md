@@ -1,5 +1,5 @@
 ---
-slice: 046-02 — DC opts into hold-until-granted (ad_storage-denied parity)
+slice: 046-03 — DC opts into hold-until-granted (ad_storage-denied parity)
 pass: frame-critique
 verdict: needs-changes
 reviewer: general-purpose
