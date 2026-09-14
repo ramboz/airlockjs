@@ -134,7 +134,7 @@
 | [046-floodlight-connector](046-floodlight-connector/spec.md) | 046-02 — core DC activity beacon off-thread (;-delimited, Floodlight-native identity) | **DONE** |  |
 | [046-floodlight-connector](046-floodlight-connector/spec.md) | 046-03 — DC opts into hold-until-granted, both forms (ad_storage-denied parity) | **DONE** |  |
 | [047-onetrust-consent-input-driver](047-onetrust-consent-input-driver/spec.md) | 047-01 — OneTrust boot consent vector → the seam's `consent` param | **DONE** |  |
-| [047-onetrust-consent-input-driver](047-onetrust-consent-input-driver/spec.md) | 047-02 — OneTrust consent-change → `handle.setConsent` (accept-flow flush) | DRAFT |  |
+| [047-onetrust-consent-input-driver](047-onetrust-consent-input-driver/spec.md) | 047-02 — OneTrust consent-change → `handle.setConsent` (accept-flow flush) | **DONE** |  |
 
 ## Deferred slices
 
@@ -160,7 +160,7 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
 
 - **9** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **97** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **45** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **46** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
@@ -206,3 +206,4 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
   - `046-floodlight-connector/slice-02-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `046-floodlight-connector/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `047-onetrust-consent-input-driver/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `047-onetrust-consent-input-driver/slice-02-craft.md` — applied `pr-review`; declined: scout-pr-review

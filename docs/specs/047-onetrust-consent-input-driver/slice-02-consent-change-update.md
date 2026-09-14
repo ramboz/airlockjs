@@ -1,10 +1,9 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [047-01, 045-01]
 last_verified: 2026-09-13
 frame_review: true
 arch_review: false
-claimed_by: claude/onetrust-consent-input-driver-ed1217
 ---
 
 <!-- jig grounding (spec 064-02 / ADR-0020): ground factual claims about runnable
