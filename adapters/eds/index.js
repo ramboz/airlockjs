@@ -383,6 +383,11 @@ function installOnWindow(handle) {
  *                                         non-empty: an unset/empty list is the identity —
  *                                         every current rig/testbed boot is byte-unchanged
  *                                         (back-compat, AC6).
+ * @param {(record: object) => void} [opts.onDiagnostic] spec 028: the enforcement-inspector
+ *                                         diagnostic sink (e.g. `createInspectorCollector().onDiagnostic`),
+ *                                         threaded to `createAirlock` so a PROD-booted instance's
+ *                                         held/dropped/stripped decisions are observable. Absent ->
+ *                                         createAirlock's console default (back-compat).
  * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, flushNow: Function, stats: Function, dispose: Function }>}
  *   a handle over the airlock's public write/read surface (the `window.airlock`
  *   lifecycle is the caller's — `bootEdsAnalytics` / `boot`, via `installOnWindow`).
@@ -399,6 +404,7 @@ async function bootGa4Core(opts = {}) {
     endpoints = DEFAULT_ENDPOINTS,
     trackers = endpoints.length,
     payloadDenylist,
+    onDiagnostic,
   } = opts;
 
   // spec 047-01 AC3: when the host wires the OneTrust consent-input driver
@@ -493,6 +499,11 @@ async function bootGa4Core(opts = {}) {
     egressPurposes: consent ? GA4_EGRESS_PURPOSES : [],
     consentStrict,
     payloadDenylist,
+    // spec 028: thread the inspector's diagnostic sink so a PROD-booted instance's
+    // enforcement decisions (held/dropped/stripped) are observable — without it the
+    // 028 inspector is blind to production boots (docs/inbox.md, 2026-09-03). Absent
+    // -> createAirlock falls back to its console default (back-compat).
+    onDiagnostic,
   });
 
   const handle = {
@@ -684,6 +695,7 @@ export async function bootGa4Gtag(opts = {}) {
     payloadDenylist,
     streamCookieName,
     endpoint = GA4_GTAG_COLLECT_ENDPOINT,
+    onDiagnostic,
   } = opts;
 
   // 017-02 (ADR-0007 point ②): resolve analytics_storage BEFORE identity
@@ -770,6 +782,7 @@ export async function bootGa4Gtag(opts = {}) {
     // endpoint ceiling) is unaffected — it already runs on every input AND
     // every coalesced output (040-02 AC1).
     coalesce: coalesceGa4,
+    onDiagnostic, // spec 028: inspector diagnostic sink pass-through (see bootGa4Core)
   });
 
   return {
@@ -826,7 +839,10 @@ function bootPixelConnector(vendor, opts = {}) {
   // the vendor's own id/endpoint bag, which its `createConfig` destructures
   // (ignoring extras) — byte-matching the per-vendor boots' explicit
   // `createXxxConfig({ …ids, endpoint })` calls.
-  const { consent, consentStrict = false, payloadDenylist, externalId, externalIdCookie, ...ids } = opts;
+  // NOTE: `onDiagnostic` MUST be destructured out explicitly — otherwise `...ids`
+  // swallows it into the vendor id-bag (createConfig ignores extras), and it would
+  // never reach createAirlock. spec 028: inspector diagnostic sink (see bootGa4Core).
+  const { consent, consentStrict = false, payloadDenylist, externalId, externalIdCookie, onDiagnostic, ...ids } = opts;
 
   // 026-04 (ADR-0022): advanced-matching `external_id` sourcing — META only
   // (gated on `entry.advancedMatching`; linkedin/bing stay identity-free, byte-
@@ -860,6 +876,7 @@ function bootPixelConnector(vendor, opts = {}) {
     egressPurposes: consent ? entry.egressPurposes : [],
     consentStrict,
     payloadDenylist,
+    onDiagnostic, // spec 028: inspector diagnostic sink pass-through (see bootGa4Core)
   });
 
   const handle = {
@@ -1042,6 +1059,7 @@ export function bootHelixRum(opts = {}) {
     onLCP: onLCPImpl = onLCP,
     onCLS: onCLSImpl = onCLS,
     onINP: onINPImpl = onINP,
+    onDiagnostic,
   } = opts;
 
   // Mint the per-page sampling ONCE on the MAIN thread — the worker connector, the
@@ -1068,6 +1086,7 @@ export function bootHelixRum(opts = {}) {
     ctx,
     egressPurposes: [], // RUM governance class: confined, NOT consent-gated (spec 022)
     trackers: 1,
+    onDiagnostic, // spec 028: inspector diagnostic sink pass-through (see bootGa4Core)
   });
 
   const push = (evt) => airlock.push(evt);
@@ -1358,6 +1377,13 @@ export async function bootAlloy(opts = {}) {
   const host = createWrappedSdkHost({
     chamber,
     caps,
+    // spec 028: thread the inspector's diagnostic sink onto THIS seam — critically,
+    // config-integrity emits from createWrappedSdkHost ALONE (collector.js's three-seam
+    // note), so an alloy boot that only wired createAirlock would leave the inspector
+    // blind to re-tenant holds. Pass `opts.onDiagnostic` DIRECTLY, not the `diagnose`
+    // wrapper above (which defaults to decisionDiagnostic): absent -> the host keeps its
+    // own console fallback, so back-compat is byte-exact.
+    onDiagnostic: opts.onDiagnostic,
     // ADR-0011 / spec 015 — the TRUSTED config-integrity TENANT pin. A cross-origin/untrusted
     // adopter bundle (ADR-0016) can re-`configure` alloy or craft its own interact fetch to an
     // ATTACKER's Adobe org; the seam pins the tenant to the host-owned datastream (`configId` on
@@ -1739,22 +1765,27 @@ function validateConnectorEntry(entry, index) {
  * @param {Record<string, Promise<object>>} [reservedPlacements] spec 033-03: the eager
  *   pre-paint reserve handles (scope -> handle promise) from `reservePersonalization`,
  *   threaded ONLY into alloy's `bootAlloy` (the sole connector with a personalization path).
+ * @param {object} [compositeEmit] the deferred composite-emit ref (034-03).
+ * @param {(record: object) => void} [onDiagnostic] spec 028: the page-level inspector
+ *   diagnostic sink, threaded into EVERY sub-boot — including helix-rum (a diagnostic sink
+ *   is orthogonal to the governance carve-out below) — so the composite's whole enforcement
+ *   picture is observable from one collector.
  * @returns {Promise<{ handle: object, events: string[] }>} the handle + its declared vocabulary.
  */
-async function bootConnector(entry, governance, index, reservedPlacements, compositeEmit) {
+async function bootConnector(entry, governance, index, reservedPlacements, compositeEmit, onDiagnostic) {
   validateConnectorEntry(entry, index);
   const { type, ...rest } = entry || {};
   switch (type) {
     case "ga4":
-      return { handle: await bootGa4Core({ ...rest, ...governance }), events: GA4_MANIFEST_EVENTS };
+      return { handle: await bootGa4Core({ ...rest, ...governance, onDiagnostic }), events: GA4_MANIFEST_EVENTS };
     case "ga4-gtag":
       // 041-04 AC2: consent-governed exactly like "ga4"/"pixel" — the top-level
       // governance (consent/consentStrict/payloadDenylist) is threaded straight into
       // bootGa4Gtag's own gate, with NO helix-rum-style exemption.
-      return { handle: await bootGa4Gtag({ ...rest, ...governance }), events: GA4_GTAG_MANIFEST_EVENTS };
+      return { handle: await bootGa4Gtag({ ...rest, ...governance, onDiagnostic }), events: GA4_GTAG_MANIFEST_EVENTS };
     case "pixel": {
       const { vendor, ...ids } = rest;
-      const handle = bootPixelConnector(vendor, { ...ids, ...governance });
+      const handle = bootPixelConnector(vendor, { ...ids, ...governance, onDiagnostic });
       // Derive the pixel's vocabulary from the SAME vendor config factory its worker
       // manifest uses (`manifest.events = Object.keys(eventMap)`) — the eventMap keys
       // are id-independent, so this matches the chamber manifest exactly.
@@ -1765,7 +1796,10 @@ async function bootConnector(entry, governance, index, reservedPlacements, compo
       // AC3 carve-out: booted from its OWN fields only — top-level governance is NOT
       // threaded, so `egressPurposes` stays [], no denylist, sync boot (byte-identical
       // to a standalone bootHelixRum). Its vocabulary is the RUM checkpoints only.
-      return { handle: bootHelixRum(rest), events: HELIX_RUM_MANIFEST_EVENTS };
+      // spec 028: `onDiagnostic` IS threaded even here — a diagnostic sink is orthogonal
+      // to the governance carve-out (RUM still emits endpoint-ceiling/dropped records the
+      // inspector should see); it defaults to the console fallback when absent.
+      return { handle: bootHelixRum({ ...rest, onDiagnostic }), events: HELIX_RUM_MANIFEST_EVENTS };
     case "alloy":
       // 033-02: the analytics vertical. alloy is consent-governed (NOT exempt like
       // helix-rum), so it receives the top-level governance (consent/consentStrict/
@@ -1775,7 +1809,7 @@ async function bootConnector(entry, governance, index, reservedPlacements, compo
       // 033-03: the personalization vertical — the eagerly-reserved box handles
       // (reservedPlacements, from loadEager's reservePersonalization) are handed off HERE
       // so bootAlloy's caps.decisions.deliver fills them (never lazily re-reserving).
-      return { handle: await bootAlloy({ ...rest, ...governance, reservedPlacements, compositeEmit }), events: ALLOY_MANIFEST_EVENTS };
+      return { handle: await bootAlloy({ ...rest, ...governance, reservedPlacements, compositeEmit, onDiagnostic }), events: ALLOY_MANIFEST_EVENTS };
     default:
       // 032-02 owns full JSON-Schema validation with actionable errors; here we fail
       // LOUD rather than silently dropping an unknown connector.
@@ -1805,8 +1839,10 @@ async function bootConnector(entry, governance, index, reservedPlacements, compo
  * inert; the analytics path (033-02) is byte-unchanged.
  *
  * @param {{ connectors?: Array<{ type: string }>, consent?: Record<string,string>, consentStrict?: boolean, payloadDenylist?: string[] }} [config]
- * @param {{ reservedPlacements?: Record<string, Promise<object>> }} [opts] spec 033-03:
- *   the eager reserve handles (scope -> handle promise) handed off to alloy's bootAlloy.
+ * @param {{ reservedPlacements?: Record<string, Promise<object>>, onDiagnostic?: (record: object) => void }} [opts]
+ *   spec 033-03: the eager reserve handles (scope -> handle promise) handed off to alloy's
+ *   bootAlloy. spec 028: `onDiagnostic` — a page-level inspector diagnostic sink fanned out to
+ *   EVERY connector's seam (so one collector observes the whole composite's enforcement).
  * @returns {Promise<{ push, pushCritical, setConsent, getState, flushNow, stats, dispose }>}
  *   the composite handle (also set on `window.airlock`).
  */
@@ -1820,6 +1856,10 @@ export async function boot(config = {}, opts = {}) {
   const governance = { consent, consentStrict, payloadDenylist };
   // 033-03: the eager pre-paint reserve handles handed off from reservePersonalization.
   const reservedPlacements = opts && opts.reservedPlacements ? opts.reservedPlacements : undefined;
+  // spec 028: the page-level inspector diagnostic sink, fanned out to every sub-boot's seam
+  // (createAirlock / createWrappedSdkHost) via bootConnector so one collector sees the whole
+  // composite. Absent -> each seam keeps its console default (back-compat).
+  const onDiagnostic = opts && opts.onDiagnostic;
   // 034-03 AC2: the DEFERRED composite-emit ref. bootAlloy's exposure reporter closes over it
   // (read lazily at deliver-time) and routes proposition_display through it — bound BELOW to THE
   // composite this boot assembles, so a re-boot (installOnWindow swapping window.airlock) can't
@@ -1831,7 +1871,7 @@ export async function boot(config = {}, opts = {}) {
     for (let i = 0; i < connectors.length; i++) {
       // Sequential (config order) so `getState`/`stats` read the declared-first
       // connector deterministically and any boot side effects order predictably.
-      booted.push(await bootConnector(connectors[i], governance, i, reservedPlacements, compositeEmit));
+      booted.push(await bootConnector(connectors[i], governance, i, reservedPlacements, compositeEmit, onDiagnostic));
     }
   } catch (err) {
     // Partial-boot cleanup (craft-review nit): a later entry's throw (unknown

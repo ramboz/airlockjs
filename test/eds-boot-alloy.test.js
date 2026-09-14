@@ -23,6 +23,7 @@ import { join } from "node:path";
 import { boot, bootAlloy } from "../adapters/eds/index.js";
 import { reservePersonalization } from "../adapters/eds/reserve-personalization.js";
 import { shapeAlloyConsent } from "../connectors/alloy/consent.js";
+import { createInspectorCollector } from "../core/inspector/collector.js";
 
 const REPO = fileURLToPath(new URL("..", import.meta.url));
 
@@ -525,6 +526,30 @@ describe("boot(config) — AC3 (security): the config-integrity + endpoint-ceili
     expect(String(fetchMock.mock.calls[0][0])).toBe(`${INTERACT}?configId=${DATASTREAM_ID}`);
     expect(window.airlock.getState().held).toBe(0);
     expect(window.airlock.getState().ceilingHeld).toBe(0);
+  });
+
+  // spec 028 follow-on (docs/inbox.md, 2026-09-03): config-integrity emits from
+  // createWrappedSdkHost ALONE (core/inspector/collector.js's three-seam note), so an
+  // alloy boot that threaded onDiagnostic only onto createAirlock — or not at all — left
+  // the inspector BLIND to re-tenant holds ("worse than the console baseline"). This proves
+  // boot(config, { onDiagnostic }) fans the sink all the way through bootConnector ->
+  // bootAlloy -> the createWrappedSdkHost seam: the re-tenant HOLD lands in the collector.
+  // Non-vacuous: before the boot-adapter threading, this collector saw ZERO config-integrity
+  // records (bootAlloy's opts.onDiagnostic reached only the decisions path, not this seam).
+  it("spec 028: the config-integrity re-tenant HOLD reaches a collector wired via boot(config, { onDiagnostic })", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve({ status: 200, statusText: "OK", headers: { get: () => "application/json" }, text: async () => "{}" }));
+    vi.stubGlobal("fetch", fetchMock);
+    interactUrlFor = () => `${INTERACT}?configId=${ATTACKER_DS}`; // re-tenant to an attacker's Adobe org
+
+    const collector = createInspectorCollector();
+    await boot({ connectors: [alloyEntry()] }, { onDiagnostic: collector.onDiagnostic });
+    window.airlock.push({ event: "page_view", page_location: "https://site/retenant-inspected" });
+
+    await waitFor(() => collector.query({ kind: "config-integrity" }).length >= 1);
+    const held = collector.query({ kind: "config-integrity" });
+    expect(held).toHaveLength(1);
+    expect(held[0].disposition).toBe("held"); // fail-closed re-tenant hold, now OBSERVABLE on a prod-shaped boot
+    expect(fetchMock).not.toHaveBeenCalled(); // and still zero real egress
   });
 });
 
