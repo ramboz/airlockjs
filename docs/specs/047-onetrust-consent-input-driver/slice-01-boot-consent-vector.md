@@ -18,9 +18,8 @@ arch_review: true
 > opt-out experiment (`rig/onetrust-optout-probe.mjs`, spec §A5) — **which OneTrust surface carries resolved consent**:
 > `OnetrustActiveGroups` / the `OptanonConsent` cookie `groups` flags (both flip on opt-out); `GetDomainData().Status` is
 > **confirmed configured-default** (does NOT flip) and is used for taxonomy/names only. **Source surface decided —
-> [ADR-0026](../../decisions/adr-0026-onetrust-consent-input-source.md): option (a).** Residual: the host-map's granularity is
-> UNVERIFIED (§A5) — a non-degraded per-group experiment grounds it before the map contract is frozen (the degraded
-> all-at-once reject can't).
+> [ADR-0026](../../decisions/adr-0026-onetrust-consent-input-source.md): option (a).** Map grounded for the US config (§A5):
+> group `4` = the single lever → `{ "4" → the four CM v2 purposes }`, CM-vector-validated; EEA granularity is the residual.
 
 **Goal:** A OneTrust consent-input driver module (proposed `drivers/consent/onetrust.js` — module home is an arch-pass call)
 reads OneTrust's **resolved-consent surface** at boot (`OnetrustActiveGroups`, equivalently the `OptanonConsent` cookie
@@ -40,11 +39,10 @@ consent parity (granted ad purposes send; denied / pending hold).
 - ✅ **Resolved surface grounded (opt-out experiment, §A5):** `OnetrustActiveGroups` / `OptanonConsent` cookie flags flip on
   opt-out; `GetDomainData().Status` is configured-default (rejected as the grant signal). The prior safety-critical blocker
   is retired.
-- ◻️ **First 047-01 step (grounds the map contract before freezing it):** a **non-degraded per-group-toggle** experiment
-  (resolve geo / spoof EEA, deny one group at a time) **plus cross-validation of the driver's output against the site's own
-  resolved Consent Mode vector** (`google_tag_data.ics`) across states, to establish the map's **shape + granularity** —
-  incl. whether a static per-group map can express the site's logic at all. Not a pre-req to starting; the design (surface)
-  is grounded (§A5).
+- ✅ **Map grounded for the US config (§A5, `rig/onetrust-map-probe.mjs`):** group `4` is the single lever → host-map
+  `{ "4" → the four CM v2 purposes }`, CM-vector-validated; expressible per-group (ADR-0026 kill-criterion not triggered).
+- ◻️ (residual, MVP7–9) EEA/opt-in granularity untested (no EEA IP in-sandbox) — re-verify at EEA parity; each site supplies
+  its own host-map.
 
 **Acceptance Criteria:**
 
@@ -54,8 +52,8 @@ consent parity (granted ad purposes send; denied / pending hold).
    state (ADR-0026 / §A5: configured-default); `GetDomainData()` may supply group taxonomy/names only. OneTrust absent / the
    surface unavailable ⇒ an empty result, **no throw**.
 2. **Maps granted groups → the purpose vector via a host-provided map.** Given a host `{ <groupId>: ConsentPurpose[] }` map —
-   its shape **grounded + cross-validated per site** against the site's own resolved Consent Mode vector (§A5), **not** read
-   from group names and **not** assumed —
+   its shape **grounded + CM-vector-validated per site** (§A5: the reference-site US map is the single coarse entry
+   `{ "4": ["ad_storage", "analytics_storage", "ad_user_data", "ad_personalization"] }` — group `4` is the sole lever) —
    the driver produces a `Record<ConsentPurpose, "granted" | "denied">` over the Consent Mode v2 four: a mapped group **in**
    the granted set ⇒ its purposes `granted`; a mapped group **absent** while OneTrust is resolved ⇒ its purposes `denied`; a
    purpose no mapped-and-resolved group covers ⇒ **omitted**. Purpose names + values match `core/consent.js` exactly

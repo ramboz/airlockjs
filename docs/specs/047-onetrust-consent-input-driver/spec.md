@@ -119,24 +119,26 @@ discriminating opt-out (`OneTrust.RejectAll()`) on `erp.intuit.com`, diffing eve
 - **`OnetrustActiveGroups` and the `OptanonConsent` cookie `groups` flags track RESOLVED consent** — both flipped
   (`OnetrustActiveGroups` `,1,BG394,4,`→`,1,`; cookie `4:1`→`4:0`, `BG394:1`→`BG394:0`). These are option (a)'s read. The
   Consent Mode signals (`gtag`/`ics`) flipped too (all four →`denied`) — option (b)'s surface.
-- **The map's SHAPE + granularity are UNVERIFIED (frame-critique).** `RejectAll()` denies every optional group at once (it
-  cannot isolate a group), both probe sessions were **geo-degraded** (`geolocation: null` / `403`; the opt-out `before` set
-  `{1, BG394, 4}` already lacked `3`/`41`/`42`), and the site's OneTrust→purpose logic lives in Tealium (uninspected) — so it
-  may not even be a static per-group map (`BG394` flipped in lockstep with `4`, hinting combinational / region-conditional).
-  Grounded before 047-01 freezes the host-map by **(i)** a non-degraded per-group-toggle experiment (resolve geo / spoof EEA,
-  deny one group at a time) **and (ii)** cross-validating the driver's output against the site's own resolved Consent Mode
-  vector (`google_tag_data.ics`) across states (the available ground truth). The experiment grounds only the *surface*
-  finding, not the map.
+- **Map GROUNDED for the US config (2026-09-13, `rig/onetrust-map-probe.mjs`).** Isolating groups by a single
+  `UpdateConsent` (grant the other default-granted groups, deny the target) from fresh cookie-cleared sessions: denying
+  **group `4`** (Advertising-Targeting) denied **all four** CM v2 signals (and cascaded `BG394` off, active → `,1,`);
+  `BG394` could **not** be independently denied while `4` was granted (it is slaved to `4`). So **group `4` is the single
+  consent lever** for the ad+analytics CM vector on this site. The host-map is therefore
+  `{ "4": ["ad_storage", "analytics_storage", "ad_user_data", "ad_personalization"] }` — a **single coarse per-group entry**,
+  which **IS** expressible as a static per-group map (**ADR-0026 kill-criterion NOT triggered**). **CM-vector
+  cross-validation passes:** reading `OnetrustActiveGroups` → applying this map reproduces the site's own
+  `google_tag_data.ics` vector in both the granted (`,1,BG394,4,` → all four granted) and denied (`,1,` → all four denied)
+  states. **Residual:** grounded for the **US opt-out** config only — EEA/opt-in granularity is untested (no EEA IP
+  in-sandbox) and could expose finer per-purpose groups; re-verify at MVP7–9 EEA parity.
 
 ## Assumptions
 
 - **Live change-event delivery (A2 residual).** That `OnConsentChanged` / `OptanonWrapper` fire with the updated set when
   the user actually changes consent — grounded at 047-02 implementation (observe one real toggle), not asserted now.
-- **Host-map shape + granularity UNVERIFIED (A5 residual — load-bearing for 047-01's map contract).** Only the *surface* is
-  grounded (`OnetrustActiveGroups` / cookie change on opt-out; `GetDomainData().Status` does not). Whether a static per-group
-  map can express the site's logic at all (it may be combinational / region-conditional) needs a **non-degraded per-group-
-  toggle** experiment **+ cross-validation against the site's own resolved Consent Mode vector** — grounded before 047-01
-  freezes the host-map, never asserted from the degraded all-at-once reject.
+- **Host-map grounded for US; EEA granularity is the residual (A5).** The reference-site map
+  `{ "4" → the four CM v2 purposes }` is probe-grounded and CM-vector-validated for the US opt-out config (group `4` = the
+  single lever; a static per-group map suffices). **Residual:** EEA/opt-in granularity is untested (no EEA IP in-sandbox) —
+  re-verify at MVP7–9 EEA parity. The map stays host config (a different site supplies its own).
 
 ## Decomposition
 
