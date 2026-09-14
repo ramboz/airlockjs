@@ -31,10 +31,11 @@ as a per-purpose **vector** (`core/consent.js`'s `CONSENT_PURPOSES` — the Cons
 OneTrust and calls that update — **another source onto the same seam, not a new seam** (`docs/refinement-todo.md:273-277`).
 
 It is a **main-thread input driver**. OneTrust runs on the main thread and the seam is pre-construction on the main thread,
-so the driver reads OneTrust's resolved consent there and maps it to the purpose vector — **either** from OneTrust's own
-group set via a host-provided group→purpose map, **or** from the already-resolved Consent Mode v2 signals OneTrust/Tealium
-publish on the page (the live probe found *both* surfaces present; which is canonical is 047-01's arch decision — see
-`## Grounding` §A3) — handing the runtime only the resolved vector (ADR-0003 minimal snapshot). It runs **no chamber, opens
+so the driver reads OneTrust's **own** resolved group state there (`GetDomainData().Groups[].Status`) and maps it to the
+purpose vector via a host-provided group→purpose map
+([ADR-0026](../../decisions/adr-0026-onetrust-consent-input-source.md); the live probe found the resolved Consent Mode v2
+signals present too, but consuming *those* is ADR-0007's **separate** gtag driver — out of scope, see `## Grounding` §A3) —
+handing the runtime only the resolved vector (ADR-0003 minimal snapshot). It runs **no chamber, opens
 no worker, performs no egress** — it feeds the seal, which then gates egress exactly as it already does: denied / pending ad
 purposes hold (045's `holdOnDenied`), and a later OneTrust grant flushes them (the "OneTrust-accept flow").
 
@@ -58,8 +59,9 @@ Two entry points, two slices (SPIDR **Path**): the **initial** consent state at 
   triggers — already built (spec 045 / ADR-0023); 044-02 / 046-03 proved it for Google Ads / Floodlight.
 - **ADR-0007's seam contract (the OPEN part this spec pins).** ADR-0007 Open questions (`:227-240`) leave the consent-input
   seam contract **unpinned** — which surface (`gtag` / `__tcfapi` / host callback) and where the regime is declared,
-  "pinned with the seam." This spec pins the **OneTrust facet**: the source surface + group→purpose mapping shape (047-01,
-  `arch_review: true` — likely a new ADR or an ADR-0007 amendment).
+  "pinned with the seam." This spec pins the **OneTrust facet** in
+  [ADR-0026](../../decisions/adr-0026-onetrust-consent-input-source.md): the source surface is OneTrust's own `GetDomainData`
+  group state + a host group→purpose map (the resolved-CM-signal path is ADR-0007's *separate* gtag driver, out of scope).
 
 ## Grounding (live probe, 2026-09-13)
 
@@ -93,16 +95,23 @@ in airlock's **exact vocabulary**. So there are two candidate source surfaces:
     it living in Tealium today).
   - **(b) The already-resolved Consent Mode v2 signals** (`gtag` / `google_tag_data.ics`) — no map, already in airlock's
     vocabulary, but this is really ADR-0007's *Consent Mode `gtag` driver*, not OneTrust's own surface.
-  **Probe caveat:** in the degraded session `OnetrustActiveGroups` (`,1,BG394,4,`) was **incomplete** vs both the granted CM
-  signals and `GetDomainData().Groups[].Status` (`3` / `41` / `42` = active) — so option (a) must read
-  `GetDomainData().Groups[].Status`, **not** the `OnetrustActiveGroups` string alone. **Recommendation (arch-pass call):**
-  option (a) as the spec's "OneTrust driver" (title/MVP8-faithful, no gtag-internals coupling), with option (b) recorded as
-  the sibling gtag-CM driver ADR-0007 also names — decided (and likely ADR'd) in 047-01.
+  **Probe limit (frame-critique):** the capture was **read-only, pre-interaction, opt-out/default-granted**, so it cannot
+  tell resolved-*user*-consent from OneTrust's *configured default* — and its surfaces **disagreed** (`OptanonConsent` cookie
+  + `OnetrustActiveGroups` = `{1, BG394, 4}` vs `GetDomainData().Status` ≈ all-active vs CM signals all-granted). So the probe
+  grounds these surfaces' *shape*, **not** which one carries resolved consent. **Decided —
+  [ADR-0026](../../decisions/adr-0026-onetrust-consent-input-source.md):** option (a) — read OneTrust's **own resolved-consent**
+  surface (not the gtag signals, option (b) = ADR-0007's separate driver). The **exact** surface (the `OptanonConsent` cookie
+  `groups=<id>:1|0` flags — *leading candidate* — vs `OnetrustActiveGroups`; `GetDomainData().Status` **rejected** as the
+  grant signal — suspected configured-default) is **gated on a discriminating click-through re-capture** (opt out of one ad
+  group, see which flag flips — a hard 047-01 grounding step), never assumed. `GetDomainData()` supplies the group
+  taxonomy/names only.
 
 **A4 (resolution model — GROUNDED).** Opt-out, US-default-granted: pre-interaction the four CM signals were UPDATED to
 granted (the opt-out default *is* the resolved state; "resolved" ≠ "user clicked"). Resolution is network-gated, though —
 the `403` + `geolocation: null` degraded it — so **"OneTrust present but not yet fully resolved" is a real state**; the
-driver keeps core's fail-to-pending for it (omit → seal holds), never fail-to-granted.
+driver keeps core's fail-to-pending for it (omit → seal holds), never fail-to-granted. Because the capture was
+pre-interaction, it also does **not** show which surface *tracks* a user opt-out — the §A3 / ADR-0026 discriminating
+experiment settles that before 047-01 implements.
 
 ## Assumptions
 
@@ -122,13 +131,14 @@ the egress hold/flush, *and now the OneTrust surface itself* are grounded (`## G
 choice (which source surface), not open-ended research. `functional` / `personalization` purposes and non-EDS host adapters
 are out of scope (MVP8 is ad-conversion — the Consent Mode v2 four).
 
-- **047-01 (Path — initial consent at boot)** — a OneTrust consent-input driver module reads OneTrust's resolved consent at
-  boot **from the arch-chosen source** (§A3: (a) `GetDomainData().Groups[].Status` + a host group→purpose map, or (b) the
-  resolved CM v2 signals), maps to the `core/consent.js` vector over the Consent Mode v2 four, and feeds the
-  `adapters/eds/index.js` `consent` boot param. Defines the driver module + the source surface + the mapping contract.
-  `arch_review: true` (new module boundary + pins ADR-0007's open seam facet — the (a)/(b) source decision, a candidate
-  ADR); `frame_review: true` (rests on the A1/A2 non-degraded / delivery residuals). Delivers: on page load the seal starts
-  from OneTrust's actual consent — granted ad purposes send, denied / pending hold.
+- **047-01 (Path — initial consent at boot)** — a OneTrust consent-input driver module reads OneTrust's **own** resolved
+  group state at boot (`GetDomainData().Groups[].Status` + a host group→purpose map, per
+  [ADR-0026](../../decisions/adr-0026-onetrust-consent-input-source.md)), maps to the `core/consent.js` vector over the
+  Consent Mode v2 four, and feeds the `adapters/eds/index.js` `consent` boot param. Defines the driver module + the host-map
+  contract. `arch_review: true` (new module boundary + the host-map public contract; the *source-surface* choice is already
+  settled in ADR-0026, so the arch pass validates the module home + contract shape); `frame_review: true` (rests on the
+  A1/A2 non-degraded / delivery residuals). Delivers: on page load the seal starts from OneTrust's actual consent — granted
+  ad purposes send, denied / pending hold.
 - **047-02 (Path — mid-session consent change)** — the same driver subscribes to OneTrust's consent-change signal
   (`OnConsentChanged` / `OptanonWrapper`, mechanism grounded §A2), re-maps through 01's contract, and calls
   `handle.setConsent(vector)`, flushing 045-held beacons on the grant edge (the "OneTrust-accept flow"). `arch_review: false`
