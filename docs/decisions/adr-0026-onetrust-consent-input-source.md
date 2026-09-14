@@ -1,7 +1,7 @@
 ---
-status: Proposed
+status: Accepted
 dependencies: [adr-0007, adr-0018]
-last_verified:
+last_verified: 2026-09-13
 frame_review: true
 ---
 
@@ -9,7 +9,7 @@ frame_review: true
 
 ## Status
 
-Proposed (2026-09-13)
+Accepted (2026-09-13)
 
 ## Context
 
