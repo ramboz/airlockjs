@@ -24,6 +24,10 @@ A single connector's sandbox inside the worker runtime. Each connector runs in i
 
 The unit of martech integration that runs inside a chamber. Two archetypes: **wire-protocol** (reimplement the beacon directly, e.g. `airlock/ga4` via the GA4 Measurement Protocol — the MVP1 shape) and **wrapped-SDK** (contain a vendor library in a chamber, e.g. `airlock/alloy` — MVP2). Registry namespace `airlock/*`.
 
+## consent-input driver
+
+The **source** side of the seal (ADR-0007's consent-input seam): a host-neutral driver that reads a CMP's resolved consent on the main thread and produces the `core/consent.js` purpose vector to feed IN — distinct from `core/consent.js`'s egress *enforcement* (the [[seal]] itself). Lives in `drivers/consent/` (not `core/`, not a [[connector]] — no [[chamber]], no egress). First concrete driver: **OneTrust** (`drivers/consent/onetrust.js`, spec 047 / [[adr-0026]]) — reads OneTrust's **resolved** surface (`OnetrustActiveGroups` / the `OptanonConsent` cookie flags, **never** `GetDomainData().Status`, which is configured-default) + a host `{ groupId: ConsentPurpose[] }` map, feeds the `adapters/eds` boot `consent` param (047-01), and subscribes to `OnConsentChanged` / `OptanonWrapper` to call `handle.setConsent` on change (047-02 — the OneTrust-accept flow). Siblings ADR-0007 names but leaves unbuilt: the Consent Mode `gtag` driver + the IAB `__tcfapi` driver.
+
 ## customer-custom tag
 
 A tag that is a specific customer's own logic (e.g. an in-house event-enrichment or click-tracking chain like the reference site's ECS/TrackStar/UX-Fabric chain), as opposed to a generic third-party vendor tag. Per ADR-0018, customer-custom tags are validation-only inputs — never a shipped airlock connector, deliverable, or release gate.

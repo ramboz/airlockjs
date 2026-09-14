@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { bootEdsAnalytics } from "../adapters/eds/index.js";
-import { ERP_INTUIT_GROUP_PURPOSE_MAP } from "../drivers/consent/onetrust.js";
+import { createAirlock } from "../core/airlock.js";
+import { ERP_INTUIT_GROUP_PURPOSE_MAP, subscribeOnetrustConsentChanges } from "../drivers/consent/onetrust.js";
 
 // Spec 047-01 AC3/AC4 — the driver->boot path. The OneTrust-derived vector is fed as
 // the EDS boot's `consent` option (the existing `bootGa4Core` pre-construction fold +
@@ -117,5 +118,176 @@ describe("AC4 — an absent/unresolved OneTrust boot HOLDS at the seal (fail-to-
     FakeWorker.last.onmessage(readyMsg([{ url: ENDPOINT, body: '{"n":1}' }]));
 
     expect(fetchMock).toHaveBeenCalledTimes(1); // no consent wired -> no seal gate -> send
+  });
+});
+
+// Spec 047-02 AC3/AC4 — the OneTrust-accept flow, end-to-end against the REAL
+// seal: a denied ad_storage beacon HOLDS under spec 045's `holdOnDenied`, then a
+// fixture-invoked OneTrust consent-change GRANT — routed through
+// `subscribeOnetrustConsentChanges` -> `airlock.setConsent` — flushes it. These
+// are wired directly against `createAirlock` (like test/consent-seal.test.js's
+// own holdOnDenied proof and test/google-ads-seal.test.js), NOT through
+// `bootEdsAnalytics`: GA4's own core boot does not wire `holdOnDenied` for any
+// purpose (ad-connector boot wiring is a separate, already-deferred concern,
+// spec 044-01 §A2) — this proves the NEW driver-subscription TRIGGER against
+// the EXISTING 045 mechanism, exactly as 044-02/046-03 proved the mechanism
+// itself. No new flush codepath is exercised here.
+describe("047-02 AC3/AC4 — the accept-flow: a held ad beacon flushes when OneTrust GRANTS via the subscribed change signal", () => {
+  const AD_ENDPOINT = "https://ads.example/collect";
+
+  // Fake connector re-mapper (mirrors test/consent-seal.test.js's own
+  // makeRemap): rebuilds the beacon under the PASSED consent vector, so the
+  // fired URL proves a RE-MAP happened, not a stale verbatim re-send.
+  const makeRemap = () =>
+    vi.fn((event, vector) => ({
+      url:
+        vector && vector.ad_storage === "granted"
+          ? `${AD_ENDPOINT}?ev=${event.type}&granted=1`
+          : `${AD_ENDPOINT}?ev=${event.type}&granted=0`,
+      method: "GET",
+    }));
+
+  const heldReadyMsg = () =>
+    readyMsg([{ url: `${AD_ENDPOINT}?ev=conversion&granted=0`, method: "GET", event: { type: "conversion" } }]);
+
+  const makeAdAirlock = (opts) =>
+    createAirlock({
+      trackers: 1,
+      workFactor: 0,
+      endpoints: [AD_ENDPOINT],
+      ctx: {},
+      unloadCritical: [],
+      egressPurposes: ["ad_storage"],
+      holdOnDenied: true,
+      consent: { ad_storage: "denied" },
+      ...opts,
+    });
+
+  // Wires the driver's subscription helper against a fixture OneTrust +
+  // fixture host global, exactly like the eds adapter would (onChange ->
+  // handle.setConsent) — the driver itself never touches `airlock` directly.
+  const wireFixtureSubscription = (airlock, fixtureWin) => {
+    let captured;
+    const fixtureOneTrust = {
+      OnConsentChanged: (cb) => {
+        captured = cb;
+      },
+    };
+    subscribeOnetrustConsentChanges({
+      onetrust: fixtureOneTrust,
+      win: fixtureWin,
+      groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP,
+      onChange: (vector) => airlock.setConsent(vector),
+    });
+    return () => captured();
+  };
+
+  it("a fixture OneTrust GRANT re-maps + setConsent -> the held ad beacon flushes via the REAL seal", () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const remap = makeRemap();
+    const airlock = makeAdAirlock({ remap });
+
+    FakeWorker.last.onmessage(heldReadyMsg());
+    expect(fetchMock).not.toHaveBeenCalled(); // held, not sent
+
+    const fixtureWin = { OnetrustActiveGroups: ",1," }; // opted-out at subscribe time
+    const fireChange = wireFixtureSubscription(airlock, fixtureWin);
+
+    fixtureWin.OnetrustActiveGroups = ACTIVE_GRANTED; // the banner ACCEPT
+    fireChange(); // OneTrust fires its change signal
+
+    expect(remap).toHaveBeenCalledTimes(1);
+    expect(remap).toHaveBeenCalledWith({ type: "conversion" }, expect.objectContaining({ ad_storage: "granted" }));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe(`${AD_ENDPOINT}?ev=conversion&granted=1`);
+  });
+
+  it("revoke stops FUTURE egress but never un-sends: a later DENY holds a NEW beacon while the already-flushed one stays sent", () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const airlock = makeAdAirlock({ remap: makeRemap() });
+
+    const fixtureWin = { OnetrustActiveGroups: ",1," };
+    const fireChange = wireFixtureSubscription(airlock, fixtureWin);
+
+    // Grant -> flush the one held beacon.
+    FakeWorker.last.onmessage(heldReadyMsg());
+    fixtureWin.OnetrustActiveGroups = ACTIVE_GRANTED;
+    fireChange();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Revoke -> a NEW beacon HOLDS again (future egress stopped); the earlier
+    // fetch call is untouched (already-sent is never recalled — ADR-0007).
+    fixtureWin.OnetrustActiveGroups = ",1,";
+    fireChange();
+    FakeWorker.last.onmessage(
+      readyMsg([{ url: `${AD_ENDPOINT}?ev=conversion2&granted=0`, method: "GET", event: { type: "conversion2" } }]),
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(1); // still just the one earlier send
+  });
+
+  it("grant->deny->grant churn never throws (the driver side of AC4)", () => {
+    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve()));
+    const airlock = makeAdAirlock({ remap: makeRemap() });
+    const fixtureWin = { OnetrustActiveGroups: ",1," };
+    const fireChange = wireFixtureSubscription(airlock, fixtureWin);
+
+    expect(() => {
+      fixtureWin.OnetrustActiveGroups = ACTIVE_GRANTED;
+      fireChange();
+      fixtureWin.OnetrustActiveGroups = ",1,";
+      fireChange();
+      fixtureWin.OnetrustActiveGroups = ACTIVE_GRANTED;
+      fireChange();
+    }).not.toThrow();
+  });
+});
+
+// Spec 047-02 AC1/AC2 — the subscription is wired INTO the EDS boot itself
+// (`bootGa4Core`, via `bootEdsAnalytics`), alongside 047-01's initial-read
+// wiring: a fixture-invoked OneTrust change reaches this boot's OWN
+// `handle.setConsent`, proven by flushing a beacon this SAME boot held at
+// start (analytics_storage pending -> the seal's base pending-hold, no
+// `holdOnDenied` needed for this purpose).
+describe("047-02 — the OneTrust consent-change subscription is wired into the EDS boot alongside the initial read", () => {
+  it("a fixture-invoked OneTrust change flushes a beacon this SAME boot held (unresolved-at-boot -> resolved via the subscribed change)", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("document", fakeDocument("_ga=GA1.1.5555555555.1600000000"));
+
+    let captured;
+    const fixtureOneTrust = {
+      OnConsentChanged: (cb) => {
+        captured = cb;
+      },
+    };
+    const fixtureWin = { OnetrustActiveGroups: null };
+
+    await bootEdsAnalytics({
+      endpoints: [ENDPOINT],
+      onetrust: {
+        groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP,
+        activeGroups: null, // unresolved at boot -> analytics_storage pending -> held
+        onetrust: fixtureOneTrust,
+        win: fixtureWin,
+      },
+    });
+
+    FakeWorker.last.onmessage(readyMsg([{ url: ENDPOINT, body: '{"n":1}' }]));
+    expect(fetchMock).not.toHaveBeenCalled(); // held at boot (047-01 AC4)
+
+    fixtureWin.OnetrustActiveGroups = ACTIVE_GRANTED; // OneTrust resolves mid-session
+    captured();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1); // 047-02: the subscribed change flushed it
+  });
+
+  it("back-compat: a boot with NO `onetrust` wires no subscription at all (no throw, nothing to subscribe to)", async () => {
+    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve()));
+    vi.stubGlobal("document", fakeDocument("_ga=GA1.1.5555555555.1600000000"));
+
+    await expect(bootEdsAnalytics({ endpoints: [ENDPOINT] })).resolves.toBeTruthy();
   });
 });

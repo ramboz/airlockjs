@@ -35,7 +35,7 @@ import { createAirlock } from "../../core/airlock.js";
 import { createWrappedSdkHost } from "../../core/wrapped-sdk-host.js";
 import { hostOf } from "../../core/config-integrity.js";
 import { resolveConsent } from "../../core/consent.js";
-import { resolveOnetrustBootConsent } from "../../drivers/consent/onetrust.js";
+import { resolveOnetrustBootConsent, subscribeOnetrustConsentChanges } from "../../drivers/consent/onetrust.js";
 import { ALLOY_INTERACT_ENDPOINT, ALLOY_COOKIE_NAMES } from "../../connectors/alloy/connector.js";
 import { scopeSeedCookies } from "../../core/cookie-scope.js";
 import { getCookieValue } from "../../core/cookie-parse.js";
@@ -340,7 +340,7 @@ function installOnWindow(handle) {
  *                                         (017-02, ADR-0007 ②), threaded into
  *                                         `sourceGa4Ctx` as `storageGranted` —
  *                                         see that computation below.
- * @param {{ groupPurposeMap: Record<string, string[]>, activeGroups?: string }} [opts.onetrust]
+ * @param {{ groupPurposeMap: Record<string, string[]>, activeGroups?: string, onetrust?: object, win?: object }} [opts.onetrust]
  *                                         spec 047-01 (ADR-0026): wire the OneTrust
  *                                         consent-input driver. When set, the boot
  *                                         DERIVES the `consent` vector from OneTrust's
@@ -349,6 +349,21 @@ function installOnWindow(handle) {
  *                                         `groupPurposeMap`, instead of `opts.consent`.
  *                                         `activeGroups` overrides the live read (test/
  *                                         pre-read seam). Absent -> byte-unchanged.
+ *                                         spec 047-02: the SAME `opts.onetrust` ALSO
+ *                                         wires a subscription to OneTrust's
+ *                                         consent-CHANGE signal (`OnConsentChanged` /
+ *                                         `OptanonWrapper`) — on a mid-session change
+ *                                         this boot's own `handle.setConsent` is called
+ *                                         with the re-mapped vector (the "OneTrust-accept
+ *                                         flow": a grant flushes 045-held beacons). The
+ *                                         optional `onetrust`/`win` sub-fields are test
+ *                                         seams for THAT subscription only (default the
+ *                                         real OneTrust global / the real host global —
+ *                                         the boot-time READ above always uses the real
+ *                                         host global regardless); the subscription
+ *                                         itself is idempotent + null-safe
+ *                                         (`drivers/consent/onetrust.js`), so an absent
+ *                                         live OneTrust never throws.
  * @param {string[]} [opts.endpoints]      per-tracker collect URLs.
  * @param {number}   [opts.trackers]       tracker count (defaults to endpoints.length).
  * @param {boolean}  [opts.consentStrict]  spec 017-03 AC3 (ADR-0007 point ③): declare a
@@ -398,9 +413,12 @@ async function bootGa4Core(opts = {}) {
   // yields an empty `{}` vector (every purpose pending) — still TRUTHY, so
   // `egressPurposes` engages and the seal HOLDS every ad/analytics beacon
   // (fail-to-pending, AC4), never fail-to-send.
-  const consent = onetrust
-    ? resolveOnetrustBootConsent({ ...onetrust, win: typeof window !== "undefined" ? window : undefined })
-    : providedConsent;
+  // Resolved ONCE, reused below by spec 047-02's change-subscription wiring
+  // (after `handle` exists) — so the boot-time read and the change
+  // subscription can never disagree on which global they'd read a live
+  // OneTrust off.
+  const globalWin = typeof window !== "undefined" ? window : undefined;
+  const consent = onetrust ? resolveOnetrustBootConsent({ ...onetrust, win: globalWin }) : providedConsent;
 
   // 017-02 AC1 (ADR-0007 point ②): resolve `analytics_storage` BEFORE identity
   // sourcing, threaded INTO sourceGa4Ctx — not gated here (the `_ga` read+write
@@ -486,6 +504,28 @@ async function bootGa4Core(opts = {}) {
     stats: () => airlock.stats(),
     dispose: () => airlock.dispose(), // 021-01 AC1: tear down this instance's Worker + unload listeners
   };
+
+  // spec 047-02 AC1/AC2: when the host wires the OneTrust consent-input driver
+  // (`opts.onetrust`), ALSO subscribe to OneTrust's consent-CHANGE signal (the
+  // "OneTrust-accept flow"): on a mid-session change, `subscribeOnetrustConsentChanges`
+  // re-reads OneTrust's resolved surface, re-maps it through the SAME 047-01 contract
+  // (`onetrust.groupPurposeMap`), and calls THIS handle's own `setConsent` (immediately
+  // above) — so a grant flushes 045-held beacons and a denial updates the vector for
+  // future beacons, entirely through the EXISTING seal machinery; no new seam, no
+  // egress here. `onetrust.onetrust`/`onetrust.win` are optional test seams (default
+  // the real OneTrust global / the real host global resolved once above as
+  // `globalWin`); the subscription is itself idempotent + null-safe, so an absent live
+  // OneTrust, or a re-boot re-wiring the same one, never throws or double-subscribes.
+  // Guarded / back-compat: a boot that does NOT pass `onetrust` at all subscribes to
+  // nothing (byte-unchanged).
+  if (onetrust) {
+    subscribeOnetrustConsentChanges({
+      onetrust: onetrust.onetrust ?? (globalWin && globalWin.OneTrust),
+      win: onetrust.win ?? globalWin,
+      groupPurposeMap: onetrust.groupPurposeMap,
+      onChange: (vector) => handle.setConsent(vector),
+    });
+  }
 
   // 004-04 AC1+AC2: capture real interactions on the EDS page. Guarded + idempotent
   // (a no-op off a real page — e.g. the node unit env — and never double-wires), so

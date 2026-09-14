@@ -951,3 +951,24 @@ consent-input driver arrives.
 
 **Resolution trigger:** a second consent-input driver lands (dedupe the purpose list + the reference-map home), or the
 inspector work touches these.
+
+### 047-02 (consent-change subscription) review nits
+
+**Deferred (surfaced by the 047-02 compliance + craft review, 2026-09-13):**
+- **Both-fire idempotency untested.** The driver subscribes BOTH `OneTrust.OnConsentChanged` and `OptanonWrapper`
+  (belt-and-suspenders resilience — §A2 grounds both as functions on the reference site), so a single real change calls
+  `handle.setConsent` twice. Benign today (`core/airlock.js`'s `setConsent` no-ops the 2nd call via its `heldBeacons.length`
+  guard; same re-read vector, buffer already drained), but no test fires both surfaces for one subscription and asserts the
+  `onChange` count — a latent footgun if `setConsent` ever reshapes unconditionally.
+- **Ad-beacon accept-flow proven synthetic-only.** `onChange` binds `bootGa4Core`'s single `handle.setConsent`, not the
+  composite consent fan-out (`createComposite.setConsent`, `adapters/eds/index.js`). GA4 core boot wires `holdOnDenied` for
+  no purpose and no ad connector is booted in 047's scope, so the slice Goal's "held Google Ads / Floodlight beacons egress"
+  is proven against a stand-in `createAirlock`, not end-to-end. **This is the primary follow-up.**
+- **Two weak tests.** (a) an over-claiming test name (`"calls ONLY onChange … nothing else observable"` — the body only
+  asserts the `onChange` count); (b) the back-compat test asserts only `resolves.toBeTruthy()`, which would still pass if the
+  `if (onetrust)` guard were dropped (`globalWin` is undefined in node → an unguarded subscribe is a no-op).
+
+**Resolution trigger:** the ad-connector `holdOnDenied` boot wiring lands (the deferred 044-01 §A2 concern) — then wire the
+OneTrust subscription to the **composite consent fan-out** and make `onetrust` a `boot(config)` governance field (today
+`governance` is only `{consent, consentStrict, payloadDenylist}`); add the both-fire idempotency test + a coalesce decision;
+tighten the two weak tests in the same pass.

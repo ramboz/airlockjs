@@ -186,3 +186,77 @@ export function resolveOnetrustBootConsent({ groupPurposeMap, activeGroups, read
   const source = activeGroups !== undefined ? activeGroups : read(win);
   return mapOnetrustConsent(source, groupPurposeMap);
 }
+
+/**
+ * Subscribe to OneTrust's consent-CHANGE signal (spec 047-02 AC1) — this
+ * driver's SECOND entry point (the boot-time read/map above is the first).
+ * Registers through BOTH grounded surfaces (spec 047 §A2) when present:
+ * `onetrust.OnConsentChanged(cb)` (a subscribe API) and wrapping the host
+ * global's `OptanonWrapper` (a hook function OneTrust itself calls after
+ * every consent resolution/change) — so a deployment driving only one of the
+ * two still notifies. Both `onetrust` and the host global (`win`) are
+ * INJECTED, never read ambiently, so a fixture can invoke either path with no
+ * live OneTrust (unit-testable, matching the boot-read seam above).
+ *
+ * On EITHER firing the handler does NOT trust whatever argument shape the
+ * real callback carries (unverified — §A2's live-delivery residual); it
+ * RE-READS the resolved surface via the SAME injected `read` the boot path
+ * uses (default `readOnetrustActiveGroups`) and re-runs 047-01's
+ * `mapOnetrustConsent` against it — NO second mapping implementation — then
+ * calls `onChange(vector)` with the result. The caller wires `onChange` to the
+ * runtime handle's `setConsent` (`adapters/eds/index.js`'s `bootGa4Core`), so a
+ * grant flushes 045-held beacons and a denial updates the vector for future
+ * beacons, entirely through the EXISTING seal machinery (`core/airlock.js`) —
+ * this function itself performs no egress and opens no new seam.
+ *
+ * IDEMPOTENT + NULL-SAFE: a missing `onChange` short-circuits the whole call
+ * (nothing to notify); an absent/non-object `onetrust` and an absent/non-object
+ * `win` are each skipped on their own half (no throw either way). Calling this
+ * twice on the SAME `onetrust` / `win` pair never double-registers — each half
+ * is guarded by its own marker on the object passed in — so neither a caller's
+ * defensive re-call nor re-wiring the same live OneTrust across a re-boot can
+ * fire `onChange` twice for one real change.
+ *
+ * @param {object} [options]
+ * @param {{ OnConsentChanged?: (cb: Function) => void }|null|undefined} [options.onetrust]
+ *   the injected OneTrust global (or a fixture standing in for it) — the
+ *   `OnConsentChanged` subscribe surface.
+ * @param {{ OptanonWrapper?: Function, OnetrustActiveGroups?: unknown }|null|undefined} [options.win]
+ *   the injected host global — re-read (via `read`) on every change, and
+ *   where `OptanonWrapper` is wrapped (a pre-existing host-defined hook is
+ *   preserved and still invoked).
+ * @param {Record<string, string[]>} [options.groupPurposeMap] the host
+ *   group->purpose map — the SAME 047-01 contract, re-applied on every change.
+ * @param {(win: unknown) => (string|null)} [options.read] the injected read
+ *   (default `readOnetrustActiveGroups`).
+ * @param {(vector: Record<string, "granted"|"denied">) => void} [options.onChange]
+ *   called with the re-mapped vector on every change.
+ * @returns {void}
+ */
+export function subscribeOnetrustConsentChanges({
+  onetrust,
+  win,
+  groupPurposeMap,
+  read = readOnetrustActiveGroups,
+  onChange,
+} = {}) {
+  if (typeof onChange !== "function") return; // nothing to notify -> a complete no-op
+
+  const handleChange = () => onChange(mapOnetrustConsent(read(win), groupPurposeMap));
+
+  if (onetrust && typeof onetrust === "object" && typeof onetrust.OnConsentChanged === "function") {
+    if (!onetrust.__onetrustConsentChangeWired) {
+      onetrust.__onetrustConsentChangeWired = true;
+      onetrust.OnConsentChanged(handleChange);
+    }
+  }
+
+  if (win && typeof win === "object" && !win.__onetrustOptanonWrapperWired) {
+    win.__onetrustOptanonWrapperWired = true;
+    const priorWrapper = typeof win.OptanonWrapper === "function" ? win.OptanonWrapper : null;
+    win.OptanonWrapper = function onetrustConsentChangeWrapper(...args) {
+      if (priorWrapper) priorWrapper.apply(this, args);
+      handleChange();
+    };
+  }
+}

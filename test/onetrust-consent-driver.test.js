@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
@@ -9,6 +9,7 @@ import {
   mapOnetrustConsent,
   readOnetrustActiveGroups,
   resolveOnetrustBootConsent,
+  subscribeOnetrustConsentChanges,
 } from "../drivers/consent/onetrust.js";
 
 // Spec 047-01 — the OneTrust consent-input driver (the first concrete driver on
@@ -206,5 +207,210 @@ describe("AC5 — host-neutral, egress-free, injected reads (structural guards o
     expect(/\bdocument\b/.test(src)).toBe(false);
     // And the mapping logic is callable with ONLY a string + map (no globals present).
     expect(mapOnetrustConsent(ACTIVE_GRANTED, ERP_INTUIT_GROUP_PURPOSE_MAP)).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Spec 047-02 — subscribeOnetrustConsentChanges: the driver's SECOND entry
+// point (mid-session consent CHANGE, vs the boot-time read above). Subscribes
+// via an INJECTED seam (`onetrust.OnConsentChanged` and/or wrapping the host
+// global's `OptanonWrapper`), re-maps through the SAME 047-01 contract on every
+// fire, and notifies the caller-supplied `onChange` — which the adapter wires
+// to `handle.setConsent` (017-03 AC2). No egress, no new seam: this module
+// only calls `onChange`; the flush/hold side effects are the seal's.
+// ---------------------------------------------------------------------------
+
+describe("047-02 AC1 — subscribeOnetrustConsentChanges: registers via an injected seam, idempotent + null-safe", () => {
+  it("registers through onetrust.OnConsentChanged when present", () => {
+    const onetrust = { OnConsentChanged: vi.fn() };
+    const onChange = vi.fn();
+    subscribeOnetrustConsentChanges({ onetrust, groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP, onChange });
+
+    expect(onetrust.OnConsentChanged).toHaveBeenCalledTimes(1);
+    expect(typeof onetrust.OnConsentChanged.mock.calls[0][0]).toBe("function");
+  });
+
+  it("wraps a host global's OptanonWrapper when present as a plain object (installs a callable hook)", () => {
+    const win = {};
+    const onChange = vi.fn();
+    subscribeOnetrustConsentChanges({ win, groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP, onChange });
+
+    expect(typeof win.OptanonWrapper).toBe("function");
+  });
+
+  it("preserves + still calls a PRE-EXISTING OptanonWrapper (never clobbers a host-defined hook)", () => {
+    const existing = vi.fn();
+    const win = { OptanonWrapper: existing };
+    const onChange = vi.fn();
+    subscribeOnetrustConsentChanges({ win, groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP, onChange });
+
+    win.OptanonWrapper("some", "args");
+
+    expect(existing).toHaveBeenCalledWith("some", "args");
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("no onetrust, no win, no onChange at all -> a complete no-op, never a throw", () => {
+    expect(() => subscribeOnetrustConsentChanges()).not.toThrow();
+    expect(() => subscribeOnetrustConsentChanges({})).not.toThrow();
+    expect(() => subscribeOnetrustConsentChanges({ onetrust: null, win: null })).not.toThrow();
+  });
+
+  it("onetrust absent (OneTrust not yet loaded) -> no throw, and the win-side OptanonWrapper wiring still proceeds", () => {
+    const win = {};
+    const onChange = vi.fn();
+    expect(() =>
+      subscribeOnetrustConsentChanges({ onetrust: null, win, groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP, onChange }),
+    ).not.toThrow();
+    expect(typeof win.OptanonWrapper).toBe("function");
+  });
+
+  it("onetrust present but OnConsentChanged is not a function -> no throw, no registration attempted", () => {
+    const onetrust = {};
+    expect(() => subscribeOnetrustConsentChanges({ onetrust, onChange: vi.fn() })).not.toThrow();
+  });
+
+  it("no onChange wired -> a complete no-op (does not even register), even with a real onetrust/win", () => {
+    const onetrust = { OnConsentChanged: vi.fn() };
+    const win = {};
+    subscribeOnetrustConsentChanges({ onetrust, win, groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP });
+
+    expect(onetrust.OnConsentChanged).not.toHaveBeenCalled();
+    expect(win.OptanonWrapper).toBeUndefined();
+  });
+
+  it("calling twice on the SAME onetrust never double-registers (OnConsentChanged itself is invoked only ONCE)", () => {
+    const onetrust = { OnConsentChanged: vi.fn() };
+    const onChange = vi.fn();
+    subscribeOnetrustConsentChanges({ onetrust, groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP, onChange });
+    subscribeOnetrustConsentChanges({ onetrust, groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP, onChange }); // e.g. a re-boot
+
+    expect(onetrust.OnConsentChanged).toHaveBeenCalledTimes(1);
+
+    // And the ONE registered callback still fires onChange exactly once.
+    onetrust.OnConsentChanged.mock.calls[0][0]();
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("calling twice on the SAME win never double-wraps OptanonWrapper (one fire -> onChange called ONCE)", () => {
+    const win = {};
+    const onChange = vi.fn();
+    subscribeOnetrustConsentChanges({ win, groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP, onChange });
+    subscribeOnetrustConsentChanges({ win, groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP, onChange });
+
+    win.OptanonWrapper();
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("047-02 AC2 — on a change event, re-maps via mapOnetrustConsent (047-01's contract) and calls onChange", () => {
+  it("a fixture OnConsentChanged fire RE-READS the host global's OnetrustActiveGroups NOW (not a memoized boot-time value)", () => {
+    let captured;
+    const onetrust = {
+      OnConsentChanged: (cb) => {
+        captured = cb;
+      },
+    };
+    const win = { OnetrustActiveGroups: ACTIVE_OPTED_OUT };
+    const onChange = vi.fn();
+    subscribeOnetrustConsentChanges({ onetrust, win, groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP, onChange });
+
+    win.OnetrustActiveGroups = ACTIVE_GRANTED; // the banner interaction resolved AFTER subscribe
+    captured();
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith({
+      analytics_storage: "granted",
+      ad_storage: "granted",
+      ad_user_data: "granted",
+      ad_personalization: "granted",
+    });
+  });
+
+  it("ignores whatever argument shape the real callback passes — never trusts it, re-reads the host global instead", () => {
+    let captured;
+    const onetrust = {
+      OnConsentChanged: (cb) => {
+        captured = cb;
+      },
+    };
+    const win = { OnetrustActiveGroups: ACTIVE_GRANTED };
+    const onChange = vi.fn();
+    subscribeOnetrustConsentChanges({ onetrust, win, groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP, onChange });
+
+    captured({ some: "unexpected-shape" }, 42, undefined);
+
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ analytics_storage: "granted" }));
+  });
+
+  it("an OptanonWrapper fire re-maps identically to an OnConsentChanged fire (same host global, same map, same result)", () => {
+    const win = { OnetrustActiveGroups: ACTIVE_GRANTED };
+    const onChange = vi.fn();
+    subscribeOnetrustConsentChanges({ win, groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP, onChange });
+
+    win.OptanonWrapper();
+
+    expect(onChange).toHaveBeenCalledWith(mapOnetrustConsent(ACTIVE_GRANTED, ERP_INTUIT_GROUP_PURPOSE_MAP));
+  });
+});
+
+describe("047-02 AC4 — grant->deny->grant churn re-maps + notifies correctly each time, never throws", () => {
+  it("three consecutive fires (granted, opted-out, granted again) call onChange 3x with the correct vector each time", () => {
+    let captured;
+    const onetrust = {
+      OnConsentChanged: (cb) => {
+        captured = cb;
+      },
+    };
+    const win = { OnetrustActiveGroups: ACTIVE_GRANTED };
+    const onChange = vi.fn();
+    subscribeOnetrustConsentChanges({ onetrust, win, groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP, onChange });
+
+    expect(() => {
+      captured(); // granted
+      win.OnetrustActiveGroups = ACTIVE_OPTED_OUT;
+      captured(); // denied
+      win.OnetrustActiveGroups = ACTIVE_GRANTED;
+      captured(); // granted again
+    }).not.toThrow();
+
+    const GRANTED_VECTOR = {
+      analytics_storage: "granted",
+      ad_storage: "granted",
+      ad_user_data: "granted",
+      ad_personalization: "granted",
+    };
+    const DENIED_VECTOR = {
+      analytics_storage: "denied",
+      ad_storage: "denied",
+      ad_user_data: "denied",
+      ad_personalization: "denied",
+    };
+    expect(onChange).toHaveBeenCalledTimes(3);
+    expect(onChange.mock.calls[0][0]).toEqual(GRANTED_VECTOR);
+    expect(onChange.mock.calls[1][0]).toEqual(DENIED_VECTOR);
+    expect(onChange.mock.calls[2][0]).toEqual(GRANTED_VECTOR);
+  });
+});
+
+describe("047-02 AC5 — no new seam, no egress: onChange is the ONLY side effect the subscribe helper triggers", () => {
+  it("subscribeOnetrustConsentChanges calls ONLY onChange on a fire — nothing else observable", () => {
+    const win = { OnetrustActiveGroups: ACTIVE_GRANTED };
+    const onChange = vi.fn();
+    subscribeOnetrustConsentChanges({ win, groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP, onChange });
+
+    win.OptanonWrapper();
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("the driver source (as extended) still imports nothing and performs no egress (whole-file re-check)", () => {
+    const src = driverSrc();
+    expect(/^\s*import\s/m.test(src)).toBe(false);
+    expect(/\bfetch\s*\(/.test(src)).toBe(false);
+    expect(/\bWorker\b/.test(src)).toBe(false);
+    expect(/\bpostMessage\b/.test(src)).toBe(false);
+    expect(src).toContain("subscribeOnetrustConsentChanges"); // the new export is actually present
   });
 });
