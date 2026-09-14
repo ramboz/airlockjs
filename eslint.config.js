@@ -42,7 +42,7 @@ export default [
   // Main-thread source (browser). EXCLUDES *.worker.js so worker files do not
   // inherit window/document/etc. — see the header note.
   {
-    files: ["core/**/*.js", "adapters/**/*.js", "connectors/**/*.js", "baseline/**/*.js"],
+    files: ["core/**/*.js", "adapters/**/*.js", "connectors/**/*.js", "drivers/**/*.js", "baseline/**/*.js"],
     ignores: ["**/*.worker.js"],
     languageOptions: {
       ecmaVersion: "latest",

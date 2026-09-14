@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 skill:
 use_cases: [UC-2]
 ---
@@ -61,8 +61,9 @@ Two entry points, two slices (SPIDR **Path**): the **initial** consent state at 
 - **ADR-0007's seam contract (the OPEN part this spec pins).** ADR-0007 Open questions (`:227-240`) leave the consent-input
   seam contract **unpinned** — which surface (`gtag` / `__tcfapi` / host callback) and where the regime is declared,
   "pinned with the seam." This spec pins the **OneTrust facet** in
-  [ADR-0026](../../decisions/adr-0026-onetrust-consent-input-source.md): the source surface is OneTrust's own `GetDomainData`
-  group state + a host group→purpose map (the resolved-CM-signal path is ADR-0007's *separate* gtag driver, out of scope).
+  [ADR-0026](../../decisions/adr-0026-onetrust-consent-input-source.md): the source surface is OneTrust's own resolved surface
+  (`OnetrustActiveGroups` / the `OptanonConsent` cookie flags — **not** `GetDomainData().Status`) + a host group→purpose map
+  (the resolved-CM-signal path is ADR-0007's *separate* gtag driver, out of scope).
 
 ## Grounding (live probe, 2026-09-13)
 

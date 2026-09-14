@@ -915,3 +915,39 @@ the fan-out (Floodlight) this lockstep spans more fields than AW's 1:1 case, wid
 on a single factory returning `{ connector, remap }` (or a shared config object both consume) so the connector's declared
 identity/endpoints and its re-map are guaranteed to agree. Applies equally to 044-02 — belongs in the boot follow-up, not
 a connector slice.
+
+## Spec 047 (OneTrust consent-input driver) follow-ups
+
+### Observability: a resolved-surface-maps-to-nothing signal (dead map vs legitimate pending)
+
+**Deferred (surfaced by the 047-01 arch review, 2026-09-13):** `mapOnetrustConsent` (`drivers/consent/onetrust.js`)
+collapses "OneTrust not yet resolved" and "the host map covers no in-scope purpose" to the same empty `{}` vector. A host
+that misconfigures `groupPurposeMap` (e.g. an empty map) silently HOLDS every ad/analytics beacon forever — the safe
+direction, but with no diagnostic to distinguish a dead map from a legitimate pending.
+
+**Resolution trigger:** the 028 inspector / a debug channel gains consent-input observability — emit a debug signal when a
+*resolved* OneTrust surface maps to an empty vector.
+
+### Integration-test the live-`window` adapter glue line
+
+**Deferred (047-01 craft + arch review, 2026-09-13):** the driver-level `readOnetrustActiveGroups(win)` is unit-tested, but
+the `adapters/eds/index.js` glue that supplies the live `window` (`typeof window !== "undefined" ? window : undefined`) is
+not integration-tested (boot tests always pass explicit `activeGroups`). Low risk (trivial glue), but the actual
+production entry point is unexercised.
+
+**Resolution trigger:** the `adapters/eds` boot gains a jsdom test that stubs `window.OnetrustActiveGroups` end-to-end
+(fold into the deferred real-boot work, alongside the ad-connector boot wiring).
+
+### Low-priority 047-01 craft nits (bundle)
+
+**Deferred (047-01 craft review, 2026-09-13):** (a) `ERP_INTUIT_GROUP_PURPOSE_MAP` — a specific customer's config exported
+from the generic `drivers/consent/onetrust.js`; documented as the reference/default map (hosts supply their own), but a
+co-location smell if the reference-config set grows. (b) the source-text regex test guards (`/\bwindow\b/`, `/import/`, …)
+are brittle proxies for the ambient-global-free invariant — a JSDoc example mentioning `window.OnetrustActiveGroups` would
+trip them; narrow to statement-level. (c) the unused DI `read` override seam on `resolveOnetrustBootConsent` (no
+caller/test) — remove if it stays unused. (d) `CONSENT_MODE_V2_PURPOSES` re-declares core's four (zero-import purity);
+importing `core/consent.js`'s `CONSENT_PURPOSES` would drop the drift risk and is AC5-permitted — revisit if a third
+consent-input driver arrives.
+
+**Resolution trigger:** a second consent-input driver lands (dedupe the purpose list + the reference-map home), or the
+inspector work touches these.

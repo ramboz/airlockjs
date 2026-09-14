@@ -35,6 +35,7 @@ import { createAirlock } from "../../core/airlock.js";
 import { createWrappedSdkHost } from "../../core/wrapped-sdk-host.js";
 import { hostOf } from "../../core/config-integrity.js";
 import { resolveConsent } from "../../core/consent.js";
+import { resolveOnetrustBootConsent } from "../../drivers/consent/onetrust.js";
 import { ALLOY_INTERACT_ENDPOINT, ALLOY_COOKIE_NAMES } from "../../connectors/alloy/connector.js";
 import { scopeSeedCookies } from "../../core/cookie-scope.js";
 import { getCookieValue } from "../../core/cookie-parse.js";
@@ -339,6 +340,15 @@ function installOnWindow(handle) {
  *                                         (017-02, ADR-0007 ②), threaded into
  *                                         `sourceGa4Ctx` as `storageGranted` —
  *                                         see that computation below.
+ * @param {{ groupPurposeMap: Record<string, string[]>, activeGroups?: string }} [opts.onetrust]
+ *                                         spec 047-01 (ADR-0026): wire the OneTrust
+ *                                         consent-input driver. When set, the boot
+ *                                         DERIVES the `consent` vector from OneTrust's
+ *                                         own resolved surface (`OnetrustActiveGroups`,
+ *                                         read off `window`) + the host
+ *                                         `groupPurposeMap`, instead of `opts.consent`.
+ *                                         `activeGroups` overrides the live read (test/
+ *                                         pre-read seam). Absent -> byte-unchanged.
  * @param {string[]} [opts.endpoints]      per-tracker collect URLs.
  * @param {number}   [opts.trackers]       tracker count (defaults to endpoints.length).
  * @param {boolean}  [opts.consentStrict]  spec 017-03 AC3 (ADR-0007 point ③): declare a
@@ -368,12 +378,29 @@ function installOnWindow(handle) {
 async function bootGa4Core(opts = {}) {
   const {
     ctx: providedCtx,
-    consent,
+    consent: providedConsent,
+    onetrust,
     consentStrict = false,
     endpoints = DEFAULT_ENDPOINTS,
     trackers = endpoints.length,
     payloadDenylist,
   } = opts;
+
+  // spec 047-01 AC3: when the host wires the OneTrust consent-input driver
+  // (`opts.onetrust = { groupPurposeMap }`), derive the ADR-0007 consent vector from
+  // OneTrust's OWN resolved-consent surface at boot (`OnetrustActiveGroups`, via the
+  // driver's injected read off `window`) and feed it as the `consent` vector the
+  // EXISTING seam consumes — NO change to any seal codepath (the pre-construction
+  // fold + `egressPurposes` gating below are untouched; the driver only PRODUCES the
+  // vector). `window` is injected here (the adapter has DOM access; the driver stays
+  // ambient-global-free). Guarded / back-compat: a boot that does NOT pass `onetrust`
+  // uses the explicit `consent` (byte-unchanged). An absent/unresolved OneTrust
+  // yields an empty `{}` vector (every purpose pending) — still TRUTHY, so
+  // `egressPurposes` engages and the seal HOLDS every ad/analytics beacon
+  // (fail-to-pending, AC4), never fail-to-send.
+  const consent = onetrust
+    ? resolveOnetrustBootConsent({ ...onetrust, win: typeof window !== "undefined" ? window : undefined })
+    : providedConsent;
 
   // 017-02 AC1 (ADR-0007 point ②): resolve `analytics_storage` BEFORE identity
   // sourcing, threaded INTO sourceGa4Ctx — not gated here (the `_ga` read+write
