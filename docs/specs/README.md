@@ -135,8 +135,8 @@
 | [046-floodlight-connector](046-floodlight-connector/spec.md) | 046-03 — DC opts into hold-until-granted, both forms (ad_storage-denied parity) | **DONE** |  |
 | [047-onetrust-consent-input-driver](047-onetrust-consent-input-driver/spec.md) | 047-01 — OneTrust boot consent vector → the seam's `consent` param | **DONE** |  |
 | [047-onetrust-consent-input-driver](047-onetrust-consent-input-driver/spec.md) | 047-02 — OneTrust consent-change → `handle.setConsent` (accept-flow flush) | **DONE** |  |
-| [048-ad-connector-boot-wiring](048-ad-connector-boot-wiring/spec.md) | 048-01 — bootGoogleAds + `{type:"google-ads"}` config type + composite membership (consent-gated) | DRAFT |  |
-| [048-ad-connector-boot-wiring](048-ad-connector-boot-wiring/spec.md) | 048-02 — bootFloodlight + `{type:"floodlight"}` config type + composite membership (consent-gated) | DRAFT |  |
+| [048-ad-connector-boot-wiring](048-ad-connector-boot-wiring/spec.md) | 048-01 — bootGoogleAds + worker chamber + `{type:"google-ads"}` config type + composite membership (consent-gated) | DRAFT |  |
+| [048-ad-connector-boot-wiring](048-ad-connector-boot-wiring/spec.md) | 048-02 — bootFloodlight + worker chamber + `{type:"floodlight"}` config type + composite membership (consent-gated) | DRAFT |  |
 | [048-ad-connector-boot-wiring](048-ad-connector-boot-wiring/spec.md) | 048-03 — `onetrust` as a `boot(config)` governance field → composite consent fan-out (end-to-end accept-flow) | DRAFT |  |
 
 ## Deferred slices

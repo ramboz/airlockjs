@@ -45,18 +45,21 @@ already ratified per-connector (044/046); this spec ratifies only the **boot + c
 _Load-bearing claims about runnable surfaces; the probed ones are stated as grounded in the Overview / slices, the
 unverified ones are flagged here (risk-gated per ADR-0020)._
 
-- **A1 — the ad connectors egress via the main-thread `remap`/seal seam, not a worker chamber.** `test/google-ads-seal.test.js`
-  and `test/floodlight-seal.test.js` construct `createAirlock({ egressPurposes:["ad_storage"], holdOnDenied:true, remap })`
-  with a `remap` function (`createGoogleAdsRemap`, `createFloodlightRemap`), and `core/airlock.js` has **no** `connector:
-  "google-ads"`/`"floodlight"` selection branch (its branches are `pixel`/`dom`/`helix-rum`/`ga4-gtag`, grepped
-  2026-09-14). **Assumed:** the boot adapter constructs the airlock with that same `remap` + `egressPurposes` seam and needs
-  **no** new `connector:` chamber branch in `core/airlock.js`. The implementer must confirm the steady-state (non-held)
-  beacon path each connector uses at boot (main-thread `pushCritical`/remap vs a worker `ready` message) and, if a worker
-  chamber IS required, re-scope 048-01 (this is the frame-critique's load-bearing check).
-- **A2 — no `core/airlock.js` change is needed to make an ad connector a composite member.** `createComposite` only needs a
-  handle exposing `push`/`pushCritical`/`setConsent`/`getState`/`flushNow`/`stats`/`dispose` (read from `createComposite`,
-  `adapters/eds/index.js`). **Assumed:** each ad boot returns that handle shape (as the other boots do), so composite
-  membership + the `setConsent` fan-out work with zero core change. Confirm at implementation.
+- **A1 — RESOLVED by the 048-01 frame-critique (2026-09-14): the ad connectors are WORKER-CHAMBER gtag-family connectors,
+  not main-thread `remap` connectors.** The DRAFT's original A1 (main-thread `remap`/seal seam, no chamber) was **wrong**:
+  `connectors/google-ads/connector.js` (`:92`, `createGoogleAdsConnector` `:103`) and `connectors/floodlight/connector.js`
+  (`:141`, `createFloodlightConnector` `:154`) are `{manifest,init,handle}` connectors "hosted the SAME way
+  `core/connector-host.js` hosts GA4-gtag/pixel" — their steady-state beacon is mapped **in a worker chamber**;
+  `createGoogleAdsRemap`/`createFloodlightRemap` cover only the seal's held→**flush** re-map. The seal tests
+  (`test/*-seal.test.js`) *simulate* the chamber's `ready` output via FakeWorker, which hid this. **So each ad-boot slice
+  includes the chamber + a `core/airlock.js` `connector:` branch + a `build.mjs` entry, mirroring spec 041 (ga4-gtag)** —
+  see 048-01/048-02. The residual (A1', slice-level) is only that the chamber reuses the ga4-gtag mechanism with no new core
+  primitive.
+- **A2 — composite MEMBERSHIP needs no `core/airlock.js` change (distinct from the chamber).** `createComposite` only needs
+  a handle exposing `push`/`pushCritical`/`setConsent`/`getState`/`flushNow`/`stats`/`dispose` (read from `createComposite`,
+  `adapters/eds/index.js`). Each ad boot returns that handle shape, so composite membership + the `setConsent` fan-out work
+  with zero composite-side core change — the chamber's `connector:` branch (A1) is the connector-hosting change, orthogonal
+  to composite membership.
 - **A3 — the config id fields per connector.** The `boot(config)` entry shape for `{type:"google-ads"}` /
   `{type:"floodlight"}` (e.g. `conversionId` / advertiser + activity ids) mirrors the connector's own config surface
   (`connectors/google-ads/connector.js` + `cookies.js`, `connectors/floodlight/connector.js`). **Assumed** the exact
@@ -64,18 +67,21 @@ unverified ones are flagged here (risk-gated per ADR-0020)._
 
 ## Decomposition
 
-**SPIDR — Interface axis (by connector), completed by a Path-axis capstone.** No Spike: the pattern is known — the boot
-adapters mirror the existing `bootMetaPixel`/`bootHelixRum`/`bootGa4Gtag` shape, the composite fan-out already exists, and
-047 already built the OneTrust subscription. Every slice is vertical: it touches the `boot(config)` / boot-adapter
-**user-facing** layer and delivers end-to-end value (a real page can select the connector via config and see consent
-enforced), never a boot-only or seal-only horizontal shard.
+**SPIDR — Interface axis (by connector), completed by a Path-axis capstone.** No Spike: the pattern is known — each ad-boot
+slice stands up a **worker chamber + boot adapter mirroring spec 041's ga4-gtag** (`core/ga4-gtag-chamber.worker.js` +
+`bootGa4Gtag`'s `connector:` branch + its `build.mjs` entry), the composite fan-out already exists, and 047 already built
+the OneTrust subscription. Every slice is vertical: it touches the `boot(config)` / boot-adapter **user-facing** layer and
+delivers end-to-end value (a real page can select the connector via config and see its off-thread beacon consent-enforced),
+never a chamber-only or seal-only horizontal shard.
 
-- **048-01 (Interface — Google Ads first, the reference boot):** add `bootGoogleAds` + the `{type:"google-ads"}` config
-  type + composite membership, with `egressPurposes:["ad_storage"]` + `holdOnDenied` wired. End-to-end: a config-selected
-  Google Ads connector holds a beacon under denied `ad_storage` and sends it under granted. Establishes the
-  ad-connector-boot pattern 048-02 reuses.
-- **048-02 (Interface — Floodlight, reusing the pattern):** add `bootFloodlight` + `{type:"floodlight"}` + composite
-  membership, same consent wiring, both DC forms (ccm/collect + activity). Mirrors 048-01.
+- **048-01 (Interface — Google Ads first, the reference boot):** stand up `core/google-ads-chamber.worker.js` + the
+  `core/airlock.js` `connector:"google-ads"` branch + `build.mjs` entry (mirroring 041), then `bootGoogleAds` + the
+  `{type:"google-ads"}` config type + composite membership, with `egressPurposes:["ad_storage"]` + `holdOnDenied` wired.
+  End-to-end: a config-selected Google Ads connector maps its page-load beacon off-thread, holds it under denied
+  `ad_storage`, and sends it under granted. Establishes the ad-connector chamber+boot pattern 048-02 reuses.
+- **048-02 (Interface — Floodlight, reusing the pattern):** stand up the Floodlight chamber + `connector:"floodlight"`
+  branch + `build.mjs` entry + `bootFloodlight` + `{type:"floodlight"}` + composite membership, same consent wiring, both DC
+  forms (ccm/collect + activity). Mirrors 048-01.
 - **048-03 (Path — the OneTrust-accept capstone, end-to-end):** promote `onetrust` to a `boot(config)` governance field
   wired to the composite `setConsent` fan-out; prove that with Google Ads **and** Floodlight booted under denied consent
   (beacons held), a fixture OneTrust accept flushes **both** through the real composite. Resolves 047-02's primary
