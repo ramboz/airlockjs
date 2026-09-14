@@ -191,10 +191,10 @@ function runMeasure(mode, fixture) {
   return JSON.parse(out);
 }
 
-// lh-eds.mjs shells `npm run build` with stdio:"inherit", prefixing an npm banner
-// ahead of its JSON — so parse from the last top-level object (mirrors cwv-budget.mjs's
-// extractTrailingJSON). The lh-eds source-side fix (build output → stderr) is tracked in
-// docs/inbox.md; consuming robustly here keeps this slice non-invasive to lh-eds's callers.
+// lh-eds.mjs now routes `npm run build` output to STDERR (the source-side fix, docs/inbox.md),
+// so its stdout is pure JSON. This trailing-JSON parse (mirrors cwv-budget.mjs's) is RETAINED
+// as defense-in-depth against a future stray stdout write / an older lh-eds — parse from the
+// last top-level object.
 function extractTrailingJSON(text) {
   const idx = text.lastIndexOf("\n{\n");
   const start = text.startsWith("{\n") ? 0 : idx < 0 ? -1 : idx + 1;

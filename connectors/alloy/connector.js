@@ -145,9 +145,11 @@ export function createAlloyConnector(config = {}) {
       // it returns Target personalization as data for the host to apply (012-03).
       decisions: true,
     },
-    // 012-04 DECLARATION-SHAPE (declared, NOT enforced — the enforcement teeth are
-    // MVP3; the seal is unbuilt). ADVISORY endpoints (ADR-0006 — host allow-list
-    // wins) — a FLOOR, not a complete map: the server-directed demdex/ID-sync
+    // 012-04 DECLARATION-SHAPE (declared, NOT enforced FROM HERE — the seal now EXISTS and
+    // enforces (017-03/020-02/016-02), but reads the host-owned egressPurposes/endpointCeiling
+    // wired in bootAlloy, NOT this manifest field; gating on the manifest itself is the tracked
+    // "manifest mirror-drift" tightening, docs/inbox.md). ADVISORY endpoints (ADR-0006 — host
+    // allow-list wins) — a FLOOR, not a complete map: the server-directed demdex/ID-sync
     // breadth is runtime-returned and creds-gated to MVP3 (see ALLOY_INTERACT_ENDPOINT).
     endpoints: [ALLOY_INTERACT_ENDPOINT],
     // ADR-0007 consent-purpose annotation: tags each declared endpoint / cookie /

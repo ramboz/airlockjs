@@ -48,7 +48,10 @@ const ROOT = join(REPO, "probes/eds-testbed");
 const LH_N = Number(process.env.LH_N || 5);
 
 // 1. Build the real bundle into the testbed tree (the ON arm serves it verbatim).
-execSync("npm run build", { cwd: REPO, stdio: "inherit" });
+// Route the build's stdout to STDERR (fd 2) so THIS rig's stdout stays PURE JSON: a consumer
+// (rig/cwv-budget.mjs, rig/cwv-scoreboard.mjs) can then read stdout directly (they keep a
+// trailing-JSON parse as defense-in-depth). The build banner still shows, on stderr.
+execSync("npm run build", { cwd: REPO, stdio: ["ignore", 2, 2] });
 
 let arm = "off"; // server-side toggle, flipped between iterations
 

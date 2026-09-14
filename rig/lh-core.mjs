@@ -104,6 +104,43 @@ export function normalizeProfile(profile) {
   return PROFILES.includes(profile) ? profile : "ga4";
 }
 
+/**
+ * Resolve the operator's env into a run plan (spec 036-01; extracted here for unit coverage —
+ * docs/inbox.md 2026-09-05). PURE — no I/O, no `process.exit` — so rig/lh-live.mjs maps a
+ * returned `error` to its own operator-facing exit and, for the local dry-run, fills the null
+ * offUrl/onUrl from its local server. Mirrors lh-live.mjs's former inline guards + mode + URL
+ * construction 1:1:
+ *   - baselineUrl and adoptedUrl must be BOTH-set (two-deployment FALLBACK) or BOTH-unset;
+ *   - liveUrl and baselineUrl are mutually exclusive;
+ *   - mode = "two-deployment" iff a baseline is set, else "query-gate";
+ *   - a query-gate run with no liveUrl is the LOCAL dry-run (URLs come from the local server);
+ *   - live query-gate: offUrl = the plain URL, onUrl = the URL with ?<queryParam>=1 set
+ *     (via the URL API, so an existing query string is preserved, not clobbered).
+ * The `error` strings omit the "rig/lh-live.mjs: " prefix — the caller adds it, preserving its
+ * exact former console.error output.
+ *
+ * @param {{ liveUrl?: string|null, baselineUrl?: string|null, adoptedUrl?: string|null, queryParam: string }} [env]
+ * @returns {{ error: string } | { mode: "two-deployment"|"query-gate", isLocalDryRun: boolean, offUrl: string|null, onUrl: string|null }}
+ */
+export function resolveRunPlan({ liveUrl = null, baselineUrl = null, adoptedUrl = null, queryParam } = {}) {
+  if ((baselineUrl && !adoptedUrl) || (!baselineUrl && adoptedUrl)) {
+    return { error: "BASELINE_URL and ADOPTED_URL must both be set (two-deployment FALLBACK) or both left unset." };
+  }
+  if (liveUrl && baselineUrl) {
+    return { error: "set EITHER LIVE_URL (query-gate PRIMARY) OR BASELINE_URL+ADOPTED_URL (two-deployment FALLBACK), not both." };
+  }
+  const mode = baselineUrl ? "two-deployment" : "query-gate";
+  if (mode === "two-deployment") {
+    return { mode, isLocalDryRun: false, offUrl: baselineUrl, onUrl: adoptedUrl };
+  }
+  if (liveUrl) {
+    const on = new URL(liveUrl);
+    on.searchParams.set(queryParam, "1");
+    return { mode, isLocalDryRun: false, offUrl: new URL(liveUrl).toString(), onUrl: on.toString() };
+  }
+  return { mode, isLocalDryRun: true, offUrl: null, onUrl: null };
+}
+
 export const TWO_DEPLOYMENT_CAVEAT =
   "two-deployment mode compares TWO SEPARATE deployments, so a FIXED between-deployment " +
   "bias (CDN warmth, edge PoP, hostname routing) is plausibly 10-100x the band and is NOT " +

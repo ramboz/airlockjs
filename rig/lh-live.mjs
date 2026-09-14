@@ -52,7 +52,7 @@ import { fileURLToPath } from "node:url";
 import { launch } from "chrome-launcher";
 import lighthouse from "lighthouse";
 import { chromium } from "playwright";
-import { armSummary, buildResult, normalizeProfile, runLighthouseOnce } from "./lh-core.mjs";
+import { armSummary, buildResult, normalizeProfile, resolveRunPlan, runLighthouseOnce } from "./lh-core.mjs";
 // spec 036-01 follow-on (docs/inbox.md 2026-09-05): CSP/MIME/no-op + static-serve tail shared
 // with lh-eds.mjs + subtree-install.mjs via lh-server.mjs (one copy, unit-tested).
 import { BOILERPLATE_CSP, NOOP_EDS, EDS_ENTRY, serveStaticFile } from "./lh-server.mjs";
@@ -67,17 +67,15 @@ const LIVE_URL = process.env.LIVE_URL || null;
 const BASELINE_URL = process.env.BASELINE_URL || null;
 const ADOPTED_URL = process.env.ADOPTED_URL || null;
 
-if ((BASELINE_URL && !ADOPTED_URL) || (!BASELINE_URL && ADOPTED_URL)) {
-  console.error("rig/lh-live.mjs: BASELINE_URL and ADOPTED_URL must both be set (two-deployment FALLBACK) or both left unset.");
+// spec 036-01 follow-on (docs/inbox.md 2026-09-05): the mode/guard/URL logic is the pure,
+// unit-tested resolveRunPlan in lh-core.mjs; this rig only maps a returned error to the
+// operator-facing exit and (for the local dry-run) fills the null URLs from its server (main()).
+const plan = resolveRunPlan({ liveUrl: LIVE_URL, baselineUrl: BASELINE_URL, adoptedUrl: ADOPTED_URL, queryParam: QUERY_PARAM });
+if (plan.error) {
+  console.error(`rig/lh-live.mjs: ${plan.error}`);
   process.exit(1);
 }
-if (LIVE_URL && BASELINE_URL) {
-  console.error("rig/lh-live.mjs: set EITHER LIVE_URL (query-gate PRIMARY) OR BASELINE_URL+ADOPTED_URL (two-deployment FALLBACK), not both.");
-  process.exit(1);
-}
-
-const mode = BASELINE_URL ? "two-deployment" : "query-gate";
-const isLocalDryRun = mode === "query-gate" && !LIVE_URL;
+const { mode, isLocalDryRun } = plan;
 
 const ALLOY_STUB_PATH = "/rig-fixtures/alloy-stub.js";
 
@@ -98,7 +96,8 @@ function alloyConfig(profile) {
 // real client-side gate semantics, not just plumbing.
 async function startLocalDryRunServer({ profile, queryParam }) {
   // Fresh rebuild (034-02:117 pre-flight) — the ON arm serves it verbatim, matching lh-eds.mjs.
-  execSync("npm run build", { cwd: REPO, stdio: "inherit" });
+  // Build output -> STDERR (fd 2) so this rig's stdout stays pure JSON (see lh-eds.mjs).
+  execSync("npm run build", { cwd: REPO, stdio: ["ignore", 2, 2] });
 
   const entryPath = profile === "ga4" ? "/index.html" : "/index-alloy.html";
   const alloyTemplate = profile === "ga4" ? null : await readFile(join(TESTBED_ROOT, "index-alloy.html"), "utf8");
@@ -162,17 +161,14 @@ async function startLocalDryRunServer({ profile, queryParam }) {
 }
 
 async function main() {
-  let offUrl, onUrl, closeLocal = async () => {}, localDryRunNote = null;
+  // two-deployment + live query-gate URLs are resolved by resolveRunPlan (above); only the
+  // local dry-run fills them from its just-started local server.
+  let offUrl = plan.offUrl;
+  let onUrl = plan.onUrl;
+  let closeLocal = async () => {};
+  let localDryRunNote = null;
 
-  if (mode === "two-deployment") {
-    offUrl = BASELINE_URL;
-    onUrl = ADOPTED_URL;
-  } else if (LIVE_URL) {
-    const on = new URL(LIVE_URL);
-    on.searchParams.set(QUERY_PARAM, "1");
-    offUrl = new URL(LIVE_URL).toString();
-    onUrl = on.toString();
-  } else {
+  if (isLocalDryRun) {
     const started = await startLocalDryRunServer({ profile: PROFILE, queryParam: QUERY_PARAM });
     offUrl = started.offUrl;
     onUrl = started.onUrl;

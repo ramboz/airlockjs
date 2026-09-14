@@ -57,11 +57,11 @@ function median(xs) {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
 
-// rig/lh-eds.mjs shells out to `npm run build` with stdio:"inherit" before
-// printing its JSON scoreboard, so the captured stdout has an npm banner
-// prefixed ahead of the JSON. The JSON is always the last thing printed, as
-// a pretty (indent=2) top-level object whose opening "{" sits alone on its
-// own line — find that line and parse from there.
+// rig/lh-eds.mjs now routes `npm run build` output to STDERR (the source-side fix,
+// docs/inbox.md), so its stdout is pure JSON. This trailing-JSON parse is RETAINED as
+// defense-in-depth (a future stray stdout write, or an older lh-eds, still parses): the JSON
+// is the last thing printed, a pretty (indent=2) top-level object whose opening "{" sits
+// alone on its own line — find that line and parse from there.
 function extractTrailingJSON(text) {
   const marker = "\n{\n";
   const idx = text.lastIndexOf(marker);

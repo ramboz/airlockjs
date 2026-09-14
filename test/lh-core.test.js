@@ -18,6 +18,7 @@ import {
   runLighthouseOnce,
   PROFILES,
   normalizeProfile,
+  resolveRunPlan,
   bandDisposition,
   TWO_DEPLOYMENT_CAVEAT,
   renderNote,
@@ -265,5 +266,67 @@ describe("buildResult — the full JSON card (config echoed, delta computed, acc
     expect(result.acceptance.by_construction_lcp).toBe(false);
     expect(result.acceptance.cls_improved).toBe(true);
     expect(result.acceptance.within_band).toBe(true);
+  });
+});
+
+// resolveRunPlan — the mode/guard/URL resolution formerly inline in rig/lh-live.mjs (with no
+// CI coverage; docs/inbox.md 2026-09-05). Now a pure function tested here: guards, mode
+// selection, the local-dry-run signal, and the query-gate URL construction.
+describe("resolveRunPlan (spec 036-01 — mode/guard/URL, extracted from lh-live.mjs for coverage)", () => {
+  const Q = "airlock";
+
+  it("no live + no baseline/adopted -> query-gate LOCAL dry-run (URLs filled by the local server)", () => {
+    expect(resolveRunPlan({ queryParam: Q })).toEqual({
+      mode: "query-gate",
+      isLocalDryRun: true,
+      offUrl: null,
+      onUrl: null,
+    });
+  });
+
+  it("LIVE_URL only -> query-gate: offUrl = plain URL, onUrl = URL with ?<queryParam>=1", () => {
+    const plan = resolveRunPlan({ liveUrl: "https://main--site--org.aem.page/", queryParam: Q });
+    expect(plan.mode).toBe("query-gate");
+    expect(plan.isLocalDryRun).toBe(false);
+    expect(plan.offUrl).toBe("https://main--site--org.aem.page/");
+    expect(plan.onUrl).toBe("https://main--site--org.aem.page/?airlock=1");
+  });
+
+  it("LIVE_URL with an existing query string -> the gate param is ADDED, not clobbered (URL API)", () => {
+    const plan = resolveRunPlan({ liveUrl: "https://site.example/p?a=1", queryParam: Q });
+    expect(plan.onUrl).toBe("https://site.example/p?a=1&airlock=1");
+    expect(plan.offUrl).toBe("https://site.example/p?a=1");
+  });
+
+  it("BASELINE + ADOPTED -> two-deployment: offUrl = baseline, onUrl = adopted, no local dry-run", () => {
+    expect(
+      resolveRunPlan({ baselineUrl: "https://base.example/", adoptedUrl: "https://adopted.example/", queryParam: Q }),
+    ).toEqual({
+      mode: "two-deployment",
+      isLocalDryRun: false,
+      offUrl: "https://base.example/",
+      onUrl: "https://adopted.example/",
+    });
+  });
+
+  it("BASELINE without ADOPTED (and vice-versa) -> a both-or-neither error", () => {
+    expect(resolveRunPlan({ baselineUrl: "https://base.example/", queryParam: Q }).error).toMatch(/both be set/);
+    expect(resolveRunPlan({ adoptedUrl: "https://adopted.example/", queryParam: Q }).error).toMatch(/both be set/);
+  });
+
+  it("LIVE_URL + a two-deployment pair -> a mutual-exclusion error (never both)", () => {
+    const plan = resolveRunPlan({
+      liveUrl: "https://live.example/",
+      baselineUrl: "https://base.example/",
+      adoptedUrl: "https://adopted.example/",
+      queryParam: Q,
+    });
+    expect(plan.error).toMatch(/EITHER LIVE_URL .* OR BASELINE_URL/);
+    expect(plan.mode).toBeUndefined(); // an error plan carries no mode/urls
+  });
+
+  it("an error plan carries the message WITHOUT the 'rig/lh-live.mjs:' prefix (the caller adds it)", () => {
+    const plan = resolveRunPlan({ baselineUrl: "https://base.example/", queryParam: Q });
+    expect(plan.error).not.toMatch(/^rig\/lh-live\.mjs:/); // caller reconstructs the exact former console.error
   });
 });
