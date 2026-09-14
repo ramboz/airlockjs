@@ -47,12 +47,15 @@
 import http from "node:http";
 import { readFile } from "node:fs/promises";
 import { execSync } from "node:child_process";
-import { extname, join, normalize } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { launch } from "chrome-launcher";
 import lighthouse from "lighthouse";
 import { chromium } from "playwright";
 import { armSummary, buildResult, normalizeProfile, runLighthouseOnce } from "./lh-core.mjs";
+// spec 036-01 follow-on (docs/inbox.md 2026-09-05): CSP/MIME/no-op + static-serve tail shared
+// with lh-eds.mjs + subtree-install.mjs via lh-server.mjs (one copy, unit-tested).
+import { BOILERPLATE_CSP, NOOP_EDS, EDS_ENTRY, serveStaticFile } from "./lh-server.mjs";
 
 const REPO = fileURLToPath(new URL("..", import.meta.url));
 const TESTBED_ROOT = join(REPO, "probes/eds-testbed");
@@ -76,18 +79,6 @@ if (LIVE_URL && BASELINE_URL) {
 const mode = BASELINE_URL ? "two-deployment" : "query-gate";
 const isLocalDryRun = mode === "query-gate" && !LIVE_URL;
 
-const MIME = {
-  ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript",
-  ".json": "application/json", ".css": "text/css", ".svg": "image/svg+xml",
-  ".png": "image/png", ".ico": "image/x-icon",
-};
-const BOILERPLATE_CSP =
-  "script-src 'nonce-aem' 'strict-dynamic' 'unsafe-inline' http: https:; " +
-  "base-uri 'self'; object-src 'none'; frame-src 'self' https:; " +
-  "require-trusted-types-for 'script';";
-// The no-airlock control module (OFF arm) — byte-identical to lh-eds.mjs's own.
-const NOOP_EDS = "export function bootEdsAnalytics(){}\nexport default bootEdsAnalytics;\n";
-const EDS_ENTRY = "/scripts/airlock/eds.js";
 const ALLOY_STUB_PATH = "/rig-fixtures/alloy-stub.js";
 
 // A minimal, VALID alloy connector config (ADR-0016: a stub bundleUrl — NOT the real
@@ -154,14 +145,7 @@ async function startLocalDryRunServer({ profile, queryParam }) {
         return res.end(body);
       }
 
-      const file = join(TESTBED_ROOT, normalize(p));
-      if (!file.startsWith(TESTBED_ROOT)) { res.writeHead(403); return res.end(); }
-      const body = await readFile(file);
-      res.writeHead(200, {
-        "content-type": MIME[extname(file)] || "application/octet-stream",
-        "content-security-policy": BOILERPLATE_CSP,
-      });
-      res.end(body);
+      await serveStaticFile(res, TESTBED_ROOT, p); // shared static-serve tail (lh-server.mjs); read errors -> the 404 below
     } catch (e) { res.writeHead(404); res.end("404 " + e.message); }
   });
   await new Promise((r) => server.listen(0, r));

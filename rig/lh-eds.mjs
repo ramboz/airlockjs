@@ -28,9 +28,8 @@
 //
 // Usage: LH_N=5 node rig/lh-eds.mjs   (prints the scoreboard JSON to stdout)
 import http from "node:http";
-import { readFile } from "node:fs/promises";
 import { execSync } from "node:child_process";
-import { extname, join, normalize } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { launch } from "chrome-launcher";
 import lighthouse from "lighthouse";
@@ -40,6 +39,9 @@ import { chromium } from "playwright";
 // re-implementation. Pure logic, unit-tested in test/lh-core.test.js; this file's own
 // behavior is byte-unchanged (AC7) — only WHERE the math lives moved.
 import { armSummary, computeDeltaMedian, runLighthouseOnce, withinTightBand } from "./lh-core.mjs";
+// spec 036-01 follow-on (docs/inbox.md 2026-09-05): the CSP/MIME/no-op + static-serve tail
+// are shared with lh-live.mjs + subtree-install.mjs via lh-server.mjs (one copy, unit-tested).
+import { BOILERPLATE_CSP, NOOP_EDS, EDS_ENTRY, serveStaticFile } from "./lh-server.mjs";
 
 const REPO = fileURLToPath(new URL("..", import.meta.url));
 const ROOT = join(REPO, "probes/eds-testbed");
@@ -48,21 +50,7 @@ const LH_N = Number(process.env.LH_N || 5);
 // 1. Build the real bundle into the testbed tree (the ON arm serves it verbatim).
 execSync("npm run build", { cwd: REPO, stdio: "inherit" });
 
-const MIME = {
-  ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript",
-  ".json": "application/json", ".css": "text/css", ".svg": "image/svg+xml",
-  ".png": "image/png", ".ico": "image/x-icon",
-};
-const BOILERPLATE_CSP =
-  "script-src 'nonce-aem' 'strict-dynamic' 'unsafe-inline' http: https:; " +
-  "base-uri 'self'; object-src 'none'; frame-src 'self' https:; " +
-  "require-trusted-types-for 'script';";
-
-// The no-airlock control module (OFF arm) — a real no-op boot entry.
-const NOOP_EDS = "export function bootEdsAnalytics(){}\nexport default bootEdsAnalytics;\n";
-
 let arm = "off"; // server-side toggle, flipped between iterations
-const EDS_ENTRY = "/scripts/airlock/eds.js";
 
 const server = http.createServer(async (req, res) => {
   try {
@@ -73,14 +61,7 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { "content-type": "text/javascript", "content-security-policy": BOILERPLATE_CSP });
       return res.end(NOOP_EDS);
     }
-    const file = join(ROOT, normalize(p));
-    if (!file.startsWith(ROOT)) { res.writeHead(403); return res.end(); }
-    const body = await readFile(file);
-    res.writeHead(200, {
-      "content-type": MIME[extname(file)] || "application/octet-stream",
-      "content-security-policy": BOILERPLATE_CSP,
-    });
-    res.end(body);
+    await serveStaticFile(res, ROOT, p); // shared static-serve tail (lh-server.mjs); read errors -> the 404 below
   } catch (e) { res.writeHead(404); res.end("404 " + e.message); }
 });
 await new Promise((r) => server.listen(0, r));

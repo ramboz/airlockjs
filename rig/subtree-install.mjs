@@ -46,14 +46,19 @@
 // Usage: npm run rig:subtree            (install boot+beacon + update re-land + all seeded breaks)
 //        WITH_CWV=1 npm run rig:subtree (also the Lighthouse OFF/ON CWV arm — slower)
 import http from "node:http";
-import { readFile } from "node:fs/promises";
 import { execFileSync, execSync } from "node:child_process";
 import { appendFileSync, cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { extname, join, normalize } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { publishDist } from "../publish-dist.mjs";
+// spec 036-01 follow-on (docs/inbox.md 2026-09-05): reuse the ONE band engine +
+// Lighthouse runner in rig/lh-core.mjs (pure, no browser import at load) instead of
+// this rig's former third inline copy of median + the TBT/CLS tight-band literal; and the
+// CSP/MIME/no-op + static-serve tail from lh-server.mjs (shared with lh-eds/lh-live).
+import { median, withinTightBand, TIGHT_BAND, runLighthouseOnce } from "./lh-core.mjs";
+import { BOILERPLATE_CSP, NOOP_EDS, serveStaticFile } from "./lh-server.mjs";
 
 const REPO = fileURLToPath(new URL("..", import.meta.url));
 const DIST = join(REPO, "dist");
@@ -61,17 +66,8 @@ const DIST = join(REPO, "dist");
 // relative to the site's code base path (served root). Matches the testbed's scripts/airlock/.
 const SERVED_PATH = "scripts/airlock";
 
-const MIME = {
-  ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript",
-  ".json": "application/json", ".css": "text/css", ".svg": "image/svg+xml",
-  ".png": "image/png", ".ico": "image/x-icon",
-};
-// The exact EDS boilerplate CSP (no worker-src; require-trusted-types-for 'script') — proves boot
-// under the retired-risk 004-01 envelope, exactly as the testbed rigs do.
-const BOILERPLATE_CSP =
-  "script-src 'nonce-aem' 'strict-dynamic' 'unsafe-inline' http: https:; " +
-  "base-uri 'self'; object-src 'none'; frame-src 'self' https:; " +
-  "require-trusted-types-for 'script';";
+// MIME + the exact EDS boilerplate CSP (no worker-src; require-trusted-types-for 'script' —
+// proves boot under the retired-risk 004-01 envelope) now come from lh-server.mjs.
 
 // git with global hooks disabled (skip the machine's gitleaks/pre-commit hook on throwaway
 // commits) + a fixed identity (throwaway repos have no user config) + a no-op editor (so a
@@ -143,8 +139,7 @@ if (window.trustedTypes && window.trustedTypes.createPolicy) {
 }
 
 // Static server for a checkout, CSP on every response. `noopEds` substitutes a no-op eds.js at the
-// served entry (the CWV OFF arm — a real no-airlock control, per lh-eds.mjs).
-const NOOP_EDS = "export function bootEdsAnalytics(){}\nexport default bootEdsAnalytics;\n";
+// served entry (the CWV OFF arm — a real no-airlock control, per lh-eds.mjs; NOOP_EDS from lh-server.mjs).
 const EDS_ENTRY = `/${SERVED_PATH}/eds.js`;
 // `opts.noopEds` is read PER REQUEST (may be a getter) so the CWV arm can flip OFF/ON on one server.
 async function serve(root, opts = {}) {
@@ -156,14 +151,7 @@ async function serve(root, opts = {}) {
         res.writeHead(200, { "content-type": "text/javascript", "content-security-policy": BOILERPLATE_CSP });
         return res.end(NOOP_EDS);
       }
-      const file = join(root, normalize(p));
-      if (!file.startsWith(root)) { res.writeHead(403); return res.end(); }
-      const body = await readFile(file);
-      res.writeHead(200, {
-        "content-type": MIME[extname(file)] || "application/octet-stream",
-        "content-security-policy": BOILERPLATE_CSP,
-      });
-      res.end(body);
+      await serveStaticFile(res, root, p); // shared static-serve tail (lh-server.mjs); read errors -> the 404 below
     } catch (e) { res.writeHead(404); res.end("404 " + e.message); }
   });
   await new Promise((r) => server.listen(0, r));
@@ -199,22 +187,21 @@ async function probeBoot(browser, port) {
   return { bootFailed, hasAirlock, pushed, beaconFired: beacons > 0, noise };
 }
 
-// --- AC6: Lighthouse OFF/ON on the subtree-installed page (opt-in; reuses lh-eds.mjs's method). ---
+// --- AC6: Lighthouse OFF/ON on the subtree-installed page (opt-in; reuses rig/lh-core.mjs's
+// median + tight-band + runLighthouseOnce — byte-identical flags to lh-eds.mjs's method). ---
 async function cwvArm(root) {
   const { launch } = await import("chrome-launcher");
   const lighthouse = (await import("lighthouse")).default;
   const N = Number(process.env.LH_N || 3);
-  const median = (xs) => { const s = [...xs].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 
   let armMode = "off";
   const { server, port } = await serve(root, { get noopEds() { return armMode === "off"; } });
   const url = `http://localhost:${port}/index.html`;
   const chrome = await launch({ chromePath: chromium.executablePath(), chromeFlags: ["--headless=new", "--no-sandbox"] });
-  const runOne = async () => {
-    const res = await lighthouse(url, { port: chrome.port, onlyCategories: ["performance"], formFactor: "desktop", screenEmulation: { disabled: true } });
-    const a = res.lhr.audits;
-    return { TBT_ms: Math.round(a["total-blocking-time"].numericValue), CLS: Number(a["cumulative-layout-shift"].numericValue.toFixed(3)) };
-  };
+  // The shared DI runner uses the SAME un-throttled desktop flags this rig used inline
+  // (formFactor: "desktop", screenEmulation: { disabled: true }); we read only TBT_ms/CLS
+  // off its four-metric row.
+  const runOne = () => runLighthouseOnce(lighthouse, url, { port: chrome.port });
   const off = [], on = [];
   for (let i = 0; i < N; i++) { armMode = "off"; off.push(await runOne()); armMode = "on"; on.push(await runOne()); }
   await chrome.kill();
@@ -222,8 +209,14 @@ async function cwvArm(root) {
 
   const tbtDelta = median(on.map((r) => r.TBT_ms)) - median(off.map((r) => r.TBT_ms));
   const clsDelta = Number((median(on.map((r) => r.CLS)) - median(off.map((r) => r.CLS))).toFixed(3));
-  const withinBand = tbtDelta <= 50 && Math.abs(clsDelta) <= 0.01;
-  return { lh_n: N, tbt_delta_ms: tbtDelta, cls_delta: clsDelta, within_band: withinBand, band: "TBT delta <= 50ms AND |CLS delta| <= 0.01" };
+  const withinBand = withinTightBand({ TBT_ms: tbtDelta, CLS: clsDelta });
+  return {
+    lh_n: N,
+    tbt_delta_ms: tbtDelta,
+    cls_delta: clsDelta,
+    within_band: withinBand,
+    band: `TBT delta <= ${TIGHT_BAND.tbtMs}ms AND |CLS delta| <= ${TIGHT_BAND.clsAbs}`,
+  };
 }
 
 // --- 031-02 AC3: the UPDATE path — subtree add dist-vA → subtree pull dist-vB → clean re-land. ---
