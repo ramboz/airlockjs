@@ -20,122 +20,120 @@ Open questions name the seam contract — "Consent Mode `gtag` / IAB `__tcfapi` 
 The driver is input-only: it maps OneTrust's resolved consent to `core/consent.js`'s purpose vector and feeds the existing
 seam; the egress hold/flush is already built (spec 045 / ADR-0023).
 
-A read-only live probe of the reference site (`erp.intuit.com`, 2026-09-13, `rig/onetrust-consent-probe.mjs`; raw
-local-only per R5) found the deployment exposes, in principle, two *kinds* of surface: **(1) OneTrust's own state** —
-`window.OneTrust.GetDomainData()` (a group model under a **custom** taxonomy: `3` Analytics → `analytics_storage`, `4`
-Advertising-Targeting → `ad_storage`, `41` User-Data → `ad_user_data`, `42` Personalization → `ad_personalization`), the
-`OptanonConsent` cookie (`groups=<id>:1|0` flags), the `OnetrustActiveGroups` string, and the `OnConsentChanged` /
-`OptanonWrapper` change signals — and **(2) the already-resolved Consent Mode v2 signals** the site's Tealium profile
-publishes (`gtag('consent','update',…)` / `google_tag_data.ics`, in airlock's exact vocabulary).
+Two live probes of the reference site (`erp.intuit.com`, 2026-09-13; `rig/onetrust-consent-probe.mjs` read-only +
+`rig/onetrust-optout-probe.mjs` a consent-changing opt-out; raw local-only per R5) exposed OneTrust's own surfaces
+(`OnetrustActiveGroups` / the `OptanonConsent` cookie `groups=<id>:1|0` flags / `GetDomainData()` under a custom taxonomy /
+the `OnConsentChanged` / `OptanonWrapper` change signals) **and** the already-resolved Consent Mode v2 signals the site's
+Tealium profile publishes (`gtag`/`google_tag_data.ics`).
 
-**Critical limit of that probe (frame-critique, this ADR):** it was **read-only, pre-interaction, on an opt-out /
-US-default-granted page**, so config-default and resolved-consent coincide — the capture contains **no observation that
-discriminates "does this surface track the user's choice" from "is this surface the configured default."** Worse, the
-degraded run's surfaces *disagreed*: the `OptanonConsent` cookie and `OnetrustActiveGroups` showed only `{1, BG394, 4}`,
-while `GetDomainData().Groups[].Status` showed nearly every group active and the CM signals showed all four granted. So the
-probe grounds the *shape and existence* of these surfaces, **not** which one carries resolved per-user consent — and
-`GetDomainData().Status`, being domain configuration, is the one most likely to be a configured default rather than the
-user's choice. Reading the wrong surface fails in the **unsafe** direction (report `granted` for an opted-out user → the
-seal releases ad beacons that should stay held).
+**What the opt-out experiment establishes — and its limit.** A same-session `OneTrust.RejectAll()` before/after diff yields
+one **degradation-independent** result (the two surfaces are compared under identical session conditions, so any geo/network
+degradation cancels): `GetDomainData().Groups[].Status` **did not change** on opt-out → it is OneTrust's **configured
+default**, unsafe to read as the grant signal; `OnetrustActiveGroups` / the `OptanonConsent` cookie flags **did change** →
+they carry **resolved per-user consent**. **That is the only thing the experiment grounds.** It does **not** ground the
+group→purpose map's *granularity*: `RejectAll()` denies every optional group at once (it cannot isolate any single group),
+and both probe sessions were **geo-degraded** (the read-only run recorded `geolocation: null` + a `403`; the opt-out run's
+`before` set `{1, BG394, 4}` already lacked groups `3`/`41`/`42`). So whether `3`/`41`/`42` are independently
+consent-tracked — or were merely absent because the session never resolved geo — is **unverified**, and the host-map's shape
+must not be frozen on this run.
 
 ## Decision Options Considered
 
-### Option A: Read OneTrust's own resolved-consent surface + a host-provided group→purpose map (RECOMMENDED)
+### Option A: Read OneTrust's own resolved-consent surface + a host-provided group→purpose map (CHOSEN)
 
-The driver reads OneTrust's **resolved per-user consent** and maps each granted group to purposes via a host-supplied
-`{ <groupId>: ConsentPurpose[] }` map. The **exact** OneTrust surface that carries resolved consent — the `OptanonConsent`
-cookie `groups=<id>:1|0` flags (OneTrust's documented persisted consent record — *leading candidate*), `OnetrustActiveGroups`,
-or `GetDomainData().Groups[].Status` — is **not yet grounded** (see Context) and is pinned by a discriminating experiment
-before 047-01 implements (Assumptions + Kill criteria).
+The driver reads OneTrust's **resolved** consent from the surface the experiment grounded — `OnetrustActiveGroups` (the
+granted-group set), equivalently the `OptanonConsent` cookie `groups` flags — and maps each granted group to purposes via a
+host-supplied `{ <groupId>: ConsentPurpose[] }` map. It **does not** read `GetDomainData().Groups[].Status` for grant state
+(experiment: configured-default); `GetDomainData()` is used only for group taxonomy/names.
 
 - **Pros:** It *is* the OneTrust driver (faithful to the spec title + MVP8's named deliverable). Reads OneTrust's consent
-  intent **at the source**, independent of any downstream tag manager — so it works on OneTrust deployments that gate
-  scripts directly and never bridge to Consent Mode. Reusable to any OneTrust site by swapping the host map. The mapping is
-  **explicit, auditable config**, not logic hidden in a Tealium profile. No coupling to Google gtag internals.
-- **Cons:** Needs a **site-specific** map (OneTrust group ids are site-defined). Requires grounding **which** OneTrust
-  surface reflects resolved consent (the naive first pick, `GetDomainData().Status`, is suspected configured-default and is
-  explicitly **not** trusted until the experiment shows it flips on opt-out). If *no* OneTrust surface tracks the user
-  client-side, Option A cannot stand for that deployment (Kill criteria).
+  intent **at the source**, independent of any downstream tag manager — so it works on OneTrust deployments that gate scripts
+  directly and never bridge to Consent Mode. Reusable to any OneTrust site by swapping the host map. Explicit, auditable
+  config; no coupling to Google gtag internals.
+- **Cons:** Needs a **site-specific** host map whose **granularity is not yet grounded** (see Context) — building it needs a
+  per-site, **non-degraded, per-group-toggle** experiment (below), more onboarding work than a naive read. For a CM-bridged
+  site like the reference site, Option B reads the already-computed answer with less work; Option A trades that for
+  source-fidelity and no-bridge portability. (Owner decision 2026-09-13: accept this trade — keep the OneTrust driver.)
 
 ### Option B: Consume the already-resolved Consent Mode v2 signals (`gtag` / `google_tag_data.ics`)
 
 - **Pros:** No map — already in airlock's vocabulary; the OneTrust→purpose mapping is done by the site's Tealium profile;
-  it is (by construction) the *resolved* state, sidestepping Option A's "which surface is resolved" problem.
-- **Cons:** This is **not** the OneTrust driver — it is ADR-0007's *separate Consent Mode `gtag` driver*, one of the three
-  seam drivers ADR-0007 names in its own right. It couples airlock's consent input to Google gtag internals
-  (`google_tag_data.ics` is a private, undocumented object). It only works where a downstream has *already* bridged OneTrust
-  → CM v2 — deployment-specific, not intrinsic to OneTrust — so it silently fails on a direct-gating OneTrust site. Adopting
-  it *as* the OneTrust driver conflates two distinct ADR-0007 drivers. (Kept as the documented fallback if Option A's Kill
-  criterion fires.)
+  probe-confirmed to flip correctly on opt-out. Least work on a CM-bridged site.
+- **Cons:** This is **not** the OneTrust driver — it is ADR-0007's *separate Consent Mode `gtag` driver*. It couples
+  airlock's consent input to Google gtag internals (`google_tag_data.ics` is private/undocumented) and only works where a
+  downstream has already bridged OneTrust → CM v2 (deployment-specific), so it silently fails on a direct-gating OneTrust
+  site. Kept as the documented **fallback** for CM-bridged deployments and the future standalone gtag driver.
 
-### Option C: Read `GetDomainData().Groups[].Status` as the grant signal
+### Option C: Read `GetDomainData().Groups[].Status` as the grant signal (REJECTED — experiment-disproven)
 
-- **Pros:** Richest single OneTrust object (names + status + config in one call); more entries than the cookie in the probe.
-- **Cons:** `GetDomainData()` is domain **configuration**; the probe cannot show `Status` reflects the *user's* resolved
-  choice (pre-interaction, opt-out-default, non-discriminating), and it read as near-all-active while the persisted cookie
-  showed a subset — i.e. it looks like the configured default. Trusting it as the grant signal is the **unsafe** failure
-  (grant an opted-out user). Rejected as the grant surface; `GetDomainData()` is still used for the group **taxonomy/names**
-  (which *is* config).
+- **Cons:** The opt-out experiment showed `Status` **does not change** when the user denies — it is domain configuration, not
+  resolved consent. Reading it as the grant signal is the **unsafe** failure (grant an opted-out user → release held ad
+  beacons). Rejected outright; `GetDomainData()` is used for taxonomy/names only.
 
 ## Recommended Decision
 
-**Option A** — the OneTrust consent-input driver reads OneTrust's **own resolved-consent surface** and maps groups → the
-`core/consent.js` vector through a **host-provided `{ groupId: ConsentPurpose[] }` map**. It does **not** consume the
-resolved Consent Mode v2 signals (Option B) — that is a legitimate but **separate** ADR-0007 gtag driver, out of scope and
-the documented fallback.
+**Option A** — the OneTrust consent-input driver reads OneTrust's **own resolved-consent surface** (`OnetrustActiveGroups` /
+the `OptanonConsent` cookie `groups` flags — experiment-grounded) and maps the granted groups → the `core/consent.js` vector
+through a **host-provided `{ groupId: ConsentPurpose[] }` map**. It does **not** read `GetDomainData().Status` for grant state
+(configured-default) and does **not** consume the resolved Consent Mode v2 signals (Option B — ADR-0007's separate gtag
+driver, kept as the CM-bridged fallback).
 
-**The exact resolved-consent surface is NOT decided here — it is gated on a discriminating experiment.** The leading
-candidate is the `OptanonConsent` cookie `groups=<id>:1|0` flags (OneTrust's persisted consent record); `GetDomainData().Status`
-is explicitly rejected as the grant signal (suspected configured-default). Before 047-01 implements, a **click-through
-re-capture** — opt out of one ad group in the OneTrust banner and observe **which** surface's flag flips to denied — pins the
-surface. `GetDomainData()` is used only for the group taxonomy/names regardless.
+**The host-map's shape and adequacy are NOT decided here** — the degraded, all-at-once probe cannot establish them, and the
+site's real OneTrust→purpose logic lives in Tealium (R-007), uninspected; it may not be a static per-group `{ groupId:
+purposes[] }` function at all (e.g. **combinational** — `RejectAll()` flipped the non-CM branch `BG394` in lockstep with ad
+group `4` — or **region-conditional**). Before 047-01 freezes the host-map contract, ground it two ways: **(i)** a
+**non-degraded, per-group-toggle experiment** (resolve geo / spoof an EEA locale so the full group set materializes, deny one
+group at a time, observe which purposes drop), and **(ii)** **cross-validate the driver's output vector against the site's
+own resolved Consent Mode vector** (`google_tag_data.ics` / gtag — the available ground truth on `erp.intuit.com`) across
+consent states. If the per-group-map output cannot be reconciled to that ground-truth vector across states, the mapping is
+not a static per-group function → Option A's map is insufficient here (Kill criteria). The decision recorded here rests
+**only** on the degradation-independent surface finding, not on any map-shape claim.
 
-This **partially resolves ADR-0007's open seam-contract question for the OneTrust facet** at the architectural level (read
-OneTrust's own resolved consent, via a host map, not the gtag signals); it deliberately leaves the exact resolved-surface
-read to be *grounded, not assumed*. It does not decide the `gtag`/`__tcfapi` drivers or the strict/no-processing regime.
+This **partially resolves ADR-0007's open seam-contract question for the OneTrust facet**: source = OneTrust's own resolved
+surface, mapping = host config (shape grounded at implementation). It does not decide the `gtag`/`__tcfapi` drivers or the
+strict/no-processing regime.
 
 ## Consequences
 
 **Becomes easier:**
-- The OneTrust driver reads OneTrust's *own* intent, so it is correct on OneTrust deployments regardless of whether they
-  bridge to Consent Mode — the broad-adoption case, not just the reference site.
+- The OneTrust driver reads OneTrust's *own* resolved intent, correct on OneTrust deployments regardless of whether they
+  bridge to Consent Mode — the broad-adoption case.
 - Reuse across OneTrust sites is a config change (swap the host map), not a code change.
-- Option B stays cleanly available as its own future *Consent Mode `gtag` driver* (ADR-0007), un-conflated, and as the
-  documented fallback if OneTrust exposes no resolved surface client-side.
+- Option B stays cleanly available as the CM-bridged fallback and a future standalone *Consent Mode `gtag`* driver
+  (ADR-0007), un-conflated.
 
 **Becomes harder:**
-- Every OneTrust deployment needs a site-specific group→purpose map **and** a grounded answer to "which surface is resolved
-  consent here" (a per-site experiment), before the driver can be trusted — more onboarding work than a naive single read.
+- Each OneTrust deployment needs a site-specific host map whose **shape is grounded by a non-degraded per-group experiment**
+  (the config taxonomy is not a reliable proxy for the resolved-consent granularity) — more onboarding work than a naive read.
 - The driver depends on OneTrust's surface shape (a vendor API); a change there is a driver change.
 
 ## Assumptions
 
-<!-- Spec 064-02 / ADR-0020 §1–§2 — grounding-by-probe. The existence/shape claims are probe-grounded (rig/onetrust-consent-probe.mjs, 2026-09-13); the load-bearing SEMANTIC claim below is explicitly NOT grounded and gated on an experiment. -->
+<!-- Spec 064-02 / ADR-0020 §1–§2 — grounding-by-probe. Only the differential surface finding is grounded; the map-shape claim is explicitly NOT, per the frame-critique. -->
 
-- **LOAD-BEARING, UNVERIFIED — which OneTrust surface reflects resolved *user* consent (vs configured default).** The
-  2026-09-13 probe was read-only, pre-interaction, opt-out/default-granted, and its surfaces disagreed, so it **cannot**
-  discriminate resolved-consent from config-default. Grounded by a **click-through opt-out re-capture** (a hard 047-01
-  grounding gate): opt out of one ad group and confirm which surface's flag flips to denied. Until then the driver treats
-  the `OptanonConsent` cookie `groups` flags as the resolved read (leading candidate) and **must not** trust
-  `GetDomainData().Status` as the grant signal. Getting this wrong releases ad beacons against denied consent — the failure
-  the whole seal exists to prevent.
-- **GROUNDED (shape only):** the reference site exposes these surfaces client-side at boot under a custom numeric group
-  taxonomy with the seed map above; `GetDomainData()` gives the group names (config). The full non-degraded set is confirmed
-  by the same re-capture.
+- **GROUNDED (opt-out experiment, degradation-independent):** `OnetrustActiveGroups` / the `OptanonConsent` cookie flags
+  reflect resolved per-user consent (change on opt-out); `GetDomainData().Status` is configured-default (does not change).
+  The decision rests on this alone.
+- **UNVERIFIED (load-bearing for the host-map contract — must be grounded before 047-01 freezes it):** the map's **shape and
+  adequacy** — not only which groups gate which purposes and whether `3`/`41`/`42` are independent, but whether a static
+  per-group `{ groupId: purposes[] }` map can express the site's logic **at all** (it may be combinational or
+  region-conditional; the resolving logic is Tealium-side, uninspected). The single all-at-once `RejectAll()` on a
+  geo-degraded session cannot establish this. Grounded by the per-group-toggle experiment **and** cross-validation of the
+  driver's output against the site's own resolved Consent Mode vector across states (Recommended Decision).
 
 ## Kill criteria
 
-- **No OneTrust surface flips to denied on a user opt-out** (all surfaces stay at configured default client-side; consent is
-  enforced server-side only). Then OneTrust does not expose resolved consent on the page for this deployment, Option A cannot
-  read it, and the driver falls back to the **Option-B gtag-signal driver** (where a CM bridge exists) or a host-callback
-  vector. This is discovered by the gating experiment **before** implementation, not after shipping.
-- **Per-site group→purpose maps + per-site resolved-surface experiments prove unworkable at adoption scale.** Then lean on
-  the Option-B gtag driver where a CM bridge already exists, and reserve Option A for direct-gating OneTrust sites.
+- **A target OneTrust deployment exposes no surface that changes on opt-out** (consent resolved server-side only). Then
+  Option A cannot read resolved consent there — fall back to the Option-B gtag driver (where a CM bridge exists) or a
+  host-callback vector. (Not the case on the reference site — a surface does change.)
+- **The mapping is not a static per-group function** — the driver's per-group-map output cannot be reconciled to the site's
+  own resolved Consent Mode vector across consent states (the site's logic is combinational, region-conditional, or
+  irreducibly conflates purposes airlock must gate separately). Then Option A's map is insufficient for that site; prefer the
+  Option-B gtag driver on CM-bridged sites (parity-correct by construction).
 
 ## Open questions
 
-- The exact resolved-consent surface (`OptanonConsent` cookie flags vs `OnetrustActiveGroups` vs neither) — pinned by the
-  047-01 gating experiment, not here.
+- The host-map's **shape and** granularity per site (grounded by the per-group-toggle experiment **+ cross-validation
+  against the site's own resolved Consent Mode vector** before 047-01 freezes it — incl. whether a static per-group map can
+  express the site's logic at all).
 - The `gtag` / `__tcfapi` seam drivers and the strict/no-processing regime declaration remain ADR-0007-open.
-- Whether a `BG…` branch group (e.g. the probed "Allow Information Sharing" / CCPA toggle) also gates `ad_user_data` — a
-  per-site host-map detail, grounded with the same experiment.

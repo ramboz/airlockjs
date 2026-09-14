@@ -31,8 +31,9 @@ as a per-purpose **vector** (`core/consent.js`'s `CONSENT_PURPOSES` — the Cons
 OneTrust and calls that update — **another source onto the same seam, not a new seam** (`docs/refinement-todo.md:273-277`).
 
 It is a **main-thread input driver**. OneTrust runs on the main thread and the seam is pre-construction on the main thread,
-so the driver reads OneTrust's **own** resolved group state there (`GetDomainData().Groups[].Status`) and maps it to the
-purpose vector via a host-provided group→purpose map
+so the driver reads OneTrust's **own** resolved-consent surface there (`OnetrustActiveGroups` / the `OptanonConsent` cookie
+`groups` flags — **not** `GetDomainData().Status`, which the opt-out experiment proved is configured-default; §A5) and maps
+the granted groups to the purpose vector via a host-provided group→purpose map
 ([ADR-0026](../../decisions/adr-0026-onetrust-consent-input-source.md); the live probe found the resolved Consent Mode v2
 signals present too, but consuming *those* is ADR-0007's **separate** gtag driver — out of scope, see `## Grounding` §A3) —
 handing the runtime only the resolved vector (ADR-0003 minimal snapshot). It runs **no chamber, opens
@@ -100,26 +101,42 @@ in airlock's **exact vocabulary**. So there are two candidate source surfaces:
   + `OnetrustActiveGroups` = `{1, BG394, 4}` vs `GetDomainData().Status` ≈ all-active vs CM signals all-granted). So the probe
   grounds these surfaces' *shape*, **not** which one carries resolved consent. **Decided —
   [ADR-0026](../../decisions/adr-0026-onetrust-consent-input-source.md):** option (a) — read OneTrust's **own resolved-consent**
-  surface (not the gtag signals, option (b) = ADR-0007's separate driver). The **exact** surface (the `OptanonConsent` cookie
-  `groups=<id>:1|0` flags — *leading candidate* — vs `OnetrustActiveGroups`; `GetDomainData().Status` **rejected** as the
-  grant signal — suspected configured-default) is **gated on a discriminating click-through re-capture** (opt out of one ad
-  group, see which flag flips — a hard 047-01 grounding step), never assumed. `GetDomainData()` supplies the group
-  taxonomy/names only.
+  surface (not the gtag signals, option (b) = ADR-0007's separate driver). **Grounded by the opt-out experiment (§A5):** the
+  resolved surface is `OnetrustActiveGroups` / the `OptanonConsent` cookie `groups` flags (both flip on opt-out);
+  `GetDomainData().Status` is **confirmed configured-default** (does not flip) and is used for taxonomy/names only, never as
+  the grant signal.
 
 **A4 (resolution model — GROUNDED).** Opt-out, US-default-granted: pre-interaction the four CM signals were UPDATED to
 granted (the opt-out default *is* the resolved state; "resolved" ≠ "user clicked"). Resolution is network-gated, though —
 the `403` + `geolocation: null` degraded it — so **"OneTrust present but not yet fully resolved" is a real state**; the
-driver keeps core's fail-to-pending for it (omit → seal holds), never fail-to-granted. Because the capture was
-pre-interaction, it also does **not** show which surface *tracks* a user opt-out — the §A3 / ADR-0026 discriminating
-experiment settles that before 047-01 implements.
+driver keeps core's fail-to-pending for it (omit → seal holds), never fail-to-granted. Because that capture was
+pre-interaction, it did not itself show which surface *tracks* a user opt-out — the opt-out experiment (§A5) settled that.
+
+**A5 (opt-out experiment — GROUNDED 2026-09-13, `rig/onetrust-optout-probe.mjs`; consent-state-changing, authorized).** A
+discriminating opt-out (`OneTrust.RejectAll()`) on `erp.intuit.com`, diffing every surface before/after, settles §A3:
+- **`GetDomainData().Groups[].Status` is the CONFIGURED DEFAULT — it did NOT change** (ad groups stayed `active` after
+  opt-out). Confirmed **unsafe** as a grant signal; used for taxonomy/names only.
+- **`OnetrustActiveGroups` and the `OptanonConsent` cookie `groups` flags track RESOLVED consent** — both flipped
+  (`OnetrustActiveGroups` `,1,BG394,4,`→`,1,`; cookie `4:1`→`4:0`, `BG394:1`→`BG394:0`). These are option (a)'s read. The
+  Consent Mode signals (`gtag`/`ics`) flipped too (all four →`denied`) — option (b)'s surface.
+- **The map's SHAPE + granularity are UNVERIFIED (frame-critique).** `RejectAll()` denies every optional group at once (it
+  cannot isolate a group), both probe sessions were **geo-degraded** (`geolocation: null` / `403`; the opt-out `before` set
+  `{1, BG394, 4}` already lacked `3`/`41`/`42`), and the site's OneTrust→purpose logic lives in Tealium (uninspected) — so it
+  may not even be a static per-group map (`BG394` flipped in lockstep with `4`, hinting combinational / region-conditional).
+  Grounded before 047-01 freezes the host-map by **(i)** a non-degraded per-group-toggle experiment (resolve geo / spoof EEA,
+  deny one group at a time) **and (ii)** cross-validating the driver's output against the site's own resolved Consent Mode
+  vector (`google_tag_data.ics`) across states (the available ground truth). The experiment grounds only the *surface*
+  finding, not the map.
 
 ## Assumptions
 
 - **Live change-event delivery (A2 residual).** That `OnConsentChanged` / `OptanonWrapper` fire with the updated set when
   the user actually changes consent — grounded at 047-02 implementation (observe one real toggle), not asserted now.
-- **Clean (non-degraded) resolved active-group set (A1/A3 residual).** A non-headless re-capture to confirm the *full*
-  resolved group set and the chosen source surface's completeness (the degraded run's 403 left `OnetrustActiveGroups`
-  partial) — a 047-01 implementation check, not a design blocker.
+- **Host-map shape + granularity UNVERIFIED (A5 residual — load-bearing for 047-01's map contract).** Only the *surface* is
+  grounded (`OnetrustActiveGroups` / cookie change on opt-out; `GetDomainData().Status` does not). Whether a static per-group
+  map can express the site's logic at all (it may be combinational / region-conditional) needs a **non-degraded per-group-
+  toggle** experiment **+ cross-validation against the site's own resolved Consent Mode vector** — grounded before 047-01
+  freezes the host-map, never asserted from the degraded all-at-once reject.
 
 ## Decomposition
 
@@ -131,14 +148,15 @@ the egress hold/flush, *and now the OneTrust surface itself* are grounded (`## G
 choice (which source surface), not open-ended research. `functional` / `personalization` purposes and non-EDS host adapters
 are out of scope (MVP8 is ad-conversion — the Consent Mode v2 four).
 
-- **047-01 (Path — initial consent at boot)** — a OneTrust consent-input driver module reads OneTrust's **own** resolved
-  group state at boot (`GetDomainData().Groups[].Status` + a host group→purpose map, per
-  [ADR-0026](../../decisions/adr-0026-onetrust-consent-input-source.md)), maps to the `core/consent.js` vector over the
+- **047-01 (Path — initial consent at boot)** — a OneTrust consent-input driver module reads OneTrust's **own** resolved-
+  consent surface at boot (`OnetrustActiveGroups` / the `OptanonConsent` cookie flags — **not** `GetDomainData().Status`,
+  configured-default; §A5) + a host group→purpose map, per
+  [ADR-0026](../../decisions/adr-0026-onetrust-consent-input-source.md), maps to the `core/consent.js` vector over the
   Consent Mode v2 four, and feeds the `adapters/eds/index.js` `consent` boot param. Defines the driver module + the host-map
   contract. `arch_review: true` (new module boundary + the host-map public contract; the *source-surface* choice is already
   settled in ADR-0026, so the arch pass validates the module home + contract shape); `frame_review: true` (rests on the
-  A1/A2 non-degraded / delivery residuals). Delivers: on page load the seal starts from OneTrust's actual consent — granted
-  ad purposes send, denied / pending hold.
+  A2 delivery + the map-shape/granularity residuals — §A5). Delivers: on page load the seal starts from OneTrust's actual
+  consent — granted ad purposes send, denied / pending hold.
 - **047-02 (Path — mid-session consent change)** — the same driver subscribes to OneTrust's consent-change signal
   (`OnConsentChanged` / `OptanonWrapper`, mechanism grounded §A2), re-maps through 01's contract, and calls
   `handle.setConsent(vector)`, flushing 045-held beacons on the grant edge (the "OneTrust-accept flow"). `arch_review: false`
