@@ -32,13 +32,14 @@
     "connector": {
       "type": "object",
       "required": ["type"],
-      "description": "A single connector entry — a discriminated union on `type` (ga4 / ga4-gtag / pixel / helix-rum / alloy). alloy covers analytics (spec 033-02) AND personalization (spec 033-03, via `placements`).",
+      "description": "A single connector entry — a discriminated union on `type` (ga4 / ga4-gtag / pixel / helix-rum / alloy / google-ads). alloy covers analytics (spec 033-02) AND personalization (spec 033-03, via `placements`).",
       "oneOf": [
         { "$ref": "#/$defs/ga4Connector" },
         { "$ref": "#/$defs/ga4GtagConnector" },
         { "$ref": "#/$defs/pixelConnector" },
         { "$ref": "#/$defs/helixRumConnector" },
-        { "$ref": "#/$defs/alloyConnector" }
+        { "$ref": "#/$defs/alloyConnector" },
+        { "$ref": "#/$defs/googleAdsConnector" }
       ]
     },
     "ga4Connector": {
@@ -120,6 +121,26 @@
           }
         }
       ]
+    },
+    "googleAdsConnector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "conversionId"],
+      "description": "Google Ads (AW) page-load remarketing/conversion beacon (spec 044 / 048-01) — a container's own `ccm/collect` beacon reproduced off-thread (`bootGoogleAds`), hosted in its own worker chamber mirroring `ga4-gtag`'s. Consent-governed (`ad_storage`); the top-level consent/consentStrict/payloadDenylist are threaded in exactly like `ga4`/`ga4-gtag` (no exemption), PLUS `holdOnDenied` (045-01): a denied-`ad_storage` beacon holds at the seal and is re-mapped + flushed on a later grant.",
+      "properties": {
+        "type": { "const": "google-ads" },
+        "conversionId": { "type": "string", "minLength": 1, "description": "The AW conversion id (`tid`, e.g. \"AW-1234567890\", REQUIRED)." },
+        "consentDefault": {
+          "type": "object",
+          "description": "Host-declared ADR-0007 Consent-Mode default vector (`gtag('consent','default',…)`), gating `gcd` — mirrors ga4-gtag's own `consentDefault` (039-05/041-02); threaded into BOTH the steady-state beacon AND the held→grant-flush re-map (048-01 fix round) so the two paths encode the SAME `gcd`.",
+          "additionalProperties": { "type": "string" }
+        },
+        "endpoint": { "type": "string", "description": "Optional ccm/collect endpoint override (default the pinned GOOGLE_ADS_CCM_COLLECT_ENDPOINT)." },
+        "ctx": {
+          "type": "object",
+          "description": "Optional pre-sourced identity snapshot ({auid?, gclid?, wbraid?, gbraid?}); when absent, sourced host-side from the _gcl_au cookie + inbound click ids (connectors/google-ads/cookies.js)."
+        }
+      }
     },
     "helixRumConnector": {
       "type": "object",

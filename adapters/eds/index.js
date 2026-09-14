@@ -46,6 +46,11 @@ import { sourceGa4Ctx, writeGa4SessionState } from "../../connectors/ga4/cookies
 import { shapeMpConsent } from "../../connectors/ga4/consent.js";
 import { GA4_GTAG_COLLECT_ENDPOINT } from "../../connectors/ga4/gtag.js";
 import { coalesceGa4 } from "../../connectors/ga4/coalesce.js";
+import {
+  createGoogleAdsRemap,
+  GOOGLE_ADS_CCM_COLLECT_ENDPOINT,
+} from "../../connectors/google-ads/connector.js";
+import { sourceGoogleAdsCtx } from "../../connectors/google-ads/cookies.js";
 import { createMetaPixelConfig, META_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/meta.js";
 import { createLinkedInInsightConfig, LINKEDIN_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/linkedin.js";
 import { createBingUetConfig, BING_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/bing.js";
@@ -787,6 +792,124 @@ export async function bootGa4Gtag(opts = {}) {
 
   return {
     push: (evt) => airlock.push(evt),
+    setConsent: (v) => airlock.setConsent(v),
+    getState: (path) => airlock.getState(path),
+    flushNow: () => airlock.flushNow(),
+    stats: () => airlock.stats(),
+    dispose: () => airlock.dispose(),
+  };
+}
+
+/**
+ * Google Ads' (AW) declared egress `purposes.egress` (spec 044-01 —
+ * `connectors/google-ads/connector.js`'s manifest: `["ad_storage"]`). Mirrors
+ * `GA4_EGRESS_PURPOSES`'s pattern: the purpose->beacon binding is the connector's
+ * MANIFEST, not a hardcoded literal at the seal. Kept in sync with that manifest (its
+ * home) — a residual noted in docs/refinement-todo.md, same as every other
+ * `*_EGRESS_PURPOSES`/`*_MANIFEST_EVENTS` const in this file.
+ */
+const GOOGLE_ADS_EGRESS_PURPOSES = ["ad_storage"];
+
+/**
+ * Boot the Google Ads (AW) page-load connector for an EDS page (spec 048-01) — the
+ * SECOND worker-chamber-hosted gtag-family boot (mirroring `bootGa4Gtag`'s own
+ * chamber-hosting structure, spec 041-01/02, verbatim for the hosting axis), PLUS the
+ * seal's `holdOnDenied`/`remap` trio (045-01) `bootGa4Gtag` never wires — the FIRST
+ * adapter boot to thread hold+remap+cookie-reader through a REAL chamber (AC2). Closes
+ * the 044-01 §A2 "real boot wiring in adapters/eds is the deferred edge" gap named in
+ * `test/google-ads-seal.test.js`'s own header.
+ *
+ * Host-side ctx sourcing mirrors `sourceGa4Ctx`'s own discipline: `sourceGoogleAdsCtx`
+ * (`connectors/google-ads/cookies.js`) reads `_gcl_au`→`auid` (ad_storage-gated,
+ * read-when-present/never-minted, §A5) + inbound click ids from the landing URL, and
+ * only the minimal `{auid?, gclid?, wbraid?, gbraid?}` snapshot crosses into
+ * `connectorConfig.ctx` (ADR-0003) — the chamber itself never touches cookies/DOM.
+ * `ad_storage` (not `analytics_storage`) gates BOTH the `_gcl_au` read AND the seal's
+ * `holdOnDenied` egress gate — the SAME purpose governs both, mirroring bootGa4Gtag's
+ * own analytics_storage dual-use (017-02).
+ *
+ * @param {object} [opts]
+ * @param {object} [opts.ctx] explicit ctx override (skips cookie/URL sourcing — rig/test
+ *   escape hatch, mirrors bootGa4Gtag; touches `document` ZERO times).
+ * @param {string} opts.conversionId the AW conversion id (`tid`, e.g. "AW-1234567890").
+ * @param {Record<string,string>} [opts.consent] ADR-0007 consent vector.
+ * @param {Record<string,string>} [opts.consentDefault] the declared Consent-Mode default
+ *   vector — folded into `ctx.consentDefault` (gcd's scope gate), mirrors bootGa4Gtag.
+ * @param {boolean}  [opts.consentStrict] spec 017-03 AC3 — a strict/no-processing regime.
+ * @param {string[]} [opts.payloadDenylist] spec 019-01 (ADR-0012).
+ * @param {string}   [opts.endpoint] ccm/collect endpoint override. Defaults to
+ *   `GOOGLE_ADS_CCM_COLLECT_ENDPOINT`. Threaded into the connector config, the endpoint
+ *   ceiling, AND the remap (so a held beacon's grant-flush re-maps to the SAME override
+ *   the ceiling allows — an endpoint override that the remap forgot would otherwise HOLD
+ *   forever at the ceiling on every flush).
+ * @param {(record: object) => void} [opts.onDiagnostic] spec 028 inspector sink.
+ * @returns {Promise<{push,pushCritical,setConsent,getState,flushNow,stats,dispose}>}
+ */
+export async function bootGoogleAds(opts = {}) {
+  const {
+    ctx: providedCtx,
+    conversionId,
+    consent,
+    consentDefault,
+    consentStrict = false,
+    payloadDenylist,
+    endpoint = GOOGLE_ADS_CCM_COLLECT_ENDPOINT,
+    onDiagnostic,
+  } = opts;
+
+  // ad_storage (not analytics_storage) gates the _gcl_au read — mirrors bootGa4Gtag's
+  // analytics_storage gate (017-02), but for g-ads' own governing purpose (§A5).
+  const adStorageGranted = consent ? resolveConsent(consent, "ad_storage") === "granted" : true;
+
+  // Host-side sourcing: mirrors bootGa4Gtag's sourceGa4Ctx call. `??` short-circuits, so
+  // `document` is touched ZERO times when `providedCtx` is set (the same rig/test escape
+  // hatch bootGa4Gtag's own `opts.ctx` override provides).
+  const ctx =
+    providedCtx ??
+    sourceGoogleAdsCtx({
+      cookieString: typeof document !== "undefined" ? document.cookie : "",
+      landingUrl: typeof document !== "undefined" && document.location ? document.location.href : "",
+      adStorageGranted,
+    });
+
+  const ctxWithConsent = { ...ctx, consent, consentDefault };
+
+  const airlock = createAirlock({
+    connector: "google-ads",
+    connectorConfig: { conversionId, ctx: ctxWithConsent, endpoint },
+    endpoints: [endpoint],
+    ctx: ctxWithConsent,
+    consent,
+    egressPurposes: consent ? GOOGLE_ADS_EGRESS_PURPOSES : [],
+    consentStrict,
+    // 045-01/044-02 (ADR-0023 Option E): g-ads OPTS IN to hold-on-denied — grounded on
+    // R-009 §(b) (the container HELD the AW family under reject-all). Unconditional:
+    // inert when egressPurposes is [] (no consent wired), because the seal's hold/gate
+    // logic is itself gated on `egressPurposes.length` in core/airlock.js — back-compat
+    // safe, exactly like bootGa4Gtag's own unconditional `coalesce: coalesceGa4` wiring.
+    holdOnDenied: true,
+    // The connector's held→grant-flush re-mapper (045-01, test/google-ads-seal.test.js).
+    // A fresh `readCookieString` closure re-reads `document.cookie` on EVERY call (never
+    // cached) — the load-bearing re-source-at-flush-time behavior AC4 proves. `consentDefault`
+    // MUST be threaded here too (fix round, 2026-09-14): `createGoogleAdsRemap` re-encodes
+    // `gcd` via the SAME `encodeGcd(consent, consentDefault)` the steady-state path uses
+    // (connectors/google-ads/connector.js) — an omitted `consentDefault` here would make a
+    // flushed beacon fall back to the absent-default (implicit denied-all) `gcd` scope gate
+    // instead of the host's ACTUAL declared default, diverging from the steady-state beacon's
+    // own `gcd` whenever that declared default isn't denied-all.
+    remap: createGoogleAdsRemap({
+      conversionId,
+      endpoint,
+      consentDefault,
+      readCookieString: () => (typeof document !== "undefined" ? document.cookie : ""),
+    }),
+    payloadDenylist,
+    onDiagnostic,
+  });
+
+  return {
+    push: (evt) => airlock.push(evt),
+    pushCritical: (evt) => airlock.pushCritical(evt),
     setConsent: (v) => airlock.setConsent(v),
     getState: (path) => airlock.getState(path),
     flushNow: () => airlock.flushNow(),
@@ -1588,16 +1711,28 @@ const GA4_GTAG_MANIFEST_EVENTS = ["*"];
 const HELIX_RUM_MANIFEST_EVENTS = ["top", "error", "cwv"];
 
 /**
- * The connector `type`s `boot(config)` can dispatch (spec 032-02 AC2/AC3, 033-02 AC3,
- * 041-04 AC1). The discriminated union's tags — GA4 (MP), **ga4-gtag** (041-04: the
- * gtag-protocol GA4 connector, `bootGa4Gtag` — a container's own GA4 tag beacon
- * reproduced off-thread), the three pixel vendors (nested under `pixel`), helix-rum,
- * and (033-02) **alloy** — the analytics vertical: alloy's first-ever adapter boot,
- * hosted via `core/wrapped-sdk-host.js` + `bootAlloy` (adopter-supplied `bundleUrl`,
- * ADR-0016). Personalization / decisions-as-data is the follow-on vertical (033-03);
- * this entry covers the Edge-interact analytics use.
+ * Google Ads' (AW) declared `manifest.events` (spec 048-01) — mirrors
+ * `GA4_GTAG_MANIFEST_EVENTS`'s pattern: `connectors/google-ads/connector.js`'s manifest
+ * declares `events: ["page_view"]` (the page-load remarketing beacon only, NOT a
+ * catch-all — the true conversion ping is MVP9, spec 044 §A3), so the composite gate
+ * admits only `page_view`. Kept in sync with that manifest (its home).
  */
-const KNOWN_CONNECTOR_TYPES = ["ga4", "ga4-gtag", "pixel", "helix-rum", "alloy"];
+const GOOGLE_ADS_MANIFEST_EVENTS = ["page_view"];
+
+/**
+ * The connector `type`s `boot(config)` can dispatch (spec 032-02 AC2/AC3, 033-02 AC3,
+ * 041-04 AC1, 048-01 AC3). The discriminated union's tags — GA4 (MP), **ga4-gtag**
+ * (041-04: the gtag-protocol GA4 connector, `bootGa4Gtag` — a container's own GA4 tag
+ * beacon reproduced off-thread), the three pixel vendors (nested under `pixel`),
+ * helix-rum, (033-02) **alloy** — the analytics vertical: alloy's first-ever adapter
+ * boot, hosted via `core/wrapped-sdk-host.js` + `bootAlloy` (adopter-supplied
+ * `bundleUrl`, ADR-0016) — and (048-01) **google-ads**: the first ad-conversion
+ * connector, `bootGoogleAds` — a container's AW ccm/collect page-load beacon reproduced
+ * off-thread, consent-gated (`ad_storage`, `holdOnDenied`). Personalization /
+ * decisions-as-data is the follow-on vertical (033-03); this entry covers the
+ * Edge-interact analytics use.
+ */
+const KNOWN_CONNECTOR_TYPES = ["ga4", "ga4-gtag", "pixel", "helix-rum", "alloy", "google-ads"];
 
 /**
  * Each pixel vendor's REQUIRED id field (spec 032-02 AC2). Keys mirror `PIXEL_VENDORS`;
@@ -1678,6 +1813,18 @@ function validateConnectorEntry(entry, index) {
     if (typeof entry.measurementId !== "string" || entry.measurementId.length === 0) {
       throw new Error(
         `airlock boot(config): ${at} (ga4-gtag) is missing required field "measurementId" (a non-empty string — the GA4 measurement id, "tid")`,
+      );
+    }
+  }
+  if (type === "google-ads") {
+    // 048-01 AC3 (A3): the AW conversion id is the connector's ONE required config id
+    // (connectors/google-ads/connector.js's `conversionId` -> `tid`; cookies.js's
+    // sourceGoogleAdsCtx needs no config-time id at all — it only reads cookie/URL
+    // material host-side, read-when-present/never-minted, §A5). Reject loud +
+    // actionable here, mirroring the ga4-gtag `measurementId` check.
+    if (typeof entry.conversionId !== "string" || entry.conversionId.length === 0) {
+      throw new Error(
+        `airlock boot(config): ${at} (google-ads) is missing required field "conversionId" (a non-empty string — the AW conversion id, "tid")`,
       );
     }
   }
@@ -1783,6 +1930,12 @@ async function bootConnector(entry, governance, index, reservedPlacements, compo
       // governance (consent/consentStrict/payloadDenylist) is threaded straight into
       // bootGa4Gtag's own gate, with NO helix-rum-style exemption.
       return { handle: await bootGa4Gtag({ ...rest, ...governance, onDiagnostic }), events: GA4_GTAG_MANIFEST_EVENTS };
+    case "google-ads":
+      // 048-01 AC3: consent-governed exactly like "ga4"/"ga4-gtag" — top-level
+      // governance (consent/consentStrict/payloadDenylist) threaded straight into
+      // bootGoogleAds's own gate, NO helix-rum-style exemption (the AW beacon is
+      // ad-consent-governed by design, R-009 §(b)).
+      return { handle: await bootGoogleAds({ ...rest, ...governance, onDiagnostic }), events: GOOGLE_ADS_MANIFEST_EVENTS };
     case "pixel": {
       const { vendor, ...ids } = rest;
       const handle = bootPixelConnector(vendor, { ...ids, ...governance, onDiagnostic });

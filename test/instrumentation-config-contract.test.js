@@ -258,6 +258,71 @@ describe("041-04 AC1 — the schema gains a 'ga4-gtag' type const + config shape
   });
 });
 
+// Spec 048-01 AC3 (fix round, 2026-09-14) — the JSON Schema gains a "google-ads" type const
+// + config shape (conversionId REQUIRED; consentDefault/endpoint/ctx optional), mirroring
+// 041-04's "ga4-gtag" precedent above. Before this fix, the runtime `KNOWN_CONNECTOR_TYPES`
+// accepted `{type:"google-ads", conversionId}` (adapters/eds/index.js's `validateConnectorEntry`)
+// but the pinned schema's discriminated union did NOT — inverting the documented invariant
+// ("the validator is a documented SUBSET of the JSON Schema; the schema stays the fuller
+// pinned reference", adapters/eds/index.js's `validateConnectorEntry` doc comment) by REJECTING
+// a config entry the runtime happily boots.
+describe("048-01 AC3 — the schema gains a 'google-ads' type const + config shape", () => {
+  it("a well-formed google-ads entry (conversionId only) validates", () => {
+    const config = { connectors: [{ type: "google-ads", conversionId: "AW-1234567890" }] };
+    const ok = validateSchema(config);
+    if (!ok) console.error(validateSchema.errors);
+    expect(ok).toBe(true);
+  });
+
+  it("a google-ads entry with the full optional field set (consentDefault/endpoint/ctx) validates", () => {
+    const config = {
+      connectors: [
+        {
+          type: "google-ads",
+          conversionId: "AW-1234567890",
+          consentDefault: { ad_storage: "denied" },
+          endpoint: "https://example.com/ccm/collect",
+          ctx: { auid: "1.1" },
+        },
+      ],
+    };
+    const ok = validateSchema(config);
+    if (!ok) console.error(validateSchema.errors);
+    expect(ok).toBe(true);
+  });
+
+  it("a google-ads entry MISSING conversionId is REJECTED by the schema", () => {
+    expect(validateSchema({ connectors: [{ type: "google-ads" }] })).toBe(false);
+  });
+});
+
+// CROSS-CHECK (fix round, 2026-09-14): the runtime `KNOWN_CONNECTOR_TYPES` set (adapters/
+// eds/index.js — not exported, so read off the "unknown connector type" error's own "expected
+// one of: ..." list, the SAME signal the AC2 "unknown connector type" test above asserts
+// against) must equal the set of connector `type` consts the schema's discriminated union
+// enumerates. This is exactly the drift BLOCKER 2 found (the schema silently lagged the
+// runtime for "google-ads") — this test pins the two sets together so a FUTURE connector
+// addition (048-02 floodlight, etc.) cannot silently widen one without the other.
+describe("048-01 CROSS-CHECK — runtime KNOWN_CONNECTOR_TYPES == schema's enumerated connector type consts", () => {
+  it("the two sets are identical", async () => {
+    let thrown;
+    try {
+      await boot({ connectors: [{ type: "__cross_check_sentinel__" }] });
+    } catch (e) {
+      thrown = e;
+    }
+    expect(thrown, "boot() must reject an unknown connector type").toBeTruthy();
+    const match = thrown.message.match(/expected one of: (.+)$/);
+    expect(match, "the unknown-type error names the expected set").toBeTruthy();
+    const runtimeTypes = new Set(match[1].split(",").map((s) => s.trim()));
+
+    const refs = schema.$defs.connector.oneOf.map((r) => r.$ref.replace("#/$defs/", ""));
+    const schemaTypes = new Set(refs.map((name) => schema.$defs[name].properties.type.const));
+
+    expect(schemaTypes).toEqual(runtimeTypes);
+  });
+});
+
 describe("AC4 — the README 'Configure airlock' story is drift-free + matches boot()'s signature", () => {
   const readme = readFileSync(join(REPO, "README.md"), "utf8");
   const sectionOf = (heading) => {

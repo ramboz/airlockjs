@@ -24,6 +24,7 @@
     "rig:uc3": "node rig/uc3.mjs",
     "rig:isolation": "node rig/isolation.mjs",
     "rig:coherency": "node rig/coherency.mjs",
+    "rig:google-ads-chamber": "node rig/google-ads-chamber.mjs",
     "rig:alloy": "node rig/alloy-chamber.mjs",
     "rig:alloy-core": "node rig/alloy-core-host.mjs",
     "rig:alloy-coalescing": "node rig/alloy-coalescing.mjs",

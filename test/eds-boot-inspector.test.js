@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createInspectorCollector } from "../core/inspector/collector.js";
-import { bootEdsAnalytics, bootGa4Gtag, bootMetaPixel, bootHelixRum, boot } from "../adapters/eds/index.js";
+import { bootEdsAnalytics, bootGa4Gtag, bootMetaPixel, bootHelixRum, bootGoogleAds, boot } from "../adapters/eds/index.js";
 
 // spec 028 follow-on (docs/inbox.md, 2026-09-03: "no production boot adapter forwards
 // onDiagnostic — the inspector is blind to prod-booted instances"). The 028 inspector
@@ -84,6 +84,30 @@ describe("spec 028 — production boot adapters thread onDiagnostic to the inspe
     const c = createInspectorCollector();
     bootHelixRum({ weight: 100, forceSelect: true, onDiagnostic: c.onDiagnostic, ...stubWebVitals() });
     FakeWorker.last.onmessage(readyMsg([{ url: EVIL, method: "POST", body: "{}" }]));
+
+    expect(c.query({ kind: "endpoint-ceiling", disposition: "held" })).toHaveLength(1);
+  });
+
+  it("bootGoogleAds surfaces a held ad_storage-denied beacon to the wired collector (spec 048-01 AC6)", async () => {
+    const c = createInspectorCollector();
+    await bootGoogleAds({
+      ctx: {},
+      conversionId: "AW-1234567890",
+      consent: { ad_storage: "denied" },
+      onDiagnostic: c.onDiagnostic,
+    });
+    FakeWorker.last.onmessage(readyMsg([{ url: "https://www.google.com/ccm/collect?tid=AW-1234567890", method: "GET" }]));
+
+    expect(c.query({ kind: "consent", disposition: "held" })).toHaveLength(1);
+  });
+
+  it("the composite boot(config) fans onDiagnostic out to a google-ads sub-connector's seam", async () => {
+    const c = createInspectorCollector();
+    await boot(
+      { connectors: [{ type: "google-ads", ctx: {}, conversionId: "AW-1234567890" }] },
+      { onDiagnostic: c.onDiagnostic },
+    );
+    FakeWorker.last.onmessage(readyMsg([{ url: EVIL, method: "GET" }]));
 
     expect(c.query({ kind: "endpoint-ceiling", disposition: "held" })).toHaveLength(1);
   });

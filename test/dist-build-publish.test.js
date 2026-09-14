@@ -29,6 +29,7 @@ const SIBLING_WORKERS = [
   "dom-chamber.worker.js",
   "helix-rum-chamber.worker.js",
   "ga4-gtag-chamber.worker.js", // 041-01: the gtag-protocol chamber (connector:"ga4-gtag")
+  "google-ads-chamber.worker.js", // 048-01: the Google Ads (AW) ccm/collect chamber (connector:"google-ads")
   "alloy-chamber.worker.js",
 ];
 

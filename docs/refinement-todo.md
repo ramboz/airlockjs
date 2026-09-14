@@ -981,4 +981,61 @@ inspector work touches these.
 deferred 044-01 §A2 concern) — then wire the OneTrust subscription to the **composite consent fan-out** and make `onetrust`
 a `boot(config)` governance field (today `governance` is only `{consent, consentStrict, payloadDenylist}`); revisit the
 both-fire **coalesce decision** at that point (today's double-fire is pinned-benign, not coalesced). The test-hardening
-halves (both-fire pins + the two tightened tests) are DONE 2026-09-14.
+halves (both-fire pins + the two tightened tests) are DONE 2026-09-14. **Partially resolved 2026-09-14:** 048-01 lands the
+Google Ads half of the boot wiring (`bootGoogleAds`); Floodlight (048-02) and the OneTrust-composite-governance field
+(048-03) are still open — the trigger fires fully once both land.
+
+## Spec 048-01 (Google Ads boot wiring) follow-ups
+
+### ~~`contracts/instrumentation-config.schema.json` does not yet enumerate `{type:"google-ads"}`~~ — RESOLVED 2026-09-14
+
+**Deferred (048-01, 2026-09-14):** the hand-rolled runtime validator (`adapters/eds/index.js`'s `validateConnectorEntry`)
+now accepts a well-formed `{type:"google-ads", conversionId}` entry (`KNOWN_CONNECTOR_TYPES` + the required-`conversionId`
+check), mirroring `ga4-gtag`'s own `measurementId` check — but the PINNED JSON Schema reference
+(`contracts/instrumentation-config.schema.json`, whose discriminated union today enumerates only `ga4`/`ga4-gtag`/`pixel`/
+`helix-rum`/`alloy`) was NOT updated in this slice (out of its declared file scope). `test/instrumentation-config-contract.test.js`
+does not cross-check the runtime `KNOWN_CONNECTOR_TYPES` against the schema's `oneOf`, so this drift is not currently
+caught by any test.
+
+**Resolution trigger:** the next slice touching `contracts/instrumentation-config.schema.json` (likely 048-02, which adds
+`{type:"floodlight"}` and would otherwise widen the SAME drift) — add both new connector types to the schema's
+discriminated union in one pass, and consider a cross-check test (`KNOWN_CONNECTOR_TYPES` vs the schema's enumerated
+`type` consts) so a future connector addition cannot silently drift one without the other.
+
+**RESOLVED (048-01 fix round, 2026-09-14 — an arch-review blocker, not the resolution trigger above):** a
+`googleAdsConnector` `$def` (mirroring `ga4GtagConnector`'s shape: `type`/`conversionId` REQUIRED, `consentDefault`/
+`endpoint`/`ctx` optional) is added to `contracts/instrumentation-config.schema.json` and wired into the `connector`
+`oneOf`, so the schema now ACCEPTS the same well-formed `{type:"google-ads", conversionId}` entry the runtime validator
+already did (`test/instrumentation-config-contract.test.js`'s new "048-01 AC3" describe block). The cross-check this
+entry originally only "considered" is now BUILT: a new "048-01 CROSS-CHECK" test asserts the runtime
+`KNOWN_CONNECTOR_TYPES` set (read off the "unknown connector type ... expected one of: ..." error, since the const isn't
+exported) equals the schema's enumerated connector `type` consts — shown red against the pre-fix schema (missing
+`google-ads`), so this exact drift shape cannot silently recur for 048-02 (floodlight) or any later connector.
+
+### The manifest `purposes`/`endpoints` mirror-drift residual — applies to google-ads too (not new, not widened)
+
+**Noted (048-01, 2026-09-14):** `GOOGLE_ADS_EGRESS_PURPOSES` (`["ad_storage"]`) and `GOOGLE_ADS_MANIFEST_EVENTS`
+(`["page_view"]`) in `adapters/eds/index.js` are hardcoded consts kept in sync BY HAND with
+`connectors/google-ads/connector.js`'s own `manifest.purposes.egress` / `manifest.events` — the SAME standing pattern
+`GA4_EGRESS_PURPOSES`/`GA4_GTAG_MANIFEST_EVENTS`/`HELIX_RUM_MANIFEST_EVENTS` already accept (no connector's manifest is
+read programmatically at boot time). Not a new residual this slice introduces, and not silently widened — flagged here
+only so it isn't lost when this file's OTHER per-spec sections get reconciled.
+
+**Resolution trigger:** unchanged from the standing pattern — if a future slice makes `bootConnector` derive `events`/
+`egressPurposes` from each connector's OWN manifest object (a structural fix), google-ads' consts are removed in the same
+pass as every other connector's.
+
+### AC5 rig proves the GRANTED steady-state path only — held→remap→flush stays FakeWorker-proven
+
+**Deferred (048-01 AC5, 2026-09-14, named in the slice's own AC5 text):** `rig/google-ads-chamber.mjs` proves a
+config-shaped, GRANTED-consent page-load beacon egresses correctly through the REAL, BUILT
+`core/google-ads-chamber.worker.js` (a genuine browser Worker, not FakeWorker) — closing the frame-critique's "FakeWorker
+hides the missing chamber" gap for that path. The held→remap→flush COMBINATION (a beacon HELD by the real chamber's
+output, then re-mapped + flushed via `createGoogleAdsRemap` on a later grant) is proven only by FakeWorker
+(`test/eds-boot-google-ads.test.js`, `test/google-ads-seal.test.js`) plus source inspection
+(`core/connector-host.js` preserves `event`; `core/airlock.js` buffers `r.event` for re-map) — never exercised end-to-end
+against a real browser Worker in this slice.
+
+**Resolution trigger:** extend `rig/google-ads-chamber.mjs` (or a sibling rig) to drive a denied-then-granted consent
+transition against the same real chamber + a real `bootGoogleAds`/`createAirlock` instance, if the held+remap+real-chamber
+combination later needs a live witness (e.g. before a real-site rewire, MVP9).

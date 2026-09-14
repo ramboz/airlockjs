@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Google Ads (AW) chamber rig (spec 048-01 AC5)</title>
+  </head>
+  <body>
+    <h1>Google Ads chamber — AC5</h1>
+    <div id="status">booting…</div>
+    <script>
+      // rig/google-ads-chamber.mjs drives this harness. It loads the REAL, BUILT
+      // sibling `google-ads-chamber.worker.js` (npm run build's own emitted output,
+      // never a hand-rolled stand-in) as a genuine `{type:"module"}` browser Worker —
+      // the SAME construction core/airlock.js's connector-selection seam performs —
+      // then plays the orchestrator's own main-thread dispatch (mirrors
+      // core/airlock.js's worker.onmessage -> fetch(req.url, fetchInit(...)) exactly,
+      // GET-only/keepalive, no body) so the beacon's actual EGRESS (a real fetch call)
+      // is what gets asserted, not merely the worker's `ready` message.
+      const WORKER_URL = new URLSearchParams(location.search).get("workerUrl");
+      const CONVERSION_ID = "AW-1234567890";
+      const ENDPOINT = "https://www.google.com/ccm/collect";
+      const GRANTED_ALL = {
+        ad_storage: "granted",
+        analytics_storage: "granted",
+        ad_user_data: "granted",
+        ad_personalization: "granted",
+      };
+
+      const statusEl = document.getElementById("status");
+      const dispatched = [];
+      const worker = new Worker(WORKER_URL, { type: "module" });
+
+      worker.onmessage = async (e) => {
+        const m = e.data || {};
+        if (!("ready" in m)) return;
+        // The orchestrator's OWN dispatch shape (core/airlock.js: fetch(req.url,
+        // fetchInit(req.method, req.body)) — GET carries no body, keepalive:true).
+        const fetches = (m.ready || []).map((req) => {
+          const init = req.method === "GET" ? { method: "GET", keepalive: true } : { method: "POST", body: req.body, keepalive: true };
+          return fetch(req.url, init).then(
+            () => { dispatched.push({ url: req.url, ok: true }); },
+            () => { dispatched.push({ url: req.url, ok: false }); },
+          );
+        });
+        // Finalize the result ONLY after every dispatch fetch has settled (rig fix, 048-01 fix
+        // round): the result used to be assigned synchronously, racing the fetch(...).then(...)
+        // callbacks above — rig/google-ads-chamber.mjs's `main_thread_dispatch_fetched_it`
+        // assertion could then read `dispatched` before a fetch resolved, a real flake.
+        await Promise.all(fetches);
+        statusEl.textContent = "DONE";
+        window.__GOOGLE_ADS_CHAMBER_RESULT__ = { ready: m.ready, dropped: m.dropped, dispatched };
+      };
+      worker.onerror = (e) => {
+        statusEl.textContent = "WORKER ONERROR";
+        window.__GOOGLE_ADS_CHAMBER_RESULT__ = { workerError: e.message, filename: e.filename, lineno: e.lineno };
+      };
+
+      worker.postMessage({ type: "init", conversionId: CONVERSION_ID, ctx: { consent: GRANTED_ALL }, endpoint: ENDPOINT });
+      worker.postMessage({
+        type: "events",
+        batch: [{ type: "page_view", params: { page_location: "https://spike.example/pricing" } }],
+      });
+    </script>
+  </body>
+</html>

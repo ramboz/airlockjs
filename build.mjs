@@ -11,15 +11,16 @@
 //   core/dom-chamber.worker.js     →  <outdir>/dom-chamber.worker.js    (025 worker-dom mirror)
 //   core/helix-rum-chamber.worker.js → <outdir>/helix-rum-chamber.worker.js (030 RUM authority)
 //   core/ga4-gtag-chamber.worker.js  → <outdir>/ga4-gtag-chamber.worker.js  (041 GA4 gtag-protocol connector)
+//   core/google-ads-chamber.worker.js → <outdir>/google-ads-chamber.worker.js (048 Google Ads AW ccm/collect connector)
 //
 // The adapter entry imports the runtime SOURCE (`core/airlock.js`) directly, so the emitted eds.js
 // is fully self-contained. `createAirlock` selects a chamber worker by `connector` — the default
 // GA4-MP `./chamber.worker.js`, `./pixel-chamber.worker.js` for `connector:"pixel"`,
 // `./dom-chamber.worker.js` for `connector:"dom"`, `./helix-rum-chamber.worker.js` for
-// `connector:"helix-rum"`, or `./ga4-gtag-chamber.worker.js` for `connector:"ga4-gtag"` (the
-// selection seam, `airlock.js`'s connector-selection block) — so the emitted eds.js references
-// ALL FIVE by their sibling specifier, and each MUST be emitted as a sibling in the served tree or
-// a real page 404s it.
+// `connector:"helix-rum"`, `./ga4-gtag-chamber.worker.js` for `connector:"ga4-gtag"`, or
+// `./google-ads-chamber.worker.js` for `connector:"google-ads"` (the selection seam,
+// `airlock.js`'s connector-selection block) — so the emitted eds.js references ALL SIX by their
+// sibling specifier, and each MUST be emitted as a sibling in the served tree or a real page 404s it.
 //
 // 031-01: the build target is a PARAMETER (`outdir`), no longer hardwired to the testbed. The
 // default `npm run build` still emits into probes/eds-testbed/ (so the testbed keeps its own
@@ -67,6 +68,7 @@ export const WORKER_ENTRIES = [
   "core/dom-chamber.worker.js",
   "core/helix-rum-chamber.worker.js", // 030-02: airlock-as-RUM-authority (connector:"helix-rum")
   "core/ga4-gtag-chamber.worker.js", // 041-01: the gtag-protocol chamber (connector:"ga4-gtag")
+  "core/google-ads-chamber.worker.js", // 048-01: the Google Ads (AW) ccm/collect chamber (connector:"google-ads")
 ];
 
 // 033-02: airlock's CLASSIC alloy chamber worker. It is an `importScripts` worker

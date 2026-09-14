@@ -25,6 +25,7 @@
 import { createCriticalDispatcher, fetchInit } from "./egress.js";
 import { mapToRum } from "../connectors/helix-rum/map.js";
 import { createGa4GtagConnector } from "../connectors/ga4/gtag.js";
+import { createGoogleAdsConnector } from "../connectors/google-ads/connector.js";
 import { createPixelConnector } from "../connectors/pixel/connector.js";
 import { mergeAdvancedMatching } from "../connectors/pixel/advanced-matching.js";
 import { originPath, checkEndpointCeiling } from "./endpoint-ceiling.js";
@@ -247,6 +248,13 @@ export function createAirlock({
     ...(connector === "ga4-gtag"
       ? { requestMapper: createGa4GtagConnector(connectorConfig || {}).handle }
       : {}),
+    // 048-01: google-ads is the SAME worker-mapped, GET-egress class as ga4-gtag — its
+    // `handle` is a closure over `conversionId`/`ctx`/`endpoint` (no `this`), so passing
+    // it directly as `requestMapper` is safe, mirroring the ga4-gtag branch above
+    // verbatim (the unload/pushCritical GET tail for the AW ccm/collect beacon).
+    ...(connector === "google-ads"
+      ? { requestMapper: createGoogleAdsConnector(connectorConfig || {}).handle }
+      : {}),
     // 042-02: generalizes the SAME mechanism to pixel. pixel's `handle` reads
     // NO `ctx` at all (only the declarative `{endpoint, eventMap, paramMap}`
     // config, unlike gtag's `ctx`-reading `handle` above) — the SIMPLER case,
@@ -305,17 +313,16 @@ export function createAirlock({
     critical.dispatch({ ...d, params: governParams(d.params) });
   };
 
-  // 026-01 AC3 / 025-03 AC6 / 041-01 AC3 — the connector-selection seam, FOUR
-  // branches. Every worker call site below uses a STATIC STRING LITERAL
-  // specifier (a runtime-computed specifier would still work in a browser,
-  // but build.mjs's bundle-layout assertion scans the emitted bundle for
-  // every worker reference and requires each to resolve to an emitted
-  // same-origin sibling — 026-05's N-worker generalization,
-  // order-independent). `./chamber.worker.js` (GA4-MP, default),
-  // `./pixel-chamber.worker.js` (pixel, 026-01), `./dom-chamber.worker.js`
-  // (dom, 025-03), and `./ga4-gtag-chamber.worker.js` (ga4-gtag, 041-01) are
-  // ALL wired as build.mjs bundle entries, so a real EDS page resolves each
-  // to its sibling file.
+  // 026-01 AC3 / 025-03 AC6 / 041-01 AC3 / 048-01 AC1 — the connector-selection seam,
+  // FIVE branches. Every worker call site below uses a STATIC STRING LITERAL specifier
+  // (a runtime-computed specifier would still work in a browser, but build.mjs's
+  // bundle-layout assertion scans the emitted bundle for every worker reference and
+  // requires each to resolve to an emitted same-origin sibling — 026-05's N-worker
+  // generalization, order-independent). `./chamber.worker.js` (GA4-MP, default),
+  // `./pixel-chamber.worker.js` (pixel, 026-01), `./dom-chamber.worker.js` (dom,
+  // 025-03), `./ga4-gtag-chamber.worker.js` (ga4-gtag, 041-01), and
+  // `./google-ads-chamber.worker.js` (google-ads, 048-01) are ALL wired as build.mjs
+  // bundle entries, so a real EDS page resolves each to its sibling file.
   const worker =
     connector === "pixel"
       ? new Worker(new URL("./pixel-chamber.worker.js", import.meta.url), { type: "module" })
@@ -325,18 +332,25 @@ export function createAirlock({
           ? new Worker(new URL("./helix-rum-chamber.worker.js", import.meta.url), { type: "module" })
           : connector === "ga4-gtag"
             ? new Worker(new URL("./ga4-gtag-chamber.worker.js", import.meta.url), { type: "module" })
-            : new Worker(new URL("./chamber.worker.js", import.meta.url), { type: "module" });
+            : connector === "google-ads"
+              ? new Worker(new URL("./google-ads-chamber.worker.js", import.meta.url), { type: "module" })
+              : new Worker(new URL("./chamber.worker.js", import.meta.url), { type: "module" });
   // Init-message generalization (:149 -> here): GA4-MP's shape
   // (`{trackers, workFactor, endpoints, ctx}`) is unrelated to what the
   // pixel chamber's createPixelConnector(config) needs (`{endpoint,
   // eventMap, paramMap, …}`), what the dom chamber's
   // createDomChamberHost().boot() needs (`{authorSource, elements,
-  // workUs}`), or what the gtag chamber's createGa4GtagConnector(config)
-  // needs (`{measurementId, ctx, endpoint}`) — so a pixel, dom, helix-rum, OR
-  // ga4-gtag instance posts `connectorConfig` verbatim instead, never the
-  // GA4-MP-shaped fields.
+  // workUs}`), what the gtag chamber's createGa4GtagConnector(config) needs
+  // (`{measurementId, ctx, endpoint}`), or what the google-ads chamber's
+  // createGoogleAdsConnector(config) needs (`{conversionId, ctx, endpoint}`)
+  // — so a pixel, dom, helix-rum, ga4-gtag, OR google-ads instance posts
+  // `connectorConfig` verbatim instead, never the GA4-MP-shaped fields.
   worker.postMessage(
-    connector === "pixel" || connector === "dom" || connector === "helix-rum" || connector === "ga4-gtag"
+    connector === "pixel" ||
+      connector === "dom" ||
+      connector === "helix-rum" ||
+      connector === "ga4-gtag" ||
+      connector === "google-ads"
       ? { type: "init", ...(connectorConfig || {}) }
       : { type: "init", trackers, workFactor, endpoints, ctx },
   );

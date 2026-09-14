@@ -37,6 +37,7 @@ const ga4Worker = () => FakeWorker.instances.find((w) => w.url.endsWith("/chambe
 const pixelWorker = () => FakeWorker.instances.find((w) => w.url.includes("pixel-chamber.worker.js"));
 const helixWorker = () => FakeWorker.instances.find((w) => w.url.includes("helix-rum-chamber.worker.js"));
 const gtagWorker = () => FakeWorker.instances.find((w) => w.url.includes("ga4-gtag-chamber.worker.js"));
+const googleAdsWorker = () => FakeWorker.instances.find((w) => w.url.includes("google-ads-chamber.worker.js"));
 const initOf = (w) => w.messages.find((m) => m.type === "init");
 const eventsOf = (w) => w.messages.find((m) => m.type === "events");
 // every event `type` that actually crossed to a worker (across all drained batches)
@@ -380,6 +381,16 @@ describe("boot(config) — fan-out gate: composite.push honors each connector's 
     expect(crossedTypes(helixWorker())).toContain("top");               // helix-rum checkpoint (and GA4, catch-all)
   });
 
+  it("a google-ads-only boot's vocab is ['page_view'] only (048-01): the declared event crosses, an arbitrary site event does not", async () => {
+    await boot({ connectors: [{ type: "google-ads", ctx: {}, conversionId: "AW-1234567890" }] });
+
+    window.airlock.push({ event: "page_view", page_location: "https://spike.example/" });
+    window.airlock.push({ event: "newsletter_signup" }); // NOT in google-ads' declared vocab
+
+    expect(crossedTypes(googleAdsWorker())).toContain("page_view");
+    expect(crossedTypes(googleAdsWorker())).not.toContain("newsletter_signup");
+  });
+
   it("a helix-rum-only boot has NO analytics ['*'] sink: only its declared checkpoint crosses, nothing else", async () => {
     await boot({ connectors: [{ type: "helix-rum", weight: 100, forceSelect: true, ...stubWebVitals() }] });
     // helix-rum's vocab is ["top","error","cwv"] only — no analytics ["*"] catch-all, so the
@@ -443,6 +454,72 @@ describe("boot(config) — AC1/AC2 (041-04): a ga4-gtag config entry boots the g
     window.airlock.dispose();
 
     expect(gtag.terminated).toBe(1);
+  });
+});
+
+// Spec 048-01 AC1/AC2/AC3: a declarative `{type:"google-ads"}` config entry boots the
+// AW connector through boot(config) — the SAME dispatch shape as `{type:"ga4-gtag"}`,
+// with the composite governance threaded in exactly like GA4/ga4-gtag/pixel (NOT exempt
+// like helix-rum), PLUS the seal's `holdOnDenied`/`remap` trio (045-01) proven end-to-end
+// through the REAL composite/consent fan-out (AC4).
+describe("boot(config) — AC1/AC2/AC3 (048-01): a google-ads config entry boots the AW connector, with governance + the seal threaded", () => {
+  beforeEach(() => {
+    vi.stubGlobal("addEventListener", () => {});
+    vi.stubGlobal("removeEventListener", () => {});
+    vi.stubGlobal("window", {});
+  });
+
+  it("boots the google-ads chamber (ceiled to ccm/collect) with the entry's conversionId/ctx", async () => {
+    const handle = await boot({ connectors: [{ type: "google-ads", ctx: {}, conversionId: "AW-1234567890" }] });
+
+    expect(handle).toBe(window.airlock);
+    expect(googleAdsWorker()).toBeTruthy();
+    const init = initOf(googleAdsWorker());
+    expect(init.conversionId).toBe("AW-1234567890");
+  });
+
+  it("rejects a google-ads entry missing its required conversionId, naming the connector by index", async () => {
+    await expect(boot({ connectors: [{ type: "google-ads", ctx: {} }] })).rejects.toThrow(
+      /connectors\[0\].*google-ads.*conversionId/,
+    );
+  });
+
+  it("a top-level consent vector HOLDS the AW beacon until granted, and RE-MAPS via the real createGoogleAdsRemap on grant (holdOnDenied end-to-end through the composite)", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const onDiagnostic = vi.fn();
+
+    await boot(
+      {
+        connectors: [{ type: "google-ads", ctx: {}, conversionId: "AW-1234567890" }],
+        consent: { ad_storage: "denied" }, // TOP-LEVEL governance (mirrors the ga4-gtag block above) — an
+        // entry-level `consent` would be clobbered by `{...rest, ...governance}`'s spread order.
+      },
+      { onDiagnostic },
+    );
+    googleAdsWorker().onmessage({
+      data: { ready: [{ url: "https://www.google.com/ccm/collect?tid=AW-1234567890&en=page_view", method: "GET" }], dropped: [] },
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    window.airlock.setConsent({ ad_storage: "granted" });
+
+    // A hold with NO source `event` attached (the hand-built ready msg above carries none)
+    // falls back to the 017-03 verbatim re-send (byte-unchanged) rather than the 045-01
+    // re-map — proven here as the OBSERVABLE flush; the remap-REBUILD path itself is
+    // proven end-to-end in test/eds-boot-google-ads.test.js (AC4), which drives a REAL
+    // connector-produced ready request (carrying `.event`) through bootGoogleAds directly.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("dispose() tears down the google-ads connector's Worker too (composite no-leak lifecycle)", async () => {
+    await boot({ connectors: [{ type: "google-ads", ctx: {}, conversionId: "AW-1234567890" }] });
+    const gAds = googleAdsWorker();
+    expect(gAds).toBeTruthy();
+
+    window.airlock.dispose();
+
+    expect(gAds.terminated).toBe(1);
   });
 });
 

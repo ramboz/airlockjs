@@ -157,6 +157,29 @@ describe("import ORDER guarantee — gtag chamber (spec 041-01, security parity 
   });
 });
 
+describe("import ORDER guarantee — google-ads chamber (spec 048-01, security parity with GA4/pixel/gtag)", () => {
+  const GOOGLE_ADS_CHAMBER = join(dirname(fileURLToPath(import.meta.url)), "..", "core", "google-ads-chamber.worker.js");
+
+  it("core/google-ads-chamber.worker.js's FIRST import statement names ./confine-google-ads-chamber.js", () => {
+    const src = readFileSync(GOOGLE_ADS_CHAMBER, "utf8");
+    const firstImportLine = src.match(/^import\s.+$/m);
+    expect(firstImportLine).not.toBeNull();
+    // Same post-order argument as GA4/pixel/gtag's chambers: this being the FIRST
+    // import pins confinement's top-level to run before the connector-module imports
+    // below evaluate — google-ads is GET/postMessage-egress like gtag (never a
+    // mediated fetch in-worker), so the same withholdFetch posture applies verbatim.
+    expect(firstImportLine[0]).toMatch(/["']\.\/confine-google-ads-chamber\.js["']/);
+  });
+
+  it("core/confine-google-ads-chamber.js applies withholdFetch confinement at its own top level", () => {
+    const src = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "..", "core", "confine-google-ads-chamber.js"),
+      "utf8",
+    );
+    expect(src).toMatch(/applyEgressConfinement\(self,\s*\{\s*withholdFetch:\s*true\s*\}\)/);
+  });
+});
+
 describe("import ORDER guarantee — DOM chamber (spec 025-02, security parity with GA4/pixel)", () => {
   const DOM_CHAMBER = join(dirname(fileURLToPath(import.meta.url)), "..", "core", "dom-chamber.worker.js");
 

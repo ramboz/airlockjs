@@ -1,7 +1,7 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: [044-01, 044-02, 045-01, 041-01, 032-02]
-last_verified:
+last_verified: 2026-09-14
 frame_review: true
 arch_review: true
 ---
@@ -58,7 +58,11 @@ ratifies that this **mirrors the proven ga4-gtag chamber/boot (spec 041)** rathe
    `requestMapper` case (`:247`, `createGoogleAdsConnector(connectorConfig).handle`) for the unload/critical GET tail.
    `build.mjs`'s `WORKER_ENTRIES` emits `core/google-ads-chamber.worker.js` (the N-worker sibling-layout guard covers it).
 2. **A new `bootGoogleAds(opts)` adapter boots the chamber, consent-wired**, returning the standard boot handle
-   (`{ push, pushCritical, setConsent, getState, flushNow, stats, dispose }`, byte-shape-identical to `bootGa4Gtag`'s). It
+   (`{ push, pushCritical, setConsent, getState, flushNow, stats, dispose }` — a 7-key SUPERSET of `bootGa4Gtag`'s 6-key
+   handle: it additionally exposes `pushCritical`, which is safe + intended because AC1 wires the `requestMapper` for the
+   unload/critical GET tail and the composite guards `pushCritical` with a `typeof` check; matches the ADR-0017 frozen
+   installed `window.airlock` surface. [Reconciliation 2026-09-14: corrected from the DRAFT's inaccurate "byte-shape-identical
+   to bootGa4Gtag's" — the craft pass flagged the wording; the 7-key handle was the intended, tested shape.]) It
    constructs `createAirlock({ connector:"google-ads", connectorConfig:{ conversionId, ctx, endpoint }, endpoints:[the
    host-owned ceiling], egressPurposes:["ad_storage"], holdOnDenied:true, consent, onDiagnostic, remap })` — where **`remap`
    = `createGoogleAdsRemap({ conversionId, readCookieString: () => document.cookie })`** is the connector's held→grant-flush
@@ -95,7 +99,7 @@ ratifies that this **mirrors the proven ga4-gtag chamber/boot (spec 041)** rathe
 - [ ] Each new test shown to fail when its feature is removed (mutate → red → restore) — in particular the denied-holds / granted-sends assertions and the missing-chamber-branch case (an un-branched boot must NOT silently pass).
 - [ ] Reviewed by `reviewer` subagent (compliance) + craft pass + arch pass (`arch_review: true`) + this frame-critique.
 - [ ] Deviation log + reconciliation sweep produced under this slice heading.
-- [ ] Reconciliation review passed; an ADR written if the chamber/boot addition is ratified as load-bearing with rejected alternatives (arch call — likely the 041 analogue).
+- [x] Reconciliation review passed; an ADR written if the chamber/boot addition is ratified as load-bearing with rejected alternatives (arch call — likely the 041 analogue).
 - [ ] `docs/refinement-todo.md` updated for any deferred decision; the manifest `purposes`/`endpoints` mirror-drift residual noted, not silently widened.
 
 ## Assumptions
@@ -108,3 +112,64 @@ ratifies that this **mirrors the proven ga4-gtag chamber/boot (spec 041)** rathe
   google-ads `handle`'s `EgressRequest[]` shape is `requestMapper`-compatible (as ga4-gtag's is, `core/airlock.js:248`).
 - **A3 — the required config id set** for a `{type:"google-ads"}` entry (e.g. `conversionId`) is read off
   `connectors/google-ads/connector.js` + `cookies.js` during implementation, not invented in this slice.
+
+### Deviation log (after reconciliation)
+
+Original ACs preserved above; deviations append here (2026-09-14).
+
+- **Frame-critique re-scope (biggest).** The DRAFT's load-bearing A1 (boot on the main-thread `remap`/seal seam, NO worker
+  chamber) was **wrong** — the pre-implementation frame-critique caught it: `createGoogleAdsConnector` is a gtag-family
+  `{manifest,init,handle}` worker-chamber connector, and an un-branched boot would fall through to the default GA4-MP
+  chamber and emit the wrong beacon. Re-scoped (pre-implementation) to a worker chamber + a `core/airlock.js` `connector:`
+  branch + a `build.mjs` entry, mirroring spec 041; the re-run frame-critique passed. Evidence: `reviews/slice-01-frame-critique.md`.
+- **`consentDefault` parity bug (compliance).** `bootGoogleAds` folded `consentDefault` into the steady-state ctx but
+  dropped it from the `createGoogleAdsRemap(...)` call, so a held→grant-flushed beacon's `gcd` could diverge from a
+  steady-state granted one. Fixed at the call-site (the connector's `createGoogleAdsRemap` already accepted it) + a
+  non-vacuous "gcd PARITY" test (red-on-revert). Evidence: `reviews/slice-01-compliance.md`.
+- **Pinned schema not updated (arch [blocker]).** `contracts/instrumentation-config.schema.json` lacked a
+  `googleAdsConnector` `$def`, so the pinned schema REJECTED a `{type:"google-ads"}` config the runtime accepts — inverting
+  the "schema is the fuller pinned reference" invariant + breaking the 041 precedent. Fixed: added the `$def` + `oneOf`
+  entry (mirroring `ga4GtagConnector`) + a `KNOWN_CONNECTOR_TYPES`↔schema **cross-check test** so the drift can't silently
+  recur (covers 048-02). The prior implementer's deferred residual in `refinement-todo.md` was struck RESOLVED. Evidence:
+  `reviews/slice-01-arch.md`.
+- **Rig-harness flake (compliance nit).** `rig/google-ads-chamber-harness.html`'s `onmessage` finalized the result before
+  the dispatch `fetch` resolved; made `onmessage` `async` + `await Promise.all(fetches)`. `rig:google-ads-chamber` PASS.
+- **AC2 wording corrected.** "byte-shape-identical to `bootGa4Gtag`'s" was inaccurate (the craft pass flagged it); the
+  handle is an intentional 7-key SUPERSET (adds `pushCritical`). AC2 text corrected above; handle shape unchanged.
+- **Smaller deviations (implementer):** `conversionId` is the only required id (grounded off the connector); `egressPurposes`
+  is gated on `consent` (followed AC prose, mirroring `bootGa4Gtag`, not the illustrative unconditional snippet); `remap`
+  additionally threads `endpoint` (defensive — an endpoint override without a matching remap endpoint would hold every
+  grant-flush forever at the ceiling).
+- **ADR call: DECLINED (no new ADR).** The chamber/boot addition applies already-ratified decisions — 041 chamber-hosting +
+  ADR-0023 hold-until-consent + 044/§A5 connector/cookie discipline; the rejected main-thread-only alternative is already
+  recorded in the frame-critique + spec `## Assumptions`. A dedicated ADR would restate ratified choices with no new fork
+  (arch-pass call, `reviews/slice-01-arch.md`).
+
+### Reconciliation sweep
+
+Drift-prone surfaces checked (updated / no-op / deferred):
+
+- `docs/architecture.md` — **updated**: added `google-ads-chamber.worker.js` to the chamber runtime list, and noted
+  `connectors/google-ads/` is now chamber-hosted + bootable (`bootGoogleAds` / `type:"google-ads"` config + schema `$def`).
+- `contracts/instrumentation-config.schema.json` — **updated**: `googleAdsConnector` `$def` + `oneOf` (fix round).
+- `docs/refinement-todo.md` — **updated**: the schema-lags-runtime residual struck RESOLVED (fix round).
+- `docs/specs/README.md` (status board) — **updated**: regenerated on transition (+ at DONE).
+- Within-spec re-scope ripples (from the frame-critique) — **updated**: `spec.md` (§A1 marked RESOLVED, §A2/§Decomposition
+  corrected to the worker-chamber reality) and `slice-02-floodlight-boot.md` (forward-references realigned to "048-01
+  ratified the chamber+boot pattern"). Within the spec directory, not external drift surfaces — called out here for completeness.
+- `docs/inbox.md` — **no-op**: no 048-relevant parked items.
+- `CLAUDE.md` primer / spec-025 close-out — **deferred**: 048-01 does NOT close spec 048 (048-02/03 remain), so no
+  compress-on-close-out yet. (The hot cache's stale "MVP7 focus" is a broader `/jig:memory-sync` item, out of this slice's scope.)
+- Manifest `purposes`/`endpoints` mirror-drift residual — **no-op**: pre-existing tracked residual, not widened here.
+- Lightweight decisions / conventions — **no-op**: no UI/copy/visual or rule changes.
+- Memory-sync — the load-bearing learning (ad connectors are worker-chamber gtag-family; boot = mirror 041) is captured in
+  the spec `## Assumptions`, `architecture.md`, and this deviation log; no new glossary term needed.
+
+### Named residuals (carried forward)
+
+- **AC5** — the real-chamber rig proves the GRANTED steady-state GET live; the held→remap→flush-**through-the-real-chamber**
+  combination stays FakeWorker + source-inspection verified (disclosed in the rig + `refinement-todo.md`).
+- **Cross-check test coupling** — the `KNOWN_CONNECTOR_TYPES`↔schema guard parses the runtime error string (the const isn't
+  exported); a message reword could break it (nit, logged).
+- **Optional test-strengthening** — a positive-parity `gcd` assertion (denied-all `consentDefault` → same non-null `gcd` on
+  both paths) would harden the parity claim in the emit direction (enhancement, not a defect).

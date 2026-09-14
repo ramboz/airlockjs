@@ -32,6 +32,7 @@ import {
   bootLinkedInInsight,
   bootBingUet,
   bootHelixRum,
+  bootGoogleAds,
 } from "../adapters/eds/index.js";
 
 const gaCtx = { clientId: "1.1", sessionId: "2" }; // provided -> skips cookie sourcing
@@ -129,6 +130,40 @@ describe("041-04 AC1/AC2 — a {type:'ga4-gtag'} config entry produces the SAME 
     expect(argsOf(1).egressPurposes).toEqual(["analytics_storage"]); // gate engaged, same as GA4
     expect(argsOf(1).consentStrict).toBe(true);
     expect(argsOf(1).payloadDenylist).toEqual(["email"]);
+  });
+});
+
+describe("048-01 AC3 — a {type:'google-ads'} config entry produces the SAME createAirlock inputs as bootGoogleAds, governance threaded like GA4/ga4-gtag", () => {
+  // `remap` is a FRESH closure per boot call (createGoogleAdsRemap(...) constructs a new
+  // function each time) — never reference-equal across two independent boot() calls, so
+  // it is compared structurally (typeof) and excluded from the whole-object `toEqual`.
+  const withoutRemap = (args) => { const { remap, ...rest } = args; return rest; };
+
+  it("an absent consent vector yields egressPurposes:[] on BOTH paths (legacy always-dispatch)", async () => {
+    await bootGoogleAds({ ctx: {}, conversionId: "AW-1234567890" });
+    await boot({ connectors: [{ type: "google-ads", ctx: {}, conversionId: "AW-1234567890" }] });
+
+    expect(withoutRemap(argsOf(1))).toEqual(withoutRemap(argsOf(0)));
+    expect(argsOf(1).egressPurposes).toEqual([]);
+    expect(typeof argsOf(0).remap).toBe("function");
+    expect(typeof argsOf(1).remap).toBe("function");
+  });
+
+  it("a top-level consent vector threads through identically to bootGoogleAds({consent}) — no helix-rum-style exemption", async () => {
+    const consent = { ad_storage: "granted" };
+    await bootGoogleAds({ ctx: {}, conversionId: "AW-1234567890", consent, consentStrict: true, payloadDenylist: ["email"] });
+    await boot({
+      connectors: [{ type: "google-ads", ctx: {}, conversionId: "AW-1234567890" }],
+      consent,
+      consentStrict: true,
+      payloadDenylist: ["email"],
+    });
+
+    expect(withoutRemap(argsOf(1))).toEqual(withoutRemap(argsOf(0)));
+    expect(argsOf(1).egressPurposes).toEqual(["ad_storage"]); // gate engaged, same shape as GA4/ga4-gtag
+    expect(argsOf(1).consentStrict).toBe(true);
+    expect(argsOf(1).payloadDenylist).toEqual(["email"]);
+    expect(argsOf(1).holdOnDenied).toBe(true); // 045-01: g-ads' own seal opt-in, unconditional
   });
 });
 
