@@ -304,6 +304,38 @@ describe("047-02 AC1 — subscribeOnetrustConsentChanges: registers via an injec
   });
 });
 
+describe("047-02 — both grounded surfaces fire for ONE change (belt-and-suspenders): the onChange count is pinned", () => {
+  it("a single subscription registers BOTH surfaces, so one real change fires onChange ONCE PER SURFACE (twice)", () => {
+    // §A2 registers BOTH OneTrust.OnConsentChanged AND the OptanonWrapper hook
+    // for resilience, so a real OneTrust change fires BOTH -> onChange is called
+    // TWICE for one logical change. Benign downstream (core/airlock.js's
+    // setConsent no-ops the 2nd call once heldBeacons is drained — proven end-to
+    // -end in test/eds-boot-onetrust.test.js's both-fire integration test), but
+    // the count is pinned HERE so a future coalesce, or a setConsent that
+    // reshapes UNCONDITIONALLY, becomes a deliberate, test-visible change rather
+    // than a silent regression.
+    let captured;
+    const onetrust = {
+      OnConsentChanged: (cb) => {
+        captured = cb;
+      },
+    };
+    const win = { OnetrustActiveGroups: ACTIVE_GRANTED };
+    const onChange = vi.fn();
+    subscribeOnetrustConsentChanges({ onetrust, win, groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP, onChange });
+
+    captured(); // surface 1: OneTrust.OnConsentChanged
+    win.OptanonWrapper(); // surface 2: the wrapped OptanonWrapper hook
+
+    expect(onChange).toHaveBeenCalledTimes(2); // once per registered surface
+    // Both fires re-read the SAME resolved surface through the SAME map, so the
+    // two vectors are identical — the double-call carries no conflicting state.
+    const expected = mapOnetrustConsent(ACTIVE_GRANTED, ERP_INTUIT_GROUP_PURPOSE_MAP);
+    expect(onChange.mock.calls[0][0]).toEqual(expected);
+    expect(onChange.mock.calls[1][0]).toEqual(expected);
+  });
+});
+
 describe("047-02 AC2 — on a change event, re-maps via mapOnetrustConsent (047-01's contract) and calls onChange", () => {
   it("a fixture OnConsentChanged fire RE-READS the host global's OnetrustActiveGroups NOW (not a memoized boot-time value)", () => {
     let captured;
@@ -395,14 +427,30 @@ describe("047-02 AC4 — grant->deny->grant churn re-maps + notifies correctly e
 });
 
 describe("047-02 AC5 — no new seam, no egress: onChange is the ONLY side effect the subscribe helper triggers", () => {
-  it("subscribeOnetrustConsentChanges calls ONLY onChange on a fire — nothing else observable", () => {
-    const win = { OnetrustActiveGroups: ACTIVE_GRANTED };
+  it("a fire's ONLY observable effects are a single surface re-read + a single onChange(vector) — nothing else", () => {
+    // AC5's claim is that subscribe adds NO new seam and NO egress: the sole
+    // effect of a change firing is the onChange callback. Assert that concretely
+    // (the prior version named "nothing else observable" but only counted
+    // onChange) — exactly one re-read via the injected `read`, one onChange
+    // carrying the 047-01-mapped vector, and NO re-entry into the registration
+    // surfaces (a fire must not re-subscribe or re-wrap).
+    const read = vi.fn(() => ACTIVE_GRANTED);
+    const onConsentChanged = vi.fn();
+    const onetrust = { OnConsentChanged: onConsentChanged };
+    const win = {};
     const onChange = vi.fn();
-    subscribeOnetrustConsentChanges({ win, groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP, onChange });
+    subscribeOnetrustConsentChanges({ onetrust, win, groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP, read, onChange });
 
-    win.OptanonWrapper();
+    const wrapperAfterSubscribe = win.OptanonWrapper;
+    expect(onConsentChanged).toHaveBeenCalledTimes(1); // registered once at subscribe
+
+    win.OptanonWrapper(); // one change fires
 
     expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith(mapOnetrustConsent(ACTIVE_GRANTED, ERP_INTUIT_GROUP_PURPOSE_MAP));
+    expect(read).toHaveBeenCalledTimes(1); // subscribe reads nothing; the fire re-reads exactly ONCE
+    expect(onConsentChanged).toHaveBeenCalledTimes(1); // the fire did NOT re-register
+    expect(win.OptanonWrapper).toBe(wrapperAfterSubscribe); // the fire did NOT re-wrap
   });
 
   it("the driver source (as extended) still imports nothing and performs no egress (whole-file re-check)", () => {

@@ -955,20 +955,30 @@ inspector work touches these.
 ### 047-02 (consent-change subscription) review nits
 
 **Deferred (surfaced by the 047-02 compliance + craft review, 2026-09-13):**
-- **Both-fire idempotency untested.** The driver subscribes BOTH `OneTrust.OnConsentChanged` and `OptanonWrapper`
-  (belt-and-suspenders resilience — §A2 grounds both as functions on the reference site), so a single real change calls
-  `handle.setConsent` twice. Benign today (`core/airlock.js`'s `setConsent` no-ops the 2nd call via its `heldBeacons.length`
-  guard; same re-read vector, buffer already drained), but no test fires both surfaces for one subscription and asserts the
-  `onChange` count — a latent footgun if `setConsent` ever reshapes unconditionally.
+- ~~**Both-fire idempotency untested.**~~ **RESOLVED 2026-09-14 (test-hardening).** The driver subscribes BOTH
+  `OneTrust.OnConsentChanged` and `OptanonWrapper` (belt-and-suspenders resilience — §A2 grounds both as functions on the
+  reference site), so a single real change calls `handle.setConsent` twice. Benign today (`core/airlock.js`'s `setConsent`
+  no-ops the 2nd call via its `heldBeacons.length` guard; same re-read vector, buffer already drained). Now pinned at BOTH
+  levels: a driver-unit test fires both surfaces for one subscription and asserts `onChange` is called **twice** with
+  identical vectors (`test/onetrust-consent-driver.test.js`, "both grounded surfaces fire for ONE change"); an integration
+  test drives the double through the REAL seal and asserts `setConsent` runs twice while the held ad beacon re-maps +
+  egresses **exactly once** (`test/eds-boot-onetrust.test.js`, "both grounded surfaces firing for ONE change is benign").
+  A future coalesce, or a `setConsent` that reshapes unconditionally, is now a deliberate, test-visible change.
 - **Ad-beacon accept-flow proven synthetic-only.** `onChange` binds `bootGa4Core`'s single `handle.setConsent`, not the
   composite consent fan-out (`createComposite.setConsent`, `adapters/eds/index.js`). GA4 core boot wires `holdOnDenied` for
   no purpose and no ad connector is booted in 047's scope, so the slice Goal's "held Google Ads / Floodlight beacons egress"
-  is proven against a stand-in `createAirlock`, not end-to-end. **This is the primary follow-up.**
-- **Two weak tests.** (a) an over-claiming test name (`"calls ONLY onChange … nothing else observable"` — the body only
-  asserts the `onChange` count); (b) the back-compat test asserts only `resolves.toBeTruthy()`, which would still pass if the
-  `if (onetrust)` guard were dropped (`globalWin` is undefined in node → an unguarded subscribe is a no-op).
+  is proven against a stand-in `createAirlock`, not end-to-end. **This is the primary follow-up (STILL OPEN).**
+- ~~**Two weak tests.**~~ **RESOLVED 2026-09-14 (test-hardening).** (a) the over-claiming test name (`"calls ONLY onChange …
+  nothing else observable"` — body only counted `onChange`) is now a real assertion: on a fire, exactly one injected-`read`
+  re-read, one `onChange(vector)` with the 047-01-mapped vector, and NO re-register / NO re-wrap
+  (`test/onetrust-consent-driver.test.js`, "a fire's ONLY observable effects…"). (b) the back-compat test (was
+  `resolves.toBeTruthy()` only — vacuous, since a node `globalWin`-undefined subscribe is itself a no-op) now stubs a live
+  `window.OneTrust` surface and asserts the `if (onetrust)` guard holds (no `OnConsentChanged` registration, no
+  `OptanonWrapper` install); proven non-vacuous by a temporary guard-drop mutation that turned it red
+  (`test/eds-boot-onetrust.test.js`, "the guard holds even when a live OneTrust global is present").
 
-**Resolution trigger:** the ad-connector `holdOnDenied` boot wiring lands (the deferred 044-01 §A2 concern) — then wire the
-OneTrust subscription to the **composite consent fan-out** and make `onetrust` a `boot(config)` governance field (today
-`governance` is only `{consent, consentStrict, payloadDenylist}`); add the both-fire idempotency test + a coalesce decision;
-tighten the two weak tests in the same pass.
+**Resolution trigger (REMAINING — the primary follow-up above):** the ad-connector `holdOnDenied` boot wiring lands (the
+deferred 044-01 §A2 concern) — then wire the OneTrust subscription to the **composite consent fan-out** and make `onetrust`
+a `boot(config)` governance field (today `governance` is only `{consent, consentStrict, payloadDenylist}`); revisit the
+both-fire **coalesce decision** at that point (today's double-fire is pinned-benign, not coalesced). The test-hardening
+halves (both-fire pins + the two tightened tests) are DONE 2026-09-14.

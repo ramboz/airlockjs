@@ -243,6 +243,39 @@ describe("047-02 AC3/AC4 — the accept-flow: a held ad beacon flushes when OneT
       fireChange();
     }).not.toThrow();
   });
+
+  it("both grounded surfaces firing for ONE change is benign: setConsent runs twice, the held ad beacon flushes exactly ONCE", () => {
+    // The subscription registers BOTH OnConsentChanged and OptanonWrapper (§A2),
+    // so a real OneTrust change drives setConsent TWICE. Prove the second call is
+    // a benign no-op against the REAL seal: core/airlock.js's setConsent only
+    // flushes while heldBeacons.length is truthy, and the first call drains it —
+    // so the held ad beacon re-maps + egresses exactly ONCE, never twice. (The
+    // driver-level onChange count is pinned in test/onetrust-consent-driver.test.js;
+    // this is the end-to-end "benign" half.)
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const remap = makeRemap();
+    const airlock = makeAdAirlock({ remap });
+    const setConsentSpy = vi.spyOn(airlock, "setConsent");
+
+    FakeWorker.last.onmessage(heldReadyMsg());
+    expect(fetchMock).not.toHaveBeenCalled(); // held, not sent
+
+    const fixtureWin = { OnetrustActiveGroups: ",1," }; // opted-out at subscribe time
+    const fireOnConsentChanged = wireFixtureSubscription(airlock, fixtureWin);
+    // wireFixtureSubscription passes BOTH `onetrust` and `win`, so subscribe has
+    // ALSO installed fixtureWin.OptanonWrapper — the second grounded surface.
+    expect(typeof fixtureWin.OptanonWrapper).toBe("function");
+
+    fixtureWin.OnetrustActiveGroups = ACTIVE_GRANTED; // the banner ACCEPT — one logical change
+    fireOnConsentChanged(); // surface 1: OnConsentChanged
+    fixtureWin.OptanonWrapper(); // surface 2: OptanonWrapper (same change)
+
+    expect(setConsentSpy).toHaveBeenCalledTimes(2); // both surfaces drove setConsent
+    expect(remap).toHaveBeenCalledTimes(1); // but the held beacon re-mapped ONCE
+    expect(fetchMock).toHaveBeenCalledTimes(1); // and egressed ONCE — the 2nd setConsent no-ops
+    expect(fetchMock.mock.calls[0][0]).toBe(`${AD_ENDPOINT}?ev=conversion&granted=1`);
+  });
 });
 
 // Spec 047-02 AC1/AC2 — the subscription is wired INTO the EDS boot itself
@@ -284,10 +317,22 @@ describe("047-02 — the OneTrust consent-change subscription is wired into the 
     expect(fetchMock).toHaveBeenCalledTimes(1); // 047-02: the subscribed change flushed it
   });
 
-  it("back-compat: a boot with NO `onetrust` wires no subscription at all (no throw, nothing to subscribe to)", async () => {
+  it("back-compat: a boot with NO `onetrust` wires no subscription — the guard holds even when a live OneTrust global is present", async () => {
+    // Regression guard for the `if (onetrust)` gate in adapters/eds/index.js.
+    // Put a real OneTrust surface on a stubbed window so a DROPPED guard would be
+    // OBSERVABLE: an unguarded subscribe reads `globalWin` (= window here) and
+    // would both register OnConsentChanged AND install OptanonWrapper. (The prior
+    // assertion — resolves-truthy alone — passed VACUOUSLY: with window undefined
+    // in node an unguarded subscribe is itself a no-op, so it never exercised the
+    // guard at all.)
+    const onConsentChanged = vi.fn();
+    vi.stubGlobal("window", { OneTrust: { OnConsentChanged: onConsentChanged } });
     vi.stubGlobal("fetch", vi.fn(() => Promise.resolve()));
     vi.stubGlobal("document", fakeDocument("_ga=GA1.1.5555555555.1600000000"));
 
     await expect(bootEdsAnalytics({ endpoints: [ENDPOINT] })).resolves.toBeTruthy();
+
+    expect(onConsentChanged).not.toHaveBeenCalled(); // guard held: no change-subscription registered
+    expect(window.OptanonWrapper).toBeUndefined(); // guard held: no OptanonWrapper hook installed off globalWin
   });
 });
