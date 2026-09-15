@@ -110,6 +110,19 @@ jobs:
         # actual security gate for this slice's load-bearing AC.
         run: npm run rig:sanitize
 
+      - name: GATING — Google Ads held→remap→flush through the REAL chamber (048-01 AC5)
+        # Closes the 048-01 AC5 held-arm residual: the held→remap→flush combination was
+        # FakeWorker-proven + source-inspected only. This boots the REAL adapter (holdOnDenied
+        # google-ads) and drives a denied→granted transition through the ACTUAL core/airlock.js
+        # seal AND the ACTUAL, BUILT google-ads-chamber.worker.js (a real browser Worker) —
+        # asserting 0 egress while held, then exactly one flushed beacon carrying the granted
+        # Consent-Mode encoding (re-map, not re-send). Node/vitest-INELIGIBLE (no real Worker).
+        run: npm run rig:google-ads-hold-flush
+
+      - name: GATING — Floodlight held→remap→flush through the REAL chamber (048-02 AC5)
+        # The Floodlight mirror of the Google Ads held-arm gate above (048-02 AC5).
+        run: npm run rig:floodlight-hold-flush
+
       - name: ADVISORY — cwv_budget (Lighthouse + INP delta + drain delivery, 07-03)
         # Advisory only (spec.md routing table) — cwv:budget exits 1 on a
         # budget miss, so continue-on-error is REQUIRED here or a statistical

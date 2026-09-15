@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Google Ads (AW) hold→flush real-chamber rig (048-01 AC5 held-arm)</title>
+  </head>
+  <body>
+    <h1>Google Ads chamber — held→remap→flush through the REAL seal + REAL chamber</h1>
+    <div id="status">booting…</div>
+    <script type="module">
+      // rig/google-ads-hold-flush.mjs drives this harness. Unlike rig/google-ads-chamber.mjs
+      // (which drives a bare Worker + hand-rolled dispatch to prove the GRANTED steady-state),
+      // this arm boots the REAL adapter (`boot(config)` from the BUILT eds.js) so the held→
+      // remap→flush combination runs through the ACTUAL seal (core/airlock.js's holdOnDenied
+      // buffer + setConsent flush + createGoogleAdsRemap re-map) AND the ACTUAL, BUILT
+      // google-ads-chamber.worker.js (a real browser Worker) — closing the AC5 residual that
+      // the held→remap→flush combination was only FakeWorker-proven + source-inspected.
+      //
+      // Deterministic phase signalling via `onDiagnostic` (spec 028): the seal emits a
+      // `held` record when it buffers the denied beacon and a `flushed` record when a grant
+      // re-maps + egresses it — so the rig never races a fixed delay.
+      const CONVERSION_ID = "AW-1234567890";
+      const DENIED = { ad_storage: "denied", analytics_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" };
+      const GRANTED = { ad_storage: "granted", analytics_storage: "granted", ad_user_data: "granted", ad_personalization: "granted" };
+
+      const statusEl = document.getElementById("status");
+      const diags = [];
+      window.__DIAGS__ = diags;
+
+      try {
+        const { boot } = await import("/probes/eds-testbed/scripts/airlock/eds.js");
+        await boot(
+          // Denied at boot + google-ads only. bootGoogleAds wires holdOnDenied + egressPurposes
+          // ["ad_storage"] (048-01), so a page_view beacon is HELD, not sent, under denied ad_storage.
+          { connectors: [{ type: "google-ads", conversionId: CONVERSION_ID, ctx: {} }], consent: DENIED },
+          {
+            onDiagnostic: (d) => {
+              diags.push(d);
+              if (d && d.disposition === "held") window.__HELD__ = true;
+              if (d && d.disposition === "flushed") window.__FLUSHED__ = true;
+            },
+          },
+        );
+
+        // The grant trigger the rig invokes AFTER it has confirmed the held phase (0 beacons):
+        // a mid-session accept -> the seal re-maps the held beacon via createGoogleAdsRemap +
+        // dispatches it (the real flush codepath).
+        window.__grant__ = () => window.airlock.setConsent(GRANTED);
+
+        // Push the page-load event through the composite -> google-ads chamber maps it -> the
+        // real seal HOLDS it under denied ad_storage. Do this LAST so __grant__ is already wired.
+        window.airlock.push({ event: "page_view", page_location: "https://spike.example/pricing" });
+        statusEl.textContent = "BOOTED — page_view pushed, awaiting held";
+        window.__READY__ = true;
+      } catch (e) {
+        statusEl.textContent = "HARNESS ERROR";
+        window.__HARNESS_ERROR__ = String((e && e.stack) || e);
+      }
+    </script>
+  </body>
+</html>

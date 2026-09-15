@@ -1090,20 +1090,23 @@ only so it isn't lost when this file's OTHER per-spec sections get reconciled.
 `egressPurposes` from each connector's OWN manifest object (a structural fix), google-ads' consts are removed in the same
 pass as every other connector's.
 
-### AC5 rig proves the GRANTED steady-state path only — held→remap→flush stays FakeWorker-proven
+### ~~AC5 rig proves the GRANTED steady-state path only — held→remap→flush stays FakeWorker-proven~~ — RESOLVED 2026-09-14
 
-**Deferred (048-01 AC5, 2026-09-14, named in the slice's own AC5 text):** `rig/google-ads-chamber.mjs` proves a
-config-shaped, GRANTED-consent page-load beacon egresses correctly through the REAL, BUILT
-`core/google-ads-chamber.worker.js` (a genuine browser Worker, not FakeWorker) — closing the frame-critique's "FakeWorker
-hides the missing chamber" gap for that path. The held→remap→flush COMBINATION (a beacon HELD by the real chamber's
-output, then re-mapped + flushed via `createGoogleAdsRemap` on a later grant) is proven only by FakeWorker
-(`test/eds-boot-google-ads.test.js`, `test/google-ads-seal.test.js`) plus source inspection
-(`core/connector-host.js` preserves `event`; `core/airlock.js` buffers `r.event` for re-map) — never exercised end-to-end
-against a real browser Worker in this slice.
+**RESOLVED 2026-09-14 (live real-chamber hold→flush rig).** A new sibling rig `rig/google-ads-hold-flush.mjs` (+
+`rig/google-ads-hold-flush-harness.html`, `npm run rig:google-ads-hold-flush`, GATING in `.github/workflows/ci.yml`'s
+browser-oracle job) boots the REAL adapter (`boot({ connectors:[{type:"google-ads"}], consent:{ad_storage:denied} })`,
+holdOnDenied) and drives a denied→granted transition through the ACTUAL `core/airlock.js` seal AND the ACTUAL, BUILT
+`google-ads-chamber.worker.js` (a genuine browser Worker). It asserts: ZERO egress while held (the real seal buffered the
+denied beacon), then EXACTLY ONE flushed beacon on a mid-session `setConsent(granted)` carrying the GRANTED Consent-Mode
+encoding (`gcs=G111`) — proving `createGoogleAdsRemap` RE-MAPPED under the now-current consent, not re-sent the stale
+denied-era payload. Phase transitions are driven deterministically by the seal's `held`/`flushed` onDiagnostic records
+(no fixed delay). PASS. Original deferral note (pre-fix): the granted steady-state was real-chamber-proven but the
+held→remap→flush combination was FakeWorker-proven (`test/eds-boot-google-ads.test.js`, `test/google-ads-seal.test.js`) +
+source-inspected (`core/connector-host.js` preserves `event`; `core/airlock.js` buffers `r.event` for re-map).
 
 **Resolution trigger:** extend `rig/google-ads-chamber.mjs` (or a sibling rig) to drive a denied-then-granted consent
-transition against the same real chamber + a real `bootGoogleAds`/`createAirlock` instance, if the held+remap+real-chamber
-combination later needs a live witness (e.g. before a real-site rewire, MVP9).
+transition against the same real chamber. _(Trigger fired — resolved 2026-09-14 via the `rig/google-ads-hold-flush.mjs`
+sibling; the FakeWorker unit tests stay as the fast hermetic guard, the rig as the real-chamber witness.)_
 
 ## Spec 048-02 (Floodlight boot wiring) follow-ups
 
@@ -1171,18 +1174,22 @@ accept. Not a new residual, not silently widened — flagged for the same reconc
 own instance. Resolution trigger unchanged: the standing "derive events/egressPurposes from each connector's own
 manifest" structural fix, if it ever lands, removes floodlight's consts in the same pass as every other connector's.
 
-### AC5 rig proves the GRANTED steady-state path (both DC forms) only — held→remap→flush stays FakeWorker-proven
+### ~~AC5 rig proves the GRANTED steady-state path (both DC forms) only — held→remap→flush stays FakeWorker-proven~~ — RESOLVED 2026-09-14
 
-**Deferred (048-02 AC5, 2026-09-14, mirrors 048-01's own named residual):** `rig/floodlight-chamber.mjs` proves a
-config-shaped, GRANTED-consent page-load beacon pair (ccm/collect + the `;`-matrix activity form) egresses correctly
-through the REAL, BUILT `core/floodlight-chamber.worker.js`. The held→remap→flush COMBINATION (a beacon HELD by the
-real chamber's output, then re-mapped + flushed via `createFloodlightRemap` on a later grant, for either `remapKey`) is
-proven only by FakeWorker (`test/eds-boot-floodlight.test.js`, `test/floodlight-seal.test.js`) plus source inspection —
-never exercised end-to-end against a real browser Worker in this slice.
+**RESOLVED 2026-09-14 (live real-chamber hold→flush rig — the Floodlight mirror of 048-01's).** A new sibling rig
+`rig/floodlight-hold-flush.mjs` (+ `rig/floodlight-hold-flush-harness.html`, `npm run rig:floodlight-hold-flush`, GATING in
+CI's browser-oracle job) boots the REAL adapter (`boot({ connectors:[{type:"floodlight"}], consent:{ad_storage:denied} })`,
+no activity `src` → the single `ccm/collect` DC form) and drives a denied→granted transition through the ACTUAL
+`core/airlock.js` seal AND the ACTUAL, BUILT `floodlight-chamber.worker.js`: ZERO egress while held, then EXACTLY ONE
+flushed beacon on `setConsent(granted)` carrying `gcs=G111` (`createFloodlightRemap` re-mapped under the now-current
+consent). PASS. Original deferral note (pre-fix): the granted steady-state (both DC forms) was real-chamber-proven but the
+held→remap→flush combination was FakeWorker-proven (`test/eds-boot-floodlight.test.js`, `test/floodlight-seal.test.js`) +
+source-inspected.
 
-**Resolution trigger:** unchanged from 048-01's — extend `rig/floodlight-chamber.mjs` to drive a denied-then-granted
-consent transition against the same real chamber + a real `bootFloodlight`/`createAirlock` instance, if the
-held+remap+real-chamber combination later needs a live witness (e.g. before a real-site rewire, MVP9).
+**Resolution trigger:** extend `rig/floodlight-chamber.mjs` to drive a denied-then-granted consent transition against the
+same real chamber. _(Trigger fired — resolved 2026-09-14 via the `rig/floodlight-hold-flush.mjs` sibling. The activity-form
+`remapKey` fan-out held→flush stays FakeWorker-proven — `test/floodlight-seal.test.js` — as the ccm/collect DC form is the
+representative real-chamber witness here; extend the rig with an activity `src` if that second key later needs a live witness.)_
 
 ## Spec 048-03 (OneTrust composite governance) follow-ups
 

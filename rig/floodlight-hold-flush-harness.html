@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Floodlight (DC) hold→flush real-chamber rig (048-02 AC5 held-arm)</title>
+  </head>
+  <body>
+    <h1>Floodlight chamber — held→remap→flush through the REAL seal + REAL chamber</h1>
+    <div id="status">booting…</div>
+    <script type="module">
+      // rig/floodlight-hold-flush.mjs drives this harness — the Floodlight mirror of
+      // rig/google-ads-hold-flush-harness.html (048-02 AC5 held-arm). Boots the REAL adapter
+      // (`boot(config)` from the BUILT eds.js) so the held→remap→flush combination runs through
+      // the ACTUAL seal (core/airlock.js holdOnDenied buffer + setConsent flush +
+      // createFloodlightRemap re-map) AND the ACTUAL, BUILT floodlight-chamber.worker.js.
+      //
+      // Booted WITHOUT an activity `src` -> a single `ccm/collect` page-load beacon (the always-present
+      // DC form), mirroring the google-ads single-beacon arm. Deterministic phase signalling via the
+      // seal's `held`/`flushed` onDiagnostic records (spec 028).
+      const CONVERSION_ID = "DC-1234567890";
+      const DENIED = { ad_storage: "denied", analytics_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" };
+      const GRANTED = { ad_storage: "granted", analytics_storage: "granted", ad_user_data: "granted", ad_personalization: "granted" };
+
+      const statusEl = document.getElementById("status");
+      const diags = [];
+      window.__DIAGS__ = diags;
+
+      try {
+        const { boot } = await import("/probes/eds-testbed/scripts/airlock/eds.js");
+        await boot(
+          // Denied at boot + floodlight only (no activity src -> the single ccm/collect page-load
+          // beacon). bootFloodlight wires holdOnDenied + egressPurposes ["ad_storage"] (048-02), so
+          // the beacon is HELD, not sent, under denied ad_storage.
+          { connectors: [{ type: "floodlight", conversionId: CONVERSION_ID, ctx: {} }], consent: DENIED },
+          {
+            onDiagnostic: (d) => {
+              diags.push(d);
+              if (d && d.disposition === "held") window.__HELD__ = true;
+              if (d && d.disposition === "flushed") window.__FLUSHED__ = true;
+            },
+          },
+        );
+
+        window.__grant__ = () => window.airlock.setConsent(GRANTED);
+
+        window.airlock.push({ event: "page_view", page_location: "https://spike.example/pricing" });
+        statusEl.textContent = "BOOTED — page_view pushed, awaiting held";
+        window.__READY__ = true;
+      } catch (e) {
+        statusEl.textContent = "HARNESS ERROR";
+        window.__HARNESS_ERROR__ = String((e && e.stack) || e);
+      }
+    </script>
+  </body>
+</html>
