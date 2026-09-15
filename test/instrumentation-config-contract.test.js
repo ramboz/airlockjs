@@ -126,6 +126,25 @@ describe("AC2 — boot(config) rejects a malformed config, loud + actionable", (
       .rejects.toThrow(/payloadDenylist.*array/);
   });
 
+  // Spec 048-03 fix round (arch + compliance nit): `onetrust` was the ONE top-level
+  // governance field with no shape check at all — unlike consent/consentStrict/
+  // payloadDenylist above, a malformed config.onetrust spread straight into
+  // `resolveOnetrustBootConsent` inside `boot()` with no loud rejection here.
+  it("wrong-typed onetrust (a string, not an object): rejects naming it", async () => {
+    await expect(boot({ connectors: [{ type: "ga4", ctx: gaCtx }], onetrust: "yes" }))
+      .rejects.toThrow(/onetrust.*object/);
+  });
+
+  it("onetrust missing groupPurposeMap (an empty object): rejects naming groupPurposeMap", async () => {
+    await expect(boot({ connectors: [{ type: "ga4", ctx: gaCtx }], onetrust: {} }))
+      .rejects.toThrow(/onetrust\.groupPurposeMap.*object/);
+  });
+
+  it("onetrust.groupPurposeMap wrong-typed (an array, not an object): rejects naming it", async () => {
+    await expect(boot({ connectors: [{ type: "ga4", ctx: gaCtx }], onetrust: { groupPurposeMap: [] } }))
+      .rejects.toThrow(/onetrust\.groupPurposeMap.*object/);
+  });
+
   it("a valid single-connector config does NOT throw (the validator is not over-eager)", async () => {
     await expect(boot({ connectors: [{ type: "ga4", ctx: gaCtx }] })).resolves.toBeTruthy();
   });
@@ -343,6 +362,45 @@ describe("048-02 AC3 — the schema gains a 'floodlight' type const + config sha
   });
 });
 
+// Spec 048-03 fix round (arch BLOCKER, 2026-09-14): the schema was top-level
+// `additionalProperties:false` listing only {connectors,consent,consentStrict,payloadDenylist} —
+// so it REJECTED a `{connectors, onetrust:{groupPurposeMap,…}}` config that `boot()` already
+// ACCEPTS and consumes (adapters/eds/index.js's `boot()`/`validateConfig`), inverting the
+// documented "schema is the fuller pinned reference" invariant. Adds a top-level "onetrust"
+// property (`$defs/onetrustConfig`) describing the PRODUCTION-facing shape only
+// ({groupPurposeMap REQUIRED, activeGroups? optional}) — `resolveOnetrustBootConsent`'s
+// `win`/`onetrust` sub-fields are test-only DI seams (the live global + injected reader), so they
+// are deliberately NOT pinned here (a real declarative JSON config never carries them).
+describe("048-03 fix round — the schema gains a top-level 'onetrust' governance field", () => {
+  it("a well-formed { groupPurposeMap, activeGroups } config.onetrust validates", () => {
+    const config = {
+      connectors: [{ type: "google-ads", conversionId: "AW-1234567890" }],
+      onetrust: { groupPurposeMap: { 4: ["ad_storage", "analytics_storage"] }, activeGroups: ",1,4," },
+    };
+    const ok = validateSchema(config);
+    if (!ok) console.error(validateSchema.errors);
+    expect(ok).toBe(true);
+  });
+
+  it("config.onetrust with ONLY the required groupPurposeMap (activeGroups omitted) validates", () => {
+    const config = {
+      connectors: [{ type: "google-ads", conversionId: "AW-1234567890" }],
+      onetrust: { groupPurposeMap: { 4: ["ad_storage"] } },
+    };
+    expect(validateSchema(config)).toBe(true);
+  });
+
+  it("config.onetrust missing groupPurposeMap is REJECTED by the schema", () => {
+    const config = { connectors: [{ type: "google-ads", conversionId: "AW-1234567890" }], onetrust: {} };
+    expect(validateSchema(config)).toBe(false);
+  });
+
+  it("an absent config.onetrust still validates (back-compat — the field stays optional)", () => {
+    const config = { connectors: [{ type: "google-ads", conversionId: "AW-1234567890" }] };
+    expect(validateSchema(config)).toBe(true);
+  });
+});
+
 // CROSS-CHECK (fix round, 2026-09-14): the runtime `KNOWN_CONNECTOR_TYPES` set (adapters/
 // eds/index.js — not exported, so read off the "unknown connector type" error's own "expected
 // one of: ..." list, the SAME signal the AC2 "unknown connector type" test above asserts
@@ -367,6 +425,26 @@ describe("048-01 CROSS-CHECK — runtime KNOWN_CONNECTOR_TYPES == schema's enume
     const schemaTypes = new Set(refs.map((name) => schema.$defs[name].properties.type.const));
 
     expect(schemaTypes).toEqual(runtimeTypes);
+  });
+});
+
+// CROSS-CHECK (048-03 fix round, arch blocker): the CONNECTOR-TYPE cross-check above cannot
+// catch a TOP-LEVEL governance-field drift (exactly the "onetrust" gap this fix round closes —
+// the schema silently lagged `boot()`'s own top-level destructure). Pins the schema's top-level
+// `properties` against the governance/config fields `boot()` (adapters/eds/index.js) actually
+// reads off `config` — kept in sync BY HAND with that function's own destructure/JSDoc `@param`
+// (its home), the same manually-maintained discipline `KNOWN_CONNECTOR_TYPES` itself relies on.
+// Before this fix round this test was RED for "onetrust" (present in `boot()`'s destructure,
+// absent from `schema.properties`); a FUTURE top-level field added to `boot()` but never added
+// here (or to the schema) won't self-detect — but a field added to BOTH this list and `boot()`
+// while the schema is forgotten DOES go red here.
+describe("048-03 CROSS-CHECK — schema top-level properties cover the governance/config fields boot() reads", () => {
+  const BOOT_CONFIG_TOP_LEVEL_FIELDS = ["connectors", "consent", "consentStrict", "payloadDenylist", "onetrust"];
+
+  it("every field boot() destructures off config is declared in schema.properties", () => {
+    for (const field of BOOT_CONFIG_TOP_LEVEL_FIELDS) {
+      expect(Object.keys(schema.properties), `schema.properties must declare "${field}"`).toContain(field);
+    }
   });
 });
 

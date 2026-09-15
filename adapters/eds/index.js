@@ -1917,7 +1917,7 @@ function validateConfig(config) {
   if (config === null || typeof config !== "object" || Array.isArray(config)) {
     throw new Error("airlock boot(config): config must be an object");
   }
-  const { connectors, consent, consentStrict, payloadDenylist } = config;
+  const { connectors, consent, consentStrict, payloadDenylist, onetrust } = config;
   if (connectors !== undefined && !Array.isArray(connectors)) {
     throw new Error('airlock boot(config): "connectors" must be an array');
   }
@@ -1929,6 +1929,21 @@ function validateConfig(config) {
   }
   if (payloadDenylist !== undefined && (!Array.isArray(payloadDenylist) || payloadDenylist.some((k) => typeof k !== "string"))) {
     throw new Error('airlock boot(config): "payloadDenylist" must be an array of strings');
+  }
+  // spec 048-03 fix round (arch + compliance nit): `onetrust` was the ONE top-level governance
+  // field with NO shape check — unlike consent/consentStrict/payloadDenylist above, a malformed
+  // config.onetrust (a string/array, or an object with a missing/wrong-typed groupPurposeMap)
+  // would spread straight into `resolveOnetrustBootConsent` below with no loud rejection here,
+  // inverting spec 032-02's own "loud + actionable" philosophy. Reject both failure shapes the
+  // same way the fields above do — naming the exact offending (sub)field.
+  if (onetrust !== undefined) {
+    if (onetrust === null || typeof onetrust !== "object" || Array.isArray(onetrust)) {
+      throw new Error('airlock boot(config): "onetrust" must be an object ({ groupPurposeMap, activeGroups? })');
+    }
+    const { groupPurposeMap } = onetrust;
+    if (groupPurposeMap === undefined || groupPurposeMap === null || typeof groupPurposeMap !== "object" || Array.isArray(groupPurposeMap)) {
+      throw new Error('airlock boot(config): "onetrust.groupPurposeMap" must be an object (a group id -> purpose[] map)');
+    }
   }
 }
 
@@ -2081,6 +2096,19 @@ function validateConnectorEntry(entry, index) {
  * a missing required id, or a wrong-typed field rejects with a clear error rather than a
  * silent placeholder or a cryptic downstream throw.
  *
+ * spec 048-03 AC2: a per-connector `onetrust` field on THIS entry is STRIPPED here — before
+ * `rest` ever reaches a sub-boot — for every connector `type`, no exceptions. This is the ONE
+ * chokepoint that makes `boot()`'s own composite-level OneTrust subscription (see `boot()`,
+ * below) the SOLE subscriber TRUE BY CONSTRUCTION: without the strip, a config entry like
+ * `{ type: "ga4", onetrust: {...} }` would flow through to `bootGa4Core`'s own 047-02
+ * `if (onetrust)` gate, which registers a subscription of its OWN. Sub-boots run BEFORE
+ * `createComposite` (the loop below), so that per-connector subscription would win the
+ * driver's idempotency guard (`drivers/consent/onetrust.js` — first-writer-wins, keyed on
+ * `win`/`onetrust` OBJECT IDENTITY, not on precedence) and the composite's LATER subscription
+ * would silently no-op — stranding every OTHER connector's held beacons (they only ever
+ * receive a consent update via the composite's own `setConsent` fan-out). Precedence is
+ * therefore fixed BY CONSTRUCTION (strip + never-thread), not by the guard.
+ *
  * @param {{ type: string }} entry a connector entry from `config.connectors`.
  * @param {{ consent?, consentStrict?, payloadDenylist? }} governance top-level governance.
  * @param {number} index the entry's position in `config.connectors` (for error messages).
@@ -2096,7 +2124,9 @@ function validateConnectorEntry(entry, index) {
  */
 async function bootConnector(entry, governance, index, reservedPlacements, compositeEmit, onDiagnostic) {
   validateConnectorEntry(entry, index);
-  const { type, ...rest } = entry || {};
+  // 048-03 AC2: `onetrust` is discarded here (see the doc comment above) for EVERY
+  // connector type — `_ignoredPerConnectorOnetrust` is deliberately unused.
+  const { type, onetrust: _ignoredPerConnectorOnetrust, ...rest } = entry || {};
   switch (type) {
     case "ga4":
       return { handle: await bootGa4Core({ ...rest, ...governance, onDiagnostic }), events: GA4_MANIFEST_EVENTS };
@@ -2175,7 +2205,25 @@ async function bootConnector(entry, governance, index, reservedPlacements, compo
  * rather than reserving post-paint (the flicker invariant). Absent -> personalization is
  * inert; the analytics path (033-02) is byte-unchanged.
  *
- * @param {{ connectors?: Array<{ type: string }>, consent?: Record<string,string>, consentStrict?: boolean, payloadDenylist?: string[] }} [config]
+ * spec 048-03: `config.onetrust = { groupPurposeMap, activeGroups?, onetrust?, win? }` — a
+ * top-level GOVERNANCE field (sibling of `consent`/`consentStrict`/`payloadDenylist`, NOT an
+ * `opts` field) promoting the OneTrust consent-input driver (spec 047) from a per-connector
+ * `bootGa4Core` seam to the COMPOSITE. When present, it (a) derives the boot-time consent
+ * vector via `resolveOnetrustBootConsent` (mirrors `bootGa4Core`'s own 047-01 fold exactly —
+ * `win` always resolves to this function's `globalWin` for THAT read) and threads it as the
+ * shared `governance.consent`, so every connector — ad + analytics — boots under the
+ * OneTrust-derived vector; and (b) after `createComposite`, subscribes to OneTrust's
+ * consent-CHANGE signal ONCE, fanning a change to every member via `composite.setConsent` —
+ * so a mid-session accept flushes held Google Ads/Floodlight beacons end-to-end through the
+ * REAL composite (the exact gap 047-02's own review flagged as proven-synthetic-only).
+ * `boot()` never threads `config.onetrust` into any sub-boot (only the derived
+ * `governance.consent` vector reaches one), and `bootConnector` strips any PER-CONNECTOR
+ * `onetrust` from an entry before dispatch — so the composite is the SOLE OneTrust
+ * subscriber TRUE BY CONSTRUCTION, not merely via the driver's first-writer-wins idempotency
+ * guard (see `bootConnector`'s own doc comment — the frame-critique's load-bearing
+ * correction). Absent `config.onetrust` -> byte-unchanged (no subscription, no derivation).
+ *
+ * @param {{ connectors?: Array<{ type: string }>, consent?: Record<string,string>, consentStrict?: boolean, payloadDenylist?: string[], onetrust?: { groupPurposeMap: Record<string, string[]>, activeGroups?: unknown, onetrust?: object, win?: object } }} [config]
  * @param {{ reservedPlacements?: Record<string, Promise<object>>, onDiagnostic?: (record: object) => void }} [opts]
  *   spec 033-03: the eager reserve handles (scope -> handle promise) handed off to alloy's
  *   bootAlloy. spec 028: `onDiagnostic` — a page-level inspector diagnostic sink fanned out to
@@ -2189,8 +2237,26 @@ export async function boot(config = {}, opts = {}) {
   // throw. Per-connector validation happens inside bootConnector (naming the connector by
   // index), on the partial-boot-cleanup path so a bad LATER entry disposes earlier ones.
   validateConfig(config);
-  const { connectors = [], consent, consentStrict, payloadDenylist } = config;
-  const governance = { consent, consentStrict, payloadDenylist };
+  const { connectors = [], consent, consentStrict, payloadDenylist, onetrust } = config;
+  // spec 048-03 AC1: resolved ONCE, reused below by the composite's OWN change subscription
+  // (after `createComposite`) — mirrors `bootGa4Core`'s own `globalWin` (047-01/047-02) so
+  // the boot-time read and the change subscription can never disagree on which global they'd
+  // read a live OneTrust off.
+  const globalWin = typeof window !== "undefined" ? window : undefined;
+  // `config.onetrust` present -> DERIVE the vector from OneTrust's own resolved surface (the
+  // SAME `{ ...onetrust, win: globalWin }` shape `bootGa4Core` folds — `win` always resolves
+  // to the real host global for this READ; `onetrust.win`/`onetrust.onetrust` are seams for
+  // the CHANGE subscription only, wired below). Absent -> the explicit top-level `consent`,
+  // byte-unchanged.
+  //
+  // PRECEDENCE (arch/craft fix-round nit, test-pinned in test/eds-boot-config-onetrust.test.js
+  // AC1): this is a plain ternary, not a merge — when a host supplies BOTH `config.onetrust`
+  // AND an explicit top-level `config.consent`, the DERIVED vector wins unconditionally and
+  // `config.consent` is silently dropped for every connector (never folded in alongside it).
+  // A host wiring both is presumed to intend OneTrust as authoritative (it supersedes the
+  // pre-047 explicit-`consent` seam), so this is intentional, not an oversight.
+  const derivedConsent = onetrust ? resolveOnetrustBootConsent({ ...onetrust, win: globalWin }) : consent;
+  const governance = { consent: derivedConsent, consentStrict, payloadDenylist };
   // 033-03: the eager pre-paint reserve handles handed off from reservePersonalization.
   const reservedPlacements = opts && opts.reservedPlacements ? opts.reservedPlacements : undefined;
   // spec 028: the page-level inspector diagnostic sink, fanned out to every sub-boot's seam
@@ -2223,6 +2289,25 @@ export async function boot(config = {}, opts = {}) {
     throw err;
   }
   const composite = createComposite(booted);
+  // spec 048-03 AC2: wire the OneTrust consent-CHANGE subscription ONCE, HERE — AFTER
+  // `createComposite`, so `onChange` fans a change to EVERY member via
+  // `createComposite.setConsent` (A-fanout — verified 2026-09-14, no new fan-out code
+  // needed). Mirrors `bootGa4Core`'s own 047-02 subscription call shape exactly
+  // (`onetrust.onetrust ?? globalWin.OneTrust`, `onetrust.win ?? globalWin`) so the two paths
+  // cannot drift. Combined with `bootConnector`'s strip (no sub-boot ever receives
+  // `onetrust`) and the fact that no sub-boot above was ever handed `config.onetrust` itself
+  // (only the derived `governance.consent` vector), the composite is the SOLE subscriber
+  // TRUE BY CONSTRUCTION — never merely by the driver's first-writer-wins idempotency guard
+  // (A-precedence, frame-critique 2026-09-14). Guarded / back-compat: no `config.onetrust` ->
+  // no subscription at all (AC5).
+  if (onetrust) {
+    subscribeOnetrustConsentChanges({
+      onetrust: onetrust.onetrust ?? (globalWin && globalWin.OneTrust),
+      win: onetrust.win ?? globalWin,
+      groupPurposeMap: onetrust.groupPurposeMap,
+      onChange: (vector) => composite.setConsent(vector),
+    });
+  }
   // 034-03 AC2: populate the deferred ref (bound to THIS composite) that bootAlloy's exposure
   // reporter closes over — accepts("proposition_display") gates the alloy-only drop, emit fans it
   // to an analytics ["*"] sink. Bound here (not via window.airlock) so a later re-boot can't

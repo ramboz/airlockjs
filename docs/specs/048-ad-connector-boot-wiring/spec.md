@@ -1,5 +1,5 @@
 ---
-status: IN_PROGRESS
+status: DONE
 skill:
 use_cases: []
 ---
@@ -8,8 +8,10 @@ use_cases: []
 
 # Spec 048: Ad-connector boot wiring — the MVP8 end-to-end accept-flow
 
-> DRAFT — drafted 2026-09-14. Closes the deferred **044-01 §A2** boot-wiring edge and the primary **047-02** follow-up
-> (`docs/refinement-todo.md` § Spec 047). Provisional number (reserved `--no-push`; 048 is the next free id after 047).
+> DONE 2026-09-14 (all three slices DONE via the jig ceremony). Closed the deferred **044-01 §A2** boot-wiring edge and the
+> primary **047-02** follow-up (`docs/refinement-todo.md` § Spec 047); decision recorded in
+> [ADR-0027](../../decisions/adr-0027-onetrust-composite-governance-field.md). MVP8's ad connectors are now declaratively
+> bootable + consent-gated end-to-end.
 
 ## Overview
 
@@ -25,8 +27,10 @@ This spec closes that edge. It adds the two ad-connector **boot adapters** + the
 **composite** membership, and promotes `onetrust` to a **`boot(config)` governance field** wired to the composite consent
 fan-out — so a mid-session OneTrust accept flushes held Google Ads **and** Floodlight beacons **end-to-end through the real
 composite**, not against a stand-in `createAirlock`. That end-to-end proof is exactly what MVP8's release-check criteria 1+2
-need demonstrated **together** ([releases/mvp8.md](../../releases/mvp8.md) § Release-Check), and it resolves the
-coarse-consent OQ13-1 accept-flow residual (`docs/refinement-todo.md`, 2026-09-05 inbox note).
+need demonstrated **together** ([releases/mvp8.md](../../releases/mvp8.md) § Release-Check), and it resolves the primary
+**047-02 follow-up** — the held-ad-beacon accept-flow, previously proven synthetic-only (`docs/refinement-todo.md` § Spec
+047). (An earlier draft mis-cited "OQ13-1" here; OQ13-1 is the UNRELATED alloy `demdex`/`ad_storage` cookie-write residual —
+048-03 touches no alloy code and it stays open. Corrected 2026-09-14, grounding review.)
 
 **What already exists (do NOT rebuild):** the connectors + their `holdOnDenied` opt-in (044-02 / 046-03, proven via
 `createAirlock`); the seal's hold-until-granted re-map machinery (045-01) + the N-beacon fan-out `remapKey` (045-03); the
@@ -85,7 +89,7 @@ never a chamber-only or seal-only horizontal shard.
 - **048-03 (Path — the OneTrust-accept capstone, end-to-end):** promote `onetrust` to a `boot(config)` governance field
   wired to the composite `setConsent` fan-out; prove that with Google Ads **and** Floodlight booted under denied consent
   (beacons held), a fixture OneTrust accept flushes **both** through the real composite. Resolves 047-02's primary
-  follow-up + OQ13-1; records the both-fire coalesce decision.
+  follow-up (NOT OQ13-1 — unrelated alloy cookie-write); records the both-fire coalesce decision.
 
 ## Slices
 
@@ -109,4 +113,4 @@ never a chamber-only or seal-only horizontal shard.
 - [spec 045 — consent hold-until-granted](../045-consent-hold-until-granted/spec.md) (the seal machinery this relies on)
 - [spec 032 — instrumentation config](../032-instrumentation-config/spec.md) (`boot(config)` + `KNOWN_CONNECTOR_TYPES`)
 - [releases/mvp8.md](../../releases/mvp8.md) (§ Release-Check criteria 1+2)
-- `docs/refinement-todo.md` § Spec 047 (the primary follow-up) + the OQ13-1 accept-flow residual
+- `docs/refinement-todo.md` § Spec 047 (the primary follow-up 048-03 resolves)

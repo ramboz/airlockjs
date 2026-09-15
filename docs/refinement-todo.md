@@ -964,10 +964,20 @@ inspector work touches these.
   test drives the double through the REAL seal and asserts `setConsent` runs twice while the held ad beacon re-maps +
   egresses **exactly once** (`test/eds-boot-onetrust.test.js`, "both grounded surfaces firing for ONE change is benign").
   A future coalesce, or a `setConsent` that reshapes unconditionally, is now a deliberate, test-visible change.
-- **Ad-beacon accept-flow proven synthetic-only.** `onChange` binds `bootGa4Core`'s single `handle.setConsent`, not the
-  composite consent fan-out (`createComposite.setConsent`, `adapters/eds/index.js`). GA4 core boot wires `holdOnDenied` for
-  no purpose and no ad connector is booted in 047's scope, so the slice Goal's "held Google Ads / Floodlight beacons egress"
-  is proven against a stand-in `createAirlock`, not end-to-end. **This is the primary follow-up (STILL OPEN).**
+- ~~**Ad-beacon accept-flow proven synthetic-only.**~~ **RESOLVED 2026-09-14 (spec
+  [048-03](specs/048-ad-connector-boot-wiring/slice-03-onetrust-composite-governance.md)).** `onetrust` is now a top-level
+  `boot(config)` GOVERNANCE field: `boot()` derives the boot-time vector via `resolveOnetrustBootConsent` and, after
+  `createComposite`, wires ONE `subscribeOnetrustConsentChanges({ …, onChange: (v) => composite.setConsent(v) })` call —
+  fanning a change to EVERY member through the REAL `createComposite.setConsent` (no stand-in). `bootConnector` strips any
+  per-connector `onetrust` from a config entry (all connector types, one chokepoint) so the composite is the SOLE
+  subscriber TRUE BY CONSTRUCTION — not via the driver's first-writer-wins idempotency guard, which the frame-critique
+  (2026-09-14) found CANNOT express precedence (sub-boots run before `createComposite`, so an un-stripped per-connector
+  `onetrust` would win the guard and silently strand every other connector). Proven end-to-end
+  (`test/eds-boot-config-onetrust.test.js`): a config booting BOTH `google-ads` AND `floodlight` under a denied OneTrust
+  surface holds a beacon from each; a fixture accept flushes BOTH through the real composite (fetch fires once each,
+  onDiagnostic records `flushed` for each); a later revoke holds new beacons without un-sending the already-flushed ones.
+  The precedence claim itself is mutation-proven (removing the strip re-strands the ad beacon, red). **No longer proven
+  against a stand-in `createAirlock` — this was the primary follow-up, now CLOSED.**
 - ~~**Two weak tests.**~~ **RESOLVED 2026-09-14 (test-hardening).** (a) the over-claiming test name (`"calls ONLY onChange …
   nothing else observable"` — body only counted `onChange`) is now a real assertion: on a fire, exactly one injected-`read`
   re-read, one `onChange(vector)` with the 047-01-mapped vector, and NO re-register / NO re-wrap
@@ -977,13 +987,38 @@ inspector work touches these.
   `OptanonWrapper` install); proven non-vacuous by a temporary guard-drop mutation that turned it red
   (`test/eds-boot-onetrust.test.js`, "the guard holds even when a live OneTrust global is present").
 
-**Resolution trigger (REMAINING — the primary follow-up above):** the ad-connector `holdOnDenied` boot wiring lands (the
-deferred 044-01 §A2 concern) — then wire the OneTrust subscription to the **composite consent fan-out** and make `onetrust`
-a `boot(config)` governance field (today `governance` is only `{consent, consentStrict, payloadDenylist}`); revisit the
-both-fire **coalesce decision** at that point (today's double-fire is pinned-benign, not coalesced). The test-hardening
-halves (both-fire pins + the two tightened tests) are DONE 2026-09-14. **Partially resolved 2026-09-14:** 048-01 lands the
-Google Ads half of the boot wiring (`bootGoogleAds`); Floodlight (048-02) and the OneTrust-composite-governance field
-(048-03) are still open — the trigger fires fully once both land.
+**Resolution trigger — DONE 2026-09-14.** 048-01 (Google Ads boot) + 048-02 (Floodlight boot) + 048-03 (the
+`onetrust`-as-governance-field + composite subscription) have all landed — the trigger has now fully fired and this
+section's REMAINING item (the primary follow-up, above) is CLOSED. The both-fire **coalesce decision** was revisited at
+composite scale (048-03 AC4: BOTH `google-ads` and `floodlight` held, one real change fires both grounded surfaces) and
+recorded as a lightweight decision, 2026-09-14 (`docs/decisions/lightweight-decisions.md`): the double-fire stays
+**pinned-benign, not coalesced**, at the composite fan-out scale too — `composite.setConsent` runs twice (2×N member
+`setConsent` calls), but each connector's own `heldBeacons.length` guard still makes it flush-once-per-connector
+(mutation-proven: a per-connector guard regression turns the "exactly once" assertion red).
+
+**Note on OQ13-1 (grounding correction, 2026-09-14).** Spec 048's Overview text describes 048-03 as also resolving "the
+coarse-consent OQ13-1 accept-flow residual." That claim does not hold up against this file's OWN OQ13-1 definition: OQ13-1
+(see the alloy "analytics-yes / personalization-no coarse consent" entry above, spec 034-01) is the `demdex`/`ad_storage`
+cookie-write question for alloy's wrapped-SDK path — a live-Alloy, creds-gated residual entirely unrelated to the Google
+Ads/Floodlight/OneTrust composite wiring this slice builds. 048-03 touches no alloy code and resolves no part of OQ13-1.
+**OQ13-1 stays OPEN**, exactly as recorded in its own entry (unchanged by this slice) — flagged here for the
+spec/reconciliation pass to correct the cross-reference in `docs/specs/048-ad-connector-boot-wiring/spec.md` (and this
+slice's own Goal text), rather than silently propagating the incorrect claim into a false "RESOLVED."
+
+**New residual named at 048-03 (non-blocking, logged not fixed) — a re-`boot(config)` does not unsubscribe the prior
+composite's OneTrust subscription.** `drivers/consent/onetrust.js`'s `subscribeOnetrustConsentChanges` has no unsubscribe
+primitive — its only guard is a PERMANENT idempotency marker set on the passed-in `win`/`onetrust` objects (first-writer-
+wins). So a second `boot(config)` call (a re-boot): `installOnWindow` disposes the prior composite's connectors
+(terminates their Workers), but the prior composite's `subscribeOnetrustConsentChanges` registration on the ambient
+`window`/`window.OneTrust` is never torn down, and the guard markers it set stay tripped — so the SECOND composite's own
+subscription attempt silently no-ops (same object identity), and the LIVE (second) composite's ad connectors never
+receive a subsequent OneTrust change (their held beacons could strand across a re-boot). **Not a new gap 048-03
+introduces** — 047-02's own per-connector `bootGa4Core` subscription carried the identical open question, never resolved;
+048-03 inherits + extends it to the composite scope. Deliberately NOT fixed here (a proper fix needs
+`drivers/consent/onetrust.js` — spec 047, DONE — to grow an unsubscribe/teardown return value, a driver API change beyond
+this wiring-only slice's declared scope, per the frame-critique's "don't force a big change" guidance).
+**Resolution trigger:** a real multi-boot / SPA-style re-init scenario surfaces this in practice, or `drivers/consent/
+onetrust.js` is revisited to add an unsubscribe/teardown primitive.
 
 ## Spec 048-01 (Google Ads boot wiring) follow-ups
 
@@ -1113,3 +1148,42 @@ never exercised end-to-end against a real browser Worker in this slice.
 **Resolution trigger:** unchanged from 048-01's — extend `rig/floodlight-chamber.mjs` to drive a denied-then-granted
 consent transition against the same real chamber + a real `bootFloodlight`/`createAirlock` instance, if the
 held+remap+real-chamber combination later needs a live witness (e.g. before a real-site rewire, MVP9).
+
+## Spec 048-03 (OneTrust composite governance) follow-ups
+
+### ~~Pinned schema does not yet enumerate `config.onetrust`~~ — RESOLVED 2026-09-14 (048-03 fix round)
+
+**RESOLVED 2026-09-14 (048-03 arch-blocker fix round).** The arch pass ruled this schema-lags-runtime gap a `[blocker]`
+(same class as 048-01), so it was fixed in-slice, not deferred: `contracts/instrumentation-config.schema.json` now declares
+a top-level `onetrust` property + `$defs/onetrustConfig` (`groupPurposeMap` required, `activeGroups?` optional; the
+`win`/`onetrust` DI seams intentionally unpinned — non-serializable test-only seams) + a top-level governance-field drift
+cross-check (`test/instrumentation-config-contract.test.js`). A valid `{connectors, onetrust:{groupPurposeMap}}` now passes
+ajv; a malformed one is rejected; `validateConfig` also shape-checks `onetrust`. Original deferral note (pre-fix, retained
+for history):
+
+~~**Logged (048-03, 2026-09-14, NOT fixed this slice):**~~ `contracts/instrumentation-config.schema.json`'s top-level object
+is `"additionalProperties": false` and does not declare an `onetrust` property, so a config exercising the new
+`boot(config)` governance field (`{ connectors: […], onetrust: { groupPurposeMap } }`) would FAIL ajv validation against
+the pinned schema even though the runtime happily boots it — inverting the "schema is the fuller pinned reference, the
+hand-rolled validator is a documented subset" invariant `validateConnectorEntry`'s own doc comment states, the same shape
+048-01's fix round closed for the `google-ads` connector `type`. Deliberately NOT fixed here: none of 048-03's 5 ACs
+touch the schema/contracts surface, and the existing `test/instrumentation-config-contract.test.js` suite (which owns
+schema fixtures + the `KNOWN_CONNECTOR_TYPES`↔schema cross-check) stays green either way — no test exercises `onetrust`
+against the pinned schema, so the gap is silent, not test-visible, until someone writes that fixture. Scoped out to keep
+this wiring-only slice's diff tight (per its own framing: "This is wiring in `boot(config)`… NO new chamber/worker/build
+entry").
+
+**Resolution trigger:** a "fix round" pass (mirroring 048-01's own) adds an `onetrust` property to the schema's top-level
+`properties` (a `groupPurposeMap`/`activeGroups`/`onetrust`/`win` object shape) — or a config-surface freeze/reconciliation
+pass touches `contracts/instrumentation-config.schema.json` for another reason and picks this up in the same pass.
+_(Trigger fired — resolved 2026-09-14, see the RESOLVED note above.)_
+
+### The 048-03 top-level governance-field cross-check is ONE-SIDED (hand-maintained list, not runtime-derived)
+**Logged (048-03 arch review, 2026-09-14):** the new drift guard added by the 048-03 fix round
+(`test/instrumentation-config-contract.test.js`) pins the schema's top-level `properties` against a **hand-maintained**
+`BOOT_CONFIG_TOP_LEVEL_FIELDS` list, not against the runtime's own enumeration of the fields `boot()` reads. So a field
+added to `boot()`'s config destructure but omitted from that list would NOT self-detect — strictly weaker than the
+connector-type cross-check (048-01), which derives its set from the runtime's own `KNOWN_CONNECTOR_TYPES` error text.
+Disclosed in-comment; non-blocking (the arch pass passed). **Resolution trigger:** export the top-level config-field set
+from `adapters/eds/index.js` (as `KNOWN_CONNECTOR_TYPES` is effectively surfaced) so the cross-check becomes two-sided —
+do it when the config surface is next touched, or a schema-freeze pass lands.

@@ -26,9 +26,27 @@
       "type": "array",
       "description": "spec 019-01 (ADR-0012) — extra payload keys stripped before egress, merged with the always-on built-in default. Applies to consent-governed connectors; helix-rum is exempt.",
       "items": { "type": "string" }
-    }
+    },
+    "onetrust": { "$ref": "#/$defs/onetrustConfig" }
   },
   "$defs": {
+    "onetrustConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["groupPurposeMap"],
+      "description": "spec 048-03 — promotes the OneTrust consent-input driver (spec 047) from a per-connector `bootGa4Core` seam to a top-level `boot(config)` GOVERNANCE field (sibling of `consent`/`consentStrict`/`payloadDenylist`): derives the boot-time consent vector from OneTrust's own resolved surface (`OnetrustActiveGroups`) via the host `groupPurposeMap`, and subscribes the COMPOSITE (once) to OneTrust's consent-CHANGE signal so a mid-session accept flushes every held ad/analytics beacon through the real composite fan-out (`drivers/consent/onetrust.js`'s `resolveOnetrustBootConsent`/`subscribeOnetrustConsentChanges`). PRODUCTION-facing shape only: `resolveOnetrustBootConsent`'s `win`/`onetrust` sub-fields (the live global + the injected reader) are test-only DI seams, deliberately NOT pinned here — a real declarative JSON config never carries them.",
+      "properties": {
+        "groupPurposeMap": {
+          "type": "object",
+          "description": "REQUIRED host map: OneTrust group id -> the Consent Mode v2 purposes it covers (a subset of analytics_storage/ad_storage/ad_user_data/ad_personalization — drivers/consent/onetrust.js's CONSENT_MODE_V2_PURPOSES; an out-of-scope/unknown purpose name is tolerated and ignored, never rejected). E.g. the grounded erp.intuit.com reference map `{\"4\": [\"ad_storage\",\"analytics_storage\",\"ad_user_data\",\"ad_personalization\"]}` (`ERP_INTUIT_GROUP_PURPOSE_MAP`).",
+          "additionalProperties": { "type": "array", "items": { "type": "string" } }
+        },
+        "activeGroups": {
+          "type": ["string", "null"],
+          "description": "Optional explicit granted-group string override (e.g. a server-rendered OnetrustActiveGroups snapshot) — skips the live `window` read at boot. Explicit `null` is a real, distinct value (an unresolved surface, still fail-to-pending); omitting the field entirely reads live instead."
+        }
+      }
+    },
     "connector": {
       "type": "object",
       "required": ["type"],

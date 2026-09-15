@@ -134,3 +134,11 @@ fields), so the documented shape and the helper output agree.
 **Context:** 044-01 arch review flagged the connector-shape as load-bearing with rejected alternatives (ADR-worthy); owner ruled convention-not-ADR to keep it light. Floodlight will be the gtag-family sibling.
 
 **Scope:** connectors/google-ads/, connectors/consent-mode.js (gtag family)
+
+### 2026-09-14 — OneTrust both-fire double stays pinned-benign at composite scale (not coalesced)
+
+**Decision:** boot(config)'s onetrust governance field (spec 048-03) wires ONE subscribeOnetrustConsentChanges call at the composite, but the driver itself registers through BOTH grounded surfaces (OnConsentChanged + OptanonWrapper), so one real OneTrust change still drives composite.setConsent TWICE -- 2xN member setConsent calls (N = booted connectors). This stays PINNED-BENIGN, NOT coalesced, at composite scale: each connector's own core/airlock.js heldBeacons.length guard makes the 2nd call a no-op, so every connector flushes its held beacon EXACTLY once. Proven end-to-end with two ad connectors (Google Ads + Floodlight) booted together under the real composite (test/eds-boot-config-onetrust.test.js, AC4), mutation-proven (a per-connector guard regression turns the exactly-once assertion red).
+
+**Context:** Extends the SAME both-fire decision 047-02 pinned for a single bootGa4Core instance (docs/refinement-todo.md Sec 047-02 review nits) to the composite fan-out scale, where the multiplier is 2xN instead of 2x1 -- revisited per 047-02's own resolution trigger once the composite subscription landed (048-03), rather than re-decided from scratch. The underlying mechanism (heldBeacons.length) is unchanged, so the conclusion carries over unchanged; a future coalesce (or a setConsent that reshapes unconditionally) remains a deliberate, test-visible change.
+
+**Scope:** adapters/eds/index.js boot(config)'s OneTrust composite subscription (spec 048-03); core/airlock.js's setConsent heldBeacons guard (unchanged, spec 045-01)
