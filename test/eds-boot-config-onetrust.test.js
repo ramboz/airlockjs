@@ -344,3 +344,44 @@ describe("boot(config) — AC5 (048-03): back-compat + inspector-observable", ()
     );
   });
 });
+
+describe("boot(config) — ADR-0028: a re-boot's LIVE composite still flushes held beacons on a OneTrust accept", () => {
+  // The re-boot-unsubscribe residual inherited from 047-02 (refinement-todo § Spec 047): before
+  // the fix, a re-`boot()` disposed the prior composite's connectors but LEFT its OneTrust
+  // subscription installed, and the prior's permanent first-writer-wins guard made the NEW
+  // composite's subscription silently no-op — so the live composite's held ad beacons STRANDED
+  // across a re-boot. Mutation-provable (DoD): reverting the driver to the permanent-no-op guard
+  // (no active-handler slot) turns the final assertion red (fetch stays 0 — the strand).
+  it("re-boot disposes the prior subscription without stranding the new — the second composite's held beacon flushes on accept", async () => {
+    vi.stubGlobal("window", { OnetrustActiveGroups: OPTED_OUT });
+    const lastAdsWorker = () => FakeWorker.instances.filter((w) => w.url.includes("google-ads-chamber.worker.js")).at(-1);
+
+    // FIRST boot (composite A) under denied consent.
+    await boot({
+      connectors: [{ type: "google-ads", ctx: {}, conversionId: CONVERSION_ID_ADS }],
+      onetrust: { groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP },
+    });
+
+    // RE-BOOT (composite B) — installOnWindow disposes composite A, incl. its OneTrust unsubscribe.
+    await boot({
+      connectors: [{ type: "google-ads", ctx: {}, conversionId: CONVERSION_ID_ADS }],
+      onetrust: { groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP },
+    });
+
+    // A page-load beacon HELD by composite B's own real-connector-produced output.
+    const adsConnector = createGoogleAdsConnector({
+      conversionId: CONVERSION_ID_ADS,
+      ctx: initOf(lastAdsWorker()).ctx,
+      endpoint: GOOGLE_ADS_CCM_COLLECT_ENDPOINT,
+    });
+    lastAdsWorker().onmessage(readyMsg(adsConnector.handle({ type: "page_view", params: {} })));
+    expect(globalThis.fetch).not.toHaveBeenCalled(); // held under denied
+
+    // The banner ACCEPT — composite B (the LIVE composite) must receive the change and flush.
+    // Pre-fix (ADR-0028) this stranded (B's subscription no-op'd behind A's permanent guard) -> fetch stayed 0.
+    window.OnetrustActiveGroups = ACTIVE_GRANTED;
+    window.OptanonWrapper();
+
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1); // B's held beacon flushed — NOT stranded across the re-boot
+  });
+});

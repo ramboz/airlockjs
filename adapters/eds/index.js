@@ -517,6 +517,10 @@ async function bootGa4Core(opts = {}) {
     onDiagnostic,
   });
 
+  // ADR-0028: the OneTrust change-subscription's teardown (assigned in the
+  // `if (onetrust)` block below), folded into `dispose()` so a re-boot tears down this
+  // instance's subscription too (no re-boot strand — refinement-todo § 047 re-boot unsubscribe).
+  let unsubscribeOnetrust = null;
   const handle = {
     push: (evt) => airlock.push(evt),
     pushCritical: (evt) => airlock.pushCritical(evt),
@@ -524,7 +528,10 @@ async function bootGa4Core(opts = {}) {
     getState: (path) => airlock.getState(path), // whole projection or dotted-path read (push-api.md)
     flushNow: () => airlock.flushNow(), // force-drain the ring to the worker (deterministic teardown/test)
     stats: () => airlock.stats(),
-    dispose: () => airlock.dispose(), // 021-01 AC1: tear down this instance's Worker + unload listeners
+    dispose: () => {
+      if (unsubscribeOnetrust) unsubscribeOnetrust(); // ADR-0028: tear down the OneTrust subscription first
+      airlock.dispose(); // 021-01 AC1: tear down this instance's Worker + unload listeners
+    },
   };
 
   // spec 047-02 AC1/AC2: when the host wires the OneTrust consent-input driver
@@ -541,7 +548,7 @@ async function bootGa4Core(opts = {}) {
   // Guarded / back-compat: a boot that does NOT pass `onetrust` at all subscribes to
   // nothing (byte-unchanged).
   if (onetrust) {
-    subscribeOnetrustConsentChanges({
+    unsubscribeOnetrust = subscribeOnetrustConsentChanges({
       onetrust: onetrust.onetrust ?? (globalWin && globalWin.OneTrust),
       win: onetrust.win ?? globalWin,
       groupPurposeMap: onetrust.groupPurposeMap,
@@ -2301,12 +2308,23 @@ export async function boot(config = {}, opts = {}) {
   // (A-precedence, frame-critique 2026-09-14). Guarded / back-compat: no `config.onetrust` ->
   // no subscription at all (AC5).
   if (onetrust) {
-    subscribeOnetrustConsentChanges({
+    const unsubscribeOnetrust = subscribeOnetrustConsentChanges({
       onetrust: onetrust.onetrust ?? (globalWin && globalWin.OneTrust),
       win: onetrust.win ?? globalWin,
       groupPurposeMap: onetrust.groupPurposeMap,
       onChange: (vector) => composite.setConsent(vector),
     });
+    // ADR-0028: fold the driver's unsubscribe into composite.dispose so a re-boot
+    // (installOnWindow disposes the prior composite) tears down its OneTrust subscription too.
+    // Without this the prior subscription stayed installed and its permanent guard no-op'd every
+    // re-boot's NEW subscription, stranding the live composite's held ad beacons (refinement-todo
+    // § 048-03). The driver's compare-and-clear lets a later subscription on the same host objects
+    // survive this teardown, so disposing the OLD composite never strands the NEW one.
+    const baseDispose = composite.dispose;
+    composite.dispose = () => {
+      unsubscribeOnetrust();
+      baseDispose();
+    };
   }
   // 034-03 AC2: populate the deferred ref (bound to THIS composite) that bootAlloy's exposure
   // reporter closes over — accepts("proposition_display") gates the alloy-only drop, emit fans it

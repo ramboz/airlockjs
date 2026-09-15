@@ -1005,8 +1005,21 @@ Ads/Floodlight/OneTrust composite wiring this slice builds. 048-03 touches no al
 spec/reconciliation pass to correct the cross-reference in `docs/specs/048-ad-connector-boot-wiring/spec.md` (and this
 slice's own Goal text), rather than silently propagating the incorrect claim into a false "RESOLVED."
 
-**New residual named at 048-03 (non-blocking, logged not fixed) — a re-`boot(config)` does not unsubscribe the prior
-composite's OneTrust subscription.** `drivers/consent/onetrust.js`'s `subscribeOnetrustConsentChanges` has no unsubscribe
+### ~~Re-boot does not unsubscribe the prior composite's OneTrust subscription~~ — RESOLVED 2026-09-14 ([ADR-0028](decisions/adr-0028-onetrust-unsubscribe-reboot-safety.md))
+
+**RESOLVED 2026-09-14 ([ADR-0028](decisions/adr-0028-onetrust-unsubscribe-reboot-safety.md)).** `subscribeOnetrustConsentChanges`
+now returns an idempotent, re-boot-safe `unsubscribe()`: each grounded surface is wired ONCE as a stable trampoline over a
+mutable active-handler slot, a (re-)subscription SWAPS the slot to its own handler, and `unsubscribe()` is a COMPARE-AND-CLEAR
+(clears the slot only while it still holds THIS subscription's handler). The adapter folds that unsubscribe into `dispose()`
+(both `bootGa4Core`'s per-connector handle and `boot(config)`'s composite), which a re-boot already calls on the prior
+instance — so a re-`boot()`'s NEW subscription takes the surface over and the prior teardown (running last, via
+`installOnWindow`) cannot strand it. Proven end-to-end: a re-boot's live composite still flushes its held beacon on a OneTrust
+accept (`test/eds-boot-config-onetrust.test.js`), mutation-verified (reverting to the permanent-no-op guard re-strands it,
+red), plus driver-unit coverage of the compare-and-clear + idempotent/null-safe unsubscribe (`test/onetrust-consent-driver.test.js`).
+Original deferral note (pre-fix, retained for history):
+
+~~**New residual named at 048-03 (non-blocking, logged not fixed) — a re-`boot(config)` does not unsubscribe the prior
+composite's OneTrust subscription.**~~ `drivers/consent/onetrust.js`'s `subscribeOnetrustConsentChanges` has no unsubscribe
 primitive — its only guard is a PERMANENT idempotency marker set on the passed-in `win`/`onetrust` objects (first-writer-
 wins). So a second `boot(config)` call (a re-boot): `installOnWindow` disposes the prior composite's connectors
 (terminates their Workers), but the prior composite's `subscribeOnetrustConsentChanges` registration on the ambient
@@ -1018,7 +1031,7 @@ introduces** — 047-02's own per-connector `bootGa4Core` subscription carried t
 `drivers/consent/onetrust.js` — spec 047, DONE — to grow an unsubscribe/teardown return value, a driver API change beyond
 this wiring-only slice's declared scope, per the frame-critique's "don't force a big change" guidance).
 **Resolution trigger:** a real multi-boot / SPA-style re-init scenario surfaces this in practice, or `drivers/consent/
-onetrust.js` is revisited to add an unsubscribe/teardown primitive.
+onetrust.js` is revisited to add an unsubscribe/teardown primitive. _(Trigger fired — resolved 2026-09-14, see the RESOLVED note above.)_
 
 ## Spec 048-01 (Google Ads boot wiring) follow-ups
 

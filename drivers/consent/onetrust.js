@@ -212,10 +212,21 @@ export function resolveOnetrustBootConsent({ groupPurposeMap, activeGroups, read
  * IDEMPOTENT + NULL-SAFE: a missing `onChange` short-circuits the whole call
  * (nothing to notify); an absent/non-object `onetrust` and an absent/non-object
  * `win` are each skipped on their own half (no throw either way). Calling this
- * twice on the SAME `onetrust` / `win` pair never double-registers — each half
- * is guarded by its own marker on the object passed in — so neither a caller's
- * defensive re-call nor re-wiring the same live OneTrust across a re-boot can
- * fire `onChange` twice for one real change.
+ * twice on the SAME `onetrust` / `win` pair never double-registers — each surface
+ * is wired ONCE (marker-guarded) as a stable trampoline over a mutable "active
+ * handler" slot, so a caller's defensive re-call still fires `onChange` only once
+ * per surface for one real change.
+ *
+ * RE-BOOT SAFE / UNSUBSCRIBABLE (ADR-0028): a (re-)subscription SWAPS
+ * the active-handler slot to its own; the RETURNED `unsubscribe()` clears the slot
+ * only while it still holds THIS subscription's handler (compare-and-clear). So a
+ * re-boot's newer subscription takes the surface over, and tearing down the OLD
+ * subscription (its composite `dispose()`) can never strand the newer one — closing
+ * the re-boot strand the prior permanent-no-op guard left open (the composite's
+ * held ad beacons no longer strand across a re-`boot()`). `unsubscribe()` is
+ * idempotent + null-safe (a no-op when nothing was wired); the one-time trampoline
+ * stays installed as a harmless no-op when no handler is active, and a pre-existing
+ * host `OptanonWrapper` is preserved + still called.
  *
  * @param {object} [options]
  * @param {{ OnConsentChanged?: (cb: Function) => void }|null|undefined} [options.onetrust]
@@ -231,7 +242,9 @@ export function resolveOnetrustBootConsent({ groupPurposeMap, activeGroups, read
  *   (default `readOnetrustActiveGroups`).
  * @param {(vector: Record<string, "granted"|"denied">) => void} [options.onChange]
  *   called with the re-mapped vector on every change.
- * @returns {void}
+ * @returns {() => void} an idempotent unsubscribe — after it runs, a subsequent
+ *   OneTrust change no longer notifies THIS subscription's `onChange` (a newer
+ *   subscription on the same host objects, e.g. from a re-boot, is untouched).
  */
 export function subscribeOnetrustConsentChanges({
   onetrust,
@@ -240,23 +253,51 @@ export function subscribeOnetrustConsentChanges({
   read = readOnetrustActiveGroups,
   onChange,
 } = {}) {
-  if (typeof onChange !== "function") return; // nothing to notify -> a complete no-op
+  if (typeof onChange !== "function") return () => {}; // nothing to notify -> no-op subscribe + no-op unsubscribe
 
   const handleChange = () => onChange(mapOnetrustConsent(read(win), groupPurposeMap));
+
+  // Each grounded surface is wired EXACTLY ONCE per host object (marker-guarded),
+  // installing a stable TRAMPOLINE that dispatches to a single mutable "active
+  // handler" slot on that object. A (re-)subscription just SWAPS the slot to its own
+  // `handleChange`; the returned unsubscribe is a COMPARE-AND-CLEAR (clears the slot
+  // only while it still holds THIS subscription's handler) — so tearing down an OLD
+  // subscription can never strand a NEWER one that already took the slot over (the
+  // re-boot strand the prior permanent-no-op guard left open — ADR-0028).
+  const teardowns = [];
 
   if (onetrust && typeof onetrust === "object" && typeof onetrust.OnConsentChanged === "function") {
     if (!onetrust.__onetrustConsentChangeWired) {
       onetrust.__onetrustConsentChangeWired = true;
-      onetrust.OnConsentChanged(handleChange);
+      onetrust.OnConsentChanged(() => {
+        const active = onetrust.__onetrustActiveHandler;
+        if (active) active();
+      });
     }
+    onetrust.__onetrustActiveHandler = handleChange;
+    teardowns.push(() => {
+      if (onetrust.__onetrustActiveHandler === handleChange) onetrust.__onetrustActiveHandler = null;
+    });
   }
 
-  if (win && typeof win === "object" && !win.__onetrustOptanonWrapperWired) {
-    win.__onetrustOptanonWrapperWired = true;
-    const priorWrapper = typeof win.OptanonWrapper === "function" ? win.OptanonWrapper : null;
-    win.OptanonWrapper = function onetrustConsentChangeWrapper(...args) {
-      if (priorWrapper) priorWrapper.apply(this, args);
-      handleChange();
-    };
+  if (win && typeof win === "object") {
+    if (!win.__onetrustOptanonWrapperWired) {
+      win.__onetrustOptanonWrapperWired = true;
+      const priorWrapper = typeof win.OptanonWrapper === "function" ? win.OptanonWrapper : null;
+      win.OptanonWrapper = function onetrustConsentChangeWrapper(...args) {
+        if (priorWrapper) priorWrapper.apply(this, args);
+        const active = win.__onetrustActiveHandler;
+        if (active) active();
+      };
+    }
+    win.__onetrustActiveHandler = handleChange;
+    teardowns.push(() => {
+      if (win.__onetrustActiveHandler === handleChange) win.__onetrustActiveHandler = null;
+    });
   }
+
+  // Idempotent: a second call is harmless (each teardown compare-and-clears its own slot).
+  return () => {
+    for (const teardown of teardowns) teardown();
+  };
 }

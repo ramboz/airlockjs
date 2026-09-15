@@ -462,3 +462,67 @@ describe("047-02 AC5 — no new seam, no egress: onChange is the ONLY side effec
     expect(src).toContain("subscribeOnetrustConsentChanges"); // the new export is actually present
   });
 });
+
+// ---------------------------------------------------------------------------
+// ADR-0028 — unsubscribe + re-boot safety: a subscription can be torn
+// down, and a re-boot's newer subscription takes the surface over WITHOUT the old
+// teardown stranding it (compare-and-clear). Closes the re-boot-unsubscribe residual
+// inherited from 047-02 (refinement-todo § Spec 047).
+// ---------------------------------------------------------------------------
+describe("ADR-0028 — subscribeOnetrustConsentChanges returns an idempotent, re-boot-safe unsubscribe", () => {
+  it("returns an unsubscribe; after it runs, a change no longer notifies THIS onChange (idempotent)", () => {
+    const win = { OnetrustActiveGroups: ACTIVE_GRANTED };
+    const onChange = vi.fn();
+    const unsubscribe = subscribeOnetrustConsentChanges({ win, groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP, onChange });
+    expect(unsubscribe).toBeTypeOf("function");
+
+    win.OptanonWrapper(); // a change
+    expect(onChange).toHaveBeenCalledTimes(1);
+
+    unsubscribe();
+    win.OptanonWrapper(); // another change — now ignored (slot cleared)
+    expect(onChange).toHaveBeenCalledTimes(1);
+
+    expect(() => unsubscribe()).not.toThrow(); // idempotent: a second call is harmless
+    win.OptanonWrapper();
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("a re-subscribe (re-boot) takes the surface over; tearing down the OLD subscription does NOT strand the NEW", () => {
+    // The exact re-boot strand the prior permanent-no-op guard left open: composite A
+    // subscribes; composite B re-subscribes on the SAME host objects; THEN composite A is
+    // disposed (its unsubscribe runs — after B, as installOnWindow disposes the prior LAST).
+    // B (the live composite) must keep receiving changes through BOTH grounded surfaces.
+    let onConsentCb;
+    const onetrust = {
+      OnConsentChanged: (cb) => {
+        onConsentCb = cb;
+      },
+    };
+    const win = { OnetrustActiveGroups: ACTIVE_GRANTED };
+    const onChangeA = vi.fn();
+    const onChangeB = vi.fn();
+
+    const unsubscribeA = subscribeOnetrustConsentChanges({ onetrust, win, groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP, onChange: onChangeA });
+    const unsubscribeB = subscribeOnetrustConsentChanges({ onetrust, win, groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP, onChange: onChangeB });
+    expect(unsubscribeB).toBeTypeOf("function");
+
+    unsubscribeA(); // composite A disposed AFTER B took the surface over
+
+    onConsentCb(); // surface 1 (OnConsentChanged trampoline) fires the real change
+    win.OptanonWrapper(); // surface 2 (OptanonWrapper trampoline) fires the same change
+
+    expect(onChangeB).toHaveBeenCalledTimes(2); // B (live) notified via BOTH surfaces — NOT stranded
+    expect(onChangeA).not.toHaveBeenCalled(); // A (torn down) never notified
+  });
+
+  it("unsubscribe is a null-safe no-op function when nothing was wired", () => {
+    const noSurfaces = subscribeOnetrustConsentChanges({ groupPurposeMap: ERP_INTUIT_GROUP_PURPOSE_MAP, onChange: vi.fn() });
+    expect(noSurfaces).toBeTypeOf("function");
+    expect(() => noSurfaces()).not.toThrow();
+
+    const noOnChange = subscribeOnetrustConsentChanges({ win: {} }); // no onChange -> complete no-op
+    expect(noOnChange).toBeTypeOf("function");
+    expect(() => noOnChange()).not.toThrow();
+  });
+});
