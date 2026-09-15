@@ -54,6 +54,17 @@ import { encodeGcs, encodeGcd } from "../consent-mode.js";
  *  either, since auth here is `tid` + origin, not a region-scoped secret). */
 export const GA4_GTAG_COLLECT_ENDPOINT = "https://www.google-analytics.com/g/collect";
 
+/**
+ * The gtag connector's declared vocabulary — the SINGLE SOURCE OF TRUTH the manifest below AND the
+ * `adapters/eds/index.js` boot/composite-fan-out consume (imported, not hand-mirrored). Frozen so the
+ * shared reference cannot be mutated by either consumer. `events: ["*"]` is the catch-all (gtag maps
+ * every event type, like the MP connector); `egressPurposes` is the sole `analytics_storage` purpose.
+ * Kept as its OWN pair (not a reuse of the MP connector's) so a future MP/gtag vocabulary divergence
+ * needs no change here. Retiring the adapter's prior hand-maintained mirror consts.
+ */
+export const GA4_GTAG_EVENTS = Object.freeze(["*"]);
+export const GA4_GTAG_EGRESS_PURPOSES = Object.freeze(["analytics_storage"]);
+
 /** gtag.js's own protocol version query param — constant across every beacon
  *  (R-009(a)'s capture-confirmed field map). */
 const PROTOCOL_VERSION = "2";
@@ -194,7 +205,7 @@ export function createGa4GtagConnector(config = {}) {
     // Catch-all, mirroring connectors/ga4/connector.js's own `events`
     // annotation: gtag maps every event type to /g/collect and accepts
     // arbitrary custom event names by design — enumeration is impossible.
-    events: ["*"],
+    events: GA4_GTAG_EVENTS,
     // reads = PROJECTION snapshot fields (ADR-0003 default-deny). handle()
     // reads the event PAYLOAD (event.params/event.payload) + host-sourced
     // ctx, never event.snapshot -> EMPTY, same as the MP connector's manifest.
@@ -221,7 +232,7 @@ export function createGa4GtagConnector(config = {}) {
     // `analytics_storage` is the sole governing purpose — `gcs`/`gcd` are
     // carried STATE, not a second egress purpose.
     purposes: {
-      egress: ["analytics_storage"],
+      egress: GA4_GTAG_EGRESS_PURPOSES,
       endpoints: { [endpoint]: ["analytics_storage"] },
       cookies: {
         _ga: ["analytics_storage"],

@@ -81,6 +81,16 @@ export function deriveActivityCeilingEndpoint({ src, activityEndpoint = FLOODLIG
 const PAGE_LOAD_EVENT = "page_view";
 
 /**
+ * The connector's declared vocabulary — the SINGLE SOURCE OF TRUTH the manifest below AND the
+ * `adapters/eds/index.js` boot/composite-fan-out consume (imported, not hand-mirrored). Frozen so the
+ * shared reference cannot be mutated by either consumer. `events` gates the composite fan-out;
+ * `egressPurposes` is the `ad_storage` purpose the seal holds the beacon under (046-03). Retiring the
+ * adapter's prior hand-maintained mirror consts (refinement-todo § manifest-const mirror-drift).
+ */
+export const FLOODLIGHT_EVENTS = Object.freeze([PAGE_LOAD_EVENT]);
+export const FLOODLIGHT_EGRESS_PURPOSES = Object.freeze(["ad_storage"]);
+
+/**
  * Map one page-load event to the DC `ccm/collect` GET beacon — byte-for-byte the SAME builder as
  * `connectors/google-ads/connector.js`'s private `mapToAwCollect`, minus the AW-only inbound click-id
  * fields (`gclid`/`wbraid`/`gbraid`) DC's `ccm/collect` vocabulary does not carry.
@@ -203,7 +213,7 @@ export function createFloodlightConnector(config = {}) {
     name: "airlock/floodlight",
     // The page-load beacon fires on page_view (contrast GA4-gtag's `["*"]` catch-all): a captured
     // event of any other type maps to [] — the true conversion activity ping is MVP9 (§A5).
-    events: [PAGE_LOAD_EVENT],
+    events: FLOODLIGHT_EVENTS,
     // `reads` = PROJECTION snapshot fields (ADR-0003 default-deny). handle() reads the event PAYLOAD
     // + host-sourced ctx, never event.snapshot -> EMPTY (same as the AW/GA4/pixel connectors).
     reads: [],
@@ -223,7 +233,7 @@ export function createFloodlightConnector(config = {}) {
     // (046-03). `gcs`/`gcd`/`npa` COMMUNICATE the consent decision (carried state), they are not a
     // second egress purpose. The `_gcl_au` read is `ad_storage`-purposed too (AC3's gate).
     purposes: {
-      egress: ["ad_storage"],
+      egress: FLOODLIGHT_EGRESS_PURPOSES,
       endpoints: hasActivityIdentity
         ? { [endpoint]: ["ad_storage"], [activityCeilingEndpoint]: ["ad_storage"] }
         : { [endpoint]: ["ad_storage"] },

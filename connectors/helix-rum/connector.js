@@ -16,6 +16,16 @@ export const DEFAULT_COLLECT_BASE_URL = "https://ot.aem.live";
 export const DEFAULT_WEIGHT = RATE_WEIGHTS.medium;
 
 /**
+ * helix-rum's declared `manifest.events` — the SINGLE SOURCE OF TRUTH the manifest below AND the
+ * `adapters/eds/index.js` composite fan-out gate consume (imported, not hand-mirrored). Frozen so the
+ * shared reference cannot be mutated by either consumer. NOT a site-event catch-all (contrast GA4's
+ * `["*"]`): its RUM checkpoints only, so an arbitrary `composite.push()` event never becomes a spurious
+ * `ot.aem.live` checkpoint. If 022-05 widens the checkpoints, widen HERE (the one home). Retiring the
+ * adapter's prior hand-maintained `HELIX_RUM_MANIFEST_EVENTS` mirror.
+ */
+export const HELIX_RUM_EVENTS = Object.freeze(["top", "error", "cwv"]);
+
+/**
  * helix-rum connector — spec 022-01, mechanism B: reproduce the AEM RUM `top`
  * (page-view) beacon NATIVELY, fed by airlock's own main-thread capture — NOT
  * a hosted/wrapped `helix-rum-enhancer` (that A/B fork is grounded + recorded
@@ -118,7 +128,7 @@ export function createHelixRumConnector(config = {}) {
     // main-thread capture — 022-01's grounding showed the enhancer itself
     // can't host in a chamber). The remaining interaction/lifecycle
     // enhancer checkpoints stay out of scope (022-05).
-    events: ["top", "error", "cwv"],
+    events: HELIX_RUM_EVENTS,
     reads: [], // RUM reads no projection snapshot field — only host-sourced ctx.referer
     capabilities: {
       // NO cookie capability requested — `id` is ephemeral/per-page (never

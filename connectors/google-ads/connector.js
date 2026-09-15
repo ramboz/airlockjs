@@ -54,6 +54,16 @@ export const GOOGLE_ADS_CCM_COLLECT_ENDPOINT = "https://www.google.com/ccm/colle
 const PAGE_LOAD_EVENT = "page_view";
 
 /**
+ * The connector's declared vocabulary — the SINGLE SOURCE OF TRUTH the manifest below AND the
+ * `adapters/eds/index.js` boot/composite-fan-out consume (imported, not hand-mirrored). Frozen so the
+ * shared reference cannot be mutated by either consumer. `events` gates the composite fan-out;
+ * `egressPurposes` is the `ad_storage` purpose the seal holds the beacon under (044-02). Retiring the
+ * adapter's prior hand-maintained mirror consts (refinement-todo § manifest-const mirror-drift).
+ */
+export const GOOGLE_ADS_EVENTS = Object.freeze([PAGE_LOAD_EVENT]);
+export const GOOGLE_ADS_EGRESS_PURPOSES = Object.freeze(["ad_storage"]);
+
+/**
  * Map one page-load event to the AW `ccm/collect` GET beacon.
  * @param {{ type: string, params?: Record<string, unknown>, payload?: Record<string, unknown> }} event
  * @param {{ conversionId: string, ctx: { auid?: string, gclid?: string, wbraid?: string, gbraid?: string, consent?: Record<string,string>, consentDefault?: Record<string,string> }, endpoint: string }} config
@@ -107,7 +117,7 @@ export function createGoogleAdsConnector(config = {}) {
     name: "airlock/google-ads",
     // The page-load remarketing beacon fires on page_view (contrast GA4-gtag's `["*"]` catch-all):
     // a captured event of any other type maps to [] — the conversion ping is MVP9 (§A3).
-    events: [PAGE_LOAD_EVENT],
+    events: GOOGLE_ADS_EVENTS,
     // `reads` = PROJECTION snapshot fields (ADR-0003 default-deny). handle() reads the event PAYLOAD
     // + host-sourced ctx, never event.snapshot -> EMPTY (same as the GA4/pixel connectors).
     reads: [],
@@ -124,7 +134,7 @@ export function createGoogleAdsConnector(config = {}) {
     // (slice 044-02). `gcs`/`gcd`/`npa` COMMUNICATE the consent decision (carried state), they are
     // not a second egress purpose. The `_gcl_au` read is `ad_storage`-purposed too (AC3's gate).
     purposes: {
-      egress: ["ad_storage"],
+      egress: GOOGLE_ADS_EGRESS_PURPOSES,
       endpoints: { [endpoint]: ["ad_storage"] },
       cookies: { _gcl_au: ["ad_storage"] },
     },

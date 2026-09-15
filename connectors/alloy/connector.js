@@ -37,6 +37,17 @@ export const ALLOY_INTERACT_ENDPOINT = "https://adobedc.demdex.net/ee/v1/interac
 export const ALLOY_COOKIE_NAMES = ["com.adobe.alloy.getTld", "kndctr_", "AMCV_", "demdex", "s_ecid"];
 
 /**
+ * alloy's declared vocabulary — the SINGLE SOURCE OF TRUTH the manifest below AND the
+ * `adapters/eds/index.js` boot/composite-fan-out consume (imported, not hand-mirrored), mirroring
+ * `ALLOY_COOKIE_NAMES`'s own "SAME array reference so the two can never drift" discipline (035-01 AC3).
+ * Frozen so the shared reference cannot be mutated by either consumer. `events` is the one Analytics
+ * pageView the composite fans to alloy; `egressPurposes` is the analytics_storage+personalization pair
+ * the seal gates on. Retiring the adapter's prior hand-maintained mirror consts.
+ */
+export const ALLOY_EVENTS = Object.freeze(["page_view"]);
+export const ALLOY_EGRESS_PURPOSES = Object.freeze(["analytics_storage", "personalization"]);
+
+/**
  * Alloy wrapped-SDK connector — spec 012-01.
  *
  * The wrapped-SDK archetype (contracts/connector.d.ts): a ConnectorFactory
@@ -129,7 +140,7 @@ export function createAlloyConnector(config = {}) {
   const manifest = {
     name: "airlock/alloy",
     // MVP2 proof scope: one Analytics pageView (R-004 / the slice's AC).
-    events: ["page_view"],
+    events: ALLOY_EVENTS,
     // The projection fields the pageView XDM maps (ADR-0003 default-deny).
     reads: ["page_view.params.page_location", "page_view.params.page_title"],
     capabilities: {
@@ -160,7 +171,7 @@ export function createAlloyConnector(config = {}) {
     // ECID identity) + ADR-0007's Consent-Mode-v2 starter taxonomy — not a legal audit.
     purposes: {
       // Analytics events + the Target personalization query ride the same interact.
-      egress: ["analytics_storage", "personalization"],
+      egress: ALLOY_EGRESS_PURPOSES,
       endpoints: {
         [ALLOY_INTERACT_ENDPOINT]: ["analytics_storage", "personalization"],
       },

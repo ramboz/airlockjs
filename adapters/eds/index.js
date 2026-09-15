@@ -36,7 +36,10 @@ import { createWrappedSdkHost } from "../../core/wrapped-sdk-host.js";
 import { hostOf } from "../../core/config-integrity.js";
 import { resolveConsent } from "../../core/consent.js";
 import { resolveOnetrustBootConsent, subscribeOnetrustConsentChanges } from "../../drivers/consent/onetrust.js";
-import { ALLOY_INTERACT_ENDPOINT, ALLOY_COOKIE_NAMES } from "../../connectors/alloy/connector.js";
+import { ALLOY_INTERACT_ENDPOINT, ALLOY_COOKIE_NAMES, ALLOY_EVENTS, ALLOY_EGRESS_PURPOSES } from "../../connectors/alloy/connector.js";
+// spec 014-03: GA4-MP's declared vocabulary — its SOT manifest home (imported, not mirrored; see the
+// retired mirror-const note below). Only the vocab consts are imported (esbuild tree-shakes the factory).
+import { GA4_EVENTS, GA4_EGRESS_PURPOSES } from "../../connectors/ga4/connector.js";
 import { scopeSeedCookies } from "../../core/cookie-scope.js";
 import { getCookieValue } from "../../core/cookie-parse.js";
 import { htmlOfDecision } from "../../connectors/alloy/decisions.js";
@@ -44,11 +47,13 @@ import { createPropositionExposureReporter, PROPOSITION_EXPOSURE_EVENT } from ".
 import { VIEW_SCOPE, firstDuplicateScope } from "./placements.js";
 import { sourceGa4Ctx, writeGa4SessionState } from "../../connectors/ga4/cookies.js";
 import { shapeMpConsent } from "../../connectors/ga4/consent.js";
-import { GA4_GTAG_COLLECT_ENDPOINT } from "../../connectors/ga4/gtag.js";
+import { GA4_GTAG_COLLECT_ENDPOINT, GA4_GTAG_EVENTS, GA4_GTAG_EGRESS_PURPOSES } from "../../connectors/ga4/gtag.js";
 import { coalesceGa4 } from "../../connectors/ga4/coalesce.js";
 import {
   createGoogleAdsRemap,
   GOOGLE_ADS_CCM_COLLECT_ENDPOINT,
+  GOOGLE_ADS_EVENTS,
+  GOOGLE_ADS_EGRESS_PURPOSES,
 } from "../../connectors/google-ads/connector.js";
 import { sourceGoogleAdsCtx } from "../../connectors/google-ads/cookies.js";
 import {
@@ -56,6 +61,8 @@ import {
   FLOODLIGHT_CCM_COLLECT_ENDPOINT,
   FLOODLIGHT_ACTIVITY_ENDPOINT,
   deriveActivityCeilingEndpoint,
+  FLOODLIGHT_EVENTS,
+  FLOODLIGHT_EGRESS_PURPOSES,
 } from "../../connectors/floodlight/connector.js";
 import { createMetaPixelConfig, META_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/meta.js";
 import { createLinkedInInsightConfig, LINKEDIN_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/linkedin.js";
@@ -65,7 +72,7 @@ import { createExposureReporter } from "./exposure.js";
 import { createBlockInstrumenter } from "./blocks.js";
 import { startCwvCapture } from "../../connectors/helix-rum/cwv-capture.js";
 import { rumUrl, resolveWeight } from "../../connectors/helix-rum/map.js";
-import { DEFAULT_COLLECT_BASE_URL } from "../../connectors/helix-rum/connector.js";
+import { DEFAULT_COLLECT_BASE_URL, HELIX_RUM_EVENTS } from "../../connectors/helix-rum/connector.js";
 // 030-02: the REAL web-vitals/attribution subscribers — the production wiring the DONE
 // 022-04 slice deferred (cwv-capture.js is DI'd). Import is side-effect-free (web-vitals
 // registers observers only when onLCP/onCLS/onINP are CALLED), so it is safe at module
@@ -76,19 +83,15 @@ import { onLCP, onCLS, onINP } from "web-vitals/attribution";
  *  is deferred; no real GA4 credentials ship in this slice. */
 const DEFAULT_ENDPOINTS = ["https://www.google-analytics.com/mp/collect"];
 
-/**
- * GA4's declared egress `purposes.egress` (spec 017-03 AC5 — the purpose→beacon
- * binding is the connector's MANIFEST, not a hardcoded literal at the seal;
- * `connectors/ga4/connector.js`'s manifest carries the same value). GA4 is
- * analytics-only, so its egress is governed by the single Consent Mode
- * `analytics_storage` purpose (ADR-0007).
- */
-const GA4_EGRESS_PURPOSES = ["analytics_storage"];
+// GA4's egress `purposes.egress` (`GA4_EGRESS_PURPOSES`) is now IMPORTED from its connector-module
+// manifest home (`connectors/ga4/connector.js`, the SAME frozen reference the manifest declares) —
+// retiring the prior hand-maintained mirror (refinement-todo § manifest-const mirror-drift). GA4 is
+// analytics-only, governed by the single Consent Mode `analytics_storage` purpose (ADR-0007).
 
 /**
  * spec 026-01 AC6 — re-exported here (its home is
  * `connectors/pixel/vendors/meta.js`) so a caller wiring the SAME
- * `egressPurposes` -> `createAirlock` pattern GA4's constant above documents
+ * `egressPurposes` -> `createAirlock` pattern GA4's imported constant documents
  * can import both from this one adapter module. `bootMetaPixel` below wires
  * it into its own `createAirlock` call the same way `bootEdsAnalytics` wires
  * `GA4_EGRESS_PURPOSES`.
@@ -786,7 +789,7 @@ export async function bootGa4Gtag(opts = {}) {
     endpoints: [endpoint],
     ctx: ctxWithConsent,
     consent,
-    egressPurposes: consent ? GA4_EGRESS_PURPOSES : [],
+    egressPurposes: consent ? GA4_GTAG_EGRESS_PURPOSES : [],
     consentStrict,
     payloadDenylist,
     // 041-03: wire the 040-03/040-05 GA4 batching strategy onto the 040-02 core
@@ -813,15 +816,9 @@ export async function bootGa4Gtag(opts = {}) {
   };
 }
 
-/**
- * Google Ads' (AW) declared egress `purposes.egress` (spec 044-01 —
- * `connectors/google-ads/connector.js`'s manifest: `["ad_storage"]`). Mirrors
- * `GA4_EGRESS_PURPOSES`'s pattern: the purpose->beacon binding is the connector's
- * MANIFEST, not a hardcoded literal at the seal. Kept in sync with that manifest (its
- * home) — a residual noted in docs/refinement-todo.md, same as every other
- * `*_EGRESS_PURPOSES`/`*_MANIFEST_EVENTS` const in this file.
- */
-const GOOGLE_ADS_EGRESS_PURPOSES = ["ad_storage"];
+// Google Ads' egress `purposes.egress` (`GOOGLE_ADS_EGRESS_PURPOSES`, `["ad_storage"]`) is now
+// IMPORTED from its connector-module manifest home (`connectors/google-ads/connector.js`, the SAME
+// frozen reference the manifest declares) — retiring the prior hand-maintained mirror.
 
 /**
  * Boot the Google Ads (AW) page-load connector for an EDS page (spec 048-01) — the
@@ -931,12 +928,9 @@ export async function bootGoogleAds(opts = {}) {
   };
 }
 
-/**
- * Floodlight's (DC) declared egress `purposes.egress` (spec 046-01 —
- * `connectors/floodlight/connector.js`'s manifest: `["ad_storage"]`). Mirrors
- * `GOOGLE_ADS_EGRESS_PURPOSES`'s pattern.
- */
-const FLOODLIGHT_EGRESS_PURPOSES = ["ad_storage"];
+// Floodlight's egress `purposes.egress` (`FLOODLIGHT_EGRESS_PURPOSES`, `["ad_storage"]`) is now
+// IMPORTED from its connector-module manifest home (`connectors/floodlight/connector.js`, the SAME
+// frozen reference the manifest declares) — retiring the prior hand-maintained mirror.
 
 /**
  * Boot the Floodlight (DC) page-load connector for an EDS page (spec 048-02) — reuses the
@@ -1392,24 +1386,14 @@ export function bootHelixRum(opts = {}) {
   };
 }
 
-/**
- * alloy's declared `manifest.events` — its ONE Analytics pageView
- * (`connectors/alloy/connector.js`: `events: ["page_view"]`). NOT a catch-all: the
- * composite gate uses this so only `page_view` fans to alloy — no arbitrary site
- * event becomes a spurious Edge interact. Keep in sync with that manifest (its home).
- */
-const ALLOY_MANIFEST_EVENTS = ["page_view"];
-
-/**
- * alloy's declared egress `purposes.egress` (`connectors/alloy/connector.js`:
- * `["analytics_storage", "personalization"]` — analytics events + the Target
- * personalization query ride the same interact). Threaded into the wrapped-SDK
- * host's TRUSTED strict seam gate (spec 020-02: `egressVerdict(consent, …, {strict:
- * true})` — alloy carries NO body-consent field, so a denied OR pending governing
- * purpose is DROPPED, never sent). Kept local mirroring `GA4_EGRESS_PURPOSES`'s
- * pattern (the manifest is the home; this is the seal's view of it).
- */
-const ALLOY_EGRESS_PURPOSES = ["analytics_storage", "personalization"];
+// alloy's `manifest.events` (`ALLOY_EVENTS`, the one Analytics pageView) and egress `purposes.egress`
+// (`ALLOY_EGRESS_PURPOSES`, `["analytics_storage", "personalization"]`) are now IMPORTED from its
+// connector-module manifest home (`connectors/alloy/connector.js`, the SAME frozen references the
+// manifest declares — mirroring that module's own `ALLOY_COOKIE_NAMES` SOT discipline, 035-01 AC3),
+// retiring the prior hand-maintained mirrors. `ALLOY_EGRESS_PURPOSES` is threaded into the wrapped-SDK
+// host's TRUSTED strict seam gate (spec 020-02: a denied OR pending governing purpose is DROPPED — alloy
+// carries no body-consent field); `ALLOY_EVENTS` gates the composite fan-out so only `page_view` reaches
+// the Edge interact.
 
 /**
  * Console-backed diagnostic sink for bootAlloy's DECISIONS path (spec 033-03) —
@@ -1840,50 +1824,12 @@ function createComposite(connectors) {
   };
 }
 
-/**
- * GA4's declared `manifest.events` — the analytics CATCH-ALL sentinel
- * (`connectors/ga4/connector.js`: `events: ["*"]`; GA4 maps every event type). Kept
- * here as the composite fan-out gate's view of GA4's vocabulary.
- */
-const GA4_MANIFEST_EVENTS = ["*"];
-
-/**
- * The gtag-protocol GA4 connector's (`bootGa4Gtag`) declared vocabulary (spec
- * 041-04) — mirrors `GA4_MANIFEST_EVENTS`: the gtag connector maps every event type
- * the same way the MP GA4 connector does (`connectors/ga4/gtag.js`'s
- * `createGa4GtagConnector`), so the composite fan-out gate admits everything, exactly
- * like GA4-MP. Kept as its OWN const (not a reuse of `GA4_MANIFEST_EVENTS`) so a
- * future divergence between the MP and gtag protocols' vocabularies doesn't require
- * touching GA4's own const.
- */
-const GA4_GTAG_MANIFEST_EVENTS = ["*"];
-
-/**
- * helix-rum's declared `manifest.events` — its RUM checkpoints only
- * (`connectors/helix-rum/connector.js`: `["top", "error", "cwv"]`). NOT a site-event
- * catch-all: the composite gate uses this so an arbitrary `composite.push()` event
- * name never becomes a spurious `ot.aem.live` checkpoint. Keep in sync with that
- * manifest (its home) — if 022-05 widens the checkpoints, widen here too.
- */
-const HELIX_RUM_MANIFEST_EVENTS = ["top", "error", "cwv"];
-
-/**
- * Google Ads' (AW) declared `manifest.events` (spec 048-01) — mirrors
- * `GA4_GTAG_MANIFEST_EVENTS`'s pattern: `connectors/google-ads/connector.js`'s manifest
- * declares `events: ["page_view"]` (the page-load remarketing beacon only, NOT a
- * catch-all — the true conversion ping is MVP9, spec 044 §A3), so the composite gate
- * admits only `page_view`. Kept in sync with that manifest (its home).
- */
-const GOOGLE_ADS_MANIFEST_EVENTS = ["page_view"];
-
-/**
- * Floodlight's (DC) declared `manifest.events` (spec 048-02) — mirrors
- * `GOOGLE_ADS_MANIFEST_EVENTS`'s pattern: `connectors/floodlight/connector.js`'s manifest declares
- * `events: ["page_view"]` (the page-load beacon only, for BOTH DC forms — the true conversion
- * activity ping is MVP9, spec 046 §A5), so the composite gate admits only `page_view`. Kept in sync
- * with that manifest (its home).
- */
-const FLOODLIGHT_MANIFEST_EVENTS = ["page_view"];
+// The composite fan-out gate's per-connector `events` vocabularies are now IMPORTED from each
+// connector module's own manifest home (`*_EVENTS`, the SAME frozen reference the manifest declares) —
+// GA4 `GA4_EVENTS`, ga4-gtag `GA4_GTAG_EVENTS`, helix-rum `HELIX_RUM_EVENTS`, google-ads `GOOGLE_ADS_EVENTS`,
+// floodlight `FLOODLIGHT_EVENTS`, alloy `ALLOY_EVENTS` — retiring the prior hand-maintained mirror consts
+// (refinement-todo § manifest-const mirror-drift). The pixel path already derives its vocabulary from
+// the SAME vendor config factory its worker manifest uses (no mirror), so it needs no import here.
 
 /**
  * The connector `type`s `boot(config)` can dispatch (spec 032-02 AC2/AC3, 033-02 AC3,
@@ -2165,18 +2111,18 @@ async function bootConnector(entry, governance, index, reservedPlacements, compo
   const { type, onetrust: _ignoredPerConnectorOnetrust, ...rest } = entry || {};
   switch (type) {
     case "ga4":
-      return { handle: await bootGa4Core({ ...rest, ...governance, onDiagnostic }), events: GA4_MANIFEST_EVENTS };
+      return { handle: await bootGa4Core({ ...rest, ...governance, onDiagnostic }), events: GA4_EVENTS };
     case "ga4-gtag":
       // 041-04 AC2: consent-governed exactly like "ga4"/"pixel" — the top-level
       // governance (consent/consentStrict/payloadDenylist) is threaded straight into
       // bootGa4Gtag's own gate, with NO helix-rum-style exemption.
-      return { handle: await bootGa4Gtag({ ...rest, ...governance, onDiagnostic }), events: GA4_GTAG_MANIFEST_EVENTS };
+      return { handle: await bootGa4Gtag({ ...rest, ...governance, onDiagnostic }), events: GA4_GTAG_EVENTS };
     case "google-ads":
       // 048-01 AC3: consent-governed exactly like "ga4"/"ga4-gtag" — top-level
       // governance (consent/consentStrict/payloadDenylist) threaded straight into
       // bootGoogleAds's own gate, NO helix-rum-style exemption (the AW beacon is
       // ad-consent-governed by design, R-009 §(b)).
-      return { handle: await bootGoogleAds({ ...rest, ...governance, onDiagnostic }), events: GOOGLE_ADS_MANIFEST_EVENTS };
+      return { handle: await bootGoogleAds({ ...rest, ...governance, onDiagnostic }), events: GOOGLE_ADS_EVENTS };
     case "floodlight":
       // 048-02 AC3: consent-governed exactly like "ga4"/"ga4-gtag"/"google-ads" — top-level
       // governance (consent/consentStrict/payloadDenylist) threaded straight into bootFloodlight's
@@ -2185,7 +2131,7 @@ async function bootConnector(entry, governance, index, reservedPlacements, compo
       // `activityType` (not `type` — see bootFloodlight's own doc comment on the rename) since
       // `type` was stripped above as the CONNECTOR-KIND discriminant, so no further translation
       // is needed here.
-      return { handle: await bootFloodlight({ ...rest, ...governance, onDiagnostic }), events: FLOODLIGHT_MANIFEST_EVENTS };
+      return { handle: await bootFloodlight({ ...rest, ...governance, onDiagnostic }), events: FLOODLIGHT_EVENTS };
     case "pixel": {
       const { vendor, ...ids } = rest;
       const handle = bootPixelConnector(vendor, { ...ids, ...governance, onDiagnostic });
@@ -2202,7 +2148,7 @@ async function bootConnector(entry, governance, index, reservedPlacements, compo
       // spec 028: `onDiagnostic` IS threaded even here — a diagnostic sink is orthogonal
       // to the governance carve-out (RUM still emits endpoint-ceiling/dropped records the
       // inspector should see); it defaults to the console fallback when absent.
-      return { handle: bootHelixRum({ ...rest, onDiagnostic }), events: HELIX_RUM_MANIFEST_EVENTS };
+      return { handle: bootHelixRum({ ...rest, onDiagnostic }), events: HELIX_RUM_EVENTS };
     case "alloy":
       // 033-02: the analytics vertical. alloy is consent-governed (NOT exempt like
       // helix-rum), so it receives the top-level governance (consent/consentStrict/
@@ -2212,7 +2158,7 @@ async function bootConnector(entry, governance, index, reservedPlacements, compo
       // 033-03: the personalization vertical — the eagerly-reserved box handles
       // (reservedPlacements, from loadEager's reservePersonalization) are handed off HERE
       // so bootAlloy's caps.decisions.deliver fills them (never lazily re-reserving).
-      return { handle: await bootAlloy({ ...rest, ...governance, reservedPlacements, compositeEmit, onDiagnostic }), events: ALLOY_MANIFEST_EVENTS };
+      return { handle: await bootAlloy({ ...rest, ...governance, reservedPlacements, compositeEmit, onDiagnostic }), events: ALLOY_EVENTS };
     default:
       // 032-02 owns full JSON-Schema validation with actionable errors; here we fail
       // LOUD rather than silently dropping an unknown connector.

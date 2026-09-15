@@ -1,6 +1,16 @@
 import { mapToMp } from "./map.js";
 
 /**
+ * GA4's declared vocabulary — the SINGLE SOURCE OF TRUTH the manifest below AND the
+ * `adapters/eds/index.js` boot/composite-fan-out consume (imported, not hand-mirrored). Frozen so the
+ * shared reference cannot be mutated by either consumer. `events: ["*"]` is the analytics CATCH-ALL
+ * (GA4 maps every event type); `egressPurposes` is the `analytics_storage` purpose the seal gates on.
+ * Retiring the adapter's prior hand-maintained mirror consts (refinement-todo § manifest-const mirror-drift).
+ */
+export const GA4_EVENTS = Object.freeze(["*"]);
+export const GA4_EGRESS_PURPOSES = Object.freeze(["analytics_storage"]);
+
+/**
  * GA4 wire-protocol connector — spec 014-03 (converge connector-hosting).
  *
  * Expresses GA4 (MVP1) as a `ConnectorFactory` (contracts/connector.d.ts:
@@ -83,7 +93,7 @@ export function createGa4Connector(config = {}) {
     // arbitrary custom event names by design (contracts/ga4-mp.md), so enumeration
     // is impossible — `["*"]` declares "all event types route here" (declared, NOT
     // enforced). Contrast alloy's fixed single-event MVP2 proof scope.
-    events: ["*"],
+    events: GA4_EVENTS,
     // `reads` = PROJECTION snapshot fields (ADR-0003 default-deny). GA4's handle
     // maps the event PAYLOAD (event.params) + host-sourced ctx — it reads NO
     // projection snapshot fields (never touches event.snapshot) — so `reads` is
@@ -110,7 +120,7 @@ export function createGa4Connector(config = {}) {
     // purpose-tag); the event payload it forwards crosses ungoverned (ADR-0006),
     // outside the per-field purpose model.
     purposes: {
-      egress: ["analytics_storage"],
+      egress: GA4_EGRESS_PURPOSES,
       endpoints: Object.fromEntries(
         [...new Set(endpoints)].map((e) => [e, ["analytics_storage"]]),
       ),
