@@ -12,14 +12,16 @@
 //   core/helix-rum-chamber.worker.js → <outdir>/helix-rum-chamber.worker.js (030 RUM authority)
 //   core/ga4-gtag-chamber.worker.js  → <outdir>/ga4-gtag-chamber.worker.js  (041 GA4 gtag-protocol connector)
 //   core/google-ads-chamber.worker.js → <outdir>/google-ads-chamber.worker.js (048 Google Ads AW ccm/collect connector)
+//   core/floodlight-chamber.worker.js → <outdir>/floodlight-chamber.worker.js (048 Floodlight DC ccm/collect + activity connector)
 //
 // The adapter entry imports the runtime SOURCE (`core/airlock.js`) directly, so the emitted eds.js
 // is fully self-contained. `createAirlock` selects a chamber worker by `connector` — the default
 // GA4-MP `./chamber.worker.js`, `./pixel-chamber.worker.js` for `connector:"pixel"`,
 // `./dom-chamber.worker.js` for `connector:"dom"`, `./helix-rum-chamber.worker.js` for
-// `connector:"helix-rum"`, `./ga4-gtag-chamber.worker.js` for `connector:"ga4-gtag"`, or
-// `./google-ads-chamber.worker.js` for `connector:"google-ads"` (the selection seam,
-// `airlock.js`'s connector-selection block) — so the emitted eds.js references ALL SIX by their
+// `connector:"helix-rum"`, `./ga4-gtag-chamber.worker.js` for `connector:"ga4-gtag"`,
+// `./google-ads-chamber.worker.js` for `connector:"google-ads"`, or
+// `./floodlight-chamber.worker.js` for `connector:"floodlight"` (the selection seam,
+// `airlock.js`'s connector-selection block) — so the emitted eds.js references ALL SEVEN by their
 // sibling specifier, and each MUST be emitted as a sibling in the served tree or a real page 404s it.
 //
 // 031-01: the build target is a PARAMETER (`outdir`), no longer hardwired to the testbed. The
@@ -69,6 +71,7 @@ export const WORKER_ENTRIES = [
   "core/helix-rum-chamber.worker.js", // 030-02: airlock-as-RUM-authority (connector:"helix-rum")
   "core/ga4-gtag-chamber.worker.js", // 041-01: the gtag-protocol chamber (connector:"ga4-gtag")
   "core/google-ads-chamber.worker.js", // 048-01: the Google Ads (AW) ccm/collect chamber (connector:"google-ads")
+  "core/floodlight-chamber.worker.js", // 048-02: the Floodlight (DC) ccm/collect + activity chamber (connector:"floodlight")
 ];
 
 // 033-02: airlock's CLASSIC alloy chamber worker. It is an `importScripts` worker

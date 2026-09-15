@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Floodlight (DC) chamber rig (spec 048-02 AC5)</title>
+  </head>
+  <body>
+    <h1>Floodlight chamber — AC5</h1>
+    <div id="status">booting…</div>
+    <script>
+      // rig/floodlight-chamber.mjs drives this harness. It loads the REAL, BUILT sibling
+      // `floodlight-chamber.worker.js` (npm run build's own emitted output, never a hand-rolled
+      // stand-in) as a genuine `{type:"module"}` browser Worker — the SAME construction
+      // core/airlock.js's connector-selection seam performs — then plays the orchestrator's own
+      // main-thread dispatch (mirrors core/airlock.js's worker.onmessage -> fetch(req.url,
+      // fetchInit(...)) exactly, GET-only/keepalive, no body) so BOTH beacons' actual EGRESS (real
+      // fetch calls) are what get asserted, not merely the worker's `ready` message.
+      //
+      // WIRE SHAPE (048-02 deviation, see core/floodlight-chamber.worker.js's header): the init
+      // message NESTS the connector config under its own `connectorConfig` key (`{type:"init",
+      // connectorConfig}`) — UNLIKE the google-ads rig's top-level spread — because floodlight's
+      // own config carries a field literally named `type` (the Floodlight-native activity tag),
+      // which would collide with this message's own `type:"init"` discriminant under a spread.
+      const WORKER_URL = new URLSearchParams(location.search).get("workerUrl");
+      const CONVERSION_ID = "DC-1234567890";
+      const DC_SRC = "1234567";
+      const DC_TYPE = "grptag00";
+      const DC_CAT = "acttag00";
+      const ENDPOINT = "https://www.google.com/ccm/collect";
+      const GRANTED_ALL = {
+        ad_storage: "granted",
+        analytics_storage: "granted",
+        ad_user_data: "granted",
+        ad_personalization: "granted",
+      };
+
+      const statusEl = document.getElementById("status");
+      const dispatched = [];
+      const worker = new Worker(WORKER_URL, { type: "module" });
+
+      worker.onmessage = async (e) => {
+        const m = e.data || {};
+        if (!("ready" in m)) return;
+        // The orchestrator's OWN dispatch shape (core/airlock.js: fetch(req.url,
+        // fetchInit(req.method, req.body)) — GET carries no body, keepalive:true).
+        const fetches = (m.ready || []).map((req) => {
+          const init = req.method === "GET" ? { method: "GET", keepalive: true } : { method: "POST", body: req.body, keepalive: true };
+          return fetch(req.url, init).then(
+            () => { dispatched.push({ url: req.url, ok: true }); },
+            () => { dispatched.push({ url: req.url, ok: false }); },
+          );
+        });
+        // Finalize the result ONLY after every dispatch fetch has settled (mirrors the 048-01
+        // google-ads rig's fix round — the result must not race the fetch(...).then(...) callbacks).
+        await Promise.all(fetches);
+        statusEl.textContent = "DONE";
+        window.__FLOODLIGHT_CHAMBER_RESULT__ = { ready: m.ready, dropped: m.dropped, dispatched };
+      };
+      worker.onerror = (e) => {
+        statusEl.textContent = "WORKER ONERROR";
+        window.__FLOODLIGHT_CHAMBER_RESULT__ = { workerError: e.message, filename: e.filename, lineno: e.lineno };
+      };
+
+      worker.postMessage({
+        type: "init",
+        connectorConfig: { conversionId: CONVERSION_ID, src: DC_SRC, type: DC_TYPE, cat: DC_CAT, ctx: { consent: GRANTED_ALL }, endpoint: ENDPOINT },
+      });
+      worker.postMessage({
+        type: "events",
+        batch: [{ type: "page_view", params: { page_location: "https://spike.example/pricing" } }],
+      });
+    </script>
+  </body>
+</html>

@@ -32,14 +32,15 @@
     "connector": {
       "type": "object",
       "required": ["type"],
-      "description": "A single connector entry — a discriminated union on `type` (ga4 / ga4-gtag / pixel / helix-rum / alloy / google-ads). alloy covers analytics (spec 033-02) AND personalization (spec 033-03, via `placements`).",
+      "description": "A single connector entry — a discriminated union on `type` (ga4 / ga4-gtag / pixel / helix-rum / alloy / google-ads / floodlight). alloy covers analytics (spec 033-02) AND personalization (spec 033-03, via `placements`).",
       "oneOf": [
         { "$ref": "#/$defs/ga4Connector" },
         { "$ref": "#/$defs/ga4GtagConnector" },
         { "$ref": "#/$defs/pixelConnector" },
         { "$ref": "#/$defs/helixRumConnector" },
         { "$ref": "#/$defs/alloyConnector" },
-        { "$ref": "#/$defs/googleAdsConnector" }
+        { "$ref": "#/$defs/googleAdsConnector" },
+        { "$ref": "#/$defs/floodlightConnector" }
       ]
     },
     "ga4Connector": {
@@ -139,6 +140,30 @@
         "ctx": {
           "type": "object",
           "description": "Optional pre-sourced identity snapshot ({auid?, gclid?, wbraid?, gbraid?}); when absent, sourced host-side from the _gcl_au cookie + inbound click ids (connectors/google-ads/cookies.js)."
+        }
+      }
+    },
+    "floodlightConnector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "conversionId"],
+      "description": "Floodlight (DC) page-load beacon(s) (spec 046 / 048-02) — a container's own `ccm/collect` beacon (ALWAYS) reproduced off-thread (`bootFloodlight`), PLUS the `;`-delimited `activity` beacon (when `src` is configured) — hosted in its own worker chamber mirroring `google-ads`'s. Consent-governed (`ad_storage`); the top-level consent/consentStrict/payloadDenylist are threaded in exactly like `ga4`/`google-ads` (no exemption), PLUS `holdOnDenied` (046-03): a denied-`ad_storage` beacon (either form) holds at the seal and is re-mapped + flushed on a later grant. NOTE: the Floodlight-native activity tag is named `activityType` here (NOT `type`) — `type` is reserved as this entry's own connector-kind discriminant (`\"floodlight\"`); `bootFloodlight` translates `activityType` to the connector's internal `type` config field.",
+      "properties": {
+        "type": { "const": "floodlight" },
+        "conversionId": { "type": "string", "minLength": 1, "description": "The DC conversion id (`tid`, e.g. \"DC-1234567890\", REQUIRED)." },
+        "src": { "type": "string", "description": "The Floodlight-native activity identity. Its mere PRESENCE gates whether the `;`-matrix activity beacon/endpoint exist at all (absent -> ccm/collect ONLY, byte-identical to a 046-01-only boot)." },
+        "activityType": { "type": "string", "description": "The Floodlight-native activity `type` tag (renamed from the connector's own `type` field to avoid colliding with this entry's `type` discriminant, 048-02 AC3)." },
+        "cat": { "type": "string", "description": "The Floodlight-native activity `cat` tag." },
+        "consentDefault": {
+          "type": "object",
+          "description": "Host-declared ADR-0007 Consent-Mode default vector (`gtag('consent','default',…)`), gating `gcd` — mirrors google-ads' own `consentDefault`; threaded into BOTH the steady-state beacon(s) AND the held→grant-flush re-map so all paths encode the SAME `gcd`.",
+          "additionalProperties": { "type": "string" }
+        },
+        "endpoint": { "type": "string", "description": "Optional ccm/collect endpoint override (default the pinned FLOODLIGHT_CCM_COLLECT_ENDPOINT)." },
+        "activityEndpoint": { "type": "string", "description": "Optional activity endpoint override (default the pinned FLOODLIGHT_ACTIVITY_ENDPOINT)." },
+        "ctx": {
+          "type": "object",
+          "description": "Optional pre-sourced identity snapshot ({auid?, gclid?, wbraid?, gbraid?}); when absent, sourced host-side from the _gcl_au cookie + inbound click ids (REUSES connectors/google-ads/cookies.js verbatim — DC's auid/auiddc IS the SAME _gcl_au-derived value)."
         }
       }
     },

@@ -26,6 +26,7 @@ import { createCriticalDispatcher, fetchInit } from "./egress.js";
 import { mapToRum } from "../connectors/helix-rum/map.js";
 import { createGa4GtagConnector } from "../connectors/ga4/gtag.js";
 import { createGoogleAdsConnector } from "../connectors/google-ads/connector.js";
+import { createFloodlightConnector } from "../connectors/floodlight/connector.js";
 import { createPixelConnector } from "../connectors/pixel/connector.js";
 import { mergeAdvancedMatching } from "../connectors/pixel/advanced-matching.js";
 import { originPath, checkEndpointCeiling } from "./endpoint-ceiling.js";
@@ -255,6 +256,14 @@ export function createAirlock({
     ...(connector === "google-ads"
       ? { requestMapper: createGoogleAdsConnector(connectorConfig || {}).handle }
       : {}),
+    // 048-02: floodlight is the SAME worker-mapped, GET-egress class as google-ads/ga4-gtag — its
+    // `handle` is a closure over `conversionId`/`src`/`type`/`cat`/`ctx`/`endpoint`/`activityEndpoint`
+    // (no `this`), so passing it directly as `requestMapper` is safe, mirroring the google-ads branch
+    // above verbatim (the unload/pushCritical GET tail for BOTH DC beacon forms — ccm/collect always,
+    // plus the `;`-matrix activity beacon when `src` is configured — `handle` fans out to both).
+    ...(connector === "floodlight"
+      ? { requestMapper: createFloodlightConnector(connectorConfig || {}).handle }
+      : {}),
     // 042-02: generalizes the SAME mechanism to pixel. pixel's `handle` reads
     // NO `ctx` at all (only the declarative `{endpoint, eventMap, paramMap}`
     // config, unlike gtag's `ctx`-reading `handle` above) — the SIMPLER case,
@@ -313,15 +322,16 @@ export function createAirlock({
     critical.dispatch({ ...d, params: governParams(d.params) });
   };
 
-  // 026-01 AC3 / 025-03 AC6 / 041-01 AC3 / 048-01 AC1 — the connector-selection seam,
-  // FIVE branches. Every worker call site below uses a STATIC STRING LITERAL specifier
+  // 026-01 AC3 / 025-03 AC6 / 041-01 AC3 / 048-01 AC1 / 048-02 AC1 — the connector-selection seam,
+  // SIX branches. Every worker call site below uses a STATIC STRING LITERAL specifier
   // (a runtime-computed specifier would still work in a browser, but build.mjs's
   // bundle-layout assertion scans the emitted bundle for every worker reference and
   // requires each to resolve to an emitted same-origin sibling — 026-05's N-worker
   // generalization, order-independent). `./chamber.worker.js` (GA4-MP, default),
   // `./pixel-chamber.worker.js` (pixel, 026-01), `./dom-chamber.worker.js` (dom,
-  // 025-03), `./ga4-gtag-chamber.worker.js` (ga4-gtag, 041-01), and
-  // `./google-ads-chamber.worker.js` (google-ads, 048-01) are ALL wired as build.mjs
+  // 025-03), `./ga4-gtag-chamber.worker.js` (ga4-gtag, 041-01),
+  // `./google-ads-chamber.worker.js` (google-ads, 048-01), and
+  // `./floodlight-chamber.worker.js` (floodlight, 048-02) are ALL wired as build.mjs
   // bundle entries, so a real EDS page resolves each to its sibling file.
   const worker =
     connector === "pixel"
@@ -334,7 +344,9 @@ export function createAirlock({
             ? new Worker(new URL("./ga4-gtag-chamber.worker.js", import.meta.url), { type: "module" })
             : connector === "google-ads"
               ? new Worker(new URL("./google-ads-chamber.worker.js", import.meta.url), { type: "module" })
-              : new Worker(new URL("./chamber.worker.js", import.meta.url), { type: "module" });
+              : connector === "floodlight"
+                ? new Worker(new URL("./floodlight-chamber.worker.js", import.meta.url), { type: "module" })
+                : new Worker(new URL("./chamber.worker.js", import.meta.url), { type: "module" });
   // Init-message generalization (:149 -> here): GA4-MP's shape
   // (`{trackers, workFactor, endpoints, ctx}`) is unrelated to what the
   // pixel chamber's createPixelConnector(config) needs (`{endpoint,
@@ -345,14 +357,24 @@ export function createAirlock({
   // createGoogleAdsConnector(config) needs (`{conversionId, ctx, endpoint}`)
   // — so a pixel, dom, helix-rum, ga4-gtag, OR google-ads instance posts
   // `connectorConfig` verbatim instead, never the GA4-MP-shaped fields.
+  //
+  // 048-02: floodlight is DELIBERATELY EXCLUDED from that shared top-level SPREAD — its own
+  // connectorConfig can carry a field literally named `type` (the Floodlight-native activity tag),
+  // which would COLLIDE with this message's `type: "init"` discriminant under a spread
+  // (object-literal last-key-wins would silently clobber one of the two, permanently no-op'ing the
+  // chamber). So floodlight gets its OWN bespoke branch that NESTS the config under a
+  // `connectorConfig` key instead — see core/floodlight-chamber.worker.js's header for the full
+  // argument. This is the one wire-shape floodlight does NOT mirror from google-ads/gtag verbatim.
   worker.postMessage(
-    connector === "pixel" ||
-      connector === "dom" ||
-      connector === "helix-rum" ||
-      connector === "ga4-gtag" ||
-      connector === "google-ads"
-      ? { type: "init", ...(connectorConfig || {}) }
-      : { type: "init", trackers, workFactor, endpoints, ctx },
+    connector === "floodlight"
+      ? { type: "init", connectorConfig: connectorConfig || {} }
+      : connector === "pixel" ||
+        connector === "dom" ||
+        connector === "helix-rum" ||
+        connector === "ga4-gtag" ||
+        connector === "google-ads"
+        ? { type: "init", ...(connectorConfig || {}) }
+        : { type: "init", trackers, workFactor, endpoints, ctx },
   );
 
   // Orchestrator dispatch: the worker returns mapped requests; send them on the

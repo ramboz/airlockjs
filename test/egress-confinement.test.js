@@ -180,6 +180,29 @@ describe("import ORDER guarantee — google-ads chamber (spec 048-01, security p
   });
 });
 
+describe("import ORDER guarantee — floodlight chamber (spec 048-02, security parity with GA4/pixel/gtag/google-ads)", () => {
+  const FLOODLIGHT_CHAMBER = join(dirname(fileURLToPath(import.meta.url)), "..", "core", "floodlight-chamber.worker.js");
+
+  it("core/floodlight-chamber.worker.js's FIRST import statement names ./confine-floodlight-chamber.js", () => {
+    const src = readFileSync(FLOODLIGHT_CHAMBER, "utf8");
+    const firstImportLine = src.match(/^import\s.+$/m);
+    expect(firstImportLine).not.toBeNull();
+    // Same post-order argument as GA4/pixel/gtag/google-ads' chambers: this being the FIRST
+    // import pins confinement's top-level to run before the connector-module imports below
+    // evaluate — floodlight is GET/postMessage-egress like google-ads (never a mediated fetch
+    // in-worker, for EITHER DC beacon form), so the same withholdFetch posture applies verbatim.
+    expect(firstImportLine[0]).toMatch(/["']\.\/confine-floodlight-chamber\.js["']/);
+  });
+
+  it("core/confine-floodlight-chamber.js applies withholdFetch confinement at its own top level", () => {
+    const src = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "..", "core", "confine-floodlight-chamber.js"),
+      "utf8",
+    );
+    expect(src).toMatch(/applyEgressConfinement\(self,\s*\{\s*withholdFetch:\s*true\s*\}\)/);
+  });
+});
+
 describe("import ORDER guarantee — DOM chamber (spec 025-02, security parity with GA4/pixel)", () => {
   const DOM_CHAMBER = join(dirname(fileURLToPath(import.meta.url)), "..", "core", "dom-chamber.worker.js");
 

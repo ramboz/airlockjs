@@ -25,6 +25,7 @@
     "rig:isolation": "node rig/isolation.mjs",
     "rig:coherency": "node rig/coherency.mjs",
     "rig:google-ads-chamber": "node rig/google-ads-chamber.mjs",
+    "rig:floodlight-chamber": "node rig/floodlight-chamber.mjs",
     "rig:alloy": "node rig/alloy-chamber.mjs",
     "rig:alloy-core": "node rig/alloy-core-host.mjs",
     "rig:alloy-coalescing": "node rig/alloy-coalescing.mjs",

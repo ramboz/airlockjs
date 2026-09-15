@@ -54,6 +54,27 @@ export const FLOODLIGHT_CCM_COLLECT_ENDPOINT = "https://www.google.com/ccm/colle
  *  identity `src`/`type`/`cat` that `ccm/collect` does NOT. */
 export const FLOODLIGHT_ACTIVITY_ENDPOINT = "https://ad.doubleclick.net/activity";
 
+/**
+ * Derive the DECLARED ceiling PREFIX for the `;`-delimited activity beacon (spec 046-02 AC4) — origin +
+ * `/activity` + the `;src=<id>` identity segment, built with the SAME `appendMatrixParam` +
+ * `joinMatrixUrl` pair `mapToDcActivity` (below) uses for the emitted URL's own first segment. ONE
+ * shared home for BOTH sides of the join: `createFloodlightConnector`'s own manifest ceiling (below)
+ * AND `bootFloodlight`'s `endpoints` ceiling (spec 048-02 AC2) both call this SAME function — a
+ * duplicated inline join could silently drift the two apart, which would fail-closed-HOLD the activity
+ * beacon forever at `core/endpoint-ceiling.js`'s segment-anchored prefix match (048-02 AC2's named
+ * footgun: a naive single-element `endpoints:[ccm]` never admits the activity beacon at all).
+ * @param {object} [opts]
+ * @param {string} [opts.src] the Floodlight-native activity identity. `undefined`/`null` -> the bare
+ *   `activityEndpoint` (no `;src=` segment) — mirrors `appendMatrixParam`'s own omission rule.
+ * @param {string} [opts.activityEndpoint] defaults to `FLOODLIGHT_ACTIVITY_ENDPOINT`.
+ * @returns {string} the ceiling prefix (e.g. `https://ad.doubleclick.net/activity;src=<id>`).
+ */
+export function deriveActivityCeilingEndpoint({ src, activityEndpoint = FLOODLIGHT_ACTIVITY_ENDPOINT } = {}) {
+  const segments = [];
+  appendMatrixParam(segments, "src", src);
+  return joinMatrixUrl(activityEndpoint, segments);
+}
+
 /** The `page_view` event this connector reproduces the page-load beacon for. A captured event of any
  *  OTHER type maps to `[]` (the zero-or-one gate, mirroring the AW/pixel/RUM connectors) — the true
  *  Floodlight CONVERSION activity (enhanced-match hashes) is MVP9, out of scope (spec 046 §A5). */
@@ -173,15 +194,10 @@ export function createFloodlightConnector(config = {}) {
   // state) — consistent with `appendMatrixParam`'s own omission rule.
   const hasActivityIdentity = src !== undefined && src !== null;
 
-  // The DECLARED ceiling PREFIX for the `;`-delimited activity beacon (AC4): origin + `/activity` +
-  // the `;src=<id>` identity segment, built with the SAME `appendMatrixParam` + `joinMatrixUrl` pair
-  // `mapToDcActivity` uses for the emitted URL's own first segment — ONE shared home (`core/
-  // path-matrix.js`) for both sides of the join, so `core/endpoint-ceiling.js`'s segment-anchored
-  // prefix match admits the beacon despite the per-request `num`/`ord` cachebuster that rides the
-  // rest of the path (a duplicated join could silently drift the two apart).
-  const activitySrcSegment = [];
-  appendMatrixParam(activitySrcSegment, "src", src);
-  const activityCeilingEndpoint = joinMatrixUrl(activityEndpoint, activitySrcSegment);
+  // The DECLARED ceiling PREFIX for the `;`-delimited activity beacon (AC4) — via the shared
+  // `deriveActivityCeilingEndpoint` above (048-02: also called directly by `bootFloodlight`, so the
+  // connector's manifest ceiling and a boot adapter's `endpoints` ceiling can never drift apart).
+  const activityCeilingEndpoint = deriveActivityCeilingEndpoint({ src, activityEndpoint });
 
   const manifest = {
     name: "airlock/floodlight",

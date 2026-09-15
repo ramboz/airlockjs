@@ -33,6 +33,7 @@ import {
   bootBingUet,
   bootHelixRum,
   bootGoogleAds,
+  bootFloodlight,
 } from "../adapters/eds/index.js";
 
 const gaCtx = { clientId: "1.1", sessionId: "2" }; // provided -> skips cookie sourcing
@@ -164,6 +165,50 @@ describe("048-01 AC3 — a {type:'google-ads'} config entry produces the SAME cr
     expect(argsOf(1).consentStrict).toBe(true);
     expect(argsOf(1).payloadDenylist).toEqual(["email"]);
     expect(argsOf(1).holdOnDenied).toBe(true); // 045-01: g-ads' own seal opt-in, unconditional
+  });
+});
+
+describe("048-02 AC3 — a {type:'floodlight'} config entry produces the SAME createAirlock inputs as bootFloodlight, governance threaded like GA4/ga4-gtag/google-ads", () => {
+  // `remap` is a FRESH closure per boot call (createFloodlightRemap(...) constructs a new function
+  // each time) — never reference-equal across two independent boot() calls, so it is compared
+  // structurally (typeof) and excluded from the whole-object `toEqual` (mirrors the google-ads block).
+  const withoutRemap = (args) => { const { remap, ...rest } = args; return rest; };
+
+  it("an absent consent vector yields egressPurposes:[] on BOTH paths (legacy always-dispatch)", async () => {
+    await bootFloodlight({ ctx: {}, conversionId: "DC-1234567890" });
+    await boot({ connectors: [{ type: "floodlight", ctx: {}, conversionId: "DC-1234567890" }] });
+
+    expect(withoutRemap(argsOf(1))).toEqual(withoutRemap(argsOf(0)));
+    expect(argsOf(1).egressPurposes).toEqual([]);
+    expect(typeof argsOf(0).remap).toBe("function");
+    expect(typeof argsOf(1).remap).toBe("function");
+  });
+
+  it("a top-level consent vector threads through identically to bootFloodlight({consent}) — no helix-rum-style exemption", async () => {
+    const consent = { ad_storage: "granted" };
+    await bootFloodlight({ ctx: {}, conversionId: "DC-1234567890", consent, consentStrict: true, payloadDenylist: ["email"] });
+    await boot({
+      connectors: [{ type: "floodlight", ctx: {}, conversionId: "DC-1234567890" }],
+      consent,
+      consentStrict: true,
+      payloadDenylist: ["email"],
+    });
+
+    expect(withoutRemap(argsOf(1))).toEqual(withoutRemap(argsOf(0)));
+    expect(argsOf(1).egressPurposes).toEqual(["ad_storage"]); // gate engaged, same shape as GA4/ga4-gtag/google-ads
+    expect(argsOf(1).consentStrict).toBe(true);
+    expect(argsOf(1).payloadDenylist).toEqual(["email"]);
+    expect(argsOf(1).holdOnDenied).toBe(true); // 046-03: DC's own seal opt-in, unconditional
+  });
+
+  it("the entry's `activityType` field threads through to the SAME connectorConfig.type both paths produce (the type-collision rename, 048-02 AC3)", async () => {
+    await bootFloodlight({ ctx: {}, conversionId: "DC-1234567890", src: "1234567", activityType: "grptag00", cat: "acttag00" });
+    await boot({
+      connectors: [{ type: "floodlight", ctx: {}, conversionId: "DC-1234567890", src: "1234567", activityType: "grptag00", cat: "acttag00" }],
+    });
+
+    expect(argsOf(1).connectorConfig).toEqual(argsOf(0).connectorConfig);
+    expect(argsOf(1).connectorConfig.type).toBe("grptag00");
   });
 });
 

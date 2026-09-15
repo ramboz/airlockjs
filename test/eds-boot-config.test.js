@@ -38,6 +38,7 @@ const pixelWorker = () => FakeWorker.instances.find((w) => w.url.includes("pixel
 const helixWorker = () => FakeWorker.instances.find((w) => w.url.includes("helix-rum-chamber.worker.js"));
 const gtagWorker = () => FakeWorker.instances.find((w) => w.url.includes("ga4-gtag-chamber.worker.js"));
 const googleAdsWorker = () => FakeWorker.instances.find((w) => w.url.includes("google-ads-chamber.worker.js"));
+const floodlightWorker = () => FakeWorker.instances.find((w) => w.url.includes("floodlight-chamber.worker.js"));
 const initOf = (w) => w.messages.find((m) => m.type === "init");
 const eventsOf = (w) => w.messages.find((m) => m.type === "events");
 // every event `type` that actually crossed to a worker (across all drained batches)
@@ -391,6 +392,16 @@ describe("boot(config) — fan-out gate: composite.push honors each connector's 
     expect(crossedTypes(googleAdsWorker())).not.toContain("newsletter_signup");
   });
 
+  it("a floodlight-only boot's vocab is ['page_view'] only (048-02): the declared event crosses, an arbitrary site event does not", async () => {
+    await boot({ connectors: [{ type: "floodlight", ctx: {}, conversionId: "DC-1234567890" }] });
+
+    window.airlock.push({ event: "page_view", page_location: "https://spike.example/" });
+    window.airlock.push({ event: "newsletter_signup" }); // NOT in floodlight's declared vocab
+
+    expect(crossedTypes(floodlightWorker())).toContain("page_view");
+    expect(crossedTypes(floodlightWorker())).not.toContain("newsletter_signup");
+  });
+
   it("a helix-rum-only boot has NO analytics ['*'] sink: only its declared checkpoint crosses, nothing else", async () => {
     await boot({ connectors: [{ type: "helix-rum", weight: 100, forceSelect: true, ...stubWebVitals() }] });
     // helix-rum's vocab is ["top","error","cwv"] only — no analytics ["*"] catch-all, so the
@@ -520,6 +531,82 @@ describe("boot(config) — AC1/AC2/AC3 (048-01): a google-ads config entry boots
     window.airlock.dispose();
 
     expect(gAds.terminated).toBe(1);
+  });
+});
+
+// Spec 048-02 AC1/AC2/AC3: a declarative `{type:"floodlight"}` config entry boots the DC connector
+// through boot(config) — the SAME dispatch shape as `{type:"google-ads"}`, with the composite
+// governance threaded in exactly like GA4/ga4-gtag/google-ads/pixel (NOT exempt like helix-rum), PLUS
+// the seal's `holdOnDenied`/`remap` trio (046-03) proven end-to-end through the REAL
+// composite/consent fan-out (AC4), for BOTH DC beacon forms.
+describe("boot(config) — AC1/AC2/AC3 (048-02): a floodlight config entry boots the DC connector, with governance + the seal threaded", () => {
+  beforeEach(() => {
+    vi.stubGlobal("addEventListener", () => {});
+    vi.stubGlobal("removeEventListener", () => {});
+    vi.stubGlobal("window", {});
+  });
+
+  it("boots the floodlight chamber (ceiled to ccm/collect) with the entry's conversionId/ctx", async () => {
+    const handle = await boot({ connectors: [{ type: "floodlight", ctx: {}, conversionId: "DC-1234567890" }] });
+
+    expect(handle).toBe(window.airlock);
+    expect(floodlightWorker()).toBeTruthy();
+  });
+
+  it("rejects a floodlight entry missing its required conversionId, naming the connector by index", async () => {
+    await expect(boot({ connectors: [{ type: "floodlight", ctx: {} }] })).rejects.toThrow(
+      /connectors\[0\].*floodlight.*conversionId/,
+    );
+  });
+
+  it("boots BOTH DC forms when src/activityType/cat are configured — the `type` field rename (048-02 AC3) resolves the boot(config) `type`-as-discriminant collision", async () => {
+    await boot({
+      connectors: [
+        { type: "floodlight", ctx: {}, conversionId: "DC-1234567890", src: "1234567", activityType: "grptag00", cat: "acttag00" },
+      ],
+    });
+
+    expect(floodlightWorker()).toBeTruthy();
+    const init = floodlightWorker().messages.find((m) => m.type === "init");
+    expect(init.connectorConfig.src).toBe("1234567");
+    expect(init.connectorConfig.type).toBe("grptag00"); // translated from the entry's activityType
+    expect(init.connectorConfig.cat).toBe("acttag00");
+  });
+
+  it("a top-level consent vector HOLDS the DC beacon until granted, and RE-MAPS via the real createFloodlightRemap on grant (holdOnDenied end-to-end through the composite)", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("fetch", fetchMock);
+    const onDiagnostic = vi.fn();
+
+    await boot(
+      {
+        connectors: [{ type: "floodlight", ctx: {}, conversionId: "DC-1234567890" }],
+        consent: { ad_storage: "denied" }, // TOP-LEVEL governance (mirrors the google-ads block above)
+      },
+      { onDiagnostic },
+    );
+    floodlightWorker().onmessage({
+      data: { ready: [{ url: "https://www.google.com/ccm/collect?tid=DC-1234567890&en=page_view", method: "GET" }], dropped: [] },
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    window.airlock.setConsent({ ad_storage: "granted" });
+
+    // A hold with NO source `event` attached (the hand-built ready msg above carries none) falls
+    // back to the 017-03 verbatim re-send — proven here as the OBSERVABLE flush; the remap-REBUILD
+    // path itself is proven end-to-end in test/eds-boot-floodlight.test.js (AC4), which drives a
+    // REAL connector-produced ready request (carrying `.event`) through bootFloodlight directly.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("dispose() tears down the floodlight connector's Worker too (composite no-leak lifecycle)", async () => {
+    await boot({ connectors: [{ type: "floodlight", ctx: {}, conversionId: "DC-1234567890" }] });
+    const dc = floodlightWorker();
+    expect(dc).toBeTruthy();
+
+    window.airlock.dispose();
+
+    expect(dc.terminated).toBe(1);
   });
 });
 

@@ -1039,3 +1039,77 @@ against a real browser Worker in this slice.
 **Resolution trigger:** extend `rig/google-ads-chamber.mjs` (or a sibling rig) to drive a denied-then-granted consent
 transition against the same real chamber + a real `bootGoogleAds`/`createAirlock` instance, if the held+remap+real-chamber
 combination later needs a live witness (e.g. before a real-site rewire, MVP9).
+
+## Spec 048-02 (Floodlight boot wiring) follow-ups
+
+### `core/airlock.js`'s three per-connector structures: rule-of-three extraction ASSESSED, DEFERRED (not forced)
+
+**Assessed and declined (048-02, 2026-09-14):** floodlight is the 3rd GET-family `connector:` branch added to
+`core/airlock.js` (after ga4-gtag/041-01 and google-ads/048-01), which per the repo's extract-on-third-caller convention
+(ADR-0002) is the trigger to consider collapsing the three parallel per-connector structures (the `requestMapper`
+ternary, the Worker-URL selection ternary, the init-message construction) into a single connector→config lookup table
+routing ALL SIX connectors (ga4-gtag/pixel/dom/helix-rum/google-ads/floodlight) through it. This was seriously assessed,
+not skipped — and DECLINED for this slice, for two independent, load-bearing reasons found during the assessment:
+
+1. **The Worker-URL selection is structurally NOT a free choice.** `build.mjs`'s bundle-layout assertion regex-scans the
+   ESBUILD OUTPUT for literal `new Worker(new URL("...", import.meta.url))` call sites (`build.mjs`'s
+   `referencedSpecifiers` scan) — a runtime-computed specifier (`new URL(map[connector], import.meta.url)`) would still
+   work in a real browser, but the build's static-literal-scan would find ZERO matches and fail the build outright
+   ("no `new Worker(new URL(...))` reference found ... esbuild rewrote the worker away from the sibling-file layout").
+   `core/airlock.js`'s own standing comment already names this explicitly (the connector-selection seam's header). A
+   table-of-factory-functions (each entry's `worker()` method still performing its OWN literal call) would technically
+   satisfy the build scan, but adds a layer of indirection whose only purpose is satisfying this one constraint — not a
+   clean generalization.
+2. **The three structures are NOT uniform across all six connectors — three separate special cases, not one.**
+   Unifying "all connectors" would need to fold in: **helix-rum**, which supplies a `mapper:` key (POST-shaped, RUM
+   sampling-bound) to `createCriticalDispatcher` — a DIFFERENT key from `requestMapper` entirely, not a variant of it;
+   **pixel**, whose `requestMapper` is not a plain `createXConnector(config).handle` reference but a WRAPPING closure
+   over a separately-constructed, advancedMatching-STRIPPED `pixelUnloadConnector` plus a per-call `mergeAdvancedMatching`
+   merge from the `identityCache` closure variable; **dom**, which supplies NEITHER `requestMapper` NOR `mapper` at all
+   (core/airlock.js's own standing comment: "INVARIANT for a FUTURE worker-mapped connector: it MUST supply the critical
+   dispatcher a POST `mapper` ... or a GET `requestMapper` ... or its unload tail will silently mis-map" — dom is the
+   documented exception to that invariant, not an instance of it); and now **floodlight itself**, whose init message is
+   NESTED (`{type:"init", connectorConfig}`) rather than spread — the one wire-shape floodlight does NOT mirror from
+   google-ads/gtag, forced by the `type`-field collision (see the slice's own deviation notes). A table unifying six
+   entries with four independent special-case dimensions layered on top of the Worker-URL constraint above would
+   reproduce the branching logic as per-entry escape-hatch flags rather than removing it — the "too non-uniform to unify
+   without contortion" case the extraction guidance itself names as the reason to keep branches parallel.
+
+Floodlight's branch was therefore added the SAME way ga4-gtag→google-ads was (048-01) — one more literal branch in each
+of the three existing parallel structures, not a new mechanism.
+
+**Resolution trigger:** revisit if a FUTURE connector needs a fourth GET-family branch AND at least one of the three
+existing special cases (helix-rum's `mapper`, pixel's wrapping, dom's absence) has since been normalized away — at that
+point the remaining heterogeneity may be small enough for a table to be a net simplification rather than a
+reproduction of the branching in table form. Until then, keep growing the three parallel structures one literal branch
+at a time (the established, low-risk pattern two prior slices already used successfully).
+
+### Floodlight validator footgun — `activityType`/`cat` without `src` is silently accepted (no activity beacon)
+**Logged (048-02 craft review, 2026-09-14):** `validateConnectorEntry`'s floodlight case requires only `conversionId`; an
+entry that sets `activityType`/`cat` but omits `src` is accepted, then silently emits NO activity beacon (the connector
+gates the whole activity form on `src` via `hasActivityIdentity`). Consistent with the connector's own permissive gate and
+not required by any 048-02 AC, so left as-is — but a loud "activityType/cat set without src → activity beacon will not fire"
+validation warning would close the config footgun. Small, non-blocking; do it when the floodlight boot config is next touched.
+
+### The manifest `purposes`/`endpoints` mirror-drift residual — applies to floodlight too (not new, not widened)
+
+**Noted (048-02, 2026-09-14):** `FLOODLIGHT_EGRESS_PURPOSES` (`["ad_storage"]`) and `FLOODLIGHT_MANIFEST_EVENTS`
+(`["page_view"]`) in `adapters/eds/index.js` are hardcoded consts kept in sync BY HAND with
+`connectors/floodlight/connector.js`'s own `manifest.purposes.egress` / `manifest.events` — the SAME standing pattern
+`GOOGLE_ADS_EGRESS_PURPOSES`/`GOOGLE_ADS_MANIFEST_EVENTS`/`GA4_GTAG_MANIFEST_EVENTS`/`HELIX_RUM_MANIFEST_EVENTS` already
+accept. Not a new residual, not silently widened — flagged for the same reconciliation-sweep reason 048-01 flagged its
+own instance. Resolution trigger unchanged: the standing "derive events/egressPurposes from each connector's own
+manifest" structural fix, if it ever lands, removes floodlight's consts in the same pass as every other connector's.
+
+### AC5 rig proves the GRANTED steady-state path (both DC forms) only — held→remap→flush stays FakeWorker-proven
+
+**Deferred (048-02 AC5, 2026-09-14, mirrors 048-01's own named residual):** `rig/floodlight-chamber.mjs` proves a
+config-shaped, GRANTED-consent page-load beacon pair (ccm/collect + the `;`-matrix activity form) egresses correctly
+through the REAL, BUILT `core/floodlight-chamber.worker.js`. The held→remap→flush COMBINATION (a beacon HELD by the
+real chamber's output, then re-mapped + flushed via `createFloodlightRemap` on a later grant, for either `remapKey`) is
+proven only by FakeWorker (`test/eds-boot-floodlight.test.js`, `test/floodlight-seal.test.js`) plus source inspection —
+never exercised end-to-end against a real browser Worker in this slice.
+
+**Resolution trigger:** unchanged from 048-01's — extend `rig/floodlight-chamber.mjs` to drive a denied-then-granted
+consent transition against the same real chamber + a real `bootFloodlight`/`createAirlock` instance, if the
+held+remap+real-chamber combination later needs a live witness (e.g. before a real-site rewire, MVP9).

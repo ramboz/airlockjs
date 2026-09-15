@@ -296,6 +296,53 @@ describe("048-01 AC3 — the schema gains a 'google-ads' type const + config sha
   });
 });
 
+// Spec 048-02 AC3 — the JSON Schema gains a "floodlight" type const + config shape (conversionId
+// REQUIRED; src/activityType/cat/consentDefault/endpoint/activityEndpoint/ctx optional), mirroring
+// 048-01's "google-ads" precedent above — added in the SAME implementation pass this time (not a
+// later fix round), so the cross-check below (which already covers 048-01's drift shape) holds for
+// floodlight too from the start.
+describe("048-02 AC3 — the schema gains a 'floodlight' type const + config shape", () => {
+  it("a well-formed floodlight entry (conversionId only, no activity identity) validates — byte-identical shape to 046-01", () => {
+    const config = { connectors: [{ type: "floodlight", conversionId: "DC-1234567890" }] };
+    const ok = validateSchema(config);
+    if (!ok) console.error(validateSchema.errors);
+    expect(ok).toBe(true);
+  });
+
+  it("a floodlight entry with the full optional field set (src/activityType/cat/consentDefault/endpoint/activityEndpoint/ctx) validates", () => {
+    const config = {
+      connectors: [
+        {
+          type: "floodlight",
+          conversionId: "DC-1234567890",
+          src: "1234567",
+          activityType: "grptag00",
+          cat: "acttag00",
+          consentDefault: { ad_storage: "denied" },
+          endpoint: "https://example.com/ccm/collect",
+          activityEndpoint: "https://example.com/activity",
+          ctx: { auid: "1.1" },
+        },
+      ],
+    };
+    const ok = validateSchema(config);
+    if (!ok) console.error(validateSchema.errors);
+    expect(ok).toBe(true);
+  });
+
+  it("a floodlight entry MISSING conversionId is REJECTED by the schema", () => {
+    expect(validateSchema({ connectors: [{ type: "floodlight" }] })).toBe(false);
+  });
+
+  it("a floodlight entry misspelling the activity tag field (e.g. `activityTag` instead of `activityType`) is REJECTED — additionalProperties:false catches it", () => {
+    // Guards the 048-02 AC3 rename itself: `type` is reserved as this entry's own connector-kind
+    // discriminant (`"floodlight"`), so the Floodlight-native activity tag MUST ride under a
+    // DIFFERENT field name (`activityType`) — this proves the schema actually enforces that exact
+    // name, not just any name, by rejecting a plausible near-miss.
+    expect(validateSchema({ connectors: [{ type: "floodlight", conversionId: "DC-1", activityTag: "grptag00" }] })).toBe(false);
+  });
+});
+
 // CROSS-CHECK (fix round, 2026-09-14): the runtime `KNOWN_CONNECTOR_TYPES` set (adapters/
 // eds/index.js — not exported, so read off the "unknown connector type" error's own "expected
 // one of: ..." list, the SAME signal the AC2 "unknown connector type" test above asserts

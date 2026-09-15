@@ -136,7 +136,7 @@
 | [047-onetrust-consent-input-driver](047-onetrust-consent-input-driver/spec.md) | 047-01 — OneTrust boot consent vector → the seam's `consent` param | **DONE** |  |
 | [047-onetrust-consent-input-driver](047-onetrust-consent-input-driver/spec.md) | 047-02 — OneTrust consent-change → `handle.setConsent` (accept-flow flush) | **DONE** |  |
 | [048-ad-connector-boot-wiring](048-ad-connector-boot-wiring/spec.md) | 048-01 — bootGoogleAds + worker chamber + `{type:"google-ads"}` config type + composite membership (consent-gated) | **DONE** |  |
-| [048-ad-connector-boot-wiring](048-ad-connector-boot-wiring/spec.md) | 048-02 — bootFloodlight + worker chamber + `{type:"floodlight"}` config type + composite membership (consent-gated) | DRAFT |  |
+| [048-ad-connector-boot-wiring](048-ad-connector-boot-wiring/spec.md) | 048-02 — bootFloodlight + worker chamber + `{type:"floodlight"}` config type + composite membership (consent-gated) | **DONE** |  |
 | [048-ad-connector-boot-wiring](048-ad-connector-boot-wiring/spec.md) | 048-03 — `onetrust` as a `boot(config)` governance field → composite consent fan-out (end-to-end accept-flow) | DRAFT |  |
 
 ## Deferred slices
@@ -162,7 +162,7 @@
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
 - **9** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **99** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **100** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **46** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review

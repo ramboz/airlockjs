@@ -51,6 +51,12 @@ import {
   GOOGLE_ADS_CCM_COLLECT_ENDPOINT,
 } from "../../connectors/google-ads/connector.js";
 import { sourceGoogleAdsCtx } from "../../connectors/google-ads/cookies.js";
+import {
+  createFloodlightRemap,
+  FLOODLIGHT_CCM_COLLECT_ENDPOINT,
+  FLOODLIGHT_ACTIVITY_ENDPOINT,
+  deriveActivityCeilingEndpoint,
+} from "../../connectors/floodlight/connector.js";
 import { createMetaPixelConfig, META_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/meta.js";
 import { createLinkedInInsightConfig, LINKEDIN_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/linkedin.js";
 import { createBingUetConfig, BING_EGRESS_PURPOSES } from "../../connectors/pixel/vendors/bing.js";
@@ -919,6 +925,150 @@ export async function bootGoogleAds(opts = {}) {
 }
 
 /**
+ * Floodlight's (DC) declared egress `purposes.egress` (spec 046-01 —
+ * `connectors/floodlight/connector.js`'s manifest: `["ad_storage"]`). Mirrors
+ * `GOOGLE_ADS_EGRESS_PURPOSES`'s pattern.
+ */
+const FLOODLIGHT_EGRESS_PURPOSES = ["ad_storage"];
+
+/**
+ * Boot the Floodlight (DC) page-load connector for an EDS page (spec 048-02) — reuses the
+ * ad-connector chamber+boot pattern `bootGoogleAds` (048-01) established, PLUS the DC-specific
+ * two-origin endpoint ceiling: BOTH the fixed `ccm/collect` beacon (046-01) and the `;`-delimited
+ * `activity` beacon (046-02) are hosted by the SAME chamber/connector — `createFloodlightConnector`'s
+ * own `handle()` fans one `page_view` out to both beacon forms whenever the Floodlight-native activity
+ * identity (`src`) is configured.
+ *
+ * Host-side ctx sourcing REUSES `sourceGoogleAdsCtx` (`connectors/google-ads/cookies.js`) VERBATIM —
+ * mirrors `bootGoogleAds`'s own sourcing exactly (§A4: DC's `auid`/`auiddc` IS the SAME `_gcl_au`-
+ * derived value AW's own `sourceGoogleAdsCtx` already sources, no separate Floodlight reader). `ad_storage`
+ * (not `analytics_storage`) gates BOTH the `_gcl_au` read AND the seal's `holdOnDenied` egress gate.
+ *
+ * THE TWO-ELEMENT ENDPOINT CEILING (AC2, frame-critique 2026-09-14): unlike `bootGoogleAds`'s
+ * single-origin `endpoints:[ccm]` (Google Ads has only ONE beacon form), Floodlight is TWO-origin.
+ * When `opts.src` is set (`hasActivityIdentity`), `endpoints` becomes `[endpoint, activityCeiling]`
+ * where `activityCeiling` is built via the SAME `deriveActivityCeilingEndpoint` (`core/path-matrix.js`
+ * join) `createFloodlightConnector`'s own manifest ceiling uses — REUSED directly, never rebuilt
+ * inline, so the two can never silently drift apart (the connector's own doc comment names this
+ * footgun: a naive single-element `endpoints:[ccm]` would fail-closed-HOLD the activity beacon FOREVER,
+ * even under granted consent, because `core/endpoint-ceiling.js` would see it as off-ceiling).
+ *
+ * THE `type` FIELD RENAME (AC3, load-bearing wire-collision fix): the Floodlight-native activity tag is
+ * named `type` on `createFloodlightConnector`'s own config (spec 046, unchanged) — but `boot(config)`
+ * reserves `type` EXCLUSIVELY as the connector-kind discriminant (`{type:"floodlight", …}`), and
+ * `core/airlock.js`'s chamber init message ALSO uses `type` as its own discriminant
+ * (`{type:"init", …}`). Either collision would silently clobber one of the two `type` values
+ * (object-literal last-key-wins). So this boot's OWN opt is named `opts.activityType` — translated to
+ * the connector's `type` config field right here, at the ONE place both shapes meet — never `type`
+ * itself, at either the `bootFloodlight(opts)` or `{type:"floodlight", …}` config-entry surface.
+ *
+ * @param {object} [opts]
+ * @param {object} [opts.ctx] explicit ctx override (skips cookie/URL sourcing — rig/test escape
+ *   hatch, mirrors bootGoogleAds/bootGa4Gtag). Touches `document` ZERO times.
+ * @param {string} opts.conversionId the DC conversion id (`tid`, e.g. "DC-1234567890").
+ * @param {string} [opts.src] the Floodlight-native activity identity — its mere PRESENCE gates
+ *   whether the `;`-matrix activity beacon/endpoint exist at all (mirrors the connector's own gate).
+ * @param {string} [opts.activityType] the Floodlight-native activity `type` tag (see the rename note
+ *   above) — forwarded to the connector's own `type` config field.
+ * @param {string} [opts.cat] the Floodlight-native activity `cat` tag.
+ * @param {Record<string,string>} [opts.consent] ADR-0007 consent vector.
+ * @param {Record<string,string>} [opts.consentDefault] the declared Consent-Mode default vector —
+ *   folded into `ctx.consentDefault` (gcd's scope gate), mirrors bootGoogleAds.
+ * @param {boolean}  [opts.consentStrict] spec 017-03 AC3 — a strict/no-processing regime.
+ * @param {string[]} [opts.payloadDenylist] spec 019-01 (ADR-0012).
+ * @param {string}   [opts.endpoint] ccm/collect endpoint override. Defaults to
+ *   `FLOODLIGHT_CCM_COLLECT_ENDPOINT`. Threaded into the connector config, the endpoint ceiling, AND
+ *   the remap (mirrors bootGoogleAds's own endpoint-override discipline).
+ * @param {string}   [opts.activityEndpoint] activity endpoint override. Defaults to
+ *   `FLOODLIGHT_ACTIVITY_ENDPOINT`. Threaded the SAME way as `endpoint`.
+ * @param {(record: object) => void} [opts.onDiagnostic] spec 028 inspector sink.
+ * @returns {Promise<{push,pushCritical,setConsent,getState,flushNow,stats,dispose}>}
+ */
+export async function bootFloodlight(opts = {}) {
+  const {
+    ctx: providedCtx,
+    conversionId,
+    src,
+    activityType,
+    cat,
+    consent,
+    consentDefault,
+    consentStrict = false,
+    payloadDenylist,
+    endpoint = FLOODLIGHT_CCM_COLLECT_ENDPOINT,
+    activityEndpoint = FLOODLIGHT_ACTIVITY_ENDPOINT,
+    onDiagnostic,
+  } = opts;
+
+  // ad_storage (not analytics_storage) gates the _gcl_au read — mirrors bootGoogleAds' own gate.
+  const adStorageGranted = consent ? resolveConsent(consent, "ad_storage") === "granted" : true;
+
+  // Host-side sourcing: REUSES sourceGoogleAdsCtx verbatim (§A4 — DC's auid/auiddc IS the SAME
+  // _gcl_au-derived value). `??` short-circuits, so `document` is touched ZERO times when
+  // `providedCtx` is set (the same rig/test escape hatch bootGoogleAds's own `opts.ctx` provides).
+  const ctx =
+    providedCtx ??
+    sourceGoogleAdsCtx({
+      cookieString: typeof document !== "undefined" ? document.cookie : "",
+      landingUrl: typeof document !== "undefined" && document.location ? document.location.href : "",
+      adStorageGranted,
+    });
+
+  const ctxWithConsent = { ...ctx, consent, consentDefault };
+
+  // AC3: `activityType` -> the connector's own `type` config field, right here (see the doc
+  // comment's "type FIELD RENAME" note) — the ONE place the boot-surface name and the connector's
+  // native field name meet.
+  const connectorConfig = { conversionId, src, type: activityType, cat, ctx: ctxWithConsent, endpoint, activityEndpoint };
+
+  // AC2: the activity form is opt-in on `src`'s mere presence — mirrors the connector's own
+  // `hasActivityIdentity` gate (connectors/floodlight/connector.js) exactly (null treated as absent).
+  const hasActivityIdentity = src !== undefined && src !== null;
+  const endpoints = hasActivityIdentity
+    ? [endpoint, deriveActivityCeilingEndpoint({ src, activityEndpoint })]
+    : [endpoint];
+
+  const airlock = createAirlock({
+    connector: "floodlight",
+    connectorConfig,
+    endpoints,
+    ctx: ctxWithConsent,
+    consent,
+    egressPurposes: consent ? FLOODLIGHT_EGRESS_PURPOSES : [],
+    consentStrict,
+    // 045-01 (ADR-0023 Option E): DC OPTS IN to hold-on-denied — grounded on R-009 §(b) (the container
+    // held the WHOLE DC family under reject-all, "none — fully held"), mirrors bootGoogleAds/044-02.
+    holdOnDenied: true,
+    // The connector's KEY-AWARE held->grant-flush re-mapper (046-03/ADR-0024) — dispatches on the
+    // seal's third `remap` argument (`remapKey: "ccm"`/`"activity"`) to rebuild the correct wire form
+    // per beacon. `consentDefault` threaded too (mirrors bootGoogleAds' own fix-round correction) so a
+    // held->flushed beacon's `gcd` matches a steady-state granted beacon's, for BOTH forms.
+    remap: createFloodlightRemap({
+      conversionId,
+      src,
+      type: activityType,
+      cat,
+      endpoint,
+      activityEndpoint,
+      consentDefault,
+      readCookieString: () => (typeof document !== "undefined" ? document.cookie : ""),
+    }),
+    payloadDenylist,
+    onDiagnostic,
+  });
+
+  return {
+    push: (evt) => airlock.push(evt),
+    pushCritical: (evt) => airlock.pushCritical(evt),
+    setConsent: (v) => airlock.setConsent(v),
+    getState: (path) => airlock.getState(path),
+    flushNow: () => airlock.flushNow(),
+    stats: () => airlock.stats(),
+    dispose: () => airlock.dispose(),
+  };
+}
+
+/**
  * The pixel-vendor dispatch table (spec 032-01 AC2) — the ONE place the three
  * near-identical pixel boots differ: a vendor config factory + that vendor's egress
  * purposes. `createXxxConfig` + `*_EGRESS_PURPOSES` were always the seed of a
@@ -1720,19 +1870,31 @@ const HELIX_RUM_MANIFEST_EVENTS = ["top", "error", "cwv"];
 const GOOGLE_ADS_MANIFEST_EVENTS = ["page_view"];
 
 /**
+ * Floodlight's (DC) declared `manifest.events` (spec 048-02) — mirrors
+ * `GOOGLE_ADS_MANIFEST_EVENTS`'s pattern: `connectors/floodlight/connector.js`'s manifest declares
+ * `events: ["page_view"]` (the page-load beacon only, for BOTH DC forms — the true conversion
+ * activity ping is MVP9, spec 046 §A5), so the composite gate admits only `page_view`. Kept in sync
+ * with that manifest (its home).
+ */
+const FLOODLIGHT_MANIFEST_EVENTS = ["page_view"];
+
+/**
  * The connector `type`s `boot(config)` can dispatch (spec 032-02 AC2/AC3, 033-02 AC3,
- * 041-04 AC1, 048-01 AC3). The discriminated union's tags — GA4 (MP), **ga4-gtag**
+ * 041-04 AC1, 048-01 AC3, 048-02 AC3). The discriminated union's tags — GA4 (MP), **ga4-gtag**
  * (041-04: the gtag-protocol GA4 connector, `bootGa4Gtag` — a container's own GA4 tag
  * beacon reproduced off-thread), the three pixel vendors (nested under `pixel`),
  * helix-rum, (033-02) **alloy** — the analytics vertical: alloy's first-ever adapter
  * boot, hosted via `core/wrapped-sdk-host.js` + `bootAlloy` (adopter-supplied
- * `bundleUrl`, ADR-0016) — and (048-01) **google-ads**: the first ad-conversion
+ * `bundleUrl`, ADR-0016) — (048-01) **google-ads**: the first ad-conversion
  * connector, `bootGoogleAds` — a container's AW ccm/collect page-load beacon reproduced
- * off-thread, consent-gated (`ad_storage`, `holdOnDenied`). Personalization /
+ * off-thread, consent-gated (`ad_storage`, `holdOnDenied`) — and (048-02) **floodlight**:
+ * the second ad-conversion connector, `bootFloodlight` — a container's DC page-load beacon(s)
+ * (ccm/collect ALWAYS, plus the `;`-matrix activity beacon when the Floodlight-native `src`
+ * identity is configured) reproduced off-thread, same consent gating. Personalization /
  * decisions-as-data is the follow-on vertical (033-03); this entry covers the
  * Edge-interact analytics use.
  */
-const KNOWN_CONNECTOR_TYPES = ["ga4", "ga4-gtag", "pixel", "helix-rum", "alloy", "google-ads"];
+const KNOWN_CONNECTOR_TYPES = ["ga4", "ga4-gtag", "pixel", "helix-rum", "alloy", "google-ads", "floodlight"];
 
 /**
  * Each pixel vendor's REQUIRED id field (spec 032-02 AC2). Keys mirror `PIXEL_VENDORS`;
@@ -1825,6 +1987,19 @@ function validateConnectorEntry(entry, index) {
     if (typeof entry.conversionId !== "string" || entry.conversionId.length === 0) {
       throw new Error(
         `airlock boot(config): ${at} (google-ads) is missing required field "conversionId" (a non-empty string — the AW conversion id, "tid")`,
+      );
+    }
+  }
+  if (type === "floodlight") {
+    // 048-02 AC3 (A3): the DC conversion id is the connector's ONE required config id
+    // (connectors/floodlight/connector.js's `conversionId` -> `tid`), mirroring the google-ads
+    // `conversionId` check exactly. The activity-form fields (`src`/`activityType`/`cat`) stay
+    // OPTIONAL — the activity beacon is opt-in on `src`'s mere presence (mirrors the connector's
+    // own `hasActivityIdentity` gate), so a `src`-less entry is well-formed (byte-identical to a
+    // 046-01-only boot).
+    if (typeof entry.conversionId !== "string" || entry.conversionId.length === 0) {
+      throw new Error(
+        `airlock boot(config): ${at} (floodlight) is missing required field "conversionId" (a non-empty string — the DC conversion id, "tid")`,
       );
     }
   }
@@ -1936,6 +2111,15 @@ async function bootConnector(entry, governance, index, reservedPlacements, compo
       // bootGoogleAds's own gate, NO helix-rum-style exemption (the AW beacon is
       // ad-consent-governed by design, R-009 §(b)).
       return { handle: await bootGoogleAds({ ...rest, ...governance, onDiagnostic }), events: GOOGLE_ADS_MANIFEST_EVENTS };
+    case "floodlight":
+      // 048-02 AC3: consent-governed exactly like "ga4"/"ga4-gtag"/"google-ads" — top-level
+      // governance (consent/consentStrict/payloadDenylist) threaded straight into bootFloodlight's
+      // own gate, NO helix-rum-style exemption (the DC beacon family is ad-consent-governed by
+      // design, R-009 §(b): "none — fully held" under reject-all). `rest` already carries
+      // `activityType` (not `type` — see bootFloodlight's own doc comment on the rename) since
+      // `type` was stripped above as the CONNECTOR-KIND discriminant, so no further translation
+      // is needed here.
+      return { handle: await bootFloodlight({ ...rest, ...governance, onDiagnostic }), events: FLOODLIGHT_MANIFEST_EVENTS };
     case "pixel": {
       const { vendor, ...ids } = rest;
       const handle = bootPixelConnector(vendor, { ...ids, ...governance, onDiagnostic });
