@@ -138,6 +138,8 @@
 | [048-ad-connector-boot-wiring](048-ad-connector-boot-wiring/spec.md) | 048-01 — bootGoogleAds + worker chamber + `{type:"google-ads"}` config type + composite membership (consent-gated) | **DONE** |  |
 | [048-ad-connector-boot-wiring](048-ad-connector-boot-wiring/spec.md) | 048-02 — bootFloodlight + worker chamber + `{type:"floodlight"}` config type + composite membership (consent-gated) | **DONE** |  |
 | [048-ad-connector-boot-wiring](048-ad-connector-boot-wiring/spec.md) | 048-03 — `onetrust` as a `boot(config)` governance field → composite consent fan-out (end-to-end accept-flow) | **DONE** |  |
+| [049-native-tag-suppressor](049-native-tag-suppressor/spec.md) | 049-01 — runtime-`<script>` suppression (CWV-win core, dist-shipped) | DRAFT |  |
+| [049-native-tag-suppressor](049-native-tag-suppressor/spec.md) | 049-02 — direct-beacon-transport suppression (egress-parity completeness) | DRAFT |  |
 
 ## Deferred slices
 
