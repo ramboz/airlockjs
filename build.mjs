@@ -61,6 +61,13 @@ export const ENTRY_OUT = "eds"; // → eds.js
 // invariant, AC2) and no blob:/data:/ajv (the shared envelope).
 export const RESERVE_ENTRY_OUT = "reserve-personalization"; // → reserve-personalization.js
 
+// 049-01: the vendor-neutral native-tag suppressor (ADR-0030) — a THIRD non-worker
+// ESM entry, treated exactly like RESERVE_ENTRY_OUT above: its own served dist
+// sibling, imported directly by an adopter (NOT re-exported from eds.js, and eds.js
+// never imports it either — it is a standalone, opt-in primitive installed BEFORE a
+// tag-manager container loads). See adapters/eds/tag-suppressor.js.
+export const SUPPRESSOR_ENTRY_OUT = "tag-suppressor"; // → tag-suppressor.js
+
 // Every same-origin sibling chamber worker the emitted eds.js may spawn. The `out` name is derived
 // from the source basename (so `core/pixel-chamber.worker.js` → `pixel-chamber.worker` → the sibling
 // `./pixel-chamber.worker.js`). Add an entry here when a new chamber worker becomes eds-reachable.
@@ -110,6 +117,10 @@ const defaultWorkerOut = (inPath) => inPath.split("/").pop().replace(/\.js$/, ""
  * @param {string} [opts.reserveEntry]    the eager pre-paint reserve module source (default the real
  *                                        adapters/eds/reserve-personalization.js). Overriding it seeds the
  *                                        033-03 "a Worker entered the eager reserve graph" regression.
+ * @param {string} [opts.suppressorEntry] the native-tag suppressor module source (default the real
+ *                                        adapters/eds/tag-suppressor.js). Overriding it seeds the
+ *                                        049-01 "a Worker entered the suppressor graph" regression (NIT
+ *                                        fix — mirrors reserveEntry's own self-defense).
  */
 export async function buildAirlock({
   outdir = DEFAULT_OUTDIR,
@@ -117,6 +128,7 @@ export async function buildAirlock({
   classicWorkerEntries = CLASSIC_WORKER_ENTRIES,
   outNameFor = defaultWorkerOut,
   reserveEntry = "adapters/eds/reserve-personalization.js",
+  suppressorEntry = "adapters/eds/tag-suppressor.js",
 } = {}) {
   const absOutdir = isAbsolute(outdir) ? outdir : join(ROOT, outdir);
   // Every same-origin sibling worker eds.js may reference — the ESM set AND the classic
@@ -131,6 +143,8 @@ export async function buildAirlock({
       { in: "adapters/eds/index.js", out: ENTRY_OUT },
       // 033-03: the eager pre-paint reserve module — a 2nd non-worker ESM entry.
       { in: reserveEntry, out: RESERVE_ENTRY_OUT },
+      // 049-01: the native-tag suppressor — a 3rd non-worker ESM entry.
+      { in: suppressorEntry, out: SUPPRESSOR_ENTRY_OUT },
       ...workerEntries.map((p) => ({ in: p, out: outNameFor(p) })),
     ],
     outdir: absOutdir,
@@ -190,6 +204,14 @@ export async function buildAirlock({
   }
   const reserveChunk = emittedBasenames.has(reserveBase) ? readFileSync(join(absOutdir, reserveBase), "utf8") : "";
 
+  // Positive (049-01 AC6): the native-tag suppressor was emitted as a sibling — treated
+  // exactly like the reserve module above (its own served dist entry).
+  const suppressorBase = `${SUPPRESSOR_ENTRY_OUT}.js`;
+  if (!emittedBasenames.has(suppressorBase)) {
+    failures.push(`missing emitted native-tag suppressor module ${suppressorBase} — the 049-01 dist entry (outputs: ${outputs})`);
+  }
+  const suppressorChunk = emittedBasenames.has(suppressorBase) ? readFileSync(join(absOutdir, suppressorBase), "utf8") : "";
+
   // Positive: EVERY `new Worker(new URL(...))` reference in the emitted entry resolves to a KNOWN,
   // EMITTED sibling worker (026-05: matchAll, not just the first — eds.js references N workers).
   const emitted = emittedBasenames.has(entryBase) ? readFileSync(join(absOutdir, entryBase), "utf8") : "";
@@ -220,7 +242,9 @@ export async function buildAirlock({
   // covers eds.js (which constructs Workers) + the worker chunks — NOT the eager
   // reserve module, which spawns no Worker and legitimately carries a `data:text/html`
   // token in core/sanitize-html.js's XSS URL-scheme denylist (a security feature that
-  // STRIPS such URLs, not a worker-load URL). The reserve chunk is still ajv-scanned below.
+  // STRIPS such URLs, not a worker-load URL), and NOT the 049-01 suppressor module
+  // (also spawns no Worker — it patches DOM insertion methods, never constructs one).
+  // Both non-worker chunks are still ajv-scanned below.
   if ([emitted, ...emittedWorkerChunks].some((chunk) => /(["'`])(?:blob|data):/.test(chunk))) {
     failures.push("emitted output contains a blob:/data: URL — every worker must stay a same-origin file URL");
   }
@@ -231,7 +255,7 @@ export async function buildAirlock({
   // validator dependency never ships — a runtime `import … "ajv"` would smuggle ~100KB of
   // dev tooling into every consumer's page. No-minify keeps identifiers readable, so a bare
   // `/ajv/i` reference in any emitted chunk means ajv was bundled.
-  if ([emitted, reserveChunk, ...emittedWorkerChunks].some((chunk) => /ajv/i.test(chunk))) {
+  if ([emitted, reserveChunk, suppressorChunk, ...emittedWorkerChunks].some((chunk) => /ajv/i.test(chunk))) {
     failures.push("emitted output references `ajv` — a contracts/ dev-dependency must not reach the shipped bundle (032-02 AC2: runtime config validation is hand-rolled)");
   }
 
@@ -255,6 +279,17 @@ export async function buildAirlock({
   // eds.js + the worker chunks. Fail the build so the exclusion above stays sound.
   if (reserveChunk && /new Worker\(/.test(reserveChunk)) {
     failures.push(`the eager reserve module ${reserveBase} constructs a \`new Worker(\` — the pre-paint reserve module must spawn NO Worker (its URL would escape the same-origin-file-URL invariant the blob:/data: scan enforces on the worker-spawning chunks) (033-03 AC2)`);
+  }
+
+  // Negative (spec 049-01 NIT — the suppressor module's WORKER-URL invariant, self-defended,
+  // mirroring the reserve module's own guard directly above). The suppressor chunk is EXCLUDED
+  // from the blob:/data: worker-URL scan above BECAUSE it spawns no Worker (it only patches DOM
+  // insertion methods) — that premise was previously defended by a COMMENT alone; make it a
+  // build failure instead, exactly like the reserve module's guard: a `new Worker(` in the
+  // suppressor chunk means a Worker entered its graph, and its URL is no longer covered by the
+  // same-origin-file-URL invariant the blob:/data: scan enforces on eds.js + the worker chunks.
+  if (suppressorChunk && /new Worker\(/.test(suppressorChunk)) {
+    failures.push(`the native-tag suppressor module ${suppressorBase} constructs a \`new Worker(\` — it must spawn NO Worker (its URL would escape the same-origin-file-URL invariant the blob:/data: scan enforces on the worker-spawning chunks) (049-01)`);
   }
 
   // Derived, not hardcoded: all workers are same-origin file URLs ⇔ every referenced specifier is a

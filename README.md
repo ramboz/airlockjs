@@ -53,8 +53,10 @@ git remote add airlock git@github.com:ramboz/airlockjs.git
 git subtree add --prefix scripts/airlock airlock dist-vX.Y.Z --squash
 ```
 
-This commits `scripts/airlock/eds.js` + the four sibling `*.worker.js` bundles + `VERSION`
-(`airlockjs vX.Y.Z`, matching the tag) into your repo.
+This commits the served dist tree into your repo: `scripts/airlock/eds.js`, the sibling ESM entries
+`reserve-personalization.js` (eager pre-paint reserve) and `tag-suppressor.js` (the native-tag
+suppressor, spec 049), the `*.worker.js` chamber bundles, and `VERSION` (`airlockjs vX.Y.Z`, matching
+the tag). The authoritative served set is `DIST_ARTIFACTS` (`publish-dist.mjs`).
 
 ### 2. Boot airlock (two lines, in your lazy phase)
 

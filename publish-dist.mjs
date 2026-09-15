@@ -27,7 +27,7 @@ import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { ENTRY_OUT, RESERVE_ENTRY_OUT, WORKER_ENTRIES, CLASSIC_WORKER_ENTRIES } from "./build.mjs";
+import { ENTRY_OUT, RESERVE_ENTRY_OUT, SUPPRESSOR_ENTRY_OUT, WORKER_ENTRIES, CLASSIC_WORKER_ENTRIES } from "./build.mjs";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 
@@ -41,6 +41,10 @@ export const DIST_ARTIFACTS = [
   // 033-03: the eager pre-paint personalization reserve module (a 2nd non-worker ESM
   // entry) — a served sibling the integrator imports from loadEager before body.appear.
   `${RESERVE_ENTRY_OUT}.js`,
+  // 049-01: the vendor-neutral native-tag suppressor (a 3rd non-worker ESM entry) —
+  // an opt-in served sibling an adopter imports to install BEFORE a tag-manager
+  // container loads (adapters/eds/tag-suppressor.js).
+  `${SUPPRESSOR_ENTRY_OUT}.js`,
   ...[...WORKER_ENTRIES, ...CLASSIC_WORKER_ENTRIES].map((p) => p.split("/").pop()),
 ];
 

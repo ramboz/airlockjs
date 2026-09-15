@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 skill:
 use_cases: []
 ---
@@ -44,13 +44,19 @@ no hardcoded vendor) so it never leaks a specific vendor into airlock.
 _Load-bearing claims about runnable surfaces; probe-grounded ones are cited, the unverified ones flagged (risk-gated per
 ADR-0020)._
 
-- **A1 — the container + vendor runtimes are injected as interceptable page-side `<script>` elements.** Grounded for the
-  reference adopter: `intuit-erp/plugins/tealium-martech/src/index.js`'s `loadUtag` injects `utag.js` via
-  `document.createElement('script')`, and utag injects the vendor runtimes (`gtag.js`/`fbevents.js`) the same way (verified
-  by the frame-critique against the repo, ADR-0030). The page owns the load order, so a suppressor installed first can
-  intercept. Generic adopters vary — a runtime injected by a non-interceptable mechanism (inlined into the container bundle,
-  or fetched inside a Worker / via `importScripts`) is the **ADR-0030 kill criterion** (that vendor falls back to the
-  profile-side after-arm), stated as an out-of-scope boundary, not covered here.
+- **A1 — the container + vendor runtimes are injected as interceptable page-side `<script>` elements, via `createElement` +
+  a DOM insertion method (the FULL insertion surface, not just `appendChild`).** Grounded for the reference adopter:
+  `intuit-erp/plugins/tealium-martech/src/index.js`'s `loadUtag`/`loadScriptOnce` inject `utag.js` + the OneTrust consent
+  stack via `document.createElement('script')` + `appendChild`, page-side (verified in-source, `:244-299`; the page enforces
+  Trusted Types + `strict-dynamic` so injection is **only** ever via `createElement`, never `innerHTML`/`document.write` —
+  `:42-45`). The **vendor runtimes** (`gtag.js`/`fbevents.js`), by contrast, are injected by utag's minified
+  `utag.<uid>.js` runtime templates fetched from tiqcdn (NOT in the repo, so the exact call is unverifiable in-source); the
+  standard vendor-snippet idiom is `parentNode.insertBefore(script, firstScript)`, **not** `head.appendChild`. So the
+  suppressor must patch the **full DOM-insertion surface** (`appendChild` / `insertBefore` / `append` / `prepend` /
+  `insertAdjacentElement` / `replaceChild`), not merely `appendChild` — else an `insertBefore`-injected gtag escapes.
+  (Frame-critique 2026-09-15.) The page owns the load order, so a suppressor installed first intercepts. A runtime injected
+  by a non-interceptable mechanism (inlined into the container bundle, or fetched inside a Worker / via `importScripts`) is
+  the **ADR-0030 kill criterion** (that vendor falls back to the profile-side after-arm), an out-of-scope boundary.
 - **A2 (RISK-GATED, resolved in 049-01) — the interception technique can PREVENT the runtime load, not merely observe it.**
   A `<script src>`'s fetch begins at DOM insertion; a `MutationObserver` callback runs as a microtask *after* insertion, so
   the exact technique (a `createElement`/`appendChild`/`insertBefore` monkeypatch that refuses/neuters a matching node at

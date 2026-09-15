@@ -38,6 +38,7 @@
     "rig:alloy-consent-pending": "node rig/alloy-consent-pending.mjs",
     "rig:alloy-xdm-gov": "node rig/alloy-live-xdm-governance.mjs",
     "rig:sanitize": "node rig/sanitize-boundary.mjs",
+    "rig:tag-suppressor": "node rig/tag-suppressor.mjs",
     "rig:nasty-tag": "node rig/nasty-tag.mjs",
     "rig:wd-nasty-tag": "node rig/worker-dom-nasty-tag.mjs",
     "rig:airlock-mirror": "node rig/airlock-mirror-nasty-tag.mjs",

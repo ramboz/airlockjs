@@ -16,7 +16,7 @@ import { mkdtempSync, rmSync, existsSync, readFileSync, appendFileSync, writeFil
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildAirlock, WORKER_ENTRIES, CLASSIC_WORKER_ENTRIES, ENTRY_OUT, RESERVE_ENTRY_OUT } from "../build.mjs";
+import { buildAirlock, WORKER_ENTRIES, CLASSIC_WORKER_ENTRIES, ENTRY_OUT, RESERVE_ENTRY_OUT, SUPPRESSOR_ENTRY_OUT } from "../build.mjs";
 import { publishDist, DIST_ARTIFACTS, resolveTarget, computeVersion, releaseTag } from "../publish-dist.mjs";
 
 const REPO = fileURLToPath(new URL("..", import.meta.url));
@@ -149,6 +149,46 @@ describe("033-03 AC2 — the eager pre-paint reserve module is a lightweight dis
   }, 60000);
 });
 
+describe("049-01 AC6 — the native-tag suppressor is a served dist sibling (treated like the reserve module)", () => {
+  let distDir;
+  let suppressorJs;
+  beforeAll(async () => {
+    distDir = mktmp("airlock-04901-suppressor-dist-");
+    await buildAirlock({ outdir: distDir });
+    suppressorJs = readFileSync(join(distDir, `${SUPPRESSOR_ENTRY_OUT}.js`), "utf8");
+  }, 60000);
+
+  it("emits tag-suppressor.js as a served sibling (a 3rd non-worker ESM entry)", () => {
+    expect(existsSync(join(distDir, `${SUPPRESSOR_ENTRY_OUT}.js`))).toBe(true);
+  });
+
+  it("exposes installTagSuppressor (the adopter-facing entry point) and carries no ajv", () => {
+    expect(suppressorJs).toMatch(/installTagSuppressor/);
+    expect(/ajv/i.test(suppressorJs)).toBe(false);
+  });
+
+  it("DIST_ARTIFACTS names the suppressor module (the served tree the ref root must carry)", () => {
+    expect(DIST_ARTIFACTS).toContain(`${SUPPRESSOR_ENTRY_OUT}.js`);
+  });
+
+  it("FAILS the build if a Worker enters the suppressor graph — the worker-URL invariant is self-defended at BUILD time (not just a comment) — NIT fix", async () => {
+    // The suppressor module must spawn NO Worker (a Worker URL is the same-origin-file-URL
+    // security invariant, and the blob:/data: scan EXCLUDES this chunk on exactly that premise —
+    // see build.mjs). Seed a suppressor entry that pathologically constructs one and confirm the
+    // BUILD throws — so a future Worker in the suppressor graph fails the build, not just a
+    // (deletable) test. Mirrors the 033-03 reserve-module seed test above line-for-line.
+    const out = mktmp("airlock-04901-suppressor-worker-");
+    const seed = join(mktmp("airlock-04901-suppressor-seed-"), "tag-suppressor-with-worker.js");
+    writeFileSync(
+      seed,
+      "export function installTagSuppressor(){ if (globalThis.__never) new Worker(globalThis.__u); return { uninstall(){} }; }\n",
+    );
+    await expect(buildAirlock({ outdir: out, suppressorEntry: seed })).rejects.toThrow(
+      /new Worker|native-tag suppressor module/i,
+    );
+  }, 60000);
+});
+
 describe("031-01 AC3 — the same-origin-file-worker invariant is enforced at BUILD time", () => {
   it("throws when a worker entry is DROPPED (eds.js still references the missing sibling)", async () => {
     const out = mktmp("airlock-ac3-drop-");
@@ -191,7 +231,9 @@ describe("031-01 AC2 — publish the servable tree to a DIST-ROOTED ref", () => 
       .split("\n")
       .filter(Boolean)
       .sort();
-    expect(root).toEqual([...SIBLING_WORKERS, "VERSION", `${ENTRY_OUT}.js`, `${RESERVE_ENTRY_OUT}.js`].sort());
+    expect(root).toEqual(
+      [...SIBLING_WORKERS, "VERSION", `${ENTRY_OUT}.js`, `${RESERVE_ENTRY_OUT}.js`, `${SUPPRESSOR_ENTRY_OUT}.js`].sort(),
+    );
   });
 
   it("airlock's SOURCE project (build.mjs / core / adapters / test) is ABSENT from the ref root", () => {
@@ -212,7 +254,9 @@ describe("031-01 AC2 — publish the servable tree to a DIST-ROOTED ref", () => 
   it("DIST_ARTIFACTS names exactly the servable tree the ref root must carry", () => {
     // The publish contract's artifact list is the single source of truth the rig and
     // docs reference — keep it aligned with the emitted sibling set.
-    expect([...DIST_ARTIFACTS].sort()).toEqual([...SIBLING_WORKERS, `${ENTRY_OUT}.js`, `${RESERVE_ENTRY_OUT}.js`].sort());
+    expect([...DIST_ARTIFACTS].sort()).toEqual(
+      [...SIBLING_WORKERS, `${ENTRY_OUT}.js`, `${RESERVE_ENTRY_OUT}.js`, `${SUPPRESSOR_ENTRY_OUT}.js`].sort(),
+    );
   });
 
   it("reports the ref and a version string back to the caller", () => {
@@ -294,7 +338,9 @@ describe("031-02 AC1 — the release-tag pin (semver substitute) + the marker re
         .split("\n")
         .filter(Boolean)
         .sort();
-      expect(root).toEqual([...SIBLING_WORKERS, "VERSION", `${ENTRY_OUT}.js`, `${RESERVE_ENTRY_OUT}.js`].sort());
+      expect(root).toEqual(
+      [...SIBLING_WORKERS, "VERSION", `${ENTRY_OUT}.js`, `${RESERVE_ENTRY_OUT}.js`, `${SUPPRESSOR_ENTRY_OUT}.js`].sort(),
+    );
     });
 
     it("airlock's SOURCE project is ABSENT from the tagged ref root (never a whole-project source tag)", () => {

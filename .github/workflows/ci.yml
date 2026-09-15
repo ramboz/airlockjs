@@ -123,6 +123,17 @@ jobs:
         # The Floodlight mirror of the Google Ads held-arm gate above (048-02 AC5).
         run: npm run rig:floodlight-hold-flush
 
+      - name: GATING — native-tag suppressor network-0 proof (049-01 AC2/AC3/AC4)
+        # The load-bearing proof for spec 049-01: installTagSuppressor PREVENTS a matching
+        # runtime <script> — injected via the real vendor idiom (parentNode.insertBefore) AND
+        # the append/insertAdjacentElement variants — from ever downloading/evaluating (network-0
+        # + sentinel-absent) under a CSP mirroring the reference site's (Trusted Types +
+        # strict-dynamic), while a non-matching script (partial migration + scoped-not-blanket)
+        # still loads and the airlock-egress carve-out wins over an over-broad matcher. Node/
+        # vitest-INELIGIBLE (no DOM/network — this repo ships no jsdom, see the module's own
+        # SUBSTRATE note) — this step, not `npm test`, is the actual gate for AC2.
+        run: npm run rig:tag-suppressor
+
       - name: ADVISORY — cwv_budget (Lighthouse + INP delta + drain delivery, 07-03)
         # Advisory only (spec.md routing table) — cwv:budget exits 1 on a
         # budget miss, so continue-on-error is REQUIRED here or a statistical

@@ -1240,3 +1240,31 @@ Disclosed in-comment; non-blocking (the arch pass passed). **Resolution trigger:
 from `adapters/eds/index.js` (as `KNOWN_CONNECTOR_TYPES` is effectively surfaced) so the cross-check becomes two-sided —
 do it when the config surface is next touched, or a schema-freeze pass lands. _(Trigger fired — resolved 2026-09-14, see the
 RESOLVED note above.)_
+
+## Spec 049-01 (Native-tag suppressor) follow-ups
+
+### A `<script>` arriving inside a DocumentFragment is not walked (only the direct inserted node is checked)
+**Deferred:** `installTagSuppressor`'s patched `appendChild`/`insertBefore`/`replaceChild`/`append`/`prepend`/
+`insertAdjacentElement` each check the DIRECT inserted node for a `<script>` match. A container that batches several
+nodes into a `DocumentFragment` and inserts the FRAGMENT itself (not each `<script>` individually) would sail through
+unwalked — the fragment is not itself a `<script>`, so `evaluateCandidate` returns `null` for it, and its descendants
+are never independently checked. Not observed in the reference adopter (A1: `intuit-erp`'s `loadScriptOnce` creates and
+inserts one `<script>` element at a time via `document.createElement('script')` + a direct DOM insertion call — no
+fragment batching), so left uncovered rather than adding untested speculative surface this slice's ACs do not require.
+**Resolution trigger:** if a 050 trial (or a future adopter) observes a fragment-batched script injection, extend
+`evaluateCandidate` to walk a `DocumentFragment` argument's `querySelectorAll('script')` descendants (same matcher
+logic, applied per descendant) — or, if that mechanism turns out to be genuinely uncoverable page-side, treat it as
+the [ADR-0030](decisions/adr-0030-native-tag-suppressor.md) kill criterion (profile-side fallback) for that vendor.
+
+### `installTagSuppressor` is single-instance (module-level state), by design — not yet a documented adopter-facing constraint
+**Deferred:** the active `suppress`/`allow`/`onDiagnostic` config lives in ONE shared module-level `state` object, and
+the DOM patch is applied at most once per loaded copy of the module (a marker on the wrapped prototype method — see the
+module's own "IDEMPOTENT, SINGLE-INSTANCE INSTALL" docstring section). A second `installTagSuppressor(...)` call
+UPDATES the active config rather than layering a second, independent patch. This is the right shape for the one
+documented use case (one adopter page, one config, installed once before the container loads) and is what
+`rig/tag-suppressor.mjs` proves — but it means a caller wanting two INDEPENDENT, concurrently-active matcher sets
+(rather than sequential install/uninstall phases) cannot do so. No AC in 049-01/049-02 asks for concurrent independent
+instances, so this was not built; flagged here so a future consumer doesn't discover the limitation only by tripping it.
+**Resolution trigger:** if a real adopter (the `intuit-erp` trial, ADR-0029, or a later generic adopter) needs two
+independent suppressor configs live at once, revisit the single shared `state` — e.g. return a per-install token the
+patched methods dispatch on, or accept multiple registered configs and evaluate each in turn.

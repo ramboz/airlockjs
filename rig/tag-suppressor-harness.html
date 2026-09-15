@@ -1,0 +1,195 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Native-tag suppressor — real-browser network-0 proof (spec 049-01 AC1/AC2/AC3/AC4)</title>
+  </head>
+  <body>
+    <script type="module" nonce="aem">
+      // nonce="aem" — matches this rig's own served CSP (`script-src
+      // 'nonce-aem' 'strict-dynamic' ...`, the reference-site-mirroring value,
+      // rig/tag-suppressor.mjs's BOILERPLATE_CSP, copied from
+      // rig/sanitize-boundary.mjs). Without it this inline module script is
+      // itself blocked from executing at all.
+      //
+      // Spec 049-01 AC1/AC2/AC3/AC4 — the real-browser proof that
+      // installTagSuppressor PREVENTS a matching runtime <script> from ever
+      // downloading/evaluating (not merely observes it post-hoc), across the
+      // FULL DOM script-insertion surface — all SIX patched methods
+      // (appendChild/insertBefore/replaceChild/append/prepend/
+      // insertAdjacentElement) are individually driven and blocked here (a
+      // craft-review blocker fix: prepend/replaceChild were patched but
+      // previously exercised by no test, so removing either patch left the
+      // suite AND this rig green) — with the airlock-egress carve-out and
+      // partial-migration query discrimination. rig/tag-suppressor.mjs drives
+      // this harness: it collects every outbound network request (the
+      // network-0 assertion) and reads window.__RESULT__ (the sentinel +
+      // diagnostic assertions) — the dual assertion that defeats a
+      // cached-runtime confound (spec language).
+
+      import { installTagSuppressor } from "/adapters/eds/tag-suppressor.js";
+
+      // Register the SAME permissive default Trusted-Types policy the other
+      // rigs under this CSP register (rig/sanitize-boundary-harness.html,
+      // rig/csp-probe.html) — required because `require-trusted-types-for
+      // 'script'` guards `HTMLScriptElement.src` assignment too; a plain
+      // string assignment would otherwise throw.
+      if (window.trustedTypes && window.trustedTypes.createPolicy) {
+        window.trustedTypes.createPolicy("default", {
+          createHTML: (s) => s,
+          createScriptURL: (s) => s,
+          createScript: (s) => s,
+        });
+      }
+
+      // Two DISTINCT "hosts" reaching the SAME hermetic local server (loopback
+      // aliases of one Node http.createServer — no second server, no real
+      // network) — this is what lets ONE installTagSuppressor config exercise
+      // BOTH the partial-migration case (same host+path, discriminated by
+      // query, AC4) and the airlock-egress carve-out (an over-broad HOST-ONLY
+      // suppress matcher would otherwise ALSO catch the AC4 fixtures if they
+      // shared its host) in a single page, without either scenario colliding
+      // with the other's matchers.
+      const HOST_A = location.hostname; // the page's own origin (127.0.0.1 — see rig/tag-suppressor.mjs)
+      const HOST_B = "localhost"; // a second loopback alias of the SAME server — the "shared host" stand-in
+      const PORT = location.port;
+      const urlFor = (host, name, id) => `http://${host}:${PORT}/fixtures/${name}?id=${id}`;
+
+      const BEFORE_URL = urlFor(HOST_A, "runtime.js", "BEFORE"); // vendor idiom: parentNode.insertBefore(script, firstScript)
+      const APPEND_URL = urlFor(HOST_A, "runtime.js", "APPEND"); // Element.prototype.append variant
+      const PREPEND_URL = urlFor(HOST_A, "runtime.js", "PREPEND"); // Element.prototype.prepend variant
+      const ADJACENT_URL = urlFor(HOST_A, "runtime.js", "ADJACENT"); // Element.prototype.insertAdjacentElement variant
+      const REPLACECHILD_URL = urlFor(HOST_A, "runtime.js", "REPLACECHILD"); // Node.prototype.replaceChild variant
+      const KEEP_URL = urlFor(HOST_A, "runtime.js", "KEEP"); // SAME host+path as the blocked variants, DIFFERENT id — AC4 partial migration
+      const OTHER_URL = urlFor(HOST_A, "other.js", "OTHER"); // a wholly different resource — AC2 "scoped, not blanket"
+      const CONTAINER_URL = urlFor(HOST_B, "container-egress.js", "CONTAINER"); // caught by the over-broad HOST_B suppress matcher
+      const AIRLOCK_URL = urlFor(HOST_B, "airlock-egress.js", "AIRLOCK"); // AC3 carve-out — allow wins over the SAME over-broad matcher
+
+      window.__URLS__ = {
+        BEFORE_URL,
+        APPEND_URL,
+        PREPEND_URL,
+        ADJACENT_URL,
+        REPLACECHILD_URL,
+        KEEP_URL,
+        OTHER_URL,
+        CONTAINER_URL,
+        AIRLOCK_URL,
+      };
+
+      const diags = [];
+      window.__DIAGS__ = diags;
+
+      const suppress = [
+        { host: HOST_A, pathname: "/fixtures/runtime.js", query: { id: "BEFORE" } },
+        { host: HOST_A, pathname: "/fixtures/runtime.js", query: { id: "APPEND" } },
+        { host: HOST_A, pathname: "/fixtures/runtime.js", query: { id: "PREPEND" } },
+        { host: HOST_A, pathname: "/fixtures/runtime.js", query: { id: "ADJACENT" } },
+        { host: HOST_A, pathname: "/fixtures/runtime.js", query: { id: "REPLACECHILD" } },
+        { host: HOST_B }, // deliberately OVER-BROAD (host-only) — the AC3 carve-out fixture
+      ];
+      const allow = [
+        { host: HOST_B, pathname: "/fixtures/airlock-egress.js" }, // airlock's own egress — wins over the over-broad matcher above
+      ];
+
+      function makeScript(src) {
+        const s = document.createElement("script");
+        s.src = src; // resolved immediately (base-URL resolved even while detached — see the module's docstring)
+        return s;
+      }
+
+      // Settle on exactly the 3 EXPECTED loads (KEEP, OTHER, AIRLOCK), not a
+      // blind sleep — deterministic + fast in the healthy case, with a safety
+      // timeout so a regression (an expected load that never fires) cannot
+      // hang the rig forever.
+      let loadedCount = 0;
+      let resolveSettled;
+      const settled = new Promise((res) => {
+        resolveSettled = res;
+      });
+      function onExpectedSettle() {
+        loadedCount += 1;
+        if (loadedCount >= 3) resolveSettled();
+      }
+
+      try {
+        installTagSuppressor({
+          suppress,
+          allow,
+          onDiagnostic: (d) => diags.push(d),
+        });
+
+        // (a) the vendor idiom itself: parentNode.insertBefore(script, firstScript) — A1's
+        //     frame-critique correction (NOT head.appendChild).
+        const before = makeScript(BEFORE_URL);
+        const firstScript = document.getElementsByTagName("script")[0];
+        firstScript.parentNode.insertBefore(before, firstScript);
+
+        // (b) Element.prototype.append variant.
+        document.head.append(makeScript(APPEND_URL));
+
+        // (b2) Element.prototype.prepend variant (BLOCKER fix — previously untested; removing
+        //      this patch must turn this fixture's network-0/sentinel-absent assertions red).
+        document.head.prepend(makeScript(PREPEND_URL));
+
+        // (c) Element.prototype.insertAdjacentElement variant.
+        document.head.insertAdjacentElement("beforeend", makeScript(ADJACENT_URL));
+
+        // (c2) Node.prototype.replaceChild variant (BLOCKER fix — previously untested). A real
+        //      placeholder child is appended first (NOT suppressed — not a <script>), then
+        //      "replaced" by a matching script: since the match is neutralized before the native
+        //      call, the placeholder must SURVIVE (never actually replaced) and the script must
+        //      never connect.
+        const replaceChildPlaceholder = document.createElement("meta");
+        replaceChildPlaceholder.setAttribute("data-tag-suppressor-placeholder", "replaceChild");
+        document.head.appendChild(replaceChildPlaceholder);
+        document.head.replaceChild(makeScript(REPLACECHILD_URL), replaceChildPlaceholder);
+
+        // (d) AC4 partial migration + AC2 "non-matching loads normally" (same host+path, different id).
+        const keep = makeScript(KEEP_URL);
+        keep.onload = onExpectedSettle;
+        keep.onerror = onExpectedSettle;
+        document.head.appendChild(keep);
+
+        // (e) AC2 "scoped, not blanket" — a wholly different, non-matching resource.
+        const other = makeScript(OTHER_URL);
+        other.onload = onExpectedSettle;
+        other.onerror = onExpectedSettle;
+        document.head.appendChild(other);
+
+        // (f) AC3 carve-out setup — the container's OWN egress on HOST_B, caught by the over-broad matcher.
+        document.head.appendChild(makeScript(CONTAINER_URL));
+
+        // (g) AC3 carve-out proof — airlock's OWN egress on the SAME HOST_B, allow-listed -> still loads.
+        const airlockOwn = makeScript(AIRLOCK_URL);
+        airlockOwn.onload = onExpectedSettle;
+        airlockOwn.onerror = onExpectedSettle;
+        document.head.appendChild(airlockOwn);
+
+        await Promise.race([settled, new Promise((res) => setTimeout(res, 5000))]);
+        await new Promise((res) => setTimeout(res, 300)); // grace period for the network layer to fully settle
+
+        window.__RESULT__ = {
+          sentinels: {
+            BEFORE: !!window.__SENTINEL_BEFORE__,
+            APPEND: !!window.__SENTINEL_APPEND__,
+            PREPEND: !!window.__SENTINEL_PREPEND__,
+            ADJACENT: !!window.__SENTINEL_ADJACENT__,
+            REPLACECHILD: !!window.__SENTINEL_REPLACECHILD__,
+            KEEP: !!window.__SENTINEL_KEEP__,
+            OTHER: !!window.__SENTINEL_OTHER__,
+            CONTAINER: !!window.__SENTINEL_CONTAINER__,
+            AIRLOCK: !!window.__SENTINEL_AIRLOCK__,
+          },
+          // replaceChild's native contract: a suppressed newChild must mean the native
+          // replacement never ran, so the placeholder is STILL document.head's child.
+          replaceChildPlaceholderSurvived: replaceChildPlaceholder.parentNode === document.head,
+          diagnostics: diags,
+        };
+        window.__READY__ = true;
+      } catch (e) {
+        window.__HARNESS_ERROR__ = String((e && e.stack) || e);
+      }
+    </script>
+  </body>
+</html>
