@@ -99,12 +99,12 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 
 - **Developer-provable subset gated only on an available intuit-class site** (the developer's own `intuit-erp` repo);
   **container-owner cooperation gates only the live-attribution leg** (ADR-0029/0030 narrow ADR-0018's dependency).
-- New specs (per ADR-0029/0030): a **vendor-generic native-tag suppressor** (airlock adopter-facing layer, config-driven,
-  URL/query-scoped, carves out airlock's own egress); the **`intuit-erp` `?martech=airlock` trial** (subtree the
-  `dist-vX.Y.Z` cut → wire the suppressor + `boot(config)` for the four vendors with the real IDs → measure via the repo's
-  existing `scripts/diff/martech-diff.mjs` + Lighthouse); the **036 instrument extension** to the rewire arms with win
-  semantics (ADR-0018 E12); the **scripted adoption path + adopter docs** (ADR-0018 E8), which largely falls out of the
-  `?martech=airlock` gate.
+- Specs authored (DRAFT, 2026-09-15): **[spec 049 — native-tag suppressor](../specs/049-native-tag-suppressor/spec.md)**
+  (ADR-0030 — the vendor-generic, config-driven, URL/query-scoped page-side after-arm, shipped in the dist) and
+  **[spec 050 — MVP9 reference-site rewire trial](../specs/050-mvp9-reference-site-rewire-trial/spec.md)** (the
+  `?martech=airlock` application on `intuit-erp` + the Lighthouse/TBT + parity + event-level validation + the scripted
+  adoption path E8, folding in the 036-instrument extension E12). 050 depends on 049 built + a dist cut, and on prod-Tealium-
+  profile host access (stage/VPN) for the measurement.
 - On a passing release-check: **cut v1.0.0** (version bump + `dist-v1.0.0` tag; the literal major-break rule of ADR-0017
   resumes at 1.0.0).
 

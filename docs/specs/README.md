@@ -140,6 +140,8 @@
 | [048-ad-connector-boot-wiring](048-ad-connector-boot-wiring/spec.md) | 048-03 — `onetrust` as a `boot(config)` governance field → composite consent fan-out (end-to-end accept-flow) | **DONE** |  |
 | [049-native-tag-suppressor](049-native-tag-suppressor/spec.md) | 049-01 — runtime-`<script>` suppression (CWV-win core, dist-shipped) | DRAFT |  |
 | [049-native-tag-suppressor](049-native-tag-suppressor/spec.md) | 049-02 — direct-beacon-transport suppression (egress-parity completeness) | DRAFT |  |
+| [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-01 — the reference-site `?martech=airlock` rewire arm | DRAFT |  |
+| [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-02 — measured Lighthouse/TBT + parity evidence + scripted adoption path | DRAFT |  |
 
 ## Deferred slices
 
