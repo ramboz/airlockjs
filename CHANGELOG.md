@@ -13,19 +13,58 @@ Two tag families:
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-09-14 — MVP8 (Ad-Conversion Offloading)
+
+The ad-conversion tags that carry ~two-thirds of the reference site's martech TBT are now rewired off-thread,
+consent-gated, and parity-confirmed — plus the OneTrust consent-input driver the reference site's CMP needs. Scope is the
+**page-load** ad-beacon family; the true conversion ping (enhanced-match) + console-level attribution are MVP9.
+
 ### Added
 
+- **The Google Ads (AW) ad-conversion connector** (spec 044, MVP8): `connectors/google-ads/` reproduces the AW page-load
+  `www.google.com/ccm/collect` remarketing beacon off-thread, carrying Consent Mode v2 (`gcs`/`gcd`/`npa`) + a read-only
+  host-sourced `_gcl_au`→`auid` (never minted, §A5), parity-confirmed by the 038 harness. Under `ad_storage`-denied it
+  holds at the seal and re-maps on grant (no cookieless AW send), via the connector's `holdOnDenied` opt-in (044-02).
 - **The Floodlight (DoubleClick / DC) ad-conversion connector** (spec 046, MVP8): `connectors/floodlight/` reproduces
   DC's two page-load beacons off-thread — the query-delimited `www.google.com/ccm/collect` and the `;`-delimited
   matrix-path `ad.doubleclick.net/activity;src=…` (Floodlight-native `src`/`type`/`cat` + `auiddc`) — both carrying
   Consent Mode v2 + a read-only `_gcl_au`-derived linker (never minted), parity-confirmed by the 038 harness. Under
   `ad_storage`-denied both hold at the seal and re-map on grant (no cookieless DC send).
-- **Seal fan-out re-map** (spec 045-03 / [ADR-0024](docs/decisions/adr-0024-fanout-remap-per-beacon-key.md)): a
-  per-beacon `EgressRequest.remapKey` lets a connector that fans one event out to N held beacons re-map **each** to its
-  own form on grant (the 1:1 seal could not); 1:1 connectors are byte-unchanged.
+- **The OneTrust consent-input driver** (spec 047 / [ADR-0026](docs/decisions/adr-0026-onetrust-consent-input-source.md)):
+  a host-neutral, zero-import pure leaf reading OneTrust's **resolved** surface (`OnetrustActiveGroups` — never
+  `GetDomainData().Status`, which is configured-default) and mapping the site's groups → the `core/consent.js` vector via
+  a host-provided `{ groupId: purpose[] }` map. Subscribes OneTrust's consent-CHANGE signal (`OnConsentChanged` /
+  `OptanonWrapper`) → `setConsent`, so a mid-session accept flushes 045-held ad beacons (047-02).
+- **Ad-connector boot wiring + `onetrust` as a `boot(config)` composite governance field** (spec 048 /
+  [ADR-0027](docs/decisions/adr-0027-onetrust-composite-governance-field.md)): `bootGoogleAds` / `bootFloodlight` +
+  declarative `{type:"google-ads"|"floodlight"}` config + composite membership, each hosted in an egress-confined worker
+  chamber. `onetrust` is promoted to a top-level composite governance field wired to the `setConsent` fan-out (the
+  composite is the SOLE subscriber by construction), so a mid-session OneTrust **accept flushes held Google Ads AND
+  Floodlight beacons end-to-end through the real composite**.
+- **Seal hold-until-granted + fan-out re-map** (spec 045 / [ADR-0023](docs/decisions/adr-0023-ad-pzn-egress-hold-until-consent.md),
+  045-03 / [ADR-0024](docs/decisions/adr-0024-fanout-remap-per-beacon-key.md)): `holdOnDenied` buffers a denied-purpose
+  beacon and re-maps it under the now-current consent on the grant edge; a per-beacon `EgressRequest.remapKey` lets a
+  connector that fans one event out to N held beacons re-map **each** to its own form (the 1:1 seal could not); 1:1
+  connectors are byte-unchanged.
 - **Endpoint-ceiling matrix-URI granularity** (spec 046-02 / [ADR-0025](docs/decisions/adr-0025-endpoint-ceiling-matrix-prefix-match.md)):
   a declared `;`-matrix path opts into a segment-anchored prefix match (admitting a per-request path cachebuster); exact
   match preserved for every query-delimited endpoint.
+
+### Changed
+
+- **Manifest vocabulary is a single source of truth.** Each connector exports its `events` / `purposes.egress`
+  vocabulary (`GA4_EVENTS`, `GOOGLE_ADS_EGRESS_PURPOSES`, …) as a frozen const the manifest AND `adapters/eds/index.js`
+  share by reference — retiring the adapter's hand-maintained `*_MANIFEST_EVENTS` / `*_EGRESS_PURPOSES` mirror consts (a
+  reference-identity guard test makes drift impossible).
+- **`boot(config)` rejects unknown top-level config keys** (loud + actionable, surfacing the known set), matching the
+  pinned schema's `additionalProperties:false` — and making the schema↔runtime governance-field cross-check two-sided.
+
+### Fixed
+
+- **A re-`boot()` no longer strands the composite's held OneTrust-gated beacons**
+  ([ADR-0028](docs/decisions/adr-0028-onetrust-unsubscribe-reboot-safety.md)): `subscribeOnetrustConsentChanges` grows an
+  idempotent, compare-and-clear `unsubscribe()` (a stable trampoline over a mutable active-handler slot), folded into
+  `dispose()` — so a re-boot's new subscription takes the surface over without the prior teardown stranding it.
 
 ## [0.7.0] — 2026-09-11 — MVP7 (Pixel Parity & the Parity Harness)
 

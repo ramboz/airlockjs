@@ -8,7 +8,19 @@
 
 ## Status
 
-`committed`
+`shipped`
+
+> **Shipped as v0.8.0 (2026-09-14).** The fixed-core is DONE: the **Google Ads** (spec 044) and **Floodlight** (spec 046)
+> ad-conversion connectors — chamber-hosted, consent-gated, `holdOnDenied` re-map on grant — plus the **OneTrust
+> consent-input driver** (spec 047 / ADR-0026), all wired end-to-end via `boot(config)` with `onetrust` as a composite
+> governance field (spec 048 / ADR-0027): a mid-session OneTrust accept flushes held Google Ads **and** Floodlight beacons
+> through the real composite. The release-check is **met for the page-load family**: parity confirmed by the 038 harness on
+> redacted captures (`test/parity-google-ads.test.js`, `parity-floodlight-*.redacted.json`); the OneTrust driver feeds the
+> seal correctly (granted / denied / Consent Mode v2); no MVP1–7 regression (full suite green). The close-out also landed
+> the re-boot-unsubscribe fix (ADR-0028), the two-sided governance-field cross-check, the manifest-vocabulary SOT refactor,
+> and live real-chamber held→flush rigs (CI-gated). The **conversion-ping proper** (enhanced-match hashes),
+> **console-level attribution**, and the **CWV win on the rewire arms** are MVP9 by design (scope honestly bounded, not a
+> cut). The `v0.8.0` / `dist-v0.8.0` cut (E1) runs via `npm version minor` (→ the immutable `dist-v0.8.0` tag).
 
 Allowed statuses: `candidate`, `committed`, `shipping`, `shipped`, `dropped`.
 Do not move a plan from `candidate` to `committed` without an explicit user decision.

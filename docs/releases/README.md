@@ -20,7 +20,7 @@ they stop informing a current release decision.
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| [MVP8 — Ad-Conversion Offloading](mvp8.md) | **Committed 2026-09-11.** R-009 gate cleared for the page-load family (Ads/Floodlight pings are governed GET + Consent Mode v2; denied = seal-hold). Building **Google Ads** ([spec 044](../specs/044-google-ads-connector/spec.md)) → Floodlight → OneTrust driver. Ships v0.8.0 | JIG handoff: spec 044 (Google Ads) authored DRAFT; Floodlight + OneTrust (E7) next; conversion-ping/console = MVP9, DMP-sync = E10 |
+| _None yet_ | _-_ | _-_ |
 
 ## Shipping
 
@@ -41,6 +41,7 @@ Recently shipped release plans stay here only while they inform current decision
 | [MVP5 — Inspector & the RUM Layer (make it visible, own the observability)](mvp5.md) | Shipped as **v0.5.0** — the enforcement inspector (028), the before/after CWV scoreboard (029), and airlock-as-RUM-authority / the *replace* decision (030) | JIG handoff: [028](../specs/028-enforcement-inspector/spec.md), [029](../specs/029-cwv-scoreboard/spec.md), [030](../specs/030-rum-subsume/spec.md) |
 | [MVP6 — Stable Core & Validation Harness](mvp6.md) | Shipped as **v0.6.0** (2026-09-07) — distribution (031), cookie-grant hardening (035), the stable-core contract (037/ADR-0017), the real-site CWV harness + subset smoke (036); the v0.6.0 version-bump/dist-tag cut (E1) ran | JIG handoff: [031](../specs/031-distribution-setup/spec.md), [035](../specs/035-cookie-grant-wrapper/spec.md), [036](../specs/036-real-site-validation-harness/spec.md), [037](../specs/037-one-point-oh-api-pin/spec.md) |
 | [MVP7 — Pixel Parity & the Parity Harness](mvp7.md) | Shipped as **v0.7.0** (2026-09-11) — the vendor-generic parity harness (038) + the GA4 gtag-protocol connector (039/ADR-0019) + Meta advanced matching (026-04/ADR-0022) with `ud[external_id]` field-presence parity confirmed (038-04); the GET-critical unload dispatcher (042). Release-check met; the `v0.7.0`/`dist-v0.7.0` cut (E1) runs via `npm version minor`. Residuals carried to MVP9: signed-in `em`/`ph` capture, same-input efficacy | JIG handoff: [038](../specs/038-parity-harness/spec.md), [039](../specs/039-ga4-gtag-connector/spec.md), [026](../specs/026-generic-pixel-connector/spec.md), spec 042 |
+| [MVP8 — Ad-Conversion Offloading](mvp8.md) | Shipped as **v0.8.0** (2026-09-14) — the **Google Ads** (044) + **Floodlight** (046) ad-conversion connectors (chamber-hosted, consent-gated, `holdOnDenied` re-map), the **OneTrust consent-input driver** (047/ADR-0026), and `onetrust` as a `boot(config)` composite governance field (048/ADR-0027) — a mid-session accept flushes held Ads **and** Floodlight beacons through the real composite. Parity confirmed by the 038 harness on redacted captures. Close-out: re-boot unsubscribe (ADR-0028), two-sided governance-field cross-check, manifest-vocabulary SOT, live real-chamber held→flush rigs (CI-gated). The `v0.8.0`/`dist-v0.8.0` cut (E1) runs via `npm version minor`. Deferred to MVP9: conversion-ping proper, console attribution, CWV win on the rewire arms | JIG handoff: [044](../specs/044-google-ads-connector/spec.md), [046](../specs/046-floodlight-connector/spec.md), [047](../specs/047-onetrust-consent-input-driver/spec.md), [048](../specs/048-ad-connector-boot-wiring/spec.md) |
 
 ## Dropped
 
