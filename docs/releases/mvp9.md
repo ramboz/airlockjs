@@ -6,6 +6,17 @@
 > MVP9 does the thing 1.0 *means*: rewire an intuit-class site's TBT-dominant generic vendor tags onto airlock, prove
 > parity in the vendor consoles and the CWV win with the harness, and ship the scripted adoption path a developer
 > follows to repeat it.
+>
+> **Reframed 2026-09-15 ([ADR-0029](../decisions/adr-0029-mvp9-developer-side-after-arm.md) +
+> [ADR-0030](../decisions/adr-0030-native-tag-suppressor.md)).** The after-arm is now **page-side and
+> developer-controlled** — a vendor-generic native-tag suppressor in the adopter's OWNED EDS repo, gated by
+> `?martech=airlock`, not a Tealium profile change. This **splits MVP9's 1.0 bar honestly**: the **developer-provable
+> subset** — the **Lighthouse/TBT win** + **event-level parity** (harness + vendor DebugView/Test-Events) + the **scripted
+> adoption path** — is provable with **zero container-owner dependency** (the primary route below); the **production
+> live-attribution window** is NOT developer-closable and **re-inherits ADR-0018's container-owner gate** (a query-gated
+> arm collects no natural traffic, and defaulting it for real users suppresses their live conversion tracking — a
+> container-owner revenue decision). So the ladder can now reach the developer-provable subset without customer
+> cooperation; only the live-attribution leg still waits on the container owner.
 
 ## Status
 
@@ -41,9 +52,12 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 ## Solution Outline
 
 - **Rewire the four generic vendors** (GA4, Meta Pixel, Google Ads, Floodlight) on the reference (or an equivalent
-  intuit-class) site: the container stops firing them (same-host, query-gated native filter rules published to the
-  production profile — the after-arm that avoids spec 036's cross-deployment confound), airlock emits the equivalent
-  governed, off-thread beacons.
+  intuit-class) site, airlock (vendored as the `dist-vX.Y.Z` subtree) emitting the equivalent governed, off-thread beacons.
+  **The after-arm is page-side and developer-controlled** (ADR-0029/0030): a `?martech=airlock`-gated, vendor-generic
+  native-tag suppressor in the adopter's own EDS repo drops the four vendors' runtime scripts + beacons (URL/query-scoped,
+  carving out airlock's own egress) before the container loads — no Tealium profile change. **For the production
+  live-attribution window only**, the profile-side native-exclusion route (same-host, query-gated rules on the production
+  profile) remains the container owner's action (the live-attribution leg re-inherits ADR-0018's gate).
 - **Confirm parity at both console levels** (ADR-0018): **event-level receipt** on a lab profile (Meta Events Manager /
   Test Events, GA4 DebugView + realtime, Google Ads conversion diagnostics, Floodlight verification) — developer-driven;
   and **attribution** over a **live comparison window** in production (view-through / cross-device / CM360) — the
@@ -57,8 +71,10 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 
 ## Risks / Rabbit Holes
 
-- **Container-owner cooperation is the load-bearing dependency** (ADR-0018 kill criterion). No lab profile + no console
-  access + no production live window ⇒ 1.0 waits; the owner re-decides (another site, or an explicitly re-decided bar —
+- **Container-owner cooperation is the load-bearing dependency — but now ONLY for the live-attribution leg** (ADR-0029
+  narrows ADR-0018's two-party dependency). The developer-provable subset (Lighthouse/TBT win + event-level lab parity +
+  scripted path) no longer waits on the owner — it runs off the page-side `?martech=airlock` after-arm. For the live window:
+  no console access + no live cohort ⇒ that leg waits; the owner re-decides (another site, or an explicitly re-decided bar —
   e.g. event-level receipt as the 1.0 gate with attribution carried as a named post-cut residual). **Never** a silent
   narrowing to oracle-only or lab-only.
 - **Attribution is only observable live.** A lab spike cannot stand in for the production window; a divergence the lab
@@ -81,24 +97,43 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 
 ## JIG Handoff
 
-- Gated on **container-owner cooperation** + an available intuit-class site (ADR-0018 Assumptions + kill criteria).
-- New specs: the **real-site rewire** (config + boot for the four vendors on the site), the **036 instrument extension**
-  to the rewire arms with win semantics (ADR-0018 E12), and the **two-sided scripted adoption path + adopter docs**
-  (ADR-0018 E8).
+- **Developer-provable subset gated only on an available intuit-class site** (the developer's own `intuit-erp` repo);
+  **container-owner cooperation gates only the live-attribution leg** (ADR-0029/0030 narrow ADR-0018's dependency).
+- New specs (per ADR-0029/0030): a **vendor-generic native-tag suppressor** (airlock adopter-facing layer, config-driven,
+  URL/query-scoped, carves out airlock's own egress); the **`intuit-erp` `?martech=airlock` trial** (subtree the
+  `dist-vX.Y.Z` cut → wire the suppressor + `boot(config)` for the four vendors with the real IDs → measure via the repo's
+  existing `scripts/diff/martech-diff.mjs` + Lighthouse); the **036 instrument extension** to the rewire arms with win
+  semantics (ADR-0018 E12); the **scripted adoption path + adopter docs** (ADR-0018 E8), which largely falls out of the
+  `?martech=airlock` gate.
 - On a passing release-check: **cut v1.0.0** (version bump + `dist-v1.0.0` tag; the literal major-break rule of ADR-0017
   resumes at 1.0.0).
 
 ## Release-Check Criteria (vendor-generic — this is the 1.0 gate)
 
-- The four generic vendor tags (GA4, Meta Pixel, Google Ads, Floodlight) are **rewired from the container to airlock** on
-  a real intuit-class site.
-- **Parity confirmed** at the vendor boundary: the parity harness passes (per-protocol semantic oracle, both cookie
-  cohorts) **and** the vendor consoles agree — event-level receipt (lab) **and** attribution over a live window
-  (production).
-- **CWV win measured** on the rewire arms (036 instrument, E12): the after-arm reaches the CWV "good" band / the site's
-  pre-martech Lighthouse band, against both container baselines.
-- A **documented, scripted two-sided adoption path** exists (developer steps + container-owner checklist) — a developer
-  with automation skills can repeat the rewire.
+**Developer-provable subset — NO container-owner dependency (ADR-0029/0030); the primary local route:**
+
+- The four generic vendor tags (GA4, Meta Pixel, Google Ads, Floodlight) are **rewired from the container to airlock** on a
+  real intuit-class site, the after-arm achieved page-side via the `?martech=airlock` suppressor — **no Tealium profile
+  change**.
+- **Parity confirmed at the vendor boundary (event-level, lab):** the parity harness passes (per-protocol semantic oracle,
+  both cookie cohorts) **and** event-level receipt agrees in the vendor consoles' lab/debug surfaces (GA4 DebugView, Meta
+  Test Events, Google Ads / Floodlight diagnostics) — all developer-driven.
+- **Lighthouse/TBT win measured** on the rewire arms (036 instrument, E12): the after-arm restores the site's
+  TBT/Lighthouse band against both container baselines. (A lab TBT/Lighthouse win — the reference site's ad tags are
+  TBT-dominant and INP/CLS-neutral, LCP already good, so **no** field INP/LCP/CLS improvement is claimed — ADR-0029.)
+- A **documented, scripted adoption path** exists (developer steps) — the `?martech=airlock` gate + airlock config + the
+  diff run ARE the repeatable procedure.
+
+**Container-owner-gated — the live-attribution leg (re-inherits [ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md); carried until the container owner engages):**
+
+- **Attribution over a live production window** (view-through / cross-device / CM360) confirmed in the vendor consoles under
+  live traffic. **Not developer-closable** — defaulting the arm for real users suppresses their live conversion tracking (a
+  container-owner revenue decision); revisited with the container owner after the developer-provable subset passes. Per
+  ADR-0018's own kill criterion the owner may re-decide the 1.0 bar here (event-level receipt as the gate, attribution a
+  named post-cut residual) — **never** a silent narrowing to lab-only.
+
+**Throughout:**
+
 - **No customer-custom tag** is a deliverable or gate; **no live identifiers** in committed artifacts.
 - No regression to the stable-core contract or any MVP1–8 connector.
 
