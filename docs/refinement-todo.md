@@ -1191,12 +1191,23 @@ entry").
 pass touches `contracts/instrumentation-config.schema.json` for another reason and picks this up in the same pass.
 _(Trigger fired — resolved 2026-09-14, see the RESOLVED note above.)_
 
-### The 048-03 top-level governance-field cross-check is ONE-SIDED (hand-maintained list, not runtime-derived)
-**Logged (048-03 arch review, 2026-09-14):** the new drift guard added by the 048-03 fix round
+### ~~The 048-03 top-level governance-field cross-check is ONE-SIDED (hand-maintained list, not runtime-derived)~~ — RESOLVED 2026-09-14
+
+**RESOLVED 2026-09-14.** The cross-check is now TWO-SIDED. `adapters/eds/index.js` owns a `BOOT_CONFIG_TOP_LEVEL_FIELDS`
+const (the closed set `boot()`/`validateConfig` read off `config`), and `validateConfig` REJECTS any unknown top-level key
+loud + actionable, SURFACING that set in the error (`unknown config field … expected one of: …`) — the exact discipline
+`KNOWN_CONNECTOR_TYPES` uses, and matching the pinned schema's top-level `additionalProperties: false`. The cross-check
+(`test/instrumentation-config-contract.test.js`, "048-03 CROSS-CHECK (two-sided)") now reads the runtime set BACK OFF that
+error text and asserts full set-equality with the schema's top-level `properties` — so a field added to `boot()`'s destructure
++ the const but forgotten in the schema goes red, AND a schema property with no runtime field goes red (mutation-verified).
+Enforcement broke no existing caller (full suite green). Original note (pre-fix, retained for history):
+
+~~**Logged (048-03 arch review, 2026-09-14):**~~ the new drift guard added by the 048-03 fix round
 (`test/instrumentation-config-contract.test.js`) pins the schema's top-level `properties` against a **hand-maintained**
 `BOOT_CONFIG_TOP_LEVEL_FIELDS` list, not against the runtime's own enumeration of the fields `boot()` reads. So a field
 added to `boot()`'s config destructure but omitted from that list would NOT self-detect — strictly weaker than the
 connector-type cross-check (048-01), which derives its set from the runtime's own `KNOWN_CONNECTOR_TYPES` error text.
 Disclosed in-comment; non-blocking (the arch pass passed). **Resolution trigger:** export the top-level config-field set
 from `adapters/eds/index.js` (as `KNOWN_CONNECTOR_TYPES` is effectively surfaced) so the cross-check becomes two-sided —
-do it when the config surface is next touched, or a schema-freeze pass lands.
+do it when the config surface is next touched, or a schema-freeze pass lands. _(Trigger fired — resolved 2026-09-14, see the
+RESOLVED note above.)_

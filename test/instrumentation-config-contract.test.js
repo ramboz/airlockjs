@@ -145,6 +145,15 @@ describe("AC2 — boot(config) rejects a malformed config, loud + actionable", (
       .rejects.toThrow(/onetrust\.groupPurposeMap.*object/);
   });
 
+  // Governance-field cross-check made two-sided (refinement-todo § Spec 048-03): the runtime now OWNS
+  // its top-level config-field enumeration and rejects any unknown key loud + actionable (matching the
+  // pinned schema's `additionalProperties: false`), surfacing the closed set so a typo'd key or a
+  // misplaced `opts`-arg field is caught, not silently ignored.
+  it("unknown top-level config field (a typo like `connetcors`): rejects, naming the expected set", async () => {
+    await expect(boot({ connetcors: [{ type: "ga4", ctx: gaCtx }] }))
+      .rejects.toThrow(/unknown config field "connetcors".*expected one of:.*connectors/);
+  });
+
   it("a valid single-connector config does NOT throw (the validator is not over-eager)", async () => {
     await expect(boot({ connectors: [{ type: "ga4", ctx: gaCtx }] })).resolves.toBeTruthy();
   });
@@ -428,23 +437,33 @@ describe("048-01 CROSS-CHECK — runtime KNOWN_CONNECTOR_TYPES == schema's enume
   });
 });
 
-// CROSS-CHECK (048-03 fix round, arch blocker): the CONNECTOR-TYPE cross-check above cannot
-// catch a TOP-LEVEL governance-field drift (exactly the "onetrust" gap this fix round closes —
-// the schema silently lagged `boot()`'s own top-level destructure). Pins the schema's top-level
-// `properties` against the governance/config fields `boot()` (adapters/eds/index.js) actually
-// reads off `config` — kept in sync BY HAND with that function's own destructure/JSDoc `@param`
-// (its home), the same manually-maintained discipline `KNOWN_CONNECTOR_TYPES` itself relies on.
-// Before this fix round this test was RED for "onetrust" (present in `boot()`'s destructure,
-// absent from `schema.properties`); a FUTURE top-level field added to `boot()` but never added
-// here (or to the schema) won't self-detect — but a field added to BOTH this list and `boot()`
-// while the schema is forgotten DOES go red here.
-describe("048-03 CROSS-CHECK — schema top-level properties cover the governance/config fields boot() reads", () => {
-  const BOOT_CONFIG_TOP_LEVEL_FIELDS = ["connectors", "consent", "consentStrict", "payloadDenylist", "onetrust"];
-
-  it("every field boot() destructures off config is declared in schema.properties", () => {
-    for (const field of BOOT_CONFIG_TOP_LEVEL_FIELDS) {
-      expect(Object.keys(schema.properties), `schema.properties must declare "${field}"`).toContain(field);
+// CROSS-CHECK (048-03 fix round → made TWO-SIDED, refinement-todo § Spec 048-03): the CONNECTOR-TYPE
+// cross-check above cannot catch a TOP-LEVEL governance-field drift (the "onetrust" gap the 048-03 fix
+// round closed — the schema silently lagged `boot()`'s own top-level destructure). This SIBLING pins the
+// schema's top-level `properties` against the runtime's OWN enumeration of the fields `boot()` reads —
+// surfaced (exactly like `KNOWN_CONNECTOR_TYPES`) off the "unknown config field … expected one of: …"
+// error `validateConfig` throws for an unknown top-level key. The original 048-03 guard compared the
+// schema against a hand-maintained TEST-LOCAL list, so a field added to `boot()` but omitted from that
+// list wouldn't self-detect (the "one-sided" residual). Now the set comes from the runtime itself, so
+// it is TWO-SIDED, matching the connector-type cross-check: a field added to `boot()`'s destructure +
+// the runtime const but forgotten in the schema goes red, AND a schema property with no runtime field
+// goes red too.
+describe("048-03 CROSS-CHECK (two-sided) — schema top-level properties == the config fields boot() reads", () => {
+  it("the runtime's own top-level field set (off validateConfig's error) equals the schema's top-level properties", async () => {
+    let thrown;
+    try {
+      await boot({ __cross_check_sentinel_field__: 1 });
+    } catch (e) {
+      thrown = e;
     }
+    expect(thrown, "boot() must reject an unknown top-level config field").toBeTruthy();
+    const match = thrown.message.match(/expected one of: (.+)$/);
+    expect(match, "the unknown-field error names the expected set").toBeTruthy();
+    const runtimeFields = new Set(match[1].split(",").map((s) => s.trim()));
+
+    const schemaFields = new Set(Object.keys(schema.properties));
+
+    expect(schemaFields).toEqual(runtimeFields);
   });
 });
 

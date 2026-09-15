@@ -1904,6 +1904,21 @@ const FLOODLIGHT_MANIFEST_EVENTS = ["page_view"];
 const KNOWN_CONNECTOR_TYPES = ["ga4", "ga4-gtag", "pixel", "helix-rum", "alloy", "google-ads", "floodlight"];
 
 /**
+ * The CLOSED set of top-level `boot(config)` fields — the exact keys `boot()` / `validateConfig`
+ * destructure off `config` (`connectors` + the three governance fields + the `onetrust` governance
+ * field, 048-03). The runtime's OWN enumeration of the config surface, the sibling of
+ * `KNOWN_CONNECTOR_TYPES` for the top-level shape: `validateConfig` rejects any OTHER top-level key
+ * loud + actionable and SURFACES this set in the error (same discipline as the unknown-connector-type
+ * error), matching the pinned schema's top-level `additionalProperties: false`. The
+ * `KNOWN_CONNECTOR_TYPES`↔schema cross-check has a top-level SIBLING that reads this set back OFF that
+ * error text (`test/instrumentation-config-contract.test.js`) — so the schema/runtime governance-field
+ * drift guard is now TWO-SIDED (a field added to `boot()`'s destructure + this const but forgotten in
+ * the schema goes red; a schema property with no runtime field goes red too), no longer a
+ * hand-maintained test-local list (048-03 arch-review residual, refinement-todo § Spec 048-03).
+ */
+const BOOT_CONFIG_TOP_LEVEL_FIELDS = ["connectors", "consent", "consentStrict", "payloadDenylist", "onetrust"];
+
+/**
  * Each pixel vendor's REQUIRED id field (spec 032-02 AC2). Keys mirror `PIXEL_VENDORS`;
  * the config path REQUIRES the vendor's real id (a production authoring surface), unlike
  * the standalone `bootMetaPixel`/… boots which default to a synthetic placeholder for
@@ -1950,6 +1965,20 @@ function validateConfig(config) {
     const { groupPurposeMap } = onetrust;
     if (groupPurposeMap === undefined || groupPurposeMap === null || typeof groupPurposeMap !== "object" || Array.isArray(groupPurposeMap)) {
       throw new Error('airlock boot(config): "onetrust.groupPurposeMap" must be an object (a group id -> purpose[] map)');
+    }
+  }
+  // 048-03 governance-field cross-check residual (refinement-todo § Spec 048-03): reject any UNKNOWN
+  // top-level config key loud + actionable, SURFACING the closed set in the error (the same discipline
+  // as the unknown-connector-type error above) — so the runtime OWNS its config-field enumeration and
+  // the schema↔runtime governance-field drift guard can read it back off this error text (two-sided).
+  // Matches the pinned schema's top-level `additionalProperties: false`, and turns a typo'd key
+  // (`connetcors`, or an `opts`-arg field misplaced into `config`) into a clear error rather than a
+  // silent no-op boot. Ordered LAST so a wrong-TYPED known field still reports its specific message.
+  for (const key of Object.keys(config)) {
+    if (!BOOT_CONFIG_TOP_LEVEL_FIELDS.includes(key)) {
+      throw new Error(
+        `airlock boot(config): unknown config field ${JSON.stringify(key)} — expected one of: ${BOOT_CONFIG_TOP_LEVEL_FIELDS.join(", ")}`,
+      );
     }
   }
 }

@@ -155,11 +155,13 @@ re-scope + one review fix round.
 
 ### Named residuals (carried forward)
 
-- **Re-boot unsubscribe** — the OneTrust driver has no unsubscribe primitive, so a re-`boot()` leaves the prior composite's
-  subscription installed (benign: `setConsent`-after-dispose is main-thread/worker-free, no throw). Inherited from 047-02;
-  logged in `refinement-todo.md`; resolving it means growing the 047 driver an unsubscribe seam.
-- **One-sided governance-field cross-check** — the new drift guard compares the schema against a hand-maintained
-  `BOOT_CONFIG_TOP_LEVEL_FIELDS` list (not the runtime's own enumeration), so a field added to `boot()` but not the list
-  won't self-detect (disclosed in-comment). Consider exporting the field set from the adapter to make it two-sided (logged).
+- **Re-boot unsubscribe** — ~~the OneTrust driver has no unsubscribe primitive, so a re-`boot()` leaves the prior composite's
+  subscription installed~~ **RESOLVED 2026-09-14 ([ADR-0028](../../decisions/adr-0028-onetrust-unsubscribe-reboot-safety.md)):**
+  `subscribeOnetrustConsentChanges` now returns an idempotent, re-boot-safe (compare-and-clear) `unsubscribe()`, folded into
+  `dispose()` — a re-`boot()` no longer strands the live composite's held beacons.
+- **One-sided governance-field cross-check** — ~~the new drift guard compares the schema against a hand-maintained
+  `BOOT_CONFIG_TOP_LEVEL_FIELDS` list (not the runtime's own enumeration)~~ **RESOLVED 2026-09-14:** the runtime now owns
+  `BOOT_CONFIG_TOP_LEVEL_FIELDS` and `validateConfig` rejects unknown top-level keys, surfacing the set in its error; the
+  cross-check reads that back off the error text and asserts set-equality with the schema — genuinely two-sided.
 - **`$defs/onetrustConfig` excludes the `win`/`onetrust` DI seams** — by design (non-serializable, test-only injection seams
   absent from any real JSON config), keeping the pinned schema an accurate model of the production declarative contract.
