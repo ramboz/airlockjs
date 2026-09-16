@@ -6,19 +6,27 @@ import {
   compileMatcher,
   shouldSuppress,
   shouldSuppressCompiled,
+  shouldSuppressBeacon,
+  shouldSuppressBeaconCompiled,
   suppressionDiagnostic,
   installTagSuppressor,
 } from "../adapters/eds/tag-suppressor.js";
 
-// Spec 049-01 — the native-tag suppressor's PURE, DOM-free logic (matcher
-// compile + shouldSuppress predicate + carve-out precedence + the diagnostic
-// record shape). The DOM-patching itself (installTagSuppressor's actual
-// interception) is Node/vitest-INELIGIBLE (no Node/Element globals, no jsdom
-// in this repo) and is proven for real in rig/tag-suppressor.mjs (a real
-// Chromium, per the module's own SUBSTRATE note) — these tests cover only what
-// IS provable here: AC1 (matcher/predicate + the vendor-neutral grep guard),
-// AC3 (the carve-out precedence), AC4 (partial migration), AC5 (the
-// diagnostic record shape).
+// Spec 049-01/049-02 (craft-review nit fix, Task 5: this file now also covers
+// 049-02) — the native-tag suppressor's PURE, DOM-free logic (matcher compile +
+// shouldSuppress predicate + carve-out precedence + the diagnostic record
+// shape; and, 049-02, the beacon-transport carve-out predicates
+// shouldSuppressBeacon/shouldSuppressBeaconCompiled — the fetch+keepalive
+// exemption that lets airlock's own egress survive at a URL a suppress matcher
+// matches). The DOM-patching itself (installTagSuppressor's actual
+// interception, BOTH surfaces) is Node/vitest-INELIGIBLE (no Node/Element
+// globals, no jsdom in this repo) and is proven for real in
+// rig/tag-suppressor.mjs (a real Chromium, per the module's own SUBSTRATE
+// note) — these tests cover only what IS provable here: 049-01 AC1
+// (matcher/predicate + the vendor-neutral grep guard), AC3 (the carve-out
+// precedence), AC4 (partial migration), AC5 (the diagnostic record shape);
+// 049-02 AC1/AC2 (shouldSuppressBeacon(Compiled)'s transport-of-emission
+// carve-out, mutation-tested on the fetch+keepalive exemption).
 
 const MODULE_PATH = join(dirname(fileURLToPath(import.meta.url)), "..", "adapters", "eds", "tag-suppressor.js");
 
@@ -200,7 +208,7 @@ describe("049-01 AC5 — suppressionDiagnostic (the pure 028-shaped diagnostic-r
   // object across every buffered ring row referencing it, corrupting the
   // collector's isolation guarantee. So the record carries flat primitive
   // fields ONLY — no nested matcher object anywhere.
-  it("names the level/kind/disposition + the matched URL + the matcher's host/pathname, and serializes query to a flat string", () => {
+  it("names the level/kind/disposition + the matched URL + the matcher's host/pathname, and serializes query to a flat string; defaults transport to 'script' (049-01's own call sites)", () => {
     const matcher = { host: "shared.test", pathname: "/runtime.js", query: { id: "X" } };
     const record = suppressionDiagnostic("https://shared.test/runtime.js?id=X", matcher);
     expect(record).toEqual({
@@ -211,7 +219,14 @@ describe("049-01 AC5 — suppressionDiagnostic (the pure 028-shaped diagnostic-r
       matcherHost: "shared.test",
       matcherPathname: "/runtime.js",
       matcherQuery: "id=X",
+      transport: "script",
     });
+  });
+
+  it("049-02 — names the caller-supplied transport (e.g. a beacon transport) instead of the 'script' default", () => {
+    const matcher = { host: "shared.test", pathname: "/beacon" };
+    const record = suppressionDiagnostic("https://shared.test/beacon?id=X", matcher, "img");
+    expect(record.transport).toBe("img");
   });
 
   it("emits empty-string matcherPathname/matcherQuery when the matcher has no pathname/query constraint (host-only, the AC3 over-broad case)", () => {
@@ -247,6 +262,97 @@ describe("049-01 AC5 — suppressionDiagnostic (the pure 028-shaped diagnostic-r
     expect(record.matcherPathname).toBe("");
     expect(record.matcherQuery).toBe("");
   });
+
+  it("falls back to 'script' when a caller passes an invalid (non-string) transport", () => {
+    expect(suppressionDiagnostic("https://shared.test/a", null, 42).transport).toBe("script");
+    expect(suppressionDiagnostic("https://shared.test/a", null, "").transport).toBe("script");
+  });
+});
+
+describe("049-02 AC1/AC2/AC3 — shouldSuppressBeacon: the transport-of-emission carve-out (pure, DOM-free)", () => {
+  // A-collision (spec 049-02): airlock reproduces a container's beacon at the
+  // container's BYTE-IDENTICAL URL, so a URL/query matcher alone cannot
+  // separate airlock's copy from the container's — the discriminator is the
+  // TRANSPORT the request was emitted through. airlock emits EVERY own
+  // main-thread beacon via `fetch(url, { keepalive: true })` (core/egress.js
+  // `fetchInit`) and NEVER `<img>`/`sendBeacon`/`XHR` — so a `fetch` carrying
+  // `keepalive:true` is EXEMPT from suppression even at a matching URL; every
+  // other transport (img/sendBeacon/xhr/non-keepalive fetch) is suppressed
+  // exactly like 049-01's URL-based verdict.
+  const suppress = [{ host: "shared.test", pathname: "/beacon" }];
+  const MATCHING_URL = "https://shared.test/beacon?id=X";
+  const NONMATCHING_URL = "https://shared.test/other";
+
+  it.each(["img", "sendBeacon", "xhr"])(
+    "AC1 — a %s beacon at a matching URL is suppressed (no keepalive concept for this transport)",
+    (transport) => {
+      const verdict = shouldSuppressBeacon(MATCHING_URL, { suppress, transport });
+      expect(verdict.suppressed).toBe(true);
+      expect(verdict.matcher).toEqual(suppress[0]);
+    },
+  );
+
+  it("AC1/AC2 — a NON-keepalive fetch at a matching URL IS suppressed (only keepalive:true is exempt)", () => {
+    const verdict = shouldSuppressBeacon(MATCHING_URL, { suppress, transport: "fetch", keepalive: false });
+    expect(verdict.suppressed).toBe(true);
+  });
+
+  it("AC1 — a non-matching URL is never suppressed, on any transport", () => {
+    for (const transport of ["img", "sendBeacon", "xhr", "fetch"]) {
+      expect(shouldSuppressBeacon(NONMATCHING_URL, { suppress, transport, keepalive: true }).suppressed).toBe(false);
+    }
+  });
+
+  // THE MUTATION-VERIFIED, LOAD-BEARING TEST (see the implementer's report): removing
+  // the `transport === "fetch" && keepalive === true` exemption makes this go red
+  // (airlock's own keepalive-fetch reproduction of a matching URL would be dropped).
+  it("AC2 — a fetch with init.keepalive===true is EXEMPT even at a URL that matches a suppress matcher (airlock's own egress signature)", () => {
+    const verdict = shouldSuppressBeacon(MATCHING_URL, { suppress, transport: "fetch", keepalive: true });
+    expect(verdict.suppressed).toBe(false);
+    expect(verdict.exempt).toBe(true);
+  });
+
+  it("AC2 — the 049-01 URL allow-set is ADDITIVE — it still keeps a URL on ANY transport, not just fetch+keepalive", () => {
+    const allow = [{ host: "shared.test", pathname: "/beacon" }];
+    for (const transport of ["img", "sendBeacon", "xhr"]) {
+      const verdict = shouldSuppressBeacon(MATCHING_URL, { suppress, allow, transport });
+      expect(verdict.suppressed).toBe(false);
+      expect(verdict.allowed).toBe(true);
+    }
+  });
+
+  it("never throws on garbage input", () => {
+    expect(() => shouldSuppressBeacon("not a url", { suppress, transport: "img" })).not.toThrow();
+    expect(() => shouldSuppressBeacon(MATCHING_URL, {})).not.toThrow();
+    expect(() => shouldSuppressBeacon(MATCHING_URL)).not.toThrow();
+  });
+});
+
+describe("049-02 — shouldSuppressBeaconCompiled: the precompiled-matcher hot path (mirrors 049-01's shouldSuppressCompiled)", () => {
+  const rawSuppress = [{ host: "shared.test", pathname: "/beacon" }];
+  const compiledSuppress = rawSuppress.map(compileMatcher);
+
+  it("matches shouldSuppressBeacon's raw-matcher verdict for the same input", () => {
+    for (const [transport, keepalive] of [
+      ["img", false],
+      ["fetch", false],
+      ["fetch", true],
+    ]) {
+      expect(
+        shouldSuppressBeaconCompiled("https://shared.test/beacon?id=X", { suppress: compiledSuppress, transport, keepalive }),
+      ).toEqual(shouldSuppressBeacon("https://shared.test/beacon?id=X", { suppress: rawSuppress, transport, keepalive }));
+    }
+  });
+
+  it("carries the SAME keepalive-fetch exemption over precompiled matchers", () => {
+    const verdict = shouldSuppressBeaconCompiled("https://shared.test/beacon?id=X", {
+      suppress: compiledSuppress,
+      transport: "fetch",
+      keepalive: true,
+    });
+    expect(verdict.suppressed).toBe(false);
+    expect(verdict.exempt).toBe(true);
+  });
 });
 
 describe("049-01 AC1 — installTagSuppressor is safe (never throws) with no DOM present (this repo's Node/vitest substrate)", () => {
@@ -267,8 +373,24 @@ describe("049-01 AC1 — installTagSuppressor is safe (never throws) with no DOM
     expect(() => installTagSuppressor({})).not.toThrow();
   });
 
-  it("calling it twice (idempotent install) never throws in the no-DOM substrate either", () => {
-    installTagSuppressor({ suppress: [{ host: "a.test" }] });
-    expect(() => installTagSuppressor({ suppress: [{ host: "b.test" }] })).not.toThrow();
+  // RE-SCOPED (compliance-review blocker fix, Task 3): this test USED to be
+  // titled "idempotent install" and claimed to prove double-wrap safety on a
+  // second call — but in the no-DOM substrate `installTagSuppressor` early-returns
+  // (see the test above) before any patching logic runs at all, so it exercised
+  // NOTHING beyond "doesn't throw twice" — deleting the real idempotency guards
+  // (the `!state.installed` short-circuit, the per-function marker checks) would
+  // NOT turn this red. Real idempotency (no double-wrap survives a single
+  // uninstall(), even after a re-install) is now proven for real in the
+  // real-browser rig (rig/tag-suppressor.mjs) — see the implementer's report for
+  // that mutation-red proof. This test asserts ONLY what is actually true here:
+  // repeated calls in the no-DOM substrate are each a safe no-op, each returning
+  // its own inert { uninstall } handle whose uninstall() never throws.
+  it("calling it twice in the no-DOM substrate is still a safe no-op — each call returns an inert { uninstall } handle whose uninstall() never throws", () => {
+    const first = installTagSuppressor({ suppress: [{ host: "a.test" }] });
+    const second = installTagSuppressor({ suppress: [{ host: "b.test" }] });
+    expect(typeof first.uninstall).toBe("function");
+    expect(typeof second.uninstall).toBe("function");
+    expect(() => first.uninstall()).not.toThrow();
+    expect(() => second.uninstall()).not.toThrow();
   });
 });

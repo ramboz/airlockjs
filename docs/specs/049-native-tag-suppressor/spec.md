@@ -1,5 +1,5 @@
 ---
-status: IN_PROGRESS
+status: DONE
 skill:
 use_cases: []
 ---
@@ -84,10 +84,13 @@ container tag class end-to-end, never a mechanism-only or config-only horizontal
   network-0, the reference CSP). For the four trial vendors (all `gtag.js`/`fbevents.js`) this also suppresses their native
   beacons — no runtime, no beacon — so it is the complete after-arm for runtime-based tags. Partial migration (suppress a
   `?id=` subset of a shared-host runtime) is an AC here (it falls out of the URL/query matcher).
-- **049-02 (Path — direct-beacon-transport suppression, egress-parity completeness):** extend the same matchers to the
-  **beacon transports** (`<img>`/`fetch`/`sendBeacon`/`XHR`) for the case runtime-blocking misses — a container template that
-  fires a bare pixel or a direct `sendBeacon` without a heavy runtime (generic-adopter coverage). Belt-and-suspenders on
-  049-01 so airlock's arm is the sole emitter for parity, still carving out airlock's own egress.
+- **049-02 (Path — direct-beacon-transport suppression, egress-parity completeness):** bind the suppressor to the container's
+  **beacon transports** (`<img>`/`sendBeacon`/`XHR`/non-keepalive `fetch`) for the case runtime-blocking misses — a container
+  template that fires a bare pixel or a direct `sendBeacon` without a heavy runtime (generic-adopter coverage). **Because
+  airlock reproduces a vendor's beacon at the container's byte-identical URL** (Meta `/tr`, gtag `/g/collect`), the carve-out
+  here is **transport-of-emission, not URL**: airlock emits every own beacon via `fetch`+`keepalive` (`core/egress.js`), so
+  that signature is exempt while the container's transports at the same URL are suppressed — making airlock the sole emitter
+  even for a URL-identical reproduction (the frame-critique correction; `arch_review` on 049-02).
 
 ## Slices
 

@@ -123,15 +123,19 @@ jobs:
         # The Floodlight mirror of the Google Ads held-arm gate above (048-02 AC5).
         run: npm run rig:floodlight-hold-flush
 
-      - name: GATING — native-tag suppressor network-0 proof (049-01 AC2/AC3/AC4)
-        # The load-bearing proof for spec 049-01: installTagSuppressor PREVENTS a matching
-        # runtime <script> — injected via the real vendor idiom (parentNode.insertBefore) AND
-        # the append/insertAdjacentElement variants — from ever downloading/evaluating (network-0
-        # + sentinel-absent) under a CSP mirroring the reference site's (Trusted Types +
-        # strict-dynamic), while a non-matching script (partial migration + scoped-not-blanket)
-        # still loads and the airlock-egress carve-out wins over an over-broad matcher. Node/
-        # vitest-INELIGIBLE (no DOM/network — this repo ships no jsdom, see the module's own
-        # SUBSTRATE note) — this step, not `npm test`, is the actual gate for AC2.
+      - name: GATING — native-tag suppressor network-0 proof (049-01 AC1/AC2/AC3/AC4 + 049-02 AC1/AC2/AC3)
+        # The load-bearing proof for spec 049-01/049-02: installTagSuppressor PREVENTS a
+        # matching runtime <script> — injected via the real vendor idiom (parentNode.insertBefore)
+        # AND the append/prepend/insertAdjacentElement/replaceChild variants — from ever
+        # downloading/evaluating (network-0 + sentinel-absent) under a CSP mirroring the
+        # reference site's (Trusted Types + strict-dynamic), while a non-matching script
+        # (partial migration + scoped-not-blanket) still loads and the airlock-egress carve-out
+        # wins over an over-broad matcher (049-01); AND ALSO suppresses a matching DIRECT BEACON
+        # on every transport (img src/setAttribute/srcset, sendBeacon, XHR, non-keepalive fetch)
+        # while EXEMPTING airlock's OWN fetch+keepalive reproduction of a byte-identical url —
+        # the transport-of-emission carve-out (049-02). Node/vitest-INELIGIBLE (no DOM/network —
+        # this repo ships no jsdom, see the module's own SUBSTRATE note) — this step, not
+        # `npm test`, is the actual gate for both slices' load-bearing ACs.
         run: npm run rig:tag-suppressor
 
       - name: ADVISORY — cwv_budget (Lighthouse + INP delta + drain delivery, 07-03)

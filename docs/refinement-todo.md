@@ -1268,3 +1268,77 @@ instances, so this was not built; flagged here so a future consumer doesn't disc
 **Resolution trigger:** if a real adopter (the `intuit-erp` trial, ADR-0029, or a later generic adopter) needs two
 independent suppressor configs live at once, revisit the single shared `state` — e.g. return a per-install token the
 patched methods dispatch on, or accept multiple registered configs and evaluate each in turn.
+
+## Spec 049-02 (direct-beacon-transport suppression) follow-ups
+
+### A-residual — beacon escape vectors beyond the four patched transports are scoped, not covered
+**Deferred:** `installTagSuppressor`'s beacon-transport patch covers exactly four surfaces (`<img>`
+src/setAttribute/srcset, `navigator.sendBeacon`, `XMLHttpRequest`, `window.fetch`) — the transports `core/egress.js`'s
+`fetchInit` grounding + the reference adopter's own beacon idioms cover. A container beacon sent via WebSocket/
+EventSource, `<iframe src>`/`<object>`, a CSS `url()` (e.g. a `background-image` pointed at a tracking pixel), a
+`<link rel=prefetch|dns-prefetch>`, or from inside a Worker (which has its own `fetch`/`XMLHttpRequest` globals this
+main-thread patch never reaches) escapes all four patched transports entirely — the same
+[ADR-0030](decisions/adr-0030-native-tag-suppressor.md) kill-criterion class 049-01's own DocumentFragment/Worker/
+`import()` residual already names. Not observed in the reference adopter (the grounded beacon idioms are `<img>`/
+`sendBeacon`/`fetch`, per spec 049-02's own `A-transport`/`A-collision` assumptions), so left uncovered rather than
+adding untested speculative surface.
+**Resolution trigger:** if a 050 trial (or a future adopter) observes a beacon fired via one of these escape vectors,
+extend `installTagSuppressor` with the matching interception seam (e.g. `WebSocket`'s constructor for a
+tracking-only-socket case), or — if the vector is genuinely uncoverable page-side (a Worker-internal beacon, which
+this main-thread module structurally cannot reach) — treat it as the ADR-0030 kill criterion (profile-side fallback)
+for that vendor.
+
+### A-residual — a container beacon sent via `fetch({keepalive:true})` at an airlock-reproduced URL is indistinguishable from airlock's own, and is NOT suppressed
+**Deferred:** the transport-of-emission carve-out (spec 049-02 AC2) exempts EVERY `fetch` call whose `init.keepalive
+=== true`, unconditionally — it cannot further ask "but is THIS keepalive-fetch call actually the container's, not
+airlock's?" because both are byte-identical in shape (same transport, same signature) at the SAME url. So a
+hypothetical container template that fires its OWN beacon via `fetch(url, {keepalive:true})` (rather than the grounded
+`<img>`/`sendBeacon` idioms) at a URL an airlock-migrated vendor also reproduces would NOT be suppressed — it reads as
+airlock's own egress. This fails toward the SAFE direction (never dropping airlock's own data, never a false parity
+failure from over-suppression) but does mean a generic adopter with this specific container behavior would see a
+double-emission (both the container's copy and airlock's survive) rather than airlock being the sole emitter.
+**Cannot bite the actual MVP9 trial:** all four trial vendors are runtime-based (their beacons are runtime-*emitted*,
+already fully killed by 049-01 — no runtime, no beacon), never a runtime-less direct keepalive-fetch beacon; this
+residual only concerns a hypothetical generic bare-pixel adopter whose container itself calls `fetch(...,
+{keepalive:true})` — none exists on the reference site (`martech.golden.json`'s beacons are gtag/fbevents-runtime
+emitted, not direct fetch calls).
+**Resolution trigger:** if a real adopter's container is observed firing beacons via `fetch({keepalive:true})`
+directly (bypassing `<img>`/`sendBeacon`), the URL-based `allow`/`suppress` distinction alone cannot resolve the
+collision — a further discriminator (e.g. a page-load-order heartbeat, or requiring the adopter to route its own
+beacon through a distinguishable wrapper) would need its own spec/ADR; until then this is the honest limit of the
+transport-of-emission carve-out, named per ADR-0030's kill-criterion discipline, not hidden.
+
+### Reconciliation residual (arch/compliance review, 049-02) — a suppressed `XMLHttpRequest` does not simulate completion, unlike `sendBeacon`/`fetch`
+**Deferred:** the suppressed `sendBeacon` patch returns `true` and the suppressed `fetch` patch resolves a synthetic
+`204`, both DELIBERATELY so the caller sees success and is not nudged toward a fallback on a DIFFERENT transport (the
+"don't leak a failure signal" rationale in the module's beacon-suppression comments). The suppressed `XMLHttpRequest`
+`send`, by contrast, simply returns without firing any completion event — so container code chained on
+`xhr.onload`/`onloadend` would stall rather than proceed. Low severity, NOT built out: XHR is a defensive surface (the
+reference adopter's grounded idioms are `<img>`/`sendBeacon`/`fetch`, never XHR), the effect fails toward
+not-loading-the-tracker (the safe direction), and because all four transports are suppressed for a matching URL, a
+timeout-driven fallback from a stalled XHR lands on another already-suppressed transport anyway (only the
+already-logged non-four escape vectors would leak). Flagged for consistency, not correctness (compliance re-review,
+2026-09-15).
+**Resolution trigger:** if a real adopter's container fires a matching beacon via `XMLHttpRequest` AND chains
+page/consent logic on its completion events (so a silent stall is observable), extend the suppressed `send` to
+simulate a successful completion (a `readystatechange` → `DONE` with a 2xx status + `load`/`loadend`), mirroring the
+`sendBeacon`/`fetch` simulate-success discipline; add the matching rig assertion.
+
+### Reconciliation residual (arch review, 049-02) — two concurrently-loaded module copies interact on install/uninstall
+**Deferred:** extends the single-shared-`state` limitation above. If TWO copies of `tag-suppressor.js` are loaded and
+both call `installTagSuppressor`, the second copy's `patchMethod` no-ops against the FIRST copy's prototype marker (so
+the second copy's config is silently inert), and the second copy's `uninstall()` would restore the FIRST copy's saved
+native. The single-import dist-sibling distribution model (one subtree'd copy per adopter page, spec 031)
+structurally avoids this — there is only ever one copy — so it is a latent hazard, not a live defect.
+**Resolution trigger:** subsumed by the single-shared-`state` resolution trigger above (a per-install token the
+patched methods dispatch on would also make cross-copy install/uninstall well-defined); revisit only if the
+distribution model ever ships more than one suppressor copy per page.
+
+### Reconciliation residual (arch review, 049-02) — the `fetch` wrapper resolves the input URL before the keepalive short-circuit
+**Deferred:** in the patched `fetch`, `resolveFetchInputUrl(input)` runs before the `init.keepalive === true` exemption
+is checked, so airlock's OWN keepalive egress (every main-thread beacon) pays a URL-resolution on the patched global on
+each call. Cheap (beacons are infrequent; resolution is a `URL` parse) and never observed as a hot spot, so not
+reordered under the frozen-runtime review fix.
+**Resolution trigger:** if a profile shows the suppressor's `fetch` wrapper on a hot path, check `init.keepalive` first
+and short-circuit before resolving the URL (airlock's exempt egress then skips resolution entirely); guard the reorder
+with the existing collision rig assertion so the carve-out semantics are unchanged.

@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Native-tag suppressor — real-browser network-0 proof (spec 049-01 AC1/AC2/AC3/AC4)</title>
+    <title>Native-tag suppressor — real-browser network-0 proof (spec 049-01/049-02)</title>
   </head>
   <body>
     <script type="module" nonce="aem">
@@ -21,13 +21,31 @@
       // craft-review blocker fix: prepend/replaceChild were patched but
       // previously exercised by no test, so removing either patch left the
       // suite AND this rig green) — with the airlock-egress carve-out and
-      // partial-migration query discrimination. rig/tag-suppressor.mjs drives
-      // this harness: it collects every outbound network request (the
-      // network-0 assertion) and reads window.__RESULT__ (the sentinel +
-      // diagnostic assertions) — the dual assertion that defeats a
-      // cached-runtime confound (spec language).
+      // partial-migration query discrimination.
+      //
+      // Spec 049-02 AC1/AC2/AC3 — extends the SAME installTagSuppressor call
+      // (AC4: one config, composed) to the direct-beacon-transport surface
+      // (img src/setAttribute/srcset, sendBeacon, XHR, fetch): a matching
+      // beacon on any of those transports is dropped (network-0), EXCEPT a
+      // `fetch` whose `init.keepalive===true` — airlock's own egress
+      // signature (core/egress.js's `fetchInit`, imported raw here) — which is
+      // EXEMPT even at a URL a `suppress` matcher matches (the
+      // transport-of-emission carve-out, the load-bearing A-collision proof:
+      // airlock reproduces a container's beacon at the SAME url).
+      //
+      // rig/tag-suppressor.mjs drives this harness: it collects every outbound
+      // network request (the network-0 assertion) and reads
+      // window.__RESULT__ (the sentinel + diagnostic assertions) — the dual
+      // assertion (049-01) that defeats a cached-runtime confound (spec
+      // language); 049-02's beacon fixtures need no sentinel (no code
+      // executes for an img/XHR/fetch/sendBeacon beacon) — network-request
+      // presence/absence alone is the unambiguous signal.
 
       import { installTagSuppressor } from "/adapters/eds/tag-suppressor.js";
+      // 049-02 AC2: airlock's REAL egress-init shape (core/egress.js), imported
+      // raw (not a hand-mirrored copy) so the harness proves the exemption
+      // against airlock's ACTUAL `fetch(url, fetchInit(...))` call shape.
+      import { fetchInit } from "/core/egress.js";
 
       // Register the SAME permissive default Trusted-Types policy the other
       // rigs under this CSP register (rig/sanitize-boundary-harness.html,
@@ -41,6 +59,26 @@
           createScript: (s) => s,
         });
       }
+
+      // AC4 (Tasks 1/2, compliance-review blocker fix) — captured BEFORE the
+      // FIRST installTagSuppressor call, i.e. the TRUE natives. This is the ONLY
+      // way to prove uninstall() genuinely restores the saved native transports:
+      // every patched function reads SHARED, LIVE module state
+      // (`state.compiledSuppress`/`compiledAllow`), which `uninstall()`
+      // unconditionally clears regardless of whether the prototype patch itself
+      // was undone — so "does a matching beacon still get suppressed after
+      // uninstall()" can NEVER go red for a broken/missing unpatch call (a
+      // leftover wrapper + cleared state is behaviorally indistinguishable from a
+      // true native — verified empirically: see the implementer's report). Only
+      // an identity (`===`) comparison against the ORIGINAL native reference
+      // actually discriminates "restored" from "still wrapped".
+      const nativeImgSrcSetter = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "src").set;
+      const nativeImgSrcsetSetter = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "srcset").set;
+      const nativeSetAttribute = Element.prototype.setAttribute;
+      const nativeSendBeacon = Navigator.prototype.sendBeacon;
+      const nativeXhrOpen = XMLHttpRequest.prototype.open;
+      const nativeXhrSend = XMLHttpRequest.prototype.send;
+      const nativeFetch = window.fetch;
 
       // Two DISTINCT "hosts" reaching the SAME hermetic local server (loopback
       // aliases of one Node http.createServer — no second server, no real
@@ -65,6 +103,38 @@
       const CONTAINER_URL = urlFor(HOST_B, "container-egress.js", "CONTAINER"); // caught by the over-broad HOST_B suppress matcher
       const AIRLOCK_URL = urlFor(HOST_B, "airlock-egress.js", "AIRLOCK"); // AC3 carve-out — allow wins over the SAME over-broad matcher
 
+      // --- 049-02: direct-beacon-transport fixtures (all on HOST_A — the
+      //     transport-of-emission carve-out needs no second host; unlike
+      //     049-01's URL carve-out, the discriminator here is the TRANSPORT). ---
+      const IMG_SRC_URL = urlFor(HOST_A, "beacon", "IMG_SRC"); // new Image().src=
+      const IMG_SETATTR_URL = urlFor(HOST_A, "beacon", "IMG_SETATTR"); // img.setAttribute("src", …)
+      const IMG_SRCSET_URL = urlFor(HOST_A, "beacon", "IMG_SRCSET"); // img.srcset=
+      const SENDBEACON_URL = urlFor(HOST_A, "beacon", "SENDBEACON"); // navigator.sendBeacon
+      const XHR_URL = urlFor(HOST_A, "beacon", "XHR"); // XMLHttpRequest open+send
+      const FETCH_NONKEEPALIVE_URL = urlFor(HOST_A, "beacon", "FETCH_NONKEEPALIVE"); // fetch(), no keepalive -> still suppressed
+      const IMG_KEEP_URL = urlFor(HOST_A, "beacon", "IMG_KEEP"); // non-matching -> loads
+      const SENDBEACON_KEEP_URL = urlFor(HOST_A, "beacon", "SENDBEACON_KEEP"); // non-matching -> loads
+      const XHR_KEEP_URL = urlFor(HOST_A, "beacon", "XHR_KEEP"); // non-matching -> loads
+      const FETCH_KEEP_URL = urlFor(HOST_A, "beacon", "FETCH_KEEP"); // non-matching -> loads
+      // AC2/AC3 — the load-bearing collision: airlock reproduces a container's
+      // beacon at the BYTE-IDENTICAL URL. A container <img>/sendBeacon at THIS
+      // url is suppressed; airlock's OWN fetch+keepalive reproduction of the
+      // SAME url is exempt (still egresses) — proving the transport, not the
+      // URL, is the discriminator.
+      const COLLIDE_URL = urlFor(HOST_A, "beacon", "COLLIDE");
+      // Task 4 (craft nit #1, compliance/craft review) — the setAttribute("srcset", …)
+      // combination on an <img> had no red witness: the rig previously drove srcset
+      // only via the accessor (imgSrcset.srcset=) and setAttribute only via "src".
+      // Same "1x" density-descriptor shape as IMG_SRCSET_URL's fixture (already
+      // proven to genuinely fetch on a detached <img>).
+      const IMG_SETATTR_SRCSET_URL = urlFor(HOST_A, "beacon", "IMG_SETATTR_SRCSET");
+      // AC4 (Tasks 1/2, compliance-review blocker fix) — fired ONLY after a
+      // re-install (Task 2) followed by a single uninstall() (Task 1), at NEW,
+      // previously-unused URLs (no prior network history) so a stray observation
+      // can't be mistaken for "reached the network post-uninstall".
+      const UNINSTALL_IMG_URL = urlFor(HOST_A, "beacon", "UNINSTALL_IMG");
+      const UNINSTALL_SENDBEACON_URL = urlFor(HOST_A, "beacon", "UNINSTALL_SENDBEACON");
+
       window.__URLS__ = {
         BEFORE_URL,
         APPEND_URL,
@@ -75,6 +145,20 @@
         OTHER_URL,
         CONTAINER_URL,
         AIRLOCK_URL,
+        IMG_SRC_URL,
+        IMG_SETATTR_URL,
+        IMG_SRCSET_URL,
+        IMG_SETATTR_SRCSET_URL,
+        SENDBEACON_URL,
+        XHR_URL,
+        FETCH_NONKEEPALIVE_URL,
+        IMG_KEEP_URL,
+        SENDBEACON_KEEP_URL,
+        XHR_KEEP_URL,
+        FETCH_KEEP_URL,
+        COLLIDE_URL,
+        UNINSTALL_IMG_URL,
+        UNINSTALL_SENDBEACON_URL,
       };
 
       const diags = [];
@@ -87,6 +171,17 @@
         { host: HOST_A, pathname: "/fixtures/runtime.js", query: { id: "ADJACENT" } },
         { host: HOST_A, pathname: "/fixtures/runtime.js", query: { id: "REPLACECHILD" } },
         { host: HOST_B }, // deliberately OVER-BROAD (host-only) — the AC3 carve-out fixture
+        // 049-02 beacon matchers.
+        { host: HOST_A, pathname: "/fixtures/beacon", query: { id: "IMG_SRC" } },
+        { host: HOST_A, pathname: "/fixtures/beacon", query: { id: "IMG_SETATTR" } },
+        { host: HOST_A, pathname: "/fixtures/beacon", query: { id: "IMG_SRCSET" } },
+        { host: HOST_A, pathname: "/fixtures/beacon", query: { id: "SENDBEACON" } },
+        { host: HOST_A, pathname: "/fixtures/beacon", query: { id: "XHR" } },
+        { host: HOST_A, pathname: "/fixtures/beacon", query: { id: "FETCH_NONKEEPALIVE" } },
+        { host: HOST_A, pathname: "/fixtures/beacon", query: { id: "COLLIDE" } },
+        { host: HOST_A, pathname: "/fixtures/beacon", query: { id: "IMG_SETATTR_SRCSET" } },
+        { host: HOST_A, pathname: "/fixtures/beacon", query: { id: "UNINSTALL_IMG" } },
+        { host: HOST_A, pathname: "/fixtures/beacon", query: { id: "UNINSTALL_SENDBEACON" } },
       ];
       const allow = [
         { host: HOST_B, pathname: "/fixtures/airlock-egress.js" }, // airlock's own egress — wins over the over-broad matcher above
@@ -98,10 +193,12 @@
         return s;
       }
 
-      // Settle on exactly the 3 EXPECTED loads (KEEP, OTHER, AIRLOCK), not a
-      // blind sleep — deterministic + fast in the healthy case, with a safety
-      // timeout so a regression (an expected load that never fires) cannot
-      // hang the rig forever.
+      // Settle on exactly the 6 EXPECTED completions (049-01's KEEP/OTHER/AIRLOCK
+      // script loads + 049-02's XHR_KEEP/FETCH_KEEP/the airlock-collision-fetch),
+      // not a blind sleep — deterministic + fast in the healthy case, with a
+      // safety timeout so a regression (an expected completion that never
+      // fires) cannot hang the rig forever.
+      const EXPECTED_SETTLE_COUNT = 6;
       let loadedCount = 0;
       let resolveSettled;
       const settled = new Promise((res) => {
@@ -109,11 +206,11 @@
       });
       function onExpectedSettle() {
         loadedCount += 1;
-        if (loadedCount >= 3) resolveSettled();
+        if (loadedCount >= EXPECTED_SETTLE_COUNT) resolveSettled();
       }
 
       try {
-        installTagSuppressor({
+        const { uninstall } = installTagSuppressor({
           suppress,
           allow,
           onDiagnostic: (d) => diags.push(d),
@@ -166,10 +263,112 @@
         airlockOwn.onerror = onExpectedSettle;
         document.head.appendChild(airlockOwn);
 
+        // --- 049-02: direct-beacon-transport suppression ---
+
+        // (h) AC1 — the full image-src surface (incl. srcset), all suppressed.
+        new Image().src = IMG_SRC_URL;
+        const imgSetAttr = new Image();
+        imgSetAttr.setAttribute("src", IMG_SETATTR_URL);
+        const imgSrcset = new Image();
+        imgSrcset.srcset = `${IMG_SRCSET_URL} 1x`;
+        // (h2) Task 4 (craft nit #1) — setAttribute("srcset", …) specifically (the
+        // one img-src-surface combination previously undriven: srcset only via the
+        // accessor above, setAttribute only via "src" above).
+        const imgSetAttrSrcset = new Image();
+        imgSetAttrSrcset.setAttribute("srcset", `${IMG_SETATTR_SRCSET_URL} 1x`);
+
+        // (i) AC1 — navigator.sendBeacon, suppressed.
+        navigator.sendBeacon(SENDBEACON_URL, "x");
+
+        // (j) AC1 — XMLHttpRequest (open+send), suppressed.
+        const xhrBlocked = new XMLHttpRequest();
+        xhrBlocked.open("GET", XHR_URL);
+        xhrBlocked.send();
+
+        // (k) AC1/AC2 — a NON-keepalive fetch is STILL suppressed (only
+        //     init.keepalive===true is exempt).
+        fetch(FETCH_NONKEEPALIVE_URL);
+
+        // (l) AC1 — a non-matching beacon on each distinct patched surface still loads.
+        new Image().src = IMG_KEEP_URL;
+        navigator.sendBeacon(SENDBEACON_KEEP_URL, "x");
+        const xhrKeep = new XMLHttpRequest();
+        xhrKeep.open("GET", XHR_KEEP_URL);
+        xhrKeep.onload = xhrKeep.onerror = onExpectedSettle;
+        xhrKeep.send();
+        fetch(FETCH_KEEP_URL).then(onExpectedSettle, onExpectedSettle);
+
+        // (m) AC2/AC3 — THE LOAD-BEARING COLLISION: a container's bare pixel AND
+        //     sendBeacon at the SAME URL airlock reproduces are both suppressed,
+        //     while airlock's OWN fetch(url, fetchInit("GET")) reproduction of
+        //     that IDENTICAL url — the real production call shape, imported raw
+        //     from core/egress.js — is EXEMPT (keepalive:true) and still egresses.
+        new Image().src = COLLIDE_URL; // container transport #1 -> suppressed
+        navigator.sendBeacon(COLLIDE_URL, "x"); // container transport #2 -> suppressed
+        fetch(COLLIDE_URL, fetchInit("GET")).then(onExpectedSettle, onExpectedSettle); // airlock's own -> EXEMPT -> loads
+
         await Promise.race([settled, new Promise((res) => setTimeout(res, 5000))]);
-        await new Promise((res) => setTimeout(res, 300)); // grace period for the network layer to fully settle
+        await new Promise((res) => setTimeout(res, 400)); // grace period for the network layer to fully settle
+
+        // --- AC4 (Tasks 1/2, compliance-review blocker fix): idempotent
+        // re-install + uninstall restores the native beacon transports. Runs
+        // AFTER the batch above has fully settled (its results/sentinels/
+        // diagnostics are already determined), so this phase's observations
+        // can never be confused with the batch's.
+        //
+        // Task 2: re-install with the SAME config BEFORE the single uninstall()
+        // below. This is REDUNDANT belt-and-suspenders (the `!state.installed`
+        // short-circuit AND the per-function marker guards each independently
+        // prevent a double-wrap) — but if BOTH were removed, this re-install
+        // would double-wrap every transport, and the ONE uninstall() below
+        // would then peel only one layer, leaving one wrapper active. No
+        // separate assertion is needed: the SAME identity comparison below
+        // (`uninstallRestoredIdentity`) catches it too — a surviving inner
+        // wrapper is not `===` the originally-captured native either. (An
+        // EARLIER "does a matching beacon still get suppressed" version of this
+        // check was tried and found NON-discriminating for both this and Task 1's
+        // mutation — see the implementer's report for why.)
+        installTagSuppressor({ suppress, allow, onDiagnostic: (d) => diags.push(d) });
+
+        // Task 1: the single uninstall() call — must restore the saved native
+        // beacon transports.
+        uninstall();
+
+        // Two NEW, previously-unused matching URLs (no prior network history) —
+        // fired ONLY now, after uninstall(). A correct uninstall restores the
+        // native transports, so both now REACH the network (unlike their
+        // still-installed siblings fired earlier in this same run).
+        let uninstallImgSettle;
+        const uninstallImgSettled = new Promise((res) => {
+          uninstallImgSettle = res;
+        });
+        const uninstallImg = new Image();
+        uninstallImg.onload = uninstallImgSettle;
+        uninstallImg.onerror = uninstallImgSettle;
+        uninstallImg.src = UNINSTALL_IMG_URL;
+        navigator.sendBeacon(UNINSTALL_SENDBEACON_URL, "x"); // fire-and-forget — no completion event; covered by the grace period below
+
+        await Promise.race([uninstallImgSettled, new Promise((res) => setTimeout(res, 5000))]);
+        await new Promise((res) => setTimeout(res, 400)); // grace period, mirrors the batch's own wait above
+
+        // THE load-bearing AC4 proof: is each transport's CURRENT function/setter
+        // identical (===) to the TRUE native captured before the first install?
+        // This is what actually goes red when the unpatch calls are removed
+        // (Task 1) or when a double-wrap survives a single uninstall (Task 2) —
+        // see this file's top-of-script capture + the implementer's report.
+        const uninstallRestoredIdentity = {
+          imgSrcSetter: Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "src").set === nativeImgSrcSetter,
+          imgSrcsetSetter:
+            Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "srcset").set === nativeImgSrcsetSetter,
+          setAttribute: Element.prototype.setAttribute === nativeSetAttribute,
+          sendBeacon: Navigator.prototype.sendBeacon === nativeSendBeacon,
+          xhrOpen: XMLHttpRequest.prototype.open === nativeXhrOpen,
+          xhrSend: XMLHttpRequest.prototype.send === nativeXhrSend,
+          fetch: window.fetch === nativeFetch,
+        };
 
         window.__RESULT__ = {
+          uninstallRestoredIdentity,
           sentinels: {
             BEFORE: !!window.__SENTINEL_BEFORE__,
             APPEND: !!window.__SENTINEL_APPEND__,
