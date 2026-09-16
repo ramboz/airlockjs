@@ -139,7 +139,7 @@
 | [048-ad-connector-boot-wiring](048-ad-connector-boot-wiring/spec.md) | 048-02 — bootFloodlight + worker chamber + `{type:"floodlight"}` config type + composite membership (consent-gated) | **DONE** |  |
 | [048-ad-connector-boot-wiring](048-ad-connector-boot-wiring/spec.md) | 048-03 — `onetrust` as a `boot(config)` governance field → composite consent fan-out (end-to-end accept-flow) | **DONE** |  |
 | [049-native-tag-suppressor](049-native-tag-suppressor/spec.md) | 049-01 — runtime-`<script>` suppression (CWV-win core, dist-shipped) | **DONE** |  |
-| [049-native-tag-suppressor](049-native-tag-suppressor/spec.md) | 049-02 — direct-beacon-transport suppression (egress-parity completeness) | DRAFT |  |
+| [049-native-tag-suppressor](049-native-tag-suppressor/spec.md) | 049-02 — direct-beacon-transport suppression (egress-parity completeness) | **DONE** |  |
 | [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-01 — the reference-site `?martech=airlock` rewire arm | DRAFT |  |
 | [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-02 — measured Lighthouse/TBT + parity evidence + scripted adoption path | DRAFT |  |
 
@@ -167,7 +167,7 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
 
 - **9** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **104** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **46** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **47** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
@@ -214,3 +214,4 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
   - `046-floodlight-connector/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `047-onetrust-consent-input-driver/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `047-onetrust-consent-input-driver/slice-02-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `049-native-tag-suppressor/slice-02-craft.md` — applied `pr-review`; declined: scout-pr-review
