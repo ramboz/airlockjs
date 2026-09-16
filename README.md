@@ -23,10 +23,16 @@ substitute git subtree lacks); pull a **tag**, not the floating `dist` branch:
 
 ```
 eds.js                        # the adapter entry (import + boot from here)
-chamber.worker.js             # GA4 chamber (default connector)
-pixel-chamber.worker.js       # pixel connector
-dom-chamber.worker.js         # worker-dom mirror connector
+reserve-personalization.js    # eager pre-paint personalization reserve (import from loadEager)
+tag-suppressor.js             # opt-in native-tag suppressor (install before a tag-manager container)
+chamber.worker.js             # GA4 Measurement-Protocol chamber (default connector)
+ga4-gtag-chamber.worker.js    # GA4 gtag-protocol (/g/collect) chamber
+pixel-chamber.worker.js       # generic pixel connector (Meta / LinkedIn / Bing)
+google-ads-chamber.worker.js  # Google Ads (AW) conversion chamber
+floodlight-chamber.worker.js  # Floodlight (DC) conversion chamber
 helix-rum-chamber.worker.js   # helix-rum (RUM authority) connector
+dom-chamber.worker.js         # worker-dom mirror connector
+alloy-chamber.worker.js       # Adobe Web SDK (alloy) chamber (adopter-supplied bundle, ADR-0016)
 VERSION                       # a tagged release: "airlockjs vX.Y.Z" (== the dist-vX.Y.Z tag) — the vendored snapshot marker
 ```
 
@@ -166,7 +172,7 @@ the offending connector** — never a silent no-op.
 The distribution is a **generated release**, produced from source — not hand-edited:
 
 ```sh
-npm run build:dist                                   # emit dist/ (eds.js + the four *.worker.js siblings)
+npm run build:dist                                   # emit dist/ (eds.js + sibling ESM entries + the *.worker.js chambers)
 npm run publish:dist -- --target origin --release    # tag dist-vX.Y.Z (from package.json) + reconcile VERSION to it
 npm run publish:dist -- --target origin              # OR: update the floating `dist` branch (marker carries +short-sha)
 ```
