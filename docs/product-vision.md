@@ -2,7 +2,7 @@
 
 # Product Vision — Airlock
 
-> **Codename: Airlock.** Repo / package slug: `airlockjs` (bare `airlock` is taken on npm; the codename stays clean regardless of the published string). Connector namespace: `airlock/ga4`, `airlock/alloy`.
+> **Codename: Airlock.** Repo / package slug: `airlockjs` (bare `airlock` is taken on npm; the codename stays clean regardless of the published string). Connector namespace: `airlock/<vendor>` (e.g. `airlock/ga4`, `airlock/pixel/meta`, `airlock/google-ads`, `airlock/floodlight`).
 >
 > The name carries both halves of the thesis at once: an airlock is *fault-isolation* (one side depressurizing doesn't kill the other — a broken tag must not sink the page) and *mediated egress* (nothing crosses without cycling through the chamber — the capability boundary). It gives the system a consistent vocabulary: the mediated boundary is **the airlock**; a connector runs in a **chamber**; a batch crossing to the worker is a **cycle** / **lock-through**; consent and allowlist gating is **the seal** ("held at the seal" = queued pending consent).
 >
@@ -10,29 +10,41 @@
 
 ## Identity
 
-Airlock is a capability-secured, off-main-thread martech runtime for edge and static sites (AEM Edge Delivery Services first; Astro, Vercel, Jamstack next). Tags stop being ambient-authority scripts injected into the page context and become **sandboxed consumers of a typed event stream that can only emit declared events to declared endpoints** — each running in an isolated chamber, reaching the network only by cycling through the airlock. It installs as drop-in ES modules (no worker infrastructure or edge account required for the common case), is Core-Web-Vitals-first by construction, and treats the datalayer, performance, and supply-chain-security problems as a single architectural boundary rather than three features.
+<!-- elicited: 2026-09-16 / status: filled / hash: sha256:68d4bb5b04e1 -->
+
+Airlock is a capability-secured, off-main-thread martech runtime for edge and static sites (AEM Edge Delivery Services first; Astro, Vercel and Jamstack a post-1.0 direction, not committed). Tags stop being ambient-authority scripts injected into the page context and become **sandboxed consumers of a typed event stream that can only emit declared events to declared endpoints** — each running in an isolated chamber, reaching the network only by cycling through the airlock. It installs as drop-in ES modules (no worker infrastructure or edge account required for the common case), is Core-Web-Vitals-first by construction, and treats the datalayer, performance, and supply-chain-security problems as a single architectural boundary rather than three features.
 
 ## Target users
+
+<!-- elicited: 2026-09-16 / status: filled / hash: sha256:adec9c95eec2 -->
 
 Primary: EDS / Jamstack developers and agencies who must guarantee 100 Lighthouse and passing CWV to clients, and whose performance story currently collapses the moment martech is added. Secondary: performance- and security-conscious martech engineers who own tag stacks and datalayers and are tired of fighting GTM/Launch/Tealium for INP and TBT. Tertiary (buyer, not user): compliance and security stakeholders who care about supply-chain / formjacking exposure in the tag layer — a concern no current TMS addresses.
 
 ## Core problem
 
+<!-- elicited: 2026-09-16 / status: filled / hash: sha256:1b22462941b8 -->
+
 Martech is the dominant source of CWV regression and a live supply-chain risk, and today's tools address neither structurally. The synchronous `dataLayer.push` fan-out runs tag work inside the interaction, wrecking INP/TBT; blocking client-side decisioning gates LCP; late-injected content causes CLS. Simultaneously, every tag runs in the page with ambient DOM and cookie access, so a single compromised tag can read form fields and exfiltrate data (Magecart / formjacking). Existing tag managers optimize *when* code loads; none change *where* it executes or *what* it is allowed to touch. That "where/what" is the unaddressed layer.
 
 ## Competitive landscape
+
+<!-- elicited: 2026-09-16 / status: filled / hash: sha256:d5a841d17bd4 -->
 
 GTM / Adobe Launch / Tealium: main-thread, ambient-authority, optimize load timing only. Partytown: proved worker-hosted third-party scripts, but transparent DOM proxying needs synchronous access, forcing blocking SW round-trips or SharedArrayBuffer+COOP/COEP, which breaks common embeds. Cloudflare Zaraz: runs tools off-page at the edge, but is Cloudflare-locked and opaque. adobe-rnd/aem-martech: decomposes the Launch monolith into phased eager/lazy/delayed loading and is prerender-aware — validates the wedge — but is Adobe-only, entirely main-thread, and has no isolation story. adobe/aem-experimentation: client-side decide-and-apply in the eager window achieves no-flicker personalization without an anti-flicker snippet — proves the pattern — but is coupled to Adobe analytics reporting. The gap Airlock fills: an open, portable, off-main-thread, capability-isolated, vendor-neutral runtime shaped for the fast-static ecosystems.
 
 ## Scope
 
+<!-- elicited: 2026-09-16 / status: filled / hash: sha256:9ea6772ed8ad -->
+
 In scope: the runtime substrate (main-thread capture-and-enqueue, worker-side drain/mapping/egress); the event-log-plus-projection datalayer; the worker connector runtime (chambers); capability-mediated DOM injection and egress; EDS three-phase integration; both connector archetypes — wire-protocol (GA4, generic pixel, Google Ads, Floodlight) and wrapped-SDK (alloy) — plus the helix-rum RUM authority; CWV-safe content injection; consent gating at the seal; and first-class diagnostics/inspector.
 
-Out of scope (explicit no-gos for the first releases): session replay / full DOM-mutation streaming (antagonistic to "no DOM access"); identity resolution and a first-party cookie store; the service-worker egress chokepoint (MVP uses direct keepalive; SW is a later progressive enhancement); edge decision/egress *drivers* (the seams exist from day one, the drivers come later); non-EDS framework adapters.
+Out of scope (explicit no-gos for the first releases): session replay / full DOM-mutation streaming (antagonistic to "no DOM access"); identity resolution and a first-party cookie store (airlock reads existing vendor cookies read-only, but never mints identity or keeps its own cookie store); the service-worker egress chokepoint (MVP uses direct keepalive; SW is a later progressive enhancement); edge decision/egress *drivers* (the seams exist from day one, the drivers come later); non-EDS framework adapters (a post-1.0 direction; EDS is the only supported adapter through 1.0).
 
 **The adoption direction, post-1.0 ([ADR-0018](decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md)).** The 1.0 rewire (MVP9) is a *manual, two-party, documented* procedure — a developer, working with the container owner, moves the TBT-dominant generic vendor tags onto airlock. The longer-horizon simplifier is a **container translator**: take a Tealium / GTM / Adobe Launch container as input and auto-translate it to an airlock config (self-hosting + rewrapped loading of the individual tags). It is explicitly **not a first-release deliverable** — it is post-1.0 (1.1), bounded by connector coverage; parked with its decomposition in [docs/inbox.md](inbox.md).
 
 ## Use cases
+
+<!-- elicited: 2026-09-16 / status: filled / hash: sha256:07f1f7fa439b -->
 
 The three recurrent customer requests every EDS project faces, which together form the MVP demo. Each carries a stable, append-only `UC-N` id that specs reference via `use_cases:` frontmatter (never renumber or reuse one):
 
@@ -40,15 +52,19 @@ The three recurrent customer requests every EDS project faces, which together fo
 2. **UC-2 · Analytics with a custom event** — a developer can capture a page interaction and report it to analytics. Mapped off-thread in its chamber, emitted to GA4 via the Measurement Protocol.
 3. **UC-3 · Automatic block-decoration instrumentation for EDS** — an EDS developer gets instrumentation without touching markup. It hangs off block `decorate()` rather than markup — no `data-track-*` clutter, associations held in WeakMaps.
 
-Implicit success criterion (not a use case — it's the oracle): prove all three land at ~zero CWV cost, shown on a before/after Lighthouse + field-metric scoreboard. That scoreboard is also the servo oracle; its measurement contract (INP threshold, Lighthouse score) is tracked as OQ6.
+Implicit success criterion (not a use case — it's the oracle): the adopted page stays in the Core-Web-Vitals **good** band (absolute INP / LCP / CLS thresholds), with airlock's own overhead ~zero, shown on a before/after Lighthouse + field-metric scoreboard. The concrete good-band thresholds are pinned as OQ6; the proof that a rewire brings an intuit-class page back into the good band is MVP9. That scoreboard is also the servo oracle.
 
 **Co-equal success criterion — parity (added 2026-09-07, [ADR-0018](decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md)).** The CWV scoreboard is only half the 1.0 bar. The other half is **parity at the vendor boundary**: when a real site rewires a vendor tag (GA4, Meta Pixel, Google Ads, Floodlight) from its tag-manager container onto airlock, the same events with the same attribution-bearing fields must reach the vendor as before — confirmed by a vendor-generic **parity harness** (per-protocol semantic oracle) and the vendor consoles. CWV without parity is a demo; parity without CWV is a port. 1.0 (adoptable with confirmed parity) is cut when a real intuit-class rewire proves both — see [the release slate](releases/README.md) and R-007, now the 1.0 benchmark.
 
 ## Stack
 
+<!-- elicited: 2026-09-16 / status: filled / hash: sha256:c5107195c33a -->
+
 Vanilla ES modules with no framework dependency in the runtime core; Web Workers for the connector runtime; `fetch(url, { keepalive: true })` for egress (works from workers, unlike `sendBeacon`); `PerformanceObserver` for diagnostics. Reuse the scheduling taxonomy and diagnostics from `ramboz/aem-cwv-helper` (the `yieldToMain`/`runWhenIdle`/`runBeforePaint` primitives become the drain scheduler; `observeSlowInteractions`/`observeLayoutShifts` become the inspector and the oracle). Tests in vitest. External contract: GA4 Measurement Protocol (validatable via the `/debug/mp/collect` endpoint). A minimal vendor-neutral event schema is left to *emerge* from the GA4 mapping rather than pinned as an MVP1 contract — that commit-now-vs-emergent call stays open as OQ3. Deliberately **no** SharedArrayBuffer / COOP-COEP in the MVP, to avoid breaking third-party embeds.
 
 ## Design principles & constraints
+
+<!-- elicited: 2026-09-16 / status: filled / hash: sha256:cd3a3ca43cba -->
 
 The runtime is shaped by a few load-bearing principles:
 
@@ -64,10 +80,53 @@ The runtime is shaped by a few load-bearing principles:
 
 ## How new work enters
 
+<!-- elicited: 2026-09-16 / status: filled / hash: sha256:9ab63af66b65 -->
+
 shaper shapes release-sized bets (appetite, cutline, no-gos, risk retirement) → jig authors specs and vertical slices → servo drives unattended loops where the oracle is strong, jig stays supervised where it is weak. Routing is by oracle strength: GA4 conformance is externally validatable (servo-unattended, variant-race justified); flicker is perceptual with a wide proxy-gap (jig-supervised with human visual review). Every connector target is pinned as an external contract before implementation via `/jig:contracts`.
 
 ## Open questions
 
-Product-level unknowns (architecture-level ones live in `architecture.md`): whether to commit to a vendor-neutral event schema in MVP1 or let it emerge from the GA4 mapping and generalize after MVP2 (leaning emergent/minimal); how far the inspector goes in MVP1 versus later (**resolved — spec 028 / MVP5**: a read-layer over the 009-02 stream + per-beacon chains + a drop-in local panel); and the distribution channel for the EDS audience (git subtree, matching the aem-martech/aem-experimentation convention, versus npm).
+<!-- elicited: 2026-09-16 / status: filled / hash: sha256:de7880eac73b -->
+
+Product-level unknowns (architecture-level ones live in `architecture.md`): whether to commit to a vendor-neutral event schema in MVP1 or let it emerge from the GA4 mapping and generalize after MVP2 (leaning emergent/minimal); how far the inspector goes in MVP1 versus later (**resolved — spec 028 / MVP5**: a read-layer over the 009-02 stream + per-beacon chains + a drop-in local panel); and the distribution channel for the EDS audience (**resolved — [ADR-0015](decisions/adr-0015-distribution-git-subtree.md), MVP6**: git subtree of ready-to-serve artifacts at `scripts/airlock/`; npm deferred as the future bundler-audience channel).
 
 **Name — settled 2026-08-25.** Codename **Airlock**, chosen for carrying both fault-isolation and mediated-egress in one legible metaphor, and for yielding a consistent system vocabulary (airlock / chamber / cycle / seal). Repo and package slug **airlockjs** (bare `airlock` is unavailable on npm and the name has prior art in a few security/proxy products — a distinguisher or scope is expected). One watch-out for the README: "airlock" can connote *slow/sequential*; the rebuttal is built in — only egress is held at the seal, capture and enqueue never wait.
+
+## Clarifications
+
+_Pass 1 — 2026-09-16, via `/jig:clarify`. A six-category ambiguity scan adapted to this vision doc (the Acceptance-Criteria-Testability and Dependencies-&-Blockers categories are n/a for a project-vision doc)._
+
+### Q1: Non-EDS framework support — Identity lists Astro / Vercel / Jamstack as "next", but Scope lists "non-EDS framework adapters" as out of scope. What is the real status?
+_(category: Scope & Boundaries)_
+_(provenance: [grounded: § Identity + § Scope])_
+
+Post-1.0 direction, not committed. EDS is the only supported adapter through 1.0; Astro / Vercel / Jamstack are a directional "next", not a dated deliverable.
+
+### Q2: The success criterion "~zero CWV cost" leaves the concrete INP / Lighthouse threshold open (OQ6). How should the measurable bar read?
+_(category: Non-functional Requirements)_
+_(provenance: [judgment])_
+
+Absolute Core-Web-Vitals "good"-band targets are the bar — the adopted page stays in the CWV good band, not merely "airlock adds ~zero cost". Concrete thresholds to be pinned; this moves OQ6 toward an absolute target rather than a relative before/after delta.
+
+### Q3: The fault-isolation thesis covers "a broken tag must not sink the page." What is the declared behavior if airlock ITSELF fails to boot?
+_(category: Edge Cases & Failure Modes)_
+_(provenance: [grounded: README.md § guarded boot])_
+
+Fail-safe: a guarded boot, so a load/boot failure never breaks the page — analytics is simply absent (optionally surfaced to a health check). No fallback to loading the native vendor tags.
+
+### Q4: Scope excludes "identity resolution and a first-party cookie store", yet connectors read existing `_ga` / `_gcl_au` cookies read-only. How should the boundary read?
+_(category: Scope & Boundaries)_
+_(provenance: [grounded: connectors/ga4/cookies.js + Google Ads / Floodlight specs])_
+
+airlock may READ existing vendor cookies read-only, but never MINTS identity or maintains its own cookie store. The out-of-scope line means "no identity resolution, no first-party cookie store" — not "touches no cookies".
+
+### Coverage summary
+
+| Category | Status |
+|---|---|
+| Scope & Boundaries | Resolved (Q1, Q4) |
+| Acceptance Criteria Testability | Skipped — n/a to a vision doc |
+| Dependencies & Blockers | Clear |
+| Non-functional Requirements | Resolved (Q2) |
+| Edge Cases & Failure Modes | Resolved (Q3) |
+| Terminology Consistency | Clear |
