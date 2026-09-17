@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: DONE
 skill:
 use_cases: []
 ---
@@ -34,28 +34,32 @@ capture→diff harness (`scripts/diff/martech-diff.mjs` + `martech.golden.json`,
 `clicktrack`/`appvars` regression goldens; intuit-erp's query-gate idiom (`?martech=off`/`=local`) the `?martech=airlock`
 gate extends. This spec is **application + measurement + documentation**, not new connector or runtime behavior.
 
-**The four vendor IDs (from the intuit-erp survey / perf report):** GA4 `G-GCCMSJL6CT` (prod), Google Ads `AW-1030811807`,
-Floodlight `DC-1996823` — in-repo; the **Meta numeric pixel id** lives only in the runtime `utag.21.js` template and is
-extracted from the live container during 050-01.
+**The four vendor IDs (probe-confirmed live on `erp.intuit.com` via `npm run rig:erp-waterfall`):** GA4 `G-GCCMSJL6CT`,
+Google Ads `AW-1030811807`, Floodlight `DC-1996823` — each observed on its OWN separable `gtag/js?id=…` runtime, all in-repo;
+the **Meta numeric pixel id** lives only in the runtime `utag.21.js` template (confirmed loading from the
+`intuit/ies-erp/prod` container) and is extracted from the live container during 050-01.
 
 ## Assumptions
 
 _Load-bearing claims; probe-grounded ones cited, unverified ones flagged (risk-gated per ADR-0020)._
 
-- **A1 (dependency, not yet satisfied) — spec 049's suppressor is built + carried in a cut airlock dist.** 050-01 subtrees
-  the airlock dist; the suppressor must be a served sibling in it (049-01 AC6). Until 049 is DONE + a dist is cut, 050-01 is
-  blocked (its DoR).
-- **A2 — the four-vendor prod Tealium profile resolves only on `erp.intuit.com` / `stage.erp.intuit.com`** (ADR-0029,
-  grounded: `intuit-erp/plugins/tealium-martech/src/index.js`'s `resolveEnvironment` maps only those hosts to `prod`;
-  localhost + AEM previews resolve to the `dev` profile, and no query-string escalates). So the **measurement arena** is a
-  prod-profile host — **stage** (VPN-gated per `scripts/diff/README.md`) or production — not localhost. VPN is an *org* gate,
-  not a *container-owner* gate (the developer-provable claim still holds).
+- **A1 (satisfied 2026-09-16) — spec 049's suppressor is built + carried in a cut airlock dist.** 049 is DONE; a floating
+  `origin/dist` was cut (`airlockjs v0.8.0+dc5d5c3`) carrying `tag-suppressor.js` as a served sibling (049-01 AC6). 050-01's
+  demo used a local-build copy of that dist; a production adopter `git subtree add`s `origin/dist` (spec 031).
+- **A2 — the four-vendor prod Tealium profile resolves on `erp.intuit.com`** (ADR-0029, grounded:
+  `intuit-erp/plugins/tealium-martech/src/index.js`'s `resolveEnvironment` maps that host to `prod`; localhost + AEM previews
+  resolve to the `dev` profile, and no query-string escalates). **Probe-confirmed** (`rig:erp-waterfall`): the profile path is
+  `utag/intuit/ies-erp/prod` and production `erp.intuit.com` is **public** — reachable in-sandbox headless, **no VPN, no
+  container-owner**. So the **measurement arena** is public production `erp.intuit.com` (stage is VPN-gated *and* dead since
+  2026-09-11), not localhost — the developer-provable claim holds without any org or container-owner gate.
 - **A3 — the win is a Lighthouse/lab-TBT win, not a field-CWV improvement** (ADR-0029): the reference ad tags are
   TBT-dominant and INP/CLS-neutral, LCP already ~1.4 s. 050-02 phrases the win honestly.
-- **A4 (RISK-GATED) — blocking the four vendor runtimes does not collapse the untouched ~20 tags or the custom ECS chain.**
-  The suppressor is pattern-scoped (049) and the `clicktrack`/`appvars` goldens guard the rest, but the page-side
-  interaction on THIS live container is validated in 050-01 (goldens stay green under `?martech=airlock`) before the win is
-  claimed — the ADR-0030 kill criterion for this site.
+- **A4 (RISK-GATED, probe-de-risked) — blocking the four vendor runtimes does not collapse the untouched tags or the custom
+  ECS chain.** The suppressor is pattern-scoped (049) and the `clicktrack`/`appvars` goldens guard the rest; the probe
+  (`rig:erp-waterfall`) de-risks this — the three Google vendors load on their own separable `gtag/js?id=<AW|DC|G>` runtimes,
+  distinct from the container's other ~13 `utag.N.js` templates, so per-`?id=` suppression cannot drag a non-migrated tag.
+  The page-side interaction on THIS live container is still validated in 050-01 (goldens stay green under `?martech=airlock`)
+  before the win is claimed — the ADR-0030 kill criterion for this site.
 
 ## Decomposition
 

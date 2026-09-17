@@ -11,6 +11,10 @@ full *why* behind jig and the pre-adoption decision guide, see the
 jig is a focused workflow scaffold, not an organization-wide program — this
 page stays small and links out to the docs the scaffold just generated.
 
+> **Two different "adoptions".** This page is about adopting **jig** (the dev workflow). For adopting **airlock** (the
+> product) into a website — rewiring a tag-manager container's TBT-dominant vendor tags onto airlock, page-side, with no
+> container-owner change — see [docs/adoption/rewire-a-container.md](adoption/rewire-a-container.md) (the scripted adoption path).
+
 ## A quick readiness check
 
 jig works best when these hold. Treat it as a post-scaffold sanity check:

@@ -124,6 +124,20 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 - A **documented, scripted adoption path** exists (developer steps) — the `?martech=airlock` gate + airlock config + the
   diff run ARE the repeatable procedure.
 
+**Status — DEMONSTRATED via [spec 050](../specs/050-mvp9-reference-site-rewire-trial/spec.md) (2026-09-16), except two carried residuals — the airlock-booted TBT before/after (deploy-gated) and the vendor-console receipt (developer-console-gated):**
+
+- ✅ **Rewired page-side** — `?martech=airlock` on `erp.intuit.com`: the four native runtimes + their 9 beacons suppressed,
+  the ~14-template tail intact, no Tealium change ([050-01 § Validation evidence](../specs/050-mvp9-reference-site-rewire-trial/slice-01-reference-site-rewire-arm.md)).
+- ◻️ **Parity** — the **038 harness passes for all four vendors (102 tests)**. The **event-level vendor-console receipt**
+  (GA4 DebugView / Meta Test Events / Ads / Floodlight) is **carried**: it needs the developer's console access for the live
+  properties (an org-class grant), or runs against the developer's OWN test properties (proving protocol conformance, not
+  intuit-attribution parity) — 050-02 AC3.
+- ◻️ **Lighthouse/TBT win — indicative bound measured** — `lh:r010`, mobile slow-4G, median of 5: **TBT 487→127 ms (−360 ms,
+  −74%)**, Lighthouse score 86→96, LCP/CLS flat. This is the tags-**removed** network-block bound, not the airlock-**booted**
+  arm (airlock's own small main-thread boot cost not included; booted net win ≤ this) — a booted before/after needs a deploy, carried.
+- ✅ **Scripted adoption path** — [docs/adoption/rewire-a-container.md](../adoption/rewire-a-container.md), vendor-neutral,
+  with the erp.intuit.com run as the worked example.
+
 **Container-owner-gated — the live-attribution leg (re-inherits [ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md); carried until the container owner engages):**
 
 - **Attribution over a live production window** (view-through / cross-device / CM360) confirmed in the vendor consoles under
@@ -137,8 +151,11 @@ Do not move a plan from `candidate` to `committed` without an explicit user deci
 - **No customer-custom tag** is a deliverable or gate; **no live identifiers** in committed artifacts.
 - No regression to the stable-core contract or any MVP1–8 connector.
 
-_No servo release-signal artifact exists for this plan yet; the release-check criteria are the 1.0 gate — desired
-future evidence, not measured signals._
+_The developer-provable subset is now largely **measured** via spec 050 (2026-09-16): the 038 parity harness, the page-side
+suppress/emit, the scripted adoption path, and an **indicative** Lighthouse/TBT bound. Three items remain as named residuals
+(not silently narrowed): the **airlock-booted** TBT before/after (deploy-gated — the indicative bound network-blocks the tags
+rather than booting airlock), the **event-level vendor-console receipt** (developer-console-gated), and the
+**container-owner-gated live-attribution leg**. No servo release-signal artifact exists for this plan yet._
 
 _Shaped 2026-09-07 (ADR-0018 Emergent E3) — "Real-Site Rewire & Adoption Path", ships as v0.9.0; passing its
 release-check cuts **v1.0.0**._

@@ -1342,3 +1342,53 @@ reordered under the frozen-runtime review fix.
 **Resolution trigger:** if a profile shows the suppressor's `fetch` wrapper on a hot path, check `init.keepalive` first
 and short-circuit before resolving the URL (airlock's exempt egress then skips resolution entirely); guard the reorder
 with the existing collision rig assertion so the carve-out semantics are unchanged.
+
+## Spec 050 (MVP9 reference-site rewire trial) — follow-ups
+
+### ~~050-01 container runtime-load shape is unverified — probe before framing proceeds~~ — RESOLVED 2026-09-15 (probe)
+~~The pre-implementation frame-critique found 050-01 AC1/AC3 assumed `erp.intuit.com`'s container loads GA4/Ads/Floodlight as
+three separable `?id=`-keyed gtag runtimes, unverified — a unified single-gtag deployment would break the per-`?id=` matchers
+and risk the A4 goldens.~~
+**Resolved by:** `rig/erp-runtime-waterfall.mjs` (`npm run rig:erp-waterfall`) — a public headless load of `erp.intuit.com`
+confirms the container injects **three separable** `gtag/js?id=<AW-1030811807|DC-1996823|G-GCCMSJL6CT>` runtimes +
+`connect.facebook.net/en_US/fbevents.js`, all from the Tealium `intuit/ies-erp/prod` container (stable across repeat loads,
+no VPN / no container-owner). AC1's per-`?id=` matcher recipe is grounded; A4 is de-risked (the three vendors are on their own
+runtimes, separate from the other ~13 `utag.N.js` templates); AC3 now cites the shipped 049-02 fetch+keepalive transport
+carve-out for the byte-identical beacons (**no ADR-0030 change** — its `/mp/collect` example is the non-page-feasible GA4-MP
+variant). Frame-critique re-run to `pass` (evidence: `specs/050-mvp9-reference-site-rewire-trial/reviews/slice-0{1,2}-frame-critique.md`).
+
+### 050-02 residual — Meta `/tr` did not fire on a no-interaction load (probe)
+**Deferred:** `rig:erp-waterfall` observed `fbevents.js` load but **zero** `facebook.com/tr` beacons on a plain no-interaction
+load (US default consent `gcs=G111`, granted; Google beacons all fired). So the Meta event-level receipt (050-02 AC3) and Meta
+beacon parity (050-02 AC2) need the pixel driven to actually fire before evidence is recorded — the native Meta pixel is itself
+silent on a bare load. (Google Ads' native `pagead/viewthroughconversion` leg is deliberately NOT reproduced by airlock —
+connector scope, spec 044; 050-02 parity claims the `ccm/collect` conversion beacon only.)
+**Resolution trigger:** when 050-02's console-receipt / Meta parity is captured, drive the pixel (accept OneTrust or fire the
+tracked interaction) so `/tr` is present in BOTH the container-as-shipped and `?martech=airlock` arms; if it stays silent even
+when driven, treat Meta as an interaction-gated follow-up rather than a page-load parity claim.
+
+### 050-02 arena — the developer-provable demo runs on prod via Chrome Overrides, NOT on aem.live (live-validated 2026-09-16)
+**Deferred (method note for 050-02's adoption-path doc + measurement).** The `?martech=airlock` arm was live-validated
+2026-09-16 in an authenticated browser; two findings fix the demonstration arena:
+- **`*.aem.live` previews can't run the native side** — OneTrust is domain-locked to `intuit.com`, so `window.OneTrust` never
+  initializes there → consent never resolves → utag + the four native tags never load. A simulated `OptanonConsent` cookie loads
+  utag but Tealium's own gate stays shut (`utag.gdpr.getConsentState()===0`). aem.live can show airlock EMITTING (consent granted
+  via `window.airlock.setConsent`), but not the native SUPPRESSION.
+- **The developer-provable demo is Chrome Local Overrides on prod `erp.intuit.com`** (real OneTrust + Tealium consent resolve; no
+  deploy, no container-owner — ADR-0029 realized). Chrome will NOT serve *new-path* files on an AEM app-shell host (they return the
+  `text/html` app-shell), so the demo **inlines the real suppressor into the one file Chrome does override (`scripts.js`)**. Result
+  (same host, granted consent): native `/` fires all four (129 resources); `?martech=airlock` suppresses all four + their 9 beacons,
+  tail intact (94 resources). Evidence: slice-01 § Validation evidence.
+**Resolution trigger (050-02):** generalize this into the vendor-neutral adoption-path doc (AC4) — subtree-the-dist for a real
+deploy, inline-suppressor-in-`scripts.js` + Chrome Overrides for the zero-deploy developer proof. **Lighthouse/TBT (AC1) —
+indicative tags-removed bound MEASURED 2026-09-16** (`lh:r010`, `erp.intuit.com`, mobile slow-4G, median of 5): **−360 ms TBT
+(487→127, −74%)** + **+10** Lighthouse score, LCP/CLS flat — but this network-blocks the four runtimes, it is NOT the
+airlock-**booted** arm AC1 specifies (airlock's own small main-thread boot cost not included; booted net win ≤ this). **038 parity harness
+✅ (102 tests).** Carried residuals for 050-02: the **airlock-booted** TBT before/after (needs a deploy where airlock's workers
+run against the live container) + the **event-level console receipt** (vendor-console-gated; Meta `/tr` interaction-gated) +
+the **050-01 AC4 tail-green goldens** (the intuit-erp `verify:martech` minus-the-four / `clicktrack` / `appvars` / ECS-chain-firing
+checks weren't runnable in the Chrome-Overrides arena — localhost resolves to the dev profile — so they need a real deploy where
+the harness runs against the prod-profile `?martech=airlock` arm; AC4 currently rests on the 129→94 network delta + the A4 probe).
+Also **050-01 AC5** — the deny→accept consent hold/flush parity is the shipped MVP8 mechanism (048-03), exercised only in the
+default-granted state on the live arena; re-run the deny→accept flow on a real `?martech=airlock` deploy to close it fully
+(low-risk — the mechanism ships).
