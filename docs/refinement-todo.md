@@ -1407,3 +1407,99 @@ the harness runs against the prod-profile `?martech=airlock` arm; AC4 currently 
 Also **050-01 AC5** — the deny→accept consent hold/flush parity is the shipped MVP8 mechanism (048-03), exercised only in the
 default-granted state on the live arena; re-run the deny→accept flow on a real `?martech=airlock` deploy to close it fully
 (low-risk — the mechanism ships).
+
+## Personalization + experimentation runtime (R-012 / MVP10) — open items surfaced by the 2026-09-18 brainstorm
+
+> Source: [R-012](research/R-012-personalization-experimentation-runtime.md); release plan [MVP10](releases/mvp10.md);
+> decisions locked in [ADR-0031](decisions/adr-0031-flicker-by-construction-invariant.md) /
+> [ADR-0032](decisions/adr-0032-eager-paint-policy-and-flag.md) /
+> [ADR-0033](decisions/adr-0033-proposition-contract-placement-registry.md). Items below are the deferred decisions and
+> residuals those artifacts name; each carries its resolution trigger.
+
+### Decision: eager decision-landing mechanism — inline head fetch + `applyResponse` handoff vs eager Worker boot — PROPOSED ([ADR-0034](decisions/adr-0034-eager-decision-landing-head-fetch.md))
+
+**Deferred:** ADR-0034 is Proposed with a lean (head fetch) but two unverified load-bearing assumptions: (a) the
+`kndctr_<ORG>_AdobeOrg_identity` cookie is readable by page JS or rides `credentials:"include"` under both third-party
+edge domain and first-party CNAME; (b) the interact response beats eager often enough on warm connections to matter.
+**Resolution trigger:** a probe spike on the EDS testbed (throttled) recording the decision-arrival-vs-eager delta
+distribution + the cookie readability matrix → `adr.py accept 0034` (or supersede toward the eager-Worker option). The
+probe's distribution also sets ADR-0032's default budgets.
+
+### Decision: prerender as a seal hold reason + speculative decision prefetch defaults — PROPOSED ([ADR-0035](decisions/adr-0035-prerender-seal-hold-speculative-prefetch.md))
+
+**Deferred:** ADR-0035 is Proposed pending the prerender probe: does a dedicated Worker boot + `fetch` inside a Chrome
+prerendered testbed page; do held beacons flush exactly once on `prerenderingchange` and never on discard; does LCP read
+relative to `activationStart`. Also pending: Target/AJO confirmation of speculative-fetch profile/journey side effects.
+**Resolution trigger:** probe findings recorded in R-012 (or a new R-note) + vendor answer → accept 0035. **Note:** AD-9
+(`architecture.md:114`) already *claims* a prerender-aware held-until-activation egress; no implementation exists in
+`core/`/`adapters/`/`connectors/`/`test/` at `2bccb2c` — ADR-0035's slice makes AD-9 true; until then reword AD-9 as
+intended-not-built.
+
+### `initialViewport` placement attribute — an extension of ADR-0033's (accepted, immutable) registry; home + inference open
+
+**Deferred:** ADR-0032 rule 2 / ADR-0031 rule 3 gate `off`-mode exposure on a per-placement `initialViewport` attribute
+(default `true`), which ADR-0033's illustrative field list does not name. Both ADRs record it as an *extension*; the
+authoritative home is the pinned contract schema (`contracts/placement.schema.json`, to be authored by the first MVP10
+registry slice). Open: whether section-metadata-discovered placements infer it from section position (first section →
+`true`) or must declare it. **Resolution trigger:** the MVP10 registry slice authors the schema (and, if the field list
+must change in an ADR, a short amendment ADR superseding the registry clause of 0033).
+
+### `decisioning.propositionSuppressDisplay` for timeouts — reporting semantics unverified (ADR-0031 assumption)
+
+**Deferred:** alloy emits `SuppressDisplay` today only for a second in-app message (`reason:"Conflict"`). Whether Target
+A4T *reports* a `reason:"Timeout"` suppression, or merely omits the impression, is unverified (CJA: ordinary event type).
+Until confirmed the promise is "honest denominator + queryable in the data", not "visible in Target reports".
+**Resolution trigger:** Target/AJO team confirmation, or a live-Edge probe (creds-gated, 013 pattern).
+
+### Hero-activity flag dependency — a marketer can launch a VEC hero activity without the page metadata flipped (ADR-0032 open question)
+
+**Deferred:** under ADR-0032's `off` default an activity on an `initialViewport` placement launched on an **undeclared** page is shown to nobody until
+the declaration (page metadata / bulk-metadata row — authored content on EDS) is published, and exposure recorded
+meanwhile is not experiment-grade. A per-browser memory is **ruled out** as the upgrade mechanism (returning-visitor
+skew). **Mitigations:** the loud "hero proposition on an undeclared page" diagnostic (028 inspector); a **site-level
+activity manifest** (ADR-0032 Option A″) sourced from the Target Activities / AJO admin APIs or the exposure sink —
+format + whether MVP10 ships a reference job are open. **Resolution trigger:** first real adopter running a Target/AJO
+hero activity.
+
+### `insertAfterInteraction` — build it (in-app messages / overlays, MVP10 scope 6) or correct the vision doc
+
+**Deferred:** `docs/product-vision.md` names `insertAfterInteraction` as a shipped CWV-safe helper; `adapters/eds/dom.js:258-261`
+rejects unconditionally. MVP10 scope 6 (AJO in-app / content cards) is the natural home to build it.
+**Resolution trigger:** MVP10 scope 6 spec authored → build; if scope 6 is cut, correct the vision doc.
+
+### Section-level aem-experimentation exposure (spec 005 residual, re-triggered)
+
+**Deferred:** 005's body-dataset read is page-level only; section-level experiments write the dataset on the section.
+ADR-0033 hosts aem-experimentation unforked and has the eager module read body **and section** datasets (event listener
+secondary, for the async fragment pass), normalizing each into a `source`-phase proposition. **Resolution trigger:**
+MVP10 scope 4 (eager exposure capture); the section dataset keys must be asserted on the testbed first.
+
+### Decision: eager exposure EGRESS before the airlock boots (the spec-005 fast-bounce / differential-bias hole) — DEFERRED
+
+**Deferred:** spec 005's hole is an *egress-timing* loss — nothing leaves the page before `createAirlock` runs in
+`loadLazy` (ring, `unloadFlush`, keepalive dispatcher all live behind the lazy boot; the eager chunk is build-asserted
+not to reach them), so earlier *capture* (ADR-0033) does not move it. Closing it needs a main-thread `pagehide` →
+keepalive fetch **before the airlock exists**, in tension with "main thread only captures + enqueues; all egress behind
+the airlock" and AD-8. Frame-critique of ADR-0033 (round 2) surfaced that the R-012 text overclaimed this.
+**Resolution trigger:** a real-site measurement showing the fast-bounce loss is material for a hero experiment → ADR
+weighing an eager unload fast path (bounded: one keepalive, exposure-only, consent-gated) vs accepting the loss.
+
+### Re-triggered existing deferrals (alloy config-wiring §)
+
+- **alloy-only exposure sink** (no co-booted `["*"]` connector) — an AJO-only or Target-only boot re-triggers it; MVP10
+  scope 4 should route exposure/suppression to alloy *and* any sink (vision differentiator).
+- **Mid-session re-boot in-flight exposure silent drop** (034-03 residual) — SPA/view-change re-decisioning is exactly
+  this scenario; MVP10 scope 7 (deferred) must address it before shipping views.
+
+### Decision: SPA / view-change re-entrant placement lifecycle — DEFERRED (post-MVP10)
+
+**Deferred:** re-`reserveSpace` after a route change contradicts the eager-reserve-only invariant; a placement must be
+made hidden again before re-personalization (ADR-0031). No prior art in the corpus. **Resolution trigger:** an adopter
+with an SPA-style EDS surface, or MVP10 scope 7 pulled in.
+
+### Decision: personalization-driven speculation (a JSON offer naming URLs to prerender) — DEFERRED
+
+**Deferred:** recorded in ADR-0035 as a later option: apply a capped `speculationrules` op (same-origin, allowlisted,
+small N) from a vendor decision. Lets a vendor decision spend the user's CPU/data — needs guardrails first.
+**Resolution trigger:** ADR-0035 accepted + a customer asking for next-best-action navigation prediction.
+

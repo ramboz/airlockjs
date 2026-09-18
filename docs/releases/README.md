@@ -25,6 +25,7 @@ they stop informing a current release decision.
 |---|---|---|
 | [Vendor Parity & Adoption Assurance](vendor-parity-assurance.md) | Scoped reports, identity/conversion/transport fidelity and customer outcome evidence; post-Adobe candidate, no version committed | Existing 026/038-048 foundations; one observed vendor/journey at a time |
 | [Granular Chamber Policy](granular-chamber-policy.md) | Per-input/capability grants, revocation and retention; candidate, with Adobe-critical dependencies pulled forward | Policy contract and lifecycle/security decision before implementation |
+| [MVP10 — Personalization & Experimentation Runtime](mvp10.md) | **The next big feature after 1.0.** OOTB Target (VEC + form-based), AJO (visual, code-based, in-app) and aem-experimentation support with the hero decision landing in eager, lazy blocks personalized at their visibility boundary, **no visible flicker ever** (structural), CWV-first. Sequenced after the v1.0.0 cut; ships **v1.1.0** (TBD owner). Decisions: ADR-0031/0032/0033; ADR-0034/0035 probe-gated | JIG handoff: one spec per vertical scope (R-012 ladder) + two probe spikes (head-fetch race + cookies; prerender); see [R-012](../research/R-012-personalization-experimentation-runtime.md) |
 
 ## Committed
 
