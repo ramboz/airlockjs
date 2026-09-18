@@ -1503,3 +1503,32 @@ with an SPA-style EDS surface, or MVP10 scope 7 pulled in.
 small N) from a vendor decision. Lets a vendor decision spend the user's CPU/data — needs guardrails first.
 **Resolution trigger:** ADR-0035 accepted + a customer asking for next-best-action navigation prediction.
 
+## Release config-builder (pre-spec, 2026-09-18) — deferred decisions
+
+> Surfaced while shaping the [config-builder](releases/config-builder.md) release plan and drafting
+> [ADR-0036](decisions/adr-0036-per-site-composition.md) / [ADR-0037](decisions/adr-0037-config-builder-hosting-github-write-path.md).
+> Each has a trigger; none blocks accepting the two ADRs.
+
+### Decision: per-site output layout — pre-chunked dist (file selection) vs per-site bundle (Action-run esbuild) — DEFERRED
+**Deferred:** ADR-0036 fixes the composition model (manifest, registry boot, pure generator) but leaves the emitted layout open. Chunked = no compute at generation time, more post-LCP requests, new CSP-envelope assertions; bundled = today's layout, but EDS repos gain a CI build.
+**Resolution trigger:** [R-013](research/R-013-per-site-chunked-dist-feasibility.md) concludes (size attribution + splitting-vs-invariants + `lh:r010` cost). Record as a lightweight decision or a short ADR extending ADR-0036 before the scope-1 spec is drafted.
+
+### Decision: builder authentication — fine-grained PAT in the browser vs GitHub App with a token-exchange backend — DEFERRED (PAT first)
+**Deferred:** ADR-0037 starts with a single-repo fine-grained PAT held in session storage. The GitHub App path needs a minimal backend (a serverless host; Adobe I/O Runtime is a candidate for that role only).
+**Resolution trigger:** the first adopter for whom PAT creation/handling blocks adoption, or a security review that rejects browser-held tokens.
+
+### Decision: builder persona — marketer vs site owner with review — DEFERRED
+**Deferred:** the 1.0 target user is a developer and the config is the egress/consent policy, so "marketer" may resolve to a site owner whose PR is reviewed, with a marketer-editable overrides layer as a later, separate surface.
+**Resolution trigger:** the config-builder app spec's `/jig:clarify` pass; settle before the form is designed.
+
+### Decision: embedding surface — standalone URL vs sidekick plugin vs DA extension vs unified shell — DEFERRED (standalone first)
+**Deferred:** ADR-0037 ships a standalone static URL; the others are wrappers around it. Whether embedding constraints (iframe CSP, message bus, IMS in the shell) force any change to the app is unverified.
+**Resolution trigger:** the first adopter asking for in-context authoring, or an Adobe-customer discoverability need; then a short spike per surface.
+
+### Decision: release sequencing and version — before or after the v1.0.0 cut; v1.2 (after MVP10's v1.1.0) or a 0.x runtime slice — DEFERRED
+**Deferred:** the runtime half (scope 1: manifest + registry boot + generator + CLI) restructures the stable core and doubles as the config-surface freeze, so it may be cheaper before 1.0; the UI half is post-1.0 in spirit. The `MVPn ↔ v0.n.0` convention ends at 1.0.
+**Resolution trigger:** the owner decides when cutting v0.9.0 / planning the v1.0.0 close-out; record in the release plan's Status and the release slate.
+
+### Decision: committed-config form and manifest form — DEFERRED
+**Deferred:** whether the site's config is JSON with a loader or a JS module exporting the object, and whether a connector manifest is JSON data or a JS module; whether the schema is generated from manifests or asserted equal to them at build time.
+**Resolution trigger:** the scope-1 spec's framing; craft-level, no ADR needed unless it touches ADR-0017's frozen surface.
