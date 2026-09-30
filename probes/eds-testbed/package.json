@@ -7,6 +7,6 @@
     "up": "aem up --no-open --port 3111"
   },
   "devDependencies": {
-    "@adobe/aem-cli": "^16.0.0"
+    "@adobe/aem-cli": "^16.21.23"
   }
 }
