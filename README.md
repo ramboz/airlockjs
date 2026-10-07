@@ -3,7 +3,8 @@
 Capability-secured, off-main-thread martech runtime for edge/static sites (Adobe Edge
 Delivery Services first). The main thread only captures and enqueues; all mapping and
 egress happen behind the airlock, in isolated worker "chambers". See
-[docs/product-vision.md](docs/product-vision.md) for the vision and
+[docs/product-vision.md](docs/product-vision.md) for the vision and its
+[customer, integrator, and operator use cases](docs/product-vision.md#use-cases), and
 [docs/architecture.md](docs/architecture.md) for the module boundaries.
 
 > Pre-1.0. The **stable core** — the connector, capability, `push()`, seam-driver, and adopter-boot surfaces — is

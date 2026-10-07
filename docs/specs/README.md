@@ -13,6 +13,13 @@
 > Related: [Bug Status Board](../bugs/README.md). Check both boards before
 > folding reported defects into spec acceptance criteria.
 
+**Use-case traceability:** the [product-vision catalog](../product-vision.md#use-cases) covers customer,
+integrator, and operator goals. Each spec's `use_cases:` frontmatter records its contribution to those
+goals, not completion of every adoption proof. Run `workflow.py progress --project-dir .` for linked
+slice progress and `workflow.py coverage --project-dir .` for reference coverage. Scaffolding and
+internal mechanisms can remain unanchored; live-validation residuals and release gates are not retired
+by a DONE slice or a green coverage report.
+
 | Spec | Slice | Status | Notes |
 |------|-------|--------|-------|
 | [001-adopt-jig](001-adopt-jig/spec.md) | 001-01 — bootstrap | **DONE** | worked example; review boxes satisfied by deterministic completion check |

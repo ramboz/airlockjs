@@ -1,7 +1,7 @@
 ---
 status: DONE
 skill:
-use_cases: []
+use_cases: [UC-4]
 ---
 
 <!-- jig self-defining vocabulary (soft, forward-only): expand each acronym on first use and link the term to docs/memory/glossary.md (or jig's lexicon). See docs/workflow.md "Self-defining vocabulary". -->
@@ -108,7 +108,10 @@ container tag class end-to-end, never a mechanism-only or config-only horizontal
   `importScripts` — the ADR-0030 kill criterion (profile-side fallback for that vendor), not covered.
 - **Specific vendor matchers** — the suppressor is vendor-neutral; the adopter declares the matchers (no hardcoded vendor,
   ADR-0018 R2).
-- **Growing the vision `## Use cases`** — this is adoption tooling for the already-scoped MVP9 rewire; `use_cases: []`.
+
+**Use-case traceability (owner-confirmed catalog refresh, 2026-10-06): UC-4.** The separately confirmed
+vision refresh now captures selective migration as a developer goal. This replaces the former tooling-only
+declined trace; the suppressor's scoped mechanism and the production live-attribution exclusion are unchanged.
 
 ## References
 

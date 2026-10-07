@@ -1,7 +1,7 @@
 ---
 status: DONE
 skill:
-use_cases: []
+use_cases: [UC-5, UC-6, UC-8]
 ---
 
 <!-- jig self-defining vocabulary (soft, forward-only): expand each acronym on first use and link the term to docs/memory/glossary.md (or jig's lexicon). See docs/workflow.md "Self-defining vocabulary". -->
@@ -103,7 +103,11 @@ never a chamber-only or seal-only horizontal shard.
 - **DMP / audience sync** (ADR-0018 Emergent E10).
 - **A live-Edge / real-capture confirmation** of the booted beacons — captures are local-only (R5); this spec proves against redacted fixtures + the hermetic composite, like every prior MVP8 slice.
 - **`_gcl_au` linker-cookie *writing* on a rewired page** — OQ13-b, resolves MVP9 (read-when-present / never-mint stays the 044-01 rule).
-- **Growing the vision `## Use cases`** with an ad-conversion behavior — this spec is the boot/composite wiring of already-built connectors, so `use_cases: []` (declined; the ad-conversion behavior itself is 044/046). A vision-elicitation refresh covering MVP7/MVP8 behaviors is a separate follow-up.
+
+**Use-case traceability (owner-confirmed catalog refresh, 2026-10-06): UC-5, UC-6, UC-8.** The separately
+confirmed vision refresh now links this boot/composite wiring to supported advertising beacons, purpose-specific
+consent, and centralized configuration. It replaces the former declined trace without extending the page-load
+connector scope or claiming true conversion-ping or production attribution parity.
 
 ## References
 

@@ -44,17 +44,110 @@ Out of scope (explicit no-gos for the first releases): session replay / full DOM
 
 ## Use cases
 
-<!-- elicited: 2026-09-16 / status: filled / hash: sha256:07f1f7fa439b -->
+<!-- elicited: 2026-10-06 / status: filled / hash: sha256:b9144bb991eb -->
 
-The three recurrent customer requests every EDS project faces, which together form the MVP demo. Each carries a stable, append-only `UC-N` id that specs reference via `use_cases:` frontmatter (never renumber or reuse one):
+The catalog covers customer measurement scenarios **and integrator/operator workflows** (owner-confirmed,
+2026-10-06). UC-1 through UC-3 retain their original MVP-demo identities; the later entries capture goals
+supported by the implementation built since then. Each carries a stable, append-only `UC-N` id that specs
+reference via `use_cases:` frontmatter: never renumber or reuse one.
 
-1. **UC-1 · A/B test or personalization above the fold, without flicker** — a site owner can run an above-the-fold experiment or personalization with no flicker. Decision applied in the eager window before paint (in-house decisioning for MVP1, à la aem-experimentation); exposure reported through the runtime.
-2. **UC-2 · Analytics with a custom event** — a developer can capture a page interaction and report it to analytics. Mapped off-thread in its chamber, emitted to GA4 via the Measurement Protocol.
-3. **UC-3 · Automatic block-decoration instrumentation for EDS** — an EDS developer gets instrumentation without touching markup. It hangs off block `decorate()` rather than markup — no `data-track-*` clutter, associations held in WeakMaps.
+Entries use the machine-resolvable `- UC-N: [actor] can [goal]` form. The linked specs identify implementation
+evidence, not a blanket claim that every production adoption outcome is proven. Slice completion counts
+remain separate from the live-validation gates and residuals below. Worker chambers, batching, isolation,
+and unload handling are supporting mechanisms or guarantees, not additional use cases.
 
-Implicit success criterion (not a use case — it's the oracle): the adopted page stays in the Core-Web-Vitals **good** band (absolute INP / LCP / CLS thresholds), with airlock's own overhead ~zero, shown on a before/after Lighthouse + field-metric scoreboard. The concrete good-band thresholds are pinned as OQ6; the proof that a rewire brings an intuit-class page back into the good band is MVP9. That scoreboard is also the servo oracle.
+### Original MVP scenarios
+
+- UC-1: A site owner can personalize above-the-fold content without flicker or layout shifts.
+  - Local A/B decisioning and Adobe decisions-as-data; eager-window application, multiple placements,
+    and exposure reporting. [005](specs/005-uc1-pzn-exposure/spec.md),
+    [033](specs/033-alloy-config-wiring/spec.md), [034](specs/034-alloy-config-followups/spec.md).
+- UC-2: A developer can report meaningful site interactions to analytics.
+  - Custom events and GA4 purchases, with off-thread mapping through Measurement Protocol or browser-compatible
+    gtag reporting; Adobe/alloy covers its declared analytics subset, not every GA4 event.
+    [004](specs/004-uc2-ga4-eds/spec.md), [008](specs/008-ga4-purchase-conversion/spec.md),
+    [033](specs/033-alloy-config-wiring/spec.md), [039](specs/039-ga4-gtag-connector/spec.md),
+    [041](specs/041-ga4-gtag-boot/spec.md).
+- UC-3: An EDS developer can measure block engagement without modifying content markup.
+  - Decoration-linked block-view events; no `data-track-*` clutter, with adapter-owned element associations
+    held in WeakMaps. [006](specs/006-uc3-block-decoration/spec.md).
+
+### Additional customer goals
+
+- UC-4: A site developer can migrate supported vendors onto airlock while leaving the rest of the tag-manager container intact.
+  - Selective native-tag suppression and replacement emission are demonstrated.
+    [049](specs/049-native-tag-suppressor/spec.md), [050](specs/050-mvp9-reference-site-rewire-trial/spec.md),
+    [adoption path](adoption/rewire-a-container.md). Deployment-backed performance proof, untouched-tail
+    regression goldens, the real-site deny-to-accept flow, and vendor-console attribution evidence remain
+    named residuals; this is not automatic container translation.
+- UC-5: A marketing engineer can send supported advertising beacons without loading the corresponding native vendor runtime.
+  - Meta/LinkedIn/Bing pixels and Google Ads/Floodlight connectors.
+    [026](specs/026-generic-pixel-connector/spec.md), [044](specs/044-google-ads-connector/spec.md),
+    [046](specs/046-floodlight-connector/spec.md), [048](specs/048-ad-connector-boot-wiring/spec.md).
+    Ads/Floodlight cover the declared page-load beacon families, not complete conversion or attribution parity.
+- UC-6: A site owner can apply visitor consent choices across configured measurement and personalization services.
+  - Purpose-specific enforcement, OneTrust boot/change integration, held-ad-beacon release, and analytics
+    continuing when personalization is denied. [017](specs/017-mvp3-purpose-vector-consent/spec.md),
+    [034](specs/034-alloy-config-followups/spec.md), [045](specs/045-consent-hold-until-granted/spec.md),
+    [047](specs/047-onetrust-consent-input-driver/spec.md), [048](specs/048-ad-connector-boot-wiring/spec.md).
+    Consent behavior is vendor- and purpose-specific, not a blanket "denied means no transmission" rule;
+    core RUM is a distinct, non-consent-gated governance class.
+- UC-7: A site owner can restrict the information and destinations available to configured connectors.
+  - Sensitive-field filtering, endpoint ceilings, scoped cookie grants, and configuration-integrity
+    enforcement. [015](specs/015-mvp3-config-integrity-enforcement/spec.md),
+    [016](specs/016-mvp3-endpoint-ceiling-enforcement/spec.md), [019](specs/019-payload-governance/spec.md),
+    [020](specs/020-alloy-xdm-governance/spec.md), [035](specs/035-cookie-grant-wrapper/spec.md).
+    These are bounded controls with explicit per-surface residuals, not a blanket PII-prevention guarantee.
+
+### Developer and operator workflows
+
+- UC-8: An integrator can select and configure supported services through one site-owned configuration.
+  - Composite `boot(config)` and shared event submission.
+    [032](specs/032-instrumentation-config/spec.md), [033](specs/033-alloy-config-wiring/spec.md),
+    [041](specs/041-ga4-gtag-boot/spec.md), [048](specs/048-ad-connector-boot-wiring/spec.md).
+    Arbitrary declarative event-capture rules are not implemented.
+- UC-9: A developer can inspect why a beacon was held, dropped, or stripped.
+  - Queryable diagnostics, per-beacon correlation, and a local inspector panel.
+    [028](specs/028-enforcement-inspector/spec.md). This is not a hosted trace backend or a claim that
+    every failure path has diagnostic coverage.
+- UC-10: An integrator can compare replacement beacons against captured native-vendor traffic.
+  - Classified field-level parity reports with explicitly owned gaps.
+    [038](specs/038-parity-harness/spec.md), [050](specs/050-mvp9-reference-site-rewire-trial/spec.md).
+    Harness success does not establish vendor-console receipt, advanced-matching efficacy, or live attribution.
+- UC-11: A developer can measure a configuration's performance impact against explicit baselines.
+  - Before/after harnesses and the naive/deferred/worker scoreboard.
+    [029](specs/029-cwv-scoreboard/spec.md), [036](specs/036-real-site-validation-harness/spec.md),
+    [050](specs/050-mvp9-reference-site-rewire-trial/spec.md).
+    The reference-site tags-removed TBT bound is not an airlock-booted result or a field-CWV improvement.
+- UC-12: A site operator can collect page-load, error, and Core Web Vitals signals through airlock.
+  - Governed core RUM checkpoints, including page-hide metrics.
+    [022](specs/022-helix-rum-connector/spec.md), [030](specs/030-rum-subsume/spec.md).
+    Full enhancer replacement and live-collector acceptance are not proven; production cutover retains
+    the [live wire-shape gate](../connectors/helix-rum/README.md#before-a-real-production-cutover--the-creds-gated-live-gate).
+- UC-13: An integrator can deploy a pinned release on a buildless EDS site without introducing a site build pipeline.
+  - Ready-to-serve, same-origin distribution.
+    [031](specs/031-distribution-setup/spec.md). EDS is the supported adapter; npm distribution and
+    non-EDS adapters remain deferred.
+- UC-14: An integrator can move a vendored installation to a known release without editing generated runtime files.
+  - Tagged distribution and the demonstrated subtree update path.
+    [031](specs/031-distribution-setup/spec.md). The generated tree is overwritten by release updates,
+    not hand-maintained as source.
+
+### Success criteria and reporting
+
+The performance success criterion remains separate from UC-11's **ability to measure**: the adopted page stays
+in the Core-Web-Vitals **good** band (absolute INP / LCP / CLS thresholds), with airlock's own overhead ~zero,
+shown on a before/after Lighthouse + field-metric scoreboard. The concrete good-band thresholds are pinned
+as OQ6; the proof that a rewire brings an intuit-class page back into the good band is MVP9. That scoreboard
+also supports the servo oracle.
 
 **Co-equal success criterion — parity (added 2026-09-07, [ADR-0018](decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md)).** The CWV scoreboard is only half the 1.0 bar. The other half is **parity at the vendor boundary**: when a real site rewires a vendor tag (GA4, Meta Pixel, Google Ads, Floodlight) from its tag-manager container onto airlock, the same events with the same attribution-bearing fields must reach the vendor as before — confirmed by a vendor-generic **parity harness** (per-protocol semantic oracle) and the vendor consoles. CWV without parity is a demo; parity without CWV is a port. 1.0 (adoptable with confirmed parity) is cut when a real intuit-class rewire proves both — see [the release slate](releases/README.md) and R-007, now the 1.0 benchmark.
+
+UC-10's comparison workflow does not itself satisfy that release criterion.
+`workflow.py progress --project-dir .` reports linked slice progress;
+`workflow.py coverage --project-dir .` checks catalog/spec references. Both are advisory:
+unanchored scaffolding, abandoned work, and internal mechanisms need not be assigned a use case merely to
+make the counts look complete. Neither command replaces the live gates in [MVP9's release-check](releases/mvp9.md#release-check-criteria-vendor-generic--this-is-the-10-gate).
 
 ## Stack
 

@@ -2,7 +2,7 @@
 status: DONE
 skill:
 frame_review: true
-use_cases: []
+use_cases: [UC-11]
 ---
 
 <!-- jig self-defining vocabulary (soft, forward-only): expand each acronym on first use and link the term to docs/memory/glossary.md. -->
@@ -19,10 +19,11 @@ not prose. The vision's punchline — *the naive multi-tracker stack tanks INP; 
 measured and true (spec 003, 2026-08-26) but lives only as a table in `spec.md`/`architecture.md`. This spec
 packages it into a runnable command that emits a durable, legible before/after artifact.
 
-**`use_cases: []` — the cross-cutting oracle, not a 4th customer use case.** The vision names this explicitly
-(`product-vision.md:53`): *"Implicit success criterion (not a use case — it's the oracle): prove all three [UC-1/2/3]
-land at ~zero CWV cost, shown on a before/after … scoreboard."* The scoreboard **validates** UC-1/2/3; it is not
-a UC itself. This spec **resolves the OQ6 scoreboard residual** (`refinement-todo.md`: OQ6's flicker-routing half
+**Use-case traceability (owner-confirmed catalog refresh, 2026-10-06): UC-11.** A developer can measure
+a configuration's performance impact against explicit baselines. The original infrastructure-only
+classification reflected the three-scenario MVP catalog; the catalog now includes this evaluation workflow.
+The ability to measure remains distinct from meeting the performance success criterion, and the scoreboard
+remains advisory. This spec **resolves the OQ6 scoreboard residual** (`refinement-todo.md`: OQ6's flicker-routing half
 was resolved by ADR-0005/007-03; *"this is also where the before/after CWV scoreboard becomes a pinned
 measurement surface"* was carried forward to MVP5).
 

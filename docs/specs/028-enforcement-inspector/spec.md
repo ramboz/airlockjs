@@ -2,7 +2,7 @@
 status: DONE
 skill:
 frame_review: true
-use_cases: []
+use_cases: [UC-9]
 ---
 
 <!-- jig self-defining vocabulary (soft, forward-only): expand each acronym on first use and link the term to docs/memory/glossary.md (or jig's lexicon). See docs/workflow.md "Self-defining vocabulary". -->
@@ -19,10 +19,11 @@ today a developer can only see those decisions as redacted `console` output. The
 **first-class diagnostics/inspector** (§ Scope; OQ7) and the differentiator vs Zaraz's opacity (§ Competitive):
 for any egress beacon, *why did it fire / hold at the seal / get gated / get stripped?*
 
-**`use_cases: []` — observability infrastructure, declined-trace (not a 4th customer use case).** The inspector
-serves the cross-cutting *visibility + trust* of the existing UC-1/2/3 beacons; the vision places it under
-§ Scope / OQ7, not among the three customer-request use cases. It adds no new user-facing analytics/experiment
-capability of its own — it makes the already-governed beacons legible. This spec **resolves OQ7**.
+**Use-case traceability (owner-confirmed catalog refresh, 2026-10-06): UC-9.** The inspector lets a developer
+inspect why a beacon was held, dropped, or stripped. The original infrastructure-only classification reflected
+the three-scenario MVP catalog; the catalog now includes developer/operator workflows. This links the existing
+deliverable without adding analytics/experiment capability or widening diagnostic coverage. This spec
+**resolves OQ7**.
 
 **Risk-First grounding (the MVP5 probe — settled 2026-09-03, so the inspector is scoped honestly):** the
 question was *are the enforcement decisions already emitted as structured, queryable events (inspector = a

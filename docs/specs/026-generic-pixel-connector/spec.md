@@ -1,7 +1,7 @@
 ---
 status: DONE
 skill: jig:spec-workflow
-use_cases: [UC-2]
+use_cases: [UC-2, UC-5]
 ---
 
 # Spec 026: generic pixel connector (the most-common-tags adoption thread)

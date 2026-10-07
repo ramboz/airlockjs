@@ -2,7 +2,7 @@
 status: DONE
 skill:
 frame_review: true
-use_cases: []
+use_cases: [UC-12]
 ---
 
 <!-- jig self-defining vocabulary (soft, forward-only): expand each acronym on first use and link the term to docs/memory/glossary.md. -->
@@ -22,8 +22,10 @@ RUM checkpoints natively and governs their egress; this spec makes airlock **boo
 production** — including the one piece 022 left latent: **egressing INP (and late CLS/LCP) at page-hide** —
 and resolves the MVP4 feed/replace/coexist decision toward **replace** (for the core checkpoints).
 
-**`use_cases: []` — cross-cutting observability/governance, not a 4th customer use case.** RUM is CWV-first
-performance telemetry (R-007's host-or-subsume opportunity), the same infra class as the 028 inspector.
+**Use-case traceability (owner-confirmed catalog refresh, 2026-10-06): UC-12.** A site operator can collect
+page-load, error, and Core Web Vitals signals through airlock. The original infrastructure-only classification
+reflected the three-scenario MVP catalog; the catalog now includes operator workflows. Core checkpoints only:
+this link does not claim full enhancer replacement or retire the live-collector wire-shape gate.
 
 **Grounding (2026-09-03 — the emission is DONE; the subsume adds a page-side authority switch PLUS one real core
 capability the 030-01 frame-critique surfaced):**
