@@ -6,7 +6,13 @@
 >
 > The name carries both halves of the thesis at once: an airlock is *fault-isolation* (one side depressurizing doesn't kill the other — a broken tag must not sink the page) and *mediated egress* (nothing crosses without cycling through the chamber — the capability boundary). It gives the system a consistent vocabulary: the mediated boundary is **the airlock**; a connector runs in a **chamber**; a batch crossing to the worker is a **cycle** / **lock-through**; consent and allowlist gating is **the seal** ("held at the seal" = queued pending consent).
 >
-> **Where we are (2026-09-14).** This vision has been through clarify / analyze / arch-review and is maintained against shipped work. As of **v0.8.0 (MVP8)** the runtime substrate, the event-log-plus-projection datalayer, the worker chamber runtime, CWV-safe content injection, and consent gating at the seal all ship — with connectors for GA4 (Measurement-Protocol **and** gtag `/g/collect`), a generic pixel (Meta / LinkedIn / Bing), Google Ads, Floodlight, and helix-rum, plus a wrapped-SDK alloy chamber and a OneTrust consent-input driver. **1.0 = adoptable with confirmed parity** ([ADR-0018](decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md)) — cut when a real intuit-class site's TBT-dominant vendor tags are rewired from its Tealium/GTM/Launch container onto airlock with vendor-boundary parity (MVP9). See [the release slate](releases/README.md).
+> **Where we are (2026-10-06).** The runtime remains **v0.8.0 (MVP8)**: stable core, worker chambers,
+> governed GA4/pixel/Ads/Floodlight/RUM connectors, a bounded Alloy adapter and OneTrust integration.
+> Spec 050's third-party rewire proof is partly demonstrated, with live-validation residuals still open.
+> **The next v1.0 gate is Adobe Compatibility & Adoption**
+> ([ADR-0031](decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)): investigate first, then
+> target full pinned Alloy.js compatibility and validated Adobe workflows through `aem-martech`.
+> SDK boot is not full product support. See [the release slate](releases/README.md).
 
 ## Identity
 
@@ -34,17 +40,32 @@ GTM / Adobe Launch / Tealium: main-thread, ambient-authority, optimize load timi
 
 ## Scope
 
-<!-- elicited: 2026-09-16 / status: filled / hash: sha256:9ea6772ed8ad -->
+<!-- elicited: 2026-10-06 / status: filled / hash: sha256:a01f25b2ab25 -->
 
 In scope: the runtime substrate (main-thread capture-and-enqueue, worker-side drain/mapping/egress); the event-log-plus-projection datalayer; the worker connector runtime (chambers); capability-mediated DOM injection and egress; EDS three-phase integration; both connector archetypes — wire-protocol (GA4, generic pixel, Google Ads, Floodlight) and wrapped-SDK (alloy) — plus the helix-rum RUM authority; CWV-safe content injection; consent gating at the seal; and first-class diagnostics/inspector.
 
 Out of scope (explicit no-gos for the first releases): session replay / full DOM-mutation streaming (antagonistic to "no DOM access"); identity resolution and a first-party cookie store (airlock reads existing vendor cookies read-only, but never mints identity or keeps its own cookie store); the service-worker egress chokepoint (MVP uses direct keepalive; SW is a later progressive enhancement); edge decision/egress *drivers* (the seams exist from day one, the drivers come later); non-EDS framework adapters (a post-1.0 direction; EDS is the only supported adapter through 1.0).
 
-**The adoption direction, post-1.0 ([ADR-0018](decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md)).** The 1.0 rewire (MVP9) is a *manual, two-party, documented* procedure — a developer, working with the container owner, moves the TBT-dominant generic vendor tags onto airlock. The longer-horizon simplifier is a **container translator**: take a Tealium / GTM / Adobe Launch container as input and auto-translate it to an airlock config (self-hosting + rewrapped loading of the individual tags). It is explicitly **not a first-release deliverable** — it is post-1.0 (1.1), bounded by connector coverage; parked with its decomposition in [docs/inbox.md](inbox.md).
+**The next adoption direction ([ADR-0031](decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)).**
+Start with Adobe-first compatibility: keep the official Alloy.js SDK in a chamber, migrate the
+`aem-martech` integration, and validate Web SDK-connected Analytics, Target, Adobe Journey Optimizer
+(AJO), Customer Journey Analytics (CJA) and Real-Time CDP (RTCDP) scenarios. This is the **next release
+target**, not a claim that the current page-view/HTML-placement adapter already supports the full SDK.
+The investigation defines the public command/options/results/events inventory, supported admin-API
+setup, product access and performance budgets before the broad build.
+
+Customers may keep other vendors in Launch/GTM and migrate measured offenders one at a time, subject
+to [vendor assurance](releases/vendor-parity-assurance.md). Those remaining main-thread scripts are
+outside Airlock's governance. [Granular chamber policy](releases/granular-chamber-policy.md) is a
+candidate follow-on; controls necessary for the Adobe release itself are pulled forward.
+
+The **container translator** remains a longer-horizon adoption simplifier, bounded by connector
+coverage and explicitly outside the Adobe-first v1.0 scope. Its earlier "1.1" label is no longer a
+committed sequence; the decomposition stays in [docs/inbox.md](inbox.md).
 
 ## Use cases
 
-<!-- elicited: 2026-10-06 / status: filled / hash: sha256:b9144bb991eb -->
+<!-- elicited: 2026-10-06 / status: filled / hash: sha256:cb99b162780c -->
 
 The catalog covers customer measurement scenarios **and integrator/operator workflows** (owner-confirmed,
 2026-10-06). UC-1 through UC-3 retain their original MVP-demo identities; the later entries capture goals
@@ -135,19 +156,29 @@ and unload handling are supporting mechanisms or guarantees, not additional use 
 
 ### Success criteria and reporting
 
-The performance success criterion remains separate from UC-11's **ability to measure**: the adopted page stays
-in the Core-Web-Vitals **good** band (absolute INP / LCP / CLS thresholds), with airlock's own overhead ~zero,
-shown on a before/after Lighthouse + field-metric scoreboard. The concrete good-band thresholds are pinned
-as OQ6; the proof that a rewire brings an intuit-class page back into the good band is MVP9. That scoreboard
-also supports the servo oracle.
+The performance success criterion remains separate from UC-11's **ability to measure**: the adopted
+page stays in the Core-Web-Vitals **good** band, with small Airlock overhead, demonstrated by
+before/after measurements. For the Adobe release, the investigation pins numeric acceptance bands,
+conditions and noise handling against phased stock `aem-martech`, including network, rendering,
+worker startup and clone cost. Off-thread placement alone is not a performance result.
 
-**Co-equal success criterion — parity (added 2026-09-07, [ADR-0018](decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md)).** The CWV scoreboard is only half the 1.0 bar. The other half is **parity at the vendor boundary**: when a real site rewires a vendor tag (GA4, Meta Pixel, Google Ads, Floodlight) from its tag-manager container onto airlock, the same events with the same attribution-bearing fields must reach the vendor as before — confirmed by a vendor-generic **parity harness** (per-protocol semantic oracle) and the vendor consoles. CWV without parity is a demo; parity without CWV is a port. 1.0 (adoptable with confirmed parity) is cut when a real intuit-class rewire proves both — see [the release slate](releases/README.md) and R-007, now the 1.0 benchmark.
+**Co-equal criterion: functional fidelity at the Adobe boundary**
+([ADR-0031](decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)). The v1.0 gate combines
+the pinned SDK compatibility matrix, validated product outcomes, correct Adobe personalization
+notifications, an adoptable `aem-martech`/Launch bridge and measured performance.
+Any exclusion prevents a full Alloy support claim; a narrower gate requires an explicit owner decision.
+The old Intuit/four-vendor production-attribution gate is deferred, not declared satisfied.
+Third-party vendor parity remains a customer migration requirement under
+[Vendor Parity & Adoption Assurance](releases/vendor-parity-assurance.md); a scoped harness pass
+does not establish full tag equivalence.
 
 UC-10's comparison workflow does not itself satisfy that release criterion.
 `workflow.py progress --project-dir .` reports linked slice progress;
 `workflow.py coverage --project-dir .` checks catalog/spec references. Both are advisory:
 unanchored scaffolding, abandoned work, and internal mechanisms need not be assigned a use case merely to
-make the counts look complete. Neither command replaces the live gates in [MVP9's release-check](releases/mvp9.md#release-check-criteria-vendor-generic--this-is-the-10-gate).
+make the counts look complete. Neither command replaces the live gates in the
+[Adobe release-check](releases/adobe-compatibility.md#release-check-criteria) or retires
+[MVP9's carried evidence](releases/mvp9.md).
 
 ## Stack
 

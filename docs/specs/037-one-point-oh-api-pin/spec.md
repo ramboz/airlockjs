@@ -88,4 +88,9 @@ physical-removal materially larger than a pin, it splits into its own slice; the
 
 ## Amendments
 
+> **Amendment (2026-10-06, [ADR-0031](../../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)).**
+> Adobe Compatibility & Adoption replaces MVP9 as the v1.0 gate. The frozen stable core, guard tests,
+> experimental carve-outs and pre-1.0 breaking-change notice rule survive. The amendment below remains
+> the historical explanation of the earlier label change; its MVP9 cut criterion is no longer current.
+
 > **Amendment (2026-09-07, [ADR-0018](../../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md) — reframe re-read; this spec's work is unchanged).** What 037 pinned is the **stable core**, not "1.0" in the release sense. Since the owner's 2026-09-05 reframe, "1.0" means *adoptable with confirmed parity* (ADR-0018), cut when MVP9's release-check passes; MVP6 ships as **v0.6.0**. The "v1.0.0 version-bump/tag/dist cut as a separate later step" that this spec deferred is **retired** — superseded by the v0.6.0 cut. The frozen surface, the guards, and the three rulings are untouched; only the "1.0" label decouples from the pin (title and prose read historically).

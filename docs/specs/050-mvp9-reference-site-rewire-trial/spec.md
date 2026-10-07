@@ -8,6 +8,13 @@ use_cases: [UC-4, UC-10, UC-11]
 
 # Spec 050: MVP9 reference-site rewire trial (validation + adoption path)
 
+> **Release-framing amendment (2026-10-06):**
+> [ADR-0031](../../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md) replaces MVP9 as the
+> v1.0 gate with Adobe-first compatibility. This spec remains DONE for its reviewed deliverables;
+> its original scope, evidence and residuals are unchanged. Booted performance, console receipt,
+> tail goldens, the real-site consent transition and live attribution remain carried work under
+> [Vendor Parity & Adoption Assurance](../../releases/vendor-parity-assurance.md), not completed proof.
+
 ## Overview
 
 This spec produces MVP9's **developer-provable** evidence ([ADR-0029](../../decisions/adr-0029-mvp9-developer-side-after-arm.md)):

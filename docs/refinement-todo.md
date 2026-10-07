@@ -5,6 +5,15 @@
 
 # Refinement Todo: airlock
 
+> **Routing update (2026-10-06, [ADR-0031](decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)):**
+> Adobe compatibility is the next v1.0 gate; investigate access and the SDK surface in
+> [R-012](research/R-012-adobe-first-compatibility.md). Existing MVP9/Meta/Ads/Floodlight residuals below
+> remain unclosed and route to [vendor assurance](releases/vendor-parity-assurance.md).
+> Per-capability input control, revocation and retention route to
+> [granular policy](releases/granular-chamber-policy.md), with Adobe-critical dependencies pulled forward.
+> SDK version/support, identity/login/logout, unload/offline/crash behavior, authoring/reporting and
+> API-versus-UI setup are explicit investigation questions, not assumed capabilities.
+
 ## Architecture — design open questions (OQ1–OQ8)
 
 > Promoted 2026-08-25 from `architecture.md` § Open questions (finding #1 of the `/jig:analyze` pass). **MVP1 blockers** must be resolved — via `/jig:arch-review` then `/jig:adr-workflow new` — before SPIDR-splitting the risk-retirement spike. Leanings are recorded so reviewers have a position to attack.

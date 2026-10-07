@@ -9,7 +9,7 @@ architecture.md § Contract surfaces, in priority order.
 Initially pinned to what MVP1 evidence grounded; the five surfaces below (plus
 the adopter boot layer) are the **frozen stable core**
 ([ADR-0017](../docs/decisions/adr-0017-airlock-1-0-api-contract.md); since the
-2026-09-05 reframe, [ADR-0018](../docs/decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md),
+2026-09-05 reframe, carried by [ADR-0031](../docs/decisions/adr-0031-reframe-onto-adobe-first-compatibility.md),
 "1.0" denotes the adoption bar, and this frozen surface is called the stable
 core). Two genuinely open aspects remain explicit carve-outs — the event-payload
 SCHEMA (OQ3) and multi-chamber sync-coherence (OQ9's remaining axis) — see
@@ -106,6 +106,6 @@ Capture the rationale in an ADR (`/jig:adr-workflow`) and update the artifact in
 the same change-set. The jig boundary-change hook nudges on edits to these files.
 For the surfaces that [ADR-0017](../docs/decisions/adr-0017-airlock-1-0-api-contract.md) froze
 (the stable core), a breaking change additionally requires a superseding ADR **and** a version
-break. Per ADR-0018's amendment, in the pre-1.0 (0.x) window that break is expressed as a **minor
+break. Per ADR-0031's carried pre-1.0 rule, in the 0.x window that break is expressed as a **minor
 bump carrying the superseding ADR + a CHANGELOG break notice** (the literal major-version rule
 resumes at v1.0.0); either way a stable-core break is never silent — always a named superseding ADR.

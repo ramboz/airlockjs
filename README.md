@@ -9,10 +9,12 @@ egress happen behind the airlock, in isolated worker "chambers". See
 
 > Pre-1.0. The **stable core** — the connector, capability, `push()`, seam-driver, and adopter-boot surfaces — is
 > **frozen** ([ADR-0017](docs/decisions/adr-0017-airlock-1-0-api-contract.md)); the instrumentation-config layer
-> below is still experimental and may change. **1.0 means *adoptable with confirmed parity***
-> ([ADR-0018](docs/decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md)) — cut when a real intuit-class site's
-> vendor tags are rewired onto airlock with vendor-boundary parity (see [the release slate](docs/releases/README.md)),
-> not by the API pin alone. Distribution is **git-subtree of ready-to-serve built artifacts**
+> below is still experimental and may change. **The next v1.0 gate is Adobe Compatibility & Adoption**
+> ([ADR-0031](docs/decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)): investigate an
+> Airlock-backed `aem-martech` path, then target full pinned Alloy.js support and validated Adobe workflows.
+> This is planned work, not the current Alloy adapter's capability; see [the release slate](docs/releases/README.md).
+> The former third-party rewire gate is deferred with its evidence gaps intact.
+> Distribution is **git-subtree of ready-to-serve built artifacts**
 > ([ADR-0015](docs/decisions/adr-0015-distribution-git-subtree.md)); npm is a deferred second channel for the future
 > bundler audience.
 

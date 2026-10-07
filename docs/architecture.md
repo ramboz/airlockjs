@@ -2,7 +2,12 @@
 
 # Architecture — Airlock
 
-> This document reflects the architecture **as built through MVP8 (v0.8.0)**: the stable core is frozen ([ADR-0017](decisions/adr-0017-airlock-1-0-api-contract.md)) and the design decisions summarized under § Core architecture decisions are now recorded as ADRs in [docs/decisions/](decisions/) (0001–0030). The five sections through **Contract surfaces** are the load-bearing module boundary; **Core architecture decisions** and **Open questions** track the ADR record and what remains open (1.0 = adoptable with confirmed parity, [ADR-0018](decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md)).
+> This document reflects the architecture **as built through MVP8 (v0.8.0)**: the stable core is frozen
+> ([ADR-0017](decisions/adr-0017-airlock-1-0-api-contract.md)); implementation decisions live in
+> [docs/decisions/](decisions/). The next release direction is **Adobe-first v1.0**
+> ([ADR-0031](decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)), replacing the former
+> MVP9 gate without altering shipped module interfaces. The current Alloy path is a bounded
+> page-view/HTML-placement adapter, not the planned full SDK compatibility bridge.
 >
 > Vocabulary: **the airlock** = the mediated boundary; a **chamber** = a connector's sandbox; a **cycle** / **lock-through** = a batch crossing to the worker; **the seal** = consent/allowlist gating. Repo/package slug: `airlockjs`; connector namespace `airlock/*`.
 
@@ -87,8 +92,8 @@ Feeds `/jig:contracts`. Five surfaces, in priority order:
 > contract: contract-stability guards (`test/contract-stability.test.js`) pin the frozen surfaces, so a future
 > regression fails a test rather than surfacing as a broken integration. Two aspects stay explicit carve-outs — the
 > event-payload SCHEMA (OQ3) and multi-chamber sync-coherence (OQ9's remaining axis) — see the ADR. **What "1.0"
-> *means* is not this pin** — since the 2026-09-05 reframe ([ADR-0018](decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md))
-> 1.0 is *adoptable with confirmed parity*, cut at MVP9; this frozen surface is the stable core airlock ships *on*.
+> *means* is not this pin** — [ADR-0031](decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)
+> now makes Adobe compatibility/adoption the gate; this frozen surface is the stable core airlock ships *on*.
 >
 > **Plus one experimental surface, deliberately NOT among the frozen five (spec 032):** the **instrumentation config**
 > schema (`contracts/instrumentation-config.schema.json`) — the project JSON config `boot(config)` consumes. It is

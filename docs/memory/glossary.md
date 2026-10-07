@@ -30,7 +30,7 @@ The **source** side of the seal (ADR-0007's consent-input seam): a host-neutral 
 
 ## customer-custom tag
 
-A tag that is a specific customer's own logic (e.g. an in-house event-enrichment or click-tracking chain like the reference site's ECS/TrackStar/UX-Fabric chain), as opposed to a generic third-party vendor tag. Per ADR-0018, customer-custom tags are validation-only inputs — never a shipped airlock connector, deliverable, or release gate.
+A tag that is a specific customer's own logic (e.g. an in-house event-enrichment or click-tracking chain like the reference site's ECS/TrackStar/UX-Fabric chain), as opposed to a generic third-party vendor tag. ADR-0031 carries ADR-0018's rule: customer-custom tags are validation-only inputs — never a shipped airlock connector, deliverable, or release gate.
 
 ## cycle / lock-through
 
@@ -54,15 +54,15 @@ The only martech code with DOM access, running on the main thread. Owns the appe
 
 ## parity (vendor-boundary)
 
-The property that, after a tag is rewired from its tag-manager container to airlock, the same events with the same attribution-bearing fields reach the vendor as before. Confirmed by a per-vendor oracle (a same-protocol beacon diff where airlock speaks the container's protocol, or a semantic field-map where it legitimately speaks a different one, e.g. GA4 Measurement Protocol) and by the vendor's console. ADR-0018 makes it a co-equal 1.0 success criterion alongside the CWV scoreboard.
+The property that the migrated events reach the vendor with equivalent relevant semantics, including identity, consent, routing, transport and reporting outcomes. A curated beacon-field comparison is one layer of evidence, not the full property. Under ADR-0031, functional fidelity and performance jointly gate Adobe-first v1.0; third-party equivalence remains an independently proven customer migration requirement. See [Vendor Parity & Adoption Assurance](../releases/vendor-parity-assurance.md).
 
 ## parity harness
 
-The vendor-generic capture → replay → oracle → report tool (MVP7) that confirms vendor-boundary parity for a rewired tag, with per-protocol oracles and the request's credential/cookie context captured and replayed. The release deliverable; each real site supplies its own redacted vendor-beacon captures as its oracle input.
+The vendor-generic capture -> replay -> oracle -> report tool (spec 038) that compares a curated beacon-field set with per-protocol descriptors and named gaps. An owned missing field can still produce `pass`, and hashed fields may prove only presence; the report is not full tag, transport or attribution parity. Separate transport reporting and live vendor outcomes complete the evidence. Each real site supplies redacted captures.
 
 ## rewire
 
-Moving a vendor tag's execution from a main-thread tag-manager container (Tealium / GTM / Adobe Launch) to an airlock connector: the container stops firing the tag, airlock emits the equivalent governed, off-thread beacon. The 1.0 adoption motion (ADR-0018).
+Moving supported vendor behavior from a main-thread tag-manager container (Tealium / GTM / Adobe Launch) to an Airlock connector: the native tag stops firing and Airlock emits the scoped governed replacement. ADR-0031 makes Adobe/`aem-martech` the initial adoption path; third-party rewires follow measured offender cost and customer-specific fidelity evidence, not an assumed full-equivalence claim.
 
 ## the seal
 
@@ -74,7 +74,7 @@ A swappable driver boundary baked in from day one. Two seams: a **decision-sourc
 
 ## stable core
 
-Airlock's frozen public API surface (the five contract surfaces + the adopter boot layer) pinned by ADR-0017 / spec 037-01. Since ADR-0018 it is called "the stable core" rather than "the 1.0 API": it is the contract airlock ships *on*, while "1.0" now denotes the adoption bar (adoptable with confirmed parity), cut at MVP9.
+Airlock's frozen public API surface (the five contract surfaces + the adopter boot layer) pinned by ADR-0017 / spec 037-01. It is the contract Airlock ships on, not proof that a release's adoption gate passed. ADR-0031 preserves that contract while replacing the MVP9 release gate with Adobe-first compatibility.
 
 ## state projection
 
@@ -82,7 +82,7 @@ The current-state view derived from the event log, held in the orchestrator and 
 
 ## tag-manager container
 
-A main-thread tag-management runtime (Tealium iQ, Google Tag Manager, Adobe Launch) that loads and fires vendor tags on the page. The thing airlock rewires tags *out of*; on the reference site it is a customer-owned Tealium profile, which is why the 1.0 rewire is a two-party effort (developer + container owner).
+A main-thread tag-management runtime (Tealium iQ, Google Tag Manager, Adobe Launch) that loads and fires vendor tags on the page. The Adobe-first path can retain it for unmigrated vendors; those scripts remain outside Airlock's governance. On the Intuit reference site it is customer-owned, so a production attribution trial still needs developer/container-owner cooperation even though it is no longer the v1.0 gate.
 
 ## advanced matching
 Meta/Facebook Pixel feature that attaches hashed first-party identifiers (ud[external_id], ud[em]/ph/fn/ln/db/ge/ct/st/zp/country — SHA-256 hex of Meta-normalized values) to /tr beacons to raise match rates. In airlock (spec 026-04, ADR-0022): raw PII feeds via a dedicated setIdentity/init channel that bypasses payload governance BY DESIGN to reach in-chamber hashing; the confined worker normalizes + SHA-256-hashes eagerly, posts only the hex back, and merges ud[...] onto every steady-state /tr beacon; the main thread additionally holds a hash-only identityCache read synchronously so the spec-042 GET-critical unload beacon carries it too. Only hashes ever egress (degrade-to-omit, never raw, if a field is unhashed at teardown). See connectors/pixel/advanced-matching.js.
@@ -104,3 +104,15 @@ The vendor-neutral, config-driven, adopter-facing module (spec 049, ADR-0030) th
 
 ## transport-of-emission carve-out
 The 049-02 discriminator that separates airlock's OWN beacon from a container's copy of the SAME beacon when a URL matcher cannot — because airlock reproduces a vendor's beacon at the container's BYTE-IDENTICAL URL (Meta `/tr`, gtag `/g/collect`), so an `allow` protecting airlock's `/tr` also protects the container's. The load-bearing invariant: airlock emits EVERY main-thread beacon via `fetch(url, {keepalive:true})` (`core/egress.js` `fetchInit`) and NEVER via `<img>`/`sendBeacon`/`XHR`. So the [[native-tag suppressor]] EXEMPTS a `fetch` whose `init.keepalive===true` (unconditionally — airlock's exact egress signature) and SUPPRESSES the container's `<img>`/`sendBeacon`/`XHR`/non-keepalive-`fetch` at the same URL — making airlock the sole emitter even for a URL-identical reproduction (the pixel-without-a-runtime case 049-01's `<script>` block misses). Coarser than "airlock's egress is exempt" — it is really "keepalive-fetch is unsuppressable," page-global — which fails SAFE (never drops airlock's data). Residual (refinement-todo): a container that itself fires `fetch({keepalive:true})` at an airlock-reproduced URL is indistinguishable → not suppressed; cannot bite the MVP9 trial (all four vendors are runtime-based, killed by 049-01). Proven by the rig's `collide_exactly_one_network_request` assertion; forced 049-02's `arch_review` flip false→true (the frame-critique correction).
+
+## Adobe-first compatibility
+The owner-approved v1.0 direction in ADR-0031: investigate an Airlock-backed aem-martech integration, then target the full documented surface of a pinned stock Alloy.js SDK plus independently validated Adobe product workflows. Boot success is not full compatibility; exclusions require an explicit scope decision. See docs/releases/adobe-compatibility.md and docs/research/R-012-adobe-first-compatibility.md.
+
+## AJO
+Adobe Journey Optimizer. In the Adobe-first Airlock investigation this names Web SDK-connected inbound web/code-based personalization and its delivery/reporting requirements, not every outbound email/SMS/push feature. Product entitlement and configuration are separate from Alloy boot.
+
+## CJA
+Customer Journey Analytics, the Adobe analytics application built around Experience Platform data. SDK event transport alone does not establish its dataset, connection, data-view, identity or reporting semantics; these need declared scenario evidence.
+
+## RTCDP
+Adobe Real-Time Customer Data Platform (Real-Time CDP). In the Adobe-first investigation it requires independently validated profile, identity, consent, audience and activation scenarios; shared Web SDK transport is not proof of all product features.

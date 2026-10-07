@@ -1,5 +1,13 @@
 # Release Plan: MVP9 — Real-Site Rewire & Adoption Path
 
+> **Current direction, 2026-10-06:** [ADR-0031](../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)
+> replaces this plan as the v1.0 gate with [Adobe Compatibility & Adoption](adobe-compatibility.md).
+> This remains `candidate`, parked in priority; the original plan below is historical framing, not
+> current release authority. Spec 050's implementation/evidence survives. Its booted TBT, event-level
+> console receipt, untouched-tail goldens, real-site deny-to-accept and live-attribution residuals are
+> **still open**, routed to [Vendor Parity & Adoption Assurance](vendor-parity-assurance.md).
+> A v0.9.0 cut is optional and separate; it does not satisfy the new v1.0 gate.
+
 > **New plan, 2026-09-07 ([ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md) Emergent E3).**
 > **Passing this plan's release-check IS the v1.0.0 cut.** 1.0 = adoptable with confirmed parity: MVP6 shipped the
 > stable core + the harness, MVP7 proved pixel/GA4 parity + the parity harness, MVP8 offloaded the ad-conversion tags —

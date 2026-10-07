@@ -13,7 +13,7 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 
 ### Project codenames / active work
 - **Airlock** (pkg `airlockjs`) - capability-secured, off-main-thread martech runtime for edge/static sites (EDS first). Main thread only captures + enqueues; all mapping and egress happen behind the airlock. See [docs/product-vision.md](docs/product-vision.md).
-- **1.0 = adoptable with confirmed parity** (ADR-0018, 2026-09-05 reframe) — a dev rewires an intuit-class site's TBT-dominant vendor tags (GA4, Meta, Google Ads, Floodlight) from its Tealium/GTM/Launch container to airlock with vendor-boundary parity. Ladder: MVP6 "Stable Core & Validation Harness" (v0.6.0) → MVP7 pixel parity + parity harness (0.7.0) → MVP8 ad-conversion offloading (0.8.0) → MVP9 real-site rewire (0.9.0 → **1.0.0**). ADR-0017's frozen surface is now "the stable core". See [docs/releases/README.md](docs/releases/README.md).
+- **Adobe-first v1.0 gate** (ADR-0031, owner decision 2026-10-06) — investigate an Airlock-backed `aem-martech` adoption path, then target full pinned Alloy.js compatibility and validated Adobe workflows; SDK boot is not product proof. Replaces ADR-0018's MVP9 gate; third-party gaps remain open. See [release slate](docs/releases/README.md).
 
 ### Airlock vocabulary (full defs in [glossary](docs/memory/glossary.md))
 - **airlock** - the mediated main-thread↔worker boundary; nothing crosses without going through the capability bridge.
@@ -61,7 +61,14 @@ Default to collaborative and solution-forward — answer what's asked, propose r
 
 ## Current Sprint Focus
 
-**MVP9 (Real-Site Rewire → v1.0.0).** Spec [050](docs/specs/050-mvp9-reference-site-rewire-trial/spec.md) is **DONE** (2026-09-17) — the developer-provable rewire of `erp.intuit.com`'s four TBT-dominant vendor tags (GA4/Ads/Floodlight/Meta) onto airlock, page-side, no container-owner change: **suppress** proven on real prod (Chrome Local Overrides, 129→94 resources), **emit** on a deployed aem.live branch (all four governed beacons), the **038 parity** harness green (102 tests), an **indicative −360 ms / −74% TBT** bound (`lh:r010`), and the vendor-neutral **[adoption-path doc](docs/adoption/rewire-a-container.md)** ([mvp9.md](docs/releases/mvp9.md) § Release-Check marks the subset demonstrated). **Carried residuals** (deploy/console/owner-gated, tracked in [refinement-todo](docs/refinement-todo.md) § Spec 050): the **airlock-booted** TBT before/after (needs a real deploy), the **event-level vendor-console receipt**, and the container-owner-gated **live-attribution** leg. Next: the **v0.9.0** cut (owner's `npm version minor`) + closing the residuals → **v1.0.0**. (Shipped: MVP7 v0.7.0 pixel parity + MVP8 v0.8.0 ad connectors/boot wiring/OneTrust composite — details in their reconciled specs + release plans.)
+**Adobe Compatibility & Adoption -> v1.0.0** ([plan](docs/releases/adobe-compatibility.md),
+[ADR-0031](docs/decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)). Start
+[R-012](docs/research/R-012-adobe-first-compatibility.md): pinned SDK/`aem-martech` inventory and
+API-led access/setup discovery, then one Analytics + Target rendering/reporting proof.
+No ready product environment or authenticated setup evidence exists yet; Developer Console does
+not grant licenses. Next implementation needs a bounded investigation spec, not an assumed full-SDK bridge.
+Current runtime remains v0.8.0; spec 050 is DONE but its live-validation residuals remain open.
+Vendor assurance and granular policy are candidate follow-ons, not silently completed work.
 
 ## Development Conventions
 

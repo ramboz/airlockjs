@@ -1,5 +1,5 @@
 ---
-status: Accepted
+status: Superseded
 dependencies: [ADR-0017]
 last_verified: 2026-09-07
 frame_review: true
@@ -10,6 +10,7 @@ frame_review: true
 ## Status
 
 Accepted (2026-09-07)
+Superseded by [ADR-0031](./adr-0031-reframe-onto-adobe-first-compatibility.md) (2026-10-06)
 
 ## Context
 

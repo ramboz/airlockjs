@@ -1,5 +1,12 @@
 # Rewire a tag-manager container onto airlock
 
+> **Current route (2026-10-06):** this third-party procedure remains supported, with its disclosed
+> parity/deployment limits. The initial v1.0 adoption path is now
+> [Adobe Compatibility & Adoption](../releases/adobe-compatibility.md)
+> ([ADR-0031](../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)).
+> Further customer vendor migrations use the [vendor-assurance plan](../releases/vendor-parity-assurance.md);
+> changing the release gate does not establish full replacement parity.
+
 > The **scripted adoption path** ([ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md) E8): a
 > developer rewires an intuit-class site's TBT-dominant vendor tags (GA4, Google Ads, Floodlight, Meta, …) from its
 > Tealium / GTM / Launch container onto airlock — **page-side, with no container-owner or container-profile change** —

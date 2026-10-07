@@ -15,6 +15,11 @@
 
 ## Living notes
 
+**Current focus (2026-10-06):** [R-012](R-012-adobe-first-compatibility.md) grounds the
+[Adobe-first v1.0 release](../releases/adobe-compatibility.md). Earlier notes retain their historical
+MVP9/1.0 references; their measurements and outstanding third-party gaps remain valid, but that
+gate was replaced by [ADR-0031](../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md).
+
 Living notes are `docs/research/R-NNN-<slug>.md`, numbered from `R-001`.
 Create one by copying [`TEMPLATE.md`](TEMPLATE.md).
 
@@ -48,6 +53,7 @@ you create a note; update its status/promotion when it resolves.
 | [R-009](R-009-gtag-family-fidelity.md) | gtag-family fidelity — GA4/Ads/Floodlight beacon + attribution parity from off-thread governed egress (the MVP7 risk-first spike) | OPEN | [ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md); [mvp7](../releases/mvp7.md); [mvp8](../releases/mvp8.md) |
 | [R-010](R-010-rewire-cwv-upper-bound.md) | The rewire's indicative CWV bound — shipped page vs the four vendor runtimes network-blocked (no container-owner needed) | OPEN | [ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md); [mvp7](../releases/mvp7.md); [mvp9](../releases/mvp9.md) |
 | [R-011](R-011-offender-per-vendor-tbt-inp.md) | Per-vendor TBT attribution + INP null result for the reference-site offenders (the flip-the-offenders experiment) | CONCLUDED | [ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md); [R-008](R-008-costly-dom-martech-containment.md); [R-010](R-010-rewire-cwv-upper-bound.md); [mvp8](../releases/mvp8.md) (feeds Floodlight/Google-Ads connector priority); [mvp9](../releases/mvp9.md) |
+| [R-012](R-012-adobe-first-compatibility.md) | Adobe SDK/`aem-martech` compatibility and API-led owned test-environment setup | OPEN | [ADR-0031](../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md); [Adobe Compatibility & Adoption](../releases/adobe-compatibility.md); access/preflight and live product proof not yet executed |
 
 ## Hand-offs
 
