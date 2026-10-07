@@ -21,6 +21,14 @@ product workflows through Airlock without losing functionality or weakening the 
 we provision and validate through supported admin APIs, given that the owner has no ready
 Target/Analytics environment and little product-setup experience?
 
+## Access status
+
+**Owner-confirmed, 2026-10-06:** an existing organization has Adobe Analytics and Target access.
+This removes the unknown-entitlement starting point for those two products, but is not an authenticated
+permission check. The test report suite, Target environment/workspace/property, Data Collection rights,
+API credential profiles and any AEP/AJO/CJA/RTCDP entitlements are still unverified. No credentials
+were requested in chat or inspected, and no resources were provisioned.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes
