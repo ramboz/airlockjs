@@ -117,10 +117,23 @@ No product is marked validated without its entitlement and outcome evidence.
 ## JIG Handoff
 
 Use cases: **UC-1, UC-2, UC-4, UC-6, UC-7, UC-8, UC-9, UC-10, UC-11, UC-13, UC-14**.
-R-012 is the current investigation record. Before provisioning/probe implementation, author a bounded
-investigation spec with the SDK inventory and access checkpoint; after its evidence, author vertical
-build specs for event collection, command/Launch bridging, personalization/reporting and product
-validation. Existing specs 012-014, 020, 033-036 are reusable foundations, not the complete target.
+R-012 remains the investigation record. The portfolio was drafted through Jig on 2026-10-06:
+
+| Spec | Draft scope | Refinement state |
+|---|---|---|
+| [051 — Adobe integration proving ground](../specs/051-adobe-integration-proving-ground/spec.md) | Safe preflight, reproducible stock baseline, bounded SDK compatibility decision | Three DRAFT slices plus plan/tasks; first execution candidate after its readiness gates |
+| [052 — Governed Adobe event collection and SDK commands](../specs/052-adobe-sdk-event-collection/spec.md) | General XDM/data and the documented command/result/event bridge | Unsliced DRAFT; needs 051's contract/approach |
+| [053 — Adobe personalization and reporting](../specs/053-adobe-personalization-reporting/spec.md) | Offers/rendering/scopes/views and Adobe-native display/interaction evidence | Unsliced DRAFT; refine from inventory and relevant command contracts |
+| [054 — aem-martech and Launch migration](../specs/054-aem-martech-launch-migration/spec.md) | Adopter instrumentation, ACDL/Launch compatibility, no duplicate initialization | Unsliced DRAFT; depends on the behaviors being migrated |
+| [055 — Adobe consent, identity and delivery lifecycle](../specs/055-adobe-consent-identity-delivery/spec.md) | Revocation, identity continuity, retained/queued work and page/worker/network edges | Unsliced DRAFT; critical safe behavior is pulled into feature slices immediately |
+| [056 — Adobe product-workflow validation](../specs/056-adobe-product-workflow-validation/spec.md) | Product-specific AJO/CJA/RTCDP outcomes and remaining Analytics/Target evidence | Unsliced DRAFT; requires scenario-specific entitlement and working feature paths |
+| [057 — Adobe adoption, performance and release qualification](../specs/057-adobe-adoption-release-qualification/spec.md) | Install/migrate/measure/update/rollback and complete evidence aggregation | Unsliced DRAFT; numeric bands and feature evidence precede readiness |
+
+Only 051 is refined into executable slice contracts. None is READY_FOR_IMPLEMENTATION, and no
+authenticated/provisioning action is authorized by drafting. Its compatibility spike has a proposed
+8-active-hour budget requiring owner approval before readiness. Refine subsequent specs from the
+investigation's evidence, with actual slice dependencies rather than placeholder IDs.
+Existing specs 012-014, 020, 033-036 are reusable foundations, not the complete target.
 
 ## Release-Check Criteria
 

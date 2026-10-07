@@ -5,6 +5,7 @@ created: 2026-10-06
 related:
   - ../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md
   - ../releases/adobe-compatibility.md
+  - ../specs/051-adobe-integration-proving-ground/spec.md
 ---
 
 # R-012: Adobe-first compatibility and owned test-environment setup
@@ -105,7 +106,10 @@ No current conclusion that every admin UI step has an API equivalent.
    approves any revision from the full-compatibility ambition before a narrower release gate is used.
 
 Provisioning/probe scripts belong under `probes/` with a bounded investigation spec before execution.
-This note does not reserve a build spec, create credentials or activate product resources.
+[Spec 051](../specs/051-adobe-integration-proving-ground/spec.md) now carries those DRAFT contracts:
+read-only preflight, stock test baseline and a bounded compatibility spike. Its plan/tasks are pending,
+and the proposed time-box needs approval before readiness. Specs 052-057 are unsliced outlines.
+This note remains OPEN and no credentials or product resources have been created.
 
 ## Options / pros & cons
 
@@ -132,4 +136,5 @@ This note does not reserve a build spec, create credentials or activate product 
 offline inventory and read-only access preflight; broad implementation waits for their evidence.
 
 Promoted to: release direction in [ADR-0031](../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)
-and [Adobe Compatibility & Adoption](../releases/adobe-compatibility.md); investigation remains OPEN.
+and [Adobe Compatibility & Adoption](../releases/adobe-compatibility.md), with execution scoped by
+[spec 051](../specs/051-adobe-integration-proving-ground/spec.md); investigation remains OPEN.

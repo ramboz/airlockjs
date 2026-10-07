@@ -20,6 +20,11 @@ slice progress and `workflow.py coverage --project-dir .` for reference coverage
 internal mechanisms can remain unanchored; live-validation residuals and release gates are not retired
 by a DONE slice or a green coverage report.
 
+**Adobe-first draft portfolio:** [051](051-adobe-integration-proving-ground/spec.md) has three DRAFT
+slices below. Specs 052-057 are intentionally unsliced DRAFT outlines, so the generated slice table
+does not list them yet; the [release handoff](../releases/adobe-compatibility.md#jig-handoff) links
+every outline and its refinement prerequisites. None is ready for implementation.
+
 | Spec | Slice | Status | Notes |
 |------|-------|--------|-------|
 | [001-adopt-jig](001-adopt-jig/spec.md) | 001-01 — bootstrap | **DONE** | worked example; review boxes satisfied by deterministic completion check |
@@ -149,6 +154,9 @@ by a DONE slice or a green coverage report.
 | [049-native-tag-suppressor](049-native-tag-suppressor/spec.md) | 049-02 — direct-beacon-transport suppression (egress-parity completeness) | **DONE** |  |
 | [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-01 — the reference-site `?martech=airlock` rewire arm | **DONE** |  |
 | [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-02 — measured Lighthouse/TBT + parity evidence + scripted adoption path | **DONE** |  |
+| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-01 — read-only access preflight | DRAFT |  |
+| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-02 — reproducible test setup and stock baseline | DRAFT |  |
+| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 🔬 051-03 — bounded SDK compatibility decision | DRAFT |  |
 
 ## Deferred slices
 

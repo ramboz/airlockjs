@@ -28,7 +28,8 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 - More terms belong in [docs/memory/glossary.md](docs/memory/glossary.md), not in this primer.
 
 ### Active specs
-- [001-adopt-jig](docs/specs/001-adopt-jig/spec.md) - DONE worked example to imitate; see [docs/specs/README.md](docs/specs/README.md) for the status board.
+- [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — DRAFT; three slices for access preflight, stock baseline and the compatibility decision. No live execution yet.
+- **052-057** — unsliced DRAFT outlines for the remaining [Adobe release portfolio](docs/releases/adobe-compatibility.md#jig-handoff); refine after 051 evidence. See [status board](docs/specs/README.md).
 
 ### Deferred decisions
 - See [docs/refinement-todo.md](docs/refinement-todo.md).
@@ -66,7 +67,8 @@ Default to collaborative and solution-forward — answer what's asked, propose r
 [R-012](docs/research/R-012-adobe-first-compatibility.md): pinned SDK/`aem-martech` inventory and
 API-led access/setup discovery, then one Analytics + Target rendering/reporting proof.
 No ready product environment or authenticated setup evidence exists yet; Developer Console does
-not grant licenses. Next implementation needs a bounded investigation spec, not an assumed full-SDK bridge.
+not grant licenses. [Spec 051](docs/specs/051-adobe-integration-proving-ground/spec.md) supplies the
+bounded investigation's DRAFT slices; access, setup approval and spike-budget gates remain pending.
 Current runtime remains v0.8.0; spec 050 is DONE but its live-validation residuals remain open.
 Vendor assurance and granular policy are candidate follow-ons, not silently completed work.
 
