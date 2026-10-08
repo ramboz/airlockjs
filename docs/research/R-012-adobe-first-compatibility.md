@@ -17,7 +17,9 @@ related:
 > the owner-created Analytics suite and reference EDS site were verified on 2026-10-08.
 > The owner-created Target web property and ExperienceEvent schema were subsequently verified.
 > Target workspace assignment and credential association were subsequently verified for reads.
-> Datastream routing and activity write/activation permissions remain unverified as recorded below.
+> Analytics report queries and selected AEP/AJO effective permissions are now verified.
+> Datastream configuration reads are blocked at the application-key/subscription layer despite
+> advertised View/Manage Datastreams rights; routing and activity write/activation remain unverified.
 > Live instrumentation/product-outcome proof has **not** run. The release is committed in direction,
 > not proven in outcome.
 
@@ -25,8 +27,8 @@ related:
 
 Can the stock Alloy.js SDK support the pinned `aem-martech` integration and Adobe Web SDK-connected
 product workflows through Airlock without losing functionality or weakening the boundary? What can
-we provision and validate through supported admin APIs, given that the owner has no ready
-Target/Analytics environment and little product-setup experience?
+we provision and validate through supported admin APIs while the owner establishes dedicated
+Target/Analytics resources with limited product-setup experience?
 
 ## Access status
 
@@ -355,6 +357,68 @@ environment/property destinations, with Platform/AJO/event-forwarding ingestion 
 initial baseline. Test-only activity operations still need scoped authorization and executable
 verification. The stock baseline and spec 051 readiness/review gates remain outstanding.
 
+## Autonomous-run access/readiness validation — 2026-10-08
+
+The owner requested the remaining access checks before an autonomous 051-057 run.
+Fresh OAuth tokens stayed in memory. All product checks were non-mutating: the two POST
+operations were an Analytics report query and the documented AEP effective-permission query,
+not event submission or permission updates. No Adobe resources, activities, site content,
+datastream routing or product-profile assignments were changed.
+
+| Check | Observed result | Readiness boundary |
+|---|---|---|
+| Dedicated Analytics suite summary report | HTTP 200 on the reporting POST; requested only a bounded aggregate | Reporting access is verified; synthetic-event receipt, latency and stock/chamber parity are not. Counts were withheld. |
+| AEP permission reference and effective policies | HTTP 200 in the discovered development context; schema/dataset/segment management, campaign/journey management and publication/reporting permissions are advertised | Stronger than collection reads, but not exercised creation/publication or approval to mutate that context. No isolated later-product fixtures are selected yet. |
+| Datastream-context effective policies | HTTP 200 in the owner-selected datastream/schema context; View Datastreams, Manage Datastreams and resource read/write policies returned | Additional datastream role assignment is not the demonstrated blocker. This is a policy query, not a successful datastream configuration request. |
+| Exact owner-selected datastream configuration | HTTP 403, `EXEG-3036-403`; error category refers to API-key/subscription acceptance | The owner's application key is rejected by this configuration service. Analytics/Target destinations and disabled services cannot yet be verified; successful Schema Registry reads do not prove routing. |
+| AJO campaign, CJA connection and RTCDP-related segment-definition reads | HTTP 200 on each bounded read | Product-specific metadata access, not delivery, CJA reporting, full RTCDP licensing/activation or selected isolated scenario resources. |
+| Target property/workspace credential association | Fresh property and IMS-context reads HTTP 200; workspace still matches | No explicit Approver/Editor role enum was exposed. Activity create/edit/approve/activate authority remains unexercised; no validation-only creation endpoint was found in the checked official reference. |
+| EDS site status | HTTP 200; preview/live/code read/write advertised | Earlier GitHub push/admin metadata remains recorded. Actual repository/preview/publish writes, DA authoring and necessary site-configuration administration remain unexercised; the configuration read previously returned 403. |
+| Owner ExperienceEvent schema, resolved fields | HTTP 200 with the documented expanded-schema Accept header | Base `_id`, timestamp, event type and identity-map fields exist; `web`, `commerce`, `productListItems` and `_experience` field families are absent. Schema existence is not scenario-ready field coverage. |
+
+Playwright, Vitest and esbuild resolve locally; headless Chromium successfully launched and
+closed on a synthetic in-memory page. This establishes local execution-tool availability,
+not reference-site instrumentation or authenticated access to Adobe's management UI.
+
+### Datastream blocker and safe alternatives
+
+The read path was established from Adobe's public Alloy extension source, rather than guessed:
+[`fetchConfig.js`](https://github.com/adobe/alloy/blob/af22d05072ee8141645ad6dfc9a604b3a0a316a6/packages/reactor-extension/src/view/configuration/utils/fetchConfig.js),
+[`fetchFromEdge.js`](https://github.com/adobe/alloy/blob/af22d05072ee8141645ad6dfc9a604b3a0a316a6/packages/reactor-extension/src/view/utils/fetchFromEdge.js)
+and its
+[`request headers`](https://github.com/adobe/alloy/blob/af22d05072ee8141645ad6dfc9a604b3a0a316a6/packages/reactor-extension/src/view/utils/getBaseRequestHeaders.js).
+It uses `GET /metadata/namespaces/edge/datasets/datastreams/records/{datastreamId}`.
+Public UI source does not establish a supported Server-to-Server administration contract.
+Only the owner's application key was used; Adobe's UI application identity was not substituted
+to get around the rejection, and no internal write route or diagnostic Edge event was attempted.
+
+The browser side panel opened the owner's datastream URL but displayed **Sign in**, not service
+settings. A request for owner sign-in/screenshots could not be answered because the owner was
+unavailable. No login, user-token substitution or authorization bypass was attempted.
+Safe next evidence is an owner-authenticated configuration inspection, supplied service-settings
+screenshots, or confirmation of a supported configuration API accepting the owner's application.
+The initial routing contract remains: dedicated Analytics suite and explicit Airlock Target
+environment/property, with Platform/AJO/Audience Manager/event forwarding disabled.
+
+The [effective-policy API](https://experienceleague.adobe.com/en/docs/experience-platform/access-control/api/effective-policies)
+queries permissions discovered through the
+[reference API](https://experienceleague.adobe.com/en/docs/experience-platform/access-control/api/permissions-and-resource-types).
+Advertised delete/reset rights are not owner authorization: the autonomous resource allowlist
+must still prevent shared-resource changes and sandbox resets. Expanded schema inspection used
+the [documented Schema Registry lookup format](https://experienceleague.adobe.com/en/docs/experience-platform/xdm/api/schemas).
+Later mapped web/commerce/personalization ingestion needs deliberate field-group selection;
+missing field families alone do not prove the initial Analytics/Target-only path fails with
+Platform ingestion disabled. No event was sent to test that hypothesis.
+
+**Assessment:** credentials and local tools support continued read-only preparation and local
+work, but uninterrupted live qualification is **not yet established**. Routing inspection,
+scoped Target/site write checks and isolated later-product fixtures remain open. The proposed
+051-03 eight-active-hour budget, whole-run ceiling, autonomous refinement/checkpoint delegation
+and test publication/release authority still require owner decisions. These checks neither
+start `/goal` nor advance any DRAFT spec or satisfy 051-01's reviewed preflight acceptance criteria.
+A redacted outcome is recorded here; exact selectors and the bounded permission snapshot remain
+in private `0600` session state with no credentials or OAuth tokens.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes
@@ -387,13 +451,13 @@ Existing spec 013 live results are reusable evidence, not a complete product set
 |---|---|---|
 | Product access | [Developer Console](https://developer.adobe.com/developer-console/docs/guides/apis-and-services) says unavailable API services can mean missing license or permission. | Owner/admin must identify an entitled organization and grant profiles; creating a Console project is not product provisioning. |
 | Authentication | [OAuth Server-to-Server](https://developer.adobe.com/developer-console/docs/guides/authentication/ServerToServerAuthentication/implementation) supports programmatic tokens; product profiles constrain access. | Determine each API's supported auth/scopes; use current OAuth, not copied legacy JWT instructions. |
-| AEP sandbox | [Sandbox API](https://experienceleague.adobe.com/en/docs/experience-platform/sandbox/api/sandboxes) documents listing, lookup and development-sandbox creation. | Entitlement, quota and role not checked; do not assume a Platform product license is needed merely to use basic Web SDK. |
+| AEP sandbox | [Sandbox API](https://experienceleague.adobe.com/en/docs/experience-platform/sandbox/api/sandboxes) documents listing, lookup and development-sandbox creation. | Available-context reads and selected effective permissions are now verified; quota and resource creation remain untested/unapproved. A new sandbox is not needed for the initial Analytics/Target-only baseline with Platform ingestion disabled. |
 | XDM schemas | [Schema Registry API](https://experienceleague.adobe.com/en/docs/experience-platform/xdm/api/schemas) documents programmatic schema management. | Select field groups/identity requirements for synthetic scenarios; production/default schema mutation is not authorized. |
 | Datasets | [Catalog API](https://experienceleague.adobe.com/en/docs/experience-platform/catalog/api/create-dataset) documents dataset creation from a schema ID. | Ingestion/profile enablement and product-specific data paths still need validation. |
-| Datastreams | [Official overview](https://experienceleague.adobe.com/en/docs/experience-platform/datastreams/overview) documents service routing and UI management. | Supported administrative API and org permissions **not verified**; do not confuse Edge event-delivery API with datastream provisioning. Use guided UI if necessary. |
+| Datastreams | [Official overview](https://experienceleague.adobe.com/en/docs/experience-platform/datastreams/overview) documents service routing and UI management. | View/Manage policies are advertised in the selected context, but the owner-key configuration GET returns 403. Supported Server-to-Server administration and actual destinations remain unverified; do not use event delivery to discover routing. |
 | Target | [Admin API overview](https://experienceleague.adobe.com/en/docs/target-dev/developer/api/admin-api/admin-api-overview) describes authenticated admin operations, versions and batch dependencies. | Confirm exact offer/activity/environment/property operations in current reference and permitted workspace before writing; activation requires test-only targeting/approval. |
 | Analytics | [2.0 API reference](https://developer.adobe.com/analytics-apis/docs/2.0/apis/) and its [current report-suite schema](https://github.com/AdobeDocs/analytics-2.0-apis/blob/main/static/report-suites.json) document metadata reads and standard suite creation. | Creation permission, quotas/cost, approved RSID prefix/settings and product-specific test isolation are not established by listing existing suites. |
-| AJO | [Current API index](https://developer.adobe.com/journey-optimizer-apis/) lists retrieval, execution, previews and selected management operations. | General web/code-based campaign creation/publishing is not established; UI/admin work may be required. AJO license and permissions are separate. |
+| AJO | [Current API index](https://developer.adobe.com/journey-optimizer-apis/) lists retrieval, execution, previews and selected management operations. | Campaign reads and selected manage/publish/report policies are verified, not an exercised general web/code-based campaign creation/publishing path. Supported UI/admin work and isolated outcome fixtures may still be required. |
 | CJA / RTCDP | [Web SDK tutorial prerequisites](https://experienceleague.adobe.com/en/docs/platform-learn/implement-web-sdk/overview) distinguish basic Web SDK from Platform-product access. | Need product-specific schemas, connections/data views or profiles/audiences and outcome access; shared transport does not prove product behavior. |
 | Validation | The same tutorial uses Adobe Debugger and Assurance. [Manual proposition rendering](https://experienceleague.adobe.com/en/docs/experience-platform/collection/use-cases/personalization/render-manual-propositions) requires display notifications. | Verify automated receipt/report/session access; interactive Assurance can supplement, not replace reproducible product outcome assertions. |
 
@@ -440,9 +504,10 @@ and the proposed time-box needs approval before readiness. Specs 052-057 are uns
 This note remains OPEN. The supplied credential was not created here; selected reads are verified
 and the owner-authorized dedicated Target environment exists. The owner-created Analytics suite and
 reference EDS site, Target property and ExperienceEvent schema are verified. Target workspace
-assignment and credential association are verified for reads. Datastream destinations, test-activity
-write/activation permissions, the tested preflight utility and the stock/live comparison remain
-pending, not completed by these setup checks.
+assignment and credential association are verified for reads. Analytics report queries and selected
+AEP/AJO effective permissions are verified. Datastream configuration is blocked at application-key
+acceptance despite advertised roles; destinations, test-activity/site writes, later-product fixtures,
+the tested preflight utility and the stock/live comparison remain pending.
 
 ## Options / pros & cons
 

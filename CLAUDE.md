@@ -66,10 +66,10 @@ Default to collaborative and solution-forward — answer what's asked, propose r
 [ADR-0031](docs/decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)). Start
 [R-012](docs/research/R-012-adobe-first-compatibility.md): pinned SDK/`aem-martech` inventory and
 API-led access/setup discovery, then one Analytics + Target rendering/reporting proof.
-Selected API reads and the dedicated Analytics suite, EDS site, Target environment/property and
-ExperienceEvent schema are verified in R-012. Target workspace assignment and credential association
-are verified for reads; datastream routing and activity write/activation remain untested. No new AEP
-sandbox is required for the initial Analytics/Target-only baseline with
+Dedicated resources, Analytics report queries, Target workspace/credential association and selected
+AEP/AJO effective permissions are verified in R-012. Datastream configuration reads fail at the
+application-key/subscription layer despite advertised View/Manage roles; routing, scoped writes and
+later-product fixtures remain unverified. No new AEP sandbox is required for the initial baseline with
 Platform ingestion disabled. No stock/live workflow proof exists yet. [Spec 051](docs/specs/051-adobe-integration-proving-ground/spec.md)
 supplies the DRAFT contracts; setup-scope approval and spike-budget gates remain pending.
 Current runtime remains v0.8.0; spec 050 is DONE but its live-validation residuals remain open.
