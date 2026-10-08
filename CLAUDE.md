@@ -66,9 +66,10 @@ Default to collaborative and solution-forward — answer what's asked, propose r
 [ADR-0031](docs/decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)). Start
 [R-012](docs/research/R-012-adobe-first-compatibility.md): pinned SDK/`aem-martech` inventory and
 API-led access/setup discovery, then one Analytics + Target rendering/reporting proof.
-No ready product environment or authenticated setup evidence exists yet; Developer Console does
-not grant licenses. [Spec 051](docs/specs/051-adobe-integration-proving-ground/spec.md) supplies the
-bounded investigation's DRAFT slices; access, setup approval and spike-budget gates remain pending.
+Selected API reads, the owner-created Analytics suite and the reference EDS site are verified in
+R-012; the dedicated Target environment exists, but property/workspace and datastream setup remain
+pending. No stock/live workflow proof exists yet. [Spec 051](docs/specs/051-adobe-integration-proving-ground/spec.md)
+supplies the DRAFT contracts; setup-scope approval and spike-budget gates remain pending.
 Current runtime remains v0.8.0; spec 050 is DONE but its live-validation residuals remain open.
 Vendor assurance and granular policy are candidate follow-ons, not silently completed work.
 
