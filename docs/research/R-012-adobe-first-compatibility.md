@@ -15,7 +15,8 @@ related:
 > reconnaissance is complete for the points below. Selected authenticated read-only access checks ran
 > on 2026-10-07. Subsequent owner-authorized setup created a dedicated Target environment;
 > the owner-created Analytics suite and reference EDS site were verified on 2026-10-08.
-> Target property/workspace and datastream setup remain pending as recorded below.
+> The owner-created Target web property and ExperienceEvent schema were subsequently verified.
+> Target workspace assignment and datastream routing verification remain pending as recorded below.
 > Live instrumentation/product-outcome proof has **not** run. The release is committed in direction,
 > not proven in outcome.
 
@@ -248,7 +249,7 @@ designated site and sanitized permission results with `0600` permissions. OAuth 
 Target property routing tokens and raw responses are not persisted. The earlier Analytics creation
 blocker is cleared for the actual selected fixture; the prior failed requests remain historical evidence.
 
-**Current setup boundary:** the Analytics fixture and reference site are established enough to
+**Setup boundary at that checkpoint:** the Analytics fixture and reference site were established enough to
 continue the access/setup investigation. A dedicated Target property with an approved workspace,
 datastream configuration pins, approved test activities and their receipt/report observations remain
 unresolved. DA authoring permissions were not tested, and EDS site-config changes would need separate
@@ -258,6 +259,73 @@ for actual setup.
 No deployment, content edit, suite mutation, SDK event or activity publication occurred.
 Specs 051-057 remain DRAFT; this verification is not the tested preflight utility, the stock baseline,
 or permission to start the full autonomous release.
+
+## Target property and initial sandbox scope — 2026-10-08
+
+The owner created the Target property, schema and datastream, then requested clearer workspace
+instructions and whether AEP development isolation is necessary for the first Analytics/Target tests.
+Read-only verification found one Airlock-labelled web property with a routing token and **zero
+workspace assignments**. Its metadata is now recorded in private setup state; no token value is
+copied into source or committed documentation. This resolves the earlier property-creation blocker,
+not the remaining permission assignment or activity-delivery proof.
+
+The owner-selected schema is readable in `prod`, uses the XDM ExperienceEvent class and has no
+Profile union tag. This verifies the class/metadata, not every required field-group or payload.
+The owner supplied a datastream in the same `prod` context; its service destinations were **not**
+verified by API. Exact schema/datastream IDs remain in local-only state.
+
+### Correction: a new AEP sandbox is not an initial Analytics/Target prerequisite
+
+For the initial baseline, a dedicated Data Collection datastream can route to the isolated
+Analytics report suite and Target environment/property without enabling the **Adobe Experience
+Platform** destination service. The `prod` label in the supplied links identifies the Platform/
+Data Collection configuration context; it does not force routing into Target Production or an
+Analytics production suite. Actual service settings determine those destinations.
+
+Keep Platform ingestion, dataset/Profile configuration, AJO and event forwarding disabled for
+the first Analytics/Target baseline. No new sandbox, dataset, custom customer identity or Profile
+enablement is needed to finish this setup. Keep the created schema/datastream rather than asking
+the owner to recreate them now. Before AJO/CJA/RTCDP ingestion/profile/audience experiments, select
+and approve a development sandbox and create appropriate separate resources there.
+
+This clarifies earlier setup guidance; it does not authorize modifying shared production objects,
+sending test events, or narrowing the later release product matrix. Adobe's
+[Web SDK datastream tutorial](https://experienceleague.adobe.com/en/docs/platform-learn/implement-web-sdk/initial-configuration/configure-datastream)
+distinguishes the Platform-native development-sandbox recommendation from Analytics/Target-only
+Data Collection use.
+
+### Target workspace meaning and setup
+
+A Target **workspace is an Admin Console product profile** governing users/API credentials and
+the properties they can manage. The dedicated Target **environment** controls delivery/reporting
+context; it is not the permissions workspace. A separate workspace is recommended for this
+owner-requested isolated test setup, not an additional licensed tenant or a prerequisite for all
+possible Target implementations.
+
+Create an Airlock-only profile in Admin Console under the correct organization's Adobe Target
+product; configure its property permissions to include only the newly created Airlock property.
+Add the owner's user with the necessary Target role and associate the existing Server-to-Server
+API credential with that profile. Creating a profile or assigning the human alone does not add
+the application. Editor permits draft activity work; Approver permits activation, which still
+requires the separate test-only operational approval.
+
+The property's returned workspace list should include the new profile after configuration.
+Do not automatically select one of the application's existing workspace assignments, enable
+all properties, or alter other teams' profile membership.
+Sources: [Target enterprise permissions and roles](https://experienceleague.adobe.com/en/docs/target/using/administer/manage-users/enterprise/properties-overview)
+and [API credential/product-profile association](https://helpx.adobe.com/business/enterprise/users/users-and-groups/manage-api-credentials.html).
+
+### Remaining initial datastream checks
+
+- Analytics destination points only to the owner-designated Airlock suite.
+- Target destination explicitly pins **Airlock - Development** and the new property token.
+- Platform/AJO/Audience Manager/event-forwarding destinations are disabled for this first baseline.
+- No SDK calls occur before destination settings and test activity/host targeting are approved.
+
+The supplied `targetPageParams` snippet belongs to the at.js integration style. For this stock
+Alloy/Web SDK baseline, configure the Target property token in the datastream's Target service;
+do not install an at.js global just to use the property. No script, schema, service configuration,
+workspace assignment or API permission was changed by this verification.
 
 ## Sources / findings
 
@@ -343,8 +411,9 @@ read-only preflight, stock test baseline and a bounded compatibility spike. Its 
 and the proposed time-box needs approval before readiness. Specs 052-057 are unsliced outlines.
 This note remains OPEN. The supplied credential was not created here; selected reads are verified
 and the owner-authorized dedicated Target environment exists. The owner-created Analytics suite and
-reference EDS site are verified. Target property/workspace and datastream setup, the tested preflight
-utility and the stock/live comparison remain blocked or pending, not completed by these setup checks.
+reference EDS site, Target property and ExperienceEvent schema are verified. Target workspace
+assignment, datastream destination verification, the tested preflight utility and the stock/live
+comparison remain pending, not completed by these setup checks.
 
 ## Options / pros & cons
 
