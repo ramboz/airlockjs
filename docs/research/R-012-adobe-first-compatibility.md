@@ -16,7 +16,8 @@ related:
 > on 2026-10-07. Subsequent owner-authorized setup created a dedicated Target environment;
 > the owner-created Analytics suite and reference EDS site were verified on 2026-10-08.
 > The owner-created Target web property and ExperienceEvent schema were subsequently verified.
-> Target workspace assignment and datastream routing verification remain pending as recorded below.
+> Target workspace assignment and credential association were subsequently verified for reads.
+> Datastream routing and activity write/activation permissions remain unverified as recorded below.
 > Live instrumentation/product-outcome proof has **not** run. The release is committed in direction,
 > not proven in outcome.
 
@@ -327,6 +328,33 @@ Alloy/Web SDK baseline, configure the Target property token in the datastream's 
 do not install an at.js global just to use the property. No script, schema, service configuration,
 workspace assignment or API permission was changed by this verification.
 
+## Target workspace assignment — verified 2026-10-08
+
+After the owner reported completing workspace setup, fresh OAuth authentication and read-only
+metadata checks established:
+
+- The selected Airlock web property's exact ID returns HTTP 200 and has **one workspace assignment**.
+- That workspace ID appears in the API credential's fresh IMS product context for the same
+  organization and Target tenant. Property assignment and application profile association are
+  both observed; this is not inferred from the human user's permissions.
+- The accessible property collection reports a complete snapshot. Only the selected
+  Airlock property is assigned to this workspace in that snapshot. The product-context display
+  label was not used to infer that the profile is named Airlock.
+
+This clears the missing workspace-assignment/credential-association checkpoint **for reads**.
+It does not establish an exclusive application-wide permission boundary: the integration's other
+product-profile grants were not removed, hidden access was not audited, and activity creation,
+editing, approval or activation rights were not exercised.
+
+Exact workspace selectors and these verification flags are retained in the private `0600`
+resource manifest. No OAuth token or property routing-token value was persisted, no permission
+assignment was changed, and no activity or test event was created.
+
+**Remaining initial setup checks:** verify the dedicated datastream's Analytics suite and Target
+environment/property destinations, with Platform/AJO/event-forwarding ingestion disabled for the
+initial baseline. Test-only activity operations still need scoped authorization and executable
+verification. The stock baseline and spec 051 readiness/review gates remain outstanding.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes
@@ -412,8 +440,9 @@ and the proposed time-box needs approval before readiness. Specs 052-057 are uns
 This note remains OPEN. The supplied credential was not created here; selected reads are verified
 and the owner-authorized dedicated Target environment exists. The owner-created Analytics suite and
 reference EDS site, Target property and ExperienceEvent schema are verified. Target workspace
-assignment, datastream destination verification, the tested preflight utility and the stock/live
-comparison remain pending, not completed by these setup checks.
+assignment and credential association are verified for reads. Datastream destinations, test-activity
+write/activation permissions, the tested preflight utility and the stock/live comparison remain
+pending, not completed by these setup checks.
 
 ## Options / pros & cons
 
