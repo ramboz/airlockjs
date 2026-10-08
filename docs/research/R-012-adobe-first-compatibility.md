@@ -18,8 +18,10 @@ related:
 > The owner-created Target web property and ExperienceEvent schema were subsequently verified.
 > Target workspace assignment and credential association were subsequently verified for reads.
 > Analytics report queries and selected AEP/AJO effective permissions are now verified.
-> Datastream configuration reads are blocked at the application-key/subscription layer despite
-> advertised View/Manage Datastreams rights; routing and activity write/activation remain unverified.
+> Scoped Target creation, editing and a future-only approval check pass; the fixture is restored
+> to saved/inactive. Initial Analytics/Target routing is verified through owner-provided UI evidence,
+> exact selector checks and the owner's saved development-environment pin confirmation.
+> Programmatic datastream management remains unavailable to this application/tool surface.
 > Live instrumentation/product-outcome proof has **not** run. The release is committed in direction,
 > not proven in outcome.
 
@@ -410,7 +412,7 @@ Later mapped web/commerce/personalization ingestion needs deliberate field-group
 missing field families alone do not prove the initial Analytics/Target-only path fails with
 Platform ingestion disabled. No event was sent to test that hypothesis.
 
-**Assessment:** credentials and local tools support continued read-only preparation and local
+**Assessment at the read-only checkpoint:** credentials and local tools support continued read-only preparation and local
 work, but uninterrupted live qualification is **not yet established**. Routing inspection,
 scoped Target/site write checks and isolated later-product fixtures remain open. The proposed
 051-03 eight-active-hour budget, whole-run ceiling, autonomous refinement/checkpoint delegation
@@ -418,6 +420,116 @@ and test publication/release authority still require owner decisions. These chec
 start `/goal` nor advance any DRAFT spec or satisfy 051-01's reviewed preflight acceptance criteria.
 A redacted outcome is recorded here; exact selectors and the bounded permission snapshot remain
 in private `0600` session state with no credentials or OAuth tokens.
+
+## Focused Alloy/Target/Analytics follow-up — 2026-10-08
+
+The owner explicitly authorized Target write checks, confirmed the datastream is open in the
+embedded browser, and deferred AJO/CJA/RTCDP work **for now**. This narrows the immediate proving
+ground to Alloy, Target and Analytics; it does not remove later product requirements from
+ADR-0031 or the broader release portfolio, approve `/goal`, or advance the DRAFT specs.
+
+### Target write authorization — exercised, not inferred
+
+The [official Target API schema](https://github.com/AdobeDocs/target-developers/blob/main/src/admin-api.json)
+was inspected before mutation. Fresh OAuth authentication reverified the exact property workspace
+and its association with the credential. Only new Airlock-owned fixtures were created or edited:
+
+| Operation | Observed result |
+|---|---|
+| Create a harmless HTML content offer in the exact workspace | HTTP 201 |
+| Read, rename and re-read that offer | HTTP 200 on each; workspace/content/name assertions pass |
+| Create/read a distinct comparison offer in the same workspace | HTTP 201 / 200 |
+| Create a saved A/B activity referencing these offers and the exact Airlock property | HTTP 201 |
+| Read, rename and re-read the activity | HTTP 200 on each; saved state, workspace, property and custom decision-scope assertions pass |
+
+The activity remains **saved/inactive**, with future dates and a dedicated custom mbox scope.
+No approval/activation, global-mbox delivery, host moves, environment/default changes,
+customer-resource edits, SDK requests or events occurred. The two offers and inactive activity
+are retained as owned fixtures for a later isolated proof, not deleted or claimed as live evidence.
+Exact IDs, request receipts and the owner authorization are private `0600` state.
+
+Initial HTTP 400 responses were **payload validation**, not a failed authorization check.
+The checked schema omitted constraints that the server enforces: custom `metricLocalId` values
+must exceed 2; A/B options must reference distinct offers; `applicationContext` is invalid
+without views. Those exact server-reported errors were corrected, reusing the first offer
+rather than duplicating it. The subsequent create/edit/readback succeeded. Generic web-search
+examples with string metric IDs or undocumented metric fields were not used.
+
+This establishes actual content-offer and activity creation/editing access in the selected
+workspace/property. It does not prove activity activation, Alloy delivery/rendering, Adobe-native
+notifications, Analytics receipt or a stock-versus-chamber comparison.
+
+### Datastream UI and deployment observations
+
+The owner's browser is now **authenticated** and on the selected datastream. The native
+`read_page` and JavaScript actions expose the Experience Cloud shell only: the configuration
+application is a cross-origin iframe. The screenshot action returned a confirmation but no
+agent-readable image/file; no image artifact was available in this session's attachment/state
+areas. No authorized iframe-aware debugger was advertised by this tool process's app ancestry.
+No browser profiles, cookies, user access tokens or unrelated browsers were inspected.
+The settings screenshot/text request could not be answered while the owner was unavailable.
+
+This is now a **browser-tool visibility limitation**, not a request for the owner to sign in again.
+The owner-key configuration API rejection remains separately recorded. The dedicated Analytics
+suite and Target environment/property pins, plus disabled non-target services, are still unread.
+No routing values were guessed and no Edge event was sent to discover the destinations.
+
+An authenticated Git push **dry run** to the exact reference repository succeeded; the probe
+branch was absent before and after. No commit/ref was written, and the temporary bare checkout
+was removed. This is stronger than viewer-permission metadata but does not exercise branch
+protection, actual code deployment, EDS publication or DA authoring.
+
+**At the pre-screenshot checkpoint:** Analytics reporting and scoped Target creation/editing
+are verified. Routing inspection remains the immediate prerequisite to safe Alloy test traffic;
+Target activation and deployment/live outcomes remain separate checks. AJO/CJA/RTCDP fixture
+work is deferred by the owner and is not a blocker for this initial proving ground.
+
+## Initial routing and approval checks — 2026-10-08
+
+The owner supplied three configuration screenshots after the browser-tool limitation was reported:
+
+- The selected datastream's overview lists **only Analytics and Target**, both enabled; no
+  Platform, AJO, Audience Manager or event-forwarding service is listed.
+- Analytics has **one report suite**, exactly matching the approved dedicated suite.
+- The Target property token matches the owned property's live API value. On-device OCR and
+  hash comparison established this without printing or persisting the token or recognized text.
+  Initial OCR passes did not recognize a valid UUID; this was not treated as a token mismatch.
+  UUID-constrained glyph recognition subsequently matched the API hash from both the full image
+  and a token-field crop, without guessing valid hex digits.
+- The first screenshot showed **Target Environment ID empty**. A fresh exact environment read
+  confirmed the Airlock development environment is non-default and active-only. The owner
+  confirmed its ID, was instructed to enter it and Save, and then acknowledged completion.
+
+Initial routing is therefore verified through **owner UI evidence and saved-setting confirmation**,
+not misrepresented as a successful configuration API readback. Exact selectors and screenshot
+hashes remain private. The managed fixture can be used for the initial Analytics/Target proof;
+later routing changes need fresh verification. No datastream setting was changed by the agent.
+
+### Approval permission, without current live delivery
+
+The owner-authorized Target write check was extended to the activity state endpoint. Before any
+state change, the exact owned workspace/property/custom scope and a start date **more than 300 days
+in the future**, with a bounded end date, were asserted from a fresh activity read. Approval then
+returned HTTP 200; readback confirmed approved state and unchanged future dates. The activity
+could not serve current traffic under that schedule.
+
+The activity was immediately restored to **saved/inactive**, and exact scoped readback returned
+HTTP 200. This proves approval/state-change permission as well as the earlier creation/editing
+checks, without activating a currently live activity. No SDK request, test event, host/default
+change or customer-resource operation occurred.
+
+The reference repository's default branch is unprotected and its branch-rules read returned an
+empty list. Together with the successful authenticated push dry run and advertised EDS rights,
+no access-policy blocker was identified for the baseline deployment path. Actual deployment,
+DA authoring, any necessary site-administration changes and live product outcomes remain
+implementation/validation work, not retroactively claimed by these access checks.
+
+**Current assessment:** access and initial setup are sufficient to begin the scoped
+**Alloy/Target/Analytics proving ground on this local host**. The stock/chamber live proof has not
+run; runtime remains v0.8.0, all seven specs remain DRAFT, and `/goal` has not started. AJO/CJA/RTCDP
+are deferred for the immediate focus, not declared complete or removed from the release gate.
+The reviewed Jig execution plan, spike/whole-run budget, durable execution-host credential setup
+and publication/release authority remain separate launch decisions.
 
 ## Sources / findings
 
@@ -454,8 +566,8 @@ Existing spec 013 live results are reusable evidence, not a complete product set
 | AEP sandbox | [Sandbox API](https://experienceleague.adobe.com/en/docs/experience-platform/sandbox/api/sandboxes) documents listing, lookup and development-sandbox creation. | Available-context reads and selected effective permissions are now verified; quota and resource creation remain untested/unapproved. A new sandbox is not needed for the initial Analytics/Target-only baseline with Platform ingestion disabled. |
 | XDM schemas | [Schema Registry API](https://experienceleague.adobe.com/en/docs/experience-platform/xdm/api/schemas) documents programmatic schema management. | Select field groups/identity requirements for synthetic scenarios; production/default schema mutation is not authorized. |
 | Datasets | [Catalog API](https://experienceleague.adobe.com/en/docs/experience-platform/catalog/api/create-dataset) documents dataset creation from a schema ID. | Ingestion/profile enablement and product-specific data paths still need validation. |
-| Datastreams | [Official overview](https://experienceleague.adobe.com/en/docs/experience-platform/datastreams/overview) documents service routing and UI management. | View/Manage policies are advertised in the selected context, but the owner-key configuration GET returns 403. Supported Server-to-Server administration and actual destinations remain unverified; do not use event delivery to discover routing. |
-| Target | [Admin API overview](https://experienceleague.adobe.com/en/docs/target-dev/developer/api/admin-api/admin-api-overview) describes authenticated admin operations, versions and batch dependencies. | Confirm exact offer/activity/environment/property operations in current reference and permitted workspace before writing; activation requires test-only targeting/approval. |
+| Datastreams | [Official overview](https://experienceleague.adobe.com/en/docs/experience-platform/datastreams/overview) documents service routing and UI management. | Initial destinations are verified via owner UI evidence/confirmation; the owner-key configuration GET still returns 403. Supported Server-to-Server administration remains unverified; recheck future routing changes before traffic. |
+| Target | [Admin API overview](https://experienceleague.adobe.com/en/docs/target-dev/developer/api/admin-api/admin-api-overview) describes authenticated admin operations, versions and batch dependencies. | Scoped create/edit and future-only approval/restoration pass in the exact workspace/property. The fixture is saved/inactive; current live delivery/reporting/rendering remain unproven. |
 | Analytics | [2.0 API reference](https://developer.adobe.com/analytics-apis/docs/2.0/apis/) and its [current report-suite schema](https://github.com/AdobeDocs/analytics-2.0-apis/blob/main/static/report-suites.json) document metadata reads and standard suite creation. | Creation permission, quotas/cost, approved RSID prefix/settings and product-specific test isolation are not established by listing existing suites. |
 | AJO | [Current API index](https://developer.adobe.com/journey-optimizer-apis/) lists retrieval, execution, previews and selected management operations. | Campaign reads and selected manage/publish/report policies are verified, not an exercised general web/code-based campaign creation/publishing path. Supported UI/admin work and isolated outcome fixtures may still be required. |
 | CJA / RTCDP | [Web SDK tutorial prerequisites](https://experienceleague.adobe.com/en/docs/platform-learn/implement-web-sdk/overview) distinguish basic Web SDK from Platform-product access. | Need product-specific schemas, connections/data views or profiles/audiences and outcome access; shared transport does not prove product behavior. |
@@ -505,9 +617,12 @@ This note remains OPEN. The supplied credential was not created here; selected r
 and the owner-authorized dedicated Target environment exists. The owner-created Analytics suite and
 reference EDS site, Target property and ExperienceEvent schema are verified. Target workspace
 assignment and credential association are verified for reads. Analytics report queries and selected
-AEP/AJO effective permissions are verified. Datastream configuration is blocked at application-key
-acceptance despite advertised roles; destinations, test-activity/site writes, later-product fixtures,
-the tested preflight utility and the stock/live comparison remain pending.
+AEP/AJO effective permissions are verified. Initial datastream destinations are now verified through
+owner screenshots, exact selector comparisons and saved-environment-pin confirmation; automatic
+configuration management remains unavailable. Scoped Target create/edit and future-only approval
+pass, with the activity restored inactive. Actual site writes/publication, the tested preflight
+utility and the stock/live comparison remain pending. AJO/CJA/RTCDP fixtures are deferred for the
+initial proving ground, not removed from the release gate.
 
 ## Options / pros & cons
 
