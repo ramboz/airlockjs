@@ -692,6 +692,44 @@ finite observation windows. No HTTP 200, qualification request or client display
 is accepted as downstream product receipt. Stock implementation/traffic remains stopped at this
 required observation contract; the preparation/workspace gate itself is resolved.
 
+### Native report view and notification-metric grounding — 2026-10-09
+
+The owner supplied the inactive owned activity's Reports screenshot. It shows the native
+`Scoped display` metric, Visitors, two experience rows, zero current display values, a metric
+selector and download/settings controls. Screenshot provenance is private. The image establishes
+view availability, not successful CSV export, a selected development-environment filter, or
+processed test notifications; no SDK traffic has run.
+
+A fresh exact owned activity read corroborated the displayed goal's definition: it is a conversion
+metric, `count_once`, with one `mbox_shown` trigger bound to the approved custom scope and no
+click selectors. There is currently **one goal**, not a proven display-and-interaction pair.
+No activity setting or schedule was changed.
+
+Direct official-source inspection now grounds the previously unresolved submission-to-goal
+relationship:
+
+- [Target/Web SDK overview, Display mbox conversion metrics](https://experienceleague.adobe.com/en/docs/target-dev/developer/client-side/aep/target-overview#display-mbox-conversion-metrics):
+  a `decisioning.propositionDisplay` XDM event with the scope records the associated Target
+  success metric; this is separate from qualification.
+- [Adobe's at.js-to-Web SDK Track events guide](https://experienceleague.adobe.com/en/docs/platform-learn/migrate-target-to-websdk/track-events):
+  `decisioning.propositionInteract` replaces click notifications for an mbox location, and
+  returned `{id,scope,scopeDetails}` identify the proposition. DISPLAY signals rendering;
+  INTERACT signals an actual interaction.
+- [Success metrics](https://experienceleague.adobe.com/en/docs/target/using/activities/success-metrics/success-metrics):
+  goal count/deduplication settings are explicit; once per entrant differs from every impression.
+- [Manual display events](https://experienceleague.adobe.com/en/docs/experience-platform/collection/use-cases/personalization/display-events):
+  `applyPropositions` does not send display events automatically; send only after actual rendering
+  and retain `scopeDetails`.
+
+Search summaries were not treated as source evidence. These directly fetched sections ground
+the mechanism, not a newly observed downstream outcome. 051-02 can now refine this mapping
+without guessing from the `Scoped display` label. A reviewed plan must explicitly add/reuse the
+owned interaction goal and preserve restore behavior before activation; the owner need not
+change it manually. The actual export columns, environment/window binding and finite count
+observation contract still need verification. The visible download icon is not an exported file.
+The next owner input is the native CSV download from this inactive report; no activation or
+settings change is required to obtain an empty schema sample.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes

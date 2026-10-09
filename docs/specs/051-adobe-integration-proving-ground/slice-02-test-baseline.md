@@ -556,11 +556,23 @@ so a JSON-object success alone establishes no useful report payload.
 
 **Native signal mapping: known submission versus missing observation**
 
+**2026-10-09 direct-source and owned-read update:** The owner Reports screenshot shows the
+`Scoped display` goal and download/settings controls, but no environment filter. Fresh exact
+activity read confirms one conversion goal with `count_once` and `mbox_shown` bound to the owned
+custom scope, zero click selectors and no interaction goal. The official
+[Target/Web SDK display-mbox section](https://experienceleague.adobe.com/en/docs/target-dev/developer/client-side/aep/target-overview#display-mbox-conversion-metrics)
+documents scope-bound DISPLAY conversion recording. The
+[Track events migration guide](https://experienceleague.adobe.com/en/docs/platform-learn/migrate-target-to-websdk/track-events)
+explicitly maps INTERACT to click conversion for an mbox, retaining returned
+`id/scope/scopeDetails`. These are verified source semantics, not tested downstream results.
+The exact existing display metric binding is private; an additional owned interaction goal
+must be included in the reviewed prepare/restore plan rather than assumed already present.
+
 | Signal | Officially grounded behavior | Still required before traffic |
 |---|---|---|
-| Stock Web SDK DISPLAY | After actual manual rendering, send `_experience.decisioning.propositions` with the unchanged `id/scope/scopeDetails` and `propositionEventType.display:1`. Official display documentation distinguishes requested from actually shown content. | A documented received/processed display signal or numeric Target result, bound to that proposition/activity/experience and exact environment/window. The docs do not specify its field in the Admin report. |
-| Stock Web SDK INTERACT | Official automatic-proposition-interaction documentation describes clicks on rendered propositions; this probe disables that automatic path and declares its explicit native type/fields in §3, grounded in the exact stock artifact. | Documented mapping of this explicit Web SDK interaction to the planned Target click goal and its received/processed/count observation; generic link receipt or a captured SDK payload is insufficient. |
-| Target goal metrics | Admin `MetricMbox.successEvent` enumerates `mbox_shown`/`mbox_clicked`; official success-metric docs describe viewed-mbox/click conversions and once-per-entrant/every-impression choices. | Which concrete native notification increments each chosen private metric-local selector, with count unit/deduplication semantics. An enum name is not that cross-API mapping. |
+| Stock Web SDK DISPLAY | After actual manual rendering, preserve `id/scope/scopeDetails` and `propositionEventType.display:1`. The direct Target display-mbox example documents scope-bound success conversion; display docs distinguish requested from shown content. | Numeric/processed Target outcome bound to that proposition/activity/experience and exact environment/window. Its Admin response field is still undocumented. |
+| Stock Web SDK INTERACT | The official migration guide explicitly maps `decisioning.propositionInteract` to click conversion for an mbox, preserving returned proposition fields. | Confirm/create the exact owned click goal through the reviewed plan and verify its numeric/processed outcome. A generic Analytics link receipt or captured SDK payload is insufficient. |
+| Target goal metrics | Official viewed-mbox/click conversions and count-once semantics are documented; the existing owned display goal is now freshly corroborated. | The separate interaction goal and both private metric bindings, actual export/count fields, environment and window must be established before traffic. |
 | Target A/B performance results | The exact GET is now access-verified; its public report parameter schema describes environment/interval/metric selectors and its metric schema describes metadata. | Official numeric result path/type/unit, experience/metric correlation, and supported environment/window selection for this GET. No parameter or result field may be guessed from a UI control. |
 
 Adobe's separate [Target Delivery API Notifications contract](https://experienceleague.adobe.com/en/docs/target-dev/developer/api/delivery-api/notifications)
@@ -588,9 +600,9 @@ choose and review one supported, scope-bound method with:
   Preserve vendor metric units; Visitors/Visits/Activity Impressions are not interchangeable or
   automatically equal DOM display count/native notification count.
 
-**Unresolved signal needed:** an Adobe-supported definition of the numeric result field/column
-for the chosen display/click metric, its mapping from the stock Web SDK proposition notification,
-and activity/experience/environment/interval/count-unit correlation — or a documented
+**Remaining unresolved signal needed:** the actual supported numeric result field/export column
+for the mapped display/click goals and activity/experience/environment/interval/count-unit
+correlation — or a documented
 Edge-compatible processed-notification diagnostic plus those scoped product counts.
 The official Admin report's declared metadata and a successful access check supply neither.
 Do not request broader reporting permissions merely to explain this schema gap, and do not
@@ -617,9 +629,10 @@ non-negative integers. The raw export stays private, bounded and unchanged. The 
 the real source/observation time and reviewed column mapping, not a success boolean or guessed
 counts. `observe` consumes only this prebound private evidence, never an authenticated UI browser.
 
-This is a **specific optional downstream count method**, not an established permission or
-notification receipt method. The inspected UI documentation does not promise an exact CSV schema,
-synthetic marker/event-token columns or that these goals map to the chosen Web SDK notifications.
+This is a **specific optional downstream count method**, not a newly observed receipt.
+The owner screenshot establishes report-view availability and the scoped display goal, not a
+CSV schema or selected environment. Direct official sources now ground the notification-to-goal
+mapping; the actual export still needs its own column/filter contract.
 Before traffic, verify the actual export columns/filter binding and officially supported goal/
 notification semantics. If per-stage causal correlation through the activity/experience and
 native goal counters satisfies AC4, record that exact evidence basis and its limits in the reviewed
