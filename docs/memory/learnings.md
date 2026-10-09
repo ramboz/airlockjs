@@ -45,3 +45,6 @@ For file-per-slice work, give the configured implementer the standalone slice as
 
 ## Scoped Target profile confirmation has a distinct evidence basis
 051-04 consumes a private exact owner-confirmed Admin Console envelope only for absent non-selected workspace metadata in an otherwise valid complete fresh collection. Known conflicts, malformed/partial reads and stale/mismatched evidence cannot pass. The real v2 report reached 12 required ready with owner_ui_confirmation and null HTTP for that row; this is not application-wide exclusivity or Target delivery-environment routing. Preserve closed051-01 history and separate stock/product gates. See docs/specs/051-adobe-integration-proving-ground/slice-04-workspace-confirmation.md and R-012.
+
+## Target performance access is not notification receipt semantics
+The exact owned A/B performance GET returnedHTTP200 afterscopeverification, but the inspected officialAbstractActivityPerformanceReport documents activity/reportParameters/metric identifiers without numericDISPLAY/INTERACT outcomes or aWebSDKnotification-to-goal map. Do not infer API impossibility or productreceipt from that gap. 051-02 requires a supported API or native export/diagnostic observation contract bound to activity/experience/environment/window beforetraffic; nativeReports view was requested read-only. SeeR-012 and051-02.

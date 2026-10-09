@@ -20,16 +20,23 @@ profile includes only the owned property. The parent subsequently reports a **sc
 preflight at 2026-10-09T15:39:14.468Z: exit 0 / ready, 12 required ready, four optional unknown,
 12 requests**. Workspace evidence is explicitly `owner_ui_confirmation` with null HTTP status;
 fresh selected-property/Analytics/Target activity/offer/site reads passed. Original selection/
-routing timestamps were **not renewed**. 051-04 frame/compliance/craft/architecture reviews passed
-and closing reconciliation is in progress, not yet DONE. Leave the first DoR unchecked until
-051-04 closes; then assess that actual report's remaining freshness. Ready preparation still
-proves neither site writes, current activation nor product receipts.
+routing timestamps were **not renewed**. The parent now confirms 051-04 **DONE**, with all
+required reviews/reconciliation closed. This and the recent real ready report satisfy the
+first preparation DoR only; later operations must still respect original evidence expiry.
+Ready preparation proves neither site writes, current activation nor product receipts.
+
+**Separate observation-access fact (2026-10-09, parent-executed):** A bounded documented Target
+A/B performance-report GET with v1 Accept returned **HTTP 200, a JSON object and no error envelope**,
+after fresh v3 readback verified the exact owned activity/workspace/property and saved state.
+Three requests (token, activity read, report read); no mutations, SDK traffic, raw captures or
+IDs logged. This establishes that exact report read's access, not numeric outcome fields,
+notification semantics, report-environment selection or wider permissions. See §5.
 
 **Goal:** An integrator can reproduce a synthetic Analytics/Target journey through pinned stock
 `aem-martech` in approved test resources, including Adobe-native display reporting and outcome evidence.
 
 **DoR:**
-- [ ] 051-01's utility is complete and a recent real report verifies the required access/test scope.
+- [x] 051-01's utility is complete and a recent real report verifies the required access/test scope.
 - [ ] Owner approves the setup plan's org, product resources, domain, mutations and cleanup scope.
 - [ ] Pin the reference commit, stock Alloy version/hash and relevant SDK configuration.
 - [ ] Define product receipt/report observation methods, correlation and finite waiting windows.
@@ -107,10 +114,10 @@ Analytics/Target baseline or SDK execution criterion.
 
 This section makes AC1–8 specific; it does **not** replace them, satisfy DoR, transition a state,
 approve a live plan or implement a tool. All paths/commands below are **planned**, not available
-commands to run now. Only this DRAFT is refined. 051-04 is being implemented independently;
-its reviewed completion and the fresh real ready report remain prerequisites, as do this slice's
-own setup, receipt and independent-review gates. The report above now supplies ready preparation,
-but do not tick the dependency/readiness DoR until 051-04 closes or tick later gates from it.
+commands to run now. Only this DRAFT is refined. The parent confirms 051-04's reviewed completion
+and the fresh real ready report. Those preparation prerequisites are met; this slice's own setup,
+receipt and independent-review gates remain open. Do not tick later gates from preparation or
+the separate report-access success, and do not renew source evidence timestamps.
 The overall grant is strictly fewer than 10,000 credits, parent-tracked (approximately 2,600
 already consumed at handoff). Eight active hours applies to **051-03 only**, not this slice.
 
@@ -523,7 +530,7 @@ C custom row must have the observed count recorded against intended count 1; mis
 cross-classified or >1 counts leave the criterion incomplete. No-consent absence is bounded
 to its reserved tokens/window, not an assertion that Adobe retained no data anywhere.
 
-**Target candidate API, deliberately not yet a receipt adapter:** GET
+**Target API access verified, outcome contract still unresolved:** GET
 `https://mc.adobe.io/{privateTenant}/target/activities/ab/{privateActivity}/report/performance`
 with Accept `application/vnd.adobe.target.v1+json`, no body/query variants. The current official
 OpenAPI defines only path `id`; response `AbstractActivityPerformanceReport` includes
@@ -532,8 +539,38 @@ environment, interval, metric-local IDs and resolution, while the activity defin
 metric descriptors. Those inspected definitions **do not define numeric experience counts,
 notification receipts, a synthetic correlation field, or environment/date query parameters**.
 This is a limitation of the inspected contract, **not** a claim that the live API cannot return
-additive data. Do not invent `impressions`, a response path, guessed query arguments or permission.
-R-012 has not exercised this report read.
+additive data. Do not invent `impressions`, a response path or guessed query arguments.
+The parent-executed scoped HTTP 200/readback fact above clears uncertainty about access to this
+exact GET, **not** those outcome semantics. Only object/no-error shape was reported; actual
+`reportParameters`, metric fields, count values and environment/interval bindings are not
+claimed inspected in this refinement. No new permission or private-response access is inferred.
+
+The public success-response reference closure was enumerated on 2026-10-09, starting at that
+operation's 200 schema and following **every** component `$ref`: `AbstractActivityPerformanceReport`,
+`ActivityPerformanceReportParameters`, `AbstractActivity`, `MetricDTO`, `ReportingAudience`,
+`Interval`, `Chronology`, `DateTimeZone`. This closes the declared schema graph, not the set of
+possible additive live fields. Root properties are `reportParameters`/`activity`; `MetricDTO`
+defines only `name`, `metricLocalId`, `deletedAt`. None of this graph defines a result count,
+experience-result row or processed-notification record. Its properties are not marked required,
+so a JSON-object success alone establishes no useful report payload.
+
+**Native signal mapping: known submission versus missing observation**
+
+| Signal | Officially grounded behavior | Still required before traffic |
+|---|---|---|
+| Stock Web SDK DISPLAY | After actual manual rendering, send `_experience.decisioning.propositions` with the unchanged `id/scope/scopeDetails` and `propositionEventType.display:1`. Official display documentation distinguishes requested from actually shown content. | A documented received/processed display signal or numeric Target result, bound to that proposition/activity/experience and exact environment/window. The docs do not specify its field in the Admin report. |
+| Stock Web SDK INTERACT | Official automatic-proposition-interaction documentation describes clicks on rendered propositions; this probe disables that automatic path and declares its explicit native type/fields in §3, grounded in the exact stock artifact. | Documented mapping of this explicit Web SDK interaction to the planned Target click goal and its received/processed/count observation; generic link receipt or a captured SDK payload is insufficient. |
+| Target goal metrics | Admin `MetricMbox.successEvent` enumerates `mbox_shown`/`mbox_clicked`; official success-metric docs describe viewed-mbox/click conversions and once-per-entrant/every-impression choices. | Which concrete native notification increments each chosen private metric-local selector, with count unit/deduplication semantics. An enum name is not that cross-API mapping. |
+| Target A/B performance results | The exact GET is now access-verified; its public report parameter schema describes environment/interval/metric selectors and its metric schema describes metadata. | Official numeric result path/type/unit, experience/metric correlation, and supported environment/window selection for this GET. No parameter or result field may be guessed from a UI control. |
+
+Adobe's separate [Target Delivery API Notifications contract](https://experienceleague.adobe.com/en/docs/target-dev/developer/api/delivery-api/notifications)
+does document `click`/`display`, the corresponding prefetched `eventToken`, notification ID/
+timestamp, and returned `notifications[].id` for successfully processed notifications. That is
+a **different request/response API**. The inspected Web SDK/Admin-report docs do not establish
+that this Delivery response appears in Alloy's Edge response or the performance report. Do not
+import that receipt shape into this probe, add a direct Delivery send/endpoint, invent notification
+IDs/tokens, or substitute a server-side/A4T journey for pinned stock behavior. It identifies
+the kind of explicit vendor receipt signal needed, not an authorized shortcut.
 
 Consequently **`required_stop: target_report_contract` remains open**. Before an applyable plan,
 choose and review one supported, scope-bound method with:
@@ -551,7 +588,15 @@ choose and review one supported, scope-bound method with:
   Preserve vendor metric units; Visitors/Visits/Activity Impressions are not interchangeable or
   automatically equal DOM display count/native notification count.
 
-**Credible product-outcome route to review:** official Target UI **Reports → Report Settings**
+**Unresolved signal needed:** an Adobe-supported definition of the numeric result field/column
+for the chosen display/click metric, its mapping from the stock Web SDK proposition notification,
+and activity/experience/environment/interval/count-unit correlation — or a documented
+Edge-compatible processed-notification diagnostic plus those scoped product counts.
+The official Admin report's declared metadata and a successful access check supply neither.
+Do not request broader reporting permissions merely to explain this schema gap, and do not
+send exploratory traffic to discover what an undocumented field might mean.
+
+**Optional product-outcome candidate, not the only route:** official Target UI **Reports → Report Settings**
 documents choosing environment, dates,
 Visitors/Visits/Activity Impressions and metrics; **Download Reports → Export Report to CSV**
 is a supported manual product-count source. The proposed observation is the exact owned activity,
@@ -572,7 +617,7 @@ non-negative integers. The raw export stays private, bounded and unchanged. The 
 the real source/observation time and reviewed column mapping, not a success boolean or guessed
 counts. `observe` consumes only this prebound private evidence, never an authenticated UI browser.
 
-This is a **specific proposed downstream count method**, not an established permission or
+This is a **specific optional downstream count method**, not an established permission or
 notification receipt method. The inspected UI documentation does not promise an exact CSV schema,
 synthetic marker/event-token columns or that these goals map to the chosen Web SDK notifications.
 Before traffic, verify the actual export columns/filter binding and officially supported goal/
@@ -672,7 +717,9 @@ creation/default edits; supported stock exports/single instance/ACDL custom even
 actual render vs renderAttempted/late rendering; no-consent attempted events and consent-only
 exception; no-offer and **real qualified-but-not-rendered** stimulus; no premature native display/
 interact or extra page/link hit; staged observation/metadata/error/206/truncation/correlation/
-duplicate/timeout/count-unit failures; report zero without a positive; redaction with malicious
+duplicate/timeout/count-unit failures; access-verified HTTP 200 with `{}`/metadata-only report
+remaining outcome-unverified; no borrowed Delivery receipt shape or compulsory manual fallback;
+report zero without a positive; redaction with malicious
 private/response/exception strings; all request/byte/browser ceilings. Hermetic SDK/browser stubs
 prove harness behavior only; fixture “receipts” must never pass the live acceptance path.
 
@@ -688,14 +735,15 @@ access, resource write, deploy or SDK execution in this refinement:
 | [Official sendEvent](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/sendevent/overview), [HTML applyPropositions](https://experienceleague.adobe.com/en/docs/experience-platform/collection/use-cases/personalization/render-html-offers), [manual display events](https://experienceleague.adobe.com/en/docs/experience-platform/collection/use-cases/personalization/display-events), [top/bottom events](https://experienceleague.adobe.com/en/docs/experience-platform/collection/use-cases/personalization/top-bottom-page-events) | Custom scope fetch, metadata-based HTML rendering, explicit display only after rendering; propositionFetch is not an Analytics page hit. |
 | [Consent](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/setconsent), [click collection](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/configure/clickcollectionenabled), [proposition interactions](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/configure/autocollectpropositioninteractions) | Collection opt-in/out, consent cookie/exchanges, explicit prevention of duplicate automatic link/interaction sends. |
 | [Analytics data mapping](https://experienceleague.adobe.com/en/docs/analytics/implementation/aep-edge/data-var-mapping), [hit types](https://experienceleague.adobe.com/en/docs/analytics/implementation/aep-edge/hit-types), [official OpenAPI](https://github.com/AdobeDocs/analytics-2.0-apis/blob/main/static/swagger.json), [report examples](https://github.com/AdobeDocs/analytics-2.0-apis/blob/main/src/pages/guides/endpoints/reports/examples.md), [MATCH search grammar](https://github.com/AdobeDocs/analytics-2.0-apis/blob/main/src/pages/guides/endpoints/reports/search-filters.md) | Separate pageName vs custom linkName/linkType and downstream dimension/metric/row queries; page/link classification and avoidance of suite totals. |
-| [Target Admin OpenAPI](https://github.com/AdobeDocs/target-developers/blob/main/src/admin-api.json), [official Reports reference](https://developer.adobe.com/target/administer/admin-api/#tag/Reports), [report settings](https://experienceleague.adobe.com/en/docs/target/using/reports/settings/report-settings), [report view/export](https://experienceleague.adobe.com/en/docs/target/using/reports/reports) | Exact mutation/report versions; activity state/schedule, metric enums, workspace requirement; report schema gaps, UI environment/counting-method choices. No proven report permission/receipt schema. |
+| [Target Admin OpenAPI](https://github.com/AdobeDocs/target-developers/blob/main/src/admin-api.json), [official Reports reference](https://developer.adobe.com/target/administer/admin-api/#tag/Reports), [report settings](https://experienceleague.adobe.com/en/docs/target/using/reports/settings/report-settings), [report view/export](https://experienceleague.adobe.com/en/docs/target/using/reports/reports) | Exact mutation/report versions; complete declared 200-schema reference graph, metadata rather than defined result counts; UI environment/counting-method choices. Parent verified access to the scoped report GET; receipt/result mapping remains unknown. |
+| [Target success metrics](https://experienceleague.adobe.com/en/docs/target/using/activities/success-metrics/success-metrics), [Delivery API Notifications](https://experienceleague.adobe.com/en/docs/target-dev/developer/api/delivery-api/notifications) | Viewed-mbox/click conversion and counting choices; separate Delivery notification-ID acknowledgment. Neither source specifies Web SDK notification-to-Admin-report numeric mapping; no Delivery endpoint substitution is authorized. |
 | [Target Site Pages](https://github.com/AdobeDocs/target.en/blob/main/help/main/c-target/c-audiences/c-target-rules/site-pages.md), [Custom parameter rules](https://github.com/AdobeDocs/target.en/blob/main/help/main/c-target/c-audiences/c-target-rules/custom-parameters.md), [Web SDK parameter mapping](https://experienceleague.adobe.com/en/docs/platform-learn/migrate-target-to-websdk/send-parameters) | Exact domain/path plus marker qualification; XDM name mapping, no at.js property token or invented arbitrary data mbox marker. API rule objects remain opaque. |
 
-Required unresolved decisions before **any live apply/traffic**: 051-04 closure and continuing
+Required unresolved decisions before **any live apply/traffic**: continuing
 freshness of the now-ready schema-v2 preflight/source evidence; safely editable/restorable owned
 activity-local targeting; actual reference
 write/code-serving/CSP verification; dedicated-suite dimension queries and processing semantics;
-Target reporting permission, count/window/notification correlation adapter and native display/
+Target count/window/notification correlation contract and native display/
 interaction metric mapping; staged schedule compatible with report granularity and two-hour
 observations. Record a required stop for each unknown. No bare receipt flag, permissive proxy,
 new entitlement, guessed API or GA4 substitute clears them. AJO/CJA/RTCDP remain deferred for
@@ -724,6 +772,7 @@ observed product journey, not merely schemas/datastreams that might enable a fut
 - A supported Target report/diagnostic can establish display/interaction receipt and product
   counts with environment/experience/stage correlation inside the finite windows. Current public
   performance definitions do not establish these semantics; §5 is a required pretraffic stop.
+  The exact report GET's access is now verified separately, not assumed absent.
 - The stock custom-HTML project-renderer path, base-schema routing with Platform disabled,
   native interaction metric mapping and eager deadline can produce the journey. No SDK or live
   outcome has verified this; unknowns must not be converted into passing fixture evidence.

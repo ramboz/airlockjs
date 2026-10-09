@@ -678,6 +678,20 @@ workspace, traffic or mutation were used. This establishes report access, **not*
 interaction receipt semantics, event correlation or live product outcomes. Those reporting
 contracts still need verification before the stock plan can authorize traffic.
 
+The pinned official schema's `AbstractActivityPerformanceReport` documents `reportParameters`
+and `activity` metadata, including metric identifiers, but no numeric display/interaction
+outcome fields or Web SDK notification-to-goal mapping. This is a documentation/evidence gap,
+not proof that the accessible API can never supply numeric results. Delivery API notification
+acknowledgments belong to another integration contract and are not substituted for Alloy proof.
+
+The owner was asked for the dedicated inactive activity's native Reports metric/download view,
+as a read-only next observation step; the owner was unavailable. Manual exports are optional,
+not a proven exclusive route. The stock DRAFT retains `required_stop: target_report_contract`
+until supported receipt/count semantics are bound to activity, experience, environment and
+finite observation windows. No HTTP 200, qualification request or client display assertion
+is accepted as downstream product receipt. Stock implementation/traffic remains stopped at this
+required observation contract; the preparation/workspace gate itself is resolved.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes
