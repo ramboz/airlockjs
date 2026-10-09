@@ -39,7 +39,7 @@ comparison and final handoff still depend on the baseline. A ready utility is no
 
 051-01's CLI, minimal helpers, README and hermetic suites now exist under the paths above.
 The implementation witness is in the slice. The parent-owned real run returned unverified and
-is recorded in R-012; implementation reviews/reconciliation remain open. 051-02/03 must still
+is recorded in R-012; implementation reviews passed and reconciliation remains open. 051-02/03 must still
 refine setup/scenario commands from verified support after their readiness gates clear.
 
 ## 051-01 implementation sequence after review
@@ -75,9 +75,10 @@ npm test -- test/adobe-preflight-cli.test.js \
 
 All network fixtures are synthetic and injected only by tests, with the production allowlist still
 enforced. No live URL/fixture flag, credential value or arbitrary transport environment hook.
-Implementation validation now witnesses 277 preflight tests and 36 unchanged contract-stability
+Implementation validation now witnesses 278 preflight tests and 36 unchanged contract-stability
 tests passing; the slice records the actual initial and follow-up red runs. Documentation
-refinement itself is not a test run. No authenticated/live validation ran in this pass.
+refinement itself is not a test run. The implementation agent made no live calls; the later
+parent-owned real unverified report is recorded separately in R-012.
 
 The investigation proposes numeric performance/delivery limits from a recorded baseline; owner
 approval and dependent spec refinement occur before broad implementation. No existing thresholds

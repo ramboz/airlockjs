@@ -198,6 +198,14 @@ directly as operator evidence. This preparation changes neither production valid
 mutation negatives; it avoids storing a computed test digest that the commit scanner misclassifies.
 No scanner bypass or allowlist exception is used.
 
+### Known filesystem limitation
+
+The private-file timeout bounds the caller's wait and prevents further validation/network work,
+but it cannot cancel an already pending filesystem read. That operation can retain its handle
+and finish reading/parsing after the timeout report before closing. Use approved local files;
+complete operating-system-level filesystem cancellation is not claimed. Craft/architecture N1
+records this non-blocking residual; it does not change required readiness or network limits.
+
 ## Observed initial-preparation result — 2026-10-08
 
 The orchestrator executed the real CLI against the approved isolated fixtures after correcting

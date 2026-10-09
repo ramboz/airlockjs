@@ -14,7 +14,7 @@ use_cases: [UC-1, UC-2, UC-6, UC-7, UC-8, UC-10, UC-11]
 > setup are recorded in R-012; the versioned preflight is now implemented and hermetically
 > validated in 051-01. The real preflight returned unverified; deployment and stock/chamber
 > validation remain unexecuted.
-> Independent implementation/reconciliation gates remain open.
+> Independent implementation reviews passed; reconciliation remains a separate gate.
 
 ## Overview
 
@@ -66,7 +66,7 @@ The exact Node ES module command, private export/input/evidence schemas, public 
 operation inventory and test selectors are specified in
 [051-01's reviewed v1 contract](slice-01-access-preflight.md#draft-v1-operator-and-evidence-contract).
 Its CLI and hermetic tests now exist, and the parent-owned real result is recorded in R-012.
-Implementation reviews/reconciliation remain pending; a fixture-ready report grants no later
+Implementation reviews passed; reconciliation remains pending. A fixture-ready report grants no later
 live/write authority.
 
 ## Safety and evidence rules

@@ -6,12 +6,12 @@
   "credential_file_mode": "0600",
   "guidance": [
     "All values, credentials, resource IDs, contents, screenshots and observations in this file are invented. Never send these requests.",
-    "This wrapper is not an operator input. Extract private_input, routing_evidence and credential_export into separate synthetic files in a future test harness.",
+    "This wrapper is a test template, not an operator input. Load it through test/adobe-preflight-harness.js, which hydrates the null synthetic routing-token digest once before cloning or mutations and writes valid separate synthetic files. Raw routing_evidence extraction is not valid.",
     "Match replies by their exact request descriptors, not by consuming an unconditional queue: dependent requests can be skipped.",
     "form_body and json_body are semantic expected bodies; headers are matched case-insensitively. GET requests have no body.",
     "body is a JSON response value; body_text is the literal response text. transport_error describes a synthetic thrown error, not an HTTP response; after_ms is elapsed fake time, never a real wait.",
     "Variant patches are JSON Pointer add/replace operations against a fresh deep copy of this bundle; their expected fields are assertions, not complete reports.",
-    "The transport and clock are injectable only by the future tests, never by CLI flags/environment or arbitrary live URLs.",
+    "The transport and clock are injectable only by the test harness, never by CLI flags/environment or arbitrary live URLs.",
     "For real private configuration, recompute bindings and credential_identity_sha256 using the approved existing export; do not reuse any fixture values or invent freshness."
   ],
   "source_evidence": {

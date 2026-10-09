@@ -20,8 +20,10 @@ slice progress and `workflow.py coverage --project-dir .` for reference coverage
 internal mechanisms can remain unanchored; live-validation residuals and release gates are not retired
 by a DONE slice or a green coverage report.
 
-**Adobe-first draft portfolio:** [051](051-adobe-integration-proving-ground/spec.md) has three DRAFT
-slices below. Specs 052-057 are intentionally unsliced DRAFT outlines, so the generated slice table
+**Adobe-first portfolio:** [051](051-adobe-integration-proving-ground/spec.md) has an implemented,
+reviewed preflight and two DRAFT baseline/spike slices below. Its real report preserves a required
+workspace unknown; a completed utility is not a ready stock/chamber baseline. Specs 052-057 are
+intentionally unsliced DRAFT outlines, so the generated slice table
 does not list them yet; the [release handoff](../releases/adobe-compatibility.md#jig-handoff) links
 every outline and its refinement prerequisites. None is ready for implementation.
 
@@ -154,7 +156,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [049-native-tag-suppressor](049-native-tag-suppressor/spec.md) | 049-02 — direct-beacon-transport suppression (egress-parity completeness) | **DONE** |  |
 | [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-01 — the reference-site `?martech=airlock` rewire arm | **DONE** |  |
 | [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-02 — measured Lighthouse/TBT + parity evidence + scripted adoption path | **DONE** |  |
-| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-01 — read-only access preflight | DRAFT |  |
+| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-01 — read-only access preflight | REVIEWED (adobe-adoption-goal) |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-02 — reproducible test setup and stock baseline | DRAFT |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 🔬 051-03 — bounded SDK compatibility decision | DRAFT |  |
 
@@ -180,7 +182,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
-- **9** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
+- **10** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **104** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **49** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review

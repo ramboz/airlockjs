@@ -1,7 +1,7 @@
 ---
-status: REVIEWED
+status: RECONCILED
 dependencies: [adr-0031]
-last_verified:
+last_verified: 2026-10-08
 kind: feature
 frame_review: true
 arch_review: true
@@ -28,8 +28,8 @@ bands or renew any source evidence. The synthetic fixtures are prepared, the exi
 credential handle is available with unchanged contents and owner-only permissions, and exact
 private selectors/evidence have been normalized without authenticated requests. Original sources
 remain intact. Hermetic CLI implementation/acceptance tests are complete. The later parent-owned
-real CLI returned 11 required checks ready and one unverified; independent implementation reviews
-remain pending. No stock readiness or product proof is inferred.
+real CLI returned 11 required checks ready and one unverified. Independent implementation reviews
+passed; reconciliation remains pending. No stock readiness or product proof is inferred.
 
 **Acceptance Criteria:**
 
@@ -63,8 +63,8 @@ remain pending. No stock readiness or product proof is inferred.
 
 This command checks **initial Analytics/Target preparation**, not deployment, activity activation,
 SDK delivery or product outcomes. The reviewed contract is implemented and validated hermetically;
-the parent-owned real unverified result is recorded in R-012. Independent implementation review and
-reconciliation gates remain pending.
+the parent-owned real unverified result is recorded in R-012. Independent implementation reviews
+passed; reconciliation remains pending.
 R-012's ad-hoc successes are starting
 evidence, not a run of this CLI (command-line interface), fresh readbacks or completed acceptance
 criteria. Review this input/evidence boundary before implementation; do not tick DoR from authoring.
@@ -456,13 +456,13 @@ Assert report totals/IDs/echoed secrets never escape, even via unknown keys/pars
 and no token or report POST becomes a generic mutation exception.
 
 **DoD:**
-- [ ] ACs are exercised through the operator CLI with hermetic fixtures and named error cases.
-- [ ] Redaction, mutation refusal and partial-enumeration tests witnessed red-to-green.
-- [ ] Required compliance/craft review evidence recorded; no status advance from documentation alone.
-- [ ] Required frame/input-contract and architecture reviews cover the new CLI/report boundary;
+- [x] ACs are exercised through the operator CLI with hermetic fixtures and named error cases.
+- [x] Redaction, mutation refusal and partial-enumeration tests witnessed red-to-green.
+- [x] Required compliance/craft review evidence recorded; no status advance from documentation alone.
+- [x] Required frame/input-contract and architecture reviews cover the new CLI/report boundary;
       implementation architecture review evidence is recorded before REVIEWED.
 - [ ] Deviation log/reconciliation sweep and reconciliation review completed.
-- [ ] R-012 and operator instructions distinguish real access from fixture-only results.
+- [x] R-012 and operator instructions distinguish real access from fixture-only results.
 
 **Anti-horizontal-phasing check:** The preflight is independently useful: an operator gets an
 actionable readiness/access report even if no test resources can yet be created.
@@ -481,21 +481,59 @@ actionable readiness/access report even if no test resources can yet be created.
 
 ### Deviation log (after reconciliation)
 
-Implementation notes only, not a reconciliation verdict: the implementation agent claimed no
-live API observation; the parent subsequently recorded the real unverified result in R-012.
-One shared test harness was added alongside the
-three named test suites to avoid duplicating their synthetic file/transport/stream setup.
-Two minimal implementation helpers separate closed private schemas and typed API readbacks
-from the CLI runner. Initial implementation needed no fixture edits; later test-only template
-preparation is documented below. No dependencies or runtime/core changes were introduced.
-Subsequently, delegated frame approval authorized the execution-discovered scope-only alphabet
-correction below. It changes no authority, operation, binding, freshness or literal-readback gate.
+The original ACs are preserved. Two Node leaf helpers separate private schemas and API readbacks
+from CLI orchestration; one shared test harness avoids three copies of synthetic file/transport
+setup. The test wrapper's routing digest is now derived once from its own invented response before
+mutations, retaining negative binding checks without a scanner exception.
+An independently approved scope-specific alphabet correction permits periods in the unchanged
+owned fixture name; timestamp parsing preserves original precision and exact freshness/order.
+Neither correction expands authority, weakens bindings, renews observations or changes the stable core.
+
+Actual validation remains distinct: 278 hermetic preflight cases plus 36 frozen-core cases pass;
+the full suite passes 2,196 tests after restoring a missing locked Prism dependency, without a
+manifest change. The real CLI returned exit 1/12 requests with one required workspace unknown,
+and no SDK, deployment, activation or product proof followed.
+
+Craft/architecture N1 is retained as a non-blocking resource residual: the private-file timeout
+bounds the caller wait, not pending operating-system reads/parsing. The operator guide describes
+that limitation; no full filesystem-cancellation guarantee or readiness waiver is claimed.
 
 ### Reconciliation sweep
 
-Pending independent review/reconciliation: R-012 and operator docs now explicitly distinguish
-hermetic CLI validation, the real unverified preparation report and historical observations. Release handoff, status board and
-memory remain with the parent/later workflow; no reconciliation verdict is recorded.
+Checked R-012, the overview/slice/plan/tasks, operator README and release/primer surfaces:
+updated current status and precise Admin Console guidance; preserved historical setup/TDD evidence
+and broader Adobe/third-party obligations. Accepted ADRs, runtime architecture, conventions,
+frozen contracts and dependency manifests are no-op: their interfaces/rules did not change.
+Restored the locked local dependency only after the full suite failed for its missing file.
+The upstream portable-goal handoff is integrated without dropping either evidence set.
+
+Memory helper persisted the missing-workspace evidence rule and file-per-slice implementer entry
+gotcha; team check honored the existing opt-out. No unrelated inbox item was resolved. Leanness:
+no provisioner, generic request client, new dependencies or speculative SDK implementation was added.
+The derived board is regenerated and its audit is clean. Use-case coverage reports zero gaps,
+zero dangling links and nine pre-existing unanchored specs, intentionally not given invented
+trace links. Reconciliation verdict remains the final lifecycle gate.
+
+#### Changed-path dispositions
+
+The helper's `main...HEAD` list includes older work because local `main` is stale; it is not an
+ownership ledger. This sweep uses integrated `origin/main` at `865bfaa` plus current workspace
+changes. No shared-main checkout was read or rewritten.
+
+| Disposition | Paths and scope |
+|---|---|
+| `updated` | `CLAUDE.md`, `docs/releases/adobe-compatibility.md`, `docs/research/R-012-adobe-first-compatibility.md`: current operator/status/evidence guidance, with historical context and release obligations preserved. |
+| `updated` | `docs/specs/051-adobe-integration-proving-ground/{spec.md,plan.md,tasks.md,slice-01-access-preflight.md}`: exact contracts, witnessed implementation, reviews, deviations and real result. |
+| `updated` | `docs/specs/051-adobe-integration-proving-ground/{slice-02-test-baseline.md,slice-03-compatibility-investigation.md}`: live blocker/approved scope and time-box facts only; neither was implemented. |
+| `updated` | `docs/specs/051-adobe-integration-proving-ground/reviews/slice-01-{frame-critique,compliance,craft,arch}.md`: actual independent evidence, including final test-template supplements. |
+| `updated` | `probes/adobe-compatibility/{preflight.mjs,contract.mjs,responses.mjs,README.md}`: the standalone utility and operator contract/limitations, outside browser runtime/frozen surfaces. |
+| `updated` | `test/adobe-preflight-{cli.test.js,transport.test.js,evidence.test.js,harness.js}`, `test/fixtures/adobe-preflight.json`: hermetic CLI boundary cases and prepared synthetic template; no private data. |
+| `updated` | `docs/specs/README.md`: derived board regenerated/audited and current introduction refreshed. `docs/memory/learnings.md`: bounded source-backed learnings via helper. |
+| `preserved upstream` | `docs/releases/{README.md,adobe-compatibility-goal.md}` and their links in primer/release/R-012: portable handoff from `865bfaa`, not authored as this slice or treated as budget/product proof. |
+| `excluded inherited` | `README.md`, `contracts/README.md`, `docs/adoption/rewire-a-container.md`, `docs/architecture.md`, `docs/decisions/{README.md,adr-0018-reframe-onto-adoptable-one-point-oh.md,adr-0031-reframe-onto-adobe-first-compatibility.md,reviews/adr-0031-frame-critique.md}`: earlier reframe/accepted history already on integrated main, not modified or re-accepted here. |
+| `excluded inherited` | `docs/{inbox.md,product-vision.md,real-site-validation.md,refinement-todo.md}`, `docs/memory/glossary.md`, `docs/releases/{granular-chamber-policy.md,mvp9.md,vendor-parity-assurance.md}`, `docs/research/README.md`: inherited front-door/index/ledger history retained; no prior residual or accepted gate erased. |
+| `excluded inherited` | `docs/specs/{015,016,017,019,020,022,026,028,029,030,031,032,033,034,035,036,037,038,039,041,044,045,046,047,048,049,050}-*/spec.md`: earlier amendment/reframe paths in the helper list, not this slice's edits. No closed-record rewriting. |
+| `no-op/deferred` | Runtime `core/`, `adapters/`, `connectors/`, `drivers/`, frozen contracts, conventions and dependency manifests unchanged. Specs 052-057 and wider Adobe/third-party evidence remain deferred to their actual prerequisites, not marked complete. |
 
 ### Implementation/TDD witness — 2026-10-08
 

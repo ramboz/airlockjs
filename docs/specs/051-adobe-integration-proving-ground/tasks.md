@@ -1,7 +1,7 @@
 # Tasks: Adobe integration proving ground
 
 > 051-01 implementation is hermetically validated (278 preflight tests plus 36 frozen-core tests).
-> Independent implementation reviews/reconciliation remain pending. The parent-owned real
+> Independent implementation reviews passed; reconciliation remains pending. The parent-owned real
 > preflight returned unverified, and R-012 distinguishes that result from hermetic tests and
 > prior ad-hoc access/setup evidence.
 > Only spec 051 is sliced; specs 052-057 remain outlines. Owner execution grant: strictly below
@@ -9,13 +9,13 @@
 
 ## 051-01 — read-only access preflight
 
-- [ ] Independently review implementation compliance/craft/architecture against the reviewed v1
+- [x] Independently review implementation compliance/craft/architecture against the reviewed v1
       private input/public report and evidence contract (frame/input review already passed);
       confirm required/optional preparation checks do not clear later live/write gates.
 - [x] Confirm direct `ADOBE_CREDENTIAL_FILE` handoff for the uppercase Adobe export, exact org/
       company/Target/site selectors and scoped owner evidence. Parent alone normalizes private
       historical evidence, retaining original timestamps; renew stale observations honestly.
-- [ ] Review pinned official schemas and every allowlisted request/media type, including the fixed
+- [x] Review pinned official schemas and every allowlisted request/media type, including the fixed
       nonmutating Analytics totals POST and its partial/error response fixtures.
 - [x] Write failing `adobe-preflight-cli`, `adobe-preflight-transport`, `adobe-preflight-evidence`
       suites through the CLI test-only transport seam; cover all named cases in 051-01, immutable
@@ -31,8 +31,8 @@ Witnessed red-to-green commands/counts and the additional shared test harness ar
 [the slice implementation note](slice-01-access-preflight.md#implementationtdd-witness--2026-10-08).
 No DoD/live/review completion or readiness for 051-02 is inferred.
 Same-slice timestamp, approved dotted-scope and five compliance corrections are implemented with
-witnessed red-to-green regressions. The parent reran live validation; independent compliance and
-the remaining review/reconciliation gates must still clear.
+witnessed red-to-green regressions. The parent reran live validation and implementation reviews
+passed; the reconciliation/lifecycle gate must still clear.
 
 ## 051-02 — reproducible test setup and stock baseline
 
