@@ -730,6 +730,37 @@ observation contract still need verification. The visible download icon is not a
 The next owner input is the native CSV download from this inactive report; no activation or
 settings change is required to obtain an empty schema sample.
 
+### Native CSV structure and report-environment check — 2026-10-09
+
+The owner supplied the original native CSV download. Its immutable bytes and digest remain in
+private `0600` state. It contains six CSV records: an activity/two-experience label, blank lines,
+download date and `US/Pacific` timezone, `Conversion Counter: undefined`, and one header row.
+There are **no experience data rows**. Absence of rows is not zero conversions or a completed
+negative control; the undefined counter is not a usable counting-method assertion.
+
+The header is `Experience`, `Experience Description`, `Segment`, `Visitor`, `Scoped display`,
+`Conversions`, `Total Sales`, `Sum of Sales Squared`, `Mean Conversion Time`,
+`Sum of Conversion Time Squared`, `Engagement`, `Sum of Engagement Time Squared`.
+This establishes the actual empty-export layout, not the populated values' types/count units
+or whether the selected metric column and `Conversions` are equivalent. No per-event marker,
+environment selector or report start/end dates occur in these records. The filename's timezone
+and download date do not establish the report's traffic window.
+
+A fresh exact owned activity/saved-state check and the documented unfiltered performance-report
+GET established that its `reportParameters.activityId` and conversion metric selector match the
+owned fixture, but its **default environment parameter does not match the approved development
+environment**. The response contains activity/report metadata and empty statistics; additive live
+fields were inspected as structure only, not guessed into documented count semantics.
+This API request is not assumed to reproduce the owner's UI selection or CSV.
+No undocumented query parameter, datastream setting or report preset was changed.
+
+The next read-only owner check is the gear's Report Settings view: establish the environment
+and counting methodology selected in the UI. Reporting must use the same approved development
+environment as the datastream. There is no need to activate the activity or reset data, and
+the owner should not save/change a shared default preset. Stock traffic remains stopped until
+the observation plan binds environment, interval and counting semantics; the CSV resolved
+header discovery, not all of those gates.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes

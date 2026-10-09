@@ -608,7 +608,27 @@ The official Admin report's declared metadata and a successful access check supp
 Do not request broader reporting permissions merely to explain this schema gap, and do not
 send exploratory traffic to discover what an undocumented field might mean.
 
-**Optional product-outcome candidate, not the only route:** official Target UI **Reports → Report Settings**
+**Optional product-outcome candidate, not the only route:** the native **Reports → Report Settings**
+view and CSV export can supply a scoped product-count observation if their actual semantics
+and filters are established.
+
+**2026-10-09 original CSV inspection:** The supplied native export has metadata and the header
+`Experience,Experience Description,Segment,Visitor,Scoped display,Conversions,Total Sales,
+Sum of Sales Squared,Mean Conversion Time,Sum of Conversion Time Squared,Engagement,
+Sum of Engagement Time Squared`, with no data rows. Its timezone is `US/Pacific`;
+`Conversion Counter: undefined` is unusable for counting semantics. No environment or report
+date bounds are present. Keep original bytes privately; do not synthesize zero-experience rows,
+guess metric-column equivalence or treat the empty export as a negative control.
+
+The fresh owned unfiltered Admin report's environment parameter differs from the approved
+development routing, despite matching activity/metric selectors. This does not establish the
+UI export's environment. Before traffic, inspect the native report gear's environment and
+counting methodology and bind its visible date range separately. Do not guess API filters or
+change shared presets, resource routing or activity state to fill the missing evidence.
+The confirmed header can seed invented parser tests later; populated numeric/count/experience
+semantics still require the reviewed observation contract.
+
+The official Target settings documentation
 documents choosing environment, dates,
 Visitors/Visits/Activity Impressions and metrics; **Download Reports → Export Report to CSV**
 is a supported manual product-count source. The proposed observation is the exact owned activity,
