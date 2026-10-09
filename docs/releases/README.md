@@ -27,7 +27,7 @@ they stop informing a current release decision.
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| [Adobe Compatibility & Adoption](adobe-compatibility.md) | **The new v1.0 gate.** Owner-selected on 2026-10-06; begin with API-led test-environment access and a pinned SDK compatibility investigation | [R-012](../research/R-012-adobe-first-compatibility.md); bounded investigation spec before provisioning/probes; build slices after feasibility review |
+| [Adobe Compatibility & Adoption](adobe-compatibility.md) | **The new v1.0 gate.** Owner-selected on 2026-10-06; begin with API-led test-environment access and a pinned SDK compatibility investigation | [R-012](../research/R-012-adobe-first-compatibility.md); [clean-session goal brief](adobe-compatibility-goal.md); bounded investigation before broad build |
 
 ## Shipping
 

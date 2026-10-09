@@ -23,7 +23,8 @@ The former [MVP9](mvp9.md) gate is replaced; its unclosed evidence remains defer
 - [`aem-martech`](https://github.com/adobe-rnd/aem-martech/tree/1aa3dee3c4791636efa9ad2994342f861c8e149b)
   is the initial compatibility reference, not code to transplant wholesale. It already phases eager
   personalization, lazy analytics and delayed Launch. Compare against that competent baseline.
-- R-012 now records owned Analytics/Target fixtures, Analytics queries and scoped Target
+- At initial drafting, the owner needed an isolated Target/Analytics setup and API-led discovery.
+  [R-012](../research/R-012-adobe-first-compatibility.md) now records owned fixtures, Analytics queries and scoped Target
   create/edit/future-only approval restored inactive. Initial routing uses owner UI/saved-pin
   confirmation, not management API readback. Deployment and stock/chamber product outcomes remain
   unproven. API credentials cannot create entitlements; some setup still needs guided UI work.
@@ -141,6 +142,14 @@ AJO/CJA/RTCDP are deferred for this run, not removed from the release-check obli
 Refine subsequent specs from the investigation's evidence, with actual slice dependencies rather
 than placeholder IDs.
 Existing specs 012-014, 020, 033-036 are reusable foundations, not the complete target.
+
+### Clean-session execution brief
+
+[The portable `/goal` brief](adobe-compatibility-goal.md) carries the implementation/review
+workflow and private-input handles. Its current run scope prioritizes Alloy/Target/Analytics;
+AJO/CJA/RTCDP product-workflow work is deferred, not removed from this release gate. Running the
+brief is a proposed owner execution grant; committing it does not approve a budget or start a run.
+Credentials, live selectors and raw evidence remain outside Git.
 
 ## Release-Check Criteria
 
