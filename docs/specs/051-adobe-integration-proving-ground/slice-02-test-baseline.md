@@ -124,9 +124,10 @@ already consumed at handoff). Eight active hours applies to **051-03 only**, not
 ### 1. Planned CLI, private state and approval binding — AC1, AC2, AC6, AC7
 
 Implement one fixed-scenario Node ES-module entrypoint, `probes/adobe-compatibility/stock-baseline.mjs`,
-with leaf contracts in `stock-contract.mjs`, observation parsing in `stock-observation.mjs`
-and the existing Playwright dependency used by `stock-browser.mjs`. These are small probe
-functions, not a general provisioner, resource registry, plugin/adapter framework or SDK abstraction.
+using the existing Playwright dependency. Keep the plan/refusal, synthetic journey, observation
+and restore path together unless an actual implementation need justifies a small leaf function;
+this contract does not prescribe a multi-module or six-artifact framework.
+No general provisioner, resource registry, plugin/adapter framework, writer service or SDK abstraction.
 No new dependency, SDK
 fork, full SDK bridge, Airlock core/connector change, Launch container, suite, property,
 environment, datastream, schema, dataset or standalone audience creation belongs here.
@@ -140,26 +141,29 @@ under `AIRLOCK_ADOBE_PRIVATE_INPUTS_DIR`; credentials remain solely in the exist
 extract browser credentials, accept a token flag, or authenticate the synthetic browser.
 
 ```sh
-# Future operator commands, in order; help alone reads nothing and makes no requests.
+# Future operator commands; none exists yet. Help alone reads nothing/makes no requests.
 node probes/adobe-compatibility/stock-baseline.mjs --help
-node probes/adobe-compatibility/stock-baseline.mjs plan \
+node probes/adobe-compatibility/stock-baseline.mjs plan --stage prepare \
   --input "$AIRLOCK_STOCK_INPUT" --readiness-report "$AIRLOCK_PREFLIGHT_REPORT" \
   --out "$AIRLOCK_STOCK_PLAN"
+# The parent obtains approval bound to this exact no-traffic preparation plan.
 node probes/adobe-compatibility/stock-baseline.mjs apply \
   --plan "$AIRLOCK_STOCK_PLAN" --approval "$AIRLOCK_STOCK_APPROVAL" \
   --state "$AIRLOCK_STOCK_STATE"
 node probes/adobe-compatibility/stock-baseline.mjs verify \
   --plan "$AIRLOCK_STOCK_PLAN" --state "$AIRLOCK_STOCK_STATE"
-# Each run waits for its preplanned stage anchor; observe is bounded report waiting.
-# Stop the sequence on any failure. The CLI performs safety restoration on failure.
-for stage in no-consent no-offer non-render positives performance; do
-  node probes/adobe-compatibility/stock-baseline.mjs run \
-    --plan "$AIRLOCK_STOCK_PLAN" --approval "$AIRLOCK_STOCK_APPROVAL" \
-    --state "$AIRLOCK_STOCK_STATE" --arm stock --stage "$stage" || break
-  node probes/adobe-compatibility/stock-baseline.mjs observe \
-    --plan "$AIRLOCK_STOCK_PLAN" --state "$AIRLOCK_STOCK_STATE" \
-    --stage "$stage" || break
-done
+# Separately, after the traffic gates clear, plan only the next fixed stage.
+node probes/adobe-compatibility/stock-baseline.mjs plan --stage no-consent \
+  --input "$AIRLOCK_STOCK_INPUT" --readiness-report "$AIRLOCK_PREFLIGHT_REPORT" \
+  --state "$AIRLOCK_STOCK_STATE" --out "$AIRLOCK_STOCK_PLAN"
+# Use new exclusive plan/approval handles; never overwrite the preparation approval.
+node probes/adobe-compatibility/stock-baseline.mjs run \
+  --plan "$AIRLOCK_STOCK_PLAN" --approval "$AIRLOCK_STOCK_APPROVAL" \
+  --state "$AIRLOCK_STOCK_STATE" --arm stock --stage no-consent
+# Only if run succeeds: bounded report waiting, no SDK resend.
+node probes/adobe-compatibility/stock-baseline.mjs observe \
+  --plan "$AIRLOCK_STOCK_PLAN" --state "$AIRLOCK_STOCK_STATE" --stage no-consent
+# Later stages get separate plans/approvals, not an unattended five-stage loop.
 node probes/adobe-compatibility/stock-baseline.mjs restore \
   --plan "$AIRLOCK_STOCK_PLAN" --state "$AIRLOCK_STOCK_STATE" --dry-run
 node probes/adobe-compatibility/stock-baseline.mjs restore \
@@ -167,80 +171,82 @@ node probes/adobe-compatibility/stock-baseline.mjs restore \
   --state "$AIRLOCK_STOCK_STATE"
 ```
 
-`apply` prepares/deploys only; each `run` owns its pre-checkpoint, bounded activation, synthetic
-traffic and immediate saved-state/original-schedule restoration in a `finally` path.
+`apply` accepts only `stage:prepare`: reviewed saved-state edits and SDK-disabled deployment.
+Each `run` accepts one reviewed traffic-stage plan and owns its pre-checkpoint, bounded activation,
+test switch enablement, synthetic traffic and immediate switch-disable/saved-state/original-schedule
+restoration in a `finally` path.
 `observe` never starts a browser, activates or resends events. A subsequent run refuses until
 its predecessor's 120-minute observation completes; control results remain provisional until
-the positives establish sensitivity. Exact stage names/order are fixed as shown.
+the positives establish sensitivity. Fixed traffic-stage order is `no-consent`, `no-offer`,
+`non-render`, `positives`, `performance`; preparation is not a traffic stage.
 Restoration is also an explicit recovery command after interruption. There is no chamber,
 dual-send, create/delete, reset, force, arbitrary endpoint/method/header, shell or raw-log flag.
 Unknown/duplicate flags, extra positional arguments, unsafe paths and `--arm` other than `stock`
 fail before credential access. Do not run shell command strings supplied by JSON.
 
-All six artifact kinds use `schema_version: 1` and reject unknown/duplicate/prototype
-keys, invalid types/dates/enums, symlinks/nonregular files and wrong permissions. JSON is UTF-8,
-at most 256 KiB/depth 16; private evidence bodies at most 1 MiB/depth 32. Files are owner-only
-0600 (existing read-only seeds may be 0400), under the approved directory; the parent is the
-sole private-state writer. Use an exclusive run lock and atomic journal replacement; never
-overwrite a different run, seed, snapshot or another operator's state. Implementation/test
-seams receive synthetic inputs and injected transport/clock/browser, not private handles.
+Keep only the fixed input, immutable plan/approval and run state needed by this CLI; bounded
+captures can be records in that run state, not a mandatory separate artifact subsystem.
+Use profile `analytics-target-stock` and versioned, closed typed records rejecting unknown/
+duplicate/prototype keys, invalid types/dates/enums, symlinks/nonregular files and wrong permissions.
+JSON is UTF-8, at most 256 KiB/depth 16; separate private evidence bodies at most 1 MiB/depth 32.
+Required bindings are:
 
-| Private artifact `kind` | Required contract |
-|---|---|
-| `airlock.adobe-stock.input` | Profile `analytics-target-stock`; exact existing org/company/suite, tenant/workspace/property/environment/datastream, activity/two-offer selectors; known ownership provenance; approved reference repository/ref/origin/path and checkout handle; original credential-identity binding; fresh preflight/routing/workspace evidence references; exact requested mutation/restore scope; scenario/correlation/observation/measurement policy below. |
-| `airlock.adobe-stock.plan` | Immutable input and evidence digests; generated/expiry timestamps; exact selectors **private**; stock pins; old/desired writable projections and hashes; original saved state, future schedule, targeting, metrics and offer contents; repository base commit, allowed files and intended deploy/restore commits; resolved receipt adapter/version/semantics and exact request templates/windows; traffic/request ceilings; ordered effects, no paid provisioning, ownership/collision findings, guided steps and `required_stop` reasons. |
-| `airlock.adobe-stock.approval` | Owner/grant provenance and independent contract-review references; exact plan digest, credential/scope binding, validity interval and approved operations (`prepare`, `deploy-test`, `activate-test`, `observe`, `restore`). Generic `approved:true`, an old approval, readiness or a budget grant cannot approve another plan. |
-| `airlock.adobe-stock.state` | Plan/run binding, completed-operation journal, pre-write snapshots, returned readback hashes, deployment verification, monotonic attempt counters, stage/run markers, observation progress and restore status. No tokens; SDK-generated identity values only in separate private captures. |
-| `airlock.adobe-stock.capture` | Bounded private synthetic request/proposition/render/notification evidence, timing and product rows with exact correlation; allowlisted data only, no authentication headers/cookies/credential responses, no unrelated rows or console/HAR dump. |
-| `airlock.adobe-stock.report` | Allowlisted **redacted public output**, not a private selector export; shape below. |
+- Input: existing exact preflight selectors/credential identity and ownership provenance;
+  approved reference checkout/ref/origin/root path; immutable preparation/routing/workspace/
+  review evidence references; fixed scenario, observation, measurement and lowered limits.
+- Plan: exact input/evidence SHA-256 digests; `stage` and preparation/predecessor bindings;
+  generation, operation deadlines and earliest actual expiry; old/desired writable projections
+  and hashes; original saved state, schedule, targeting, metrics and offer contents; repository
+  base SHA, exact file/diff allowlist, deploy/forward-restore effects; bounded request templates,
+  traffic/observation windows, selected checkpoints/operator availability and required stops.
+  Operations are closed enums for the exact objects/methods below, not executable JSON steps.
+- Approval: exact plan digest, scope/credential binding, authority and independent review
+  references, validity interval and exact approved prepare/deploy/activate/observe/restore
+  operations. An old approval, generic `approved:true`, readiness or budget grant is insufficient.
+- State: preparation/stage-plan chain and one synthetic run marker; exclusive lock, operation
+  journal, pre-write snapshots/readback hashes, monotonic attempts, deployment/observation
+  progress and restoration. No tokens. Captures bind stage/case/visit/time, proposition and
+  scoped product outcome; allowlisted fields only, no authentication headers/cookies/credential
+  responses, unrelated rows or console/HAR dump. SDK identity correlation remains private.
 
-Closed top-level key sets (all listed keys required unless explicitly optional):
+Private files are 0600 (existing read-only seeds may be 0400) under the approved directory.
+The parent remains input/approval owner and sole orchestrating writer: its explicitly invoked
+CLI may write **only exact approved run-artifact paths**, including its lock, journal, snapshots
+and bounded captures. No seed/input/approval/credential rewrite, other-run overwrite or
+implementation/reviewer-agent private write/access is permitted. Use exclusive creation/locking
+and atomic journal replacement. This narrow execution authority needs no writer service.
+Tests receive synthetic inputs and injected transport/clock/browser/Git seams, never private
+handles; production fixes those seams, and operator JSON cannot supply code/adapters.
 
-- Input: `kind`, `schema_version`, `profile`, `selectors`, `ownership_evidence_ref`,
-  `credential_identity_sha256`, `credential_secret_index`, `evidence_refs`, `site`,
-  `scenario`, `observation`, `measurement`, `limits`. `selectors` reuses the existing
-  preflight selector shape/validation, not new name-based selection. `evidence_refs`
-  contains exactly `preflight`, `routing`, `workspace`, `review`; each is a private
-  `{path,sha256}` binding. `site` contains `checkout_handle`, `test_path`, `deployment_ref`.
-  `scenario`, `observation`, `measurement`, `limits` are closed typed records of the
-  fixed choices/ceilings in §3–6, not arbitrary SDK options or endpoint overrides.
-- Plan: `kind`, `schema_version`, `profile`, `generated_at`, `expires_at`, `input_sha256`,
-  `evidence_sha256`, `credential_identity_sha256`, `selectors`, `ownership`, `pins`,
-  `site`, `operations`, `restore_operations`, `stages`, `observation`, `measurement`,
-  `limits`, `guided_steps`, `required_stops`. `operations`/`restore_operations` are ordered
-  records `{id,type,selector_ref,before_sha256,after_sha256,body,readback}`; fixed operation
-  enums/templates only, no caller-chosen URLs or arbitrary executable steps.
-- Approval: `kind`, `schema_version`, `profile`, `plan_sha256`, `credential_identity_sha256`,
-  `scope_sha256`, `approved_at`, `expires_at`, `authority_ref`, `review_refs`, `operations`.
-- State: `kind`, `schema_version`, `profile`, `plan_sha256`, `run_marker`, `journal`,
-  `snapshots`, `deployment`, `attempt_counts`, `stages`, `observations`, `restoration`.
-- Capture: `kind`, `schema_version`, `profile`, `plan_sha256`, `stage`, `case`, `visit_index`,
-  `observed_at`, `source`, `correlation`, `data`. `source` is one of `sdk_payload`,
-  `qualified_proposition`, `render`, `analytics_report`, `target_receipt`, `target_outcome`,
-  `performance`.
-  Each has a closed allowlisted data schema, never unrestricted raw objects.
+Digests bind exact immutable UTF-8 bytes; timestamps retain source RFC3339 precision.
+Selector/ref grammars and credential parsing/secret-index choice reuse 051-01's reviewed rules.
+Do not change closed 051-01/04 or treat the preflight, which writes no private state, as the
+stock CLI's writer authority. Paths are validated handles, not printable provenance.
 
-Digests use SHA-256 over the exact immutable UTF-8 artifact bytes (no self-digest field);
-timestamps are UTC RFC3339; selector/ref grammars and credential-file parsing/secret-index
-selection reuse 051-01's reviewed rules. Paths are handles validated before use, not printable
-provenance. Exported test seam `runStockCli({argv,env,stdout,stderr,transport,now,browser,git})`
-uses synthetic adapters only in tests; production fixes these adapters itself. Operator JSON
-cannot inject them. No change to closed 051-01 is needed.
-
-Before any Adobe/site operation, validate exact approved bindings and scope. Before any mutation
-or traffic, require 051-04 DONE with required reviews, a real preflight exit 0, original source
-evidence freshness under that utility's 24-hour rules, and this plan's resolved setup/receipt gates.
-Revalidate the required scope and activity immediately before activation; a report file is not
-self-authenticating or authority to skip current checks. Plan/approval expire in at most 24 hours;
-activation must fit inside that interval. Scope/credential/routing/code drift invalidates the
-plan, not its timestamps. Restoration remains authorized for the already journaled run after
-expiry, but only its exact inverse operations; never renewed traffic or broad repair.
+Before any Adobe/site operation validate exact approved bindings/scope. **Preparation gates**
+are 051-04 DONE with required reviews, a real ready preflight, source freshness through the
+bounded preparation deadline, owned saved/future fixtures, and a reviewed exact no-traffic
+mutation/deploy/inverse plan. These permit saved-only offer/goal edits and disabled deployment;
+unknown targeting/receipt contracts remain explicit traffic stops, not waived requirements.
+Served bytes/CSP are verified *after* disabled deployment, not demanded before any deployment.
+**Activation gates** additionally require proven server-side targeting/inverse, verified disabled
+deployment/pins/CSP and exact planned enable/disable operations, supported receipt/count/window
+contracts, available observers and
+fresh original evidence through that whole stage's traffic, observation and restoration deadline.
+Revalidate scope/activity immediately before activation. No report file authenticates itself.
+Plan/approval expire in at most 24 hours, capped by the actual source-evidence expiry/age rules;
+fresh generated timestamps do not renew sources. Scope/credential/routing/code drift invalidates
+the plan. Restoration of an already journaled run remains authorized after expiry, only for
+exact inverse operations, never renewed traffic or broad repair.
 
 `plan` is inspection only: future approved exact reads, token issuance and bounded report-query
 POSTs are non-mutating; no Git ref, site/resource write or browser/SDK execution. Local plan
 output is explicit, exclusive and private. It may return a blocked proposal listing missing
-gates, never an applyable plan with required unknowns. `apply` refuses required unknowns,
-expired/unbound approval, changed before-hashes, unsaved activity or broader selectors.
+gates, never a traffic-ready plan with required unknowns. A preparation plan can be applyable
+with unresolved **traffic-only** stops recorded, provided every preparation operation/inverse
+is supported/reviewed and keeps SDKs disabled and the activity saved/future-dated.
+`apply` refuses preparation unknowns, expired/unbound approval, changed before-hashes,
+unsaved activity or broader selectors; `run` refuses every unresolved activation gate.
 Fresh reads establish ownership/configuration, not a name prefix. A missing known fixture
 stops; do not create a replacement. A same-name different object, same-ID wrong workspace/
 property/offer link, drifted content or foreign state is an ownership collision.
@@ -257,29 +263,54 @@ Deletion of any resource, audience, branch, content or report data is excluded.
 [`adobe-rnd/aem-eds-airlock-poc`](https://github.com/adobe-rnd/aem-eds-airlock-poc), code ref `main`,
 test origin `https://main--aem-eds-airlock-poc--adobe-rnd.aem.page`.
 R-012's metadata and authenticated push **dry run** do not prove an actual write. A credential-free
-public GitHub raw bootstrap read returned 404 in this refinement; no current bootstrap contents
-or public repository readability are inferred. The later authorized parent must inspect the
-exact repository/served code and validate this additive deployment before applying.
+raw-bootstrap 404 was an earlier access-path result, not proof the repo is unreadable.
+The subsequent read-only GitHub contents read verifies `scripts/scripts.js` git blob
+**`06188f5d33d470b535773e3d7628a61c622e87c4`**, **6,274 bytes**: `loadPage()` awaits
+`loadEager(document)`, awaits `loadLazy(document)`, then calls `loadDelayed()`.
+This blob is a file pin, **not the repository's base commit SHA**; capture/check the latter
+separately in the actual preparation plan.
 
-Choose a self-contained, opt-in code-served test page **`/tools/airlock-stock/index.html`**,
-with sibling `stock-page.mjs`, `stock-page.css`, `runtime-config.json`, and pinned plugin assets
-under `/tools/airlock-stock/vendor/aem-martech/`. Do not modify the normal site's head,
-bootstrap, DA content or default paths. Use the pinned plugin's source/ACDL unchanged and replace
+Choose the existing root page **`/`** with one precisely bounded conditional bootstrap diff
+in `scripts/scripts.js`, not an unverified code-served HTML route. Add same-origin
+`stock-page.mjs`, `stock-page.css`, `runtime-config.json` and pinned plugin assets solely under
+`/tools/airlock-stock/`. No new HTML/DA content, head/site-config change or ordinary consent edit.
+The former no-bootstrap-change restriction was a DRAFT design preference, not an owner
+authority limit; this reviewed opt-in seam stays within the dedicated test-code grant.
+Use the pinned plugin's source/ACDL unchanged and replace
 only its Alloy dependency file with the exact official bytes above. Record that LF-only
 distribution difference, retain license/notice files and a public build manifest of public-source
 hashes. This is an additive test installation, not redistribution in Airlock `dist`.
-Code-served HTML/path behavior is an explicit verification gate; if EDS cannot serve the page
-without DA/site-config writes, stop for the exact supported alternative and its authorization.
+Actual same-origin asset serving, deployed bootstrap bytes and CSP still require verification;
+if these require DA/site-configuration writes, stop for a supported separately authorized plan.
 
-The test page loads SDK assets **only** on the exact approved preview origin/path with
-`?airlock-stock=v1&case=<fixed-case>&run=<synthetic-run-marker>`. Valid cases are `positive`,
-`no-consent`, `no-offer`, `non-render`, `stock-perf`, `no-martech`; invalid/missing markers and
-ordinary-site paths must load no Adobe test code or preload it. Mark the page noindex; make
-opt-in consent explicit, never infer consent from merely opening the public page. A runner-
-initiated synthetic consent action is recorded. A public marker is **not authentication** or
-proof that nobody else can send data.
+The bootstrap's single predicate must match exact preview **origin**, pathname **`/`**, no
+fragment, and exactly one of each query key:
+`?airlock-stock=v1&case=<fixed-case>&run=<synthetic-run-marker>&consent=decline`.
+Valid cases are `positive`, `no-consent`, `no-offer`, `non-render`, `stock-perf`, `no-martech`;
+the run marker uses §3's closed grammar. Reject missing/duplicate/extra keys and other values
+before any test import/asset fetch. No suffix-host, prefix-path or substring matching.
+No static test import, SDK preload or slot on ordinary/invalid URLs. Only a valid opt-in
+creates the reserved slot, test styles and noindex marker. `no-martech` uses the same slot/
+instrumentation but imports no plugin, Alloy or ACDL. SDK-enabled cases also require the
+reviewed runtime switch and current approved stage window; disabled/expired configuration
+must not initialize/send. Public opt-in is **not authentication**, an SDK consent grant, or
+proof that nobody else can submit to public routing selectors.
 
-The public runtime config has exactly `schema_version`, `profile`, `orgId`, `datastreamId`,
+**Existing consent stays unchanged:** `scripts/consent-check.js` (blob
+`5af3f4090a19ba5d8ceda66027d84875edc6e368`, 1,259 bytes) defaults to decline, accepts query
+`accept`/`true`/`1`/`yes`, dispatches `consent.update` with `{consented}`, and imports
+`./consented.js` once on grant. The read `scripts/consented.js` is currently only an 80-byte
+placeholder comment (blob `73d10a7e6345f5fa240c0a0553bc0cc8a8ab0fb5`), not an installed second SDK.
+Recheck both pins/served behavior for drift; do not suppress that event, bypass the normal
+delayed import, alter ordinary consent or assume future consented code is harmless.
+Every synthetic URL fixes `consent=decline`, leaving that ordinary import ungranted.
+Only this opt-in fixture makes/records an explicit stock `updateUserConsent` grant before
+its own positive/control events; the no-consent branch explicitly denies. Do not translate
+the site's delayed decline event into another grant or an unplanned revoke/resend.
+This is a documented synthetic-fixture override, not ordinary-site consent policy.
+
+The public runtime config has exactly `schema_version`, `profile`, `enabled`, `stageWindow`,
+`orgId`, `datastreamId`,
 `decisionScope`, `allowedOrigin`, `allowedPath`, and immutable public vendor pins. Org/datastream/
 custom scope are intentionally browser-visible routing selectors, not bearer authorization;
 owner approval must acknowledge this disclosure. Derive them from the approved private plan;
@@ -287,15 +318,26 @@ do not commit real selectors to Airlock docs/fixtures. No company/suite/activity
 environment IDs, property token, API key, secret, IMS credential, private path, report capture or
 approval is bundled. Target environment/property routing remains the managed datastream pin;
 no client override, at.js `targetPageParams` or diagnostic routing discovery.
+`enabled` is false on preparation and restoration; `stageWindow` is only the approved absolute
+test interval, not authority to extend it.
 
 `apply` uses an approved isolated checkout of **that reference repo**, never Airlock's shared
-main checkout. Recheck its remote/ref/base SHA, clean tree and exact additive path allowlist;
+main checkout. Recheck its remote/ref/base SHA, clean tree and exact allowlist:
+additions under `/tools/airlock-stock/` plus the single reviewed `scripts/scripts.js` diff.
+That diff contains only the closed predicate, conditional phase hooks and their fixture handle;
+preserve all unrelated bootstrap code and the existing eager/lazy/delayed await order.
 no clone, fetch or push is performed by this refinement. The future deploy is one reviewed
 non-force push of the planned commit to that reference repo's `refs/heads/main`, only if the
-remote still equals the recorded base. No release/tag, `.aem.live` publication, new branch
-cleanup or assumed EDS-admin write. Verify public HTTP 200, content type and deployed HTML,
-plugin/config/SDK hashes before browser traffic, plus no-test-code behavior without opt-in.
+remote still equals the recorded base; a race refuses, never force-pushes or overwrites it.
+No release/tag, `.aem.live` publication, new branch cleanup or assumed EDS-admin write.
+First deploy SDK-disabled code, then verify public HTTP 200/content types and served root,
+bootstrap, plugin/config/SDK hashes and CSP. Verify ordinary/invalid URL no-test-import/preload/
+slot behavior and unchanged consent behavior. These deployment checks are not a stock journey.
+Before any enabled journey reverify those bytes/CSP/window and all activation gates.
 Wrong bytes/ref/CSP/path or unproved serving/deploy permission stops; do not bypass CSP.
+Prepare forward restoration of the original bootstrap bytes and disabled runtime config;
+check the current ref and touched-file hashes before every deploy/disable/restore commit.
+Never reset history or revert a foreign concurrent change.
 
 The Target plan must first re-read the **known owned** activity and two offers and capture:
 workspace/property/mbox/offer bindings; saved/inactive state; original future start/end **relative
@@ -310,11 +352,14 @@ experience links; do not relabel the comparison offer as a receipt-negative cont
 known activity's **own** display/click metrics using supported `Metric.mboxes.successEvent`
 values `mbox_shown` and `mbox_clicked`, with the exact private custom scope and distinct
 private metric-local selectors greater than 2, `action.type: "count_once"`, reporting source
-`target`. Preserve originals for restoration. Their mapping to Web SDK notifications and
-report units remains a required semantic gate, not assumed from those enum names.
+`target`. The existing owned display goal is freshly API-confirmed; no click goal exists yet.
+Any added goal is an exact reviewed edit inside this owned activity, not authority to create
+a new activity/audience/resource. Preserve originals and their exact inverse.
+Official DISPLAY/INTERACT-to-goal mapping is now grounded in §5/R-012; installed click-goal
+readback, actual report columns/units and downstream outcomes remain separate gates.
 
 Required targeting is an AND of **Current Page Domain equals the exact test hostname**,
-**Current Page Path equals `/tools/airlock-stock/index.html`**, and the activity's requested
+**Current Page Path equals `/`**, and the activity's requested
 custom scope plus **Custom `pageName` equals `airlock-stock-v1`**. Supply the Target marker as
 `xdm.web.webPageDetails.name` on the fetch; do not invent an untyped Target `data` parameter,
 use a persistent `profile.*` marker, enable Platform ingestion or mutate the base schema.
@@ -323,9 +368,24 @@ Analytics correlation is separately set through the Analytics data mapping below
 The public Admin schema models audience rules as opaque objects and the A/B activity references
 audience IDs; it does not establish a safe domain/marker rule-writing contract. Therefore **no
 guessed audience JSON or audience creation endpoint** is authorized. A supported UI step may
-edit an already verified owned **activity-local** targeting definition while saved: exact
-activity → Edit → Targeting → inspect its current definition → apply the above Site Pages/
-Custom equality rules with AND → Save, then retain bounded selector-bound before/after evidence.
+edit an already verified owned **activity-local** targeting definition while saved. The fresh
+GET currently has no inline rules/targeting/audiences, and its one custom-mbox location and
+both experiences have `audienceIds:[]`; this is not an established server-side gate.
+First perform **read-only** inspection of exact activity → Edit → Targeting, without Save or
+Create Audience: establish the actual supported UI flow, definition ownership, equality/AND
+semantics, supported XDM `pageName` mapping and exact restorable before/after projection.
+Only then propose/review that exact saved-state edit and inverse. No definition/UI ability
+is inferred from the absence of fields in the Admin GET.
+
+**Owner editor evidence, 2026-10-09:** The Targeting view explicitly shows All Visitors,
+100% traffic and equal experience allocation. This corroborates the unrestricted qualification
+response; it does not establish a supported domain/path/marker editor flow. The next read-only
+inspection opens the All Visitors card's audience panel without creating/editing/saving a rule.
+Goals & Settings also shows unselected primary/additional goal choices and disabled Save & Close,
+while a fresh exact API read retains the owned count-once display conversion. The UI discrepancy
+and safe edit/restore round-trip remain unverified. Do not guess form choices or overwrite
+the saved metric definition to make the editor pass validation.
+
 Do not reuse an unknown/library/customer audience or click “Create Audience” to work around
 missing ownership. If no safely editable owned activity-local definition exists, or restoring
 it would require deletion, `required_stop: target_targeting_contract` requests a separately
@@ -339,32 +399,57 @@ objects before/after; exact readback of writable projections is mandatory. Inclu
 workspace in offer/activity update bodies; omit read-only fields, never fall back to a default
 workspace. The approved private plan freezes complete bodies before mutation.
 
-While still saved, narrow targeting/metrics/offers, verify, then schedule each of the five
-preplanned stage windows: stage anchors `T`, `T+3h`, `T+6h`, `T+9h`, `T+12h` for no-consent,
-no-offer, non-render, positives and performance respectively. `T` is an absolute UTC time chosen
-in the reviewed private plan, after deployment/setup verification; each window starts at
-`anchor - 60 seconds` and ends at `anchor + 60 minutes`. All windows, report intervals and
-restoration actions are frozen before the first mutation; the complete run must fit approval/
-evidence expiry. Approve only after all gates and snapshots pass. Allow at most 20 minutes for
-configuration propagation, using bounded exact state/readbacks, **not exploratory SDK traffic**.
-Finish that stage's browser traffic by `anchor+30 minutes`, then immediately restore saved state
-and original schedule while reports become visible. Keep only the approved narrow targeting,
-metrics and harmless offer definitions until reporting completes, so removing a metric cannot
-destroy its observation surface. Reapply only the next exact approved schedule from matching
-journal hashes. If ready traffic cannot finish inside
-its declared window, restore and stop; no automatic
-schedule extension. Past-ended, wrong-date, wrong-targeting or not-yet-verified activity cannot
-be treated as eligible. Permission demonstrated by future-only approval is not current delivery.
+**Preparation is separate from traffic:** while saved/future-dated, an exact reviewed plan may
+prepare harmless owned offers/goals and the disabled deployment, then verify them without
+requiring a receipt from traffic not yet sent. Unknown server targeting is not silently edited.
+Prepare a targeting edit only after its read-only contract/ownership/inverse gate clears.
+No preparation operation approves current delivery or enables an SDK.
 
-Stop traffic before restoration. First PUT state saved and read it back; restore original schedule
-after each stage. After the final bounded observation (or immediately on any failure/interruption),
+**Timing correction:** five anchors `T`, `T+3h`, `T+6h`, `T+9h`, `T+12h` plus the last 120-minute
+observation require **at least 14 hours**, before traffic/propagation/restoration allowances.
+They cannot fit the roughly four hours remaining on the **original selection/routing sources
+at the recorded handoff**. That duration is not current freshness; the parent must compute
+the actual earliest deadline from immutable observation/assessment/expiry records and 051-01/04's
+24-hour rules. A ready report, CSV, new plan or applied report settings never renews those sources.
+
+Freeze **one stage** per traffic plan: absolute UTC anchor, activity window
+`anchor - 60 seconds` to `anchor + 60 minutes`, report intervals/checkpoints and exact inverse.
+Its full deadline includes propagation, last traffic by `anchor+30 minutes`, 120-minute
+observation and restoration margins, strictly before the earliest source/approval expiry.
+Allow at most 20 minutes for configuration propagation using bounded exact readbacks, not
+exploratory SDK traffic. Require all activation gates before approval/current delivery and
+before runtime enablement. Disable the SDK switch and restore saved state/original schedule
+immediately after that stage's traffic; keep reviewed goal/offer definitions only while needed
+for its reports. Recheck matching journal hashes before any later approved operation.
+
+A later stage needs a separately bound plan/approval and completed predecessor observations;
+its anchor is no earlier than three hours after the predecessor anchor and later if report
+granularity/late arrivals require. Do not compress the existing 120-minute waits or traffic
+cases to make the old evidence pass. Completing the whole sequence requires genuinely renewed
+scoped source evidence and fresh preparation checks, or bounded staged sessions each with valid
+evidence and a reviewed non-contaminating report/ledger chain. Carry control sensitivity as
+provisional until the positives; partial setup/stage proof is **not AC completion**.
+If any chosen stage cannot fit, do only safe no-traffic work or stop, restore and retain unknowns.
+No automatic schedule/approval/evidence extension. Past-ended, wrong-date, wrong-targeting or
+not-yet-verified activity cannot be treated as eligible. Future-only approval proves permission,
+not current delivery.
+
+Stop runner traffic on every stage exit. Independently attempt the exact owned PUT state saved
+and switch-disable forward commit/readbacks; a deployment/ref conflict must not prevent the
+saved-state kill attempt, or vice versa. Restore original schedule
+after each stage. After the last observation authorized by the current bounded stage plan, whether final or a
+partial stop (or immediately on failure/interruption),
 restore exact original targeting, metrics, offer content and other touched writable fields, and
-re-read saved/inactive and every original hash. Restore the page's runtime switch to disabled
+re-read saved/inactive and every original hash. Restore the root bootstrap to its captured original bytes and the runtime switch to disabled
 with a planned forward commit after testing (retain reusable assets; no file/resource deletion).
 Keep restore authority and bounded inverse operations in the original approval/journal;
 repeat recovery is idempotent. If a concurrent change conflicts, still stop traffic/attempt
 the authorized exact owned saved-state operation, refuse overwriting foreign content, and
 report `restore_incomplete` for owner recovery. Never label an unverified restore complete.
+Later staged work must freshly plan any needed saved-only preparation/redeployment and bind
+the actual metric definitions/report context to retained captures. If changing/restoring goals
+prevents sound cross-stage correlation, that is a reporting stop, not permission to leave
+activation or a public SDK switch unbounded.
 
 ### 3. Stock-only first journey and pinned integration choice — AC3, AC4
 
@@ -376,6 +461,20 @@ correlation only privately; the baseline does not prove cross-session identity c
 **Chosen mode: phased stock plugin + site-owned manual custom-HTML renderer**, not the current
 Airlock adapter and not the plugin's eager auto-report helper. Initialize the pinned module
 once in the test page's eager phase:
+
+**Exact root-seam mapping (planned, not deployed):**
+
+| Existing bootstrap point | Only inside the exact opt-in branch |
+|---|---|
+| `loadEager(doc)`, immediately after `decorateMain(main)`, before `body.appear`/the existing `loadSection` first-image wait | Create the reserved slot/default content; conditionally import the same-origin fixture and await `initMartech`, explicit fixture consent and the bounded manual fetch/qualify/render/page-display path. Retain the 1,000 ms eager personalization deadline and original first-image wait. No `martechEager` call. |
+| `loadLazy(doc)`, immediately after its existing `await loadSections(main)` | Await the same fixture's `martechLazy()`/ACDL initialization before recording lazy-ready; the runner waits for this before its one real button interaction. Keep original header/footer/hash/style/font behavior. |
+| `loadDelayed()`, after the unchanged `import('./consent-check.js')` | Invoke the fixture's `martechDelayed()` with `launchUrls:[]`, track completion privately. `loadPage` calls, **does not await**, this original delayed function; awaiting the fixture's own completion does not justify claiming an awaited site-delayed phase. |
+
+No-martech executes the same fixture marks/slot/instrumentation but no plugin phase calls.
+Invalid/ordinary URLs take only the original site path. Fixture failure records refusal and
+blocks further probe events without suppressing ordinary page loading/consent or auto-granting.
+Verify the actual patch/served phase order and one SDK instance; source pins alone are not
+deployment or performance evidence.
 
 - Web SDK: exact `orgId`/`datastreamId`, `edgeDomain:"edge.adobedc.net"`,
   `defaultConsent:"pending"`, `debugEnabled:false`, `thirdPartyCookiesEnabled:false`,
@@ -446,7 +545,8 @@ For each positive visit:
    propositions:[{id,scope,scopeDetails}],propositionEventType:{interact:1}}`.
    No Analytics data mapping on that native interaction. Keep SDK-native interaction fields,
    not GA4 exposure. Wire shape/type is grounded in the exact Alloy artifact; its Target
-   click-goal receipt semantics must be cleared in §5 before any live attempt.
+   DISPLAY/INTERACT conversion mapping is officially documented in §5; installed owned goals,
+   export/count/window interpretation and receipt evidence must still clear before any live attempt.
 
 The SDK API-result promise, request payload, observed DOM, native display/interaction send,
 independent Analytics report rows and independently qualified Target receipt/outcome are
@@ -455,7 +555,8 @@ No application resends; compare expected vs actual without asserting vendor exac
 
 ### 4. Finite traffic and non-vacuous controls — AC3, AC4, AC5, AC8
 
-Freeze this sequence before activation: one fresh visit each for `no-consent`, `no-offer`,
+Freeze the scenario counts/order before activation, with separate bounded stage plans:
+one fresh visit each for `no-consent`, `no-offer`,
 `non-render`, then **three** positive visits and **five** `stock-perf` visits. Five `no-martech`
 visits have no SDK and are interleaved with the five stock-perf visits after functional positives.
 Maximum **16 fresh contexts**, only **11** with a stock installation, **10** with consent.
@@ -495,8 +596,9 @@ server-side/in memory. Read dedicated suite timezone first; use its actual IANA 
 
 Verify reportable `variables/page`, `variables/customlink`, `metrics/pageviews`,
 `metrics/occurrences` for the exact suite. Execute the bounded zero-traffic reserved-marker
-queries below before mutation/traffic; denied metadata/dimension queries or unknown processing/
-exclusion rules stop. Generic totals-query access is **not** proof of these queries. No new eVar,
+queries below before traffic; denied metadata/dimension queries or unknown processing/exclusion
+rules block the traffic plan, not an otherwise reviewed saved-only/disabled preparation operation.
+Generic totals-query access is **not** proof of these queries. No new eVar,
 prop, suite rule, metric, realtime configuration or customer segment creation is permitted.
 
 Freeze each stage's `windowStart`/`windowEnd` in the private plan as absolute suite-local ISO
@@ -566,13 +668,14 @@ documents scope-bound DISPLAY conversion recording. The
 explicitly maps INTERACT to click conversion for an mbox, retaining returned
 `id/scope/scopeDetails`. These are verified source semantics, not tested downstream results.
 The exact existing display metric binding is private; an additional owned interaction goal
-must be included in the reviewed prepare/restore plan rather than assumed already present.
+must be included as an exact activity-local edit in the reviewed prepare/restore plan rather
+than assumed already present or treated as a grant to create another resource.
 
 | Signal | Officially grounded behavior | Still required before traffic |
 |---|---|---|
-| Stock Web SDK DISPLAY | After actual manual rendering, preserve `id/scope/scopeDetails` and `propositionEventType.display:1`. The direct Target display-mbox example documents scope-bound success conversion; display docs distinguish requested from shown content. | Numeric/processed Target outcome bound to that proposition/activity/experience and exact environment/window. Its Admin response field is still undocumented. |
+| Stock Web SDK DISPLAY | After actual manual rendering, preserve `id/scope/scopeDetails` and `propositionEventType.display:1`. The direct Target display-mbox example documents scope-bound success conversion; display docs distinguish requested from shown content. | Supported numeric Target goal outcome and reviewed causal correlation to the local proposition/render ledger, activity/experience and exact environment/window; additional processed-notification diagnostics only if needed for AC4. Its Admin numeric field is still undocumented. |
 | Stock Web SDK INTERACT | The official migration guide explicitly maps `decisioning.propositionInteract` to click conversion for an mbox, preserving returned proposition fields. | Confirm/create the exact owned click goal through the reviewed plan and verify its numeric/processed outcome. A generic Analytics link receipt or captured SDK payload is insufficient. |
-| Target goal metrics | Official viewed-mbox/click conversions and count-once semantics are documented; the existing owned display goal is now freshly corroborated. | The separate interaction goal and both private metric bindings, actual export/count fields, environment and window must be established before traffic. |
+| Target goal metrics | Official viewed-mbox/click conversions and count-once semantics are documented; the existing owned display goal is now freshly corroborated. | Install/read back the exact reviewed interaction goal while saved; establish both private metric bindings, actual export/count fields, environment and window before traffic. |
 | Target A/B performance results | The exact GET is now access-verified; its public report parameter schema describes environment/interval/metric selectors and its metric schema describes metadata. | Official numeric result path/type/unit, experience/metric correlation, and supported environment/window selection for this GET. No parameter or result field may be guessed from a UI control. |
 
 Adobe's separate [Target Delivery API Notifications contract](https://experienceleague.adobe.com/en/docs/target-dev/developer/api/delivery-api/notifications)
@@ -581,22 +684,24 @@ timestamp, and returned `notifications[].id` for successfully processed notifica
 a **different request/response API**. The inspected Web SDK/Admin-report docs do not establish
 that this Delivery response appears in Alloy's Edge response or the performance report. Do not
 import that receipt shape into this probe, add a direct Delivery send/endpoint, invent notification
-IDs/tokens, or substitute a server-side/A4T journey for pinned stock behavior. It identifies
-the kind of explicit vendor receipt signal needed, not an authorized shortcut.
+IDs/tokens, or substitute a server-side/A4T journey for pinned stock behavior. It is a possible example of explicit vendor receipt semantics, not a mandatory AC4 API shape
+or an authorized shortcut. AC4 does not demand an exactly-once per-notification acknowledgment.
 
-Consequently **`required_stop: target_report_contract` remains open**. Before an applyable plan,
+Consequently **`required_stop: target_report_contract` remains open**. Before a traffic-ready plan,
 choose and review one supported, scope-bound method with:
 
 - Exact reportable display/interaction metric selectors and unit/counting semantics; activity,
   experience, property/workspace and selected development environment bindings; exact time
   windows and granularity; a way to distinguish eligible fetch vs actual display/interaction.
-- An official numeric response/export column mapping or a supported product diagnostic
-  notification-receipt mapping; actual authorized read verification before traffic. No arbitrary
-  additive-field guessing. Verify that the marker/qualified proposition/private activity/
-  experience and isolated stage window can correlate the result; aggregation alone does not
-  prove a particular notification. An unchanged empty report is not a negative-control pass.
-- Two layers if needed: a vendor-native diagnostic correlating the specific notification, plus
-  the scoped Target report count/outcome. A transport debug entry is not that diagnostic.
+- A supported numeric response/export column mapping or product diagnostic mapping, with
+  authorized context/schema verification before traffic. No arbitrary additive-field guessing.
+  Review whether the native goal outcomes, officially documented DISPLAY/INTERACT mechanism,
+  qualified proposition/render/click ledger and isolated activity/experience/stage deltas
+  provide the causal evidence AC4 requires. Do not claim per-notification attribution from a
+  mixed aggregate; an unchanged empty report is not a negative-control pass.
+- If that reviewed evidence basis is insufficient, require a supported vendor-native diagnostic
+  correlating the notification **in addition to** scoped product counts. A transport debug entry
+  is not that diagnostic. No per-notification/exactly-once requirement is silently added to AC4.
   Preserve vendor metric units; Visitors/Visits/Activity Impressions are not interchangeable or
   automatically equal DOM display count/native notification count.
 
@@ -636,52 +741,75 @@ report-view settings does not activate the activity or change service routing. D
 save a shared preset, reset data or infer a selected development filter before confirmation.
 Preserve count-once goal semantics separately from the reporting denominator.
 
+**Subsequent applied-view evidence (owner's 17:21:33 “Done”, 2026-10-09):** The owner supplied the changed
+Airlock - Development / Activity Impressions panel plus a separate native CSV. Its denominator
+header is `Impression`, not the historical `Visitor`; no experience rows are present. This clears
+report filter/counting selection only. The prior report-date image showing **Oct 2–Oct 10**
+is not a precise future stage-interval binding; neither CSV contains report window fields.
+Record this as current evidence without asking for more already-provided screenshots.
+Bind the actual chosen report interval and checkpoint times at execution; no date bounds,
+zero counts or processed events are fabricated from the panel/header-only CSV/undefined counter.
+
 The official Target settings documentation
 documents choosing environment, dates,
 Visitors/Visits/Activity Impressions and metrics; **Download Reports → Export Report to CSV**
 is a supported manual product-count source. The proposed observation is the exact owned activity,
-reporting source Target, exact development environment, that stage's frozen date window and all
-owned experiences; select **Activity Impressions** and the planned display/click goals. Read
+reporting source Target, exact development environment, a supported frozen report date interval
+capable of separating the chosen stages and all owned experiences. **Airlock - Development /
+Activity Impressions is already confirmed applied**, not an outstanding selection request;
+retain/check that context at the actual checkpoint and select the reviewed display/click goals.
+Read
 goal **conversion counts**, not lift, confidence or conversion-rate percentages. Capture a
-pre-stage export and each scheduled post-stage export, preserving both experiences even if
+pre-stage export and each **chosen manual** post-stage export, preserving both experiences even if
 random assignment chooses only one. Compare per-experience deltas to the privately observed
 render/click ledger using the reviewed “count once” goal semantics and fresh-context identity
 boundaries, not an exactly-once transport guarantee.
 
-Use private `airlock.adobe-stock.capture` records with `source:"target_outcome"` and data exactly
+Use bounded private run capture records with `source:"target_outcome"` and data exactly
 `basis`, `artifact_sha256`, `source_ref`, `bindings`, `rows`, `column_mapping_ref`, `observer_ref`.
 Basis is `target-native-report-export`; bindings pin activity/environment/workspace/property,
-reporting source, metric-local selectors, interval and counting method. Rows contain only the
+reporting source, metric-local selectors, the actual supported report interval, source timezone,
+UTC pre/post checkpoint timestamps and counting method. Rows contain only the
 known private experience selector and `display_goal_count`/`interaction_goal_count` as observed
 non-negative integers. The raw export stays private, bounded and unchanged. The parent records
 the real source/observation time and reviewed column mapping, not a success boolean or guessed
 counts. `observe` consumes only this prebound private evidence, never an authenticated UI browser.
 
 This is a **specific optional downstream count method**, not a newly observed receipt.
-The owner screenshot establishes report-view availability and the scoped display goal, not a
-CSV schema or selected environment. Direct official sources now ground the notification-to-goal
-mapping; the actual export still needs its own column/filter contract.
+The supplied evidence establishes the applied development/impression view, scoped display goal
+and header-only `Impression` CSV layout. It does **not** establish populated goal counts, their
+column equivalence or stage windows. Direct official sources ground notification-to-goal
+mapping; the actual export still needs its supported goal-column/unit/experience/window contract.
 Before traffic, verify the actual export columns/filter binding and officially supported goal/
 notification semantics. If per-stage causal correlation through the activity/experience and
 native goal counters satisfies AC4, record that exact evidence basis and its limits in the reviewed
 plan; otherwise a supported per-notification diagnostic is additionally required. Either unresolved
 case remains `required_stop: target_report_contract`; an impression/visitor total alone cannot
-clear it. Owner availability for exports is also an explicit blocker, not assumed automation.
+clear it. Owner availability for **each actual chosen checkpoint** is also an explicit blocker,
+not assumed unattended export automation.
 
 Do not automate an authenticated Adobe browser profile or scrape screenshots. Do not change
 reporting presets, reset or delete report data, assume Assurance access, or silently fall back
-to UI. A plan choosing this manual route
-must bind its evidence handle/column mapping and be reviewed before mutation; the API candidate
+to UI. A traffic plan choosing this manual route
+must bind its evidence handle/column mapping, actual operator times/availability and be reviewed
+before activation; the API candidate
 cannot be made green by swapping in an unreviewed CSV or a “Target 200.”
 
 **Waiting policy (chosen before traffic, not a vendor latency guarantee):** at each isolated
-stage, take a pre-traffic checkpoint, then observe at offsets 0, 5, 15, 30, 60 and 120 minutes
-after its last event. A positive needs matching receipt/count evidence stable at two scheduled
-observations; controls require complete zero corresponding increment at both 60 and 120 minutes
+stage, take a pre-traffic checkpoint. Analytics/API-capable observation has post-event offsets
+0, 5, 15, 30, 60 and 120 minutes. If Target uses manual CSVs, freeze its actual checkpoints:
+at minimum pre-traffic, 60 and 120 minutes; earlier additional exports require explicitly
+available operator slots in that plan, not an unattended polling promise.
+A positive needs matching receipt/count evidence stable at two selected scheduled observations;
+controls require complete zero corresponding increment at both 60 and 120 minutes
 and demonstrated positive sensitivity in the same run. Wait externally with the activity
-saved/inactive between the five preplanned stage windows; no activity needs to stay live for
+saved/inactive and SDK switch disabled between separately planned stages; no activity stays live for
 report polling. If the report granularity cannot distinguish those windows or lateness contaminates
 a subsequent checkpoint, stop and retain unknowns — no silent activation extension.
+If the operator is unavailable, a checkpoint is missing, or window/granularity/counting context
+is unknown, stop that stage as unverified; do not fill in counts or renew sources from the CSV.
+Use the vendor's actual supported report-date/time format and measured availability/latency,
+not a guessed CSV field or an invented processing guarantee.
 No server-error retry; a later scheduled report read is not an SDK resend. A finite two-hour
 timeout is `unverified: receipt_not_observed`, not loss, success or permission to send again.
 
@@ -689,10 +817,12 @@ Pretraffic contract/access inspections have a ceiling of 40 requests. Observatio
 180 report requests overall. Freeze combined MATCH-OR clauses for the positive/performance
 stages: `MATCH '<P1>' OR MATCH '<P2>' ...` and the distinct corresponding C clause, with
 limit `2 × numberOfTokens`, exact per-token row validation and no pagination. Single-visit
-controls use the exact single-token bodies above. Five stages × (one pre + six post checkpoints)
-× (two Analytics queries + one resolved Target observation) is **105 observations**: 70 Analytics
-API reads plus 35 Target reads or private export checkpoints according to the reviewed method. Any
-additional diagnostic reads must fit the same 180-request ceiling and be frozen in the plan.
+controls use the exact single-token bodies above. Completing all five stages would use
+**70 Analytics queries** (five × seven checkpoints × two queries). A fully API-capable Target
+method could add 35 reads; a manual route's minimum is **15 operator exports**, not 35 automatic
+exports. None is presumed staffed or outcome-verified. Freeze the selected method/checkpoints/
+request counts **per stage**, and retain the 180-request whole-sequence ceiling in the journal
+across plans. Additional diagnostic reads/exports require planned bounds and operator availability.
 Request timeout 10 seconds; response 1 MiB; total decoded
 observation data 16 MiB. Byte/request ceilings may be lowered, not raised without plan review.
 OAuth is in memory; refresh only at an explicit approved observation invocation, never on a
@@ -751,13 +881,19 @@ npm test -- test/adobe-stock-plan.test.js test/adobe-stock-cli.test.js \
 Write witnessed failing tests first, then implementation. Cover exact pins including official
 Alloy's LF/hash; version/flag/path/schema refusals; zero mutations in plan; stale/unbound approval/
 preflight/workspace/routing; exact owned reuse/missing/name collision/foreign-state/config drift;
-fixed method/version/body/redirect refusal; deploy ref race and wrong served bytes; no opt-in/
-no-martech imports; original future-date validation against clock; exact targeting/schedule/state
+fixed method/version/body/redirect refusal; base commit vs bootstrap-blob pin, exact bootstrap
+diff/phase mapping, non-force deploy/ref race and wrong served bytes/CSP; ordinary/invalid query
+no import/preload/slot, fixed `consent=decline`, unchanged consent event/import and explicit
+fixture-only grant/deny; no-martech plugin/SDK/ACDL absence; disabled prepare vs enabled traffic
+gates without a deploy-verification cycle; original future-date validation against clock;
+exact targeting/schedule/state
 readbacks; interrupted writes/re-run lock/journal/restore ordering and conflicts; no deletion/
 creation/default edits; supported stock exports/single instance/ACDL custom event; safe HTML,
 actual render vs renderAttempted/late rendering; no-consent attempted events and consent-only
 exception; no-offer and **real qualified-but-not-rendered** stimulus; no premature native display/
-interact or extra page/link hit; staged observation/metadata/error/206/truncation/correlation/
+interact or extra page/link hit; parent-invoked exact run-artifact writes without seed/input/
+approval/credential writes; per-stage actual expiry, predecessor/partial-sensitivity binding and
+full 120-minute waits; operator checkpoint unavailability; staged observation/metadata/error/206/truncation/correlation/
 duplicate/timeout/count-unit failures; access-verified HTTP 200 with `{}`/metadata-only report
 remaining outcome-unverified; no borrowed Delivery receipt shape or compulsory manual fallback;
 report zero without a positive; redaction with malicious
@@ -771,24 +907,38 @@ access, resource write, deploy or SDK execution in this refinement:
 
 | Source | Load-bearing use |
 |---|---|
+| [Reference bootstrap contents](https://api.github.com/repos/adobe-rnd/aem-eds-airlock-poc/contents/scripts/scripts.js?ref=main), [consent check](https://api.github.com/repos/adobe-rnd/aem-eds-airlock-poc/contents/scripts/consent-check.js?ref=main), [consented placeholder](https://api.github.com/repos/adobe-rnd/aem-eds-airlock-poc/contents/scripts/consented.js?ref=main) | Executed read-only contents reads establish the exact file blobs/byte lengths in §2, eager→lazy awaits then unawaited delayed call, ordinary consent query/event/one-time import and currently comment-only consented source. Mutable main links are not a deployment/base-commit pin; bind those separately. |
 | [Pinned `aem-martech` README](https://github.com/adobe-rnd/aem-martech/blob/1aa3dee3c4791636efa9ad2994342f861c8e149b/README.md), [`src/index.js`](https://github.com/adobe-rnd/aem-martech/blob/1aa3dee3c4791636efa9ad2994342f861c8e149b/src/index.js), [`src/acdl.min.js`](https://github.com/adobe-rnd/aem-martech/blob/1aa3dee3c4791636efa9ad2994342f861c8e149b/src/acdl.min.js) | Exact exports/defaults, eager non-DOM-action display assumption, lazy ACDL mapping, no automatic page hit when trackPageView is false. ACDL pin/hash above is an executed read/hash, not SDK execution. |
 | [Official Alloy 2.31.1 bytes](https://cdn1.adoberesources.net/alloy/2.31.1/alloy.min.js) | Executed public hash agrees with the required pin; inspected options validator/native propositionInteract/propositionEventType and auto-interaction configuration. No execution. Current docs' additional options cannot be assumed present in this old pin. |
 | [Official sendEvent](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/sendevent/overview), [HTML applyPropositions](https://experienceleague.adobe.com/en/docs/experience-platform/collection/use-cases/personalization/render-html-offers), [manual display events](https://experienceleague.adobe.com/en/docs/experience-platform/collection/use-cases/personalization/display-events), [top/bottom events](https://experienceleague.adobe.com/en/docs/experience-platform/collection/use-cases/personalization/top-bottom-page-events) | Custom scope fetch, metadata-based HTML rendering, explicit display only after rendering; propositionFetch is not an Analytics page hit. |
 | [Consent](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/setconsent), [click collection](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/configure/clickcollectionenabled), [proposition interactions](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/configure/autocollectpropositioninteractions) | Collection opt-in/out, consent cookie/exchanges, explicit prevention of duplicate automatic link/interaction sends. |
 | [Analytics data mapping](https://experienceleague.adobe.com/en/docs/analytics/implementation/aep-edge/data-var-mapping), [hit types](https://experienceleague.adobe.com/en/docs/analytics/implementation/aep-edge/hit-types), [official OpenAPI](https://github.com/AdobeDocs/analytics-2.0-apis/blob/main/static/swagger.json), [report examples](https://github.com/AdobeDocs/analytics-2.0-apis/blob/main/src/pages/guides/endpoints/reports/examples.md), [MATCH search grammar](https://github.com/AdobeDocs/analytics-2.0-apis/blob/main/src/pages/guides/endpoints/reports/search-filters.md) | Separate pageName vs custom linkName/linkType and downstream dimension/metric/row queries; page/link classification and avoidance of suite totals. |
 | [Target Admin OpenAPI](https://github.com/AdobeDocs/target-developers/blob/main/src/admin-api.json), [official Reports reference](https://developer.adobe.com/target/administer/admin-api/#tag/Reports), [report settings](https://experienceleague.adobe.com/en/docs/target/using/reports/settings/report-settings), [report view/export](https://experienceleague.adobe.com/en/docs/target/using/reports/reports) | Exact mutation/report versions; complete declared 200-schema reference graph, metadata rather than defined result counts; UI environment/counting-method choices. Parent verified access to the scoped report GET; receipt/result mapping remains unknown. |
-| [Target success metrics](https://experienceleague.adobe.com/en/docs/target/using/activities/success-metrics/success-metrics), [Delivery API Notifications](https://experienceleague.adobe.com/en/docs/target-dev/developer/api/delivery-api/notifications) | Viewed-mbox/click conversion and counting choices; separate Delivery notification-ID acknowledgment. Neither source specifies Web SDK notification-to-Admin-report numeric mapping; no Delivery endpoint substitution is authorized. |
+| [Target/Web SDK display-mbox conversion](https://experienceleague.adobe.com/en/docs/target-dev/developer/client-side/aep/target-overview#display-mbox-conversion-metrics), [Track events migration](https://experienceleague.adobe.com/en/docs/platform-learn/migrate-target-to-websdk/track-events), [Target success metrics](https://experienceleague.adobe.com/en/docs/target/using/activities/success-metrics/success-metrics), [Delivery API Notifications](https://experienceleague.adobe.com/en/docs/target-dev/developer/api/delivery-api/notifications) | R-012's direct official reads ground DISPLAY/INTERACT mbox goal conversions and count-once behavior; distinct Delivery notification-ID acknowledgment is not Alloy's report contract. Actual Admin/export numeric fields, stage/experience/count units and outcomes remain unresolved; no Delivery endpoint substitution. |
 | [Target Site Pages](https://github.com/AdobeDocs/target.en/blob/main/help/main/c-target/c-audiences/c-target-rules/site-pages.md), [Custom parameter rules](https://github.com/AdobeDocs/target.en/blob/main/help/main/c-target/c-audiences/c-target-rules/custom-parameters.md), [Web SDK parameter mapping](https://experienceleague.adobe.com/en/docs/platform-learn/migrate-target-to-websdk/send-parameters) | Exact domain/path plus marker qualification; XDM name mapping, no at.js property token or invented arbitrary data mbox marker. API rule objects remain opaque. |
 
-Required unresolved decisions before **any live apply/traffic**: continuing
-freshness of the now-ready schema-v2 preflight/source evidence; safely editable/restorable owned
-activity-local targeting; actual reference
-write/code-serving/CSP verification; dedicated-suite dimension queries and processing semantics;
-Target count/window/notification correlation contract and native display/
-interaction metric mapping; staged schedule compatible with report granularity and two-hour
-observations. Record a required stop for each unknown. No bare receipt flag, permissive proxy,
+**Preparation still needs** an exact reviewed no-traffic saved-offer/goal/disabled-deploy plan
+and inverse, current ownership/before hashes, real relevant write/serving checks and evidence
+freshness through its own deadline. **Traffic remains blocked** on safely editable/restorable
+owned server-side hostname + root-path + XDM-marker AND targeting/custom scope; actual deployed
+bytes/CSP/switch/window readback; dedicated-suite dimension/processing contract; installed
+owned click-goal readback; supported Target goal-column/count-unit/experience/window correlation;
+actual operator availability where manual; and separately bounded schedule/observations compatible
+with source freshness and full two-hour waits. The applied development/impression view and
+official DISPLAY/INTERACT mapping are established facts, not unresolved selection/mechanism gates.
+Frame/architecture/setup review and the unchecked DoR remain open; this edit records no verdict
+or status change. Record a required stop for each applicable unknown. No bare receipt flag, permissive proxy,
 new entitlement, guessed API or GA4 substitute clears them. AJO/CJA/RTCDP remain deferred for
 this proving ground with their broader requirements unchanged.
+
+**Minimal first safe execution step for the parent, not performed here:** using its already
+approved exact owned activity handle, read-only **Edit → Targeting** inspection, without Save
+or Create Audience. Establish the supported owned definition/AND rule flow and precise inverse
+before proposing any targeting mutation. Do not ask again for the supplied report screenshots.
+If that inspection cannot establish an owned/restorable server gate, preserve
+`required_stop: target_targeting_contract`; do not activate, deploy enabled code or send SDK data.
+Hermetic work and independently reviewed disabled preparation can proceed only under their
+separate applicable gates; neither clears AC3–8.
 
 **DoD:**
 - [ ] Setup plan/apply/reuse/refusal and redaction behavior have hermetic tests with witnessed failures.
@@ -802,9 +952,9 @@ observed product journey, not merely schemas/datastreams that might enable a fut
 
 ## Assumptions
 
-- The chosen code-served additive page can be deployed on the designated preview without DA/
-  site-administration changes. Only metadata/dry-run evidence exists; current public raw source
-  access was unavailable. Actual writes, served hashes and browser/CSP remain unverified.
+- The chosen root-only conditional phase hook and same-origin assets can be deployed without
+  DA/site-administration changes. Exact bootstrap/consent source blobs are now readable and
+  grounded in §2; actual writes, served hashes and browser/CSP remain unverified.
 - Current owned activity targeting can enforce exact domain/path/XDM marker and be restored
   without changing/creating/deleting unrelated audiences. The public rule schema does not prove
   this path, and no private targeting definition was inspected here.
@@ -814,8 +964,9 @@ observed product journey, not merely schemas/datastreams that might enable a fut
   counts with environment/experience/stage correlation inside the finite windows. Current public
   performance definitions do not establish these semantics; §5 is a required pretraffic stop.
   The exact report GET's access is now verified separately, not assumed absent.
-- The stock custom-HTML project-renderer path, base-schema routing with Platform disabled,
-  native interaction metric mapping and eager deadline can produce the journey. No SDK or live
+- The stock custom-HTML project-renderer path, fixture-only explicit consent, base-schema routing
+  with Platform disabled, documented native goal signals and eager deadline can produce the journey.
+  Official mapping is known; no SDK or live
   outcome has verified this; unknowns must not be converted into passing fixture evidence.
 
 ### Deviation log (after reconciliation)

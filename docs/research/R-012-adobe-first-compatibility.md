@@ -782,6 +782,70 @@ alongside its new native CSV. Goal conversion counts still use the actual config
 semantics; Activity Impressions is not interchangeable with conversions or DOM displays.
 Until the applied context is observed, this reporting prerequisite remains unverified.
 
+### Applied development report context received — 2026-10-09
+
+The owner applied the requested report-only settings and supplied a new screenshot/CSV with
+explicit “Done” confirmation. The view now shows **Airlock - Development / Activity Impressions**
+and the unchanged owned control. Original and new artifacts remain separate private evidence.
+The new header uses **Impression**, replacing the prior **Visitor** column; it is still a
+header-only export with no experience rows and an undefined conversion-counter metadata field.
+The changed denominator corroborates the counting-view change, not processed events.
+
+This resolves the UI report-environment/counting-selection prerequisite without activating the
+activity, changing datastream routing or saving a shared preset. The screenshot panel/CSV do
+not contain report date bounds; the plan must bind its chosen observation interval explicitly
+at execution. Missing rows remain unknown, not fabricated zeros.
+
+Read-only stock preparation additionally inspected the exact owned saved activity:
+its sole custom-scope location and both experiences have empty audience-ID lists, and the
+returned activity has no inline rule/targeting fields. That establishes the **current response
+shape**, not a claim that the UI cannot author an activity-local targeting definition.
+The required server-side domain/path/marker restriction is not yet verified; do not substitute
+client-side opt-in or a public custom scope for that restriction.
+
+The authorized reference repository is readable through GitHub and contains an actual phased
+`scripts/scripts.js` bootstrap: eager, lazy, then delayed. It has no existing `tools/` page in
+the inspected complete tree. A conditional stock hook on the existing reference page is a
+candidate avoiding unverified code-served HTML/DA behavior, not a deployed change.
+Ordinary visitors must retain the original SDK-free behavior; any bootstrap change and its
+exact restoration need review before deployment.
+
+The current DRAFT's five three-hour stage anchors span 13 hours, beyond roughly four hours
+remaining on the preserved selection/routing evidence at inspection. The new report screenshot
+does not renew those older observations. These execution-contract assumptions are under
+independent frame review before implementation/live apply; no activation or SDK event occurred.
+
+### Targeting and editor warnings corroborated — 2026-10-09
+
+The owner's Targeting screenshot shows **All Visitors**, 100% traffic allocation and equal
+experience allocation. No test-site domain/path/marker restriction is visible. A fresh exact
+owned activity read corroborates empty audience-ID lists on the custom location and both
+experiences. The activity is still saved/inactive with its original future schedule.
+This confirms the delivery gate is not yet restricted; profile/property isolation is not
+a substitute for restricting activity qualification to the reference test site.
+
+The supplied Goals & Settings screenshots show unselected required choices for the primary
+goal and additional Scoped display goal, validation warnings and disabled Save & Close.
+The current API still returns one scope-bound display conversion with count-once semantics
+and no click selectors. Neither the cause of the editor/API discrepancy nor a safe UI save/
+round-trip has been established. Do not claim the saved goal disappeared or repair the form
+by guessing options. No settings were saved or changed by the agent.
+
+The next supported read-only step is to open the **All Visitors** card and inspect the audience
+panel, including any Edit/Create controls, without saving or creating an audience. This is
+needed to identify an owned, reversible domain/path/marker rule flow. The owner was unavailable
+when that follow-up was requested. Any separate audience resource requires its exact authority/
+ownership plan; no shared audience is borrowed and no undocumented rule JSON is invented.
+
+The stock DRAFT now separates parent-controlled no-traffic preparation from activation, uses
+the verified root-page opt-in seam as a proposed alternative to unverified standalone HTML,
+and binds each stage to actual evidence expiry rather than a fixed 14-hour unattended run.
+Those are DRAFT corrections, not implementation or a passing frame verdict. The existing
+frame evidence remains needs-changes until the applicable contract review clears.
+At the fresh editor check, original selection/routing evidence had roughly 30/40 minutes left;
+the new editor screenshots do not renew either. Stock activation, deployment and SDK traffic
+remain unexecuted.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes
@@ -862,8 +926,10 @@ No current conclusion that every admin UI step has an API equivalent.
 
 Provisioning/probe scripts belong under `probes/` with a bounded investigation spec before execution.
 [Spec 051](../specs/051-adobe-integration-proving-ground/spec.md) carries the implementation contracts:
-the preflight is implemented and has a real unverified report; stock baseline and compatibility
-work remain unexecuted. The owner approved the eight-active-hour spike and overall credit ceiling,
+the preflight is implemented; its historical v1 report was unverified, and the subsequent v2
+preparation report passed with explicit owner evidence. Stock baseline and compatibility work
+remain unexecuted. A previous ready report does not renew source evidence or clear live gates.
+The owner approved the eight-active-hour spike and overall credit ceiling,
 but the stock readiness gate has not cleared. Specs 052-057 remain unsliced outlines.
 This note remains OPEN. The supplied credential was not created here; selected reads are verified
 and the owner-authorized dedicated Target environment exists. The owner-created Analytics suite and
