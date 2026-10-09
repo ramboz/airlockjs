@@ -23,8 +23,9 @@ by a DONE slice or a green coverage report.
 **Adobe-first portfolio:** [051](051-adobe-integration-proving-ground/spec.md) has an implemented,
 reviewed preflight and owner-confirmation extension, plus a READY_FOR_REVIEW baseline and DRAFT
 spike below. The dedicated-site owner relaxation removes the added targeting/marker prerequisite.
-The historical v1 workspace unknown is preserved; latest real v2 verifies all 12 preparation
-checks. This is not a stock/chamber product proof. Specs 052-057 are
+The historical v1 workspace unknown and v2 twelve-check pass are preserved. The current real
+rerun refuses stale source evidence with zero requests; renewed routing confirmation is pending.
+051-05's local harness is reviewed and does not establish SDK or product execution. Specs 052-057 are
 intentionally unsliced DRAFT outlines, so the generated slice table
 does not list them yet; the [release handoff](../releases/adobe-compatibility.md#jig-handoff) links
 every outline and its refinement prerequisites. None is ready for implementation.
@@ -162,6 +163,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-02 — reproducible test setup and stock baseline | READY_FOR_REVIEW (adobe-adoption-goal) |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 🔬 051-03 — bounded SDK compatibility decision | DRAFT |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-04 — scoped workspace confirmation | **DONE** |  |
+| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-05 — local stock journey harness | REVIEWED (adobe-adoption-goal) |  |
 
 ## Deferred slices
 
@@ -187,7 +189,7 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
 
 - **10** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **104** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **50** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **51** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
@@ -238,3 +240,4 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
   - `050-mvp9-reference-site-rewire-trial/slice-01-craft.md` — applied `none`; declined: pr-review, scout-pr-review
   - `050-mvp9-reference-site-rewire-trial/slice-02-craft.md` — applied `none`; declined: pr-review, scout-pr-review
   - `051-adobe-integration-proving-ground/slice-04-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `051-adobe-integration-proving-ground/slice-05-craft.md` — applied `pr-review`; declined: scout-pr-review

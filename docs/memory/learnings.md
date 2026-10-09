@@ -48,3 +48,6 @@ For file-per-slice work, give the configured implementer the standalone slice as
 
 ## Target performance access is not notification receipt semantics
 The exact owned A/B performance GET returnedHTTP200 afterscopeverification, but the inspected officialAbstractActivityPerformanceReport documents activity/reportParameters/metric identifiers without numericDISPLAY/INTERACT outcomes or aWebSDKnotification-to-goal map. Do not infer API impossibility or productreceipt from that gap. 051-02 requires a supported API or native export/diagnostic observation contract bound to activity/experience/environment/window beforetraffic; nativeReports view was requested read-only. SeeR-012 and051-02.
+
+## Local stock call accounting is not Adobe receipt
+051-05 provides a real tested local operator/harness with source-verified stock export signatures, but invented integrations. ACDL pushEventToDataLayer returns void; count submission, never asynchronous SDK completion or product receipt. Timeouts stop later harness calls, not recalled vendor work; denied consent is a local guard. Live05102stillrequiresfreshrouting/deployment/nativeoutcomeevidence. See051-05andprobes/adobe-compatibility/README.md.

@@ -138,6 +138,10 @@ closed 051-01. The stock baseline depends on its reviewed evidence path and a fr
 - [051-02 — reproducible test setup and stock baseline](slice-02-test-baseline.md)
 - [051-03 — bounded SDK compatibility decision](slice-03-compatibility-investigation.md)
 - [051-04 — scoped workspace confirmation](slice-04-workspace-confirmation.md)
+- [051-05 — local stock journey harness](slice-05-local-stock-harness.md)
+
+051-05 supplies an independently usable local dry-run while live setup/routing gates remain
+separate. Its completion cannot satisfy 051-02's stock receipts, deployment or negative outcomes.
 
 ## Completion and handoff
 

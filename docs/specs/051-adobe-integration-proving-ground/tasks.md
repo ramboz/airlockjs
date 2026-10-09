@@ -66,6 +66,27 @@ report remains intact. Tests and preparation readiness do not clear stock/produc
 - [ ] Record redacted resource ownership, evidence and baseline measurements in R-012.
 - [ ] Complete required reviews/reconciliation; leave unobserved product outcomes unfinished.
 
+## 051-05 — local stock journey harness
+
+- [x] Confirm READY and transition with workflow helper to IN_PROGRESS.
+- [x] Read pinned public export signatures; document the closed input/host/clock details before tests.
+- [x] Write real CLI and module acceptance tests; witness all 133 failing before production code.
+- [x] Implement only stock-harness.mjs, stock-dry-run.mjs and the existing operator README.
+- [x] Verify four meaningful synthetic cases, refusal/secrecy/host/rejection/deadline controls;
+      pass one combined stock/four-preflight/frozen-core runner (588 tests).
+- [x] Run full default regression suite (2470 tests), new-test lint and explicit browser/Node
+      recommended lint/syntax checks for the ignored probe modules.
+- [x] Record local-only implementation witness, deviation log and operator limitations.
+- [ ] Parent obtains independent implementation/reconciliation verdicts and derived board/memory handoff.
+- [ ] Parent separately re-establishes fresh routing and all reviewed 051-02 live gates before traffic.
+
+No SDK execution, activity activation, deployment, credential/private-state access or downstream
+receipt occurred. The local no-consent guard is not vendor-native enforcement proof; ACDL counts
+submission only. Already dispatched work cannot be recalled on timeout. No-offer and non-render
+execute distinct stimuli, and the positive acknowledgement is a trusted host fixture only.
+051-05 is REVIEWED after recorded independent compliance/craft passes; reconciliation is pending.
+Live routing confirmation remains separately unavailable and is not fabricated from local tests.
+
 ## 051-03 — bounded SDK compatibility decision
 
 - [ ] Record the owner's granted eight-active-hour budget and overall credit ceiling; independently

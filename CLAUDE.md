@@ -28,7 +28,7 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 - More terms belong in [docs/memory/glossary.md](docs/memory/glossary.md), not in this primer.
 
 ### Active specs
-- [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01 and 051-04 DONE. Latest real preflight verifies all 12 required preparation checks; 051-02 stock observation/setup gates remain open. [Operator guide](probes/adobe-compatibility/README.md).
+- [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01/04 DONE, 051-05 local harness reviewed. Historical v2 preflight passed all 12 checks; current source evidence expired, so live 051-02 still needs fresh routing and setup/outcome gates. [Operator guide](probes/adobe-compatibility/README.md).
 - **052-057** — unsliced DRAFT outlines for the remaining [Adobe release portfolio](docs/releases/adobe-compatibility.md#jig-handoff); refine after 051 evidence. See [status board](docs/specs/README.md).
 
 ### Deferred decisions
@@ -74,7 +74,9 @@ AJO/CJA/RTCDP are deferred for the initial proving ground, not removed from the 
 No new AEP sandbox is required for the initial baseline with
 Platform ingestion disabled. No stock/live workflow proof exists yet. [Spec 051](docs/specs/051-adobe-integration-proving-ground/spec.md)
 supplies the contracts and reviewed preflight utility. The owner confirmed scoped profile permissions;
-051-04's real schema-v2 report verifies all 12 required preparation checks with explicit manual evidence.
+051-04's historical real schema-v2 report verified all 12 preparation checks with explicit manual evidence;
+current live freshness requires renewed unchanged-routing confirmation. The local harness runs
+four synthetic cases and never claims vendor SDK/product execution.
 Deployment, scoped activity scheduling/targeting and product observation still require the stock plan.
 The owner granted proceeding after independent reviews under strictly
 fewer than 10,000 credits overall and eight active hours for 051-03; input/evidence, setup-scope and

@@ -900,6 +900,37 @@ with current-owner-edit-preserving updates, exact pins, refusal tests and restor
 live use. Native outcome exports are needed after real traffic, not more targeting configuration
 screenshots. Source evidence must still be valid for each actually approved live stage.
 
+### Harness implementation and active-finish permission — 2026-10-09
+
+The owner explicitly requested running the setup/test steps and permitted leaving the activity
+active unless stopping has a strong reason. Preserve that decision for the reviewed successful
+finish; a temporary pause is still needed to stimulate the no-offer control, and errors or lost
+scope/consent stop traffic. An approved active finish must state the actual bounded schedule
+and retained test configuration rather than claiming the original inactive state was restored.
+No activation has occurred.
+
+The original selection/routing evidence reached its 24-hour limit. Fresh unchanged-routing
+confirmation was requested without asking for another screenshot; the owner was unavailable.
+Neither this execution grant nor previous report/filter screenshots are new routing evidence.
+Live mutations/SDK traffic remain gated rather than backdating or extending those observations.
+
+New 051-05's independently frame-reviewed local harness is being implemented with failing tests
+first. It drives the same fixed stock call sequence through invented integrations and validates
+positive, no-consent, no-offer and non-render behavior. This is useful tested operator code,
+not stock SDK execution, deployed code or Adobe receipt. Pinned export signatures and the
+void ACDL submission limitation were checked directly; closed 051-01/04 records remain intact.
+
+The subsequent local implementation passed independent compliance and craft. The parent ran
+all four actual operator cases and 588 combined tests (133 local-harness, 455 existing preflight/
+frozen-core); the implementation's full run passed 2,470 tests. Reports always state local
+fixtures only and deny SDK execution, product receipt, deployment and activity activation.
+The site wrapper and real vendor-response qualification still belong to 051-02.
+
+The actual current preflight was rerun and returned **exit 1 / stale_evidence / zero requests**:
+original scope/routing observations were not extended. It neither minted a token nor sent SDK
+traffic. A fresh unchanged-routing confirmation was requested and remains unavailable.
+Local implementation is real code progress, not evidence that the requested live steps ran.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes

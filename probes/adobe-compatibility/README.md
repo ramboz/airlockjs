@@ -307,3 +307,95 @@ with null HTTP status, not invented API proof. Original routing timestamps were 
 The historical v1 unknown report remains preserved. This clears initial preparation only;
 stock deployment, owned activity schedule/targeting and downstream product observation still
 require their separate reviewed 051-02 plan.
+
+## Local stock journey operator — 051-05
+
+The current real readiness rerun refuses expired source evidence (`stale_evidence`, exit 1,
+zero API requests). A fresh unchanged-routing confirmation is required before live work.
+This local operator remains usable without credentials or network; its passing cases do not
+renew those observations or authorize the activity. The owner permits a successful test to
+finish with the owned activity active; control/error pauses and actual reported state remain
+separate from this local-only command.
+
+This separate command runs **invented local fixtures only**. It cannot load Alloy, read
+credentials/configuration/files, use a transport or activate/deploy anything. It does not
+renew expired routing evidence or satisfy any 051-02 live gate.
+
+```sh
+node probes/adobe-compatibility/stock-dry-run.mjs --help
+node probes/adobe-compatibility/stock-dry-run.mjs --case positive
+node probes/adobe-compatibility/stock-dry-run.mjs --case no-consent
+node probes/adobe-compatibility/stock-dry-run.mjs --case no-offer
+node probes/adobe-compatibility/stock-dry-run.mjs --case non-render
+```
+
+Only exactly `--case <one fixed case>` or `--help` is accepted, with no environment hooks.
+Case stdout is one schema-v1 `airlock.adobe-stock.local-report` JSON line. Fixed keys are
+`kind`, `schema_version`, `case`, `overall`, `exit_code`, `phases`, `counts`, `claims`.
+Reports contain only fixed enums, booleans and nonnegative integer counts; no URL, run label,
+config, proposition, HTML, selector, path or exception is printed. Help is static text.
+Exit 0 means the assigned **local** journey passed; 1 means a journey failure, 2 an invalid
+input/invocation, 3 an internal failure. Failures print only the fixed `overall` category to stderr.
+
+| Case | Attempted / blocked collection | Fetch / page / custom | Qualified | Display / interact | Host render / click confirmed |
+|---|---:|---:|---:|---:|---:|
+| positive | 4 / 0 | 1 / 1 / 1 | 1 | 1 / 1 | 1 / 1 |
+| no-consent | 4 / 4 | 0 / 0 / 0 | 0 | 0 / 0 | 0 / 0 |
+| no-offer | 3 / 0 | 1 / 1 / 1 | 0 | 0 / 0 | 0 / 1 |
+| non-render | 3 / 0 | 1 / 1 / 1 | 1 | 0 / 0 | 0 / 1 |
+
+Display is bundled into the page submission, not another collection call. All cases initialize
+once, update explicit simulated consent once, and execute lazy/delayed phases; denied eager
+collection is marked blocked. Denial exercises the local guard for fetch/page/custom/interaction
+and blocks host rendering/clicking. The stub records consent denial, not SDK-native enforcement.
+No-offer actually fetches an empty list; non-render actually qualifies the expected proposition
+but uses the ordinary host control button instead of applying it. Positive waits for host fixture
+visible-render acknowledgement, page DISPLAY, lazy initialization, bound click, void ACDL custom
+submission, native INTERACT and empty delayed phase, in that order.
+
+### Module contract and test-only clock
+
+`stock-harness.mjs` is pure browser-compatible ESM with no imports or DOM access. Its sole export,
+`runStockJourney(options)`, returns a deeply frozen report on success **or** failure. The closed
+options/renderer contract is documented in
+[051-05's pre-test note](../../docs/specs/051-adobe-integration-proving-ground/slice-05-local-stock-harness.md#open-051-05-implementation-contract--before-tests):
+
+- Exactly the seven selected pinned integration functions, fixed case, synthetic `runId`,
+  integer `eventIndex`, canonical HTTPS origin/root `pageUrl`, bounded literal `decisionScope`,
+  `{orgId,datastreamId}` config, `{render,click}` renderer, required `timeoutMs` (1–10000).
+- Optional module-only `{setTimeout,clearTimeout}` clock for deterministic deadlines. There is
+  no CLI flag or environment seam for clocks, files, modules, SDK configuration or transports.
+- Known static HTML/item/schema, exact scope and TGT provider qualification; one proposition and
+  one item. Renderer acknowledgement is a trusted host fixture observation, never SDK
+  `renderAttempted` proof. No arbitrary markup or selector execution is implemented.
+- Exact pinned signatures: `initMartech(webSDKConfig,martechConfig)`,
+  `updateUserConsent({collect,personalize,marketing,share})`, `sendEvent(payload)`,
+  `sendAnalyticsEvent(xdm,data,overrides)`, `pushEventToDataLayer(event,xdm,data,overrides)`,
+  `martechLazy()`, `martechDelayed()`. Fetch scopes are top-level for Alloy 2.31.1. Eager is
+  the harness's manual fetch/render/page phase, **not `martechEager()`**, whose known non-DOM
+  auto-display gap is deliberately avoided. Automatic clicks/display/page tracking and
+  data-layer state merging are disabled; delayed has no Launch URLs.
+
+Failures are fixed `invalid_input`, `invalid_invocation`, `invalid_proposition`,
+`render_unconfirmed`, `click_unconfirmed`, `integration_rejected`, `renderer_rejected`,
+`click_rejected`, `timeout`, `invalid_contract`, or `internal_failure` categories.
+Invalid inputs/functions fail before invocation. Failure or per-invocation timeout stops every
+subsequent harness side effect; already dispatched SDK/host work is **not cancelled**.
+Void ACDL submission cannot expose its listener's later asynchronous SDK rejection. Counts are
+application submissions, including dispatched calls that reject, not HTTP attempts, vendor
+completion, receipt, retries or exactly-once delivery. The public claims are always:
+`local_fixture_only:true`, `sdk_execution_verified:false`, `product_receipt_verified:false`,
+`deployment_verified:false`, `activity_activation_performed:false`.
+
+```sh
+npm test -- test/adobe-stock-harness.test.js \
+  test/adobe-preflight-cli.test.js test/adobe-preflight-transport.test.js \
+  test/adobe-preflight-evidence.test.js test/adobe-workspace-evidence.test.js \
+  test/contract-stability.test.js
+```
+
+The tests spawn the real CLI with read/network/SDK/credential tripwires (permitting only Node's
+two fixed public module-source reads), record actual function calls/arguments and exercise
+refusals, false host acknowledgements, malformed/foreign/ambiguous propositions, rejections,
+late settlement after timeout, deep freeze and redaction. All runs are dry simulations, not
+executions of the real pinned integration or Alloy.

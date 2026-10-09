@@ -36,6 +36,23 @@ notification semantics, report-environment selection or wider permissions. See Â
 **Goal:** An integrator can reproduce a synthetic Analytics/Target journey through pinned stock
 `aem-martech` in approved test resources, including Adobe-native display reporting and outcome evidence.
 
+**Execution follow-up, 2026-10-09:** The owner explicitly requested implementation and execution
+and permitted leaving the owned activity active unless a strong reason requires stopping.
+That permission changes successful-finish cleanup, not control/error behavior or product routing.
+The no-offer control still requires a temporary saved/inactive state in the active-only environment;
+scope/consent/duplicate/restore failures still stop traffic. The plan may choose
+`finish_state:approved` with an explicit bounded serving end and disabled test code after the
+successful observation, instead of restoring the original inactive schedule automatically.
+The operator must report actual state/schedule and preserved owner edits; no unbounded serving,
+continued synthetic sending, implicit production publication or hidden residual is authorized.
+If changing goals/content back would invalidate the active approved test, leave the explicitly
+reviewed reusable test configuration and report that disposition rather than call it restoration.
+
+The historical initial source evidence has reached its 24-hour deadline. Fresh confirmation of
+unchanged dedicated datastream routing was requested; the owner was unavailable. Execution
+approval is not a new routing observation. Local harness 051-05 proceeds independently, while
+live mutation/SDK gates retain the actual fresh-evidence prerequisite.
+
 **DoR:**
 - [x] 051-01's utility is complete and a recent real report verifies the required access/test scope.
 - [ ] Owner approves the setup plan's org, product resources, domain, mutations and cleanup scope.
@@ -175,8 +192,9 @@ node probes/adobe-compatibility/stock-baseline.mjs restore \
 `apply` accepts only `stage:prepare`: reviewed saved-state edits and SDK-disabled deployment.
 Each `run` accepts one reviewed traffic-stage plan and owns its pre-checkpoint, bounded activation
 (except the `no-offer` control, which deliberately keeps the activity saved/inactive),
-test switch enablement, synthetic traffic and immediate switch-disable/saved-state/original-schedule
-restoration in a `finally` path.
+test switch enablement, synthetic traffic and switch-disable in a `finally` path.
+Control/error cleanup restores the required saved state; the final successful positive stage
+may retain the explicitly approved bounded active configuration under the owner's follow-up.
 `observe` never starts a browser, activates or resends events. A subsequent run refuses until
 its predecessor's 120-minute observation completes; control results remain provisional until
 the positives establish sensitivity. Fixed traffic-stage order is `no-consent`, `no-offer`,
@@ -423,9 +441,11 @@ Its full deadline includes propagation, last traffic by `anchor+30 minutes`, 120
 observation and restoration margins, strictly before the earliest source/approval expiry.
 Allow at most 20 minutes for configuration propagation using bounded exact readbacks, not
 exploratory SDK traffic. Require all activation gates before approval/current delivery and
-before runtime enablement. Disable the SDK switch and restore saved state/original schedule
-immediately after that stage's traffic; keep reviewed goal/offer definitions only while needed
-for its reports. Recheck matching journal hashes before any later approved operation.
+before runtime enablement. Disable the SDK switch after that stage's traffic. Control stages,
+errors and stock/chamber arm separation can require pausing the owned activity and restoring
+the relevant schedule. A final successful stage may use the owner's active-finish permission
+with explicit serving end/state and retained reviewed goals; do not silently restore it inactive.
+Recheck matching journal hashes before any later operation.
 
 A later stage needs a separately bound plan/approval and completed predecessor observations;
 its anchor is no earlier than three hours after the predecessor anchor and later if report
@@ -439,10 +459,11 @@ No automatic schedule/approval/evidence extension. Past-ended, wrong-date, wrong
 not-yet-verified activity cannot be treated as eligible. Future-only approval proves permission,
 not current delivery.
 
-Stop runner traffic on every stage exit. Independently attempt the exact owned PUT state saved
+Stop runner traffic and disable the test switch on every stage exit. For an error, interruption,
+required control pause or explicit inactive-finish plan, independently attempt the owned PUT state saved
 and switch-disable forward commit/readbacks; a deployment/ref conflict must not prevent the
 saved-state kill attempt, or vice versa. Restore original schedule
-after each stage. After the last observation authorized by the current bounded stage plan, whether final or a
+when that cleanup branch applies. After the last observation authorized by an inactive-finish plan, whether final or a
 partial stop (or immediately on failure/interruption),
 restore exact original targeting, metrics, offer content and other touched writable fields, and
 re-read saved/inactive and every original hash. Restore the root bootstrap to its captured original bytes and the runtime switch to disabled
@@ -451,6 +472,10 @@ Keep restore authority and bounded inverse operations in the original approval/j
 repeat recovery is idempotent. If a concurrent change conflicts, still stop traffic/attempt
 the authorized exact owned saved-state operation, refuse overwriting foreign content, and
 report `restore_incomplete` for owner recovery. Never label an unverified restore complete.
+For owner-approved successful active finish, report actual state/schedule, verify only the
+intended reusable owned configuration remains and preserve Page Delivery; this disposition
+is not restoration of the original inactive fixture. No extra SDK traffic or default-resource
+changes accompany an active finish.
 Later staged work must freshly plan any needed saved-only preparation/redeployment and bind
 the actual metric definitions/report context to retained captures. If changing/restoring goals
 prevents sound cross-stage correlation, that is a reporting stop, not permission to leave
