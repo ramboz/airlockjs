@@ -846,6 +846,40 @@ At the fresh editor check, original selection/routing evidence had roughly 30/40
 the new editor screenshots do not renew either. Stock activation, deployment and SDK traffic
 remain unexecuted.
 
+### Owner simplifies dedicated-site eligibility — 2026-10-09
+
+The owner explicitly relaxed the additional request/URL/test-marker eligibility requirement
+because this is a dedicated test site with isolated product fixtures, then reported configuring
+a Page Delivery rule anyway. Treat that as a scoped execution decision: no additional audience
+or eligibility marker is needed for this run, and no more targeting-panel screenshots are
+requested to establish the retired rule requirement.
+
+Preserve the owner's Page Delivery change. A fresh exact owned activity read confirms saved/
+inactive state, original future schedule, custom scope and owned offer links still present.
+The response does not expose the configured Page Delivery rule; neither its semantics nor
+its preservation through a proposed whole-activity update is claimed verified. Base any later
+reviewed mutation/restoration on current owner-edited state, not historical snapshots.
+
+The unchanged boundaries are exact dedicated Analytics suite, Target property/workspace/
+development routing, approved reference-site synthetic traffic, scoped known activity/offers,
+consent, endpoint controls, bounded activation and inactive restoration. No customer/default
+resource edits, Platform ingestion, broad runtime authority or changed release gate are authorized.
+Run/event labels remain useful receipt correlation, not customer identity or mandatory eligibility.
+
+The no-offer control can use the same owned scope while the exact activity deliberately remains
+saved/inactive in the active-only test environment. It must send the declared stimulus and
+observe actual absence, not silently omit an action; positive observation sensitivity remains
+mandatory. No extra marker rule or unapproved audience is needed to create that control.
+The revised execution frame requires review, and old source observations still cannot be renewed
+by this flexibility decision. No activity state, Page Delivery setting, goal or routing was changed
+by the agent and no SDK traffic was sent.
+
+Independent re-review passed the simplified frame against the original eight ACs. 051-02 is
+READY_FOR_REVIEW, not implemented or live-ready. Extra eligibility/targeting authoring is no
+longer a blocker; a current owner-edit-preserving resource plan, source freshness, deployment
+and downstream observation gates still require their actual evidence. Existing Page Delivery,
+scope, metrics and inactive future schedule were not changed by the agent.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes

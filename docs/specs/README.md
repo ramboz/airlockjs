@@ -21,7 +21,8 @@ internal mechanisms can remain unanchored; live-validation residuals and release
 by a DONE slice or a green coverage report.
 
 **Adobe-first portfolio:** [051](051-adobe-integration-proving-ground/spec.md) has an implemented,
-reviewed preflight and owner-confirmation extension, plus two DRAFT baseline/spike slices below.
+reviewed preflight and owner-confirmation extension, plus a READY_FOR_REVIEW baseline and DRAFT
+spike below. The dedicated-site owner relaxation removes the added targeting/marker prerequisite.
 The historical v1 workspace unknown is preserved; latest real v2 verifies all 12 preparation
 checks. This is not a stock/chamber product proof. Specs 052-057 are
 intentionally unsliced DRAFT outlines, so the generated slice table
@@ -158,7 +159,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-01 — the reference-site `?martech=airlock` rewire arm | **DONE** |  |
 | [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-02 — measured Lighthouse/TBT + parity evidence + scripted adoption path | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-01 — read-only access preflight | **DONE** |  |
-| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-02 — reproducible test setup and stock baseline | DRAFT |  |
+| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-02 — reproducible test setup and stock baseline | READY_FOR_REVIEW (adobe-adoption-goal) |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 🔬 051-03 — bounded SDK compatibility decision | DRAFT |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-04 — scoped workspace confirmation | **DONE** |  |
 

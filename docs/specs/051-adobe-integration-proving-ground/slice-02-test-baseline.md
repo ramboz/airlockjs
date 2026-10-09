@@ -1,10 +1,11 @@
 ---
-status: DRAFT
+status: READY_FOR_REVIEW
 dependencies: [051-01, 051-04, adr-0031]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
+claimed_by: adobe-adoption-goal
 ---
 
 ## Slice 051-02 — reproducible test setup and stock baseline
@@ -172,7 +173,8 @@ node probes/adobe-compatibility/stock-baseline.mjs restore \
 ```
 
 `apply` accepts only `stage:prepare`: reviewed saved-state edits and SDK-disabled deployment.
-Each `run` accepts one reviewed traffic-stage plan and owns its pre-checkpoint, bounded activation,
+Each `run` accepts one reviewed traffic-stage plan and owns its pre-checkpoint, bounded activation
+(except the `no-offer` control, which deliberately keeps the activity saved/inactive),
 test switch enablement, synthetic traffic and immediate switch-disable/saved-state/original-schedule
 restoration in a `finally` path.
 `observe` never starts a browser, activates or resends events. A subsequent run refuses until
@@ -227,9 +229,11 @@ Before any Adobe/site operation validate exact approved bindings/scope. **Prepar
 are 051-04 DONE with required reviews, a real ready preflight, source freshness through the
 bounded preparation deadline, owned saved/future fixtures, and a reviewed exact no-traffic
 mutation/deploy/inverse plan. These permit saved-only offer/goal edits and disabled deployment;
-unknown targeting/receipt contracts remain explicit traffic stops, not waived requirements.
+receipt contracts remain explicit traffic stops. The owner's dedicated-site relaxation below
+removes the additional audience/URL/test-marker eligibility prerequisite for this run only.
 Served bytes/CSP are verified *after* disabled deployment, not demanded before any deployment.
-**Activation gates** additionally require proven server-side targeting/inverse, verified disabled
+**Activation gates** require unchanged approved suite/property/workspace/development routing,
+preservation of the owner's current Page Delivery configuration, verified disabled
 deployment/pins/CSP and exact planned enable/disable operations, supported receipt/count/window
 contracts, available observers and
 fresh original evidence through that whole stage's traffic, observation and restoration deadline.
@@ -358,38 +362,40 @@ a new activity/audience/resource. Preserve originals and their exact inverse.
 Official DISPLAY/INTERACT-to-goal mapping is now grounded in §5/R-012; installed click-goal
 readback, actual report columns/units and downstream outcomes remain separate gates.
 
-Required targeting is an AND of **Current Page Domain equals the exact test hostname**,
-**Current Page Path equals `/`**, and the activity's requested
-custom scope plus **Custom `pageName` equals `airlock-stock-v1`**. Supply the Target marker as
-`xdm.web.webPageDetails.name` on the fetch; do not invent an untyped Target `data` parameter,
-use a persistent `profile.*` marker, enable Platform ingestion or mutate the base schema.
-Analytics correlation is separately set through the Analytics data mapping below.
+**Owner-directed dedicated-site relaxation — 2026-10-09:** The owner explicitly said extra
+request restrictions are unnecessary for this disposable, dedicated test site and reporting
+fixtures, then reported configuring a Page Delivery URL rule anyway. Preserve that owner change.
+No additional audience, URL/query eligibility rule or SDK eligibility marker is required by this
+run. All Visitors and the A/B split may remain unchanged. This supersedes the draft's mandatory
+domain/path/pageName AND gate, not the original consent, ownership, product-isolation or outcome ACs.
 
-The public Admin schema models audience rules as opaque objects and the A/B activity references
-audience IDs; it does not establish a safe domain/marker rule-writing contract. Therefore **no
-guessed audience JSON or audience creation endpoint** is authorized. A supported UI step may
-edit an already verified owned **activity-local** targeting definition while saved. The fresh
-GET currently has no inline rules/targeting/audiences, and its one custom-mbox location and
-both experiences have `audienceIds:[]`; this is not an established server-side gate.
-First perform **read-only** inspection of exact activity → Edit → Targeting, without Save or
-Create Audience: establish the actual supported UI flow, definition ownership, equality/AND
-semantics, supported XDM `pageName` mapping and exact restorable before/after projection.
-Only then propose/review that exact saved-state edit and inverse. No definition/UI ability
-is inferred from the absence of fields in the Admin GET.
+Keep the exact approved Analytics suite, Target property/workspace/development environment,
+known activity/offers and custom decision scope. The harness still originates bounded synthetic
+requests only from the dedicated reference site; it does not send to customer fixtures, production
+destinations or arbitrary endpoints. Synthetic run/event markers remain correlation identifiers,
+not audience gates or authentication. Do not mint persistent profile markers, enable Platform
+ingestion, add roles or alter service routing. No new audience resource is authorized or needed.
+
+Before preparing any owned goal/offer change, re-read the current fixture and preserve the
+owner's Page Delivery configuration. The latest saved state, not an older seed, is the baseline
+for the plan and restoration. The current API corroborates owned scope, original future schedule,
+inactive state, original custom scope and offer links; it does **not** expose the newly configured
+page-delivery rule. Therefore no unsupported whole-activity round-trip, old snapshot restore or
+guessed rule JSON may overwrite it. Any update must establish preservation of that owner setting
+before applying. Exact rule semantics are not asserted as API-proven or required for acceptance.
 
 **Owner editor evidence, 2026-10-09:** The Targeting view explicitly shows All Visitors,
 100% traffic and equal experience allocation. This corroborates the unrestricted qualification
-response; it does not establish a supported domain/path/marker editor flow. The next read-only
-inspection opens the All Visitors card's audience panel without creating/editing/saving a rule.
+response; it does not establish a supported domain/path/marker editor flow. That additional
+eligibility requirement and audience-panel request are superseded by the owner's relaxation.
 Goals & Settings also shows unselected primary/additional goal choices and disabled Save & Close,
 while a fresh exact API read retains the owned count-once display conversion. The UI discrepancy
 and safe edit/restore round-trip remain unverified. Do not guess form choices or overwrite
 the saved metric definition to make the editor pass validation.
 
-Do not reuse an unknown/library/customer audience or click “Create Audience” to work around
-missing ownership. If no safely editable owned activity-local definition exists, or restoring
-it would require deletion, `required_stop: target_targeting_contract` requests a separately
-reviewed exact plan/owner decision. This draft does not claim such a definition or UI access exists.
+Do not reuse or edit shared audiences, create an audience to satisfy a retired gate, or reset
+report data. The prior `target_targeting_contract` eligibility stop is removed for this isolated
+run. Preservation of owner edits during any actually planned resource update remains mandatory.
 
 Closed future Target mutations use `https://mc.adobe.io/{privateTenant}/target`:
 PUT `/offers/content/{privateOffer}` (v2), PUT `/activities/ab/{privateActivity}` (v3),
@@ -401,8 +407,7 @@ workspace. The approved private plan freezes complete bodies before mutation.
 
 **Preparation is separate from traffic:** while saved/future-dated, an exact reviewed plan may
 prepare harmless owned offers/goals and the disabled deployment, then verify them without
-requiring a receipt from traffic not yet sent. Unknown server targeting is not silently edited.
-Prepare a targeting edit only after its read-only contract/ownership/inverse gate clears.
+requiring a receipt from traffic not yet sent. The owner's targeting/page-delivery settings are not edited by preparation.
 No preparation operation approves current delivery or enables an SDK.
 
 **Timing correction:** five anchors `T`, `T+3h`, `T+6h`, `T+9h`, `T+12h` plus the last 120-minute
@@ -565,7 +570,7 @@ No retries/warmup SDK traffic, statistical power claim or automatic extra volume
 | Case | Deliberate stimulus and required local evidence | Product observation |
 |---|---|---|
 | No consent | Initialize pending, explicitly deny collection/personalization before attempted fetch/page/custom; keep default DOM. Instrument actual blocked/queued attempts and rejection/timeout, not an omitted action. Observe 10 seconds then close context without granting. Consent preferences/cookie and documented consent-only traffic are not “zero network.” | Exact reserved P/C rows absent; no decision/display/interact submission or qualified Target receipt. A successful positive later establishes observation sensitivity. |
-| No offer | Grant consent; request the **same** owned scope on the same site but set fetch XDM page name to `airlock-stock-unqualified`. Targeting must fail; record the actual response without the owned offer. Send one ordinary P page and C custom link using a default-page button, with no proposition fields. | P page and C custom are received; no Target display/interact count increment for this case. Failure to obtain the positive later cannot pass this empty case. |
+| No offer | Grant consent; keep the exact owned activity saved/inactive in the verified active-only development environment. Request the **same** approved scope on the reference site and record the actual response without the owned offer. Never enable inactive serving. Send one ordinary P page and C custom link using a default-page button, with no proposition fields. | P page and C custom are received; no Target display/interact count increment. This deliberately unavailable-offer stimulus is separate from the later active positives and cannot pass without positive observation sensitivity. |
 | Non-render | Grant; obtain/hash-qualify the same real HTML proposition, but deliberately do not call applyPropositions or insert it. Send the ordinary P/C events without proposition fields, using only a default-page button. | Analytics P/C are received; no native display/interact notification and no downstream corresponding increment despite eligible decision receipt. This distinguishes fetch from display. |
 | Positive / stock-perf | Qualified real offer → visible reserved DOM → native display/page → actual button click/custom/native interact; fresh context each. | Both distinct Analytics receipts plus Target display/interaction receipt/outcome. |
 
@@ -915,28 +920,33 @@ access, resource write, deploy or SDK execution in this refinement:
 | [Analytics data mapping](https://experienceleague.adobe.com/en/docs/analytics/implementation/aep-edge/data-var-mapping), [hit types](https://experienceleague.adobe.com/en/docs/analytics/implementation/aep-edge/hit-types), [official OpenAPI](https://github.com/AdobeDocs/analytics-2.0-apis/blob/main/static/swagger.json), [report examples](https://github.com/AdobeDocs/analytics-2.0-apis/blob/main/src/pages/guides/endpoints/reports/examples.md), [MATCH search grammar](https://github.com/AdobeDocs/analytics-2.0-apis/blob/main/src/pages/guides/endpoints/reports/search-filters.md) | Separate pageName vs custom linkName/linkType and downstream dimension/metric/row queries; page/link classification and avoidance of suite totals. |
 | [Target Admin OpenAPI](https://github.com/AdobeDocs/target-developers/blob/main/src/admin-api.json), [official Reports reference](https://developer.adobe.com/target/administer/admin-api/#tag/Reports), [report settings](https://experienceleague.adobe.com/en/docs/target/using/reports/settings/report-settings), [report view/export](https://experienceleague.adobe.com/en/docs/target/using/reports/reports) | Exact mutation/report versions; complete declared 200-schema reference graph, metadata rather than defined result counts; UI environment/counting-method choices. Parent verified access to the scoped report GET; receipt/result mapping remains unknown. |
 | [Target/Web SDK display-mbox conversion](https://experienceleague.adobe.com/en/docs/target-dev/developer/client-side/aep/target-overview#display-mbox-conversion-metrics), [Track events migration](https://experienceleague.adobe.com/en/docs/platform-learn/migrate-target-to-websdk/track-events), [Target success metrics](https://experienceleague.adobe.com/en/docs/target/using/activities/success-metrics/success-metrics), [Delivery API Notifications](https://experienceleague.adobe.com/en/docs/target-dev/developer/api/delivery-api/notifications) | R-012's direct official reads ground DISPLAY/INTERACT mbox goal conversions and count-once behavior; distinct Delivery notification-ID acknowledgment is not Alloy's report contract. Actual Admin/export numeric fields, stage/experience/count units and outcomes remain unresolved; no Delivery endpoint substitution. |
-| [Target Site Pages](https://github.com/AdobeDocs/target.en/blob/main/help/main/c-target/c-audiences/c-target-rules/site-pages.md), [Custom parameter rules](https://github.com/AdobeDocs/target.en/blob/main/help/main/c-target/c-audiences/c-target-rules/custom-parameters.md), [Web SDK parameter mapping](https://experienceleague.adobe.com/en/docs/platform-learn/migrate-target-to-websdk/send-parameters) | Exact domain/path plus marker qualification; XDM name mapping, no at.js property token or invented arbitrary data mbox marker. API rule objects remain opaque. |
+| [Target Site Pages](https://github.com/AdobeDocs/target.en/blob/main/help/main/c-target/c-audiences/c-target-rules/site-pages.md), [Custom parameter rules](https://github.com/AdobeDocs/target.en/blob/main/help/main/c-target/c-audiences/c-target-rules/custom-parameters.md), [Web SDK parameter mapping](https://experienceleague.adobe.com/en/docs/platform-learn/migrate-target-to-websdk/send-parameters) | Historical investigation of extra qualification rules; owner waived that added dedicated-site gate. API rule objects remain opaque and owner Page Delivery settings must be preserved. |
 
 **Preparation still needs** an exact reviewed no-traffic saved-offer/goal/disabled-deploy plan
 and inverse, current ownership/before hashes, real relevant write/serving checks and evidence
-freshness through its own deadline. **Traffic remains blocked** on safely editable/restorable
-owned server-side hostname + root-path + XDM-marker AND targeting/custom scope; actual deployed
+freshness through its own deadline. **Traffic still requires** exact owned scope/routing and
+preservation of the owner's Page Delivery setting, actual deployed
 bytes/CSP/switch/window readback; dedicated-suite dimension/processing contract; installed
 owned click-goal readback; supported Target goal-column/count-unit/experience/window correlation;
 actual operator availability where manual; and separately bounded schedule/observations compatible
 with source freshness and full two-hour waits. The applied development/impression view and
 official DISPLAY/INTERACT mapping are established facts, not unresolved selection/mechanism gates.
-Frame/architecture/setup review and the unchecked DoR remain open; this edit records no verdict
-or status change. Record a required stop for each applicable unknown. No bare receipt flag, permissive proxy,
+Implementation architecture/setup review and the unchecked DoR remain open; the separate
+owner-decision frame verdict is recorded below. Record a required stop for each applicable
+unknown. No bare receipt flag, permissive proxy,
 new entitlement, guessed API or GA4 substitute clears them. AJO/CJA/RTCDP remain deferred for
 this proving ground with their broader requirements unchanged.
 
-**Minimal first safe execution step for the parent, not performed here:** using its already
-approved exact owned activity handle, read-only **Edit → Targeting** inspection, without Save
-or Create Audience. Establish the supported owned definition/AND rule flow and precise inverse
-before proposing any targeting mutation. Do not ask again for the supplied report screenshots.
-If that inspection cannot establish an owned/restorable server gate, preserve
-`required_stop: target_targeting_contract`; do not activate, deploy enabled code or send SDK data.
+**Subsequent owner-decision frame review:** Independent critique passed after the dedicated-site
+eligibility relaxation and recorded plan corrections. Status is READY_FOR_REVIEW; the source/
+mutation/deployment/observation DoR items remain open. This frame pass establishes a sound proposed
+approach, not an implemented tool, safe whole-activity update, renewed routing or live outcome.
+
+**Next execution step:** review the revised isolated-test frame and implement the bounded
+no-traffic plan/refusal path with TDD once its actual prerequisites clear. Do not request more
+targeting screenshots or add an audience/marker requirement retired by the owner. Re-read
+current owned settings, and never replace the owner's Page Delivery edit with an older seed.
+Actual update preservation, fresh routing evidence and stock receipt/restore gates still govern.
 Hermetic work and independently reviewed disabled preparation can proceed only under their
 separate applicable gates; neither clears AC3–8.
 
@@ -955,9 +965,10 @@ observed product journey, not merely schemas/datastreams that might enable a fut
 - The chosen root-only conditional phase hook and same-origin assets can be deployed without
   DA/site-administration changes. Exact bootstrap/consent source blobs are now readable and
   grounded in §2; actual writes, served hashes and browser/CSP remain unverified.
-- Current owned activity targeting can enforce exact domain/path/XDM marker and be restored
-  without changing/creating/deleting unrelated audiences. The public rule schema does not prove
-  this path, and no private targeting definition was inspected here.
+- Any planned owned goal/offer update can preserve the owner's current Page Delivery setting
+  despite it not appearing in the inspected activity response. Establish supported update
+  preservation before applying; never guess or overwrite it. Extra eligibility rules are not
+  a required assumption after the owner's dedicated-site relaxation.
 - The dedicated suite exposes the selected page/custom dimensions and metrics without rules
   suppressing/rewriting synthetic hits. Existing totals-query permission is not that verification.
 - A supported Target report/diagnostic can establish display/interaction receipt and product

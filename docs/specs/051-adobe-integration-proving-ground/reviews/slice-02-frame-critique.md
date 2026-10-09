@@ -1,25 +1,16 @@
 ---
 slice: 051-02 — reproducible test setup and stock baseline
 pass: frame-critique
-verdict: needs-changes
+verdict: pass
 reviewer: jig:reviewer
-reviewed_at: 2026-10-09T17:26:58Z
-prompt_source: independent stock-frame critique of execution contract and root-seam follow-up
+reviewed_at: 2026-10-09T21:30:29Z
+prompt_source: review.py frame-critique 051-02; owner-directed isolated-site simplification
 ---
 
-VERDICT: needs-changes
+VERDICT: pass
 
 REASONING:
-Original ACs and stable-core/release boundaries are preserved, but current live plan is not executable. Five anchors through T+12h plus final two-hour observation need at least approximately14hours; original source evidence has roughlyfourhours remaining. Target server-side domain/path/marker gate is not established in the owned activity. RawHTMLserving, private-state writer authority and preparation-versus-traffic gates also need clarification. These are framing defects, not evidence of failed stock behavior.
-
-SPECIFIC ISSUES:
-- Fixed standalone HTML route unnecessarily excludes the verified existing rootpage phase seam. Permit exactlyreviewed conditional bootstrap change withbaseSHA/diff/deployreadback/forwardrestore and unchangeddefaultnoSDKimports/preloads.
-- Target must still restrict exacthost/rootpath/XDMmarker withAND pluscustomscope; browseropt-in cannotreplace servergate. Noinlineowneddefinition established; no guessedaudienceJSON/libraryborrow/implicitresourcecreation.
-- Inspect existing delayedconsent-check interaction; map awaited stockeager/lazy/delayed phases explicitly.
-- Bind actual source expiry and schedule without timestamp renewal or invented shorter waits.
-- Parent-controlled CLI write authority must cover only approved run artifacts; not contradict soleparentwriter or inventwriter service.
-- Separate approved saved-state no-traffic preparation from activation gates, avoiding circular deployedbyte/CSP verification beforeanydeployment.
-- Reflect currentapplieddevelopment/impressionCSVcontext; no rows/undefinedcounter doesnotestablishzero or goalcounts. Manualcheckpointcadence and stageinterval/countmapping must be established.
+The revised frame survives review against the original eight ACs and the owner's narrow dedicated-site relaxation. This is not DoR clearance or baseline acceptance. Environment/experience/stage observation semantics remain explicitly unverified before traffic rather than inferred from HTTP200 or empty exports. Conditional root seam, same-scope inactive no-offer stimulus and separately approved stages remove prior contradictions without weakening consent/outcome evidence. Whole-activity writes must preserve the owner's Page Delivery change; editor discrepancies, deployed-byte verification, operator observation availability and original source expiry remain execution gates.
 
 RECONCILIATION NOTES:
-Hermetic preparation and scopedreadonlydiscovery may continue after applicable contracts reviewed. Liveactivation/SDKtraffic remain blocked. Preserve DISPLAY/INTERACTsourcegrounding,count-onceexistinggoal,partial-evidence limits and all originalACs; no stockDoD claim. Rootseam is ordinaryDRAFTrefinement within dedicatedtestsitegrant, not newADR/coreauthority.
+Record the owner-authorized retirement of extra URL/query/SDK-marker eligibility for this dedicated run only. All Visitors/split may remain. Preserve manual-renderer/helper limitations, inactive same-scope no-offer control and per-stage timing correction. No stock implementation or live-outcome proof; DoR/DoD remain open.
