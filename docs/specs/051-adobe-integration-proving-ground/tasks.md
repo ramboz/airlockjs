@@ -1,7 +1,7 @@
 # Tasks: Adobe integration proving ground
 
 > 051-01 implementation is hermetically validated (278 preflight tests plus 36 frozen-core tests).
-> Independent implementation reviews passed; reconciliation remains pending. The parent-owned real
+> 051-01 utility is DONE after independent implementation/reconciliation reviews. The parent-owned real
 > preflight returned unverified, and R-012 distinguishes that result from hermetic tests and
 > prior ad-hoc access/setup evidence.
 > Only spec 051 is sliced; specs 052-057 remain outlines. Owner execution grant: strictly below
@@ -25,14 +25,14 @@
 - [x] Record hermetic validation and the real unverified CLI result in R-012, without product claims.
 - [x] Parent runs/records the real scoped preflight after input/frame review and scoped live approval;
       11 required checks ready, workspace snapshot unverified, stock baseline still blocked.
-- [ ] Complete required reviews and reconciliation through Jig; do not infer baseline readiness.
+- [x] Complete required reviews and reconciliation through Jig; do not infer baseline readiness.
 
 Witnessed red-to-green commands/counts and the additional shared test harness are recorded in
 [the slice implementation note](slice-01-access-preflight.md#implementationtdd-witness--2026-10-08).
 No DoD/live/review completion or readiness for 051-02 is inferred.
 Same-slice timestamp, approved dotted-scope and five compliance corrections are implemented with
 witnessed red-to-green regressions. The parent reran live validation and implementation reviews
-passed; the reconciliation/lifecycle gate must still clear.
+and reconciliation passed; 051-01 is DONE without making the stock baseline ready.
 
 ## 051-02 — reproducible test setup and stock baseline
 

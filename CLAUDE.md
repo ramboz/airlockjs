@@ -28,7 +28,7 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 - More terms belong in [docs/memory/glossary.md](docs/memory/glossary.md), not in this primer.
 
 ### Active specs
-- [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; read-only preflight implemented and reviewed. Its real report preserves one required workspace unknown; stock/chamber proof remains blocked. [Operator guide](probes/adobe-compatibility/README.md).
+- [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01 preflight utility DONE. Its real report preserves one required workspace unknown; stock/chamber proof remains blocked. [Operator guide](probes/adobe-compatibility/README.md).
 - **052-057** — unsliced DRAFT outlines for the remaining [Adobe release portfolio](docs/releases/adobe-compatibility.md#jig-handoff); refine after 051 evidence. See [status board](docs/specs/README.md).
 
 ### Deferred decisions

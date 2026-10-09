@@ -156,7 +156,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [049-native-tag-suppressor](049-native-tag-suppressor/spec.md) | 049-02 — direct-beacon-transport suppression (egress-parity completeness) | **DONE** |  |
 | [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-01 — the reference-site `?martech=airlock` rewire arm | **DONE** |  |
 | [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-02 — measured Lighthouse/TBT + parity evidence + scripted adoption path | **DONE** |  |
-| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-01 — read-only access preflight | REVIEWED (adobe-adoption-goal) |  |
+| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-01 — read-only access preflight | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-02 — reproducible test setup and stock baseline | DRAFT |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 🔬 051-03 — bounded SDK compatibility decision | DRAFT |  |
 

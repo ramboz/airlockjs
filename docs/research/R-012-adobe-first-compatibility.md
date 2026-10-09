@@ -45,7 +45,7 @@ property omits optional workspace metadata; no empty assignment is inferred.
 The [executed-result section](#executed-preflight-result-and-remaining-workspace-evidence--2026-10-08)
 records the precise Admin Console confirmation needed. Owner confirmation is unavailable and
 051-02 remains blocked. No SDK traffic, deployment or provisioning ran. Independent implementation
-reviews and reconciliation are not cleared by this real report.
+and reconciliation reviews separately passed; 051-01 utility is DONE, not a ready stock baseline.
 
 **Owner-confirmed, 2026-10-06:** an existing organization has Adobe Analytics and Target access.
 This removes the unknown-entitlement starting point for those two products, but is not an authenticated
@@ -722,7 +722,7 @@ AEP/AJO effective permissions are verified. Initial datastream destinations are 
 owner screenshots, exact selector comparisons and saved-environment-pin confirmation; automatic
 configuration management remains unavailable. Scoped Target create/edit and future-only approval
 pass, with the activity restored inactive. Actual site writes/publication and the stock/live
-comparison remain pending; the implemented preflight still requires final review/reconciliation.
+comparison remain pending; 051-01 preflight utility is DONE after final review/reconciliation.
 AJO/CJA/RTCDP fixtures are deferred for the
 initial proving ground, not removed from the release gate.
 

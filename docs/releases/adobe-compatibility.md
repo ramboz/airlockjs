@@ -124,7 +124,7 @@ R-012 remains the investigation record. The portfolio was drafted through Jig on
 
 | Spec | Draft scope | Refinement state |
 |---|---|---|
-| [051 — Adobe integration proving ground](../specs/051-adobe-integration-proving-ground/spec.md) | Safe preflight, reproducible stock baseline, bounded SDK compatibility decision | Preflight implemented/reviewed; real workspace unknown blocks stock baseline and spike. Their DRAFT contracts remain open. |
+| [051 — Adobe integration proving ground](../specs/051-adobe-integration-proving-ground/spec.md) | Safe preflight, reproducible stock baseline, bounded SDK compatibility decision | 051-01 utility DONE; real workspace unknown blocks stock baseline and spike. Their DRAFT contracts remain open. |
 | [052 — Governed Adobe event collection and SDK commands](../specs/052-adobe-sdk-event-collection/spec.md) | General XDM/data and the documented command/result/event bridge | Unsliced DRAFT; needs 051's contract/approach |
 | [053 — Adobe personalization and reporting](../specs/053-adobe-personalization-reporting/spec.md) | Offers/rendering/scopes/views and Adobe-native display/interaction evidence | Unsliced DRAFT; refine from inventory and relevant command contracts |
 | [054 — aem-martech and Launch migration](../specs/054-aem-martech-launch-migration/spec.md) | Adopter instrumentation, ACDL/Launch compatibility, no duplicate initialization | Unsliced DRAFT; depends on the behaviors being migrated |

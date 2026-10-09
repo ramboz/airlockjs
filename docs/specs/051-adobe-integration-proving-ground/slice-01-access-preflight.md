@@ -1,11 +1,10 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [adr-0031]
 last_verified: 2026-10-08
 kind: feature
 frame_review: true
 arch_review: true
-claimed_by: adobe-adoption-goal
 ---
 
 ## Slice 051-01 — read-only access preflight
@@ -29,7 +28,7 @@ credential handle is available with unchanged contents and owner-only permission
 private selectors/evidence have been normalized without authenticated requests. Original sources
 remain intact. Hermetic CLI implementation/acceptance tests are complete. The later parent-owned
 real CLI returned 11 required checks ready and one unverified. Independent implementation reviews
-passed; reconciliation remains pending. No stock readiness or product proof is inferred.
+and reconciliation passed; this utility is DONE. No stock readiness or product proof is inferred.
 
 **Acceptance Criteria:**
 
@@ -64,7 +63,7 @@ passed; reconciliation remains pending. No stock readiness or product proof is i
 This command checks **initial Analytics/Target preparation**, not deployment, activity activation,
 SDK delivery or product outcomes. The reviewed contract is implemented and validated hermetically;
 the parent-owned real unverified result is recorded in R-012. Independent implementation reviews
-passed; reconciliation remains pending.
+and reconciliation passed. The utility is DONE; the real stock gate remains blocked.
 R-012's ad-hoc successes are starting
 evidence, not a run of this CLI (command-line interface), fresh readbacks or completed acceptance
 criteria. Review this input/evidence boundary before implementation; do not tick DoR from authoring.
@@ -461,7 +460,7 @@ and no token or report POST becomes a generic mutation exception.
 - [x] Required compliance/craft review evidence recorded; no status advance from documentation alone.
 - [x] Required frame/input-contract and architecture reviews cover the new CLI/report boundary;
       implementation architecture review evidence is recorded before REVIEWED.
-- [ ] Deviation log/reconciliation sweep and reconciliation review completed.
+- [x] Deviation log/reconciliation sweep and reconciliation review completed.
 - [x] R-012 and operator instructions distinguish real access from fixture-only results.
 
 **Anti-horizontal-phasing check:** The preflight is independently useful: an operator gets an
@@ -512,7 +511,7 @@ gotcha; team check honored the existing opt-out. No unrelated inbox item was res
 no provisioner, generic request client, new dependencies or speculative SDK implementation was added.
 The derived board is regenerated and its audit is clean. Use-case coverage reports zero gaps,
 zero dangling links and nine pre-existing unanchored specs, intentionally not given invented
-trace links. Reconciliation verdict remains the final lifecycle gate.
+trace links. The independent reconciliation verdict passed and the utility lifecycle is closed.
 
 #### Changed-path dispositions
 
@@ -681,5 +680,5 @@ Production schemas, code, authority, unknown workspace state and source observat
 
 ### Close-out (post-DONE)
 
-- [ ] Regenerate the status board through Jig and retain the live-access caveat in its notes.
-- [ ] Record any unresolved permission/API limitation without making 051-02 ready.
+- [x] Regenerate the status board through Jig and retain the live-access caveat in its notes.
+- [x] Record any unresolved permission/API limitation without making 051-02 ready.
