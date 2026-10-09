@@ -628,6 +628,14 @@ change shared presets, resource routing or activity state to fill the missing ev
 The confirmed header can seed invented parser tests later; populated numeric/count/experience
 semantics still require the reviewed observation contract.
 
+**Owner settings evidence, 2026-10-09:** The supplied panel now confirms Production/Visitors
+selected, with Airlock - Development and Activity Impressions available. Keep that original
+visitor-based export as historical evidence. The planned report context must select the owned
+development environment and Activity Impressions before its next capture/export; applying
+report-view settings does not activate the activity or change service routing. Do not create or
+save a shared preset, reset data or infer a selected development filter before confirmation.
+Preserve count-once goal semantics separately from the reporting denominator.
+
 The official Target settings documentation
 documents choosing environment, dates,
 Visitors/Visits/Activity Impressions and metrics; **Download Reports → Export Report to CSV**

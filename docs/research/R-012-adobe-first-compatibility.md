@@ -761,6 +761,27 @@ the owner should not save/change a shared default preset. Stock traffic remains 
 the observation plan binds environment, interval and counting semantics; the CSV resolved
 header discovery, not all of those gates.
 
+### Native report settings confirmed — 2026-10-09
+
+The owner's four settings screenshots explicitly show the current report filter as
+**Production**, counting methodology **Visitors**, and the first owned experience as control.
+The environment menu includes the exact owned **Airlock - Development** option; counting choices
+are Visits, Visitors and Activity Impressions. Original screenshot digests and selector bindings
+remain private. This resolves discovery of the selected UI settings and available choices.
+
+The current report environment does not match the approved development datastream pin.
+This is a **report-view mismatch**, not evidence of Production delivery or permission to change
+datastream routing. No filter save, resource mutation, SDK event or activation is observed.
+The current visitor-based export is historical; do not relabel it as development/impression data.
+
+For the planned stock observation, select the report-only environment **Airlock - Development**
+and **Activity Impressions**, keeping the owned control and report date range explicit. Applying
+the report Settings dialog is distinct from activating/editing the activity or creating/saving
+a shared default preset. Do not reset report data. Capture the applied report context privately
+alongside its new native CSV. Goal conversion counts still use the actual configured count-once
+semantics; Activity Impressions is not interchangeable with conversions or DOM displays.
+Until the applied context is observed, this reporting prerequisite remains unverified.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes
