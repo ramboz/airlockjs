@@ -1,0 +1,223 @@
+# Adobe initial-preparation preflight — 051-01
+
+This Node ESM utility checks **initial Analytics/Target preparation only**. It does not deploy,
+execute HTML/SDKs, activate activities, provision, publish, inspect browser state, or verify
+product outcomes. A ready report does not authorize 051-02. See the
+[reviewed v1 contract](../../docs/specs/051-adobe-integration-proving-ground/slice-01-access-preflight.md)
+for the complete closed private schemas and official references, and
+[R-012](../../docs/research/R-012-adobe-first-compatibility.md) for actual access observations.
+Hermetic validation and a real unverified preparation result are recorded below. The orchestrator
+owns live runs; the implementation agent does not access private state or credentials.
+
+## Invocation
+
+On the execution host, supply already-approved private path handles through its environment:
+
+```sh
+node probes/adobe-compatibility/preflight.mjs \
+  --input "$AIRLOCK_PREFLIGHT_INPUT" \
+  --routing-evidence "$AIRLOCK_ROUTING_EVIDENCE"
+```
+
+`ADOBE_CREDENTIAL_FILE` must point directly to the existing uppercase Adobe export, with
+owner-only mode `0400` or `0600`. Do not source, copy, rewrite, or print it. Export fields are exactly
+`ORG_ID`, `CLIENT_ID`, `CLIENT_SECRETS`, `SCOPES`, `TECHNICAL_ACCOUNT_ID`,
+`TECHNICAL_ACCOUNT_EMAIL`. One secret selects index 0; multiple secrets require the sole
+additional flag `--credential-secret-index <integer>`. No attempts against other secrets occur.
+`--help` alone prints static usage without reads or requests.
+
+There are no fixture, clock, arbitrary URL, method, header, token, browser, dotenv, or secret-value
+flags/environment hooks. Unknown/duplicate flags and positional arguments fail before reads.
+The command never writes private state. Only synthetic test files are created by the test harness.
+
+Private input is `airlock.adobe-preflight.input`, version 1, profile `analytics-target-initial`.
+It includes read-only approval; exact org/company/suite/Target/datastream/site selectors; scoped
+owner-selection evidence; absolute suite-local report window; optional lowered limits.
+The site origin must be the exact derived `https://{ref}--{repo}--{owner}.aem.page`.
+No name/first-result/org fallback occurs. The full owner binding and actual export identity digest
+are compared **before token issuance**. An AEP sandbox is not Analytics/Target scope evidence.
+
+Only `decision_scope` uses `[A-Za-z0-9_.-]`, at most 100 characters, including periods.
+It still refuses `.`, `..`, prototype values, `target-global-mbox`, controls/whitespace,
+URL/query/userinfo syntax and `@`. Tenant/site alphabets are unchanged. The full owner binding
+and fresh activity's case-sensitive literal custom scope must match exactly. This frame-approved
+execution-discovered format correction adds no resource, endpoint or mutation authority.
+
+All private JSON files have a 256 KiB byte ceiling, UTF-8 object requirement and depth limit 16.
+Unknown keys, duplicate keys (including escaped equivalents), prototype keys, malformed
+dates/types/versions, symlinks and nonregular files are refused. Response JSON depth is 32;
+unknown additive response fields are ignored, never copied into reports.
+
+### Evidence, freshness and manual boundary
+
+Owner-selection evidence must match every selector and export identity; all dedicated resource
+designations must be true. It is an owner's designation, not an audit of customer traffic/grants.
+It must be observed within 24 hours, not in the future, and expire after the entire run deadline.
+Approval must cover the deadline too. Missing evidence is unverified; structurally invalid evidence
+is exit 2; valid mismatched scope is blocked.
+
+The optional routing file is `airlock.adobe-preflight.routing-evidence`, version 1, with basis
+`owner-ui-and-saved-pin-confirmation`. It requires all exact bindings, three distinct screenshot
+digests, complete service inventory (only Analytics/Target enabled), single selected suite,
+saved owner-confirmed environment pin and fresh property token comparison. It never claims API
+configuration readback.
+
+`observed_at` is the original screenshot observation; `assessment_completed_at` is the latest
+actual event completing the aggregate evidence (including saved-pin acknowledgment).
+Observation <= pin <= completion <= run start. Observation **and** completion must each remain
+within 24 hours; expiry must cover the deadline. Aggregation/normalization never renews observation
+or expiry. Immutable source references retain the original snapshot assessment. Digests/references
+are attestations/provenance, not signatures, OCR, fetched artifacts or independent configuration proof.
+
+Missing/stale/incomplete routing remains unverified; unsafe destination, binding/token mismatch or
+unsaved pin blocks. Reinspect after credential/resource/routing changes, before any SDK traffic.
+`datastream.configuration_api` stays separately unverified even when manual routing passes.
+
+## Closed request inventory
+
+Requests are sequential, HTTPS only, with `redirect:"manual"`. All redirects, userinfo, alternate
+ports, endpoint/query/header/body/method variants are refused. No `Link`/`next` is followed,
+no guessed pagination, retry, token refresh/introspection or undocumented management endpoint.
+
+| Operation | Fixed request |
+|---|---|
+| IMS token | POST `https://ims-na1.adobelogin.com/ims/token/v3`; form exactly client ID, selected secret, `client_credentials`, export's comma-joined scopes |
+| Analytics discovery | GET `https://analytics.adobe.io/discovery/me` |
+| Analytics suite | GET `/api/{company}/reportsuites/collections/suites/{rsid}?expansion=currency,timezoneZoneinfo` on `analytics.adobe.io` |
+| Analytics reporting | POST `/api/{company}/reports`; fixed pageviews totals, absolute approved date range, limit 1/page 0/reflectRequest false; no dimension/segments/customer identities |
+| Target environment | GET `https://mc.adobe.io/{tenant}/target/environments/{id}` (v1 Accept) |
+| Target property | GET same Target origin `/properties/{id}` (v1) |
+| Target properties | GET same Target origin `/properties` (v1); complete visible snapshot only |
+| Target activity | GET same Target origin `/activities/ab/{id}` (v3) |
+| Target offers (2) | GET same Target origin `/offers/content/{id}` (v2) |
+| Site status | GET `https://admin.hlx.page/status/{owner}/{repo}/{ref}/` |
+| Site preview | GET approved exact preview origin plus `/`; bounded HTML discarded without execution |
+
+Analytics uses JSON Accept; reporting adds JSON Content-Type. Product reads use bearer and export
+client ID API key. Token issuance has no bearer. Site requests have **no credentials**.
+Token issuance and the nonmutating totals query are the only POSTs; neither is a generic mutation
+exception. The suite timezone must validate the historical window before the query is sent.
+An invalid suite-local window ends the invocation with exit 2/unverified overall, without the
+reporting POST or subsequent Target/site requests.
+Totals/report IDs/content/response metadata are discarded.
+
+Input scope precedes OAuth, which precedes org/company discovery and all product reads.
+Suite precedes reporting. Exact property/workspace precedes enumeration/activity/offers.
+Tenant binding is owner evidence corroborated by property access, not an API tenant-to-org claim.
+Routing needs fresh property/environment. Parent failures skip dependents. Independent reporting
+failure does not suppress Target/site checks. Site needs approved input/site scope only.
+Property 404 stays unverified without current parent tenant corroboration. Environment 404 is
+confirmed absence only after the exact property's successful workspace/tenant corroboration;
+a failed property check leaves environment absence unverified. No fallback reads are made.
+Composite rows preserve the earliest failure: only an explicit unsafe/scope mismatch may outrank
+an unknown, never a later denial/404 alone or an already-blocked first failure.
+
+### Hard ceilings (optional input `limits` may only lower them)
+
+| Key | Default/ceiling |
+|---|---:|
+| `request_timeout_ms` | 10,000 (headers and streaming body together) |
+| `run_timeout_ms` | 120,000 (entire invocation) |
+| `max_response_bytes` | 1,048,576 decoded streamed bytes/body, including token |
+| `max_total_response_bytes` | 8,388,608 all bodies |
+| `max_requests` | 24; ordinary full run 12 |
+| `max_pages` | 1; inventory contains no paginated operation |
+| `max_items` | 1,000/collection, including nested org + company count |
+
+Byte ceilings do not trust Content-Length; chunked/slow/hanging streams are bounded, aborted and
+canceled. Timers are cleared. The shorter request/run deadline wins. Property total/count mismatch,
+duplicates, extra-page hints or truncation is unverified, never exhaustive absence/readiness.
+Once the aggregate byte ceiling is exhausted, cancel the current stream and stop all further
+transports/body reads, including independent site checks. New requests cannot replenish it.
+
+## Public output and exit codes
+
+Except static help, stdout is exactly one newline-terminated
+`airlock.adobe-preflight.report` JSON document, schema version 1. Stderr is a single line built
+only from overall/exit enums and summary counts. No parser/exception/server messages, private
+paths, keys, selectors, credentials, identities, tokens, hashes or offer contents are emitted.
+Reports are built only from allowlisted primitives and deeply frozen.
+Operators may redirect **only this redacted stdout** to a public artifact.
+
+| Exit | Meaning |
+|---|---|
+| 0 | All 12 required checks ready; four optional diagnostics remain unverified |
+| 1 | At least one required blocked/unverified; blocked wins overall |
+| 2 | Invalid invocation or private input/evidence/credential schema |
+| 3 | Internal failure; report internal failure, never an exception |
+
+Top-level keys: `kind`, `schema_version`, `profile`, `generated_at`, `overall`, `exit_code`,
+`checks`, `summary`, `claims`. All 16 fixed rows appear, including early failure.
+Each row contains `id`, `required`, `state`, `evidence_basis`, `reason`, `next_action`,
+`http_status`, `freshness`. Summary counts required ready/blocked/unverified, optional
+unverified and actual API requests. Claims always deny deployment, outcomes and mutation authority.
+The exact row order/schema/enums are pinned in the slice and tests.
+
+### Fixed reasons and next actions
+
+| Reasons | Action | Operator instruction |
+|---|---|---|
+| `verified` | `none` | No action for this preparation check. |
+| `invalid_configuration` | `correct_input` | Correct the reviewed input/export/flags without widening scope. |
+| `credentials_unavailable` | `supply_credentials` | Supply the approved existing export path handle. |
+| `authentication_rejected`, `access_denied` | `verify_credential_profile` | Ask the administrator to verify org/application/product grants; this is not absent-license proof. |
+| `resource_not_found`, `scope_mismatch`, `unsafe_configuration` | `verify_resource_selector` | Recheck exact owned resource/designation and safety; never choose another silently. |
+| `missing_evidence`, `stale_evidence` | `renew_scoped_evidence` | Obtain a genuinely fresh scoped owner observation. |
+| `schema_error`, `partial_response`, `request_contract_error`, `endpoint_refused` | `review_api_contract` | Compare the supported official API schema/template; never try an internal endpoint. |
+| `partial_enumeration`, `limit_exceeded` | `review_read_limits` | Review bounded completeness/limits; do not infer exhaustive access. |
+| `rate_limited`, `transport_failure`, `timeout` | `retry_later` | Stop and arrange a later approved run; no automatic retry. |
+| `dependency_unverified` | `resolve_parent_check` | Resolve the failed prerequisite before dependent reads. |
+| `unavailable_automation` | `retain_manual_routing` | Inspect Data Collection's selected datastream overview, Analytics single suite and Target property/environment pins; retain scoped UI/saved-pin evidence. |
+| `not_exercised` | `complete_051_02_plan` | Obtain the separate reviewed scoped write/deployment plan. |
+| `deferred_scope` | `defer_later_products` | Leave AJO/CJA/RTCDP to the later release work. |
+| `internal_failure` | `report_internal_failure` | Report the enum-only failure and command version; never include private sources. |
+
+Only these overrides occur: missing/stale routing → `inspect_datastream_ui` (guided Data Collection
+steps above); unsaved pin → `save_environment_pin` (owner saves the exact scoped environment);
+unsafe activity → `restore_inactive_fixture` (separate owner-authorized procedure, not this CLI);
+credential identity mismatch → `correct_input`.
+
+## Hermetic validation and test seam
+
+```sh
+npm test -- test/adobe-preflight-cli.test.js \
+  test/adobe-preflight-transport.test.js test/adobe-preflight-evidence.test.js \
+  test/contract-stability.test.js
+```
+
+`runCli({argv, env, stdout, stderr, transport, now})` is the exported ESM test seam.
+Production invokes it with process streams/environment, built-in fetch and real time only.
+Tests supply temporary invented files, captured streams, synthetic fetch Responses and clock.
+Injected transport still receives validated, frozen production request templates.
+`assertRequest(candidate, expected)` is exported for exact-template refusal assertions; the runner
+owns `expected`, never accepts it from operator input. The fixture wrapper is test-only, not an
+operator input, live evidence or network source.
+The committed JSON is a template: its null routing-token digest is derived once from the invented
+property reply by the harness before cloning or mutations. Do not extract its raw routing object
+directly as operator evidence. This preparation changes neither production validation nor token
+mutation negatives; it avoids storing a computed test digest that the commit scanner misclassifies.
+No scanner bypass or allowlist exception is used.
+
+## Observed initial-preparation result — 2026-10-08
+
+The orchestrator executed the real CLI against the approved isolated fixtures after correcting
+the source-timestamp and dotted-scope format mismatches. It made 12 bounded requests and returned
+**exit 1 / overall unverified**: 11 required checks ready, one required check unverified.
+Authentication, selected Analytics reporting access, the exact owned Target resources, accepted
+manual routing evidence and public site readability were verified. This is not SDK event receipt,
+deployment or stock/chamber product proof.
+
+`target.workspace_snapshot` could not verify complete workspace associations: one non-selected
+property in the accessible collection omitted `workspaces`. The official API schema makes that
+field optional and supplies no default. **Do not infer an empty array, claim absent assignments,
+make the check optional or override the nonzero exit.** No workspace endpoint or collection
+filter exists in the inspected Target Admin schema.
+
+The precise guided step is to inspect the Airlock Target product profile in **Admin Console >
+Products > Adobe Target > the selected profile > property permissions**, and confirm its
+relationship to only the dedicated Airlock property. Keep selectors and any screenshots private.
+If scoped owner confirmation is supplied, review and implement an explicit evidence contract
+before using it; this version has no force-ready or unreviewed manual fallback.
+Do not change other properties or profile grants to make the report pass.
+The owner was unavailable to provide that confirmation. The stock baseline remains gated on a
+ready real report; no test activity was activated and no SDK events were sent.

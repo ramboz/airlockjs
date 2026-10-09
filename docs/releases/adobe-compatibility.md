@@ -23,8 +23,10 @@ The former [MVP9](mvp9.md) gate is replaced; its unclosed evidence remains defer
 - [`aem-martech`](https://github.com/adobe-rnd/aem-martech/tree/1aa3dee3c4791636efa9ad2994342f861c8e149b)
   is the initial compatibility reference, not code to transplant wholesale. It already phases eager
   personalization, lazy analytics and delayed Launch. Compare against that competent baseline.
-- The owner has no ready Target/Analytics setup and needs the agent to drive supported administrative
-  APIs. API credentials cannot create product entitlements; some setup may still require guided UI work.
+- R-012 now records owned Analytics/Target fixtures, Analytics queries and scoped Target
+  create/edit/future-only approval restored inactive. Initial routing uses owner UI/saved-pin
+  confirmation, not management API readback. Deployment and stock/chamber product outcomes remain
+  unproven. API credentials cannot create entitlements; some setup still needs guided UI work.
 - Customer-owned Launch/GTM can retain the remaining vendor tags while observed offenders migrate
   individually. Those remaining page scripts are outside Airlock's governance.
 
@@ -130,9 +132,14 @@ R-012 remains the investigation record. The portfolio was drafted through Jig on
 | [057 — Adobe adoption, performance and release qualification](../specs/057-adobe-adoption-release-qualification/spec.md) | Install/migrate/measure/update/rollback and complete evidence aggregation | Unsliced DRAFT; numeric bands and feature evidence precede readiness |
 
 Only 051 is refined into executable slice contracts. None is READY_FOR_IMPLEMENTATION, and no
-authenticated/provisioning action is authorized by drafting. Its compatibility spike has a proposed
-8-active-hour budget requiring owner approval before readiness. Refine subsequent specs from the
-investigation's evidence, with actual slice dependencies rather than placeholder IDs.
+authenticated/provisioning action is authorized by drafting. On 2026-10-08 the owner granted
+proceeding after independent reviews under strictly fewer than 10,000 credits overall, with a separate
+8-active-hour 051-03 budget. This does not clear input/evidence, setup/mutation or baseline gates,
+approve numeric performance bands, or authorize release/publication beyond scoped test plans.
+AJO/CJA/RTCDP are deferred for this run, not removed from the release-check obligations below.
+051-01's DRAFT now defines API, scoped owner-evidence and unavailable-automation report bases.
+Refine subsequent specs from the investigation's evidence, with actual slice dependencies rather
+than placeholder IDs.
 Existing specs 012-014, 020, 033-036 are reusable foundations, not the complete target.
 
 ## Release-Check Criteria
@@ -152,5 +159,6 @@ Existing specs 012-014, 020, 033-036 are reusable foundations, not the complete 
   the isolation/redaction rules.
 - Only after these checks (or an explicitly approved revised bar) may **v1.0.0** be cut.
 
-_All checks are desired future evidence. No Adobe admin API, product environment or new compatibility
-workflow has been executed by this shaping pass._
+_Release checks remain desired future evidence. R-012 records limited prior admin/setup observations,
+not deployed SDK/product compatibility. This shaping/refinement pass makes no authenticated calls
+and executes no new compatibility workflow._

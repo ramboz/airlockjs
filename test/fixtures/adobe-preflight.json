@@ -1,0 +1,511 @@
+{
+  "kind": "airlock.adobe-preflight.fixture-set",
+  "schema_version": 1,
+  "fixture_only": true,
+  "frozen_clock": "2026-10-09T01:00:00.000Z",
+  "credential_file_mode": "0600",
+  "guidance": [
+    "All values, credentials, resource IDs, contents, screenshots and observations in this file are invented. Never send these requests.",
+    "This wrapper is not an operator input. Extract private_input, routing_evidence and credential_export into separate synthetic files in a future test harness.",
+    "Match replies by their exact request descriptors, not by consuming an unconditional queue: dependent requests can be skipped.",
+    "form_body and json_body are semantic expected bodies; headers are matched case-insensitively. GET requests have no body.",
+    "body is a JSON response value; body_text is the literal response text. transport_error describes a synthetic thrown error, not an HTTP response; after_ms is elapsed fake time, never a real wait.",
+    "Variant patches are JSON Pointer add/replace operations against a fresh deep copy of this bundle; their expected fields are assertions, not complete reports.",
+    "The transport and clock are injectable only by the future tests, never by CLI flags/environment or arbitrary live URLs.",
+    "For real private configuration, recompute bindings and credential_identity_sha256 using the approved existing export; do not reuse any fixture values or invent freshness."
+  ],
+  "source_evidence": {
+    "contract": "docs/specs/051-adobe-integration-proving-ground/slice-01-access-preflight.md#draft-v1-operator-and-evidence-contract",
+    "citations": "docs/specs/051-adobe-integration-proving-ground/slice-01-access-preflight.md#grounded-sources-and-proposed-executable-tests",
+    "analytics_schema_commit": "2fe476d331afac8cc2d180170b2111c2aa181592",
+    "analytics_definitions": ["Suite", "RankedRequest", "RankedReportData", "RankedColumnMetaData", "AnalyticsAsrErrorResponse"],
+    "target_schema_commit": "63e9ea6c1e80e7568f2cd4b39cc1acad98d941fe",
+    "target_definitions": ["Environment", "Property", "PropertyList", "ABActivity", "ContentOffer", "ErrorResponse"],
+    "evidence_scope": "Synthetic contract fixtures only; not an executed API, screenshot, SDK or product-outcome observation."
+  },
+  "synthetic_allowlist": {
+    "request_origins": [
+      "https://ims-na1.adobelogin.com",
+      "https://analytics.adobe.io",
+      "https://mc.adobe.io",
+      "https://admin.hlx.page",
+      "https://main--airlock-preflight-fixture--fixture-owner.aem.page"
+    ],
+    "nonrequest_resource_origins": [
+      "https://main--airlock-preflight-fixture--fixture-owner.aem.live"
+    ],
+    "rule": "Only the exact method, URL, headers and body descriptors in transport_replies are allowed. No network is performed."
+  },
+  "private_input": {
+    "kind": "airlock.adobe-preflight.input",
+    "schema_version": 1,
+    "profile": "analytics-target-initial",
+    "approval": {
+      "mode": "read-only",
+      "approved_at": "2026-10-09T00:00:00.000Z",
+      "expires_at": "2026-10-10T00:00:00.000Z",
+      "authority_ref": "fixture-owner-grant-001"
+    },
+    "selectors": {
+      "ims_org_id": "FIXTUREORG0000000000000000@AdobeOrg",
+      "global_company_id": "fixture-company-01",
+      "report_suite_id": "fixtureairlocktest",
+      "target": {
+        "tenant": "airlock-fixture-tenant",
+        "workspace_id": "fixture-workspace-01",
+        "property_id": "101",
+        "environment_id": "102",
+        "activity_id": "103",
+        "decision_scope": "airlock-fixture-scope",
+        "offers": [
+          {"id": "201", "content_sha256": "546584741e0e1941d333aaa139d1c245293886b8a3257125a67c988abfb30a70"},
+          {"id": "202", "content_sha256": "20376a08530cb428fd9defc76c0c537e7c5f7bf7b6885069008d0504f4719140"}
+        ]
+      },
+      "datastream": {
+        "id": "fixture-datastream-01",
+        "configuration_context": "fixture-config-context"
+      },
+      "site": {
+        "github_owner": "fixture-owner",
+        "github_repo": "airlock-preflight-fixture",
+        "ref": "main",
+        "preview_origin": "https://main--airlock-preflight-fixture--fixture-owner.aem.page"
+      }
+    },
+    "scope_evidence": {
+      "kind": "airlock.adobe-preflight.owner-selection",
+      "schema_version": 1,
+      "observed_at": "2026-10-09T00:30:00.000Z",
+      "expires_at": "2026-10-10T00:00:00.000Z",
+      "provenance": {
+        "basis": "owner-scoped-configuration",
+        "authority_ref": "fixture-owner-grant-001",
+        "record_ref": "fixture-scope-record-001"
+      },
+      "bindings": {
+        "ims_org_id": "FIXTUREORG0000000000000000@AdobeOrg",
+        "global_company_id": "fixture-company-01",
+        "report_suite_id": "fixtureairlocktest",
+        "target": {
+          "tenant": "airlock-fixture-tenant",
+          "workspace_id": "fixture-workspace-01",
+          "property_id": "101",
+          "environment_id": "102",
+          "activity_id": "103",
+          "decision_scope": "airlock-fixture-scope",
+          "offers": [
+            {"id": "201", "content_sha256": "546584741e0e1941d333aaa139d1c245293886b8a3257125a67c988abfb30a70"},
+            {"id": "202", "content_sha256": "20376a08530cb428fd9defc76c0c537e7c5f7bf7b6885069008d0504f4719140"}
+          ]
+        },
+        "datastream": {
+          "id": "fixture-datastream-01",
+          "configuration_context": "fixture-config-context"
+        },
+        "site": {
+          "github_owner": "fixture-owner",
+          "github_repo": "airlock-preflight-fixture",
+          "ref": "main",
+          "preview_origin": "https://main--airlock-preflight-fixture--fixture-owner.aem.page"
+        }
+      },
+      "credential_identity_sha256": "db3b2f05c4eb9569f6ac7896570692dd4799611b5883bd452c52e3dac85bcb4c",
+      "dedicated_resources": {
+        "analytics_suite": true,
+        "target_property": true,
+        "target_environment": true,
+        "target_workspace": true,
+        "target_activity": true,
+        "target_offers": true,
+        "site": true
+      }
+    },
+    "report_window": {
+      "start": "2026-10-08T00:00:00",
+      "end": "2026-10-09T00:00:00"
+    }
+  },
+  "routing_evidence": {
+    "kind": "airlock.adobe-preflight.routing-evidence",
+    "schema_version": 1,
+    "basis": "owner-ui-and-saved-pin-confirmation",
+    "observed_at": "2026-10-09T00:35:00.000Z",
+    "assessment_completed_at": "2026-10-09T00:45:00.000Z",
+    "expires_at": "2026-10-10T00:00:00.000Z",
+    "provenance": {
+      "authority_ref": "fixture-owner-grant-001",
+      "record_ref": "fixture-routing-record-001",
+      "screenshot_source": "owner-supplied",
+      "screenshot_sha256": [
+        "7c1f9709e96d141f777298dacc4ca50e565162bfafd9d270b21d23cf6b9d02a5",
+        "c1b396e176884f8ca2e79964ba7bf51dfe30208318f3afbfc1ed71317306f210",
+        "5679ba324a1d90ee3c9ee3aaf9da5f02f1bff8ebfb2756c5ee69d76488fc4a35"
+      ]
+    },
+    "bindings": {
+      "ims_org_id": "FIXTUREORG0000000000000000@AdobeOrg",
+      "global_company_id": "fixture-company-01",
+      "report_suite_id": "fixtureairlocktest",
+      "target_tenant": "airlock-fixture-tenant",
+      "target_workspace_id": "fixture-workspace-01",
+      "target_property_id": "101",
+      "target_environment_id": "102",
+      "datastream_id": "fixture-datastream-01",
+      "configuration_context": "fixture-config-context",
+      "site": {
+        "github_owner": "fixture-owner",
+        "github_repo": "airlock-preflight-fixture",
+        "ref": "main",
+        "preview_origin": "https://main--airlock-preflight-fixture--fixture-owner.aem.page"
+      }
+    },
+    "selected_datastream_id": "fixture-datastream-01",
+    "analytics_report_suite_ids": ["fixtureairlocktest"],
+    "visible_enabled_services": ["analytics", "target"],
+    "service_inventory_complete": true,
+    "disabled_or_absent_services": ["aep", "ajo", "audience-manager", "event-forwarding"],
+    "analytics_single_suite_matches_selected_suite": true,
+    "property_token_api_sha256": null,
+    "required_target_environment_id": "102",
+    "target_environment_pin_saved_owner_confirmed": true,
+    "target_environment_pin_confirmation_source": "fixture-owner-saved-pin-record-001",
+    "target_environment_pin_confirmed_at": "2026-10-09T00:40:00.000Z",
+    "configuration_api_read_verified": false
+  },
+  "credential_export": {
+    "ORG_ID": "FIXTUREORG0000000000000000@AdobeOrg",
+    "CLIENT_SECRETS": ["SYNTHETIC-NOT-A-CREDENTIAL-DO-NOT-USE"],
+    "CLIENT_ID": "fixture-client-0001",
+    "SCOPES": ["openid", "AdobeID", "read_organizations", "additional_info.projectedProductContext"],
+    "TECHNICAL_ACCOUNT_ID": "FIXTURETECH0001@techacct.adobe.com",
+    "TECHNICAL_ACCOUNT_EMAIL": "fixture-tech@invalid.example"
+  },
+  "transport_replies": [
+    {
+      "id": "ims-token",
+      "operation": "ims.token",
+      "request": {
+        "method": "POST",
+        "url": "https://ims-na1.adobelogin.com/ims/token/v3",
+        "headers": {"Content-Type": "application/x-www-form-urlencoded"},
+        "form_body": {
+          "client_id": "fixture-client-0001",
+          "client_secret": "SYNTHETIC-NOT-A-CREDENTIAL-DO-NOT-USE",
+          "grant_type": "client_credentials",
+          "scope": "openid,AdobeID,read_organizations,additional_info.projectedProductContext"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {"Content-Type": "application/json"},
+        "body": {"access_token": "SYNTHETIC-ACCESS-TOKEN-DO-NOT-USE", "token_type": "bearer", "expires_in": 86400}
+      }
+    },
+    {
+      "id": "analytics-discovery",
+      "operation": "analytics.discovery",
+      "request": {
+        "method": "GET",
+        "url": "https://analytics.adobe.io/discovery/me",
+        "headers": {"Accept": "application/json", "Authorization": "Bearer SYNTHETIC-ACCESS-TOKEN-DO-NOT-USE", "x-api-key": "fixture-client-0001"}
+      },
+      "response": {
+        "status": 200,
+        "headers": {"Content-Type": "application/json"},
+        "body": {
+          "imsUserId": "FIXTURE-PRIVATE-USER@AdobeID",
+          "imsOrgs": [{"imsOrgId": "FIXTUREORG0000000000000000@AdobeOrg", "companies": [{"globalCompanyId": "fixture-company-01", "companyName": "Synthetic company"}]}]
+        }
+      }
+    },
+    {
+      "id": "analytics-suite",
+      "operation": "analytics.suite",
+      "request": {
+        "method": "GET",
+        "url": "https://analytics.adobe.io/api/fixture-company-01/reportsuites/collections/suites/fixtureairlocktest?expansion=currency,timezoneZoneinfo",
+        "headers": {"Accept": "application/json", "Authorization": "Bearer SYNTHETIC-ACCESS-TOKEN-DO-NOT-USE", "x-api-key": "fixture-client-0001"}
+      },
+      "response": {
+        "status": 200,
+        "headers": {"Content-Type": "application/json"},
+        "body": {"rsid": "fixtureairlocktest", "currency": "USD", "timezoneZoneinfo": "UTC"}
+      }
+    },
+    {
+      "id": "analytics-reporting",
+      "operation": "analytics.reporting",
+      "request": {
+        "method": "POST",
+        "url": "https://analytics.adobe.io/api/fixture-company-01/reports",
+        "headers": {"Accept": "application/json", "Content-Type": "application/json", "Authorization": "Bearer SYNTHETIC-ACCESS-TOKEN-DO-NOT-USE", "x-api-key": "fixture-client-0001"},
+        "json_body": {
+          "rsid": "fixtureairlocktest",
+          "globalFilters": [{"type": "dateRange", "dateRange": "2026-10-08T00:00:00/2026-10-09T00:00:00"}],
+          "metricContainer": {"metrics": [{"columnId": "0", "id": "metrics/pageviews"}]},
+          "settings": {"limit": 1, "page": 0, "reflectRequest": false}
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {"Content-Type": "application/json"},
+        "body": {"summaryData": {"totals": [0]}, "rows": [], "columns": {"columnIds": ["0"], "columnErrors": []}}
+      }
+    },
+    {
+      "id": "target-environment",
+      "operation": "target.environment",
+      "request": {
+        "method": "GET",
+        "url": "https://mc.adobe.io/airlock-fixture-tenant/target/environments/102",
+        "headers": {"Accept": "application/vnd.adobe.target.v1+json", "Authorization": "Bearer SYNTHETIC-ACCESS-TOKEN-DO-NOT-USE", "x-api-key": "fixture-client-0001"}
+      },
+      "response": {
+        "status": 200,
+        "headers": {"Content-Type": "application/vnd.adobe.target.v1+json"},
+        "body": {"id": 102, "name": "Synthetic environment", "default": false, "serveInactiveActivities": false}
+      }
+    },
+    {
+      "id": "target-property",
+      "operation": "target.property",
+      "request": {
+        "method": "GET",
+        "url": "https://mc.adobe.io/airlock-fixture-tenant/target/properties/101",
+        "headers": {"Accept": "application/vnd.adobe.target.v1+json", "Authorization": "Bearer SYNTHETIC-ACCESS-TOKEN-DO-NOT-USE", "x-api-key": "fixture-client-0001"}
+      },
+      "response": {
+        "status": 200,
+        "headers": {"Content-Type": "application/vnd.adobe.target.v1+json"},
+        "body": {"id": 101, "name": "Synthetic property", "channel": "web", "workspaces": ["fixture-workspace-01"], "token": "SYNTHETIC-TARGET-PROPERTY-TOKEN-DO-NOT-USE"}
+      }
+    },
+    {
+      "id": "target-properties",
+      "operation": "target.properties",
+      "request": {
+        "method": "GET",
+        "url": "https://mc.adobe.io/airlock-fixture-tenant/target/properties",
+        "headers": {"Accept": "application/vnd.adobe.target.v1+json", "Authorization": "Bearer SYNTHETIC-ACCESS-TOKEN-DO-NOT-USE", "x-api-key": "fixture-client-0001"}
+      },
+      "response": {
+        "status": 200,
+        "headers": {"Content-Type": "application/vnd.adobe.target.v1+json"},
+        "body": {"total": 1, "properties": [{"id": 101, "name": "Synthetic property", "channel": "web", "workspaces": ["fixture-workspace-01"], "token": "SYNTHETIC-TARGET-PROPERTY-TOKEN-DO-NOT-USE"}]}
+      }
+    },
+    {
+      "id": "target-activity",
+      "operation": "target.activity",
+      "request": {
+        "method": "GET",
+        "url": "https://mc.adobe.io/airlock-fixture-tenant/target/activities/ab/103",
+        "headers": {"Accept": "application/vnd.adobe.target.v3+json", "Authorization": "Bearer SYNTHETIC-ACCESS-TOKEN-DO-NOT-USE", "x-api-key": "fixture-client-0001"}
+      },
+      "response": {
+        "status": 200,
+        "headers": {"Content-Type": "application/vnd.adobe.target.v3+json"},
+        "body": {
+          "id": 103,
+          "name": "Synthetic inactive activity",
+          "workspace": "fixture-workspace-01",
+          "propertyIds": [101],
+          "state": "saved",
+          "startsAt": "2027-10-10T00:00:00.000Z",
+          "endsAt": "2027-10-17T00:00:00.000Z",
+          "locations": {"mboxes": [{"locationLocalId": 0, "name": "airlock-fixture-scope", "audienceIds": []}]},
+          "options": [{"optionLocalId": 0, "offerId": 201}, {"optionLocalId": 1, "offerId": 202}],
+          "experiences": [
+            {"experienceLocalId": 0, "visitorPercentage": 50, "optionLocations": [{"locationLocalId": 0, "optionLocalId": 0}]},
+            {"experienceLocalId": 1, "visitorPercentage": 50, "optionLocations": [{"locationLocalId": 0, "optionLocalId": 1}]}
+          ]
+        }
+      }
+    },
+    {
+      "id": "target-offer-a",
+      "operation": "target.offer",
+      "request": {
+        "method": "GET",
+        "url": "https://mc.adobe.io/airlock-fixture-tenant/target/offers/content/201",
+        "headers": {"Accept": "application/vnd.adobe.target.v2+json", "Authorization": "Bearer SYNTHETIC-ACCESS-TOKEN-DO-NOT-USE", "x-api-key": "fixture-client-0001"}
+      },
+      "response": {
+        "status": 200,
+        "headers": {"Content-Type": "application/vnd.adobe.target.v2+json"},
+        "body": {"id": 201, "workspace": "fixture-workspace-01", "name": "Synthetic offer A", "content": "<p>Fixture offer A</p>"}
+      }
+    },
+    {
+      "id": "target-offer-b",
+      "operation": "target.offer",
+      "request": {
+        "method": "GET",
+        "url": "https://mc.adobe.io/airlock-fixture-tenant/target/offers/content/202",
+        "headers": {"Accept": "application/vnd.adobe.target.v2+json", "Authorization": "Bearer SYNTHETIC-ACCESS-TOKEN-DO-NOT-USE", "x-api-key": "fixture-client-0001"}
+      },
+      "response": {
+        "status": 200,
+        "headers": {"Content-Type": "application/vnd.adobe.target.v2+json"},
+        "body": {"id": 202, "workspace": "fixture-workspace-01", "name": "Synthetic offer B", "content": "<p>Fixture offer B</p>"}
+      }
+    },
+    {
+      "id": "site-status",
+      "operation": "site.status",
+      "request": {
+        "method": "GET",
+        "url": "https://admin.hlx.page/status/fixture-owner/airlock-preflight-fixture/main/",
+        "headers": {}
+      },
+      "response": {
+        "status": 200,
+        "headers": {"Content-Type": "application/json"},
+        "body": {
+          "webPath": "/",
+          "preview": {"status": 200, "url": "https://main--airlock-preflight-fixture--fixture-owner.aem.page/"},
+          "live": {"status": 200, "url": "https://main--airlock-preflight-fixture--fixture-owner.aem.live/"},
+          "code": {"status": 404}
+        }
+      }
+    },
+    {
+      "id": "site-preview",
+      "operation": "site.preview",
+      "request": {
+        "method": "GET",
+        "url": "https://main--airlock-preflight-fixture--fixture-owner.aem.page/",
+        "headers": {}
+      },
+      "response": {
+        "status": 200,
+        "headers": {"Content-Type": "text/html; charset=utf-8"},
+        "body_text": "<!doctype html><html><head><title>Fixture only</title></head><body><p>No scripts or SDK execution.</p></body></html>"
+      }
+    }
+  ],
+  "expected_ready_report": {
+    "kind": "airlock.adobe-preflight.report",
+    "schema_version": 1,
+    "profile": "analytics-target-initial",
+    "generated_at": "2026-10-09T01:00:00.000Z",
+    "overall": "ready",
+    "exit_code": 0,
+    "checks": [
+      {"id": "input.scope", "required": true, "state": "ready", "evidence_basis": "owner_scoped_configuration", "reason": "verified", "next_action": "none", "http_status": null, "freshness": "accepted_owner_window"},
+      {"id": "auth.oauth", "required": true, "state": "ready", "evidence_basis": "api_read", "reason": "verified", "next_action": "none", "http_status": 200, "freshness": "current_run"},
+      {"id": "analytics.org_company", "required": true, "state": "ready", "evidence_basis": "api_read", "reason": "verified", "next_action": "none", "http_status": 200, "freshness": "current_run"},
+      {"id": "analytics.suite", "required": true, "state": "ready", "evidence_basis": "api_read", "reason": "verified", "next_action": "none", "http_status": 200, "freshness": "current_run"},
+      {"id": "analytics.reporting", "required": true, "state": "ready", "evidence_basis": "api_read", "reason": "verified", "next_action": "none", "http_status": 200, "freshness": "current_run"},
+      {"id": "target.tenant_binding", "required": true, "state": "ready", "evidence_basis": "owner_scoped_configuration", "reason": "verified", "next_action": "none", "http_status": null, "freshness": "accepted_owner_window"},
+      {"id": "target.environment", "required": true, "state": "ready", "evidence_basis": "api_read", "reason": "verified", "next_action": "none", "http_status": 200, "freshness": "current_run"},
+      {"id": "target.property_workspace", "required": true, "state": "ready", "evidence_basis": "api_read", "reason": "verified", "next_action": "none", "http_status": 200, "freshness": "current_run"},
+      {"id": "target.workspace_snapshot", "required": true, "state": "ready", "evidence_basis": "api_read", "reason": "verified", "next_action": "none", "http_status": 200, "freshness": "current_run"},
+      {"id": "target.activity_offers", "required": true, "state": "ready", "evidence_basis": "api_read", "reason": "verified", "next_action": "none", "http_status": null, "freshness": "current_run"},
+      {"id": "datastream.routing", "required": true, "state": "ready", "evidence_basis": "owner_ui_confirmation", "reason": "verified", "next_action": "none", "http_status": null, "freshness": "accepted_owner_window"},
+      {"id": "site.scope_readability", "required": true, "state": "ready", "evidence_basis": "api_read", "reason": "verified", "next_action": "none", "http_status": null, "freshness": "current_run"},
+      {"id": "datastream.configuration_api", "required": false, "state": "unverified", "evidence_basis": "none", "reason": "unavailable_automation", "next_action": "retain_manual_routing", "http_status": null, "freshness": "not_observed"},
+      {"id": "target.write_authority", "required": false, "state": "unverified", "evidence_basis": "none", "reason": "not_exercised", "next_action": "complete_051_02_plan", "http_status": null, "freshness": "not_observed"},
+      {"id": "site.deployment_authority", "required": false, "state": "unverified", "evidence_basis": "none", "reason": "not_exercised", "next_action": "complete_051_02_plan", "http_status": null, "freshness": "not_observed"},
+      {"id": "products.deferred", "required": false, "state": "unverified", "evidence_basis": "none", "reason": "deferred_scope", "next_action": "defer_later_products", "http_status": null, "freshness": "not_observed"}
+    ],
+    "summary": {"required_ready": 12, "required_blocked": 0, "required_unverified": 0, "optional_unverified": 4, "api_requests": 12},
+    "claims": {"scope": "initial-preparation-only", "deployment_verified": false, "product_outcomes_verified": false, "mutation_authority_verified": false}
+  },
+  "variants": [
+    {
+      "id": "denied-property-with-private-echo",
+      "patches": [{
+        "op": "replace", "path": "/transport_replies/5/response",
+        "value": {"status": 403, "headers": {"Content-Type": "application/json"}, "body": {"httpStatus": 403, "errors": [{"errorCode": "Forbidden", "message": "SYNTHETIC-NOT-A-CREDENTIAL-DO-NOT-USE fixture-client-0001"}]}}
+      }],
+      "expected": {"overall": "blocked", "exit_code": 1, "check_id": "target.property_workspace", "state": "blocked", "reason": "access_denied", "next_action": "verify_credential_profile", "http_status": 403, "requests_not_sent": ["target-properties", "target-activity", "target-offer-a", "target-offer-b"]}
+    },
+    {
+      "id": "missing-suite",
+      "patches": [{
+        "op": "replace", "path": "/transport_replies/2/response",
+        "value": {"status": 404, "headers": {"Content-Type": "application/json"}, "body": {"errorCode": "resource_not_found", "errorDescription": "Synthetic suite absent", "errorId": "fixture-error-404"}}
+      }],
+      "expected": {"overall": "blocked", "exit_code": 1, "check_id": "analytics.suite", "state": "blocked", "reason": "resource_not_found", "next_action": "verify_resource_selector", "http_status": 404, "requests_not_sent": ["analytics-reporting"]}
+    },
+    {
+      "id": "token-timeout-with-thrown-private-echo",
+      "patches": [{
+        "op": "replace", "path": "/transport_replies/0/response",
+        "value": {"transport_error": {"name": "AbortError", "reason": "timeout", "after_ms": 10000, "message": "SYNTHETIC-NOT-A-CREDENTIAL-DO-NOT-USE", "cause": {"client_id": "fixture-client-0001"}}}
+      }],
+      "expected": {"overall": "unverified", "exit_code": 1, "check_id": "auth.oauth", "state": "unverified", "reason": "timeout", "next_action": "retry_later", "http_status": null, "requests_not_sent": ["analytics-discovery", "analytics-suite", "analytics-reporting", "target-environment", "target-property", "target-properties", "target-activity", "target-offer-a", "target-offer-b"]}
+    },
+    {
+      "id": "malformed-token-json-with-private-echo",
+      "patches": [{
+        "op": "replace", "path": "/transport_replies/0/response",
+        "value": {"status": 200, "headers": {"Content-Type": "application/json"}, "body_text": "{\"access_token\":\"SYNTHETIC-ACCESS-TOKEN-DO-NOT-USE\""}
+      }],
+      "expected": {"overall": "unverified", "exit_code": 1, "check_id": "auth.oauth", "state": "unverified", "reason": "schema_error", "next_action": "review_api_contract", "http_status": 200}
+    },
+    {
+      "id": "partial-property-enumeration",
+      "patches": [{"op": "replace", "path": "/transport_replies/6/response/body/total", "value": 2}],
+      "expected": {"overall": "unverified", "exit_code": 1, "check_id": "target.workspace_snapshot", "state": "unverified", "reason": "partial_enumeration", "next_action": "review_read_limits", "http_status": 200}
+    },
+    {
+      "id": "wrong-property-workspace",
+      "patches": [{"op": "replace", "path": "/transport_replies/5/response/body/workspaces", "value": ["fixture-workspace-other"]}],
+      "expected": {"overall": "blocked", "exit_code": 1, "check_id": "target.property_workspace", "state": "blocked", "reason": "scope_mismatch", "next_action": "verify_resource_selector", "http_status": 200}
+    },
+    {
+      "id": "stale-routing-evidence",
+      "patches": [
+        {"op": "replace", "path": "/routing_evidence/observed_at", "value": "2026-10-07T23:00:00.000Z"},
+        {"op": "replace", "path": "/routing_evidence/target_environment_pin_confirmed_at", "value": "2026-10-07T23:10:00.000Z"},
+        {"op": "replace", "path": "/routing_evidence/assessment_completed_at", "value": "2026-10-07T23:20:00.000Z"}
+      ],
+      "expected": {"overall": "unverified", "exit_code": 1, "check_id": "datastream.routing", "state": "unverified", "evidence_basis": "owner_ui_confirmation", "reason": "stale_evidence", "next_action": "inspect_datastream_ui", "freshness": "stale"}
+    },
+    {
+      "id": "unrecognized-private-input-key",
+      "patches": [{"op": "add", "path": "/private_input/SYNTHETIC-UNKNOWN-KEY-DO-NOT-ECHO", "value": "SYNTHETIC-NOT-A-CREDENTIAL-DO-NOT-USE"}],
+      "expected": {"overall": "unverified", "exit_code": 2, "api_requests": 0, "reason": "invalid_configuration", "next_action": "correct_input"}
+    },
+    {
+      "id": "malformed-uppercase-secret-array",
+      "patches": [{"op": "replace", "path": "/credential_export/CLIENT_SECRETS", "value": []}],
+      "expected": {"overall": "unverified", "exit_code": 2, "api_requests": 0, "reason": "invalid_configuration", "next_action": "correct_input"}
+    }
+  ],
+  "redaction_sentinels": [
+    "SYNTHETIC-NOT-A-CREDENTIAL-DO-NOT-USE",
+    "SYNTHETIC-ACCESS-TOKEN-DO-NOT-USE",
+    "SYNTHETIC-TARGET-PROPERTY-TOKEN-DO-NOT-USE",
+    "FIXTUREORG0000000000000000@AdobeOrg",
+    "FIXTURETECH0001@techacct.adobe.com",
+    "FIXTURE-PRIVATE-USER@AdobeID",
+    "fixture-tech@invalid.example",
+    "fixture-client-0001",
+    "fixture-company-01",
+    "fixtureairlocktest",
+    "fixture-workspace-01",
+    "fixture-datastream-01",
+    "fixture-config-context",
+    "airlock-fixture-tenant",
+    "airlock-fixture-scope",
+    "main--airlock-preflight-fixture--fixture-owner",
+    "fixture-owner-grant-001",
+    "fixture-scope-record-001",
+    "fixture-routing-record-001",
+    "fixture-owner-saved-pin-record-001",
+    "SYNTHETIC-UNKNOWN-KEY-DO-NOT-ECHO",
+    "<p>Fixture offer A</p>",
+    "<p>Fixture offer B</p>",
+    "db3b2f05c4eb9569f6ac7896570692dd4799611b5883bd452c52e3dac85bcb4c",
+    "546584741e0e1941d333aaa139d1c245293886b8a3257125a67c988abfb30a70",
+    "20376a08530cb428fd9defc76c0c537e7c5f7bf7b6885069008d0504f4719140",
+    "86bf8c10c76bb634d46015658b9d37985ea90c62673ac4e97c60a78a53327fa7",
+    "7c1f9709e96d141f777298dacc4ca50e565162bfafd9d270b21d23cf6b9d02a5",
+    "c1b396e176884f8ca2e79964ba7bf51dfe30208318f3afbfc1ed71317306f210",
+    "5679ba324a1d90ee3c9ee3aaf9da5f02f1bff8ebfb2756c5ee69d76488fc4a35"
+  ]
+}

@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 skill: jig:spec-workflow
 use_cases: [UC-1, UC-2, UC-6, UC-7, UC-8, UC-10, UC-11]
 ---
@@ -10,7 +10,11 @@ use_cases: [UC-1, UC-2, UC-6, UC-7, UC-8, UC-10, UC-11]
 
 > Drafted through Jig on 2026-10-06. This is the only refined spec in the
 > [Adobe-first portfolio](../../releases/adobe-compatibility.md#jig-handoff).
-> No implementation, authenticated discovery, provisioning or live validation has run.
+> Refined at DRAFT on 2026-10-08. Selected authenticated checks and owner-authorized fixture
+> setup are recorded in R-012; the versioned preflight is now implemented and hermetically
+> validated in 051-01. The real preflight returned unverified; deployment and stock/chamber
+> validation remain unexecuted.
+> Independent implementation/reconciliation gates remain open.
 
 ## Overview
 
@@ -20,24 +24,50 @@ This implements the investigation checkpoint of
 [ADR-0031](../../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md) and
 [R-012](../../research/R-012-adobe-first-compatibility.md), not the full v1.0 release.
 
-The owner confirmed an organization with Analytics and Target access. API credentials, product
-profiles, test resources and Data Collection permissions are not verified. The current Alloy
-adapter is a page-view/HTML-placement subset; it cannot be treated as the entire stock SDK.
-These facts and the inspected source/official API references are recorded in R-012.
+R-012 is authoritative for operational facts: the dedicated Analytics suite/report queries and
+Target environment/property/workspace association, owned offers/activity create/edit and a
+future-only approval/restoration check are verified. The activity is saved/inactive. Managed
+datastream routing is established by owner screenshots, exact selector comparisons and saved
+environment-pin confirmation, **not** a configuration API readback. Reference push dry-run passed;
+actual deployment, SDK events and product outcomes have not run. These ad-hoc observations are
+not the tested 051-01 CLI or a fresh report. The subsequent real CLI verified 11 of 12 required
+checks; missing workspace association evidence keeps the stock gate blocked. The current Alloy adapter remains a
+page-view/HTML-placement subset, not the entire stock SDK.
+
+The immediate proving ground is Alloy/Analytics/Target. AJO/CJA/RTCDP are owner-deferred for this
+run, not removed from ADR-0031 or later release obligations. Platform ingestion remains disabled;
+a new AEP development sandbox is not an initial Analytics/Target prerequisite.
+
+### Execution grant and remaining gates — 2026-10-08
+
+The owner permits proceeding after independent contract/readiness reviews, under an overall
+ceiling **strictly below 10,000 credits**, tracked by the parent across refinement, reviews and
+execution. Slice 051-03 separately has **eight active engineering hours** (external waiting
+excluded); stop with explicit unknowns before either budget is exhausted. No implicit extension,
+production publication, paid provisioning, cleanup deletion, release/tag or narrower release gate.
+The parent owns private-state normalization/writes and scoped live checks. Initial DRAFT refinement
+made no live calls or code changes; implementation and the real unverified preflight followed their
+applicable readiness gates. A spending/time grant does not verify input evidence, approve a mutation
+plan or satisfy DoR.
 
 ## Scope and operator-facing deliverables
 
-- A read-only preflight that reports ready/blocked/unverified requirements, with actionable reasons
-  and a nonzero exit when a required capability cannot be established.
+- A versioned read-only preparation preflight that reports ready/blocked/unverified requirements,
+  distinct API/manual/unavailable evidence bases and nonzero exit for any required unknown.
 - An approved, namespaced non-production setup/reuse procedure and stock `aem-martech` baseline:
   page/custom Analytics events plus a Target HTML offer and its Adobe-native display notification.
 - A pinned SDK public-surface inventory and representative compatibility experiments, resulting in
   a proceed/reshape/stop recommendation and proposed measurable performance budgets.
-- Small reusable probe/report utilities under `probes/adobe-compatibility/`, hermetic tests under
-  `test/`, sanitized durable evidence in R-012, and live state/captures stored outside the repo.
+- Small reusable probe/report utilities under `probes/adobe-compatibility/`, existing Vitest tests
+  under `test/`, sanitized durable evidence in R-012, and approved private live state/captures
+  outside committed artifacts.
 
-The command/report names and resource schemas will be designed in the implementation plan using
-verified API support. The ACs specify observable behavior; they do not pretend those CLIs already exist.
+The exact Node ES module command, private export/input/evidence schemas, public immutable report,
+operation inventory and test selectors are specified in
+[051-01's reviewed v1 contract](slice-01-access-preflight.md#draft-v1-operator-and-evidence-contract).
+Its CLI and hermetic tests now exist, and the parent-owned real result is recorded in R-012.
+Implementation reviews/reconciliation remain pending; a fixture-ready report grants no later
+live/write authority.
 
 ## Safety and evidence rules
 
@@ -47,6 +77,10 @@ verified API support. The ACs specify observable behavior; they do not pretend t
   Production/default-resource mutation, paid provisioning and uncontrolled publication are excluded.
 - OAuth secrets/tokens come from an approved local environment or secret manager. Logs and committed
   reports contain no credentials, raw identities or live tenant/resource identifiers.
+- The approved uppercase Adobe credential export is read directly through `ADOBE_CREDENTIAL_FILE`;
+  no copied secret config. Owner routing evidence is versioned, fresh and exactly bound, never
+  `ownerConfirmed=true`. Required unavailable automation remains unverified; token issuance and
+  the explicitly documented bounded Analytics query are the only preflight POST exceptions.
 - An HTTP success, network request or local stub is not product receipt. Record the observation
   method, bounded waiting window and correlation strategy; missing outcome visibility is a blocker.
 - Run stock and chamber arms separately with equivalent synthetic inputs; no duplicate production
@@ -61,16 +95,21 @@ verified API support. The ACs specify observable behavior; they do not pretend t
 - [R-012 source/API table](../../research/R-012-adobe-first-compatibility.md#sources--findings):
   direct official references and current Airlock source gaps.
 - [Stock Alloy supplier decision](../../decisions/adr-0016-alloy-stock-bundle-site-supplied.md):
-  keep the official SDK unmodified; confirm the investigation's version/hash rather than silently
-  assuming the historic v2.35.0 pin remains the best reference.
+  keep the official SDK unmodified. The pinned `aem-martech` README declares Alloy **2.31.1** and
+  ACDL **3.0.1**, not the historic Airlock 2.35.0 pin. The parent's executed offline comparison
+  on 2026-10-08 found the reference Alloy file differs from the versioned official artifact by
+  one trailing LF only; use the same exact official artifact in both future arms
+  ([full byte provenance](slice-02-test-baseline.md#stock-input-provenance--offline-only)).
 - [Stable core](../../decisions/adr-0017-airlock-1-0-api-contract.md): no public contract break here.
 
 ## Assumptions
 
-- Product access can be converted into least-privilege API profiles and isolated test resources;
-  the owner confirmation is not an authenticated permission check.
-- Analytics and Target outcomes can be observed within a documented test window. The availability
-  of report/diagnostic APIs, test suite setup and datastream automation is still unverified.
+- Fresh, scope-bound owner evidence and supported API readbacks can establish the initial
+  preparation contract. Historical routing/permission snapshots may be stale; normalization
+  alone is not reverification or proof of exclusive application-wide grants.
+- Analytics and Target outcomes can be observed within a documented test window. Analytics
+  query permission is exercised, but synthetic-event receipt and Target diagnostic/report
+  correlation/latency are not. Datastream administration remains unavailable to this tool surface.
 - Representative callbacks and DOM-dependent SDK behavior can be mediated safely. The spike tests
   this assumption; boot/page-view success does not ground the broader claim.
 
@@ -82,7 +121,8 @@ stock behavior and its observation procedure. Neither is a throwaway infrastruct
 051-03 is research because callback/page-state/DOM compatibility may change the implementation
 approach; it produces a decision and evidence, not a thinly disguised full-SDK implementation.
 
-The live portion of 051-02 needs a ready 051-01 report, not just completion of the preflight utility.
+The live portion of 051-02 needs a fresh real 051-01 preparation report **and** its separate reviewed
+setup/mutation/observation gates, not just completion of the utility or a ready preparation result.
 The 051-03 offline inventory can be prepared independently, but its final live comparison requires
 051-02's baseline. A blocked access report never makes dependent live work ready.
 

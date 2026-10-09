@@ -15,9 +15,11 @@ pinned surface inventory and representative stock-versus-chamber evidence rather
 **Question:** Can the assigned stock Alloy and `aem-martech` semantics, especially callbacks and
 DOM/page-state behavior, be preserved through the chamber boundary without widening authority?
 
-**Time-box:** Proposed budget: **8 active engineering hours**, excluding external access/report
-waiting. Owner approval is required before this slice becomes ready. Stop at the approved budget
-with explicit unknowns; any extension needs a new approval, not an unbounded probe loop.
+**Time-box:** Owner-approved on 2026-10-08: **8 active engineering hours**, excluding external
+access/report waiting. The whole run must also remain **strictly below 10,000 credits**, including
+refinement/reviews/execution as tracked by the parent. Stop before either ceiling with explicit
+unknowns; any extension needs a new approval, not an unbounded probe loop. This grant does not
+clear baseline, contract, experiment-review or performance-evidence readiness gates.
 
 **Findings:** No new compatibility experiments executed. Starting source/documentation evidence
 and current subset gaps are in [R-012](../../research/R-012-adobe-first-compatibility.md).
@@ -32,6 +34,13 @@ decision is needed, `spec NNN-NN unblocked` only for an actually refined depende
 - [ ] The representative experiment set and any prototype permissions are reviewed.
 - [ ] Numeric measurement conditions/limits for the experiment are defined before execution.
 - [ ] Full production implementation and scope revision remain explicitly outside this slice.
+
+The budget part of the first item is granted, but the compound item remains unchecked until its
+pins/readiness are verified. Use 051-02's official Alloy 2.31.1 artifact consistently in both
+arms, with the reference's trailing-LF difference disclosed. Offline comparison is not SDK proof.
+Numeric performance acceptance bands still come from the measured stock evidence and owner
+review; the execution grant supplies no invented threshold. AJO/CJA/RTCDP are deferred in this
+run's experiments while their release inventory rows remain owned and visibly unverified.
 
 **Acceptance Criteria:**
 
@@ -77,14 +86,15 @@ integration approach, not a research prelude to an unbounded monolithic implemen
 
 ## Assumptions
 
-- A useful set of discriminating experiments can fit the proposed budget once access exists.
-  The owner must approve the budget and can reshape the question if it cannot.
+- A useful set of discriminating experiments can fit the approved budget once the stock baseline
+  exists. Stop/reshape with evidence if it cannot; no automatic extension or release-gate change.
 - Callback/page-state/DOM fidelity can be preserved safely for the required surface.
   This is the contested assumption under investigation, not a commitment that the answer is yes.
 
 ### Deviation log (after reconciliation)
 
-Not executed. No time has been charged to this proposed investigation and no findings are accepted yet.
+Not executed. No compatibility experiment time has been charged to the approved spike budget;
+parent tracking must include this refinement/review work in the overall credit ceiling.
 
 ### Reconciliation sweep
 

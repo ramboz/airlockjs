@@ -34,6 +34,19 @@ Target/Analytics resources with limited product-setup experience?
 
 ## Access status
 
+### 051-01 CLI validation: hermetic and real unverified result
+
+The versioned preflight utility is implemented and validated with 278 hermetic tests using
+synthetic private files and an injected test transport/clock; all 36 unchanged contract-stability
+tests also pass. The implementation agent performed no live/private-state operations.
+The orchestrator subsequently ran the real approved-input CLI: exit 1 after 12 bounded requests,
+with 11 required checks ready and `target.workspace_snapshot` unverified. One non-selected
+property omits optional workspace metadata; no empty assignment is inferred.
+The [executed-result section](#executed-preflight-result-and-remaining-workspace-evidence--2026-10-08)
+records the precise Admin Console confirmation needed. Owner confirmation is unavailable and
+051-02 remains blocked. No SDK traffic, deployment or provisioning ran. Independent implementation
+reviews and reconciliation are not cleared by this real report.
+
 **Owner-confirmed, 2026-10-06:** an existing organization has Adobe Analytics and Target access.
 This removes the unknown-entitlement starting point for those two products, but is not an authenticated
 permission check. The test report suite, Target environment/workspace/property, Data Collection rights,
@@ -524,12 +537,94 @@ no access-policy blocker was identified for the baseline deployment path. Actual
 DA authoring, any necessary site-administration changes and live product outcomes remain
 implementation/validation work, not retroactively claimed by these access checks.
 
-**Current assessment:** access and initial setup are sufficient to begin the scoped
+**Historical pre-launch assessment (superseded by the executed preflight below):**
+access and initial setup were assessed as sufficient to begin the scoped
 **Alloy/Target/Analytics proving ground on this local host**. The stock/chamber live proof has not
 run; runtime remains v0.8.0, all seven specs remain DRAFT, and `/goal` has not started. AJO/CJA/RTCDP
 are deferred for the immediate focus, not declared complete or removed from the release gate.
 The reviewed Jig execution plan, spike/whole-run budget, durable execution-host credential setup
 and publication/release authority remain separate launch decisions.
+
+## Goal execution launch — 2026-10-08
+
+The owner invoked the local execution grant, then explicitly approved proceeding below **10,000
+AI credits overall**. No overall elapsed-time limit was requested. The separate 051-03 allowance
+remains **eight active engineering hours**, excluding external access/report waiting; that spike
+has not started. Routine framing and proceed decisions remain delegated after independent reviews.
+Production publication, resource deletion, release cuts, safety weakening and stable-core breaks
+remain outside the grant.
+
+The session checkout now includes verification commit `cbae9a5`; the original private evidence
+snapshots were copied into isolated `0600` run state without copying credentials. Original
+snapshots remain unchanged. Spec 051-01's versioned input/report, managed-routing evidence and
+read-only operation contract received an independent frame-critique **pass**. This is a contract
+review, not implementation, acceptance of the preflight utility or a ready live baseline.
+The three authored 051 slices and unsliced 052-057 portfolio still require their applicable
+lifecycle gates; no product outcome or deployment is inferred from this launch.
+
+### Executed stock-artifact provenance check
+
+The pinned `aem-martech` reference declares **Alloy 2.31.1** and **ACDL 3.0.1** in its README.
+Its `src/alloy.min.js` has git blob `465adc543ae11c7cfa78b0811f30652f32b27c31`,
+152,335 bytes and SHA-256
+`e77362b59c6124f1ab14621fcf508f482ac4b25da49902a731677eea72ec4251`.
+The [official versioned Alloy 2.31.1 artifact](https://cdn1.adoberesources.net/alloy/2.31.1/alloy.min.js)
+has 152,336 bytes and SHA-256
+`7dd09409bb07d47b1b2289eec4ca15d67084a85a3d832bef6c73180889da32e8`.
+An executed byte comparison established the entire difference: the reference file omits the
+official artifact's single trailing LF byte. The files are **not byte-identical**.
+Use the exact unmodified official artifact consistently when refining the future test arms;
+the historic Airlock 2.35.0 pin is not automatically this run's stock target.
+No SDK was executed by this provenance check.
+
+A credential-free, redirect-refusing read of the exact approved EDS root status returned HTTP 200.
+Its root `webPath`, preview status and exact approved preview URL matched the proposed preflight
+read contract. This grounds public metadata readability only: no authenticated deployment,
+site mutation, SDK event or Adobe product receipt was exercised.
+
+The original saved-pin acknowledgment was located in the prior session's history. Its actual
+timestamp follows the screenshot snapshot's initial assessment timestamp; normalization must
+retain both source records and distinguish a combined assessment's completion from the original
+snapshot. It must not invent a new observation or renew the screenshots' freshness.
+
+### Executed preflight result and remaining workspace evidence — 2026-10-08
+
+The versioned 051-01 CLI is implemented with witnessed red-to-green tests. The current targeted
+suite contains 278 preflight cases plus 36 unchanged frozen-core cases, all passing.
+Independent compliance identified additional refusal/bounds/failure-disposition defects; those
+were corrected with failing regressions first. Required implementation review and reconciliation
+remain separate lifecycle gates.
+
+The first approved-input attempt stopped at **exit 2 with zero requests**. It exposed two local
+format mismatches rather than missing Adobe access: valid six-digit UTC RFC3339 observations and
+periods in the unchanged owned decision scope. Timestamp parsing was corrected without rewriting
+source evidence; an independently approved scope-specific grammar correction retained exact
+bindings, literal activity matching and all endpoint/safety exclusions.
+
+The corrected real CLI made **12 bounded requests** and returned **exit 1 / overall unverified**:
+**11 required checks ready, one required check unverified**, with four unchanged optional
+diagnostics unverified. Authentication, the selected Analytics org/suite/report query, exact
+owned Target environment/property/activity/offers, accepted owner-based routing and site
+readability all passed. No raw report totals, identifiers, credentials or tokens are recorded here.
+HTTP/report-query success remains distinct from synthetic event receipt.
+
+`target.workspace_snapshot` lacked complete association evidence. A bounded diagnostic of that
+same documented collection found one non-selected property's `workspaces` field omitted.
+The inspected official schema makes `Property.workspaces` optional and supplies no default;
+there are no workspace paths or collection query filters in that schema. Omission is **unknown**,
+not proof of no association. The required check remains unverified; no missing array was guessed,
+no criterion made optional and no unsupported endpoint or browser token used.
+
+The owner was asked to inspect the exact Airlock Target product profile's property permissions
+in Admin Console and confirm only the dedicated Airlock property. The owner was unavailable.
+Any accepted owner-evidence alternative requires explicit contract review and implementation,
+not a force-ready flag or a claim that the API supplied the missing information.
+No other property/profile edit is authorized to manufacture a passing snapshot.
+
+The utility can report this blocker honestly, but **051-02 has no ready real preparation report**.
+No stock/chamber SDK journey, activity activation, deployment or product receipt was attempted.
+Fresh reads still confirm the owned activity saved/inactive with its future schedule.
+The broader release gate and AJO/CJA/RTCDP deferrals remain unchanged.
 
 ## Sources / findings
 
@@ -610,9 +705,10 @@ No current conclusion that every admin UI step has an API equivalent.
    approves any revision from the full-compatibility ambition before a narrower release gate is used.
 
 Provisioning/probe scripts belong under `probes/` with a bounded investigation spec before execution.
-[Spec 051](../specs/051-adobe-integration-proving-ground/spec.md) now carries those DRAFT contracts:
-read-only preflight, stock test baseline and a bounded compatibility spike. Its plan/tasks are pending,
-and the proposed time-box needs approval before readiness. Specs 052-057 are unsliced outlines.
+[Spec 051](../specs/051-adobe-integration-proving-ground/spec.md) carries the implementation contracts:
+the preflight is implemented and has a real unverified report; stock baseline and compatibility
+work remain unexecuted. The owner approved the eight-active-hour spike and overall credit ceiling,
+but the stock readiness gate has not cleared. Specs 052-057 remain unsliced outlines.
 This note remains OPEN. The supplied credential was not created here; selected reads are verified
 and the owner-authorized dedicated Target environment exists. The owner-created Analytics suite and
 reference EDS site, Target property and ExperienceEvent schema are verified. Target workspace
@@ -620,8 +716,9 @@ assignment and credential association are verified for reads. Analytics report q
 AEP/AJO effective permissions are verified. Initial datastream destinations are now verified through
 owner screenshots, exact selector comparisons and saved-environment-pin confirmation; automatic
 configuration management remains unavailable. Scoped Target create/edit and future-only approval
-pass, with the activity restored inactive. Actual site writes/publication, the tested preflight
-utility and the stock/live comparison remain pending. AJO/CJA/RTCDP fixtures are deferred for the
+pass, with the activity restored inactive. Actual site writes/publication and the stock/live
+comparison remain pending; the implemented preflight still requires final review/reconciliation.
+AJO/CJA/RTCDP fixtures are deferred for the
 initial proving ground, not removed from the release gate.
 
 ## Options / pros & cons
