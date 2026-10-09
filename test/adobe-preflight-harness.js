@@ -22,13 +22,14 @@ export function patchVariant(bundle, variant) {
 // The only fixture/clock/transport injection is in this test harness.
 export async function exercise(bundle = copy(), options = {}) {
   const directory = await mkdtemp(join(tmpdir(), "airlock-preflight-SENTINEL-"));
-  const paths = ["input", "routing", "credential"].map(name => join(directory, name));
+  const paths = ["input", "routing", "credential", "workspace"].map(name => join(directory, name));
   let stdout = "", stderr = "";
   const sent = [];
   try {
     for (const [index, value] of [bundle.private_input, bundle.routing_evidence, bundle.credential_export].entries()) {
       await writeFile(paths[index], JSON.stringify(value), { mode: 0o600 });
     }
+    if (bundle.workspace_evidence) await writeFile(paths[3], JSON.stringify(bundle.workspace_evidence), { mode: 0o600 });
     if (options.prepare) await options.prepare(paths);
     const transport = async (url, init) => {
       const reply = bundle.transport_replies.find(item => item.request.url === url);
@@ -52,7 +53,9 @@ export async function exercise(bundle = copy(), options = {}) {
     };
     const { runCli } = await import("../probes/adobe-compatibility/preflight.mjs");
     const report = await runCli({
-      argv: options.argv ?? ["--input", paths[0], "--routing-evidence", paths[1], ...(options.extraArgs ?? [])],
+      argv: options.argv ?? ["--input", paths[0], "--routing-evidence", paths[1],
+        ...(bundle.workspace_evidence || options.workspaceHandle ? ["--workspace-evidence", paths[3]] : []),
+        ...(options.extraArgs ?? [])],
       env: options.noCredentials ? {} : { ADOBE_CREDENTIAL_FILE: paths[2] },
       stdout: { write: text => { stdout += text; } },
       stderr: { write: text => { stderr += text; } },

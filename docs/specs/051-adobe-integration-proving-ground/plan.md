@@ -19,6 +19,16 @@ still requires the exact scoped plan; budgets alone are not permission or perfor
 
 ## Work order and prerequisites
 
+### 051-04 follow-up — 2026-10-09
+
+The owner supplied the missing scoped profile confirmation. 051-04's reviewed implementation
+returned a real schema-v2 preparation-ready report. It depends on completed
+051-01; preserve that closed record. Existing synthetic fixtures support TDD, including omission,
+explicit contradiction, malformed/partial lists, expired/rotated binding and report redaction.
+Compliance first checked implementation AC1-5 with the live run pending. The orchestrator then
+ran the exact evidence; craft/architecture inspected the resulting report. Reconciliation remains
+pending, and the separate 051-02 setup/observation gates remain uncleared.
+
 | Slice | Start with | Stop before |
 |---|---|---|
 | 051-01 | Review its closed v1 input/evidence/report/operation contract; then failing CLI transport tests | Live calls before parent-approved credentials/scope; mutations except documented token issuance (report POST is nonmutating) |

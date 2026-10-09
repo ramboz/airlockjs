@@ -124,7 +124,7 @@ R-012 remains the investigation record. The portfolio was drafted through Jig on
 
 | Spec | Draft scope | Refinement state |
 |---|---|---|
-| [051 — Adobe integration proving ground](../specs/051-adobe-integration-proving-ground/spec.md) | Safe preflight, reproducible stock baseline, bounded SDK compatibility decision | 051-01 utility DONE; real workspace unknown blocks stock baseline and spike. Their DRAFT contracts remain open. |
+| [051 — Adobe integration proving ground](../specs/051-adobe-integration-proving-ground/spec.md) | Safe preflight, reproducible stock baseline, bounded SDK compatibility decision | 051-01 DONE; 051-04 reviewed with real preparation-ready report. Stock/spike outcome contracts remain open. |
 | [052 — Governed Adobe event collection and SDK commands](../specs/052-adobe-sdk-event-collection/spec.md) | General XDM/data and the documented command/result/event bridge | Unsliced DRAFT; needs 051's contract/approach |
 | [053 — Adobe personalization and reporting](../specs/053-adobe-personalization-reporting/spec.md) | Offers/rendering/scopes/views and Adobe-native display/interaction evidence | Unsliced DRAFT; refine from inventory and relevant command contracts |
 | [054 — aem-martech and Launch migration](../specs/054-aem-martech-launch-migration/spec.md) | Adopter instrumentation, ACDL/Launch compatibility, no duplicate initialization | Unsliced DRAFT; depends on the behaviors being migrated |
@@ -139,8 +139,9 @@ proceeding after independent reviews under strictly fewer than 10,000 credits ov
 approve numeric performance bands, or authorize release/publication beyond scoped test plans.
 AJO/CJA/RTCDP are deferred for this run, not removed from the release-check obligations below.
 051-01 implements API, scoped owner-evidence and unavailable-automation report bases. Its real
-exit-1 report has 11 required checks ready and one workspace snapshot unverified; operator UI
-confirmation is unavailable. This is a useful preflight result, not a ready baseline or SDK proof.
+historical exit-1 report has one workspace unknown. The owner supplied exact profile confirmation;
+new 051-04's schema-v2 report now verifies all 12 required checks with explicit owner evidence.
+Preparation readiness does not establish the stock baseline, deployment or SDK/product proof.
 Refine subsequent specs from the investigation's evidence, with actual slice dependencies rather
 than placeholder IDs.
 Existing specs 012-014, 020, 033-036 are reusable foundations, not the complete target.

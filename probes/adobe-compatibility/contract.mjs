@@ -114,7 +114,7 @@ export async function readJson(path, credential = false) {
 export function parseArgs(argv) {
   if (argv.length === 1 && argv[0] === "--help") return { help: true };
   const result = {};
-  const flags = { "--input": "input", "--routing-evidence": "routing", "--credential-secret-index": "index" };
+  const flags = { "--input": "input", "--routing-evidence": "routing", "--workspace-evidence": "workspace", "--credential-secret-index": "index" };
   for (let index = 0; index < argv.length; index += 2) {
     requireValue(Object.hasOwn(flags, argv[index]));
     const key = flags[argv[index]];
@@ -258,6 +258,19 @@ export function validateRouting(value) {
   digest(value.property_token_api_sha256); text(value.target_environment_pin_confirmation_source);
   literal(value.configuration_api_read_verified, false);
 }
+export function validateWorkspace(value) {
+  closed(value, ["kind", "schema_version", "basis", "observed_at", "confirmed_at", "expires_at", "provenance",
+    "bindings", "credential_identity_sha256", "included_property_ids", "permission_inventory_complete",
+    "automatic_assignment_disabled", "owner_confirmed_saved_configuration"]);
+  literal(value.kind, "airlock.adobe-preflight.workspace-evidence"); literal(value.schema_version, 1);
+  literal(value.basis, "owner-admin-console-confirmation");
+  for (const key of ["observed_at", "confirmed_at", "expires_at"]) timestamp(value[key]);
+  closed(value.provenance, ["authority_ref", "record_ref", "screenshot_sha256"]);
+  text(value.provenance.authority_ref); text(value.provenance.record_ref); digest(value.provenance.screenshot_sha256);
+  selectors(value.bindings); digest(value.credential_identity_sha256);
+  array(value.included_property_ids, 1, resourceId);
+  for (const key of ["permission_inventory_complete", "automatic_assignment_disabled", "owner_confirmed_saved_configuration"]) boolean(value[key]);
+}
 function compareUtc(left, right) {
   // Validated UTC calendar strings sort by whole seconds, then by exact decimal fraction.
   // Date.parse is used for calendar validation, not for evidence ordering: it drops sub-ms digits.
@@ -288,6 +301,20 @@ export function evaluateScope(input, credentials, start, deadline) {
       compareUtc(approval.expires_at, new Date(deadline).toISOString()) <= 0 ||
       compareUtc(approval.expires_at, approval.approved_at) <= 0 ||
       !fresh(evidence.observed_at, evidence.expires_at, start, deadline)) fail("stale_evidence");
+}
+export function evaluateWorkspace(value, input, credentials, start, deadline) {
+  if (!equal(value.bindings, input.selectors) || value.provenance.authority_ref !== input.approval.authority_ref ||
+      !equal(value.included_property_ids, [input.selectors.target.property_id]) ||
+      (input.scope_evidence && value.credential_identity_sha256 !== input.scope_evidence.credential_identity_sha256) ||
+      (credentials && (credentials.ORG_ID !== input.selectors.ims_org_id ||
+        value.credential_identity_sha256 !== hash(JSON.stringify([credentials.ORG_ID, credentials.CLIENT_ID, credentials.TECHNICAL_ACCOUNT_ID]))))) {
+    fail("scope_mismatch", "blocked");
+  }
+  if (!fresh(value.observed_at, value.expires_at, start, deadline) ||
+      compareUtc(value.confirmed_at, value.observed_at) < 0 ||
+      compareUtc(value.confirmed_at, new Date(start).toISOString()) > 0) fail("stale_evidence");
+  if (!credentials || !input.scope_evidence || !value.permission_inventory_complete ||
+      !value.automatic_assignment_disabled || !value.owner_confirmed_saved_configuration) fail("missing_evidence");
 }
 export function evaluateRouting(value, input, start, deadline, propertyToken) {
   if (!value) fail("missing_evidence");

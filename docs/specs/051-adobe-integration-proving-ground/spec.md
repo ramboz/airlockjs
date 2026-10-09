@@ -31,8 +31,10 @@ future-only approval/restoration check are verified. The activity is saved/inact
 datastream routing is established by owner screenshots, exact selector comparisons and saved
 environment-pin confirmation, **not** a configuration API readback. Reference push dry-run passed;
 actual deployment, SDK events and product outcomes have not run. These ad-hoc observations are
-not the tested 051-01 CLI or a fresh report. The subsequent real CLI verified 11 of 12 required
-checks; missing workspace association evidence keeps the stock gate blocked. The current Alloy adapter remains a
+not the tested 051-01 CLI or a fresh report. The historical v1 CLI verified 11 of 12 required
+checks; the owner's later confirmation and new 051-04 path now give a real v2 report with all
+12 required preparation checks ready. Separate stock setup/observation gates remain open.
+The current Alloy adapter remains a
 page-view/HTML-placement subset, not the entire stock SDK.
 
 The immediate proving ground is Alloy/Analytics/Target. AJO/CJA/RTCDP are owner-deferred for this
@@ -129,9 +131,13 @@ The 051-03 offline inventory can be prepared independently, but its final live c
 
 ## Slices
 
+The fresh owner profile confirmation is consumed by new 051-04, not a retroactive change to
+closed 051-01. The stock baseline depends on its reviewed evidence path and a fresh ready report.
+
 - [051-01 — read-only access preflight](slice-01-access-preflight.md)
 - [051-02 — reproducible test setup and stock baseline](slice-02-test-baseline.md)
 - [051-03 — bounded SDK compatibility decision](slice-03-compatibility-investigation.md)
+- [051-04 — scoped workspace confirmation](slice-04-workspace-confirmation.md)
 
 ## Completion and handoff
 

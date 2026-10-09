@@ -631,6 +631,45 @@ No stock/chamber SDK journey, activity activation, deployment or product receipt
 Fresh reads still confirm the owned activity saved/inactive with its future schedule.
 The broader release gate and AJO/CJA/RTCDP deferrals remain unchanged.
 
+### Scoped owner profile confirmation — 2026-10-09
+
+The owner supplied an Admin Console screenshot and explicitly confirmed that only the dedicated
+Airlock property is included in the selected Airlock Target product profile. The view contains
+one included property, three other available/excluded properties and no automatic assignment rule.
+The screenshot's digest and exact pre-existing selector bindings are retained only in private
+`0600` evidence; no image, live IDs or credentials are committed.
+
+This supplies the previously missing **profile property-permission** fact. It does not identify
+Target delivery environments, prove exclusive application-wide credential grants, renew old
+datastream routing evidence or authorize editing the other properties. In particular, the
+excluded property labels are not evidence of Analytics or Target environment routing.
+
+New [051-04](../specs/051-adobe-integration-proving-ground/slice-04-workspace-confirmation.md)
+introduces the explicit versioned evidence path, preserving closed 051-01 and its real exit-1
+history. Its independent frame review passed. Implementation and subsequent independent reviews
+must preserve strict fresh selected-property checks, complete collection validation and API
+conflict precedence; missing data is still not an empty assignment. The real preflight must rerun
+before claiming readiness. No stock/chamber event, activation, deployment or product outcome is
+established by the screenshot or this note.
+
+### Workspace-confirmation preflight rerun — 2026-10-09
+
+The new versioned operator path passed independent frame, implementation-compliance, craft and
+architecture reviews. Witnessed TDD added 141 cases; all 455 targeted cases, including the existing
+preflight and frozen-core tests, pass. Closed 051-01 and its original report remain unchanged.
+
+The parent ran the real CLI with the exact private screenshot confirmation, existing credential
+handle and unchanged original selection/routing observation times. Schema-v2 preflight returned
+**exit 0 / ready**, with **12 required checks ready, four optional checks unverified and 12 requests**.
+The workspace row explicitly uses `owner_ui_confirmation`, null HTTP status and accepted-owner
+freshness; no absent API assignment was invented or called an API readback.
+Fresh selected Target/Analytics resources, report-query access and site readability also passed.
+
+This clears the initial-preparation report prerequisite only. Actual site deployment, the
+reviewed stock fixture plan/schedule/targeting, notification/report observation and SDK product
+outcomes remain separate 051-02 gates. No activity activation, SDK event, deployment or product
+receipt has run. The owned activity remains saved with its future schedule.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes

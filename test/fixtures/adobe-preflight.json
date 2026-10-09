@@ -387,7 +387,7 @@
   ],
   "expected_ready_report": {
     "kind": "airlock.adobe-preflight.report",
-    "schema_version": 1,
+    "schema_version": 2,
     "profile": "analytics-target-initial",
     "generated_at": "2026-10-09T01:00:00.000Z",
     "overall": "ready",

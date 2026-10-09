@@ -2,12 +2,12 @@
 import { pathToFileURL } from "node:url";
 import {
   PROFILE, LIMITS, Failure, fail, parseArgs, readJson, parseJson, validateInput, validateRouting,
-  validateCredentials, evaluateScope, evaluateRouting, equal,
+  validateCredentials, validateWorkspace, evaluateScope, evaluateRouting, evaluateWorkspace, equal,
 } from "./contract.mjs";
 import { validateResponse } from "./responses.mjs";
 
 const USAGE = `Adobe initial-preparation preflight (Node ESM)
-Usage: node probes/adobe-compatibility/preflight.mjs --input <path> [--routing-evidence <path>] [--credential-secret-index <integer>]
+Usage: node probes/adobe-compatibility/preflight.mjs --input <path> [--routing-evidence <path>] [--workspace-evidence <path>] [--credential-secret-index <integer>]
 Credentials: ADOBE_CREDENTIAL_FILE environment path handle; uppercase Adobe export.
 No SDK traffic, mutation, deployment or product-outcome verification. See README.md.
 `;
@@ -58,7 +58,7 @@ function report(rows, start, requests, exceptional) {
   };
   const overall = exceptional ? "unverified" : summary.required_blocked ? "blocked" : summary.required_unverified ? "unverified" : "ready";
   return frozen({
-    kind: "airlock.adobe-preflight.report", schema_version: 1, profile: PROFILE,
+    kind: "airlock.adobe-preflight.report", schema_version: 2, profile: PROFILE,
     generated_at: new Date(start).toISOString(), overall, exit_code: exceptional ?? (overall === "ready" ? 0 : 1),
     checks: rows, summary,
     claims: { scope: "initial-preparation-only", deployment_verified: false, product_outcomes_verified: false, mutation_authority_verified: false },
@@ -262,16 +262,28 @@ export async function runCli({ argv = process.argv.slice(2), env = process.env, 
     const limits = validateInput(input);
     runLimit = limits.run_timeout_ms;
     const deadline = start + limits.run_timeout_ms;
-    let routing, credentials, secretIndex;
+    let routing, workspace, workspaceError, credentials, secretIndex;
     if (args.routing) {
       try { routing = await readPrivate(args.routing); }
       catch (error) { if (!(error instanceof Failure && error.reason === "missing_evidence")) throw error; }
       if (routing) validateRouting(routing);
     }
+    if (args.workspace) {
+      try { workspace = await readPrivate(args.workspace); }
+      catch (error) { if (!(error instanceof Failure && error.reason === "missing_evidence")) throw error; }
+      if (workspace) validateWorkspace(workspace);
+    }
     if (env.ADOBE_CREDENTIAL_FILE) {
       try { credentials = await readPrivate(env.ADOBE_CREDENTIAL_FILE, true); }
       catch (error) { if (!(error instanceof Failure && error.reason === "credentials_unavailable")) throw error; }
       if (credentials) secretIndex = validateCredentials(credentials, args.index);
+    }
+    // Supplied evidence is evaluated even when API data is complete or prerequisites fail.
+    // It never establishes readiness until the current, complete collection permits it.
+    if (workspace) {
+      try { evaluateWorkspace(workspace, input, credentials, start, deadline); }
+      catch (error) { workspaceError = disposition(error); }
+      if (workspaceError) put("target.workspace_snapshot", { error: workspaceError }, "owner_ui_confirmation", true);
     }
     // Validate approval, full designation and identity before *any* network operation.
     if (remaining() <= 0) fail("timeout");
@@ -316,7 +328,14 @@ export async function runCli({ argv = process.argv.slice(2), env = process.env, 
             }
             put("target.environment", environment, "api_read");
             if (!property.error) {
-              put("target.workspace_snapshot", await perform("target.properties"), "api_read");
+              const snapshot = await perform("target.properties");
+              const ownerResult = { error: workspaceError };
+              const failure = chooseFailure([snapshot, ownerResult]);
+              if (failure) put("target.workspace_snapshot", failure,
+                failure === snapshot ? "api_read" : "owner_ui_confirmation", failure !== snapshot);
+              else if (snapshot.value.assignmentsComplete) put("target.workspace_snapshot", snapshot, "api_read");
+              else if (workspace) put("target.workspace_snapshot", {}, "owner_ui_confirmation", true);
+              else put("target.workspace_snapshot", { error: new Failure("schema_error"), status: snapshot.status }, "api_read");
               const parts = [await perform("target.activity", true), await perform("target.offer", true, 0), await perform("target.offer", true, 1)];
               put("target.activity_offers", chooseFailure(parts) ?? {}, "api_read", true);
             }

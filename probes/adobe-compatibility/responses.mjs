@@ -103,22 +103,29 @@ export function validateResponse(operation, body, context) {
       schema(integer(body.total));
       collection(body.properties, limits.max_items);
       const ids = new Set();
-      let selected = 0, assigned = 0;
+      let selected = 0, assigned = 0, omitted = false, wrongSelectedScope = false;
       for (const property of body.properties) {
         schema(object(property));
         const propertyId = id(property.id);
         if (ids.has(propertyId)) fail("partial_enumeration");
-        ids.add(propertyId); strings(property.workspaces);
+        ids.add(propertyId);
+        if (!Object.hasOwn(property, "workspaces") && propertyId !== t.property_id) {
+          // Absence is unknown, not []; continue scanning for explicit scope conflicts.
+          omitted = true;
+          continue;
+        }
+        strings(property.workspaces);
         if (propertyId === t.property_id) {
           selected++;
-          match(property.workspaces.length === 1 && property.workspaces[0] === t.workspace_id);
+          wrongSelectedScope = property.workspaces.length !== 1 || property.workspaces[0] !== t.workspace_id;
         }
         if (property.workspaces.includes(t.workspace_id)) assigned++;
       }
       if (body.total !== ids.size || selected !== 1 || body.next || body.nextPage || body.nextPageToken ||
           body.hasMore === true || body.truncated === true) fail("partial_enumeration");
-      match(assigned === 1);
-      return;
+      match(!wrongSelectedScope && assigned === 1);
+      // Private structural result only: no raw API rows or inferred assignments reach reports.
+      return { assignmentsComplete: !omitted };
     }
     case "target.activity": {
       match(id(body.id) === t.activity_id);

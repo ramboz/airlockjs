@@ -28,7 +28,7 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 - More terms belong in [docs/memory/glossary.md](docs/memory/glossary.md), not in this primer.
 
 ### Active specs
-- [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01 preflight utility DONE. Its real report preserves one required workspace unknown; stock/chamber proof remains blocked. [Operator guide](probes/adobe-compatibility/README.md).
+- [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01 utility DONE, 051-04 owner-evidence extension reviewed. Latest real preflight verifies all 12 required preparation checks; stock/chamber product proof remains unexecuted. [Operator guide](probes/adobe-compatibility/README.md).
 - **052-057** — unsliced DRAFT outlines for the remaining [Adobe release portfolio](docs/releases/adobe-compatibility.md#jig-handoff); refine after 051 evidence. See [status board](docs/specs/README.md).
 
 ### Deferred decisions
@@ -73,8 +73,9 @@ confirmation, not configuration API readback. No SDK events or live workflow pro
 AJO/CJA/RTCDP are deferred for the initial proving ground, not removed from the release gate.
 No new AEP sandbox is required for the initial baseline with
 Platform ingestion disabled. No stock/live workflow proof exists yet. [Spec 051](docs/specs/051-adobe-integration-proving-ground/spec.md)
-supplies the contracts and reviewed preflight utility. The real report verifies 11 required checks;
-one workspace association remains unknown and needs scoped owner confirmation before the stock gate.
+supplies the contracts and reviewed preflight utility. The owner confirmed scoped profile permissions;
+051-04's real schema-v2 report verifies all 12 required preparation checks with explicit manual evidence.
+Deployment, scoped activity scheduling/targeting and product observation still require the stock plan.
 The owner granted proceeding after independent reviews under strictly
 fewer than 10,000 credits overall and eight active hours for 051-03; input/evidence, setup-scope and
 readiness gates remain open. The pinned stock reference declares Alloy 2.31.1/ACDL 3.0.1;

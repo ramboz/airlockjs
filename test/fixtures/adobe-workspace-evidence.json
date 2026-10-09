@@ -1,0 +1,31 @@
+{
+  "fixture_only": true,
+  "guidance": "Hydrate bindings, identity digest and included ID from a fresh copy of the existing invented preflight fixture before testing. No real screenshot or selectors belong here.",
+  "evidence_template": {
+    "kind": "airlock.adobe-preflight.workspace-evidence",
+    "schema_version": 1,
+    "basis": "owner-admin-console-confirmation",
+    "observed_at": "2026-10-09T00:35:00.000Z",
+    "confirmed_at": "2026-10-09T00:40:00.000Z",
+    "expires_at": "2026-10-10T00:00:00.000Z",
+    "provenance": {
+      "authority_ref": "fixture-owner-grant-001",
+      "record_ref": "invented-owner-profile-confirmation",
+      "screenshot_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    "bindings": null,
+    "credential_identity_sha256": null,
+    "included_property_ids": null,
+    "permission_inventory_complete": true,
+    "automatic_assignment_disabled": true,
+    "owner_confirmed_saved_configuration": true
+  },
+  "variants": [
+    {"name": "complete list with omitted non-selected assignment", "expected": "owner confirmation ready"},
+    {"name": "known additional assignment", "expected": "blocked scope conflict"},
+    {"name": "partial list or malformed present assignments", "expected": "unverified, not repaired"},
+    {"name": "stale or expired confirmation", "expected": "unverified"},
+    {"name": "wrong credential or selector", "expected": "blocked"},
+    {"name": "no supplied confirmation", "expected": "prior API behavior unchanged"}
+  ]
+}

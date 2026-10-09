@@ -42,3 +42,6 @@ The real 051-01 preflight returned 11 required checks ready and target.workspace
 
 ## Jig implementer entry checks use the standalone slice
 For file-per-slice work, give the configured implementer the standalone slice as its authoritative READY_FOR_IMPLEMENTATION target. Let it verify that entry state and transition IN_PROGRESS before editing. The overview spec status is derived and may already roll up IN_PROGRESS; never manually rewrite it to satisfy an obsolete overview-status check. Pre-advancing the slice caused a real refusal in 051-01. See docs/specs/051-adobe-integration-proving-ground/slice-01-access-preflight.md#implementationtdd-witness--2026-10-08.
+
+## Scoped Target profile confirmation has a distinct evidence basis
+051-04 consumes a private exact owner-confirmed Admin Console envelope only for absent non-selected workspace metadata in an otherwise valid complete fresh collection. Known conflicts, malformed/partial reads and stale/mismatched evidence cannot pass. The real v2 report reached 12 required ready with owner_ui_confirmation and null HTTP for that row; this is not application-wide exclusivity or Target delivery-environment routing. Preserve closed051-01 history and separate stock/product gates. See docs/specs/051-adobe-integration-proving-ground/slice-04-workspace-confirmation.md and R-012.

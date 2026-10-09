@@ -1,4 +1,4 @@
-# Adobe initial-preparation preflight — 051-01
+# Adobe initial-preparation preflight — 051-01 / 051-04
 
 This Node ESM utility checks **initial Analytics/Target preparation only**. It does not deploy,
 execute HTML/SDKs, activate activities, provision, publish, inspect browser state, or verify
@@ -23,8 +23,9 @@ node probes/adobe-compatibility/preflight.mjs \
 owner-only mode `0400` or `0600`. Do not source, copy, rewrite, or print it. Export fields are exactly
 `ORG_ID`, `CLIENT_ID`, `CLIENT_SECRETS`, `SCOPES`, `TECHNICAL_ACCOUNT_ID`,
 `TECHNICAL_ACCOUNT_EMAIL`. One secret selects index 0; multiple secrets require the sole
-additional flag `--credential-secret-index <integer>`. No attempts against other secrets occur.
+credential-choice flag `--credential-secret-index <integer>`. No attempts against other secrets occur.
 `--help` alone prints static usage without reads or requests.
+051-04 adds the optional private path handle `--workspace-evidence <path>` described below.
 
 There are no fixture, clock, arbitrary URL, method, header, token, browser, dotenv, or secret-value
 flags/environment hooks. Unknown/duplicate flags and positional arguments fail before reads.
@@ -72,6 +73,68 @@ are attestations/provenance, not signatures, OCR, fetched artifacts or independe
 Missing/stale/incomplete routing remains unverified; unsafe destination, binding/token mismatch or
 unsaved pin blocks. Reinspect after credential/resource/routing changes, before any SDK traffic.
 `datastream.configuration_api` stays separately unverified even when manual routing passes.
+
+### Scoped workspace confirmation — 051-04
+
+The [051-04 contract](../../docs/specs/051-adobe-integration-proving-ground/slice-04-workspace-confirmation.md)
+adds an optional owner Admin Console confirmation, not an API default or force-ready flag:
+
+```sh
+node probes/adobe-compatibility/preflight.mjs \
+  --input "$AIRLOCK_PREFLIGHT_INPUT" \
+  --routing-evidence "$AIRLOCK_ROUTING_EVIDENCE" \
+  --workspace-evidence "$AIRLOCK_WORKSPACE_EVIDENCE"
+```
+
+The parent/operator alone prepares this private file from the actual approved source. Inspect
+**Admin Console > Products > Adobe Target > the selected profile > property permissions**.
+Confirm the saved selected profile includes only the dedicated selected property, that its
+permission inventory is complete, and that automatic assignment is disabled. Keep screenshots,
+selectors, private references and file paths private; the utility does not read screenshots.
+This proves only the named profile's included properties, **not exclusive application-wide
+permissions**, unrelated profiles or delivery-environment routing.
+
+The closed workspace envelope is schema version 1 with exactly these fields:
+
+- `kind:"airlock.adobe-preflight.workspace-evidence"`,
+  `basis:"owner-admin-console-confirmation"`, `schema_version:1`;
+- `observed_at`, `confirmed_at`, `expires_at`: original UTC RFC3339 timestamps, retaining all
+  source fractional digits. Observation <= confirmation <= run start; observation at most
+  24 hours old; expiry strictly beyond the full run deadline. Confirmation/aggregation does
+  not renew observation or expiry.
+- `provenance:{authority_ref,record_ref,screenshot_sha256}`: nonempty, control-free private
+  references (at most 250 characters); authority matches the approved input; screenshot digest
+  is lowercase 64-hex SHA-256. Provenance is an attestation, not a signature or API readback.
+- `bindings`: exact full copy of the input's `selectors`, including offers and site.
+- `credential_identity_sha256`: SHA-256 of UTF-8
+  `JSON.stringify([ORG_ID, CLIENT_ID, TECHNICAL_ACCOUNT_ID])`, matching the current export and
+  approved owner-selection evidence. No token decoding or new credential source.
+- `included_property_ids`: exactly one canonical decimal string ID, the selected property.
+- `permission_inventory_complete`, `automatic_assignment_disabled`,
+  `owner_confirmed_saved_configuration`: all must be `true` for readiness.
+
+The existing bounded private-file parser applies. Unknown/duplicate keys, invalid types or
+timestamps, noncanonical IDs, invalid versions, oversized/deep JSON, symlinks and nonregular files
+are configuration exit 2 before requests. Structural boolean `false` is accepted but unverified.
+Valid binding/identity/authority/included-property mismatches block; stale/future/expired or
+incomplete confirmations remain unverified. An unavailable optional file supplies no evidence
+and leaves the API-only path unchanged. Errors remain fixed enums without private text.
+
+The same property collection is always read when the fresh exact selected-property prerequisite
+passes. Only omitted `workspaces` on **non-selected** properties of an otherwise valid complete
+list can use this confirmation. No omission becomes `[]`. Known additional assignment to the
+selected workspace blocks, independently of row order. Missing selected assignments, malformed
+present values, duplicates/count mismatches, truncation/page hints, failed HTTP reads and limits
+cannot be repaired. A successful manual row is `owner_ui_confirmation`,
+`accepted_owner_window`, `http_status:null`; fully known API assignments retain `api_read`,
+`current_run`, status 200. Supplied evidence is always validated: a fully known API list cannot
+hide stale or contradictory confirmation. Explicit API scope conflicts prevail.
+
+Input and routing schemas remain v1. Reports are now **v2** with the same closed keys, rows,
+enums, exits and redaction; only this declared evidence policy extends their semantics.
+Workspace confirmation does not renew routing/selection evidence or clear other required unknowns,
+product, activation, write or deployment gates. After independent reviews the parent runs the
+real CLI and records its actual result in R-012. Hermetic readiness is not a real readiness claim.
 
 ## Closed request inventory
 
@@ -133,7 +196,7 @@ transports/body reads, including independent site checks. New requests cannot re
 ## Public output and exit codes
 
 Except static help, stdout is exactly one newline-terminated
-`airlock.adobe-preflight.report` JSON document, schema version 1. Stderr is a single line built
+`airlock.adobe-preflight.report` JSON document, schema version 2. Stderr is a single line built
 only from overall/exit enums and summary counts. No parser/exception/server messages, private
 paths, keys, selectors, credentials, identities, tokens, hashes or offer contents are emitted.
 Reports are built only from allowlisted primitives and deeply frozen.
@@ -182,7 +245,7 @@ credential identity mismatch → `correct_input`.
 ```sh
 npm test -- test/adobe-preflight-cli.test.js \
   test/adobe-preflight-transport.test.js test/adobe-preflight-evidence.test.js \
-  test/contract-stability.test.js
+  test/adobe-workspace-evidence.test.js test/contract-stability.test.js
 ```
 
 `runCli({argv, env, stdout, stderr, transport, now})` is the exported ESM test seam.
@@ -197,6 +260,12 @@ property reply by the harness before cloning or mutations. Do not extract its ra
 directly as operator evidence. This preparation changes neither production validation nor token
 mutation negatives; it avoids storing a computed test digest that the commit scanner misclassifies.
 No scanner bypass or allowlist exception is used.
+The workspace test template is also invented: tests hydrate its full bindings, identity digest
+and selected ID once from a pristine baseline copy before mutations. No private screenshots,
+real selectors or auto-repaired negative fixtures are used. 051-04 witnessed 85 failures before
+implementation; all 141 new regressions then passed alongside 278 existing preflight and 36
+contract-stability tests. The full default suite passed 2,337 tests. The implementer made no live
+calls; the parent-owned real report is recorded separately below.
 
 ### Known filesystem limitation
 
@@ -225,7 +294,16 @@ The precise guided step is to inspect the Airlock Target product profile in **Ad
 Products > Adobe Target > the selected profile > property permissions**, and confirm its
 relationship to only the dedicated Airlock property. Keep selectors and any screenshots private.
 If scoped owner confirmation is supplied, review and implement an explicit evidence contract
-before using it; this version has no force-ready or unreviewed manual fallback.
+before using it; the historical v1 utility had no force-ready or unreviewed manual fallback.
 Do not change other properties or profile grants to make the report pass.
 The owner was unavailable to provide that confirmation. The stock baseline remains gated on a
 ready real report; no test activity was activated and no SDK events were sent.
+
+**2026-10-09 follow-up:** the owner supplied scoped confirmation privately. The implemented
+extension passed independent frame, compliance, craft and architecture reviews; reconciliation
+remains separate. The real CLI returned schema-v2 **ready / exit 0**, with **12 required ready,
+four optional unverified and 12 requests**. Workspace attribution is `owner_ui_confirmation`
+with null HTTP status, not invented API proof. Original routing timestamps were not renewed.
+The historical v1 unknown report remains preserved. This clears initial preparation only;
+stock deployment, owned activity schedule/targeting and downstream product observation still
+require their separate reviewed 051-02 plan.
