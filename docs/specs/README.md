@@ -25,7 +25,7 @@ reviewed preflight and owner-confirmation extension, plus a READY_FOR_REVIEW bas
 spike below. The dedicated-site owner relaxation removes the added targeting/marker prerequisite.
 The historical v1 workspace unknown and v2 twelve-check pass are preserved. The current real
 rerun refuses stale source evidence with zero requests; renewed routing confirmation is pending.
-051-05's local harness is reviewed and does not establish SDK or product execution. Specs 052-057 are
+051-05's local harness is DONE and does not establish SDK or product execution. Specs 052-057 are
 intentionally unsliced DRAFT outlines, so the generated slice table
 does not list them yet; the [release handoff](../releases/adobe-compatibility.md#jig-handoff) links
 every outline and its refinement prerequisites. None is ready for implementation.
@@ -163,7 +163,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-02 — reproducible test setup and stock baseline | READY_FOR_REVIEW (adobe-adoption-goal) |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 🔬 051-03 — bounded SDK compatibility decision | DRAFT |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-04 — scoped workspace confirmation | **DONE** |  |
-| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-05 — local stock journey harness | REVIEWED (adobe-adoption-goal) |  |
+| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-05 — local stock journey harness | **DONE** |  |
 
 ## Deferred slices
 

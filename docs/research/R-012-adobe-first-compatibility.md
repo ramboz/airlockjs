@@ -925,6 +925,7 @@ all four actual operator cases and 588 combined tests (133 local-harness, 455 ex
 frozen-core); the implementation's full run passed 2,470 tests. Reports always state local
 fixtures only and deny SDK execution, product receipt, deployment and activity activation.
 The site wrapper and real vendor-response qualification still belong to 051-02.
+Independent reconciliation subsequently passed and the local 051-05 milestone is DONE.
 
 The actual current preflight was rerun and returned **exit 1 / stale_evidence / zero requests**:
 original scope/routing observations were not extended. It neither minted a token nor sent SDK

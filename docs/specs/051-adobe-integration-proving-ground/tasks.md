@@ -77,14 +77,14 @@ report remains intact. Tests and preparation readiness do not clear stock/produc
 - [x] Run full default regression suite (2470 tests), new-test lint and explicit browser/Node
       recommended lint/syntax checks for the ignored probe modules.
 - [x] Record local-only implementation witness, deviation log and operator limitations.
-- [ ] Parent obtains independent implementation/reconciliation verdicts and derived board/memory handoff.
+- [x] Parent obtains independent implementation/reconciliation verdicts and derived board/memory handoff.
 - [ ] Parent separately re-establishes fresh routing and all reviewed 051-02 live gates before traffic.
 
 No SDK execution, activity activation, deployment, credential/private-state access or downstream
 receipt occurred. The local no-consent guard is not vendor-native enforcement proof; ACDL counts
 submission only. Already dispatched work cannot be recalled on timeout. No-offer and non-render
 execute distinct stimuli, and the positive acknowledgement is a trusted host fixture only.
-051-05 is REVIEWED after recorded independent compliance/craft passes; reconciliation is pending.
+051-05 is DONE after recorded independent compliance/craft/reconciliation and derived close-out.
 Live routing confirmation remains separately unavailable and is not fabricated from local tests.
 
 ## 051-03 — bounded SDK compatibility decision
