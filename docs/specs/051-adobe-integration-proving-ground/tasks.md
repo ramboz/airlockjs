@@ -41,15 +41,16 @@ and reconciliation passed; 051-01 is DONE without making the stock baseline read
 - [x] Preserve owner screenshot/explicit confirmation privately and review the evidence frame.
 - [x] Prepare synthetic workspace-envelope variants, then witness CLI tests red before implementation.
 - [x] Implement versioned owner-confirmation path and conflict precedence without new requests.
-- [ ] Independently review compliance/craft/architecture, record real result and reconcile.
-- [ ] Require 051-04 completion and a fresh ready report before stock live work.
+- [x] Independently review compliance/craft/architecture, record real result and reconcile.
+- [x] Require 051-04 completion and a fresh ready report before stock live work
+      (stock-specific setup/observation prerequisites remain open).
 
-051-04 is REVIEWED: 141 new workspace regressions witnessed 85 failures before
+051-04 is DONE: 141 new workspace regressions witnessed 85 failures before
 implementation, then passed with the 278 existing preflight and 36 frozen-core tests (455 total).
 The full default suite passed 2,337 tests. The operator extension emits report v2 while private
 input/routing remain v1; manual readiness uses only the exact scoped confirmation basis and the
 unchanged 12-request inventory. Implementation reviews passed and the parent-owned real result
-is ready with all 12 required checks; reconciliation remains pending. The historical v1 unknown
+is ready with all 12 required checks; reconciliation passed. The historical v1 unknown
 report remains intact. Tests and preparation readiness do not clear stock/product/activation gates.
 
 - [ ] Require a fresh real preparation report and owner-approved product-specific resource/mutation/

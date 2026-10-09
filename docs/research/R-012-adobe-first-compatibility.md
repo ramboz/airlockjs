@@ -657,6 +657,7 @@ established by the screenshot or this note.
 The new versioned operator path passed independent frame, implementation-compliance, craft and
 architecture reviews. Witnessed TDD added 141 cases; all 455 targeted cases, including the existing
 preflight and frozen-core tests, pass. Closed 051-01 and its original report remain unchanged.
+Independent reconciliation subsequently passed and 051-04 is DONE.
 
 The parent ran the real CLI with the exact private screenshot confirmation, existing credential
 handle and unchanged original selection/routing observation times. Schema-v2 preflight returned
@@ -669,6 +670,13 @@ This clears the initial-preparation report prerequisite only. Actual site deploy
 reviewed stock fixture plan/schedule/targeting, notification/report observation and SDK product
 outcomes remain separate 051-02 gates. No activity activation, SDK event, deployment or product
 receipt has run. The owned activity remains saved with its future schedule.
+
+A subsequent nonmutating access check re-read the exact owned activity/workspace/property and
+saved state, then called the documented native A/B performance-report GET with its v1 media type.
+It returned HTTP 200 and a JSON object without an error envelope. No query filters, alternate
+workspace, traffic or mutation were used. This establishes report access, **not** display/
+interaction receipt semantics, event correlation or live product outcomes. Those reporting
+contracts still need verification before the stock plan can authorize traffic.
 
 ## Sources / findings
 

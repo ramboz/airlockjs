@@ -1,11 +1,10 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [051-01, adr-0031]
 last_verified: 2026-10-09
 kind: feature
 frame_review: true
 arch_review: true
-claimed_by: adobe-adoption-goal
 ---
 
 ## Slice 051-04 — scoped workspace confirmation
@@ -117,10 +116,9 @@ remain unchanged. A workspace screenshot does not renew routing or owner-selecti
 
 **DoD:**
 - [x] Meaningful CLI regressions witnessed red-to-green, plus existing preflight/core tests.
-- [ ] Independent compliance, craft, architecture and reconciliation verdicts recorded
-      (implementation passes recorded; reconciliation pending).
-- [ ] Operator guide, live facts, dependency links, board and memory reconciled.
-- [ ] Original 051-01 records/accepted decisions untouched; real product gates not inferred.
+- [x] Independent compliance, craft, architecture and reconciliation verdicts recorded.
+- [x] Operator guide, live facts, dependency links, board and memory reconciled.
+- [x] Original 051-01 records/accepted decisions untouched; real product gates not inferred.
 
 ## Assumptions
 
@@ -159,7 +157,7 @@ implementation/readiness/reconciliation verdict or real ready result is claimed 
 
 ### Deviation log (after reconciliation)
 
-Implementation and independent implementation reviews are complete; reconciliation remains pending.
+Implementation and all required independent reviews/reconciliation are complete; this slice is DONE.
 No code-scope deviations. The implementer did not access private evidence; the parent subsequently
 ran AC6 at 2026-10-09T15:39:14.468Z with the exact owner-bound envelope. Compliance had reviewed
 AC1-5 with the operational run pending; this parent run followed that pass and preceded craft/
@@ -192,8 +190,8 @@ Current 051-04-owned paths are exactly the updated groups above and `reviews/sli
 
 Leanness: no generic provisioner, arbitrary fetcher, new endpoint, dependency or browser SDK bridge.
 Known private-filesystem cancellation residual N1 survives unchanged. No inbox item or unrelated
-residual is retired. The independent reconciliation verdict and final lifecycle moves remain.
+residual is retired. The independent reconciliation verdict passed; lifecycle helpers derived DONE.
 
 ### Close-out (post-DONE)
 
-- [ ] Regenerate/audit the board without clearing the unexecuted stock/product gates.
+- [x] Regenerate/audit the board without clearing the unexecuted stock/product gates.

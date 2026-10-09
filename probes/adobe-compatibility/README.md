@@ -300,8 +300,8 @@ The owner was unavailable to provide that confirmation. The stock baseline remai
 ready real report; no test activity was activated and no SDK events were sent.
 
 **2026-10-09 follow-up:** the owner supplied scoped confirmation privately. The implemented
-extension passed independent frame, compliance, craft and architecture reviews; reconciliation
-remains separate. The real CLI returned schema-v2 **ready / exit 0**, with **12 required ready,
+extension passed independent frame, compliance, craft, architecture and reconciliation reviews;
+051-04 is DONE. The real CLI returned schema-v2 **ready / exit 0**, with **12 required ready,
 four optional unverified and 12 requests**. Workspace attribution is `owner_ui_confirmation`
 with null HTTP status, not invented API proof. Original routing timestamps were not renewed.
 The historical v1 unknown report remains preserved. This clears initial preparation only;
