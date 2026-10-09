@@ -531,6 +531,12 @@ are deferred for the immediate focus, not declared complete or removed from the 
 The reviewed Jig execution plan, spike/whole-run budget, durable execution-host credential setup
 and publication/release authority remain separate launch decisions.
 
+The [portable clean-session goal brief](../releases/adobe-compatibility-goal.md) preserves the
+current scope, bootstrap, review and safety contract in Git. Private fixture state, credential
+handles and raw captures are supplied separately at launch; the brief contains neither their
+machine-specific paths nor their live values. Its presence does not start `/goal`, approve a
+run budget or change the release gate.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes

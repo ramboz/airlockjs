@@ -46,6 +46,7 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 | [docs/bugs/README.md](docs/bugs/README.md) | Bug status board | Before folding reported defects into a spec |
 | [docs/refinement-todo.md](docs/refinement-todo.md) | Deferred decisions | When hitting an undefined case |
 | [docs/research/README.md](docs/research/README.md) | Open investigations (R-NNN notes; probe code in `probes/`) | Before starting or citing research |
+| [docs/releases/adobe-compatibility-goal.md](docs/releases/adobe-compatibility-goal.md) | Clean-session goal brief and private-input handoff | Before launching the Adobe implementation run |
 | [docs/memory/glossary.md](docs/memory/glossary.md) | Domain terms | When encountering unknown terms |
 | [docs/inbox.md](docs/inbox.md) | Parked ideas | During reconciliation |
 | [docs/adoption-readiness.md](docs/adoption-readiness.md) | Getting started with jig here: first 30 min + readiness check | Right after scaffolding |

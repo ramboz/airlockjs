@@ -23,8 +23,10 @@ The former [MVP9](mvp9.md) gate is replaced; its unclosed evidence remains defer
 - [`aem-martech`](https://github.com/adobe-rnd/aem-martech/tree/1aa3dee3c4791636efa9ad2994342f861c8e149b)
   is the initial compatibility reference, not code to transplant wholesale. It already phases eager
   personalization, lazy analytics and delayed Launch. Compare against that competent baseline.
-- The owner has no ready Target/Analytics setup and needs the agent to drive supported administrative
-  APIs. API credentials cannot create product entitlements; some setup may still require guided UI work.
+- At initial drafting, the owner needed an isolated Target/Analytics setup and API-led discovery.
+  [R-012](../research/R-012-adobe-first-compatibility.md) now records verified initial access and owned
+  fixtures, not a live SDK/product proof. Credentials cannot create entitlements; some administrative
+  operations still require owner UI evidence.
 - Customer-owned Launch/GTM can retain the remaining vendor tags while observed offenders migrate
   individually. Those remaining page scripts are outside Airlock's governance.
 
@@ -134,6 +136,14 @@ authenticated/provisioning action is authorized by drafting. Its compatibility s
 8-active-hour budget requiring owner approval before readiness. Refine subsequent specs from the
 investigation's evidence, with actual slice dependencies rather than placeholder IDs.
 Existing specs 012-014, 020, 033-036 are reusable foundations, not the complete target.
+
+### Clean-session execution brief
+
+[The portable `/goal` brief](adobe-compatibility-goal.md) carries the implementation/review
+workflow and private-input handles. Its current run scope prioritizes Alloy/Target/Analytics;
+AJO/CJA/RTCDP product-workflow work is deferred, not removed from this release gate. Running the
+brief is a proposed owner execution grant; committing it does not approve a budget or start a run.
+Credentials, live selectors and raw evidence remain outside Git.
 
 ## Release-Check Criteria
 
