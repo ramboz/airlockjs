@@ -606,6 +606,13 @@ rules block the traffic plan, not an otherwise reviewed saved-only/disabled prep
 Generic totals-query access is **not** proof of these queries. No new eVar,
 prop, suite rule, metric, realtime configuration or customer segment creation is permitted.
 
+**Executed read-only precheck, 2026-10-09:** The parent verified each named dimension/metric
+uniquely present and `allowedForReporting:true` for the exact approved suite. Fresh suite timezone
+readback and two bounded distinct reserved-marker MATCH queries returned HTTP 200 with array rows,
+column metadata and no column/error envelopes; both markers were absent. No SDK traffic or resource
+change occurred. This clears metadata/query-access uncertainty only, not future event receipt,
+processing-rule fidelity or positive sensitivity of a negative control.
+
 Freeze each stage's `windowStart`/`windowEnd` in the private plan as absolute suite-local ISO
 timestamps derived from its approved UTC traffic interval, padded five minutes on either side; retain
 the timezone and UTC equivalents. Refuse ambiguous DST conversion. A window may include

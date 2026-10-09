@@ -880,6 +880,26 @@ longer a blocker; a current owner-edit-preserving resource plan, source freshnes
 and downstream observation gates still require their actual evidence. Existing Page Delivery,
 scope, metrics and inactive future schedule were not changed by the agent.
 
+### Stock Analytics observation prechecks — 2026-10-09
+
+Read-only calls against the exact approved suite returned its page/custom-link dimensions
+(`variables/page`, `variables/customlink`) and pageview/occurrence metrics
+(`metrics/pageviews`, `metrics/occurrences`), uniquely present and explicitly reportable.
+The current suite timezone was reverified. Two separate bounded ranked report queries using
+fresh invented reserved markers returned HTTP 200, array rows and column metadata without
+column/error envelopes; neither reserved marker was present.
+
+This verifies access to the intended page and custom-link observation queries rather than
+only a suite-wide totals report. It is not product receipt, a successful negative control,
+proof of future processing rules or an SDK execution. No SDK events were sent and no suite,
+Target or site resource was changed. Private markers, suite selectors and raw report data
+remain outside committed output.
+
+The next implementation milestone remains the reviewed bounded stock setup/journey harness,
+with current-owner-edit-preserving updates, exact pins, refusal tests and restoration before
+live use. Native outcome exports are needed after real traffic, not more targeting configuration
+screenshots. Source evidence must still be valid for each actually approved live stage.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes
