@@ -19,6 +19,16 @@ still requires the exact scoped plan; budgets alone are not permission or perfor
 
 ## Work order and prerequisites
 
+### 051-06 real stock smoke entry
+
+Fresh owner unchanged-routing confirmation is received at 2026-10-09T23:00:50.457Z.
+Its new stage assessment retains historical originals, names the confirmation basis and requires
+fresh exact readbacks; original screenshot times are not rewritten. 051-06 builds the deployable
+strictly opt-in browser entry with real DOM tests. The parent owns private deployment/traffic
+plan execution only after independent code/architecture reviews and actual readiness pass.
+Keep the owner's Page Delivery change by using narrow state/schedule updates, not replaying the
+whole activity. One partial stock attempt cannot close 051-02's full baseline requirements.
+
 ### 051-05 local implementation entry — 2026-10-09
 
 User explicitly requested implementing/running the stock steps and permitted the activity to

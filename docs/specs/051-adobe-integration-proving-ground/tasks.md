@@ -87,6 +87,30 @@ execute distinct stimuli, and the positive acknowledgement is a trusted host fix
 051-05 is DONE after recorded independent compliance/craft/reconciliation and derived close-out.
 Live routing confirmation remains separately unavailable and is not fabricated from local tests.
 
+## 051-06 — deployed stock smoke entry (IN_PROGRESS)
+
+Current actual smoke: disabled deployed-byte/CSP checks passed after required code reviews;
+official SDK no-offer and corrected positive executed. Positive rendered the owned offer and
+submitted native DISPLAY/INTERACT plus distinct page/custom events. Public test code is disabled;
+owner-approved activity end/state and failed-attempt history are recorded in R-012.
+Downstream receipts remain unverified during finite report waits; no full baseline claim.
+
+- [x] Confirm READY and transition via workflow helper before edits; close browser API before tests.
+- [x] Correct browser-test instrumentation, remove draft, witness 59 actual missing-module failures.
+- [x] Implement fixed same-origin real supplier entry and site-owned safe DOM/trusted host control.
+- [x] Pass 63 real Chromium/SDK-stub tests, 651 targeted stock/preflight/frozen-core tests,
+      2533 full-default tests, test/probe recommended lint and module syntax check.
+- [x] Document explicit private in-memory observation API, phased wrapper and stub-only evidence.
+- [ ] Parent obtains independent compliance/craft/architecture reviews and exact private plan review.
+- [ ] Parent verifies fresh preparation, disabled deployed assets/config/CSP and compatible visible
+      eager placement before any SDK traffic; preserve original consent/page behavior.
+- [ ] Parent executes reviewed scoped attempt, enforces actual 16-request budget, observes distinct
+      Analytics/Target evidence and records bounded schedule/actual stop disposition.
+- [ ] Complete reconciliation/persistent handoff; leave incomplete 051-02 product obligations open.
+
+Only code is validated. No deployed pin, real SDK/product outcome or live stop is claimed.
+All closed 051-01/04/05 records and historical evidence remain unchanged.
+
 ## 051-03 — bounded SDK compatibility decision
 
 - [ ] Record the owner's granted eight-active-hour budget and overall credit ceiling; independently

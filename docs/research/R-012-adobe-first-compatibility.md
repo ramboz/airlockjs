@@ -22,8 +22,9 @@ related:
 > to saved/inactive. Initial Analytics/Target routing is verified through owner-provided UI evidence,
 > exact selector checks and the owner's saved development-environment pin confirmation.
 > Programmatic datastream management remains unavailable to this application/tool surface.
-> Live instrumentation/product-outcome proof has **not** run. The release is committed in direction,
-> not proven in outcome.
+> A real deployed stock smoke now qualified/rendered the owned offer and submitted native
+> display/interaction plus page/custom events. Downstream receipts remain unverified; the full
+> baseline/chamber/product portfolio is not complete. The release is committed in direction.
 
 ## Question
 
@@ -931,6 +932,155 @@ The actual current preflight was rerun and returned **exit 1 / stale_evidence / 
 original scope/routing observations were not extended. It neither minted a token nor sent SDK
 traffic. A fresh unchanged-routing confirmation was requested and remains unavailable.
 Local implementation is real code progress, not evidence that the requested live steps ran.
+
+### Fresh unchanged-routing confirmation and smoke preparation — 2026-10-09
+
+The owner explicitly confirmed the requested dedicated datastream routing unchanged at
+2026-10-09T23:00:50.457Z: the same approved suite, Target property/development environment,
+with Platform ingestion disabled. Original screenshots/envelopes and their expired observation
+times remain immutable. New 051-06's independently reviewed stage policy treats this as a new
+manual configuration confirmation, not a newly captured screenshot or configuration API read.
+New private stage assessment envelopes reference that confirmation and the historical sources;
+their deadline is 24 hours from confirmation, while workspace evidence retains its own original
+freshness and binding. No normalization-time extension or new picture is claimed.
+
+The real stage preflight subsequently passed all **12 required checks**, four optional unknowns,
+12 bounded requests. Exact fresh readbacks corroborated Analytics/Target fixture selectors and
+current property token; routing/profile rows remain explicitly owner-based. This reopens the
+initial live-preparation gate without establishing a deployment, SDK request or vendor receipt.
+
+An authorized isolated reference checkout was created inside the session workspace at commit
+`da299947f310fc84998b5b1684e9a5fc6877e7bc`. Exact stock source/license/ACDL files and the
+unmodified official Alloy bytes were prepared with their pinned hashes; none has been pushed or
+executed as stock yet. A fresh ordinary-page browser visit returned HTTP 200 with a main element,
+no test slot and **zero observed Adobe requests**. That is default behavior, not stock evidence.
+The current owned saved activity and unchanged known offers were reread privately; no whole-
+activity, metric or offer replay is planned, preserving the owner's Page Delivery edit.
+
+The exact redacted smoke operation plan passed independent review after adding all applicable
+source/credit deadlines, fresh compare-controlled state/schedule snapshots, independent
+disable/pause cleanup and readbacks, and explicit separate Analytics page/custom observation.
+Passing compliance/craft/architecture of the deployable code remains mandatory before any
+deployment, activity mutation or SDK traffic. New 051-06 is a partial real smoke attempt;
+051-02 retains the complete stock, negative, performance and Target native-outcome obligations.
+
+### Disabled deployment verified and first runtime defect observed — 2026-10-09
+
+After independent compliance/craft/architecture code passes and exact stage-plan review,
+the scoped disabled stock integration was actually deployed to the authorized reference repo
+at `09e5a8f`. Decoded gzip response bytes for the bootstrap, site entry/config and pinned vendor
+assets match the committed source hashes; raw compressed response hashes were not mistaken
+for source equality. Real default, invalid-query and disabled-opt-in browser visits showed
+zero vendor/Adobe requests, no stock slot/entry and no observed CSP errors.
+
+The code was briefly enabled for the reviewed one-hour window at `f6c8354`, then the first
+real no-offer attempt stopped with internal/bootstrap failure before SDK initialization.
+One stock integration module loaded; initialization, consent, fetch, page/custom and Adobe
+request counts were **zero**. No Target activity state/schedule, offer, metric or owner Page
+Delivery setting was touched. This is a genuine attempted live integration failure, not a
+successful stock journey or downstream receipt.
+
+Fail-safe stop was actually applied at reference commit `f905a0f`: public test config disabled
+and its served bytes verified. The owned activity was never activated. A no-vendor stub
+reproduction on the real page throws TypeError before initialization; the default browser clock
+receiver is being investigated rather than assigning this failure to Adobe reporting/access.
+The correction needs witnessed regression and fresh code review before any retry.
+
+### Actual stock execution begins after native-clock correction — 2026-10-09
+
+The production browser defect was proved independently: native timers stored as methods on
+a custom clock object throw `Illegal invocation`; lexical Window-bound wrappers succeed.
+A genuine default-clock/real ModuleNamespace browser regression reproduced it before correction.
+Independent compliance/craft/architecture supplements passed the narrow fix; 656 targeted cases
+pass and the full suite subsequently passes 2,538 tests across 127 files. Earlier visibility/
+clipping, strict-fragment and bounded-bootstrap corrections are also retained.
+
+The corrected module and new bounded enabled config were deployed at reference commit `605e539`,
+with actual decoded served-byte pins verified. The one real **no-offer** journey then loaded the
+official stock integration, Alloy and ACDL and completed SDK initialization, explicit consent,
+one custom-scope fetch, one distinct page submission, one actual host click and one custom-link
+submission. **Four Adobe requests** were observed; no offer qualified/rendered and no DISPLAY
+or INTERACT was submitted. The activity was still saved/inactive for that control.
+
+This is actual stock execution/submission evidence, not fixture proof. Separate exact-suite
+page/custom report checks so far return no matched rows; their counts remain **unobserved**,
+not zero, receipt or proven loss. No events were resent. The finite scheduled observation
+continues separately and the no-offer negative cannot be fully accepted without sensitivity.
+
+Only after those pre-live gates did the orchestrator apply the exact owned schedule/state
+operations, read back `approved`, and record a bounded serving end of
+2026-10-10T00:54:03Z. No whole-activity/metric/offer update occurred, preserving owner Page
+Delivery settings. The positive attempt is waiting the documented propagation allowance
+before one real visit. This current activity activation is genuine, not a future-only approval
+probe; positive delivery/render/notifications and downstream outcome are not yet claimed.
+
+### Real Target decision arrives; render qualification stops safely — 2026-10-09
+
+After the scheduled propagation allowance, the positive visit initialized the real stock SDK,
+sent consent and fetched **one actual Target HTML proposition** matching the exact owned scope,
+TGT provider and current approved offer hash. Two Adobe requests were observed. The proposition
+was not rendered because its approved harmless markup is a `span` with the inert
+`data-airlock-readiness` annotation, outside the first parser's div/p/button-only allowlist.
+The IDs/provider/field lengths were not the failure; no event tokens or contents are printed.
+
+This is a real decision-qualification/parser mismatch, not missing Target access or a claimed
+successful personalized display. Rendering, page/custom positive events, DISPLAY and INTERACT
+counts were all zero. The parser did not execute or report rejected content. A narrowly scoped
+synthetic regression/correction is in progress for known-hash inert span markup, stripping only
+the readiness annotation while retaining all active-tag/URL/handler/style rejection.
+
+On that failed run, the exact owned activity was paused and its captured original future
+schedule restored via narrow endpoints, with fresh readback. Site test config was independently
+disabled and its actual served bytes verified at reference commit `800598c`. Owner Page Delivery,
+offers and goal settings remain untouched. This is a strong error/measurement-integrity reason
+for stopping despite permission to leave a successful activity active. Actual downstream
+Analytics rows for the earlier no-offer page/custom submissions remain unobserved at current
+scheduled checks; they were not resent or reported as received.
+
+The controlled-host parser correction now permits only inert `span` markup with the one
+bounded readiness annotation after the original approved hash check, and strips that annotation
+before DOM import. Active/unknown attributes and tags remain refused; vendor identity and
+`scopeDetails` are not altered. A genuine synthetic regression preceded the correction;
+70 browser cases and 658 targeted cases pass, with the parent's full run at 2,540 tests.
+Independent compliance/craft/architecture supplements passed before deploying `449f8dc`.
+
+The owned activity was then re-approved only on an exact new bounded schedule ending
+2026-10-10T01:19:24Z; no whole-activity, goal, offer or Page Delivery replay occurred.
+One corrected positive visit is waiting for propagation. Its runner subtracts the actual
+earlier four no-offer plus two failed-positive Adobe requests from the aggregate 16-request
+ceiling. Earlier failed attempts and their captures remain distinct; no page/custom/display
+conversion was resent. Site disable will run independently after this case; error pause and
+compare-controlled inverse remain available. Current activation is not a delivery/outcome claim.
+
+### Corrected positive stock journey and actual stop — 2026-10-09
+
+The corrected positive visit completed the **real pinned stock SDK** sequence: one initialization,
+consent update, owned-scope fetch, hash-qualified TGT HTML proposition, visible sanitized host
+render, page submission carrying native DISPLAY, trusted host-button click, distinct ACDL
+custom link and native INTERACT. Five Adobe requests had HTTP statuses 200/200/204/204/200.
+The original offer annotation was stripped before DOM import, preserving original proposition
+identity/scopeDetails for notifications. No fixture output is substituted for this browser evidence.
+
+The cumulative observed Adobe request count is **11 of the 16-request ceiling**, including four
+no-offer requests, two failed-positive requests and five corrected-positive requests. Failed
+attempts are retained; no page/custom/display conversions were resent. Client render/submission
+and HTTP success do **not** establish downstream receipt. The first exact page/custom reports
+return no matched rows; counts remain unobserved, not zero or proven loss. Finite scheduled
+report observations continue without SDK resending. A refreshed native Target export for the
+actual test window was requested; owner availability is unresolved.
+
+Actual site stop independently disabled the public config in reference commit
+`c3aa3ca0fcddaa4beb70637fad6ed5f6f70bf8a8`; decoded served bytes verified disabled.
+As authorized after success, the activity remains approved on its bounded schedule ending
+2026-10-10T01:19:24Z, with fresh state/schedule readback. This is retained approval, not
+restoration to its original inactive schedule; its UI becomes ended after that boundary.
+No whole-activity, metric, offer, Page Delivery or production-routing edit occurred.
+The isolated reference clone was cleaned after all work was verified pushed; private source
+pins/captures and comparison baseline remain retained. No shared main checkout was touched.
+
+Full 051-02 acceptance, downstream Analytics/Target outcomes, remaining negative/performance
+cases and 051-03 chamber compatibility remain open. New 051-06 records this deliberately
+partial real smoke rather than claiming broad portfolio, reliable exactly-once or v1.0 readiness.
 
 ## Sources / findings
 

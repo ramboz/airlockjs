@@ -28,7 +28,7 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 - More terms belong in [docs/memory/glossary.md](docs/memory/glossary.md), not in this primer.
 
 ### Active specs
-- [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01/04/05 DONE. Local stock harness runs four synthetic cases. Historical v2 preflight passed all 12 checks; current source evidence expired, so live 051-02 still needs fresh routing and setup/outcome gates. [Operator guide](probes/adobe-compatibility/README.md).
+- [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01/04/05 DONE, 051-06 real stock smoke executed. Fresh owner-confirmed readiness passed; owned offer rendered with native notifications and page/custom sends. Downstream receipt and full 051-02/chamber proof remain open. [Operator guide](probes/adobe-compatibility/README.md).
 - **052-057** — unsliced DRAFT outlines for the remaining [Adobe release portfolio](docs/releases/adobe-compatibility.md#jig-handoff); refine after 051 evidence. See [status board](docs/specs/README.md).
 
 ### Deferred decisions
@@ -69,7 +69,8 @@ Default to collaborative and solution-forward — answer what's asked, propose r
 API-led access/setup discovery, then one Analytics + Target rendering/reporting proof.
 Analytics reporting, scoped Target create/edit/future-only approval and initial datastream routing
 are verified in R-012; the fixture is restored inactive. Routing uses owner UI evidence and saved-pin
-confirmation, not configuration API readback. No SDK events or live workflow proof have run.
+confirmation, not configuration API readback. Real stock smoke executed; client/HTTP evidence
+is not downstream product receipt. Site code is disabled and the bounded activity state is in R-012.
 AJO/CJA/RTCDP are deferred for the initial proving ground, not removed from the release gate.
 No new AEP sandbox is required for the initial baseline with
 Platform ingestion disabled. No stock/live workflow proof exists yet. [Spec 051](docs/specs/051-adobe-integration-proving-ground/spec.md)

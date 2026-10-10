@@ -1,0 +1,21 @@
+{
+  "fixture_only": true,
+  "config": {
+    "schema_version": 1,
+    "enabled": false,
+    "allowedOrigin": "https://main--stock-fixture--fixture-owner.aem.page",
+    "allowedPath": "/",
+    "orgId": "FIXTURE@AdobeOrg",
+    "datastreamId": "fixture-datastream",
+    "decisionScope": "fixture.scope",
+    "windowStart": "2026-10-09T22:00:00.000Z",
+    "windowEnd": "2026-10-10T02:00:00.000Z",
+    "expectedOfferHashes": [],
+    "vendorPin": "alloy-2.31.1"
+  },
+  "html": [
+    "<div>Airlock synthetic offer A</div>",
+    "<div>Airlock synthetic offer B</div>"
+  ],
+  "guidance": "Derive invented HTML hashes before mutations, populate invented proposition identities, and use isolated real DOM tests. No real resource selectors or vendor calls."
+}

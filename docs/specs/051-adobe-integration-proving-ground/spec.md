@@ -12,8 +12,8 @@ use_cases: [UC-1, UC-2, UC-6, UC-7, UC-8, UC-10, UC-11]
 > [Adobe-first portfolio](../../releases/adobe-compatibility.md#jig-handoff).
 > Refined at DRAFT on 2026-10-08. Selected authenticated checks and owner-authorized fixture
 > setup are recorded in R-012; the versioned preflight is now implemented and hermetically
-> validated in 051-01. The real preflight returned unverified; deployment and stock/chamber
-> validation remain unexecuted.
+> validated in 051-01. Historical readiness refusals and later owner-confirmed passes are
+> separate. 051-06 deployed real stock smoke; downstream receipt and chamber proof remain open.
 > Independent implementation/reconciliation reviews passed; 051-01 utility is DONE.
 > This does not clear the real stock baseline gate.
 
@@ -27,10 +27,12 @@ This implements the investigation checkpoint of
 
 R-012 is authoritative for operational facts: the dedicated Analytics suite/report queries and
 Target environment/property/workspace association, owned offers/activity create/edit and a
-future-only approval/restoration check are verified. The activity is saved/inactive. Managed
+future-only approval/restoration check are verified. After the successful smoke the owner permits
+retained bounded approval, with actual schedule recorded in R-012. Managed
 datastream routing is established by owner screenshots, exact selector comparisons and saved
 environment-pin confirmation, **not** a configuration API readback. Reference push dry-run passed;
-actual deployment, SDK events and product outcomes have not run. These ad-hoc observations are
+051-06 subsequently deployed and executed real stock events/render/notifications; product receipt
+is still unverified. The earlier ad-hoc observations are
 not the tested 051-01 CLI or a fresh report. The historical v1 CLI verified 11 of 12 required
 checks; the owner's later confirmation and new 051-04 path now give a real v2 report with all
 12 required preparation checks ready. Separate stock setup/observation gates remain open.
@@ -139,6 +141,7 @@ closed 051-01. The stock baseline depends on its reviewed evidence path and a fr
 - [051-03 — bounded SDK compatibility decision](slice-03-compatibility-investigation.md)
 - [051-04 — scoped workspace confirmation](slice-04-workspace-confirmation.md)
 - [051-05 — local stock journey harness](slice-05-local-stock-harness.md)
+- [051-06 — deployed stock smoke journey](slice-06-deployed-stock-smoke.md)
 
 051-05 supplies an independently usable local dry-run while live setup/routing gates remain
 separate. Its completion cannot satisfy 051-02's stock receipts, deployment or negative outcomes.

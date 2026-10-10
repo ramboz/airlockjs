@@ -399,3 +399,150 @@ two fixed public module-source reads), record actual function calls/arguments an
 refusals, false host acknowledgements, malformed/foreign/ambiguous propositions, rejections,
 late settlement after timeout, deep freeze and redaction. All runs are dry simulations, not
 executions of the real pinned integration or Alloy.
+
+## Deployable stock smoke entry — 051-06 (code tested; live gates open)
+
+`stock-site.mjs` is browser ESM, **not another dry-run CLI**. Its default supplier is the real
+same-origin `./vendor/aem-martech/index.js`. Nothing imports that supplier until eligible eager
+execution. The parent must vendor the unmodified pinned plugin and its dependencies/license,
+official Alloy **2.31.1** and reference ACDL **3.0.1** into the reviewed test-site paths.
+The module neither deploys assets nor verifies served hashes/CSP. Current tests use real isolated
+Chromium DOM/crypto and stub exports; **no Adobe SDK or Adobe traffic ran in those tests**.
+
+Exports:
+
+- `isOptIn(url, allowedOrigin)`: pure boolean URL predicate; root-only canonical HTTPS and
+  exactly `airlock-stock=v1`, one fixed `case`, `run=airlock05102-<32 lowercase hex>`,
+  `consent=decline`. Order is immaterial; duplicates, extra/encoded keys, unknown values,
+  fragments (including a bare trailing `#`) and foreign origins fail.
+- `validateConfig(config, nowMs = Date.now())`: pure boolean enabled-window/schema predicate.
+  Exact primitive fixture fields are retained (see `test/fixtures/adobe-stock-site.json`).
+  Require one or two unique SHA-256 hashes of the **current approved offer UTF-8 HTML bytes**;
+  the fixture's disabled/empty-hash template is intentionally ineligible. Real public-safe
+  hashes/runtime org/datastream/custom scope come only from parent-approved readbacks.
+  UTC timestamps use millisecond ISO form. Optional `publicAssetPins` accepts only the exact
+  `{aemMartech,alloy,acdl}` values documented in 051-06; it is not a served-byte attestation.
+  No SDK/module URL, activity/offer/environment/property/suite IDs or credentials belong here.
+- `createStockEntry({config,runnerConsent,slot?,loadIntegration?,clock?})`: synchronous entry.
+  Actual `location.href` is rechecked. Consent must be explicitly `"grant"` for collection or
+  `"deny"` for no-consent; URL `decline` never grants SDK consent. A supplied slot must be an
+  empty connected DIV. The optional loader and `{now,setTimeout,clearTimeout}` clock are
+  **module-only test seams**, never JSON/URL/operator flags. Deployment uses the default loader.
+
+Entry exposes `eager()`, `lazy()`, `delayed()`, boolean `ready`, frozen sanitized `result`
+snapshots, and **private-only** `getObservation()`. Result starts `pending`, ends
+`sdk_submission_observed` or `locally_guarded`, or a fixed refusal/failure category. Ineligible
+entries explicitly return `notEligible`, not success. No raw exception is logged or echoed.
+`getObservation()` exposes the exact synthetic `pageName`/`customName`, raw response, original
+identity and qualified/rendered HTML **in browser memory only** for the private Playwright
+runner's exact report queries. Never serialize that object to console/stdout/public artifacts.
+
+### Root bootstrap / phase mapping (parent applies after reviews)
+
+No edit to head, normal page loading or original consent-check is required. Keep a small pure
+pre-import/pre-config-fetch guard in `scripts/scripts.js`; the approved public origin is an
+exact parent-supplied constant, not a query/config override. This example mirrors `isOptIn` for
+that already canonical constant:
+
+```js
+function stockOptIn(href, approvedOrigin) {
+  const u = new URL(href);
+  const parts = u.search.slice(1).split('&');
+  return u.origin === approvedOrigin && href.startsWith(`${approvedOrigin}/?`)
+    && u.pathname === '/' && !href.includes('#') && !u.username && !u.password
+    && parts.length === 4 && new Set(parts.map(p => p.split('=')[0])).size === 4
+    && parts.every(p => p === 'airlock-stock=v1' || p === 'consent=decline'
+      || /^case=(positive|no-offer|non-render|no-consent)$/.test(p)
+      || /^run=airlock05102-[a-f0-9]{32}$/.test(p));
+}
+
+```
+
+The exact reference patch applies this guard **after the original `loadEager(document)`**,
+when the page has appeared. It additionally requires the isolated runner's explicit
+`window.__airlockStockConsent` to be `grant` or `deny` before any config/module load.
+Preparation has one **5,000 ms deadline covering config headers, streaming body and module
+import**, not separate unbounded awaits. Fetch `/tools/airlock-stock/runtime-config.json` with
+credentials omitted, redirects refused and no cache; cap decoded bytes at **65,536** and cancel
+the stream. Race preparation against the aborting deadline and check cancellation/expiry after
+every await, before creating any entry or DOM. A late import cannot start stock operations.
+Catch failures as fixed `window.__airlockStockFailure = 'bootstrap-failure'`, clear timers,
+and continue the site's original lazy/delayed loading. No raw error or head mutation.
+
+After validated enabled config, prepend an owned slot to `main`, call `createStockEntry`,
+and store the returned handle as **`window.__airlockStockEntry`**:
+
+```js
+// These phase calls follow the fully bounded preparation described above.
+if (stockEntry) await stockEntry.eager(); // after original loadEager, visible placement
+await loadLazy(document); // unchanged normal site loader
+if (stockEntry) await stockEntry.lazy();
+loadDelayed(); // unchanged function imports consent-check.js
+if (stockEntry) await stockEntry.delayed();
+```
+
+These are integration snippets, **not a deployed patch or a new site framework**. Verify the
+exact host seam against its current code: a body still hidden before original `body.appear`
+cannot earn DISPLAY. Do not loosen visibility to accommodate a hidden eager slot. The parent's
+disabled deployment checks must establish compatible placement/CSP/phase order before enabling.
+The original site does not await its delayed loader; the entry's delayed completion is separate.
+
+Eager imports/selects the seven pinned exports, initializes pending consent once, updates actual
+stock consent, fetches top-level `decisionScopes`, qualifies one TGT HTML item by scope/hash,
+validates strict div/p/button/span DOM, imports safe nodes into the 320×180 slot, waits for paint and
+connected/visible content (including every offer descendant's computed visibility, opacity,
+display and hidden flag, plus rectangle intersection with the viewport, reserved slot and
+applicable overflow-clipping ancestors), then submits one page with native DISPLAY. Partial
+visibility suffices; this is not a claim of pixel-perfect visibility or occlusion detection. No `martechEager`,
+`applyPropositions`, SDK element helper, arbitrary selector or unvalidated HTML sink is used.
+DOMParser can use the site's existing default Trusted Types policy; absent required policy
+fails closed. Active tags/attributes/URLs are rejected **before parsing**, even with known hashes.
+Only spans may carry `data-airlock-readiness`, double-quoted with 1–100 ASCII alphanumeric,
+underscore or hyphen characters. Exact original HTML must hash-match an approved offer first;
+the inert attribute is stripped from parsed nodes before DOM import. No other span attributes
+are accepted, and private original-HTML evidence is not a sanitized DOM serialization.
+
+Lazy initializes ACDL, sets `ready`, then awaits a **trusted real browser click** on
+`#airlock-stock-control` (accessible name `Airlock synthetic control`), independent of vendor
+HTML. The isolated runner waits for `ready` then clicks once; DOM `.click()`/dispatch does not
+qualify. One void `pushEventToDataLayer(LINK,xdm,data,{})` and a separate native INTERACT follow.
+No-offer requires explicit `propositions:[]`; non-render requires full qualification but inserts
+nothing. Their ordinary page/custom submissions contain no notifications. No-consent performs
+actual `updateUserConsent` denial and guards four attempted collection operations locally:
+**not vendor-native denial proof**. ACDL's asynchronous listener cannot acknowledge transmission.
+
+Phases are single-use/ordered, at most 10 seconds each, with a 30-second journey deadline capped
+by the enabled window. Late settlement cannot resume later module calls/rendering. Counts include
+rejecting submissions, not HTTP attempts, vendor acknowledgements, retries or exactly-once proof.
+The parent must count actual Adobe requests (including consent/SDK retries), enforce **16 overall**,
+close/stop on errors/duplicates/routing drift, and disable public config through its reviewed stop
+plan. Already dispatched SDK work cannot be recalled. All downstream/deployment/vendor-enforcement
+claims remain false. No application retries, credentials, private CLI or resource mutations exist.
+
+Remaining LIVE gates: independent compliance/craft/architecture plus exact private plan reviews;
+fresh real preflight; disabled deployment and exact served bytes/CSP; owned state/schedule readbacks
+preserving Page Delivery; one approved attempt and finite separate Analytics/Target observation;
+actual stop/activity disposition. 051-06 stays IN_PROGRESS and broad 051-02 remains unfinished.
+
+### Actual deployed smoke status — 2026-10-09
+
+The approved reference site actually loaded the pinned stock SDK and completed no-offer and
+corrected positive attempts. The positive qualified the owned offer, visibly rendered sanitized
+HTML, and submitted one page/DISPLAY, one trusted-click custom event and one native INTERACT.
+Actual Adobe requests total 11, including two failed-positive requests; no conversion was
+resent. HTTP/DOM/submission status is **not** downstream Analytics or Target receipt.
+Exact-suite report rows are still unobserved during finite scheduled waiting; native Target
+counts need an actual refreshed report, not the earlier empty export.
+
+Test-site code is actually disabled and its served bytes verified at reference commit
+`c3aa3ca0fcddaa4beb70637fad6ed5f6f70bf8a8`. Owner-authorized retained activity approval has
+a bounded end of 2026-10-10T01:19:24Z; no whole-activity or Page Delivery changes were applied.
+Before future live runs, use current approved evidence and state, never silently reuse this
+expired window. The complete 051-02 negative/performance/receipt and chamber criteria remain open.
+
+```sh
+npm test -- test/adobe-stock-site.test.js test/adobe-stock-harness.test.js \
+  test/adobe-preflight-cli.test.js test/adobe-preflight-transport.test.js \
+  test/adobe-preflight-evidence.test.js test/adobe-workspace-evidence.test.js \
+  test/contract-stability.test.js
+```
