@@ -1105,6 +1105,57 @@ successful or mark 051-06/051-02 DONE; downstream receipt, final reconciliation 
 portfolio remain incomplete. Resume only with a new budget decision and the actual observation
 evidence, diagnosing reporting/collection without manufacturing receipt or resending conversions.
 
+### Receipt diagnosis: original pages classified as bots — 2026-10-10
+
+The owner authorized continuing after the prior credit stop. Diagnosis used **only read-only
+report queries for the existing events**; no SDK events were resent, activity activated,
+bot rule changed or browser identity spoofed.
+
+Both original exact synthetic page labels are present with **one bot page view each**, including
+when queried in their original unchanged padded traffic intervals. The same labels remain absent
+from ordinary `metrics/pageviews` reports. This establishes downstream receipt of those pages
+in Analytics' **bot reporting**, not ordinary visitor reporting. The wider full-day queries were
+diagnostic comparisons, not retroactively substituted acceptance windows.
+
+The dedicated suite's bot totals for the test day are two bot page views and four bot occurrences,
+with ordinary pageview/occurrence totals empty. The totals are consistent with the two page and
+two custom-link submissions, but do **not** identify or prove receipt of either custom-link label.
+The prior headless runner's default user agent explicitly contains `HeadlessChrome`.
+Together these observations support bot classification as the reason normal page reports were
+empty. They do not establish which particular enabled IAB/custom rule matched or when the rows
+became available; no bot report was captured during the original two-hour waiting window.
+
+Direct official references:
+
+- [Bot rules](https://experienceleague.adobe.com/en/docs/analytics/admin/admin-tools/manage-report-suites/edit-report-suite/report-suite-general/bot-removal/bot-rules):
+  matching hits are excluded from normal traffic metrics and retained for separate bot reporting.
+- [Bot page views](https://experienceleague.adobe.com/en/docs/analytics/components/metrics/bot-page-views)
+  and [Bot occurrences](https://experienceleague.adobe.com/en/docs/analytics/components/metrics/bot-occurrences):
+  page counts exclude link hits, while occurrences include both.
+- [Bot name](https://experienceleague.adobe.com/en/docs/analytics/components/dimensions/bot-name):
+  supported bot reporting uses Page/time/Bot dimensions and bot metrics, not the ordinary
+  custom-link dimension. An empty incompatible dimension query is not evidence of loss.
+- The pinned Analytics search reference was re-read: the exact `MATCH` clause is documented.
+  A full-day search-free comparison also found ordinary reports empty, so the narrow search
+  clause or original time-window selection alone does not explain the missing page rows.
+
+The original two-hour result remains historically accurate: **ordinary** page/custom reports
+did not show receipts. The stronger negative interpretation—no Analytics ingestion—must not be
+carried forward. The current page evidence is bot-classified receipt; normal custom-link receipt
+and downstream Target counts remain open.
+
+A normal **headed Chromium** local launch was verified without navigating or sending traffic:
+its real user agent lacks `HeadlessChrome`, while automation remains disclosed by the browser.
+That is a candidate for a separately reviewed, newly correlated test run, not a covert user-agent
+override or re-send of old events. Do not disable suite bot rules, pretend bot counts are normal
+conversion receipt or quietly reuse old labels. Fresh applicable input/permission/routing evidence,
+an explicit small traffic plan and unchanged consent/fixture boundaries still precede a new run.
+
+A refreshed native Target CSV for the actual test interval was requested; the owner was unavailable.
+No Target outcome is inferred from Analytics bot receipt, HTML rendering or notification HTTP
+status. The broader baseline, chamber comparison, final smoke reconciliation and release gate
+remain incomplete. Continued credit approval is recorded separately from a full release decision.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes

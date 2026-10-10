@@ -546,6 +546,26 @@ No events were resent; downstream Target counts remain unverified. The current r
 after recorded credit usage exceeded the requested ceiling; no broader compatibility success
 or completed smoke/baseline lifecycle is claimed.
 
+### Receipt troubleshooting: bot-classified browser traffic
+
+After the owner approved continued diagnosis, the **original exact page labels were found in
+Analytics bot reports**, with one `metrics/botpageviews` count each in the original windows.
+Ordinary page/custom reports remain empty. The original browser used its default HeadlessChrome
+user agent. Do not interpret an ordinary report's missing rows as ingestion failure before
+checking bot classification.
+
+Use the same approved suite, immutable event labels and recorded interval for the diagnostic
+query: `variables/page` with `metrics/botpageviews` (and optionally `metrics/botoccurrences`).
+Bot metrics support Page/time/Bot reporting, **not** the ordinary custom-link dimension.
+Aggregate bot occurrences cannot prove per-link receipt. Keep bot-classified evidence separate
+from ordinary visitor/goal evidence; no retagging the earlier window or counting rule changes.
+
+The next browser comparison should use a normal headed browser, transparent automation and
+new synthetic labels under a separately reviewed bounded plan. No bot-filter disable, spoofed
+user agent, conversion resend or automatic retry is needed. A local headed launch is verified,
+but no new headed SDK journey has run. Native Target report counts and the full baseline remain
+separate outstanding evidence.
+
 ```sh
 npm test -- test/adobe-stock-site.test.js test/adobe-stock-harness.test.js \
   test/adobe-preflight-cli.test.js test/adobe-preflight-transport.test.js \

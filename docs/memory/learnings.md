@@ -51,3 +51,6 @@ The exact owned A/B performance GET returnedHTTP200 afterscopeverification, but 
 
 ## Local stock call accounting is not Adobe receipt
 051-05 provides a real tested local operator/harness with source-verified stock export signatures, but invented integrations. ACDL pushEventToDataLayer returns void; count submission, never asynchronous SDK completion or product receipt. Timeouts stop later harness calls, not recalled vendor work; denied consent is a local guard. Live05102stillrequiresfreshrouting/deployment/nativeoutcomeevidence. See051-05andprobes/adobe-compatibility/README.md.
+
+## Headless Analytics traffic can be received only in bot reports
+Read-only diagnosis of original05106labels found one exact botpageview perpage in unchangedoriginalwindows while normalpage/customreports wereempty. Suitebottotals2pages/4occurrencesmatchknownsubmissionsbutnotpercustomlabelreceipt. DefaultHeadlessChromeUAwaspresent. Botmetrics supportPage/time/Botdimensions, notordinarycustomlink; missingnormalrowsarenotingestionfailure. Preserveoriginalnegativewindowhistory andnewbotreceiptclassification; normalheadedbrowsercandidatewithnewlabelsdoesnotrequirebotrulechangesorUAspoofing. SeeR012receipt-diagnosissection andoperatorREADME.

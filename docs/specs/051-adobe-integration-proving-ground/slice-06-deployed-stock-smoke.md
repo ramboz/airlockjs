@@ -336,6 +336,16 @@ approval's serving interval has ended. Recorded usage reached approximately10,12
 exceeding the requested ceiling in delayed accounting; no more implementation/diagnosis starts.
 This slice remains IN_PROGRESS, with final reconciliation and full baseline/product gates open.
 
+**Subsequent authorized read-only diagnosis — 2026-10-10:** The owner approved continuation.
+The original exact no-offer and positive page labels each have one bot page view in the original
+unchanged report intervals. Ordinary page/custom reports remain empty. Two bot page views/four
+bot occurrences are consistent with the original traffic, not per-custom-label receipt.
+Normal-metric absence was not proof of ingestion failure. HeadlessChrome user-agent classification
+is a supported explanation; exact rule/processing latency is not independently identified.
+No events were resent or bot rules changed. R-012 records official metric compatibility and
+the actual source evidence. Future headed comparison uses new labels and a fresh bounded plan;
+it is not performed yet, and does not silently retire Target/custom/baseline acceptance.
+
 ### Close-out (post-DONE)
 
 - [ ] Keep partial live stock evidence separate from complete baseline/product qualification.
