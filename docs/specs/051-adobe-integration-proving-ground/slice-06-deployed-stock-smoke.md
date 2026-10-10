@@ -328,6 +328,14 @@ Wrapper automation nit is retained: committed tests exercise module; parent manu
 tests cover only selected exact-wrapper default/disabled/stall behavior, not every failure.
 No synthetic or HTTP success is promoted to downstream receipt; finite waiting remains separate.
 
+**Final observation/budget handoff:** Both exact-suite page/custom report checks still returned
+no matched rows at their completed 120-minute checkpoints. Receipt is not observed within the
+window, not proven lost; no SDK events were resent. Target report counts remain unverified.
+The observation helper exited, site code remains disabled, and retained bounded activity
+approval's serving interval has ended. Recorded usage reached approximately10,123 credits,
+exceeding the requested ceiling in delayed accounting; no more implementation/diagnosis starts.
+This slice remains IN_PROGRESS, with final reconciliation and full baseline/product gates open.
+
 ### Close-out (post-DONE)
 
 - [ ] Keep partial live stock evidence separate from complete baseline/product qualification.

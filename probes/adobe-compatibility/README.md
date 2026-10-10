@@ -540,6 +540,12 @@ a bounded end of 2026-10-10T01:19:24Z; no whole-activity or Page Delivery change
 Before future live runs, use current approved evidence and state, never silently reuse this
 expired window. The complete 051-02 negative/performance/receipt and chamber criteria remain open.
 
+The finite 120-minute Analytics observation subsequently completed with no exact page/custom
+rows observed. Neither HTTP success nor those absent rows are receipt or proven loss.
+No events were resent; downstream Target counts remain unverified. The current run is stopped
+after recorded credit usage exceeded the requested ceiling; no broader compatibility success
+or completed smoke/baseline lifecycle is claimed.
+
 ```sh
 npm test -- test/adobe-stock-site.test.js test/adobe-stock-harness.test.js \
   test/adobe-preflight-cli.test.js test/adobe-preflight-transport.test.js \

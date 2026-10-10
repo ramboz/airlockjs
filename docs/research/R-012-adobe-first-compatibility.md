@@ -1082,6 +1082,29 @@ Full 051-02 acceptance, downstream Analytics/Target outcomes, remaining negative
 cases and 051-03 chamber compatibility remain open. New 051-06 records this deliberately
 partial real smoke rather than claiming broad portfolio, reliable exactly-once or v1.0 readiness.
 
+### Finite stock receipt window completed; budget stop — 2026-10-09
+
+The scheduled observation process completed both no-offer and positive cases through their
+**120-minute** report checkpoints. Exact approved-suite page and custom-link queries remained
+HTTP 200 with valid report structure but **no matched rows** at the final checkpoints.
+Classify both receipts as **not observed within the chosen window**. This is not proof of
+event loss, zero processed events or missing entitlement; no application events were resent.
+The actual Target decision/render/native notification submissions remain separately established,
+but downstream Target counts are still unverified without the refreshed native report.
+
+The successful positive run, disabled site configuration and retained bounded activity approval
+remain as recorded above. That serving schedule ended at 2026-10-10T01:19:24Z; retained API
+`approved` state is not a currently live serving window. No additional SDK traffic or activity
+change followed. All bounded observation work has exited; no temporary observation helper remains.
+
+The latest recorded session usage at 2026-10-10T02:38:11.571Z is approximately **10,123 credits**,
+including bootstrap and recorded agent activity. The requested 10,000-credit ceiling has been
+exceeded in the delayed usage accounting. Execution stops here: no further agents, diagnosis,
+traffic or chamber implementation are authorized by the existing budget. Do not label this goal
+successful or mark 051-06/051-02 DONE; downstream receipt, final reconciliation and the wider
+portfolio remain incomplete. Resume only with a new budget decision and the actual observation
+evidence, diagnosing reporting/collection without manufacturing receipt or resending conversions.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes
