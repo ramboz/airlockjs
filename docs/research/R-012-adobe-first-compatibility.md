@@ -1183,6 +1183,43 @@ headed identity, unchanged bot rules and independent disable/error recovery rema
 Actual new traffic and ordinary Analytics/Target outcomes are still unexecuted/unverified.
 This is a blocked continuation, not completion of 051-06, 051-02 or the broader goal.
 
+### Headed runner prepared offline — 2026-10-11
+
+The new parent-controlled private runner and tests are implemented; no automatic executable
+CLI, deployment authority, credential loading or general provisioner was added. Each future
+attempt reserves a new exclusive owner-only capture and new run/page/custom labels. Browser
+identity is checked before navigation; fresh isolated headed Chromium retains its actual user
+agent and disclosed automation. Only one navigation and trusted control click are permitted.
+The independent comparison limit is **eight dispatched Adobe requests**, with attempts counted
+separately and the ninth refused before dispatch; the original 11/16 history is not reused.
+
+An initial supplemental compliance review identified redirect and timeout gaps. These were
+corrected before live use: Chromium request-stage interception through the **Chrome DevTools
+Protocol (CDP)** checks each paused URL, including foreign redirect hops, before continuing the
+original native request. The runner does not proxy through an API client, alter headers/body/
+identity, fabricate production responses or change bot rules. The installed protocol describes
+redirect requests; foreign-URL validation remains effective when the optional redirect identifier
+is absent. The 45-second watchdog now includes browser setup and journey; context and browser
+closure each have separate five-second limits, so stalled context closure cannot suppress the
+browser-close attempt. Pending late setup/unknown cleanup is retained honestly in private evidence,
+not called fully closed. Existing module deadlines remain unchanged.
+
+Focused corrective compliance, craft and architecture supplements passed. Craft's nonblocking
+short-write and correlation-test findings were also corrected: private persistence completes
+every byte or explicitly fails, and wrong page/custom labels are separately rejected.
+Final focused validation: **44 passing tests**, including actual headed Chromium with networking
+disabled and synthetic HTTP fulfillment, foreign redirects, the request ceiling, setup/cleanup
+stalls, late resource closure and byte-complete capture. Syntax/recommended lint passed.
+These are **runner/stub observations**, not Alloy execution, real Adobe requests or product receipts.
+The existing disabled/expired private inputs were also exercised: `stage-refused` before browser
+launch, with zero SDK events or live mutations.
+
+Private code/test/plan fingerprints and genuine supplemental verdicts are retained in the session
+handoff. They do not overwrite the slice's recorded pre-live module reviews, complete its lifecycle
+or authorize a new deployment. The actual fresh owner routing/profile confirmation, real ready
+preflight, freshly compared fixture/served bytes and newly bound private stage-manifest review
+remain required. No SDK comparison was run, and the site/activity disposition is unchanged.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes

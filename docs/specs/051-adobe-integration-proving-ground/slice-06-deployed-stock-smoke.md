@@ -359,6 +359,19 @@ runner/manifest review remain prerequisites, not supplied by that plan verdict.
 No new deployment/state/schedule write or SDK event occurred. Live comparison and final
 reconciliation remain blocked/open; the original acceptance and product boundaries are intact.
 
+**Offline runner preparation — 2026-10-11:** The new private one-case headed runner is implemented
+and independently reviewed as a supplement, not final slice acceptance. Corrective compliance,
+craft and architecture passed; redirect/setup/cleanup gaps and nonblocking complete-write/
+correlation-test findings were addressed. Native Chromium request-stage interception preserves
+actual transport while refusing foreign hops, expired windows and requests above the independent
+eight-dispatched ceiling. Setup/journey and independent cleanup waits are bounded; late/pending
+resources are reported honestly. New exclusive private captures and exact new label matching
+preserve original evidence. Forty-four focused tests passed, including real headed Chromium
+with networking disabled and invented HTTP responses; these execute no Adobe SDK/product flow.
+Actual existing disabled/expired inputs refuse before launch. R-012 carries the detailed evidence.
+Current real preflight, owner confirmation and exact newly bound stage-manifest review remain
+open; no live SDK event or mutation, module/core change or lifecycle transition is implied.
+
 ### Close-out (post-DONE)
 
 - [ ] Keep partial live stock evidence separate from complete baseline/product qualification.
