@@ -1220,6 +1220,15 @@ or authorize a new deployment. The actual fresh owner routing/profile confirmati
 preflight, freshly compared fixture/served bytes and newly bound private stage-manifest review
 remain required. No SDK comparison was run, and the site/activity disposition is unchanged.
 
+**Current read-only alternative recheck, 2026-10-11T17:55:46.511Z:** The documented datastream
+configuration GET was retried with only the owner's application identity; it still returned
+HTTP 403. No UI application key or user credential was substituted. The Target property collection
+returned HTTP 200, but two entries still lacked explicit workspace assignments; API access alone
+does not establish the complete profile designation. Three bounded authentication/metadata reads,
+zero SDK events or mutations. A fresh unchanged-routing/profile confirmation was requested again;
+the owner remained unavailable. Neither access result renews expired manual evidence or removes
+the live gate. Private redacted results are retained; no additional autonomous traffic is justified.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes
