@@ -1156,6 +1156,33 @@ No Target outcome is inferred from Analytics bot receipt, HTML rendering or noti
 status. The broader baseline, chamber comparison, final smoke reconciliation and release gate
 remain incomplete. Continued credit approval is recorded separately from a full release decision.
 
+### Headed comparison readiness: live traffic blocked — 2026-10-11
+
+The owner authorized the proposed new headed comparison. Read-only checks found the reference
+repository still at `c3aa3ca0fcddaa4beb70637fad6ed5f6f70bf8a8`, public test configuration disabled,
+and the known activity still API-approved with an **expired** serving end of
+2026-10-10T01:19:24Z. No activity or deployment mutation occurred.
+
+At 2026-10-11T17:25:55.393Z a fresh isolated **headed** Chromium context visited the ordinary
+reference homepage without the stock opt-in query. The page returned HTTP 200; its default user
+agent lacked `HeadlessChrome`, automation remained disclosed, and the visit loaded no stock
+vendor assets and sent **zero Adobe requests**. This checks browser/default-page readiness,
+not a page/custom stock journey or downstream product receipt.
+
+The prior approval, routing and profile evidence envelopes are expired. A fresh unchanged
+dedicated-routing/profile confirmation was requested, but the owner was unavailable. The new
+action grant is not a configuration observation: no renewal envelope, enabled deployment,
+Target schedule/state write or new SDK test event was manufactured.
+
+A separate private one-visit/eight-dispatched-request plan passed bounded independent review.
+Its 45-second outer runner watchdog explicitly preserves the unchanged module's 30-second
+journey deadline and enabled-window cap. The plan requires fresh owner evidence, a real ready
+preflight, freshly compared owned baselines, and reviewed new runner/private manifest before
+execution; **plan review is not execution readiness or runner review**. New labels, default
+headed identity, unchanged bot rules and independent disable/error recovery remain required.
+Actual new traffic and ordinary Analytics/Target outcomes are still unexecuted/unverified.
+This is a blocked continuation, not completion of 051-06, 051-02 or the broader goal.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes

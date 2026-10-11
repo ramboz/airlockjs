@@ -346,6 +346,19 @@ No events were resent or bot rules changed. R-012 records official metric compat
 the actual source evidence. Future headed comparison uses new labels and a fresh bounded plan;
 it is not performed yet, and does not silently retire Target/custom/baseline acceptance.
 
+**Headed continuation readiness — 2026-10-11:** The owner authorized a new headed comparison.
+Read-only fixture/config/reference checks retain the disabled site, approved activity with
+expired serving schedule and unchanged reference SHA. A real fresh headed default homepage
+visit returned HTTP 200 with normal default user agent, disclosed automation, no stock vendor
+loads and zero Adobe requests; it is not a new stock journey. Prior approval/routing/profile
+evidence is expired, and the owner was unavailable for the requested fresh unchanged-settings
+confirmation. No configuration observation was inferred from action approval.
+A separate private one-visit/eight-request plan passed bounded review; the outer watchdog
+does not extend existing module deadlines. Current ready preflight and independent new
+runner/manifest review remain prerequisites, not supplied by that plan verdict.
+No new deployment/state/schedule write or SDK event occurred. Live comparison and final
+reconciliation remain blocked/open; the original acceptance and product boundaries are intact.
+
 ### Close-out (post-DONE)
 
 - [ ] Keep partial live stock evidence separate from complete baseline/product qualification.
