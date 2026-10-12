@@ -75,12 +75,14 @@ AJO/CJA/RTCDP are deferred for the initial proving ground, not removed from the 
 No new AEP sandbox is required for the initial baseline with
 Platform ingestion disabled. No stock/live workflow proof exists yet. [Spec 051](docs/specs/051-adobe-integration-proving-ground/spec.md)
 supplies the contracts and reviewed preflight utility. The owner confirmed scoped profile permissions;
-051-04's historical real schema-v2 report verified all 12 preparation checks with explicit manual evidence;
-current live freshness requires renewed unchanged-routing confirmation. The local harness runs
+051-04's historical real schema-v2 report verified all 12 preparation checks with explicit manual evidence.
+The owner renewed unchanged-setup confirmation on 2026-10-12; current stage reassessment/preflight
+is still required. Configuration API access remains denied with a service-specific key error.
+The local harness runs
 four synthetic cases and never claims vendor SDK/product execution.
 Deployment, scoped activity scheduling/targeting and product observation still require the stock plan.
-The owner granted proceeding after independent reviews under strictly
-fewer than 10,000 credits overall and eight active hours for 051-03; input/evidence, setup-scope and
+The owner approved continued work beyond the original 10,000-credit stop;
+the eight-active-hour cap for 051-03 remains. Independent-review, input/evidence, setup-scope and
 readiness gates remain open. The pinned stock reference declares Alloy 2.31.1/ACDL 3.0.1;
 offline byte provenance is in 051-02, not live SDK proof.
 Current runtime remains v0.8.0; spec 050 is DONE but its live-validation residuals remain open.

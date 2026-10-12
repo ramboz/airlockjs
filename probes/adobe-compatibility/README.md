@@ -310,8 +310,11 @@ require their separate reviewed 051-02 plan.
 
 ## Local stock journey operator — 051-05
 
-The current real readiness rerun refuses expired source evidence (`stale_evidence`, exit 1,
-zero API requests). A fresh unchanged-routing confirmation is required before live work.
+The historical real readiness rerun refused expired source evidence (`stale_evidence`, exit 1,
+zero API requests). The owner renewed unchanged-settings confirmation on 2026-10-12; a new
+stage-bound reassessment and current real preflight are still required before live work.
+This manual observation does not fix or verify configuration API access; R-012 records the
+separate service-specific API-key rejection and its investigation.
 This local operator remains usable without credentials or network; its passing cases do not
 renew those observations or authorize the activity. The owner permits a successful test to
 finish with the owned activity active; control/error pauses and actual reported state remain

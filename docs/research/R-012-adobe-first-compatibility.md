@@ -1229,6 +1229,67 @@ zero SDK events or mutations. A fresh unchanged-routing/profile confirmation was
 the owner remained unavailable. Neither access result renews expired manual evidence or removes
 the live gate. Private redacted results are retained; no additional autonomous traffic is justified.
 
+### Routing API diagnosis and fresh owner confirmation — 2026-10-12
+
+At **2026-10-12T14:55:35.910Z**, the owner stated that no configuration had been touched and the
+dedicated setup should remain unchanged, then requested help investigating and removing the
+403. This supplies a **new manual unchanged-settings observation** in the existing routing/
+profile confirmation exchange, valid until 2026-10-13T14:55:35.910Z under the reviewed 24-hour
+policy. It is not new screenshots or an API readback; original evidence remains immutable.
+Stage-specific input reassessment, current real preflight, fixture/served-byte comparisons and
+the exact traffic/mutation manifest are still required. The expired-confirmation blocker is
+no longer the current owner-input blocker; API access is a separate investigation.
+
+The current diagnostic reads establish a narrower failure:
+
+| Observation | Established boundary |
+|---|---|
+| Fresh OAuth token request returns HTTP 200. | The supplied client can authenticate; no token or secret is retained in diagnostics. |
+| Configuration service returns HTTP 403, `EXEG-3036-403`, title `Access Denied`, detail **`Api key is invalid.`** | The service rejects the supplied application key. This is not a VPN connection error; it does not establish which registration or permission change would resolve it. |
+| The same fresh token and `x-api-key` successfully read the exact owned Target activity with HTTP 200. | The credential is not globally unusable. Target acceptance does not imply configuration-service acceptance. |
+| The inspected export requests `read_pc.acp`, `read_pc.dma_tartan` and `target_sdk`, among other scopes. | Scope names alone do not prove which APIs are registered or which scope this UI-derived configuration route accepts. A missing `edge` substring is not evidence of a missing entitlement. |
+
+**Hypotheses and disposition:** service-specific application registration/acceptance is the leading
+hypothesis, supported by the exact key error and same-credential comparison. An unsupported or
+different server-to-server contract for the UI-derived route remains possible. Insufficient
+effective permissions remain a distinct hypothesis; the earlier View/Manage Datastreams policy
+read is historical evidence, not a new role query, and no broad profile grant is justified.
+A global credential failure or current VPN outage does not explain the successful authentication
+and exact Target comparison. The **underlying registration/contract cause is not yet established**.
+
+The current public Alloy extension still uses a UI application identity for this metadata route.
+That identity was inspected as source evidence only, never substituted into authenticated calls.
+The official Data Collection API references inspected here describe `interact`/`collect`
+**event delivery**, not a management contract for this configuration GET. Do not infer that
+adding a similarly named API service will authorize this route, or claim that no management API
+exists from a bounded documentation search.
+
+Sources checked directly:
+
+- [Adobe's API-key troubleshooting](https://experienceleague.adobe.com/en/docs/experience-platform/landing/troubleshooting#api-key-is-invalid)
+  distinguishes invalid API keys from token/profile errors; its example is a different error
+  namespace and is guidance, not an exact `EXEG-3036-403` remediation contract.
+- [Developer Console APIs and services](https://developer.adobe.com/developer-console/docs/guides/apis-and-services)
+  describes service availability/licensing/permissions.
+- [OAuth Server-to-Server implementation](https://developer.adobe.com/developer-console/docs/guides/authentication/ServerToServerAuthentication/implementation)
+  separates API addition, credential scopes and product-profile assignments.
+- [Data Collection API endpoint scope](https://github.com/AdobeDocs/data-collection-apis/blob/1968dcf70e406879fa6b019ef6f8ce7bdc709938/src/pages/endpoints/index.md)
+  and [authentication](https://github.com/AdobeDocs/data-collection-apis/blob/1968dcf70e406879fa6b019ef6f8ce7bdc709938/src/pages/getting-started/authentication.md).
+- [Current Alloy UI request headers](https://github.com/adobe/alloy/blob/4ad7dd01ccb6951de0bf48cb7e41e7814c3253a0/packages/reactor-extension/src/view/utils/getBaseRequestHeaders.js).
+
+Next evidence requested is **only the existing Developer Console project's API/service names**,
+not secrets, a new screenshot of Target eligibility, permission changes or new resources.
+The owner was unavailable to supply that inventory through the question tool. If the service
+inventory does not identify a supported configuration API, request Adobe's supported
+server-to-server endpoint and application-registration requirements with the redacted error
+and timestamp; do not substitute UI credentials. The reviewed manual routing path can continue
+once its current preflight/stage gates pass without pretending this 403 is fixed.
+
+Five bounded authentication/metadata requests were made across the two diagnostic probes.
+No SDK events, activity/routing/profile mutations, user login or credential changes occurred.
+Private redacted captures and the new owner observation are retained. API access remains
+unverified; the existing disabled site and expired approved activity schedule are unchanged.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes

@@ -372,6 +372,17 @@ Actual existing disabled/expired inputs refuse before launch. R-012 carries the 
 Current real preflight, owner confirmation and exact newly bound stage-manifest review remain
 open; no live SDK event or mutation, module/core change or lifecycle transition is implied.
 
+**Owner confirmation and API investigation — 2026-10-12:** The owner states no configuration
+was changed. The actual observation at 14:55:35.910Z supplies new manual freshness under the
+reviewed 24-hour policy; it is not API readback or replacement of original screenshots.
+Current stage-bound reassessment, real preflight, resource/served-byte checks and exact manifest
+remain prerequisites. R-012 records the separate API investigation: exact configuration error
+`EXEG-3036-403`, `Api key is invalid.`, while the same fresh token/client ID reads the owned
+Target activity successfully. Service registration or the UI-route's server-to-server contract
+remains unresolved; existing Developer Console API/service names were requested, with no
+credential/role/routing change or guessed service registration. This is not continuing to
+claim the owner's confirmation is missing, nor claiming the 403 or live baseline is fixed.
+
 ### Close-out (post-DONE)
 
 - [ ] Keep partial live stock evidence separate from complete baseline/product qualification.

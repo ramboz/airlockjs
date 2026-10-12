@@ -23,8 +23,10 @@ by a DONE slice or a green coverage report.
 **Adobe-first portfolio:** [051](051-adobe-integration-proving-ground/spec.md) has an implemented,
 reviewed preflight and owner-confirmation extension, plus a READY_FOR_REVIEW baseline and DRAFT
 spike below. The dedicated-site owner relaxation removes the added targeting/marker prerequisite.
-The historical v1 workspace unknown and v2 twelve-check pass are preserved. The current real
-rerun refuses stale source evidence with zero requests; renewed routing confirmation is pending.
+The historical v1 workspace unknown and v2 twelve-check pass are preserved. The
+historical rerun refused stale source evidence with zero requests. The owner renewed unchanged
+setup confirmation on 2026-10-12; current stage reassessment/preflight remains pending, while
+configuration API access is separately under diagnosis.
 051-05's local harness is DONE and does not establish SDK or product execution. Specs 052-057 are
 intentionally unsliced DRAFT outlines, so the generated slice table
 does not list them yet; the [release handoff](../releases/adobe-compatibility.md#jig-handoff) links
