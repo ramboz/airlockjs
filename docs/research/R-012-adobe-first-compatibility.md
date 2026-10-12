@@ -1290,6 +1290,59 @@ No SDK events, activity/routing/profile mutations, user login or credential chan
 Private redacted captures and the new owner observation are retained. API access remains
 unverified; the existing disabled site and expired approved activity schedule are unchanged.
 
+### Enabled-service inventory and current permission comparison — 2026-10-12
+
+The owner supplied the existing Developer Console project overview at
+2026-10-12T15:16:46.973Z. It visibly lists Adobe Analytics, Experience Platform API,
+Adobe Journey Optimizer, Edge Delivery Services, Adobe Target, Customer Journey Analytics
+and **Experience Platform Launch API**, with an OAuth Server-to-Server credential. The two
+attachments are byte-identical copies of this overview, not an available-services catalog.
+The image is preserved privately with its hash; no account/credential identifiers or image
+are committed. This resolves the requested enabled-service inventory; do not keep reporting
+that it is missing. It does not prove every service is bound to the exported client or that the
+metadata configuration service accepts it.
+
+A bounded comparison at 2026-10-12T15:19:06.679Z used one fresh token, the same owner client ID
+and selected organization:
+
+| Read-only check | Result | Interpretation |
+|---|---|---|
+| OAuth client-credentials token | HTTP 200 | Authentication succeeded. |
+| Reactor `/profile` | HTTP 200; active organization matches selection | The supplied credential can access the Launch API in the selected organization. |
+| Platform `/acl/reference` | HTTP 200; documented datastream permission names present | The credential can access the Platform reference service. |
+| Platform `/acl/effective-policies` in the selected context | HTTP 200; **View Datastreams and Manage Datastreams active** | Missing these current effective permissions is not supported as the explanation for this failure. The POST is a policy query, not a permission change. |
+| Exact UI-derived datastream metadata GET | HTTP 403 again | Configuration-service access remains rejected, despite working Platform/Launch access and effective datastream permissions. |
+
+Five bounded authentication/metadata requests, zero SDK events or resource/permission mutations.
+The documented [Reactor profile](https://experienceleague.adobe.com/en/docs/experience-platform/tags/api/endpoints/profile),
+[permission reference](https://experienceleague.adobe.com/en/docs/experience-platform/access-control/api/permissions-and-resource-types)
+and [effective-policy](https://experienceleague.adobe.com/en/docs/experience-platform/access-control/api/effective-policies)
+contracts were checked before execution. No UI application identity, user token or alternative
+credential was substituted.
+
+There is **no evidence-based API or role addition to recommend from these results**. The remaining
+failure is specific to this configuration service's acceptance of the customer application and/or
+its supported server-to-server contract. The exact remedy is not established; do not call the
+403 fixed, declare the endpoint universally UI-only, or invent a Console service name.
+A redacted local support handoff requests Adobe confirmation of endpoint support and the exact
+service/application-registration requirements. It includes the reproducible template and these
+controls, but no secrets or selectors, and has **not** been sent externally.
+
+The previously reviewed owner-UI/manual routing path remains available for the stock run after
+fresh stage-bound reassessment, real preflight and exact manifest gates. Optional configuration
+automation being unavailable must not be mistaken for missing manual confirmation or a mandatory
+new product-profile grant. The broader live comparison is not executed by these access checks;
+the disabled site and expired approved activity schedule remain unchanged.
+
+**Owner-directed disposition:** The owner subsequently offered to perform any necessary
+configuration manually and explicitly requested no more time be spent on this API issue.
+Stop further configuration-service diagnosis or speculative API/role additions. Retain the
+403 as **unresolved optional automation**, not a fixed endpoint or a missing mandatory API grant.
+Use the existing reviewed manual-routing policy and the actual renewed unchanged-settings
+observation. Current stage reassessment, real preflight, exact owned activity schedule/served
+bytes and traffic-manifest checks still precede live execution; request only a specific manual
+action if those checks establish a need. The redacted support handoff remains local and unsent.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes
