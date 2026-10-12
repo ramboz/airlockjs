@@ -43,6 +43,9 @@ follow-up. No manual export schedule or asynchronous counter is a readiness gate
 Native notifications, controls, full SDK inventory, adoption and performance remain required.
 051-07's reviewed local checker now validates supplied recorded payloads without echoing
 private content; it does not independently witness SDK/network/DOM/chamber provenance.
+051-08 adds a passive Page recorder with original request bytes and paired responses,
+tested against a real loopback receiving sink. It does not send/enforce/authenticate
+traffic; full live baseline and actual worker qualification remain open.
 051-05's local harness is DONE and does not establish SDK or product execution. Specs 052-057 are
 intentionally unsliced DRAFT outlines, so the generated slice table
 does not list them yet; the [release handoff](../releases/adobe-compatibility.md#jig-handoff) links
@@ -184,7 +187,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-05 — local stock journey harness | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-06 — deployed stock smoke journey | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-07 — checking recorded stock wire semantics | **DONE** |  |
-| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-08 — observing browser request and response bytes | RECONCILED (adobe-adoption-goal) |  |
+| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-08 — observing browser request and response bytes | **DONE** |  |
 
 ## Deferred slices
 

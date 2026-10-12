@@ -1573,7 +1573,8 @@ Original107 behavioral tests failed before production; eight body-budget/scalar 
 and five DNS-alias failures witnessed their corrections. Current133 recorder cases,
 197 checker cases and36 frozen-core tests pass (**366 total**); syntax and parent
 recommended lint pass. Independent implementation compliance and craft clear this
-observation scope; final reconciliation remains in progress.
+observation scope; final reconciliation passed and 051-08 is DONE through its gated
+lifecycle. This is a usable recording API, not full baseline/SDK/chamber acceptance.
 Actual Chromium/local HTTP tests verify receiving-sink request/response bytes, including
 strict malformed-UTF8 rejection. No route fulfillment/proxy, SDK import or Adobe event was
 used for that proof. Browser wire callbacks and paired response data stay private;
