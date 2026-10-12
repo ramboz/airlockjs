@@ -122,7 +122,7 @@ All closed 051-01/04/05 records and historical evidence remain unchanged.
 Final original-criteria compliance and reconciliation passed. This partial-smoke milestone
 is closed; full 051-02 report-context/control/performance/operator and 051-03 chamber work remain open.
 
-## 051-07 recorded-wire checker implementation
+## 051-07 recorded-wire checker implementation (DONE)
 
 - [x] Ground exact actual recorded SDK query/consent/event shape and frame-review fixed capture contract.
 - [x] TDD implement local operator/predicates with private-file and output boundaries.

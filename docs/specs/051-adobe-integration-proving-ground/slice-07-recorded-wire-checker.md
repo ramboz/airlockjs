@@ -1,11 +1,10 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [051-06, adr-0032]
 last_verified: 2026-10-12
 kind: feature
 frame_review: true
 arch_review: false
-claimed_by: adobe-adoption-goal
 ---
 
 ## Slice 051-07 — checking recorded stock wire semantics
