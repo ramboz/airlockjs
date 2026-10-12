@@ -171,7 +171,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 🔬 051-03 — bounded SDK compatibility decision | DRAFT |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-04 — scoped workspace confirmation | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-05 — local stock journey harness | **DONE** |  |
-| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-06 — deployed stock smoke journey | IN_PROGRESS (adobe-adoption-goal) |  |
+| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-06 — deployed stock smoke journey | RECONCILED (adobe-adoption-goal) |  |
 
 ## Deferred slices
 

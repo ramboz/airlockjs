@@ -25,9 +25,12 @@ The former [MVP9](mvp9.md) gate is replaced; its unclosed evidence remains defer
   personalization, lazy analytics and delayed Launch. Compare against that competent baseline.
 - At initial drafting, the owner needed an isolated Target/Analytics setup and API-led discovery.
   [R-012](../research/R-012-adobe-first-compatibility.md) now records owned fixtures, Analytics queries and scoped Target
-  create/edit/future-only approval restored inactive. Initial routing uses owner UI/saved-pin
-  confirmation, not management API readback. Deployment and stock/chamber product outcomes remain
-  unproven. API credentials cannot create entitlements; some setup still needs guided UI work.
+  create/edit/future-only approval and its initial inactive restoration. Later partial stock smoke
+  deployed with ordinary Analytics page/custom receipt and native Target wire proof; cumulative
+  Target report counts are observed but environment/per-run attribution remains unverified.
+  Test code is disabled and the retained activity's serving window ended. Initial routing uses
+  owner UI/saved-pin confirmation, not management API readback. Full stock/chamber product
+  qualification remains open. API credentials cannot create entitlements; some setup still needs guided UI work.
 - Customer-owned Launch/GTM can retain the remaining vendor tags while observed offenders migrate
   individually. Those remaining page scripts are outside Airlock's governance.
 

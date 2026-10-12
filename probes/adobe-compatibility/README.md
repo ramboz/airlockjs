@@ -403,7 +403,7 @@ refusals, false host acknowledgements, malformed/foreign/ambiguous propositions,
 late settlement after timeout, deep freeze and redaction. All runs are dry simulations, not
 executions of the real pinned integration or Alloy.
 
-## Deployable stock smoke entry — 051-06 (code tested; live gates open)
+## Deployable stock smoke entry — 051-06
 
 `stock-site.mjs` is browser ESM, **not another dry-run CLI**. Its default supplier is the real
 same-origin `./vendor/aem-martech/index.js`. Nothing imports that supplier until eligible eager
@@ -517,15 +517,18 @@ actual `updateUserConsent` denial and guards four attempted collection operation
 Phases are single-use/ordered, at most 10 seconds each, with a 30-second journey deadline capped
 by the enabled window. Late settlement cannot resume later module calls/rendering. Counts include
 rejecting submissions, not HTTP attempts, vendor acknowledgements, retries or exactly-once proof.
-The parent must count actual Adobe requests (including consent/SDK retries), enforce **16 overall**,
+The parent must count actual Adobe requests (including consent/SDK retries), enforce the reviewed
+stage budget (**16 overall** for the original smoke; a separately approved **8** for the new headed stage),
 close/stop on errors/duplicates/routing drift, and disable public config through its reviewed stop
 plan. Already dispatched SDK work cannot be recalled. All downstream/deployment/vendor-enforcement
 claims remain false. No application retries, credentials, private CLI or resource mutations exist.
 
-Remaining LIVE gates: independent compliance/craft/architecture plus exact private plan reviews;
-fresh real preflight; disabled deployment and exact served bytes/CSP; owned state/schedule readbacks
-preserving Page Delivery; one approved attempt and finite separate Analytics/Target observation;
-actual stop/activity disposition. 051-06 stays IN_PROGRESS and broad 051-02 remains unfinished.
+Prerequisites for **each future live run**: independent compliance/craft/architecture plus exact
+private plan reviews; fresh real preflight; disabled deployment and exact served bytes/CSP;
+owned state/schedule readbacks preserving Page Delivery; one approved attempt and finite separate
+Analytics/Target observation; actual stop/activity disposition. These requirements are not a
+claim that the recorded smoke's deployment or execution is still pending. Its actual results
+and outstanding full-baseline/report-context obligations are recorded below.
 
 ### Actual deployed smoke status — 2026-10-09
 

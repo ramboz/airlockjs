@@ -93,7 +93,9 @@ Current actual smoke: disabled deployed-byte/CSP checks passed after required co
 official SDK no-offer and corrected positive executed. Positive rendered the owned offer and
 submitted native DISPLAY/INTERACT plus distinct page/custom events. Public test code is disabled;
 owner-approved activity end/state and failed-attempt history are recorded in R-012.
-Downstream receipts remain unverified during finite report waits; no full baseline claim.
+The separately reviewed headed continuation has ordinary Analytics page/custom count one each
+in its original interval. A native seven-day Target export shows two cumulative Scoped display
+counts, with environment and per-run binding still unverified. No full baseline claim.
 
 - [x] Confirm READY and transition via workflow helper before edits; close browser API before tests.
 - [x] Correct browser-test instrumentation, remove draft, witness 59 actual missing-module failures.
@@ -101,14 +103,17 @@ Downstream receipts remain unverified during finite report waits; no full baseli
 - [x] Pass 63 real Chromium/SDK-stub tests, 651 targeted stock/preflight/frozen-core tests,
       2533 full-default tests, test/probe recommended lint and module syntax check.
 - [x] Document explicit private in-memory observation API, phased wrapper and stub-only evidence.
-- [ ] Parent obtains independent compliance/craft/architecture reviews and exact private plan review.
-- [ ] Parent verifies fresh preparation, disabled deployed assets/config/CSP and compatible visible
+- [x] Parent obtains independent compliance/craft/architecture reviews and exact private plan review.
+- [x] Parent verifies fresh preparation, disabled deployed assets/config/CSP and compatible visible
       eager placement before any SDK traffic; preserve original consent/page behavior.
-- [ ] Parent executes reviewed scoped attempt, enforces actual 16-request budget, observes distinct
+- [x] Parent executes reviewed scoped attempt, enforces actual 16-request budget, observes distinct
       Analytics/Target evidence and records bounded schedule/actual stop disposition.
-- [ ] Complete reconciliation/persistent handoff; leave incomplete 051-02 product obligations open.
+- [x] Complete reconciliation/persistent handoff; leave incomplete 051-02 product obligations open.
 
-Only code is validated. No deployed pin, real SDK/product outcome or live stop is claimed.
+The original smoke used 11/16 actual Adobe requests, including failed attempts. The separately
+authorized new headed comparison used 5/8 and did not resend the original labels. Real deployed
+pins, SDK/render/wire, ordinary Analytics receipts and disabled stop are verified; Target
+context-specific outcome and the original 051-02 controls/performance/operator gates are not.
 All closed 051-01/04/05 records and historical evidence remain unchanged.
 
 ## 051-03 — bounded SDK compatibility decision

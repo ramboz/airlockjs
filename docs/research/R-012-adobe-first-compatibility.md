@@ -18,13 +18,16 @@ related:
 > The owner-created Target web property and ExperienceEvent schema were subsequently verified.
 > Target workspace assignment and credential association were subsequently verified for reads.
 > Analytics report queries and selected AEP/AJO effective permissions are now verified.
-> Scoped Target creation, editing and a future-only approval check pass; the fixture is restored
-> to saved/inactive. Initial Analytics/Target routing is verified through owner-provided UI evidence,
+> Scoped Target creation, editing and a future-only approval/restoration check pass; the latest
+> owner-permitted activity is API-approved with its bounded serving window ended.
+> Initial Analytics/Target routing is verified through owner-provided UI evidence,
 > exact selector checks and the owner's saved development-environment pin confirmation.
 > Programmatic datastream management remains unavailable to this application/tool surface.
 > A real deployed stock smoke now qualified/rendered the owned offer and submitted native
-> display/interaction plus page/custom events. Downstream receipts remain unverified; the full
-> baseline/chamber/product portfolio is not complete. The release is committed in direction.
+> display/interaction plus page/custom events. The new headed page/custom each have one ordinary
+> Analytics receipt; a native seven-day Target export shows two cumulative Scoped display counts,
+> with report environment/per-run attribution still unverified. The full baseline/chamber/product
+> portfolio is not complete. The release is committed in direction.
 
 ## Question
 
@@ -1577,7 +1580,7 @@ Existing spec 013 live results are reusable evidence, not a complete product set
 | XDM schemas | [Schema Registry API](https://experienceleague.adobe.com/en/docs/experience-platform/xdm/api/schemas) documents programmatic schema management. | Select field groups/identity requirements for synthetic scenarios; production/default schema mutation is not authorized. |
 | Datasets | [Catalog API](https://experienceleague.adobe.com/en/docs/experience-platform/catalog/api/create-dataset) documents dataset creation from a schema ID. | Ingestion/profile enablement and product-specific data paths still need validation. |
 | Datastreams | [Official overview](https://experienceleague.adobe.com/en/docs/experience-platform/datastreams/overview) documents service routing and UI management. | Initial destinations are verified via owner UI evidence/confirmation; the owner-key configuration GET still returns 403. Supported Server-to-Server administration remains unverified; recheck future routing changes before traffic. |
-| Target | [Admin API overview](https://experienceleague.adobe.com/en/docs/target-dev/developer/api/admin-api/admin-api-overview) describes authenticated admin operations, versions and batch dependencies. | Scoped create/edit and future-only approval/restoration pass in the exact workspace/property. The fixture is saved/inactive; current live delivery/reporting/rendering remain unproven. |
+| Target | [Admin API overview](https://experienceleague.adobe.com/en/docs/target-dev/developer/api/admin-api/admin-api-overview) describes authenticated admin operations, versions and batch dependencies. | Scoped create/edit/approval and actual owned-offer delivery, safe rendering and native notification wire are verified. Latest approved serving interval has ended. Native cumulative Scoped display counts are observed; environment/per-run attribution and click-goal outcome remain unverified. |
 | Analytics | [2.0 API reference](https://developer.adobe.com/analytics-apis/docs/2.0/apis/) and its [current report-suite schema](https://github.com/AdobeDocs/analytics-2.0-apis/blob/main/static/report-suites.json) document metadata reads and standard suite creation. | Creation permission, quotas/cost, approved RSID prefix/settings and product-specific test isolation are not established by listing existing suites. |
 | AJO | [Current API index](https://developer.adobe.com/journey-optimizer-apis/) lists retrieval, execution, previews and selected management operations. | Campaign reads and selected manage/publish/report policies are verified, not an exercised general web/code-based campaign creation/publishing path. Supported UI/admin work and isolated outcome fixtures may still be required. |
 | CJA / RTCDP | [Web SDK tutorial prerequisites](https://experienceleague.adobe.com/en/docs/platform-learn/implement-web-sdk/overview) distinguish basic Web SDK from Platform-product access. | Need product-specific schemas, connections/data views or profiles/audiences and outcome access; shared transport does not prove product behavior. |
@@ -1622,10 +1625,12 @@ No current conclusion that every admin UI step has an API equivalent.
 Provisioning/probe scripts belong under `probes/` with a bounded investigation spec before execution.
 [Spec 051](../specs/051-adobe-integration-proving-ground/spec.md) carries the implementation contracts:
 the preflight is implemented; its historical v1 report was unverified, and the subsequent v2
-preparation report passed with explicit owner evidence. Stock baseline and compatibility work
-remain unexecuted. A previous ready report does not renew source evidence or clear live gates.
-The owner approved the eight-active-hour spike and overall credit ceiling,
-but the stock readiness gate has not cleared. Specs 052-057 remain unsliced outlines.
+preparation report passed with explicit owner evidence. A reviewed partial stock smoke has executed
+with ordinary Analytics receipt; complete stock-baseline acceptance and chamber compatibility
+remain open. A previous ready report does not renew source evidence or clear future live gates.
+The owner approved the eight-active-hour spike and later continuation beyond the original
+credit stop. Fresh preparation gates cleared for the executed smoke, not for every later stage.
+Specs 052-057 remain unsliced outlines.
 This note remains OPEN. The supplied credential was not created here; selected reads are verified
 and the owner-authorized dedicated Target environment exists. The owner-created Analytics suite and
 reference EDS site, Target property and ExperienceEvent schema are verified. Target workspace
@@ -1633,8 +1638,10 @@ assignment and credential association are verified for reads. Analytics report q
 AEP/AJO effective permissions are verified. Initial datastream destinations are now verified through
 owner screenshots, exact selector comparisons and saved-environment-pin confirmation; automatic
 configuration management remains unavailable. Scoped Target create/edit and future-only approval
-pass, with the activity restored inactive. Actual site writes/publication and the stock/live
-comparison remain pending; 051-01 preflight utility is DONE after final review/reconciliation.
+pass; later reviewed preview-site deployment and stock smoke are verified, with test code disabled
+and the retained approved activity's serving interval ended. Native Target report context, full
+stock/chamber comparison and production publication remain unverified/not authorized as applicable.
+051-01 preflight utility is DONE after final review/reconciliation.
 AJO/CJA/RTCDP fixtures are deferred for the
 initial proving ground, not removed from the release gate.
 

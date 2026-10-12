@@ -5,17 +5,20 @@
 
 ## Current scope and grant
 
-R-012's 2026-10-08 assessment is the operational baseline: Analytics reports work; owned Target
+R-012's dated assessments are the operational evidence: Analytics reports work; owned Target
 offers/activity and scoped create/edit/future-only approval are verified, with the activity
-restored inactive. Datastream routing is accepted owner UI/saved-pin evidence, not configuration
-API success. Reference push dry-run passed; deployment and stock/chamber outcomes remain open.
+restored inactive in the initial check. The later partial stock smoke deployed and ran with
+ordinary Analytics receipt, disabled stop and approved-but-ended activity disposition.
+Datastream routing is accepted owner UI/saved-pin evidence, not configuration API success.
+Full stock/chamber acceptance and run-bound native Target outcomes remain open.
 AJO/CJA/RTCDP are deferred for this run without changing release obligations.
 
-The owner has granted execution after independent reviews under **strictly fewer than 10,000
-credits overall**, with a separate **eight-active-hour 051-03** budget. The parent tracks both
-ceilings and controls private-state normalization and live scope. This bounded DRAFT refinement
-does not implement code, make authenticated calls, transition state or clear DoR. Setup/publication
-still requires the exact scoped plan; budgets alone are not permission or performance bands.
+The original grant targeted **fewer than 10,000 credits overall**; delayed accounting exceeded
+that target and execution stopped before the owner authorized continuation beyond it.
+The separate **eight-active-hour 051-03** cap remains. The parent tracks actual usage and controls
+private-state normalization and live scope. Planning text by itself does not authorize code,
+authenticated calls, transitions or readiness. Every later setup/execution still requires the
+exact scoped plan; budget permission is not production-publication authority or performance proof.
 
 ## Work order and prerequisites
 
@@ -28,6 +31,17 @@ strictly opt-in browser entry with real DOM tests. The parent owns private deplo
 plan execution only after independent code/architecture reviews and actual readiness pass.
 Keep the owner's Page Delivery change by using narrow state/schedule updates, not replaying the
 whole activity. One partial stock attempt cannot close 051-02's full baseline requirements.
+
+**Current smoke disposition — 2026-10-12:** The entry is implemented, code reviews and exact
+private stage reviews passed, and actual no-offer/positive journeys executed. A new owner-authorized
+headed stage used renewed manual evidence, twelve ready preflight checks and only date/state
+and config-window changes. It verified ordinary exact Analytics page/custom count one each and
+native DISPLAY/INTERACT wire identity; public test code is disabled, activity serving window ended.
+The supplied seven-day native Target report shows two cumulative Scoped displays, not a verified
+per-run increment or confirmed Development report context. Final 051-06 compliance/reconciliation
+passed against its partial-smoke criteria, not by retiring those 051-02 obligations.
+The owner stopped configuration API diagnosis and approved continuation beyond the original
+10,000-credit stop; the eight-active-hour 051-03 cap and all other scope gates remain unchanged.
 
 ### 051-05 local implementation entry — 2026-10-09
 

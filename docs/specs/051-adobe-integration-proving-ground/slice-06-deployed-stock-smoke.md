@@ -1,7 +1,7 @@
 ---
-status: IN_PROGRESS
+status: RECONCILED
 dependencies: [051-01, 051-04, 051-05, adr-0031]
-last_verified:
+last_verified: 2026-10-12
 kind: feature
 frame_review: true
 arch_review: true
@@ -140,9 +140,9 @@ Documentation must distinguish tested stubs from real subsequent stock execution
 
 **DoD:**
 - [x] Code tests red-to-green and targeted preflight/frozen-core checks pass.
-- [ ] Frame, compliance, craft, architecture and reconciliation evidence recorded.
-- [ ] Real deployment/journey status, limitations and exact remaining 051-02 obligations recorded.
-- [ ] Clean persistent handoff; private selectors/captures never committed.
+- [x] Frame, compliance, craft, architecture and reconciliation evidence recorded.
+- [x] Real deployment/journey status, limitations and exact remaining 051-02 obligations recorded.
+- [x] Clean persistent handoff; private selectors/captures never committed.
 
 ## Assumptions
 
@@ -316,6 +316,28 @@ Instrumentation/red-witness correction is recorded above; no acceptance/scope re
 dependency, vendor fork, general framework or resource operation. Nothing new requires an inbox
 spec. Do not infer deployment/receipt/reviews or complete 051-02 from these passing stub tests.
 
+**Final dated deviation disposition — 2026-10-12:** Original acceptance criteria remain
+unchanged. The initial one-visit-per-case plan was exceeded by corrective attempts after the
+native timer and inert-span failures; every attempt and its request count is retained.
+The failed positive did not submit page/custom/display/interact, and no conversion or old
+event label was resent. Corrected attempts required fresh code/plan reviews rather than
+reclassifying the failures as successful tests. The original aggregate is 11/16 requests.
+The subsequent new headed stage has its own explicit owner grant, new labels and 5/8 budget;
+it does not replenish the original allowance or create unlimited retry authority.
+
+The delayed accounting overrun of approximately 10,123 credits is preserved as a real deviation
+from the original 10,000-credit target. The owner subsequently authorized continuation beyond
+that stop; this later grant does not retroactively make the first phase under budget.
+The unchanged eight-active-hour cap for 051-03 is not consumed or waived by this smoke.
+
+The first headed observer's unverified exit remains an unresolved diagnostic cause. Its
+same-capture readonly retry records actual delayed sample times and freezes the original
+interval. A custom report502 at60minutes was invalid evidence; one bounded same-window
+readonly recovery observed the exact custom count. No latency, loss or exactly-once guarantee
+is inferred. Cumulative Target Scoped display counts are observed but report environment,
+per-run delta and click outcome are unverified. These belong to 051-02 acceptance, not a
+rewritten 051-06 requirement to prove full product parity.
+
 ### Reconciliation sweep
 
 Owned paths: `stock-site.mjs`, `adobe-stock-site.test.js`, synthetic fixture, operator README,
@@ -327,6 +349,26 @@ repo source/vendor deployment is separately committed, not vendor code inside Ai
 Wrapper automation nit is retained: committed tests exercise module; parent manual intercept
 tests cover only selected exact-wrapper default/disabled/stall behavior, not every failure.
 No synthetic or HTTP success is promoted to downstream receipt; finite waiting remains separate.
+
+**Final sweep dispositions — 2026-10-12:**
+- **Updated:** R-012, operator README, this open slice, overview/plan/tasks and primer reflect
+  actual SDK/Analytics/wire/stop evidence and the received cumulative native Target CSV.
+  Earlier failed attempts/refusals/credit stop remain dated history; current prose no longer
+  calls the export missing or SDK execution pending. Derived board is regenerated at transitions.
+- **No-op:** frozen core, connectors, public runtime contracts, vendor bytes, accepted ADRs,
+  conventions and closed 051-01/04/05 records. This probe closure introduces no new module/
+  authority boundary, product/UI decision or new convention requiring an ADR or owner approval.
+  No new reusable framework, dependency or report parser is shipped; private stage helpers
+  remain parent-controlled evidence tooling.
+- **No-op:** inbox Adobe/Alloy items remain broader compatibility/consent/adoption work, not
+  resolved by a main-thread stock smoke. Existing memory contains the native-transport,
+  reporting-recovery and configuration-service lessons; team opt-out is honored.
+- **Deferred:** full reference-bootstrap automated coverage remains the recorded craft/arch nit;
+  committed module tests and selected parent default/invalid/disabled/stall probes are not
+  presented as exhaustive wrapper coverage. A future whole-wrapper harness is not silently added.
+- **Deferred:** approved-environment/per-stage native Target counting, click goal/outcome,
+  complete stock negative controls/performance/operator setup, chamber and later portfolio.
+  Their original 051-02/03 and release gates remain intact; no release/tag/version bump.
 
 **Final observation/budget handoff:** Both exact-suite page/custom report checks still returned
 no matched rows at their completed 120-minute checkpoints. Receipt is not observed within the
@@ -431,3 +473,12 @@ the report is no longer missing or empty.
 ### Close-out (post-DONE)
 
 - [ ] Keep partial live stock evidence separate from complete baseline/product qualification.
+
+**Final reconciliation — 2026-10-12:** A fresh final compliance pass confirms all five original
+partial-smoke acceptance criteria, including truthful classification of unverified report
+context rather than full Target parity. Required code craft/architecture passes are retained
+for the unchanged module; final reconciliation passed after correcting stale undated summaries
+in R-012/spec/plan/index/release prose. Current targeted browser and frozen-core validation
+passes 106 tests; the recorded full suite of 2,540 remains historical, not falsely rerun.
+No code/SDK/core/resource change or new traffic was made to obtain this closure.
+Report-environment confirmation and per-run Target attribution remain 051-02 obligations.
