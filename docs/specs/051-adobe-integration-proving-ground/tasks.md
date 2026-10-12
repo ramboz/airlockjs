@@ -122,6 +122,14 @@ All closed 051-01/04/05 records and historical evidence remain unchanged.
 Final original-criteria compliance and reconciliation passed. This partial-smoke milestone
 is closed; full 051-02 report-context/control/performance/operator and 051-03 chamber work remain open.
 
+## 051-07 recorded-wire checker implementation
+
+- [x] Ground exact actual recorded SDK query/consent/event shape and frame-review fixed capture contract.
+- [x] TDD implement local operator/predicates with private-file and output boundaries.
+- [x] Verify recorded original positive projection without new SDK sends or invented URL/header fields.
+- [x] Record independent compliance/craft and reconciliation; close only this capture-inspection slice.
+- [x] Preserve full 051-02 wire/result/host baseline and actual 051-03 chamber prerequisites.
+
 ## 051-03 — bounded SDK compatibility decision
 
 - [ ] Record the owner's granted eight-active-hour budget and overall credit ceiling; independently

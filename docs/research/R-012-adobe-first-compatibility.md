@@ -1556,6 +1556,41 @@ completion follows from inspecting this file.
 
 ## Sources / findings
 
+**Recorded-wire checker implementation pickup — 2026-10-12:** New vertical slice 051-07
+defines an end-to-end local operator for checking supplied final SDK payload records.
+Its closed contract and exact selector correction passed frame review before TDD work.
+The actual stock capture's fetch query has the approved single decision scope, seven
+pinned schema URIs and no surfaces; page/custom/INTERACT have no event-level query.
+Extra selectors are not harmless additive fields and must be rejected even with correct
+event counts. The checker introduces no SDK/network/browser or vendor-resource operation.
+
+The existing positive capture was privately projected without altering recorded bodies,
+paths/config fields, proposition identity or host observations. Full URL/method/headers
+are absent from that historical capture and were **not reconstructed**. Therefore the
+checker can establish supplied-record predicate results, not independent dispatch/SDK/
+DOM provenance, full wire conformance or chamber parity. Those claims are explicitly false
+in every checker report. Full 051-02 collector/operator and 051-03 worker work remain required.
+
+Separately, the public npm 2.31.1 archive was fetched in memory and checked against its
+registry SHA-512 integrity, without installation, extraction to the checkout or execution.
+It contains 440 ES6 source files and component entrypoints, but no inspected minified
+bundle candidate to compare to the live official pin. Git lookups for the two obvious
+version-tag spellings did not resolve; no source/bundle equivalence or complete command
+inventory was inferred. Public source discovery remains preliminary evidence for a future
+pinned inventory, not a charged chamber runtime experiment or completed spike finding.
+No original private capture, supplier byte pin, frozen-core file or closed record was changed.
+
+**Recorded checker implemented — 2026-10-12:** 051-07 now provides
+`stock-wire-check.mjs --input <owner-only recorded JSON>` using the existing bounded private
+reader/parser. Valid TDD witnesses are 180 defined assertions red before production,
+then15 edge assertions red before their fixes. Final197 new checker cases plus36 frozen-core
+and133 harness tests pass (**366 total**); syntax/recommended lint pass with no new tools.
+Independent original-criteria compliance and craft passed; reconciliation is in progress.
+The parent exercised the CLI on the actual existing positive projection: five request
+records, one consent/fetch/page/custom/display/interact each, all predicate checks pass.
+All six network/SDK/DOM/chamber/product/full-wire provenance claims remain **false**.
+No resource changes, browser/SDK sends or broader baseline/lifecycle acceptance are inferred.
+
 **Owner-approved reporting disposition — 2026-10-12:** The owner explicitly confirmed
 the proposed boundary gate and asked to handle further reporting as follow-up when needed.
 The earlier fifteen-export manual plan and suggested ten-export refinement are both retired;

@@ -613,3 +613,76 @@ npm test -- test/adobe-stock-site.test.js test/adobe-stock-harness.test.js \
   test/adobe-preflight-evidence.test.js test/adobe-workspace-evidence.test.js \
   test/contract-stability.test.js
 ```
+
+## Recorded stock payload checker — 051-07
+
+This **local, read-only capture inspector** checks supplied recorded fields, not live
+dispatch or full boundary acceptance. It does not run Alloy, a browser or a transport;
+read credentials/environment selectors; deploy; or modify routing/resources.
+
+```sh
+node probes/adobe-compatibility/stock-wire-check.mjs --help
+node probes/adobe-compatibility/stock-wire-check.mjs --input /private/operator/capture.json
+```
+
+Replace the illustrative path with an operator-owned private JSON projection; do not
+publish that path or capture. Only `--input <path>` or `--help` alone is accepted.
+Files must be nonsymlink regular files owned by the current user, mode `0400` or `0600`.
+The unchanged preflight reader/parser refuses malformed UTF-8, duplicate/escaped-equivalent
+keys, prototype keys, more than 262144 bytes or more than 16 container levels.
+The pure checker also enforces 10000 visited JSON values and refuses accessors, proxies,
+custom prototypes, cycles, symbols, sparse arrays and nonfinite numbers without calling getters.
+No output-path, environment, credential, SDK/module or network seam exists.
+
+The [closed input contract](../../docs/specs/051-adobe-integration-proving-ground/slice-07-recorded-wire-checker.md#closed-contract-before-tests)
+is `airlock.adobe-stock.wire-capture`, version 1, pin `alloy-2.31.1`, with exactly
+`kind`, `schema_version`, `sdk_pin`, `case`, `expected`, `host`, `proposition`, `requests`.
+The operator supplies original expected datastream/scope/page/custom/HTTPS URL values,
+recorded host booleans and the returned proposition identity (or null). Each request
+preserves only its recorded `path`, `config_id`, and parsed final JSON `body`.
+Do **not** reconstruct missing origin, URL, method or headers, remove extra events/overrides,
+normalize proposition identity, reorder requests, or substitute count/success assertions.
+The parent owns projection from existing private evidence; no resending is needed here.
+
+- `positive`: one grant, fetch, mapped page with native DISPLAY, distinct custom link and
+  native INTERACT, preserving returned id/scope/scopeDetails; host rendered/clicked true.
+- `no-offer` / `non-render`: grant/fetch/page/custom only, no native notifications;
+  respectively no identity / a valid returned identity, host false/true.
+- `no-consent`: zero collection, at most one native deny, no identity, host false/false.
+  An empty record means capture absence, **not proven SDK consent enforcement**.
+- Only the documented v1 paths/optional regional segments and exact expected config pass.
+  Fetch requires the seven ordered pinned schemas, one expected scope and empty surfaces.
+  Other event-level queries and body personalization queries fail; body query, if present,
+  is only `{identity:{fetch:["ECID"]}}`. Bounded additive SDK facts are allowed, but
+  routing overrides, extra events and mixed/extra native notification flags are not.
+  Grant must precede collection; fetch must precede page/custom/interaction.
+
+Except static help, stdout is one redacted `airlock.adobe-stock.wire-report` JSON line.
+Keys are exactly `kind`, `schema_version`, `case`, `overall`, `exit_code`, `checks`,
+`counts`, `claims`. Checks classify routing/consent/collection/notifications/order as
+`passed`, `failed` or `not_exercised`; counts summarize recognized recorded requests,
+consent updates and fetch/page/custom/display/interaction events, not independent dispatch.
+Nonzero stderr is the fixed overall enum only. No values, identities, payloads, paths,
+field paths or raw exceptions are echoed.
+
+| Exit | Overall / meaning |
+|---|---|
+| 0 | `capture_checks_passed`: supplied recorded predicates pass |
+| 1 | `capture_checks_failed`: semantic mismatch |
+| 2 | `invalid_invocation` or `invalid_input`: arguments/schema/private-file refusal |
+| 3 | `internal_failure`: unexpected checker failure |
+
+Every report **always sets all six claims false**: actual dispatch, SDK execution,
+host rendering, chamber compatibility, downstream receipt and full wire conformance.
+Expected values, host observations and returned identity are recorded observer assertions,
+not independently verified provenance. Exit 0 does not complete 051-02/03, authorize a
+live run, or establish ADR-0032's full stock/chamber boundary acceptance.
+
+Module consumers can call pure `checkStockWire(value)` (recursively frozen report,
+no input mutation/references) or async `runWireCli({argv, stdout, stderr})` (numeric exit).
+Import alone performs no capture read or execution; direct CLI entry binds process streams.
+
+```sh
+npm test -- test/adobe-stock-wire.test.js test/contract-stability.test.js \
+  test/adobe-stock-harness.test.js
+```
