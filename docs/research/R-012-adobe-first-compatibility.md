@@ -1373,6 +1373,23 @@ After the change, re-read the exact owned fixture and rerun real preflight befor
 reviewed bounded serving schedule/deployment and new headed traffic.
 No SDK events, vendor mutations, permissions changes or new serving interval occurred.
 
+**Prepared runner correction while awaiting the manual action:** Inspection of the exact
+unmodified deployed Alloy 2.31.1 bytes showed that its request builder inserts a returned
+EdgeNetwork location hint between the base path and `v1`. The private runner's original
+root-path-only allowlist would reject those legitimate subsequent routes.
+The [official location-hint reference](https://github.com/AdobeDocs/data-collection-apis/blob/1968dcf70e406879fa6b019ef6f8ce7bdc709938/src/pages/getting-started/location-hints.md)
+lists exactly seven regions; the [pinned SDK](https://github.com/adobe-rnd/aem-eds-airlock-poc/blob/c3aa3ca0fcddaa4beb70637fad6ed5f6f70bf8a8/tools/airlock-stock/vendor/aem-martech/alloy.min.js)
+establishes this comparison's actual `v1` construction, not the newer reference's `v2` example.
+Only those seven optional regional path segments were added to the private runner's existing
+fixed action grammar. Host, method, datastream/query binding, redirects, request cap and expiry
+checks are unchanged; no SDK/core/credential or vendor-resource change.
+Twenty-one positive region/action assertions genuinely failed before correction; all **73**
+final offline runner tests passed, including wrong datastreams, unknown/encoded/extra paths
+and actual networking-disabled headed Chromium with a hinted synthetic request.
+A bounded independent correction review passed. Original reviewed runner bytes and new
+fingerprints/verdict are retained privately; these remain stub/runner evidence, not Alloy
+execution or downstream receipt. The requested manual fixture action is still pending.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes
