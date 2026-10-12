@@ -30,7 +30,8 @@ all twelve required checks now pass. One actual headed stock case rendered the o
 and sent native notifications in five Adobe requests; test code is disabled and the serving
 window ended. Exact ordinary Analytics page/custom rows each show one in the original interval;
 the received seven-day native Target export shows two cumulative Scoped displays, with
-environment and per-run binding still unverified. Final smoke reconciliation remains open.
+environment and per-run binding still unverified. Partial-smoke 051-06 is DONE after final
+compliance/reconciliation; complete stock baseline and chamber acceptance remain open.
 Configuration API diagnosis is stopped by the owner; optional automation is not a live blocker.
 051-05's local harness is DONE and does not establish SDK or product execution. Specs 052-057 are
 intentionally unsliced DRAFT outlines, so the generated slice table
@@ -171,7 +172,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 🔬 051-03 — bounded SDK compatibility decision | DRAFT |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-04 — scoped workspace confirmation | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-05 — local stock journey harness | **DONE** |  |
-| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-06 — deployed stock smoke journey | RECONCILED (adobe-adoption-goal) |  |
+| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-06 — deployed stock smoke journey | **DONE** |  |
 
 ## Deferred slices
 

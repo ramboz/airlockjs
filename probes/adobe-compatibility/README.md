@@ -594,7 +594,8 @@ Scoped display counts, one per experience, using a Visitor header. The file does
 environment or selected date range; do not apply the earlier Development / Activity Impressions
 context to it or attribute its whole total to the headed run. Environment confirmation and
 per-run Target attribution remain open; no click goal exists. Full baseline controls,
-performance/operator acceptance, final reconciliation and the release portfolio stay open.
+performance/operator acceptance and the release portfolio stay open. Partial-smoke 051-06
+has passed final compliance/reconciliation and is DONE; that does not close those broader gates.
 
 ```sh
 npm test -- test/adobe-stock-site.test.js test/adobe-stock-harness.test.js \

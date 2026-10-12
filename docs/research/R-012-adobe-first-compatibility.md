@@ -1546,6 +1546,16 @@ completion follows from inspecting this file.
 
 ## Sources / findings
 
+**Partial-smoke lifecycle close-out — 2026-10-12:** 051-06 is DONE after a fresh final
+compliance pass against its original five partial-smoke criteria and a passing reconciliation
+review. Corrections to stale current summaries were independently verified; failed attempts,
+credit overrun and subsequent continuation, report failures and cumulative-context limitations
+remain preserved as dated evidence. Current targeted browser/frozen-core validation passes
+106 tests, without claiming the historical full suite was rerun.
+This closes deployable smoke/operator-attempt evidence, **not** complete stock-baseline or
+chamber/release acceptance. Native Target environment confirmation, per-run counting, click
+goal/outcome and 051-02 controls/performance/operator work remain open. The research stays OPEN.
+
 ### Inspected source: compatibility gaps, not newly executed probes
 
 Reference:

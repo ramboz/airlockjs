@@ -1,11 +1,10 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [051-01, 051-04, 051-05, adr-0031]
 last_verified: 2026-10-12
 kind: feature
 frame_review: true
 arch_review: true
-claimed_by: adobe-adoption-goal
 ---
 
 ## Slice 051-06 — deployed stock smoke journey
@@ -472,7 +471,7 @@ the report is no longer missing or empty.
 
 ### Close-out (post-DONE)
 
-- [ ] Keep partial live stock evidence separate from complete baseline/product qualification.
+- [x] Keep partial live stock evidence separate from complete baseline/product qualification.
 
 **Final reconciliation — 2026-10-12:** A fresh final compliance pass confirms all five original
 partial-smoke acceptance criteria, including truthful classification of unverified report

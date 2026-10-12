@@ -28,7 +28,7 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 - More terms belong in [docs/memory/glossary.md](docs/memory/glossary.md), not in this primer.
 
 ### Active specs
-- [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01/04/05 DONE, 051-06 real stock smoke executed. Headed ordinary Analytics page/custom counts are each one; native seven-day Target export shows two cumulative Scoped displays, with environment/run binding still open. Full 051-02/chamber proof and final reconciliation remain open. [Operator guide](probes/adobe-compatibility/README.md).
+- [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01/04/05/06 DONE. Partial stock smoke has headed ordinary Analytics page/custom counts one each and cumulative native Target Scoped displays two; report environment/run binding and full 051-02/chamber proof remain open. [Operator guide](probes/adobe-compatibility/README.md).
 - **052-057** — unsliced DRAFT outlines for the remaining [Adobe release portfolio](docs/releases/adobe-compatibility.md#jig-handoff); refine after 051 evidence. See [status board](docs/specs/README.md).
 
 ### Deferred decisions

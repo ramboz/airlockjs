@@ -87,7 +87,7 @@ execute distinct stimuli, and the positive acknowledgement is a trusted host fix
 051-05 is DONE after recorded independent compliance/craft/reconciliation and derived close-out.
 Live routing confirmation remains separately unavailable and is not fabricated from local tests.
 
-## 051-06 — deployed stock smoke entry (IN_PROGRESS)
+## 051-06 — deployed stock smoke entry (DONE)
 
 Current actual smoke: disabled deployed-byte/CSP checks passed after required code reviews;
 official SDK no-offer and corrected positive executed. Positive rendered the owned offer and
@@ -115,6 +115,9 @@ authorized new headed comparison used 5/8 and did not resend the original labels
 pins, SDK/render/wire, ordinary Analytics receipts and disabled stop are verified; Target
 context-specific outcome and the original 051-02 controls/performance/operator gates are not.
 All closed 051-01/04/05 records and historical evidence remain unchanged.
+
+Final original-criteria compliance and reconciliation passed. This partial-smoke milestone
+is closed; full 051-02 report-context/control/performance/operator and 051-03 chamber work remain open.
 
 ## 051-03 — bounded SDK compatibility decision
 
