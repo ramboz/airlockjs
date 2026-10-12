@@ -28,7 +28,7 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 - More terms belong in [docs/memory/glossary.md](docs/memory/glossary.md), not in this primer.
 
 ### Active specs
-- [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01/04/05/06 DONE. Partial stock smoke has headed ordinary Analytics page/custom counts one each and cumulative native Target Scoped displays two; report environment/run binding and full 051-02/chamber proof remain open. [Operator guide](probes/adobe-compatibility/README.md).
+- [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01/04/05/06 DONE. Partial stock smoke has ordinary Analytics page/custom counts one each and native Target Scoped displays two cumulatively in owner-confirmed Development. Per-run Target counting and full 051-02/chamber proof remain open. [Operator guide](probes/adobe-compatibility/README.md).
 - **052-057** — unsliced DRAFT outlines for the remaining [Adobe release portfolio](docs/releases/adobe-compatibility.md#jig-handoff); refine after 051 evidence. See [status board](docs/specs/README.md).
 
 ### Deferred decisions
@@ -80,7 +80,8 @@ The owner renewed unchanged setup and delegated dates on 2026-10-12; date-only p
 and all twelve required preflight checks now pass. One actual headed stock case rendered the
 owned offer and sent native DISPLAY/INTERACT in five Adobe requests; site code is disabled.
 Ordinary Analytics page/custom receipts are each one in the original interval. A native seven-day
-Target export now shows two cumulative Scoped displays; its environment and per-run binding remain unverified.
+Target export shows two cumulative Scoped displays in the owner-confirmed Development environment;
+per-run attribution remains unverified.
 Configuration API diagnosis is stopped; its optional denied access is not the current blocker.
 The local harness runs
 four synthetic cases and never claims vendor SDK/product execution.

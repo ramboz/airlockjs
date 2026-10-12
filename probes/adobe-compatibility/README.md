@@ -591,9 +591,11 @@ approved activity's bounded interval ended at 2026-10-12T17:57:33Z. API-approved
 serving. The isolated clone is cleaned and private source/capture evidence retained; no observer
 remains running. A subsequently supplied seven-day native Target export shows two cumulative
 Scoped display counts, one per experience, using a Visitor header. The file does not encode its
-environment or selected date range; do not apply the earlier Development / Activity Impressions
-context to it or attribute its whole total to the headed run. Environment confirmation and
-per-run Target attribution remain open; no click goal exists. Full baseline controls,
+environment or selected date range. The owner subsequently confirmed this export used
+Airlock - Development; that is manual context evidence, not a field encoded in the file.
+Retain its seven-day/Visitor context, rather than applying the earlier Activity Impressions view
+or attributing its whole total to the headed run. Per-run Target attribution remains open;
+no click goal exists. Full baseline controls,
 performance/operator acceptance and the release portfolio stay open. Partial-smoke 051-06
 has passed final compliance/reconciliation and is DONE; that does not close those broader gates.
 

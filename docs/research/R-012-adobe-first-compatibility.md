@@ -26,7 +26,7 @@ related:
 > A real deployed stock smoke now qualified/rendered the owned offer and submitted native
 > display/interaction plus page/custom events. The new headed page/custom each have one ordinary
 > Analytics receipt; a native seven-day Target export shows two cumulative Scoped display counts,
-> with report environment/per-run attribution still unverified. The full baseline/chamber/product
+> with the approved Development environment owner-confirmed; per-run attribution remains unverified. The full baseline/chamber/product
 > portfolio is not complete. The release is committed in direction.
 
 ## Question
@@ -1546,6 +1546,23 @@ completion follows from inspecting this file.
 
 ## Sources / findings
 
+**Export environment bound by owner — 2026-10-12T19:08:06.598Z:** The owner explicitly
+confirmed that the uploaded seven-day CSV was exported for **Airlock - Development**.
+The new confirmation is bound to the unchanged original export hash and previously selected
+environment; its initial inspection and earlier uncertainty remain immutable historical evidence.
+This establishes **two cumulative Scoped display counts in the approved Development environment**,
+one per owned experience, alongside two Visitors. It is manual report-context evidence, not an
+environment field discovered in the CSV, configuration API readback or renewed routing evidence.
+No additional export, settings change or SDK traffic is needed to establish that cumulative result.
+
+The seven-day window and `Visitor` denominator are retained as supplied; they do not become
+the previously requested single-day/Activity Impressions context. Per-headed-run increment
+and click-goal outcome remain unverified, and full 051-02 controls/performance/operator acceptance
+and 051-03 chamber work remain open. This new evidence resolves the environment-confirmation
+handoff; do not keep describing the environment as unknown or the report as missing.
+The closed partial-smoke 051-06 record is left unchanged: it faithfully reflects what was known
+at its close-out, while this open research note records the subsequent confirmation.
+
 **Partial-smoke lifecycle close-out — 2026-10-12:** 051-06 is DONE after a fresh final
 compliance pass against its original five partial-smoke criteria and a passing reconciliation
 review. Corrections to stale current summaries were independently verified; failed attempts,
@@ -1553,8 +1570,8 @@ credit overrun and subsequent continuation, report failures and cumulative-conte
 remain preserved as dated evidence. Current targeted browser/frozen-core validation passes
 106 tests, without claiming the historical full suite was rerun.
 This closes deployable smoke/operator-attempt evidence, **not** complete stock-baseline or
-chamber/release acceptance. Native Target environment confirmation, per-run counting, click
-goal/outcome and 051-02 controls/performance/operator work remain open. The research stays OPEN.
+chamber/release acceptance. At that close-out, native Target environment confirmation, per-run counting, click
+goal/outcome and 051-02 controls/performance/operator work were still open. The research stays OPEN.
 
 ### Inspected source: compatibility gaps, not newly executed probes
 
@@ -1590,7 +1607,7 @@ Existing spec 013 live results are reusable evidence, not a complete product set
 | XDM schemas | [Schema Registry API](https://experienceleague.adobe.com/en/docs/experience-platform/xdm/api/schemas) documents programmatic schema management. | Select field groups/identity requirements for synthetic scenarios; production/default schema mutation is not authorized. |
 | Datasets | [Catalog API](https://experienceleague.adobe.com/en/docs/experience-platform/catalog/api/create-dataset) documents dataset creation from a schema ID. | Ingestion/profile enablement and product-specific data paths still need validation. |
 | Datastreams | [Official overview](https://experienceleague.adobe.com/en/docs/experience-platform/datastreams/overview) documents service routing and UI management. | Initial destinations are verified via owner UI evidence/confirmation; the owner-key configuration GET still returns 403. Supported Server-to-Server administration remains unverified; recheck future routing changes before traffic. |
-| Target | [Admin API overview](https://experienceleague.adobe.com/en/docs/target-dev/developer/api/admin-api/admin-api-overview) describes authenticated admin operations, versions and batch dependencies. | Scoped create/edit/approval and actual owned-offer delivery, safe rendering and native notification wire are verified. Latest approved serving interval has ended. Native cumulative Scoped display counts are observed; environment/per-run attribution and click-goal outcome remain unverified. |
+| Target | [Admin API overview](https://experienceleague.adobe.com/en/docs/target-dev/developer/api/admin-api/admin-api-overview) describes authenticated admin operations, versions and batch dependencies. | Scoped create/edit/approval and actual owned-offer delivery, safe rendering and native notification wire are verified. Latest approved serving interval has ended. Native cumulative Scoped display counts are observed in the owner-confirmed approved Development environment; per-run attribution and click-goal outcome remain unverified. |
 | Analytics | [2.0 API reference](https://developer.adobe.com/analytics-apis/docs/2.0/apis/) and its [current report-suite schema](https://github.com/AdobeDocs/analytics-2.0-apis/blob/main/static/report-suites.json) document metadata reads and standard suite creation. | Creation permission, quotas/cost, approved RSID prefix/settings and product-specific test isolation are not established by listing existing suites. |
 | AJO | [Current API index](https://developer.adobe.com/journey-optimizer-apis/) lists retrieval, execution, previews and selected management operations. | Campaign reads and selected manage/publish/report policies are verified, not an exercised general web/code-based campaign creation/publishing path. Supported UI/admin work and isolated outcome fixtures may still be required. |
 | CJA / RTCDP | [Web SDK tutorial prerequisites](https://experienceleague.adobe.com/en/docs/platform-learn/implement-web-sdk/overview) distinguish basic Web SDK from Platform-product access. | Need product-specific schemas, connections/data views or profiles/audiences and outcome access; shared transport does not prove product behavior. |

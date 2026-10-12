@@ -34,7 +34,7 @@ datastream routing is established by owner screenshots, exact selector compariso
 environment-pin confirmation, **not** a configuration API readback. Reference push dry-run passed;
 051-06 subsequently deployed and executed real stock events/render/notifications. Its new headed
 page/custom each have one ordinary Analytics receipt; a native Target seven-day export shows two
-cumulative Scoped displays, with report environment/per-run binding still unverified. The earlier ad-hoc observations are
+cumulative Scoped displays in the owner-confirmed Development environment, with per-run attribution still unverified. The earlier ad-hoc observations are
 not the tested 051-01 CLI or a fresh report. The historical v1 CLI verified 11 of 12 required
 checks; the owner's later confirmation and new 051-04 path now give a real v2 report with all
 12 required preparation checks ready. Separate stock setup/observation gates remain open.
@@ -116,7 +116,8 @@ live/write authority.
   alone is not reverification or proof of exclusive application-wide grants.
 - The full baseline's Analytics/Target outcomes can be correlated within the selected test
   windows and counting context. Ordinary exact headed Analytics page/custom receipt is now
-  exercised; native Target environment/per-stage attribution, click outcome and precise processing
+  exercised; native cumulative Target counts have owner-confirmed Development context, while
+  per-stage attribution, click outcome and precise processing
   latency remain unverified. Datastream administration remains unavailable to this tool surface.
 - Representative callbacks and DOM-dependent SDK behavior can be mediated safely. The spike tests
   this assumption; boot/page-view success does not ground the broader claim.

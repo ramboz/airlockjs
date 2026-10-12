@@ -27,7 +27,8 @@ The former [MVP9](mvp9.md) gate is replaced; its unclosed evidence remains defer
   [R-012](../research/R-012-adobe-first-compatibility.md) now records owned fixtures, Analytics queries and scoped Target
   create/edit/future-only approval and its initial inactive restoration. Later partial stock smoke
   deployed with ordinary Analytics page/custom receipt and native Target wire proof; cumulative
-  Target report counts are observed but environment/per-run attribution remains unverified.
+  Target report counts are observed in the owner-confirmed Development environment,
+  but per-run attribution remains unverified.
   Test code is disabled and the retained activity's serving window ended. Initial routing uses
   owner UI/saved-pin confirmation, not management API readback. Full stock/chamber product
   qualification remains open. API credentials cannot create entitlements; some setup still needs guided UI work.
