@@ -130,6 +130,13 @@ is closed; full 051-02 report-context/control/performance/operator and 051-03 ch
 - [x] Record independent compliance/craft and reconciliation; close only this capture-inspection slice.
 - [x] Preserve full 051-02 wire/result/host baseline and actual 051-03 chamber prerequisites.
 
+## 051-08 browser request/response observation
+
+- [x] Ground installed Page/Request/Response APIs and frame-review original-buffer fidelity.
+- [x] TDD implement bounded passive observer, stop/pending-read quarantine and private/public output.
+- [x] Prove actual request/response bytes against a local receiving sink in Chromium.
+- [x] Independently review/reconcile and retain full SDK/host/stock/chamber qualification limits.
+
 ## 051-03 — bounded SDK compatibility decision
 
 - [ ] Record the owner's granted eight-active-hour budget and overall credit ceiling; independently

@@ -686,3 +686,101 @@ Import alone performs no capture read or execution; direct CLI entry binds proce
 npm test -- test/adobe-stock-wire.test.js test/contract-stability.test.js \
   test/adobe-stock-harness.test.js
 ```
+
+## Passive browser wire recorder — 051-08
+
+`stock-wire-recorder.mjs` exports only async `startStockWireRecorder(page, options)`.
+Importing does nothing automatically. This is **observation, not authorization or an
+egress gate**: it never launches/navigates a browser, imports an SDK, routes, forwards,
+retries, sends requests, changes headers or writes files. The caller owns the explicit
+Page, an approved isolated fresh/no-cache context, traffic plan, quiescence and stop plan.
+Attach before approved traffic; do not include bootstrap navigation in the SDK window.
+
+```js
+import { startStockWireRecorder } from './stock-wire-recorder.mjs';
+
+// page and selectedDatastreamId belong to the approved operator, not this module.
+const recorder = await startStockWireRecorder(page, {
+  datastreamId: selectedDatastreamId,
+  // edgeOrigin defaults explicitly to https://edge.adobedc.net.
+});
+let result;
+try {
+  await runAlreadyApprovedTraffic(page); // caller-owned operation; not a recorder API
+} finally {
+  result = await recorder.stop(); // detaches first, drains bounded pending reads
+}
+// result.report is the fixed redacted public projection.
+// result.capture contains original private transport content: keep it private.
+// Artifact access/storage and owner-only permissions are the caller's responsibility.
+```
+
+Options are closed plain data; unknown keys, accessors, symbols, proxies and custom
+prototypes fail with fixed `Failure("invalid_input")` before observer installation.
+`datastreamId` is required, nonempty, at most 250 UTF-8 bytes, with no controls/whitespace
+or malformed Unicode. Optional positive safe-integer limits may only lower these ceilings:
+
+| Option | Default / ceiling |
+|---|---:|
+| `maxRequests` | 8 |
+| `maxRequestBytes` | 65,536 |
+| `maxResponseBytes` | 65,536 |
+| `maxTotalBytes` | 1,048,576 |
+| `settleTimeoutMs` | 5,000 |
+
+Only the exact default Adobe origin or canonical `http://127.0.0.1` / `http://localhost`
+origins with an optional canonical valid port are accepted. Loopback is a **local receiving
+sink test**, not an alternate Adobe endpoint. `source:adobe_origin|loopback_sink` classifies
+the selected receiver, not SDK identity/authenticity. These options never authorize sending.
+
+The observation window ends at the first `stop()` invocation. Exactly the recorder's
+`request`, `response`, `requestfailed` listeners are removed; unrelated caller listeners
+remain. Request identity, not URL equality, pairs responses; records stay in observed order.
+Only `headerValue("content-type")` is read. Original `postDataBuffer()` bytes are length-checked,
+fatally UTF-8 decoded and byte-identically re-encoded; there is **no lossy `postData()` fallback**
+or JSON reserialization. Response bodies are read once, with fatal UTF-8 and bounded JSON
+object validation; 200 requires JSON, 204 requires empty bytes. Nonempty error envelopes,
+service-worker responses, redirects, canceled/read failures, missing/incomplete responses,
+duplicate/prototype-key/deep/nonfinite JSON and timeouts make recording fail.
+
+Exact `/ee/[known-region/]v1/interact|collect|privacy/set-consent`, POST JSON and exactly one
+selected `configId` plus UUID `requestId` are required. Other Adobe `.adobedc.net` /
+`.demdex.net` requests and wrong selected routing are recorded failures, **not blocked sends**.
+Unrelated requests/responses are ignored without reading their headers/bodies. Ninth/lowered-cap
+overflow fails even when storage remains capped. Counts distinguish observed requests, stored
+records, fully retained response bodies and original body bytes read (including invalid/oversize
+bodies); counts alone do not assert protocol success.
+
+`maxTotalBytes` is the summed request/response **body-byte** budget only. Counts use the
+original request Buffer and response body Buffer lengths, including refused/invalid bytes;
+they can exceed the budget on failure. No URL/method/header/timestamp bytes are charged.
+Retained URL, method and Content-Type have separate fixed, nonconfigurable UTF-8 ceilings
+of **2,048 / 32 / 1,024 bytes** respectively, independent of lowered body limits.
+Oversized/refused fields are null with `byte_limit`, never silently truncated;
+bad routing remains failure even when a URL cannot be retained. Fixed timestamps/record
+overhead are separately bounded by the request cap, not a serialized-artifact budget.
+Limits do **not** bound browser transport allocation: `response.body()` is already buffered.
+Oversized responses fail; dispatched downloads cannot be canceled by this observer. Stop waits
+at most the selected timeout for scheduled reads; late fulfillment/rejection is quarantined,
+cannot repair failure or mutate either recursively frozen independent snapshot. Repeated stops
+return the same promise/result. Unavailable or discarded fields are null, not fake empty success.
+
+Private schema-v1 `airlock.adobe-stock.network-capture` contains original URLs, method,
+Content-Type, request/response text, status and observer timestamps, plus fixed categories.
+Do not publish it or add header/cookie/storage inventories. Public schema-v1
+`airlock.adobe-stock.network-report` contains only fixed kind/version/source/status/exit,
+counts, unique error enums and five **always-false** claims: SDK execution, host rendering,
+chamber compatibility, downstream receipt and full wire conformance. Zero requests is a
+complete empty observation, **not SDK consent/negative-scenario proof**.
+
+Tests use invented content, actual installed Chromium and an ephemeral HTTP loopback sink:
+native POST bytes reach a real receiver and its real JSON response is observed, including
+malformed UTF-8 and actual oversized-response failures. Fake Page races are harness evidence.
+Neither constitutes live Adobe/stock SDK/chamber evidence. Full 051-02 operation/collector
+provenance and 051-03 chamber proof remain open; this new transport schema does not replace
+051-07's payload projection or silently reconstruct historical missing fields.
+
+```sh
+npx vitest run test/adobe-stock-wire-recorder.test.js \
+  test/adobe-stock-wire.test.js test/contract-stability.test.js
+```

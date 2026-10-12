@@ -1556,6 +1556,59 @@ completion follows from inspecting this file.
 
 ## Sources / findings
 
+**Browser transport observation pickup — 2026-10-12:** New051-08 supplies a caller-owned
+Page observation interface rather than launching a browser, importing an SDK or changing
+requests. The inspected installed Playwright APIs support Request object identity,
+`postDataBuffer()`, selected header access, Response body/status and service-worker origin.
+Frame review caught lossy `postData()` decoding: the contract now requires original bytes,
+length-first fatal UTF8 and exact re-encoding. Malformed UTF8 must fail even if a replacement
+character could make parsed JSON look valid. Byte limits bound retained accepted recording
+data, not browser network allocations; pending reads are time-bounded and late data quarantined.
+Real loopback receiving-sink tests are required, separately classified from Adobe/SDK proof.
+Full051-02 operator/control/performance and051-03 actual chamber qualification remain open.
+
+**Transport recorder implemented — 2026-10-12:** 051-08 now exports
+`startStockWireRecorder(page, options)` for an explicit caller-owned Page.
+Original107 behavioral tests failed before production; eight body-budget/scalar failures
+and five DNS-alias failures witnessed their corrections. Current133 recorder cases,
+197 checker cases and36 frozen-core tests pass (**366 total**); syntax and parent
+recommended lint pass. Independent implementation compliance and craft clear this
+observation scope; final reconciliation remains in progress.
+Actual Chromium/local HTTP tests verify receiving-sink request/response bytes, including
+strict malformed-UTF8 rejection. No route fulfillment/proxy, SDK import or Adobe event was
+used for that proof. Browser wire callbacks and paired response data stay private;
+public enums/counts remain redacted and all SDK/DOM/chamber/product/full-wire claims false.
+A DNS terminal dot is normalized only to classify unexpected Adobe traffic, never to
+approve the destination. Body limits do not assert control of browser network allocation.
+No original SDK traffic was replayed or historical missing fields reconstructed.
+
+**Pinned SDK command-source discovery — 2026-10-12:** A separate offline AST traversal
+parsed the **exact official152336-byte Alloy2.31.1 artifact**, SHA-256 equal to the established
+`7dd09409...` pin, without executing vendor code. Twelve literal `commands` objects yield
+fifteen distinct static names: `sendEvent`, `applyResponse`, `getIdentity`,
+`appendIdentityToUrl`, `getLibraryInfo`, `setConsent`, `createEventMergeId`,
+`getMediaAnalyticsTracker`, `applyPropositions`, `evaluateRulesets`, `subscribeRulesetItems`,
+`createMediaSession`, `sendMediaEvent`, `sendPushSubscription`, `sendConversationEvent`.
+Their payload/options/results, worker suitability and core commands are **not** yet qualified.
+Two further `commands` properties reference identifiers rather than literal object declarations;
+the component registration graph, special core dispatch and documented public surfaces must
+be reconciled before claiming a closed inventory. This is stronger byte-bound source evidence
+than the earlier npm archive inspection, not source/package equivalence or chamber execution.
+The private discovery ledger retains source URL/hash/offsets and explicit incomplete status;
+no SDK installation, live event, resource mutation or prototype compatibility experiment ran.
+
+**Current adapter gap, source-backed only:** The shipping Alloy connector declares
+`ALLOY_EVENTS=["page_view"]` (`connectors/alloy/connector.js:47`) and maps that path to
+`web.webpagedetails.pageViews` (`:290-300`). Its SDK handling delivers decision data and
+returns an empty egress list because transport is intercepted (`:225-256`), not a general
+public command/result facade. The host's `driveEvent` settles with `{summary,ready}`
+(`core/wrapped-sdk-host.js:553-584`), and `bootAlloy` builds the real guarded host fetch
+(`adapters/eds/index.js:1563-1618`).
+These cited surfaces are reusable foundations, not evidence that arbitrary custom XDM or
+all fifteen discovered SDK commands already work through the chamber. The complete
+registration/options/callback inventory and executed stock/chamber comparisons remain
+051-03/052 work. No runtime source was altered or full-repository absence claim made.
+
 **Recorded-wire checker implementation pickup — 2026-10-12:** New vertical slice 051-07
 defines an end-to-end local operator for checking supplied final SDK payload records.
 Its closed contract and exact selector correction passed frame review before TDD work.

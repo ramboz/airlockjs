@@ -159,10 +159,14 @@ closed 051-01. The stock baseline depends on its reviewed evidence path and a fr
 - [051-05 — local stock journey harness](slice-05-local-stock-harness.md)
 - [051-06 — deployed stock smoke journey](slice-06-deployed-stock-smoke.md)
 - [051-07 — checking recorded stock wire semantics](slice-07-recorded-wire-checker.md)
+- [051-08 — observing browser request and response bytes](slice-08-browser-wire-recorder.md)
 
 051-07 supplies an end-to-end local capture-inspection operator with fixed redacted
 predicates. Its supplied-record checks do not independently prove network/SDK/DOM
 provenance and do not close 051-02/03's live baseline or chamber acceptance.
+051-08 adds a bounded observation API for caller-owned Page traffic, including full
+URL/method/raw UTF8 bodies and paired responses. It neither authorizes/sends traffic
+nor independently authenticates SDK/chamber provenance or supplies the full baseline.
 
 051-05 supplies an independently usable local dry-run while live setup/routing gates remain
 separate. Its completion cannot satisfy 051-02's actual wire/response, deployment or negative controls.
