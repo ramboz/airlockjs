@@ -1498,6 +1498,49 @@ authentication/metadata reads, zero mutations or SDK resends; raw response remai
 Do not invent undocumented environment-query parameters or use the metadata as notification
 receipt. The native Development / Activity Impressions CSV remains the required evidence handoff.
 
+### Populated native Target export received — 2026-10-12
+
+At 2026-10-12T18:44:50.813Z the owner supplied the activity's native CSV, describing its report
+range as **the last seven days**. The original attachment bytes were parsed with a CSV parser,
+hashed and preserved unchanged in owner-only private state. Unlike the earlier header-only
+exports, this file has nine records: metadata, a twelve-column header, campaign totals and
+both experience data rows. The activity name matches the owned fixture.
+
+| Native report row | Visitor | Scoped display |
+|---|---:|---:|
+| Campaign Totals | 2 | 2 |
+| Access check A | 1 | 1 |
+| Access check B | 1 | 1 |
+
+Both experience sums match the campaign totals. These are **actual populated Target report
+counts**, not client assertions or inferred zeros. They establish that the supplied activity
+report shows two cumulative Scoped display counts, one per experience. They do not by
+themselves identify which visit contributed each count or establish the latest headed run's
+increment: the owner's seven-day range includes prior attempts, and no matching pre-run
+snapshot for that report context was captured.
+
+The denominator header is **`Visitor`**, not the earlier `Impression` header. The metadata still
+contains `Conversion Counter: undefined`; the `Conversions` cells are currency-formatted
+`$2` / `$1` / `$1`, so they are preserved as raw text, not reinterpreted as event counts or
+revenue. The separately named `Scoped display` column supplies the numeric counts above.
+No click goal/outcome is established by this export.
+
+The file records download date and `US/Pacific`, but **does not encode the report environment
+or selected date range**. The seven-day range is attributed to the owner's message, not to
+file metadata. Because the counting header differs from the previously selected report view,
+the earlier Development / Activity Impressions screenshot is not silently applied to this
+new download. The owner was asked whether **Airlock - Development** was selected for this
+export; the question tool returned owner unavailable. No repeat export or settings change
+was requested at this step.
+
+Disposition: native cumulative display counts are observed; approved-environment binding
+and headed-run-specific count remain unverified. Do not continue reporting the CSV as missing,
+claim it is empty, convert its seven-day total into a single-run result, or treat `Visitor`
+as Activity Impressions. Ordinary exact Analytics page/custom receipt and actual native
+notification wire evidence remain independently verified. The site stays disabled and its
+bounded activity interval ended; no SDK resend, API diagnosis, resource mutation or lifecycle
+completion follows from inspecting this file.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes

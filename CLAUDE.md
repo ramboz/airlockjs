@@ -28,7 +28,7 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 - More terms belong in [docs/memory/glossary.md](docs/memory/glossary.md), not in this primer.
 
 ### Active specs
-- [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01/04/05 DONE, 051-06 real stock smoke executed. Original pages are verified in bot reports; new headed page/custom ordinary Analytics counts are each one. Target counts, full 051-02/chamber proof and final reconciliation remain open. [Operator guide](probes/adobe-compatibility/README.md).
+- [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01/04/05 DONE, 051-06 real stock smoke executed. Headed ordinary Analytics page/custom counts are each one; native seven-day Target export shows two cumulative Scoped displays, with environment/run binding still open. Full 051-02/chamber proof and final reconciliation remain open. [Operator guide](probes/adobe-compatibility/README.md).
 - **052-057** — unsliced DRAFT outlines for the remaining [Adobe release portfolio](docs/releases/adobe-compatibility.md#jig-handoff); refine after 051 evidence. See [status board](docs/specs/README.md).
 
 ### Deferred decisions
@@ -79,7 +79,8 @@ supplies the contracts and reviewed preflight utility. The owner confirmed scope
 The owner renewed unchanged setup and delegated dates on 2026-10-12; date-only preparation
 and all twelve required preflight checks now pass. One actual headed stock case rendered the
 owned offer and sent native DISPLAY/INTERACT in five Adobe requests; site code is disabled.
-Ordinary Analytics page/custom receipts are each one in the original interval; native Target counts remain unverified.
+Ordinary Analytics page/custom receipts are each one in the original interval. A native seven-day
+Target export now shows two cumulative Scoped displays; its environment and per-run binding remain unverified.
 Configuration API diagnosis is stopped; its optional denied access is not the current blocker.
 The local harness runs
 four synthetic cases and never claims vendor SDK/product execution.

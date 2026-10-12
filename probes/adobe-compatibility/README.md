@@ -586,8 +586,11 @@ not widened. Observed counts are not a vendor exactly-once guarantee.
 Test-site config is disabled with served bytes verified at reference `c1438e3`; the retained
 approved activity's bounded interval ended at 2026-10-12T17:57:33Z. API-approved is not currently
 serving. The isolated clone is cleaned and private source/capture evidence retained; no observer
-remains running. Actual native Target display/conversion counts still require the requested
-Development / Activity Impressions CSV for the run; no click goal exists. Full baseline controls,
+remains running. A subsequently supplied seven-day native Target export shows two cumulative
+Scoped display counts, one per experience, using a Visitor header. The file does not encode its
+environment or selected date range; do not apply the earlier Development / Activity Impressions
+context to it or attribute its whole total to the headed run. Environment confirmation and
+per-run Target attribution remain open; no click goal exists. Full baseline controls,
 performance/operator acceptance, final reconciliation and the release portfolio stay open.
 
 ```sh

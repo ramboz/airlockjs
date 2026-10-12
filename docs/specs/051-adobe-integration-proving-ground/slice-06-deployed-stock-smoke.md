@@ -418,6 +418,16 @@ Final readback confirms disabled served bytes and the retained approved schedule
 Native Target outcome CSV is still requested/unverified; notification/DOM/wire proofs remain
 separate. Original full baseline, click-goal outcome and final reconciliation gates stay open.
 
+**Native export received — 2026-10-12:** The owner supplied a populated seven-day activity
+CSV: campaign totals show two Visitors and two Scoped display counts; each owned experience
+shows one of each, with consistent sums. This is cumulative native report evidence, not the
+headed run's exact increment. The header is Visitor, not Impression, and the export omits
+environment/date-range fields. Approved Development environment confirmation was requested;
+owner unavailable. The currency-formatted Conversions cells and undefined Conversion Counter
+are not interpreted as event counts. No click outcome, report-context binding or full original
+baseline acceptance is inferred. R-012 and private immutable inspection preserve these limits;
+the report is no longer missing or empty.
+
 ### Close-out (post-DONE)
 
 - [ ] Keep partial live stock evidence separate from complete baseline/product qualification.

@@ -29,7 +29,8 @@ setup confirmation and delegated dates on 2026-10-12. Reviewed date-only prepara
 all twelve required checks now pass. One actual headed stock case rendered the owned offer
 and sent native notifications in five Adobe requests; test code is disabled and the serving
 window ended. Exact ordinary Analytics page/custom rows each show one in the original interval;
-native Target counts and final smoke reconciliation remain unverified/open.
+the received seven-day native Target export shows two cumulative Scoped displays, with
+environment and per-run binding still unverified. Final smoke reconciliation remains open.
 Configuration API diagnosis is stopped by the owner; optional automation is not a live blocker.
 051-05's local harness is DONE and does not establish SDK or product execution. Specs 052-057 are
 intentionally unsliced DRAFT outlines, so the generated slice table
