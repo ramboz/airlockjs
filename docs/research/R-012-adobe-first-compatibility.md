@@ -1489,6 +1489,15 @@ portfolio remain open. Recorded cumulative usage at 18:21:57Z is approximately *
 the owner-authorized continuation beyond the original credit stop remains distinct from
 release acceptance.
 
+**Supported Target read after the completed run, 2026-10-12T18:30:10.172476Z:** Fresh exact
+owned-activity verification and the documented performance-report GET returned HTTP 200.
+The returned activity binding matches, but its report environment **does not match the
+approved Development environment**, and experience/option statistics arrays are empty.
+This is neither a bound Target outcome nor evidence of zero conversions. Three bounded
+authentication/metadata reads, zero mutations or SDK resends; raw response remains private.
+Do not invent undocumented environment-query parameters or use the metadata as notification
+receipt. The native Development / Activity Impressions CSV remains the required evidence handoff.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes
