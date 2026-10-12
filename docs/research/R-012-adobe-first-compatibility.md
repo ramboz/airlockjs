@@ -1546,6 +1546,19 @@ completion follows from inspecting this file.
 
 ## Sources / findings
 
+**Full-baseline pickup after environment confirmation — 2026-10-12:** The 051-02 frame is
+reviewed but its remaining DoR is not automatically cleared by 051-06. The existing manual
+report protocol needs at least fifteen pre/60/120-minute exports across five separated stages
+and at least fourteen hours. Operator availability was requested; the owner was unavailable
+through the question tool. No new traffic or report checkpoints are fabricated.
+The public Target Admin contract's complete declared path inventory was checked at commit
+`63e9ea6c1e80e7568f2cd4b39cc1acad98d941fe`: no metric/goal-specific write path is declared;
+narrow activity state/schedule and whole-activity PUT are declared. This does not prove an
+API can never exist. Preserve the Page Delivery edit rather than attempting an unverified
+whole-activity goal update. The remaining interaction-goal/observation/performance/operator
+work is recorded in the open 051-02 slice, with the cumulative Development counts accepted
+and configuration API investigation still stopped.
+
 **Export environment bound by owner — 2026-10-12T19:08:06.598Z:** The owner explicitly
 confirmed that the uploaded seven-day CSV was exported for **Airlock - Development**.
 The new confirmation is bound to the unchanged original export hash and previously selected

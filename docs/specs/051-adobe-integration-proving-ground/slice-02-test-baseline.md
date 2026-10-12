@@ -60,6 +60,36 @@ live mutation/SDK gates retain the actual fresh-evidence prerequisite.
 - [ ] Define product receipt/report observation methods, correlation and finite waiting windows.
 - [ ] Verify supported setup APIs; prepare precise guided steps for any API-unavailable operations.
 
+**Current pickup evidence — 2026-10-12:** Closed 051-06 supplies the actual pinned stock
+deployment/stop and new headed wire/ordinary Analytics proof. Its page/custom each have one
+ordinary receipt in the original interval. The populated seven-day native Target export
+shows two cumulative Scoped display counts, one per experience; the owner explicitly confirmed
+Airlock - Development at 19:08:06.598Z. Its actual denominator is Visitor, not the earlier
+Impression header. Environment confirmation and export availability are no longer missing.
+This does not satisfy the full baseline's pre/post stage deltas, stable positive/control
+checkpoints, interaction goal/outcome or measured performance.
+The original 10,000-credit stop and later owner-approved continuation remain recorded in R-012;
+the eight-active-hour cap for 051-03 is unchanged.
+
+For this slice's next traffic, its existing manual method requires a pre-traffic export and
+60-/120-minute native report checkpoints in each of five separated stages: **at least fifteen
+operator exports across at least fourteen hours**, not a single seven-day after-the-fact export.
+The owner was asked to choose a workable checkpoint schedule; the question tool returned owner
+unavailable. No staffed checkpoint, report increment, stage approval or new SDK traffic was assumed.
+The recommended operational pickup is one scheduled stage at a time, preserving the existing
+spacing/observation/freshness rules, rather than assuming uninterrupted manual coverage.
+DoR remains partly unchecked and this slice is not advanced to implementation on this evidence alone.
+
+The checked public Target Admin contract at commit
+`63e9ea6c1e80e7568f2cd4b39cc1acad98d941fe` declares narrow state/schedule updates and a whole
+A/B activity PUT, but **no path named for a metric/goal-specific write** (complete declared
+`paths` keys enumerated). This is a statement about that published contract, not a universal
+claim that no other API exists. The current display goal is preserved; the full draft's
+interaction-goal preparation cannot use an invented endpoint or an unchecked whole-activity
+round-trip that may lose the owner's Page Delivery edit. Its supported UI/manual preparation
+and exact readback must be planned if needed. Configuration API diagnosis remains stopped
+per owner direction; this check concerned Target write safety, not that optional 403.
+
 ## Current setup boundary
 
 R-012, not this DRAFT, records verified owned Analytics/Target fixtures, report-query access and
