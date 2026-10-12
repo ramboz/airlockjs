@@ -27,8 +27,9 @@ The historical v1 workspace unknown and v2 twelve-check pass are preserved. The
 historical rerun refused stale source evidence with zero requests. The owner renewed unchanged
 setup confirmation and delegated dates on 2026-10-12. Reviewed date-only preparation and
 all twelve required checks now pass. One actual headed stock case rendered the owned offer
-and sent native notifications in five Adobe requests; test code is disabled, ordinary
-Analytics receipts are under finite observation and native Target counts remain unverified.
+and sent native notifications in five Adobe requests; test code is disabled and the serving
+window ended. Exact ordinary Analytics page/custom rows each show one in the original interval;
+native Target counts and final smoke reconciliation remain unverified/open.
 Configuration API diagnosis is stopped by the owner; optional automation is not a live blocker.
 051-05's local harness is DONE and does not establish SDK or product execution. Specs 052-057 are
 intentionally unsliced DRAFT outlines, so the generated slice table

@@ -1449,6 +1449,46 @@ The current activity has no click goal, so INTERACT is still not downstream clic
 Ordinary Analytics receipts, native Target counts and final reconciliation remain open;
 this executed partial comparison does not complete 051-02, the chamber or the release portfolio.
 
+### Headed ordinary Analytics receipt confirmed — 2026-10-12
+
+Both new exact synthetic labels now have independently observed **ordinary Analytics receipt**
+in their original frozen padded traffic interval and exact approved suite:
+
+| Outcome | Actual observation |
+|---|---|
+| Page, `variables/page` / `metrics/pageviews` | Exact matched row with count **1** at 2026-10-12T18:18:17.486958Z, the 60-minute checkpoint. |
+| Custom link, `variables/customlink` / `metrics/occurrences` | Exact matched row with count **1** at 2026-10-12T18:19:48.778641Z, a bounded same-window readonly recovery. |
+
+Valid earlier checks through the 30-minute checkpoint returned no matched rows. The custom
+report request at the 60-minute checkpoint returned **HTTP 502**, so it was invalid evidence,
+not a zero or negative receipt. The observer correctly stopped rather than treating that
+failure as a valid empty report. One bounded readonly recovery returned HTTP 200 and the exact
+custom row above. It reused the actual immutable capture, original window and unchanged suite
+timezone; **no SDK event was resent, label reused for a second visit or interval widened**.
+The observation helper has exited; no polling/helper remains running.
+
+The finite observation goal is met for these two ordinary rows, with the actual checkpoint
+times retained. Counts are observations, **not a claim of vendor exactly-once semantics** or
+an exact processing-latency measurement. The headed test demonstrates an ordinary-reporting
+path without disabling filters, spoofing identity or changing SDK bytes. It does not identify
+the exact historical bot rule or prove that user-agent differences alone caused the old
+headless classification; timing/network/context also differ.
+
+Final read-only safety verification at **2026-10-12T18:21:59.051178Z** confirms exact disabled
+served config bytes and the known approved activity's **ended** serving interval
+(end 17:57:33Z). API-approved is not currently serving. The clean isolated reference clone
+was removed only after verifying its commits remotely persisted, with private final source
+copies/hash evidence retained.
+
+**Still unverified:** native Target display/conversion count for this run; no click goal exists.
+The requested native Development / Activity Impressions CSV remains an owner handoff.
+Actual Target decision, safe render and native notification wire evidence are separately
+verified, not promoted into those product counts. Final 051-06 reconciliation, complete
+051-02 controls/performance/operator acceptance, chamber comparison and the Adobe release
+portfolio remain open. Recorded cumulative usage at 18:21:57Z is approximately **13,913 credits**;
+the owner-authorized continuation beyond the original credit stop remains distinct from
+release acceptance.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes

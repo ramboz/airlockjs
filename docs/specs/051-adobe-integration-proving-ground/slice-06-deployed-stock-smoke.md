@@ -409,6 +409,15 @@ are unobserved, not zero/loss. Native Target CSV requested but owner unavailable
 still absent. R-012 preserves actual timestamps, initial observation failure and limitations.
 Final reconciliation and full original baseline/product requirements remain open.
 
+**Ordinary receipts verified — 2026-10-12:** The new headed page has one exact ordinary pageview
+at the 60-minute checkpoint; the corresponding custom report returned502, not valid absence.
+One bounded readonly recovery in the same frozen window returned the exact custom row with
+one occurrence. No interval widening, SDK resend, filter/identity change or exactly-once claim.
+Earlier through30-minute empty rows were unobserved, not loss. The finite observer exited.
+Final readback confirms disabled served bytes and the retained approved schedule now ended.
+Native Target outcome CSV is still requested/unverified; notification/DOM/wire proofs remain
+separate. Original full baseline, click-goal outcome and final reconciliation gates stay open.
+
 ### Close-out (post-DONE)
 
 - [ ] Keep partial live stock evidence separate from complete baseline/product qualification.

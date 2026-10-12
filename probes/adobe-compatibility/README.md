@@ -545,9 +545,10 @@ expired window. The complete 051-02 negative/performance/receipt and chamber cri
 
 The finite 120-minute Analytics observation subsequently completed with no exact page/custom
 rows observed. Neither HTTP success nor those absent rows are receipt or proven loss.
-No events were resent; downstream Target counts remain unverified. The current run is stopped
-after recorded credit usage exceeded the requested ceiling; no broader compatibility success
-or completed smoke/baseline lifecycle is claimed.
+No events were resent; downstream Target counts remain unverified. At that checkpoint execution
+stopped after recorded credit usage exceeded the requested ceiling; the owner subsequently
+approved continued work. No broader compatibility success or completed smoke/baseline lifecycle
+was inferred from that historical attempt.
 
 ### Receipt troubleshooting: bot-classified browser traffic
 
@@ -563,11 +564,31 @@ Bot metrics support Page/time/Bot reporting, **not** the ordinary custom-link di
 Aggregate bot occurrences cannot prove per-link receipt. Keep bot-classified evidence separate
 from ordinary visitor/goal evidence; no retagging the earlier window or counting rule changes.
 
-The next browser comparison should use a normal headed browser, transparent automation and
-new synthetic labels under a separately reviewed bounded plan. No bot-filter disable, spoofed
-user agent, conversion resend or automatic retry is needed. A local headed launch is verified,
-but no new headed SDK journey has run. Native Target report counts and the full baseline remain
-separate outstanding evidence.
+The subsequent 2026-10-12 comparison actually used a normal headed browser, transparent
+automation and new synthetic labels under a separately reviewed bounded plan. No bot filter
+was disabled, user agent spoofed or SDK event resent. Native Target report counts and the full
+baseline remain separate outstanding evidence.
+
+### Actual headed ordinary receipt — 2026-10-12
+
+Current manual routing/profile observations and reviewed inactive/future-date preparation
+cleared all twelve real required preflight checks. One actual default headed positive visit
+rendered the owned offer, recorded a trusted click and sent five Adobe requests. Actual captured
+wire verifies one mapped page/custom plus native DISPLAY/INTERACT with returned proposition
+identity preserved. This stock arm is not chamber/off-thread proof.
+
+Both new exact labels independently appear in **ordinary Analytics reports with count one**,
+in the original frozen padded interval: page at the 60-minute checkpoint, custom in a bounded
+readonly recovery after that checkpoint's report returned502. The gateway error was unverified,
+not a valid empty result. Neither the SDK event nor its labels were resent, and the window was
+not widened. Observed counts are not a vendor exactly-once guarantee.
+
+Test-site config is disabled with served bytes verified at reference `c1438e3`; the retained
+approved activity's bounded interval ended at 2026-10-12T17:57:33Z. API-approved is not currently
+serving. The isolated clone is cleaned and private source/capture evidence retained; no observer
+remains running. Actual native Target display/conversion counts still require the requested
+Development / Activity Impressions CSV for the run; no click goal exists. Full baseline controls,
+performance/operator acceptance, final reconciliation and the release portfolio stay open.
 
 ```sh
 npm test -- test/adobe-stock-site.test.js test/adobe-stock-harness.test.js \

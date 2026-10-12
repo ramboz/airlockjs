@@ -28,7 +28,7 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 - More terms belong in [docs/memory/glossary.md](docs/memory/glossary.md), not in this primer.
 
 ### Active specs
-- [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01/04/05 DONE, 051-06 real stock smoke executed. Original page labels are now verified in Analytics bot reports; ordinary custom-link and Target outcomes, full 051-02/chamber proof remain open. [Operator guide](probes/adobe-compatibility/README.md).
+- [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01/04/05 DONE, 051-06 real stock smoke executed. Original pages are verified in bot reports; new headed page/custom ordinary Analytics counts are each one. Target counts, full 051-02/chamber proof and final reconciliation remain open. [Operator guide](probes/adobe-compatibility/README.md).
 - **052-057** — unsliced DRAFT outlines for the remaining [Adobe release portfolio](docs/releases/adobe-compatibility.md#jig-handoff); refine after 051 evidence. See [status board](docs/specs/README.md).
 
 ### Deferred decisions
@@ -68,18 +68,18 @@ Default to collaborative and solution-forward — answer what's asked, propose r
 [R-012](docs/research/R-012-adobe-first-compatibility.md): pinned SDK/`aem-martech` inventory and
 API-led access/setup discovery, then one Analytics + Target rendering/reporting proof.
 Analytics reporting, scoped Target create/edit/future-only approval and initial datastream routing
-are verified in R-012; the fixture is restored inactive. Routing uses owner UI evidence and saved-pin
+are verified in R-012; the retained activity's bounded serving window has ended. Routing uses owner UI evidence and saved-pin
 confirmation, not configuration API readback. Real stock smoke executed; client/HTTP evidence
 is not downstream product receipt. Site code is disabled and the bounded activity state is in R-012.
 AJO/CJA/RTCDP are deferred for the initial proving ground, not removed from the release gate.
 No new AEP sandbox is required for the initial baseline with
-Platform ingestion disabled. No stock/live workflow proof exists yet. [Spec 051](docs/specs/051-adobe-integration-proving-ground/spec.md)
+Platform ingestion disabled. Complete stock-versus-chamber/product qualification remains open. [Spec 051](docs/specs/051-adobe-integration-proving-ground/spec.md)
 supplies the contracts and reviewed preflight utility. The owner confirmed scoped profile permissions;
 051-04's historical real schema-v2 report verified all 12 preparation checks with explicit manual evidence.
 The owner renewed unchanged setup and delegated dates on 2026-10-12; date-only preparation
 and all twelve required preflight checks now pass. One actual headed stock case rendered the
 owned offer and sent native DISPLAY/INTERACT in five Adobe requests; site code is disabled.
-Ordinary Analytics receipts are under finite observation; native Target counts remain unverified.
+Ordinary Analytics page/custom receipts are each one in the original interval; native Target counts remain unverified.
 Configuration API diagnosis is stopped; its optional denied access is not the current blocker.
 The local harness runs
 four synthetic cases and never claims vendor SDK/product execution.
