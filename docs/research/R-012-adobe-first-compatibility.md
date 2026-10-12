@@ -1343,6 +1343,36 @@ observation. Current stage reassessment, real preflight, exact owned activity sc
 bytes and traffic-manifest checks still precede live execution; request only a specific manual
 action if those checks establish a need. The redacted support handoff remains local and unsent.
 
+### Manual-path preflight: one concrete fixture prerequisite — 2026-10-12
+
+The existing unmodified preflight CLI was actually rerun at
+**2026-10-12T15:25:13.230Z** with separately created stage-bound input, routing and workspace
+assessments. Their manual observation is the owner's actual 14:55:35.910Z unchanged-setup
+message, with expiry 2026-10-13T14:55:35.910Z; the 15:22:35.791Z read-only continuation binds
+the new input authority. Original selectors/credential identity and original screenshot hashes
+were retained, original source files were hashed and checked unchanged, and no new screenshots
+or configuration API readback were claimed.
+
+Actual result: **11 required ready, one required blocked, four optional unverified, 12 bounded
+requests; overall blocked / exit 1**. Both `datastream.routing` and
+`target.workspace_snapshot` are ready with explicit `owner_ui_confirmation` and null HTTP status.
+The optional configuration API remains unavailable and is **not** the required failure.
+
+The sole required failure is `target.activity_offers`, reason `unsafe_configuration`, action
+`restore_inactive_fixture`. The retained activity is API-approved with its former serving
+interval ended. The unchanged initial-preparation contract requires **saved/inactive status
+and a future start with a valid later end**, even for this ended fixture
+(`probes/adobe-compatibility/responses.mjs`, `target.activity` validation).
+Do not forge a ready report, hide this failure behind HTTP 200 or rewrite its response.
+
+The owner was asked to change only the known activity's status and schedule to inactive with
+future dates, leaving offers, goals and Page Delivery untouched; no screenshot is needed.
+The owner was unavailable through the question tool. This is the concrete manual action now
+needed, not more API investigation or a request to reconfirm the already accepted routing.
+After the change, re-read the exact owned fixture and rerun real preflight before the separately
+reviewed bounded serving schedule/deployment and new headed traffic.
+No SDK events, vendor mutations, permissions changes or new serving interval occurred.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes

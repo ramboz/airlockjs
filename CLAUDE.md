@@ -76,8 +76,9 @@ No new AEP sandbox is required for the initial baseline with
 Platform ingestion disabled. No stock/live workflow proof exists yet. [Spec 051](docs/specs/051-adobe-integration-proving-ground/spec.md)
 supplies the contracts and reviewed preflight utility. The owner confirmed scoped profile permissions;
 051-04's historical real schema-v2 report verified all 12 preparation checks with explicit manual evidence.
-The owner renewed unchanged-setup confirmation on 2026-10-12; current stage reassessment/preflight
-is still required. Configuration API access remains denied with a service-specific key error.
+The owner renewed unchanged-setup confirmation on 2026-10-12; the real manual-path preflight
+returned 11 required ready and one blocked on the activity's inactive/future preparation state.
+Configuration API diagnosis is stopped; its optional denied access is not the current blocker.
 The local harness runs
 four synthetic cases and never claims vendor SDK/product execution.
 Deployment, scoped activity scheduling/targeting and product observation still require the stock plan.

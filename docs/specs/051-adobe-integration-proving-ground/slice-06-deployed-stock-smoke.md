@@ -383,6 +383,17 @@ remains unresolved; existing Developer Console API/service names were requested,
 credential/role/routing change or guessed service registration. This is not continuing to
 claim the owner's confirmation is missing, nor claiming the 403 or live baseline is fixed.
 
+**Current manual-path preparation — 2026-10-12:** Owner directs no more API investigation and
+offers necessary configuration manually. New stage-bound assessments retain the actual
+14:55:35.910Z owner observation, 24-hour expiry, original bindings and screenshot hashes;
+original sources remain unchanged. The unmodified real preflight at 15:25:13.230Z returns
+11 required ready and one blocked, 12 requests. Routing and workspace manual checks pass.
+Only `target.activity_offers` is blocked as `unsafe_configuration`: initial preparation
+requires saved/inactive state with valid future dates, not the retained approved/ended state.
+The owner was asked for exactly that status/schedule-only change, without altering offers,
+goals or Page Delivery; the owner was unavailable. No SDK events or vendor mutations occurred.
+Current fixture readback/ready rerun and reviewed bounded execution remain pending.
+
 ### Close-out (post-DONE)
 
 - [ ] Keep partial live stock evidence separate from complete baseline/product qualification.
