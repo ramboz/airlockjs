@@ -76,8 +76,10 @@ No new AEP sandbox is required for the initial baseline with
 Platform ingestion disabled. No stock/live workflow proof exists yet. [Spec 051](docs/specs/051-adobe-integration-proving-ground/spec.md)
 supplies the contracts and reviewed preflight utility. The owner confirmed scoped profile permissions;
 051-04's historical real schema-v2 report verified all 12 preparation checks with explicit manual evidence.
-The owner renewed unchanged-setup confirmation on 2026-10-12; the real manual-path preflight
-returned 11 required ready and one blocked on the activity's inactive/future preparation state.
+The owner renewed unchanged setup and delegated dates on 2026-10-12; date-only preparation
+and all twelve required preflight checks now pass. One actual headed stock case rendered the
+owned offer and sent native DISPLAY/INTERACT in five Adobe requests; site code is disabled.
+Ordinary Analytics receipts are under finite observation; native Target counts remain unverified.
 Configuration API diagnosis is stopped; its optional denied access is not the current blocker.
 The local harness runs
 four synthetic cases and never claims vendor SDK/product execution.

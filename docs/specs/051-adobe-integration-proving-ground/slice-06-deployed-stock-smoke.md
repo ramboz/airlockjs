@@ -394,6 +394,21 @@ The owner was asked for exactly that status/schedule-only change, without alteri
 goals or Page Delivery; the owner was unavailable. No SDK events or vendor mutations occurred.
 Current fixture readback/ready rerun and reviewed bounded execution remain pending.
 
+**Actual headed continuation — 2026-10-12:** The owner inactivated and delegated dates.
+Reviewed date-only preparation kept the fixture saved/future, then actual required preflight
+passed twelve checks. The exact enclosing deployment/activation/run/independent-stop plan
+passed review after two cleanup gaps were corrected with synthetic regressions.
+Default headed Chromium made one new positive visit: five actual Adobe requests, owned TGT
+offer qualified/visibly rendered, trusted click, one mapped page/custom and native DISPLAY/
+INTERACT with returned identity preserved on captured wire. Default identity/automation is
+unchanged. Site config is disabled and exact served bytes verified at reference `c1438e3`;
+activity remains approved until bounded end 2026-10-12T17:57:33Z as owner permits.
+No SDK resend, second visit, owner Page Delivery/offer/goal edit or broader resource change.
+The same-capture finite Analytics observer is running; initial ordinary matched rows absent
+are unobserved, not zero/loss. Native Target CSV requested but owner unavailable; click goal
+still absent. R-012 preserves actual timestamps, initial observation failure and limitations.
+Final reconciliation and full original baseline/product requirements remain open.
+
 ### Close-out (post-DONE)
 
 - [ ] Keep partial live stock evidence separate from complete baseline/product qualification.

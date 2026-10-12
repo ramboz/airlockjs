@@ -1390,6 +1390,65 @@ A bounded independent correction review passed. Original reviewed runner bytes a
 fingerprints/verdict are retained privately; these remain stub/runner evidence, not Alloy
 execution or downstream receipt. The requested manual fixture action is still pending.
 
+### Actual headed stock comparison and stop — 2026-10-12
+
+The owner inactivated the fixture and explicitly delegated date changes at
+2026-10-12T15:42:52.549Z. A separately reviewed date-only preparation operation kept it saved,
+set a future one-hour interval and verified unchanged owned content. The unmodified real
+preflight then passed **all twelve required checks**; the latest pre-live pass is
+2026-10-12T16:44:58.891Z. The configuration API remains optional/unverified; no further
+investigation, API addition or permission change was made.
+
+Before enabling, the exact operational plan and code passed independent review. Review caught
+and correction tests proved two cleanup gaps: activation readback failure had escaped enclosing
+cleanup, and final verification failure arose after deciding whether to pause. The corrected
+single-execution launcher encloses config-only deployment, activation and browser execution,
+checks current readiness before enable, and independently attempts disable and journal-bound
+pause/inverse on failure. New private request-body/last-dispatch evidence additions also have
+red/green witnesses; **74 final offline runner tests pass**. These remain preparation evidence,
+separate from the subsequent actual case.
+
+Actual reference enable commit **`48f2ec6`** changed only public config enabled/window fields.
+Known activity schedule/state readback verified approved with bounded end
+**2026-10-12T17:57:33Z**. Offers, goals, Page Delivery and product routing were not rewritten.
+After fifteen minutes from verified approval, fresh exact activity/content and served-config
+checks preceded **one** newly correlated positive visit in default headed Chromium.
+
+At approximately **2026-10-12T17:18Z (10:18 AM Pacific)**:
+
+| Actual evidence | Observed result |
+|---|---|
+| Browser identity | Default user agent lacks `HeadlessChrome`; automation remains disclosed. No override or stealth. |
+| Pinned vendor assets | Three actual integration/SDK assets loaded; source/vendor bytes unchanged. |
+| Actual Adobe requests | **Five attempted and dispatched**, below the independent eight-request ceiling; statuses 200/204. No application resend or second visit. |
+| SDK/journey | One init, consent update and approved-scope fetch; one owned hash-qualified TGT offer visibly rendered; one trusted control click. |
+| Actual page/custom mapping | One mapped page and one distinct ordinary custom-link event on the captured wire, matching this run's new private labels. Custom data contains no page mapping. |
+| Native notifications | One DISPLAY bundled with the mapped page, one separate INTERACT; actual wire preserves the returned id/scope/scopeDetails. |
+| Downstream receipt | Not established by these client/wire results; observed independently below. |
+
+Actual last recorded Adobe dispatch is **2026-10-12T17:18:15.894Z**, with browser capture finished
+at 17:18:21.181Z. Exclusive owner-only captures include bounded synthetic request JSON/routing,
+not request/auth headers, owner login state or a broad cookie/HAR inventory.
+The case and cleanup completed without error categories. The independent forward stop commit
+**`c1438e3`** disabled test code and verified the exact decoded served disabled bytes.
+The owner-permitted activity remains API-approved with the explicit bounded end above; do not
+call it currently serving after that end. No activity/goals/offers/Page Delivery replay occurred.
+
+The initial readonly observer exited unverified without producing a window/observation artifact;
+its precise cause is not established. A readonly retry used the **same immutable actual capture**,
+not new SDK traffic, and froze its original padded UTC interval in the exact suite's freshly
+read IANA timezone. Its earliest ordinary page/custom checks still have no matched rows.
+The nominal zero-minute checkpoint was actually taken several minutes after dispatch; actual
+observation times are preserved, not relabelled as on-time samples. The finite observer continues
+the reviewed checkpoints, with no SDK resend, no invented zero and no current loss claim.
+
+A fresh native Target CSV for today's actual interval in **Airlock - Development / Activity
+Impressions**, including the Scoped display goal, was requested after traffic; the owner was
+unavailable through the question tool. Native wire proof is not a Target outcome count.
+The current activity has no click goal, so INTERACT is still not downstream click-goal proof.
+Ordinary Analytics receipts, native Target counts and final reconciliation remain open;
+this executed partial comparison does not complete 051-02, the chamber or the release portfolio.
+
 ## Sources / findings
 
 ### Inspected source: compatibility gaps, not newly executed probes
