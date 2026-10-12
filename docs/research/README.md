@@ -55,6 +55,10 @@ you create a note; update its status/promotion when it resolves.
 | [R-011](R-011-offender-per-vendor-tbt-inp.md) | Per-vendor TBT attribution + INP null result for the reference-site offenders (the flip-the-offenders experiment) | CONCLUDED | [ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md); [R-008](R-008-costly-dom-martech-containment.md); [R-010](R-010-rewire-cwv-upper-bound.md); [mvp8](../releases/mvp8.md) (feeds Floodlight/Google-Ads connector priority); [mvp9](../releases/mvp9.md) |
 | [R-012](R-012-adobe-first-compatibility.md) | Adobe SDK/`aem-martech` compatibility and API-led owned test-environment setup | OPEN | [ADR-0031](../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md); [spec 051](../specs/051-adobe-integration-proving-ground/spec.md) IN_PROGRESS; partial stock smoke and ordinary Analytics receipt verified, cumulative native Target counts observed in owner-confirmed Development with per-run attribution open; site disabled and activity interval ended; full stock/chamber proof open; AJO/CJA/RTCDP deferred for the initial proving ground |
 
+Current acceptance follows [ADR-0032](../decisions/adr-0032-airlock-boundary-acceptance.md):
+actual wire/results/rendering are mandatory; further downstream report attribution is
+nonblocking follow-up, without changing R-012's historical unknowns into passes.
+
 ## Hand-offs
 
 Two documented hand-off directions, both convention-enforced (no linter, no

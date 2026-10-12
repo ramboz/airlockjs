@@ -34,6 +34,13 @@ environment now owner-confirmed as Development; per-run attribution remains unve
 Partial-smoke 051-06 is DONE after final
 compliance/reconciliation; complete stock baseline and chamber acceptance remain open.
 Configuration API diagnosis is stopped by the owner; optional automation is not a live blocker.
+
+**Owner-approved gate update — 2026-10-12:**
+[ADR-0032](../decisions/adr-0032-airlock-boundary-acceptance.md) makes actual
+stock/chamber wire, governed egress and real response/rendering the acceptance boundary.
+051-02 is re-framed for that baseline; further vendor reporting is 056's nonblocking
+follow-up. No manual export schedule or asynchronous counter is a readiness gate.
+Native notifications, controls, full SDK inventory, adoption and performance remain required.
 051-05's local harness is DONE and does not establish SDK or product execution. Specs 052-057 are
 intentionally unsliced DRAFT outlines, so the generated slice table
 does not list them yet; the [release handoff](../releases/adobe-compatibility.md#jig-handoff) links
@@ -169,7 +176,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-01 — the reference-site `?martech=airlock` rewire arm | **DONE** |  |
 | [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-02 — measured Lighthouse/TBT + parity evidence + scripted adoption path | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-01 — read-only access preflight | **DONE** |  |
-| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-02 — reproducible test setup and stock baseline | READY_FOR_REVIEW (adobe-adoption-goal) |  |
+| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-02 — reproducible stock wire baseline | READY_FOR_REVIEW (adobe-adoption-goal) |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 🔬 051-03 — bounded SDK compatibility decision | DRAFT |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-04 — scoped workspace confirmation | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-05 — local stock journey harness | **DONE** |  |

@@ -164,8 +164,12 @@ worker startup and clone cost. Off-thread placement alone is not a performance r
 
 **Co-equal criterion: functional fidelity at the Adobe boundary**
 ([ADR-0031](decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)). The v1.0 gate combines
-the pinned SDK compatibility matrix, validated product outcomes, correct Adobe personalization
+the pinned SDK compatibility matrix, actual governed stock/chamber dispatch and response/rendering,
+correct Adobe personalization
 notifications, an adoptable `aem-martech`/Launch bridge and measured performance.
+The owner-approved [ADR-0032](decisions/adr-0032-airlock-boundary-acceptance.md) makes
+downstream report/attribution validation a nonblocking follow-up. Wire correctness is not
+a claim of vendor ingestion or every product's reporting; existing initial receipts are retained.
 Any exclusion prevents a full Alloy support claim; a narrower gate requires an explicit owner decision.
 The old Intuit/four-vendor production-attribution gate is deferred, not declared satisfied.
 Third-party vendor parity remains a customer migration requirement under

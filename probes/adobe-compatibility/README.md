@@ -1,5 +1,13 @@
 # Adobe initial-preparation preflight — 051-01 / 051-04
 
+**Current acceptance boundary — 2026-10-12:**
+[ADR-0032](../../docs/decisions/adr-0032-airlock-boundary-acceptance.md) requires
+actual final stock/chamber wire, governed dispatch and real response/rendering behavior.
+Periodic vendor exports, goal-counter setup and asynchronous reporting are nonblocking
+[follow-up](../../docs/releases/adobe-reporting-follow-up.md). This does not waive fresh
+resource/routing/consent checks or required live protocol responses. Existing stock smoke
+and initial Analytics/Target reporting evidence remain separately recorded below.
+
 This Node ESM utility checks **initial Analytics/Target preparation only**. It does not deploy,
 execute HTML/SDKs, activate activities, provision, publish, inspect browser state, or verify
 product outcomes. A ready report does not authorize 051-02. See the

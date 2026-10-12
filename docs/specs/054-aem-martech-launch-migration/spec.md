@@ -16,6 +16,10 @@ An EDS (Edge Delivery Services) integrator can move a declared `aem-martech` int
 Airlock while retaining supported Launch rules and unmigrated tags, without duplicate SDK
 initialization or measurement. This is the adopter-facing integration contract, not a second SDK host.
 
+Qualification uses ADR-0032's actual wire/result/host boundary and the assigned stock
+contract. Adobe report processing is follow-up, not an installation/rollback prerequisite.
+Initialization, ACDL semantics and no lost/duplicate dispatch remain required.
+
 ## Intended outcomes
 
 - Preserve the assigned eager/lazy/delayed integration behavior and direct instrumentation calls.

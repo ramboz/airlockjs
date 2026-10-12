@@ -13,6 +13,9 @@ egress happen behind the airlock, in isolated worker "chambers". See
 > ([ADR-0031](docs/decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)): investigate an
 > Airlock-backed `aem-martech` path, then target full pinned Alloy.js support and validated Adobe workflows.
 > This is planned work, not the current Alloy adapter's capability; see [the release slate](docs/releases/README.md).
+> The owner-approved [ADR-0032](docs/decisions/adr-0032-airlock-boundary-acceptance.md)
+> gates actual stock/chamber wire, governed egress and response/rendering behavior.
+> Further downstream Adobe reporting is a nonblocking follow-up; this does not claim vendor processing.
 > The former third-party rewire gate is deferred with its evidence gaps intact.
 > Distribution is **git-subtree of ready-to-serve built artifacts**
 > ([ADR-0015](docs/decisions/adr-0015-distribution-git-subtree.md)); npm is a deferred second channel for the future

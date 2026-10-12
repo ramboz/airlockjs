@@ -59,12 +59,15 @@ report remains intact. Tests and preparation readiness do not clear stock/produc
       fixtures on friendly-name matches or retry the unavailable management API.
 - [ ] Verify stock provenance pins (Alloy 2.31.1, ACDL 3.0.1); use the exact official Alloy artifact
       in both arms, not a claimed byte-identical reference copy. Pin deployment/configuration.
-- [ ] Confirm receipt/report correlation and waiting windows before writing assertions.
+- [ ] Review the revised ADR-0032 frame; freeze final request/response/host assertions,
+      narrow normalization and finite negative-control windows before implementation.
 - [ ] Write failing plan/apply/reuse/ownership-conflict/redaction/refusal tests.
 - [ ] Implement supported setup APIs and precise guided steps where supported APIs are unavailable.
-- [ ] Execute stock Analytics page/custom and Target HTML/display journeys with negative controls.
+- [ ] Execute real stock Analytics page/custom dispatch and Target return/render/native notification
+      journeys with actual negative controls; no required report exports or goal provisioning.
 - [ ] Record redacted resource ownership, evidence and baseline measurements in R-012.
-- [ ] Complete required reviews/reconciliation; leave unobserved product outcomes unfinished.
+- [ ] Complete required reviews/reconciliation; distinguish boundary qualification from optional
+      unobserved product outcomes. All downstream attribution/reporting follows 056.
 
 ## 051-05 — local stock journey harness
 

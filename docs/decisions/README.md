@@ -38,6 +38,7 @@
 - [ADR-0029: MVP9 after-arm is page-side and developer-controlled](adr-0029-mvp9-developer-side-after-arm.md) — MVP9 is the 1.0 gate: rewire an intuit-class site's four TBT-dominant vendor tags (GA4, Meta Pixel, Google Ads, Floodlight) from its tag-manager container onto airlock, prove parity + the CWV win, ship the adoption path ([mvp9.md](../releases/mvp9.md), [ADR-0018](./adr-0018-reframe-onto-adoptable-one-point-oh.md) Emergent E3). (2026-09-15, Accepted)
 - [ADR-0030: Vendor-generic native-tag suppressor (airlock adoption primitive)](adr-0030-native-tag-suppressor.md) — [ADR-0029](./adr-0029-mvp9-developer-side-after-arm.md) decided the MVP9 after-arm is page-side: the adopter's owned EDS repo suppresses the migrated vendors' native (container-fired) tags so airlock's off-thread equivalents can be measured against them. (2026-09-15, Accepted)
 - [ADR-0031: Reframe: Adobe-first compatibility is the v1.0 adoption gate](adr-0031-reframe-onto-adobe-first-compatibility.md) — Adobe-first compatibility replaces the third-party rewire as the next release gate. (2026-10-06, Accepted)
+- [ADR-0032: Airlock boundary acceptance; Adobe reporting as follow-up](adr-0032-airlock-boundary-acceptance.md) — Airlock acceptance belongs at the governed SDK boundary, not Adobe's asynchronous reporting pipeline. (2026-10-12, Accepted)
 
 ## Format
 

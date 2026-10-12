@@ -29,6 +29,16 @@ related:
 > with the approved Development environment owner-confirmed; per-run attribution remains unverified. The full baseline/chamber/product
 > portfolio is not complete. The release is committed in direction.
 
+**Current acceptance authority — owner decision 2026-10-12T21:08:41.261Z:**
+[ADR-0032](../decisions/adr-0032-airlock-boundary-acceptance.md) requires actual
+stock/chamber serialized wire, governed egress and real result/response/rendering behavior.
+Further Adobe ingestion/report counters/attribution are a nonblocking
+[follow-up goal](../releases/adobe-reporting-follow-up.md) under 056.
+All dated reporting uncertainty and measurements below remain true at their stated scope;
+their missing counters/operator availability are no longer implementation/release blockers.
+Actual protocol errors, unsafe/blocked required behavior and malformed dispatch still block.
+This changes no SDK, resource, privilege or release-publication authority.
+
 ## Question
 
 Can the stock Alloy.js SDK support the pinned `aem-martech` integration and Adobe Web SDK-connected
@@ -1545,6 +1555,19 @@ bounded activity interval ended; no SDK resend, API diagnosis, resource mutation
 completion follows from inspecting this file.
 
 ## Sources / findings
+
+**Owner-approved reporting disposition — 2026-10-12:** The owner explicitly confirmed
+the proposed boundary gate and asked to handle further reporting as follow-up when needed.
+The earlier fifteen-export manual plan and suggested ten-export refinement are both retired;
+no mandatory staffing schedule, report-driven three-hour spacing or click-goal provisioning
+is needed for the revised open 051-02 wire baseline. Its five scenario groups, native
+notifications, negative controls, real SDK/response behavior, isolated traffic/cleanup and
+performance scope remain mandatory. 051-03 still requires that baseline and its reviewed,
+eight-active-hour bounded experiment. No chamber parity or full implementation is proved here.
+The accepted ADR and revised frame reviews carry the assurance change; all closed records,
+original captures and actual initial Analytics/Target receipt observations remain untouched.
+Per-run Target attribution, product reports and later AJO/CJA/RTCDP outcomes remain unknown
+until the nonblocking follow-up is exercised; they are not retroactively declared passed.
 
 **Full-baseline pickup after environment confirmation — 2026-10-12:** The 051-02 frame is
 reviewed but its remaining DoR is not automatically cleared by 051-06. The existing manual

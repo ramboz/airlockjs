@@ -43,11 +43,13 @@ Required safe behavior must be pulled into those slices immediately, not postpon
 ## Decomposition
 
 Intentionally unsliced. Prefer Rules/Path splits by real lifecycle transition, testing capture,
-chamber processing, trusted policy and product outcome together.
+chamber processing, trusted policy, actual allowed/forbidden dispatch and caller results together.
 
 ## Boundaries and references
 
 Already-transmitted data cannot be recalled by this runtime; consent compliance is not certified.
+Under ADR-0032, downstream product processing/reporting is nonblocking follow-up; identity,
+retention, consent and error/duplicate/timeout behavior at the Airlock boundary remain mandatory.
 The broader [granular policy candidate](../../releases/granular-chamber-policy.md) remains separate,
 but cannot own away a critical SDK gap.
 Sources: [R-012](../../research/R-012-adobe-first-compatibility.md), existing 017/020/035/045

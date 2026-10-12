@@ -12,8 +12,8 @@ use_cases: [UC-1, UC-2, UC-6, UC-7, UC-10]
 
 ## Overview
 
-A visitor receives the intended Adobe experience without uncontrolled page mutation, and Adobe
-records the offers actually displayed/interacted with. Cover the assigned Target and Adobe
+A visitor receives the intended Adobe experience without uncontrolled page mutation, and actual
+native notification wire reflects the offers rendered/interacted with. Cover the assigned Target and Adobe
 Journey Optimizer (AJO) SDK-facing personalization surface, preserving its routing/identity semantics.
 
 ## Intended outcomes
@@ -25,7 +25,12 @@ Journey Optimizer (AJO) SDK-facing personalization surface, preserving its routi
 - Handle late responses, unmatched placements, rendering failures, repeat views and consent
   transitions without false displays or duplicate measurement.
 - Validate the required visual-editor/preview behavior separately from runtime delivery.
-- Compare assigned flows against stock behavior with real receipt/outcome evidence.
+- Compare assigned flows against actual stock request/response, safe rendering and native
+  notification evidence. Preserve id/scope/scopeDetails and trusted interaction ordering.
+
+[ADR-0032](../../decisions/adr-0032-airlock-boundary-acceptance.md) makes downstream
+campaign/report counters nonblocking follow-up. This does not make DISPLAY/INTERACT optional,
+permit fake render acknowledgment or qualify unsafe DOM behavior.
 
 ## Assumptions
 

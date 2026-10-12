@@ -14,6 +14,7 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 ### Project codenames / active work
 - **Airlock** (pkg `airlockjs`) - capability-secured, off-main-thread martech runtime for edge/static sites (EDS first). Main thread only captures + enqueues; all mapping and egress happen behind the airlock. See [docs/product-vision.md](docs/product-vision.md).
 - **Adobe-first v1.0 gate** (ADR-0031, owner decision 2026-10-06) — investigate an Airlock-backed `aem-martech` adoption path, then target full pinned Alloy.js compatibility and validated Adobe workflows; SDK boot is not product proof. Replaces ADR-0018's MVP9 gate; third-party gaps remain open. See [release slate](docs/releases/README.md).
+- **Airlock-boundary acceptance** (ADR-0032, owner decision 2026-10-12) — require real stock/chamber serialized dispatch, governed controls and response/rendering behavior; further downstream Adobe reporting is a nonblocking [follow-up goal](docs/releases/adobe-reporting-follow-up.md), not an export-schedule blocker.
 
 ### Airlock vocabulary (full defs in [glossary](docs/memory/glossary.md))
 - **airlock** - the mediated main-thread↔worker boundary; nothing crosses without going through the capability bridge.
@@ -82,6 +83,9 @@ owned offer and sent native DISPLAY/INTERACT in five Adobe requests; site code i
 Ordinary Analytics page/custom receipts are each one in the original interval. A native seven-day
 Target export shows two cumulative Scoped displays in the owner-confirmed Development environment;
 per-run attribution remains unverified.
+The owner moved further product reporting/attribution to nonblocking follow-up (ADR-0032).
+Next work is reviewed stock wire/negative-control/performance baseline then the bounded
+chamber comparison; do not request periodic CSVs or relax native notifications/safety.
 Configuration API diagnosis is stopped; its optional denied access is not the current blocker.
 The local harness runs
 four synthetic cases and never claims vendor SDK/product execution.

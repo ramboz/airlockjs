@@ -8,6 +8,9 @@
 > ([ADR-0031](decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)), replacing the former
 > MVP9 gate without altering shipped module interfaces. The current Alloy path is a bounded
 > page-view/HTML-placement adapter, not the planned full SDK compatibility bridge.
+> [ADR-0032](decisions/adr-0032-airlock-boundary-acceptance.md) qualifies actual final
+> dispatch, governed controls and real returned/host behavior; further vendor reporting
+> is a nonblocking follow-up. No module interface or runtime capability changes here.
 >
 > Vocabulary: **the airlock** = the mediated boundary; a **chamber** = a connector's sandbox; a **cycle** / **lock-through** = a batch crossing to the worker; **the seal** = consent/allowlist gating. Repo/package slug: `airlockjs`; connector namespace `airlock/*`.
 

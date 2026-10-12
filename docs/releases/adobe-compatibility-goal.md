@@ -30,6 +30,13 @@ Run `/goal` with the following task text, or ask it to execute the Task text in
 
 ## Task text
 
+**Current authority:** The owner-approved
+[ADR-0032](../decisions/adr-0032-airlock-boundary-acceptance.md) changes the reporting gate.
+Final serialized stock/chamber requests, governed dispatch, real caller results and safe
+rendering/native notifications are mandatory; downstream report counters are nonblocking
+follow-up in 056. No periodic CSV handoffs are assumed. Existing budget/fixture/live-operation
+authority must still be checked for each run; this text does not renew it.
+
 ```text
 Deliver the current Alloy/Adobe Target/Adobe Analytics adoption story in airlockjs
 through the Jig workflow, from the existing DRAFT portfolio to reviewed code and
@@ -39,8 +46,8 @@ SCOPE AND SUCCESS
 
 - Start with spec 051, then refine and implement 052-055 in evidence-led dependency
   order. Include Target work in 053, remaining Analytics/Target scenario gaps in
-  056, and the applicable installation/migration/performance/update/rollback work
-  in 057.
+  052/053/055. Retain 056 downstream reporting as nonblocking follow-up; include
+  applicable installation/migration/performance/update/rollback work in 057.
 - AJO, CJA and RTCDP provisioning, publication and product-workflow validation are
   deferred for this run. Preserve their requirements and ownership. Do not discard
   shared SDK semantics required by Analytics/Target merely because later products
@@ -49,17 +56,20 @@ SCOPE AND SUCCESS
   deferred scope and actual dependencies, and let Jig derive spec rollups. A rollup
   that excludes deferred slices is not proof of complete Adobe compatibility or
   readiness for v1.0.
-- Success requires reproducible stock and chamber journeys: distinct synthetic
-  Analytics page/custom events with downstream receipt, and Target decision
+- Success requires reproducible stock and actual chamber journeys: distinct synthetic
+  Analytics page/custom final request dispatch, and Target decision
   qualification, safe actual rendering, Adobe-native display/interaction
-  notifications and observable product outcomes for the assigned scenarios.
+  notifications on actual wire and real request/response/host outcomes for assigned scenarios.
   Extend event/proposition coverage according to the pinned inventory and refined
   ACs; do not reduce the implementation to the current page-view/HTML subset.
 - Deliver a usable EDS/aem-martech adoption path, the assigned ACDL/Launch contract,
   consent/identity/lifecycle behavior, and equivalent performance/rollback evidence.
   Preserve working existing behavior and all approved safety boundaries.
 - SDK boot, HTTP 200, a sent beacon, a fixture pass or a GA4 exposure is not an
-  Adobe product receipt. If a mandatory behavior is infeasible or blocked, report
+  Adobe product receipt or sufficient boundary conformance. Further downstream reporting
+  is nonblocking follow-up under ADR-0032, not a mandatory export/goal-provisioning gate.
+  A malformed request, invalid live response or contradictory evidence showing a request
+  defect still blocks its scenario. If a mandatory behavior is infeasible or blocked, report
   it honestly and stop for the required decision; never manufacture completion.
 
 BUDGET AND DELEGATED AUTHORITY
@@ -191,9 +201,10 @@ EXECUTION THROUGH JIG
   scoped owner-provided configuration evidence, and unavailable automation.
   Review the input/evidence contract explicitly; do not turn unverified required
   checks green or probe undocumented APIs to evade a manual step.
-- Complete 051-02's repeatable plan/apply/reuse/refusal behavior and stock live
-  positive/negative baseline. Choose correlation, diagnostic/reporting surfaces
-  and finite observation windows before sending data. Stock and chamber arms
+- Complete the ADR-0032-revised 051-02 plan/apply/reuse/refusal and real stock
+  positive/negative wire/response/rendering baseline. Freeze serialized request/result
+  predicates, narrowly justified normalization, dispatch observations and finite negative
+  windows before sending data. Downstream reporting is optional follow-up. Stock and chamber arms
   run separately with equivalent synthetic inputs, never uncontrolled dual-send.
 - Execute 051-03 only after the baseline/readiness gates. Resolve the approach
   from representative callback/page-state/DOM/identity/lifetime probes, measured
@@ -230,14 +241,14 @@ INTEGRATION AND FINISH
   Record conditions, repetitions, noise, main-thread work, worker startup/clone,
   network wait and rendering cost. Do not call lab measurements field Core Web
   Vitals or infer a gain merely from off-thread mapping.
-- Finish the authorized scope with actual reviewed behavior, vendor-native
-  outcomes, regression/negative tests and a reproducible operator/adopter path.
+- Finish authorized scope with actual reviewed wire/results/rendering behavior, native
+  notifications, regression/negative tests and a reproducible operator/adopter path.
   Leave test activities inactive and stop temporary test helpers.
 - Provide a concise final report: completed slice/evidence/commit links, how to
   reproduce the initial story, measured limits, what remains deferred or blocked,
-  and the unchanged release gate. Do not claim full portfolio completion,
+  and the owner-approved ADR-0032 release assurance boundary. Do not claim full portfolio completion,
   universal Alloy support, v1.0 qualification or publication from this narrower run.
-- Stop for budget exhaustion, missing required access/outcome evidence, infeasible
+- Stop for budget exhaustion, missing required protocol/response/host evidence, infeasible
   behavior or a required authority/core/gate change. Preserve findings and exact
   next actions; do not silently waive the blocker or declare the goal successful.
 ```

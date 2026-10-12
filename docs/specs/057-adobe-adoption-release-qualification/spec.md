@@ -27,6 +27,11 @@ with a versioned compatibility/evidence report that supports an honest v1.0 deci
 - Assemble every public SDK row and declared product scenario's owner/evidence status; missing
   coverage or product access must remain visible and cannot appear as a passing full-support label.
 
+[ADR-0032](../../decisions/adr-0032-airlock-boundary-acceptance.md) qualifies SDK-facing
+scenario wire/results/rendering rather than requiring report exports. Downstream outcomes
+owned by 056 are a visible nonblocking follow-up, not a release dependency. Missing access
+needed for an assigned live protocol/response scenario still blocks that scenario.
+
 ## Assumptions
 
 The chamber route's performance advantage over phased stock behavior is unmeasured.
@@ -36,7 +41,8 @@ Browser support, residual delivery bounds and the full compatibility contract aw
 
 [051](../051-adobe-integration-proving-ground/spec.md)'s approved budgets/matrix, migration from
 [054](../054-aem-martech-launch-migration/spec.md), and relevant collection, personalization,
-lifecycle and product evidence from specs 052/053/055/056. Feature slices must prove their own
+lifecycle evidence from specs 052/053/055; optional downstream evidence remains in 056.
+Feature slices must prove their own
 behavior before this final aggregation; global performance is evaluated throughout implementation.
 
 ## Decomposition

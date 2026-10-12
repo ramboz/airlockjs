@@ -11,8 +11,14 @@ restored inactive in the initial check. The later partial stock smoke deployed a
 ordinary Analytics receipt, disabled stop and approved-but-ended activity disposition.
 The owner confirmed the native seven-day export's Development environment; per-run counting remains open.
 Datastream routing is accepted owner UI/saved-pin evidence, not configuration API success.
-Full stock/chamber acceptance and run-bound native Target outcomes remain open.
+Full stock/chamber boundary acceptance remains open; run-bound native Target outcomes are
+nonblocking follow-up under ADR-0032.
 AJO/CJA/RTCDP are deferred for this run without changing release obligations.
+
+**Owner-approved assurance reframe, 2026-10-12:** ADR-0032 replaces mandatory downstream
+product/reporting outcomes with actual stock/chamber wire, response and host-behavior
+acceptance. Optional reports retain their honest scope in 056. No export staffing,
+reporting-driven stage spacing or click-goal setup blocks wire-baseline work.
 
 The original grant targeted **fewer than 10,000 credits overall**; delayed accounting exceeded
 that target and execution stopped before the owner authorized continuation beyond it.
@@ -76,7 +82,7 @@ pending, and the separate 051-02 setup/observation gates remain uncleared.
 | Slice | Start with | Stop before |
 |---|---|---|
 | 051-01 | Review its closed v1 input/evidence/report/operation contract; then failing CLI transport tests | Live calls before parent-approved credentials/scope; mutations except documented token issuance (report POST is nonmutating) |
-| 051-02 | Fresh real preparation preflight, independently reviewed resource/mutation plan, stock pins and receipt methods | Unverified isolation/write authority, unsupported API assumptions, production publication |
+| 051-02 | Fresh preparation preflight, reviewed resource/traffic plan, pins and actual wire/response oracle | Unverified isolation, dispatch/return behavior, unsupported API assumptions, publication |
 | 051-03 | Stock baseline, reviewed experiment set and the owner-approved eight-hour spike budget | Broad public SDK implementation, control weakening, automatic release-scope revision or either budget ceiling |
 
 The offline public-surface inventory can be prepared while arranging access, but its live

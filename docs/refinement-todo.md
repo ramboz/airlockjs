@@ -16,6 +16,12 @@
 
 ## Architecture — design open questions (OQ1–OQ8)
 
+**Adobe assurance update — 2026-10-12:** [ADR-0032](decisions/adr-0032-airlock-boundary-acceptance.md)
+requires actual governed SDK wire, response/results and safe rendering. Further downstream
+Adobe reporting/attribution is a nonblocking [follow-up goal](releases/adobe-reporting-follow-up.md)
+owned by 056; trigger it for a concrete adopter need or suspected request discrepancy.
+This changes no third-party residual, privacy/confinement rule or frozen-core decision below.
+
 > Promoted 2026-08-25 from `architecture.md` § Open questions (finding #1 of the `/jig:analyze` pass). **MVP1 blockers** must be resolved — via `/jig:arch-review` then `/jig:adr-workflow new` — before SPIDR-splitting the risk-retirement spike. Leanings are recorded so reviewers have a position to attack.
 
 ### ~~OQ1 — Chamber isolation strength for MVP1 — ⛔ MVP1 blocker~~ — RESOLVED 2026-08-25

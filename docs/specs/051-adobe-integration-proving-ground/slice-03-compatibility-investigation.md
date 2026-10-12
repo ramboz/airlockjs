@@ -1,6 +1,6 @@
 ---
 status: DRAFT
-dependencies: [051-02, adr-0031]
+dependencies: [051-02, adr-0031, adr-0032]
 last_verified:
 kind: spike
 frame_review: true
@@ -16,13 +16,17 @@ pinned surface inventory and representative stock-versus-chamber evidence rather
 DOM/page-state behavior, be preserved through the chamber boundary without widening authority?
 
 **Time-box:** Owner-approved on 2026-10-08: **8 active engineering hours**, excluding external
-access/report waiting. The whole run must also remain **strictly below 10,000 credits**, including
-refinement/reviews/execution as tracked by the parent. Stop before either ceiling with explicit
-unknowns; any extension needs a new approval, not an unbounded probe loop. This grant does not
+access waiting. The original whole-run 10,000-credit target was exceeded and the owner
+authorized continuation afterward; actual cumulative usage stays tracked. Stop before the
+active-hour cap with explicit unknowns; an extension needs approval, not an unbounded loop. This grant does not
 clear baseline, contract, experiment-review or performance-evidence readiness gates.
 
 **Findings:** No new compatibility experiments executed. Starting source/documentation evidence
 and current subset gaps are in [R-012](../../research/R-012-adobe-first-compatibility.md).
+
+**Acceptance update:** ADR-0032 makes final governed wire equivalence and actual
+response/rendering the gate. Further product reporting is a follow-up, not a prerequisite
+for this spike. SDK boot, pre-send XDM and stock-only proof remain insufficient.
 
 **Outcome:** Not determined at DRAFT. At completion record `ADR-NNNN created` if a new approach
 decision is needed, `spec NNN-NN unblocked` only for an actually refined dependent slice, or
@@ -40,7 +44,8 @@ pins/readiness are verified. Use 051-02's official Alloy 2.31.1 artifact consist
 arms, with the reference's trailing-LF difference disclosed. Offline comparison is not SDK proof.
 Numeric performance acceptance bands still come from the measured stock evidence and owner
 review; the execution grant supplies no invented threshold. AJO/CJA/RTCDP are deferred in this
-run's experiments while their release inventory rows remain owned and visibly unverified.
+run's experiments while their SDK-facing inventory rows remain owned and visibly unverified.
+Downstream product/reporting assurance is explicitly nonblocking follow-up in 056.
 
 **Acceptance Criteria:**
 
@@ -53,9 +58,10 @@ run's experiments while their release inventory rows remain owned and visibly un
    proposition behavior, and an identity/consent/lifetime edge. Compare stock and chamber behavior
    or record a concrete incompatibility; proxy boot success is insufficient.
 3. **One complete journey attempt.** Against 051-02's stock baseline, attempt synthetic Analytics
-   page/custom receipt plus Target offer/rendering and Adobe-native display receipt through a
+   page/custom final dispatch plus Target offer/response/rendering and Adobe-native display/interaction wire through a
    bounded chamber/probe path. Classify each step as established, divergent, incompatible or blocked
-   with evidence. A successful journey requires every required step's outcome; missing Adobe
+   with evidence. Compare actual payload/result/identity/ordering and allowed dynamic fields,
+   not intention or blanket-stripped values. A successful journey requires every required boundary step; missing Adobe
    notifications cannot be replaced by a GA4 exposure.
 4. **No hidden production implementation.** Any exploratory adapter glue stays under the approved
    probe scope; it is not a frozen/public SDK bridge. Main-thread unrestricted SDK fallback,

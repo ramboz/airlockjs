@@ -25,8 +25,12 @@ personalization renderer, broad policy engine or customer migration procedure.
 - Implement the assigned public SDK inventory with command validation, result/error ordering,
   clone-safe callbacks/events and observable failure behavior.
 - Keep tenant/endpoint/input safeguards on every route and declare any necessary additions.
-- Demonstrate assigned command semantics against the stock baseline, with Analytics receipt for
+- Demonstrate assigned command semantics against actual stock final-wire and response evidence for
   relevant collection journeys; no success-shaped stub or silent unsupported-command fallback.
+
+[ADR-0032](../../decisions/adr-0032-airlock-boundary-acceptance.md) requires dispatched
+serialized XDM/data/routing and caller results/errors, not merely SDK input. Vendor report
+receipts are optional follow-up in 056; request rejection or unsafe egress still blocks.
 
 ## Assumptions
 

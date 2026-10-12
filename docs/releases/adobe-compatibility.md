@@ -11,6 +11,10 @@
 
 **Owner-selected direction, 2026-10-06; targets v1.0.0**
 ([ADR-0031](../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)).
+**Acceptance boundary updated by the owner on 2026-10-12**
+([ADR-0032](../decisions/adr-0032-airlock-boundary-acceptance.md)): stock/chamber
+actual wire, governed egress and real response/rendering are mandatory. Further Adobe
+downstream reporting is a nonblocking follow-up, not a release prerequisite.
 Investigation comes first; this status commits the release direction, not undiscovered APIs, unreviewed
 implementation slices, external permissions, or a release date. No version/tag is cut here.
 The former [MVP9](mvp9.md) gate is replaced; its unclosed evidence remains deferred and visible.
@@ -59,8 +63,8 @@ request; do not pretend the live checkpoint passed.
 - Inventory the pinned stock SDK's documented commands, options, return values, events, callbacks,
   storage/identity effects and DOM dependencies. Classify each as worker-native, mediated bridge,
   controlled host-side rendering/capture, or incompatible/unverified.
-- First vertical journey: synthetic page/custom event -> Adobe Analytics receipt; Target HTML
-  decision -> sanitized pre-reserved rendering -> **Adobe-native display notification and receipt**.
+- First vertical journey: synthetic page/custom -> correct actual SDK dispatch and returned
+  result/error; Target HTML decision -> safe reserved rendering -> **native display/interaction wire**.
   Drive stock `aem-martech` and Airlock separately with equivalent inputs, not dual production sends.
 
 ### 2. Full Alloy compatibility build
@@ -79,19 +83,22 @@ request; do not pretend the live checkpoint passed.
   worker timeout/crash, offline/navigation/unload and live-host CSP/Trusted Types gaps as they arise.
   Future policy work does not excuse a broken or unsafe Adobe workflow.
 
-### 3. Adobe product-stack validation
+### 3. SDK-facing scenarios and downstream follow-up
 
 | Product | Required evidence, not inferred from SDK boot |
 |---|---|
-| Adobe Analytics | Page/custom/commerce event mappings, report-suite routing, identity/session continuity and report receipt. |
-| Adobe Target | Scope/view qualification, requested offer types, rendering, display/interaction notifications and experiment reporting. |
-| Adobe Journey Optimizer (AJO) | Licensed inbound web/code-based scenarios, relevant authoring/delivery behavior, qualification and display/interaction reporting. |
-| Customer Journey Analytics (CJA) | Event/identity ingestion plus connection/data-view/report semantics for the declared scenario. |
-| Real-Time Customer Data Platform (RTCDP) | Profile/identity/consent and audience/activation behavior for the declared scenario. |
+| Adobe Analytics | Required final page/custom/commerce payloads, suite/datastream routing and identity continuity. Downstream ingestion/reporting is follow-up. |
+| Adobe Target | Required scope/view responses, offer/render behavior and native display/interaction wire. Experiment counters/attribution are follow-up. |
+| Adobe Journey Optimizer (AJO) | Assigned SDK commands/payloads/results and safe personalization remain inventory work; required live response access must be explicit. Campaign reporting is follow-up. |
+| Customer Journey Analytics (CJA) | Shared SDK-facing event/identity semantics remain required; ingestion, connections/data views/reports are follow-up. |
+| Real-Time Customer Data Platform (RTCDP) | Shared SDK identity/consent/request semantics remain required; downstream profiles/audiences/activation are follow-up. |
 
 The stack means **Web SDK-connected workflows**, not every product feature, outbound messaging
 channel, classic at.js/AppMeasurement implementation, or server-side Adobe service.
-No product is marked validated without its entitlement and outcome evidence.
+No product is marked *downstream validated* without its entitlement and outcome evidence.
+Missing required live request/response access still blocks that assigned SDK-facing scenario;
+missing optional report visibility does not block unrelated implementation.
+The [reporting follow-up](adobe-reporting-follow-up.md) retains that work and its triggers.
 
 ### 4. Repeatable adoption and performance proof
 
@@ -133,7 +140,7 @@ R-012 remains the investigation record. The portfolio was drafted through Jig on
 | [053 — Adobe personalization and reporting](../specs/053-adobe-personalization-reporting/spec.md) | Offers/rendering/scopes/views and Adobe-native display/interaction evidence | Unsliced DRAFT; refine from inventory and relevant command contracts |
 | [054 — aem-martech and Launch migration](../specs/054-aem-martech-launch-migration/spec.md) | Adopter instrumentation, ACDL/Launch compatibility, no duplicate initialization | Unsliced DRAFT; depends on the behaviors being migrated |
 | [055 — Adobe consent, identity and delivery lifecycle](../specs/055-adobe-consent-identity-delivery/spec.md) | Revocation, identity continuity, retained/queued work and page/worker/network edges | Unsliced DRAFT; critical safe behavior is pulled into feature slices immediately |
-| [056 — Adobe product-workflow validation](../specs/056-adobe-product-workflow-validation/spec.md) | Product-specific AJO/CJA/RTCDP outcomes and remaining Analytics/Target evidence | Unsliced DRAFT; requires scenario-specific entitlement and working feature paths |
+| [056 — Adobe product-workflow validation](../specs/056-adobe-product-workflow-validation/spec.md) | Nonblocking downstream product/reporting follow-up | Unsliced DRAFT; owner deferred priority under ADR-0032, trigger a concrete adopter need |
 | [057 — Adobe adoption, performance and release qualification](../specs/057-adobe-adoption-release-qualification/spec.md) | Install/migrate/measure/update/rollback and complete evidence aggregation | Unsliced DRAFT; numeric bands and feature evidence precede readiness |
 
 Only 051 is refined into executable slice contracts. None is READY_FOR_IMPLEMENTATION, and no
@@ -141,7 +148,8 @@ authenticated/provisioning action is authorized by drafting. On 2026-10-08 the o
 proceeding after independent reviews under strictly fewer than 10,000 credits overall, with a separate
 8-active-hour 051-03 budget. This does not clear input/evidence, setup/mutation or baseline gates,
 approve numeric performance bands, or authorize release/publication beyond scoped test plans.
-AJO/CJA/RTCDP are deferred for this run, not removed from the release-check obligations below.
+AJO/CJA/RTCDP provisioning remains deferred for this run; shared SDK semantics remain required.
+ADR-0032 additionally makes downstream outcomes for all products a nonblocking follow-up.
 051-01 implements API, scoped owner-evidence and unavailable-automation report bases. Its real
 historical exit-1 report has one workspace unknown. The owner supplied exact profile confirmation;
 new 051-04's schema-v2 report now verifies all 12 required checks with explicit owner evidence.
@@ -154,7 +162,8 @@ Existing specs 012-014, 020, 033-036 are reusable foundations, not the complete 
 
 [The portable `/goal` brief](adobe-compatibility-goal.md) carries the implementation/review
 workflow and private-input handles. Its current run scope prioritizes Alloy/Target/Analytics;
-AJO/CJA/RTCDP product-workflow work is deferred, not removed from this release gate. Running the
+AJO/CJA/RTCDP shared SDK behavior remains inventoried; downstream product-workflow reporting is
+a nonblocking follow-up under ADR-0032. Running the
 brief is a proposed owner execution grant; committing it does not approve a budget or start a run.
 Credentials, live selectors and raw evidence remain outside Git.
 
@@ -163,10 +172,14 @@ Credentials, live selectors and raw evidence remain outside Git.
 - A version-pinned public SDK inventory has no unclassified items; supported behavior is proven
   against stock behavior, including errors, callbacks/events and lifecycle. Any exclusion forbids a
   **full Alloy support** label and requires an explicit owner-approved revision of this gate.
-- The declared Adobe product scenario matrix passes with real outcome/receipt evidence. Missing
-  product access is a blocker, not an exemption silently recorded as green.
-- The first Adobe journey includes correct vendor-native display/interaction reporting; a GA4
-  exposure event cannot stand in for Target/AJO reporting.
+- Assigned SDK-facing scenarios pass with actual stock/chamber serialized dispatch, correct
+  routing/identity/consent and real returned result/render behavior. Missing required live
+  protocol access blocks that scenario; a fixture/HTTP 200 alone is insufficient.
+- Correct Adobe-native DISPLAY/INTERACT wire corresponds to safe rendering and trusted clicks;
+  a GA4 exposure cannot replace those notifications. Invalid vendor responses block.
+- Downstream ingestion, per-run attribution and report counters are nonblocking follow-up.
+  Preserve existing proof and contradictory diagnostics; do not claim product processing from
+  wire conformance. No mandatory export schedule or goal creation solely for counters.
 - `aem-martech`/Launch integration and the scripted install/update/rollback path work without
   duplicate initialization or measurement.
 - Performance meets the numeric bands established and approved at the investigation checkpoint
@@ -176,5 +189,5 @@ Credentials, live selectors and raw evidence remain outside Git.
 - Only after these checks (or an explicitly approved revised bar) may **v1.0.0** be cut.
 
 _Release checks remain desired future evidence. R-012 records limited prior admin/setup observations,
-not deployed SDK/product compatibility. This shaping/refinement pass makes no authenticated calls
+and actual partial stock proof, not full SDK/chamber compatibility. This assurance reframe makes no authenticated calls
 and executes no new compatibility workflow._

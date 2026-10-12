@@ -13,6 +13,9 @@ they stop informing a current release decision.
 > Investigate first, then target full pinned Alloy.js compatibility and validated Adobe Web SDK-connected
 > workflows through an Airlock-backed `aem-martech` adoption path. This replaces MVP9 as the v1.0 gate;
 > its third-party gaps and unclosed evidence remain open. ADR-0017's stable core remains frozen.
+> [ADR-0032](../decisions/adr-0032-airlock-boundary-acceptance.md) makes actual wire/response/
+> rendering conformance the acceptance gate; [downstream Adobe reporting](adobe-reporting-follow-up.md)
+> is an owner-approved nonblocking follow-up, not a staffed-export prerequisite.
 > Shaper is unavailable in the current authoring session; these plans retain the repository's existing
 > release-plan format, with no external Shaper state or release-signal artifact claimed.
 
@@ -54,6 +57,7 @@ Recently shipped release plans stay here only while they inform current decision
 
 | Release plan | Why it remains visible | Handoff notes |
 |---|---|---|
+| [Adobe downstream reporting and attribution](adobe-reporting-follow-up.md) | Initial reporting path is demonstrated; finer counters/attribution/product workflows are follow-up when needed | Spec 056, owner decision 2026-10-12/ADR-0032; not a release dependency or proof of those outcomes |
 | [MVP9 — Real-Site Rewire & Adoption Path](mvp9.md) | Spec 050's demonstrated suppression/emission and indicative bound survive; booted TBT, console receipt, tail goldens, consent-transition and live attribution remain open | Candidate/parked in priority; optional v0.9.0 cut requires a separate owner action. Follow-up evidence routes to vendor assurance |
 
 ## Dropped

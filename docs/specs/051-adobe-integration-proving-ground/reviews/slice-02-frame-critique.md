@@ -1,16 +1,16 @@
 ---
-slice: 051-02 — reproducible test setup and stock baseline
+slice: 051-02 — reproducible stock wire baseline
 pass: frame-critique
 verdict: pass
 reviewer: jig:reviewer
-reviewed_at: 2026-10-09T21:30:29Z
-prompt_source: review.py frame-critique 051-02; owner-directed isolated-site simplification
+reviewed_at: 2026-10-12T21:23:13Z
+prompt_source: review.py frame-critique ADR-0032 owner-approved stock wire/response/host acceptance reframe
 ---
 
 VERDICT: pass
 
 REASONING:
-The revised frame survives review against the original eight ACs and the owner's narrow dedicated-site relaxation. This is not DoR clearance or baseline acceptance. Environment/experience/stage observation semantics remain explicitly unverified before traffic rather than inferred from HTTP200 or empty exports. Conditional root seam, same-scope inactive no-offer stimulus and separately approved stages remove prior contradictions without weakening consent/outcome evidence. Whole-activity writes must preserve the owner's Page Delivery change; editor discrepancies, deployed-byte verification, operator observation availability and original source expiry remain execution gates.
+The highest-risk assumption is that normalized wire/result/host comparisons can distinguish genuine stock/chamber equivalence from identity discontinuity, mismatched proposition references or delayed dispatch. The revised frame survives that attack: it requires path-specific continuity checks without stripping routing/notification semantics, marks late or unmeasurable effects unverified, and requires the inventory and finite observation windows to be frozen before readiness. Accepted ADR-0032 explicitly authorizes this boundary and provides kill criteria for nondiscriminating comparisons; R-012 grounds actual stock response/render/notification behavior, not chamber parity. This passes only the revised frame, not DoR, schemas/oracle readiness, implementation, a live plan or the overall goal.
 
 RECONCILIATION NOTES:
-Record the owner-authorized retirement of extra URL/query/SDK-marker eligibility for this dedicated run only. All Visitors/split may remain. Preserve manual-renderer/helper limitations, inactive same-scope no-offer control and per-stage timing correction. No stock implementation or live-outcome proof; DoR/DoD remain open.
+The owner-approved reporting deferral and retired polling plan are explicitly recorded without relabelling historical receipts. No additional frame-level deviations identified.

@@ -14,11 +14,18 @@ use_cases: [UC-1, UC-2, UC-6, UC-7, UC-8, UC-10, UC-11]
 > setup are recorded in R-012; the versioned preflight is now implemented and hermetically
 > validated in 051-01. Historical readiness refusals and later owner-confirmed passes are
 > separate. 051-06 deployed real stock smoke; headed ordinary Analytics page/custom receipt is
-> verified, while Target report context, full baseline and chamber proof remain open.
+> verified, while full wire baseline and chamber proof remain open. ADR-0032 makes
+> further downstream reporting nonblocking follow-up, without claiming product processing.
 > Independent implementation/reconciliation reviews passed; 051-01 utility is DONE.
 > This does not clear the real stock baseline gate.
 
 ## Overview
+
+**Current acceptance authority:** [ADR-0032](../../decisions/adr-0032-airlock-boundary-acceptance.md)
+implements the owner's 2026-10-12 decision. Actual serialized dispatch, governed
+stock/chamber equivalence and real result/rendering behavior are required; downstream
+report counters and attribution are optional follow-up. No staffed CSV schedule is a
+baseline prerequisite. Closed evidence and all SDK/control/performance gates are retained.
 
 Give the integrator an actionable permission report, a reproducible stock Adobe baseline and
 an evidence-led compatibility decision before attempting the broad SDK bridge.
@@ -45,7 +52,7 @@ The immediate proving ground is Alloy/Analytics/Target. AJO/CJA/RTCDP are owner-
 run, not removed from ADR-0031 or later release obligations. Platform ingestion remains disabled;
 a new AEP development sandbox is not an initial Analytics/Target prerequisite.
 
-### Execution grant and remaining gates — 2026-10-08
+### Historical initial grant — 2026-10-08
 
 The owner permits proceeding after independent contract/readiness reviews, under an overall
 ceiling **strictly below 10,000 credits**, tracked by the parent across refinement, reviews and
@@ -56,6 +63,10 @@ The parent owns private-state normalization/writes and scoped live checks. Initi
 made no live calls or code changes; implementation and the real unverified preflight followed their
 applicable readiness gates. A spending/time grant does not verify input evidence, approve a mutation
 plan or satisfy DoR.
+
+The later owner-approved continuation beyond the original credit stop is recorded in R-012.
+ADR-0032 now changes only the downstream-reporting assurance boundary; the separate
+eight-active-hour spike, mutation isolation and no-publication rules remain.
 
 ## Scope and operator-facing deliverables
 
@@ -88,8 +99,10 @@ live/write authority.
   no copied secret config. Owner routing evidence is versioned, fresh and exactly bound, never
   `ownerConfirmed=true`. Required unavailable automation remains unverified; token issuance and
   the explicitly documented bounded Analytics query are the only preflight POST exceptions.
-- An HTTP success, network request or local stub is not product receipt. Record the observation
-  method, bounded waiting window and correlation strategy; missing outcome visibility is a blocker.
+- An SDK call, local stub or HTTP success alone is not boundary conformance or product receipt.
+  Require actual payload/routing dispatch, response/result and host-behavior assertions under
+  ADR-0032. Missing required wire/return evidence blocks; missing optional vendor report
+  visibility does not. A report contradiction exposing a request defect is investigated.
 - Run stock and chamber arms separately with equivalent synthetic inputs; no duplicate production
   conversions or irreversible SDK/data migration.
 - Existing tenant/endpoint/consent/cookie/DOM safeguards remain active. A probe requiring broader
@@ -106,7 +119,7 @@ live/write authority.
   ACDL **3.0.1**, not the historic Airlock 2.35.0 pin. The parent's executed offline comparison
   on 2026-10-08 found the reference Alloy file differs from the versioned official artifact by
   one trailing LF only; use the same exact official artifact in both future arms
-  ([full byte provenance](slice-02-test-baseline.md#stock-input-provenance--offline-only)).
+  ([retained pin/provenance contract](slice-02-test-baseline.md#scope-pins-and-configuration)).
 - [Stable core](../../decisions/adr-0017-airlock-1-0-api-contract.md): no public contract break here.
 
 ## Assumptions
@@ -114,11 +127,10 @@ live/write authority.
 - Fresh, scope-bound owner evidence and supported API readbacks can establish the initial
   preparation contract. Historical routing/permission snapshots may be stale; normalization
   alone is not reverification or proof of exclusive application-wide grants.
-- The full baseline's Analytics/Target outcomes can be correlated within the selected test
-  windows and counting context. Ordinary exact headed Analytics page/custom receipt is now
-  exercised; native cumulative Target counts have owner-confirmed Development context, while
-  per-stage attribution, click outcome and precise processing
-  latency remain unverified. Datastream administration remains unavailable to this tool surface.
+- Version-pinned wire/response/host comparisons can discriminate the assigned semantics without
+  mandatory report counters. Normalization, identity continuity and finite negative windows
+  need executable validation. Existing downstream receipt is retained; per-run attribution
+  and precise processing latency remain unverified follow-up, not baseline gates.
 - Representative callbacks and DOM-dependent SDK behavior can be mediated safely. The spike tests
   this assumption; boot/page-view success does not ground the broader claim.
 
@@ -148,12 +160,13 @@ closed 051-01. The stock baseline depends on its reviewed evidence path and a fr
 - [051-06 — deployed stock smoke journey](slice-06-deployed-stock-smoke.md)
 
 051-05 supplies an independently usable local dry-run while live setup/routing gates remain
-separate. Its completion cannot satisfy 051-02's stock receipts, deployment or negative outcomes.
+separate. Its completion cannot satisfy 051-02's actual wire/response, deployment or negative controls.
 
 ## Completion and handoff
 
 Completion means the proving-ground tools and evidence are reviewed, not full Adobe support.
-Live setup/receipt blockers leave the relevant baseline work unfinished.
+Live setup, wire, return-path or host-behavior blockers leave the relevant baseline unfinished.
+Downstream reporting follows 056's nonblocking goal under ADR-0032.
 The spike may conclude with a demonstrated incompatibility and a reshape recommendation;
 that does not authorize a narrower release gate or automatically unblock a build.
 
