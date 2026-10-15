@@ -1,0 +1,100 @@
+---
+status: DRAFT
+dependencies: [adr-0017, adr-0033, 058-01, 058-02, 058-03]
+last_verified:
+kind: feature
+frame_review: true
+arch_review: true
+---
+
+## Slice 059-01 - Owned direct conversion cutover
+
+**Goal:** An adopter replaces one owned direct website-conversion path with actual
+chamber execution and receives an honest complete-sequence result, without native
+Ads fallback or an overstated product claim.
+
+**DoR:**
+- [ ] ADR-0033 is Accepted after real frame review; this frame and bounded
+      transport/response design pass required review without changing ADR-0017.
+- [ ] 058-01 qualifies the exact recorder/guard surface; 058-02 supplies a
+      positive pinned complete native conversion reference; 058-03 detects
+      missing branches, input-value mutations and empty/partial references.
+- [ ] B2/B3 are resolved for this case: native secondary outcome, body/redirect
+      evidence, branch closure, runtime/module bytes and effective settings.
+      The existing partial smoke is not sufficient.
+- [ ] Parent supplies `OWNED-RESOURCES` destination/label/Secondary metadata,
+      the explicitly scheduled isolated owned surface, initial state, consent
+      transcript, qualified native artifact and finite actual-dispatch grant.
+- [ ] C2 conditions and C3 numerical budgets are evidence-pinned before
+      implementation; parent source investigation establishes integration
+      feasibility. A further implementation grant exists.
+
+**Acceptance Criteria:**
+
+1. **Adopter path.** An operator supplies private handles and one owned page-load
+   or click-triggered direct conversion. The replacement initializes without any
+   native Ads executable, preserves the site's intended action, and makes no
+   account, billing, campaign or unrelated tag change.
+2. **Actual worker.** Evidence traces initialization and the conversion through
+   serialized airlock messages to the real isolated chamber and governed host
+   dispatch. A main-thread mapper, generated payload or simulated worker cannot
+   satisfy this criterion; denied grants and chamber failure are visible.
+3. **Value and route.** The labeled conversion preserves destination/label,
+   exact controlled value/currency and transaction-ID relationships, including
+   native omission/empty/zero distinctions in this case's reference. No hardcoded
+   transaction, invented default or equal-sentinel normalization can pass.
+4. **Whole chain.** C1 accounts for initial page/config requests, the primary
+   conversion, returned fetch/fallback references and every actually applicable
+   response/redirect/cookie/auxiliary branch. Private marker-loss dependencies
+   remain subject to reviewed authority; broad host allowances are forbidden.
+   A reference-only URL is distinguished from an executed branch.
+5. **Real HTTP boundary.** Under the separate finite grant, native/chamber
+   browser dispatch and response/cookie behavior are observed for the complete
+   case. Interception-only evidence, absent secondary response or unreadable
+   required body yields `inconclusive`, not a complete conversion qualification.
+6. **Callbacks and page safety.** The case's native callback and navigation
+   behavior is preserved through bounded host correlation, with count/arguments/
+   ordering recorded. No arbitrary callback code executes in the chamber;
+   callback/HTTP success never masquerades as accepted conversion or attribution.
+7. **Falsifiable result.** Removing the worker, dropping a response branch,
+   altering label/value/currency/order, duplicating a request or substituting an
+   empty native reference prevents qualification. Invalid input is visible
+   before execution, without leaking private values.
+8. **Scoped operator receipt.** Output separates worker execution, attempt,
+   actual dispatch, product receipt, matching, reporting and attribution.
+   Missing product evidence remains explicitly blocked for full adoption;
+   this slice is never advertised as full F05 or full Ads replacement.
+   The complete path meets C3 and the stable boot/push/handle contracts.
+
+**DoD:**
+- [ ] Each criterion has retained positive and witnessed failing controls;
+      targeted existing/new tests and applicable lint pass.
+- [ ] Required compliance, craft, architecture and reconciliation reviews pass.
+- [ ] Private complete evidence and sanitized operator procedure are retained;
+      no value, cookie, private path or credential enters committed output.
+- [ ] Honest deviation/reconciliation records preserve original criteria and
+      carry remaining product/matrix obligations to 059-12, without waiving them.
+
+**Anti-horizontal-phasing check:** The adopter gets a complete conversion-entry
+to worker to governed response-chain journey and a usable scoped decision.
+
+## Assumptions
+
+- Unverified: a complete native reference and authorized corresponding browser
+  response branches can be obtained; the retained smoke demonstrably lacks them.
+- Unverified: the needed dispatch/response mediation fits the inspected stable
+  core and pinned performance budget without ambient authority.
+
+### Close-out (post-DONE)
+
+- [ ] Parent regenerates/checks the board and reconciles affected live prose
+      after actual DONE; no release or full-support claim follows automatically.
+
+### Deviation log (after reconciliation)
+
+Not implemented. No deviations or review verdicts recorded.
+
+### Reconciliation sweep
+
+Pending implementation and formal review; no repository source or shared
+authority/board changes were performed by drafting this slice.
