@@ -12,6 +12,19 @@
 
 <!-- Terms below, alphabetical. Format: ## TERM, followed by definition prose. -->
 
+## spec-driven development (SDD)
+
+Define and review the required behavior in a jig spec before implementing it.
+Slices, acceptance criteria and recorded reviews remain the source of truth.
+Owner-confirmed terminology on 2026-10-15; see [workflow](../workflow.md).
+
+## evaluation-driven development (EDD)
+
+Use explicit, independently grounded checks to guide implementation and detect
+regressions. Servo can drive this loop only when the goal is bounded and the
+evaluation is meaningful; missing native evidence is not a passing result.
+Owner-confirmed terminology on 2026-10-15.
+
 ## airlock
 
 The mediated boundary between the privileged main thread and the unprivileged Web Worker. Connectors reach the network, or the DOM, only by cycling through the airlock — nothing crosses without going through the capability bridge. The name carries both halves of the thesis: *fault-isolation* (a broken tag must not sink the page) and *mediated egress* (nothing leaves without passing the capability boundary).
