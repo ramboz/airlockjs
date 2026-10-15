@@ -27,9 +27,13 @@ boundary agree.
    Qualification names `local_network`; vendor/chamber/outcome claims stay false.
 2. **Pre-execution guard.** Guarding is active before fixture scripts/navigation.
    A finite declared test matrix attempts fetch, image, XMLHttpRequest and beacon
-   traffic plus redirects to an unapproved destination. The command observes
-   the attempts while an independent local tripwire receives zero forbidden
-   requests. Only explicitly declared local resources are allowed.
+   traffic plus redirects to an unapproved destination. For EACH claimed case,
+   a matched same-run positive leg explicitly allows only that loopback tripwire
+   destination and must demonstrate the expected arrival. The enforcement leg
+   uses equivalent inputs/browser conditions, observes the attempt and requires
+   zero tripwire arrivals. A missing/unsuccessful positive leg is `inconclusive`,
+   not proof that the guard prevented transmission. Only explicitly declared
+   local resources are allowed in either leg.
 3. **Unsupported transport is visible.** Declare treatment of frames, dedicated
    workers, service workers, WebSockets and browser/background requests. A surface
    not positively qualified cannot be counted as protected. The command refuses
@@ -45,9 +49,12 @@ boundary agree.
    native behavior. Do not authorize an entire host merely to recover a marker.
 6. **Non-vacuity.** An expected-positive scenario with zero observed requests,
    a removed listener, wrong body, missing response, dropped branch or failing
-   tripwire cannot exit 0. Complete material mismatches are `nonconformant`;
-   capture/provenance gaps are `inconclusive`. Expected-zero controls need a
-   separately passing positive fixture.
+   tripwire cannot exit 0. A loopback-only guard-disabled/bypassed mutation for
+   each claimed enforcement case must produce a tripwire arrival and make
+   qualification fail; it must never permit external destinations. Complete
+   material mismatches are `nonconformant`; capture/provenance or matched-control
+   gaps are `inconclusive`. Expected-zero controls need their matching positive,
+   not an unrelated successful GET/POST fixture.
 7. **Safe operator output.** Invalid input is rejected visibly with exit 3.
    Public stdout/stderr never contains raw request values, cookies, identities
    or fixture secrets. Explicitly chosen private capture files are owner-only;

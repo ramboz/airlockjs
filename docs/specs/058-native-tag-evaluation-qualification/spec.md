@@ -62,8 +62,11 @@ does not turn an empty positive reference into success.
 - Use loopback sinks and locally fulfilled pinned resources; fail closed before
   fixture code executes. No customer/Intuit traffic, vendor SDK downloads,
   account mutations, campaigns, ad spend, live resends or proxy fallback.
-- Declare the exact tested browser/transport surface. Unsupported surfaces are
-  visible and block a broader no-send claim, not silently ignored.
+- Declare the exact tested browser/transport surface. Each claimed transport
+  needs a matched same-run positive that actually reaches its loopback tripwire,
+  an enforced zero-arrival leg, and a loopback-only disabled-guard failing
+  mutation. Generic GET/POST success cannot qualify a different transport.
+  Unsupported or unsuccessful controls block a broader no-send claim.
 - Keep observer and enforcer separate: a passive listener does not prevent a
   send. A route abort is attempted-request evidence, not backend dispatch.
 - Keep original private values and exact data relationships available only in
