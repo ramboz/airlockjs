@@ -26,6 +26,12 @@ remain open. The actual qualification and scope prerequisites
 are not satisfied merely by accepting the target.
 The reservation remains provisional until the parent checks trunk collisions.
 
+An additional operator-preparation slice,
+[059-13](slice-13-validation-admission.md), implements the network-agnostic
+admission component and local receiving-sink controls. It does not add a
+thirteenth product-feature path, qualify a live browser guard, or waive 059-01's
+complete-native-wire, performance and authority prerequisites.
+
 ## Overview
 
 The hard contract is the complete request/response and host-effect sequence

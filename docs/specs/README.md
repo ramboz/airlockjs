@@ -204,6 +204,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-10 - Remote rules and browser lifecycle journeys | DRAFT |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-11 - Mixed-tag migration and rollback | DRAFT |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-12 - Full-portfolio adoption qualification | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-13 - Paired validation admission component | IN_PROGRESS (google-and-meta-feasibility) |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-01 - Replace bootstrap and first PageView | READY_FOR_REVIEW (google-and-meta-feasibility) |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-02 - Report complete event and commerce data | DRAFT |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-03 - Route and configure multiple Pixels | DRAFT |  |
