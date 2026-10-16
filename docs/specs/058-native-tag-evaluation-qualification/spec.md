@@ -23,6 +23,12 @@ The operator-facing deliverable is a repeatable local qualification command and
 machine-readable report that proves the recorder, no-send boundary and comparison
 controls work before a vendor reference can be trusted.
 
+**Local qualification checkpoint (2026-10-16):** 058-01 implements the fixed
+`core-http` loopback qualifier and its falsifiable controls. Its exact validation
+and scope are in the slice record and [operator guide](../../../rig/native-tag-qualification.md).
+This is not a native Google/Meta reference: 058-02/03 and vendor-readiness gates
+remain open, with no further live-send authority.
+
 ### Grounded starting point
 
 - `probes/adobe-compatibility/stock-wire-recorder.mjs:113-283` is a passive

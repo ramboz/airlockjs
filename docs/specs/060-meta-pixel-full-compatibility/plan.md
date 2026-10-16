@@ -39,7 +39,7 @@ The local 060 reservation must still pass parent's integration collision check.
 | 060-12 | 060-01 through 060-11; measured pinned performance baselines and complete feature/cohort ledger. |
 
 All shared prerequisites must name their actual evidence layer, transport and
-browser pin. 058's DRAFT rollup, its local network controls, a green unrelated
+browser pin. 058's rollup or local-only network controls, a green unrelated
 oracle or this packet's structural checks cannot qualify native Meta wire.
 
 ## Recorder/oracle qualification before implementation loops

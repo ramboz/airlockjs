@@ -3,7 +3,8 @@
 ## Current posture
 
 This is a complete **DRAFT authoring packet**, not implementation approval.
-ADR-0033 is Accepted for the owner's target; 058 and all 059 slices stay DRAFT.
+ADR-0033 is Accepted for the owner's target; 058 has implemented local-only
+qualification with native/comparison gates open, and all 059 slices stay DRAFT.
 The parent owns formal frame/architecture/compliance/craft/reconciliation review,
 authority/index integration, shared 058, code discovery and trunk collision checks.
 No native event, account mutation, shared-site deployment or runtime code work

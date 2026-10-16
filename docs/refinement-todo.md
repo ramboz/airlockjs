@@ -26,6 +26,12 @@ outcomes and drift. The Meta `fbp` naming and same-input matching issues remain
 open. Existing cookie-writer/credentialed-transport deferrals cannot justify a
 full-support claim while required native behavior is missing.
 
+058-01's fixed local `core-http` qualifier is implemented and has its own
+recorded controls; it does not close 058-02/03 or the native evidence gaps.
+Meta's automated no-beacon versus owner Test Events receipt, Google's incomplete
+auxiliary response sequence, unsupported browser surfaces and actual chamber/
+outcome qualification remain open. Local pass is not a native-reference pass.
+
 Resolve these with native evidence and narrowly mediated designs, not broad
 cookie/network grants or invented identifiers. A concrete conflict gets an
 individual decision. This is preparation only; no runtime grant, closed-record

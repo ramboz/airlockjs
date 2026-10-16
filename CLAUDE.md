@@ -32,7 +32,8 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 ### Active specs
 - [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01/04/05/06/07/08 DONE. Recorded-payload checker and passive browser request/response recorder are implemented; initial receipts are preserved. Full 051-02 live/control/performance and actual chamber proof remain; further reporting is nonblocking follow-up. [Operator guide](probes/adobe-compatibility/README.md).
 - **052-057** — unsliced DRAFT outlines for the remaining [Adobe release portfolio](docs/releases/adobe-compatibility.md#jig-handoff); refine after 051 evidence. See [status board](docs/specs/README.md).
-- **058-060** — DRAFT shared evaluation, full Google Ads and full Meta Pixel specs; native-reference and readiness gates remain open. No full vendor implementation or additional live-send grant.
+- **058** — IN_PROGRESS shared evaluation; local recorder/no-send qualification is implemented, while actual native references and comparison gates remain open. [Operator guide](rig/native-tag-qualification.md).
+- **059-060** — DRAFT full Google Ads and Meta Pixel specs; no full vendor implementation, unattended loop or additional live-send grant.
 
 ### Deferred decisions
 - See [docs/refinement-todo.md](docs/refinement-todo.md).

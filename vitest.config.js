@@ -31,6 +31,8 @@ export default defineConfig({
       ...configDefaults.exclude,
       "**/.claude/worktrees/**",
       "test/oracle-ga4.test.js",
+      // Real Chrome/loopback qualification has its own explicit browser config.
+      "rig/native-tag-qualification.test.mjs",
     ],
   },
 });

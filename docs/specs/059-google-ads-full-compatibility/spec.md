@@ -17,7 +17,8 @@ ambient access or moving unbounded work onto the main thread.
 nothing, requests no additional event, and claims no completed review.
 [ADR-0033](../../decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md)
 is **Accepted** for the target/framing only; [058](../058-native-tag-evaluation-qualification/spec.md)
-remains **DRAFT**. The actual qualification, access and readiness prerequisites
+is **IN_PROGRESS** with local-only qualification; native references and comparison
+remain open. The actual qualification, access and readiness prerequisites
 are not satisfied merely by accepting the target.
 The reservation remains provisional until the parent checks trunk collisions.
 
