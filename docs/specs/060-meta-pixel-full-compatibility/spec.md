@@ -75,6 +75,16 @@ The private evidence handles below were prepared on 2026-10-15. They report:
    These choices are preserved, not reopened. They are not full no-JavaScript
    parity or behavioral proof of every gate/lifecycle case.
 
+**Later offline checkpoint (2026-10-16):** 058-02 now produces a positive
+retained Meta PageView attempted reference in actual headed Chrome, with
+independently demonstrated process/IP/resolver and HTTP no-send controls.
+Its disabled, native-revoked and changed-value cases are linked to that positive.
+The genuine headless cohort remains a loaded/executed no-beacon negative; no
+browser-evidence spoofing or native filter override is used. This separates a
+usable narrow reference from the original observations; it does not establish
+the full native matrix, actual vendor responses, chamber execution or matching/
+attribution. The owner Test Events receipt remains separately attributed.
+
 ### Explicit private-input handles
 
 The parent supplies these handles out of band. Missing input produces a visible
@@ -241,7 +251,8 @@ claim; this is not a closed-world enumeration of all future vendor behavior.
 ## Assumptions
 
 - Unverified: the complete required native behavior can be discovered with
-  discriminable references. The automated no-beacon gap currently blocks that.
+  discriminable references. A narrow retained headed PageView reference now
+  exists; other commands/events/identity/configuration/cohorts remain unqualified.
 - Unverified: required cookie, transport, configuration, DOM and lifecycle work
   can fit precise mediated operations without breaking the stable core or CWV.
   No actual invariant contradiction is demonstrated by the present evidence.

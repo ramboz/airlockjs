@@ -1,26 +1,16 @@
 ---
 slice: 058-02 - Pinned native attempted-request reference
 pass: compliance
-verdict: needs-changes
+verdict: pass
 reviewer: jig:reviewer
-reviewed_at: 2026-10-16T16:24:57Z
-prompt_source: review.py implementation spec058 058-02; initial native-reference compliance pass
+reviewed_at: 2026-10-16T16:29:48Z
+prompt_source: review.py implementation spec058 058-02; fresh focused followup of favicon/FIFO/headless/native-consent corrections
 ---
 
-VERDICT: needs-changes
+VERDICT: pass
 
 REASONING:
-The implementation supports the narrow pinned Meta PageView/off/value profile and correctly distinguishes attempted requests from vendor delivery. However, a permissive favicon exception leaves a dependency-closure false-positive path, and blocking input acquisition can defeat the CLI's wall-time bound. The headless negative test also does not establish that it observed genuine native execution.
-
-SPECIFIC ISSUES:
-- `rig/native-tag-reference.mjs:336-337` - [High] Any same-origin `/favicon.ico` request is exempted before unknown-script classification, regardless of query, resource type, method or body. An unexpected dependency/auxiliary can therefore be aborted yet silently accepted in a `dependency_closed` run. Restrict this exception to the exact expected browser favicon GET; classify other variants as unknown.
-- `rig/native-tag-reference.mjs:100-104` - [High] `open(O_RDONLY | O_NOFOLLOW)` can block indefinitely on a FIFO before `stat()` rejects non-regular files. The deadline race returns, but the outstanding filesystem operation can keep Node alive after the CLI merely sets `process.exitCode`. Use nonblocking acquisition before the regular-file check, and cover a stalled FIFO input; uncancellable acquisition must not retain the command indefinitely.
-- `rig/native-tag-reference.test.mjs:308-315` - [Medium; assertion-thin] The genuine headless no-beacon test checks only inconclusive state, missing_positive_reference, and mode. It would also pass if that cohort stopped loading/executing the SDK. Require pinned-resource fulfillment, dependency closure, bootstrap execution and zero measurement attempts from the retained capture.
+All four follow-up corrections are supported by the inspected source and non-vacuous assertions: exact favicon classification, nonblocking/no-follow FIFO acquisition, genuine headless native-execution evidence, and linked revoke-before-init behavior with a failing revoke-removal mutation. The mutations affect generated fixtures, not native SDK bytes, browser evidence or SDK consent logic. This read-only review did not rerun tests and grants no broader qualification or readiness approval.
 
 RECONCILIATION NOTES:
-Record partial AC4 coverage explicitly: the disabled control is linked to a positive reference, but consent-negative behavior is neither implemented nor qualified. Its honest not_proved disclosure is not consent-negative evidence or full AC4 completion. Preserve the one-profile scope, missing-Google blocker, separate headed/headless cohorts, and false vendor/full-support claims.
-
-Author follow-up in progress: narrowed favicon classification, switched to
-nonblocking regular-file acquisition, strengthened actual headless execution
-assertions, and added a real native revoke-before-init control plus a
-revoke-removal failing mutation. No blanket negative or consent coverage is inferred.
+Record the real FIFO red-probe hang and process-family cleanup, not a successful zero, followed by the corrected prompt-exit test. Update AC4 coverage to include only the linked native revoke-before-init control; other consent states/transitions remain unqualified. Preserve the attempt-only boundary, generated-fixture provenance, separate headed/headless cohorts, missing Google closure, and unproved real vendor responses/full support.

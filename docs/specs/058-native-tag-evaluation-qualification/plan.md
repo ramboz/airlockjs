@@ -92,3 +92,76 @@ the slice validation log without modifying the test. Compliance, craft,
 architecture correction and reconciliation reviews have recorded passes.
 Lifecycle transitions and local commits preserve those actual gates; they do
 not qualify 058-02/03 or either vendor implementation spec, which remain open.
+
+## 058-02 offline pass (2026-10-16)
+
+The owner approved up to two additional active hours for retained-input native
+reference qualification, within the same shared 25K target, without new live
+sends/deployments/account changes. Start is 15:29:46Z; conservative outer stop
+is 17:29:46Z. Exact credit metering remains unavailable. Record partial blockers
+instead of inventing missing native bytes.
+
+The first bounded profile is saved Meta PageView on the actual headed Chrome
+155.0.8059.80 cohort, with an all-fulfill/abort request-stage boundary and
+unsupported-surface denial. Do not spoof browser evidence or disable native
+BotBlocking to make headless green. Preliminary offline diagnostics preserve
+one headed PageView attempt and the headless no-beacon as distinct outcomes.
+Google requires actual retained loader/configuration/dependency bytes; current
+response metadata alone cannot establish that closure.
+
+### First profile implementation perimeter
+
+- New `rig/native-tag-reference.mjs`, a fixed macOS Chrome-launch wrapper,
+  its shared `rig/offline-reference-network.sb` policy,
+  `rig/native-tag-reference.test.mjs` and a small operator guide. Include the
+  new browser test only in the explicit native-qualification config and exclude
+  its exact path from default collection; no other test/oracle/grant changes.
+- CLI accepts only an explicit private input-manifest path and a new private
+  output directory, with fixed `meta-pageview` baseline/disabled/native-revoked/
+  value-contrast
+  cases. No URL-supplied IDs, arbitrary commands/scripts or remote acquisition.
+  Runtime/config files, source request URLs/status/digests and the owned document/
+  Pixel selector come from that supplied manifest, never directory discovery.
+- Only exact source-provenance resource URLs may be locally fulfilled. The
+  synthetic document/bootstrap is explicitly generated fixture provenance, not
+  a captured production page. Native script/config bytes remain unmodified.
+  All other requests are captured then aborted; unknown dependencies and
+  forbidden CSP surfaces are inconclusive.
+- Enforce process-local IP-network/DNS denial before stock code, alongside
+  request-stage all-fulfill/abort interception. A matched independent local
+  receiver proves confinement without a vendor request. Never fall back to
+  unconfined native execution when sandbox launch fails.
+  The same policy additionally denies both canonical mDNSResponder socket
+  aliases and its named Mach lookup; a matched zero-query Unix-connection
+  helper must prove normal connection versus confined EPERM/EACCES before
+  native code. HTTP receiver silence alone is not DNS qualification.
+- A 60-second run cutoff covers acquisition, execution, owned-browser cleanup
+  and private output. Use 5-second observation per case, at most64 requests,
+  2KiB URL, 64KiB request body and 2MiB per supplied native resource. These
+  are profile safety limits, not vendor performance bands. 058-01 principles
+  are prior art, not inherited broad native-transport qualification.
+- Public JSON keeps `native_attempt`, profile/mode/runtime/config hashes,
+  source-versus-generated-fixture distinctions, positive/disabled/changed-input
+  results and explicit error/limit states. No selectors/cookies/raw URLs/user
+  values are printed. Original fields/responses stay in owner-only captures.
+- Missing Google loader/config bytes remain blocked. A Meta profile pass never
+  closes Google's input/evidence gaps or full vendor compatibility.
+- Native consent-revoked observation is now a linked control: exact stock
+  revoke-before-init holds the native init/track queue and suppresses config/
+  measurement. A mutation removing that actual call must fail the negative
+  marker. Other consent states and transitions remain unqualified.
+
+### Offline pass outcome
+
+The exact retained Meta headed profile now captures PageView attempts and linked
+disabled/revoked/value controls without vendor dispatch. Its independently
+witnessed process/known-resolver/HTTP boundaries, 63 combined explicit controls
+and all required reviews are recorded in 058-02. The retained headless no-beacon
+remains a genuine negative, not a reason to spoof browser evidence.
+
+Google stays blocked: the saved capture lacks the official loader,
+configuration/dependency bytes and complete auxiliary outcomes. No grant in this
+pass permits reacquisition, download or resend. Shared comparison work 058-03,
+the full vendor matrices, actual chamber/outcome proof and unattended readiness
+remain future work. This outcome is within the approved two-hour preparation
+pass; it does not reset the shared 25K target or claim exact cost metering.

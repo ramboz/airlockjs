@@ -33,6 +33,7 @@ export default defineConfig({
       "test/oracle-ga4.test.js",
       // Real Chrome/loopback qualification has its own explicit browser config.
       "rig/native-tag-qualification.test.mjs",
+      "rig/native-tag-reference.test.mjs",
     ],
   },
 });

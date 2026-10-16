@@ -92,6 +92,12 @@ using that smoke as the required complete reference. A duplicate query key occur
 native `rnd` differs from `auid`, unlike the earlier synthetic fixture. Neither
 blanket redaction nor dictionary-only comparison is an adequate oracle.
 
+The 2026-10-16 input-readiness check confirms the saved recording contains
+three measurement-response bodies, but not the official Google loader or
+effective configuration/dependency bytes. The new 058-02 Meta attempted-reference
+profile cannot qualify Google by analogy. Acquisition of missing inputs needs
+an explicit separate grant; no reconstruction, download or live resend follows.
+
 Any statement about present connector, host, boot or test capabilities remains
 **unverified** until the parent performs authorized semantic-index/source
 investigation. The slices below prescribe future behavior, not existing code.

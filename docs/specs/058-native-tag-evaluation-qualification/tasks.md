@@ -10,10 +10,16 @@
       including genuine initial blockers and their corrected re-reviews.
 - [x] Complete the independent reconciliation review.
 - [x] Close only 058-01 through its final gate after the implementation commit.
-- [ ] Qualify pinned native attempted-request references without live dispatch.
-- [x] Keep Meta's no-beacon and incomplete Google observations inconclusive;
-      local success does not qualify their native references.
+- [x] Implement the retained Meta PageView attempted-reference profile with
+      independently demonstrated no-send boundaries and native controls.
+- [x] Record its independent frame/compliance/craft/architecture/reconciliation
+      passes, including initial blockers and falsifiable corrections.
+- [ ] Close 058-02's bounded profile through its final gate after the code commit.
+- [ ] Close Google native input/dependency gaps under a separate explicit grant;
+      missing bytes never trigger automatic acquisition or resend.
+- [x] Preserve original headless no-beacon and incomplete Google history. A new
+      headed offline profile is separate evidence, not a retrospective pass.
 - [ ] Add value-preserving sequence comparisons and mutation controls.
 - [x] Record local validation and budget/time checkpoints with accounting limits.
 - [ ] Establish actual native-reference readiness/suitability; no unattended
-      loop or vendor compatibility approval follows from this local slice.
+      loop or full vendor compatibility approval follows from these narrow layers.

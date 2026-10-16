@@ -1,0 +1,8 @@
+(version 1)
+(allow default)
+(deny network*)
+(allow network* (local unix-socket) (remote unix-socket))
+(deny network*
+  (literal "/var/run/mDNSResponder")
+  (literal "/private/var/run/mDNSResponder"))
+(deny mach-lookup (global-name "com.apple.mDNSResponder"))

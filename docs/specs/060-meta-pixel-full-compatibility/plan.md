@@ -47,6 +47,11 @@ oracle or this packet's structural checks cannot qualify native Meta wire.
 Parent's 058 owns implementation and proof of the recorder/no-send/comparator.
 The smallest Meta input gate is a finite owned PageView-only case:
 
+The 058-02 retained headed profile now supplies that narrow positive plus
+disabled/native-revoked/value controls. The headless no-beacon remains a real
+negative with SDK/dependency execution proved, not a substitute empty positive.
+The wider comparator, cohort and actual vendor/chamber layers below remain open.
+
 1. Establish pre-code no-send and positive recorder visibility using a local
    instrumentation control, independent of the vendor. Cover the declared
    paths; unknown/unprotected egress is denied and broad protection claims block.
@@ -55,7 +60,8 @@ The smallest Meta input gate is a finite owned PageView-only case:
    Missing dependencies cannot trigger live fallback.
 3. Require a real positive native PageView attempt in that same automated
    environment, with complete request fields and all auxiliary attempts.
-   The current no-beacon/timeout is an explicit inconclusive control.
+   Preserve the earlier headless no-beacon/timeout as an explicit inconclusive
+   cohort, not a retrospectively successful reference.
 4. Prove missing/added requests, altered values/routing/identity, empty reference
    and unavailable response controls cannot produce PASS. Keep original private
    relationships available before redaction.

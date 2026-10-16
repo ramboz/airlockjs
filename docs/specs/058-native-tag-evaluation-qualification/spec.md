@@ -26,8 +26,15 @@ controls work before a vendor reference can be trusted.
 **Local qualification checkpoint (2026-10-16):** 058-01 implements the fixed
 `core-http` loopback qualifier and its falsifiable controls. Its exact validation
 and scope are in the slice record and [operator guide](../../../rig/native-tag-qualification.md).
-This is not a native Google/Meta reference: 058-02/03 and vendor-readiness gates
-remain open, with no further live-send authority.
+That local-only result cannot satisfy native-reference/comparison or
+vendor-readiness gates, and conveys no live-send authority.
+
+**Retained native-profile checkpoint (2026-10-16):** 058-02 now implements a
+narrow Meta PageView attempted-reference profile using exact saved native bytes
+in real headed Chrome, process-local IP/resolver denial and all-fulfill/abort
+HTTP interception. Linked disabled/revoked/value controls pass without vendor
+dispatch. Google still lacks retained runtime/configuration/dependency bytes;
+058-03, full vendor inventories and outcome/readiness gates remain open.
 
 ### Grounded starting point
 
@@ -43,6 +50,8 @@ remain open, with no further live-send authority.
   the owner's normal browser did show Test Events receipt. Neither is a full
   automated reference. Private inputs are supplied by an explicit local handle,
   never discovered by scanning other sessions or committed into fixtures.
+  Later offline headed Meta evidence is the separately pinned 058-02 profile,
+  not a relabeling of those original automated/owner observations.
 
 ### Required report contract
 

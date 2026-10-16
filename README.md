@@ -33,6 +33,10 @@ specs remain drafts, not full support. The shipped connectors remain bounded sub
 The [local qualification guide](rig/native-tag-qualification.md) describes its
 fixed loopback-only evidence layer, explicit browser suite and non-vacuity
 controls. It authorizes no live vendor or customer capture.
+The [retained Meta native-reference guide](rig/native-tag-reference.md) covers
+one offline PageView profile and linked negative/value controls. It captures
+attempts without sending them; Google source-byte/dependency inputs and full
+sequence/comparison/vendor gates remain open.
 
 ## Install into an EDS site (git subtree, no build step)
 
