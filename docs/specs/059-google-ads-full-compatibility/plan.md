@@ -136,12 +136,14 @@ records does not close response/cookie/redirect evidence.
 
 ### Offline implementation continuation
 
-[059-13](slice-13-validation-admission.md) isolates an implementable preparation
-utility while live approval is unavailable: a network-agnostic, one-shot exact
-request admission component with real local receiver controls. Its successful
-tests must not be called full SDK/browser guard qualification. This work can
-proceed without native SDK execution, vendor traffic or either first journey's
-implementation-ready status.
+[059-13](slice-13-validation-admission.md) is DONE: the
+[network-agnostic admission component](../../../rig/first-journey-admission.md)
+has 150 local tests, real receiver/bypass controls and actual independent
+frame/compliance/craft/reconciliation passes. The initial durability finding is
+preserved, not erased. This is one-shot exact request admission, not full
+SDK/browser guard qualification. No native SDK execution, vendor traffic or
+first-journey implementation readiness was claimed. Complete native wire,
+C2/C3, full guard and fresh explicit live authority remain required.
 
 Adobe's 2026-10-16 cleanup handoff released its EDS source-push hold after
 verified site/Target/schedule cleanup. It reported a clean config-only forward

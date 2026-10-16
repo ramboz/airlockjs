@@ -1,10 +1,9 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [adr-0033]
 last_verified: 2026-10-16
 kind: feature
 frame_review: true
-claimed_by: google-and-meta-feasibility
 ---
 
 ## Slice 059-13 - Paired validation admission component
@@ -136,4 +135,4 @@ None.
 
 ### Close-out (post-DONE)
 
-- [ ] Regenerate/check the board; preserve both first journeys' open gates.
+- [x] Regenerate/check the board; preserve both first journeys' open gates.
