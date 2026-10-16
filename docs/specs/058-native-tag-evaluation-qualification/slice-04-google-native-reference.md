@@ -1,10 +1,9 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [058-01, 058-02, adr-0033]
 last_verified: 2026-10-16
 frame_review: true
 arch_review: true
-claimed_by: google-and-meta-feasibility
 ---
 
 ## Slice 058-04 - Owned Google conversion attempted-reference
@@ -90,14 +89,14 @@ acquisition is separately authorized; it cannot establish the old version.
 - [x] Genuine source provenance and native positive/off/value receipts exist.
 - [x] TDD, targeted regression checks and required post-implementation reviews pass.
 - [x] Operator documentation and live readiness prose match the evidence layer.
-- [ ] Actual reconciliation/commit/DONE gates clear; no wider claim follows.
+- [x] Actual reconciliation/commit/DONE gates clear; no wider claim follows.
 
 **Anti-horizontal-phasing check:** The operator gets one bounded Google command
 with either qualified attempted-request evidence or actionable missing inputs.
 
 ### Close-out (post-DONE)
 
-- [ ] Regenerate/check the board and preserve evidence/accounting boundaries.
+- [x] Regenerate/check the board and preserve evidence/accounting boundaries.
 
 ### Deviation log (after reconciliation)
 
@@ -132,8 +131,10 @@ response chain. Historical missing bytes/responses, actual vendor responses,
 Google consent variants, other scenarios/cohorts, initiator/ownership
 authentication, comparison, chamber and downstream outcomes remain open.
 Actual compliance follow-up, craft and architecture passes clear the REVIEWED
-gate. The initial compliance blocker remains in Git history. Reconciliation,
-implementation commit and final DONE remain separate required gates.
+gate. The initial compliance blocker remains in Git history. Reconciliation
+passed after an explicit path-accounting correction, with its original
+needs-changes verdict retained in history. Implementation commit `52ff4c4`
+precedes the actual final dependency/review gate and DONE transition.
 
 ### Reconciliation sweep
 
@@ -167,5 +168,6 @@ implementation commit and final DONE remain separate required gates.
 - Leanness: one profile variant reuses the existing command/containment and
   targeted test file. No new dependencies, generic framework or runtime APIs.
 - No-op: inbox/brand/UI/lightweight decisions; all work remains under this slice.
-- Pending: reconciliation review and commit/DONE gates, with actual results in
-  the sibling review evidence rather than inferred from passing author tests.
+- Completed: actual reconciliation follow-up, implementation commit and DONE
+  gate. Results remain in sibling review evidence, not inferred from author
+  tests; unknown-run, historical, broader comparison and vendor gates remain.

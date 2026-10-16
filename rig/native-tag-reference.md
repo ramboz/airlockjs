@@ -1,7 +1,7 @@
 # Bounded offline native-attempt references
 
 [Slice 058-02](../docs/specs/058-native-tag-evaluation-qualification/slice-02-native-reference.md)
-implements **one retained Meta PageView profile**. The Google candidate below
+implements **one retained Meta PageView profile**. The Google profile below
 adds one newly pinned conversion profile, not full support for either vendor.
 The evidence layer is `native_attempt`: Chromium attempted
 HTTP requests that were aborted before network transmission. A locally fulfilled
