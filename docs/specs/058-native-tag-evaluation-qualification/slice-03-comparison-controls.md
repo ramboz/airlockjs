@@ -1,10 +1,9 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [058-01, 058-02, 058-04]
 last_verified: 2026-10-16
 frame_review: true
 arch_review: true
-claimed_by: google-and-meta-feasibility
 ---
 
 ## Slice 058-03 - Value-preserving comparison controls
@@ -40,9 +39,9 @@ collection differences without redaction or gap ownership manufacturing equality
    change production collection or authorize a live recapture.
 
 **DoD:**
-- [ ] Mutation controls, targeted tests and required independent reviews pass.
+- [x] Mutation controls, targeted tests and required independent reviews pass.
 - [x] The report contract and operator procedure are documented.
-- [ ] Servo readiness/suitability may proceed only with their actual prerequisites;
+- [x] Servo readiness/suitability may proceed only with their actual prerequisites;
       a green existing GA4/unit oracle is not a Google/Meta qualification artifact.
 
 **Anti-horizontal-phasing check:** The operator obtains a complete comparison
@@ -134,7 +133,7 @@ handles are supplied in the private comparison manifest, not discovered.
 
 ### Close-out (post-DONE)
 
-- [ ] Regenerate/check the board; consolidate comparison and drift learnings.
+- [x] Regenerate/check the board; consolidate comparison and drift learnings.
 
 ### Deviation log (after reconciliation)
 
@@ -191,9 +190,9 @@ local fixtures require their closed `complete: true` declaration. The witnessed
 red baseline was 16 failed/188 passed, followed by 46 cleanup regressions and
 final parent validation of 204 passing tests, focused lint and all 34 CLI
 outcomes. No optional metadata field is globally reclassified as mandatory.
-Actual compliance, craft and architecture follow-ups now clear the REVIEWED
-gate; their initial blockers remain in Git. Reconciliation, implementation
-commit and DONE remain separate required gates.
+Actual compliance, craft and architecture follow-ups clear the REVIEWED gate;
+their initial blockers remain in Git. Actual reconciliation passed, followed by
+implementation commit `1871ba0` and the real dependency/review DONE gate.
 
 ### Reconciliation sweep
 
@@ -211,9 +210,9 @@ commit and DONE remain separate required gates.
 - Updated: 059/060 `spec.md` and 060 `plan.md` consume named evidence layers,
   not copied-reference/rollup passes. No-op: 059 `plan.md` already requires
   case-specific complete reference and numerical/runtime readiness gates.
-- Primer: `CLAUDE.md` retains the active checkpoint while review proceeds;
-  remove the completed 058 active entry only after actual final DONE, carrying
-  the bounded tool links and remaining gates into the still-active vendor entry.
+- Primer: after actual final DONE, `CLAUDE.md` removes the completed 058 active
+  entry and carries bounded tool links/remaining gates in the active vendor entry.
+  No other root primer surface was present in the targeted root check.
 - Updated: `docs/memory/learnings.md` preserves completed-command evidence and
   attestation trust limits. Memory summary/team check complete (existing opt-out).
   Coverage has zero missing/dangling use cases; nine older unrelated orphans
@@ -229,6 +228,6 @@ commit and DONE remain separate required gates.
   owned by 059/060 and further explicitly authorized evidence work.
 - Leanness: a single rig-local consumer reuses established file/report
   patterns; no browser producer refactor or unrelated cleanup is introduced.
-- Completed: actual post-implementation review evidence and REVIEWED gate.
-- Pending: reconciliation review, post-DONE primer hygiene and actual
-  reconciliation/commit/DONE gates.
+- Completed: actual post-implementation/reconciliation evidence,
+  implementation commit, final DONE, board generation and primer hygiene.
+  No downstream native/chamber/outcome or unattended-readiness claim follows.

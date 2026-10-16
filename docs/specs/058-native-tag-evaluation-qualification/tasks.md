@@ -23,7 +23,7 @@
 - [x] Preserve original headless no-beacon and incomplete Google history. A new
       headed offline profile is separate evidence, not a retrospective pass.
 - [x] Implement value-preserving sequence comparison and intended mutation controls.
-- [ ] Clear the comparison's actual independent review/reconciliation and DONE gates.
+- [x] Clear the comparison's actual independent review/reconciliation and DONE gates.
 - [x] Record local validation and budget/time checkpoints with accounting limits.
 - [ ] Establish actual native-reference readiness/suitability; no unattended
       loop or full vendor compatibility approval follows from these narrow layers.

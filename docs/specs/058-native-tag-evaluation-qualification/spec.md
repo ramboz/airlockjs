@@ -1,5 +1,5 @@
 ---
-status: IN_PROGRESS
+status: DONE
 skill: spec-workflow
 use_cases: [UC-7, UC-10, UC-11]
 ---
