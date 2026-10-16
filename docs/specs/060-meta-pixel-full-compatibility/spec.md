@@ -38,10 +38,11 @@ for Meta matching or attribution.
   is **Accepted** for the owner's target/framing. The vision separates general
   identity services from required vendor-cookie continuity; no writer or broad
   grant is implemented or approved by that clarification.
-- [058](../058-native-tag-evaluation-qualification/spec.md) is **IN_PROGRESS**:
-  its local qualifier is implemented, but native-reference and comparison
-  layers remain open. Their named qualified evidence layers are prerequisites,
-  not capabilities obtained by linking to the overview.
+- [058](../058-native-tag-evaluation-qualification/spec.md) supplies local
+  controls, selected native attempts and offline sequence/control comparison.
+  Independent full native/chamber comparisons and reviewed cross-run
+  normalization remain open. Named evidence layers are prerequisites, not
+  capabilities obtained by linking to the overview or copied-reference passes.
 - [ADR-0017](../../decisions/adr-0017-airlock-1-0-api-contract.md), including its
   amendments, protects the stable core. Neither this DRAFT nor the experimental
   configuration carve-out authorizes a frozen-interface change.

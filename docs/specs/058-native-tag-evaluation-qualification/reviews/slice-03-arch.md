@@ -1,31 +1,30 @@
 ---
 slice: 058-03 - Value-preserving comparison controls
 pass: arch
-verdict: needs-changes
+verdict: pass
 reviewer: jig:reviewer
-reviewed_at: 2026-10-16T19:12:08Z
-prompt_source: review.py arch-review spec058 058-03 --richer-skill arch-review initial missing cleanup evidence
-substrate: shown
-applied_skill: arch-review
-shown_candidates: [arch-review:high-confidence, access:speculative, agent-development:speculative, build-mcp-app:speculative, build-mcp-server:speculative, build-mcpb:speculative, cardputer-buddy:speculative, claude-automation-recommender:speculative, claude-md-improver:speculative, command-development:speculative, configure:speculative, example-command:speculative, example-skill:speculative, frontend-design:speculative, hook-development:speculative, m5-onboard:speculative, math-olympiad:speculative, mcp-integration:speculative, playground:speculative, plugin-settings:speculative, plugin-structure:speculative, pr-review:speculative, project-artifact:speculative, scout-autotune:speculative, scout-bench-create:speculative, scout-memory-init:speculative, scout-pr-review:speculative, scout-scrum-master:speculative, session-report:speculative, skill-creator:speculative, skill-development:speculative, writing-hookify-rules:speculative]
+reviewed_at: 2026-10-16T19:15:21Z
+prompt_source: review.py arch-review spec058 058-03 --richer-skill arch-review corrected required cleanup evidence
+substrate: not-shown
+applied_skill: none
 ---
 
-VERDICT: needs-changes
+VERDICT: pass
 
 REASONING:
-The rig-local consumer preserves runtime/frozen boundaries and keeps local
-source layers from becoming whole-wire evidence. One validation omission
-still admits incomplete native cleanup evidence.
+Native sources now require all four own cleanup fields strictly true. Local
+fixtures retain their closed complete:true declaration. The 46 regressions
+cover partial, omitted and mistyped evidence directly. No remaining
+architecture blocker was found; source-layer and offline/product boundaries
+remain intact.
 
 SPECIFIC ISSUES:
-- [blocker][impl] A nonempty cleanup object with only existing true values
-  can omit process exit, server closure and listener detachment. Require all
-  four native cleanup booleans explicitly, and test omissions in both profiles.
-- [strength][impl] Local synthetic source and requested layer must consistently
-  remain local_control; relabeling the request cannot promote vendor evidence.
+- [strength][impl] Source-kind-specific required cleanup closes the gap without
+  altering optional metadata handling.
+- [strength][impl] Both native profiles exercise all field omissions,
+  single-present, false, string and null cases; local shapes are also closed.
 
 RECONCILIATION NOTES:
-Preserve exact-only native policy, trusted owner completion attestations,
-fixed exclusions and synthetic response/edge scope. No new product architecture
-decision or capability is warranted; repair the missing evidence rather than
-waiving it.
+Initial needs-changes remains in Git. Final evidence is 204 tests and
+checks-5's 34 intended CLI outcomes, not the older counts. No architecture
+decision is added. This was read-only and did not rerun validation.

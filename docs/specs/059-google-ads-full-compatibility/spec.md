@@ -17,8 +17,9 @@ ambient access or moving unbounded work onto the main thread.
 nothing, requests no additional event, and claims no completed review.
 [ADR-0033](../../decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md)
 is **Accepted** for the target/framing only; [058](../058-native-tag-evaluation-qualification/spec.md)
-is **IN_PROGRESS** with local-only qualification; native references and comparison
-remain open. The actual qualification, access and readiness prerequisites
+supplies local controls, selected native attempts and offline sequence/control
+comparison. Independent full native/chamber comparisons, access and readiness
+remain open. The actual qualification and scope prerequisites
 are not satisfied merely by accepting the target.
 The reservation remains provisional until the parent checks trunk collisions.
 
@@ -110,6 +111,10 @@ investigation. The slices below prescribe future behavior, not existing code.
 ### Evidence layers and shared prerequisites
 
 Consume 058 by named qualified layer, not its rollup status:
+
+058-03's exact reference copies and complete local synthetic controls qualify
+the comparator only. They do not supply independent candidates, full native
+responses/cookies/host effects or reviewed native cross-run normalization.
 
 | Layer | Required evidence | Cannot establish |
 |---|---|---|

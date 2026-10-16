@@ -210,3 +210,10 @@ remain blockers for whole-wire/adoption results. Do not execute browsers,
 download sources, send events, change the site/accounts, implement a chamber or
 alter legacy curated/global oracles. Required actual frame, implementation,
 craft, architecture and reconciliation reviews remain real gates.
+
+The owner explicitly resumed this same work at 18:50:07Z after the pause
+following the 18:35:24Z checkpoint. Preserve the initial 19:08:51Z wall target;
+the coordinator conservatively accounts for 14 paused minutes and selects
+19:22:51Z for this same offline correction/review/close-out only. This is not a
+new owner-specified numeric budget, credit reset, additional evidence grant or
+permission to start another phase.

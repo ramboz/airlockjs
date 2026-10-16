@@ -50,7 +50,9 @@ The smallest Meta input gate is a finite owned PageView-only case:
 The 058-02 retained headed profile now supplies that narrow positive plus
 disabled/native-revoked/value controls. The headless no-beacon remains a real
 negative with SDK/dependency execution proved, not a substitute empty positive.
-The wider comparator, cohort and actual vendor/chamber layers below remain open.
+The offline comparator now validates exact copied attempts and complete local
+synthetic response/edge mechanics. Independent comparisons, native cross-run
+policies, wider cohorts and actual vendor/chamber layers below remain open.
 
 1. Establish pre-code no-send and positive recorder visibility using a local
    instrumentation control, independent of the vendor. Cover the declared

@@ -190,7 +190,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-08 — observing browser request and response bytes | **DONE** |  |
 | [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-01 - Local recorder and no-send qualification | **DONE** |  |
 | [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-02 - Pinned native attempted-request reference | **DONE** |  |
-| [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-03 - Value-preserving comparison controls | IN_PROGRESS (google-and-meta-feasibility) |  |
+| [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-03 - Value-preserving comparison controls | RECONCILED (google-and-meta-feasibility) |  |
 | [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-04 - Owned Google conversion attempted-reference | **DONE** |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-01 - Owned direct conversion cutover | DRAFT |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-02 - Command routing and callback journeys | DRAFT |  |
@@ -239,7 +239,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
-- **14** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
+- **16** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **104** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **54** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review

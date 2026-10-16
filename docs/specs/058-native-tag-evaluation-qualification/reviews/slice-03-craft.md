@@ -1,32 +1,30 @@
 ---
 slice: 058-03 - Value-preserving comparison controls
 pass: craft
-verdict: needs-changes
+verdict: pass
 reviewer: jig:reviewer
-reviewed_at: 2026-10-16T19:05:10Z
-prompt_source: review.py pr-review spec058 058-03 --richer-skill pr-review initial guard-counter defect
-substrate: shown
-applied_skill: pr-review
-shown_candidates: [pr-review:high-confidence, scout-pr-review:high-confidence, access:speculative, agent-development:speculative, arch-review:speculative, build-mcp-app:speculative, build-mcp-server:speculative, build-mcpb:speculative, cardputer-buddy:speculative, claude-automation-recommender:speculative, claude-md-improver:speculative, command-development:speculative, configure:speculative, example-command:speculative, example-skill:speculative, frontend-design:speculative, hook-development:speculative, m5-onboard:speculative, math-olympiad:speculative, mcp-integration:speculative, playground:speculative, plugin-settings:speculative, plugin-structure:speculative, project-artifact:speculative, scout-autotune:speculative, scout-bench-create:speculative, scout-memory-init:speculative, scout-scrum-master:speculative, session-report:speculative, skill-creator:speculative, skill-development:speculative, writing-hookify-rules:speculative]
+reviewed_at: 2026-10-16T19:08:39Z
+prompt_source: review.py pr-review spec058 058-03 --richer-skill pr-review corrected guard counters and hash mutant
+substrate: not-shown
+applied_skill: none
 ---
 
-VERDICT: needs-changes
+VERDICT: pass
 
 REASONING:
-Offline scope and evidence boundaries are clear, and the earlier regressions
-are meaningful. Missing native guard counters can still pass coercive
-less-than checks and yield qualified comparison, so review cannot close.
+The guard-counter blocker and normalization-test nit are resolved. Missing,
+mistyped and incorrect counters now fail explicitly, and regressions assert
+the intended category. Different-case normalization requires projection, and
+the actual projection-removal mutant fails. Execution evidence is attributed
+to parent validation, not this read-only review.
 
 SPECIFIC ISSUES:
-- [blocker][impl] Missing/nonnumeric positive_arrivals, positive_connections
-  or confined_denials can pass because undefined < 1 is false. Require present,
-  finite integer counters and matching native-control evidence; add regressions.
-- [nit][impl] The hash-normalization positive uses identical originals. Add
-  different-case originals normalizing equally with the same encoding skeleton
-  so removing actual input projection cannot leave the test green.
-- [strength][impl] Protected-field and incoming-tail-link tests assert intended
-  results rather than unrelated failures.
+- [strength][impl] Safe-integer and exact pinned counters plus strict boolean
+  markers close missing/coercion acceptance.
+- [strength][impl] All 48 counter mutations require exit2 and forbidden_dispatch.
+- [strength][impl] Different-case originals fail exact, pass declared local
+  normalization and fail after actual input-projection removal.
 
 RECONCILIATION NOTES:
-Retain copied-candidate, synthetic-response and trusted-attestation boundaries.
-The guard-counter defect blocks closure and must not be waived.
+Record intentional pre-release validation tightening and preserve all native,
+vendor and attestation limits. The guide matches exact counter expectations.

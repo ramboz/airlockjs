@@ -13,9 +13,12 @@
 > is a nonblocking follow-up. No module interface or runtime capability changes here.
 > [ADR-0033](decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md)
 > adds parallel preparation for complete Google Ads and Meta Pixel replacement.
-> Shared evaluation spec 058 is in progress; vendor specs 059-060 remain drafts.
+> Shared evaluation tools are recorded in spec 058; vendor specs 059-060 remain drafts.
 > This does not promote the subset connectors below to full support or change
 > existing APIs, runtime grants or Adobe acceptance.
+> Its [offline sequence consumer](../rig/native-tag-comparison.md) adds no
+> browser/runtime capability. Selected attempt/control comparisons cannot stand
+> in for complete native wire, actual chamber execution or vendor outcomes.
 >
 > Vocabulary: **the airlock** = the mediated boundary; a **chamber** = a connector's sandbox; a **cycle** / **lock-through** = a batch crossing to the worker; **the seal** = consent/allowlist gating. Repo/package slug: `airlockjs`; connector namespace `airlock/*`.
 

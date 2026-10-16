@@ -1,31 +1,27 @@
 ---
 slice: 058-03 - Value-preserving comparison controls
 pass: compliance
-verdict: needs-changes
+verdict: pass
 reviewer: jig:reviewer
-reviewed_at: 2026-10-16T18:58:15Z
-prompt_source: review.py implementation spec058 058-03 initial protected-field and drop-link findings
+reviewed_at: 2026-10-16T19:01:51Z
+prompt_source: review.py implementation spec058 058-03 corrected protected-target and tail-edge regressions
 ---
 
-VERDICT: needs-changes
+VERDICT: pass
 
 REASONING:
-The deliverables and 34-case CLI evidence correctly distinguish attempt
-controls from whole-wire, chamber and vendor qualification. Two supported
-paths still violate the bounded contract and block closure.
+Both blocking paths are corrected. Local rule targets are checked on both
+originals before projection, and tail-drop controls reconcile incoming links
+without weakening validation. Regression tests exercise these cases, and the
+updated 34-case CLI evidence records every intended outcome. No direct
+regression against the six ACs was identified within the declared scope.
 
 SPECIFIC ISSUES:
-- Identity rules accept arbitrary query selectors. Repeated distinct
-  conversion-value groups with changed same-length candidate values can
-  satisfy reuse/distinctness and become equal internal symbols, laundering a
-  protected value change. Protect local relationship targets as well as native
-  policies.
-- Drop removes the final request without reconciling incoming redirect/fanout
-  links. A valid sequence pointing to the removed tail fails invalid_edges
-  before intended sequence comparison, without the required linked mutation
-  evidence. Reconcile dependent links without relaxing validation.
+No remaining material acceptance violation identified. This is not whole-wire,
+independent chamber or vendor-outcome qualification.
 
 RECONCILIATION NOTES:
-Neither defect is waived by passing fixtures. Preserve exact native-copy,
-local-only relationships and owner-attested completion boundaries; fix and
-prove the previously missing cases before closure.
+Record the intentional closed-target compatibility tightening and edge
+reconciliation confined to mutation clones. Preserve three exact-copy
+positives, 29 linked mutation negatives, two whole-wire inconclusive results
+and the owner-attestation trust limitation. Other real gates remain separate.

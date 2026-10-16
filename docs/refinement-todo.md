@@ -33,8 +33,10 @@ egress; actual headless no-beacon remains a separate negative, not a false pass.
 058-04 additionally acquires a new Google loader and records selected owned
 conversion/off/value attempts without measurement dispatch; its record carries
 actual close-out state. This does not recover Google's historical missing bytes or
-auxiliary responses, explain the lost-trace initial unknown, or close 058-03,
-other vendor scenarios/cohorts, actual chamber or downstream outcomes.
+auxiliary responses or explain the lost-trace initial unknown. 058-03 now
+implements offline sequence/control comparison, not complete native wire or
+reviewed cross-run normalization. Other vendor scenarios/cohorts, actual
+chamber and downstream outcomes remain open.
 The owner Test Events receipt remains unpaired and separately attributed.
 
 Resolve these with native evidence and narrowly mediated designs, not broad

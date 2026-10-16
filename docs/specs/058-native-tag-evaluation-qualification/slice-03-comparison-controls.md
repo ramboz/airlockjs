@@ -1,7 +1,7 @@
 ---
-status: IN_PROGRESS
+status: RECONCILED
 dependencies: [058-01, 058-02, 058-04]
-last_verified:
+last_verified: 2026-10-16
 frame_review: true
 arch_review: true
 claimed_by: google-and-meta-feasibility
@@ -41,7 +41,7 @@ collection differences without redaction or gap ownership manufacturing equality
 
 **DoD:**
 - [ ] Mutation controls, targeted tests and required independent reviews pass.
-- [ ] The report contract and operator procedure are documented.
+- [x] The report contract and operator procedure are documented.
 - [ ] Servo readiness/suitability may proceed only with their actual prerequisites;
       a green existing GA4/unit oracle is not a Google/Meta qualification artifact.
 
@@ -149,7 +149,7 @@ local control copies pass; both native whole-wire requests are inconclusive;
 29 intended mutations return nonzero with an applied/detected marker and a
 linked qualified positive. Native controls change recorded attempts only.
 Complete response/cookie/redirect/fan-out mechanics use declared local
-synthetic data, not invented vendor responses. The 97-case hermetic suite and
+synthetic data, not invented vendor responses. The initial 97-case hermetic suite and
 focused lint pass without browsers, SDK execution, downloads or event dispatch.
 
 Controls use a closed individual `--control NAME`, returning the intended
@@ -165,7 +165,35 @@ values, query duplicates/encoding, body states and identities are checked
 before privacy projection. Whole-wire, independent candidate/chamber,
 matching/reporting/attribution and full-vendor readiness remain unproved.
 The earlier Google lost-trace failure is not explained by this new consumer.
-Formal post-implementation and reconciliation gates remain pending.
+
+Initial compliance found two real gaps missed by the first 97 tests/34 CLI
+checks: arbitrary local identity selectors could normalize protected value
+changes, and dropping a linked tail could fail edge validation before reaching
+the intended sequence comparison. The original needs-changes verdict is retained
+in `9c5f6cd`. Regression tests first recorded 13 failures; closed synthetic
+identity/hash target allowlists and dependent-edge reconciliation then produced
+109 passing tests plus all 34 repeated CLI outcomes. Validation remains strict.
+Previously accepted arbitrary/opaque local selectors now return
+`rule_target_unsupported`; this is an intentional tightening before release.
+Craft then found missing/coerced native guard counters could pass JavaScript
+less-than checks. Its original blocker is retained in `a1eebb8`. Safe-integer,
+exact pinned counters and strict guard markers now replace those checks, with
+48 missing/type/range/count regressions. A different-case normalization
+positive and actual input-projection-removal failure strengthen the hash proof.
+The witnessed craft red baseline was 19 failed/139 passed; final parent
+validation is 158 passing tests, focused lint and all 34 CLI outcomes repeated
+with unchanged privacy/product-claim boundaries. Incomplete guard evidence is
+now inconclusive, not accepted by coercion.
+Architecture additionally found partial cleanup objects could omit required
+native closure evidence. Its initial blocker is preserved in `e3fdc7f`.
+Both native profiles now require all four cleanup own-properties strictly true;
+local fixtures require their closed `complete: true` declaration. The witnessed
+red baseline was 16 failed/188 passed, followed by 46 cleanup regressions and
+final parent validation of 204 passing tests, focused lint and all 34 CLI
+outcomes. No optional metadata field is globally reclassified as mandatory.
+Actual compliance, craft and architecture follow-ups now clear the REVIEWED
+gate; their initial blockers remain in Git. Reconciliation, implementation
+commit and DONE remain separate required gates.
 
 ### Reconciliation sweep
 
@@ -177,9 +205,20 @@ Formal post-implementation and reconciliation gates remain pending.
   one bounded offline consumer and procedure; no new dependency or framework.
 - Updated: this slice, shared `plan.md`/`tasks.md`/`spec.md` and the regenerated
   `docs/specs/README.md` distinguish comparator proof from vendor readiness.
-- Pending live-prose accounting: `README.md`, `CLAUDE.md`,
-  `docs/architecture.md`, `docs/refinement-todo.md`, 059/060 overview/plan
-  prerequisites and any new memory learning will be reconciled before closure.
+- Updated: `README.md` links the consumer and explains copied/local versus
+  whole-wire evidence; `docs/architecture.md` preserves rig-local/no-runtime
+  scope; `docs/refinement-todo.md` retains full-vendor/native-policy residuals.
+- Updated: 059/060 `spec.md` and 060 `plan.md` consume named evidence layers,
+  not copied-reference/rollup passes. No-op: 059 `plan.md` already requires
+  case-specific complete reference and numerical/runtime readiness gates.
+- Primer: `CLAUDE.md` retains the active checkpoint while review proceeds;
+  remove the completed 058 active entry only after actual final DONE, carrying
+  the bounded tool links and remaining gates into the still-active vendor entry.
+- Updated: `docs/memory/learnings.md` preserves completed-command evidence and
+  attestation trust limits. Memory summary/team check complete (existing opt-out).
+  Coverage has zero missing/dangling use cases; nine older unrelated orphans
+  remain unchanged. No-op: `docs/inbox.md` contains no item resolved by this
+  scoped consumer; no UI/lightweight decision or convention change is introduced.
 - No-op: core/connectors/frozen APIs, Adobe/site assets, native browser
   runners, legacy curated/global oracles, `.servo` and convention/approval
   state. No public runtime boundary or new load-bearing design choice changes;
@@ -190,5 +229,6 @@ Formal post-implementation and reconciliation gates remain pending.
   owned by 059/060 and further explicitly authorized evidence work.
 - Leanness: a single rig-local consumer reuses established file/report
   patterns; no browser producer refactor or unrelated cleanup is introduced.
-- Pending: final review evidence, memory/coverage/primer hygiene and actual
+- Completed: actual post-implementation review evidence and REVIEWED gate.
+- Pending: reconciliation review, post-DONE primer hygiene and actual
   reconciliation/commit/DONE gates.

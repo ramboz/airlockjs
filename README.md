@@ -28,7 +28,8 @@ changing Adobe's release gate. Specs [058](docs/specs/058-native-tag-evaluation-
 [060](docs/specs/060-meta-pixel-full-compatibility/spec.md) cover trustworthy
 evaluation and the two vendor inventories. The shared local qualifier, retained
 Meta PageView and newly pinned Google conversion attempted-reference profiles
-are implemented; full sequence/comparison/readiness gates remain open. Vendor specs are drafts, not full
+and the offline sequence comparator are implemented; full native-wire,
+scenario and readiness gates remain open. Vendor specs are drafts, not full
 support. The shipped connectors remain bounded subsets.
 
 The [local qualification guide](rig/native-tag-qualification.md) describes its
@@ -39,6 +40,12 @@ offline Meta and Google profiles and their linked controls. They capture
 attempts without sending them. Google's new source cohort does not recover
 historical missing responses; unknown/contaminated runs stay inconclusive,
 and full sequence/comparison/vendor gates remain open.
+
+The [offline comparison guide](rig/native-tag-comparison.md) covers strict
+recorded sequences, original-value relationships and individually falsifiable
+controls. Copied references qualify only controls, not an independent chamber.
+The current native captures remain inconclusive for whole-wire comparison
+because actual vendor responses and browser-controlled evidence are missing.
 
 ## Install into an EDS site (git subtree, no build step)
 
