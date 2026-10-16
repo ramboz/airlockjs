@@ -1,10 +1,9 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [adr-0033]
 last_verified: 2026-10-16
 frame_review: true
 arch_review: true
-claimed_by: google-and-meta-feasibility
 ---
 
 ## Slice 058-01 - Local recorder and no-send qualification
@@ -82,7 +81,7 @@ request-to-sink-to-report journey, not an intermediate parser or library.
 
 ### Close-out (post-DONE)
 
-- [ ] Regenerate/check the spec board and consolidate durable learnings.
+- [x] Regenerate/check the spec board and consolidate durable learnings.
 
 ### Deviation log (after reconciliation)
 

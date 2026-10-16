@@ -9,7 +9,7 @@
 - [x] Record independent implementation, craft and architecture passes,
       including genuine initial blockers and their corrected re-reviews.
 - [x] Complete the independent reconciliation review.
-- [ ] Close only 058-01 through its final gate after the implementation commit.
+- [x] Close only 058-01 through its final gate after the implementation commit.
 - [ ] Qualify pinned native attempted-request references without live dispatch.
 - [x] Keep Meta's no-beacon and incomplete Google observations inconclusive;
       local success does not qualify their native references.
