@@ -39,7 +39,7 @@
 - [ADR-0030: Vendor-generic native-tag suppressor (airlock adoption primitive)](adr-0030-native-tag-suppressor.md) — [ADR-0029](./adr-0029-mvp9-developer-side-after-arm.md) decided the MVP9 after-arm is page-side: the adopter's owned EDS repo suppresses the migrated vendors' native (container-fired) tags so airlock's off-thread equivalents can be measured against them. (2026-09-15, Accepted)
 - [ADR-0031: Reframe: Adobe-first compatibility is the v1.0 adoption gate](adr-0031-reframe-onto-adobe-first-compatibility.md) — Adobe-first compatibility replaces the third-party rewire as the next release gate. (2026-10-06, Accepted)
 - [ADR-0032: Airlock boundary acceptance; Adobe reporting as follow-up](adr-0032-airlock-boundary-acceptance.md) — Airlock acceptance belongs at the governed SDK boundary, not Adobe's asynchronous reporting pipeline. (2026-10-12, Accepted)
-- [ADR-0033: Full Google Ads and Meta Pixel replacement is the compatibility target](adr-0033-reframe-onto-full-google-meta-compatibility.md) — Google Ads and Meta Pixel must become complete replacements, not a larger collection of partial beacons. (2026-10-15, Proposed)
+- [ADR-0033: Full Google Ads and Meta Pixel replacement is the compatibility target](adr-0033-reframe-onto-full-google-meta-compatibility.md) — Google Ads and Meta Pixel must become complete replacements, not a larger collection of partial beacons. (2026-10-15, Accepted)
 
 ## Format
 

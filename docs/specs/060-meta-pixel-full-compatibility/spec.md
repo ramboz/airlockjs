@@ -35,8 +35,9 @@ for Meta matching or attribution.
 ### Authority and open prerequisites
 
 - [ADR-0033](../../decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md)
-  is **Proposed**, including reconciliation of the vision's read-only-cookie
-  premise. It requires frame review and acceptance; this spec does not promote it.
+  is **Accepted** for the owner's target/framing. The vision separates general
+  identity services from required vendor-cookie continuity; no writer or broad
+  grant is implemented or approved by that clarification.
 - [058](../058-native-tag-evaluation-qualification/spec.md) and all three of its
   slices are **DRAFT**. Their named qualified evidence layers are prerequisites,
   not capabilities obtained by linking to the overview.
@@ -46,7 +47,8 @@ for Meta matching or attribution.
 - Parent owns source discovery, integration/ID collision checks, ADR/index/board
   updates and formal reviews. No source was explored for this packet. Existing
   runtime behavior and available extension seams are essential unknowns until
-  the parent supplies semantic-index-backed evidence.
+  the parent supplies source-backed evidence, using configured semantic tools
+  when available and targeted source reads otherwise, as the project workflow requires.
 
 ### Grounded starting point, not a passing reference
 

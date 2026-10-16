@@ -1,6 +1,7 @@
 # Tasks - native tag evaluation qualification
 
-- [ ] Frame-review ADR-0033 and this spec; retain Proposed/DRAFT while gates are open.
+- [x] Frame-review and accept the owner-directed ADR-0033 target; record the
+      corrected 058-01 frame pass. Other slice/readiness gates remain open.
 - [ ] Pin the local command/report/transport surface and conservative limits.
 - [ ] Implement the local positive receive/capture/report journey with TDD.
 - [ ] Prove no-send, asynchronous drain, redirect/fan-out and failure controls.

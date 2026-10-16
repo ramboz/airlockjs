@@ -21,6 +21,14 @@ egress happen behind the airlock, in isolated worker "chambers". See
 > ([ADR-0015](docs/decisions/adr-0015-distribution-git-subtree.md)); npm is a deferred second channel for the future
 > bundler audience.
 
+**Parallel preparation:** [ADR-0033](docs/decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md)
+sets complete Google Ads and Meta Pixel replacement as the target, without
+changing Adobe's release gate. Specs [058](docs/specs/058-native-tag-evaluation-qualification/spec.md),
+[059](docs/specs/059-google-ads-full-compatibility/spec.md) and
+[060](docs/specs/060-meta-pixel-full-compatibility/spec.md) cover trustworthy
+evaluation and the two vendor inventories. They are drafts, not full support;
+the shipped connectors remain bounded subsets.
+
 ## Install into an EDS site (git subtree, no build step)
 
 airlock ships as a **ready-to-serve built tree** published to a **dist-rooted ref** whose **root**

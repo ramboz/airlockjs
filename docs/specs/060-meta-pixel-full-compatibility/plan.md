@@ -76,7 +76,7 @@ do not write `.servo` approval or suppress a failing criterion.
 
 | Unknown | Owner/journey and required resolution |
 |---|---|
-| Current source seams, boot/suppression, manifests, generic-pixel coexistence and unload handling | Parent supplies semantic-index-backed source evidence before affected implementation. No runnable-code claim is inferred from historical records. |
+| Current source seams, boot/suppression, manifests, generic-pixel coexistence and unload handling | Parent supplies source-backed evidence before affected implementation, using available semantic tools or targeted reads per the project workflow. No runnable-code claim is inferred from historical records. |
 | Complete fbq/set, invalid calls, argument snapshot/return/callback behavior | 01-03 compare official calls to observable browser/network results, including negative cases. |
 | Event typing, nested commerce, scalar content IDs, limits and private encodings | 02 classifies actual native requests; P2/P7/P9 disagreements stay explicit. |
 | Re-grant replay/retention, processing encodings/per-Pixel scope | 04 observes the state transitions; resolves P17 dpo/vdpo discrepancy without guessed encoding. |

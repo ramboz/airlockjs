@@ -14,6 +14,23 @@
 > SDK version/support, identity/login/logout, unload/offline/crash behavior, authoring/reporting and
 > API-versus-UI setup are explicit investigation questions, not assumed capabilities.
 
+## Full Google/Meta preparation owners (2026-10-15)
+
+[ADR-0033](decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md)
+sets complete replacement as the target, without closing the residuals below.
+[058](specs/058-native-tag-evaluation-qualification/spec.md) owns trustworthy
+recorder/reference/comparison layers; [059](specs/059-google-ads-full-compatibility/spec.md)
+and [060](specs/060-meta-pixel-full-compatibility/spec.md) own vendor-specific
+identity/cookie continuity, consent variants, host operations, auxiliary transport,
+outcomes and drift. The Meta `fbp` naming and same-input matching issues remain
+open. Existing cookie-writer/credentialed-transport deferrals cannot justify a
+full-support claim while required native behavior is missing.
+
+Resolve these with native evidence and narrowly mediated designs, not broad
+cookie/network grants or invented identifiers. A concrete conflict gets an
+individual decision. This is preparation only; no runtime grant, closed-record
+amendment or Adobe reporting waiver follows.
+
 ## Architecture — design open questions (OQ1–OQ8)
 
 **Adobe assurance update — 2026-10-12:** [ADR-0032](decisions/adr-0032-airlock-boundary-acceptance.md)

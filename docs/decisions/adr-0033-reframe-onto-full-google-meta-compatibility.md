@@ -1,7 +1,7 @@
 ---
-status: Proposed
+status: Accepted
 dependencies: [adr-0017, adr-0031, adr-0032]
-last_verified:
+last_verified: 2026-10-15
 frame_review: true
 ---
 
@@ -9,7 +9,7 @@ frame_review: true
 
 ## Status
 
-Proposed (2026-10-15)
+Accepted (2026-10-15)
 
 ## Context
 
@@ -129,8 +129,9 @@ Propose Option C, recording the owner's target without claiming it is achieved.
    and effective stop controls must be explicit; a written budget is not itself
    a hard metering mechanism.
 
-Historical records remain unchanged. This Proposed ADR needs its frame review
-and acceptance before dependent work can claim its lifecycle prerequisites met.
+Historical records remain unchanged. Frame review and the owner's recorded
+decision gate acceptance; dependent work cannot treat a link as proof that
+its remaining lifecycle or evidence prerequisites are satisfied.
 
 ## Re-baselining manifest
 

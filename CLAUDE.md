@@ -15,6 +15,7 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 - **Airlock** (pkg `airlockjs`) - capability-secured, off-main-thread martech runtime for edge/static sites (EDS first). Main thread only captures + enqueues; all mapping and egress happen behind the airlock. See [docs/product-vision.md](docs/product-vision.md).
 - **Adobe-first v1.0 gate** (ADR-0031, owner decision 2026-10-06) — investigate an Airlock-backed `aem-martech` adoption path, then target full pinned Alloy.js compatibility and validated Adobe workflows; SDK boot is not product proof. Replaces ADR-0018's MVP9 gate; third-party gaps remain open. See [release slate](docs/releases/README.md).
 - **Airlock-boundary acceptance** (ADR-0032, owner decision 2026-10-12) — require real stock/chamber serialized dispatch, governed controls and response/rendering behavior; further downstream Adobe reporting is a nonblocking [follow-up goal](docs/releases/adobe-reporting-follow-up.md), not an export-schedule blocker.
+- **Full Google/Meta replacement** (ADR-0033, owner decision 2026-10-15) — parallel preparation targets complete native collection and attribution-bearing behavior; scoped gap-owned passes are not full parity. Adobe-first release scope is unchanged. See [vendor assurance](docs/releases/vendor-parity-assurance.md).
 
 ### Airlock vocabulary (full defs in [glossary](docs/memory/glossary.md))
 - **airlock** - the mediated main-thread↔worker boundary; nothing crosses without going through the capability bridge.
@@ -31,6 +32,7 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 ### Active specs
 - [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01/04/05/06/07/08 DONE. Recorded-payload checker and passive browser request/response recorder are implemented; initial receipts are preserved. Full 051-02 live/control/performance and actual chamber proof remain; further reporting is nonblocking follow-up. [Operator guide](probes/adobe-compatibility/README.md).
 - **052-057** — unsliced DRAFT outlines for the remaining [Adobe release portfolio](docs/releases/adobe-compatibility.md#jig-handoff); refine after 051 evidence. See [status board](docs/specs/README.md).
+- **058-060** — DRAFT shared evaluation, full Google Ads and full Meta Pixel specs; native-reference and readiness gates remain open. No full vendor implementation or additional live-send grant.
 
 ### Deferred decisions
 - See [docs/refinement-todo.md](docs/refinement-todo.md).

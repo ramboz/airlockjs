@@ -3,7 +3,7 @@
 ## Current posture
 
 This is a complete **DRAFT authoring packet**, not implementation approval.
-ADR-0033 stays Proposed, 058 stays DRAFT, and all 059 slices stay DRAFT.
+ADR-0033 is Accepted for the owner's target; 058 and all 059 slices stay DRAFT.
 The parent owns formal frame/architecture/compliance/craft/reconciliation review,
 authority/index integration, shared 058, code discovery and trunk collision checks.
 No native event, account mutation, shared-site deployment or runtime code work
@@ -19,9 +19,10 @@ This grant cannot fund a full implementation/live-event loop by implication.
 
 ## Ordered readiness and implementation plan
 
-1. Parent reviews the proposed frame, reconciles live authority (including the
-   vision's read-only-cookie premise), and accepts ADR-0033 only through its real
-   gates. Do not edit Accepted histories or reuse Adobe reporting exceptions.
+1. ADR-0033's frame review and acceptance are recorded; the live vision now
+   separates general identity services from required vendor-cookie continuity.
+   This does not satisfy implementation/evidence gates. Do not edit Accepted
+   histories or reuse Adobe reporting exceptions.
 2. Qualify 058-01 local receiving sink, guard, marker-loss branches, bounded
    capture drain and unreadable-body/error outcomes. Qualify 058-02 for the
    exact Google native runtime/configuration/browser/scenario, then 058-03

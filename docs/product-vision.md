@@ -44,7 +44,17 @@ GTM / Adobe Launch / Tealium: main-thread, ambient-authority, optimize load timi
 
 In scope: the runtime substrate (main-thread capture-and-enqueue, worker-side drain/mapping/egress); the event-log-plus-projection datalayer; the worker connector runtime (chambers); capability-mediated DOM injection and egress; EDS three-phase integration; both connector archetypes — wire-protocol (GA4, generic pixel, Google Ads, Floodlight) and wrapped-SDK (alloy) — plus the helix-rum RUM authority; CWV-safe content injection; consent gating at the seal; and first-class diagnostics/inspector.
 
-Out of scope (explicit no-gos for the first releases): session replay / full DOM-mutation streaming (antagonistic to "no DOM access"); identity resolution and a first-party cookie store (airlock reads existing vendor cookies read-only, but never mints identity or keeps its own cookie store); the service-worker egress chokepoint (MVP uses direct keepalive; SW is a later progressive enhancement); edge decision/egress *drivers* (the seams exist from day one, the drivers come later); non-EDS framework adapters (a post-1.0 direction; EDS is the only supported adapter through 1.0).
+Out of scope (explicit no-gos for the first releases): session replay / full DOM-mutation streaming (antagonistic to "no DOM access"); general-purpose identity resolution and an independent first-party identity service; the service-worker egress chokepoint (MVP uses direct keepalive; SW is a later progressive enhancement); edge decision/egress *drivers* (the seams exist from day one, the drivers come later); non-EDS framework adapters (a post-1.0 direction; EDS is the only supported adapter through 1.0).
+
+**Parallel full-replacement target (2026-10-15,
+[ADR-0033](decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md)).**
+Prepare complete Google Ads and Meta Pixel reimplementations, including matching
+host-side behavior, without lost collection or changed attribution-bearing
+semantics. The historical read-only-cookie premise cannot exclude vendor-cookie
+continuity required by this target. That is a governed design/evidence obligation,
+not an implemented cookie writer, ambient jar grant or permission to break the
+stable core. Genuine conflicts are decided individually. Specs 058-060 are DRAFT;
+the current runtime remains a subset and Adobe-first v1.0 is unchanged.
 
 **The next adoption direction ([ADR-0031](decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)).**
 Start with Adobe-first compatibility: keep the official Alloy.js SDK in a chamber, migrate the
@@ -246,7 +256,12 @@ Fail-safe: a guarded boot, so a load/boot failure never breaks the page — anal
 _(category: Scope & Boundaries)_
 _(provenance: [grounded: connectors/ga4/cookies.js + Google Ads / Floodlight specs])_
 
-airlock may READ existing vendor cookies read-only, but never MINTS identity or maintains its own cookie store. The out-of-scope line means "no identity resolution, no first-party cookie store" — not "touches no cookies".
+The earlier read-only clarification bounded the then-selected vendor work; it
+does not limit the full Google/Meta target adopted in ADR-0033 on 2026-10-15.
+General identity resolution and an independent identity service remain out of
+scope. Required vendor-cookie creation/continuity needs a narrowly mediated,
+consent-respecting design and actual scenario evidence before implementation;
+no ambient cookie jar or unrestricted storage grant follows from that target.
 
 ### Coverage summary
 

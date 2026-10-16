@@ -7,6 +7,13 @@
 > Further customer vendor migrations use the [vendor-assurance plan](../releases/vendor-parity-assurance.md);
 > changing the release gate does not establish full replacement parity.
 
+**Full Google/Meta target (2026-10-15):**
+[ADR-0033](../decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md)
+and DRAFT specs 058-060 own complete replacement preparation. The bounded
+procedure below is not that full-support claim: missing identity, request
+branches, host behavior or attribution evidence remains unfinished work, even
+when the existing curated regression report passes.
+
 > The **scripted adoption path** ([ADR-0018](../decisions/adr-0018-reframe-onto-adoptable-one-point-oh.md) E8): a
 > developer rewires an intuit-class site's TBT-dominant vendor tags (GA4, Google Ads, Floodlight, Meta, …) from its
 > Tealium / GTM / Launch container onto airlock — **page-side, with no container-owner or container-profile change** —

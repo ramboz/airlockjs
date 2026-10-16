@@ -73,6 +73,11 @@ The property that the migrated events reach the vendor with equivalent relevant 
 
 The vendor-generic capture -> replay -> oracle -> report tool (spec 038) that compares a curated beacon-field set with per-protocol descriptors and named gaps. An owned missing field can still produce `pass`, and hashed fields may prove only presence; the report is not full tag, transport or attribution parity. Separate transport reporting and live vendor outcomes complete the evidence. Each real site supplies redacted captures.
 
+For the full Google/Meta target in [ADR-0033](../decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md),
+specs 058-060 require qualified positive references, complete sequences and
+value relationships. Empty/incomplete references are inconclusive; neither a
+gap owner nor equal redaction sentinels establishes replacement equivalence.
+
 ## rewire
 
 Moving supported vendor behavior from a main-thread tag-manager container (Tealium / GTM / Adobe Launch) to an Airlock connector: the native tag stops firing and Airlock emits the scoped governed replacement. ADR-0031 makes Adobe/`aem-martech` the initial adoption path; third-party rewires follow measured offender cost and customer-specific fidelity evidence, not an assumed full-equivalence claim.

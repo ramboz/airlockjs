@@ -11,6 +11,10 @@
 > [ADR-0032](decisions/adr-0032-airlock-boundary-acceptance.md) qualifies actual final
 > dispatch, governed controls and real returned/host behavior; further vendor reporting
 > is a nonblocking follow-up. No module interface or runtime capability changes here.
+> [ADR-0033](decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md)
+> adds parallel preparation for complete Google Ads and Meta Pixel replacement.
+> Specs 058-060 remain drafts; this does not promote the subset connectors below
+> to full support or change existing APIs, grants or Adobe acceptance.
 >
 > Vocabulary: **the airlock** = the mediated boundary; a **chamber** = a connector's sandbox; a **cycle** / **lock-through** = a batch crossing to the worker; **the seal** = consent/allowlist gating. Repo/package slug: `airlockjs`; connector namespace `airlock/*`.
 
@@ -48,6 +52,12 @@ Three cross-connector facts that are architectural, not per-connector:
 - **Egress-confined chambers.** A chamber that emits is egress-confined (`withholdFetch`): it maps the beacon off-thread and hands a ready request back, and only the main-thread orchestrator dispatches it. A compromised chamber cannot reach the network directly.
 - **Consent-gated ad connectors.** `google-ads` and `floodlight` are `ad_storage`-purposed and opt into `holdOnDenied` ([ADR-0023](decisions/adr-0023-ad-pzn-egress-hold-until-consent.md)): a denied purpose holds the beacon instead of sending, and it is re-mapped under the current consent when a grant flushes it.
 - **Shared Consent-Mode encoder.** `connectors/consent-mode.js` holds the gtag-family Consent Mode v2 (`gcs`/`gcd`/`npa`) encoders, reused by `ga4-gtag`, `google-ads`, and `floodlight`. It lives connector-side, not in `core/`, because it emits Google-specific wire strings and `core/` carries no vendor coupling (the [conventions](conventions.md) *code-home rule*).
+
+For full replacement, the observed hold-on-denied deployment is not a universal
+Google consent contract: basic and advanced consent behavior both need qualified
+references. Vendor-cookie writers, timing-critical DOM/linker operations and
+credentialed transport are requirements to investigate under ADR-0033, not
+capabilities silently granted by this architecture summary.
 
 ### The native-tag suppressor and consent-input drivers
 

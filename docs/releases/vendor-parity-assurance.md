@@ -11,6 +11,14 @@
 Post-Adobe-first direction; version, appetite and build commitment unassigned.
 Captured 2026-10-06 under [ADR-0031](../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md).
 
+**Google/Meta preparation active (2026-10-15).**
+[ADR-0033](../decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md)
+records the owner's complete-replacement target. The preparation grant is
+shared 25,000 AI credits and a four-active-hour checkpoint for specs and local
+evaluation qualification only. It is not release commitment, full implementation,
+additional live-event authority or a change to Adobe-first v1.0. A written
+ceiling is not a claim that the host exposes an enforceable shared credit meter.
+
 ## Problem / Baseline
 
 - The parity oracle compares curated fields and permits owned gaps. A passing report is a scoped
@@ -24,8 +32,11 @@ Captured 2026-10-06 under [ADR-0031](../decisions/adr-0031-reframe-onto-adobe-fi
 
 ## Appetite
 
-Choose one observed offender and its customer-critical journeys first; estimate only after access
-and unsupported behaviors are enumerated. No fixed date or automatic next-minor assignment.
+Google and Meta now have parallel full-target preparation, not permission to
+drop unimplemented native behavior from the adoption contract. Build vertical
+journeys incrementally, but preserve the complete inventory and open evidence.
+Other vendors remain candidates; estimate after their access and unsupported
+behaviors are enumerated. No fixed release date or automatic next-minor assignment.
 
 ## Solution Outline
 
@@ -42,6 +53,7 @@ and unsupported behaviors are enumerated. No fixed date or automatic next-minor 
   window. Use test properties before production; avoid duplicate revenue conversions.
 - Compare official server-side APIs/event forwarding with browser-wire replacement when they
   reduce maintenance or improve fidelity; retain consent, deduplication and vendor eligibility.
+  For Google/Meta these are complementary paths, not substitutes for required browser behavior.
 - Publish a versioned supported-behavior contract, customer acceptance of material differences,
   controlled rollout/rollback, browser support matrix and upstream-drift monitoring.
 
@@ -59,8 +71,13 @@ no customer-custom connector shipped; no unapproved production dual-send.
 ## JIG Handoff
 
 UC-4, UC-5, UC-6, UC-10, UC-11. Reuse specs 026, 038-048 and the current
-[refinement ledger](../refinement-todo.md); draft one vendor/journey at a time after the owner commits
-the release. Historical MVP9 residuals remain their original evidence obligations.
+[refinement ledger](../refinement-todo.md). New DRAFT owners are
+[058](../specs/058-native-tag-evaluation-qualification/spec.md) for recorder/evaluation
+qualification, [059](../specs/059-google-ads-full-compatibility/spec.md) for Google
+and [060](../specs/060-meta-pixel-full-compatibility/spec.md) for Meta.
+Historical MVP9 residuals remain their original evidence obligations. No stage
+or owned gap becomes a full replacement pass; actual dispatch, receipt, matching
+and attribution remain separate claims.
 
 ## Release-Check Criteria
 

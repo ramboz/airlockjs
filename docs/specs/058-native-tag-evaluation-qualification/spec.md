@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 skill: spec-workflow
 use_cases: [UC-7, UC-10, UC-11]
 ---
@@ -14,7 +14,7 @@ Ads and Meta Pixel replacement, not implementation of those tags.
 
 ## Overview
 
-Under [proposed ADR-0033](../../decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md),
+Under [ADR-0033](../../decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md),
 full replacement requires complete, value-preserving wire and browser behavior.
 The present phase may build and qualify local tooling, but authorizes no new
 live vendor events, production captures, site deployment or chamber feature work.

@@ -16,8 +16,9 @@ ambient access or moving unbounded work onto the main thread.
 **Preparation only.** All twelve slices are DRAFT. This packet implements
 nothing, requests no additional event, and claims no completed review.
 [ADR-0033](../../decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md)
-is **Proposed** and [058](../058-native-tag-evaluation-qualification/spec.md)
-is **DRAFT**. They are prerequisites, not authority already satisfied.
+is **Accepted** for the target/framing only; [058](../058-native-tag-evaluation-qualification/spec.md)
+remains **DRAFT**. The actual qualification, access and readiness prerequisites
+are not satisfied merely by accepting the target.
 The reservation remains provisional until the parent checks trunk collisions.
 
 ## Overview
@@ -46,8 +47,10 @@ must not silently change the stable core frozen by
   legacy documentation is not evidence that every historical API is still supported.
 - Preserve required coexistence with native Google Analytics 4 (GA4) and Google
   Tag Manager (GTM). Do not reimplement all GA4, arbitrary GTM containers or
-  JavaScript evaluation, Floodlight, mobile/AMP runtimes, or vendor backends.
-  Their shared dependencies and interactions cannot be silently dropped.
+  JavaScript evaluation, Floodlight, native mobile-app SDKs, the AMP framework
+  itself, or vendor backends. Required browser-tag behavior on supported mobile
+  and AMP journeys remains in discovery/coverage; framework dependency is not a
+  feature exclusion. Shared dependencies and interactions cannot be silently dropped.
 - Direct Ads tagging does not universally require GA4 import/linking. Merchant
   feeds, customer-data terms, call resources and offline lead imports are
   feature-specific prerequisites, not substitutes for the browser leg.
@@ -249,9 +252,9 @@ exclusions. `Uxx` below refers to `ADS-INVENTORY`'s explicit unknowns.
 | B8 | Legitimate downstream receipt/matching/reporting/attribution evidence and correlation plan. No fake click, replayed purchase or HTTP-only substitute. | Parent/formal validation owner; each path and 12. |
 
 Vendor-cookie support is required work, not permission for a general first-party
-identity service. The vision's current read-only clarification and Proposed
-ADR-0033's prospective governed-writer direction must be reconciled by the parent
-before a dependent design claims authority. This draft does not amend either.
+identity service. ADR-0033 and the vision now distinguish that no-go from required
+vendor-cookie continuity. This is prospective governed design work, not an
+approved writer implementation, ambient jar or stable-core break.
 Likewise, documentation saying phone consent support is pending requires bounded
 native discovery; it is not permission to send without Airlock consent controls.
 
@@ -318,15 +321,3 @@ Ads cart `id` and imported GA4 `item_id` cannot be flattened into one schema.
 Generic cookie settings do not establish the lifetime/applicability of every
 Ads key. Browser-attribution mechanisms require current observed native use,
 not inference from a general or obsolete API overview.
-
-## Assumptions
-
-_TBD — list load-bearing assumptions about runnable surfaces (library/API capability, version/perf behavior, behavior of existing code); probe-back (run it / cite source) or mark explicitly here. Risk-gated: omit (or write "None") when there are no unverified load-bearing assumptions — do not pad with boilerplate._
-
-## Decomposition
-
-_TBD — SPIDR analysis. See SKILL.md for the five axes (Spike / Paths / Interfaces / Data / Rules)._
-
-## Slices
-
-- [059-01 — tbd](slice-01-tbd.md)

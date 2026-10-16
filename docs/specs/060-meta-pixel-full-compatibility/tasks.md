@@ -6,9 +6,11 @@ implementation. An authored AC is not a passing evaluation.
 ## Authority and reference readiness
 
 - [ ] Parent checks provisional 060 allocation and integrates the folder.
-- [ ] Parent frame-reviews/accepts Proposed ADR-0033 and owns live-prose/index work.
+- [x] Parent recorded ADR-0033 frame review/acceptance and owns live-prose/index work.
+      Actual qualification and implementation gates remain open.
 - [ ] Review this DRAFT and each slice frame; resolve load-bearing assumptions.
-- [ ] Parent supplies semantic-index-backed current source/seam evidence.
+- [ ] Parent supplies current source/seam evidence using available semantic tools
+      or targeted source reads per the project workflow.
 - [ ] Qualify 058-01 local recorder/no-send for the exact declared transport set.
 - [ ] Qualify 058-02 with a positive automated native Meta PageView, not an empty trace.
 - [ ] Qualify 058-03 sequence/value comparison and falsifiable mutation controls.

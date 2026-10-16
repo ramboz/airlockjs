@@ -1,9 +1,10 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 dependencies: [adr-0033]
 last_verified:
 frame_review: true
 arch_review: true
+claimed_by: google-and-meta-feasibility
 ---
 
 ## Slice 058-01 - Local recorder and no-send qualification
@@ -13,10 +14,12 @@ showing whether a real local receiving sink, recorder and declared no-send
 boundary agree.
 
 **DoR:**
-- [ ] ADR-0033 is accepted after frame review; this slice's frame is reviewed.
-- [ ] Inspect existing recorder and browser-test prior art before selecting code.
-- [ ] Pin supported browser, declared transport set, count/byte/time limits and
-      private-output shape before implementation; do not claim untested breadth.
+- [x] ADR-0033 is accepted after frame review; this slice's frame is reviewed.
+- [x] Coordinator inspected existing recorder/browser-test prior art; preserve
+      Adobe-specific routing and implement a separate local qualifier.
+- [x] `plan.md` pins the executed local runtime, declared transport set,
+      count/byte/time ceilings, private-output and closed public-report shape.
+      Untested surfaces are explicitly not qualified.
 
 **Acceptance Criteria:**
 

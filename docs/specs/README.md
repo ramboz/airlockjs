@@ -188,11 +188,33 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-06 — deployed stock smoke journey | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-07 — checking recorded stock wire semantics | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-08 — observing browser request and response bytes | **DONE** |  |
-| [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-01 - Local recorder and no-send qualification | DRAFT |  |
+| [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-01 - Local recorder and no-send qualification | IN_PROGRESS (google-and-meta-feasibility) |  |
 | [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-02 - Pinned native attempted-request reference | DRAFT |  |
 | [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-03 - Value-preserving comparison controls | DRAFT |  |
-| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-01 — tbd | DRAFT |  |
-| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-01 — tbd | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-01 - Owned direct conversion cutover | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-02 - Command routing and callback journeys | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-03 - Consent-respecting measurement journeys | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-04 - Returning and linked journeys | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-05 - Audience and dynamic remarketing journeys | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-06 - Rich purchase and counting journeys | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-07 - Manual enhanced matching journeys | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-08 - Automatic and lead matching journeys | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-09 - Website-call forwarding journey | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-10 - Remote rules and browser lifecycle journeys | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-11 - Mixed-tag migration and rollback | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-12 - Full-portfolio adoption qualification | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-01 - Replace bootstrap and first PageView | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-02 - Report complete event and commerce data | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-03 - Route and configure multiple Pixels | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-04 - Apply consent and processing choices | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-05 - Preserve anonymous and click continuity | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-06 - Match explicit identity through account changes | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-07 - Match approved forms automatically | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-08 - Preserve code-less event and metadata collection | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-09 - Measure navigation, exit and no-JavaScript journeys | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-10 - Correlate browser and server events | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-11 - Diagnose connected product collection | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-12 - Cut over, roll back and maintain assurance | DRAFT |  |
 
 ## Deferred slices
 
