@@ -26,9 +26,10 @@ sets complete Google Ads and Meta Pixel replacement as the target, without
 changing Adobe's release gate. Specs [058](docs/specs/058-native-tag-evaluation-qualification/spec.md),
 [059](docs/specs/059-google-ads-full-compatibility/spec.md) and
 [060](docs/specs/060-meta-pixel-full-compatibility/spec.md) cover trustworthy
-evaluation and the two vendor inventories. The shared local qualifier is
-implemented; actual native-reference/comparison gates remain open and the vendor
-specs remain drafts, not full support. The shipped connectors remain bounded subsets.
+evaluation and the two vendor inventories. The shared local qualifier and one
+retained Meta PageView reference are implemented; Google source-input and full
+comparison/readiness gates remain open. Vendor specs are drafts, not full
+support. The shipped connectors remain bounded subsets.
 
 The [local qualification guide](rig/native-tag-qualification.md) describes its
 fixed loopback-only evidence layer, explicit browser suite and non-vacuity

@@ -189,7 +189,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-07 — checking recorded stock wire semantics | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-08 — observing browser request and response bytes | **DONE** |  |
 | [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-01 - Local recorder and no-send qualification | **DONE** |  |
-| [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-02 - Pinned native attempted-request reference | RECONCILED (google-and-meta-feasibility) |  |
+| [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-02 - Pinned native attempted-request reference | **DONE** |  |
 | [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-03 - Value-preserving comparison controls | DRAFT |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-01 - Owned direct conversion cutover | DRAFT |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-02 - Command routing and callback journeys | DRAFT |  |

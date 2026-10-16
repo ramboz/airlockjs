@@ -1,10 +1,9 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [058-01]
 last_verified: 2026-10-16
 frame_review: true
 arch_review: true
-claimed_by: google-and-meta-feasibility
 ---
 
 ## Slice 058-02 - Pinned native attempted-request reference
@@ -100,8 +99,8 @@ reference or an actionable blocked result through one end-to-end command.
 
 ### Close-out (post-DONE)
 
-- [ ] Final DONE gate cleared after the implementation commit.
-- [ ] Regenerate/check the board; record evidence limits and durable learnings.
+- [x] Final DONE gate cleared after the implementation commit.
+- [x] Regenerate/check the board; record evidence limits and durable learnings.
 
 ### Deviation log (after reconciliation)
 
