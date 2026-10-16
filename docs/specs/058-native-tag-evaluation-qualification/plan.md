@@ -165,3 +165,33 @@ pass permits reacquisition, download or resend. Shared comparison work 058-03,
 the full vendor matrices, actual chamber/outcome proof and unattended readiness
 remain future work. This outcome is within the approved two-hour preparation
 pass; it does not reset the shared 25K target or claim exact cost metering.
+
+## 058-04 Google source/offline pass (2026-10-16)
+
+The owner explicitly selected "Approve read-only downloads and offline
+qualification (Recommended)" for up to one active hour within the existing
+shared preparation target. Start is 17:01:45Z; the conservative outer stop is
+17:57:38Z. There is no reliable aggregate credit meter and no new allocation.
+
+Google's owning session acquires only inert owned official script/configuration
+resources and private provenance; the coordinator owns the fixed offline
+profile. This is a new pinned source cohort. Historical missing runtime and
+measurement responses, blocked auxiliaries and incomplete fan-out remain
+unchanged. Measurement dispatch, site/account changes and full implementation
+remain unauthorized. Source acquisition and native execution are separate:
+every actual native execution retains the qualified process/resolver/HTTP
+boundary, with all resources locally fulfilled or aborted before dispatch.
+
+Add one vertical profile to the existing runner rather than copying the
+containment implementation. Require actual owned primary conversion and
+distinct-value relationships, preserve the existing Meta profile, and record
+unknown browser/dependency behavior as inconclusive. Consent transitions and
+measurement-response fan-out are not qualified by this pre-response profile.
+No 058-03 comparison or vendor implementation phase starts automatically.
+
+The initial guarded Google diagnostic captured owned primary conversions but
+remained inconclusive on uncatalogued auxiliary attempts. These include a
+measurement-response Script, not a newly authorized executable dependency.
+Static source/ownership classification must precede a narrow auxiliary catalog;
+all such requests remain aborted and retained. Interception can affect fallback
+attempts, so this receipt is not an uninterrupted native response chain.

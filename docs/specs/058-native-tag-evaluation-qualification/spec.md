@@ -75,8 +75,11 @@ does not turn an empty positive reference into success.
 ### Safety and scope
 
 - Use loopback sinks and locally fulfilled pinned resources; fail closed before
-  fixture code executes. No customer/Intuit traffic, vendor SDK downloads,
-  account mutations, campaigns, ad spend, live resends or proxy fallback.
+  fixture code executes. No customer/Intuit traffic, account mutations, campaigns,
+  ad spend, live resends or proxy fallback. The completed 058-01/02 passes did
+  not authorize vendor downloads. The separately approved 2026-10-16 Google
+  pass permits only inert owned script/configuration downloads under 058-04;
+  its offline runner still has no network-acquisition fallback.
 - Declare the exact tested browser/transport surface. Each claimed transport
   needs a matched same-run positive that actually reaches its loopback tripwire,
   an enforced zero-arrival leg, and a loopback-only disabled-guard failing
@@ -110,6 +113,7 @@ the local qualifier; unknown native behavior remains an explicit blocked case.
 - [058-01 — local recorder and no-send qualification](slice-01-local-qualification.md)
 - [058-02 — pinned native attempted-request reference](slice-02-native-reference.md)
 - [058-03 — value-preserving comparison controls](slice-03-comparison-controls.md)
+- [058-04 — owned Google conversion attempted-reference](slice-04-google-native-reference.md)
 
 Vendor specifications [059](../059-google-ads-full-compatibility/spec.md) and
 [060](../060-meta-pixel-full-compatibility/spec.md) consume named evidence layers,

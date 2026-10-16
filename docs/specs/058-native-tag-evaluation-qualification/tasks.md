@@ -17,6 +17,8 @@
 - [x] Close 058-02's bounded profile through its final gate after the code commit.
 - [ ] Close Google native input/dependency gaps under a separate explicit grant;
       missing bytes never trigger automatic acquisition or resend.
+- [ ] Implement and qualify 058-04's newly pinned Google attempted-reference
+      profile under the approved bounded read-only source/offline pass.
 - [x] Preserve original headless no-beacon and incomplete Google history. A new
       headed offline profile is separate evidence, not a retrospective pass.
 - [ ] Add value-preserving sequence comparisons and mutation controls.
