@@ -1,10 +1,79 @@
 # Plan - full Meta Pixel compatibility
 
-This packet plans complete replacement, not a curated subset. It is DRAFT
-authoring under a preparation-only grant; none of the runtime journeys below is
-implemented, reviewed or authorized to execute by this document.
+## First-journey readiness checkpoint - 2026-10-16
 
-## Current grant and stop controls
+**Status: first slice READY_FOR_REVIEW (authoring) / not implementation-ready.**
+The recorded frame pass concerns the blocked-draft premise, not boundary fit
+or live authority. The source-backed legacy baseline
+is verified; full `fbq`/PageView replacement and complete native wire are not.
+The headed 058-02 positive is already available. The older headless no-beacon
+is a separate unqualified cohort, not a reason to reopen a missing-positive
+setup loop or claim a universal cause.
+
+Source base `44fd386` and the same `READY-HERMETIC-1` 155-test checkpoint are
+shared with [059's first-journey plan](../059-google-ads-full-compatibility/plan.md#first-journey-readiness-checkpoint---2026-10-16).
+`READY-WORKER-1` drove the actual exported Meta boot, real built module worker,
+serialized init/events/reply and main-side fetch under process network denial
+and local fulfillment only. It emitted one legacy PageView but installed no
+`fbq`. No native SDK, backend send, source deployment or new compatibility
+implementation occurred. Earlier private diagnostic timeouts were caused by
+the probe incorrectly passing the internal `{ type, params }` shape into the
+public `push`; the documented `{ event, ...params }` shape resolved them.
+They are not evidence of a shipped worker defect.
+This was a headless first-party diagnostic with explicit host consent, not a
+matched replay of the headed SDK/native-default consent cohort. The real
+comparison must pin native calls/privacy state separately from the owner's
+host permission; neither may be inferred from the other.
+
+| First-path requirement | Current evidence | Disposition |
+|---|---|---|
+| Native-compatible entry | `bootMetaPixel` delegates at `adapters/eds/index.js:1221-1223`; its handle is built at `:1156-1168`, with no global facade in the actual boot probe. `contracts/push-api.md` pins synchronous object pushes, not `fbq` argument commands. | Add an opt-in capture-only facade/aliases/readiness correlation; keep interpretation off-thread and keep the stable push contract. Queue, argument mutation, duplicate-init and callback semantics need native path evidence. |
+| Real worker substrate | `core/airlock.js:328-379`, `core/pixel-chamber.worker.js:61-151` and `core/connector-host.js:40-113`; actual built worker and serialized reply observed. | Reuse confinement and ordering without calling a FakeWorker or main-thread mapper an implementation. |
+| Complete PageView data | `connectors/pixel/vendors/meta.js:96-120` maps id/event and four custom-data fields. A parameter-free legacy PageView emitted only id/event; `READY-GAP-1` found 74 native query-field occurrences absent and a different default path spelling in the retained baseline. | Every observed native field and path/encoding/absence distinction needs classification. Missing native identity/document/environment/configuration behavior cannot be normalized into parity. |
+| Cookie / matching continuity | Generic pixel capabilities are supplied as `{}` at `core/pixel-chamber.worker.js:111`; its manual hash channel is separate. The default vendor config has no first-party `fbp`/`fbc` sourcing/writer. | Native client identity and consent-governed persistence require complete reference evidence and a narrow host design. The manual hashed-identity channel is not automatic matching or first-visit cookie parity. |
+| Browser transport / response | `core/airlock.js:432-433` and `core/egress.js:52-54` dispatch GET keepalive Fetch; the actual local probe observed Fetch, whereas the retained native measurement was an Image. | Browser credentials, relevant Fetch metadata, final cookie/header behavior and response/redirect effects must be observed, not assumed equivalent. Do not fake HTTP status from an image load or execute arbitrary response Script on main. |
+| Round-trip candidate | Existing `GrantedCapabilities.egress.dispatch` is at `contracts/capability.d.ts:185-187,243-260`; current wire workers do not receive it. The separate EDS wrapped host returns only Content-Type at `adapters/eds/index.js:1606-1615`. | Investigate a first-party worker plus bounded host policy. This is reuse of a contract candidate, not permission to wrap the official runtime in production or silently widen a frozen type. |
+| Independent comparison | Current 058 comparator validates supported native/local producer schemas on both inputs (`rig/native-tag-comparison.mjs:403-554,690-692`). | Qualify a chamber-native-absence/worker-provenance capture adapter. Do not label a chamber as a native producer or use exact copied native controls as an independent replacement result. |
+| Performance | The actual legacy probe was instrumented and SDK-free. It is not a native or adoption CWV baseline. | Apply the matched measurement protocol below and pin measured numeric acceptance before implementation, not at final portfolio closure. |
+
+### Proposed boundary and capture
+
+Prefer a separately opt-in per-vendor facade/standalone boot and first-party
+chamber, preserving existing subset boots and the installed stable handle.
+The experimental standalone/config/event-payload seams are candidates, not an
+approved broad capability. No stable-core contradiction is established yet;
+stock response/configuration and Image/script/credential behavior must determine
+the smallest safe design.
+
+The shared **approval-required** paired four-case envelope, exact guard
+qualification, one-shot authority, coordination and privacy requirements are in
+[059's plan](../059-google-ads-full-compatibility/plan.md#proposed-native-capture-envelope---approval-required).
+Meta's proposed stock case is one pinned native init plus one PageView in a
+fresh synthetic owned-origin fixture; one conditional SDK-absent chamber
+init/PageView may follow only after its real prerequisites pass. There are at
+most eight admitted vendor requests per case (sixteen total), with the same
+absolute 60-second/byte limits. It does not authorize
+additional custom events, identity values, campaigns, account changes, wider
+destinations or a replay of the owner's normal authenticated browser.
+Owned Pixel identity is required on collection traffic; an unproved redirect or
+marker-free companion remains blocked rather than receiving a host wildcard.
+The existing no-send process boundary cannot simply be disabled and called a
+qualified live guard.
+
+Use the [matched evaluation/performance protocol](../059-google-ads-full-compatibility/plan.md#evaluation-and-performance-protocol)
+for no-tag, stock and SDK-absent chamber cases. Keep actual vendor responses,
+locally replayed responses, window/queue/cookie outcomes and operator Test
+Events observations separate. Default-on/exact-off and duplicate-off policy
+must be checked on the real owned setup; the 058 generated fixture's generic
+`native=disabled` control is not proof of the site's distinct query bootstrap.
+No `.servo` component/readiness approval or full support claim follows.
+
+This packet plans complete replacement, not a curated subset. Its first
+authoring frame is reviewed and the other eleven slices remain DRAFT; none of
+the runtime journeys is implemented, implementation-reviewed or authorized to
+dispatch by this document.
+
+## Original authoring grant and stop controls (historical)
 
 The owner granted about 25,000 AI credits TOTAL across parent and both vendor
 sessions, not per agent, and selected a four-active-hour preparation checkpoint.
@@ -14,12 +83,15 @@ No hard automatic credit meter is exposed to this author. Do not describe the
 written amount as an enforced cap or invent usage totals; parent coordinates
 available usage observations and stops conservatively.
 
-This turn may author/commit only this folder, derive frame-review flags, run
-the existing read-only spec linter and `git diff --check`. It may not implement
+The original authoring turn could author/commit only this folder, derive frame-review flags, run
+the existing read-only spec linter and `git diff --check`. It could not implement
 runtime/tooling, execute browsers/SDKs/events, mutate accounts/sites, provision,
 deploy, push, run tests/builds, start nested agents/loops or write approval state.
 Shared 058, ADR/index/board, source discovery and formal reviews remain parent-owned.
 The local 060 reservation must still pass parent's integration collision check.
+The later autopilot objective extends ordinary repository readiness work toward
+the first journeys where their DoR permits it; it does not grant live sends,
+create a numeric credit allocation or approve Servo components/loops.
 
 ## Dependency/evidence order
 

@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 skill: spec-workflow
 use_cases: [UC-4, UC-5, UC-6, UC-7, UC-8, UC-9, UC-10, UC-11, UC-13, UC-14]
 ---
@@ -13,7 +13,10 @@ chamber without losing collection or changing attribution-bearing behavior.
 The work keeps vendor interpretation off the main thread and privileges
 mediated; undocumented behavior and missing evidence remain work, not exceptions.
 
-This is a complete **DRAFT**, not an implementation or compatibility claim.
+This remains preparation, not an implementation or compatibility claim.
+The first slice is READY_FOR_REVIEW for authoring after a blocked-draft frame
+pass; the other eleven remain DRAFT. Boundary fit, implementation readiness and
+live authority are not certified by that review.
 The main tradeoff is more discovery and browser-side capability work in exchange
 for a replacement an adopter can actually trust.
 

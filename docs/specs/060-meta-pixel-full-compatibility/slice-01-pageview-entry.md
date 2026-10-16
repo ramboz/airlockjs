@@ -1,10 +1,11 @@
 ---
-status: DRAFT
+status: READY_FOR_REVIEW
 dependencies: [adr-0033, 058-01, 058-02, 058-03]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
+claimed_by: google-and-meta-feasibility
 ---
 
 ## Slice 060-01 - Replace bootstrap and first PageView
@@ -13,11 +14,14 @@ arch_review: true
 through fbq and sees actual governed chamber dispatch with a truthful comparison.
 
 **DoR:**
-- [ ] ADR-0033 is Accepted; this frame and the proposed boundary fit are reviewed.
-- [ ] Parent supplies current capture/boot/seal/seam evidence without modifying
-      ADR-0017's frozen contracts.
+- [x] ADR-0033 is Accepted for the target.
+- [ ] This slice frame and proposed boundary fit are reviewed.
+- [x] Parent supplies current legacy boot/seal/worker/source evidence without
+      modifying ADR-0017's frozen contracts; gaps are recorded, not qualified away.
 - [ ] 058-01/02/03 qualify the exact Meta recorder, positive `native_attempt`
-      reference and comparison surface; the present no-beacon case is unresolved.
+      reference and comparison surface needed for this journey. A selected
+      headed positive now exists; full native wire/independent chamber evidence
+      is still missing, and the original headless cohort remains inconclusive.
 - [ ] Explicit private handles supply pinned resources, owned page/source,
       browser/profile/settings and a separate finite actual-dispatch grant.
 
@@ -43,7 +47,7 @@ through fbq and sees actual governed chamber dispatch with a truthful comparison
    blocking runtime/configuration, disabling the observer and substituting the
    known empty reference each fails or becomes inconclusive as appropriate.
    HTTP 200, callable fbq, one Pixel record and owner Test Events receipt cannot
-   replace the missing automated positive.
+   replace the complete independently qualified scenario reference.
 6. The operator receives per-call/request correlation and a visible held,
    dropped, denied, unavailable or incomplete explanation without identifiers
    in public output. No main-thread mapping/hash work, direct-connector shortcut,
@@ -63,13 +67,32 @@ through fbq and sees actual governed chamber dispatch with a truthful comparison
 **Anti-horizontal-phasing check:** The integrator gets a first actual
 replacement PageView plus an actionable report, not a queue/parser-only layer.
 
+## Readiness checkpoint - 2026-10-16
+
+**READY_FOR_REVIEW (authoring) / blocked before implementation**. The
+blocked-draft frame pass is not boundary-fit or live authority approval.
+The [first-path source plan](plan.md#first-journey-readiness-checkpoint---2026-10-16)
+and actual built-worker probe establish a functioning legacy substrate, not
+native bootstrap/PageView parity. The boot installed no `fbq`; its parameter-free
+PageView carried only the configured ID/event, lacked 74 native query-field
+occurrences in the retained baseline and used a different default path spelling.
+Its main-side transport was Fetch, not the native reference's Image.
+
+The 058-02 headed SDK/dependency-positive attempt is not missing anymore.
+Do not conflate it with the older headless no-beacon or unpaired owner receipt.
+Complete response/cookie/configuration/host effects, native queue semantics,
+independent chamber capture and evidence-backed performance remain required.
+The linked paired four-case plan requests authority; it does not grant it or
+claim the existing no-send guard can be disabled for live use. No site,
+runtime, account or `.servo` approval changed.
+
 ## Assumptions
 
 - Unverified: current entry/bridge seams can preserve the reference's fbq
   invocation behavior without changing the frozen synchronous/void push API.
-- Unverified: a positive automated native PageView and relevant actual browser
-  response evidence can be acquired with the approved boundaries. Current
-  automated/owner differences have unknown cause.
+- The selected headed automated PageView attempt is grounded by 058-02; relevant
+  actual response/cookie/host evidence remains unverified. The older headless
+  and unpaired-owner observations keep their own scope and unresolved history.
 
 ### Close-out (post-DONE)
 

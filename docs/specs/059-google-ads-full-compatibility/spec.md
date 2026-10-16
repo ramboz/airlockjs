@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 skill: spec-workflow
 use_cases: [UC-4, UC-5, UC-6, UC-7, UC-8, UC-9, UC-10, UC-11, UC-13, UC-14]
 ---
@@ -13,8 +13,11 @@ The main tradeoff is that complete browser behavior needs qualified native
 evidence and narrowly mediated host operations without giving vendor code
 ambient access or moving unbounded work onto the main thread.
 
-**Preparation only.** All twelve slices are DRAFT. This packet implements
-nothing, requests no additional event, and claims no completed review.
+**Preparation only.** The first slice is READY_FOR_REVIEW for authoring; the
+other eleven remain DRAFT. Only the first blocked-draft premise review has
+passed, not boundary fit, implementation readiness or implementation review.
+This packet implements no new runtime behavior. Its first-path plan proposes a
+finite paired validation envelope; no live permission is granted by this text.
 [ADR-0033](../../decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md)
 is **Accepted** for the target/framing only; [058](../058-native-tag-evaluation-qualification/spec.md)
 supplies local controls, selected native attempts and offline sequence/control

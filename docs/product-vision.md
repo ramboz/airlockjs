@@ -53,8 +53,10 @@ host-side behavior, without lost collection or changed attribution-bearing
 semantics. The historical read-only-cookie premise cannot exclude vendor-cookie
 continuity required by this target. That is a governed design/evidence obligation,
 not an implemented cookie writer, ambient jar grant or permission to break the
-stable core. Genuine conflicts are decided individually. Specs 058-060 are DRAFT;
-the current runtime remains a subset and Adobe-first v1.0 is unchanged.
+stable core. Genuine conflicts are decided individually. Shared qualification
+tooling 058 is complete for its named local/attempt/control layers; vendor specs
+059-060 are in authoring review, not implementation-ready. This does not qualify complete native wire or chamber
+replacement; the current runtime remains a subset and Adobe-first v1.0 is unchanged.
 
 **The next adoption direction ([ADR-0031](decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)).**
 Start with Adobe-first compatibility: keep the official Alloy.js SDK in a chamber, migrate the

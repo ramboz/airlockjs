@@ -192,7 +192,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-02 - Pinned native attempted-request reference | **DONE** |  |
 | [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-03 - Value-preserving comparison controls | **DONE** |  |
 | [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-04 - Owned Google conversion attempted-reference | **DONE** |  |
-| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-01 - Owned direct conversion cutover | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-01 - Owned direct conversion cutover | READY_FOR_REVIEW (google-and-meta-feasibility) |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-02 - Command routing and callback journeys | DRAFT |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-03 - Consent-respecting measurement journeys | DRAFT |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-04 - Returning and linked journeys | DRAFT |  |
@@ -204,7 +204,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-10 - Remote rules and browser lifecycle journeys | DRAFT |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-11 - Mixed-tag migration and rollback | DRAFT |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-12 - Full-portfolio adoption qualification | DRAFT |  |
-| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-01 - Replace bootstrap and first PageView | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-01 - Replace bootstrap and first PageView | READY_FOR_REVIEW (google-and-meta-feasibility) |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-02 - Report complete event and commerce data | DRAFT |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-03 - Route and configure multiple Pixels | DRAFT |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-04 - Apply consent and processing choices | DRAFT |  |

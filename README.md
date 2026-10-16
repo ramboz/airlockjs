@@ -29,7 +29,7 @@ changing Adobe's release gate. Specs [058](docs/specs/058-native-tag-evaluation-
 evaluation and the two vendor inventories. The shared local qualifier, retained
 Meta PageView and newly pinned Google conversion attempted-reference profiles
 and the offline sequence comparator are implemented; full native-wire,
-scenario and readiness gates remain open. Vendor specs are drafts, not full
+scenario and readiness gates remain open. Vendor work is in authoring, not full
 support. The shipped connectors remain bounded subsets.
 
 The [local qualification guide](rig/native-tag-qualification.md) describes its

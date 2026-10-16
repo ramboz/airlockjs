@@ -1,10 +1,11 @@
 ---
-status: DRAFT
+status: READY_FOR_REVIEW
 dependencies: [adr-0017, adr-0033, 058-01, 058-02, 058-03, 058-04]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
+claimed_by: google-and-meta-feasibility
 ---
 
 ## Slice 059-01 - Owned direct conversion cutover
@@ -14,8 +15,9 @@ chamber execution and receives an honest complete-sequence result, without nativ
 Ads fallback or an overstated product claim.
 
 **DoR:**
-- [ ] ADR-0033 is Accepted after real frame review; this frame and bounded
-      transport/response design pass required review without changing ADR-0017.
+- [x] ADR-0033 is Accepted after its real frame review.
+- [ ] This slice frame and bounded transport/response design pass required
+      review without silently changing ADR-0017.
 - [ ] 058-01 qualifies the exact recorder/guard surface; shared 058-02 controls
       and Google-specific 058-04 supply a positive pinned attempted reference;
       058-03 detects missing branches, input-value mutations and empty/partial
@@ -79,6 +81,24 @@ Ads fallback or an overstated product claim.
 
 **Anti-horizontal-phasing check:** The adopter gets a complete conversion-entry
 to worker to governed response-chain journey and a usable scoped decision.
+
+## Readiness checkpoint - 2026-10-16
+
+**READY_FOR_REVIEW (authoring) / blocked before implementation**, not rejected
+as infeasible. The actual blocked-draft frame pass certifies its premise only.
+The [source-backed first-path plan](plan.md#first-journey-readiness-checkpoint---2026-10-16)
+records the actual integrated code and validation. A genuine built worker
+mapped the existing page-load event but returned zero requests for a direct
+conversion; no `gtag` facade was installed. The public entry remains the frozen
+`push({ event, ...params })` shape. New facade/command state, full collector
+sequence, governed response/credential/transport behavior and an independent
+chamber capture adapter are work, not hidden capabilities of the shipped subset.
+
+Complete native wire and measured C3 acceptance remain absent. The plan's
+paired four-case envelope is **approval-required**, with separate guard review
+and qualification before any live admission. The standing Adobe source-push
+hold is honored; no shared-site deployment or account mutation is proposed.
+No new product implementation or Servo approval is claimed by this checkpoint.
 
 ## Assumptions
 
