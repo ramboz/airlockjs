@@ -195,3 +195,18 @@ measurement-response Script, not a newly authorized executable dependency.
 Static source/ownership classification must precede a narrow auxiliary catalog;
 all such requests remain aborted and retained. Interception can affect fallback
 attempts, so this receipt is not an uninterrupted native response chain.
+
+## 058-03 comparison pass (2026-10-16)
+
+The owner's "ok, do it" approves the next offline comparison gate. Start
+18:09:27Z; the coordinator-selected conservative stop is 19:08:51Z. The
+previous acquisition pass is closed, not silently extended. No new credit
+allocation or exact shared-usage visibility is claimed.
+
+Build strict whole-record sequence comparison and falsifiable local mutation
+controls, then exercise the selected existing native captures as explicitly
+labeled reference controls. Missing responses and broader native nondeterminism
+remain blockers for whole-wire/adoption results. Do not execute browsers,
+download sources, send events, change the site/accounts, implement a chamber or
+alter legacy curated/global oracles. Required actual frame, implementation,
+craft, architecture and reconciliation reviews remain real gates.

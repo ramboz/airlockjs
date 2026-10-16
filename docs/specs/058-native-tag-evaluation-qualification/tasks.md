@@ -22,7 +22,9 @@
       profile under the approved bounded read-only source/offline pass.
 - [x] Preserve original headless no-beacon and incomplete Google history. A new
       headed offline profile is separate evidence, not a retrospective pass.
-- [ ] Add value-preserving sequence comparisons and mutation controls.
+- [x] Implement value-preserving sequence comparison and intended mutation controls.
+- [ ] Clear the comparison's actual independent review/reconciliation and DONE gates.
 - [x] Record local validation and budget/time checkpoints with accounting limits.
 - [ ] Establish actual native-reference readiness/suitability; no unattended
       loop or full vendor compatibility approval follows from these narrow layers.
+      This remains downstream 059/060 work, not a claim made by helper completion.

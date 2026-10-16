@@ -47,6 +47,15 @@ unknown-auxiliary failure lost its temporary trace and remains unexplained;
 later passing receipts do not establish universal repeatability or repair
 historical missing runtime/responses.
 
+**Offline comparison checkpoint (2026-10-16):** 058-03 implements strict recorded
+sequence/value comparison and individually falsifiable controls. Existing
+native captures are consumed with explicit completed-command attestations;
+copied-reference passes are not independent candidates or chamber evidence.
+Full native wire remains inconclusive on missing responses/cookie/host evidence,
+and native cross-run normalization is not qualified. Local complete synthetic
+sequences exercise response/edge mechanics without vendor claims. Formal
+close-out state remains in the slice record.
+
 ### Grounded starting point
 
 - `probes/adobe-compatibility/stock-wire-recorder.mjs:113-283` is a passive
