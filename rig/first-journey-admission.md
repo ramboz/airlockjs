@@ -175,7 +175,8 @@ resources on the caller's behalf.
 Use a dedicated fixed directory per trusted authority on a local filesystem
 with reliable exclusive creation/fsync semantics. The utility creates it with
 mode `0700`, or rejects an existing nonprivate/symlink/nondirectory target.
-New directory creation is also fsynced through its parent. It exclusively
+The journal's parent is fsynced even when adopting an existing directory:
+another process may have stopped between creation and parent fsync. It exclusively
 creates `<fixed-case>.reserved` with mode `0600`, writes a fixed
 spent record, fsyncs the file and directory, then checks the deadline/expiry
 again. Existing private regular reservations are **spent**, never reused.
@@ -259,6 +260,14 @@ Initial implementation result: **143 passed / 0 failed**, one test file.
 Integration then witnessed a URL-retention regression test fail (70 counted
 bytes versus 124 expected). Original URL bytes are now included in aggregate
 retention; exact-limit and one-byte-over request/response controls include them.
+Independent compliance review then found that adopting a directory did not
+sync its parent. A four-case subprocess regression witnessed both adoption
+cases fail while both fresh-directory controls passed. Parent fsync is now
+unconditional before slot creation; injected parent-fsync failure denies
+permission with zero dispatch reservations.
+Final coordinator validation is **150 admission tests plus 204 existing
+comparison tests (354 passing in one run)**, with the craft-review valid-retry
+control included. This remains local admission/comparison-tool evidence only.
 The focused ESLint command
 above passed with zero lint errors/warnings. npm emits an existing
 `Unknown user config "always-auth"` warning; no global configuration was changed.

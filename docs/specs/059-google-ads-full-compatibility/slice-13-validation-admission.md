@@ -1,7 +1,7 @@
 ---
-status: IN_PROGRESS
+status: RECONCILED
 dependencies: [adr-0033]
-last_verified:
+last_verified: 2026-10-16
 kind: feature
 frame_review: true
 claimed_by: google-and-meta-feasibility
@@ -78,10 +78,10 @@ them. This is a preparation utility, not either replacement's implementation.
    and fresh explicit permission remain separate gates.
 
 **DoD:**
-- [ ] Witnessed failing tests precede implementation; focused tests/lint pass.
-- [ ] Independent compliance, craft and reconciliation passes clear.
-- [ ] Exact API, trusted-input boundary, limits and nonclaims are documented.
-- [ ] Source/spec/index prose is reconciled without changing first-slice status.
+- [x] Witnessed failing tests precede implementation; focused tests/lint pass.
+- [x] Independent compliance, craft and reconciliation passes clear.
+- [x] Exact API, trusted-input boundary, limits and nonclaims are documented.
+- [x] Source/spec/index prose is reconciled without changing first-slice status.
 
 **Anti-horizontal-phasing check:** The operator gets an executable receiving-
 sink verdict for a bounded admission policy, not just a schema or design.
@@ -92,11 +92,47 @@ None.
 
 ### Deviation log (after reconciliation)
 
-Pending implementation.
+- Delivered only the network-agnostic admission module, hermetic tests and
+  operator guide; no runtime, public contract, build or dependency changes.
+- Initial implementation witnessed 131 failing tests, then six additional
+  failures among 143 tests. Coordinator integration added a failing original-
+  URL retention control (70 counted bytes versus 124 required), then included
+  URL bytes in aggregate accounting and exact/one-byte-over boundaries.
+- The initial independent compliance finding is preserved in `433cb74`:
+  adopting a journal directory could omit parent fsync. Two adoption variants
+  failed while two fresh-directory controls passed. Parent fsync now always
+  precedes slot creation; injected failure permits zero dispatch reservations.
+  Actual corrected compliance review passes.
+- Craft review passes. Its nonblocking valid-retry coverage nit was addressed:
+  a valid in-scope observation with unused budget remains denied after a
+  marker failure, with the original failure and zero dispatches preserved.
+- Parent validation is 150 admission tests plus 204 existing comparison tests,
+  all passing in one runner; focused ESLint and whitespace checks pass.
+- No AC was removed or relaxed. Fixed limits, cooperative executor assumptions
+  and all false live/compatibility claims remain explicit.
 
 ### Reconciliation sweep
 
-Pending implementation.
+- **Updated:** this slice, its three deliverables, active spec/plan and derived
+  status board. Review evidence records actual frame, compliance and craft
+  passes; original failed compliance remains in Git history.
+- **Updated:** `docs/memory/learnings.md` records the crash-durability and
+  URL-accounting lesson without claiming browser qualification.
+- **No-op:** runtime/connectors/adapters/contracts/builds/dependencies and
+  Accepted/closed records. No module-boundary decision or convention change
+  was made; no new ADR or global tool configuration is needed.
+- **No-op:** `CLAUDE.md`, root `README.md`, architecture/product vision,
+  inbox and refinement todo; their authoring-only status and existing tracked
+  first-journey blockers remain accurate. The operator guide is linked here.
+- **Deferred, not waived:** full browser/SDK guard, complete native wire and
+  independent chamber producer/evaluation, C2/C3, fresh live permission and
+  candidate eligibility. Both first product slices remain authoring review.
+  The owner supplies a new explicit live grant or complete retained captures;
+  the coordinator then owns qualified guard/native evidence and first-slice
+  readiness, not a self-approved loop.
+- **Leanness:** four fixed cases, exact request scopes, one small operator
+  module; no dispatcher, live CLI, policy discovery, reset/refund, generic
+  plugin mechanism or new package was added.
 
 ### Close-out (post-DONE)
 

@@ -143,15 +143,14 @@ function writeAll(fd, value) {
 }
 function reserveLedger(policy, name) {
   return filesystem(() => {
-    let created = false;
     try {
       mkdirSync(policy.journal_dir, { mode: 0o700 });
-      created = true;
     } catch (error) {
       if (error.code !== "EEXIST") throw error;
     }
     if (!privateTarget(lstatSync(policy.journal_dir), 0o700, true)) return { category: "journal_invalid" };
-    if (created) withDescriptor(dirname(policy.journal_dir),
+    // Another process may have stopped after mkdir but before syncing its parent.
+    withDescriptor(dirname(policy.journal_dir),
       constants.O_RDONLY | constants.O_NOFOLLOW, fd => fsyncSync(fd));
     const path = join(policy.journal_dir, `${name}.reserved`);
     let reservation;

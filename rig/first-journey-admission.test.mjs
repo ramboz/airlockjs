@@ -266,6 +266,57 @@ describe("AC2: durable one-shot slots and explicit candidate prerequisites", () 
   });
 
   it.each([
+    [false, false], [true, false], [false, true], [true, true],
+  ])("syncs the journal parent before permission (adopt=%s, fail=%s)", async (adopt, failSync) => {
+    const f = await fixture();
+    const input = { ...f.options };
+    delete input.clock;
+    input.authority.expires_at_ms = Date.now() + 3600000;
+    const moduleUrl = new URL("./first-journey-admission.mjs", import.meta.url).href;
+    const program = `
+      import fs from "node:fs";
+      import { dirname } from "node:path";
+      import { syncBuiltinESMExports } from "node:module";
+      const input = JSON.parse(process.argv[1]);
+      if (${adopt}) fs.mkdirSync(input.authority.journal_dir, { mode: 0o700 });
+      const parent = fs.statSync(dirname(input.authority.journal_dir));
+      const original = fs.fsyncSync;
+      const calls = [];
+      fs.fsyncSync = fd => {
+        const stat = fs.fstatSync(fd);
+        const isParent = stat.dev === parent.dev && stat.ino === parent.ino;
+        calls.push(isParent ? "parent" : stat.isDirectory() ? "journal" : "reservation");
+        if (isParent && ${failSync}) {
+          const error = new Error("private-path-must-not-leak");
+          error.code = "EIO"; error.syscall = "fsync";
+          throw error;
+        }
+        return original(fd);
+      };
+      syncBuiltinESMExports();
+      const { reserveCase } = await import(${JSON.stringify(moduleUrl)});
+      const gate = reserveCase(input);
+      const scope = input.authority.cases[0].scopes[0];
+      const permission = gate.admit({
+        url: scope.url, method: scope.method, transport: scope.transport,
+        resource: scope.resource, ownership_marker: "private-marker",
+        parent_ordinal: null, headers: Buffer.alloc(0), body: Buffer.alloc(0)
+      });
+      console.log(JSON.stringify({ calls, allowed: permission.allowed,
+        category: gate.report().category, dispatches: gate.report().counts.dispatches }));
+    `;
+    const result = await execute(process.execPath, [
+      "--input-type=module", "-e", program, JSON.stringify(input),
+    ]);
+    const observed = JSON.parse(result.stdout);
+    expect(observed.calls).toEqual(failSync ? ["parent"] : ["parent", "reservation", "journal"]);
+    expect(observed.allowed).toBe(!failSync);
+    expect(observed.dispatches).toBe(failSync ? 0 : 1);
+    expect(observed.category).toBe(failSync ? "journal_invalid" : "admitted");
+    expect(result.stdout).not.toContain("private-path-must-not-leak");
+  });
+
+  it.each([
     null, {}, { stock_completed: false, candidate_eligible: true },
     { stock_completed: true, candidate_eligible: false },
     { stock_completed: "true", candidate_eligible: true },
@@ -340,6 +391,17 @@ describe("AC2: durable one-shot slots and explicit candidate prerequisites", () 
 });
 
 describe("AC3: exact scope, parent linkage, synchronous byte and count budgets", () => {
+  it("rejects an otherwise valid in-scope request after failure with budget remaining", async () => {
+    const f = await fixture(), gate = f.reserve();
+    expect(gate.admit(observation(f.scope, { ownership_marker: "wrong" })).allowed).toBe(false);
+    const retry = gate.admit(observation(f.scope));
+    expect(retry.allowed).toBe(false);
+    expect(retry.result).toMatchObject({
+      state: "failed", category: "scope_mismatch",
+      counts: { observed_requests: 1, admitted_requests: 0, dispatches: 0 },
+    });
+  });
+
   it("includes original URL bytes in the aggregate retained-request budget", async () => {
     const f = await fixture(), gate = f.reserve();
     const request = observation(f.scope);

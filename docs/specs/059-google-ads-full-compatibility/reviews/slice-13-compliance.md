@@ -1,19 +1,16 @@
 ---
 slice: 059-13 - Paired validation admission component
 pass: compliance
-verdict: needs-changes
-reviewer: jig:reviewer (Admission compliance)
-reviewed_at: 2026-10-16T22:17:46Z
-prompt_source: review.py implementation docs/specs/059-google-ads-full-compatibility/spec.md 059-13 rig/first-journey-admission.{mjs,test.mjs,md}; task Admission compliance
+verdict: pass
+reviewer: jig:reviewer (Admission compliance corrected)
+reviewed_at: 2026-10-16T22:23:21Z
+prompt_source: review.py implementation docs/specs/059-google-ads-full-compatibility/spec.md 059-13 rig/first-journey-admission.{mjs,test.mjs,md}; task Admission compliance corrected
 ---
 
-VERDICT: needs-changes
+VERDICT: pass
 
 REASONING:
-AC1, AC3, AC4 and AC6 substantially align. AC5 provides meaningful real-receiver positive, denial, bypass, redirect and marker-loss controls, but concurrency tests miss an AC2 crash-durability gap. This read-only reviewer did not execute tests/lint.
-
-SPECIFIC ISSUES:
-- rig/first-journey-admission.mjs:154-155 — High confidence: parent-directory fsync is conditional on this instance creating the journal directory. Another instance can adopt the directory after mkdir but before its creator fsyncs the parent, and issue permission without guaranteeing durability of the journal's parent entry. Sync the parent even for an existing directory and add interrupted-creation/fsync-order coverage.
+Static review found the deliverables consistent with all six acceptance criteria within the documented cooperative, trusted-attestation boundary. Unconditional parent fsync precedes slot creation; four subprocess variants verify fresh/adopted-directory ordering and denial on fsync failure, closing the prior finding. Meaningful tests cover real receiver controls, exact numerical boundaries including original URL bytes, terminal failure latching, filesystem safety and output privacy. This read-only reviewer did not execute code.
 
 RECONCILIATION NOTES:
-Resolve before retaining unconditional durable one-shot claims; preserve the network-agnostic trusted-attestation boundary and false live/compatibility claims.
+Record the parent-fsync correction and URL-inclusive retention accounting; preserve explicit nonclaims and separate live-qualification, permission and first-feature DoR gates. The original needs-changes verdict is preserved in git433cb74.
