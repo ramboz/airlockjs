@@ -1,8 +1,9 @@
-# Bounded offline Meta native-attempt reference
+# Bounded offline native-attempt references
 
 [Slice 058-02](../docs/specs/058-native-tag-evaluation-qualification/slice-02-native-reference.md)
-implements **one retained Meta PageView profile**, not full Meta support or a
-Google reference. The evidence layer is `native_attempt`: Chromium attempted
+implements **one retained Meta PageView profile**. The Google candidate below
+adds one newly pinned conversion profile, not full support for either vendor.
+The evidence layer is `native_attempt`: Chromium attempted
 HTTP requests that were aborted before network transmission. A locally fulfilled
 script's HTTP 200 is **not** an observed vendor HTTP response.
 
@@ -65,7 +66,80 @@ Runtime URL must be the exact official `en_US/fbevents.js` URL; configuration
 must be the official `signals/config/<owned selector>` path. At execution,
 **the entire original request URL, including query/order, must match** the
 manifest. A path-only match is never a fallback. New native bytes require a
-separately qualified profile; Google loader bytes remain missing/blocked.
+separately qualified profile. The Google source-acquisition pass below is a new
+cohort and does not recover the original recording's missing runtime bytes.
+
+### New Google source cohort (058-04)
+
+[Slice 058-04](../docs/specs/058-native-tag-evaluation-qualification/slice-04-google-native-reference.md)
+adds a separately gated `google-ads-conversion` profile. Actual selected native
+receipts pass; the slice record carries its formal lifecycle state. Source
+acquisition alone is not a pass.
+The owner separately approved inert downloads of the owned official tag's
+script/configuration resources. This is not authority for measurement requests,
+site/account changes, campaigns or a live conversion.
+
+Acquisition is outside the runner: credential-free exact-resource GETs, no
+redirects/retries, at most eight requests, 2 MiB per file, 8 MiB total and a
+20-second request timeout. Exact source URLs, response headers/status/time and
+bytes remain private. An unknown dependency is observed and blocked offline,
+then classified before any separately approved inert download; it is never an
+automatic browser/network fallback.
+
+The Google private manifest uses exactly:
+
+- `schema_version: 1`, `profile: "google-ads-conversion"`;
+- `owned_origin`, `document_url`, `conversion_id`, `conversion_label`;
+- `runtime` with `path`, `sha256`, `request_url`, `response_status: 200`;
+- `dependencies`, an array of the same exact-resource shape;
+- `source_capture_sha256`, `source_acquisition_sha256`, `authorization`.
+
+The newly retained loader pin is
+`318a26b825f07b60faec698d5e771434c36e3f7f248640988c1c0be5220c3e50`.
+An empty dependency array means no additional bytes are pinned yet, not that the
+runtime has no dependencies. Every observed missing dependency still blocks
+qualification.
+
+The fixed Google matrix is baseline/query-disabled/value1/value2, using a
+generated standard `dataLayer`/`gtag` bootstrap and unmodified source bytes.
+An owned primary conversion must preserve the action, value, currency and
+transaction relationships; every observed auxiliary remains in the capture.
+Google consent behavior is not inferred from Meta's revoke-negative. Actual
+measurement responses, response-dependent fan-out and full Google behavior are
+outside this pre-response attempted-reference layer.
+
+The first guarded Google diagnostic observed owned primary conversions plus
+additional measurement-shaped auxiliary attempts. Some measurement endpoints
+use the browser's `Script` resource type: that does not make their responses
+authorized script/configuration downloads. They remain aborted, not fulfilled.
+Repeated transport attempts may be affected by interception errors; this trace
+cannot stand in for an uninterrupted native response/fallback sequence.
+
+The narrow auxiliary catalog is grounded in the pinned loader's exact
+host/path literals and the retained guarded trace:
+
+| Origin and path | Required private relationship |
+|---|---|
+| `googleads.g.doubleclick.net/pagead/viewthroughconversion/<owned-id>/` | Exact owned destination and generated document |
+| `www.google.com/rmkt/collect/<owned-id>/` | Exact owned destination and generated document |
+| `www.google.com/ccm/collect` | Exact single owned `tid`/`tids` and generated document |
+| `ad.doubleclick.net/ccm/s/collect` | Single nonempty `auid` matching the unique owned primary value in the same case |
+
+These are classifications of retained **aborted attempts**, never network
+permissions or locally fulfilled responses. The selector-free last route has
+source-pin and run-local correlation evidence, not independent ownership
+authentication or a complete initiator-chain proof. Unmatched/foreign/ambiguous
+relationships and any other route remain inconclusive.
+
+Selected parent receipts preserve 43 requests: six primary conversion attempts
+and 24 auxiliary attempts, all aborted, with baseline/value1/value2 each
+observing two primary plus eight auxiliaries. The query-disabled case has none.
+The integrated 90-case rerun passed with both vendor inputs and actual native
+value mutations enabled. The preceding run had an unknown-auxiliary failure
+whose temporary capture was deleted; its cause remains unknown. Diagnostic
+retention is now corrected, not the catalog broadened to erase the failure.
+A separate retained Chrome new-tab contamination correctly stays inconclusive.
+These are scoped passing observations, not universal repeatability.
 
 ## Independently witnessed no-send boundaries
 
@@ -80,7 +154,7 @@ separately qualified profile; Google loader bytes remain missing/blocked.
    confined connection blocks native execution, never silently skips the check.
 3. The confined browser runs a generated local document whose fixed fetch
    tripwire must be observed and aborted by request-stage CDP Fetch interception,
-   with zero receiver arrivals. Only after both controls pass may native code run.
+   with zero receiver arrivals. Only after all three controls pass may native code run.
 
 `offline-reference-chrome` execs `/usr/bin/sandbox-exec` with the shared fixed
 `offline-reference-network.sb` policy file, then the fixed installed Chrome
@@ -166,7 +240,7 @@ the final elapsed duration. Consumers require the completed command's exit statu
 as well as the report: an output failure or partial directory is never a pass.
 
 One absolute 60-second budget starts **before directory acquisition** and covers
-inputs, launch, controls, five 5-second case windows, live-set capture draining,
+inputs, launch, controls, five Meta or four Google 5-second case windows, live-set capture draining,
 owned-resource cleanup and output. Settlement is bounded at 5 seconds. Limits
 are 64 requests, 2 KiB URLs, 64 KiB request bodies/headers and 2 MiB per native
 resource. Any limit, missing body/header, missing positive/dependency, late
@@ -206,3 +280,9 @@ empty native queue, one Pixel/event record and zero measurement attempts;
 an unrelated dependency failure cannot impersonate that result.
 Formal review and final integrated validation
 belong to the parent workflow, not these author-feedback runs.
+
+Set `AIRLOCK_GOOGLE_REFERENCE_INPUTS` to the explicit private new-cohort manifest
+to include actual Google positive and changed/missing-value native tests.
+Without that handle they are visibly skipped, never Google qualification.
+A failing private Google positive retains its temporary diagnostic directory
+and reports that generated location; it does not relax the expected result.

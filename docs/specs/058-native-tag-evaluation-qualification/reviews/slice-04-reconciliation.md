@@ -1,24 +1,23 @@
 ---
 slice: 058-04 - Owned Google conversion attempted-reference
 pass: reconciliation
-verdict: needs-changes
+verdict: pass
 reviewer: jig:reviewer
-reviewed_at: 2026-10-16T17:50:24Z
-prompt_source: review.py reconciliation spec058 058-04 initial path accounting
+reviewed_at: 2026-10-16T17:52:06Z
+prompt_source: review.py reconciliation spec058 058-04 corrected path-specific sweep
 ---
 
-VERDICT: needs-changes
+VERDICT: pass
 
 REASONING:
-Documentation faithfully limits the evidence and preserves the unknown cause
-and unproved layers. Commit/DONE are honestly pending and the extension is
-lean and rig-local, but sweep accounting is incomplete.
+The corrected sweep explicitly accounts for all five identified documentation
+paths and excludes inherited branch work through a7a3aee except named live
+updates. This resolves the path-accounting blocker without widening scope or
+changing evidence claims; implementation acceptance review was not reopened.
 
 SPECIFIC ISSUES:
-- The sweep needs explicit dispositions for README.md, CLAUDE.md,
-  docs/architecture.md, docs/refinement-todo.md and regenerated
-  docs/specs/README.md, plus a deliberate inherited-history exclusion.
+No additional deviation identified.
 
 RECONCILIATION NOTES:
-No implementation deviation identified. Add compact path-specific accounting
-without widening scope or changing the evidence limitations.
+Record this bounded follow-up separately. Implementation commit and DONE remain
+distinct gates; the initial needs-changes verdict is preserved in Git history.

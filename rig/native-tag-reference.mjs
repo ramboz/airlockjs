@@ -23,13 +23,31 @@ const NATIVE_PINS = Object.freeze({
   runtime: "9e4b581a7483e88873ad835a840ffaaff1c85b3be28951e12e8207a318e7776b",
   configuration: "807a33e31707b75434ac6aeda5aa8fc9073d6795ca8a9671ff6535edc308d921",
 });
+const GOOGLE_RUNTIME_PIN = "318a26b825f07b60faec698d5e771434c36e3f7f248640988c1c0be5220c3e50";
+// Static source/capture ownership evidence is distinct from executable pins.
+// Owner-verified source spans and retained-capture projection, not independent
+// initiator/ownership authentication and never network/fulfillment authority.
+const GOOGLE_AUXILIARY_PROJECTION_SHA256 = "86790e1ff71bfc1502aac634911612f6f1c5fa079e480d4b8522b45154f1ff53";
 const LIMITS = Object.freeze({
   run_ms: 60000, observation_ms: 5000, settle_ms: 5000,
   requests: 64, url_bytes: 2048, request_body_bytes: 65536,
   header_bytes: 65536, resource_bytes: 2097152, manifest_bytes: 32768,
 });
 const CASES = ["baseline", "query-disabled", "consent-revoked", "value1", "value2"];
+const GOOGLE_CASES = ["baseline", "query-disabled", "value1", "value2"];
 const VALUES = { value1: "13.25", value2: "29.75" };
+const google = manifest => manifest.profile === "google-ads-conversion";
+const caseNames = manifest => google(manifest) ? GOOGLE_CASES : CASES;
+const resources = manifest => google(manifest)
+  ? [manifest.runtime, ...manifest.dependencies] : [manifest.runtime, manifest.configuration];
+const documentFor = (manifest, name) =>
+  `${manifest.owned_origin}/__airlock_native_reference_fixture__?case=${name}`
+    + (name === "query-disabled" ? "&native=disabled" : "");
+const googleParameters = (manifest, name) => ({
+  send_to: `${manifest.conversion_id}/${manifest.conversion_label}`,
+  value: Number(VALUES[name] ?? VALUES.value1), currency: "USD",
+  transaction_id: `airlock-native-reference-${name}`,
+});
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const stamp = () => new Date().toISOString();
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -125,30 +143,50 @@ async function inputsAt(path, check) {
   const bytes = await boundedRead(path, LIMITS.manifest_bytes, "manifest", check);
   let manifest;
   try { manifest = JSON.parse(bytes.toString("utf8")); } catch { reject("invalid_manifest_json"); }
-  keys(manifest, ["schema_version", "profile", "owned_origin", "document_url", "pixel_id",
+  keys(manifest, google(manifest ?? {}) ? [
+    "schema_version", "profile", "owned_origin", "document_url", "conversion_id", "conversion_label",
+    "runtime", "dependencies", "source_capture_sha256", "source_acquisition_sha256", "authorization",
+  ] : ["schema_version", "profile", "owned_origin", "document_url", "pixel_id",
     "runtime", "configuration", "source_capture_sha256", "authorization"]);
   if (manifest.schema_version !== 1) reject("unsupported_schema");
-  if (manifest.profile !== "meta-pageview") reject("unsupported_profile");
+  if (manifest.profile !== "meta-pageview" && !google(manifest)) reject("unsupported_profile");
   const origin = sourceUrl(manifest.owned_origin);
   const document = sourceUrl(manifest.document_url);
   if (origin.origin !== manifest.owned_origin || document.origin !== origin.origin)
     reject("owned_origin_mismatch");
-  if (!text(manifest.pixel_id, 32) || !/^[0-9]{1,32}$/.test(manifest.pixel_id))
+  if (google(manifest)) {
+    if (!text(manifest.conversion_id, 35) || !/^AW-[0-9]{1,32}$/.test(manifest.conversion_id)
+      || !text(manifest.conversion_label, 128) || !/^[A-Za-z0-9_-]+$/.test(manifest.conversion_label))
+      reject("invalid_conversion_selector");
+    if (typeof manifest.source_acquisition_sha256 !== "string"
+      || !/^[a-f0-9]{64}$/.test(manifest.source_acquisition_sha256))
+      reject("invalid_source_digest");
+    if (!Array.isArray(manifest.dependencies)) reject("invalid_dependencies");
+  } else if (!text(manifest.pixel_id, 32) || !/^[0-9]{1,32}$/.test(manifest.pixel_id))
     reject("invalid_pixel_selector");
   if (typeof manifest.source_capture_sha256 !== "string"
     || !/^[a-f0-9]{64}$/.test(manifest.source_capture_sha256))
     reject("invalid_source_digest");
   if (!text(manifest.authorization, 4096)) reject("authorization_required");
-  for (const name of ["runtime", "configuration"]) {
-    const resource = manifest[name];
+  for (const [index, resource] of resources(manifest).entries()) {
+    const name = index === 0 ? "runtime" : google(manifest) ? "dependency" : "configuration";
     keys(resource, ["path", "sha256", "request_url", "response_status"]);
     if (!text(resource.path) || !isAbsolute(resource.path)) reject("invalid_resource_path");
     if (typeof resource.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(resource.sha256))
       reject("invalid_resource_digest");
     if (resource.response_status !== 200) reject("invalid_source_status");
     const url = sourceUrl(resource.request_url);
-    if (name === "runtime" && resource.request_url !== RUNTIME_URL) reject("invalid_runtime_url");
-    if (name === "configuration" && (url.origin !== "https://connect.facebook.net"
+    if (google(manifest)) {
+      if (url.origin !== "https://www.googletagmanager.com"
+        || !["/gtag/js", "/gtag/destination"].includes(url.pathname)
+        || url.searchParams.getAll("id").length !== 1
+        || url.searchParams.get("id") !== manifest.conversion_id)
+        reject(`invalid_${name}_url`);
+      if (index > 0 && resources(manifest).slice(0, index)
+        .some(previous => previous.request_url === resource.request_url))
+        reject("duplicate_resource_url");
+    } else if (name === "runtime" && resource.request_url !== RUNTIME_URL) reject("invalid_runtime_url");
+    if (!google(manifest) && name === "configuration" && (url.origin !== "https://connect.facebook.net"
       || url.pathname !== `/signals/config/${manifest.pixel_id}`))
       reject("invalid_configuration_url");
     resource.bytes = await boundedRead(resource.path, LIMITS.resource_bytes, "resource", check);
@@ -336,11 +374,12 @@ function csp(nonce, connect = "https:") {
     + `connect-src ${connect}; img-src https:; frame-src 'none'; worker-src 'none'; `
     + "object-src 'none'; base-uri 'none'; form-action 'none'; "
     // Require Trusted Types without prohibiting the unmodified SDK's own
-    // policy creation. Our default policy accepts only the two exact pins.
+    // policy creation. Our default policy accepts only exact profile resources.
     + "require-trusted-types-for 'script'";
 }
 const js = value => JSON.stringify(value).replaceAll("<", "\\u003c");
 function fixture(manifest, name, nonce) {
+  if (google(manifest)) return googleFixture(manifest, name, nonce);
   const disabled = name === "query-disabled";
   const consent = name === "consent-revoked" ? "explicit_revoke_before_init" : "native_default_not_overridden";
   const params = VALUES[name] ? { value: Number(VALUES[name]), currency: "USD" } : null;
@@ -363,6 +402,26 @@ if(new URLSearchParams(location.search).get("native")!=="disabled"){
 }`;
   return Buffer.from(`<!doctype html><html><head><meta charset="utf-8"><title>Airlock synthetic native-attempt fixture</title></head><body>Generated offline fixture, not the captured production document.<script nonce="${nonce}">${bootstrap}</script></body></html>`);
 }
+function googleFixture(manifest, name, nonce) {
+  const bootstrap = `
+window.__airlockFixture={executed:true,disabled:${name === "query-disabled"},consent:"native_default_not_overridden"};
+const pinned=${js(resources(manifest).map(resource => resource.request_url))};
+const policy=trustedTypes.createPolicy("default",{createScriptURL(value){
+  if(!pinned.includes(value))throw new TypeError("unpinned_script_dependency");return value;
+}});
+if(new URLSearchParams(location.search).get("native")!=="disabled"){
+  window.dataLayer=window.dataLayer||[];
+  function gtag(){dataLayer.push(arguments);}
+  window.gtag=gtag;
+  const t=document.createElement("script");t.async=true;
+  t.src=policy.createScriptURL(${js(manifest.runtime.request_url)});
+  const s=document.getElementsByTagName("script")[0];s.parentNode.insertBefore(t,s);
+  gtag("js",new Date());
+  gtag("config",${js(manifest.conversion_id)});
+  gtag("event","conversion",${js(googleParameters(manifest, name))});
+}`;
+  return Buffer.from(`<!doctype html><html><head><meta charset="utf-8"><title>Airlock synthetic native-attempt fixture</title></head><body>Generated offline fixture, not the captured production document.<script nonce="${nonce}">${bootstrap}</script></body></html>`);
+}
 function fields(row) {
   const pairs = [...row.query_pairs];
   if (row.body_state === "captured" && row.body_base64
@@ -376,14 +435,92 @@ function classification(raw, type, manifest, documentUrl, controlTarget, method,
   if (raw === documentUrl && type === "Document") return "fixture_document";
   if (controlTarget && raw === controlTarget) return "http_tripwire";
   if (raw === manifest.runtime.request_url && type === "Script") return "runtime";
-  if (raw === manifest.configuration.request_url && type === "Script") return "configuration";
+  if (google(manifest)) {
+    if (manifest.dependencies.some(resource => raw === resource.request_url) && type === "Script")
+      return "configuration";
+  } else if (raw === manifest.configuration.request_url && type === "Script") return "configuration";
   const url = new URL(raw);
   if (raw === new URL("/favicon.ico", documentUrl).href
     && type === "Other" && method === "GET" && bodyState === "absent")
     return "fixture_favicon";
-  if (url.origin === "https://www.facebook.com" && url.pathname === "/tr/")
+  if (google(manifest)) {
+    if (googleConversionEndpoint(raw, manifest)) return "native_measurement";
+    if (bodyState === "absent" && googleAuxiliaryKind(raw, type, manifest, method)) return "native_auxiliary";
+  } else if (url.origin === "https://www.facebook.com" && url.pathname === "/tr/")
     return "native_measurement";
   return type === "Script" ? "missing_dependency" : "unknown_auxiliary";
+}
+// Primary conversion pair; auxiliary measurements have their own exact-shape
+// catalog below. Neither catalog implies a fixed host/count or response effects.
+function googleConversionEndpoint(raw, manifest) {
+  const url = new URL(raw);
+  const id = manifest.conversion_id.slice(3);
+  return !url.username && !url.password && !url.hash && (
+    (url.origin === "https://www.googleadservices.com" && url.pathname === `/pagead/conversion/${id}/`)
+    || (url.origin === "https://www.google.com" && url.pathname === `/pagead/1p-conversion/${id}/`));
+}
+function googleRelationship(row, manifest) {
+  const data = fields(row);
+  const expected = googleParameters(manifest, row.case);
+  const exact = (key, value) => data.getAll(key).length === 1 && data.get(key) === value;
+  return googleConversionEndpoint(row.url, manifest)
+    && exact("label", manifest.conversion_label)
+    && exact("value", String(expected.value)) && exact("currency_code", expected.currency)
+    && exact("oid", expected.transaction_id) && exact("url", documentFor(manifest, row.case));
+}
+function googleInputRelationship(input, manifest, name) {
+  const expected = googleParameters(manifest, name);
+  return plain(input) && Object.keys(input).length === Object.keys(expected).length
+    && Object.entries(expected).every(([key, value]) => input[key] === value);
+}
+function googleAuxiliaryKind(raw, type, manifest, method) {
+  const url = new URL(raw);
+  if (url.username || url.password || url.hash) return null;
+  const id = manifest.conversion_id.slice(3);
+  const image = method === "GET" && type === "Image";
+  const xhr = method === "POST" && type === "XHR";
+  if (url.origin === "https://googleads.g.doubleclick.net"
+    && url.pathname === `/pagead/viewthroughconversion/${id}/`
+    && (image || (method === "GET" && type === "Script"))) return "viewthrough";
+  if (url.origin === "https://www.google.com" && url.pathname === `/rmkt/collect/${id}/`
+    && (image || xhr)) return "remarketing";
+  if (url.origin === "https://www.google.com" && url.pathname === "/ccm/collect" && (image || xhr)
+    && ["tid", "tids"].every(key => url.searchParams.getAll(key).length === 1
+      && url.searchParams.get(key) === manifest.conversion_id)) return "ccm";
+  if (url.origin === "https://ad.doubleclick.net" && url.pathname === "/ccm/s/collect" && (image || xhr)
+    && url.searchParams.getAll("auid").length === 1 && url.searchParams.get("auid"))
+    return "s_collect";
+  return null;
+}
+// Called only after settlement: an auxiliary may precede the owned primary.
+// Repeated primary transports may share one identity, but duplicate fields,
+// foreign primaries or more than one distinct primary identity never link.
+function googleAuxiliaryRelationship(row, manifest, requests) {
+  const kind = googleAuxiliaryKind(row.url, row.resource_type, manifest, row.method);
+  if (!kind || row.body_state !== "absent" || !row.aborted || row.locally_fulfilled) return false;
+  const data = fields(row);
+  const exact = (key, value) => data.getAll(key).length === 1 && data.get(key) === value;
+  const primaries = requests.filter(primary => primary.case === row.case
+    && primary.category === "native_measurement");
+  if (!primaries.length || primaries.some(primary => !googleRelationship(primary, manifest))) return false;
+  const identities = primaries.map(primary => fields(primary).getAll("auid"));
+  if (identities.some(values => values.length !== 1 || !values[0])
+    || new Set(identities.map(values => values[0])).size !== 1
+    || !exact("auid", identities[0][0])) return false;
+  const document = documentFor(manifest, row.case);
+  // s/collect has no document selector in the observed source/capture. Its
+  // nonempty owned-primary identity link is mandatory, not an empty wildcard.
+  for (const key of ["url", "dl"]) {
+    if (data.has(key) && !exact(key, document)) return false;
+  }
+  for (const key of ["tid", "tids"]) {
+    if (data.has(key) && !exact(key, manifest.conversion_id)) return false;
+  }
+  if (kind === "viewthrough" || kind === "remarketing")
+    return exact("url", document) && exact("en", "gtag.config");
+  if (kind === "ccm") return exact("dl", document) && exact("en", "page_view")
+    && exact("tid", manifest.conversion_id) && exact("tids", manifest.conversion_id);
+  return true;
 }
 
 // Fetch is enabled before navigation. There is deliberately no network-continue
@@ -399,8 +536,7 @@ async function guardedCase(state, browser, manifest, name, control = null) {
   state.budget.check();
   const nonce = randomUUID().replaceAll("-", "");
   const documentUrl = control ? `${control.origin}/guard-fixture`
-    : `${manifest.owned_origin}/__airlock_native_reference_fixture__?case=${name}`
-      + (name === "query-disabled" ? "&native=disabled" : "");
+    : documentFor(manifest, name);
   const documentBytes = control
     ? Buffer.from(`<!doctype html><script nonce="${nonce}">fetch(${js(control.target)}).catch(()=>{});</script>`)
     : fixture(manifest, name, nonce);
@@ -516,7 +652,8 @@ async function guardedCase(state, browser, manifest, name, control = null) {
         return;
       }
       if (["fixture_document", "runtime", "configuration"].includes(category)) {
-        const bytes = category === "fixture_document" ? documentBytes : manifest[category].bytes;
+        const bytes = category === "fixture_document" ? documentBytes
+          : resources(manifest).find(resource => resource.request_url === request.url).bytes;
         const headers = category === "fixture_document"
           ? [{ name: "Content-Type", value: "text/html; charset=utf-8" },
             { name: "Content-Security-Policy", value: csp(nonce, control ? control.origin : "https:") }]
@@ -538,8 +675,9 @@ async function guardedCase(state, browser, manifest, name, control = null) {
         if (category === "missing_dependency" || category === "unknown_auxiliary") state.fail(category);
         if (category === "native_measurement") {
           const data = fields(row);
-          if (data.getAll("id").length !== 1 || data.get("id") !== manifest.pixel_id
-            || data.getAll("ev").length !== 1 || data.get("ev") !== "PageView")
+          if (google(manifest) ? !googleRelationship(row, manifest)
+            : data.getAll("id").length !== 1 || data.get("id") !== manifest.pixel_id
+              || data.getAll("ev").length !== 1 || data.get("ev") !== "PageView")
             state.fail("non_owned_or_unexpected_measurement");
         }
       }
@@ -578,16 +716,22 @@ async function guardedCase(state, browser, manifest, name, control = null) {
       await delay(10);
       state.budget.check();
     }
-    const observedState = await page.evaluate(() => ({
+    const observedState = await page.evaluate(({ profile, conversion_id }) => ({
       fixture: window.__airlockFixture ?? null,
       violations: window.__airlockPolicyViolations,
-      native: {
+      native: profile === "google-ads-conversion" ? {
+        callable: typeof window.gtag === "function",
+        destination_initialized: !!window.google_tag_manager?.[conversion_id],
+        data_layer_length: window.dataLayer?.length ?? null,
+        conversion_input: window.dataLayer?.find(command =>
+          command?.[0] === "event" && command?.[1] === "conversion")?.[2] ?? null,
+      } : {
         callable: typeof window.fbq?.callMethod === "function",
         queue_length: window.fbq?.queue?.length ?? null,
         owned_pixel_count: window.fbq?.getState?.().pixels?.length ?? null,
         event_count: window.fbq?.getState?.().pixels?.[0]?.eventCount ?? null,
       },
-    }));
+    }), { profile: manifest.profile, conversion_id: manifest.conversion_id });
     state.budget.check();
     const fixtureState = observedState.fixture;
     if (!Array.isArray(observedState.violations)) state.fail("policy_capture_unavailable");
@@ -618,19 +762,49 @@ async function guardedCase(state, browser, manifest, name, control = null) {
           && observedState.native.owned_pixel_count === 0 && noUnknownDependency
         : summary.runtime_fulfilled === 1 && summary.configuration_fulfilled === 1
           && noUnknownDependency;
+    if (google(manifest)) {
+      const auxiliaries = requests.filter(row => row.category === "native_auxiliary");
+      const auxiliariesLinked = auxiliaries.map(row => {
+        const linked = googleAuxiliaryRelationship(row, manifest, requests);
+        row.native_relationship = {
+          catalog: googleAuxiliaryKind(row.url, row.resource_type, manifest, row.method),
+          evidence: "source_pinned_same_case_correlated_aborted_only",
+          static_projection_sha256: GOOGLE_AUXILIARY_PROJECTION_SHA256,
+          same_case_owned_primary_correlated: linked,
+          independent_ownership_authentication: false, complete_initiator_proof: false,
+          authorizes_dispatch: false, authorizes_fulfillment: false,
+        };
+        return linked;
+      }).every(Boolean);
+      summary.auxiliary_attempts = auxiliaries.length;
+      summary.total_native_attempts = attempts.length + auxiliaries.length;
+      if (!auxiliariesLinked) state.fail("native_auxiliary_relationship_mismatch");
+      const inputMatches = googleInputRelationship(observedState.native.conversion_input, manifest, name);
+      if (!control && name !== "query-disabled" && !inputMatches)
+        state.fail("native_input_relationship_mismatch");
+      summary.dependency_closed = name === "query-disabled"
+        ? summary.runtime_fulfilled === 0 && summary.configuration_fulfilled === 0
+          && noUnknownDependency && auxiliaries.length === 0
+        : summary.runtime_fulfilled === 1 && noUnknownDependency && auxiliariesLinked
+          && manifest.dependencies.every(resource => requests.some(row =>
+            row.url === resource.request_url && row.locally_fulfilled))
+          && observedState.native.callable && observedState.native.destination_initialized && inputMatches;
+    }
     summary.qualified_positive_reference = !control
       && !["query-disabled", "consent-revoked"].includes(name)
-      && summary.dependency_closed && attempts.length === 1
+      && summary.dependency_closed && (google(manifest) ? attempts.length > 0
+        && attempts.every(row => googleRelationship(row, manifest)) : attempts.length === 1)
       && !violations.length && !pageErrors.length && !unsupported.length
       && requests.every(row => (row.locally_fulfilled || row.aborted) && row.body_state !== "unavailable");
-    if (!control && attempts.some(row => {
+    if (!control && !google(manifest) && attempts.some(row => {
       const data = fields(row);
       return data.getAll("dl").length !== 1 || data.get("dl") !== documentUrl;
     })) state.fail("native_document_relationship_mismatch");
     state.privateCases.push({ ...summary, document_url: documentUrl,
       fixture_sha256: hash(documentBytes), fixture_state: fixtureState,
       native_state: observedState.native,
-      synthetic_inputs: VALUES[name] ? { value: VALUES[name], currency: "USD" } : {},
+      synthetic_inputs: google(manifest) ? googleParameters(manifest, name)
+        : VALUES[name] ? { value: VALUES[name], currency: "USD" } : {},
       violations, unsupported_surfaces: unsupported, page_errors: pageErrors, navigation_completed: true });
     return { summary, requests };
   } finally {
@@ -665,6 +839,7 @@ async function httpBoundary(state, browser, sink, manifest) {
   if (!control.qualified || state.errors.size) reject("http_boundary_control_failed", false);
 }
 function gradeCases(state, manifest) {
+  if (google(manifest)) return gradeGoogleCases(state, manifest);
   const rows = state.result.cases;
   const baseline = rows.find(row => row.name === "baseline");
   if (!baseline || baseline.attempts === 0) state.fail("missing_positive_reference");
@@ -692,6 +867,45 @@ function gradeCases(state, manifest) {
       && data.get("ev") === "PageView";
   });
   state.result.controls.value_contrast = contrast.every(Boolean);
+  if (!state.result.controls.value_contrast) state.fail("value_contrast_unqualified");
+  for (const row of rows) row.qualified_positive_run_id =
+    state.result.controls.disabled_linked ? state.result.run_id : null;
+}
+
+function gradeGoogleCases(state, manifest) {
+  const rows = state.result.cases;
+  const positives = ["baseline", "value1", "value2"];
+  const baseline = rows.find(row => row.name === "baseline");
+  if (!baseline?.qualified_positive_reference) state.fail("missing_positive_reference");
+  if (rows.length !== GOOGLE_CASES.length
+    || !GOOGLE_CASES.every(name => rows.filter(row => row.name === name).length === 1))
+    state.fail("incomplete_case_matrix");
+  for (const row of rows) {
+    if (!row.dependency_closed) state.fail("missing_dependency");
+    if (positives.includes(row.name) && !row.qualified_positive_reference)
+      state.fail("missing_or_ambiguous_positive");
+  }
+  const linkedAuxiliaries = name => state.requests
+    .filter(row => row.case === name && row.category === "native_auxiliary")
+    .every(row => googleAuxiliaryRelationship(row, manifest, state.requests));
+  for (const name of positives) {
+    if (!linkedAuxiliaries(name)) state.fail("native_auxiliary_relationship_mismatch");
+  }
+  const disabled = rows.find(row => row.name === "query-disabled");
+  state.result.controls.disabled_linked = baseline?.qualified_positive_reference === true
+    && disabled?.attempts === 0 && disabled.auxiliary_attempts === 0 && disabled.dependency_closed
+    && !state.requests.some(row => row.case === "query-disabled"
+      && ["runtime", "configuration", "native_measurement", "native_auxiliary",
+        "missing_dependency", "unknown_auxiliary"].includes(row.category));
+  if (!state.result.controls.disabled_linked) state.fail("disabled_control_unqualified");
+  // No fbq-style revoke assumption: no Google consent control is proven here.
+  state.result.controls.consent_negative_linked = false;
+  state.result.controls.value_contrast = VALUES.value1 !== VALUES.value2 && positives.every(name => {
+    const attempts = state.requests.filter(row => row.case === name && row.category === "native_measurement");
+    return rows.find(row => row.name === name)?.qualified_positive_reference === true
+      && attempts.length > 0 && attempts.every(row => googleRelationship(row, manifest))
+      && linkedAuxiliaries(name);
+  });
   if (!state.result.controls.value_contrast) state.fail("value_contrast_unqualified");
   for (const row of rows) row.qualified_positive_run_id =
     state.result.controls.disabled_linked ? state.result.run_id : null;
@@ -741,22 +955,40 @@ export async function runNativeReference(options) {
       const loaded = await inputsAt(options.inputs, () => budget.check());
       budget.check();
       manifest = loaded.manifest;
+      result.profile = manifest.profile;
       result.runtime_sha256 = manifest.runtime.sha256;
-      result.configuration_sha256 = manifest.configuration.sha256;
+      result.configuration_sha256 = manifest.configuration?.sha256 ?? null;
+      if (google(manifest)) {
+        result.not_proved = result.not_proved.filter(item => item !== "google_native_reference");
+        result.not_proved.push("google_consent_states_and_transitions", "response_dependent_fanout",
+          "reporting", "historical_google_runtime",
+          "auxiliary_auid_correlation_not_independent_ownership_authentication",
+          "auxiliary_complete_initiator_proof");
+        if (result.mode !== "headed") reject("google_headed_cohort_required", false);
+      }
       if (options.control !== "boundary-only"
-        && Object.keys(NATIVE_PINS).some(name => manifest[name].sha256 !== NATIVE_PINS[name]))
+        // No Google dependency bytes have been independently pinned for this
+        // cohort. A dependency's manifest self-hash cannot authorize execution.
+        && (google(manifest) ? manifest.runtime.sha256 !== GOOGLE_RUNTIME_PIN || manifest.dependencies.length > 0
+          : Object.keys(NATIVE_PINS).some(name => manifest[name].sha256 !== NATIVE_PINS[name])))
         reject("unqualified_native_resource", false);
       result.provenance = {
         source_capture_sha256: manifest.source_capture_sha256,
         input_manifest_sha256: loaded.manifest_sha256,
         fixture: "generated_synthetic_not_source_document",
-        bootstrap: "stock_meta_queue_init_pageview_with_exact_url_trusted_types",
+        ...(google(manifest) ? { source_acquisition_sha256: manifest.source_acquisition_sha256,
+          auxiliary_projection_sha256: GOOGLE_AUXILIARY_PROJECTION_SHA256,
+          source_cohort: "newly_acquired_google_native_bytes_not_historical_capture" } : {}),
+        bootstrap: google(manifest) ? "standard_gtag_js_config_event_conversion_with_exact_url_trusted_types"
+          : "stock_meta_queue_init_pageview_with_exact_url_trusted_types",
         native_resources: options.control === "boundary-only"
           ? "supplied_resources_not_executed_or_fulfilled"
           : "unmodified_retained_official_bytes_locally_fulfilled",
         source_response_statuses: { runtime: manifest.runtime.response_status,
-          configuration: manifest.configuration.response_status },
-        consent: "native_default_except_explicit_revoke_control",
+          ...(google(manifest) ? { dependencies: manifest.dependencies.map(resource => resource.response_status) }
+            : { configuration: manifest.configuration.response_status }) },
+        consent: google(manifest) ? "native_default_only_google_transitions_unproved"
+          : "native_default_except_explicit_revoke_control",
         browser_evidence: "unmodified_no_ua_or_webdriver_override",
         runner_sha256: hash(await readFile(fileURLToPath(import.meta.url))),
         launcher_sha256: hash(await readFile(LAUNCHER)),
@@ -791,7 +1023,7 @@ export async function runNativeReference(options) {
       await httpBoundary(state, confined.browser, sink, manifest);
       budget.check();
       if (options.control === "boundary-only") reject("native_execution_not_requested", false);
-      for (const name of CASES) {
+      for (const name of caseNames(manifest)) {
         const observed = await guardedCase(state, confined.browser, manifest, name);
         budget.check();
         result.cases.push(observed.summary);
@@ -854,6 +1086,10 @@ export async function runNativeReference(options) {
     result.observation_window.stopped_at = stamp();
     result.counts = { attempts: state.requests.filter(row => row.category === "native_measurement").length,
       recorded_requests: state.requests.length };
+    if (manifest && google(manifest)) {
+      result.counts.native_auxiliaries = state.requests.filter(row => row.category === "native_auxiliary").length;
+      result.counts.total_native_attempts = result.counts.attempts + result.counts.native_auxiliaries;
+    }
     if (state.errors.size) outcome(result, result.overall === "invalid_input" ? "invalid_input" : "inconclusive",
       [...result.errors, ...state.errors]);
     result.capture_complete = result.overall === "qualified" && state.requests.length > 0
@@ -865,11 +1101,15 @@ export async function runNativeReference(options) {
     const capture = {
       schema_version: 1, run_id: result.run_id, source: manifest ? {
         owned_origin: manifest.owned_origin, source_document_url: manifest.document_url,
-        pixel_id: manifest.pixel_id, source_capture_sha256: manifest.source_capture_sha256,
+        ...(google(manifest) ? { conversion_id: manifest.conversion_id, conversion_label: manifest.conversion_label,
+          source_acquisition_sha256: manifest.source_acquisition_sha256 } : { pixel_id: manifest.pixel_id }),
+        source_capture_sha256: manifest.source_capture_sha256,
         runtime: { url: manifest.runtime.request_url, sha256: manifest.runtime.sha256,
           source_http_status: manifest.runtime.response_status },
-        configuration: { url: manifest.configuration.request_url, sha256: manifest.configuration.sha256,
-          source_http_status: manifest.configuration.response_status },
+        ...(google(manifest) ? { dependencies: manifest.dependencies.map(resource => ({
+          url: resource.request_url, sha256: resource.sha256, source_http_status: resource.response_status,
+        })) } : { configuration: { url: manifest.configuration.request_url, sha256: manifest.configuration.sha256,
+          source_http_status: manifest.configuration.response_status } }),
       } : null,
       requests: state.requests, cases: state.privateCases, errors: [...state.errors],
       receiver_requests: state.receiverRequests ?? [],

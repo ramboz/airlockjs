@@ -3,8 +3,9 @@
 ## Current posture
 
 This is a complete **DRAFT authoring packet**, not implementation approval.
-ADR-0033 is Accepted for the owner's target; 058 has implemented local-only
-qualification with native/comparison gates open, and all 059 slices stay DRAFT.
+ADR-0033 is Accepted for the owner's target; 058 has implemented local controls
+and selected Meta/new Google attempted references, with broader
+native/comparison/readiness gates open. All 059 slices stay DRAFT.
 The parent owns formal frame/architecture/compliance/craft/reconciliation review,
 authority/index integration, shared 058, code discovery and trunk collision checks.
 No native event, account mutation, shared-site deployment or runtime code work
@@ -25,9 +26,11 @@ This grant cannot fund a full implementation/live-event loop by implication.
    This does not satisfy implementation/evidence gates. Do not edit Accepted
    histories or reuse Adobe reporting exceptions.
 2. Qualify 058-01 local receiving sink, guard, marker-loss branches, bounded
-   capture drain and unreadable-body/error outcomes. Qualify 058-02 for the
-   exact Google native runtime/configuration/browser/scenario, then 058-03
-   value-preserving sequence/negative controls. Consume each named layer.
+   capture drain and unreadable-body/error outcomes. Consume shared 058-02
+   containment and Google-specific 058-04 for the exact native
+   runtime/configuration/browser/scenario, then 058-03 value-preserving
+   sequence/negative controls. Complete response/dispatch evidence remains a
+   separate gate; consume each named layer.
 3. Parent freezes C2 browser/cohort/critical interaction coverage and C3 numeric
    performance/host-latency/retention limits from evidence before 059-01 can
    become implementable. Reference and comparator may not generate each other's
@@ -56,7 +59,7 @@ This grant cannot fund a full implementation/live-event loop by implication.
 
 | Slice | Lifecycle dependencies | Reason |
 |---|---|---|
-| 059-01 | adr-0017, adr-0033, 058-01/02/03 | Stable-core authority, accepted target and exact local/native/comparison evidence before the first conversion path. |
+| 059-01 | adr-0017, adr-0033, 058-01/02/03/04 | Stable-core authority, accepted target and exact local/native/comparison evidence before the first conversion path; attempted reference is not full response closure. |
 | 059-02 | 059-01 | Extend a working end-to-end owned route to complete queue/routing/callback semantics, not a parser-only milestone. |
 | 059-03 | 059-02 | Consent commands/updates need the verified queue/callback and dispatch contract. |
 | 059-04 | 059-03 | Identity/linker operations depend on precise consent capture/use/revocation boundaries. |

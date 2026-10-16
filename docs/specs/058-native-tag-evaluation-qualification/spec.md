@@ -33,8 +33,19 @@ vendor-readiness gates, and conveys no live-send authority.
 narrow Meta PageView attempted-reference profile using exact saved native bytes
 in real headed Chrome, process-local IP/resolver denial and all-fulfill/abort
 HTTP interception. Linked disabled/revoked/value controls pass without vendor
-dispatch. Google still lacks retained runtime/configuration/dependency bytes;
+dispatch. Google lacked retained runtime/configuration/dependency bytes at that
+checkpoint; its separately authorized new cohort is described below.
 058-03, full vendor inventories and outcome/readiness gates remain open.
+
+**New Google-profile checkpoint (2026-10-16):** 058-04 uses one newly acquired,
+pinned official loader, unchanged native execution and the same no-send
+boundaries. Selected baseline/off/value receipts capture six primary plus
+24 auxiliary attempts, all aborted. Actual native value mutations and retained
+Meta regressions pass; the slice record carries actual review/close-out state.
+A preceding integrated
+unknown-auxiliary failure lost its temporary trace and remains unexplained;
+later passing receipts do not establish universal repeatability or repair
+historical missing runtime/responses.
 
 ### Grounded starting point
 

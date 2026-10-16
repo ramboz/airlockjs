@@ -92,11 +92,16 @@ using that smoke as the required complete reference. A duplicate query key occur
 native `rnd` differs from `auid`, unlike the earlier synthetic fixture. Neither
 blanket redaction nor dictionary-only comparison is an adequate oracle.
 
-The 2026-10-16 input-readiness check confirms the saved recording contains
+The 2026-10-16 input-readiness check confirms the original recording contains
 three measurement-response bodies, but not the official Google loader or
 effective configuration/dependency bytes. The new 058-02 Meta attempted-reference
-profile cannot qualify Google by analogy. Acquisition of missing inputs needs
-an explicit separate grant; no reconstruction, download or live resend follows.
+profile cannot qualify Google by analogy. A later explicit owner grant permits
+inert owned script/configuration acquisition and offline qualification under
+058-04. Its newly pinned loader now produces selected positive/off/value
+attempt receipts, with all primary and auxiliary measurements aborted; the
+shared slice record carries its actual close-out state. Unknown/contaminated runs stay inconclusive,
+and no universal repeatability is claimed. This new cohort does not recover
+historical bytes/responses or authorize a live resend.
 
 Any statement about present connector, host, boot or test capabilities remains
 **unverified** until the parent performs authorized semantic-index/source
@@ -109,7 +114,7 @@ Consume 058 by named qualified layer, not its rollup status:
 | Layer | Required evidence | Cannot establish |
 |---|---|---|
 | `local_network` | 058-01 positive local sink, pre-execution guard, complete async drain and failure/marker-loss controls | Native execution, actual vendor dispatch or any compatibility/outcome claim. |
-| Native attempted reference | 058-02 qualified positive with exact runtime/configuration/browser/input closure, declared window and every in-scope attempt | Real cookie attachment/acceptance, unexecuted redirects/responses, receipt or attribution when intercepted. |
+| Native attempted reference | Shared 058-02 controls and the Google-specific 058-04 qualified positive with exact runtime/configuration/browser/input closure, declared window and every in-scope attempt | Real cookie attachment/acceptance, unexecuted redirects/responses, receipt or attribution when intercepted. |
 | Sequence/value comparison | 058-03 complete references, path-specific rules and falsifiable mutations | Worker execution or vendor outcomes merely because a comparator passes. |
 | Actual chamber execution | Trace from adopter entry through serialized airlock dispatch to the actual isolated worker and governed host operations | Wire delivery if blocked; model/unit mapper output cannot satisfy this layer. |
 | Actual vendor dispatch/response | Separately authorized owned request, browser credentials/headers, real response and dependent branches | Accepted/countable product conversion, matching, reporting or attribution. |
@@ -117,8 +122,8 @@ Consume 058 by named qualified layer, not its rollup status:
 | Attribution | Legitimate permitted interaction/journey, attribution/count/window settings and sufficient independently observed product outcome | Universal modeled/cross-device equivalence from one event. |
 
 Before **059-01 implementation**, ADR-0033 must be Accepted, 058-01/02/03
-must satisfy their reviewed dependency gates for the exact Google scenario and
-browser, numerical performance limits must be pinned, and the complete direct
+and Google-specific 058-04 must satisfy their reviewed dependency gates for the
+exact scenario and browser, numerical performance limits must be pinned, and the complete direct
 conversion reference must be available. Further event authority is a separate
 finite parent grant. The historical smoke satisfies none of these by implication.
 

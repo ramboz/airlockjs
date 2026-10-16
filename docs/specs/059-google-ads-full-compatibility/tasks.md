@@ -10,7 +10,7 @@ completed by writing the DRAFT packet.
 - [ ] Frame-review and accept ADR-0033; reconcile live read-only-cookie guidance
       without unauthorized Accepted-record edits.
 - [ ] Review 059's assumptions and all slice frames; retain DRAFT until real gates pass.
-- [ ] Qualify exact Google evidence layers 058-01, 058-02 and 058-03, including
+- [ ] Qualify exact Google evidence layers 058-01/02/03/04, including
       expected-positive, empty-reference, marker-loss, response/body-error and mutation controls.
 - [ ] Supply explicit private handles for owned resources, native runtime/configuration,
       inputs/browser/state and complete reference; no hidden source/account discovery.

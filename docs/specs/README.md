@@ -191,7 +191,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-01 - Local recorder and no-send qualification | **DONE** |  |
 | [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-02 - Pinned native attempted-request reference | **DONE** |  |
 | [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-03 - Value-preserving comparison controls | DRAFT |  |
-| [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-04 - Owned Google conversion attempted-reference | IN_PROGRESS (google-and-meta-feasibility) |  |
+| [058-native-tag-evaluation-qualification](058-native-tag-evaluation-qualification/spec.md) | 058-04 - Owned Google conversion attempted-reference | RECONCILED (google-and-meta-feasibility) |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-01 - Owned direct conversion cutover | DRAFT |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-02 - Command routing and callback journeys | DRAFT |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-03 - Consent-respecting measurement journeys | DRAFT |  |
@@ -241,7 +241,7 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
 
 - **14** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **104** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **53** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **54** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
@@ -295,3 +295,4 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
   - `051-adobe-integration-proving-ground/slice-05-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `058-native-tag-evaluation-qualification/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `058-native-tag-evaluation-qualification/slice-02-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `058-native-tag-evaluation-qualification/slice-04-craft.md` — applied `pr-review`; declined: scout-pr-review

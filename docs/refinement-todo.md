@@ -30,8 +30,11 @@ full-support claim while required native behavior is missing.
 implements one retained Meta headed PageView attempted-reference profile with
 linked off/revoked/value controls and independently denied process/resolver/HTTP
 egress; actual headless no-beacon remains a separate negative, not a false pass.
-This does not close Google's missing native bytes/auxiliary response sequence,
-058-03, other Meta scenarios/cohorts, actual chamber or downstream outcomes.
+058-04 additionally acquires a new Google loader and records selected owned
+conversion/off/value attempts without measurement dispatch; its record carries
+actual close-out state. This does not recover Google's historical missing bytes or
+auxiliary responses, explain the lost-trace initial unknown, or close 058-03,
+other vendor scenarios/cohorts, actual chamber or downstream outcomes.
 The owner Test Events receipt remains unpaired and separately attributed.
 
 Resolve these with native evidence and narrowly mediated designs, not broad

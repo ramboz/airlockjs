@@ -1,7 +1,7 @@
 ---
-status: IN_PROGRESS
+status: RECONCILED
 dependencies: [058-01, 058-02, adr-0033]
-last_verified:
+last_verified: 2026-10-16
 frame_review: true
 arch_review: true
 claimed_by: google-and-meta-feasibility
@@ -87,9 +87,9 @@ acquisition is separately authorized; it cannot establish the old version.
   dependency remains blocked, not permission to fetch it.
 
 **DoD:**
-- [ ] Genuine source provenance and native positive/off/value receipts exist.
-- [ ] TDD, targeted regression checks and required independent reviews pass.
-- [ ] Operator documentation and live readiness prose match the evidence layer.
+- [x] Genuine source provenance and native positive/off/value receipts exist.
+- [x] TDD, targeted regression checks and required post-implementation reviews pass.
+- [x] Operator documentation and live readiness prose match the evidence layer.
 - [ ] Actual reconciliation/commit/DONE gates clear; no wider claim follows.
 
 **Anti-horizontal-phasing check:** The operator gets one bounded Google command
@@ -101,8 +101,71 @@ with either qualified attempted-request evidence or actionable missing inputs.
 
 ### Deviation log (after reconciliation)
 
-Not implemented.
+Implemented the fixed Google profile in the existing runner without changing
+the policy, launcher, cohort, no-send arms or limits. One credential-free
+official source GET retained the new loader; runtime bytes remain unchanged.
+The initial trace correctly blocked uncatalogued auxiliaries. Static source
+byte-span and private relationship evidence then established a narrow catalog:
+measurement-response Script/Image, remarketing, CCM and selector-free
+same-case-correlated requests. These remain aborted; no measurement response
+was downloaded or fulfilled. AUID correlation is not independent authentication
+or a complete initiator proof.
+
+The parent native receipt records 43 requests, six primary and 24 auxiliary
+attempts: baseline/value1/value2 each have two primary plus eight auxiliaries,
+query-disabled has zero. Exact action/value/currency/transaction and source
+relationships pass, with Google consent proof deliberately false. Process,
+known-resolver and HTTP controls and all owned cleanup pass.
+
+Initial integrated validation was 89 pass/one unknown-auxiliary failure. Its
+temporary diagnostic had been deleted; the cause remains unknown. The test now
+retains failed private positives without relaxing any expectation, guard,
+catalog or oracle. The complete explicitly enabled rerun passed 90 cases,
+including real Google value mutations and retained Meta/headless/revoke/URL
+controls; 28 unchanged local controls also pass. Eight parent complete matrices
+qualified. A distinct retained extra `chrome://newtab/` target correctly caused
+an inconclusive run; it is not asserted to explain the earlier lost failure.
+No universal repeatability or absence-of-unknown-behavior claim follows.
+
+Native event attempts under interception can differ from an uninterrupted
+response chain. Historical missing bytes/responses, actual vendor responses,
+Google consent variants, other scenarios/cohorts, initiator/ownership
+authentication, comparison, chamber and downstream outcomes remain open.
+Actual compliance follow-up, craft and architecture passes clear the REVIEWED
+gate. The initial compliance blocker remains in Git history. Reconciliation,
+implementation commit and final DONE remain separate required gates.
 
 ### Reconciliation sweep
 
-Pending implementation.
+- Scope: this slice's changes start after inherited branch checkpoint
+  `a7a3aee`. Earlier ADR-0033/058-01/058-02 work and integrated 059/060 packets
+  are excluded from this pass except for the explicitly updated live surfaces
+  below. Inherited branch-wide diff content is not a new 058-04 deliverable or
+  a renewed review of closed records.
+- Updated: `README.md` describes both selected offline profiles without full
+  support or historical-response claims; `CLAUDE.md` carries the active 058
+  checkpoint and remaining comparison/readiness gates.
+- Updated: `docs/architecture.md` corrects the live shared-evaluation status
+  while preserving stable-core/runtime/Adobe boundaries; `docs/refinement-todo.md`
+  distinguishes new Google evidence from historical and full-vendor residuals.
+- Regenerated: `docs/specs/README.md` derives the actual slice states via the
+  workflow helper; its curated notes are preserved, not used to grant authority.
+- Updated: shared live overview/plan/tasks and operator guide distinguish the
+  newly acquired Google cohort from completed retained Meta and old Google
+  history; the initial compliance blocker is preserved in Git.
+- Updated: DRAFT 059 prerequisites name the Google-specific 058-04 layer, while
+  complete response/dispatch and numerical/performance/readiness gates remain.
+- No-op: 058-01/02 closed records, Accepted ADRs, conventions, core/connectors,
+  Adobe/site assets, global oracle and `.servo` approvals. No public runtime
+  module boundary or frozen API changed; this reuses the established local
+  qualification design rather than selecting a new architecture.
+- Deferred: 058-03 comparison, full vendor inventories, universal reproducibility,
+  the lost-trace unknown's cause, additional native capabilities and live sends.
+- Updated: memory learning preserves measurement-Script classification versus
+  acquisition authority and the lost-diagnostic limitation. Coverage advisory
+  shows no missing/dangling use cases; older unrelated orphans are unchanged.
+- Leanness: one profile variant reuses the existing command/containment and
+  targeted test file. No new dependencies, generic framework or runtime APIs.
+- No-op: inbox/brand/UI/lightweight decisions; all work remains under this slice.
+- Pending: reconciliation review and commit/DONE gates, with actual results in
+  the sibling review evidence rather than inferred from passing author tests.

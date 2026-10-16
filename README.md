@@ -26,18 +26,19 @@ sets complete Google Ads and Meta Pixel replacement as the target, without
 changing Adobe's release gate. Specs [058](docs/specs/058-native-tag-evaluation-qualification/spec.md),
 [059](docs/specs/059-google-ads-full-compatibility/spec.md) and
 [060](docs/specs/060-meta-pixel-full-compatibility/spec.md) cover trustworthy
-evaluation and the two vendor inventories. The shared local qualifier and one
-retained Meta PageView reference are implemented; Google source-input and full
-comparison/readiness gates remain open. Vendor specs are drafts, not full
+evaluation and the two vendor inventories. The shared local qualifier, retained
+Meta PageView and newly pinned Google conversion attempted-reference profiles
+are implemented; full sequence/comparison/readiness gates remain open. Vendor specs are drafts, not full
 support. The shipped connectors remain bounded subsets.
 
 The [local qualification guide](rig/native-tag-qualification.md) describes its
 fixed loopback-only evidence layer, explicit browser suite and non-vacuity
 controls. It authorizes no live vendor or customer capture.
-The [retained Meta native-reference guide](rig/native-tag-reference.md) covers
-one offline PageView profile and linked negative/value controls. It captures
-attempts without sending them; Google source-byte/dependency inputs and full
-sequence/comparison/vendor gates remain open.
+The [native-reference guide](rig/native-tag-reference.md) covers the selected
+offline Meta and Google profiles and their linked controls. They capture
+attempts without sending them. Google's new source cohort does not recover
+historical missing responses; unknown/contaminated runs stay inconclusive,
+and full sequence/comparison/vendor gates remain open.
 
 ## Install into an EDS site (git subtree, no build step)
 
