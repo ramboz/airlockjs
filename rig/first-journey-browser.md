@@ -33,6 +33,15 @@ remove their own temporary artifacts after checking them. Use the CLI to keep
 private receipts. `--mode headed` runs the same synthetic fixtures headed;
 neither mode executes a vendor SDK. There is no live-mode switch.
 
+Every synthetic context explicitly grants `local-network-access` only to its
+fresh literal-loopback fixture origin. Without this scoped grant, Chrome's
+Local Network Access check blocked the WebSocket positive itself
+(`ERR_BLOCKED_BY_LOCAL_NETWORK_ACCESS_CHECKS`), which would make a zero-arrival
+negative uninformative. No browser security feature is disabled, no persistent
+profile permission is changed, and no vendor origin inherits this test grant.
+This overridden local-test permission is recorded in the cohort; it is not a
+native-default permission or performance comparison.
+
 `runBrowserQualification({ outputDir, control?, mode? })` is the equivalent
 module entry. Options are closed. Output must be a new absolute directory with
 an existing nonsymlink parent. Directory and raw files are created `0700` and
@@ -104,13 +113,28 @@ receiver counts and actual command completion; nonzero alone is insufficient.
 | `response-limit` | One-over response bytes fail instead of truncating. |
 | `request-limit` | One-over original request bytes do not reach the receiver. |
 | `url-limit` | Overlong observed URL is denied before continuation. |
+| `wrong-transport` | A Script request cannot reuse a Fetch request's scope. |
+| `invalid-parent` | A direct request to a redirect-only target lacks its observed parent. |
 | `nonempty-redirect` | Unreadable nonempty 307 body stops before the target. |
 | `marker-loss` | Redirect target missing the exact ownership marker is denied. |
 | `query-order` | Reordered duplicate query values do not match exact scope. |
 | `unsupported-frame` | An attempted child frame cannot yield success. |
 | `unsupported-popup` | Extra page is rejected and the owned context closes. |
 | `unsupported-worker` | Worker/CSP violation is an explicit stopped case. |
+| `unsupported-service-worker` | The pinned context's blocked-registration warning stops the case. |
 | `unsupported-websocket` | WebSocket routing closes the unsupported surface. |
+| `cleanup-failure` | First close fails; guards remain installed until successful retry. |
+| `output-failure` | A provisional zero report cannot certify failed completion publication. |
+| `output-deadline` | Publication deadline failure leaves no completion attestation. |
+
+Unsupported-surface controls have separate **matching surface bypass positives**,
+not a generic Fetch positive: a frame, popup, worker, service worker or WebSocket
+actually reaches its local sink when the corresponding restriction is deliberately
+removed. These cases are explicitly labeled guard-bypassed; they do not qualify
+capture or safety for those surfaces. Service-worker bypass uses its own fresh
+context with service workers allowed, then closes it; ordinary cases block them.
+The negative service-worker warning is pinned Playwright behavior, not proof that
+unrelated/unobserved service-worker implementations are all covered.
 
 The local fixture's CSP forbids frames/workers and the context blocks service
 workers. Target, frame, worker and WebSocket listeners are additional failure
@@ -142,16 +166,32 @@ remain inconclusive and spent under its finite authority.
 `capture.json` contains synthetic raw originals, receiving-sink observations
 and source-linked local case records. `report.json` contains fixed categories,
 counts, cohort/source pins, matrix outcomes and closure checks.
-`completion.json` binds the report/capture digests and final exit state after
-owned context/process/server cleanup. A report without actual successful
-command completion is not a qualified result. Output/deadline failure can
-leave diagnostic files but returns nonzero; do not consume them as a pass.
+`completion.json` binds the report/capture digests and **producer result**, after
+owned context/process/server cleanup. Its `result_exit_code` is not an observed
+CLI exit; `command_exit_observed` is always false. No process can attest its own
+future final exit before writing its last file. Require the caller's separately
+observed actual command exit and matching digests, not this file alone.
+Real-browser tests launch the CLI as a child and check its actual exit status.
+Output/deadline controls deliberately leave a provisional zero-result report
+without a completion artifact while the actual command exits nonzero.
+These are failed diagnostics, never passes.
+
+Receipt publication uses synchronous exclusive writes, file fsync and directory
+fsync, so a timed-out asynchronous writer cannot publish success after return.
+The output directory's parent entry is also synced. Source provenance includes
+the admission module, resolved Playwright entry/version and lockfile alongside
+the runner, launcher and policy. This identifies the executing dependency cohort;
+it is not a claim to have verified every installed dependency byte.
 
 The absolute 60-second budget starts before output preparation and includes
 launch, every observation, settlement, cleanup and output. The owner process
 has a watchdog and may kill only its own browser process. Interception stays
-installed until the owned context closes. It is not a machine-wide firewall or
-an enforceable credit meter.
+installed until the owned context closes; a failed close keeps the owned context
+and its guard listeners for retry. Failure cleanup still runs when the success
+budget is exhausted, and any overrun remains nonqualified. Filesystem syscalls
+and a cooperative controller cannot promise instantaneous physical preemption
+during an OS stall; the external caller must also bound and observe command exit.
+It is not a machine-wide firewall or an enforceable credit meter.
 
 Every outcome retains false vendor-dispatch/receipt, native execution, chamber
 compatibility, matching, attribution, full-support and `live_guard_qualified`

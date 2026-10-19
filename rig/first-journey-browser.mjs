@@ -1,7 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
-import { constants } from "node:fs";
-import { lstat, mkdir, open, readFile } from "node:fs/promises";
+import { constants, closeSync, fsyncSync, fstatSync, lstatSync, mkdirSync, openSync,
+  readFileSync, writeSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { release } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
@@ -15,8 +16,11 @@ const LAUNCHER = fileURLToPath(new URL("./qualification-loopback-chrome", import
 const POLICY = fileURLToPath(new URL("./qualification-loopback-network.sb", import.meta.url));
 const SURFACES = ["fetch-get", "fetch-post", "xhr", "image", "beacon", "script", "redirect", "fanout"];
 const CONTROLS = ["none", "missing-body", "late-read", "response-limit",
-  "request-limit", "url-limit", "nonempty-redirect", "marker-loss", "query-order",
-  "unsupported-frame", "unsupported-popup", "unsupported-worker", "unsupported-websocket"];
+  "request-limit", "url-limit", "wrong-transport", "invalid-parent",
+  "cleanup-failure", "output-failure", "output-deadline",
+  "nonempty-redirect", "marker-loss", "query-order",
+  "unsupported-frame", "unsupported-popup", "unsupported-worker", "unsupported-service-worker",
+  "unsupported-websocket"];
 const CAPS = Object.freeze({
   observed_requests: 64, google_dispatches: 20, meta_dispatches: 8,
   url_bytes: 2048, request_bytes: 65536, response_bytes: 2097152,
@@ -38,16 +42,27 @@ const claims = Object.freeze({
   matching_verified: false, attribution_verified: false, full_support_verified: false,
 });
 
-async function privateJson(path, value) {
-  const fd = await open(path, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL
+function syncDirectory(path) {
+  const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+  try { fsyncSync(fd); } finally { closeSync(fd); }
+}
+function privateJson(path, value) {
+  const fd = openSync(path, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL
     | constants.O_NOFOLLOW, 0o600);
   try {
-    const stat = await fd.stat();
+    const stat = fstatSync(fd);
     if ((stat.mode & 0o7777) !== 0o600 || !stat.isFile() || stat.nlink !== 1)
       throw error("output_permissions");
-    await fd.writeFile(JSON.stringify(value, null, 2));
-    await fd.sync();
-  } finally { await fd.close(); }
+    const bytes = Buffer.from(JSON.stringify(value, null, 2));
+    let offset = 0;
+    while (offset < bytes.length) {
+      const written = writeSync(fd, bytes, offset, bytes.length - offset);
+      if (!written) throw error("output_write_failed");
+      offset += written;
+    }
+    fsyncSync(fd);
+  } finally { closeSync(fd); }
+  syncDirectory(dirname(path));
 }
 
 function planFor(origin, surface, leg, control) {
@@ -90,7 +105,10 @@ function planFor(origin, surface, leg, control) {
   if (control === "unsupported-frame") code = `const f=document.createElement("iframe");f.src=${js(target)};document.body.append(f);`;
   if (control === "unsupported-popup") code = `window.open(${js(target)},"_blank");`;
   if (control === "unsupported-worker") code = `new Worker(${js(target)});`;
-  if (control === "unsupported-websocket") code = `new WebSocket(${js(target.replace("http:", "ws:"))});`;
+  if (control === "unsupported-service-worker") code = `await navigator.serviceWorker.register(${js(target)});`;
+  if (control === "unsupported-websocket") code = `window.__surfaceSocket=new WebSocket(${js(target.replace("http:", "ws:"))});`;
+  if (control === "wrong-transport") code = `const s=document.createElement("script");s.src=${js(target)};document.head.append(s);`;
+  if (control === "invalid-parent") code = `await fetch(${js(descriptors[1].url)},{method:"POST",body:${post}});`;
   const fixture = Buffer.from(`<!doctype html><html><head><meta charset="utf-8"><link rel="icon" href="data:,"></head><body><script>
 window.__done=false;window.__failure=null;
 (async()=>{try{${code}}catch(e){window.__failure=e.name;}finally{window.__done=true;}})();
@@ -132,6 +150,16 @@ async function receiver(state) {
         body = Buffer.from("window.__scriptObserved=true;");
         headers.push("Content-Type", "application/javascript");
       } else if (name === "beacon") { status = 204; body = Buffer.alloc(0); }
+      else if (active.control === "unsupported-worker") {
+        body = Buffer.from("self.postMessage('fixed-worker-control');");
+        headers.push("Content-Type", "application/javascript");
+      } else if (active.control === "unsupported-service-worker") {
+        body = Buffer.from("self.addEventListener('install',()=>self.skipWaiting());");
+        headers.push("Content-Type", "application/javascript");
+      } else if (["unsupported-popup", "unsupported-frame"].includes(active.control)) {
+        body = Buffer.from('<!doctype html><link rel="icon" href="data:,"><p>fixed-surface-control</p>');
+        headers.push("Content-Type", "text/html");
+      }
       else {
         body = active.control === "response-limit" ? Buffer.alloc(CAPS.response_bytes + 1) : FINAL;
         headers.push("Content-Type", "application/octet-stream");
@@ -142,6 +170,20 @@ async function receiver(state) {
       row.response_body_base64 = body.toString("base64");
       response.writeHead(status, headers).end(body);
     });
+  });
+  server.on("connection", socket => {
+    state.sockets.add(socket); socket.once("close", () => state.sockets.delete(socket));
+  });
+  server.on("upgrade", (request, socket) => {
+    if (state.case?.control !== "unsupported-websocket") {
+      state.errors.add("unexpected_websocket_upgrade"); socket.destroy(); return;
+    }
+    const accept = createHash("sha1").update(request.headers["sec-websocket-key"]
+      + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").digest("base64");
+    state.arrivals.push({ url: request.url, method: request.method, headers: request.rawHeaders,
+      body_base64: "", response_status: 101, response_headers: [], response_body_base64: "" });
+    socket.end("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+      + `Sec-WebSocket-Accept: ${accept}\r\n\r\n`);
   });
   state.server = server;
   await state.budget(() => new Promise((resolve, reject) => {
@@ -173,9 +215,10 @@ async function captureCase(state, surface, leg, control = "none") {
   const arrivalStart = state.arrivals.length;
   const context = await state.budget(() => state.browser.newContext({ serviceWorkers: "block" }));
   state.contexts.add(context);
+  await state.budget(() => context.grantPermissions(["local-network-access"], { origin: state.origin }));
   const page = await state.budget(() => context.newPage());
   const session = await state.budget(() => context.newCDPSession(page));
-  const tasks = new Set(), byFetchId = new Map(), parents = new Map();
+  const tasks = new Set(), byFetchId = new Map();
   let stopped = false, closing = false, ended = false, localRetained = 0;
   const fail = reason => { row.failures.push(reason); stopped = true; };
   const track = task => {
@@ -183,6 +226,7 @@ async function captureCase(state, surface, leg, control = "none") {
     task.then(() => tasks.delete(task), () => tasks.delete(task));
   };
   const hooks = [];
+  state.cleanupHooks.set(context, { hooks, row, tasks });
   const on = (object, event, listener) => { object.on(event, listener); hooks.push([object, event, listener]); };
   const unsupported = kind => {
     fail(kind);
@@ -194,6 +238,10 @@ async function captureCase(state, surface, leg, control = "none") {
   on(page, "worker", () => unsupported("unsupported_worker"));
   on(page, "websocket", () => unsupported("unsupported_websocket"));
   on(page, "pageerror", () => fail("fixture_page_error"));
+  on(page, "console", message => {
+    if (message.type() === "warning" && message.text() === "Service Worker registration blocked by Playwright")
+      unsupported("unsupported_service_worker");
+  });
   await state.budget(() => context.exposeBinding("__airlockBlockedSurface", (_source, directive) => {
     if (!ended) unsupported(directive === "worker-src" ? "unsupported_worker" : "unsupported_csp_surface");
   }));
@@ -293,7 +341,8 @@ async function captureCase(state, surface, leg, control = "none") {
       url: request.url, method: request.method, resource: event.resourceType,
       transport: fixture ? "document" : descriptor?.transport ?? "fetch",
       ownership_marker: fixture || descriptor ? "probe" : "unknown",
-      parent_ordinal: descriptor?.parent ? parents.get(descriptor.parent) ?? null : null,
+      parent_ordinal: event.redirectedRequestId
+        ? byFetchId.get(event.redirectedRequestId)?.ordinal ?? null : null,
       headers: Buffer.from(JSON.stringify(request.headers)), body,
     };
     const permission = gate.admit(observation);
@@ -303,11 +352,10 @@ async function captureCase(state, surface, leg, control = "none") {
       headers: request.headers, headers_state: "request_pause_not_final",
       body_base64: body.toString("base64"), body_state: bodyState, network_id: event.networkId ?? null,
       parent_ordinal: observation.parent_ordinal, continued: false, local: false, aborted: false,
-      response: null,
+      redirected_from_fetch_id: event.redirectedRequestId ?? null, response: null,
     };
     row.requests.push(entry);
     byFetchId.set(event.requestId, entry);
-    if (descriptor) parents.set(descriptor.name, permission.ordinal);
     if (!permission.allowed) { fail(permission.result.category); entry.aborted = true; await abort(); return; }
     if (fixture) {
       const headers = [
@@ -318,6 +366,8 @@ async function captureCase(state, surface, leg, control = "none") {
         body: plan.fixture, complete: true });
       localRetained = gate.report().counts.retained_bytes;
       entry.local = true;
+      entry.response = { status: 200, headers, body_base64: plan.fixture.toString("base64"),
+        body_state: "generated_fixture" };
       await session.send("Fetch.fulfillRequest", { requestId: event.requestId,
         responseCode: 200, responseHeaders: headers, body: plan.fixture.toString("base64") });
     } else if (leg === "enforced") {
@@ -347,13 +397,27 @@ async function captureCase(state, surface, leg, control = "none") {
     if (!stopped) fail("fixture_or_settle_failure");
   } finally {
     closing = true;
-    try { await state.budget(() => context.close()); row.cleanup.context_closed = true; }
-    catch { row.failures.push("context_cleanup_failed"); }
-    state.contexts.delete(context);
+    try {
+      if (control !== "cleanup-failure") {
+        await state.budget(() => context.close());
+        row.cleanup.context_closed = true;
+      }
+    } catch { row.failures.push("context_cleanup_failed"); }
+    if (!row.cleanup.context_closed) {
+      if (!row.failures.includes("context_cleanup_failed")) row.failures.push("context_cleanup_failed");
+      row.cleanup.first_close_failed = true;
+      row.cleanup.guards_retained_for_retry = hooks.every(([object, event, listener]) =>
+        object.listeners(event).includes(listener));
+    }
+    if (row.cleanup.context_closed) state.contexts.delete(context);
     while (tasks.size && !state.expired()) await sleep(5);
     ended = true;
-    hooks.forEach(([object, event, listener]) => object.off(event, listener));
-    row.cleanup.observers_removed = hooks.every(([object, event, listener]) => !object.listeners(event).includes(listener));
+    if (row.cleanup.context_closed) {
+      hooks.forEach(([object, event, listener]) => object.off(event, listener));
+      state.cleanupHooks.delete(context);
+    }
+    row.cleanup.observers_removed = row.cleanup.context_closed === true
+      && hooks.every(([object, event, listener]) => !object.listeners(event).includes(listener));
     row.cleanup.pending_tasks = tasks.size;
     row.arrivals = state.arrivals.slice(arrivalStart);
     row.gate = gate.terminate({
@@ -427,6 +491,64 @@ async function captureCase(state, surface, leg, control = "none") {
   return row;
 }
 
+async function unsupportedPositive(state, control) {
+  const plan = planFor(state.origin, "fetch-post", "surface-bypass", control);
+  const start = state.arrivals.length;
+  const context = await state.budget(() => state.browser.newContext({
+    serviceWorkers: control === "unsupported-service-worker" ? "allow" : "block",
+  }));
+  state.contexts.add(context);
+  await state.budget(() => context.grantPermissions(["local-network-access"], { origin: state.origin }));
+  const page = await state.budget(() => context.newPage());
+  const observed = new Set();
+  const listeners = [
+    [context, "page", () => observed.add("unsupported-popup")],
+    [context, "serviceworker", () => observed.add("unsupported-service-worker")],
+    [page, "frameattached", () => observed.add("unsupported-frame")],
+    [page, "worker", () => observed.add("unsupported-worker")],
+    [page, "websocket", socket => {
+      observed.add("unsupported-websocket");
+      socket.on("socketerror", message => {
+        result.socket_error_code = /net::[A-Z_]+/.exec(message)?.[0] ?? "socket_error";
+      });
+    }],
+  ];
+  listeners.forEach(([target, event, listener]) => target.on(event, listener));
+  state.case = plan;
+  const result = { id: control + "-matched-bypass", surface: control,
+    guard_bypassed: true, arrivals: 0, observed: false, context_closed: false,
+    blocked_routes: 0, request_failures: 0, passed: false };
+  state.controlDiagnostic = result;
+  page.on("requestfailed", () => { result.request_failures++; });
+  try {
+    await state.budget(() => context.route("**/*", async route => {
+      if (route.request().url() === plan.fixtureUrl) {
+        await route.fulfill({ contentType: "text/html", body: plan.fixture });
+      } else if (plan.descriptors.some(row => row.url === route.request().url())) await route.continue();
+      else { result.blocked_routes++; await route.abort("blockedbyclient"); }
+    }));
+    await state.budget(() => page.goto(plan.fixtureUrl, { waitUntil: "load", timeout: 3000 }));
+    const cutoff = performance.now() + 2000;
+    while (state.arrivals.length === start || !observed.has(control)) {
+      if (state.expired() || performance.now() >= cutoff) break;
+      await sleep(5);
+    }
+  } finally {
+    try {
+      await state.budget(() => context.close(), 1500);
+      state.contexts.delete(context);
+      listeners.forEach(([target, event, listener]) => target.off(event, listener));
+      result.context_closed = true;
+    } catch {
+      state.errors.add("unsupported_positive_cleanup_failed");
+    }
+    result.arrivals = state.arrivals.length - start;
+    result.observed = observed.has(control);
+  }
+  result.passed = result.arrivals === 1 && result.observed && result.context_closed;
+  return result;
+}
+
 export async function runBrowserQualification(options) {
   if (!checkedKeys(options, ["outputDir", "control", "mode"])
     || typeof options.outputDir !== "string" || !isAbsolute(options.outputDir)
@@ -434,34 +556,41 @@ export async function runBrowserQualification(options) {
     || !["headless", "headed"].includes(options.mode ?? "headless")) throw error("invalid_options");
   const started = performance.now(), wallDeadline = Date.now() + CAPS.duration_ms;
   try {
-    const parent = await lstat(dirname(options.outputDir));
+    const parent = lstatSync(dirname(options.outputDir));
     if (!parent.isDirectory() || parent.isSymbolicLink()) throw error("output_unavailable");
-    await mkdir(options.outputDir, { mode: 0o700 });
+    mkdirSync(options.outputDir, { mode: 0o700 });
+    if ((lstatSync(options.outputDir).mode & 0o7777) !== 0o700) throw error("output_unavailable");
+    syncDirectory(dirname(options.outputDir));
   } catch { throw error("output_unavailable"); }
   const state = { outputDir: options.outputDir, source: null, origin: null,
     errors: new Set(), arrivals: [], contexts: new Set(), case: null, browser: null,
-    server: null, wallDeadline, expired: () => performance.now() - started > CAPS.duration_ms };
+    server: null, sockets: new Set(), cleanupHooks: new Map(), wallDeadline,
+    expired: () => performance.now() - started > CAPS.duration_ms };
   state.budget = async (work, maximum = CAPS.duration_ms) => {
     const remaining = Math.min(maximum, CAPS.duration_ms - (performance.now() - started));
     if (remaining <= 0) throw error("run_deadline");
     let timer;
     try {
-      return await Promise.race([Promise.resolve().then(work),
+      const value = await Promise.race([Promise.resolve().then(work),
         new Promise((_resolve, reject) => { timer = setTimeout(() => reject(error("run_deadline")), remaining); })]);
+      if (state.expired()) throw error("run_deadline");
+      return value;
     } finally { clearTimeout(timer); }
   };
   const result = { schema_version: 1, run_id: randomUUID(), evidence_layer: "local_browser_admission",
     overall: "inconclusive", exit_code: 2, errors: [], cohort: null, provenance: null,
     matrix: [], control: options.control ?? "none", cleanup: {}, claims };
-  const raw = { schema_version: 1, run_id: result.run_id, cases: [] };
+  const raw = { schema_version: 1, run_id: result.run_id, cases: [], surface_positives: [] };
   let browserServer;
   const kill = () => {
     const child = browserServer?.process();
     if (child && child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
+    for (const socket of state.sockets) socket.destroy();
     state.server?.closeAllConnections();
     if (state.server?.listening) state.server.close();
   };
-  const watchdog = setTimeout(() => { state.errors.add("run_deadline"); kill(); }, CAPS.duration_ms);
+  const watchdog = setTimeout(() => { state.errors.add("run_deadline"); kill(); },
+    Math.max(0, CAPS.duration_ms - (performance.now() - started)));
   try {
     if (process.version !== "v24.10.0" || process.platform !== "darwin" || release() !== "27.0.0")
       throw error("cohort_mismatch");
@@ -473,6 +602,12 @@ export async function runBrowserQualification(options) {
     result.provenance = {
       runner_sha256: state.source, launcher_sha256: hash(await readFile(LAUNCHER)),
       policy_sha256: hash(await readFile(POLICY)),
+      admission_sha256: hash(await readFile(new URL("./first-journey-admission.mjs", import.meta.url))),
+      playwright: {
+        version: JSON.parse(await readFile(new URL("./package.json", import.meta.resolve("playwright")), "utf8")).version,
+        entry_sha256: hash(await readFile(fileURLToPath(import.meta.resolve("playwright")))),
+        package_lock_sha256: hash(await readFile(new URL("../package-lock.json", import.meta.url))),
+      },
     };
     await receiver(state);
     const resolverRows = [];
@@ -508,11 +643,13 @@ export async function runBrowserQualification(options) {
     state.browser = await state.budget(() => chromium.connect(browserServer.wsEndpoint()));
     if (state.browser.version() !== "155.0.8059.80") throw error("cohort_mismatch");
     result.cohort = { node: process.version, browser: state.browser.version(), macos,
-      darwin: release(), mode: options.mode ?? "headless", chrome_executable: CHROME };
+      darwin: release(), mode: options.mode ?? "headless", chrome_executable: CHROME,
+      local_fixture_permission: "origin_scoped_local_network_access_in_fresh_synthetic_context_only" };
     for (const surface of SURFACES) {
       for (const leg of ["positive", "enforced", "bypass"]) {
         const captured = await captureCase(state, surface, leg);
         raw.cases.push(captured);
+        if (!captured.cleanup.context_closed) throw error("case_cleanup_failed");
         result.matrix.push({
           surface, leg, arrivals: captured.arrivals.length, passed: captured.passed,
           admitted: captured.gate.counts.admitted_requests, dispatch_reservations: captured.gate.counts.dispatches,
@@ -524,64 +661,103 @@ export async function runBrowserQualification(options) {
         if (!captured.passed) state.errors.add("local_matrix_failed");
       }
     }
-    if (result.control !== "none") {
-      const surface = ["nonempty-redirect", "marker-loss"].includes(result.control) ? "redirect" : "fetch-post";
+    if (!["none", "output-failure", "output-deadline"].includes(result.control)) {
+      let matchedPositive = null;
+      if (result.control.startsWith("unsupported-")) {
+        matchedPositive = await unsupportedPositive(state, result.control);
+        raw.surface_positives.push(matchedPositive);
+        if (!matchedPositive.passed) throw error("unsupported_positive_failed");
+      }
+      const surface = ["nonempty-redirect", "marker-loss", "invalid-parent"].includes(result.control) ? "redirect" : "fetch-post";
       const captured = await captureCase(state, surface, "positive", result.control);
       raw.cases.push(captured);
       const intended = {
         "missing-body": "response_body_unavailable", "late-read": "response_read_deadline",
         "response-limit": "response_limit", "nonempty-redirect": "response_body_unavailable",
         "request-limit": "request_limit", "url-limit": "url_limit",
+        "wrong-transport": "scope_mismatch", "invalid-parent": "parent_invalid",
+        "cleanup-failure": "context_cleanup_failed",
         "marker-loss": "scope_mismatch", "query-order": "scope_mismatch",
         "unsupported-frame": "unsupported_frame", "unsupported-popup": "unsupported_page",
         "unsupported-worker": "unsupported_worker", "unsupported-websocket": "unsupported_websocket",
+        "unsupported-service-worker": "unsupported_service_worker",
       }[result.control];
       result.negative = { intended, detected: captured.failures.includes(intended),
         arrivals: captured.arrivals.length, errors: [...new Set(captured.failures)],
-        positive_link: result.matrix.findIndex(row => row.surface === surface && row.leg === "positive") };
+        positive_link: matchedPositive ? null
+          : result.matrix.findIndex(row => row.surface === surface && row.leg === "positive"),
+        matched_positive: matchedPositive };
       if (!result.negative.detected) state.errors.add("intended_control_not_detected");
       state.errors.add("applied_negative_control");
     }
   } catch (caught) {
     state.errors.add(caught.category ?? "qualification_failed");
   } finally {
+    const cleanupWait = async work => {
+      let timer;
+      try {
+        return await Promise.race([Promise.resolve().then(work),
+          new Promise((_resolve, reject) => { timer = setTimeout(() => reject(error("cleanup_deadline")), 1500); })]);
+      } finally { clearTimeout(timer); }
+    };
     for (const context of state.contexts) {
-      try { await state.budget(() => context.close(), 1500); state.contexts.delete(context); }
+      try {
+        await cleanupWait(() => context.close());
+        state.contexts.delete(context);
+        const owned = state.cleanupHooks.get(context);
+        if (owned) {
+          owned.hooks.forEach(([object, event, listener]) => object.off(event, listener));
+          owned.row.cleanup.context_closed = true;
+          owned.row.cleanup.retry_closed = true;
+          owned.row.cleanup.observers_removed = true;
+          owned.row.cleanup.pending_tasks = owned.tasks.size;
+          state.cleanupHooks.delete(context);
+        }
+      }
       catch { state.errors.add("context_cleanup_failed"); }
     }
     if (state.browser) {
-      try { await state.budget(() => state.browser.close(), 1500); }
-      catch { state.errors.add("browser_cleanup_failed"); }
+      try { await cleanupWait(() => state.browser.close()); }
+      catch { state.errors.add("browser_cleanup_failed"); kill(); }
     }
     if (browserServer) {
-      try { await state.budget(() => browserServer.close(), 1500); }
-      catch { state.errors.add("browser_server_cleanup_failed"); kill(); }
+      try { await cleanupWait(() => browserServer.close()); }
+      catch {
+        state.errors.add("browser_server_cleanup_failed"); kill();
+        try { await cleanupWait(() => browserServer.kill()); }
+        catch { state.errors.add("browser_server_kill_failed"); }
+      }
     }
     result.cleanup.process_exited = !!browserServer
       && (browserServer.process().exitCode !== null || browserServer.process().signalCode !== null);
     if (state.server?.listening) {
+      for (const socket of state.sockets) socket.destroy();
       state.server.closeAllConnections();
       await new Promise(resolve => state.server.close(() => resolve()));
     }
     result.cleanup.server_closed = !!state.server && !state.server.listening;
     result.cleanup.contexts_closed = state.contexts.size === 0 && raw.cases.length > 0
       && raw.cases.every(row => row.cleanup.context_closed === true);
-    result.cleanup.observers_removed = raw.cases.length > 0
+    result.cleanup.observers_removed = state.cleanupHooks.size === 0 && raw.cases.length > 0
       && raw.cases.every(row => row.cleanup.observers_removed === true);
     result.cleanup.pending_settled = raw.cases.length > 0
       && raw.cases.every(row => row.cleanup.pending_tasks === 0);
     if (!Object.values(result.cleanup).every(value => value === true)) state.errors.add("cleanup_incomplete");
     if (state.expired()) state.errors.add("run_deadline");
     result.errors = [...state.errors];
+    if (state.controlDiagnostic) result.control_diagnostic = state.controlDiagnostic;
     result.overall = result.errors.length ? "inconclusive" : "qualified_local";
     result.exit_code = result.errors.length ? 2 : 0;
     try {
       await state.budget(() => privateJson(join(state.outputDir, "capture.json"), raw));
       await state.budget(() => privateJson(join(state.outputDir, "report.json"), result));
-      await state.budget(async () => privateJson(join(state.outputDir, "completion.json"), {
-        run_id: result.run_id, exit_code: result.exit_code, cleanup: result.cleanup,
-        report_sha256: hash(await readFile(join(state.outputDir, "report.json"))),
-        capture_sha256: hash(await readFile(join(state.outputDir, "capture.json"))),
+      if (result.control === "output-failure") await state.budget(() => { throw error("injected_output_failure"); });
+      if (result.control === "output-deadline") await state.budget(() => sleep(150), 50);
+      await state.budget(() => privateJson(join(state.outputDir, "completion.json"), {
+        run_id: result.run_id, result_exit_code: result.exit_code,
+        command_exit_observed: false, cleanup: result.cleanup,
+        report_sha256: hash(readFileSync(join(state.outputDir, "report.json"))),
+        capture_sha256: hash(readFileSync(join(state.outputDir, "capture.json"))),
       }));
     } catch {
       state.errors.add("output_or_deadline_failure");
