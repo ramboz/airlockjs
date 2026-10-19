@@ -63,6 +63,8 @@ All four cases are unreserved/unspent. Approval does not qualify the browser
 guard, establish fresh owned-account settings or promote a product slice.
 [059-14](slice-14-browser-admission.md) now connects admission to actual
 browser/original-byte receiving-sink controls before any native event admission.
+Its headless local matrix and intended failure controls pass; it is not a
+native/live path policy or headed SDK qualification.
 Adobe released the control20 hold with a report that control20 never executed;
 its reported retained-source verification is not live remote/account readback.
 No shared-source push is planned. Coordinate a fresh measurement window before
@@ -146,6 +148,20 @@ records does not close response/cookie/redirect evidence.
 ## Current posture
 
 ### Offline implementation continuation
+
+[059-14](slice-14-browser-admission.md) implements the
+[fixed local browser qualifier](../../../rig/first-journey-browser.md):
+24 positive/enforced/bypass legs across eight fixed paths and 18 fixed negative
+controls, exercised through actual child CLI exits. The final combined run is
+378 passing tests: 24 browser entry/real-control tests, 150 admission tests and
+204 comparison tests. Eight retained parent-witnessed command outcomes bind
+actual exit, source digests and cleanup independently of producer snapshots.
+This does **not** supply a complete native reference, a candidate producer,
+headed/native-default equivalence or full live guard qualification.
+The synthetic local-network permission override and unreadable nonempty
+redirect body are explicit, as are the post-dispatch final-header limit check
+and requirement for an independently observed command exit.
+No shared-source, SDK, account, consent or Servo state is changed by this work.
 
 [059-13](slice-13-validation-admission.md) is DONE: the
 [network-agnostic admission component](../../../rig/first-journey-admission.md)

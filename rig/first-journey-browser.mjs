@@ -668,7 +668,8 @@ export async function runBrowserQualification(options) {
         raw.surface_positives.push(matchedPositive);
         if (!matchedPositive.passed) throw error("unsupported_positive_failed");
       }
-      const surface = ["nonempty-redirect", "marker-loss", "invalid-parent"].includes(result.control) ? "redirect" : "fetch-post";
+      const surface = ["nonempty-redirect", "marker-loss", "invalid-parent"].includes(result.control)
+        ? "redirect" : result.control === "wrong-transport" ? "fetch-get" : "fetch-post";
       const captured = await captureCase(state, surface, "positive", result.control);
       raw.cases.push(captured);
       const intended = {

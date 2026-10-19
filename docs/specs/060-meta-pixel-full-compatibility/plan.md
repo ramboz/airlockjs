@@ -1,5 +1,19 @@
 # Plan - full Meta Pixel compatibility
 
+## Resumption checkpoint - 2026-10-19
+
+The owner approved the shared conditional four-case envelope; its two Meta
+PageViews and two Google Secondary test-conversion commands remain unspent.
+[059-13](../059-google-ads-full-compatibility/slice-13-validation-admission.md)
+and [059-14](../059-google-ads-full-compatibility/slice-14-browser-admission.md)
+provide local admission and actual first-party browser/sink controls, not a
+Meta live executor or complete native wire. Fresh owned setup, exact live
+policy, headed/native-default qualification, measured C2/C3 and independent
+chamber evidence remain required before 060-01 implementation. No new `fbq`
+runtime or Meta event is claimed. The dated proposal/history below is preserved;
+the explicit owner approval supersedes its formerly unanswered permission
+question, not its safety/evidence prerequisites.
+
 ## First-journey readiness checkpoint - 2026-10-16
 
 **Status: first slice READY_FOR_REVIEW (authoring) / not implementation-ready.**

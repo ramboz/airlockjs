@@ -100,6 +100,14 @@ and qualification before any live admission. The standing Adobe source-push
 hold is honored; no shared-site deployment or account mutation is proposed.
 No new product implementation or Servo approval is claimed by this checkpoint.
 
+## Resumption note - 2026-10-19
+
+The owner explicitly approved the bounded four-case envelope. All cases remain
+unspent, and local 059-13/14 controls do not close the fresh setup, exact live
+policy, complete native wire or measured C2/C3 prerequisites. The historical
+2026-10-16 checkpoint above is preserved; this product slice is still authoring
+review, not implementation-ready.
+
 ## Assumptions
 
 - Unverified: a complete native reference and authorized corresponding browser

@@ -132,6 +132,19 @@ describe("first-journey real browser admission", () => {
       expect(complete.result_exit_code).toBe(report.exit_code);
       expect(complete.command_exit_observed).toBe(false);
       const raw = JSON.parse(await readFile(join(outputDir, "capture.json"), "utf8"));
+      if (control === "wrong-transport") {
+        const linked = report.matrix[report.negative.positive_link];
+        expect(linked.surface).toBe("fetch-get");
+        const good = raw.cases.find(row => row.surface === linked.surface && row.leg === "positive")
+          .requests.find(row => row.continued);
+        const bad = raw.cases.at(-1).requests.find(row => !row.local);
+        expect(good.url).toBe(bad.url);
+        expect(good.method).toBe("GET");
+        expect(bad.method).toBe("GET");
+        expect(good.body_base64).toBe(bad.body_base64);
+        expect(bad.resource).toBe("Script");
+        expect(["Fetch", "XHR"]).toContain(good.resource);
+      }
       for (const localCase of raw.cases) {
         const fixture = localCase.requests.find(row => row.local);
         expect(fixture.response).toMatchObject({ status: 200, body_state: "generated_fixture" });

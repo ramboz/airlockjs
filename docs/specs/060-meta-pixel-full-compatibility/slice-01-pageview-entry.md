@@ -86,6 +86,14 @@ The linked paired four-case plan requests authority; it does not grant it or
 claim the existing no-send guard can be disabled for live use. No site,
 runtime, account or `.servo` approval changed.
 
+## Resumption note - 2026-10-19
+
+The owner approved the bounded four-case envelope; every case remains unspent.
+The historical 2026-10-16 checkpoint is preserved. Actual local browser/admission
+controls do not close fresh setup, exact live policy, headed/native-default
+wire, measured C2/C3 or independent chamber prerequisites. This product slice
+remains in authoring review.
+
 ## Assumptions
 
 - Unverified: current entry/bridge seams can preserve the reference's fbq

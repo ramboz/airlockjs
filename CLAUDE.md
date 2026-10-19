@@ -32,7 +32,7 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 ### Active specs
 - [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01/04/05/06/07/08 DONE. Recorded-payload checker and passive browser request/response recorder are implemented; initial receipts are preserved. Full 051-02 live/control/performance and actual chamber proof remain; further reporting is nonblocking follow-up. [Operator guide](probes/adobe-compatibility/README.md).
 - **052-057** — unsliced DRAFT outlines for the remaining [Adobe release portfolio](docs/releases/adobe-compatibility.md#jig-handoff); refine after 051 evidence. See [status board](docs/specs/README.md).
-- **059-060** — IN_PROGRESS authoring; first conversion/PageView slices READY_FOR_REVIEW, not implementation-ready. Source/real-legacy-worker baselines and a conditional four-case validation proposal are recorded; full native wire/C3/guard/live authority remain open. Shared 058 tools do not grant full vendor or unattended readiness. [First-journey plan](docs/specs/059-google-ads-full-compatibility/plan.md).
+- **059-060** — First product slices remain READY_FOR_REVIEW, not implementation-ready. Owner approved the conditional four-case envelope on 2026-10-19; all live slots remain unspent. Local browser/admission tools are implemented, not a qualified live executor. Fresh setup, exact live policy, complete native wire and C2/C3 remain open. [First-journey plan](docs/specs/059-google-ads-full-compatibility/plan.md).
 
 ### Deferred decisions
 - See [docs/refinement-todo.md](docs/refinement-todo.md).
