@@ -149,7 +149,7 @@ records does not close response/cookie/redirect evidence.
 
 ### Offline implementation continuation
 
-[059-14](slice-14-browser-admission.md) implements the
+[059-14](slice-14-browser-admission.md) is DONE and implements the
 [fixed local browser qualifier](../../../rig/first-journey-browser.md):
 24 positive/enforced/bypass legs across eight fixed paths and 18 fixed negative
 controls, exercised through actual child CLI exits. The final combined run is
@@ -162,6 +162,10 @@ The synthetic local-network permission override and unreadable nonempty
 redirect body are explicit, as are the post-dispatch final-header limit check
 and requirement for an independently observed command exit.
 No shared-source, SDK, account, consent or Servo state is changed by this work.
+Next: bind and qualify the exact owned native live request/response policy,
+obtain fresh owned-account settings and coordinate a measurement window.
+The local qualifier has no live switch and cannot spend a case by changing a
+flag. A native case must still stop on unknown scope or missing originals.
 
 [059-13](slice-13-validation-admission.md) is DONE: the
 [network-agnostic admission component](../../../rig/first-journey-admission.md)

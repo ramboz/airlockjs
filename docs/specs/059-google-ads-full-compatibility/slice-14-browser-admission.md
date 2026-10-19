@@ -1,11 +1,10 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [059-13]
 last_verified: 2026-10-19
 kind: feature
 frame_review: true
 arch_review: true
-claimed_by: google-and-meta-feasibility
 ---
 
 ## Slice 059-14 - Browser admission and original-byte capture controls
@@ -147,7 +146,7 @@ journey, not just a pure gate or report schema.
 - Final validation: 378 passing tests in one actual-browser-enabled run,
   focused ESLint and whitespace checks. Eight additional retained actual-exit
   command witnesses include complete cleanup and source/digest linkage.
-  Frame/compliance/craft/architecture passes are real; reconciliation is separate.
+  Frame/compliance/craft/architecture and final reconciliation passes are real.
 - No original AC is removed. Live exact-route policy, fresh owned setup,
   headed/native-default/C2/C3 and actual chamber evaluation remain open;
   final-header checks after dispatch are not universal pre-dispatch wire caps.
@@ -177,5 +176,5 @@ journey, not just a pure gate or report schema.
 
 ### Close-out (post-DONE)
 
-- [ ] Regenerate/check the board; native/live-policy, setup, C2/C3 and both
+- [x] Regenerate/check the board; native/live-policy, setup, C2/C3 and both
       first-feature gates remain separate.
