@@ -57,6 +57,17 @@ change gets its own specific owner decision and superseding record.
 
 ### Proposed native capture envelope - approval required
 
+**Owner approval received 2026-10-19 for this exact conditional envelope.**
+The prior approval-required proposal below is preserved as the scope contract.
+All four cases are unreserved/unspent. Approval does not qualify the browser
+guard, establish fresh owned-account settings or promote a product slice.
+[059-14](slice-14-browser-admission.md) now connects admission to actual
+browser/original-byte receiving-sink controls before any native event admission.
+Adobe released the control20 hold with a report that control20 never executed;
+its reported retained-source verification is not live remote/account readback.
+No shared-source push is planned. Coordinate a fresh measurement window before
+spending a live case.
+
 This is a request for **two bounded paired journeys: four live cases maximum**,
 not permission already granted or an executable live plan before its guard
 reviews/controls pass. Each vendor has one stock case followed by one

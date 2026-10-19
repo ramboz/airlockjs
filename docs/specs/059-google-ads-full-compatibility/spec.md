@@ -32,6 +32,11 @@ admission component and local receiving-sink controls. It does not add a
 thirteenth product-feature path, qualify a live browser guard, or waive 059-01's
 complete-native-wire, performance and authority prerequisites.
 
+[059-14](slice-14-browser-admission.md) adds the actual local browser/capture
+controls needed before a future live guard can be qualified. The owner approved
+the bounded four-case envelope on 2026-10-19, conditionally; no live case is
+admitted by that approval or by adding this slice.
+
 ## Overview
 
 The hard contract is the complete request/response and host-effect sequence
