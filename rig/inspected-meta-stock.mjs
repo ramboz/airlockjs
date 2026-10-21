@@ -154,6 +154,7 @@ export function inspectedMetaSourcePins() {
     "meta-additional-authority.mjs", "meta-additional-authority.test.mjs",
     "meta-additional-qualification.mjs", "meta-additional-qualification.test.mjs",
     "meta-additional-supervision.mjs", "meta-additional-supervision.test.mjs",
+    "meta-rendezvous-peer.mjs", "meta-rendezvous-peer.test.mjs",
     "inspected-transport.mjs",
     "native-stock-capture.mjs", "native-stock-capture.test.mjs",
     "native-stock-meta.mjs", "native-stock-meta.test.mjs", "native-stock-egress.mjs", "native-stock-egress.test.mjs",

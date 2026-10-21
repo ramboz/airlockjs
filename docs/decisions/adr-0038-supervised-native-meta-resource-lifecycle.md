@@ -24,16 +24,16 @@ eight physical attempts, byte/privacy limits and absolute 60-second window in
 The committed `74fa0cc` tooling checkpoint qualifies SDK-absent additional
 authority/reservation and ownership controls, not native resource readiness.
 Native preparation and transport leases are process-local WeakMaps
-(`rig/inspected-meta-stock.mjs:1008-1055`). Canonical consumption precedes
-SDK execution (`:1348-1357`). Durable ports/pending/browser registration is
-currently local-and-additional only (`:1443-1454`); the supervisor accepts its
+(`rig/inspected-meta-stock.mjs:1009-1056`). Canonical consumption precedes
+SDK execution (`:1349-1358`). Durable ports/pending/browser registration is
+currently local-and-additional only (`:1444-1455`); the supervisor accepts its
 fixed local programs (`rig/meta-additional-supervision.mjs:169-183`).
 
 Native browser handles, fresh contexts, authenticated proxy peers, endpoint
 closure and key removal provide real normal-path evidence. Root-process
 escalation and sixteen cleanup flags do not independently establish Node
 failure handling, detached-group closure or positive profile removal
-(`rig/inspected-meta-stock.mjs:1703-1742`). Pinned Playwright creates the
+(`rig/inspected-meta-stock.mjs:1704-1743`). Pinned Playwright creates the
 temporary profile before process launch and returns BrowserServer only after
 browser/driver setup (`node_modules/playwright-core/lib/coreBundle.js:39503-39509,56823-56876`).
 There is no established public `launchServer` userDataDir option or complete
@@ -44,6 +44,20 @@ delegation. The focused design question could not receive an owner answer;
 no new explicit owner design acceptance is claimed. This record remains
 Proposed, with independent framing and offline falsification required before
 any acceptance or native admission.
+
+Partial executed grounding (2026-10-21): the new fixed Node/TCP peer primitive
+(`rig/meta-rendezvous-peer.mjs:26,187`) accepted the exact issued launcher and
+rejected genuinely connected sibling, forged-PID/right-correlation,
+wrong-correlation and no-frame timeout controls. The corrected-source run
+closed once at23:44:32.073437Z, exit0/2,985 ms, with owned helpers/groups/
+listener/sockets closed. Parent verification checked26 current artifact
+hashes/file identities and replayed four material assessments from original
+OS observations, separately preserving30 v1 artifacts and five correction
+receipts. This proves only the fixed Node peer relationship: actual Chrome
+exec/profile acquisition, interrupted launch and the native case lifecycle
+remain unproved. A cleanup-error handle-retention finding was corrected with
+unconditional disposal and guard-sensitive pure tests; those simulated failures
+do not establish a real-time native abort bound.
 
 ## Decision Options Considered
 

@@ -2,8 +2,8 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: craft
 verdict: pass
-reviewer: jig:reviewer4ea41474-2bdf-4dc1-9e9e-103db7f6d711 turns0-3
-reviewed_at: 2026-10-21T22:12:41Z
+reviewer: jig:reviewer4ea41474-2bdf-4dc1-9e9e-103db7f6d711 turns0-4 bounded scopes
+reviewed_at: 2026-10-21T23:55:21Z
 prompt_source: review.py pr-review docs/specs/059-google-ads-full-compatibility/spec.md 059-18 --richer-skill pr-review
 substrate: not-shown
 applied_skill: none
@@ -24,3 +24,6 @@ Actual jig:reviewer4ea41474-2bdf-4dc1-9e9e-103db7f6d711 turns0-1 original bounde
 
 RECONCILIATION NOTES:
 The guide/slice accurately distinguish pure mocked exit2/unqualified evidence from genuine browser qualification and invalidate old source-bound indices after source changes. Preserve failed additional_group_unanchored and historical browser/profile UNKNOWNs, without retrospective closure claims. Parent owns fresh source-bound additional/shared proof and exact case readiness. This pass establishes no AC8 completion, native packet, resource clearance, hold, current helper exclusion or native admission.
+
+SUBSEQUENT PEER-ONLY FEASIBILITY:
+Actual same reviewer turn4 PASS for the fixed Node/TCP primitive, finally-disposal correction, both source closures/tests and latest guide/slice only. Actual tuple+stable issued-process observations, not PID/correlation claims, establish that bounded objective. Nested disposal and real-path non-exiting-child tests preserve UNKNOWN and identity-change refusal. No remaining craft blocker/substantive nit found, no execution/rehash. Corrected-source actual refresh remains separate; ProposedADR0038 and native/Chrome/profile/parent-loss/full-case gaps are not approved by this pass. Raw peer verdict retained separately.

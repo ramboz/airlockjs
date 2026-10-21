@@ -393,6 +393,83 @@ before it exists. This separate new-case blocker does not require deleting
 historical directories or resolving either old UNKNOWN as a retrospective pass.
 The additional case remains unspent; no live window or hold is selected.
 
+### Owned rendezvous-peer mechanical feasibility (no browser/native activation)
+
+`meta-rendezvous-peer.mjs` is a fixed first-party Node/TCP probe, not the proposed
+native dispatcher or launcher. It uses public IPv4 socket tuples plus bounded
+`ps`/`lsof` observations restricted to its exact issued children. Claimed PID or
+possession of the private correlation value cannot establish peer ownership.
+Witnesses retain only correlation digests.
+
+The parent fsyncs its private root/issuance provenance before listener/fork
+allocation, verifies the actual child parent/group/UID/birth/image, and persists
+registration before IPC owner ACK permits child TCP. The fixed matrix connects
+an owned launcher, an owned sibling, a sibling forging the launcher PID with
+the correct correlation, an owned launcher with wrong correlation, and an
+actually connected no-frame timeout. All five have real kernel observations.
+
+Executed primitive evidence: **17 pure/source-closure assertions passed**;
+the real fixed Node/TCP CLI exited **0**, matched all five controls and finished
+in **2,955 ms** within its fixed 45-second total envelope. Both children exited
+0 without signals; their groups were empty; accepted sockets and the exact
+parent listener were observed closed. Removing the actual kernel-owner check
+defeated the forged-PID regression; exact source was restored. Private observer
+metadata-save preflight passed before that actual run.
+
+The helper/test are in both complete source closures. Prior indices are
+historical after these source changes; no shared fourteen/eleven or browser
+refresh ran here. This establishes only an owned Node/TCP attribution primitive.
+Unix peer credentials/private Node fields were not used. Actual shell/Chrome
+exec, temporary profiles, native topology/admission, parent-loss recovery and
+the full native 60-second phase-reserve contract remain unproved. ADR-0038 stays
+Proposed; no native API/transport/dispatch or owner authority was activated.
+
+### Peer cleanup observation-error correction — pure units only
+
+Compliance found that a failed fresh process observation or non-ESRCH signal
+error could leave `stopPeer` before parent stream/IPC/child-handle disposal.
+Those parent references could keep the observer alive despite an UNKNOWN
+resource result. Disposal is now in an unconditional `finally`, with all
+handles attempted even if an earlier disposal operation fails. Observation/
+signal failures still propagate to the existing UNKNOWN/unqualified handoff;
+fresh identity is still required before any signal.
+
+Pure tests drive the real run/cleanup/caller path with a non-exiting child and
+mocked OS/process/listener boundaries. Observation-error and EPERM paths were
+red before the fix; an identity-change control verifies no signal is attempted.
+All three pass after the fix. Removing the real finally/disposal block defeats
+all three; exact source was restored. Minimum affected pure/source-closure
+suite: **20 passed**, lint passed. No actual Node/TCP helper, browser or wider
+resource operation was run in this correction.
+
+The unchanged v1 five-connected kernel observations remain useful narrow
+normal-path evidence, **not failure-path deadline proof** or current-source
+qualification. Source changes make prior indices historical. A fresh fixed
+real peer run awaits separate parent coordination/review; native orchestration,
+browser/profile/exec and full native budget claims remain blocked. Historical
+UNKNOWNs and ADR-0038's Proposed status are unchanged.
+
+### Corrected-source peer checkpoint
+
+Parent focused checks passed **135 pure tests / 15 explicit opt-in skips** and
+targeted lint. Compliance, craft and architecture confirmed the bounded peer
+delta and its handle-disposal correction, not native readiness.
+
+One fresh fixed five-case Node/TCP run on unchanged corrected source exited
+**0** at **23:44:32.073437Z**, elapsed **2,985 ms**. All five controls actually
+connected and preserved their original kernel/socket observations. Both owned
+helpers exited 0 without signals; recorded groups, listener and sockets closed.
+The parent independently checked **26** current artifact hashes/file identities
+and replayed four material assessments, plus unchanged **30** historical v1
+locators and **five** disposal receipts. This normal/frame-timeout refresh
+does not turn mocked cleanup failures into real-time abort-budget proof.
+
+No browser/profile, native child/API/transport, SDK/provider, source GET or
+actual owner-slot work occurred. The shell/Chrome exec, profile acquisition,
+pre-return/parent-loss failure and complete native 60-second contract remain
+unqualified. ADR-0038 remains Proposed; no new window, hold, exclusion or
+historical UNKNOWN disposition follows.
+
 The first actual additional-path positives exited zero with complete original
 responses/closure; an initial verifier cleanup-field-count error rejected their
 outer qualification and is retained as a failure, not rewritten. Qualification
@@ -1069,6 +1146,8 @@ complete vendor/chamber support, matching or attribution.
 
 **Disposition:** keep 059-15 IN_PROGRESS with review/DoD boxes untouched.
 Independent review and the coordinator own the blocker decision. Any later
-actual attempt requires new explicit owner authority, not reuse of the spent
-case. There is no request here to execute an official SDK, spend another case,
+attempt under that original spent grant is forbidden. ADR-0035 separately
+authorizes exactly one additional case with all current readiness gates;
+consuming that extra case would require new explicit authority for anything
+further. There is no request here to execute an official SDK, spend another case,
 mutate an account, deploy, grant consent or approve a Servo component.

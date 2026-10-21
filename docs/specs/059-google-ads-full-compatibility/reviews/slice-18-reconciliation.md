@@ -2,8 +2,8 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: reconciliation
 verdict: pass
-reviewer: jig:reviewer8bdd6978-3ce1-40d7-b225-a6cf536c5c05 turns0-1
-reviewed_at: 2026-10-21T22:35:46Z
+reviewer: jig:reviewer8bdd6978-3ce1-40d7-b225-a6cf536c5c05 turns0-2 bounded scopes
+reviewed_at: 2026-10-21T23:59:10Z
 prompt_source: review.py reconciliation docs/specs/059-google-ads-full-compatibility/spec.md 059-18
 ---
 
@@ -22,3 +22,8 @@ DOC-ONLY NATIVE RESOURCE FOLLOW-UP:
 Actual same reviewer turn1 PASS. The four documentation additions faithfully capture the as-built native-resource finding: SDK-absent supervision does not establish native interrupted-launch, Node-failure, browser-group or profile cleanup coverage. They preserve normal-path evidence and current local qualification without upgrading the committed code checkpoint to native readiness or whole-DoD completion. Historical UNKNOWNs and Adobe's whole-helper gap remain separate and uncleared.
 
 This was a bounded documentation follow-up, not a new whole-code audit. Native resource-ready preparation/admission remains blocked pending supported acquisition/abort coverage or attributable failure handoff. Parent-owned framing is not implementation or execution authority; no capability, permission, window, hold or slot is created.
+
+PEER-ONLY CHECKPOINT FOLLOW-UP:
+Actual same reviewer turn2 PASS. The peer-feasibility documentation matches implementation and retained receipts, including five connected controls, corrected-source results and separate historical evidence. Disposal defect, pure red/green, actual guard removal and bounded review scopes are preserved without real failure-path timing claims. The helper is fixed first-party Node/TCP; documentation/citations do not promote it into native orchestration or ADR0038 acceptance.
+
+This pass covers only reconciliation of the peer-only delta from dc20143. Old full-source/browser indices remain historical; shared fourteen/eleven refresh and native lifecycle qualification remain outstanding. ProposedADR0038/whole-slice DoD, old UNKNOWNs and Adobe's separate helper gate remain open. No reviewer execution/rehash.

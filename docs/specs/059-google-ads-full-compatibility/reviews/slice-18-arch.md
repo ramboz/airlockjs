@@ -2,8 +2,8 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: arch
 verdict: pass
-reviewer: jig:reviewer4ee56ebe-371f-485b-ab54-9551a587036c turns0-3
-reviewed_at: 2026-10-21T22:12:41Z
+reviewer: jig:reviewer4ee56ebe-371f-485b-ab54-9551a587036c turns0-4 bounded scopes
+reviewed_at: 2026-10-21T23:55:22Z
 prompt_source: review.py arch-review docs/specs/059-google-ads-full-compatibility/spec.md 059-18 --richer-skill arch-review
 substrate: not-shown
 applied_skill: none
@@ -28,3 +28,6 @@ The guide accurately preserves the first failed additional_group_unanchored atte
 
 SUBSEQUENT PRODUCER ORDERING CONTINUITY:
 Actual jig:reviewer4ee56ebe-371f-485b-ab54-9551a587036c turn3 PASS: the local promise chain serializes discovery through inventory/publication before browser-ready acknowledgement, retaining fresh scans. Queued work retains absolute query deadlines; rejection reaches termination/error handling and pending registration drain remains bounded. No architecture blocker found in the producer/test delta. The barrier regression checks ACK order, launcher continuity and late-member discovery through the real supervisor; its simulated exit2 remains unqualified. This was read-only inspection with no commands/tests/rehashes. Fresh source-bound additional/shared proof remains a separate obligation; historical UNKNOWNs and the blocked whole-helper/Adobe gate are unchanged, not waived.
+
+SUBSEQUENT PEER-ONLY FEASIBILITY:
+Actual same reviewer turn4 PASS for the fixed SDK-absent Node/TCP probe and its cleanup/source-closure/test delta only. Exact kernel tuple plus stable issued process, nested finally disposal retaining UNKNOWN, real-path mocked non-exiting-child controls and both closures were inspected. No blocker found; no commands/tests/rehashes. The proposed native launcher/dispatch, Chrome/profile/pre-return/parent-loss/full60s case remain unimplemented/unproved and are not approved. Corrected-source actual refresh is a separate parent fact. Raw peer verdict retained separately.

@@ -468,6 +468,85 @@ resource obligations are not implemented or qualified yet.
   new exact owner acceptance. Independent framing, implementation reviews and
   actual qualification remain required; no live case follows from drafting.
 
+Bounded owned rendezvous-peer feasibility checkpoint (2026-10-21):
+
+- This is conservative offline falsification under Proposed ADR-0038, not
+  acceptance of that design or implementation/readiness of native dispatch.
+  No native plan/lease/transport/launcher, profile or browser was activated.
+- Added only a fixed first-party Node/TCP peer primitive/test and its complete
+  source-closure pins. Public socket tuples and exact issued-PID `ps`/`lsof`
+  observations bind peer to parent/group/UID/birth/image before/after sampling.
+  Claimed PID/correlation are not OS ownership; private correlation values are
+  never retained, only digests.
+- The parent-owned root and issuance are durable before TCP/fork allocation;
+  a real child ownership registration/IPC ACK precedes child TCP. Wrong owned
+  sibling and forged launcher PID/correct correlation negatives actually
+  connect and are rejected by kernel ownership, not a selected mock failure.
+  Wrong correlation and connected no-frame timeout controls also execute.
+- TDD pure red preceded implementation; **17 pure/source-closure assertions
+  passed**. Removing the real kernel-owner check defeats the forged-PID
+  regression, and exact source was restored. Private metadata-save preflight
+  passed before the one actual fixed Node/TCP CLI run.
+- Actual CLI exit **0**, all five controls matched, elapsed **2,955 ms** within
+  the fixed 45-second primitive envelope. Both owned helpers exited 0 with no
+  signals, empty groups and closed listener/accepted sockets. Private
+  `059-18-rendezvous-peer-*` witnesses retain actual CLI close, source vectors,
+  original observations and post-exit identities. No unexpected actual failure
+  or automatic retry occurred.
+- Remaining gaps are actual launcher exec/profile/late acquisition, the native
+  child and case contract, disconnect/forced-abort integration and the unchanged
+  whole-native 60-second budget. Earlier source proofs are historical; parent
+  owns later reviews/qualification and any decision on ADR-0038. Historical
+  UNKNOWNs, real records, native authority and slice/lifecycle state are
+  unchanged. No browser/SDK/provider/source GET/real grant/slot or wider
+  process/profile work occurred; no further work is queued.
+
+Peer cleanup fail-closed disposal correction (2026-10-21; pure units only):
+
+- Compliance turn 4 identified that process-observation failure or a non-ESRCH
+  signal error escaped `stopPeer` before parent handle disposal. The caller
+  recorded UNKNOWN, but retained stdio/IPC/child handles could defeat finite
+  observer return. Parent-handle disposal now runs in unconditional finally,
+  attempting each handle even if an earlier disposal fails. Errors are not
+  swallowed, UNKNOWN is not relabelled closed, and no unverified identity is
+  signalled. No reader or native activation change.
+- Deterministic pure regressions execute the real run/stopPeer/caller code with
+  a non-exiting child and mocked OS/process/listener boundaries: observation
+  error and EPERM were red; both plus changed-identity/no-signal control are
+  green. Removing the actual finally/disposal guard defeats all three. Exact
+  source was restored. Minimum pure/source-pin suite: **20 passed**, lint pass;
+  `059-18-rendezvous-disposal-*` witnesses retain actual command exits.
+- No actual Node/TCP helper job, browser/profile, SDK/provider, real record/slot,
+  source GET, wider OS action, agents, commit or lifecycle/ADR transition ran.
+  The original v1 five-connected kernel evidence is unchanged and useful only
+  for its narrow normal path, not failure-budget proof. Current indices are
+  historical after source changes; fresh fixed actual peer proof awaits parent
+  rereview and explicit coordinated GO. Native/exec/profile/whole-case deadline
+  gaps, historic UNKNOWNs and Adobe's gate remain unchanged; no work is queued.
+
+Corrected-source peer checkpoint (2026-10-21):
+
+- The parent independently verified the five correction-receipt hashes/file
+  identities and ran **135 pure tests / 15 explicit opt-in skips**, with
+  targeted lint pass. Actual compliance/craft/architecture bounded peer-delta
+  reviews passed; none is a fresh whole-slice/native audit.
+- One separately authorized corrected-source fixed Node/TCP refresh exited
+  **0** at **23:44:32.073437Z**, elapsed **2,985 ms**. All five cases actually
+  connected with the expected kernel-owner/correlation/frame dispositions.
+  Both helpers exited 0 without signals; groups, listener and sockets closed.
+  Parent verified **26** current artifact hashes/device/inode identities and
+  replayed four actual-observation assessments. The **30** historical v1
+  locators and **five** disposal receipts were independently checked unchanged.
+- This is normal/frame-timeout Node peer proof, not a real failure-path timing
+  qualification. Actual launcher exec/profile, pre-return browser acquisition,
+  parent loss, native orchestration and the whole 60-second lifecycle remain
+  unproved. ADR-0038 remains Proposed; no native permission, window or slot.
+  Old source-bound full browser indices remain historical after this delta.
+- No source/test changes occurred during the refresh. No browser/profile,
+  SDK/provider/source GET, actual owner grant/slot or historical-UNKNOWN action
+  occurred. Independent peer-checkpoint reconciliation passed (`8bdd6978`,
+  turn 2), scoped only to this Node/TCP delta, not native readiness or DONE.
+
 ### Reconciliation sweep
 
 - **Updated:** operator guide, architecture and open 059/060 plans distinguish

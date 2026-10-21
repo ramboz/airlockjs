@@ -2,9 +2,9 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: compliance
 verdict: pass
-reviewer: jig:reviewer173fe812-4c3c-48c3-86bf-43df481ec467 turns0-3
-reviewed_at: 2026-10-21T22:07:48Z
-prompt_source: review.py implementation docs/specs/059-google-ads-full-compatibility/spec.md 059-18; original-byte, supervision-reader and discovery-ordering bounded continuity
+reviewer: jig:reviewer173fe812-4c3c-48c3-86bf-43df481ec467 turns0-5 bounded scopes
+reviewed_at: 2026-10-21T23:55:21Z
+prompt_source: review.py implementation docs/specs/059-google-ads-full-compatibility/spec.md 059-18
 ---
 
 VERDICT: pass
@@ -26,3 +26,6 @@ Historical browser/profile UNKNOWN dispositions and failed proofs remain unchang
 
 SUBSEQUENT PRODUCER ORDERING CONTINUITY:
 Turn3 PASS: AC1-7 code-review continuity holds across the later small producer/test/documentation delta. The local promise chain serializes discovery through inventory/publication, gives each caller a fresh scan and propagates rejection without changing admission, signal or deadline policies. The barrier regression uses the real supervisor with doubled OS/process/TCP boundaries and keeps its simulated exit2 unqualified. No remaining high-confidence blocker was found. Earlier source-bound indices became historical at this correction; actual fresh qualification is a separate parent-owned obligation, not established by this review.
+
+SUBSEQUENT PEER-ONLY FEASIBILITY:
+Turns4-5 reviewed the new fixed SDK-absent Node/TCP ownership primitive, source-closure additions and disposal correction only. Initial observation/non-ESRCH cleanup errors could retain parent streams/IPC/reference despite UNKNOWN; unconditional nested finally resolves that finding, with real-path non-exiting-child regressions and disposal-removal sensitivity. The bounded peer objective passes; historical v1 observations are not cleanup-error budget proof. Actual current-source refresh/parent replay are separate. This extends reviewed source scope without claiming the still-unimplemented native launcher/child/profile/whole-case lifecycle or acceptance of ProposedADR0038. Raw peer verdicts are retained separately.
