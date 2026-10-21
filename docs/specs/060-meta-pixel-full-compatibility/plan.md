@@ -1,5 +1,28 @@
 # Plan - full Meta Pixel compatibility
 
+## Local capture-boundary checkpoint - 2026-10-20
+
+[059-15](../059-google-ads-full-compatibility/slice-15-native-stock-capture.md)
+now preserves an actual opaque-transport blocker: hidden browser retries can
+send nine backend requests from eight logical admissions. A separately
+owner-approved **local-only** TLS-inspection experiment enforces eight against
+matched nine-request bypasses over H1/H2, preserving original HTTP bytes,
+browser bodies and partitioned-cookie effects. It is inspected-network
+evidence, not ordinary browser-native TLS parity or a Meta live executor.
+The owner subsequently conditionally approved the inspected Meta stock cohort
+through [ADR-0034](../../decisions/adr-0034-inspected-meta-stock-reference.md);
+no immediate run or new event is approved. No SDK ran and all actual slots
+remain unspent. The shared native guard, fresh case preflight, complete
+first-journey evidence and review gates stay open.
+
+That checkpoint predates the separately approved source-cohort preparation:
+one network-denied SDK initialization has now run with one init and zero
+track/PageView commands, followed by one authenticated configuration-source
+download. This is not a native PageView reference or event-slot reservation.
+The historical source pair is preserved alongside the new matched
+`authenticated-2026-10-21` pair. Configuration execution, live native/chamber
+wire, C2/C3 and vendor outcomes remain unproved.
+
 ## Resumption checkpoint - 2026-10-19
 
 The owner approved the shared conditional four-case envelope; its two Meta
@@ -65,7 +88,8 @@ qualification, one-shot authority, coordination and privacy requirements are in
 Meta's proposed stock case is one pinned native init plus one PageView in a
 fresh synthetic owned-origin fixture; one conditional SDK-absent chamber
 init/PageView may follow only after its real prerequisites pass. There are at
-most eight admitted vendor requests per case (sixteen total), with the same
+most eight backend-visible physical vendor HTTP attempts per case (sixteen
+total), including browser retries, with the same
 absolute 60-second/byte limits. It does not authorize
 additional custom events, identity values, campaigns, account changes, wider
 destinations or a replay of the owner's normal authenticated browser.

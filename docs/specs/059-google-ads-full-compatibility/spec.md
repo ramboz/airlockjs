@@ -37,6 +37,19 @@ controls needed before a future live guard can be qualified. The owner approved
 the bounded four-case envelope on 2026-10-19, conditionally; no live case is
 admitted by that approval or by adding this slice.
 
+[059-15](slice-15-native-stock-capture.md) connects the exact native policy,
+confined transparent HTTPS and durable one-shot stock capture. Its bounded
+first Meta stock run remains conditional on actual qualification/reviews and
+fresh case preflight; no native event or product implementation is implied by
+authoring the slice.
+Its original opaque-transport path remains blocked by verified hidden HTTP
+retries. An owner-approved, separately labelled local TLS-inspection experiment
+now exercises physical-count enforcement without spending a live slot. The
+owner subsequently approved a conditional inspected Meta stock reference in
+[ADR-0034](../../decisions/adr-0034-inspected-meta-stock-reference.md), not
+immediate execution or browser-native TLS parity. All remaining native gates
+and unspent canonical slots are preserved.
+
 ## Overview
 
 The hard contract is the complete request/response and host-effect sequence

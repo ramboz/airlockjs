@@ -68,6 +68,7 @@
     "esbuild": "0.28.1",
     "eslint": "^10.9.1",
     "globals": "^17.11.0",
+    "hpack.js": "2.1.6",
     "lighthouse": "^13.4.1",
     "playwright": "^1.48.0",
     "prismjs": "^1.30.0",

@@ -65,10 +65,41 @@ guard, establish fresh owned-account settings or promote a product slice.
 browser/original-byte receiving-sink controls before any native event admission.
 Its headless local matrix and intended failure controls pass; it is not a
 native/live path policy or headed SDK qualification.
-Adobe released the control20 hold with a report that control20 never executed;
-its reported retained-source verification is not live remote/account readback.
-No shared-source push is planned. Coordinate a fresh measurement window before
-spending a live case.
+The earlier control20 completed successfully and its stop handoff released
+the hold: site disabled, Target saved, bounded schedule retained rather than
+original-schedule-restored. A separately proposed next active window was
+cancelled before admission and explicitly released. No coordination hold or
+shared-source push is currently planned; this grants no Google/Meta activity.
+Coordinate and bind a fresh source/measurement window before spending a case.
+The later 18:07 Adobe run was interrupted without a qualified result. Its
+separate verified stop-only handoff at 23:08:53Z restored that plan's saved-before
+schedule, read Target saved and served config disabled, and matched the clean
+remote source; its failure-owned lock and canonical state were retained.
+That release is not renewed Google/Meta authority or a current setup lease.
+
+059-15's opaque guard is now concretely blocked by browser-internal retries
+below logical interception. The owner approved a separate **local-only**
+inspected-network experiment, whose H1/H2 receiving controls hold the physical
+limit at eight while matched bypasses expose nine. Original application bytes,
+browser bodies/cookies and actual upstream certificate-error controls are
+preserved. A later explicit owner decision now conditionally permits that
+inspected cohort for the original Meta stock slot through
+[ADR-0034](../../decisions/adr-0034-inspected-meta-stock-reference.md).
+It does not admit immediate traffic or establish default-browser TLS parity;
+the native executor remains disabled until the full guard/review/setup/source/
+window gates pass. See the
+[current scope and evidence](slice-15-native-stock-capture.md#owner-approved-local-inspection-experiment-2026-10-20).
+
+Subsequent source preparation uses a separately approved authenticated Meta
+cohort, not silent replacement of historical pins. One network-denied SDK
+initialization produced no PageView command and identified the exact
+configuration source, which was fetched once with authenticated HTTPS.
+Current closed-pair support passed 99 controller and 319 regression tests,
+with one older browser opt-in not run; all fourteen SDK-absent controller cases
+and eleven relay cohorts passed current-source original/witness verification.
+Those controls are not an executed live stock or chamber reference. Reconciliation,
+current permissions/setup/source and a finite coordinated window still gate
+any actual event-case reservation.
 
 This is a request for **two bounded paired journeys: four live cases maximum**,
 not permission already granted or an executable live plan before its guard
@@ -166,6 +197,19 @@ Next: bind and qualify the exact owned native live request/response policy,
 obtain fresh owned-account settings and coordinate a measurement window.
 The local qualifier has no live switch and cannot spend a case by changing a
 flag. A native case must still stop on unknown scope or missing originals.
+
+[059-15](slice-15-native-stock-capture.md) owns that end-to-end native policy,
+opaque TLS broker and one-shot stock receipt. A first-party loopback probe
+already preserved actual HTTP/2 Image responses through authenticated CONNECT
+with 1/0/1 receiving-sink positive/enforced/bypass outcomes. This establishes
+feasibility only: no native SDK, public collector or live slot was used.
+The planned stock browser keeps its existing loopback confinement; the broker
+does not decrypt TLS or replace browser certificate verification. Actual
+per-request/HTTP2 reuse, final byte caps and one-shot manifest/journal semantics
+must pass their named controls before Meta stock admission.
+The owner has now supplied current read-only setup confirmations; preserve
+these as owner evidence, not independent API readback or a permanent lease.
+No further campaign/billing/account mutation or source push is requested.
 
 [059-13](slice-13-validation-admission.md) is DONE: the
 [network-agnostic admission component](../../../rig/first-journey-admission.md)

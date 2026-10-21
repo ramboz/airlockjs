@@ -40,6 +40,7 @@
 - [ADR-0031: Reframe: Adobe-first compatibility is the v1.0 adoption gate](adr-0031-reframe-onto-adobe-first-compatibility.md) — Adobe-first compatibility replaces the third-party rewire as the next release gate. (2026-10-06, Accepted)
 - [ADR-0032: Airlock boundary acceptance; Adobe reporting as follow-up](adr-0032-airlock-boundary-acceptance.md) — Airlock acceptance belongs at the governed SDK boundary, not Adobe's asynchronous reporting pipeline. (2026-10-12, Accepted)
 - [ADR-0033: Full Google Ads and Meta Pixel replacement is the compatibility target](adr-0033-reframe-onto-full-google-meta-compatibility.md) — Google Ads and Meta Pixel must become complete replacements, not a larger collection of partial beacons. (2026-10-15, Accepted)
+- [ADR-0034: Inspected Meta stock references preserve a distinct transport cohort](adr-0034-inspected-meta-stock-reference.md) — The first Meta stock reference may use an explicitly inspected network cohort. (2026-10-20, Accepted)
 
 ## Format
 

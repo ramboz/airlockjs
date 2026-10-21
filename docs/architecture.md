@@ -13,8 +13,9 @@
 > is a nonblocking follow-up. No module interface or runtime capability changes here.
 > [ADR-0033](decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md)
 > adds parallel preparation for complete Google Ads and Meta Pixel replacement.
-> Shared evaluation tools are recorded in spec 058; vendor specs 059-060 are in
-> authoring review, not implementation-ready.
+> Shared evaluation tools are recorded in spec 058; the first product slices
+> in 059-060 remain in authoring review, not implementation-ready. Operator
+> preparation tooling in 059-13/14/15 does not promote those product slices.
 > This does not promote the subset connectors below to full support or change
 > existing APIs, runtime grants or Adobe acceptance.
 > Its [offline sequence consumer](../rig/native-tag-comparison.md) adds no
@@ -35,6 +36,27 @@ A framework-agnostic runtime core, with EDS as the first adapter and connectors 
 - `diagnostics/` — the `PerformanceObserver` wrappers and the inspector surface (reuses/vendors `aem-cwv-helper` primitives).
 - `test/` — vitest suites, including the oracle components servo will score.
 - `.jig/` — durable workflow state.
+
+### Reference-only capture boundary
+
+[ADR-0034](decisions/adr-0034-inspected-meta-stock-reference.md) permits a
+conditional inspected Meta stock reference, not a production network proxy.
+Private manifest preparation and the shared native/SDK-absent engine live in
+`rig/inspected-meta-stock.mjs:623-626`; native transport requires a one-use
+reservation-backed lease and fixes upstream destination, certificate and
+hostname validation in `rig/inspected-transport.mjs:150`. Physical request
+and response observation is separate from logical browser events
+(`rig/inspected-http-wire.mjs:171`). Its complete source/dependency and
+private-original qualification precedes actual case admission.
+
+The closed source-pair catalog in `rig/native-stock-policy.mjs:14` preserves
+historical references while labelling new authenticated cohorts separately.
+Catalog membership is eligibility, not source authentication, ownership or
+dispatch authority. Browser-local inspector trust changes the TLS cohort;
+ordinary-browser parity, complete native wire and vendor outcomes remain
+separate obligations. This tooling adds no stable-core capability, source
+deployment, live-case authority or full replacement claim. See the
+[operator guide](../rig/native-stock-capture.md) for remaining gates.
 
 ### The connectors
 
