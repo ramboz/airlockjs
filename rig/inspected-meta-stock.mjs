@@ -1,6 +1,6 @@
 import { createHash, randomBytes, X509Certificate } from "node:crypto";
 import { execFile } from "node:child_process";
-import { chmodSync, closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync,
+import { chmodSync, closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, realpathSync,
   readFileSync, unlinkSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { createRequire } from "node:module";
@@ -8,14 +8,20 @@ import { createServer as httpServer } from "node:http";
 import { createServer as h2Server } from "node:http2";
 import { connect as tcpConnect } from "node:net";
 import { createServer as tlsServer } from "node:tls";
-import { release } from "node:os";
+import { release, tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { isProxy } from "node:util/types";
+import { record, data, equal, json } from "./inspected-meta-record.mjs";
+import { additionalAuthority, validateAdditionalAuthority, validateAdditionalInspection,
+  validateAdditionalLocation } from "./meta-additional-authority.mjs";
 import { readMetaPrivate, writeMetaPrivate } from "./native-stock-meta.mjs";
 import { reserveStockSlot } from "./native-stock-capture.mjs";
 import { LIMITS, META_REFERENCE_COHORTS, createNativeStockPolicy } from "./native-stock-policy.mjs";
 import { createInspectedHttpWire } from "./inspected-http-wire.mjs";
+import { createInspectedHeaderBlockDecoder } from "./inspected-header-block.mjs";
+import { registerAdditionalPorts, registerAdditionalPending, registerAdditionalBrowser,
+  holdAdditionalShutdown } from "./meta-additional-supervision.mjs";
 import { inspectedDecoderDependencyPins, startLocalInspectedTransport, startNativeInspectedTransport } from "./inspected-transport.mjs";
 
 const fail = category => { throw new Error(category); };
@@ -55,6 +61,7 @@ window.__localPageView=url=>new Promise(resolve=>{
 });
 `;
 const LOCAL_CONFIGURATION = "/* Fixed first-party SDK-ABSENT configuration. */\nwindow.__localConfiguration=true;\n";
+const LOCAL_PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
 const LOCAL_ASSERTIONS = Object.freeze({
   setup: { complete_live_preflight: false, case_specific_source_cohort_and_window_bound: false, fixture_bound: true },
   coordination: { local_only: true, no_public_measurement: true },
@@ -73,87 +80,6 @@ const NATIVE_ASSERTIONS = Object.freeze({
   guard: ["sdk_absent_guard_qualified", "physical_semantic_policy_qualified", "closed_controller_qualified"],
 });
 const nativeTransportLeases = new WeakMap();
-function record(value, required, optional = []) {
-  if (!value || typeof value !== "object" || isProxy(value)
-    || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) fail("invalid_case_input");
-  const fields = Object.getOwnPropertyDescriptors(value), keys = Reflect.ownKeys(fields);
-  if (required.some(key => !Object.hasOwn(fields, key))
-    || keys.some(key => !required.includes(key) && !optional.includes(key))
-    || keys.some(key => !Object.hasOwn(fields[key], "value"))) fail("invalid_case_input");
-  return Object.fromEntries(keys.map(key => [key, fields[key].value]));
-}
-
-function data(value, depth = 0, budget = { nodes: 0, limit: 4096 }) {
-  if (++budget.nodes > budget.limit || depth > 12 || isProxy(value)) fail("invalid_case_input");
-  if (value === null || typeof value === "boolean") return value;
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.isWellFormed() && Buffer.byteLength(value) <= 65536) return value;
-  if (!value || typeof value !== "object") fail("invalid_case_input");
-  if (Array.isArray(value)) {
-    if (Object.getPrototypeOf(value) !== Array.prototype) fail("invalid_case_input");
-    const descriptors = Object.getOwnPropertyDescriptors(value), size = descriptors.length.value;
-    if (size > 256 || Reflect.ownKeys(descriptors).length !== size + 1) fail("invalid_case_input");
-    return Array.from({ length: size }, (_, n) => {
-      if (!Object.hasOwn(descriptors[n] ?? {}, "value")) fail("invalid_case_input");
-      return data(descriptors[n].value, depth + 1, budget);
-    });
-  }
-  const descriptors = Object.getOwnPropertyDescriptors(value);
-  const input = record(value, Reflect.ownKeys(descriptors));
-  const output = Object.create(null);
-  const keys = Reflect.ownKeys(input);
-  if (keys.some(key => typeof key !== "string")) fail("invalid_case_input");
-  for (const key of keys.sort()) {
-    if (["__proto__", "constructor", "prototype"].includes(key)) fail("invalid_case_input");
-    output[key] = data(input[key], depth + 1, budget);
-  }
-  return output;
-}
-const equal = (a, b) => JSON.stringify(data(a)) === JSON.stringify(data(b));
-
-// JSON.parse alone silently accepts duplicate keys, including inside handles.
-function json(bytes, maximumNodes = 4096) {
-  let text;
-  try { text = new TextDecoder("utf-8", { fatal: true }).decode(bytes); } catch { fail("invalid_case_json"); }
-  // eslint-disable-next-line no-control-regex -- JSON strings cannot contain literal control octets.
-  const token = /"(?:[^"\\\u0000-\u001f]|\\(?:["\\/bfnrt]|u[0-9a-fA-F]{4}))*"|[{}[\],:]|true|false|null|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/y;
-  let offset = 0, nodes = 0;
-  const next = () => {
-    while (/\s/.test(text[offset] ?? "") && offset < text.length) offset++;
-    token.lastIndex = offset;
-    const match = token.exec(text);
-    if (!match) fail("invalid_case_json");
-    offset = token.lastIndex; return match[0];
-  };
-  const visit = (first = next(), depth = 0) => {
-    if (++nodes > maximumNodes || depth > 12) fail("invalid_case_json");
-    if (!["{", "["].includes(first)) {
-      if (/^[}\],:]$/.test(first)) fail("invalid_case_json");
-      return;
-    }
-    const object = first === "{", end = object ? "}" : "]", seen = new Set();
-    let item = next();
-    if (item === end) return;
-    while (true) {
-      if (object) {
-        if (!item.startsWith('"')) fail("invalid_case_json");
-        const key = JSON.parse(item);
-        if (seen.has(key)) fail("duplicate_case_key");
-        seen.add(key);
-        if (next() !== ":") fail("invalid_case_json");
-        item = next();
-      }
-      visit(item, depth + 1);
-      const separator = next();
-      if (separator === end) return;
-      if (separator !== ",") fail("invalid_case_json");
-      item = next();
-    }
-  };
-  visit();
-  if (text.slice(offset).trim()) fail("invalid_case_json");
-  try { return data(JSON.parse(text), 0, { nodes: 0, limit: maximumNodes }); } catch { fail("invalid_case_json"); }
-}
 function absolute(path) {
   if (typeof path !== "string" || !isAbsolute(path) || resolve(path) !== path || path.includes("\0"))
     fail("unsafe_case_path");
@@ -224,6 +150,10 @@ function outputAvailable(path) {
 export function inspectedMetaSourcePins() {
   const require = createRequire(import.meta.url);
   const files = ["inspected-meta-stock.mjs", "inspected-meta-stock.test.mjs",
+    "inspected-meta-record.mjs", "inspected-meta-record.test.mjs",
+    "meta-additional-authority.mjs", "meta-additional-authority.test.mjs",
+    "meta-additional-qualification.mjs", "meta-additional-qualification.test.mjs",
+    "meta-additional-supervision.mjs", "meta-additional-supervision.test.mjs",
     "inspected-transport.mjs",
     "native-stock-capture.mjs", "native-stock-capture.test.mjs",
     "native-stock-meta.mjs", "native-stock-meta.test.mjs", "native-stock-egress.mjs", "native-stock-egress.test.mjs",
@@ -324,7 +254,7 @@ function readEvidence(state) {
     }
     const receipt = json(readHandle(evidence[name], snapshots, 65536, root));
     record(receipt, ["schema_version", "kind", "layer", "binding_sha256", "valid_until_ms", "assertions"],
-      local ? [] : ["issued_at_ms", "qualification", "review_artifact"]);
+      local ? [] : ["issued_at_ms", "qualification", "additional_qualification", "review_artifact"]);
     if (receipt.schema_version !== 1 || receipt.kind !== "inspected-meta-" + name
       || receipt.binding_sha256 !== inspectedMetaBindingDigest(binding)
       || !Number.isSafeInteger(receipt.valid_until_ms) || receipt.valid_until_ms < binding.window.expires_at_ms)
@@ -338,6 +268,7 @@ function readEvidence(state) {
     // SDK-absent guard evidence and an actual reviewed case permission are
     // separate layers; local fixture assertions alone are never authority.
     if (receipt.layer !== "reviewed-inspected-meta-preflight") fail("synthetic_evidence_not_native_authority");
+    if (name !== "guard" && Object.hasOwn(receipt, "additional_qualification")) fail("invalid_native_evidence");
     if (!Number.isSafeInteger(receipt.issued_at_ms) || receipt.issued_at_ms < 0 || receipt.issued_at_ms > Date.now()
       || receipt.issued_at_ms > binding.window.not_before_ms
       || receipt.valid_until_ms !== binding.window.expires_at_ms) fail("stale_native_lease");
@@ -351,6 +282,10 @@ function readEvidence(state) {
       if (name === "guard") {
         if (!receipt.qualification) state.blockers.push("guard_qualification_witness_missing");
         else verifyQualification(state, receipt.qualification);
+        if (binding.additional) {
+          if (!receipt.additional_qualification) state.blockers.push("additional_path_qualification_missing");
+          else verifyAdditionalQualification(state, receipt.additional_qualification);
+        } else if (Object.hasOwn(receipt, "additional_qualification")) fail("invalid_native_evidence");
       }
     } else {
       const assertions = record(receipt.assertions, ["verdict", "scope"]);
@@ -517,6 +452,439 @@ export function inspectSdkAbsentQualification(handle) {
   return Object.freeze({ schema: "airlock.sdk-absent-qualification-inspection.v1",
     sdk_absent_evidence_verified: true, ...CLAIMS });
 }
+function originalBytes(value, maximum) {
+  if (typeof value !== "string" || !value.length || value.length > Math.ceil(maximum / 3) * 4
+    || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value))
+    fail("additional_original_bytes_invalid");
+  const bytes = Buffer.from(value, "base64");
+  if (bytes.length > maximum || bytes.toString("base64") !== value) fail("additional_original_bytes_invalid");
+  return bytes;
+}
+// ONLY the two fixed uncompressed, nonredirecting additional-path positives.
+// This does not broaden the physical parser or qualify arbitrary responses.
+function positiveFrames(bytes) {
+  const frames = [];
+  for (let at = 0; at < bytes.length;) {
+    if (frames.length >= 64 || bytes.length - at < 9) fail("additional_original_protocol_invalid");
+    const size = bytes.readUIntBE(at, 3), stream = bytes.readUInt32BE(at + 5);
+    if (size > 16384 || at + 9 + size > bytes.length || stream > 0x7fffffff)
+      fail("additional_original_protocol_invalid");
+    frames.push({ type: bytes[at + 3], flags: bytes[at + 4], stream,
+      raw: bytes.subarray(at, at + 9 + size), body: bytes.subarray(at + 9, at + 9 + size) });
+    at += size + 9;
+  }
+  return frames;
+}
+function verifyAdditionalOriginals(capture, report, inputs, protocol) {
+  const bad = () => fail("additional_original_relationship_invalid");
+  record(capture.originals, ["requests", "responses", "wire"]);
+  if (![capture.originals.requests, capture.originals.responses, capture.originals.wire, capture.receiver,
+    capture.receiver_wire, capture.logical_observations, capture.network_events, capture.fetch_events].every(Array.isArray)
+    || capture.originals.requests.length !== 1 || capture.originals.responses.length !== 1
+    || capture.originals.wire.length !== 1 || capture.receiver.length !== 1
+    || capture.receiver_wire.length !== 1 || capture.logical_observations.length !== 1) bad();
+  if (inputs.pixel_id !== "999999999999999" || inputs.document_url !== "https://owned.example/inspection"
+    || inputs.owned_origin !== "https://owned.example") bad();
+  const target = "/tr/?id=" + inputs.pixel_id + "&ev=PageView&dl=" + encodeURIComponent(inputs.document_url) + "&r=0";
+  const url = "https://www.facebook.com" + target, logical = capture.logical_observations[0];
+  record(logical, ["network_id", "fetch_id", "url", "method", "resource_type", "fetch_resource_type"]);
+  if (logical.url !== url || logical.method !== "GET" || logical.resource_type !== "Image"
+    || logical.fetch_resource_type !== "Image") bad();
+  const original = capture.originals.wire[0];
+  record(original, ["connection", "protocol", "request", "response"]);
+  if (original.connection !== 1 || original.protocol !== protocol || !equal(report.negotiated_protocols, [protocol])) bad();
+  const requestBytes = originalBytes(original.request, LIMITS.request_bytes + LIMITS.url_bytes + 1024);
+  const responseBytes = originalBytes(original.response, LIMITS.response_bytes);
+  const requestReplay = createInspectedHttpWire({ mode: "DECLARED-META-PROFILE", profile: profileOf(inputs, true),
+    resolveObservation: () => [{ network_id: logical.network_id, fetch_id: logical.fetch_id,
+      url: logical.url, method: logical.method, resource_type: logical.resource_type }] });
+  const connection = requestReplay.connection(protocol);
+  let replayBytes = requestBytes, responseHeaders, body;
+  if (protocol === "h1") {
+    const end = responseBytes.indexOf("\r\n\r\n");
+    if (end < 0 || end > LIMITS.request_bytes) bad();
+    const lines = responseBytes.subarray(0, end).toString("latin1").split("\r\n");
+    if (lines.shift() !== "HTTP/1.1 200 OK") bad();
+    responseHeaders = lines.map(line => {
+      const at = line.indexOf(": ");
+      if (at < 1 || !/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(line.slice(0, at))) bad();
+      return [line.slice(0, at), line.slice(at + 2)];
+    });
+    body = responseBytes.subarray(end + 4);
+  } else {
+    const preface = Buffer.from("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n");
+    if (!requestBytes.subarray(0, preface.length).equals(preface)) bad();
+    const requests = positiveFrames(requestBytes.subarray(preface.length)), responses = positiveFrames(responseBytes);
+    // The pinned Chrome and first-party receiver's actual SETTINGS/ACK pairs.
+    // ACKs are checked against BOTH directions here. The synchronous request
+    // replay omits only its ACK (the live parser handles it after response
+    // SETTINGS); full untouched wire is compared with BOTH endpoints below.
+    const settings = (frame, flags, hex) => frame?.type === 4 && frame.flags === flags
+      && frame.stream === 0 && frame.body.toString("hex") === hex;
+    if (![3, 4].includes(requests.length)
+      || !settings(requests[0], 0, "000100010000000200000000000400600000000600040000")
+      || !settings(requests.at(-1), 1, "")
+      || requests.at(-2).type !== 1 || ![5, 37].includes(requests.at(-2).flags)
+      || requests.at(-2).stream !== 1
+      || requests.length === 4 && (requests[1].type !== 8 || requests[1].flags !== 0
+        || requests[1].stream !== 0 || requests[1].body.length !== 4
+        || requests[1].body.readUInt32BE(0) < 1 || requests[1].body.readUInt32BE(0) > 0x7fffffff)
+      || responses.length < 4 || !settings(responses[0], 0, "000600020000") || !settings(responses[1], 1, "")
+      || responses[2].type !== 1 || responses[2].flags !== 4 || responses[2].stream !== 1) bad();
+    replayBytes = Buffer.concat([preface, ...requests.slice(0, -1).map(frame => frame.raw)]);
+    responseHeaders = createInspectedHeaderBlockDecoder({ maxTableSize: 65536 }).decode(responses[2].body).pairs;
+    const data = responses.slice(3);
+    if (data.some((frame, n) => frame.type !== 0 || frame.stream !== 1
+      || frame.flags !== (n === data.length - 1 ? 1 : 0))) bad();
+    body = Buffer.concat(data.map(frame => frame.body));
+  }
+  const accepted = connection.request(replayBytes);
+  connection.endRequest();
+  if (!accepted.equals(replayBytes) || requestReplay.snapshot().stopped || requestReplay.snapshot().forwarded !== 1) bad();
+  const request = { ...requestReplay.originals().requests[0], response_state: "complete" };
+  // Complete original fields, policy disposition, ownership, counts, stream,
+  // physical bytes and logical IDs must be DERIVED from retained request bytes.
+  if (request.url !== url || !equal(request, capture.originals.requests[0])) bad();
+  const common = [["content-type", "image/png"], ["cache-control", "no-store"],
+    ["set-cookie", "local_one=one; Secure; SameSite=None; Partitioned; Path=/"],
+    ["set-cookie", "local_two=two; Secure; SameSite=None; Partitioned; Path=/"], ["content-length", String(LOCAL_PNG.length)]];
+  const lower = responseHeaders.map(([key, value]) => [key.toLowerCase(), value]);
+  if (!body.equals(LOCAL_PNG) || (protocol === "h2" ? !equal(lower, [[":status", "200"], ...common])
+    : !equal(lower, common) && !equal(lower, [...common, ["connection", "keep-alive"], ["keep-alive", "timeout=5"]]))) bad();
+  const policy = createNativeStockPolicy(profileOf(inputs, true));
+  const headers = Object.fromEntries(request.headers.filter(([key]) => !key.startsWith(":"))
+    .map(([key, value]) => [key.toLowerCase(), value]));
+  const decision = policy.inspect({ url: request.url, method: request.method,
+    resource_type: request.resource_type, headers, body: Buffer.alloc(0) });
+  if (!equal(decision, request.policy_decision)) bad();
+  policy.registerAdmission(decision, 0);
+  const policyResponse = policy.recordResponse({ ordinal: 0, status: 200, headers: responseHeaders, body, complete: true });
+  const response = { ordinal: 1, connection: 1, stream: request.stream, status: 200, headers: responseHeaders,
+    body: body.toString("base64"), header_bytes: Buffer.byteLength(JSON.stringify(responseHeaders)),
+    decoded_body_bytes: body.length, encoded_body_bytes: body.length, state: "complete", redirect_url: null,
+    expected_length: body.length, coding: "identity", policy_ordinal: 0, logical_network_id: logical.network_id,
+    framing: protocol === "h1" ? "length" : "h2", policy_response: policyResponse };
+  if (!equal(response, capture.originals.responses[0])) bad();
+  const receiver = capture.receiver[0];
+  if (!equal(receiver, { url: target, method: "GET", headers: request.headers.flat(), status: response.status,
+    body_sha256: hash(body), body_bytes: body.length })) bad();
+  const expected = [[inputs.document_url, "Document"], [inputs.runtime.request_url, "Script"],
+    [inputs.configuration.request_url, "Script"], [url, "Image"]];
+  if (capture.network_events.length !== 4 || capture.fetch_events.length !== 4) bad();
+  if (capture.network_events.some(row => !row || typeof row.url !== "string")
+    || capture.fetch_events.some(row => !row || !row.request || typeof row.request.url !== "string")) bad();
+  for (const [expectedUrl, type] of expected) {
+    const network = capture.network_events.filter(row => row.url === expectedUrl);
+    const fetch = capture.fetch_events.filter(row => row.request.url === expectedUrl);
+    if (network.length !== 1 || fetch.length !== 1 || network[0].method !== "GET"
+      || network[0].resource_type !== type || fetch[0].resource_type !== type || fetch[0].request.method !== "GET"
+      || fetch[0].network_id !== network[0].network_id) bad();
+    if (type !== "Image") continue;
+    if (network[0].network_id !== logical.network_id || fetch[0].fetch_id !== logical.fetch_id
+      || network[0].redirect_url !== null || network[0].redirect_status !== null
+      || Object.hasOwn(fetch[0].request, "hasPostData") && fetch[0].request.hasPostData !== false
+      || fetch[0].request.postDataEntries?.length || fetch[0].request.postData) bad();
+    const staged = fetch[0].request.headers;
+    if (!staged || typeof staged !== "object" || Array.isArray(staged)) bad();
+    for (const [key, value] of Object.entries(staged)) {
+      const actual = request.headers.filter(([name]) => name.toLowerCase() === key.toLowerCase());
+      if (actual.length !== 1 || typeof value !== "string" || value !== actual[0][1]) bad();
+    }
+  }
+  const broker = capture.local_broker, peer = capture.receiver_wire[0];
+  if (!broker || !peer || broker.mode !== "sdk-absent" || broker.authenticated_peers !== 1 || broker.public_upstream_requests !== 0
+    || !equal(broker.errors, []) || broker.sockets_closed !== true || broker.tasks_settled !== true
+    || broker.server_closed !== true || !Array.isArray(broker.tunnels) || broker.tunnels.length !== 1
+    || !Number.isInteger(peer.peer_port) || peer.peer_port < 1 || peer.peer_port > 65535) bad();
+  const tunnel = broker.tunnels[0];
+  if (!tunnel || tunnel.protocol !== protocol || tunnel.upstream_peer_port !== peer.peer_port || tunnel.upstream_authorized !== true
+    || tunnel.upstream_validation !== "generated-local-ca-and-hostname") bad();
+  for (const [direction, bytes] of [["request", requestBytes], ["response", responseBytes]]) {
+    if (peer[direction + "_bytes"] !== bytes.length || tunnel[direction + "_bytes"] !== bytes.length
+      || peer[direction + "_sha256"] !== hash(bytes) || tunnel[direction + "_sha256"] !== hash(bytes)) bad();
+  }
+}
+function verifyAdditionalLifecycle(supervision, exit, completion, read) {
+  const bad = () => fail("additional_supervision_relationship_invalid");
+  const fields = ["pid", "ppid", "pgid", "uid", "started", "state", "command_sha256"];
+  const sameBirth = (a, b) => ["pid", "ppid", "pgid", "uid", "started"].every(key => a[key] === b[key]);
+  const process = (value, at, final = false) => {
+    record(value, final ? [...fields, "final"] : fields);
+    if (!["pid", "ppid", "pgid"].every(key => Number.isSafeInteger(value[key]) && value[key] > 0)
+      || value.uid !== supervision.node.uid || !digest(value.command_sha256)
+      || typeof value.started !== "string"
+      || !/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2} \d\d:\d\d:\d\d \d{4}$/.test(value.started)
+      || !Number.isFinite(Date.parse(value.started)) || Date.parse(value.started) < supervision.started_ms - 1000
+      || Date.parse(value.started) > at || typeof value.state !== "string"
+      || !/^[DIRSTUVWXZ?][<>+ELNslWX]*$/.test(value.state)) bad();
+  };
+  const end = supervision.started_ms + supervision.elapsed_ms;
+  process(supervision.node, end);
+  if (!Array.isArray(supervision.node_processes) || supervision.node_processes.length > 1) bad();
+  for (const member of supervision.node_processes) {
+    process(member, end, true);
+    // Producer's closed predicate admits only this exact, terminated Node
+    // lifetime. Empty means absent; a listed "absent"/live/unknown row is not
+    // an observation of the kernel's zombie state.
+    if (!sameBirth(member, supervision.node) || !member.state.startsWith("Z") || member.final !== "zombie") bad();
+  }
+  if (!Number.isSafeInteger(exit.exited_at_ms) || exit.exited_at_ms < completion.publication.attempted_at_ms
+    || exit.exited_at_ms < supervision.started_ms || exit.exited_at_ms > end + 1
+    || !Number.isSafeInteger(exit.elapsed_ms) || exit.elapsed_ms <= 0 || exit.elapsed_ms > supervision.elapsed_ms + 1) bad();
+  const browser = supervision.browsers[0], finalPorts = supervision.ports.map(item => item.port);
+  const keyFields = ["path", "dev", "ino", "birthtime_ms", "uid", "size"];
+  const keyIdentity = key => Object.fromEntries(keyFields.map(name => [name, key[name]]));
+  const finalKeys = supervision.private_keys.map(key => {
+    record(key, [...keyFields, "removed"]);
+    if (!Number.isSafeInteger(key.dev) || key.dev < 0 || !Number.isSafeInteger(key.ino) || key.ino < 1
+      || !Number.isFinite(key.birthtime_ms) || key.birthtime_ms < supervision.started_ms
+      || key.birthtime_ms > end || key.uid !== supervision.node.uid
+      || !Number.isSafeInteger(key.size) || key.size < 1 || key.size > 16384) bad();
+    return keyIdentity(key);
+  });
+  const image = (value, profile, allowLauncher) => {
+    const chrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+    const launcher = fileURLToPath(new URL("./qualification-loopback-chrome", import.meta.url));
+    const sandbox = fileURLToPath(new URL("./qualification-loopback-network.sb", import.meta.url));
+    if (typeof value !== "string" || /[\0\r\n]/.test(value)) bad();
+    const dir = [...value.matchAll(/(?:^| )--user-data-dir=(\S+)/g)];
+    if (dir.length !== 1 || dir[0][1] !== profile.argument_path) bad();
+    if (value.startsWith(chrome + " ")) return "chrome";
+    if (allowLauncher && (value.startsWith(launcher + " ") || value.startsWith("/bin/sh " + launcher + " ")
+      || value.startsWith("/usr/bin/sandbox-exec -f " + sandbox + " " + chrome + " "))) return "launcher";
+    bad();
+  };
+  const profile = browser.profile;
+  record(profile, ["path", "argument_path", "dev", "ino", "birthtime_ms", "uid"]);
+  if (profile.birthtime_ms < supervision.started_ms || profile.birthtime_ms > end) bad();
+  process(browser.root, end);
+  if (typeof browser.root_command !== "string" || hash(browser.root_command) !== browser.root.command_sha256
+    || image(browser.root_command, profile, false) !== "chrome") bad();
+  const members = new Map();
+  for (const member of browser.processes) {
+    process(member, end, true);
+    if (members.has(member.pid) || member.pgid !== browser.root.pgid
+      || !["absent", "zombie"].includes(member.final)) bad();
+    members.set(member.pid, member);
+  }
+  if (!members.has(browser.root.pid) || !fields.every(key => members.get(browser.root.pid)[key] === browser.root[key])) bad();
+  for (const member of members.values()) {
+    let current = member;
+    const visited = new Set();
+    while (current.pid !== browser.root.pid) {
+      if (visited.has(current.pid) || !members.has(current.ppid)) bad();
+      visited.add(current.pid); current = members.get(current.ppid);
+    }
+  }
+  const expected = ["node", "ports", "browser-pending", "browser-discovered", "browser-ready", "resources-final"];
+  if (supervision.registrations.length !== expected.length) bad();
+  let previous = supervision.started_ms;
+  let firstPorts;
+  for (const [n, handle] of supervision.registrations.entries()) {
+    const registration = json(read(handle));
+    record(registration, ["phase", "at_ms", "node", "ports", "private_keys", "browsers"]);
+    if (registration.phase !== expected[n] || !Number.isSafeInteger(registration.at_ms)
+      || registration.at_ms < previous || registration.at_ms > end + 1
+      || !equal(registration.node, supervision.node)) bad();
+    previous = registration.at_ms;
+    if (n < expected.length - 1 ? registration.at_ms > completion.publication.resources_closed_at_ms
+      : registration.at_ms < exit.exited_at_ms) bad();
+    if (!Array.isArray(registration.ports) || !Array.isArray(registration.private_keys)
+      || !Array.isArray(registration.browsers)) bad();
+    if (n === 0) {
+      if (registration.ports.length || registration.private_keys.length || registration.browsers.length) bad();
+      continue;
+    }
+    if (n === 1) firstPorts = registration.ports;
+    if (n < 4 ? !registration.ports.length || registration.ports.length >= finalPorts.length
+      || !equal(registration.ports, firstPorts)
+      || registration.ports.some((port, at) => port !== finalPorts[at]) : !equal(registration.ports, finalPorts)) bad();
+    if (registration.private_keys.length !== finalKeys.length) bad();
+    for (const [at, key] of registration.private_keys.entries()) {
+      record(key, keyFields);
+      if (!equal(key, finalKeys[at]) || key.birthtime_ms > registration.at_ms) bad();
+    }
+    if (n < 3) { if (registration.browsers.length) bad(); continue; }
+    if (registration.browsers.length !== 1) bad();
+    const snapshot = registration.browsers[0];
+    record(snapshot, ["root", "root_command", "profile", "members"]);
+    process(snapshot.root, registration.at_ms);
+    if (!sameBirth(snapshot.root, browser.root) || !equal(snapshot.profile, profile)
+      || profile.birthtime_ms > registration.at_ms || typeof snapshot.root_command !== "string"
+      || hash(snapshot.root_command) !== snapshot.root.command_sha256
+      || !Array.isArray(snapshot.members) || !snapshot.members.length || snapshot.members.length > 64) bad();
+    image(snapshot.root_command, profile, n === 3);
+    if (n >= 4 && (!equal(snapshot.root, browser.root) || snapshot.root_command !== browser.root_command)) bad();
+    const seen = new Set();
+    for (const member of snapshot.members) {
+      process(member, registration.at_ms);
+      const final = members.get(member.pid);
+      if (seen.has(member.pid) || !final || !sameBirth(member, final) || member.pgid !== browser.root.pgid) bad();
+      seen.add(member.pid);
+      const expectedMember = member.pid === browser.root.pid ? snapshot.root : final;
+      if (!fields.every(key => member[key] === expectedMember[key])) bad();
+    }
+    if (!seen.has(browser.root.pid) || n === 5 && seen.size !== members.size) bad();
+  }
+}
+function verifyAdditionalQualification(state, handle) {
+  const read = (value, maximum = 2097152) => readHandle(value, state.snapshots, maximum);
+  const index = json(read(handle));
+  record(index, ["schema", "source_pins", "official_sdk_executed", "public_upstream_requests",
+    "actual_owner_slots_reserved", "cases"]);
+  if (index.schema !== "airlock.sdk-absent-additional-meta-validation.v1"
+    || !equal(index.source_pins, state.manifest.binding.source_pins)
+    || index.official_sdk_executed !== false || index.public_upstream_requests !== 0
+    || index.actual_owner_slots_reserved !== 0 || !Array.isArray(index.cases) || index.cases.length !== 2)
+    fail("additional_qualification_invalid");
+  const roots = new Set();
+  for (const [n, row] of index.cases.entries()) {
+    record(row, ["protocol", "manifest", "report", "capture", "completion", "actual_child"]);
+    if (row.protocol !== ["h1", "h2"][n]) fail("additional_qualification_invalid");
+    const manifest = json(read(row.manifest)), root = dirname(row.manifest.path), binding = manifest.binding;
+    if (!root.startsWith(resolve("rig/out") + "/") || roots.has(root)
+      || manifest.kind !== "airlock.inspected-meta-local.v1" || manifest.case_name !== "meta-stock"
+      || manifest.output_dir !== join(root, "run")) fail("additional_qualification_invalid");
+    roots.add(root);
+    const fixtureRead = value => readHandle(value, state.snapshots, 65536, root);
+    const authority = json(fixtureRead(binding.authority));
+    const lineage = validateAdditionalAuthority({ authority, binding, local: true, root, read: fixtureRead });
+    const permission = json(fixtureRead(binding.inspection_permission));
+    validateAdditionalInspection(permission, binding, true);
+    if (!equal(permission.owner_decision, lineage.baseline.owner_decision)) fail("additional_qualification_invalid");
+    validateAdditionalLocation(json(fixtureRead(binding.case_permission)), binding, authority, true, lineage.baseline);
+    const inputs = json(fixtureRead(binding.inputs));
+    for (const role of ["runtime", "configuration"]) {
+      const { path, sha256 } = inputs[role];
+      if (!fixtureRead({ path, sha256 }).equals(Buffer.from(role === "runtime" ? LOCAL_RUNTIME : LOCAL_CONFIGURATION)))
+        fail("additional_qualification_invalid");
+    }
+    const report = json(read(row.report), 16384), capture = json(read(row.capture, 33554432), 16384);
+    const completion = json(read(row.completion)), child = json(read(row.actual_child));
+    const supervision = json(read(child.supervision));
+    const lifetime = value => value && Number.isSafeInteger(value.pid) && value.pid > 0
+      && value.pgid === value.pid && value.uid === process.getuid()
+      && typeof value.started === "string" && value.started.length > 10 && digest(value.command_sha256);
+    if (supervision.schema !== "airlock.additional-meta-supervision.v1" || supervision.control !== "normal"
+      || !equal(supervision.command, child.command) || supervision.qualified !== true
+      || supervision.timed_out !== false || supervision.resource_disposition !== "closed"
+      || supervision.child_exit_observed !== true || supervision.pipes_closed !== true
+      || !equal(supervision.errors, []) || !lifetime(supervision.node)
+      || supervision.node.command_sha256 !== hash(child.command.join(" "))
+      || !Number.isSafeInteger(supervision.elapsed_ms) || supervision.elapsed_ms <= 0 || supervision.elapsed_ms >= 60000
+      || !Number.isSafeInteger(supervision.started_ms) || supervision.started_ms < binding.window.not_before_ms
+      || supervision.started_ms + supervision.elapsed_ms >= binding.window.expires_at_ms
+      || !equal(supervision.source_before, binding.source_pins) || !equal(supervision.source_after, binding.source_pins)
+      || !Array.isArray(supervision.browsers) || supervision.browsers.length !== 1
+      || !Array.isArray(supervision.ports) || supervision.ports.length < 4 || supervision.ports.length > 8
+      || !Array.isArray(supervision.private_keys) || supervision.private_keys.length !== 2
+      || supervision.private_keys.some(item => item.removed !== true)
+      || !equal(supervision.private_keys.map(item => item.path).sort(),
+        ["inspector-key.pem", "receiver-key.pem"].map(name => join(root, "run", name)).sort())
+      || new Set(supervision.ports.map(item => item.port)).size !== supervision.ports.length
+      || supervision.ports.some(item => item.closed !== true || !Number.isInteger(item.port) || item.port < 1 || item.port > 65535)
+      || !Array.isArray(supervision.registrations) || supervision.registrations.length < 4
+      || supervision.registrations.length > 16) fail("additional_supervision_invalid");
+    const exit = json(read(supervision.actual_exit));
+    if (exit.command_exit_observed !== true || exit.actual_exit_code !== 0 || exit.signal !== null
+      || !equal(exit.command, child.command)) fail("additional_supervision_invalid");
+    for (const browser of supervision.browsers) {
+      if (!lifetime(browser.root) || browser.root.ppid !== supervision.node.pid || browser.status !== "closed"
+        || browser.profile_removed !== true || !equal(browser.errors, []) || !browser.profile
+        || browser.profile.uid !== process.getuid() || !Number.isFinite(browser.profile.birthtime_ms)
+        || !Number.isSafeInteger(browser.profile.dev) || !Number.isSafeInteger(browser.profile.ino)
+        || typeof browser.profile.path !== "string" || dirname(browser.profile.path) !== realpathSync(tmpdir())
+        || !/^playwright_chromiumdev_profile-[A-Za-z0-9]+$/.test(browser.profile.path.split("/").at(-1))
+        || typeof browser.profile.argument_path !== "string"
+        || join(realpathSync(dirname(browser.profile.argument_path)), browser.profile.argument_path.split("/").at(-1)) !== browser.profile.path
+        || !Array.isArray(browser.processes) || !browser.processes.length || browser.processes.length > 64
+        || browser.processes.some(item => !["absent", "zombie"].includes(item.final)
+          || item.uid !== browser.root.uid || item.pgid !== browser.root.pgid || !digest(item.command_sha256)))
+        fail("additional_supervision_invalid");
+    }
+    verifyAdditionalLifecycle(supervision, exit, completion, read);
+    const reservation = json(read(report.reservation));
+    record(reservation, ["schema_version", "state", "case_name", "authority_id", "authority_sha256",
+      "source_sha256", "input_sha256", "reserved_at_ms", "window", "execution_prerequisites_proved_by_reservation",
+      "authority_variant", "lineage_baseline_sha256", "binding_sha256"]);
+    if (!equal(binding.source_pins, index.source_pins) || !equal(report.source_before, index.source_pins)
+      || !equal(report.source_after, index.source_pins)) fail("additional_qualification_stale_source");
+    if (row.report.path !== join(root, "run/report.json") || row.capture.path !== join(root, "run/capture.json")
+      || row.completion.path !== join(root, "run/completion.json")
+      || !equal(child.command, [process.execPath, fileURLToPath(new URL("./meta-additional-qualification.mjs", import.meta.url)),
+        "--supervised-child", row.protocol, "normal", row.manifest.path, row.manifest.sha256])
+      || child.command_exit_observed !== true || child.actual_exit_code !== 0 || child.signal !== null
+      || !Number.isFinite(child.elapsed_external_ms) || child.elapsed_external_ms <= 0 || child.elapsed_external_ms >= 60000
+      || report.schema !== "airlock.sdk-absent-inspected-meta-controller.v1"
+      || report.authority_variant !== "additional-meta-2026-10-21" || report.protocol !== row.protocol || report.program !== "normal"
+      || report.local_controller_qualified !== true || report.local_slot_reserved !== true
+      || report.native_sdk_executed !== false || report.execution_authority !== false
+      || report.full_native_guard_qualified !== false || report.actual_owner_slots_reserved !== 0
+      || report.public_upstream_requests !== 0 || !equal(report.errors, []) || report.producer_exit_code !== 0
+      || report.binding_sha256 !== inspectedMetaBindingDigest(binding)
+      || report.response_originals_match !== true || report.original_wire_bytes_equal !== true
+      || report.receiver_attempts !== 1 || report.responses_complete !== 1 || report.fixture_sources_consumed !== 2
+      || !equal(report.cohort, COHORT) || !equal(binding.cohort, COHORT) || !equal(report.window, binding.window)
+      || !equal(report.cleanup, Object.fromEntries(["contexts_closed", "sockets_closed", "sessions_closed",
+        "servers_closed", "observers_settled", "context_close_observers_settled", "server_close_observers_settled",
+        "script_observers_settled", "network_waiters_settled", "decompressors_closed", "private_keys_removed",
+        "browser_process_exited", "transport_closed", "transport_sockets_closed", "transport_tasks_settled",
+        "deadline_met"].map(key => [key, true])))
+      || !equal(capture.cleanup, report.cleanup)
+      || capture.schema !== "airlock.sdk-absent-inspected-meta-originals.v1"
+      || capture.authority_variant !== report.authority_variant
+      || !equal(capture.lineage_baseline, report.lineage_baseline)
+      || !equal(report.lineage_baseline, binding.additional.lineage_baseline)
+      || !equal(capture.reservation, report.reservation) || report.reservation.path !== lineage.canonical_slot_path
+      || reservation.schema_version !== 1 || reservation.execution_prerequisites_proved_by_reservation !== false
+      || !Number.isSafeInteger(reservation.reserved_at_ms)
+      || reservation.reserved_at_ms < binding.window.not_before_ms
+      || reservation.reserved_at_ms >= binding.window.expires_at_ms
+      || reservation.reserved_at_ms >= completion.publication.resources_closed_at_ms
+      || reservation.state !== "spent" || reservation.authority_id !== authority.authority_id
+      || reservation.authority_sha256 !== binding.authority.sha256 || reservation.case_name !== "meta-stock"
+      || reservation.authority_variant !== report.authority_variant
+      || reservation.lineage_baseline_sha256 !== binding.additional.lineage_baseline.sha256
+      || reservation.binding_sha256 !== report.binding_sha256
+      || reservation.input_sha256 !== binding.inputs.sha256
+      || reservation.source_sha256 !== inspectedMetaBindingDigest(index.source_pins)
+      || !equal(reservation.window, binding.window)
+      || !equal(capture.local_result, { init: 1, pageview: 1, outcomes: [true] })
+      || !equal(capture.order, ["durable_reservation", "fixture_execution", "logical_dispatch", "receiver", "context_closed"])
+      || capture.source_execution.length !== 2 || capture.script_evidence.length !== 2
+      || completion.schema !== "airlock.sdk-absent-inspected-meta-completion.v1"
+      || completion.binding_sha256 !== report.binding_sha256 || completion.command_exit_observed !== false
+      || completion.producer_exit_code !== 0 || completion.report_sha256 !== row.report.sha256
+      || completion.capture_sha256 !== row.capture.sha256 || !equal(completion.window, report.window)
+      || !["resources_closed_at_ms", "capture_written_at_ms", "report_write_started_at_ms", "attempted_at_ms"]
+        .every(key => Number.isSafeInteger(completion.publication[key])
+          && completion.publication[key] >= report.window.not_before_ms)
+      || completion.publication.resources_closed_at_ms > completion.publication.capture_written_at_ms
+      || completion.publication.capture_written_at_ms > completion.publication.report_write_started_at_ms
+      || completion.publication.report_write_started_at_ms > completion.publication.attempted_at_ms
+      || completion.publication.attempted_at_ms >= report.window.expires_at_ms)
+      fail("additional_qualification_invalid");
+    verifyAdditionalOriginals(capture, report, inputs, row.protocol);
+    for (const role of ["runtime", "configuration"]) {
+      const bytes = Buffer.from(role === "runtime" ? LOCAL_RUNTIME : LOCAL_CONFIGURATION), sha256 = hash(bytes);
+      if (!equal(capture.verified_source_originals[role], { sha256, bytes_base64: bytes.toString("base64") })
+        || capture.script_evidence.filter(item => item.role === role && item.sha256 === sha256
+          && item.evidence === "actual_script_parsed_source").length !== 1
+        || capture.source_execution.filter(item => item.role === role && item.sha256 === sha256
+          && item.evidence === "validated_before_script_execution_and_resumed").length !== 1)
+        fail("additional_qualification_source_invalid");
+    }
+  }
+  state.additionalQualificationVerified = true;
+}
+/** Read-only inspection, never a prepared plan, native lease or grant. */
+export function inspectAdditionalMetaQualification(handle) {
+  const state = { snapshots: [], manifest: { binding: { source_pins: inspectedMetaSourcePins() } } };
+  verifyAdditionalQualification(state, handle);
+  unchanged(state);
+  return Object.freeze({ schema: "airlock.additional-meta-qualification-inspection.v1",
+    sdk_absent_evidence_verified: true, ...CLAIMS });
+}
 function prepare(options, local) {
   const started = performance.now();
   const input = record(options, ["manifest_path", "manifest_sha256"]);
@@ -531,7 +899,9 @@ function prepare(options, local) {
     || manifest.kind !== (local ? "airlock.inspected-meta-local.v1" : "airlock.inspected-meta-stock.v1"))
     fail("unsupported_case_mode");
   const binding = record(manifest.binding, ["inputs", "authority", "inspection_permission",
-    "source_pins", "cohort", "window", "limits", "commands"], ["case_permission", "observation_end_ms"]);
+    "source_pins", "cohort", "window", "limits", "commands"],
+  ["case_permission", "observation_end_ms", "additional", "scheduling"]);
+  if (Object.hasOwn(binding, "additional") !== Object.hasOwn(binding, "scheduling")) fail("additional_binding_invalid");
   if (!equal(binding.limits, LIMITS) || !equal(binding.cohort, COHORT)
     || !equal(binding.commands, { init: 1, pageview: 1, consent: "native-default" })) fail("case_envelope_mismatch");
   const window = record(binding.window, ["not_before_ms", "expires_at_ms"]);
@@ -556,15 +926,29 @@ function prepare(options, local) {
       || binding.observation_end_ms <= window.not_before_ms
       || binding.observation_end_ms > window.expires_at_ms - 6000) fail("invalid_observation_window");
     readEvidence(state);
+    if (binding.additional && !state.additionalQualificationVerified
+      && !state.blockers.includes("additional_path_qualification_missing"))
+      state.blockers.push("additional_path_qualification_missing");
     if (state.blockers.length) { unchanged(state); check(state); return preparedPlan(state, false); }
   } else if (Object.hasOwn(binding, "observation_end_ms")) fail("invalid_local_program");
   const authority = json(readHandle(binding.authority, snapshots, 65536, root));
-  authorityAt(authority, local);
   state.authority = authority;
+  state.additional = additionalAuthority(authority);
+  if (state.additional) {
+    state.lineage = validateAdditionalAuthority({ authority, binding, local, root,
+      read: handle => readHandle(handle, snapshots, 65536, root) });
+  } else {
+    if (binding.additional) fail("additional_authority_required");
+    authorityAt(authority, local);
+  }
   if (!binding.case_permission) fail("original_authority_location_binding_missing");
   validateLocationPermission(state);
   slotAvailable(state);
   const permission = json(readHandle(binding.inspection_permission, snapshots, 65536, root));
+  if (state.additional) {
+    validateAdditionalInspection(permission, binding, local);
+    if (!equal(permission.owner_decision, state.lineage.baseline.owner_decision)) fail("additional_inspection_permission_invalid");
+  } else {
   if (!equal(permission.scope, INSPECTION_SCOPE) || permission.schema_version !== 1
     || (local ? permission.kind !== "synthetic_inspection_design" || permission.status !== "local_only"
       : permission.kind !== "owner_conversation_authority"
@@ -574,6 +958,7 @@ function prepare(options, local) {
   if (local) record(permission, ["schema_version", "kind", "status", "scope"]);
   else record(permission, ["schema_version", "kind", "status", "recorded_on", "question", "choices",
     "answer", "scope", "remaining_required", "not_granted", "original_authority_mutated", "actual_slots_reserved_or_spent"]);
+  }
   const inputs = json(readHandle(binding.inputs, snapshots, 65536, root));
   record(inputs, ["schema_version", "profile", "owned_origin", "document_url", "pixel_id",
     "runtime", "configuration", "source_capture_sha256", "authorization"]);
@@ -651,7 +1036,8 @@ function checkReservation(state) {
     || state.reservation.canonical_record_path !== state.casePermission.canonical_slot_path)
     fail("canonical_reservation_missing");
   try {
-    if (hash(readMetaPrivate(state.reservation.canonical_record_path, 65536)) !== state.reservation_sha256)
+    if (identity(state.reservation.canonical_record_path) !== state.reservation_identity
+      || hash(readMetaPrivate(state.reservation.canonical_record_path, 65536)) !== state.reservation_sha256)
       fail("canonical_reservation_changed");
   } catch { fail("canonical_reservation_changed"); }
 }
@@ -670,6 +1056,10 @@ export function claimNativeMetaTransport(lease) {
 function validateLocationPermission(state) {
   const binding = state.manifest.binding;
   const permission = json(readHandle(binding.case_permission, state.snapshots, 65536, state.root));
+  if (state.additional) {
+    validateAdditionalLocation(permission, binding, state.authority, state.local, state.lineage.baseline);
+    state.casePermission = permission; return;
+  }
   record(permission, ["schema_version", "kind", "status", "case_name", "transport",
     "native_execution_permitted", "authority_locator", "canonical_slot_path", "permission_source_sha256", "valid_until_ms"]);
   const locator = record(permission.authority_locator, ["path", "sha256", "dev", "ino"]);
@@ -768,7 +1158,7 @@ function originalsOf(observer) {
   };
 }
 const PROGRAMS = ["normal", "redirect", "finite-window", "extra-request", "fetch", "unknown-resource", "unknown-surface", "reset",
-  "deadline", "close-failure", "output-failure", "late-output"];
+  "deadline", "close-failure", "output-failure", "late-output", "supervision-stuck-shutdown"];
 
 /**
  * SDK-ABSENT orchestration only. The opaque plan must have been prepared by
@@ -786,6 +1176,7 @@ export async function runLocalInspectedMeta(plan, options = {}) {
   const protocol = Object.hasOwn(input, "protocol") ? input.protocol : "h2";
   const program = Object.hasOwn(input, "program") ? input.program : "normal";
   if (!["h1", "h2"].includes(protocol) || !PROGRAMS.includes(program)) fail("invalid_local_program");
+  if (program === "supervision-stuck-shutdown" && !state.additional) fail("invalid_local_program");
   return runEngine(state, { protocol, program });
 }
 async function runEngine(state, { protocol, program }) {
@@ -793,6 +1184,7 @@ async function runEngine(state, { protocol, program }) {
   if (!local) validateNativeAdmission(state);
   if (state.attempted) fail("prepared_case_already_attempted");
   unchanged(state); check(state); slotAvailable(state); outputAvailable(state.manifest.output_dir);
+  if (local && state.additional && !process.send) fail("additional_supervisor_required");
   state.attempted = true;
   const require = createRequire(import.meta.url), output = state.manifest.output_dir;
   if (process.version !== COHORT.node || process.platform !== "darwin" || release() !== COHORT.darwin
@@ -958,8 +1350,9 @@ async function runEngine(state, { protocol, program }) {
     state.reservation = reserveStockSlot({ authority_path: binding.authority.path,
       authority_sha256: binding.authority.sha256, case_name: "meta-stock",
       input_sha256: binding.inputs.sha256, source_sha256: inspectedMetaBindingDigest(binding.source_pins),
-      window: binding.window });
+      window: binding.window, ...(state.additional ? { additional_binding: binding } : {}) });
     state.reservation_sha256 = hash(readMetaPrivate(state.reservation.canonical_record_path, 65536));
+    state.reservation_identity = state.reservation.canonical_record_identity;
     state.reserved = reserved = true; state.phase = "running"; order.push("durable_reservation");
     checkReservation(state);
     mkdirSync(output, { mode: 0o700 }); syncDirectory(output); syncDirectory(dirname(output));
@@ -981,7 +1374,7 @@ async function runEngine(state, { protocol, program }) {
     const target = local ? "https://www.facebook.com/tr/?id=999999999999999&ev=PageView&dl="
       + encodeURIComponent(state.inputs.document_url) + "&r=0" : null;
     if (local) {
-    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
+    const png = LOCAL_PNG;
     const application = protocol === "h1" ? httpServer({ maxHeaderSize: 131072 })
       : h2Server({ settings: { maxHeaderListSize: 131072 } });
     application.on("connection", own);
@@ -1047,12 +1440,17 @@ async function runEngine(state, { protocol, program }) {
     }
     const { chromium } = await import("playwright");
     check(state);
+    if (local && state.additional) {
+      await wait(registerAdditionalPorts([...servers].map(server => server.address().port).concat(transport.port)), 4500);
+      await wait(registerAdditionalPending(), 4500);
+    }
     browserServer = await chromium.launchServer({
       executablePath: fileURLToPath(new URL("./qualification-loopback-chrome", import.meta.url)),
       host: "127.0.0.1", headless: false, timeout: Math.max(1, Math.min(10000, remaining() - 6000)),
       proxy: { server: "http://127.0.0.1:" + transport.port },
       args: ["--disable-background-networking", "--dns-prefetch-disable", `--ignore-certificate-errors-spki-list=${spki}`],
     });
+    if (local && state.additional) await wait(registerAdditionalBrowser(browserServer), 4500);
     browserServer.process().once("exit", (code, signal) => {
       lifecycle({ resource: "browser_process", event: "exit", code, signal, step, phase: state.phase });
       if (state.phase === "running" && step !== "context_teardown" && !stopping) stopCase("unexpected_browser_exit");
@@ -1282,6 +1680,14 @@ async function runEngine(state, { protocol, program }) {
     if (state.storage.indexed_db.length || state.storage.cache_names.length || state.storage.service_workers.length)
       fail("unsupported_persistent_storage");
     state.cookies = retain(await wait(context.cookies()));
+    if (local && program === "supervision-stuck-shutdown") {
+      writeMetaPrivate(join(output, "supervision-abort-originals.json"), {
+        schema: "airlock.additional-meta-stuck-shutdown-originals.v1", native_sdk_executed: false,
+        actual_owner_slots_reserved: 0, public_upstream_requests: 0, originals: originalsOf(observer),
+        logical_observations: logicalAll, source_execution: sourceExecution, receiver: receiverRows,
+        order, closure_claimed: false, at_ms: Date.now() });
+      await holdAdditionalShutdown(browserServer.process().pid);
+    }
     step = "context_teardown";
     if (program === "close-failure") {
       closingContexts.set(context, context.close());
@@ -1380,6 +1786,9 @@ async function runEngine(state, { protocol, program }) {
     binding_sha256: inspectedMetaBindingDigest(state.manifest.binding),
     input_sha256: state.manifest.binding.inputs.sha256,
     authority_sha256: state.manifest.binding.authority.sha256,
+    ...(state.additional ? { authority_variant: "additional-meta-2026-10-21",
+      lineage_baseline: state.manifest.binding.additional.lineage_baseline,
+      reservation: { path: state.reservation.canonical_record_path, sha256: state.reservation_sha256 } } : {}),
     inspection_permission_sha256: state.manifest.binding.inspection_permission.sha256,
     source_before: state.manifest.binding.source_pins, source_after: sourceAfter,
     cohort: COHORT, window: state.manifest.binding.window,
@@ -1403,6 +1812,9 @@ async function runEngine(state, { protocol, program }) {
     errors: [...new Set(errors)], producer_exit_code: qualified ? 0 : 2,
     command_exit_observed: false, elapsed_ms: Math.ceil(performance.now() - state.started), ...nativeFacts };
   const capture = { schema: local ? "airlock.sdk-absent-inspected-meta-originals.v1" : "airlock.inspected-meta-stock-originals.v1",
+    ...(state.additional ? { authority_variant: "additional-meta-2026-10-21",
+      lineage_baseline: state.manifest.binding.additional.lineage_baseline,
+      reservation: { path: state.reservation.canonical_record_path, sha256: state.reservation_sha256 } } : {}),
     transport: "inspected-network", reference_source_cohort: state.referenceSourceCohort,
     ...CLAIMS, ...nativeFacts, originals, network_events: networkEvents, fetch_events: fetchEvents,
     logical_observations: logicalAll, native_initiators: nativeInitiators, script_evidence: scriptEvidence, source_execution: sourceExecution,

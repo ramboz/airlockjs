@@ -9,6 +9,9 @@ import { promisify } from "node:util";
 import { isProxy } from "node:util/types";
 import { denyStockExecution, LIMITS } from "./native-stock-policy.mjs";
 import { classifyProbe, probeFirstParty } from "./native-stock-egress.mjs";
+import { data, equal, json } from "./inspected-meta-record.mjs";
+import { additionalAuthority, additionalSnapshotReader, validateAdditionalAuthority,
+  validateAdditionalInspection, validateAdditionalLocation } from "./meta-additional-authority.mjs";
 
 const execute = promisify(execFile);
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
@@ -75,7 +78,7 @@ export function reserveStockSlot(options) {
   options.window = snapshotData(options.window);
   const keys = ["authority_path", "authority_sha256", "case_name", "input_sha256",
     "source_sha256", "window"];
-  if (!Reflect.ownKeys(options).every(key => keys.includes(key) || key === "clock")
+  if (!Reflect.ownKeys(options).every(key => keys.includes(key) || ["clock", "additional_binding"].includes(key))
     || !keys.every(key => Object.hasOwn(options, key))
     || typeof options.authority_path !== "string" || !isAbsolute(options.authority_path)
     || resolve(options.authority_path) !== options.authority_path
@@ -86,7 +89,8 @@ export function reserveStockSlot(options) {
     || options.window.expires_at_ms - options.window.not_before_ms > LIMITS.duration_ms
     || (options.clock !== undefined && typeof options.clock !== "function"))
     throw new Error("invalid_slot_input");
-  options = Object.freeze({ ...options, window: Object.freeze({ ...options.window }) });
+  options = Object.freeze({ ...options, window: Object.freeze({ ...options.window }),
+    ...(Object.hasOwn(options, "additional_binding") ? { additional_binding: data(options.additional_binding) } : {}) });
   const clock = options.clock ?? (() => Date.now()), window = { ...options.window };
   let last = null;
   const check = () => {
@@ -99,7 +103,7 @@ export function reserveStockSlot(options) {
     return now;
   };
   check();
-  let authority;
+  let authority, authorityBytes;
   try {
     const parent = lstatSync(dirname(options.authority_path));
     if (!privateTarget(parent, true)) throw new Error("invalid_authority_parent");
@@ -116,9 +120,32 @@ export function reserveStockSlot(options) {
       bytes = buffer.subarray(0, offset);
     } finally { closeSync(fd); }
     if (hash(bytes) !== options.authority_sha256) throw new Error("stale_authority");
+    authorityBytes = bytes;
     authority = JSON.parse(bytes.toString("utf8"));
   } catch { throw new Error("slot_authority_unavailable"); }
-  if (!plain(authority) || authority.schema_version !== 1 || authority.kind !== "owner_conversation_authority"
+  let additional = null, additionalReader = null;
+  if (plain(authority) && additionalAuthority(authority)) {
+    authority = json(authorityBytes);
+    const binding = options.additional_binding;
+    if (!binding || options.case_name !== "meta-stock" || Object.hasOwn(options, "clock")
+      || !equal(binding.authority, { path: options.authority_path, sha256: options.authority_sha256 })
+      || binding.inputs?.sha256 !== options.input_sha256
+      || hash(JSON.stringify(data(binding.source_pins))) !== options.source_sha256
+      || !equal(binding.window, options.window)) throw new Error("additional_reservation_binding_invalid");
+    additionalReader = additionalSnapshotReader();
+    additionalReader.read(binding.authority);
+    const local = authority.synthetic_only === true, root = local ? dirname(options.authority_path) : null;
+    if (local && !root.startsWith(resolve("rig/out") + "/")) throw new Error("nonlocal_fixture_handle");
+    additional = validateAdditionalAuthority({ authority, binding, local, root, read: additionalReader.read });
+    const permission = json(additionalReader.read(binding.inspection_permission));
+    validateAdditionalInspection(permission, binding, local);
+    if (!equal(permission.owner_decision, additional.baseline.owner_decision))
+      throw new Error("additional_inspection_permission_invalid");
+    const location = json(additionalReader.read(binding.case_permission));
+    validateAdditionalLocation(location, binding, authority, local, additional.baseline);
+    additionalReader.unchanged();
+  } else if (Object.hasOwn(options, "additional_binding")) throw new Error("additional_authority_required");
+  else if (!plain(authority) || authority.schema_version !== 1 || authority.kind !== "owner_conversation_authority"
     || authority.status !== "approved_conditional" || typeof authority.authority_id !== "string"
     || !/^[a-z][a-z0-9-]{0,63}$/.test(authority.authority_id)
     || !plain(authority.cases) || !plain(authority.cases[options.case_name])
@@ -142,7 +169,11 @@ export function reserveStockSlot(options) {
     source_sha256: options.source_sha256, input_sha256: options.input_sha256,
     reserved_at_ms: reservedAt, window,
     execution_prerequisites_proved_by_reservation: false,
+    ...(additional ? { authority_variant: "additional-meta-2026-10-21",
+      lineage_baseline_sha256: authority.lineage_baseline.sha256,
+      binding_sha256: hash(JSON.stringify(data(options.additional_binding))) } : {}),
   };
+  let recordIdentity;
   try {
     try { mkdirSync(dir, { mode: 0o700 }); }
     catch (caught) { if (caught.code !== "EEXIST") throw caught; }
@@ -169,6 +200,8 @@ export function reserveStockSlot(options) {
         offset += written;
       }
       fsyncSync(fd);
+      const s = fstatSync(fd, { bigint: true });
+      recordIdentity = [s.dev, s.ino, s.nlink, s.size, s.mode, s.mtimeNs, s.ctimeNs].join(":");
     } finally { closeSync(fd); }
     syncDir(dir);
   } catch (caught) {
@@ -177,9 +210,15 @@ export function reserveStockSlot(options) {
     throw new Error("stock_reservation_failed");
   }
   check(); // A late failure leaves the exclusive record spent; there is no refund.
+  additionalReader?.unchanged();
+  if (additional) {
+    const s = lstatSync(path, { bigint: true });
+    if ([s.dev, s.ino, s.nlink, s.size, s.mode, s.mtimeNs, s.ctimeNs].join(":") !== recordIdentity)
+      throw new Error("canonical_reservation_changed");
+  }
   return Object.freeze({ case_name: options.case_name, reserved: true, network_authorized: false,
     owner_identity_authenticated: false, execution_prerequisites_proved: false,
-    canonical_record_path: path });
+    canonical_record_path: path, canonical_record_identity: recordIdentity });
 }
 
 // No official-source/native execution entry. This delivers the permitted
@@ -213,8 +252,12 @@ export async function runQualification(options) {
     cohort: { node: process.version, chrome: "155.0.8059.80", macos: "27.0.1", darwin: "27.0.0",
       headless: true, test_trust: "exact_generated_spki_only", native_mode_available: false },
     errors: [...result.errors, ...finding.errors], producer_exit_code: 2,
-    provenance: Object.fromEntries(["native-stock-capture.mjs", "native-stock-egress.mjs",
-      "native-stock-policy.mjs", "qualification-loopback-chrome", "qualification-loopback-network.sb"]
+    provenance: Object.fromEntries(["native-stock-capture.mjs", "native-stock-capture.test.mjs",
+      "native-stock-meta.mjs", "native-stock-meta.test.mjs", "native-stock-egress.mjs", "native-stock-egress.test.mjs",
+      "native-stock-policy.mjs", "native-stock-policy.test.mjs",
+      "meta-additional-authority.mjs", "meta-additional-authority.test.mjs",
+      "inspected-meta-record.mjs", "inspected-meta-record.test.mjs",
+      "qualification-loopback-chrome", "qualification-loopback-network.sb"]
       .map(name => [name, hash(readFileSync(new URL(name, import.meta.url)))])),
   };
   const require = createRequire(import.meta.url);

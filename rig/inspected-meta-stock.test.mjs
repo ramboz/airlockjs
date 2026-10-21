@@ -359,6 +359,11 @@ describe("inspected Meta stock preparation", () => {
     expect(pins.header_decoder_dependencies["hpack.js"]).toMatchObject({
       version: expect.any(String), sha256: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
+    for (const name of ["inspected-meta-record.mjs", "inspected-meta-record.test.mjs",
+      "meta-additional-authority.mjs", "meta-additional-authority.test.mjs",
+      "meta-additional-qualification.mjs", "meta-additional-qualification.test.mjs",
+      "meta-additional-supervision.mjs", "meta-additional-supervision.test.mjs"])
+      expect(pins[name]).toBe(hash(readFileSync(new URL(name, import.meta.url))));
   });
 
   it("rejects a byte-identical authority relocated beside a fresh canonical namespace", async () => {

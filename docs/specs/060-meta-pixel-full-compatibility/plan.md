@@ -1,5 +1,26 @@
 # Plan - full Meta Pixel compatibility
 
+## Additional bounded stock authority - 2026-10-21
+
+The owner at 18:33:04.581Z explicitly authorized the requested one additional
+Meta stock case and delegated routine preparation/scheduling. [ADR-0035](../../decisions/adr-0035-additional-one-shot-meta-authority.md)
+and [059-18](../059-google-ads-full-compatibility/slice-18-additional-meta-authority.md)
+require a separate fixed grant bound to the original spent lineage, unchanged
+physical/byte/privacy limits, current qualification/reviews and real finite
+coordination. The original reservation is never reset; no new native case
+has yet been admitted. This is not unlimited retry, candidate substitution,
+Google/production inspection or implementation readiness for 060-01.
+
+The fixed additional path now has current-source local H1/H2 proof, mandatory
+bounded child/resource supervision and refreshed shared fourteen-controller/
+eleven-relay qualification. Parent checks passed 781 units (34 explicit
+opt-in skips), targeted lint and final original/source inspection. No
+executable case permission or live window exists. Historical unregistered
+browser/profile dispositions remain unknown; current coordination and exact
+case-bound preparation are still required. This is not native acceptance.
+The single actual additional suite passed 250 tests; parent verification
+covered 10,051 artifact hashes/identities and 30 source-file locators.
+
 ## Actual stock checkpoint - 2026-10-21
 
 The owner-approved original Meta stock case ran once in the 16:15–16:16Z
@@ -17,9 +38,10 @@ ownership checks or caps. Its unchanged-request replay grants eligibility
 only, not dispatch. Fresh SDK-absent qualification passed 99 controller and
 351 regression tests with fourteen controller cases and eleven loopback relay
 cohorts verified; this does not repair or qualify the failed reference.
-Meta chamber remains blocked, and no retry/new namespace/candidate-slot
-substitution is authorized. Another actual attempt requires new explicit
-owner authority and scope. Complete native wire, C2/C3, actual replacement
+Meta chamber remains blocked, and no retry of that original, copied namespace
+or candidate-slot substitution is authorized. ADR-0035 separately supplies
+the single additional case described above, not a renewal of this slot.
+Complete native wire, C2/C3, actual replacement
 and vendor outcomes remain open; 060-01 is still not implementation-ready.
 
 The independent [059-17 offline diagnostic](../059-google-ads-full-compatibility/slice-17-attempt-chamber-comparison.md)

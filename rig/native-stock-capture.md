@@ -7,6 +7,383 @@ remains disabled; the separately gated native API executed once. Google stock,
 Google chamber and Meta chamber remain unused, and the incomplete Meta stock
 reference blocks its dependent chamber case.
 
+## Additional Meta case interface (059-18 / ADR-0035)
+
+The owner authorized **one additional** Meta stock case at
+2026-10-21T18:33:04.581Z, delegating routine preparation and scheduling. This
+does not refund the original spent/inconclusive case. Conditional additional
+grant and inspection records now exist; they are not an executable case
+permission, window, reservation or SDK execution.
+The original `--execute` CLI remains disabled.
+
+The existing `prepareInspectedMetaStock` / `runInspectedMetaStock` API has a
+closed additional variant, not an authority registry or an override:
+
+- Native authority ID: `meta-stock-additional-2026-10-21`; variant:
+  `additional-meta-2026-10-21`. Only `meta-stock` is present in `cases`,
+  initially `{reserved:false, admitted:false, spent:false}`. No Google or
+  candidate authority is synthesized.
+- Authority schema remains `schema_version:1`,
+  `kind:"owner_conversation_authority"`, `status:"approved_conditional"`.
+  Its closed fields additionally include `authority_variant`, `self_locator`
+  (`path/dev/ino`), `lineage_baseline` (`path/sha256/dev/ino`), `commands`
+  (`init:1,pageview:1,consent:"native-default"`) and `limits`. Native records
+  cannot contain `synthetic_only`.
+- The authority's basename is its fixed ID plus `.json`, beside the genuine
+  original authority. Authoring establishes its own inode before final bytes
+  and permissions are bound; copying it to another path/inode is not a grant.
+  The separate location permission hashes the completed authority.
+- `limits` is Meta-only: `physical_vendor_https_attempts:8`,
+  `observations:64`, `url_bytes:2048`,
+  `request_headers_and_body_bytes:65536`, `response_bytes:2097152`,
+  `retained_aggregate_bytes:8388608`, `absolute_duration_ms:60000`.
+  The shared runtime limits are unchanged.
+- Manifest `binding.additional` contains exactly `variant` and
+  `lineage_baseline`. That immutable baseline commits the original authority,
+  actual spent `meta-stock.reserved`, and genuine new owner decision by
+  canonical handles, SHA/device/inode. Native baseline/decision byte
+  commitments are fixed in the validator. The original authority's historical
+  unspent flags are **not** its actual consumption status: the separate
+  canonical journal must be semantically spent and match that authority's
+  exact ID/hash/case. Neither original file is ever written.
+- `binding.scheduling` contains exactly `selected_by:"operator"`,
+  `delegated:true`, `owner_message_at:"2026-10-21T18:33:04.581Z"` and
+  `selected_at_ms` (not later than `window.not_before_ms`). The finite window
+  remains at most 60 seconds including cleanup/publication. Selection is under
+  owner delegation, **not** an exact owner-selected timestamp. A changed
+  pre-admission window needs new context bindings, receipts and actual
+  coordination; expired evidence or a consumed slot cannot be rescheduled.
+- `inspection_permission` uses the separate closed
+  `kind:"inspected-meta-additional-permission"`,
+  `status:"approved_additional_reference_design"` record. Besides
+  `schema_version/scope/owner_decision/lineage_baseline`, it explicitly records
+  `original_authority_mutated:false`, `original_slots_reserved_or_spent:1`,
+  `additional_slots_reserved_or_spent:0`. Scope uses the one additional slot,
+  not the original, with no extra event/retry grant. Inspector trust, strict
+  real upstream TLS, physical/byte limits and historical timing exceptions
+  are unchanged.
+- The location permission is the fixed sibling
+  `meta-additional-case-permission.json`, with the existing location fields
+  but `kind:"inspected-meta-additional-case-location"`. It binds the additional
+  authority's locator, canonical slot, complete case context digest and exact
+  expiry. The slot is `native-stock-slots-<fixed-additional-id>/meta-stock.reserved`.
+  Output changes, copied permissions and parallel preparations cannot renew it.
+
+The journal's optional `additional_binding` is the **complete manifest binding**,
+not an approval flag. Additional reservations require the same closed lineage,
+inspection/location permission, source/input/window/command envelope and
+exclusive fsynced spend. The returned `canonical_record_identity` comes from
+the written descriptor, not a newly discovered replacement. Reservation still
+confers no network authority. All original/synthetic legacy paths retain their
+existing limits and qualification-v1 behavior.
+
+Every old setup/source/frame/compliance/craft/architecture/reconciliation and
+actual nonoverlap/resource gate remains mandatory. In particular the genuine
+dated setup report is not made fresh provider readback by this authorization.
+The private prepared-plan/native-transport WeakMaps remain the only execution
+handoff. Snapshots cover the complete additional lineage through script
+continuation, reservation, cleanup and publication.
+
+### Additional-path SDK-absent qualification
+
+Native additional guard receipts require **both** the unchanged `qualification`
+(fourteen controller / eleven relay cohorts) and `additional_qualification`.
+The latter handles a closed
+`airlock.sdk-absent-additional-meta-validation.v1` index with exact current
+`source_pins`, false SDK claim, numeric zero public requests/actual owner slots,
+and two ordered `cases` (H1/H2). Each row binds the fixture manifest, report,
+capture, completion and independently observed `actual_child` by path/hash.
+The reader follows the actual synthetic additional lineage and consumed slot,
+source originals/resumption, original responses, actual child command/exit,
+and complete closure/publication. It does not promote a local plan to native
+authority, replace independent reviews or relabel old normal cohorts.
+
+The AC6/7 compliance correction additionally derives the complete request row
+from retained request bytes through the existing strict wire observer and
+compiled policy, rather than trusting match flags. Exact ownership/URL/method,
+ordered headers/byte counts, stream and logical IDs must agree with the
+receiver and actual Network/Fetch evidence. Staged headers must agree with
+their corresponding physical fields; the existing late-header distinction is
+not an excuse for contradictions or request bodies.
+
+This reader recognizes only the fixed normal H1/H2 first-party positives:
+canonical nonempty base64 wire, the actual H1 status/framing or bounded H2
+SETTINGS/ACK/header/DATA sequence, the pinned header decoder, exact original
+response headers/status/length/body, and the fixed fixture PNG. It compares
+whole retained request/response byte counts and hashes against both receiver
+and broker, with matching peer/protocol and complete closure. H2's request ACK
+is checked against both original control directions before the synchronous
+request-only replay; full untouched wire remains the endpoint comparison.
+Unknown framing/control shapes fail closed, not a new generic/native parser.
+
+The opt-in test also retains 74 refreshed-hash contradiction archives derived
+from copies of the genuine H1/H2 packet and causal evidence. Each archive
+passes before its one contradiction, then must reject; genuine captures are
+never edited. `genuine-original-negative-controls.json` binds those archives
+and their genuine source captures. This is reader regression evidence, not
+additional native authority or proof of arbitrary protocol surfaces.
+
+```sh
+PATH=/opt/homebrew/bin:$PATH node rig/meta-additional-qualification.mjs \
+  --witness-additional --output-dir /absolute/private-parent/new-059-18-witness
+
+AIRLOCK_ADDITIONAL_META_QUALIFICATION=1 \
+AIRLOCK_ADDITIONAL_META_OUTPUT=/absolute/private-parent/new-059-18-tests \
+PATH=/opt/homebrew/bin:$PATH node node_modules/vitest/vitest.mjs run \
+  rig/meta-additional-qualification.test.mjs --maxWorkers=1
+```
+
+These are fixed first-party SDK-ABSENT programs using the existing confined
+launcher and literal-loopback receivers. They never accept URLs, drivers,
+native grants or public mode. Fixtures remain privately under `rig/out/059-18-*`;
+the explicit witness folder retains the index and post-child receipts. An
+external caller must separately preserve whole-command exit and final hashes.
+New source/test/helper changes invalidate prior source-bound indices; refresh
+the shared fourteen/eleven proof after final reviews as well as this proof.
+
+The earlier fourteen/eleven refresh and initial additional-path indices remain
+historical after this reader correction. Corrected-source additional tests
+passed 100/100 (including the actual H1/H2 positives, 74 genuine-derived
+contradictions and three reservation-mutation controls); closure regression
+passed 632 with 33 opt-in skips. Removing the new broker-to-retained-wire hash
+guard defeated both H1/H2 regressions, and exact source was restored. Parent
+reviews and a fresh shared fourteen/eleven index are still required.
+
+The subsequent craft correction closes the entire additional reservation
+record: exact journal keys/schema version, spent Meta case, authority/source/
+input/window/variant/lineage/binding relationships, and
+`execution_prerequisites_proved_by_reservation:false`. Its safe-integer
+`reserved_at_ms` must be inside the half-open case window and strictly earlier
+than recorded resource closure (and thus the ordered capture/report/publication
+times). A matching outer hash cannot validate an expired, late or malformed
+reservation. Fifty H1/H2 refreshed-hash reservation controls accompany the
+unchanged 74 packet controls, in `genuine-reservation-negative-controls.json`.
+
+The qualification runner persists the actual child outcome before inspecting
+originals. A failed startup/timeout stops with
+`additional_qualification_child_failed`, without trying absent report/capture
+paths or publishing an index. A real fixed-child Node startup failure witnesses
+this ordering; no additional public program or dependency-injection mode was
+added. The craft-corrected actual additional suite passed 151/151; affected
+unit suites passed 264 with 19 opt-in skips and repository lint passed. Removing
+the reservation-before-cleanup guard defeated both protocol regressions; exact
+source was restored. All preceding indices remain historical, and parent
+reviews/shared fourteen/eleven refresh and real admission remain separate.
+
+### Mandatory fixed-child supervision (architecture correction)
+
+`runAdditionalMetaQualification` no longer waits on `execFile(timeout:60000)`:
+Playwright's SIGTERM handler is graceful, so that was not a finite shutdown
+guarantee. It now calls `superviseAdditionalMetaChild` from
+`meta-additional-supervision.mjs`. The helper accepts only the confined
+additional fixture manifest, H1/H2, a fresh private output directory, and the
+fixed `normal` / `stuck-shutdown` controls. No URL, executable, driver, clock,
+timer or arbitrary program can be supplied.
+
+Each child has a monotonic budget no longer than 59 seconds and no later than
+its existing case-window expiry. Normal work stops at 40 seconds; TERM, a
+bounded grace period, identity-checked STOP/inventory/KILL, browser cleanup,
+endpoint observations and fsynced receipts have explicit reserves. Parent
+waiting uses the actual Node `exit`, never an unbounded `close`/graceful-browser
+promise. Parent pipe/IPC handles are closed and the child handle is unrefed
+after the finite observation budget; an unproved child exit remains a durable
+unknown/unqualified handoff, not a fictitious successful exit.
+
+Ownership follows the 059-16 model, narrowly mirrored rather than changing that
+producer: exact PID/birth/image hash/UID/process group, verified direct parent,
+launch-created private profile device/inode/birth/path/UID, and literal-loopback
+listeners owned by the Node child. Registration receipts are exclusive and
+fsynced before acknowledged acquisition/shutdown. Pending launch is registered
+before Playwright starts; only the pinned launcher-to-sandbox-to-Chrome exec
+chain may refresh the same lifetime's image. Known exiting/zombie children are
+not relabelled as live executables. Chrome's observed exact
+`/usr/bin/profiles status -type enrollment` startup subprocess is tracked only
+through its owned Chrome parent/group, not by a global name lookup or permission
+claim. Every signal rechecks the specific lifetime; no process-name/group-wide
+or shared-MCP kill is used.
+
+After child exit, the parent observes all registered browser lifetimes stopped,
+removes only the unchanged launch-created profile, checks registered endpoints,
+and disposes of the two registered ephemeral TLS keys only after verified
+process closure. Changed/unregistered resources remain unknown, unqualified
+and explicitly recorded. This is per-case resource evidence, not host-wide
+quiescence or an Adobe resource hold.
+
+Additional proof now **requires** the actual child's `supervision` handle to
+`airlock.additional-meta-supervision.v1`: exact command/current source closure,
+durable acquisition registrations, actual exit, process/profile/port/key
+disposition and the same finite timing. The private `--supervised-child` entry
+requires IPC from this supervisor. Direct unsupervised additional execution is
+blocked; original/synthetic legacy execution and the disabled stock CLI are
+unchanged.
+
+The genuine stuck control first allocates the owned confined Chromium,
+consumes the fixed first-party response and saves
+`supervision-abort-originals.json` without claiming closure. It then actually
+stops that Chrome and ignores Node SIGTERM. The parent observes the TERM
+receipt, escalates both owned lifetimes and proves process/profile/endpoint/
+key cleanup. Its result stays **unqualified**, with actual SIGKILL recorded.
+Matched normal H1/H2 remain positive. The new helper and its tests are included
+in both fixed source closures.
+
+Final architecture-correction results: **697 unit passes / 34 opt-in skips**,
+repository lint pass, and **166 actual additional-suite passes**, including
+the real forced-shutdown failure proof. The pre-signal birth guard was removed
+to defeat its regression, then restored to exact source before the final runs.
+Two early development failures before complete browser registration retain
+**unknown browser/profile and unregistered-key disposition**; they are not silently cleaned,
+refunded or qualified. A separate registered stopped-browser failure has a
+recorded exact-identity late recovery, leaving its original failure unchanged.
+These historical unknowns are a concrete parent resource-handoff caveat,
+not evidence of global closure. Parent reviews, final shared fourteen/eleven
+refresh and any real-case resource clearance/admission remain outstanding.
+
+The subsequent architecture **reader-semantic** correction leaves that finite
+termination design unchanged. A successful proof must now contain the complete
+final `node_processes` inventory: an explicit empty array means absent; any
+listed row must be the exact recorded Node PID/parent/group/UID/birth in an
+actual zombie state with final `"zombie"`. Missing, live, unknown, duplicated,
+malformed or unrelated group members reject despite closed/qualified flags.
+
+The reader also validates closed ownership registrations in order:
+`node`, `ports`, `browser-pending`, `browser-discovered`, `browser-ready`,
+`resources-final`. Every snapshot binds its Node identity, cumulative ports,
+complete key device/inode/birth/UID/size, browser/profile identity and member
+lifetimes to the final ledger. Member ancestry must be rooted in the same
+browser group. Only the observed pinned launcher/sandbox-to-Chrome image
+transition is permitted before ready; browser-ready and final snapshots must
+bind the final Chrome command hash and exact profile. Acquisition must precede
+producer cleanup; final registration must follow the observed Node exit and
+remain inside the same finite proof interval.
+
+To make those relationships auditable, the producer adds **metadata only**:
+the already-observed browser root command, actual Node exit wall timestamp,
+and a final ownership-ledger registration. No signal, timeout, acquisition or
+cleanup policy changed. Phase-only fixtures no longer pass. Eighty-two new
+refreshed-hash controls run against independent copies of **both actual H1/H2
+proofs**, without changing source manifests, slots, HTTP originals or original
+supervision receipts. The reader preserves legitimate empty/zombie inventories
+and a complete launcher exec transition.
+
+Affected unit suites passed **361 / 20 opt-in skips**; final actual suite passed
+**249/249**, including the stuck control and all 206 original/reservation/
+supervision contradiction archives. Removing the new final Node disposition
+guard defeated both protocol regressions; exact reader source was restored.
+The first unchanged-source actual attempt was rejected by the existing
+`additional_group_unanchored` supervisor denial (resources recorded closed,
+qualification false); it remains intact and was not relabelled as a pass.
+The fresh accepted proof is separate. Earlier unknown acquisitions, parent
+operational review and shared fourteen/eleven requalification remain separate
+readiness obligations, not retrospective successes.
+
+### Reader-source checkpoint before the later ordering fix - 2026-10-21
+
+The final reader/supervisor source has parent-executed **780 unit passes /
+34 explicit opt-in skips** and targeted lint pass. The current shared
+fourteen-controller/eleven-relay proof passed **99 controller / 352 regression**
+tests and strict source/original verification. Independent inspection of the
+current additional-path index passed; **4,496** post-exit original and command
+witness hashes/device/inode identities were checked. The author's actual
+249-pass suite and 206 contradiction archives are retained separately.
+Earlier indices and failed attempts remain historical, not relabelled.
+
+The genuine original authority, spent reservation and new owner-decision
+bytes remain unchanged. The parent created only the new conditional grant
+and inspected-permission data; no executable case permission, additional
+reservation, selected live window or native SDK execution exists. The
+prospective 20:30-20:31Z proposal was withdrawn before any hold or admission.
+Routine finite scheduling is delegated, but exact case-bound receipts,
+truthful dated setup/source evidence, current coordination and actual result
+remain required.
+
+Four exactly attributable temporary private keys from the two early failed
+acquisitions have since been removed with recorded identity checks. That
+disposes of those keys only: their historical browser/profile dispositions
+remain **UNKNOWN**, not merely leftover directories. Named-panel registry
+closure, absence of particular Node/proxy/SPKI-root markers, current relevant
+helper quiescence and host-wide exclusion are different claims. The first
+two do not establish the latter two. The separate Adobe lane retains its own
+readiness gate; no review here clears it or grants broader process/profile
+authority. New-case ownership and finite coordination must be established
+without rewriting either old failure.
+
+The subsequent independent current-helper assessment could not prove the
+requested whole `stock_helpers` / `source_helpers` / `worker_tests` quiescence
+from the retained ownership records. Both early ledgers lack a browser/group/
+descendant anchor; current registered-subset observations and no-work-queued
+reports do not fill that active-process evidence gap. A supported retained
+no-acquisition record or attributable lineage/termination evidence is needed
+for the stronger claim. This is not a historical-directory deletion condition,
+a reason to promote failed proof or permission to inspect/kill unattributed
+processes. No live window or finite hold was created.
+
+### Craft turn-2 discovery ordering correction — pure-unit checkpoint
+
+Polling and `browser-ready` could overlap while the first discovery had inserted
+ownership but had not finished group inventory/publication. A local promise
+chain now serializes that real acquisition. Each caller still scans afresh;
+rejected discovery stays rejected. No phase-order relaxation, new program/API,
+signal/escalation or deadline-policy change.
+
+The deterministic regression executes the real supervisor/discovery/ledger
+path with in-memory child-process, OS-query and TCP doubles. It holds the
+inventory barrier, delivers overlapping ready IPC and requires no early ACK,
+ordered publication, legitimate launcher exec and a fresh late-member scan.
+The simulated child exits 2 and remains unqualified; no copied logic or
+fabricated passing qualification is used. Red failed before the fix; removing
+the real serialization defeated it again; exact source was restored. Pure
+helper units passed **7**, with the real-browser opt-in skipped; lint passed.
+
+Work resumed at **2026-10-21T21:47:00Z**, superseding the earlier 21:44 UTC idle
+attestation. This source/pure-unit correction ran **no Chromium, loopback browser
+qualification, benchmark or real case**. The preceding parent checkpoint and
+its 4,496/shared source-bound proof are historical after this source change.
+Fresh browser/shared qualification awaits separate parent permission and
+review. Earlier failures and UNKNOWN browser/profile dispositions are unchanged.
+No browser work is queued; this is not a renewed resource-clearance, hold or
+execution-readiness claim.
+
+### Current reviewed-source checkpoint - 2026-10-21
+
+On the frozen ordering-corrected source, parent pure checks passed **781**
+with **34 explicit opt-in skips**, and targeted lint passed. Fresh shared
+fourteen-controller/eleven-relay qualification passed **99 controller /
+352 regression** tests with actual outer exit 0 and strict post-exit current
+source/original inspection. Compliance, craft and architecture each confirmed
+bounded ordering-delta continuity, preserving their original findings and
+actual review scopes rather than claiming a new full audit on every turn.
+
+The additional suite ran exactly once and passed **250 tests**, actual outer
+CLI exit 0 at **22:12:56.933532Z**. A private observer save-path preflight had
+failed before Vitest/browser execution; its unchanged originals are retained.
+The corrected save preflight used no browser, and the actual suite used a
+distinct fresh output namespace with no source changes or hidden retry.
+
+Normal H1/H2 qualified with complete original responses and owned closure.
+Three mutation races exited 2, startup exited 1, and the forced stuck control
+ended SIGKILL in **9,592 ms**; those controls remain unqualified. All **206**
+contradiction archives are retained. The parent independently checked the
+current additional reader and **10,051** artifact hashes/device/inode identities
+plus **30** source-file locators; current additional/shared source vectors
+match. Original authority/spent/decision and conditional new records are
+unchanged. No executable case permission, real additional reservation, native
+SDK, provider traffic or live window exists.
+
+Checkpoint reconciliation passed for the IN_PROGRESS code checkpoint only;
+exact case-bound setup/source/resource/nonoverlap evidence remains separate.
+Historical browser/profile
+UNKNOWNs and the blocked stronger whole-helper assertion are not cleared.
+There is no host-wide exclusion, new cleanup authority, performance/CWV,
+complete native wire, replacement or C2/C3 acceptance claim.
+
+The first actual additional-path positives exited zero with complete original
+responses/closure; an initial verifier cleanup-field-count error rejected their
+outer qualification and is retained as a failure, not rewritten. Qualification
+is not native/vendor acceptance. The actual additional operator result, live
+coordination, reviews, source-wide final requalification and any native run
+remain the parent's responsibility. Missing readiness stops before admission;
+failure, interruption or zero HTTP after reservation is permanently spent.
+
 ## Actual Meta stock outcome - 2026-10-21
 
 The owner separately approved the 16:15–16:16Z (09:15 PDT) window and

@@ -216,6 +216,37 @@ records does not close response/cookie/redirect evidence.
 
 ## Current posture
 
+### Additional case authorized - 2026-10-21
+
+At 18:33:04.581Z the owner explicitly authorized the pending request for one
+additional bounded Meta stock case and delegated autonomous handling.
+[ADR-0035](../../decisions/adr-0035-additional-one-shot-meta-authority.md)
+and [059-18](slice-18-additional-meta-authority.md) add a separate, fixed,
+lineage-bound authority; they do not refund or rewrite the original spent
+case. The case still has one init/PageView, eight physical attempts and the
+unchanged observation/byte/60-second limits and inspected-network distinction.
+
+The coordinator selects finite timing within that delegation without asking
+for each routine step, but must create fresh exact bindings and actual
+source/setup/qualification/review/coordination evidence. Operator-selected
+timing is not represented as a human-chosen timestamp. Conditional additional
+grant and inspection data now exist, but no executable case permission,
+slot, live window or SDK execution has been created.
+After consumption there is no further retry or budget expansion. Google,
+candidate and production authority remain unchanged.
+
+The lineage-bound path and mandatory fixed-child SDK-absent supervision are
+implemented. Final-source parent checks passed 781 units (34 explicit opt-in
+skips), targeted lint, the new additional-path proof and current shared
+fourteen-controller/eleven-relay originals (99 controller/352 regression).
+The single actual additional suite passed 250 tests; the parent inspected
+10,051 post-exit artifact hashes/identities and 30 source-file locators.
+This is a pre-admission code checkpoint, not the bounded operator result.
+Historical browser/profile unknowns, actual current resource coordination,
+case-bound reviews, dated setup/source evidence and complete native capture
+remain separate obligations. The withdrawn 20:30 proposal creates no hold
+or timing authority for a later run.
+
 ### Original Meta stock case spent; offline correction only
 
 The owner approved the exact 16:15–16:16Z (09:15 PDT) case and original-slot
@@ -238,9 +269,10 @@ Fresh source-bound local qualification passed 99 controller and 351 regression
 tests, with all fourteen SDK-absent controller cases and eleven loopback relay
 cohorts verified; one older browser opt-in was skipped. Compliance, craft and
 architecture reviews passed for the policy delta, not native-reference acceptance.
-No new SDK init, source download, event, namespace, retry or chamber-slot
-substitution is authorized. Any future actual attempt needs new explicit
-owner authority and scope, not another timing approval under the consumed slot.
+That policy correction did not authorize a new SDK init, source download,
+event, namespace, retry or chamber-slot substitution. The later, separate
+ADR-0035 authorization above supplies exactly one additional case; it cannot
+renew the consumed original through another timing approval.
 
 ### Independent offline path
 

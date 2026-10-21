@@ -15,7 +15,7 @@
 > adds parallel preparation for complete Google Ads and Meta Pixel replacement.
 > Shared evaluation tools are recorded in spec 058; the first product slices
 > in 059-060 remain in authoring review, not implementation-ready. Operator
-> preparation tooling in 059-13/14/15/16/17 does not promote those product slices.
+> preparation tooling in 059-13/14/15/16/17/18 does not promote those product slices.
 > This does not promote the subset connectors below to full support or change
 > existing APIs, runtime grants or Adobe acceptance.
 > Its [offline sequence consumer](../rig/native-tag-comparison.md) adds no
@@ -42,7 +42,7 @@ A framework-agnostic runtime core, with EDS as the first adapter and connectors 
 [ADR-0034](decisions/adr-0034-inspected-meta-stock-reference.md) permits a
 conditional inspected Meta stock reference, not a production network proxy.
 Private manifest preparation and the shared native/SDK-absent engine live in
-`rig/inspected-meta-stock.mjs:623-626`; native transport requires a one-use
+`rig/inspected-meta-stock.mjs:1008-1011`; native transport requires a one-use
 reservation-backed lease and fixes upstream destination, certificate and
 hostname validation in `rig/inspected-transport.mjs:150`. Physical request
 and response observation is separate from logical browser events
@@ -57,6 +57,21 @@ ordinary-browser parity, complete native wire and vendor outcomes remain
 separate obligations. This tooling adds no stable-core capability, source
 deployment, live-case authority or full replacement claim. See the
 [operator guide](../rig/native-stock-capture.md) for remaining gates.
+
+[ADR-0035](decisions/adr-0035-additional-one-shot-meta-authority.md) separately
+permits one additional bounded Meta stock case, not a refund of the spent
+original. Its fixed grant and immutable original spent lineage are validated
+in `rig/meta-additional-authority.mjs:97`; the same private-plan engine remains
+the execution boundary. Current source pins include the added helpers/tests
+(`rig/inspected-meta-stock.mjs:150`). The required additional-path local proof
+is inspected at `rig/inspected-meta-stock.mjs:881`; its fixed SDK-absent child
+supervision is in `rig/meta-additional-supervision.mjs:169`, not a new native
+execution capability. Complete original bytes, reservation chronology and
+identity-bound resource registrations are required rather than summary flags.
+Passing local proof does not establish actual native behavior, current
+all-helper quiescence or host-wide exclusion. Historical unregistered
+browser/profile dispositions remain unknown; any new case still requires
+current scoped resource evidence, affirmative ownership and finite coordination.
 
 The independent [SDK-absent chamber capture](../rig/chamber-capture.md)
 uses the existing built EDS boots and synthetic loopback endpoints, not

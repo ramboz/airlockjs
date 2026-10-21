@@ -21,7 +21,18 @@ const HASH = bytes => createHash("sha256").update(bytes).digest("hex");
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const fail = category => { throw new Error(category); };
 const SOURCE_FILES = ["native-stock-capture.mjs", "native-stock-meta.mjs", "native-stock-egress.mjs",
-  "native-stock-policy.mjs", "qualification-loopback-chrome", "qualification-loopback-network.sb", "../package-lock.json"];
+  "native-stock-capture.test.mjs", "native-stock-meta.test.mjs", "native-stock-egress.test.mjs",
+  "native-stock-policy.mjs", "native-stock-policy.test.mjs",
+  "meta-additional-authority.mjs", "meta-additional-authority.test.mjs",
+  "inspected-meta-record.mjs", "inspected-meta-record.test.mjs",
+  "meta-additional-qualification.mjs", "meta-additional-qualification.test.mjs",
+  "meta-additional-supervision.mjs", "meta-additional-supervision.test.mjs",
+  "inspected-meta-stock.mjs", "inspected-meta-stock.test.mjs", "inspected-transport.mjs",
+  "inspected-http-wire.mjs", "inspected-http-wire.test.mjs",
+  "inspected-meta-policy.mjs", "inspected-meta-policy.test.mjs",
+  "inspected-header-block.mjs", "inspected-header-block.test.mjs",
+  "reference-inspection.mjs", "reference-inspection.test.mjs",
+  "qualification-loopback-chrome", "qualification-loopback-network.sb", "../package.json", "../package-lock.json"];
 
 export function metaSourcePins() {
   const require = createRequire(import.meta.url);
