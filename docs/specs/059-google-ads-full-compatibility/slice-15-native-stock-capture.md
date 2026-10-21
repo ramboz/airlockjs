@@ -28,7 +28,8 @@ Neither chamber slot is executable through this stock-only entry.
       case. On 2026-10-21 at 14:52:24.566Z the owner freshly reconfirmed the
       same Meta test Pixel is still theirs and its agreed settings unchanged.
       These are owner reports, not provider API readback, permanent leases or
-      exact-run approval. All four slots remain unspent.
+      exact-run approval. All four slots were unspent at that preparation
+      checkpoint; the actual Meta stock outcome below supersedes that status.
 - [x] Adobe released its control20 hold; no source push is planned. A fresh
       coordination/source/window binding still precedes live execution.
 - [x] Retained profiles provide one Meta Image route and ten Google
@@ -198,7 +199,54 @@ milestone. Local qualification is the prerequisite path, not the product claim.
 
 ### Deviation log (after reconciliation)
 
-Pre-admission record only; full reconciliation is not yet complete.
+Checkpoint record only; full-slice reconciliation is not yet complete.
+
+**2026-10-21 actual original Meta stock case:** The owner separately approved
+the 16:15–16:16Z (09:15 PDT) window and original-slot binding. All actual
+discipline/context receipts and active-window preparation cleared; the fixed
+native caller ran once. Canonical reservation consumed the original stock
+slot before official source execution. Actual exit 2 after 5,325.795 ms
+preserved `unqualified_route_or_field`, `native_browser_error` and
+`native_stock_inconclusive`, with zero public upstream HTTP forwarded.
+The exact pinned runtime and configuration were fulfilled and execution
+resumed; SDK completion/source consumption/native processing remain
+unverified (`native_sdk_executed: null`, `local_result: null`). No complete
+reference, vendor outcome or empty-success claim follows.
+
+The independent external-command witness and original report/capture/
+completion hashes were verified, with all sixteen cleanup flags true.
+The actual 16:17:13.239Z cleanup handoff explicitly released the finite Adobe
+hold; its code/SDK-absent worker resumed. Old lane-closure acknowledgements
+are not current, and no host-wide/shared-MCP closure is asserted. Meta stock
+is **spent/nonrefundable**, its dependent chamber is blocked and the other
+three slots remain unused. No retry, replacement namespace, automatic
+rescheduling or candidate substitution follows.
+
+**Offline cohort-policy correction:** The unchanged 1,543-byte GET/Image had
+the exact owned Pixel/PageView/document, no duplicate query keys and exact
+runtime/configuration URLs. The closed vocabulary lacked `mdc[data]` and
+`mdc[version]`. Removing both only in an in-memory diagnostic changed the old
+eligibility decision; removing either alone did not. Original capture and
+canonical reservation remain unchanged. This is missing observed-cohort
+coverage, not a failed physical guard: the guard correctly stopped forwarding.
+The new vocabulary is limited to the exact authenticated source pair.
+The optional pair must be complete, with a 32-lowercase-hex version and four
+closed `{b}` components containing nonempty canonical base64; unknown fields,
+duplicate JSON members (including escaped equivalents), old-cohort MDC,
+wrong owned inputs/transports and over-cap URLs reject. Decoded metadata
+semantics are not inferred, and originals are not normalized or rewritten.
+An independent compliance finding exposed last-value-wins JSON duplicates:
+four raw-JSON negatives failed before correction, then all 110 policy tests
+passed. The unchanged actual request now passes pure eligibility only, with
+dispatch/source-verification/independent-ownership flags false. Earlier
+source-bound guard indices are historical after this change. Fresh 99
+controller and 351 regression tests passed (one older browser opt-in skipped),
+with fourteen actual SDK-absent controller cases, eleven loopback relay
+cohorts and strict original/source/cleanup/command-witness verification.
+Compliance, craft and architecture reviews passed for the two-file policy
+delta. These local controls and scoped code reviews do not qualify the spent
+reference or grant another live attempt. New explicit owner authority and
+scope are required.
 
 **2026-10-21 actual approved-window preparation:** Fresh owner-reported Meta
 setup and exact conditional original-slot approval were received. The
@@ -236,7 +284,9 @@ Any later window needs new exact timing approval and applicable bindings.
   turn/time, not an invented shell exit. Actual diagnostic command exits
   remain independently witnessed. Private receipts are trusted external
   evidence, not cryptographic ownership authentication.
-- Native code is implemented but has never been executed. No missing
+- At the earlier pre-admission checkpoint, native code was implemented but
+  had never been executed. The later spent case above supersedes that status.
+  No missing
   review, original-location permission, fresh setup/source/coordination or
   window binding is silently manufactured by local qualification.
 
@@ -504,7 +554,9 @@ by actual Network/Fetch IDs and initiator script ID to the exact newly parsed
 runtime. Parent verified independent command completion, artifact digests and
 owned-resource closure before the separately approved configuration source GET.
 The authenticated runtime is 435,104 bytes; the authenticated configuration is
-379,575 bytes. Configuration code has not been executed.
+379,575 bytes. Configuration code had not been executed at that
+source-preparation checkpoint; both resources were later resumed in the
+spent stock case above.
 
 The closed declaration catalog now preserves the historical source pair and
 adds `authenticated-2026-10-21` as a separate matched pair. Mixed source pairs
@@ -524,13 +576,13 @@ local qualification passes, not approval or completion of a live reference.
 
 ### Reconciliation sweep
 
-Pre-admission code/data sweep; native execution and final slice close-out
-remain open.
+Code/data sweep; the actual spent native case is preserved, while complete
+native-reference qualification and final slice close-out remain open.
 
-- **Updated:** this open slice, 059/060 plans, operator guide, review records
+- **Updated:** this open slice, 059/060 plans, 059 operator tasks, operator guide, review records
   and architecture's reference-only boundary. They separate historical
-  failures, current local qualification, init-only source preparation and
-  unexecuted live cases.
+  failures, source-bound local qualification, init-only source preparation,
+  the actual spent/inconclusive Meta stock case and its offline correction.
 - **Updated:** memory learnings for hidden physical retries, actual
   publication-guard falsifiability and authenticated source cohorts.
 - **No-op:** production core/connectors/EDS boots, frozen public contracts,
@@ -543,9 +595,11 @@ remain open.
 - **Checked:** closed source pairs reject mixing, private inputs and
   original event authority are not silently replaced, derived board remains
   IN_PROGRESS, and no `.servo` approval/loop or source push follows.
-- **Deferred to actual admission:** genuine original-location permission,
-  current case-bound reviews/source/setup/coordination, finite window and
-  original one-shot reservation. Real SDK PageView wire, independent chamber,
+- **Actual admission preserved:** genuine original-location permission,
+  case-bound reviews/source/setup/coordination, finite window, original
+  one-shot reservation, actual failure and verified cleanup are retained.
+  Source changes require fresh qualification/reviews, and another live
+  attempt requires new explicit owner authority. Complete SDK PageView wire, independent chamber,
   performance and product/matching/attribution evidence remain outstanding.
 - **Leanness:** no general proxy, arbitrary script/upstream program,
   production capability or universal HTTP implementation was introduced.

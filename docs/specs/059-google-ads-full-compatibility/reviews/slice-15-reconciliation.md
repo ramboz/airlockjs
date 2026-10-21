@@ -17,3 +17,29 @@ Checkpoint/document faithfulness only, NOT full-slice reconciliation, DONE, READ
 
 INITIAL FINDINGS PRESERVED:
 The original needs-changes artifact is archived privately. Its blocker/nit were stale guide statements presenting already implemented manifest/integration and passed code reviews as missing. The current guide corrects these inline and labels initial diagnostic gaps historical, without changing any runtime behavior or advancing live permission.
+
+SPENT-CASE/OFFLINE-POLICY CHECKPOINT — 2026-10-21, 7a696a16-bf17-4b50-a51c-85c0e12a7fd6, turn6
+VERDICT: pass
+
+This documentation-only checkpoint supersedes earlier unexecuted/unspent
+status, not the historical reviews or source-acquisition failures. The guide,
+open slice, 059/060 plans, operator tasks, scoped policy reviews and learning
+faithfully preserve the actual original Meta stock reservation, spent/
+inconclusive exit2, zero forwarded public HTTP, resumed official sources and
+unknown SDK completion/source consumption/native processing. The verified
+cleanup handoff released the finite Adobe hold, not a host-wide/shared-MCP
+closure or a continuing quiescence lease.
+
+The unchanged-original replay and fresh source-bound local qualification stay
+separate from native acceptance. All scoped code reviews are explicitly
+limited to the offline policy delta. The reviewer read supplied metadata
+without commands/tests, code audit or independent rehashing and identified
+no blocker. Two bookkeeping nits were addressed: the deviation log now says
+checkpoint rather than pre-admission-only, and the sweep accounts for
+`tasks.md`.
+
+Full-slice reconciliation/DONE, complete native reference, eligible Meta
+chamber, C2/C3 and vendor outcomes remain open. The original stock slot is
+nonrefundable and the other three remain unused. Another actual attempt
+requires new explicit owner authority and scope; no admission receipt,
+retry, new namespace or candidate-slot substitution follows.

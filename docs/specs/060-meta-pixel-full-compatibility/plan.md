@@ -1,5 +1,27 @@
 # Plan - full Meta Pixel compatibility
 
+## Actual stock checkpoint - 2026-10-21
+
+The owner-approved original Meta stock case ran once in the 16:15–16:16Z
+(09:15 PDT) window and is **spent/inconclusive**. Actual exit 2 after
+5,325.795 ms preserved zero forwarded public upstream HTTP, not an empty
+successful reference. Both official sources were fulfilled and execution
+resumed; full SDK completion/source consumption/native processing remain
+unknown. All sixteen cleanup flags and external original hashes were verified;
+the actual 16:17:13.239Z handoff released the finite Adobe hold.
+
+The guard correctly blocked two unqualified metadata fields. The offline
+authenticated-cohort policy correction now validates their exact paired shape
+and rejects duplicate JSON members without altering the captured request,
+ownership checks or caps. Its unchanged-request replay grants eligibility
+only, not dispatch. Fresh SDK-absent qualification passed 99 controller and
+351 regression tests with fourteen controller cases and eleven loopback relay
+cohorts verified; this does not repair or qualify the failed reference.
+Meta chamber remains blocked, and no retry/new namespace/candidate-slot
+substitution is authorized. Another actual attempt requires new explicit
+owner authority and scope. Complete native wire, C2/C3, actual replacement
+and vendor outcomes remain open; 060-01 is still not implementation-ready.
+
 ## Local capture-boundary checkpoint - 2026-10-20
 
 [059-15](../059-google-ads-full-compatibility/slice-15-native-stock-capture.md)
@@ -11,8 +33,8 @@ browser bodies and partitioned-cookie effects. It is inspected-network
 evidence, not ordinary browser-native TLS parity or a Meta live executor.
 The owner subsequently conditionally approved the inspected Meta stock cohort
 through [ADR-0034](../../decisions/adr-0034-inspected-meta-stock-reference.md);
-no immediate run or new event is approved. No SDK ran and all actual slots
-remain unspent. The shared native guard, fresh case preflight, complete
+no immediate run or new event was approved. At that local-only checkpoint,
+no SDK ran and all actual slots remained unspent. The shared native guard, fresh case preflight, complete
 first-journey evidence and review gates stay open.
 
 That checkpoint predates the separately approved source-cohort preparation:
@@ -20,13 +42,14 @@ one network-denied SDK initialization has now run with one init and zero
 track/PageView commands, followed by one authenticated configuration-source
 download. This is not a native PageView reference or event-slot reservation.
 The historical source pair is preserved alongside the new matched
-`authenticated-2026-10-21` pair. Configuration execution, live native/chamber
-wire, C2/C3 and vendor outcomes remain unproved.
+`authenticated-2026-10-21` pair. Configuration execution was then unproved;
+the actual later stock outcome above supersedes that execution/slot status.
+Complete native/chamber wire, C2/C3 and vendor outcomes remain unproved.
 
 ## Resumption checkpoint - 2026-10-19
 
 The owner approved the shared conditional four-case envelope; its two Meta
-PageViews and two Google Secondary test-conversion commands remain unspent.
+PageViews and two Google Secondary test-conversion commands were then unspent.
 [059-13](../059-google-ads-full-compatibility/slice-13-validation-admission.md)
 and [059-14](../059-google-ads-full-compatibility/slice-14-browser-admission.md)
 provide local admission and actual first-party browser/sink controls, not a

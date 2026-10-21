@@ -31,3 +31,22 @@ The source-pair/selection/label delta preserves the pre-admission architecture: 
 
 PARENT CURRENT-SOURCE VERIFICATION (not performed by the reviewer):
 99 controller tests plus319 relay/policy/decoder/reservation regressions passed; one older browser opt-in was not run. All14 SDK-absent controller cases and11 relay cohorts passed complete current-source and child-original/finalization-failure qualification-index verification. No original event slot, live case or PageView follows.
+
+OFFLINE MDC POLICY DELTA — 2026-10-21, 8a1101ae-4070-43e5-ac08-748c22a86b2a, turn6
+VERDICT: pass
+
+The architecture review covered only the two policy/test files. The cohort
+comes from the exact matched source pair, not a caller permission switch;
+historical vocabulary is not broadened. Existing URL/work limits bound the
+fixed metadata shape and original-token duplicate check. No framework,
+configuration surface, dependency, frozen contract or production boundary was
+added. Ownership, GET/Image routing and false dispatch/source/authentication
+claims remain intact. No blocker or material leanness nit was found.
+
+This is observed-cohort eligibility coverage, not retrospective acceptance
+of the actual spent/inconclusive stock case. The canonical original slot
+remains nonrefundable; no retry, new namespace or candidate substitution is
+permitted. Decoded metadata semantics, complete native behavior and product
+outcomes remain unproved. No ADR-0034 scope expansion is indicated. No
+commands/tests, networking, browser/SDK execution, edits or independent
+qualification rehash were performed by the reviewer.

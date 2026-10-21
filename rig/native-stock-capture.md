@@ -1,11 +1,61 @@
-# Native stock capture: pre-admission blocked
+# Native stock capture: Meta stock spent/inconclusive
 
-This is the **pre-admission checkpoint** of [059-15](../docs/specs/059-google-ads-full-compatibility/slice-15-native-stock-capture.md),
-not a qualified native capture. A conditional executor is implemented, but
-there is no admitted real case and the stock CLI remains disabled.
-All owner stock/chamber slots remain unreserved and unspent.
+[059-15](../docs/specs/059-google-ads-full-compatibility/slice-15-native-stock-capture.md)
+has admitted **one original Meta stock case**, which is now permanently
+spent/inconclusive. No complete native reference was obtained. The stock CLI
+remains disabled; the separately gated native API executed once. Google stock,
+Google chamber and Meta chamber remain unused, and the incomplete Meta stock
+reference blocks its dependent chamber case.
 
-## Current implementation checkpoint
+## Actual Meta stock outcome - 2026-10-21
+
+The owner separately approved the 16:15–16:16Z (09:15 PDT) window and
+original-slot binding. After actual case-bound reviews and scoped coordination,
+active-window preparation passed and the fixed caller ran once. The canonical
+original Meta stock reservation was durably consumed before official source
+execution. Actual caller exit was **2**, after **5,325.795 ms**, with
+`unqualified_route_or_field`, `native_browser_error` and
+`native_stock_inconclusive`. **Zero public upstream HTTP requests were forwarded.**
+
+Both pinned official resources were fulfilled and their execution resumed.
+The attempted PageView Image was blocked before forwarding. Full SDK
+completion, source consumption and native processing were not established:
+`native_sdk_executed` is null, `local_result` is null and the native reference
+is incomplete. Zero forwarded HTTP is not zero SDK execution, a refunded slot
+or an accepted empty reference. Private report, capture, completion and actual
+external-command hashes remain unchanged.
+
+All sixteen cleanup flags were verified true. The actual cleanup handoff at
+**16:17:13.239Z** explicitly released the finite Adobe source/test/qualification
+hold. That lane resumed code and SDK-absent work; its earlier closure receipt
+is no longer current. No host-wide/shared-MCP closure is claimed.
+
+Offline replay isolated two missing query keys, `mdc[data]` and
+`mdc[version]`, emitted by the authenticated source cohort. The original
+1,543-byte GET/Image had the exact owned Pixel, PageView and document, and no
+duplicate query fields. The corrected pure policy permits that pair only for
+`authenticated-2026-10-21`: both members must be present together; the version
+is 32 lowercase hex characters; data has exactly `json_ld`, `opengraph`,
+`schema_org` and `rdfa`, each containing only a nonempty canonical-base64 `b`.
+Duplicate JSON members, including escape-equivalent names, reject. These are
+observed shape constraints, not decoded-content semantics or universal Meta
+coverage. Historical-cohort vocabulary and all original caps remain unchanged.
+
+The unchanged original request now passes **eligibility only**, with dispatch,
+source-byte verification and independent ownership-authentication claims still
+false. Neither the request nor the failed reference was rewritten. Earlier
+guard indices are historical after this policy-source change. Fresh
+current-source qualification passed 99 controller and 351 regression tests
+(one older browser opt-in skipped), with all fourteen controller cases,
+eleven relay cohorts and referenced originals/cleanup/source/command witnesses
+verified. Compliance, craft and architecture reviews passed for this offline
+delta. These are SDK-absent, loopback-only controls and scoped code reviews,
+not live acceptance. This correction
+does not rerun, refund or qualify the spent case. Any future live attempt needs
+new explicit owner authority and scope; no new namespace, automatic
+rescheduling or chamber-slot substitution is permitted.
+
+## Implementation and qualification history (pre-admission)
 
 The owner clarified on 2026-10-19 that the 2 MiB response cap governs what our
 recorder **retains and accepts**, with immediate cancellation and an
@@ -21,7 +71,7 @@ candidate rules.
 The original strong pre-continuation response hypothesis below remains
 historical diagnostic evidence, not the clarified response requirement.
 
-### Current blocker: browser-internal HTTP retries
+### Opaque-transport blocker: browser-internal HTTP retries
 
 A fixed, SDK-free, first-party receiving-sink matrix now demonstrates a
 different pre-admission failure. Both HTTP/1.1 connection-close and HTTP/2
@@ -46,8 +96,8 @@ cross-origin opaque-native path. The inspected local experiment below is a
 separate transport cohort, not a qualification of that opaque path.
 
 The stock CLI remains unconditionally disabled before owner-file IO,
-reservation, browser or SDK startup. No official SDK, public provider or
-actual owner journal was used. Both owner timing decisions leave the strict
+reservation, browser or SDK startup. That diagnostic matrix used no official
+SDK, public provider or actual owner journal. Both owner timing decisions leave the strict
 physical-request count requirement unchanged. The owner subsequently approved
 the following local inspection experiment, followed by a separate
 **conditional inspected Meta reference decision**, described below.
@@ -256,7 +306,7 @@ not official SDK consumption or an actual owner reservation.
 
 The first controller baseline retained twelve SDK-absent cases and eleven
 relay cohorts; its reported 53 controller plus 285 regression tests belong to
-that source snapshot. The subsequent conditional native executor and fixed
+that source snapshot. At the subsequent pre-admission checkpoint, the conditional native executor and fixed
 `www.facebook.com:443` connector are implemented but **not yet admitted,
 executed or reachable through the stock CLI**. Parent current-source
 verification passed 67 controller tests and 285 relay/policy/decoder
@@ -307,8 +357,8 @@ All fourteen local controller cases and eleven relay cohorts must be
 verified on current source before considering admission. None establishes
 default-browser TLS parity or vendor receipt/matching/attribution. The frame, compliance, craft and architecture code reviews passed, including
 the narrow authenticated-source-cohort update. Reconciliation and genuine
-operational bindings remain open; the earlier baseline and interim local
-passes cannot substitute for the unexecuted native case.
+operational bindings were still open at that checkpoint; the earlier baseline
+and interim local passes did not substitute for native execution.
 
 The inspected-admission frame and subsequent complete-code compliance
 corrections passed. That review exposed and fixed reservation accessor/
@@ -317,10 +367,10 @@ of capture-index child originals. Every producer now binds the same full
 source/test/driver/Chrome/decoder-dependency closure, and every referenced
 private original is verified and snapshotted before qualification.
 
-Current parent qualification passed all fourteen SDK-absent controller cases
+The pre-admission parent qualification passed all fourteen SDK-absent controller cases
 and eleven relay cohorts with the corrected verifier. Reconciliation,
 original-location approval and current setup/source/
-coordination/window bindings are still required; no native case is admitted.
+coordination/window bindings were still required; no native case had then been admitted.
 
 The subsequent craft pass exposed and then cleared a source-origin evidence
 exemption and a nonfalsifiable late-publication control. Negative
@@ -362,10 +412,12 @@ were verified before one source-only authenticated configuration GET.
 The new pair is separately labelled `authenticated-2026-10-21`; historical
 pins and receipts remain intact. The declared-source catalog permits only
 complete known pairs and rejects mixed historical/new resources. This is
-source preparation, not zero SDK activity or a live stock event:
+source preparation, not zero SDK activity or a live stock event. At that
+source-preparation checkpoint,
 configuration has not executed, all four original event slots remain unspent,
 and real case admission still requires refreshed source-bound reviews,
-qualification and operational permissions.
+qualification and operational permissions. The actual later stock case above
+supersedes that event-slot and execution status, not those historical receipts.
 
 `createNativeStockPolicy` now compiles the two **declared** fixed profiles for
 controller-side eligibility. It validates source URL/pin declarations, exact
@@ -419,7 +471,8 @@ Arguments are snapshotted before a supplied clock callback can change them.
 Unsafe permissions, symlinks, hardlinks and nonregular targets reject.
 
 Reservation does not authenticate an owner, verify other preflight conditions
-or authorize networking; all three claims remain false. The actual owner
+or authorize networking; all three claims remain false. At the initial
+synthetic-only bookkeeping checkpoint, the actual owner
 record has not been opened by this API, and no owner canonical slot was
 created. Tests use only synthetic owner-shaped records in private scratch,
 including four concurrent external processes with one winner. The helper does
@@ -598,12 +651,13 @@ bounded original response/storage observation and cleanup/publication path.
 Current SDK-absent controls and complete-code passes are recorded above.
 These mechanisms are not missing implementation.
 
-What remains unexecuted is an admitted native Meta PageView case using both
-official source resources and the real collector. Complete native dependent
+The admitted Meta stock case above did not produce a complete native PageView
+reference. Its canonical slot is spent; offline correction cannot revive it.
+Complete native dependent
 branches, ordinary-browser TLS equivalence, Google live transport/companion
 qualification, actual SDK-absent chamber replacement, performance and
-downstream outcomes are not established. The isolated init-only source
-preparation is neither that stock reference nor permission to execute it.
+downstream outcomes are not established. Neither the isolated init-only source
+preparation nor the spent attempt is a complete stock reference.
 
 **Historical diagnostic boundary:** the initial probe and retained-attempt
 policy replay did not read actual owner authority or execute new official
@@ -620,6 +674,7 @@ local path or initializer result proves headed native-default behavior,
 complete vendor/chamber support, matching or attribution.
 
 **Disposition:** keep 059-15 IN_PROGRESS with review/DoD boxes untouched.
-Independent review and the coordinator own the blocker decision and any later
-admission. There is no request here to execute an official SDK, spend a case,
+Independent review and the coordinator own the blocker decision. Any later
+actual attempt requires new explicit owner authority, not reuse of the spent
+case. There is no request here to execute an official SDK, spend another case,
 mutate an account, deploy, grant consent or approve a Servo component.

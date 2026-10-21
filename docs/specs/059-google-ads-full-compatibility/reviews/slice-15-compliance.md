@@ -30,3 +30,33 @@ Complete pre-admission code compliance remains cleared for the narrow source-coh
 
 PARENT CURRENT-SOURCE VERIFICATION (not performed by the reviewer):
 99 controller tests plus319 relay/policy/decoder/reservation regressions passed; one older browser opt-in was not run. All14 SDK-absent controller cases and11 relay cohorts passed complete current-source and child-original/finalization-failure qualification-index verification. No original event slot, live case or PageView follows.
+
+OFFLINE MDC POLICY DELTA — 2026-10-21, b69cfcd8-56ac-49f7-ad12-dcb405ea9ac5, turns6–7
+VERDICT: pass after correction
+
+This later bounded compliance review covers only `rig/native-stock-policy.mjs`
+and its test delta, not a new full-code audit or native-case acceptance.
+The initial needs-changes finding was duplicate JSON members: `JSON.parse`
+silently collapsed literal and escape-equivalent component/`b` names.
+Four raw-JSON negatives failed before correction. Per-object decoded-key sets
+now inspect the original validated tokens; all110 policy tests then passed,
+including a positive for escaped names, order and whitespace without URL
+rewriting. The reviewer identified no remaining blocker and ran no commands.
+
+The original Meta stock case had by then actually run and was spent/
+inconclusive, with zero public HTTP forwarded and official sources resumed;
+full SDK completion remained unknown. Those facts supersede earlier
+unexecuted/unspent status, not the historical review or acquisition evidence.
+The correction preserves cohort restrictions, closed structure, canonical
+base64 and existing limits. It does not qualify that failed reference or
+authorize retry.
+
+PARENT VERIFICATION FOR THIS DELTA (not performed by the reviewer):
+425 pure tests passed with26 browser opt-ins skipped; the separate complete
+SDK-absent run passed99 controller and351 regression tests, with one older
+browser opt-in skipped. All14 controller/11 relay cohorts and their originals,
+source/cleanup/actual-exit witnesses passed fresh source-bound verification.
+Unchanged actual-request replay was eligible only; original capture/authority/
+slot hashes remained unchanged and all dispatch/source/authentication claims
+stayed false. No additional SDK, public HTTP or actual owner reservation
+occurred in this qualification.

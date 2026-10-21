@@ -93,7 +93,10 @@ change gets its own specific owner decision and superseding record.
 
 **Owner approval received 2026-10-19 for this exact conditional envelope.**
 The prior approval-required proposal below is preserved as the scope contract.
-All four cases are unreserved/unspent. Approval does not qualify the browser
+All four cases were unreserved/unspent at that checkpoint. On 2026-10-21,
+the separately approved original Meta stock case ran once and is now
+**spent/inconclusive**; its dependent chamber is blocked and the other three
+slots remain unused. Approval does not qualify the browser
 guard, establish fresh owned-account settings or promote a product slice.
 [059-14](slice-14-browser-admission.md) now connects admission to actual
 browser/original-byte receiving-sink controls before any native event admission.
@@ -121,19 +124,20 @@ inspected cohort for the original Meta stock slot through
 [ADR-0034](../../decisions/adr-0034-inspected-meta-stock-reference.md).
 It does not admit immediate traffic or establish default-browser TLS parity;
 the native executor remains disabled until the full guard/review/setup/source/
-window gates pass. See the
+window gates pass. Those gates subsequently cleared for the single spent
+Meta case, not a retry or a complete native reference. See the
 [current scope and evidence](slice-15-native-stock-capture.md#owner-approved-local-inspection-experiment-2026-10-20).
 
 Subsequent source preparation uses a separately approved authenticated Meta
 cohort, not silent replacement of historical pins. One network-denied SDK
 initialization produced no PageView command and identified the exact
 configuration source, which was fetched once with authenticated HTTPS.
-Current closed-pair support passed 99 controller and 319 regression tests,
+The pre-admission closed-pair source snapshot passed 99 controller and 319 regression tests,
 with one older browser opt-in not run; all fourteen SDK-absent controller cases
 and eleven relay cohorts passed current-source original/witness verification.
-Those controls are not an executed live stock or chamber reference. Reconciliation,
-current permissions/setup/source and a finite coordinated window still gate
-any actual event-case reservation.
+Those controls are not an executed live stock or chamber reference. Their
+source bindings are historical after the offline metadata-policy correction.
+The actual stock outcome and remaining authority boundary are recorded below.
 
 This is a request for **two bounded paired journeys: four live cases maximum**,
 not permission already granted or an executable live plan before its guard
@@ -212,7 +216,33 @@ records does not close response/cookie/redirect evidence.
 
 ## Current posture
 
-### Independent offline path while live setup is blocked
+### Original Meta stock case spent; offline correction only
+
+The owner approved the exact 16:15–16:16Z (09:15 PDT) case and original-slot
+binding on 2026-10-21. The fixed native API ran once after active-window
+preparation and actual case-bound reviews. Canonical reservation spent the
+original stock slot. Actual exit 2 after 5,325.795 ms preserved an incomplete
+reference and zero forwarded public upstream HTTP. Both official source
+resources were fulfilled and execution resumed; full SDK completion and
+native processing remain unknown. All sixteen cleanup flags and external
+receipt hashes were verified; the actual 16:17:13.239Z handoff released the
+finite Adobe hold. Its resumed worker is not freshly quiescent.
+
+Offline diagnosis found two missing metadata query fields in the authenticated
+cohort's closed policy. The cohort-only correction validates the paired
+version/closed canonical-base64 shape, rejects duplicate JSON member names
+and preserves the original URL, selectors and byte/count caps. The unchanged
+actual request now passes pure eligibility only. This does not repair the
+historical capture, prove complete native behavior or grant dispatch.
+Fresh source-bound local qualification passed 99 controller and 351 regression
+tests, with all fourteen SDK-absent controller cases and eleven loopback relay
+cohorts verified; one older browser opt-in was skipped. Compliance, craft and
+architecture reviews passed for the policy delta, not native-reference acceptance.
+No new SDK init, source download, event, namespace, retry or chamber-slot
+substitution is authorized. Any future actual attempt needs new explicit
+owner authority and scope, not another timing approval under the consumed slot.
+
+### Independent offline path
 
 [059-16](slice-16-chamber-capture.md) owns the already-required real-worker/
 native-absence capture prerequisite. Its fixed synthetic local path is
@@ -250,15 +280,16 @@ That initial opaque-broker hypothesis kept browser certificate verification
 unchanged but subsequently failed the physical-retry controls. The separately
 approved inspected Meta cohort and implemented conditional controller are
 described above; neither the old probe nor the current local controls admit
-a real case.
+a real case by themselves. The later actual spent case is recorded above.
 The owner's 2026-10-19 setup confirmations are historical owner evidence,
 not independent API readback or a permanent lease. On 2026-10-21 at
 14:52:24.566Z the owner explicitly reconfirmed the same Meta test Pixel is
 still theirs and its agreed settings are unchanged. This is fresh owner
 evidence, not independent API readback, an evergreen lease or live-run
 approval. Newer source bytes and autonomous continuation did not establish
-that fact. Original-location/exact-run approval, current case-bound reviews,
-receipts and a coordinated finite window still precede admission. No further campaign/
+that fact. Original-location/exact-run approval, case-bound reviews,
+receipts and a coordinated finite window preceded the spent Meta admission.
+They do not authorize another attempt. No further campaign/
 billing/account mutation or source push is requested.
 
 [059-13](slice-13-validation-admission.md) is DONE: the

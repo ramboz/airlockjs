@@ -7,8 +7,11 @@ implementation, review or readiness.
 ## Independent operator preparation
 
 - [x] 059-13/14: local one-shot admission and actual-browser receiver controls.
-- [ ] 059-15: complete the separately gated native stock path; current
-      code/local qualification is not an admitted live case.
+- [ ] 059-15: preserve the actual spent/inconclusive original Meta stock case
+      and complete its offline policy correction/reviews. No complete native
+      reference exists, Meta chamber is blocked, and another actual attempt
+      needs new explicit owner authority; code/local qualification is not retry
+      permission.
 - [x] 059-16: SDK-absent real-worker/local-receiver capture and strict
       qualification reader are DONE after frame, compliance, craft,
       architecture and checkpoint reconciliation.

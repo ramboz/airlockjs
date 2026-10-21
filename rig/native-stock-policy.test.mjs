@@ -50,6 +50,106 @@ describe("059-15 pre-admission blocker (not native policy qualification)", () =>
       runtime: "d4487bcc9db399030b7089a15e37a6e755bed441992ced0716fb7f9a874e20d1",
       configuration: "b1720ebb329e506fd223f066353d977281280866d85e908dc2561a6c1161c46d",
     };
+    const mdcData = () => Object.fromEntries(["json_ld", "opengraph", "schema_org", "rdfa"]
+      .map(key => [key, { b: Buffer.from("synthetic-" + key).toString("base64") }]));
+    function authenticatedConfig() {
+      const c = config();
+      for (const resource of c.resources) resource.sha256 = authenticatedPins[resource.role];
+      return c;
+    }
+    function rawMdcUrl(data, version = "a".repeat(32)) {
+      return metaUrl + "&mdc%5Bdata%5D=" + encodeURIComponent(data)
+        + "&mdc%5Bversion%5D=" + encodeURIComponent(version);
+    }
+    const mdcUrl = (data = mdcData(), version) => rawMdcUrl(JSON.stringify(data), version);
+
+    it("admits the observed MDC pair only for its authenticated source cohort without rewriting originals", async () => {
+      const { createNativeStockPolicy } = await load(), url = mdcUrl();
+      const r = request(url), policy = createNativeStockPolicy(authenticatedConfig());
+      expect(policy.inspect(r)).toMatchObject({
+        disposition: "eligible", route: "meta_pageview", dispatch_authorized: false,
+        source_bytes_verified: false, independent_ownership_authentication: false,
+      });
+      expect(r.url).toBe(url);
+      expect(createNativeStockPolicy(config()).inspect(request(url)).disposition).toBe("blocked");
+      expect(policy.inspect(request(metaUrl)).disposition).toBe("eligible");
+    });
+
+    it("preserves valid escaped MDC member names and component order", async () => {
+      const { createNativeStockPolicy } = await load();
+      const data = Object.fromEntries(Object.entries(mdcData()).reverse());
+      const source = JSON.stringify(data).replace('"json_ld"', '"json_\\u006cd"')
+        .replaceAll('"b"', '"\\u0062"').replaceAll(":", " : ");
+      const r = request(rawMdcUrl(source)), original = r.url;
+      expect(createNativeStockPolicy(authenticatedConfig()).inspect(r).disposition).toBe("eligible");
+      expect(r.url).toBe(original);
+    });
+
+    it.each([
+      ["duplicate component", source => source.replace('"json_ld":',
+        '"json_ld":{"b":"!!!!"},"json_ld":')],
+      ["escape-equivalent component", source => source.replace('"json_ld":',
+        '"json_ld":{"b":"!!!!"},"json_\\u006cd":')],
+      ["duplicate encoding", source => source.replace('"b":', '"b":"!!!!","b":')],
+      ["escape-equivalent encoding", source => source.replace('"b":', '"b":"!!!!","\\u0062":')],
+    ])("rejects ambiguous raw MDC JSON: %s", async (_name, mutate) => {
+      const { createNativeStockPolicy } = await load();
+      const r = request(rawMdcUrl(mutate(JSON.stringify(mdcData())))), original = r.url;
+      expect(createNativeStockPolicy(authenticatedConfig()).inspect(r)).toMatchObject({
+        disposition: "blocked", reason: "unqualified_metadata_fields", dispatch_authorized: false,
+      });
+      expect(r.url).toBe(original);
+    });
+
+    it.each([
+      ["missing data", metaUrl + "&mdc%5Bversion%5D=" + "a".repeat(32)],
+      ["missing version", metaUrl + "&mdc%5Bdata%5D=" + encodeURIComponent(JSON.stringify(mdcData()))],
+      ["malformed JSON", metaUrl + "&mdc%5Bdata%5D=%7B&mdc%5Bversion%5D=" + "a".repeat(32)],
+      ["unknown query key", mdcUrl() + "&mdc%5Bunknown%5D=one"],
+      ["duplicate data", mdcUrl() + "&mdc%5Bdata%5D=" + encodeURIComponent(JSON.stringify(mdcData()))],
+      ["duplicate version", mdcUrl() + "&mdc%5Bversion%5D=" + "a".repeat(32)],
+      ["uppercase version", mdcUrl(mdcData(), "A".repeat(32))],
+      ["short version", mdcUrl(mdcData(), "a".repeat(31))],
+      ["nonhex version", mdcUrl(mdcData(), "z".repeat(32))],
+      ["oversized URL", mdcUrl() + "&r=" + "x".repeat(2048)],
+    ])("rejects malformed cohort-specific MDC query: %s", async (_name, url) => {
+      const { createNativeStockPolicy } = await load();
+      expect(createNativeStockPolicy(authenticatedConfig()).inspect(request(url)).disposition).toBe("blocked");
+    });
+
+    it.each([
+      ["missing component", data => { delete data.rdfa; }],
+      ["unknown component", data => { data.other = { b: "YQ==" }; }],
+      ["array component", data => { data.rdfa = []; }],
+      ["unknown inner key", data => { data.rdfa.extra = true; }],
+      ["nonstring encoding", data => { data.rdfa.b = 1; }],
+      ["empty encoding", data => { data.rdfa.b = ""; }],
+      ["invalid base64", data => { data.rdfa.b = "!!!!"; }],
+      ["noncanonical padding", data => { data.rdfa.b = "YQ"; }],
+      ["noncanonical pad bits", data => { data.rdfa.b = "YR=="; }],
+      ["URL-safe encoding", data => { data.rdfa.b = "_w=="; }],
+    ])("rejects malformed cohort-specific MDC payload: %s", async (_name, mutate) => {
+      const { createNativeStockPolicy } = await load(), data = mdcData();
+      mutate(data);
+      expect(createNativeStockPolicy(authenticatedConfig()).inspect(request(mdcUrl(data))).disposition).toBe("blocked");
+    });
+
+    it.each([
+      ["foreign ID", url => url.replace("id=123456789012345", "id=999")],
+      ["wrong event", url => url.replace("ev=PageView", "ev=Purchase")],
+      ["foreign document", url => url.replace("owned.example.test", "foreign.example.test")],
+    ])("MDC fields never weaken protected Meta input: %s", async (_name, mutate) => {
+      const { createNativeStockPolicy } = await load();
+      expect(createNativeStockPolicy(authenticatedConfig()).inspect(request(mutate(mdcUrl()))).disposition)
+        .toBe("blocked");
+    });
+
+    it.each([["POST", "Image"], ["GET", "Fetch"], ["GET", "Script"]])(
+      "MDC fields never authorize another transport: %s/%s", async (method, resource) => {
+        const { createNativeStockPolicy } = await load();
+        expect(createNativeStockPolicy(authenticatedConfig()).inspect(request(mdcUrl(), method, resource)).disposition)
+          .toBe("blocked");
+      });
 
     it("accepts the separately approved authenticated source pair without granting execution", async () => {
       const { createNativeStockPolicy } = await load(), c = config();

@@ -31,3 +31,28 @@ Craft remains PASS for closed cohort data, selection and labelling. Historical p
 
 PARENT CURRENT-SOURCE VERIFICATION (not performed by the reviewer):
 99 controller tests plus319 relay/policy/decoder/reservation regressions passed; one older browser opt-in was not run. All14 SDK-absent controller cases and11 relay cohorts passed complete current-source and child-original/finalization-failure qualification-index verification. No original event slot, live case or PageView follows.
+
+OFFLINE MDC POLICY DELTA — 2026-10-21, a181f45b-9119-4773-b441-57877ec96df6, turn6
+VERDICT: pass
+
+The reviewer read only the current policy/test files, without commands,
+tests or a command-based HEAD diff. The authenticated source pair alone gains
+the optional complete metadata pair. Closed component shapes, canonical
+base64 and original-token duplicate checks preserve the existing ownership,
+transport and byte/count gates without rewriting originals. Literal and
+escape-equivalent duplicate negatives and the historical-cohort/valid-positive
+controls meaningfully exercise the new boundary. No blocker was identified.
+
+This is a code-craft pass for the offline eligibility delta only. The later
+actual original stock case remains spent/inconclusive, with official sources
+resumed but native completion unverified. The corrected eligibility result
+neither changes its outcome nor permits retry. Preserve historical source/
+acquisition/review receipts; fresh SDK-absent qualification is separate from
+native acceptance and full-slice completion.
+
+PARENT VERIFICATION FOR THIS DELTA (not performed by the reviewer):
+110 policy tests and focused lint passed after witnessed initial and duplicate
+member reds. Fresh99 controller+351 regression tests passed, with all14
+controller/11 loopback relay original/source/cleanup/actual-exit witnesses
+verified; one older browser opt-in was skipped. No additional SDK, public
+HTTP or actual owner reservation occurred.

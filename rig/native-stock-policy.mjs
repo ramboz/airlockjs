@@ -27,6 +27,8 @@ const PINS = {
 const META_FIELDS = new Set(("aems cdl coo dl ec ev fbp id if imft iss it iw ler o plt "
   + "pmd[title] r rl rqm sh sw ts tz v").split(" ")
   .concat(Array.from({ length: 51 }, (_v, n) => `expv2[${n}]`)));
+const META_MDC_FIELDS = new Set([...META_FIELDS, "mdc[data]", "mdc[version]"]);
+const META_MDC_COMPONENTS = ["json_ld", "opengraph", "schema_org", "rdfa"];
 const GOOGLE_BASE = ("async auid bg cv data dma en ept fmt frm fst gcd gtm guid hn npa pscdl "
   + "random rcb tag_exp tiba u_h u_w uaa uab uafvl uam uamb uap uapv uaw url").split(" ");
 const GOOGLE_PRIMARY = "category currency_code gcl_ctr gtm_ee label oid value".split(" ");
@@ -95,6 +97,41 @@ function boundedJson(bytes) {
   catch { reject("invalid_policy_response"); }
 }
 
+function uniqueJsonMembers(source) {
+  const objects = [];
+  let previous;
+  // JSON.parse collapses duplicates; inspect the original, already-validated tokens.
+  for (const [token] of source.matchAll(/"(?:\\.|[^"\\])*"|[{}:]/g)) {
+    if (token === "{") objects.push(new Set());
+    else if (token === "}") objects.pop();
+    else if (token === ":") {
+      const key = JSON.parse(previous), seen = objects.at(-1);
+      if (seen.has(key)) return false;
+      seen.add(key);
+    }
+    previous = token;
+  }
+  return true;
+}
+
+function qualifiedMetaMetadata(url) {
+  const hasData = url.searchParams.has("mdc[data]"), hasVersion = url.searchParams.has("mdc[version]");
+  if (!hasData && !hasVersion) return true;
+  if (!hasData || !hasVersion || !/^[a-f0-9]{32}$/.test(url.searchParams.get("mdc[version]"))) return false;
+  const source = url.searchParams.get("mdc[data]");
+  let payload;
+  try {
+    payload = boundedJson(Buffer.from(source));
+    if (!uniqueJsonMembers(source)) return false;
+  }
+  catch { return false; }
+  return exactKeys(payload, META_MDC_COMPONENTS) && META_MDC_COMPONENTS.every(key => {
+    const component = payload[key];
+    return exactKeys(component, ["b"]) && text(component.b)
+      && Buffer.from(component.b, "base64").toString("base64") === component.b;
+  });
+}
+
 function snapshot(input) {
   if (!exactKeys(input, ["schema_version", "profile", "case_name", "document_url",
     "owned", "resources", "companion_authorized"])
@@ -135,19 +172,20 @@ function snapshot(input) {
   if (!resources.some(resource => resource.role === "runtime")
     || (meta && !resources.some(resource => resource.role === "configuration")))
     reject("invalid_native_policy");
-  if (meta && !Object.values(META_REFERENCE_COHORTS).some(pins =>
-    resources.every(resource => pins[resource.role] === resource.sha256)))
-    reject("invalid_native_policy");
+  const metaCohort = meta ? Object.entries(META_REFERENCE_COHORTS).find(([, pins]) =>
+    resources.every(resource => pins[resource.role] === resource.sha256))?.[0] : null;
+  if (meta && !metaCohort) reject("invalid_native_policy");
   return Object.freeze({ profile: input.profile, case_name: input.case_name,
     document_url: input.document_url, companion_authorized: input.companion_authorized,
-    meta, owned: Object.freeze({ ...owned }), resources: Object.freeze(resources) });
+    meta, metaCohort, owned: Object.freeze({ ...owned }), resources: Object.freeze(resources) });
 }
 
 function routeFor(url, method, resource, policy) {
   if (policy.meta) {
     return url.origin === "https://www.facebook.com" && url.pathname === "/tr/"
       && method === "GET" && resource === "Image"
-      ? { route: "meta_pageview", kind: "primary", fields: META_FIELDS } : null;
+      ? { route: "meta_pageview", kind: "primary",
+        fields: policy.metaCohort === "authenticated-2026-10-21" ? META_MDC_FIELDS : META_FIELDS } : null;
   }
   const id = policy.owned.conversion_id.slice(3), getImage = method === "GET" && resource === "Image";
   const postXhr = method === "POST" && resource === "XHR";
@@ -217,6 +255,7 @@ export function createNativeStockPolicy(input) {
       const match = routeFor(url, request.method, request.resource_type, policy);
       if (!match || !uniqueFields(url, match.fields)) return decision("blocked", "unqualified_route_or_field");
       if (policy.meta) {
+        if (!qualifiedMetaMetadata(url)) return decision("blocked", "unqualified_metadata_fields");
         if (!exact(url, "id", policy.owned.pixel_id) || !exact(url, "ev", "PageView")
           || !exact(url, "dl", policy.document_url) || (url.searchParams.has("rl") && !exact(url, "rl", "")))
           return decision("blocked", "owned_input_mismatch");
