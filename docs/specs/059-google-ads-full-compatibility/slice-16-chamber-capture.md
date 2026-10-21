@@ -1,11 +1,10 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [058-03, 059-13, 059-14, adr-0033]
 last_verified: 2026-10-20
 kind: feature
 frame_review: true
 arch_review: true
-claimed_by: google-and-meta-feasibility
 ---
 
 ## Slice 059-16 - SDK-absent chamber capture qualification
@@ -188,6 +187,6 @@ original acceptance criteria remain unchanged.
 
 ### Close-out (post-DONE)
 
-- [ ] Regenerate/check board and preserve the live-admission blockers.
-- [ ] Native stock, true replacement candidates, complete wire/C2/C3 and
+- [x] Regenerate/check board and preserve the live-admission blockers.
+- [x] Native stock, true replacement candidates, complete wire/C2/C3 and
       product/matching/attribution evidence remain separately required.

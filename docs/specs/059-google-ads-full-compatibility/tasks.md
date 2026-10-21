@@ -9,9 +9,9 @@ implementation, review or readiness.
 - [x] 059-13/14: local one-shot admission and actual-browser receiver controls.
 - [ ] 059-15: complete the separately gated native stock path; current
       code/local qualification is not an admitted live case.
-- [ ] 059-16: complete the SDK-absent real-worker/local-receiver capture and
-      strict qualification reader. Frame, compliance, craft and architecture
-      passed; checkpoint reconciliation and close-out remain.
+- [x] 059-16: SDK-absent real-worker/local-receiver capture and strict
+      qualification reader are DONE after frame, compliance, craft,
+      architecture and checkpoint reconciliation.
       No vendor SDK, event slot, fresh account fact or live reservation is
       needed for this fixed synthetic path.
 - [ ] Keep the distinct local chamber producer out of native/whole-wire
