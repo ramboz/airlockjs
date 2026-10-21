@@ -252,10 +252,13 @@ approved inspected Meta cohort and implemented conditional controller are
 described above; neither the old probe nor the current local controls admit
 a real case.
 The owner's 2026-10-19 setup confirmations are historical owner evidence,
-not independent API readback or a permanent lease. Fresh Meta case setup
-confirmation remains unavailable: newer authenticated source bytes and
-read-only configuration analysis do not establish current account settings.
-Autonomous continuation is not that confirmation. No further campaign/
+not independent API readback or a permanent lease. On 2026-10-21 at
+14:52:24.566Z the owner explicitly reconfirmed the same Meta test Pixel is
+still theirs and its agreed settings are unchanged. This is fresh owner
+evidence, not independent API readback, an evergreen lease or live-run
+approval. Newer source bytes and autonomous continuation did not establish
+that fact. Original-location/exact-run approval, current case-bound reviews,
+receipts and a coordinated finite window still precede admission. No further campaign/
 billing/account mutation or source push is requested.
 
 [059-13](slice-13-validation-admission.md) is DONE: the

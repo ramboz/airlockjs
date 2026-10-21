@@ -22,11 +22,13 @@ Neither chamber slot is executable through this stock-only entry.
 
 **DoR:**
 - [x] Local admission and real browser capture slices 059-13/14 are DONE.
-- [x] Owner approved four conditional cases on 2026-10-19. Current owner reports
-      confirm Google Purchase Secondary, no active campaigns, enhanced
-      conversions off, and unchanged owned Meta Pixel settings. These are
-      current owner reports, not independent provider API readback or a
-      permanent setup lease. All four slots remain unspent.
+- [x] Owner approved four conditional cases on 2026-10-19. Historical Google
+      reports establish Purchase Secondary, no active campaigns and enhanced
+      conversions off as of that confirmation; refresh them before a Google
+      case. On 2026-10-21 at 14:52:24.566Z the owner freshly reconfirmed the
+      same Meta test Pixel is still theirs and its agreed settings unchanged.
+      These are owner reports, not provider API readback, permanent leases or
+      exact-run approval. All four slots remain unspent.
 - [x] Adobe released its control20 hold; no source push is planned. A fresh
       coordination/source/window binding still precedes live execution.
 - [x] Retained profiles provide one Meta Image route and ten Google
