@@ -200,6 +200,22 @@ milestone. Local qualification is the prerequisite path, not the product claim.
 
 Pre-admission record only; full reconciliation is not yet complete.
 
+**2026-10-21 actual approved-window preparation:** Fresh owner-reported Meta
+setup and exact conditional original-slot approval were received. The
+15:25–15:26Z window was aborted before admission at 15:24:52.462Z when final
+review provenance had not cleared in time. A packet-only extra key in the
+guard's `path`/`sha256` handle was corrected and the original retained.
+The parent also incorrectly asked frame and documentation reviewers to
+attest full-code audits. Actual reviewer clarification confirms the outer
+receipt kind names the discipline, while the common scope names its context;
+no runtime schema change or cross-discipline attribution follows. Static
+artifact checks reject the original malformed handle and false full-audit/
+cross-discipline mappings. The original authority/hash/device/inode and
+source pins were unchanged, with no slot or case output. No native SDK,
+vendor request, retry, extension or automatic rescheduling occurred.
+The finite coordination hold was explicitly released on verified abort.
+Any later window needs new exact timing approval and applicable bindings.
+
 - The owner explicitly changed response retention and later-added-header
   timing semantics for isolated references, without changing any numeric,
   event, candidate or production ceiling. The original diagnostic failures
