@@ -1,11 +1,10 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [058-03, 059-16, adr-0033]
 last_verified: 2026-10-21
 kind: feature
 frame_review: true
 arch_review: true
-claimed_by: google-and-meta-feasibility
 ---
 
 ## Slice 059-17 - Offline native-attempt/chamber diagnostic
@@ -347,5 +346,5 @@ reviewer command/test/rehash or future producer exit is invented.
 
 ### Close-out (post-DONE)
 
-- [ ] Keep complete native wire, equivalent cohort/input/consent, actual
+- [x] Keep complete native wire, equivalent cohort/input/consent, actual
       replacement, full consumer, C2/C3 and vendor outcome residuals open.

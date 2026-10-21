@@ -34,7 +34,7 @@ uses only synthetic first-party loopback fixtures and legacy built workers,
 without bypassing the fresh-setup gate on live native cases or promoting
 the first product slices to implementation-ready.
 
-[059-17](slice-17-attempt-chamber-comparison.md) adds a separately
+[059-17](slice-17-attempt-chamber-comparison.md) is DONE for the separately
 reviewed attempt-layer consumer prerequisite: offline diagnostics between
 retained native attempts and the distinct real-worker chamber capture.
 It does not qualify whole wire, equivalent inputs/cohorts or full replacements.

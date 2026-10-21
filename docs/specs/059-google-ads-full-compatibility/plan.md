@@ -244,8 +244,8 @@ owner authority and scope, not another timing approval under the consumed slot.
 
 ### Independent offline path
 
-[059-17](slice-17-attempt-chamber-comparison.md) owns the next attempt-layer
-consumer step. Its implemented offline reader/CLI validates existing qualified
+[059-17](slice-17-attempt-chamber-comparison.md) is DONE for the attempt-layer
+consumer step. Its offline reader/CLI validates existing qualified
 native-attempt inputs and genuine SDK-absent chamber evidence, preserves their
 distinct schemas and completion proof, and emits an honest diagnostic.
 Actual retained-input runs found Meta one native versus one chamber request

@@ -7,11 +7,11 @@ implementation, review or readiness.
 ## Independent operator preparation
 
 - [x] 059-13/14: local one-shot admission and actual-browser receiver controls.
-- [ ] 059-15: preserve the actual spent/inconclusive original Meta stock case
-      and complete its offline policy correction/reviews. No complete native
-      reference exists, Meta chamber is blocked, and another actual attempt
-      needs new explicit owner authority; code/local qualification is not retry
-      permission.
+- [ ] 059-15: complete native-reference qualification remains blocked after
+      the spent/inconclusive original Meta stock case. Its offline metadata
+      correction/reviews are complete in `2673c93`; no complete native reference
+      exists and Meta chamber is blocked. Another actual attempt needs new
+      explicit owner authority; local qualification is not retry permission.
 - [x] 059-16: SDK-absent real-worker/local-receiver capture and strict
       qualification reader are DONE after frame, compliance, craft,
       architecture and checkpoint reconciliation.
@@ -20,7 +20,7 @@ implementation, review or readiness.
 - [ ] Keep the distinct local chamber producer out of native/whole-wire
       acceptance until a separately reviewed consumer and actual replacement
       evidence exist.
-- [ ] 059-17: implement strict offline native-attempt/chamber diagnostics
+- [x] 059-17: strict offline native-attempt/chamber diagnostics are DONE
       with real producer provenance and external command completion, without
       presenting legacy/local/cohort-mismatched results as compatibility.
 
