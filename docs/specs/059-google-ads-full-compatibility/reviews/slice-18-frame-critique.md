@@ -2,18 +2,18 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: frame-critique
 verdict: pass
-reviewer: jig:reviewer Additional Meta authority frame (actual synchronous paired task)
-reviewed_at: 2026-10-21T18:47:21Z
-prompt_source: review.py frame-critique docs/specs/059-google-ads-full-compatibility/spec.md 059-18; paired withADR0035
+reviewer: jig:reviewer72c7f492-b9d7-498f-9bf1-aa4c83cc8ccd turn0 original; jig:reviewerf535fe11-c1b6-4d93-8a16-a7e91801e193 turn0 native framing
+reviewed_at: 2026-10-21T22:59:28Z
+prompt_source: review.py frame-critique docs/specs/059-google-ads-full-compatibility/spec.md 059-18
 ---
 
 VERDICT: pass
 
-ADR-0035 FRAME:
-The highest-risk assumption is that the new owner authorization permits one genuinely additional case, rather than renewal of the spent case. The explicit question/answer grounds that distinction, and the decision requires fixed additional authority, immutable spent lineage, unchanged caps and coordinated finite timing without reopening historical authority. SDK-chain feasibility remains explicitly unverified, with exhaustion spending the case rather than enlarging or renewing it.
+ORIGINAL FRAME PROVENANCE:
+The original paired ADR0035/additional-authority frame passed in one synchronous independent jig reviewer task on2026-10-21, reviewer72c7f492-b9d7-498f-9bf1-aa4c83cc8ccd turn0. It grounded the genuine one-extra grant, immutable spent lineage, unchanged caps, one-winner reservation, no synthetic promotion and source/review/resource gates. It was not implementation qualification or live admission. No reviewer commands/tests/SDK/browser/network or independent rehash.
 
-059-18 FRAME:
-The highest-risk assumption is that the additional authority can preserve one-winner consumption without enabling copied namespaces or synthetic-to-native evidence promotion. Existing exclusive reservation and private native-lease mechanisms ground the approach; the slice correctly requires purposeful changes to the currently original-only parsers, actual additional-path H1/H2 qualification, adversarial lineage/concurrency controls and refreshed fourteen-controller/eleven-relay evidence. The operator path retains source/setup/scope/resource and independent-review gates without circularly requiring native success before first execution.
+NEW NATIVE AC5/8 IMPLEMENTATION FRAME:
+Actual fresh jig:reviewerf535fe11-c1b6-4d93-8a16-a7e91801e193 turn0 PASS, separately labelled native-contract verdict. The load-bearing assumption is that the new native acquisition boundary can be genuinely falsified SDK-absent without manufacturing native authority. Current source confirms process-local plans/leases, local-only registrations and fixed qualification supervisor; old proof is insufficient. The proposed child reprepare/sole reservation, same-new-branch interruption tests, independent parent resource disposition and unchanged absolute timing address that separation. No concrete contradictory premise emerged. Proposed native branch remains unimplemented/unqualified, with no command/test/probe/browser/network/rehash or resource action performed by this reviewer.
 
-RECONCILIATION NOTES:
-One actual synchronous jig:reviewer task reviewed both paired documents and returned a separately labelled pass for each. No material deviations observed. This framing pass is neither implementation qualification nor live admission. No reviewer command/test, SDK/browser/network action or independent rehash was performed.
+SCOPE:
+Preserve original grant/physical/privacy/one-shot limits, old failures, historical UNKNOWNs and Adobe's separate helper gate. No architecture acceptance, implementation readiness, case binding, hold, window, slot or native authority is created by either frame pass. Proposed ADR0038 mechanical attribution/deadline assumptions still need proof.

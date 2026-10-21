@@ -1,6 +1,6 @@
 ---
 status: IN_PROGRESS
-dependencies: [059-13, 059-14, adr-0035]
+dependencies: [059-13, 059-14, adr-0035, adr-0038]
 last_verified:
 kind: feature
 frame_review: true
@@ -98,10 +98,10 @@ It serves UC-10 and leaves full native/chamber/product/C2/C3 gates unchanged.
    vendor outcome follows.
 
 **DoD:**
-- [x] Witnessed red/green, mutation and genuine additional-path SDK-absent
+- [ ] Witnessed red/green, mutation and genuine additional-path SDK-absent
       controls and full refreshed shared-guard originals pass.
-- [x] Required code/frame/architecture/checkpoint reconciliation passes clear.
-- [x] Operator guide/open plans/architecture distinguish original and new
+- [ ] Required code/frame/architecture/checkpoint reconciliation passes clear.
+- [ ] Operator guide/open plans/architecture distinguish original and new
       authority, autonomous finite timing and unresolved product evidence.
 - [ ] Parent records actual additional result or concrete pre-admission
       blocker, without minting another grant or hiding consumed authority.
@@ -117,6 +117,11 @@ authority feature or permission to skip native preparation.
   mutation/concurrency. SDK-absent actual-path controls must falsify this.
 - Unverified: the pinned complete native chain fits the unchanged physical/
   byte envelope. Unknown behavior remains inconclusive; no budget is inferred.
+- Unverified: a fixed supervised native child, case-owned temporary root and
+  pre-exec launcher rendezvous can preserve acquisition ownership and finite
+  abort disposition before BrowserServer returns without widening confinement.
+  Proposed ADR-0038 and same-path SDK-absent falsification must establish this;
+  the existing local-only proof does not.
 
 ### Deviation log (after reconciliation)
 
@@ -426,6 +431,42 @@ Native resource preparation finding after the code checkpoint (2026-10-21):
   The parent owns bounded implementation framing under unchanged AC5/8;
   further code/qualification must preserve all original authority, safety
   and source-bound review gates.
+
+### Proposed native implementation contract under AC5/8
+
+[ADR-0038](../../decisions/adr-0038-supervised-native-meta-resource-lifecycle.md)
+proposes one fixed native-additional child route and closed ownership-ticket
+protocol. It remains Proposed, not design acceptance or native authority.
+Original ACs and all historical records above are preserved.
+The earlier checkpoint's executed proof and review passes remain valid for
+its unchanged source; whole-slice DoD boxes are open because the new native
+resource obligations are not implemented or qualified yet.
+
+- Keep inert preparation/private plan and transport capabilities. Parent
+  dispatch passes the exact immutable manifest/case metadata, never serialized
+  execution capabilities; the child really reprepares and alone consumes
+  the original-location-bound additional canonical slot before SDK.
+- Register parent-owned temporary root and pending acquisition before launch.
+  A fixed pre-Chrome-exec rendezvous must independently attribute the launcher/
+  group/profile before acknowledgement, survive engine-Node interruption and
+  record late ownership or an explicit unqualified abort without guessed PIDs.
+- Bind native common endpoints/inspector key separately from fixture-only
+  receiver roles. Resource readiness cannot replace source/setup/review,
+  logical/physical policy, strict TLS, immutable lineage or one-shot checks.
+- Use the same absolute case deadline, qualified observation/cleanup/publication
+  reserves and authoritative parent resource result; never restart the budget
+  in the child, promote wire-complete/cleanup-unknown output or refund spend.
+- Qualify the **same new orchestration/acquisition branch** with a closed
+  SDK-absent counterpart: actual H1/H2, allocated shutdown, genuine interruption
+  before launchServer returns, parent disconnect, identity/chronology/deletion/
+  source/window negatives and a real guard-removal witness. Synthetic proof
+  cannot mint a native lease. Refresh every affected source/helper/test/
+  launcher dependency and shared proof after source changes.
+- This is preparation work under the existing grant, not permission for public
+  SDK/provider activity or broader process/profile action. A focused design
+  question received only an unavailable-user/autonomous-work response, not a
+  new exact owner acceptance. Independent framing, implementation reviews and
+  actual qualification remain required; no live case follows from drafting.
 
 ### Reconciliation sweep
 
