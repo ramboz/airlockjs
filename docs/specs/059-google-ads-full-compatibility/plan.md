@@ -244,6 +244,22 @@ owner authority and scope, not another timing approval under the consumed slot.
 
 ### Independent offline path
 
+[059-17](slice-17-attempt-chamber-comparison.md) owns the next attempt-layer
+consumer step. Its implemented offline reader/CLI validates existing qualified
+native-attempt inputs and genuine SDK-absent chamber evidence, preserves their
+distinct schemas and completion proof, and emits an honest diagnostic.
+Actual retained-input runs found Meta one native versus one chamber request
+with three difference categories, and Google ten versus one with fourteen
+differences including nine missing requests. Both actual CLI exits were 1,
+not parity passes. Missing/failed outer completion and the actual spent
+stock reference reject with exit 2 and no completion. Originals and the
+canonical spent slot remain unchanged.
+
+Local endpoint overrides, legacy
+semantics, differing cohorts/consent and unavailable native responses cannot
+be normalized into a qualified replacement. This work needs no new SDK,
+event slot or live permission; the complete whole-wire consumer remains open.
+
 [059-16](slice-16-chamber-capture.md) owns the already-required real-worker/
 native-absence capture prerequisite. Its fixed synthetic local path is
 independent of live Meta setup confirmation and the four event slots:

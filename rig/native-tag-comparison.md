@@ -114,7 +114,11 @@ The guard-tripwire request sequence is retained and compared; it is not a vendor
 measurement and is **not excluded**. Native source resources remain pinned.
 Expected primary destinations, owned selectors, document references, value
 contrast and available same-case auxiliary identities are checked on originals.
-No unknown category is accepted as newly qualified native behavior.
+The legacy source gate checks the asserted guard counters; it does not reconcile
+the actual guard-tripwire observations against those counters. Exact source
+copies can therefore test comparison mechanics without independently proving
+that control. The stricter read-only seam below closes this gap for distinct
+consumers without changing this comparator's existing behavior.
 
 The supplied exact native reference copies qualify only comparator self-controls.
 They are not independent candidates. No cross-run native nondeterministic-field
@@ -128,6 +132,29 @@ All vendor dispatch/receipt, matching, reporting, attribution, chamber
 compatibility and full-support claims always remain false. Nothing here closes
 vendor inventories, changes production collection or permits Servo/full vendor
 work. Those gates need their own evidence and prerequisites.
+
+## Read-only native-attempt inspection
+
+`await inspectNativeAttempt({ reference, expected_pins })` reuses the native
+validators without manufacturing a candidate or self-comparing a reference.
+The arguments use the same three original resource handles and eight expected
+pins shown above. This stricter seam also reconciles the fixed guard document/
+tripwire rows, URLs, types, abort/local-fulfillment state, fixture digest and
+receiver evidence with the control counters. It rejects missing/unknown guard
+observations even when counts and hashes have been refreshed.
+
+The seam requires canonical private originals, bounded no-follow/nonblocking
+regular-file reads, unambiguous JSON and immutable identity/digest rechecks.
+It returns frozen original report/capture/completion data and snapshots, not
+network permission or a new native producer. Local-complete stand-ins,
+whole-wire promotion and the spent/incomplete inspected-stock schema reject.
+It starts no producer, SDK or browser.
+
+The separate [attempt/chamber diagnostic](chamber-comparison.md) uses this
+seam, the unchanged genuine-worker capture inspector and an independently
+supplied whole-CLI completion witness. It keeps the chamber producer distinct
+and its legacy/local/cohort/input gaps visible. It does not add a chamber
+candidate kind or normalization rule to `runNativeComparison`.
 
 ## Comparison and fixed exclusions
 

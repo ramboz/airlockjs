@@ -34,6 +34,11 @@ uses only synthetic first-party loopback fixtures and legacy built workers,
 without bypassing the fresh-setup gate on live native cases or promoting
 the first product slices to implementation-ready.
 
+[059-17](slice-17-attempt-chamber-comparison.md) adds a separately
+reviewed attempt-layer consumer prerequisite: offline diagnostics between
+retained native attempts and the distinct real-worker chamber capture.
+It does not qualify whole wire, equivalent inputs/cohorts or full replacements.
+
 An additional operator-preparation slice,
 [059-13](slice-13-validation-admission.md), implements the network-agnostic
 admission component and local receiving-sink controls. It does not add a
@@ -55,8 +60,10 @@ retries. An owner-approved, separately labelled local TLS-inspection experiment
 now exercises physical-count enforcement without spending a live slot. The
 owner subsequently approved a conditional inspected Meta stock reference in
 [ADR-0034](../../decisions/adr-0034-inspected-meta-stock-reference.md), not
-immediate execution or browser-native TLS parity. All remaining native gates
-and unspent canonical slots are preserved.
+immediate execution or browser-native TLS parity. The original Meta stock
+case subsequently ran once and is spent/inconclusive, with no complete
+reference; its chamber remains blocked and the other three slots unused.
+All remaining native gates and the consumed canonical reservation are preserved.
 
 ## Overview
 

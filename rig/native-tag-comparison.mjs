@@ -4,6 +4,7 @@ import { mkdir, open, writeFile } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { isDeepStrictEqual as equal } from "node:util";
+import { evidenceSession, keys as strictKeys, parseEvidence } from "./attempt-evidence-io.mjs";
 
 // Offline only. This module deliberately imports no browser, SDK or network API.
 const LIMITS = Object.freeze({
@@ -235,12 +236,14 @@ function manifestShape(m) {
     use(rule.input); use(rule.digest);
   }
 }
-async function loadSide(resources, budget) {
+async function loadSide(resources, budget, inspection = null) {
   const loaded = {};
   for (const kind of ["report", "capture", "completion"]) {
-    const bytes = await boundedRead(resources[kind].path, LIMITS.resource_bytes, kind, budget);
+    const bytes = inspection
+      ? inspection.read(resources[kind].path, LIMITS.resource_bytes, resources[kind].sha256)
+      : await boundedRead(resources[kind].path, LIMITS.resource_bytes, kind, budget);
     if (hash(bytes) !== resources[kind].sha256) reject(`${kind}_digest_mismatch`, "inconclusive");
-    loaded[kind] = parse(bytes, budget, kind);
+    loaded[kind] = inspection ? parseEvidence(bytes, inspection.check) : parse(bytes, budget, kind);
   }
   const c = loaded.completion;
   if (!plain(c) || !equal(Object.keys(c).sort(), ["schema_version", "run_id", "report_sha256",
@@ -557,6 +560,77 @@ function validateSide(side, m, issues, verifyObservations) {
     if (m.layer === "local_control") issues.add("source_unqualified");
   }
   if (sentinel(c)) issues.add("redacted_values");
+}
+// The strict reader must reconcile the HTTP control's ORIGINAL observations,
+// not just its asserted counters. The legacy comparator intentionally keeps
+// its old validation path. These are the fixed httpBoundary/guardedCase rows.
+function validateHttpGuard({ report, capture }) {
+  const guard = capture.cases.find(c => c.name === "guard-tripwire");
+  const rows = capture.requests.filter(r => r.case === "guard-tripwire");
+  const [document, attempt] = rows, control = report.guard.http_control;
+  let origin;
+  try {
+    const url = new URL(guard.document_url);
+    if (url.protocol === "http:" && url.hostname === "127.0.0.1" && Number(url.port) > 0)
+      origin = url.origin;
+  } catch { /* Missing or malformed original cannot qualify the source control. */ }
+  const attempts = capture.requests.filter(r => r.category === "http_tripwire");
+  const target = attempt && new URL(attempt.url);
+  const arrivals = target && capture.receiver_requests.filter(r => r.path === target.pathname).length;
+  if (!origin || rows.length !== 2 || attempts.length !== control.attempts
+    || attempts.filter(r => r.aborted === true).length !== control.aborted
+    || arrivals !== control.arrivals || guard.attempts !== 0
+    || guard.runtime_fulfilled !== 0 || guard.configuration_fulfilled !== 0
+    || guard.observation_ms !== 500 || guard.fixture_state !== null
+    || guard.document_url !== `${origin}/guard-fixture`
+    || document.category !== "fixture_document" || document.url !== guard.document_url
+    || document.method !== "GET" || document.resource_type !== "Document"
+    || document.aborted !== false || document.locally_fulfilled !== true
+    || document.local_response?.provenance !== "generated_synthetic"
+    || document.local_response.body_sha256 !== guard.fixture_sha256
+    || document.local_response.body_bytes <= 0
+    || attempt.category !== "http_tripwire" || attempt !== attempts[0]
+    || attempt.method !== "GET" || !["XHR", "Fetch"].includes(attempt.resource_type)
+    || attempt.aborted !== true || attempt.locally_fulfilled !== false || attempt.local_response !== null
+    || !/^\/http-[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(target.pathname)
+    || attempt.url !== origin + target.pathname
+    || rows.some(r => r.body_state !== "absent" || r.body_base64 !== null
+      || r.source_relationship !== null || r.native_relationship != null)
+    || capture.receiver_requests.some(r => r.method !== "GET"
+      || !/^\/process-[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(r.path)))
+    reject("guard_observation_unqualified", "inconclusive");
+}
+// Strict READ-ONLY entry for distinct downstream consumers. Unlike comparator
+// controls, this ALWAYS checks all observations; no local or whole-wire mode.
+// The legacy comparator above/below retains its original input/output behavior.
+export async function inspectNativeAttempt(options) {
+  strictKeys(options, ["reference", "expected_pins"]);
+  strictKeys(options.reference, ["report", "capture", "completion"]);
+  Object.values(options.reference).forEach(descriptor);
+  strictKeys(options.expected_pins, PINS);
+  const pins = options.expected_pins;
+  if (!["meta-pageview", "google-ads-conversion"].includes(pins.profile)
+    || PINS.some(p => p === "configuration_sha256" && pins[p] === null ? false
+      : p.endsWith("sha256") ? !digest(pins[p]) : !text(pins[p]))) reject("invalid_expected_pins");
+  if (new Set(Object.values(options.reference).map(v => v.path)).size !== 3) reject("ambiguous_handles");
+  const inspection = evidenceSession();
+  const side = await loadSide(options.reference, null, inspection);
+  if (side.capture.kind !== undefined || side.report.evidence_layer !== "native_attempt"
+    || side.report.schema_version !== 1 || side.capture.schema_version !== 1)
+    reject("unsupported_native_schema", "inconclusive");
+  const issues = new Set();
+  validateSide(side, { expected_pins: pins, layer: "native_attempt",
+    rules: { identities: [], hashes: [] } }, issues, true);
+  validateHttpGuard(side);
+  const cases = new Set(side.capture.cases.map(c => c.name));
+  if (side.capture.requests.some(r => !cases.has(r.case)
+    || !["fixture_document", "runtime", "configuration", "fixture_favicon",
+      "native_measurement", "native_auxiliary", "http_tripwire"].includes(r.category)))
+    issues.add("unknown_fields");
+  if (sentinel(side.report) || sentinel(side.completion)) issues.add("redacted_values");
+  if (issues.size) reject([...issues].sort()[0], "inconclusive");
+  inspection.recheck();
+  return freeze({ ...side, originals: inspection.snapshots() });
 }
 function selected(side, s) {
   const row = side.capture.requests[s.request];

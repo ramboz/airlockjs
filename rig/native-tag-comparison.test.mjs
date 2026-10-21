@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, realpath, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { runNativeComparison } from "./native-tag-comparison.mjs";
+import { inspectNativeAttempt, runNativeComparison } from "./native-tag-comparison.mjs";
 
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const execute = promisify(execFile);
@@ -36,7 +36,7 @@ function request(ordinal, identity = "private-id-A") {
   };
 }
 async function fixture() {
-  const parent = await mkdtemp(join(tmpdir(), "airlock-comparison-test-"));
+  const parent = await mkdtemp(join(await realpath(tmpdir()), "airlock-comparison-test-"));
   temporary.push(parent);
   const capture = {
     schema_version: 1, kind: "local_complete_sequence", run_id: "local-run", complete: true,
@@ -140,7 +140,8 @@ async function nativeFixture(profile = "meta-pageview") {
     const document = guard ? "http://127.0.0.1:1234/guard-fixture"
       : `${source.owned_origin}/__airlock_native_reference_fixture__?case=${name}${disabled ? "&native=disabled" : ""}`;
     add(name, "fixture_document", document, true);
-    if (guard) add(name, "http_tripwire", "http://127.0.0.1:1234/private-guard");
+    if (guard) add(name, "http_tripwire",
+      "http://127.0.0.1:1234/http-12345678-1234-4234-8234-123456789abc").resource_type = "XHR";
     if (!disabled && !guard) add(name, "runtime", source.runtime.url, true);
     if (positive && !google) add(name, "configuration", source.configuration.url, true);
     const value = name === "value2" ? "29.75" : "13.25";
@@ -157,7 +158,7 @@ async function nativeFixture(profile = "meta-pageview") {
         ? "https://www.google.com/pagead/1p-conversion/123/" : "https://www.facebook.com/tr/"}?${params}`);
     }
     const summary = { name, started_at: "2026-10-16T00:00:00Z", stopped_at: "2026-10-16T00:00:01Z",
-      observation_ms: 1000, attempts: positive ? 1 : 0, runtime_fulfilled: !disabled && !guard ? 1 : 0,
+      observation_ms: guard ? 500 : 1000, attempts: positive ? 1 : 0, runtime_fulfilled: !disabled && !guard ? 1 : 0,
       configuration_fulfilled: positive && !google ? 1 : 0, dependency_closed: true,
       consent: name === "consent-revoked" ? "explicit_revoke_before_init" : "native_default_not_overridden",
       qualified_positive_run_id: null, qualified_positive_reference: positive,
@@ -204,7 +205,7 @@ async function nativeFixture(profile = "meta-pageview") {
   };
   delete f.report.network_policy_sha256;
   f.capture = { schema_version: 1, run_id: f.report.run_id, source, requests, cases, errors: [],
-    receiver_requests: [{ path: "/private-receiver", at: "2026-10-16T00:00:00Z", method: "GET",
+    receiver_requests: [{ path: "/process-87654321-4321-4321-8321-cba987654321", at: "2026-10-16T00:00:00Z", method: "GET",
       headers: { Cookie: "private-cookie=one" }, response_status: 200 }],
     failure_detail: null, provenance: structuredClone(provenance), browser_process_ids: [123], limits: {} };
   f.candidateReport = structuredClone(f.report); f.candidateCapture = structuredClone(f.capture);
@@ -212,6 +213,98 @@ async function nativeFixture(profile = "meta-pageview") {
   f.manifest.layer = "native_attempt";
   return f;
 }
+
+describe("059-17 read-only native-attempt seam (synthetic recorder-shaped units, NOT SDK evidence)", () => {
+  it.each(["meta-pageview", "google-ads-conversion"])("AC2: validates %s without comparing or writing", async profile => {
+    const f = await nativeFixture(profile);
+    await f.save();
+    const result = await inspectNativeAttempt({
+      reference: f.manifest.reference, expected_pins: f.manifest.expected_pins,
+    });
+    expect(result.capture).toEqual(f.capture);
+    expect(result.report).toEqual(f.report);
+    expect(result.completion.completed).toBe(true);
+    expect(Object.isFrozen(result.capture.requests)).toBe(true);
+    await expect(stat(f.outputDir)).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it.each(["meta-pageview", "google-ads-conversion"].flatMap(profile =>
+    ["deleted", "fixture-deleted", "duplicate", "category", "case", "aborted", "fulfilled",
+      "fixture-aborted", "fixture-unfulfilled", "local-response", "method", "resource-type",
+      "target-path", "target-origin", "document-path", "fixture-url", "receiver-arrival"]
+      .map(kind => [profile, kind])))(
+    "AC2 correction: %s rejects reconciled guard observation %s, not stale handles", async (profile, kind) => {
+      const f = await nativeFixture(profile), rows = f.capture.requests;
+      const tripwire = rows.find(r => r.category === "http_tripwire");
+      const document = rows.find(r => r.case === "guard-tripwire" && r.category === "fixture_document");
+      if (kind === "deleted") rows.splice(rows.indexOf(tripwire), 1);
+      if (kind === "fixture-deleted") rows.splice(rows.indexOf(document), 1);
+      if (kind === "duplicate") rows.splice(rows.indexOf(tripwire), 0, structuredClone(tripwire));
+      if (kind === "category") tripwire.category = "fixture_favicon";
+      if (kind === "case") tripwire.case = "query-disabled";
+      if (kind === "aborted") tripwire.aborted = false;
+      if (kind === "fulfilled") tripwire.locally_fulfilled = true;
+      if (kind === "fixture-aborted") document.aborted = true;
+      if (kind === "fixture-unfulfilled") document.locally_fulfilled = false;
+      if (kind === "local-response") tripwire.local_response = structuredClone(document.local_response);
+      if (kind === "method") tripwire.method = "POST";
+      if (kind === "resource-type") tripwire.resource_type = "Image";
+      if (kind === "target-path") tripwire.url = tripwire.url.replace("/http-", "/other-");
+      if (kind === "target-origin") tripwire.url = tripwire.url.replace(":1234", ":5678");
+      if (kind === "document-path") f.capture.cases[0].document_url += "-other";
+      if (kind === "fixture-url") document.url += "-other";
+      if (kind === "receiver-arrival") f.capture.receiver_requests[0].path = new URL(tripwire.url).pathname;
+      // Reconcile redundant bookkeeping AND real descriptors/completion hashes.
+      // The report still asserts its original one-abort/zero-arrival guard.
+      rows.forEach((r, i) => { r.ordinal = i; r.query_pairs = [...new URL(r.url).searchParams]; });
+      f.report.counts.recorded_requests = rows.length;
+      await f.save();
+      expect(hash(await readFile(f.manifest.reference.capture.path))).toBe(f.manifest.reference.capture.sha256);
+      const completion = JSON.parse(await readFile(f.manifest.reference.completion.path));
+      expect(completion.capture_sha256).toBe(f.manifest.reference.capture.sha256);
+      expect(completion.report_sha256).toBe(f.manifest.reference.report.sha256);
+      await expect(inspectNativeAttempt({
+        reference: f.manifest.reference, expected_pins: f.manifest.expected_pins,
+      })).rejects.toThrow("guard_observation_unqualified");
+    });
+
+  it.each(["local", "stock", "empty", "unknown", "guard-category", "guard-case", "pin", "completion",
+    "control", "redacted", "observation"])(
+    "AC2/7: strict source failure %s is not bypassed by the reader", async kind => {
+      const f = kind === "local" ? await fixture() : await nativeFixture();
+      if (kind === "stock") f.report.schema_version = "airlock.inspected-meta-stock.v1";
+      if (kind === "empty") f.capture.requests = [];
+      if (kind === "unknown") f.capture.requests[0].unrecognized = true;
+      if (kind === "guard-category") f.capture.requests[0].category = "unknown";
+      if (kind === "guard-case") f.capture.requests[0].case = "unknown";
+      if (kind === "pin") f.manifest.expected_pins.runtime_sha256 = "0".repeat(64);
+      if (kind === "control") f.report.controls.value_contrast = false;
+      if (kind === "redacted") f.capture.requests[0].headers.Cookie = "[REDACTED]";
+      if (kind === "observation") {
+        const r = f.capture.requests.find(r => r.category === "native_measurement");
+        r.url = r.url.replace("PageView", "OtherEvent");
+        r.query_pairs = [...new URL(r.url).searchParams];
+      }
+      await f.save();
+      if (kind === "completion") await rm(f.manifest.reference.completion.path);
+      await expect(inspectNativeAttempt({
+        reference: f.manifest.reference, expected_pins: f.manifest.expected_pins,
+      })).rejects.toThrow();
+    });
+
+  it.each(['"run_id":"ignored",', '"run_\\u0069d":"ignored",'])(
+    "AC2/6: rejects raw ambiguous native JSON %s", async duplicate => {
+      const f = await nativeFixture();
+      await f.save();
+      const handle = f.manifest.reference.capture;
+      const bytes = (await readFile(handle.path, "utf8")).replace("{", "{" + duplicate);
+      await writeFile(handle.path, bytes);
+      handle.sha256 = hash(bytes);
+      await expect(inspectNativeAttempt({
+        reference: f.manifest.reference, expected_pins: f.manifest.expected_pins,
+      })).rejects.toThrow("ambiguous_json");
+    });
+});
 
 describe("058-03 complete value-preserving offline comparisons", () => {
   it.each(["meta-pageview", "google-ads-conversion"].flatMap(profile =>
@@ -504,7 +597,8 @@ describe("058-03 complete value-preserving offline comparisons", () => {
     expect(source).toContain(projection);
     // A bounded local code mutation falsifies the positive: checking digests
     // alone is insufficient if normalized originals are never projected.
-    const mutant = source.replace(projection, "{ void side; void p; }");
+    const mutant = source.replace(projection, "{ void side; void p; }")
+      .replace('"./attempt-evidence-io.mjs"', JSON.stringify(new URL("./attempt-evidence-io.mjs", import.meta.url).href));
     const { runNativeComparison: withoutProjection } = await import(
       `data:text/javascript;base64,${Buffer.from(mutant).toString("base64")}`);
     const result = await withoutProjection({ inputs: f.inputs, outputDir: join(f.parent, "no-projection") });

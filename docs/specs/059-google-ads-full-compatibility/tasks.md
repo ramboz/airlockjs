@@ -20,6 +20,9 @@ implementation, review or readiness.
 - [ ] Keep the distinct local chamber producer out of native/whole-wire
       acceptance until a separately reviewed consumer and actual replacement
       evidence exist.
+- [ ] 059-17: implement strict offline native-attempt/chamber diagnostics
+      with real producer provenance and external command completion, without
+      presenting legacy/local/cohort-mismatched results as compatibility.
 
 ## Before product implementation
 

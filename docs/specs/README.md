@@ -208,6 +208,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-14 - Browser admission and original-byte capture controls | **DONE** |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-15 - Exact native policy and one-shot stock capture | IN_PROGRESS (google-and-meta-feasibility) |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-16 - SDK-absent chamber capture qualification | **DONE** |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-17 - Offline native-attempt/chamber diagnostic | RECONCILED (google-and-meta-feasibility) |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-01 - Replace bootstrap and first PageView | READY_FOR_REVIEW (google-and-meta-feasibility) |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-02 - Report complete event and commerce data | DRAFT |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-03 - Route and configure multiple Pixels | DRAFT |  |
@@ -245,7 +246,7 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
 
 - **18** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **104** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **57** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **58** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
@@ -303,3 +304,4 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
   - `059-google-ads-full-compatibility/slice-13-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `059-google-ads-full-compatibility/slice-14-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `059-google-ads-full-compatibility/slice-16-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `059-google-ads-full-compatibility/slice-17-craft.md` — applied `pr-review`; declined: scout-pr-review

@@ -15,7 +15,7 @@
 > adds parallel preparation for complete Google Ads and Meta Pixel replacement.
 > Shared evaluation tools are recorded in spec 058; the first product slices
 > in 059-060 remain in authoring review, not implementation-ready. Operator
-> preparation tooling in 059-13/14/15/16 does not promote those product slices.
+> preparation tooling in 059-13/14/15/16/17 does not promote those product slices.
 > This does not promote the subset connectors below to full support or change
 > existing APIs, runtime grants or Adobe acceptance.
 > Its [offline sequence consumer](../rig/native-tag-comparison.md) adds no
@@ -68,6 +68,25 @@ An external caller separately records whole-CLI close and final digests.
 Actual worker/HTTP observations of the legacy subsets are not native or
 whole-wire support, and native/chamber consumer integration remains open.
 No stable-core, connector, build, dependency or live-authority boundary changes.
+
+The [offline attempt/chamber diagnostic](../rig/chamber-comparison.md)
+implements the attempt-layer part of that consumer prerequisite, not complete
+native/whole-wire integration. `rig/native-tag-comparison.mjs:606` exposes the
+read-only `inspectNativeAttempt` seam using its existing strict validator;
+`rig/chamber-comparison.mjs:329` combines that with the unchanged chamber inspector
+and a separately supplied whole-CLI command witness. Bounded private IO,
+decoded JSON-member uniqueness and immutable snapshots live in the shared
+reference-only `rig/attempt-evidence-io.mjs:87`. No producer is executed or
+relabeled as another schema.
+
+Parent-executed retained-input diagnostics validated both source gates and
+reported known differences: Meta one native attempt versus one chamber
+request; Google ten versus one. Exact URL/query spelling, type and missing
+requests remain material; differing cohorts, inputs, consent, local endpoints,
+native final headers and vendor responses remain noncomparable/unavailable.
+This is not a compatibility success or a new capability: native acceptance,
+complete replacement and C2/C3 remain open. The original spent Meta stock
+reservation and live-authority boundary are unchanged.
 
 ### The connectors
 

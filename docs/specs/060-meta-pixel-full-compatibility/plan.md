@@ -22,6 +22,19 @@ substitution is authorized. Another actual attempt requires new explicit
 owner authority and scope. Complete native wire, C2/C3, actual replacement
 and vendor outcomes remain open; 060-01 is still not implementation-ready.
 
+The independent [059-17 offline diagnostic](../059-google-ads-full-compatibility/slice-17-attempt-chamber-comparison.md)
+is the attempt-layer consumer prerequisite, implemented with frame, code and
+checkpoint reconciliation reviews passed. It reads existing native-attempt originals and the distinct qualified
+real-worker chamber capture plus external whole-CLI completion evidence.
+It must retain the differing browser cohorts, synthetic identifiers, consent,
+local endpoint and legacy semantics, not normalize them into parity. No SDK,
+browser, live request or new event authority is needed for this read-only path.
+Complete whole-wire/native-chamber acceptance remains open.
+The actual retained Meta diagnostic validated both source gates and reported
+three URL/query/resource-type differences between one native attempt and one
+legacy chamber request, exiting 1. It did not establish equivalent input or
+cohort, execute an SDK, or repair the spent stock reference.
+
 ## Local capture-boundary checkpoint - 2026-10-20
 
 [059-15](../059-google-ads-full-compatibility/slice-15-native-stock-capture.md)

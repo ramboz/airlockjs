@@ -2,7 +2,7 @@
 
 **Local-only qualification:** [059-16](../docs/specs/059-google-ads-full-compatibility/slice-16-chamber-capture.md)
 provides an independent preparation path while live native cases await
-fresh external setup facts. The fixed executable and read-only inspector
+their separate setup/source/authority gates. The fixed executable and read-only inspector
 passed compliance, craft and architecture review after substantive original-
 byte, publication and resource-lifetime corrections. The final source-bound
 cohorts cover actual workers/receivers, real deadline failures and owned
@@ -43,7 +43,11 @@ An instrumented synthetic capture is not a performance baseline.
 
 The distinct chamber producer is not a native report or the existing
 comparator's `local_complete_sequence` source. Do not relabel it to pass a
-native/whole-wire schema. A separately reviewed native/chamber consumer,
+native/whole-wire schema. [059-17's offline diagnostic](chamber-comparison.md)
+now reads this distinct producer with its separate whole-CLI witness and
+retained native-attempt evidence. It reports observed differences and keeps
+cohort/input/consent/transport gaps visible; its checkpoint reviews are
+separate from this producer's qualification. The complete whole-wire consumer,
 complete stock reference and actual replacement implementation remain open.
 
 ## Boundaries and failure handling
@@ -67,7 +71,7 @@ publication, 64 observed requests, 2 KiB URLs, 64 KiB request headers/body,
 inconclusive, not a truncated pass. Use a new private output under an
 operator-owned canonical parent; never reuse or overwrite a failed directory.
 
-## Fixed interface (qualification not yet accepted)
+## Fixed local interface
 
 Use the validated Node 24 cohort and a new location under an existing
 operator-owned canonical private parent. No path component may be a symlink
