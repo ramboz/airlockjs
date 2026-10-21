@@ -402,6 +402,31 @@ Parent ordering-source pre-admission code checkpoint (2026-10-21):
   is queued. No native SDK, provider traffic, source GET, real slot, live
   window, finite hold, production change or full-replacement claim occurred.
 
+Native resource preparation finding after the code checkpoint (2026-10-21):
+
+- The reviewed tooling checkpoint is committed as `74fa0cc`. It is not a
+  resource-ready native case. A separate as-built native-path review found
+  that durable additional ports/pending/browser registrations at
+  `rig/inspected-meta-stock.mjs:1443-1454` are local-only, and the fixed
+  supervisor admits SDK-absent qualification cases, not native execution.
+- Native normal-path browser handles, fresh context, authenticated proxy
+  peer, listener/socket/task closure and key-removal evidence are real.
+  They do not supply an interrupted-launch browser/group/profile ledger,
+  independent Node-failure supervision or positive temporary-profile removal.
+  Root-process escalation and sixteen successful flags cannot establish those
+  unwritten capabilities.
+- Resource-ready admission therefore remains blocked on actual supported
+  new-native-case acquisition/abort coverage, including late/interrupted
+  browser launch and attributable failure handoff. The existing local proof
+  is not relabelled as native supervision. No case permission, finite window,
+  hold, reservation or SDK effect is created.
+- This concrete new-case gap is separate from both historical UNKNOWN
+  dispositions and Adobe's unprovable whole-helper assertion. Neither is
+  reopened, cleared or made a historical-directory deletion requirement.
+  The parent owns bounded implementation framing under unchanged AC5/8;
+  further code/qualification must preserve all original authority, safety
+  and source-bound review gates.
+
 ### Reconciliation sweep
 
 - **Updated:** operator guide, architecture and open 059/060 plans distinguish

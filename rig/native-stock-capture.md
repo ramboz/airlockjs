@@ -376,6 +376,23 @@ UNKNOWNs and the blocked stronger whole-helper assertion are not cleared.
 There is no host-wide exclusion, new cleanup authority, performance/CWV,
 complete native wire, replacement or C2/C3 acceptance claim.
 
+### Native resource admission remains blocked
+
+The as-built native path is not covered by the new fixed SDK-absent supervisor.
+Durable additional ports/pending/browser registration currently runs only for
+local qualification. Existing native browser handles, fresh context, proxy
+peer authentication, endpoint closure and key removal provide normal-path
+evidence, not independent Node-failure/interrupted-launch browser-tree recovery.
+The sixteen flags also contain no positive temporary-profile removal check.
+
+Before native resource-ready preparation, an actual supported acquisition/
+abort witness must cover the newly owned browser/group/profile, endpoints,
+keys and Node lifetime through closure or an explicit attributable unqualified
+handoff. No proposed external caller may be credited with that capability
+before it exists. This separate new-case blocker does not require deleting
+historical directories or resolving either old UNKNOWN as a retrospective pass.
+The additional case remains unspent; no live window or hold is selected.
+
 The first actual additional-path positives exited zero with complete original
 responses/closure; an initial verifier cleanup-field-count error rejected their
 outer qualification and is retained as a failure, not rewritten. Qualification

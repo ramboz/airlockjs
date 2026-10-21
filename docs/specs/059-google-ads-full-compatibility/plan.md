@@ -247,6 +247,12 @@ case-bound reviews, dated setup/source evidence and complete native capture
 remain separate obligations. The withdrawn 20:30 proposal creates no hold
 or timing authority for a later run.
 
+The committed `74fa0cc` tooling checkpoint does not close native resource
+readiness. Its durable acquisition/abort supervisor covers SDK-absent local
+qualification only; the native path still needs supported interrupted-launch/
+Node/browser-group/profile ownership and abort evidence. See the current
+059-18 finding. No additional case permission, hold, window or slot follows.
+
 ### Original Meta stock case spent; offline correction only
 
 The owner approved the exact 16:15–16:16Z (09:15 PDT) case and original-slot

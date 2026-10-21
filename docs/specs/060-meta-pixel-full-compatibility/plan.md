@@ -21,6 +21,11 @@ case-bound preparation are still required. This is not native acceptance.
 The single actual additional suite passed 250 tests; parent verification
 covered 10,051 artifact hashes/identities and 30 source-file locators.
 
+The committed tooling checkpoint `74fa0cc` remains blocked for native resource
+admission: SDK-absent supervision is not a native interrupted-launch/Node/
+browser-group/profile abort witness. Bounded implementation framing remains
+parent-owned in 059-18; no case permission, hold, window or slot is created.
+
 ## Actual stock checkpoint - 2026-10-21
 
 The owner-approved original Meta stock case ran once in the 16:15–16:16Z

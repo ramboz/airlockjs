@@ -2,8 +2,8 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: reconciliation
 verdict: pass
-reviewer: jig:reviewer8bdd6978-3ce1-40d7-b225-a6cf536c5c05 turn0
-reviewed_at: 2026-10-21T22:28:29Z
+reviewer: jig:reviewer8bdd6978-3ce1-40d7-b225-a6cf536c5c05 turns0-1
+reviewed_at: 2026-10-21T22:35:46Z
 prompt_source: review.py reconciliation docs/specs/059-google-ads-full-compatibility/spec.md 059-18
 ---
 
@@ -17,3 +17,8 @@ No additional unlogged deviation identified. Historical browser/profile UNKNOWNs
 
 PROVENANCE:
 Actual read-only jig:reviewer8bdd6978-3ce1-40d7-b225-a6cf536c5c05 turn0. Prompt built from review.py reconciliation with the explicit c6cde7f-to-working-checkpoint scope fence, excluding unrelated earlier branch history. No reviewer commands/tests/rehashes/process/profile/browser/SDK/network actions.
+
+DOC-ONLY NATIVE RESOURCE FOLLOW-UP:
+Actual same reviewer turn1 PASS. The four documentation additions faithfully capture the as-built native-resource finding: SDK-absent supervision does not establish native interrupted-launch, Node-failure, browser-group or profile cleanup coverage. They preserve normal-path evidence and current local qualification without upgrading the committed code checkpoint to native readiness or whole-DoD completion. Historical UNKNOWNs and Adobe's whole-helper gap remain separate and uncleared.
+
+This was a bounded documentation follow-up, not a new whole-code audit. Native resource-ready preparation/admission remains blocked pending supported acquisition/abort coverage or attributable failure handoff. Parent-owned framing is not implementation or execution authority; no capability, permission, window, hold or slot is created.
