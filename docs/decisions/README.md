@@ -41,6 +41,7 @@
 - [ADR-0032: Airlock boundary acceptance; Adobe reporting as follow-up](adr-0032-airlock-boundary-acceptance.md) — Airlock acceptance belongs at the governed SDK boundary, not Adobe's asynchronous reporting pipeline. (2026-10-12, Accepted)
 - [ADR-0033: Full Google Ads and Meta Pixel replacement is the compatibility target](adr-0033-reframe-onto-full-google-meta-compatibility.md) — Google Ads and Meta Pixel must become complete replacements, not a larger collection of partial beacons. (2026-10-15, Accepted)
 - [ADR-0034: Inspected Meta stock references preserve a distinct transport cohort](adr-0034-inspected-meta-stock-reference.md) — The first Meta stock reference may use an explicitly inspected network cohort. (2026-10-20, Accepted)
+- [ADR-0035: Additional Meta stock authority preserves the original spent slot](adr-0035-additional-one-shot-meta-authority.md) — One newly authorized Meta stock case can proceed without refunding the spent one. (2026-10-21, Accepted)
 
 ## Format
 

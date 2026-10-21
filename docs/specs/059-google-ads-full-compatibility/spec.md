@@ -39,6 +39,13 @@ reviewed attempt-layer consumer prerequisite: offline diagnostics between
 retained native attempts and the distinct real-worker chamber capture.
 It does not qualify whole wire, equivalent inputs/cohorts or full replacements.
 
+The owner separately authorized one additional bounded Meta stock case at
+2026-10-21T18:33:04.581Z and delegated routine preparation/scheduling.
+[059-18](slice-18-additional-meta-authority.md) implements the new closed,
+lineage-bound authority under [ADR-0035](../../decisions/adr-0035-additional-one-shot-meta-authority.md).
+The original spent slot is never refunded; no new case is admitted by this
+authoring/readiness checkpoint.
+
 An additional operator-preparation slice,
 [059-13](slice-13-validation-admission.md), implements the network-agnostic
 admission component and local receiving-sink controls. It does not add a

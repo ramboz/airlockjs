@@ -209,6 +209,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-15 - Exact native policy and one-shot stock capture | IN_PROGRESS (google-and-meta-feasibility) |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-16 - SDK-absent chamber capture qualification | **DONE** |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-17 - Offline native-attempt/chamber diagnostic | **DONE** |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-18 - Additional lineage-bound Meta stock case | READY_FOR_IMPLEMENTATION |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-01 - Replace bootstrap and first PageView | READY_FOR_REVIEW (google-and-meta-feasibility) |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-02 - Report complete event and commerce data | DRAFT |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-03 - Route and configure multiple Pixels | DRAFT |  |

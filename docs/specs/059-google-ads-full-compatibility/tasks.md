@@ -23,6 +23,9 @@ implementation, review or readiness.
 - [x] 059-17: strict offline native-attempt/chamber diagnostics are DONE
       with real producer provenance and external command completion, without
       presenting legacy/local/cohort-mismatched results as compatibility.
+- [ ] 059-18: implement and qualify the newly authorized additional Meta-only
+      grant, preserving the original spent lineage and all source/review/
+      coordination/capture gates; no automatic retry after new consumption.
 
 ## Before product implementation
 
