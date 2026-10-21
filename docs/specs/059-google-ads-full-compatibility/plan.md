@@ -36,7 +36,7 @@ because the operator permits a synthetic test.
 | First/returning identity | `connectors/google-ads/cookies.js:34-106` reads existing identity and never writes it. The retained stock attempt has an `auid`; actual cookie creation/acceptance/lifetime is unproved. | Establish native-compatible client identity and scoped persistence. Never fabricate click IDs or count a preseed control as the first-visit path. |
 | Governed request/response path | Wire workers call `host.init({})` (`core/google-ads-chamber.worker.js:57`). `core/airlock.js:432-433` calls `fetchInit(method, body)`, whose entire option shape is in `core/egress.js:52-54`. | Current path does not forward request headers or expose response bodies/redirect/credential policy. Do not pretend a GET-only, fire-and-forget request is the complete conversion. |
 | Existing round-trip building block | `contracts/capability.d.ts:185-187,243-260` already defines mediated async dispatch with response text; its separate host is `core/wrapped-sdk-host.js:418-450`. The current EDS implementation returns only Content-Type at `adapters/eds/index.js:1606-1615`. | Investigate reuse with a **first-party** worker and narrow host policy, not loading the official SDK into production. It is not yet wired into this worker; full headers, opaque/script/image behavior and cookie semantics are not established by this type. |
-| Independent candidate comparison | `rig/native-tag-comparison.mjs:403-554,690-692` validates both inputs against the supported producer schemas. Existing passes are exact native copies/local controls. | Add a case-specific chamber capture/qualification adapter with real worker and native-absence provenance. Never manufacture a native producer report for a chamber or normalize away missing SDK/configuration behavior. |
+| Independent candidate comparison | `rig/native-tag-comparison.mjs:403-554,690-692` validates both inputs against the supported producer schemas. Existing passes are exact native copies/local controls. | [059-16](slice-16-chamber-capture.md) owns the independent real-worker/native-absence local capture prerequisite. Native/chamber consumption and complete replacement remain open. Never manufacture a native producer report for a chamber or normalize away missing SDK/configuration behavior. |
 | Performance/readiness | C3 below and `docs/product-vision.md` require measured controls, not placement-only claims. The local worker probe was instrumented and is not a CWV baseline. | Measurement protocol is defined below; numeric overhead limits stay unpinned until baseline/calibration evidence exists. |
 
 ### Candidate boundary, not an approved API
@@ -178,6 +178,15 @@ records does not close response/cookie/redirect evidence.
 
 ## Current posture
 
+### Independent offline path while live setup is blocked
+
+[059-16](slice-16-chamber-capture.md) owns the already-required real-worker/
+native-absence capture prerequisite. Its fixed synthetic local path is
+independent of live Meta setup confirmation and the four event slots:
+actual built EDS boots and module workers, original local receiver evidence
+and a distinct qualified capture source. It does not implement a full tag or
+make the existing native comparator accept legacy output as native parity.
+
 ### Offline implementation continuation
 
 [059-14](slice-14-browser-admission.md) is DONE and implements the
@@ -203,13 +212,17 @@ opaque TLS broker and one-shot stock receipt. A first-party loopback probe
 already preserved actual HTTP/2 Image responses through authenticated CONNECT
 with 1/0/1 receiving-sink positive/enforced/bypass outcomes. This establishes
 feasibility only: no native SDK, public collector or live slot was used.
-The planned stock browser keeps its existing loopback confinement; the broker
-does not decrypt TLS or replace browser certificate verification. Actual
-per-request/HTTP2 reuse, final byte caps and one-shot manifest/journal semantics
-must pass their named controls before Meta stock admission.
-The owner has now supplied current read-only setup confirmations; preserve
-these as owner evidence, not independent API readback or a permanent lease.
-No further campaign/billing/account mutation or source push is requested.
+That initial opaque-broker hypothesis kept browser certificate verification
+unchanged but subsequently failed the physical-retry controls. The separately
+approved inspected Meta cohort and implemented conditional controller are
+described above; neither the old probe nor the current local controls admit
+a real case.
+The owner's 2026-10-19 setup confirmations are historical owner evidence,
+not independent API readback or a permanent lease. Fresh Meta case setup
+confirmation remains unavailable: newer authenticated source bytes and
+read-only configuration analysis do not establish current account settings.
+Autonomous continuation is not that confirmation. No further campaign/
+billing/account mutation or source push is requested.
 
 [059-13](slice-13-validation-admission.md) is DONE: the
 [network-agnostic admission component](../../../rig/first-journey-admission.md)

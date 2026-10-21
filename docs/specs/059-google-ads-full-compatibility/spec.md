@@ -13,10 +13,12 @@ The main tradeoff is that complete browser behavior needs qualified native
 evidence and narrowly mediated host operations without giving vendor code
 ambient access or moving unbounded work onto the main thread.
 
-**Preparation only.** The first slice is READY_FOR_REVIEW for authoring; the
-other eleven remain DRAFT. Only the first blocked-draft premise review has
-passed, not boundary fit, implementation readiness or implementation review.
-This packet implements no new runtime behavior. Its first-path plan proposes a
+**Product preparation only.** Of the twelve product-feature slices, the first
+is READY_FOR_REVIEW for authoring and the other eleven remain DRAFT. That
+first product slice has passed its blocked-draft premise review, not boundary
+fit, implementation readiness or implementation review. Operator-preparation
+tooling below has separate local code/evidence gates and does not change
+production runtime behavior. The first-path plan proposes a
 finite paired validation envelope; no live permission is granted by this text.
 [ADR-0033](../../decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md)
 is **Accepted** for the target/framing only; [058](../058-native-tag-evaluation-qualification/spec.md)
@@ -25,6 +27,12 @@ comparison. Independent full native/chamber comparisons, access and readiness
 remain open. The actual qualification and scope prerequisites
 are not satisfied merely by accepting the target.
 The reservation remains provisional until the parent checks trunk collisions.
+
+[059-16](slice-16-chamber-capture.md) defines the independent SDK-absent
+chamber-capture qualification path required by the first-journey plan. It
+uses only synthetic first-party loopback fixtures and legacy built workers,
+without bypassing the fresh-setup gate on live native cases or promoting
+the first product slices to implementation-ready.
 
 An additional operator-preparation slice,
 [059-13](slice-13-validation-admission.md), implements the network-agnostic

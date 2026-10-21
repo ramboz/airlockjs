@@ -1,9 +1,24 @@
 # Tasks - full Google Ads browser-tag compatibility
 
-This checklist is future work. No implementation, review or readiness gate is
-completed by writing the DRAFT packet.
+The product-feature checklist below remains future work. Operator
+foundations have their own slice records; writing a packet does not complete
+implementation, review or readiness.
 
-## Before any implementation
+## Independent operator preparation
+
+- [x] 059-13/14: local one-shot admission and actual-browser receiver controls.
+- [ ] 059-15: complete the separately gated native stock path; current
+      code/local qualification is not an admitted live case.
+- [ ] 059-16: complete the SDK-absent real-worker/local-receiver capture and
+      strict qualification reader. Frame, compliance, craft and architecture
+      passed; checkpoint reconciliation and close-out remain.
+      No vendor SDK, event slot, fresh account fact or live reservation is
+      needed for this fixed synthetic path.
+- [ ] Keep the distinct local chamber producer out of native/whole-wire
+      acceptance until a separately reviewed consumer and actual replacement
+      evidence exist.
+
+## Before product implementation
 
 - [ ] Parent checks provisional 059 numbering against trunk and integrates only
       this packet; shared indices and authority remain parent-owned.

@@ -15,7 +15,7 @@
 > adds parallel preparation for complete Google Ads and Meta Pixel replacement.
 > Shared evaluation tools are recorded in spec 058; the first product slices
 > in 059-060 remain in authoring review, not implementation-ready. Operator
-> preparation tooling in 059-13/14/15 does not promote those product slices.
+> preparation tooling in 059-13/14/15/16 does not promote those product slices.
 > This does not promote the subset connectors below to full support or change
 > existing APIs, runtime grants or Adobe acceptance.
 > Its [offline sequence consumer](../rig/native-tag-comparison.md) adds no
@@ -57,6 +57,17 @@ ordinary-browser parity, complete native wire and vendor outcomes remain
 separate obligations. This tooling adds no stable-core capability, source
 deployment, live-case authority or full replacement claim. See the
 [operator guide](../rig/native-stock-capture.md) for remaining gates.
+
+The independent [SDK-absent chamber capture](../rig/chamber-capture.md)
+uses the existing built EDS boots and synthetic loopback endpoints, not
+vendor bytes or a production adapter. Its distinct local-only producer,
+source/cohort identity and read-only inspector are in
+`rig/chamber-capture.mjs:255,1266`; the fixed command wrapper at line 1355
+observes its child's completion rather than claiming its own future exit.
+An external caller separately records whole-CLI close and final digests.
+Actual worker/HTTP observations of the legacy subsets are not native or
+whole-wire support, and native/chamber consumer integration remains open.
+No stable-core, connector, build, dependency or live-authority boundary changes.
 
 ### The connectors
 
