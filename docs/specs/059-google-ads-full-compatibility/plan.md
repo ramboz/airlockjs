@@ -35,11 +35,45 @@ because the operator permits a synthetic test.
 | Labeled direct conversion | `connectors/google-ads/connector.js:54-64,166-173` accepts only `page_view`; `READY-GAP-1` and the genuine worker both returned zero for a conversion. | New conversion/command state and full request sequence are required; the shipped subset is not a seed that already satisfies F05. |
 | First/returning identity | `connectors/google-ads/cookies.js:34-106` reads existing identity and never writes it. The retained stock attempt has an `auid`; actual cookie creation/acceptance/lifetime is unproved. | Establish native-compatible client identity and scoped persistence. Never fabricate click IDs or count a preseed control as the first-visit path. |
 | Governed request/response path | Wire workers call `host.init({})` (`core/google-ads-chamber.worker.js:57`). `core/airlock.js:432-433` calls `fetchInit(method, body)`, whose entire option shape is in `core/egress.js:52-54`. | Current path does not forward request headers or expose response bodies/redirect/credential policy. Do not pretend a GET-only, fire-and-forget request is the complete conversion. |
-| Existing round-trip building block | `contracts/capability.d.ts:185-187,243-260` already defines mediated async dispatch with response text; its separate host is `core/wrapped-sdk-host.js:418-450`. The current EDS implementation returns only Content-Type at `adapters/eds/index.js:1606-1615`. | Investigate reuse with a **first-party** worker and narrow host policy, not loading the official SDK into production. It is not yet wired into this worker; full headers, opaque/script/image behavior and cookie semantics are not established by this type. |
+| Existing round-trip building block | `contracts/capability.d.ts:185-187,243-260` defines mediated async dispatch with response text; its separate host is `core/wrapped-sdk-host.js:418-450`. Executed `FIRSTPARTY-ROUNDTRIP-1` below demonstrates first-party worker response chaining with that unchanged host. The current EDS implementation returns only Content-Type at `adapters/eds/index.js:1606-1615`. | Reuse is feasible for the demonstrated text-response path, not yet a Google/Meta integration. Full headers, opaque/script/image behavior, cookie semantics and native consent remain unqualified; do not load the official SDK into production or promote this building block to complete compatibility. |
 | Independent candidate comparison | `rig/native-tag-comparison.mjs:403-554,690-692` validates both inputs against the supported producer schemas. Existing passes are exact native copies/local controls. | [059-16](slice-16-chamber-capture.md) owns the independent real-worker/native-absence local capture prerequisite. Native/chamber consumption and complete replacement remain open. Never manufacture a native producer report for a chamber or normalize away missing SDK/configuration behavior. |
 | Performance/readiness | C3 below and `docs/product-vision.md` require measured controls, not placement-only claims. The local worker probe was instrumented and is not a CWV baseline. | Measurement protocol is defined below; numeric overhead limits stay unpinned until baseline/calibration evidence exists. |
 
 ### Candidate boundary, not an approved API
+
+#### Executed first-party round-trip grounding
+
+`FIRSTPARTY-ROUNDTRIP-1` is a private SDK-absent, loopback-confined browser
+probe of the existing `createWrappedSdkHost`, not a new production adapter.
+Three independently observed real module workers exercised allowed,
+denied-consent and undeclared-path cases. The allowed worker received an
+actual server-generated response body/header, parsed the body off-thread
+and used its returned token in a second mediated request; the independent
+receiver observed exactly two requests. The matched denied and undeclared
+cases each produced zero driver dispatches/receiver arrivals and their
+corresponding host-seal counters. An ambient worker fetch attempt remained
+withheld by the existing first-import confinement. Actual CLI completion was
+exit 0, with owned contexts/browser/server/sockets closed and source pins
+unchanged.
+
+This grounds a useful **existing** text-response building block without
+changing the frozen core. It does not wire the Google/Meta adopter boots,
+qualify a native transport/cookie path, establish C2/C3 or replace a native
+reference. Its instrumented synthetic fixture is not a performance baseline
+or a strict native/chamber qualification report. The coordinator retains
+the private helper, original report and command-completion observation;
+no owned identifiers or raw local payloads belong in Git.
+
+Source inspection and a separate executed pure-function check also confirm
+that `reconcileForBrokerJar` removes `Domain`, `Secure` and `SameSite`
+before the existing wrapped-host cookie sink
+(`core/wrapped-sdk-host.js:635`, `reconcileForBrokerJar`). That is documented test-origin
+reconciliation, **not** production cookie-attribute preservation. Do not
+route full replacement identity through it unchanged. The host-internal
+cookie sink is experimental under `contracts/capability.d.ts:112-128`;
+native evidence must determine the required origin/purpose/name/attribute
+policy before choosing its first-party wiring. No frozen-contract
+contradiction, cookie permission or production fix is inferred here.
 
 Prefer an opt-in per-vendor facade/boot and first-party chamber over changing
 the shipped subset in place. Keep native command interpretation, mapping and
