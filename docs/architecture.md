@@ -80,7 +80,11 @@ fixed shell target (`rig/meta-preexec-bootstrap-launcher:6-8`) add no browser
 or stable-core capability. The installed descriptor observer rejected its
 required lsof option in the executed local diagnostic; it remains blocked
 before enrollment/exec, not a qualified replacement for the native acquisition
-gap. See the [current blocker](../rig/native-stock-capture.md#installed-descriptor-observer-blocker).
+gap. A fixed, hash-pinned macOS socket observer now has genuine first-party
+Node/shell normal/refusal/inherited controls, not inferred runtime evidence
+from compilation or pure tests. Real-browser/native resources remain unqualified.
+See the [executed blocker](../rig/native-stock-capture.md#installed-descriptor-observer-blocker)
+and [current replacement status](../rig/native-stock-capture.md#macos-socket-observer-replacement).
 
 The independent [SDK-absent chamber capture](../rig/chamber-capture.md)
 uses the existing built EDS boots and synthetic loopback endpoints, not

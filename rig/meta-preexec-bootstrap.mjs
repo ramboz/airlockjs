@@ -2,7 +2,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { spawn, execFile } from "node:child_process";
 import { createServer, connect, Socket } from "node:net";
-import { lstatSync, mkdirSync, openSync, closeSync, fsyncSync } from "node:fs";
+import { lstatSync, mkdirSync, openSync, closeSync, fsyncSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -12,6 +12,9 @@ import { readMetaPrivate, writeMetaPrivate } from "./native-stock-meta.mjs";
 
 const NODE = "/opt/homebrew/Cellar/node/24.10.0/bin/node";
 const ENTRY = fileURLToPath(import.meta.url), SHELL = fileURLToPath(new URL("meta-preexec-bootstrap-launcher", import.meta.url));
+const OBSERVER_SOURCE = fileURLToPath(new URL("meta-owned-socket-observer.c", import.meta.url));
+const OBSERVER_COHORT = fileURLToPath(new URL("meta-owned-socket-observer.cohort.json", import.meta.url));
+const SDK = "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk";
 const execute = promisify(execFile), hash = value => createHash("sha256").update(value).digest("hex");
 const fail = category => { throw Error(category); }, sleep = ms => new Promise(done => setTimeout(done, ms));
 const answer = (allowed, reason) => ({ allowed, reason, native_authority: false });
@@ -129,6 +132,80 @@ export function assessSyntheticDebugIsolation(value) {
     return answer(false, "inherited_debug_handle");
   return answer(true, "specific_debug_handles_absent");
 }
+function validateSocketInventory(inventory, role, expectedRoles) {
+  record(expectedRoles, ["P", "E", "L", "H"]);
+  const invalid = () => fail("synthetic_socket_inventory");
+  const { P, E, L, H } = expectedRoles;
+  if (new Set([P.pid, E.pid, L.pid, H.pid]).size !== 4 || E.ppid !== P.pid || E.pgid !== E.pid
+    || L.ppid !== E.pid || L.pgid !== L.pid || H.ppid !== L.pid || H.pgid !== L.pid
+    || ![E, L, H].every(r => r.uid === P.uid)) invalid();
+    record(inventory, ["schema", "role", "pid", "caller_pid", "complete", "roles_before", "roles_after",
+      "inventory_before", "inventory_after", "descriptor_count", "descriptors", "native_authority"]);
+    const expected = [P, E, L, H].slice(0, role === "launcher" ? 3 : 4);
+    if (inventory.schema !== "airlock.owned-macos-socket-inventory.v1" || inventory.role !== role
+      || inventory.pid !== expected.at(-1).pid || inventory.caller_pid !== P.pid
+      || inventory.complete !== true || inventory.native_authority !== false
+      || !Array.isArray(inventory.roles_before) || inventory.roles_before.length !== expected.length
+      || !equal(inventory.roles_before, inventory.roles_after)) invalid();
+    for (const [n, row] of inventory.roles_before.entries()) {
+      record(row, ["pid", "ppid", "pgid", "uid", "birth_seconds", "birth_microseconds"]);
+      if (!["pid", "ppid", "pgid", "uid", "birth_seconds", "birth_microseconds"]
+        .every(k => Number.isSafeInteger(row[k]) && row[k] >= (["uid", "birth_microseconds"].includes(k) ? 0 : 1))
+        || row.birth_microseconds >= 1000000
+        || !["pid", "ppid", "pgid", "uid"].every(k => row[k] === expected[n][k])) invalid();
+    }
+    if (!Number.isSafeInteger(inventory.descriptor_count) || inventory.descriptor_count < 1
+      || inventory.descriptor_count >= 256 || !Array.isArray(inventory.descriptors)
+      || inventory.descriptors.length !== inventory.descriptor_count) invalid();
+    let previous = -1;
+    for (const row of inventory.descriptors) {
+      record(row, ["fd", "type", "family", "identity"]);
+      if (!Number.isSafeInteger(row.fd) || row.fd <= previous || row.fd > 2147483647
+        || !Number.isInteger(row.type) || row.type < 0 || row.type > 11 || row.type === 8) invalid();
+      previous = row.fd;
+      if (row.type === 2) {
+        if (!Number.isInteger(row.family) || row.family < 1 || row.family > 255
+          || typeof row.identity !== "string" || !/^0x[0-9a-f]{16}$/.test(row.identity)
+          || BigInt(row.identity) === 0n) invalid();
+      } else if (row.family !== null || row.identity !== null) invalid();
+    }
+    const fds = inventory.descriptors.map(({ fd, type }) => ({ fd, type }));
+    if (!equal(fds, inventory.inventory_before) || !equal(fds, inventory.inventory_after)) invalid();
+    return inventory;
+}
+export function assessSyntheticSocketIsolation(value) {
+  const v = record(data(value, 0, { nodes: 0, limit: 16384 }), ["expected", "launcher", "helper"]);
+  const invalid = () => fail("synthetic_socket_inventory");
+  const launcher = validateSocketInventory(v.launcher, "launcher", v.expected);
+  const helper = validateSocketInventory(v.helper, "helper", v.expected);
+  if (!equal(launcher.roles_before, helper.roles_before.slice(0, 3))) invalid();
+  const debug = [3, 4].map(fd => launcher.descriptors.find(row => row.fd === fd));
+  if (debug.some(row => !row || row.type !== 2 || row.family !== 1)
+    || debug[0].identity === debug[1].identity) invalid();
+  if (helper.descriptors.some(row => row.type === 2 && debug.some(owned => owned.identity === row.identity)))
+    return answer(false, "inherited_debug_handle");
+  return { ...answer(true, "owned_debug_sockets_absent"), debug_handles: debug };
+}
+export function assessSyntheticHelperRefusal(value) {
+  const v = record(data(value), ["receipt", "launcher_status", "ticket_sha256", "argv_sha256",
+    "correlation_sha256", "helper_pid", "launcher_pid", "refused_at_ms",
+    "child_exit_at_ms", "expires_at_ms", "child_exit"]);
+  const receipt = record(v.receipt, ["schema", "ticket_sha256", "argv_sha256", "correlation_sha256",
+    "helper_pid", "launcher_pid", "observed_at_ms", "allowed", "native_authority"]);
+  const status = record(v.launcher_status, ["schema", "launcher_pid", "helper_exit_code", "native_authority"]);
+  record(v.child_exit, ["code", "signal"]);
+  const valid = receipt.schema === "airlock.synthetic-helper-exec-refusal.v1"
+    && status.schema === "airlock.synthetic-launcher-helper-exit.v1"
+    && status.launcher_pid === v.launcher_pid && status.helper_exit_code === 2
+    && status.native_authority === false && receipt.allowed === false && receipt.native_authority === false
+    && ["ticket_sha256", "argv_sha256", "correlation_sha256"].every(k => digest(v[k]) && receipt[k] === v[k])
+    && ["helper_pid", "launcher_pid"].every(k => Number.isSafeInteger(v[k]) && v[k] > 0 && receipt[k] === v[k])
+    && ["refused_at_ms", "child_exit_at_ms", "expires_at_ms"].every(k => Number.isSafeInteger(v[k]) && v[k] >= 0)
+    && Number.isSafeInteger(receipt.observed_at_ms) && receipt.observed_at_ms >= v.refused_at_ms
+    && receipt.observed_at_ms < v.expires_at_ms && receipt.observed_at_ms <= v.child_exit_at_ms
+    && v.child_exit.code === 2 && v.child_exit.signal === null;
+  return answer(valid, valid ? "helper_refusal_observed" : "synthetic_refusal_not_observed");
+}
 export function assessSyntheticBootstrapPermit(value) {
   const v = record(data(value), ["permit", "stage", "ticket_sha256", "roles", "fixture", "argv_sha256", "observed_at_ms"]);
   const p = v.permit;
@@ -211,7 +288,7 @@ function executionError(error) {
 }
 async function command(program, args, end, diagnostics, observation, callsite) {
   const utilities = { row: "/bin/ps", children: "/usr/bin/pgrep", group: "/usr/bin/pgrep",
-    descriptors: "/usr/sbin/lsof", peer: "/usr/sbin/lsof" };
+    descriptors: diagnostics.observer?.path, peer: "/usr/sbin/lsof" };
   if (utilities[callsite] !== program || !phases.includes(observation.phase)
     || !["P", "E", "L", "H", "member-E", "member-L"].includes(observation.role)) fail("synthetic_command_scope");
   const sequence = diagnostics.receipts.length + 1, prefix = "os-command-" + String(sequence).padStart(3, "0");
@@ -231,7 +308,8 @@ async function command(program, args, end, diagnostics, observation, callsite) {
   else {
     try {
       output = await execute(program, args, { timeout, killSignal: "SIGKILL", maxBuffer: 65536,
-        encoding: "buffer", env: { ...process.env, LC_ALL: "C" } });
+        encoding: "buffer", env: callsite === "descriptors" ? { PATH: "/usr/bin:/bin", LC_ALL: "C" }
+          : { ...process.env, LC_ALL: "C" } });
     } catch (error) { output = error; failure = status = executionError(error); }
   }
   const ended = performance.now();
@@ -294,10 +372,61 @@ async function children(pid, end, diagnostics, observation) {
   if (ids.length > 4 || ids.some(n => !Number.isSafeInteger(n) || n < 1)) fail("synthetic_child_scope");
   return ids;
 }
+function observerIdentity(path) {
+  const before = lstatSync(path);
+  const parent = lstatSync(dirname(path));
+  if (!before.isFile() || before.isSymbolicLink() || before.uid !== process.getuid()
+    || before.nlink !== 1 || (before.mode & 0o7777) !== 0o700 || before.size < 1 || before.size > 1048576
+    || !parent.isDirectory() || parent.isSymbolicLink() || parent.uid !== process.getuid()
+    || (parent.mode & 0o7777) !== 0o700)
+    fail("synthetic_observer_binary");
+  const bytes = readFileSync(path), after = lstatSync(path);
+  if (["dev", "ino", "size", "mtimeMs", "ctimeMs"].some(k => before[k] !== after[k]) || bytes.length !== before.size)
+    fail("synthetic_observer_binary_changed");
+  return { path, dev: String(before.dev), ino: String(before.ino), bytes: bytes.length, sha256: hash(bytes) };
+}
+function prepareObserver(root, diagnostics) {
+  const bytes = readFileSync(OBSERVER_COHORT);
+  const cohort = record(json(bytes), ["schema", "source_sha256", "binary_sha256", "compiler_sha256", "sdk", "headers"]);
+  if (cohort.schema !== "airlock.owned-socket-observer-cohort.v1" || cohort.sdk !== SDK
+    || ![cohort.source_sha256, cohort.binary_sha256, cohort.compiler_sha256].every(digest)
+    || hash(readFileSync(OBSERVER_SOURCE)) !== cohort.source_sha256)
+    fail("synthetic_observer_cohort");
+  record(cohort.headers, ["libproc.h", "sys/proc_info.h", "sys/proc.h"]);
+  for (const [name, expected] of Object.entries(cohort.headers))
+    if (!digest(expected) || hash(readFileSync(join(SDK, "usr/include", name))) !== expected)
+      fail("synthetic_observer_header_changed");
+  const path = fileURLToPath(new URL("out/owned-socket-observer/" + cohort.binary_sha256 + "/observer", import.meta.url));
+  let binary;
+  try { binary = observerIdentity(path); }
+  catch (error) {
+    writeMetaPrivate(join(root, "descriptor-observer-unavailable.json"), {
+      schema: "airlock.synthetic-socket-observer-error.v1", phase: "observer-preparation", path,
+      os_error_code: error.code ?? null, message: error.message.slice(0, 2048),
+      message_truncated: error.message.length > 2048, native_authority: false,
+    });
+    throw Error("synthetic_observer_unavailable", { cause: error });
+  }
+  if (binary.sha256 !== cohort.binary_sha256) fail("synthetic_observer_binary_changed");
+  diagnostics.observer = binary;
+  writeMetaPrivate(join(root, "descriptor-observer-prepared.json"), {
+    schema: "airlock.synthetic-socket-observer-prepared.v1",
+    cohort: { path: OBSERVER_COHORT, sha256: hash(bytes) },
+    source: { path: OBSERVER_SOURCE, sha256: cohort.source_sha256 },
+    sdk: SDK, headers: cohort.headers, compiler_sha256: cohort.compiler_sha256,
+    binary, compiled_during_case: false, native_authority: false,
+  });
+}
 async function descriptors(pid, debugOnly, end, diagnostics, observation) {
-  const args = ["-nP", "+ff", "-a", "-p", String(pid), ...(debugOnly ? ["-d", "3,4"] : []), "-FpfFt"];
-  const observed = await command("/usr/sbin/lsof", args, end, diagnostics, observation, "descriptors");
-  return parseSyntheticScopedDescriptors(observed.stdout, pid);
+  const binary = diagnostics.observer;
+  if (!binary || !equal(observerIdentity(binary.path), binary)) fail("synthetic_observer_binary_changed");
+  const roles = diagnostics.observerRoles;
+  if (!roles || pid !== roles[debugOnly ? "L" : "H"].pid) fail("synthetic_observer_role");
+  const observed = await command(binary.path, [debugOnly ? "launcher" : "helper", String(pid),
+    String(roles.E.pid), String(roles.L.pid), String(roles.P.pid)],
+    end, diagnostics, observation, "descriptors");
+  if (!equal(observerIdentity(binary.path), binary)) fail("synthetic_observer_binary_changed");
+  return json(Buffer.from(observed.stdout), 16384);
 }
 async function within(promise, end) {
   let timer;
@@ -358,6 +487,13 @@ export async function runSyntheticBootstrapHelper(root, argv) {
     const ready = socketFrame(socket, stop);
     sendFrame(socket, { correlation_sha256: hash(challenge.correlation) });
     const response = await ready;
+    if (response.stage === "exec-ready" && response.allowed === false)
+      writeMetaPrivate(join(root, "helper-exec-refused.json"), {
+        schema: "airlock.synthetic-helper-exec-refusal.v1", ticket_sha256,
+        argv_sha256: ticket.argv_sha256, correlation_sha256: hash(challenge.correlation),
+        helper_pid: process.pid, launcher_pid: process.ppid, observed_at_ms: Date.now(),
+        allowed: false, native_authority: false,
+      });
     if (response.stage !== "exec-ready" || response.allowed !== true) fail("synthetic_exec_refused");
     const final = await awaitSyntheticEnrollment({ ...expected, stage: "exec-ready" });
     if (response.registration_sha256 !== pin(join(root, "exec-ready.json")).sha256
@@ -377,7 +513,9 @@ export async function runSyntheticBootstrapEngine(root) {
   process.send({ type: "fixture-ready" });
   if ((await allow).type !== "launcher-ack") fail("synthetic_launcher_ack");
   const child = spawn("/bin/sh", [SHELL, ...ticket.argv], { detached: true, stdio: ["ignore", "pipe", "pipe", "pipe", "pipe"],
-    env: { PATH: "/opt/homebrew/bin:/usr/bin:/bin", LC_ALL: "C", TMPDIR: ticket.temp.path, AIRLOCK_SYNTHETIC_BOOTSTRAP_ROOT: root } });
+    env: { PATH: "/opt/homebrew/bin:/usr/bin:/bin", LC_ALL: "C", TMPDIR: ticket.temp.path,
+      AIRLOCK_SYNTHETIC_BOOTSTRAP_ROOT: root,
+      AIRLOCK_SYNTHETIC_BOOTSTRAP_INHERIT_DEBUG: ticket.control === "inherited-debug" ? "1" : "0" } });
   let exit;
   child.once("exit", (code, signal) => { exit = { code, signal }; });
   child.on("error", () => {});
@@ -442,7 +580,7 @@ async function fixedTarget(root, argv) {
  * separately coordinated explicit opt-in; source/pure tests do not call this. */
 export async function runSyntheticPreexecFdFeasibility(options) {
   const v = record(data(options), ["outputDir", "control"]);
-  if (!["normal", "refuse-exec"].includes(v.control) || process.execPath !== NODE
+  if (!["normal", "refuse-exec", "inherited-debug"].includes(v.control) || process.execPath !== NODE
     || ["NODE_OPTIONS", "NODE_DEBUG", "NODE_V8_COVERAGE"].some(k => Object.hasOwn(process.env, k))) fail("synthetic_fixed_program");
   const end = performance.now() + 45000, workEnd = end - 15000;
   createRoot(v.outputDir);
@@ -460,13 +598,14 @@ export async function runSyntheticPreexecFdFeasibility(options) {
   writeMetaPrivate(join(v.outputDir, "allocation-intent.json"), { parent, temp, fixture_intent: fixtureIntent,
     roles: ["E", "L", "H"], native_authority: false });
   const sockets = new Set(), known = new Map(), messages = [], errors = [], registrations = [];
-  let child, childExit, roles, fixture, debugHandles, peer, server, serverError, targetExecuted = false;
+  let child, childExit, childExitAt, roles, fixture, debugHandles, peer, server, serverError, targetExecuted = false;
   let connectedPeer = false, fdRounds = 0, finished = false, helperExited = false;
   const save = (name, value) => {
     const path = join(v.outputDir, name + ".json");
     writeMetaPrivate(path, { ...value, at_ms: Date.now(), native_authority: false }); return pin(path);
   };
   try {
+    prepareObserver(v.outputDir, diagnostics);
     server = createServer(socket => {
       sockets.add(socket); socket.on("error", () => {}); socket.once("close", () => sockets.delete(socket));
       if (peer) { socket.destroy(); serverError = Error("synthetic_extra_peer"); return; }
@@ -487,7 +626,7 @@ export async function runSyntheticPreexecFdFeasibility(options) {
       env: { PATH: "/opt/homebrew/bin:/usr/bin:/bin", LC_ALL: "C", TMPDIR: tempPath, AIRLOCK_SYNTHETIC_BOOTSTRAP_ROOT: v.outputDir } });
     child.on("message", message => messages.push(data(message)));
     child.on("error", error => { serverError = error; });
-    child.once("exit", (code, signal) => { childExit = { code, signal }; });
+    child.once("exit", (code, signal) => { childExit = { code, signal }; childExitAt = Date.now(); });
     child.stdout.resume(); child.stderr.resume();
     const E = await row(child.pid, workEnd, diagnostics, scope("engine-acquisition", "E",
       { pid: child.pid, ppid: process.pid, pgid: child.pid, uid: parent.uid,
@@ -544,6 +683,7 @@ export async function runSyntheticPreexecFdFeasibility(options) {
     }
     if (!H) fail("synthetic_helper_unattributed");
     roles = { P: parent, E, L, H };
+    diagnostics.observerRoles = roles;
     const freshRoles = async phase => {
       // Keep all already-started, individually bounded observations/receipts
       // settled before cleanup/publication; rejection must not orphan a ledger.
@@ -563,10 +703,10 @@ export async function runSyntheticPreexecFdFeasibility(options) {
     const checkHandles = async phase => {
       const launcher = await descriptors(L.pid, true, workEnd, diagnostics, scope(phase, "L", L));
       const helper = await descriptors(H.pid, false, workEnd, diagnostics, scope(phase, "H", H));
-      const check = assessSyntheticDebugIsolation({ launcher, helper });
+      const check = assessSyntheticSocketIsolation({ expected: roles, launcher, helper });
       if (!check.allowed) fail(check.reason);
-      if (debugHandles && !equal(debugHandles, launcher)) fail("synthetic_debug_handles_changed");
-      debugHandles = launcher;
+      if (debugHandles && !equal(debugHandles, check.debug_handles)) fail("synthetic_debug_handles_changed");
+      debugHandles = check.debug_handles;
       return { launcher, helper };
     };
     const beforeEnrollment = await checkRoles("pre-enrollment"), fdEnrollment = await checkHandles("pre-enrollment");
@@ -593,10 +733,24 @@ export async function runSyntheticPreexecFdFeasibility(options) {
     if ((await response).correlation_sha256 !== hash(correlation)) fail("synthetic_correlation");
     const readyRoles = await checkRoles("exec-ready"), readyHandles = await checkHandles("exec-ready");
     if (v.control === "refuse-exec") {
+      const refusedAt = Date.now();
       registrations.push(save("exec-refused", { roles: readyRoles, fixture, fd: readyHandles, connected_peer: true }));
       sendFrame(peer, { stage: "exec-ready", allowed: false });
       while (!childExit && performance.now() < workEnd) await sleep(10);
-      if (!childExit || childExit.code === 0) fail("synthetic_refusal_not_observed");
+      if (!childExit || childExit.code !== 2 || childExit.signal) fail("synthetic_refusal_not_observed");
+      const helperPath = join(v.outputDir, "helper-exec-refused.json");
+      const statusPath = join(v.outputDir, "launcher-helper-status.json");
+      const receipt = read(helperPath), status = read(statusPath);
+      const check = assessSyntheticHelperRefusal({
+        receipt, launcher_status: status, ticket_sha256, argv_sha256: argvSha,
+        correlation_sha256: hash(correlation), helper_pid: H.pid, launcher_pid: L.pid,
+        refused_at_ms: refusedAt, child_exit_at_ms: childExitAt,
+        expires_at_ms: ticket.expires_at_ms, child_exit: childExit,
+      });
+      if (!check.allowed) fail(check.reason);
+      sync(helperPath); sync(statusPath); sync(v.outputDir);
+      registrations.push(save("helper-refusal-observed", { helper: pin(helperPath),
+        launcher_status: pin(statusPath), child_exit: childExit, child_exit_at_ms: childExitAt }));
     } else {
       const ready = { ...permit("exec-ready"), correlation_sha256: hash(correlation), registrations };
       writeMetaPrivate(join(v.outputDir, "exec-ready.json"), ready);
@@ -607,7 +761,9 @@ export async function runSyntheticPreexecFdFeasibility(options) {
       if (!same(target, current) || !live(current) || first.pid !== L.pid) fail("synthetic_exec_lifetime");
       targetExecuted = true; known.set("L", target);
       const finalDescriptors = await descriptors(L.pid, true, workEnd, diagnostics, scope("target-exec", "L", target));
-      if (!equal(debugHandles, finalDescriptors)) fail("synthetic_exec_debug_handles");
+      const finalInventory = validateSocketInventory(finalDescriptors, "launcher", { ...roles, L: target });
+      const finalDebug = finalInventory.descriptors.filter(row => row.fd === 3 || row.fd === 4);
+      if (!equal(debugHandles, finalDebug)) fail("synthetic_exec_debug_handles");
       registrations.push(save("target-exec-owned", { before: L, after: current, fd: finalDescriptors, first }));
       fdRounds = 1;
       child.send({ type: "fd-second", value: randomBytes(32).toString("hex") });

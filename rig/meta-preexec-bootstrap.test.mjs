@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { EventEmitter } from "node:events";
-import { mkdtempSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { PassThrough } from "node:stream";
 import { promisify } from "node:util";
@@ -10,6 +10,16 @@ import { describe, expect, it, vi } from "vitest";
 
 const load = () => import("./meta-preexec-bootstrap.mjs");
 const hash = value => createHash("sha256").update(value).digest("hex");
+function expectQualifiedRefusal(value) {
+  expect(value.control).toBe("refuse-exec");
+  expect(value.witnessed).toBe(false);
+  expect(value.errors).toEqual([]);
+  expect(value.registrations.some(row => row.path.endsWith("/helper-refusal-observed.json"))).toBe(true);
+  expect(value.child_exit).toEqual({ code: 2, signal: null });
+  expect(value.connected_peer).toBe(true);
+  expect(value.target_executed).toBe(false);
+  expect(value.native_qualified).toBe(false);
+}
 function fixture() {
   const temp = "/private/synthetic-case/tmp", path = join(temp, "synthetic-user-data");
   const argv = ["--user-data-dir=" + path, "--remote-debugging-pipe", "--no-startup-window"];
@@ -20,6 +30,123 @@ function fixture() {
   const dir = { path, dev: 1, ino: 2, birthtime_ms: 1000, uid: process.getuid(), mode: 448, synthetic: true };
   return { temp, argv, dir, roles, argv_sha256: hash(JSON.stringify(argv)) };
 }
+function socketInventories() {
+  const expected = fixture().roles;
+  const roles = Object.values(expected).map((role, n) => ({
+    pid: role.pid, ppid: role.ppid, pgid: role.pgid, uid: role.uid,
+    birth_seconds: 1792620000, birth_microseconds: n + 1,
+  }));
+  const socket = (fd, identity) => ({ fd, type: 2, family: 1, identity });
+  const other = { fd: 0, type: 1, family: null, identity: null };
+  const value = (role, descriptors) => ({
+    schema: "airlock.owned-macos-socket-inventory.v1", role,
+    pid: expected[role === "launcher" ? "L" : "H"].pid,
+    caller_pid: expected.P.pid, complete: true,
+    roles_before: structuredClone(roles.slice(0, role === "launcher" ? 3 : 4)),
+    roles_after: structuredClone(roles.slice(0, role === "launcher" ? 3 : 4)),
+    inventory_before: descriptors.map(({ fd, type }) => ({ fd, type })),
+    inventory_after: descriptors.map(({ fd, type }) => ({ fd, type })),
+    descriptor_count: descriptors.length, descriptors, native_authority: false,
+  });
+  return { expected, launcher: value("launcher", [other, socket(3, "0x0000000000000123"),
+    socket(4, "0x0000000000000456")]),
+  helper: value("helper", [other, socket(3, "0x0000000000000789")]) };
+}
+
+describe("owned macOS socket inventory", () => {
+  it("compares actual socket identities while preserving complete non-socket rows", async () => {
+    const { assessSyntheticSocketIsolation } = await load();
+    expect(assessSyntheticSocketIsolation(socketInventories())).toMatchObject({
+      allowed: true, reason: "owned_debug_sockets_absent", native_authority: false });
+  });
+  it("allows no helper sockets only when a complete nonempty inventory proves that", async () => {
+    const { assessSyntheticSocketIsolation } = await load(), value = socketInventories();
+    value.helper.descriptors.pop(); value.helper.descriptor_count = 1;
+    value.helper.inventory_before.pop(); value.helper.inventory_after.pop();
+    expect(assessSyntheticSocketIsolation(value).allowed).toBe(true);
+    value.helper.descriptors = []; value.helper.descriptor_count = 0;
+    expect(() => assessSyntheticSocketIsolation(value)).toThrow("synthetic_socket_inventory");
+  });
+  it("rejects an inherited socket under a different helper descriptor number", async () => {
+    const { assessSyntheticSocketIsolation } = await load(), value = socketInventories();
+    value.helper.descriptors[1] = { ...value.launcher.descriptors[1], fd: 9 };
+    value.helper.inventory_before[1].fd = 9; value.helper.inventory_after[1].fd = 9;
+    expect(assessSyntheticSocketIsolation(value)).toMatchObject({
+      allowed: false, reason: "inherited_debug_handle", native_authority: false });
+  });
+  it.each(["zero", "duplicate-debug", "unknown-type", "incomplete", "count", "duplicate-fd",
+    "changed-birth", "changed-parent", "caller", "uid", "non-socket-identity", "wrong-family",
+    "inventory-omission", "inventory-change"])(
+    "refuses %s instead of accepting incomplete or foreign observations", async fault => {
+      const { assessSyntheticSocketIsolation } = await load(), value = socketInventories();
+      if (fault === "zero") value.launcher.descriptors[1].identity = "0x0000000000000000";
+      if (fault === "duplicate-debug") value.launcher.descriptors[2].identity = value.launcher.descriptors[1].identity;
+      if (fault === "unknown-type") value.helper.descriptors[0].type = 8;
+      if (fault === "incomplete") value.helper.complete = false;
+      if (fault === "count") value.helper.descriptor_count++;
+      if (fault === "duplicate-fd") value.helper.descriptors[1].fd = 0;
+      if (fault === "changed-birth") value.helper.roles_after[3].birth_microseconds++;
+      if (fault === "changed-parent") value.helper.roles_before[3].ppid++;
+      if (fault === "caller") value.helper.caller_pid++;
+      if (fault === "uid") value.helper.roles_before[3].uid++;
+      if (fault === "non-socket-identity") value.helper.descriptors[0] = { ...value.helper.descriptors[0], identity: "0x123" };
+      if (fault === "wrong-family") value.launcher.descriptors[1].family = 2;
+      if (fault === "inventory-omission") value.helper.inventory_before.pop();
+      if (fault === "inventory-change") value.helper.inventory_after[0].type = 2;
+      expect(() => assessSyntheticSocketIsolation(value)).toThrow("synthetic_socket_inventory");
+    });
+});
+
+describe("observed helper refusal, not a generic child failure", () => {
+  function refusal() {
+    return {
+      ticket_sha256: "a".repeat(64), argv_sha256: "b".repeat(64), correlation_sha256: "c".repeat(64),
+      helper_pid: 810004, launcher_pid: 810003, refused_at_ms: 100, child_exit_at_ms: 140, expires_at_ms: 200,
+      child_exit: { code: 2, signal: null },
+      launcher_status: { schema: "airlock.synthetic-launcher-helper-exit.v1",
+        launcher_pid: 810003, helper_exit_code: 2, native_authority: false },
+      receipt: { schema: "airlock.synthetic-helper-exec-refusal.v1", ticket_sha256: "a".repeat(64),
+        argv_sha256: "b".repeat(64), correlation_sha256: "c".repeat(64), helper_pid: 810004,
+        launcher_pid: 810003, observed_at_ms: 120, allowed: false, native_authority: false },
+    };
+  }
+  it("requires the helper's case-bound refusal observation before its actual exit", async () => {
+    const { assessSyntheticHelperRefusal } = await load();
+    expect(assessSyntheticHelperRefusal(refusal())).toMatchObject({
+      allowed: true, reason: "helper_refusal_observed", native_authority: false });
+  });
+  it.each(["errors", "missing-registration", "signal"])(
+    "the qualification consumer rejects connected-but-failed %s", fault => {
+      const result = { control: "refuse-exec", witnessed: false, errors: [], connected_peer: true,
+        target_executed: false, native_qualified: false, child_exit: { code: 2, signal: null },
+        registrations: [{ path: "/private/fixture/helper-refusal-observed.json" }] };
+      if (fault === "errors") result.errors.push("synthetic_refusal_not_observed");
+      if (fault === "missing-registration") result.registrations = [];
+      if (fault === "signal") result.child_exit = { code: null, signal: "SIGKILL" };
+      expect(() => expectQualifiedRefusal(result)).toThrow();
+    });
+  it.each(["generic-exit", "signal", "helper-returned-zero", "wrong-status-launcher",
+    "wrong-helper", "wrong-launcher", "wrong-ticket", "wrong-argv",
+    "wrong-challenge", "before-refusal", "after-exit", "expired", "allowed"])(
+    "does not promote %s into the requested refusal proof", async fault => {
+      const { assessSyntheticHelperRefusal } = await load(), value = refusal();
+      if (fault === "generic-exit") value.child_exit.code = 1;
+      if (fault === "signal") value.child_exit = { code: null, signal: "SIGKILL" };
+      if (fault === "helper-returned-zero") value.launcher_status.helper_exit_code = 0;
+      if (fault === "wrong-status-launcher") value.launcher_status.launcher_pid++;
+      if (fault === "wrong-helper") value.receipt.helper_pid++;
+      if (fault === "wrong-launcher") value.receipt.launcher_pid++;
+      if (fault === "wrong-ticket") value.receipt.ticket_sha256 = "d".repeat(64);
+      if (fault === "wrong-argv") value.receipt.argv_sha256 = "d".repeat(64);
+      if (fault === "wrong-challenge") value.receipt.correlation_sha256 = "d".repeat(64);
+      if (fault === "before-refusal") value.receipt.observed_at_ms = 99;
+      if (fault === "after-exit") value.receipt.observed_at_ms = 141;
+      if (fault === "expired") value.expires_at_ms = 120;
+      if (fault === "allowed") value.receipt.allowed = true;
+      expect(assessSyntheticHelperRefusal(value).allowed).toBe(false);
+    });
+});
+
 describe("closed synthetic P/E/L/H bootstrap", () => {
   it("preserves the issued argument vector and its single in-root synthetic fixture argument", async () => {
     const { parseSyntheticBootstrapArgv } = await load(), f = fixture();
@@ -240,6 +367,11 @@ describe("closed synthetic P/E/L/H bootstrap", () => {
         if (["exec-refusal", "disconnect"].includes(fault)) expect(socket.destroy).toHaveBeenCalledOnce();
         if (fault === "exec-refusal") {
           expect(frames[1]).toEqual({ correlation_sha256: hash("b".repeat(64)) });
+          expect(persist).toHaveBeenCalledWith(join(root, "helper-exec-refused.json"), expect.objectContaining({
+            schema: "airlock.synthetic-helper-exec-refusal.v1", helper_pid: process.pid,
+            launcher_pid: process.ppid, allowed: false, ticket_sha256: ticketSha,
+            correlation_sha256: hash("b".repeat(64)), native_authority: false,
+          }));
         }
       } finally {
         once?.mockRestore(); process.send = originalSend; vi.useRealTimers();
@@ -250,7 +382,8 @@ describe("closed synthetic P/E/L/H bootstrap", () => {
 });
 
 describe("fixed OS command diagnostics through the real pre-enrollment caller (pure boundaries)", () => {
-  it.each(["exit-stderr", "parallel-ps-error", "waiting-parent", "timeout", "spawn", "spawn-permission", "maxbuffer", "oversized-capture", "signal", "unavailable-output",
+  it.each(["exit-stderr", "closed-env", "parallel-ps-error", "waiting-parent", "missing-observer", "bad-cohort",
+    "changed-headers", "source-mismatch", "binary-changed", "timeout", "spawn", "spawn-permission", "maxbuffer", "oversized-capture", "signal", "unavailable-output",
     "required-no-match", "empty-children-once", "cleanup-observation-error", "cleanup-signal-error"])(
     "retains causal command receipts and fail-closed disposal: %s", async fault => {
       // All OS/child/socket/signal boundaries are doubled. Real private metadata
@@ -258,8 +391,11 @@ describe("fixed OS command diagnostics through the real pre-enrollment caller (p
       const root = mkdtempSync(join(realpathSync(tmpdir()), "pelh-diagnostic-pure-"));
       const outputDir = join(root, "case"), entry = fileURLToPath(new URL("./meta-preexec-bootstrap.mjs", import.meta.url));
       const shell = fileURLToPath(new URL("./meta-preexec-bootstrap-launcher", import.meta.url));
+      const observerBytes = "pure-unit-observer-not-executed", observerSha = hash(observerBytes);
+      const observerPath = fileURLToPath(new URL("out/owned-socket-observer/" + observerSha + "/observer", import.meta.url));
+      const observerFixture = join(outputDir, "owned-socket-observer");
       const ids = { E: 720001, L: 720002, H: 720003 }, child = new EventEmitter();
-      let cleanup = false, firstEmpty = fault === "empty-children-once", serverClosed = false;
+      let cleanup = false, firstEmpty = fault === "empty-children-once", serverClosed = false, binaryReads = 0;
       const argv = ["--user-data-dir=" + join(outputDir, "tmp/synthetic-user-data"), "--remote-debugging-pipe", "--no-startup-window"];
       const image = { E: [process.execPath, entry, "--fixed-e"].join(" "),
         L: ["/bin/sh", shell, ...argv].join(" "), H: [process.execPath, entry, "--fixed-h", ...argv].join(" ") };
@@ -284,6 +420,8 @@ describe("fixed OS command diagnostics through the real pre-enrollment caller (p
         const output = text => options.encoding === "buffer" ? Buffer.from(text) : text;
         const empty = () => { throw Object.assign(Error("no matches"), { code: 1, stdout: output(""), stderr: output("") }); };
         if (program === "/bin/ps") {
+          if (fault !== "missing-observer" && !existsSync(observerFixture))
+            writeFileSync(observerFixture, observerBytes, { mode: 0o700 });
           const pid = Number(args[1]);
           if (fault === "parallel-ps-error" && issuedAtExecute.at(-1)?.phase === "pre-enrollment") {
             if (pid === process.pid) {
@@ -309,7 +447,7 @@ describe("fixed OS command diagnostics through the real pre-enrollment caller (p
           if (firstEmpty && Number(args[1]) === ids.E) { firstEmpty = false; return empty(); }
           return { stdout: output(String(Number(args[1]) === ids.E ? ids.L : ids.H) + "\n"), stderr: output("") };
         }
-        if (program !== "/usr/sbin/lsof") throw Error("unexpected_pure_boundary");
+        if (program !== observerPath) throw Error("unexpected_pure_boundary");
         cleanup = true;
         if (!fault.startsWith("cleanup-")) queueMicrotask(() => child.emit("exit", 2, null));
         const error = Object.assign(Error("unit utility failure"), {
@@ -321,7 +459,7 @@ describe("fixed OS command diagnostics through the real pre-enrollment caller (p
         }
         if (["spawn", "spawn-permission"].includes(fault)) {
           Object.assign(error, { code: fault === "spawn" ? "ENOENT" : "EPERM", errno: fault === "spawn" ? -2 : -1,
-            syscall: "spawn /usr/sbin/lsof", stdout: output(""), stderr: output("") });
+            syscall: "spawn " + observerPath, stdout: output(""), stderr: output("") });
           delete error.signal; delete error.killed;
         }
         if (["maxbuffer", "oversized-capture"].includes(fault)) {
@@ -341,11 +479,40 @@ describe("fixed OS command diagnostics through the real pre-enrollment caller (p
       vi.resetModules();
       vi.doMock("node:child_process", () => ({ spawn, execFile }));
       vi.doMock("node:net", async original => ({ ...await original(), createServer: () => server, connect }));
+      vi.doMock("node:fs", async original => {
+        const fs = await original();
+        return { ...fs,
+          readFileSync: (path, ...args) => {
+            if (String(path).startsWith("/Library/Developer/CommandLineTools/SDKs/"))
+              return Buffer.from("fixed-unit-sdk-header");
+            if (String(path).endsWith("/meta-owned-socket-observer.cohort.json"))
+              return Buffer.from(JSON.stringify({
+                schema: fault === "bad-cohort" ? "not-a-cohort" : "airlock.owned-socket-observer-cohort.v1",
+                source_sha256: fault === "source-mismatch" ? "f".repeat(64) : hash(fs.readFileSync(
+                  fileURLToPath(new URL("./meta-owned-socket-observer.c", import.meta.url)))),
+                binary_sha256: observerSha, compiler_sha256: "a".repeat(64),
+                sdk: "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+                headers: Object.fromEntries(["libproc.h", "sys/proc_info.h", "sys/proc.h"]
+                  .map(n => [n, fault === "changed-headers" ? "f".repeat(64) : hash("fixed-unit-sdk-header")])),
+              }));
+            if (String(path) === observerPath && fault === "binary-changed"
+              && ++binaryReads === 2) {
+              fs.writeFileSync(observerFixture, "changed-observer");
+              cleanup = true; queueMicrotask(() => child.emit("exit", 2, null));
+            }
+            return fs.readFileSync(String(path) === observerPath ? observerFixture : path, ...args);
+          },
+          lstatSync: (path, ...args) => fs.lstatSync(String(path) === observerPath ? observerFixture
+            : String(path) === observerPath.slice(0, observerPath.lastIndexOf("/")) ? outputDir : path, ...args),
+        };
+      });
       vi.doMock("./inspected-meta-stock.mjs", () => ({ inspectedMetaSourcePins: () => ({ pure_unit_only: true }) }));
       const signal = vi.spyOn(process, "kill").mockImplementation(() => {
         throw Object.assign(Error("unit EPERM"), { code: "EPERM" });
       });
       vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
+      const originalDyld = process.env.DYLD_INSERT_LIBRARIES;
+      if (fault === "closed-env") process.env.DYLD_INSERT_LIBRARIES = "/forbidden-unit-library";
       try {
         const { runSyntheticPreexecFdFeasibility } = await load();
         const finished = runSyntheticPreexecFdFeasibility({ outputDir, control: "normal" });
@@ -353,8 +520,31 @@ describe("fixed OS command diagnostics through the real pre-enrollment caller (p
         const result = await finished;
         expect(result.witnessed).toBe(false); expect(result.native_qualified).toBe(false);
         expect(result.connected_peer).toBe(false); expect(result.target_executed).toBe(false);
+        if (["missing-observer", "bad-cohort", "changed-headers", "source-mismatch", "binary-changed"].includes(fault)) {
+          const reason = { "missing-observer": "synthetic_observer_unavailable",
+            "bad-cohort": "synthetic_observer_cohort", "changed-headers": "synthetic_observer_header_changed",
+            "source-mismatch": "synthetic_observer_cohort", "binary-changed": "synthetic_observer_binary_changed" }[fault];
+          expect(result.errors).toContain(reason);
+          expect(queries.some(q => q.program === observerPath)).toBe(false);
+          if (fault !== "binary-changed") {
+            expect(spawn).not.toHaveBeenCalled();
+            if (fault === "missing-observer")
+              expect(JSON.parse(readFileSync(join(outputDir, "descriptor-observer-unavailable.json"))))
+                .toMatchObject({ phase: "observer-preparation", path: observerPath, os_error_code: "ENOENT" });
+            expect(serverClosed).toBe(false);
+          } else {
+            expect(child.stdout.destroyed).toBe(true); expect(child.stderr.destroyed).toBe(true);
+            expect(child.disconnect).toHaveBeenCalledOnce(); expect(child.unref).toHaveBeenCalledOnce();
+            expect(serverClosed).toBe(true);
+          }
+          const names = readdirSync(outputDir);
+          expect(names).not.toContain("tcp-only.json"); expect(names).not.toContain("exec-ready.json");
+          expect(connect).not.toHaveBeenCalled(); expect(signal).not.toHaveBeenCalled();
+          return;
+        }
         if (fault !== "parallel-ps-error")
-          expect(queries.some(q => q.program === "/usr/sbin/lsof" && q.args.includes(String(ids.L)))).toBe(true);
+          expect(queries.some(q => q.program === observerPath
+            && q.args[0] === "launcher" && q.args[1] === String(ids.L))).toBe(true);
         const diagnostic = result.command_diagnostics;
         expect(diagnostic).toBeDefined(); // RED on frozen v1's generic-only error.
         const published = JSON.parse(readFileSync(join(outputDir, "result.json")));
@@ -367,13 +557,16 @@ describe("fixed OS command diagnostics through the real pre-enrollment caller (p
           && JSON.stringify(r.args) === JSON.stringify(queries[n].args))).toBe(true);
         expect(queries.every(q => q.options.encoding === "buffer" && q.options.maxBuffer === 65536
           && q.options.timeout > 0 && q.options.timeout <= 1000)).toBe(true);
+        if (fault === "closed-env")
+          expect(queries.filter(q => q.program === observerPath).map(q => Object.keys(q.options.env).sort()))
+            .toEqual([["LC_ALL", "PATH"]]);
         const failed = records.find(r => r.issued.phase === "pre-enrollment"
           && (fault === "parallel-ps-error" ? r.issued.callsite === "row" && r.issued.role === "P" : r.issued.callsite === "descriptors"));
         expect(failed.issued).toMatchObject({ ...(fault === "parallel-ps-error" ? {
           role: "P", program: "/bin/ps", args: ["-p", String(process.pid), "-ww",
             "-o", "pid=,ppid=,pgid=,uid=,lstart=,stat=,command="], expected_owned_role_identity: { pid: process.pid },
-        } : { role: "L", program: "/usr/sbin/lsof",
-          args: ["-nP", "+ff", "-a", "-p", String(ids.L), "-d", "3,4", "-FpfFt"],
+        } : { role: "L", program: observerPath,
+          args: ["launcher", String(ids.L), String(ids.E), String(ids.L), String(process.pid)],
           expected_owned_role_identity: { pid: ids.L, ppid: ids.E, pgid: ids.L } }),
           expected_is_not_this_query_observation: true, case: diagnostic.case });
         expect(failed.issued.sequence).toBeGreaterThan(1);
@@ -421,9 +614,11 @@ describe("fixed OS command diagnostics through the real pre-enrollment caller (p
         expect(child.disconnect).toHaveBeenCalledOnce(); expect(child.unref).toHaveBeenCalledOnce();
         expect(serverClosed).toBe(true); expect(connect).not.toHaveBeenCalled();
       } finally {
+        if (originalDyld === undefined) delete process.env.DYLD_INSERT_LIBRARIES;
+        else process.env.DYLD_INSERT_LIBRARIES = originalDyld;
         child.stdout.destroy(); child.stderr.destroy();
         vi.useRealTimers(); vi.restoreAllMocks();
-        for (const name of ["node:child_process", "node:net", "./inspected-meta-stock.mjs"]) vi.doUnmock(name);
+        for (const name of ["node:child_process", "node:net", "node:fs", "./inspected-meta-stock.mjs"]) vi.doUnmock(name);
         vi.resetModules(); rmSync(root, { recursive: true, force: true });
       }
     });
@@ -431,18 +626,39 @@ describe("fixed OS command diagnostics through the real pre-enrollment caller (p
 
 describe("actual first-party shell/FD candidate (explicit opt-in only)", () => {
   it.runIf(process.env.AIRLOCK_SYNTHETIC_PREEXEC_FD === "1")(
-    "proves real PID/argv/FD causality and connected exec refusal with no browser", async () => {
+    "proves real normal PID/argv/FD causality with no browser", async () => {
       const { runSyntheticPreexecFdFeasibility } = await load();
       const root = process.env.AIRLOCK_SYNTHETIC_PREEXEC_OUTPUT;
+      const started = performance.now();
       const normal = await runSyntheticPreexecFdFeasibility({ outputDir: root + "-normal", control: "normal" });
+      expect(performance.now() - started).toBeLessThan(45000);
       expect(normal.witnessed).toBe(true);
+      expect(normal.errors).toEqual([]);
       expect(normal.debug_handle_identity_supported).toBe(true);
       expect(normal.fd_round_trips).toBe(2);
       expect(normal.launcher_pid_preserved).toBe(true);
       expect(normal.native_qualified).toBe(false);
+    }, 50000);
+  it.runIf(process.env.AIRLOCK_SYNTHETIC_PREEXEC_FD === "1")(
+    "observes the actual connected helper refusal with no target execution", async () => {
+      const { runSyntheticPreexecFdFeasibility } = await load();
+      const root = process.env.AIRLOCK_SYNTHETIC_PREEXEC_OUTPUT;
+      const started = performance.now();
       const refused = await runSyntheticPreexecFdFeasibility({ outputDir: root + "-refused", control: "refuse-exec" });
-      expect(refused.connected_peer).toBe(true);
-      expect(refused.target_executed).toBe(false);
-      expect(refused.native_qualified).toBe(false);
-    }, 100000);
+      expect(performance.now() - started).toBeLessThan(45000);
+      expectQualifiedRefusal(refused);
+    }, 50000);
+  it.runIf(process.env.AIRLOCK_SYNTHETIC_PREEXEC_FD === "1")(
+    "rejects real inherited debugger sockets before enrollment or exec", async () => {
+      const { runSyntheticPreexecFdFeasibility } = await load();
+      const root = process.env.AIRLOCK_SYNTHETIC_PREEXEC_OUTPUT;
+      const started = performance.now();
+      const inherited = await runSyntheticPreexecFdFeasibility({ outputDir: root + "-inherited", control: "inherited-debug" });
+      expect(performance.now() - started).toBeLessThan(45000);
+      expect(inherited.errors).toEqual(["inherited_debug_handle"]);
+      expect(inherited.connected_peer).toBe(false);
+      expect(inherited.target_executed).toBe(false);
+      expect(inherited.native_qualified).toBe(false);
+      expect(inherited.child_exit).toEqual({ code: 2, signal: null });
+    }, 50000);
 });

@@ -364,7 +364,8 @@ describe("inspected Meta stock preparation", () => {
       "meta-additional-qualification.mjs", "meta-additional-qualification.test.mjs",
       "meta-additional-supervision.mjs", "meta-additional-supervision.test.mjs",
       "meta-rendezvous-peer.mjs", "meta-rendezvous-peer.test.mjs",
-      "meta-preexec-bootstrap.mjs", "meta-preexec-bootstrap.test.mjs", "meta-preexec-bootstrap-launcher"])
+      "meta-preexec-bootstrap.mjs", "meta-preexec-bootstrap.test.mjs", "meta-preexec-bootstrap-launcher",
+      "meta-owned-socket-observer.c", "meta-owned-socket-observer.cohort.json"])
       expect(pins[name]).toBe(hash(readFileSync(new URL(name, import.meta.url))));
   });
 

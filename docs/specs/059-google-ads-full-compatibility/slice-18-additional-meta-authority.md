@@ -728,6 +728,101 @@ Third diagnostic normal - unsupported descriptor observer (2026-10-22):
   ADR-0038 remains Proposed; all historical UNKNOWNs and Adobe's independent
   whole-helper gate remain unchanged.
 
+Supported descriptor-observer alternative - implementation in progress
+(2026-10-22):
+
+- The installed SDK declares `proc_pidinfo`/`proc_pidfdinfo` and an opaque
+  per-socket handle. A fixed self-only C probe actually observed distinct
+  socket identities, a matching `dup` identity, a bounded FD inventory and a
+  causal byte, then closed all five owned descriptors. It queried no other
+  PID and created no child/browser/profile or provider connection.
+- The initial compile failed because direct clang invocation lacked an SDK
+  sysroot; the original build error is retained. The explicit existing SDK
+  path compiled successfully without installing anything, then the single
+  self-only probe exited0. This is a supported mechanical candidate, not
+  cross-process or P/E/L/H qualification.
+- Implement the fixed observer with independently checked caller-to-E/L/H
+  ancestry, kernel birth/UID/group stability and complete bounded inventory.
+  Missing/unknown socket information, changed binaries/sources, partial
+  enumeration and races must fail closed. No arbitrary process/program,
+  fabricated lsof record, FD-number substitute or deadline expansion.
+- The source implementation now enumerates only the caller P's owned child E,
+  E's L and L's H before any target FD query, rechecks kernel birth/UID/group/
+  image and full FD inventories, and rejects changed/unknown/partial data.
+  It uses an explicitly typed JSON inventory, not fabricated lsof output.
+  A fixed `inherited-debug` first-party negative deliberately retains the
+  actual handles in H so cross-process alias detection can be falsified.
+- Runtime compilation was dropped before execution: preparation builds only
+  the fixed C source outside the mechanical case, retaining compiler/source/
+  SDK/binary hashes and actual build exit. The tracked cohort permits only
+  that exact binary at its hash-derived private path. Missing/mutated source,
+  headers, cohort or binary stops before E; there is no caller program input
+  and no compiler tree inside the 45-second fixture. No binary is committed.
+- TDD witnessed15 missing-assessor failures, then strict valid/contradictory
+  inventory tests, two missing C-source pins and two missing cohort pins.
+  Disabling the actual inherited-handle rejection defeated its regression,
+  then the source line was restored. Current focused pure/closure run passed
+  **136**, with131 filtered/opt-in cases not executed; JS lint and C syntax
+  checks passed. The cross-process observer and new bootstrap controls have
+  **not run** yet.
+- An initial API-units diagnostic failed before retaining its forked child's
+  PID/exit; its parent finally closed the pipe, but intended EOF/alarm exit
+  is not observed termination. Preserve that limited UNKNOWN without guessing
+  a PID. The corrected check persisted ownership first and unconditionally
+  reaped its child, exit0; raw `proc_listchildpids` return1 establishes PID
+  counts, not bytes. This is distinct from the earlier browser/profile
+  UNKNOWNs and grants no broader closure/cleanup authority.
+- Parent owns the exact new-method framing and any later actual execution.
+  Source/pure/compile-only work may proceed under the Proposed decision;
+  cross-process alias/closure and bootstrap controls still need real proof.
+  The failed lsof attempt stays failed. No native permission, window or slot
+  is created; historical UNKNOWNs and Adobe's separate gate stay open.
+
+Current-source Node/shell observer qualification (2026-10-22):
+
+- The first inherited-handle run failed before the C entrypoint: dyld rejected
+  the nondefault no-UUID build with `SIGABRT`/`missing LC_UUID`. Its66 artifact
+  locators and scoped cleanup are retained. Default platform linker metadata
+  corrected that loader issue; the new pinned binary's no-argument smoke
+  reached its closed-role guard without querying any PID.
+- The next owned inherited negative actually observed the same two socket
+  identities in L3/4 and H3/4 and rejected before enrollment/target. Parent
+  verified69 artifacts and the raw inventory/byte relationships. A separate
+  normal then actually passed two FD round-trips, preserved PID/birth and
+  socket identities through exec, and exited0 at17:28:02.112194Z. Parent
+  verified105 artifacts and five descriptor observations. These remain
+  genuine prior-source observations, not retroactive repair of failures.
+- Before claiming refusal qualification, the producer was tightened to
+  require H's explicit case/challenge-bound refusal receipt, L's real H
+  subprocess exit2, E's nonsignal exit2 and ordered timestamps. L's status
+  writer uses only shell builtins, exclusive600 output and no new process.
+  Generic exits/signals cannot substitute for refusal. Thirteen initial REDs
+  covered the missing observer/checker; the code-review finding in the test
+  consumer then had three connected-but-failed REDs and was fixed too.
+- Each actual control now has a separate sequential opt-in test and explicit
+  measured elapsed time below45 seconds. The runner uses one worker, no
+  file/test concurrency, no shuffle and bail1. The current-source formal
+  NORMAL/REFUSE-EXEC/inherited suite actually passed **3/3**, outer CLI0,
+  with118 unrelated cases filtered and unchanged source before/after.
+  This is one explicitly authorized three-control SDK-absent suite, not
+  another real Meta case or hidden retry.
+- Parent verification reconciled **265** original-artifact locators, all
+  query-byte/hash relationships, five/four/two typed descriptor observations,
+  exact refusal receipts/status/timestamps and expected control outcomes.
+  Ten newly registered PIDs were absent, seven registered groups empty and
+  all three exact endpoints refused connection. These are registered-subset
+  observations, not historical or host-wide clearance.
+- Focused pure/source-closure tests passed **154**, with unrelated/actual
+  controls filtered. Fresh reviewer99812462 passes cover the fixed observer,
+  closed execution environment, default-linker cohort and corrected refusal
+  producer/consumer/test ordering with their actual separate scopes. No
+  reviewer executed tests or rehashed originals.
+- This resolves the chosen Node/shell descriptor-observation blocker. Real
+  Chrome exec/CDP, real profile ownership, interrupted pre-return acquisition,
+  native orchestration, whole-native deadlines and native/vendor/C2/C3
+  acceptance remain open. ADR-0038 stays Proposed; extra Meta authority is
+  unspent. No Chrome, vendor SDK/provider, real event slot or source push ran.
+
 ### Reconciliation sweep
 
 - **Updated:** operator guide, architecture and open 059/060 plans distinguish
@@ -745,9 +840,18 @@ Third diagnostic normal - unsupported descriptor observer (2026-10-22):
   READY_FOR_IMPLEMENTATION row was stale. Board, ADR index and focused slice
   structural checks passed. Prior branch work and
   accepted ADR-0035/framing commits are outside this implementation checkpoint;
-  the checkpoint diff is from `c6cde7f`, not the entire branch versus main.
-- **Updated:** independent checkpoint reconciliation passed; it did not
-  re-grade ACs or claim a completed operator result.
+  the earlier authority-checkpoint diff was from `c6cde7f`, not the entire
+  branch versus main. The **current Node/shell observer checkpoint** is the
+  change from `d76c316` through its fixed C/cohort, Node/shell/consumer,
+  source-closure and related documentation delta. New untracked browser
+  prototype files are a separate next phase and excluded from this commit.
+- **Updated:** earlier independent checkpoint reconciliations passed for their
+  recorded source ranges; none re-graded ACs or completed the operator result.
+  The current `d76c316`-based reconciliation found only documentation status/
+  source-range inconsistencies; corrected text distinguishes historical lsof
+  failure, qualified Node/shell controls and open Chrome/native obligations.
+  Its bounded two-location correction rereview passed; that follow-up did not
+  repeat the source/evidence review or accept ACs, the whole slice or Native.
 - **Deferred:** parent-owned case-bound receipts,
   current finite resource coordination and actual additional operator result
   or concrete pre-admission blocker. Slice remains IN_PROGRESS; no lifecycle

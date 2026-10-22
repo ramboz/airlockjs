@@ -156,6 +156,7 @@ export function inspectedMetaSourcePins() {
     "meta-additional-supervision.mjs", "meta-additional-supervision.test.mjs",
     "meta-rendezvous-peer.mjs", "meta-rendezvous-peer.test.mjs",
     "meta-preexec-bootstrap.mjs", "meta-preexec-bootstrap.test.mjs", "meta-preexec-bootstrap-launcher",
+    "meta-owned-socket-observer.c", "meta-owned-socket-observer.cohort.json",
     "inspected-transport.mjs",
     "native-stock-capture.mjs", "native-stock-capture.test.mjs",
     "native-stock-meta.mjs", "native-stock-meta.test.mjs", "native-stock-egress.mjs", "native-stock-egress.test.mjs",

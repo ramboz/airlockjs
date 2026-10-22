@@ -1,0 +1,12 @@
+{
+  "schema": "airlock.owned-socket-observer-cohort.v1",
+  "source_sha256": "95303e1e8f32511325c8c361c5a42d8a45a4f0e0b5a56b4437558239757856f1",
+  "binary_sha256": "ab41ee22c115626c54cefcacedbb276f93c97d456327b30f32b31b304d875339",
+  "compiler_sha256": "1590ac950a3d627817d09ade5cb60b2115f17a72182a3141e010b4bcc482a0c9",
+  "sdk": "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+  "headers": {
+    "libproc.h": "246d87709fc6b9157ce5cf3c475656ac48e0e1ae8bbdc46cf45acd34294448cd",
+    "sys/proc_info.h": "e427fa96b348537b21552b9de71e01039410bcad2cedee5584c5e5fddafd70fc",
+    "sys/proc.h": "593af71b2740ba6248995691280bcb15f8900d46b1d9868f7345084aa0692949"
+  }
+}

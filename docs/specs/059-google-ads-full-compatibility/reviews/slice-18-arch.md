@@ -2,8 +2,8 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: arch
 verdict: pass
-reviewer: Retained jig:reviewer4ee56ebe turns0-6 bounded scopes; fresh correction scope separately noted
-reviewed_at: 2026-10-22T15:43:44Z
+reviewer: Retained architecture scopes plus explicitly scoped 99812462 observer/control-plane review
+reviewed_at: 2026-10-22T18:05:25Z
 prompt_source: review.py arch-review docs/specs/059-google-ads-full-compatibility/spec.md 059-18 --richer-skill arch-review
 substrate: not-shown
 applied_skill: none
@@ -37,3 +37,6 @@ Retained same reviewer turns5-6 PASS only for source/pure fixed P/E/L/H candidat
 
 LATER WAIT-STATE CORRECTION:
 Fresh synchronous reviewer "Bootstrap identity correction" returned bounded PASS for the new U/Us lifetime-eligibility correction in that real control plane, not a separately labelled new whole architecture pass. Its source/type/identity checks and retained original-query replay do not supply progress, cleanup or descriptor support. V3 falsified installed lsof +ff support and remains blocked/unqualified. Retired reviewers are not represented as rereviewing today's source; raw fresh verdict059-18-macos-wait-state-independent-review.txt.
+
+LATER SUPPORTED OBSERVER CHECKPOINT:
+Fresh99812462turns0-6 reviewed the fixed public-SDK observer and source/control-plane deltas plus selected actual evidence. Separate prebuilding, exact executable/cohort validation, closed environment and typed complete inventory/ancestry checks add no generic launcher or native authority. The missing-UUID executable was corrected using normal platform defaults; the failed build/run remains failed. Current Node/shell controls pass3/3, but this is no new whole architecture audit by the retired reviewer and no real-browser/profile/pre-return/native or host/helper exclusion claim. Full actual reviewer scope/history059-18-owned-observer-review-history.txt.

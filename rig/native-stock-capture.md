@@ -603,6 +603,77 @@ self-contained observer then ran the single v3 diagnostic. Old v1/v2 failures
 remain unchanged. No Chrome/profile, SDK/provider, native case permission,
 hold, window or real-slot execution occurred.
 
+### macOS socket observer replacement
+
+The Node/shell replacement is `meta-owned-socket-observer.c`, using
+the installed SDK's `proc_pidinfo`/`proc_pidfdinfo` socket inventory and opaque
+socket handles. It is not a fallback to FD numbers or missing lsof fields.
+Its scoped actual controls are qualified below; real-browser/native resource
+readiness is separate and remains unproved.
+The helper first enumerates only the invoking P's issued E/L/H child chain;
+it rejects foreign ancestry, changed kernel birth/UID/group/image, incomplete
+inventories, unknown types and socket query races. Typed non-socket descriptors
+remain explicit in the complete inventory; every socket needs a nonzero ID.
+
+The Node reader binds complete before/after inventories to the expected roles,
+requires distinct UNIX sockets at L3/4, and rejects any H alias regardless of
+its FD number. Its fixed `inherited-debug` negative deliberately leaves those
+same first-party handles inherited by H. That control must actually reject
+before enrollment/exec; a mock or self-only socket test does not prove it.
+
+Compilation is separate preparation, **not inside the fixture**. This avoids
+introducing compiler descendants into the mechanical resource/timeout
+contract. The tracked `meta-owned-socket-observer.cohort.json` pins the exact
+C source, binary, compiler and SDK headers. Only that binary is accepted at
+`rig/out/owned-socket-observer/<binary_sha256>/observer`, with700 permissions,
+owned file identity and unchanged content checks around every query. Missing/
+stale preparation stops before E; no caller-selected program is accepted and
+no binary is committed.
+
+Reproduction uses the recorded fixed command with the existing installed
+compiler, explicit SDK sysroot, `-std=c11 -Wall -Wextra -Werror -O2`,
+this exact C source and `-lproc`. Preserve normal platform linker metadata:
+the first new negative retained a dyld `missing LC_UUID` abort from a
+nondefault `-no_uuid` build; that build is not qualified. A corrected
+default-linker build passed the zero-query closed-role loader smoke only,
+not a descriptor or cross-process test. Do not overwrite an existing
+retained artifact or automatically update its accepted hash. A rebuilt binary
+must match the cohort's recorded hash; a toolchain change requires new
+source/proof review, not an environment override.
+
+The source/pure checkpoint passed136 selected tests, including both source
+closures; the remaining131 filtered/opt-in cases were not executed. C syntax
+and JS/shell lint checks pass, and disabling the actual inherited-ID rejection
+defeated its regression. That earlier checkpoint did not establish cross-process/exec behavior. The
+later actual current-source controls are recorded below; source review and
+compilation alone are not their evidence.
+Each local fixture remains45 seconds; its three-case opt-in test has a
+150-second outer runner bound, not a larger native allowance.
+
+### Qualified Node/shell controls, not native browser readiness
+
+The current-source fixed first-party control tests passed3/3 with actual outer
+CLI0: normal, connected helper refusal and inherited-handle rejection.
+Each measured its elapsed time below45 seconds, with one worker, sequential
+ordering, no shuffle and bail1. Parent verification covered265 artifacts,
+complete query-byte/hash relationships, five/four/two descriptor observations,
+stable identities through exec and exact controlled-refusal evidence.
+Ten recorded PIDs were absent, seven recorded groups empty and all three
+registered endpoints refused after completion.
+
+Refusal is not inferred from a generic nonzero child exit: H must record its
+actual explicit denial bound to the case/challenge/argv/PIDs, L must record
+H's real subprocess status2, E must exit2 without a signal, and the producer
+must reconcile those timestamps and original handles. The test consumer also
+requires empty errors and the successful observation registration.
+
+The earlier missing-UUID build remains failed, and the earlier successful
+inherited/normal samples retain their own source leases and original hashes.
+No failure is relabelled. This proof is limited to the first-party Node/shell
+target: no real Chrome/profile/CDP, pre-return browser abort, vendor SDK,
+native case, C2/C3 or full replacement is qualified. Historical UNKNOWNs and
+Adobe's independent helper gate remain unresolved; no host exclusion follows.
+
 ### Historical P/E/L/H pre-run source/pure checkpoint
 
 This section preserves the original source/pure checkpoint **before v1-v3**.

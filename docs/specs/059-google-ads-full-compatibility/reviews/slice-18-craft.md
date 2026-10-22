@@ -2,8 +2,8 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: craft
 verdict: pass
-reviewer: Retained jig:reviewer4ea41474 turns0-6 bounded scopes; fresh correction scope separately noted
-reviewed_at: 2026-10-22T15:43:43Z
+reviewer: Retained craft scopes plus explicitly scoped 99812462 observer/consumer/evidence review
+reviewed_at: 2026-10-22T18:05:25Z
 prompt_source: review.py pr-review docs/specs/059-google-ads-full-compatibility/spec.md 059-18 --richer-skill pr-review
 substrate: not-shown
 applied_skill: none
@@ -33,3 +33,6 @@ Retained same reviewer turns5-6 PASS for source/pure helper/shell/tests/source c
 
 LATER WAIT-STATE CORRECTION:
 Fresh synchronous reviewer task "Bootstrap identity correction" returned a bounded PASS after today's U/Us correction; it did not run a new whole craft pass. This continuity is separately scoped, without attributing today's source to the retired reviewers. Source/type/identity/kernel negatives and unchanged protocol/deadline/UNKNOWN handling were inspected. The actual v3 unsupported lsof option remains a concrete blocker, not a reviewer-approved fallback. See059-18-macos-wait-state-independent-review.txt; native/case/whole-slice acceptance remains open.
+
+LATER SUPPORTED OBSERVER CHECKPOINT:
+The supported C observer is now reviewed by fresh99812462turns0-6 as recorded separately; this is not a reactivated old craft reviewer or new whole craft audit. A substantive refusal consumer false-positive finding (turn3) was preserved, reproduced by three connected-but-failed REDs and corrected (turn4). Current-source normal/refusal/inherited actual controls pass3/3 within their measured bounds. This new source/evidence continuity is bounded and explicit; older source leases stay historical, no browser/native grant or whole-slice/ADR acceptance follows. See059-18-owned-observer-review-history.txt.

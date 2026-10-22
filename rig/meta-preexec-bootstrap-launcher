@@ -3,7 +3,23 @@
 set -eu
 case "$0" in /*/meta-preexec-bootstrap-launcher) ;; *) exit 2 ;; esac
 here=${0%/*}
-if /opt/homebrew/Cellar/node/24.10.0/bin/node "$here/meta-preexec-bootstrap.mjs" --fixed-h "$@" 3>&- 4>&- </dev/null >/dev/null 2>/dev/null; then
-  exec /opt/homebrew/Cellar/node/24.10.0/bin/node "$here/meta-preexec-bootstrap.mjs" --fixed-fd-target "$@"
+helper_status=0
+if [ "${AIRLOCK_SYNTHETIC_BOOTSTRAP_INHERIT_DEBUG:-0}" = 1 ]; then
+  if /opt/homebrew/Cellar/node/24.10.0/bin/node "$here/meta-preexec-bootstrap.mjs" --fixed-h "$@" </dev/null >/dev/null 2>/dev/null; then
+    exec /opt/homebrew/Cellar/node/24.10.0/bin/node "$here/meta-preexec-bootstrap.mjs" --fixed-fd-target "$@"
+  else
+    helper_status=$?
+  fi
+elif [ "${AIRLOCK_SYNTHETIC_BOOTSTRAP_INHERIT_DEBUG:-0}" = 0 ]; then
+  if /opt/homebrew/Cellar/node/24.10.0/bin/node "$here/meta-preexec-bootstrap.mjs" --fixed-h "$@" 3>&- 4>&- </dev/null >/dev/null 2>/dev/null; then
+    exec /opt/homebrew/Cellar/node/24.10.0/bin/node "$here/meta-preexec-bootstrap.mjs" --fixed-fd-target "$@"
+  else
+    helper_status=$?
+  fi
+fi
+if [ "$helper_status" = 2 ] && [ -f "${AIRLOCK_SYNTHETIC_BOOTSTRAP_ROOT:-}/helper-exec-refused.json" ]; then
+  umask 077
+  set -C
+  printf '{"schema":"airlock.synthetic-launcher-helper-exit.v1","launcher_pid":%d,"helper_exit_code":%d,"native_authority":false}\n' "$$" "$helper_status" > "$AIRLOCK_SYNTHETIC_BOOTSTRAP_ROOT/launcher-helper-status.json"
 fi
 exit 2

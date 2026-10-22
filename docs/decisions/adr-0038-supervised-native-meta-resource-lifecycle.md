@@ -237,6 +237,71 @@ allocation and interrupts E; it must not merely delay delivery of an already
 returned handle. Every actual acquisition needs supported closure or truthful
 attributable abort evidence; native execution stays blocked.
 
+### Descriptor-observer replacement under qualification
+
+The rejected lsof mechanism is not replaced by an empty identity list or a
+numeric-FD assertion. The current alternative is a fixed first-party C
+observation helper using installed macOS SDK declarations:
+`libproc.h:96-97` exports `proc_pidinfo`/`proc_pidfdinfo`;
+`sys/proc_info.h:538-571` calls `socket_fdinfo.psi.soi_so` an **opaque handle
+of socket**; the bounded descriptor inventory and socket flavor are defined
+at `:659-675,717,777-778`.
+
+A self-PID-only executed probe on2026-10-22 returned nonzero, distinct socket
+handles, the same handle for a `dup` alias, a complete bounded self inventory
+and a real transmitted byte, then closed all five created descriptors. The
+installed compiler needed its explicit installed SDK sysroot; the initial
+build error is preserved. No dependency installation, other-PID observation,
+child acquisition, browser or native execution was part of that proof.
+
+This self/dup evidence is **not cross-process isolation proof**. The candidate
+must independently constrain every target to the invoking supervisor's verified
+E/L/H ancestry, UID, groups and kernel birth identities, before and after the
+query. It must enumerate the complete bounded FD inventory, query every
+socket, reject unknown types/errors/truncation/races, and compare nonzero
+opaque handles rather than numbers or fabricated lsof output. Explicitly
+typed non-socket descriptors are not missing sockets or guessed identities.
+
+Compile only the fixed source as a **separate preparation step** using the
+existing installed toolchain; retain source/header/compiler/binary/command
+provenance. Runtime compilation was rejected because compiler descendants and
+their IO would otherwise need another ownership/termination contract inside
+the mechanical case. A tracked cohort pins the exact permitted source,
+binary, SDK headers and compiler; runtime accepts only that known binary at
+its hash-derived private path, with identity/content checks around each query.
+No caller-selected executable or dynamically accepted build result is allowed.
+No binary is committed. Missing or mismatched preparation blocks before E.
+
+The existing mechanical deadline includes artifact validation and observations,
+not a newly restarted allowance. Native case limits are unchanged. This is
+reference tooling, not a Node addon, browser/native dispatch capability or
+arbitrary-PID/program interface.
+
+Before integration can qualify, execute an owned cross-process inherited-
+socket positive and closed-socket negative, followed by the fixed bootstrap's
+normal/refusal and failure controls. A self-only pass, compilation, mocks,
+source review or manually supplied JSON cannot supply those results. The new
+method stays unqualified until that evidence actually exists.
+
+Subsequent first-party Node/shell evidence on2026-10-22 passed the actual
+current-source normal, connected-refusal and inherited-socket controls,
+with per-case measured elapsed time below45 seconds and outer CLI0.
+Parent verification retained265 artifacts and the exact resource/query
+relationships. This qualifies that fixed Node/shell observation mechanism
+only: real Chrome/CDP/profile ownership and pre-return browser interruption
+remain unimplemented/unproved, as does the native additional execution path.
+It does not accept this Proposed decision or create execution authority.
+
+A separate API-wrapper check established that `proc_listchildpids` returns a
+PID **count**, unlike `PROC_PIDLISTFDS`'s byte count. Its first diagnostic
+asserted the wrong units before saving its child PID; that failed probe did
+not observe the child exit and remains an explicit limited UNKNOWN, not a
+closure claim from its source's EOF/alarm intent. A corrected diagnostic saved
+the issued PID first, retained raw return1 for its single child, and always
+waited/reaped that child (actual exit0). Neither probe created a browser,
+profile or provider connection. They cannot clear the independent historical
+resource gates.
+
 ## Consequences
 
 **Becomes easier:**
@@ -269,13 +334,18 @@ attributable abort evidence; native execution stays blocked.
 - Unverified: the complete acquisition/observation/abort/publication contract
   fits the unchanged case deadline. Qualify reserves and reject incompatible
   windows rather than assuming a successful fast path establishes the bound.
-- Blocked by executed evidence (2026-10-22): this host's `/usr/sbin/lsof`
+- Historical mechanism falsified by executed evidence (2026-10-22): this host's `/usr/sbin/lsof`
   4.91 rejects `+ff` and does not advertise file-structure-address field `F`.
-  The first-party bootstrap's descriptor observer therefore cannot currently
-  prove specific debugger-handle noninheritance. A supported alternative
-  needs its own scoped evidence; FD numbers, zero identities, generic manual
+  That lsof observer could not prove debugger-handle noninheritance. The
+  subsequent fixed SDK observer qualified the Node/shell mechanism with its
+  own actual controls; FD numbers, zero identities, generic manual
   text and skipped checks are not substitutes. The normal-only v3 diagnostic
   stopped before enrollment/exec; no browser or native case ran.
+- The fixed Node/shell cases now demonstrate cross-process socket-handle
+  comparability, inherited-alias rejection and complete observed inventories.
+  Still unverified: real Chrome/profile and interrupted browser acquisition,
+  including whether its descriptor dynamics can be sampled without concealing
+  changed/vanished entries. Node/self/dup results do not qualify that context.
 
 ## Kill criteria
 
@@ -294,8 +364,10 @@ Frame review must settle the closed resource-ticket, launcher rendezvous,
 deadline and authoritative result contract before implementation is treated as
 ready. Exact helper schemas/reserves require executed evidence; no guessed
 numeric cutoff is accepted here. Native admission stays blocked.
-The supported descriptor-isolation mechanism is now an explicit open question;
-the conditional frame pass did not establish the rejected lsof capability.
+The Node/shell descriptor-isolation mechanism is now supported by its actual
+controls. Applying it to real Chrome, profile/late-acquisition cleanup and the
+native case remains open; the conditional frame pass never supplied the
+rejected lsof capability or those unexecuted browser results.
 
 0038 is a local provisional reservation coordinated with the Adobe lane;
 0036/0037 remain its identifier-only reservations. On2026-10-22,0039 was

@@ -29,6 +29,7 @@ const SOURCE_FILES = ["native-stock-capture.mjs", "native-stock-meta.mjs", "nati
   "meta-additional-supervision.mjs", "meta-additional-supervision.test.mjs",
   "meta-rendezvous-peer.mjs", "meta-rendezvous-peer.test.mjs",
   "meta-preexec-bootstrap.mjs", "meta-preexec-bootstrap.test.mjs", "meta-preexec-bootstrap-launcher",
+  "meta-owned-socket-observer.c", "meta-owned-socket-observer.cohort.json",
   "inspected-meta-stock.mjs", "inspected-meta-stock.test.mjs", "inspected-transport.mjs",
   "inspected-http-wire.mjs", "inspected-http-wire.test.mjs",
   "inspected-meta-policy.mjs", "inspected-meta-policy.test.mjs",

@@ -2,8 +2,8 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: compliance
 verdict: pass
-reviewer: Retained jig:reviewer173fe812 turns0-7 bounded scopes; fresh synchronous Bootstrap identity correction review
-reviewed_at: 2026-10-22T15:43:43Z
+reviewer: Retained bounded scopes plus jig:reviewer99812462-fff9-405e-85b8-6dd6b735ab0d turns0-6 owned-observer checkpoint
+reviewed_at: 2026-10-22T18:05:24Z
 prompt_source: review.py implementation docs/specs/059-google-ads-full-compatibility/spec.md 059-18
 ---
 
@@ -35,3 +35,6 @@ Retained same reviewer turns6-7 PASS for the SOURCE/PURE P/E/L/H fixed first-par
 
 WAIT-STATE ROOT CORRECTION ON RESUME:
 A fresh synchronous jig:reviewer task "Bootstrap identity correction" independently reviewed today's coupled U/Us eligibility correction through the current bootstrap/peer enrollment/cleanup control plane and returned PASS. No UUID was returned or invented. This is a bounded source correction review, not a newly manufactured full compliance/craft/architecture pass for every historical line. Local ps documentation and v2 original query010 establish the unchanged P lifetime;112 pure passes followed11 reds with one opt-in skipped. No progress/closure, deadline, ownership or native authority was inferred from U. V3 later stopped unqualified on an actually unsupported lsof +ff option; no review pass supplies that missing capability. Raw fresh verdict059-18-macos-wait-state-independent-review.txt.
+
+SUPPORTED OBSERVER REPLACEMENT / NODE CHECKPOINT:
+Fresh reviewer99812462-fff9-405e-85b8-6dd6b735ab0d turns0-6 reviewed the new fixed C/typed-reader/cohort integration, bounded environment/default-linker/test/consumer deltas and selected actual receipts. Turn3's real consumer needs-changes was fixed with the shared exact refusal assertion and three RED controls; turn4 and later passes are scoped, not an uninterrupted all-pass history. The current actual fail-fast sequential three-control SDK-absent suite passed3/3; parent reconciled265 artifacts and registered-subset cleanup. The reviewer did bounded file/regex inspection, not full265-file independent rehash/reexecution. This qualifies only the Node/shell mechanism, not real-browser or native/whole-slice readiness; source and history in059-18-owned-observer-review-history.txt.
