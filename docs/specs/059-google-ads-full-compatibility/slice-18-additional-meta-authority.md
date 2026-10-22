@@ -468,6 +468,25 @@ resource obligations are not implemented or qualified yet.
   new exact owner acceptance. Independent framing, implementation reviews and
   actual qualification remain required; no live case follows from drafting.
 
+Proposed bootstrap refinement after the Node peer checkpoint:
+
+- Distinguish supervisor P, launching Node E, shell/eventual-Chrome L and
+  connecting Node helper H. H's socket identity and membership in L's group
+  require their own closed predicate; the direct-peer group-leader rule stays
+  unchanged.
+- Scope E's TMPDIR before its module startup, not merely the browser launch
+  environment. A fixed shell forwards driver arguments unchanged, retains
+  FD0-4 across exec and closes FD3/4 only in H. No Node execve/private browser
+  hooks, browser-log handshake or unsupported profile option.
+- A parent-written enrollment after scoped E/L/H observations may enable
+  only TCP. Actual H kernel peer plus revalidated L/profile and durable ledger
+  are still required for exec-ready. Loss before attribution must not become
+  ownership, exec permission or closed cleanup.
+- No implementation/browser readiness is inferred from this refinement.
+  Pure parsing/role tests and actual first-party shell/FD/PID proof precede
+  separately qualified real Chrome/profile/pre-return interruption controls.
+  The earliest launching-Node failure and whole-case timing remain unproved.
+
 Bounded owned rendezvous-peer feasibility checkpoint (2026-10-21):
 
 - This is conservative offline falsification under Proposed ADR-0038, not

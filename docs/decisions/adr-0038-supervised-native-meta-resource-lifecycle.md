@@ -186,6 +186,57 @@ RPC framework or configurable launcher. Narrow helper schemas may be refined
 during TDD; an unresolved attribution/deadline capability is not a schema nit
 and keeps native readiness blocked.
 
+### Proposed pre-exec bootstrap actors
+
+The next mechanical candidate distinguishes **P** (supervisor), **E**
+(launching Node), **L** (shell launcher/eventual Chrome PID), and **H**
+(separate fixed Node rendezvous helper). It is not the implemented direct-child
+Node/TCP probe and does not inherit that probe's group-leader predicate.
+
+Grounded constraints: Playwright allocates its profile using the launching
+Node's `os.tmpdir()` before spawn (`coreBundle.js:39489-39548`); setting only
+the browser's launch `env` does not scope that earlier allocation. Driver
+arguments supply the profile/debug pipe (`:43046-43063`), with stdio0-4 and
+FD3/4 for the debugger (`:8898-8913,39605-39609`). Installed Node typings say
+`process.execve` preserves only stdin/stdout/stderr
+(`node_modules/@types/node/process.d.ts:2175-2187`); it is not this launcher.
+Existing confinement is network confinement, not case-root filesystem isolation.
+
+1. P records the private root and dedicated temporary subtree before E exists.
+   E receives the scoped TMPDIR before Node/module startup; parent-global
+   environment is unchanged. Observe profile/artifact directories only below
+   that registered root, without calling them filesystem-sandboxed.
+2. L receives and forwards the exact driver argument vector. It rejects
+   duplicate or out-of-root profile arguments, invokes fixed H, then uses
+   POSIX shell exec into the unchanged confined launcher. L retains PID/group/
+   birth and FD0-4; close FD3/4 only in H's invocation so H cannot consume or
+   retain the driver pipes. Do not use browser stdout/stderr for the handshake.
+3. While E is alive, P attributes scoped E-to-L-to-H ancestry and exact images,
+   L's group-leader identity/profile and H's membership in **L's group**.
+   Persist both separately before permitting H's TCP. A closed role-specific
+   predicate is required; never silently relax the proven direct-peer rule.
+4. H has no inherited Node IPC channel to P. A private case-root enrollment
+   record may enable only its fixed TCP attempt after P's scoped OS checks;
+   it grants no Chrome exec. The subsequent kernel-attributed H connection,
+   private challenge and revalidated L/profile must be durably recorded before
+   the final exec-ready response. Announcement, claimed PID, nonce or
+   enrollment-file possession alone cannot establish ownership.
+5. After E fails, preserve any already observed L/H acquisition and follow
+   only those recorded lifetimes through permitted exec changes. If E dies
+   before L/H attribution, issue no TCP/exec-ready permission: L/H must
+   self-terminate boundedly, and unproved disposition remains an explicit
+   case-scoped abort, not claimed closure. Proving this earliest seam is still
+   a readiness obligation, not settled by a planned timeout.
+
+First falsify argument/profile parsing, role/group predicates and real shell
+FD/PID preservation with fixed SDK-absent first-party helpers. Only a separately
+reviewed/qualified browser phase may test real Chrome/CDP and pre-return
+interruption. A genuine pre-return control holds L before exec, freshly stops
+the owned E while its launchServer is pending, then permits/observes Chrome
+allocation and interrupts E; it must not merely delay delivery of an already
+returned handle. Every actual acquisition needs supported closure or truthful
+attributable abort evidence; native execution stays blocked.
+
 ## Consequences
 
 **Becomes easier:**

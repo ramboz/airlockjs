@@ -2,8 +2,8 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: frame-critique
 verdict: pass
-reviewer: jig:reviewer72c7f492-b9d7-498f-9bf1-aa4c83cc8ccd turn0 original; jig:reviewerf535fe11-c1b6-4d93-8a16-a7e91801e193 turn0 native framing
-reviewed_at: 2026-10-21T22:59:28Z
+reviewer: jig:reviewer72c7f492-b9d7-498f-9bf1-aa4c83cc8ccd original; jig:reviewerf535fe11-c1b6-4d93-8a16-a7e91801e193 turns0-1 native conditional scopes
+reviewed_at: 2026-10-22T00:14:27Z
 prompt_source: review.py frame-critique docs/specs/059-google-ads-full-compatibility/spec.md 059-18
 ---
 
@@ -17,3 +17,6 @@ Actual fresh jig:reviewerf535fe11-c1b6-4d93-8a16-a7e91801e193 turn0 PASS, separa
 
 SCOPE:
 Preserve original grant/physical/privacy/one-shot limits, old failures, historical UNKNOWNs and Adobe's separate helper gate. No architecture acceptance, implementation readiness, case binding, hold, window, slot or native authority is created by either frame pass. Proposed ADR0038 mechanical attribution/deadline assumptions still need proof.
+
+BOOTSTRAP REFINEMENT FOLLOW-UP:
+Actual f535fe11-c1b6-4d93-8a16-a7e91801e193 turn1 separately labelled refined native AC5/8 PASS. H belongs to L's group, so the proven direct-peer group-leader predicate cannot qualify this topology. The refinement requires a separate closed predicate, independently attributed H kernel connection, revalidated L/profile and durable ledger before exec; enrollment permits TCP only. Staged first-party shell/FD/PID proof claims no browser/profile readiness. Earliest-failure disposition and whole-case timing stay open; ADR0035 limits remain unchanged. This is conditional framing, not a capability proof, native approval, historical UNKNOWN closure or Adobe helper clearance.

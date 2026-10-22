@@ -2,8 +2,8 @@
 adr: 0038
 pass: frame-critique
 verdict: pass
-reviewer: jig:reviewerf535fe11-c1b6-4d93-8a16-a7e91801e193 turn0
-reviewed_at: 2026-10-21T22:59:28Z
+reviewer: jig:reviewerf535fe11-c1b6-4d93-8a16-a7e91801e193 turns0-1 conditional scopes
+reviewed_at: 2026-10-22T00:14:27Z
 prompt_source: review.py frame-critique docs/decisions/adr-0038-supervised-native-meta-resource-lifecycle.md
 ---
 
@@ -17,3 +17,6 @@ SPECIFIC ISSUES:
 
 PROVENANCE:
 Actual fresh read-only jig:reviewerf535fe11-c1b6-4d93-8a16-a7e91801e193 turn0, separately labelled ADR0038 verdict. No commands/tests/probes/SDK/browser/network/rehashes/process/profile actions or implementation verification.
+
+BOOTSTRAP REFINEMENT FOLLOW-UP:
+Actual same reviewer turn1, separately labelled ADR0038 PASS. The load-bearing risk is attribution of distinct L/H lifetimes before permitting L exec when H owns the TCP connection. Pinned profile/FD facts support a mechanical shell route, not execution proof. E dying before discovery is the strongest counterexample; the proposal withholds permission and records an unqualified case-scoped abort instead of treating enrollment/timeouts as attribution or closure. Conditional framing survives only for first-party falsification; earliest-seam attribution and bounded self-termination remain unproved. No reviewer commands/tests/rehashes or resource actions.
