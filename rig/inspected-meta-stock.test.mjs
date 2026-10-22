@@ -373,6 +373,11 @@ describe("inspected Meta stock preparation", () => {
       "sdk-absent-chrome-io.test.mjs", "sdk-absent-chrome-completion.mjs", "sdk-absent-chrome-completion.test.mjs",
       "sdk-absent-chrome-admission.test.mjs"])
       expect(pins[name]).toBe(hash(readFileSync(new URL(name, import.meta.url))));
+    const namespace = readdirSync(new URL(".", import.meta.url))
+      .filter(name => name.startsWith("sdk-absent-owned-namespace") && /\.(mjs|json|Dockerfile)$/.test(name));
+    expect(namespace.length).toBeGreaterThanOrEqual(21);
+    for (const name of namespace)
+      expect(pins[name]).toBe(hash(readFileSync(new URL(name, import.meta.url))));
   });
 
   it("rejects a byte-identical authority relocated beside a fresh canonical namespace", async () => {

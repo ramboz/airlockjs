@@ -90,6 +90,12 @@ admission coverage is in `rig/sdk-absent-chrome-admission.test.mjs:1-69`.
 The guarded source compliance pass does not solve detached-child custody or
 qualify execution. A contained-runner alternative is conditional framing
 only, not an established new resource boundary.
+Its fixed namespace S/W/P and Docker-adapter source has bounded compliance,
+craft and architecture passes after the recorded source corrections.
+Engine/image/clock admission still refuses every status at
+`rig/sdk-absent-owned-namespace-image-admission.mjs:9`; NOT_PREPARED remains.
+No source model, copied readiness flag or retrospective clock observation
+may become a qualified workload/native capability.
 See the [executed blocker](../rig/native-stock-capture.md#installed-descriptor-observer-blocker)
 and [current replacement status](../rig/native-stock-capture.md#macos-socket-observer-replacement).
 

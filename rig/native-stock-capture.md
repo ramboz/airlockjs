@@ -704,6 +704,29 @@ An isolated local PID-namespace alternative is being conditionally framed,
 not executed or accepted. Client availability and public platform citations
 are not a ready runtime or permission to start a container.
 
+The separate `sdk-absent-owned-namespace*` candidate now has fixed supervisor/
+worker/entry and Docker-adapter source in both closures, but its initial
+independent compliance review found four source defects under correction.
+Its engine/image/clock records remain NOT_PREPARED and runtime entries
+hard-refuse. Source/pure actor tests are not actual ownership or namespace
+termination evidence. The qualified clock-proof contract and a separately
+framed no-workload observation path are not implemented runtime permissions.
+
+The corrected22-file/four-pin source checkpoint passed bounded compliance
+for permit custody, ordered replay, exact conservative allowances and its
+seven controlled P/S effect sites. Its source/pure pipeline still doubles
+all physical boundaries. The later corrected source has compliance, craft
+and architecture passes; final bounded source reconciliation also passed.
+There is no runtime,
+namespace or clock qualification.
+
+The consumer craft corrections now have a bounded pass: settlement follows
+the actual producer dependency graph rather than array order, and exactly
+empty pre-init-loss output is accepted without relaxing nonempty framing.
+Current source/pure coverage is208 cases plus two pin assertions. Architecture
+also passed for the hard-disabled source boundary; final reconciliation
+passed after a documentation-only correction. No runtime entry was enabled.
+
 ### Historical P/E/L/H pre-run source/pure checkpoint
 
 This section preserves the original source/pure checkpoint **before v1-v3**.

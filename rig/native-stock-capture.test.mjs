@@ -65,6 +65,11 @@ describe("canonical stock reservation using synthetic owner-shaped records only"
       "sdk-absent-chrome-io.test.mjs", "sdk-absent-chrome-completion.mjs", "sdk-absent-chrome-completion.test.mjs",
       "sdk-absent-chrome-admission.test.mjs"])
       expect(pins[name]).toBe(hash(await readFile(new URL(name, import.meta.url))));
+    const namespace = (await readdir(new URL(".", import.meta.url)))
+      .filter(name => name.startsWith("sdk-absent-owned-namespace") && /\.(mjs|json|Dockerfile)$/.test(name));
+    expect(namespace.length).toBeGreaterThanOrEqual(21);
+    for (const name of namespace)
+      expect(pins[name]).toBe(hash(await readFile(new URL(name, import.meta.url))));
   });
   it("durably reserves once without certifying owner identity or execution eligibility", async () => {
     const { reserveStockSlot } = await load(), f = await slotFixture();

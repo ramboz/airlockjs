@@ -878,12 +878,77 @@ SDK-absent Chrome source/pure handoff (2026-10-22; not actual qualification):
   descendant custody. Craft and architecture passed for this guarded source
   scope, not runtime custody. A default five-second
   pure-runner timeout was corrected to the existing case cap, not erased.
-- The contained Node candidate's first handoff has75 source/model tests but
-  no actual S/executor/inspect adapter. That implementation is still incomplete
-  and is being finished behind NOT_PREPARED gates, not promoted to readiness.
+- The contained Node candidate's first handoff had75 source/model tests but
+  had no S/executor/inspect implementation. That original model checkpoint
+  remains historical, not a claim of actual independent custody.
   Its original source/pure artifacts were verified and moved unchanged from
   the accidental repository directory to private session storage; relocation
   mappings preserve the historical paths. No runtime action occurred.
+- Its next handoff implements fixed S/W/P actors, a fixed Docker executor and
+  typed inspection source, with all21 namespace files in both source closures.
+  It reports132 source/pure tests plus two closure assertions under doubled
+  boundaries; parent verified25 changed source hashes/four dependencies,
+  selected raw logs/restoration and unchanged historical/authority inputs.
+  No actual client, engine, image, namespace, clock or browser was exercised.
+- Initial independent namespace compliance returned **needs-changes** for four
+  HIGH source defects: lease validation missing after blocking registration,
+  failed cleanup cached across late creation, init dropping required payload
+  context, and a consumer still bound to model rather than actor/P output.
+  Corrections are in progress. These are implementation defects, not mere
+  missing permissions; hard NO-GO/NOT_PREPARED and qualification false remain.
+- The correction handoff now contains22 namespace source files and four
+  closure edits, with167 source/pure tests plus two closure assertions.
+  Source/client/config checks follow blocking publication at each spawn
+  boundary; late creation retains cleanup continuation; init passes only
+  the exact payload context; and the public consumer reads real P/S output
+  and the complete fixed entry command rather than model artifacts.
+  The integrated pipeline runs actual source functions with all physical
+  boundaries doubled. Correction compliance rereview found the substantive
+  wiring fixes but still required changes: permit writes also needed
+  post-publication lease validation, the consumer must enforce transcript
+  order, and ARM durations must respect the declared conservative remaining
+  budget rather than only the generic45-second ceiling. Those three source
+  corrections were required; that intermediate review was not a correction
+  pass. Their subsequent bounded pass is recorded below.
+- Parent verified26 current source hashes/four dependencies, raw167/2 logs,
+  three spawn-revalidation and two late-cleanup guard-removal failures,
+  exact restoration and unchanged authority/clock-gap artifacts. Historical
+  75/132 checkpoints and failed pipeline/parser/lint attempts remain intact.
+  None is actual process/namespace/clock/cleanup evidence. Valid buffered WORK
+  may still arrive after S dies; S loss invalidates qualification, not already
+  issued bytes. Detected loss prevents further admission/cases.
+- The next correction handoff reports189 source/pure tests and two closure
+  assertions. It accounts for seven fixed P/S effect frontiers, rechecks
+  leases after the last blocking boundary, replays ordered source transcripts
+  and uses the same `conservativeArm` helper for production and consumption.
+  Guard removals caused six permit, one ordering and four budget failures;
+  exact restoration passed. Parent verified26 source/four dependency hashes,
+  the reported log relationships, historical correction/clock-gap originals
+  and unchanged authority. Independent correction rereview passed only the
+  three specified defects, seven effect sites and coupled checks in the
+  current22/four-pin surface. Fresh craft then found two blocking consumer
+  gaps: cleanup timestamps were not checked against producer dependencies,
+  and empty pre-init-loss stdout was rejected despite the valid zero-frame
+  branch. Its bounded correction rereview passed consumer/pipeline changes;
+  current namespace architecture has also passed its bounded source scope;
+  final source reconciliation remains, not whole runtime acceptance.
+  This is source-only, not an OS-atomic exec or clock/runtime proof.
+- The craft correction reports208 source/pure tests plus two closure
+  assertions. The reader replays twelve finite producer dependency families,
+  preserving permitted start/stop overlap while requiring settlement before
+  wait/removal, and accepts exactly empty stdout only as zero frames in the
+  valid branch. Seven DAG-guard and one empty-branch removal failures plus
+  exact restoration are retained. Parent verified26 source/four dependency
+  hashes and selected logs/current originals/authority; the craft follow-up
+  did not execute or rehash anything. These remain doubled-boundary source
+  checks, not genuine namespace/clock/cleanup proof.
+- The exact qualified-clock issuer/reader/provenance/rate/margin/original-start
+  contract remains unframed. A separate no-workload, retrospective clock
+  observation proposal passed conditional source framing only: it may never
+  ARM/WORK/fork a payload, certify future rates, or authorize normal/native
+  entry. Actual H/O custody, original-budget transfer, runtime/image and
+  cleanup ownership still block any execution. That proposal is not yet
+  implemented and supplies no operational clock capability.
 
 ### Reconciliation sweep
 
@@ -909,11 +974,16 @@ SDK-absent Chrome source/pure handoff (2026-10-22; not actual qualification):
   change from `d76c316` through its fixed C/cohort, Node/shell/consumer,
   source-closure and related documentation delta, committed as `466e709`.
   Browser prototype files were excluded from that commit.
-  The **current guarded Mac source checkpoint** adds fourteen prototype/
+  The **earlier guarded Mac source checkpoint** added fourteen prototype/
   completion/launcher/config/test files, four closure/pin-assertion edits and
   related source-status/review/memory documentation after `466e709` and the
   documentation-only `65cb86d`. Separate owned-namespace source and all
-  private source/model artifacts are excluded from this checkpoint.
+  private source/model artifacts were excluded from that `3e1ca33` commit.
+  The **current namespace source checkpoint** adds22 fixed supervisor/
+  worker/entry/consumer/init/payload/admission/cohort/clock/Dockerfile/test
+  files and four source-closure/pin edits after `3e1ca33`, plus related
+  documentation/review/memory telemetry. All private receipts, frozen
+  cross-lane copies and future clock-observation implementation are excluded.
 - **Updated:** earlier independent checkpoint reconciliations passed for their
   recorded source ranges; none re-graded ACs or completed the operator result.
   The earlier `d76c316`-based reconciliation found only documentation status/
@@ -921,7 +991,7 @@ SDK-absent Chrome source/pure handoff (2026-10-22; not actual qualification):
   failure, qualified Node/shell controls and open Chrome/native obligations.
   Its bounded two-location correction rereview passed; that follow-up did not
   repeat the source/evidence review or accept ACs, the whole slice or Native.
-- **Updated:** the current Mac compliance/craft passes cover only the
+- **Updated:** the earlier Mac compliance/craft passes cover only the
   hard-disabled source checkpoint. The craft assertion nit was corrected
   with fault-specific witnesses and a minimal recorded-group diagnostic;
   two real guard removals caused two source/pure failures, then exact
@@ -931,9 +1001,23 @@ SDK-absent Chrome source/pure handoff (2026-10-22; not actual qualification):
   final checkpoint reconciliation passed for this bounded source/documentation
   scope only. No pass relabels custody or native evidence, completes ACs/DoD,
   or grants runtime execution.
+- **Updated:** current namespace compliance passed its bounded corrected
+  effect-frontier/protocol/budget scope; craft passed its consumer chronology/
+  empty-output correction scope after two blockers. All prior four/three/two
+  findings and75/132/167/189 source leases remain historical. Current208/2
+  source evidence uses doubled boundaries, not runtime/cohort/clock custody.
+  Fresh namespace architecture passed22/four-pin source trust boundaries,
+  fixed custody/settlement contracts and leanness. Final source reconciliation
+  passed after one documentation/telemetry correction and its paragraph-only
+  rereview, not a repeated source audit or DoD acceptance;
+  neither the proposed no-work observation path nor qualified clock issuer
+  is implemented or enabled. Hard NO-GO/NOT_PREPARED remains the safety gate.
 - **Updated:** the current derived-board refresh changes review-selection
-  telemetry only, not slice status. The selected richer craft channel and its
-  shown-but-declined alternative are recorded; no lifecycle advance follows.
+  telemetry only, not slice status. Earlier recorded richer-channel selection
+  is historical. The current namespace craft receipt records
+  `substrate: not-shown` and `applied_skill: none`; the board faithfully
+  reflects that advisory telemetry gap. No selection provenance or lifecycle
+  advance is inferred from the prompt-source description.
 - **Deferred:** parent-owned case-bound receipts,
   current finite resource coordination and actual additional operator result
   or concrete pre-admission blocker. Slice remains IN_PROGRESS; no lifecycle
