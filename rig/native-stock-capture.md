@@ -647,8 +647,9 @@ and JS/shell lint checks pass, and disabling the actual inherited-ID rejection
 defeated its regression. That earlier checkpoint did not establish cross-process/exec behavior. The
 later actual current-source controls are recorded below; source review and
 compilation alone are not their evidence.
-Each local fixture remains45 seconds; its three-case opt-in test has a
-150-second outer runner bound, not a larger native allowance.
+Each local Node fixture remains45 seconds. Its separate opt-in control tests
+have50-second runner bounds; combining controls enlarges neither an
+individual case nor the native allowance.
 
 ### Qualified Node/shell controls, not native browser readiness
 
@@ -673,6 +674,27 @@ No failure is relabelled. This proof is limited to the first-party Node/shell
 target: no real Chrome/profile/CDP, pre-return browser abort, vendor SDK,
 native case, C2/C3 or full replacement is qualified. Historical UNKNOWNs and
 Adobe's independent helper gate remain unresolved; no host exclusion follows.
+
+### SDK-absent Chrome prototype: source/pure only
+
+The next prototype is `sdk-absent-chrome-preexec.mjs`, with fixed runtime,
+actor, IO and launcher modules. Its normal and pre-return-abort browser
+controls have **not run**. Fifty-four source/pure tests and two source-pin
+assertions pass; simulated OS/socket/child/signal receipts are not actual
+Chrome, profile, ownership or cleanup evidence. Initial source review requires
+corrections: post-attribution detached-child coverage, atomic handoff
+publication, probe settlement and publication-inclusive completion. The
+snapshot-based cleanup cannot claim complete custody/profile deletion while
+the detached-child predicate is UNKNOWN. No browser launch is authorized.
+
+The Node controls above belong to checkpoint `466e709`. Adding the prototype
+to both source closures changes their complete source vector; do not relabel
+the earlier actual suite or shared qualifications as current for this delta.
+Actual Chrome/CDP/profile/abort/deadline proof, native orchestration and all
+existing authority/readiness/resource gates remain open.
+An isolated local PID-namespace alternative is being conditionally framed,
+not executed or accepted. Client availability and public platform citations
+are not a ready runtime or permission to start a container.
 
 ### Historical P/E/L/H pre-run source/pure checkpoint
 

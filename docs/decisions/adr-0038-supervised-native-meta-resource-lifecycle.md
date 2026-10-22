@@ -347,6 +347,56 @@ resource gates.
   including whether its descriptor dynamics can be sampled without concealing
   changed/vanished entries. Node/self/dup results do not qualify that context.
 
+## Conditional contained-runner alternative (source/pure only)
+
+The next preparation may use an owned disposable Linux PID namespace rather
+than treating a final live-process snapshot as complete descendant custody.
+The benefit is a kernel containment boundary for a later detached child; the
+tradeoff is an entirely new engine/image/platform cohort, not qualification
+of the existing macOS Chrome or native runner.
+
+The [Linux PID-namespace manual](https://man7.org/linux/man-pages/man7/pid_namespaces.7.html)
+documents termination of namespace members when namespace init dies and
+prohibits migration into an ancestor PID namespace. Whether the available
+local runtime correctly establishes that boundary is **unproved**. Only client
+availability/public image metadata has been checked; no daemon, image,
+container or browser operation follows from this proposal.
+
+For a fixed first-party Node-only prototype, a real external supervisor S
+must own the exact container ID, original nonrenewable deadline and every
+issued daemon operation **before** worker W can request start. S retains
+pending-start/cleanup ownership through W loss; killing a client is not
+daemon cancellation. S loss without a qualified handoff, unsettled operations
+or uncertain resource identity stays UNKNOWN and blocks qualification.
+
+Init waits without workload, captures local monotonic `tau0` before HELLO,
+and arms its watchdog before ARMED/WORK. S computes conservative remaining
+durations from its original fences at HELLO receipt; init anchors them at
+its retained `tau0`, never permit receipt or delayed start. Both actors
+recheck their existing fences before work. This is a conditional causal
+duration design, not equal host/VM clock epochs: clock-rate bounds, margins
+and actual delayed/expired-permit behavior still require proof.
+
+Required future controls include normal behavior, a late detached/orphaned
+child **and** W loss both before and after watchdog arming. No deliberately
+unowned pending-start experiment is permitted. A qualified result requires
+actual external whole-command completion, publication and original hashes
+inside the original45 seconds. W-loss evidence cannot establish S-loss safety.
+
+Only fixed local resources, private PID namespace, no network, minimal
+first-party image content, read-only root and bounded case-owned temporary
+storage are contemplated. No remote engine, host namespaces/home/socket
+mounts, credential helpers, privileged capabilities, global inventories,
+automatic pull/build or shared service installation/start is approved.
+Missing runtime/image readiness is a blocker, not a default.
+
+Fresh frame review required two V1 corrections and passed only their V2
+source/pure clarification. It is not implementation or runtime approval.
+The owner was unavailable and returned general autonomy, not an exact design
+choice; this ADR remains Proposed. Existing Chrome/profile, native60-second,
+source/setup/review/qualification/live coordination and historical UNKNOWN
+obligations remain unchanged; the extra Meta case stays unspent.
+
 ## Kill criteria
 
 - Missing/late ownership can be reported closed, or cleanup requires guessed

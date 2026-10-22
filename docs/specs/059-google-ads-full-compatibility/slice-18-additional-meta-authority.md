@@ -823,6 +823,46 @@ Current-source Node/shell observer qualification (2026-10-22):
   acceptance remain open. ADR-0038 stays Proposed; extra Meta authority is
   unspent. No Chrome, vendor SDK/provider, real event slot or source push ran.
 
+SDK-absent Chrome source/pure handoff (2026-10-22; not actual qualification):
+
+- Checkpoint `466e709` persists the qualified Node/shell observer foundation.
+  The next prototype adds fixed pre-exec, runtime, actor, IO and launcher
+  modules plus normal/pre-return-abort controls, all in both source closures.
+  It does not implement or authorize the native additional-case runner.
+- Fifty-four source/pure tests and two pin assertions pass; two actual
+  browser controls remain disarmed. A removed kernel-peer guard caused the
+  boundary regression to fail, then exact source restoration passed. All
+  simulated child/OS/socket/signal receipts remain source/pure artifacts,
+  not independently observed browser/profile/cleanup proof.
+- Parent verified ten new source identities/hashes and retained command/log
+  relationships. Independent source review is pending. Actual Chrome/CDP,
+  real profile removal, E-stopped pre-return acquisition/abort, mechanical
+  deadlines and the earliest fatal seam remain unproved. No actual browser,
+  observer, signal, vendor SDK, source GET or extra Meta slot ran.
+- The new complete source vector supersedes the `466e709` Node suite's
+  current-source claim for later execution; its actual original result
+  remains valid only for its recorded lease. Full shared/additional refresh,
+  ADR-0038 acceptance and the whole slice's DoD remain open.
+- Initial independent source compliance returned **needs-changes** for four
+  HIGH issues: a post-attribution fork/detach escape after the last snapshot,
+  non-atomic polled handoff files, unsettled endpoint probes on deadline and
+  result publication excluded from completion. Source/pure corrections are
+  in progress; complete custody/profile deletion must stay UNKNOWN unless a
+  supported boundary is established. Actual controls remain disarmed.
+- A disposable local Linux PID-namespace alternative is in conditional frame
+  review only. Installed client binaries/public namespace and image metadata
+  are not a ready daemon/image or an executed containment proof. The exact
+  owner question received unavailable-user/general-autonomy text, not an
+  exact design choice or Accepted ADR. No daemon, image pull, container,
+  installation or new reference execution is authorized by that proposal.
+- That frame's V1 required independent custody during pending start, the
+  original nonrenewable budget before watchdog arming, and detached-child
+  **and** controller-loss coverage. V2's bounded correction rereview passed
+  for source/pure framing only. A fixed first-party Node-only namespace
+  prototype is now being implemented in new files; actual engine/image,
+  clock bounds, custody/settlement and teardown remain qualification blockers.
+  See Proposed ADR-0038's conditional alternative; no runtime GO follows.
+
 ### Reconciliation sweep
 
 - **Updated:** operator guide, architecture and open 059/060 plans distinguish

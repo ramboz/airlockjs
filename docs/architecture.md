@@ -83,6 +83,11 @@ before enrollment/exec, not a qualified replacement for the native acquisition
 gap. A fixed, hash-pinned macOS socket observer now has genuine first-party
 Node/shell normal/refusal/inherited controls, not inferred runtime evidence
 from compilation or pure tests. Real-browser/native resources remain unqualified.
+The next fixed SDK-absent Chrome prototype is source/pure only, with actual
+browser controls disarmed; its simulated boundaries cannot qualify resources.
+Its initial source review blocks launch on detached-child custody,
+publication/settlement and deadline defects. A contained-runner alternative
+is conditional framing only, not an established new resource boundary.
 See the [executed blocker](../rig/native-stock-capture.md#installed-descriptor-observer-blocker)
 and [current replacement status](../rig/native-stock-capture.md#macos-socket-observer-replacement).
 

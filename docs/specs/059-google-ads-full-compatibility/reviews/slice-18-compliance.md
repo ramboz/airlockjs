@@ -1,40 +1,22 @@
 ---
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: compliance
-verdict: pass
-reviewer: Retained bounded scopes plus jig:reviewer99812462-fff9-405e-85b8-6dd6b735ab0d turns0-6 owned-observer checkpoint
-reviewed_at: 2026-10-22T18:05:24Z
-prompt_source: review.py implementation docs/specs/059-google-ads-full-compatibility/spec.md 059-18
+verdict: needs-changes
+reviewer: jig:reviewer cf03fb84-03af-49a5-b46f-234c14a2062d turn0 source-only Chrome delta from466e709
+reviewed_at: 2026-10-22T18:53:11Z
+prompt_source: review.py implementation 059-18 bounded SDK-absent Chrome source pre-execution review
 ---
 
-VERDICT: pass
+VERDICT: needs-changes
 
 REASONING:
-AC1-7 compliance continuity is preserved across the reviewed reservation-schema, failed-child classification, supervision, strict-reader, source-pin, test and guide deltas. The additional gate requires current-source supervised proof, ordered identity-bound registrations, explicit final Node disposition, complete owned-resource disposition and consistent chronology. Retained author/parent witnesses support the qualification claims without reviewer execution or rehashing. No remaining high-confidence blocker was found in the bounded final-source delta.
+Fresh jig:reviewer cf03fb84-03af-49a5-b46f-234c14a2062d turn0 found source defects before any actual Chrome GO. Ten files are in both source closures and abort stops E before exec-ready without querying C afterward, but the post-attribution descendant race, non-atomic handoff publication, unsettled endpoint probes and final-publication deadline gap prevent source readiness. Reviewer executed no commands or experiments. Earlier466e709 Node qualification remains valid for its own recorded source, not this new delta.
 
-INITIAL FINDING AND CORRECTION PRESERVED:
-The original compliance review found that summary booleans and empty placeholder originals could pass. The correction derives complete request/policy, response/framing/body, ownership/logical correlation and both endpoint wire relationships. Seventy-four genuine-derived refreshed-hash contradictions and an actual wire-hash-guard removal challenge the correction. The later reservation/supervision reader corrections add closed schema, chronology and ownership evidence rather than replacing that original parser proof.
-
-PROVENANCE:
-Actual jig:reviewer173fe812-4c3c-48c3-86bf-43df481ec467 turns0-1 original review/correction, turn2 reader/supervisor continuity and turn3 bounded producer-ordering continuity. The reviewer performed read-only source/evidence review, no commands/tests/browser/network or independent rehash. This is not a fresh whole-code audit on every turn.
-
-PARENT FOLLOW-THROUGH:
-Reader-source parent checks passed780 units with34 explicit opt-in skips and targeted lint0. Current shared14controller/11relay proof passed99controller+352regressions with strict original/source verifier0. Current additional proof passed independent inspection, with4496 post-exit original/command-witness hashes and device/inode identities checked. Author actual additional suite249pass includes206 contradiction archives. Genuine original authority/spent reservation/decision remain unchanged. These are parent/author execution facts, not reviewer execution or native acceptance.
+SPECIFIC ISSUES:
+- rig/sdk-absent-chrome-runtime.mjs:403-427 -- HIGH: runnable Chrome can fork/detach/reparent after the last descendant scan and escape the frozen known set/old groups. resource_complete/profile deletion cannot follow without an attributable termination boundary; otherwise retain UNKNOWN.
+- rig/sdk-absent-chrome-io.mjs:18-21 -- HIGH: save creates the final pathname before content/fsync completion; helper-announcement/permit polling can read partial JSON. Publish atomically only after durable content; malformed input must not become an absence/success fallback.
+- rig/sdk-absent-chrome-runtime.mjs:225-232 -- HIGH: deadline-winning until() leaves untracked endpoint probe sockets/timers unsettled after general disposal. Track/destroy/settle before publication with truthful failure.
+- rig/sdk-absent-chrome-runtime.mjs:491-495 -- HIGH: deadline check precedes result write/fsync and elapsed explicitly excludes publication. A late persisted result cannot be a qualified control; require bounded completion including publication and a strict consumer/external completion if needed.
 
 RECONCILIATION NOTES:
-Historical browser/profile UNKNOWN dispositions and failed proofs remain unchanged; newer cleanup is not retrospective closure. The supervisor is fixed SDK-absent qualification machinery, not broader execution authority. This pass neither completes AC8/DoD nor approves a case packet, current resource exclusion or native admission. Fresh case ownership, truthful dated setup/source evidence, exact bindings, required context reviews and actual coordination remain mandatory.
-
-SUBSEQUENT PRODUCER ORDERING CONTINUITY:
-Turn3 PASS: AC1-7 code-review continuity holds across the later small producer/test/documentation delta. The local promise chain serializes discovery through inventory/publication, gives each caller a fresh scan and propagates rejection without changing admission, signal or deadline policies. The barrier regression uses the real supervisor with doubled OS/process/TCP boundaries and keeps its simulated exit2 unqualified. No remaining high-confidence blocker was found. Earlier source-bound indices became historical at this correction; actual fresh qualification is a separate parent-owned obligation, not established by this review.
-
-SUBSEQUENT PEER-ONLY FEASIBILITY:
-Turns4-5 reviewed the new fixed SDK-absent Node/TCP ownership primitive, source-closure additions and disposal correction only. Initial observation/non-ESRCH cleanup errors could retain parent streams/IPC/reference despite UNKNOWN; unconditional nested finally resolves that finding, with real-path non-exiting-child regressions and disposal-removal sensitivity. The bounded peer objective passes; historical v1 observations are not cleanup-error budget proof. Actual current-source refresh/parent replay are separate. This extends reviewed source scope without claiming the still-unimplemented native launcher/child/profile/whole-case lifecycle or acceptance of ProposedADR0038. Raw peer verdicts are retained separately.
-
-SUBSEQUENT SYNTHETIC BOOTSTRAP AND DIAGNOSTICS:
-Retained same reviewer turns6-7 PASS for the SOURCE/PURE P/E/L/H fixed first-party candidate and command-diagnostic delta. The direct-peer predicate and existing browser launcher were not relaxed; separate topology/kernel/permit checks and fail-closed disposal/UNKNOWN remain. Diagnostics retain exact issued/completed query bytes/status and settle started siblings before publication. These passes establish no actual FD/exec/native qualification. Exact source/pure review outputs are retained in059-18-pelh-source-code-passes.txt and059-18-pelh-diagnostic-source-passes.txt.
-
-WAIT-STATE ROOT CORRECTION ON RESUME:
-A fresh synchronous jig:reviewer task "Bootstrap identity correction" independently reviewed today's coupled U/Us eligibility correction through the current bootstrap/peer enrollment/cleanup control plane and returned PASS. No UUID was returned or invented. This is a bounded source correction review, not a newly manufactured full compliance/craft/architecture pass for every historical line. Local ps documentation and v2 original query010 establish the unchanged P lifetime;112 pure passes followed11 reds with one opt-in skipped. No progress/closure, deadline, ownership or native authority was inferred from U. V3 later stopped unqualified on an actually unsupported lsof +ff option; no review pass supplies that missing capability. Raw fresh verdict059-18-macos-wait-state-independent-review.txt.
-
-SUPPORTED OBSERVER REPLACEMENT / NODE CHECKPOINT:
-Fresh reviewer99812462-fff9-405e-85b8-6dd6b735ab0d turns0-6 reviewed the new fixed C/typed-reader/cohort integration, bounded environment/default-linker/test/consumer deltas and selected actual receipts. Turn3's real consumer needs-changes was fixed with the shared exact refusal assertion and three RED controls; turn4 and later passes are scoped, not an uninterrupted all-pass history. The current actual fail-fast sequential three-control SDK-absent suite passed3/3; parent reconciled265 artifacts and registered-subset cleanup. The reviewer did bounded file/regex inspection, not full265-file independent rehash/reexecution. This qualifies only the Node/shell mechanism, not real-browser or native/whole-slice readiness; source and history in059-18-owned-observer-review-history.txt.
+All four findings require source/pure corrections and rereview; actual browser tests remain disarmed. Post-attribution gap is distinct from earliest postfork/pre-attribution seam and historical UNKNOWNs. Slice05918 IN_PROGRESS, DoDopen, ADR0038 Proposed, no Native/C2/C3 acceptance, extraMeta permission/slot absent. Assigned to retained implementerb16b9b55 with RED/GREEN and no actual processes/observer/network/signals/SDK actions. A supported containing boundary may be necessary; do not force positive closure by weakening Chrome or broadening host inspection.
