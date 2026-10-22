@@ -566,6 +566,168 @@ Corrected-source peer checkpoint (2026-10-21):
   occurred. Independent peer-checkpoint reconciliation passed (`8bdd6978`,
   turn 2), scoped only to this Node/TCP delta, not native readiness or DONE.
 
+P/E/L/H source/pure candidate (2026-10-22):
+
+- Added fixed synthetic bootstrap module/shell/test, closed role-specific
+  E/L/H guards and separate TCP-only/exec-ready enrollment. The established
+  direct-peer predicate and existing launcher remain unchanged. Only the
+  fixed first-party Node FD target is reachable; no Chrome/native dispatcher
+  or transport is integrated.
+- New source/pure tests passed **42**, with the actual fixture opt-in skipped.
+  Author affected tests passed **180 / 17 skipped**, lint passed. Guard removal
+  produced two kernel-owner failures and one helper-refusal failure; exact
+  source was restored. Parent independently checked **48** command/source/
+  observer hashes/file identities and repeated **42 pure / one opt-in skip**
+  with targeted lint pass.
+- The default affected suite also completed **eight existing Node subprocess
+  checks**: four synthetic reservation contenders and four disabled-CLI
+  refusals. This is not an all-processes-absent claim. No new P/E/L/H shell/
+  Node/TCP fixture, browser/profile, SDK/provider or real-slot operation ran.
+- Both complete source closures include all three new files. Earlier
+  source-bound proof remains historical after source changes. Actual handle
+  identity support, causal FD traffic, launcher exec continuity, earliest
+  E-loss and adverse cleanup timing remain unproved. Proposed ADR-0038 and
+  native readiness remain open; no actual fixture follows without separate
+  review, current coordination and explicit parent go-ahead.
+
+First actual P/E/L/H fixture - failed, stopped (2026-10-22):
+
+- After bounded compliance/craft/architecture source/pure passes and current
+  lane coordination, one fixed first-party normal/refusal suite ran. Actual
+  CLI exit was **1** at **00:55:59.175785Z**; one test failed and 42 were skipped.
+  Normal failed `synthetic_os_observation_failed` after H attribution but
+  before TCP enrollment. No exec-ready, target execution or FD round-trip
+  was established. The connected refusal case never started.
+- Source vectors and all 36 fixed-source hashes stayed unchanged. The producer
+  did not retain the precise failing OS command/status/stderr. Root cause is
+  therefore undetermined, not proof of unsupported descriptor identity or
+  noninheritance. No automatic retry, source change or claimed qualifier pass.
+- The scoped post-exit observation at **00:58:05.313436Z** found all five
+  recorded lifetimes absent, three recorded groups empty and the exact
+  registered endpoint refusing connection. E exited 2; the producer recorded
+  one identity-checked H SIGTERM. The matching synthetic fixture directory
+  remains retained, not a browser profile; TLS keys were not applicable.
+- Parent verification matched **17** original-artifact hashes/file identities,
+  **36** fixed-source locators and the private observer. Original authority,
+  spent reservation and owner decision remained unchanged; the additional
+  case permission/slot remain absent. A read-only parent verifier initially
+  compared numeric device/inode values with strings; normalizing those types
+  corrected the verifier without changing evidence or rerunning the fixture.
+- Retain this failed normal and unstarted refusal outcome. Source-read-only
+  diagnosis is the only next assignment; no new OS/helper/browser run follows.
+  ADR-0038 remains Proposed; no browser/profile/SDK/provider/native/real-slot
+  work or historical-UNKNOWN/Adobe-gate clearance occurred.
+
+Fixed OS-command diagnostic correction - source/pure only (2026-10-22):
+
+- V1 remains FAILED normal / refusal NOT RUN / root cause UNDETERMINED.
+  No original receipt, source locator or historical disposition was rewritten.
+- The existing helper/callsites now retain immutable case-linked issued/
+  completed observations: fixed phase/role/query, expected-not-fresh identity,
+  monotonic deadline/timeout data, actual Node status/error distinctions and
+  bounded original stdout/stderr bytes/hashes with explicit unavailable and
+  truncation markers. Missing Node signal/killed fields remain nullable, not
+  fabricated false statuses; four status-precision REDs covered those shapes.
+  Errors/results expose command receipt locators.
+- Utility-specific absence needs an established owned identity; scoped-child
+  absence additionally binds the matching prior process observation. Required
+  descriptor/socket absence and observation/signal errors stay fail-closed,
+  with UNKNOWN cleanup and unconditional handle disposal where appropriate.
+- Eleven initial pure regressions were RED; thirteen diagnostic controls pass
+  through the real pre-enrollment/cleanup path with OS/child/socket/signal
+  boundaries doubled. Actual no-match and byte-bound guard removals defeated
+  their regressions; exact source restored. Minimum pure bootstrap/peer suite
+  passed 73 with one actual opt-in skipped; both source-pin assertions passed.
+  Existing subprocess CLI/race tests were not run.
+- A parallel-query RED caught publication of incomplete sibling receipts.
+  The existing role-query batch now settles its already-started, individually
+  bounded queries before propagating failure/cleanup/publication; timing
+  limits are unchanged. Removing this actual barrier defeated its regression;
+  exact source was restored. No actual OS observation is claimed by this control.
+- No actual OS/helper/FD/TCP/browser run or retry occurred. Existing timing,
+  target/URL/API and native gates are unchanged. Source changes make previous
+  indices historical; FD/exec/earliest-loss/native-60s capability remains
+  unproved. ADR-0038 stays Proposed; parent owns review and any later actual GO.
+
+Second diagnostic normal - state rejection retained (2026-10-22):
+
+- The separately authorized normal-only API returned at
+  **01:42:33.680860Z**, CLI exit **0**, but its result was FAILED/unqualified:
+  `witnessed:false`, `errors:["role_lifetime"]`. API completion is not
+  qualification. No descriptor/kernel-peer query, FD round-trip, target or
+  refusal execution occurred.
+- All **22** issued/completed query pairs were retained. Query 010's complete
+  successful `ps` output shows P in **`Us`**, with unchanged PID, parent,
+  group, UID, birth and command hash. The frozen `^[RSI]` predicate rejected
+  that state. This diagnoses v2's particular rejection, not v1's missing
+  command error; v1 remains FAILED/root cause UNDETERMINED.
+- The recorded post-exit observation at **01:45:15.258814Z** found all four
+  P/E/L/H PIDs absent, three recorded groups empty and the registered endpoint
+  refusing connection. The synthetic fixture directory is retained, not a
+  browser profile. These are historical, registered-subset observations.
+- Parent verification preserved **62** original-artifact hashes/file
+  identities, **36** frozen-source locators before editing, and every query
+  pair's captured byte/hash relationship. Original authority/spent/decision
+  stayed unchanged and the additional permission/slot remained absent.
+
+macOS waiting-state correction - source/pure only (2026-10-22):
+
+- Local macOS `ps(1)` documentation defines `U` as uninterruptible wait,
+  distinct from stopped `T` and zombie `Z`; suffix `s` is a session leader.
+  The two inline identity-eligibility predicates in the bootstrap and direct
+  Node peer helpers now recognize `U`/`Us` without equating a wait with a lost
+  process. The separate supervisor's stopped-process semantics are unchanged.
+- Waiting is not progress, responsiveness, signal completion or eventual
+  cleanup. All exact lifetime/ancestry/UID/image/fixture checks, kernel peer
+  ownership, acknowledgement, query/absolute deadlines and explicit UNKNOWN
+  cleanup handling remain binding. Stopped, dead, unknown and non-string
+  states still reject.
+- Witnessed red: **11 failed / 101 passed / one actual opt-in skipped**.
+  Corrected pure bootstrap/peer tests: **112 passed / one opt-in skipped**,
+  targeted lint passed. Tests cover each role's wait transition, identity
+  changes while waiting, wrong kernel owners and the real producer path
+  reaching a deliberately failing descriptor query without enrollment/exec.
+- Replaying v2's original successful process-query bytes now accepts only
+  their stable identities; the historical failed result is unchanged and
+  descriptor/exec support remains unproved. A fresh independent source review
+  passed this bounded correction in the existing control plane, not native
+  readiness. No new actual fixture, process query, child fork or browser ran
+  during these checks; current full-source indices remain historical.
+
+Third diagnostic normal - unsupported descriptor observer (2026-10-22):
+
+- After the waiting-state correction's pure proof and fresh independent
+  review, one fixed normal-only local diagnostic ran on frozen source.
+  Node CLI exited **2** at **15:36:54.088746Z**; the external observer exited
+  1 to report the failed/unqualified result. No refusal or automatic retry.
+- This run passed role-state assessment and reached query014: the installed
+  `/usr/sbin/lsof` **4.91** rejected `+ff` with exit1 and original stderr
+  `unknown file struct option: f`. Its capability help also omits the `F`
+  file-structure-address field. This is a concrete blocker for this specific
+  descriptor-observation mechanism, not evidence that every possible
+  descriptor-isolation proof is impossible.
+- No enrollment, kernel-peer query, FD round-trip or target execution was
+  established. The guard remains closed; unsupported output is not treated
+  as empty descriptors, inherited-handle absence or a qualifier pass.
+  V1 stays FAILED/root UNDETERMINED and v2 stays FAILED/`Us` rejection.
+- Parent preserved **64** original-artifact locators and all **23** query
+  pairs, with unchanged before/after source vectors. Fresh observations of
+  only these four recorded lifetimes found them absent; their three recorded
+  groups were empty and the registered endpoint refused connection. The
+  synthetic directory remains retained with matching identity. Producer
+  E exited2 and recorded one identity-checked H SIGTERM. No host-wide or
+  historical-helper closure follows.
+- The initial new private observer adapter failed its metadata preflight
+  before any fixture: importing the older CLI script attempted its existing
+  directory's exclusive mkdir and failed without writing originals. A
+  self-contained fixed observer passed preflight before the single actual
+  v3 run. The failed adapter/preflight and older v2 bytes are retained.
+- Native readiness remains blocked on a supported, separately framed and
+  falsified descriptor-isolation mechanism. No unsupported-option removal,
+  zero-identity fallback, browser launch or new native permission/slot follows.
+  ADR-0038 remains Proposed; all historical UNKNOWNs and Adobe's independent
+  whole-helper gate remain unchanged.
+
 ### Reconciliation sweep
 
 - **Updated:** operator guide, architecture and open 059/060 plans distinguish

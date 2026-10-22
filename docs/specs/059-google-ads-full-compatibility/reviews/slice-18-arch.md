@@ -2,8 +2,8 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: arch
 verdict: pass
-reviewer: jig:reviewer4ee56ebe-371f-485b-ab54-9551a587036c turns0-4 bounded scopes
-reviewed_at: 2026-10-21T23:55:22Z
+reviewer: Retained jig:reviewer4ee56ebe turns0-6 bounded scopes; fresh correction scope separately noted
+reviewed_at: 2026-10-22T15:43:44Z
 prompt_source: review.py arch-review docs/specs/059-google-ads-full-compatibility/spec.md 059-18 --richer-skill arch-review
 substrate: not-shown
 applied_skill: none
@@ -31,3 +31,9 @@ Actual jig:reviewer4ee56ebe-371f-485b-ab54-9551a587036c turn3 PASS: the local pr
 
 SUBSEQUENT PEER-ONLY FEASIBILITY:
 Actual same reviewer turn4 PASS for the fixed SDK-absent Node/TCP probe and its cleanup/source-closure/test delta only. Exact kernel tuple plus stable issued process, nested finally disposal retaining UNKNOWN, real-path mocked non-exiting-child controls and both closures were inspected. No blocker found; no commands/tests/rehashes. The proposed native launcher/dispatch, Chrome/profile/pre-return/parent-loss/full60s case remain unimplemented/unproved and are not approved. Corrected-source actual refresh is a separate parent fact. Raw peer verdict retained separately.
+
+SUBSEQUENT SYNTHETIC BOOTSTRAP/DIAGNOSTICS:
+Retained same reviewer turns5-6 PASS only for source/pure fixed P/E/L/H candidate and command-diagnostic correction. Topology, kernel-peer/permit separation, fixed target, scoped observations, explicit UNKNOWN and bounded disposal form a coherent boundary. Issued/completed query bytes, typed absence and sibling settlement consume existing deadlines, not retries/extensions. These were not actual FD/exec/runtime capabilities or native approval. Retained outputs059-18-pelh-source-code-passes.txt and059-18-pelh-diagnostic-source-passes.txt.
+
+LATER WAIT-STATE CORRECTION:
+Fresh synchronous reviewer "Bootstrap identity correction" returned bounded PASS for the new U/Us lifetime-eligibility correction in that real control plane, not a separately labelled new whole architecture pass. Its source/type/identity checks and retained original-query replay do not supply progress, cleanup or descriptor support. V3 falsified installed lsof +ff support and remains blocked/unqualified. Retired reviewers are not represented as rereviewing today's source; raw fresh verdict059-18-macos-wait-state-independent-review.txt.

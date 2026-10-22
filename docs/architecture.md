@@ -73,6 +73,15 @@ all-helper quiescence or host-wide exclusion. Historical unregistered
 browser/profile dispositions remain unknown; any new case still requires
 current scoped resource evidence, affirmative ownership and finite coordination.
 
+The Proposed [ADR-0038](decisions/adr-0038-supervised-native-meta-resource-lifecycle.md)
+bootstrap remains reference-only first-party tooling, not native supervision.
+Its role/peer/enrollment guards (`rig/meta-preexec-bootstrap.mjs:63-102`) and
+fixed shell target (`rig/meta-preexec-bootstrap-launcher:6-8`) add no browser
+or stable-core capability. The installed descriptor observer rejected its
+required lsof option in the executed local diagnostic; it remains blocked
+before enrollment/exec, not a qualified replacement for the native acquisition
+gap. See the [current blocker](../rig/native-stock-capture.md#installed-descriptor-observer-blocker).
+
 The independent [SDK-absent chamber capture](../rig/chamber-capture.md)
 uses the existing built EDS boots and synthetic loopback endpoints, not
 vendor bytes or a production adapter. Its distinct local-only producer,

@@ -269,6 +269,13 @@ attributable abort evidence; native execution stays blocked.
 - Unverified: the complete acquisition/observation/abort/publication contract
   fits the unchanged case deadline. Qualify reserves and reject incompatible
   windows rather than assuming a successful fast path establishes the bound.
+- Blocked by executed evidence (2026-10-22): this host's `/usr/sbin/lsof`
+  4.91 rejects `+ff` and does not advertise file-structure-address field `F`.
+  The first-party bootstrap's descriptor observer therefore cannot currently
+  prove specific debugger-handle noninheritance. A supported alternative
+  needs its own scoped evidence; FD numbers, zero identities, generic manual
+  text and skipped checks are not substitutes. The normal-only v3 diagnostic
+  stopped before enrollment/exec; no browser or native case ran.
 
 ## Kill criteria
 
@@ -287,8 +294,12 @@ Frame review must settle the closed resource-ticket, launcher rendezvous,
 deadline and authoritative result contract before implementation is treated as
 ready. Exact helper schemas/reserves require executed evidence; no guessed
 numeric cutoff is accepted here. Native admission stays blocked.
+The supported descriptor-isolation mechanism is now an explicit open question;
+the conditional frame pass did not establish the rejected lsof capability.
 
 0038 is a local provisional reservation coordinated with the Adobe lane;
-0036/0037 remain its identifier-only reservations. Coordinate before0039+.
+0036/0037 remain its identifier-only reservations. On2026-10-22,0039 was
+separately coordinated for that lane's additive setup-refresh design, not this
+native runner. Coordinate before0040+.
 Normal before-landing origin/duplicate checks remain required. No remote,
 main checkout, Accepted-body rewrite or landing permission follows.

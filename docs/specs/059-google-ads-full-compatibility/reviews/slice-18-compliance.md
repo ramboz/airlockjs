@@ -2,8 +2,8 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: compliance
 verdict: pass
-reviewer: jig:reviewer173fe812-4c3c-48c3-86bf-43df481ec467 turns0-5 bounded scopes
-reviewed_at: 2026-10-21T23:55:21Z
+reviewer: Retained jig:reviewer173fe812 turns0-7 bounded scopes; fresh synchronous Bootstrap identity correction review
+reviewed_at: 2026-10-22T15:43:43Z
 prompt_source: review.py implementation docs/specs/059-google-ads-full-compatibility/spec.md 059-18
 ---
 
@@ -29,3 +29,9 @@ Turn3 PASS: AC1-7 code-review continuity holds across the later small producer/t
 
 SUBSEQUENT PEER-ONLY FEASIBILITY:
 Turns4-5 reviewed the new fixed SDK-absent Node/TCP ownership primitive, source-closure additions and disposal correction only. Initial observation/non-ESRCH cleanup errors could retain parent streams/IPC/reference despite UNKNOWN; unconditional nested finally resolves that finding, with real-path non-exiting-child regressions and disposal-removal sensitivity. The bounded peer objective passes; historical v1 observations are not cleanup-error budget proof. Actual current-source refresh/parent replay are separate. This extends reviewed source scope without claiming the still-unimplemented native launcher/child/profile/whole-case lifecycle or acceptance of ProposedADR0038. Raw peer verdicts are retained separately.
+
+SUBSEQUENT SYNTHETIC BOOTSTRAP AND DIAGNOSTICS:
+Retained same reviewer turns6-7 PASS for the SOURCE/PURE P/E/L/H fixed first-party candidate and command-diagnostic delta. The direct-peer predicate and existing browser launcher were not relaxed; separate topology/kernel/permit checks and fail-closed disposal/UNKNOWN remain. Diagnostics retain exact issued/completed query bytes/status and settle started siblings before publication. These passes establish no actual FD/exec/native qualification. Exact source/pure review outputs are retained in059-18-pelh-source-code-passes.txt and059-18-pelh-diagnostic-source-passes.txt.
+
+WAIT-STATE ROOT CORRECTION ON RESUME:
+A fresh synchronous jig:reviewer task "Bootstrap identity correction" independently reviewed today's coupled U/Us eligibility correction through the current bootstrap/peer enrollment/cleanup control plane and returned PASS. No UUID was returned or invented. This is a bounded source correction review, not a newly manufactured full compliance/craft/architecture pass for every historical line. Local ps documentation and v2 original query010 establish the unchanged P lifetime;112 pure passes followed11 reds with one opt-in skipped. No progress/closure, deadline, ownership or native authority was inferred from U. V3 later stopped unqualified on an actually unsupported lsof +ff option; no review pass supplies that missing capability. Raw fresh verdict059-18-macos-wait-state-independent-review.txt.

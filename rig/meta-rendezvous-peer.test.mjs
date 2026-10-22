@@ -102,6 +102,29 @@ describe("SDK-absent owned rendezvous peer primitive", () => {
     expect(assessOwnedRendezvousPeer(observation())).toMatchObject({
       accepted: true, reason: "owned_peer", kernel_owner_pid: 610001, native_authority: false });
   });
+  it.each(["U", "Us"])("retains a stable macOS %s peer while still requiring kernel ownership", async state => {
+    const { assessOwnedRendezvousPeer } = await load(), value = observation();
+    value.before[0].state = state;
+    value.after[0].state = state;
+    expect(assessOwnedRendezvousPeer(value)).toMatchObject({
+      accepted: true, reason: "owned_peer", kernel_owner_pid: 610001, native_authority: false });
+    value.connections[0].pid = value.before[1].pid;
+    expect(assessOwnedRendezvousPeer(value)).toMatchObject({
+      accepted: false, reason: "peer_owner_mismatch", kernel_owner_pid: 610002 });
+  });
+  it.each(["T", "Ts", "Z", "Zs", "?", "", null, 7])(
+    "refuses a stopped, dead or unknown peer state %s", async state => {
+      const { assessOwnedRendezvousPeer } = await load(), value = observation();
+      value.after[0].state = state;
+      expect(assessOwnedRendezvousPeer(value)).toMatchObject({ accepted: false, reason: "ownership_changed" });
+    });
+  it.each(["pid", "ppid", "pgid", "uid", "started", "command_sha256"])(
+    "uninterruptible peer wait cannot conceal a changed %s", async key => {
+      const { assessOwnedRendezvousPeer } = await load(), value = observation();
+      value.after[0].state = "Us";
+      value.after[0][key] = typeof value.after[0][key] === "number" ? value.after[0][key] + 1 : "changed";
+      expect(assessOwnedRendezvousPeer(value).accepted).toBe(false);
+    });
   it("rejects an owned sibling even when it forges the launcher PID and has the right correlation", async () => {
     const { assessOwnedRendezvousPeer } = await load(), value = observation();
     value.connections[0].pid = value.before[1].pid;

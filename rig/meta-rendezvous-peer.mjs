@@ -15,7 +15,8 @@ const fail = category => { throw Error(category); };
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const keys = ["pid", "ppid", "pgid", "uid", "started", "state", "command_sha256"];
 const same = (a, b) => !!a && !!b && keys.filter(key => key !== "state").every(key => a[key] === b[key]);
-const live = value => value && typeof value.state === "string" && /^[RSI]/.test(value.state);
+// macOS ps(1) U is a waiting lifetime; protocol and cleanup deadlines still apply.
+const live = value => value && typeof value.state === "string" && /^[RSIU]/.test(value.state);
 const tupleName = value => `${value.client_address}:${value.client_port}->${value.server_address}:${value.server_port}`;
 const result = (accepted, reason, kernel_owner_pid = null) =>
   Object.freeze({ accepted, reason, kernel_owner_pid, native_authority: false });

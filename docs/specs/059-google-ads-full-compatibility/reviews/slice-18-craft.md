@@ -2,8 +2,8 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: craft
 verdict: pass
-reviewer: jig:reviewer4ea41474-2bdf-4dc1-9e9e-103db7f6d711 turns0-4 bounded scopes
-reviewed_at: 2026-10-21T23:55:21Z
+reviewer: Retained jig:reviewer4ea41474 turns0-6 bounded scopes; fresh correction scope separately noted
+reviewed_at: 2026-10-22T15:43:43Z
 prompt_source: review.py pr-review docs/specs/059-google-ads-full-compatibility/spec.md 059-18 --richer-skill pr-review
 substrate: not-shown
 applied_skill: none
@@ -27,3 +27,9 @@ The guide/slice accurately distinguish pure mocked exit2/unqualified evidence fr
 
 SUBSEQUENT PEER-ONLY FEASIBILITY:
 Actual same reviewer turn4 PASS for the fixed Node/TCP primitive, finally-disposal correction, both source closures/tests and latest guide/slice only. Actual tuple+stable issued-process observations, not PID/correlation claims, establish that bounded objective. Nested disposal and real-path non-exiting-child tests preserve UNKNOWN and identity-change refusal. No remaining craft blocker/substantive nit found, no execution/rehash. Corrected-source actual refresh remains separate; ProposedADR0038 and native/Chrome/profile/parent-loss/full-case gaps are not approved by this pass. Raw peer verdict retained separately.
+
+SUBSEQUENT SYNTHETIC BOOTSTRAP/DIAGNOSTICS:
+Retained same reviewer turns5-6 PASS for source/pure helper/shell/tests/source closures and fixed command diagnostics. Separate TCP enrollment versus durable exec-ready, exact roles/kernel owner, fixed target, meaningful boundary-doubled refusal/disposal and complete query settlement were inspected. Existing eight Node guards were not P/E/L/H qualification. No reviewer commands/tests/rehashes or actual fixture/native permission. Retained raw outputs059-18-pelh-source-code-passes.txt and059-18-pelh-diagnostic-source-passes.txt.
+
+LATER WAIT-STATE CORRECTION:
+Fresh synchronous reviewer task "Bootstrap identity correction" returned a bounded PASS after today's U/Us correction; it did not run a new whole craft pass. This continuity is separately scoped, without attributing today's source to the retired reviewers. Source/type/identity/kernel negatives and unchanged protocol/deadline/UNKNOWN handling were inspected. The actual v3 unsupported lsof option remains a concrete blocker, not a reviewer-approved fallback. See059-18-macos-wait-state-independent-review.txt; native/case/whole-slice acceptance remains open.

@@ -55,7 +55,8 @@ describe("canonical stock reservation using synthetic owner-shaped records only"
     for (const name of ["meta-additional-authority.mjs", "meta-additional-authority.test.mjs",
       "inspected-meta-record.mjs", "inspected-meta-record.test.mjs",
       "meta-additional-supervision.mjs", "meta-additional-supervision.test.mjs",
-      "meta-rendezvous-peer.mjs", "meta-rendezvous-peer.test.mjs"])
+      "meta-rendezvous-peer.mjs", "meta-rendezvous-peer.test.mjs",
+      "meta-preexec-bootstrap.mjs", "meta-preexec-bootstrap.test.mjs", "meta-preexec-bootstrap-launcher"])
       expect(pins[name]).toBe(hash(await readFile(new URL(name, import.meta.url))));
   });
   it("durably reserves once without certifying owner identity or execution eligibility", async () => {
