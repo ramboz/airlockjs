@@ -679,13 +679,21 @@ Adobe's independent helper gate remain unresolved; no host exclusion follows.
 
 The next prototype is `sdk-absent-chrome-preexec.mjs`, with fixed runtime,
 actor, IO and launcher modules. Its normal and pre-return-abort browser
-controls have **not run**. Fifty-four source/pure tests and two source-pin
-assertions pass; simulated OS/socket/child/signal receipts are not actual
-Chrome, profile, ownership or cleanup evidence. Initial source review requires
-corrections: post-attribution detached-child coverage, atomic handoff
+controls have **not run**. The first handoff had54 source/pure tests and two
+source-pin assertions; simulated OS/socket/child/signal receipts are not actual
+Chrome, profile, ownership or cleanup evidence. Initial source review found
+defects in post-attribution detached-child coverage, atomic handoff
 publication, probe settlement and publication-inclusive completion. The
 snapshot-based cleanup cannot claim complete custody/profile deletion while
 the detached-child predicate is UNKNOWN. No browser launch is authorized.
+
+The correction hard-refuses public/direct/worker/shell acquisition, retains
+UNKNOWN in modeled post-exec paths, and adds atomic committed records,
+settled probes and a strict independent whole-command completion consumer.
+Eighty source/pure tests and two pin assertions pass. Compliance, craft and
+architecture and reconciliation passed for this guarded source checkpoint
+only. No returned or persisted candidate is a browser qualification or
+permission to execute.
 
 The Node controls above belong to checkpoint `466e709`. Adding the prototype
 to both source closures changes their complete source vector; do not relabel

@@ -365,7 +365,13 @@ describe("inspected Meta stock preparation", () => {
       "meta-additional-supervision.mjs", "meta-additional-supervision.test.mjs",
       "meta-rendezvous-peer.mjs", "meta-rendezvous-peer.test.mjs",
       "meta-preexec-bootstrap.mjs", "meta-preexec-bootstrap.test.mjs", "meta-preexec-bootstrap-launcher",
-      "meta-owned-socket-observer.c", "meta-owned-socket-observer.cohort.json"])
+      "meta-owned-socket-observer.c", "meta-owned-socket-observer.cohort.json",
+      "sdk-absent-chrome-preexec.mjs", "sdk-absent-chrome-preexec.test.mjs", "sdk-absent-chrome-io.mjs",
+      "sdk-absent-chrome-runtime.mjs", "sdk-absent-chrome-runtime.boundary.test.mjs",
+      "sdk-absent-chrome-actors.mjs", "sdk-absent-chrome-actors.boundary.test.mjs", "sdk-absent-chrome-launcher",
+      "sdk-absent-chrome.browser.test.mjs", "sdk-absent-chrome.browser.config.mjs",
+      "sdk-absent-chrome-io.test.mjs", "sdk-absent-chrome-completion.mjs", "sdk-absent-chrome-completion.test.mjs",
+      "sdk-absent-chrome-admission.test.mjs"])
       expect(pins[name]).toBe(hash(readFileSync(new URL(name, import.meta.url))));
   });
 

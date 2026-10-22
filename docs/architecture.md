@@ -85,9 +85,11 @@ Node/shell normal/refusal/inherited controls, not inferred runtime evidence
 from compilation or pure tests. Real-browser/native resources remain unqualified.
 The next fixed SDK-absent Chrome prototype is source/pure only, with actual
 browser controls disarmed; its simulated boundaries cannot qualify resources.
-Its initial source review blocks launch on detached-child custody,
-publication/settlement and deadline defects. A contained-runner alternative
-is conditional framing only, not an established new resource boundary.
+Its corrected public acquisition remains hard-disabled; source/pure
+admission coverage is in `rig/sdk-absent-chrome-admission.test.mjs:1-69`.
+The guarded source compliance pass does not solve detached-child custody or
+qualify execution. A contained-runner alternative is conditional framing
+only, not an established new resource boundary.
 See the [executed blocker](../rig/native-stock-capture.md#installed-descriptor-observer-blocker)
 and [current replacement status](../rig/native-stock-capture.md#macos-socket-observer-replacement).
 

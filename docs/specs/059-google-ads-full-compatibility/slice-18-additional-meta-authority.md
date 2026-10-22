@@ -862,6 +862,28 @@ SDK-absent Chrome source/pure handoff (2026-10-22; not actual qualification):
   prototype is now being implemented in new files; actual engine/image,
   clock bounds, custody/settlement and teardown remain qualification blockers.
   See Proposed ADR-0038's conditional alternative; no runtime GO follows.
+- The guarded Mac source correction handoff adds unconditional pre-acquisition
+  refusal to public/direct/worker/shell routes; its modeled post-exec branch
+  retains UNKNOWN and refuses complete custody/profile deletion. Atomic
+  committed publication, tracked probe settlement and an independently bound
+  external-completion consumer replace the three other unsafe inferences.
+  Candidates remain unqualified in memory and on disk.
+- This handoff has **80 source/pure tests plus two source-closure assertions**,
+  with current source unchanged across the recorded commands. Parent checked
+  fourteen source identities, eighteen hashes, selected raw logs, the public
+  admission guard's RED/exact restoration and unchanged original/conditional
+  authority. These are source/pure checks, not real-browser or resource proof;
+  correction compliance passed for the fourteen prototype files and four
+  closure edits only, relying on hard NO-GO/UNKNOWN rather than solved
+  descendant custody. Craft and architecture passed for this guarded source
+  scope, not runtime custody. A default five-second
+  pure-runner timeout was corrected to the existing case cap, not erased.
+- The contained Node candidate's first handoff has75 source/model tests but
+  no actual S/executor/inspect adapter. That implementation is still incomplete
+  and is being finished behind NOT_PREPARED gates, not promoted to readiness.
+  Its original source/pure artifacts were verified and moved unchanged from
+  the accidental repository directory to private session storage; relocation
+  mappings preserve the historical paths. No runtime action occurred.
 
 ### Reconciliation sweep
 
@@ -871,9 +893,11 @@ SDK-absent Chrome source/pure handoff (2026-10-22; not actual qualification):
 - **No-op:** stable core/connectors/build/dependencies, frozen contracts,
   accepted decision bodies, original authority/spent slot and closed slices.
   This reference-only path adds no runtime capability or deployment.
-- **Updated:** memory learnings record acquisition-ledger continuity and the
-  discovery/ready ordering lesson; deterministic memory summary/team check
-  completed without changing hot-cache primers or conventions.
+- **Updated:** memory learnings record acquisition-ledger continuity,
+  discovery/ready ordering, installed-tool/SDK capability limits and
+  cause-specific negatives that cannot hide behind mandatory UNKNOWN.
+  Earlier deterministic memory checks remain recorded; the current summary
+  does not change hot-cache primers or conventions.
 - **No-op:** existing inbox and refinement residuals remain broader native/
   product work, not resolved by this additional grant. **Updated:** regenerated
   the derived status board from the actual IN_PROGRESS record; its old
@@ -881,17 +905,35 @@ SDK-absent Chrome source/pure handoff (2026-10-22; not actual qualification):
   structural checks passed. Prior branch work and
   accepted ADR-0035/framing commits are outside this implementation checkpoint;
   the earlier authority-checkpoint diff was from `c6cde7f`, not the entire
-  branch versus main. The **current Node/shell observer checkpoint** is the
+  branch versus main. The **earlier Node/shell observer checkpoint** was the
   change from `d76c316` through its fixed C/cohort, Node/shell/consumer,
-  source-closure and related documentation delta. New untracked browser
-  prototype files are a separate next phase and excluded from this commit.
+  source-closure and related documentation delta, committed as `466e709`.
+  Browser prototype files were excluded from that commit.
+  The **current guarded Mac source checkpoint** adds fourteen prototype/
+  completion/launcher/config/test files, four closure/pin-assertion edits and
+  related source-status/review/memory documentation after `466e709` and the
+  documentation-only `65cb86d`. Separate owned-namespace source and all
+  private source/model artifacts are excluded from this checkpoint.
 - **Updated:** earlier independent checkpoint reconciliations passed for their
   recorded source ranges; none re-graded ACs or completed the operator result.
-  The current `d76c316`-based reconciliation found only documentation status/
+  The earlier `d76c316`-based reconciliation found only documentation status/
   source-range inconsistencies; corrected text distinguishes historical lsof
   failure, qualified Node/shell controls and open Chrome/native obligations.
   Its bounded two-location correction rereview passed; that follow-up did not
   repeat the source/evidence review or accept ACs, the whole slice or Native.
+- **Updated:** the current Mac compliance/craft passes cover only the
+  hard-disabled source checkpoint. The craft assertion nit was corrected
+  with fault-specific witnesses and a minimal recorded-group diagnostic;
+  two real guard removals caused two source/pure failures, then exact
+  restoration and the full source suite passed. Its bounded rereview passed
+  without rehashing or execution. Fresh current architecture review passed
+  fourteen files and four closure edits for deliberate NO-GO/truthful UNKNOWN;
+  final checkpoint reconciliation passed for this bounded source/documentation
+  scope only. No pass relabels custody or native evidence, completes ACs/DoD,
+  or grants runtime execution.
+- **Updated:** the current derived-board refresh changes review-selection
+  telemetry only, not slice status. The selected richer craft channel and its
+  shown-but-declined alternative are recorded; no lifecycle advance follows.
 - **Deferred:** parent-owned case-bound receipts,
   current finite resource coordination and actual additional operator result
   or concrete pre-admission blocker. Slice remains IN_PROGRESS; no lifecycle

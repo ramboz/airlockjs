@@ -1,0 +1,12 @@
+#!/bin/sh
+# SDK-ABSENT only. H loses debug FDs; L preserves FD0-4 through shell exec.
+set -eu
+# Fixed builtin refusal: current Mac descendant custody is unproved.
+# No environment value or raw ticket enables this shell entry.
+exit 2
+case "$0" in /*/sdk-absent-chrome-launcher) ;; *) exit 2 ;; esac
+here=${0%/*}
+if /opt/homebrew/Cellar/node/24.10.0/bin/node "$here/sdk-absent-chrome-actors.mjs" --sdk-absent-h "$@" 3>&- 4>&- </dev/null >/dev/null 2>/dev/null; then
+  exec "$here/qualification-loopback-chrome" "$@"
+fi
+exit 2
