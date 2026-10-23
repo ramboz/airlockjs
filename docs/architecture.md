@@ -104,6 +104,12 @@ settlement corrections passed bounded source review. Craft's independent
 confinement oracle/diagnostic fixes and architecture's closed daemon
 environment correction also passed their scoped follow-ups. None establishes
 actual H/runtime/clock qualification.
+The fixed Node-only host prerequisite (`rig/sdk-absent-clock-host-observer.mjs`
+and `rig/sdk-absent-clock-host-reader.mjs`) retains public owned-child PID
+issuance and HELLO/RESULT/COMPLETE plus separate actual exit/stream evidence.
+Its scoped source corrections passed; actual controls and independent
+whole-command proof have not run. It cannot redeem a fixture receipt for
+Docker observation O or enable the existing unavailable gates.
 See the [executed blocker](../rig/native-stock-capture.md#installed-descriptor-observer-blocker)
 and [current replacement status](../rig/native-stock-capture.md#macos-socket-observer-replacement).
 

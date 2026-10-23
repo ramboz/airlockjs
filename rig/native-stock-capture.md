@@ -742,6 +742,31 @@ selected source passes, not actual runtime evidence. H provenance,
 actual runtime/image custody and prospective clock bounds remain unavailable.
 No observation or workload has been authorized or executed.
 
+### Fixed Node-only host prerequisite: actual controls not run
+
+The `sdk-absent-clock-host*` source supplies a fixed metadata-prepared,
+one-use normal or explicit failed-child fixture. It reuses the existing
+collector and retains actual owned child PID issuance separately from the
+outer test-runner PID. HELLO/RESULT/COMPLETE, output and observed exit/close/
+stream/IPC evidence must agree; COMPLETE attests final validation only,
+never a future exit.
+
+Scoped source compliance, craft and architecture corrections have passed.
+The425 selected source cases and five separate private-caller units are not
+actual host execution, durability or clock proof. The actual test file is
+outside default/source discovery, its case base is not prepared, and neither
+control has run. One fixed control per independent whole-command interval
+must finish strictly below45seconds; the five-second fixture guard and
+55-second runner failure ceiling cannot certify that external interval.
+Unknown/lost lifetimes stop further experiments without guessed signals,
+root deletion or retries.
+
+Final source reconciliation, exact preparation, current coordination and
+explicit reviewed GO remain prerequisites. Fixture receipts cannot redeem
+for observation O, a guest/runtime/clock capability, vendor case or historical
+helper clearance. All existing unavailable Docker/H/image/namespace/Mac/
+Native gates and the extra Meta case are unchanged.
+
 ### Historical P/E/L/H pre-run source/pure checkpoint
 
 This section preserves the original source/pure checkpoint **before v1-v3**.

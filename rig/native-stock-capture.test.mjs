@@ -78,6 +78,16 @@ describe("canonical stock reservation using synthetic owner-shaped records only"
     ]));
     for (const name of clockObservation)
       expect(pins[name]).toBe(hash(await readFile(new URL(name, import.meta.url))));
+    const clockHost = (await readdir(new URL(".", import.meta.url)))
+      .filter(name => name.startsWith("sdk-absent-clock-host-") && name.endsWith(".mjs"));
+    expect(clockHost).toHaveLength(11);
+    expect(clockHost).toEqual(expect.arrayContaining([
+      "sdk-absent-clock-host-source.test.mjs", "sdk-absent-clock-host-actual.mjs",
+      "sdk-absent-clock-host-actual.config.mjs", "sdk-absent-clock-host-source.config.mjs",
+      "sdk-absent-clock-host-source.setup.mjs",
+    ]));
+    for (const name of clockHost)
+      expect(pins[name]).toBe(hash(await readFile(new URL(name, import.meta.url))));
     console.info("CLOCK_SOURCE_PIN_METADATA " + JSON.stringify({
       vector: "metaSourcePins", metadata_only: true, source_lease_qualified: false,
       runtime_qualified: false, pins,

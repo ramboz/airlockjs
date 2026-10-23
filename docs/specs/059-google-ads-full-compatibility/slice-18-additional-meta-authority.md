@@ -1022,6 +1022,73 @@ No-work clock-observation source handoff (2026-10-22; unqualified):
   observation or prospective clock/rate capability is minted, and all
   observation/runtime/qualified-clock/workload/native flags remain false.
 
+Fixed host-observer prerequisite (2026-10-23; no actual controls yet):
+
+- After `c9993d3`, a separate fixed Node-only host observer/fixture/reader
+  source path adds eleven files plus four pin edits. It reuses the existing
+  child collector, captures the original pre-spawn start and retains exact
+  child publication/exit/stream/IPC evidence. Only normal exit0 and explicit
+  failed-child exit2 controls are contemplated; no arbitrary program, signal,
+  backend, browser or vendor target is selectable.
+- Its first handoff reports75 new host source/pure cases plus the preceding
+  241 selected regressions,316 total. Both source vectors include all eleven
+  files (110/106 entries); these remain source metadata, not qualification.
+  Actual controls are separately selected and have not run. Host fixture
+  receipts cannot be redeemed for observation O or clock/workload/native
+  authority; independent whole-command completion remains required.
+- Initial compliance requires three corrections: bind the actual directory
+  fsync descriptor to its issued root; burn canonical nonce/root issuance and
+  plan consumption before fallible preparation/validation; and recheck the
+  child parent/deadline after blocking reads before publication. These source
+  corrections passed bounded rereview of four files and their coupled
+  contracts, not an actual GO or whole implementation audit. Current source
+  coverage reports340 selected cases (99 host,241 preceding cases), with
+  guard-removal failures1/2/4/9 and exact restoration retained. Independent
+  craft/architecture and the separate outer-caller review remain pending.
+- Craft found two pre-run blockers in the independent outer caller: Node
+  custody needed revalidation after blocking intent publication and after
+  close, and a failed timeout-diagnostic write could discard settlement
+  ownership. The caller now binds executable/source/caller/proof originals at
+  those frontiers and retains its exact pending command in `finally` even
+  when diagnostic filing fails. Four SOURCE tests with doubled subprocesses
+  and owned temporary files pass; the real Node guard removal fails and
+  exact restoration passes. Narrow caller rereview passed only that corrected
+  caller/test scope; repository HOST code was not re-audited. Architecture/
+  caller safety and final reconciliation remain; no actual fixed host control
+  was launched.
+- Architecture then found three source gaps: the caller retained a second
+  source snapshot rather than the one whose reviewed hash passed; fixture
+  RESULT/final-exit checks still preceded blocking validation; and close
+  evidence omitted the actual owned fixture child PID. The caller now retains
+  the exact checked snapshot, with its race reproduced then five caller
+  source cases green. Fixture fences now follow blocking validation before
+  RESULT, closed COMPLETE validation witness and expected exit. The actual
+  owned `ChildProcess.pid` is retained in immutable `host-issued.json` and
+  bound across messages/output/exit/close/reader; missing/invalid PID refuses
+  ACK without dropping the handle. No PID lookup, signal or selectable PID
+  API was added.
+- Architecture correction rereview passed only six HOST/two private caller
+  files. Current425 selected source cases (184 host,241 prior) and six
+  guard-removal/restoration witnesses remain source-only. Parent verified15
+  source originals/30artifact hashes and unchanged authority; final source/
+  documentation reconciliation passed this bounded checkpoint, not execution.
+  Current preparation/coordination and explicit
+  reviewed GO remain before either actual control. Two-frame source archives
+  are historical, not current HELLO/RESULT/COMPLETE evidence.
+  No actual host control, PID probe/control or backend operation occurred.
+- Parent prepared an independent fixed outer caller, but it has not launched
+  a control. Own temporary-file tests found APFS directory entry creation
+  changes `nlink` without changing directory identity; directory descriptor
+  checks retain exact device/inode/type/owner/mode instead. Exact original-
+  file link/time/hash checks are not relaxed. This is not process custody
+  or durability proof.
+- The raw source-proof artifacts were moved unchanged from the ignored
+  repository output directory to private session storage with byte/identity
+  mappings; historical paths were not rewritten. All actual Docker/H/runtime/
+  image/clock admission remains unavailable. The narrow Docker read-only
+  question received general autonomy, not an exact backend grant. No Meta
+  permission, slot, SDK or historical UNKNOWN disposition changed.
+
 ### Reconciliation sweep
 
 - **Updated:** operator guide, architecture and open 059/060 plans distinguish
@@ -1056,11 +1123,16 @@ No-work clock-observation source handoff (2026-10-22; unqualified):
   files and four source-closure/pin edits after `3e1ca33`, plus related
   documentation/review/memory telemetry, committed as `63e62c1`. Private
   receipts, frozen copies and the then-future observation source were excluded.
-  The **current no-work observation checkpoint** adds19 fixed observation/
+  The **earlier no-work observation checkpoint** added19 fixed observation/
   admission/reader/init/test/config/cohort/Dockerfile sources and four pin
-  edits after `63e62c1`. Related documentation/review/memory are in scope;
-  all private receipts, old source leases and frozen cross-lane copies remain
-  excluded. No runtime qualification or execution permission is added.
+  edits after `63e62c1`, committed as `c9993d3`. Private receipts and frozen
+  cross-lane copies were excluded.
+  The **current host-only source checkpoint** adds eleven fixed host observer/
+  fixture/reader/plan/protocol/publication/test/config files and four pin
+  edits after `c9993d3`, plus related documentation/review/memory. The
+  separately reviewed private caller/test remain session artifacts, not
+  package code. No actual control, qualification or execution permission is
+  added by the commit; private originals and frozen copies remain excluded.
 - **Updated:** earlier independent checkpoint reconciliations passed for their
   recorded source ranges; none re-graded ACs or completed the operator result.
   The earlier `d76c316`-based reconciliation found only documentation status/
@@ -1092,23 +1164,34 @@ No-work clock-observation source handoff (2026-10-22; unqualified):
   qualified clock or workload. Hard NO-GO/NOT_PREPARED remains the safety gate.
 - **Updated:** the current derived-board refresh changes review-selection
   telemetry only, not slice status. Earlier recorded richer-channel selection
-  is historical. Both the earlier namespace and current observation craft
+  is historical. The earlier namespace and observation craft
   receipts record
   `substrate: not-shown` and `applied_skill: none`; the board faithfully
   reflects that advisory telemetry gap. No selection provenance or lifecycle
   advance is inferred from the prompt-source description.
-- **Updated:** the current observation correction pass covers retained-original
+- **Updated:** the earlier observation correction pass covers retained-original
   frontiers and same-domain nested settlement, not a new complete audit.
   Craft's confinement-oracle blocker and diagnostic nit were fixed in two
   files and passed bounded rereview. The234-case craft-correction lease is
-  historical after the environment correction. Current241 selected cases
-  (106 observation,133 namespace subset,two pins) use doubled boundaries and
+  historical after the environment correction. That241-case source lease
+  (106 observation,133 namespace subset,two pins) uses doubled boundaries and
   independent backend expectations; earlier191/226/234 proofs and all failed
   attempts remain their own source histories.
   Architecture's environment correction also passed its three-file scope.
   Final source reconciliation passed only the bounded source/documentation
   scope and subsequent count-paragraph correction. Actual H, engine/
   image custody, runtime cleanup and qualified clock contracts remain absent.
+- **Updated:** current host compliance closed its three custody/burn/fence
+  findings in a four-file correction scope; craft closed two private-caller
+  findings in its caller/test scope; architecture closed the retained-source
+  snapshot, final lifetime and fixture-PID findings in six HOST/two private
+  files. These are scoped follow-ups, not fresh full audits at every edit.
+  Current425 source cases (184 host,241 prior) and five private-caller source
+  units use doubled subprocess boundaries; all316/340 histories remain.
+  Host-issued PID and HELLO/RESULT/COMPLETE are not future exit evidence.
+  Final bounded source/documentation reconciliation passed; current exact
+  preparation/coordination and a separate parent GO decision remain before
+  any actual controls. No source pass supplies actual closure or a clock cap.
 - **Deferred:** parent-owned case-bound receipts,
   current finite resource coordination and actual additional operator result
   or concrete pre-admission blocker. Slice remains IN_PROGRESS; no lifecycle
