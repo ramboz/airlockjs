@@ -23,7 +23,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import * as fs from "node:fs";
 import { spawn } from "node:child_process";
-import { fixedRead } from "./sdk-absent-owned-namespace-io.mjs";
+import { atomicPrivateWrite, fixedRead } from "./sdk-absent-owned-namespace-io.mjs";
 import { namespaceActorCompletion, namespaceActorSnapshot, startOwnedNamespaceSupervisor } from "./sdk-absent-owned-namespace-actors.mjs";
 import { namespacePlanEvidence, prepareOwnedNamespacePlan } from "./sdk-absent-owned-namespace.mjs";
 import { namespaceAdapterContract, normalizeOwnedNamespaceInspection, ownedNamespaceExpectedProjection,
@@ -214,7 +214,7 @@ describe("actual fixed S/CLI implementation with all OS boundaries mocked", () =
   it("actual S refuses CLI spawn when its pending-operation registration cannot be durably synced", async () => {
     const sync = fs.fsyncSync.getMockImplementation();
     fs.fsyncSync.mockImplementation(fd => {
-      if (descriptors.get(fd)?.endsWith("/s-op-1-registered.json.staging")) throw Error("SIMULATED_OPERATION_FSYNC_FAILURE");
+      if (descriptors.get(fd)?.endsWith("/s-op-1-registered.json")) throw Error("SIMULATED_OPERATION_FSYNC_FAILURE");
       return sync(fd);
     });
     const h = await startOwnedNamespaceSupervisor(makeSupervisorRequest());
@@ -223,13 +223,44 @@ describe("actual fixed S/CLI implementation with all OS boundaries mocked", () =
     expect(namespaceActorSnapshot(h).errors.some(e => e.includes("SIMULATED_OPERATION_FSYNC_FAILURE"))).toBe(true);
     expect(namespaceActorSnapshot(h).operations[0]).toMatchObject({ owner: "S", daemon: "PENDING", issued_ms: null });
   });
+  it.each(["file-fsync", "directory-fsync", "final-readback"])(
+    "complete-looking operation bytes failing at %s never acknowledge registration or dispatch its client", async frontier => {
+      const path = ROOT + "/s-op-1-registered.json";
+      const sync = fs.fsyncSync.getMockImplementation(), read = fs.readFileSync.getMockImplementation();
+      let injected = false;
+      fs.fsyncSync.mockImplementation(fd => {
+        const name = descriptors.get(fd);
+        if (!injected && ((frontier === "file-fsync" && name === path)
+          || (frontier === "directory-fsync" && name === ROOT && files.has(path)))) {
+          injected = true; throw Error("SOURCE_LATE_PUBLICATION_FAILURE");
+        }
+        return sync(fd);
+      });
+      if (frontier === "final-readback") fs.readFileSync.mockImplementation(fd => {
+        if (!injected && descriptors.get(fd) === path && events.some(e => e.type === "publish" && e.path === path)) {
+          injected = true; throw Error("SOURCE_LATE_PUBLICATION_FAILURE");
+        }
+        return read(fd);
+      });
+      const h = await startOwnedNamespaceSupervisor(makeSupervisorRequest());
+      await flush();
+      expect(injected).toBe(true); expect(spawn).not.toHaveBeenCalled();
+      const snapshot = namespaceActorSnapshot(h), diagnostic = Buffer.from(files.get(path).bytes);
+      expect(snapshot.operations[0]).toMatchObject({ owner: "S", daemon: "PENDING", issued_ms: null });
+      expect(snapshot.continuations).toEqual([]);
+      expect(snapshot.errors).toContain("durable_S_publication_failed:SOURCE_LATE_PUBLICATION_FAILURE");
+      expect(JSON.parse(diagnostic).operations[0].issued_ms).toBeNull();
+      expect(() => atomicPrivateWrite(ROOT, "s-op-1-registered.json", {}, 501)).toThrow("EEXIST");
+      expect(files.get(path).bytes.equals(diagnostic)).toBe(true);
+      expect(fs.unlinkSync).not.toHaveBeenCalled(); expect(descriptors.size).toBe(0);
+    });
   it.each(["source", "client", "config", "socket"])("F1 registration-time %s replacement must prevent actual spawn", async kind => {
     const source = namespacePlanEvidence(plan()).prepared_identity.sources[0].path;
     const sync = fs.fsyncSync.getMockImplementation();
     let replaced = false;
     fs.fsyncSync.mockImplementation(fd => {
       const result = sync(fd);
-      if (!replaced && descriptors.get(fd)?.endsWith("/s-op-1-registered.json.staging")) {
+      if (!replaced && descriptors.get(fd)?.endsWith("/s-op-1-registered.json")) {
         replaced = true;
         if (kind === "source") put(source, "REPLACED_DURING_PUBLICATION", 0o100644);
         else if (kind === "client") put("/source-fixture/docker", "REPLACED_DURING_PUBLICATION", 0o100755);
@@ -249,7 +280,7 @@ describe("actual fixed S/CLI implementation with all OS boundaries mocked", () =
     let replaced = false;
     fs.fsyncSync.mockImplementation(fd => {
       const value = sync(fd);
-      if (!replaced && descriptors.get(fd)?.endsWith("/s-worker-registered.json.staging")) {
+      if (!replaced && descriptors.get(fd)?.endsWith("/s-worker-registered.json")) {
         replaced = true; put(source, "REPLACED_WHILE_REGISTERING_W", 0o100644);
       }
       return value;
@@ -264,7 +295,7 @@ describe("actual fixed S/CLI implementation with all OS boundaries mocked", () =
     const sync = fs.fsyncSync.getMockImplementation();
     fs.fsyncSync.mockImplementation(fd => {
       const value = sync(fd);
-      if (descriptors.get(fd)?.endsWith("/p-owner.json.staging")) put(ROOT + "/docker-config/config.json", "{} ");
+      if (descriptors.get(fd)?.endsWith("/p-owner.json")) put(ROOT + "/docker-config/config.json", "{} ");
       return value;
     });
     expect(() => launchOwnedNamespaceCase(["--fixed-namespace-case", "source-case-01", NONCE, ROOT, "normal"]))
@@ -361,7 +392,7 @@ describe("actual fixed S/CLI implementation with all OS boundaries mocked", () =
     const s = await pendingStart(), sync = fs.fsyncSync.getMockImplementation();
     fs.fsyncSync.mockImplementation(fd => {
       const value = sync(fd);
-      if (descriptors.get(fd)?.endsWith("/s-permit-1-registered.json.staging")) clock(35100);
+      if (descriptors.get(fd)?.endsWith("/s-permit-1-registered.json")) clock(35100);
       return value;
     });
     s.start.stdout.emit("data", Buffer.from(JSON.stringify({ type: "HELLO", case_id: "source-case-01", nonce: NONCE, tau0_ms: 9000000 }) + "\n"));
@@ -379,7 +410,7 @@ describe("actual fixed S/CLI implementation with all OS boundaries mocked", () =
       let replaced = false;
       fs.fsyncSync.mockImplementation(fd => {
         const value = sync(fd);
-        if (!replaced && descriptors.get(fd)?.endsWith("/s-permit-" + id + "-registered.json.staging")) {
+        if (!replaced && descriptors.get(fd)?.endsWith("/s-permit-" + id + "-registered.json")) {
           replaced = true;
           if (target === "source") put(source, "REPLACED_DURING_PERMIT_PUBLICATION", 0o100644);
           else if (target === "client") put("/source-fixture/docker", "REPLACED_DURING_PERMIT_PUBLICATION", 0o100755);
@@ -403,7 +434,7 @@ describe("actual fixed S/CLI implementation with all OS boundaries mocked", () =
     let replaced = false;
     fs.fsyncSync.mockImplementation(fd => {
       const value = sync(fd);
-      if (!replaced && descriptors.get(fd)?.endsWith("/s-permit-1-settled.json.staging")) {
+      if (!replaced && descriptors.get(fd)?.endsWith("/s-permit-1-settled.json")) {
         replaced = true; put(ROOT + "/docker-config/config.json", "{} ");
       }
       return value;
@@ -418,7 +449,7 @@ describe("actual fixed S/CLI implementation with all OS boundaries mocked", () =
     let lost = false;
     fs.fsyncSync.mockImplementation(fd => {
       const value = sync(fd);
-      if (!lost && descriptors.get(fd)?.endsWith("/s-worker-registered.json.staging")) {
+      if (!lost && descriptors.get(fd)?.endsWith("/s-worker-registered.json")) {
         lost = true; process.emit("disconnect");
       }
       return value;
@@ -434,7 +465,7 @@ describe("actual fixed S/CLI implementation with all OS boundaries mocked", () =
     let lost = false;
     fs.fsyncSync.mockImplementation(fd => {
       const value = sync(fd);
-      if (!lost && descriptors.get(fd)?.endsWith("/s-permit-1-registered.json.staging")) {
+      if (!lost && descriptors.get(fd)?.endsWith("/s-permit-1-registered.json")) {
         lost = true; s.worker.disconnect(); s.worker.close(2, null);
       }
       return value;

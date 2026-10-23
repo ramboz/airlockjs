@@ -2,9 +2,9 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: reconciliation
 verdict: pass
-reviewer: Prior scoped histories; base-env-reconciliation bounded document PASS
-reviewed_at: 2026-10-23T21:53:49Z
-prompt_source: review.py reconciliation docs/specs/059-google-ads-full-compatibility/spec.md 059-18; pinned-base Env/merge correction
+reviewer: Prior scoped histories; publication-reconciliation bounded document PASS
+reviewed_at: 2026-10-23T22:37:42Z
+prompt_source: review.py reconciliation docs/specs/059-google-ads-full-compatibility/spec.md 059-18; publication custody correction
 ---
 
 VERDICT: pass
@@ -46,3 +46,16 @@ Fresh base-env-reconciliation passed only the latest pinned-base environment/Doc
 
 LIMITS:
 File inspection only, no commands/tests/rehashes/physical witnessing/source reapproval/AC or DoD grading. No additional unlogged deviation or material documentation/leanness issue within scope. Retain IN_PROGRESS/ProposedADR0038/openDoD/oldUNKNOWN/originalSPENT/extraUNSPENT and disabled runtime/image/H/clock/native admissions, NOT_PREPARED cohorts. Host content/source checks are not daemon image, guest-space or runtime custody evidence.
+
+## Later original-publication custody SOURCE document reconciliation
+
+VERDICT: pass
+
+BOUNDED DOCUMENT RECONCILIATION:
+Fresh publication-reconciliation reviewer passed only the new publication-custody documentation and separate capacity-status wording. Three-writer leaf, stricter namespace handles, visible diagnostic bytes versus completed private acknowledgment, source/count/failure provenance and historical leases match supplied handoff/review records. SOURCE counts, corrected fixture failures, repeated pin assertions and parameterized wrapper cases are not described as physical controls.
+
+LIMITS:
+File inspection only, no new source audit, tests/commands/rehashes/OS/backend or physical witnessing. No additional unlogged deviation/material documentation/leanness issue. IN_PROGRESS/ProposedADR0038, disabled runtime/image/H/clock/native gates, oldUNKNOWN/originalSPENT/extraUNSPENT preserved.
+
+CAPACITY WORDING:
+Two specifically shared, hash-verified capacity-only JSONs establish an attributed rounded collection-time observation, not exact reserved bytes, import authority, actual management-operation custody, diagnostic validation by this reviewer or historical-UNKNOWN clearance. This lane did not gather diagnostics or open broad bundle logs. No whole-slice acceptance follows.

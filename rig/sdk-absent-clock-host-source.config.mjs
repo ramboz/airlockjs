@@ -6,6 +6,7 @@ export default defineConfig({
       { test: {
         name: "host-SOURCE-only",
         include: ["rig/sdk-absent-clock-host-source.test.mjs",
+          "rig/private-original-file.test.mjs",
           "rig/sdk-absent-clock-observation-admission.test.mjs",
           "rig/sdk-absent-clock-observation-pipeline.test.mjs",
           "rig/sdk-absent-owned-namespace-admission.test.mjs",

@@ -51,6 +51,7 @@ import { collectObservationChild } from "./sdk-absent-clock-observation-streams.
 const ROOT = "/source-fixture/clock-observation", CID = "c".repeat(64);
 const hash = b => createHash("sha256").update(b).digest("hex");
 const files = new Map(), fds = new Map();
+const openedObjects = new Map(), pendingSync = new Map();
 let ino, fd, calls, publications, roles, facts, result, failure, state, switches;
 let expectedEndpoint;
 const flush = async () => { for (let n = 0; n < 1800; n++) await Promise.resolve(); };
@@ -108,30 +109,37 @@ function role(name, parent) {
   roles[name] = p; return p;
 }
 async function setupFs() {
-  files.clear(); fds.clear(); ino = 1; fd = 10;
+  files.clear(); fds.clear(); openedObjects.clear(); pendingSync.clear(); ino = 1; fd = 10;
   fs.openSync.mockImplementation((path, flags) => {
     if (flags === "wx") { if (files.has(path)) throw Error("EEXIST"); put(path, ""); }
     if (!files.has(path)) throw Error("MISSING_ORIGINAL:" + path);
-    fds.set(++fd, path); return fd;
+    fds.set(++fd, path); openedObjects.set(fd, files.get(path)); return fd;
   });
   fs.lstatSync.mockImplementation(path => {
     if (!files.has(path)) throw Error("MISSING_ORIGINAL:" + path);
     return { ...files.get(path) };
   });
-  fs.fstatSync.mockImplementation(n => ({ ...files.get(fds.get(n)) }));
-  fs.readFileSync.mockImplementation(n => Buffer.from(files.get(fds.get(n)).bytes));
+  fs.fstatSync.mockImplementation(n => ({ ...openedObjects.get(n) }));
+  fs.readFileSync.mockImplementation(n => Buffer.from(openedObjects.get(n).bytes));
   fs.writeSync.mockImplementation((n, bytes, offset, length) => {
-    const f = files.get(fds.get(n));
+    const f = openedObjects.get(n);
     f.bytes = Buffer.concat([f.bytes, Buffer.from(bytes).subarray(offset, offset + length)]);
     f.size = f.bytes.length; return length;
   });
-  fs.closeSync.mockImplementation(n => fds.delete(n));
-  fs.fsyncSync.mockImplementation(() => {});
+  fs.closeSync.mockImplementation(n => { fds.delete(n); openedObjects.delete(n); });
+  fs.fsyncSync.mockImplementation(n => {
+    const path = fds.get(n), row = openedObjects.get(n);
+    if (row.isFile()) pendingSync.set(path.slice(0, path.lastIndexOf("/")), path);
+    else if (pendingSync.has(path)) {
+      const published = pendingSync.get(path); pendingSync.delete(path);
+      // Visible/synced bytes are still not the private protocol handoff.
+      publications.push({ path: published, role: context.getStore()?.name });
+      switches.publication?.(published);
+    }
+  });
   fs.linkSync.mockImplementation((from, to) => {
     if (files.has(to)) throw Error("EEXIST");
     const f = files.get(from); f.nlink++; files.set(to, f);
-    publications.push({ path: to, role: context.getStore()?.name });
-    switches.publication?.(to);
   });
   fs.unlinkSync.mockImplementation(path => { files.get(path).nlink--; files.delete(path); });
   fs.realpathSync.mockImplementation(path => path === "/usr/local/bin/docker" ? "/source-fixture/docker" : path);
@@ -336,6 +344,9 @@ function correctionRawWitness(label, read) {
 }
 describe("SOURCE/PURE actual fixed H/O/P/S/init/reader pipeline", () => {
   it("binds an explicit alternate owned socket and canonical client through every source role and reader", async () => {
+    expect(CLOCK_OBSERVATION_SOURCES).toHaveLength(18);
+    for (const name of ["private-original-file.mjs", "private-original-file.test.mjs"])
+      expect(CLOCK_OBSERVATION_SOURCES).toContain(new URL(name, import.meta.url).pathname);
     expectedEndpoint = "unix:///source-fixture/desktop.sock";
     put("/source-fixture/desktop.sock", "", 0o140600);
     facts.endpoint = expectedEndpoint;
@@ -558,6 +569,31 @@ describe("SOURCE/PURE actual fixed H/O/P/S/init/reader pipeline", () => {
     expect(calls).toHaveLength(0);
     expect(inspectClockObservation(result?.completion).status).toBe("UNKNOWN");
   });
+  it.each(["file-fsync", "directory-fsync", "final-readback"])(
+    "does not hand off H or dispatch O after complete-looking start bytes fail at %s", async frontier => {
+      const path = ROOT + "/h-start.json", sync = fs.fsyncSync.getMockImplementation();
+      const read = fs.readFileSync.getMockImplementation();
+      fs.fsyncSync.mockImplementation(fd => {
+        const name = fds.get(fd);
+        if ((frontier === "file-fsync" && name === path) || (frontier === "directory-fsync" && name === ROOT))
+          throw Error("SOURCE_LATE_PUBLICATION_FAILURE");
+        return sync(fd);
+      });
+      if (frontier === "final-readback") fs.readFileSync.mockImplementation(fd => {
+        const name = fds.get(fd);
+        if (name === path && publications.some(p => p.path === path)) throw Error("SOURCE_LATE_PUBLICATION_FAILURE");
+        return read(fd);
+      });
+      await execute();
+      expect(failure?.message).toBe("SOURCE_LATE_PUBLICATION_FAILURE");
+      expect(result).toBeNull(); expect(calls).toHaveLength(0);
+      const diagnostic = Buffer.from(files.get(path).bytes);
+      expect(JSON.parse(diagnostic).binding.case_id).toBe(facts.case_id);
+      fs.fsyncSync.mockImplementation(sync); fs.readFileSync.mockImplementation(read);
+      expect(() => observationWrite(ROOT, "h-start.json", {}, 501)).toThrow("EEXIST");
+      expect(files.get(path).bytes.equals(diagnostic)).toBe(true);
+      expect(fs.unlinkSync).not.toHaveBeenCalled(); expect(fds.size).toBe(0);
+    });
   it("rejects delayed init receipt beyond S's retained original budget", async () => {
     switches.initOutput = bytes => { roles.S.ticks += 45000000000n; return bytes; };
     await execute();
@@ -702,7 +738,7 @@ describe("SOURCE/PURE actual fixed H/O/P/S/init/reader pipeline", () => {
     expect(inspectClockObservation(result.completion).source_observation_evidence_valid).toBe(false);
     expect(calls.find(c => c.kind === "start").child.stdin.write).not.toHaveBeenCalled();
   });
-  it("publishes originals atomically without overwrite and accepts only bounded canonical ns", () => {
+  it("publishes exclusive originals without overwrite and accepts only bounded canonical ns", () => {
     context.run(roles.H, () => {
       observationWrite(ROOT, "closed-original.json", { schema: "source-only" }, 501);
       expect(() => observationWrite(ROOT, "closed-original.json", { schema: "changed" }, 501)).toThrow("EEXIST");

@@ -1218,8 +1218,71 @@ Pinned base-image environment correction (2026-10-23):
   NOT_PREPARED cohorts remain unchanged; no Docker build/import, container,
   browser or vendor operation follows. Earlier source leases are historical.
 
+Original-publication custody correction frame (2026-10-23):
+
+- At the pre-code checkpoint, the namespace and no-work writers linked/unlinked a staged inode and
+  accepted final content without retaining that file descriptor and the exact
+  directory descriptor through readback. Their readers cannot turn the
+  returned bytes into independent daemon-operation settlement. The reviewed
+  HOST writer already had an exclusive-final-inode pattern with strict file
+  metadata and retained directory-descriptor checks.
+- The bounded SOURCE increment now reuses that publication pattern for
+  all three writers through one rig-local leaf, justified by the third
+  behavior-identical caller. Preserve each caller's fixed filename/byte
+  bounds, canonical private owner directory, exact original file metadata,
+  short-write/error propagation and held-descriptor cleanup. Both source
+  closure vectors and minimal image dependency lists must include the leaf.
+  No new executor, callback, readiness format or enabling flag is introduced.
+- Opening a final name exclusively can expose empty/partial diagnostic
+  bytes before its own file fsync, directory fsync and final readback.
+  Only the existing completed in-process/IPC handoff acknowledges publication;
+  pathname existence or matching bytes cannot recover a failed/lost
+  acknowledgment, adopt an operation, retry or renew a case. Existing
+  consumer paths must retain that distinction. The historical helper name
+  `atomicPrivateWrite` does not promise atomic final-path visibility.
+- Doubled SOURCE fault controls must reject a foreign directory descriptor
+  even when the pathname is restored, file inode/owner/mode/link-count
+  changes, and identical bytes rewritten with restored mtime but changed
+  ctime at fsync/readback. A failure after visible final bytes stays
+  diagnostic, supplies no permit/command dispatch and does not overwrite or
+  delete either the final file or unrelated content.
+- Namespace retained handles/readers must also enforce canonical path,
+  one file link and descriptor-to-path identity; propagate any stricter
+  handle fields through their closed consumer schema. Legitimate directory
+  entry-count/timestamp changes from owned publication must not weaken
+  original FILE identity. Old receipts and source leases remain historical.
+- Independent pre-code frame, source compliance, craft and architecture passes
+  cover only this correction. The shared leaf and focused test are in both
+  complete source vectors (112 inspected/108 native metadata entries); the
+  leaf is in both minimal image COPY lists. Namespace's closed handle schema
+  now requires `nlink=1`; earlier handle/source archives remain historical.
+- The first 99 focused cases had 57 failures against the old writers/readers,
+  including changed visibility expectations and two oversized-input fixture
+  errors. Those fixture errors were corrected, not counted as product
+  regressions. Three later failures exposed a missing final directory-FD
+  recheck after the last blocking path read; that check is now restored.
+  Final focused coverage has 132 parameterized cases across all three real
+  wrappers, not 132 physical controls. Parent independently reran 529 affected
+  SOURCE and 187 HOST-source cases; two repeated vector assertions add no
+  unique coverage. Failure/debris/no-dispatch and private-permit controls pass.
+- A separately owner-approved Adobe-lane local diagnostic collection later
+  supplied a capacity-only, rounded VM snapshot and mount/storage projection.
+  This lane verified the two specifically shared JSON hashes as data only;
+  it did not collect diagnostics or read the broad bundle. That snapshot is
+  neither exact reserved free bytes, image-import authority nor runtime
+  custody. It replaces the earlier absence of any guest-capacity observation,
+  not the still-open import/headroom assessment and execution gates.
+- This is source preparation only, not actual durable S, host shutdown,
+  cross-process acknowledgment recovery or Docker custody. No backend,
+  image/store, workload, browser, vendor action or new actual HOST control is
+  authorized or performed by it; actual admission remains disabled.
+
 ### Reconciliation sweep
 
+- updated - the shared three-writer publication leaf, canonical single-link
+  namespace handles, diagnostic-only final visibility, complete dependency
+  closures and scoped review/failure history in the source, guide, architecture,
+  Proposed ADR-0038 and memory. No runtime capability was inferred.
 - updated - exact inherited Node/Yarn image values, Docker 28.5.1
   explicit-before-image inspection ordering, independent source oracles and
   correction review history in the slice, guide, architecture and memory.
@@ -1231,7 +1294,7 @@ Pinned base-image environment correction (2026-10-23):
 - no-op - runtime/clock/image/Mac/native hard denials, NOT_PREPARED cohorts,
   stable core/connectors/build/version, original spent authority and extra
   Meta permission/slot state. No image or workload mutation occurred.
-- deferred - missing exact base/derived runtime image, guest-store headroom,
+- deferred - missing loaded base/derived runtime image, a fresh scoped guest-store headroom assessment,
   real independent H/O and atomic peer/operation custody; subsequent actual
   runtime/native work still needs its own preparation and authority.
 - **Updated:** operator guide, architecture and open 059/060 plans distinguish

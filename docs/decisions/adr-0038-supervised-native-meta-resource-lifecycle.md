@@ -405,6 +405,15 @@ source inspection contracts. Host-content verification and doubled source
 controls do not establish a loaded/derived image, guest headroom or runtime
 custody, and do not relax any of this Proposed design's open gates.
 
+The source-only publication correction now reuses the reviewed HOST
+exclusive-final-inode pattern across the three existing rig writers through
+one rig-local leaf, with scoped frame/compliance/craft/architecture passes.
+Empty/partial final bytes are diagnostic until the original file and exact
+held directory descriptors are synced and final readback completes.
+Path existence or byte equality cannot reconstruct an acknowledgment after
+failure or authorize replay/adoption/retry. Sharing this third-caller leaf
+does not establish actual durable supervision or backend-operation custody.
+
 Fresh frame review required two V1 corrections and passed only their V2
 source/pure clarification. It is not implementation or runtime approval.
 The owner was unavailable and returned general autonomy, not an exact design

@@ -796,7 +796,9 @@ atomic check-to-connect/exec custody. All real admission functions and
 NOT_PREPARED cohorts remain unchanged. The earlier actual HOST fixtures keep
 their historical source cohort; this correction does not renew their leases.
 Image acquisition/import/build and any workload require their own preparation
-and authority, including unproved guest image-store headroom.
+and authority, including a fresh scoped guest image-store headroom assessment.
+The later capacity-only diagnostic snapshot below is not reserved space or
+image-import permission.
 
 ### Pinned base environment and Docker merge order
 
@@ -820,6 +822,37 @@ failures and init guard-removal failures remain retained separately.
 These are host-content and source-contract facts only. No daemon image
 import/build or guest process ran, no previous actual HOST source lease was
 renewed, and all runtime/image/H/clock/native gates remain disabled.
+
+### Publication acknowledgment and diagnostic bytes
+
+The HOST, no-work observation and namespace writers share
+`private-original-file.mjs`. Each caller keeps its fixed name/byte bounds;
+the leaf holds the exclusive final file and actual checked directory
+descriptors through file sync, directory sync and final readback. Exact
+file metadata, bytes, hash and descriptor-to-path identity must agree.
+Namespace readers/closed handles now require a canonical single-link file.
+
+Final paths may expose empty/partial bytes before completion. A failed or
+lost handoff leaves diagnostic debris even when it looks complete; pathname
+existence or byte equality cannot authorize adoption, replay, retry or case
+renewal. Nothing deletes or overwrites that debris to repair a failure.
+The historical internal name `atomicPrivateWrite` does not promise atomic
+path visibility. Only the existing completed private handoff acknowledges
+publication; command/permit and independent whole-command requirements remain.
+
+Scoped pre-code frame, source compliance, craft and architecture passes
+cover this correction. The 132 focused cases exercise all three real
+wrappers through doubled boundaries. Parent source checks have 529 affected
+passes and 187 HOST-source passes, not actual durability/daemon controls.
+Both complete source vectors and minimal image dependencies include the leaf.
+Historical proofs and source leases are not renewed.
+
+A separately owner-approved local diagnostic in the Adobe lane supplied
+only a rounded collection-time guest-capacity snapshot and storage/mount
+projection to this lane. The two named JSON documents were hash-verified as
+data; no broad bundle was read here and no diagnostic gather was repeated.
+The snapshot establishes an observation, not exact reserved space, import
+authority, actual operation custody or clearance of any historical UNKNOWN.
 
 ### Historical P/E/L/H pre-run source/pure checkpoint
 

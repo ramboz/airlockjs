@@ -2,9 +2,9 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: frame-critique
 verdict: pass
-reviewer: jig:reviewer72c7f492-b9d7-498f-9bf1-aa4c83cc8ccd original; jig:reviewerf535fe11-c1b6-4d93-8a16-a7e91801e193 turns0-1 native conditional scopes
-reviewed_at: 2026-10-22T00:14:27Z
-prompt_source: review.py frame-critique docs/specs/059-google-ads-full-compatibility/spec.md 059-18
+reviewer: Prior scoped histories; publication-frame pre-code SOURCE frame PASS
+reviewed_at: 2026-10-23T22:34:24Z
+prompt_source: review.py frame-critique docs/specs/059-google-ads-full-compatibility/spec.md 059-18; publication custody correction
 ---
 
 VERDICT: pass
@@ -20,3 +20,13 @@ Preserve original grant/physical/privacy/one-shot limits, old failures, historic
 
 BOOTSTRAP REFINEMENT FOLLOW-UP:
 Actual f535fe11-c1b6-4d93-8a16-a7e91801e193 turn1 separately labelled refined native AC5/8 PASS. H belongs to L's group, so the proven direct-peer group-leader predicate cannot qualify this topology. The refinement requires a separate closed predicate, independently attributed H kernel connection, revalidated L/profile and durable ledger before exec; enrollment permits TCP only. Staged first-party shell/FD/PID proof claims no browser/profile readiness. Earliest-failure disposition and whole-case timing stay open; ADR0035 limits remain unchanged. This is conditional framing, not a capability proof, native approval, historical UNKNOWN closure or Adobe helper clearance.
+
+## Later original-publication custody SOURCE correction
+
+VERDICT: pass
+
+BOUNDED PRE-CODE FRAME:
+Fresh publication-frame reviewer passed only the three-writer original-publication SOURCE correction frame under 059-18 AC5/7. Highest-risk premise is that early visible final bytes must not reconstruct success after a failed/lost private acknowledgment. Existing no-work private receipts and namespace IPC/command-stream-close contracts retain that distinction and cannot mint actual qualification. Reusing the reviewed HOST file/directory-descriptor pattern for the third caller is bounded and does not claim generic supervision, malicious-same-UID tamper proofing or host-shutdown durability.
+
+RECONCILIATION:
+The intentional final visibility change must replace the old namespace staging/invisibility assertions with diagnostic-debris/no-ACK/no-overwrite/no-dispatch controls. This pass approved a source frame only, not implementation/lifecycle advancement, real runtime/clock custody or launch authority. No reviewer commands/tests/OS/backend/rehash/physical witnessing.

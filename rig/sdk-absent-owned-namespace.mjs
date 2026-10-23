@@ -12,6 +12,7 @@ const CLIENT = "/usr/local/bin/docker";
 const BASE = "sha256:5f6d18c1dffb526f36bc30b85e468daf017dfa9531ef9ab3c57bb0d2c64da5cb";
 const COHORT = fileURLToPath(new URL("sdk-absent-owned-namespace-cohort.json", import.meta.url));
 export const OWNED_NAMESPACE_SOURCES = Object.freeze([
+  "private-original-file.mjs", "private-original-file.test.mjs",
   "sdk-absent-owned-namespace.mjs", "sdk-absent-owned-namespace-io.mjs",
   "sdk-absent-owned-namespace-time.mjs", "sdk-absent-owned-namespace-init.mjs",
   "sdk-absent-owned-namespace-payload.mjs", "sdk-absent-owned-namespace-consumer.mjs",

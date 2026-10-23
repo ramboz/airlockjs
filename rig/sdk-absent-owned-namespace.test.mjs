@@ -50,11 +50,12 @@ const ROOT = "/source-model/owned-case";
 const CID = "c".repeat(64);
 const NONCE = "a".repeat(64);
 const files = new Map(), descriptors = new Map();
+const openedObjects = new Map();
 let nextFd, ino, metadata;
 const cohortPath = fileURLToPath(new URL("sdk-absent-owned-namespace-cohort.json", import.meta.url));
 function put(path, text, mode = 0o100600) {
   files.set(path, { bytes: Buffer.from(text), meta: { dev: 1, ino: ++ino, mode, uid: 501,
-    size: Buffer.byteLength(text), mtimeMs: 100, ctimeMs: 100,
+    size: Buffer.byteLength(text), nlink: 1, mtimeMs: 100, ctimeMs: 100,
     isFile: () => (mode & 0o170000) === 0o100000,
     isDirectory: () => (mode & 0o170000) === 0o040000, isSymbolicLink: () => false,
     isSocket: () => (mode & 0o170000) === 0o140000 } });
@@ -66,32 +67,32 @@ beforeEach(() => {
   vi.clearAllMocks();
   spawn.mockImplementation(() => { throw Error("OS_PROCESS_FORBIDDEN"); });
   performance.now.mockImplementation(() => { throw Error("CLOCK_NOT_MOCKED"); });
-  files.clear(); descriptors.clear(); nextFd = 10; ino = 20;
+  files.clear(); descriptors.clear(); openedObjects.clear(); nextFd = 10; ino = 20;
   fs.openSync.mockImplementation((path, flags) => {
     if (flags === "wx") {
       if (files.has(path)) throw Error("EEXIST");
       put(path, "");
     }
     if (!files.has(path)) throw Error("mock_file_missing:" + path);
-    const fd = ++nextFd; descriptors.set(fd, path); return fd;
+    const fd = ++nextFd; descriptors.set(fd, path); openedObjects.set(fd, files.get(path)); return fd;
   });
-  fs.fstatSync.mockImplementation(fd => ({ ...files.get(descriptors.get(fd)).meta }));
+  fs.fstatSync.mockImplementation(fd => ({ ...openedObjects.get(fd).meta }));
   fs.lstatSync.mockImplementation(path => {
     if (!files.has(path)) throw Error("mock_file_missing:" + path);
     return { ...files.get(path).meta };
   });
-  fs.readFileSync.mockImplementation(fd => Buffer.from(files.get(descriptors.get(fd)).bytes));
+  fs.readFileSync.mockImplementation(fd => Buffer.from(openedObjects.get(fd).bytes));
   fs.writeSync.mockImplementation((fd, bytes, offset = 0, length = bytes.length) => {
-    const row = files.get(descriptors.get(fd)), part = Buffer.from(bytes).subarray(offset, offset + length);
+    const row = openedObjects.get(fd), part = Buffer.from(bytes).subarray(offset, offset + length);
     row.bytes = Buffer.concat([row.bytes, part]); row.meta.size = row.bytes.length; return part.length;
   });
-  fs.closeSync.mockImplementation(fd => descriptors.delete(fd));
+  fs.closeSync.mockImplementation(fd => { descriptors.delete(fd); openedObjects.delete(fd); });
   fs.fsyncSync.mockImplementation(() => {});
   fs.linkSync.mockImplementation((from, to) => {
     if (files.has(to)) throw Error("EEXIST");
-    files.set(to, files.get(from));
+    files.get(from).meta.nlink++; files.set(to, files.get(from));
   });
-  fs.unlinkSync.mockImplementation(path => files.delete(path));
+  fs.unlinkSync.mockImplementation(path => { files.get(path).meta.nlink--; files.delete(path); });
   fs.realpathSync.mockImplementation(path => path === "/usr/local/bin/docker" ? "/source-model/fixed-docker" : path);
   put(ROOT, "", 0o040700); put(ROOT + "/case", "", 0o040700);
   put(ROOT + "/docker-config", "", 0o040700); put(ROOT + "/empty-home", "", 0o040700);
@@ -195,9 +196,14 @@ describe("SOURCE/PURE owned namespace private preparation", () => {
   it("keeps the real cohort NOT_PREPARED and does not inspect a daemon or client", () => {
     put(cohortPath, JSON.stringify({ schema: "airlock.owned-namespace-cohort.v1", status: "NOT_PREPARED" }), 0o100644);
     expect(() => prepare()).toThrow("namespace_cohort_NOT_PREPARED");
-    expect(fs.realpathSync).not.toHaveBeenCalled();
+    expect(fs.realpathSync.mock.calls).toEqual([[cohortPath], [cohortPath]]);
+    expect(fs.openSync.mock.calls.map(([path]) => path)).toEqual([cohortPath]);
+    expect(spawn).not.toHaveBeenCalled();
   });
   it("creates an immutable private plan only from fixed filesystem/source metadata", () => {
+    expect(ns.OWNED_NAMESPACE_SOURCES).toHaveLength(24);
+    for (const name of ["private-original-file.mjs", "private-original-file.test.mjs"])
+      expect(ns.OWNED_NAMESPACE_SOURCES).toContain(new URL(name, import.meta.url).pathname);
     const p = prepare();
     expect(Object.isFrozen(p)).toBe(true);
     expect(() => createOwnedNamespaceSupervisor(JSON.parse(JSON.stringify(p)), 100)).toThrow("private_namespace_plan");
@@ -447,7 +453,7 @@ describe("SOURCE/PURE original fences and causal init handshake", () => {
   });
 });
 
-describe("SOURCE/PURE atomic publication and external original consumer", () => {
+describe("SOURCE/PURE exclusive publication and external original consumer", () => {
   it.each(["normal", "late-detached-orphan", "worker-loss-before-init", "worker-loss-after-arm"])(
     "%s is SIMULATED only, never namespace/native qualification", control => {
       const f = finished(control);
@@ -458,6 +464,15 @@ describe("SOURCE/PURE atomic publication and external original consumer", () => 
     const f = finished(); f.external.observer_streams_settled = false; writeExternal(f);
     expect(inspect(f).source_model_evidence_valid).toBe(false);
     expect(inspect(f).reason).toBe("namespace_external_command_failed_or_unsettled");
+  });
+  it.each(["absent", "multiple", "extra-field"])("rejects a %s link-count field in the closed external handle", fault => {
+    const f = finished(), completion = { ...f.completion };
+    if (fault === "absent") delete completion.nlink;
+    else if (fault === "multiple") completion.nlink = 2;
+    else completion.unchecked_link_count = 1;
+    const checked = inspectOwnedNamespaceCompletion(f.plan, { completion });
+    expect(checked.source_model_evidence_valid).toBe(false);
+    expect(checked.reason).toBe(fault === "multiple" ? "namespace_external_handle" : "invalid_case_input");
   });
   it.each([
     { exit_observed: false }, { actual_exit_code: 2 }, { signal: "SIGTERM" }, { timed_out: true },
@@ -524,31 +539,66 @@ describe("SOURCE/PURE atomic publication and external original consumer", () => 
     expect(() => ns.issueNamespaceCommand(h, { operation: op, journal: {}, now_ms: 112 })).toThrow();
     expect(descriptors.size).toBe(0);
   });
+  it.each(["directory-fsync", "readback"])(
+    "complete-looking journal bytes after %s failure cannot be adopted as a private permit", frontier => {
+      const h = atStart(), op = ns.registerNamespaceOperation(h, { kind: "create", now_ms: 110 });
+      const path = ROOT + "/journal-1.json";
+      const sync = fs.fsyncSync.getMockImplementation(), read = fs.readFileSync.getMockImplementation();
+      if (frontier === "directory-fsync") fs.fsyncSync.mockImplementation(fd => {
+        if (descriptors.get(fd) === ROOT) throw Error("SOURCE_LATE_PUBLICATION_FAILURE");
+        return sync(fd);
+      });
+      else fs.readFileSync.mockImplementation(fd => {
+        if (descriptors.get(fd) === path) throw Error("SOURCE_LATE_PUBLICATION_FAILURE");
+        return read(fd);
+      });
+      let journal;
+      expect(() => { journal = ns.persistNamespaceJournal(h, 111); }).toThrow("SOURCE_LATE_PUBLICATION_FAILURE");
+      expect(journal).toBeUndefined();
+      expect(JSON.parse(files.get(path).bytes).operations[0]).toMatchObject({ id: op, issued: false, daemon: "PENDING" });
+      fs.fsyncSync.mockImplementation(sync); fs.readFileSync.mockImplementation(read);
+      const diagnostic = fixedRead(path, { privateUid: 501 }).handle;
+      expect(() => ns.issueNamespaceCommand(h, { operation: op, journal: diagnostic, now_ms: 112 }))
+        .toThrow("durable_registration_required");
+      expect(() => atomicPrivateWrite(ROOT, "journal-1.json", {}, 501)).toThrow("EEXIST");
+      expect(ns.namespaceState(h).operations[0].issued).toBe(false);
+      expect(ns.namespaceState(h).errors).toContain("journal_publication:SOURCE_LATE_PUBLICATION_FAILURE");
+      expect(spawn).not.toHaveBeenCalled();
+    });
   it("rejects source/client/config/root changes during consumption", () => {
     const f = finished();
     put(ROOT + "/docker-config/config.json", "{} ");
     expect(inspect(f).reason).toBe("namespace_source_changed");
   });
-  it("keeps final bytes invisible until the staging inode is durable and refuses to overwrite originals", () => {
+  it("leaves final visibility diagnostic until file/directory sync and readback hand off; never overwrites originals", () => {
     const events = [];
-    const sync = fs.fsyncSync.getMockImplementation(), link = fs.linkSync.getMockImplementation();
-    fs.fsyncSync.mockImplementation(fd => { events.push("fsync"); return sync(fd); });
-    fs.linkSync.mockImplementation((from, to) => { events.push("link-final"); return link(from, to); });
+    const sync = fs.fsyncSync.getMockImplementation(), read = fs.readFileSync.getMockImplementation();
+    fs.fsyncSync.mockImplementation(fd => {
+      expect(files.has(ROOT + "/original.json")).toBe(true);
+      events.push("fsync:" + descriptors.get(fd)); return sync(fd);
+    });
+    fs.readFileSync.mockImplementation(fd => { events.push("readback"); return read(fd); });
     const file = atomicPrivateWrite(ROOT, "original.json", { source_only: true }, 501);
-    expect(events.slice(0, 4)).toEqual(["fsync", "fsync", "link-final", "fsync"]);
+    events.push("private-handoff");
+    expect(events).toEqual(["fsync:" + file.path, "readback", "fsync:" + ROOT, "readback", "private-handoff"]);
+    expect(fs.linkSync).not.toHaveBeenCalled(); expect(fs.unlinkSync).not.toHaveBeenCalled();
     const original = Buffer.from(files.get(file.path).bytes);
     expect(() => atomicPrivateWrite(ROOT, "original.json", { source_only: false }, 501)).toThrow("EEXIST");
     expect(files.get(file.path).bytes.equals(original)).toBe(true);
     expect(descriptors.size).toBe(0);
   });
-  it("handles short writes without publishing partial final JSON and rejects zero-progress writes", () => {
+  it("completes bounded short writes, but zero progress leaves nonoverwriteable diagnostic bytes and no handle", () => {
     const write = fs.writeSync.getMockImplementation();
     fs.writeSync.mockImplementation((fd, bytes, offset, length) => write(fd, bytes, offset, Math.min(length, 2)));
     const result = atomicPrivateWrite(ROOT, "short-write.json", { source_only: true }, 501);
     expect(JSON.parse(files.get(result.path).bytes)).toEqual({ source_only: true });
     fs.writeSync.mockReturnValueOnce(0);
-    expect(() => atomicPrivateWrite(ROOT, "zero-write.json", { source_only: true }, 501)).toThrow("namespace_short_write");
-    expect(files.has(ROOT + "/zero-write.json")).toBe(false);
+    let handle;
+    expect(() => { handle = atomicPrivateWrite(ROOT, "zero-write.json", { source_only: true }, 501); })
+      .toThrow("private_original_short_write");
+    expect(handle).toBeUndefined();
+    expect(files.get(ROOT + "/zero-write.json").bytes).toHaveLength(0);
+    expect(() => atomicPrivateWrite(ROOT, "zero-write.json", { source_only: true }, 501)).toThrow("EEXIST");
     expect(descriptors.size).toBe(0);
   });
 });

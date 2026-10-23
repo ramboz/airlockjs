@@ -354,12 +354,14 @@ describe("inspected Meta stock preparation", () => {
     const { inspectedMetaSourcePins } = await load();
     const { inspectedDecoderDependencyPins } = await import("./inspected-transport.mjs");
     const pins = inspectedMetaSourcePins();
+    expect(Object.keys(pins)).toHaveLength(112);
     expect(Object.keys(pins.header_decoder_dependencies)).toHaveLength(12);
     expect(pins.header_decoder_dependencies).toEqual(inspectedDecoderDependencyPins());
     expect(pins.header_decoder_dependencies["hpack.js"]).toMatchObject({
       version: expect.any(String), sha256: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
     for (const name of ["inspected-meta-record.mjs", "inspected-meta-record.test.mjs",
+      "private-original-file.mjs", "private-original-file.test.mjs",
       "meta-additional-authority.mjs", "meta-additional-authority.test.mjs",
       "meta-additional-qualification.mjs", "meta-additional-qualification.test.mjs",
       "meta-additional-supervision.mjs", "meta-additional-supervision.test.mjs",

@@ -11,6 +11,8 @@ export const CLOCK_OBSERVATION_SOURCES = Object.freeze([
   "outer.mjs", "producer.mjs", "supervisor.mjs", "wire.mjs", "init.mjs", "reader.mjs", "cohort.json",
 ].map(name => fileURLToPath(new URL("sdk-absent-clock-observation-" + name, import.meta.url)))
   .concat(fileURLToPath(new URL("sdk-absent-clock-observation.Dockerfile", import.meta.url)),
+    fileURLToPath(new URL("private-original-file.mjs", import.meta.url)),
+    fileURLToPath(new URL("private-original-file.test.mjs", import.meta.url)),
     fileURLToPath(new URL("inspected-meta-record.mjs", import.meta.url))));
 const plans = new WeakMap();
 function endpointOriginal(endpoint, uid) {

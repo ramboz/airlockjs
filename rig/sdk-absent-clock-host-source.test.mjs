@@ -228,6 +228,9 @@ describe("SOURCE ONLY fixed host observer", () => {
 
   it("observes the real fixed source through the shared collector; mocks are not qualification", async () => {
     await setup();
+    expect(CLOCK_HOST_SOURCES).toHaveLength(30);
+    for (const name of ["private-original-file.mjs", "private-original-file.test.mjs"])
+      expect(CLOCK_HOST_SOURCES).toContain(new URL(name, import.meta.url).pathname);
     const f = await run();
     expect(f.error).toBeUndefined();
     expect(f.result.status).toBe("HOST_FIXTURE_CANDIDATE");
@@ -263,7 +266,7 @@ describe("SOURCE ONLY fixed host observer", () => {
       }
     };
     const f = await run();
-    expect(f.error?.message).toMatch(/host_publication_original_changed/);
+    expect(f.error?.message).toBe("private_original_publication_changed");
     expect(calls).toHaveLength(0);
   });
 
@@ -296,7 +299,7 @@ describe("SOURCE ONLY fixed host observer", () => {
     const f = await run();
     expect(substituted).toBe(true);
     expect(files.get(root)).toBe(original);
-    expect(f.error?.message).toBe("host_publication_directory_fd_changed");
+    expect(f.error?.message).toBe("private_original_directory_fd_changed");
     expect(calls).toHaveLength(0);
     expect(descriptors.size).toBe(0);
     expect(openedObjects.size).toBe(0);
@@ -317,7 +320,7 @@ describe("SOURCE ONLY fixed host observer", () => {
       };
       const f = await run();
       expect(files.get(root)).toBe(original);
-      expect(f.error?.message).toBe("host_publication_directory_fd_changed");
+      expect(f.error?.message).toBe("private_original_directory_fd_changed");
       expect(calls).toHaveLength(0);
       expect(descriptors.size).toBe(0);
     });
@@ -339,7 +342,8 @@ describe("SOURCE ONLY fixed host observer", () => {
     await setup();
     let injected = false;
     switches.read = path => {
-      if (path !== root + "/host-request.json" || injected) return;
+      if (path !== root + "/host-request.json" || injected
+        || !publications.some(p => p.path === path)) return;
       const entry = [...descriptors].find(([, openedPath]) => openedPath === root);
       if (entry) {
         injected = true;
@@ -349,10 +353,30 @@ describe("SOURCE ONLY fixed host observer", () => {
     };
     const f = await run();
     expect(injected).toBe(true);
-    expect(f.error?.message).toBe("host_publication_directory_fd_changed");
+    expect(f.error?.message).toBe("private_original_directory_fd_changed");
     expect(calls).toHaveLength(0);
     expect(descriptors.size).toBe(0);
   });
+  it.each(["file-fsync", "directory-fsync", "final-readback"])(
+    "does not dispatch or acknowledge complete-looking request bytes after %s failure", async frontier => {
+      await setup();
+      const path = root + "/host-request.json";
+      switches.fsync = name => {
+        if ((frontier === "file-fsync" && name === path) || (frontier === "directory-fsync" && name === root))
+          throw Error("SOURCE_LATE_PUBLICATION_FAILURE");
+      };
+      if (frontier === "final-readback") switches.read = name => {
+        if (name === path && publications.some(p => p.path === path)) throw Error("SOURCE_LATE_PUBLICATION_FAILURE");
+      };
+      const f = await run(), diagnostic = Buffer.from(files.get(path).bytes);
+      expect(f.error?.message).toBe("SOURCE_LATE_PUBLICATION_FAILURE");
+      expect(f.result).toBeUndefined(); expect(calls).toHaveLength(0);
+      expect(JSON.parse(diagnostic).case_id).toBe(request.case_id);
+      switches = {};
+      expect(() => publishClockHostOriginal(root, "host-request.json", {}, 501)).toThrow("EEXIST");
+      expect(files.get(path).bytes.equals(diagnostic)).toBe(true);
+      expect(fs.unlinkSync).not.toHaveBeenCalled(); expect(descriptors.size).toBe(0);
+    });
 
   it("retains the explicit failed-child control as code 2, never as a signal or cancellation", async () => {
     await setup(); request.control = "failed-child";
@@ -568,7 +592,7 @@ describe("SOURCE ONLY fixed host observer", () => {
     if (kind === "request") request.case_id = "changed-valid-case";
     else files.get(root).mode = 0o040755;
     await expect(observeClockHostControl(plan)).rejects.toThrow(
-      kind === "request" ? "host_parent_request_changed" : "observation_private_directory");
+      kind === "request" ? "host_parent_request_changed" : "private_original_directory");
     request.case_id = originalCase; files.get(root).mode = originalMode;
     await expect(observeClockHostControl(plan)).rejects.toThrow("host_private_plan_already_used");
     expect(calls).toHaveLength(0);

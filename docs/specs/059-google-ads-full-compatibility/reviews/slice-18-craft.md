@@ -2,9 +2,9 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: craft
 verdict: pass
-reviewer: Prior scoped histories; base-env-craft bounded SOURCE PASS
-reviewed_at: 2026-10-23T21:51:09Z
-prompt_source: review.py pr-review docs/specs/059-google-ads-full-compatibility/spec.md 059-18; pinned-base Env/merge correction
+reviewer: Prior scoped histories; publication-craft bounded SOURCE PASS
+reviewed_at: 2026-10-23T22:34:25Z
+prompt_source: review.py pr-review docs/specs/059-google-ads-full-compatibility/spec.md 059-18; publication custody correction
 substrate: shown
 applied_skill: pr-review
 shown_candidates: [pr-review:high-confidence, scout-pr-review:high-confidence, access:speculative, agent-development:speculative, arch-review:speculative, build-mcp-app:speculative, build-mcp-server:speculative, build-mcpb:speculative, cardputer-buddy:speculative, claude-automation-recommender:speculative, claude-md-improver:speculative, command-development:speculative, configure:speculative, example-command:speculative, example-skill:speculative, frontend-design:speculative, hook-development:speculative, m5-onboard:speculative, math-olympiad:speculative, mcp-integration:speculative, playground:speculative, plugin-settings:speculative, plugin-structure:speculative, project-artifact:speculative, scout-autotune:speculative, scout-bench-create:speculative, scout-memory-init:speculative, scout-scrum-master:speculative, session-report:speculative, skill-creator:speculative, skill-development:speculative, writing-hookify-rules:speculative]
@@ -61,3 +61,16 @@ Clock init closed keyset/exact Yarn value reject missing/empty/wrong versions. N
 
 LIMITS:
 No commands/tests/runtime operations by reviewer, no whole-slice/HOST/endpoint reapproval or runtime authority. Source histories and qualification blockers preserved, including all actual admission hard denials, NOT_PREPARED cohorts, historical source leases and open 059-18 DoD. No additional deviation found.
+
+## Later original-publication custody SOURCE correction
+
+VERDICT: pass
+
+BOUNDED SOURCE CRAFT:
+Fresh publication-craft reviewer passed only the named source correction. Shared leaf keeps caller bounds, explicit failures and held-file/directory custody through final readback without recovery/execution machinery. Faults exercise three real wrappers and downstream no-dispatch/private-permit behavior; no substantive bug, vacuous replacement assertion or coupled regression found.
+
+STRENGTHS:
+Distinct directory-fd checks, exact written FILE identity, repeated readback and nested finally cleanup; closed namespace consumer retains mandatory nlink instead of dropping it; complete-looking publication failures retain pending registration, diagnostic bytes and no dispatch with descriptors closed.
+
+LIMITS:
+Static file inspection, no independently rerun tests, physical HOST/runtime qualification or renewed leases/native DoD. AtomicPrivateWrite is a historical name, not atomic final-path visibility.132parameterizedwrappercasesareSOURCE;repeatedvectorchecksnotunique. All actual gates and historical receipts remain unchanged.

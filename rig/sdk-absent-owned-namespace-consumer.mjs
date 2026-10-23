@@ -16,8 +16,8 @@ export function ownedNamespaceWholeCommand(plan, control = "normal") {
   return ownedNamespacePublicCommand(["--fixed-namespace-case", p.case_id, p.labels.nonce, p.prepared_identity.root.path, control]);
 }
 function handle(value) {
-  const v = record(data(value), ["path", "dev", "ino", "size", "mode", "uid", "mtime_ms", "ctime_ms", "sha256"]);
-  if (!digest(v.sha256) || !["dev", "ino", "size", "mode", "uid"].every(k => Number.isSafeInteger(v[k]) && v[k] > 0)
+  const v = record(data(value), ["path", "dev", "ino", "size", "mode", "uid", "nlink", "mtime_ms", "ctime_ms", "sha256"]);
+  if (!digest(v.sha256) || v.nlink !== 1 || !["dev", "ino", "size", "mode", "uid"].every(k => Number.isSafeInteger(v[k]) && v[k] > 0)
     || !["mtime_ms", "ctime_ms"].every(k => Number.isFinite(v[k]) && v[k] >= 0)) fail("namespace_external_handle");
   return v;
 }

@@ -36,6 +36,7 @@ const SOURCE_FILES = ["native-stock-capture.mjs", "native-stock-meta.mjs", "nati
   "sdk-absent-chrome.browser.test.mjs", "sdk-absent-chrome.browser.config.mjs",
   "sdk-absent-chrome-io.test.mjs", "sdk-absent-chrome-completion.mjs", "sdk-absent-chrome-completion.test.mjs",
   "sdk-absent-chrome-admission.test.mjs",
+  "private-original-file.mjs", "private-original-file.test.mjs",
   "sdk-absent-owned-namespace.mjs", "sdk-absent-owned-namespace-io.mjs", "sdk-absent-owned-namespace-time.mjs",
   "sdk-absent-owned-namespace-cohort.json", "sdk-absent-owned-namespace-clock.json", "sdk-absent-owned-namespace.Dockerfile",
   "sdk-absent-owned-namespace-init.mjs", "sdk-absent-owned-namespace-payload.mjs", "sdk-absent-owned-namespace-consumer.mjs",

@@ -128,6 +128,13 @@ verified pinned-base PATH/Node/Yarn values and Docker 28.5.1's
 `rig/sdk-absent-owned-namespace-wire.mjs:42`). Scoped source review and
 independent doubled ordering controls passed; no image was built, imported
 or run. Host OCI content hashes are not guest storage or runtime proof.
+Publication now shares one rig-local leaf across the three existing writers
+(`rig/private-original-file.mjs:42`). It retains the exact original file and
+directory descriptors through sync/readback; namespace handles additionally
+require canonical, single-link descriptor-to-path identity. Completed private
+handoff, not visible final bytes, acknowledges publication. Scoped source
+review covers this reuse, not actual durable supervision, host-shutdown safety
+or settlement of pending Docker operations; all actual gates stay disabled.
 See the [executed blocker](../rig/native-stock-capture.md#installed-descriptor-observer-blocker)
 and [current replacement status](../rig/native-stock-capture.md#macos-socket-observer-replacement).
 

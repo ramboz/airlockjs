@@ -10,38 +10,47 @@ export const ROOT = "/source-fixture/owned-namespace";
 export const CID = "c".repeat(64), NONCE = "a".repeat(64);
 export const bytesHash = bytes => createHash("sha256").update(bytes).digest("hex");
 export const files = new Map(), descriptors = new Map(), events = [];
+const openedObjects = new Map(), pendingSync = new Map();
 let ino = 1, fd = 10;
 export function put(path, bytes, mode = 0o100600) {
   bytes = Buffer.from(bytes);
-  files.set(path, { bytes, dev: 1, ino: ++ino, size: bytes.length, uid: 501, mode, mtimeMs: 100, ctimeMs: 100,
+  files.set(path, { bytes, dev: 1, ino: ++ino, size: bytes.length, nlink: 1, uid: 501, mode, mtimeMs: 100, ctimeMs: 100,
     isFile: () => (mode & 0o170000) === 0o100000, isDirectory: () => (mode & 0o170000) === 0o040000,
     isSymbolicLink: () => false, isSocket: () => (mode & 0o170000) === 0o140000 });
 }
 export function installSourceFixtureFs() {
-  files.clear(); descriptors.clear(); events.length = 0; ino = 1; fd = 10;
+  files.clear(); descriptors.clear(); openedObjects.clear(); pendingSync.clear(); events.length = 0; ino = 1; fd = 10;
   fs.openSync.mockImplementation((path, flags) => {
     if (flags === "wx") { if (files.has(path)) throw Error("EEXIST"); put(path, ""); }
     if (!files.has(path)) throw Error("MOCK_FILE_MISSING:" + path);
-    descriptors.set(++fd, path); return fd;
+    descriptors.set(++fd, path); openedObjects.set(fd, files.get(path)); return fd;
   });
   fs.lstatSync.mockImplementation(path => ({ ...files.get(path) }));
-  fs.fstatSync.mockImplementation(n => ({ ...files.get(descriptors.get(n)) }));
+  fs.fstatSync.mockImplementation(n => ({ ...openedObjects.get(n) }));
   fs.readFileSync.mockImplementation(n => {
     if (!descriptors.has(n)) throw Error("MOCK_UNOPENED_READ");
-    return Buffer.from(files.get(descriptors.get(n)).bytes);
+    return Buffer.from(openedObjects.get(n).bytes);
   });
   fs.writeSync.mockImplementation((n, bytes, offset, length) => {
-    const f = files.get(descriptors.get(n));
+    const f = openedObjects.get(n);
     f.bytes = Buffer.concat([f.bytes, Buffer.from(bytes).subarray(offset, offset + length)]);
     f.size = f.bytes.length; return length;
   });
-  fs.closeSync.mockImplementation(n => descriptors.delete(n));
-  fs.fsyncSync.mockImplementation(n => events.push({ type: "fsync", path: descriptors.get(n) }));
+  fs.closeSync.mockImplementation(n => { descriptors.delete(n); openedObjects.delete(n); });
+  fs.fsyncSync.mockImplementation(n => {
+    const path = descriptors.get(n), row = openedObjects.get(n);
+    events.push({ type: "fsync", path });
+    if (row.isFile()) pendingSync.set(path.slice(0, path.lastIndexOf("/")), path);
+    else if (pendingSync.has(path)) {
+      // This is the directory-durability frontier, not an ACK/permit.
+      events.push({ type: "publish", path: pendingSync.get(path) }); pendingSync.delete(path);
+    }
+  });
   fs.linkSync.mockImplementation((from, to) => {
     if (files.has(to)) throw Error("EEXIST");
-    files.set(to, files.get(from)); events.push({ type: "publish", path: to });
+    files.get(from).nlink++; files.set(to, files.get(from));
   });
-  fs.unlinkSync.mockImplementation(path => files.delete(path));
+  fs.unlinkSync.mockImplementation(path => { files.get(path).nlink--; files.delete(path); });
   fs.realpathSync.mockImplementation(path => path === "/usr/local/bin/docker" ? "/source-fixture/docker" : path);
   for (const path of [ROOT, ROOT + "/case", ROOT + "/docker-config", ROOT + "/empty-home"]) put(path, "", 0o040700);
   put(ROOT + "/docker-config/config.json", "{}\n");

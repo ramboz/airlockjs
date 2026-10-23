@@ -52,7 +52,9 @@ describe("canonical stock reservation using synthetic owner-shaped records only"
   it("pins the new journal's entire additional dependency and test closure", async () => {
     const { metaSourcePins } = await import("./native-stock-meta.mjs");
     const pins = metaSourcePins();
+    expect(Object.keys(pins)).toHaveLength(108);
     for (const name of ["meta-additional-authority.mjs", "meta-additional-authority.test.mjs",
+      "private-original-file.mjs", "private-original-file.test.mjs",
       "inspected-meta-record.mjs", "inspected-meta-record.test.mjs",
       "meta-additional-supervision.mjs", "meta-additional-supervision.test.mjs",
       "meta-rendezvous-peer.mjs", "meta-rendezvous-peer.test.mjs",

@@ -2,9 +2,9 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: arch
 verdict: pass
-reviewer: Prior scoped histories; base-env-architecture bounded SOURCE PASS
-reviewed_at: 2026-10-23T21:51:09Z
-prompt_source: review.py arch-review docs/specs/059-google-ads-full-compatibility/spec.md 059-18; pinned-base Env/merge correction
+reviewer: Prior scoped histories; publication-architecture bounded SOURCE PASS
+reviewed_at: 2026-10-23T22:34:25Z
+prompt_source: review.py arch-review docs/specs/059-google-ads-full-compatibility/spec.md 059-18; publication custody correction
 substrate: shown
 applied_skill: arch-review
 shown_candidates: [arch-review:high-confidence, access:speculative, agent-development:speculative, build-mcp-app:speculative, build-mcp-server:speculative, build-mcpb:speculative, cardputer-buddy:speculative, claude-automation-recommender:speculative, claude-md-improver:speculative, command-development:speculative, configure:speculative, example-command:speculative, example-skill:speculative, frontend-design:speculative, hook-development:speculative, m5-onboard:speculative, math-olympiad:speculative, mcp-integration:speculative, playground:speculative, plugin-settings:speculative, plugin-structure:speculative, pr-review:speculative, project-artifact:speculative, scout-autotune:speculative, scout-bench-create:speculative, scout-memory-init:speculative, scout-pr-review:speculative, scout-scrum-master:speculative, session-report:speculative, skill-creator:speculative, skill-development:speculative, writing-hookify-rules:speculative]
@@ -55,3 +55,13 @@ Fresh base-env-architecture read-only review passed only the pinned-base Env/mer
 
 LIMITS:
 No commands/tests/runtime operations performed. This does not renew whole-slice/HOST/endpoint/runtime approval or historical source leases. All actual runtime/image/H/clock/native gates disabled, NOT_PREPARED cohorts/ProposedADR0038/UNKNOWN dispositions/authority/spend/openDoD unchanged. Raw OCI bytes and source checks do not prove guest headroom or actual runtime custody.
+
+## Later original-publication custody SOURCE correction
+
+VERDICT: pass
+
+BOUNDED SOURCE ARCHITECTURE:
+Fresh publication-architecture reviewer passed only this three-writer source correction. One rig-local leaf preserves module boundaries; fixed filename/byte policies stay in caller wrappers. File and actual directory descriptors survive sync/readback and completed private handoff remains distinct from visible bytes. Closed namespace handle/source vectors/minimalimage dependencies are coherent. No executor, registry, callback framework, replay authority, runtime qualification or stable-core capability added.
+
+LIMITS:
+No unframed architectural deviation.132focusedwrappercasesareSOURCEevidence, not actual controls; preserve failed fixture/predicate histories and leases. All runtime/image/native denials remain; later capacity-only snapshot gives no new authority or real operation custody. Static read-only reviewer, no tests/commands/rehashes/physical witnessing.

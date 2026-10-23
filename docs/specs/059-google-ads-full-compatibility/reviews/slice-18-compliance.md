@@ -2,9 +2,9 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: compliance
 verdict: pass
-reviewer: Prior scoped histories; base-env-compliance-resumed findings plus separate base-env-order-correction PASS
-reviewed_at: 2026-10-23T21:51:09Z
-prompt_source: review.py implementation docs/specs/059-google-ads-full-compatibility/spec.md 059-18; pinned-base Env/merge correction
+reviewer: Prior scoped histories; publication-compliance bounded SOURCE PASS
+reviewed_at: 2026-10-23T22:34:24Z
+prompt_source: review.py implementation docs/specs/059-google-ads-full-compatibility/spec.md 059-18; publication custody correction
 ---
 
 VERDICT: pass
@@ -53,3 +53,16 @@ The parent confirmed Moby v28.5.1 daemon/commit.go merge source, changed the ind
 
 PROVENANCE AND LIMITS:
 Reviewer file inspection only, no commands, tests, rehashes, actual sockets/backend/guest processes or physical witnessing. Parent's final env-order-green.log has386 affected SOURCE passes/130 unselected, resume-host-source.log184 HOST-source passes; selected ESLint clean. Initial4RED/385GREEN and init-value-guard removal3RED/1absencePASS/restoration remain distinct histories. All runtime/image/H/clock/native gates stay disabled, NOT_PREPARED cohorts and 059-18 IN_PROGRESS/openDoD/ProposedADR0038/oldUNKNOWN/originalSPENT/extraUNSPENT unchanged. Host OCI content is not a loaded/derived image, guest storage proof, execution authority or renewal of historical HOST source leases.
+
+## Later original-publication custody SOURCE correction
+
+VERDICT: pass
+
+BOUNDED SOURCE COMPLIANCE:
+Fresh publication-compliance reviewer passed only this 059-18 AC5/7 increment. One shared leaf serves all three real wrappers, retaining original file and checked directory descriptors through fsync/readback with strict FILE metadata, byte/hash/path identity. Namespace canonical single-link reading and mandatory closed consumer nlink are wired. Wrapper/pipeline failure tests retain no-ACK/no-dispatch/no-overwrite/no-deletion and private-permit, one-use and original deadline guards.
+
+PROVENANCE:
+Static review only; no reviewer tests/commands/rehashes/OS/backend/physical witnessing. Parent verified21changedrigsourcehashes/10retainedlogrecords against implementerhandoff, then independently reran529SOURCE+187HOST-source.132focusedmatrixcases across3REALwrappers are not physical controls. Two repeated source-vector assertions do not add unique coverage. Initial57/99RED includes changed visibility premise and two oversized fixture errors, corrected; later3RED exposed missing final directory-fd recheck and are retained separately.
+
+LIMITS:
+No unframed deviation. Intentional diagnostic final visibility, mandatorynlink handles, source112/108 and model18/24/HOST30/minimalimageCOPY closures must be recorded. IN_PROGRESS/openDoD/ProposedADR0038/oldUNKNOWN/originalSPENT/extraUNSPENT and hard-false actualruntime/image/H/clock/native gates unchanged. No source lease or actualHOST proof renewed; not real durableS or pendingDocker-operation settlement.
