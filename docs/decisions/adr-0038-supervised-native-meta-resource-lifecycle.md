@@ -399,6 +399,12 @@ custody remain unproved. Read-only local metadata and a missing exact base
 image do not authorize image acquisition, import/build or any workload, and
 do not change this ADR's Proposed status.
 
+The pinned base's inherited PATH/Node/Yarn values and Docker 28.5.1's
+explicit-before-image environment merge order are now reflected in both
+source inspection contracts. Host-content verification and doubled source
+controls do not establish a loaded/derived image, guest headroom or runtime
+custody, and do not relax any of this Proposed design's open gates.
+
 Fresh frame review required two V1 corrections and passed only their V2
 source/pure clarification. It is not implementation or runtime approval.
 The owner was unavailable and returned general autonomy, not an exact design

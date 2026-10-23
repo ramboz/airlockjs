@@ -13,10 +13,8 @@ export function namespaceAdapterContract(plan) {
   if (c.schema !== "airlock.owned-namespace-docker-contract.v2" || c.status !== "SIMULATED_NOT_RUNTIME_PROOF"
     || e.ID !== p.engine_id || e.OSType !== "linux" || !["aarch64", "arm64"].includes(e.Architecture)
     || typeof e.ServerVersion !== "string" || !/^[A-Za-z0-9.+-]{1,64}$/.test(e.ServerVersion)
-    || !Array.isArray(c.image_env) || c.image_env.length < 2 || c.image_env.length > 3
-    || c.image_env[0] !== "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-    || c.image_env[1] !== "NODE_VERSION=24.10.0"
-    || (c.image_env.length === 3 && !/^YARN_VERSION=1\.22\.[0-9]{1,2}$/.test(c.image_env[2]))
+    || !equal(c.image_env, ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "NODE_VERSION=24.10.0", "YARN_VERSION=1.22.22"])
     || !Array.isArray(c.mounts) || c.mounts.length > 1) fail("namespace_fixed_adapter_contract");
   if (c.mounts.length) {
     const m = record(c.mounts[0], ["Type", "Source", "Destination", "Mode", "RW", "Propagation"]);
@@ -41,7 +39,7 @@ function inspectionExpected(plan) {
   }, comparisons: {
     EntrypointMatches: [".Config.Entrypoint", ["/usr/local/bin/node"]],
     CmdMatches: [".Config.Cmd", ["/airlock/sdk-absent-owned-namespace-init.mjs"]],
-    EnvMatches: [".Config.Env", [...c.image_env, "AIRLOCK_CASE=" + p.case_id, "AIRLOCK_NONCE=" + p.labels.nonce]],
+    EnvMatches: [".Config.Env", ["AIRLOCK_CASE=" + p.case_id, "AIRLOCK_NONCE=" + p.labels.nonce, ...c.image_env]],
     WorkingDirMatches: [".Config.WorkingDir", "/case"],
     HealthcheckMatches: [".Config.Healthcheck", { Test: ["NONE"] }],
     VolumesMatches: [".Config.Volumes", null], ExposedPortsMatches: [".Config.ExposedPorts", null],

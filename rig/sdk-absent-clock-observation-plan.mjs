@@ -49,7 +49,8 @@ export function prepareClockObservationPlan(value) {
     || typeof engine.ID !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(engine.ID)
     || engine.OSType !== "linux" || !["aarch64", "arm64"].includes(engine.Architecture)
     || typeof engine.ServerVersion !== "string" || !/^[A-Za-z0-9.+-]{1,64}$/.test(engine.ServerVersion)
-    || !equal(f.image_env, ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "NODE_VERSION=24.10.0"])
+    || !equal(f.image_env, ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "NODE_VERSION=24.10.0", "YARN_VERSION=1.22.22"])
     || !Array.isArray(f.sources) || f.sources.length !== CLOCK_OBSERVATION_SOURCES.length)
     fail("observation_fixed_source_facts");
   const socket = record(f.endpoint_original, ["path", "dev", "ino", "uid", "mode", "mtime_ms", "ctime_ms"]);

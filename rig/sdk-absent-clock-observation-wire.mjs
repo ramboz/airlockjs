@@ -21,7 +21,7 @@ export function observationInitEnv(p, b) {
     AIRLOCK_OBSERVATION_IMAGE: p.image_id, AIRLOCK_OBSERVATION_ENGINE: p.engine.ID, HOME: "/case" };
 }
 function expected(p, b) {
-  const env = [...p.image_env, ...Object.entries(observationInitEnv(p, b)).map(([k, v]) => k + "=" + v)];
+  const env = [...Object.entries(observationInitEnv(p, b)).map(([k, v]) => k + "=" + v), ...p.image_env];
   return {
     Entrypoint: [".Config.Entrypoint", ["/usr/local/bin/node"]],
     Cmd: [".Config.Cmd", ["/airlock/sdk-absent-clock-observation-init.mjs"]],

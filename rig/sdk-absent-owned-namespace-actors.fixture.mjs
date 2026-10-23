@@ -67,7 +67,8 @@ export function installSourceFixtureFs() {
     adapter_contract: {
       schema: "airlock.owned-namespace-docker-contract.v2", status: "SIMULATED_NOT_RUNTIME_PROOF",
       engine_info: { ID: "SIMULATED_ENGINE", OSType: "linux", Architecture: "aarch64", ServerVersion: "SIMULATED-version" },
-      image_env: ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "NODE_VERSION=24.10.0"], mounts: [],
+      image_env: ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "NODE_VERSION=24.10.0", "YARN_VERSION=1.22.22"], mounts: [],
     },
   };
   const clockPath = fileURLToPath(new URL("sdk-absent-owned-namespace-clock.json", import.meta.url));

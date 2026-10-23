@@ -1180,8 +1180,50 @@ Local read-only runtime readiness and source correction (2026-10-23):
   leases current, qualify Docker observation O, establish a future clock,
   resolve old UNKNOWNs or admit any actual runtime/native case.
 
+Pinned base-image environment correction (2026-10-23):
+
+- Read-only verification of the already shared host OCI content independently
+  checked all six compressed config/layer hashes and streamed all five rootfs
+  diff IDs: 81,530,463 compressed bytes and 257,477,632 expanded bytes, without
+  extraction, execution, download or daemon operations. The private receipt is
+  `059-18-node-oci-independent-readonly-v1.json`; it is host content evidence,
+  not a loaded image, guest-space measurement or runtime qualification.
+- The exact config `d4c19a76851d19b6473bcba5ec21630000c6469fcea58623ec166d19402f207f`
+  contains PATH, `NODE_VERSION=24.10.0` and `YARN_VERSION=1.22.22`. Both source
+  Dockerfiles inherit that config. The no-work source facts/init omitted
+  Yarn; the namespace source contract made it optional and accepted other
+  Yarn patch versions. The correction changes only these fixed image-environment contracts
+  and their doubled fixtures, with explicit missing/wrong/extra-value
+  negatives. No general environment passthrough or Yarn execution is added.
+- The first review was interrupted before any verdict was recorded.
+  Resumed compliance found a tightly coupled ordering defect in both
+  inspection templates: inherited values preceded explicit container values.
+  [Docker 28.5.1's merge implementation](https://github.com/moby/moby/blob/v28.5.1/daemon/commit.go#L39-L62)
+  instead appends non-overridden image values after explicit ones.
+  Both templates and independent doubled backend contracts now follow that
+  exact order. Three selected order regressions failed before that correction;
+  no Docker operation supplied the evidence.
+- Resumed source compliance accepted the fixed inherited values/init checks
+  but raised the ordering finding above. A separate narrow correction review
+  closed that finding; subsequent scoped craft and architecture passed.
+  Final parent verification has 386 affected SOURCE passes plus 184 unchanged
+  HOST-source passes, with selected lint clean. Earlier 385-pass runs describe
+  the pre-order-correction source, not a current source lease.
+- The initial inherited-value regressions had four failures before the fix.
+  Removing only init's exact Yarn value guard produced three wrong-value
+  failures while the missing-key case still rejected through the closed
+  key set; the exact value guard was restored. These controls and the three
+  order regressions are doubled source evidence, never guest execution.
+- Real admissions and
+  NOT_PREPARED cohorts remain unchanged; no Docker build/import, container,
+  browser or vendor operation follows. Earlier source leases are historical.
+
 ### Reconciliation sweep
 
+- updated - exact inherited Node/Yarn image values, Docker 28.5.1
+  explicit-before-image inspection ordering, independent source oracles and
+  correction review history in the slice, guide, architecture and memory.
+  This is a source-only correction, not a new runtime/design authority.
 - updated - the later explicit-endpoint SOURCE correction, strict preissued
   socket original, canonical client, source/guard-removal evidence and bounded
   review lineage in this slice, operator guide, architecture and Proposed

@@ -157,7 +157,8 @@ async function setupFs() {
       uid: 501, mode: 0o140600, mtime_ms: 100, ctime_ms: 100 },
     engine: { ID: "SOURCE_DOUBLE_ENGINE", OSType: "linux", Architecture: "aarch64", ServerVersion: "source-double" },
     image_id: "sha256:" + "d".repeat(64), image_source_sha256: sourceHash,
-    image_env: ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "NODE_VERSION=24.10.0"],
+    image_env: ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "NODE_VERSION=24.10.0", "YARN_VERSION=1.22.22"],
     sources };
   put(ROOT + "/source-facts.json", JSON.stringify(facts));
 }
@@ -189,7 +190,7 @@ function independentDockerContract(kind, target) {
     const predicates = [
       ["Entrypoint", ".Config.Entrypoint", ["/usr/local/bin/node"]],
       ["Cmd", ".Config.Cmd", ["/airlock/sdk-absent-clock-observation-init.mjs"]],
-      ["Env", ".Config.Env", [...facts.image_env, ...Object.entries(env).map(([key, value]) => key + "=" + value)]],
+      ["Env", ".Config.Env", [...Object.entries(env).map(([key, value]) => key + "=" + value), ...facts.image_env]],
       ["Labels", ".Config.Labels", labels], ["Hostname", ".Config.Hostname", "airlock-clock-source-clock-01"],
       ["WorkingDir", ".Config.WorkingDir", "/case"],
       ["User", ".Config.User", "65532:65532"], ["Healthcheck", ".Config.Healthcheck", { Test: ["NONE"] }],
@@ -882,17 +883,29 @@ describe("independent confinement and bounded diagnostics", () => {
   it("models Docker-added HOSTNAME/HOME and validates the fixed no-work environment", async () => {
     await execute();
     expect(failure).toBeNull();
-    expect(roles.init.env).toMatchObject({ HOSTNAME: "airlock-clock-source-clock-01", HOME: "/case" });
+    expect(roles.init.env).toMatchObject({ HOSTNAME: "airlock-clock-source-clock-01", HOME: "/case",
+      YARN_VERSION: "1.22.22" });
     expect(roles.init.stdout.write).toHaveBeenCalledTimes(2);
     expect(inspectClockObservation(result.completion).source_observation_evidence_valid).toBe(true);
   });
   it.each([
     ["HOSTNAME", "foreign-host"], ["HOME", "/foreign"], ["HOSTNAME", undefined], ["TERM", "xterm"],
+    ["YARN_VERSION", undefined], ["YARN_VERSION", ""], ["YARN_VERSION", "1.22.21"], ["YARN_VERSION", "1.22.23"],
   ])("refuses unsupported daemon environment %s=%s", async (key, value) => {
     switches.initContext = p => { if (value === undefined) delete p.env[key]; else p.env[key] = value; };
     await execute();
     expect(roles.init.stdout.write).not.toHaveBeenCalled();
     expect(inspectClockObservation(result?.completion).source_observation_evidence_valid).toBe(false);
+  });
+  it.each([
+    ["missing", ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "NODE_VERSION=24.10.0"]],
+    ["wrong", ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "NODE_VERSION=24.10.0", "YARN_VERSION=1.22.21"]],
+    ["extra", ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "NODE_VERSION=24.10.0", "YARN_VERSION=1.22.22", "TERM=xterm"]],
+  ])("rejects unpinned image environment %s before source actor launch", async (_name, env) => {
+    facts.image_env = env; put(ROOT + "/source-facts.json", JSON.stringify(facts));
+    await execute();
+    expect(failure?.message).toBe("observation_fixed_source_facts");
+    expect(calls).toEqual([]);
   });
   it.each([
     ["network", argv => argv.filter(a => a !== "--network=none")],

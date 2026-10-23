@@ -2,9 +2,9 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: compliance
 verdict: pass
-reviewer: Prior550 HOST source; current269 endpoint source findings plus separate fresh UID-test correction pass
-reviewed_at: 2026-10-23T17:02:09Z
-prompt_source: review.py implementation docs/specs/059-google-ads-full-compatibility/spec.md 059-18; bounded endpoint correction
+reviewer: Prior scoped histories; base-env-compliance-resumed findings plus separate base-env-order-correction PASS
+reviewed_at: 2026-10-23T21:51:09Z
+prompt_source: review.py implementation docs/specs/059-google-ads-full-compatibility/spec.md 059-18; pinned-base Env/merge correction
 ---
 
 VERDICT: pass
@@ -41,3 +41,15 @@ Reviewers performed no commands/tests/imports/OS probes/rehashes/backend or actu
 
 LIMITS:
 IN_PROGRESS/openDoD/ProposedADR0038/oldUNKNOWNs/originalMetaSPENT/additionalUNSPENT remain. No runtime/image/globalH/DockerO/clock/native qualification or execution authority follows; filesystem lease is not kernel-peer or atomic connect/exec custody. Historical f6356fd actual HOST observations are not renewed.
+
+## Later pinned-base environment SOURCE correction
+
+VERDICT: pass
+
+BOUNDED COMPOSITE SOURCE COMPLIANCE:
+The original base-env-compliance call was interrupted before any result; no success was inferred. After resume and an empty agent inventory, base-env-compliance-resumed statically reviewed only the fixed inherited-image environment correction under 059-18 AC5/7. Exact three inherited strings matched the supplied OCI receipt, and init value controls were meaningful. Its needs-changes finding was High: both .Config.Env inspection predicates placed inherited entries before explicit --env entries, repeated in a test oracle.
+
+The parent confirmed Moby v28.5.1 daemon/commit.go merge source, changed the independent test oracles first and witnessed three selected failures, then fixed both production wire arrays to explicit-before-image order. A separate fresh base-env-order-correction reviewer passed ONLY these ordering/predicate/oracle changes; it did not reapprove the original audit. No further directly coupled issue was identified.
+
+PROVENANCE AND LIMITS:
+Reviewer file inspection only, no commands, tests, rehashes, actual sockets/backend/guest processes or physical witnessing. Parent's final env-order-green.log has386 affected SOURCE passes/130 unselected, resume-host-source.log184 HOST-source passes; selected ESLint clean. Initial4RED/385GREEN and init-value-guard removal3RED/1absencePASS/restoration remain distinct histories. All runtime/image/H/clock/native gates stay disabled, NOT_PREPARED cohorts and 059-18 IN_PROGRESS/openDoD/ProposedADR0038/oldUNKNOWN/originalSPENT/extraUNSPENT unchanged. Host OCI content is not a loaded/derived image, guest storage proof, execution authority or renewal of historical HOST source leases.

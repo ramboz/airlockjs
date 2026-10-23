@@ -20,12 +20,13 @@ vi.mock("./sdk-absent-owned-namespace-admission.mjs", () => ({
   requireOwnedNamespaceRuntimeAdmission: vi.fn(), assertOwnedNamespacePayloadContext: vi.fn(),
 }));
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 import * as fs from "node:fs";
 import { spawn } from "node:child_process";
 import { fixedRead } from "./sdk-absent-owned-namespace-io.mjs";
 import { namespaceActorCompletion, namespaceActorSnapshot, startOwnedNamespaceSupervisor } from "./sdk-absent-owned-namespace-actors.mjs";
 import { namespacePlanEvidence, prepareOwnedNamespacePlan } from "./sdk-absent-owned-namespace.mjs";
-import { normalizeOwnedNamespaceInspection, ownedNamespaceExpectedProjection,
+import { namespaceAdapterContract, normalizeOwnedNamespaceInspection, ownedNamespaceExpectedProjection,
   ownedNamespaceInspectionTemplate } from "./sdk-absent-owned-namespace-wire.mjs";
 import { launchOwnedNamespaceCase, parseOwnedNamespacePublicArgv } from "./sdk-absent-owned-namespace-entry.mjs";
 import { startOwnedNamespaceWorker } from "./sdk-absent-owned-namespace-worker.mjs";
@@ -492,6 +493,30 @@ describe("actual fixed S/CLI implementation with all OS boundaries mocked", () =
 });
 
 describe("closed Docker inspect normalization", () => {
+  it("requires the exact pinned base environment rather than an optional Yarn family", () => {
+    expect(namespaceAdapterContract(plan()).image_env).toEqual([
+      "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "NODE_VERSION=24.10.0", "YARN_VERSION=1.22.22",
+    ]);
+  });
+  it("matches Docker 28.5.1 explicit-first config environment order independently of the projection builder", () => {
+    const env = ["AIRLOCK_CASE=source-case-01", "AIRLOCK_NONCE=" + NONCE,
+      "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "NODE_VERSION=24.10.0", "YARN_VERSION=1.22.22"];
+    const expected = '"EnvMatches":{{eq (json .Config.Env) ' + JSON.stringify(JSON.stringify(env)) + "}}";
+    expect(ownedNamespaceInspectionTemplate(plan()).match(/"EnvMatches":\{\{eq \(json \.Config\.Env\) .*?\}\}/)?.[0])
+      .toBe(expected);
+  });
+  it.each([
+    ["missing", ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "NODE_VERSION=24.10.0"]],
+    ["wrong", ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "NODE_VERSION=24.10.0", "YARN_VERSION=1.22.21"]],
+    ["extra", ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "NODE_VERSION=24.10.0", "YARN_VERSION=1.22.22", "TERM=xterm"]],
+  ])("rejects unpinned image environment %s with refreshed cohort bytes", (_name, env) => {
+    metadata.adapter_contract.image_env = env;
+    put(fileURLToPath(new URL("sdk-absent-owned-namespace-cohort.json", import.meta.url)), JSON.stringify(metadata), 0o100644);
+    expect(() => namespaceAdapterContract(plan())).toThrow("namespace_fixed_adapter_contract");
+    expect(spawn).not.toHaveBeenCalled();
+  });
   it("projects only selected safe fields; full Env and host paths are never dumped", () => {
     const p = plan(), template = ownedNamespaceInspectionTemplate(p);
     expect(template).toContain("EnvMatches");

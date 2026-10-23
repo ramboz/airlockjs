@@ -121,6 +121,13 @@ passed; filesystem continuity is not kernel-peer or atomic connect/exec
 custody. Read-only local metadata found the exact public base image absent;
 no pull/import/build or workload followed. Earlier source-cohort observations
 remain historical, and runtime/image/clock/native admission is unchanged.
+The next source correction binds both image-environment contracts to the
+verified pinned-base PATH/Node/Yarn values and Docker 28.5.1's
+[explicit-before-image merge order](https://github.com/moby/moby/blob/v28.5.1/daemon/commit.go#L39-L62)
+(`rig/sdk-absent-clock-observation-wire.mjs:24`,
+`rig/sdk-absent-owned-namespace-wire.mjs:42`). Scoped source review and
+independent doubled ordering controls passed; no image was built, imported
+or run. Host OCI content hashes are not guest storage or runtime proof.
 See the [executed blocker](../rig/native-stock-capture.md#installed-descriptor-observer-blocker)
 and [current replacement status](../rig/native-stock-capture.md#macos-socket-observer-replacement).
 

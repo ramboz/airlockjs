@@ -798,6 +798,29 @@ their historical source cohort; this correction does not renew their leases.
 Image acquisition/import/build and any workload require their own preparation
 and authority, including unproved guest image-store headroom.
 
+### Pinned base environment and Docker merge order
+
+The already host-staged pinned Node base was independently verified by
+config/layer compressed hashes and streamed rootfs diff IDs, without
+extraction or execution. Its image config contains the exact PATH,
+`NODE_VERSION=24.10.0` and `YARN_VERSION=1.22.22`. Both source preparation
+contracts now require these three values; no-work init accepts only that
+exact Yarn value within its existing closed environment. Nothing invokes
+Yarn or widens environment passthrough.
+
+Docker 28.5.1 [merges explicit environment entries before non-overridden
+image entries](https://github.com/moby/moby/blob/v28.5.1/daemon/commit.go#L39-L62).
+Both inspection templates now require that order, and independent source
+contracts challenge it rather than returning an expected true flag.
+Scoped compliance correction, craft and architecture passes cover these
+changes; parent source checks have386 affected passes and184 unchanged HOST
+source passes. The four initial inherited-value failures, three ordering
+failures and init guard-removal failures remain retained separately.
+
+These are host-content and source-contract facts only. No daemon image
+import/build or guest process ran, no previous actual HOST source lease was
+renewed, and all runtime/image/H/clock/native gates remain disabled.
+
 ### Historical P/E/L/H pre-run source/pure checkpoint
 
 This section preserves the original source/pure checkpoint **before v1-v3**.

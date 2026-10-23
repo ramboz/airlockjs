@@ -116,7 +116,15 @@ function dispatch(executable, argv, options) {
       let stdout;
       if (kind === "info") stdout = JSON.stringify(metadata.adapter_contract.engine_info) + "\n";
       else if (kind === "create" || kind === "rm") stdout = CID + "\n";
-      else if (kind === "inspect") stdout = JSON.stringify(ownedNamespaceExpectedProjection(plan(), CID, state)) + "\n";
+      else if (kind === "inspect") {
+        const create = calls.find(row => row.kind === "create");
+        const env = [...create.argv.filter(arg => arg.startsWith("--env=")).map(arg => arg.slice(6)),
+          ...metadata.adapter_contract.image_env];
+        const expected = '"EnvMatches":{{eq (json .Config.Env) ' + JSON.stringify(JSON.stringify(env)) + "}}";
+        const projection = ownedNamespaceExpectedProjection(plan(), CID, state);
+        projection.EnvMatches = argv[7].includes(expected);
+        stdout = JSON.stringify(projection) + "\n";
+      }
       else if (kind === "stop") { state = "exited"; stdout = CID + "\n"; }
       else if (kind === "wait") stdout = "0\n";
       else throw Error("UNEXPECTED_FIXED_DOCKER_COMMAND:" + kind);

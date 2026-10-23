@@ -2,9 +2,9 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: reconciliation
 verdict: pass
-reviewer: Prior948 HOST source/actual document scopes; fresh endpoint-reconciliation bounded document PASS
-reviewed_at: 2026-10-23T17:06:06Z
-prompt_source: review.py reconciliation docs/specs/059-google-ads-full-compatibility/spec.md 059-18; explicit endpoint correction
+reviewer: Prior scoped histories; base-env-reconciliation bounded document PASS
+reviewed_at: 2026-10-23T21:53:49Z
+prompt_source: review.py reconciliation docs/specs/059-google-ads-full-compatibility/spec.md 059-18; pinned-base Env/merge correction
 ---
 
 VERDICT: pass
@@ -36,3 +36,13 @@ Fresh jig:reviewer endpoint-reconciliation passed ONLY the new local endpoint/ca
 
 LIMITS:
 No commands/tests/rehashes/OS/backend/cases or independent physical witnessing. Historical HOST observations stay cohort-bound after source changes. Hard-disabled admissions/NOT_PREPARED cohorts/ProposedADR0038/openDoD/oldUNKNOWNs/originalSPENT/extraUNSPENT unchanged. Document reconciliation only, not source reapproval, whole-slice acceptance or execution authority. No additional deviation/material doc or leanness issue found.
+
+## Later pinned-base environment SOURCE document reconciliation
+
+VERDICT: pass
+
+BOUNDED DOCUMENT RECONCILIATION:
+Fresh base-env-reconciliation passed only the latest pinned-base environment/Docker merge documentation increment. New slice deviation/sweep, guide, architecture, Proposed ADR-0038, one memory gotcha and canonical scoped review history match the inspected source contracts and supplied content receipt/logs/review scopes. Interrupted original review, resumed ordering finding, separate narrow correction approval and later craft/architecture remain distinct; no earlier audit or source lease was renewed.
+
+LIMITS:
+File inspection only, no commands/tests/rehashes/physical witnessing/source reapproval/AC or DoD grading. No additional unlogged deviation or material documentation/leanness issue within scope. Retain IN_PROGRESS/ProposedADR0038/openDoD/oldUNKNOWN/originalSPENT/extraUNSPENT and disabled runtime/image/H/clock/native admissions, NOT_PREPARED cohorts. Host content/source checks are not daemon image, guest-space or runtime custody evidence.

@@ -14,11 +14,12 @@ export async function runClockObservationInit() {
   const e = process.env, b = binding({ case_id: e.AIRLOCK_OBSERVATION_CASE, run_id: e.AIRLOCK_OBSERVATION_RUN,
     nonce: e.AIRLOCK_OBSERVATION_NONCE, ticket: e.AIRLOCK_OBSERVATION_TICKET,
     source_sha256: e.AIRLOCK_OBSERVATION_SOURCE, cohort_sha256: e.AIRLOCK_OBSERVATION_COHORT });
-  const allowed = ["PATH", "NODE_VERSION", "HOSTNAME", "HOME", "AIRLOCK_OBSERVATION_CASE", "AIRLOCK_OBSERVATION_RUN",
+  const allowed = ["PATH", "NODE_VERSION", "YARN_VERSION", "HOSTNAME", "HOME", "AIRLOCK_OBSERVATION_CASE", "AIRLOCK_OBSERVATION_RUN",
     "AIRLOCK_OBSERVATION_NONCE", "AIRLOCK_OBSERVATION_TICKET", "AIRLOCK_OBSERVATION_SOURCE",
     "AIRLOCK_OBSERVATION_COHORT", "AIRLOCK_OBSERVATION_IMAGE", "AIRLOCK_OBSERVATION_ENGINE"];
   if (Object.keys(e).length !== allowed.length || Object.keys(e).some(k => !allowed.includes(k))
     || e.PATH !== "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" || e.NODE_VERSION !== "24.10.0"
+    || e.YARN_VERSION !== "1.22.22"
     || e.HOSTNAME !== "airlock-clock-" + b.case_id || e.HOME !== "/case")
     fail("observation_fixed_init_environment");
   if (b.nonce === null || typeof e.AIRLOCK_OBSERVATION_IMAGE !== "string" || !/^sha256:[a-f0-9]{64}$/.test(e.AIRLOCK_OBSERVATION_IMAGE)
