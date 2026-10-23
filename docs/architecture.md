@@ -96,6 +96,14 @@ Engine/image/clock admission still refuses every status at
 `rig/sdk-absent-owned-namespace-image-admission.mjs:9`; NOT_PREPARED remains.
 No source model, copied readiness flag or retrospective clock observation
 may become a qualified workload/native capability.
+The separate fixed no-work clock-observation source only models
+HELLO/CLOCK/exit and retrospective evidence. Actual H provenance and
+runtime/image readiness remain unavailable; normal workload/clock/native
+admission stays hard-disabled. The retained-original and same-domain
+settlement corrections passed bounded source review. Craft's independent
+confinement oracle/diagnostic fixes and architecture's closed daemon
+environment correction also passed their scoped follow-ups. None establishes
+actual H/runtime/clock qualification.
 See the [executed blocker](../rig/native-stock-capture.md#installed-descriptor-observer-blocker)
 and [current replacement status](../rig/native-stock-capture.md#macos-socket-observer-replacement).
 

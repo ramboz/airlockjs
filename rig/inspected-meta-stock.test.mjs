@@ -378,6 +378,18 @@ describe("inspected Meta stock preparation", () => {
     expect(namespace.length).toBeGreaterThanOrEqual(21);
     for (const name of namespace)
       expect(pins[name]).toBe(hash(readFileSync(new URL(name, import.meta.url))));
+    const clockObservation = readdirSync(new URL(".", import.meta.url))
+      .filter(name => name.startsWith("sdk-absent-clock-observation") && /\.(mjs|json|Dockerfile)$/.test(name));
+    expect(clockObservation.length).toBeGreaterThanOrEqual(19);
+    expect(clockObservation).toEqual(expect.arrayContaining([
+      "sdk-absent-clock-observation-integration.config.mjs", "sdk-absent-clock-observation-integration.setup.mjs",
+    ]));
+    for (const name of clockObservation)
+      expect(pins[name]).toBe(hash(readFileSync(new URL(name, import.meta.url))));
+    console.info("CLOCK_SOURCE_PIN_METADATA " + JSON.stringify({
+      vector: "inspectedMetaSourcePins", metadata_only: true, source_lease_qualified: false,
+      runtime_qualified: false, pins,
+    }));
   });
 
   it("rejects a byte-identical authority relocated beside a fresh canonical namespace", async () => {

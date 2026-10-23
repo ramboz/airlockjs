@@ -727,6 +727,21 @@ Current source/pure coverage is208 cases plus two pin assertions. Architecture
 also passed for the hard-disabled source boundary; final reconciliation
 passed after a documentation-only correction. No runtime entry was enabled.
 
+The next separate `sdk-absent-clock-observation*` source provides a fixed
+no-work HELLO/CLOCK/exit path and retrospective reader, not a qualified
+clock certificate. All19 source files are in both vectors; actual H,
+runtime/image and cleanup provenance remain unavailable and admission
+hard-refuses. Its selected source/pure cases double all physical effects,
+and normal namespace/Mac entries stay unchanged. Independent source review
+found two source gaps: post-publication custody validation and parent-
+publication/child-settlement ordering. The recovered correction passes226
+selected source/pure cases, with12 guard-removal failures and byte-exact
+restoration retained; fresh correction-scope, craft, architecture and bounded
+source reconciliation follow-ups passed. The later closed Docker environment correction has241
+selected source passes, not actual runtime evidence. H provenance,
+actual runtime/image custody and prospective clock bounds remain unavailable.
+No observation or workload has been authorized or executed.
+
 ### Historical P/E/L/H pre-run source/pure checkpoint
 
 This section preserves the original source/pure checkpoint **before v1-v3**.

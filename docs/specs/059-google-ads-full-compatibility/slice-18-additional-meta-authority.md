@@ -950,6 +950,78 @@ SDK-absent Chrome source/pure handoff (2026-10-22; not actual qualification):
   cleanup ownership still block any execution. That proposal is not yet
   implemented and supplies no operational clock capability.
 
+No-work clock-observation source handoff (2026-10-22; unqualified):
+
+- Namespace source checkpoint `63e62c1` is committed and hard-disabled.
+  The next increment adds19 no-work clock-observation files plus four
+  source-vector/pin edits. Fixed H/O/P/S/init source and the retrospective
+  reader are present, but actual H issuer/start/close/original-byte custody,
+  runtime/image/cleanup and execution authority remain unavailable.
+- Selected source/pure validation reports56 new observation cases,
+  133 unchanged namespace actor/admission/pipeline cases and two hash
+  assertions:191 selected passes, not all208 namespace regressions.
+  The two closure checks use synthetic Chrome metadata and prohibit physical
+  effects. Both vectors include all19 files (99/95 entries), but these are
+  unqualified source metadata, not an actual runtime/source-qualification lease.
+- Parent verified23 source identities/hashes, original17 source files and
+  retained private proofs, selected log/hash relationships and unchanged
+  original/conditional authority. Initial independent source review requires
+  two corrections: exact custody must be reacquired after blocking operation
+  publication before START, and each parent publication must follow that
+  parent's observed child settlement in the same clock domain. Source
+  corrections were started before the overnight session ended; the original
+  implementer/reviewer handles were unavailable on2026-10-23 resume.
+  Prior80-pin metadata is historical after this integration.
+- Resume recovered the correction source and retained failed/green originals.
+  The current guards reacquire exact custody/request/ancestor originals after
+  publication before effects, including one-use ticket and H receipt issuance.
+  The reader encloses child close/stream/IPC settlement within the parent's
+  publication using only that parent's clock domain; equal timestamps remain
+  valid. No child/parent clock epochs are compared.
+- Current selected source/pure validation passes226 cases:91 observation
+  cases,133 unchanged namespace cases and two pin assertions. Twelve guard
+  removal failures cover custody, same-domain settlement and issuer-original
+  retention; all four mutated files were restored byte-exactly before the
+  full green run. Failed CLI-option and missing-private-proof-root attempts
+  are retained as runner/setup failures, not TDD REDs or runtime attempts.
+  Fresh bounded correction review passed those two findings and their coupled
+  retained-original frontiers. It performed no tests or rehashes and is not a
+  whole-slice/source audit or runtime approval; no earlier reviewer approval
+  is invented after the unavailable handles. Craft/architecture remain.
+- Craft identified a blocking self-confirming fixture: the backend double
+  generated expected inspection predicates through production code without
+  independently checking CREATE confinement. The corrected double now checks
+  the complete fixed argv, environment and inspection template independently
+  before emitting a response. Oversized-output/IPC diagnostics are also
+  coalesced and capped without abandoning settlement observations.
+- Eight new source tests cover the independent oracle and diagnostic bound.
+  Real production network/template weakening and diagnostic-guard removal
+  make the coupled pipeline assertions fail; exact restoration yields234
+  selected passes (99 observation,133 namespace subset,two pin assertions).
+  A first diagnostic harness timeout is retained separately from the genuine
+  bound assertion failure. Craft correction rereview passed only the two-file
+  oracle/diagnostic delta; current architecture and final reconciliation
+  remain. Admission and every actual qualification flag are unchanged.
+- Architecture then found the fixed init's environment contract omitted
+  Docker-added HOSTNAME. The independent double now models daemon HOSTNAME/
+  HOME; CREATE fixes the case hostname and HOME=/case, inspection validates
+  the hostname, and init validates only those exact values with its existing
+  closed environment. Unknown variables, missing/foreign hostname, foreign
+  home and unexpected TERM refuse. Docker's documented defaults are cited
+  in private evidence; no daemon was contacted.
+- The new source-pipeline positive failed the original environment guard,
+  then the corrected selected suite passed241 cases (106 observation,
+  133 namespace subset,two pins). Its bounded three-file architecture correction
+  rereview passed, not a renewed whole implementation audit. Final source
+  reconciliation passed after a stale-count summary correction and its
+  paragraph-only rereview. Actual image configuration, H provenance, clock
+  bounds and runtime/cleanup readiness are still unproved.
+- The first-party init only emits bounded HELLO/CLOCK frames and exits:
+  no ARM/WORK/fork/payload/listener/SDK. Source WeakMap receipts are not actual
+  H provenance; public H/runtime/image admission always refuses. No actual
+  observation or prospective clock/rate capability is minted, and all
+  observation/runtime/qualified-clock/workload/native flags remain false.
+
 ### Reconciliation sweep
 
 - **Updated:** operator guide, architecture and open 059/060 plans distinguish
@@ -979,11 +1051,16 @@ SDK-absent Chrome source/pure handoff (2026-10-22; not actual qualification):
   related source-status/review/memory documentation after `466e709` and the
   documentation-only `65cb86d`. Separate owned-namespace source and all
   private source/model artifacts were excluded from that `3e1ca33` commit.
-  The **current namespace source checkpoint** adds22 fixed supervisor/
+  The **earlier namespace source checkpoint** added22 fixed supervisor/
   worker/entry/consumer/init/payload/admission/cohort/clock/Dockerfile/test
   files and four source-closure/pin edits after `3e1ca33`, plus related
-  documentation/review/memory telemetry. All private receipts, frozen
-  cross-lane copies and future clock-observation implementation are excluded.
+  documentation/review/memory telemetry, committed as `63e62c1`. Private
+  receipts, frozen copies and the then-future observation source were excluded.
+  The **current no-work observation checkpoint** adds19 fixed observation/
+  admission/reader/init/test/config/cohort/Dockerfile sources and four pin
+  edits after `63e62c1`. Related documentation/review/memory are in scope;
+  all private receipts, old source leases and frozen cross-lane copies remain
+  excluded. No runtime qualification or execution permission is added.
 - **Updated:** earlier independent checkpoint reconciliations passed for their
   recorded source ranges; none re-graded ACs or completed the operator result.
   The earlier `d76c316`-based reconciliation found only documentation status/
@@ -1001,7 +1078,7 @@ SDK-absent Chrome source/pure handoff (2026-10-22; not actual qualification):
   final checkpoint reconciliation passed for this bounded source/documentation
   scope only. No pass relabels custody or native evidence, completes ACs/DoD,
   or grants runtime execution.
-- **Updated:** current namespace compliance passed its bounded corrected
+- **Updated:** earlier namespace compliance passed its bounded corrected
   effect-frontier/protocol/budget scope; craft passed its consumer chronology/
   empty-output correction scope after two blockers. All prior four/three/two
   findings and75/132/167/189 source leases remain historical. Current208/2
@@ -1010,14 +1087,28 @@ SDK-absent Chrome source/pure handoff (2026-10-22; not actual qualification):
   fixed custody/settlement contracts and leanness. Final source reconciliation
   passed after one documentation/telemetry correction and its paragraph-only
   rereview, not a repeated source audit or DoD acceptance;
-  neither the proposed no-work observation path nor qualified clock issuer
-  is implemented or enabled. Hard NO-GO/NOT_PREPARED remains the safety gate.
+  the no-work observation implementation was not part of that checkpoint.
+  Its current source implementation still cannot enable an observation,
+  qualified clock or workload. Hard NO-GO/NOT_PREPARED remains the safety gate.
 - **Updated:** the current derived-board refresh changes review-selection
   telemetry only, not slice status. Earlier recorded richer-channel selection
-  is historical. The current namespace craft receipt records
+  is historical. Both the earlier namespace and current observation craft
+  receipts record
   `substrate: not-shown` and `applied_skill: none`; the board faithfully
   reflects that advisory telemetry gap. No selection provenance or lifecycle
   advance is inferred from the prompt-source description.
+- **Updated:** the current observation correction pass covers retained-original
+  frontiers and same-domain nested settlement, not a new complete audit.
+  Craft's confinement-oracle blocker and diagnostic nit were fixed in two
+  files and passed bounded rereview. The234-case craft-correction lease is
+  historical after the environment correction. Current241 selected cases
+  (106 observation,133 namespace subset,two pins) use doubled boundaries and
+  independent backend expectations; earlier191/226/234 proofs and all failed
+  attempts remain their own source histories.
+  Architecture's environment correction also passed its three-file scope.
+  Final source reconciliation passed only the bounded source/documentation
+  scope and subsequent count-paragraph correction. Actual H, engine/
+  image custody, runtime cleanup and qualified clock contracts remain absent.
 - **Deferred:** parent-owned case-bound receipts,
   current finite resource coordination and actual additional operator result
   or concrete pre-admission blocker. Slice remains IN_PROGRESS; no lifecycle

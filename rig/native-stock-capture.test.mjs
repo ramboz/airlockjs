@@ -70,6 +70,18 @@ describe("canonical stock reservation using synthetic owner-shaped records only"
     expect(namespace.length).toBeGreaterThanOrEqual(21);
     for (const name of namespace)
       expect(pins[name]).toBe(hash(await readFile(new URL(name, import.meta.url))));
+    const clockObservation = (await readdir(new URL(".", import.meta.url)))
+      .filter(name => name.startsWith("sdk-absent-clock-observation") && /\.(mjs|json|Dockerfile)$/.test(name));
+    expect(clockObservation.length).toBeGreaterThanOrEqual(19);
+    expect(clockObservation).toEqual(expect.arrayContaining([
+      "sdk-absent-clock-observation-integration.config.mjs", "sdk-absent-clock-observation-integration.setup.mjs",
+    ]));
+    for (const name of clockObservation)
+      expect(pins[name]).toBe(hash(await readFile(new URL(name, import.meta.url))));
+    console.info("CLOCK_SOURCE_PIN_METADATA " + JSON.stringify({
+      vector: "metaSourcePins", metadata_only: true, source_lease_qualified: false,
+      runtime_qualified: false, pins,
+    }));
   });
   it("durably reserves once without certifying owner identity or execution eligibility", async () => {
     const { reserveStockSlot } = await load(), f = await slotFixture();
