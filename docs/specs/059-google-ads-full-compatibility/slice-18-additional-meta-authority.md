@@ -1022,7 +1022,7 @@ No-work clock-observation source handoff (2026-10-22; unqualified):
   observation or prospective clock/rate capability is minted, and all
   observation/runtime/qualified-clock/workload/native flags remain false.
 
-Fixed host-observer prerequisite (2026-10-23; no actual controls yet):
+Fixed host-observer source prerequisite (2026-10-23; before actual controls):
 
 - After `c9993d3`, a separate fixed Node-only host observer/fixture/reader
   source path adds eleven files plus four pin edits. It reuses the existing
@@ -1088,6 +1088,44 @@ Fixed host-observer prerequisite (2026-10-23; no actual controls yet):
   image/clock admission remains unavailable. The narrow Docker read-only
   question received general autonomy, not an exact backend grant. No Meta
   permission, slot, SDK or historical UNKNOWN disposition changed.
+
+Actual fixed host controls (2026-10-23; fixture-only observations):
+
+- Source checkpoint `f6356fd` was committed before execution. After all scoped
+  reviews, exact source/executable/caller preparation and current lane-status
+  coordination, the operator issued a separate HOST-only GO under the
+  ongoing first-party preparation delegation. This was not an invented exact
+  human time/run approval or a Docker/vendor grant.
+- Exactly one normal and one explicit failed-child control ran, one per
+  independently observed whole command. Normal completed in1.303394125s
+  with actual child nonsignal exit0; failed-child completed in1.482987875s
+  with actual child nonsignal exit2. Both outer/test commands exited0,
+  below the original45-second bound including imports/publication/settlement.
+  Normal's physical evidence was verified before the second GO. No retry,
+  signal, intentional loss/orphan control or third fixture was run.
+- Actual owned child PID, immutable issuance, HELLO/ACK/RESULT/COMPLETE,
+  output and explicit exit/close agree. All queried EOF/stdio/IPC/send
+  settlement was observed; post-close checks verified34 exact referenced
+  originals per case. Parent replay separately checked binding, same-domain
+  chronology, expected outcome/code and external interval. These are physical
+  facts for this fixed Node fixture/cohort, not host-wide absence/quiescence.
+- Two initial failed-child **offline parent-verifier** assertions are retained:
+  its outcome is `explicit_failed_child_control`, not the control-name string,
+  and the generic collector records exactly its noncancellation child-loss
+  note for expected exit2. Reviewed HOST semantics require the typed output,
+  COMPLETE, exact2/nonsignal and empty HOST errors; no other collector error
+  is accepted. Fixing those parent assumptions did not alter originals,
+  source code or actual outcomes and did not re-execute the case.
+- Independent read-only actual-result continuity review passed these two
+  exact observations; it did not execute code, query processes or rehash
+  originals. A separate bounded document/result reconciliation also passed
+  the new spec/guide/architecture claims, not a source reapproval. All exported
+  qualification flags remain false and fixture receipts cannot redeem for
+  Docker observation O, guest clock, namespace cleanup, vendor or Native
+  execution. Actual H/O/runtime/image preparation remains separate; old
+  UNKNOWNs and the Adobe whole-helper gate remain unresolved. Original Meta
+  spend/conditional authority identities are unchanged and the extra Meta
+  permission/slot remain absent.
 
 ### Reconciliation sweep
 

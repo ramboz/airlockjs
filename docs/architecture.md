@@ -107,8 +107,10 @@ actual H/runtime/clock qualification.
 The fixed Node-only host prerequisite (`rig/sdk-absent-clock-host-observer.mjs`
 and `rig/sdk-absent-clock-host-reader.mjs`) retains public owned-child PID
 issuance and HELLO/RESULT/COMPLETE plus separate actual exit/stream evidence.
-Its scoped source corrections passed; actual controls and independent
-whole-command proof have not run. It cannot redeem a fixture receipt for
+Its scoped source corrections passed; two later fixed first-party controls
+observed normal/explicit-failure child exit and independent whole-command
+completion for their own source cohort. This is not guest/runtime/global-H
+qualification or historical helper clearance. It cannot redeem a fixture receipt for
 Docker observation O or enable the existing unavailable gates.
 See the [executed blocker](../rig/native-stock-capture.md#installed-descriptor-observer-blocker)
 and [current replacement status](../rig/native-stock-capture.md#macos-socket-observer-replacement).

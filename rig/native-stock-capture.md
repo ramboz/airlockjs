@@ -742,7 +742,7 @@ selected source passes, not actual runtime evidence. H provenance,
 actual runtime/image custody and prospective clock bounds remain unavailable.
 No observation or workload has been authorized or executed.
 
-### Fixed Node-only host prerequisite: actual controls not run
+### Fixed Node-only host prerequisite and bounded actual observations
 
 The `sdk-absent-clock-host*` source supplies a fixed metadata-prepared,
 one-use normal or explicit failed-child fixture. It reuses the existing
@@ -752,17 +752,23 @@ stream/IPC evidence must agree; COMPLETE attests final validation only,
 never a future exit.
 
 Scoped source compliance, craft and architecture corrections have passed.
-The425 selected source cases and five separate private-caller units are not
-actual host execution, durability or clock proof. The actual test file is
-outside default/source discovery, its case base is not prepared, and neither
-control has run. One fixed control per independent whole-command interval
+The425 selected source cases and five separate private-caller units were not
+actual host execution, durability or clock proof. At source checkpoint
+`f6356fd`, neither control had run and its case base was unprepared. The actual
+test file remains outside default/source discovery. One fixed control per independent whole-command interval
 must finish strictly below45seconds; the five-second fixture guard and
 55-second runner failure ceiling cannot certify that external interval.
 Unknown/lost lifetimes stop further experiments without guessed signals,
 root deletion or retries.
 
 Final source reconciliation, exact preparation, current coordination and
-explicit reviewed GO remain prerequisites. Fixture receipts cannot redeem
+explicit reviewed GO preceded the two subsequent fixture controls. Normal
+exit0 and explicit failed-child exit2 were each observed once, with matching
+whole-command CLI0 and1.303394125s/1.482987875s intervals respectively.
+Post-close original/semantic checks and bounded read-only actual-result
+continuity review passed. Retained cases must not be reset or rerun.
+
+These are fixed Node fixture facts only. Fixture receipts cannot redeem
 for observation O, a guest/runtime/clock capability, vendor case or historical
 helper clearance. All existing unavailable Docker/H/image/namespace/Mac/
 Native gates and the extra Meta case are unchanged.
