@@ -39,7 +39,7 @@ function issue(s, kind) {
     observationSnapshot(s.custody, p.uid);
   }
   const id = s.ops.length + 1;
-  const command = { executable: "/usr/local/bin/docker", executable_sha256: p.client.sha256,
+  const command = { executable: p.client.path, executable_sha256: p.client.sha256,
     argv: clockObservationDockerArgv(p, s.binding, kind, s.cid), env: {
       HOME: p.root + "/empty-home", DOCKER_CONFIG: p.root + "/docker-config", DOCKER_HOST: p.endpoint,
       PATH: "/usr/local/bin:/usr/bin:/bin",

@@ -2,12 +2,19 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: craft
 verdict: pass
-reviewer: 26dc6c38 turn0 private-caller blockers/turn1 bounded correction; explicit later27six-HOST/two-caller delta, not renewed full craft
-reviewed_at: 2026-10-23T15:57:41Z
-prompt_source: review.py pr-review docs/specs/059-google-ads-full-compatibility/spec.md 059-18 --richer-skill pr-review
-substrate: not-shown
-applied_skill: none
+reviewer: Prior26 HOST/caller source; fresh endpoint-craft PASS and explicit later architecture syntax-test closure
+reviewed_at: 2026-10-23T17:02:09Z
+prompt_source: review.py pr-review docs/specs/059-google-ads-full-compatibility/spec.md 059-18; bounded endpoint correction
+substrate: shown
+applied_skill: pr-review
+shown_candidates: [pr-review:high-confidence, scout-pr-review:high-confidence, access:speculative, agent-development:speculative, arch-review:speculative, build-mcp-app:speculative, build-mcp-server:speculative, build-mcpb:speculative, cardputer-buddy:speculative, claude-automation-recommender:speculative, claude-md-improver:speculative, command-development:speculative, configure:speculative, example-command:speculative, example-skill:speculative, frontend-design:speculative, hook-development:speculative, m5-onboard:speculative, math-olympiad:speculative, mcp-integration:speculative, playground:speculative, plugin-settings:speculative, plugin-structure:speculative, project-artifact:speculative, scout-autotune:speculative, scout-bench-create:speculative, scout-memory-init:speculative, scout-scrum-master:speculative, session-report:speculative, skill-creator:speculative, skill-development:speculative, writing-hookify-rules:speculative]
 ---
+
+VERDICT: pass
+
+COMPOSITE SCOPE: Prior paragraphs below are preserved chronological checkpoints, not current preparation/launch instructions or renewed whole-slice audits. The later endpoint correction is a distinct SOURCE-only scope.
+
+## Preserved prior HOST review history
 
 VERDICT: pass
 
@@ -25,3 +32,19 @@ Keep initial three host compliance findings and two caller craft blockers/histor
 
 LATER ARCHITECTURE DELTA:
 Architecture27turn0 found one caller snapshot-retention defect and fixture final-fence/PID evidence gaps. Parent fixed same-handle retention with source race RED→fiveunitGREEN; retained implementer added COMPLETE validation witness/final effect checks and immutable public childPID issuance/reader binding. Architectureturn1 passed only six HOST/two private caller source files. This is not fresh full craft rereview by26; current425SOURCE+fivecaller units remain nonphysical evidence. Actual GO/closure/provenance remains separate.
+
+## Later explicit-endpoint SOURCE correction
+
+VERDICT: pass
+
+BOUNDED SOURCE CRAFT:
+Fresh jig:reviewer endpoint-craft returned PASS for only the explicit endpoint/canonical-client source correction. Socket originals and canonical client handles stay aligned through commands, custody, revalidation and readers; actual admissions remain disabled. Corrected UID tests isolate the actual-current-UID guard.
+
+NIT AND FOLLOW-UP:
+Craft noted existing malformed-endpoint negatives could also reject through missing paths/original mismatches. Parent added two otherwise-valid http:///var/run/docker.sock cases with exact parser-specific errors; both GREEN, both RED when only scheme regex guards removed, then exact guards restored. The subsequent scoped architecture reviewer inspected these cases and explicitly reported no syntax-test nit remains. This is an explicit later test-only closure, not a renewed full craft review.
+
+STRENGTHS:
+Namespace actors and clock supervisor revalidate after registration and spawn the retained canonical client rather than a symlink alias. No runtime fallback or new abstraction/enablement.
+
+LIMITS:
+Static review only, no execution or wider slice acceptance. Parent374SOURCE+184HOST-source are nonphysical checks; filesystem metadata continuity is not kernel peer/atomic custody, guest-space or runtime/clock/native qualification. Prior source scopes and historical actual HOST cohort stay separate.

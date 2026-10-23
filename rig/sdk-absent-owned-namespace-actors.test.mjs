@@ -9,7 +9,7 @@ vi.mock("node:process", async () => {
   const { EventEmitter } = await import("node:events");
   const p = new EventEmitter();
   Object.assign(p, { argv: [], env: {}, execPath: "/source-fixture/node", pid: 100, ppid: 90,
-    platform: "darwin", arch: "arm64", version: "v22.16.0", connected: true,
+    platform: "darwin", arch: "arm64", version: "v22.16.0", connected: true, getuid: () => 501,
     hrtime: { bigint: vi.fn(() => { throw Error("CLOCK_NOT_MOCKED"); }) },
     send: vi.fn(), disconnect: vi.fn(), stdout: { write: vi.fn() }, stderr: { write: vi.fn() } });
   return { default: p, hrtime: p.hrtime };
@@ -87,7 +87,7 @@ beforeEach(() => {
   spawn.mockImplementation((executable, argv, options) => {
     events.push({ type: "spawn", executable, argv, options });
     const child = fakeChild();
-    const kind = executable === "/usr/local/bin/docker" ? argv[4]
+    const kind = executable === "/source-fixture/docker" ? argv[4]
       : argv[0].endsWith("namespace-worker.mjs") ? "W" : "S";
     children.push({ child, kind, argv, options, closed: false });
     return child;
@@ -98,7 +98,7 @@ afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 it("actual fixed S branch durably owns its first daemon client before spawning, not a command-description proxy", async () => {
   await startOwnedNamespaceSupervisor(makeSupervisorRequest());
   expect(spawn).toHaveBeenCalledOnce();
-  expect(spawn.mock.calls[0][0]).toBe("/usr/local/bin/docker");
+  expect(spawn.mock.calls[0][0]).toBe("/source-fixture/docker");
   expect(files.has(ROOT + "/s-owner.json")).toBe(true);
   const publication = events.findIndex(e => e.type === "publish" && e.path === ROOT + "/s-op-1-registered.json");
   const issuance = events.findIndex(e => e.type === "spawn");
@@ -222,7 +222,7 @@ describe("actual fixed S/CLI implementation with all OS boundaries mocked", () =
     expect(namespaceActorSnapshot(h).errors.some(e => e.includes("SIMULATED_OPERATION_FSYNC_FAILURE"))).toBe(true);
     expect(namespaceActorSnapshot(h).operations[0]).toMatchObject({ owner: "S", daemon: "PENDING", issued_ms: null });
   });
-  it.each(["source", "client", "config"])("F1 registration-time %s replacement must prevent actual spawn", async kind => {
+  it.each(["source", "client", "config", "socket"])("F1 registration-time %s replacement must prevent actual spawn", async kind => {
     const source = namespacePlanEvidence(plan()).prepared_identity.sources[0].path;
     const sync = fs.fsyncSync.getMockImplementation();
     let replaced = false;
@@ -232,6 +232,7 @@ describe("actual fixed S/CLI implementation with all OS boundaries mocked", () =
         replaced = true;
         if (kind === "source") put(source, "REPLACED_DURING_PUBLICATION", 0o100644);
         else if (kind === "client") put("/source-fixture/docker", "REPLACED_DURING_PUBLICATION", 0o100755);
+        else if (kind === "socket") files.get("/var/run/docker.sock").ino++;
         else put(ROOT + "/docker-config/config.json", "{} ");
       }
       return result;

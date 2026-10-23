@@ -1127,8 +1127,71 @@ Actual fixed host controls (2026-10-23; fixture-only observations):
   spend/conditional authority identities are unchanged and the extra Meta
   permission/slot remain absent.
 
+Local read-only runtime readiness and source correction (2026-10-23):
+
+- After the owner renewed autonomous continuation, the operator selected only
+  nonmutating inspection of the already confirmed local Unix endpoint. This
+  was not a literal owner-selected Docker run approval or a transferred Adobe
+  grant. Four exact GETs at 16:34:14Z read ping, version, projected engine
+  metadata and the single pinned public Node image. The socket remained the
+  same canonical, current-UID-owned inode. Engine 28.5.1/API 1.51 reports
+  Linux arm64, cgroup v2 and overlayfs; those are metadata, not containment or
+  guest-free-space evidence. The exact image returned 404; no all-image or
+  workload enumeration, pull/import/build, allocation or start followed.
+- Private originals are in
+  `059-18-docker-readiness-readonly-20261023-v1/{issued,result}.json`.
+  The canonical endpoint is the owner's `.docker/run/docker.sock`, not the
+  source models' hard-coded `/var/run/docker.sock`. Read-only file metadata
+  also confirms `/usr/local/bin/docker` resolves to the canonical Docker.app
+  client. This does not qualify executing either path.
+- The bounded SOURCE-only correction binds each existing namespace and
+  no-work observation model to its explicit canonical owned Unix-socket
+  identity and retained canonical client file. Revalidation must reject
+  socket replacement, foreign ownership/type, remote or malformed endpoints,
+  changed client bytes/identity and alias substitution. Commands, environment,
+  custody and independent readers must use that same selected binding, with
+  no default endpoint, context/environment fallback or new enabling flag.
+  All effect boundaries in the correction tests are doubled; no backend,
+  client, image or workload operation is part of those tests.
+- The original implementer stopped before edits on an inapplicable
+  READY_FOR_IMPLEMENTATION precondition; the parent continued the existing
+  IN_PROGRESS increment without rolling back status or bypassing a gate.
+  Eight selected regressions failed before implementation. Final affected
+  SOURCE verification has 374 passes plus 184 unchanged HOST source passes;
+  all effect boundaries are doubled. One initial closure run lacked its
+  required private artifact-root environment, and two later process doubles
+  lacked the newly required UID/import fields; the failed logs are retained,
+  not relabelled as completed verification.
+- Independent compliance found two UID negatives could reject through
+  unchanged directory ownership even without the current-UID guard. They now
+  change only the modeled current UID; both pass normally and fail when
+  only their actual guards are removed. A separate narrow correction review
+  closed that finding, not a renewed whole source audit. Craft passed with a
+  syntax-test nit; two otherwise-valid wrong-scheme inputs now require the
+  parser-specific errors and both fail with only the scheme guards removed.
+  Those guards were restored. Scoped architecture review passed the final
+  source and closed that nit. Source compliance/craft/architecture approval
+  does not renew the earlier broader review scopes.
+- Endpoint originals in strict source facts/cohort prevent each later role
+  from silently recapturing a replacement socket. They establish filesystem
+  metadata continuity only: neither kernel peer identity nor atomic
+  check-to-connect/exec custody is proved. No new abstraction or runtime
+  enablement was introduced. This correction cannot make historical source
+  leases current, qualify Docker observation O, establish a future clock,
+  resolve old UNKNOWNs or admit any actual runtime/native case.
+
 ### Reconciliation sweep
 
+- updated - the later explicit-endpoint SOURCE correction, strict preissued
+  socket original, canonical client, source/guard-removal evidence and bounded
+  review lineage in this slice, operator guide, architecture and Proposed
+  ADR-0038. No earlier failed check or historical HOST cohort was renewed.
+- no-op - runtime/clock/image/Mac/native hard denials, NOT_PREPARED cohorts,
+  stable core/connectors/build/version, original spent authority and extra
+  Meta permission/slot state. No image or workload mutation occurred.
+- deferred - missing exact base/derived runtime image, guest-store headroom,
+  real independent H/O and atomic peer/operation custody; subsequent actual
+  runtime/native work still needs its own preparation and authority.
 - **Updated:** operator guide, architecture and open 059/060 plans distinguish
   the new fixed authority, current local proof, autonomous finite scheduling,
   historical unknown resource dispositions and remaining native gates.

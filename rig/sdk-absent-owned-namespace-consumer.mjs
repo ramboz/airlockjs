@@ -232,7 +232,7 @@ function actualLedger(value, p, r, requestHandle, plan, completed) {
       "exit_code", "signal", "stdout", "stderr", "errors", "stdout_original_base64", "stderr_original_base64",
       "stdout_sha256", "stderr_sha256"]);
     if (o.id !== n + 1 || o.owner !== "S" || (o.cid !== null && o.cid !== s.cid) || o.endpoint !== p.endpoint || o.engine_id !== p.engine_id
-      || o.executable !== "/usr/local/bin/docker" || o.executable_sha256 !== p.prepared_identity.client.sha256
+      || o.executable !== p.prepared_identity.client.path || o.executable_sha256 !== p.prepared_identity.client.sha256
       || o.daemon !== "SETTLED" || o.client_closed !== true || o.streams_settled !== true || o.exit_code !== 0 || o.signal !== null
       || !equal(o.errors, []) || !equal(o.env, { HOME: r.root + "/empty-home", DOCKER_CONFIG: r.root + "/docker-config",
         DOCKER_HOST: p.endpoint, PATH: "/usr/local/bin:/usr/bin:/bin" })

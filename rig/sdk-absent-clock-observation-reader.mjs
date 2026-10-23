@@ -220,7 +220,7 @@ export function inspectClockObservation(receipt) {
       const { c, stdout } = closeRecord(closed.close, closed.issued_ns);
       within(s.budget, reg.registered_ns); within(s.budget, closed.issued_ns); within(s.budget, c.streams_settled_ns);
       if (ns(c.streams_settled_ns) > ns(s.published)) fail("observation_operation_after_publication");
-      same(reg.command, { executable: "/usr/local/bin/docker", executable_sha256: p.client.sha256,
+      same(reg.command, { executable: p.client.path, executable_sha256: p.client.sha256,
         argv: clockObservationDockerArgv(p, b, op.kind, reg.cid),
         env: { HOME: p.root + "/empty-home", DOCKER_CONFIG: p.root + "/docker-config", DOCKER_HOST: p.endpoint,
           PATH: "/usr/local/bin:/usr/bin:/bin" }, cwd: p.root + "/empty-home", shell: false, stdio: ["pipe", "pipe", "pipe"] },

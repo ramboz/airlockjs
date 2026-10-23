@@ -8,7 +8,7 @@ vi.mock("node:process", async () => {
   const { AsyncLocalStorage } = await import("node:async_hooks");
   const storage = new AsyncLocalStorage();
   const base = { argv: [], env: {}, pid: 10, ppid: 9, platform: "darwin", arch: "arm64", version: "v22.16.0",
-    execPath: "/source-fixture/node", hrtime: { bigint: vi.fn(() => 100000000n) } };
+    execPath: "/source-fixture/node", hrtime: { bigint: vi.fn(() => 100000000n) }, getuid: () => 501 };
   const proxy = new Proxy(base, { get(_target, key) {
     const role = storage.getStore() ?? base;
     if (["on", "once", "emit", "removeListener", "removeAllListeners"].includes(key)) return role.bus[key].bind(role.bus);
@@ -52,6 +52,7 @@ import { inspectOwnedNamespaceCompletion, ownedNamespaceWholeCommand } from "./s
 import { fixedRead } from "./sdk-absent-owned-namespace-io.mjs";
 import { CID, NONCE, ROOT, bytesHash, descriptors, files, installSourceFixtureFs, put } from "./sdk-absent-owned-namespace-actors.fixture.mjs";
 import { data } from "./inspected-meta-record.mjs";
+import { fileURLToPath } from "node:url";
 
 let metadata, calls, state, guest, result, failure, rootProcess, caseControl, lateStartAfterStop;
 const actualArgv = ["--fixed-namespace-case", "source-case-01", NONCE, ROOT, "normal"];
@@ -93,7 +94,7 @@ function role(name, parent = null, env = {}) {
 function dispatch(executable, argv, options) {
   const owner = context.getStore(), c = child();
   const call = { executable, argv, options, owner: owner?.name, child: c }; calls.push(call);
-  if (executable === "/usr/local/bin/docker") {
+  if (executable === "/source-fixture/docker") {
     const kind = argv[4]; call.kind = kind;
     if (kind === "start") {
       if (caseControl === "worker-loss-before-init") return c;
@@ -217,6 +218,29 @@ function rewriteFrames(actor, change) {
 }
 const inspect = f => inspectOwnedNamespaceCompletion(plan(), { completion: f.completion });
 describe("SOURCE/PURE complete P/S/W/init/payload execution with subprocess boundaries mocked", () => {
+  it("carries an alternate explicit owned endpoint and canonical client through custody and independent consumption", async () => {
+    put("/source-fixture/desktop.sock", "", 0o140600);
+    metadata.endpoint = "unix:///source-fixture/desktop.sock";
+    metadata.endpoint_original = { path: "/source-fixture/desktop.sock", dev: 1,
+      ino: files.get("/source-fixture/desktop.sock").ino, uid: 501, mode: 0o140600, mtime_ms: 100, ctime_ms: 100 };
+    put(fileURLToPath(new URL("sdk-absent-owned-namespace-cohort.json", import.meta.url)), JSON.stringify(metadata), 0o100644);
+    await executePipeline(); expect(failure).toBeNull(); expect(result.errors).toEqual([]);
+    for (const c of calls.filter(c => c.kind && c.kind !== "payload")) {
+      expect(c.executable).toBe("/source-fixture/docker");
+      expect(c.argv.slice(2, 4)).toEqual(["--host", "unix:///source-fixture/desktop.sock"]);
+      expect(c.options.env.DOCKER_HOST).toBe("unix:///source-fixture/desktop.sock");
+    }
+    expect(inspect(externalCompletion())).toMatchObject({ source_execution_evidence_valid: true, qualified: false });
+  });
+  it.each(["inode", "uid", "mode"])("refuses changed socket %s before independent consumption", async change => {
+    await executePipeline(); const completion = externalCompletion(), retained = plan();
+    const socket = files.get("/var/run/docker.sock");
+    if (change === "inode") socket.ino++;
+    if (change === "uid") socket.uid++;
+    if (change === "mode") socket.mode = 0o140660;
+    expect(inspectOwnedNamespaceCompletion(retained, { completion: completion.completion }).source_execution_evidence_valid).toBe(false);
+    expect(() => plan()).toThrow();
+  });
   it("F3 actual init-to-payload execution carries exactly its case and nonce, not an injected init success", async () => {
     await executePipeline();
     const payload = calls.find(c => c.kind === "payload");

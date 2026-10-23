@@ -5,7 +5,7 @@ vi.mock("node:fs", () => ({
   constants: { O_RDONLY: 0, O_NOFOLLOW: 131072, O_DIRECTORY: 1048576 },
 }));
 vi.mock("node:process", () => ({ default: {
-  argv: [], env: {}, platform: "darwin", arch: "arm64", version: "v22.16.0", pid: 100, ppid: 1,
+  argv: [], env: {}, platform: "darwin", arch: "arm64", version: "v22.16.0", pid: 100, ppid: 1, getuid: () => 501,
   execPath: "/source-fixture/node", connected: false, send: undefined, hrtime: { bigint: vi.fn(() => 100000000n) },
   stdout: { write: vi.fn() }, stderr: { write: vi.fn() },
 } }));

@@ -9,7 +9,7 @@ vi.mock("node:process", async () => {
   const { AsyncLocalStorage } = await import("node:async_hooks");
   const context = new AsyncLocalStorage();
   const base = { argv: [], env: {}, pid: 100, ppid: 99, platform: "darwin", arch: "arm64",
-    version: "v22.16.0", execPath: "/source-fixture/node" };
+    version: "v22.16.0", execPath: "/source-fixture/node", getuid: () => 501 };
   const proxy = new Proxy(base, {
     get(_target, key) {
       const p = context.getStore() ?? base;
@@ -40,7 +40,7 @@ import { runClockObservationProducer } from "./sdk-absent-clock-observation-prod
 import { runClockObservationSupervisor } from "./sdk-absent-clock-observation-supervisor.mjs";
 import { runClockObservationInit } from "./sdk-absent-clock-observation-init.mjs";
 import { inspectClockObservation } from "./sdk-absent-clock-observation-reader.mjs";
-import { CLOCK_OBSERVATION_SOURCES, clockObservationPlanEvidence } from "./sdk-absent-clock-observation-plan.mjs";
+import { CLOCK_OBSERVATION_SOURCES, clockObservationPlanEvidence, prepareClockObservationPlan } from "./sdk-absent-clock-observation-plan.mjs";
 import { data } from "./inspected-meta-record.mjs";
 import { requireClockObservationRuntime } from "./sdk-absent-clock-observation-admission.mjs";
 import { observationRead, observationWrite } from "./sdk-absent-clock-observation-io.mjs";
@@ -52,6 +52,7 @@ const ROOT = "/source-fixture/clock-observation", CID = "c".repeat(64);
 const hash = b => createHash("sha256").update(b).digest("hex");
 const files = new Map(), fds = new Map();
 let ino, fd, calls, publications, roles, facts, result, failure, state, switches;
+let expectedEndpoint;
 const flush = async () => { for (let n = 0; n < 1800; n++) await Promise.resolve(); };
 class Port extends EventEmitterAsyncResource {
   constructor() { super({ name: "clock-observation-boundary-double" }); this.closed = false; }
@@ -61,7 +62,8 @@ function put(path, bytes, mode = 0o100600) {
   bytes = Buffer.from(bytes);
   files.set(path, { bytes, dev: 1, ino: ++ino, nlink: 1, size: bytes.length, mode, uid: 501,
     mtimeMs: 100, ctimeMs: 100, isFile: () => (mode & 0o170000) === 0o100000,
-    isDirectory: () => (mode & 0o170000) === 0o040000, isSymbolicLink: () => false });
+    isDirectory: () => (mode & 0o170000) === 0o040000, isSymbolicLink: () => false,
+    isSocket: () => (mode & 0o170000) === 0o140000 });
 }
 function child() {
   const c = new Port();
@@ -137,6 +139,7 @@ async function setupFs() {
   put(ROOT + "/docker-config/config.json", "{}\n");
   put("/source-fixture/node", "SOURCE_DOUBLE_NODE", 0o100755);
   put("/source-fixture/docker", "SOURCE_DOUBLE_DOCKER", 0o100755);
+  put("/var/run/docker.sock", "", 0o140600);
   // Read-only fixture setup occurs before execution; ALL positive pipeline
   // filesystem operations below use the in-memory boundary double.
   const actualFs = await vi.importActual("node:fs");
@@ -149,6 +152,9 @@ async function setupFs() {
     case_id: "source-clock-01", root: ROOT, uid: 501, node_realpath: "/source-fixture/node",
     node_sha256: hash("SOURCE_DOUBLE_NODE"), node_version: "v22.16.0",
     client_realpath: "/source-fixture/docker", client_sha256: hash("SOURCE_DOUBLE_DOCKER"),
+    endpoint: "unix:///var/run/docker.sock",
+    endpoint_original: { path: "/var/run/docker.sock", dev: 1, ino: files.get("/var/run/docker.sock").ino,
+      uid: 501, mode: 0o140600, mtime_ms: 100, ctime_ms: 100 },
     engine: { ID: "SOURCE_DOUBLE_ENGINE", OSType: "linux", Architecture: "aarch64", ServerVersion: "source-double" },
     image_id: "sha256:" + "d".repeat(64), image_source_sha256: sourceHash,
     image_env: ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "NODE_VERSION=24.10.0"],
@@ -158,7 +164,7 @@ async function setupFs() {
 // Independent backend contract: never derive confinement expectations from
 // the production command/template builders being exercised.
 function independentDockerContract(kind, target) {
-  const prefix = ["--config", ROOT + "/docker-config", "--host", "unix:///var/run/docker.sock"];
+  const prefix = ["--config", ROOT + "/docker-config", "--host", expectedEndpoint];
   if (kind === "info") return { argv: [...prefix, "info", "--format",
     '{"ID":{{json .ID}},"OSType":{{json .OSType}},"Architecture":{{json .Architecture}},"ServerVersion":{{json .ServerVersion}}}'] };
   const b = JSON.parse(files.get(ROOT + "/o-ticket.json").bytes).binding;
@@ -246,12 +252,12 @@ function dispatch(executable, argv, options) {
     }));
     return c;
   }
-  if (executable !== "/usr/local/bin/docker") throw Error("UNEXPECTED_EXECUTABLE");
+  if (executable !== "/source-fixture/docker") throw Error("UNEXPECTED_EXECUTABLE");
   const kind = argv[4]; call.kind = kind;
   const contract = independentDockerContract(kind, argv.at(-1));
   expect(argv).toEqual(contract.argv);
   expect(options).toEqual({ env: { HOME: ROOT + "/empty-home", DOCKER_CONFIG: ROOT + "/docker-config",
-    DOCKER_HOST: "unix:///var/run/docker.sock", PATH: "/usr/local/bin:/usr/bin:/bin" },
+    DOCKER_HOST: expectedEndpoint, PATH: "/usr/local/bin:/usr/bin:/bin" },
   cwd: ROOT + "/empty-home", shell: false, windowsHide: true, stdio: ["pipe", "pipe", "pipe"] });
   if (kind === "start") {
     if (switches.sLossOnStart) queueMicrotask(() => roles.S.parent.close(2));
@@ -302,6 +308,7 @@ beforeEach(async () => {
   let entropySequence = 0;
   randomBytes.mockImplementation(size => Buffer.alloc(size, ++entropySequence));
   switches = {}; calls = []; publications = []; roles = {}; result = null; failure = null; state = "created";
+  expectedEndpoint = "unix:///var/run/docker.sock";
   await setupFs(); role("H"); spawn.mockImplementation(dispatch);
 });
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
@@ -327,6 +334,90 @@ function correctionRawWitness(label, read) {
   }));
 }
 describe("SOURCE/PURE actual fixed H/O/P/S/init/reader pipeline", () => {
+  it("binds an explicit alternate owned socket and canonical client through every source role and reader", async () => {
+    expectedEndpoint = "unix:///source-fixture/desktop.sock";
+    put("/source-fixture/desktop.sock", "", 0o140600);
+    facts.endpoint = expectedEndpoint;
+    facts.endpoint_original = { path: "/source-fixture/desktop.sock", dev: 1,
+      ino: files.get("/source-fixture/desktop.sock").ino, uid: 501, mode: 0o140600, mtime_ms: 100, ctime_ms: 100 };
+    put(ROOT + "/source-facts.json", JSON.stringify(facts));
+    await execute();
+    expect(failure).toBeNull();
+    expect(inspectClockObservation(result.completion).source_observation_evidence_valid).toBe(true);
+    expect(calls.filter(c => c.kind).length).toBeGreaterThan(0);
+    for (const c of calls.filter(c => c.kind)) {
+      expect(c.executable).toBe("/source-fixture/docker");
+      expect(c.argv.slice(2, 4)).toEqual(["--host", expectedEndpoint]);
+      expect(c.options.env.DOCKER_HOST).toBe(expectedEndpoint);
+    }
+  });
+  it.each(["tcp://localhost:2375", "ssh://host", "unix://relative", "unix:///a/../b",
+    "unix:///a/./b", "unix:///a//b", "unix:///a?b", "unix:///a#b", "unix:///%2fa", "unix:///a\n", null])(
+    "refuses endpoint %j before any source actor is spawned", async endpoint => {
+      facts.endpoint = endpoint; put(ROOT + "/source-facts.json", JSON.stringify(facts));
+      await execute();
+      expect(failure).not.toBeNull(); expect(calls).toEqual([]);
+    });
+  it("rejects a wrong scheme even when slicing off that scheme reaches the valid socket original", () => {
+    facts.endpoint = "http:///var/run/docker.sock";
+    put(ROOT + "/source-facts.json", JSON.stringify(facts));
+    context.run(roles.H, () => expect(() => prepareClockObservationPlan({ case_id: facts.case_id, root: ROOT }))
+      .toThrow("observation_canonical_owned_endpoint"));
+    expect(calls).toEqual([]);
+  });
+  it.each(["inode", "uid", "mode", "type", "symlink", "canonical"])(
+    "refuses changed socket %s at retrospective reader acceptance", async change => {
+      await execute(); expect(failure).toBeNull();
+      const socket = files.get("/var/run/docker.sock");
+      if (change === "inode") socket.ino++;
+      if (change === "uid") socket.uid++;
+      if (change === "mode") socket.mode = 0o140666;
+      if (change === "type") socket.isSocket = () => false;
+      if (change === "symlink") socket.isSymbolicLink = () => true;
+      if (change === "canonical") fs.realpathSync.mockImplementation(path =>
+        path === "/usr/local/bin/docker" ? "/source-fixture/docker" : path === "/var/run/docker.sock" ? "/elsewhere.sock" : path);
+      expect(inspectClockObservation(result.completion).source_observation_evidence_valid).toBe(false);
+    });
+  it("refuses socket replacement during pre-create registration instead of issuing CREATE", async () => {
+    switches.publication = path => {
+      if (path.endsWith("/s-op-2-registered.json")) files.get("/var/run/docker.sock").ino++;
+    };
+    await execute();
+    expect(calls.some(c => c.kind === "create")).toBe(false);
+    expect(result === null || !inspectClockObservation(result.completion).source_observation_evidence_valid).toBe(true);
+  });
+  it.each(["owner", "type", "shared-mode", "symlink"])(
+    "refuses initially unsafe socket %s even when its supplied original is refreshed", async change => {
+      const socket = files.get("/var/run/docker.sock");
+      if (change === "owner") { socket.uid++; facts.endpoint_original.uid++; }
+      if (change === "type") {
+        socket.isSocket = () => false; socket.mode = 0o100600; facts.endpoint_original.mode = socket.mode;
+      }
+      if (change === "shared-mode") { socket.mode = 0o140660; facts.endpoint_original.mode = socket.mode; }
+      if (change === "symlink") socket.isSymbolicLink = () => true;
+      put(ROOT + "/source-facts.json", JSON.stringify(facts));
+      await execute(); expect(failure).not.toBeNull(); expect(calls).toEqual([]);
+    });
+  it("does not accept another UID merely because the socket and supplied owner agree", async () => {
+    roles.H.getuid = () => 502;
+    await execute(); expect(failure?.message).toBe("observation_fixed_source_facts"); expect(calls).toEqual([]);
+  });
+  it.each(["bytes", "inode", "alias"])("refuses canonical client %s changes at the reader", async change => {
+    await execute(); expect(failure).toBeNull();
+    if (change === "bytes") files.get("/source-fixture/docker").bytes[0] ^= 1;
+    if (change === "inode") files.get("/source-fixture/docker").ino++;
+    if (change === "alias") fs.realpathSync.mockImplementation(path =>
+      path === "/usr/local/bin/docker" ? "/another-client" : path);
+    expect(inspectClockObservation(result.completion).source_observation_evidence_valid).toBe(false);
+  });
+  it("does not recapture a replacement socket as a fresh lease in a later source role", async () => {
+    switches.publication = path => {
+      if (path.endsWith("/h-child-registered.json")) files.get("/var/run/docker.sock").ino++;
+    };
+    await execute();
+    expect(calls.some(c => c.kind)).toBe(false);
+    expect(result === null || !inspectClockObservation(result.completion).source_observation_evidence_valid).toBe(true);
+  });
   it("executes all source roles under doubles and yields retrospective SOURCE evidence only", async () => {
     await execute();
     expect(failure).toBeNull();

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import * as fs from "node:fs";
+import modeledProcess from "node:process";
 
 // No source test may reach an operating-system, Docker or socket boundary.
 vi.mock("node:child_process", () => ({
@@ -9,6 +10,10 @@ vi.mock("node:child_process", () => ({
   execFileSync: vi.fn(() => { throw Error("OS_PROCESS_FORBIDDEN"); }),
 }));
 vi.mock("node:net", () => ({ connect: vi.fn(() => { throw Error("SOCKET_FORBIDDEN"); }) }));
+vi.mock("node:process", async original => {
+  const actual = await original();
+  return { ...actual, default: { ...actual.default, argv: [], getuid: () => 501 } };
+});
 vi.mock("node:perf_hooks", () => ({ performance: { now: vi.fn(() => { throw Error("CLOCK_NOT_MOCKED"); }) } }));
 vi.mock("node:readline", () => ({ createInterface: vi.fn(() => { throw Error("LISTENER_FORBIDDEN"); }) }));
 vi.mock("./sdk-absent-owned-namespace-image-admission.mjs", () => ({
@@ -51,7 +56,8 @@ function put(path, text, mode = 0o100600) {
   files.set(path, { bytes: Buffer.from(text), meta: { dev: 1, ino: ++ino, mode, uid: 501,
     size: Buffer.byteLength(text), mtimeMs: 100, ctimeMs: 100,
     isFile: () => (mode & 0o170000) === 0o100000,
-    isDirectory: () => (mode & 0o170000) === 0o040000, isSymbolicLink: () => false } });
+    isDirectory: () => (mode & 0o170000) === 0o040000, isSymbolicLink: () => false,
+    isSocket: () => (mode & 0o170000) === 0o140000 } });
 }
 function prepare() {
   return ns.prepareOwnedNamespacePlan({ case_id: "source-case-01", nonce: NONCE, root: ROOT });
@@ -91,6 +97,7 @@ beforeEach(() => {
   put(ROOT + "/docker-config", "", 0o040700); put(ROOT + "/empty-home", "", 0o040700);
   put(ROOT + "/docker-config/config.json", "{}\n");
   put("/source-model/fixed-docker", "SIMULATED CLIENT BYTES", 0o100755);
+  put("/var/run/docker.sock", "", 0o140600);
   const sources = (ns.OWNED_NAMESPACE_SOURCES ?? []).map(path => {
     put(path, "SIMULATED SOURCE:" + path, 0o100644);
     return { path, sha256: hash("SIMULATED SOURCE:" + path) };
@@ -98,6 +105,8 @@ beforeEach(() => {
   metadata = {
     schema: "airlock.owned-namespace-cohort.v1", status: "PREPARED_SOURCE_MODEL_ONLY",
     endpoint: "unix:///var/run/docker.sock", engine_id: "SIMULATED-engine-not-runtime-evidence",
+    endpoint_original: { path: "/var/run/docker.sock", dev: 1, ino: files.get("/var/run/docker.sock").meta.ino,
+      uid: 501, mode: 0o140600, mtime_ms: 100, ctime_ms: 100 },
     client_realpath: "/source-model/fixed-docker", client_sha256: hash("SIMULATED CLIENT BYTES"),
     image_id: "sha256:" + "d".repeat(64), platform: "linux/arm64/v8", node_version: "24.10.0",
     base_digest: "sha256:5f6d18c1dffb526f36bc30b85e468daf017dfa9531ef9ab3c57bb0d2c64da5cb",
@@ -130,6 +139,56 @@ function bound(h = atStart()) {
 }
 
 describe("SOURCE/PURE owned namespace private preparation", () => {
+  it("uses the explicit owned socket and retained canonical client, not a default or alias", () => {
+    metadata.endpoint = "unix:///source-model/desktop.sock";
+    put("/source-model/desktop.sock", "", 0o140600);
+    metadata.endpoint_original = { path: "/source-model/desktop.sock", dev: 1,
+      ino: files.get("/source-model/desktop.sock").meta.ino, uid: 501, mode: 0o140600, mtime_ms: 100, ctime_ms: 100 };
+    updateCohort();
+    const h = atStart(), { command: cmd } = command(h, "create");
+    expect(cmd.endpoint).toBe(metadata.endpoint);
+    expect(cmd.argv.slice(2, 4)).toEqual(["--host", metadata.endpoint]);
+    expect(cmd.env.DOCKER_HOST).toBe(metadata.endpoint);
+    expect(cmd.executable).toBe("/source-model/fixed-docker");
+    expect(ns.namespaceExpectedIdentity(h).endpoint).toBe(metadata.endpoint);
+  });
+  it.each(["tcp://localhost:2375", "ssh://host", "unix://relative", "unix:///a/../b",
+    "unix:///a/./b", "unix:///a//b", "unix:///a?b", "unix:///a#b", "unix:///%2fa", "unix:///a\n", null])(
+    "refuses noncanonical or remote endpoint %j", endpoint => {
+      metadata.endpoint = endpoint; updateCohort(); expect(() => prepare()).toThrow();
+    });
+  it("rejects a wrong scheme even when slicing off that scheme reaches the valid socket original", () => {
+    metadata.endpoint = "http:///var/run/docker.sock"; updateCohort();
+    expect(() => prepare()).toThrow("namespace_canonical_owned_endpoint");
+  });
+  it.each(["inode", "uid", "mode", "type", "symlink", "canonical"])(
+    "refuses socket %s substitution before issuing a pending operation", change => {
+      const h = atStart(), op = ns.registerNamespaceOperation(h, { kind: "create", now_ms: 110 });
+      const journal = ns.persistNamespaceJournal(h, 111), socket = files.get("/var/run/docker.sock").meta;
+      if (change === "inode") socket.ino++;
+      if (change === "uid") socket.uid++;
+      if (change === "mode") socket.mode = 0o140666;
+      if (change === "type") socket.isSocket = () => false;
+      if (change === "symlink") socket.isSymbolicLink = () => true;
+      if (change === "canonical") fs.realpathSync.mockImplementation(path =>
+        path === "/usr/local/bin/docker" ? "/source-model/fixed-docker" : path === "/var/run/docker.sock" ? "/elsewhere.sock" : path);
+      expect(() => ns.issueNamespaceCommand(h, { operation: op, journal, now_ms: 112 })).toThrow();
+    });
+  it.each(["owner", "type", "shared-mode", "symlink"])(
+    "refuses initially unsafe socket %s even with refreshed metadata", change => {
+      const socket = files.get("/var/run/docker.sock").meta;
+      if (change === "owner") { socket.uid++; metadata.endpoint_original.uid++; }
+      if (change === "type") {
+        socket.isSocket = () => false; socket.mode = 0o100600; metadata.endpoint_original.mode = socket.mode;
+      }
+      if (change === "shared-mode") { socket.mode = 0o140660; metadata.endpoint_original.mode = socket.mode; }
+      if (change === "symlink") socket.isSymbolicLink = () => true;
+      updateCohort(); expect(() => prepare()).toThrow();
+    });
+  it("does not accept another UID merely because the socket and cohort owner agree", () => {
+    vi.spyOn(modeledProcess, "getuid").mockReturnValue(502);
+    expect(() => prepare()).toThrow("namespace_fixed_cohort");
+  });
   it("rejects a serialized or boolean substitute for the private plan", () => {
     expect(() => createOwnedNamespaceSupervisor({ prepared: true }, 100)).toThrow("private_namespace_plan");
   });

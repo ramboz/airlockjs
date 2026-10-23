@@ -15,7 +15,7 @@ export function put(path, bytes, mode = 0o100600) {
   bytes = Buffer.from(bytes);
   files.set(path, { bytes, dev: 1, ino: ++ino, size: bytes.length, uid: 501, mode, mtimeMs: 100, ctimeMs: 100,
     isFile: () => (mode & 0o170000) === 0o100000, isDirectory: () => (mode & 0o170000) === 0o040000,
-    isSymbolicLink: () => false });
+    isSymbolicLink: () => false, isSocket: () => (mode & 0o170000) === 0o140000 });
 }
 export function installSourceFixtureFs() {
   files.clear(); descriptors.clear(); events.length = 0; ino = 1; fd = 10;
@@ -46,6 +46,7 @@ export function installSourceFixtureFs() {
   for (const path of [ROOT, ROOT + "/case", ROOT + "/docker-config", ROOT + "/empty-home"]) put(path, "", 0o040700);
   put(ROOT + "/docker-config/config.json", "{}\n");
   put("/source-fixture/docker", "SIMULATED_FIXED_DOCKER", 0o100755);
+  put("/var/run/docker.sock", "", 0o140600);
   const sources = OWNED_NAMESPACE_SOURCES.map(path => {
     const bytes = "SOURCE_FIXTURE:" + path; put(path, bytes, 0o100644);
     return { path, sha256: bytesHash(bytes) };
@@ -53,6 +54,8 @@ export function installSourceFixtureFs() {
   const metadata = {
     schema: "airlock.owned-namespace-cohort.v1", status: "PREPARED_SOURCE_MODEL_ONLY",
     endpoint: "unix:///var/run/docker.sock", engine_id: "SIMULATED_ENGINE",
+    endpoint_original: { path: "/var/run/docker.sock", dev: 1, ino: files.get("/var/run/docker.sock").ino,
+      uid: 501, mode: 0o140600, mtime_ms: 100, ctime_ms: 100 },
     client_realpath: "/source-fixture/docker", client_sha256: bytesHash("SIMULATED_FIXED_DOCKER"),
     image_id: "sha256:" + "d".repeat(64), platform: "linux/arm64/v8", node_version: "24.10.0",
     base_digest: "sha256:5f6d18c1dffb526f36bc30b85e468daf017dfa9531ef9ab3c57bb0d2c64da5cb",

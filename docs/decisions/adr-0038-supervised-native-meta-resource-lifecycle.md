@@ -390,6 +390,15 @@ mounts, credential helpers, privileged capabilities, global inventories,
 automatic pull/build or shared service installation/start is approved.
 Missing runtime/image readiness is a blocker, not a default.
 
+The later source correction binds each model to an explicit canonical
+current-UID-owned Unix socket original and checked canonical client file.
+No environment/context or `/var/run` fallback selects an endpoint. Repeated
+filesystem lease checks and consistent command/custody/reader bindings are
+source preparation only: kernel-peer attribution and atomic connect/exec
+custody remain unproved. Read-only local metadata and a missing exact base
+image do not authorize image acquisition, import/build or any workload, and
+do not change this ADR's Proposed status.
+
 Fresh frame review required two V1 corrections and passed only their V2
 source/pure clarification. It is not implementation or runtime approval.
 The owner was unavailable and returned general autonomy, not an exact design

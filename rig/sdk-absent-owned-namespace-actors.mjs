@@ -81,12 +81,13 @@ function issue(s, kind, onLine = null) {
   namespacePlanEvidence(s.plan);
   if (s.fsFailed || s.ops.length >= 40) fail("namespace_S_operation_bound_or_durability");
   const op = { id: s.ops.length + 1, kind, owner: "S", cid: s.cid, endpoint: s.p.endpoint, engine_id: s.p.engine_id,
-    executable: "/usr/local/bin/docker", executable_sha256: s.p.prepared_identity.client.sha256, argv: argv(s, kind),
+    executable: s.p.prepared_identity.client.path, executable_sha256: s.p.prepared_identity.client.sha256, argv: argv(s, kind),
     env: env(s), registered_ms: now(s), issued_ms: null, close_ms: null, daemon: "PENDING", client_closed: false,
     streams_settled: false, exit_code: null, signal: null, stdout: "", stderr: "", errors: [] };
   s.ops.push(op);
   // This fsynced original is BEFORE spawn, including when W is already lost.
   persist(s, "s-op-" + op.id + "-registered.json");
+  namespacePlanEvidence(s.plan);
   if ((kind === "create" || kind === "start") && (s.workerLost || s.aborted)) fail("namespace_work_no_longer_permitted");
   now(s, kind === "create" || kind === "start");
   let resolveDone, rejectDone;

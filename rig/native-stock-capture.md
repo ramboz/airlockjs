@@ -773,6 +773,31 @@ for observation O, a guest/runtime/clock capability, vendor case or historical
 helper clearance. All existing unavailable Docker/H/image/namespace/Mac/
 Native gates and the extra Meta case are unchanged.
 
+### Explicit local endpoint source binding
+
+Later read-only inspection of the confirmed local owner endpoint returned
+Engine28.5.1/API1.51/Linux arm64/cgroupv2/overlayfs and404 for the one exact
+pinned public Node base. This is metadata only, not guest free space,
+containment or image availability. No unrelated workload/image list,
+pull/import/build, allocation, start or new actual fixture followed.
+
+The two disarmed source models now require an explicit canonical owned Unix
+socket and its original device/inode/UID/mode/timestamps in strict source
+facts/cohort. They revalidate that binding across role preparation, command
+frontiers and independent reading; argv, environment and custody cannot
+select a different endpoint or fall back to ambient context. The checked
+canonical client file is the execution target; its legacy alias remains
+only an additional refusal check. Scoped source compliance/craft/architecture
+passes cover this correction, with374 affected SOURCE and184 HOST-source
+passes, not actual backend/clock/runtime controls.
+
+These leases prove filesystem metadata continuity only, not a kernel peer or
+atomic check-to-connect/exec custody. All real admission functions and
+NOT_PREPARED cohorts remain unchanged. The earlier actual HOST fixtures keep
+their historical source cohort; this correction does not renew their leases.
+Image acquisition/import/build and any workload require their own preparation
+and authority, including unproved guest image-store headroom.
+
 ### Historical P/E/L/H pre-run source/pure checkpoint
 
 This section preserves the original source/pure checkpoint **before v1-v3**.

@@ -1,13 +1,14 @@
 // Private preparation and pure state model. Fixed actor/CLI execution lives in
 // sdk-absent-owned-namespace-actors.mjs behind disarmed runtime admission.
-import { realpathSync } from "node:fs";
+import { lstatSync, realpathSync } from "node:fs";
+import process from "node:process";
 import { isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { data, equal, json, record } from "./inspected-meta-record.mjs";
 import { atomicPrivateWrite, digest, fail, fixedRead, freeze, hash, privateDirectory } from "./sdk-absent-owned-namespace-io.mjs";
 import { clockBounds, conservativeArm, tick, TOTAL_MS, WORK_MS } from "./sdk-absent-owned-namespace-time.mjs";
 
-const ENDPOINT = "unix:///var/run/docker.sock", CLIENT = "/usr/local/bin/docker";
+const CLIENT = "/usr/local/bin/docker";
 const BASE = "sha256:5f6d18c1dffb526f36bc30b85e468daf017dfa9531ef9ab3c57bb0d2c64da5cb";
 const COHORT = fileURLToPath(new URL("sdk-absent-owned-namespace-cohort.json", import.meta.url));
 export const OWNED_NAMESPACE_SOURCES = Object.freeze([
@@ -26,6 +27,17 @@ export const OWNED_NAMESPACE_SOURCES = Object.freeze([
 const plans = new WeakMap(), usedPlans = new WeakSet(), supervisors = new WeakMap(), journals = new WeakMap();
 const handle = () => Object.freeze(Object.create(null));
 const cloned = value => JSON.parse(JSON.stringify(data(value)));
+function endpointOriginal(endpoint, uid) {
+  if (typeof endpoint !== "string" || endpoint.length > 110
+    || !/^unix:\/\/(?:\/[A-Za-z0-9._-]+)+$/.test(endpoint) || /[\r\n]/.test(endpoint))
+    fail("namespace_canonical_owned_endpoint");
+  const path = endpoint.slice(7);
+  if (resolve(path) !== path) fail("namespace_canonical_owned_endpoint");
+  const s = lstatSync(path);
+  if (realpathSync(path) !== path || s.isSymbolicLink()
+    || !s.isSocket() || s.uid !== uid || (s.mode & 0o022)) fail("namespace_canonical_owned_endpoint");
+  return { path, dev: s.dev, ino: s.ino, uid: s.uid, mode: s.mode, mtime_ms: s.mtimeMs, ctime_ms: s.ctimeMs };
+}
 const CONFIG = freeze({
   pid_namespace: "private", ipc_namespace: "private", network: "none", readonly_rootfs: true,
   user: "65532:65532", cap_drop: ["ALL"], cap_add: [], privileged: false,
@@ -54,13 +66,15 @@ export function prepareOwnedNamespacePlan(value) {
     || !isAbsolute(v.root) || resolve(v.root) !== v.root) fail("namespace_plan_arguments");
   const cohort = fixedRead(COHORT), parsed = json(cohort.bytes);
   if (parsed.status === "NOT_PREPARED") fail("namespace_cohort_NOT_PREPARED");
-  const c = record(parsed, ["schema", "status", "endpoint", "engine_id", "client_realpath", "client_sha256",
+  const c = record(parsed, ["schema", "status", "endpoint", "endpoint_original", "engine_id", "client_realpath", "client_sha256",
     "image_id", "platform", "node_version", "base_digest", "root_uid", "sources", "clock"], ["adapter_contract"]);
   if (c.schema !== "airlock.owned-namespace-cohort.v1" || c.status !== "PREPARED_SOURCE_MODEL_ONLY"
-    || c.endpoint !== ENDPOINT || c.platform !== "linux/arm64/v8" || c.node_version !== "24.10.0" || c.base_digest !== BASE
+    || c.platform !== "linux/arm64/v8" || c.node_version !== "24.10.0" || c.base_digest !== BASE
     || typeof c.engine_id !== "string" || !c.engine_id || c.engine_id.length > 128
-    || !Number.isSafeInteger(c.root_uid) || c.root_uid < 1 || !digest(c.client_sha256)
+    || !Number.isSafeInteger(c.root_uid) || c.root_uid < 1 || c.root_uid !== process.getuid() || !digest(c.client_sha256)
     || !/^sha256:[a-f0-9]{64}$/.test(c.image_id)) fail("namespace_fixed_cohort");
+  const socket = record(c.endpoint_original, ["path", "dev", "ino", "uid", "mode", "mtime_ms", "ctime_ms"]);
+  if (!equal(socket, endpointOriginal(c.endpoint, c.root_uid))) fail("namespace_endpoint_lease_changed");
   const directories = [v.root, v.root + "/case", v.root + "/docker-config", v.root + "/empty-home"]
     .map(path => privateDirectory(path, c.root_uid));
   if (realpathSync(CLIENT) !== c.client_realpath) fail("namespace_client_changed");
@@ -75,7 +89,7 @@ export function prepareOwnedNamespacePlan(value) {
     return read.handle;
   });
   const p = handle();
-  plans.set(p, freeze({ ...v, cohort: cohort.handle, metadata: c, directories, client: client.handle, config: config.handle,
+  plans.set(p, freeze({ ...v, cohort: cohort.handle, metadata: c, socket, directories, client: client.handle, config: config.handle,
     sources, source_sha256: hash(JSON.stringify(data(sources))), clock: clockBounds(c.clock) }));
   return p;
 }
@@ -91,6 +105,7 @@ function revalidate(p) {
   }
   if (realpathSync(CLIENT) !== v.client.path
     || !equal(fixedRead(v.client.path, { maximum: 134217728, executable: true }).handle, v.client)) fail("namespace_client_changed");
+  if (!equal(endpointOriginal(v.metadata.endpoint, v.metadata.root_uid), v.socket)) fail("namespace_endpoint_lease_changed");
   for (const d of v.directories) {
     const fresh = privateDirectory(d.path, v.metadata.root_uid);
     if (fresh.dev !== d.dev || fresh.ino !== d.ino) fail("namespace_directory_changed");
@@ -128,7 +143,7 @@ function complete(s) {
 }
 function retainedIdentity(p) {
   return { preparation_scope: "SOURCE_PURE_MODEL_ONLY", preissued_name: "airlock-owned-" + p.case_id,
-    case_id: p.case_id, nonce: p.nonce, endpoint: ENDPOINT, engine_id: p.metadata.engine_id,
+    case_id: p.case_id, nonce: p.nonce, endpoint: p.metadata.endpoint, socket: p.socket, engine_id: p.metadata.engine_id,
     image_id: p.metadata.image_id, original_configuration: CONFIG, root: p.directories[0],
     client: p.client, client_config: p.config, cohort: p.cohort, sources: p.sources, clock_bounds: p.clock,
     adapter_contract: p.metadata.adapter_contract ?? null };
@@ -151,7 +166,7 @@ export function namespaceState(h) {
 export function namespaceExpectedIdentity(h) {
   const s = supervisors.get(h);
   if (!s) fail("private_namespace_supervisor");
-  return cloned({ cid: s.cid, name: "airlock-owned-" + s.p.case_id, endpoint: ENDPOINT,
+  return cloned({ cid: s.cid, name: "airlock-owned-" + s.p.case_id, endpoint: s.p.metadata.endpoint,
     engine_id: s.p.metadata.engine_id, image_id: s.p.metadata.image_id, source_sha256: s.p.source_sha256,
     config: CONFIG, labels: { case_id: s.p.case_id, nonce: s.p.nonce, source_sha256: s.p.source_sha256 } });
 }
@@ -198,7 +213,7 @@ export function issueNamespaceCommand(h, value) {
     || !equal(fixedRead(j.file.path).handle, j.file)) fail("durable_registration_required");
   if ((op.kind === "create" || op.kind === "start") && (s.workerLost || s.errors.length || v.now_ms >= s.work))
     fail("namespace_start_not_permitted");
-  const argv = ["--config", s.p.root + "/docker-config", "--host", ENDPOINT];
+  const argv = ["--config", s.p.root + "/docker-config", "--host", s.p.metadata.endpoint];
   if (op.kind === "create") argv.push("create", "--name", "airlock-owned-" + s.p.case_id,
     "--pull=never", "--platform=linux/arm64/v8", "--network=none", "--ipc=private", "--read-only",
     "--user=65532:65532", "--cap-drop=ALL", "--security-opt=no-new-privileges", "--pids-limit=32",
@@ -214,9 +229,9 @@ export function issueNamespaceCommand(h, value) {
   else argv.push(op.kind === "remove" ? "rm" : op.kind, s.cid);
   op.issued = true; op.issued_ms = v.now_ms; s.revision++;
   // A command description only. No spawn/exec/Docker adapter is implemented.
-  return freeze({ executable: CLIENT, argv, env: { HOME: s.p.root + "/empty-home",
-    DOCKER_CONFIG: s.p.root + "/docker-config", DOCKER_HOST: ENDPOINT, PATH: "/usr/local/bin:/usr/bin:/bin" },
-  endpoint: ENDPOINT, engine_id: s.p.metadata.engine_id, operation: op.id, owner: "S",
+  return freeze({ executable: s.p.client.path, argv, env: { HOME: s.p.root + "/empty-home",
+    DOCKER_CONFIG: s.p.root + "/docker-config", DOCKER_HOST: s.p.metadata.endpoint, PATH: "/usr/local/bin:/usr/bin:/bin" },
+  endpoint: s.p.metadata.endpoint, engine_id: s.p.metadata.engine_id, operation: op.id, owner: "S",
   total_deadline_ms: s.total, output_limit_bytes: CONFIG.output_limit_bytes, executable_sha256: s.p.client.sha256,
   scope: "SOURCE_PURE_MODEL_ONLY" });
 }
@@ -311,7 +326,7 @@ export function observeNamespaceControlEvent(h, value, now) {
 export function namespacePlanEvidence(plan) {
   const p = revalidate(plan);
   return cloned({ case_id: p.case_id, source_sha256: p.source_sha256, cohort_sha256: p.cohort.sha256,
-    image_id: p.metadata.image_id, engine_id: p.metadata.engine_id, endpoint: ENDPOINT, case_root: p.root + "/case",
+    image_id: p.metadata.image_id, engine_id: p.metadata.engine_id, endpoint: p.metadata.endpoint, case_root: p.root + "/case",
     config: CONFIG, labels: { case_id: p.case_id, nonce: p.nonce, source_sha256: p.source_sha256 },
     prepared_identity: retainedIdentity(p) });
 }

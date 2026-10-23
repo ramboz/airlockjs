@@ -1,5 +1,5 @@
 import process from "node:process";
-import { realpathSync } from "node:fs";
+import { lstatSync, realpathSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { data, equal, json, record } from "./inspected-meta-record.mjs";
@@ -13,6 +13,17 @@ export const CLOCK_OBSERVATION_SOURCES = Object.freeze([
   .concat(fileURLToPath(new URL("sdk-absent-clock-observation.Dockerfile", import.meta.url)),
     fileURLToPath(new URL("inspected-meta-record.mjs", import.meta.url))));
 const plans = new WeakMap();
+function endpointOriginal(endpoint, uid) {
+  if (typeof endpoint !== "string" || endpoint.length > 110
+    || !/^unix:\/\/(?:\/[A-Za-z0-9._-]+)+$/.test(endpoint) || /[\r\n]/.test(endpoint))
+    fail("observation_canonical_owned_endpoint");
+  const path = endpoint.slice(7);
+  if (resolve(path) !== path) fail("observation_canonical_owned_endpoint");
+  const s = lstatSync(path);
+  if (realpathSync(path) !== path || s.isSymbolicLink()
+    || !s.isSocket() || s.uid !== uid || (s.mode & 0o022)) fail("observation_canonical_owned_endpoint");
+  return { path, dev: s.dev, ino: s.ino, uid: s.uid, mode: s.mode, mtime_ms: s.mtimeMs, ctime_ms: s.ctimeMs };
+}
 export function observationArguments(value) {
   const v = record(data(value), ["case_id", "root"]);
   if (typeof v.case_id !== "string" || !/^[a-z0-9-]{1,48}$/.test(v.case_id)
@@ -26,10 +37,11 @@ export function prepareClockObservationPlan(value) {
   requireClockObservationRuntime();
   const facts = observationRead(v.root + "/source-facts.json");
   const f = record(json(facts.bytes), ["schema", "scope", "case_id", "root", "uid", "node_realpath", "node_sha256",
-    "node_version", "client_realpath", "client_sha256", "engine", "image_id", "image_source_sha256", "image_env", "sources"]);
+    "node_version", "client_realpath", "client_sha256", "endpoint", "endpoint_original",
+    "engine", "image_id", "image_source_sha256", "image_env", "sources"]);
   const engine = record(f.engine, ["ID", "OSType", "Architecture", "ServerVersion"]);
   if (f.schema !== "airlock.clock-observation-source-facts.v1" || f.scope !== "SOURCE_INPUTS_NOT_RUNTIME_PROOF"
-    || f.case_id !== v.case_id || f.root !== v.root || !Number.isSafeInteger(f.uid) || f.uid < 1
+    || f.case_id !== v.case_id || f.root !== v.root || !Number.isSafeInteger(f.uid) || f.uid < 1 || f.uid !== process.getuid()
     || !digest(f.node_sha256) || !digest(f.client_sha256) || !digest(f.image_source_sha256)
     || !/^sha256:[a-f0-9]{64}$/.test(f.image_id) || f.node_version !== process.version
     || realpathSync(process.execPath) !== f.node_realpath
@@ -40,6 +52,8 @@ export function prepareClockObservationPlan(value) {
     || !equal(f.image_env, ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "NODE_VERSION=24.10.0"])
     || !Array.isArray(f.sources) || f.sources.length !== CLOCK_OBSERVATION_SOURCES.length)
     fail("observation_fixed_source_facts");
+  const socket = record(f.endpoint_original, ["path", "dev", "ino", "uid", "mode", "mtime_ms", "ctime_ms"]);
+  if (!equal(socket, endpointOriginal(f.endpoint, f.uid))) fail("observation_endpoint_lease_changed");
   const directories = [v.root, v.root + "/empty-home", v.root + "/docker-config"].map(path => observationDirectory(path, f.uid));
   if (!equal(observationRead(facts.handle.path, { uid: f.uid }).handle, facts.handle)) fail("observation_private_facts");
   const config = observationRead(v.root + "/docker-config/config.json", { uid: f.uid, maximum: 64 });
@@ -58,7 +72,7 @@ export function prepareClockObservationPlan(value) {
   const p = Object.freeze(Object.create(null));
   plans.set(p, freeze({ ...v, uid: f.uid, facts: facts.handle, directories, config: config.handle,
     node: node.handle, client: client.handle, sources, source_sha256: source, cohort_sha256: cohort.sha256,
-    image_id: f.image_id, image_env: f.image_env, engine: f.engine, endpoint: "unix:///var/run/docker.sock" }));
+    image_id: f.image_id, image_env: f.image_env, engine: f.engine, endpoint: f.endpoint, socket }));
   return p;
 }
 export function clockObservationPlanEvidence(plan) {
@@ -74,5 +88,6 @@ export function clockObservationPlanEvidence(plan) {
   }
   if (realpathSync(process.execPath) !== p.node.path || realpathSync("/usr/local/bin/docker") !== p.client.path)
     fail("observation_executable_lease_changed");
+  if (!equal(endpointOriginal(p.endpoint, p.uid), p.socket)) fail("observation_endpoint_lease_changed");
   return p;
 }

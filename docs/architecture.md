@@ -112,6 +112,15 @@ observed normal/explicit-failure child exit and independent whole-command
 completion for their own source cohort. This is not guest/runtime/global-H
 qualification or historical helper clearance. It cannot redeem a fixture receipt for
 Docker observation O or enable the existing unavailable gates.
+The later source-only endpoint correction replaces the models' implicit
+socket selection with a strict explicit Unix endpoint and preissued original
+(`rig/sdk-absent-clock-observation-plan.mjs:16-26`,
+`rig/sdk-absent-owned-namespace.mjs:30-40`). Commands and readers use the
+retained canonical client, not its symlink alias. Scoped source reviews
+passed; filesystem continuity is not kernel-peer or atomic connect/exec
+custody. Read-only local metadata found the exact public base image absent;
+no pull/import/build or workload followed. Earlier source-cohort observations
+remain historical, and runtime/image/clock/native admission is unchanged.
 See the [executed blocker](../rig/native-stock-capture.md#installed-descriptor-observer-blocker)
 and [current replacement status](../rig/native-stock-capture.md#macos-socket-observer-replacement).
 
