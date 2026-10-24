@@ -865,7 +865,8 @@ The `pinned-node-image-*` candidate implements a separate, fixed image-only
 producer and source-test closure. It binds the original approval, immutable
 operator binding, canonical one-use reservation, exact OCI archive, owned
 Unix endpoint/engine and fixed controller/independent observer originals.
-REST platform values are encoded JSON objects, not CLI platform strings.
+API 1.51 image-load/inspection platform values are encoded JSON objects,
+not CLI platform strings; this is not a rule for every Docker endpoint.
 Containerd inspection binds the manifest ID/descriptor plus pinned config,
 platform and rootfs relationships; untagged RepoDigests may be empty.
 HTTP/exit success or image presence alone does not qualify unpack or runtime.
@@ -873,17 +874,50 @@ HTTP/exit success or image presence alone does not qualify unpack or runtime.
 Scoped source compliance required corrections to final-result attestation,
 bounded failure-path draining and valid-checksum archive semantic controls;
 a later close-fault correction keeps process wait distinct from both output
-stream closes. Current source checks have 139 Node and 32 Python passes,
+stream closes. At source checkpoint `a73e9d2`, checks had 139 Node and 32 Python passes,
 followed by bounded craft/architecture approval. None is an actual import
 receipt, generic H/S capability or renewed native-source qualification.
 
 Before any local mutation, this lane explicitly handed its still-unissued
 sole-importer coordination to the Adobe lane, which accepted under its own
-approval. No archive, live job, source-reviewed proof, intent, reservation or
+approval. No on-disk operational archive, live job, source-reviewed proof, intent, reservation or
 load request was created here. Local LOAD remains disabled until an explicit
 handback plus fresh reviews/preflight and exact-job GO; source approval alone
 does not return operational ownership. Actual image/import/unpack disposition
 requires separately attributed receipts from the executing lane.
+
+While the executing lane reviewed its job, this lane exercised the archive
+encoder and independent reader against the real pinned bytes entirely offline.
+The accepted nine-member in-memory archive was 81,540,608 bytes and both
+readers verified the pinned content and 257,477,632 expanded bytes. No archive
+file, controller, job or backend request was produced. That is data-path
+evidence only, not an import/unpack receipt or operational admission.
+
+The controller's final send fence also now rechecks its existing deadline
+after HTTP construction and immediately before `req.end`. A stalled
+constructor must not dispatch a late body; the reservation stays consumed
+and the outcome remains UNKNOWN/no-retry. The bounded delta passed source
+compliance/craft/architecture review and 140 Node controls; the separate
+Python source suite remains 32 cases. No old source lease or actual
+qualification is renewed by either check.
+
+The executing lane later supplied a complete load message and exact
+manifest GET200 readback. This lane hash-verified only the specifically
+shared external/result/progress/readback artifacts and checked the two raw
+response bodies with the image validators; their pinned metadata matches.
+The reported native whole-CLI exit0/2.792 seconds belongs to that lane's
+180-second image-only operation, not this controller's 45-second scope.
+Its retrospective continuity review was pending, its pending marker remains
+preserved, and independent unpack/backend discharge/runtime qualification
+remain false. Do not load again or reinterpret availability as workload GO.
+An additional hash-verified same-image projection reports content available
+and positive daemon snapshot usage; that counter is not independent snapshot
+integrity or runtime evidence. An unused local reservation/approval is not
+permission to duplicate the completed shared-image load.
+
+The subsequent one-no-work-container permission question did not receive
+a selected choice. Container execution, builds/pulls, host mounts, network,
+browser/SDK/vendor activity and settings changes remain disabled here.
 
 ### Historical P/E/L/H pre-run source/pure checkpoint
 

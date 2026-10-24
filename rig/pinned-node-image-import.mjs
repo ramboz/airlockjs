@@ -322,6 +322,7 @@ async function management(s, kind, body = null) {
       req.once("finish", () => { operation.request_finished = true; });
       req.once("error", () => bad("image_http_request_error"));
       req.once("close", () => { operation.request_closed = true; settle(); });
+      time(s);
       req.end(body ?? undefined);
     } catch (error) {
       clearTimeout(timer);

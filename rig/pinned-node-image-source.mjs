@@ -277,6 +277,21 @@ describe("closed deterministic archive SOURCE", () => {
       expect(f.requests).toHaveLength(0);
     });
 
+    it("rechecks the original deadline after HTTP construction before sending load bytes", async () => {
+      const f = await seededController();
+      runMock.handler = (options, callback) => {
+        const req = f.reply(options, callback);
+        if (options.method === "POST") runMock.value.ns += fixture.pins.budgetNs;
+        return req;
+      };
+      await expect(f.controller.runPinnedImage(planFor(f))).rejects.toThrow("image_original_budget");
+      expect(f.requests.filter(r => r.options.method === "POST")).toHaveLength(0);
+      expect(f.fs.files.has(binding.canonical_reservation_path)).toBe(true);
+      const unknown = JSON.parse(f.fs.files.get(binding.case_root + "/image-unknown.json").bytes);
+      expect(unknown.status).toBe("UNKNOWN");
+      expect(unknown.no_retry_or_cleanup).toBe(true);
+    });
+
     it("retains every original intent metadata field, not merely identical bytes", async () => {
       const f = await seededController(), sync = fsMock.state.fsyncSync;
       let changed = false;

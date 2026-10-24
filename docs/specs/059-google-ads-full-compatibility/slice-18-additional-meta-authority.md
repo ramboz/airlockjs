@@ -1331,10 +1331,10 @@ Approved pinned-base image preparation frame (2026-10-23):
   it remains operationally unadmitted. Before any mutation, the still-unissued sole-importer
   coordination was explicitly handed to the Adobe lane; it accepted at
   23:40:16.643Z under its own approval. This lane will not issue a load until
-  an explicit handback. No actual case root, job, archive, reservation or load
+  an explicit handback. No actual case root, job, on-disk operational archive, reservation or load
   request was created here; this is coordination, not transfer of permission.
 - A peer read-only diagnostic exposed a candidate wire-contract error:
-  API 1.51's platform parameter is an encoded JSON object, not a CLI platform
+  API 1.51's image-load/inspection platform parameter is an encoded JSON object, not a CLI platform
   string. Its wrong-string GET returned 400, and a corrected JSON-platform
   GET separately returned 404. This lane corrected the fixed load route and
   independent doubled REST decoder before any actual load; the selected
@@ -1362,7 +1362,7 @@ Approved pinned-base image preparation frame (2026-10-23):
   are now distinct facts and failure collection retains remaining custody.
   A narrow follow-up closed that gap. Later craft and architecture passed
   the current source cohort, not the original whole-slice/native obligations.
-- Parent source verification has 139 Node and 32 Python passes. Guard-removal
+- At source checkpoint `a73e9d2`, parent verification had 139 Node and 32 Python passes. Guard-removal
   failures cover result-original custody, bounded during-read retention and
   valid-checksum semantic names; earlier harness/setup errors remain labelled,
   not counted as behavior proof. The seven new repository files form a
@@ -1373,6 +1373,50 @@ Approved pinned-base image preparation frame (2026-10-23):
   runtime, clocks or native behavior. Sole-importer coordination remains with
   the Adobe lane. This lane's approval is preserved but no load may issue here
   without explicit handback, fresh prerequisites and a separate exact-job GO.
+- A later real-content offline check at 2026-10-24T00:49:21Z exercised the
+  reviewed archive encoder and independent Python reader against the actual
+  pinned bytes. Both accepted the same nine members and 257,477,632 expanded
+  bytes; the in-memory archive was 81,540,608 bytes with SHA-256
+  `72d21760b5c12343fa8d5bba5800d9de60ddcfd38cab2da12a1889bfc95ed2b7`.
+  The receipt is `offline-real-content-archive-check.json`. Only memory/pipe
+  bytes and the small receipt were produced: no archive file, controller,
+  backend request, job or import. This validates the data path, not image
+  availability, unpack or runtime qualification.
+- A final send-frontier regression then reproduced a constructor-time stall:
+  the old controller could call `req.end` after the original deadline and
+  reject only when processing the response. The existing clock is now
+  checked immediately before `req.end`, after construction/listeners.
+  The regression changed from one late ended POST to zero while retaining
+  the canonical reservation and UNKNOWN/no-retry outcome. Narrow compliance,
+  craft and architecture reviews passed only that delta; current Node SOURCE
+  coverage is 140, with the unchanged private Python suite at 32.
+- The executing Adobe lane subsequently reported one normal HTTP load
+  completion and exact manifest GET200. This lane verified only the four
+  specifically shared artifact hashes and ran the load-message/inspection
+  validators against their real response bytes: one 105-byte complete load
+  message and 1,227-byte metadata body match the pinned manifest, platform,
+  ordered five diff IDs and Node/Yarn config. The peer's external observation
+  reports native whole-CLI exit0 in 2.792 seconds, within its original
+  180-second image-only scope; this is not this lane's control or 45-second
+  qualification. The local receipt is `peer-import-data-validation.json`.
+- Retrospective peer continuity review was still pending at that report.
+  The peer preserved its immutable pending marker and explicitly did not
+  qualify independent backend discharge, unpack, S, clocks, runtime,
+  namespace/kernel behavior or old UNKNOWNs. Do not import again or remove
+  that marker. This lane issued no load/query and still has no operational
+  job, proof, archive or reservation.
+- A further shared same-image metadata projection reports `Available:true`
+  and a positive daemon unpacked-size counter. This lane verified only the
+  specifically shared projection hash, not broad response logs or snapshot
+  files. It is daemon-reported storage metadata, not independent snapshot
+  integrity, execution or cleanup proof. The unused local import approval
+  does not authorize duplicating the already reported shared load.
+- A new conditional question asks for exactly one reviewed no-work Node-only
+  container with a 45-second budget, 0.25 CPU, 64 MiB RAM and 16 processes,
+  with no network, host mounts, builds/pulls, browser/vendor activity or
+  settings changes. Its response was user-unavailable/general autonomy,
+  not a selected container-control grant. Containers remain disabled; image
+  availability and the prior image-only approval do not expand this scope.
 
 ### Reconciliation sweep
 
