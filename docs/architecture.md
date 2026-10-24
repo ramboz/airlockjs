@@ -135,6 +135,14 @@ require canonical, single-link descriptor-to-path identity. Completed private
 handoff, not visible final bytes, acknowledges publication. Scoped source
 review covers this reuse, not actual durable supervision, host-shutdown safety
 or settlement of pending Docker operations; all actual gates stay disabled.
+The separately approved pinned-base image-preparation tool
+(`rig/pinned-node-image-import.mjs`, `rig/pinned-node-image-cli.mjs`) has a
+closed source-only review scope and an independent private observer. It
+introduces no native/Meta execution dependency or runtime capability.
+Acknowledged result-original attestation, bounded failure draining and actual
+process/stream-close requirements remain distinct from visible files and
+image presence. Import coordination was handed off while still unissued;
+no local operation or actual qualification follows from source approval.
 See the [executed blocker](../rig/native-stock-capture.md#installed-descriptor-observer-blocker)
 and [current replacement status](../rig/native-stock-capture.md#macos-socket-observer-replacement).
 

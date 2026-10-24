@@ -414,6 +414,12 @@ Path existence or byte equality cannot reconstruct an acknowledgment after
 failure or authorize replay/adoption/retry. Sharing this third-caller leaf
 does not establish actual durable supervision or backend-operation custody.
 
+The owner later approved only exact pinned-base image preparation/import
+after its own storage/ownership reviews. Its separate source utility and
+observer do not accept this Proposed native supervision design or enable
+workloads. Source-only review and the still-unissued importer handoff remain
+distinct from actual image/unpack evidence and generic runtime custody.
+
 Fresh frame review required two V1 corrections and passed only their V2
 source/pure clarification. It is not implementation or runtime approval.
 The owner was unavailable and returned general autonomy, not an exact design

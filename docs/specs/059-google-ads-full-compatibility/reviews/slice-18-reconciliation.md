@@ -2,9 +2,9 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: reconciliation
 verdict: pass
-reviewer: Prior scoped histories; publication-reconciliation bounded document PASS
-reviewed_at: 2026-10-23T22:37:42Z
-prompt_source: review.py reconciliation docs/specs/059-google-ads-full-compatibility/spec.md 059-18; publication custody correction
+reviewer: Prior scoped histories; image-import document reconciliation plus separate paragraph-only tense correction PASS
+reviewed_at: 2026-10-24T00:41:09Z
+prompt_source: review.py reconciliation docs/specs/059-google-ads-full-compatibility/spec.md 059-18; image-only source, unissued operation handed off
 ---
 
 VERDICT: pass
@@ -59,3 +59,15 @@ File inspection only, no new source audit, tests/commands/rehashes/OS/backend or
 
 CAPACITY WORDING:
 Two specifically shared, hash-verified capacity-only JSONs establish an attributed rounded collection-time observation, not exact reserved bytes, import authority, actual management-operation custody, diagnostic validation by this reviewer or historical-UNKNOWN clearance. This lane did not gather diagnostics or open broad bundle logs. No whole-slice acceptance follows.
+
+## Later approved image-only SOURCE document reconciliation
+
+VERDICT: pass
+
+BOUNDED COMPOSITE DOCUMENT RECONCILIATION:
+Initial image-import-reconciliation reviewed the new image-only source documentation, approved scope, separate closure/observer, corrected API contracts, High-finding history, SOURCE test counts and still-unissued coordination handoff. It found only stale current-tense wording in the slice: "It remains unreviewed" contradicted later completed bounded source passes.
+
+The parent changed that paragraph to "At the handoff it was unreviewed; it remains operationally unadmitted" and swept the exact stale wording across docs/guide/changelog with no surviving matches. Fresh image-import-reconciliation-tense passed ONLY this paragraph correction, not a renewed full reconciliation or source audit. Other prior document checks remain attributed to the initial reviewer.
+
+LIMITS:
+Both reviewers file inspection only, no commands/tests/rehashes/live operations or physical witnessing. No actual import/unpack/H/S/clock/runtime/native proof, whole-slice acceptance or operation GO. Source approval does not restore sole-importer priority: local LOAD remains disabled until explicit peer handback, fresh prerequisites and exact-job GO. No local job/proof/archive/reservation/request exists; receiving lane acts only under its own approval.

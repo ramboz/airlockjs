@@ -1277,8 +1277,109 @@ Original-publication custody correction frame (2026-10-23):
   image/store, workload, browser, vendor action or new actual HOST control is
   authorized or performed by it; actual admission remains disabled.
 
+Approved pinned-base image preparation frame (2026-10-23):
+
+- The owner answered the pending conditional image-preparation/import
+  question with "you got my approval" at 22:45:34.264Z. This is separate
+  authority for the already host-staged exact public Node base, not transfer
+  of the Adobe lane's grant. Containers, browser/SDK/vendor traffic,
+  settings changes, alternative images, derived builds and historical
+  UNKNOWN waivers remain disabled. The original/additional Meta slots are
+  unrelated and unchanged.
+- Prepare one closed OCI archive containing only the existing pinned
+  manifest, config, five layer blobs, OCI layout and single-manifest index;
+  no source overlay, image tag replacement, extraction or execution.
+  Independently check all descriptor hashes/sizes, rootfs diff IDs and exact
+  platform/config. Host archive storage is bounded at 96 MiB with a separate
+  2 GiB host reserve. Guest-store planning uses the attributed capacity-only
+  snapshot conservatively, not as reserved/exact free bytes; record its age
+  and verify no conflicting image-store operation before dispatch.
+- Before any load request, persist an exclusive one-use operation intent
+  binding the genuine decision, exact socket/engine, source/executable,
+  archive and original deadline. A fixed host controller retains the exact
+  management request, response and publication handles independently of the
+  agent's logical worker. An external whole-command observer retains its
+  controller handle through actual exit, streams and final publication.
+  A deadline stops further dispatch; failure/lost acknowledgment is UNKNOWN,
+  never evidence of daemon cancellation, retry permission or cleanup rights.
+- The operator selects a 45-second whole-controller acceptance interval,
+  including preparation, original publication, dispatch and settlement.
+  This is a new image-only operational budget, not reuse of earlier HOST
+  qualification or a host/guest clock certificate. An external observer
+  records the original start before spawning the fixed controller and its
+  actual exit/stream close. If the budget fails, retain custody until owned
+  handles settle, record the late/ambiguous outcome and do not dispatch
+  another operation; waiting for settlement does not renew the budget.
+- The only possible mutation is one exact-content image-load request. No
+  workload commands or lists are introduced. Complete response framing,
+  explicit application errors, actual controller closure and separate exact
+  image/config/platform/diff-ID inspection are all required before recording
+  image availability. Docker's loader may emit an unpack error while returning
+  overall success, so HTTP/CLI zero alone is not an image-preparation receipt.
+  For the observed containerd store, inspection ID/Descriptor bind the
+  manifest digest, not the classic-store config-digest ID. Empty RepoDigests
+  on an untagged load do not justify mutable tag creation. Absence of a
+  reported unpack error is not independent unpack/runtime qualification.
+  A pre-existing matching image is a read-only availability observation, not
+  a second import or ownership claim over unrelated resources.
+- This frame requires independent review before implementation/operation.
+  Image-only management evidence cannot qualify general durable S,
+  host-shutdown custody, guest clocks, namespace cleanup, a derived runtime
+  image or any native case. Missing prerequisites stop before dispatch.
+- The frame passed, then an importer/independent-observer SOURCE candidate
+  was implemented with doubled boundaries. At the handoff it was unreviewed;
+  it remains operationally unadmitted. Before any mutation, the still-unissued sole-importer
+  coordination was explicitly handed to the Adobe lane; it accepted at
+  23:40:16.643Z under its own approval. This lane will not issue a load until
+  an explicit handback. No actual case root, job, archive, reservation or load
+  request was created here; this is coordination, not transfer of permission.
+- A peer read-only diagnostic exposed a candidate wire-contract error:
+  API 1.51's platform parameter is an encoded JSON object, not a CLI platform
+  string. Its wrong-string GET returned 400, and a corrected JSON-platform
+  GET separately returned 404. This lane corrected the fixed load route and
+  independent doubled REST decoder before any actual load; the selected
+  source regression failed with the old parameter. Those GETs are
+  peer-attributed, not this lane's execution or import/unpack evidence.
+- Containerd's import implementation retains each OCI index descriptor,
+  including its optional platform metadata. A source positive rejected by
+  the original exact-three-key comparison exposed that mismatch. The reader
+  now requires the exact manifest identity fields, validates optional
+  platform/string annotations and emits only the selected identity projection.
+  The exact pinned config separately confirms variant `v8`.
+- Initial source compliance found three High gaps: H could adopt a replaced
+  result by pathname, failure collection buffered unbounded output through
+  `communicate`, and archive semantic negatives could fail only because their
+  checksum was stale. S now attests the acknowledged result original in END;
+  H checks its exact identity/hash and closed result/dispatch semantics before
+  any conditional archive verification. Failure draining retains bounded
+  prefixes while observing the exact streams and process; valid-checksum,
+  fault-specific archive tests also exposed high-bit ASCII folding, now
+  corrected with byte-preserving parsing.
+- Correction review closed the result/archive findings but found one coupled
+  stream-lifetime gap: normal wait marked settlement before both output
+  closes, so a close-then-error could strand the other stream. A separate
+  integrated red test reproduced this; process wait and stream settlement
+  are now distinct facts and failure collection retains remaining custody.
+  A narrow follow-up closed that gap. Later craft and architecture passed
+  the current source cohort, not the original whole-slice/native obligations.
+- Parent source verification has 139 Node and 32 Python passes. Guard-removal
+  failures cover result-original custody, bounded during-read retention and
+  valid-checksum semantic names; earlier harness/setup errors remain labelled,
+  not counted as behavior proof. The seven new repository files form a
+  separate nine-module image-preparation closure, with private H/test originals
+  additionally bound in a future job. Existing native vectors and shared
+  leaves remain unchanged; no actual reviewed-source proof/job was issued.
+- These source passes do not qualify actual import, unpack, H/S durability,
+  runtime, clocks or native behavior. Sole-importer coordination remains with
+  the Adobe lane. This lane's approval is preserved but no load may issue here
+  without explicit handback, fresh prerequisites and a separate exact-job GO.
+
 ### Reconciliation sweep
 
+- updated - the approved image-only scope, separate source/observer closure,
+  REST platform/descriptor contracts, three source findings and coupled close
+  correction, and the still-unissued operational handoff. Permission,
+  source approval and actual image availability remain separate evidence.
 - updated - the shared three-writer publication leaf, canonical single-link
   namespace handles, diagnostic-only final visibility, complete dependency
   closures and scoped review/failure history in the source, guide, architecture,

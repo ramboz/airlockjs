@@ -2,9 +2,9 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: craft
 verdict: pass
-reviewer: Prior scoped histories; publication-craft bounded SOURCE PASS
-reviewed_at: 2026-10-23T22:34:25Z
-prompt_source: review.py pr-review docs/specs/059-google-ads-full-compatibility/spec.md 059-18; publication custody correction
+reviewer: Prior scoped histories; image-import-craft bounded SOURCE PASS
+reviewed_at: 2026-10-24T00:34:38Z
+prompt_source: review.py pr-review docs/specs/059-google-ads-full-compatibility/spec.md 059-18; image-only SOURCE candidate, operation handed off unissued
 substrate: shown
 applied_skill: pr-review
 shown_candidates: [pr-review:high-confidence, scout-pr-review:high-confidence, access:speculative, agent-development:speculative, arch-review:speculative, build-mcp-app:speculative, build-mcp-server:speculative, build-mcpb:speculative, cardputer-buddy:speculative, claude-automation-recommender:speculative, claude-md-improver:speculative, command-development:speculative, configure:speculative, example-command:speculative, example-skill:speculative, frontend-design:speculative, hook-development:speculative, m5-onboard:speculative, math-olympiad:speculative, mcp-integration:speculative, playground:speculative, plugin-settings:speculative, plugin-structure:speculative, project-artifact:speculative, scout-autotune:speculative, scout-bench-create:speculative, scout-memory-init:speculative, scout-scrum-master:speculative, session-report:speculative, skill-creator:speculative, skill-development:speculative, writing-hookify-rules:speculative]
@@ -74,3 +74,16 @@ Distinct directory-fd checks, exact written FILE identity, repeated readback and
 
 LIMITS:
 Static file inspection, no independently rerun tests, physical HOST/runtime qualification or renewed leases/native DoD. AtomicPrivateWrite is a historical name, not atomic final-path visibility.132parameterizedwrappercasesareSOURCE;repeatedvectorchecksnotunique. All actual gates and historical receipts remain unchanged.
+
+## Later approved image-only SOURCE candidate
+
+VERDICT: pass
+
+BOUNDED SOURCE CRAFT:
+Fresh image-import-craft review passed the seven importer source files and private independent H caller/test. Fixed mutating route, immutable source/decision/job/archive bindings and canonical irreversible reservation remain narrow. Independent archive checks, final-result original attestation and real caller fault regressions give meaningful positive/negative coverage; no blocking craft issue found.
+
+STRENGTHS:
+Independent byte-preserving tar parser checks header semantics/payload/padding/termination before pinned content/diff-ID validation. Failure draining caps retained prefixes during reads while continuing exact EOF/close/wait, without signals or a new budget. The integrated normal post-wait close-fault regression and post-exit replacement cases challenge actual H custody.
+
+LIMITS:
+Static source inspection, no commands/tests/live actions. No actual import/unpack/H/S/clock/runtime/native capability or renewed historical source qualification. Candidate remains operationally unadmitted; local load disabled until explicit sole-importer handback plus fresh preflight and exact-job GO. No additional deviations identified.

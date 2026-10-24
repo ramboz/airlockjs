@@ -2,9 +2,9 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: arch
 verdict: pass
-reviewer: Prior scoped histories; publication-architecture bounded SOURCE PASS
-reviewed_at: 2026-10-23T22:34:25Z
-prompt_source: review.py arch-review docs/specs/059-google-ads-full-compatibility/spec.md 059-18; publication custody correction
+reviewer: Prior scoped histories; image-import-architecture bounded SOURCE PASS
+reviewed_at: 2026-10-24T00:34:38Z
+prompt_source: review.py arch-review docs/specs/059-google-ads-full-compatibility/spec.md 059-18; image-only SOURCE candidate, operation handed off unissued
 substrate: shown
 applied_skill: arch-review
 shown_candidates: [arch-review:high-confidence, access:speculative, agent-development:speculative, build-mcp-app:speculative, build-mcp-server:speculative, build-mcpb:speculative, cardputer-buddy:speculative, claude-automation-recommender:speculative, claude-md-improver:speculative, command-development:speculative, configure:speculative, example-command:speculative, example-skill:speculative, frontend-design:speculative, hook-development:speculative, m5-onboard:speculative, math-olympiad:speculative, mcp-integration:speculative, playground:speculative, plugin-settings:speculative, plugin-structure:speculative, pr-review:speculative, project-artifact:speculative, scout-autotune:speculative, scout-bench-create:speculative, scout-memory-init:speculative, scout-pr-review:speculative, scout-scrum-master:speculative, session-report:speculative, skill-creator:speculative, skill-development:speculative, writing-hookify-rules:speculative]
@@ -65,3 +65,13 @@ Fresh publication-architecture reviewer passed only this three-writer source cor
 
 LIMITS:
 No unframed architectural deviation.132focusedwrappercasesareSOURCEevidence, not actual controls; preserve failed fixture/predicate histories and leases. All runtime/image/native denials remain; later capacity-only snapshot gives no new authority or real operation custody. Static read-only reviewer, no tests/commands/rehashes/physical witnessing.
+
+## Later approved image-only SOURCE candidate
+
+VERDICT: pass
+
+BOUNDED SOURCE ARCHITECTURE:
+Fresh image-import-architecture review passed only the seven new repository files and private H caller/test against the approved image-only frame. The separate fixed source closure does not add a native/Meta execution dependency, speculative registry/executor or stable-core capability. Canonical one-use reservation precedes mutation; ambiguity is retained before request construction, and independent post-exit result custody composes with archive/intent/reservation verification.
+
+LIMITS:
+No architectural deviation within this source cohort; no tests/commands/rehashes or live operations by reviewer. Not renewed compliance/craft/whole-slice acceptance or actual import/unpack/H/S/host-shutdown/clock/runtime/native qualification. Sole-importer coordination remains handed off, so local load stays disabled pending explicit handback, fresh own preflight and exact-job GO. Existing Meta slots and normal native/Mac NOT_PREPARED gates unchanged.

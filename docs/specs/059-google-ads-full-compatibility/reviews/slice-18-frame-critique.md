@@ -2,9 +2,9 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: frame-critique
 verdict: pass
-reviewer: Prior scoped histories; publication-frame pre-code SOURCE frame PASS
-reviewed_at: 2026-10-23T22:34:24Z
-prompt_source: review.py frame-critique docs/specs/059-google-ads-full-compatibility/spec.md 059-18; publication custody correction
+reviewer: Prior scoped histories; image-import-frame approved image-only SOURCE frame PASS
+reviewed_at: 2026-10-24T00:34:38Z
+prompt_source: review.py frame-critique docs/specs/059-google-ads-full-compatibility/spec.md 059-18; image-only SOURCE candidate, operation handed off unissued
 ---
 
 VERDICT: pass
@@ -30,3 +30,16 @@ Fresh publication-frame reviewer passed only the three-writer original-publicati
 
 RECONCILIATION:
 The intentional final visibility change must replace the old namespace staging/invisibility assertions with diagnostic-debris/no-ACK/no-overwrite/no-dispatch controls. This pass approved a source frame only, not implementation/lifecycle advancement, real runtime/clock custody or launch authority. No reviewer commands/tests/OS/backend/rehash/physical witnessing.
+
+## Later approved image-only SOURCE candidate
+
+VERDICT: pass
+
+BOUNDED APPROVED IMAGE-ONLY FRAME:
+Fresh image-import-frame reviewer passed only the new exact pinned public-base image preparation/import frame under the owner's genuine conditional approval at 22:45:34.264Z. This is not general durable S, host shutdown, runtime/guest clock, namespace or native-case acceptance. Complete framed request/response, no application error, actual controller closure and exact post-inspection may support only image availability/observed handler completion; disconnect, timeout, observer loss or image presence alone remain UNKNOWN, not cancellation/settlement/retry.
+
+MANDATORY BEFORE ANY OPERATION:
+Reviewed H/S source, fresh engine/socket/source/archive/storage checks and coordination, exact private job and separate GO. Rounded capacity is an attributed snapshot, not reserved bytes. Containers/workloads/browser/SDK/vendor/settings/alternative pulls/derived builds remain disabled. The later UNISSUED sole-importer handoff supersedes this lane's operational priority: no local load until explicit handback, regardless of source approval.
+
+LIMITS:
+Read-only frame inspection, no commands/tests/rehashes/live operations or new permission inferred. Existing Meta authority/spend/UNKNOWN/native gates unchanged.

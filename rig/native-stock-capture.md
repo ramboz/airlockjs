@@ -854,6 +854,37 @@ data; no broad bundle was read here and no diagnostic gather was repeated.
 The snapshot establishes an observation, not exact reserved space, import
 authority, actual operation custody or clearance of any historical UNKNOWN.
 
+### Approved image-only preparation source and coordination handoff
+
+The owner separately approved preparation/import of the already-staged exact
+public Node base after storage/ownership reviews. That approval does not
+permit derived builds, container/VM workloads, browser/SDK/vendor activity,
+settings changes, alternative pulls or historical UNKNOWN waivers.
+
+The `pinned-node-image-*` candidate implements a separate, fixed image-only
+producer and source-test closure. It binds the original approval, immutable
+operator binding, canonical one-use reservation, exact OCI archive, owned
+Unix endpoint/engine and fixed controller/independent observer originals.
+REST platform values are encoded JSON objects, not CLI platform strings.
+Containerd inspection binds the manifest ID/descriptor plus pinned config,
+platform and rootfs relationships; untagged RepoDigests may be empty.
+HTTP/exit success or image presence alone does not qualify unpack or runtime.
+
+Scoped source compliance required corrections to final-result attestation,
+bounded failure-path draining and valid-checksum archive semantic controls;
+a later close-fault correction keeps process wait distinct from both output
+stream closes. Current source checks have 139 Node and 32 Python passes,
+followed by bounded craft/architecture approval. None is an actual import
+receipt, generic H/S capability or renewed native-source qualification.
+
+Before any local mutation, this lane explicitly handed its still-unissued
+sole-importer coordination to the Adobe lane, which accepted under its own
+approval. No archive, live job, source-reviewed proof, intent, reservation or
+load request was created here. Local LOAD remains disabled until an explicit
+handback plus fresh reviews/preflight and exact-job GO; source approval alone
+does not return operational ownership. Actual image/import/unpack disposition
+requires separately attributed receipts from the executing lane.
+
 ### Historical P/E/L/H pre-run source/pure checkpoint
 
 This section preserves the original source/pure checkpoint **before v1-v3**.

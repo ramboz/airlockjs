@@ -2,9 +2,9 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: compliance
 verdict: pass
-reviewer: Prior scoped histories; publication-compliance bounded SOURCE PASS
-reviewed_at: 2026-10-23T22:34:24Z
-prompt_source: review.py implementation docs/specs/059-google-ads-full-compatibility/spec.md 059-18; publication custody correction
+reviewer: Prior scoped histories; image-import-compliance findings and separate correction/postwait source closure passes
+reviewed_at: 2026-10-24T00:34:38Z
+prompt_source: review.py implementation docs/specs/059-google-ads-full-compatibility/spec.md 059-18; image-only SOURCE candidate, operation handed off unissued
 ---
 
 VERDICT: pass
@@ -66,3 +66,21 @@ Static review only; no reviewer tests/commands/rehashes/OS/backend/physical witn
 
 LIMITS:
 No unframed deviation. Intentional diagnostic final visibility, mandatorynlink handles, source112/108 and model18/24/HOST30/minimalimageCOPY closures must be recorded. IN_PROGRESS/openDoD/ProposedADR0038/oldUNKNOWN/originalSPENT/extraUNSPENT and hard-false actualruntime/image/H/clock/native gates unchanged. No source lease or actualHOST proof renewed; not real durableS or pendingDocker-operation settlement.
+
+## Later approved image-only SOURCE candidate
+
+VERDICT: pass
+
+BOUNDED COMPOSITE SOURCE COMPLIANCE:
+Initial image-import-compliance read-only review found the main fixed binding/route/one-use/qualification boundaries aligned with the approved image-only frame, but returned needs-changes for three High gaps: result-original custody, unbounded failure buffering, and checksum-masked tar semantics. Original findings remain in compliance-needs-changes-v1.txt.
+
+CORRECTION SCOPES:
+Fresh image-import-correction-review closed finding1: S retains the acknowledged result original, END attests its full handle/hash plus job/proof/PID/nonce, and H compares actual retained originals before interpreting closed typed dispatch flags and after final publication. It closed finding3: valid-checksum semantic header negatives/fault-specific errors, byte-preserving parsing and real payload offsets defeat deleted semantic guards. It accepted bounded incremental failure draining but found an additional normal post-wait close fault could skip remaining stream custody.
+
+Fresh image-import-postwait-review passed ONLY that final H delta: process wait completion and all-output settlement are separate; a close-then-error enters the existing bounded collector and closes the other owned stream, preserving UNKNOWN. Integrated test was RED with stderr still open before the fix, then full32PythonGREEN. These separate correction passes do not pretend to renew the original broad source audit.
+
+PROVENANCE:
+Parent independently verified139Node/32PythonSOURCE suites; source corrections retain isolated result-custody guard-removal subcases, during-read memory bound removal and valid-checksum name-guard removal failures, with restored greens. Initial115/22 and119/22 handoffs are historical. Missing-module/setup and earlier test-isolation errors are labelled as such, not behavior proof. REST JSON-platform and containerd target-descriptor corrections precede this source acceptance; no actual API/load was performed here.
+
+LIMITS:
+All reviewers file-inspection only, no test/command/rehash/live action or physical witnessing. This is only the seven new modules plus private H/test source cohort, not whole059-18DoD, oldHOST/endpoint reapproval, actual import/unpack/clock/runtime/H/S durability or native qualification. Our local operation remains UNISSUED with no actual job/proof/archive/reservation; peer owns sole-importer coordination and local load stays disabled until explicit handback and independent fresh GO.
