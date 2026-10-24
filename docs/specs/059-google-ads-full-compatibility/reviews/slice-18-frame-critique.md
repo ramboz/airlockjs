@@ -2,9 +2,9 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: frame-critique
 verdict: pass
-reviewer: Prior scoped histories; image-import-frame approved image-only SOURCE frame PASS
-reviewed_at: 2026-10-24T00:34:38Z
-prompt_source: review.py frame-critique docs/specs/059-google-ads-full-compatibility/spec.md 059-18; image-only SOURCE candidate, operation handed off unissued
+reviewer: Prior scoped histories; preserved pre-code bare-base-clock-frame report
+reviewed_at: 2026-10-24T02:48:02Z
+prompt_source: review.py frame-critique; preserved pre-code task report, not a new review at recording time
 ---
 
 VERDICT: pass
@@ -43,3 +43,16 @@ Reviewed H/S source, fresh engine/socket/source/archive/storage checks and coord
 
 LIMITS:
 Read-only frame inspection, no commands/tests/rehashes/live operations or new permission inferred. Existing Meta authority/spend/UNKNOWN/native gates unchanged.
+
+## Later bare-base no-work program SOURCE frame
+
+VERDICT: pass
+
+ATTRIBUTION:
+Preserved pre-code task report from bare-base-clock-frame, retained in the session checkpoint; this is not a new review performed at record time or a reconstructed verbatim transcript.
+
+BOUNDED SOURCE FRAME:
+The reviewer passed the fixed first-party inline HELLO/CLOCK/exit SOURCE frame, not actual container execution or full059-18 acceptance. It noted a nonblocking inherited-working-directory coupling: the old inspection expected /case supplied by a derived Dockerfile, while CREATE did not set it and the bare base has no WorkingDir. The implementation had to explicitly choose a working directory and independently model it. The reviewed implementation now uses explicit cwd/HOME /.
+
+LIMITS:
+No execution authority, container operation, actual runtime/clock/H/S/kernel/cleanup/native qualification, acceptance of Proposed ADR-0038, or change to original-spent/additional-unspent Meta state follows. The source frame and later implementation passes are separate review scopes.

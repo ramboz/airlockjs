@@ -2,11 +2,12 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: arch
 verdict: pass
-reviewer: Prior scoped histories; image-send-fence-architecture narrow final-send SOURCE delta PASS
-reviewed_at: 2026-10-24T01:27:50Z
-prompt_source: review.py arch-review docs/specs/059-google-ads-full-compatibility/spec.md 059-18; final-send deadline delta, no live admission
-substrate: not-shown
-applied_skill: none
+reviewer: Prior scoped histories; bare-base-clock-source-architecture amendment-only PASS
+reviewed_at: 2026-10-24T02:46:57Z
+prompt_source: review.py arch-review --richer-skill arch-review; bare-base SOURCE boundaries, no ADR acceptance
+substrate: shown
+applied_skill: arch-review
+shown_candidates: [arch-review:high-confidence, access:speculative, agent-development:speculative, build-mcp-app:speculative, build-mcp-server:speculative, build-mcpb:speculative, cardputer-buddy:speculative, claude-automation-recommender:speculative, claude-md-improver:speculative, command-development:speculative, configure:speculative, example-command:speculative, example-skill:speculative, frontend-design:speculative, hook-development:speculative, m5-onboard:speculative, math-olympiad:speculative, mcp-integration:speculative, playground:speculative, plugin-settings:speculative, plugin-structure:speculative, pr-review:speculative, project-artifact:speculative, scout-autotune:speculative, scout-bench-create:speculative, scout-memory-init:speculative, scout-pr-review:speculative, scout-scrum-master:speculative, session-report:speculative, skill-creator:speculative, skill-development:speculative, writing-hookify-rules:speculative]
 ---
 
 VERDICT: pass
@@ -89,3 +90,21 @@ Parent send-frontier-red.log witnesses the old late-ended POST; send-frontier-gr
 
 LIMITS:
 Ordinary pre-send deadline fence, not atomic kernel timing or daemon cancellation. Our local operation remains unissued and handed off; no actual job/proof/archive/reservation/controller/HTTP or native/runtime/H/S qualification. Source approval does not restore ownership or authorize a second import after the peer's reported completion.
+
+## Later bare-base no-work program SOURCE refinement
+
+VERDICT: pass
+
+Attribution: bare-base-clock-source-architecture, a fresh synchronous read-only general-purpose reviewer applying the selected arch-review lenses.
+
+REASONING:
+The sixteen deliverables fit the source-only refinement: a fixed inline program removes the missing-file dependency without adding a program selector or extending the Work-bearing path. Technical soundness, trust boundaries and leanness hold within this frame; operational qualification and product parity are excluded.
+
+SPECIFIC ISSUES:
+- [strength][impl] rig/sdk-absent-clock-observation-program.mjs:3-56 - Fixed first-party bytes, explicit context/environment checks and callback-ordered output avoid a configurable execution surface.
+- [strength][impl] rig/sdk-absent-clock-observation-plan.mjs:43-89 - Strict v2 facts distinguish manifest/config, controller-source, program and command identities; legacy derived-image claims cannot silently migrate.
+- [strength][impl] rig/sdk-absent-clock-observation-pipeline.test.mjs:298-340; rig/sdk-absent-clock-observation-reader.mjs:63-81 - The selected command is interpreted under doubled boundaries; the reader independently checks generated frames, bindings and clock order.
+- [strength][impl] rig/native-stock-meta.mjs:53; rig/inspected-meta-stock.mjs:180 - Both source vectors include program and tests; actual admission refuses and retrospective success retains qualification denials.
+
+RECONCILIATION NOTES:
+No blockers or nits. Parent logs report625 affected and187 HOST-source passes; the reviewer executed and wrote nothing. Original budgets, private one-use plans and pending custody remain constraints, not qualifications proved here. This does not accept ADR-0038, whole-slice AC/DoD, full Google/Meta work, historical clearance, operational readiness, actual runtime/image/H/clock/native qualification or the unselected container choice.

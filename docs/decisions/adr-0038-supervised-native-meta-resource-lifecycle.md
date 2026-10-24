@@ -420,6 +420,19 @@ observer do not accept this Proposed native supervision design or enable
 workloads. Source-only review and the still-unissued importer handoff remain
 distinct from actual image/unpack evidence and generic runtime custody.
 
+For the separate no-work clock observation only, prefer a fixed inline
+first-party program on the pinned bare base over requiring an unapproved
+derived-image build solely to copy module files. Keep base-image identity
+separate from program/controller source identity, with the exact command
+bytes inspected and source-tested. This conditional source refinement
+introduces no arbitrary evaluator or Work branch and does not enable the
+Work-bearing namespace path, accept this Proposed decision or authorize
+container execution.
+The corresponding SOURCE model now uses strict v2 facts, explicit cwd/HOME
+and separate manifest/config/program/command identities. Its fixed command
+is interpreted only under doubled boundaries in source tests; scoped source
+reviews do not accept this Proposed design or qualify a guest.
+
 Fresh frame review required two V1 corrections and passed only their V2
 source/pure clarification. It is not implementation or runtime approval.
 The owner was unavailable and returned general autonomy, not an exact design

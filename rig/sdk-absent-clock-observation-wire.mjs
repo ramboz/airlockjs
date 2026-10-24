@@ -1,5 +1,6 @@
 import { data, equal, json, record } from "./inspected-meta-record.mjs";
 import { digest, fail } from "./sdk-absent-clock-observation-io.mjs";
+import { CLOCK_OBSERVATION_COMMAND } from "./sdk-absent-clock-observation-program.mjs";
 
 export const ENGINE_FORMAT = '{"ID":{{json .ID}},"OSType":{{json .OSType}},"Architecture":{{json .Architecture}},"ServerVersion":{{json .ServerVersion}}}';
 export function observationText(bytes) {
@@ -18,16 +19,16 @@ export function observationInitEnv(p, b) {
   return { AIRLOCK_OBSERVATION_CASE: p.case_id, AIRLOCK_OBSERVATION_RUN: b.run_id,
     AIRLOCK_OBSERVATION_NONCE: b.nonce, AIRLOCK_OBSERVATION_TICKET: b.ticket,
     AIRLOCK_OBSERVATION_SOURCE: p.source_sha256, AIRLOCK_OBSERVATION_COHORT: p.cohort_sha256,
-    AIRLOCK_OBSERVATION_IMAGE: p.image_id, AIRLOCK_OBSERVATION_ENGINE: p.engine.ID, HOME: "/case" };
+    AIRLOCK_OBSERVATION_IMAGE: p.image_id, AIRLOCK_OBSERVATION_ENGINE: p.engine.ID, HOME: "/" };
 }
 function expected(p, b) {
   const env = [...Object.entries(observationInitEnv(p, b)).map(([k, v]) => k + "=" + v), ...p.image_env];
   return {
     Entrypoint: [".Config.Entrypoint", ["/usr/local/bin/node"]],
-    Cmd: [".Config.Cmd", ["/airlock/sdk-absent-clock-observation-init.mjs"]],
+    Cmd: [".Config.Cmd", CLOCK_OBSERVATION_COMMAND],
     Env: [".Config.Env", env], Labels: [".Config.Labels", observationLabels(p, b)],
     Hostname: [".Config.Hostname", "airlock-clock-" + p.case_id],
-    WorkingDir: [".Config.WorkingDir", "/case"], User: [".Config.User", "65532:65532"],
+    WorkingDir: [".Config.WorkingDir", "/"], User: [".Config.User", "65532:65532"],
     Healthcheck: [".Config.Healthcheck", { Test: ["NONE"] }], Volumes: [".Config.Volumes", null],
     ExposedPorts: [".Config.ExposedPorts", null],
     PidMode: [".HostConfig.PidMode", ""], IpcMode: [".HostConfig.IpcMode", "private"],
@@ -86,12 +87,12 @@ export function clockObservationDockerArgv(p, b, kind, cid) {
   if (kind === "engine") return [...a, "info", "--format", ENGINE_FORMAT];
   if (kind === "create") return [...a, "create", "--name", "airlock-clock-" + p.case_id,
     "--hostname=airlock-clock-" + p.case_id, "--pull=never",
-    "--platform=linux/arm64/v8", "--network=none", "--ipc=private", "--read-only", "--user=65532:65532",
+    "--platform=linux/arm64/v8", "--network=none", "--ipc=private", "--read-only", "--workdir=/", "--user=65532:65532",
     "--cap-drop=ALL", "--security-opt=no-new-privileges", "--privileged=false", "--init=false",
     "--pids-limit=16", "--memory=64m", "--memory-swap=64m", "--cpus=0.25", "--restart=no", "--log-driver=none",
     "--no-healthcheck", ...Object.entries(observationLabels(p, b)).map(([k, v]) => "--label=" + k + "=" + v),
     ...Object.entries(observationInitEnv(p, b)).map(([k, v]) => "--env=" + k + "=" + v),
-    "--entrypoint=/usr/local/bin/node", p.image_id, "/airlock/sdk-absent-clock-observation-init.mjs"];
+    "--entrypoint=/usr/local/bin/node", p.image_id, ...CLOCK_OBSERVATION_COMMAND];
   if (kind === "inspect-name") return [...a, "inspect", "--type=container", "--format", observationInspectionTemplate(p, b), "airlock-clock-" + p.case_id];
   if (!digest(cid)) fail("observation_exact_CID_required");
   if (kind === "inspect") return [...a, "inspect", "--type=container", "--format", observationInspectionTemplate(p, b), cid];

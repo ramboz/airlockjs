@@ -104,6 +104,17 @@ settlement corrections passed bounded source review. Craft's independent
 confinement oracle/diagnostic fixes and architecture's closed daemon
 environment correction also passed their scoped follow-ups. None establishes
 actual H/runtime/clock qualification.
+The bare-base no-work refinement carries one fixed first-party program in
+the Node command instead of requiring absent `/airlock` files
+(`rig/sdk-absent-clock-observation-program.mjs:3`).
+Strict v2 source facts separate manifest/config pins from controller,
+program and command hashes (`rig/sdk-absent-clock-observation-plan.mjs:43`).
+CREATE and inspection explicitly agree on `/` as cwd/HOME; the selected
+containerd image identity is the manifest, not its config blob. Source tests
+interpret the selected command under doubled process/clock/output boundaries,
+not an actual guest. Scoped source reviews passed; the legacy file entry
+refuses, the Work-bearing path stays separate, and no container permission
+or runtime/clock/native qualification follows.
 The fixed Node-only host prerequisite (`rig/sdk-absent-clock-host-observer.mjs`
 and `rig/sdk-absent-clock-host-reader.mjs`) retains public owned-child PID
 issuance and HELLO/RESULT/COMPLETE plus separate actual exit/stream evidence.

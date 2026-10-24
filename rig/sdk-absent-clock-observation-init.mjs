@@ -1,3 +1,5 @@
+// Historical derived-image prototype only; never selected for the bare base.
+// Its unchanged image gate has no positive implementation.
 import process from "node:process";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";

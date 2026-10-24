@@ -729,7 +729,7 @@ passed after a documentation-only correction. No runtime entry was enabled.
 
 The next separate `sdk-absent-clock-observation*` source provides a fixed
 no-work HELLO/CLOCK/exit path and retrospective reader, not a qualified
-clock certificate. All19 source files are in both vectors; actual H,
+clock certificate. At that checkpoint all19 source files were in both vectors; actual H,
 runtime/image and cleanup provenance remain unavailable and admission
 hard-refuses. Its selected source/pure cases double all physical effects,
 and normal namespace/Mac entries stay unchanged. Independent source review
@@ -918,6 +918,37 @@ permission to duplicate the completed shared-image load.
 The subsequent one-no-work-container permission question did not receive
 a selected choice. Container execution, builds/pulls, host mounts, network,
 browser/SDK/vendor activity and settings changes remain disabled here.
+
+### Bare-base no-work program SOURCE refinement
+
+The separate observation model now selects a fixed first-party inline
+HELLO/CLOCK/exit command on the pinned public Node base. It no longer selects
+the absent `/airlock/init` module; the retained file-entry prototype refuses
+and its Dockerfile is historical, not a build instruction.
+`sdk-absent-clock-observation-program.mjs` contains the immutable program
+and command; no caller-selected code, imports, input, ARM/WORK, fork,
+network or process scan is added. UID/GID65532, cwd`/` and HOME`/` are
+explicit and agree with CREATE/inspection.
+
+Private facts use `airlock.clock-observation-source-facts.v2`, with
+SOURCE-only scope and distinct manifest/config, controller-source, program
+and command identities. For this selected containerd image, requested image,
+inspection `.Image` and init context bind manifest`5f6d...`; config`d4c1...`
+is a separate content pin, not an image-ID substitute. Parent semantic
+tests caught that mistaken substitution in the initial returned code:
+the valid manifest was rejected and the config accepted. Both plan and
+program now reject it; the independent backend fixes image expectations
+to the manifest rather than copying the candidate facts.
+
+Current dependency closures contain20 observation and32 HOST-source
+locators; complete inspected/native metadata vectors contain114/110 entries.
+The selected command is actually interpreted under doubled process,
+clock and stdout boundaries, generating frames consumed by the source reader.
+Parent results are625 affected SOURCE cases and187 HOST-source cases,
+not physical controls. Scoped compliance, craft and architecture passed;
+no actual image/backend request, container, H/S/clock/kernel/runtime or native
+qualification, new source lease, historical cleanup or execution grant follows.
+ADR-0038 remains Proposed and059-18 stays IN_PROGRESS with open DoD.
 
 ### Historical P/E/L/H pre-run source/pure checkpoint
 

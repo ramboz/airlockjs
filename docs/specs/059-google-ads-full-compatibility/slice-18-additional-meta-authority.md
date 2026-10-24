@@ -1418,8 +1418,74 @@ Approved pinned-base image preparation frame (2026-10-23):
   not a selected container-control grant. Containers remain disabled; image
   availability and the prior image-only approval do not expand this scope.
 
+Bare-base no-work clock program source refinement (2026-10-24):
+
+- The pinned bare Node base has no `/airlock` module files. At this
+  refinement's pre-code checkpoint, the no-work clock path still built a
+  file-entrypoint command, while the
+  separately reviewed Adobe profile supplies only HELLO plus a natural exit,
+  not the HELLO/CLOCK protocol required here. Its 2-CPU/4-GiB/512-task profile
+  also differs from this lane's unanswered smaller control proposal.
+- The scoped implementation refines only the existing no-work observation source path to a fixed,
+  standalone first-party HELLO/CLOCK/exit program carried in the immutable
+  container command. Reuse our own protocol/logic and existing confinement
+  map; do not import or execute the peer's frozen DATA, duplicate its
+  allocation builder or introduce a selectable/arbitrary program.
+  The payload has no imports, input handler, ARM/WORK, fork, network or
+  process scan. Own VM tests may evaluate only this fixed first-party code
+  against doubled process/clock/stdio globals, never a real guest.
+- Bind the exact public base manifest/config independently from the
+  controller/program source hashes. Version the private source-facts shape
+  so an old derived-image/source claim cannot be silently reinterpreted.
+  The command bytes/hash, UID/context, closed environment, nonce/case/source
+  relationships, two frame order/size/clock rules and observed exit must
+  remain consistent through plan, Docker command/inspection, init,
+  independent source backend and retrospective reader.
+- Keep the existing original host budget, private one-use plans, pending
+  operation custody, cleanup/refusal paths and all actual runtime/image/H/
+  clock/native denials unchanged. The old file-entrypoint prototype may
+  remain explicitly historical/disabled; it must not be the command selected
+  for the bare-base source model. The full Work-bearing namespace path
+  remains separate and cannot borrow this no-work refinement.
+- Update complete source vectors, minimal/legacy image recipe references
+  and tests for every added dependency. A legitimate inline command must
+  reach the same doubled end-to-end source reader; altered command bytes,
+  imported capability use, wrong context/environment, missing/truncated/
+  reversed/extra frames and renewed clock fences must fail nonvacuously.
+  No test may replace actual program interpretation with a returned expected
+  HELLO/CLOCK payload.
+- The selected command now fixes UID/GID65532, cwd`/`, HOME`/` and the
+  bare-base manifest identity. Strict `airlock.clock-observation-source-facts.v2`
+  binds manifest/config separately from controller-source/program/command
+  hashes; old derived-image facts and the legacy module entry are refused.
+  Current program/command digests are
+  `9ee66c906a3d8e0120909697b692a50075e08659d7335b8224432dc0b4e969da`
+  and `e866168e6423612ea99abb6f267e58bdb0a6fb1a5a88c8e34e5152cb3a9b4c05`.
+- The initial returned implementation reported623 affected/187 HOST-source
+  passes but incorrectly used the config blob as the image ID in both plan
+  and program. Parent independent context tests produced two semantic REDs:
+  valid manifest rejected, config accepted. Correcting both guards and the
+  independent backend's fixed image expectations gives625 affected SOURCE
+  passes/130 unselected and187 HOST-source passes. The old implementer
+  handoff remains historical; its hashes/frames are not current source.
+- Fresh scoped compliance, craft and architecture reviews passed only this
+  SOURCE increment. The observation/HOST closures now have20/32 locators;
+  complete inspected/native metadata vectors have114/110 entries. The
+  selected fixed program generates the reader's frames under doubled
+  process/clock/stdout boundaries; no real guest or expected-frame injection
+  supplies that evidence.
+- This is reviewed SOURCE, not a container grant or operational
+  GO. The unanswered no-work-container choice remains unselected; no
+  allocation/start, build, mount, backend request, browser/SDK/vendor action,
+  new live job or old-UNKNOWN clearance follows.
+
 ### Reconciliation sweep
 
+- updated - the bare-base inline command, v2 identity/source distinctions,
+  explicit cwd/HOME, legacy refusal, causal context correction and current
+  dependency closures in the slice, operator guide, architecture, Proposed
+  ADR-0038 and scoped review history. Reported SOURCE evidence is not guest,
+  clock, custody or operational qualification.
 - updated - the approved image-only scope, separate source/observer closure,
   REST platform/descriptor contracts, three source findings and coupled close
   correction, and the still-unissued operational handoff. Permission,
@@ -1438,8 +1504,9 @@ Approved pinned-base image preparation frame (2026-10-23):
   ADR-0038. No earlier failed check or historical HOST cohort was renewed.
 - no-op - runtime/clock/image/Mac/native hard denials, NOT_PREPARED cohorts,
   stable core/connectors/build/version, original spent authority and extra
-  Meta permission/slot state. No image or workload mutation occurred.
-- deferred - missing loaded base/derived runtime image, a fresh scoped guest-store headroom assessment,
+  Meta permission/slot state. No image or workload mutation occurred in this lane.
+- deferred - independent unpack/runtime integrity, any required derived
+  Work-bearing image and a fresh scoped guest-store headroom assessment,
   real independent H/O and atomic peer/operation custody; subsequent actual
   runtime/native work still needs its own preparation and authority.
 - **Updated:** operator guide, architecture and open 059/060 plans distinguish

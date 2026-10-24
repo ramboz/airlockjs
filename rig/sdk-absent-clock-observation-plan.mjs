@@ -5,10 +5,12 @@ import { fileURLToPath } from "node:url";
 import { data, equal, json, record } from "./inspected-meta-record.mjs";
 import { digest, fail, freeze, hash, observationDirectory, observationRead } from "./sdk-absent-clock-observation-io.mjs";
 import { requireClockObservationRuntime } from "./sdk-absent-clock-observation-admission.mjs";
+import { CLOCK_OBSERVATION_COMMAND, CLOCK_OBSERVATION_PROGRAM } from "./sdk-absent-clock-observation-program.mjs";
 
 export const CLOCK_OBSERVATION_SOURCES = Object.freeze([
   "admission.mjs", "io.mjs", "plan.mjs", "protocol.mjs", "streams.mjs", "entry.mjs", "observer.mjs",
   "outer.mjs", "producer.mjs", "supervisor.mjs", "wire.mjs", "init.mjs", "reader.mjs", "cohort.json",
+  "program.mjs", "program.test.mjs",
 ].map(name => fileURLToPath(new URL("sdk-absent-clock-observation-" + name, import.meta.url)))
   .concat(fileURLToPath(new URL("sdk-absent-clock-observation.Dockerfile", import.meta.url)),
     fileURLToPath(new URL("private-original-file.mjs", import.meta.url)),
@@ -40,12 +42,18 @@ export function prepareClockObservationPlan(value) {
   const facts = observationRead(v.root + "/source-facts.json");
   const f = record(json(facts.bytes), ["schema", "scope", "case_id", "root", "uid", "node_realpath", "node_sha256",
     "node_version", "client_realpath", "client_sha256", "endpoint", "endpoint_original",
-    "engine", "image_id", "image_source_sha256", "image_env", "sources"]);
+    "engine", "target", "image_id", "image_manifest_sha256", "image_config_sha256", "image_env",
+    "program_source_sha256", "program_sha256", "command_sha256", "sources"]);
   const engine = record(f.engine, ["ID", "OSType", "Architecture", "ServerVersion"]);
-  if (f.schema !== "airlock.clock-observation-source-facts.v1" || f.scope !== "SOURCE_INPUTS_NOT_RUNTIME_PROOF"
+  if (f.schema !== "airlock.clock-observation-source-facts.v2" || f.scope !== "SOURCE_INPUTS_NOT_RUNTIME_PROOF"
     || f.case_id !== v.case_id || f.root !== v.root || !Number.isSafeInteger(f.uid) || f.uid < 1 || f.uid !== process.getuid()
-    || !digest(f.node_sha256) || !digest(f.client_sha256) || !digest(f.image_source_sha256)
-    || !/^sha256:[a-f0-9]{64}$/.test(f.image_id) || f.node_version !== process.version
+    || !digest(f.node_sha256) || !digest(f.client_sha256) || !digest(f.program_source_sha256)
+    || f.target !== "PINNED_BARE_NODE_NO_WORK_SOURCE"
+    || f.image_manifest_sha256 !== "5f6d18c1dffb526f36bc30b85e468daf017dfa9531ef9ab3c57bb0d2c64da5cb"
+    || f.image_config_sha256 !== "d4c19a76851d19b6473bcba5ec21630000c6469fcea58623ec166d19402f207f"
+    || f.image_id !== "sha256:" + f.image_manifest_sha256
+    || f.program_sha256 !== hash(CLOCK_OBSERVATION_PROGRAM)
+    || f.command_sha256 !== hash(JSON.stringify(CLOCK_OBSERVATION_COMMAND)) || f.node_version !== process.version
     || realpathSync(process.execPath) !== f.node_realpath
     || realpathSync("/usr/local/bin/docker") !== f.client_realpath
     || typeof engine.ID !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(engine.ID)
@@ -70,12 +78,16 @@ export function prepareClockObservationPlan(value) {
     return r.handle;
   });
   const source = hash(JSON.stringify(data(f.sources)));
-  if (source !== f.image_source_sha256) fail("observation_image_source_substitution");
+  // Controller/program dependency lease, NOT provenance of a derived image.
+  if (source !== f.program_source_sha256) fail("observation_program_source_substitution");
   const cohort = sources.find(h => h.path.endsWith("-cohort.json"));
   const p = Object.freeze(Object.create(null));
   plans.set(p, freeze({ ...v, uid: f.uid, facts: facts.handle, directories, config: config.handle,
     node: node.handle, client: client.handle, sources, source_sha256: source, cohort_sha256: cohort.sha256,
-    image_id: f.image_id, image_env: f.image_env, engine: f.engine, endpoint: f.endpoint, socket }));
+    target: f.target, image_id: f.image_id, image_manifest_sha256: f.image_manifest_sha256,
+    image_config_sha256: f.image_config_sha256, image_env: f.image_env,
+    program_source_sha256: source, program_sha256: f.program_sha256, command_sha256: f.command_sha256,
+    engine: f.engine, endpoint: f.endpoint, socket }));
   return p;
 }
 export function clockObservationPlanEvidence(plan) {

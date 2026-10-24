@@ -263,7 +263,9 @@ export function inspectClockObservation(receipt) {
     clockObservationPlanEvidence(plan);
     return { ...denied("actual_H_provenance_UNAVAILABLE; SOURCE observations are not future clock bounds"),
       status: "SOURCE_OBSERVATION_EVIDENCE_VALID", source_observation_evidence_valid: true, simulation_only: true,
-      diagnostics: { host_domain: domain("H"),
+      diagnostics: { host_domain: domain("H"), target: p.target,
+        image_manifest_sha256: p.image_manifest_sha256, image_config_sha256: p.image_config_sha256,
+        program_source_sha256: p.source_sha256, program_sha256: p.program_sha256, command_sha256: p.command_sha256,
         observed_whole_O_interval_ns: (ns(o.c.actual_close_ns) - ns(hs.original_start_ns)).toString(), ...guest } };
   } catch (e) { return denied(e.message); }
 }

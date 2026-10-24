@@ -2,11 +2,12 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: craft
 verdict: pass
-reviewer: Prior scoped histories; image-send-fence-craft narrow final-send SOURCE delta PASS
-reviewed_at: 2026-10-24T01:27:50Z
-prompt_source: review.py pr-review docs/specs/059-google-ads-full-compatibility/spec.md 059-18; final-send deadline delta, no live admission
-substrate: not-shown
-applied_skill: none
+reviewer: Prior scoped histories; bare-base-clock-source-craft amendment-only PASS
+reviewed_at: 2026-10-24T02:46:58Z
+prompt_source: review.py pr-review --richer-skill pr-review; fixed bare-base no-work SOURCE only; no GitHub posting
+substrate: shown
+applied_skill: pr-review
+shown_candidates: [pr-review:high-confidence, scout-pr-review:high-confidence, access:speculative, agent-development:speculative, arch-review:speculative, build-mcp-app:speculative, build-mcp-server:speculative, build-mcpb:speculative, cardputer-buddy:speculative, claude-automation-recommender:speculative, claude-md-improver:speculative, command-development:speculative, configure:speculative, example-command:speculative, example-skill:speculative, frontend-design:speculative, hook-development:speculative, m5-onboard:speculative, math-olympiad:speculative, mcp-integration:speculative, playground:speculative, plugin-settings:speculative, plugin-structure:speculative, project-artifact:speculative, scout-autotune:speculative, scout-bench-create:speculative, scout-memory-init:speculative, scout-scrum-master:speculative, session-report:speculative, skill-creator:speculative, skill-development:speculative, writing-hookify-rules:speculative]
 ---
 
 VERDICT: pass
@@ -101,3 +102,19 @@ Parent send-frontier-red.log witnesses the old late-ended POST; send-frontier-gr
 
 LIMITS:
 Ordinary pre-send deadline fence, not atomic kernel timing or daemon cancellation. Our local operation remains unissued and handed off; no actual job/proof/archive/reservation/controller/HTTP or native/runtime/H/S qualification. Source approval does not restore ownership or authorize a second import after the peer's reported completion.
+
+## Later bare-base no-work program SOURCE refinement
+
+VERDICT: pass
+
+Attribution: bare-base-clock-source-craft, a fresh synchronous read-only general-purpose reviewer applying the selected pr-review craft lenses.
+
+REASONING:
+Static review found no scoped correctness or test-quality blockers. Identity separation, failure handling, legacy refusal, original-budget/private-custody controls and admission denials remain coherent.
+
+SPECIFIC ISSUES:
+- [strength][impl] rig/sdk-absent-clock-observation-plan.mjs:48 - Strict v2 facts separately bind base, source, program and command identities.
+- [strength][impl] rig/sdk-absent-clock-observation-pipeline.test.mjs:338 - Interprets the selected fixed code under doubles; output is not canned.
+
+RECONCILIATION NOTES:
+Reconcile pending docs. Preserve Proposed ADR-0038, false operational gates, original spent/extra unspent Meta state and the unselected container choice. Parent logs report625 affected plus187 HOST-source passes; the reviewer executed nothing.

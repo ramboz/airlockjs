@@ -52,7 +52,7 @@ describe("canonical stock reservation using synthetic owner-shaped records only"
   it("pins the new journal's entire additional dependency and test closure", async () => {
     const { metaSourcePins } = await import("./native-stock-meta.mjs");
     const pins = metaSourcePins();
-    expect(Object.keys(pins)).toHaveLength(108);
+    expect(Object.keys(pins)).toHaveLength(110);
     for (const name of ["meta-additional-authority.mjs", "meta-additional-authority.test.mjs",
       "private-original-file.mjs", "private-original-file.test.mjs",
       "inspected-meta-record.mjs", "inspected-meta-record.test.mjs",
@@ -77,6 +77,7 @@ describe("canonical stock reservation using synthetic owner-shaped records only"
     expect(clockObservation.length).toBeGreaterThanOrEqual(19);
     expect(clockObservation).toEqual(expect.arrayContaining([
       "sdk-absent-clock-observation-integration.config.mjs", "sdk-absent-clock-observation-integration.setup.mjs",
+      "sdk-absent-clock-observation-program.mjs", "sdk-absent-clock-observation-program.test.mjs",
     ]));
     for (const name of clockObservation)
       expect(pins[name]).toBe(hash(await readFile(new URL(name, import.meta.url))));

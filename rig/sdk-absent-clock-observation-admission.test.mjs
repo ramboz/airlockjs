@@ -15,7 +15,9 @@ describe("separate no-work observation admission", () => {
       ready: false, qualified_clock: false, workload_admission: false, native_qualified: false,
     });
     for (const input of [undefined, { ready: true }, { status: "PREPARED_RUNTIME_PROOF" },
-      { normal_admission_failed: true }, { independent: true }]) {
+      { normal_admission_failed: true }, { independent: true },
+      { schema: "airlock.clock-observation-source-facts.v2", scope: "SOURCE_INPUTS_NOT_RUNTIME_PROOF",
+        target: "PINNED_BARE_NODE_NO_WORK_SOURCE", program_sha256: "a".repeat(64) }]) {
       expect(() => gate.requireClockObservationRuntime(input)).toThrow("NOT_PREPARED");
       expect(() => gate.requireClockObservationImage(input)).toThrow("NOT_PREPARED");
       expect(() => gate.requireClockObservationH(input)).toThrow("H_provenance_UNAVAILABLE");

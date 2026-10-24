@@ -177,6 +177,7 @@ export function inspectedMetaSourcePins() {
     "sdk-absent-clock-observation-admission.mjs", "sdk-absent-clock-observation-admission.test.mjs",
     "sdk-absent-clock-observation-cohort.json", "sdk-absent-clock-observation-entry.mjs",
     "sdk-absent-clock-observation-init.mjs", "sdk-absent-clock-observation-integration.config.mjs",
+    "sdk-absent-clock-observation-program.mjs", "sdk-absent-clock-observation-program.test.mjs",
     "sdk-absent-clock-observation-integration.setup.mjs", "sdk-absent-clock-observation-io.mjs",
     "sdk-absent-clock-observation-observer.mjs", "sdk-absent-clock-observation-outer.mjs",
     "sdk-absent-clock-observation-pipeline.test.mjs", "sdk-absent-clock-observation-plan.mjs",

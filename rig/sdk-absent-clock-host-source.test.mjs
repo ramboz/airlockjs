@@ -228,8 +228,9 @@ describe("SOURCE ONLY fixed host observer", () => {
 
   it("observes the real fixed source through the shared collector; mocks are not qualification", async () => {
     await setup();
-    expect(CLOCK_HOST_SOURCES).toHaveLength(30);
-    for (const name of ["private-original-file.mjs", "private-original-file.test.mjs"])
+    expect(CLOCK_HOST_SOURCES).toHaveLength(32);
+    for (const name of ["private-original-file.mjs", "private-original-file.test.mjs",
+      "sdk-absent-clock-observation-program.mjs", "sdk-absent-clock-observation-program.test.mjs"])
       expect(CLOCK_HOST_SOURCES).toContain(new URL(name, import.meta.url).pathname);
     const f = await run();
     expect(f.error).toBeUndefined();

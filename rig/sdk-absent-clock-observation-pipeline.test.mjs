@@ -34,11 +34,12 @@ import { clockTestBase as base, clockTestContext as context } from "node:process
 import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import { createHash, randomBytes } from "node:crypto";
+import { Script } from "node:vm";
 import { runClockObservationEntry } from "./sdk-absent-clock-observation-entry.mjs";
 import { runClockObservationOuter } from "./sdk-absent-clock-observation-outer.mjs";
 import { runClockObservationProducer } from "./sdk-absent-clock-observation-producer.mjs";
 import { runClockObservationSupervisor } from "./sdk-absent-clock-observation-supervisor.mjs";
-import { runClockObservationInit } from "./sdk-absent-clock-observation-init.mjs";
+import { CLOCK_OBSERVATION_PROGRAM } from "./sdk-absent-clock-observation-program.mjs";
 import { inspectClockObservation } from "./sdk-absent-clock-observation-reader.mjs";
 import { CLOCK_OBSERVATION_SOURCES, clockObservationPlanEvidence, prepareClockObservationPlan } from "./sdk-absent-clock-observation-plan.mjs";
 import { data } from "./inspected-meta-record.mjs";
@@ -54,6 +55,18 @@ const files = new Map(), fds = new Map();
 const openedObjects = new Map(), pendingSync = new Map();
 let ino, fd, calls, publications, roles, facts, result, failure, state, switches;
 let expectedEndpoint;
+let createdConfig;
+let guestExit;
+// Literal oracle, independent of production hash/command builders and of the
+// refreshable source-facts fixture. VM execution below also checks semantics.
+const PROGRAM_SHA256 = "9ee66c906a3d8e0120909697b692a50075e08659d7335b8224432dc0b4e969da";
+const COMMAND_SHA256 = "e866168e6423612ea99abb6f267e58bdb0a6fb1a5a88c8e34e5152cb3a9b4c05";
+const fixedCommand = ["--input-type=module", "--eval", CLOCK_OBSERVATION_PROGRAM];
+function independentProgramCommand(command) {
+  expect(command).toEqual(fixedCommand);
+  expect(hash(command[2])).toBe(PROGRAM_SHA256);
+  expect(hash(JSON.stringify(command))).toBe(COMMAND_SHA256);
+}
 const flush = async () => { for (let n = 0; n < 1800; n++) await Promise.resolve(); };
 class Port extends EventEmitterAsyncResource {
   constructor() { super({ name: "clock-observation-boundary-double" }); this.closed = false; }
@@ -89,7 +102,8 @@ function role(name, parent) {
   p.stdout = { write: vi.fn((bytes, cb) => {
     const output = name === "init" && switches.initOutput ? switches.initOutput(String(bytes)) : bytes;
     if (output !== null) parent?.stdout.emit("data", Buffer.from(output));
-    cb?.(); return true;
+    queueMicrotask(() => cb?.(name === "init" && switches.initWriteError ? Error("SOURCE_WRITE_ERROR") : undefined));
+    return true;
   }) };
   p.stderr = { write: vi.fn((bytes, cb) => { parent?.stderr.emit("data", Buffer.from(bytes)); cb?.(); return true; }) };
   p.send = vi.fn((m, cb) => {
@@ -105,7 +119,9 @@ function role(name, parent) {
       queueMicrotask(() => parent.close(p.exitCode));
     }
   });
-  p.exit = vi.fn(code => { p.exitCode = code; state = "exited"; queueMicrotask(() => parent?.close(code)); });
+  p.exit = vi.fn(code => {
+    p.exitCode = code; guestExit = code; state = "exited"; queueMicrotask(() => parent?.close(code));
+  });
   roles[name] = p; return p;
 }
 async function setupFs() {
@@ -156,7 +172,7 @@ async function setupFs() {
     return { path, sha256: hash(bytes) };
   });
   const sourceHash = hash(JSON.stringify(data(sources)));
-  facts = { schema: "airlock.clock-observation-source-facts.v1", scope: "SOURCE_INPUTS_NOT_RUNTIME_PROOF",
+  facts = { schema: "airlock.clock-observation-source-facts.v2", scope: "SOURCE_INPUTS_NOT_RUNTIME_PROOF",
     case_id: "source-clock-01", root: ROOT, uid: 501, node_realpath: "/source-fixture/node",
     node_sha256: hash("SOURCE_DOUBLE_NODE"), node_version: "v22.16.0",
     client_realpath: "/source-fixture/docker", client_sha256: hash("SOURCE_DOUBLE_DOCKER"),
@@ -164,7 +180,11 @@ async function setupFs() {
     endpoint_original: { path: "/var/run/docker.sock", dev: 1, ino: files.get("/var/run/docker.sock").ino,
       uid: 501, mode: 0o140600, mtime_ms: 100, ctime_ms: 100 },
     engine: { ID: "SOURCE_DOUBLE_ENGINE", OSType: "linux", Architecture: "aarch64", ServerVersion: "source-double" },
-    image_id: "sha256:" + "d".repeat(64), image_source_sha256: sourceHash,
+    target: "PINNED_BARE_NODE_NO_WORK_SOURCE",
+    image_id: "sha256:5f6d18c1dffb526f36bc30b85e468daf017dfa9531ef9ab3c57bb0d2c64da5cb",
+    image_manifest_sha256: "5f6d18c1dffb526f36bc30b85e468daf017dfa9531ef9ab3c57bb0d2c64da5cb",
+    image_config_sha256: "d4c19a76851d19b6473bcba5ec21630000c6469fcea58623ec166d19402f207f",
+    program_source_sha256: sourceHash, program_sha256: PROGRAM_SHA256, command_sha256: COMMAND_SHA256,
     image_env: ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
       "NODE_VERSION=24.10.0", "YARN_VERSION=1.22.22"],
     sources };
@@ -178,29 +198,31 @@ function independentDockerContract(kind, target) {
     '{"ID":{{json .ID}},"OSType":{{json .OSType}},"Architecture":{{json .Architecture}},"ServerVersion":{{json .ServerVersion}}}'] };
   const b = JSON.parse(files.get(ROOT + "/o-ticket.json").bytes).binding;
   const labels = { case_id: "source-clock-01", run_id: b.run_id, nonce: b.nonce, ticket: b.ticket,
-    source_sha256: facts.image_source_sha256, cohort_sha256: b.cohort_sha256 };
+    source_sha256: facts.program_source_sha256, cohort_sha256: b.cohort_sha256 };
   const env = {
     AIRLOCK_OBSERVATION_CASE: "source-clock-01", AIRLOCK_OBSERVATION_RUN: b.run_id,
     AIRLOCK_OBSERVATION_NONCE: b.nonce, AIRLOCK_OBSERVATION_TICKET: b.ticket,
-    AIRLOCK_OBSERVATION_SOURCE: facts.image_source_sha256, AIRLOCK_OBSERVATION_COHORT: b.cohort_sha256,
-    AIRLOCK_OBSERVATION_IMAGE: facts.image_id, AIRLOCK_OBSERVATION_ENGINE: facts.engine.ID, HOME: "/case",
+    AIRLOCK_OBSERVATION_SOURCE: facts.program_source_sha256, AIRLOCK_OBSERVATION_COHORT: b.cohort_sha256,
+    AIRLOCK_OBSERVATION_IMAGE: "sha256:5f6d18c1dffb526f36bc30b85e468daf017dfa9531ef9ab3c57bb0d2c64da5cb",
+    AIRLOCK_OBSERVATION_ENGINE: facts.engine.ID, HOME: "/",
   };
   if (kind === "create") return { argv: [...prefix, "create", "--name", "airlock-clock-source-clock-01",
     "--hostname=airlock-clock-source-clock-01", "--pull=never", "--platform=linux/arm64/v8",
-    "--network=none", "--ipc=private", "--read-only",
+    "--network=none", "--ipc=private", "--read-only", "--workdir=/",
     "--user=65532:65532", "--cap-drop=ALL", "--security-opt=no-new-privileges", "--privileged=false",
     "--init=false", "--pids-limit=16", "--memory=64m", "--memory-swap=64m", "--cpus=0.25",
     "--restart=no", "--log-driver=none", "--no-healthcheck",
     ...Object.entries(labels).map(([key, value]) => "--label=" + key + "=" + value),
     ...Object.entries(env).map(([key, value]) => "--env=" + key + "=" + value),
-    "--entrypoint=/usr/local/bin/node", facts.image_id, "/airlock/sdk-absent-clock-observation-init.mjs"] };
+    "--entrypoint=/usr/local/bin/node", "sha256:5f6d18c1dffb526f36bc30b85e468daf017dfa9531ef9ab3c57bb0d2c64da5cb",
+    ...fixedCommand] };
   if (kind === "inspect") {
     const predicates = [
       ["Entrypoint", ".Config.Entrypoint", ["/usr/local/bin/node"]],
-      ["Cmd", ".Config.Cmd", ["/airlock/sdk-absent-clock-observation-init.mjs"]],
+      ["Cmd", ".Config.Cmd", fixedCommand],
       ["Env", ".Config.Env", [...Object.entries(env).map(([key, value]) => key + "=" + value), ...facts.image_env]],
       ["Labels", ".Config.Labels", labels], ["Hostname", ".Config.Hostname", "airlock-clock-source-clock-01"],
-      ["WorkingDir", ".Config.WorkingDir", "/case"],
+      ["WorkingDir", ".Config.WorkingDir", "/"],
       ["User", ".Config.User", "65532:65532"], ["Healthcheck", ".Config.Healthcheck", { Test: ["NONE"] }],
       ["Volumes", ".Config.Volumes", null], ["ExposedPorts", ".Config.ExposedPorts", null],
       ["PidMode", ".HostConfig.PidMode", ""], ["IpcMode", ".HostConfig.IpcMode", "private"],
@@ -228,9 +250,12 @@ function independentDockerContract(kind, target) {
       '"State":{"Status":{{json .State.Status}},"Running":{{json .State.Running}},"Dead":{{json .State.Dead}},"Restarting":{{json .State.Restarting}},"Paused":{{json .State.Paused}},"ExitCode":{{json .State.ExitCode}}}'];
     return { argv: [...prefix, "inspect", "--type=container", "--format", "{" + pairs.join(",") + "}",
       target === "airlock-clock-source-clock-01" ? target : CID],
-    inspection: { Id: CID, Name: "/airlock-clock-source-clock-01", Image: facts.image_id,
-      ...Object.fromEntries(predicates.map(([key]) => [key, true])),
-      State: { Status: state, Running: state === "running", Dead: false, Restarting: false, Paused: false, ExitCode: 0 } } };
+    inspection: { Id: CID, Name: "/airlock-clock-source-clock-01",
+      Image: "sha256:5f6d18c1dffb526f36bc30b85e468daf017dfa9531ef9ab3c57bb0d2c64da5cb",
+      ...Object.fromEntries(predicates.map(([key, , value]) =>
+        [key, Object.hasOwn(createdConfig, key) ? JSON.stringify(createdConfig[key]) === JSON.stringify(value) : true])),
+      State: { Status: state, Running: state === "running", Dead: false, Restarting: false, Paused: false,
+        ExitCode: state === "exited" ? guestExit : 0 } } };
   }
   const actions = {
     start: ["start", "--attach", "--interactive", CID], stop: ["stop", "--time=1", CID],
@@ -238,6 +263,17 @@ function independentDockerContract(kind, target) {
   };
   expect(Object.hasOwn(actions, kind)).toBe(true);
   return { argv: [...prefix, ...actions[kind]] };
+}
+function independentBareBaseConfig(argv) {
+  // No inherited User/WorkingDir and no /airlock modules on this bare base.
+  const flag = prefix => argv.find(a => a.startsWith(prefix))?.slice(prefix.length);
+  return {
+    Entrypoint: flag("--entrypoint=") ? [flag("--entrypoint=")] : ["docker-entrypoint.sh"],
+    Cmd: argv.slice(argv.indexOf(facts.image_id) + 1),
+    WorkingDir: flag("--workdir=") ?? "", User: flag("--user=") ?? "",
+    Hostname: flag("--hostname=") ?? CID.slice(0, 12),
+    Env: [...argv.filter(a => a.startsWith("--env=")).map(a => a.slice(6)), ...facts.image_env],
+  };
 }
 function dispatch(executable, argv, options) {
   const c = child(), owner = context.getStore()?.name;
@@ -264,30 +300,44 @@ function dispatch(executable, argv, options) {
   if (executable !== "/source-fixture/docker") throw Error("UNEXPECTED_EXECUTABLE");
   const kind = argv[4]; call.kind = kind;
   const contract = independentDockerContract(kind, argv.at(-1));
+  if (kind === "create") independentProgramCommand(argv.slice(argv.indexOf(facts.image_id) + 1));
   expect(argv).toEqual(contract.argv);
   expect(options).toEqual({ env: { HOME: ROOT + "/empty-home", DOCKER_CONFIG: ROOT + "/docker-config",
     DOCKER_HOST: expectedEndpoint, PATH: "/usr/local/bin:/usr/bin:/bin" },
   cwd: ROOT + "/empty-home", shell: false, windowsHide: true, stdio: ["pipe", "pipe", "pipe"] });
+  if (kind === "create") {
+    // Explicit env precedes inherited image env in the inspected Config.
+    createdConfig = independentBareBaseConfig(argv);
+  }
   if (kind === "start") {
     if (switches.sLossOnStart) queueMicrotask(() => roles.S.parent.close(2));
     if (switches.pendingStart) return c;
-    const create = calls.find(x => x.kind === "create");
     const p = role("init", c);
-    p.argv = ["/usr/local/bin/node", "/airlock/sdk-absent-clock-observation-init.mjs"];
+    independentProgramCommand(createdConfig.Cmd);
+    p.argv = [createdConfig.Entrypoint[0]]; p.execPath = createdConfig.Entrypoint[0];
+    p.execArgv = [...createdConfig.Cmd];
     p.platform = "linux"; p.arch = "arm64"; p.version = "v24.10.0"; p.pid = 1;
-    const hostname = create.argv.find(a => a.startsWith("--hostname="));
-    p.env.HOSTNAME = hostname ? hostname.slice("--hostname=".length) : CID.slice(0, 12);
+    p.getuid = () => Number(createdConfig.User.split(":")[0]);
+    p.getgid = () => Number(createdConfig.User.split(":")[1]);
+    p.cwd = () => createdConfig.WorkingDir || "/";
+    p.env.HOSTNAME = createdConfig.Hostname;
     p.env.HOME = "/";
     for (const e of facts.image_env) {
       const [key, ...value] = e.split("="); p.env[key] = value.join("=");
     }
-    for (const a of create.argv.filter(a => a.startsWith("--env="))) {
-      const [key, ...value] = a.slice(6).split("="); p.env[key] = value.join("=");
+    for (const a of createdConfig.Env.slice(0, -facts.image_env.length)) {
+      const [key, ...value] = a.split("="); p.env[key] = value.join("=");
     }
     switches.initContext?.(p);
     state = "running";
     queueMicrotask(() => context.run(p, () => {
-      runClockObservationInit().catch(e => { failure = e; c.close(2); });
+      // Trusted own code only. VM is an interpreter, NOT a security boundary.
+      // No imports, host process, input, Buffer, require or effectful globals.
+      const guest = Object.fromEntries(["platform", "arch", "version", "pid", "getuid", "getgid", "cwd",
+        "execPath", "argv", "execArgv", "env", "hrtime", "stdout", "exit"].map(k => [k, p[k]]));
+      new Script(createdConfig.Cmd[2]).runInNewContext({ process: guest, console: undefined },
+        { timeout: 100, codeGeneration: { strings: false, wasm: false } })
+        .catch(e => { failure = e; c.close(70); });
     }));
     return c;
   }
@@ -305,7 +355,7 @@ function dispatch(executable, argv, options) {
         if (switches.lateStartOnStop) { state = "running"; switches.lateStartOnStop = false; }
         pending.child.close();
       });
-    } else if (kind === "wait") out = "0\n";
+    } else if (kind === "wait") out = guestExit + "\n";
     else throw Error("UNEXPECTED_DOCKER_OPERATION");
     if (switches.backendOutput) out = switches.backendOutput(kind, out);
     c.stdout.emit("data", Buffer.from(out)); c.close();
@@ -318,6 +368,7 @@ beforeEach(async () => {
   randomBytes.mockImplementation(size => Buffer.alloc(size, ++entropySequence));
   switches = {}; calls = []; publications = []; roles = {}; result = null; failure = null; state = "created";
   expectedEndpoint = "unix:///var/run/docker.sock";
+  createdConfig = null; guestExit = 0;
   await setupFs(); role("H"); spawn.mockImplementation(dispatch);
 });
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
@@ -343,9 +394,79 @@ function correctionRawWitness(label, read) {
   }));
 }
 describe("SOURCE/PURE actual fixed H/O/P/S/init/reader pipeline", () => {
+  it("selects a standalone inline Node command and explicitly overrides the empty bare-base workdir", async () => {
+    await execute();
+    expect(failure).toBeNull();
+    const create = calls.find(c => c.kind === "create");
+    expect(create.argv).toContain("--workdir=/");
+    expect(create.argv).toContain("--env=HOME=/");
+    expect(create.argv.slice(create.argv.indexOf(facts.image_id) + 1)).toEqual([
+      "--input-type=module", "--eval", expect.any(String),
+    ]);
+    expect(createdConfig.WorkingDir).toBe("/");
+    expect(roles.init.cwd()).toBe("/");
+    expect(roles.init.getuid()).toBe(65532);
+    expect(roles.H.getuid()).toBe(501);
+    expect(roles.init.exit).toHaveBeenCalledExactlyOnceWith(0);
+    const read = inspectClockObservation(result.completion);
+    expect(read.source_observation_evidence_valid).toBe(true);
+    expect(read.diagnostics).toMatchObject({ program_sha256: PROGRAM_SHA256, command_sha256: COMMAND_SHA256,
+      program_source_sha256: facts.program_source_sha256, image_manifest_sha256: facts.image_manifest_sha256,
+      image_config_sha256: facts.image_config_sha256 });
+    console.info("BARE_BASE_CLOCK_SOURCE_CAUSAL_WITNESS " + JSON.stringify({
+      simulation_only: true, runtime_proof: false, qualified_clock: false, native_admission: false,
+      source_facts: facts, create_argv: create.argv, selected_config: createdConfig,
+      actual_generated_stdout_base64: Buffer.from(roles.init.stdout.write.mock.calls.map(([line]) => line).join("")).toString("base64"),
+      actual_doubled_exit: roles.init.exit.mock.calls, reader: read,
+    }));
+  });
+  it("separates the pinned base from the full source lease and exact inline body/argv digests", () => {
+    const plan = context.run(roles.H, () => prepareClockObservationPlan({ case_id: facts.case_id, root: ROOT }));
+    const p = context.run(roles.H, () => clockObservationPlanEvidence(plan));
+    expect(p).toMatchObject({
+      target: "PINNED_BARE_NODE_NO_WORK_SOURCE", source_sha256: facts.program_source_sha256,
+      program_source_sha256: facts.program_source_sha256, program_sha256: PROGRAM_SHA256,
+      command_sha256: COMMAND_SHA256, image_id: facts.image_id,
+      image_manifest_sha256: "5f6d18c1dffb526f36bc30b85e468daf017dfa9531ef9ab3c57bb0d2c64da5cb",
+      image_config_sha256: "d4c19a76851d19b6473bcba5ec21630000c6469fcea58623ec166d19402f207f",
+    });
+    expect(p.source_sha256).toBe(hash(JSON.stringify(data(facts.sources))));
+    expect(p.source_sha256).not.toBe(p.program_sha256);
+    expect(p.source_sha256).not.toBe(p.image_config_sha256);
+    expect(Object.hasOwn(p, "image_source_sha256")).toBe(false);
+    expect(calls).toEqual([]);
+  });
+  it.each([
+    ["v1 schema", f => { f.schema = "airlock.clock-observation-source-facts.v1"; }],
+    ["v1 derived facts", f => {
+      f.schema = "airlock.clock-observation-source-facts.v1"; f.image_source_sha256 = f.program_source_sha256;
+      for (const k of ["target", "image_manifest_sha256", "image_config_sha256", "program_source_sha256",
+        "program_sha256", "command_sha256"]) delete f[k];
+    }],
+    ["v2 derived image source claim", f => { f.image_source_sha256 = f.program_source_sha256; }],
+    ["derived target", f => { f.target = "DERIVED_NODE_INIT_IMAGE"; }],
+    ["wrong manifest", f => { f.image_manifest_sha256 = "e".repeat(64); }],
+    ["wrong config and image", f => { f.image_config_sha256 = "e".repeat(64); f.image_id = "sha256:" + f.image_config_sha256; }],
+    ["wrong image", f => { f.image_id = "sha256:" + "e".repeat(64); }],
+    ["config blob as image identity", f => { f.image_id = "sha256:" + f.image_config_sha256; }],
+    ["wrong program hash", f => { f.program_sha256 = "e".repeat(64); }],
+    ["source hash as program hash", f => { f.program_sha256 = f.program_source_sha256; }],
+    ["wrong command hash", f => { f.command_sha256 = "e".repeat(64); }],
+    ["body hash as command hash", f => { f.command_sha256 = f.program_sha256; }],
+    ["program data field", f => { f.program = CLOCK_OBSERVATION_PROGRAM; }],
+    ["profile selector", f => { f.profile = "peer-hello-only"; }],
+    ["runtime claim", f => { f.scope = "PREPARED_RUNTIME_PROOF"; }],
+  ])("rejects %s without recasting it as bare-base SOURCE provenance", async (_label, change) => {
+    change(facts); put(ROOT + "/source-facts.json", JSON.stringify(facts));
+    await execute();
+    expect(failure?.message).toBe(Object.hasOwn(facts, "image_source_sha256")
+      || Object.hasOwn(facts, "program") || Object.hasOwn(facts, "profile") ? "invalid_case_input" : "observation_fixed_source_facts");
+    expect(calls).toEqual([]);
+  });
   it("binds an explicit alternate owned socket and canonical client through every source role and reader", async () => {
-    expect(CLOCK_OBSERVATION_SOURCES).toHaveLength(18);
-    for (const name of ["private-original-file.mjs", "private-original-file.test.mjs"])
+    expect(CLOCK_OBSERVATION_SOURCES).toHaveLength(20);
+    for (const name of ["private-original-file.mjs", "private-original-file.test.mjs",
+      "sdk-absent-clock-observation-program.mjs", "sdk-absent-clock-observation-program.test.mjs"])
       expect(CLOCK_OBSERVATION_SOURCES).toContain(new URL(name, import.meta.url).pathname);
     expectedEndpoint = "unix:///source-fixture/desktop.sock";
     put("/source-fixture/desktop.sock", "", 0o140600);
@@ -508,6 +629,9 @@ describe("SOURCE/PURE actual fixed H/O/P/S/init/reader pipeline", () => {
     ["nonce", f => { f.binding.nonce = "e".repeat(64); }],
     ["ticket", f => { f.binding.ticket = "e".repeat(64); }],
     ["extra ARM field", f => { f.ARM = true; }],
+    ["mistyped ns", f => { f.tau0_ns = 1; }],
+    ["unbounded ns", f => { f.tau0_ns = "1".repeat(25); }],
+    ["wrong sequence", f => { if (f.sequence) f.sequence = 2; }],
   ])("rejects actual init output with changed %s", async (_label, change) => {
     switches.initOutput = line => { const f = JSON.parse(line); change(f); return JSON.stringify(f) + "\n"; };
     await execute();
@@ -523,10 +647,61 @@ describe("SOURCE/PURE actual fixed H/O/P/S/init/reader pipeline", () => {
     ["fork request", line => line + '{"type":"FORK","program":"unowned"}\n'],
     ["duplicate JSON key", line => line.replace('"unit":"ns"', '"unit":"ns","unit":"ns"')],
     ["invalid UTF8", () => Buffer.from([0xff, 0x0a])],
+    ["oversize frame", line => line.slice(0, -1) + " ".repeat(4096) + "\n"],
+    ["missing HELLO", line => JSON.parse(line).schema.endsWith("hello.v1") ? null : line],
+    ["missing CLOCK", line => JSON.parse(line).schema.endsWith("clock.v1") ? null : line],
   ])("rejects %s raw generated-init stream", async (_label, transform) => {
     switches.initOutput = transform;
     await execute();
     expect(inspectClockObservation(result.completion)).toMatchObject({ source_observation_evidence_valid: false, observation_valid: false });
+  });
+  it("rejects reversed raw frame order despite a genuine doubled exit and complete streams", async () => {
+    let hello;
+    switches.initOutput = line => {
+      if (JSON.parse(line).schema.endsWith("hello.v1")) { hello = line; return null; }
+      return line + hello;
+    };
+    await execute();
+    expect(roles.init.exit).toHaveBeenCalledExactlyOnceWith(0);
+    const start = JSON.parse(files.get(ROOT + "/s-op-6-closed.json").bytes);
+    expect(start.close).toMatchObject({ code: 0, eof: { stdout: true, stderr: true },
+      closed: { stdin: true, stdout: true, stderr: true } });
+    expect(inspectClockObservation(result.completion).reason).toBe("invalid_case_input");
+  });
+  it.each([
+    ["UID", p => { p.getuid = () => 65534; }],
+    ["PID", p => { p.pid = 2; }],
+    ["Node version", p => { p.version = "v24.10.1"; }],
+    ["OS", p => { p.platform = "darwin"; }],
+    ["architecture", p => { p.arch = "x64"; }],
+    ["cwd", p => { p.cwd = () => "/case"; }],
+    ["Node flags", p => { p.execArgv.push("WORK"); }],
+  ])("observes failed init exit 2 for wrong %s, never just returned expected frames", async (_label, change) => {
+    switches.initContext = change;
+    await execute();
+    expect(roles.init.stdout.write).not.toHaveBeenCalled();
+    expect(roles.init.exit).toHaveBeenCalledExactlyOnceWith(2);
+    const close = JSON.parse(files.get(ROOT + "/s-op-6-closed.json").bytes).close;
+    expect(close).toMatchObject({ code: 2, signal: null, eof: { stdout: true, stderr: true },
+      closed: { stdin: true, stdout: true, stderr: true } });
+    expect(close.output.stdout.branch).toBe("EXPLICIT_EMPTY_NO_FRAMES");
+    expect(JSON.parse(files.get(ROOT + "/s-result.json").bytes).errors)
+      .toContain("observation_cleanup_UNKNOWN:observation_exact_owned_CID_configuration");
+    expect(inspectClockObservation(result.completion).reason).toBe("observation_external_H_incomplete");
+    console.info("BARE_BASE_CLOCK_FAILED_INIT_CAUSAL_WITNESS " + JSON.stringify({
+      simulation_only: true, changed_guest_context: _label, actual_doubled_exit: roles.init.exit.mock.calls,
+      retained_start_close: close, reader: inspectClockObservation(result.completion),
+    }));
+  });
+  it("retains actual write-failure exit 70 and refuses a partial generated stream", async () => {
+    switches.initWriteError = true;
+    await execute();
+    expect(roles.init.exit).toHaveBeenCalledExactlyOnceWith(70);
+    expect(roles.init.stdout.write).toHaveBeenCalledTimes(1);
+    const close = JSON.parse(files.get(ROOT + "/s-op-6-closed.json").bytes).close;
+    expect(close.code).toBe(70);
+    expect(Buffer.from(close.output.stdout.base64, "base64").toString().split("\n")).toHaveLength(2);
+    expect(inspectClockObservation(result.completion).source_observation_evidence_valid).toBe(false);
   });
   it.each(["ARM", "WORK", "FORK"])("refuses %s through the fixed parent IPC before any S allocation", async type => {
     switches.parentMessages = (name, m) => name === "S" ? [{ ...m, type }] : [m];
@@ -600,10 +775,10 @@ describe("SOURCE/PURE actual fixed H/O/P/S/init/reader pipeline", () => {
     expect(inspectClockObservation(result?.completion).source_observation_evidence_valid).toBe(false);
   });
   it("refuses an unbound image/source input before O allocation", async () => {
-    facts.image_source_sha256 = "e".repeat(64);
+    facts.program_source_sha256 = "e".repeat(64);
     put(ROOT + "/source-facts.json", JSON.stringify(facts));
     await execute();
-    expect(failure.message).toContain("image_source_substitution");
+    expect(failure.message).toContain("program_source_substitution");
     expect(calls).toHaveLength(0);
   });
   it("durably owns pending start even after the observation window; client exit is not cancellation", async () => {
@@ -676,16 +851,33 @@ describe("SOURCE/PURE actual fixed H/O/P/S/init/reader pipeline", () => {
     expect(calls.some(c => c.kind === "start")).toBe(false);
     expect(inspectClockObservation(result.completion).source_observation_evidence_valid).toBe(false);
   });
-  it("reacquires the source lease after durable registration at the START actuator boundary", async () => {
+  it.each(["-plan.mjs", "-program.mjs", "-program.test.mjs"])(
+    "reacquires the %s source lease after durable registration at the START actuator boundary", async suffix => {
+      switches.publication = path => {
+        if (path.endsWith("/s-op-6-registered.json")) {
+          const source = CLOCK_OBSERVATION_SOURCES.find(p => p.endsWith(suffix));
+          put(source, Buffer.concat([files.get(source).bytes, Buffer.from("\n// changed\n")]), 0o100644);
+        }
+      };
+      await execute();
+      expect(calls.some(c => c.kind === "start")).toBe(false);
+      expect(inspectClockObservation(result?.completion).source_observation_evidence_valid).toBe(false);
+    });
+  it("cannot hand off O's published SOURCE candidate after its program-source lease changes", async () => {
+    let reached = false;
     switches.publication = path => {
-      if (path.endsWith("/s-op-6-registered.json")) {
-        const source = CLOCK_OBSERVATION_SOURCES.find(p => p.endsWith("-plan.mjs"));
-        put(source, Buffer.concat([files.get(source).bytes, Buffer.from("\n// changed\n")]), 0o100644);
+      if (path.endsWith("/o-result.json")) {
+        reached = true;
+        const source = CLOCK_OBSERVATION_SOURCES.find(p => p.endsWith("-program.mjs"));
+        files.get(source).ctimeMs++;
       }
     };
     await execute();
-    expect(calls.some(c => c.kind === "start")).toBe(false);
-    expect(inspectClockObservation(result?.completion).source_observation_evidence_valid).toBe(false);
+    expect(reached).toBe(true);
+    expect(files.has(ROOT + "/o-result.json")).toBe(true);
+    expect(roles.O.send.mock.calls.filter(([m]) => m.type === "RESULT")).toEqual([]);
+    expect(result).toBeNull();
+    expect(failure?.message).toBe("observation_source_or_preparation_lease_changed");
   });
   it("rejects changed original bytes, inode aliases, or a source/cohort lease after completion", async () => {
     await execute();
@@ -697,7 +889,7 @@ describe("SOURCE/PURE actual fixed H/O/P/S/init/reader pipeline", () => {
     put(ROOT + "/s-op-6-closed.json", old.bytes);
     expect(inspectClockObservation(result.completion).source_observation_evidence_valid).toBe(false);
   });
-  it.each(["-cohort.json", "-init.mjs"])("invalidates a completed chain on changed %s lease", async suffix => {
+  it.each(["-cohort.json", "-init.mjs", "-program.mjs", "-program.test.mjs"])("invalidates a completed chain on changed %s lease", async suffix => {
     await execute();
     expect(inspectClockObservation(result.completion).source_observation_evidence_valid).toBe(true);
     const source = CLOCK_OBSERVATION_SOURCES.find(p => p.endsWith(suffix));
@@ -916,10 +1108,22 @@ describe("405a4945 finite owned-evidence and publication corrections", () => {
 });
 
 describe("independent confinement and bounded diagnostics", () => {
+  it("models empty bare-base User/WorkingDir defaults, never the legacy /case file image", async () => {
+    await execute();
+    const create = calls.find(c => c.kind === "create");
+    const withoutOverrides = create.argv.filter(a => !["--workdir=/", "--user=65532:65532", "--entrypoint=/usr/local/bin/node"].includes(a));
+    expect(independentBareBaseConfig(withoutOverrides)).toMatchObject({
+      WorkingDir: "", User: "", Entrypoint: ["docker-entrypoint.sh"],
+    });
+    expect(createdConfig).toMatchObject({
+      WorkingDir: "/", User: "65532:65532", Entrypoint: ["/usr/local/bin/node"], Cmd: fixedCommand,
+    });
+    expect(inspectClockObservation(result.completion).source_observation_evidence_valid).toBe(true);
+  });
   it("models Docker-added HOSTNAME/HOME and validates the fixed no-work environment", async () => {
     await execute();
     expect(failure).toBeNull();
-    expect(roles.init.env).toMatchObject({ HOSTNAME: "airlock-clock-source-clock-01", HOME: "/case",
+    expect(roles.init.env).toMatchObject({ HOSTNAME: "airlock-clock-source-clock-01", HOME: "/",
       YARN_VERSION: "1.22.22" });
     expect(roles.init.stdout.write).toHaveBeenCalledTimes(2);
     expect(inspectClockObservation(result.completion).source_observation_evidence_valid).toBe(true);
@@ -949,7 +1153,12 @@ describe("independent confinement and bounded diagnostics", () => {
     ["privilege", argv => argv.map(a => a === "--privileged=false" ? "--privileged=true" : a)],
     ["capabilities", argv => argv.filter(a => a !== "--cap-drop=ALL")],
     ["hostname", argv => argv.filter(a => !a.startsWith("--hostname="))],
-    ["home", argv => argv.filter(a => a !== "--env=HOME=/case")],
+    ["home", argv => argv.filter(a => a !== "--env=HOME=/")],
+    ["empty inherited workdir", argv => argv.filter(a => a !== "--workdir=/")],
+    ["foreign workdir", argv => argv.map(a => a === "--workdir=/" ? "--workdir=/case" : a)],
+    ["file Cmd", argv => [...argv.slice(0, -3), "/airlock/sdk-absent-clock-observation-init.mjs"]],
+    ["extra arguments", argv => [...argv, "WORK"]],
+    ["changed program", argv => [...argv.slice(0, -1), argv.at(-1).replace('unit: "ns"', 'unit: "ms"')]],
     ["foreign image", argv => argv.map(a => a === facts.image_id ? "sha256:" + "e".repeat(64) : a)],
     ["host mount", argv => [...argv.slice(0, -2), "--volume=/host:/case", ...argv.slice(-2)]],
   ])("the doubled backend independently rejects changed CREATE %s", async (_name, change) => {
@@ -965,6 +1174,30 @@ describe("independent confinement and bounded diagnostics", () => {
     const changed = inspect.argv.map(a => a.replace(".HostConfig.NetworkMode", ".HostConfig.PidMode"));
     expect(changed).not.toEqual(inspect.argv);
     expect(() => dispatch(inspect.executable, changed, inspect.options)).toThrow();
+  });
+  it.each(["Cmd", "WorkingDir", "Env"])("the doubled backend rejects changed %s inspection predicates", async key => {
+    await execute();
+    const inspect = calls.find(call => call.kind === "inspect");
+    const changed = inspect.argv.map(a => a.replace(".Config." + key, ".Config.Foreign"));
+    expect(changed).not.toEqual(inspect.argv);
+    expect(() => dispatch(inspect.executable, changed, inspect.options)).toThrow();
+  });
+  it("cannot refresh source/hash fixtures to admit a semantically changed standalone command", async () => {
+    await execute();
+    const create = calls.find(call => call.kind === "create");
+    const changed = [...create.argv.slice(0, -1), create.argv.at(-1).replace('unit: "ns"', 'unit: "ms"')];
+    const path = CLOCK_OBSERVATION_SOURCES.find(p => p.endsWith("-program.mjs"));
+    put(path, files.get(path).bytes.toString().replace('unit: "ns"', 'unit: "ms"'), 0o100644);
+    facts.sources = facts.sources.map(pin => ({ path: pin.path, sha256: hash(files.get(pin.path).bytes) }));
+    facts.program_source_sha256 = hash(JSON.stringify(data(facts.sources)));
+    facts.program_sha256 = hash(changed.at(-1));
+    facts.command_sha256 = hash(JSON.stringify(changed.slice(changed.indexOf(facts.image_id) + 1)));
+    put(ROOT + "/source-facts.json", JSON.stringify(facts));
+    expect(() => independentProgramCommand(changed.slice(changed.indexOf(facts.image_id) + 1))).toThrow();
+    expect(() => dispatch(create.executable, changed, create.options)).toThrow();
+    context.run(roles.H, () => expect(() => prepareClockObservationPlan({ case_id: facts.case_id, root: ROOT }))
+      .toThrow("observation_fixed_source_facts"));
+    expect(inspectClockObservation(result.completion).source_observation_evidence_valid).toBe(false);
   });
   it("bounds repeated output/IPC diagnostics while still observing owned stream settlement", async () => {
     const c = context.run(roles.H, child);

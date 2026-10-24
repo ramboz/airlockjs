@@ -354,7 +354,7 @@ describe("inspected Meta stock preparation", () => {
     const { inspectedMetaSourcePins } = await load();
     const { inspectedDecoderDependencyPins } = await import("./inspected-transport.mjs");
     const pins = inspectedMetaSourcePins();
-    expect(Object.keys(pins)).toHaveLength(112);
+    expect(Object.keys(pins)).toHaveLength(114);
     expect(Object.keys(pins.header_decoder_dependencies)).toHaveLength(12);
     expect(pins.header_decoder_dependencies).toEqual(inspectedDecoderDependencyPins());
     expect(pins.header_decoder_dependencies["hpack.js"]).toMatchObject({
@@ -385,6 +385,7 @@ describe("inspected Meta stock preparation", () => {
     expect(clockObservation.length).toBeGreaterThanOrEqual(19);
     expect(clockObservation).toEqual(expect.arrayContaining([
       "sdk-absent-clock-observation-integration.config.mjs", "sdk-absent-clock-observation-integration.setup.mjs",
+      "sdk-absent-clock-observation-program.mjs", "sdk-absent-clock-observation-program.test.mjs",
     ]));
     for (const name of clockObservation)
       expect(pins[name]).toBe(hash(readFileSync(new URL(name, import.meta.url))));
