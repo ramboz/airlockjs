@@ -1,5 +1,5 @@
 ---
-status: READY_FOR_REVIEW
+status: IN_PROGRESS
 dependencies: [060-13]
 last_verified:
 kind: feature
@@ -17,9 +17,9 @@ receipt and an honest browser-only result. No production/native parity claim.
 **DoR:**
 - [x] 060-13 supplies the separately opt-in source adapter, worker and gap report.
 - [x] The bounded browser-journey frame passes independent critique.
-- [ ] The concrete same-origin asset/transport implementation and test plan
+- [x] The concrete same-origin asset/transport implementation and test plan
       are reviewed before implementation is admitted.
-- [ ] One finite local execution plan names the actual browser/version,
+- [x] One finite local execution plan names the actual browser/version,
       first-party source closure, fresh owned profile and launch/stop owner.
       Use an existing independently qualified execution path or a separately
       explicit owner-supervised plan covering interruption and cleanup; a
@@ -97,9 +97,47 @@ PageView journey and sees a local receipt, not a new browser launcher.
 
 ### Deviation log
 
-Not implemented.060-01 remains the owner of full first-PageView compatibility.
+Concrete fixture and foreground procedure source prepared under reviewed plan.
+Owner explicitly selected supervised foreground execution for both local slices;
+interruption/agent loss remains UNKNOWN, not unattended cleanup qualification.
+Installed bundle156.0.8078.48 is the selected cohort, not historical155.
+Source/local HTTP tests are not browser evidence. Actual execution and DoD
+remain pending;060-01 full compatibility requirements stay unchanged.
+
+### Actual supervised attempt - 2026-10-26
+
+The fixed foreground sequence was issued once after scoped plan/source reviews.
+Meta preflight failed before the product worker was created; Google acquisition
+was not issued because the procedure stops after a first-vendor failure.
+Native whole-command exit1/8.07 seconds is separately observed by the parent.
+One exact synthetic local GET independently arrived and finished with204.
+The browser observed204 but did not complete response-body verification;
+`unexpected-request-failure` and sanitized `unexpected-tool-error` prevent PASS.
+The root protocol cause remains unresolved; HTTP204 alone is not successful
+recording, and the sanitized diagnostic is insufficient to identify that cause.
+
+Normal owned cleanup was observed: the root browser process emitted exit/close0
+without signals, its exact auto-created profile was absent, and the context,
+local fixture and sockets closed. No product worker, PageView journey, SDK,
+vendor request or production navigation ran. The foreground exception remains
+loss-UNKNOWN, not unattended ownership qualification. The failed source and raw
+private output were frozen; no automatic retry or source-model pass repaired it.
+DoD stays open. Next work is the narrowly named preflight recorder diagnostic,
+not another browser-holder or general harness.
 
 ### Reconciliation sweep
 
-Pending implementation: local instructions, current execution evidence,
-production non-selection, full compatibility gaps and owned cleanup.
+- updated - fixed source pages/18-module serving closure, foreground procedure
+  and usage distinguish ordinary Node HTTP controls from actual browser evidence.
+- updated - source review found a late-worker-failure completion race in both
+  page controllers. Two new failing controls preceded current adapter-health/
+  intentional-dispose checks; healthy/failure cases for both vendors pass.
+- updated - operational review required actual receiver/command/resource/worker
+  documents in private output, then bounded retention before attaching rejected
+  raw request data. Initial findings and narrow closures remain separate scopes.
+- updated - actual first preflight failed, Google was not acquired, normal exact
+  cleanup observed, source originals preserved and root-cause uncertainty explicit.
+- no-op - full060-01/C1-C9, existing production boots/core/contracts/build/version,
+  native case/authority/history, old UNKNOWNs and vendor compatibility.
+- pending - actual product browser positives/negatives and final full slice review;
+  no DONE or full AC pass follows from source preparation.

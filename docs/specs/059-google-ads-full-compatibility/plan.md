@@ -2,6 +2,32 @@
 
 ## Current delivery order and work boundaries
 
+**Current execution status:** the shared foreground sequence stopped on Meta
+preflight failure before product worker creation. No Google browser or conversion
+was acquired. See060-14/059-20 actual records; exact normal cleanup was observed,
+no automatic retry followed, and full Google browser DoD remains open.
+
+### 059-20 fixed browser preparation - 2026-10-26
+
+Owner requested both local-browser journeys. Use the bounded
+[concrete serving/test plan](../060-meta-pixel-full-compatibility/plan.md#060-14-fixed-browser-preparation---2026-10-26)
+for ordinary local source preparation, with a separate fixed Google page/
+controller and its own conversion adapter, worker, receiver path and assertions.
+Do not use a Meta result as Google evidence. Planned actual limits are one
+fresh-profile60-second/64-request/8-measurement-attempt local interval, with
+no automatic retry; it remains unadmitted until concrete execution reviews.
+
+The current Chrome bundle is156.0.8078.48; historical155 receipts and another
+lane's supervised exception do not qualify it. A request for this lane's
+supervised-loss exception returned no selected decision. Source/local HTTP
+tests proceeded under that checkpoint. The owner subsequently explicitly
+permitted supervised foreground execution for both local journeys; use the
+selected procedure in the linked Meta plan with a separate Google profile,
+interval, source and receiver assertions. Its scoped source/operational review
+precedes acquisition. No Docker, native SDK, vendor or production operation
+is permitted. Final goal remains an actual browser conversion and
+cleanup, so source preparation alone cannot close059-20.
+
 The [Google/Meta delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
 is the single ordered view of the remaining work and decision triggers.
 This plan and slice frontmatter retain the detailed evidence/dependency contracts.

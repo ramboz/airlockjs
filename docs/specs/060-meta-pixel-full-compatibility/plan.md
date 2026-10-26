@@ -2,6 +2,90 @@
 
 ## Current delivery order and work boundaries
 
+**Current outcome:** the selected supervised foreground procedure was issued
+once and failed the Meta receiving preflight before product worker creation.
+One exact local GET arrived and finished204, but browser response-body recording
+did not complete; the underlying protocol cause is unresolved. Google was not
+acquired. Parent whole-command exit1/8.07s and normal exact browser/profile/
+context/fixture cleanup are recorded in060-14. No retry or native qualification.
+The next bounded task is the named preflight recorder diagnostic, not new
+custody infrastructure. Both actual browser slices remain IN_PROGRESS/open DoD.
+
+### 060-14 fixed browser preparation - 2026-10-26
+
+Owner requested both local-browser journeys and the Jig lifecycle. This is
+permission to pursue those journeys, not an explicit interruption/loss exception.
+The separately asked foreground-supervision exception returned no selected
+decision at that checkpoint. The owner then explicitly permitted an
+owner-supervised foreground run for both local journeys. Normal cleanup stays
+mandatory; interruption/agent loss stays UNKNOWN with an exact owned-browser
+handoff to the owner, not independently qualified unattended shutdown.
+Installed Chrome bundle metadata is156.0.8078.48, not the historical
+155 source cohort. No browser was launched to obtain that metadata.
+
+**Product consumer:**060-14 AC1-5;059-20 consumes the same minimal local serving
+mechanics, not Meta mapping. Prepare a fixed two-page fixture module and its
+ordinary Node HTTP tests; preserve both prototype adapters/workers unchanged.
+No new launcher, Docker, process scanner, holder or native driver is admitted.
+
+**Concrete source/test boundary:** bind127.0.0.1 port0. Serve only two fixed
+HTML pages, one fixed controller module per vendor and the explicitly enumerated
+transitive source modules of the two prototype adapters/workers. Paths/methods,
+query spellings and file identities are exact; no general static root, proxy,
+mutable-directory discovery or cache fallback. Use no-store, restrictive CSP
+and explicit worker/connect policy. Deny unknown methods/paths/oversized requests.
+Record independent local receiver arrivals separately from browser outcomes.
+Only synthetic IDs and example.test context data are used.
+
+**Planned actual matrix, not admitted:** separate fresh browser/profile per
+vendor, one original60-second interval per vendor through cleanup/publication,
+maximum64 observed requests,8 measurement attempts, URL8192 bytes, request64KiB,
+response2MiB and retained8MiB; no retry after acquisition or nonempty failure.
+Run pre-ready init/config, pending/denied/grant-no-replay, two distinguishable
+valid events, delayed response and explicit failure controls. Enforced/bypass
+receiving controls are local only; no public-IP test or vendor request.
+Browser request/worker/resource/response and final exit/profile evidence must
+be observed, not inferred from fixture JSON. These limits are a draft execution
+plan under review, not authority to launch.
+
+**Earlier execution blocker:** current launch/stop/loss ownership and applicable local
+egress controls for this actual browser remain unqualified. Existing Seatbelt
+loopback policy is prior source to reuse/revalidate, not a new cohort pass.
+The prototype's Node bridge is not a browser holder. No shared MCP/personal
+profile may be adopted. Qualify a permitted path or obtain a separate explicit
+supervised plan and operational review before acquisition.
+
+**Selected foreground procedure:** use installed Playwright's `launchServer`
+with the unchanged fixed loopback Seatbelt launcher, headed, fresh auto-created
+profile and a10-second launch timeout. Register the pending acquisition before
+awaiting it; every resolved server, including late arrivals, remains owned.
+Record its direct process/exit/stdio-close and exact profile path; no shared MCP
+or personal browser. A local request route installed before navigation permits
+only exact fixture/source-manifest/receiver URLs, methods and byte bounds;
+block service workers and unexpected frames/popups/WebSockets. Preflight
+receiving controls use only local requests, including a matched enforced-zero
+and bypass positive; they do not prove arbitrary native transports.
+
+Run Meta then Google, each under its own60-second original interval, reserving
+the last10 seconds for cleanup/output. Product work stops at50 seconds.
+Observe actual worker creation and loaded module URLs, independent zero sink
+counts after pending/denied/no-replay phases, first positive arrival while
+command result is pending, then release that exact held response and compare
+both complete synthetic arrivals. Finish page/adapter, close context, browser
+connection and every server; retain actual process close and profile removal,
+plus fixture/socket close. Only a directly retained owned browser process may
+be signalled if normal close fails; never process/group scans or inferred
+daemon cancellation. Late/unsettled acquisition or cleanup means UNKNOWN,
+no retry and owner handoff. The two local product reports remain
+INCONCLUSIVE for native compatibility even when their browser checks pass.
+This procedure still needs its scoped source and operational review before run.
+
+**Exit/checkpoint:** source-only tests demonstrate exact serving, field/value
+assertions and refusal behavior; the subsequent actual failure remains a
+separate observation. Two active hours
+maximum for prerequisite preparation under ADR-0042; no silent renewal,
+spec-DONE claim or interpretation of local HTTP as browser execution.
+
 Use the [Google/Meta delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
 for priority, remaining feature owners, decision triggers and stop cards;
 this plan and slice frontmatter retain detailed dependencies and evidence.

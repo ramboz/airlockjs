@@ -1,5 +1,5 @@
 ---
-status: READY_FOR_REVIEW
+status: IN_PROGRESS
 dependencies: [059-19]
 last_verified:
 kind: feature
@@ -17,9 +17,9 @@ module worker and governed host. This is not a qualified Google conversion.
 **DoR:**
 - [x] 059-19 supplies the source-only adapter, worker and truthful gap report.
 - [x] The bounded browser-journey frame passes independent critique.
-- [ ] The concrete same-origin asset/local-primary implementation and test
+- [x] The concrete same-origin asset/local-primary implementation and test
       plan are reviewed before implementation is admitted.
-- [ ] A finite plan binds current browser/version/source/profile and an actual
+- [x] A finite plan binds current browser/version/source/profile and an actual
       launch/stop owner. Use a qualified execution path or separately explicit
       owner-supervised plan covering interruption/cleanup; no inferred native
       exception, replayed container authority or borrowed source lease.
@@ -91,9 +91,28 @@ journey with values and report, not another acquisition helper.
 
 ### Deviation log
 
-Not implemented. The original complete-conversion slice059-01 is unchanged.
+Concrete fixed fixture and foreground procedure source prepared and reviewed.
+The owner's explicit supervised foreground permission applies to both local
+slices, with loss UNKNOWN and normal cleanup mandatory. Chrome156.0.8078.48 is
+the selected cohort, not historical155. Actual browser execution is pending;
+source/local HTTP controls cannot close DoD or change059-01 full requirements.
+
+### Actual supervised sequence - 2026-10-26
+
+The fixed Meta→Google procedure was issued once, but Meta's receiving preflight
+failed before product execution. By its no-retry/stop rule, no Google browser,
+profile, worker or conversion was acquired/executed. Whole-command exit1/8.07s,
+the Meta local204 observation/body-recorder failure and normal owned cleanup
+are recorded in060-14. Google-specific receiver/correlation/browser ACs remain
+unexecuted. Source/local HTTP tests do not substitute for them.
 
 ### Reconciliation sweep
 
-Pending implementation: local browser instructions/evidence, native gap
-boundaries, unchanged Meta/core/production behavior and owned cleanup.
+- updated - fixed Google controller/local receiver/source graph and supervised
+  foreground procedure are prepared; actual Google execution remains blocked
+  by the shared preflight failure, not by lack of user permission.
+- updated - late-worker-error controller correction and retained/bounded
+  private observations have scoped static review, not browser outcome proof.
+- no-op - existing offline prototype/native gap report, full059-01/C1-C9,
+  production/core/contracts/build, native authority and prior evidence originals.
+- pending - actual Google browser execution, owned cleanup and full slice DoD.

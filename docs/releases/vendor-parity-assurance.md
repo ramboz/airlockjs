@@ -35,6 +35,16 @@ fixture. Authoring/code preparation may proceed within ordinary repository
 scope; actual browser acquisition waits for its separate current execution plan.
 No browser, vendor run, deployment or source pause is authorized by this queue.
 
+**Actual local execution update (2026-10-26):** the owner separately selected
+supervised foreground execution for these two local slices. The fixed procedure
+was issued once and stopped on Meta receiving-preflight failure: one local204
+receipt/browser status was observed, but body recording did not complete and
+the underlying protocol cause is unresolved. No product worker or Google browser
+was acquired. Exact normal browser/profile/context/local-server cleanup was
+observed. Both slices remain IN_PROGRESS with full-slice compliance fail,
+not DONE. Next is the named preflight recorder diagnostic; do not broaden into
+another runner or silently retry the failed acquisition sequence.
+
 [Accepted ADR-0042](../decisions/adr-0042-google-meta-product-delivery-gates.md)
 records product-first sequencing, evidence separation and a default two-active-
 hour checkpoint for supporting work. Owner acceptance on2026-10-26 is not an
