@@ -94,7 +94,7 @@ const workerSources = (vendor) => [
 
 // Controlled browser/worker EVENTS, never browser execution. Requests below use
 // actual Node HTTP against the unmodified literal-loopback fixture/receiver.
-async function controlledBrowser(fault = null) {
+async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED") {
   const log = [];
   const servers = [];
   const fixtures = new Map();
@@ -126,6 +126,9 @@ async function controlledBrowser(fault = null) {
       const request = {
         url: () => url, method: () => "GET", resourceType: () => type,
         postDataBuffer: () => fault === "request-body" ? Buffer.from("x") : null,
+        failure: () => ({ errorText: fault === "oversized-failure-code" ? `net::ERR_${"X".repeat(2048)}`
+          : fault === "private-failure-detail" ? "Protocol error at https://private.invalid/?secret=not-retained"
+            : failureDetail }),
         headersArray: async () => [{ name: "accept", value: fault === "header-overrun" ? "x".repeat(65537) : "*/*" }],
       };
       await this.handler({
@@ -141,11 +144,19 @@ async function controlledBrowser(fault = null) {
               this.emit("response", {
                 request: () => request, status: () => res.statusCode,
                 body: async () => {
+                  if (fault === "204-body-unavailable" && res.statusCode === 204) {
+                    throw new Error("Protocol error: No resource with given identifier found");
+                  }
+                  if (fault === "non204-body-unavailable" && res.statusCode !== 204) {
+                    throw new Error("private protocol error unavailable");
+                  }
                   if (fault === "response-overrun") return Buffer.alloc(2097153);
                   return fault === "source-substitution" && type === "script" ? Buffer.from("wrong") : body;
                 },
               });
-              this.emit("requestfinished", request);
+              if (["loading-failure-204", "oversized-failure-code", "private-failure-detail"].includes(fault) &&
+                res.statusCode === 204) this.emit("requestfailed", request);
+              else this.emit("requestfinished", request);
               resolve({ status: res.statusCode, body });
             });
           });
@@ -314,6 +325,37 @@ async function controlledBrowser(fault = null) {
 }
 
 describe("controlled browser events + real Node HTTP — NOT actual Chrome/worker proof", () => {
+  it("uses HTTP204 empty framing without reading an unavailable browser body", async () => {
+    await controlledBrowser("204-body-unavailable");
+    const result = await runLocalBrowserForeground();
+    expect(result.normalJourneyChecks).toBe("PASS");
+    for (const vendor of result.vendors) {
+      const empty = vendor.privateEvidence.requests.filter((row) => row.status === 204);
+      expect(empty.length).toBeGreaterThan(0);
+      expect(empty.every((row) => row.responseBodyState === "empty-http-framing" &&
+        row.responseBytes === 0 && row.bodyChecked === true)).toBe(true);
+    }
+  });
+
+  it.each(["oversized-failure-code", "private-failure-detail"])("does not retain %s", async (fault) => {
+    await controlledBrowser(fault);
+    const result = await runLocalBrowserForeground();
+    expect(result.normalJourneyChecks).toBe("FAILED");
+    expect(result.vendors[0].errors).toContain("unexpected-request-failure");
+    expect(result.vendors[0].privateEvidence.requests.at(-1).failureCode)
+      .toBe("request-failure-detail-unavailable");
+    expect(JSON.stringify(result)).not.toMatch(/private\.invalid|secret=not-retained|X{97}/);
+  });
+
+  it.each([96, 97])("enforces the failure-code length boundary at %i characters", async (length) => {
+    const code = `net::ERR_${"X".repeat(length - "net::ERR_".length)}`;
+    await controlledBrowser("loading-failure-204", code);
+    const result = await runLocalBrowserForeground();
+    expect(result.normalJourneyChecks).toBe("FAILED");
+    expect(result.vendors[0].privateEvidence.requests.at(-1).failureCode)
+      .toBe(length === 96 ? code : "request-failure-detail-unavailable");
+  });
+
   it("runs fixed Meta then Google, real sink controls and held 503; captures ownership before connect and cleans normally", async () => {
     const fake = await controlledBrowser();
     const result = await runLocalBrowserForeground();
@@ -368,7 +410,8 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
     ["context-close", "context-close-failed"], ["websocket", "unexpected-websocket"],
     ["frame", "unexpected-frame"], ["popup", "unexpected-page"], ["service-worker", "unexpected-service-worker"],
     ["request-body", "request-bounds"], ["header-overrun", "request-bounds"],
-    ["response-overrun", "response-byte-limit"], ["request-count", "request-count-limit"],
+    ["response-overrun", "response-byte-limit"], ["non204-body-unavailable", "response-body-unavailable"],
+    ["request-count", "request-count-limit"], ["loading-failure-204", "unexpected-request-failure"],
     ["work-cutoff", "request-after-work-cutoff"], ["missing-receiver", "preflight-held-deadline"],
   ])("fails %s without retry, still closing every acquired fixture/server", async (fault, error) => {
     const fake = await controlledBrowser(fault);
@@ -381,6 +424,8 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
     expect(fake.servers[0].close).toHaveBeenCalledOnce();
     if (fault === "request-count") expect(result.vendors[0].counts.observedRequests).toBe(65);
     if (fault === "work-cutoff") expect(result.vendors[0].elapsedMs).toBeLessThan(60000);
+    if (fault === "loading-failure-204") expect(result.vendors[0].privateEvidence.requests.at(-1))
+      .toMatchObject({ status: 204, failureCode: "net::ERR_ABORTED" });
     for (const fixture of openFixtures) {
       expect(fixture.getState()).toMatchObject({ closure: "closed", listening: false, openSockets: 0, pendingResponses: 0 });
     }

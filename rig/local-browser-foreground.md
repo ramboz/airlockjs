@@ -23,6 +23,32 @@ preserved; no automatic retry or alternative launcher is authorized by this
 record. The next correction must address the named preflight recorder and
 retain the original failure, not broaden the execution framework.
 
+## Bounded recorder correction
+
+The recorder unconditionally requested a browser body for HTTP204, although
+that status has no content by HTTP framing. A controlled unavailable-body
+regression failed before the correction. HTTP204 now records zero bytes with
+`responseBodyState: "empty-http-framing"` without requesting a CDP body resource;
+other statuses still require readable actual bytes (`captured-bytes`), and an
+unavailable body fails explicitly. This follows the existing qualification
+recorders rather than adding a new transport or relaxing missing-body checks.
+
+An independent loading failure remains fatal even after204. Future request
+failures retain only a `net::ERR_...` code of at most96 characters, otherwise a
+fixed unavailable sentinel; URLs and arbitrary protocol messages are not retained.
+Review found the initial regex lacked a length bound; an oversized-code failing
+control preceded that correction. Exact96/97-character and private-text controls
+pass. The narrow read-only finding-closure review passes;49 offline controls
+pass, not an actual Chrome journey or whole-slice acceptance.
+
+Two explanations of the historical attempt remain distinct: the confirmed
+HTTP204 body-contract defect could explain failed body acquisition, but an
+independent loading failure could also invalidate capture. The original report
+omitted its specific failure reason, so its exact protocol cause is unresolved.
+The failed source and raw receipt are unchanged. No browser retry was issued;
+a new finite supervised attempt needs explicit admission, not reuse of the
+consumed attempt.
+
 ## Fixed entry and ownership
 
 The entry is `node rig/local-browser-foreground.mjs`, with **no arguments or

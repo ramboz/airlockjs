@@ -6,6 +6,10 @@
 preflight failure before product worker creation. No Google browser or conversion
 was acquired. See060-14/059-20 actual records; exact normal cleanup was observed,
 no automatic retry followed, and full Google browser DoD remains open.
+The shared HTTP204 recorder correction and bounded failure diagnostics now have
+offline RED/green and narrow source-review closure, not actual Google evidence
+or a proved historical protocol cause. A corrected supervised sequence needs
+explicit admission; full compliance and actual browser DoD remain open.
 
 ### 059-20 fixed browser preparation - 2026-10-26
 

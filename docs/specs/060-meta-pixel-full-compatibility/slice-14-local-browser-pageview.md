@@ -125,6 +125,25 @@ private output were frozen; no automatic retry or source-model pass repaired it.
 DoD stays open. Next work is the narrowly named preflight recorder diagnostic,
 not another browser-holder or general harness.
 
+### Recorder correction, not a second actual attempt
+
+The shared recorder had a confirmed HTTP204 contract defect: it always called
+the browser's body API even though204 has no content. A controlled unavailable-
+body RED preceded the status204-only empty-framing correction. Non204 unreadable
+bodies still fail; an independent request failure after204 still fails. Future
+failure diagnostics retain only bounded network codes, not arbitrary protocol
+text. Review found an unbounded-code retention mistake; a second witnessed RED
+preceded the96-character bound and its exact96/97/private-text controls.
+The narrow correction/finding closure passes source review;49 offline
+fixture/controller/foreground controls pass. None executes Chrome.
+
+This explains a demonstrated source defect, not the historical protocol error:
+its missing specific loading-failure reason leaves that cause unresolved.
+Original failed source/output remain frozen; no new browser was acquired.
+The next product step is one explicitly admitted corrected supervised sequence,
+not automatic retry or new custody infrastructure. Full compliance stays fail,
+the egress DoR remains unchecked, and all actual-product DoD stays open.
+
 ### Reconciliation sweep
 
 - updated - fixed source pages/18-module serving closure, foreground procedure
@@ -137,6 +156,8 @@ not another browser-holder or general harness.
   raw request data. Initial findings and narrow closures remain separate scopes.
 - updated - actual first preflight failed, Google was not acquired, normal exact
   cleanup observed, source originals preserved and root-cause uncertainty explicit.
+- updated - status204-only HTTP-framed empty recording and bounded failure codes
+  have witnessed failing controls and narrow review closure, not actual-browser proof.
 - no-op - full060-01/C1-C9, existing production boots/core/contracts/build/version,
   native case/authority/history, old UNKNOWNs and vendor compatibility.
 - pending - actual product browser positives/negatives and final full slice review;

@@ -328,6 +328,12 @@ async function runVendor(vendor, interruption, ownedProfiles) {
     }), "request-denial");
     context.on("requestfailed", (request) => {
       const row = rows.get(request);
+      if (row) {
+        const detail = request.failure?.()?.errorText;
+        // Keep a bounded network code, never a URL or arbitrary protocol text.
+        row.failureCode = typeof detail === "string" && detail.length <= 96 && /^net::ERR_[A-Z0-9_]+$/.test(detail)
+          ? detail : "request-failure-detail-unavailable";
+      }
       if (!row?.denied) fail("unexpected-request-failure");
       if (row) row.finished = true;
     });
@@ -344,7 +350,20 @@ async function runVendor(vendor, interruption, ownedProfiles) {
         ? (mode === "failure" ? 503 : 204)
         : 200;
       requireFact(row.status === expected, "unexpected-response-status");
-      const body = await response.body();
+      // HTTP204 has no content by framing. CDP need not expose a body resource.
+      // All other statuses still require actual readable response bytes.
+      let body;
+      if (row.status === 204) {
+        body = Buffer.alloc(0);
+        row.responseBodyState = "empty-http-framing";
+      } else {
+        try { body = await response.body(); }
+        catch {
+          row.responseBodyState = "unavailable";
+          throw new Error("response-body-unavailable");
+        }
+        row.responseBodyState = "captured-bytes";
+      }
       requireFact(body.length <= LIMITS.responseBytes, "response-byte-limit");
       retain(body);
       row.responseBytes = body.length;

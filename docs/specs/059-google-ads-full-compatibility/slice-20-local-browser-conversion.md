@@ -106,6 +106,15 @@ the Meta local204 observation/body-recorder failure and normal owned cleanup
 are recorded in060-14. Google-specific receiver/correlation/browser ACs remain
 unexecuted. Source/local HTTP tests do not substitute for them.
 
+The shared recorder's HTTP204 empty-framing defect is now corrected with a
+witnessed failing control and narrow source review; unreadable non204 bodies
+and loading failures still fail. Failure codes are bounded to96 characters,
+with retention-review RED/green and boundary/private-text controls. See060-14
+and the procedure guide for the two distinct historical failure hypotheses.
+All49 offline browser-fixture/controller/procedure controls pass, not Chrome.
+The original actual protocol cause remains unresolved; no new Google acquisition
+or retry occurred, and full compliance/actual-browser DoD remain open.
+
 ### Reconciliation sweep
 
 - updated - fixed Google controller/local receiver/source graph and supervised

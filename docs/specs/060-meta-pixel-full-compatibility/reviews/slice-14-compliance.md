@@ -17,3 +17,15 @@ Earlier local-fixture-compliance passed only reviewed source/NodeHTTP preparatio
 
 LIMITS:
 Underlying protocol cause unresolved; one local receiver204 and browser status204 with incomplete body check are not a pass or proved root cause. Source/original actual evidence frozen; no automatic retry or native compatibility. Existing full059-01/060-01/C1-C9 stay open.
+
+NARROW RECORDER CORRECTION REVIEW, NOT FULL ACCEPTANCE:
+http204-recorder-review judged the status204-only empty-framing correction sound
+but returned needs-changes: an unrestricted-length network-code regex could
+exceed reserved row metadata. A witnessed oversized-code RED preceded a
+96-character bound. http204-bounds-closure returned pass for that finding only;
+exact96/97 and private-protocol-text controls retain no unbounded/arbitrary data.
+Unreadable non204 bodies and independent requestfailed(204) remain failures.
+Parent observed49 offline fixture/controller/procedure controls pass and lint
+clean; reviewers read source only. The original Chrome protocol cause remains
+unresolved, no new browser was acquired, and this narrow closure does not change
+the canonical full-slice verdict above.

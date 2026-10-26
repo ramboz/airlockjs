@@ -17,3 +17,11 @@ Earlier local-fixture-compliance passed only reviewed source/NodeHTTP preparatio
 
 LIMITS:
 Underlying protocol cause unresolved; one local receiver204 and browser status204 with incomplete body check are not a pass or proved root cause. Source/original actual evidence frozen; no automatic retry or native compatibility. Existing full059-01/060-01/C1-C9 stay open.
+
+NARROW SHARED RECORDER CORRECTION:
+See060-14's compliance addendum for http204-recorder-review needs-changes and
+http204-bounds-closure pass on the retained-code bound only. Status204 alone
+uses explicit empty HTTP framing; other unreadable responses and independent
+loading failures still fail. Parent's49 offline controls and lint are not
+Google browser evidence. No Google acquisition occurred and this full-slice
+verdict stays fail.

@@ -8,8 +8,12 @@ One exact local GET arrived and finished204, but browser response-body recording
 did not complete; the underlying protocol cause is unresolved. Google was not
 acquired. Parent whole-command exit1/8.07s and normal exact browser/profile/
 context/fixture cleanup are recorded in060-14. No retry or native qualification.
-The next bounded task is the named preflight recorder diagnostic, not new
-custody infrastructure. Both actual browser slices remain IN_PROGRESS/open DoD.
+The named recorder correction now handles HTTP204 empty framing and bounded
+network failure codes, with witnessed RED/green controls and narrow review
+closure. It does not prove the historical protocol cause or run Chrome.
+Next is an explicitly admitted corrected supervised sequence, not automatic
+retry or new custody infrastructure. Both browser slices remain IN_PROGRESS,
+full compliance fail/open DoD; their actual egress DoR remains unchecked.
 
 ### 060-14 fixed browser preparation - 2026-10-26
 

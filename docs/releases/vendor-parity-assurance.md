@@ -42,8 +42,12 @@ receipt/browser status was observed, but body recording did not complete and
 the underlying protocol cause is unresolved. No product worker or Google browser
 was acquired. Exact normal browser/profile/context/local-server cleanup was
 observed. Both slices remain IN_PROGRESS with full-slice compliance fail,
-not DONE. Next is the named preflight recorder diagnostic; do not broaden into
-another runner or silently retry the failed acquisition sequence.
+not DONE. The named recorder correction now handles HTTP204 empty framing and
+bounded network failure codes with witnessed RED/green controls and narrow
+review closure. Its49 offline controls are not Chrome evidence and do not prove
+the original protocol cause. Next is explicit admission of one corrected
+supervised sequence; do not broaden into another runner or silently retry the
+failed acquisition sequence.
 
 [Accepted ADR-0042](../decisions/adr-0042-google-meta-product-delivery-gates.md)
 records product-first sequencing, evidence separation and a default two-active-
