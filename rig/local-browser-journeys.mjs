@@ -31,6 +31,10 @@ const HEADERS = {
   "content-security-policy": CSP,
   "referrer-policy": "no-referrer",
 };
+const EMPTY_HEADERS = {
+  ...HEADERS, connection: "close",
+  "content-type": "text/plain; charset=utf-8", "content-length": "0",
+};
 const LIMITS = Object.freeze({
   observedRequests: 64, measurementAttempts: 8, urlBytes: 8192, requestBodyBytes: 65536,
   headerBytes: 65536, headerCount: 64, responseBytes: 2097152, retainedBytes: 8388608,
@@ -112,7 +116,7 @@ export async function startLocalBrowserJourneys() {
     entry.row.status = status;
     entry.row.respondedAt = Date.now();
     entry.row.response = "sent";
-    entry.response.writeHead(status, { ...HEADERS, connection: "close" }).end();
+    entry.response.writeHead(status, EMPTY_HEADERS).end();
     return true;
   }
   const server = createServer({
@@ -170,9 +174,9 @@ export async function startLocalBrowserJourneys() {
           row, response, timer: setTimeout(() => release(vendor, 504), LIMITS.responseHoldMs),
         });
       } else {
-        row.status = 204;
+        row.status = 200;
         row.respondedAt = Date.now();
-        response.writeHead(204, { ...HEADERS, connection: "close" }).end();
+        response.writeHead(200, EMPTY_HEADERS).end();
       }
       return;
     }
@@ -258,7 +262,7 @@ export async function startLocalBrowserJourneys() {
       path, bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex"),
     }))),
     getReceiverArrivals: (vendor) => structuredClone(arrivals[vendorName(vendor)]),
-    releaseFirstResponse: (vendor) => release(vendor, 204),
+    releaseFirstResponse: (vendor) => release(vendor, 200),
     failFirstResponse: (vendor) => release(vendor, 503),
     getState, close,
   };

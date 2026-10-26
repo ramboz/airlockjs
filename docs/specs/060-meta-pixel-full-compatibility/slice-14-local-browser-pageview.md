@@ -146,6 +146,15 @@ the egress DoR remains unchecked, and all actual-product DoD stays open.
 
 ### Reconciliation sweep
 
+**Owner-approved local refinement:** the second actual sequence (separately
+approved while the owner was present) verified204 empty framing but still
+failed with `net::ERR_ABORTED`, whole-command exit1/9.37s, no product worker or
+Google acquisition; exact normal cleanup was independently checked.
+The owner then chose explicitly empty HTTP200 local acknowledgments and one
+further supervised sequence under the same limits. This is a local fixture
+workaround only. HTTP204/native response handling remain unqualified; no
+network failure is ignored and neither original failure is upgraded.
+
 - updated - fixed source pages/18-module serving closure, foreground procedure
   and usage distinguish ordinary Node HTTP controls from actual browser evidence.
 - updated - source review found a late-worker-failure completion race in both

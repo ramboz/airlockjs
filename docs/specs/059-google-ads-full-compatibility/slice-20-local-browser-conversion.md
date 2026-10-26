@@ -117,6 +117,12 @@ or retry occurred, and full compliance/actual-browser DoD remain open.
 
 ### Reconciliation sweep
 
+**Owner-approved local refinement:** the second shared sequence still failed
+before Google acquisition. The present owner selected explicitly empty HTTP200
+local acknowledgments and one further supervised sequence with unchanged limits.
+The local controllers/recorder require200; all unexpected network failures
+remain fatal. This workaround does not qualify204 or alter native requirements.
+
 - updated - fixed Google controller/local receiver/source graph and supervised
   foreground procedure are prepared; actual Google execution remains blocked
   by the shared preflight failure, not by lack of user permission.

@@ -100,7 +100,7 @@ async function beginPositiveControls() {
       const state = await adapter.flush();
       check(!failure && state.phase === "ready" && state.host.dispatchAttempts === 2 && state.outcomes.length === 5 &&
         state.outcomes.slice(3).every((outcome, index) =>
-          outcome.seq === index + 4 && outcome.disposition === "transport-settled" && outcome.status === 204));
+          outcome.seq === index + 4 && outcome.disposition === "transport-settled" && outcome.status === 200));
       phase = "page-transport-settled";
       show();
       return getJourneyState();

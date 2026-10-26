@@ -64,6 +64,22 @@ async function until(predicate) {
 }
 
 describe("fixed fixture source and REAL Node HTTP only — NOT browser/worker qualification", () => {
+  it("uses explicitly empty HTTP200 only for local acknowledgments, including held and subsequent responses", async () => {
+    const fixture = await start();
+    for (const vendor of ["meta", "google"]) {
+      const first = get(fixture.origin, measurement(vendor).path);
+      void first.catch(() => {});
+      await until(() => fixture.getReceiverArrivals(vendor).length === 1);
+      fixture.releaseFirstResponse(vendor);
+      for (const response of [await first, await get(fixture.origin, measurement(vendor, true).path)]) {
+        expect(response).toMatchObject({
+          status: 200, body: "",
+          headers: { "content-length": "0", "content-type": "text/plain; charset=utf-8" },
+        });
+      }
+    }
+  });
+
   it("serves two fixed pages and the entire actual adapter/module-worker import closure", async () => {
     const fixture = await start();
     const discovered = new Set();
@@ -132,10 +148,10 @@ describe("fixed fixture source and REAL Node HTTP only — NOT browser/worker qu
         fields: Object.entries(first.query), status: null, response: "held",
       });
       expect(fixture.releaseFirstResponse(vendor)).toBe(true);
-      expect((await response).status).toBe(204);
+      expect((await response).status).toBe(200);
       expect(fixture.releaseFirstResponse(vendor)).toBe(false);
       const second = measurement(vendor, true);
-      expect((await get(fixture.origin, second.path)).status).toBe(204);
+      expect((await get(fixture.origin, second.path)).status).toBe(200);
       const arrivals = fixture.getReceiverArrivals(vendor);
       expect(arrivals).toHaveLength(2);
       expect(arrivals[1].fields).toEqual(Object.entries(second.query));
@@ -143,7 +159,7 @@ describe("fixed fixture source and REAL Node HTTP only — NOT browser/worker qu
         expect(row.rawFields).toEqual(row.query.split("&").map((field) => field.split("=")));
         expect(row.arrivedAt).toBeGreaterThan(0);
         expect(row.respondedAt).toBeGreaterThanOrEqual(row.arrivedAt);
-        expect(row).toMatchObject({ status: 204, response: "finished" });
+        expect(row).toMatchObject({ status: 200, response: "finished" });
       }
       arrivals[0].fields[0][1] = "mutated-copy";
       expect(fixture.getReceiverArrivals(vendor)[0].fields[0][1]).not.toBe("mutated-copy");
@@ -210,9 +226,9 @@ describe("fixed fixture source and REAL Node HTTP only — NOT browser/worker qu
     void first.catch(() => {});
     await until(() => receiver.getReceiverArrivals("meta").length === 1);
     receiver.releaseFirstResponse("meta");
-    expect((await first).status).toBe(204);
+    expect((await first).status).toBe(200);
     for (let index = 1; index < 8; index += 1) {
-      expect((await get(receiver.origin, measurement("meta", index % 2 === 1).path)).status).toBe(204);
+      expect((await get(receiver.origin, measurement("meta", index % 2 === 1).path)).status).toBe(200);
     }
     expect((await get(receiver.origin, measurement("meta").path)).status).toBe(429);
     expect(receiver.getReceiverArrivals("meta")).toHaveLength(8);
@@ -294,7 +310,7 @@ describe("fixed fixture source and REAL Node HTTP only — NOT browser/worker qu
     void response.catch(() => {});
     await until(() => fixture.getReceiverArrivals("google").length === 1);
     fixture.releaseFirstResponse("google");
-    expect((await response).status).toBe(204);
+    expect((await response).status).toBe(200);
     expect(fixture.getReceiverArrivals("google")[0].fields).toEqual([...query]);
   });
 

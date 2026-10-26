@@ -2,6 +2,13 @@
 
 ## Current delivery order and work boundaries
 
+**Interactive refinement:** the corrected shared sequence also stopped in Meta
+preflight (`net::ERR_ABORTED` after204); Google was not acquired.
+The owner now selected explicitly empty local HTTP200 acknowledgments and one
+further supervised Meta→Google attempt with the existing limits. This changes
+only the local fixture/controllers/recorder, not adapters or native semantics.
+HTTP204 remains unqualified and all unexpected network failures remain fatal.
+
 **Current execution status:** the shared foreground sequence stopped on Meta
 preflight failure before product worker creation. No Google browser or conversion
 was acquired. See060-14/059-20 actual records; exact normal cleanup was observed,

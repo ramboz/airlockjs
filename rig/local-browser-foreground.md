@@ -5,6 +5,24 @@ existing first-party fixtures. It does not qualify native compatibility or
 unattended shutdown. Source/operational review must precede the parent's single
 issuance; tests of this module do **not** issue it or launch Chrome.
 
+## Current owner-selected acknowledgment
+
+After the separately approved corrected attempt still failed on
+`net::ERR_ABORTED` despite page Fetch204 and recorded empty framing, the present
+owner selected: **“Try empty HTTP200 locally; keep204 unqualified.”**
+Only this local fixture's successful acknowledgment changes: HTTP200 with
+`Content-Length: 0`, `Content-Type: text/plain; charset=utf-8`, no body.
+Both page controllers and the independent recorder require200; all unreadable
+bodies and unexpected network failures remain fatal. HTTP204 is explicitly
+rejected by this path, not silently reclassified as success.
+
+This is a local-test workaround, not a diagnosis/fix of Chromium or native
+HTTP204 compatibility. Prototype adapters, connector mapping, core and native
+requirements are unchanged. The owner approved **one** further supervised
+Meta→Google sequence under the same60s/vendor limits, cleanup included,
+stop-first-failure and no automatic retry. Both earlier failed sequences and
+their frozen sources/evidence remain intact. Interruption remains loss-UNKNOWN.
+
 ## Recorded attempt - 2026-10-26
 
 The owner permitted supervised foreground execution and the procedure was
@@ -23,7 +41,7 @@ preserved; no automatic retry or alternative launcher is authorized by this
 record. The next correction must address the named preflight recorder and
 retain the original failure, not broaden the execution framework.
 
-## Bounded recorder correction
+## Historical bounded recorder correction (8b800d7)
 
 The recorder unconditionally requested a browser body for HTTP204, although
 that status has no content by HTTP framing. A controlled unavailable-body
@@ -91,7 +109,7 @@ output cannot attest to its own future exit.
   independently require zero pending/denied/grant-without-command arrivals.
   Start positives without awaiting the command promise; observe the first
   held receipt while its correlated result is absent, release it, then require
-  both exact documents, actual empty 204 responses and command/worker disposal.
+  both exact documents, actual empty200 responses and command/worker disposal.
 - Use a third fresh fixture/context for a held **503**. The second queued
   command is explicitly locally aborted, so this control receives exactly one
   failed measurement and **no 2xx**, with a failed page/outcome and no

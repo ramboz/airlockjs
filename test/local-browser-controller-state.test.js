@@ -18,7 +18,7 @@ describe("controller state-only fault controls, NOT browser execution", () => {
       state.outcomes.push(seq === 1
         ? { seq, disposition: vendor === "meta" ? "initialized" : "configured", requests: 0 }
         : seq <= 3 ? { seq, disposition: "held", status: 0 }
-          : { seq, disposition: "transport-settled", status: 204 });
+          : { seq, disposition: "transport-settled", status: 200 });
       if (seq >= 4) state.host.dispatchAttempts += 1;
     };
     fake.adapter = {

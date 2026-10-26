@@ -60,7 +60,7 @@ function fields(vendor, second = false) {
 const queryFor = (vendor, second = false) => new URLSearchParams(fields(vendor, second)).toString();
 
 // These pure checks are exported for offline tests, not as execution configuration.
-export function assertForegroundReceipts(vendor, rows, statuses = [204, 204]) {
+export function assertForegroundReceipts(vendor, rows, statuses = [200, 200]) {
   requireFact(Array.isArray(rows) && rows.length === statuses.length, "receiver-count");
   rows.forEach((row, index) => {
     const query = queryFor(vendor, index === 1);
@@ -347,23 +347,16 @@ async function runVendor(vendor, interruption, ownedProfiles) {
       requireFact(row && !row.denied && !row.violation && row.status === null, "unobserved-response");
       row.status = response.status();
       const expected = row.kind === "measurement"
-        ? (mode === "failure" ? 503 : 204)
+        ? (mode === "failure" ? 503 : 200)
         : 200;
       requireFact(row.status === expected, "unexpected-response-status");
-      // HTTP204 has no content by framing. CDP need not expose a body resource.
-      // All other statuses still require actual readable response bytes.
       let body;
-      if (row.status === 204) {
-        body = Buffer.alloc(0);
-        row.responseBodyState = "empty-http-framing";
-      } else {
-        try { body = await response.body(); }
-        catch {
-          row.responseBodyState = "unavailable";
-          throw new Error("response-body-unavailable");
-        }
-        row.responseBodyState = "captured-bytes";
+      try { body = await response.body(); }
+      catch {
+        row.responseBodyState = "unavailable";
+        throw new Error("response-body-unavailable");
       }
+      row.responseBodyState = "captured-bytes";
       requireFact(body.length <= LIMITS.responseBytes, "response-byte-limit");
       retain(body);
       row.responseBytes = body.length;
@@ -485,7 +478,7 @@ async function runVendor(vendor, interruption, ownedProfiles) {
     await until(() => fixture.getReceiverArrivals(vendor).length === 1, "preflight-held");
     requireFact(fixture.getReceiverArrivals(vendor)[0].response === "held" &&
       fixture.releaseFirstResponse(vendor), "preflight-release");
-    await controlResult("resolved", 204);
+    await controlResult("resolved", 200);
     controls.allowedArrivals = fixture.getReceiverArrivals(vendor).length;
     preflight.state.deny = true;
     await sendControl();
@@ -493,13 +486,13 @@ async function runVendor(vendor, interruption, ownedProfiles) {
     controls.enforcedNewArrivals = fixture.getReceiverArrivals(vendor).length - controls.allowedArrivals;
     preflight.state.deny = false; // Remove ONLY this exact local request's denial.
     await sendControl();
-    await controlResult("resolved", 204);
+    await controlResult("resolved", 200);
     controls.bypassNewArrivals = fixture.getReceiverArrivals(vendor).length - controls.allowedArrivals;
     requireFact(controls.allowedArrivals === 1 && controls.enforcedNewArrivals === 0 &&
       controls.bypassNewArrivals === 1 && preflight.state.measurements === 3, "receiving-controls");
-    assertForegroundReceipts(vendor, fixture.getReceiverArrivals(vendor).slice(0, 1), [204]);
+    assertForegroundReceipts(vendor, fixture.getReceiverArrivals(vendor).slice(0, 1), [200]);
     const bypass = fixture.getReceiverArrivals(vendor)[1];
-    assertForegroundReceipts(vendor, [bypass], [204]);
+    assertForegroundReceipts(vendor, [bypass], [200]);
     await closePhase(preflightFixture, preflight);
 
     const productFixture = await startFixture();
@@ -519,7 +512,7 @@ async function runVendor(vendor, interruption, ownedProfiles) {
       finished.captureAndTransport?.phase === "disposed" && finished.disposal !== "UNKNOWN" &&
       finished.captureAndTransport.outcomes.length === 5 &&
       finished.captureAndTransport.outcomes.slice(3).every((outcome, index) =>
-        outcome.seq === index + 4 && outcome.disposition === "transport-settled" && outcome.status === 204),
+        outcome.seq === index + 4 && outcome.disposition === "transport-settled" && outcome.status === 200),
     "product-command-results");
     assertForegroundReceipts(vendor, productFixture.value.getReceiverArrivals(vendor));
     requireFact(productFixture.value.getReceiverArrivals(vendor === "meta" ? "google" : "meta").length === 0,
@@ -613,6 +606,7 @@ async function runVendor(vendor, interruption, ownedProfiles) {
   const report = {
     vendor, normalJourneyChecks: passed ? "PASS" : "FAILED", overall: "INCONCLUSIVE",
     fullCompatibility: false, interruptionLossQualification: false,
+    transportScope: "Local explicitly empty HTTP200 only; HTTP204 remains unqualified.",
     browserVersion, workerURLPath: workerPath(vendor), sourceHashes, controls,
     receiptSource: "Independent local HTTP receiver, never controller JSON or host dispatch counters.",
     nativeGaps: vendor === "google" ? {
@@ -672,6 +666,7 @@ export async function runLocalBrowserForeground() {
   return {
     procedure: "fixed-headed-local-Meta-then-Google", overall: "INCONCLUSIVE",
     fullCompatibility: false, interruptionLossQualification: false, limits: LIMITS,
+    transportScope: "Local explicitly empty HTTP200 only; HTTP204 remains unqualified.",
     guardScope: "Exact local HTTP Fetch/module graph only; unchanged legacy Seatbelt loopback source, NOT native/public-IP full-guard proof.",
     externalWholeCLICompletion: "Parent must observe actual command exit afterwards; this producer cannot report future exit.",
     publicationReceipts,

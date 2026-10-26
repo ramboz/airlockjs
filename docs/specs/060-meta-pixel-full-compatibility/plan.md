@@ -2,6 +2,15 @@
 
 ## Current delivery order and work boundaries
 
+**Interactive refinement:** one newly approved corrected attempt observed
+page Fetch204, recorded empty framing and `net::ERR_ABORTED`; it stopped before
+product work and cleaned up normally (whole command exit1/9.37s).
+The present owner then chose “Try empty HTTP200 locally; keep204 unqualified”
+and approved one further supervised sequence under the same limits.
+Only local fixture acknowledgments/controllers/recorder expectations change;
+all network-failure checks remain strict. This workaround is not native204
+qualification or a new general-runner project. Both earlier attempts stay failed.
+
 **Current outcome:** the selected supervised foreground procedure was issued
 once and failed the Meta receiving preflight before product worker creation.
 One exact local GET arrived and finished204, but browser response-body recording
