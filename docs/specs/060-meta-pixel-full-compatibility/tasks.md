@@ -4,6 +4,14 @@ The full-compatibility journeys remain unfinished. The separate offline
 prototype below stages construction without changing their evidence gates.
 An authored AC is not a passing evaluation.
 
+## Next bounded deliverable
+
+- [ ] Refine060-14's actual local-browser PageView and current launch/stop
+      entry gates; no browser acquisition from a draft.
+- [ ] Follow the [delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
+      rather than adding duplicate feature or general-runner work.
+- [ ] Owner reviews Proposed ADR-0042; full acceptance/live authority unchanged.
+
 ## Offline product prototype
 
 - [x] 060-13: first-party `fbq` capture, real serialized worker, governed

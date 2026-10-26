@@ -16,6 +16,14 @@
 
 ## Full Google/Meta preparation owners (2026-10-15)
 
+**Current routing (2026-10-26):** the
+[delivery queue](releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
+maps the remaining work to existing feature owners. Proposed ADR-0042 addresses
+product-first work admission;060-14/059-20 draft the next actual local-browser
+journeys. Cookie/transport/timing decisions remain evidence-triggered under
+their original first-journey and feature slices; none of the deferrals below
+is marked resolved by this planning packet or the completed Node prototypes.
+
 [ADR-0033](decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md)
 sets complete replacement as the target, without closing the residuals below.
 [058](specs/058-native-tag-evaluation-qualification/spec.md) owns trustworthy

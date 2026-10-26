@@ -206,11 +206,12 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-12 - Full-portfolio adoption qualification | DRAFT |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-13 - Paired validation admission component | **DONE** |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-14 - Browser admission and original-byte capture controls | **DONE** |  |
-| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-15 - Exact native policy and one-shot stock capture | IN_PROGRESS (google-and-meta-feasibility) |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-15 - Exact native policy and one-shot stock capture | DEFERRED |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-16 - SDK-absent chamber capture qualification | **DONE** |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-17 - Offline native-attempt/chamber diagnostic | **DONE** |  |
-| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-18 - Additional lineage-bound Meta stock case | IN_PROGRESS (google-and-meta-feasibility) |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-18 - Additional lineage-bound Meta stock case | DEFERRED |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-19 - Exercise an offline SDK-free Google conversion | **DONE** |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-20 - Exercise the SDK-free conversion in a local browser | READY_FOR_REVIEW (google-and-meta-feasibility) |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-01 - Replace bootstrap and first PageView | READY_FOR_REVIEW (google-and-meta-feasibility) |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-02 - Report complete event and commerce data | DRAFT |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-03 - Route and configure multiple Pixels | DRAFT |  |
@@ -224,6 +225,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-11 - Diagnose connected product collection | DRAFT |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-12 - Cut over, roll back and maintain assurance | DRAFT |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-13 - Exercise an offline SDK-free PageView prototype | **DONE** |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-14 - Exercise the SDK-free PageView in a local browser | READY_FOR_REVIEW (google-and-meta-feasibility) |  |
 
 ## Deferred slices
 
@@ -233,6 +235,8 @@ every outline and its refinement prerequisites. None is ready for implementation
 |------|-------|--------------------|
 | [022-helix-rum-connector](022-helix-rum-connector/spec.md) | 022-03 — page-side sampleRUM cutover + integration proof |  |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-04 — batched POST transport (per-cycle event coalescing) |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-15 - Exact native policy and one-shot stock capture | Reviewed current execution/stop plan, scoped setup/source/authority and coordination for a named059-01/060-01 native-reference criterion. |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-18 - Additional lineage-bound Meta stock case | Reviewed current browser execution/loss/stop plan, applicable decision gates, fresh setup/source and exact remaining-case authorization/coordination for060-01. |
 
 ## Abandoned slices
 

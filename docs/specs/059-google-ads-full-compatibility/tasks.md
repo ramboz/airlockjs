@@ -4,6 +4,15 @@ The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
 
+## Next bounded deliverable
+
+- [ ] Refine059-20's actual local-browser conversion and current launch/stop
+      entry gates; no browser acquisition from a draft.
+- [ ] Use the [delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
+      for later feature owners/decision triggers and a product-linked stop card.
+- [ ] Owner reviews Proposed ADR-0042; no acceptance, two-hour allocation or
+      operational exception is inferred from authoring.
+
 ## Offline product construction
 
 - [x] 059-19: synthetic config/conversion capture, actual first-party worker,

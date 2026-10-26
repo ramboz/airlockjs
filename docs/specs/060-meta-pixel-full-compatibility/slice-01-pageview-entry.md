@@ -69,6 +69,13 @@ replacement PageView plus an actionable report, not a queue/parser-only layer.
 
 ## Readiness checkpoint - 2026-10-16
 
+**Current navigation:** the dated checkpoint and full criteria above are
+preserved.060-13 is completed offline construction; proposed060-14 is the next
+local-browser authoring step, not an admission to implement full060-01.
+The [delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
+maps evidence/capability blockers and later feature owners without excluding
+anything the first native-equivalent PageView actually requires.
+
 **READY_FOR_REVIEW (authoring) / blocked before implementation**. The
 blocked-draft frame pass is not boundary-fit or live authority approval.
 The [first-path source plan](plan.md#first-journey-readiness-checkpoint---2026-10-16)

@@ -84,6 +84,13 @@ to worker to governed response-chain journey and a usable scoped decision.
 
 ## Readiness checkpoint - 2026-10-16
 
+**Current navigation:** this dated checkpoint and the criteria above are
+preserved. Completed059-19 is offline construction, and the next authoring
+step059-20 is local-browser construction; neither closes this slice's DoR.
+Use the [delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
+for prerequisites and existing feature/decision owners, not another full-conversion
+spec. A required first-case behavior cannot be excused as later-feature work.
+
 **READY_FOR_REVIEW (authoring) / blocked before implementation**, not rejected
 as infeasible. The actual blocked-draft frame pass certifies its premise only.
 The [source-backed first-path plan](plan.md#first-journey-readiness-checkpoint---2026-10-16)

@@ -1,5 +1,27 @@
 # Plan - full Meta Pixel compatibility
 
+## Current delivery order and work boundaries
+
+Use the [Google/Meta delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
+for priority, remaining feature owners, decision triggers and stop cards;
+this plan and slice frontmatter retain detailed dependencies and evidence.
+[Proposed ADR-0042](../../decisions/adr-0042-google-meta-product-delivery-gates.md)
+does not accept an execution exception or change the complete replacement target.
+
+The next product draft after060-13 is
+[060-14 local-browser PageView](slice-14-local-browser-pageview.md).
+Refine its same-origin page/module/receiver test and actual launch/stop owner.
+Browser acquisition remains gated by its current finite execution plan; no
+further general custodian or Docker work is automatically part of this slice.
+Fresh complete native evidence remains owned by058/059-15/18, and full
+PageView acceptance remains060-01. Existing02-12 own the rest of the documented
+event/routing/consent/identity/automatic/lifecycle/outcome/adoption families.
+
+Do not fill fields from the old redacted capture by guessing. A necessary
+capability/transport decision gets a precise native-evidence-backed ADR under
+its owning feature, not a general cookie/network/DOM grant. The queue's proposed
+two-hour prerequisite checkpoint is not a renewed budget or live permission.
+
 ## Offline product construction - 060-13
 
 The experimental, SDK-free PageView capture-to-worker-to-loopback journey

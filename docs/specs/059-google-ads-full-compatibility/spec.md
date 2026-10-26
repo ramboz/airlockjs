@@ -82,6 +82,17 @@ case subsequently ran once and is spent/inconclusive, with no complete
 reference; its chamber remains blocked and the other three slots unused.
 All remaining native gates and the consumed canonical reservation are preserved.
 
+## Remaining work and next authoring step
+
+The [delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
+maps every documented remaining feature to its existing059/060 owner and
+separates product construction, reference evidence and adoption.
+The next Google draft is
+[059-20 local-browser conversion](slice-20-local-browser-conversion.md).
+It builds on059-19 without qualifying059-01, introducing live authority or
+silently changing a frozen capability. Later02-12 remain DRAFT, not ready
+to implement from their presence in the queue.
+
 ## Overview
 
 The hard contract is the complete request/response and host-effect sequence

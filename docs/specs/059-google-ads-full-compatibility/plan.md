@@ -1,5 +1,29 @@
 # Plan - full Google Ads browser-tag compatibility
 
+## Current delivery order and work boundaries
+
+The [Google/Meta delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
+is the single ordered view of the remaining work and decision triggers.
+This plan and slice frontmatter retain the detailed evidence/dependency contracts.
+[Proposed ADR-0042](../../decisions/adr-0042-google-meta-product-delivery-gates.md)
+records the suggested product-first admission/stop rule; it is not accepted
+or an execution grant.
+
+After completed059-19, the next Google product draft is
+[059-20 local-browser conversion](slice-20-local-browser-conversion.md).
+Refine its local fixture/transport test and current browser stop/cleanup plan;
+do not extend the Docker control or invent the34 missing primary fields.
+Actual browser execution is blocked until that draft's own DoR clears.
+Native/reference work remains with058/059-15; full first cutover remains059-01.
+The existing02-12 slices own every currently documented later feature family,
+not a fresh duplicate backlog. The queue maps each to its next refinement.
+
+Before supporting work starts, name the consuming criterion, smallest reused
+change, allowed inputs/authority, finite checkpoint and concrete exit/blocker.
+The two-hour prerequisite checkpoint is proposed for owner acceptance, not a
+new spend/run allowance. No unrelated runner, account or billing investigation
+is reopened by this plan.
+
 ## Offline product construction - 059-19
 
 The synthetic config/conversion journey through a genuine first-party worker

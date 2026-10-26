@@ -28,6 +28,16 @@ the supplied fixture's complete field union and remains inconclusive.
 This does not change060-01 readiness, any C1-C9 criterion, the full feature
 target, live authority or the production boot.
 
+## Remaining work and next authoring step
+
+The [delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
+orders construction, native evidence and adoption while preserving every
+documented feature owner. The next draft is
+[060-14 local-browser PageView](slice-14-local-browser-pageview.md), not a new
+native/reference or product-support claim. Full060-01 and later02-12 keep
+their original evidence/dependency requirements. Proposed ADR-0042 records
+the work-admission recommendation, not an accepted execution decision.
+
 ## Overview
 
 The owner requires feature parity with the official tags and the whole wire

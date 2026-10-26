@@ -1,11 +1,10 @@
 ---
-status: IN_PROGRESS
+status: DEFERRED
 dependencies: [059-13, 059-14, adr-0035, adr-0038]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
-claimed_by: google-and-meta-feasibility
 ---
 
 ## Slice 059-18 - Additional lineage-bound Meta stock case
@@ -20,6 +19,22 @@ questions or an unlimited test budget.
 This is a separate authority path under [ADR-0035](../../decisions/adr-0035-additional-one-shot-meta-authority.md),
 not an amendment of the original four-case record, ADR-0034 or closed slices.
 It serves UC-10 and leaves full native/chamber/product/C2/C3 gates unchanged.
+
+## Work disposition - 2026-10-26
+
+Parked until actual native preparation can consume a complete, current plan;
+the extensive source/failed-control history below is not the next coding queue.
+The original Meta case is still spent; the separately granted additional case
+is unspent and no executable permission/window/slot has been issued.
+The failed local container case stays failed and its separately approved
+cleanup is complete. No native ownership, clock or general holder was qualified.
+Use the [delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
+for product work and evidence-driven decisions.
+
+**Resolution trigger:** Reviewed current browser execution/loss/stop plan, applicable decision gates, fresh setup/source and exact remaining-case authorization/coordination for060-01.
+
+Reopen through DRAFT for that bounded plan. This does not accept ADR-0038,
+transfer another lane's exception, refund any case or commission more runner work.
 
 **DoR:**
 - [x] Genuine owner authorization at 2026-10-21T18:33:04.581Z explicitly

@@ -1,11 +1,10 @@
 ---
-status: IN_PROGRESS
+status: DEFERRED
 dependencies: [059-13, 059-14, adr-0033, adr-0034]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
-claimed_by: google-and-meta-feasibility
 ---
 
 ## Slice 059-15 - Exact native policy and one-shot stock capture
@@ -19,6 +18,19 @@ This is reference tooling, not a tag replacement. The first live execution is
 Meta only after actual independent reviews, qualified preflight and scheduling;
 Google follows only when its own policy/branch prerequisites are satisfied.
 Neither chamber slot is executable through this stock-only entry.
+
+## Work disposition - 2026-10-26
+
+Parked, not abandoned or complete. The original Meta case remains spent/
+inconclusive; any unused Google case retains its separate original limits.
+No current native run is admitted and this record is not an active general
+runner project. The [delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
+keeps actual local-browser product work separate from this native reference gate.
+
+**Resolution trigger:** Reviewed current execution/stop plan, scoped setup/source/authority and coordination for a named059-01/060-01 native-reference criterion.
+
+Reopen through DRAFT and review that exact bounded reference plan; no reset
+of the spent Meta case or implicit renewal of historical grants/source leases.
 
 **DoR:**
 - [x] Local admission and real browser capture slices 059-13/14 are DONE.
