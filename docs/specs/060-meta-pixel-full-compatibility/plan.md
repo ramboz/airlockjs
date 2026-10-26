@@ -1,5 +1,28 @@
 # Plan - full Meta Pixel compatibility
 
+## Offline product construction - 060-13
+
+The experimental, SDK-free PageView capture-to-worker-to-loopback journey
+under [060-13](slice-13-offline-pageview-prototype.md) is implemented. It reuses
+the unchanged connector host, confinement and wrapped request/response host.
+Command/state/GET mapping remain off-thread; the host captures context and
+enforces strict consent and a literal loopback-only destination. The example
+must report all unimplemented/unknown reference behavior rather than invoke
+the legacy curated parity score. No Docker/browser/vendor/live activity or
+core/build/production-boot change is part of this increment.
+
+Run `node rig/meta-pageview-prototype.mjs` for the local example; the
+[prototype guide](../../../connectors/meta-pixel/README.md) documents its
+source-only API, fixed synthetic ID, eight fields and deliberate limits.
+Actual local evidence includes two distinguishable PageViews, zero pending/
+denied arrivals, no grant-triggered replay and correlated response-before-result.
+The report keeps all20 fields present in the selected historical fixture
+visible; matching literal context fields is not full native equivalence.
+
+060-01 remains the complete first-PageView compatibility slice, blocked by
+its original whole-native, browser, response, independent and performance
+evidence requirements. Local prototype construction cannot waive those gates.
+
 ## Actual local-control checkpoint - 2026-10-26
 
 The separate single no-work control was consumed and failed before Node start:

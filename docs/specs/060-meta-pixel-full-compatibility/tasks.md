@@ -1,7 +1,15 @@
 # Tasks - full Meta Pixel compatibility
 
-Every item is unchecked because this packet has not received formal review or
-implementation. An authored AC is not a passing evaluation.
+The full-compatibility journeys remain unfinished. The separate offline
+prototype below stages construction without changing their evidence gates.
+An authored AC is not a passing evaluation.
+
+## Offline product prototype
+
+- [x] 060-13: first-party `fbq` capture, real serialized worker, governed
+      loopback PageView and explicit complete-fixture gap report.
+- [x] Preserve060-01/C1-C9, native/live authority, frozen contracts and
+      production boots; prototype success is not a compatibility claim.
 
 ## Authority and reference readiness
 

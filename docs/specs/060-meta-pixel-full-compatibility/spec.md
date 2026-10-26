@@ -13,12 +13,20 @@ chamber without losing collection or changing attribution-bearing behavior.
 The work keeps vendor interpretation off the main thread and privileges
 mediated; undocumented behavior and missing evidence remain work, not exceptions.
 
-This remains preparation, not an implementation or compatibility claim.
-The first slice is READY_FOR_REVIEW for authoring after a blocked-draft frame
+The twelve full-compatibility journeys remain preparation, not a compatibility
+claim. The first is READY_FOR_REVIEW for authoring after a blocked-draft frame
 pass; the other eleven remain DRAFT. Boundary fit, implementation readiness and
 live authority are not certified by that review.
 The main tradeoff is more discovery and browser-side capability work in exchange
 for a replacement an adopter can actually trust.
+
+[060-13](slice-13-offline-pageview-prototype.md) implements a separate offline
+first-party PageView prototype: two distinct pages traverse an actual Node
+worker and independently arrive at a loopback receiver. Pending/denied consent
+produces zero arrivals and grant does not replay them. Its gap report covers
+the supplied fixture's complete field union and remains inconclusive.
+This does not change060-01 readiness, any C1-C9 criterion, the full feature
+target, live authority or the production boot.
 
 ## Overview
 

@@ -222,6 +222,25 @@ references. Vendor-cookie writers, timing-critical DOM/linker operations and
 credentialed transport are requirements to investigate under ADR-0033, not
 capabilities silently granted by this architecture summary.
 
+### Offline Meta PageView construction
+
+The source-only [060-13 prototype](specs/060-meta-pixel-full-compatibility/slice-13-offline-pageview-prototype.md)
+uses `adapters/meta-pixel-prototype.js:69` for bounded capture/queue/host policy
+and a separately named first-party worker for command state and eight-field
+GET construction (`connectors/meta-pixel/pageview-prototype.worker.js:1`,
+`connectors/meta-pixel/pageview-prototype.js:54`). It reuses the existing
+connector host and wrapped request/response host without changing core or
+production worker selection. The trusted adapter accepts only literal loopback
+GETs and strict `ad_storage`; the worker waits for a correlated response
+before posting a command result. Independent local receiver arrivals, not a
+dispatch counter or result callback, establish local receipt.
+
+`node rig/meta-pageview-prototype.mjs` exercises the actual module entry through
+a Node worker bridge and a loopback receiver; this is not browser transport,
+adversarial Node isolation, vendor dispatch or a performance baseline.
+The full-fixture gap report remains inconclusive. This prototype is not
+selected by production boots or the build and cannot complete060-01/C1-C9.
+
 ### The native-tag suppressor and consent-input drivers
 
 Two host-coupled pieces sit outside `core/` and `connectors/` by the same code-home rule:
