@@ -13,7 +13,7 @@ The main tradeoff is that complete browser behavior needs qualified native
 evidence and narrowly mediated host operations without giving vendor code
 ambient access or moving unbounded work onto the main thread.
 
-**Product preparation only.** Of the twelve product-feature slices, the first
+**Full-compatibility preparation only.** Of the twelve product-feature slices, the first
 is READY_FOR_REVIEW for authoring and the other eleven remain DRAFT. That
 first product slice has passed its blocked-draft premise review, not boundary
 fit, implementation readiness or implementation review. Operator-preparation
@@ -27,6 +27,16 @@ comparison. Independent full native/chamber comparisons, access and readiness
 remain open. The actual qualification and scope prerequisites
 are not satisfied merely by accepting the target.
 The reservation remains provisional until the parent checks trunk collisions.
+
+[059-19](slice-19-offline-conversion-prototype.md) implements a separate
+synthetic-only offline conversion prototype using actual worker/local dispatch.
+Two distinguishable conversions preserve controlled route/value relationships
+at a real loopback receiver; pending/denied and grant-without-new-command
+controls produce zero arrivals. Its report accounts for12 retained native-shape
+rows/62 query names and remains INCONCLUSIVE.
+It does not change the twelve full-compatibility journeys,059-01 readiness,
+live authority or production behavior; a local primary request is not a
+complete native conversion sequence.
 
 [059-16](slice-16-chamber-capture.md) defines the independent SDK-absent
 chamber-capture qualification path required by the first-journey plan. It

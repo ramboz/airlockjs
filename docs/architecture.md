@@ -241,6 +241,27 @@ adversarial Node isolation, vendor dispatch or a performance baseline.
 The full-fixture gap report remains inconclusive. This prototype is not
 selected by production boots or the build and cannot complete060-01/C1-C9.
 
+### Offline Google conversion construction
+
+The separate [059-19 prototype](specs/059-google-ads-full-compatibility/slice-19-offline-conversion-prototype.md)
+uses bounded `gtag` capture in `adapters/google-ads-prototype.js:66`, retained
+worker-side config/mapping in `connectors/google-ads/conversion-prototype.js:29`,
+and first-import confinement/correlated response handling in the adjacent worker.
+Existing connector and wrapped hosts remain unchanged. The trusted driver
+permits only the literal synthetic loopback primary route and strict consent;
+config emits no request and denied commands are not replayed. Those are
+prototype rules, not native Google config or Consent Mode behavior.
+
+`node rig/google-ads-conversion-prototype.mjs` observes two controlled
+conversions at an independent local receiver, separate from host attempts and
+worker response settlement. Own-data-property snapshots, well-formed text and
+an8192-character encoded limit prevent silent value replacement or inherited
+field leakage (`connectors/google-ads/conversion-prototype.js:13-75`).
+The report retains all12 value-free historical native-shape rows/62 field names
+and remains INCONCLUSIVE; five local primary mappings do not establish native
+endpoint/value or complete-sequence equivalence. No existing Meta or production
+module, core contract, build, account setting or live authority is changed.
+
 ### The native-tag suppressor and consent-input drivers
 
 Two host-coupled pieces sit outside `core/` and `connectors/` by the same code-home rule:

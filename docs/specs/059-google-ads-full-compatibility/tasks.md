@@ -4,6 +4,13 @@ The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
 
+## Offline product construction
+
+- [x] 059-19: synthetic config/conversion capture, actual first-party worker,
+      governed local primary request and complete field-inventory gap report.
+- [x] Preserve059-01/C1-C9, full native response/branch/browser/performance gates,
+      frozen contracts, production boots and all event authority.
+
 ## Independent operator preparation
 
 - [x] 059-13/14: local one-shot admission and actual-browser receiver controls.

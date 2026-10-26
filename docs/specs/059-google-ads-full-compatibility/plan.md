@@ -1,5 +1,26 @@
 # Plan - full Google Ads browser-tag compatibility
 
+## Offline product construction - 059-19
+
+The synthetic config/conversion journey through a genuine first-party worker
+and consent-governed loopback receiver is implemented under
+[059-19](slice-19-offline-conversion-prototype.md). It reuses the existing
+connector/wrapped host contracts proved by060-13, not another Docker or browser
+runner. Controlled label/value/currency/transaction/page relationships reach an
+independent receiver; the report explicitly lists missing native behavior.
+No default vendor URL, account change or production dispatch is part of this work.
+
+Run `node rig/google-ads-conversion-prototype.mjs`; see
+[prototype usage](../../../connectors/google-ads/CONVERSION-PROTOTYPE.md).
+Actual local outcomes are2 distinct conversions and0 config/pending/denied/
+grant-replay arrivals, with closed owned worker/receiver/sockets. The value-free
+shape report covers12 historical rows and62 names: only5 of39 primary field
+names are locally constructed,34 remain missing, and native value/endpoint/
+complete-chain equality is unavailable. This is not a qualified conversion.
+
+059-01's full native, response/branch, browser, performance and live-readiness
+requirements are unchanged; this prototype cannot qualify them.
+
 ## Actual local-control checkpoint - 2026-10-26
 
 Desktop became available; the single approved no-work control was attempted

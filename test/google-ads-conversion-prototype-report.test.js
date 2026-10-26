@@ -1,0 +1,88 @@
+import { readFile } from "node:fs/promises";
+import { describe, expect, it } from "vitest";
+import { reportGoogleAdsConversionPrototype } from "../rig/google-ads-conversion-prototype-report.mjs";
+
+const projection = JSON.parse(await readFile(new URL("./fixtures/google-ads-conversion-native-shape.json", import.meta.url), "utf8"));
+const endpoint = "http://127.0.0.1:43210/pagead/conversion/0000000000/";
+const snapshot = {
+  args: ["event", "conversion", { send_to: "AW-0000000000/SYNTHETIC_LABEL", value: 26.5, currency: "EUR", transaction_id: "report-synthetic-26" }],
+  context: { pageURL: "https://example.test/report-only", referrer: "" },
+};
+const request = {
+  method: "GET",
+  url: `${endpoint}?label=SYNTHETIC_LABEL&value=26.5&currency_code=EUR&oid=report-synthetic-26&url=https%3A%2F%2Fexample.test%2Freport-only`,
+};
+
+describe("synthetic relationships versus partial retained native field shape", () => {
+  it("covers every row, ordered field occurrence, duplicate and limitation without promoting five fields to native parity", () => {
+    const report = reportGoogleAdsConversionPrototype({ observedRequests: [request], commandSnapshots: [snapshot], endpoint, projection });
+    expect(report).toMatchObject({ overall: "INCONCLUSIVE", fullCompatibility: false });
+    expect(report.local[0]).toMatchObject({ routingPreserved: true, relationshipsPreserved: true, uniqueQueryNames: true, onlyExpectedFields: true });
+    expect(report.nativeShape).toMatchObject({ disposition: "partial-retained-native-shape-only", rowCount: 12, uniqueFieldCount: 62, nativeValueEquality: "unavailable", nativeEndpointEquality: "unavailable" });
+    expect(report.nativeShape.rows.map((row) => row.ordinal)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    for (const [index, row] of report.nativeShape.rows.entries()) {
+      expect(row.queryNamesInOrder).toEqual(projection.request_rows[index].query_names_in_order);
+      expect(row.pairCount).toBe(projection.request_rows[index].query_pair_count);
+      expect(row.guardBlocked).toBe(projection.request_rows[index].guard_blocked);
+      expect(row.responseObserved).toBe(projection.request_rows[index].response_observed);
+    }
+    expect(report.nativeShape.rows[9].duplicateFields).toEqual([{ field: "random", occurrences: 2 }]);
+    expect(report.nativeShape.rows[10]).toMatchObject({ pairCount: 39, mappedFieldNameCount: 5, missingFieldNameCount: 34 });
+    expect(report.nativeShape.rows[11]).toMatchObject({ pairCount: 44, responseObserved: false, responseLinked: true, transactionFieldPresent: false, disposition: "not-implemented" });
+    expect(report.nativeShape.fields.map((field) => field.name)).toEqual(projection.unique_query_names);
+    expect(report.gaps).toContain("identity-cookies-click-ids");
+    expect(report.gaps).toContain("response-linked-fetch-fallback-redirect-cookie");
+    expect(JSON.stringify(report)).not.toContain("report-synthetic-26");
+    expect(JSON.stringify(report)).not.toContain("https://example.test");
+    expect(JSON.stringify(report)).not.toContain("127.0.0.1");
+  });
+
+  it("fails local relationships on route/value/type/duplicate/extra-field mutations instead of normalizing them away", () => {
+    for (const changed of [
+      { ...request, method: "POST" },
+      { ...request, url: request.url.replace("/0000000000/", "/123/") },
+      { ...request, url: request.url.replace("value=26.5", "value=26") },
+      { ...request, url: request.url.replace("currency_code=EUR", "currency_code=USD") },
+      { ...request, url: request.url.replace("oid=report-synthetic-26", "oid=wrong-transaction") },
+      { ...request, url: request.url.replace("report-only", "wrong-page") },
+      { ...request, url: `${request.url}&value=26.5` },
+      { ...request, url: `${request.url}&extra=private-data-never-output` },
+    ]) {
+      const report = reportGoogleAdsConversionPrototype({ observedRequests: [changed], commandSnapshots: [snapshot], endpoint, projection });
+      expect(report.local[0].relationshipsPreserved).toBe(false);
+      expect(report.overall).toBe("INCONCLUSIVE");
+      expect(JSON.stringify(report)).not.toContain("private-data-never-output");
+    }
+    const typed = structuredClone(snapshot);
+    typed.args[2].value = "26.5";
+    expect(reportGoogleAdsConversionPrototype({ observedRequests: [request], commandSnapshots: [typed], endpoint }).local[0].relationshipsPreserved).toBe(false);
+    expect(reportGoogleAdsConversionPrototype({ observedRequests: [request], commandSnapshots: [], endpoint }).cardinalityPreserved).toBe(false);
+  });
+
+  it("makes omission, explicit undefined, empty and zero visible as different synthetic expectations", () => {
+    for (const [params, query, expectation] of [
+      [{ value: 0, currency: "", transaction_id: "" }, "&value=0&currency_code=&oid=", ["zero-preserved", "empty-preserved", "empty-preserved"]],
+      [{}, "", ["omitted", "omitted", "omitted"]],
+      [{ value: undefined, currency: undefined, transaction_id: undefined }, "", ["explicit-undefined-omitted", "explicit-undefined-omitted", "explicit-undefined-omitted"]],
+    ]) {
+      const command = { ...snapshot, args: ["event", "conversion", { send_to: "AW-0000000000/SYNTHETIC_LABEL", ...params }] };
+      const observed = { method: "GET", url: `${endpoint}?label=SYNTHETIC_LABEL${query}&url=https%3A%2F%2Fexample.test%2Freport-only` };
+      const report = reportGoogleAdsConversionPrototype({ observedRequests: [observed], commandSnapshots: [command], endpoint });
+      expect(report.local[0].relationshipsPreserved).toBe(true);
+      expect(report.local[0].fields.slice(1, 4).map((field) => field.expectation)).toEqual(expectation);
+    }
+  });
+
+  it("does not use missing or page-load data as conversion evidence, and handles malformed local targets without throwing", () => {
+    const missing = reportGoogleAdsConversionPrototype();
+    expect(missing.nativeShape.disposition).toBe("missing-explicit-projection");
+    const wrongReference = reportGoogleAdsConversionPrototype({ projection: { kind: "synthetic-page-load", beacons: [] } });
+    expect(wrongReference.nativeShape.disposition).toBe("invalid-or-nonconversion-projection");
+    const invalid = reportGoogleAdsConversionPrototype({
+      observedRequests: [request], commandSnapshots: [snapshot],
+      endpoint: "http://127.0.0.1:99999/pagead/conversion/0000000000/",
+    });
+    expect(invalid.local[0].relationshipsPreserved).toBe(false);
+    expect(invalid.fullCompatibility).toBe(false);
+  });
+});
