@@ -2,9 +2,9 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: reconciliation
 verdict: pass
-reviewer: Prior scoped histories; actual-doc needs-changes then two-location correction PASS
-reviewed_at: 2026-10-26T17:10:09Z
-prompt_source: review.py reconciliation; actual failure records only, no AC/DoD/admission reapproval
+reviewer: Prior scoped histories; exact-cleanup-doc-reconciliation cleanup-only documentation PASS
+reviewed_at: 2026-10-26T17:21:29Z
+prompt_source: review.py reconciliation; exact later cleanup without failed-control repair or native qualification
 ---
 
 VERDICT: pass
@@ -124,3 +124,16 @@ Both were corrected. Fresh single-control-doc-corrections passed ONLY the matchi
 
 LIMITS:
 One actual local control attempt consumed and failed before START, with one created allocation cleanup-pending. No Node/guest clock/normal removal/vendor traffic or qualification occurred. Separate exact post-deadline cleanup question has no selected answer. Original caller/evidence and reservation stay unchanged; no retry, source normalization into a pass, native-case spend or whole-slice advancement follows.
+
+## Later owner-approved exact-allocation cleanup: documentation scope
+
+VERDICT: pass
+
+ATTRIBUTION:
+Fresh synchronous read-only jig:reviewer exact-cleanup-doc-reconciliation, documentation-only scope after81e5f46. No reviewer tests, commands, imports, hashes or physical operations.
+
+REASONING:
+The scoped documentation faithfully separates the consumed failed-before-START control from later owner-approved exact-allocation cleanup. Cleanup claims match supplied parent evidence: stopped-state/identity verification, one nonforced DELETE204 and exact GET404, with failed result and reservation preserved. Historical pending statements are identified as historical; nothing reviewed implies normal-control success, renewed60-second Meta authority, broader cleanup, qualification or lifecycle advancement.
+
+RECONCILIATION NOTES:
+No unrecorded deviations found. The separate cleanup-only operation does not repair or relabel the failed control. Parent/tool native exit0 and producer0.061936959-second interval are reported observation, not reviewer execution or rehashing.

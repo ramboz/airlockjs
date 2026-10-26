@@ -1573,12 +1573,19 @@ Approved single local control - 2026-10-26:
   so a separate exact-container, stopped-state check/removal-only decision
   was requested rather than issuing fresh cleanup mutations after its deadline.
   The response was user-unavailable, with no selected cleanup choice.
-  The created resource remains cleanup-pending; the last observed stopped
+  At that checkpoint the created resource remained cleanup-pending; the last observed stopped
   state is not asserted as current global state. Preserve the canonical marker.
+- The owner then explicitly approved the pending cleanup-only action. A
+  separate bounded operation verified the exact original case identity,
+  unchanged configuration and created/not-running/PID0 state; one nonforced
+  DELETE returned204, followed by exact-container GET404. It completed in
+  a producer-recorded0.062-second interval; the external tool returned native
+  exit0. That exact allocation is now removed;
+  the failed result and consumed reservation remain unchanged.
 - This is a concrete failed prerequisite, not product progress, actual H/S,
   outside-holder, future clock, kernel, runtime or native qualification.
   All qualification flags and native admissions remain false. Pause further
-  harness expansion; cleanup needs the owner's decision, and any new normal
+  harness expansion; exact cleanup is complete, and any new normal
   control would require separately scoped authority rather than resetting this one.
 
 ### Reconciliation sweep
@@ -1586,7 +1593,8 @@ Approved single local control - 2026-10-26:
 - updated - received local-control permission, restored exact endpoint,
   private caller/review lineage and actual consumed pre-start failure in the
   plans, guide, architecture and memory. One CREATE occurred; Node/start and
-  normal removal did not. The allocation remains cleanup-pending, not qualified.
+  normal removal did not. Separate later owner-approved exact cleanup returned
+  DELETE204/GET404; no normal-control or runtime qualification was inferred.
 - updated - the bare-base inline command, v2 identity/source distinctions,
   explicit cwd/HOME, legacy refusal, causal context correction and current
   dependency closures in the slice, operator guide, architecture, Proposed
@@ -1612,7 +1620,8 @@ Approved single local control - 2026-10-26:
   stable core/connectors/build/version, original spent authority and extra
   Meta permission/slot state. At that earlier source-only checkpoint no image
   or workload mutation occurred in this lane. The later single local CREATE
-  and consumed reservation are recorded above; cleanup remains unresolved.
+  and consumed reservation are recorded above; separate owner-approved exact
+  cleanup has since confirmed removal without changing the failed outcome.
 - deferred - independent unpack/runtime integrity, any required derived
   Work-bearing image and a fresh scoped guest-store headroom assessment,
   real independent H/O and atomic peer/operation custody; subsequent actual

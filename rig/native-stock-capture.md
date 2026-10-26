@@ -939,10 +939,11 @@ in a different array order. The original caller and failed result are preserved.
 
 The container was observed created/not running/PID0. START, Node, guest frames,
 WAIT and removal were never issued. No production capture or measurement
-submission followed. The created allocation remains cleanup-pending after the
-original interval; a separate exact stopped-container removal question received
-no selected decision. Do not retry/reset the consumed control or infer current
-state/cleanup from the retained snapshot. Full qualification and outside-holder
+submission followed. The created allocation was initially cleanup-pending after
+the original interval. The owner later approved cleanup only; exact current
+identity/stopped-state checks, one nonforced DELETE204 and exact GET404 confirm
+that allocation removed. The failed control/result/reservation remain preserved,
+not retried or reset. Full qualification and outside-holder
 integration remain unavailable; see
 [the actual record](../docs/specs/059-google-ads-full-compatibility/slice-18-additional-meta-authority.md#actual-single-local-control---2026-10-26-failed-before-start).
 
