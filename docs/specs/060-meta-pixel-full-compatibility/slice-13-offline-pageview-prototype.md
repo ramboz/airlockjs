@@ -1,11 +1,10 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [adr-0017, adr-0033]
 last_verified: 2026-10-26
 kind: feature
 frame_review: true
 arch_review: true
-claimed_by: google-and-meta-feasibility
 ---
 
 ## Slice 060-13 - Exercise an offline SDK-free PageView prototype

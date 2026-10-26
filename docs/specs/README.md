@@ -222,7 +222,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-10 - Correlate browser and server events | DRAFT |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-11 - Diagnose connected product collection | DRAFT |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-12 - Cut over, roll back and maintain assurance | DRAFT |  |
-| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-13 - Exercise an offline SDK-free PageView prototype | RECONCILED (google-and-meta-feasibility) |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-13 - Exercise an offline SDK-free PageView prototype | **DONE** |  |
 
 ## Deferred slices
 
