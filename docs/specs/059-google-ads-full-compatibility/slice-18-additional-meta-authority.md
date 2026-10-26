@@ -1540,8 +1540,53 @@ Approved single local control - 2026-10-26:
   That request returned user-unavailable, not confirmation. No production
   navigation or payload capture was substituted for the blocked local control.
 
+#### Actual single local control - 2026-10-26 (failed before start)
+
+- The owner subsequently confirmed Desktop readiness. The exact owned socket
+  returned; two bounded read-only GETs confirmed Engine28.5.1/API1.51 and the
+  pinned image. These were metadata checks, not a repeated import or runtime
+  qualification. Fresh peer coordination reported no conflicting lane operation.
+- The parent implemented one private fixed-purpose caller, reusing the strict
+  original-file helper and fixed inline program. Initial scoped compliance
+  passed. Craft found two blockers: a duplicate caller could claim the
+  reservation owner's result path, and selector faults could bypass owned
+  client settlement. Both had witnessed offline REDs and scoped correction
+  closure; current architecture passed. Final29 offline tests still used
+  doubled physical boundaries, not container execution.
+- One exact admitted job and exclusive canonical reservation were consumed.
+  The actual external command exited2 in0.75 seconds. Only engine metadata,
+  exact image metadata, CREATE and created-state INSPECT ran; all four clients
+  exited0 with actual wait, EOF and closed streams, no signals or stderr.
+  The container was observed `created`, not running, with daemon PID0.
+  No START, Node program, guest HELLO/CLOCK, WAIT or removal was issued.
+- The failed check was our order-sensitive `.Config.Env` array comparison.
+  The captured environment has exactly the same unique keys and values as
+  the fixed create command plus image defaults, but a different array order.
+  Data-only diagnosis confirms the other fixed profile predicates match that
+  retained created-state snapshot. Reordering a copy for diagnosis is not
+  admission, correction of the original result or a successful control.
+- Parent verification retained26 source/permission/job/reservation/operation/
+  output originals and the native exit/time observation. The case remains
+  consumed and failed/UNKNOWN; the caller and original evidence are unchanged.
+  No automatic retry, new image load or production capture followed.
+- Owned removal was not reached. The original operation interval has ended,
+  so a separate exact-container, stopped-state check/removal-only decision
+  was requested rather than issuing fresh cleanup mutations after its deadline.
+  The response was user-unavailable, with no selected cleanup choice.
+  The created resource remains cleanup-pending; the last observed stopped
+  state is not asserted as current global state. Preserve the canonical marker.
+- This is a concrete failed prerequisite, not product progress, actual H/S,
+  outside-holder, future clock, kernel, runtime or native qualification.
+  All qualification flags and native admissions remain false. Pause further
+  harness expansion; cleanup needs the owner's decision, and any new normal
+  control would require separately scoped authority rather than resetting this one.
+
 ### Reconciliation sweep
 
+- updated - received local-control permission, restored exact endpoint,
+  private caller/review lineage and actual consumed pre-start failure in the
+  plans, guide, architecture and memory. One CREATE occurred; Node/start and
+  normal removal did not. The allocation remains cleanup-pending, not qualified.
 - updated - the bare-base inline command, v2 identity/source distinctions,
   explicit cwd/HOME, legacy refusal, causal context correction and current
   dependency closures in the slice, operator guide, architecture, Proposed
@@ -1565,7 +1610,9 @@ Approved single local control - 2026-10-26:
   ADR-0038. No earlier failed check or historical HOST cohort was renewed.
 - no-op - runtime/clock/image/Mac/native hard denials, NOT_PREPARED cohorts,
   stable core/connectors/build/version, original spent authority and extra
-  Meta permission/slot state. No image or workload mutation occurred in this lane.
+  Meta permission/slot state. At that earlier source-only checkpoint no image
+  or workload mutation occurred in this lane. The later single local CREATE
+  and consumed reservation are recorded above; cleanup remains unresolved.
 - deferred - independent unpack/runtime integrity, any required derived
   Work-bearing image and a fresh scoped guest-store headroom assessment,
   real independent H/O and atomic peer/operation custody; subsequent actual

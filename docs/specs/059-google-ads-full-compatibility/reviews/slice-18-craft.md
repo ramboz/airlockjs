@@ -2,9 +2,9 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: craft
 verdict: pass
-reviewer: Prior scoped histories; bare-base-clock-source-craft amendment-only PASS
-reviewed_at: 2026-10-24T02:46:58Z
-prompt_source: review.py pr-review --richer-skill pr-review; fixed bare-base no-work SOURCE only; no GitHub posting
+reviewer: Prior scoped histories; single-control-craft needs-changes then narrow correction PASS
+reviewed_at: 2026-10-26T17:10:09Z
+prompt_source: review.py pr-review --richer-skill pr-review; private fixed caller craft/correction only; later actual failure not PASS
 substrate: shown
 applied_skill: pr-review
 shown_candidates: [pr-review:high-confidence, scout-pr-review:high-confidence, access:speculative, agent-development:speculative, arch-review:speculative, build-mcp-app:speculative, build-mcp-server:speculative, build-mcpb:speculative, cardputer-buddy:speculative, claude-automation-recommender:speculative, claude-md-improver:speculative, command-development:speculative, configure:speculative, example-command:speculative, example-skill:speculative, frontend-design:speculative, hook-development:speculative, m5-onboard:speculative, math-olympiad:speculative, mcp-integration:speculative, playground:speculative, plugin-settings:speculative, plugin-structure:speculative, project-artifact:speculative, scout-autotune:speculative, scout-bench-create:speculative, scout-memory-init:speculative, scout-scrum-master:speculative, session-report:speculative, skill-creator:speculative, skill-development:speculative, writing-hookify-rules:speculative]
@@ -118,3 +118,15 @@ SPECIFIC ISSUES:
 
 RECONCILIATION NOTES:
 Reconcile pending docs. Preserve Proposed ADR-0038, false operational gates, original spent/extra unspent Meta state and the unselected container choice. Parent logs report625 affected plus187 HOST-source passes; the reviewer executed nothing.
+
+## Single local diagnostic caller: two craft corrections
+
+VERDICT: pass
+
+BOUNDED COMPOSITE STATIC REVIEW:
+Fresh single-control-craft initially returned needs-changes for two blockers: an unreserved invocation could claim the reservation owner's result, and selector setup/select faults could skip owned-client settlement. The raw finding remains craft-initial-needs-changes.txt. Both had narrow witnessed REDs, not merely expected-output edits.
+
+Fresh single-control-craft-correction passed ONLY those coupled corrections: ownership is set after completed reservation handoff and unreserved main publishes no case result; collector faults use the original remaining deadline and independently close both pipes, retaining UNKNOWN/no false EOF/no daemon-cancellation claim. Nonblocking coverage notes prompted three further tests for early-fault normal wait arguments, stdout-close failure preserving stderr closure, and post-spawn PID-publication failure through the actual doubled collector. Final29 offline tests passed; none was actual container evidence.
+
+LIMITS:
+Reviewers read files only. This was not renewed whole-candidate compliance or launch authority. The later actual case failed before program start on an environment-order assumption and is consumed, not eligible for retry; the allocated resource remains cleanup-pending. Normal/native/H/S/clock/outside-holder qualification remains unavailable.

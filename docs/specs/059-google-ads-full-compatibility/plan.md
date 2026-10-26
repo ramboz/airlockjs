@@ -1,8 +1,20 @@
 # Plan - full Google Ads browser-tag compatibility
 
+## Actual local-control checkpoint - 2026-10-26
+
+Desktop became available; the single approved no-work control was attempted
+once and is consumed/failed, not still unspent. External exit2/0.75 seconds
+followed four normally closed clients through CREATE and created-state INSPECT.
+Our strict environment-array ordering check rejected identical unique keys/
+values in a different order. No START/Node/guest clock or vendor action ran.
+The allocated container was observed not running and remains cleanup-pending;
+the separate post-deadline exact removal question returned no selected decision.
+Do not retry/reset the control, infer qualification or expand the harness.
+See [the actual record](slice-18-additional-meta-authority.md#actual-single-local-control---2026-10-26-failed-before-start).
+
 ## Local-control owner decision - 2026-10-26
 
-The owner approved one reviewed no-work Node container control, not a Google
+At this earlier checkpoint, the owner approved one reviewed no-work Node container control, not a Google
 case:45 seconds/.25CPU/64MiB/16processes, no network/mount/build/pull/browser/
 vendor/settings changes or automatic retry. Permission is received; current
 preparation instead found the exact previously verified Docker endpoint absent,

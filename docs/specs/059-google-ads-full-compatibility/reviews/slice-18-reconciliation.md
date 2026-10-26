@@ -2,9 +2,9 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: reconciliation
 verdict: pass
-reviewer: Prior scoped histories; approved-control-doc-reconciliation documentation-only PASS
-reviewed_at: 2026-10-26T15:43:51Z
-prompt_source: review.py reconciliation; current permission/exact endpoint blocker docs, not implementation or admission
+reviewer: Prior scoped histories; actual-doc needs-changes then two-location correction PASS
+reviewed_at: 2026-10-26T17:10:09Z
+prompt_source: review.py reconciliation; actual failure records only, no AC/DoD/admission reapproval
 ---
 
 VERDICT: pass
@@ -112,3 +112,15 @@ The new checkpoints distinguish received owner permission from historical unansw
 
 RECONCILIATION NOTES:
 No additional deviations identified within the bounded documentation scope. IN_PROGRESS, open DoD, Proposed ADR-0038, original Meta SPENT/additional UNSPENT and unavailable native gates remain unchanged. The shared-import pending marker remains preserved, with no second import authorized.
+
+## Actual failed local-control documentation: bounded composite review
+
+VERDICT: pass
+
+BOUNDED COMPOSITE DOCUMENTATION REVIEW:
+Fresh single-control-actual-doc-reconciliation verified consistency of the actual failure, consumed reservation, original-byte/parent attribution, exact environment-order diagnosis and pending cleanup; it returned needs-changes for two documentation defects. The actual-result title lacked an anchor, and the reconciliation sweep retained an unqualified old no-mutation claim despite the later CREATE.
+
+Both were corrected. Fresh single-control-doc-corrections passed ONLY the matching heading/three fragment links and historical/current sweep boundary. It did not repeat underlying evidence, AC/DoD or admission review. Counts, native exit2/0.75s and26 stable originals are parent/tool observations, not reviewer execution or rehashing.
+
+LIMITS:
+One actual local control attempt consumed and failed before START, with one created allocation cleanup-pending. No Node/guest clock/normal removal/vendor traffic or qualification occurred. Separate exact post-deadline cleanup question has no selected answer. Original caller/evidence and reservation stay unchanged; no retry, source normalization into a pass, native-case spend or whole-slice advancement follows.

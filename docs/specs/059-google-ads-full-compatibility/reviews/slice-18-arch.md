@@ -2,9 +2,9 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: arch
 verdict: pass
-reviewer: Prior scoped histories; bare-base-clock-source-architecture amendment-only PASS
-reviewed_at: 2026-10-24T02:46:57Z
-prompt_source: review.py arch-review --richer-skill arch-review; bare-base SOURCE boundaries, no ADR acceptance
+reviewer: Prior scoped histories; single-control-architecture static private caller only
+reviewed_at: 2026-10-26T17:10:09Z
+prompt_source: review.py arch-review --richer-skill arch-review; no outside-holder/native/runtime acceptance
 substrate: shown
 applied_skill: arch-review
 shown_candidates: [arch-review:high-confidence, access:speculative, agent-development:speculative, build-mcp-app:speculative, build-mcp-server:speculative, build-mcpb:speculative, cardputer-buddy:speculative, claude-automation-recommender:speculative, claude-md-improver:speculative, command-development:speculative, configure:speculative, example-command:speculative, example-skill:speculative, frontend-design:speculative, hook-development:speculative, m5-onboard:speculative, math-olympiad:speculative, mcp-integration:speculative, playground:speculative, plugin-settings:speculative, plugin-structure:speculative, pr-review:speculative, project-artifact:speculative, scout-autotune:speculative, scout-bench-create:speculative, scout-memory-init:speculative, scout-pr-review:speculative, scout-scrum-master:speculative, session-report:speculative, skill-creator:speculative, skill-development:speculative, writing-hookify-rules:speculative]
@@ -108,3 +108,13 @@ SPECIFIC ISSUES:
 
 RECONCILIATION NOTES:
 No blockers or nits. Parent logs report625 affected and187 HOST-source passes; the reviewer executed and wrote nothing. Original budgets, private one-use plans and pending custody remain constraints, not qualifications proved here. This does not accept ADR-0038, whole-slice AC/DoD, full Google/Meta work, historical clearance, operational readiness, actual runtime/image/H/clock/native qualification or the unselected container choice.
+
+## Single local diagnostic caller: static architecture scope
+
+VERDICT: pass
+
+BOUNDED HISTORICAL STATIC REVIEW:
+Fresh read-only single-control-architecture passed the complete corrected private caller/test design at its exact actual-attempt source hashes. It found no blocking gap within the fixed diagnostic frame: original deadline, exact retained client, unreserved refusal, collector/post-spawn fault settlement, and candidate status distinct from external whole-command completion. It ran no tests, hashes or operations and granted no launch authority.
+
+CURRENT LIMIT:
+Actual native exit2/0.75s is a failed pre-start control, not runtime validation of that design. The ordered-environment predicate was too strict for captured identical unique key/value entries. CREATE occurred but Node/frames/wait/removal did not; cleanup remains unresolved and the attempt cannot be retried. Existing hard denials and ProposedADR0038 remain unchanged; no independent outside-holder or native/H/S/clock/kernel qualification.

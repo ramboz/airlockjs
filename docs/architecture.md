@@ -115,6 +115,12 @@ interpret the selected command under doubled process/clock/output boundaries,
 not an actual guest. Scoped source reviews passed; the legacy file entry
 refuses, the Work-bearing path stays separate, and no container permission
 or runtime/clock/native qualification follows.
+The separately owner-approved local control on2026-10-26 then failed before
+program start: an environment-array ordering assertion rejected identical
+unique key/value entries. CREATE/created-state INSPECT were observed, not
+guest output or normal cleanup. Its one attempt is consumed and the allocation
+is cleanup-pending; the [actual record](specs/059-google-ads-full-compatibility/slice-18-additional-meta-authority.md#actual-single-local-control---2026-10-26-failed-before-start)
+does not qualify the source model, an outside-holder or any native entry.
 The fixed Node-only host prerequisite (`rig/sdk-absent-clock-host-observer.mjs`
 and `rig/sdk-absent-clock-host-reader.mjs`) retains public owned-child PID
 issuance and HELLO/RESULT/COMPLETE plus separate actual exit/stream evidence.

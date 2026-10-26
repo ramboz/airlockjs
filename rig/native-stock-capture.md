@@ -923,10 +923,28 @@ approved the single reviewed45-second/.25-CPU/64-MiB/16-process local control;
 permission is no longer missing. It is not authority for additional cases,
 production submissions or bypassing operation-specific reviews. Fresh
 preparation found the exact previously verified Docker endpoint absent before
-any daemon request. The control remains unissued/unspent, with no operational
-job/reservation or new private runner implementation. Desktop readiness is
-the current external blocker; opening Desktop automatically could resume
-unrelated workloads. No production capture replaces this missing control.
+any daemon request. At that endpoint-failure checkpoint the control remained
+unissued/unspent, with no operational job/reservation or new private runner
+implementation. Desktop readiness was then the external blocker; opening
+Desktop automatically could resume unrelated workloads.
+
+### Actual approved local control: failed before start
+
+The owner subsequently confirmed Desktop readiness. Exact read-only version/
+image checks passed, and one private reviewed control was attempted. It is now
+**consumed/failed**, not unspent. The external command exited2 in0.75 seconds;
+four clients normally closed through CREATE and created-state INSPECT.
+Our `.Config.Env` order check rejected exactly identical unique keys and values
+in a different array order. The original caller and failed result are preserved.
+
+The container was observed created/not running/PID0. START, Node, guest frames,
+WAIT and removal were never issued. No production capture or measurement
+submission followed. The created allocation remains cleanup-pending after the
+original interval; a separate exact stopped-container removal question received
+no selected decision. Do not retry/reset the consumed control or infer current
+state/cleanup from the retained snapshot. Full qualification and outside-holder
+integration remain unavailable; see
+[the actual record](../docs/specs/059-google-ads-full-compatibility/slice-18-additional-meta-authority.md#actual-single-local-control---2026-10-26-failed-before-start).
 
 ### Bare-base no-work program SOURCE refinement
 

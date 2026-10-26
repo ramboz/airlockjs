@@ -1,8 +1,18 @@
 # Plan - full Meta Pixel compatibility
 
+## Actual local-control checkpoint - 2026-10-26
+
+The separate single no-work control was consumed and failed before Node start:
+our environment-order check rejected the same unique key/value set in a
+different serialization order. The created resource is cleanup-pending, not
+running at its recorded inspection; separate current cleanup permission remains
+unselected. There is no guest-clock, outside-holder or native qualification.
+See [059's actual checkpoint](../059-google-ads-full-compatibility/plan.md#actual-local-control-checkpoint---2026-10-26).
+No additional Meta case was spent or admitted by this local attempt.
+
 ## Local-control owner decision - 2026-10-26
 
-The owner approved the separately scoped single no-work Node container
+At this earlier checkpoint, the owner approved the separately scoped single no-work Node container
 control, after its operation-specific reviews; see
 [059's current checkpoint](../059-google-ads-full-compatibility/plan.md#local-control-owner-decision---2026-10-26).
 Permission is no longer missing, but the exact local Docker endpoint is absent
