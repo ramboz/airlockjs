@@ -2,9 +2,9 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: reconciliation
 verdict: pass
-reviewer: Prior scoped histories; bare-base-clock-source-reconciliation docs-only PASS
-reviewed_at: 2026-10-24T02:52:37Z
-prompt_source: review.py reconciliation; bare-base SOURCE documentation only, not AC/DoD or admission
+reviewer: Prior scoped histories; approved-control-doc-reconciliation documentation-only PASS
+reviewed_at: 2026-10-26T15:43:51Z
+prompt_source: review.py reconciliation; current permission/exact endpoint blocker docs, not implementation or admission
 ---
 
 VERDICT: pass
@@ -99,3 +99,16 @@ None within this documentation-only scope.
 
 RECONCILIATION NOTES:
 No additional deviations needed. Counts and hashes remain reported provenance, not reviewer execution or rehashing. Open DoD, Proposed ADR-0038, false admission gates, unselected container permission, no-repeat-load restriction, pending peer continuity, historical UNKNOWNs and incomplete Google/Meta/native-wire/C2C3 remain unchanged.
+
+## Approved single local control documentation - 2026-10-26
+
+VERDICT: pass
+
+ATTRIBUTION:
+Fresh synchronous read-only jig:reviewer approved-control-doc-reconciliation. Documentation-only review after b4e7811; no reviewer commands/tests/rehashes/operations or implementation acceptance.
+
+REASONING:
+The new checkpoints distinguish received owner permission from historical unanswered questions while retaining implementation, operation-specific review and endpoint-readiness blockers. They accurately limit ENOENT to the exact previous endpoint, explain why Desktop was not automatically launched, and claim no new implementation, tests, control execution or lifecycle advancement. Conditional production-reference permission is explicitly narrowed to operator-selected zero-forwarded-measurement observation; neither the frame pass nor peer-reported load/metadata continuity PASS is presented as runtime or native qualification.
+
+RECONCILIATION NOTES:
+No additional deviations identified within the bounded documentation scope. IN_PROGRESS, open DoD, Proposed ADR-0038, original Meta SPENT/additional UNSPENT and unavailable native gates remain unchanged. The shared-import pending marker remains preserved, with no second import authorized.

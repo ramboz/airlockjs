@@ -1,5 +1,19 @@
 # Plan - full Google Ads browser-tag compatibility
 
+## Local-control owner decision - 2026-10-26
+
+The owner approved one reviewed no-work Node container control, not a Google
+case:45 seconds/.25CPU/64MiB/16processes, no network/mount/build/pull/browser/
+vendor/settings changes or automatic retry. Permission is received; current
+preparation instead found the exact previously verified Docker endpoint absent,
+before any backend request or allocation. The control remains unissued/unspent;
+fixed operator implementation and operation-specific safety reviews are still
+required after the endpoint becomes available. No general runner expansion
+or new tag implementation was substituted for that blocker.
+Conditional production reference capture is now permitted, but the operator
+selects zero forwarded measurement submissions. It does not replace the owned
+case contract, establish delivered responses/attribution or reopen billing work.
+
 ## First-journey readiness checkpoint - 2026-10-16
 
 **Status: first slice READY_FOR_REVIEW (authoring) / not implementation-ready.**

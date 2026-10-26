@@ -918,6 +918,15 @@ permission to duplicate the completed shared-image load.
 The subsequent one-no-work-container permission question did not receive
 a selected choice. Container execution, builds/pulls, host mounts, network,
 browser/SDK/vendor activity and settings changes remain disabled here.
+That was the earlier permission checkpoint. On2026-10-26 the owner explicitly
+approved the single reviewed45-second/.25-CPU/64-MiB/16-process local control;
+permission is no longer missing. It is not authority for additional cases,
+production submissions or bypassing operation-specific reviews. Fresh
+preparation found the exact previously verified Docker endpoint absent before
+any daemon request. The control remains unissued/unspent, with no operational
+job/reservation or new private runner implementation. Desktop readiness is
+the current external blocker; opening Desktop automatically could resume
+unrelated workloads. No production capture replaces this missing control.
 
 ### Bare-base no-work program SOURCE refinement
 

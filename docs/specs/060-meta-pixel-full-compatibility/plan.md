@@ -1,5 +1,16 @@
 # Plan - full Meta Pixel compatibility
 
+## Local-control owner decision - 2026-10-26
+
+The owner approved the separately scoped single no-work Node container
+control, after its operation-specific reviews; see
+[059's current checkpoint](../059-google-ads-full-compatibility/plan.md#local-control-owner-decision---2026-10-26).
+Permission is no longer missing, but the exact local Docker endpoint is absent
+and no control has been issued. This does not spend or renew either Meta case,
+qualify a native executor, accept ADR-0038 or complete060-01 readiness.
+The separately permitted production reference option remains zero-forwarded-
+measurement observation, not a substitute backend/attribution reference.
+
 ## Additional bounded stock authority - 2026-10-21
 
 The owner at 18:33:04.581Z explicitly authorized the requested one additional

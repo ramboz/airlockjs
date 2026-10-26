@@ -1479,6 +1479,67 @@ Bare-base no-work clock program source refinement (2026-10-24):
   allocation/start, build, mount, backend request, browser/SDK/vendor action,
   new live job or old-UNKNOWN clearance follows.
 
+Approved single local control - 2026-10-26:
+
+- The owner explicitly answered the previously proposed single no-work
+  container question. Its limits remain one case, 45 seconds through owned
+  cleanup/publication, 0.25 CPU, 64 MiB RAM and16 processes; no network,
+  mounts, builds/pulls, browser/vendor activity, settings changes or retry.
+  The new private permission original preserves the exact message and
+  separate conditional production-reference permission. Earlier unselected
+  questions remain historical, not the current owner decision.
+- Keep the next increment a fixed private operator control, not a general
+  runner or positive implementation of the unavailable H/O/P/S gates.
+  Reuse the pinned first-party inline program and confinement contract;
+  retain exact source/executable/permission originals and a canonical
+  exclusive one-use case reservation before any allocation attempt.
+- A minimal independently observed local caller may issue only the fixed
+  case's engine/image readback, allocation, exact configuration inspection,
+  attached start, wait/exit inspection and exact owned cleanup. No inventory,
+  foreign resource adoption, name/PID scanning, arbitrary executable/input,
+  fallback image, second allocation or retry. Uncertain CREATE/start/backend
+  outcomes retain a bounded UNKNOWN/pending handoff, never imply cancellation.
+  Only a directly retained owned client PID may be signalled on timeout;
+  client termination never proves daemon-operation closure.
+- Use one original caller monotonic deadline, bounded output retained while
+  draining, and separate actual client wait/stream closure. Revalidate the
+  checked inputs and remaining budget immediately before each effect, after
+  blocking source checks. Cleanup cannot renew the deadline or guess custody.
+  Keep full returned originals, exit/signal and external whole-command
+  observation distinct from the control's own pre-return result.
+- Offline tests and operation-specific reviews precede any live admission.
+  Tests must detect command/profile substitution, delayed send/spawn,
+  output overflow, lost response/late operation and incomplete cleanup.
+  A normal result may establish only this fixed control's daemon-reported
+  startup/output/exit/removal observations, not actual independent H/S,
+  prospective clock bounds, kernel confinement, historical cleanup or native
+  admission. All existing runtime/native gates remain unavailable.
+- The shared image was imported once; never load it again or remove its
+  pending marker. Peer-reported retrospective import continuity is now PASS
+  for complete load/metadata consistency only. Fresh case preparation and
+  current conflict checks remain separate from that historical result.
+- If needed later, the owner permits reference capture on the named
+  production site. Select the stricter zero-forwarded-measurement scope:
+  interception before navigation, no forms/purchases/ad clicks, no automatic
+  retries. This is not a positive production-submission allowance, a new
+  owned Meta slot, or proof of delivered responses/attribution.
+- Stop runner preparation at the two-active-hour checkpoint with concrete
+  evidence or the remaining blocker; do not expand into another framework.
+  This frame leaves059-18 IN_PROGRESS, its native DoD open and ADR-0038 Proposed.
+- Fresh frame critique passed this bounded diagnostic contract, not its
+  implementation or operational admission. The custom implementer stopped
+  without edits/tests because its readiness premise required
+  READY_FOR_IMPLEMENTATION instead of the already claimed IN_PROGRESS state;
+  no lifecycle state was changed to satisfy it.
+- Direct local preparation then found the exact previously verified Docker
+  socket absent, before any backend request. This establishes an unavailable
+  configured endpoint, not image absence or a diagnosis of why it disappeared.
+  The approved control remains unissued/unspent; no new operator source was
+  built around that blocker. Starting Desktop could resume unrelated workloads,
+  so the operator requested owner readiness rather than launching it.
+  That request returned user-unavailable, not confirmation. No production
+  navigation or payload capture was substituted for the blocked local control.
+
 ### Reconciliation sweep
 
 - updated - the bare-base inline command, v2 identity/source distinctions,
