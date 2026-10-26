@@ -117,6 +117,11 @@ or retry occurred, and full compliance/actual-browser DoD remain open.
 
 ### Reconciliation sweep
 
+The HTTP200-only attempt still failed in shared Meta preflight, without Google
+acquisition. One further owner-supervised same-limit sequence is separately
+approved to test strict zero-body EOF before preflight success. Its source
+controls are not Google browser proof; unexpected network failures remain fatal.
+
 **Owner-approved local refinement:** the second shared sequence still failed
 before Google acquisition. The present owner selected explicitly empty HTTP200
 local acknowledgments and one further supervised sequence with unchanged limits.

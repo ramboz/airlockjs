@@ -4,7 +4,9 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as fixtureModule from "../rig/local-browser-journeys.mjs";
-import { assertForegroundReceipts, checkForegroundRequest, runLocalBrowserForeground } from "../rig/local-browser-foreground.mjs";
+import {
+  assertForegroundReceipts, checkForegroundRequest, runLocalBrowserForeground, startForegroundControlFetch,
+} from "../rig/local-browser-foreground.mjs";
 
 const origin = "http://127.0.0.1:43111";
 const metaFields = (second = false) => [
@@ -30,6 +32,49 @@ function rows(vendor) {
 }
 
 describe("foreground source-only receipt and route checks — NOT browser qualification", () => {
+  it("does not resolve a positive preflight after headers before zero-body EOF", async () => {
+    let finish;
+    const body = new Promise((resolve) => { finish = resolve; });
+    const reader = { read: vi.fn(() => body), cancel: vi.fn(), releaseLock: vi.fn() };
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      status: 200, headers: new Headers({ "content-length": "0" }), body: { getReader: () => reader },
+    })));
+    startForegroundControlFetch(`${origin}/tr/?${rows("meta")[0].query}`);
+    await Promise.resolve();
+    expect(window.__foregroundControl.state).toBe("pending");
+    finish({ done: true });
+    await vi.waitFor(() => expect(window.__foregroundControl).toMatchObject({
+      state: "resolved", status: 200, bodyConsumed: true, bodyBytes: 0,
+    }));
+    expect(reader.read).toHaveBeenCalledOnce();
+    expect(reader.releaseLock).toHaveBeenCalledOnce();
+    expect(reader.cancel).not.toHaveBeenCalled();
+  });
+
+  it.each(["content", "read-error", "missing-stream", "wrong-framing"])("rejects preflight %s rather than header-only success", async (fault) => {
+    const reader = {
+      read: vi.fn(async () => {
+        if (fault === "read-error") throw new Error("read-failed");
+        return { done: false, value: new Uint8Array([1]) };
+      }),
+      cancel: vi.fn(async () => {}), releaseLock: vi.fn(),
+    };
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      status: 200, headers: new Headers({ "content-length": fault === "wrong-framing" ? "1" : "0" }),
+      body: fault === "missing-stream" ? null : { getReader: () => reader },
+    })));
+    startForegroundControlFetch(`${origin}/tr/?${rows("meta")[0].query}`);
+    await vi.waitFor(() => expect(window.__foregroundControl).toMatchObject({
+      state: "rejected", status: null, bodyConsumed: false,
+    }));
+    if (fault === "content" || fault === "read-error") {
+      expect(reader.cancel).toHaveBeenCalledOnce();
+      expect(reader.releaseLock).toHaveBeenCalledOnce();
+    } else expect(reader.read).not.toHaveBeenCalled();
+  });
+
   it.each(["meta", "google"])("%s requires both complete, literal, distinct receiver documents", (vendor) => {
     expect(() => assertForegroundReceipts(vendor, rows(vendor))).not.toThrow();
     for (const change of [
@@ -76,6 +121,7 @@ const openFixtures = [];
 afterEach(async () => {
   vi.useRealTimers();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   await Promise.all(openFixtures.splice(0).map((fixture) => fixture.close()));
 });
 const mainSources = (vendor) => [
@@ -212,7 +258,9 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
       if (source.includes("void fetch(")) {
         this.control = { state: "pending", status: null };
         void this.context.send(arg, "fetch").then(
-          (response) => { this.control = { state: "resolved", status: response.status }; },
+          (response) => { this.control = {
+            state: "resolved", status: response.status, bodyConsumed: true, bodyBytes: response.body.length,
+          }; },
           () => { this.control = { state: "rejected", status: null }; },
         );
         return;

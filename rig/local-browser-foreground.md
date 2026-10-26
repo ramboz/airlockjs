@@ -7,6 +7,17 @@ issuance; tests of this module do **not** issue it or launch Chrome.
 
 ## Current owner-selected acknowledgment
 
+**Current preflight refinement:** changing only204→200 did not remove the abort:
+the one HTTP200 attempt also stopped before product work (exit1/7.82s), with
+normal cleanup. The present owner separately approved one further supervised
+sequence testing strict zero-body consumption. The preflight now waits for
+actual EOF on the200 stream before reporting success, rejects content/missing
+stream/wrong framing/read failure, and releases the reader without canceling a
+successfully completed stream. Its final body-consumed state is retained.
+All network-failure checks remain fatal. A witnessed pending-versus-headers RED
+and55 offline controls support only this completion-contract correction;
+the browser-abort hypothesis is still unproved until actual execution.
+
 After the separately approved corrected attempt still failed on
 `net::ERR_ABORTED` despite page Fetch204 and recorded empty framing, the present
 owner selected: **“Try empty HTTP200 locally; keep204 unqualified.”**

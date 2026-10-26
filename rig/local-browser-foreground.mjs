@@ -59,6 +59,30 @@ function fields(vendor, second = false) {
 }
 const queryFor = (vendor, second = false) => new URLSearchParams(fields(vendor, second)).toString();
 
+// Self-contained because Playwright serializes this function into the owned page.
+export function startForegroundControlFetch(url) {
+  window.__foregroundControl = { state: "pending", status: null, bodyConsumed: false };
+  void fetch(url, { method: "GET", credentials: "omit", redirect: "error", referrerPolicy: "no-referrer" })
+    .then(async (response) => {
+      if (response.status !== 200 || response.headers.get("content-length") !== "0" || !response.body) {
+        throw new Error("invalid-control-response");
+      }
+      const reader = response.body.getReader();
+      let done = false;
+      try {
+        const chunk = await reader.read();
+        done = chunk.done === true;
+        if (!done || chunk.value?.byteLength) throw new Error("nonempty-control-response");
+      } finally {
+        try { if (!done) await reader.cancel(); }
+        finally { reader.releaseLock(); }
+      }
+      window.__foregroundControl = { state: "resolved", status: 200, bodyConsumed: true, bodyBytes: 0 };
+    }).catch(() => {
+      window.__foregroundControl = { state: "rejected", status: null, bodyConsumed: false };
+    });
+}
+
 // These pure checks are exported for offline tests, not as execution configuration.
 export function assertForegroundReceipts(vendor, rows, statuses = [200, 200]) {
   requireFact(Array.isArray(rows) && rows.length === statuses.length, "receiver-count");
@@ -461,17 +485,17 @@ async function runVendor(vendor, interruption, ownedProfiles) {
     const fixture = preflightFixture.value;
     const localURL = `${fixture.origin}${receiverPath(vendor)}?${queryFor(vendor)}`;
     async function sendControl() {
-      await bounded(() => preflight.page.evaluate((url) => {
-        window.__foregroundControl = { state: "pending", status: null };
-        void fetch(url, { method: "GET", credentials: "omit", redirect: "error", referrerPolicy: "no-referrer" })
-          .then((response) => { window.__foregroundControl = { state: "resolved", status: response.status }; },
-            () => { window.__foregroundControl = { state: "rejected", status: null }; });
-      }, localURL), "local-preflight-start");
+      await bounded(() => preflight.page.evaluate(startForegroundControlFetch, localURL), "local-preflight-start");
     }
     async function controlResult(expectedState, status) {
       await until(async () => {
         const result = await preflight.page.evaluate(() => window.__foregroundControl);
-        return result?.state === expectedState && result.status === status;
+        const matched = result?.state === expectedState && result.status === status &&
+          (expectedState !== "resolved" || (result.bodyConsumed === true && result.bodyBytes === 0));
+        if (matched) commandObservations.push({
+          mode: "preflight", phase: `control-${commandObservations.length + 1}-${expectedState}`, state: retain(result),
+        });
+        return matched;
       }, "local-preflight-result");
     }
     await sendControl();

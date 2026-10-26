@@ -146,6 +146,14 @@ the egress DoR remains unchecked, and all actual-product DoD stays open.
 
 ### Reconciliation sweep
 
+The owner-approved HTTP200-only sequence also failed before any product worker
+(exit1/7.82s, same `net::ERR_ABORTED`, normal exact cleanup). Thus the abort is
+not specific to204. The owner separately approved one further same-limit
+sequence to test consuming the preflight's expected zero-byte body to EOF.
+That check now rejects content/missing stream/framing/read failure and retains
+its final body-consumed observation;55 offline controls pass after a witnessed
+headers-versus-EOF RED. This is not yet a proved browser fix or actual journey.
+
 **Owner-approved local refinement:** the second actual sequence (separately
 approved while the owner was present) verified204 empty framing but still
 failed with `net::ERR_ABORTED`, whole-command exit1/9.37s, no product worker or
