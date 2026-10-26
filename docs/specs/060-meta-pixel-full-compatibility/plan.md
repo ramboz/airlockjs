@@ -5,7 +5,7 @@
 Use the [Google/Meta delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
 for priority, remaining feature owners, decision triggers and stop cards;
 this plan and slice frontmatter retain detailed dependencies and evidence.
-[Proposed ADR-0042](../../decisions/adr-0042-google-meta-product-delivery-gates.md)
+[Accepted ADR-0042](../../decisions/adr-0042-google-meta-product-delivery-gates.md)
 does not accept an execution exception or change the complete replacement target.
 
 The next product draft after060-13 is
@@ -19,7 +19,7 @@ event/routing/consent/identity/automatic/lifecycle/outcome/adoption families.
 
 Do not fill fields from the old redacted capture by guessing. A necessary
 capability/transport decision gets a precise native-evidence-backed ADR under
-its owning feature, not a general cookie/network/DOM grant. The queue's proposed
+its owning feature, not a general cookie/network/DOM grant. The queue's default
 two-hour prerequisite checkpoint is not a renewed budget or live permission.
 
 ## Offline product construction - 060-13

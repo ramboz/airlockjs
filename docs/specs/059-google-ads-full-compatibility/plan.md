@@ -5,9 +5,8 @@
 The [Google/Meta delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
 is the single ordered view of the remaining work and decision triggers.
 This plan and slice frontmatter retain the detailed evidence/dependency contracts.
-[Proposed ADR-0042](../../decisions/adr-0042-google-meta-product-delivery-gates.md)
-records the suggested product-first admission/stop rule; it is not accepted
-or an execution grant.
+[Accepted ADR-0042](../../decisions/adr-0042-google-meta-product-delivery-gates.md)
+records the product-first admission/stop rule; it is not an execution grant.
 
 After completed059-19, the next Google product draft is
 [059-20 local-browser conversion](slice-20-local-browser-conversion.md).
@@ -20,7 +19,7 @@ not a fresh duplicate backlog. The queue maps each to its next refinement.
 
 Before supporting work starts, name the consuming criterion, smallest reused
 change, allowed inputs/authority, finite checkpoint and concrete exit/blocker.
-The two-hour prerequisite checkpoint is proposed for owner acceptance, not a
+The default two-hour prerequisite checkpoint is accepted, not a
 new spend/run allowance. No unrelated runner, account or billing investigation
 is reopened by this plan.
 

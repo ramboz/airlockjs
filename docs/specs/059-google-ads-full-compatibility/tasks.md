@@ -10,8 +10,8 @@ implementation, review or readiness.
       entry gates; no browser acquisition from a draft.
 - [ ] Use the [delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
       for later feature owners/decision triggers and a product-linked stop card.
-- [ ] Owner reviews Proposed ADR-0042; no acceptance, two-hour allocation or
-      operational exception is inferred from authoring.
+- [x] Owner accepted ADR-0042 on2026-10-26; no new two-hour allocation or
+      operational exception follows from the delivery decision.
 
 ## Offline product construction
 

@@ -35,10 +35,10 @@ fixture. Authoring/code preparation may proceed within ordinary repository
 scope; actual browser acquisition waits for its separate current execution plan.
 No browser, vendor run, deployment or source pause is authorized by this queue.
 
-[Proposed ADR-0042](../decisions/adr-0042-google-meta-product-delivery-gates.md)
-records product-first sequencing, evidence separation and a proposed two-active-
-hour checkpoint for supporting work. It is not Accepted, an execution exception
-or a substitute for existing safety/authority gates.
+[Accepted ADR-0042](../decisions/adr-0042-google-meta-product-delivery-gates.md)
+records product-first sequencing, evidence separation and a default two-active-
+hour checkpoint for supporting work. Owner acceptance on2026-10-26 is not an
+execution exception or a substitute for existing safety/authority gates.
 
 ### Ordered deliverables
 
@@ -86,7 +86,7 @@ ready merely because they appear in this table.
 
 | Decision | Owning work / when to write the ADR | What is not decided |
 |---|---|---|
-| Product-first work admission | Proposed ADR-0042; owner acceptance pending | No runtime change, execution authority or relaxation of full parity. |
+| Product-first work admission | ADR-0042 Accepted2026-10-26 | No runtime change, execution authority or relaxation of full parity. |
 | Browser execution/loss/stop mode | Before060-14/059-20 or any native run, choose a current qualified path or separately approved, case-specific supervised plan | Do not accept Proposed ADR-0038 by implication or import another lane's supervised exception. |
 | Vendor-cookie capability |059-01/04 or060-01/05, once native first-visit/return/consent evidence identifies exact required operations and existing API limits | No new name/domain/lifetime/write grant yet; no generic cookie jar. |
 | Transport/response capability |059-01 or060-01, once pinned native GET/POST/Image/script/credential/redirect/response effects show the smallest sufficient design | No ambient network/script execution, invented image status or automatic response-URL following. |
@@ -106,7 +106,7 @@ Before a slice starts, put this card in its plan or execution handoff:
   current setup and scoped execution grant, or explicit offline-only scope.
 - **Smallest change:** existing code/evidence reused, failing control, no-gos
   and actual prerequisite; new infrastructure needs this same named consumer.
-- **Budget and stop:** one finite agreed checkpoint; ADR-0042 proposes two
+- **Budget and stop:** one finite agreed checkpoint; ADR-0042 sets a default of two
   active hours for prerequisite preparation. Stop with concrete evidence or a
   blocker rather than silently renewing, resetting cases or widening permissions.
 - **Exit:** tests/independent receiver or native observations as applicable,

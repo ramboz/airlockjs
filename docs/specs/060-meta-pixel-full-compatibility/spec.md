@@ -35,8 +35,8 @@ orders construction, native evidence and adoption while preserving every
 documented feature owner. The next draft is
 [060-14 local-browser PageView](slice-14-local-browser-pageview.md), not a new
 native/reference or product-support claim. Full060-01 and later02-12 keep
-their original evidence/dependency requirements. Proposed ADR-0042 records
-the work-admission recommendation, not an accepted execution decision.
+their original evidence/dependency requirements. Accepted ADR-0042 records
+the work-admission rule, not an execution decision.
 
 ## Overview
 

@@ -18,7 +18,7 @@
 
 **Current routing (2026-10-26):** the
 [delivery queue](releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
-maps the remaining work to existing feature owners. Proposed ADR-0042 addresses
+maps the remaining work to existing feature owners. Accepted ADR-0042 addresses
 product-first work admission;060-14/059-20 draft the next actual local-browser
 journeys. Cookie/transport/timing decisions remain evidence-triggered under
 their original first-journey and feature slices; none of the deferrals below

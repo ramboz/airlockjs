@@ -43,7 +43,7 @@
 - [ADR-0034: Inspected Meta stock references preserve a distinct transport cohort](adr-0034-inspected-meta-stock-reference.md) — The first Meta stock reference may use an explicitly inspected network cohort. (2026-10-20, Accepted)
 - [ADR-0035: Additional Meta stock authority preserves the original spent slot](adr-0035-additional-one-shot-meta-authority.md) — One newly authorized Meta stock case can proceed without refunding the spent one. (2026-10-21, Accepted)
 - [ADR-0038: Supervised native Meta resource lifecycle](adr-0038-supervised-native-meta-resource-lifecycle.md) — A fixed supervised native runner would preserve owned browser lifetimes through interrupted launch and cleanup. (2026-10-21, Proposed)
-- [ADR-0042: Google and Meta product-first delivery gates](adr-0042-google-meta-product-delivery-gates.md) — Google and Meta need product milestones that cannot be replaced by infrastructure progress. (2026-10-26, Proposed)
+- [ADR-0042: Google and Meta product-first delivery gates](adr-0042-google-meta-product-delivery-gates.md) — Google and Meta need product milestones that cannot be replaced by infrastructure progress. (2026-10-26, Accepted)
 
 ## Format
 

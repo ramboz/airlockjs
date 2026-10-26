@@ -10,7 +10,7 @@ An authored AC is not a passing evaluation.
       entry gates; no browser acquisition from a draft.
 - [ ] Follow the [delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
       rather than adding duplicate feature or general-runner work.
-- [ ] Owner reviews Proposed ADR-0042; full acceptance/live authority unchanged.
+- [x] Owner accepted ADR-0042 on2026-10-26; full compatibility/live authority unchanged.
 
 ## Offline product prototype
 

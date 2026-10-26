@@ -1,7 +1,7 @@
 ---
-status: Proposed
+status: Accepted
 dependencies: [adr-0017, adr-0033]
-last_verified:
+last_verified: 2026-10-26
 frame_review: true
 ---
 
@@ -15,10 +15,10 @@ relaxed acceptance or unsafe execution.
 
 ## Status
 
-Proposed (2026-10-26)
+Accepted (2026-10-26)
 
-Owner requested this planning packet; acceptance of this recommendation is
-still pending. Number0042 is locally coordinated with the Adobe lane's0041,
+Owner explicitly accepted this recommendation on2026-10-26.
+Number0042 is locally coordinated with the Adobe lane's0041,
 not reserved on origin. The Jig scaffold's local0039 was renumbered before
 any commit to avoid other-lane provisional numbers. No Accepted ADR is amended.
 
@@ -158,7 +158,6 @@ Adopt Option C, without superseding ADR-0017 or ADR-0033.
 - Planning packet frame critique passed separately for this ADR and each next
   browser slice; a separate documentation-consistency review also passed.
   These reviews do not constitute owner acceptance or implementation approval.
-- Owner acceptance of this sequencing/checkpoint recommendation.
 - For the first actual browser run, which permitted execution/loss/stop plan
   is available? This ADR does not choose an operational exception.
 - Cookie authority and response/credentialed-transport designs remain later
