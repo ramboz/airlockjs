@@ -17,19 +17,21 @@ cannot satisfy current source/cohort gates.
 
 This source-only059-18 increment passes its scoped reviews and unit/lint
 checks; actual14-controller/11-relay and additional-path qualification have
-not run. The later attended source increment below implements acquisition/
-stop bookkeeping and the fixed owner command, but actual ownership/stop proof
-is still absent. The old pre-exec launcher remains a synthetic Node target
+not run at that source checkpoint. The later attended increment and actual
+demonstration below supply the bounded normal/owner-stop proof, not complete
+native guard qualification. The old pre-exec launcher remains a synthetic Node target
 and is not reused as a Chrome stop mechanism. No qualification command
 below is admitted by this source update. The original slot stays spent, the
 additional grant stays unspent and full059-18 remains IN_PROGRESS/open DoD.
 Temporary execution choices and final GO belong in private case/session records,
 not another architecture decision.
 
-## Attended acquisition and independent owner stop: source candidate
+## Attended acquisition and independent owner stop
 
-The case-specific attended path is now implemented and source-reviewed, not
-actually qualified. `meta-attended-reference.mjs` accepts only `--native`,
+The case-specific attended path is implemented and source-reviewed. One actual
+SDK-absent Chrome156 H1/H2/owner-stop sequence passed on2026-10-27, as scoped
+below; native/full-guard qualification is not complete.
+`meta-attended-reference.mjs` accepts only `--native`,
 `--local-h1`, `--local-h2` or `--local-owner-stop` plus an exact private manifest
 path and digest. Its native mode still requires every original preflight,
 lineage, source, transport and review gate, plus new attended-path proof.
@@ -86,15 +88,41 @@ The reader derives scoped group dispositions and chronology from retained
 observations, checks the manifest-matched window and actual fixed case commands,
 and does not accept stopped/closed flags as sufficient proof.
 
-The controlled tests use fake OS/process/CDP events and private temp files,
+The source unit tests use fake OS/process/CDP events and private temp files,
 not Chrome or vendor evidence. They include witnessed failures for shutdown
 races, fully rebound contradictory proof and mandatory native-owner gating.
 Review found a source-resume race during closing; all four effectful CDP
 continuations and navigation now recheck admission at issuance, while metadata/
 denial/cleanup remain separate. No reference/native capability follows from
-source review. Actual current-browser H1/H2 and owner-stop demonstration,
-the complete shared/additional guard qualifications and final case admission
-are still outstanding. Agent/session-loss shutdown remains unqualified.
+source review. The actual sequence below supplies the attended gate's current
+normal/owner-stop originals, not the complete shared/additional guard matrix
+or final native case admission. Agent/session-loss shutdown remains unqualified.
+
+### Actual attended demonstration - 2026-10-27
+
+One separately admitted sequence used the fixed synthetic additional fixtures,
+the committed08011d7 source and headed Chrome156.0.8078.48. H1 exited0 in
+3776ms and H2 exited0 in3071ms. After the final case's browser ownership was
+recorded, a separate Node process invoked the exact manifest-bound stop CLI:
+the producer exited2 normally in2251ms and the stop command exited0 in733ms.
+Its expected `owner_stop_requested` is not a successful native-reference result.
+
+All three reports recorded all sixteen cleanup fields true and normal
+BrowserServer process exit/close0 with no signal. Independent observation
+found all eighteen recorded controller/browser/stop-command PIDs absent,
+all three exact profiles absent and no ephemeral private-key files.
+The production attended reader accepted the retained originals and external
+exit events as `source_evidence_verified: true, native_qualification: false`.
+The case controls, browser/group/profile observations, finals, command events
+and index remain private at their original locators; no copied unit-shaped
+receipt supplied this result.
+
+This proves only the selected attended current-browser paths. It does not
+exercise acquisition-time loss, forced orphan recovery, source/permission
+mutation or the complete current fourteen-controller/eleven-relay/additional
+qualification. No official SDK/public-provider traffic or actual owner slot
+was used. The original Meta case stays spent/inconclusive, the additional
+grant unspent, and native capture still needs its remaining gates and GO.
 
 ## Additional Meta case interface (059-18 / ADR-0035)
 

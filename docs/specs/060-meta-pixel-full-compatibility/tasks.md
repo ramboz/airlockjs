@@ -16,8 +16,11 @@ An authored AC is not a passing evaluation.
       cohort tests under059-18. This is not actual browser qualification.
 - [x] Implement the case-bound attended acquisition/owner-stop source path and
       fixed operator command under059-18, with controlled tests/review corrections.
-- [ ] Demonstrate that path through separately admitted SDK-absent current-browser
-      cases, then obtain all remaining actual shared/additional guard originals.
+- [x] Demonstrate attended normal H1/H2 and owner stop through one actual
+      SDK-absent Chrome156 sequence; retained originals/independent exits pass
+      the attended reader, with exact resources observed closed.
+- [ ] Obtain all remaining current fourteen-controller/eleven-relay/additional
+      guard originals under059-18 before native case preparation/admission.
 - [x] Exercise060-14's actual local-browser PageView, strict local controls
       and normal owned cleanup on the separately approved Chrome156/empty200 cohort.
       Native204/parity/loss qualification remain open; future runs need current admission.

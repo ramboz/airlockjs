@@ -8,14 +8,14 @@ for060-01, not another construction prototype or runner program. Per-case
 execution-mode choices and run authorizations belong in the private session/
 case handoff, not a new ADR. The first source increment now aligns the fixed
 inspected candidates with installed156 and rejects stale manifest/evidence
-cohorts in unit controls. Actual qualification remains absent, alongside a
-legacy local-only registration and missing actual ownership/stop proof. The
-new attended source path now supplies case-bound acquisition tracking and a
-fixed owner command; it still needs real-browser demonstration. Executable
+cohorts in unit controls. The new case-bound attended path has now passed one
+actual SDK-absent Chrome156 H1/H2/owner-stop sequence, with independent command
+exits and exact cleanup. The reader accepted this attended proof, not a native
+lease. Complete current shared/additional qualification remains open. Executable
 native case permission is absent. Thus capture
 is blocked before acquisition/consumption; the additional grant remains unspent.
 059-15 stays DEFERRED.059-18 has reopened through DRAFT for its bounded
-current-browser source increment; actual qualification/capture remains gated.
+current-browser source/proof increment; full qualification/capture remains gated.
 
 **Latest actual outcome:** the separately approved zero-body-EOF sequence
 passed both local browser journeys: Meta two exact PageViews in8644ms, Google

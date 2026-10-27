@@ -46,9 +46,10 @@ implementation, review or readiness.
 - [x] 059-18 bounded source checkpoint: implement current-Chrome case-owned
       acquisition/owner stop, fixed operator entries and mandatory proof gate,
       with controlled regressions and scoped review corrections.
-- [ ] 059-18 actual-proof residual: separately admit SDK-absent attended
-      H1/H2/owner-stop demonstration and current shared/additional originals
-      before the060-01 reference consumer can request native admission.
+- [x] 059-18 attended proof: one actual SDK-absent H1/H2/owner-stop sequence
+      passes the reader with independent command exits and exact cleanup.
+- [ ] 059-18 actual-proof residual: obtain complete current shared/additional
+      originals before the060-01 reference consumer requests native admission.
 
 ## Before product implementation
 

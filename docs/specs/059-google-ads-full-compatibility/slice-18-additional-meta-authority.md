@@ -186,6 +186,29 @@ Source acceptance is not full059-18 acceptance. Current attended and shared/
 additional actual originals and the final native case preflight/GO remain
 required; the additional grant is unspent and full DoD stays open.
 
+### Actual attended checkpoint - 2026-10-27
+
+One separately admitted SDK-absent sequence completed against unchanged08011d7
+source and headed Chrome156.0.8078.48: H1 exit0/3776ms, H2 exit0/3071ms,
+and owner-stop producer normal exit2/2251ms with the independent fixed stop
+CLI exit0/733ms. The owner command was supplied before each browser launch.
+The final case stopped after durable browser ownership and before page/source
+work; its `owner_stop_requested` is expected, not a native capture acceptance.
+
+All sixteen report cleanup fields are true in all cases. Parent independently
+observed all eighteen exact controller/browser/stop PIDs and three profiles
+absent, with no remaining ephemeral key files. The production reader accepted
+the source-bound normal/stop originals and independent actual command exits,
+returning `source_evidence_verified: true, native_qualification: false`.
+The private originals/index remain retained; there was no failure or retry.
+
+This supplies the bounded attended proof missing at the preceding SOURCE
+checkpoint, not the complete current fourteen-controller/eleven-relay or
+additional-path matrix. Acquisition-time interruption/orphan-recovery paths
+were not actually exercised. No official SDK, public-provider dispatch,
+native permission/window/slot or real grant consumption. Full059-18 remains
+IN_PROGRESS/compliance FAIL/open DoD; current native preflight and GO remain.
+
 **DoR:**
 - [x] Genuine owner authorization at 2026-10-21T18:33:04.581Z explicitly
       answers the request for one additional bounded Meta stock case.
@@ -308,6 +331,20 @@ Current attended source checkpoint (2026-10-27; not full-slice completion):
   unattended claim or permanent session permission. The next consumer action
   is one separately admitted SDK-absent current-browser demonstration, stopping
   at its first failure; native capture remains later and the extra case unspent.
+
+Actual attended follow-through (2026-10-27):
+
+- The single admitted H1/H2/owner-stop sequence above completed without source
+  edits, retry or a new native grant. All successful originals are actual
+  private controller/browser/group/exit records, not unit fixtures used as proof.
+- The private observation procedure's review found an exited-controller custody
+  gap; independent retained ownership and fixed cleanup-only recovery, plus
+  active UNKNOWN handoff, corrected it. A narrow closure then corrected a
+  disappearing-original monitoring read. These fallback paths were reviewed
+  but not exercised; no unattended or orphan-recovery qualification follows.
+- Only attended proof is now supplied. All historical unknown/failed cases,
+  full shared/additional native gates, Proposed0038 and open DoD are unchanged.
+  Exact execution approvals remain private session facts, not project ADRs.
 
 Implementation handoff (2026-10-21; independent reconciliation still pending):
 
@@ -1820,6 +1857,21 @@ Approved single local control - 2026-10-26:
 - deferred - separately admitted actual SDK-absent normal H1/H2 and owner
   stop, current full shared/additional guard proof and native admission.
   The source checkpoint cannot make an unobserved resource closed.
+
+#### Actual attended checkpoint - 2026-10-27
+
+- updated - this result/deviation record and operator guide distinguish the
+  actual normal H1/H2/owner-stop evidence from the preceding source-only
+  checkpoint. Source code/tests/dependency inventories are unchanged08011d7.
+- updated - current060-01 reference packet/plan/tasks,059 task list, release
+  queue and primer now name remaining current shared/additional qualification
+  rather than another attended-path implementation or repeat of this sequence.
+- no-op - lifecycle/DoD, generated board, first-journey acceptance, architecture,
+  Accepted ADRs and Proposed0038, native authority/permission/reservation and
+  old unknowns. No new term, convention or inbox/deferred-decision owner.
+- deferred - full current fourteen-controller/eleven-relay/additional proof and
+  final native case preparation/GO remain with059-18/060-01. Actual acquisition
+  loss and orphan recovery remain unqualified; no automatic follow-up job.
 
 #### Earlier checkpoints
 
