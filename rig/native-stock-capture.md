@@ -7,6 +7,24 @@ remains disabled; the separately gated native API executed once. Google stock,
 Google chamber and Meta chamber remain unused, and the incomplete Meta stock
 reference blocks its dependent chamber case.
 
+## Current inspected source candidate - 2026-10-27
+
+The inspected controller and physical-relay candidate pins now require
+Chrome156.0.8078.48. Refreshed-hash unit controls reject stale155 controller/
+relay records and a rebound old-cohort manifest; the fixed relay source test
+is not actual browser evidence. Historical155 receipts are unchanged and
+cannot satisfy current source/cohort gates.
+
+This source-only059-18 increment passes its scoped reviews and unit/lint
+checks; actual14-controller/11-relay and additional-path qualification have
+not run. Native acquisition/late-handle ownership and an independently usable
+owner stop route remain missing. The existing pre-exec launcher is explicitly
+a synthetic Node target, not a Chrome stop mechanism. No qualification command
+below is admitted by this source update. The original slot stays spent, the
+additional grant stays unspent and full059-18 remains IN_PROGRESS/open DoD.
+Temporary execution choices and final GO belong in private case/session records,
+not another architecture decision.
+
 ## Additional Meta case interface (059-18 / ADR-0035)
 
 The owner authorized **one additional** Meta stock case at

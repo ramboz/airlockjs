@@ -11,7 +11,8 @@ case already granted by ADR-0035, not a new event or reuse of the spent original
   informs implementation; it cannot complete the entire replacement matrix.
 - **Existing owners:**058 provides recorder/reference/comparator contracts;
   059-15 owns physical guarded capture;059-18 owns additional lineage and
-  canonical consumption. Both operator slices stay DEFERRED for now.
+  canonical consumption.059-15 stays DEFERRED;059-18 is reopened through DRAFT
+  for its bounded current-browser source increment, not execution admission.
 - **Operational authority:** keep the selected execution mode, exact owner
   authorization, presence acknowledgment and final GO in the private session/
   case handoff, not a new ADR. This plan specifies requirements; it does not
@@ -27,14 +28,16 @@ case already granted by ADR-0035, not a new event or reuse of the spent original
 |060-14/059-20 actual Chrome156 journeys | DONE. First-party serialized workers, independent local200 receipts, consent0/receiving1-0-1/barrier/503 and normal cleanup. No native Image, inspected TLS, cookies,204 or loss qualification. |
 | Original Meta stock case | SPENT/inconclusive; original authority/slot/source/receipt immutable. Zero forwarded HTTP did not refund it. |
 | Additional Meta grant | One conditional Meta-only init/PageView; routine preparation/scheduling delegated. No executable location permission, slot or window is inferred. |
-| Native engine | `rig/inspected-meta-stock.mjs:33` pins155.0.8059.85; `:1226-1231` rejects a different installed cohort. Current metadata is156.0.8078.48, not native-qualified. |
+| Native engine | The first source increment now fixes both inspected controller and physical relay candidates to156.0.8078.48; exact cohort/source checks still reject stale records. Unit-tested source preparation only; no current native qualification. |
 | Resource registration | `rig/inspected-meta-stock.mjs:1479-1489` registers pending/browser resources only for `local && state.additional`; this cannot be relabelled native proof. |
 | Dispatch entry | Private prepared-plan and native transport leases remain guarded; preparation/run APIs are not arbitrary caller-supplied dispatch. Stock CLI stays disabled. |
 
-These source ranges and installed cohort metadata were read on2026-10-27
+The initial source ranges and installed cohort metadata were read on2026-10-27
 without browser acquisition. Node24.10.0, Playwright1.62.1, macOS27.0.1/
-Darwin27.0.0 match the native tuple; Chrome does not. No native prepare/run
-module was imported and no qualification command was issued.
+Darwin27.0.0 match the native tuple. Initially Chrome was155-pinned against
+installed156; the later candidate update removes that mismatch but supplies
+no runtime proof. Pure/unit tests import inert source and synthetic data; no
+native prepare/run or qualification command was issued.
 
 ## Exact case contract
 
@@ -60,10 +63,10 @@ Every missing/stale gate blocks; none is silently commissioned by this packet.
 
 | Gate | Required evidence | Current disposition / owner |
 |---|---|---|
-| A. Session authority | Scope-specific execution-mode decision in the private case handoff; if attended, present owner with exact loss-UNKNOWN responsibility. Any reopened059-18 variant must pass DRAFT/review without pretending0038 is Accepted | Session authorization is not an ADR or guard qualification.059-18 stays DEFERRED; no executable variant is implemented by this packet. |
+| A. Session authority | Scope-specific execution-mode decision in the private case handoff; if attended, present owner with exact loss-UNKNOWN responsibility. Any reopened059-18 variant must pass DRAFT/review without pretending0038 is Accepted | Session authorization is not an ADR or guard qualification.059-18 is reopened through DRAFT for the first source increment only; native gates remain blocked. |
 | B. Lineage | Original authority/spent slot, genuine additional decision, conditional authority/inspection record: current bytes/hash/device/inode and semantics; additional canonical slot absent |2026-10-27 read-only six-file locator/hash/identity verification passed; original slot semantically SPENT, additional conditional grant ONE, executable location permission and additional slot absent. Reverify at actual preflight; this is not final permission. |
-| C. Setup/source | Fresh truthful same-Pixel/settings report; explicit private handles, retained source authentication, owned origin/document and command transcript | Historical2026-10-21 owner report is not fresh readback. Obtain current confirmation or approved supported readback before admission; no account change. |
-| D. Guarded browser | Same inspected path on156, complete existing fourteen-controller/eleven-relay and additional-lineage qualification obligations, including actual SDK-absent H1/H2 positives, retry/count/semantic/header/body/response/aggregate/truncation/cookie, no-ticket/unknown-route/marker-loss controls, source/driver closure and external exit/cleanup originals | Old155 receipts and local200 Fetch controls do not qualify it. Smallest candidate is a reviewed fixed-cohort attended adaptation, not implemented/admitted here. Do not select only easy controls or repin a version string without proof. |
+| C. Setup/source | Fresh truthful same-Pixel/settings report; explicit private handles, retained source authentication, owned origin/document and command transcript | Current owner-reported setup confirmation is retained privately, not API readback. Exact source/input/case bindings still need preflight; no account change. |
+| D. Guarded browser | Same inspected path on156, complete existing fourteen-controller/eleven-relay and additional-lineage qualification obligations, including actual SDK-absent H1/H2 positives, retry/count/semantic/header/body/response/aggregate/truncation/cookie, no-ticket/unknown-route/marker-loss controls, source/driver closure and external exit/cleanup originals | First fixed-cohort source increment is unit-tested/reviewed; actual qualification remains unissued. Old155 receipts/local200 controls do not qualify it. Do not treat the pin update and unit negatives as runtime proof or select only easy actual controls. |
 | E. Acquisition/normal stop | Pending handles owned before acquisition; browser/profile/controller/proxy/key/endpoint ownership, finite forwarding cutoff, normal cleanup and late arrivals | Native registration gap exists. Need reviewed same-path adaptation and actual normal-path evidence, not local-only registration. |
 | F. Owner loss stop | For an attended case: present owner, exact-case handoff and demonstrated independently usable stop for outbound continuation and owned browser without broad scans/kills | Not demonstrated. Session approval cannot conjure this capability; absent usable stop means no launch. |
 | G. Reviews | Frame/compliance/craft/architecture/reconciliation and genuine current guard/additional indices for the selected implementation/cohort | This packet's design review cannot mint native proof/private execution leases. Source changes invalidate old indices. |
@@ -129,8 +132,9 @@ visits, all privacy cohorts, CWV or full attribution. Those obligations stay ope
 ## Review and lifecycle exit
 
 This packet earns a **planning/frame/documentation** verdict only.
-Keep060-01 READY_FOR_REVIEW and059-15/18 DEFERRED until actual entry conditions
-change. No new slice, duplicate native-reference spec, gate bypass or full
+Keep060-01 READY_FOR_REVIEW and059-15 DEFERRED.059-18's bounded source-only
+reentry follows its normal frame/implementation review path without admitting
+a qualification job or native case. No new slice, duplicate spec, gate bypass or full
 implementation compliance/DONE claim follows from a reviewed plan.
 
 Review the packet and its admission boundaries. At a coherent result, stop with the
@@ -152,6 +156,12 @@ attended guard/acquisition adaptation under059-18 and its normal review path,
 not run a native case or build the unattended supervisor. Native ownership and
 the owner's concrete stop route must be established before qualification/run
 admission; no such job is commissioned by the review result.
+
+The first current-cohort source increment is now implemented and reviewed:
+two fixed156 pins with causal stale-manifest/evidence controls. The remaining
+blocker is actual native acquisition/owner-stop wiring and fresh current-source
+qualification. The existing synthetic pre-exec helper cannot supply that
+capability. No real case or browser qualification has been issued.
 
 ## Assumptions
 

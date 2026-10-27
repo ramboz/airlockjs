@@ -6,11 +6,14 @@
 [one additional Meta native-reference plan](meta-native-reference-plan.md)
 for060-01, not another construction prototype or runner program. Per-case
 execution-mode choices and run authorizations belong in the private session/
-case handoff, not a new ADR. Source inspection confirms a155-pinned native engine
-against installed156, a local-only resource-registration branch, missing
+case handoff, not a new ADR. The first source increment now aligns the fixed
+inspected candidates with installed156 and rejects stale manifest/evidence
+cohorts in unit controls. Actual qualification remains absent, alongside a
+local-only resource-registration branch, missing
 executable case permission and an undemonstrated owner stop route. Thus capture
 is blocked before acquisition/consumption; the additional grant remains unspent.
-059-15/18 stay DEFERRED pending their stated resolution triggers.
+059-15 stays DEFERRED.059-18 has reopened through DRAFT for its bounded
+current-browser source increment; actual qualification/capture remains gated.
 
 **Latest actual outcome:** the separately approved zero-body-EOF sequence
 passed both local browser journeys: Meta two exact PageViews in8644ms, Google

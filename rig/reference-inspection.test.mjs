@@ -26,6 +26,18 @@ describe("local inspected physical-request budget", () => {
   });
 
   describe("fixed local inspected-network experiment", () => {
+    it("source-contract only: pins the current relay Chrome and reports the observed version, not the expected pin", async () => {
+      // The runtime check is after real helper/socket/browser allocation, with
+      // no pure-unit seam. This inspects that contract, not actual qualification.
+      const source = await readFile(new URL("./reference-inspection.mjs", import.meta.url), "utf8");
+      const guards = [...source.matchAll(/if \(browser\.version\(\) !== "([^"]+)"\) fail\("cohort_mismatch"\);/g)];
+      expect(guards.map(match => match[1])).toEqual(["156.0.8078.48"]);
+      const { localInspectedMetaDefinition } = await import("./inspected-meta-stock.mjs");
+      expect(guards[0][1]).toBe(localInspectedMetaDefinition().cohort.chrome);
+      expect(source).toContain('cohort: { node: process.version, chrome: browser?.version() ?? null, darwin: release(),');
+      expect(source).toContain('chrome: browser?.version() ?? null, darwin: release(), source: sourceBefore');
+    });
+
     it("rejects native/source/URL/accessor input before filesystem or networking", async () => {
       const { runLocalInspection } = await load();
       for (const options of [

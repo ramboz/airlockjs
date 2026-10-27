@@ -158,11 +158,59 @@ async function qualificationFixture() {
 }
 
 describe("inspected Meta stock preparation", () => {
+  it("defines only the fixed current inspected Chrome candidate, not native qualification", async () => {
+    const { localInspectedMetaDefinition } = await load();
+    expect(localInspectedMetaDefinition().cohort).toEqual({
+      node: "v24.10.0", chrome: "156.0.8078.48", playwright: "1.62.1",
+      macos: "27.0.1", darwin: "27.0.0", headless: false, transport: "inspected-network",
+    });
+  });
+
   it("checks the complete unit-shaped qualification index without granting native authority", async () => {
     const f = await qualificationFixture();
     expect(f.api.inspectSdkAbsentQualification(f.index())).toMatchObject({
       sdk_absent_evidence_verified: true, execution_authority: false, native_sdk_executed: false,
     });
+  });
+
+  it.each(["controller", "relay"])(
+    "rejects stale Chrome in a %s row despite refreshed report/witness/index hashes and current source", async family => {
+      const f = await qualificationFixture(), entry = f.cases.get(family === "controller"
+        ? "controller/normal/h1" : "relay/physical/h1");
+      expect(f.api.inspectSdkAbsentQualification(f.index())).toMatchObject({
+        sdk_absent_evidence_verified: true, execution_authority: false, native_sdk_executed: false,
+      });
+      const currentCohort = { ...entry.reportValue.cohort }, currentReportHash = entry.row.report_sha256;
+      entry.reportValue.cohort.chrome = "155.0.8059.85";
+      f.rebindReport(entry);
+      const staleIndex = f.index();
+      expect(entry.reportValue.source_before).toEqual(f.api.inspectedMetaSourcePins());
+      expect(entry.reportValue.source_after).toEqual(entry.reportValue.source_before);
+      expect(hash(readFileSync(join(entry.run, "report.json")))).toBe(entry.row.report_sha256);
+      expect(hash(readFileSync(join(entry.root, "verified-child.json")))).toBe(entry.row.verified_child_sha256);
+      expect(entry.witnessValue.report_sha256).toBe(entry.row.report_sha256);
+      expect(() => f.api.inspectSdkAbsentQualification(staleIndex)).toThrow("guard_qualification_cohort_mismatch");
+      expect(entry.row.report_sha256).not.toBe(currentReportHash);
+      entry.reportValue.cohort = currentCohort;
+      f.rebindReport(entry);
+      expect(f.api.inspectSdkAbsentQualification(f.index())).toMatchObject({
+        sdk_absent_evidence_verified: true, execution_authority: false, native_sdk_executed: false,
+      });
+    });
+
+  it("rejects a fully rebound old-Chrome local manifest semantically without output or reservation", async () => {
+    const f = await fixture();
+    expect(f.api.prepareLocalInspectedMeta(f.options())).toMatchObject({
+      execution: "LOCAL-ONLY", execution_authority: false, native_sdk_executed: false,
+      full_native_guard_qualified: false, native_execution_qualified: false,
+    });
+    f.binding.cohort.chrome = "155.0.8059.85";
+    f.bind(); // Refresh permission, every evidence binding, and manifest hash.
+    const before = readdirSync(f.root).sort();
+    expect(() => f.api.prepareLocalInspectedMeta(f.options())).toThrow("case_envelope_mismatch");
+    expect(readdirSync(f.root).sort()).toEqual(before);
+    expect(existsSync(join(f.root, "run"))).toBe(false);
+    expect(existsSync(join(f.root, "native-stock-slots-synthetic-inspected-meta-fixture"))).toBe(false);
   });
 
   it.each(["controller", "relay"])("requires an independently pinned real publication failure for %s late output", async family => {

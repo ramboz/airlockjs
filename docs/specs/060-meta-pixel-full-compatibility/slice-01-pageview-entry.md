@@ -75,8 +75,9 @@ implementation. The [bounded native-reference packet](meta-native-reference-plan
 uses existing058/059-15/18 owners and the sole additional grant. Per-case
 execution mode and actual run approval are private session/case records,
 not a new ADR or a native lease. Current cohort/guard/acquisition/setup/stop/permission gates
-remain open. Original criteria above and all C1-C9 stay unchanged; neither
-deferred operator slice is silently reopened.
+remain open. Original criteria above and all C1-C9 stay unchanged.059-15 stays
+DEFERRED;059-18's explicit DRAFT reentry covers its first source-only increment,
+not native admission.
 
 **Current navigation:** the dated checkpoint and full criteria above are
 preserved.060-13/14 are completed local construction, not admission to implement

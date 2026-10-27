@@ -1,10 +1,11 @@
 ---
-status: DEFERRED
+status: IN_PROGRESS
 dependencies: [059-13, 059-14, adr-0035, adr-0038]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
+claimed_by: google-and-meta-feasibility
 ---
 
 ## Slice 059-18 - Additional lineage-bound Meta stock case
@@ -22,7 +23,7 @@ It serves UC-10 and leaves full native/chamber/product/C2/C3 gates unchanged.
 
 ## Work disposition - 2026-10-26
 
-Parked until actual native preparation can consume a complete, current plan;
+Historical deferral: parked until actual native preparation can consume a complete, current plan;
 the extensive source/failed-control history below is not the next coding queue.
 The original Meta case is still spent; the separately granted additional case
 is unspent and no executable permission/window/slot has been issued.
@@ -35,6 +36,67 @@ for product work and evidence-driven decisions.
 
 Reopen through DRAFT for that bounded plan. This does not accept ADR-0038,
 transfer another lane's exception, refund any case or commission more runner work.
+
+## Bounded current-browser reentry - 2026-10-27
+
+The [reviewed060-01 reference packet](../060-meta-pixel-full-compatibility/meta-native-reference-plan.md)
+and current owner-reported unchanged test setup now supply a concrete consumer
+and scoped preparation direction. Reopened through DRAFT for engineering,
+not native admission. Per-case execution choices/approvals remain in private
+session memory, not a new project ADR. The Proposed0038 dependency still names
+the broader unfinished lifecycle obligation; no acceptance or DONE bypass.
+
+**First bounded change:** align the existing inspected controller and physical
+relay candidate cohort with installed Chrome156.0.8078.48 and test that old
+cohort/manifests/indices cannot acquire current authority. Both retain their
+fixed version checks, source-pinned guard, canonical lineage, physical/byte/
+deadline limits and no-SDK qualification boundary. No configurable browser
+version, stale-proof normalization, inspection bypass or successful native
+claim. Fresh actual current-source originals remain required after the edit.
+
+**Source-only acceptance for this increment:**
+
+1. Both inspected-controller and physical-relay candidate pins identify the
+   installed156 cohort; rejects for different/stale cohorts remain effective.
+2. Refreshed-hash unit controls reject stale cohort evidence in both controller
+   and relay rows and reject an old-cohort manifest, rather than relying only
+   on a stale outer hash. Existing current-shaped unit positives still pass.
+3. Source/guard closure and additional-lineage checks remain intact. Historical
+   snapshots retain their actual155 results and are not rewritten.
+4. No browser/TLS/SDK/vendor job is issued by implementation or ordinary unit
+   tests. Any later qualification has a separately reviewed finite procedure
+   and an explicitly admitted operation. Actual native/capture/stop gates stay
+   blocked, including current resource ownership and owner loss-stop route.
+
+**Exit:** tested/reviewed source candidate and the exact next qualification/
+ownership blocker, not full059-18 DONE. Stop at one coherent result or two active
+hours of this engineering allocation; no generic lifecycle/holder/clock/Docker
+work. This source increment alone cannot spend the additional Meta case.
+
+### Current source result
+
+The two inspected candidate pins now require Chrome156.0.8078.48.
+Five new controls first failed (5 red/97 pass/25 runtime skips), then passed
+after the two one-line production changes (102 pass/25 runtime skips).
+They verify the fixed candidate, a fully rebound old manifest, refreshed-hash
+stale controller and relay evidence, and the relay's fixed source contract.
+That last control is explicitly source-only; no existing pure runtime seam
+precedes that relay's resource allocation. No test is labelled actual Chrome.
+
+Parent independently ran582 selected guard/lineage units, with29 runtime
+opt-ins skipped, plus scoped lint. Different selectors are not additive counts.
+Scoped source compliance, craft and architecture reviews pass. Full-slice
+compliance remains fail: current14-controller/11-relay and additional-path
+actual originals, native acquisition ownership and the independently usable
+owner stop route are absent. DoD stays open and0038 remains Proposed.
+
+The existing pre-exec launcher was also read, not executed. It explicitly execs
+a fixed synthetic Node target, never Chrome
+(`rig/meta-preexec-bootstrap-launcher:2,18`). It is not a ready native stop or
+acquisition mechanism. No browser/TLS/qualification/SDK/vendor job occurred;
+original spent and additional unspent case state is unchanged.
+Next is the concrete attended acquisition/stop wiring and its reviewed
+procedure before separately admitted actual qualification, not a native run.
 
 **DoR:**
 - [x] Genuine owner authorization at 2026-10-21T18:33:04.581Z explicitly
@@ -1604,6 +1666,30 @@ Approved single local control - 2026-10-26:
   control would require separately scoped authority rather than resetting this one.
 
 ### Reconciliation sweep
+
+#### Current Chrome156 source increment - 2026-10-27
+
+- updated - only `rig/inspected-meta-stock.mjs` and
+  `rig/reference-inspection.mjs` candidate pins changed, plus causal unit
+  controls in their two matching test files. All actual opt-ins stayed skipped;
+  no old receipt or source snapshot was rewritten.
+- updated - this slice's bounded reentry/result, scoped review records and
+  derived board reflect IN_PROGRESS/source acceptance but full compliance FAIL.
+  The060 reference packet/plan/tasks, live release queue, operator guide and
+  CLAUDE index distinguish a156 candidate from actual native qualification.
+- no-op - older branch changes and prior reconciliation entries below are
+  separate history, not reviewed implementation in this increment. Existing
+  native guards/source closure/lineage, Accepted ADRs, Proposed0038, full
+  first-journey acceptance, local DONE slices and production/core/build remain.
+- no-op - owner authority, original spent reservation and extra unspent case.
+  No executable permission, window, slot, browser/TLS/SDK/vendor job or external
+  qualification was created. Temporary session choices stay private.
+- deferred - native pending/late acquisition and independently usable exact
+  owner stop, then separately admitted actual current-source14/11/additional
+  qualification. The existing synthetic pre-exec target is not that mechanism;
+  this increment does not expand the unattended lifecycle program.
+
+#### Earlier checkpoints
 
 - updated - received local-control permission, restored exact endpoint,
   private caller/review lineage and actual consumed pre-start failure in the

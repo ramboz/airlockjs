@@ -12,6 +12,8 @@ An authored AC is not a passing evaluation.
 - [ ] Resolve that packet's current-browser guard/acquisition/normal-stop/
       owner-stop gates through one bounded reviewed change, not a version-only
       repin or reuse of the local200 execution path.
+- [x] Prepare the fixed Chrome156 inspected source candidate and semantic stale-
+      cohort tests under059-18. This is not actual browser qualification.
 - [x] Exercise060-14's actual local-browser PageView, strict local controls
       and normal owned cleanup on the separately approved Chrome156/empty200 cohort.
       Native204/parity/loss qualification remain open; future runs need current admission.

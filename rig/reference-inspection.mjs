@@ -498,7 +498,7 @@ export async function runLocalInspection(options) {
       args: ["--disable-background-networking", "--dns-prefetch-disable", `--ignore-certificate-errors-spki-list=${spki}`],
     });
     browser = await chromium.connect(browserServer.wsEndpoint());
-    if (browser.version() !== "155.0.8059.85") fail("cohort_mismatch");
+    if (browser.version() !== "156.0.8078.48") fail("cohort_mismatch");
     browserCdp = await browser.newBrowserCDPSession();
     for (const protocol of ["h1", "h2"]) {
       // The receiver parser is deliberately not the guard. It must accept a
