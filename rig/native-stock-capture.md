@@ -17,13 +17,84 @@ cannot satisfy current source/cohort gates.
 
 This source-only059-18 increment passes its scoped reviews and unit/lint
 checks; actual14-controller/11-relay and additional-path qualification have
-not run. Native acquisition/late-handle ownership and an independently usable
-owner stop route remain missing. The existing pre-exec launcher is explicitly
-a synthetic Node target, not a Chrome stop mechanism. No qualification command
+not run. The later attended source increment below implements acquisition/
+stop bookkeeping and the fixed owner command, but actual ownership/stop proof
+is still absent. The old pre-exec launcher remains a synthetic Node target
+and is not reused as a Chrome stop mechanism. No qualification command
 below is admitted by this source update. The original slot stays spent, the
 additional grant stays unspent and full059-18 remains IN_PROGRESS/open DoD.
 Temporary execution choices and final GO belong in private case/session records,
 not another architecture decision.
+
+## Attended acquisition and independent owner stop: source candidate
+
+The case-specific attended path is now implemented and source-reviewed, not
+actually qualified. `meta-attended-reference.mjs` accepts only `--native`,
+`--local-h1`, `--local-h2` or `--local-owner-stop` plus an exact private manifest
+path and digest. Its native mode still requires every original preflight,
+lineage, source, transport and review gate, plus new attended-path proof.
+The direct additional-native API refuses execution outside the fixed entry.
+No command here is an approval to launch a browser or spend a real case.
+
+Before browser allocation the controller writes a source/window/manifest-bound
+private `attended-control.json`, commits its own file inode and actual controller
+lifetime, and persists `attended-owner-command.json`. Pending and returned/late
+BrowserServer handles are retained; actual process/profile/group observations
+precede official source or upstream continuation. Cleanup records actual exit/
+close, profile and group disposition. The original case deadline is retained,
+with work stopping by40 seconds and at least20 seconds reserved for teardown/
+publication in this attended path.
+
+### Owner procedure, only for a separately admitted case
+
+Before launch the operator supplies the exact selected manifest path and SHA.
+In an independent terminal, the owner can stop that case with the **literal
+case-specific values supplied at admission**, using the same installed Node:
+
+```text
+/opt/homebrew/Cellar/node/24.10.0/bin/node /absolute/worktree/rig/meta-attended-stop.mjs \
+  --stop-manifest /absolute/private/case/manifest.json <exact-manifest-sha256>
+```
+
+These are placeholders, not an executable current case. The command can be
+prepared before the controller/browser exists; actual stopping requires the
+controller's durable case record. It verifies the manifest, derives only that
+case's canonical control record, and performs the same current-source/private
+file/context and independently observed process-lifetime checks as `--stop
+<control-record-path> <control-record-sha256>`. A digest alone grants no PID,
+program, profile or network authority.
+
+Cooperative SIGTERM closes further admission; handlers remain active through
+bounded pending acquisition and final persistence. The independent command
+refreshes newly registered browsers during grace and before verified controller
+STOP/KILL escalation. Browser signals are specific-PID, freshly checked against
+the attributable case cohort. It never signals by name, adopts an unrelated
+profile or automatically deletes a profile. Its own stop operation is bounded;
+stopping an expired owned case is cleanup, not renewal of its traffic window.
+Partial/changed/missing observations produce an error or explicit UNKNOWN,
+never evidence that an unobserved resource is closed. Source updates can stale
+the handoff; do not bypass source/lifetime checks to recover it.
+
+### Proof and limits
+
+Native additional preparation now requires a separate current-source
+`attended_qualification` beside the existing shared/additional indices.
+The closed index binds normal SDK-absent H1/H2 controller/browser/final originals,
+their independently observed command exits, a same-path owner-stop receipt,
+that command's exit, and the stopped controller's final/exit originals.
+The reader derives scoped group dispositions and chronology from retained
+observations, checks the manifest-matched window and actual fixed case commands,
+and does not accept stopped/closed flags as sufficient proof.
+
+The controlled tests use fake OS/process/CDP events and private temp files,
+not Chrome or vendor evidence. They include witnessed failures for shutdown
+races, fully rebound contradictory proof and mandatory native-owner gating.
+Review found a source-resume race during closing; all four effectful CDP
+continuations and navigation now recheck admission at issuance, while metadata/
+denial/cleanup remain separate. No reference/native capability follows from
+source review. Actual current-browser H1/H2 and owner-stop demonstration,
+the complete shared/additional guard qualifications and final case admission
+are still outstanding. Agent/session-loss shutdown remains unqualified.
 
 ## Additional Meta case interface (059-18 / ADR-0035)
 

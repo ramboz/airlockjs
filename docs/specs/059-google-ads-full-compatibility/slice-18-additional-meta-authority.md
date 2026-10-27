@@ -73,7 +73,7 @@ ownership blocker, not full059-18 DONE. Stop at one coherent result or two activ
 hours of this engineering allocation; no generic lifecycle/holder/clock/Docker
 work. This source increment alone cannot spend the additional Meta case.
 
-### Current source result
+### Historical first source result
 
 The two inspected candidate pins now require Chrome156.0.8078.48.
 Five new controls first failed (5 red/97 pass/25 runtime skips), then passed
@@ -97,6 +97,94 @@ acquisition mechanism. No browser/TLS/qualification/SDK/vendor job occurred;
 original spent and additional unspent case state is unchanged.
 Next is the concrete attended acquisition/stop wiring and its reviewed
 procedure before separately admitted actual qualification, not a native run.
+
+## Bounded attended acquisition and owner stop
+
+The next increment supplies a case-specific owner command and tracks pending/
+late browser acquisition through the existing inspected engine. It serves the
+same060-01 reference consumer; it is not the unattended0038 program or a new
+product capability. Exact temporary operator authorization stays private.
+
+**Required behavior:**
+
+1. Before allocating the browser, retain a pending acquisition record bound
+   to the exact case/source/window and controller lifetime. Register a returned
+   or late BrowserServer, its direct process and launch-created profile before
+   permitting any official source execution or upstream continuation. A timeout
+   does not discard the promise or make an unknown resource closed.
+2. Provide an independently invokable, fixed owner-stop command for that exact
+   case. It accepts a canonical private case-record locator plus its expected
+   digest, never an arbitrary PID/program/group/URL. Verify current source and
+   private record identity/context, then freshly check each recorded lifetime
+   immediately before any specific-PID signal. Reuse existing ownership checks.
+3. Stop further native continuation before shutdown; make a cooperative stop
+   visible to the engine and retain bounded teardown/actual process results.
+   If the controller is unresponsive but still verifiably owned, a narrowly
+   scoped owner stop may terminate only that exact controller and attributable
+   browser processes. No global process catalogue/name kill, guessed descendant,
+   PID-only identity, adopted profile or broad deletion. Unknowns stay unknown.
+4. Persist enough private case-bound state for a present owner to act without
+   the agent/session. A return value, vanished stdout or helper-held handle alone
+   is not an independent stop route. Never infer absence from an IO error or
+   failed observation; partial/mutated/replaced state fails explicitly.
+5. Wire one SDK-absent synthetic counterpart through the same tracking/stop
+   logic, with no official SDK, real grant or upstream vendor capability.
+   Unit controls must witness red-to-green for pending/late acquisition, stop
+   ordering, stale/reused lifetimes, changed/symlinked/copied case records,
+   expired work versus permitted cleanup, partial cleanup and false success.
+   Actual browser/stop demonstration remains a separately admitted operation.
+6. Preserve every existing native guard and the sole additional grant.
+   No private prepared-plan or native transport lease is serialized or minted
+   by a stop receipt. Missing current ownership/stop qualification must still
+   block native readiness even if old guard/additional indices otherwise match.
+   Source/helper/test dependencies enter both affected source-closure inventories.
+
+**Implementation boundary:** prefer a small Meta-reference-only module and
+fixed CLI using the existing private IO and lifetime predicates, with narrow
+engine hooks. No new parent/daemon/VM/container, generic supervisor framework,
+clock service, arbitrary command option, successful fallback or new ADR for the
+session choice. Profile cleanup requires existing exact ownership rules; do not
+add automatic profile deletion to the manual stop command.
+
+**Exit:** usable source implementation and private stop instructions with
+meaningful controlled tests and required independent reviews. Actual observed
+current-browser acquisition/stop and full guard qualification are still required
+before native case admission. Full059-18 stays IN_PROGRESS/open DoD if those
+actual receipts are absent. One coherent result or two active hours ends this
+increment; stop with a concrete residual rather than broadening the helper.
+
+### Attended source result, not actual qualification
+
+`meta-attended-control.mjs` and fixed reference/stop entries now implement the
+case-bound ledger, pending/late acquisition, cooperative and independent owner
+stop, and closed proof reader. Both source inventories include the new module,
+two entries and their three tests. The original synthetic supervisor's lifetime/
+signal/group predicates are reused through narrow exports, not a new daemon.
+The [operator procedure](../../../rig/native-stock-capture.md#owner-procedure-only-for-a-separately-admitted-case)
+provides a manifest-bound command known before launch; exact session approval
+and actual command values stay private.
+
+Initial independent compliance found four defects: handlers removed too early,
+stale browser ownership during stop grace, a recorded/manifest window mismatch,
+and flags-only stop-cohort acceptance. Six controlled RED cases preceded their
+correction, including coupled impossible signal outcomes/future exits.
+A further RED/closure fixed controller-exit chronology. Craft then caught
+official-source continuation during closing; four deferred-CDP RED controls
+preceded a shared admission-at-send guard for resume/fulfillment/continuation/
+evaluation, with navigation using the same check. Narrow finding closures
+are recorded separately from initial full source reviews.
+
+All reported unit tests use controlled OS/CDP/process events and private temp
+data. Final selected source units pass561 with31 actual opt-ins skipped across
+eleven files; scoped lint passes. The earlier631/20 twelve-file run is a
+different source/selector result, not an additive qualification count.
+The standalone stop CLI also rejected a nonexistent context with exit1 before
+process inspection or signals, checking its real module graph without a case.
+There has been no actual process inspection/signal, browser/TLS qualification,
+official SDK or vendor job.
+Source acceptance is not full059-18 acceptance. Current attended and shared/
+additional actual originals and the final native case preflight/GO remain
+required; the additional grant is unspent and full DoD stays open.
 
 **DoR:**
 - [x] Genuine owner authorization at 2026-10-21T18:33:04.581Z explicitly
@@ -201,6 +289,25 @@ authority feature or permission to skip native preparation.
   the existing local-only proof does not.
 
 ### Deviation log (after reconciliation)
+
+Current attended source checkpoint (2026-10-27; not full-slice completion):
+
+- Implemented the six bounded source requirements above with one case-specific
+  module, separate fixed producer/stop entries, controlled tests, narrow engine
+  hooks and existing lifetime/signal/group predicates. Separating the stop
+  entry avoids an engine/control top-level-await import cycle.
+- Source compliance's four initial defects, the residual controller chronology
+  and craft's asynchronous continuation race have separate witnessed REDs and
+  reviewed narrow closures. Canonical compliance remains FAIL for full059-18;
+  source craft/architecture pass without a runtime qualification claim.
+- Effectful issuance now checks current source/reservation/window, running
+  phase and stopped state together. Cleanup/metadata permissions are not used
+  to admit official source, fulfillment, continuation, evaluation or navigation.
+- No original acceptance criteria, Proposed0038 dependency, actual proof or
+  DoD box was relaxed. No new product API/ADR/convention, generic supervisor,
+  unattended claim or permanent session permission. The next consumer action
+  is one separately admitted SDK-absent current-browser demonstration, stopping
+  at its first failure; native capture remains later and the extra case unspent.
 
 Implementation handoff (2026-10-21; independent reconciliation still pending):
 
@@ -1688,6 +1795,31 @@ Approved single local control - 2026-10-26:
   owner stop, then separately admitted actual current-source14/11/additional
   qualification. The existing synthetic pre-exec target is not that mechanism;
   this increment does not expand the unattended lifecycle program.
+
+#### Attended acquisition/stop source increment - 2026-10-27
+
+- updated - the Meta-specific control module, fixed reference/stop entries
+  and three test files; narrow engine hooks, both complete dependency
+  inventories, and reused existing lifetime/signal/group predicates.
+- updated - actual pending/late state is distinguished from closure; private
+  owner instructions, original deadline/phase reserves and the mandatory
+  attended-proof gate are explicit. Source review corrections have witnessed
+  controlled failures, not runtime qualification claims.
+- updated - current reference plan, operator guide, source-review records
+  and live queue distinguish implemented source from unissued actual proof.
+  Both relevant task lists and the CLAUDE primer carry the same boundary.
+- no-op - generated status board is current (read-only audit passed); inbox/
+  refinement backlog and existing product architecture/ADRs need no new owner
+  or term. Source-specific invariants live in this record/operator guide;
+  exact operation choices and admission stay in private case memory.
+- no-op - original/spent authority, extra unspent case, executable permission/
+  native window/slot, Accepted ADRs and Proposed0038, full first-journey C1-C9,
+  existing local DONE slices and production/core/build/dependencies.
+- no-op - no temporary execution authorization is moved into project ADRs.
+  Prior source/cohort/history and earlier failed actual cases stay preserved.
+- deferred - separately admitted actual SDK-absent normal H1/H2 and owner
+  stop, current full shared/additional guard proof and native admission.
+  The source checkpoint cannot make an unobserved resource closed.
 
 #### Earlier checkpoints
 

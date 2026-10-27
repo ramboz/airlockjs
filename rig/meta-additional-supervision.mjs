@@ -424,6 +424,9 @@ export const registerAdditionalPorts = ports => register({ type: "additional-por
 export const registerAdditionalPending = () => register({ type: "additional-browser-pending" });
 export const registerAdditionalBrowser = server => register({ type: "additional-browser-ready",
   pid: server.process().pid, port: Number(new URL(server.wsEndpoint()).port) });
+// Observations/signals only. Callers must establish their own closed case authority.
+export { rows as readAdditionalProcesses, signalOwned as signalAdditionalOwnedProcess,
+  membersOf as inspectAdditionalBrowserMembers };
 export async function holdAdditionalShutdown(pid) {
   if (!process.send) fail("additional_supervisor_required");
   process.on("SIGTERM", () => process.send({ type: "additional-term-observed" }));

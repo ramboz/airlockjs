@@ -23,6 +23,7 @@ import { createInspectedHeaderBlockDecoder } from "./inspected-header-block.mjs"
 import { registerAdditionalPorts, registerAdditionalPending, registerAdditionalBrowser,
   holdAdditionalShutdown } from "./meta-additional-supervision.mjs";
 import { inspectedDecoderDependencyPins, startLocalInspectedTransport, startNativeInspectedTransport } from "./inspected-transport.mjs";
+import { createMetaAttendedControl, inspectMetaAttendedQualification } from "./meta-attended-control.mjs";
 
 const fail = category => { throw new Error(category); };
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
@@ -80,6 +81,24 @@ const NATIVE_ASSERTIONS = Object.freeze({
   guard: ["sdk_absent_guard_qualified", "physical_semantic_policy_qualified", "closed_controller_qualified"],
 });
 const nativeTransportLeases = new WeakMap();
+/** Internal CDP admission seam shared by the four effectful continuation kinds. */
+export function createInspectedMetaContinuation(options) {
+  const input = record(options, ["cdp", "check", "phase", "stopping"]);
+  if (!input.cdp || typeof input.cdp.send !== "function" ||
+    !["check", "phase", "stopping"].every(key => typeof input[key] === "function")) fail("invalid_case_input");
+  const admit = () => {
+    input.check();
+    if (input.phase() !== "running" || input.stopping()) fail("case_admission_closed");
+  };
+  const send = (method, parameters) => {
+    if (!["Debugger.resume", "Fetch.fulfillRequest", "Fetch.continueRequest", "Runtime.evaluate"].includes(method))
+      fail("unsupported_meta_continuation");
+    admit();
+    return input.cdp.send(method, parameters);
+  };
+  send.assertAdmission = admit;
+  return send;
+}
 function absolute(path) {
   if (typeof path !== "string" || !isAbsolute(path) || resolve(path) !== path || path.includes("\0"))
     fail("unsafe_case_path");
@@ -120,6 +139,7 @@ function unchanged(state) {
   if (!equal(state.manifest.binding.source_pins, pins) || !equal(pins, LOADED_SOURCE_PINS)) fail("runtime_source_changed");
 }
 function check(state) {
+  state.attendedControl?.check(["closing", "finished"].includes(state.phase));
   const now = Date.now(), monotonic = performance.now();
   if (!Number.isFinite(now) || !Number.isFinite(monotonic) || now < state.lastWall || monotonic < state.lastMono)
     fail("case_clock_invalid");
@@ -154,6 +174,9 @@ export function inspectedMetaSourcePins() {
     "meta-additional-authority.mjs", "meta-additional-authority.test.mjs",
     "meta-additional-qualification.mjs", "meta-additional-qualification.test.mjs",
     "meta-additional-supervision.mjs", "meta-additional-supervision.test.mjs",
+    "meta-attended-control.mjs", "meta-attended-control.test.mjs",
+    "meta-attended-reference.mjs", "meta-attended-reference.test.mjs",
+    "meta-attended-stop.mjs", "meta-attended-stop.test.mjs",
     "meta-rendezvous-peer.mjs", "meta-rendezvous-peer.test.mjs",
     "meta-preexec-bootstrap.mjs", "meta-preexec-bootstrap.test.mjs", "meta-preexec-bootstrap-launcher",
     "meta-owned-socket-observer.c", "meta-owned-socket-observer.cohort.json",
@@ -290,7 +313,7 @@ function readEvidence(state) {
     }
     const receipt = json(readHandle(evidence[name], snapshots, 65536, root));
     record(receipt, ["schema_version", "kind", "layer", "binding_sha256", "valid_until_ms", "assertions"],
-      local ? [] : ["issued_at_ms", "qualification", "additional_qualification", "review_artifact"]);
+      local ? [] : ["issued_at_ms", "qualification", "additional_qualification", "attended_qualification", "review_artifact"]);
     if (receipt.schema_version !== 1 || receipt.kind !== "inspected-meta-" + name
       || receipt.binding_sha256 !== inspectedMetaBindingDigest(binding)
       || !Number.isSafeInteger(receipt.valid_until_ms) || receipt.valid_until_ms < binding.window.expires_at_ms)
@@ -305,6 +328,7 @@ function readEvidence(state) {
     // separate layers; local fixture assertions alone are never authority.
     if (receipt.layer !== "reviewed-inspected-meta-preflight") fail("synthetic_evidence_not_native_authority");
     if (name !== "guard" && Object.hasOwn(receipt, "additional_qualification")) fail("invalid_native_evidence");
+    if (name !== "guard" && Object.hasOwn(receipt, "attended_qualification")) fail("invalid_native_evidence");
     if (!Number.isSafeInteger(receipt.issued_at_ms) || receipt.issued_at_ms < 0 || receipt.issued_at_ms > Date.now()
       || receipt.issued_at_ms > binding.window.not_before_ms
       || receipt.valid_until_ms !== binding.window.expires_at_ms) fail("stale_native_lease");
@@ -321,7 +345,12 @@ function readEvidence(state) {
         if (binding.additional) {
           if (!receipt.additional_qualification) state.blockers.push("additional_path_qualification_missing");
           else verifyAdditionalQualification(state, receipt.additional_qualification);
-        } else if (Object.hasOwn(receipt, "additional_qualification")) fail("invalid_native_evidence");
+          if (!receipt.attended_qualification) state.blockers.push("attended_owner_qualification_missing");
+          else inspectMetaAttendedQualification({
+            qualification: receipt.attended_qualification, source_pins: binding.source_pins,
+          }, handle => json(readHandle(handle, snapshots, 65536)));
+        } else if (Object.hasOwn(receipt, "additional_qualification") ||
+          Object.hasOwn(receipt, "attended_qualification")) fail("invalid_native_evidence");
       }
     } else {
       const assertions = record(receipt.assertions, ["verdict", "scope"]);
@@ -1049,10 +1078,29 @@ export async function runInspectedMetaStock(plan) {
   if (!state) fail("invalid_prepared_case");
   if (arguments.length !== 1) fail("invalid_case_input");
   if (state.local) fail("native_pre_admission_blocked");
+  if (state.additional) fail("native_attended_entry_required");
   unchanged(state); check(state);
   if (!state.nativeReady || state.blockers.length) fail("native_pre_admission_blocked");
   validateNativeAdmission(state);
   return runEngine(state, { protocol: null, program: "native" });
+}
+/** Fixed attended entry; it cannot turn a local plan into a native transport lease. */
+export async function runAttendedInspectedMeta(plan) {
+  const state = !isProxy(plan) && plan && plans.get(plan);
+  if (arguments.length !== 1 || !state?.manifest.binding.additional) fail("invalid_prepared_case");
+  const entry = fileURLToPath(new URL("./meta-attended-reference.mjs", import.meta.url));
+  if (process.argv.length !== 5 || process.argv[1] !== entry ||
+    !["--native", "--local-h1", "--local-h2", "--local-owner-stop"].includes(process.argv[2]) ||
+    process.argv[3] !== state.snapshots[0].handle.path ||
+    process.argv[4] !== state.snapshots[0].handle.sha256 ||
+    (process.argv[2] === "--native") === state.local) fail("fixed_attended_entry_required");
+  if (!state.local) {
+    if (!state.nativeReady || state.blockers.length) fail("native_pre_admission_blocked");
+    validateNativeAdmission(state);
+  }
+  state.attended = true;
+  return runEngine(state, { protocol: state.local ? process.argv[2] === "--local-h1" ? "h1" : "h2" : null,
+    program: process.argv[2] === "--local-owner-stop" ? "attended-owner-stop" : state.local ? "normal" : "native" });
 }
 function validateNativeAdmission(state) {
   if (state.local || !state.nativeReady || !state.casePermission?.native_execution_permitted
@@ -1220,7 +1268,7 @@ async function runEngine(state, { protocol, program }) {
   if (!local) validateNativeAdmission(state);
   if (state.attempted) fail("prepared_case_already_attempted");
   unchanged(state); check(state); slotAvailable(state); outputAvailable(state.manifest.output_dir);
-  if (local && state.additional && !process.send) fail("additional_supervisor_required");
+  if (local && state.additional && !state.attended && !process.send) fail("additional_supervisor_required");
   state.attempted = true;
   const require = createRequire(import.meta.url), output = state.manifest.output_dir;
   if (process.version !== COHORT.node || process.platform !== "darwin" || release() !== COHORT.darwin
@@ -1242,9 +1290,10 @@ async function runEngine(state, { protocol, program }) {
   const networkWaiters = new Set();
   const sockets = new Set(), sessions = new Set(), tasks = new Set(), servers = new Set(), contexts = new Set();
   const closingServers = new Map(), secrets = [], closingContexts = new Map(), order = [];
-  let browserServer, browser, transport, cdp, page, context, reserved = false, localResult = null;
+  let browserServer, browser, transport, cdp, continuation, page, context, reserved = false, localResult = null;
   let timer, fixtureTimer, sourceConsumers = new Set(), logicalAuthority = false, stopping = false, step = "preparing";
   let cleanupMode = false;
+  let attendedResult = null;
   let outputPrepared = false;
   let primaryNetworkId = null, observationCompleted = false;
   const observer = createInspectedHttpWire({ mode: "DECLARED-META-PROFILE", profile: state.profile,
@@ -1301,7 +1350,7 @@ async function runEngine(state, { protocol, program }) {
   const evaluate = async expression => {
     const source = expression + "\n//# sourceURL=airlock-controller-evidence\n";
     trustedExpressions.add(hash(source));
-    const result = await wait(cdp.send("Runtime.evaluate", { expression: source, awaitPromise: true, returnByValue: true }), 6000);
+    const result = await wait(continuation("Runtime.evaluate", { expression: source, awaitPromise: true, returnByValue: true }), 6000);
     if (result.exceptionDetails) fail("controller_evaluation_failed");
     return result.result.value;
   };
@@ -1380,6 +1429,10 @@ async function runEngine(state, { protocol, program }) {
   };
   try {
     if (remaining() < 10000) fail("insufficient_cleanup_window");
+    if (state.attended && remaining() < 25000) fail("insufficient_cleanup_window");
+    if (!local && state.attended &&
+      state.manifest.binding.observation_end_ms > state.manifest.binding.window.expires_at_ms - 20000)
+      fail("insufficient_cleanup_window");
     unchanged(state); check(state); slotAvailable(state);
     if (!local) validateNativeAdmission(state);
     const binding = state.manifest.binding;
@@ -1393,12 +1446,29 @@ async function runEngine(state, { protocol, program }) {
     checkReservation(state);
     mkdirSync(output, { mode: 0o700 }); syncDirectory(output); syncDirectory(dirname(output));
     outputPrepared = true;
+    if (state.attended) {
+      state.attendedControl = await createMetaAttendedControl({
+        output_dir: output, manifest: state.snapshots[0].handle,
+        binding_sha256: inspectedMetaBindingDigest(binding), source_pins: binding.source_pins,
+        window: binding.window, deadline_ms: state.started + LIMITS.duration_ms, retain,
+        onStop: reason => {
+          logicalAuthority = false;
+          stopCase(reason);
+          if (transport) task(Promise.resolve(transport.close()));
+        },
+      });
+    }
     unchanged(state); check(state);
     timer = setTimeout(() => {
+      if (state.attendedControl) {
+        state.attendedControl.requestStop("controller_deadline");
+        task(state.attendedControl.killBrowser());
+        return;
+      }
       stopCase("controller_deadline");
       const child = browserServer?.process();
       if (child && child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
-    }, remaining() - 5000);
+    }, remaining() - (state.attended ? 20000 : 5000));
     // OpenSSL may create files before chmod; the private directory and mask
     // keep the ephemeral key private even during its creation.
     const mask = process.umask(0o077);
@@ -1476,17 +1546,29 @@ async function runEngine(state, { protocol, program }) {
     }
     const { chromium } = await import("playwright");
     check(state);
-    if (local && state.additional) {
+    if (local && state.additional && !state.attended) {
       await wait(registerAdditionalPorts([...servers].map(server => server.address().port).concat(transport.port)), 4500);
       await wait(registerAdditionalPending(), 4500);
     }
-    browserServer = await chromium.launchServer({
+    if (state.attendedControl) await state.attendedControl.beforeBrowser();
+    const browserAcquisition = chromium.launchServer({
       executablePath: fileURLToPath(new URL("./qualification-loopback-chrome", import.meta.url)),
       host: "127.0.0.1", headless: false, timeout: Math.max(1, Math.min(10000, remaining() - 6000)),
       proxy: { server: "http://127.0.0.1:" + transport.port },
       args: ["--disable-background-networking", "--dns-prefetch-disable", `--ignore-certificate-errors-spki-list=${spki}`],
+      ...(state.attended ? { handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false } : {}),
     });
-    if (local && state.additional) await wait(registerAdditionalBrowser(browserServer), 4500);
+    browserServer = state.attendedControl
+      ? await wait(state.attendedControl.trackBrowser(browserAcquisition), 10000)
+      : await browserAcquisition;
+    if (local && state.additional && !state.attended) await wait(registerAdditionalBrowser(browserServer), 4500);
+    if (program === "attended-owner-stop") {
+      while (!stopping) {
+        check(state);
+        await wait(new Promise(resolve => setTimeout(resolve, 20)));
+      }
+      fail("owner_stop_requested");
+    }
     browserServer.process().once("exit", (code, signal) => {
       lifecycle({ resource: "browser_process", event: "exit", code, signal, step, phase: state.phase });
       if (state.phase === "running" && step !== "context_teardown" && !stopping) stopCase("unexpected_browser_exit");
@@ -1507,6 +1589,10 @@ async function runEngine(state, { protocol, program }) {
     });
     if ((await wait(context.cookies())).length) fail("nonempty_local_storage");
     page = await wait(context.newPage()); cdp = await wait(context.newCDPSession(page));
+    continuation = createInspectedMetaContinuation({
+      cdp, check: () => { unchanged(state); checkReservation(state); check(state); },
+      phase: () => state.phase, stopping: () => stopping,
+    });
     page.once("close", () => {
       lifecycle({ resource: "page", event: "close", step, phase: state.phase });
       if (state.phase === "running" && step !== "context_teardown" && !stopping) stopCase("unexpected_page_close");
@@ -1572,7 +1658,7 @@ async function runEngine(state, { protocol, program }) {
       if (!local && role && Date.now() >= state.manifest.binding.observation_end_ms) {
         stopCase("observation_window_expired"); return;
       }
-      await wait(cdp.send("Debugger.resume"));
+      await wait(continuation("Debugger.resume"));
       if (role) sourceExecution.push(retain({ role, sha256, script_id: scriptId,
         evidence: "validated_before_script_execution_and_resumed" }));
       })();
@@ -1641,13 +1727,13 @@ async function runEngine(state, { protocol, program }) {
         if (state.fulfilled.has("document")) return deny("repeated_fixture");
         unchanged(state); checkReservation(state);
         state.fulfilled.add("document"); order.push("fixture_execution");
-        await wait(cdp.send("Fetch.fulfillRequest", { requestId: event.requestId, responseCode: 200,
+        await wait(continuation("Fetch.fulfillRequest", { requestId: event.requestId, responseCode: 200,
           responseHeaders: document.headers, body: document.bytes.toString("base64") }));
       } else if (decision.kind === "local_source") {
         const role = decision.route;
         if (state.fulfilled.has(role)) return deny("repeated_source_dependency");
         unchanged(state); check(state); state.fulfilled.add(role);
-        await wait(cdp.send("Fetch.fulfillRequest", { requestId: event.requestId, responseCode: 200,
+        await wait(continuation("Fetch.fulfillRequest", { requestId: event.requestId, responseCode: 200,
           responseHeaders: [{ name: "Content-Type", value: "application/javascript; charset=utf-8" }],
           body: state.sources[role].toString("base64") }));
       } else {
@@ -1676,13 +1762,14 @@ async function runEngine(state, { protocol, program }) {
         if (prior >= 0) logical.splice(prior, 1);
         const original = retain(observed); logical.push(original); logicalAll.push(original); logicalAuthority = true;
         unchanged(state); check(state); order.push("logical_dispatch");
-        await wait(cdp.send("Fetch.continueRequest", { requestId: event.requestId }));
+        await wait(continuation("Fetch.continueRequest", { requestId: event.requestId }));
       }
     })()));
     await wait(cdp.send("Fetch.enable", { patterns: [{ urlPattern: "*", requestStage: "Request" }] }));
     await wait(cdp.send("Debugger.setInstrumentationBreakpoint", { instrumentation: "beforeScriptExecution" }));
     unchanged(state); check(state); checkReservation(state);
     step = "fixture_navigation";
+    continuation.assertAdmission();
     await wait(page.goto(state.inputs.document_url, { waitUntil: "load", timeout: 4000 }));
     step = "fixture_command";
     if (local) {
@@ -1736,7 +1823,7 @@ async function runEngine(state, { protocol, program }) {
     errors.push(["case_source_changed", "runtime_source_changed", "case_window_inactive", "source_consumption_incomplete",
       "observation_window_incomplete", "native_observation_stopped", "native_processing_evidence_incomplete",
       "native_initiator_missing", "native_initiator_unsupported", "local_context_close_failure", "insufficient_cleanup_window",
-      "cohort_mismatch"].includes(error.message) ? error.message : local ? "local_controller_inconclusive" : "native_stock_inconclusive");
+      "cohort_mismatch", "owner_stop_requested"].includes(error.message) ? error.message : local ? "local_controller_inconclusive" : "native_stock_inconclusive");
   } finally {
     state.phase = "closing";
     cleanupMode = true;
@@ -1746,11 +1833,18 @@ async function runEngine(state, { protocol, program }) {
     if (transport) try { await transport.close(); } catch { errors.push("transport_close_failed"); }
     await wait(Promise.allSettled([...tasks])).catch(() => errors.push("observer_settlement_failed"));
     if (observer.snapshot().decompressors) observer.stop("controller_cleanup");
-    if (browser) try { await wait(browser.close(), 2500); } catch { errors.push("browser_close_failed"); }
-    if (browserServer) try { await wait(browserServer.close(), 2500); } catch { errors.push("browser_server_close_failed"); }
+    let mayCloseBrowser = true;
+    if (state.attendedControl) {
+      try { state.attendedControl.beforeClose(); }
+      catch { mayCloseBrowser = false; errors.push("attended_profile_identity_unknown"); }
+    }
+    if (browser && mayCloseBrowser) try { await wait(browser.close(), 2500); } catch { errors.push("browser_close_failed"); }
+    if (browserServer && mayCloseBrowser) try { await wait(browserServer.close(), 2500); } catch { errors.push("browser_server_close_failed"); }
     const child = browserServer?.process();
     if (child && child.exitCode === null && child.signalCode === null) {
-      child.kill("SIGKILL");
+      if (state.attendedControl) {
+        try { await state.attendedControl.killBrowser(); } catch { errors.push("attended_browser_signal_failed"); }
+      } else child.kill("SIGKILL");
       await wait(new Promise(resolve => child.once("exit", resolve)), 1500).catch(() => errors.push("owned_process_close_failed"));
     }
     state.phase = "finished";
@@ -1759,6 +1853,13 @@ async function runEngine(state, { protocol, program }) {
     for (const server of [...servers]) try { await closeServer(server); } catch { errors.push("receiver_close_failed"); }
     for (const server of [...servers]) try { await closeServer(server); } catch { errors.push("receiver_close_retry_failed"); }
     for (const path of secrets) try { if (existsSync(path)) unlinkSync(path); } catch { errors.push("private_key_cleanup_failed"); }
+    if (state.attendedControl) {
+      try {
+        attendedResult = await state.attendedControl.finish();
+        if (!attendedResult.pending_settled || !attendedResult.browser_closed ||
+          !attendedResult.profile_absent || attendedResult.errors.length) errors.push("attended_cleanup_unknown");
+      } catch { errors.push("attended_cleanup_unknown"); }
+    }
     clearTimeout(timer);
   }
   const resourcesClosedAt = Date.now();
@@ -1818,6 +1919,9 @@ async function runEngine(state, { protocol, program }) {
     native_reference_complete: nativeQualified, captured_reference_accepted: false,
   };
   const report = { schema: local ? "airlock.sdk-absent-inspected-meta-controller.v1" : "airlock.inspected-meta-stock.v1", ...CLAIMS,
+    ...(attendedResult ? { attended_control: {
+      start: attendedResult.control, browser: attendedResult.browser, final: attendedResult.final,
+    } } : {}),
     engine: "shared-inspected-meta",
     binding_sha256: inspectedMetaBindingDigest(state.manifest.binding),
     input_sha256: state.manifest.binding.inputs.sha256,

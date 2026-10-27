@@ -173,6 +173,43 @@ describe("inspected Meta stock preparation", () => {
     });
   });
 
+  it("keeps a native-shaped additional case blocked without new attended-owner proof", async () => {
+    // Operator-shaped UNIT files only; no genuine authority or native execution.
+    const shared = await qualificationFixture();
+    const { createAdditionalMetaFixture } = await import("./meta-additional-qualification.mjs");
+    const f = createAdditionalMetaFixture(); roots.push(f.root);
+    const path = f.options().manifest_path, manifest = JSON.parse(readFileSync(path));
+    manifest.kind = "airlock.inspected-meta-stock.v1";
+    manifest.binding.observation_end_ms = manifest.binding.window.expires_at_ms - 20000;
+    for (const name of Object.keys(manifest.evidence)) manifest.evidence[name] = null;
+    manifest.evidence.guard = save(f.root, "unit-native-shaped-guard.json", {
+      schema_version: 1, kind: "inspected-meta-guard", layer: "reviewed-inspected-meta-preflight",
+      binding_sha256: shared.api.inspectedMetaBindingDigest(manifest.binding),
+      issued_at_ms: manifest.binding.window.not_before_ms, valid_until_ms: manifest.binding.window.expires_at_ms,
+      assertions: { sdk_absent_guard_qualified: true, physical_semantic_policy_qualified: true,
+        closed_controller_qualified: true },
+      qualification: shared.index(),
+    });
+    writeFileSync(path, JSON.stringify(manifest), { mode: 0o600 });
+    const plan = shared.api.prepareInspectedMetaStock(f.options());
+    expect(plan.execution).toBe("BLOCKED");
+    expect(plan.blockers).toContain("attended_owner_qualification_missing");
+    expect(plan.blockers).toContain("additional_path_qualification_missing");
+    expect(existsSync(f.slot)).toBe(false);
+    expect(existsSync(join(f.root, "run"))).toBe(false);
+  });
+
+  it("rejects forged attended plans before any allocating operation", async () => {
+    const api = await load();
+    await expect(api.runAttendedInspectedMeta({})).rejects.toThrow("invalid_prepared_case");
+    const { createAdditionalMetaFixture } = await import("./meta-additional-qualification.mjs");
+    const f = createAdditionalMetaFixture(); roots.push(f.root);
+    const plan = api.prepareLocalInspectedMeta(f.options());
+    await expect(api.runAttendedInspectedMeta(plan)).rejects.toThrow("fixed_attended_entry_required");
+    expect(existsSync(f.slot)).toBe(false);
+    expect(existsSync(join(f.root, "run"))).toBe(false);
+  });
+
   it.each(["controller", "relay"])(
     "rejects stale Chrome in a %s row despite refreshed report/witness/index hashes and current source", async family => {
       const f = await qualificationFixture(), entry = f.cases.get(family === "controller"
@@ -402,7 +439,13 @@ describe("inspected Meta stock preparation", () => {
     const { inspectedMetaSourcePins } = await load();
     const { inspectedDecoderDependencyPins } = await import("./inspected-transport.mjs");
     const pins = inspectedMetaSourcePins();
-    expect(Object.keys(pins)).toHaveLength(114);
+    // The attended module, separate fixed entries and all three tests join the closed inventory.
+    expect(Object.keys(pins)).toHaveLength(120);
+    for (const name of ["meta-attended-control.mjs", "meta-attended-control.test.mjs",
+      "meta-attended-reference.mjs", "meta-attended-reference.test.mjs",
+      "meta-attended-stop.mjs", "meta-attended-stop.test.mjs"]) {
+      expect(pins[name]).toMatch(/^[a-f0-9]{64}$/);
+    }
     expect(Object.keys(pins.header_decoder_dependencies)).toHaveLength(12);
     expect(pins.header_decoder_dependencies).toEqual(inspectedDecoderDependencyPins());
     expect(pins.header_decoder_dependencies["hpack.js"]).toMatchObject({
@@ -843,4 +886,48 @@ describe("actual local SDK-absent controller witness", () => {
         .toBe("spent");
       expect(() => f.api.prepareLocalInspectedMeta(f.options())).toThrow();
     }, 70000);
+});
+describe("effectful continuation admission — controlled CDP, NOT browser execution", () => {
+  it("rejects a stopped running phase before cleanup has changed its phase marker", async () => {
+    const { createInspectedMetaContinuation } = await load();
+    const cdp = { send: vi.fn(async () => ({})) };
+    const continuation = createInspectedMetaContinuation({
+      cdp, check: () => {}, phase: () => "running", stopping: () => true,
+    });
+    expect(() => continuation("Debugger.resume", {})).toThrow("case_admission_closed");
+    expect(cdp.send).not.toHaveBeenCalled();
+  });
+
+  it.each(["Debugger.resume", "Fetch.fulfillRequest", "Fetch.continueRequest", "Runtime.evaluate"])(
+    "does not issue %s after teardown starts during a pending metadata read", async method => {
+      const { createInspectedMetaContinuation } = await load();
+      let release;
+      const metadata = new Promise(resolve => { release = resolve; });
+      let phase = "running", stopping = false;
+      const cdp = { send: vi.fn(name => name === "Debugger.getScriptSource" ? metadata : Promise.resolve({})) };
+      const continuation = createInspectedMetaContinuation({
+        cdp, check: () => {}, phase: () => phase, stopping: () => stopping,
+      });
+      const work = (async () => {
+        await cdp.send("Debugger.getScriptSource", { scriptId: "controlled" });
+        return continuation(method, {});
+      })();
+      phase = "closing"; stopping = true;
+      release({ scriptSource: "first-party controlled metadata" });
+      await expect(work).rejects.toThrow("case_admission_closed");
+      expect(cdp.send.mock.calls.map(args => args[0])).toEqual(["Debugger.getScriptSource"]);
+    });
+
+  it("keeps running continuations separate from cleanup/metadata permissions", async () => {
+    const { createInspectedMetaContinuation } = await load();
+    const cdp = { send: vi.fn(async () => ({})) };
+    const continuation = createInspectedMetaContinuation({
+      cdp, check: () => {}, phase: () => "running", stopping: () => false,
+    });
+    await continuation("Debugger.resume", {});
+    expect(cdp.send).toHaveBeenCalledWith("Debugger.resume", {});
+    expect(() => continuation("Browser.close", {})).toThrow("unsupported_meta_continuation");
+    const source = readFileSync(new URL("./inspected-meta-stock.mjs", import.meta.url), "utf8");
+    expect(source).not.toMatch(/cdp\.send\("(?:Debugger\.resume|Fetch\.fulfillRequest|Fetch\.continueRequest|Runtime\.evaluate)"/);
+  });
 });

@@ -42,8 +42,9 @@ current blocking gates and finite exit. Per-case execution choices and
 approvals stay in private session/case records, not another ADR.
 The first059-18 source increment aligns the fixed inspected candidates with
 installed156 and rejects stale cohorts in unit controls; actual current-browser
-qualification, native acquisition/normal stop and an independent owner loss-stop
-route remain unqualified. Capture
+qualification and actual acquisition/owner-stop proof remain missing. The
+case-specific attended tracking and fixed stop-command source are now
+implemented with controlled regressions, not yet demonstrated on Chrome. Capture
 is blocked, additional permission/slot absent and the extra case remains
 unspent. Independent frame and documentation reviews passed for the packet;
 that is not native execution or implementation compliance.

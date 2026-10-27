@@ -43,6 +43,12 @@ implementation, review or readiness.
 - [ ] 059-18: implement and qualify the newly authorized additional Meta-only
       grant, preserving the original spent lineage and all source/review/
       coordination/capture gates; no automatic retry after new consumption.
+- [x] 059-18 bounded source checkpoint: implement current-Chrome case-owned
+      acquisition/owner stop, fixed operator entries and mandatory proof gate,
+      with controlled regressions and scoped review corrections.
+- [ ] 059-18 actual-proof residual: separately admit SDK-absent attended
+      H1/H2/owner-stop demonstration and current shared/additional originals
+      before the060-01 reference consumer can request native admission.
 
 ## Before product implementation
 

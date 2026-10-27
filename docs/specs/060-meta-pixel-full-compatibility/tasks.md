@@ -14,6 +14,10 @@ An authored AC is not a passing evaluation.
       repin or reuse of the local200 execution path.
 - [x] Prepare the fixed Chrome156 inspected source candidate and semantic stale-
       cohort tests under059-18. This is not actual browser qualification.
+- [x] Implement the case-bound attended acquisition/owner-stop source path and
+      fixed operator command under059-18, with controlled tests/review corrections.
+- [ ] Demonstrate that path through separately admitted SDK-absent current-browser
+      cases, then obtain all remaining actual shared/additional guard originals.
 - [x] Exercise060-14's actual local-browser PageView, strict local controls
       and normal owned cleanup on the separately approved Chrome156/empty200 cohort.
       Native204/parity/loss qualification remain open; future runs need current admission.

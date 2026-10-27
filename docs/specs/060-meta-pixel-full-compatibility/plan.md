@@ -9,8 +9,10 @@ execution-mode choices and run authorizations belong in the private session/
 case handoff, not a new ADR. The first source increment now aligns the fixed
 inspected candidates with installed156 and rejects stale manifest/evidence
 cohorts in unit controls. Actual qualification remains absent, alongside a
-local-only resource-registration branch, missing
-executable case permission and an undemonstrated owner stop route. Thus capture
+legacy local-only registration and missing actual ownership/stop proof. The
+new attended source path now supplies case-bound acquisition tracking and a
+fixed owner command; it still needs real-browser demonstration. Executable
+native case permission is absent. Thus capture
 is blocked before acquisition/consumption; the additional grant remains unspent.
 059-15 stays DEFERRED.059-18 has reopened through DRAFT for its bounded
 current-browser source increment; actual qualification/capture remains gated.
