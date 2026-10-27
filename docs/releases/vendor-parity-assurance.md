@@ -29,25 +29,24 @@ are DONE as offline prototypes. Neither production boot is a full replacement.
 The twelve full-compatibility journeys per vendor remain unfinished.
 The 2026-10-15 allowance above is historical, not a renewed execution budget.
 
-**Next pick:** refine060-14, the real local-browser Meta PageView, then059-20,
-the equivalent Google conversion. No new field is guessed from a redacted
-fixture. Authoring/code preparation may proceed within ordinary repository
-scope; actual browser acquisition waits for its separate current execution plan.
-No browser, vendor run, deployment or source pause is authorized by this queue.
+**Next pick:** return to the bounded evidence gaps for full060-01/059-01 after
+the delivered060-14/059-20 local increments. Their original
+readiness/native-reference/capability/performance gates remain open; do not
+silently reopen the deferred operator tracks or guess redacted native fields.
+No new browser, vendor run, deployment or source pause is authorized by this queue.
 
-**Actual local execution update (2026-10-26):** the owner separately selected
-supervised foreground execution for these two local slices. The fixed procedure
-was issued once and stopped on Meta receiving-preflight failure: one local204
-receipt/browser status was observed, but body recording did not complete and
-the underlying protocol cause is unresolved. No product worker or Google browser
-was acquired. Exact normal browser/profile/context/local-server cleanup was
-observed. Both slices remain IN_PROGRESS with full-slice compliance fail,
-not DONE. The named recorder correction now handles HTTP204 empty framing and
-bounded network failure codes with witnessed RED/green controls and narrow
-review closure. Its49 offline controls are not Chrome evidence and do not prove
-the original protocol cause. Next is explicit admission of one corrected
-supervised sequence; do not broaden into another runner or silently retry the
-failed acquisition sequence.
+**Actual local execution update (2026-10-26):** the present owner separately
+approved the final zero-body-EOF sequence, which passed **both actual local
+browser module-worker journeys**: two exact Meta PageViews and two exact Google
+conversions, consent0/receiving1-0-1/held-response/503 controls and normal owned
+cleanup. Meta8644ms, Google2148ms; parent-observed whole-command exit0/11.22s.
+All browser/profile/worker/context/fixture/socket dispositions and source/
+response hashes were independently checked;252 selected regressions pass.
+Required Jig reviews and gated local-slice closeout are complete. This proves explicit-empty200 local transport,
+not204/native parity, identity/cookies/CWV/attribution or agent-loss shutdown.
+Three earlier failed attempts and frozen evidence remain unchanged. The owner
+approved local200 and strict preflight EOF as separate bounded refinements;
+no unexpected network failure was ignored and no automatic retry occurred.
 
 [Accepted ADR-0042](../decisions/adr-0042-google-meta-product-delivery-gates.md)
 records product-first sequencing, evidence separation and a default two-active-
@@ -58,8 +57,8 @@ execution exception or a substitute for existing safety/authority gates.
 
 | Order | Canonical owner | Observable result | Entry/stop condition |
 |---|---|---|---|
-| 1 | [060-14 local-browser PageView](../specs/060-meta-pixel-full-compatibility/slice-14-local-browser-pageview.md) | Actual browser module-worker, two distinct local PageViews, zero-send consent controls and final owned cleanup | Review the draft; qualify or separately approve the exact browser launch/stop plan before acquisition. Stop on missing ownership/visibility, not a general runner rewrite. |
-| 2 | [059-20 local-browser conversion](../specs/059-google-ads-full-compatibility/slice-20-local-browser-conversion.md) | Actual browser conversion route/value/currency/transaction relationships and local response/result barrier | Same execution gate, independent Google source/controls; use common local fixture work only where demonstrated. This has no artificial dependency on Meta completion. |
+| 1 | [060-14 local-browser PageView](../specs/060-meta-pixel-full-compatibility/slice-14-local-browser-pageview.md) | DONE: actual local module-worker, two distinct PageViews, consent0 controls and normal owned cleanup | Only explicit-empty200 local scope. Future execution needs its own current plan/approval; no native or loss qualification. |
+| 2 | [059-20 local-browser conversion](../specs/059-google-ads-full-compatibility/slice-20-local-browser-conversion.md) | DONE: actual local conversion/value/currency/transaction/page relationships and held-response barrier | Independent Google source/controls observed. No artificial dependency on Meta completion; full native requirements unchanged. |
 | Reference gate (paused) | [058 reference/comparison](../specs/058-native-tag-evaluation-qualification/spec.md), [059-15 exact stock capture](../specs/059-google-ads-full-compatibility/slice-15-native-stock-capture.md), [059-18 additional Meta case](../specs/059-google-ads-full-compatibility/slice-18-additional-meta-authority.md) | Fresh pinned native commands, complete request/response/auxiliary/state evidence and falsifiable comparisons for each first journey |059-15/18 are DEFERRED with explicit resolution triggers, not active general-runner projects. Reopen only a named bounded evidence plan with current execution ownership/case grant/setup/coordination and remaining gates. Original spent cases remain spent; intercepted production attempts cannot close delivery gaps. |
 | 3 | [060-01 full first PageView](../specs/060-meta-pixel-full-compatibility/slice-01-pageview-entry.md), [059-01 full direct conversion](../specs/059-google-ads-full-compatibility/slice-01-owned-conversion.md) | SDK-absent replacement and complete same-input request/response/browser-effect comparison, with every missing branch visible | Their original DoR, C1-C9, reviewed boundary and measured performance acceptance still apply. Local-browser success alone does not admit implementation or cutover. |
 | 4 | Existing command/consent/continuity owners below | Correct queued commands, consent transitions, first/returning state and cross-page relationships through real chambers | Refine from pinned native vectors; decide exact cookie/transport/host capabilities when evidence demonstrates the need. No generic identity or proxy service. |

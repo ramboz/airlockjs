@@ -1,14 +1,14 @@
 # Fixed local journey source fixtures
 
 This prepares two SDK-free pages and a bounded localhost receiver. It is **not a
-browser runner, execution approval or browser/worker qualification**. Slices
-060-14 and 059-20 retain open actual browser acceptance criteria. This helper
-itself never acquires a browser; its Node HTTP tests are not browser evidence.
-The current 156.0.8078.48 metadata is not qualified by historical 155 evidence.
-The separately supervised [foreground procedure](local-browser-foreground.md)
-was later issued once and failed its first receiving preflight before any
-product worker; Google was not acquired. Normal exact cleanup was observed,
-but neither browser journey is complete.
+browser runner, execution approval or browser/worker qualification**. This
+helper itself never acquires a browser; its Node HTTP tests are not browser
+evidence. The separately approved, owner-supervised
+[foreground procedure](local-browser-foreground.md) now supplies actual
+Chrome156.0.8078.48 local-worker evidence for both060-14 and059-20, including
+independent receivers, controls and normal owned cleanup. This is one
+explicit-empty200 cohort, not native204 compatibility or unattended shutdown.
+Three earlier failed attempts and frozen evidence remain unchanged.
 
 ## Source/local HTTP API
 
@@ -51,7 +51,7 @@ and returns `closed` or `UNKNOWN` with bounded error codes. Automatic cleanup
 reserves those 2 seconds inside the original 60-second helper lifetime.
 These are Node helper bounds, not a browser clock/cleanup certificate.
 
-## Interfaces for a separately approved future driver
+## Interfaces for a separately approved driver
 
 No acquisition or navigation instructions are supplied. A future permitted driver
 must independently own its fresh browser/profile, deadline, no-external-send
@@ -70,7 +70,9 @@ The driver must observe zero receiver arrivals after negative controls. Start
 positive controls without awaiting completion, independently observe the first
 held arrival and absence of a settled positive result, then call the server's
 `releaseFirstResponse("meta" | "google")`. Only the first response is withheld;
-the second receives 204. `failFirstResponse(vendor)` instead releases fixed 503.
+both successful responses receive200 with `Content-Length: 0`,
+`Content-Type: text/plain; charset=utf-8` and no body. HTTP204 remains
+unqualified. `failFirstResponse(vendor)` instead releases fixed503.
 There is no HTTP control endpoint, arbitrary response body or configurable URL.
 The driver must compare both arrivals/fields to captured inputs and correlate
 actual worker events, requests and responses before invoking `finishJourney()`.

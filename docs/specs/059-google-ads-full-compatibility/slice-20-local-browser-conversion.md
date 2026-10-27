@@ -1,11 +1,10 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: [059-19]
-last_verified:
+last_verified: 2026-10-26
 kind: feature
 frame_review: true
 arch_review: true
-claimed_by: google-and-meta-feasibility
 ---
 
 ## Slice 059-20 - Exercise the SDK-free conversion in a local browser
@@ -23,7 +22,7 @@ module worker and governed host. This is not a qualified Google conversion.
       launch/stop owner. Use a qualified execution path or separately explicit
       owner-supervised plan covering interruption/cleanup; no inferred native
       exception, replayed container authority or borrowed source lease.
-- [ ] Fix all case/send/byte/deadline limits before acquisition; the interval
+- [x] Fix all case/send/byte/deadline limits before acquisition; the interval
       includes cleanup and publication. Prove declared no-external-send controls
       before navigation. Missing ownership or visibility means no launch.
 
@@ -65,11 +64,11 @@ module worker and governed host. This is not a qualified Google conversion.
    is a named blocker, not permission to expand the slice.059-01/C1-C9 remain open.
 
 **DoD:**
-- [ ] Actual browser conversion-to-local-receiver positives and failed controls.
-- [ ] Final owned cleanup/external completion; unresolved ownership blocks DONE.
-- [ ] Targeted Google/Meta/host/contract regressions and applicable lint pass.
-- [ ] Compliance, craft, architecture and reconciliation pass.
-- [ ] Usage, browser/cohort/evidence limits and delivery queue reconciled.
+- [x] Actual browser conversion-to-local-receiver positives and failed controls.
+- [x] Final owned cleanup/external completion; unresolved ownership blocks DONE.
+- [x] Targeted Google/Meta/host/contract regressions and applicable lint pass.
+- [x] Compliance, craft, architecture and reconciliation pass.
+- [x] Usage, browser/cohort/evidence limits and delivery queue reconciled.
 
 **Anti-horizontal-phasing check:** One executable local browser conversion
 journey with values and report, not another acquisition helper.
@@ -84,20 +83,49 @@ journey with values and report, not another acquisition helper.
 
 ## Assumptions
 
-- Unverified: the exact module/CSP/origin/browser arrangement supports the
-  local path without a frozen-interface change.
-- Unverified: a current execution/stop plan is available; parent must establish
-  it separately instead of admitting general supervision work here.
+- Observed for one exact Chrome156.0.8078.48 cohort: the local module/CSP/worker
+  path works without a frozen-interface change.
+- One separately approved owner-supervised sequence completed normal cleanup;
+  future cases require current admission. Agent/session-loss and native/public-IP
+  guard qualification remain unproved, not admitted as general supervision work.
+
+### Actual successful local conversion - 2026-10-26
+
+The separately approved zero-body-EOF sequence reached Google and passed its
+actual browser module-worker journey. Two distinct local conversions preserved
+the exact route/label/value/currency/transaction/page relationships, including
+zero and empty values. Config/pending/denied/grant-without-new-command sent zero.
+Independent receiving controls counted1/0/1; withheld response blocked command
+completion and a separate held503 case failed without2xx. The18-module declared
+source graph, actual worker events and complete local receiver documents remain
+independently observed rather than Node/fake-worker substitutes.
+
+Google took2148ms (Meta8644ms), with parent-observed whole-command exit0/11.22s.
+Both roots/profiles and all owned worker/context/fixture/socket dispositions
+were normal and independently checked; publication fit original intervals.
+252 selected regressions pass/lint clean. Shared source epoch `b991e6c` and
+private receipt SHA256
+`81920ab48c087b15ace6fb78ea31f13652942baf5a26712a6d29f1d1a6396698`
+bind this outcome. All earlier failed attempts remain preserved.
+Only explicit-empty200 local transport is proved:204,12 historical rows/62 names,
+34 missing primary names, native response-linked behavior/identity/CWV/attribution
+and full059-01/C1-C9 remain unfinished.
 
 ### Deviation log
 
 Concrete fixed fixture and foreground procedure source prepared and reviewed.
 The owner's explicit supervised foreground permission applies to both local
 slices, with loss UNKNOWN and normal cleanup mandatory. Chrome156.0.8078.48 is
-the selected cohort, not historical155. Actual browser execution is pending;
-source/local HTTP controls cannot close DoD or change059-01 full requirements.
+the selected cohort, not historical155. The final actual sequence now provides
+separate browser/receiver/cleanup evidence. Source/local HTTP tests alone cannot
+close DoD or change059-01 full requirements. Local200 is an approved workaround;
+the nonblocking byte-fit test limitation is retained, not upgraded into a
+guard-removal rejection proof.
 
-### Actual supervised sequence - 2026-10-26
+### Historical first supervised sequence - 2026-10-26
+
+This records the original failed checkpoint; the successful local section above
+supersedes only its unexecuted/pending statements, not its failure or evidence.
 
 The fixed Meta→Google procedure was issued once, but Meta's receiving preflight
 failed before product execution. By its no-retry/stop rule, no Google browser,
@@ -117,7 +145,7 @@ or retry occurred, and full compliance/actual-browser DoD remain open.
 
 ### Reconciliation sweep
 
-The HTTP200-only attempt still failed in shared Meta preflight, without Google
+Historical checkpoint: the HTTP200-only attempt failed in shared Meta preflight, without Google
 acquisition. One further owner-supervised same-limit sequence is separately
 approved to test strict zero-body EOF before preflight success. Its source
 controls are not Google browser proof; unexpected network failures remain fatal.
@@ -128,11 +156,13 @@ local acknowledgments and one further supervised sequence with unchanged limits.
 The local controllers/recorder require200; all unexpected network failures
 remain fatal. This workaround does not qualify204 or alter native requirements.
 
-- updated - fixed Google controller/local receiver/source graph and supervised
-  foreground procedure are prepared; actual Google execution remains blocked
-  by the shared preflight failure, not by lack of user permission.
+- updated - actual Google module-worker/local receiver/source graph and
+  supervised controls/normal cleanup now pass on the separately approved final
+  sequence. Earlier preflight failures remain unchanged historical outcomes.
 - updated - late-worker-error controller correction and retained/bounded
   private observations have scoped static review, not browser outcome proof.
 - no-op - existing offline prototype/native gap report, full059-01/C1-C9,
   production/core/contracts/build, native authority and prior evidence originals.
-- pending - actual Google browser execution, owned cleanup and full slice DoD.
+- updated - full compliance plus its sole documentation-finding closure,
+  craft, architecture and reconciliation pass; canonical frontmatter records
+  mechanical Jig closure. Full native compatibility/204/loss remain open.

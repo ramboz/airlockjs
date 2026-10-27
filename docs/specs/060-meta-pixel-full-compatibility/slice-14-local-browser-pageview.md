@@ -1,11 +1,10 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: [060-13]
-last_verified:
+last_verified: 2026-10-26
 kind: feature
 frame_review: true
 arch_review: true
-claimed_by: google-and-meta-feasibility
 ---
 
 ## Slice 060-14 - Exercise the SDK-free PageView in a local browser
@@ -24,7 +23,7 @@ receipt and an honest browser-only result. No production/native parity claim.
       Use an existing independently qualified execution path or a separately
       explicit owner-supervised plan covering interruption and cleanup; a
       successful Node example or another lane's exception cannot supply this.
-- [ ] The plan fixes case/send/output/deadline limits, includes cleanup in
+- [x] The plan fixes case/send/output/deadline limits, includes cleanup in
       that interval, and qualifies no-external-send enforcement before navigation.
       No browser may be acquired while these facts are missing.
 
@@ -70,11 +69,11 @@ receipt and an honest browser-only result. No production/native parity claim.
    Production boots, package/build/core/contracts and060-01/C1-C9 are unchanged.
 
 **DoD:**
-- [ ] Actual browser page-to-worker-to-local-receiver evidence and controls.
-- [ ] Final owned cleanup and external command completion, or no DONE.
-- [ ] Targeted Meta/prototype/contract regressions and applicable lint pass.
-- [ ] Compliance, craft, architecture and reconciliation reviews recorded.
-- [ ] Browser/version scope, evidence limits and delivery queue updated.
+- [x] Actual browser page-to-worker-to-local-receiver evidence and controls.
+- [x] Final owned cleanup and external command completion, or no DONE.
+- [x] Targeted Meta/prototype/contract regressions and applicable lint pass.
+- [x] Compliance, craft, architecture and reconciliation reviews recorded.
+- [x] Browser/version scope, evidence limits and delivery queue updated.
 
 **Anti-horizontal-phasing check:** The developer runs an actual browser
 PageView journey and sees a local receipt, not a new browser launcher.
@@ -90,10 +89,32 @@ PageView journey and sees a local receipt, not a new browser launcher.
 
 ## Assumptions
 
-- Unverified: the exact local fixture/module/CSP/origin arrangement preserves
-  the Node-proved path in the selected real browser without a core change.
-- Unverified: a current permitted execution/stop path is available. This is
-  an explicit entry blocker, not work automatically admitted by this draft.
+- Observed for one exact Chrome156.0.8078.48 cohort: the fixed local fixture,
+  CSP and real module worker preserve this prototype path without a core change.
+- One separately approved owner-supervised execution/normal cleanup completed.
+  Future cases still need their own current admission; agent/session-loss
+  handling and native/public-IP guard qualification remain unproved.
+
+### Actual successful local journey - 2026-10-26
+
+The separately approved zero-body-EOF sequence passed actual Meta and Google
+browser journeys; this supersedes only earlier product-unexecuted statements.
+Meta's actual module workers produced two exact, distinct eight-field PageViews
+at the independent local HTTP receiver. Init/pending/denied/grant-without-command
+sent zero; receiving positive/enforced-negative/bypass counted1/0/1. A held
+response blocked the correlated command, and a separate held503 produced failure
+without2xx. Browser resource/source hashes, worker events, exact receiver fields
+and command outcomes are retained, not supplied by controlled-browser fakes.
+
+Meta took8644ms; Google2148ms; parent-observed whole-command exit0/11.22s.
+All owned contexts/fixtures/workers/sockets closed, roots exited/closed0 without
+signals and both exact profiles/PIDs were independently absent. Publication
+completed inside each original interval.252 selected regressions pass/lint clean.
+The actual source epoch is `b991e6c`; private receipt digest is
+`81920ab48c087b15ace6fb78ea31f13652942baf5a26712a6d29f1d1a6396698`.
+All three earlier failures/frozen sources remain unchanged. This proves only
+explicit-empty200 local transport, not204/native compatibility, CWV, attribution,
+unattended shutdown or060-01/C1-C9.
 
 ### Deviation log
 
@@ -101,10 +122,13 @@ Concrete fixture and foreground procedure source prepared under reviewed plan.
 Owner explicitly selected supervised foreground execution for both local slices;
 interruption/agent loss remains UNKNOWN, not unattended cleanup qualification.
 Installed bundle156.0.8078.48 is the selected cohort, not historical155.
-Source/local HTTP tests are not browser evidence. Actual execution and DoD
-remain pending;060-01 full compatibility requirements stay unchanged.
+Source/local HTTP tests are not browser evidence. The final actual local
+sequence now supplies separate browser/receiver/cleanup evidence;060-01 full
+requirements stay unchanged. Local200 is an explicitly approved workaround,
+not204 or native qualification. The nonblocking byte-fit test limitation remains:
+current-size assertions do not independently prove guard-removal rejection.
 
-### Actual supervised attempt - 2026-10-26
+### Historical first supervised attempt - 2026-10-26
 
 The fixed foreground sequence was issued once after scoped plan/source reviews.
 Meta preflight failed before the product worker was created; Google acquisition
@@ -125,7 +149,10 @@ private output were frozen; no automatic retry or source-model pass repaired it.
 DoD stays open. Next work is the narrowly named preflight recorder diagnostic,
 not another browser-holder or general harness.
 
-### Recorder correction, not a second actual attempt
+### Historical recorder-correction checkpoint
+
+The following preserves the8b800d7 source-only checkpoint; the actual-success
+section above supersedes its pending statements, never its original failure.
 
 The shared recorder had a confirmed HTTP204 contract defect: it always called
 the browser's body API even though204 has no content. A controlled unavailable-
@@ -146,13 +173,13 @@ the egress DoR remains unchecked, and all actual-product DoD stays open.
 
 ### Reconciliation sweep
 
-The owner-approved HTTP200-only sequence also failed before any product worker
+Historical checkpoint: the owner-approved HTTP200-only sequence failed before any product worker
 (exit1/7.82s, same `net::ERR_ABORTED`, normal exact cleanup). Thus the abort is
 not specific to204. The owner separately approved one further same-limit
 sequence to test consuming the preflight's expected zero-byte body to EOF.
 That check now rejects content/missing stream/framing/read failure and retains
 its final body-consumed observation;55 offline controls pass after a witnessed
-headers-versus-EOF RED. This is not yet a proved browser fix or actual journey.
+headers-versus-EOF RED. That checkpoint was not an actual journey; the final sequence above is separate.
 
 **Owner-approved local refinement:** the second actual sequence (separately
 approved while the owner was present) verified204 empty framing but still
@@ -177,5 +204,8 @@ network failure is ignored and neither original failure is upgraded.
   have witnessed failing controls and narrow review closure, not actual-browser proof.
 - no-op - full060-01/C1-C9, existing production boots/core/contracts/build/version,
   native case/authority/history, old UNKNOWNs and vendor compatibility.
-- pending - actual product browser positives/negatives and final full slice review;
-  no DONE or full AC pass follows from source preparation.
+- updated - actual product positives/negatives, independent receiver/source/
+  response comparisons and normal owned cleanup now pass for one local200 cohort.
+- updated - full compliance plus its sole documentation-finding closure,
+  craft, architecture and reconciliation pass; canonical frontmatter records
+  mechanical Jig closure. No native/full-vendor or loss qualification follows.

@@ -6,8 +6,9 @@ implementation, review or readiness.
 
 ## Next bounded deliverable
 
-- [ ] Refine059-20's actual local-browser conversion and current launch/stop
-      entry gates; no browser acquisition from a draft.
+- [x] Exercise059-20's actual local-browser conversion, strict local controls
+      and normal owned cleanup on the separately approved Chrome156/empty200 cohort.
+      Native204/parity/loss qualification remain open; future runs need current admission.
 - [ ] Use the [delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
       for later feature owners/decision triggers and a product-linked stop card.
 - [x] Owner accepted ADR-0042 on2026-10-26; no new two-hour allocation or

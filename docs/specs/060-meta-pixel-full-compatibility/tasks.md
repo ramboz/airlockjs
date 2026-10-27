@@ -6,8 +6,9 @@ An authored AC is not a passing evaluation.
 
 ## Next bounded deliverable
 
-- [ ] Refine060-14's actual local-browser PageView and current launch/stop
-      entry gates; no browser acquisition from a draft.
+- [x] Exercise060-14's actual local-browser PageView, strict local controls
+      and normal owned cleanup on the separately approved Chrome156/empty200 cohort.
+      Native204/parity/loss qualification remain open; future runs need current admission.
 - [ ] Follow the [delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
       rather than adding duplicate feature or general-runner work.
 - [x] Owner accepted ADR-0042 on2026-10-26; full compatibility/live authority unchanged.

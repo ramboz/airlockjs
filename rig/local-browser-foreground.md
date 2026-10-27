@@ -7,6 +7,16 @@ issuance; tests of this module do **not** issue it or launch Chrome.
 
 ## Current owner-selected acknowledgment
 
+**Actual outcome:** the one separately approved EOF sequence passed both real
+local browser journeys on Chrome156.0.8078.48. Meta received two distinct local
+PageViews and Google two distinct conversions, with actual module workers,
+zero-send consent controls, held-response barrier and held503 failure.
+Native whole-command exit0/11.22s; Meta8644ms and Google2148ms, each within its
+original interval including publication/normal cleanup. Parent independently
+compared exact payload/source/response hashes and confirmed both exact root
+PIDs/profiles absent. HTTP204, native parity and agent-loss cleanup remain
+unqualified; earlier failures remain failures.
+
 **Current preflight refinement:** changing only204→200 did not remove the abort:
 the one HTTP200 attempt also stopped before product work (exit1/7.82s), with
 normal cleanup. The present owner separately approved one further supervised
@@ -16,7 +26,8 @@ stream/wrong framing/read failure, and releases the reader without canceling a
 successfully completed stream. Its final body-consumed state is retained.
 All network-failure checks remain fatal. A witnessed pending-versus-headers RED
 and55 offline controls support only this completion-contract correction;
-the browser-abort hypothesis is still unproved until actual execution.
+the browser's internal abort cause is not established by this one successful
+cohort. It demonstrates the corrected local sequence, not a universal browser fix.
 
 After the separately approved corrected attempt still failed on
 `net::ERR_ABORTED` despite page Fetch204 and recorded empty framing, the present

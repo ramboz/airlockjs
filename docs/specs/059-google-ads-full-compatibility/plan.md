@@ -2,14 +2,22 @@
 
 ## Current delivery order and work boundaries
 
-**Interactive refinement:** the corrected shared sequence also stopped in Meta
+**Latest actual outcome:** the separately approved zero-body-EOF sequence
+reached Google and passed both real local module-worker journeys. Two exact
+Google conversions (including zero/empty and distinct transactions/pages),
+consent0/receiving1-0-1/barrier/503 controls and normal owned cleanup are retained.
+Google2148ms, Meta8644ms; whole-command exit0/11.22s. Only explicit-empty200 local
+transport is proved;204/native/CWV/attribution/loss handling remain unqualified.
+Earlier failures below are history;059-20/060-14 are closed through required
+Jig reviews without closing the full native first journeys.
+**Historical interactive refinement:** the corrected shared sequence also stopped in Meta
 preflight (`net::ERR_ABORTED` after204); Google was not acquired.
 The owner now selected explicitly empty local HTTP200 acknowledgments and one
 further supervised Meta→Google attempt with the existing limits. This changes
 only the local fixture/controllers/recorder, not adapters or native semantics.
 HTTP204 remains unqualified and all unexpected network failures remain fatal.
 
-**Current execution status:** the shared foreground sequence stopped on Meta
+**Historical failed execution status:** the shared foreground sequence stopped on Meta
 preflight failure before product worker creation. No Google browser or conversion
 was acquired. See060-14/059-20 actual records; exact normal cleanup was observed,
 no automatic retry followed, and full Google browser DoD remains open.

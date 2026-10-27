@@ -2,7 +2,16 @@
 
 ## Current delivery order and work boundaries
 
-**Interactive refinement:** one newly approved corrected attempt observed
+**Latest actual outcome:** the separately approved zero-body-EOF sequence
+passed both local browser journeys: Meta two exact PageViews in8644ms, Google
+two exact conversions in2148ms; whole-command exit0/11.22s. Independent receiver,
+worker/source/command/control and exact normal cleanup evidence is retained.
+Only explicit-empty200 local transport is proved;204/native/CWV/attribution/
+agent-loss handling remain unqualified. Earlier failures below are preserved
+history, not the current product outcome.060-14/059-20 are closed through the
+required Jig reviews; full native first journeys remain open.
+
+**Historical interactive refinement:** one newly approved corrected attempt observed
 page Fetch204, recorded empty framing and `net::ERR_ABORTED`; it stopped before
 product work and cleaned up normally (whole command exit1/9.37s).
 The present owner then chose “Try empty HTTP200 locally; keep204 unqualified”
@@ -11,7 +20,7 @@ Only local fixture acknowledgments/controllers/recorder expectations change;
 all network-failure checks remain strict. This workaround is not native204
 qualification or a new general-runner project. Both earlier attempts stay failed.
 
-**Current outcome:** the selected supervised foreground procedure was issued
+**Historical failed outcome:** the selected supervised foreground procedure was issued
 once and failed the Meta receiving preflight before product worker creation.
 One exact local GET arrived and finished204, but browser response-body recording
 did not complete; the underlying protocol cause is unresolved. Google was not
