@@ -2,6 +2,16 @@
 
 ## Current delivery order and work boundaries
 
+**Current work - 2026-10-27:** prepare the
+[one additional Meta native-reference plan](meta-native-reference-plan.md)
+for060-01, not another construction prototype or runner program. Per-case
+execution-mode choices and run authorizations belong in the private session/
+case handoff, not a new ADR. Source inspection confirms a155-pinned native engine
+against installed156, a local-only resource-registration branch, missing
+executable case permission and an undemonstrated owner stop route. Thus capture
+is blocked before acquisition/consumption; the additional grant remains unspent.
+059-15/18 stay DEFERRED pending their stated resolution triggers.
+
 **Latest actual outcome:** the separately approved zero-body-EOF sequence
 passed both local browser journeys: Meta two exact PageViews in8644ms, Google
 two exact conversions in2148ms; whole-command exit0/11.22s. Independent receiver,

@@ -6,6 +6,12 @@ An authored AC is not a passing evaluation.
 
 ## Next bounded deliverable
 
+- [x] Review the2026-10-27 [Meta reference packet](meta-native-reference-plan.md);
+      retain concrete pre-admission gates and one unspent
+      additional case. No native run or general runner is admitted by planning.
+- [ ] Resolve that packet's current-browser guard/acquisition/normal-stop/
+      owner-stop gates through one bounded reviewed change, not a version-only
+      repin or reuse of the local200 execution path.
 - [x] Exercise060-14's actual local-browser PageView, strict local controls
       and normal owned cleanup on the separately approved Chrome156/empty200 cohort.
       Native204/parity/loss qualification remain open; future runs need current admission.

@@ -2,28 +2,29 @@
 slice: 060-01 - Replace bootstrap and first PageView
 pass: frame-critique
 verdict: pass
-reviewer: jig:reviewer artifact-only
-reviewed_at: 2026-10-16T21:36:55Z
-prompt_source: review.py frame-critique 060-01 readiness artifacts and conditional paired-envelope follow-up; no independent source audit claimed
+reviewer: jig:reviewer meta-reference-frame + plan-only routing closure
+reviewed_at: 2026-10-27T15:37:18Z
+prompt_source: review.py frame-critique; blocked native-reference plan only; private session authorization, no new ADR or runtime proof
 ---
 
 VERDICT: pass
 
-REASONING:
-The highest-risk assumption is that caller-visible fbq behavior fits a
-capture-only facade with off-thread interpretation and the stable synchronous
-void push contract. The frame requires observation of mutation/readiness/
-return/error behavior, rather than assuming compatibility. One stock and one
-conditional candidate PageView retain prerequisite, preflight, one-shot and
-eight-request-per-case bounds without granting execution.
+Reviewer meta-reference-frame initially passed the conditional additional
+Meta reference premise and blocked060-01 frame. Owner then rejected using an
+ADR for a transient session execution choice. The unaccepted draft was removed.
+Reviewer meta-reference-plan-closeout independently passed frame continuity
+for the current plan after that correction.
 
-SPECIFIC ISSUES:
-- Command-dependent synchronous native return/error decisions could break an
-  enqueue-only facade despite matching downstream wire. Native invocation
-  evidence must discriminate that possibility before choosing the design.
+The change removes ceremony only. Current cohort/source/setup, full physical
+guard matrix, additional-lineage proof, acquisition ownership, normal cleanup,
+demonstrated independently usable owner stop and explicit operation GO remain.
+A minimal attended adaptation and usable stop remain unproved.
 
-REVIEW SCOPE:
-Artifact-only premise/authority review. Coordinator-attested source/execution
-facts were attributed, not independently verified by source discovery.
-This passes blocked-draft framing, not implementation readiness, boundary fit,
-guard qualification, live authority or Servo approval.
+Scope: planning/frame only, not implementation, native qualification or GO.
+060-01 remains READY_FOR_REVIEW;059-15/18 remain DEFERRED with no dependency
+gate bypass or implicit acceptance of ADR-0038. Exact temporary permission
+is private session/case memory. Accepted ADRs and full C1-C9 stay unchanged.
+
+Historical2026-10-16 frame pass concerned the capture-only facade/native return
+semantics premise. Its invocation/mutation/readiness/error evidence obligations
+remain; this planning refresh does not claim that broader premise implemented.

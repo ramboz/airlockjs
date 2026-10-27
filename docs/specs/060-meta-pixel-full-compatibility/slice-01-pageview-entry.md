@@ -69,9 +69,18 @@ replacement PageView plus an actionable report, not a queue/parser-only layer.
 
 ## Readiness checkpoint - 2026-10-16
 
+**Current reference preparation - 2026-10-27:**060-13/14 local construction
+is DONE, but this full first journey remains READY_FOR_REVIEW and blocked before
+implementation. The [bounded native-reference packet](meta-native-reference-plan.md)
+uses existing058/059-15/18 owners and the sole additional grant. Per-case
+execution mode and actual run approval are private session/case records,
+not a new ADR or a native lease. Current cohort/guard/acquisition/setup/stop/permission gates
+remain open. Original criteria above and all C1-C9 stay unchanged; neither
+deferred operator slice is silently reopened.
+
 **Current navigation:** the dated checkpoint and full criteria above are
-preserved.060-13 is completed offline construction; proposed060-14 is the next
-local-browser authoring step, not an admission to implement full060-01.
+preserved.060-13/14 are completed local construction, not admission to implement
+full060-01. The bounded reference plan is the next reviewed preparation step.
 The [delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
 maps evidence/capability blockers and later feature owners without excluding
 anything the first native-equivalent PageView actually requires.

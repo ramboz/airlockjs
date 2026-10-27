@@ -35,6 +35,17 @@ readiness/native-reference/capability/performance gates remain open; do not
 silently reopen the deferred operator tracks or guess redacted native fields.
 No new browser, vendor run, deployment or source pause is authorized by this queue.
 
+**Current bounded packet - 2026-10-27:** the
+[Meta native-reference plan](../specs/060-meta-pixel-full-compatibility/meta-native-reference-plan.md)
+names060-01's consumer, retained source/lineage, unchanged physical limits,
+current blocking gates and finite exit. Per-case execution choices and
+approvals stay in private session/case records, not another ADR.
+The native engine is still155-pinned against installed156; native acquisition/
+normal stop and an independent owner loss-stop route are unqualified. Capture
+is blocked, additional permission/slot absent and the extra case remains
+unspent. Independent frame and documentation reviews passed for the packet;
+that is not native execution or implementation compliance.
+
 **Actual local execution update (2026-10-26):** the present owner separately
 approved the final zero-body-EOF sequence, which passed **both actual local
 browser module-worker journeys**: two exact Meta PageViews and two exact Google
