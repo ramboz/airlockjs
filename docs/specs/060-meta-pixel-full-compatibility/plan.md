@@ -14,7 +14,12 @@ The single.49 matrix attempt stopped at its first actual controller on observer
 unresolved. Exact cleanup and owner release are confirmed, but no relay/
 additional phase or current index. The subsequent offline correction retains
 bounded rejection detail without changing membership rules; it cannot recover
-the original row. A new actual job still requires separate admission. Executable
+the original row. One separately approved fresh attempt then stopped on `lsof`
+listener inventory and stop observation. Registered resource cleanup is confirmed;
+an unregistered normal/H1 browser/profile remains UNKNOWN despite producer
+cleanup, explicitly accepted by the owner. Suite exit1/observer2, no relay/
+additional/full index. Resolve observation/cleanup dependency and acquisition
+evidence before any further separately admitted actual job. Executable
 native case permission is absent. Thus capture
 is blocked before acquisition/consumption; the additional grant remains unspent.
 059-15 stays DEFERRED.059-18 has reopened through DRAFT for its bounded

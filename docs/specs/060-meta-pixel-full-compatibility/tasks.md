@@ -24,6 +24,10 @@ An authored AC is not a passing evaluation.
 - [x] Correct diagnostic loss offline after the one.49 guard attempt:
       successor retains rejected rows/pre-check state and the same rejection.
       Original row/cause remain unavailable; failed attempt unchanged.
+- [ ] Resolve the separately admitted fresh attempt's listener-inventory/stop
+      observation failure and normal/H1 independent registration gap. Recorded
+      resources closed; owner accepted unregistered browser/profile UNKNOWN.
+      No relay/additional/full index, retry or native authority.
 - [ ] Obtain all remaining current fourteen-controller/eleven-relay/additional
       and renewed attended originals under059-18 after separately reviewed
       new-job admission, before native case preparation/admission.

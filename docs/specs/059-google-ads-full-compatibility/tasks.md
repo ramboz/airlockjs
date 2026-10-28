@@ -56,6 +56,10 @@ implementation, review or readiness.
 - [x] 059-18 offline diagnostic loss: separate successor retains bounded exact
       rows/pre-check state and rethrows the unchanged predicate failure, with
       controlled causal/threshold/error/wiring checks and source/craft review.
+- [ ] 059-18 fresh failed attempt: scoped listener inventory also blocked stop;
+      registered-node recovery is complete, but normal/H1 independent browser/
+      profile identity is missing and UNKNOWN handed to owner. No further run
+      or qualification before bounded resolution/new admission.
 - [ ] 059-18 actual-proof residual: obtain complete current shared/additional
       and renewed attended originals after separately admitted new execution,
       before the060-01 reference consumer requests native admission.

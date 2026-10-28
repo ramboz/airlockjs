@@ -66,7 +66,7 @@ Every missing/stale gate blocks; none is silently commissioned by this packet.
 | A. Session authority | Scope-specific execution-mode decision in the private case handoff; if attended, present owner with exact loss-UNKNOWN responsibility. Any reopened059-18 variant must pass DRAFT/review without pretending0038 is Accepted | Session authorization is not an ADR or guard qualification.059-18's engineering reentry covers the bounded source increments below; native admission remains blocked and requires a separately approved current operation. |
 | B. Lineage | Original authority/spent slot, genuine additional decision, conditional authority/inspection record: current bytes/hash/device/inode and semantics; additional canonical slot absent |2026-10-27 read-only six-file locator/hash/identity verification passed; original slot semantically SPENT, additional conditional grant ONE, executable location permission and additional slot absent. Reverify at actual preflight; this is not final permission. |
 | C. Setup/source | Fresh truthful same-Pixel/settings report; explicit private handles, retained source authentication, owned origin/document and command transcript | Current owner-reported setup confirmation is retained privately, not API readback. Exact source/input/case bindings still need preflight; no account change. |
-| D. Guarded browser | Same inspected path on156, complete existing fourteen-controller/eleven-relay and additional-lineage qualification obligations, including actual SDK-absent H1/H2 positives, retry/count/semantic/header/body/response/aggregate/truncation/cookie, no-ticket/unknown-route/marker-loss controls, source/driver closure and external exit/cleanup originals | Current.49 attempt failed at its first actual controller observer identity check; relay/additional not issued, no complete index. Rejected raw row was not retained, cause unresolved. Old155/.48 receipts and local200 controls do not qualify it. No retry or selection of only easy controls. |
+| D. Guarded browser | Same inspected path on156, complete existing fourteen-controller/eleven-relay and additional-lineage qualification obligations, including actual SDK-absent H1/H2 positives, retry/count/semantic/header/body/response/aggregate/truncation/cookie, no-ticket/unknown-route/marker-loss controls, source/driver closure and external exit/cleanup originals | Two separately approved.49 attempts failed: first observer identity rejection, then listener inventory/stop observation. No relay/additional/full index. Latest normal/H1 lacks external child witness/independent browser registration; owner accepted that UNKNOWN handoff, not qualification. Old155/.48/local200 proof cannot replace it. |
 | E. Acquisition/normal stop | Pending handles owned before acquisition; browser/profile/controller/proxy/key/endpoint ownership, finite forwarding cutoff, normal cleanup and late arrivals | Historical.48 H1/H2 returned-browser/normal-cleanup originals passed the attended reader. Renew current.49 source-bound proof; acquisition-time interruption/late-loss and full native/shared/additional qualification remain open. |
 | F. Owner loss stop | For an attended case: present owner, exact-case handoff and demonstrated independently usable stop for outbound continuation and owned browser without broad scans/kills | Fixed manifest-bound command was demonstrated on.48 in a separate Node process after real browser ownership. Expected producer exit2/CLI exit0 and exact cleanup remain historical. Renew current.49 proof and admit the actual native case handoff/presence; no unattended loss proof. |
 | G. Reviews | Frame/compliance/craft/architecture/reconciliation and genuine current guard/additional indices for the selected implementation/cohort | This packet's design review cannot mint native proof/private execution leases. Source changes invalidate old indices. |
@@ -189,6 +189,16 @@ the successor retains bounded raw rows/pre-check state and preserves the same
 rejection. No production predicate changed and no old row was recovered.
 The original rejected-process cause remains unknown; current qualification
 still requires a separately admitted new job, not an automatic retry.
+
+The owner then admitted one fresh attempt. It stopped on scoped `lsof` listener
+inventory, including during stop after known controllers were frozen. Exact
+retained-node recovery and registered resource closure were verified, but a
+normal/H1 browser PID/profile was never independently registered. Its producer
+reports normal shutdown; that is not independent closure proof. The owner
+explicitly accepted this bounded UNKNOWN handoff and closed the observer.
+Outer suite exited1/observer2, no relay/additional/current index or automatic
+retry. Listener-observation/cleanup dependency and missing acquisition evidence
+remain concrete blockers, not a new native grant or current qualified path.
 
 ## Assumptions
 

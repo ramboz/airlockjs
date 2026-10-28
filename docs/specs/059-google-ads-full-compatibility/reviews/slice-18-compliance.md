@@ -2,39 +2,42 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: compliance
 verdict: fail
-reviewer: jig:reviewer meta-membership-diagnostics-review
-reviewed_at: 2026-10-28T01:15:13Z
-prompt_source: offline diagnostic source PASS; historical actual matrix FAIL/current proof missing, FULL05918 FAIL
+reviewer: jig:reviewer meta-fresh-guard-closeout
+reviewed_at: 2026-10-28T01:27:25Z
+prompt_source: new actual attempt failed listener/stop observation, incomplete independent H1 evidence; FULL05918 FAIL
 ---
 
 VERDICT: fail
 
-LATEST OFFLINE DIAGNOSTIC SOURCE: pass. meta-membership-diagnostics-review
-passed narrow compliance and craft for a separate, uninitialized successor.
-It preserves supplied group rows and pre-validation ownership at all three
-predicate sites, preserves diagnostic handles/status through the run/stop
-catches, and rethrows the unchanged original membership rejection.
-Existing membership/image/signal/cleanup/authority rules and production
-source4ffd4ae are unchanged.
+meta-fresh-guard-closeout reviewed the bounded retained evidence read-only:
+ACTUAL QUALIFICATION FAIL; DOC RECONCILIATION PASS. Actual outer suite exited1,
+observer2 after owner release. The fresh controller phase stopped on scoped
+listener inventory; that dependency also blocked stop observation after known
+controllers were frozen. Parent exact retained-node recovery is separate and
+not qualification. Raw lsof status/stdout/stderr were not retained, so its
+failure mechanism remains unresolved.
 
-Parent ten controlled offline checks pass, with existing rig ESLint clean
-for all three private files. Initial missing-implementation RED and actual
-row-retention-removal RED precede restored green; exact262144-byte/+1 and
-eight-per-writer limits are exercised. Candidate import is inert and no
-job.json exists. Reviewer inspected source only, not tests/OS execution.
+Finite-window/H2 and expected source-race/H2 retain actual child witnesses.
+Normal/H1 reports producer0/normal browser exit/all16cleanuptrue but lacks its
+external child witness and independently registered browser PID/profile.
+No relay/additional/full25-row index or passing full suite. No membership
+rejection/receipt in this attempt; original rejected-process cause remains unknown.
 
-The INFORMATION-LOSS root cause is confirmed: the actual pure predicate
-provided structured rejection evidence but the frozen private catch kept
-only error.message. The HISTORICAL REJECTED PROCESS cause remains unknown;
-controlled fixtures cannot reconstruct the missing original row.
-Frozen failed program/run hashes are verified unchanged.
+Known closure: thirteen registered PIDs and the recorded Chrome group/profile
+absent, no keys in three retained run roots, four recorded ports refused.
+The unregistered H1 browser/profile remains UNKNOWN independently. The owner
+explicitly accepted this bounded exact-case handoff and closed the observer.
+Do not treat producer flags or that handoff as independent absence/adoption.
 
-FULL059-18: fail. The preceding actual.49 matrix failed at its first
-controller observer rejection, outer suite143/observer2; relay/additional
-unissued, no complete index. Exact cleanup and owner release ended only
-that failed operation. Old.48 attended proof stays historical, all old
-UNKNOWNs and originalSPENT/additionalONEUNSPENT unchanged.
-No new actual OS/browser/socket/signal/SDK/vendor job or native grant.
-Keep IN_PROGRESS/open DoD. Another actual current guard/additional/attended
-job requires separate finite admission/current source/owner/lane/procedure;
-native case GO remains later.
+Fresh requested execution-continuity reviewer was cancelled with zero turns;
+there is no verdict from it. Parent direct continuity check and prior independent
+diagnostic/source/handoff provenance are accurately distinguished. Offline
+source/craft acceptance is not new runtime qualification.
+
+Both failed programs/helper/receipts are preserved, no further job/retry.
+Original MetaSPENT/additionalONEUNSPENT; no officialSDK/publicprovider/native
+permission/window/reservation/grant. Old UNKNOWNs unchanged.
+Full059-18 stays IN_PROGRESS/complianceFAIL/open DoD. Listener/stop observation
+and missing acquisition evidence require bounded resolution before any separately
+admitted new operation; complete current guard/additional/attended and native
+admission remain outstanding. Reviewer executed no runtime or OS checks.

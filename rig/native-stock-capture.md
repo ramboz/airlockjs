@@ -78,8 +78,38 @@ in-memory work only, not process observation, signals, sockets or Chrome.
 
 The failed program and original output hashes remain unchanged. This corrects
 future diagnostic loss, not the historical unknown row or full guard failure.
-No new job was initialized or issued; another actual matrix still needs
-separate finite admission and current owner/source/coordination/handoff.
+At that offline checkpoint no new job was initialized or issued. The subsequent
+separately admitted attempt below remains distinct from this source correction.
+
+### Fresh corrected-observer attempt - 2026-10-27
+
+The owner separately approved one fresh SDK-free attempt. The controller phase
+then stopped on a different observation error: its scoped `lsof` listener
+inventory failed. Stop also hit that dependency after freezing known Node
+controllers. Parent performed bounded recovery using the existing fresh-lifetime
+specific-PID helper: TERM/CONT on exact retained workers/root, with subsequent
+KILL checks finding every target vanished. No name-based kill/profile deletion.
+The exact `lsof` status/stdout/stderr was not retained, so its failure mechanism
+is unresolved. This was not a membership rejection or a new missing-row receipt.
+
+Finite-window/H2 and the expected source-mutation/H2 control have actual child
+witnesses. A later normal/H1 producer reports normal browser exit and all sixteen
+cleanup fields true, but its external child witness and independently registered
+browser PID/profile are absent. It is not a qualified partial replacement for
+the required matrix. Outer Vitest exited1; the attached observer later exited2.
+No relay/additional phase, full index or automatic retry.
+
+Independent checks found thirteen registered PIDs and the recorded Chrome group/
+profile absent, no private keys in the three retained run directories, and four
+recorded ports refusing connections. The normal/H1 unregistered browser/profile
+disposition remains **UNKNOWN independently**, despite its normal producer
+cleanup report. The owner explicitly accepted that bounded exact-case handoff
+and closed the observer. No unobserved lifetime is adopted or cleared.
+
+The offline diagnostic fix and both failed attempts remain preserved. No official
+SDK/public-provider/real slot was used. Full current qualification stays blocked;
+any further operation needs a reviewed listener-observation/cleanup/acquisition
+resolution and separate admission, not another automatic run.
 
 ## Attended acquisition and independent owner stop
 

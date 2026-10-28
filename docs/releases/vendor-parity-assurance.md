@@ -59,6 +59,11 @@ index or retry. Offline diagnostic retention comes before any new admitted job.
 That diagnostic-loss correction is now controlled-tested/source-reviewed in a
 separate uninitialized private successor. It does not recover the original row,
 change membership rules or authorize a rerun; complete current proof stays open.
+A later separately admitted attempt stopped on listener inventory/stop
+observation. Known resource cleanup is verified, but unregistered normal/H1
+browser/profile UNKNOWN was explicitly handed to the owner. Suite exit1/
+observer2; no relay/additional/full index. Observation/cleanup dependency and
+missing acquisition evidence remain blockers; no further operation queued.
 
 **Actual local execution update (2026-10-26):** the present owner separately
 approved the final zero-body-EOF sequence, which passed **both actual local
