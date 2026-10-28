@@ -31,7 +31,7 @@ const execute = promisify(execFile);
 const digest = value => typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
 const plans = new WeakMap();
 const PINS = META_REFERENCE_COHORTS["retained-2026-10-15"];
-const COHORT = Object.freeze({ node: "v24.10.0", chrome: "156.0.8078.48", playwright: "1.62.1",
+const COHORT = Object.freeze({ node: "v24.10.0", chrome: "156.0.8078.49", playwright: "1.62.1",
   macos: "27.0.1", darwin: "27.0.0", headless: false, transport: "inspected-network" });
 const CHROME_INFO = "/Applications/Google Chrome.app/Contents/Info.plist";
 const REVIEW_SCOPE = "059-15-inspected-meta-pre-admission-code";

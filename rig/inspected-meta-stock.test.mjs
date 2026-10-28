@@ -161,7 +161,7 @@ describe("inspected Meta stock preparation", () => {
   it("defines only the fixed current inspected Chrome candidate, not native qualification", async () => {
     const { localInspectedMetaDefinition } = await load();
     expect(localInspectedMetaDefinition().cohort).toEqual({
-      node: "v24.10.0", chrome: "156.0.8078.48", playwright: "1.62.1",
+      node: "v24.10.0", chrome: "156.0.8078.49", playwright: "1.62.1",
       macos: "27.0.1", darwin: "27.0.0", headless: false, transport: "inspected-network",
     });
   });
@@ -210,15 +210,16 @@ describe("inspected Meta stock preparation", () => {
     expect(existsSync(join(f.root, "run"))).toBe(false);
   });
 
-  it.each(["controller", "relay"])(
-    "rejects stale Chrome in a %s row despite refreshed report/witness/index hashes and current source", async family => {
+  it.each(["controller", "relay"].flatMap(family => ["155.0.8059.85", "156.0.8078.48"]
+    .map(chrome => [family, chrome])))(
+    "rejects stale Chrome in a %s row (%s) despite refreshed report/witness/index hashes and current source", async (family, chrome) => {
       const f = await qualificationFixture(), entry = f.cases.get(family === "controller"
         ? "controller/normal/h1" : "relay/physical/h1");
       expect(f.api.inspectSdkAbsentQualification(f.index())).toMatchObject({
         sdk_absent_evidence_verified: true, execution_authority: false, native_sdk_executed: false,
       });
       const currentCohort = { ...entry.reportValue.cohort }, currentReportHash = entry.row.report_sha256;
-      entry.reportValue.cohort.chrome = "155.0.8059.85";
+      entry.reportValue.cohort.chrome = chrome;
       f.rebindReport(entry);
       const staleIndex = f.index();
       expect(entry.reportValue.source_before).toEqual(f.api.inspectedMetaSourcePins());
@@ -235,13 +236,14 @@ describe("inspected Meta stock preparation", () => {
       });
     });
 
-  it("rejects a fully rebound old-Chrome local manifest semantically without output or reservation", async () => {
+  it.each(["155.0.8059.85", "156.0.8078.48"])(
+    "rejects a fully rebound old-Chrome local manifest (%s) semantically without output or reservation", async chrome => {
     const f = await fixture();
     expect(f.api.prepareLocalInspectedMeta(f.options())).toMatchObject({
       execution: "LOCAL-ONLY", execution_authority: false, native_sdk_executed: false,
       full_native_guard_qualified: false, native_execution_qualified: false,
     });
-    f.binding.cohort.chrome = "155.0.8059.85";
+    f.binding.cohort.chrome = chrome;
     f.bind(); // Refresh permission, every evidence binding, and manifest hash.
     const before = readdirSync(f.root).sort();
     expect(() => f.api.prepareLocalInspectedMeta(f.options())).toThrow("case_envelope_mismatch");

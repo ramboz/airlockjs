@@ -31,7 +31,7 @@ describe("local inspected physical-request budget", () => {
       // no pure-unit seam. This inspects that contract, not actual qualification.
       const source = await readFile(new URL("./reference-inspection.mjs", import.meta.url), "utf8");
       const guards = [...source.matchAll(/if \(browser\.version\(\) !== "([^"]+)"\) fail\("cohort_mismatch"\);/g)];
-      expect(guards.map(match => match[1])).toEqual(["156.0.8078.48"]);
+      expect(guards.map(match => match[1])).toEqual(["156.0.8078.49"]);
       const { localInspectedMetaDefinition } = await import("./inspected-meta-stock.mjs");
       expect(guards[0][1]).toBe(localInspectedMetaDefinition().cohort.chrome);
       expect(source).toContain('cohort: { node: process.version, chrome: browser?.version() ?? null, darwin: release(),');

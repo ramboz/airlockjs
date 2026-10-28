@@ -49,6 +49,9 @@ additional proof and native admission remain open. Capture
 is blocked, additional permission/slot absent and the extra case remains
 unspent. Independent frame and documentation reviews passed for the packet;
 that is not native execution or implementation compliance.
+Fresh metadata for the subsequent full guard job found Chrome156.0.8078.49;
+the two fixed source pins are updated with causal tests. The earlier.48
+attended result remains historical and requires renewed current-source proof.
 
 **Actual local execution update (2026-10-26):** the present owner separately
 approved the final zero-body-EOF sequence, which passed **both actual local

@@ -209,6 +209,25 @@ were not actually exercised. No official SDK, public-provider dispatch,
 native permission/window/slot or real grant consumption. Full059-18 remains
 IN_PROGRESS/compliance FAIL/open DoD; current native preflight and GO remain.
 
+### Current patch revalidation - 2026-10-27
+
+Before the separately requested full SDK-free guard job, a fresh bundle-
+metadata read found Chrome156.0.8078.49, not the earlier.48. Both fixed
+controller/relay pins now require.49; no flexible version or qualification
+bypass. Tests reject fully rebound.48 and155 manifests and controller/relay
+evidence. Five controls first failed; after the two one-line pin corrections,
+210 selected offline tests pass with25 actual opt-ins skipped, plus scoped lint.
+Narrow source compliance/craft/architectural-fit review passes.
+
+The.48 actual sequence above remains immutable historical proof. Neither it
+nor old155 guard receipts qualify the new source epoch, and no new actual
+browser/guard job has run at this source checkpoint. The full fourteen-
+controller/eleven-relay/additional matrix and renewed attended current-source
+proof remain required before native admission. Existing legacy direct local
+harnesses need their own present-owner/procedural handoff; the attended native
+entry's stop command is not borrowed for them. Exact operation approvals and
+handoff remain private. Full059-18 stays IN_PROGRESS/compliance FAIL/open DoD.
+
 **DoR:**
 - [x] Genuine owner authorization at 2026-10-21T18:33:04.581Z explicitly
       answers the request for one additional bounded Meta stock case.
@@ -345,6 +364,15 @@ Actual attended follow-through (2026-10-27):
 - Only attended proof is now supplied. All historical unknown/failed cases,
   full shared/additional native gates, Proposed0038 and open DoD are unchanged.
   Exact execution approvals remain private session facts, not project ADRs.
+
+Current patch supporting correction (2026-10-27):
+
+- Fresh actual installed metadata changed.48 to.49; only the two fixed pins and
+  their causal previous-patch/old155 controls changed. This is a prerequisite
+  of the requested current-source guard job, not a configurable browser policy.
+- All earlier.48 actual originals/index and successful closeout remain intact
+  but historical for current-source admission. Full guard and attended evidence
+  must be freshly source-bound; metadata/unit success is not a browser run.
 
 Implementation handoff (2026-10-21; independent reconciliation still pending):
 
@@ -1872,6 +1900,21 @@ Approved single local control - 2026-10-26:
 - deferred - full current fourteen-controller/eleven-relay/additional proof and
   final native case preparation/GO remain with059-18/060-01. Actual acquisition
   loss and orphan recovery remain unqualified; no automatic follow-up job.
+
+#### Patch.49 supporting source correction - 2026-10-27
+
+- updated - controller/relay fixed pins and their two tests; this record, guide,
+  reference packet, release queue and primer explicitly distinguish current.49
+  source from historical.48 actual proof.
+- updated - canonical scoped review records and derived status-board review
+  telemetry. Regeneration changes only advisory review-selection counts, not
+  slice/spec lifecycle or a qualification claim.
+- no-op - source-closure inventory already covers the four affected files;
+  no new production module/helper, dependencies, core/API, architecture/ADR,
+  convention or grant. Earlier originals are not edited/rebound.
+- deferred - reviewed finite current guard/attended execution and actual proof
+  remain with059-18/060-01, within the named product-linked checkpoint.
+  No new runner framework or native case is commissioned by the source edit.
 
 #### Earlier checkpoints
 

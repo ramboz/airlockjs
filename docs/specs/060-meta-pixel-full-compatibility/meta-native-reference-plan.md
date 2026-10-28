@@ -28,8 +28,8 @@ case already granted by ADR-0035, not a new event or reuse of the spent original
 |060-14/059-20 actual Chrome156 journeys | DONE. First-party serialized workers, independent local200 receipts, consent0/receiving1-0-1/barrier/503 and normal cleanup. No native Image, inspected TLS, cookies,204 or loss qualification. |
 | Original Meta stock case | SPENT/inconclusive; original authority/slot/source/receipt immutable. Zero forwarded HTTP did not refund it. |
 | Additional Meta grant | One conditional Meta-only init/PageView; routine preparation/scheduling delegated. No executable location permission, slot or window is inferred. |
-| Native engine | The first source increment now fixes both inspected controller and physical relay candidates to156.0.8078.48; exact cohort/source checks still reject stale records. Unit-tested source preparation only; no current native qualification. |
-| Resource registration | Legacy IPC registration remains local-only. The new attended path writes case-bound pending/browser/profile/group records before source/dispatch. One actual current SDK-absent normal H1/H2/owner-stop sequence passed; this is not full native/loss qualification. |
+| Native engine | Both inspected controller and physical relay candidates now require156.0.8078.49 after a later installed patch update; exact cohort/source checks reject.48 and155 records. Unit-tested source preparation only; no current native qualification. |
+| Resource registration | Legacy IPC registration remains local-only. The new attended path writes case-bound pending/browser/profile/group records before source/dispatch. One actual SDK-absent H1/H2/owner-stop sequence passed on.48; retained historical proof is not current.49 or full native/loss qualification. |
 | Dispatch entry | Private prepared-plan and native transport leases remain guarded; preparation/run APIs are not arbitrary caller-supplied dispatch. Stock CLI stays disabled. |
 
 The initial source ranges and installed cohort metadata were read on2026-10-27
@@ -46,7 +46,7 @@ native prepare/run or qualification command was issued.
 | Authority | Only `meta-stock-additional-2026-10-21`, variant `additional-meta-2026-10-21`; preserve byte/identity-bound spent-parent lineage. |
 | Commands | One `init` and one explicit `PageView`, native-default consent, existing owned test Pixel and controlled owned-origin document. No enhanced matching, form inputs, extra event, fake click or PII. |
 | Source | Select retained authenticated2026-10-21 runtime/configuration only after original-byte/provenance validation. No source download/current-CDN substitution. Unavailable/incompatible source blocks. |
-| Browser | Headed156.0.8078.48 candidate cohort, fresh owned profile and recorded initial storage state; no personal/shared MCP browser. Metadata is not qualification. |
+| Browser | Headed156.0.8078.49 candidate cohort, fresh owned profile and recorded initial storage state; no personal/shared MCP browser. Metadata is not qualification. |
 | Transport | ADR-0034/35 `inspected-network`, exact ephemeral inspector trust only in the isolated browser, strict upstream certificate/hostname validation; no system trust/global TLS changes. |
 | Routes | Exact owned document and pinned source URLs; public forwarding only through existing closed Meta policy and physical semantic/count guard. Unknown route/selector/config/redirect/dependency stops; no wildcard. |
 | Limits | Eight physical HTTPS attempts including retries/redirects,64 observations,2KiB URL,64KiB request headers/body,2MiB accepted response,8MiB aggregate,60 seconds total including launch/cleanup/publication. Never copy local8192-byte URL limits. |
@@ -67,8 +67,8 @@ Every missing/stale gate blocks; none is silently commissioned by this packet.
 | B. Lineage | Original authority/spent slot, genuine additional decision, conditional authority/inspection record: current bytes/hash/device/inode and semantics; additional canonical slot absent |2026-10-27 read-only six-file locator/hash/identity verification passed; original slot semantically SPENT, additional conditional grant ONE, executable location permission and additional slot absent. Reverify at actual preflight; this is not final permission. |
 | C. Setup/source | Fresh truthful same-Pixel/settings report; explicit private handles, retained source authentication, owned origin/document and command transcript | Current owner-reported setup confirmation is retained privately, not API readback. Exact source/input/case bindings still need preflight; no account change. |
 | D. Guarded browser | Same inspected path on156, complete existing fourteen-controller/eleven-relay and additional-lineage qualification obligations, including actual SDK-absent H1/H2 positives, retry/count/semantic/header/body/response/aggregate/truncation/cookie, no-ticket/unknown-route/marker-loss controls, source/driver closure and external exit/cleanup originals | First fixed-cohort source increment is unit-tested/reviewed; actual qualification remains unissued. Old155 receipts/local200 controls do not qualify it. Do not treat the pin update and unit negatives as runtime proof or select only easy actual controls. |
-| E. Acquisition/normal stop | Pending handles owned before acquisition; browser/profile/controller/proxy/key/endpoint ownership, finite forwarding cutoff, normal cleanup and late arrivals | Actual current H1/H2 returned-browser/normal-cleanup originals now pass the attended reader. Acquisition-time interruption/late-loss and full native/shared/additional qualification remain open; no promotion of legacy local-only registration. |
-| F. Owner loss stop | For an attended case: present owner, exact-case handoff and demonstrated independently usable stop for outbound continuation and owned browser without broad scans/kills | Fixed manifest-bound command was demonstrated in a separate Node process after real browser ownership. Expected producer exit2/CLI exit0 and exact cleanup are retained. Current native case handoff/presence must still be admitted; this does not prove unattended session loss. |
+| E. Acquisition/normal stop | Pending handles owned before acquisition; browser/profile/controller/proxy/key/endpoint ownership, finite forwarding cutoff, normal cleanup and late arrivals | Historical.48 H1/H2 returned-browser/normal-cleanup originals passed the attended reader. Renew current.49 source-bound proof; acquisition-time interruption/late-loss and full native/shared/additional qualification remain open. |
+| F. Owner loss stop | For an attended case: present owner, exact-case handoff and demonstrated independently usable stop for outbound continuation and owned browser without broad scans/kills | Fixed manifest-bound command was demonstrated on.48 in a separate Node process after real browser ownership. Expected producer exit2/CLI exit0 and exact cleanup remain historical. Renew current.49 proof and admit the actual native case handoff/presence; no unattended loss proof. |
 | G. Reviews | Frame/compliance/craft/architecture/reconciliation and genuine current guard/additional indices for the selected implementation/cohort | This packet's design review cannot mint native proof/private execution leases. Source changes invalidate old indices. |
 | H. Final admission | Fresh lane coordination, unused output, selected finite window, full context binding, case location permission, reviewed dispatcher and explicit GO while owner present | No window/output reservation/executable permission/native slot is created during planning. Delegated timing is not owner-chosen timestamps or host-wide quiet. |
 
@@ -161,12 +161,19 @@ admission; no such job is commissioned by the review result.
 
 The first current-cohort and attended acquisition/stop source increments are
 implemented with controlled tests and review corrections. The subsequent actual SDK-absent H1/H2/owner-stop demonstration also passed.
-Remaining blockers are complete current shared/additional guard qualification
-and native case admission, not another pin or a repeat of that sequence.
+That.48 checkpoint's remaining blockers were complete shared/additional guard
+qualification and native admission. The later.49 patch now also requires
+renewed attended proof; do not treat the earlier sequence as current.
 The operator guide describes the exact-case stop route; actual values and
 operation approval stay in private session/case memory. The attended reader
 accepted actual originals with `native_qualification: false`. No native case
 was issued; original Meta remains spent and the additional grant unspent.
+
+Fresh metadata before the later full-guard job found installed156.0.8078.49.
+Both fixed source pins and causal controls now target that patch; the successful
+.48 attended sequence is historical, not current-source qualification.
+The full current guard/additional indices and current attended proof must be
+supplied after this source correction. Do not copy/rebind old original receipts.
 
 ## Assumptions
 

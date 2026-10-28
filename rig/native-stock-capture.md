@@ -10,15 +10,16 @@ reference blocks its dependent chamber case.
 ## Current inspected source candidate - 2026-10-27
 
 The inspected controller and physical-relay candidate pins now require
-Chrome156.0.8078.48. Refreshed-hash unit controls reject stale155 controller/
-relay records and a rebound old-cohort manifest; the fixed relay source test
-is not actual browser evidence. Historical155 receipts are unchanged and
+Chrome156.0.8078.49 after a fresh bundle-metadata check found a patch update.
+Refreshed-hash unit controls reject both previous-patch.48 and stale155
+controller/relay records and fully rebound manifests; the fixed relay source
+test is not actual browser evidence. Historical.48/155 receipts are unchanged and
 cannot satisfy current source/cohort gates.
 
 This source-only059-18 increment passes its scoped reviews and unit/lint
 checks; actual14-controller/11-relay and additional-path qualification have
 not run at that source checkpoint. The later attended increment and actual
-demonstration below supply the bounded normal/owner-stop proof, not complete
+demonstration below supplied.48 bounded normal/owner-stop proof, not current.49 or complete
 native guard qualification. The old pre-exec launcher remains a synthetic Node target
 and is not reused as a Chrome stop mechanism. No qualification command
 below is admitted by this source update. The original slot stays spent, the
@@ -94,8 +95,8 @@ races, fully rebound contradictory proof and mandatory native-owner gating.
 Review found a source-resume race during closing; all four effectful CDP
 continuations and navigation now recheck admission at issuance, while metadata/
 denial/cleanup remain separate. No reference/native capability follows from
-source review. The actual sequence below supplies the attended gate's current
-normal/owner-stop originals, not the complete shared/additional guard matrix
+source review. The actual.48 sequence below supplied that source epoch's
+normal/owner-stop originals, not the current.49 or complete shared/additional guard matrix
 or final native case admission. Agent/session-loss shutdown remains unqualified.
 
 ### Actual attended demonstration - 2026-10-27
