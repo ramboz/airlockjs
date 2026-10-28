@@ -2,36 +2,39 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: compliance
 verdict: fail
-reviewer: jig:reviewer meta-full-guard-failure-closeout
-reviewed_at: 2026-10-28T00:40:51Z
-prompt_source: retained actual failed matrix evidence; first observer identity rejection; no current qualification
+reviewer: jig:reviewer meta-membership-diagnostics-review
+reviewed_at: 2026-10-28T01:15:13Z
+prompt_source: offline diagnostic source PASS; historical actual matrix FAIL/current proof missing, FULL05918 FAIL
 ---
 
 VERDICT: fail
 
-meta-full-guard-failure-closeout independently reviewed retained failure
-evidence read-only. The first actual finite-window/H2 controller acquisition
-stopped on additional_group_identity; outer Vitest exited143/null after12848ms
-and the observer later exited2. No passing suite summary, complete14/11 index,
-relay/additional execution or current qualification resulted.
+LATEST OFFLINE DIAGNOSTIC SOURCE: pass. meta-membership-diagnostics-review
+passed narrow compliance and craft for a separate, uninitialized successor.
+It preserves supplied group rows and pre-validation ownership at all three
+predicate sites, preserves diagnostic handles/status through the run/stop
+catches, and rethrows the unchanged original membership rejection.
+Existing membership/image/signal/cleanup/authority rules and production
+source4ffd4ae are unchanged.
 
-The observer saved the rejection category, not the rejected raw process row.
-Root cause remains unresolved; the producer's later unexpected_browser_exit/
-local_controller_inconclusive followed the observer's stop and cannot establish
-the initial cause. No actual guard success may be inferred from its completed
-failure artifact or sixteen true cleanup fields.
+Parent ten controlled offline checks pass, with existing rig ESLint clean
+for all three private files. Initial missing-implementation RED and actual
+row-retention-removal RED precede restored green; exact262144-byte/+1 and
+eight-per-writer limits are exercised. Candidate import is inert and no
+job.json exists. Reviewer inspected source only, not tests/OS execution.
 
-Parent retained independent exact closure for this failed operation only:
-ten recorded PIDs/Chrome group absent, profile/two keys ENOENT, four known
-ports ECONNREFUSED. The owner explicitly released the failed attached observer.
-No retry or remaining phase was issued, no raw originals/source were changed,
-and no real SDK/vendor/native permission/reservation/grant was used.
+The INFORMATION-LOSS root cause is confirmed: the actual pure predicate
+provided structured rejection evidence but the frozen private catch kept
+only error.message. The HISTORICAL REJECTED PROCESS cause remains unknown;
+controlled fixtures cannot reconstruct the missing original row.
+Frozen failed program/run hashes are verified unchanged.
 
-Source4ffd4ae remains unchanged. Its narrow patch source acceptance and
-parent210offlinepasses/25actualskips are different evidence, not actual guard
-qualification. Historical.48 attended proof stays historical. Original Meta
-SPENT/inconclusive, additionalONEUNSPENT and old UNKNOWNs unchanged.
-Full059-18 stays IN_PROGRESS/complianceFAIL/open DoD. Concrete next action:
-offline rejected-observation retention/falsification, then a separately
-reviewed/admitted new full current guard/additional/attended job, not an
-automatic retry or generic runner program. Native admission remains later.
+FULL059-18: fail. The preceding actual.49 matrix failed at its first
+controller observer rejection, outer suite143/observer2; relay/additional
+unissued, no complete index. Exact cleanup and owner release ended only
+that failed operation. Old.48 attended proof stays historical, all old
+UNKNOWNs and originalSPENT/additionalONEUNSPENT unchanged.
+No new actual OS/browser/socket/signal/SDK/vendor job or native grant.
+Keep IN_PROGRESS/open DoD. Another actual current guard/additional/attended
+job requires separate finite admission/current source/owner/lane/procedure;
+native case GO remains later.

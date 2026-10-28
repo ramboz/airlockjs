@@ -253,6 +253,35 @@ UNKNOWNs unchanged. Full059-18 remains IN_PROGRESS/compliance FAIL/open DoD.
 The concrete next diagnostic is preserve the rejected observation and exercise
 its failure path offline, not guess a new allowed process or retry this job.
 
+### Offline diagnostic correction - 2026-10-27
+
+Confirmed information-loss cause: the actual membership predicate attaches
+the rejected rows for `additional_group_identity`, but the frozen private
+observer flattened its error to the message. Controlled execution reproduces
+that loss. This does not identify the original rejected process, which remains
+unknown because its raw observation is unavailable.
+
+A separate uninitialized private successor wraps the unchanged real predicate
+at all three group-validation sites. It retains supplied raw rows, pre-check
+ownership, context and job identity, rethrows the same error, and carries
+receipt handles/status through both observation/stop catches. Exact records
+are exclusive/fsynced, <=256KiB, eight per writer process. Overflow, snapshot,
+write and quota failures remain explicit; diagnostics grant no membership,
+signal target, successful cleanup or qualification. No production source,
+allowed-image rule, signal guard or old failure artifact changed.
+
+Ten controlled offline checks pass. The original-loss reproduction and removal
+of actual raw-row persistence provide causal REDs; restored equality, byte
+ceiling/one-byte-over, mutation-before-error, missing `.observed`, write/quota
+and caller/import controls pass. Scoped lint and independent source compliance/
+craft review pass. These are fake in-memory process rows/private files, not
+OS/browser/vendor execution or reconstruction of the original offender.
+
+Keep the failed job and historical proof intact. The correction is a private
+observability follow-through under this owner, not a second bug/spec or a
+generic runner program. Full059-18 stays IN_PROGRESS/compliance FAIL/open DoD;
+another actual job requires separately reviewed/admitted current preparation.
+
 **DoR:**
 - [x] Genuine owner authorization at 2026-10-21T18:33:04.581Z explicitly
       answers the request for one additional bounded Meta stock case.
@@ -411,6 +440,18 @@ Current failed matrix follow-through (2026-10-27):
 - Exact resource cleanup and explicit owner release close this failed operation
   only. The existing grant/lifecycle/guard obligations remain unchanged; another
   actual job requires separately reviewed/admitted current preparation.
+
+Offline diagnostic follow-through (2026-10-27):
+
+- The missing-detail process, not the unknown historical row, is root-caused:
+  the private catch discarded structured rejection evidence. Reuse existing
+  membership validation/private writer; no predicate or allowed-image change.
+- A distinct inert-import successor privately retains bounded exact rows and
+  pre-validation state, preserving rejection and explicit persistence failures.
+  Original failed program/run hashes are reverified, not edited or retried.
+- Ten offline causal/threshold/error/wiring controls and narrow source/craft
+  review establish diagnostic handling only. No actual current proof, job
+  initialization, new grant, lifecycle advancement or automatic rerun.
 
 Implementation handoff (2026-10-21; independent reconciliation still pending):
 
@@ -1967,6 +2008,20 @@ Approved single local control - 2026-10-26:
 - deferred - offline diagnostic correction and any new separately admitted
   full current guard/additional/attended proof remain with059-18/060-01.
   Complete native preflight/GO stays later; no automatic continuation.
+
+#### Offline diagnostic checkpoint - 2026-10-27
+
+- updated - this record, guide, reference packet/plan/tasks,059 task list,
+  release queue and primer distinguish corrected future diagnostics from the
+  unchanged failed attempt and unknown original rejected process.
+- no-op - production rig/source pins, original failed/private receipts, actual
+  reservation/grant, architecture/Accepted ADRs, full first journeys, current
+  guard/attended/additional proof and all DoD obligations remain unchanged.
+- no-op - private observer is not on main and the residual already has this
+  active owner; no duplicate project bug record or invented fresh-main repro.
+- deferred - any new actual run needs separate admission/current source,
+  owner/lane coordination and bounded handoff. No new runtime operation is
+  authorized by the offline fix; original classification remains unresolved.
 
 #### Earlier checkpoints
 

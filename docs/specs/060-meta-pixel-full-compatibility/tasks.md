@@ -21,9 +21,9 @@ An authored AC is not a passing evaluation.
       exits passed the reader, with exact resources observed closed.
 - [x] Refresh both fixed candidates to installed.49, with causal rebound.48/
       155 negatives; no current proof inferred from unit/source acceptance.
-- [ ] Diagnose rejected-observation retention offline after the one.49 guard
-      attempt stopped on `additional_group_identity`. Exact cleanup/owner
-      release confirmed; no retry or relay/additional phase was issued.
+- [x] Correct diagnostic loss offline after the one.49 guard attempt:
+      successor retains rejected rows/pre-check state and the same rejection.
+      Original row/cause remain unavailable; failed attempt unchanged.
 - [ ] Obtain all remaining current fourteen-controller/eleven-relay/additional
       and renewed attended originals under059-18 after separately reviewed
       new-job admission, before native case preparation/admission.

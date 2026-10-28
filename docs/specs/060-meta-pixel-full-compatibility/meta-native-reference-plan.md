@@ -184,6 +184,12 @@ failed observer. The rejected raw row was not retained, so root cause remains
 unresolved. Next is bounded offline diagnostic retention/falsification before
 any separately admitted new job, not membership relaxation or a native case.
 
+The diagnostic-loss follow-through is now corrected and reviewed offline:
+the successor retains bounded raw rows/pre-check state and preserves the same
+rejection. No production predicate changed and no old row was recovered.
+The original rejected-process cause remains unknown; current qualification
+still requires a separately admitted new job, not an automatic retry.
+
 ## Assumptions
 
 - Unverified: a fixed attended adaptation of the current native engine can

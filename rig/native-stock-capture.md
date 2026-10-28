@@ -52,6 +52,35 @@ no retry or remaining phase was issued, no official SDK/public-provider/real
 slot was used, and earlier UNKNOWNs are unchanged. Next is bounded offline
 rejected-observation retention/diagnosis, not relaxed membership or a new runner.
 
+### Offline rejected-observation correction - 2026-10-27
+
+The diagnostic-loss cause is established separately from the unknown original
+process cause: the existing membership predicate provided rejected rows, but
+the private observer catch kept only the message. A separate, uninitialized
+successor now retains the supplied rows and pre-validation ownership at each
+of its three group-validation sites, then rethrows the same rejection. Both
+run/stop catches preserve the diagnostic handle/status. The existing predicate,
+allowed images, signal targets and production sources are unchanged.
+
+Private receipts are exclusive/fsynced, at most256KiB each and eight per writer
+process, with separate-process filenames. Oversize, snapshot, write and budget
+failures are explicitly incomplete/failed, never exact or qualified.
+Diagnostic rows carry no membership, signal or qualification authority and
+are not read back into those decisions. The new helper joins the successor's
+private source hash; the entry is inert on import.
+
+Ten controlled offline checks pass, including the actual existing predicate
+on fake rows, pre-validation state before partial mutation, exact byte ceiling
+and one-byte-over behavior, write collision, budget exhaustion and caller
+propagation. Removing actual row persistence defeats the regression; scoped
+lint and independent source/craft review pass. This was private filesystem/
+in-memory work only, not process observation, signals, sockets or Chrome.
+
+The failed program and original output hashes remain unchanged. This corrects
+future diagnostic loss, not the historical unknown row or full guard failure.
+No new job was initialized or issued; another actual matrix still needs
+separate finite admission and current owner/source/coordination/handoff.
+
 ## Attended acquisition and independent owner stop
 
 The case-specific attended path is implemented and source-reviewed. One actual

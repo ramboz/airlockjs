@@ -12,8 +12,9 @@ attended H1/H2/owner-stop proof remains historical, not current qualification.
 The single.49 matrix attempt stopped at its first actual controller on observer
 `additional_group_identity`; the rejected raw row was not retained, cause
 unresolved. Exact cleanup and owner release are confirmed, but no relay/
-additional phase or current index. Next is offline rejected-observation
-diagnosis before any separately admitted new job. Executable
+additional phase or current index. The subsequent offline correction retains
+bounded rejection detail without changing membership rules; it cannot recover
+the original row. A new actual job still requires separate admission. Executable
 native case permission is absent. Thus capture
 is blocked before acquisition/consumption; the additional grant remains unspent.
 059-15 stays DEFERRED.059-18 has reopened through DRAFT for its bounded

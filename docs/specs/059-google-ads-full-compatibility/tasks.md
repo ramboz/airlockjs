@@ -53,6 +53,9 @@ implementation, review or readiness.
 - [ ] 059-18 current matrix diagnostic: first actual controller attempt stopped
       on observer identity failure; raw rejected row unavailable, cause
       unresolved. Preserve failure and exact cleanup; no automatic retry.
+- [x] 059-18 offline diagnostic loss: separate successor retains bounded exact
+      rows/pre-check state and rethrows the unchanged predicate failure, with
+      controlled causal/threshold/error/wiring checks and source/craft review.
 - [ ] 059-18 actual-proof residual: obtain complete current shared/additional
       and renewed attended originals after separately admitted new execution,
       before the060-01 reference consumer requests native admission.
