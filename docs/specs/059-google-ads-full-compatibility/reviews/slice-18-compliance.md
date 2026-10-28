@@ -2,42 +2,46 @@
 slice: 059-18 - Additional lineage-bound Meta stock case
 pass: compliance
 verdict: fail
-reviewer: jig:reviewer meta-fresh-guard-closeout
-reviewed_at: 2026-10-28T01:27:25Z
-prompt_source: new actual attempt failed listener/stop observation, incomplete independent H1 evidence; FULL05918 FAIL
+reviewer: jig:reviewer meta-offline-harness-source-review + findings/residual closures
+reviewed_at: 2026-10-28T02:22:23Z
+prompt_source: bounded offline repair source composite PASS; current actual proof/native admission missing, FULL05918 FAIL
 ---
 
 VERDICT: fail
 
-meta-fresh-guard-closeout reviewed the bounded retained evidence read-only:
-ACTUAL QUALIFICATION FAIL; DOC RECONCILIATION PASS. Actual outer suite exited1,
-observer2 after owner release. The fresh controller phase stopped on scoped
-listener inventory; that dependency also blocked stop observation after known
-controllers were frozen. Parent exact retained-node recovery is separate and
-not qualification. Raw lsof status/stdout/stderr were not retained, so its
-failure mechanism remains unresolved.
+BOUNDED OFFLINE REPAIR SOURCE: pass by composite review, not a fictional new
+whole audit after every edit. meta-offline-harness-source-review found two
+source/craft blockers: successful stderr was lost and cleanup lacked its own
+usable reserve. Causal REDs preceded dual-stream capture and a6s/4s source
+allocation inside the original10s stop bound. meta-offline-harness-findings-
+closure then found clean-exit timeout completeness and an unclamped drain wait.
+Separate REDs preceded fixes; meta-offline-harness-residual-closure passed only
+those residuals. meta-offline-harness-reconciliation passed documentation and
+the tiny independent-owner cached-proof correction after its controlled RED.
 
-Finite-window/H2 and expected source-race/H2 retain actual child witnesses.
-Normal/H1 reports producer0/normal browser exit/all16cleanuptrue but lacks its
-external child witness and independently registered browser PID/profile.
-No relay/additional/full25-row index or passing full suite. No membership
-rejection/receipt in this attempt; original rejected-process cause remains unknown.
+The fixed scoped listener receipt retains captured status/signal/code and both
+streams, with incomplete timeout/buffer capture explicit. Partial/nonzero
+failure remains fatal, narrow empty exit1 explicit. Known-node cleanup uses
+unchanged fresh lifetime guards and never listener inventory; finally/memory
+recovery retains errors as UNKNOWN. Four seconds is source budget allocation,
+not actual kernel-stall/independent-loss qualification.
 
-Known closure: thirteen registered PIDs and the recorded Chrome group/profile
-absent, no keys in three retained run roots, four recorded ports refused.
-The unregistered H1 browser/profile remains UNKNOWN independently. The owner
-explicitly accepted this bounded exact-case handoff and closed the observer.
-Do not treat producer flags or that handoff as independent absence/adoption.
+The repaired fixed local controller/relay commands opt into pending-before-
+allocation and independent returned-browser ACK before connect/context/source.
+Additional IPC/native attended paths and default standalone behavior unchanged.
+Both inventories include helper/test; inspected closure122. Prior indices are
+stale after source edits, not rebound. No core/customer API, dependency, grant,
+allowed image, profile deletion or generic infrastructure change.
 
-Fresh requested execution-continuity reviewer was cancelled with zero turns;
-there is no verdict from it. Parent direct continuity check and prior independent
-diagnostic/source/handoff provenance are accurately distinguished. Offline
-source/craft acceptance is not new runtime qualification.
+Parent final418passes/31actualoptinskips9files plus7private exact-code/handoff
+checks; scoped lint clean. Repair-specific OS/process calls mocked/tempFS.
+Adjacent baseline includes its standard real Node startup-failure/scoped-child
+control, not an all-mocked suite. All actual browser/SDK opt-ins disabled; no
+browser/SDK/vendor job or repaired entry initialization. Reviewers executed
+neither tests nor OS operations. Both failed programs/helper/output hashes
+verified unchanged; historical H1 UNKNOWN remains owner-accepted, not cleared.
 
-Both failed programs/helper/receipts are preserved, no further job/retry.
-Original MetaSPENT/additionalONEUNSPENT; no officialSDK/publicprovider/native
-permission/window/reservation/grant. Old UNKNOWNs unchanged.
-Full059-18 stays IN_PROGRESS/complianceFAIL/open DoD. Listener/stop observation
-and missing acquisition evidence require bounded resolution before any separately
-admitted new operation; complete current guard/additional/attended and native
-admission remain outstanding. Reviewer executed no runtime or OS checks.
+FULL059-18: fail/IN_PROGRESS/open DoD. Complete current-source shared/additional/
+attended actual proof and final native preparation/admission remain outstanding.
+Original MetaSPENT/inconclusive, additionalONEUNSPENT; actual native permission/
+slot absent. Source repair grants no new job, native capability or retry.

@@ -25,6 +25,11 @@ is blocked before acquisition/consumption; the additional grant remains unspent.
 059-15 stays DEFERRED.059-18 has reopened through DRAFT for its bounded
 current-browser source/proof increment; full qualification/capture remains gated.
 
+The subsequent bounded offline source repair supplies complete captured listener
+diagnostics, inventory-independent verified-node cleanup and a returned-browser
+registration barrier for the repaired fixed local harness. No actual run follows
+from that repair; old indices are stale and historical H1 UNKNOWN is unchanged.
+
 **Latest actual outcome:** the separately approved zero-body-EOF sequence
 passed both local browser journeys: Meta two exact PageViews in8644ms, Google
 two exact conversions in2148ms; whole-command exit0/11.22s. Independent receiver,

@@ -111,6 +111,53 @@ SDK/public-provider/real slot was used. Full current qualification stays blocked
 any further operation needs a reviewed listener-observation/cleanup/acquisition
 resolution and separate admission, not another automatic run.
 
+### Offline harness repair - 2026-10-27
+
+The bounded offline repair addresses the failure paths without reconstructing
+either historical IO error or clearing the H1 UNKNOWN:
+
+- `local-guard-observation.mjs` captures the fixed scoped `lsof` command,
+  status/signal/error code and both captured streams, including successful
+  stderr. Timeout, buffer exhaustion and incomplete capture are explicit.
+  Nonzero/partial output remains a failure; the narrow empty-exit1 convention
+  is recorded rather than silently interpreted as absence.
+- Cleanup of retained, verified Node lifetimes has no listener dependency.
+  The separate repaired private entry runs it in `finally`, retains per-target
+  failures, and reserves four seconds of its original ten-second stop budget
+  after bounded discovery/browser work. This is source budget allocation,
+  not measured kernel-stall or unattended shutdown qualification.
+- The repaired fixed controller/relay commands set
+  `AIRLOCK_LOCAL_GUARD_REGISTRATION=1`. Producers publish pending state before
+  allocation, then wait on a returned-browser ACK before connect/context/source
+  work. The observer verifies current parentage/lifetimes/group/image/profile,
+  publishes independent records before optional listener inventory, and does
+  not release expired/stopped work. Cleanup observation can remain available
+  after expiry without publishing a work ACK.
+
+An independent owner-stop process can reuse the same case's previously verified
+registration for cleanup only. It still checks current process lifetimes before
+signals; ordinary work cannot borrow another observer's registration.
+
+The opt-in preserves standalone legacy behavior. Existing additional IPC and
+native attended paths remain unchanged; neither these local records nor the
+flag mint a native lease. Both source inventories include the new helper/test,
+so earlier current-source indices are historical after this edit.
+
+Controlled offline tests cover failure streams, timeout with clean termination,
+foreign/replaced lifetimes, ACK ordering, expiry, duplicate publication,
+rejected-group diagnostics and the actual stop orchestration's failure/time
+paths. Removing stderr retention, the ACK wait and finally cleanup defeats their
+regressions. Source review findings and narrow closures are retained separately.
+Repair-specific OS/lifetime/signal calls are mocked. Adjacent regressions include
+the existing real Node startup-failure control and its scoped child observations;
+all actual browser/SDK qualification opt-ins remain disabled. No browser, SDK
+or vendor job was performed.
+
+Both failed programs/helper/receipts are frozen; the newly prepared repaired
+entry is separate and uninitialized. This is not pre-return acquisition,
+session-loss or live guard qualification. Full current shared/additional/
+attended proof and native admission remain open; no new run is authorized.
+
 ## Attended acquisition and independent owner stop
 
 The case-specific attended path is implemented and source-reviewed. One actual

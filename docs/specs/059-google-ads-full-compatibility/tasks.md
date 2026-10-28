@@ -60,6 +60,11 @@ implementation, review or readiness.
       registered-node recovery is complete, but normal/H1 independent browser/
       profile identity is missing and UNKNOWN handed to owner. No further run
       or qualification before bounded resolution/new admission.
+- [x] 059-18 bounded offline repair: scoped listener diagnostics, independent
+      verified-node cleanup and opt-in returned-browser registration barrier
+      are implemented with controlled regressions/review corrections.
+- [ ] 059-18 repaired-path actual qualification remains separately gated;
+      previous indices and historical H1 UNKNOWN are not current proof.
 - [ ] 059-18 actual-proof residual: obtain complete current shared/additional
       and renewed attended originals after separately admitted new execution,
       before the060-01 reference consumer requests native admission.

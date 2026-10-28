@@ -200,6 +200,14 @@ Outer suite exited1/observer2, no relay/additional/current index or automatic
 retry. Listener-observation/cleanup dependency and missing acquisition evidence
 remain concrete blockers, not a new native grant or current qualified path.
 
+The owner commissioned a bounded offline repair. Scoped listener receipts now
+retain both streams/status/error completeness; known-node cleanup is independent
+of optional inventory and has a reserved budget. The repaired fixed local
+controller/relay path uses a durable returned-browser ACK before context/source
+work. This is opt-in SDK-absent tooling, not a native lease or actual qualification.
+Earlier indices are stale after the source changes, both failures/H1 UNKNOWN
+are preserved, and no new actual job has been initialized or admitted.
+
 ## Assumptions
 
 - Unverified: a fixed attended adaptation of the current native engine can

@@ -16,6 +16,7 @@ import { readMetaPrivate, writeMetaPrivate } from "./native-stock-meta.mjs";
 import { createInspectedHttpWire, createInspectedRequestFramer } from "./inspected-http-wire.mjs";
 import { authenticateOwnedBrowserPeer, relayInspectedSockets } from "./inspected-transport.mjs";
 import { inspectedMetaSourcePins } from "./inspected-meta-stock.mjs";
+import { beginLocalGuardRegistration } from "./local-guard-observation.mjs";
 
 const execute = promisify(execFile), hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const AUTHORITY = "collector.test.invalid:443", COLLECTOR = "https://collector.test.invalid";
@@ -491,12 +492,17 @@ export async function runLocalInspection(options) {
     })()));
     const proxyPort = await listen(proxy);
     const { chromium } = await import("playwright");
+    const localGuard = process.env.AIRLOCK_LOCAL_GUARD_REGISTRATION === "1"
+      ? await bounded(beginLocalGuardRegistration({
+        directory: output, source_sha256: hash(JSON.stringify(sourceBefore)), window,
+      })) : null;
     browserServer = await chromium.launchServer({
       executablePath: fileURLToPath(new URL("./qualification-loopback-chrome", import.meta.url)),
       headless: true, host: "127.0.0.1", timeout: 10000,
       proxy: { server: `http://127.0.0.1:${proxyPort}` },
       args: ["--disable-background-networking", "--dns-prefetch-disable", `--ignore-certificate-errors-spki-list=${spki}`],
     });
+    if (localGuard) await bounded(localGuard.ready(browserServer));
     browser = await chromium.connect(browserServer.wsEndpoint());
     if (browser.version() !== "156.0.8078.49") fail("cohort_mismatch");
     browserCdp = await browser.newBrowserCDPSession();

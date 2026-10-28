@@ -442,10 +442,11 @@ describe("inspected Meta stock preparation", () => {
     const { inspectedDecoderDependencyPins } = await import("./inspected-transport.mjs");
     const pins = inspectedMetaSourcePins();
     // The attended module, separate fixed entries and all three tests join the closed inventory.
-    expect(Object.keys(pins)).toHaveLength(120);
+    expect(Object.keys(pins)).toHaveLength(122);
     for (const name of ["meta-attended-control.mjs", "meta-attended-control.test.mjs",
       "meta-attended-reference.mjs", "meta-attended-reference.test.mjs",
-      "meta-attended-stop.mjs", "meta-attended-stop.test.mjs"]) {
+      "meta-attended-stop.mjs", "meta-attended-stop.test.mjs",
+      "local-guard-observation.mjs", "local-guard-observation.test.mjs"]) {
       expect(pins[name]).toMatch(/^[a-f0-9]{64}$/);
     }
     expect(Object.keys(pins.header_decoder_dependencies)).toHaveLength(12);

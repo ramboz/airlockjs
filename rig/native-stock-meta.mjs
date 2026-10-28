@@ -29,6 +29,7 @@ const SOURCE_FILES = ["native-stock-capture.mjs", "native-stock-meta.mjs", "nati
   "meta-attended-control.mjs", "meta-attended-control.test.mjs",
   "meta-attended-reference.mjs", "meta-attended-reference.test.mjs",
   "meta-attended-stop.mjs", "meta-attended-stop.test.mjs",
+  "local-guard-observation.mjs", "local-guard-observation.test.mjs",
   "meta-additional-supervision.mjs", "meta-additional-supervision.test.mjs",
   "meta-rendezvous-peer.mjs", "meta-rendezvous-peer.test.mjs",
   "meta-preexec-bootstrap.mjs", "meta-preexec-bootstrap.test.mjs", "meta-preexec-bootstrap-launcher",

@@ -28,6 +28,11 @@ An authored AC is not a passing evaluation.
       observation failure and normal/H1 independent registration gap. Recorded
       resources closed; owner accepted unregistered browser/profile UNKNOWN.
       No relay/additional/full index, retry or native authority.
+- [x] Repair those harness paths offline: capture both listener streams/status,
+      clean verified nodes independently of inventory, and require returned-
+      browser registration before repaired local controller/relay work.
+- [ ] Qualify the repaired current-source path through a separately admitted
+      actual job. Source checks do not clear historical H1 UNKNOWN or loss gaps.
 - [ ] Obtain all remaining current fourteen-controller/eleven-relay/additional
       and renewed attended originals under059-18 after separately reviewed
       new-job admission, before native case preparation/admission.

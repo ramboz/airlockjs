@@ -24,6 +24,7 @@ import { registerAdditionalPorts, registerAdditionalPending, registerAdditionalB
   holdAdditionalShutdown } from "./meta-additional-supervision.mjs";
 import { inspectedDecoderDependencyPins, startLocalInspectedTransport, startNativeInspectedTransport } from "./inspected-transport.mjs";
 import { createMetaAttendedControl, inspectMetaAttendedQualification } from "./meta-attended-control.mjs";
+import { beginLocalGuardRegistration } from "./local-guard-observation.mjs";
 
 const fail = category => { throw new Error(category); };
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
@@ -177,6 +178,7 @@ export function inspectedMetaSourcePins() {
     "meta-attended-control.mjs", "meta-attended-control.test.mjs",
     "meta-attended-reference.mjs", "meta-attended-reference.test.mjs",
     "meta-attended-stop.mjs", "meta-attended-stop.test.mjs",
+    "local-guard-observation.mjs", "local-guard-observation.test.mjs",
     "meta-rendezvous-peer.mjs", "meta-rendezvous-peer.test.mjs",
     "meta-preexec-bootstrap.mjs", "meta-preexec-bootstrap.test.mjs", "meta-preexec-bootstrap-launcher",
     "meta-owned-socket-observer.c", "meta-owned-socket-observer.cohort.json",
@@ -1551,6 +1553,11 @@ async function runEngine(state, { protocol, program }) {
       await wait(registerAdditionalPending(), 4500);
     }
     if (state.attendedControl) await state.attendedControl.beforeBrowser();
+    const localGuard = local && !state.additional && !state.attended &&
+      process.env.AIRLOCK_LOCAL_GUARD_REGISTRATION === "1"
+      ? await wait(beginLocalGuardRegistration({
+        directory: output, source_sha256: hash(JSON.stringify(binding.source_pins)), window: binding.window,
+      }), 4500) : null;
     const browserAcquisition = chromium.launchServer({
       executablePath: fileURLToPath(new URL("./qualification-loopback-chrome", import.meta.url)),
       host: "127.0.0.1", headless: false, timeout: Math.max(1, Math.min(10000, remaining() - 6000)),
@@ -1561,6 +1568,7 @@ async function runEngine(state, { protocol, program }) {
     browserServer = state.attendedControl
       ? await wait(state.attendedControl.trackBrowser(browserAcquisition), 10000)
       : await browserAcquisition;
+    if (localGuard) await wait(localGuard.ready(browserServer), 4500);
     if (local && state.additional && !state.attended) await wait(registerAdditionalBrowser(browserServer), 4500);
     if (program === "attended-owner-stop") {
       while (!stopping) {

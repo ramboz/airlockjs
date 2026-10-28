@@ -64,6 +64,10 @@ observation. Known resource cleanup is verified, but unregistered normal/H1
 browser/profile UNKNOWN was explicitly handed to the owner. Suite exit1/
 observer2; no relay/additional/full index. Observation/cleanup dependency and
 missing acquisition evidence remain blockers; no further operation queued.
+The bounded offline repair now captures full listener diagnostics, separates
+verified-node cleanup from optional inventory, and gates repaired local work on
+independent returned-browser registration. This is source-only; earlier indices
+are stale, H1 UNKNOWN is unchanged, and no new actual run or native GO follows.
 
 **Actual local execution update (2026-10-26):** the present owner separately
 approved the final zero-body-EOF sequence, which passed **both actual local

@@ -315,6 +315,76 @@ compliance FAIL/open DoD. Listener-observation/cleanup dependency and incomplete
 acquisition evidence need bounded resolution before any separately admitted
 new operation; current guard/additional/attended and native gates remain open.
 
+### Bounded offline harness repair - 2026-10-27
+
+The owner commissioned one offline pass, at most two active hours or one
+coherent tested repair/concrete decision. It does not admit a browser/SDK job.
+Keep both actual failed programs/receipts and the owner-accepted H1 UNKNOWN
+unchanged. This remains the059-18 preparation consumer, not a new infrastructure
+program, native authority or duplicate defect/spec owner.
+
+The source acceptance for this increment is:
+
+1. Retain the fixed scoped `lsof` command, captured status/signal/code and exact
+   captured stdout/stderr, with explicit timeout/truncation completeness. Keep
+   partial/nonzero failure fatal; a narrowly empty exit1 remains explicit.
+2. Always attempt cleanup of already verified Node lifetimes even when fresh
+   discovery/listener observation fails. Never remove fresh lifetime checks,
+   adopt unobserved resources or delete profiles; errors stay UNKNOWN.
+3. The repaired fixed SDK-absent harness requires independent durable returned-
+   browser registration before controller/relay context/source work. Publish
+   pending before launch and gate work on a case/source/window-bound ACK.
+   The existing additional IPC and native attended paths remain unchanged.
+4. Preserve standalone behavior behind the explicit local observer flag, which
+   the repaired fixed controller/relay commands set. This is not qualification
+   of pre-return acquisition or unattended/session-loss cleanup. Source/helper/
+   test closure, original limits and no-native-capability boundaries remain.
+5. Witness controlled red/green and guard-removal failures for diagnostics,
+   independent cleanup and pre-work registration; review source/craft/boundary
+   fit, then reconcile without advancing full059-18 or launching another job.
+
+#### Offline repair source result
+
+`rig/local-guard-observation.mjs` and its controlled tests now supply the scoped
+listener receipt, inventory-independent known-node cleanup and returned-browser
+registration barrier. Controller and physical-relay hooks apply only under
+the repaired local observer flag; native/additional/attended paths are unchanged.
+The separate private driver enables that flag for both relevant suites, retains
+ownership before optional inventory, and always attempts verified-node cleanup
+through `finally` and an explicit retained-memory recovery path. Both complete
+source inventories include the helper/test (122 inspected entries).
+
+The pending/ready/observed/ACK originals are exclusive and fsynced before their
+publication signals. The observer checks actual current case/source/parent/
+UID/group/image/profile facts before releasing work. Invalid/expired work does
+not acquire an ACK; stop can observe without releasing. Diagnostic records and
+registration metadata are not new native transport or signal authority.
+Standalone legacy behavior remains gated, not silently changed.
+An independent owner-stop actor can retain the original case-bound observation
+for cleanup only, with unchanged fresh signal guards; ordinary work cannot
+borrow another observer's registration. A controlled RED preceded this
+actor-handoff correction.
+
+Initial controlled tests were RED before implementation. Guard-removal controls
+then defeated real stderr retention, ACK waiting and finally cleanup. Independent
+review found successful stderr loss and a shared-deadline cleanup gap; witnessed
+REDs preceded correction to capture both streams and allocate a four-second
+cleanup reserve. A narrow review found clean-exit timeout completeness and an
+unclamped browser-drain wait; separate REDs preceded those corrections/closure.
+The composite reviews are not a fictional new whole audit after every edit.
+
+Repair-specific checks use mocked OS/process calls and owned temporary files.
+The adjacent suite retains its standard real Node startup-failure/scoped-child
+control, with all actual browser/SDK qualification opt-ins disabled.
+No browser/SDK/vendor job or retry occurred. Source budget
+allocation is not actual teardown timing, pre-return ownership or unattended
+qualification. Both failures and the owner-accepted H1 UNKNOWN remain unchanged.
+Full059-18 stays IN_PROGRESS/compliance FAIL/open DoD; current-source actual
+proof and separate native admission remain required.
+Final selected coverage is418 passes with31 actual opt-ins skipped across nine
+files, plus seven private exact-orchestration/handoff checks; scoped lint passes.
+Different selectors/earlier source epochs are not additive qualification counts.
+
 **DoR:**
 - [x] Genuine owner authorization at 2026-10-21T18:33:04.581Z explicitly
       answers the request for one additional bounded Meta stock case.
@@ -499,6 +569,20 @@ Fresh-attempt follow-through (2026-10-27):
 - Owner resolution explicitly accepts one additional bounded unregistered
   normal/H1 browser/profile UNKNOWN; it does not clear historical UNKNOWNs.
   No new allowed process, profile deletion, native grant or automatic retry.
+
+Bounded offline harness-repair follow-through (2026-10-27):
+
+- The structural bugs, not the unknown historical `lsof` mechanism, are fixed:
+  output flattening/partial capture, optional inventory on the cleanup path,
+  and passive-only returned-browser registration before work.
+- Reuse existing private IO and lifetime/group/specific-PID guards; no new
+  allowed image, profile deletion, core/customer API or general runner service.
+  The local opt-in is explicit and the repaired fixed commands enable it.
+- Review corrections have causal REDs and narrow closures. The four-second
+  reserve is a source scheduling allocation within the unchanged stop bound,
+  not live OS/session-loss evidence. Native/pre-return gaps stay visible.
+- Source changes deliberately stale old indices; neither failed original nor
+  H1 producer flags are rewritten/rebound as current or independent proof.
 
 Implementation handoff (2026-10-21; independent reconciliation still pending):
 
@@ -2081,6 +2165,22 @@ Approved single local control - 2026-10-26:
 - deferred - listener-observation/stop dependency and missing acquisition
   registration remain with059-18/060-01 before a new reviewed/admitted job.
   No further operation is queued by this failed result or owner release.
+
+#### Bounded offline harness-repair checkpoint - 2026-10-27
+
+- updated - new local observation helper/test; narrow controller/relay hooks,
+  both source inventories and inspected closure assertions. The separate
+  private repaired driver is uninitialized; old failed drivers are unchanged.
+- updated - this source result/deviation/sweep, guide, reference packet/plan/
+  tasks,059 tasks, queue and primer distinguish tested source repair from
+  missing actual qualification and existing H1 UNKNOWN.
+- no-op - production core/bootstrap/contracts/dependencies, architecture and
+  Accepted ADRs, real authority/permission/reservations, full first-journey
+  acceptance and all full059-18 DoD obligations. No new term/convention or
+  duplicate bug owner; this remains case-specific test tooling.
+- deferred - live source-bound guard/additional/attended proof, pre-return/
+  loss validation and final native preparation/GO remain with059-18/060-01.
+  Source repair admits no browser/SDK job or automatic retry.
 
 #### Earlier checkpoints
 
