@@ -68,7 +68,7 @@ implementation, review or readiness.
 - [ ] 059-18 source-binding attempt stopped before ACK; its stop UNKNOWN remains
       after owner-approved key removal and observer closure. No automatic retry.
 - [ ] 059-18 successor stopped on incorrect directory mode before recorded
-      browser work. Known runner closed; failed observer awaits owner release.
+      browser work. Known runner closed; owner released the failed observer.
 - [ ] 059-18 repaired-path actual qualification remains separately gated;
       previous indices and historical H1 UNKNOWN are not current proof.
 - [ ] 059-18 actual-proof residual: obtain complete current shared/additional

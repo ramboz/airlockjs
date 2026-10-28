@@ -179,8 +179,8 @@ A later separately admitted controller attempt stopped immediately with
 `local_guard_directory`: its successor directory was created mode0755 instead
 of the required0700. Its session ancestors were mode0700. The recorded runner
 was stopped and observed absent; no child or browser appeared in sampled
-observations. The waiting failed observer has not been released because the
-owner approval request returned unavailable. This is not a pre-return ownership
+observations. After owner approval the waiting failed observer exited2.
+This is not a pre-return ownership
 or current-source qualification. Preserve the failed job and do not retry under
 its approval; any further actual job needs separate admission.
 

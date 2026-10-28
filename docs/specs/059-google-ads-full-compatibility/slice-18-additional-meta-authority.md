@@ -416,8 +416,8 @@ The separately admitted SDK-free controller attempt stopped immediately on
 `local_guard_directory`: the successor's directory had been created mode0755,
 but the existing guard requires0700. Both session ancestor directories were
 0700. Known runner cleanup reported closed and the recorded PID was absent;
-sampled observations showed no child or browser. The attached failed observer
-awaits owner approval to close; the approval request returned unavailable.
+sampled observations showed no child or browser. After owner approval the
+attached failed observer exited2.
 The original mode, failed result and STOP/FAILED receipts are preserved.
 No retry, relay, additional phase or native grant followed. This observation
 does not prove pre-return ownership or clear either earlier UNKNOWN.

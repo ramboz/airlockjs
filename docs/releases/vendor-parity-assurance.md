@@ -77,7 +77,7 @@ qualification or native GO; the failed attempt and both UNKNOWNs remain.
 The successor was later used for one separately admitted controller attempt;
 it stopped immediately because its directory mode was0755 rather than0700.
 Recorded runner cleanup completed; no child or browser appeared in sampled
-observations. The failed observer awaits owner release. This attempt does not
+observations. The owner approved release and the failed observer exited2. This attempt does not
 qualify the corrected source or authorize a retry.
 
 **Actual local execution update (2026-10-26):** the present owner separately
