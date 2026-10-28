@@ -31,6 +31,9 @@ An authored AC is not a passing evaluation.
 - [x] Repair those harness paths offline: capture both listener streams/status,
       clean verified nodes independently of inventory, and require returned-
       browser registration before repaired local controller/relay work.
+- [x] Correct the source-digest ordering mismatch offline for the controller,
+      relay and an uninitialized successor. The later failed stop UNKNOWN is
+      retained despite owner-approved key removal and observer closure.
 - [ ] Qualify the repaired current-source path through a separately admitted
       actual job. Source checks do not clear historical H1 UNKNOWN or loss gaps.
 - [ ] Obtain all remaining current fourteen-controller/eleven-relay/additional

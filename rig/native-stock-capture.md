@@ -153,10 +153,29 @@ the existing real Node startup-failure control and its scoped child observations
 all actual browser/SDK qualification opt-ins remain disabled. No browser, SDK
 or vendor job was performed.
 
-Both failed programs/helper/receipts are frozen; the newly prepared repaired
-entry is separate and uninitialized. This is not pre-return acquisition,
-session-loss or live guard qualification. Full current shared/additional/
-attended proof and native admission remain open; no new run is authorized.
+At this offline checkpoint both failed programs/helper/receipts remained frozen,
+and the repaired entry was separate and uninitialized. This did not qualify
+pre-return acquisition, session-loss or a live guard.
+
+### Source-binding correction - 2026-10-28
+
+A separately admitted SDK-free controller attempt stopped before registration
+ACK with `local_guard_case_changed`. The pending digest matched recursively
+sorted source pins, while the observer hashed the same pins in insertion order.
+The stop reported `local_guard_stop_unknown`; verified Node cleanup completed
+and scoped checks found the recorded Chrome group and profile absent. On owner
+approval the two generated test keys were removed and the waiting observer
+exited2. The stop UNKNOWN and the earlier H1 UNKNOWN are not cleared. No relay,
+additional phase, automatic retry or native case ran.
+
+The controller, relay and separate private successor now use one
+`localGuardSourceDigest` based on the existing recursively sorted, validated
+data representation. Changed pin values or array order still change the digest;
+invalid input still fails. Offline controls exercise reordered pins, rejection
+before ACK and the preserved failed-case pins. The failed entry and its
+receipts stay unchanged; the successor is uninitialized. Current-source browser
+qualification, pre-return ownership and unattended shutdown remain unproven.
+Any further actual job needs separate admission.
 
 ## Attended acquisition and independent owner stop
 

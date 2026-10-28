@@ -385,6 +385,31 @@ Final selected coverage is418 passes with31 actual opt-ins skipped across nine
 files, plus seven private exact-orchestration/handoff checks; scoped lint passes.
 Different selectors/earlier source epochs are not additive qualification counts.
 
+#### Source-binding failure and offline correction - 2026-10-28
+
+One separately admitted SDK-free controller attempt stopped before ACK on
+`local_guard_case_changed`: the producer hashed recursively sorted source pins,
+while the observer hashed the same pins in insertion order. The stop reported
+`local_guard_stop_unknown`; known-node cleanup completed and scoped checks found
+the recorded browser group and profile absent. The owner approved removal of
+the two generated test keys and closure of the waiting observer, which exited2.
+This does not clear the stop UNKNOWN or the earlier unregistered H1 UNKNOWN.
+The failed job, STOP/FAILED and original observations remain preserved; no relay,
+additional phase, retry or native grant was used.
+
+The controller, relay and a separate uninitialized private successor now use
+the same validated canonical source digest. Controlled regressions reject
+changed pin values and array order before ACK, and reproduce the mismatch using
+the preserved failed-case pins. The scoped source suite passes126 tests with25
+actual opt-ins skipped; nine private observer/stop/handoff checks pass. These
+are offline checks, not a current guard or pre-return ownership qualification.
+The bounded independent source review passed for the canonical binding and
+unchanged registration checks; it did not run tests or assess full-slice
+qualification. Relay wiring coverage is source-level, not a browser result.
+The source edit makes earlier indices historical. Full059-18 remains
+IN_PROGRESS/compliance FAIL/open DoD; any further actual job needs separate
+admission.
+
 **DoR:**
 - [x] Genuine owner authorization at 2026-10-21T18:33:04.581Z explicitly
       answers the request for one additional bounded Meta stock case.
@@ -2169,8 +2194,8 @@ Approved single local control - 2026-10-26:
 #### Bounded offline harness-repair checkpoint - 2026-10-27
 
 - updated - new local observation helper/test; narrow controller/relay hooks,
-  both source inventories and inspected closure assertions. The separate
-  private repaired driver is uninitialized; old failed drivers are unchanged.
+  both source inventories and inspected closure assertions. At this checkpoint
+  the private repaired driver was uninitialized; old failed drivers were unchanged.
 - updated - this source result/deviation/sweep, guide, reference packet/plan/
   tasks,059 tasks, queue and primer distinguish tested source repair from
   missing actual qualification and existing H1 UNKNOWN.
@@ -2181,6 +2206,18 @@ Approved single local control - 2026-10-26:
 - deferred - live source-bound guard/additional/attended proof, pre-return/
   loss validation and final native preparation/GO remain with059-18/060-01.
   Source repair admits no browser/SDK job or automatic retry.
+
+#### Source-binding correction checkpoint - 2026-10-28
+
+- updated - controller, relay and private successor use one canonical source
+  digest; controlled checks cover reordered and changed pins, including the
+  preserved failed-case evidence. Independent bounded source review passed.
+- updated - the guide, plan, tasks, queue and primer record the later failed
+  controller attempt and its unresolved stop without relabelling old proof.
+- no-op - failed job/STOP/FAILED receipts, earlier H1 UNKNOWN, native authority,
+  full-slice DoD and current actual qualification remain unchanged.
+- deferred - any new actual attempt needs separate admission; no browser, SDK,
+  vendor traffic or native case is authorized by this offline change.
 
 #### Earlier checkpoints
 

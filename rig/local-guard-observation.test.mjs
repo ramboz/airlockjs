@@ -132,6 +132,36 @@ describe("local guard observation repair - controlled OS only", () => {
     });
   });
 
+  it("uses the same canonical source digest for reordered pins and rejects changed pins before ACK", async () => {
+    const { beginLocalGuardRegistration, acknowledgeLocalGuardRegistration, localGuardSourceDigest } = await load();
+    const f = fixture();
+    const producerPins = { z: "same", a: { second: "two", first: "one" }, list: ["a", "b"] };
+    const observerPins = { list: ["a", "b"], a: { first: "one", second: "two" }, z: "same" };
+    const expected = hash(JSON.stringify({ a: { first: "one", second: "two" }, list: ["a", "b"], z: "same" }));
+    expect(localGuardSourceDigest(producerPins)).toBe(expected);
+    expect(localGuardSourceDigest(observerPins)).toBe(expected);
+    expect(localGuardSourceDigest({ ...observerPins, z: "changed" })).not.toBe(expected);
+    expect(localGuardSourceDigest({ ...observerPins, list: ["b", "a"] })).not.toBe(expected);
+    expect(() => localGuardSourceDigest({ get a() { return "one"; } })).toThrow("invalid_case_input");
+
+    const gate = await beginLocalGuardRegistration({
+      directory: f.directory, source_sha256: localGuardSourceDigest(producerPins), window: f.window,
+    });
+    const ready = gate.ready({ process: () => ({ pid: f.browser.pid }) });
+    await vi.waitFor(() => expect(existsSync(join(f.directory, "guard-browser-ready.json"))).toBe(true));
+    fake.pid = f.observer.pid;
+    await expect(acknowledgeLocalGuardRegistration({ directory: f.directory,
+      source_sha256: localGuardSourceDigest({ ...observerPins, z: "changed" }), controller: f.controller,
+      deadline: performance.now() + 5000, release: true })).rejects.toThrow("local_guard_case_changed");
+    expect(existsSync(join(f.directory, "guard-browser-ack.json"))).toBe(false);
+    const registered = await acknowledgeLocalGuardRegistration({ directory: f.directory,
+      source_sha256: localGuardSourceDigest(observerPins), controller: f.controller,
+      deadline: performance.now() + 5000, release: true });
+    fake.pid = f.controller.pid;
+    await ready;
+    expect(registered.status).toBe("registered");
+  });
+
   it("cannot release a foreign browser and does not create an acknowledgement", async () => {
     const { beginLocalGuardRegistration, acknowledgeLocalGuardRegistration } = await load(), f = fixture();
     const gate = await beginLocalGuardRegistration({
@@ -248,5 +278,7 @@ describe("local guard observation repair - controlled OS only", () => {
       expect(source).toContain('AIRLOCK_LOCAL_GUARD_REGISTRATION === "1"');
     }
     expect(controller).toContain("local && !state.additional && !state.attended");
+    expect(controller).toContain("source_sha256: localGuardSourceDigest(binding.source_pins)");
+    expect(relay).toContain("source_sha256: localGuardSourceDigest(sourceBefore)");
   });
 });

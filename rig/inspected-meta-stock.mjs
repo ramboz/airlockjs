@@ -24,7 +24,7 @@ import { registerAdditionalPorts, registerAdditionalPending, registerAdditionalB
   holdAdditionalShutdown } from "./meta-additional-supervision.mjs";
 import { inspectedDecoderDependencyPins, startLocalInspectedTransport, startNativeInspectedTransport } from "./inspected-transport.mjs";
 import { createMetaAttendedControl, inspectMetaAttendedQualification } from "./meta-attended-control.mjs";
-import { beginLocalGuardRegistration } from "./local-guard-observation.mjs";
+import { beginLocalGuardRegistration, localGuardSourceDigest } from "./local-guard-observation.mjs";
 
 const fail = category => { throw new Error(category); };
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
@@ -1556,7 +1556,7 @@ async function runEngine(state, { protocol, program }) {
     const localGuard = local && !state.additional && !state.attended &&
       process.env.AIRLOCK_LOCAL_GUARD_REGISTRATION === "1"
       ? await wait(beginLocalGuardRegistration({
-        directory: output, source_sha256: hash(JSON.stringify(binding.source_pins)), window: binding.window,
+        directory: output, source_sha256: localGuardSourceDigest(binding.source_pins), window: binding.window,
       }), 4500) : null;
     const browserAcquisition = chromium.launchServer({
       executablePath: fileURLToPath(new URL("./qualification-loopback-chrome", import.meta.url)),

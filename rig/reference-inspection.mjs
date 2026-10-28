@@ -16,7 +16,7 @@ import { readMetaPrivate, writeMetaPrivate } from "./native-stock-meta.mjs";
 import { createInspectedHttpWire, createInspectedRequestFramer } from "./inspected-http-wire.mjs";
 import { authenticateOwnedBrowserPeer, relayInspectedSockets } from "./inspected-transport.mjs";
 import { inspectedMetaSourcePins } from "./inspected-meta-stock.mjs";
-import { beginLocalGuardRegistration } from "./local-guard-observation.mjs";
+import { beginLocalGuardRegistration, localGuardSourceDigest } from "./local-guard-observation.mjs";
 
 const execute = promisify(execFile), hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const AUTHORITY = "collector.test.invalid:443", COLLECTOR = "https://collector.test.invalid";
@@ -494,7 +494,7 @@ export async function runLocalInspection(options) {
     const { chromium } = await import("playwright");
     const localGuard = process.env.AIRLOCK_LOCAL_GUARD_REGISTRATION === "1"
       ? await bounded(beginLocalGuardRegistration({
-        directory: output, source_sha256: hash(JSON.stringify(sourceBefore)), window,
+        directory: output, source_sha256: localGuardSourceDigest(sourceBefore), window,
       })) : null;
     browserServer = await chromium.launchServer({
       executablePath: fileURLToPath(new URL("./qualification-loopback-chrome", import.meta.url)),

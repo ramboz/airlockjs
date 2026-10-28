@@ -66,7 +66,7 @@ Every missing/stale gate blocks; none is silently commissioned by this packet.
 | A. Session authority | Scope-specific execution-mode decision in the private case handoff; if attended, present owner with exact loss-UNKNOWN responsibility. Any reopened059-18 variant must pass DRAFT/review without pretending0038 is Accepted | Session authorization is not an ADR or guard qualification.059-18's engineering reentry covers the bounded source increments below; native admission remains blocked and requires a separately approved current operation. |
 | B. Lineage | Original authority/spent slot, genuine additional decision, conditional authority/inspection record: current bytes/hash/device/inode and semantics; additional canonical slot absent |2026-10-27 read-only six-file locator/hash/identity verification passed; original slot semantically SPENT, additional conditional grant ONE, executable location permission and additional slot absent. Reverify at actual preflight; this is not final permission. |
 | C. Setup/source | Fresh truthful same-Pixel/settings report; explicit private handles, retained source authentication, owned origin/document and command transcript | Current owner-reported setup confirmation is retained privately, not API readback. Exact source/input/case bindings still need preflight; no account change. |
-| D. Guarded browser | Same inspected path on156, complete existing fourteen-controller/eleven-relay and additional-lineage qualification obligations, including actual SDK-absent H1/H2 positives, retry/count/semantic/header/body/response/aggregate/truncation/cookie, no-ticket/unknown-route/marker-loss controls, source/driver closure and external exit/cleanup originals | Two separately approved.49 attempts failed: first observer identity rejection, then listener inventory/stop observation. No relay/additional/full index. Latest normal/H1 lacks external child witness/independent browser registration; owner accepted that UNKNOWN handoff, not qualification. Old155/.48/local200 proof cannot replace it. |
+| D. Guarded browser | Same inspected path on156, complete existing fourteen-controller/eleven-relay and additional-lineage qualification obligations, including actual SDK-absent H1/H2 positives, retry/count/semantic/header/body/response/aggregate/truncation/cookie, no-ticket/unknown-route/marker-loss controls, source/driver closure and external exit/cleanup originals | Three separately approved.49 attempts failed: observer identity, listener inventory/stop observation, then source-digest ordering before ACK. The later stop UNKNOWN and earlier unregistered H1 UNKNOWN remain. No relay/additional/full index; old155/.48/local200 proof cannot replace it. |
 | E. Acquisition/normal stop | Pending handles owned before acquisition; browser/profile/controller/proxy/key/endpoint ownership, finite forwarding cutoff, normal cleanup and late arrivals | Historical.48 H1/H2 returned-browser/normal-cleanup originals passed the attended reader. Renew current.49 source-bound proof; acquisition-time interruption/late-loss and full native/shared/additional qualification remain open. |
 | F. Owner loss stop | For an attended case: present owner, exact-case handoff and demonstrated independently usable stop for outbound continuation and owned browser without broad scans/kills | Fixed manifest-bound command was demonstrated on.48 in a separate Node process after real browser ownership. Expected producer exit2/CLI exit0 and exact cleanup remain historical. Renew current.49 proof and admit the actual native case handoff/presence; no unattended loss proof. |
 | G. Reviews | Frame/compliance/craft/architecture/reconciliation and genuine current guard/additional indices for the selected implementation/cohort | This packet's design review cannot mint native proof/private execution leases. Source changes invalidate old indices. |
@@ -205,8 +205,14 @@ retain both streams/status/error completeness; known-node cleanup is independent
 of optional inventory and has a reserved budget. The repaired fixed local
 controller/relay path uses a durable returned-browser ACK before context/source
 work. This is opt-in SDK-absent tooling, not a native lease or actual qualification.
-Earlier indices are stale after the source changes, both failures/H1 UNKNOWN
-are preserved, and no new actual job has been initialized or admitted.
+Earlier indices are stale after the source changes. A later admitted SDK-free
+controller attempt stopped before ACK because the producer and observer hashed
+source pins in different key orders. Stop remained UNKNOWN; the recorded browser
+group and profile were absent, and the owner approved key removal and observer
+closure. The failed case and earlier H1 UNKNOWN remain preserved. A subsequent
+offline correction uses the same canonical source digest for controller, relay
+and a separate uninitialized successor. No current guard or native admission
+follows from that correction.
 
 ## Assumptions
 

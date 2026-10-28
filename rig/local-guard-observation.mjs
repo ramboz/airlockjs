@@ -14,6 +14,7 @@ const fail = reason => { throw Error(reason); };
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const digest = value => typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
 const handle = path => ({ path, sha256: hash(readMetaPrivate(path)) });
+export const localGuardSourceDigest = pins => hash(JSON.stringify(data(pins)));
 function directory(path) {
   const stat = lstatSync(path);
   if (resolve(path) !== path || realpathSync(path) !== path || !stat.isDirectory() || stat.isSymbolicLink() ||

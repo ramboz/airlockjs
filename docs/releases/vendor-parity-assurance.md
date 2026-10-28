@@ -67,7 +67,13 @@ missing acquisition evidence remain blockers; no further operation queued.
 The bounded offline repair now captures full listener diagnostics, separates
 verified-node cleanup from optional inventory, and gates repaired local work on
 independent returned-browser registration. This is source-only; earlier indices
-are stale, H1 UNKNOWN is unchanged, and no new actual run or native GO follows.
+are stale and H1 UNKNOWN is unchanged. A subsequently admitted SDK-free
+controller attempt failed before ACK because its source digest used different
+key ordering from the observer; stop remained UNKNOWN. Recorded browser group/
+profile absence was checked, test keys removed and the observer closed with
+owner approval. An offline canonical-digest correction now covers controller,
+relay and a separate uninitialized successor. It is not current browser
+qualification or native GO; the failed attempt and both UNKNOWNs remain.
 
 **Actual local execution update (2026-10-26):** the present owner separately
 approved the final zero-body-EOF sequence, which passed **both actual local

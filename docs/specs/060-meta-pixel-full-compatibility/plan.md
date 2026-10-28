@@ -27,8 +27,12 @@ current-browser source/proof increment; full qualification/capture remains gated
 
 The subsequent bounded offline source repair supplies complete captured listener
 diagnostics, inventory-independent verified-node cleanup and a returned-browser
-registration barrier for the repaired fixed local harness. No actual run follows
-from that repair; old indices are stale and historical H1 UNKNOWN is unchanged.
+registration barrier for the repaired fixed local harness. A later separately
+admitted SDK-free controller attempt stopped before ACK on a source-digest
+ordering mismatch; its stop UNKNOWN remains after owner-approved key removal
+and observer closure. A further offline correction uses one canonical digest
+for controller, relay and an uninitialized successor. No qualification follows
+from that correction; old indices are stale and historical H1 UNKNOWN is unchanged.
 
 **Latest actual outcome:** the separately approved zero-body-EOF sequence
 passed both local browser journeys: Meta two exact PageViews in8644ms, Google
