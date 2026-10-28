@@ -397,8 +397,8 @@ This does not clear the stop UNKNOWN or the earlier unregistered H1 UNKNOWN.
 The failed job, STOP/FAILED and original observations remain preserved; no relay,
 additional phase, retry or native grant was used.
 
-The controller, relay and a separate uninitialized private successor now use
-the same validated canonical source digest. Controlled regressions reject
+At that offline checkpoint the controller, relay and a separate uninitialized
+private successor used the same validated canonical source digest. Controlled regressions reject
 changed pin values and array order before ACK, and reproduce the mismatch using
 the preserved failed-case pins. The scoped source suite passes126 tests with25
 actual opt-ins skipped; nine private observer/stop/handoff checks pass. These
@@ -409,6 +409,18 @@ qualification. Relay wiring coverage is source-level, not a browser result.
 The source edit makes earlier indices historical. Full059-18 remains
 IN_PROGRESS/compliance FAIL/open DoD; any further actual job needs separate
 admission.
+
+#### Failed successor preflight - 2026-10-28
+
+The separately admitted SDK-free controller attempt stopped immediately on
+`local_guard_directory`: the successor's directory had been created mode0755,
+but the existing guard requires0700. Both session ancestor directories were
+0700. Known runner cleanup reported closed and the recorded PID was absent;
+sampled observations showed no child or browser. The attached failed observer
+awaits owner approval to close; the approval request returned unavailable.
+The original mode, failed result and STOP/FAILED receipts are preserved.
+No retry, relay, additional phase or native grant followed. This observation
+does not prove pre-return ownership or clear either earlier UNKNOWN.
 
 **DoR:**
 - [x] Genuine owner authorization at 2026-10-21T18:33:04.581Z explicitly

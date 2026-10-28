@@ -30,9 +30,13 @@ diagnostics, inventory-independent verified-node cleanup and a returned-browser
 registration barrier for the repaired fixed local harness. A later separately
 admitted SDK-free controller attempt stopped before ACK on a source-digest
 ordering mismatch; its stop UNKNOWN remains after owner-approved key removal
-and observer closure. A further offline correction uses one canonical digest
-for controller, relay and an uninitialized successor. No qualification follows
+and observer closure. A further offline correction used one canonical digest
+for controller, relay and a successor then uninitialized. No qualification follows
 from that correction; old indices are stale and historical H1 UNKNOWN is unchanged.
+A later admitted SDK-free controller attempt stopped immediately on the
+successor's incorrect directory mode. Known runner cleanup completed; no child
+or browser appeared in sampled observations, and the failed observer awaits
+owner release. No retry or native qualification followed.
 
 **Latest actual outcome:** the separately approved zero-body-EOF sequence
 passed both local browser journeys: Meta two exact PageViews in8644ms, Google

@@ -32,8 +32,10 @@ An authored AC is not a passing evaluation.
       clean verified nodes independently of inventory, and require returned-
       browser registration before repaired local controller/relay work.
 - [x] Correct the source-digest ordering mismatch offline for the controller,
-      relay and an uninitialized successor. The later failed stop UNKNOWN is
+      relay and a successor then uninitialized. The earlier failed stop UNKNOWN is
       retained despite owner-approved key removal and observer closure.
+- [ ] Resolve the later directory-mode failure's waiting observer with the
+      owner's approval. No retry or current guard proof followed.
 - [ ] Qualify the repaired current-source path through a separately admitted
       actual job. Source checks do not clear historical H1 UNKNOWN or loss gaps.
 - [ ] Obtain all remaining current fourteen-controller/eleven-relay/additional

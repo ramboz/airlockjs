@@ -72,8 +72,13 @@ controller attempt failed before ACK because its source digest used different
 key ordering from the observer; stop remained UNKNOWN. Recorded browser group/
 profile absence was checked, test keys removed and the observer closed with
 owner approval. An offline canonical-digest correction now covers controller,
-relay and a separate uninitialized successor. It is not current browser
+relay and a separate successor that was uninitialized at that checkpoint. It is not current browser
 qualification or native GO; the failed attempt and both UNKNOWNs remain.
+The successor was later used for one separately admitted controller attempt;
+it stopped immediately because its directory mode was0755 rather than0700.
+Recorded runner cleanup completed; no child or browser appeared in sampled
+observations. The failed observer awaits owner release. This attempt does not
+qualify the corrected source or authorize a retry.
 
 **Actual local execution update (2026-10-26):** the present owner separately
 approved the final zero-body-EOF sequence, which passed **both actual local
