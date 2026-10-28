@@ -228,6 +228,31 @@ harnesses need their own present-owner/procedural handoff; the attended native
 entry's stop command is not borrowed for them. Exact operation approvals and
 handoff remain private. Full059-18 stays IN_PROGRESS/compliance FAIL/open DoD.
 
+### Current full-guard attempt - failed, 2026-10-27
+
+One separately admitted SDK-free job ran the existing controller suite against
+unchanged4ffd4ae source on.49. The scoped private observer rejected
+`additional_group_identity` during the first actual finite-window/H2 case.
+It sealed the sequence and performed its fixed verified-process stop. Outer
+Vitest exited143/null in12848ms, not a passing test result; relay/additional
+phases and the rest of the matrix were not issued or completed. No automatic
+retry or current qualification index.
+
+The exact rejected raw row was not retained, so cause is unresolved. The
+producer's later exit2/zero receiver attempts/`unexpected_browser_exit` and
+`local_controller_inconclusive` followed observer stop, not an independent
+root-cause finding. All sixteen producer cleanup fields are true. Independent
+checks found ten recorded PIDs and exact Chrome group absent, the profile
+and both keys ENOENT, and four recorded ports ECONNREFUSED. Owner explicitly
+released the attached failed observer after those checks; its whole command
+exited2. This is cleanup of one failed attempt, not native or loss qualification.
+
+Retain all original source/receipt/reservation/stop records. No SDK/public
+vendor/native grant or actual slot; additional ONE stays unspent and historical
+UNKNOWNs unchanged. Full059-18 remains IN_PROGRESS/compliance FAIL/open DoD.
+The concrete next diagnostic is preserve the rejected observation and exercise
+its failure path offline, not guess a new allowed process or retry this job.
+
 **DoR:**
 - [x] Genuine owner authorization at 2026-10-21T18:33:04.581Z explicitly
       answers the request for one additional bounded Meta stock case.
@@ -373,6 +398,19 @@ Current patch supporting correction (2026-10-27):
 - All earlier.48 actual originals/index and successful closeout remain intact
   but historical for current-source admission. Full guard and attended evidence
   must be freshly source-bound; metadata/unit success is not a browser run.
+
+Current failed matrix follow-through (2026-10-27):
+
+- The single admitted controller phase stopped at its first actual ownership-
+  observation failure. Relay/additional were not run and no current index was
+  minted. Producer cleanup flags and a completed failure artifact do not
+  override actual outer exit143 or observer exit2.
+- Private observer diagnostics retained the category but lost the rejected raw
+  row. Cause is explicitly unresolved; no classification, whitelist expansion,
+  process adoption or general framework is inferred. Originals remain frozen.
+- Exact resource cleanup and explicit owner release close this failed operation
+  only. The existing grant/lifecycle/guard obligations remain unchanged; another
+  actual job requires separately reviewed/admitted current preparation.
 
 Implementation handoff (2026-10-21; independent reconciliation still pending):
 
@@ -1915,6 +1953,20 @@ Approved single local control - 2026-10-26:
 - deferred - reviewed finite current guard/attended execution and actual proof
   remain with059-18/060-01, within the named product-linked checkpoint.
   No new runner framework or native case is commissioned by the source edit.
+
+#### Failed current matrix checkpoint - 2026-10-27
+
+- updated - this failed result/deviation record and operator guide; current
+  reference packet/plan/tasks, release queue and primer now name the concrete
+  rejected-observation diagnostic and unissued relay/additional phases.
+- no-op - rig source remains4ffd4ae; all actual failure/custody/signal/exit/
+  closure artifacts remain at original private locators. No native authority,
+  original/additional slot, Accepted ADR, first-journey acceptance or DoD change.
+- no-op - observed exact cleanup/owner release ends the current operation only;
+  no old UNKNOWNs, unattended proof or host-wide quiet are inferred.
+- deferred - offline diagnostic correction and any new separately admitted
+  full current guard/additional/attended proof remain with059-18/060-01.
+  Complete native preflight/GO stays later; no automatic continuation.
 
 #### Earlier checkpoints
 

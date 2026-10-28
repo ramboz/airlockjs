@@ -27,6 +27,31 @@ additional grant stays unspent and full059-18 remains IN_PROGRESS/open DoD.
 Temporary execution choices and final GO belong in private case/session records,
 not another architecture decision.
 
+### Current full-guard attempt - 2026-10-27
+
+The separately admitted current.49 job stopped at its first actual controller
+case, before the relay/additional phases. The private scoped observer rejected
+`additional_group_identity`, sealed further work and stopped the exact owned
+controllers/browser. Outer Vitest exited143 after12848ms; the attached observer
+later exited2 after explicit owner release and independent exact cleanup.
+No completed suite result or current fourteen/eleven index was produced.
+
+The rejected raw process row was not retained, so the identity-failure cause
+is unresolved. Do not label it a harmless helper, foreign process, vendor
+behavior or a demonstrated wire-limit failure. The first finite-window/H2
+producer recorded exit2, zero receiver attempts and `unexpected_browser_exit`/
+`local_controller_inconclusive` after the observer's stop; those are not the
+initial cause. Its sixteen cleanup fields are true, not a qualification pass.
+
+Independent checks found all ten recorded Node/Chrome PIDs and the exact
+Chrome group absent, profile and both ephemeral keys absent, and all four
+recorded ports refusing connections. No profile deletion or broad/name-based
+signals. All failed originals, source epoch4ffd4ae and stop/exit/cleanup
+records remain private and unchanged. The owner closed only the failed observer;
+no retry or remaining phase was issued, no official SDK/public-provider/real
+slot was used, and earlier UNKNOWNs are unchanged. Next is bounded offline
+rejected-observation retention/diagnosis, not relaxed membership or a new runner.
+
 ## Attended acquisition and independent owner stop
 
 The case-specific attended path is implemented and source-reviewed. One actual

@@ -6,12 +6,14 @@
 [one additional Meta native-reference plan](meta-native-reference-plan.md)
 for060-01, not another construction prototype or runner program. Per-case
 execution-mode choices and run authorizations belong in the private session/
-case handoff, not a new ADR. The first source increment now aligns the fixed
-inspected candidates with installed156 and rejects stale manifest/evidence
-cohorts in unit controls. The new case-bound attended path has now passed one
-actual SDK-absent Chrome156 H1/H2/owner-stop sequence, with independent command
-exits and exact cleanup. The reader accepted this attended proof, not a native
-lease. Complete current shared/additional qualification remains open. Executable
+case handoff, not a new ADR. Fixed inspected candidates now target installed
+156.0.8078.49 and reject rebound previous-patch/old155 evidence. Earlier.48
+attended H1/H2/owner-stop proof remains historical, not current qualification.
+The single.49 matrix attempt stopped at its first actual controller on observer
+`additional_group_identity`; the rejected raw row was not retained, cause
+unresolved. Exact cleanup and owner release are confirmed, but no relay/
+additional phase or current index. Next is offline rejected-observation
+diagnosis before any separately admitted new job. Executable
 native case permission is absent. Thus capture
 is blocked before acquisition/consumption; the additional grant remains unspent.
 059-15 stays DEFERRED.059-18 has reopened through DRAFT for its bounded

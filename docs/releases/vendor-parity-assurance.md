@@ -52,6 +52,10 @@ that is not native execution or implementation compliance.
 Fresh metadata for the subsequent full guard job found Chrome156.0.8078.49;
 the two fixed source pins are updated with causal tests. The earlier.48
 attended result remains historical and requires renewed current-source proof.
+The single.49 full-guard job stopped at its first actual controller on observer
+identity rejection; raw offending row was not retained, cause unresolved.
+Exact cleanup/owner release are confirmed; no relay/additional phase, current
+index or retry. Offline diagnostic retention comes before any new admitted job.
 
 **Actual local execution update (2026-10-26):** the present owner separately
 approved the final zero-body-EOF sequence, which passed **both actual local

@@ -17,10 +17,16 @@ An authored AC is not a passing evaluation.
 - [x] Implement the case-bound attended acquisition/owner-stop source path and
       fixed operator command under059-18, with controlled tests/review corrections.
 - [x] Demonstrate attended normal H1/H2 and owner stop through one actual
-      SDK-absent Chrome156 sequence; retained originals/independent exits pass
-      the attended reader, with exact resources observed closed.
+      SDK-absent Chrome156.0.8078.48 sequence; historical originals/independent
+      exits passed the reader, with exact resources observed closed.
+- [x] Refresh both fixed candidates to installed.49, with causal rebound.48/
+      155 negatives; no current proof inferred from unit/source acceptance.
+- [ ] Diagnose rejected-observation retention offline after the one.49 guard
+      attempt stopped on `additional_group_identity`. Exact cleanup/owner
+      release confirmed; no retry or relay/additional phase was issued.
 - [ ] Obtain all remaining current fourteen-controller/eleven-relay/additional
-      guard originals under059-18 before native case preparation/admission.
+      and renewed attended originals under059-18 after separately reviewed
+      new-job admission, before native case preparation/admission.
 - [x] Exercise060-14's actual local-browser PageView, strict local controls
       and normal owned cleanup on the separately approved Chrome156/empty200 cohort.
       Native204/parity/loss qualification remain open; future runs need current admission.

@@ -66,7 +66,7 @@ Every missing/stale gate blocks; none is silently commissioned by this packet.
 | A. Session authority | Scope-specific execution-mode decision in the private case handoff; if attended, present owner with exact loss-UNKNOWN responsibility. Any reopened059-18 variant must pass DRAFT/review without pretending0038 is Accepted | Session authorization is not an ADR or guard qualification.059-18's engineering reentry covers the bounded source increments below; native admission remains blocked and requires a separately approved current operation. |
 | B. Lineage | Original authority/spent slot, genuine additional decision, conditional authority/inspection record: current bytes/hash/device/inode and semantics; additional canonical slot absent |2026-10-27 read-only six-file locator/hash/identity verification passed; original slot semantically SPENT, additional conditional grant ONE, executable location permission and additional slot absent. Reverify at actual preflight; this is not final permission. |
 | C. Setup/source | Fresh truthful same-Pixel/settings report; explicit private handles, retained source authentication, owned origin/document and command transcript | Current owner-reported setup confirmation is retained privately, not API readback. Exact source/input/case bindings still need preflight; no account change. |
-| D. Guarded browser | Same inspected path on156, complete existing fourteen-controller/eleven-relay and additional-lineage qualification obligations, including actual SDK-absent H1/H2 positives, retry/count/semantic/header/body/response/aggregate/truncation/cookie, no-ticket/unknown-route/marker-loss controls, source/driver closure and external exit/cleanup originals | First fixed-cohort source increment is unit-tested/reviewed; actual qualification remains unissued. Old155 receipts/local200 controls do not qualify it. Do not treat the pin update and unit negatives as runtime proof or select only easy actual controls. |
+| D. Guarded browser | Same inspected path on156, complete existing fourteen-controller/eleven-relay and additional-lineage qualification obligations, including actual SDK-absent H1/H2 positives, retry/count/semantic/header/body/response/aggregate/truncation/cookie, no-ticket/unknown-route/marker-loss controls, source/driver closure and external exit/cleanup originals | Current.49 attempt failed at its first actual controller observer identity check; relay/additional not issued, no complete index. Rejected raw row was not retained, cause unresolved. Old155/.48 receipts and local200 controls do not qualify it. No retry or selection of only easy controls. |
 | E. Acquisition/normal stop | Pending handles owned before acquisition; browser/profile/controller/proxy/key/endpoint ownership, finite forwarding cutoff, normal cleanup and late arrivals | Historical.48 H1/H2 returned-browser/normal-cleanup originals passed the attended reader. Renew current.49 source-bound proof; acquisition-time interruption/late-loss and full native/shared/additional qualification remain open. |
 | F. Owner loss stop | For an attended case: present owner, exact-case handoff and demonstrated independently usable stop for outbound continuation and owned browser without broad scans/kills | Fixed manifest-bound command was demonstrated on.48 in a separate Node process after real browser ownership. Expected producer exit2/CLI exit0 and exact cleanup remain historical. Renew current.49 proof and admit the actual native case handoff/presence; no unattended loss proof. |
 | G. Reviews | Frame/compliance/craft/architecture/reconciliation and genuine current guard/additional indices for the selected implementation/cohort | This packet's design review cannot mint native proof/private execution leases. Source changes invalidate old indices. |
@@ -174,6 +174,15 @@ Both fixed source pins and causal controls now target that patch; the successful
 .48 attended sequence is historical, not current-source qualification.
 The full current guard/additional indices and current attended proof must be
 supplied after this source correction. Do not copy/rebind old original receipts.
+
+The single admitted.49 full-guard attempt then stopped at its first actual
+finite-window/H2 controller case on observer `additional_group_identity`.
+Outer suite exit143/observer exit2 and the failed producer's zero receiver
+attempts are retained; relay/additional never ran. Independent exact process/
+group/profile/key/port cleanup was confirmed and the owner released only that
+failed observer. The rejected raw row was not retained, so root cause remains
+unresolved. Next is bounded offline diagnostic retention/falsification before
+any separately admitted new job, not membership relaxation or a native case.
 
 ## Assumptions
 
