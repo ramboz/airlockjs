@@ -72,8 +72,13 @@ worker and loopback receiver. The exact local rules, including `undefined`,
 are described in the [prototype guide](../../../connectors/google-ads/CONVERSION-PROTOTYPE.md);
 they are assumptions for construction, not native observations. The offline
 report can compare explicitly supplied scope snapshots to independent arrivals;
-it does not prove that the supplied snapshots represent worker history. Native scope
-and queue semantics, callbacks, routing fanout, browser behavior, complete wire,
+it does not prove that the supplied snapshots represent worker history.
+An independent opt-in retains a conversion callback only on the host and
+correlates it to local worker completion or an explicit bounded timeout.
+[Google documents](https://developers.google.com/tag-platform/gtagjs/reference/parameters)
+the parameter names and general completion purpose, not this experiment's
+exact timing, failure or consent policy. Native scope and queue semantics,
+callbacks, routing fanout, browser behavior, complete wire,
 production cutover and the acceptance criteria above remain unqualified.
 
 ## Assumptions

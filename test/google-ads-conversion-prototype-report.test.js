@@ -166,4 +166,29 @@ describe("synthetic relationships versus partial retained native field shape", (
     expect(reads).toBe(0);
     expect(() => reportGoogleAdsConversionPrototype({ experimentalParameterScopes: "true" })).toThrow("invalid-experimental-option");
   });
+
+  it("checks explicitly enabled host callback metadata without executing or exposing it", () => {
+    let invoked = 0;
+    const callback = () => { invoked += 1; };
+    const args = ["event", "conversion", { ...snapshot.args[2], event_callback: callback, event_timeout: 100 }];
+    const evaluate = (params, options = {}) => reportGoogleAdsConversionPrototype({
+      observedRequests: [request], commandSnapshots: [{ ...snapshot, args: ["event", "conversion", params] }],
+      endpoint, experimentalCallbacks: true, ...options,
+    });
+    expect(evaluate(args[2]).local[0].relationshipsPreserved).toBe(true);
+    for (const metadata of [
+      { event_callback: callback }, { event_timeout: 100 }, { event_callback: "private", event_timeout: 100 },
+      { event_callback: callback, event_timeout: 0 }, { event_callback: callback, event_timeout: 10001 },
+    ]) {
+      expect(evaluate({ ...snapshot.args[2], ...metadata }).local[0].relationshipsPreserved).toBe(false);
+    }
+    let reads = 0;
+    const accessor = { ...snapshot.args[2], event_timeout: 100 };
+    Object.defineProperty(accessor, "event_callback", { get() { reads += 1; return callback; } });
+    expect(evaluate(accessor).local[0].relationshipsPreserved).toBe(false);
+    expect(reads).toBe(0);
+    expect(invoked).toBe(0);
+    expect(JSON.stringify(evaluate(args[2]))).not.toContain("report-synthetic-26");
+    expect(() => evaluate(args[2], { experimentalCallbacks: "true" })).toThrow("invalid-experimental-option");
+  });
 });

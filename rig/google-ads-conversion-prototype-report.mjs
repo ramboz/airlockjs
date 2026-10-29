@@ -110,13 +110,19 @@ function parseScopes(snapshot) {
   return global && config && validScopeValues(global) && validScopeValues(config) ? { global, config } : null;
 }
 
-function localRelationship(request, snapshot, endpoint, ordinal, experimentalRouting, scoped, scopeSnapshot, scopeAligned) {
+function localRelationship(request, snapshot, endpoint, ordinal, experimentalRouting, scoped, scopeSnapshot, scopeAligned, callbacks) {
   let url;
   try { url = new URL(request?.url); } catch { /* Invalid input remains a failed local assertion. */ }
   const query = url?.searchParams || new URLSearchParams();
   const args = snapshot?.args;
-  const params = scoped ? ownRecord(args?.[2], ["send_to", ...SCOPE_FIELDS]) : args?.[2];
+  const allowedParams = ["send_to", ...SCOPE_FIELDS, ...(callbacks ? ["event_callback", "event_timeout"] : [])];
+  const params = scoped || callbacks ? ownRecord(args?.[2], allowedParams) : args?.[2];
   const scopes = scoped && scopeAligned ? parseScopes(scopeSnapshot) : null;
+  const hasCallback = params && Object.hasOwn(params, "event_callback");
+  const hasTimeout = params && Object.hasOwn(params, "event_timeout");
+  const validCallback = !callbacks || ((!hasCallback && !hasTimeout) ||
+    (hasCallback && hasTimeout && typeof params.event_callback === "function" &&
+      Number.isInteger(params.event_timeout) && params.event_timeout >= 10 && params.event_timeout <= 10000));
   const endpointPattern = experimentalRouting
     ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,20})\/$/
     : /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(0000000000)\/$/;
@@ -127,8 +133,8 @@ function localRelationship(request, snapshot, endpoint, ordinal, experimentalRou
     : params?.send_to === "AW-0000000000/SYNTHETIC_LABEL";
   const validCommand = Array.isArray(args) && args.length === 3 && args[0] === "event" && args[1] === "conversion" &&
     params && typeof params === "object" && !Array.isArray(params) &&
-    Reflect.ownKeys(params).every((key) => ["send_to", "value", "currency", "transaction_id"].includes(key)) &&
-    validSelector && (!scoped || (scopes && validScopeValues(params)));
+    Reflect.ownKeys(params).every((key) => allowedParams.includes(key)) &&
+    validSelector && validCallback && (!(scoped || callbacks) || validScopeValues(params)) && (!scoped || scopes);
   const fields = [["send_to", "label"], ["value", "value"], ["currency", "currency_code"], ["transaction_id", "oid"], ["pageURL", "url"]].map(([input, wire]) => {
     let source = input === "pageURL" ? snapshot?.context : params;
     let sourceScope = input === "pageURL" ? "context" : "event";
@@ -179,9 +185,10 @@ function localRelationship(request, snapshot, endpoint, ordinal, experimentalRou
  */
 export function reportGoogleAdsConversionPrototype({
   observedRequests = [], commandSnapshots = [], scopeSnapshots, endpoint, projection,
-  experimentalRouting = false, experimentalParameterScopes = false,
+  experimentalRouting = false, experimentalParameterScopes = false, experimentalCallbacks = false,
 } = {}) {
-  if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean") throw new Error("invalid-experimental-option");
+  if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
+      typeof experimentalCallbacks !== "boolean") throw new Error("invalid-experimental-option");
   const scopeAligned = Array.isArray(scopeSnapshots) && Array.isArray(commandSnapshots) &&
     Array.isArray(observedRequests) && scopeSnapshots.length === commandSnapshots.length &&
     scopeSnapshots.length === observedRequests.length;
@@ -194,7 +201,7 @@ export function reportGoogleAdsConversionPrototype({
       localRelationship(observedRequests[index], commandSnapshots[index], endpoint, index, experimentalRouting,
         experimentalParameterScopes,
         experimentalParameterScopes && scopeAligned ? Object.getOwnPropertyDescriptor(scopeSnapshots, index)?.value : undefined,
-        scopeAligned)),
+        scopeAligned, experimentalCallbacks)),
     nativeShape: nativeShape(projection),
     gaps: [...GAPS],
   };

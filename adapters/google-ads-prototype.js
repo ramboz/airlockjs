@@ -67,9 +67,10 @@ export function createGoogleAdsPrototype({
   endpoint, chamber, captureContext = () => ({ pageURL: document.URL, referrer: document.referrer }),
   consent = null, queueLimit = 32, initTimeoutMs = 2000, commandTimeoutMs = 2000,
   transportTimeoutMs = 1000, fetchImpl = globalThis.fetch,
-  experimentalRouting = false, experimentalParameterScopes = false,
+  experimentalRouting = false, experimentalParameterScopes = false, experimentalCallbacks = false,
 } = {}) {
-  if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean") throw new Error("invalid-experimental-option");
+  if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
+      typeof experimentalCallbacks !== "boolean") throw new Error("invalid-experimental-option");
   const pattern = experimentalRouting === true
     ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/\d{1,20}\/$/
     : /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/0000000000\/$/;
@@ -84,6 +85,8 @@ export function createGoogleAdsPrototype({
   const waiters = new Set();
   const controllers = new Set();
   const subscriptions = [];
+  const callbacks = new Map();
+  const callbackStats = { invoked: 0, timeout: 0, errors: 0, cancelled: 0 };
   const consentVector = { ad_storage: consent?.ad_storage };
   let phase = "starting";
   let terminalReason = null;
@@ -112,15 +115,44 @@ export function createGoogleAdsPrototype({
       outcomes: outcomes.map((entry) => ({ ...entry })).sort((a, b) => a.seq - b.seq),
       host: { dispatchAttempts: state?.mainDispatch.count || 0, consentHeld: state?.consentHeld || 0, ceilingHeld: state?.ceilingHeld || 0 },
       receipt: "not-observed-by-adapter", fullCompatibility: false,
+      ...(experimentalCallbacks ? { callbacks: { ...callbackStats, pending: callbacks.size } } : {}),
     };
   }
   function settle() {
-    if (inFlight || queue.length) return;
+    if (inFlight || queue.length || callbacks.size) return;
     for (const resolve of waiters) resolve(getState());
     waiters.clear();
   }
+  function scheduleCallback(seq, trigger) {
+    const entry = callbacks.get(seq);
+    if (!entry || entry.scheduled) return;
+    entry.scheduled = true;
+    clearTimeout(entry.timer);
+    queueMicrotask(() => {
+      if (callbacks.get(seq) !== entry) return;
+      callbacks.delete(seq);
+      callbackStats.invoked += 1;
+      if (trigger === "timeout") callbackStats.timeout += 1;
+      try {
+        const fn = entry.fn;
+        const result = fn();
+        Promise.resolve(result).catch(() => { callbackStats.errors += 1; });
+      } catch { callbackStats.errors += 1; }
+      settle();
+    });
+  }
+  function cancelCallbacks() {
+    for (const [seq, entry] of callbacks) {
+      clearTimeout(entry.timer);
+      callbacks.delete(seq);
+      callbackStats.cancelled += 1;
+    }
+  }
   function stop(reason, disposed = false) {
-    if (phase === "terminal" || phase === "disposed") return;
+    if (phase === "terminal" || phase === "disposed") {
+      if (disposed) { cancelCallbacks(); settle(); }
+      return;
+    }
     phase = disposed ? "disposed" : "terminal";
     terminalReason = reason;
     clearTimeout(initTimer);
@@ -132,6 +164,8 @@ export function createGoogleAdsPrototype({
     }
     finishCurrent?.({ failure: reason });
     for (const event of queue.splice(0)) record({ seq: event.seq, disposition: "rejected", reason });
+    if (disposed) cancelCallbacks();
+    else for (const seq of callbacks.keys()) scheduleCallback(seq, "terminal");
     let disposal;
     try { disposal = transport?.dispose?.(); }
     catch { disposal = Promise.reject(new Error("transport-dispose-failed")); }
@@ -193,6 +227,7 @@ export function createGoogleAdsPrototype({
       inFlight = false;
       awaitingResult = false;
       activeSequence = undefined;
+      scheduleCallback(event.seq, "settled");
     }
     settle();
   }
@@ -207,6 +242,7 @@ export function createGoogleAdsPrototype({
     capturing = true;
     try {
       const captured = [];
+      let callback;
       for (const [index, arg] of args.entries()) {
         if (primitive(arg, 2048)) { captured.push(arg); continue; }
         if ((index !== 2 && !(experimentalParameterScopes && index === 1)) ||
@@ -215,9 +251,21 @@ export function createGoogleAdsPrototype({
         }
         if (![Object.prototype, null].includes(Object.getPrototypeOf(arg))) { reject("unsupported-parameters"); return; }
         const keys = Reflect.ownKeys(arg);
-        if (keys.length > 4 || keys.some((key) => !PARAM_KEYS.includes(key))) { reject("unsupported-parameters"); return; }
+        const allowCallback = experimentalCallbacks && index === 2 && args[0] === "event" && args[1] === "conversion";
+        const callbackKeys = allowCallback ? ["event_callback", "event_timeout"] : [];
+        if (keys.length > 4 + callbackKeys.length ||
+            keys.some((key) => !PARAM_KEYS.includes(key) && !callbackKeys.includes(key))) { reject("unsupported-parameters"); return; }
+        if (keys.some((key) => callbackKeys.includes(key))) {
+          const fn = Object.getOwnPropertyDescriptor(arg, "event_callback");
+          const timeout = Object.getOwnPropertyDescriptor(arg, "event_timeout");
+          if (!fn || !Object.hasOwn(fn, "value") || typeof fn.value !== "function" ||
+              !timeout || !Object.hasOwn(timeout, "value") || !Number.isInteger(timeout.value) ||
+              timeout.value < 10 || timeout.value > 10000) { reject("unsupported-callback"); return; }
+          callback = { fn: fn.value, timeout: timeout.value };
+        }
         const params = {};
         for (const key of keys) {
+          if (callbackKeys.includes(key)) continue;
           const descriptor = Object.getOwnPropertyDescriptor(arg, key);
           if (!descriptor || descriptor.get || descriptor.set || !primitive(descriptor.value, 2048)) {
             reject("unsupported-parameters"); return;
@@ -236,7 +284,13 @@ export function createGoogleAdsPrototype({
       const payload = structuredClone({ args: captured, context });
       if (phase === "terminal" || phase === "disposed") { reject(phase); return; }
       if (queue.length >= queueLimit || admitted >= LIMIT) { reject("capture-admission-changed"); return; }
-      queue.push({ seq, type: "google-ads-command", ts: performance.now(), payload, snapshot: {} });
+      const event = { seq, type: "google-ads-command", ts: performance.now(), payload, snapshot: {} };
+      if (callback) {
+        const entry = { fn: callback.fn, scheduled: false, timer: undefined };
+        entry.timer = setTimeout(() => scheduleCallback(seq, "timeout"), callback.timeout);
+        callbacks.set(seq, entry);
+      }
+      queue.push(event);
       admitted += 1;
       void pump();
     } catch { reject("capture-unavailable"); }
@@ -294,7 +348,7 @@ export function createGoogleAdsPrototype({
   return {
     gtag, getState,
     flush() {
-      if (!queue.length && !inFlight) return Promise.resolve(getState());
+      if (!queue.length && !inFlight && !callbacks.size) return Promise.resolve(getState());
       if (waiters.size >= 16) return Promise.resolve({ ...getState(), flush: "waiter-limit" });
       return new Promise((resolve) => waiters.add(resolve));
     },

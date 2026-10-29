@@ -48,7 +48,8 @@ gtag("event", "conversion", {
 ```
 
 The third argument is a plain/null-prototype own-property record with at most these four
-primitive properties. `send_to` must match exactly. Optional `value` is a
+primitive data properties, plus the optional callback pair described below.
+`send_to` must match exactly. Optional `value` is a
 finite Number, `currency` a string up to 64 characters, and `transaction_id`
 a string up to 128 characters. No numeric coercion or defaults: zero and
 empty currency/transaction strings survive; omitted and explicit `undefined`
@@ -100,12 +101,43 @@ Main synchronously captures/clones primitive data and returns `undefined`.
 The chamber interprets commands, retains config, validates types and builds
 the query. Outside the scope opt-in, config options and `set` are rejected.
 Duplicate config, pre-config conversions, unknown
-commands/keys, arrays, nested objects, accessors and callbacks reject visibly.
+commands/keys, arrays, nested objects and accessors reject visibly.
 The pure connector independently enforces own-data-property parameter/context
 records too; inherited values or getters cannot supply optional wire fields.
-Callbacks reject the **whole** call; none are executed or silently stripped.
+Without the callback opt-in, callbacks reject the **whole** call; none are
+executed or silently stripped.
 These are deliberate prototype rules, **not native gtag validation/queue/
 config/callback semantics**.
+
+### Experimental host callback
+
+[Google documents](https://developers.google.com/tag-platform/gtagjs/reference/parameters)
+`event_callback` as a function called when event processing completes and
+`event_timeout` as its timeout in milliseconds. This does not pin the native
+timeout default, completion boundary or failure/consent behavior.
+
+With `experimentalCallbacks: true`, one conversion can provide both an own
+`event_callback` function and an explicit integer `event_timeout` from 10 to
+10000 ms. The host retains the function; only the primitive event data crosses
+to the worker. Other commands, incomplete metadata, accessors and out-of-range
+timeouts are rejected as whole calls. Callback support is off by default and
+does not install a global or add a DOM capability.
+
+The **local experimental policy**, not a native finding, schedules the
+callback once without arguments on a microtask when the worker result settles,
+including held or rejected results, or when an admitted command reaches a
+terminal worker failure. A timer starts on admission; if it wins, the callback
+can run before dispatch or settlement. Timeout neither cancels nor retries the
+conversion. Disposal cancels callbacks that have not yet run. The timer is
+subject to the host event loop, not a real-time guarantee. This callback is
+never evidence of dispatch, HTTP success, product receipt or attribution.
+
+With the option enabled `getState().callbacks` gives bounded counts for
+pending, invoked, timeout, cancelled and errors, without functions or error text.
+Synchronous throws and rejected returned promises are counted, but `flush`
+waits only for callback invocation, not asynchronous callback results.
+Navigation/form behavior, native completion ordering, multi-target callbacks
+and browser timing remain unqualified.
 
 `setConsent({ ad_storage: "granted" })` controls the host seal, not native
 Google Consent Mode. Pending/denied conversions are dropped; grant does not
@@ -154,6 +186,10 @@ the preceding command history. Missing, invalid or misaligned snapshots fail
 the local relationship checks. Field-level output identifies only the winning
 scope, type, omission and comparison result, never the values. The default
 direct-input report is unchanged.
+For an input snapshot containing the callback pair, pass
+`experimentalCallbacks: true` to the report as well. It validates but never
+executes the function; a wire relationship is not evidence that the callback
+ran or that its timing matched native behavior.
 For an experimental destination, pass `experimentalRouting: true` to the
 report as well; it checks that the snapshotted destination matches the
 loopback path and that the observed label matches the call. The default report
@@ -161,7 +197,7 @@ continues to accept only the fixed synthetic route.
 
 Missing behavior includes config/page/remarketing companions, the first-party
 primary alternative, response-linked fetch/fallback/redirect/cookie branches,
-identity/click IDs, Consent Mode, callbacks/navigation, browser transport and
+identity/click IDs, Consent Mode, native callback/navigation semantics, browser transport and
 headers/cookies, deduplication/matching/attribution/backend receipt and CWV.
 Original request/response bytes, native values/endpoints and historical
 runtime/configuration/version are unavailable; historical context is not a
