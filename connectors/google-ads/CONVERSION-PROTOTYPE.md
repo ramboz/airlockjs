@@ -19,6 +19,38 @@ page context. It closes its worker, server and sockets before returning.
 Errors fail the executable; cleanup attempts every resource independently,
 retaining sanitized aggregate failures and the original cause.
 
+### Retained same-input attempt comparison
+
+On 2026-10-29, an offline comparison used the explicitly supplied 058-04
+Google reference and its original pins and completion attestation. The strict
+native-attempt reader passed before and after the run. Baseline, value1 and
+value2 each supplied their retained conversion input and document URL to a
+separate first-party Node worker and independent literal-loopback receiver.
+Each local receiver observed exactly one GET; each host reported one dispatch
+and a local 204 settlement. All three workers, receivers and sockets closed.
+Raw values and URLs were passed through local process memory and loopback only;
+they were not printed or written to files.
+
+Each case's two retained primary attempts were aborted before transmission.
+For all six attempts, the local receiver matched the original destination-ID
+relationship and the exact `label`, `value`, `currency_code`, `oid` and `url`
+relationships: 30 field comparisons. In-memory mutations of each field and
+the local route were rejected by their corresponding comparison controls.
+The 24 retained auxiliary attempts were counted but not compared or reproduced.
+The local run injected a direct Node HTTP transport to the receiver; it did
+not exercise the default fetch implementation.
+
+This is a **selected field-relationship comparison**, not identical wire or
+journey evidence. The native attempts used vendor endpoints and a native-default
+consent context; the local endpoint was loopback and the host seal was
+explicitly granted. Their consent equivalence is unverified. The local
+prototype does not reproduce the native `js` command, config traffic or
+auxiliaries. The decoded field checks do not compare request encoding, headers,
+method, sequence or complete payloads. The native attempts had no vendor
+response or receipt; local 204 responses are not vendor success. Scope,
+multi-destination and native Consent Mode behavior, full compatibility and
+production readiness remain unproved.
+
 ## Experimental standalone seam
 
 `createGoogleAdsPrototype` in `adapters/google-ads-prototype.js` returns
