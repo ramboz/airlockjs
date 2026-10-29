@@ -213,6 +213,52 @@ worker's full native request semantics or an independent receiver.
 `flush` reports outcomes, not independent receipt; the example observes the
 receiver separately. Repeated `dispose` preserves cleanup failure.
 
+### Experimental consent commands
+
+[Google documents](https://developers.google.com/tag-platform/gtagjs/reference#consent)
+`gtag("consent", "default", values)` and `gtag("consent", "update", values)`
+with `granted` / `denied` purpose values. With
+`experimentalConsentCommands: true`, this prototype accepts nonempty plain
+records containing only the documented `ad_storage`, `analytics_storage`,
+`ad_user_data` and `ad_personalization` purposes. The option is off by default.
+Unsupported keys (including `wait_for_update` and region controls), values,
+accessors and malformed commands reject as a whole; no timer, region selection
+or implicit replay is implemented.
+
+The local policy retains separate default and update values, merges partial
+commands, and prefers an explicit update over a later default for that purpose.
+Commands run in the existing serialized queue; a command applies only after its
+worker acknowledgment, before the next queued command. This is a local ordering
+choice, not a finding about native gtag queues. A worker rejection or
+contradictory acknowledgment for an admitted consent command terminates the
+adapter instead of silently ignoring it. These commands do not call the trusted
+host `setConsent` API or change the host's decision.
+
+For local dispatch, **both** the independent host `ad_storage` signal and the
+latest applicable tag `ad_storage` value must be granted. In addition, an
+explicit denial of any other supported tag purpose holds the entire request,
+as a conservative local policy rather than an implementation of native Google
+consent behavior. An omitted or pending non-storage purpose does not itself
+hold. The host seal evaluates these restrictions for each branch. The tag
+starts with no value, so enabling this option
+holds conversions until a tag default or update grants `ad_storage`. Host
+`setConsent` still takes effect independently at the seal; tag commands cannot
+grant past it. Holds are dropped, not buffered or replayed. A queued tag update
+does not interrupt a conversion already in flight; use the independently
+governed host consent control for immediate revocation.
+
+**The other three purposes are not fully modeled.** An explicit denial holds
+the whole request, but the prototype does not implement their native
+purpose-specific payload shaping or processing semantics; each
+`consent-updated` outcome lists those supplied names in `unmodeledPurposes`,
+without their values. In particular, the local hold for `ad_user_data: "denied"`
+does not implement Google's data-use restrictions. This is a concrete blocker for
+privacy qualification and production use, not a claim that those signals are
+honored. The local request also carries no native Consent Mode fields or
+modeling pings. Native wire, ordering, asynchronous wait, queue and data-use
+semantics need separately authorized native evidence and review; no tag
+command outcome establishes native compatibility or product receipt.
+
 ## Exactly five mapped fields, not the whole native primary
 
 Only `label`, `value`, `currency_code`, `oid`, and `url` are mapped. Routing

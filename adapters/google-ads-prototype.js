@@ -1,5 +1,7 @@
 import { createWrappedSdkHost } from "../core/wrapped-sdk-host.js";
+import { resolveConsent } from "../core/consent.js";
 import { snapshotDestinationSelectors } from "../connectors/google-ads/destination-selectors.js";
+import { CONSENT_COMMAND_KEYS, validConsentCommand } from "../connectors/google-ads/consent-commands.js";
 
 const PARAM_KEYS = ["send_to", "value", "currency", "transaction_id"];
 const LIMIT = 256;
@@ -69,10 +71,11 @@ export function createGoogleAdsPrototype({
   consent = null, queueLimit = 32, initTimeoutMs = 2000, commandTimeoutMs = 2000,
   transportTimeoutMs = 1000, fetchImpl = globalThis.fetch,
   experimentalRouting = false, experimentalParameterScopes = false, experimentalCallbacks = false,
-  experimentalMultiDestination = false,
+  experimentalMultiDestination = false, experimentalConsentCommands = false,
 } = {}) {
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
       typeof experimentalCallbacks !== "boolean" || typeof experimentalMultiDestination !== "boolean" ||
+      typeof experimentalConsentCommands !== "boolean" ||
       (experimentalMultiDestination && !experimentalRouting)) throw new Error("invalid-experimental-option");
   const pattern = experimentalRouting === true
     ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,20})\/$/
@@ -96,7 +99,20 @@ export function createGoogleAdsPrototype({
   const subscriptions = [];
   const callbacks = new Map();
   const callbackStats = { invoked: 0, timeout: 0, errors: 0, cancelled: 0 };
-  const consentVector = { ad_storage: consent?.ad_storage };
+  const hostConsent = { ad_storage: consent?.ad_storage };
+  const tagDefaults = Object.create(null);
+  const tagUpdates = Object.create(null);
+  const tagConsent = (purpose) => resolveConsent(
+    Object.hasOwn(tagUpdates, purpose) ? tagUpdates : tagDefaults, purpose,
+  );
+  const consentVector = {
+    get ad_storage() {
+      const hostValue = resolveConsent(hostConsent, "ad_storage");
+      if (hostValue !== "granted" || !experimentalConsentCommands) return hostValue;
+      if (CONSENT_COMMAND_KEYS.some((purpose) => purpose !== "ad_storage" && tagConsent(purpose) === "denied")) return "denied";
+      return tagConsent("ad_storage");
+    },
+  };
   let phase = "starting";
   let terminalReason = null;
   let cleanupFailure = null;
@@ -126,7 +142,11 @@ export function createGoogleAdsPrototype({
     const state = host?.getState();
     return {
       experimental: true, phase, terminalReason, cleanupFailure, queued: queue.length, inFlight, truncated,
-      outcomes: outcomes.map((entry) => ({ ...entry, ...(entry.branches ? { branches: entry.branches.map((branch) => ({ ...branch })) } : {}) })).sort((a, b) => a.seq - b.seq),
+      outcomes: outcomes.map((entry) => ({
+        ...entry,
+        ...(entry.branches ? { branches: entry.branches.map((branch) => ({ ...branch })) } : {}),
+        ...(entry.unmodeledPurposes ? { unmodeledPurposes: [...entry.unmodeledPurposes] } : {}),
+      })).sort((a, b) => a.seq - b.seq),
       host: { dispatchAttempts: state?.mainDispatch.count || 0, consentHeld: state?.consentHeld || 0, ceilingHeld: state?.ceilingHeld || 0 },
       receipt: "not-observed-by-adapter", fullCompatibility: false,
       ...(experimentalCallbacks ? { callbacks: { ...callbackStats, pending: callbacks.size } } : {}),
@@ -189,9 +209,13 @@ export function createGoogleAdsPrototype({
   }
   function matchesHostResponse(summary) {
     if (summary.requests === 0) {
-      return !activeRequest && ["configured", "scope-updated", "rejected"].includes(summary.disposition) &&
+      return !activeRequest && ["configured", "scope-updated", "rejected",
+        ...(experimentalConsentCommands ? ["consent-updated"] : [])].includes(summary.disposition) &&
+        (activeCommand?.[0] !== "consent" || !experimentalConsentCommands || summary.disposition === "consent-updated") &&
         (summary.disposition !== "configured" || activeCommand?.[0] === "config") &&
         (summary.disposition !== "scope-updated" || activeCommand?.[0] === "set") &&
+        (summary.disposition !== "consent-updated" ||
+          (experimentalConsentCommands && summary.reason === undefined && validConsentCommand(activeCommand))) &&
         summary.status === undefined && summary.terminal === undefined && summary.branches === undefined;
     }
     if (experimentalMultiDestination) {
@@ -297,11 +321,16 @@ export function createGoogleAdsPrototype({
         stop(settled.failure);
       } else {
         const summary = settled.result.summary;
+        if (summary.disposition === "consent-updated") {
+          Object.assign(activeCommand[1] === "default" ? tagDefaults : tagUpdates, activeCommand[2]);
+        }
         record({
           seq: event.seq, disposition: summary.disposition, requests: summary.requests,
           ...(Number.isInteger(summary.status) ? { status: summary.status } : {}),
           ...(summary.reason ? { reason: REASONS.has(summary.reason) ? summary.reason : "worker-rejected" } : {}),
           ...(experimentalMultiDestination && summary.branches ? { branches: branchOutcomes() } : {}),
+          ...(summary.disposition === "consent-updated"
+            ? { unmodeledPurposes: Object.keys(activeCommand[2]).filter((key) => key !== "ad_storage") } : {}),
         });
         if (summary.terminal) stop("transport-failed");
       }
@@ -336,10 +365,12 @@ export function createGoogleAdsPrototype({
         }
         if (![Object.prototype, null].includes(Object.getPrototypeOf(arg))) { reject("unsupported-parameters"); return; }
         const keys = Reflect.ownKeys(arg);
+        const consentCommand = experimentalConsentCommands && index === 2 && args[0] === "consent";
+        const allowedKeys = consentCommand ? CONSENT_COMMAND_KEYS : PARAM_KEYS;
         const allowCallback = experimentalCallbacks && index === 2 && args[0] === "event" && args[1] === "conversion";
         const callbackKeys = allowCallback ? ["event_callback", "event_timeout"] : [];
         if (keys.length > 4 + callbackKeys.length ||
-            keys.some((key) => !PARAM_KEYS.includes(key) && !callbackKeys.includes(key))) { reject("unsupported-parameters"); return; }
+            keys.some((key) => !allowedKeys.includes(key) && !callbackKeys.includes(key))) { reject("unsupported-parameters"); return; }
         if (keys.some((key) => callbackKeys.includes(key))) {
           const fn = Object.getOwnPropertyDescriptor(arg, "event_callback");
           const timeout = Object.getOwnPropertyDescriptor(arg, "event_timeout");
@@ -365,6 +396,9 @@ export function createGoogleAdsPrototype({
           params[key] = descriptor.value;
         }
         captured.push(params);
+      }
+      if (experimentalConsentCommands && captured[0] === "consent" && !validConsentCommand(captured)) {
+        reject("unsupported-consent"); return;
       }
       const source = captureContext();
       const context = {};
@@ -404,6 +438,7 @@ export function createGoogleAdsPrototype({
         if (!inFlight || !awaitingResult || summary?.seq !== activeSequence) { stop("result-correlation-failed"); return; }
         if (!["configured", "rejected", "held", "transport-settled", "failed",
           ...(experimentalMultiDestination ? ["partial"] : []),
+          ...(experimentalConsentCommands ? ["consent-updated"] : []),
           ...(experimentalParameterScopes ? ["scope-updated"] : [])].includes(summary.disposition) ||
             !(experimentalMultiDestination ? [0, 1, 2] : [0, 1]).includes(summary.requests) ||
             (summary.status !== undefined && (!Number.isInteger(summary.status) || summary.status < 0 || summary.status > 599))) {
@@ -473,6 +508,7 @@ export function createGoogleAdsPrototype({
     host.init({ endpoint, transportTimeoutMs,
       ...(experimentalRouting === true ? { experimentalRouting: true } : {}),
       ...(experimentalParameterScopes === true ? { experimentalParameterScopes: true } : {}),
+      ...(experimentalConsentCommands === true ? { experimentalConsentCommands: true } : {}),
       ...(experimentalMultiDestination ? { additionalEndpoint, experimentalMultiDestination: true } : {}) });
   } catch { stop("worker-unavailable"); }
   return {
@@ -483,7 +519,7 @@ export function createGoogleAdsPrototype({
       return new Promise((resolve) => waiters.add(resolve));
     },
     setConsent(vector) {
-      if (phase !== "terminal" && phase !== "disposed") consentVector.ad_storage = vector?.ad_storage;
+      if (phase !== "terminal" && phase !== "disposed") hostConsent.ad_storage = vector?.ad_storage;
     },
     async dispose() { stop("disposed", true); await closed; },
   };

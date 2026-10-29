@@ -47,7 +47,9 @@ async function route(event) {
     if (result.dropped.length) {
       summary = { seq: event.seq, disposition: "rejected", reason: result.dropped[0].reason, requests: 0 };
     } else if (!result.ready.length) {
-      summary = { seq: event.seq, disposition: event.payload.args[0] === "set" ? "scope-updated" : "configured", requests: 0 };
+      summary = { seq: event.seq,
+        disposition: event.payload.args[0] === "set" ? "scope-updated" :
+          event.payload.args[0] === "consent" ? "consent-updated" : "configured", requests: 0 };
     } else {
       if (result.ready.length > (multiDestination ? 2 : 1)) throw new Error("invalid-request-count");
       const branches = [];
@@ -102,6 +104,7 @@ self.onmessage = async ({ data }) => {
         endpoint: data.endpoint, experimentalRouting: data.experimentalRouting,
         experimentalParameterScopes: data.experimentalParameterScopes,
         additionalEndpoint: data.additionalEndpoint, experimentalMultiDestination: data.experimentalMultiDestination,
+        experimentalConsentCommands: data.experimentalConsentCommands,
       });
       await connector.init({});
       if (!terminal) self.postMessage({ type: "phase", name: "configured" });
