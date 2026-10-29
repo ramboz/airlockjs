@@ -1,5 +1,6 @@
 import { createWrappedSdkHost } from "../core/wrapped-sdk-host.js";
 import { snapshotPageViewData } from "../connectors/meta-pixel/pageview-data.js";
+import { snapshotEventOptions } from "../connectors/meta-pixel/event-options.js";
 
 const CONTEXT_KEYS = ["pageURL", "referrer", "inFrame", "screenWidth", "screenHeight", "timezoneOffset"];
 const HISTORY_LIMIT = 256;
@@ -10,7 +11,7 @@ const WORKER_FAILURES = new Set([
 const MULTI_REJECTIONS = new Set([
   "unsupported-command", "invalid-pixel-id", "synthetic-pixel-required", "duplicate-init", "pixel-limit",
   "unsupported-standard-event", "invalid-custom-event", "pageview-before-init", "event-before-init",
-  "uninitialized-pixel", "invalid-context", "unsupported-parameters", "encoded-context-limit",
+  "uninitialized-pixel", "invalid-context", "unsupported-parameters", "unsupported-options", "encoded-context-limit",
 ]);
 
 function dataRecord(value, allowed) {
@@ -179,15 +180,17 @@ export function createMetaPixelPrototype({
   experimentalEvents = false,
   experimentalScalarEventData = false,
   experimentalContentIds = false,
+  experimentalEventIds = false,
 } = {}) {
   if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
-    experimentalScalarEventData, experimentalContentIds]
+    experimentalScalarEventData, experimentalContentIds, experimentalEventIds]
     .some((option) => typeof option !== "boolean")) {
     throw new Error("invalid-experimental-option");
   }
   if (experimentalMultiPixelRouting && !experimentalRouting) throw new Error("multi-pixel-routing-requires-routing");
   if (experimentalScalarEventData && !experimentalPageViewData) throw new Error("scalar-data-requires-pageview-data");
   if (experimentalContentIds && !experimentalPageViewData) throw new Error("content-ids-require-pageview-data");
+  if (experimentalEventIds && !experimentalPageViewData) throw new Error("event-ids-require-pageview-data");
   const match = typeof endpoint === "string" && endpoint.match(/^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/tr\/$/);
   if (!match || Number(match[1]) > 65535) throw new Error("literal-loopback-endpoint-required");
   if (!Number.isInteger(queueLimit) || queueLimit < 1 || queueLimit > 128 ||
@@ -364,26 +367,37 @@ export function createMetaPixelPrototype({
     if (queue.length >= queueLimit) { reject("queue-overflow"); return; }
     // At most four requests per admitted command bound the host's lifetime history.
     if (admitted >= HISTORY_LIMIT) { reject("session-command-limit"); return; }
-    if (args.length > (experimentalMultiPixelRouting ? 4 : 3)) { reject("argument-limit"); return; }
+    if (args.length > (experimentalMultiPixelRouting ? (experimentalEventIds ? 5 : 4) : (experimentalEventIds ? 4 : 3))) {
+      reject("argument-limit"); return;
+    }
     const dataIndex = experimentalMultiPixelRouting &&
       (args[0] === "trackSingle" && (experimentalEvents || args[2] === "PageView") ||
        args[0] === "trackSingleCustom" && experimentalEvents)
       ? 3 : args[0] === "track" && (experimentalEvents || args[1] === "PageView") ||
         args[0] === "trackCustom" && experimentalEvents ? 2 : -1;
+    const hasOptions = experimentalEventIds && dataIndex >= 0 &&
+      (args[0] === "track" && args.length === 4 ||
+       experimentalMultiPixelRouting && args[0] === "trackSingle" && args.length === 5);
     for (const [index, arg] of args.entries()) {
       if (["function", "symbol"].includes(typeof arg)) { reject("uncloneable-input"); return; }
       if (arg !== null && typeof arg === "object" &&
-          !(experimentalPageViewData === true && index === dataIndex)) {
+          !(experimentalPageViewData === true && index === dataIndex) &&
+          !(hasOptions && index === dataIndex + 1)) {
         reject("unsupported-argument"); return;
       }
       if (typeof arg === "string" && arg.length > 64) { reject("argument-limit"); return; }
     }
     capturing = true;
     try {
-      if (experimentalPageViewData === true && dataIndex >= 0 && args.length === dataIndex + 1) {
+      if (experimentalPageViewData === true && dataIndex >= 0 && (args.length === dataIndex + 1 || hasOptions)) {
         const data = snapshotPageViewData(args[dataIndex], experimentalScalarEventData, experimentalContentIds);
         if (!data) { reject("unsupported-parameters"); return; }
         args[dataIndex] = data;
+      }
+      if (hasOptions) {
+        const options = snapshotEventOptions(args[dataIndex + 1]);
+        if (!options) { reject("unsupported-options"); return; }
+        args[dataIndex + 1] = options;
       }
       const source = captureContext();
       const context = {};
@@ -474,7 +488,8 @@ export function createMetaPixelPrototype({
       ...(experimentalMultiPixelRouting === true ? { experimentalMultiPixelRouting: true } : {}),
       ...(experimentalEvents === true ? { experimentalEvents: true } : {}),
       ...(experimentalScalarEventData === true ? { experimentalScalarEventData: true } : {}),
-      ...(experimentalContentIds === true ? { experimentalContentIds: true } : {}) });
+      ...(experimentalContentIds === true ? { experimentalContentIds: true } : {}),
+      ...(experimentalEventIds === true ? { experimentalEventIds: true } : {}) });
   } catch {
     stop("worker-unavailable");
   }

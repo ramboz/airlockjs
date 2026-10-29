@@ -62,6 +62,24 @@ the browser path with server sends.
 **Anti-horizontal-phasing check:** The adopter runs a real browser-plus-existing-
 server event journey and diagnoses its actual correlation rather than a key mapper.
 
+## Experimental local construction - 2026-10-29
+
+The documented `track` fourth-argument and `trackSingle` fifth-argument shapes
+are available behind the separate `experimentalEventIds` and existing
+`experimentalPageViewData` opt-ins. The local prototype snapshots a bounded
+caller-supplied `eventID`, maps it to an `eid` query field in the chamber and
+routes it through the real serialized first-party Node worker and governed
+loopback receiver. Tests cover broadcast, targeting, mutation, malformed
+options, consent holds and repeated same-ID browser-only calls; no duplicates
+are suppressed. Unsupported custom-event option positions remain rejected.
+
+The documented input shape is not a native input-to-wire capture. The `eid`
+mapping, accepted types/bounds and errors are experimental assumptions, not a
+qualified native representation. The local receiver cannot establish vendor
+receipt, browser/server matching or deduplication; no CAPI or vendor event was
+sent. All DoR, acceptance, live authority and full-compatibility gates remain
+open.
+
 ## Assumptions
 
 - Unverified: owned source access and a lawful existing server test path can

@@ -1,5 +1,6 @@
 import { SYNTHETIC_META_PIXEL_ID } from "../pixel/vendors/meta.js";
 import { BASIC_EVENT_DATA_KEYS, SCALAR_EVENT_DATA_KEYS, snapshotPageViewData } from "./pageview-data.js";
+import { snapshotEventOptions } from "./event-options.js";
 
 const CONTEXT_KEYS = ["pageURL", "referrer", "inFrame", "screenWidth", "screenHeight", "timezoneOffset"];
 const MULTI_PIXEL_LIMIT = 4;
@@ -40,16 +41,17 @@ function validContext(context) {
  */
 export function createMetaPageViewPrototype({
   endpoint, experimentalPageViewData = false, experimentalRouting = false, experimentalMultiPixelRouting = false,
-  experimentalEvents = false, experimentalScalarEventData = false, experimentalContentIds = false,
+  experimentalEvents = false, experimentalScalarEventData = false, experimentalContentIds = false, experimentalEventIds = false,
 } = {}) {
   if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
-    experimentalScalarEventData, experimentalContentIds]
+    experimentalScalarEventData, experimentalContentIds, experimentalEventIds]
     .some((option) => typeof option !== "boolean")) {
     throw new Error("invalid-experimental-option");
   }
   if (experimentalMultiPixelRouting && !experimentalRouting) throw new Error("multi-pixel-routing-requires-routing");
   if (experimentalScalarEventData && !experimentalPageViewData) throw new Error("scalar-data-requires-pageview-data");
   if (experimentalContentIds && !experimentalPageViewData) throw new Error("content-ids-require-pageview-data");
+  if (experimentalEventIds && !experimentalPageViewData) throw new Error("event-ids-require-pageview-data");
   const match = typeof endpoint === "string" && endpoint.match(/^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/tr\/$/);
   if (!match || Number(match[1]) > 65535) throw new Error("literal-loopback-endpoint-required");
   const pixelIds = new Set();
@@ -83,9 +85,10 @@ export function createMetaPageViewPrototype({
       const custom = args[0] === "trackCustom" || args[0] === "trackSingleCustom";
       const dataIndex = single ? 3 : 2;
       const name = args[single ? 2 : 1];
+      const hasOptions = experimentalEventIds && !custom && args.length === dataIndex + 2;
       if ((!single && args[0] !== "track" && args[0] !== "trackCustom") ||
           (custom && !experimentalEvents) || (!experimentalEvents && name !== "PageView") ||
-          !(args.length === dataIndex || experimentalPageViewData && args.length === dataIndex + 1)) {
+          !(args.length === dataIndex || experimentalPageViewData && args.length === dataIndex + 1 || hasOptions)) {
         throw new Error("unsupported-command");
       }
       if (custom) {
@@ -100,6 +103,8 @@ export function createMetaPageViewPrototype({
       const pageViewData = args.length > dataIndex
         ? snapshotPageViewData(args[dataIndex], experimentalScalarEventData, experimentalContentIds) : null;
       if (args.length > dataIndex && !pageViewData) throw new Error("unsupported-parameters");
+      const eventOptions = hasOptions ? snapshotEventOptions(args[dataIndex + 1]) : null;
+      if (hasOptions && !eventOptions) throw new Error("unsupported-options");
       return (single ? [args[1]] : [...pixelIds]).map((pixelId) => {
         const query = new URLSearchParams({
           id: pixelId,
@@ -119,6 +124,7 @@ export function createMetaPageViewPrototype({
             query.append("cd[content_ids]", JSON.stringify(pageViewData.content_ids));
           }
         }
+        if (eventOptions) query.append("eid", eventOptions.eventID);
         const url = `${endpoint}?${query}`;
         if (url.length > 8192) throw new Error("encoded-context-limit");
         return { url, method: "GET" };

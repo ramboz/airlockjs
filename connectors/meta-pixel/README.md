@@ -61,6 +61,19 @@ this path is source-only and **not browser-tested**. Node tests inject a real
   snapshot as one JSON value in `cd[content_ids]`, retaining element order,
   duplicates and string/number types. This encoding and these limits are
   **unverified prototype choices**, not observed native behavior.
+- With both `experimentalPageViewData: true` and
+  `experimentalEventIds: true`, `fbq("track", name, data, { eventID })`
+  accepts the documented fourth argument. With multi-Pixel routing enabled,
+  `fbq("trackSingle", pixelId, name, data, { eventID })` accepts the
+  documented fifth argument. `data` must be a supported record, even when
+  empty; the options record must contain exactly one own data property
+  `eventID`, a nonempty well-formed string of at most 64 UTF-16 code units.
+  The input is snapshotted and the chamber emits its value as `eid` on each
+  selected local request. The bound, errors, empty-value handling and wire
+  representation are experimental, not native-qualified. Custom-event option
+  positions are unverified and remain unsupported. Repeating an event ID does
+  not suppress a browser event; this path does not generate IDs, send server
+  events or establish backend deduplication.
 - With both `experimentalRouting: true` and
   `experimentalMultiPixelRouting: true`, up to four distinct synthetic IDs
   can be initialized. `track` broadcasts to all in initialization order;
@@ -118,7 +131,9 @@ The default capture reads `document.URL`, `document.referrer`, frame status,
 The chamber supplies `id` and `ev` in addition to those context fields, plus
 the opted-in event fields above when supplied. Extra context is not
 captured. By default args are limited to three primitive values (strings ≤64
-characters); multi-Pixel routing allows four for targeted data calls.
+characters); multi-Pixel routing allows four for targeted data calls. The
+event-ID opt-in permits a fourth argument for `track` and, with multi-Pixel
+routing, a fifth for `trackSingle`.
 Data records are limited to the opted-in fields listed above.
 Other objects, arrays, accessors and functions are not copied.
 Malformed/unsupported calls and extra arguments remain visible rejections,
@@ -153,6 +168,8 @@ response/header/browser/cookie/consent behavior and equivalent native inputs.
 It contains a PageView `cd[region]=us` wire field, but does not establish
 the original input-to-wire relationship, general custom-data serialization,
 or content-ID array serialization.
+The supplied references do not establish native event-ID wire encoding,
+actual deduplication or server/browser correlation for this prototype.
 Loopback Fetch is not native vendor Image/Fetch transport. Matching,
 attribution, other commands, performance and C2/C3 remain unproved. Nothing
 here completes or waives060-01 or its full native/whole-wire/live criteria.
