@@ -1,4 +1,4 @@
-import { readFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, lstatSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { EventEmitter } from "node:events";
@@ -43,7 +43,7 @@ describe("closed additional SDK-absent process supervision", () => {
     expect(() => inspectAdditionalBrowserMembers(item, [replaced, { ...helper, command }]))
       .toThrow("additional_process_replaced");
   });
-  it.each(["stable", "replaced", "reappeared", "unknown-image", "cleanup-replaced", "cleanup-outside"])(
+  it.each(["stable", "replaced", "reappeared", "unknown-image", "cleanup-replaced", "cleanup-outside", "late-discovery", "late-discovery-live"])(
     "serializes discovery and preserves %s group observations through cleanup", async (scenario) => {
     // Pure unit: execute the REAL supervisor/discover/ledger code, but replace
     // process launch, ps/pgrep/lsof and TCP with deterministic in-memory doubles.
@@ -52,6 +52,10 @@ describe("closed additional SDK-absent process supervision", () => {
     const { createAdditionalMetaFixture } = await import("./meta-additional-qualification.mjs");
     const f = createAdditionalMetaFixture(), output_dir = join(f.root, "pure-overlap");
     roots.push(f.root);
+    if (scenario.startsWith("late-discovery")) {
+      f.binding.window.expires_at_ms = Date.now() + 17000;
+      f.rebind();
+    }
     const profile = mkdtempSync(join(realpathSync(tmpdir()), "playwright_chromiumdev_profile-overlap"));
     roots.push(profile);
     const run = join(f.root, "run"); mkdirSync(run, { mode: 0o700 });
@@ -146,6 +150,28 @@ describe("closed additional SDK-absent process supervision", () => {
       // discovery's inventory await remains blocked; no wall-time race/sleep.
       await new Promise(setImmediate);
       const acknowledgedBeforeInventory = acknowledged;
+      if (scenario.startsWith("late-discovery")) {
+        if (scenario === "late-discovery") {
+          finished = true; child.emit("exit", 2, null); child.emit("close", 2, null);
+        }
+        let timer;
+        const result = await Promise.race([supervising, new Promise((_, reject) => {
+          timer = setTimeout(() => reject(Error("supervision_did_not_reach_cutoff")), 9000);
+        })]).finally(() => clearTimeout(timer));
+        const report = JSON.parse(readFileSync(result.supervision.path));
+        expect(report).toMatchObject({ resource_disposition: "unknown", qualified: false,
+          late_observations_incomplete: true });
+        expect(report.errors).toContain("additional_discovery_timeout");
+        if (scenario === "late-discovery-live") {
+          expect(report.timed_out).toBe(true);
+          expect(signal).toHaveBeenCalledWith(child.pid, "SIGTERM");
+        }
+        const before = readdirSync(output_dir);
+        barrier.resolve(); await new Promise(setImmediate); await new Promise(setImmediate);
+        expect(acknowledged).toBe(false);
+        expect(readdirSync(output_dir)).toEqual(before);
+        return;
+      }
       barrier.resolve();
       await new Promise(setImmediate);
       await readyAck.promise;
@@ -193,7 +219,7 @@ describe("closed additional SDK-absent process supervision", () => {
       vi.doUnmock("node:child_process"); vi.doUnmock("node:net");
       vi.restoreAllMocks(); vi.resetModules();
     }
-  }, 10000);
+  }, 12000);
   it("retains registered keys after an error even when no browser was acquired", async () => {
     const { createAdditionalMetaFixture } = await import("./meta-additional-qualification.mjs");
     const f = createAdditionalMetaFixture(), output_dir = join(f.root, "no-browser-error");
@@ -246,6 +272,146 @@ describe("closed additional SDK-absent process supervision", () => {
       vi.restoreAllMocks(); vi.resetModules();
     }
   }, 10000);
+  it("does not mutate or acknowledge an unsettled registration after publishing UNKNOWN", async () => {
+    const { createAdditionalMetaFixture } = await import("./meta-additional-qualification.mjs");
+    const f = createAdditionalMetaFixture(), output_dir = join(f.root, "late-registration");
+    roots.push(f.root);
+    f.binding.window.expires_at_ms = Date.now() + 17000;
+    f.rebind();
+    const run = join(f.root, "run"); mkdirSync(run, { mode: 0o700 });
+    for (const name of ["inspector-key.pem", "receiver-key.pem"])
+      writeFileSync(join(run, name), "pure-unit-placeholder-not-a-key", { mode: 0o600 });
+    let unblock, enter;
+    const barrier = new Promise(resolve => { unblock = resolve; });
+    const entered = new Promise(resolve => { enter = resolve; });
+    const child = new EventEmitter();
+    Object.assign(child, { pid: 720011, connected: true, stdout: new PassThrough(), stderr: new PassThrough(),
+      disconnect() { this.connected = false; }, unref() {}, send: vi.fn() });
+    let argv, finished = false;
+    const now = new Date(), [weekday, month, date, year] = now.toDateString().split(" ");
+    const started = `${weekday} ${month} ${Number(date)} ${now.toTimeString().slice(0, 8)} ${year}`;
+    const spawn = vi.fn((executable, args) => {
+      argv = [executable, ...args];
+      setImmediate(() => child.emit("message", { type: "additional-ports", id: 1, ports: [42011] }));
+      return child;
+    });
+    const execFile = vi.fn();
+    execFile[promisify.custom] = async command => {
+      if (command === "/usr/sbin/lsof") {
+        enter(); await barrier;
+        return { stdout: "n127.0.0.1:42011\n", stderr: "" };
+      }
+      if (command !== "/bin/ps") throw Error("unexpected_pure_unit_command");
+      return { stdout: finished ? "" : `${child.pid} ${process.pid} ${child.pid} ${process.getuid()} ${started} S ${argv.join(" ")}\n`, stderr: "" };
+    };
+    vi.resetModules();
+    vi.doMock("node:child_process", () => ({ spawn, execFile }));
+    try {
+      const { superviseAdditionalMetaChild } = await import("./meta-additional-supervision.mjs");
+      const supervising = superviseAdditionalMetaChild({ ...f.options(), protocol: "h2", output_dir });
+      await entered;
+      finished = true; child.emit("exit", 2, null); child.emit("close", 2, null);
+      const result = await supervising;
+      const proof = JSON.parse(readFileSync(result.supervision.path));
+      expect(proof).toMatchObject({ resource_disposition: "unknown", qualified: false,
+        unsettled_registrations: 1, late_observations_incomplete: true });
+      expect(proof.errors).toContain("additional_registration_unsettled");
+      const before = readdirSync(output_dir);
+      unblock(); await new Promise(setImmediate); await new Promise(setImmediate);
+      expect(child.send).not.toHaveBeenCalled();
+      expect(readdirSync(output_dir)).toEqual(before);
+    } finally {
+      unblock();
+      vi.doUnmock("node:child_process");
+      vi.restoreAllMocks(); vi.resetModules();
+    }
+  }, 12000);
+  it("rechecks the registration cutoff after process inspection and before a signal", async () => {
+    let unblock, enter;
+    const barrier = new Promise(resolve => { unblock = resolve; });
+    const entered = new Promise(resolve => { enter = resolve; });
+    const now = new Date(), [weekday, month, date, year] = now.toDateString().split(" ");
+    const started = `${weekday} ${month} ${Number(date)} ${now.toTimeString().slice(0, 8)} ${year}`;
+    const command = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome --type=unit";
+    const expected = { pid: 720012, ppid: 720011, pgid: 720012, uid: process.getuid(), started,
+      command_sha256: createHash("sha256").update(command).digest("hex") };
+    const execFile = vi.fn();
+    execFile[promisify.custom] = async () => {
+      enter(); await barrier;
+      return { stdout: `${expected.pid} ${expected.ppid} ${expected.pgid} ${expected.uid} ${started} S ${command}\n`, stderr: "" };
+    };
+    vi.resetModules();
+    vi.doMock("node:child_process", () => ({ execFile, spawn: vi.fn() }));
+    const signal = vi.spyOn(process, "kill").mockImplementation(() => { throw Error("pure_unit_unexpected_signal"); });
+    try {
+      const { signalAdditionalOwnedProcess } = await import("./meta-additional-supervision.mjs");
+      let open = true;
+      const task = signalAdditionalOwnedProcess(expected, "SIGSTOP", performance.now() + 10000, [],
+        () => { if (!open) throw Error("additional_registration_closed"); });
+      await entered;
+      open = false; unblock();
+      await expect(task).rejects.toThrow("additional_registration_closed");
+      expect(signal).not.toHaveBeenCalled();
+    } finally {
+      unblock();
+      vi.doUnmock("node:child_process"); vi.restoreAllMocks(); vi.resetModules();
+    }
+  });
+  it("keeps exit receipts consistent when the child exits during cleanup", async () => {
+    const { createAdditionalMetaFixture } = await import("./meta-additional-qualification.mjs");
+    const f = createAdditionalMetaFixture(), output_dir = join(f.root, "late-exit");
+    roots.push(f.root);
+    f.binding.window.expires_at_ms = Date.now() + 17000; f.rebind();
+    const run = join(f.root, "run"); mkdirSync(run, { mode: 0o700 });
+    for (const name of ["inspector-key.pem", "receiver-key.pem"])
+      writeFileSync(join(run, name), "pure-unit-placeholder-not-a-key", { mode: 0o600 });
+    const child = new EventEmitter();
+    Object.assign(child, { pid: 720013, connected: true, stdout: new PassThrough(), stderr: new PassThrough(),
+      disconnect() { this.connected = false; }, unref() {}, send: vi.fn() });
+    let argv, finished = false;
+    const now = new Date(), [weekday, month, date, year] = now.toDateString().split(" ");
+    const started = `${weekday} ${month} ${Number(date)} ${now.toTimeString().slice(0, 8)} ${year}`;
+    const spawn = vi.fn((executable, args) => {
+      argv = [executable, ...args];
+      setImmediate(() => child.emit("message", { type: "additional-ports", id: 1, ports: [42013] }));
+      return child;
+    });
+    const execFile = vi.fn();
+    execFile[promisify.custom] = async command => {
+      if (command === "/usr/sbin/lsof") return { stdout: "n127.0.0.1:42013\n", stderr: "" };
+      if (command !== "/bin/ps") throw Error("unexpected_pure_unit_command");
+      return { stdout: finished ? "" : `${child.pid} ${process.pid} ${child.pid} ${process.getuid()} ${started} S ${argv.join(" ")}\n`, stderr: "" };
+    };
+    const connect = vi.fn(() => {
+      const socket = new EventEmitter();
+      socket.destroy = () => {}; socket.setTimeout = () => socket;
+      queueMicrotask(() => {
+        finished = true; child.emit("exit", null, "SIGKILL"); child.emit("close", null, "SIGKILL");
+        socket.emit("error", Object.assign(Error("unit-only-refused"), { code: "ECONNREFUSED" }));
+      });
+      return socket;
+    });
+    vi.resetModules();
+    vi.doMock("node:child_process", () => ({ spawn, execFile }));
+    vi.doMock("node:net", async () => ({ ...await vi.importActual("node:net"), connect }));
+    const signal = vi.spyOn(process, "kill").mockImplementation(() => true);
+    try {
+      const { superviseAdditionalMetaChild } = await import("./meta-additional-supervision.mjs");
+      const result = await superviseAdditionalMetaChild({ ...f.options(), protocol: "h2", output_dir });
+      const proof = JSON.parse(readFileSync(result.supervision.path));
+      const exit = JSON.parse(readFileSync(proof.actual_exit.path));
+      expect(connect).toHaveBeenCalledTimes(1);
+      expect(finished).toBe(true);
+      expect(proof).toMatchObject({ resource_disposition: "unknown", child_exit_observed: false });
+      expect(proof.errors).toContain("additional_child_exit_unknown");
+      expect(exit).toMatchObject({ command_exit_observed: false, actual_exit_code: null, signal: null });
+      expect(result).toMatchObject({ command_exit_observed: false, actual_exit_code: null, signal: null });
+      expect(signal.mock.calls.every(([pid]) => pid === child.pid)).toBe(true);
+    } finally {
+      vi.doUnmock("node:child_process"); vi.doUnmock("node:net");
+      vi.restoreAllMocks(); vi.resetModules();
+    }
+  }, 12000);
   it.each(["pid", "pgid", "uid", "started", "command_sha256"])(
     "refuses a changed %s in the actual pre-signal ownership guard", async key => {
       const { sameAdditionalProcess } = await import("./meta-additional-supervision.mjs");

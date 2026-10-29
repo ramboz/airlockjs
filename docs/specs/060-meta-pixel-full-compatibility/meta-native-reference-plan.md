@@ -305,9 +305,11 @@ receipts are stale; no current browser or native qualification follows.
 
 Independent source review found additional gaps in cleanup, absent-then-present
 browser identity, stopper/controller coordination and late registration
-settlement. The first corrections have controlled tests but have not passed
-independent review, and do not close the cross-process coordination or late
-observation gaps. The attended and additional browser paths remain NO-GO;
+settlement. Controlled source corrections fail closed on unsettled
+registrations and explicitly leave their late observations incomplete; the
+latest corrections have not been independently re-reviewed. They do not
+close the cross-process coordination gap. The attended and additional browser
+paths remain NO-GO;
 see the [059-18 source checkpoint](../059-google-ads-full-compatibility/slice-18-additional-meta-authority.md#source-only-stop-guardrail---2026-10-29).
 
 The network checkpoint must show, with local negative controls, that the

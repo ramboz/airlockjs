@@ -26,11 +26,12 @@ cooperative cleanup will do. Preserve errors and recorded mismatch
 observations; UNKNOWN is not a cleanup claim.
 
 **NO-GO:** independent source review found that controller-side cooperative
-cleanup is not fully coordinated with the stopper's observations, and
-unsettled registrations can outlive the final ledger. Initial source
-corrections cover additional controlled cases but have not passed independent
-review and do not establish safe browser or key cleanup. Do not execute either
-browser path using this checkpoint.
+cleanup is not fully coordinated with the stopper's observations. A later
+source correction freezes unsettled registrations with an incomplete/UNKNOWN
+receipt instead of claiming their late observations were retained. Its latest
+timeout and exit corrections have not been independently re-reviewed. These
+source checks do not establish safe browser or key cleanup. Do not execute
+either browser path using this checkpoint.
 
 ## Current inspected source candidate - 2026-10-27
 

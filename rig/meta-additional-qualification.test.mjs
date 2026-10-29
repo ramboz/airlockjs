@@ -400,7 +400,7 @@ describe("fixed additional-path qualification surface", () => {
     expect(() => f.api.inspectAdditionalMetaQualification(f.index())).toThrow("additional_supervision_relationship_invalid");
   });
   it.each(["missing", "timeout", "unknown-disposition", "open-profile", "live-process", "open-port",
-    "open-private-key", "stale-source"])(
+    "open-private-key", "stale-source", "missing-node-close", "unsettled-registrations"])(
     "requires mandatory source-bound actual supervision (%s)", async fault => {
       const f = await unitProof(), entry = f.cases[0], proof = entry.supervisionValue;
       expect(f.api.inspectAdditionalMetaQualification(f.index()).sdk_absent_evidence_verified).toBe(true);
@@ -412,6 +412,10 @@ describe("fixed additional-path qualification surface", () => {
       if (fault === "open-port") proof.ports[0].closed = false;
       if (fault === "open-private-key") proof.private_keys[0].removed = false;
       if (fault === "stale-source") proof.source_after = {};
+      if (fault === "missing-node-close") proof.node_close_observed = false;
+      if (fault === "unsettled-registrations") {
+        proof.unsettled_registrations = 1; proof.late_observations_incomplete = true;
+      }
       f.rebind(entry);
       expect(() => f.api.inspectAdditionalMetaQualification(f.index())).toThrow();
     });

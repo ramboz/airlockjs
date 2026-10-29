@@ -111,11 +111,24 @@ Subsequent SDK-free controls and source corrections check recorded PIDs during
 supervisor cleanup, reject an initially absent browser that reappears, and
 require the controller's known browser root and members to be checked before
 its own close or kill. They do not establish coordination of every stopper
-observation with the controller, or safe settlement and retention of late
-registrations. The controller's key cleanup also needs to be evaluated against
-an UNKNOWN browser. The correction has not passed independent review. **Do not
-run the attended or additional browser path on the strength of this checkpoint.**
-The five focused SDK-free suites passed 411 tests with 19 opt-in skips.
+observation with the controller. The controller's key cleanup also needs to
+be evaluated against an UNKNOWN browser.
+
+A subsequent source correction freezes registration at a finite cutoff. A
+still-pending registration makes the ledger explicitly incomplete and UNKNOWN;
+later work cannot acknowledge it or mutate that ledger. Its observations are
+not claimed as retained. The reader rejects missing child-close evidence and
+incomplete-registration markers. A bounded independent review found a stalled
+discovery and a contradictory late-exit receipt; controlled corrections now
+bound discovery and use one cutoff snapshot for exit evidence. A narrower review
+then found an unreported live-child timeout and a missing late-exit witness;
+both now have targeted controls. These latest corrections have not been
+independently re-reviewed. The five focused SDK-free suites passed 418 tests
+with 19 opt-in skips.
+
+**Do not run the attended or additional browser path on the strength of these
+source checkpoints.** Current browser ownership, coordinated stop and network
+boundary proof remain open.
 
 ### Historical first source result
 

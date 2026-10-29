@@ -56,8 +56,9 @@ function profileIdentity(argument_path) {
     || (stat.mode & 0o777) !== 0o700) fail("additional_profile_identity");
   return { argument_path, path, dev: stat.dev, ino: stat.ino, birthtime_ms: stat.birthtimeMs, uid: stat.uid };
 }
-async function signalOwned(expected, signal, deadline, log) {
+async function signalOwned(expected, signal, deadline, log, beforeSignal = () => {}) {
   const current = (await rows([expected.pid], deadline, false))[0];
+  beforeSignal();
   if (!current || zombie(expected, current)) { log.push({ pid: expected.pid, signal, outcome: "vanished" }); return; }
   if (!sameAdditionalProcess(expected, current)) fail("additional_process_replaced");
   let outcome = "sent";
@@ -191,6 +192,10 @@ export async function superviseAdditionalMetaChild(options) {
   const source = inspectedMetaSourcePins(), args = [ENTRY, "--supervised-child", input.protocol, control,
     input.manifest_path, input.manifest_sha256], argv = [process.execPath, ...args];
   const owned = new Map(), ports = new Set(), keys = new Map(), pending = new Set(), registrations = [], node_signals = [], errors = [];
+  let registrationsOpen = true;
+  const requireRegistrationOpen = () => {
+    if (!registrationsOpen) fail("additional_registration_closed");
+  };
   let node = null, childExit = null, childClose = false, stdout = "", stderr = "", bytes = 0;
   let launchPending = false, ready = false, stuck = false, termObserved = false, timedOut = false;
   const persist = (phase, extra = {}) => {
@@ -221,14 +226,18 @@ export async function superviseAdditionalMetaChild(options) {
     // Polling and browser-ready must each get a fresh, serialized inventory.
     // Do not coalesce callers or recover a rejected acquisition silently.
     discovery = discovery.then(async () => {
+    requireRegistrationOpen();
     if (!node || childExit) return;
     await nodeCurrent();
+    requireRegistrationOpen();
     // pgrep is parent-PID enumeration only, never a name lookup or kill.
     const children = (await command("/usr/bin/pgrep", ["-P", String(child.pid)], end - 5000))
       .trim().split(/\s+/).filter(Boolean).map(Number);
+    requireRegistrationOpen();
     if (children.some(pid => !Number.isSafeInteger(pid) || pid < 1) || children.length > 64)
       fail("additional_child_catalogue_invalid");
     const childrenRows = await rows(children, end - 5000, false);
+    requireRegistrationOpen();
     for (const row of childrenRows) {
       const tracked = owned.get(row.pid);
       if (tracked && !sameAdditionalProcess(tracked.root, row) && !zombie(tracked.root, row)) {
@@ -243,10 +252,16 @@ export async function superviseAdditionalMetaChild(options) {
         const item = { root: identity(row), root_command: row.command, profile: profileIdentity(match[1]),
           chromeReady: image === "chrome", members: new Map([[row.pid, identity(row)]]) };
         owned.set(row.pid, item);
-        membersOf(item, await rows([row.pgid], end - 5000)); persist("browser-discovered");
+        const group = await rows([row.pgid], end - 5000);
+        requireRegistrationOpen();
+        membersOf(item, group); persist("browser-discovered");
       }
     }
-    for (const item of owned.values()) membersOf(item, await rows([item.root.pgid], end - 5000));
+    for (const item of owned.values()) {
+      const group = await rows([item.root.pgid], end - 5000);
+      requireRegistrationOpen();
+      membersOf(item, group);
+    }
     });
     return discovery;
   };
@@ -254,8 +269,10 @@ export async function superviseAdditionalMetaChild(options) {
     if (!Array.isArray(values) || values.length > 8
       || values.some(port => !Number.isInteger(port) || port < 1 || port > 65535)) fail("additional_port_identity");
     await nodeCurrent();
+    requireRegistrationOpen();
     const listeners = await command("/usr/sbin/lsof", ["-nP", "-a", "-p", String(child.pid),
       "-iTCP", "-sTCP:LISTEN", "-Fn"], end - 5000);
+    requireRegistrationOpen();
     for (const port of values) {
       if (!listeners.split("\n").includes("n127.0.0.1:" + port)) fail("additional_port_not_owned");
       ports.add(port);
@@ -269,17 +286,19 @@ export async function superviseAdditionalMetaChild(options) {
     }
   };
   child.on("message", message => {
+    if (!registrationsOpen) return;
     const work = (async () => {
       const value = data(message);
       if (value.type === "additional-term-observed") { termObserved = true; persist("node-term-observed"); return; }
       if (value.type === "additional-ports") {
-        await registerPorts(value.ports); persist("ports"); child.send({ type: "additional-ack", id: value.id }); return;
+        await registerPorts(value.ports); requireRegistrationOpen();
+        persist("ports"); child.send({ type: "additional-ack", id: value.id }); return;
       }
       if (value.type === "additional-browser-pending") {
         launchPending = true; persist("browser-pending"); child.send({ type: "additional-ack", id: value.id }); return;
       }
       if (value.type === "additional-browser-ready") {
-        await discover(); await registerPorts([value.port]);
+        await discover(); requireRegistrationOpen(); await registerPorts([value.port]); requireRegistrationOpen();
         if (!owned.get(value.pid)?.chromeReady) fail("additional_browser_unregistered");
         ready = true; persist("browser-ready"); child.send({ type: "additional-ack", id: value.id }); return;
       }
@@ -287,19 +306,31 @@ export async function superviseAdditionalMetaChild(options) {
         const item = owned.get(value.pid);
         if (!ready || !item) fail("additional_stuck_ownership_missing");
         const path = join(dirname(input.manifest_path), "run/supervision-abort-originals.json");
-        await signalOwned(item.root, "SIGSTOP", end - 5000, node_signals);
+        await signalOwned(item.root, "SIGSTOP", end - 5000, node_signals, requireRegistrationOpen);
         const current = (await rows([item.root.pid], end - 5000, false))[0];
+        requireRegistrationOpen();
         if (!sameAdditionalProcess(item.root, current) || !current.state.includes("T")) fail("additional_browser_not_stopped");
         stuck = true; persist("stuck-after-allocation", { originals: handle(path), stopped_root: identity(current) }); return;
       }
       fail("additional_supervision_message");
     })().catch(error => {
+      if (!registrationsOpen) return;
       errors.push(error.message);
       if (error.observed) persist("ownership-mismatch", { observed: error.observed });
     }).finally(() => pending.delete(work));
     pending.add(work);
   });
   const workEnd = Math.min(start + (control === "normal" ? 40000 : 8000), end - 15000);
+  const boundedDiscovery = async deadline => {
+    let timer;
+    try {
+      const remaining = deadline - performance.now();
+      if (remaining <= 0) fail("additional_discovery_timeout");
+      await Promise.race([discover(), new Promise((_, reject) => {
+        timer = setTimeout(() => reject(Error("additional_discovery_timeout")), remaining);
+      })]);
+    } finally { clearTimeout(timer); }
+  };
   try {
     while (!childExit && !node && performance.now() < Math.min(workEnd, start + 1500)) {
       const current = (await rows([child.pid], end - 5000, false))[0];
@@ -311,7 +342,7 @@ export async function superviseAdditionalMetaChild(options) {
     }
     let last = 0;
     while (!childExit && performance.now() < workEnd && bytes <= 16384 && !errors.length) {
-      if (launchPending && performance.now() - last > 200) { await discover(); last = performance.now(); }
+      if (launchPending && performance.now() - last > 200) { await boundedDiscovery(workEnd); last = performance.now(); }
       await sleep(20);
     }
     if (!childExit) {
@@ -319,16 +350,20 @@ export async function superviseAdditionalMetaChild(options) {
       if (!node) fail("additional_node_ownership_unknown");
       await signalOwned(node, "SIGTERM", end - 5000, node_signals);
       const grace = Math.min(end - 13000, performance.now() + 750);
-      while (!childExit && performance.now() < grace) { await sleep(20); if (launchPending) await discover(); }
+      while (!childExit && performance.now() < grace) {
+        await sleep(20);
+        if (launchPending) await boundedDiscovery(grace);
+      }
       if (!childExit) {
         // Freeze the specific verified Node before the final child inventory:
         // it cannot allocate an unregistered detached browser between scan/KILL.
         await signalOwned(node, "SIGSTOP", end - 5000, node_signals);
-        if (launchPending) await discover();
+        if (launchPending) await boundedDiscovery(end - 14000);
         await signalOwned(node, "SIGKILL", end - 5000, node_signals);
       }
     }
   } catch (error) {
+    if (!childExit && performance.now() >= workEnd) timedOut = true;
     errors.push(error.message);
     if (error.observed) persist("ownership-mismatch", { observed: error.observed });
     // Identity is rechecked by signalOwned; never fall back to an unattributed PID.
@@ -340,7 +375,7 @@ export async function superviseAdditionalMetaChild(options) {
         if (!childExit) {
           await signalOwned(node, "SIGSTOP", end - 5000, node_signals);
           if (launchPending) {
-            try { await discover(); } catch (failure) { errors.push(failure.message); }
+            try { await boundedDiscovery(end - 14000); } catch (failure) { errors.push(failure.message); }
           }
           await signalOwned(node, "SIGKILL", end - 5000, node_signals);
         }
@@ -358,16 +393,21 @@ export async function superviseAdditionalMetaChild(options) {
   // explicitly unknown/unqualified below, never a claim that the child exited.
   child.unref();
   while (pending.size && performance.now() < end - 10000) await sleep(10);
-  if (pending.size) errors.push("additional_registration_unsettled");
+  const unsettledRegistrations = pending.size;
+  registrationsOpen = false;
+  const observedExit = childExit, observedClose = childClose;
+  if (unsettledRegistrations) errors.push("additional_registration_unsettled");
+  if (!observedExit) errors.push("additional_child_exit_unknown");
+  if (!observedClose) errors.push("additional_child_close_unknown");
   const exitedPath = join(input.output_dir, "actual-child-exit.json");
-  writeMetaPrivate(exitedPath, { command: argv, command_exit_observed: !!childExit,
-    actual_exit_code: childExit?.actual_exit_code ?? null, signal: childExit?.signal ?? null,
-    exited_at_ms: childExit?.at_ms ?? null, elapsed_ms: Math.ceil(performance.now() - start), stdout, stderr });
+  writeMetaPrivate(exitedPath, { command: argv, command_exit_observed: !!observedExit,
+    actual_exit_code: observedExit?.actual_exit_code ?? null, signal: observedExit?.signal ?? null,
+    exited_at_ms: observedExit?.at_ms ?? null, elapsed_ms: Math.ceil(performance.now() - start), stdout, stderr });
   const browsers = [];
   for (const item of owned.values()) browsers.push(await closeBrowser(item, end - 4000, errors.length > 0));
   const portStates = await Promise.all([...ports].map(async port => ({ port, closed: await portClosed(port) })));
   const nodeStates = node ? await rows([node.pgid], end - 2500) : [];
-  const nodeClosed = !!childExit && nodeStates.every(row => node && zombie(node, row));
+  const nodeClosed = !!observedExit && nodeStates.every(row => node && zombie(node, row));
   const privateKeys = [];
   for (const key of keys.values()) {
     const result = { ...key, removed: false };
@@ -393,7 +433,7 @@ export async function superviseAdditionalMetaChild(options) {
       errors.push("additional_unregistered_private_key");
     }
   }
-  const closed = errors.length === 0 && nodeClosed && !pending.size && browsers.every(item => item.status === "closed")
+  const closed = errors.length === 0 && nodeClosed && observedClose && !unsettledRegistrations && browsers.every(item => item.status === "closed")
     && portStates.every(item => item.closed) && privateKeys.every(item => item.removed)
     && (!launchPending || ready && browsers.length === 1 && privateKeys.length === 2);
   // Evidence only: freeze the complete observed ownership ledger after cleanup,
@@ -401,19 +441,20 @@ export async function superviseAdditionalMetaChild(options) {
   persist("resources-final");
   const proof = { schema: "airlock.additional-meta-supervision.v1", command: argv, control,
     started_ms, elapsed_ms: Math.ceil(performance.now() - start), source_before: source,
-    source_after: inspectedMetaSourcePins(), node, node_signals, node_close_observed: childClose,
-    child_exit_observed: !!childExit, pipes_closed: child.stdout.destroyed && child.stderr.destroyed && !child.connected,
+    source_after: inspectedMetaSourcePins(), node, node_signals, node_close_observed: observedClose,
+    child_exit_observed: !!observedExit, pipes_closed: child.stdout.destroyed && child.stderr.destroyed && !child.connected,
     actual_exit: handle(exitedPath), registrations, browsers, ports: portStates, private_keys: privateKeys,
     node_processes: nodeStates.map(row => ({ ...identity(row), final: zombie(node, row) ? "zombie" : "unknown" })),
     timed_out: timedOut, node_term_observed: termObserved, stuck_after_allocation_observed: stuck,
     resource_disposition: closed ? "closed" : "unknown", errors,
-    qualified: control === "normal" && childExit?.actual_exit_code === 0 && childExit.signal === null
+    ...(unsettledRegistrations ? { unsettled_registrations: unsettledRegistrations, late_observations_incomplete: true } : {}),
+    qualified: control === "normal" && observedExit?.actual_exit_code === 0 && observedExit.signal === null
       && closed && ready && !timedOut && !errors.length && performance.now() < end - 1000 };
   check(end - 1000);
   const proofPath = join(input.output_dir, "supervision.json"); writeMetaPrivate(proofPath, proof);
   check(end);
-  return { command: argv, command_exit_observed: !!childExit, actual_exit_code: childExit?.actual_exit_code ?? null,
-    signal: childExit?.signal ?? null, elapsed_external_ms: Math.ceil(performance.now() - start), stdout, stderr,
+  return { command: argv, command_exit_observed: !!observedExit, actual_exit_code: observedExit?.actual_exit_code ?? null,
+    signal: observedExit?.signal ?? null, elapsed_external_ms: Math.ceil(performance.now() - start), stdout, stderr,
     supervision: handle(proofPath) };
 }
 

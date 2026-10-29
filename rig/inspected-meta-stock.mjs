@@ -831,7 +831,9 @@ function verifyAdditionalQualification(state, handle) {
     if (supervision.schema !== "airlock.additional-meta-supervision.v1" || supervision.control !== "normal"
       || !equal(supervision.command, child.command) || supervision.qualified !== true
       || supervision.timed_out !== false || supervision.resource_disposition !== "closed"
-      || supervision.child_exit_observed !== true || supervision.pipes_closed !== true
+      || supervision.child_exit_observed !== true || supervision.node_close_observed !== true
+      || supervision.pipes_closed !== true || "unsettled_registrations" in supervision
+      || "late_observations_incomplete" in supervision
       || !equal(supervision.errors, []) || !lifetime(supervision.node)
       || supervision.node.command_sha256 !== hash(child.command.join(" "))
       || !Number.isSafeInteger(supervision.elapsed_ms) || supervision.elapsed_ms <= 0 || supervision.elapsed_ms >= 60000
