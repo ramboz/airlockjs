@@ -173,6 +173,23 @@ historical UNKNOWNs, source-bound qualification gates and one unspent additional
 case remain unchanged. Stop this supporting increment at this review result;
 it does not authorize or queue another browser or native job.
 
+### Follow-up shutdown corrections - 2026-10-29
+
+After the owner requested continued progress, five SDK-free controls reproduced
+false closure or stopped dispositions: a recorded browser helper moving out of
+its group in either the controller or stopper, an established browser record
+disappearing as the controller exited, and a final live observation contradicting
+an earlier stop or failing identity checks. The source now checks recorded PIDs
+as well as the group, rechecks the browser record, and rejects a contradictory
+or failed final observation.
+Each new control failed before its correction and passed afterward.
+
+These are simulated observations, not proof of process continuity or browser
+containment. Independent review of this follow-up, signal-time evidence,
+cooperative-cleanup coordination, key custody and the narrow network boundary
+remain open. The existing NO-GO and unspent additional case are unchanged;
+no browser or vendor action was performed.
+
 ### Historical first source result
 
 The two inspected candidate pins now require Chrome156.0.8078.48.

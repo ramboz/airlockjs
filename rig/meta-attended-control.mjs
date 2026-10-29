@@ -291,6 +291,8 @@ export async function createMetaAttendedControl(options) {
         let absent = !pending, profileAbsent = !pending, group = null, processes = null;
         if (browser) {
           try {
+            const byPid = await readAdditionalProcesses([...browserItem.members.keys()], end, false);
+            inspectAdditionalBrowserMembers(browserItem, byPid);
             group = await readAdditionalProcesses([browser.browser.pgid], end, true);
             processes = inspectAdditionalBrowserMembers(browserItem, group);
             absent = processes.every(row => ["absent", "zombie"].includes(row.final));
@@ -340,6 +342,11 @@ export async function stopMetaAttendedCase(options) {
   const groupObservations = [];
   let groupBytes = 0;
   const observeGroup = async () => {
+    if (browserItem) {
+      const byPid = await readAdditionalProcesses([...browserItem.members.keys()], end, false);
+      if (!browserBefore) requireFact(!byPid.some(row => row.pid === browser.browser.pid), "attended_browser_reappeared");
+      inspectAdditionalBrowserMembers(browserItem, byPid);
+    }
     const rows = await readAdditionalProcesses([browser.browser.pgid], end, true);
     if (!equal(rows, groupObservations.at(-1)?.rows ?? null)) {
       const bytes = Buffer.byteLength(JSON.stringify(rows));
@@ -348,16 +355,18 @@ export async function stopMetaAttendedCase(options) {
       groupBytes += bytes;
       groupObservations.push({ at_ms: Date.now(), rows });
     }
-    if (browserItem && !browserBefore) {
-      const current = await readAdditionalProcesses([browser.browser.pid], end, false);
-      requireFact(current.length === 0, "attended_browser_reappeared");
-    }
     return rows;
   };
   const browserPath = join(start.output.path, "attended-browser-owned.json");
   const refreshBrowser = async () => {
     try { lstatSync(browserPath); }
-    catch (error) { if (error.code === "ENOENT") return; throw error; }
+    catch (error) {
+      if (error.code === "ENOENT") {
+        requireFact(!browserHandle, "attended_browser_record_missing");
+        return;
+      }
+      throw error;
+    }
     if (browserHandle) {
       readHandle(browserHandle);
       const stat = lstatSync(browserPath);
@@ -436,6 +445,7 @@ export async function stopMetaAttendedCase(options) {
       await checkedSignal(start.controller, "SIGKILL", signals);
     }
   } catch (caught) { failed(caught); }
+  await refreshBrowserSafely();
   if (!browser) errors.push("attended_browser_identity_unknown");
   let browserStopped = false;
   if (browser && !browserUnknown) try {
@@ -461,7 +471,13 @@ export async function stopMetaAttendedCase(options) {
   if (browser && browserItem) try {
     browserAfter = await observeGroup();
     browserProcesses = inspectAdditionalBrowserMembers(browserItem, browserAfter);
-  } catch (caught) { failed(caught); }
+    if (browserStopped && browserProcesses.some(row => !["absent", "zombie"].includes(row.final))) {
+      browserStopped = false;
+      fail("attended_browser_closure_unknown");
+    }
+  } catch (caught) { browserStopped = false; failed(caught); }
+  await refreshBrowserSafely();
+  if (browserUnknown) browserStopped = false;
   const controllerStopped = controllerAfter?.length === 0;
   let profileAbsent = false;
   if (browser) {

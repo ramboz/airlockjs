@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { data } from "./inspected-meta-record.mjs";
 
 const fake = vi.hoisted(() => ({
-  host: null, rows: new Map(), signals: [], onSignal: null, source: null, ignoreTerm: new Set(),
+  host: null, rows: new Map(), signals: [], onSignal: null, onRead: null, source: null, ignoreTerm: new Set(),
 }));
 vi.mock("node:process", () => ({ default: new Proxy({}, { get: (_target, key) => {
   const value = fake.host[key];
@@ -18,9 +18,12 @@ vi.mock("./meta-additional-supervision.mjs", async () => ({
   inspectAdditionalBrowserMembers: (await vi.importActual("./meta-additional-supervision.mjs")).inspectAdditionalBrowserMembers,
   sameAdditionalProcess: (a, b) => !!a && !!b &&
     ["pid", "pgid", "uid", "started", "command_sha256"].every((key) => a[key] === b[key]),
-  readAdditionalProcesses: vi.fn(async (ids, _deadline, groups) => groups
-    ? [...fake.rows.values()].filter(row => ids.includes(row.pgid))
-    : ids.flatMap((id) => fake.rows.has(id) ? [fake.rows.get(id)] : [])),
+  readAdditionalProcesses: vi.fn(async (ids, _deadline, groups) => {
+    await fake.onRead?.(ids, groups);
+    return groups
+      ? [...fake.rows.values()].filter(row => ids.includes(row.pgid))
+      : ids.flatMap((id) => fake.rows.has(id) ? [fake.rows.get(id)] : []);
+  }),
   signalAdditionalOwnedProcess: vi.fn(async (expected, signal, _deadline, log) => {
     const current = fake.rows.get(expected.pid);
     if (!current || current.started !== expected.started || current.command_sha256 !== expected.command_sha256) {
@@ -51,7 +54,7 @@ afterEach(() => {
 });
 
 function fixture(mode = "--local-h1") {
-  fake.onSignal = null; fake.source = { candidate: "unit-only" };
+  fake.onSignal = null; fake.onRead = null; fake.source = { candidate: "unit-only" };
   const root = mkdtempSync(join(realpathSync(tmpdir()), "meta-attended-unit-"));
   roots.push(root);
   const output = join(root, "run"); mkdirSync(output, { mode: 0o700 });
@@ -205,6 +208,24 @@ describe("attended control — controlled OS/process events and private temp fil
     await control.finish();
   });
 
+  it("does not report a stopped browser when a recorded helper leaves its group", async () => {
+    const f = fixture();
+    const { createMetaAttendedControl, stopMetaAttendedCase } = await import("./meta-attended-control.mjs");
+    const root = fake.rows.get(f.child.pid), helperCommand = chrome + " Helper --type=unit";
+    const helper = { ...root, pid: 710004, ppid: root.pid, command: helperCommand,
+      command_sha256: hash(helperCommand) };
+    fake.rows.set(helper.pid, helper);
+    const control = await createMetaAttendedControl(f.options);
+    await control.beforeBrowser(); await control.trackBrowser(Promise.resolve(f.server));
+    fake.rows.set(helper.pid, { ...helper, pgid: helper.pid });
+    fake.host.pid = 710003;
+    const result = await stopMetaAttendedCase(control.ownerCommand());
+    expect(result).toMatchObject({ status: "UNKNOWN", controller_stopped: true, browser_stopped: false });
+    expect(result.errors).toContain("additional_process_replaced");
+    expect(fake.signals).toEqual([{ pid: 710001, signal: "SIGTERM" }]);
+    await control.finish();
+  });
+
   it("rejects copied or symlinked control records without any signal", async () => {
     const f = fixture();
     const { createMetaAttendedControl, stopMetaAttendedCase } = await import("./meta-attended-control.mjs");
@@ -297,6 +318,63 @@ describe("attended control — controlled OS/process events and private temp fil
     await control.finish();
   });
 
+  it("reports UNKNOWN if the established browser record disappears as the controller exits", async () => {
+    const f = fixture();
+    const { createMetaAttendedControl, stopMetaAttendedCase } = await import("./meta-attended-control.mjs");
+    const control = await createMetaAttendedControl(f.options);
+    await control.beforeBrowser(); await control.trackBrowser(Promise.resolve(f.server));
+    fake.host.pid = 710003;
+    fake.onSignal = async (target, signal) => {
+      if (target.pid === 710001 && signal === "SIGTERM") {
+        rmSync(join(f.output, "attended-browser-owned.json"));
+        fake.rows.delete(f.child.pid);
+      }
+    };
+    const result = await stopMetaAttendedCase(control.ownerCommand());
+    expect(result).toMatchObject({ status: "UNKNOWN", controller_stopped: true, browser_stopped: false });
+    expect(result.errors).toContain("attended_browser_record_missing");
+    expect(fake.signals).toEqual([{ pid: 710001, signal: "SIGTERM" }]);
+    await control.finish();
+  });
+
+  it("reports UNKNOWN when the final browser observation contradicts an earlier stop", async () => {
+    const f = fixture();
+    const { createMetaAttendedControl, stopMetaAttendedCase } = await import("./meta-attended-control.mjs");
+    const control = await createMetaAttendedControl(f.options);
+    await control.beforeBrowser(); await control.trackBrowser(Promise.resolve(f.server));
+    const original = fake.rows.get(f.child.pid);
+    fake.host.pid = 710003;
+    let browserSignalled = false, groupReads = 0;
+    fake.onSignal = async (target) => { if (target.pid === f.child.pid) browserSignalled = true; };
+    fake.onRead = async (_ids, groups) => {
+      if (groups && browserSignalled && ++groupReads === 2) fake.rows.set(f.child.pid, original);
+    };
+    const result = await stopMetaAttendedCase(control.ownerCommand());
+    expect(result).toMatchObject({ status: "UNKNOWN", controller_stopped: true, browser_stopped: false });
+    expect(result.errors).toContain("attended_browser_closure_unknown");
+    await control.finish();
+  });
+
+  it("does not keep a stopped disposition after the final identity check fails", async () => {
+    const f = fixture();
+    const { createMetaAttendedControl, stopMetaAttendedCase } = await import("./meta-attended-control.mjs");
+    const control = await createMetaAttendedControl(f.options);
+    await control.beforeBrowser(); await control.trackBrowser(Promise.resolve(f.server));
+    const original = fake.rows.get(f.child.pid);
+    fake.host.pid = 710003;
+    let browserSignalled = false, groupReads = 0;
+    fake.onSignal = async (target) => { if (target.pid === f.child.pid) browserSignalled = true; };
+    fake.onRead = async (_ids, groups) => {
+      if (groups && browserSignalled && ++groupReads === 2) {
+        fake.rows.set(f.child.pid, { ...original, started: "replacement lifetime" });
+      }
+    };
+    const result = await stopMetaAttendedCase(control.ownerCommand());
+    expect(result).toMatchObject({ status: "UNKNOWN", controller_stopped: true, browser_stopped: false });
+    expect(result.errors).toContain("additional_process_replaced");
+    await control.finish();
+  });
+
   it("does not cooperatively close or kill a browser after a known helper changes", async () => {
     const f = fixture();
     const { createMetaAttendedControl, stopMetaAttendedCase } = await import("./meta-attended-control.mjs");
@@ -373,6 +451,21 @@ describe("attended control — controlled OS/process events and private temp fil
       command: `${chrome} Helper --type=unit-only` };
     member.command_sha256 = hash(member.command); fake.rows.set(member.pid, member);
     await f.server.close();
+    const result = await control.finish();
+    expect(result.browser_closed).toBe(false);
+    expect(result.errors).toContain("attended_process_observation_failed");
+  });
+
+  it("does not report browser closure when a recorded helper leaves its group", async () => {
+    const f = fixture();
+    const { createMetaAttendedControl } = await import("./meta-attended-control.mjs");
+    const helper = { ...fake.rows.get(f.child.pid), pid: 710004, ppid: f.child.pid,
+      command: `${chrome} Helper --type=unit-only` };
+    helper.command_sha256 = hash(helper.command); fake.rows.set(helper.pid, helper);
+    const control = await createMetaAttendedControl(f.options);
+    await control.beforeBrowser(); await control.trackBrowser(Promise.resolve(f.server));
+    await f.server.close();
+    fake.rows.set(helper.pid, { ...helper, pgid: 710004 });
     const result = await control.finish();
     expect(result.browser_closed).toBe(false);
     expect(result.errors).toContain("attended_process_observation_failed");
