@@ -6,9 +6,10 @@ export const SCALAR_EVENT_DATA_KEYS = Object.freeze([
 
 function snapshotContentIds(value) {
   if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype) return null;
+  const length = Object.getOwnPropertyDescriptor(value, "length")?.value;
+  if (!Number.isInteger(length) || length < 0 || length > 16) return null;
   const descriptors = Object.getOwnPropertyDescriptors(value);
-  const length = descriptors.length?.value;
-  if (!Number.isInteger(length) || length < 0 || length > 16 || Reflect.ownKeys(descriptors).length !== length + 1) return null;
+  if (descriptors.length?.value !== length || Reflect.ownKeys(descriptors).length !== length + 1) return null;
   const result = [];
   for (let index = 0; index < length; index += 1) {
     const descriptor = descriptors[index];

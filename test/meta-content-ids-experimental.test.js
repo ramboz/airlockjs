@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createMetaPixelPrototype } from "../adapters/meta-pixel-prototype.js";
+import { snapshotPageViewData } from "../connectors/meta-pixel/pageview-data.js";
 import { createMetaPageViewPrototype } from "../connectors/meta-pixel/pageview-prototype.js";
 import { createConnectorHost } from "../core/connector-host.js";
 import { createNodePrototypeChamber, createPrototypeReceiver } from "../rig/meta-pageview-prototype.mjs";
@@ -121,6 +122,22 @@ describe("experimental content ID arrays through the real worker", () => {
       expect(env.receiver.arrivals).toEqual([]);
     } finally { await env.close(); }
   }, 5000);
+
+  it("rejects oversized arrays before enumerating their elements", () => {
+    let enumerations = 0;
+    const oversized = new Proxy(Array(17), {
+      ownKeys(target) { enumerations += 1; return Reflect.ownKeys(target); },
+    });
+    expect(snapshotPageViewData({ content_ids: oversized }, false, true)).toBeNull();
+    expect(enumerations).toBe(0);
+  });
+
+  it("rejects a content-ID array whose length changes during enumeration", () => {
+    const changing = new Proxy(["one", "two"], {
+      ownKeys(target) { target.pop(); return Reflect.ownKeys(target); },
+    });
+    expect(snapshotPageViewData({ content_ids: changing }, false, true)).toBeNull();
+  });
 
   it("independently revalidates untrusted arrays in the chamber", async () => {
     const host = createConnectorHost(createMetaPageViewPrototype, {
