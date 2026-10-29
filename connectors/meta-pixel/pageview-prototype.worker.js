@@ -46,7 +46,7 @@ async function route(event) {
     if (result.dropped.length) {
       summary = { seq: event.seq, disposition: "rejected", reason: result.dropped[0].reason, requests: 0 };
     } else if (!result.ready.length) {
-      summary = { seq: event.seq, disposition: "initialized", requests: 0 };
+      summary = { seq: event.seq, disposition: event.payload.args[0] === "consent" ? "consent-updated" : "initialized", requests: 0 };
     } else {
       if (result.ready.length > (multiPixelRouting ? 4 : 1)) throw new Error("invalid-request-count");
       const branches = [];
@@ -107,6 +107,7 @@ self.onmessage = async ({ data }) => {
         experimentalEvents: data.experimentalEvents, experimentalScalarEventData: data.experimentalScalarEventData,
         experimentalContentIds: data.experimentalContentIds, experimentalContents: data.experimentalContents,
         experimentalEventIds: data.experimentalEventIds,
+        experimentalTagConsent: data.experimentalTagConsent,
         experimentalSyntheticAdvancedMatching: data.experimentalSyntheticAdvancedMatching,
         syntheticIdentityFixtures: data.syntheticIdentityFixtures,
       });

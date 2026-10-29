@@ -124,6 +124,23 @@ this path is source-only and **not browser-tested**. Node tests inject a real
   No native conversion event or general
   custom-event serialization was captured, and the admission rules, field
   encoding and order here are working assumptions.
+- With `experimentalTagConsent: true`, `fbq("consent", "revoke")` and
+  `fbq("consent", "grant")` are admitted as global tag commands, including
+  before init. They capture no page context and never request transport.
+  Malformed commands reject without changing tag consent. Without the opt-in,
+  both commands remain unsupported. The local tag permission initially
+  permits dispatch, but the independent host `ad_storage` consent must also
+  be granted. A tag grant never changes or overrides host consent.
+  An admitted revoke tightens the trusted seal immediately, including for
+  remaining branches of an in-flight broadcast and older queued events. A
+  later grant permits only newly captured events: it does not release a
+  held or previously captured event invalidated by a revoke. An already
+  dispatched request cannot be recalled. Commands rejected by queue or
+  session limits do not alter tag permission.
+  These timing, initial-state, global-scope and no-replay rules are local
+  safety choices. The retained native control reports no PageView for a
+  revoke before init; it does not establish native grant, replay, later
+  transitions, collection, storage or multi-Pixel behavior.
 - Multi-Pixel commands dispatch one branch at a time through the seal. Their
   redacted outcomes list branch ordinals, statuses and dispositions, plus
   selected and submitted-to-host counts (which include holds, not just network
@@ -136,6 +153,11 @@ this path is source-only and **not browser-tested**. Node tests inject a real
   `invalid-worker-result` rather than exposing extra fields or values. Branch
   counts and statuses must match the host's own responses; a worker cannot
   report settlement without a corresponding response.
+- When tag consent is enabled, single-Pixel outcomes are also checked against
+  host responses, consent commands cannot dispatch, and malformed worker
+  summaries terminate the adapter. `consent-updated` means only that the
+  local command was processed; it is not evidence of host consent or native
+  behavior.
 - `await flush()` observes bounded command/transport outcomes, **not receipt**.
   `transport-settled` means a correlated 2xx response, not vendor acceptance.
 - `setConsent(vector)` governs subsequent dispatch. Held commands are dropped;

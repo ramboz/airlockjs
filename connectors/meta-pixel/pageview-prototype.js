@@ -46,9 +46,11 @@ export function createMetaPageViewPrototype({
   experimentalEvents = false, experimentalScalarEventData = false, experimentalContentIds = false, experimentalContents = false,
   experimentalEventIds = false,
   experimentalSyntheticAdvancedMatching = false, syntheticIdentityFixtures = null,
+  experimentalTagConsent = false,
 } = {}) {
   if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
-    experimentalScalarEventData, experimentalContentIds, experimentalContents, experimentalEventIds, experimentalSyntheticAdvancedMatching]
+    experimentalScalarEventData, experimentalContentIds, experimentalContents, experimentalEventIds,
+    experimentalSyntheticAdvancedMatching, experimentalTagConsent]
     .some((option) => typeof option !== "boolean")) {
     throw new Error("invalid-experimental-option");
   }
@@ -86,6 +88,8 @@ export function createMetaPageViewPrototype({
       if (event?.type !== "meta-pixel-command" || !Array.isArray(args)) {
         throw new Error("unsupported-command");
       }
+      if (experimentalTagConsent && args[0] === "consent" && args.length === 2 &&
+          (args[1] === "revoke" || args[1] === "grant")) return [];
       const hasIdentity = experimentalSyntheticAdvancedMatching && args[0] === "init" && args.length === 3;
       if (args[0] === "init" && (args.length === 2 || hasIdentity)) {
         if (experimentalRouting === true) {

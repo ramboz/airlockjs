@@ -56,6 +56,24 @@ govern actual collection and dispatch without stale replay or misleading success
 **Anti-horizontal-phasing check:** A visitor changes a real choice and the
 operator observes the resulting governed request behavior across the whole path.
 
+## Experimental construction - 2026-10-29
+
+The separately gated `experimentalTagConsent` local prototype accepts the
+documented `consent` revoke and grant commands through the serialized worker.
+The trusted host intersects tag permission with independent host ad-storage
+consent. An admitted revoke immediately blocks later branches and invalidates
+earlier captured events; a grant cannot override host denial or release an
+event invalidated by revoke. Held events do not replay, and already dispatched
+requests cannot be recalled. Tests use synthetic inputs, a real worker and
+loopback receiver, and fake-worker controls. Default behavior is unchanged.
+
+The retained reference fixture issues revoke before init and the owner reports
+that its retained control observed no PageView. This single no-send observation
+does not establish native grant/re-grant, queue retention, replay, global scope,
+cookie/collection effects or the prototype's initial state and timing rules.
+Those are local safety choices, not a native-equivalence or acceptance result;
+all readiness and production gates above remain open.
+
 ## Assumptions
 
 - Unverified: native retention/re-grant and privacy semantics can be evaluated
@@ -69,7 +87,7 @@ operator observes the resulting governed request behavior across the whole path.
 
 ### Deviation log (after reconciliation)
 
-Not implemented; no consent, replay or legal-compliance qualification claimed.
+No native consent, replay or legal-compliance qualification claimed.
 
 ### Reconciliation sweep
 

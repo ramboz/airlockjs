@@ -63,6 +63,10 @@ function validateMultiSummary(summary, seq, command) {
       return command === "init" && record.requests === 0 && exactKeys(record, ["seq", "disposition", "requests"])
         ? { seq, disposition: "initialized", requests: 0 } : null;
     }
+    if (record.disposition === "consent-updated") {
+      return command === "consent" && record.requests === 0 && exactKeys(record, ["seq", "disposition", "requests"])
+        ? { seq, disposition: "consent-updated", requests: 0 } : null;
+    }
     if (record.disposition === "rejected") {
       return record.requests === 0 && MULTI_REJECTIONS.has(record.reason) &&
         exactKeys(record, ["seq", "disposition", "requests", "reason"])
@@ -103,6 +107,38 @@ function validateMultiSummary(summary, seq, command) {
         (terminal && (record.terminal !== true || record.reason !== "transport-failed"))) return null;
     return { seq, disposition, requests: record.requests, selected: record.selected, branches,
       ...(terminal ? { terminal: true, reason: "transport-failed" } : {}) };
+  } catch {
+    return null;
+  }
+}
+
+function validateSingleSummary(summary, seq, command) {
+  try {
+    const record = dataRecord(summary, ["seq", "disposition", "requests", "reason", "status", "terminal"]);
+    if (!record || record.seq !== seq) return null;
+    if (record.disposition === "initialized" || record.disposition === "consent-updated") {
+      const expected = command === "init" ? "initialized" : command === "consent" ? "consent-updated" : null;
+      return record.disposition === expected && record.requests === 0 &&
+        exactKeys(record, ["seq", "disposition", "requests"])
+        ? { seq, disposition: record.disposition, requests: 0 } : null;
+    }
+    if (record.disposition === "rejected") {
+      return command !== "consent" && record.requests === 0 && MULTI_REJECTIONS.has(record.reason) &&
+        exactKeys(record, ["seq", "disposition", "requests", "reason"])
+        ? { seq, disposition: "rejected", requests: 0, reason: record.reason } : null;
+    }
+    if (!["track", "trackCustom"].includes(command) || record.requests !== 1 || !Number.isInteger(record.status)) return null;
+    const held = record.status === 0 && record.disposition === "held" && record.reason === "held-at-seal";
+    const transportFailed = record.status === 0 && record.disposition === "failed" &&
+      record.reason === "transport-failed" && record.terminal === true;
+    const settled = record.status >= 200 && record.status < 300 && record.disposition === "transport-settled";
+    const httpFailed = record.status >= 100 && record.status <= 599 &&
+      !(record.status >= 200 && record.status < 300) && record.disposition === "failed";
+    if (!(held || transportFailed || settled || httpFailed)) return null;
+    const keys = ["seq", "disposition", "requests", "status"];
+    if (held || transportFailed) keys.push("reason");
+    if (transportFailed) keys.push("terminal");
+    return exactKeys(record, keys) ? { ...record } : null;
   } catch {
     return null;
   }
@@ -185,9 +221,11 @@ export function createMetaPixelPrototype({
   experimentalContents = false,
   experimentalEventIds = false,
   experimentalSyntheticAdvancedMatching = false,
+  experimentalTagConsent = false,
 } = {}) {
   if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
-    experimentalScalarEventData, experimentalContentIds, experimentalContents, experimentalEventIds, experimentalSyntheticAdvancedMatching]
+    experimentalScalarEventData, experimentalContentIds, experimentalContents, experimentalEventIds,
+    experimentalSyntheticAdvancedMatching, experimentalTagConsent]
     .some((option) => typeof option !== "boolean")) {
     throw new Error("invalid-experimental-option");
   }
@@ -229,7 +267,18 @@ export function createMetaPixelPrototype({
   let closed;
   let host;
   let transport;
-  const consentVector = { ad_storage: consent?.ad_storage };
+  let hostAdStorage = consent?.ad_storage;
+  let tagAllowed = true;
+  let revokeGeneration = 0;
+  const tagSnapshots = new WeakMap();
+  const consentVector = experimentalTagConsent ? {
+    get ad_storage() {
+      const snapshot = activeEvent && tagSnapshots.get(activeEvent);
+      // A later grant cannot revive a command captured before a revoke.
+      return snapshot?.allowed && snapshot.generation === revokeGeneration ? hostAdStorage : "denied";
+    },
+  } : { ad_storage: hostAdStorage };
+  const validateWorker = experimentalMultiPixelRouting || experimentalTagConsent;
 
   function record(outcome) {
     if (outcomes.length === HISTORY_LIMIT) { outcomes.shift(); truncated += 1; }
@@ -356,7 +405,7 @@ export function createMetaPixelPrototype({
 
   function postHostMessage(message) {
     if (phase === "terminal" || phase === "disposed") return;
-    if (experimentalMultiPixelRouting && message.type === "intercepted-fetch-response") {
+    if (validateWorker && message.type === "intercepted-fetch-response") {
       if (!inFlight || activeHostRequest !== message.id) { stop("invalid-worker-result"); return; }
       const held = message.status === 0 && message.statusText?.startsWith("held at the seal:");
       activeHostResponses.push({
@@ -378,6 +427,10 @@ export function createMetaPixelPrototype({
     if (admitted >= HISTORY_LIMIT) { reject("session-command-limit"); return; }
     if (args.length > (experimentalMultiPixelRouting ? (experimentalEventIds ? 5 : 4) : (experimentalEventIds ? 4 : 3))) {
       reject("argument-limit"); return;
+    }
+    const tagCommand = experimentalTagConsent && args[0] === "consent";
+    if (tagCommand && (args.length !== 2 || !["revoke", "grant"].includes(args[1]))) {
+      reject("unsupported-command"); return;
     }
     const dataIndex = experimentalMultiPixelRouting &&
       (args[0] === "trackSingle" && (experimentalEvents || args[2] === "PageView") ||
@@ -414,20 +467,28 @@ export function createMetaPixelPrototype({
         if (!identity) { reject("unsupported-identity"); return; }
         args[2] = identity;
       }
-      const source = captureContext();
       const context = {};
-      for (const key of CONTEXT_KEYS) {
-        const descriptor = source && Object.getOwnPropertyDescriptor(source, key);
-        if (descriptor?.get || descriptor?.set) { reject("unsupported-context"); return; }
-        const value = descriptor?.value;
-        if ((value !== null && typeof value === "object") || ["function", "symbol", "bigint"].includes(typeof value) ||
-            (typeof value === "string" && value.length > 2048)) { reject("unsupported-context"); return; }
-        context[key] = value;
+      if (!tagCommand) {
+        const source = captureContext();
+        for (const key of CONTEXT_KEYS) {
+          const descriptor = source && Object.getOwnPropertyDescriptor(source, key);
+          if (descriptor?.get || descriptor?.set) { reject("unsupported-context"); return; }
+          const value = descriptor?.value;
+          if ((value !== null && typeof value === "object") || ["function", "symbol", "bigint"].includes(typeof value) ||
+              (typeof value === "string" && value.length > 2048)) { reject("unsupported-context"); return; }
+          context[key] = value;
+        }
       }
       const payload = structuredClone({ args, context });
       if (phase === "terminal" || phase === "disposed") { reject(phase); return; }
       if (queue.length >= queueLimit || admitted >= HISTORY_LIMIT) { reject("capture-admission-changed"); return; }
-      queue.push({ type: "meta-pixel-command", seq, ts: performance.now(), payload, snapshot: {} });
+      const event = { type: "meta-pixel-command", seq, ts: performance.now(), payload, snapshot: {} };
+      if (tagCommand) {
+        tagAllowed = args[1] === "grant";
+        if (!tagAllowed) revokeGeneration += 1;
+      }
+      if (experimentalTagConsent) tagSnapshots.set(event, { allowed: tagAllowed, generation: revokeGeneration });
+      queue.push(event);
       admitted += 1;
       void pump();
     } catch {
@@ -443,14 +504,22 @@ export function createMetaPixelPrototype({
     subscriptions.push(transport.onMessage((message) => {
       if (phase === "terminal" || phase === "disposed") return;
       let forwarded = message;
-      if (experimentalMultiPixelRouting && message?.type === "result") {
+      if (validateWorker && message?.type === "result") {
         if (!inFlight || !activeEvent || activeResultReceived) { stop("invalid-worker-result"); return; }
         const result = multiResultMessage(message);
-        const summary = result && validateMultiSummary(result.summary, activeEvent.seq, activeEvent.payload.args[0]);
+        const command = activeEvent.payload.args[0];
+        const summary = result && (experimentalMultiPixelRouting
+          ? validateMultiSummary(result.summary, activeEvent.seq, command)
+          : validateSingleSummary(result.summary, activeEvent.seq, command));
         if (!summary || activeHostRequest !== null || summary.requests !== activeHostResponses.length ||
+            (command === "consent" && experimentalTagConsent && summary.disposition !== "consent-updated") ||
+            (!experimentalTagConsent && summary.disposition === "consent-updated") ||
             (summary.branches && summary.branches.some((branch, index) =>
               branch.status !== activeHostResponses[index].status ||
-              branch.disposition !== activeHostResponses[index].disposition))) {
+              branch.disposition !== activeHostResponses[index].disposition)) ||
+            (!experimentalMultiPixelRouting && summary.requests === 1 &&
+              (summary.status !== activeHostResponses[0].status ||
+               summary.disposition !== activeHostResponses[0].disposition))) {
           stop("invalid-worker-result"); return;
         }
         activeResultReceived = true;
@@ -466,11 +535,16 @@ export function createMetaPixelPrototype({
         clearTimeout(initTimer);
       }
       if (message?.type === "intercepted-fetch") {
+        if (experimentalTagConsent && (!inFlight || !activeEvent ||
+            !["track", "trackCustom", "trackSingle", "trackSingleCustom"].includes(activeEvent.payload.args[0]))) {
+          stop("invalid-worker-result"); return;
+        }
         if (experimentalSyntheticAdvancedMatching && activeEvent?.payload.args[0] === "init") {
           stop("invalid-worker-result"); return;
         }
-        if (experimentalMultiPixelRouting) {
-          if (!inFlight || activeResultReceived || activeHostRequest !== null || activeHostResponses.length >= 4 ||
+        if (validateWorker) {
+          if (!inFlight || activeResultReceived || activeHostRequest !== null ||
+              activeHostResponses.length >= (experimentalMultiPixelRouting ? 4 : 1) ||
               !Number.isSafeInteger(message.id) || message.id <= lastHostRequestId) {
             stop("invalid-worker-result"); return;
           }
@@ -509,6 +583,7 @@ export function createMetaPixelPrototype({
       ...(experimentalContentIds === true ? { experimentalContentIds: true } : {}),
       ...(experimentalContents === true ? { experimentalContents: true } : {}),
       ...(experimentalEventIds === true ? { experimentalEventIds: true } : {}),
+      ...(experimentalTagConsent === true ? { experimentalTagConsent: true } : {}),
       ...(experimentalSyntheticAdvancedMatching === true
         ? { experimentalSyntheticAdvancedMatching: true, syntheticIdentityFixtures } : {}) });
   } catch {
@@ -531,7 +606,8 @@ export function createMetaPixelPrototype({
     },
     setConsent(vector) {
       if (phase === "terminal" || phase === "disposed") return;
-      consentVector.ad_storage = vector?.ad_storage;
+      if (experimentalTagConsent) hostAdStorage = vector?.ad_storage;
+      else consentVector.ad_storage = vector?.ad_storage;
     },
     async dispose() {
       stop("disposed", true);

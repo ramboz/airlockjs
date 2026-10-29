@@ -36,13 +36,43 @@ async function configure(chamber, transportTimeoutMs = 500) {
 }
 
 describe("actual first-party worker correlated protocol (not receipt evidence)", () => {
-  it.each(["experimentalRouting", "experimentalPageViewData", "experimentalMultiPixelRouting", "experimentalEvents", "experimentalScalarEventData", "experimentalContentIds", "experimentalContents", "experimentalEventIds", "experimentalSyntheticAdvancedMatching"])("rejects mistyped %s during worker initialization", async (option) => {
+  it.each(["experimentalRouting", "experimentalPageViewData", "experimentalMultiPixelRouting", "experimentalEvents", "experimentalScalarEventData", "experimentalContentIds", "experimentalContents", "experimentalEventIds", "experimentalSyntheticAdvancedMatching", "experimentalTagConsent"])("rejects mistyped %s during worker initialization", async (option) => {
     const chamber = createNodePrototypeChamber();
     try {
       const failed = receive(chamber, "fatal");
       chamber.postMessage({ type: "init", endpoint, transportTimeoutMs: 500, [option]: "true" });
       expect(await failed).toEqual({ type: "fatal", message: "worker-configuration-failed" });
     } finally { await chamber.dispose(); }
+  }, 5000);
+
+  it("revalidates consent command shapes in the serialized worker without requesting transport", async () => {
+    const chamber = createNodePrototypeChamber();
+    const requests = [];
+    const unsubscribe = chamber.onMessage((message) => {
+      if (message.type === "intercepted-fetch") requests.push(message);
+    });
+    try {
+      const configured = receive(chamber, "phase");
+      chamber.postMessage({ type: "init", endpoint, transportTimeoutMs: 500, experimentalTagConsent: true });
+      await configured;
+      const commands = [
+        { args: ["consent", "revoke"], disposition: "consent-updated" },
+        { args: ["consent", "grant"], disposition: "consent-updated" },
+        { args: ["consent"], disposition: "rejected" },
+        { args: ["consent", "REVOKE"], disposition: "rejected" },
+        { args: ["consent", "revoke", "extra"], disposition: "rejected" },
+        { args: ["consent", { action: "revoke" }], disposition: "rejected" },
+      ];
+      for (const [index, command] of commands.entries()) {
+        const result = receive(chamber, "result");
+        chamber.postMessage({ type: "event", event: event(index + 1, command.args) });
+        expect((await result).summary).toMatchObject({
+          seq: index + 1, disposition: command.disposition, requests: 0,
+          ...(command.disposition === "rejected" ? { reason: "unsupported-command" } : {}),
+        });
+      }
+      expect(requests).toEqual([]);
+    } finally { unsubscribe(); await chamber.dispose(); }
   }, 5000);
 
   it("rejects the content-ID opt-in when its data prerequisite is absent", async () => {
