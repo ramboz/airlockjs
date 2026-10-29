@@ -97,6 +97,9 @@ export function createGoogleAdsPrototype({
   let inFlight = false;
   let capturing = false;
   let activeSequence;
+  let activeCommand;
+  let activeRequest;
+  let lastRequestId = 0;
   let awaitingResult = false;
   let finishCurrent;
   let initTimer;
@@ -148,6 +151,34 @@ export function createGoogleAdsPrototype({
       callbackStats.cancelled += 1;
     }
   }
+  function recordHostResponse(message) {
+    if (!inFlight) return true;
+    if (!activeRequest || activeRequest.id !== message.id || activeRequest.response) {
+      stop("request-correlation-failed");
+      return false;
+    }
+    activeRequest.response = {
+      status: message.status,
+      held: message.status === 0 && typeof message.statusText === "string" &&
+        message.statusText.startsWith("held at the seal:"),
+    };
+    return true;
+  }
+  function matchesHostResponse(summary) {
+    if (summary.requests === 0) {
+      return !activeRequest && ["configured", "scope-updated", "rejected"].includes(summary.disposition) &&
+        (summary.disposition !== "configured" || activeCommand?.[0] === "config") &&
+        (summary.disposition !== "scope-updated" || activeCommand?.[0] === "set") &&
+        summary.status === undefined && summary.terminal === undefined;
+    }
+    const response = activeRequest?.response;
+    if (!response || activeCommand?.[0] !== "event" || activeCommand?.[1] !== "conversion" ||
+        summary.status !== response.status) return false;
+    const disposition = response.held ? "held" : response.status >= 200 && response.status < 300 ? "transport-settled" : "failed";
+    const reason = response.held ? "held-at-seal" : response.status === 0 ? "transport-failed" : undefined;
+    return summary.disposition === disposition && summary.reason === reason &&
+      (response.status === 0 && !response.held ? summary.terminal === true : summary.terminal === undefined);
+  }
   function stop(reason, disposed = false) {
     if (phase === "terminal" || phase === "disposed") {
       if (disposed) { cancelCallbacks(); settle(); }
@@ -197,6 +228,8 @@ export function createGoogleAdsPrototype({
     while (queue.length && phase === "ready") {
       const event = queue.shift();
       activeSequence = event.seq;
+      activeCommand = event.payload.args;
+      activeRequest = undefined;
       inFlight = true;
       awaitingResult = true;
       const settled = await new Promise((resolve) => {
@@ -227,6 +260,8 @@ export function createGoogleAdsPrototype({
       inFlight = false;
       awaitingResult = false;
       activeSequence = undefined;
+      activeCommand = undefined;
+      activeRequest = undefined;
       scheduleCallback(event.seq, "settled");
     }
     settle();
@@ -316,12 +351,22 @@ export function createGoogleAdsPrototype({
             (summary.status !== undefined && (!Number.isInteger(summary.status) || summary.status < 0 || summary.status > 599))) {
           stop("invalid-worker-result"); return;
         }
+        if (!matchesHostResponse(summary)) { stop("result-transport-mismatch"); return; }
         awaitingResult = false;
+      }
+      if (message?.type === "intercepted-fetch") {
+        if (!inFlight || !awaitingResult || activeCommand?.[0] !== "event" || activeCommand?.[1] !== "conversion" ||
+            activeRequest || !Number.isSafeInteger(message.id) || message.id <= lastRequestId) {
+          stop("request-correlation-failed"); return;
+        }
+        lastRequestId = message.id;
+        activeRequest = { id: message.id };
       }
       if (message?.type === "intercepted-fetch" &&
           (message.method !== "GET" || Object.keys(message).some((key) => !["type", "id", "url", "method"].includes(key)))) {
         try {
-          transport.postMessage({ type: "intercepted-fetch-response", id: message.id, status: 0, statusText: "held at the seal: literal-loopback-policy", body: "" });
+          const response = { type: "intercepted-fetch-response", id: message.id, status: 0, statusText: "held at the seal: literal-loopback-policy", body: "" };
+          if (recordHostResponse(response)) transport.postMessage(response);
         } catch { stop("transport-post-failed"); }
         return;
       }
@@ -333,6 +378,7 @@ export function createGoogleAdsPrototype({
       chamber: {
         postMessage(message) {
           if (phase === "terminal" || phase === "disposed") return;
+          if (message?.type === "intercepted-fetch-response" && !recordHostResponse(message)) return;
           try { transport.postMessage(message); } catch { stop("transport-post-failed"); }
         },
         onMessage: (listener) => hostListeners.add(listener),

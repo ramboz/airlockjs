@@ -113,12 +113,7 @@ describe("bounded synchronous primitive command capture", () => {
   });
 
   it("holds every off-ceiling or nonliteral/method/header/body/auth/redirect request before the Fetch driver", async () => {
-    const chamber = controlledChamber({ configure: true });
-    const fetchImpl = vi.fn(async () => new Response(null, { status: 204 }));
-    const adapter = createGoogleAdsPrototype({ endpoint, chamber, fetchImpl, captureContext: () => page, consent: { ad_storage: "granted" } });
-    try {
-      await Promise.resolve();
-      const denied = [
+    const denied = [
         { url: "https://example.test/pagead/conversion/0000000000/?x=1" },
         { url: "http://localhost:43210/pagead/conversion/0000000000/?x=1" },
         { url: "http://127.0.0.1:43211/pagead/conversion/0000000000/?x=1" },
@@ -131,22 +126,58 @@ describe("bounded synchronous primitive command capture", () => {
         { url: `${endpoint}?x=1`, body: "" },
         { url: `${endpoint}?x=1`, credentials: "include" },
         { url: `${endpoint}?x=1`, redirect: "follow" },
-      ];
-      denied.forEach((request, index) => chamber.emit({ type: "intercepted-fetch", id: index + 1, method: "GET", ...request }));
-      await new Promise((resolve) => setTimeout(resolve, 10));
-      expect(fetchImpl).not.toHaveBeenCalled();
-      expect(chamber.sent.filter((m) => m.type === "intercepted-fetch-response")).toHaveLength(denied.length);
-      expect(chamber.sent.filter((m) => m.type === "intercepted-fetch-response").every((m) => m.status === 0)).toBe(true);
-      expect(adapter.getState().host.ceilingHeld).toBeGreaterThan(0);
-      chamber.emit({ type: "intercepted-fetch", id: 99, method: "GET", url: `${endpoint}?x=1` });
+    ];
+    for (const request of denied) {
+      const chamber = controlledChamber({ configure: true });
+      const fetchImpl = vi.fn(async () => new Response(null, { status: 204 }));
+      const adapter = createGoogleAdsPrototype({ endpoint, chamber, fetchImpl, captureContext: () => page, consent: { ad_storage: "granted" } });
+      try {
+        adapter.gtag("event", "conversion", { send_to: "AW-0000000000/SYNTHETIC_LABEL" });
+        await Promise.resolve();
+        chamber.emit({ type: "intercepted-fetch", id: 1, method: "GET", ...request });
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        expect(fetchImpl).not.toHaveBeenCalled();
+        const response = chamber.sent.find((m) => m.type === "intercepted-fetch-response");
+        expect(response.status).toBe(0);
+        const held = response.statusText.startsWith("held at the seal:");
+        chamber.emit({ type: "result", summary: {
+          seq: 1, requests: 1, status: 0, disposition: held ? "held" : "failed",
+          reason: held ? "held-at-seal" : "transport-failed", ...(!held ? { terminal: true } : {}),
+        }, ready: [] });
+        const state = await adapter.flush();
+        expect(state.outcomes.at(-1).disposition).toBe(held ? "held" : "failed");
+      } finally { await adapter.dispose(); }
+    }
+    const chamber = controlledChamber({ configure: true });
+    const fetchImpl = vi.fn(async () => new Response(null, { status: 204 }));
+    const adapter = createGoogleAdsPrototype({ endpoint, chamber, fetchImpl, captureContext: () => page, consent: { ad_storage: "granted" } });
+    try {
+      adapter.gtag("event", "conversion", { send_to: "AW-0000000000/SYNTHETIC_LABEL" });
+      await Promise.resolve();
+      chamber.emit({ type: "intercepted-fetch", id: 1, method: "GET", url: `${endpoint}?x=1` });
       await new Promise((resolve) => setTimeout(resolve, 10));
       expect(fetchImpl).toHaveBeenCalledTimes(1);
       expect(fetchImpl.mock.calls[0][1]).toMatchObject({ method: "GET", credentials: "omit", redirect: "error", referrerPolicy: "no-referrer" });
       expect(fetchImpl.mock.calls[0][1]).not.toHaveProperty("headers");
       expect(fetchImpl.mock.calls[0][1]).not.toHaveProperty("body");
+      chamber.emit({ type: "result", summary: { seq: 1, disposition: "transport-settled", requests: 1, status: 204 }, ready: [] });
+      expect((await adapter.flush()).outcomes.at(-1).disposition).toBe("transport-settled");
     } finally { await adapter.dispose(); }
     expect(() => createGoogleAdsPrototype()).toThrow("literal-loopback-endpoint-required");
     expect(() => createGoogleAdsPrototype({ endpoint: "http://127.0.0.1:99999/pagead/conversion/0000000000/" })).toThrow("literal-loopback-endpoint-required");
+  });
+
+  it("fails closed on an unsolicited worker request before any host dispatch", async () => {
+    const chamber = controlledChamber({ configure: true });
+    const fetchImpl = vi.fn(async () => new Response(null, { status: 204 }));
+    const adapter = createGoogleAdsPrototype({ endpoint, chamber, fetchImpl, captureContext: () => page, consent: { ad_storage: "granted" } });
+    try {
+      await Promise.resolve();
+      chamber.emit({ type: "intercepted-fetch", id: 1, method: "GET", url: `${endpoint}?x=1` });
+      expect(adapter.getState()).toMatchObject({ phase: "terminal", terminalReason: "request-correlation-failed" });
+      expect(fetchImpl).not.toHaveBeenCalled();
+      expect(adapter.getState().host.dispatchAttempts).toBe(0);
+    } finally { await adapter.dispose(); }
   });
 
   it("makes startup and command timeouts terminal and ignores a genuinely delivered stale callback", async () => {
@@ -191,6 +222,84 @@ describe("bounded synchronous primitive command capture", () => {
       lost.error();
       expect(await lossAdapter.flush()).toMatchObject({ terminalReason: "worker-error", queued: 0 });
     } finally { await lossAdapter.dispose(); }
+  });
+
+  it.each([
+    ["no request", "none"],
+    ["pending response", "pending"],
+    ["wrong HTTP status", "wrong-status"],
+    ["claimed hold as success", "wrong-hold"],
+    ["hidden request", "hidden"],
+  ])("rejects a fabricated settlement with %s", async (_label, fault) => {
+    let release;
+    const chamber = controlledChamber({ configure: true });
+    const fetchImpl = vi.fn(() => fault === "pending"
+      ? new Promise((resolve) => { release = () => resolve(new Response(null, { status: 204 })); })
+      : Promise.resolve(new Response(null, { status: 503 })));
+    const callback = vi.fn();
+    const adapter = createGoogleAdsPrototype({
+      endpoint, chamber, fetchImpl, captureContext: () => page, experimentalCallbacks: true,
+      consent: { ad_storage: fault === "wrong-hold" ? "denied" : "granted" },
+    });
+    try {
+      adapter.gtag("event", "conversion", {
+        send_to: "AW-0000000000/SYNTHETIC_LABEL", event_callback: callback, event_timeout: 1000,
+      });
+      await Promise.resolve();
+      if (fault !== "none") {
+        chamber.emit({ type: "intercepted-fetch", id: 1, method: "GET", url: `${endpoint}?label=SYNTHETIC_LABEL` });
+        if (fault !== "pending") await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      chamber.emit({
+        type: "result",
+        summary: fault === "hidden"
+          ? { seq: 1, disposition: "rejected", requests: 0 }
+          : { seq: 1, disposition: "transport-settled", requests: 1, status: 204 },
+        ready: [],
+      });
+      const state = await adapter.flush();
+      expect(state).toMatchObject({ phase: "terminal", terminalReason: "result-transport-mismatch" });
+      expect(state.outcomes.some((entry) => entry.disposition === "transport-settled")).toBe(false);
+      expect(callback).toHaveBeenCalledOnce();
+      expect(state.callbacks).toMatchObject({ invoked: 1, pending: 0 });
+      release?.();
+    } finally { await adapter.dispose(); }
+  });
+
+  it("rejects a second intercepted request for one single-route command", async () => {
+    const chamber = controlledChamber({ configure: true });
+    const fetchImpl = vi.fn(() => new Promise(() => {}));
+    const adapter = createGoogleAdsPrototype({
+      endpoint, chamber, fetchImpl, captureContext: () => page, consent: { ad_storage: "granted" },
+    });
+    try {
+      adapter.gtag("event", "conversion", { send_to: "AW-0000000000/SYNTHETIC_LABEL" });
+      await Promise.resolve();
+      chamber.emit({ type: "intercepted-fetch", id: 1, method: "GET", url: `${endpoint}?label=SYNTHETIC_LABEL` });
+      chamber.emit({ type: "intercepted-fetch", id: 2, method: "GET", url: `${endpoint}?label=SYNTHETIC_LABEL` });
+      const state = await adapter.flush();
+      expect(state).toMatchObject({ phase: "terminal", terminalReason: "request-correlation-failed" });
+      expect(state.outcomes.some((entry) => entry.disposition === "transport-settled")).toBe(false);
+      expect(state.host.dispatchAttempts).toBeLessThanOrEqual(1);
+    } finally { await adapter.dispose(); }
+  });
+
+  it("does not accept transport or configured outcomes for the wrong command type", async () => {
+    for (const [command, fake] of [
+      [["event", "conversion", { send_to: "AW-0000000000/SYNTHETIC_LABEL" }], { disposition: "configured", requests: 0 }],
+      [["config", "AW-0000000000"], { disposition: "transport-settled", requests: 1, status: 204 }],
+    ]) {
+      const chamber = controlledChamber({ configure: true });
+      const adapter = createGoogleAdsPrototype({ endpoint, chamber, captureContext: () => page });
+      try {
+        adapter.gtag(...command);
+        await Promise.resolve();
+        chamber.emit({ type: "result", summary: { seq: 1, ...fake }, ready: [] });
+        const state = await adapter.flush();
+        expect(state).toMatchObject({ phase: "terminal", terminalReason: "result-transport-mismatch" });
+        expect(state.outcomes.some((entry) => ["configured", "transport-settled"].includes(entry.disposition))).toBe(false);
+      } finally { await adapter.dispose(); }
+    }
   });
 
   it("rejects a duplicate result delivered before the first result microtask settles, without starting the next command", async () => {

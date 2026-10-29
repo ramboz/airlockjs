@@ -145,6 +145,12 @@ replay them. Defaults: 32 queued calls (maximum 128), 256 lifetime admissions
 and bounded outcome history, 16 flush waiters, 2-second startup/command and
 1-second transport deadlines. Timeouts and lost correlation terminate the
 adapter rather than allowing late results to settle another command.
+An intercepted request must belong to the active conversion and have a fresh
+request ID. The adapter checks the worker's request count, disposition and
+status against the response it sent through the trusted host; an unsolicited
+request, extra request or contradictory result terminates the adapter instead
+of reporting settlement. This corroborates local host transport only, not the
+worker's full native request semantics or an independent receiver.
 `flush` reports outcomes, not independent receipt; the example observes the
 receiver separately. Repeated `dispose` preserves cleanup failure.
 
