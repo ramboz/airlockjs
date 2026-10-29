@@ -282,6 +282,15 @@ that evidence. Retain the current reader and valid supervision, or propose a
 narrowly reviewed equivalent that preserves every required check; neither
 option is established yet.
 
+A separate offline synthetic control exercised the existing additional
+supervisor's launcher-to-Chrome transition with the same PID, parent, group,
+user and second-resolution start time but a changed command. The transition
+accepted the changed command when the pinned profile matched. The test did
+not inspect or signal a real process and does not establish that a replacement
+occurred. It shows that those modeled observations alone do not distinguish
+the replacement from the intended exec transition. The retained probe is
+`/Users/ramboz/.copilot/session-state/89132187-b3df-4fd9-a894-eff56c3692c5/files/meta-additional-transition-probe.mjs`.
+
 The network checkpoint must show, with local negative controls, that the
 confined browser cannot bypass the intended proxy or reach an unrelated
 localhost listener. The existing sandbox allows `localhost:*` and is
