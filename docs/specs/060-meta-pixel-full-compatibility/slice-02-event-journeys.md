@@ -94,6 +94,10 @@ fields through the real first-party Node worker and governed loopback receiver,
 and visibly rejects unsupported data. The prototype's default remains
 unchanged. This selected-field local observation does not establish native
 type handling, complete serialization, live delivery or acceptance of 060-02.
+An independent local-receiver check subsequently matched the two selected
+fields against the three retained aborted attempts, including the baseline
+omissions. The controlled values matched, but the native and local contexts
+differed; this is not a same-environment or complete-request comparison.
 
 ### Experimental construction - 2026-10-29
 

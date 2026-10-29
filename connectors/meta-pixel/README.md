@@ -75,7 +75,9 @@ this path is source-only and **not browser-tested**. Node tests inject a real
   Consent is checked for each branch, and held branches are not replayed.
   A command timeout can terminate before a branch summary is returned.
   Malformed or inconsistent multi-Pixel worker summaries terminate with
-  `invalid-worker-result` rather than exposing extra fields or values.
+  `invalid-worker-result` rather than exposing extra fields or values. Branch
+  counts and statuses must match the host's own responses; a worker cannot
+  report settlement without a corresponding response.
 - `await flush()` observes bounded command/transport outcomes, **not receipt**.
   `transport-settled` means a correlated 2xx response, not vendor acceptance.
 - `setConsent(vector)` governs subsequent dispatch. Held commands are dropped;

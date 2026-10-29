@@ -402,6 +402,75 @@ describe("bounded experimental capture and trusted transport policy", () => {
     } finally { await adapter.dispose(); }
   });
 
+  it("rejects a claimed multi-Pixel settlement with no host dispatch", async () => {
+    const chamber = controlledChamber();
+    const adapter = createMetaPixelPrototype({
+      endpoint, chamber, captureContext: () => context, consent: { ad_storage: "granted" },
+      experimentalRouting: true, experimentalMultiPixelRouting: true,
+    });
+    try {
+      await Promise.resolve();
+      adapter.fbq("init", "000000000000001");
+      chamber.emit({ type: "result", summary: { seq: 1, disposition: "initialized", requests: 0 }, ready: [] });
+      await adapter.flush();
+      adapter.fbq("track", "PageView");
+      chamber.emit({ type: "result", summary: {
+        seq: 2, disposition: "transport-settled", requests: 1, selected: 1,
+        branches: [{ ordinal: 1, disposition: "transport-settled", status: 204 }],
+      }, ready: [] });
+      const state = await adapter.flush();
+      expect(state.host.dispatchAttempts).toBe(0);
+      expect(state).toMatchObject({ phase: "terminal", terminalReason: "invalid-worker-result" });
+    } finally { await adapter.dispose(); }
+  });
+
+  it("rejects a claimed branch status that differs from the host response", async () => {
+    const chamber = controlledChamber();
+    const adapter = createMetaPixelPrototype({
+      endpoint, chamber, captureContext: () => context, consent: { ad_storage: "granted" },
+      experimentalRouting: true, experimentalMultiPixelRouting: true,
+      fetchImpl: async () => ({ status: 204, body: null }),
+    });
+    try {
+      await Promise.resolve();
+      adapter.fbq("init", "000000000000001");
+      chamber.emit({ type: "result", summary: { seq: 1, disposition: "initialized", requests: 0 }, ready: [] });
+      await adapter.flush();
+      adapter.fbq("track", "PageView");
+      chamber.emit({ type: "intercepted-fetch", id: 1, method: "GET", url: `${endpoint}?ev=PageView` });
+      await vi.waitFor(() => expect(chamber.sent).toContainEqual(expect.objectContaining({
+        type: "intercepted-fetch-response", id: 1, status: 204,
+      })));
+      chamber.emit({ type: "result", summary: {
+        seq: 2, disposition: "transport-settled", requests: 1, selected: 1,
+        branches: [{ ordinal: 1, disposition: "transport-settled", status: 200 }],
+      }, ready: [] });
+      const state = await adapter.flush();
+      expect(state.host.dispatchAttempts).toBe(1);
+      expect(state).toMatchObject({ phase: "terminal", terminalReason: "invalid-worker-result" });
+    } finally { await adapter.dispose(); }
+  });
+
+  it("rejects overlapping multi-Pixel host requests before a second dispatch", async () => {
+    const chamber = controlledChamber();
+    const adapter = createMetaPixelPrototype({
+      endpoint, chamber, captureContext: () => context, consent: { ad_storage: "granted" },
+      experimentalRouting: true, experimentalMultiPixelRouting: true,
+    });
+    try {
+      await Promise.resolve();
+      adapter.fbq("init", "000000000000001");
+      chamber.emit({ type: "result", summary: { seq: 1, disposition: "initialized", requests: 0 }, ready: [] });
+      await adapter.flush();
+      adapter.fbq("track", "PageView");
+      chamber.emit({ type: "intercepted-fetch", id: 1, method: "GET", url: `${endpoint}?ev=PageView` });
+      chamber.emit({ type: "intercepted-fetch", id: 2, method: "GET", url: `${endpoint}?ev=PageView` });
+      const state = await adapter.flush();
+      expect(state.host.dispatchAttempts).toBe(1);
+      expect(state).toMatchObject({ phase: "terminal", terminalReason: "invalid-worker-result" });
+    } finally { await adapter.dispose(); }
+  });
+
   it("rejects a second result before the first command finishes settling", async () => {
     const chamber = controlledChamber();
     const adapter = createMetaPixelPrototype({

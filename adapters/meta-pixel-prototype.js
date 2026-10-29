@@ -204,6 +204,9 @@ export function createMetaPixelPrototype({
   let inFlight = false;
   let activeEvent;
   let activeResultReceived = false;
+  let activeHostRequest = null;
+  let lastHostRequestId = 0;
+  let activeHostResponses = [];
   let capturing = false;
   let cleanupFailure = null;
   let currentFinish;
@@ -302,6 +305,8 @@ export function createMetaPixelPrototype({
       inFlight = true;
       activeEvent = event;
       activeResultReceived = false;
+      activeHostRequest = null;
+      activeHostResponses = [];
       const settled = await new Promise((resolve) => {
         let finished = false;
         const finish = (value) => {
@@ -332,6 +337,20 @@ export function createMetaPixelPrototype({
       activeEvent = undefined;
     }
     settleFlushes();
+  }
+
+  function postHostMessage(message) {
+    if (phase === "terminal" || phase === "disposed") return;
+    if (experimentalMultiPixelRouting && message.type === "intercepted-fetch-response") {
+      if (!inFlight || activeHostRequest !== message.id) { stop("invalid-worker-result"); return; }
+      const held = message.status === 0 && message.statusText?.startsWith("held at the seal:");
+      activeHostResponses.push({
+        status: message.status,
+        disposition: held ? "held" : message.status >= 200 && message.status < 300 ? "transport-settled" : "failed",
+      });
+      activeHostRequest = null;
+    }
+    try { transport.postMessage(message); } catch { stop("transport-post-failed"); }
   }
 
   function fbq(...args) {
@@ -396,7 +415,12 @@ export function createMetaPixelPrototype({
         if (!inFlight || !activeEvent || activeResultReceived) { stop("invalid-worker-result"); return; }
         const result = multiResultMessage(message);
         const summary = result && validateMultiSummary(result.summary, activeEvent.seq, activeEvent.payload.args[0]);
-        if (!summary) { stop("invalid-worker-result"); return; }
+        if (!summary || activeHostRequest !== null || summary.requests !== activeHostResponses.length ||
+            (summary.branches && summary.branches.some((branch, index) =>
+              branch.status !== activeHostResponses[index].status ||
+              branch.disposition !== activeHostResponses[index].disposition))) {
+          stop("invalid-worker-result"); return;
+        }
         activeResultReceived = true;
         forwarded = { type: "result", summary, ready: [] };
       }
@@ -409,10 +433,19 @@ export function createMetaPixelPrototype({
         phase = "ready";
         clearTimeout(initTimer);
       }
-      if (message?.type === "intercepted-fetch" &&
-          (message.method !== "GET" || Object.keys(message).some((key) => !["type", "id", "url", "method"].includes(key)))) {
-        transport.postMessage({ type: "intercepted-fetch-response", id: message.id, status: 0, statusText: "held at the seal: literal-loopback-policy", body: "" });
-        return;
+      if (message?.type === "intercepted-fetch") {
+        if (experimentalMultiPixelRouting) {
+          if (!inFlight || activeResultReceived || activeHostRequest !== null || activeHostResponses.length >= 4 ||
+              !Number.isSafeInteger(message.id) || message.id <= lastHostRequestId) {
+            stop("invalid-worker-result"); return;
+          }
+          activeHostRequest = message.id;
+          lastHostRequestId = message.id;
+        }
+        if (message.method !== "GET" || Object.keys(message).some((key) => !["type", "id", "url", "method"].includes(key))) {
+          postHostMessage({ type: "intercepted-fetch-response", id: message.id, status: 0, statusText: "held at the seal: literal-loopback-policy", body: "" });
+          return;
+        }
       }
       for (const listener of hostListeners) listener(forwarded);
       void pump();
@@ -420,10 +453,7 @@ export function createMetaPixelPrototype({
     subscriptions.push(transport.onError?.(() => stop("worker-error")));
     host = createWrappedSdkHost({
       chamber: {
-        postMessage(message) {
-          if (phase === "terminal" || phase === "disposed") return;
-          try { transport.postMessage(message); } catch { stop("transport-post-failed"); }
-        },
+        postMessage: postHostMessage,
         onMessage: (listener) => hostListeners.add(listener),
       },
       caps: { egress: { dispatch } },
