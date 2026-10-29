@@ -105,7 +105,8 @@ self.onmessage = async ({ data }) => {
         endpoint: data.endpoint, experimentalPageViewData: data.experimentalPageViewData,
         experimentalRouting: data.experimentalRouting, experimentalMultiPixelRouting: data.experimentalMultiPixelRouting,
         experimentalEvents: data.experimentalEvents, experimentalScalarEventData: data.experimentalScalarEventData,
-        experimentalContentIds: data.experimentalContentIds, experimentalEventIds: data.experimentalEventIds,
+        experimentalContentIds: data.experimentalContentIds, experimentalContents: data.experimentalContents,
+        experimentalEventIds: data.experimentalEventIds,
         experimentalSyntheticAdvancedMatching: data.experimentalSyntheticAdvancedMatching,
         syntheticIdentityFixtures: data.syntheticIdentityFixtures,
       });

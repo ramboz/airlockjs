@@ -62,6 +62,19 @@ this path is source-only and **not browser-tested**. Node tests inject a real
   duplicates and string/number types. This encoding and these limits are
   **unverified prototype choices**, not observed native behavior.
 - With both `experimentalPageViewData: true` and
+  `experimentalContents: true`, event data can contain `contents`, an array
+  of at most 16 ordinary objects containing exactly `id` and `quantity`.
+  The local subset accepts nonempty, well-formed string IDs of at most 64
+  UTF-16 code units or nonnegative safe integer IDs; quantity is a finite,
+  nonnegative number no greater than `Number.MAX_SAFE_INTEGER`, including
+  fractions. Negative zero, null, accessors, sparse arrays, extra properties
+  and unsupported fields such as `item_price` reject the whole command. Empty
+  arrays are retained and undefined is omitted. Each nested record is
+  snapshotted before queuing and revalidated in the chamber, which emits one
+  JSON value in `cd[contents]`. The type restrictions, required keys, size
+  bounds, empty handling and wire encoding are **unverified prototype
+  choices**, not native behavior or catalog proof.
+- With both `experimentalPageViewData: true` and
   `experimentalEventIds: true`, `fbq("track", name, data, { eventID })`
   accepts the documented fourth argument. With multi-Pixel routing enabled,
   `fbq("trackSingle", pixelId, name, data, { eventID })` accepts the
@@ -106,7 +119,8 @@ this path is source-only and **not browser-tested**. Node tests inject a real
   The existing `experimentalPageViewData` opt-in also allows the same
   `value`/`currency` record on these events; the separate scalar opt-in above
   adds its listed properties, and the separate content-ID opt-in adds that
-  array. Other arrays, objects and unrecognized fields reject.
+  array; the separate contents opt-in adds its bounded array of item records.
+  Other arrays, objects and unrecognized fields reject.
   No native conversion event or general
   custom-event serialization was captured, and the admission rules, field
   encoding and order here are working assumptions.
@@ -186,7 +200,7 @@ The fixture omits 38 experiment flags and lacks original bytes/order, complete
 response/header/browser/cookie/consent behavior and equivalent native inputs.
 It contains a PageView `cd[region]=us` wire field, but does not establish
 the original input-to-wire relationship, general custom-data serialization,
-or content-ID array serialization.
+content-ID array serialization, or contents item serialization.
 The supplied references do not establish native event-ID wire encoding,
 actual deduplication or server/browser correlation for this prototype.
 Meta documents the third init argument, but the retained beacon does not prove

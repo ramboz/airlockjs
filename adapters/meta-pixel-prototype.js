@@ -182,17 +182,19 @@ export function createMetaPixelPrototype({
   experimentalEvents = false,
   experimentalScalarEventData = false,
   experimentalContentIds = false,
+  experimentalContents = false,
   experimentalEventIds = false,
   experimentalSyntheticAdvancedMatching = false,
 } = {}) {
   if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
-    experimentalScalarEventData, experimentalContentIds, experimentalEventIds, experimentalSyntheticAdvancedMatching]
+    experimentalScalarEventData, experimentalContentIds, experimentalContents, experimentalEventIds, experimentalSyntheticAdvancedMatching]
     .some((option) => typeof option !== "boolean")) {
     throw new Error("invalid-experimental-option");
   }
   if (experimentalMultiPixelRouting && !experimentalRouting) throw new Error("multi-pixel-routing-requires-routing");
   if (experimentalScalarEventData && !experimentalPageViewData) throw new Error("scalar-data-requires-pageview-data");
   if (experimentalContentIds && !experimentalPageViewData) throw new Error("content-ids-require-pageview-data");
+  if (experimentalContents && !experimentalPageViewData) throw new Error("contents-require-pageview-data");
   if (experimentalEventIds && !experimentalPageViewData) throw new Error("event-ids-require-pageview-data");
   if (experimentalSyntheticAdvancedMatching && !experimentalMultiPixelRouting) {
     throw new Error("synthetic-identity-requires-multi-pixel-routing");
@@ -398,7 +400,7 @@ export function createMetaPixelPrototype({
     capturing = true;
     try {
       if (experimentalPageViewData === true && dataIndex >= 0 && (args.length === dataIndex + 1 || hasOptions)) {
-        const data = snapshotPageViewData(args[dataIndex], experimentalScalarEventData, experimentalContentIds);
+        const data = snapshotPageViewData(args[dataIndex], experimentalScalarEventData, experimentalContentIds, experimentalContents);
         if (!data) { reject("unsupported-parameters"); return; }
         args[dataIndex] = data;
       }
@@ -505,6 +507,7 @@ export function createMetaPixelPrototype({
       ...(experimentalEvents === true ? { experimentalEvents: true } : {}),
       ...(experimentalScalarEventData === true ? { experimentalScalarEventData: true } : {}),
       ...(experimentalContentIds === true ? { experimentalContentIds: true } : {}),
+      ...(experimentalContents === true ? { experimentalContents: true } : {}),
       ...(experimentalEventIds === true ? { experimentalEventIds: true } : {}),
       ...(experimentalSyntheticAdvancedMatching === true
         ? { experimentalSyntheticAdvancedMatching: true, syntheticIdentityFixtures } : {}) });

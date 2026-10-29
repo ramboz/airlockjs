@@ -36,7 +36,7 @@ async function configure(chamber, transportTimeoutMs = 500) {
 }
 
 describe("actual first-party worker correlated protocol (not receipt evidence)", () => {
-  it.each(["experimentalRouting", "experimentalPageViewData", "experimentalMultiPixelRouting", "experimentalEvents", "experimentalScalarEventData", "experimentalContentIds", "experimentalEventIds", "experimentalSyntheticAdvancedMatching"])("rejects mistyped %s during worker initialization", async (option) => {
+  it.each(["experimentalRouting", "experimentalPageViewData", "experimentalMultiPixelRouting", "experimentalEvents", "experimentalScalarEventData", "experimentalContentIds", "experimentalContents", "experimentalEventIds", "experimentalSyntheticAdvancedMatching"])("rejects mistyped %s during worker initialization", async (option) => {
     const chamber = createNodePrototypeChamber();
     try {
       const failed = receive(chamber, "fatal");
@@ -60,6 +60,44 @@ describe("actual first-party worker correlated protocol (not receipt evidence)",
       const failed = receive(chamber, "fatal");
       chamber.postMessage({ type: "init", endpoint, transportTimeoutMs: 500, experimentalEventIds: true });
       expect(await failed).toEqual({ type: "fatal", message: "worker-configuration-failed" });
+    } finally { await chamber.dispose(); }
+  }, 5000);
+
+  it("rejects the contents opt-in when its data prerequisite is absent", async () => {
+    const chamber = createNodePrototypeChamber();
+    try {
+      const failed = receive(chamber, "fatal");
+      chamber.postMessage({ type: "init", endpoint, transportTimeoutMs: 500, experimentalContents: true });
+      expect(await failed).toEqual({ type: "fatal", message: "worker-configuration-failed" });
+    } finally { await chamber.dispose(); }
+  }, 5000);
+
+  it("revalidates serialized nested contents before requesting transport", async () => {
+    const chamber = createNodePrototypeChamber();
+    try {
+      const configured = receive(chamber, "phase");
+      chamber.postMessage({
+        type: "init", endpoint, transportTimeoutMs: 500,
+        experimentalPageViewData: true, experimentalContents: true,
+      });
+      await configured;
+      const initialized = receive(chamber, "result");
+      chamber.postMessage({ type: "event", event: event(1, ["init", "000000000000000"]) });
+      await initialized;
+      const rejected = receive(chamber, "result");
+      chamber.postMessage({ type: "event", event: event(2, ["track", "PageView", {
+        contents: [{ id: "one", quantity: 1, item_price: 2 }],
+      }]) });
+      expect((await rejected).summary).toMatchObject({ seq: 2, disposition: "rejected", reason: "unsupported-parameters" });
+      const requested = receive(chamber, "intercepted-fetch");
+      chamber.postMessage({ type: "event", event: event(3, ["track", "PageView", {
+        contents: [{ id: "one", quantity: 2 }],
+      }]) });
+      const request = await requested;
+      expect(new URL(request.url).searchParams.get("cd[contents]")).toBe('[{"id":"one","quantity":2}]');
+      const settled = receive(chamber, "result");
+      chamber.postMessage({ type: "intercepted-fetch-response", id: request.id, status: 204, body: "" });
+      expect((await settled).summary).toMatchObject({ seq: 3, disposition: "transport-settled", status: 204 });
     } finally { await chamber.dispose(); }
   }, 5000);
 

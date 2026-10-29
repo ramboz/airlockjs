@@ -43,17 +43,19 @@ function validContext(context) {
  */
 export function createMetaPageViewPrototype({
   endpoint, experimentalPageViewData = false, experimentalRouting = false, experimentalMultiPixelRouting = false,
-  experimentalEvents = false, experimentalScalarEventData = false, experimentalContentIds = false, experimentalEventIds = false,
+  experimentalEvents = false, experimentalScalarEventData = false, experimentalContentIds = false, experimentalContents = false,
+  experimentalEventIds = false,
   experimentalSyntheticAdvancedMatching = false, syntheticIdentityFixtures = null,
 } = {}) {
   if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
-    experimentalScalarEventData, experimentalContentIds, experimentalEventIds, experimentalSyntheticAdvancedMatching]
+    experimentalScalarEventData, experimentalContentIds, experimentalContents, experimentalEventIds, experimentalSyntheticAdvancedMatching]
     .some((option) => typeof option !== "boolean")) {
     throw new Error("invalid-experimental-option");
   }
   if (experimentalMultiPixelRouting && !experimentalRouting) throw new Error("multi-pixel-routing-requires-routing");
   if (experimentalScalarEventData && !experimentalPageViewData) throw new Error("scalar-data-requires-pageview-data");
   if (experimentalContentIds && !experimentalPageViewData) throw new Error("content-ids-require-pageview-data");
+  if (experimentalContents && !experimentalPageViewData) throw new Error("contents-require-pageview-data");
   if (experimentalEventIds && !experimentalPageViewData) throw new Error("event-ids-require-pageview-data");
   if (experimentalSyntheticAdvancedMatching && !experimentalMultiPixelRouting) {
     throw new Error("synthetic-identity-requires-multi-pixel-routing");
@@ -128,7 +130,7 @@ export function createMetaPageViewPrototype({
       if (single && !pixelIds.has(args[1])) throw new Error("uninitialized-pixel");
       if (!validContext(context)) throw new Error("invalid-context");
       const pageViewData = args.length > dataIndex
-        ? snapshotPageViewData(args[dataIndex], experimentalScalarEventData, experimentalContentIds) : null;
+        ? snapshotPageViewData(args[dataIndex], experimentalScalarEventData, experimentalContentIds, experimentalContents) : null;
       if (args.length > dataIndex && !pageViewData) throw new Error("unsupported-parameters");
       const eventOptions = hasOptions ? snapshotEventOptions(args[dataIndex + 1]) : null;
       if (hasOptions && !eventOptions) throw new Error("unsupported-options");
@@ -149,6 +151,9 @@ export function createMetaPageViewPrototype({
           }
           if (experimentalContentIds && Object.hasOwn(pageViewData, "content_ids") && pageViewData.content_ids !== undefined) {
             query.append("cd[content_ids]", JSON.stringify(pageViewData.content_ids));
+          }
+          if (experimentalContents && Object.hasOwn(pageViewData, "contents") && pageViewData.contents !== undefined) {
+            query.append("cd[contents]", JSON.stringify(pageViewData.contents));
           }
         }
         if (eventOptions) query.append("eid", eventOptions.eventID);

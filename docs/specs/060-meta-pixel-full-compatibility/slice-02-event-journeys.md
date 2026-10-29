@@ -138,8 +138,23 @@ Tests exercise typed/ordered IDs, duplicates, snapshotting, routing, consent,
 invalid arrays and the encoded URL ceiling. This mapping, empty-array handling
 and size/type restrictions are explicit prototype choices: the documented
 input vocabulary establishes neither native array wire encoding nor scalar
-acceptance. Other arrays and nested `contents` remain unsupported. No native
-capture, backend receipt, parity or readiness gate is claimed.
+acceptance. Other arrays and nested `contents` remained unsupported at that
+checkpoint. No native capture, backend receipt, parity or readiness gate is
+claimed.
+
+The separate `experimentalContents` opt-in accepts only documented item field
+names `id` and `quantity`, snapshots the bounded array and nested records on
+capture, and revalidates them in the serialized worker. It emits one
+JSON-stringified `cd[contents]` value via the governed loopback receiver.
+Tests exercise broadcast, targeted and custom events, mutation, consent,
+malformed records, unsupported prices, combined event data and size limits.
+
+The permitted string/integer ID and finite nonnegative numeric quantity
+subset, required fields, bounds, empty/undefined behavior and JSON wire form
+are local prototype choices, not captured native behavior. Price and other
+item fields remain rejected: the retained documentation does not establish
+their supported Pixel schema. Native contents input-to-wire evidence, backend
+receipt, catalog matching and all readiness/acceptance gates remain open.
 
 ## Assumptions
 
