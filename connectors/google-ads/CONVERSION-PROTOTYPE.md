@@ -55,6 +55,53 @@ response or receipt; local 204 responses are not vendor success. Scope,
 multi-destination and native Consent Mode behavior, full compatibility and
 production readiness remain unproved.
 
+The reusable offline tool runs the same limited comparison against an explicitly
+supplied Google native-attempt reference:
+
+```sh
+node rig/google-ads-attempt-comparison.mjs --inputs /absolute/private/inputs.json
+```
+
+The mode-0600 input file, in an owned mode-0700 directory, contains exactly:
+
+```json
+{
+  "schema": "airlock.google-ads-prototype-attempt-comparison.v1",
+  "reference": {
+    "report": { "path": "/absolute/private/report.json", "sha256": "<original digest>" },
+    "capture": { "path": "/absolute/private/capture.json", "sha256": "<original digest>" },
+    "completion": { "path": "/absolute/private/completion.json", "sha256": "<original digest>" }
+  },
+  "expected_pins": {
+    "profile": "google-ads-conversion",
+    "node_version": "<original version>",
+    "browser_version": "<original version>",
+    "os_release": "<original release>",
+    "macos_version": "<original version>",
+    "runtime_sha256": "<original digest>",
+    "configuration_sha256": null,
+    "network_policy_sha256": "<original digest>"
+  }
+}
+```
+
+Supply the original canonical handles, byte digests and pins explicitly; no
+reference discovery, input rewriting or output files are provided. The strict
+reader validates the original reference and completion before and after the
+local cases. The original manifest and reference identities are rechecked.
+The tool emits fixed counts, status and false claims only, never input values,
+URLs, paths or error text. Values cross only the local worker and literal
+loopback HTTP receiver. The transport uses direct Node HTTP without a proxy.
+The tool closes resources even on a failed case and reports cleanup failures.
+
+Exit 0 means the selected local relationships matched; its overall result
+is still `inconclusive`, not native qualification. Exit 1 reports a selected
+relationship difference, exit 2 an incomplete reference or local run, and
+exit 3 invalid input. Even a match leaves the consent, endpoint, auxiliary,
+transport, response and compatibility limitations above unchanged. The owner
+must separately authorize each use of private reference inputs; this command
+does not authorize browser, vendor or live activity.
+
 ## Experimental standalone seam
 
 `createGoogleAdsPrototype` in `adapters/google-ads-prototype.js` returns
