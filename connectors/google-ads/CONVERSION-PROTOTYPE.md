@@ -31,7 +31,9 @@ and a local 204 settlement. All three workers, receivers and sockets closed.
 Raw values and URLs were passed through local process memory and loopback only;
 they were not printed or written to files. The executed command was ephemeral;
 its private script and sanitized result were reconstructed after the run. The
-result is a transcription, not an independently witnessed completion record.
+original result is a transcription, not an independently witnessed completion
+record. A later execution of that reconstructed script reproduced the same
+counts and controls on this branch, with exit zero and no reported diagnostics.
 
 Each case's two retained primary attempts were aborted before transmission.
 For all six attempts, the local receiver matched the original destination-ID
