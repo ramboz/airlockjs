@@ -189,7 +189,7 @@ A separately admitted SDK-free controller attempt on2026-10-29 stopped on
 nonempty listener output and empty stderr. The cause is not established. The
 stop receipt reported no failures and known Node cleanup closed; scoped checks
 found the recorded runner, browser groups, profiles and listener ports absent.
-The failed observer awaits owner release. No relay, additional phase, native
+After owner approval the failed observer exited2. No relay, additional phase, native
 grant or retry followed, and neither earlier UNKNOWN is cleared.
 
 ## Attended acquisition and independent owner stop

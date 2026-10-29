@@ -37,7 +37,7 @@ A later admitted SDK-free controller attempt stopped immediately on the
 successor's incorrect directory mode. Known runner cleanup completed; no child
 or browser appeared in sampled observations, and the owner released the failed
 observer. A later SDK-free controller stopped on listener inventory; recorded
-resources were checked absent and its observer awaits owner release. No native
+resources were checked absent and the owner released its observer. No native
 qualification followed.
 
 **Latest actual outcome:** the separately approved zero-body-EOF sequence

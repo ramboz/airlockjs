@@ -36,7 +36,7 @@ An authored AC is not a passing evaluation.
       retained despite owner-approved key removal and observer closure.
 - [x] Resolve the later directory-mode failure's waiting observer with the
       owner's approval. No retry or current guard proof followed.
-- [ ] Resolve the2026-10-29 listener-inventory failure's waiting observer with
+- [x] Resolve the2026-10-29 listener-inventory failure's waiting observer with
       owner approval. Its recorded resources were checked absent.
 - [ ] Qualify the repaired current-source path through a separately admitted
       actual job. Source checks do not clear historical H1 UNKNOWN or loss gaps.

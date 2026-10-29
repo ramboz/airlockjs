@@ -429,7 +429,7 @@ The separately admitted SDK-free controller stopped on
 exit1 with nonempty listener output and empty stderr; the cause is not
 established. The stop receipt reports no failures and known Node cleanup
 closed. Scoped checks found the recorded runner, browser groups, profiles and
-listener ports absent. The failed observer awaits owner release. No relay,
+listener ports absent. After owner approval the failed observer exited2. No relay,
 additional phase or native grant ran; neither earlier UNKNOWN is cleared.
 
 **DoR:**
