@@ -31,10 +31,19 @@ The 2026-10-15 allowance above is historical, not a renewed execution budget.
 
 **Owner-directed construction (2026-10-29):** the owner approved starting
 experimental replacement work from the available references before complete
-native responses exist. Local opt-ins now carry Meta PageView value/currency
-and a supplied Pixel ID, and a matching Google conversion destination/action,
-through their existing workers and governed loopback receivers. Defaults
-remain unchanged. These are not production cutovers or parity claims; the
+native responses exist. Local, source-only opt-ins now cover Google routing,
+parameter scopes, callbacks and conservative consent commands; Meta covers
+multiple Pixels, event routing, bounded commerce data, event IDs and synthetic
+init identity. Each uses a serialized worker and governed loopback receiver;
+the existing production defaults remain unchanged. Most ordering, encoding and
+identity choices remain experimental, not native findings.
+
+A repeatable offline comparison matched five selected Google field relationships
+for three retained inputs against six aborted native attempts. It did not
+compare auxiliary traffic, complete wire behavior, consent or vendor responses.
+Controlled Meta PageView value/currency fields also matched selected aborted
+attempts, but not in an equivalent environment. Neither observation establishes
+receipt, attribution or full parity. These are not production cutovers; the
 first journeys' full evidence and acceptance gates remain open.
 
 **Next pick:** return to the bounded evidence gaps for full060-01/059-01 after
