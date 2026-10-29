@@ -61,6 +61,25 @@ commerce events through existing site calls without losing data or changing type
 **Anti-horizontal-phasing check:** The engineer completes real event/commerce
 reporting with native-equivalent output and diagnostics, not just a new encoder.
 
+## Offline observation - 2026-10-29
+
+The retained no-send experiment used older SDK bytes and a synthetic fixture.
+Its baseline PageView made one aborted measurement attempt without `cd[value]`
+or `cd[currency]`; each of two controlled PageViews made one aborted attempt
+with exactly one of each field matching its input. The fixture supplied numeric
+values, although the private capture's input metadata stores their text form.
+No vendor measurement was sent or response received.
+
+An offline direct connector-host check using the same numeric value/currency
+arguments, a synthetic Pixel ID and a different page/context found that the
+060-13 prototype accepts the parameter-free PageView but drops each
+three-argument PageView as `unsupported-command`. Its two-argument limit was
+intentional; this is a concrete future event-data gap, not a regression in the
+completed prototype. The private capture and scoped verifier remain in the
+session artifacts. This is not a same-environment native/chamber comparison,
+an official-backend receipt, proof of general serialization or evidence that
+the prerequisites or acceptance criteria above have passed.
+
 ## Assumptions
 
 - Unverified: native type/coercion/size behavior is discriminable without losing
