@@ -69,9 +69,35 @@ hyphen label of at most 128 characters. Mismatches reject without dispatch.
 This is a bounded local rule, not a claim about native Google validation or
 authorization to send to Google. The default remains the fixed synthetic route.
 
+For local command experiments, `experimentalParameterScopes: true` also
+supports the object form of `gtag("set", values)` and optional config values:
+
+```js
+gtag("set", { value: 10, currency: "USD" });
+gtag("config", "AW-0000000000", { currency: "CAD" });
+gtag("event", "conversion", {
+  send_to: "AW-0000000000/SYNTHETIC_LABEL", value: 12,
+});
+```
+
+In this experiment the worker retains independent global and destination-config
+records, then resolves each conversion as global < config < event. Only `value`,
+`currency` and `transaction_id` can be set in the first two scopes; `send_to`
+remains mandatory on each event. Calls are captured by value and processed in
+order. A valid `set` updates only supplied keys and reports `scope-updated`;
+invalid updates are rejected atomically. An explicitly supplied `undefined`
+overrides lower scopes and omits that field from the request; zero and empty
+strings remain present. The existing duplicate-config rejection still applies.
+Scope changes do not bypass the seal or replay a denied conversion. Each
+adapter/chamber has its own scope state. These choices are **experimental
+semantics**, not qualified native behavior; key/value set, other parameters,
+repeated config and native undefined/consent behavior remain unverified.
+The option defaults to false and works independently of experimental routing.
+
 Main synchronously captures/clones primitive data and returns `undefined`.
 The chamber interprets commands, retains config, validates types and builds
-the query. Config options, duplicate config, pre-config conversions, unknown
+the query. Outside the scope opt-in, config options and `set` are rejected.
+Duplicate config, pre-config conversions, unknown
 commands/keys, arrays, nested objects, accessors and callbacks reject visibly.
 The pure connector independently enforces own-data-property parameter/context
 records too; inherited values or getters cannot supply optional wire fields.
@@ -112,6 +138,8 @@ primary names. Public output contains field names, counts, dispositions,
 types and relationship booleans—not raw URLs or transaction/input values.
 Missing/invalid projection is visible. The result is **always INCONCLUSIVE**
 with `fullCompatibility: false`.
+The report compares only direct event inputs, not retained scope state; it
+does not qualify scope-derived values and can report them as mismatches.
 For an experimental destination, pass `experimentalRouting: true` to the
 report as well; it checks that the snapshotted destination matches the
 loopback path and that the observed label matches the call. The default report

@@ -62,6 +62,18 @@ pattern while the chamber routes correct values and preserves application callba
 **Anti-horizontal-phasing check:** Existing integrator calls drive correct
 end-to-end measurement and page navigation, not merely a new command parser.
 
+## Owner-directed offline experiment - 2026-10-29
+
+The explicit construction direction permits an opt-in experimental subset,
+without advancing this DRAFT slice or its dependencies. The standalone Google
+prototype can retain global and config values for three conversion parameters
+and apply event-over-config-over-global precedence through its first-party
+worker and loopback receiver. The exact local rules, including `undefined`,
+are described in the [prototype guide](../../../connectors/google-ads/CONVERSION-PROTOTYPE.md);
+they are assumptions for construction, not native observations. Native scope
+and queue semantics, callbacks, routing fanout, browser behavior, complete wire,
+production cutover and the acceptance criteria above remain unqualified.
+
 ## Assumptions
 
 - Unverified: all required Ads get/queue/callback edge semantics can be

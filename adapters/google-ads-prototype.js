@@ -67,9 +67,9 @@ export function createGoogleAdsPrototype({
   endpoint, chamber, captureContext = () => ({ pageURL: document.URL, referrer: document.referrer }),
   consent = null, queueLimit = 32, initTimeoutMs = 2000, commandTimeoutMs = 2000,
   transportTimeoutMs = 1000, fetchImpl = globalThis.fetch,
-  experimentalRouting = false,
+  experimentalRouting = false, experimentalParameterScopes = false,
 } = {}) {
-  if (typeof experimentalRouting !== "boolean") throw new Error("invalid-experimental-option");
+  if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean") throw new Error("invalid-experimental-option");
   const pattern = experimentalRouting === true
     ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/\d{1,20}\/$/
     : /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/0000000000\/$/;
@@ -209,7 +209,8 @@ export function createGoogleAdsPrototype({
       const captured = [];
       for (const [index, arg] of args.entries()) {
         if (primitive(arg, 2048)) { captured.push(arg); continue; }
-        if (index !== 2 || !arg || typeof arg !== "object" || Array.isArray(arg)) {
+        if ((index !== 2 && !(experimentalParameterScopes && index === 1)) ||
+            !arg || typeof arg !== "object" || Array.isArray(arg)) {
           reject("unsupported-argument"); return;
         }
         if (![Object.prototype, null].includes(Object.getPrototypeOf(arg))) { reject("unsupported-parameters"); return; }
@@ -255,7 +256,8 @@ export function createGoogleAdsPrototype({
       if (message?.type === "result") {
         const summary = message.summary;
         if (!inFlight || !awaitingResult || summary?.seq !== activeSequence) { stop("result-correlation-failed"); return; }
-        if (!["configured", "rejected", "held", "transport-settled", "failed"].includes(summary.disposition) ||
+        if (!["configured", "rejected", "held", "transport-settled", "failed",
+          ...(experimentalParameterScopes ? ["scope-updated"] : [])].includes(summary.disposition) ||
             ![0, 1].includes(summary.requests) ||
             (summary.status !== undefined && (!Number.isInteger(summary.status) || summary.status < 0 || summary.status > 599))) {
           stop("invalid-worker-result"); return;
@@ -286,7 +288,8 @@ export function createGoogleAdsPrototype({
     });
     initTimer = setTimeout(() => stop("init-timeout"), initTimeoutMs);
     host.init({ endpoint, transportTimeoutMs,
-      ...(experimentalRouting === true ? { experimentalRouting: true } : {}) });
+      ...(experimentalRouting === true ? { experimentalRouting: true } : {}),
+      ...(experimentalParameterScopes === true ? { experimentalParameterScopes: true } : {}) });
   } catch { stop("worker-unavailable"); }
   return {
     gtag, getState,

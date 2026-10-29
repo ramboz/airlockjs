@@ -43,6 +43,15 @@ describe("actual worker correlation faults, not independent receiver evidence", 
     } finally { await chamber.dispose(); }
   }, 5000);
 
+  it("rejects a mistyped experimental scope option during worker initialization", async () => {
+    const chamber = createNodeConversionChamber();
+    try {
+      const fatal = receive(chamber, "fatal");
+      chamber.postMessage({ type: "init", endpoint, transportTimeoutMs: 500, experimentalParameterScopes: "true" });
+      expect(await fatal).toEqual({ type: "fatal", message: "worker-configuration-failed" });
+    } finally { await chamber.dispose(); }
+  }, 5000);
+
   it.each(["unknown-id", "invalid-status", "oversized-body"])("fails terminally on %s rather than posting a success result", async (fault) => {
     const chamber = createNodeConversionChamber();
     try {

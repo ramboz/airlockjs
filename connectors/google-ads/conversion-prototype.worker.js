@@ -45,7 +45,7 @@ async function route(event) {
     if (result.dropped.length) {
       summary = { seq: event.seq, disposition: "rejected", reason: result.dropped[0].reason, requests: 0 };
     } else if (!result.ready.length) {
-      summary = { seq: event.seq, disposition: "configured", requests: 0 };
+      summary = { seq: event.seq, disposition: event.payload.args[0] === "set" ? "scope-updated" : "configured", requests: 0 };
     } else {
       if (result.ready.length !== 1) throw new Error("invalid-request-count");
       const response = await dispatch(result.ready[0]);
@@ -84,6 +84,7 @@ self.onmessage = async ({ data }) => {
       timeoutMs = data.transportTimeoutMs;
       connector = createConnectorHost(createGoogleAdsConversionPrototype, {
         endpoint: data.endpoint, experimentalRouting: data.experimentalRouting,
+        experimentalParameterScopes: data.experimentalParameterScopes,
       });
       await connector.init({});
       if (!terminal) self.postMessage({ type: "phase", name: "configured" });
