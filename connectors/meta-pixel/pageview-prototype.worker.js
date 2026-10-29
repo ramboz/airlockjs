@@ -88,7 +88,10 @@ self.onmessage = async ({ data }) => {
         throw new Error("invalid-timeout");
       }
       timeoutMs = data.transportTimeoutMs;
-      connector = createConnectorHost(createMetaPageViewPrototype, { endpoint: data.endpoint });
+      connector = createConnectorHost(createMetaPageViewPrototype, {
+        endpoint: data.endpoint, experimentalPageViewData: data.experimentalPageViewData,
+        experimentalRouting: data.experimentalRouting,
+      });
       await connector.init({});
       self.postMessage({ type: "phase", name: "configured" });
     } catch {

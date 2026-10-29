@@ -67,6 +67,19 @@ through fbq and sees actual governed chamber dispatch with a truthful comparison
 **Anti-horizontal-phasing check:** The integrator gets a first actual
 replacement PageView plus an actionable report, not a queue/parser-only layer.
 
+## Owner-directed construction - 2026-10-29
+
+The owner approved building the Google and Meta replacements from the available
+reference evidence before complete native-response captures are available.
+This permits experimental construction only: unsupported behavior stays
+visible, production cutover remains blocked, and the DoR, acceptance criteria
+and full-parity evidence above are not marked complete. This direction does not
+authorize a browser run, vendor request or changes to the accepted core boundary.
+The experimental `experimentalPageViewData` and `experimentalRouting` modes
+now carry controlled value/currency fields and a supplied Pixel ID through the
+first-party worker and loopback receiver. This is not a native PageView or
+full-event qualification.
+
 ## Readiness checkpoint - 2026-10-16
 
 **Current reference preparation - 2026-10-27:**060-13/14 local construction

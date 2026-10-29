@@ -10,7 +10,7 @@ const REASONS = new Set([
   "connector-not-initialized", "unsupported-command", "unsupported-config", "synthetic-destination-required",
   "duplicate-config", "conversion-before-config", "unsupported-parameters", "synthetic-selector-required",
   "unsupported-value", "unsupported-currency", "unsupported-transaction", "invalid-context",
-  "encoded-context-limit", "held-at-seal", "transport-failed",
+  "encoded-context-limit", "held-at-seal", "transport-failed", "destination-mismatch",
 ]);
 
 function browserChamber() {
@@ -67,8 +67,13 @@ export function createGoogleAdsPrototype({
   endpoint, chamber, captureContext = () => ({ pageURL: document.URL, referrer: document.referrer }),
   consent = null, queueLimit = 32, initTimeoutMs = 2000, commandTimeoutMs = 2000,
   transportTimeoutMs = 1000, fetchImpl = globalThis.fetch,
+  experimentalRouting = false,
 } = {}) {
-  const match = typeof endpoint === "string" && endpoint.match(/^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/0000000000\/$/);
+  if (typeof experimentalRouting !== "boolean") throw new Error("invalid-experimental-option");
+  const pattern = experimentalRouting === true
+    ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/\d{1,20}\/$/
+    : /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/0000000000\/$/;
+  const match = typeof endpoint === "string" && endpoint.match(pattern);
   if (!match || Number(match[1]) > 65535) throw new Error("literal-loopback-endpoint-required");
   if (!Number.isInteger(queueLimit) || queueLimit < 1 || queueLimit > 128 ||
       ![initTimeoutMs, commandTimeoutMs, transportTimeoutMs].every((n) => Number.isInteger(n) && n >= 10 && n <= 10000)) {
@@ -280,7 +285,8 @@ export function createGoogleAdsPrototype({
       egressPurposes: ["ad_storage"], grantedCookieNames: [], timeoutMs: transportTimeoutMs, onDiagnostic() {},
     });
     initTimer = setTimeout(() => stop("init-timeout"), initTimeoutMs);
-    host.init({ endpoint, transportTimeoutMs });
+    host.init({ endpoint, transportTimeoutMs,
+      ...(experimentalRouting === true ? { experimentalRouting: true } : {}) });
   } catch { stop("worker-unavailable"); }
   return {
     gtag, getState,

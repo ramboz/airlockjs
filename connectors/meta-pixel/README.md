@@ -28,8 +28,17 @@ this path is source-only and **not browser-tested**. Node tests inject a real
 `{ postMessage, onMessage, onError, dispose }` bridge to the same worker entry.
 
 - `fbq("init", "000000000000000")` captures synchronously, returns `undefined`,
-  and never sends. Only the existing synthetic all-zero Pixel ID is accepted.
+  and never sends. By default only the existing synthetic all-zero Pixel ID is
+  accepted. The separate `experimentalRouting: true` opt-in accepts a one-to-
+  32-digit ID for local routing experiments; it does not enable vendor egress.
+  Use synthetic IDs for these experiments.
 - `fbq("track", "PageView")` captures and enqueues a page snapshot.
+- With the opt-in `experimentalPageViewData: true`,
+  `fbq("track", "PageView", { value, currency })` also snapshots those two
+  optional fields and emits `cd[value]` and `cd[currency]`. Value must be a
+  finite number; currency must be a well-formed string of at most 64
+  characters. Unknown keys, accessors and unsupported values reject the
+  whole call. These are experimental admission rules, not native semantics.
 - `await flush()` observes bounded command/transport outcomes, **not receipt**.
   `transport-settled` means a correlated 2xx response, not vendor acceptance.
 - `setConsent(vector)` governs subsequent dispatch. Held commands are dropped;
@@ -55,9 +64,11 @@ The default capture reads `document.URL`, `document.referrer`, frame status,
 | `screenWidth`, `screenHeight` | Integers, 0–32768 | `sw`, `sh` |
 | `timezoneOffset` | Integer minutes, −1440–1440 | `tz` |
 
-The chamber supplies only `id` and `ev` in addition to those fields. Extra
-context is not captured. Args are limited to three primitive values (strings
-≤64 characters); arbitrary objects/accessors/functions are not copied.
+The chamber supplies `id` and `ev` in addition to those context fields, plus
+the two opt-in event fields above when supplied. Extra context is not
+captured. By default args are limited to three primitive values (strings ≤64
+characters); the opt-in accepts only the bounded PageView data record.
+Other objects, accessors and functions are not copied.
 Malformed/unsupported calls and extra arguments remain visible rejections,
 not native error-semantic claims. Reentrant capture is rejected; disposal
 inside a capture hook cannot enqueue work or strand `flush()`.

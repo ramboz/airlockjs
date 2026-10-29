@@ -1,4 +1,5 @@
 import { createWrappedSdkHost } from "../core/wrapped-sdk-host.js";
+import { snapshotPageViewData } from "../connectors/meta-pixel/pageview-data.js";
 
 const CONTEXT_KEYS = ["pageURL", "referrer", "inFrame", "screenWidth", "screenHeight", "timezoneOffset"];
 const HISTORY_LIMIT = 256;
@@ -75,7 +76,12 @@ export function createMetaPixelPrototype({
   commandTimeoutMs = 2000,
   transportTimeoutMs = 1000,
   fetchImpl = globalThis.fetch,
+  experimentalPageViewData = false,
+  experimentalRouting = false,
 } = {}) {
+  if (typeof experimentalPageViewData !== "boolean" || typeof experimentalRouting !== "boolean") {
+    throw new Error("invalid-experimental-option");
+  }
   const match = typeof endpoint === "string" && endpoint.match(/^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/tr\/$/);
   if (!match || Number(match[1]) > 65535) throw new Error("literal-loopback-endpoint-required");
   if (!Number.isInteger(queueLimit) || queueLimit < 1 || queueLimit > 128 ||
@@ -224,13 +230,21 @@ export function createMetaPixelPrototype({
     // Also bound the unchanged wrapped host's lifetime request history.
     if (admitted >= HISTORY_LIMIT) { reject("session-command-limit"); return; }
     if (args.length > 3) { reject("argument-limit"); return; }
-    for (const arg of args) {
+    for (const [index, arg] of args.entries()) {
       if (["function", "symbol"].includes(typeof arg)) { reject("uncloneable-input"); return; }
-      if (arg !== null && typeof arg === "object") { reject("unsupported-argument"); return; }
+      if (arg !== null && typeof arg === "object" &&
+          !(experimentalPageViewData === true && index === 2 && args[0] === "track" && args[1] === "PageView")) {
+        reject("unsupported-argument"); return;
+      }
       if (typeof arg === "string" && arg.length > 64) { reject("argument-limit"); return; }
     }
     capturing = true;
     try {
+      if (experimentalPageViewData === true && args.length === 3 && args[0] === "track" && args[1] === "PageView") {
+        const data = snapshotPageViewData(args[2]);
+        if (!data) { reject("unsupported-parameters"); return; }
+        args[2] = data;
+      }
       const source = captureContext();
       const context = {};
       for (const key of CONTEXT_KEYS) {
@@ -294,7 +308,9 @@ export function createMetaPixelPrototype({
       onDiagnostic() {},
     });
     initTimer = setTimeout(() => stop("init-timeout"), initTimeoutMs);
-    host.init({ endpoint, transportTimeoutMs });
+    host.init({ endpoint, transportTimeoutMs,
+      ...(experimentalPageViewData === true ? { experimentalPageViewData: true } : {}),
+      ...(experimentalRouting === true ? { experimentalRouting: true } : {}) });
   } catch {
     stop("worker-unavailable");
   }

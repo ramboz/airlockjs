@@ -61,6 +61,14 @@ rejects a complete encoded GET over8192 characters before requesting transport,
 without making the instance terminal or losing the next valid conversion.
 Use synthetic, non-PII page and transaction data only.
 
+For local routing experiments, `experimentalRouting: true` allows a literal
+loopback endpoint with a one-to-20-digit destination in its conversion path.
+`gtag("config", "AW-<destination>")` must match that path, and the conversion
+`send_to` must use the same destination plus an alphanumeric, underscore or
+hyphen label of at most 128 characters. Mismatches reject without dispatch.
+This is a bounded local rule, not a claim about native Google validation or
+authorization to send to Google. The default remains the fixed synthetic route.
+
 Main synchronously captures/clones primitive data and returns `undefined`.
 The chamber interprets commands, retains config, validates types and builds
 the query. Config options, duplicate config, pre-config conversions, unknown

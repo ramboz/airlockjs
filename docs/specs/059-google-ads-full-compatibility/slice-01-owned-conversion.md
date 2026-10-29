@@ -82,6 +82,18 @@ Ads fallback or an overstated product claim.
 **Anti-horizontal-phasing check:** The adopter gets a complete conversion-entry
 to worker to governed response-chain journey and a usable scoped decision.
 
+## Owner-directed construction - 2026-10-29
+
+The owner approved building the Google and Meta replacements from the available
+reference evidence before complete native-response captures are available.
+This permits experimental construction only: unsupported behavior stays
+visible, production cutover remains blocked, and the DoR, acceptance criteria
+and full-parity evidence above are not marked complete. This direction does not
+authorize a browser run, vendor request or changes to the accepted core boundary.
+The experimental `experimentalRouting` mode now supports a matching local
+destination and action label through the first-party worker and loopback
+receiver. This is not a native routing or full-conversion qualification.
+
 ## Readiness checkpoint - 2026-10-16
 
 **Current navigation:** this dated checkpoint and the criteria above are

@@ -87,6 +87,14 @@ the baseline. It takes Airlock event parameters, not the native `fbq` call;
 no worker, dispatch or backend receipt was exercised by this check. It does
 not make the prototype or the full replacement compatible.
 
+On 2026-10-29 the owner approved experimental construction before complete
+native-response captures. The opt-in `experimentalPageViewData` path now
+snapshots finite numeric `value` and string `currency`, sends their `cd[...]`
+fields through the real first-party Node worker and governed loopback receiver,
+and visibly rejects unsupported data. The prototype's default remains
+unchanged. This selected-field local observation does not establish native
+type handling, complete serialization, live delivery or acceptance of 060-02.
+
 ## Assumptions
 
 - Unverified: native type/coercion/size behavior is discriminable without losing

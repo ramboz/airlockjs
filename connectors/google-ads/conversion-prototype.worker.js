@@ -82,7 +82,9 @@ self.onmessage = async ({ data }) => {
     try {
       if (!Number.isInteger(data.transportTimeoutMs) || data.transportTimeoutMs < 10 || data.transportTimeoutMs > 10000) throw new Error("invalid-timeout");
       timeoutMs = data.transportTimeoutMs;
-      connector = createConnectorHost(createGoogleAdsConversionPrototype, { endpoint: data.endpoint });
+      connector = createConnectorHost(createGoogleAdsConversionPrototype, {
+        endpoint: data.endpoint, experimentalRouting: data.experimentalRouting,
+      });
       await connector.init({});
       if (!terminal) self.postMessage({ type: "phase", name: "configured" });
     } catch { fatal("worker-configuration-failed"); }

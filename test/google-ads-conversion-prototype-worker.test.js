@@ -34,6 +34,15 @@ async function request(chamber, seq = 2) {
 }
 
 describe("actual worker correlation faults, not independent receiver evidence", () => {
+  it("rejects a mistyped experimental routing option during worker initialization", async () => {
+    const chamber = createNodeConversionChamber();
+    try {
+      const fatal = receive(chamber, "fatal");
+      chamber.postMessage({ type: "init", endpoint, transportTimeoutMs: 500, experimentalRouting: "true" });
+      expect(await fatal).toEqual({ type: "fatal", message: "worker-configuration-failed" });
+    } finally { await chamber.dispose(); }
+  }, 5000);
+
   it.each(["unknown-id", "invalid-status", "oversized-body"])("fails terminally on %s rather than posting a success result", async (fault) => {
     const chamber = createNodeConversionChamber();
     try {

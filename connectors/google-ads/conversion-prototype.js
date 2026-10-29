@@ -26,9 +26,14 @@ function dataRecord(value, allowed) {
 /** Experimental synthetic-only connector; no vendor SDK or ambient I/O.
  * Config is retained state ONLY, deliberately not native config behavior.
  */
-export function createGoogleAdsConversionPrototype({ endpoint } = {}) {
-  const match = typeof endpoint === "string" && endpoint.match(/^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/0000000000\/$/);
+export function createGoogleAdsConversionPrototype({ endpoint, experimentalRouting = false } = {}) {
+  if (typeof experimentalRouting !== "boolean") throw new Error("invalid-experimental-option");
+  const pattern = experimentalRouting === true
+    ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,20})\/$/
+    : /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(0000000000)\/$/;
+  const match = typeof endpoint === "string" && endpoint.match(pattern);
   if (!match || Number(match[1]) > 65535) throw new Error("literal-loopback-endpoint-required");
+  const destination = `AW-${match[2]}`;
   let initialized = false;
   let configured = false;
   return {
@@ -47,7 +52,7 @@ export function createGoogleAdsConversionPrototype({ endpoint } = {}) {
       if (event?.type !== "google-ads-command" || !Array.isArray(args)) throw new Error("unsupported-command");
       if (args[0] === "config") {
         if (args.length !== 2) throw new Error("unsupported-config");
-        if (args[1] !== "AW-0000000000") throw new Error("synthetic-destination-required");
+        if (args[1] !== destination) throw new Error(experimentalRouting === true ? "destination-mismatch" : "synthetic-destination-required");
         if (configured) throw new Error("duplicate-config");
         configured = true;
         return [];
@@ -56,7 +61,14 @@ export function createGoogleAdsConversionPrototype({ endpoint } = {}) {
       if (!configured) throw new Error("conversion-before-config");
       const params = dataRecord(args[2], PARAMS);
       if (!params) throw new Error("unsupported-parameters");
-      if (!Object.hasOwn(params, "send_to") || params.send_to !== "AW-0000000000/SYNTHETIC_LABEL") throw new Error("synthetic-selector-required");
+      let label = "SYNTHETIC_LABEL";
+      if (experimentalRouting === true) {
+        const selector = typeof params.send_to === "string" && params.send_to.match(/^(AW-\d{1,20})\/([A-Za-z0-9_-]{1,128})$/);
+        if (!selector || selector[1] !== destination) throw new Error("destination-mismatch");
+        label = selector[2];
+      } else if (!Object.hasOwn(params, "send_to") || params.send_to !== "AW-0000000000/SYNTHETIC_LABEL") {
+        throw new Error("synthetic-selector-required");
+      }
       if (params.value !== undefined && (typeof params.value !== "number" || !Number.isFinite(params.value))) throw new Error("unsupported-value");
       if (params.currency !== undefined && (typeof params.currency !== "string" || params.currency.length > 64 || !params.currency.isWellFormed())) throw new Error("unsupported-currency");
       if (params.transaction_id !== undefined && (typeof params.transaction_id !== "string" || params.transaction_id.length > 128 || !params.transaction_id.isWellFormed())) throw new Error("unsupported-transaction");
@@ -64,7 +76,7 @@ export function createGoogleAdsConversionPrototype({ endpoint } = {}) {
       if (!context || Reflect.ownKeys(context).length !== 2 ||
           !Object.hasOwn(context, "pageURL") || !Object.hasOwn(context, "referrer") ||
           !validURL(context.pageURL) || !validURL(context.referrer, true)) throw new Error("invalid-context");
-      const query = new URLSearchParams({ label: "SYNTHETIC_LABEL" });
+      const query = new URLSearchParams({ label });
       for (const [input, output] of [["value", "value"], ["currency", "currency_code"], ["transaction_id", "oid"]]) {
         if (params[input] !== undefined) query.set(output, String(params[input]));
       }

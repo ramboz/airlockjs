@@ -29,6 +29,14 @@ are DONE as offline prototypes. Neither production boot is a full replacement.
 The twelve full-compatibility journeys per vendor remain unfinished.
 The 2026-10-15 allowance above is historical, not a renewed execution budget.
 
+**Owner-directed construction (2026-10-29):** the owner approved starting
+experimental replacement work from the available references before complete
+native responses exist. Local opt-ins now carry Meta PageView value/currency
+and a supplied Pixel ID, and a matching Google conversion destination/action,
+through their existing workers and governed loopback receivers. Defaults
+remain unchanged. These are not production cutovers or parity claims; the
+first journeys' full evidence and acceptance gates remain open.
+
 **Next pick:** return to the bounded evidence gaps for full060-01/059-01 after
 the delivered060-14/059-20 local increments. Their original
 readiness/native-reference/capability/performance gates remain open; do not

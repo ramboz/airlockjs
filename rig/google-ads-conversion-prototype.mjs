@@ -44,12 +44,14 @@ export function createNodeConversionChamber() {
 }
 
 /** Independent receiving sink, fixed path; never a vendor proxy. */
-export async function createConversionReceiver({ respond } = {}) {
+export async function createConversionReceiver({ respond, conversionId = "0000000000" } = {}) {
+  if (typeof conversionId !== "string" || !/^\d{1,20}$/.test(conversionId)) throw new Error("invalid-conversion-id");
+  const path = `/pagead/conversion/${conversionId}/`;
   const arrivals = [];
   const sockets = new Set();
   const server = createServer((request, response) => {
     arrivals.push({ method: request.method, url: `http://127.0.0.1:${server.address().port}${request.url}` });
-    if (request.method !== "GET" || !request.url.startsWith("/pagead/conversion/0000000000/?")) {
+    if (request.method !== "GET" || !request.url.startsWith(`${path}?`)) {
       response.writeHead(400).end();
       return;
     }
@@ -79,7 +81,7 @@ export async function createConversionReceiver({ respond } = {}) {
   } finally { clearTimeout(timer); }
   let closing;
   return {
-    endpoint: `http://127.0.0.1:${server.address().port}/pagead/conversion/0000000000/`,
+    endpoint: `http://127.0.0.1:${server.address().port}${path}`,
     arrivals,
     getState: () => ({ listening: server.listening, openSockets: sockets.size }),
     close() {

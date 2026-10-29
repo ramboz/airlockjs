@@ -35,6 +35,15 @@ async function configure(chamber, transportTimeoutMs = 500) {
 }
 
 describe("actual first-party worker correlated protocol (not receipt evidence)", () => {
+  it.each(["experimentalRouting", "experimentalPageViewData"])("rejects mistyped %s during worker initialization", async (option) => {
+    const chamber = createNodePrototypeChamber();
+    try {
+      const failed = receive(chamber, "fatal");
+      chamber.postMessage({ type: "init", endpoint, transportTimeoutMs: 500, [option]: "true" });
+      expect(await failed).toEqual({ type: "fatal", message: "worker-configuration-failed" });
+    } finally { await chamber.dispose(); }
+  }, 5000);
+
   it.each(["unknown-id", "invalid-status", "oversized-body"])("fails visibly on %s, not a success-shaped result", async (kind) => {
     const chamber = createNodePrototypeChamber();
     try {
