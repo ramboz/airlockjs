@@ -227,9 +227,17 @@ or implicit replay is implemented.
 
 The local policy retains separate default and update values, merges partial
 commands, and prefers an explicit update over a later default for that purpose.
-Commands run in the existing serialized queue; a command applies only after its
-worker acknowledgment, before the next queued command. This is a local ordering
-choice, not a finding about native gtag queues. A worker rejection or
+An admitted valid denial tightens the host seal immediately, including for
+branches of a conversion already in flight and earlier queued conversions; it
+does not cancel a request already sent. Each pending denial remains effective
+until its command is processed. A later grant takes effect only after its
+serialized worker acknowledgment, and cannot bypass a different pending denial.
+Once a denial is processed, it conservatively remains a hold until a later
+processed grant for that purpose, even when a prior update would otherwise
+outrank a new default. The ordinary update-over-default rule can still keep an
+earlier update denial in force after a later default grant. Invalid or
+unadmitted commands do not change the seal. These are local safety and ordering
+choices, not findings about native gtag queues. A worker rejection or
 contradictory acknowledgment for an admitted consent command terminates the
 adapter instead of silently ignoring it. These commands do not call the trusted
 host `setConsent` API or change the host's decision.
@@ -243,9 +251,7 @@ hold. The host seal evaluates these restrictions for each branch. The tag
 starts with no value, so enabling this option
 holds conversions until a tag default or update grants `ad_storage`. Host
 `setConsent` still takes effect independently at the seal; tag commands cannot
-grant past it. Holds are dropped, not buffered or replayed. A queued tag update
-does not interrupt a conversion already in flight; use the independently
-governed host consent control for immediate revocation.
+grant past it. Holds are dropped, not buffered or replayed.
 
 **The other three purposes are not fully modeled.** An explicit denial holds
 the whole request, but the prototype does not implement their native

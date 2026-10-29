@@ -67,6 +67,7 @@ describe("experimental Google consent commands", () => {
       adapter.gtag("consent", "default", { analytics_storage: "granted" });
       adapter.gtag("config", "AW-0000000000");
       adapter.gtag("event", "conversion", conversion);
+      await adapter.flush();
       adapter.gtag("consent", "update", { ad_storage: "denied" });
       adapter.gtag("consent", "default", { ad_storage: "granted" });
       adapter.gtag("event", "conversion", conversion);
@@ -217,6 +218,7 @@ describe("experimental Google consent commands", () => {
       adapter.gtag("event", "conversion", event);
       adapter.gtag("consent", "update", { ad_storage: "granted" });
       adapter.gtag("event", "conversion", event);
+      await adapter.flush();
       adapter.gtag("consent", "update", { ad_user_data: "denied" });
       adapter.gtag("event", "conversion", event);
       adapter.gtag("consent", "update", { ad_storage: "granted" });
@@ -281,6 +283,116 @@ describe("experimental Google consent commands", () => {
       });
       expect(first.arrivals).toHaveLength(1);
       expect(second.arrivals).toEqual([]);
+    } catch (error) { cause = error; throw error; }
+    finally {
+      clearTimeout(arrivalTimer);
+      try { await closeConversionResources({ adapter, chamber, receiver: first, cause }); }
+      finally { await closeConversionResources({ receiver: second, cause }); }
+    }
+  }, 8000);
+
+  it.each(["ad_storage", "analytics_storage", "ad_user_data", "ad_personalization"])(
+    "immediately enforces each pending %s denial between branches", async (purpose) => {
+      let first, second, chamber, adapter, cause, release;
+      let notifyArrival;
+      let arrivalTimer;
+      const arrival = new Promise((resolve, reject) => {
+        arrivalTimer = setTimeout(() => reject(new Error("first-arrival-timeout")), 2000);
+        notifyArrival = () => { clearTimeout(arrivalTimer); resolve(); };
+      });
+      let count = 0;
+      try {
+        first = await createConversionReceiver({
+          conversionId: "111",
+          respond(_request, response) {
+            if (++count === 1) { release = () => response.writeHead(204).end(); notifyArrival(); }
+            else response.writeHead(204).end();
+          },
+        });
+        second = await createConversionReceiver({ conversionId: "222" });
+        chamber = createNodeConversionChamber();
+        adapter = createGoogleAdsPrototype({
+          endpoint: first.endpoint, additionalEndpoint: second.endpoint, chamber, captureContext: () => context,
+          experimentalRouting: true, experimentalMultiDestination: true, experimentalConsentCommands: true,
+          consent: { ad_storage: "granted" },
+        });
+        adapter.gtag("consent", "update", { ad_storage: "granted", [purpose]: "granted" });
+        adapter.gtag("config", "AW-111");
+        adapter.gtag("config", "AW-222");
+        await adapter.flush();
+        const event = { send_to: ["AW-111/ONE", "AW-222/TWO"] };
+        adapter.gtag("event", "conversion", event);
+        await arrival;
+        adapter.gtag("consent", "default", { [purpose]: "denied" });
+        adapter.gtag("consent", "update", { [purpose]: "granted" });
+        adapter.gtag("consent", "default", { [purpose]: "denied" });
+        adapter.gtag("event", "conversion", event);
+        release();
+        const state = await adapter.flush();
+        const conversions = state.outcomes.filter(({ branches }) => branches);
+        expect(conversions.map(({ disposition, branches }) => ({
+          disposition, branches: branches.map(({ disposition: branch }) => branch),
+        }))).toEqual([
+          { disposition: "partial", branches: ["transport-settled", "held"] },
+          { disposition: "held", branches: ["held", "held"] },
+        ]);
+        expect(first.arrivals).toHaveLength(1);
+        expect(second.arrivals).toEqual([]);
+        adapter.gtag("consent", "update", { [purpose]: "granted" });
+        await adapter.flush();
+        expect(first.arrivals).toHaveLength(1);
+        expect(second.arrivals).toEqual([]);
+        adapter.gtag("event", "conversion", event);
+        expect((await adapter.flush()).outcomes.at(-1).disposition).toBe("transport-settled");
+        expect(first.arrivals).toHaveLength(2);
+        expect(second.arrivals).toHaveLength(1);
+      } catch (error) { cause = error; throw error; }
+      finally {
+        clearTimeout(arrivalTimer);
+        try { await closeConversionResources({ adapter, chamber, receiver: first, cause }); }
+        finally { await closeConversionResources({ receiver: second, cause }); }
+      }
+    }, 8000,
+  );
+
+  it("does not enforce invalid or queue-overflow denials that were never admitted", async () => {
+    let first, second, chamber, adapter, cause, release;
+    let notifyArrival;
+    let arrivalTimer;
+    const arrival = new Promise((resolve, reject) => {
+      arrivalTimer = setTimeout(() => reject(new Error("first-arrival-timeout")), 2000);
+      notifyArrival = () => { clearTimeout(arrivalTimer); resolve(); };
+    });
+    try {
+      first = await createConversionReceiver({
+        conversionId: "111",
+        respond(_request, response) { release = () => response.writeHead(204).end(); notifyArrival(); },
+      });
+      second = await createConversionReceiver({ conversionId: "222" });
+      chamber = createNodeConversionChamber();
+      adapter = createGoogleAdsPrototype({
+        endpoint: first.endpoint, additionalEndpoint: second.endpoint, chamber, captureContext: () => context,
+        experimentalRouting: true, experimentalMultiDestination: true, experimentalConsentCommands: true,
+        consent: { ad_storage: "granted" }, queueLimit: 1,
+      });
+      adapter.gtag("consent", "update", { ad_storage: "granted" });
+      await adapter.flush();
+      adapter.gtag("config", "AW-111");
+      await adapter.flush();
+      adapter.gtag("config", "AW-222");
+      await adapter.flush();
+      adapter.gtag("event", "conversion", { send_to: ["AW-111/ONE", "AW-222/TWO"] });
+      await arrival;
+      adapter.gtag("consent", "update", { ad_user_data: "denied", wait_for_update: 500 });
+      adapter.gtag("consent", "update", { ad_storage: "granted" });
+      adapter.gtag("consent", "update", { ad_user_data: "denied" });
+      release();
+      const state = await adapter.flush();
+      expect(state.outcomes.filter(({ disposition }) => disposition === "rejected").map(({ reason }) => reason))
+        .toEqual(["unsupported-parameters", "queue-overflow"]);
+      expect(state.outcomes.find(({ branches }) => branches).disposition).toBe("transport-settled");
+      expect(first.arrivals).toHaveLength(1);
+      expect(second.arrivals).toHaveLength(1);
     } catch (error) { cause = error; throw error; }
     finally {
       clearTimeout(arrivalTimer);

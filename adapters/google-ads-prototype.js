@@ -102,6 +102,8 @@ export function createGoogleAdsPrototype({
   const hostConsent = { ad_storage: consent?.ad_storage };
   const tagDefaults = Object.create(null);
   const tagUpdates = Object.create(null);
+  const pendingDenials = new Set();
+  const appliedDenials = new Set();
   const tagConsent = (purpose) => resolveConsent(
     Object.hasOwn(tagUpdates, purpose) ? tagUpdates : tagDefaults, purpose,
   );
@@ -109,6 +111,7 @@ export function createGoogleAdsPrototype({
     get ad_storage() {
       const hostValue = resolveConsent(hostConsent, "ad_storage");
       if (hostValue !== "granted" || !experimentalConsentCommands) return hostValue;
+      if (pendingDenials.size || appliedDenials.size) return "denied";
       if (CONSENT_COMMAND_KEYS.some((purpose) => purpose !== "ad_storage" && tagConsent(purpose) === "denied")) return "denied";
       return tagConsent("ad_storage");
     },
@@ -260,6 +263,8 @@ export function createGoogleAdsPrototype({
     }
     finishCurrent?.({ failure: reason });
     for (const event of queue.splice(0)) record({ seq: event.seq, disposition: "rejected", reason });
+    pendingDenials.clear();
+    appliedDenials.clear();
     if (disposed) cancelCallbacks();
     else for (const seq of callbacks.keys()) scheduleCallback(seq, "terminal");
     let disposal;
@@ -323,6 +328,11 @@ export function createGoogleAdsPrototype({
         const summary = settled.result.summary;
         if (summary.disposition === "consent-updated") {
           Object.assign(activeCommand[1] === "default" ? tagDefaults : tagUpdates, activeCommand[2]);
+          for (const [purpose, value] of Object.entries(activeCommand[2])) {
+            if (value === "denied") appliedDenials.add(purpose);
+            else appliedDenials.delete(purpose);
+          }
+          pendingDenials.delete(event.seq);
         }
         record({
           seq: event.seq, disposition: summary.disposition, requests: summary.requests,
@@ -417,6 +427,8 @@ export function createGoogleAdsPrototype({
         callbacks.set(seq, entry);
       }
       queue.push(event);
+      if (experimentalConsentCommands && payload.args[0] === "consent" &&
+          Object.values(payload.args[2]).includes("denied")) pendingDenials.add(seq);
       admitted += 1;
       void pump();
     } catch { reject("capture-unavailable"); }
