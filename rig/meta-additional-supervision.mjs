@@ -399,6 +399,7 @@ export async function superviseAdditionalMetaChild(options) {
   if (unsettledRegistrations) errors.push("additional_registration_unsettled");
   if (!observedExit) errors.push("additional_child_exit_unknown");
   if (!observedClose) errors.push("additional_child_close_unknown");
+  if (!node && !errors.includes("additional_node_ownership_unknown")) errors.push("additional_node_ownership_unknown");
   const exitedPath = join(input.output_dir, "actual-child-exit.json");
   writeMetaPrivate(exitedPath, { command: argv, command_exit_observed: !!observedExit,
     actual_exit_code: observedExit?.actual_exit_code ?? null, signal: observedExit?.signal ?? null,
@@ -407,7 +408,7 @@ export async function superviseAdditionalMetaChild(options) {
   for (const item of owned.values()) browsers.push(await closeBrowser(item, end - 4000, errors.length > 0));
   const portStates = await Promise.all([...ports].map(async port => ({ port, closed: await portClosed(port) })));
   const nodeStates = node ? await rows([node.pgid], end - 2500) : [];
-  const nodeClosed = !!observedExit && nodeStates.every(row => node && zombie(node, row));
+  const nodeClosed = !!node && !!observedExit && nodeStates.every(row => zombie(node, row));
   const privateKeys = [];
   for (const key of keys.values()) {
     const result = { ...key, removed: false };

@@ -220,6 +220,40 @@ describe("closed additional SDK-absent process supervision", () => {
       vi.restoreAllMocks(); vi.resetModules();
     }
   }, 12000);
+  it("reports unknown when the child exits before its identity is acquired", async () => {
+    const { createAdditionalMetaFixture } = await import("./meta-additional-qualification.mjs");
+    const f = createAdditionalMetaFixture(), output_dir = join(f.root, "early-exit-no-identity");
+    roots.push(f.root);
+    const child = new EventEmitter();
+    Object.assign(child, { pid: 720000, connected: true, stdout: new PassThrough(), stderr: new PassThrough(),
+      disconnect() { this.connected = false; }, unref() {}, send: vi.fn() });
+    const spawn = vi.fn(() => {
+      setImmediate(() => { child.emit("exit", 2, null); child.emit("close", 2, null); });
+      return child;
+    });
+    const execFile = vi.fn();
+    execFile[promisify.custom] = async command => {
+      if (command !== "/bin/ps") throw Error("unexpected_pure_unit_command");
+      return { stdout: "", stderr: "" };
+    };
+    vi.resetModules();
+    vi.doMock("node:child_process", () => ({ spawn, execFile }));
+    const signal = vi.spyOn(process, "kill").mockImplementation(() => { throw Error("pure_unit_unexpected_signal"); });
+    try {
+      const { superviseAdditionalMetaChild } = await import("./meta-additional-supervision.mjs");
+      const result = await superviseAdditionalMetaChild({ ...f.options(), protocol: "h2", output_dir });
+      const proof = JSON.parse(readFileSync(result.supervision.path));
+      expect(proof).toMatchObject({ node: null, child_exit_observed: true, node_close_observed: true,
+        resource_disposition: "unknown", qualified: false });
+      expect(proof.errors).toContain("additional_node_ownership_unknown");
+      const exit = JSON.parse(readFileSync(proof.actual_exit.path));
+      expect(exit).toMatchObject({ command_exit_observed: true, actual_exit_code: 2, signal: null });
+      expect(result).toMatchObject({ command_exit_observed: true, actual_exit_code: 2, signal: null });
+      expect(signal).not.toHaveBeenCalled();
+    } finally {
+      vi.doUnmock("node:child_process"); vi.restoreAllMocks(); vi.resetModules();
+    }
+  }, 10000);
   it("retains registered keys after an error even when no browser was acquired", async () => {
     const { createAdditionalMetaFixture } = await import("./meta-additional-qualification.mjs");
     const f = createAdditionalMetaFixture(), output_dir = join(f.root, "no-browser-error");

@@ -126,6 +126,20 @@ both now have targeted controls. These latest corrections have not been
 independently re-reviewed. The five focused SDK-free suites passed 418 tests
 with 19 opt-in skips.
 
+**Cutoff follow-up review: needs changes.** A bounded independent source review
+found that a child exiting before its Node identity was acquired could produce
+`resource_disposition: closed` without an attributed process-group inventory.
+The qualification reader already rejected the missing identity; the disposition
+was nevertheless unsupported. An SDK-free regression reproduced that false
+closure, and a source correction now reports UNKNOWN with
+`additional_node_ownership_unknown`. The correction and regression passed the
+two focused supervision/qualification suites. A narrow independent follow-up
+review passed the correction alone; its test did not directly exercise
+registered-key retention for the missing-identity case. This finding is separate
+from the unresolved stopper/controller coordination, UNKNOWN-browser key
+cleanup and browser identity/boundary gaps. No actual process replacement is
+asserted.
+
 **Do not run the attended or additional browser path on the strength of these
 source checkpoints.** Current browser ownership, coordinated stop and network
 boundary proof remain open.
