@@ -120,9 +120,9 @@ The additional `experimentalScalarEventData` opt-in extends that local record
 with region, content category/name/type, search string, predicted lifetime
 value, item count, status and delivery category. The prototype admits only
 bounded scalar types and enumerated content/delivery values; arrays, objects,
-unknown keys and invalid types still reject the complete call. Serialized
-worker/loopback tests check PageView region, a multi-Pixel Purchase, targeting,
-snapshotting, consent, invalid inputs and the encoded URL ceiling.
+unknown keys and invalid types at that checkpoint rejected the complete call.
+Serialized worker/loopback tests check PageView region, a multi-Pixel Purchase,
+targeting, snapshotting, consent, invalid inputs and the encoded URL ceiling.
 
 The retained fixture contains `cd[region]=us`, but its input is not retained;
 the test uses `us` as a synthetic input and establishes the local wire shape,
@@ -130,6 +130,16 @@ not the native input relationship. The listed commerce vocabulary comes from
 the documented floor above; scalar encoding, ordering, type/enum admission and
 count bounds are prototype assumptions. This is not a native commerce capture,
 array/nested serialization, full event support or a C1-C9 pass.
+
+The separately gated `experimentalContentIds` path now snapshots bounded
+`content_ids` arrays of strings and nonnegative safe integers, then emits one
+JSON-stringified `cd[content_ids]` value via the worker and local receiver.
+Tests exercise typed/ordered IDs, duplicates, snapshotting, routing, consent,
+invalid arrays and the encoded URL ceiling. This mapping, empty-array handling
+and size/type restrictions are explicit prototype choices: the documented
+input vocabulary establishes neither native array wire encoding nor scalar
+acceptance. Other arrays and nested `contents` remain unsupported. No native
+capture, backend receipt, parity or readiness gate is claimed.
 
 ## Assumptions
 

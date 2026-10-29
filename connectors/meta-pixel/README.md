@@ -48,8 +48,19 @@ this path is source-only and **not browser-tested**. Node tests inject a real
   and status is boolean. `content_type` accepts `product` or `product_group`;
   delivery accepts `in_store`, `curbside` or `home_delivery`. Undefined
   fields are omitted; null, unknown fields, accessors and nested/array values
-  reject the entire call. The added fields use `cd[...]` keys; order and
-  conversion to strings are prototype choices, not qualified native behavior.
+  reject the entire call unless explicitly enabled below. The added fields use
+  `cd[...]` keys; order and conversion to strings are prototype choices, not
+  qualified native behavior.
+- With both `experimentalPageViewData: true` and
+  `experimentalContentIds: true`, event data can contain `content_ids` as an
+  ordinary same-realm array of up to 16 strings or nonnegative safe integers.
+  Strings must be nonempty, well-formed and at most 64 UTF-16 code units;
+  negative zero, sparse arrays,
+  accessors, extra properties and other values reject the whole command.
+  Empty arrays are retained and undefined is omitted. The chamber encodes the
+  snapshot as one JSON value in `cd[content_ids]`, retaining element order,
+  duplicates and string/number types. This encoding and these limits are
+  **unverified prototype choices**, not observed native behavior.
 - With both `experimentalRouting: true` and
   `experimentalMultiPixelRouting: true`, up to four distinct synthetic IDs
   can be initialized. `track` broadcasts to all in initialization order;
@@ -62,7 +73,8 @@ this path is source-only and **not browser-tested**. Node tests inject a real
   also enabled, `trackSingle` and `trackSingleCustom` provide targeting.
   The existing `experimentalPageViewData` opt-in also allows the same
   `value`/`currency` record on these events; the separate scalar opt-in above
-  adds its listed properties. Commerce arrays, objects and other fields reject.
+  adds its listed properties, and the separate content-ID opt-in adds that
+  array. Other arrays, objects and unrecognized fields reject.
   No native conversion event or general
   custom-event serialization was captured, and the admission rules, field
   encoding and order here are working assumptions.
@@ -107,8 +119,8 @@ The chamber supplies `id` and `ev` in addition to those context fields, plus
 the opted-in event fields above when supplied. Extra context is not
 captured. By default args are limited to three primitive values (strings ≤64
 characters); multi-Pixel routing allows four for targeted data calls.
-Data records are limited to the opted-in scalar fields listed above.
-Other objects, accessors and functions are not copied.
+Data records are limited to the opted-in fields listed above.
+Other objects, arrays, accessors and functions are not copied.
 Malformed/unsupported calls and extra arguments remain visible rejections,
 not native error-semantic claims. Reentrant capture is rejected; disposal
 inside a capture hook cannot enqueue work or strand `flush()`.
@@ -139,7 +151,8 @@ or redaction sentinels cannot prove identity equivalence.
 The fixture omits 38 experiment flags and lacks original bytes/order, complete
 response/header/browser/cookie/consent behavior and equivalent native inputs.
 It contains a PageView `cd[region]=us` wire field, but does not establish
-the original input-to-wire relationship or general custom-data serialization.
+the original input-to-wire relationship, general custom-data serialization,
+or content-ID array serialization.
 Loopback Fetch is not native vendor Image/Fetch transport. Matching,
 attribution, other commands, performance and C2/C3 remain unproved. Nothing
 here completes or waives060-01 or its full native/whole-wire/live criteria.

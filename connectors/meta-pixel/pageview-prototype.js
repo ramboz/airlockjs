@@ -40,14 +40,16 @@ function validContext(context) {
  */
 export function createMetaPageViewPrototype({
   endpoint, experimentalPageViewData = false, experimentalRouting = false, experimentalMultiPixelRouting = false,
-  experimentalEvents = false, experimentalScalarEventData = false,
+  experimentalEvents = false, experimentalScalarEventData = false, experimentalContentIds = false,
 } = {}) {
-  if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents, experimentalScalarEventData]
+  if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
+    experimentalScalarEventData, experimentalContentIds]
     .some((option) => typeof option !== "boolean")) {
     throw new Error("invalid-experimental-option");
   }
   if (experimentalMultiPixelRouting && !experimentalRouting) throw new Error("multi-pixel-routing-requires-routing");
   if (experimentalScalarEventData && !experimentalPageViewData) throw new Error("scalar-data-requires-pageview-data");
+  if (experimentalContentIds && !experimentalPageViewData) throw new Error("content-ids-require-pageview-data");
   const match = typeof endpoint === "string" && endpoint.match(/^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/tr\/$/);
   if (!match || Number(match[1]) > 65535) throw new Error("literal-loopback-endpoint-required");
   const pixelIds = new Set();
@@ -95,7 +97,8 @@ export function createMetaPageViewPrototype({
       if (single && (typeof args[1] !== "string" || !/^\d{1,32}$/.test(args[1]))) throw new Error("invalid-pixel-id");
       if (single && !pixelIds.has(args[1])) throw new Error("uninitialized-pixel");
       if (!validContext(context)) throw new Error("invalid-context");
-      const pageViewData = args.length > dataIndex ? snapshotPageViewData(args[dataIndex], experimentalScalarEventData) : null;
+      const pageViewData = args.length > dataIndex
+        ? snapshotPageViewData(args[dataIndex], experimentalScalarEventData, experimentalContentIds) : null;
       if (args.length > dataIndex && !pageViewData) throw new Error("unsupported-parameters");
       return (single ? [args[1]] : [...pixelIds]).map((pixelId) => {
         const query = new URLSearchParams({
@@ -111,6 +114,9 @@ export function createMetaPageViewPrototype({
         if (pageViewData) {
           for (const key of experimentalScalarEventData ? [...BASIC_EVENT_DATA_KEYS, ...SCALAR_EVENT_DATA_KEYS] : BASIC_EVENT_DATA_KEYS) {
             if (Object.hasOwn(pageViewData, key) && pageViewData[key] !== undefined) query.append(`cd[${key}]`, String(pageViewData[key]));
+          }
+          if (experimentalContentIds && Object.hasOwn(pageViewData, "content_ids") && pageViewData.content_ids !== undefined) {
+            query.append("cd[content_ids]", JSON.stringify(pageViewData.content_ids));
           }
         }
         const url = `${endpoint}?${query}`;

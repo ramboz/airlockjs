@@ -178,13 +178,16 @@ export function createMetaPixelPrototype({
   experimentalMultiPixelRouting = false,
   experimentalEvents = false,
   experimentalScalarEventData = false,
+  experimentalContentIds = false,
 } = {}) {
-  if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents, experimentalScalarEventData]
+  if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
+    experimentalScalarEventData, experimentalContentIds]
     .some((option) => typeof option !== "boolean")) {
     throw new Error("invalid-experimental-option");
   }
   if (experimentalMultiPixelRouting && !experimentalRouting) throw new Error("multi-pixel-routing-requires-routing");
   if (experimentalScalarEventData && !experimentalPageViewData) throw new Error("scalar-data-requires-pageview-data");
+  if (experimentalContentIds && !experimentalPageViewData) throw new Error("content-ids-require-pageview-data");
   const match = typeof endpoint === "string" && endpoint.match(/^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/tr\/$/);
   if (!match || Number(match[1]) > 65535) throw new Error("literal-loopback-endpoint-required");
   if (!Number.isInteger(queueLimit) || queueLimit < 1 || queueLimit > 128 ||
@@ -378,7 +381,7 @@ export function createMetaPixelPrototype({
     capturing = true;
     try {
       if (experimentalPageViewData === true && dataIndex >= 0 && args.length === dataIndex + 1) {
-        const data = snapshotPageViewData(args[dataIndex], experimentalScalarEventData);
+        const data = snapshotPageViewData(args[dataIndex], experimentalScalarEventData, experimentalContentIds);
         if (!data) { reject("unsupported-parameters"); return; }
         args[dataIndex] = data;
       }
@@ -470,7 +473,8 @@ export function createMetaPixelPrototype({
       ...(experimentalRouting === true ? { experimentalRouting: true } : {}),
       ...(experimentalMultiPixelRouting === true ? { experimentalMultiPixelRouting: true } : {}),
       ...(experimentalEvents === true ? { experimentalEvents: true } : {}),
-      ...(experimentalScalarEventData === true ? { experimentalScalarEventData: true } : {}) });
+      ...(experimentalScalarEventData === true ? { experimentalScalarEventData: true } : {}),
+      ...(experimentalContentIds === true ? { experimentalContentIds: true } : {}) });
   } catch {
     stop("worker-unavailable");
   }
