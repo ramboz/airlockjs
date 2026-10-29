@@ -10,6 +10,15 @@
 
 <!-- Learnings below. Format: ## Title, followed by what happened and what to do instead. -->
 
+## Redacted cookie identities are not equal wire identities
+Meta's observed wire key is `fbp`, distinct from the `_fbp` cookie-name
+fixture key. Redaction can collapse different real identities into the same
+synthetic value, so both the parity oracle and offline PageView comparison
+must treat known placeholders on either side as unverifiable. Match known
+marker forms, not every occurrence of `redacted` in a real-shaped value.
+Keep same-input matching and browser cookie continuity as separate open
+evidence. See [bug 001](../bugs/001-meta-fbp-wire-redaction.md).
+
 ## Ad connectors are worker-chamber gtag-family connectors — boot = mirror spec 041, not main-thread remap
 connectors/google-ads/ + connectors/floodlight/ are {manifest,init,handle} gtag-family connectors hosted via core/connector-host.js (like ga4-gtag/pixel) — their STEADY-STATE beacon is mapped OFF-THREAD in a worker chamber. createGoogleAdsRemap/createFloodlightRemap cover ONLY the seal's held->grant-flush re-map, NOT the steady-state producer. Their seal tests (test/*-seal.test.js) SIMULATE the chamber's ready output via FakeWorker, which HIDES the chamber requirement. So booting one = mirror spec 041 (ga4-gtag): a core/<c>-chamber.worker.js + core/confine-<c>-chamber.js (withholdFetch) + a core/airlock.js connector: branch (Worker-URL + init + requestMapper) + a build.mjs WORKER_ENTRIES entry — NOT a main-thread remap seam. The 048-01 frame-critique caught this exact wrong assumption before implementation; spec 048 built all of it (bootGoogleAds/bootFloodlight).
 

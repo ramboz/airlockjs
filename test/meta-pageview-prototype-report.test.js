@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { compareMetaPageViewPrototype } from "../rig/meta-pageview-prototype-report.mjs";
+import { SYNTHETIC_FBC, SYNTHETIC_FBP } from "../rig/parity/redact.js";
 
 const fixture = JSON.parse(readFileSync(new URL("./fixtures/meta-tr-pageview.redacted.json", import.meta.url), "utf8"));
 const request = (query = {}) => {
@@ -87,5 +88,49 @@ describe("full union of limited historical fixture and actual generated query", 
     expect(byName(report, "sw").disposition).toBe("extra-generated");
     expect(report.fields.map((field) => field.name)).toContain("aud[external_id]");
     expect(report.overall).toBe("inconclusive");
+  });
+
+  it("does not compare cookie identity placeholders as literal values on either side", () => {
+    for (const [field, markers] of [
+      ["fbp", [SYNTHETIC_FBP, "[MASKED]", "REDACTED-FBP"]],
+      ["_fbp", [SYNTHETIC_FBP, "<redacted>"]],
+      ["fbc", [SYNTHETIC_FBC, "[removed]"]],
+    ]) {
+      for (const marker of markers) {
+        for (const [referenceValue, generatedValue] of [
+          [marker, marker],
+          [marker, "fb.1.123.real-identity"],
+          ["fb.1.123.real-identity", marker],
+        ]) {
+          const input = structuredClone(fixture);
+          input.beacons[0][field] = referenceValue;
+          const report = compareMetaPageViewPrototype({
+            fixture: input, generatedRequest: request({ [field]: generatedValue }),
+          });
+          expect(byName(report, field).disposition).toBe("redacted-unverifiable");
+          expect(report.overall).toBe("inconclusive");
+          expect(JSON.stringify(report)).not.toContain("fb.1.123.real-identity");
+        }
+      }
+    }
+  });
+
+  it("compares genuine cookie values without exposing them", () => {
+    for (const field of ["fbp", "_fbp", "fbc"]) {
+      for (const value of ["fb.1.123.reference", "fb.1.123.IwARredacted123"]) {
+        for (const [candidate, expected] of [
+          [value, "literal-match"],
+          [`${value}-other`, "different"],
+        ]) {
+          const input = structuredClone(fixture);
+          input.beacons[0][field] = value;
+          const report = compareMetaPageViewPrototype({
+            fixture: input, generatedRequest: request({ [field]: candidate }),
+          });
+          expect(byName(report, field).disposition).toBe(expected);
+          expect(JSON.stringify(report)).not.toContain(value);
+        }
+      }
+    }
   });
 });

@@ -151,3 +151,17 @@ deliverables._
 | spec 038 `spec.md` / `slice-02` / `slice-03` | `updated` | spec-authoring scaffolding — the 5-round frame-critique reframe (classified-diff + gap-map) + the gap-map alignment carried into the sibling slices; disclosed in the frame-critique review + this slice's history. |
 | `docs/decisions/README.md` / ADR index | `no-op` (for 038-01) | its only change was the ADR-index regen when ADR-0019/0020 landed (prior units); 038-01 introduces no ADR. |
 | `connectors/**` | `no-op` (intentional) | the `cd[...]` gap is **owned, not fixed** here (026 out of this slice's scope); no connector touched — confirmed by all three reviewers. |
+
+## Amendments
+
+### 2026-10-29 - Cookie identity placeholders
+
+Owner-approved amendment to AC3 and AC5/6: when an observed Meta `fbp`,
+historical `_fbp` or `fbc` field is present on both sides but either value is
+a known redaction placeholder, report `unverifiable` and an `inconclusive`
+verdict, unless another field independently fails. The CLI exits non-zero for
+an inconclusive verdict. Placeholder equality must not trigger the original
+`gap-closed` owner-landed instruction. AC4(c)'s `gap-closed` control remains
+valid with equal non-placeholder values. Meta report values are sanitized
+after comparison; the `fbp` and `_fbp` names are not aliases. The original
+criteria and historical review records remain intact.

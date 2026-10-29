@@ -1,3 +1,5 @@
+import { isMetaCookieIdentityField, isUnverifiableMetaCookieIdentity } from "./parity/redact.js";
+
 const ANNOTATIONS = new Set([
   "_variant", "_id_note", "_cd_note", "_ud_note", "_fbp_note", "_experiments_note", "_dl_note",
 ]);
@@ -13,7 +15,9 @@ function describe(value, name) {
       members: Object.entries(value).map(([key, item]) => ({ name: key, ...describe(item, key) })),
     };
   }
-  const redacted = typeof value === "string" && (/REDACTED/i.test(value) || (name === "id" && /^0+$/.test(value)));
+  const redacted = typeof value === "string" && (isMetaCookieIdentityField(name)
+    ? isUnverifiableMetaCookieIdentity(name, value)
+    : /REDACTED/i.test(value) || (name === "id" && /^0+$/.test(value)));
   return { state: redacted ? "redacted" : "literal", type: typeof value };
 }
 
@@ -48,6 +52,8 @@ export function compareMetaPageViewPrototype({ generatedRequest, fixture, beacon
     else if (source.state === "unavailable") disposition = "unavailable";
     else if (values.length !== 1 || source.state === "structured") disposition = "representation-different";
     else if (actual.type !== source.type) disposition = "type-different";
+    else if (isUnverifiableMetaCookieIdentity(name, reference[name])
+      || isUnverifiableMetaCookieIdentity(name, values[0])) disposition = "redacted-unverifiable";
     else if (values[0] !== reference[name]) disposition = "different";
     else if (source.state === "redacted" || actual.state === "redacted") disposition = "redacted-unverifiable";
     else disposition = "literal-match";

@@ -30,8 +30,8 @@ sets complete replacement as the target, without closing the residuals below.
 recorder/reference/comparison layers; [059](specs/059-google-ads-full-compatibility/spec.md)
 and [060](specs/060-meta-pixel-full-compatibility/spec.md) own vendor-specific
 identity/cookie continuity, consent variants, host operations, auxiliary transport,
-outcomes and drift. The Meta `fbp` naming and same-input matching issues remain
-open. Existing cookie-writer/credentialed-transport deferrals cannot justify a
+outcomes and drift. The Meta `fbp` naming defect is fixed; same-input matching
+remains open. Existing cookie-writer/credentialed-transport deferrals cannot justify a
 full-support claim while required native behavior is missing.
 
 058-01's fixed local `core-http` qualifier is complete. 058-02 additionally
@@ -815,17 +815,22 @@ report (a per-field note or a `maps`-subtype), not just the descriptor.
 
 ### Meta descriptor keys `_fbp`/`fbc` (cookie names) but the real `/tr` wire param is `fbp` (038-04 AC4 residual)
 
-**Deferred (pre-existing 038-01 descriptor-modeling gap, named by 038-04, not fixed there):** `rig/parity/descriptors/meta.js`
-lists `_fbp`/`fbc` in `attributionFields` (the COOKIE names) with matching `gapMap` owners, but the real Meta `/tr` beacon
+**Resolved (bug 001):** the descriptor now recognizes `fbp` independently
+of legacy `_fbp`, and the redactor covers both names. Same-input identity
+and browser cookie continuity remain open; see
+[bug 001](bugs/001-meta-fbp-wire-redaction.md) for proof and review status.
+
+**Historical deferral (pre-existing 038-01 descriptor-modeling gap, named by 038-04, not fixed there):** `rig/parity/descriptors/meta.js`
+listed `_fbp`/`fbc` in `attributionFields` (the COOKIE names) with matching `gapMap` owners, but the real Meta `/tr` beacon
 sends the first-party cookie as the query param `fbp` (**no** underscore — see `test/fixtures/meta-tr-pageview.redacted.json`).
-So against a REAL capture the descriptor's `_fbp` is skipped as "container never sent it" (`oracle.js:104`) rather than
-surfacing as `expected-dropped` — the `_fbp`/`fbc` owned gap is **under-reported** against real captures, and its raw-diff
-regression guard is real only against the synthetic fixture (`test/parity-meta.test.js`, which uses `_fbp`). 038-04 took
+So against a REAL capture the descriptor's `_fbp` was skipped as "container never sent it" rather than
+surfacing as `expected-dropped` — the owned gap was **under-reported** against real captures, and its raw-diff
+regression guard was real only against the synthetic fixture (`test/parity-meta.test.js`, which uses `_fbp`). 038-04 took
 the AC4 "scope + name" branch (a descriptor comment, `meta.js:61-65`) rather than reconciling the key.
 
-**Resolution trigger:** the chamber cookie-capability follow-up (which makes airlock actually emit `_fbp`/`fbc`) lands, or
-a real capture's first-party-cookie parity must be confirmed — then reconcile the descriptor key to the real wire param
-(`fbp`) and add a `wireNameMap` / descriptor entry so the gap is surfaced (not skipped) against real captures.
+**Resolution:** bug 001 adds a distinct `fbp` entry so the gap is surfaced
+without aliasing it to `_fbp`. Emission, browser cookie continuity and
+same-input matching remain separate follow-ups.
 
 ### Shared parity click-id scrub helper is a rule-of-three (extract `scrubUrlIdentifiers`)
 

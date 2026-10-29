@@ -139,3 +139,24 @@ vendor that exercises it most cheaply first (simplest data first).
 - [038-02 — semantic field-map oracle (GA4)](slice-02-semantic-field-map-ga4.md)
 - [038-03 — credential/cookie context + per-cohort report (feeds E10)](slice-03-credential-context-cohorts.md)
 - [038-04 — confirm Meta advanced-matching parity (retire the `ud[...]` gap)](slice-04-advanced-matching-parity.md) — un-blocked by [026-04](../026-generic-pixel-connector/slice-04-advanced-matching.md); `ud[external_id]` confirmed as `maps` (redact-both-sides presence parity), `ud[em]`/`ph` re-owned to the signed-in live-capture follow-up ([ADR-0020](../../decisions/adr-0020-parity-contract-anti-drift.md) commitment 1). The MVP7 advanced-matching release-check step.
+
+## Amendments
+
+### 2026-10-29 - Cookie identity placeholders
+
+The owner approved this amendment after the original record was closed. For
+Meta `fbp`, legacy `_fbp` and `fbc`, known redaction placeholders do not prove
+either equality or inequality. When both sides provide one of these fields and
+either value is a known placeholder, classify it `unverifiable`: the overall
+verdict is `inconclusive` unless an independently divergent or unowned-dropped
+field makes it `fail`. An inconclusive CLI result exits non-zero. Concrete
+equal values retain the original `gap-closed` behavior; missing fields retain
+their original drop classification. The separate 038-04 hashed-field result
+remains presence-only, not same-input matching proof.
+
+Report values for Meta's recognized identity fields are redacted after the
+comparison, without converting distinct input values into equal comparison
+inputs. The observed `fbp` wire name is tracked separately from the historical
+synthetic `_fbp` name. Unknown fields and unrecognized URL identifiers still
+require review before sharing. The original criteria above record the earlier
+behavior and are preserved.

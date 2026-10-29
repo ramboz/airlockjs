@@ -192,10 +192,12 @@ describe("AC4 — two-way regression guard: three keystone fixtures", () => {
 
   it("(c) a SUPPLIED owners-landed field-set carrying _fbp/fbc: those classify gap-closed, still green overall", () => {
     const replayed = replayFixtureFields();
-    const ownersLanded = { ...replayed, _fbp: fixture.container_fields._fbp, fbc: fixture.container_fields.fbc };
+    // Equal redaction placeholders cannot demonstrate same-input identity.
+    const containerFields = { ...fixture.container_fields, _fbp: "fb.1.100.101", fbc: "fb.1.100.example" };
+    const ownersLanded = { ...replayed, _fbp: containerFields._fbp, fbc: containerFields.fbc };
     const { verdict, fields } = diffParity({
       descriptor: metaParityDescriptor,
-      containerFields: fixture.container_fields,
+      containerFields,
       airlockFields: ownersLanded,
     });
     expect(verdict).toBe("pass");

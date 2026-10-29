@@ -188,8 +188,9 @@ created by writing it.
 
 - The parity oracle compares curated fields and permits owned gaps. A passing report is a scoped
   regression result, not full vendor-tag equivalence or revenue-attribution proof.
-- Meta's `fbp` wire-name mismatch under-reports the first-party cookie gap; advanced-matching
-  presence does not establish identical inputs or matching efficacy.
+- The Meta oracle now reports the observed `fbp` wire field separately from the legacy synthetic
+  `_fbp` field; first-party cookie behavior is still missing. Redacted identity-field presence
+  does not establish identical inputs or matching efficacy.
 - Google Ads/Floodlight cover page-load families, not full conversion/enhanced-match behaviors.
   Linker-cookie continuity after native removal and cross-site transport remain separate questions.
 - [MVP9](mvp9.md) and [spec 050](../specs/050-mvp9-reference-site-rewire-trial/spec.md) leave
@@ -208,8 +209,8 @@ behaviors are enumerated. No fixed release date or automatic next-minor assignme
 - Separate report classes for regression-free supported fields, known functional gaps, presence-only
   evidence, unknown/unclassified fields and live outcomes not yet verified. Missing evidence must
   not resemble equivalence; unexpected capture fields need triage rather than silent omission.
-- Fix the Meta `fbp` descriptor/redaction mismatch with a real-capture regression before relying
-  on first-party identity reports. Confirm same-input advanced matching and login/logout behavior.
+- Keep the Meta `fbp` identity gap open until same-input browser continuity is demonstrated.
+  Confirm same-input advanced matching and login/logout behavior.
 - Build customer-specific scenario coverage for first/returning visitors, conversions, commerce,
   multi-page/cross-domain continuity, relevant consent transitions and cookie-blocked/allowed cohorts.
 - Scope Ads/Floodlight conversion, custom-variable and enhanced-match work from captured/documented
