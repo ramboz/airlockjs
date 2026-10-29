@@ -43,7 +43,7 @@ describe("closed additional SDK-absent process supervision", () => {
     expect(() => inspectAdditionalBrowserMembers(item, [replaced, { ...helper, command }]))
       .toThrow("additional_process_replaced");
   });
-  it.each(["stable", "replaced", "reappeared", "unknown-image", "cleanup-replaced"])(
+  it.each(["stable", "replaced", "reappeared", "unknown-image", "cleanup-replaced", "cleanup-outside"])(
     "serializes discovery and preserves %s group observations through cleanup", async (scenario) => {
     // Pure unit: execute the REAL supervisor/discover/ledger code, but replace
     // process launch, ps/pgrep/lsof and TCP with deterministic in-memory doubles.
@@ -94,6 +94,10 @@ describe("closed additional SDK-absent process supervision", () => {
       if (finished) {
         if (scenario === "cleanup-replaced" && args[0] === "-g" && args[1] === "710002")
           return { stdout: row(710002, child.pid, 710002, browserCommand + " --changed") + lateRow(), stderr: "" };
+        if (scenario === "cleanup-outside" && args[0] === "-p" && args[1].split(",").includes("710002"))
+          return { stdout: row(710002, child.pid, 710099, "/unrecognized/replacement") + lateRow(), stderr: "" };
+        if (scenario === "cleanup-outside" && args[0] === "-g" && args[1] === "710002")
+          return { stdout: lateRow(), stderr: "" };
         if (scenario === "reappeared" && args[0] === "-g" && args[1] === "710002")
           return { stdout: browserRow() + lateRow(), stderr: "" };
         return { stdout: "", stderr: "" };
@@ -165,7 +169,7 @@ describe("closed additional SDK-absent process supervision", () => {
         .some(member => member.pid === 710003)).toBe(true);
       expect(discoveries).toBeGreaterThanOrEqual(2);
       if (scenario === "stable") expect(proof.errors).toEqual([]);
-      else if (scenario === "cleanup-replaced") {
+      else if (["cleanup-replaced", "cleanup-outside"].includes(scenario)) {
         expect(proof.resource_disposition).toBe("unknown");
         expect(proof.browsers[0]).toMatchObject({ status: "unknown", profile_removed: false,
           errors: ["additional_process_replaced"], error_observation: { complete: true } });

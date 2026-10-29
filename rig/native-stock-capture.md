@@ -19,10 +19,18 @@ receipts stale and do not admit a browser or native operation.
 
 When a supervisor error is recorded before cleanup, that cleanup does not
 signal the browser or remove its profile or registered keys on the basis of
-the old observations. The attended stop still
-attempts to stop the separately verified controller when browser ownership is
-unknown, but does not signal the unverified browser. Preserve the error and
-any recorded mismatch observations; UNKNOWN is not a cleanup claim.
+the old observations. The independent stop entry still attempts to stop the separately verified
+controller when browser ownership is unknown, without directly signalling
+the unverified browser. This does not establish what the controller's
+cooperative cleanup will do. Preserve errors and recorded mismatch
+observations; UNKNOWN is not a cleanup claim.
+
+**NO-GO:** independent source review found that controller-side cooperative
+cleanup is not fully coordinated with the stopper's observations, and
+unsettled registrations can outlive the final ledger. Initial source
+corrections cover additional controlled cases but have not passed independent
+review and do not establish safe browser or key cleanup. Do not execute either
+browser path using this checkpoint.
 
 ## Current inspected source candidate - 2026-10-27
 

@@ -1839,7 +1839,7 @@ async function runEngine(state, { protocol, program }) {
     if (observer.snapshot().decompressors) observer.stop("controller_cleanup");
     let mayCloseBrowser = true;
     if (state.attendedControl) {
-      try { state.attendedControl.beforeClose(); }
+      try { await state.attendedControl.beforeClose(); }
       catch { mayCloseBrowser = false; errors.push("attended_profile_identity_unknown"); }
     }
     if (browser && mayCloseBrowser) try { await wait(browser.close(), 2500); } catch { errors.push("browser_close_failed"); }

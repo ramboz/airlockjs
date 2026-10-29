@@ -84,11 +84,13 @@ a supervisor error is recorded before cleanup, that cleanup leaves browser
 ownership UNKNOWN without signalling the browser or removing its profile or
 registered keys, and does not claim closure.
 
-The attended stop route records browser ownership errors while still attempting
-to stop the independently verified controller. It does not signal a browser
-whose ownership is unknown. A forged browser parent and a changed helper are
-covered by controlled tests. The five focused SDK-free suites passed 407 tests
-with 19 opt-in skips; no actual browser, SDK or vendor operation was run.
+The attended stop entry records browser ownership errors while still attempting
+to stop the independently verified controller. It does not directly signal a
+browser whose ownership is unknown; controller-side cooperative cleanup is
+assessed separately below. A forged browser parent and a changed helper are
+covered by controlled tests. At that source checkpoint, the five focused
+SDK-free suites passed 407 tests with 19 opt-in skips; no actual browser, SDK
+or vendor operation was run.
 
 This rejects legitimate launcher exec transitions if observed before Chrome
 is registered, so it may prevent qualification rather than make it possible.
@@ -97,6 +99,23 @@ same second. Changed source pins invalidate affected prior qualification
 receipts. Current fourteen-controller, eleven-relay, additional-path and
 attended originals, exact ownership/stop and loopback-boundary proof all
 remain open. The additional case is unspent and historical UNKNOWNs remain.
+
+**Independent source review: needs changes.** The review identified a known
+root that moves outside its original group during cleanup, a browser PID that
+appears after an initial absent observation, cooperative controller cleanup
+after a stopper observes uncertainty, and unsettled registration work that
+can outlive the published ledger. These are source-level findings, not claims
+that any historical process was replaced.
+
+Subsequent SDK-free controls and source corrections check recorded PIDs during
+supervisor cleanup, reject an initially absent browser that reappears, and
+require the controller's known browser root and members to be checked before
+its own close or kill. They do not establish coordination of every stopper
+observation with the controller, or safe settlement and retention of late
+registrations. The controller's key cleanup also needs to be evaluated against
+an UNKNOWN browser. The correction has not passed independent review. **Do not
+run the attended or additional browser path on the strength of this checkpoint.**
+The five focused SDK-free suites passed 411 tests with 19 opt-in skips.
 
 ### Historical first source result
 

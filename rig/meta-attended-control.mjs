@@ -159,6 +159,7 @@ export async function createMetaAttendedControl(options) {
   });
   const errors = [];
   let stopping = false, stopReason = null, pending = false, settled = false, tracked, server, owned, ownedIdentity, browserItem, finished;
+  let browserUncertain = false;
   let exit = null, close = null;
   const error = reason => { if (errors.length < 8 && !errors.includes(reason)) errors.push(reason); };
   const requestStop = reason => {
@@ -178,11 +179,28 @@ export async function createMetaAttendedControl(options) {
       if (caught.code !== "ENOENT") { error("attended_stop_record_invalid"); requestStop("attended_stop_record_invalid"); }
     }
   }, 25);
+  const beforeClose = async () => {
+    if (!browserItem && !server) return;
+    try {
+      requireFact(!browserUncertain && browserItem, "attended_browser_identity_unknown");
+      requireFact(equal(profileIdentity(browserItem.profile.argument_path), browserItem.profile),
+        "attended_profile_replaced");
+      const byPid = await readAdditionalProcesses([...browserItem.members.keys()], end, false);
+      const root = byPid.find(row => row.pid === browserItem.root.pid);
+      requireFact(root && root.ppid === current.pid && sameAdditionalProcess(browserItem.root, root),
+        "attended_browser_identity_unknown");
+      inspectAdditionalBrowserMembers(browserItem, byPid);
+      const group = await readAdditionalProcesses([browserItem.root.pgid], end, true);
+      inspectAdditionalBrowserMembers(browserItem, group);
+    } catch (caught) {
+      browserUncertain = true;
+      throw caught;
+    }
+  };
   const closeLate = async () => {
     if (!server) return;
     try {
-      requireFact(browserItem && equal(profileIdentity(browserItem.profile.argument_path), browserItem.profile),
-        "attended_profile_replaced");
+      await beforeClose();
       await untilSettled(Promise.resolve().then(() => server.close()), end);
     }
     catch { error("attended_browser_close_unknown"); }
@@ -208,15 +226,10 @@ export async function createMetaAttendedControl(options) {
         if (stopReason) fail(stopReason);
       }
     },
-    beforeClose() {
-      if (!browserItem) return;
-      try {
-        requireFact(equal(profileIdentity(browserItem.profile.argument_path), browserItem.profile),
-          "attended_profile_replaced");
-      } catch (caught) { if (caught.code !== "ENOENT") throw caught; }
-    },
+    beforeClose,
     async killBrowser() {
       requireFact(browserItem, "attended_browser_identity_unknown");
+      await beforeClose();
       await signalAdditionalOwnedProcess(browserItem.root, "SIGKILL", end, []);
     },
     async beforeBrowser() {
@@ -335,6 +348,10 @@ export async function stopMetaAttendedCase(options) {
       groupBytes += bytes;
       groupObservations.push({ at_ms: Date.now(), rows });
     }
+    if (browserItem && !browserBefore) {
+      const current = await readAdditionalProcesses([browser.browser.pid], end, false);
+      requireFact(current.length === 0, "attended_browser_reappeared");
+    }
     return rows;
   };
   const browserPath = join(start.output.path, "attended-browser-owned.json");
@@ -373,6 +390,7 @@ export async function stopMetaAttendedCase(options) {
   const checkedSignal = async (target, signal, log) => {
     validateStart(owner, inspectedMetaSourcePins());
     if (browserHandle && target.pid !== start.controller.pid) {
+      requireFact(browserBefore, "attended_browser_identity_unknown");
       readHandle(browserHandle);
       const stat = lstatSync(browserPath);
       requireFact(equal(browserFileIdentity, { dev: stat.dev, ino: stat.ino }), "attended_browser_record_replaced");

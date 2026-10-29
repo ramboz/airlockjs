@@ -65,13 +65,16 @@ async function signalOwned(expected, signal, deadline, log) {
   catch (error) { if (error.code === "ESRCH") outcome = "vanished"; else throw error; }
   log.push({ pid: expected.pid, signal, outcome, at_ms: Date.now() });
 }
-function membersOf(item, current) {
+function assertKnownMembers(item, current) {
   for (const known of item.members.values()) {
     const observed = current.find(row => row.pid === known.pid);
     if (observed && !sameAdditionalProcess(known, observed) && !zombie(known, observed)) {
       const error = Error("additional_process_replaced"); error.observed = current; throw error;
     }
   }
+}
+function membersOf(item, current) {
+  assertKnownMembers(item, current);
   if (current.length && !current.some(row => [...item.members.values()]
     .some(known => sameAdditionalProcess(known, row) || zombie(known, row)))) fail("additional_group_unanchored");
   for (const row of current) {
@@ -112,8 +115,12 @@ async function portClosed(port) {
 async function closeBrowser(item, deadline, uncertain) {
   const result = { root: item.root, root_command: item.root_command, profile: item.profile, processes: [], signals: [],
     profile_removed: false, status: "unknown", errors: [] };
+  const observe = async () => {
+    assertKnownMembers(item, await rows([...item.members.keys()], deadline, false));
+    return membersOf(item, await rows([item.root.pgid], deadline));
+  };
   try {
-    let states = membersOf(item, await rows([item.root.pgid], deadline));
+    let states = await observe();
     result.initially_left_behind = states.some(row => row.final === "live");
     if (uncertain) {
       result.processes = states;
@@ -124,7 +131,7 @@ async function closeBrowser(item, deadline, uncertain) {
         await signalOwned(member, signal, deadline, result.signals);
       const settle = Math.min(deadline, performance.now() + 500);
       do {
-        states = membersOf(item, await rows([item.root.pgid], deadline));
+        states = await observe();
         if (states.every(row => ["absent", "zombie"].includes(row.final))) break;
         await sleep(25);
       } while (performance.now() < settle);

@@ -303,6 +303,13 @@ It does not prove continuity for an unobserved replacement with the same
 image and second-resolution start time. Affected source-bound qualification
 receipts are stale; no current browser or native qualification follows.
 
+Independent source review found additional gaps in cleanup, absent-then-present
+browser identity, stopper/controller coordination and late registration
+settlement. The first corrections have controlled tests but have not passed
+independent review, and do not close the cross-process coordination or late
+observation gaps. The attended and additional browser paths remain NO-GO;
+see the [059-18 source checkpoint](../059-google-ads-full-compatibility/slice-18-additional-meta-authority.md#source-only-stop-guardrail---2026-10-29).
+
 The network checkpoint must show, with local negative controls, that the
 confined browser cannot bypass the intended proxy or reach an unrelated
 localhost listener. The existing sandbox allows `localhost:*` and is

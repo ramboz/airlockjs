@@ -279,6 +279,63 @@ describe("attended control — controlled OS/process events and private temp fil
     await control.finish();
   });
 
+  it("does not signal a browser PID that appears after the initial observation was absent", async () => {
+    const f = fixture();
+    const { createMetaAttendedControl, stopMetaAttendedCase } = await import("./meta-attended-control.mjs");
+    const control = await createMetaAttendedControl(f.options);
+    await control.beforeBrowser(); await control.trackBrowser(Promise.resolve(f.server));
+    const original = fake.rows.get(f.child.pid);
+    fake.rows.delete(f.child.pid); fake.host.pid = 710003;
+    fake.onSignal = async (target, signal) => {
+      if (target.pid === 710001 && signal === "SIGTERM")
+        fake.rows.set(f.child.pid, { ...original, ppid: 99999 });
+    };
+    const result = await stopMetaAttendedCase(control.ownerCommand());
+    expect(result).toMatchObject({ status: "UNKNOWN", controller_stopped: true, browser_stopped: false });
+    expect(result.errors).toContain("attended_browser_reappeared");
+    expect(fake.signals).toEqual([{ pid: 710001, signal: "SIGTERM" }]);
+    await control.finish();
+  });
+
+  it("does not cooperatively close or kill a browser after a known helper changes", async () => {
+    const f = fixture();
+    const { createMetaAttendedControl, stopMetaAttendedCase } = await import("./meta-attended-control.mjs");
+    const control = await createMetaAttendedControl(f.options);
+    const helper = { ...fake.rows.get(f.child.pid), pid: 710004, ppid: f.child.pid,
+      command: `${chrome} Helper --type=unit-only` };
+    helper.command_sha256 = hash(helper.command); fake.rows.set(helper.pid, helper);
+    await control.beforeBrowser(); await control.trackBrowser(Promise.resolve(f.server));
+    const changed = { ...helper, command: helper.command + " --changed" };
+    changed.command_sha256 = hash(changed.command); fake.rows.set(helper.pid, changed);
+    fake.host.pid = 710003;
+    let closeError, killError;
+    fake.onSignal = async (target, signal) => {
+      if (target.pid !== 710001 || signal !== "SIGTERM") return;
+      control.requestStop("owner_stop_requested");
+      try { await control.beforeClose(); } catch (error) { closeError = error.message; }
+      try { await control.killBrowser(); } catch (error) { killError = error.message; }
+    };
+    const result = await stopMetaAttendedCase(control.ownerCommand());
+    expect(result.status).toBe("UNKNOWN");
+    expect(closeError).toBe("additional_process_replaced");
+    expect(killError).toBe("attended_browser_identity_unknown");
+    await control.finish();
+    expect(f.server.close).not.toHaveBeenCalled();
+    expect(fake.signals).toEqual([{ pid: 710001, signal: "SIGTERM" }]);
+  });
+
+  it("does not cooperatively close a browser whose root cannot be observed", async () => {
+    const f = fixture();
+    const { createMetaAttendedControl } = await import("./meta-attended-control.mjs");
+    const control = await createMetaAttendedControl(f.options);
+    await control.beforeBrowser(); await control.trackBrowser(Promise.resolve(f.server));
+    fake.rows.delete(f.child.pid);
+    await expect(control.beforeClose()).rejects.toThrow("attended_browser_identity_unknown");
+    await control.finish();
+    expect(f.server.close).not.toHaveBeenCalled();
+    expect(fake.signals).toEqual([]);
+  });
+
   it("does not interpret a missing controller or an observation error as stop authority", async () => {
     const f = fixture();
     const { createMetaAttendedControl, stopMetaAttendedCase } = await import("./meta-attended-control.mjs");
