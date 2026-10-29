@@ -55,6 +55,23 @@ event only to the native-equivalent destinations with no cross-Pixel data leakag
 **Anti-horizontal-phasing check:** The adopter can operate two actual
 destinations safely end to end, not merely configure a routing table.
 
+## Experimental construction - 2026-10-29
+
+The source-only prototype now optionally retains up to four distinct local
+Pixel IDs, broadcasts in initialization order and targets one initialized ID.
+Actual serialized first-party Node worker/loopback tests check request counts,
+target isolation, duplicates, the limit, consent changes between branches,
+partial HTTP failure and terminal transport failure. Each branch crosses the
+existing strict consent and destination boundary; redacted outcomes distinguish
+submitted-to-host from selected branches. Host submissions include held branches
+and are not network-attempt counts. This is not a native two-Pixel comparison.
+
+Initialization, ordering, error and failure-continuation rules are prototype
+choices, not observed native behavior. Per-Pixel identity, settings, remote
+configuration, browser behavior and actual vendor transport remain open. No
+owned Pixel, second source, browser, vendor endpoint or production boot was
+used or enabled. The DoR, acceptance criteria and DRAFT status are unchanged.
+
 ## Assumptions
 
 - Unverified: complete relevant `set` and remote configuration behavior can be

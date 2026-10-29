@@ -95,6 +95,23 @@ and visibly rejects unsupported data. The prototype's default remains
 unchanged. This selected-field local observation does not establish native
 type handling, complete serialization, live delivery or acceptance of 060-02.
 
+### Experimental construction - 2026-10-29
+
+The separate `experimentalEvents` opt-in admits the 17 documented standard
+names and bounded custom names, with `track`/`trackCustom` broadcast and
+`trackSingle`/`trackSingleCustom` targeting when multi-Pixel routing is also
+enabled. The existing data opt-in admits only finite numeric `value` and
+bounded string `currency`; other fields reject rather than disappear. Actual
+first-party Node worker and loopback tests exercise every listed standard name,
+target selection, custom names, mutation snapshots and consent holds.
+
+The historical capture shows PageView and one scalar custom-data field; the
+Lead fixture is synthetic. The event names are a documented floor, not a
+native conversion capture. Event mapping, custom name limits, routing order,
+error behavior and event-data encoding remain experimental assumptions;
+commerce arrays, event options, native responses, real vendor receipt and
+every acceptance criterion above remain unqualified. No live event was sent.
+
 ## Assumptions
 
 - Unverified: native type/coercion/size behavior is discriminable without losing

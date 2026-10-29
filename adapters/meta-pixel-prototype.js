@@ -62,8 +62,8 @@ async function boundedResponse(response) {
 
 /**
  * EXPERIMENTAL source-only standalone factory. No global fbq installation.
- * Main captures only bounded primitive args and six context fields; all command
- * interpretation and query construction live in the first-party worker.
+ * Main captures bounded args and six context fields; routing, event validation
+ * and query construction live in the first-party worker.
  * Outcomes describe transport settlement, NEVER receipt or native parity.
  */
 export function createMetaPixelPrototype({
@@ -78,10 +78,14 @@ export function createMetaPixelPrototype({
   fetchImpl = globalThis.fetch,
   experimentalPageViewData = false,
   experimentalRouting = false,
+  experimentalMultiPixelRouting = false,
+  experimentalEvents = false,
 } = {}) {
-  if (typeof experimentalPageViewData !== "boolean" || typeof experimentalRouting !== "boolean") {
+  if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents]
+    .some((option) => typeof option !== "boolean")) {
     throw new Error("invalid-experimental-option");
   }
+  if (experimentalMultiPixelRouting && !experimentalRouting) throw new Error("multi-pixel-routing-requires-routing");
   const match = typeof endpoint === "string" && endpoint.match(/^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/tr\/$/);
   if (!match || Number(match[1]) > 65535) throw new Error("literal-loopback-endpoint-required");
   if (!Number.isInteger(queueLimit) || queueLimit < 1 || queueLimit > 128 ||
@@ -122,7 +126,9 @@ export function createMetaPixelPrototype({
         consentHeld: state?.consentHeld || 0,
         ceilingHeld: state?.ceilingHeld || 0,
       },
-      outcomes: outcomes.map((outcome) => ({ ...outcome })).sort((a, b) => a.seq - b.seq),
+      outcomes: outcomes.map((outcome) => ({
+        ...outcome, ...(outcome.branches ? { branches: outcome.branches.map((branch) => ({ ...branch })) } : {}),
+      })).sort((a, b) => a.seq - b.seq),
       receipt: "not-observed-by-adapter",
       fullCompatibility: false,
     };
@@ -227,23 +233,28 @@ export function createMetaPixelPrototype({
     if (capturing) { reject("capture-reentrant"); return; }
     if (phase === "terminal" || phase === "disposed") { reject(phase); return; }
     if (queue.length >= queueLimit) { reject("queue-overflow"); return; }
-    // Also bound the unchanged wrapped host's lifetime request history.
+    // At most four requests per admitted command bound the host's lifetime history.
     if (admitted >= HISTORY_LIMIT) { reject("session-command-limit"); return; }
-    if (args.length > 3) { reject("argument-limit"); return; }
+    if (args.length > (experimentalMultiPixelRouting ? 4 : 3)) { reject("argument-limit"); return; }
+    const dataIndex = experimentalMultiPixelRouting &&
+      (args[0] === "trackSingle" && (experimentalEvents || args[2] === "PageView") ||
+       args[0] === "trackSingleCustom" && experimentalEvents)
+      ? 3 : args[0] === "track" && (experimentalEvents || args[1] === "PageView") ||
+        args[0] === "trackCustom" && experimentalEvents ? 2 : -1;
     for (const [index, arg] of args.entries()) {
       if (["function", "symbol"].includes(typeof arg)) { reject("uncloneable-input"); return; }
       if (arg !== null && typeof arg === "object" &&
-          !(experimentalPageViewData === true && index === 2 && args[0] === "track" && args[1] === "PageView")) {
+          !(experimentalPageViewData === true && index === dataIndex)) {
         reject("unsupported-argument"); return;
       }
       if (typeof arg === "string" && arg.length > 64) { reject("argument-limit"); return; }
     }
     capturing = true;
     try {
-      if (experimentalPageViewData === true && args.length === 3 && args[0] === "track" && args[1] === "PageView") {
-        const data = snapshotPageViewData(args[2]);
+      if (experimentalPageViewData === true && dataIndex >= 0 && args.length === dataIndex + 1) {
+        const data = snapshotPageViewData(args[dataIndex]);
         if (!data) { reject("unsupported-parameters"); return; }
-        args[2] = data;
+        args[dataIndex] = data;
       }
       const source = captureContext();
       const context = {};
@@ -310,7 +321,9 @@ export function createMetaPixelPrototype({
     initTimer = setTimeout(() => stop("init-timeout"), initTimeoutMs);
     host.init({ endpoint, transportTimeoutMs,
       ...(experimentalPageViewData === true ? { experimentalPageViewData: true } : {}),
-      ...(experimentalRouting === true ? { experimentalRouting: true } : {}) });
+      ...(experimentalRouting === true ? { experimentalRouting: true } : {}),
+      ...(experimentalMultiPixelRouting === true ? { experimentalMultiPixelRouting: true } : {}),
+      ...(experimentalEvents === true ? { experimentalEvents: true } : {}) });
   } catch {
     stop("worker-unavailable");
   }

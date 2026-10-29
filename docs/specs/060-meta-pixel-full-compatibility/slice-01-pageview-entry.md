@@ -80,6 +80,11 @@ now carry controlled value/currency fields and a supplied Pixel ID through the
 first-party worker and loopback receiver. This is not a native PageView or
 full-event qualification.
 
+Additional opt-ins now exercise multi-Pixel routing and documented standard/
+custom event names in the same local-only worker path. Their ordering, failure
+and data rules are experimental assumptions, not native comparison evidence;
+production boot and the readiness/acceptance gates remain unchanged.
+
 ## Readiness checkpoint - 2026-10-16
 
 **Current reference preparation - 2026-10-27:**060-13/14 local construction

@@ -9,6 +9,7 @@ let terminal = false;
 let lastSequence = 0;
 let requestId = 0;
 let timeoutMs = 1000;
+let multiPixelRouting = false;
 const pending = new Map();
 
 function fatal(reason) {
@@ -47,18 +48,29 @@ async function route(event) {
     } else if (!result.ready.length) {
       summary = { seq: event.seq, disposition: "initialized", requests: 0 };
     } else {
-      if (result.ready.length !== 1) throw new Error("invalid-request-count");
-      // A host counter increments BEFORE dispatch. Only the correlated response
-      // settles this command, and even that is not independent receiver evidence.
-      const response = await dispatch(result.ready[0]);
-      const held = response.status === 0 && response.statusText?.startsWith("held at the seal:");
-      summary = {
-        seq: event.seq,
-        disposition: held ? "held" : response.status >= 200 && response.status < 300 ? "transport-settled" : "failed",
-        requests: 1,
-        status: response.status,
-        ...(held ? { reason: "held-at-seal" } : response.status === 0 ? { reason: "transport-failed", terminal: true } : {}),
-      };
+      if (result.ready.length > (multiPixelRouting ? 4 : 1)) throw new Error("invalid-request-count");
+      const branches = [];
+      for (const request of result.ready) {
+        // Each branch crosses the trusted host separately; consent may change between responses.
+        const response = await dispatch(request);
+        const held = response.status === 0 && response.statusText?.startsWith("held at the seal:");
+        branches.push({
+          ordinal: branches.length + 1,
+          disposition: held ? "held" : response.status >= 200 && response.status < 300 ? "transport-settled" : "failed",
+          status: response.status,
+          ...(held ? { reason: "held-at-seal" } : response.status === 0 ? { reason: "transport-failed" } : {}),
+        });
+        if (response.status === 0 && !held) break;
+      }
+      const first = branches[0];
+      const terminalFailure = branches.some((branch) => branch.reason === "transport-failed");
+      const disposition = branches.length === result.ready.length &&
+        branches.every((branch) => branch.disposition === first.disposition) ? first.disposition : "partial";
+      summary = multiPixelRouting
+        ? { seq: event.seq, disposition, requests: branches.length, selected: result.ready.length, branches,
+          ...(terminalFailure ? { terminal: true, reason: "transport-failed" } : {}) }
+        : { seq: event.seq, disposition, requests: 1, status: first.status,
+          ...(first.reason ? { reason: first.reason } : {}), ...(terminalFailure ? { terminal: true } : {}) };
     }
     if (!terminal) self.postMessage({ type: "result", summary, ready: [] });
   } catch {
@@ -88,9 +100,11 @@ self.onmessage = async ({ data }) => {
         throw new Error("invalid-timeout");
       }
       timeoutMs = data.transportTimeoutMs;
+      multiPixelRouting = data.experimentalMultiPixelRouting === true;
       connector = createConnectorHost(createMetaPageViewPrototype, {
         endpoint: data.endpoint, experimentalPageViewData: data.experimentalPageViewData,
-        experimentalRouting: data.experimentalRouting,
+        experimentalRouting: data.experimentalRouting, experimentalMultiPixelRouting: data.experimentalMultiPixelRouting,
+        experimentalEvents: data.experimentalEvents,
       });
       await connector.init({});
       self.postMessage({ type: "phase", name: "configured" });

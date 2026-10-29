@@ -39,6 +39,29 @@ this path is source-only and **not browser-tested**. Node tests inject a real
   finite number; currency must be a well-formed string of at most 64
   characters. Unknown keys, accessors and unsupported values reject the
   whole call. These are experimental admission rules, not native semantics.
+- With both `experimentalRouting: true` and
+  `experimentalMultiPixelRouting: true`, up to four distinct synthetic IDs
+  can be initialized. `track` broadcasts to all in initialization order;
+  `trackSingle` targets one initialized ID. Duplicate, unknown and excess IDs
+  reject without dispatch. These ordering and error rules are prototype
+  choices; native multi-Pixel behavior has not been captured.
+- With `experimentalEvents: true`, `track` additionally accepts the 17
+  standard names listed in spec 060, and `trackCustom` accepts a nonempty,
+  well-formed name of at most 50 UTF-16 code units. When multi-Pixel routing is
+  also enabled, `trackSingle` and `trackSingleCustom` provide targeting.
+  The existing `experimentalPageViewData` opt-in also allows the same
+  `value`/`currency` record on these events; all other properties, including
+  commerce arrays and objects, reject. No native conversion event or general
+  custom-event serialization was captured, and the admission rules, field
+  encoding and order here are working assumptions.
+- Multi-Pixel commands dispatch one branch at a time through the seal. Their
+  redacted outcomes list branch ordinals, statuses and dispositions, plus
+  selected and submitted-to-host counts (which include holds, not just network
+  dispatches); a mixture is `partial`, never success. A
+  status-zero transport failure stops remaining branches and the adapter;
+  a non-2xx response does not imply receipt or prevent later branches.
+  Consent is checked for each branch, and held branches are not replayed.
+  A command timeout can terminate before a branch summary is returned.
 - `await flush()` observes bounded command/transport outcomes, **not receipt**.
   `transport-settled` means a correlated 2xx response, not vendor acceptance.
 - `setConsent(vector)` governs subsequent dispatch. Held commands are dropped;
@@ -67,7 +90,8 @@ The default capture reads `document.URL`, `document.referrer`, frame status,
 The chamber supplies `id` and `ev` in addition to those context fields, plus
 the two opt-in event fields above when supplied. Extra context is not
 captured. By default args are limited to three primitive values (strings ≤64
-characters); the opt-in accepts only the bounded PageView data record.
+characters); multi-Pixel routing allows four for targeted data calls.
+The data opt-in accepts only the bounded value/currency record.
 Other objects, accessors and functions are not copied.
 Malformed/unsupported calls and extra arguments remain visible rejections,
 not native error-semantic claims. Reentrant capture is rejected; disposal
@@ -76,7 +100,9 @@ Defaults: queue 32, outcome history 256,
 session admissions 256, simultaneous flush waiters 16; response data ≤4096
 bytes and the complete percent-encoded GET URL ≤8192 characters. Oversized
 encoding is rejected inside the chamber before transport. The lifetime
-admission cap also bounds the unchanged host's history.
+admission cap bounds the unchanged host's history to at most 1,024 dispatched
+requests in multi-Pixel mode. The command deadline covers the entire broadcast,
+not each branch separately.
 
 The unchanged connector host retains state inside the chamber. The unchanged
 wrapped host enforces the endpoint ceiling and strict `ad_storage`; the adapter
