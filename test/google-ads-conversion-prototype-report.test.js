@@ -106,4 +106,64 @@ describe("synthetic relationships versus partial retained native field shape", (
     expect(evaluate({ experimentalRouting: true }).local[0].relationshipsPreserved).toBe(false);
     expect(() => evaluate({ experimentalRouting: "true" })).toThrow("invalid-experimental-option");
   });
+
+  it("evaluates explicitly supplied scope snapshots using event, config and global precedence", () => {
+    const command = {
+      ...snapshot,
+      args: ["event", "conversion", { send_to: "AW-0000000000/SYNTHETIC_LABEL", value: 0, transaction_id: undefined }],
+    };
+    const scopes = { global: { value: 12, currency: "USD", transaction_id: "global-private" }, config: { value: 24, currency: "CAD" } };
+    const observed = { method: "GET", url: `${endpoint}?label=SYNTHETIC_LABEL&value=0&currency_code=CAD&url=https%3A%2F%2Fexample.test%2Freport-only` };
+    const evaluate = (options = {}) => reportGoogleAdsConversionPrototype({
+      observedRequests: [observed], commandSnapshots: [command], scopeSnapshots: [scopes],
+      endpoint, experimentalParameterScopes: true, ...options,
+    });
+    const report = evaluate();
+    expect(report.local[0]).toMatchObject({
+      relationshipsPreserved: true, scopeDisposition: "explicit-snapshots-only",
+    });
+    expect(report.local[0].fields.slice(1, 4).map(({ sourceScope, expectation }) => [sourceScope, expectation]))
+      .toEqual([["event", "zero-preserved"], ["config", "provided-value-preserved"], ["event", "explicit-undefined-omitted"]]);
+    expect(report).toMatchObject({ overall: "INCONCLUSIVE", fullCompatibility: false, cardinalityPreserved: true });
+    expect(JSON.stringify(report)).not.toContain("global-private");
+    for (const mutated of [
+      observed.url.replace("value=0", "value=24"),
+      observed.url.replace("currency_code=CAD", "currency_code=USD"),
+      `${observed.url}&oid=global-private`,
+      observed.url.replace("&value=0", ""),
+      `${observed.url}&currency_code=CAD`,
+    ]) expect(evaluate({ observedRequests: [{ ...observed, url: mutated }] }).local[0].relationshipsPreserved).toBe(false);
+    expect(reportGoogleAdsConversionPrototype({
+      observedRequests: [observed], commandSnapshots: [command], scopeSnapshots: [scopes], endpoint,
+    }).local[0].relationshipsPreserved).toBe(false);
+    const wrongScopes = { global: { value: 12, currency: "USD" }, config: { value: 24, currency: "EUR" } };
+    expect(evaluate({ scopeSnapshots: [wrongScopes] }).local[0].relationshipsPreserved).toBe(false);
+  });
+
+  it("fails closed for missing, misaligned, invalid or accessor-bearing scopes without exposing data", () => {
+    let reads = 0;
+    const getter = { get value() { reads += 1; return 3; } };
+    const valid = { global: { value: 26.5, currency: "EUR", transaction_id: "report-synthetic-26" }, config: {} };
+    const event = { ...snapshot, args: ["event", "conversion", { send_to: "AW-0000000000/SYNTHETIC_LABEL" }] };
+    const evaluate = (scopeSnapshots) => reportGoogleAdsConversionPrototype({
+      observedRequests: [request], commandSnapshots: [event], endpoint, experimentalParameterScopes: true, scopeSnapshots,
+    });
+    expect(evaluate([valid]).local[0].relationshipsPreserved).toBe(true);
+    for (const scopes of [
+      undefined, [], [null], [{ global: getter, config: {} }], [{ global: {}, config: { currency: 9 } }],
+      [{ global: { send_to: "private" }, config: {} }], [{ global: {}, config: {}, extra: "private" }],
+      [{ global: {}, config: { transaction_id: "\ud800" } }], [valid, valid],
+    ]) {
+      const report = evaluate(scopes);
+      expect(report.local[0].relationshipsPreserved).toBe(false);
+      expect(JSON.stringify(report)).not.toContain("report-synthetic-26");
+      expect(JSON.stringify(report)).not.toContain("private");
+    }
+    expect(reads).toBe(0);
+    const accessorArray = [valid];
+    Object.defineProperty(accessorArray, 0, { get() { reads += 1; return valid; } });
+    expect(evaluate(accessorArray).local[0].relationshipsPreserved).toBe(false);
+    expect(reads).toBe(0);
+    expect(() => reportGoogleAdsConversionPrototype({ experimentalParameterScopes: "true" })).toThrow("invalid-experimental-option");
+  });
 });

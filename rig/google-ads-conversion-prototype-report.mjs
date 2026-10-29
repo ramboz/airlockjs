@@ -1,4 +1,5 @@
 const MAPPED = ["label", "value", "currency_code", "oid", "url"];
+const SCOPE_FIELDS = ["value", "currency", "transaction_id"];
 const KNOWN = [
   "apvc", "async", "auid", "bg", "category", "cerd", "cid", "crd", "ct_cookie_present",
   "currency_code", "cv", "data", "dl", "dma", "dt", "en", "eoid", "ept", "fmt", "frm",
@@ -82,12 +83,40 @@ function nativeShape(projection) {
   };
 }
 
-function localRelationship(request, snapshot, endpoint, ordinal, experimentalRouting) {
+function ownRecord(value, allowed) {
+  if (!value || typeof value !== "object" || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return null;
+  const out = Object.create(null);
+  for (const key of Reflect.ownKeys(value)) {
+    if (!allowed.includes(key)) return null;
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (!descriptor || !Object.hasOwn(descriptor, "value")) return null;
+    out[key] = descriptor.value;
+  }
+  return out;
+}
+
+function validScopeValues(values) {
+  return (values.value === undefined || (typeof values.value === "number" && Number.isFinite(values.value))) &&
+    (values.currency === undefined || (typeof values.currency === "string" && values.currency.length <= 64 && values.currency.isWellFormed())) &&
+    (values.transaction_id === undefined || (typeof values.transaction_id === "string" &&
+      values.transaction_id.length <= 128 && values.transaction_id.isWellFormed()));
+}
+
+function parseScopes(snapshot) {
+  const scopes = ownRecord(snapshot, ["global", "config"]);
+  if (!scopes || !Object.hasOwn(scopes, "global") || !Object.hasOwn(scopes, "config")) return null;
+  const global = ownRecord(scopes.global, SCOPE_FIELDS);
+  const config = ownRecord(scopes.config, SCOPE_FIELDS);
+  return global && config && validScopeValues(global) && validScopeValues(config) ? { global, config } : null;
+}
+
+function localRelationship(request, snapshot, endpoint, ordinal, experimentalRouting, scoped, scopeSnapshot, scopeAligned) {
   let url;
   try { url = new URL(request?.url); } catch { /* Invalid input remains a failed local assertion. */ }
   const query = url?.searchParams || new URLSearchParams();
   const args = snapshot?.args;
-  const params = args?.[2];
+  const params = scoped ? ownRecord(args?.[2], ["send_to", ...SCOPE_FIELDS]) : args?.[2];
+  const scopes = scoped && scopeAligned ? parseScopes(scopeSnapshot) : null;
   const endpointPattern = experimentalRouting
     ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,20})\/$/
     : /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(0000000000)\/$/;
@@ -99,9 +128,16 @@ function localRelationship(request, snapshot, endpoint, ordinal, experimentalRou
   const validCommand = Array.isArray(args) && args.length === 3 && args[0] === "event" && args[1] === "conversion" &&
     params && typeof params === "object" && !Array.isArray(params) &&
     Reflect.ownKeys(params).every((key) => ["send_to", "value", "currency", "transaction_id"].includes(key)) &&
-    validSelector;
+    validSelector && (!scoped || (scopes && validScopeValues(params)));
   const fields = [["send_to", "label"], ["value", "value"], ["currency", "currency_code"], ["transaction_id", "oid"], ["pageURL", "url"]].map(([input, wire]) => {
-    const source = input === "pageURL" ? snapshot?.context : params;
+    let source = input === "pageURL" ? snapshot?.context : params;
+    let sourceScope = input === "pageURL" ? "context" : "event";
+    if (scoped && SCOPE_FIELDS.includes(input) && !Object.hasOwn(params || {}, input)) {
+      source = scopes?.config;
+      sourceScope = "config";
+      if (!source || !Object.hasOwn(source, input)) { source = scopes?.global; sourceScope = "global"; }
+      if (!source || !Object.hasOwn(source, input)) sourceScope = "absent";
+    }
     const provided = Boolean(source && Object.hasOwn(source, input));
     const value = provided ? source[input] : undefined;
     const knownOmission = input !== "send_to" && input !== "pageURL" && (!provided || value === undefined);
@@ -111,6 +147,7 @@ function localRelationship(request, snapshot, endpoint, ordinal, experimentalRou
     const occurrences = query.getAll(wire);
     return {
       input, wire, provided,
+      ...(scoped ? { sourceScope } : {}),
       inputType: Array.isArray(value) ? "array" : value === null ? "null" : typeof value,
       expectation: knownOmission ? provided ? "explicit-undefined-omitted" : "omitted" :
         value === "" ? "empty-preserved" : value === 0 ? "zero-preserved" : "provided-value-preserved",
@@ -129,6 +166,7 @@ function localRelationship(request, snapshot, endpoint, ordinal, experimentalRou
   const onlyExpectedFields = names.length === expectedFields.length && names.every((name) => expectedFields.includes(name));
   return {
     ordinal, routingPreserved, fields, uniqueQueryNames, onlyExpectedFields, pairCount: names.length,
+    ...(scoped ? { scopeDisposition: scopes ? "explicit-snapshots-only" : "invalid-or-misaligned-snapshots" } : {}),
     unknownFieldCount: names.filter((name) => !MAPPED.includes(name)).length,
     relationshipsPreserved: routingPreserved && uniqueQueryNames && onlyExpectedFields && fields.every((field) => field.relationshipPreserved),
     disposition: "synthetic-input-to-independent-local-arrival-only",
@@ -140,15 +178,23 @@ function localRelationship(request, snapshot, endpoint, ordinal, experimentalRou
  * Public output exposes names/counts/booleans, NEVER input values or URLs.
  */
 export function reportGoogleAdsConversionPrototype({
-  observedRequests = [], commandSnapshots = [], endpoint, projection, experimentalRouting = false,
+  observedRequests = [], commandSnapshots = [], scopeSnapshots, endpoint, projection,
+  experimentalRouting = false, experimentalParameterScopes = false,
 } = {}) {
-  if (typeof experimentalRouting !== "boolean") throw new Error("invalid-experimental-option");
+  if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean") throw new Error("invalid-experimental-option");
+  const scopeAligned = Array.isArray(scopeSnapshots) && Array.isArray(commandSnapshots) &&
+    Array.isArray(observedRequests) && scopeSnapshots.length === commandSnapshots.length &&
+    scopeSnapshots.length === observedRequests.length;
   return {
     overall: "INCONCLUSIVE", fullCompatibility: false,
     localEvidence: "synthetic-contract-not-native-parity",
-    cardinalityPreserved: Array.isArray(observedRequests) && Array.isArray(commandSnapshots) && observedRequests.length === commandSnapshots.length,
+    cardinalityPreserved: Array.isArray(observedRequests) && Array.isArray(commandSnapshots) &&
+      observedRequests.length === commandSnapshots.length && (!experimentalParameterScopes || scopeAligned),
     local: Array.from({ length: Math.max(observedRequests.length, commandSnapshots.length) }, (_, index) =>
-      localRelationship(observedRequests[index], commandSnapshots[index], endpoint, index, experimentalRouting)),
+      localRelationship(observedRequests[index], commandSnapshots[index], endpoint, index, experimentalRouting,
+        experimentalParameterScopes,
+        experimentalParameterScopes && scopeAligned ? Object.getOwnPropertyDescriptor(scopeSnapshots, index)?.value : undefined,
+        scopeAligned)),
     nativeShape: nativeShape(projection),
     gaps: [...GAPS],
   };

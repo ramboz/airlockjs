@@ -67,10 +67,12 @@ end-to-end measurement and page navigation, not merely a new command parser.
 The explicit construction direction permits an opt-in experimental subset,
 without advancing this DRAFT slice or its dependencies. The standalone Google
 prototype can retain global and config values for three conversion parameters
-and apply event-over-config-over-global precedence through its first-party
+using object or key/value `set`, and apply event-over-config-over-global precedence through its first-party
 worker and loopback receiver. The exact local rules, including `undefined`,
 are described in the [prototype guide](../../../connectors/google-ads/CONVERSION-PROTOTYPE.md);
-they are assumptions for construction, not native observations. Native scope
+they are assumptions for construction, not native observations. The offline
+report can compare explicitly supplied scope snapshots to independent arrivals;
+it does not prove that the supplied snapshots represent worker history. Native scope
 and queue semantics, callbacks, routing fanout, browser behavior, complete wire,
 production cutover and the acceptance criteria above remain unqualified.
 

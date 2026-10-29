@@ -60,8 +60,13 @@ export function createGoogleAdsConversionPrototype({ endpoint, experimentalRouti
       const { args, context: capturedContext } = event?.payload || {};
       if (event?.type !== "google-ads-command" || !Array.isArray(args)) throw new Error("unsupported-command");
       if (experimentalParameterScopes && args[0] === "set") {
-        if (args.length !== 2) throw new Error("unsupported-command");
-        const values = dataRecord(args[1], SCOPE_PARAMS);
+        if (args.length !== 2 && args.length !== 3) throw new Error("unsupported-command");
+        let values;
+        if (args.length === 2) {
+          values = dataRecord(args[1], SCOPE_PARAMS);
+        } else if (typeof args[1] === "string" && SCOPE_PARAMS.includes(args[1])) {
+          values = Object.assign(Object.create(null), { [args[1]]: args[2] });
+        }
         if (!values) throw new Error("unsupported-parameters");
         validateValues(values);
         Object.assign(globalScope, values);

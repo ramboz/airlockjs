@@ -70,10 +70,12 @@ This is a bounded local rule, not a claim about native Google validation or
 authorization to send to Google. The default remains the fixed synthetic route.
 
 For local command experiments, `experimentalParameterScopes: true` also
-supports the object form of `gtag("set", values)` and optional config values:
+supports both `gtag("set", values)` and `gtag("set", key, value)`, plus
+optional config values:
 
 ```js
 gtag("set", { value: 10, currency: "USD" });
+gtag("set", "transaction_id", "synthetic-order");
 gtag("config", "AW-0000000000", { currency: "CAD" });
 gtag("event", "conversion", {
   send_to: "AW-0000000000/SYNTHETIC_LABEL", value: 12,
@@ -90,7 +92,7 @@ overrides lower scopes and omits that field from the request; zero and empty
 strings remain present. The existing duplicate-config rejection still applies.
 Scope changes do not bypass the seal or replay a denied conversion. Each
 adapter/chamber has its own scope state. These choices are **experimental
-semantics**, not qualified native behavior; key/value set, other parameters,
+semantics**, not qualified native behavior; native key/value set semantics, other parameters,
 repeated config and native undefined/consent behavior remain unverified.
 The option defaults to false and works independently of experimental routing.
 
@@ -137,9 +139,21 @@ accounts for every retained row/field/occurrence, including all 34 unmapped
 primary names. Public output contains field names, counts, dispositions,
 types and relationship booleans—not raw URLs or transaction/input values.
 Missing/invalid projection is visible. The result is **always INCONCLUSIVE**
-with `fullCompatibility: false`.
-The report compares only direct event inputs, not retained scope state; it
-does not qualify scope-derived values and can report them as mismatches.
+with `fullCompatibility: false`. To evaluate scoped values, explicitly pass
+`experimentalParameterScopes: true` and a `scopeSnapshots` array aligned
+one-for-one with the event snapshots and independent arrivals. Each entry
+must have complete `global` and `config` own-data records at the event:
+
+```js
+scopeSnapshots: [{ global: { value: 10 }, config: { currency: "CAD" } }]
+```
+
+The report applies the experimental precedence to those caller-supplied
+snapshots; it cannot establish that they describe actual worker state or prove
+the preceding command history. Missing, invalid or misaligned snapshots fail
+the local relationship checks. Field-level output identifies only the winning
+scope, type, omission and comparison result, never the values. The default
+direct-input report is unchanged.
 For an experimental destination, pass `experimentalRouting: true` to the
 report as well; it checks that the snapshotted destination matches the
 loopback path and that the observed label matches the call. The default report

@@ -3,6 +3,7 @@ import { createGoogleAdsPrototype } from "../adapters/google-ads-prototype.js";
 import { createConnectorHost } from "../core/connector-host.js";
 import { createGoogleAdsConversionPrototype } from "../connectors/google-ads/conversion-prototype.js";
 import { closeConversionResources, createConversionReceiver, createNodeConversionChamber } from "../rig/google-ads-conversion-prototype.mjs";
+import { reportGoogleAdsConversionPrototype } from "../rig/google-ads-conversion-prototype-report.mjs";
 
 const endpoint = "http://127.0.0.1:43210/pagead/conversion/0000000000/";
 const selector = "AW-0000000000/SYNTHETIC_LABEL";
@@ -28,12 +29,13 @@ describe("experimental conversion parameter scopes", () => {
     expect(() => createGoogleAdsConversionPrototype({ endpoint, experimentalParameterScopes: "true" })).toThrow("invalid-experimental-option");
     await local({}, async ({ adapter, receiver }) => {
       adapter.gtag("set", { value: 1 });
+      adapter.gtag("set", "value", 1);
       adapter.gtag("config", "AW-0000000000", { currency: "USD" });
       adapter.gtag("config", "AW-0000000000");
       adapter.gtag("event", "conversion", { send_to: selector });
       const state = await adapter.flush();
       expect(state.outcomes.map((item) => item.reason || item.disposition)).toEqual([
-        "unsupported-argument", "unsupported-config", "configured", "transport-settled",
+        "unsupported-argument", "unsupported-command", "unsupported-config", "configured", "transport-settled",
       ]);
       expect([...new URL(receiver.arrivals[0].url).searchParams]).toEqual([
         ["label", "SYNTHETIC_LABEL"], ["url", "https://example.test/checkout"],
@@ -67,6 +69,23 @@ describe("experimental conversion parameter scopes", () => {
       ]);
       expect(state.host.dispatchAttempts).toBe(3);
       expect(JSON.stringify(state)).not.toContain("global-id");
+      const context = { pageURL: "https://example.test/checkout", referrer: "" };
+      const report = reportGoogleAdsConversionPrototype({
+        observedRequests: receiver.arrivals, endpoint: receiver.endpoint, experimentalParameterScopes: true,
+        commandSnapshots: [
+          { args: ["event", "conversion", { send_to: selector, value: 0 }], context },
+          { args: ["event", "conversion", { send_to: selector, currency: "", transaction_id: undefined }], context },
+          { args: ["event", "conversion", { send_to: selector }], context },
+        ],
+        scopeSnapshots: [
+          { global: { value: 11, currency: "USD", transaction_id: "global-id" }, config: { value: 22, currency: "EUR" } },
+          { global: { value: 33, currency: "CAD", transaction_id: "next-global" }, config: { value: 22, currency: "EUR" } },
+          { global: { value: 33, currency: "CAD", transaction_id: "next-global" }, config: { value: 22, currency: "EUR" } },
+        ],
+      });
+      expect(report.local.every((entry) => entry.relationshipsPreserved)).toBe(true);
+      expect(report).toMatchObject({ overall: "INCONCLUSIVE", fullCompatibility: false });
+      expect(JSON.stringify(report)).not.toContain("global-id");
     });
   }, 8000);
 
@@ -177,4 +196,44 @@ describe("experimental conversion parameter scopes", () => {
       ["label", "SYNTHETIC_LABEL"], ["value", "8"], ["currency_code", "CAD"], ["url", "https://example.test/"],
     ]);
   });
+
+  it("supports sequential key/value set commands without widening consent, routing or input types", async () => {
+    await local({ experimentalParameterScopes: true }, async ({ adapter, receiver }) => {
+      adapter.gtag("set", "value", 14);
+      adapter.gtag("set", "currency", "CAD");
+      adapter.gtag("set", "transaction_id", "kv-synthetic");
+      adapter.gtag("set", "value", "bad-number");
+      adapter.gtag("set", "send_to", selector);
+      adapter.gtag("set", "__proto__", "ignored");
+      adapter.gtag("set", "currency", "\ud800");
+      adapter.gtag("config", "AW-0000000000", { currency: "EUR" });
+      adapter.gtag("event", "conversion", { send_to: selector });
+      adapter.gtag("set", "value", undefined);
+      adapter.gtag("event", "conversion", { send_to: selector, currency: "" });
+      const state = await adapter.flush();
+      expect(state.outcomes.map((item) => item.reason || item.disposition)).toEqual([
+        "scope-updated", "scope-updated", "scope-updated", "unsupported-value", "unsupported-parameters",
+        "unsupported-parameters", "unsupported-currency",
+        "configured", "transport-settled", "scope-updated", "transport-settled",
+      ]);
+      expect(receiver.arrivals.map(({ url }) => [...new URL(url).searchParams])).toEqual([
+        [["label", "SYNTHETIC_LABEL"], ["value", "14"], ["currency_code", "EUR"], ["oid", "kv-synthetic"], ["url", "https://example.test/checkout"]],
+        [["label", "SYNTHETIC_LABEL"], ["currency_code", ""], ["oid", "kv-synthetic"], ["url", "https://example.test/checkout"]],
+      ]);
+      const context = { pageURL: "https://example.test/checkout", referrer: "" };
+      const report = reportGoogleAdsConversionPrototype({
+        observedRequests: receiver.arrivals, endpoint: receiver.endpoint, experimentalParameterScopes: true,
+        commandSnapshots: [
+          { args: ["event", "conversion", { send_to: selector }], context },
+          { args: ["event", "conversion", { send_to: selector, currency: "" }], context },
+        ],
+        scopeSnapshots: [
+          { global: { value: 14, currency: "CAD", transaction_id: "kv-synthetic" }, config: { currency: "EUR" } },
+          { global: { value: undefined, currency: "CAD", transaction_id: "kv-synthetic" }, config: { currency: "EUR" } },
+        ],
+      });
+      expect(report.local.every((entry) => entry.relationshipsPreserved)).toBe(true);
+      expect(JSON.stringify(report)).not.toContain("kv-synthetic");
+    });
+  }, 8000);
 });
