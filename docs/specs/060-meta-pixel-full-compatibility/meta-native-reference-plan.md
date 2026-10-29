@@ -218,6 +218,14 @@ stopped immediately because the successor directory was mode0755 instead of
 observations, and the owner released the failed observer. A later admitted
 SDK-free controller stopped on listener inventory; the recorded resources were
 checked absent, and the owner released its observer. No native grant followed.
+
+An offline synthetic control later demonstrated that the private successor's
+inherited Vitest transition accepts a changed command when its PID, parent,
+group, user and second-resolution start time are unchanged. Those observations
+cannot distinguish the modeled same-second replacement from a title change.
+No actual replacement is asserted. The successor remains unqualified; stronger
+identity evidence and a bounded reviewed approach are needed before relying on
+it for process ownership. The original failed evidence and UNKNOWNs are intact.
 An owned loopback probe reproduced the listener error with an exited selected
 PID; the historical timing remains unknown. An uninitialized private selection
 candidate exists, with an inherited identity-transition review concern open.

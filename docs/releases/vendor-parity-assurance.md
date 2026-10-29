@@ -87,7 +87,13 @@ An owned loopback probe reproduced that `lsof` result with an exited selected
 PID; the failed run's exact timing remains unknown. An uninitialized private
 successor checks recorded identities before inventory, with an inherited
 identity-transition review concern still open. Offline checks are not current
-browser qualification.
+browser qualification. A subsequent synthetic control shows why that concern
+cannot be dismissed: the successor accepts a changed Vitest command when PID,
+parent, group, user and `ps`'s one-second start time are identical. These fields
+cannot distinguish the modeled same-second replacement from the allowed title
+transition. This does not establish that a replacement occurred in any run;
+the candidate remains unqualified and must not be used as evidence of safe
+process ownership.
 
 **Actual local execution update (2026-10-26):** the present owner separately
 approved the final zero-body-EOF sequence, which passed **both actual local
