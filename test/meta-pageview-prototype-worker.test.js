@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createNodePrototypeChamber } from "../rig/meta-pageview-prototype.mjs";
+import { createSyntheticIdentityFixtures } from "../connectors/meta-pixel/synthetic-identity.js";
 
 const endpoint = "http://127.0.0.1:43210/tr/";
 const event = (seq, args) => ({
@@ -35,7 +36,7 @@ async function configure(chamber, transportTimeoutMs = 500) {
 }
 
 describe("actual first-party worker correlated protocol (not receipt evidence)", () => {
-  it.each(["experimentalRouting", "experimentalPageViewData", "experimentalMultiPixelRouting", "experimentalEvents", "experimentalScalarEventData", "experimentalContentIds", "experimentalEventIds"])("rejects mistyped %s during worker initialization", async (option) => {
+  it.each(["experimentalRouting", "experimentalPageViewData", "experimentalMultiPixelRouting", "experimentalEvents", "experimentalScalarEventData", "experimentalContentIds", "experimentalEventIds", "experimentalSyntheticAdvancedMatching"])("rejects mistyped %s during worker initialization", async (option) => {
     const chamber = createNodePrototypeChamber();
     try {
       const failed = receive(chamber, "fatal");
@@ -84,6 +85,25 @@ describe("actual first-party worker correlated protocol (not receipt evidence)",
       const settled = receive(chamber, "result");
       chamber.postMessage({ type: "intercepted-fetch-response", id: request.id, status: 204, body: "" });
       expect((await settled).summary).toMatchObject({ seq: 3, disposition: "transport-settled", status: 204 });
+    } finally { await chamber.dispose(); }
+  }, 5000);
+
+  it("revalidates synthetic init identities after serialization", async () => {
+    const chamber = createNodePrototypeChamber();
+    try {
+      const configured = receive(chamber, "phase");
+      chamber.postMessage({
+        type: "init", endpoint, transportTimeoutMs: 500, experimentalRouting: true,
+        experimentalMultiPixelRouting: true, experimentalSyntheticAdvancedMatching: true,
+        syntheticIdentityFixtures: createSyntheticIdentityFixtures(),
+      });
+      await configured;
+      const rejected = receive(chamber, "result");
+      chamber.postMessage({ type: "event", event: event(1, ["init", "000000000000001", { external_id: "unsupported" }]) });
+      expect((await rejected).summary).toMatchObject({ seq: 1, disposition: "rejected", reason: "unsupported-identity" });
+      const beforeInit = receive(chamber, "result");
+      chamber.postMessage({ type: "event", event: event(2, ["track", "PageView"]) });
+      expect((await beforeInit).summary).toMatchObject({ seq: 2, disposition: "rejected", reason: "pageview-before-init" });
     } finally { await chamber.dispose(); }
   }, 5000);
 

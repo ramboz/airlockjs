@@ -1,6 +1,7 @@
 import { createWrappedSdkHost } from "../core/wrapped-sdk-host.js";
 import { snapshotPageViewData } from "../connectors/meta-pixel/pageview-data.js";
 import { snapshotEventOptions } from "../connectors/meta-pixel/event-options.js";
+import { createSyntheticIdentityFixtures, snapshotSyntheticIdentity } from "../connectors/meta-pixel/synthetic-identity.js";
 
 const CONTEXT_KEYS = ["pageURL", "referrer", "inFrame", "screenWidth", "screenHeight", "timezoneOffset"];
 const HISTORY_LIMIT = 256;
@@ -12,6 +13,7 @@ const MULTI_REJECTIONS = new Set([
   "unsupported-command", "invalid-pixel-id", "synthetic-pixel-required", "duplicate-init", "pixel-limit",
   "unsupported-standard-event", "invalid-custom-event", "pageview-before-init", "event-before-init",
   "uninitialized-pixel", "invalid-context", "unsupported-parameters", "unsupported-options", "encoded-context-limit",
+  "unsupported-identity", "identity-hash-failed",
 ]);
 
 function dataRecord(value, allowed) {
@@ -181,9 +183,10 @@ export function createMetaPixelPrototype({
   experimentalScalarEventData = false,
   experimentalContentIds = false,
   experimentalEventIds = false,
+  experimentalSyntheticAdvancedMatching = false,
 } = {}) {
   if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
-    experimentalScalarEventData, experimentalContentIds, experimentalEventIds]
+    experimentalScalarEventData, experimentalContentIds, experimentalEventIds, experimentalSyntheticAdvancedMatching]
     .some((option) => typeof option !== "boolean")) {
     throw new Error("invalid-experimental-option");
   }
@@ -191,6 +194,10 @@ export function createMetaPixelPrototype({
   if (experimentalScalarEventData && !experimentalPageViewData) throw new Error("scalar-data-requires-pageview-data");
   if (experimentalContentIds && !experimentalPageViewData) throw new Error("content-ids-require-pageview-data");
   if (experimentalEventIds && !experimentalPageViewData) throw new Error("event-ids-require-pageview-data");
+  if (experimentalSyntheticAdvancedMatching && !experimentalMultiPixelRouting) {
+    throw new Error("synthetic-identity-requires-multi-pixel-routing");
+  }
+  const syntheticIdentityFixtures = experimentalSyntheticAdvancedMatching ? createSyntheticIdentityFixtures() : null;
   const match = typeof endpoint === "string" && endpoint.match(/^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/tr\/$/);
   if (!match || Number(match[1]) > 65535) throw new Error("literal-loopback-endpoint-required");
   if (!Number.isInteger(queueLimit) || queueLimit < 1 || queueLimit > 128 ||
@@ -378,11 +385,12 @@ export function createMetaPixelPrototype({
     const hasOptions = experimentalEventIds && dataIndex >= 0 &&
       (args[0] === "track" && args.length === 4 ||
        experimentalMultiPixelRouting && args[0] === "trackSingle" && args.length === 5);
+    const hasIdentity = experimentalSyntheticAdvancedMatching && args[0] === "init" && args.length === 3;
     for (const [index, arg] of args.entries()) {
       if (["function", "symbol"].includes(typeof arg)) { reject("uncloneable-input"); return; }
       if (arg !== null && typeof arg === "object" &&
           !(experimentalPageViewData === true && index === dataIndex) &&
-          !(hasOptions && index === dataIndex + 1)) {
+          !(hasOptions && index === dataIndex + 1) && !(hasIdentity && index === 2)) {
         reject("unsupported-argument"); return;
       }
       if (typeof arg === "string" && arg.length > 64) { reject("argument-limit"); return; }
@@ -398,6 +406,11 @@ export function createMetaPixelPrototype({
         const options = snapshotEventOptions(args[dataIndex + 1]);
         if (!options) { reject("unsupported-options"); return; }
         args[dataIndex + 1] = options;
+      }
+      if (hasIdentity) {
+        const identity = snapshotSyntheticIdentity(args[2], syntheticIdentityFixtures);
+        if (!identity) { reject("unsupported-identity"); return; }
+        args[2] = identity;
       }
       const source = captureContext();
       const context = {};
@@ -451,6 +464,9 @@ export function createMetaPixelPrototype({
         clearTimeout(initTimer);
       }
       if (message?.type === "intercepted-fetch") {
+        if (experimentalSyntheticAdvancedMatching && activeEvent?.payload.args[0] === "init") {
+          stop("invalid-worker-result"); return;
+        }
         if (experimentalMultiPixelRouting) {
           if (!inFlight || activeResultReceived || activeHostRequest !== null || activeHostResponses.length >= 4 ||
               !Number.isSafeInteger(message.id) || message.id <= lastHostRequestId) {
@@ -489,7 +505,9 @@ export function createMetaPixelPrototype({
       ...(experimentalEvents === true ? { experimentalEvents: true } : {}),
       ...(experimentalScalarEventData === true ? { experimentalScalarEventData: true } : {}),
       ...(experimentalContentIds === true ? { experimentalContentIds: true } : {}),
-      ...(experimentalEventIds === true ? { experimentalEventIds: true } : {}) });
+      ...(experimentalEventIds === true ? { experimentalEventIds: true } : {}),
+      ...(experimentalSyntheticAdvancedMatching === true
+        ? { experimentalSyntheticAdvancedMatching: true, syntheticIdentityFixtures } : {}) });
   } catch {
     stop("worker-unavailable");
   }
@@ -497,6 +515,12 @@ export function createMetaPixelPrototype({
   return {
     fbq,
     getState,
+    ...(experimentalSyntheticAdvancedMatching ? {
+      syntheticIdentity(index) {
+        if (index !== 0 && index !== 1) throw new Error("invalid-synthetic-identity-index");
+        return { external_id: syntheticIdentityFixtures[index] };
+      },
+    } : {}),
     flush() {
       if (!queue.length && !inFlight) return Promise.resolve(getState());
       if (waiters.size >= 16) return Promise.resolve({ ...getState(), flush: "waiter-limit" });

@@ -1,6 +1,8 @@
 import { SYNTHETIC_META_PIXEL_ID } from "../pixel/vendors/meta.js";
 import { BASIC_EVENT_DATA_KEYS, SCALAR_EVENT_DATA_KEYS, snapshotPageViewData } from "./pageview-data.js";
 import { snapshotEventOptions } from "./event-options.js";
+import { snapshotSyntheticIdentity, validSyntheticIdentityFixtures } from "./synthetic-identity.js";
+import { hashField } from "../pixel/advanced-matching.js";
 
 const CONTEXT_KEYS = ["pageURL", "referrer", "inFrame", "screenWidth", "screenHeight", "timezoneOffset"];
 const MULTI_PIXEL_LIMIT = 4;
@@ -42,9 +44,10 @@ function validContext(context) {
 export function createMetaPageViewPrototype({
   endpoint, experimentalPageViewData = false, experimentalRouting = false, experimentalMultiPixelRouting = false,
   experimentalEvents = false, experimentalScalarEventData = false, experimentalContentIds = false, experimentalEventIds = false,
+  experimentalSyntheticAdvancedMatching = false, syntheticIdentityFixtures = null,
 } = {}) {
   if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
-    experimentalScalarEventData, experimentalContentIds, experimentalEventIds]
+    experimentalScalarEventData, experimentalContentIds, experimentalEventIds, experimentalSyntheticAdvancedMatching]
     .some((option) => typeof option !== "boolean")) {
     throw new Error("invalid-experimental-option");
   }
@@ -52,9 +55,18 @@ export function createMetaPageViewPrototype({
   if (experimentalScalarEventData && !experimentalPageViewData) throw new Error("scalar-data-requires-pageview-data");
   if (experimentalContentIds && !experimentalPageViewData) throw new Error("content-ids-require-pageview-data");
   if (experimentalEventIds && !experimentalPageViewData) throw new Error("event-ids-require-pageview-data");
+  if (experimentalSyntheticAdvancedMatching && !experimentalMultiPixelRouting) {
+    throw new Error("synthetic-identity-requires-multi-pixel-routing");
+  }
+  if (experimentalSyntheticAdvancedMatching && !validSyntheticIdentityFixtures(syntheticIdentityFixtures)) {
+    throw new Error("invalid-synthetic-identity-fixtures");
+  }
+  const identityFixtures = experimentalSyntheticAdvancedMatching ? [...syntheticIdentityFixtures] : null;
   const match = typeof endpoint === "string" && endpoint.match(/^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/tr\/$/);
   if (!match || Number(match[1]) > 65535) throw new Error("literal-loopback-endpoint-required");
   const pixelIds = new Set();
+  const pendingPixelIds = new Set();
+  const identityHashes = new Map();
   let initialized = false;
   return {
     manifest: {
@@ -72,13 +84,28 @@ export function createMetaPageViewPrototype({
       if (event?.type !== "meta-pixel-command" || !Array.isArray(args)) {
         throw new Error("unsupported-command");
       }
-      if (args[0] === "init" && args.length === 2) {
+      const hasIdentity = experimentalSyntheticAdvancedMatching && args[0] === "init" && args.length === 3;
+      if (args[0] === "init" && (args.length === 2 || hasIdentity)) {
         if (experimentalRouting === true) {
           if (typeof args[1] !== "string" || !/^\d{1,32}$/.test(args[1])) throw new Error("invalid-pixel-id");
         } else if (args[1] !== SYNTHETIC_META_PIXEL_ID) throw new Error("synthetic-pixel-required");
-        if (pixelIds.has(args[1]) || (!experimentalMultiPixelRouting && pixelIds.size)) throw new Error("duplicate-init");
-        if (pixelIds.size >= MULTI_PIXEL_LIMIT) throw new Error("pixel-limit");
-        pixelIds.add(args[1]);
+        const pixelId = args[1];
+        if (pixelIds.has(pixelId) || pendingPixelIds.has(pixelId) ||
+            (!experimentalMultiPixelRouting && (pixelIds.size || pendingPixelIds.size))) throw new Error("duplicate-init");
+        if (pixelIds.size + pendingPixelIds.size >= MULTI_PIXEL_LIMIT) throw new Error("pixel-limit");
+        if (hasIdentity) {
+          const identity = snapshotSyntheticIdentity(args[2], identityFixtures);
+          if (!identity) throw new Error("unsupported-identity");
+          pendingPixelIds.add(pixelId);
+          return hashField("external_id", identity.external_id).then((hash) => {
+            pendingPixelIds.delete(pixelId);
+            if (!/^[0-9a-f]{64}$/.test(hash)) throw new Error("identity-hash-failed");
+            identityHashes.set(pixelId, hash);
+            pixelIds.add(pixelId);
+            return [];
+          }, () => { pendingPixelIds.delete(pixelId); throw new Error("identity-hash-failed"); });
+        }
+        pixelIds.add(pixelId);
         return [];
       }
       const single = experimentalMultiPixelRouting && ["trackSingle", "trackSingleCustom"].includes(args[0]);
@@ -125,6 +152,7 @@ export function createMetaPageViewPrototype({
           }
         }
         if (eventOptions) query.append("eid", eventOptions.eventID);
+        if (identityHashes.has(pixelId)) query.append("ud[external_id]", identityHashes.get(pixelId));
         const url = `${endpoint}?${query}`;
         if (url.length > 8192) throw new Error("encoded-context-limit");
         return { url, method: "GET" };

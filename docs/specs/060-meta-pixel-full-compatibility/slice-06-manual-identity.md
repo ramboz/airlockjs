@@ -60,6 +60,28 @@ double hashing, stale attachment or cross-Pixel identity leakage.
 **Anti-horizontal-phasing check:** An adopter completes login/update/logout
 collection safely end to end, not merely a SHA-256 utility.
 
+## Experimental local construction - 2026-10-29
+
+Meta's [advanced-matching documentation](https://developers.facebook.com/documentation/meta-pixel/advanced/advanced-matching)
+places the manual identity object in the third `init` argument. A separately
+opted-in local prototype generates two per-instance synthetic `external_id`
+values in memory; it rejects all other values and fields. The actual serialized
+worker privately retains its synthetic allowlist, revalidates the input, hashes
+it and retains a per-Pixel hash for subsequent selected
+events, emitted only through the governed loopback receiver. Tests cover
+snapshotting, distinct per-Pixel inputs, anonymous Pixels, duplicate init,
+invalid inputs, consent holds, no replay, hash failure and public-state
+redaction. The private receiver and host retain value-derived hashes in
+request URLs; these must not be logged or published.
+
+The captured `ud[external_id]` field does not establish an equivalent input,
+normalization, hash value, update/clear behavior or matching result. The
+prototype's hash, mapping, limits and retained-identity semantics are
+unverified choices; they are not native parity. No customer data or vendor
+traffic is permitted. Prehashed email, other identity fields and account
+transitions remain unsupported. All DoR, acceptance, privacy authority and
+live gates remain open.
+
 ## Assumptions
 
 - Unverified: complete native normalization and update/clear semantics are

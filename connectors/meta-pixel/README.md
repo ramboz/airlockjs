@@ -74,6 +74,25 @@ this path is source-only and **not browser-tested**. Node tests inject a real
   positions are unverified and remain unsupported. Repeating an event ID does
   not suppress a browser event; this path does not generate IDs, send server
   events or establish backend deduplication.
+- With `experimentalRouting`, `experimentalMultiPixelRouting` and
+  `experimentalSyntheticAdvancedMatching` all enabled, the documented
+  `fbq("init", pixelId, identity)` position accepts only the two per-instance
+  synthetic records returned by `adapter.syntheticIdentity(0)` and
+  `adapter.syntheticIdentity(1)`. Values are randomly generated in memory;
+  do not use customer data. Other fields, values, prehashed inputs, accessors
+  and extra properties reject the whole init. The input is snapshotted,
+  revalidated and hashed in the chamber; init sends no request. The worker
+  privately retains the synthetic fixture allowlist and per-Pixel hashes until
+  disposal. Later selected events attach the hash as a local
+  `ud[external_id]` field through the consent seal. Duplicate init is rejected,
+  and there is no update or clear command; worker disposal ends the retained
+  state. A held request is not replayed, while a later newly submitted,
+  consent-granted event uses the retained synthetic hash. These are local
+  prototype choices, not qualified native behavior. The multi-Pixel
+  prerequisite also provides validated, host-correlated result summaries.
+  Public adapter state omits inputs and hashes; the private host and local
+  receiver retain request URLs containing hashes. Do not log, publish or
+  export those URLs or the input values.
 - With both `experimentalRouting: true` and
   `experimentalMultiPixelRouting: true`, up to four distinct synthetic IDs
   can be initialized. `track` broadcasts to all in initialization order;
@@ -170,6 +189,11 @@ the original input-to-wire relationship, general custom-data serialization,
 or content-ID array serialization.
 The supplied references do not establish native event-ID wire encoding,
 actual deduplication or server/browser correlation for this prototype.
+Meta documents the third init argument, but the retained beacon does not prove
+the input-to-`ud[external_id]` relationship, normalization, hashing behavior,
+per-Pixel identity lifetime, account transitions or matching efficacy. The
+synthetic-only local path does not implement other matching fields or
+prehashed email.
 Loopback Fetch is not native vendor Image/Fetch transport. Matching,
 attribution, other commands, performance and C2/C3 remain unproved. Nothing
 here completes or waives060-01 or its full native/whole-wire/live criteria.
