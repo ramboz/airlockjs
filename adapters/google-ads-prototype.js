@@ -64,18 +64,26 @@ async function responseText(response) {
  * the first-party worker. Transport settlement is never receiver/native proof.
  */
 export function createGoogleAdsPrototype({
-  endpoint, chamber, captureContext = () => ({ pageURL: document.URL, referrer: document.referrer }),
+  endpoint, additionalEndpoint, chamber, captureContext = () => ({ pageURL: document.URL, referrer: document.referrer }),
   consent = null, queueLimit = 32, initTimeoutMs = 2000, commandTimeoutMs = 2000,
   transportTimeoutMs = 1000, fetchImpl = globalThis.fetch,
   experimentalRouting = false, experimentalParameterScopes = false, experimentalCallbacks = false,
+  experimentalMultiDestination = false,
 } = {}) {
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
-      typeof experimentalCallbacks !== "boolean") throw new Error("invalid-experimental-option");
+      typeof experimentalCallbacks !== "boolean" || typeof experimentalMultiDestination !== "boolean" ||
+      (experimentalMultiDestination && !experimentalRouting)) throw new Error("invalid-experimental-option");
   const pattern = experimentalRouting === true
-    ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/\d{1,20}\/$/
+    ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,20})\/$/
     : /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/0000000000\/$/;
   const match = typeof endpoint === "string" && endpoint.match(pattern);
   if (!match || Number(match[1]) > 65535) throw new Error("literal-loopback-endpoint-required");
+  const second = experimentalMultiDestination && typeof additionalEndpoint === "string" && additionalEndpoint.match(pattern);
+  if (experimentalMultiDestination && (!second || Number(second[1]) > 65535 || match[2] === second[2])) {
+    throw new Error("literal-loopback-endpoint-required");
+  }
+  const endpoints = experimentalMultiDestination ? [endpoint, additionalEndpoint] : [endpoint];
+  const routes = experimentalMultiDestination ? new Map([[`AW-${match[2]}`, endpoint], [`AW-${second[2]}`, additionalEndpoint]]) : null;
   if (!Number.isInteger(queueLimit) || queueLimit < 1 || queueLimit > 128 ||
       ![initTimeoutMs, commandTimeoutMs, transportTimeoutMs].every((n) => Number.isInteger(n) && n >= 10 && n <= 10000)) {
     throw new Error("invalid-prototype-bounds");
@@ -99,6 +107,8 @@ export function createGoogleAdsPrototype({
   let activeSequence;
   let activeCommand;
   let activeRequest;
+  let activeRequests;
+  let activeSelectors;
   let lastRequestId = 0;
   let awaitingResult = false;
   let finishCurrent;
@@ -115,7 +125,7 @@ export function createGoogleAdsPrototype({
     const state = host?.getState();
     return {
       experimental: true, phase, terminalReason, cleanupFailure, queued: queue.length, inFlight, truncated,
-      outcomes: outcomes.map((entry) => ({ ...entry })).sort((a, b) => a.seq - b.seq),
+      outcomes: outcomes.map((entry) => ({ ...entry, ...(entry.branches ? { branches: entry.branches.map((branch) => ({ ...branch })) } : {}) })).sort((a, b) => a.seq - b.seq),
       host: { dispatchAttempts: state?.mainDispatch.count || 0, consentHeld: state?.consentHeld || 0, ceilingHeld: state?.ceilingHeld || 0 },
       receipt: "not-observed-by-adapter", fullCompatibility: false,
       ...(experimentalCallbacks ? { callbacks: { ...callbackStats, pending: callbacks.size } } : {}),
@@ -164,12 +174,42 @@ export function createGoogleAdsPrototype({
     };
     return true;
   }
+  function branchOutcome(request, index) {
+    if (!request) return { index, disposition: "not-attempted" };
+    if (!request.response) return { index, disposition: "unknown" };
+    const { status, held } = request.response;
+    const disposition = held ? "held" : status >= 200 && status < 300 ? "transport-settled" : "failed";
+    const reason = held ? "held-at-seal" : status === 0 ? "transport-failed" : undefined;
+    return { index, disposition, status, ...(reason ? { reason } : {}) };
+  }
+  function branchOutcomes() {
+    if (!experimentalMultiDestination || !activeSelectors || activeSelectors.length > 2) return undefined;
+    return activeSelectors.map((_selector, index) => branchOutcome(activeRequests[index], index));
+  }
   function matchesHostResponse(summary) {
     if (summary.requests === 0) {
       return !activeRequest && ["configured", "scope-updated", "rejected"].includes(summary.disposition) &&
         (summary.disposition !== "configured" || activeCommand?.[0] === "config") &&
         (summary.disposition !== "scope-updated" || activeCommand?.[0] === "set") &&
-        summary.status === undefined && summary.terminal === undefined;
+        summary.status === undefined && summary.terminal === undefined && summary.branches === undefined;
+    }
+    if (experimentalMultiDestination) {
+      if (activeCommand?.[0] !== "event" || activeCommand?.[1] !== "conversion" ||
+          !activeSelectors?.length || activeSelectors.length > 2 || activeRequests.length !== summary.requests ||
+          activeRequests.some((request) => !request.response) || !Array.isArray(summary.branches) ||
+          summary.branches.length !== activeSelectors.length || summary.status !== undefined || summary.reason !== undefined) return false;
+      const branches = branchOutcomes();
+      const interrupted = branches.some((branch) => branch.reason === "transport-failed");
+      if ((!interrupted && activeRequests.length !== activeSelectors.length) ||
+          (interrupted && branches[activeRequests.length - 1]?.reason !== "transport-failed") ||
+          summary.terminal !== (interrupted ? true : undefined)) return false;
+      for (const [index, branch] of branches.entries()) {
+        const reported = summary.branches[index];
+        if (!reported || reported.index !== branch.index || reported.disposition !== branch.disposition ||
+            reported.status !== branch.status || reported.reason !== branch.reason) return false;
+      }
+      const dispositions = new Set(branches.map(({ disposition }) => disposition));
+      return summary.disposition === (dispositions.size === 1 ? branches[0].disposition : "partial");
     }
     const response = activeRequest?.response;
     if (!response || activeCommand?.[0] !== "event" || activeCommand?.[1] !== "conversion" ||
@@ -211,7 +251,7 @@ export function createGoogleAdsPrototype({
   async function dispatch(request) {
     if (phase !== "ready" || request.method !== "GET" || request.headers !== undefined || request.body !== undefined ||
         typeof request.url !== "string" || request.url.length > 8192 ||
-        !request.url.startsWith(`${endpoint}?`) || request.url.includes("#")) throw new Error("literal-loopback-policy");
+        !endpoints.some((value) => request.url.startsWith(`${value}?`)) || request.url.includes("#")) throw new Error("literal-loopback-policy");
     const controller = new AbortController();
     controllers.add(controller);
     const timer = setTimeout(() => controller.abort(), transportTimeoutMs);
@@ -230,6 +270,11 @@ export function createGoogleAdsPrototype({
       activeSequence = event.seq;
       activeCommand = event.payload.args;
       activeRequest = undefined;
+      activeRequests = [];
+      const eventParams = activeCommand?.[0] === "event" && activeCommand?.[1] === "conversion" ? activeCommand?.[2] : undefined;
+      const sendTo = eventParams && Object.hasOwn(eventParams, "send_to") ? eventParams.send_to : undefined;
+      activeSelectors = experimentalMultiDestination && (typeof sendTo === "string" || Array.isArray(sendTo))
+        ? (Array.isArray(sendTo) ? sendTo : [sendTo]) : undefined;
       inFlight = true;
       awaitingResult = true;
       const settled = await new Promise((resolve) => {
@@ -246,7 +291,8 @@ export function createGoogleAdsPrototype({
         host.driveEvent(event).then((result) => finish({ result }), () => finish({ failure: "worker-fatal" }));
       });
       if (settled.failure) {
-        record({ seq: event.seq, disposition: "rejected", reason: settled.failure });
+        const branches = branchOutcomes();
+        record({ seq: event.seq, disposition: "rejected", reason: settled.failure, ...(branches ? { branches } : {}) });
         stop(settled.failure);
       } else {
         const summary = settled.result.summary;
@@ -254,6 +300,7 @@ export function createGoogleAdsPrototype({
           seq: event.seq, disposition: summary.disposition, requests: summary.requests,
           ...(Number.isInteger(summary.status) ? { status: summary.status } : {}),
           ...(summary.reason ? { reason: REASONS.has(summary.reason) ? summary.reason : "worker-rejected" } : {}),
+          ...(experimentalMultiDestination && summary.branches ? { branches: branchOutcomes() } : {}),
         });
         if (summary.terminal) stop("transport-failed");
       }
@@ -262,6 +309,8 @@ export function createGoogleAdsPrototype({
       activeSequence = undefined;
       activeCommand = undefined;
       activeRequest = undefined;
+      activeRequests = undefined;
+      activeSelectors = undefined;
       scheduleCallback(event.seq, "settled");
     }
     settle();
@@ -302,7 +351,25 @@ export function createGoogleAdsPrototype({
         for (const key of keys) {
           if (callbackKeys.includes(key)) continue;
           const descriptor = Object.getOwnPropertyDescriptor(arg, key);
-          if (!descriptor || descriptor.get || descriptor.set || !primitive(descriptor.value, 2048)) {
+          if (!descriptor || !Object.hasOwn(descriptor, "value")) { reject("unsupported-parameters"); return; }
+          if (experimentalMultiDestination && key === "send_to" && Array.isArray(descriptor.value)) {
+            const array = descriptor.value;
+            if (Object.getPrototypeOf(array) !== Array.prototype || array.length < 1 || array.length > 2 ||
+                Reflect.ownKeys(array).some((name) => name !== "length" && name !== "0" && name !== "1")) {
+              reject("unsupported-parameters"); return;
+            }
+            const values = [];
+            for (let i = 0; i < array.length; i += 1) {
+              const element = Object.getOwnPropertyDescriptor(array, String(i));
+              if (!element || !Object.hasOwn(element, "value") || typeof element.value !== "string" || element.value.length > 2048) {
+                reject("unsupported-parameters"); return;
+              }
+              values.push(element.value);
+            }
+            params[key] = values;
+            continue;
+          }
+          if (!primitive(descriptor.value, 2048)) {
             reject("unsupported-parameters"); return;
           }
           params[key] = descriptor.value;
@@ -346,8 +413,9 @@ export function createGoogleAdsPrototype({
         const summary = message.summary;
         if (!inFlight || !awaitingResult || summary?.seq !== activeSequence) { stop("result-correlation-failed"); return; }
         if (!["configured", "rejected", "held", "transport-settled", "failed",
+          ...(experimentalMultiDestination ? ["partial"] : []),
           ...(experimentalParameterScopes ? ["scope-updated"] : [])].includes(summary.disposition) ||
-            ![0, 1].includes(summary.requests) ||
+            !(experimentalMultiDestination ? [0, 1, 2] : [0, 1]).includes(summary.requests) ||
             (summary.status !== undefined && (!Number.isInteger(summary.status) || summary.status < 0 || summary.status > 599))) {
           stop("invalid-worker-result"); return;
         }
@@ -356,14 +424,39 @@ export function createGoogleAdsPrototype({
       }
       if (message?.type === "intercepted-fetch") {
         if (!inFlight || !awaitingResult || activeCommand?.[0] !== "event" || activeCommand?.[1] !== "conversion" ||
-            activeRequest || !Number.isSafeInteger(message.id) || message.id <= lastRequestId) {
+            (experimentalMultiDestination
+              ? !activeSelectors || message.index !== activeRequests.length || message.index >= activeSelectors.length ||
+                (activeRequest && (!activeRequest.response ||
+                  (activeRequest.response.status === 0 && !activeRequest.response.held)))
+              : activeRequest) || !Number.isSafeInteger(message.id) || message.id <= lastRequestId) {
           stop("request-correlation-failed"); return;
+        }
+        if (experimentalMultiDestination) {
+          const selectors = activeSelectors.map((value) => typeof value === "string" &&
+            value.match(/^(AW-\d{1,20})\/([A-Za-z0-9_-]{1,128})$/));
+          const destinations = selectors.map((value) => value?.[1]);
+          if (selectors.some((value) => !value || !routes.has(value[1])) ||
+              new Set(destinations).size !== destinations.length) {
+            stop("request-correlation-failed"); return;
+          }
+          const selector = selectors[message.index];
+          const expected = selector && routes.get(selector[1]);
+          let valid = false;
+          try {
+            if (typeof message.url === "string" && message.url.length <= 8192) {
+              const url = new URL(message.url);
+              valid = !!expected && message.url.startsWith(`${expected}?`) && !message.url.includes("#") &&
+                url.searchParams.getAll("label").length === 1 && url.searchParams.get("label") === selector[2];
+            }
+          } catch { /* Invalid worker URL is rejected before dispatch. */ }
+          if (!valid) { stop("request-correlation-failed"); return; }
         }
         lastRequestId = message.id;
         activeRequest = { id: message.id };
+        activeRequests.push(activeRequest);
       }
       if (message?.type === "intercepted-fetch" &&
-          (message.method !== "GET" || Object.keys(message).some((key) => !["type", "id", "url", "method"].includes(key)))) {
+          (message.method !== "GET" || Object.keys(message).some((key) => !["type", "id", "url", "method", ...(experimentalMultiDestination ? ["index"] : [])].includes(key)))) {
         try {
           const response = { type: "intercepted-fetch-response", id: message.id, status: 0, statusText: "held at the seal: literal-loopback-policy", body: "" };
           if (recordHostResponse(response)) transport.postMessage(response);
@@ -383,13 +476,14 @@ export function createGoogleAdsPrototype({
         },
         onMessage: (listener) => hostListeners.add(listener),
       },
-      caps: { egress: { dispatch } }, endpointCeiling: [endpoint], consent: consentVector,
+      caps: { egress: { dispatch } }, endpointCeiling: endpoints, consent: consentVector,
       egressPurposes: ["ad_storage"], grantedCookieNames: [], timeoutMs: transportTimeoutMs, onDiagnostic() {},
     });
     initTimer = setTimeout(() => stop("init-timeout"), initTimeoutMs);
     host.init({ endpoint, transportTimeoutMs,
       ...(experimentalRouting === true ? { experimentalRouting: true } : {}),
-      ...(experimentalParameterScopes === true ? { experimentalParameterScopes: true } : {}) });
+      ...(experimentalParameterScopes === true ? { experimentalParameterScopes: true } : {}),
+      ...(experimentalMultiDestination ? { additionalEndpoint, experimentalMultiDestination: true } : {}) });
   } catch { stop("worker-unavailable"); }
   return {
     gtag, getState,

@@ -9,6 +9,7 @@ let terminal = false;
 let lastSequence = 0;
 let requestId = 0;
 let timeoutMs = 1000;
+let multiDestination = false;
 const pending = new Map();
 
 function fatal(reason) {
@@ -22,13 +23,14 @@ function fatal(reason) {
   self.postMessage({ type: "fatal", message: reason });
 }
 
-function dispatch(request) {
+function dispatch(request, index) {
   if (terminal || pending.size) throw new Error("invalid-pending-state");
   const id = ++requestId;
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => fatal("transport-timeout"), timeoutMs);
     pending.set(id, { resolve, reject, timer });
-    self.postMessage({ type: "intercepted-fetch", id, url: request.url, method: "GET" });
+    self.postMessage({ type: "intercepted-fetch", id, url: request.url, method: "GET",
+      ...(multiDestination ? { index } : {}) });
   });
 }
 
@@ -47,15 +49,28 @@ async function route(event) {
     } else if (!result.ready.length) {
       summary = { seq: event.seq, disposition: event.payload.args[0] === "set" ? "scope-updated" : "configured", requests: 0 };
     } else {
-      if (result.ready.length !== 1) throw new Error("invalid-request-count");
-      const response = await dispatch(result.ready[0]);
-      const held = response.status === 0 && response.statusText?.startsWith("held at the seal:");
-      summary = {
-        seq: event.seq,
-        disposition: held ? "held" : response.status >= 200 && response.status < 300 ? "transport-settled" : "failed",
-        requests: 1, status: response.status,
-        ...(held ? { reason: "held-at-seal" } : response.status === 0 ? { reason: "transport-failed", terminal: true } : {}),
-      };
+      if (result.ready.length > (multiDestination ? 2 : 1)) throw new Error("invalid-request-count");
+      const branches = [];
+      for (const [index, request] of result.ready.entries()) {
+        const response = await dispatch(request, index);
+        const held = response.status === 0 && response.statusText?.startsWith("held at the seal:");
+        const disposition = held ? "held" : response.status >= 200 && response.status < 300 ? "transport-settled" : "failed";
+        const reason = held ? "held-at-seal" : response.status === 0 ? "transport-failed" : undefined;
+        branches.push({ index, disposition, status: response.status, ...(reason ? { reason } : {}) });
+        if (response.status === 0 && !held) break;
+      }
+      const interrupted = branches.at(-1).reason === "transport-failed";
+      if (multiDestination) {
+        const requests = branches.length;
+        while (branches.length < result.ready.length) branches.push({ index: branches.length, disposition: "not-attempted" });
+        const dispositions = new Set(branches.map(({ disposition }) => disposition));
+        const disposition = dispositions.size === 1 ? branches[0].disposition : "partial";
+        summary = { seq: event.seq, disposition, requests, branches, ...(interrupted ? { terminal: true } : {}) };
+      } else {
+        const { disposition, status, reason } = branches[0];
+        summary = { seq: event.seq, disposition, requests: 1, status,
+          ...(reason ? { reason } : {}), ...(interrupted ? { terminal: true } : {}) };
+      }
     }
     // Returned bodies/URLs are DATA ONLY. No scripts, callbacks, cookies or fanout.
     if (!terminal) self.postMessage({ type: "result", summary, ready: [] });
@@ -82,9 +97,11 @@ self.onmessage = async ({ data }) => {
     try {
       if (!Number.isInteger(data.transportTimeoutMs) || data.transportTimeoutMs < 10 || data.transportTimeoutMs > 10000) throw new Error("invalid-timeout");
       timeoutMs = data.transportTimeoutMs;
+      multiDestination = data.experimentalMultiDestination === true;
       connector = createConnectorHost(createGoogleAdsConversionPrototype, {
         endpoint: data.endpoint, experimentalRouting: data.experimentalRouting,
         experimentalParameterScopes: data.experimentalParameterScopes,
+        additionalEndpoint: data.additionalEndpoint, experimentalMultiDestination: data.experimentalMultiDestination,
       });
       await connector.init({});
       if (!terminal) self.postMessage({ type: "phase", name: "configured" });

@@ -70,6 +70,62 @@ hyphen label of at most 128 characters. Mismatches reject without dispatch.
 This is a bounded local rule, not a claim about native Google validation or
 authorization to send to Google. The default remains the fixed synthetic route.
 
+### Experimental multi-destination routing
+
+[Google documents](https://developers.google.com/tag-platform/gtagjs/reference/parameters)
+`send_to` as a string or string array and describes
+[multi-target routing](https://developers.google.com/tag-platform/gtagjs/routing).
+Those sources and the retained one-conversion capture do **not** establish the
+native request count, ordering, duplicate handling, failure or callback
+semantics for arrays of labeled Ads conversions. The following is a local
+experiment, not an observed Google fanout or a compatibility claim.
+
+`experimentalMultiDestination: true` requires `experimentalRouting: true`
+and an `additionalEndpoint`: a second literal 127.0.0.1 conversion endpoint
+with a different numeric destination. There are exactly two predeclared
+endpoints at most; no vendor or non-loopback endpoint is allowed. Configure
+each selected destination separately before a conversion. A `send_to` string
+or an array of one or two distinct configured destinations is accepted:
+
+```js
+gtag("config", "AW-111", { currency: "USD" });
+gtag("config", "AW-222", { currency: "CAD" });
+gtag("event", "conversion", { send_to: ["AW-111/LOCAL_ONE", "AW-222/LOCAL_TWO"], value: 3 });
+```
+
+The config parameters in this example additionally require
+`experimentalParameterScopes: true`. The local policy builds one request per
+selected destination, in array order, using that destination's config scope.
+It rejects the entire command before dispatch if a destination is missing,
+unconfigured, duplicated or invalid. Repeated config remains unsupported.
+The host snapshots the array without executing getters, and checks each
+request's sequence, selected endpoint and label before dispatch. The seal
+checks current `ad_storage` independently for each request; a held branch
+is dropped and never replayed. A non-2xx HTTP response allows the next branch
+to proceed; a transport failure stops the sequence. These choices are all
+experimental and must not be used to infer native duplicate, ordering,
+partial-failure or consent behavior.
+
+Completed conversion outcomes include redacted `branches`, indexed in input
+order. Each is `transport-settled`, `held`, `failed`, or `not-attempted`,
+with a host-observed status where available. A terminal interruption can
+instead produce `unknown` for an in-flight branch. Different branch results
+produce the aggregate `partial`, never full settlement. A settled HTTP
+response proves neither independent receiver receipt nor vendor processing.
+The host checks every worker-reported branch against its own correlated
+response and rejects a fabricated, premature, duplicate or wrong-route result.
+For an admitted callback, the existing experimental terminal/timeout policy
+still applies to the whole command, not each branch.
+
+This mode defaults off; without it arrays remain rejected. The existing
+single-destination relationship report does not evaluate these arrays. Use
+only the separate local receiver observations when exercising this option;
+neither they nor the branch outcomes establish native parity. Qualifying
+native behavior requires a pinned, same-input multi-label/multi-account
+capture including branch requests/responses, ordering, duplicates, partial
+failure, consent and callback completion, with separate authorization for
+live activity.
+
 For local command experiments, `experimentalParameterScopes: true` also
 supports both `gtag("set", values)` and `gtag("set", key, value)`, plus
 optional config values:
@@ -101,7 +157,8 @@ Main synchronously captures/clones primitive data and returns `undefined`.
 The chamber interprets commands, retains config, validates types and builds
 the query. Outside the scope opt-in, config options and `set` are rejected.
 Duplicate config, pre-config conversions, unknown
-commands/keys, arrays, nested objects and accessors reject visibly.
+commands/keys, arrays (except the explicitly opted-in `send_to` form above),
+nested objects and accessors reject visibly.
 The pure connector independently enforces own-data-property parameter/context
 records too; inherited values or getters cannot supply optional wire fields.
 Without the callback opt-in, callbacks reject the **whole** call; none are
