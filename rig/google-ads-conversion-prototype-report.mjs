@@ -82,16 +82,24 @@ function nativeShape(projection) {
   };
 }
 
-function localRelationship(request, snapshot, endpoint, ordinal) {
+function localRelationship(request, snapshot, endpoint, ordinal, experimentalRouting) {
   let url;
   try { url = new URL(request?.url); } catch { /* Invalid input remains a failed local assertion. */ }
   const query = url?.searchParams || new URLSearchParams();
   const args = snapshot?.args;
   const params = args?.[2];
+  const endpointPattern = experimentalRouting
+    ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,20})\/$/
+    : /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(0000000000)\/$/;
+  const endpointMatch = typeof endpoint === "string" && endpoint.match(endpointPattern);
+  const selector = typeof params?.send_to === "string" && params.send_to.match(/^(AW-\d{1,20})\/([A-Za-z0-9_-]{1,128})$/);
+  const validSelector = experimentalRouting
+    ? Boolean(endpointMatch && selector && selector[1] === `AW-${endpointMatch[2]}`)
+    : params?.send_to === "AW-0000000000/SYNTHETIC_LABEL";
   const validCommand = Array.isArray(args) && args.length === 3 && args[0] === "event" && args[1] === "conversion" &&
     params && typeof params === "object" && !Array.isArray(params) &&
     Reflect.ownKeys(params).every((key) => ["send_to", "value", "currency", "transaction_id"].includes(key)) &&
-    params.send_to === "AW-0000000000/SYNTHETIC_LABEL";
+    validSelector;
   const fields = [["send_to", "label"], ["value", "value"], ["currency", "currency_code"], ["transaction_id", "oid"], ["pageURL", "url"]].map(([input, wire]) => {
     const source = input === "pageURL" ? snapshot?.context : params;
     const provided = Boolean(source && Object.hasOwn(source, input));
@@ -99,7 +107,7 @@ function localRelationship(request, snapshot, endpoint, ordinal) {
     const knownOmission = input !== "send_to" && input !== "pageURL" && (!provided || value === undefined);
     const supportedType = knownOmission ||
       (input === "value" ? typeof value === "number" && Number.isFinite(value) : typeof value === "string");
-    const expected = input === "send_to" ? "SYNTHETIC_LABEL" : String(value);
+    const expected = input === "send_to" ? selector?.[2] : String(value);
     const occurrences = query.getAll(wire);
     return {
       input, wire, provided,
@@ -113,7 +121,6 @@ function localRelationship(request, snapshot, endpoint, ordinal) {
   });
   const expectedFields = fields.filter((field) => !["omitted", "explicit-undefined-omitted"].includes(field.expectation)).map((field) => field.wire);
   const names = [...query.keys()];
-  const endpointMatch = typeof endpoint === "string" && endpoint.match(/^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/0000000000\/$/);
   const literalEndpoint = endpointMatch && Number(endpointMatch[1]) <= 65535;
   const routingPreserved = Boolean(literalEndpoint && url && request?.method === "GET" &&
     !url.username && !url.password && !url.hash && request.url.startsWith(`${endpoint}?`) &&
@@ -132,13 +139,16 @@ function localRelationship(request, snapshot, endpoint, ordinal) {
 /** Pure: accepts explicit independent arrivals and controlled snapshots only.
  * Public output exposes names/counts/booleans, NEVER input values or URLs.
  */
-export function reportGoogleAdsConversionPrototype({ observedRequests = [], commandSnapshots = [], endpoint, projection } = {}) {
+export function reportGoogleAdsConversionPrototype({
+  observedRequests = [], commandSnapshots = [], endpoint, projection, experimentalRouting = false,
+} = {}) {
+  if (typeof experimentalRouting !== "boolean") throw new Error("invalid-experimental-option");
   return {
     overall: "INCONCLUSIVE", fullCompatibility: false,
     localEvidence: "synthetic-contract-not-native-parity",
     cardinalityPreserved: Array.isArray(observedRequests) && Array.isArray(commandSnapshots) && observedRequests.length === commandSnapshots.length,
     local: Array.from({ length: Math.max(observedRequests.length, commandSnapshots.length) }, (_, index) =>
-      localRelationship(observedRequests[index], commandSnapshots[index], endpoint, index)),
+      localRelationship(observedRequests[index], commandSnapshots[index], endpoint, index, experimentalRouting)),
     nativeShape: nativeShape(projection),
     gaps: [...GAPS],
   };

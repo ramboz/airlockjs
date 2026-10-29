@@ -85,4 +85,25 @@ describe("synthetic relationships versus partial retained native field shape", (
     expect(invalid.local[0].relationshipsPreserved).toBe(false);
     expect(invalid.fullCompatibility).toBe(false);
   });
+
+  it("only evaluates explicitly enabled experimental local routing and detects destination or label mutations", () => {
+    const experimentalEndpoint = "http://127.0.0.1:43210/pagead/conversion/0000000001/";
+    const command = structuredClone(snapshot);
+    command.args[2].send_to = "AW-0000000001/LOCAL_ACTION";
+    const observed = { ...request, url: request.url.replace(endpoint, experimentalEndpoint).replace("SYNTHETIC_LABEL", "LOCAL_ACTION") };
+    const evaluate = (options = {}) => reportGoogleAdsConversionPrototype({
+      observedRequests: [observed], commandSnapshots: [command], endpoint: experimentalEndpoint, ...options,
+    });
+    expect(evaluate().local[0].relationshipsPreserved).toBe(false);
+    expect(evaluate({ experimentalRouting: true }).local[0].relationshipsPreserved).toBe(true);
+    for (const mutated of [
+      { ...observed, url: observed.url.replace("LOCAL_ACTION", "OTHER_ACTION") },
+      { ...observed, url: observed.url.replace("/0000000001/", "/0000000002/") },
+    ]) {
+      expect(evaluate({ observedRequests: [mutated], experimentalRouting: true }).local[0].relationshipsPreserved).toBe(false);
+    }
+    command.args[2].send_to = "AW-0000000002/LOCAL_ACTION";
+    expect(evaluate({ experimentalRouting: true }).local[0].relationshipsPreserved).toBe(false);
+    expect(() => evaluate({ experimentalRouting: "true" })).toThrow("invalid-experimental-option");
+  });
 });

@@ -112,6 +112,10 @@ primary names. Public output contains field names, counts, dispositions,
 types and relationship booleans—not raw URLs or transaction/input values.
 Missing/invalid projection is visible. The result is **always INCONCLUSIVE**
 with `fullCompatibility: false`.
+For an experimental destination, pass `experimentalRouting: true` to the
+report as well; it checks that the snapshotted destination matches the
+loopback path and that the observed label matches the call. The default report
+continues to accept only the fixed synthetic route.
 
 Missing behavior includes config/page/remarketing companions, the first-party
 primary alternative, response-linked fetch/fallback/redirect/cookie branches,

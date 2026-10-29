@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createGoogleAdsPrototype } from "../adapters/google-ads-prototype.js";
 import { createGoogleAdsConversionPrototype } from "../connectors/google-ads/conversion-prototype.js";
 import { closeConversionResources, createConversionReceiver, createNodeConversionChamber } from "../rig/google-ads-conversion-prototype.mjs";
+import { reportGoogleAdsConversionPrototype } from "../rig/google-ads-conversion-prototype-report.mjs";
 
 describe("experimental conversion routing through the real worker and local receiver", () => {
   it("rejects a mistyped experimental option instead of silently disabling it", () => {
@@ -21,9 +22,10 @@ describe("experimental conversion routing through the real worker and local rece
         consent: { ad_storage: "granted" },
       });
       adapter.gtag("config", "AW-0000000001");
-      adapter.gtag("event", "conversion", {
+      const params = {
         send_to: "AW-0000000001/SYNTHETIC_ACTION", value: 17.25, currency: "USD", transaction_id: "local-order",
-      });
+      };
+      adapter.gtag("event", "conversion", params);
       adapter.gtag("event", "conversion", { send_to: "AW-0000000002/SYNTHETIC_ACTION" });
       const state = await adapter.flush();
       expect(state.outcomes.map((item) => item.reason || item.disposition)).toEqual([
@@ -36,6 +38,15 @@ describe("experimental conversion routing through the real worker and local rece
         ["label", "SYNTHETIC_ACTION"], ["value", "17.25"], ["currency_code", "USD"],
         ["oid", "local-order"], ["url", "https://example.test/checkout"],
       ]);
+      const report = reportGoogleAdsConversionPrototype({
+        observedRequests: receiver.arrivals,
+        commandSnapshots: [{ args: ["event", "conversion", params], context: { pageURL: "https://example.test/checkout", referrer: "" } }],
+        endpoint: receiver.endpoint, experimentalRouting: true,
+      });
+      expect(report.local[0].relationshipsPreserved).toBe(true);
+      expect(report).toMatchObject({ overall: "INCONCLUSIVE", fullCompatibility: false });
+      expect(JSON.stringify(report)).not.toContain("local-order");
+      expect(JSON.stringify(report)).not.toContain("SYNTHETIC_ACTION");
     } finally {
       await closeConversionResources({ adapter, chamber, receiver });
     }
