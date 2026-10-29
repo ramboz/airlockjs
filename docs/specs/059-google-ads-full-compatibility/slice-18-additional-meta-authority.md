@@ -144,6 +144,35 @@ asserted.
 source checkpoints.** Current browser ownership, coordinated stop and network
 boundary proof remain open.
 
+### Immediate-stop exploration - 2026-10-29
+
+The owner approved exploring immediate termination of the separately verified
+controller when browser ownership becomes uncertain, accepting that a browser
+or temporary files may require manual recovery. This was not approval for a
+browser qualification or a live request.
+
+An SDK-free candidate attempted immediate controller termination for detected
+uncertainty, retained UNKNOWN for the browser, and avoided creating a new
+cooperative stop request when uncertainty was already known. Controlled tests
+also exercised a missing browser record, a recorded PID outside its former
+group and a preexisting same-case stop request. These are simulated observations,
+not actual process or browser qualification.
+
+**Independent source review: needs changes.** Remaining counterexamples include
+a browser record disappearing just as the controller exits, a later browser
+observation contradicting an earlier stopped disposition, controller-final
+group-only closure, signal-time identity evidence and a stop request observed
+while its writer is still creating it. A controller can also begin cleanup
+before the stopper detects uncertainty; terminating it does not prove that the
+browser or its network activity stopped. Same-second process identity ambiguity
+and key-cleanup coordination remain open. No actual replacement is asserted.
+
+The unqualified candidate and its tests are preserved privately as a session
+patch and were not applied to the operational source. The existing NO-GO,
+historical UNKNOWNs, source-bound qualification gates and one unspent additional
+case remain unchanged. Stop this supporting increment at this review result;
+it does not authorize or queue another browser or native job.
+
 ### Historical first source result
 
 The two inspected candidate pins now require Chrome156.0.8078.48.
