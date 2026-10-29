@@ -34,7 +34,8 @@ experimental replacement work from the available references before complete
 native responses exist. Local, source-only opt-ins now cover Google routing,
 parameter scopes, callbacks and conservative consent commands; Meta covers
 multiple Pixels, event routing, bounded commerce data, event IDs and synthetic
-init identity. Each uses a serialized worker and governed loopback receiver;
+init identity, plus local tag-consent commands. Each uses a serialized worker
+and governed loopback receiver;
 the existing production defaults remain unchanged. Most ordering, encoding and
 identity choices remain experimental, not native findings.
 
