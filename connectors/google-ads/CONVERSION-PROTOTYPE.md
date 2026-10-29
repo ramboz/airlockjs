@@ -102,6 +102,10 @@ transport, response and compatibility limitations above unchanged. The owner
 must separately authorize each use of private reference inputs; this command
 does not authorize browser, vendor or live activity.
 
+The reusable tool was also run against the retained 058-04 reference described
+above: all three cases completed, with 30 selected field comparisons matching.
+It returned `inconclusive` and did not qualify the untested behavior.
+
 ## Experimental standalone seam
 
 `createGoogleAdsPrototype` in `adapters/google-ads-prototype.js` returns
