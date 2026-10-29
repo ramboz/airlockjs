@@ -80,6 +80,13 @@ session artifacts. This is not a same-environment native/chamber comparison,
 an official-backend receipt, proof of general serialization or evidence that
 the prerequisites or acceptance criteria above have passed.
 
+The existing generic Meta connector is a separate reuse candidate: in a direct
+connector-host check with a synthetic ID, its `page_view` event produced the
+same two selected field values for both controlled inputs and omitted both for
+the baseline. It takes Airlock event parameters, not the native `fbq` call;
+no worker, dispatch or backend receipt was exercised by this check. It does
+not make the prototype or the full replacement compatible.
+
 ## Assumptions
 
 - Unverified: native type/coercion/size behavior is discriminable without losing
