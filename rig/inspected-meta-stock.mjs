@@ -709,16 +709,12 @@ function verifyAdditionalLifecycle(supervision, exit, completion, read) {
       || !Number.isSafeInteger(key.size) || key.size < 1 || key.size > 16384) bad();
     return keyIdentity(key);
   });
-  const image = (value, profile, allowLauncher) => {
+  const image = (value, profile) => {
     const chrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-    const launcher = fileURLToPath(new URL("./qualification-loopback-chrome", import.meta.url));
-    const sandbox = fileURLToPath(new URL("./qualification-loopback-network.sb", import.meta.url));
     if (typeof value !== "string" || /[\0\r\n]/.test(value)) bad();
     const dir = [...value.matchAll(/(?:^| )--user-data-dir=(\S+)/g)];
     if (dir.length !== 1 || dir[0][1] !== profile.argument_path) bad();
     if (value.startsWith(chrome + " ")) return "chrome";
-    if (allowLauncher && (value.startsWith(launcher + " ") || value.startsWith("/bin/sh " + launcher + " ")
-      || value.startsWith("/usr/bin/sandbox-exec -f " + sandbox + " " + chrome + " "))) return "launcher";
     bad();
   };
   const profile = browser.profile;
@@ -726,7 +722,7 @@ function verifyAdditionalLifecycle(supervision, exit, completion, read) {
   if (profile.birthtime_ms < supervision.started_ms || profile.birthtime_ms > end) bad();
   process(browser.root, end);
   if (typeof browser.root_command !== "string" || hash(browser.root_command) !== browser.root.command_sha256
-    || image(browser.root_command, profile, false) !== "chrome") bad();
+    || image(browser.root_command, profile) !== "chrome") bad();
   const members = new Map();
   for (const member of browser.processes) {
     process(member, end, true);
@@ -780,8 +776,8 @@ function verifyAdditionalLifecycle(supervision, exit, completion, read) {
       || profile.birthtime_ms > registration.at_ms || typeof snapshot.root_command !== "string"
       || hash(snapshot.root_command) !== snapshot.root.command_sha256
       || !Array.isArray(snapshot.members) || !snapshot.members.length || snapshot.members.length > 64) bad();
-    image(snapshot.root_command, profile, n === 3);
-    if (n >= 4 && (!equal(snapshot.root, browser.root) || snapshot.root_command !== browser.root_command)) bad();
+    image(snapshot.root_command, profile);
+    if (!equal(snapshot.root, browser.root) || snapshot.root_command !== browser.root_command) bad();
     const seen = new Set();
     for (const member of snapshot.members) {
       process(member, registration.at_ms);

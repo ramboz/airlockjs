@@ -291,6 +291,18 @@ occurred. It shows that those modeled observations alone do not distinguish
 the replacement from the intended exec transition. The retained probe is
 `/Users/ramboz/.copilot/session-state/89132187-b3df-4fd9-a894-eff56c3692c5/files/meta-additional-transition-probe.mjs`.
 
+The source-only guardrail now rejects observed image transitions and changed
+known members rather than promoting the launcher on those observations. A
+supervisor error recorded before cleanup leaves browser ownership UNKNOWN;
+that cleanup retains the profile and keys without signalling the browser.
+The attended stop can still attempt to stop
+the independently verified controller when browser ownership is unknown.
+Controlled SDK-free tests exercise these cases, including a changed browser
+that later appears unchanged. This may also reject a genuine launcher exec.
+It does not prove continuity for an unobserved replacement with the same
+image and second-resolution start time. Affected source-bound qualification
+receipts are stale; no current browser or native qualification follows.
+
 The network checkpoint must show, with local negative controls, that the
 confined browser cannot bypass the intended proxy or reach an unrelated
 localhost listener. The existing sandbox allows `localhost:*` and is

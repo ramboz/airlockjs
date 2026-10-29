@@ -73,6 +73,31 @@ ownership blocker, not full059-18 DONE. Stop at one coherent result or two activ
 hours of this engineering allocation; no generic lifecycle/holder/clock/Docker
 work. This source increment alone cannot spend the additional Meta case.
 
+### Source-only stop guardrail - 2026-10-29
+
+The additional supervisor and its evidence reader now reject an observed
+launcher-to-Chrome image change instead of treating second-resolution process
+identity as proof of the same lifetime. A changed known member is rejected even
+when another member still anchors the group, or the changed root is no longer
+in that group. The cleanup receipt retains bounded mismatch observations. When
+a supervisor error is recorded before cleanup, that cleanup leaves browser
+ownership UNKNOWN without signalling the browser or removing its profile or
+registered keys, and does not claim closure.
+
+The attended stop route records browser ownership errors while still attempting
+to stop the independently verified controller. It does not signal a browser
+whose ownership is unknown. A forged browser parent and a changed helper are
+covered by controlled tests. The five focused SDK-free suites passed 407 tests
+with 19 opt-in skips; no actual browser, SDK or vendor operation was run.
+
+This rejects legitimate launcher exec transitions if observed before Chrome
+is registered, so it may prevent qualification rather than make it possible.
+It also cannot distinguish an unobserved same-image replacement within the
+same second. Changed source pins invalidate affected prior qualification
+receipts. Current fourteen-controller, eleven-relay, additional-path and
+attended originals, exact ownership/stop and loopback-boundary proof all
+remain open. The additional case is unspent and historical UNKNOWNs remain.
+
 ### Historical first source result
 
 The two inspected candidate pins now require Chrome156.0.8078.48.

@@ -152,14 +152,13 @@ async function unitProof() {
     const helper = { ...browserRoot, pid: 1003, ppid: 1002, started: birth(now - 200), command_sha256: hash("unit-only-helper") };
     const keys = ["inspector-key.pem", "receiver-key.pem"].map((name, n) =>
       ({ path: join(run, name), dev: 1, ino: 11 + n, birthtime_ms: now - 700, uid: process.getuid(), size: 1704 }));
-    const discoveredCommand = "/bin/sh " + launcher + " --user-data-dir=" + profile.argument_path;
-    const discoveredRoot = { ...browserRoot, command_sha256: hash(discoveredCommand) };
+    const discoveredRoot = { ...browserRoot };
     const registrationValues = [
       { phase: "node", at_ms: now - 800, node, ports: [], private_keys: [], browsers: [] },
       { phase: "ports", at_ms: now - 650, node, ports: [10001, 10002, 10003], private_keys: keys, browsers: [] },
       { phase: "browser-pending", at_ms: now - 600, node, ports: [10001, 10002, 10003], private_keys: keys, browsers: [] },
       { phase: "browser-discovered", at_ms: now - 250, node, ports: [10001, 10002, 10003], private_keys: keys,
-        browsers: [{ root: discoveredRoot, root_command: discoveredCommand, profile, members: [discoveredRoot] }] },
+        browsers: [{ root: discoveredRoot, root_command: rootCommand, profile, members: [discoveredRoot] }] },
       { phase: "browser-ready", at_ms: now - 100, node, ports: [10001, 10002, 10003, 10004], private_keys: keys,
         browsers: [{ root: browserRoot, root_command: rootCommand, profile, members: [browserRoot, helper] }] },
       { phase: "resources-final", at_ms: now + 20, node, ports: [10001, 10002, 10003, 10004], private_keys: keys,
@@ -377,7 +376,7 @@ describe("fixed additional-path qualification surface", () => {
       contradictSupervision(entry, fault); f.rebind(entry);
       expect(() => f.api.inspectAdditionalMetaQualification(f.index())).toThrow();
     });
-  it("accepts complete empty or matching zombie Node inventories and a genuine-shaped launcher exec transition", async () => {
+  it("accepts complete empty or matching zombie Node inventories with a stable browser image", async () => {
     const f = await unitProof();
     expect(f.api.inspectAdditionalMetaQualification(f.index()).sdk_absent_evidence_verified).toBe(true);
     for (const entry of f.cases) {
@@ -386,6 +385,19 @@ describe("fixed additional-path qualification surface", () => {
       f.rebind(entry);
     }
     expect(f.api.inspectAdditionalMetaQualification(f.index()).sdk_absent_evidence_verified).toBe(true);
+  });
+  it("rejects a launcher-to-browser transition based only on second-resolution identity", async () => {
+    const f = await unitProof(), entry = f.cases[0];
+    expect(f.api.inspectAdditionalMetaQualification(f.index()).sdk_absent_evidence_verified).toBe(true);
+    const discovered = entry.registrationValues.find(value => value.phase === "browser-discovered");
+    const browser = discovered.browsers[0];
+    browser.root = { ...browser.root };
+    browser.members = browser.members.map(member => ({ ...member }));
+    browser.root_command = "/bin/sh " + launcher + " --user-data-dir=" + browser.profile.argument_path;
+    browser.root.command_sha256 = hash(browser.root_command);
+    browser.members[0].command_sha256 = hash(browser.root_command);
+    f.rebind(entry);
+    expect(() => f.api.inspectAdditionalMetaQualification(f.index())).toThrow("additional_supervision_relationship_invalid");
   });
   it.each(["missing", "timeout", "unknown-disposition", "open-profile", "live-process", "open-port",
     "open-private-key", "stale-source"])(

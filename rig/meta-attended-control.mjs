@@ -370,10 +370,9 @@ export async function stopMetaAttendedCase(options) {
     const group = await observeGroup();
     inspectAdditionalBrowserMembers(browserItem, group);
   };
-  await refreshBrowser();
   const checkedSignal = async (target, signal, log) => {
     validateStart(owner, inspectedMetaSourcePins());
-    if (browserHandle) {
+    if (browserHandle && target.pid !== start.controller.pid) {
       readHandle(browserHandle);
       const stat = lstatSync(browserPath);
       requireFact(equal(browserFileIdentity, { dev: stat.dev, ino: stat.ino }), "attended_browser_record_replaced");
@@ -394,6 +393,13 @@ export async function stopMetaAttendedCase(options) {
       ? caught.message : "attended_stop_operation_failed";
     if (errors.length < 8 && !errors.includes(code)) errors.push(code);
   };
+  let browserUnknown = false;
+  const refreshBrowserSafely = async () => {
+    if (browserUnknown) return;
+    try { await refreshBrowser(); }
+    catch (caught) { browserUnknown = true; failed(caught); }
+  };
+  await refreshBrowserSafely();
   try {
     await checkedSignal(start.controller, "SIGTERM", signals);
     let controllerLive = current;
@@ -402,19 +408,19 @@ export async function stopMetaAttendedCase(options) {
       controllerLive = (await readAdditionalProcesses([start.controller.pid], end, false))[0];
       if (controllerLive) {
         requireFact(sameAdditionalProcess(start.controller, controllerLive), "attended_controller_replaced");
-        await refreshBrowser();
+        await refreshBrowserSafely();
         await sleep(20);
       }
     }
     if (controllerLive) {
       await checkedSignal(start.controller, "SIGSTOP", signals);
-      await refreshBrowser();
+      await refreshBrowserSafely();
       await checkedSignal(start.controller, "SIGKILL", signals);
     }
   } catch (caught) { failed(caught); }
   if (!browser) errors.push("attended_browser_identity_unknown");
   let browserStopped = false;
-  if (browser) try {
+  if (browser && !browserUnknown) try {
     let states = inspectAdditionalBrowserMembers(browserItem, await observeGroup());
     for (const signal of ["SIGTERM", "SIGKILL"]) {
       for (const member of states.filter(row => row.final === "live")) {
@@ -434,7 +440,7 @@ export async function stopMetaAttendedCase(options) {
   let controllerAfter = null, browserAfter = null, browserProcesses = null;
   try { controllerAfter = await readAdditionalProcesses([start.controller.pid], end, false); }
   catch (caught) { failed(caught); }
-  if (browser) try {
+  if (browser && browserItem) try {
     browserAfter = await observeGroup();
     browserProcesses = inspectAdditionalBrowserMembers(browserItem, browserAfter);
   } catch (caught) { failed(caught); }

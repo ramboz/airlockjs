@@ -184,6 +184,27 @@ describe("attended control — controlled OS/process events and private temp fil
     await control.finish();
   });
 
+  it("still stops the verified controller when a recorded browser helper changes", async () => {
+    const f = fixture();
+    const { createMetaAttendedControl, stopMetaAttendedCase } = await import("./meta-attended-control.mjs");
+    const root = fake.rows.get(f.child.pid), helperCommand = chrome + " Helper --type=unit";
+    const helper = { ...root, pid: 710004, ppid: root.pid, command: helperCommand,
+      command_sha256: hash(helperCommand) };
+    fake.rows.set(helper.pid, helper);
+    const control = await createMetaAttendedControl(f.options);
+    await control.beforeBrowser(); await control.trackBrowser(Promise.resolve(f.server));
+    const changed = helperCommand + " --changed";
+    fake.rows.set(helper.pid, { ...helper, command: changed, command_sha256: hash(changed) });
+    fake.host.pid = 710003;
+    const result = await stopMetaAttendedCase(control.ownerCommand());
+    expect(result).toMatchObject({ status: "UNKNOWN", controller_stopped: true, browser_stopped: false });
+    expect(result.errors).toContain("additional_process_replaced");
+    expect(fake.signals).toEqual([{ pid: 710001, signal: "SIGTERM" }]);
+    expect(existsSync(join(f.output, "attended-stop-request.json"))).toBe(true);
+    expect(existsSync(join(f.output, "attended-owner-stop.json"))).toBe(true);
+    await control.finish();
+  });
+
   it("rejects copied or symlinked control records without any signal", async () => {
     const f = fixture();
     const { createMetaAttendedControl, stopMetaAttendedCase } = await import("./meta-attended-control.mjs");
@@ -250,8 +271,11 @@ describe("attended control — controlled OS/process events and private temp fil
     value.observation = { ...foreign, ppid: 710001 };
     writeFileSync(path, JSON.stringify(value), { mode: 0o600 });
     fake.host.pid = 710003;
-    await expect(stopMetaAttendedCase(control.ownerCommand())).rejects.toThrow("attended_browser_context");
-    expect(fake.signals).toEqual([]);
+    const result = await stopMetaAttendedCase(control.ownerCommand());
+    expect(result).toMatchObject({ status: "UNKNOWN", controller_stopped: true, browser_stopped: false });
+    expect(result.errors).toContain("attended_browser_context");
+    // The verified controller remains stoppable; the forged browser is never signalled.
+    expect(fake.signals).toEqual([{ pid: 710001, signal: "SIGTERM" }]);
     await control.finish();
   });
 
@@ -396,6 +420,38 @@ describe("unit-shaped ownership proof reader — NOT actual qualification", () =
     const { inspectMetaAttendedQualification } = await import("./meta-attended-control.mjs");
     expect(inspectMetaAttendedQualification({ qualification: f.handle(), source_pins: { candidate: "unit-only" } }))
       .toEqual({ source_evidence_verified: true, native_qualification: false });
+  });
+
+  it("rejects an intermediate replaced browser even if a known helper anchors the group", async () => {
+    const f = await unitQualification();
+    const { inspectMetaAttendedQualification } = await import("./meta-attended-control.mjs");
+    const stop = JSON.parse(readFileSync(f.index.owner_stop.path));
+    const browser = JSON.parse(readFileSync(stop.browser.path));
+    const root = browser.observation;
+    const helperCommand = chrome + " Helper --type=unit";
+    const helper = { ...root, pid: root.pid + 1, ppid: root.pid,
+      command: helperCommand, command_sha256: hash(helperCommand) };
+    const helperIdentity = Object.fromEntries(Object.entries(helper).filter(([key]) => key !== "command"));
+    browser.group_observations.push(helper);
+    browser.members.push({ ...helperIdentity, final: "live" });
+    stop.browser = save(f.root, "browser-with-helper.json", browser);
+    const replaced = { ...root, command: root.command + " --changed",
+      command_sha256: hash(root.command + " --changed") };
+    stop.group_observations.unshift({ at_ms: browser.at_ms, rows: [replaced, helper] });
+    stop.browser_processes.push({ ...helperIdentity, final: "absent" });
+    f.index.owner_stop = save(f.root, "stop-with-intermediate-replacement.json", stop);
+    const stopExit = JSON.parse(readFileSync(f.index.owner_stop_exit.path));
+    stopExit.result_sha256 = f.index.owner_stop.sha256;
+    f.index.owner_stop_exit = save(f.root, "rebound-stop-exit.json", stopExit);
+    const final = JSON.parse(readFileSync(f.index.owner_stop_controller_final.path));
+    final.browser = stop.browser;
+    final.processes.push({ ...helperIdentity, final: "absent" });
+    f.index.owner_stop_controller_final = save(f.root, "rebound-controller-final.json", final);
+    const finalExit = JSON.parse(readFileSync(f.index.owner_stop_controller_exit.path));
+    finalExit.result_sha256 = f.index.owner_stop_controller_final.sha256;
+    f.index.owner_stop_controller_exit = save(f.root, "rebound-controller-exit.json", finalExit);
+    expect(() => inspectMetaAttendedQualification({ qualification: f.handle(),
+      source_pins: { candidate: "unit-only" } })).toThrow("additional_process_replaced");
   });
 
   it.each(["pending_settled", "browser_closed", "profile_absent", "stop_requested", "errors"])(

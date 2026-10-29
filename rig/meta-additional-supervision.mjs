@@ -66,17 +66,11 @@ async function signalOwned(expected, signal, deadline, log) {
   log.push({ pid: expected.pid, signal, outcome, at_ms: Date.now() });
 }
 function membersOf(item, current) {
-  const root = current.find(row => row.pid === item.root.pid);
-  // A launcher's exec transition is NOT PID reuse. It is permitted only for
-  // the same birth/group/user and exact launch-created private profile, along
-  // the pinned shell -> sandbox-exec -> Chrome chain. Signal guards still use
-  // the refreshed full image hash immediately before every signal.
-  if (root && !sameAdditionalProcess(item.root, root) && !item.chromeReady
-    && ["pid", "pgid", "uid", "started"].every(key => root[key] === item.root[key])
-    && browserImage(root.command) && root.command.includes("--user-data-dir=" + item.profile.argument_path)
-    && equal(profileIdentity(item.profile.argument_path), item.profile)) {
-    item.root = identity(root); item.root_command = root.command; item.members.set(root.pid, identity(root));
-    item.chromeReady = browserImage(root.command) === "chrome";
+  for (const known of item.members.values()) {
+    const observed = current.find(row => row.pid === known.pid);
+    if (observed && !sameAdditionalProcess(known, observed) && !zombie(known, observed)) {
+      const error = Error("additional_process_replaced"); error.observed = current; throw error;
+    }
   }
   if (current.length && !current.some(row => [...item.members.values()]
     .some(known => sameAdditionalProcess(known, row) || zombie(known, row)))) fail("additional_group_unanchored");
@@ -86,9 +80,7 @@ function membersOf(item, current) {
       || !(row.command.startsWith("/Applications/Google Chrome.app/Contents/")
         || row.ppid === item.root.pid && row.command === "/usr/bin/profiles status -type enrollment"
         || row.pid === item.root.pid && !item.chromeReady && browserImage(row.command))) {
-      // Exiting known children can lose argv before ps reports Z. Retain
-      // ownership as "replaced"/unknown, never signal that changed image.
-      // Polling may subsequently prove the original lifetime absent/zombie.
+      // Only already-tracked, unchanged members may use their recorded identity.
       if (item.members.has(row.pid)) continue;
       const error = Error("additional_group_identity"); error.observed = current; throw error;
     }
@@ -117,12 +109,16 @@ async function portClosed(port) {
     socket.setTimeout(200, () => finish(false));
   });
 }
-async function closeBrowser(item, deadline) {
+async function closeBrowser(item, deadline, uncertain) {
   const result = { root: item.root, root_command: item.root_command, profile: item.profile, processes: [], signals: [],
     profile_removed: false, status: "unknown", errors: [] };
   try {
     let states = membersOf(item, await rows([item.root.pgid], deadline));
     result.initially_left_behind = states.some(row => row.final === "live");
+    if (uncertain) {
+      result.processes = states;
+      fail("additional_browser_ownership_unknown");
+    }
     for (const signal of ["SIGTERM", "SIGKILL"]) {
       for (const member of states.filter(row => row.final === "live"))
         await signalOwned(member, signal, deadline, result.signals);
@@ -143,7 +139,13 @@ async function closeBrowser(item, deadline) {
     result.profile_removed = !existsSync(item.profile.path);
     if (!result.profile_removed) fail("additional_profile_closure_unknown");
     result.status = "closed";
-  } catch (error) { result.errors.push(error.message); }
+  } catch (error) {
+    result.errors.push(error.message);
+    if (Array.isArray(error.observed)) result.error_observation = {
+      complete: error.observed.length <= 64,
+      rows: error.observed.slice(0, 64).map(identity),
+    };
+  }
   return result;
 }
 function privateOutput(path) {
@@ -219,7 +221,12 @@ export async function superviseAdditionalMetaChild(options) {
       .trim().split(/\s+/).filter(Boolean).map(Number);
     if (children.some(pid => !Number.isSafeInteger(pid) || pid < 1) || children.length > 64)
       fail("additional_child_catalogue_invalid");
-    for (const row of await rows(children, end - 5000, false)) {
+    const childrenRows = await rows(children, end - 5000, false);
+    for (const row of childrenRows) {
+      const tracked = owned.get(row.pid);
+      if (tracked && !sameAdditionalProcess(tracked.root, row) && !zombie(tracked.root, row)) {
+        const error = Error("additional_process_replaced"); error.observed = childrenRows; throw error;
+      }
       if (row.ppid !== child.pid || row.uid !== process.getuid()) fail("additional_browser_parent_changed");
       const image = browserImage(row.command);
       if (!image) continue; // Other Node-owned cohort/OpenSSL subprocesses are not browser grants.
@@ -350,7 +357,7 @@ export async function superviseAdditionalMetaChild(options) {
     actual_exit_code: childExit?.actual_exit_code ?? null, signal: childExit?.signal ?? null,
     exited_at_ms: childExit?.at_ms ?? null, elapsed_ms: Math.ceil(performance.now() - start), stdout, stderr });
   const browsers = [];
-  for (const item of owned.values()) browsers.push(await closeBrowser(item, end - 4000));
+  for (const item of owned.values()) browsers.push(await closeBrowser(item, end - 4000, errors.length > 0));
   const portStates = await Promise.all([...ports].map(async port => ({ port, closed: await portClosed(port) })));
   const nodeStates = node ? await rows([node.pgid], end - 2500) : [];
   const nodeClosed = !!childExit && nodeStates.every(row => node && zombie(node, row));
@@ -360,7 +367,7 @@ export async function superviseAdditionalMetaChild(options) {
     try {
       if (existsSync(key.path)) {
         const stat = lstatSync(key.path);
-        if (!nodeClosed || browsers.some(item => item.status !== "closed") || !stat.isFile() || stat.isSymbolicLink()
+        if (errors.length || !nodeClosed || browsers.some(item => item.status !== "closed") || !stat.isFile() || stat.isSymbolicLink()
           || stat.dev !== key.dev || stat.ino !== key.ino || stat.birthtimeMs !== key.birthtime_ms
           || stat.uid !== key.uid || stat.size !== key.size || stat.nlink !== 1 || (stat.mode & 0o7777) !== 0o600)
           fail("additional_private_key_changed_or_in_use");
@@ -379,7 +386,7 @@ export async function superviseAdditionalMetaChild(options) {
       errors.push("additional_unregistered_private_key");
     }
   }
-  const closed = nodeClosed && !pending.size && browsers.every(item => item.status === "closed")
+  const closed = errors.length === 0 && nodeClosed && !pending.size && browsers.every(item => item.status === "closed")
     && portStates.every(item => item.closed) && privateKeys.every(item => item.removed)
     && (!launchPending || ready && browsers.length === 1 && privateKeys.length === 2);
   // Evidence only: freeze the complete observed ownership ledger after cleanup,

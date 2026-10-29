@@ -7,6 +7,23 @@ remains disabled; the separately gated native API executed once. Google stock,
 Google chamber and Meta chamber remain unused, and the incomplete Meta stock
 reference blocks its dependent chamber case.
 
+## Current ownership guardrail - 2026-10-29
+
+The additional supervisor no longer accepts an observed launcher-to-Chrome
+image transition as the same lifetime based on second-resolution process
+identity. The reader also requires Chrome from discovery through the final
+record. A legitimate exec observed during launch can therefore leave the case
+UNKNOWN. An unobserved same-image replacement within the same second remains
+indistinguishable. These source changes make affected earlier qualification
+receipts stale and do not admit a browser or native operation.
+
+When a supervisor error is recorded before cleanup, that cleanup does not
+signal the browser or remove its profile or registered keys on the basis of
+the old observations. The attended stop still
+attempts to stop the separately verified controller when browser ownership is
+unknown, but does not signal the unverified browser. Preserve the error and
+any recorded mismatch observations; UNKNOWN is not a cleanup claim.
+
 ## Current inspected source candidate - 2026-10-27
 
 The inspected controller and physical-relay candidate pins now require
@@ -465,6 +482,10 @@ source was restored. All preceding indices remain historical, and parent
 reviews/shared fourteen/eleven refresh and real admission remain separate.
 
 ### Mandatory fixed-child supervision (architecture correction)
+
+This section and its subsequent evidence describe the historical source
+checkpoint. The current ownership guardrail above supersedes its transition
+and error-cleanup behavior without changing the historical receipts.
 
 `runAdditionalMetaQualification` no longer waits on `execFile(timeout:60000)`:
 Playwright's SIGTERM handler is graceful, so that was not a finite shutdown
