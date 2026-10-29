@@ -104,7 +104,7 @@ self.onmessage = async ({ data }) => {
       connector = createConnectorHost(createMetaPageViewPrototype, {
         endpoint: data.endpoint, experimentalPageViewData: data.experimentalPageViewData,
         experimentalRouting: data.experimentalRouting, experimentalMultiPixelRouting: data.experimentalMultiPixelRouting,
-        experimentalEvents: data.experimentalEvents,
+        experimentalEvents: data.experimentalEvents, experimentalScalarEventData: data.experimentalScalarEventData,
       });
       await connector.init({});
       self.postMessage({ type: "phase", name: "configured" });

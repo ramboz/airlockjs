@@ -112,6 +112,21 @@ error behavior and event-data encoding remain experimental assumptions;
 commerce arrays, event options, native responses, real vendor receipt and
 every acceptance criterion above remain unqualified. No live event was sent.
 
+The additional `experimentalScalarEventData` opt-in extends that local record
+with region, content category/name/type, search string, predicted lifetime
+value, item count, status and delivery category. The prototype admits only
+bounded scalar types and enumerated content/delivery values; arrays, objects,
+unknown keys and invalid types still reject the complete call. Serialized
+worker/loopback tests check PageView region, a multi-Pixel Purchase, targeting,
+snapshotting, consent, invalid inputs and the encoded URL ceiling.
+
+The retained fixture contains `cd[region]=us`, but its input is not retained;
+the test uses `us` as a synthetic input and establishes the local wire shape,
+not the native input relationship. The listed commerce vocabulary comes from
+the documented floor above; scalar encoding, ordering, type/enum admission and
+count bounds are prototype assumptions. This is not a native commerce capture,
+array/nested serialization, full event support or a C1-C9 pass.
+
 ## Assumptions
 
 - Unverified: native type/coercion/size behavior is discriminable without losing

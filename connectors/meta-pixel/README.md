@@ -39,6 +39,17 @@ this path is source-only and **not browser-tested**. Node tests inject a real
   finite number; currency must be a well-formed string of at most 64
   characters. Unknown keys, accessors and unsupported values reject the
   whole call. These are experimental admission rules, not native semantics.
+- With both `experimentalPageViewData: true` and
+  `experimentalScalarEventData: true`, event data can additionally contain
+  `region`, `content_category`, `content_name`, `search_string`,
+  `content_type`, `predicted_ltv`, `num_items`, `status` and
+  `delivery_category`. Strings are well-formed and at most 64 UTF-16 code
+  units; lifetime value is finite, item count is a nonnegative safe integer,
+  and status is boolean. `content_type` accepts `product` or `product_group`;
+  delivery accepts `in_store`, `curbside` or `home_delivery`. Undefined
+  fields are omitted; null, unknown fields, accessors and nested/array values
+  reject the entire call. The added fields use `cd[...]` keys; order and
+  conversion to strings are prototype choices, not qualified native behavior.
 - With both `experimentalRouting: true` and
   `experimentalMultiPixelRouting: true`, up to four distinct synthetic IDs
   can be initialized. `track` broadcasts to all in initialization order;
@@ -50,8 +61,9 @@ this path is source-only and **not browser-tested**. Node tests inject a real
   well-formed name of at most 50 UTF-16 code units. When multi-Pixel routing is
   also enabled, `trackSingle` and `trackSingleCustom` provide targeting.
   The existing `experimentalPageViewData` opt-in also allows the same
-  `value`/`currency` record on these events; all other properties, including
-  commerce arrays and objects, reject. No native conversion event or general
+  `value`/`currency` record on these events; the separate scalar opt-in above
+  adds its listed properties. Commerce arrays, objects and other fields reject.
+  No native conversion event or general
   custom-event serialization was captured, and the admission rules, field
   encoding and order here are working assumptions.
 - Multi-Pixel commands dispatch one branch at a time through the seal. Their
@@ -62,6 +74,8 @@ this path is source-only and **not browser-tested**. Node tests inject a real
   a non-2xx response does not imply receipt or prevent later branches.
   Consent is checked for each branch, and held branches are not replayed.
   A command timeout can terminate before a branch summary is returned.
+  Malformed or inconsistent multi-Pixel worker summaries terminate with
+  `invalid-worker-result` rather than exposing extra fields or values.
 - `await flush()` observes bounded command/transport outcomes, **not receipt**.
   `transport-settled` means a correlated 2xx response, not vendor acceptance.
 - `setConsent(vector)` governs subsequent dispatch. Held commands are dropped;
@@ -88,10 +102,10 @@ The default capture reads `document.URL`, `document.referrer`, frame status,
 | `timezoneOffset` | Integer minutes, −1440–1440 | `tz` |
 
 The chamber supplies `id` and `ev` in addition to those context fields, plus
-the two opt-in event fields above when supplied. Extra context is not
+the opted-in event fields above when supplied. Extra context is not
 captured. By default args are limited to three primitive values (strings ≤64
 characters); multi-Pixel routing allows four for targeted data calls.
-The data opt-in accepts only the bounded value/currency record.
+Data records are limited to the opted-in scalar fields listed above.
 Other objects, accessors and functions are not copied.
 Malformed/unsupported calls and extra arguments remain visible rejections,
 not native error-semantic claims. Reentrant capture is rejected; disposal
@@ -122,6 +136,8 @@ or redaction sentinels cannot prove identity equivalence.
 
 The fixture omits 38 experiment flags and lacks original bytes/order, complete
 response/header/browser/cookie/consent behavior and equivalent native inputs.
+It contains a PageView `cd[region]=us` wire field, but does not establish
+the original input-to-wire relationship or general custom-data serialization.
 Loopback Fetch is not native vendor Image/Fetch transport. Matching,
 attribution, other commands, performance and C2/C3 remain unproved. Nothing
 here completes or waives060-01 or its full native/whole-wire/live criteria.

@@ -315,4 +315,108 @@ describe("bounded experimental capture and trusted transport policy", () => {
       await adapter.dispose();
     }
   });
+
+  it.each([
+    ["extra branch field", { seq: 2, disposition: "transport-settled", requests: 1, selected: 1,
+      branches: [{ ordinal: 1, disposition: "transport-settled", status: 204, pixelId: "private-pixel" }] }],
+    ["extra summary field", { seq: 2, disposition: "transport-settled", requests: 1, selected: 1,
+      branches: [{ ordinal: 1, disposition: "transport-settled", status: 204 }], pixelId: "private-pixel" }],
+    ["non-array branches", { seq: 2, disposition: "transport-settled", requests: 1, selected: 1, branches: {} }],
+    ["null branch", { seq: 2, disposition: "transport-settled", requests: 1, selected: 1, branches: [null] }],
+    ["branch count", { seq: 2, disposition: "transport-settled", requests: 1, selected: 2, branches: [] }],
+    ["wrong branch ordinal", { seq: 2, disposition: "transport-settled", requests: 1, selected: 1,
+      branches: [{ ordinal: 2, disposition: "transport-settled", status: 204 }] }],
+    ["invalid branch status", { seq: 2, disposition: "transport-settled", requests: 1, selected: 1,
+      branches: [{ ordinal: 1, disposition: "transport-settled", status: 503 }] }],
+    ["misleading partial", { seq: 2, disposition: "transport-settled", requests: 1, selected: 2,
+      branches: [{ ordinal: 1, disposition: "transport-settled", status: 204 }] }],
+    ["misleading held status", { seq: 2, disposition: "held", requests: 1, selected: 1,
+      branches: [{ ordinal: 1, disposition: "held", status: 0, reason: "private-pixel" }] }],
+    ["omitted terminal failure", { seq: 2, disposition: "failed", requests: 1, selected: 1,
+      branches: [{ ordinal: 1, disposition: "failed", status: 0, reason: "transport-failed" }] }],
+    ["wrong command kind", { seq: 2, disposition: "initialized", requests: 0 }],
+    ["wrong sequence", { seq: 99, disposition: "transport-settled", requests: 1, selected: 1,
+      branches: [{ ordinal: 1, disposition: "transport-settled", status: 204 }] }],
+    ["private rejection reason", { seq: 2, disposition: "rejected", requests: 0, reason: "private-pixel" }],
+    ["branch accessor", { seq: 2, disposition: "transport-settled", requests: 1, selected: 1,
+      branches: [{ ordinal: 1, disposition: "transport-settled", get status() { throw new Error("private-pixel"); } }] }],
+  ])("rejects malformed multi-Pixel worker result: %s", async (_label, summary) => {
+    const chamber = controlledChamber();
+    const adapter = createMetaPixelPrototype({
+      endpoint, chamber, captureContext: () => context,
+      experimentalRouting: true, experimentalMultiPixelRouting: true,
+    });
+    try {
+      await Promise.resolve();
+      adapter.fbq("init", "000000000000001");
+      chamber.emit({ type: "result", summary: { seq: 1, disposition: "initialized", requests: 0 }, ready: [] });
+      await adapter.flush();
+      adapter.fbq("track", "PageView");
+      chamber.emit({ type: "result", summary, ready: [] });
+      const state = await adapter.flush();
+      expect(state).toMatchObject({ phase: "terminal", terminalReason: "invalid-worker-result" });
+      expect(state.outcomes.at(-1)).toMatchObject({ seq: 2, disposition: "rejected", reason: "invalid-worker-result" });
+      expect(JSON.stringify(adapter.getState())).not.toContain("private-pixel");
+    } finally { await adapter.dispose(); }
+  });
+
+  it("rejects a target result claiming multiple Pixels and unexpected ready data", async () => {
+    for (const kind of ["multiple-targets", "unexpected-ready", "non-array-ready", "array-with-extra-field"]) {
+      const chamber = controlledChamber();
+      const adapter = createMetaPixelPrototype({
+        endpoint, chamber, captureContext: () => context,
+        experimentalRouting: true, experimentalMultiPixelRouting: true,
+      });
+      try {
+        await Promise.resolve();
+        adapter.fbq("init", "000000000000001");
+        chamber.emit({ type: "result", summary: { seq: 1, disposition: "initialized", requests: 0 }, ready: [] });
+        await adapter.flush();
+        adapter.fbq("trackSingle", "000000000000001", "PageView");
+        const branches = [{ ordinal: 1, disposition: "transport-settled", status: 204 }];
+        if (kind === "multiple-targets") branches.push({ ordinal: 2, disposition: "transport-settled", status: 204 });
+        const ready = kind === "unexpected-ready" ? [{ pixelId: "private-pixel" }]
+          : kind === "non-array-ready" ? { pixelId: "private-pixel" }
+            : kind === "array-with-extra-field" ? Object.assign([], { slice: "private-pixel" }) : [];
+        chamber.emit({ type: "result", summary: {
+          seq: 2, disposition: "transport-settled", requests: branches.length, selected: branches.length, branches,
+        }, ready });
+        const state = await adapter.flush();
+        expect(state).toMatchObject({ phase: "terminal", terminalReason: "invalid-worker-result" });
+        expect(JSON.stringify(state)).not.toContain("private-pixel");
+      } finally { await adapter.dispose(); }
+    }
+  });
+
+  it("rejects unsolicited multi-Pixel worker results while no command is in flight", async () => {
+    const chamber = controlledChamber();
+    const adapter = createMetaPixelPrototype({
+      endpoint, chamber, captureContext: () => context,
+      experimentalRouting: true, experimentalMultiPixelRouting: true,
+    });
+    try {
+      await Promise.resolve();
+      chamber.emit({ type: "result", summary: { seq: 1, disposition: "initialized", requests: 0 }, ready: [] });
+      expect(adapter.getState()).toMatchObject({ phase: "terminal", terminalReason: "invalid-worker-result" });
+      expect(adapter.getState().outcomes).toEqual([]);
+    } finally { await adapter.dispose(); }
+  });
+
+  it("rejects a second result before the first command finishes settling", async () => {
+    const chamber = controlledChamber();
+    const adapter = createMetaPixelPrototype({
+      endpoint, chamber, captureContext: () => context,
+      experimentalRouting: true, experimentalMultiPixelRouting: true,
+    });
+    try {
+      await Promise.resolve();
+      adapter.fbq("init", "000000000000001");
+      const message = { type: "result", summary: { seq: 1, disposition: "initialized", requests: 0 }, ready: [] };
+      chamber.emit(message);
+      chamber.emit(message);
+      const state = await adapter.flush();
+      expect(state).toMatchObject({ phase: "terminal", terminalReason: "invalid-worker-result" });
+      expect(state.outcomes).toContainEqual({ seq: 1, disposition: "rejected", reason: "invalid-worker-result" });
+    } finally { await adapter.dispose(); }
+  });
 });

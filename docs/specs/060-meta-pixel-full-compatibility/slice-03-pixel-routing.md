@@ -65,6 +65,9 @@ partial HTTP failure and terminal transport failure. Each branch crosses the
 existing strict consent and destination boundary; redacted outcomes distinguish
 submitted-to-host from selected branches. Host submissions include held branches
 and are not network-attempt counts. This is not a native two-Pixel comparison.
+The experimental adapter now also rejects malformed, extra-field or
+inconsistent multi-Pixel worker summaries before exposing outcomes; a rejected
+summary terminates the adapter with `invalid-worker-result`.
 
 Initialization, ordering, error and failure-continuation rules are prototype
 choices, not observed native behavior. Per-Pixel identity, settings, remote

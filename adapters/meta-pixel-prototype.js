@@ -7,6 +7,103 @@ const WORKER_FAILURES = new Set([
   "transport-timeout", "transport-failed", "invalid-transport-response", "invalid-command-order",
   "duplicate-worker-init", "worker-configuration-failed", "unsupported-worker-message",
 ]);
+const MULTI_REJECTIONS = new Set([
+  "unsupported-command", "invalid-pixel-id", "synthetic-pixel-required", "duplicate-init", "pixel-limit",
+  "unsupported-standard-event", "invalid-custom-event", "pageview-before-init", "event-before-init",
+  "uninitialized-pixel", "invalid-context", "unsupported-parameters", "encoded-context-limit",
+]);
+
+function dataRecord(value, allowed) {
+  if (!value || typeof value !== "object" ||
+      ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return null;
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const result = Object.create(null);
+  for (const key of Reflect.ownKeys(descriptors)) {
+    if (typeof key !== "string" || !allowed.includes(key) || !Object.hasOwn(descriptors[key], "value")) return null;
+    result[key] = descriptors[key].value;
+  }
+  return result;
+}
+
+function exactKeys(record, keys) {
+  return Object.keys(record).length === keys.length && keys.every((key) => Object.hasOwn(record, key));
+}
+
+function emptyReady(value) {
+  try {
+    if (!Array.isArray(value)) return false;
+    const descriptors = Object.getOwnPropertyDescriptors(value);
+    return Reflect.ownKeys(descriptors).length === 1 && descriptors.length?.value === 0;
+  } catch {
+    return false;
+  }
+}
+
+function multiResultMessage(value) {
+  try {
+    const record = dataRecord(value, ["type", "summary", "ready"]);
+    if (!record || !exactKeys(record, ["type", "summary", "ready"]) ||
+        record.type !== "result" || !emptyReady(record.ready)) return null;
+    return { type: "result", summary: record.summary, ready: [] };
+  } catch {
+    return null;
+  }
+}
+
+function validateMultiSummary(summary, seq, command) {
+  // Fake transports can supply accessors/proxies; reject them without reading
+  // arbitrary values into public outcomes or letting validation escape the pump.
+  try {
+    const record = dataRecord(summary, ["seq", "disposition", "requests", "reason", "selected", "branches", "terminal"]);
+    if (!record || record.seq !== seq) return null;
+    if (record.disposition === "initialized") {
+      return command === "init" && record.requests === 0 && exactKeys(record, ["seq", "disposition", "requests"])
+        ? { seq, disposition: "initialized", requests: 0 } : null;
+    }
+    if (record.disposition === "rejected") {
+      return record.requests === 0 && MULTI_REJECTIONS.has(record.reason) &&
+        exactKeys(record, ["seq", "disposition", "requests", "reason"])
+        ? { seq, disposition: "rejected", requests: 0, reason: record.reason } : null;
+    }
+    if (!["track", "trackCustom", "trackSingle", "trackSingleCustom"].includes(command) ||
+        !Number.isInteger(record.selected) || record.selected < 1 || record.selected > 4 ||
+        !Number.isInteger(record.requests) || record.requests < 1 || record.requests > record.selected ||
+        (["trackSingle", "trackSingleCustom"].includes(command) && record.selected !== 1) ||
+        !Array.isArray(record.branches)) return null;
+    const descriptors = Object.getOwnPropertyDescriptors(record.branches);
+    if (descriptors.length?.value !== record.requests ||
+        Reflect.ownKeys(descriptors).length !== record.requests + 1) return null;
+    const branches = [];
+    for (let index = 0; index < record.requests; index += 1) {
+      const descriptor = descriptors[index];
+      if (!descriptor || !Object.hasOwn(descriptor, "value")) return null;
+      const branch = dataRecord(descriptor.value, ["ordinal", "disposition", "status", "reason"]);
+      if (!branch || branch.ordinal !== index + 1 || !Number.isInteger(branch.status)) return null;
+      const held = branch.status === 0 && branch.disposition === "held" && branch.reason === "held-at-seal";
+      const failedTransport = branch.status === 0 && branch.disposition === "failed" && branch.reason === "transport-failed";
+      const settled = branch.status >= 200 && branch.status < 300 && branch.disposition === "transport-settled";
+      const failedHttp = branch.status >= 100 && branch.status <= 599 &&
+        !(branch.status >= 200 && branch.status < 300) && branch.disposition === "failed";
+      if (!(held || failedTransport || settled || failedHttp) ||
+          !exactKeys(branch, held || failedTransport
+            ? ["ordinal", "disposition", "status", "reason"] : ["ordinal", "disposition", "status"]) ||
+          (failedTransport && index !== record.requests - 1)) return null;
+      branches.push({ ...branch });
+    }
+    const terminal = branches.at(-1).reason === "transport-failed";
+    if (record.requests < record.selected && !terminal) return null;
+    const disposition = record.requests === record.selected &&
+      branches.every((branch) => branch.disposition === branches[0].disposition) ? branches[0].disposition : "partial";
+    const keys = ["seq", "disposition", "requests", "selected", "branches"];
+    if (terminal) keys.push("terminal", "reason");
+    if (!exactKeys(record, keys) || record.disposition !== disposition ||
+        (terminal && (record.terminal !== true || record.reason !== "transport-failed"))) return null;
+    return { seq, disposition, requests: record.requests, selected: record.selected, branches,
+      ...(terminal ? { terminal: true, reason: "transport-failed" } : {}) };
+  } catch {
+    return null;
+  }
+}
 
 function capturePageContext() {
   return {
@@ -80,12 +177,14 @@ export function createMetaPixelPrototype({
   experimentalRouting = false,
   experimentalMultiPixelRouting = false,
   experimentalEvents = false,
+  experimentalScalarEventData = false,
 } = {}) {
-  if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents]
+  if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents, experimentalScalarEventData]
     .some((option) => typeof option !== "boolean")) {
     throw new Error("invalid-experimental-option");
   }
   if (experimentalMultiPixelRouting && !experimentalRouting) throw new Error("multi-pixel-routing-requires-routing");
+  if (experimentalScalarEventData && !experimentalPageViewData) throw new Error("scalar-data-requires-pageview-data");
   const match = typeof endpoint === "string" && endpoint.match(/^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/tr\/$/);
   if (!match || Number(match[1]) > 65535) throw new Error("literal-loopback-endpoint-required");
   if (!Number.isInteger(queueLimit) || queueLimit < 1 || queueLimit > 128 ||
@@ -103,6 +202,8 @@ export function createMetaPixelPrototype({
   let phase = "starting";
   let terminalReason = null;
   let inFlight = false;
+  let activeEvent;
+  let activeResultReceived = false;
   let capturing = false;
   let cleanupFailure = null;
   let currentFinish;
@@ -199,6 +300,8 @@ export function createMetaPixelPrototype({
     while (queue.length && phase === "ready") {
       const event = queue.shift();
       inFlight = true;
+      activeEvent = event;
+      activeResultReceived = false;
       const settled = await new Promise((resolve) => {
         let finished = false;
         const finish = (value) => {
@@ -215,14 +318,18 @@ export function createMetaPixelPrototype({
       if (settled.terminalReason) {
         record({ seq: event.seq, disposition: "rejected", reason: settled.terminalReason });
         stop(settled.terminalReason);
-      } else if (settled.result.summary?.seq !== event.seq) {
-        record({ seq: event.seq, disposition: "rejected", reason: "result-correlation-failed" });
-        stop("result-correlation-failed");
       } else {
-        record(settled.result.summary);
-        if (settled.result.summary.terminal) stop("transport-failed");
+        const summary = settled.result.summary;
+        if (summary?.seq !== event.seq) {
+          record({ seq: event.seq, disposition: "rejected", reason: "result-correlation-failed" });
+          stop("result-correlation-failed");
+        } else {
+          record(summary);
+          if (summary.terminal) stop("transport-failed");
+        }
       }
       inFlight = false;
+      activeEvent = undefined;
     }
     settleFlushes();
   }
@@ -252,7 +359,7 @@ export function createMetaPixelPrototype({
     capturing = true;
     try {
       if (experimentalPageViewData === true && dataIndex >= 0 && args.length === dataIndex + 1) {
-        const data = snapshotPageViewData(args[dataIndex]);
+        const data = snapshotPageViewData(args[dataIndex], experimentalScalarEventData);
         if (!data) { reject("unsupported-parameters"); return; }
         args[dataIndex] = data;
       }
@@ -284,6 +391,15 @@ export function createMetaPixelPrototype({
     const hostListeners = new Set();
     subscriptions.push(transport.onMessage((message) => {
       if (phase === "terminal" || phase === "disposed") return;
+      let forwarded = message;
+      if (experimentalMultiPixelRouting && message?.type === "result") {
+        if (!inFlight || !activeEvent || activeResultReceived) { stop("invalid-worker-result"); return; }
+        const result = multiResultMessage(message);
+        const summary = result && validateMultiSummary(result.summary, activeEvent.seq, activeEvent.payload.args[0]);
+        if (!summary) { stop("invalid-worker-result"); return; }
+        activeResultReceived = true;
+        forwarded = { type: "result", summary, ready: [] };
+      }
       if (message?.type === "fatal") {
         stop(WORKER_FAILURES.has(message.message) ? message.message : "worker-fatal");
         return;
@@ -298,7 +414,7 @@ export function createMetaPixelPrototype({
         transport.postMessage({ type: "intercepted-fetch-response", id: message.id, status: 0, statusText: "held at the seal: literal-loopback-policy", body: "" });
         return;
       }
-      for (const listener of hostListeners) listener(message);
+      for (const listener of hostListeners) listener(forwarded);
       void pump();
     }));
     subscriptions.push(transport.onError?.(() => stop("worker-error")));
@@ -323,7 +439,8 @@ export function createMetaPixelPrototype({
       ...(experimentalPageViewData === true ? { experimentalPageViewData: true } : {}),
       ...(experimentalRouting === true ? { experimentalRouting: true } : {}),
       ...(experimentalMultiPixelRouting === true ? { experimentalMultiPixelRouting: true } : {}),
-      ...(experimentalEvents === true ? { experimentalEvents: true } : {}) });
+      ...(experimentalEvents === true ? { experimentalEvents: true } : {}),
+      ...(experimentalScalarEventData === true ? { experimentalScalarEventData: true } : {}) });
   } catch {
     stop("worker-unavailable");
   }
