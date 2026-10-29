@@ -231,6 +231,90 @@ PID; the historical timing remains unknown. An uninitialized private selection
 candidate exists, with an inherited identity-transition review concern open.
 Its offline checks do not authorize a new guard or native operation.
 
+### Proposed smaller attended path - 2026-10-29
+
+The immediate consumer is the 060-01 PageView comparison. The owner
+approved exploring a smaller, separately reviewed path. That approval does
+not itself qualify a guard or admit a live case.
+
+The candidate retains the existing inspected transport and additional-case
+lineage. Run the existing SDK-absent controller and relay cases one at a time,
+with their original assertions and post-exit artifacts, rather than supervising
+the whole Vitest process tree through the private successor. Reuse the fixed
+attended entry and independent stop route where they apply. The present attended
+entry does not cover every controller fault or relay cohort, so those cases
+need a concrete, reviewed execution and evidence mapping before this can run.
+Changing the test driver or production sources invalidates the affected source
+pins and earlier indices; it does not permit copying their results.
+
+Before any browser qualification, the mapping must show how each actual case
+registers its browser, proxy, profile and keys, exposes an independently usable
+stop, proves child exit and cleanup, and retains the original response and
+command witnesses. Cover stop before control-record creation, during pending
+browser acquisition, and after browser registration separately. The current
+manifest stop reads an existing control record and may return
+`attended_browser_identity_unknown`; it is not proof of those earlier phases.
+A missing registration, ambiguous process lifetime, failed stop or unproved
+cleanup stops the sequence as UNKNOWN. Never signal an unverified process. In
+particular, second-resolution `ps` identity cannot prove the disputed
+transition, and the topology-bound socket observer is not a general replacement.
+
+The current execution-to-reader mapping is:
+
+| Required evidence | Current producer and reader | Remaining work |
+|---|---|---|
+| Fourteen controller cases | `witnessedLocal` in `rig/inspected-meta-stock.test.mjs` starts the local controller and writes post-exit witnesses; `verifyQualification` checks each fixed label and its originals. | Running the tests individually does not itself prove independent browser ownership or finite forced cleanup. |
+| Eleven relay cohorts | `rig/reference-inspection.test.mjs` starts the fixed `reference-inspection.mjs` cohorts and writes witnesses; the same reader checks each fixed cohort and referenced originals. | The relay's browser lifecycle also needs an independent stop and closure proof. |
+| Additional H1/H2 | The additional qualification runner uses the fixed supervised child; `verifyAdditionalQualification` checks its command and supervision originals. | Preserve those checks and establish current supervision without inheriting the disputed identity assumption. |
+| Attended H1/H2 and owner stop | `meta-attended-reference.mjs`, `meta-attended-stop.mjs` and `inspectMetaAttendedQualification` define a separate fixed path. | Requalify the current source, including the missing early-stop phases; do not treat the other rows as attended proof. |
+
+Both shared test producers use `execFile` with a 65-second timeout. The
+additional-path correction already recorded that a graceful Playwright
+shutdown does not by itself establish finite termination. Sequential test
+selection therefore cannot replace the missing lifecycle proof by itself.
+This mapping identifies the gap; it does not supply an implementation or
+approve a browser run.
+
+Map the additional H1/H2 path separately. Its current reader requires the
+specific supervised-child command and lifecycle receipts, including process,
+port, profile and key disposition. The attended entry cannot substitute for
+that evidence. Retain the current reader and valid supervision, or propose a
+narrowly reviewed equivalent that preserves every required check; neither
+option is established yet.
+
+The network checkpoint must show, with local negative controls, that the
+confined browser cannot bypass the intended proxy or reach an unrelated
+localhost listener. The existing sandbox allows `localhost:*` and is
+insufficient on its own. Any narrower policy must also allow only the local
+connections the actual browser and proxy require, handle IPv4 and IPv6, and
+fail closed when its expected endpoint ownership cannot be shown. An
+unexercised policy or a count of CDP events cannot satisfy this checkpoint.
+
+An SDK-free, non-browser probe on 2026-10-29 bound six owned loopback
+listeners and ran a separate sandboxed Node client. All six were reachable
+without the sandbox. Allowing two `localhost:<port>` entries permitted the
+two selected ports and rejected two different ports with `EPERM`. However,
+each permitted port was also reachable on the other address family, where a
+separate listener was bound. A numeric IPv4 address rule was rejected by
+`sandbox-exec` with `host must be * or localhost`. The private probe is
+retained at
+`/Users/ramboz/.copilot/session-state/89132187-b3df-4fd9-a894-eff56c3692c5/files/meta-loopback-port-probe.mjs`.
+This is a local Node observation, not Chrome, upstream, cleanup or native-case
+qualification. A candidate that allows a port must account for both address
+families and prove ownership, not assume a port identifies one listener.
+
+The finite checkpoint is a reviewed mapping plus SDK-absent controls for the
+specific unresolved ownership and network boundaries. If these cannot be
+established without another general supervisor, stop and report the gap rather
+than starting another guard project. The existing fourteen controller, eleven
+relay and additional-path requirements remain in force unless their owning
+contract is explicitly revised; no current result is claimed here.
+
+Only after current source, setup, ownership, stop, qualification and
+cross-lane admission are verified may the one additional Meta case run. Its
+original physical, byte and time limits and irreversible consumption remain
+unchanged. One PageView cannot establish full Meta or Google parity.
+
 ## Assumptions
 
 - Unverified: a fixed attended adaptation of the current native engine can
