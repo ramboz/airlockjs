@@ -192,6 +192,17 @@ found the recorded runner, browser groups, profiles and listener ports absent.
 After owner approval the failed observer exited2. No relay, additional phase, native
 grant or retry followed, and neither earlier UNKNOWN is cleared.
 
+An owned loopback probe reproduced `lsof` exit1 with nonempty output when one
+selected PID had exited, but does not establish the failed run's exact timing.
+An uninitialized private successor rechecks known PIDs before inventory, omits
+absent ones only from that call and preserves them for cleanup. Changed
+identities and inventory failures still stop the run; an exit between the
+recheck and `lsof` remains possible. Nineteen offline controls, including an
+owned loopback integration, passed. Review raised an inherited Vitest identity
+transition concern; a separate disputed post-snapshot change claim was
+adjudicated against the code and regression test. The inherited concern and
+current-browser qualification remain open; no actual retry was authorized.
+
 ## Attended acquisition and independent owner stop
 
 The case-specific attended path is implemented and source-reviewed. One actual

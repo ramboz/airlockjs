@@ -83,6 +83,11 @@ A later separately admitted SDK-free controller stopped on listener inventory:
 `lsof` exited1 with nonempty listener output and empty stderr; its cause is not
 established. Recorded resources were checked absent after cleanup, and the
 owner approved release and the failed observer exited2. No remaining phase or native grant ran.
+An owned loopback probe reproduced that `lsof` result with an exited selected
+PID; the failed run's exact timing remains unknown. An uninitialized private
+successor checks recorded identities before inventory, with an inherited
+identity-transition review concern still open. Offline checks are not current
+browser qualification.
 
 **Actual local execution update (2026-10-26):** the present owner separately
 approved the final zero-body-EOF sequence, which passed **both actual local

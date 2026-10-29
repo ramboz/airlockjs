@@ -38,6 +38,8 @@ An authored AC is not a passing evaluation.
       owner's approval. No retry or current guard proof followed.
 - [x] Resolve the2026-10-29 listener-inventory failure's waiting observer with
       owner approval. Its recorded resources were checked absent.
+- [ ] Resolve the inherited identity-transition review concern and review the
+      uninitialized offline listener-selection candidate before a new guard job.
 - [ ] Qualify the repaired current-source path through a separately admitted
       actual job. Source checks do not clear historical H1 UNKNOWN or loss gaps.
 - [ ] Obtain all remaining current fourteen-controller/eleven-relay/additional

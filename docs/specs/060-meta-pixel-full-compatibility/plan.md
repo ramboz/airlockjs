@@ -39,6 +39,8 @@ or browser appeared in sampled observations, and the owner released the failed
 observer. A later SDK-free controller stopped on listener inventory; recorded
 resources were checked absent and the owner released its observer. No native
 qualification followed.
+An offline listener-selection candidate remains uninitialized; an inherited
+identity-transition review concern must be resolved before another guard job.
 
 **Latest actual outcome:** the separately approved zero-body-EOF sequence
 passed both local browser journeys: Meta two exact PageViews in8644ms, Google

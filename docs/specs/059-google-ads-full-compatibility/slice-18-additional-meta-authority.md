@@ -432,6 +432,17 @@ closed. Scoped checks found the recorded runner, browser groups, profiles and
 listener ports absent. After owner approval the failed observer exited2. No relay,
 additional phase or native grant ran; neither earlier UNKNOWN is cleared.
 
+An owned loopback probe reproduced the nonempty-output exit1 when a selected
+PID had exited, without establishing the failed run's precise timing. An
+uninitialized private successor rechecks exact identities before inventory,
+excludes absent PIDs only from that call and retains them for cleanup. It
+still stops on identity or inventory errors; the recheck-to-`lsof` race remains.
+Nineteen offline controls passed, including one actual owned loopback check.
+Reviews disagreed on a post-snapshot identity-change claim; a targeted
+adjudication and regression show the second change is rejected. A concern about
+the inherited Vitest transition remains open. This is not current browser
+qualification or approval for another job.
+
 **DoR:**
 - [x] Genuine owner authorization at 2026-10-21T18:33:04.581Z explicitly
       answers the request for one additional bounded Meta stock case.

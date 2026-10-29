@@ -218,6 +218,10 @@ stopped immediately because the successor directory was mode0755 instead of
 observations, and the owner released the failed observer. A later admitted
 SDK-free controller stopped on listener inventory; the recorded resources were
 checked absent, and the owner released its observer. No native grant followed.
+An owned loopback probe reproduced the listener error with an exited selected
+PID; the historical timing remains unknown. An uninitialized private selection
+candidate exists, with an inherited identity-transition review concern open.
+Its offline checks do not authorize a new guard or native operation.
 
 ## Assumptions
 

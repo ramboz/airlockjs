@@ -71,6 +71,8 @@ implementation, review or readiness.
       browser work. Known runner closed; owner released the failed observer.
 - [ ] 059-18 latest SDK-free controller stopped on listener inventory; recorded
       resources were checked absent and the owner released the failed observer.
+- [ ] Resolve the inherited Vitest identity-transition review concern and review
+      the offline listener-selection candidate before separately admitted execution.
 - [ ] 059-18 repaired-path actual qualification remains separately gated;
       previous indices and historical H1 UNKNOWN are not current proof.
 - [ ] 059-18 actual-proof residual: obtain complete current shared/additional
