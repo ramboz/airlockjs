@@ -1,4 +1,5 @@
 import { createWrappedSdkHost } from "../core/wrapped-sdk-host.js";
+import { snapshotDestinationSelectors } from "../connectors/google-ads/destination-selectors.js";
 
 const PARAM_KEYS = ["send_to", "value", "currency", "transaction_id"];
 const LIMIT = 256;
@@ -353,19 +354,8 @@ export function createGoogleAdsPrototype({
           const descriptor = Object.getOwnPropertyDescriptor(arg, key);
           if (!descriptor || !Object.hasOwn(descriptor, "value")) { reject("unsupported-parameters"); return; }
           if (experimentalMultiDestination && key === "send_to" && Array.isArray(descriptor.value)) {
-            const array = descriptor.value;
-            if (Object.getPrototypeOf(array) !== Array.prototype || array.length < 1 || array.length > 2 ||
-                Reflect.ownKeys(array).some((name) => name !== "length" && name !== "0" && name !== "1")) {
-              reject("unsupported-parameters"); return;
-            }
-            const values = [];
-            for (let i = 0; i < array.length; i += 1) {
-              const element = Object.getOwnPropertyDescriptor(array, String(i));
-              if (!element || !Object.hasOwn(element, "value") || typeof element.value !== "string" || element.value.length > 2048) {
-                reject("unsupported-parameters"); return;
-              }
-              values.push(element.value);
-            }
+            const values = snapshotDestinationSelectors(descriptor.value);
+            if (!values) { reject("unsupported-parameters"); return; }
             params[key] = values;
             continue;
           }

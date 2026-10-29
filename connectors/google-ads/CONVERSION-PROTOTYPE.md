@@ -98,7 +98,9 @@ The config parameters in this example additionally require
 selected destination, in array order, using that destination's config scope.
 It rejects the entire command before dispatch if a destination is missing,
 unconfigured, duplicated or invalid. Repeated config remains unsupported.
-The host snapshots the array without executing getters, and checks each
+The host snapshots the array without executing getters, bounds its own length
+before enumerating properties and rejects a changed length during capture.
+The connector independently applies the same checks. The host checks each
 request's sequence, selected endpoint and label before dispatch. The seal
 checks current `ad_storage` independently for each request; a held branch
 is dropped and never replayed. A non-2xx HTTP response allows the next branch

@@ -233,6 +233,105 @@ function fakeChamber() {
   };
 }
 
+describe("bounded destination-array capture", () => {
+  const first = "http://127.0.0.1:41234/pagead/conversion/111/";
+  const second = "http://127.0.0.1:41235/pagead/conversion/222/";
+  const context = { pageURL: "https://example.test/", referrer: "" };
+
+  async function check(surface, sendTo) {
+    if (surface === "connector") {
+      const connector = createGoogleAdsConversionPrototype({
+        endpoint: first, additionalEndpoint: second, experimentalRouting: true, experimentalMultiDestination: true,
+      });
+      connector.init();
+      connector.handle({ type: "google-ads-command", payload: { args: ["config", "AW-111"] } });
+      connector.handle({ type: "google-ads-command", payload: { args: ["config", "AW-222"] } });
+      try {
+        return { accepted: true, requests: connector.handle({
+          type: "google-ads-command", payload: { args: ["event", "conversion", { send_to: sendTo }], context },
+        }).length };
+      } catch (error) {
+        expect(error.message).toBe("destination-mismatch");
+        return { accepted: false };
+      }
+    }
+    const chamber = fakeChamber();
+    const adapter = createGoogleAdsPrototype({
+      endpoint: first, additionalEndpoint: second, experimentalRouting: true, experimentalMultiDestination: true,
+      chamber, captureContext: () => context,
+    });
+    try {
+      adapter.gtag("event", "conversion", { send_to: sendTo });
+      const state = adapter.getState();
+      return state.outcomes.length
+        ? { accepted: false, reason: state.outcomes[0].reason }
+        : { accepted: true, requests: state.queued };
+    } finally { await adapter.dispose(); }
+  }
+
+  it.each(["adapter", "connector"])("%s never reads proxy-controlled length properties while copying selectors", async (surface) => {
+    let lengthReads = 0;
+    let indexReads = 0;
+    const array = new Proxy([...targets], {
+      get(target, key, receiver) {
+        if (key === "length") return ++lengthReads <= 2 ? 2 : 30;
+        return Reflect.get(target, key, receiver);
+      },
+      getOwnPropertyDescriptor(target, key) {
+        if (typeof key === "string" && /^\d+$/.test(key)) {
+          indexReads += 1;
+          if (Number(key) >= 2) return { configurable: true, enumerable: true, writable: true, value: targets[0] };
+        }
+        return Reflect.getOwnPropertyDescriptor(target, key);
+      },
+    });
+    const result = await check(surface, array);
+    expect(result.accepted).toBe(true);
+    expect(result.requests).toBe(surface === "adapter" ? 1 : 2);
+    expect(lengthReads).toBe(0);
+    expect(indexReads).toBe(2);
+  });
+
+  it.each(["adapter", "connector"])("%s rejects arrays whose length changes during enumeration", async (surface) => {
+    const array = new Proxy([...targets], {
+      ownKeys(target) { target.pop(); return Reflect.ownKeys(target); },
+    });
+    expect((await check(surface, array)).accepted).toBe(false);
+  });
+
+  it.each(["adapter", "connector"])("%s rejects arrays whose length changes while elements are inspected", async (surface) => {
+    const array = new Proxy([...targets], {
+      getOwnPropertyDescriptor(target, key) {
+        if (key === "0") target.push(targets[0]);
+        return Reflect.getOwnPropertyDescriptor(target, key);
+      },
+    });
+    expect((await check(surface, array)).accepted).toBe(false);
+  });
+
+  it.each(["adapter", "connector"])("%s rejects inconsistent proxy length descriptors", async (surface) => {
+    let lengthDescriptors = 0;
+    const array = new Proxy([...targets], {
+      getOwnPropertyDescriptor(target, key) {
+        const descriptor = Reflect.getOwnPropertyDescriptor(target, key);
+        if (key === "length") return { ...descriptor, value: ++lengthDescriptors === 1 ? 2 : 1 };
+        return descriptor;
+      },
+    });
+    expect((await check(surface, array)).accepted).toBe(false);
+    expect(lengthDescriptors).toBe(2);
+  });
+
+  it.each(["adapter", "connector"])("%s rejects oversized arrays before enumerating properties", async (surface) => {
+    let enumerations = 0;
+    const array = new Proxy(Array(100000), {
+      ownKeys(target) { enumerations += 1; return Reflect.ownKeys(target); },
+    });
+    expect((await check(surface, array)).accepted).toBe(false);
+    expect(enumerations).toBe(0);
+  });
+});
+
 describe("experimental branch correlation", () => {
   const first = "http://127.0.0.1:41234/pagead/conversion/111/";
   const second = "http://127.0.0.1:41235/pagead/conversion/222/";

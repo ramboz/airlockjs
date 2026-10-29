@@ -1,3 +1,5 @@
+import { snapshotDestinationSelectors } from "./destination-selectors.js";
+
 const PARAMS = ["send_to", "value", "currency", "transaction_id"];
 const SCOPE_PARAMS = ["value", "currency", "transaction_id"];
 
@@ -32,13 +34,9 @@ function validateValues(params) {
 
 function selectorValues(value, multiple) {
   if (!multiple || !Array.isArray(value)) return [value];
-  if (Object.getPrototypeOf(value) !== Array.prototype || value.length < 1 || value.length > 2 ||
-      Reflect.ownKeys(value).some((key) => key !== "length" && key !== "0" && key !== "1")) throw new Error("destination-mismatch");
-  return Array.from({ length: value.length }, (_, index) => {
-    const element = Object.getOwnPropertyDescriptor(value, String(index));
-    if (!element || !Object.hasOwn(element, "value")) throw new Error("destination-mismatch");
-    return element.value;
-  });
+  const selectors = snapshotDestinationSelectors(value);
+  if (!selectors) throw new Error("destination-mismatch");
+  return selectors;
 }
 
 /** Experimental synthetic-only connector; no vendor SDK or ambient I/O.
