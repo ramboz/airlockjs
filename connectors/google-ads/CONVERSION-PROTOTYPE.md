@@ -29,7 +29,9 @@ separate first-party Node worker and independent literal-loopback receiver.
 Each local receiver observed exactly one GET; each host reported one dispatch
 and a local 204 settlement. All three workers, receivers and sockets closed.
 Raw values and URLs were passed through local process memory and loopback only;
-they were not printed or written to files.
+they were not printed or written to files. The executed command was ephemeral;
+its private script and sanitized result were reconstructed after the run. The
+result is a transcription, not an independently witnessed completion record.
 
 Each case's two retained primary attempts were aborted before transmission.
 For all six attempts, the local receiver matched the original destination-ID
