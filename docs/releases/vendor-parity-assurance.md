@@ -79,6 +79,10 @@ it stopped immediately because its directory mode was0755 rather than0700.
 Recorded runner cleanup completed; no child or browser appeared in sampled
 observations. The owner approved release and the failed observer exited2. This attempt does not
 qualify the corrected source or authorize a retry.
+A later separately admitted SDK-free controller stopped on listener inventory:
+`lsof` exited1 with nonempty listener output and empty stderr; its cause is not
+established. Recorded resources were checked absent after cleanup, and the
+failed observer awaits owner release. No remaining phase or native grant ran.
 
 **Actual local execution update (2026-10-26):** the present owner separately
 approved the final zero-body-EOF sequence, which passed **both actual local

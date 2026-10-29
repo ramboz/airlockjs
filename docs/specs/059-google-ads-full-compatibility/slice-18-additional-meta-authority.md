@@ -422,6 +422,16 @@ The original mode, failed result and STOP/FAILED receipts are preserved.
 No retry, relay, additional phase or native grant followed. This observation
 does not prove pre-return ownership or clear either earlier UNKNOWN.
 
+#### Failed listener inventory - 2026-10-29
+
+The separately admitted SDK-free controller stopped on
+`local_guard_listener_inventory_failed`. Its retained `lsof` receipt reports
+exit1 with nonempty listener output and empty stderr; the cause is not
+established. The stop receipt reports no failures and known Node cleanup
+closed. Scoped checks found the recorded runner, browser groups, profiles and
+listener ports absent. The failed observer awaits owner release. No relay,
+additional phase or native grant ran; neither earlier UNKNOWN is cleared.
+
 **DoR:**
 - [x] Genuine owner authorization at 2026-10-21T18:33:04.581Z explicitly
       answers the request for one additional bounded Meta stock case.
