@@ -6,6 +6,7 @@ import { snapshotPurchaseCartItems } from "./purchase-cart-items.js";
 const PARAMS = ["send_to", "value", "currency", "transaction_id"];
 const SCOPE_PARAMS = ["value", "currency", "transaction_id"];
 const FEED_PARAMS = ["aw_merchant_id", "aw_feed_country", "aw_feed_language"];
+const CUSTOM_PARAMS = ["example_variable", "color", "product_name"];
 
 function validURL(value, empty = false) {
   if (typeof value !== "string" || value.length > 2048 || !value.isWellFormed()) return false;
@@ -50,6 +51,7 @@ export function createGoogleAdsConversionPrototype({
   endpoint, additionalEndpoint, experimentalRouting = false, experimentalParameterScopes = false,
   experimentalMultiDestination = false, experimentalConsentCommands = false, experimentalBootstrap = false, experimentalPurchase = false,
   experimentalPurchaseCart = false, experimentalPurchaseDiscount = false, experimentalPurchaseFeed = false,
+  experimentalCustomVariables = false,
 } = {}) {
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
       typeof experimentalMultiDestination !== "boolean" || typeof experimentalConsentCommands !== "boolean" ||
@@ -57,6 +59,7 @@ export function createGoogleAdsConversionPrototype({
       typeof experimentalPurchaseCart !== "boolean" || (experimentalPurchaseCart && !experimentalPurchase) ||
       typeof experimentalPurchaseDiscount !== "boolean" || (experimentalPurchaseDiscount && !experimentalPurchase) ||
       typeof experimentalPurchaseFeed !== "boolean" || (experimentalPurchaseFeed && !experimentalPurchaseCart) ||
+      typeof experimentalCustomVariables !== "boolean" ||
       (experimentalMultiDestination && !experimentalRouting)) {
     throw new Error("invalid-experimental-option");
   }
@@ -129,8 +132,13 @@ export function createGoogleAdsConversionPrototype({
       if (!configs.size) throw new Error("conversion-before-config");
       const params = dataRecord(args[2], purchase
         ? [...PARAMS, "new_customer", ...(experimentalPurchaseCart ? ["items"] : []),
-          ...(experimentalPurchaseDiscount ? ["discount"] : []), ...(experimentalPurchaseFeed ? FEED_PARAMS : [])] : PARAMS);
+          ...(experimentalPurchaseDiscount ? ["discount"] : []), ...(experimentalPurchaseFeed ? FEED_PARAMS : [])]
+        : experimentalCustomVariables ? [...PARAMS, ...CUSTOM_PARAMS] : PARAMS);
       if (!params) throw new Error("unsupported-parameters");
+      if (!purchase && experimentalCustomVariables && CUSTOM_PARAMS.some((name) => params[name] !== undefined &&
+          (typeof params[name] !== "string" || params[name].length > 100 || !params[name].isWellFormed()))) {
+        throw new Error("unsupported-custom-variable");
+      }
       if (purchase && params.new_customer !== undefined && typeof params.new_customer !== "boolean") {
         throw new Error("unsupported-new-customer");
       }
@@ -188,6 +196,11 @@ export function createGoogleAdsConversionPrototype({
             ]) {
               if (params[input] !== undefined) query.set(output, String(params[input]));
             }
+          }
+        }
+        if (!purchase && experimentalCustomVariables) {
+          for (const name of CUSTOM_PARAMS) {
+            if (params[name] !== undefined) query.set(`airlock_custom_${name}`, params[name]);
           }
         }
         query.set("url", context.pageURL);

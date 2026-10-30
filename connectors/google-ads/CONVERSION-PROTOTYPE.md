@@ -307,6 +307,38 @@ per-branch checks, no replay, URL ceiling and dataLayer drain-time capture
 remain in force. Use synthetic inputs only; no merchant account or customer
 data is needed. Production behavior and defaults are unchanged.
 
+### Experimental conversion custom-variable examples
+
+[Google's custom-variable setup guide](https://support.google.com/google-ads/answer/9962082?hl=en)
+shows a conversion event with the string-valued example fields
+`example_variable`, `color` and `product_name`. It says activation is separately
+required for reporting, warns against private data and mentions a 100-character
+string limit in troubleshooting. It does not establish a native wire encoding.
+
+The default-off `experimentalCustomVariables: true` admits **only these three
+example names**, independently and optionally, on a local `conversion` event.
+It does not support arbitrary custom-variable names, purchase events or custom
+values in global/config scopes. Other keys and purchase-only fields remain
+rejected; existing conversion controls such as `send_to`, value fields and the
+separately enabled callback pair retain their own rules. This fixed allowlist
+is a local collision-avoidance choice, not a Google naming restriction.
+
+Each provided value must be a well-formed string of at most 100 UTF-16 code
+units; empty strings are preserved and omitted or explicitly undefined fields
+are omitted. The code-unit bound and omission rules are local assumptions,
+not proof of Google's character counting or validation. Invalid values reject
+the whole command. The adapter snapshots the primitives and the worker
+revalidates them. dataLayer values are captured at drain time.
+
+For literal-loopback only, the worker emits the **invented local markers**
+`airlock_custom_example_variable`, `airlock_custom_color` and
+`airlock_custom_product_name`. They do not prove native encoding, activation,
+reporting, attribution or parity; the existing conversion report does not
+evaluate them. Host consent, per-branch checks, no replay and the URL ceiling
+remain in force. Supply synthetic non-private values only: this experiment
+does not detect personal information or make such values safe to transmit.
+Production behavior and defaults are unchanged.
+
 ### Experimental bootstrap command
 
 `experimentalBootstrap: true` additionally accepts `gtag("js", new Date())`.
