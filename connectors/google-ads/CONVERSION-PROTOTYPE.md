@@ -6,6 +6,13 @@ It constructs one small conversion request, not Google's complete protocol.
 No vendor SDK, Docker, browser, download, account or production request is used.
 Production Google/Meta boots and the package/build are unchanged.
 
+Command capture inspects parameter records synchronously on the main thread.
+It enumerates own keys before rejecting an oversized record, and JavaScript
+proxy traps can run during inspection even though ordinary getters are
+rejected. The accepted field limits therefore do not bound worst-case
+main-thread work or establish isolation from untrusted input. Use controlled
+synthetic inputs; Core Web Vitals qualification remains open.
+
 ```sh
 node rig/google-ads-conversion-prototype.mjs
 # This checkout's installed local executable:

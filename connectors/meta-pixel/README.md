@@ -5,6 +5,13 @@ This SDK-free source entry exercises capture → real worker → governed local 
 eight-field product subset, a production boot, or a browser qualification.
 `bootMetaPixel`, builds, installed handles and stable contracts are unchanged.
 
+Command capture inspects event records synchronously on the main thread.
+It enumerates own keys before rejecting an oversized record, and JavaScript
+proxy traps can run during inspection even though ordinary getters are
+rejected. The accepted field limits therefore do not bound worst-case
+main-thread work or establish isolation from untrusted input. Use controlled
+synthetic inputs; Core Web Vitals qualification remains open.
+
 Run the first-party Node example (no browser, SDK or external requests):
 
 ```sh
