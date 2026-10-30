@@ -223,6 +223,28 @@ describe("opt-in local Meta bootstrap entry", () => {
     expect(Object.hasOwn(fbq, "callMethod")).toBe(false);
   });
 
+  it("preserves the preload and refuses attachment when worker startup fails", async () => {
+    const fbq = fixtureStub();
+    fbq("init", pixel);
+    fbq("track", "PageView");
+    const originalQueue = fbq.queue;
+    const chamber = {
+      onMessage: () => () => {},
+      onError: () => () => {},
+      postMessage() { throw new Error("private-startup-detail"); },
+      dispose: vi.fn(),
+    };
+    const error = await createMetaPixelBootstrapPrototype({
+      bootstrap: fbq, endpoint: "http://127.0.0.1:43210/tr/", chamber, captureContext: page,
+    }).catch((failure) => failure);
+    expect(error.message).toBe("bootstrap-worker-unavailable");
+    expect(error.stack).not.toContain("private-startup-detail");
+    expect(chamber.dispose).toHaveBeenCalledTimes(1);
+    expect(fbq.queue).toBe(originalQueue);
+    expect(fbq.queue).toHaveLength(2);
+    expect(Object.hasOwn(fbq, "callMethod")).toBe(false);
+  });
+
   it("restores the original queue and disposes if attachment fails", async () => {
     const target = fixtureStub();
     target("init", pixel);

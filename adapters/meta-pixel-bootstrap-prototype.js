@@ -59,6 +59,10 @@ export async function createMetaPixelBootstrapPrototype({ bootstrap, ...options 
   let methodInstalled = false;
   let failure = "bootstrap-install-failed";
   try {
+    if (!["starting", "ready"].includes(adapter.getState().phase)) {
+      failure = "bootstrap-worker-unavailable";
+      throw new Error(failure);
+    }
     const current = readPreload(bootstrap, limit);
     if (current.error || !samePreload(preload, current)) {
       failure = "bootstrap-preload-changed";

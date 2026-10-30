@@ -59,6 +59,9 @@ Elements are read from own data descriptors; extra non-index properties and
 their accessors are not interpreted. This is not a hard main-thread work
 bound or proxy isolation:
 reflection can execute proxy traps, and this is for a trusted local stub.
+If worker setup has already failed synchronously, attachment is refused and
+the original queue is retained. Attachment does not wait for asynchronous
+worker readiness; later failures remain visible in adapter outcomes.
 
 Argument data and page context are captured when each queued call is forwarded
 during attachment, **not** when the original stub call was made. This is not an
