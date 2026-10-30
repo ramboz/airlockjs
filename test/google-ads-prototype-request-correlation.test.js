@@ -36,12 +36,16 @@ describe("known local conversion request-correlation gap", () => {
         experimentalRetailViewItem: remarketing, experimentalRemarketingPurchase: remarketing,
       });
       try {
+        adapter.gtag("config", "AW-0000000000");
+        await vi.waitFor(() => expect(chamber.sent.filter((message) => message.type === "event")).toHaveLength(1));
+        chamber.emit({ type: "result", summary: { seq: 1, disposition: "configured", requests: 0 }, ready: [] });
+        await adapter.flush();
         const args = ["event", "conversion", {
           send_to: "AW-0000000000/SYNTHETIC_LABEL", value: 12, currency: "USD", transaction_id: "original",
         }];
         adapter.gtag(...args);
-        await vi.waitFor(() => expect(chamber.sent.some((message) => message.type === "event")).toBe(true));
-        const active = chamber.sent.find((message) => message.type === "event").event;
+        await vi.waitFor(() => expect(chamber.sent.filter((message) => message.type === "event")).toHaveLength(2));
+        const active = chamber.sent.filter((message) => message.type === "event").at(-1).event;
         expect(active.payload.args).toEqual(args);
         const query = new URLSearchParams({
           label: "SYNTHETIC_LABEL", value: "12", currency_code: "USD", oid: "original", url: context.pageURL,
@@ -76,14 +80,18 @@ describe("known local conversion request-correlation gap", () => {
       experimentalConsentCommands: denial === "tag",
     });
     try {
+      adapter.gtag("config", "AW-0000000000");
+      await vi.waitFor(() => expect(chamber.sent.filter((message) => message.type === "event")).toHaveLength(1));
+      chamber.emit({ type: "result", summary: { seq: 1, disposition: "configured", requests: 0 }, ready: [] });
+      await adapter.flush();
       if (denial === "tag") {
         adapter.gtag("consent", "update", { ad_storage: "denied" });
-        await vi.waitFor(() => expect(chamber.sent.some((message) => message.type === "event")).toBe(true));
-        chamber.emit({ type: "result", summary: { seq: 1, disposition: "consent-updated", requests: 0 }, ready: [] });
+        await vi.waitFor(() => expect(chamber.sent.filter((message) => message.type === "event")).toHaveLength(2));
+        chamber.emit({ type: "result", summary: { seq: 2, disposition: "consent-updated", requests: 0 }, ready: [] });
         await adapter.flush();
       }
       adapter.gtag("event", "conversion", { send_to: "AW-0000000000/SYNTHETIC_LABEL", value: 12 });
-      await vi.waitFor(() => expect(chamber.sent.filter((message) => message.type === "event")).toHaveLength(denial === "tag" ? 2 : 1));
+      await vi.waitFor(() => expect(chamber.sent.filter((message) => message.type === "event")).toHaveLength(denial === "tag" ? 3 : 2));
       const active = chamber.sent.filter((message) => message.type === "event").at(-1).event;
       chamber.emit({ type: "intercepted-fetch", id: 1, method: "GET", url: `${endpoint}?label=OTHER&value=99` });
       await vi.waitFor(() => expect(chamber.sent).toContainEqual(expect.objectContaining({
@@ -99,8 +107,8 @@ describe("known local conversion request-correlation gap", () => {
       if (denial === "host") adapter.setConsent({ ad_storage: "granted" });
       else {
         adapter.gtag("consent", "update", { ad_storage: "granted" });
-        await vi.waitFor(() => expect(chamber.sent.filter((message) => message.type === "event")).toHaveLength(3));
-        chamber.emit({ type: "result", summary: { seq: 3, disposition: "consent-updated", requests: 0 }, ready: [] });
+        await vi.waitFor(() => expect(chamber.sent.filter((message) => message.type === "event")).toHaveLength(4));
+        chamber.emit({ type: "result", summary: { seq: 4, disposition: "consent-updated", requests: 0 }, ready: [] });
       }
       await adapter.flush();
       expect(fetchImpl).not.toHaveBeenCalled();

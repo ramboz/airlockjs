@@ -87,6 +87,12 @@ plus both explicit local bootstrap paths.
 This is not a shared-consent integration, browser isolation, native queue,
 vendor receipt or performance qualification.
 
+The local Node worker bridges are explicitly not adversarial sandboxes. An
+SDK-free Google worker probe found `node:net` and `node:fs/promises`
+importable despite the withheld ambient `fetch`; it opened no connection or
+file. Mediated-message checks cannot establish containment of malicious Node
+code, and browser/CSP confinement remains a separate unqualified boundary.
+
 **Next pick:** return to the bounded evidence gaps for full060-01/059-01 after
 the delivered060-14/059-20 local increments. Their original
 readiness/native-reference/capability/performance gates remain open; do not
