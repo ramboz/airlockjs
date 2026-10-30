@@ -3,6 +3,7 @@ import { resolveConsent } from "../core/consent.js";
 import { snapshotDestinationSelectors } from "../connectors/google-ads/destination-selectors.js";
 import { CONSENT_COMMAND_KEYS, validConsentCommand } from "../connectors/google-ads/consent-commands.js";
 import { validBootstrapCommand } from "../connectors/google-ads/bootstrap-command.js";
+import { snapshotPurchaseCartItems } from "../connectors/google-ads/purchase-cart-items.js";
 
 const PARAM_KEYS = ["send_to", "value", "currency", "transaction_id"];
 const LIMIT = 256;
@@ -30,7 +31,7 @@ const REASONS = new Set([
   "connector-not-initialized", "unsupported-command", "unsupported-config", "synthetic-destination-required",
   "duplicate-config", "conversion-before-config", "unsupported-parameters", "synthetic-selector-required",
   "unsupported-value", "unsupported-currency", "unsupported-transaction", "invalid-context",
-  "unsupported-new-customer", "encoded-context-limit", "held-at-seal", "transport-failed", "destination-mismatch", "unsupported-bootstrap",
+  "unsupported-new-customer", "unsupported-items", "encoded-context-limit", "held-at-seal", "transport-failed", "destination-mismatch", "unsupported-bootstrap",
 ]);
 
 function conversionEvent(args, purchase) {
@@ -134,12 +135,13 @@ export function createGoogleAdsPrototype({
   transportTimeoutMs = 1000, fetchImpl = globalThis.fetch,
   experimentalRouting = false, experimentalParameterScopes = false, experimentalCallbacks = false,
   experimentalMultiDestination = false, experimentalConsentCommands = false, experimentalBootstrap = false,
-  experimentalDataLayer = false, experimentalPurchase = false,
+  experimentalDataLayer = false, experimentalPurchase = false, experimentalPurchaseCart = false,
 } = {}) {
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
       typeof experimentalCallbacks !== "boolean" || typeof experimentalMultiDestination !== "boolean" ||
       typeof experimentalConsentCommands !== "boolean" || typeof experimentalBootstrap !== "boolean" ||
       typeof experimentalDataLayer !== "boolean" || typeof experimentalPurchase !== "boolean" ||
+      typeof experimentalPurchaseCart !== "boolean" || (experimentalPurchaseCart && !experimentalPurchase) ||
       (experimentalMultiDestination && !experimentalRouting)) throw new Error("invalid-experimental-option");
   const pattern = experimentalRouting === true
     ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,32})\/$/
@@ -457,10 +459,12 @@ export function createGoogleAdsPrototype({
         const keys = Reflect.ownKeys(arg);
         const consentCommand = experimentalConsentCommands && index === 2 && args[0] === "consent";
         const purchaseCommand = experimentalPurchase && index === 2 && args[0] === "event" && args[1] === "purchase";
-        const allowedKeys = consentCommand ? CONSENT_COMMAND_KEYS : purchaseCommand ? [...PARAM_KEYS, "new_customer"] : PARAM_KEYS;
+        const cartCommand = experimentalPurchaseCart && purchaseCommand;
+        const allowedKeys = consentCommand ? CONSENT_COMMAND_KEYS : purchaseCommand
+          ? [...PARAM_KEYS, "new_customer", ...(cartCommand ? ["items"] : [])] : PARAM_KEYS;
         const allowCallback = experimentalCallbacks && index === 2 && args[0] === "event" && args[1] === "conversion";
         const callbackKeys = allowCallback ? ["event_callback", "event_timeout"] : [];
-        if (keys.length > 4 + Number(purchaseCommand) + callbackKeys.length ||
+        if (keys.length > 4 + Number(purchaseCommand) + Number(cartCommand) + callbackKeys.length ||
             keys.some((key) => !allowedKeys.includes(key) && !callbackKeys.includes(key))) { reject("unsupported-parameters"); return; }
         if (keys.some((key) => callbackKeys.includes(key))) {
           const fn = Object.getOwnPropertyDescriptor(arg, "event_callback");
@@ -475,6 +479,12 @@ export function createGoogleAdsPrototype({
           if (callbackKeys.includes(key)) continue;
           const descriptor = Object.getOwnPropertyDescriptor(arg, key);
           if (!descriptor || !Object.hasOwn(descriptor, "value")) { reject("unsupported-parameters"); return; }
+          if (cartCommand && key === "items" && descriptor.value !== undefined) {
+            const items = snapshotPurchaseCartItems(descriptor.value);
+            if (!items) { reject("unsupported-items"); return; }
+            params[key] = items;
+            continue;
+          }
           if (experimentalMultiDestination && key === "send_to" && Array.isArray(descriptor.value)) {
             const values = snapshotDestinationSelectors(descriptor.value);
             if (!values) { reject("unsupported-parameters"); return; }
@@ -626,6 +636,7 @@ export function createGoogleAdsPrototype({
       ...(experimentalConsentCommands === true ? { experimentalConsentCommands: true } : {}),
       ...(experimentalBootstrap === true ? { experimentalBootstrap: true } : {}),
       ...(experimentalPurchase === true ? { experimentalPurchase: true } : {}),
+      ...(experimentalPurchaseCart === true ? { experimentalPurchaseCart: true } : {}),
       ...(experimentalMultiDestination ? { additionalEndpoint, experimentalMultiDestination: true } : {}) });
   } catch { stop("worker-unavailable"); }
   return {

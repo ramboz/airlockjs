@@ -1,6 +1,7 @@
 import { snapshotDestinationSelectors } from "./destination-selectors.js";
 import { validConsentCommand } from "./consent-commands.js";
 import { validBootstrapCommand } from "./bootstrap-command.js";
+import { snapshotPurchaseCartItems } from "./purchase-cart-items.js";
 
 const PARAMS = ["send_to", "value", "currency", "transaction_id"];
 const SCOPE_PARAMS = ["value", "currency", "transaction_id"];
@@ -47,10 +48,12 @@ function selectorValues(value, multiple) {
 export function createGoogleAdsConversionPrototype({
   endpoint, additionalEndpoint, experimentalRouting = false, experimentalParameterScopes = false,
   experimentalMultiDestination = false, experimentalConsentCommands = false, experimentalBootstrap = false, experimentalPurchase = false,
+  experimentalPurchaseCart = false,
 } = {}) {
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
       typeof experimentalMultiDestination !== "boolean" || typeof experimentalConsentCommands !== "boolean" ||
       typeof experimentalBootstrap !== "boolean" || typeof experimentalPurchase !== "boolean" ||
+      typeof experimentalPurchaseCart !== "boolean" || (experimentalPurchaseCart && !experimentalPurchase) ||
       (experimentalMultiDestination && !experimentalRouting)) {
     throw new Error("invalid-experimental-option");
   }
@@ -121,11 +124,15 @@ export function createGoogleAdsConversionPrototype({
       const purchase = experimentalPurchase && args[1] === "purchase";
       if (args.length !== 3 || args[0] !== "event" || (args[1] !== "conversion" && !purchase)) throw new Error("unsupported-command");
       if (!configs.size) throw new Error("conversion-before-config");
-      const params = dataRecord(args[2], purchase ? [...PARAMS, "new_customer"] : PARAMS);
+      const params = dataRecord(args[2], purchase
+        ? [...PARAMS, "new_customer", ...(experimentalPurchaseCart ? ["items"] : [])] : PARAMS);
       if (!params) throw new Error("unsupported-parameters");
       if (purchase && params.new_customer !== undefined && typeof params.new_customer !== "boolean") {
         throw new Error("unsupported-new-customer");
       }
+      const items = purchase && experimentalPurchaseCart && params.items !== undefined
+        ? snapshotPurchaseCartItems(params.items) : undefined;
+      if (items === null) throw new Error("unsupported-items");
       let selected;
       if (experimentalRouting === true) {
         const selectors = selectorValues(params.send_to, experimentalMultiDestination);
@@ -157,6 +164,7 @@ export function createGoogleAdsConversionPrototype({
         if (purchase) {
           query.set("airlock_event", "purchase");
           if (params.new_customer !== undefined) query.set("airlock_new_customer", String(params.new_customer));
+          if (items) query.set("airlock_items", JSON.stringify(items));
         }
         query.set("url", context.pageURL);
         const url = `${destinations.get(destination)}?${query}`;

@@ -200,6 +200,55 @@ compatibility remain unverified. No account or real customer data is used.
 The option defaults to false and does not change installed globals or
 production behavior.
 
+### Experimental direct-Ads purchase cart subset
+
+[Google's cart guidance](https://support.google.com/google-ads/answer/14943675?hl=en)
+says cart data is processed only on purchase events. Its table lists direct
+Google Ads item fields `id`, `price` and `quantity`, while distinguishing
+Analytics/Firebase `item_id`; its introductory note instead says `item_id` is
+essential. This internal conflict is unresolved. The following implements only
+an explicitly local direct-Ads **`id` subset**; it does not resolve the conflict,
+translate between schemas or establish native behavior.
+
+`experimentalPurchaseCart: true` requires `experimentalPurchase: true`. It
+adds an optional, event-only `items` array to the local purchase command:
+
+```js
+gtag("event", "purchase", {
+  send_to: "AW-0000000000/SYNTHETIC_LABEL",
+  currency: "USD",
+  items: [{ id: "synthetic-sku", price: 12.5, quantity: 2 }],
+});
+```
+
+The local subset requires one to ten dense items, each an own-data record with
+exactly `id`, `price` and `quantity`. The ID is a nonempty well-formed string
+of at most 128 UTF-16 code units; price is a finite nonnegative number other
+than negative zero; quantity is a positive safe integer up to 1,000,000.
+These limits and required fields are local restrictions, not claims about
+Google's validation. Empty arrays, `item_id`, mixed schemas, extra keys,
+accessors and invalid or excessive values reject the whole command. Duplicate
+IDs are preserved, not deduplicated. Omitted or explicitly undefined `items`
+omits the cart. Items are not accepted in scopes, configs or conversions.
+
+Main snapshots the nested own-data records before queueing; the worker repeats
+validation on the received copy. Array length is checked before enumerating,
+and a changed length, keys, element identity or item value observed during
+rechecking is refused. Proxy traps can spoof observations and key enumeration
+can invoke them synchronously; accepted field limits are not a hard work bound
+or untrusted-input isolation. dataLayer values are captured when drained, not
+when pushed.
+
+The literal-loopback request uses a single **invented local-only**
+`airlock_items` field containing a JSON array, preserving item order and field
+association. The existing encoded URL ceiling still applies. This encoding
+is not Google's wire format. The existing conversion report does not evaluate
+cart inputs. There is no native comparison, feed matching, item-id translation,
+price/unit arithmetic, customer or product reporting, attribution or browser
+qualification; no production cutover or parity is implied. Use synthetic
+non-PII IDs only. Consent, no-replay, multi-destination and resource limits
+continue to apply as described above.
+
 ### Experimental bootstrap command
 
 `experimentalBootstrap: true` additionally accepts `gtag("js", new Date())`.
