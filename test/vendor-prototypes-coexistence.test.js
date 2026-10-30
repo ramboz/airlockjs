@@ -34,6 +34,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
         experimentalLocalViewItem: true,
         experimentalRealEstateViewItem: true,
         experimentalTravelViewItem: true,
+        experimentalViewItemList: true,
         consent: { ad_storage: "denied" }, captureContext: () => ({ pageURL, referrer: "" }),
       });
       meta = createMetaPixelPrototype({
@@ -249,6 +250,29 @@ describe("experimental vendor coexistence on independent local workers", () => {
       const metaAfterGrant = new URL(metaReceiver.arrivals[5].url).searchParams;
       expect(JSON.parse(metaAfterGrant.get("cd[content_ids]"))).toEqual(["meta-after-grant"]);
       expect(metaAfterGrant.has("airlock_items")).toBe(false);
+
+      const listItems = [
+        { id: 11, google_business_vertical: "retail" },
+        { id: 12, google_business_vertical: "retail" },
+      ];
+      google.gtag("event", "view_item_list", { items: listItems, value: 0 });
+      meta.fbq("track", "ViewContent", { content_ids: ["meta-list-independent"] });
+      listItems[0].id = 99;
+      states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states.map((state) => state.outcomes.at(-1).disposition))
+        .toEqual(["transport-settled", "transport-settled"]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([10, 7]);
+      const listQuery = new URL(googleReceiver.arrivals[9].url).searchParams;
+      expect(listQuery.getAll("airlock_event")).toEqual(["view_item_list"]);
+      expect(listQuery.getAll("airlock_value")).toEqual(["0"]);
+      expect(JSON.parse(listQuery.get("airlock_items"))).toEqual([
+        { id: 11, google_business_vertical: "retail" },
+        { id: 12, google_business_vertical: "retail" },
+      ]);
+      expect(listQuery.has("cd[content_ids]")).toBe(false);
+      const metaListQuery = new URL(metaReceiver.arrivals[6].url).searchParams;
+      expect(JSON.parse(metaListQuery.get("cd[content_ids]"))).toEqual(["meta-list-independent"]);
+      expect(metaListQuery.has("airlock_event")).toBe(false);
     } catch (error) {
       cause = error;
       throw error;

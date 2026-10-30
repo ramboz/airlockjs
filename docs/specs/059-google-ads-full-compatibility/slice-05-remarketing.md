@@ -91,6 +91,10 @@ The guide describes total `value` as optional across dynamic remarketing events;
 these five subsets now accept it absent or explicitly undefined and preserve
 zero. The handling of explicit undefined and the loopback marker remain local
 choices, not native wire evidence.
+The separate `experimentalViewItemList` gate reuses an enabled vertical's
+bounded local schema for the guide's `view_item_list` event. That schema
+reuse, the local event marker, routing and fanout remain hypotheses; it
+does not qualify the native list journey or audience outcomes.
 
 ## Assumptions
 

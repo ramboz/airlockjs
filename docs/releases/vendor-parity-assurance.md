@@ -35,7 +35,8 @@ native responses exist. Local, source-only opt-ins now cover Google routing,
 parameter scopes, callbacks, conservative consent commands, an explicit
 manual dataLayer drain, synthetic purchase classification and a bounded cart
 subset, three documented custom-variable example names and five separately
-gated `view_item` vertical subsets with optional value; Meta covers
+gated `view_item` vertical subsets with optional value and a separately gated
+local `view_item_list` experiment; Meta covers
 multiple Pixels, event routing, bounded commerce data and content-name arrays,
 synthetic custom properties, event IDs, local agent settings, synthetic init identity,
 local tag-consent commands and an explicitly supplied bootstrap stub. Each uses
