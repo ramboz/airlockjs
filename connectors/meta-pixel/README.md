@@ -96,6 +96,19 @@ browser behavior and full production replacement remain unverified.
   characters. Unknown keys reject unless separately enabled below; accessors
   and unsupported values reject the whole call. These are experimental
   admission rules, not native semantics.
+- With `experimentalNullPurchaseValue: true` and both
+  `experimentalEvents` and `experimentalPageViewData` enabled, a synthetic
+  `fbq("trackCustom", "Purchase", data)` may contain an own `value: null`.
+  The snapshot retains null and the worker emits the literal string `null` as
+  one `cd[value]` field; an omitted or undefined value emits no field and zero
+  remains `0`. Other commands and other null-valued fields remain rejected.
+  Meta's Magento [Purchase getter](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Block/Pixel/Purchase.php)
+  returns null for an existing order with a falsy total, and the
+  [Purchase template](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/purchase.phtml#L22-L40)
+  forwards that value. This is a local input subset, not execution of the
+  plugin. The encoding, command scope and consent behavior are hypotheses;
+  native null handling, the no-order template path and product parity remain
+  unverified. Use synthetic data only.
 - With both `experimentalPageViewData: true` and
   `experimentalScalarEventData: true`, event data can additionally contain
   `region`, `content_category`, `content_name`, `search_string`,

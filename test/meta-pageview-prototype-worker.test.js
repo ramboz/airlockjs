@@ -36,11 +36,72 @@ async function configure(chamber, transportTimeoutMs = 500) {
 }
 
 describe("actual first-party worker correlated protocol (not receipt evidence)", () => {
-  it.each(["experimentalRouting", "experimentalPageViewData", "experimentalMultiPixelRouting", "experimentalEvents", "experimentalScalarEventData", "experimentalContentNameArray", "experimentalContentIds", "experimentalContents", "experimentalContentsItemPrice", "experimentalCustomProperties", "experimentalNumericOrderId", "experimentalEventIds", "experimentalSetAgent", "experimentalSyntheticAdvancedMatching", "experimentalTagConsent"])("rejects mistyped %s during worker initialization", async (option) => {
+  it.each(["experimentalRouting", "experimentalPageViewData", "experimentalMultiPixelRouting", "experimentalEvents", "experimentalScalarEventData", "experimentalContentNameArray", "experimentalContentIds", "experimentalContents", "experimentalContentsItemPrice", "experimentalCustomProperties", "experimentalNumericOrderId", "experimentalEventIds", "experimentalSetAgent", "experimentalNullPurchaseValue", "experimentalSyntheticAdvancedMatching", "experimentalTagConsent"])("rejects mistyped %s during worker initialization", async (option) => {
     const chamber = createNodePrototypeChamber();
     try {
       const failed = receive(chamber, "fatal");
       chamber.postMessage({ type: "init", endpoint, transportTimeoutMs: 500, [option]: "true" });
+      expect(await failed).toEqual({ type: "fatal", message: "worker-configuration-failed" });
+    } finally { await chamber.dispose(); }
+  }, 5000);
+
+  it.each([false, true])("revalidates null Purchase values in the worker (enabled=%s)", async (enabled) => {
+    const chamber = createNodePrototypeChamber();
+    const requests = [];
+    const unsubscribe = chamber.onMessage((message) => {
+      if (message.type === "intercepted-fetch") requests.push(message);
+    });
+    try {
+      const configured = receive(chamber, "phase");
+      chamber.postMessage({
+        type: "init", endpoint, transportTimeoutMs: 500, experimentalEvents: true,
+        experimentalPageViewData: true, experimentalNullPurchaseValue: enabled,
+      });
+      await configured;
+      const initialized = receive(chamber, "result");
+      chamber.postMessage({ type: "event", event: event(1, ["init", "000000000000000"]) });
+      await initialized;
+      for (const [seq, args] of [
+        [2, ["trackCustom", "Other", { value: null }]],
+        [3, ["track", "Purchase", { value: null }]],
+        [4, ["trackCustom", "Purchase", { value: "null" }]],
+      ]) {
+        const rejected = receive(chamber, "result");
+        chamber.postMessage({ type: "event", event: event(seq, args) });
+        expect((await rejected).summary).toMatchObject({
+          seq, disposition: "rejected", reason: "unsupported-parameters", requests: 0,
+        });
+      }
+      expect(requests).toEqual([]);
+      if (!enabled) {
+        const rejected = receive(chamber, "result");
+        chamber.postMessage({ type: "event", event: event(5, ["trackCustom", "Purchase", { value: null }]) });
+        expect((await rejected).summary).toMatchObject({
+          seq: 5, disposition: "rejected", reason: "unsupported-parameters", requests: 0,
+        });
+        expect(requests).toEqual([]);
+      } else {
+        const intercepted = receive(chamber, "intercepted-fetch");
+        chamber.postMessage({ type: "event", event: event(5, ["trackCustom", "Purchase", { value: null }]) });
+        const request = await intercepted;
+        expect(new URL(request.url).searchParams.getAll("cd[value]")).toEqual(["null"]);
+        const settled = receive(chamber, "result");
+        chamber.postMessage({ type: "intercepted-fetch-response", id: request.id, status: 204, body: "" });
+        expect((await settled).summary).toMatchObject({ seq: 5, disposition: "transport-settled", status: 204 });
+      }
+    } finally { unsubscribe(); await chamber.dispose(); }
+  }, 5000);
+
+  it.each([
+    { experimentalEvents: true },
+    { experimentalPageViewData: true },
+  ])("rejects a null Purchase opt-in with missing worker prerequisites", async (options) => {
+    const chamber = createNodePrototypeChamber();
+    try {
+      const failed = receive(chamber, "fatal");
+      chamber.postMessage({
+        type: "init", endpoint, transportTimeoutMs: 500, experimentalNullPurchaseValue: true, ...options,
+      });
       expect(await failed).toEqual({ type: "fatal", message: "worker-configuration-failed" });
     } finally { await chamber.dispose(); }
   }, 5000);

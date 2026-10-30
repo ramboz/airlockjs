@@ -74,7 +74,7 @@ function snapshotContents(value, experimentalContentsItemPrice) {
 
 export function snapshotPageViewData(value, experimentalScalarEventData = false, experimentalContentIds = false,
   experimentalContents = false, experimentalCustomProperties = false, experimentalNumericOrderId = false,
-  experimentalContentsItemPrice = false, experimentalContentNameArray = false) {
+  experimentalContentsItemPrice = false, experimentalContentNameArray = false, allowNullPurchaseValue = false) {
   if (!value || typeof value !== "object" || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return null;
   const result = {};
   let customCount = 0;
@@ -116,6 +116,9 @@ export function snapshotPageViewData(value, experimentalScalarEventData = false,
         const contents = snapshotContents(item, experimentalContentsItemPrice);
         if (contents === null) return null;
         result[key] = contents;
+        continue;
+      } else if (key === "value" && item === null && allowNullPurchaseValue) {
+        result[key] = null;
         continue;
       } else if (key === "value" || key === "predicted_ltv") {
         if (typeof item !== "number" || !Number.isFinite(item)) return null;

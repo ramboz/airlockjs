@@ -46,13 +46,14 @@ export function createMetaPageViewPrototype({
   experimentalEvents = false, experimentalScalarEventData = false, experimentalContentIds = false, experimentalContents = false,
   experimentalContentNameArray = false, experimentalContentsItemPrice = false,
   experimentalCustomProperties = false, experimentalNumericOrderId = false, experimentalEventIds = false, experimentalSetAgent = false,
+  experimentalNullPurchaseValue = false,
   experimentalSyntheticAdvancedMatching = false, syntheticIdentityFixtures = null,
   experimentalTagConsent = false,
 } = {}) {
   if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
     experimentalScalarEventData, experimentalContentNameArray, experimentalContentIds, experimentalContents,
     experimentalContentsItemPrice, experimentalCustomProperties,
-    experimentalNumericOrderId, experimentalEventIds, experimentalSetAgent,
+    experimentalNumericOrderId, experimentalEventIds, experimentalSetAgent, experimentalNullPurchaseValue,
     experimentalSyntheticAdvancedMatching, experimentalTagConsent]
     .some((option) => typeof option !== "boolean")) {
     throw new Error("invalid-experimental-option");
@@ -66,6 +67,9 @@ export function createMetaPageViewPrototype({
   if (experimentalCustomProperties && !experimentalPageViewData) throw new Error("custom-properties-require-pageview-data");
   if (experimentalNumericOrderId && !experimentalCustomProperties) throw new Error("numeric-order-id-requires-custom-properties");
   if (experimentalEventIds && !experimentalPageViewData) throw new Error("event-ids-require-pageview-data");
+  if (experimentalNullPurchaseValue && (!experimentalEvents || !experimentalPageViewData)) {
+    throw new Error("null-purchase-value-requires-events-and-pageview-data");
+  }
   if (experimentalSyntheticAdvancedMatching && !experimentalMultiPixelRouting) {
     throw new Error("synthetic-identity-requires-multi-pixel-routing");
   }
@@ -159,6 +163,7 @@ export function createMetaPageViewPrototype({
         ? snapshotPageViewData(
           args[dataIndex], experimentalScalarEventData, experimentalContentIds, experimentalContents, experimentalCustomProperties,
           experimentalNumericOrderId, experimentalContentsItemPrice, experimentalContentNameArray,
+          experimentalNullPurchaseValue && args[0] === "trackCustom" && name === "Purchase",
         ) : null;
       if (args.length > dataIndex && !pageViewData) throw new Error("unsupported-parameters");
       const eventOptions = hasOptions ? snapshotEventOptions(args[dataIndex + 1]) : null;
@@ -177,8 +182,9 @@ export function createMetaPageViewPrototype({
         if (pageViewData) {
           for (const key of experimentalScalarEventData ? [...BASIC_EVENT_DATA_KEYS, ...SCALAR_EVENT_DATA_KEYS] : BASIC_EVENT_DATA_KEYS) {
             if (Object.hasOwn(pageViewData, key) && pageViewData[key] !== undefined) {
-              const value = key === "content_name" && Array.isArray(pageViewData[key])
-                ? JSON.stringify(pageViewData[key]) : String(pageViewData[key]);
+              const value = pageViewData[key] === null ? "null" :
+                key === "content_name" && Array.isArray(pageViewData[key])
+                  ? JSON.stringify(pageViewData[key]) : String(pageViewData[key]);
               query.append(`cd[${key}]`, value);
             }
           }

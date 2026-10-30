@@ -116,6 +116,18 @@ error behavior and event-data encoding remain experimental assumptions;
 commerce arrays, event options, native responses, real vendor receipt and
 every acceptance criterion above remain unqualified. No live event was sent.
 
+The separately gated `experimentalNullPurchaseValue` accepts `value: null`
+only for synthetic broadcast `trackCustom` Purchase commands. Magento's
+[Purchase getter](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Block/Pixel/Purchase.php)
+returns null for an existing order with a falsy total, and its
+[Purchase template](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/purchase.phtml#L22-L40)
+forwards the result. The local worker emits `cd[value]=null`; omission and
+undefined emit no value field, while numeric zero remains `0`. Tests exercise
+snapshots, a representative synthetic Purchase composition, refusals and
+consent without replay. The encoding, command restriction and consent
+semantics are local choices, not native evidence. The no-order template path,
+full Magento behavior and all acceptance criteria remain unqualified.
+
 The additional `experimentalScalarEventData` opt-in extends that local record
 with region, content category/name/type, search string, predicted lifetime
 value, item count, status and delivery category. The prototype admits only

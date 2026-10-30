@@ -230,13 +230,14 @@ export function createMetaPixelPrototype({
   experimentalNumericOrderId = false,
   experimentalEventIds = false,
   experimentalSetAgent = false,
+  experimentalNullPurchaseValue = false,
   experimentalSyntheticAdvancedMatching = false,
   experimentalTagConsent = false,
 } = {}) {
   if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
     experimentalScalarEventData, experimentalContentNameArray, experimentalContentIds, experimentalContents,
     experimentalContentsItemPrice, experimentalCustomProperties,
-    experimentalNumericOrderId, experimentalEventIds, experimentalSetAgent,
+    experimentalNumericOrderId, experimentalEventIds, experimentalSetAgent, experimentalNullPurchaseValue,
     experimentalSyntheticAdvancedMatching, experimentalTagConsent]
     .some((option) => typeof option !== "boolean")) {
     throw new Error("invalid-experimental-option");
@@ -250,6 +251,9 @@ export function createMetaPixelPrototype({
   if (experimentalCustomProperties && !experimentalPageViewData) throw new Error("custom-properties-require-pageview-data");
   if (experimentalNumericOrderId && !experimentalCustomProperties) throw new Error("numeric-order-id-requires-custom-properties");
   if (experimentalEventIds && !experimentalPageViewData) throw new Error("event-ids-require-pageview-data");
+  if (experimentalNullPurchaseValue && (!experimentalEvents || !experimentalPageViewData)) {
+    throw new Error("null-purchase-value-requires-events-and-pageview-data");
+  }
   if (experimentalSyntheticAdvancedMatching && !experimentalMultiPixelRouting) {
     throw new Error("synthetic-identity-requires-multi-pixel-routing");
   }
@@ -477,6 +481,7 @@ export function createMetaPixelPrototype({
         const data = snapshotPageViewData(
           args[dataIndex], experimentalScalarEventData, experimentalContentIds, experimentalContents, experimentalCustomProperties,
           experimentalNumericOrderId, experimentalContentsItemPrice, experimentalContentNameArray,
+          experimentalNullPurchaseValue && args[0] === "trackCustom" && args[1] === "Purchase",
         );
         if (!data) { reject("unsupported-parameters"); return; }
         args[dataIndex] = data;
@@ -617,6 +622,7 @@ export function createMetaPixelPrototype({
       ...(experimentalNumericOrderId === true ? { experimentalNumericOrderId: true } : {}),
       ...(experimentalEventIds === true ? { experimentalEventIds: true } : {}),
       ...(experimentalSetAgent === true ? { experimentalSetAgent: true } : {}),
+      ...(experimentalNullPurchaseValue === true ? { experimentalNullPurchaseValue: true } : {}),
       ...(experimentalTagConsent === true ? { experimentalTagConsent: true } : {}),
       ...(experimentalSyntheticAdvancedMatching === true
         ? { experimentalSyntheticAdvancedMatching: true, syntheticIdentityFixtures } : {}) });
