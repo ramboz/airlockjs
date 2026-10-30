@@ -208,6 +208,17 @@ not establish native wire behavior. Other item fields remain unsupported.
 The full Magento payload remains unqualified. No native request, receipt or
 parity is claimed.
 
+The separately gated `experimentalInitAgent` admits the initial
+`fbq("init", pixelId, {}, { agent })` form shown in Magento's
+[init script](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/web/js/initPixel.js)
+only for empty data and the existing synthetic agent format. The worker keeps
+the agent per initialized Pixel for the existing local `a` mapping; the
+separate `set agent` opt-in may replace it. Nonempty data and repeated init
+remain rejected. Tests cover snapshots, worker revalidation, consent, no
+replay and a later setting. This does not implement Magento's later init with
+user data. Native encoding, update behavior and consent remain unverified;
+no full Magento initialization or acceptance criterion is claimed.
+
 The separately gated `experimentalSetAgent` accepts a synthetic,
 version-shaped `fbq("set", "agent", agent, pixelId)` command for an already
 initialized local Pixel. Meta's Magento tracker

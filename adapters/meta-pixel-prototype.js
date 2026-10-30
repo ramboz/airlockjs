@@ -2,6 +2,7 @@ import { createWrappedSdkHost } from "../core/wrapped-sdk-host.js";
 import { snapshotPageViewData } from "../connectors/meta-pixel/pageview-data.js";
 import { snapshotEventOptions } from "../connectors/meta-pixel/event-options.js";
 import { createSyntheticIdentityFixtures, snapshotSyntheticIdentity } from "../connectors/meta-pixel/synthetic-identity.js";
+import { snapshotInitAgentOptions } from "../connectors/meta-pixel/agent-options.js";
 
 const CONTEXT_KEYS = ["pageURL", "referrer", "inFrame", "screenWidth", "screenHeight", "timezoneOffset"];
 const HISTORY_LIMIT = 256;
@@ -13,7 +14,7 @@ const MULTI_REJECTIONS = new Set([
   "unsupported-command", "invalid-pixel-id", "synthetic-pixel-required", "duplicate-init", "pixel-limit",
   "unsupported-standard-event", "invalid-custom-event", "pageview-before-init", "event-before-init",
   "uninitialized-pixel", "invalid-context", "unsupported-parameters", "unsupported-options", "encoded-context-limit",
-  "unsupported-identity", "identity-hash-failed", "unsupported-agent",
+  "unsupported-identity", "identity-hash-failed", "unsupported-agent", "unsupported-init-options",
 ]);
 
 function dataRecord(value, allowed) {
@@ -230,6 +231,7 @@ export function createMetaPixelPrototype({
   experimentalNumericOrderId = false,
   experimentalEventIds = false,
   experimentalSetAgent = false,
+  experimentalInitAgent = false,
   experimentalNullPurchaseValue = false,
   experimentalViewContentJsonStrings = false,
   experimentalSyntheticAdvancedMatching = false,
@@ -238,7 +240,7 @@ export function createMetaPixelPrototype({
   if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
     experimentalScalarEventData, experimentalContentNameArray, experimentalContentIds, experimentalContents,
     experimentalContentsItemPrice, experimentalCustomProperties,
-    experimentalNumericOrderId, experimentalEventIds, experimentalSetAgent, experimentalNullPurchaseValue,
+    experimentalNumericOrderId, experimentalEventIds, experimentalSetAgent, experimentalInitAgent, experimentalNullPurchaseValue,
     experimentalViewContentJsonStrings,
     experimentalSyntheticAdvancedMatching, experimentalTagConsent]
     .some((option) => typeof option !== "boolean")) {
@@ -306,7 +308,7 @@ export function createMetaPixelPrototype({
       return snapshot?.allowed && snapshot.generation === revokeGeneration ? hostAdStorage : "denied";
     },
   } : { ad_storage: hostAdStorage };
-  const validateWorker = experimentalMultiPixelRouting || experimentalTagConsent || experimentalSetAgent;
+  const validateWorker = experimentalMultiPixelRouting || experimentalTagConsent || experimentalSetAgent || experimentalInitAgent;
 
   function record(outcome) {
     if (outcomes.length === HISTORY_LIMIT) { outcomes.shift(); truncated += 1; }
@@ -455,7 +457,7 @@ export function createMetaPixelPrototype({
     // At most four requests per admitted command bound the host's lifetime history.
     if (admitted >= HISTORY_LIMIT) { reject("session-command-limit"); return; }
     if (args.length > (experimentalMultiPixelRouting ? (experimentalEventIds ? 5 : 4) :
-      (experimentalEventIds || experimentalSetAgent ? 4 : 3))) {
+      (experimentalEventIds || experimentalSetAgent || experimentalInitAgent ? 4 : 3))) {
       reject("argument-limit"); return;
     }
     const tagCommand = experimentalTagConsent && args[0] === "consent";
@@ -472,11 +474,13 @@ export function createMetaPixelPrototype({
       ((args[0] === "track" || args[0] === "trackCustom") && args.length === 4 ||
        experimentalMultiPixelRouting && args[0] === "trackSingle" && args.length === 5);
     const hasIdentity = experimentalSyntheticAdvancedMatching && args[0] === "init" && args.length === 3;
+    const hasInitAgent = experimentalInitAgent && args[0] === "init" && args.length === 4;
     for (const [index, arg] of args.entries()) {
       if (["function", "symbol"].includes(typeof arg)) { reject("uncloneable-input"); return; }
       if (arg !== null && typeof arg === "object" &&
           !(experimentalPageViewData === true && index === dataIndex) &&
-          !(hasOptions && index === dataIndex + 1) && !(hasIdentity && index === 2)) {
+          !(hasOptions && index === dataIndex + 1) && !(hasIdentity && index === 2) &&
+          !(hasInitAgent && (index === 2 || index === 3))) {
         reject("unsupported-argument"); return;
       }
       if (typeof arg === "string" && arg.length > 64) { reject("argument-limit"); return; }
@@ -503,8 +507,14 @@ export function createMetaPixelPrototype({
         if (!identity) { reject("unsupported-identity"); return; }
         args[2] = identity;
       }
+      if (hasInitAgent) {
+        const options = snapshotInitAgentOptions(args[2], args[3]);
+        if (!options) { reject("unsupported-init-options"); return; }
+        args[2] = {};
+        args[3] = options;
+      }
       const context = {};
-      if (!tagCommand && !agentCommand) {
+      if (!tagCommand && !agentCommand && !hasInitAgent) {
         const source = captureContext();
         for (const key of CONTEXT_KEYS) {
           const descriptor = source && Object.getOwnPropertyDescriptor(source, key);
@@ -580,7 +590,7 @@ export function createMetaPixelPrototype({
             !["track", "trackCustom", "trackSingle", "trackSingleCustom"].includes(activeEvent.payload.args[0]))) {
           stop("invalid-worker-result"); return;
         }
-        if (experimentalSyntheticAdvancedMatching && activeEvent?.payload.args[0] === "init") {
+        if ((experimentalSyntheticAdvancedMatching || experimentalInitAgent) && activeEvent?.payload.args[0] === "init") {
           stop("invalid-worker-result"); return;
         }
         if (validateWorker) {
@@ -629,6 +639,7 @@ export function createMetaPixelPrototype({
       ...(experimentalNumericOrderId === true ? { experimentalNumericOrderId: true } : {}),
       ...(experimentalEventIds === true ? { experimentalEventIds: true } : {}),
       ...(experimentalSetAgent === true ? { experimentalSetAgent: true } : {}),
+      ...(experimentalInitAgent === true ? { experimentalInitAgent: true } : {}),
       ...(experimentalNullPurchaseValue === true ? { experimentalNullPurchaseValue: true } : {}),
       ...(experimentalViewContentJsonStrings === true ? { experimentalViewContentJsonStrings: true } : {}),
       ...(experimentalTagConsent === true ? { experimentalTagConsent: true } : {}),

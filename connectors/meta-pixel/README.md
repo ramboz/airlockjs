@@ -274,8 +274,27 @@ browser behavior and full production replacement remain unverified.
   update order, no-egress rule, consent interaction and `a` mapping are local
   assumptions, not native observations. Use only synthetic strings and IDs
   for this loopback path; the local receiver retains request URLs.
-  The Magento init options and full plugin behavior remain unsupported or
-  unqualified.
+  Full Magento plugin behavior remains unqualified.
+- With the separate `experimentalInitAgent: true` opt-in,
+  `fbq("init", pixelId, {}, { agent })` accepts only an empty plain data record
+  and exactly one own data property `agent` in the options record. The agent
+  uses the same synthetic format and Pixel routing rules as the local
+  `set agent` subset. Both records are snapshotted and revalidated in the
+  worker; nonempty data, accessors and extra keys reject. Init captures no
+  page context and sends no request. On successful initialization the worker
+  retains the agent per Pixel and emits it as `a` on subsequent governed
+  loopback events; outcomes expose neither the agent nor the Pixel ID.
+  A later separately enabled `set agent` replaces that local setting. Duplicate
+  init remains rejected without updating it. The independent host and tag
+  consent seal governs events and held events do not replay.
+
+  Meta's Magento [init script](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/web/js/initPixel.js)
+  supplies that initial empty-data call, but may later issue another init with
+  user data. That later behavior, personal data and full Magento initialization
+  are not supported here. The `a` mapping, lifetime, update ordering, duplicate
+  rejection and consent interaction are local assumptions, not native
+  evidence. Use synthetic data only. Reflection can invoke proxy traps and is
+  not a hard main-thread work bound or proxy isolation.
 - With `experimentalRouting`, `experimentalMultiPixelRouting` and
   `experimentalSyntheticAdvancedMatching` all enabled, the documented
   `fbq("init", pixelId, identity)` position accepts only the two per-instance

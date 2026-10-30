@@ -2,6 +2,7 @@ import { SYNTHETIC_META_PIXEL_ID } from "../pixel/vendors/meta.js";
 import { BASIC_EVENT_DATA_KEYS, SCALAR_EVENT_DATA_KEYS, isStandardEventDataKey, snapshotPageViewData } from "./pageview-data.js";
 import { snapshotEventOptions } from "./event-options.js";
 import { snapshotSyntheticIdentity, validSyntheticIdentityFixtures } from "./synthetic-identity.js";
+import { isSupportedSyntheticAgent, snapshotInitAgentOptions } from "./agent-options.js";
 import { hashField } from "../pixel/advanced-matching.js";
 
 const CONTEXT_KEYS = ["pageURL", "referrer", "inFrame", "screenWidth", "screenHeight", "timezoneOffset"];
@@ -47,6 +48,7 @@ export function createMetaPageViewPrototype({
   experimentalContentNameArray = false, experimentalContentsItemPrice = false,
   experimentalCustomProperties = false, experimentalNumericOrderId = false, experimentalEventIds = false, experimentalSetAgent = false,
   experimentalNullPurchaseValue = false,
+  experimentalInitAgent = false,
   experimentalViewContentJsonStrings = false,
   experimentalSyntheticAdvancedMatching = false, syntheticIdentityFixtures = null,
   experimentalTagConsent = false,
@@ -54,7 +56,7 @@ export function createMetaPageViewPrototype({
   if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
     experimentalScalarEventData, experimentalContentNameArray, experimentalContentIds, experimentalContents,
     experimentalContentsItemPrice, experimentalCustomProperties,
-    experimentalNumericOrderId, experimentalEventIds, experimentalSetAgent, experimentalNullPurchaseValue,
+    experimentalNumericOrderId, experimentalEventIds, experimentalSetAgent, experimentalInitAgent, experimentalNullPurchaseValue,
     experimentalViewContentJsonStrings,
     experimentalSyntheticAdvancedMatching, experimentalTagConsent]
     .some((option) => typeof option !== "boolean")) {
@@ -110,8 +112,7 @@ export function createMetaPageViewPrototype({
           (args[1] === "revoke" || args[1] === "grant")) return [];
       if (experimentalSetAgent && args[0] === "set") {
         if (args.length !== 4 || args[1] !== "agent") throw new Error("unsupported-command");
-        if (typeof args[2] !== "string" ||
-            !/^(?:magento_opensource|adobe_commerce)-0\.0\.0-\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(args[2])) {
+        if (!isSupportedSyntheticAgent(args[2])) {
           throw new Error("unsupported-agent");
         }
         if (experimentalRouting) {
@@ -122,7 +123,10 @@ export function createMetaPageViewPrototype({
         return [];
       }
       const hasIdentity = experimentalSyntheticAdvancedMatching && args[0] === "init" && args.length === 3;
-      if (args[0] === "init" && (args.length === 2 || hasIdentity)) {
+      const hasInitAgent = experimentalInitAgent && args[0] === "init" && args.length === 4;
+      if (args[0] === "init" && (args.length === 2 || hasIdentity || hasInitAgent)) {
+        const options = hasInitAgent ? snapshotInitAgentOptions(args[2], args[3]) : null;
+        if (hasInitAgent && !options) throw new Error("unsupported-init-options");
         if (experimentalRouting === true) {
           if (typeof args[1] !== "string" || !/^\d{1,32}$/.test(args[1])) throw new Error("invalid-pixel-id");
         } else if (args[1] !== SYNTHETIC_META_PIXEL_ID) throw new Error("synthetic-pixel-required");
@@ -143,6 +147,7 @@ export function createMetaPageViewPrototype({
           }, () => { pendingPixelIds.delete(pixelId); throw new Error("identity-hash-failed"); });
         }
         pixelIds.add(pixelId);
+        if (options) agents.set(pixelId, options.agent);
         return [];
       }
       const single = experimentalMultiPixelRouting && ["trackSingle", "trackSingleCustom"].includes(args[0]);

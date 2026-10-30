@@ -115,6 +115,7 @@ self.onmessage = async ({ data }) => {
         experimentalContentsItemPrice: data.experimentalContentsItemPrice,
         experimentalCustomProperties: data.experimentalCustomProperties, experimentalNumericOrderId: data.experimentalNumericOrderId,
         experimentalEventIds: data.experimentalEventIds, experimentalSetAgent: data.experimentalSetAgent,
+        experimentalInitAgent: data.experimentalInitAgent,
         experimentalNullPurchaseValue: data.experimentalNullPurchaseValue,
         experimentalViewContentJsonStrings: data.experimentalViewContentJsonStrings,
         experimentalTagConsent: data.experimentalTagConsent,
