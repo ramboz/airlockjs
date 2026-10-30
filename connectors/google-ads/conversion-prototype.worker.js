@@ -113,6 +113,8 @@ self.onmessage = async ({ data }) => {
         experimentalCustomVariables: data.experimentalCustomVariables,
         experimentalRetailViewItem: data.experimentalRetailViewItem,
         experimentalEducationViewItem: data.experimentalEducationViewItem,
+        experimentalLocalViewItem: data.experimentalLocalViewItem,
+        experimentalRealEstateViewItem: data.experimentalRealEstateViewItem,
       });
       await connector.init({});
       if (!terminal) self.postMessage({ type: "phase", name: "configured" });

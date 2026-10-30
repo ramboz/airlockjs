@@ -387,8 +387,8 @@ shows a `view_item` with numeric `value`, string `id`, optional `location_id`,
 and `google_business_vertical: "education"`, again without `send_to`.
 `experimentalEducationViewItem: true` is a separate default-off opt-in: it
 does not enable retail, and enabling retail alone does not admit education.
-Both may be enabled together, but one event's items must all use the same
-enabled vertical. Mixed arrays, GA4 `item_id`, retail IDs or fields on
+The view-item options may be enabled together, but one event's items must all
+use the same enabled vertical. Mixed arrays, GA4 `item_id`, retail IDs or fields on
 education items, education fields on retail items, and purchase-cart schemas
 are rejected, not translated.
 
@@ -412,6 +412,40 @@ or carried across events, and the conversion comparison excludes this event.
 Only synthetic, non-private values are allowed by the experiment's operating
 contract; it does not detect personal information. Native feed keys, routing,
 wire format, audiences, attribution, reporting and parity remain unqualified.
+
+### Experimental local deals and real estate view_item
+
+The [same guide](https://support.google.com/google-ads/answer/7305793?hl=en)
+also shows `view_item` examples with numeric `value` and string item `id`,
+using `google_business_vertical: "local"` for local deals and
+`google_business_vertical: "real_estate"` for real estate. Neither example
+uses `send_to`. The independently gated, default-off
+`experimentalLocalViewItem` and `experimentalRealEstateViewItem` options
+admit their respective example shapes; neither enables the other vertical,
+retail or education.
+
+Each local subset requires 1–10 dense own-data items, with exactly `id` and
+the matching `google_business_vertical`. The ID must be a nonempty,
+well-formed string of at most 128 UTF-16 code units. A finite, nonnegative
+numeric `value` other than negative zero is required; zero is retained.
+These restrictions are local narrowing choices, not claims about Google's
+complete validation. Mixed-vertical arrays, `item_id`, education's
+`location_id`, purchase-cart fields, conversion labels, callbacks and all
+other fields are rejected, not translated. Items are snapshotted at capture
+and revalidated in the worker; dataLayer calls are captured when drained.
+Array length is bounded before enumeration, but proxy traps may run or spoof
+observations; accepted bounds are not a hard work or isolation guarantee.
+
+The single-configured literal-loopback route, invented `airlock_event`,
+`airlock_items` and `airlock_value` markers, host request correlation,
+independent consent seal, and drop-without-replay policy are shared with the
+earlier view-item experiments. Parameter scopes and multi-destination routing
+cannot be enabled with either option. The conversion-shaped local receiver
+path and local markers do not establish native routing or wire behavior.
+Only synthetic, non-private values are permitted by the operating contract;
+there is no personal-information detector. Native feed matching, audience
+behavior, attribution, reporting and parity remain unqualified. Production
+defaults and release gates are unchanged.
 
 ### Experimental bootstrap command
 

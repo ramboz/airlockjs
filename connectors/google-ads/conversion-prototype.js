@@ -53,16 +53,22 @@ export function createGoogleAdsConversionPrototype({
   experimentalMultiDestination = false, experimentalConsentCommands = false, experimentalBootstrap = false, experimentalPurchase = false,
   experimentalPurchaseCart = false, experimentalPurchaseDiscount = false, experimentalPurchaseFeed = false,
   experimentalCustomVariables = false, experimentalRetailViewItem = false, experimentalEducationViewItem = false,
+  experimentalLocalViewItem = false, experimentalRealEstateViewItem = false,
 } = {}) {
+  const viewOptions = {
+    retail: experimentalRetailViewItem, education: experimentalEducationViewItem,
+    local: experimentalLocalViewItem, realEstate: experimentalRealEstateViewItem,
+  };
+  const experimentalViewItem = Object.values(viewOptions).some((enabled) => enabled === true);
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
       typeof experimentalMultiDestination !== "boolean" || typeof experimentalConsentCommands !== "boolean" ||
       typeof experimentalBootstrap !== "boolean" || typeof experimentalPurchase !== "boolean" ||
       typeof experimentalPurchaseCart !== "boolean" || (experimentalPurchaseCart && !experimentalPurchase) ||
       typeof experimentalPurchaseDiscount !== "boolean" || (experimentalPurchaseDiscount && !experimentalPurchase) ||
       typeof experimentalPurchaseFeed !== "boolean" || (experimentalPurchaseFeed && !experimentalPurchaseCart) ||
-      typeof experimentalCustomVariables !== "boolean" || typeof experimentalRetailViewItem !== "boolean" ||
-      typeof experimentalEducationViewItem !== "boolean" ||
-      ((experimentalRetailViewItem || experimentalEducationViewItem) && (experimentalParameterScopes || experimentalMultiDestination)) ||
+      typeof experimentalCustomVariables !== "boolean" ||
+      Object.values(viewOptions).some((enabled) => typeof enabled !== "boolean") ||
+      (experimentalViewItem && (experimentalParameterScopes || experimentalMultiDestination)) ||
       (experimentalMultiDestination && !experimentalRouting)) {
     throw new Error("invalid-experimental-option");
   }
@@ -77,7 +83,6 @@ export function createGoogleAdsConversionPrototype({
   }
   const destinations = new Map([[`AW-${match[2]}`, endpoint]]);
   if (experimentalMultiDestination) destinations.set(`AW-${second[2]}`, additionalEndpoint);
-  const viewOptions = { retail: experimentalRetailViewItem, education: experimentalEducationViewItem };
   let initialized = false;
   const globalScope = Object.create(null);
   const configs = new Map();
@@ -132,7 +137,7 @@ export function createGoogleAdsConversionPrototype({
         return [];
       }
       const purchase = experimentalPurchase && args[1] === "purchase";
-      const viewItem = (experimentalRetailViewItem || experimentalEducationViewItem) && args[1] === "view_item";
+      const viewItem = experimentalViewItem && args[1] === "view_item";
       if (args.length !== 3 || args[0] !== "event" || (args[1] !== "conversion" && !purchase && !viewItem)) throw new Error("unsupported-command");
       if (!configs.size) throw new Error("conversion-before-config");
       if (viewItem) {

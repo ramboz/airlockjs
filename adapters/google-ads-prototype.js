@@ -163,8 +163,13 @@ export function createGoogleAdsPrototype({
   experimentalMultiDestination = false, experimentalConsentCommands = false, experimentalBootstrap = false,
   experimentalDataLayer = false, experimentalPurchase = false, experimentalPurchaseCart = false, experimentalPurchaseDiscount = false,
   experimentalPurchaseFeed = false, experimentalCustomVariables = false, experimentalRetailViewItem = false,
-  experimentalEducationViewItem = false,
+  experimentalEducationViewItem = false, experimentalLocalViewItem = false, experimentalRealEstateViewItem = false,
 } = {}) {
+  const viewOptions = {
+    retail: experimentalRetailViewItem, education: experimentalEducationViewItem,
+    local: experimentalLocalViewItem, realEstate: experimentalRealEstateViewItem,
+  };
+  const experimentalViewItem = Object.values(viewOptions).some((enabled) => enabled === true);
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
       typeof experimentalCallbacks !== "boolean" || typeof experimentalMultiDestination !== "boolean" ||
       typeof experimentalConsentCommands !== "boolean" || typeof experimentalBootstrap !== "boolean" ||
@@ -172,12 +177,10 @@ export function createGoogleAdsPrototype({
       typeof experimentalPurchaseCart !== "boolean" || (experimentalPurchaseCart && !experimentalPurchase) ||
       typeof experimentalPurchaseDiscount !== "boolean" || (experimentalPurchaseDiscount && !experimentalPurchase) ||
       typeof experimentalPurchaseFeed !== "boolean" || (experimentalPurchaseFeed && !experimentalPurchaseCart) ||
-      typeof experimentalCustomVariables !== "boolean" || typeof experimentalRetailViewItem !== "boolean" ||
-      typeof experimentalEducationViewItem !== "boolean" ||
-      ((experimentalRetailViewItem || experimentalEducationViewItem) && (experimentalParameterScopes || experimentalMultiDestination)) ||
+      typeof experimentalCustomVariables !== "boolean" ||
+      Object.values(viewOptions).some((enabled) => typeof enabled !== "boolean") ||
+      (experimentalViewItem && (experimentalParameterScopes || experimentalMultiDestination)) ||
       (experimentalMultiDestination && !experimentalRouting)) throw new Error("invalid-experimental-option");
-  const experimentalViewItem = experimentalRetailViewItem || experimentalEducationViewItem;
-  const viewOptions = { retail: experimentalRetailViewItem, education: experimentalEducationViewItem };
   const pattern = experimentalRouting === true
     ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,32})\/$/
     : /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/0000000000\/$/;
@@ -696,6 +699,8 @@ export function createGoogleAdsPrototype({
       ...(experimentalCustomVariables === true ? { experimentalCustomVariables: true } : {}),
       ...(experimentalRetailViewItem === true ? { experimentalRetailViewItem: true } : {}),
       ...(experimentalEducationViewItem === true ? { experimentalEducationViewItem: true } : {}),
+      ...(experimentalLocalViewItem === true ? { experimentalLocalViewItem: true } : {}),
+      ...(experimentalRealEstateViewItem === true ? { experimentalRealEstateViewItem: true } : {}),
       ...(experimentalMultiDestination ? { additionalEndpoint, experimentalMultiDestination: true } : {}) });
   } catch { stop("worker-unavailable"); }
   return {

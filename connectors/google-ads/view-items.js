@@ -21,7 +21,7 @@ function validText(value) {
   return typeof value === "string" && value.length > 0 && value.length <= 128 && value.isWellFormed();
 }
 
-export function snapshotViewItems(value, { retail = false, education = false } = {}) {
+export function snapshotViewItems(value, { retail = false, education = false, local = false, realEstate = false } = {}) {
   if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype) return null;
   const length = dataValue(value, "length");
   if (!Number.isInteger(length) || length < 1 || length > MAX_ITEMS) return null;
@@ -44,6 +44,10 @@ export function snapshotViewItems(value, { retail = false, education = false } =
       if (!retail || !Number.isSafeInteger(id) || id < 1) return null;
     } else if (vertical === "education") {
       if (!education || !validText(id) || (keys.length === 3 && !validText(location))) return null;
+    } else if (vertical === "local") {
+      if (!local || !validText(id)) return null;
+    } else if (vertical === "real_estate") {
+      if (!realEstate || !validText(id)) return null;
     } else return null;
     eventVertical = vertical;
     const item = { id, google_business_vertical: vertical };
