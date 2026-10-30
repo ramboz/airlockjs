@@ -4,7 +4,9 @@ import { snapshotDestinationSelectors } from "../connectors/google-ads/destinati
 import { CONSENT_COMMAND_KEYS, validConsentCommand } from "../connectors/google-ads/consent-commands.js";
 import { validBootstrapCommand } from "../connectors/google-ads/bootstrap-command.js";
 import { snapshotPurchaseCartItems } from "../connectors/google-ads/purchase-cart-items.js";
-import { isEnabledViewEvent, snapshotViewItems, validViewItemValue, VIEW_EVENT_NAMES } from "../connectors/google-ads/view-items.js";
+import {
+  isEnabledViewEvent, isRemarketingPurchase, REMARKETING_PURCHASE_MARKER, snapshotViewItems, validViewItemValue, VIEW_EVENT_NAMES,
+} from "../connectors/google-ads/view-items.js";
 
 const PARAM_KEYS = ["send_to", "value", "currency", "transaction_id"];
 const FEED_KEYS = ["aw_merchant_id", "aw_feed_country", "aw_feed_language"];
@@ -39,9 +41,17 @@ const REASONS = new Set([
   "held-at-seal", "transport-failed", "destination-mismatch", "unsupported-bootstrap",
 ]);
 
-function dispatchEvent(args, purchase, viewItem, viewEvents) {
+function remarketingEvent(args, viewItem, viewEvents, remarketingPurchase) {
+  const params = args?.[2];
+  return isEnabledViewEvent(args?.[1], viewItem, viewEvents) ||
+    (params && typeof params === "object" && !Array.isArray(params) &&
+      isRemarketingPurchase(args?.[1], Object.hasOwn(params, "send_to"), viewItem, remarketingPurchase));
+}
+
+function dispatchEvent(args, purchase, viewItem, viewEvents, remarketingPurchase) {
   return args?.[0] === "event" &&
-    (args[1] === "conversion" || (purchase && args[1] === "purchase") || isEnabledViewEvent(args[1], viewItem, viewEvents));
+    (args[1] === "conversion" || (purchase && args[1] === "purchase") ||
+      remarketingEvent(args, viewItem, viewEvents, remarketingPurchase));
 }
 
 function matchesViewItemRequest(url, endpoint, args, viewOptions) {
@@ -53,14 +63,18 @@ function matchesViewItemRequest(url, endpoint, args, viewOptions) {
     const query = new URL(url).searchParams;
     const names = params.value === undefined ? ["airlock_event", "airlock_items"] : ["airlock_event", "airlock_items", "airlock_value"];
     return [...query.keys()].length === names.length && names.every((name) => query.getAll(name).length === 1) &&
-      query.get("airlock_event") === args[1] && query.get("airlock_items") === JSON.stringify(items) &&
+      query.get("airlock_event") === (args[1] === "purchase" ? REMARKETING_PURCHASE_MARKER : args[1]) &&
+      query.get("airlock_items") === JSON.stringify(items) &&
       (params.value === undefined || query.get("airlock_value") === String(params.value));
   } catch { return false; }
 }
 
 function hasViewItemMarker(url) {
   if (typeof url !== "string") return false;
-  try { return new URL(url).searchParams.getAll("airlock_event").some((event) => VIEW_EVENT_NAMES.includes(event)); }
+  try {
+    return new URL(url).searchParams.getAll("airlock_event")
+      .some((event) => VIEW_EVENT_NAMES.includes(event) || event === REMARKETING_PURCHASE_MARKER);
+  }
   catch { return false; }
 }
 
@@ -69,6 +83,38 @@ function matchesLabeledEventMarker(url, event) {
   try {
     const markers = new URL(url).searchParams.getAll("airlock_event");
     return event === "purchase" ? markers.length === 1 && markers[0] === "purchase" : markers.length === 0;
+  } catch { return false; }
+}
+
+function matchesLabeledPurchaseRequest(url, endpoint, args, context, routing) {
+  const params = args?.[2];
+  if (!params || typeof params !== "object" || typeof params.send_to !== "string" ||
+      typeof context?.pageURL !== "string" || typeof url !== "string" ||
+      url.length > 8192 || !url.startsWith(`${endpoint}?`) || url.includes("#")) return false;
+  const selector = params.send_to.match(/^(AW-\d{1,32})\/([A-Za-z0-9_-]{1,128})$/);
+  const route = endpoint.match(/\/pagead\/conversion\/(\d{1,32})\/$/);
+  if (!selector || !route || selector[1] !== `AW-${route[1]}` ||
+      (!routing && params.send_to !== "AW-0000000000/SYNTHETIC_LABEL")) return false;
+  const expected = new URLSearchParams({ label: selector[2] });
+  for (const [input, output] of [
+    ["value", "value"], ["currency", "currency_code"], ["transaction_id", "oid"],
+    ["new_customer", "airlock_new_customer"], ["discount", "airlock_discount"],
+    ["aw_merchant_id", "airlock_merchant_id"], ["aw_feed_country", "airlock_feed_country"],
+    ["aw_feed_language", "airlock_feed_language"],
+  ]) {
+    if (params[input] !== undefined) expected.set(output, String(params[input]));
+  }
+  expected.set("airlock_event", "purchase");
+  if (params.items !== undefined) {
+    const items = snapshotPurchaseCartItems(params.items);
+    if (!items) return false;
+    expected.set("airlock_items", JSON.stringify(items));
+  }
+  expected.set("url", context.pageURL);
+  try {
+    const query = new URL(url).searchParams;
+    return [...query.keys()].length === [...expected.keys()].length &&
+      [...expected.keys()].every((key) => query.getAll(key).length === 1 && query.get(key) === expected.get(key));
   } catch { return false; }
 }
 
@@ -173,7 +219,7 @@ export function createGoogleAdsPrototype({
   experimentalPurchaseFeed = false, experimentalCustomVariables = false, experimentalRetailViewItem = false,
   experimentalEducationViewItem = false, experimentalLocalViewItem = false, experimentalRealEstateViewItem = false,
   experimentalTravelViewItem = false, experimentalViewItemList = false,
-  experimentalViewSearchResults = false, experimentalAddToCart = false,
+  experimentalViewSearchResults = false, experimentalAddToCart = false, experimentalRemarketingPurchase = false,
 } = {}) {
   const viewOptions = {
     retail: experimentalRetailViewItem, education: experimentalEducationViewItem,
@@ -185,7 +231,7 @@ export function createGoogleAdsPrototype({
     view_search_results: experimentalViewSearchResults,
     add_to_cart: experimentalAddToCart,
   };
-  const experimentalViewEvent = Object.values(viewEvents).some((enabled) => enabled === true);
+  const experimentalViewEvent = experimentalRemarketingPurchase === true || Object.values(viewEvents).some((enabled) => enabled === true);
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
       typeof experimentalCallbacks !== "boolean" || typeof experimentalMultiDestination !== "boolean" ||
       typeof experimentalConsentCommands !== "boolean" || typeof experimentalBootstrap !== "boolean" ||
@@ -193,7 +239,8 @@ export function createGoogleAdsPrototype({
       typeof experimentalPurchaseCart !== "boolean" || (experimentalPurchaseCart && !experimentalPurchase) ||
       typeof experimentalPurchaseDiscount !== "boolean" || (experimentalPurchaseDiscount && !experimentalPurchase) ||
       typeof experimentalPurchaseFeed !== "boolean" || (experimentalPurchaseFeed && !experimentalPurchaseCart) ||
-      typeof experimentalCustomVariables !== "boolean" || Object.values(viewEvents).some((enabled) => typeof enabled !== "boolean") ||
+      typeof experimentalCustomVariables !== "boolean" || typeof experimentalRemarketingPurchase !== "boolean" ||
+      Object.values(viewEvents).some((enabled) => typeof enabled !== "boolean") ||
       Object.values(viewOptions).some((enabled) => typeof enabled !== "boolean") ||
       ((experimentalViewItem || experimentalViewEvent) && (experimentalParameterScopes || experimentalMultiDestination)) ||
       (experimentalMultiDestination && !experimentalRouting)) throw new Error("invalid-experimental-option");
@@ -246,6 +293,7 @@ export function createGoogleAdsPrototype({
   let capturing = false;
   let activeSequence;
   let activeCommand;
+  let activeContext;
   let activeRequest;
   let activeRequests;
   let activeSelectors;
@@ -350,7 +398,7 @@ export function createGoogleAdsPrototype({
         summary.status === undefined && summary.terminal === undefined && summary.branches === undefined;
     }
     if (experimentalMultiDestination) {
-      if (!dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, viewEvents) ||
+      if (!dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, viewEvents, experimentalRemarketingPurchase) ||
           !activeSelectors?.length || activeSelectors.length > 2 || activeRequests.length !== summary.requests ||
           activeRequests.some((request) => !request.response) || !Array.isArray(summary.branches) ||
           summary.branches.length !== activeSelectors.length || summary.status !== undefined || summary.reason !== undefined) return false;
@@ -368,7 +416,7 @@ export function createGoogleAdsPrototype({
       return summary.disposition === (dispositions.size === 1 ? branches[0].disposition : "partial");
     }
     const response = activeRequest?.response;
-    if (!response || !dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, viewEvents) ||
+    if (!response || !dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, viewEvents, experimentalRemarketingPurchase) ||
         summary.status !== response.status) return false;
     const disposition = response.held ? "held" : response.status >= 200 && response.status < 300 ? "transport-settled" : "failed";
     const reason = response.held ? "held-at-seal" : response.status === 0 ? "transport-failed" : undefined;
@@ -429,9 +477,10 @@ export function createGoogleAdsPrototype({
       const event = queue.shift();
       activeSequence = event.seq;
       activeCommand = event.payload.args;
+      activeContext = event.payload.context;
       activeRequest = undefined;
       activeRequests = [];
-      const eventParams = dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, viewEvents)
+      const eventParams = dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, viewEvents, experimentalRemarketingPurchase)
         ? activeCommand?.[2] : undefined;
       const sendTo = eventParams && Object.hasOwn(eventParams, "send_to") ? eventParams.send_to : undefined;
       activeSelectors = experimentalMultiDestination && (typeof sendTo === "string" || Array.isArray(sendTo))
@@ -479,6 +528,7 @@ export function createGoogleAdsPrototype({
       awaitingResult = false;
       activeSequence = undefined;
       activeCommand = undefined;
+      activeContext = undefined;
       activeRequest = undefined;
       activeRequests = undefined;
       activeSelectors = undefined;
@@ -513,13 +563,16 @@ export function createGoogleAdsPrototype({
         if (![Object.prototype, null].includes(Object.getPrototypeOf(arg))) { reject("unsupported-parameters"); return; }
         const keys = Reflect.ownKeys(arg);
         const consentCommand = experimentalConsentCommands && index === 2 && args[0] === "consent";
-        const purchaseCommand = experimentalPurchase && index === 2 && args[0] === "event" && args[1] === "purchase";
+        const remarketingPurchaseCommand = index === 2 && args[0] === "event" &&
+          isRemarketingPurchase(args[1], keys.includes("send_to"), experimentalViewItem, experimentalRemarketingPurchase);
+        const purchaseCommand = experimentalPurchase && !remarketingPurchaseCommand &&
+          index === 2 && args[0] === "event" && args[1] === "purchase";
         const cartCommand = experimentalPurchaseCart && purchaseCommand;
         const discountCommand = experimentalPurchaseDiscount && purchaseCommand;
         const feedCommand = experimentalPurchaseFeed && purchaseCommand;
         const customCommand = experimentalCustomVariables && index === 2 && args[0] === "event" && args[1] === "conversion";
         const viewItemCommand = index === 2 && args[0] === "event" &&
-          isEnabledViewEvent(args[1], experimentalViewItem, viewEvents);
+          (isEnabledViewEvent(args[1], experimentalViewItem, viewEvents) || remarketingPurchaseCommand);
         const allowedKeys = consentCommand ? CONSENT_COMMAND_KEYS : viewItemCommand ? ["items", "value"] : purchaseCommand
           ? [...PARAM_KEYS, "new_customer", ...(cartCommand ? ["items"] : []), ...(discountCommand ? ["discount"] : []),
             ...(feedCommand ? FEED_KEYS : [])] : customCommand ? [...PARAM_KEYS, ...CUSTOM_KEYS] : PARAM_KEYS;
@@ -642,7 +695,7 @@ export function createGoogleAdsPrototype({
       }
       if (message?.type === "intercepted-fetch") {
         if (!inFlight || !awaitingResult ||
-            !dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, viewEvents) ||
+            !dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, viewEvents, experimentalRemarketingPurchase) ||
             (experimentalMultiDestination
               ? !activeSelectors || message.index !== activeRequests.length || message.index >= activeSelectors.length ||
                 (activeRequest && (!activeRequest.response ||
@@ -650,17 +703,22 @@ export function createGoogleAdsPrototype({
               : activeRequest) || !Number.isSafeInteger(message.id) || message.id <= lastRequestId) {
           stop("request-correlation-failed"); return;
         }
-        if (isEnabledViewEvent(activeCommand[1], experimentalViewItem, viewEvents) &&
+        if (remarketingEvent(activeCommand, experimentalViewItem, viewEvents, experimentalRemarketingPurchase) &&
             !matchesViewItemRequest(message.url, endpoint, activeCommand, viewOptions)) {
           stop("request-correlation-failed"); return;
         }
         if ((experimentalViewItem || experimentalViewEvent) &&
-            !isEnabledViewEvent(activeCommand[1], experimentalViewItem, viewEvents) && hasViewItemMarker(message.url)) {
+            !remarketingEvent(activeCommand, experimentalViewItem, viewEvents, experimentalRemarketingPurchase) && hasViewItemMarker(message.url)) {
           stop("request-correlation-failed"); return;
         }
-        if ((experimentalViewSearchResults || experimentalAddToCart) &&
-            !isEnabledViewEvent(activeCommand[1], experimentalViewItem, viewEvents) &&
+        if ((experimentalViewSearchResults || experimentalAddToCart || experimentalRemarketingPurchase) &&
+            !remarketingEvent(activeCommand, experimentalViewItem, viewEvents, experimentalRemarketingPurchase) &&
             !matchesLabeledEventMarker(message.url, activeCommand[1])) {
+          stop("request-correlation-failed"); return;
+        }
+        if (experimentalRemarketingPurchase && activeCommand[1] === "purchase" &&
+            !remarketingEvent(activeCommand, experimentalViewItem, viewEvents, experimentalRemarketingPurchase) &&
+            !matchesLabeledPurchaseRequest(message.url, endpoint, activeCommand, activeContext, experimentalRouting)) {
           stop("request-correlation-failed"); return;
         }
         if (experimentalMultiDestination) {
@@ -730,6 +788,7 @@ export function createGoogleAdsPrototype({
       ...(experimentalViewItemList === true ? { experimentalViewItemList: true } : {}),
       ...(experimentalViewSearchResults === true ? { experimentalViewSearchResults: true } : {}),
       ...(experimentalAddToCart === true ? { experimentalAddToCart: true } : {}),
+      ...(experimentalRemarketingPurchase === true ? { experimentalRemarketingPurchase: true } : {}),
       ...(experimentalMultiDestination ? { additionalEndpoint, experimentalMultiDestination: true } : {}) });
   } catch { stop("worker-unavailable"); }
   return {

@@ -380,7 +380,8 @@ an already admitted denial tightens the seal, and an already sent request
 cannot be recalled. Use synthetic, non-private values only: the experiment
 does not detect personal information. It does not establish native routing,
 scope, network behavior, audiences, feed matching, attribution, reporting or
-parity. Production defaults, the purchase path and release gates are unchanged.
+parity. Production defaults, the existing labeled purchase path and release
+gates are unchanged unless additional experiments are explicitly enabled.
 
 ### Experimental education view_item
 
@@ -527,7 +528,8 @@ there is no personal-information detector. Proxy traps may run or spoof
 observations, so accepted bounds do not guarantee a hard main-thread work
 limit or untrusted-input isolation. Native validation, routing, feed keys,
 encoding, audiences, attribution, reporting and parity remain unqualified.
-Production defaults, the purchase path and release gates are unchanged.
+Production defaults, the existing labeled purchase path and release gates are
+unchanged unless additional experiments are explicitly enabled.
 
 ### Experimental view_search_results and add_to_cart
 
@@ -562,6 +564,46 @@ traps may run or spoof observations, and a request already sent cannot be
 recalled. The routing, schema reuse and markers are local choices, not native
 wire, fanout, audience, reporting or compatibility evidence. Production and
 release gates remain unchanged.
+
+### Experimental unlabeled remarketing purchase
+
+The [dynamic-remarketing guide](https://support.google.com/google-ads/answer/7305793?hl=en)
+also shows `purchase` examples without `send_to`. The independently
+default-off `experimentalRemarketingPurchase` admits an input-only subset
+with `items` and optional `value`, using one already-enabled vertical's
+bounded schema. Applying the existing view-item schemas to this event is a
+local assumption, not proof of Google's complete accepted purchase shapes.
+The option alone enables no vertical and does not enable labeled purchase.
+
+The two local purchase paths are deliberately disjoint, including when both
+options are enabled. Absence of an own `send_to` selects only the remarketing
+subset: `items` is required; `value` can be omitted or explicitly undefined;
+zero is preserved. Presence of an own `send_to` selects only the existing
+labeled-purchase path and requires its separate `experimentalPurchase` flag
+and valid selector. Explicitly undefined, null or invalid `send_to` is not
+treated as absent. Foreign fields and mixed item schemas are rejected; there
+is no automatic fallback or fanout between paths. This distinction is a
+local safety policy, not a claim about native purchase precedence.
+
+The unlabeled request requires one explicitly configured literal-loopback
+destination. Its hypothetical `airlock_event=remarketing_purchase`,
+`airlock_items`, and optional `airlock_value` fields distinguish it from the
+labeled path's local `airlock_event=purchase` and `label`. The host checks the
+unlabeled marker and captured item/value relationships; with the new option
+enabled, it also correlates the labeled purchase's expected route, selector,
+query fields and captured page URL before transport. These are local
+relationship checks, not native validation or encoding. The conversion
+comparison excludes both purchase paths.
+
+The existing item limits, exact field rules, snapshots, worker revalidation,
+independent host/tag seal and drop-without-replay behavior remain in force.
+Parameter scopes and multi-destination routing cannot be enabled with the new
+option. Proxy traps may run or spoof observations, so accepted bounds do not
+guarantee hard main-thread work limits or untrusted-input isolation; a sent
+request cannot be recalled. Use synthetic, non-private values only; there is
+no personal-information detector. Native schema, routing, wire behavior,
+feed matching, audiences, attribution, reporting and parity remain unqualified.
+Production defaults and release gates remain unchanged.
 
 ### Experimental bootstrap command
 

@@ -4,10 +4,15 @@ const TRAVEL_OPTIONAL = ["origin", "start_date", "end_date"];
 const MAX_ITEMS = 10;
 
 export const VIEW_EVENT_NAMES = Object.freeze(["view_item", "view_item_list", "view_search_results", "add_to_cart"]);
+export const REMARKETING_PURCHASE_MARKER = "remarketing_purchase";
 
 export function isEnabledViewEvent(name, enabledVertical, events) {
   return enabledVertical && VIEW_EVENT_NAMES.includes(name) &&
     (name === "view_item" || events[name] === true);
+}
+
+export function isRemarketingPurchase(name, hasSendTo, enabledVertical, enabled) {
+  return enabled && enabledVertical && name === "purchase" && !hasSendTo;
 }
 
 function dataValue(object, key) {

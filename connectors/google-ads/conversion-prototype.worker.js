@@ -119,6 +119,7 @@ self.onmessage = async ({ data }) => {
         experimentalViewItemList: data.experimentalViewItemList,
         experimentalViewSearchResults: data.experimentalViewSearchResults,
         experimentalAddToCart: data.experimentalAddToCart,
+        experimentalRemarketingPurchase: data.experimentalRemarketingPurchase,
       });
       await connector.init({});
       if (!terminal) self.postMessage({ type: "phase", name: "configured" });
