@@ -101,6 +101,16 @@ was not overridden, and local host consent was granted. This is not a
 same-environment or complete-wire comparison: native dispatch, response, browser
 effects, consent equivalence, receipt and attribution remain unverified.
 
+The separate local bootstrap entry accepts an explicitly supplied fixture-style
+stub, forwards bounded pre-install queued argument objects and later calls to
+the same serialized worker and loopback seal, and leaves global installation
+and default production behavior untouched. The retained 058-02 source shows
+the stub's `arguments` queue and `callMethod` forwarding, not native queue
+draining, installation, error, mutation or disposal behavior. Those and the
+local limits are prototype choices; this is neither native parity nor a change
+to the open criteria above. Array lengths are checked before element inspection,
+but proxy traps and total main-thread work are not isolated or hard-bounded.
+
 ## Readiness checkpoint - 2026-10-16
 
 **Current reference preparation - 2026-10-27:**060-13/14 local construction

@@ -34,6 +34,47 @@ holds. There is no remote default. The browser default creates a module Worker;
 this path is source-only and **not browser-tested**. Node tests inject a real
 `{ postMessage, onMessage, onError, dispose }` bridge to the same worker entry.
 
+### Fixture-style bootstrap entry
+
+The separate, explicitly invoked `createMetaPixelBootstrapPrototype` export
+in `adapters/meta-pixel-bootstrap-prototype.js` accepts an owned synthetic
+`bootstrap` function and the same options as the standalone factory. It
+expects the fixture's callable shape: before `callMethod` is set, calls push
+their `arguments` objects into `bootstrap.queue`; afterwards calls forward to
+`callMethod`. The entry point does not create, discover or install a global,
+load an SDK, change production boot, or grant a remote endpoint. Do not use
+customer data. It enables no other experimental option: in particular, tag
+consent commands remain unsupported unless `experimentalTagConsent` is
+explicitly enabled.
+
+On successful attachment it replaces the stub's queue with an empty array,
+installs `callMethod`, and forwards the previously queued calls in order through
+the existing adapter. An existing handler, invalid or sparse preload, accessors,
+or a preload over `queueLimit` refuses attachment; it never truncates an
+oversized preload. Each entry's argument count is limited to five before
+copying; unsupported commands and data remain visible adapter rejections.
+The queue and its dense arguments-like objects or arrays must be same-realm.
+Queue and argument-array lengths are checked before element inspection.
+Elements are read from own data descriptors; extra non-index properties and
+their accessors are not interpreted. This is not a hard main-thread work
+bound or proxy isolation:
+reflection can execute proxy traps, and this is for a trusted local stub.
+
+Argument data and page context are captured when each queued call is forwarded
+during attachment, **not** when the original stub call was made. This is not an
+atomic deep snapshot of the entire preload; a reentrant caller must not mutate
+later inputs. A capture-hook reentrant call is rejected by the existing adapter.
+The prior queue may still be retained by other references; callers own its
+cleanup. The handler stays attached after disposal so subsequent calls receive
+visible disposed outcomes instead of being silently queued again. Reattachment
+to that stub is refused.
+
+The retained 058-02 fixture establishes only the stub's queued-arguments and
+`callMethod` forwarding source shape. Draining, mutation timing, errors,
+limits, disposal, aliases and duplicate-install behavior here are local
+choices, not qualified native semantics. Native response, queue-drain ordering,
+browser behavior and full production replacement remain unverified.
+
 - `fbq("init", "000000000000000")` captures synchronously, returns `undefined`,
   and never sends. By default only the existing synthetic all-zero Pixel ID is
   accepted. The separate `experimentalRouting: true` opt-in accepts a one-to-
