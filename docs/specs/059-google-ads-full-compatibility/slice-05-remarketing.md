@@ -77,6 +77,10 @@ receiver without inventing a conversion label. Its local route, marker fields
 and limits are hypotheses. Other event shapes, scope and multi-destination
 handling, native wire behavior, audience membership, feed matching and
 attribution remain unqualified. This does not advance this DRAFT slice.
+The separate `experimentalEducationViewItem` opt-in exercises the same guide's
+education example with bounded synthetic IDs and an optional location ID. Its
+local value requirement and routing are assumptions; it can coexist with the
+retail subset but does not establish education feed matching or native behavior.
 
 ## Assumptions
 

@@ -30,6 +30,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
         experimentalPurchase: true, experimentalPurchaseCart: true, experimentalPurchaseDiscount: true, experimentalPurchaseFeed: true,
         experimentalCustomVariables: true,
         experimentalRetailViewItem: true,
+        experimentalEducationViewItem: true,
         consent: { ad_storage: "denied" }, captureContext: () => ({ pageURL, referrer: "" }),
       });
       meta = createMetaPixelPrototype({
@@ -146,6 +147,21 @@ describe("experimental vendor coexistence on independent local workers", () => {
       expect(viewQuery.get("cd[contents]")).toBe('[{"id":"meta-view","quantity":1}]');
       expect(viewQuery.has("airlock_event")).toBe(false);
       expect(retailQuery.has("cd[content_ids]")).toBe(false);
+
+      const educationItems = [{ id: "COURSE1", location_id: "PLACE1", google_business_vertical: "education" }];
+      google.gtag("event", "view_item", { value: 25, items: educationItems });
+      educationItems[0].location_id = "changed";
+      states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states[0].outcomes.at(-1).disposition).toBe("transport-settled");
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([4, 3]);
+      const educationQuery = new URL(googleReceiver.arrivals[3].url).searchParams;
+      expect(JSON.parse(educationQuery.get("airlock_items"))).toEqual([
+        { id: "COURSE1", google_business_vertical: "education", location_id: "PLACE1" },
+      ]);
+      expect(educationQuery.get("airlock_value")).toBe("25");
+      expect(educationQuery.has("label")).toBe(false);
+      expect(educationQuery.has("cd[content_ids]")).toBe(false);
+      expect(viewQuery.has("airlock_items")).toBe(false);
     } catch (error) {
       cause = error;
       throw error;
