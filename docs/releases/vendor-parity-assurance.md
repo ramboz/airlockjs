@@ -49,7 +49,10 @@ identity choices remain experimental, not native findings.
 The remarketing route and fields are local hypotheses, not feed matching,
 audience membership or attribution evidence. Its Google host correlation
 duplicates some item serialization and labeled-purchase field mapping, so the
-capture-and-enqueue-only architectural target remains open. The Meta AddToCart prototype
+capture-and-enqueue-only architectural target remains open. Synthetic
+fake-worker controls also show that conversion fields can be substituted and
+dispatched to a mock transport, with or without the remarketing option; no
+network request was made. The Meta AddToCart prototype
 rejects the pinned Magento invalid-identifier case instead of silently
 coercing its undefined item IDs; native handling remains unknown. The local
 Meta host also does not yet correlate every worker request's event, target and

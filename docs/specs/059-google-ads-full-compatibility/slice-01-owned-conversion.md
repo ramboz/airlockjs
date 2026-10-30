@@ -94,6 +94,13 @@ The experimental `experimentalRouting` mode now supports a matching local
 destination and action label through the first-party worker and loopback
 receiver. This is not a native routing or full-conversion qualification.
 
+Synthetic fake-worker controls demonstrated that the default and
+remarketing-enabled local paths can pass substituted conversion labels, values
+or transaction IDs, added fields and duplicate labels to a mock transport with
+a plausible settled result. No network request was made. These tests
+characterize an open host-correlation gap, not protections or native behavior;
+the real boundary and criteria above remain unfulfilled.
+
 ## Readiness checkpoint - 2026-10-16
 
 **Current navigation:** this dated checkpoint and the criteria above are

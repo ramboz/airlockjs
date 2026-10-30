@@ -22,6 +22,15 @@ experimental safeguards, not proof of the capture-and-enqueue-only main-thread
 architecture or its performance; a reviewed off-thread correlation design is
 still required for the full replacement.
 
+**Known local conversion integrity gap:** the default and remarketing-enabled
+paths do not independently match conversion query fields against the captured
+conversion command. Synthetic fake-worker controls substituted a label, value
+or transaction ID, added a field, or duplicated a label, and a mock transport
+was invoked with a plausible settled result. These are passing
+characterizations of the gap, not protection tests; no network request was
+made. Endpoint and consent checks remain separate. The prototype does not
+establish conversion-field integrity against a compromised worker.
+
 ```sh
 node rig/google-ads-conversion-prototype.mjs
 # This checkout's installed local executable:
