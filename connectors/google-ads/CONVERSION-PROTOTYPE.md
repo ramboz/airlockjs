@@ -663,6 +663,40 @@ no personal-information detector. Native schema, routing, wire behavior,
 feed matching, audiences, attribution, reporting and parity remain unqualified.
 Production defaults and release gates remain unchanged.
 
+### Experimental one-way remarketing suppression
+
+The [Google Ads conversion setup guide](https://developers.google.com/tag-platform/devguides/conversions)
+shows `gtag("set", "allow_ad_personalization_signals", false)` before
+`gtag("js", ...)` and describes it as disabling remarketing data collection
+for all configured Google Ads accounts. It does not specify complete request
+branches, timing, wire encoding or the behavior of this prototype.
+
+With `experimentalDisableRemarketing: true`, that exact three-argument call is
+accepted only as the first admitted command. It makes this adapter's local
+remarketing suppression permanent until disposal. `true`, object-form, late,
+and other variants remain unsupported; this is a deliberately narrower local
+policy, not a claim about native updates. The option defaults off; enabling
+the option without the call changes no event behavior. It cannot be combined
+with experimental parameter scopes or multi-destination routing.
+
+The worker validates enabled `view_item`, `view_item_list`,
+`view_search_results`, `add_to_cart`, and unlabeled remarketing `purchase`
+inputs as before, but produces no request for a valid event after the command.
+The host independently rejects a worker request for such an event and checks
+the complete local labeled conversion and purchase query against the captured
+input, rather than allowing a worker to substitute remarketing fields there.
+The value-free outcomes are `remarketing-disabled` for the command and
+`remarketing-suppressed` for each valid suppressed event. Malformed or disabled
+event shapes still reject; captured item data is still snapshotted locally.
+There is no automatic page-load event in this prototype to suppress.
+
+Labeled purchase and conversion requests still go through the independent
+host/tag consent seal; blocked or suppressed events are not replayed. This
+control is **not consent**, does not grant consent, and does not model native
+personalization settings, audience membership, account-wide effects, product
+reporting, wire behavior or a re-enable transition. No native SDK, browser,
+vendor request or product observation was used to establish these local rules.
+
 ### Experimental bootstrap command
 
 `experimentalBootstrap: true` additionally accepts `gtag("js", new Date())`.

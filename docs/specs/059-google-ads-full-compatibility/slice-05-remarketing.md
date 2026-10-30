@@ -105,10 +105,24 @@ The separately gated flights subset exercises the guide's purchase example
 with all four illustrated origin, destination and date fields. Requiring all
 four, reusing this schema for other events and applying travel's local date
 validation are assumptions, not native validation or flight-feed evidence.
+
+The [Google conversion setup guide](https://developers.google.com/tag-platform/devguides/conversions)
+shows a global `allow_ad_personalization_signals: false` set command before
+bootstrap to disable remarketing data collection. The separately opt-in
+[local suppression experiment](../../../connectors/google-ads/CONVERSION-PROTOTYPE.md#experimental-one-way-remarketing-suppression)
+accepts only that one-way, first-command form and suppresses this prototype's
+enabled remarketing events without granting consent or replaying held events.
+It preserves the separately sealed labeled conversion and purchase paths.
+Its narrowed scope and dispositions are local policy, not native request,
+audience, privacy-mode or product evidence. This does not advance this DRAFT
+slice, its dependencies, or any production gate.
+
 Current host-side correlation revalidates and serializes remarketing items and
 constructs expected labeled-purchase query fields when its purchase gate is on.
-The worker constructs the dispatched request, but this duplicated host mapping
-does not satisfy the capture-and-enqueue-only architectural target in criterion 8.
+When the suppression command is active, it also constructs expected conversion
+fields. The worker constructs the dispatched request, but this duplicated host
+mapping does not satisfy the capture-and-enqueue-only architectural target in
+criterion 8.
 
 ## Assumptions
 

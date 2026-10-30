@@ -1,6 +1,7 @@
 import "../../core/confine-pixel-chamber.js";
 import { createConnectorHost } from "../../core/connector-host.js";
 import { createGoogleAdsConversionPrototype } from "./conversion-prototype.js";
+import { validRemarketingDisableCommand } from "./remarketing-control.js";
 
 let connector;
 let configuring = false;
@@ -48,7 +49,9 @@ async function route(event) {
       summary = { seq: event.seq, disposition: "rejected", reason: result.dropped[0].reason, requests: 0 };
     } else if (!result.ready.length) {
       summary = { seq: event.seq,
-        disposition: event.payload.args[0] === "set" ? "scope-updated" :
+        disposition: validRemarketingDisableCommand(event.payload.args) ? "remarketing-disabled" :
+          event.payload.args[0] === "event" ? "remarketing-suppressed" :
+          event.payload.args[0] === "set" ? "scope-updated" :
           event.payload.args[0] === "consent" ? "consent-updated" :
             event.payload.args[0] === "js" ? "bootstrap-accepted" : "configured", requests: 0 };
     } else {
@@ -121,6 +124,7 @@ self.onmessage = async ({ data }) => {
         experimentalViewSearchResults: data.experimentalViewSearchResults,
         experimentalAddToCart: data.experimentalAddToCart,
         experimentalRemarketingPurchase: data.experimentalRemarketingPurchase,
+        experimentalDisableRemarketing: data.experimentalDisableRemarketing,
       });
       await connector.init({});
       if (!terminal) self.postMessage({ type: "phase", name: "configured" });

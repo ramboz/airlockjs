@@ -2,6 +2,7 @@ import { snapshotDestinationSelectors } from "./destination-selectors.js";
 import { validConsentCommand } from "./consent-commands.js";
 import { validBootstrapCommand } from "./bootstrap-command.js";
 import { snapshotPurchaseCartItems } from "./purchase-cart-items.js";
+import { validRemarketingDisableCommand } from "./remarketing-control.js";
 import { isEnabledViewEvent, isRemarketingPurchase, REMARKETING_PURCHASE_MARKER, snapshotViewItems, validViewItemValue } from "./view-items.js";
 
 const PARAMS = ["send_to", "value", "currency", "transaction_id"];
@@ -56,7 +57,7 @@ export function createGoogleAdsConversionPrototype({
   experimentalLocalViewItem = false, experimentalRealEstateViewItem = false, experimentalTravelViewItem = false,
   experimentalFlightsViewItem = false,
   experimentalViewItemList = false, experimentalViewSearchResults = false, experimentalAddToCart = false,
-  experimentalRemarketingPurchase = false,
+  experimentalRemarketingPurchase = false, experimentalDisableRemarketing = false,
 } = {}) {
   const viewOptions = {
     retail: experimentalRetailViewItem, education: experimentalEducationViewItem,
@@ -77,9 +78,11 @@ export function createGoogleAdsConversionPrototype({
       typeof experimentalPurchaseDiscount !== "boolean" || (experimentalPurchaseDiscount && !experimentalPurchase) ||
       typeof experimentalPurchaseFeed !== "boolean" || (experimentalPurchaseFeed && !experimentalPurchaseCart) ||
       typeof experimentalCustomVariables !== "boolean" || typeof experimentalRemarketingPurchase !== "boolean" ||
+      typeof experimentalDisableRemarketing !== "boolean" ||
       Object.values(viewEvents).some((enabled) => typeof enabled !== "boolean") ||
       Object.values(viewOptions).some((enabled) => typeof enabled !== "boolean") ||
       ((experimentalViewItem || experimentalViewEvent) && (experimentalParameterScopes || experimentalMultiDestination)) ||
+      (experimentalDisableRemarketing && (experimentalParameterScopes || experimentalMultiDestination)) ||
       (experimentalMultiDestination && !experimentalRouting)) {
     throw new Error("invalid-experimental-option");
   }
@@ -95,6 +98,8 @@ export function createGoogleAdsConversionPrototype({
   const destinations = new Map([[`AW-${match[2]}`, endpoint]]);
   if (experimentalMultiDestination) destinations.set(`AW-${second[2]}`, additionalEndpoint);
   let initialized = false;
+  let seenCommand = false;
+  let remarketingDisabled = false;
   const globalScope = Object.create(null);
   const configs = new Map();
   const endpoints = [...destinations.values()];
@@ -112,6 +117,13 @@ export function createGoogleAdsConversionPrototype({
       if (!initialized) throw new Error("connector-not-initialized");
       const { args, context: capturedContext } = event?.payload || {};
       if (event?.type !== "google-ads-command" || !Array.isArray(args)) throw new Error("unsupported-command");
+      const firstCommand = !seenCommand;
+      seenCommand = true;
+      if (experimentalDisableRemarketing && args[0] === "set" && args[1] === "allow_ad_personalization_signals") {
+        if (!firstCommand || !validRemarketingDisableCommand(args)) throw new Error("unsupported-remarketing-control");
+        remarketingDisabled = true;
+        return [];
+      }
       if (experimentalBootstrap && args[0] === "js") {
         if (!validBootstrapCommand(args)) throw new Error("unsupported-bootstrap");
         return [];
@@ -170,6 +182,7 @@ export function createGoogleAdsConversionPrototype({
         if (values.value !== undefined) query.set("airlock_value", String(values.value));
         const url = `${endpoints[0]}?${query}`;
         if (url.length > 8192) throw new Error("encoded-context-limit");
+        if (remarketingDisabled) return [];
         return [{ url, method: "GET" }];
       }
       const params = dataRecord(args[2], purchase
