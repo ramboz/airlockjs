@@ -230,6 +230,11 @@ field association and independent consent holds in the worker and loopback
 receiver. It does not execute Magento or its server-side request, establish
 native encoding or qualify the complete plugin journey.
 
+A second synthetic composition exercises the pinned Magento AddToCart
+template's selected fields together with tracker-added metadata, agent and
+event ID. The local test does not execute Magento or its product-info/server
+requests, prove their response types or establish native wire behavior.
+
 The separate `experimentalCustomProperties` opt-in accepts a bounded subset
 of additional string-valued event properties, on the existing standard or
 custom event calls. Meta's retained public conversion-tracking reference

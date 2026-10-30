@@ -31,6 +31,8 @@ describe("experimental vendor coexistence on independent local workers", () => {
         experimentalCustomVariables: true,
         experimentalRetailViewItem: true,
         experimentalEducationViewItem: true,
+        experimentalLocalViewItem: true,
+        experimentalRealEstateViewItem: true,
         consent: { ad_storage: "denied" }, captureContext: () => ({ pageURL, referrer: "" }),
       });
       meta = createMetaPixelPrototype({
@@ -162,6 +164,27 @@ describe("experimental vendor coexistence on independent local workers", () => {
       expect(educationQuery.has("label")).toBe(false);
       expect(educationQuery.has("cd[content_ids]")).toBe(false);
       expect(viewQuery.has("airlock_items")).toBe(false);
+
+      for (const [id, vertical] of [["DEAL1", "local"], ["HOME1", "real_estate"]]) {
+        google.gtag("event", "view_item", { value: 30, items: [{ id, google_business_vertical: vertical }] });
+      }
+      meta.fbq("track", "AddToCart", {
+        content_name: "meta-cart", content_ids: ["meta-cart"],
+        contents: [{ id: "meta-cart", quantity: 1 }],
+      });
+      states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states.map((state) => state.outcomes.at(-1).disposition))
+        .toEqual(["transport-settled", "transport-settled"]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([6, 4]);
+      for (const [index, id, vertical] of [[4, "DEAL1", "local"], [5, "HOME1", "real_estate"]]) {
+        const query = new URL(googleReceiver.arrivals[index].url).searchParams;
+        expect(JSON.parse(query.get("airlock_items"))).toEqual([{ id, google_business_vertical: vertical }]);
+        expect(query.has("cd[content_ids]")).toBe(false);
+      }
+      const cartQuery = new URL(metaReceiver.arrivals[3].url).searchParams;
+      expect(cartQuery.get("ev")).toBe("AddToCart");
+      expect(JSON.parse(cartQuery.get("cd[content_ids]"))).toEqual(["meta-cart"]);
+      expect(cartQuery.has("airlock_items")).toBe(false);
     } catch (error) {
       cause = error;
       throw error;

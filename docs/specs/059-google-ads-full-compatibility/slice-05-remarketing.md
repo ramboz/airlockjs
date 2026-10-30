@@ -81,6 +81,9 @@ The separate `experimentalEducationViewItem` opt-in exercises the same guide's
 education example with bounded synthetic IDs and an optional location ID. Its
 local value requirement and routing are assumptions; it can coexist with the
 retail subset but does not establish education feed matching or native behavior.
+Separately gated local-deals and real-estate `view_item` subsets exercise the
+same guide's string-ID examples. Their value requirements, single local route
+and markers are also assumptions; neither qualifies audience or feed outcomes.
 
 ## Assumptions
 
