@@ -36,6 +36,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
         experimentalPageViewData: true, experimentalCustomProperties: true, experimentalNumericOrderId: true,
         experimentalEvents: true, experimentalEventIds: true, experimentalContents: true, experimentalContentsItemPrice: true,
         experimentalScalarEventData: true, experimentalContentNameArray: true,
+        experimentalSetAgent: true,
         consent: { ad_storage: "granted" },
         captureContext: () => ({
           pageURL, referrer: "", inFrame: false, screenWidth: 412, screenHeight: 823, timezoneOffset: 0,
@@ -43,6 +44,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
       });
       google.gtag("config", "AW-0000000000");
       meta.fbq("init", "000000000000000");
+      meta.fbq("set", "agent", "magento_opensource-0.0.0-1.2.3", "000000000000000");
       google.gtag("event", "purchase", {
         ...conversion, new_customer: true, items: [{ id: "held-sku", price: 4, quantity: 1 }], discount: 1,
       });
@@ -83,8 +85,10 @@ describe("experimental vendor coexistence on independent local workers", () => {
       expect(googleQuery.has("cd[contents]")).toBe(false);
       expect(googleQuery.has("cd[content_name]")).toBe(false);
       expect(googleQuery.has("eid")).toBe(false);
+      expect(googleQuery.has("a")).toBe(false);
       expect(metaQuery.get("ev")).toBe("Purchase");
       expect(metaQuery.get("eid")).toBe("second-event");
+      expect(metaQuery.get("a")).toBe("magento_opensource-0.0.0-1.2.3");
       expect(metaQuery.get("cd[placement]")).toBe("second");
       expect(metaQuery.get("cd[order_id]")).toBe("2");
       expect(JSON.parse(metaQuery.get("cd[content_name]"))).toEqual(["meta-product"]);
@@ -106,6 +110,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
       expect(customQuery.get("airlock_custom_color")).toBe("synthetic-blue");
       expect(customQuery.get("airlock_custom_product_name")).toBe("google-product");
       expect(customQuery.has("cd[content_name]")).toBe(false);
+      expect(customQuery.has("a")).toBe(false);
       expect(metaQuery.has("airlock_custom_color")).toBe(false);
       expect(metaQuery.has("airlock_custom_product_name")).toBe(false);
     } catch (error) {
