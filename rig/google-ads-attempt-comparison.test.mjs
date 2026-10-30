@@ -151,6 +151,20 @@ describe("offline Google prototype attempt comparison", () => {
     expect(receiver).not.toHaveBeenCalled();
   });
 
+  it("does not treat a new-customer input as a retained conversion comparison", async () => {
+    const { inputs } = await manifest();
+    const reference = syntheticReference();
+    const item = reference.capture.cases[0];
+    item.synthetic_inputs.new_customer = true;
+    item.native_state.conversion_input.new_customer = true;
+    vi.mocked(inspectNativeAttempt).mockResolvedValue(reference);
+    const receiver = vi.spyOn(local, "createConversionReceiver");
+    const result = await runGoogleAdsAttemptComparison({ inputs });
+    expect(result).toMatchObject({ overall: "inconclusive", comparison: "not-completed",
+      stage: "reference-inputs", exit_code: 2, counts: { local_arrivals: 0, local_dispatches: 0 } });
+    expect(receiver).not.toHaveBeenCalled();
+  });
+
   it("rejects a changed reference after local runs, despite matching relationships", async () => {
     const { inputs } = await manifest();
     const first = syntheticReference();
