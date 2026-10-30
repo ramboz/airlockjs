@@ -36,6 +36,29 @@ this path is source-only and **not browser-tested**. Node tests inject a real
 `adapter.ready()` resolves with the current redacted state after the first
 configured or terminal transition; it does not guarantee future worker health.
 
+**Known local integrity gap:** the host enforces loopback destination and
+consent, and some modes validate worker request sequencing and result shape.
+It does not independently correlate the worker's request event, target or data
+with the active captured command. A synthetic fake worker can substitute
+these fields or add query fields and still obtain a `transport-settled`
+outcome from a mock transport. A matching summary is not proof of request
+contents. `test/meta-prototype-request-correlation.test.js` characterizes
+this current gap, including consent holds; it is not a protection test. The
+prototype must not be used as evidence of integrity against a compromised
+worker. The open [060-01](../../docs/specs/060-meta-pixel-full-compatibility/slice-01-pageview-entry.md)
+boundary and acceptance criteria remain unfulfilled.
+
+One possible boundary is an independently provisioned trusted worker that
+receives the captured command stream and computes the expected requests before
+the host allows each dispatch. Its identity, state, branch counts, failure and
+consent ordering would need to be established independently of the chamber.
+Sharing the mapper would detect divergent worker output, not mistakes in that
+mapper or native incompatibility. Alternatively, a trusted worker could own
+mapping and dispatch authority while an untrusted chamber has no direct
+request authority. That changes the isolation model. Both approaches need
+design and verification; neither is implemented. A worker-supplied marker or
+hash alone would not independently bind the request.
+
 ### Fixture-style bootstrap entry
 
 The separate, explicitly invoked `createMetaPixelBootstrapPrototype` export
