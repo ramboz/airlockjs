@@ -200,8 +200,8 @@ browser behavior and full production replacement remain unverified.
   as part of its `getContents()` result and
   [passes that result into a Purchase payload](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/purchase.phtml#L22-L40).
   The local price range, optionality, ordering and JSON wire form are
-  unverified choices. The complete Magento payload remains unqualified;
-  `fbq("set", "agent", ...)` remains unsupported. Use synthetic data only.
+  unverified choices. The complete Magento payload remains unqualified. Use
+  synthetic data only.
 - With both `experimentalPageViewData: true` and
   `experimentalEventIds: true`, `fbq("track", name, data, { eventID })`
   accepts the documented fourth argument. With multi-Pixel routing enabled,
@@ -222,6 +222,30 @@ browser behavior and full production replacement remain unverified.
   or broadcast semantics. Repeating an event ID does not suppress a browser
   event; this path does not generate IDs, send server events or establish
   backend deduplication.
+- With `experimentalSetAgent: true`, the local prototype accepts
+  `fbq("set", "agent", agent, pixelId)` after the selected Pixel is
+  initialized. This command captures no page context and sends no request.
+  For this synthetic subset, `agent` must match
+  `(magento_opensource|adobe_commerce)-0.0.0-X.Y.Z`, where each version
+  component contains one to four digits. The Pixel ID must satisfy the
+  existing routing rules and already be initialized. A later accepted setting
+  replaces the value for that Pixel. The worker keeps it in memory until
+  disposal and emits it as an `a` query field on that Pixel's subsequent
+  local requests. No agent value or Pixel ID appears in adapter outcomes.
+  The independent host and tag consent seal still governs every event
+  request. Settings do not grant consent; held events are not replayed.
+  Without the opt-in the command remains unsupported.
+
+  Meta's Magento tracker [calls this four-argument form before tracking](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/web/js/metaPixelTracker.js#L34-L47).
+  Its [getter](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Block/Pixel/Common.php#L152-L160)
+  supplies a [source/version string](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/BusinessExtension/Helper/FBEHelper.php#L137-L171).
+  A retained PageView fixture contains an `a` field, but does not establish
+  that this command produces it. The allowed pattern, per-Pixel lifetime,
+  update order, no-egress rule, consent interaction and `a` mapping are local
+  assumptions, not native observations. Use only synthetic strings and IDs
+  for this loopback path; the local receiver retains request URLs.
+  The Magento init options and full plugin behavior remain unsupported or
+  unqualified.
 - With `experimentalRouting`, `experimentalMultiPixelRouting` and
   `experimentalSyntheticAdvancedMatching` all enabled, the documented
   `fbq("init", pixelId, identity)` position accepts only the two per-instance

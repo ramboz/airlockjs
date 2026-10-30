@@ -178,9 +178,24 @@ unpriced items. Snapshots and worker revalidation feed the existing local JSON
 mapping, with no total calculation. Tests cover custom Purchase composition,
 routing, consent holds, no replay, invalid prices and existing defaults.
 Optionality, bounds and JSON mapping are local assumptions; the source does
-not establish native wire behavior. Other item fields and
-`fbq("set", "agent", ...)` remain unsupported. The full Magento payload
-remains unqualified. No native request, receipt or parity is claimed.
+not establish native wire behavior. Other item fields remain unsupported.
+The full Magento payload remains unqualified. No native request, receipt or
+parity is claimed.
+
+The separately gated `experimentalSetAgent` accepts a synthetic,
+version-shaped `fbq("set", "agent", agent, pixelId)` command for an already
+initialized local Pixel. Meta's Magento tracker
+[calls that form immediately before the event](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/web/js/metaPixelTracker.js#L34-L47);
+its getter derives the string from
+[source and plugin version](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/BusinessExtension/Helper/FBEHelper.php#L137-L171).
+The local subset stores an accepted setting in the worker per Pixel, updates
+it in command order, and emits it as `a` on subsequent governed loopback
+requests. A retained PageView has an `a` field, but does not connect it to
+this command. Format bounds, setting lifetime, replacement, per-Pixel behavior,
+consent interaction and wire mapping are assumptions. Tests cover ordering,
+refusals, worker messages, consent and no replay. Magento's full init/options
+and plugin payload remain unsupported or unqualified; no native equivalence,
+receipt, parity or readiness criterion is claimed.
 
 The separate `experimentalCustomProperties` opt-in accepts a bounded subset
 of additional string-valued event properties, on the existing standard or

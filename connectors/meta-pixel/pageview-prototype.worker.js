@@ -46,7 +46,12 @@ async function route(event) {
     if (result.dropped.length) {
       summary = { seq: event.seq, disposition: "rejected", reason: result.dropped[0].reason, requests: 0 };
     } else if (!result.ready.length) {
-      summary = { seq: event.seq, disposition: event.payload.args[0] === "consent" ? "consent-updated" : "initialized", requests: 0 };
+      summary = {
+        seq: event.seq,
+        disposition: event.payload.args[0] === "consent" ? "consent-updated" :
+          event.payload.args[0] === "set" ? "agent-updated" : "initialized",
+        requests: 0,
+      };
     } else {
       if (result.ready.length > (multiPixelRouting ? 4 : 1)) throw new Error("invalid-request-count");
       const branches = [];
@@ -109,7 +114,7 @@ self.onmessage = async ({ data }) => {
         experimentalContentIds: data.experimentalContentIds, experimentalContents: data.experimentalContents,
         experimentalContentsItemPrice: data.experimentalContentsItemPrice,
         experimentalCustomProperties: data.experimentalCustomProperties, experimentalNumericOrderId: data.experimentalNumericOrderId,
-        experimentalEventIds: data.experimentalEventIds,
+        experimentalEventIds: data.experimentalEventIds, experimentalSetAgent: data.experimentalSetAgent,
         experimentalTagConsent: data.experimentalTagConsent,
         experimentalSyntheticAdvancedMatching: data.experimentalSyntheticAdvancedMatching,
         syntheticIdentityFixtures: data.syntheticIdentityFixtures,

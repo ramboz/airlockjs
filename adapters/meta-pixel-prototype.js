@@ -13,7 +13,7 @@ const MULTI_REJECTIONS = new Set([
   "unsupported-command", "invalid-pixel-id", "synthetic-pixel-required", "duplicate-init", "pixel-limit",
   "unsupported-standard-event", "invalid-custom-event", "pageview-before-init", "event-before-init",
   "uninitialized-pixel", "invalid-context", "unsupported-parameters", "unsupported-options", "encoded-context-limit",
-  "unsupported-identity", "identity-hash-failed",
+  "unsupported-identity", "identity-hash-failed", "unsupported-agent",
 ]);
 
 function dataRecord(value, allowed) {
@@ -67,6 +67,10 @@ function validateMultiSummary(summary, seq, command) {
       return command === "consent" && record.requests === 0 && exactKeys(record, ["seq", "disposition", "requests"])
         ? { seq, disposition: "consent-updated", requests: 0 } : null;
     }
+    if (record.disposition === "agent-updated") {
+      return command === "set" && record.requests === 0 && exactKeys(record, ["seq", "disposition", "requests"])
+        ? { seq, disposition: "agent-updated", requests: 0 } : null;
+    }
     if (record.disposition === "rejected") {
       return record.requests === 0 && MULTI_REJECTIONS.has(record.reason) &&
         exactKeys(record, ["seq", "disposition", "requests", "reason"])
@@ -116,8 +120,9 @@ function validateSingleSummary(summary, seq, command) {
   try {
     const record = dataRecord(summary, ["seq", "disposition", "requests", "reason", "status", "terminal"]);
     if (!record || record.seq !== seq) return null;
-    if (record.disposition === "initialized" || record.disposition === "consent-updated") {
-      const expected = command === "init" ? "initialized" : command === "consent" ? "consent-updated" : null;
+    if (["initialized", "consent-updated", "agent-updated"].includes(record.disposition)) {
+      const expected = command === "init" ? "initialized" :
+        command === "consent" ? "consent-updated" : command === "set" ? "agent-updated" : null;
       return record.disposition === expected && record.requests === 0 &&
         exactKeys(record, ["seq", "disposition", "requests"])
         ? { seq, disposition: record.disposition, requests: 0 } : null;
@@ -224,13 +229,14 @@ export function createMetaPixelPrototype({
   experimentalCustomProperties = false,
   experimentalNumericOrderId = false,
   experimentalEventIds = false,
+  experimentalSetAgent = false,
   experimentalSyntheticAdvancedMatching = false,
   experimentalTagConsent = false,
 } = {}) {
   if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
     experimentalScalarEventData, experimentalContentNameArray, experimentalContentIds, experimentalContents,
     experimentalContentsItemPrice, experimentalCustomProperties,
-    experimentalNumericOrderId, experimentalEventIds,
+    experimentalNumericOrderId, experimentalEventIds, experimentalSetAgent,
     experimentalSyntheticAdvancedMatching, experimentalTagConsent]
     .some((option) => typeof option !== "boolean")) {
     throw new Error("invalid-experimental-option");
@@ -290,7 +296,7 @@ export function createMetaPixelPrototype({
       return snapshot?.allowed && snapshot.generation === revokeGeneration ? hostAdStorage : "denied";
     },
   } : { ad_storage: hostAdStorage };
-  const validateWorker = experimentalMultiPixelRouting || experimentalTagConsent;
+  const validateWorker = experimentalMultiPixelRouting || experimentalTagConsent || experimentalSetAgent;
 
   function record(outcome) {
     if (outcomes.length === HISTORY_LIMIT) { outcomes.shift(); truncated += 1; }
@@ -438,10 +444,12 @@ export function createMetaPixelPrototype({
     if (queue.length >= queueLimit) { reject("queue-overflow"); return; }
     // At most four requests per admitted command bound the host's lifetime history.
     if (admitted >= HISTORY_LIMIT) { reject("session-command-limit"); return; }
-    if (args.length > (experimentalMultiPixelRouting ? (experimentalEventIds ? 5 : 4) : (experimentalEventIds ? 4 : 3))) {
+    if (args.length > (experimentalMultiPixelRouting ? (experimentalEventIds ? 5 : 4) :
+      (experimentalEventIds || experimentalSetAgent ? 4 : 3))) {
       reject("argument-limit"); return;
     }
     const tagCommand = experimentalTagConsent && args[0] === "consent";
+    const agentCommand = experimentalSetAgent && args[0] === "set";
     if (tagCommand && (args.length !== 2 || !["revoke", "grant"].includes(args[1]))) {
       reject("unsupported-command"); return;
     }
@@ -484,7 +492,7 @@ export function createMetaPixelPrototype({
         args[2] = identity;
       }
       const context = {};
-      if (!tagCommand) {
+      if (!tagCommand && !agentCommand) {
         const source = captureContext();
         for (const key of CONTEXT_KEYS) {
           const descriptor = source && Object.getOwnPropertyDescriptor(source, key);
@@ -530,6 +538,7 @@ export function createMetaPixelPrototype({
         if (!summary || activeHostRequest !== null || summary.requests !== activeHostResponses.length ||
             (command === "consent" && experimentalTagConsent && summary.disposition !== "consent-updated") ||
             (!experimentalTagConsent && summary.disposition === "consent-updated") ||
+            (!experimentalSetAgent && summary.disposition === "agent-updated") ||
             (summary.branches && summary.branches.some((branch, index) =>
               branch.status !== activeHostResponses[index].status ||
               branch.disposition !== activeHostResponses[index].disposition)) ||
@@ -552,6 +561,9 @@ export function createMetaPixelPrototype({
         clearTimeout(initTimer);
       }
       if (message?.type === "intercepted-fetch") {
+        if (experimentalSetAgent && activeEvent?.payload.args[0] === "set") {
+          stop("invalid-worker-result"); return;
+        }
         if (experimentalTagConsent && (!inFlight || !activeEvent ||
             !["track", "trackCustom", "trackSingle", "trackSingleCustom"].includes(activeEvent.payload.args[0]))) {
           stop("invalid-worker-result"); return;
@@ -604,6 +616,7 @@ export function createMetaPixelPrototype({
       ...(experimentalCustomProperties === true ? { experimentalCustomProperties: true } : {}),
       ...(experimentalNumericOrderId === true ? { experimentalNumericOrderId: true } : {}),
       ...(experimentalEventIds === true ? { experimentalEventIds: true } : {}),
+      ...(experimentalSetAgent === true ? { experimentalSetAgent: true } : {}),
       ...(experimentalTagConsent === true ? { experimentalTagConsent: true } : {}),
       ...(experimentalSyntheticAdvancedMatching === true
         ? { experimentalSyntheticAdvancedMatching: true, syntheticIdentityFixtures } : {}) });

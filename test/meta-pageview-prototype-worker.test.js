@@ -36,7 +36,7 @@ async function configure(chamber, transportTimeoutMs = 500) {
 }
 
 describe("actual first-party worker correlated protocol (not receipt evidence)", () => {
-  it.each(["experimentalRouting", "experimentalPageViewData", "experimentalMultiPixelRouting", "experimentalEvents", "experimentalScalarEventData", "experimentalContentNameArray", "experimentalContentIds", "experimentalContents", "experimentalContentsItemPrice", "experimentalCustomProperties", "experimentalNumericOrderId", "experimentalEventIds", "experimentalSyntheticAdvancedMatching", "experimentalTagConsent"])("rejects mistyped %s during worker initialization", async (option) => {
+  it.each(["experimentalRouting", "experimentalPageViewData", "experimentalMultiPixelRouting", "experimentalEvents", "experimentalScalarEventData", "experimentalContentNameArray", "experimentalContentIds", "experimentalContents", "experimentalContentsItemPrice", "experimentalCustomProperties", "experimentalNumericOrderId", "experimentalEventIds", "experimentalSetAgent", "experimentalSyntheticAdvancedMatching", "experimentalTagConsent"])("rejects mistyped %s during worker initialization", async (option) => {
     const chamber = createNodePrototypeChamber();
     try {
       const failed = receive(chamber, "fatal");
@@ -72,6 +72,47 @@ describe("actual first-party worker correlated protocol (not receipt evidence)",
         });
       }
       expect(requests).toEqual([]);
+    } finally { unsubscribe(); await chamber.dispose(); }
+  }, 5000);
+
+  it.each([false, true])("revalidates agent commands in the worker (enabled=%s)", async (enabled) => {
+    const chamber = createNodePrototypeChamber();
+    const requests = [];
+    const unsubscribe = chamber.onMessage((message) => {
+      if (message.type === "intercepted-fetch") requests.push(message);
+    });
+    const agent = "magento_opensource-0.0.0-1.2.3";
+    try {
+      const configured = receive(chamber, "phase");
+      chamber.postMessage({ type: "init", endpoint, transportTimeoutMs: 500, experimentalSetAgent: enabled });
+      await configured;
+      const beforeInit = receive(chamber, "result");
+      chamber.postMessage({ type: "event", event: event(1, ["set", "agent", agent, "000000000000000"]) });
+      expect((await beforeInit).summary).toMatchObject({
+        seq: 1, disposition: "rejected", reason: enabled ? "uninitialized-pixel" : "unsupported-command", requests: 0,
+      });
+      const initialized = receive(chamber, "result");
+      chamber.postMessage({ type: "event", event: event(2, ["init", "000000000000000"]) });
+      await initialized;
+      const invalid = receive(chamber, "result");
+      chamber.postMessage({ type: "event", event: event(3, ["set", "agent", "not-a-supported-agent", "000000000000000"]) });
+      expect((await invalid).summary).toMatchObject({
+        seq: 3, disposition: "rejected", reason: enabled ? "unsupported-agent" : "unsupported-command", requests: 0,
+      });
+      const set = receive(chamber, "result");
+      chamber.postMessage({ type: "event", event: event(4, ["set", "agent", agent, "000000000000000"]) });
+      expect((await set).summary).toMatchObject({
+        seq: 4, disposition: enabled ? "agent-updated" : "rejected", requests: 0,
+        ...(enabled ? {} : { reason: "unsupported-command" }),
+      });
+      expect(requests).toEqual([]);
+      const requested = receive(chamber, "intercepted-fetch");
+      chamber.postMessage({ type: "event", event: event(5, ["track", "PageView"]) });
+      const request = await requested;
+      expect(new URL(request.url).searchParams.getAll("a")).toEqual(enabled ? [agent] : []);
+      const settled = receive(chamber, "result");
+      chamber.postMessage({ type: "intercepted-fetch-response", id: request.id, status: 204, body: "" });
+      expect((await settled).summary).toMatchObject({ seq: 5, disposition: "transport-settled", status: 204 });
     } finally { unsubscribe(); await chamber.dispose(); }
   }, 5000);
 

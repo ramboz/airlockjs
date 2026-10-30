@@ -45,14 +45,14 @@ export function createMetaPageViewPrototype({
   endpoint, experimentalPageViewData = false, experimentalRouting = false, experimentalMultiPixelRouting = false,
   experimentalEvents = false, experimentalScalarEventData = false, experimentalContentIds = false, experimentalContents = false,
   experimentalContentNameArray = false, experimentalContentsItemPrice = false,
-  experimentalCustomProperties = false, experimentalNumericOrderId = false, experimentalEventIds = false,
+  experimentalCustomProperties = false, experimentalNumericOrderId = false, experimentalEventIds = false, experimentalSetAgent = false,
   experimentalSyntheticAdvancedMatching = false, syntheticIdentityFixtures = null,
   experimentalTagConsent = false,
 } = {}) {
   if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
     experimentalScalarEventData, experimentalContentNameArray, experimentalContentIds, experimentalContents,
     experimentalContentsItemPrice, experimentalCustomProperties,
-    experimentalNumericOrderId, experimentalEventIds,
+    experimentalNumericOrderId, experimentalEventIds, experimentalSetAgent,
     experimentalSyntheticAdvancedMatching, experimentalTagConsent]
     .some((option) => typeof option !== "boolean")) {
     throw new Error("invalid-experimental-option");
@@ -78,6 +78,7 @@ export function createMetaPageViewPrototype({
   const pixelIds = new Set();
   const pendingPixelIds = new Set();
   const identityHashes = new Map();
+  const agents = new Map();
   let initialized = false;
   return {
     manifest: {
@@ -97,6 +98,19 @@ export function createMetaPageViewPrototype({
       }
       if (experimentalTagConsent && args[0] === "consent" && args.length === 2 &&
           (args[1] === "revoke" || args[1] === "grant")) return [];
+      if (experimentalSetAgent && args[0] === "set") {
+        if (args.length !== 4 || args[1] !== "agent") throw new Error("unsupported-command");
+        if (typeof args[2] !== "string" ||
+            !/^(?:magento_opensource|adobe_commerce)-0\.0\.0-\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(args[2])) {
+          throw new Error("unsupported-agent");
+        }
+        if (experimentalRouting) {
+          if (typeof args[3] !== "string" || !/^\d{1,32}$/.test(args[3])) throw new Error("invalid-pixel-id");
+        } else if (args[3] !== SYNTHETIC_META_PIXEL_ID) throw new Error("synthetic-pixel-required");
+        if (!pixelIds.has(args[3])) throw new Error("uninitialized-pixel");
+        agents.set(args[3], args[2]);
+        return [];
+      }
       const hasIdentity = experimentalSyntheticAdvancedMatching && args[0] === "init" && args.length === 3;
       if (args[0] === "init" && (args.length === 2 || hasIdentity)) {
         if (experimentalRouting === true) {
@@ -181,6 +195,7 @@ export function createMetaPageViewPrototype({
           }
         }
         if (eventOptions) query.append("eid", eventOptions.eventID);
+        if (agents.has(pixelId)) query.append("a", agents.get(pixelId));
         if (identityHashes.has(pixelId)) query.append("ud[external_id]", identityHashes.get(pixelId));
         const url = `${endpoint}?${query}`;
         if (url.length > 8192) throw new Error("encoded-context-limit");
