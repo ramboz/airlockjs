@@ -67,12 +67,18 @@ event invalidated by revoke. Held events do not replay, and already dispatched
 requests cannot be recalled. Tests use synthetic inputs, a real worker and
 loopback receiver, and fake-worker controls. Default behavior is unchanged.
 
-The retained reference fixture issues revoke before init and the owner reports
-that its retained control observed no PageView. This single no-send observation
-does not establish native grant/re-grant, queue retention, replay, global scope,
-cookie/collection effects or the prototype's initial state and timing rules.
-Those are local safety choices, not a native-equivalence or acceptance result;
-all readiness and production gates above remain open.
+An offline count comparison checked the retained exploratory no-send control:
+its baseline attempted one aborted PageView, while revoke before init attempted
+none. With independent host consent granted, the local baseline reached a
+loopback receiver once and the local revoke case reached it zero times with one
+seal hold. The retained revoked init and track stayed queued; local init
+completed. The local Pixel ID and context were synthetic, so this is not an
+equivalent native environment or a comparison of consent transitions.
+
+This single no-send observation does not establish native grant/re-grant,
+replay, global scope, cookie/collection effects or the prototype's initial
+state and timing rules. Those are local safety choices, not a native-equivalence
+or acceptance result; all readiness and production gates above remain open.
 
 ## Assumptions
 
