@@ -16,7 +16,9 @@ synthetic inputs; Core Web Vitals qualification remains open.
 For the gated remarketing paths, host-side correlation also revalidates and
 JSON-serializes item snapshots and checks their local wire fields. With
 `experimentalRemarketingPurchase` enabled, it additionally constructs expected
-labeled-purchase query fields on the host. The worker constructs the dispatched
+labeled-purchase query fields on the host. When the separate one-way
+remarketing-suppression command is active, it also constructs expected
+labeled-conversion fields. The worker constructs the dispatched
 request, but these checks duplicate mapping work outside the chamber. They are
 experimental safeguards, not proof of the capture-and-enqueue-only main-thread
 architecture or its performance; a reviewed off-thread correlation design is
@@ -24,7 +26,8 @@ still required for the full replacement.
 
 **Known local conversion integrity gap:** the default and remarketing-enabled
 paths do not independently match conversion query fields against the captured
-conversion command. Synthetic fake-worker controls substituted a label, value
+conversion command unless the separate suppression command is active.
+Synthetic fake-worker controls substituted a label, value
 or transaction ID, added a field, or duplicated a label, and a mock transport
 was invoked with a plausible settled result. These are passing
 characterizations of the gap, not protection tests; no network request was

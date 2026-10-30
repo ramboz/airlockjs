@@ -543,6 +543,65 @@ describe("experimental vendor coexistence on independent local workers", () => {
     }
   }, 10000);
 
+  it("suppresses only Google remarketing while Meta and labeled conversion remain independent", async () => {
+    let googleReceiver, googleChamber, google, metaReceiver, metaChamber, meta, cause;
+    try {
+      googleReceiver = await createConversionReceiver();
+      metaReceiver = await createPrototypeReceiver();
+      googleChamber = createNodeConversionChamber();
+      metaChamber = createNodePrototypeChamber();
+      google = createGoogleAdsPrototype({
+        endpoint: googleReceiver.endpoint, chamber: googleChamber,
+        experimentalDisableRemarketing: true, experimentalRetailViewItem: true,
+        consent: { ad_storage: "granted" }, captureContext: () => ({ pageURL, referrer: "" }),
+      });
+      meta = createMetaPixelPrototype({
+        endpoint: metaReceiver.endpoint, chamber: metaChamber,
+        consent: { ad_storage: "granted" },
+        captureContext: () => ({
+          pageURL, referrer: "", inFrame: false, screenWidth: 412, screenHeight: 823, timezoneOffset: 0,
+        }),
+      });
+      google.gtag("set", "allow_ad_personalization_signals", false);
+      google.gtag("config", "AW-0000000000");
+      meta.fbq("init", "000000000000000");
+      google.gtag("event", "view_item", { items: [{ id: 1234, google_business_vertical: "retail" }] });
+      meta.fbq("track", "PageView");
+      let states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states[0].outcomes.map((outcome) => outcome.disposition))
+        .toEqual(["remarketing-disabled", "configured", "remarketing-suppressed"]);
+      expect(states[1].outcomes.at(-1).disposition).toBe("transport-settled");
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([0, 1]);
+
+      google.gtag("event", "conversion", conversion);
+      meta.fbq("track", "PageView");
+      states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states.map((state) => state.outcomes.at(-1).disposition))
+        .toEqual(["transport-settled", "transport-settled"]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([1, 2]);
+      const googleQuery = new URL(googleReceiver.arrivals[0].url).searchParams;
+      const metaQuery = new URL(metaReceiver.arrivals[1].url).searchParams;
+      expect(googleQuery.get("oid")).toBe(conversion.transaction_id);
+      expect(googleQuery.has("airlock_items")).toBe(false);
+      expect(metaQuery.get("ev")).toBe("PageView");
+      expect(metaQuery.has("airlock_items")).toBe(false);
+      expect(metaQuery.has("oid")).toBe(false);
+    } catch (error) {
+      cause = error;
+      throw error;
+    } finally {
+      const cleanup = await Promise.allSettled([
+        closeConversionResources({ adapter: google, chamber: googleChamber, receiver: googleReceiver, cause }),
+        closePrototypeResources({ adapter: meta, chamber: metaChamber, receiver: metaReceiver, cause }),
+      ]);
+      expect(cleanup.map((result) => result.status)).toEqual(["fulfilled", "fulfilled"]);
+      if (googleChamber) expect(googleChamber.getState().closed).toBe(true);
+      if (metaChamber) expect(metaChamber.getState().closed).toBe(true);
+      if (googleReceiver) expect(googleReceiver.getState()).toEqual({ listening: false, openSockets: 0 });
+      if (metaReceiver) expect(metaReceiver.getState()).toEqual({ listening: false, openSockets: 0 });
+    }
+  }, 10000);
+
   it("keeps queued tag-consent denials local to each vendor without replay", async () => {
     let googleReceiver, googleChamber, google, metaReceiver, metaChamber, meta, cause;
     try {

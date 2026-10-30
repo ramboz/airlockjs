@@ -36,7 +36,8 @@ parameter scopes, callbacks, conservative consent commands, an explicit
 manual dataLayer drain, synthetic purchase classification and a bounded cart
 subset, three documented custom-variable example names and six separately
 gated `view_item` vertical subsets with optional value and separately gated
-local list, search-results, add-to-cart and unlabeled remarketing purchases;
+local list, search-results, add-to-cart and unlabeled remarketing purchases,
+plus a one-way local remarketing-suppression experiment;
 Meta covers
 multiple Pixels, event routing, a bounded Magento-shaped PageView array,
 bounded commerce data, content-name arrays, the Magento-shaped empty
@@ -51,8 +52,10 @@ audience membership or attribution evidence. Its Google host correlation
 duplicates some item serialization and labeled-purchase field mapping, so the
 capture-and-enqueue-only architectural target remains open. Synthetic
 fake-worker controls also show that conversion fields can be substituted and
-dispatched to a mock transport, with or without the remarketing option; no
-network request was made. The Meta AddToCart prototype
+dispatched to a mock transport, with or without the remarketing option and
+without the separate suppression command; no network request was made. The
+suppression command adds local host-side conversion checks, not a full
+off-thread correlation boundary. The Meta AddToCart prototype
 rejects the pinned Magento invalid-identifier case instead of silently
 coercing its undefined item IDs; native handling remains unknown. The local
 Meta host also does not yet correlate every worker request's event, target and
