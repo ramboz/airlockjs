@@ -200,6 +200,34 @@ describe("experimental vendor coexistence on independent local workers", () => {
       }]);
       expect(travelUrl.searchParams.has("cd[content_ids]")).toBe(false);
       expect(cartQuery.has("airlock_items")).toBe(false);
+
+      google.setConsent({ ad_storage: "denied" });
+      google.gtag("event", "view_item", {
+        value: 41, items: [{ destination: "HELD1", google_business_vertical: "travel" }],
+      });
+      meta.fbq("track", "ViewContent", { content_ids: ["meta-still-live"] });
+      states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states.map((state) => state.outcomes.at(-1).disposition)).toEqual(["held", "transport-settled"]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([7, 5]);
+      expect(JSON.parse(new URL(metaReceiver.arrivals[4].url).searchParams.get("cd[content_ids]")))
+        .toEqual(["meta-still-live"]);
+
+      google.setConsent({ ad_storage: "granted" });
+      await Promise.all([google.flush(), meta.flush()]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([7, 5]);
+      meta.setConsent({ ad_storage: "denied" });
+      google.gtag("event", "view_item", {
+        value: 42, items: [{ destination: "NEXT1", google_business_vertical: "travel" }],
+      });
+      meta.fbq("track", "ViewContent", { content_ids: ["meta-held"] });
+      states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states.map((state) => state.outcomes.at(-1).disposition)).toEqual(["transport-settled", "held"]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([8, 5]);
+      expect(JSON.parse(new URL(googleReceiver.arrivals[7].url).searchParams.get("airlock_items")))
+        .toEqual([{ destination: "NEXT1", google_business_vertical: "travel" }]);
+      meta.setConsent({ ad_storage: "granted" });
+      await Promise.all([google.flush(), meta.flush()]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([8, 5]);
     } catch (error) {
       cause = error;
       throw error;
