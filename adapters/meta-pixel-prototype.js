@@ -232,6 +232,7 @@ export function createMetaPixelPrototype({
   experimentalEventIds = false,
   experimentalSetAgent = false,
   experimentalInitAgent = false,
+  experimentalMagentoHeadArray = false,
   experimentalNullPurchaseValue = false,
   experimentalViewContentJsonStrings = false,
   experimentalSyntheticAdvancedMatching = false,
@@ -240,7 +241,8 @@ export function createMetaPixelPrototype({
   if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
     experimentalScalarEventData, experimentalContentNameArray, experimentalContentIds, experimentalContents,
     experimentalContentsItemPrice, experimentalCustomProperties,
-    experimentalNumericOrderId, experimentalEventIds, experimentalSetAgent, experimentalInitAgent, experimentalNullPurchaseValue,
+    experimentalNumericOrderId, experimentalEventIds, experimentalSetAgent, experimentalInitAgent, experimentalMagentoHeadArray,
+    experimentalNullPurchaseValue,
     experimentalViewContentJsonStrings,
     experimentalSyntheticAdvancedMatching, experimentalTagConsent]
     .some((option) => typeof option !== "boolean")) {
@@ -493,6 +495,7 @@ export function createMetaPixelPrototype({
           experimentalNumericOrderId, experimentalContentsItemPrice, experimentalContentNameArray,
           experimentalNullPurchaseValue && args[0] === "trackCustom" && args[1] === "Purchase",
           experimentalViewContentJsonStrings && args[0] === "track" && args[1] === "ViewContent",
+          experimentalMagentoHeadArray && hasOptions && args[0] === "track" && args[1] === "PageView",
         );
         if (!data) { reject("unsupported-parameters"); return; }
         args[dataIndex] = data;
@@ -640,6 +643,7 @@ export function createMetaPixelPrototype({
       ...(experimentalEventIds === true ? { experimentalEventIds: true } : {}),
       ...(experimentalSetAgent === true ? { experimentalSetAgent: true } : {}),
       ...(experimentalInitAgent === true ? { experimentalInitAgent: true } : {}),
+      ...(experimentalMagentoHeadArray === true ? { experimentalMagentoHeadArray: true } : {}),
       ...(experimentalNullPurchaseValue === true ? { experimentalNullPurchaseValue: true } : {}),
       ...(experimentalViewContentJsonStrings === true ? { experimentalViewContentJsonStrings: true } : {}),
       ...(experimentalTagConsent === true ? { experimentalTagConsent: true } : {}),

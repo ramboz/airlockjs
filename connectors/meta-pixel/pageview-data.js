@@ -95,10 +95,33 @@ function validViewContentJson(value, key) {
   return contents !== null && contents.every((item) => item.quantity === 1);
 }
 
+function validCustomString(value) {
+  return typeof value === "string" && value.length <= 64 && value.isWellFormed();
+}
+
+function snapshotMagentoHeadArray(value) {
+  if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype ||
+      Object.getOwnPropertyDescriptor(value, "length")?.value !== 0) return null;
+  const keys = Reflect.ownKeys(value);
+  if (keys.length !== 3 || !keys.includes("source") || !keys.includes("pluginVersion")) return null;
+  const result = [];
+  for (const key of keys) {
+    if (key === "length") continue;
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (!descriptor || !descriptor.enumerable || !Object.hasOwn(descriptor, "value") ||
+        !validCustomString(descriptor.value)) return null;
+    result[key] = descriptor.value;
+  }
+  return result;
+}
+
 export function snapshotPageViewData(value, experimentalScalarEventData = false, experimentalContentIds = false,
   experimentalContents = false, experimentalCustomProperties = false, experimentalNumericOrderId = false,
   experimentalContentsItemPrice = false, experimentalContentNameArray = false, allowNullPurchaseValue = false,
-  allowViewContentJsonStrings = false) {
+  allowViewContentJsonStrings = false, allowMagentoHeadArray = false) {
+  if (allowMagentoHeadArray && experimentalCustomProperties && Array.isArray(value)) {
+    return snapshotMagentoHeadArray(value);
+  }
   if (!value || typeof value !== "object" || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return null;
   const result = {};
   let customCount = 0;
@@ -119,7 +142,7 @@ export function snapshotPageViewData(value, experimentalScalarEventData = false,
     const item = descriptor.value;
     if (!standard) {
       if (typeof item === "string") {
-        if (item.length > 64 || !item.isWellFormed()) return null;
+        if (!validCustomString(item)) return null;
       } else if (!(experimentalNumericOrderId && key === "order_id" && Number.isSafeInteger(item) &&
           item >= 0 && !Object.is(item, -0))) return null;
       result[key] = item;

@@ -96,6 +96,28 @@ browser behavior and full production replacement remain unverified.
   characters. Unknown keys reject unless separately enabled below; accessors
   and unsupported values reject the whole call. These are experimental
   admission rules, not native semantics.
+- The separate `experimentalMagentoHeadArray: true` opt-in accepts one
+  additional `fbq("track", "PageView", data, options)` input when
+  `experimentalPageViewData`, `experimentalCustomProperties` and
+  `experimentalEventIds` are enabled, with valid event-ID options.
+  The data must be an empty array with exactly two own enumerable data
+  properties, `source` and `pluginVersion`, both bounded strings under the
+  existing custom-property rules. Other arrays, extra keys, accessors and
+  non-PageView routes reject. The adapter snapshots an array rather than
+  converting it to a record, and the serialized worker revalidates it. The
+  worker's local mapping emits those properties as `cd[source]` and
+  `cd[pluginVersion]`.
+
+  Magento's pinned [head template](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/head.phtml)
+  encodes an empty PHP array for the PageView payload; its
+  [tracker](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/web/js/metaPixelTracker.js)
+  adds the named properties before calling `fbq` with an event ID. The
+  synthetic loopback test combines this with empty-data init and the agent
+  command. It does not execute Magento, its initialization events or server
+  AJAX. Admission rules, encoding and consent behavior are local choices, not
+  evidence of native array handling. Use only synthetic data. Reflection can
+  invoke proxy traps; this is neither proxy isolation nor a hard main-thread
+  work bound.
 - With `experimentalNullPurchaseValue: true` and both
   `experimentalEvents` and `experimentalPageViewData` enabled, a synthetic
   `fbq("trackCustom", "Purchase", data)` may contain an own `value: null`.

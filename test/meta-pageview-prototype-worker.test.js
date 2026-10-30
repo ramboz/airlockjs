@@ -36,12 +36,74 @@ async function configure(chamber, transportTimeoutMs = 500) {
 }
 
 describe("actual first-party worker correlated protocol (not receipt evidence)", () => {
-  it.each(["experimentalRouting", "experimentalPageViewData", "experimentalMultiPixelRouting", "experimentalEvents", "experimentalScalarEventData", "experimentalContentNameArray", "experimentalContentIds", "experimentalContents", "experimentalContentsItemPrice", "experimentalCustomProperties", "experimentalNumericOrderId", "experimentalEventIds", "experimentalSetAgent", "experimentalInitAgent", "experimentalNullPurchaseValue", "experimentalViewContentJsonStrings", "experimentalSyntheticAdvancedMatching", "experimentalTagConsent"])("rejects mistyped %s during worker initialization", async (option) => {
+  it.each(["experimentalRouting", "experimentalPageViewData", "experimentalMultiPixelRouting", "experimentalEvents", "experimentalScalarEventData", "experimentalContentNameArray", "experimentalContentIds", "experimentalContents", "experimentalContentsItemPrice", "experimentalCustomProperties", "experimentalNumericOrderId", "experimentalEventIds", "experimentalSetAgent", "experimentalInitAgent", "experimentalMagentoHeadArray", "experimentalNullPurchaseValue", "experimentalViewContentJsonStrings", "experimentalSyntheticAdvancedMatching", "experimentalTagConsent"])("rejects mistyped %s during worker initialization", async (option) => {
     const chamber = createNodePrototypeChamber();
     try {
       const failed = receive(chamber, "fatal");
       chamber.postMessage({ type: "init", endpoint, transportTimeoutMs: 500, [option]: "true" });
       expect(await failed).toEqual({ type: "fatal", message: "worker-configuration-failed" });
+    } finally { await chamber.dispose(); }
+  }, 5000);
+
+  it.each([
+    [true, true], [false, true], [true, false],
+  ])("revalidates the head array in the worker (gate=%s, custom=%s)", async (enabled, custom) => {
+    const chamber = createNodePrototypeChamber();
+    const data = () => Object.assign([], { source: "magento_opensource", pluginVersion: "1.2.3" });
+    try {
+      const configured = receive(chamber, "phase");
+      chamber.postMessage({
+        type: "init", endpoint, transportTimeoutMs: 500, experimentalMagentoHeadArray: enabled,
+        experimentalPageViewData: true, experimentalCustomProperties: custom,
+        experimentalEventIds: true, experimentalEvents: true,
+      });
+      await configured;
+      const initialized = receive(chamber, "result");
+      chamber.postMessage({ type: "event", event: event(1, ["init", "000000000000000"]) });
+      expect((await initialized).summary.disposition).toBe("initialized");
+      const invalid = [
+        Object.assign(data(), { extra: "x" }), Object.assign(data(), { source: 1 }),
+        Object.assign(data(), { 0: "unexpected" }), [],
+      ];
+      for (const [index, item] of invalid.entries()) {
+        const rejected = receive(chamber, "result");
+        chamber.postMessage({ type: "event", event: event(index + 2, ["track", "PageView", item, { eventID: "synthetic" }]) });
+        expect((await rejected).summary).toMatchObject({
+          disposition: "rejected", reason: "unsupported-parameters", requests: 0,
+        });
+      }
+      const withoutOptions = receive(chamber, "result");
+      chamber.postMessage({ type: "event", event: event(6, ["track", "PageView", data()]) });
+      expect((await withoutOptions).summary).toMatchObject({
+        disposition: "rejected", reason: "unsupported-parameters", requests: 0,
+      });
+      for (const [index, command] of [["track", "ViewContent"], ["trackCustom", "PageView"]].entries()) {
+        const rejected = receive(chamber, "result");
+        chamber.postMessage({
+          type: "event", event: event(index + 7, [...command, data(), { eventID: "synthetic" }]),
+        });
+        expect((await rejected).summary).toMatchObject({
+          disposition: "rejected", reason: "unsupported-parameters", requests: 0,
+        });
+      }
+      const valid = ["track", "PageView", data(), { eventID: "synthetic" }];
+      if (enabled && custom) {
+        const intercepted = receive(chamber, "intercepted-fetch");
+        chamber.postMessage({ type: "event", event: event(9, valid) });
+        const request = await intercepted;
+        const query = new URL(request.url).searchParams;
+        expect(query.getAll("cd[source]")).toEqual(["magento_opensource"]);
+        expect(query.getAll("cd[pluginVersion]")).toEqual(["1.2.3"]);
+        const settled = receive(chamber, "result");
+        chamber.postMessage({ type: "intercepted-fetch-response", id: request.id, status: 204, body: "" });
+        expect((await settled).summary).toMatchObject({ seq: 9, disposition: "transport-settled", status: 204 });
+      } else {
+        const rejected = receive(chamber, "result");
+        chamber.postMessage({ type: "event", event: event(9, valid) });
+        expect((await rejected).summary).toMatchObject({
+          disposition: "rejected", reason: "unsupported-parameters", requests: 0,
+        });
+      }
     } finally { await chamber.dispose(); }
   }, 5000);
 

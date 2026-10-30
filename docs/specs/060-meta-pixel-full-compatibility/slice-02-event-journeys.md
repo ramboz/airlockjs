@@ -116,6 +116,20 @@ error behavior and event-data encoding remain experimental assumptions;
 commerce arrays, event options, native responses, real vendor receipt and
 every acceptance criterion above remain unqualified. No live event was sent.
 
+The separately gated `experimentalMagentoHeadArray` admits a synthetic
+PageView data array with zero elements and exactly the own enumerable string
+properties `source` and `pluginVersion`. Magento's pinned
+[head template](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/head.phtml)
+encodes an empty PHP array as the PageView payload; its
+[tracker](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/web/js/metaPixelTracker.js)
+adds those properties before the `fbq` call with an event ID. The adapter
+snapshots the array, and the worker revalidates it before emitting the
+existing local custom-property mapping. Tests combine init, set-agent and
+PageView over loopback, including mutation, refusals, consent and no replay.
+The existing data, custom-property and event-ID gates are also required.
+The limits, encoding and consent behavior are local assumptions. No Magento
+or server request execution, native behavior, parity or acceptance is claimed.
+
 The separately gated `experimentalNullPurchaseValue` accepts `value: null`
 only for synthetic broadcast `trackCustom` Purchase commands. Magento's
 [Purchase getter](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Block/Pixel/Purchase.php)

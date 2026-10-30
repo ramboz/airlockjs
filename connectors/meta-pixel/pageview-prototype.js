@@ -49,6 +49,7 @@ export function createMetaPageViewPrototype({
   experimentalCustomProperties = false, experimentalNumericOrderId = false, experimentalEventIds = false, experimentalSetAgent = false,
   experimentalNullPurchaseValue = false,
   experimentalInitAgent = false,
+  experimentalMagentoHeadArray = false,
   experimentalViewContentJsonStrings = false,
   experimentalSyntheticAdvancedMatching = false, syntheticIdentityFixtures = null,
   experimentalTagConsent = false,
@@ -56,7 +57,8 @@ export function createMetaPageViewPrototype({
   if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
     experimentalScalarEventData, experimentalContentNameArray, experimentalContentIds, experimentalContents,
     experimentalContentsItemPrice, experimentalCustomProperties,
-    experimentalNumericOrderId, experimentalEventIds, experimentalSetAgent, experimentalInitAgent, experimentalNullPurchaseValue,
+    experimentalNumericOrderId, experimentalEventIds, experimentalSetAgent, experimentalInitAgent, experimentalMagentoHeadArray,
+    experimentalNullPurchaseValue,
     experimentalViewContentJsonStrings,
     experimentalSyntheticAdvancedMatching, experimentalTagConsent]
     .some((option) => typeof option !== "boolean")) {
@@ -176,6 +178,7 @@ export function createMetaPageViewPrototype({
           experimentalNumericOrderId, experimentalContentsItemPrice, experimentalContentNameArray,
           experimentalNullPurchaseValue && args[0] === "trackCustom" && name === "Purchase",
           experimentalViewContentJsonStrings && args[0] === "track" && name === "ViewContent",
+          experimentalPageViewData && experimentalMagentoHeadArray && hasOptions && args[0] === "track" && name === "PageView",
         ) : null;
       if (args.length > dataIndex && !pageViewData) throw new Error("unsupported-parameters");
       const eventOptions = hasOptions ? snapshotEventOptions(args[dataIndex + 1]) : null;
