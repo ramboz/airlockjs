@@ -274,6 +274,39 @@ and dataLayer drain-time capture remain in force. The conversion report does
 not evaluate this purchase field; native processing, encoding, reporting,
 attribution and production compatibility remain unverified.
 
+### Experimental direct-Ads feed metadata
+
+[Google's cart parameter table](https://support.google.com/google-ads/answer/14943675?hl=en)
+lists `aw_merchant_id` as an optional integer Merchant Center ID, and
+`aw_feed_country` and `aw_feed_language` as optional strings. It points to
+Unicode Common Locale Data Repository (CLDR) territory codes and ISO 639-1
+language codes respectively. Its `aw_feed_label` is supported only when
+Analytics is the conversion source; this direct-Ads experiment rejects it.
+The table gives examples, not exhaustive validation or native wire encoding.
+The `id` / `item_id` documentation conflict described above remains open.
+
+`experimentalPurchaseFeed: true` requires both `experimentalPurchase: true`
+and `experimentalPurchaseCart: true`. It allows the three fields only on a
+local purchase event, independently and optionally. As a local assumption,
+the fields may be present even when `items` is omitted; this does not assert
+native processing without cart data. A local `aw_merchant_id` must be a
+positive safe integer. `aw_feed_country` is restricted to exactly two uppercase
+ASCII letters, and `aw_feed_language` to exactly two ASCII letters of either
+case. Strings are preserved without normalization. These narrow syntactic
+checks do **not** validate CLDR or ISO membership, actual merchant ownership,
+or the full formats Google accepts. Omitted or explicitly undefined fields
+are omitted; invalid fields reject the entire command.
+
+The captured values are revalidated in the worker and encoded only for the
+literal-loopback receiver as the **invented local markers**
+`airlock_merchant_id`, `airlock_feed_country` and `airlock_feed_language`.
+They do not represent Google's native encoding or establish feed selection,
+matching, conversion receipt, product reporting or attribution. The existing
+conversion report does not evaluate these purchase fields. Host consent,
+per-branch checks, no replay, URL ceiling and dataLayer drain-time capture
+remain in force. Use synthetic inputs only; no merchant account or customer
+data is needed. Production behavior and defaults are unchanged.
+
 ### Experimental bootstrap command
 
 `experimentalBootstrap: true` additionally accepts `gtag("js", new Date())`.

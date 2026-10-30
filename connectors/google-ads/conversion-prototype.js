@@ -5,6 +5,7 @@ import { snapshotPurchaseCartItems } from "./purchase-cart-items.js";
 
 const PARAMS = ["send_to", "value", "currency", "transaction_id"];
 const SCOPE_PARAMS = ["value", "currency", "transaction_id"];
+const FEED_PARAMS = ["aw_merchant_id", "aw_feed_country", "aw_feed_language"];
 
 function validURL(value, empty = false) {
   if (typeof value !== "string" || value.length > 2048 || !value.isWellFormed()) return false;
@@ -48,13 +49,14 @@ function selectorValues(value, multiple) {
 export function createGoogleAdsConversionPrototype({
   endpoint, additionalEndpoint, experimentalRouting = false, experimentalParameterScopes = false,
   experimentalMultiDestination = false, experimentalConsentCommands = false, experimentalBootstrap = false, experimentalPurchase = false,
-  experimentalPurchaseCart = false, experimentalPurchaseDiscount = false,
+  experimentalPurchaseCart = false, experimentalPurchaseDiscount = false, experimentalPurchaseFeed = false,
 } = {}) {
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
       typeof experimentalMultiDestination !== "boolean" || typeof experimentalConsentCommands !== "boolean" ||
       typeof experimentalBootstrap !== "boolean" || typeof experimentalPurchase !== "boolean" ||
       typeof experimentalPurchaseCart !== "boolean" || (experimentalPurchaseCart && !experimentalPurchase) ||
       typeof experimentalPurchaseDiscount !== "boolean" || (experimentalPurchaseDiscount && !experimentalPurchase) ||
+      typeof experimentalPurchaseFeed !== "boolean" || (experimentalPurchaseFeed && !experimentalPurchaseCart) ||
       (experimentalMultiDestination && !experimentalRouting)) {
     throw new Error("invalid-experimental-option");
   }
@@ -127,7 +129,7 @@ export function createGoogleAdsConversionPrototype({
       if (!configs.size) throw new Error("conversion-before-config");
       const params = dataRecord(args[2], purchase
         ? [...PARAMS, "new_customer", ...(experimentalPurchaseCart ? ["items"] : []),
-          ...(experimentalPurchaseDiscount ? ["discount"] : [])] : PARAMS);
+          ...(experimentalPurchaseDiscount ? ["discount"] : []), ...(experimentalPurchaseFeed ? FEED_PARAMS : [])] : PARAMS);
       if (!params) throw new Error("unsupported-parameters");
       if (purchase && params.new_customer !== undefined && typeof params.new_customer !== "boolean") {
         throw new Error("unsupported-new-customer");
@@ -138,6 +140,14 @@ export function createGoogleAdsConversionPrototype({
       if (purchase && experimentalPurchaseDiscount && params.discount !== undefined &&
           (typeof params.discount !== "number" || !Number.isFinite(params.discount) ||
            params.discount < 0 || Object.is(params.discount, -0))) throw new Error("unsupported-discount");
+      if (purchase && experimentalPurchaseFeed &&
+          ((params.aw_merchant_id !== undefined && (!Number.isSafeInteger(params.aw_merchant_id) || params.aw_merchant_id <= 0)) ||
+           (params.aw_feed_country !== undefined && (typeof params.aw_feed_country !== "string" ||
+            params.aw_feed_country.length !== 2 || !/^[A-Z]{2}$/.test(params.aw_feed_country))) ||
+           (params.aw_feed_language !== undefined && (typeof params.aw_feed_language !== "string" ||
+            params.aw_feed_language.length !== 2 || !/^[A-Za-z]{2}$/.test(params.aw_feed_language))))) {
+        throw new Error("unsupported-feed");
+      }
       let selected;
       if (experimentalRouting === true) {
         const selectors = selectorValues(params.send_to, experimentalMultiDestination);
@@ -171,6 +181,14 @@ export function createGoogleAdsConversionPrototype({
           if (params.new_customer !== undefined) query.set("airlock_new_customer", String(params.new_customer));
           if (items) query.set("airlock_items", JSON.stringify(items));
           if (experimentalPurchaseDiscount && params.discount !== undefined) query.set("airlock_discount", String(params.discount));
+          if (experimentalPurchaseFeed) {
+            for (const [input, output] of [
+              ["aw_merchant_id", "airlock_merchant_id"], ["aw_feed_country", "airlock_feed_country"],
+              ["aw_feed_language", "airlock_feed_language"],
+            ]) {
+              if (params[input] !== undefined) query.set(output, String(params[input]));
+            }
+          }
         }
         query.set("url", context.pageURL);
         const url = `${destinations.get(destination)}?${query}`;
