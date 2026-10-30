@@ -42,10 +42,13 @@ identity choices remain experimental, not native findings.
 A repeatable offline comparison matched five selected Google field relationships
 for three retained inputs against six aborted native attempts. It did not
 compare auxiliary traffic, complete wire behavior, consent or vendor responses.
-Controlled Meta PageView value/currency fields also matched selected aborted
-attempts, but not in an equivalent environment. Neither observation establishes
-receipt, attribution or full parity. These are not production cutovers; the
-first journeys' full evidence and acceptance gates remain open.
+A separate local Meta comparison matched event, document, value and currency
+relationships for two retained aborted attempts, using inputs reconstructed
+from the retained runner. Its Pixel ID and other context were synthetic; the
+capture and runner execution were not independently qualified. Neither
+observation establishes receipt, attribution or full parity. These are not
+production cutovers; the first journeys' full evidence and acceptance gates
+remain open.
 
 **Next pick:** return to the bounded evidence gaps for full060-01/059-01 after
 the delivered060-14/059-20 local increments. Their original

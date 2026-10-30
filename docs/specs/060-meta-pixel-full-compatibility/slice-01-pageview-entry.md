@@ -85,6 +85,22 @@ custom event names in the same local-only worker path. Their ordering, failure
 and data rules are experimental assumptions, not native comparison evidence;
 production boot and the readiness/acceptance gates remain unchanged.
 
+An offline 2026-10-29 comparison reconstructed the two value/currency
+PageView inputs from the retained runner and its capture metadata. Two real
+local workers each sent one request to a separate loopback receiver. The
+event, document URL, value and currency relationships matched the two
+retained aborted attempts (eight comparisons); eight local field mutations
+were detected. The retained manifest and capture content were rechecked after
+the run and all local resources closed. The private source and sanitized
+result are preserved in the session, not in this repository.
+
+The capture was not independently qualified by the complete-reference reader,
+and the retained runner's exact execution provenance was not independently
+attested. The local Pixel ID and other context were synthetic, native consent
+was not overridden, and local host consent was granted. This is not a
+same-environment or complete-wire comparison: native dispatch, response, browser
+effects, consent equivalence, receipt and attribution remain unverified.
+
 ## Readiness checkpoint - 2026-10-16
 
 **Current reference preparation - 2026-10-27:**060-13/14 local construction
