@@ -197,6 +197,13 @@ refusals, worker messages, consent and no replay. Magento's full init/options
 and plugin payload remain unsupported or unqualified; no native equivalence,
 receipt, parity or readiness criterion is claimed.
 
+A synthetic composition test now combines those local subsets with the
+Purchase template's selected commerce fields, tracker-added `source` and
+`pluginVersion`, the agent command and custom-event ID. It checks snapshots,
+field association and independent consent holds in the worker and loopback
+receiver. It does not execute Magento or its server-side request, establish
+native encoding or qualify the complete plugin journey.
+
 The separate `experimentalCustomProperties` opt-in accepts a bounded subset
 of additional string-valued event properties, on the existing standard or
 custom event calls. Meta's retained public conversion-tracking reference
