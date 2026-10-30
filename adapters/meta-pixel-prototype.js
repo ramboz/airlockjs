@@ -231,6 +231,7 @@ export function createMetaPixelPrototype({
   experimentalEventIds = false,
   experimentalSetAgent = false,
   experimentalNullPurchaseValue = false,
+  experimentalViewContentJsonStrings = false,
   experimentalSyntheticAdvancedMatching = false,
   experimentalTagConsent = false,
 } = {}) {
@@ -238,6 +239,7 @@ export function createMetaPixelPrototype({
     experimentalScalarEventData, experimentalContentNameArray, experimentalContentIds, experimentalContents,
     experimentalContentsItemPrice, experimentalCustomProperties,
     experimentalNumericOrderId, experimentalEventIds, experimentalSetAgent, experimentalNullPurchaseValue,
+    experimentalViewContentJsonStrings,
     experimentalSyntheticAdvancedMatching, experimentalTagConsent]
     .some((option) => typeof option !== "boolean")) {
     throw new Error("invalid-experimental-option");
@@ -253,6 +255,10 @@ export function createMetaPixelPrototype({
   if (experimentalEventIds && !experimentalPageViewData) throw new Error("event-ids-require-pageview-data");
   if (experimentalNullPurchaseValue && (!experimentalEvents || !experimentalPageViewData)) {
     throw new Error("null-purchase-value-requires-events-and-pageview-data");
+  }
+  if (experimentalViewContentJsonStrings &&
+      (!experimentalEvents || !experimentalPageViewData || !experimentalContentIds || !experimentalContents)) {
+    throw new Error("view-content-json-strings-require-events-and-commerce-data");
   }
   if (experimentalSyntheticAdvancedMatching && !experimentalMultiPixelRouting) {
     throw new Error("synthetic-identity-requires-multi-pixel-routing");
@@ -482,6 +488,7 @@ export function createMetaPixelPrototype({
           args[dataIndex], experimentalScalarEventData, experimentalContentIds, experimentalContents, experimentalCustomProperties,
           experimentalNumericOrderId, experimentalContentsItemPrice, experimentalContentNameArray,
           experimentalNullPurchaseValue && args[0] === "trackCustom" && args[1] === "Purchase",
+          experimentalViewContentJsonStrings && args[0] === "track" && args[1] === "ViewContent",
         );
         if (!data) { reject("unsupported-parameters"); return; }
         args[dataIndex] = data;
@@ -623,6 +630,7 @@ export function createMetaPixelPrototype({
       ...(experimentalEventIds === true ? { experimentalEventIds: true } : {}),
       ...(experimentalSetAgent === true ? { experimentalSetAgent: true } : {}),
       ...(experimentalNullPurchaseValue === true ? { experimentalNullPurchaseValue: true } : {}),
+      ...(experimentalViewContentJsonStrings === true ? { experimentalViewContentJsonStrings: true } : {}),
       ...(experimentalTagConsent === true ? { experimentalTagConsent: true } : {}),
       ...(experimentalSyntheticAdvancedMatching === true
         ? { experimentalSyntheticAdvancedMatching: true, syntheticIdentityFixtures } : {}) });

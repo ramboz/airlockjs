@@ -10,6 +10,13 @@ const RESERVED_CUSTOM_KEYS = new Set([
   "fbp", "fbc", "fbclid",
 ]);
 const CUSTOM_PROPERTY_LIMIT = 8;
+const JSON_STRING_LIMIT = 2048;
+const JSON_STRING_TOKEN = String.raw`"(?:[^"\\\u0000-\u001f]|\\(?:["\\/bfnrt]|u[0-9a-fA-F]{4}))*"`;
+const JSON_ID_TOKEN = String.raw`(?:${JSON_STRING_TOKEN}|0|[1-9]\d*)`;
+const JSON_CONTENT_ITEM = String.raw`\{\s*"id"\s*:\s*${JSON_ID_TOKEN}\s*,\s*"quantity"\s*:\s*1\s*\}`;
+const JSON_CONTENTS_SHAPE = new RegExp(
+  String.raw`^\s*\[(?:\s*${JSON_CONTENT_ITEM}(?:\s*,\s*${JSON_CONTENT_ITEM})*)?\s*\]\s*$`, "u",
+);
 
 export function isStandardEventDataKey(key) {
   return BASIC_EVENT_DATA_KEYS.includes(key) || SCALAR_EVENT_DATA_KEYS.includes(key) ||
@@ -72,9 +79,26 @@ function snapshotContents(value, experimentalContentsItemPrice) {
   return result;
 }
 
+function validViewContentJson(value, key) {
+  if (typeof value !== "string" || value.length > JSON_STRING_LIMIT || !value.isWellFormed()) return false;
+  let parsed;
+  try {
+    parsed = JSON.parse(value);
+  } catch (error) {
+    if (error instanceof SyntaxError) return false;
+    throw error;
+  }
+  if (key === "content_ids") return snapshotContentValues(parsed, true) !== null;
+  // Reject duplicate or extra keys before preserving the original text.
+  if (!JSON_CONTENTS_SHAPE.test(value)) return false;
+  const contents = snapshotContents(parsed, false);
+  return contents !== null && contents.every((item) => item.quantity === 1);
+}
+
 export function snapshotPageViewData(value, experimentalScalarEventData = false, experimentalContentIds = false,
   experimentalContents = false, experimentalCustomProperties = false, experimentalNumericOrderId = false,
-  experimentalContentsItemPrice = false, experimentalContentNameArray = false, allowNullPurchaseValue = false) {
+  experimentalContentsItemPrice = false, experimentalContentNameArray = false, allowNullPurchaseValue = false,
+  allowViewContentJsonStrings = false) {
   if (!value || typeof value !== "object" || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return null;
   const result = {};
   let customCount = 0;
@@ -102,6 +126,11 @@ export function snapshotPageViewData(value, experimentalScalarEventData = false,
       continue;
     }
     if (item !== undefined) {
+      if ((key === "content_ids" || key === "contents") && typeof item === "string" && allowViewContentJsonStrings) {
+        if (!validViewContentJson(item, key)) return null;
+        result[key] = item;
+        continue;
+      }
       if (key === "content_ids") {
         const ids = snapshotContentValues(item, true);
         if (ids === null) return null;

@@ -47,6 +47,7 @@ export function createMetaPageViewPrototype({
   experimentalContentNameArray = false, experimentalContentsItemPrice = false,
   experimentalCustomProperties = false, experimentalNumericOrderId = false, experimentalEventIds = false, experimentalSetAgent = false,
   experimentalNullPurchaseValue = false,
+  experimentalViewContentJsonStrings = false,
   experimentalSyntheticAdvancedMatching = false, syntheticIdentityFixtures = null,
   experimentalTagConsent = false,
 } = {}) {
@@ -54,6 +55,7 @@ export function createMetaPageViewPrototype({
     experimentalScalarEventData, experimentalContentNameArray, experimentalContentIds, experimentalContents,
     experimentalContentsItemPrice, experimentalCustomProperties,
     experimentalNumericOrderId, experimentalEventIds, experimentalSetAgent, experimentalNullPurchaseValue,
+    experimentalViewContentJsonStrings,
     experimentalSyntheticAdvancedMatching, experimentalTagConsent]
     .some((option) => typeof option !== "boolean")) {
     throw new Error("invalid-experimental-option");
@@ -69,6 +71,10 @@ export function createMetaPageViewPrototype({
   if (experimentalEventIds && !experimentalPageViewData) throw new Error("event-ids-require-pageview-data");
   if (experimentalNullPurchaseValue && (!experimentalEvents || !experimentalPageViewData)) {
     throw new Error("null-purchase-value-requires-events-and-pageview-data");
+  }
+  if (experimentalViewContentJsonStrings &&
+      (!experimentalEvents || !experimentalPageViewData || !experimentalContentIds || !experimentalContents)) {
+    throw new Error("view-content-json-strings-require-events-and-commerce-data");
   }
   if (experimentalSyntheticAdvancedMatching && !experimentalMultiPixelRouting) {
     throw new Error("synthetic-identity-requires-multi-pixel-routing");
@@ -164,6 +170,7 @@ export function createMetaPageViewPrototype({
           args[dataIndex], experimentalScalarEventData, experimentalContentIds, experimentalContents, experimentalCustomProperties,
           experimentalNumericOrderId, experimentalContentsItemPrice, experimentalContentNameArray,
           experimentalNullPurchaseValue && args[0] === "trackCustom" && name === "Purchase",
+          experimentalViewContentJsonStrings && args[0] === "track" && name === "ViewContent",
         ) : null;
       if (args.length > dataIndex && !pageViewData) throw new Error("unsupported-parameters");
       const eventOptions = hasOptions ? snapshotEventOptions(args[dataIndex + 1]) : null;
@@ -189,10 +196,12 @@ export function createMetaPageViewPrototype({
             }
           }
           if (experimentalContentIds && Object.hasOwn(pageViewData, "content_ids") && pageViewData.content_ids !== undefined) {
-            query.append("cd[content_ids]", JSON.stringify(pageViewData.content_ids));
+            const ids = pageViewData.content_ids;
+            query.append("cd[content_ids]", typeof ids === "string" ? ids : JSON.stringify(ids));
           }
           if (experimentalContents && Object.hasOwn(pageViewData, "contents") && pageViewData.contents !== undefined) {
-            query.append("cd[contents]", JSON.stringify(pageViewData.contents));
+            const contents = pageViewData.contents;
+            query.append("cd[contents]", typeof contents === "string" ? contents : JSON.stringify(contents));
           }
           if (experimentalCustomProperties) {
             for (const key of Object.keys(pageViewData)) {

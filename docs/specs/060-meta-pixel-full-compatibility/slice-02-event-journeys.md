@@ -143,6 +143,20 @@ the documented floor above; scalar encoding, ordering, type/enum admission and
 count bounds are prototype assumptions. This is not a native commerce capture,
 array/nested serialization, full event support or a C1-C9 pass.
 
+The separately gated `experimentalViewContentJsonStrings` accepts bounded
+JSON-string `content_ids` and `contents` in synthetic broadcast `track`
+ViewContent calls. Magento's
+[template](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/view_content.phtml)
+separately encodes both values; its
+[getter](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Block/Pixel/ViewContent.php)
+builds entries with `id` and `quantity: 1`. The local subset validates their
+shapes without normalizing the retained strings; the worker emits the original
+text in the corresponding `cd[...]` fields. Existing array forms remain
+separate. Tests cover composition with agent and event ID, mutation, size and
+shape refusals, direct worker revalidation, consent and no replay. Limits,
+key ordering, multi-item behavior and wire encoding are assumptions; Magento
+execution, native handling and acceptance criteria remain unqualified.
+
 The separately gated `experimentalContentNameArray` extends the existing
 `content_name` scalar with a bounded array of synthetic strings. Meta's
 Magento plugin [tests one product name in an array](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Test/Unit/Block/Pixel/PurchaseTest.php#L217-L233)

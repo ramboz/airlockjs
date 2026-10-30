@@ -188,6 +188,23 @@ browser behavior and full production replacement remain unverified.
   snapshot as one JSON value in `cd[content_ids]`, retaining element order,
   duplicates and string/number types. This encoding and these limits are
   **unverified prototype choices**, not observed native behavior.
+- With `experimentalViewContentJsonStrings: true` and the existing event,
+  page-data, content-ID and contents opt-ins, standard broadcast `ViewContent`
+  also accepts JSON **strings** in `content_ids` and `contents`. Meta's
+  Magento [ViewContent template](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/view_content.phtml)
+  separately JSON-encodes those inputs; its
+  [getter](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Block/Pixel/ViewContent.php)
+  builds contents entries with `id` and `quantity: 1`. The local subset
+  bounds each string to 2048 UTF-16 code units and validates a JSON array
+  of at most 16 supported IDs or entries. Contents strings must use only
+  `id` then `quantity`, with quantity exactly `1`; duplicate or additional
+  keys reject. The worker revalidates and emits the original string unchanged
+  as one `cd[...]` value, rather than JSON-encoding the string again. Existing
+  array inputs keep their separate behavior. Strings on other commands,
+  malformed JSON and unsupported shapes reject. The string and array fields
+  are validated separately; the prototype does not check their correspondence.
+  Bounds, ordering restrictions, multi-item behavior and loopback encoding
+  are local choices, not native evidence. Use synthetic data only.
 - With both `experimentalPageViewData: true` and
   `experimentalContents: true`, event data can contain `contents`, an array
   of at most 16 ordinary objects containing exactly `id` and `quantity`.
