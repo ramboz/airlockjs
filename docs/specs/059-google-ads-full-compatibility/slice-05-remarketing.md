@@ -98,6 +98,9 @@ does not qualify the native list journey or audience outcomes.
 Separate default-off `view_search_results` and `add_to_cart` gates reuse the
 same local input model. Their event markers are distinct, but neither search
 behavior, shopping-cart effects nor native event handling is established.
+The separately gated unlabeled `purchase` experiment uses the same bounded
+model and rejects ambiguity with a labeled purchase. The distinction, marker,
+schema reuse and route are local choices; native purchase fanout remains open.
 
 ## Assumptions
 

@@ -37,6 +37,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
         experimentalViewItemList: true,
         experimentalViewSearchResults: true,
         experimentalAddToCart: true,
+        experimentalRemarketingPurchase: true,
         consent: { ad_storage: "denied" }, captureContext: () => ({ pageURL, referrer: "" }),
       });
       meta = createMetaPixelPrototype({
@@ -220,10 +221,14 @@ describe("experimental vendor coexistence on independent local workers", () => {
       google.gtag("event", "add_to_cart", {
         items: [{ id: 22, google_business_vertical: "retail" }],
       });
+      google.gtag("event", "purchase", {
+        items: [{ id: 23, google_business_vertical: "retail" }],
+      });
       meta.fbq("track", "ViewContent", { content_ids: ["meta-still-live"] });
       states = await Promise.all([google.flush(), meta.flush()]);
       expect(states.map((state) => state.outcomes.at(-1).disposition)).toEqual(["held", "transport-settled"]);
-      expect(states[0].outcomes.slice(-3).map((outcome) => outcome.disposition)).toEqual(["held", "held", "held"]);
+      expect(states[0].outcomes.slice(-4).map((outcome) => outcome.disposition))
+        .toEqual(["held", "held", "held", "held"]);
       expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([7, 5]);
       expect(JSON.parse(new URL(metaReceiver.arrivals[4].url).searchParams.get("cd[content_ids]")))
         .toEqual(["meta-still-live"]);
@@ -340,6 +345,30 @@ describe("experimental vendor coexistence on independent local workers", () => {
       const zeroQuery = new URL(googleReceiver.arrivals[13].url).searchParams;
       expect(zeroQuery.getAll("airlock_value")).toEqual(["0"]);
       expect(zeroQuery.has("cd[value]")).toBe(false);
+
+      const remarketingItems = [{ id: 35, google_business_vertical: "retail" }];
+      google.gtag("event", "purchase", { items: remarketingItems, value: 0 });
+      google.gtag("event", "purchase", { ...conversion, items: [{ id: "sku", price: 2, quantity: 1 }] });
+      meta.fbq("trackCustom", "Purchase", { content_ids: ["meta-purchase"], value: null });
+      remarketingItems[0].id = 36;
+      states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states.map((state) => state.outcomes.at(-1).disposition))
+        .toEqual(["transport-settled", "transport-settled"]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([16, 11]);
+      const remarketingQuery = new URL(googleReceiver.arrivals[14].url).searchParams;
+      const labeledQuery = new URL(googleReceiver.arrivals[15].url).searchParams;
+      expect(remarketingQuery.get("airlock_event")).toBe("remarketing_purchase");
+      expect(remarketingQuery.has("label")).toBe(false);
+      expect(remarketingQuery.getAll("airlock_value")).toEqual(["0"]);
+      expect(JSON.parse(remarketingQuery.get("airlock_items"))).toEqual([{ id: 35, google_business_vertical: "retail" }]);
+      expect(labeledQuery.get("airlock_event")).toBe("purchase");
+      expect(labeledQuery.get("label")).toBe("SYNTHETIC_LABEL");
+      expect(JSON.parse(labeledQuery.get("airlock_items"))).toEqual([{ id: "sku", price: 2, quantity: 1 }]);
+      expect([remarketingQuery.has("cd[value]"), labeledQuery.has("cd[value]")]).toEqual([false, false]);
+      const metaPurchaseQuery = new URL(metaReceiver.arrivals[10].url).searchParams;
+      expect(metaPurchaseQuery.get("ev")).toBe("Purchase");
+      expect(metaPurchaseQuery.getAll("cd[value]")).toEqual(["null"]);
+      expect(metaPurchaseQuery.has("airlock_event")).toBe(false);
     } catch (error) {
       cause = error;
       throw error;

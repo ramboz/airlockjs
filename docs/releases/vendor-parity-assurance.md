@@ -36,7 +36,8 @@ parameter scopes, callbacks, conservative consent commands, an explicit
 manual dataLayer drain, synthetic purchase classification and a bounded cart
 subset, three documented custom-variable example names and five separately
 gated `view_item` vertical subsets with optional value and separately gated
-local list, search-results and add-to-cart events; Meta covers
+local list, search-results, add-to-cart and unlabeled remarketing purchases;
+Meta covers
 multiple Pixels, event routing, a bounded Magento-shaped PageView array,
 bounded commerce data, content-name arrays and the Magento-shaped empty
 checkout-value fallback,
