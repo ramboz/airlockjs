@@ -152,7 +152,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
       expect(retailQuery.has("cd[content_ids]")).toBe(false);
 
       const educationItems = [{ id: "COURSE1", location_id: "PLACE1", google_business_vertical: "education" }];
-      google.gtag("event", "view_item", { value: 25, items: educationItems });
+      google.gtag("event", "view_item", { value: undefined, items: educationItems });
       educationItems[0].location_id = "changed";
       states = await Promise.all([google.flush(), meta.flush()]);
       expect(states[0].outcomes.at(-1).disposition).toBe("transport-settled");
@@ -161,7 +161,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
       expect(JSON.parse(educationQuery.get("airlock_items"))).toEqual([
         { id: "COURSE1", google_business_vertical: "education", location_id: "PLACE1" },
       ]);
-      expect(educationQuery.get("airlock_value")).toBe("25");
+      expect(educationQuery.has("airlock_value")).toBe(false);
       expect(educationQuery.has("label")).toBe(false);
       expect(educationQuery.has("cd[content_ids]")).toBe(false);
       expect(viewQuery.has("airlock_items")).toBe(false);
@@ -228,6 +228,22 @@ describe("experimental vendor coexistence on independent local workers", () => {
       meta.setConsent({ ad_storage: "granted" });
       await Promise.all([google.flush(), meta.flush()]);
       expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([8, 5]);
+
+      google.gtag("event", "view_item", {
+        items: [{ destination: "NO-VALUE", google_business_vertical: "travel" }],
+      });
+      meta.fbq("track", "ViewContent", { content_ids: ["meta-after-grant"] });
+      states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states.map((state) => state.outcomes.at(-1).disposition))
+        .toEqual(["transport-settled", "transport-settled"]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([9, 6]);
+      const noValueQuery = new URL(googleReceiver.arrivals[8].url).searchParams;
+      expect(noValueQuery.has("airlock_value")).toBe(false);
+      expect(JSON.parse(noValueQuery.get("airlock_items")))
+        .toEqual([{ destination: "NO-VALUE", google_business_vertical: "travel" }]);
+      const metaAfterGrant = new URL(metaReceiver.arrivals[5].url).searchParams;
+      expect(JSON.parse(metaAfterGrant.get("cd[content_ids]"))).toEqual(["meta-after-grant"]);
+      expect(metaAfterGrant.has("airlock_items")).toBe(false);
     } catch (error) {
       cause = error;
       throw error;

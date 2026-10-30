@@ -79,14 +79,18 @@ handling, native wire behavior, audience membership, feed matching and
 attribution remain unqualified. This does not advance this DRAFT slice.
 The separate `experimentalEducationViewItem` opt-in exercises the same guide's
 education example with bounded synthetic IDs and an optional location ID. Its
-local value requirement and routing are assumptions; it can coexist with the
+local restrictions and routing are assumptions; it can coexist with the
 retail subset but does not establish education feed matching or native behavior.
 Separately gated local-deals and real-estate `view_item` subsets exercise the
-same guide's string-ID examples. Their value requirements, single local route
+same guide's string-ID examples. Their restrictions, single local route
 and markers are also assumptions; neither qualifies audience or feed outcomes.
 The separately gated travel subset adds bounded synthetic origin, destination
 and date inputs from that guide. Destination remains event data, not a network
 address. Calendar validation, routing and feed-key behavior remain unqualified.
+The guide describes total `value` as optional across dynamic remarketing events;
+these five subsets now accept it absent or explicitly undefined and preserve
+zero. The handling of explicit undefined and the loopback marker remain local
+choices, not native wire evidence.
 
 ## Assumptions
 
