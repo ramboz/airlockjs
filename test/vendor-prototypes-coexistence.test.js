@@ -26,7 +26,8 @@ describe("experimental vendor coexistence on independent local workers", () => {
       googleChamber = createNodeConversionChamber();
       metaChamber = createNodePrototypeChamber();
       google = createGoogleAdsPrototype({
-        endpoint: googleReceiver.endpoint, chamber: googleChamber, experimentalPurchase: true, experimentalPurchaseCart: true,
+        endpoint: googleReceiver.endpoint, chamber: googleChamber,
+        experimentalPurchase: true, experimentalPurchaseCart: true, experimentalPurchaseDiscount: true,
         consent: { ad_storage: "denied" }, captureContext: () => ({ pageURL, referrer: "" }),
       });
       meta = createMetaPixelPrototype({
@@ -40,7 +41,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
       google.gtag("config", "AW-0000000000");
       meta.fbq("init", "000000000000000");
       google.gtag("event", "purchase", {
-        ...conversion, new_customer: true, items: [{ id: "held-sku", price: 4, quantity: 1 }],
+        ...conversion, new_customer: true, items: [{ id: "held-sku", price: 4, quantity: 1 }], discount: 1,
       });
       meta.fbq("track", "PageView", { placement: "synthetic", order_id: 1 });
       let states = await Promise.all([google.flush(), meta.flush()]);
@@ -51,7 +52,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
       await Promise.all([google.flush(), meta.flush()]);
       expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([0, 1]);
       const items = [{ id: "local-sku", price: 5, quantity: 2 }];
-      google.gtag("event", "purchase", { ...conversion, new_customer: false, items });
+      google.gtag("event", "purchase", { ...conversion, new_customer: false, items, discount: 2 });
       items[0].id = "changed";
       meta.fbq("track", "PageView", { placement: "second", order_id: 2 });
       states = await Promise.all([google.flush(), meta.flush()]);
@@ -61,6 +62,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
       const googleQuery = new URL(googleReceiver.arrivals[0].url).searchParams;
       const metaQuery = new URL(metaReceiver.arrivals[1].url).searchParams;
       expect(googleQuery.get("airlock_new_customer")).toBe("false");
+      expect(googleQuery.get("airlock_discount")).toBe("2");
       expect(JSON.parse(googleQuery.get("airlock_items"))).toEqual([{ id: "local-sku", price: 5, quantity: 2 }]);
       expect(googleQuery.has("cd[placement]")).toBe(false);
       expect(googleQuery.has("cd[order_id]")).toBe(false);
@@ -68,6 +70,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
       expect(metaQuery.get("cd[order_id]")).toBe("2");
       expect(metaQuery.has("airlock_new_customer")).toBe(false);
       expect(metaQuery.has("airlock_items")).toBe(false);
+      expect(metaQuery.has("airlock_discount")).toBe(false);
     } catch (error) {
       cause = error;
       throw error;

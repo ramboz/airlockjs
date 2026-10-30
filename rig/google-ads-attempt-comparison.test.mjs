@@ -154,6 +154,7 @@ describe("offline Google prototype attempt comparison", () => {
   it.each([
     ["new_customer", true],
     ["items", [{ id: "synthetic", price: 1, quantity: 1 }]],
+    ["discount", 1.5],
   ])("does not treat purchase %s as a retained conversion comparison", async (key, value) => {
     const { inputs } = await manifest();
     const reference = syntheticReference();
