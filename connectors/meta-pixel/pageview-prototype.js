@@ -48,6 +48,7 @@ export function createMetaPageViewPrototype({
   experimentalContentNameArray = false, experimentalContentsItemPrice = false,
   experimentalCustomProperties = false, experimentalNumericOrderId = false, experimentalEventIds = false, experimentalSetAgent = false,
   experimentalNullPurchaseValue = false,
+  experimentalEmptyCheckoutValue = false,
   experimentalInitAgent = false,
   experimentalMagentoHeadArray = false,
   experimentalViewContentJsonStrings = false,
@@ -58,7 +59,7 @@ export function createMetaPageViewPrototype({
     experimentalScalarEventData, experimentalContentNameArray, experimentalContentIds, experimentalContents,
     experimentalContentsItemPrice, experimentalCustomProperties,
     experimentalNumericOrderId, experimentalEventIds, experimentalSetAgent, experimentalInitAgent, experimentalMagentoHeadArray,
-    experimentalNullPurchaseValue,
+    experimentalNullPurchaseValue, experimentalEmptyCheckoutValue,
     experimentalViewContentJsonStrings,
     experimentalSyntheticAdvancedMatching, experimentalTagConsent]
     .some((option) => typeof option !== "boolean")) {
@@ -75,6 +76,9 @@ export function createMetaPageViewPrototype({
   if (experimentalEventIds && !experimentalPageViewData) throw new Error("event-ids-require-pageview-data");
   if (experimentalNullPurchaseValue && (!experimentalEvents || !experimentalPageViewData)) {
     throw new Error("null-purchase-value-requires-events-and-pageview-data");
+  }
+  if (experimentalEmptyCheckoutValue && (!experimentalEvents || !experimentalPageViewData)) {
+    throw new Error("empty-checkout-value-requires-events-and-pageview-data");
   }
   if (experimentalViewContentJsonStrings &&
       (!experimentalEvents || !experimentalPageViewData || !experimentalContentIds || !experimentalContents)) {
@@ -179,6 +183,7 @@ export function createMetaPageViewPrototype({
           experimentalNullPurchaseValue && args[0] === "trackCustom" && name === "Purchase",
           experimentalViewContentJsonStrings && args[0] === "track" && name === "ViewContent",
           experimentalPageViewData && experimentalMagentoHeadArray && hasOptions && args[0] === "track" && name === "PageView",
+          experimentalEmptyCheckoutValue && args[0] === "trackCustom" && name === "InitiateCheckout",
         ) : null;
       if (args.length > dataIndex && !pageViewData) throw new Error("unsupported-parameters");
       const eventOptions = hasOptions ? snapshotEventOptions(args[dataIndex + 1]) : null;

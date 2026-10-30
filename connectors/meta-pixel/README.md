@@ -131,6 +131,24 @@ browser behavior and full production replacement remain unverified.
   plugin. The encoding, command scope and consent behavior are hypotheses;
   native null handling, the no-order template path and product parity remain
   unverified. Use synthetic data only.
+- With the separate `experimentalEmptyCheckoutValue: true` opt-in and both
+  `experimentalEvents` and `experimentalPageViewData` enabled, synthetic
+  broadcast `fbq("trackCustom", "InitiateCheckout", data)` accepts an own
+  `value: ""`. The snapshot retains the empty string and the worker emits one
+  empty `cd[value]` field. Omitted or undefined value emits no field; zero
+  emits `0`. Null remains rejected for InitiateCheckout, including when the
+  separate null-Purchase opt-in is enabled. Other strings remain rejected for
+  `value`, and the empty string remains rejected on other event routes.
+
+  Magento's pinned [cart-total helper](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Helper/MagentoDataHelper.php)
+  returns null for an existing quote with a falsy subtotal. Its
+  [checkout getter](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Block/Pixel/InitiateCheckout.php)
+  forwards that result and the [template](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/initiate_checkout.phtml)
+  substitutes an empty string. The composition test uses only synthetic
+  inputs; it does not execute Magento or server AJAX. Currency already accepts
+  an empty string under its existing rule; this option does not change it.
+  The local encoding, consent behavior, sample item-price type and complete
+  checkout semantics are unqualified. No native handling or parity is claimed.
 - With both `experimentalPageViewData: true` and
   `experimentalScalarEventData: true`, event data can additionally contain
   `region`, `content_category`, `content_name`, `search_string`,

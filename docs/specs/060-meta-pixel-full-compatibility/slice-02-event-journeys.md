@@ -142,6 +142,19 @@ consent without replay. The encoding, command restriction and consent
 semantics are local choices, not native evidence. The no-order template path,
 full Magento behavior and all acceptance criteria remain unqualified.
 
+The separately gated `experimentalEmptyCheckoutValue` accepts `value: ""`
+only for synthetic broadcast `trackCustom` InitiateCheckout commands. For an
+existing quote with a falsy subtotal, Magento's pinned
+[cart-total helper](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Helper/MagentoDataHelper.php)
+returns null; the [checkout getter](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Block/Pixel/InitiateCheckout.php)
+returns that value and the [template](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/initiate_checkout.phtml)
+uses `?? ''`. The worker locally emits an empty `cd[value]`, distinct from
+omitted/undefined and numeric zero; null remains rejected on this event.
+Tests exercise the synthetic composition, snapshots, routing, worker
+revalidation, consent and no replay. Empty currency uses its existing rule.
+Encoding, consent and sample item-price type are local assumptions; full
+checkout, native behavior and all acceptance criteria remain unqualified.
+
 The additional `experimentalScalarEventData` opt-in extends that local record
 with region, content category/name/type, search string, predicted lifetime
 value, item count, status and delivery category. The prototype admits only

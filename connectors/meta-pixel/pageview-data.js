@@ -118,7 +118,7 @@ function snapshotMagentoHeadArray(value) {
 export function snapshotPageViewData(value, experimentalScalarEventData = false, experimentalContentIds = false,
   experimentalContents = false, experimentalCustomProperties = false, experimentalNumericOrderId = false,
   experimentalContentsItemPrice = false, experimentalContentNameArray = false, allowNullPurchaseValue = false,
-  allowViewContentJsonStrings = false, allowMagentoHeadArray = false) {
+  allowViewContentJsonStrings = false, allowMagentoHeadArray = false, allowEmptyCheckoutValue = false) {
   if (allowMagentoHeadArray && experimentalCustomProperties && Array.isArray(value)) {
     return snapshotMagentoHeadArray(value);
   }
@@ -171,6 +171,9 @@ export function snapshotPageViewData(value, experimentalScalarEventData = false,
         continue;
       } else if (key === "value" && item === null && allowNullPurchaseValue) {
         result[key] = null;
+        continue;
+      } else if (key === "value" && item === "" && allowEmptyCheckoutValue) {
+        result[key] = "";
         continue;
       } else if (key === "value" || key === "predicted_ltv") {
         if (typeof item !== "number" || !Number.isFinite(item)) return null;

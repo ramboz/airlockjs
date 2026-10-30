@@ -234,6 +234,7 @@ export function createMetaPixelPrototype({
   experimentalInitAgent = false,
   experimentalMagentoHeadArray = false,
   experimentalNullPurchaseValue = false,
+  experimentalEmptyCheckoutValue = false,
   experimentalViewContentJsonStrings = false,
   experimentalSyntheticAdvancedMatching = false,
   experimentalTagConsent = false,
@@ -242,7 +243,7 @@ export function createMetaPixelPrototype({
     experimentalScalarEventData, experimentalContentNameArray, experimentalContentIds, experimentalContents,
     experimentalContentsItemPrice, experimentalCustomProperties,
     experimentalNumericOrderId, experimentalEventIds, experimentalSetAgent, experimentalInitAgent, experimentalMagentoHeadArray,
-    experimentalNullPurchaseValue,
+    experimentalNullPurchaseValue, experimentalEmptyCheckoutValue,
     experimentalViewContentJsonStrings,
     experimentalSyntheticAdvancedMatching, experimentalTagConsent]
     .some((option) => typeof option !== "boolean")) {
@@ -259,6 +260,9 @@ export function createMetaPixelPrototype({
   if (experimentalEventIds && !experimentalPageViewData) throw new Error("event-ids-require-pageview-data");
   if (experimentalNullPurchaseValue && (!experimentalEvents || !experimentalPageViewData)) {
     throw new Error("null-purchase-value-requires-events-and-pageview-data");
+  }
+  if (experimentalEmptyCheckoutValue && (!experimentalEvents || !experimentalPageViewData)) {
+    throw new Error("empty-checkout-value-requires-events-and-pageview-data");
   }
   if (experimentalViewContentJsonStrings &&
       (!experimentalEvents || !experimentalPageViewData || !experimentalContentIds || !experimentalContents)) {
@@ -496,6 +500,7 @@ export function createMetaPixelPrototype({
           experimentalNullPurchaseValue && args[0] === "trackCustom" && args[1] === "Purchase",
           experimentalViewContentJsonStrings && args[0] === "track" && args[1] === "ViewContent",
           experimentalMagentoHeadArray && hasOptions && args[0] === "track" && args[1] === "PageView",
+          experimentalEmptyCheckoutValue && args[0] === "trackCustom" && args[1] === "InitiateCheckout",
         );
         if (!data) { reject("unsupported-parameters"); return; }
         args[dataIndex] = data;
@@ -645,6 +650,7 @@ export function createMetaPixelPrototype({
       ...(experimentalInitAgent === true ? { experimentalInitAgent: true } : {}),
       ...(experimentalMagentoHeadArray === true ? { experimentalMagentoHeadArray: true } : {}),
       ...(experimentalNullPurchaseValue === true ? { experimentalNullPurchaseValue: true } : {}),
+      ...(experimentalEmptyCheckoutValue === true ? { experimentalEmptyCheckoutValue: true } : {}),
       ...(experimentalViewContentJsonStrings === true ? { experimentalViewContentJsonStrings: true } : {}),
       ...(experimentalTagConsent === true ? { experimentalTagConsent: true } : {}),
       ...(experimentalSyntheticAdvancedMatching === true
