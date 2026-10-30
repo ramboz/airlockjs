@@ -107,6 +107,22 @@ describe("synthetic relationships versus partial retained native field shape", (
     expect(() => evaluate({ experimentalRouting: "true" })).toThrow("invalid-experimental-option");
   });
 
+  it.each([[1, true], [20, true], [21, true], [32, true], [33, false]])(
+    "evaluates a %i-digit destination only within the local routing bound", (length, accepted) => {
+    const id = "8".repeat(length);
+    const route = `http://127.0.0.1:43210/pagead/conversion/${id}/`;
+    const command = structuredClone(snapshot);
+    command.args[2].send_to = `AW-${id}/LOCAL_ACTION`;
+    const observed = { ...request, url: request.url.replace(endpoint, route).replace("SYNTHETIC_LABEL", "LOCAL_ACTION") };
+    const report = reportGoogleAdsConversionPrototype({
+      observedRequests: [observed], commandSnapshots: [command], endpoint: route, experimentalRouting: true,
+    });
+    expect(report.local[0].relationshipsPreserved).toBe(accepted);
+    expect(report).toMatchObject({ overall: "INCONCLUSIVE", fullCompatibility: false });
+    expect(JSON.stringify(report)).not.toContain(`AW-${id}`);
+    expect(JSON.stringify(report)).not.toContain(`/pagead/conversion/${id}/`);
+  });
+
   it("evaluates explicitly supplied scope snapshots using event, config and global precedence", () => {
     const command = {
       ...snapshot,

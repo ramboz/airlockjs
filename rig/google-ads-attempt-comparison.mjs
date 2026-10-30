@@ -25,7 +25,7 @@ function result() {
 
 function preflight(capture) {
   const { source, cases, requests } = capture;
-  if (!/^AW-\d{1,20}$/.test(source?.conversion_id) ||
+  if (!/^AW-\d{1,32}$/.test(source?.conversion_id) ||
       !/^[A-Za-z0-9_-]{1,128}$/.test(source?.conversion_label) ||
       !Array.isArray(cases) || !Array.isArray(requests)) throw new Error("unsupported-reference");
   return CASES.map((name) => {

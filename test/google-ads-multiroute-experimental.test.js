@@ -31,6 +31,40 @@ const setup = (adapter) => {
 };
 
 describe("experimental multiple conversion destinations", () => {
+  it("routes 21- and 32-digit destinations independently and rejects a 33-digit branch", async () => {
+    const ids = ["1".repeat(21), "2".repeat(32)];
+    let first, second, chamber, adapter, cause;
+    try {
+      first = await createConversionReceiver({ conversionId: ids[0] });
+      second = await createConversionReceiver({ conversionId: ids[1], respond(_request, response) { response.writeHead(503).end(); } });
+      chamber = createNodeConversionChamber();
+      adapter = createGoogleAdsPrototype({
+        endpoint: first.endpoint, additionalEndpoint: second.endpoint, chamber,
+        experimentalRouting: true, experimentalMultiDestination: true,
+        captureContext: () => ({ pageURL: "https://example.test/checkout", referrer: "" }),
+        consent: { ad_storage: "granted" },
+      });
+      for (const id of ids) adapter.gtag("config", `AW-${id}`);
+      adapter.gtag("event", "conversion", { send_to: ids.map((id) => `AW-${id}/LOCAL`) });
+      adapter.gtag("event", "conversion", { send_to: [`AW-${ids[0]}/LOCAL`, `AW-${"2".repeat(33)}/LOCAL`] });
+      const state = await adapter.flush();
+      expect(state.outcomes.map(({ reason, disposition }) => reason || disposition))
+        .toEqual(["configured", "configured", "partial", "destination-mismatch"]);
+      expect(state.outcomes[2].branches).toEqual([
+        { index: 0, disposition: "transport-settled", status: 204 },
+        { index: 1, disposition: "failed", status: 503 },
+      ]);
+      expect(first.arrivals).toHaveLength(1);
+      expect(second.arrivals).toHaveLength(1);
+      expect(state.host.dispatchAttempts).toBe(2);
+      expect(state.fullCompatibility).toBe(false);
+    } catch (error) { cause = error; throw error; }
+    finally {
+      try { await closeConversionResources({ adapter, chamber, receiver: first, cause }); }
+      finally { await closeConversionResources({ receiver: second, cause }); }
+    }
+  }, 8000);
+
   it("routes a snapshotted array to two independent receivers with per-destination scopes and callback", async () => {
     await local({ experimentalParameterScopes: true, experimentalCallbacks: true }, async ({ adapter, first, second }) => {
       const callback = vi.fn();
@@ -183,7 +217,7 @@ describe("experimental multiple conversion destinations", () => {
     for (const additionalEndpoint of [
       undefined, endpoint, "https://127.0.0.1:41235/pagead/conversion/222/",
       "http://localhost:41235/pagead/conversion/222/", "http://127.0.0.1:99999/pagead/conversion/222/",
-      "http://127.0.0.1:41235/pagead/conversion/111/",
+      "http://127.0.0.1:41235/pagead/conversion/111/", `http://127.0.0.1:41235/pagead/conversion/${"2".repeat(33)}/`,
     ]) {
       expect(() => createGoogleAdsPrototype({ endpoint, additionalEndpoint, experimentalRouting: true, experimentalMultiDestination: true }))
         .toThrow("literal-loopback-endpoint-required");

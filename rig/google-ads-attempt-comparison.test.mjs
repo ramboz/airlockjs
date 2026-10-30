@@ -38,8 +38,8 @@ async function manifest() {
 
 // Local, synthetic recorder-shaped input. The strict reader is mocked only in
 // these integration controls; these values are never native-reference evidence.
-function syntheticReference() {
-  const source = { conversion_id: "AW-12345", conversion_label: secret };
+function syntheticReference(id = "12345") {
+  const source = { conversion_id: `AW-${id}`, conversion_label: secret };
   const cases = [];
   const requests = [];
   for (const [index, name] of ["baseline", "value1", "value2"].entries()) {
@@ -55,7 +55,7 @@ function syntheticReference() {
       oid: input.transaction_id, url: document_url,
     });
     for (let n = 0; n < 2; n += 1) {
-      const url = `https://www.google.com/pagead/1p-conversion/12345/?${params}`;
+      const url = `https://www.google.com/pagead/1p-conversion/${id}/?${params}`;
       requests.push({ case: name, category: "native_measurement", url, query_pairs: [...params],
         headers: {}, body_state: "absent", body_base64: null, aborted: true, actual_vendor_response: false });
     }
@@ -71,6 +71,22 @@ afterEach(async () => {
 });
 
 describe("offline Google prototype attempt comparison", () => {
+  it.each([1, 20, 21, 32])("compares synthetic %i-digit destinations without exposing values", async (length) => {
+    const { inputs } = await manifest();
+    const id = "7".repeat(length);
+    vi.mocked(inspectNativeAttempt).mockResolvedValue(syntheticReference(id));
+    const result = await runGoogleAdsAttemptComparison({ inputs });
+    expect(result).toMatchObject({
+      overall: "inconclusive", comparison: "matched", exit_code: 0, reference_rechecked: true,
+      counts: { cases: 3, local_arrivals: 3, local_dispatches: 3, cleaned_cases: 3, differences: 0 },
+    });
+    expect(Object.values(result.claims).every((claim) => claim === false)).toBe(true);
+    expect(JSON.stringify(result)).not.toContain(`AW-${id}`);
+    expect(JSON.stringify(result)).not.toContain(`/pagead/conversion/${id}/`);
+    expect(JSON.stringify(result)).not.toContain(secret);
+    expect(JSON.stringify(result)).not.toContain("://");
+  }, 15000);
+
   it("compares synthetic same-input attempts through real workers and closes all resources", async () => {
     const { inputs } = await manifest();
     const reference = syntheticReference();
@@ -126,8 +142,7 @@ describe("offline Google prototype attempt comparison", () => {
 
   it("rejects prototype-ineligible reference inputs before opening a receiver", async () => {
     const { inputs } = await manifest();
-    const reference = syntheticReference();
-    reference.capture.source.conversion_id = `AW-${"1".repeat(21)}`;
+    const reference = syntheticReference("1".repeat(33));
     vi.mocked(inspectNativeAttempt).mockResolvedValue(reference);
     const receiver = vi.spyOn(local, "createConversionReceiver");
     const result = await runGoogleAdsAttemptComparison({ inputs });

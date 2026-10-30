@@ -94,7 +94,7 @@ export function createGoogleAdsPrototype({
       typeof experimentalConsentCommands !== "boolean" || typeof experimentalBootstrap !== "boolean" ||
       (experimentalMultiDestination && !experimentalRouting)) throw new Error("invalid-experimental-option");
   const pattern = experimentalRouting === true
-    ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,20})\/$/
+    ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,32})\/$/
     : /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/0000000000\/$/;
   const match = typeof endpoint === "string" && endpoint.match(pattern);
   if (!match || Number(match[1]) > 65535) throw new Error("literal-loopback-endpoint-required");
@@ -503,7 +503,7 @@ export function createGoogleAdsPrototype({
         }
         if (experimentalMultiDestination) {
           const selectors = activeSelectors.map((value) => typeof value === "string" &&
-            value.match(/^(AW-\d{1,20})\/([A-Za-z0-9_-]{1,128})$/));
+            value.match(/^(AW-\d{1,32})\/([A-Za-z0-9_-]{1,128})$/));
           const destinations = selectors.map((value) => value?.[1]);
           if (selectors.some((value) => !value || !routes.has(value[1])) ||
               new Set(destinations).size !== destinations.length) {

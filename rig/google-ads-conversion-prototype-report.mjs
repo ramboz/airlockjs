@@ -124,10 +124,10 @@ function localRelationship(request, snapshot, endpoint, ordinal, experimentalRou
     (hasCallback && hasTimeout && typeof params.event_callback === "function" &&
       Number.isInteger(params.event_timeout) && params.event_timeout >= 10 && params.event_timeout <= 10000));
   const endpointPattern = experimentalRouting
-    ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,20})\/$/
+    ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,32})\/$/
     : /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(0000000000)\/$/;
   const endpointMatch = typeof endpoint === "string" && endpoint.match(endpointPattern);
-  const selector = typeof params?.send_to === "string" && params.send_to.match(/^(AW-\d{1,20})\/([A-Za-z0-9_-]{1,128})$/);
+  const selector = typeof params?.send_to === "string" && params.send_to.match(/^(AW-\d{1,32})\/([A-Za-z0-9_-]{1,128})$/);
   const validSelector = experimentalRouting
     ? Boolean(endpointMatch && selector && selector[1] === `AW-${endpointMatch[2]}`)
     : params?.send_to === "AW-0000000000/SYNTHETIC_LABEL";

@@ -177,7 +177,10 @@ commands are local prototype behavior, not native initialization semantics.
 It does not reproduce native config/auxiliary traffic, encoding or parity.
 
 For local routing experiments, `experimentalRouting: true` allows a literal
-loopback endpoint with a one-to-20-digit destination in its conversion path.
+loopback endpoint with a one-to-32-digit destination in its conversion path.
+This matches the 058-04 reference manifest's parser bound, not evidence that
+Google accepts 32-digit destinations. The separate native-stock policy remains
+unchanged.
 `gtag("config", "AW-<destination>")` must match that path, and the conversion
 `send_to` must use the same destination plus an alphanumeric, underscore or
 hyphen label of at most 128 characters. Mismatches reject without dispatch.

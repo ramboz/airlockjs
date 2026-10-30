@@ -45,7 +45,7 @@ export function createNodeConversionChamber() {
 
 /** Independent receiving sink, fixed path; never a vendor proxy. */
 export async function createConversionReceiver({ respond, conversionId = "0000000000" } = {}) {
-  if (typeof conversionId !== "string" || !/^\d{1,20}$/.test(conversionId)) throw new Error("invalid-conversion-id");
+  if (typeof conversionId !== "string" || !/^\d{1,32}$/.test(conversionId)) throw new Error("invalid-conversion-id");
   const path = `/pagead/conversion/${conversionId}/`;
   const arrivals = [];
   const sockets = new Set();

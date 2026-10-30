@@ -55,7 +55,7 @@ export function createGoogleAdsConversionPrototype({
     throw new Error("invalid-experimental-option");
   }
   const pattern = experimentalRouting === true
-    ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,20})\/$/
+    ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,32})\/$/
     : /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(0000000000)\/$/;
   const match = typeof endpoint === "string" && endpoint.match(pattern);
   if (!match || Number(match[1]) > 65535) throw new Error("literal-loopback-endpoint-required");
@@ -128,7 +128,7 @@ export function createGoogleAdsConversionPrototype({
         if (!selectors.length || selectors.length > (experimentalMultiDestination ? 2 : 1)) throw new Error("destination-mismatch");
         const seen = new Set();
         selected = selectors.map((value) => {
-          const selector = typeof value === "string" && value.match(/^(AW-\d{1,20})\/([A-Za-z0-9_-]{1,128})$/);
+          const selector = typeof value === "string" && value.match(/^(AW-\d{1,32})\/([A-Za-z0-9_-]{1,128})$/);
           if (!selector || !destinations.has(selector[1]) || seen.has(selector[1])) throw new Error("destination-mismatch");
           seen.add(selector[1]);
           return { destination: selector[1], label: selector[2] };
