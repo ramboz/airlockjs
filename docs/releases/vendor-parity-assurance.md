@@ -34,9 +34,9 @@ experimental replacement work from the available references before complete
 native responses exist. Local, source-only opt-ins now cover Google routing,
 parameter scopes, callbacks, conservative consent commands and an explicit
 manual dataLayer drain; Meta covers multiple Pixels, event routing, bounded
-commerce data, event IDs, synthetic init identity, local tag-consent commands
-and an explicitly supplied bootstrap stub. Each uses a serialized worker
-and governed loopback receiver;
+commerce data, synthetic custom properties, event IDs, synthetic init identity,
+local tag-consent commands and an explicitly supplied bootstrap stub. Each uses
+a serialized worker and governed loopback receiver;
 the existing production defaults remain unchanged. Most ordering, encoding and
 identity choices remain experimental, not native findings.
 
