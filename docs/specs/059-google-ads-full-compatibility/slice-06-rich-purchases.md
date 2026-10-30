@@ -77,6 +77,13 @@ markers, not Google wire fields. Native routing and encoding, business
 classification, cart data, reporting and attribution remain unqualified.
 This experiment does not advance this DRAFT slice or its acceptance criteria.
 
+The separately gated `experimentalPurchaseCart` option adds bounded synthetic
+item records to that local purchase path. [Google's cart guidance](https://support.google.com/google-ads/answer/14943675?hl=en)
+lists direct Ads `items.id`, `price` and `quantity`, but its introductory
+note instead names `item_id`; that conflict remains unresolved. The local
+subset refuses `item_id` and uses an invented `airlock_items` field. It does
+not establish native encoding, arithmetic, feed matching or product outcomes.
+
 ## Assumptions
 
 - Unverified: complete current native cart/custom/acquisition behavior can be

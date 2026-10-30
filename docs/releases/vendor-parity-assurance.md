@@ -33,9 +33,9 @@ The 2026-10-15 allowance above is historical, not a renewed execution budget.
 experimental replacement work from the available references before complete
 native responses exist. Local, source-only opt-ins now cover Google routing,
 parameter scopes, callbacks, conservative consent commands, an explicit
-manual dataLayer drain and synthetic purchase classification; Meta covers
-multiple Pixels, event routing, bounded commerce data, synthetic custom
-properties, event IDs, synthetic init identity,
+manual dataLayer drain, synthetic purchase classification and a bounded cart
+subset; Meta covers multiple Pixels, event routing, bounded commerce data,
+synthetic custom properties, event IDs, synthetic init identity,
 local tag-consent commands and an explicitly supplied bootstrap stub. Each uses
 a serialized worker and governed loopback receiver;
 the existing production defaults remain unchanged. Most ordering, encoding and
