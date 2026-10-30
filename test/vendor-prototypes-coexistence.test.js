@@ -18,7 +18,7 @@ const conversion = {
 };
 
 describe("experimental vendor coexistence on independent local workers", () => {
-  it("drains both local bootstrap shapes without duplicate sends", async () => {
+  it("drains both bootstrap shapes, including startup appends, without duplicate sends", async () => {
     let googleReceiver, googleChamber, google, metaReceiver, metaChamber, meta, cause;
     try {
       googleReceiver = await createConversionReceiver();
@@ -40,19 +40,23 @@ describe("experimental vendor coexistence on independent local workers", () => {
         endpoint: googleReceiver.endpoint, chamber: googleChamber, experimentalDataLayer: true,
         consent: { ad_storage: "granted" }, captureContext: () => ({ pageURL, referrer: "" }),
       });
-      meta = await createMetaPixelBootstrapPrototype({
+      const metaAttachment = createMetaPixelBootstrapPrototype({
         bootstrap: fbq, endpoint: metaReceiver.endpoint, chamber: metaChamber,
         consent: { ad_storage: "granted" },
         captureContext: () => ({
           pageURL, referrer: "", inFrame: false, screenWidth: 412, screenHeight: 823, timezoneOffset: 0,
         }),
       });
+      gtag("event", "conversion", conversion);
+      fbq("track", "PageView");
+      meta = await metaAttachment;
       google.drainDataLayer(dataLayer);
       let states = await Promise.all([google.flush(), meta.flush()]);
       expect(states.map((state) => state.outcomes.map((item) => item.disposition))).toEqual([
-        ["configured", "transport-settled"], ["initialized", "transport-settled"],
+        ["configured", "transport-settled", "transport-settled"],
+        ["initialized", "transport-settled", "transport-settled"],
       ]);
-      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([1, 1]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([2, 2]);
 
       gtag("event", "conversion", conversion);
       fbq("track", "PageView");
@@ -61,9 +65,9 @@ describe("experimental vendor coexistence on independent local workers", () => {
       states = await Promise.all([google.flush(), meta.flush()]);
       expect(states.map((state) => state.outcomes.at(-1).disposition))
         .toEqual(["transport-settled", "transport-settled"]);
-      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([2, 2]);
-      expect(new URL(googleReceiver.arrivals[1].url).searchParams.get("oid")).toBe(conversion.transaction_id);
-      expect(new URL(metaReceiver.arrivals[1].url).searchParams.get("ev")).toBe("PageView");
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([3, 3]);
+      expect(new URL(googleReceiver.arrivals[2].url).searchParams.get("oid")).toBe(conversion.transaction_id);
+      expect(new URL(metaReceiver.arrivals[2].url).searchParams.get("ev")).toBe("PageView");
     } catch (error) {
       cause = error;
       throw error;
