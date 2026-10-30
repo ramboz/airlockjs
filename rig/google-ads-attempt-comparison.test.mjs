@@ -155,6 +155,9 @@ describe("offline Google prototype attempt comparison", () => {
     ["new_customer", true],
     ["items", [{ id: "synthetic", price: 1, quantity: 1 }]],
     ["discount", 1.5],
+    ["aw_merchant_id", 98765],
+    ["aw_feed_country", "US"],
+    ["aw_feed_language", "en"],
   ])("does not treat purchase %s as a retained conversion comparison", async (key, value) => {
     const { inputs } = await manifest();
     const reference = syntheticReference();
