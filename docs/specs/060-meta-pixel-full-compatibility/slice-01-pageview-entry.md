@@ -113,6 +113,14 @@ local limits are prototype choices; this is neither native parity nor a change
 to the open criteria above. Array lengths are checked before element inspection,
 but proxy traps and total main-thread work are not isolated or hard-bounded.
 
+An independent synthetic fake-worker check found a local integrity gap: after
+initialization, a `track PageView` command accepted a worker request marked
+`ev=Purchase` and passed it to a mock transport. The host checked the loopback
+endpoint and command/result sequencing, but did not correlate that event field
+with the captured command. No network request was made. This is not a native
+observation or production exploit claim; event, target and data-field
+correlation remain open before the replacement can satisfy criteria 5 and 6.
+
 ## Readiness checkpoint - 2026-10-16
 
 **Current reference preparation - 2026-10-27:**060-13/14 local construction
