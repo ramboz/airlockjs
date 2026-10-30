@@ -163,10 +163,24 @@ custom event calls. Meta's retained public conversion-tracking reference
 retained `cd[region]` wire observation does not establish a general mapping
 from arbitrary input names. The first-party worker and local receiver exercise
 snapshots, routing, consent and refusals, emitting `cd[<key>]` as an explicit
-prototype hypothesis. The string-only subset, field count and length, reserved
+prototype hypothesis. The original string-only subset, field count and length, reserved
 names, omission/error behavior and wire ordering are not native-qualified.
 Inputs are synthetic; no production cutover, native parity or 060-02
 acceptance is claimed.
+
+The separately gated `experimentalNumericOrderId` adds one non-string custom
+property case. Meta's Magento plugin puts `order_id` in a
+[`trackCustom` Purchase payload](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/purchase.phtml#L22-L40),
+tests the getter with the [number 1](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Test/Unit/Block/Pixel/PurchaseTest.php#L236-L245),
+and [passes the payload to fbq](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/web/js/metaPixelTracker.js#L34-L47).
+The local subset accepts only nonnegative safe integers other than negative
+zero and sends their decimal string as `cd[order_id]`. Worker and loopback
+tests cover capture, routing, refusals and consent holds. The plugin also
+passes a custom-event `eventID` option, which the prototype still rejects;
+the complete plugin call is not supported. The number limits, wire mapping
+and other event routes remain assumptions rather than native observations.
+Only synthetic IDs are used. No native request, backend receipt, parity or
+readiness criterion is claimed.
 
 ## Assumptions
 

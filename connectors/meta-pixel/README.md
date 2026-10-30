@@ -114,8 +114,9 @@ browser behavior and full production replacement remain unverified.
   must start with an ASCII letter and contain only ASCII letters, digits or
   underscores, up to 32 characters. Values may be empty but must be
   well-formed strings of at most 64 UTF-16 code units. Undefined, null,
-  numbers, booleans, nested values, accessors, symbols and excess properties
-  reject the whole call. Standard-data names, `eventID`, and the names `em`,
+  numbers (except the separately enabled `order_id` subset below), booleans,
+  nested values, accessors, symbols and excess properties reject the whole
+  call. Standard-data names, `eventID`, and the names `em`,
   `ph`, `fn`, `ln`, `external_id`, `ge`, `db`, `ct`, `st`, `zp`, `country`,
   `email`, `phone`, `fbp`, `fbc` and `fbclid` are reserved rather than
   treated as custom, including case variants. This does not enable any
@@ -129,6 +130,25 @@ browser behavior and full production replacement remain unverified.
   wire encoding are local assumptions, not qualified native behavior.
   Property enumeration can perform unbounded main-thread work and invoke
   proxy traps; this is not proxy isolation.
+- With `experimentalNumericOrderId: true` and both
+  `experimentalPageViewData` and `experimentalCustomProperties` enabled,
+  the custom property `order_id` can also be a nonnegative safe integer other
+  than negative zero. Other numeric custom properties, fractions and invalid
+  numbers still reject the whole call. This extends the same local standard,
+  custom, broadcast and targeted event paths; existing string `order_id`
+  support is unchanged. The value is snapshotted, revalidated in the worker
+  and sent as a decimal string in `cd[order_id]` to the loopback receiver.
+  Meta's Magento plugin uses `order_id` in a `trackCustom` Purchase
+  [payload](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/purchase.phtml#L22-L40)
+  and tests its getter with the numeric value
+  [1](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Test/Unit/Block/Pixel/PurchaseTest.php#L236-L245);
+  its [tracker](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/web/js/metaPixelTracker.js#L34-L47)
+  passes the payload to `fbq`. The plugin also supplies an `eventID` option
+  to `trackCustom`, which this prototype still rejects, so its complete call
+  is not supported. These sources establish the input example, not native
+  serialization. Limits, conversion to `cd[order_id]`, other routes and
+  consent behavior are local choices, not qualified native behavior. Use
+  synthetic IDs only: the local receiver retains request URLs.
 - With both `experimentalPageViewData: true` and
   `experimentalContentIds: true`, event data can contain `content_ids` as an
   ordinary same-realm array of up to 16 strings or nonnegative safe integers.

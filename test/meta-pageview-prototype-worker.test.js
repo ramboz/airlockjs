@@ -36,7 +36,7 @@ async function configure(chamber, transportTimeoutMs = 500) {
 }
 
 describe("actual first-party worker correlated protocol (not receipt evidence)", () => {
-  it.each(["experimentalRouting", "experimentalPageViewData", "experimentalMultiPixelRouting", "experimentalEvents", "experimentalScalarEventData", "experimentalContentIds", "experimentalContents", "experimentalCustomProperties", "experimentalEventIds", "experimentalSyntheticAdvancedMatching", "experimentalTagConsent"])("rejects mistyped %s during worker initialization", async (option) => {
+  it.each(["experimentalRouting", "experimentalPageViewData", "experimentalMultiPixelRouting", "experimentalEvents", "experimentalScalarEventData", "experimentalContentIds", "experimentalContents", "experimentalCustomProperties", "experimentalNumericOrderId", "experimentalEventIds", "experimentalSyntheticAdvancedMatching", "experimentalTagConsent"])("rejects mistyped %s during worker initialization", async (option) => {
     const chamber = createNodePrototypeChamber();
     try {
       const failed = receive(chamber, "fatal");
@@ -109,6 +109,55 @@ describe("actual first-party worker correlated protocol (not receipt evidence)",
       chamber.postMessage({ type: "init", endpoint, transportTimeoutMs: 500, experimentalCustomProperties: true });
       expect(await failed).toEqual({ type: "fatal", message: "worker-configuration-failed" });
     } finally { await chamber.dispose(); }
+  }, 5000);
+
+  it("rejects the numeric order-ID opt-in when custom properties are disabled", async () => {
+    const chamber = createNodePrototypeChamber();
+    try {
+      const failed = receive(chamber, "fatal");
+      chamber.postMessage({
+        type: "init", endpoint, transportTimeoutMs: 500,
+        experimentalPageViewData: true, experimentalNumericOrderId: true,
+      });
+      expect(await failed).toEqual({ type: "fatal", message: "worker-configuration-failed" });
+    } finally { await chamber.dispose(); }
+  }, 5000);
+
+  it("revalidates serialized numeric order IDs before requesting transport", async () => {
+    const chamber = createNodePrototypeChamber();
+    const requests = [];
+    const unsubscribe = chamber.onMessage((message) => {
+      if (message.type === "intercepted-fetch") requests.push(message);
+    });
+    try {
+      const configured = receive(chamber, "phase");
+      chamber.postMessage({
+        type: "init", endpoint, transportTimeoutMs: 500, experimentalEvents: true,
+        experimentalPageViewData: true, experimentalCustomProperties: true, experimentalNumericOrderId: true,
+      });
+      await configured;
+      const initialized = receive(chamber, "result");
+      chamber.postMessage({ type: "event", event: event(1, ["init", "000000000000000"]) });
+      await initialized;
+      for (const [index, data] of [
+        { order_id: -1 }, { order_id: 1.5 }, { order_id: Number.MAX_SAFE_INTEGER + 1 },
+        { order_id: NaN }, { order_id: -0 }, { other_number: 1 },
+      ].entries()) {
+        const rejected = receive(chamber, "result");
+        chamber.postMessage({ type: "event", event: event(index + 2, ["trackCustom", "Purchase", data]) });
+        expect((await rejected).summary).toMatchObject({
+          seq: index + 2, disposition: "rejected", reason: "unsupported-parameters", requests: 0,
+        });
+      }
+      expect(requests).toEqual([]);
+      const requested = receive(chamber, "intercepted-fetch");
+      chamber.postMessage({ type: "event", event: event(8, ["trackCustom", "Purchase", { order_id: 1 }]) });
+      const request = await requested;
+      expect(new URL(request.url).searchParams.get("cd[order_id]")).toBe("1");
+      const settled = receive(chamber, "result");
+      chamber.postMessage({ type: "intercepted-fetch-response", id: request.id, status: 204, body: "" });
+      expect((await settled).summary).toMatchObject({ seq: 8, disposition: "transport-settled", status: 204 });
+    } finally { unsubscribe(); await chamber.dispose(); }
   }, 5000);
 
   it("revalidates serialized custom properties before requesting transport", async () => {

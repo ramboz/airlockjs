@@ -44,12 +44,13 @@ function validContext(context) {
 export function createMetaPageViewPrototype({
   endpoint, experimentalPageViewData = false, experimentalRouting = false, experimentalMultiPixelRouting = false,
   experimentalEvents = false, experimentalScalarEventData = false, experimentalContentIds = false, experimentalContents = false,
-  experimentalCustomProperties = false, experimentalEventIds = false,
+  experimentalCustomProperties = false, experimentalNumericOrderId = false, experimentalEventIds = false,
   experimentalSyntheticAdvancedMatching = false, syntheticIdentityFixtures = null,
   experimentalTagConsent = false,
 } = {}) {
   if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
-    experimentalScalarEventData, experimentalContentIds, experimentalContents, experimentalCustomProperties, experimentalEventIds,
+    experimentalScalarEventData, experimentalContentIds, experimentalContents, experimentalCustomProperties,
+    experimentalNumericOrderId, experimentalEventIds,
     experimentalSyntheticAdvancedMatching, experimentalTagConsent]
     .some((option) => typeof option !== "boolean")) {
     throw new Error("invalid-experimental-option");
@@ -59,6 +60,7 @@ export function createMetaPageViewPrototype({
   if (experimentalContentIds && !experimentalPageViewData) throw new Error("content-ids-require-pageview-data");
   if (experimentalContents && !experimentalPageViewData) throw new Error("contents-require-pageview-data");
   if (experimentalCustomProperties && !experimentalPageViewData) throw new Error("custom-properties-require-pageview-data");
+  if (experimentalNumericOrderId && !experimentalCustomProperties) throw new Error("numeric-order-id-requires-custom-properties");
   if (experimentalEventIds && !experimentalPageViewData) throw new Error("event-ids-require-pageview-data");
   if (experimentalSyntheticAdvancedMatching && !experimentalMultiPixelRouting) {
     throw new Error("synthetic-identity-requires-multi-pixel-routing");
@@ -137,6 +139,7 @@ export function createMetaPageViewPrototype({
       const pageViewData = args.length > dataIndex
         ? snapshotPageViewData(
           args[dataIndex], experimentalScalarEventData, experimentalContentIds, experimentalContents, experimentalCustomProperties,
+          experimentalNumericOrderId,
         ) : null;
       if (args.length > dataIndex && !pageViewData) throw new Error("unsupported-parameters");
       const eventOptions = hasOptions ? snapshotEventOptions(args[dataIndex + 1]) : null;
@@ -164,7 +167,7 @@ export function createMetaPageViewPrototype({
           }
           if (experimentalCustomProperties) {
             for (const key of Object.keys(pageViewData)) {
-              if (!isStandardEventDataKey(key)) query.append(`cd[${key}]`, pageViewData[key]);
+              if (!isStandardEventDataKey(key)) query.append(`cd[${key}]`, String(pageViewData[key]));
             }
           }
         }

@@ -63,7 +63,7 @@ function snapshotContents(value) {
 }
 
 export function snapshotPageViewData(value, experimentalScalarEventData = false, experimentalContentIds = false,
-  experimentalContents = false, experimentalCustomProperties = false) {
+  experimentalContents = false, experimentalCustomProperties = false, experimentalNumericOrderId = false) {
   if (!value || typeof value !== "object" || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return null;
   const result = {};
   let customCount = 0;
@@ -83,7 +83,10 @@ export function snapshotPageViewData(value, experimentalScalarEventData = false,
     if (!descriptor || !Object.hasOwn(descriptor, "value")) return null;
     const item = descriptor.value;
     if (!standard) {
-      if (typeof item !== "string" || item.length > 64 || !item.isWellFormed()) return null;
+      if (typeof item === "string") {
+        if (item.length > 64 || !item.isWellFormed()) return null;
+      } else if (!(experimentalNumericOrderId && key === "order_id" && Number.isSafeInteger(item) &&
+          item >= 0 && !Object.is(item, -0))) return null;
       result[key] = item;
       continue;
     }
