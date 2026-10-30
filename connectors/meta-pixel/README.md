@@ -93,8 +93,9 @@ browser behavior and full production replacement remain unverified.
   `fbq("track", "PageView", { value, currency })` also snapshots those two
   optional fields and emits `cd[value]` and `cd[currency]`. Value must be a
   finite number; currency must be a well-formed string of at most 64
-  characters. Unknown keys, accessors and unsupported values reject the
-  whole call. These are experimental admission rules, not native semantics.
+  characters. Unknown keys reject unless separately enabled below; accessors
+  and unsupported values reject the whole call. These are experimental
+  admission rules, not native semantics.
 - With both `experimentalPageViewData: true` and
   `experimentalScalarEventData: true`, event data can additionally contain
   `region`, `content_category`, `content_name`, `search_string`,
@@ -107,6 +108,27 @@ browser behavior and full production replacement remain unverified.
   reject the entire call unless explicitly enabled below. The added fields use
   `cd[...]` keys; order and conversion to strings are prototype choices, not
   qualified native behavior.
+- With both `experimentalPageViewData: true` and
+  `experimentalCustomProperties: true`, standard and custom events can
+  include up to eight additional own string-valued properties. Each key
+  must start with an ASCII letter and contain only ASCII letters, digits or
+  underscores, up to 32 characters. Values may be empty but must be
+  well-formed strings of at most 64 UTF-16 code units. Undefined, null,
+  numbers, booleans, nested values, accessors, symbols and excess properties
+  reject the whole call. Standard-data names, `eventID`, and the names `em`,
+  `ph`, `fn`, `ln`, `external_id`, `ge`, `db`, `ct`, `st`, `zp`, `country`,
+  `email`, `phone`, `fbp`, `fbc` and `fbclid` are reserved rather than
+  treated as custom, including case variants. This does not enable any
+  otherwise unsupported input.
+  `Object.prototype`'s own names also reject. Custom keys are emitted as
+  `cd[<key>]` after the supported standard fields, preserving their input
+  order. Use only synthetic values: the name restrictions are not a
+  general sensitive-data detector, and the local receiver retains URLs.
+  The opt-in does not enable custom event names, identity, other data flags
+  or vendor transport. Key/value types, limits, reserved names, ordering and
+  wire encoding are local assumptions, not qualified native behavior.
+  Property enumeration can perform unbounded main-thread work and invoke
+  proxy traps; this is not proxy isolation.
 - With both `experimentalPageViewData: true` and
   `experimentalContentIds: true`, event data can contain `content_ids` as an
   ordinary same-realm array of up to 16 strings or nonnegative safe integers.
@@ -176,7 +198,8 @@ browser behavior and full production replacement remain unverified.
   `value`/`currency` record on these events; the separate scalar opt-in above
   adds its listed properties, and the separate content-ID opt-in adds that
   array; the separate contents opt-in adds its bounded array of item records.
-  Other arrays, objects and unrecognized fields reject.
+  Other arrays, objects and unrecognized fields reject unless a separate
+  opt-in above supports them.
   No native conversion event or general
   custom-event serialization was captured, and the admission rules, field
   encoding and order here are working assumptions.

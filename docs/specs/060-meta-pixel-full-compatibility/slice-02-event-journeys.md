@@ -156,6 +156,18 @@ item fields remain rejected: the retained documentation does not establish
 their supported Pixel schema. Native contents input-to-wire evidence, backend
 receipt, catalog matching and all readiness/acceptance gates remain open.
 
+The separate `experimentalCustomProperties` opt-in accepts a bounded subset
+of additional string-valued event properties, on the existing standard or
+custom event calls. Meta's retained public conversion-tracking reference
+([P7](spec.md#public-references)) identifies custom properties on events; the
+retained `cd[region]` wire observation does not establish a general mapping
+from arbitrary input names. The first-party worker and local receiver exercise
+snapshots, routing, consent and refusals, emitting `cd[<key>]` as an explicit
+prototype hypothesis. The string-only subset, field count and length, reserved
+names, omission/error behavior and wire ordering are not native-qualified.
+Inputs are synthetic; no production cutover, native parity or 060-02
+acceptance is claimed.
+
 ## Assumptions
 
 - Unverified: native type/coercion/size behavior is discriminable without losing

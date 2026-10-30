@@ -4,6 +4,18 @@ export const SCALAR_EVENT_DATA_KEYS = Object.freeze([
   "predicted_ltv", "num_items", "status", "delivery_category",
 ]);
 
+const RESERVED_CUSTOM_KEYS = new Set([
+  ...BASIC_EVENT_DATA_KEYS, ...SCALAR_EVENT_DATA_KEYS, "content_ids", "contents", "eventid",
+  "em", "ph", "fn", "ln", "external_id", "ge", "db", "ct", "st", "zp", "country", "email", "phone",
+  "fbp", "fbc", "fbclid",
+]);
+const CUSTOM_PROPERTY_LIMIT = 8;
+
+export function isStandardEventDataKey(key) {
+  return BASIC_EVENT_DATA_KEYS.includes(key) || SCALAR_EVENT_DATA_KEYS.includes(key) ||
+    key === "content_ids" || key === "contents";
+}
+
 function snapshotContentIds(value) {
   if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype) return null;
   const length = Object.getOwnPropertyDescriptor(value, "length")?.value;
@@ -51,15 +63,30 @@ function snapshotContents(value) {
 }
 
 export function snapshotPageViewData(value, experimentalScalarEventData = false, experimentalContentIds = false,
-  experimentalContents = false) {
+  experimentalContents = false, experimentalCustomProperties = false) {
   if (!value || typeof value !== "object" || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return null;
   const result = {};
-  for (const key of Reflect.ownKeys(value)) {
-    if (!BASIC_EVENT_DATA_KEYS.includes(key) && !(experimentalScalarEventData && SCALAR_EVENT_DATA_KEYS.includes(key)) &&
+  let customCount = 0;
+  const keys = Reflect.ownKeys(value);
+  if (experimentalCustomProperties &&
+      keys.length > BASIC_EVENT_DATA_KEYS.length + SCALAR_EVENT_DATA_KEYS.length + 2 + CUSTOM_PROPERTY_LIMIT) return null;
+  for (const key of keys) {
+    if (typeof key !== "string") return null;
+    const standard = isStandardEventDataKey(key);
+    if (standard && !BASIC_EVENT_DATA_KEYS.includes(key) &&
+        !(experimentalScalarEventData && SCALAR_EVENT_DATA_KEYS.includes(key)) &&
         !(experimentalContentIds && key === "content_ids") && !(experimentalContents && key === "contents")) return null;
+    if (!standard && (!experimentalCustomProperties || !/^[A-Za-z][A-Za-z0-9_]{0,31}$/.test(key) ||
+        RESERVED_CUSTOM_KEYS.has(key.toLowerCase()) || Object.hasOwn(Object.prototype, key) ||
+        ++customCount > CUSTOM_PROPERTY_LIMIT)) return null;
     const descriptor = Object.getOwnPropertyDescriptor(value, key);
     if (!descriptor || !Object.hasOwn(descriptor, "value")) return null;
     const item = descriptor.value;
+    if (!standard) {
+      if (typeof item !== "string" || item.length > 64 || !item.isWellFormed()) return null;
+      result[key] = item;
+      continue;
+    }
     if (item !== undefined) {
       if (key === "content_ids") {
         const ids = snapshotContentIds(item);

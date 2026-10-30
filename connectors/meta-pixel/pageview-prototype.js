@@ -1,5 +1,5 @@
 import { SYNTHETIC_META_PIXEL_ID } from "../pixel/vendors/meta.js";
-import { BASIC_EVENT_DATA_KEYS, SCALAR_EVENT_DATA_KEYS, snapshotPageViewData } from "./pageview-data.js";
+import { BASIC_EVENT_DATA_KEYS, SCALAR_EVENT_DATA_KEYS, isStandardEventDataKey, snapshotPageViewData } from "./pageview-data.js";
 import { snapshotEventOptions } from "./event-options.js";
 import { snapshotSyntheticIdentity, validSyntheticIdentityFixtures } from "./synthetic-identity.js";
 import { hashField } from "../pixel/advanced-matching.js";
@@ -44,12 +44,12 @@ function validContext(context) {
 export function createMetaPageViewPrototype({
   endpoint, experimentalPageViewData = false, experimentalRouting = false, experimentalMultiPixelRouting = false,
   experimentalEvents = false, experimentalScalarEventData = false, experimentalContentIds = false, experimentalContents = false,
-  experimentalEventIds = false,
+  experimentalCustomProperties = false, experimentalEventIds = false,
   experimentalSyntheticAdvancedMatching = false, syntheticIdentityFixtures = null,
   experimentalTagConsent = false,
 } = {}) {
   if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
-    experimentalScalarEventData, experimentalContentIds, experimentalContents, experimentalEventIds,
+    experimentalScalarEventData, experimentalContentIds, experimentalContents, experimentalCustomProperties, experimentalEventIds,
     experimentalSyntheticAdvancedMatching, experimentalTagConsent]
     .some((option) => typeof option !== "boolean")) {
     throw new Error("invalid-experimental-option");
@@ -58,6 +58,7 @@ export function createMetaPageViewPrototype({
   if (experimentalScalarEventData && !experimentalPageViewData) throw new Error("scalar-data-requires-pageview-data");
   if (experimentalContentIds && !experimentalPageViewData) throw new Error("content-ids-require-pageview-data");
   if (experimentalContents && !experimentalPageViewData) throw new Error("contents-require-pageview-data");
+  if (experimentalCustomProperties && !experimentalPageViewData) throw new Error("custom-properties-require-pageview-data");
   if (experimentalEventIds && !experimentalPageViewData) throw new Error("event-ids-require-pageview-data");
   if (experimentalSyntheticAdvancedMatching && !experimentalMultiPixelRouting) {
     throw new Error("synthetic-identity-requires-multi-pixel-routing");
@@ -134,7 +135,9 @@ export function createMetaPageViewPrototype({
       if (single && !pixelIds.has(args[1])) throw new Error("uninitialized-pixel");
       if (!validContext(context)) throw new Error("invalid-context");
       const pageViewData = args.length > dataIndex
-        ? snapshotPageViewData(args[dataIndex], experimentalScalarEventData, experimentalContentIds, experimentalContents) : null;
+        ? snapshotPageViewData(
+          args[dataIndex], experimentalScalarEventData, experimentalContentIds, experimentalContents, experimentalCustomProperties,
+        ) : null;
       if (args.length > dataIndex && !pageViewData) throw new Error("unsupported-parameters");
       const eventOptions = hasOptions ? snapshotEventOptions(args[dataIndex + 1]) : null;
       if (hasOptions && !eventOptions) throw new Error("unsupported-options");
@@ -158,6 +161,11 @@ export function createMetaPageViewPrototype({
           }
           if (experimentalContents && Object.hasOwn(pageViewData, "contents") && pageViewData.contents !== undefined) {
             query.append("cd[contents]", JSON.stringify(pageViewData.contents));
+          }
+          if (experimentalCustomProperties) {
+            for (const key of Object.keys(pageViewData)) {
+              if (!isStandardEventDataKey(key)) query.append(`cd[${key}]`, pageViewData[key]);
+            }
           }
         }
         if (eventOptions) query.append("eid", eventOptions.eventID);
