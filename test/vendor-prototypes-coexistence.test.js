@@ -35,6 +35,8 @@ describe("experimental vendor coexistence on independent local workers", () => {
         experimentalRealEstateViewItem: true,
         experimentalTravelViewItem: true,
         experimentalViewItemList: true,
+        experimentalViewSearchResults: true,
+        experimentalAddToCart: true,
         consent: { ad_storage: "denied" }, captureContext: () => ({ pageURL, referrer: "" }),
       });
       meta = createMetaPixelPrototype({
@@ -211,9 +213,16 @@ describe("experimental vendor coexistence on independent local workers", () => {
       google.gtag("event", "view_item", {
         value: 41, items: [{ destination: "HELD1", google_business_vertical: "travel" }],
       });
+      google.gtag("event", "view_search_results", {
+        items: [{ id: 21, google_business_vertical: "retail" }],
+      });
+      google.gtag("event", "add_to_cart", {
+        items: [{ id: 22, google_business_vertical: "retail" }],
+      });
       meta.fbq("track", "ViewContent", { content_ids: ["meta-still-live"] });
       states = await Promise.all([google.flush(), meta.flush()]);
       expect(states.map((state) => state.outcomes.at(-1).disposition)).toEqual(["held", "transport-settled"]);
+      expect(states[0].outcomes.slice(-3).map((outcome) => outcome.disposition)).toEqual(["held", "held", "held"]);
       expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([7, 5]);
       expect(JSON.parse(new URL(metaReceiver.arrivals[4].url).searchParams.get("cd[content_ids]")))
         .toEqual(["meta-still-live"]);
@@ -273,6 +282,25 @@ describe("experimental vendor coexistence on independent local workers", () => {
       const metaListQuery = new URL(metaReceiver.arrivals[6].url).searchParams;
       expect(JSON.parse(metaListQuery.get("cd[content_ids]"))).toEqual(["meta-list-independent"]);
       expect(metaListQuery.has("airlock_event")).toBe(false);
+
+      google.gtag("event", "view_search_results", { items: [{ id: 31, google_business_vertical: "retail" }] });
+      google.gtag("event", "add_to_cart", { items: [{ id: 32, google_business_vertical: "retail" }], value: 0 });
+      meta.fbq("track", "AddToCart", { content_ids: ["meta-new-cart"] });
+      states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states.map((state) => state.outcomes.at(-1).disposition))
+        .toEqual(["transport-settled", "transport-settled"]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([12, 8]);
+      const actionQueries = googleReceiver.arrivals.slice(10).map(({ url }) => new URL(url).searchParams);
+      expect(actionQueries.map((query) => query.get("airlock_event"))).toEqual(["view_search_results", "add_to_cart"]);
+      expect(actionQueries.map((query) => JSON.parse(query.get("airlock_items")))).toEqual([
+        [{ id: 31, google_business_vertical: "retail" }],
+        [{ id: 32, google_business_vertical: "retail" }],
+      ]);
+      expect(actionQueries.every((query) => !query.has("cd[content_ids]"))).toBe(true);
+      const metaActionQuery = new URL(metaReceiver.arrivals[7].url).searchParams;
+      expect(metaActionQuery.get("ev")).toBe("AddToCart");
+      expect(JSON.parse(metaActionQuery.get("cd[content_ids]"))).toEqual(["meta-new-cart"]);
+      expect(metaActionQuery.has("airlock_event")).toBe(false);
     } catch (error) {
       cause = error;
       throw error;

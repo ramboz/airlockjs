@@ -95,6 +95,9 @@ The separate `experimentalViewItemList` gate reuses an enabled vertical's
 bounded local schema for the guide's `view_item_list` event. That schema
 reuse, the local event marker, routing and fanout remain hypotheses; it
 does not qualify the native list journey or audience outcomes.
+Separate default-off `view_search_results` and `add_to_cart` gates reuse the
+same local input model. Their event markers are distinct, but neither search
+behavior, shopping-cart effects nor native event handling is established.
 
 ## Assumptions
 
