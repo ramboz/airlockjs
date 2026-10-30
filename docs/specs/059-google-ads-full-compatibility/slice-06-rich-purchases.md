@@ -83,6 +83,10 @@ lists direct Ads `items.id`, `price` and `quantity`, but its introductory
 note instead names `item_id`; that conflict remains unresolved. The local
 subset refuses `item_id` and uses an invented `airlock_items` field. It does
 not establish native encoding, arithmetic, feed matching or product outcomes.
+The separate `experimentalPurchaseDiscount` opt-in adds the documented
+order-level `discount` input as an invented local marker without performing
+discount arithmetic. Processing with or without items and all validation and
+encoding choices remain unqualified.
 
 ## Assumptions
 
