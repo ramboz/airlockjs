@@ -446,7 +446,7 @@ export function createMetaPixelPrototype({
       ? 3 : args[0] === "track" && (experimentalEvents || args[1] === "PageView") ||
         args[0] === "trackCustom" && experimentalEvents ? 2 : -1;
     const hasOptions = experimentalEventIds && dataIndex >= 0 &&
-      (args[0] === "track" && args.length === 4 ||
+      ((args[0] === "track" || args[0] === "trackCustom") && args.length === 4 ||
        experimentalMultiPixelRouting && args[0] === "trackSingle" && args.length === 5);
     const hasIdentity = experimentalSyntheticAdvancedMatching && args[0] === "init" && args.length === 3;
     for (const [index, arg] of args.entries()) {

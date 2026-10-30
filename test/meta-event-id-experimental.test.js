@@ -71,25 +71,23 @@ describe("experimental Meta event IDs through the real worker", () => {
     } finally { await env.close(); }
   }, 5000);
 
-  it("preserves old rejection behavior and does not infer options for custom events", async () => {
+  it("preserves default-off rejection and does not infer targeted-custom options", async () => {
     const old = await setup({ experimentalEventIds: false });
     try {
       old.adapter.fbq("init", ids[0]);
       old.adapter.fbq("track", "Purchase", {}, { eventID: "one" });
       old.adapter.fbq("trackSingle", ids[0], "Purchase", {}, { eventID: "one" });
+      old.adapter.fbq("trackCustom", "Test", {}, { eventID: "one" });
       expect((await old.adapter.flush()).outcomes.slice(1).map((item) => item.reason)).toEqual([
-        "unsupported-argument", "argument-limit",
+        "unsupported-argument", "argument-limit", "unsupported-argument",
       ]);
       expect(old.receiver.arrivals).toEqual([]);
     } finally { await old.close(); }
     const env = await setup();
     try {
       env.adapter.fbq("init", ids[0]);
-      env.adapter.fbq("trackCustom", "Test", {}, { eventID: "one" });
       env.adapter.fbq("trackSingleCustom", ids[0], "Test", {}, { eventID: "one" });
-      expect((await env.adapter.flush()).outcomes.slice(1).map((item) => item.reason)).toEqual([
-        "unsupported-argument", "unsupported-argument",
-      ]);
+      expect((await env.adapter.flush()).outcomes.slice(1).map((item) => item.reason)).toEqual(["unsupported-argument"]);
       expect(env.receiver.arrivals).toEqual([]);
     } finally { await env.close(); }
   }, 5000);

@@ -86,7 +86,7 @@ describe("experimental numeric order_id through the serialized Meta worker", () 
     } finally { await env.close(); }
   }, 5000);
 
-  it("supports a single synthetic Pixel without changing custom-event option refusal", async () => {
+  it("supports a single synthetic Pixel and numeric data with a custom event ID", async () => {
     const env = await setup({
       experimentalRouting: false, experimentalMultiPixelRouting: false, experimentalEventIds: true,
     });
@@ -96,10 +96,11 @@ describe("experimental numeric order_id through the serialized Meta worker", () 
       env.adapter.fbq("trackCustom", "Purchase", { order_id: 2 }, { eventID: "synthetic" });
       const state = await env.adapter.flush();
       expect(state.outcomes.slice(1).map((outcome) => outcome.reason || outcome.disposition))
-        .toEqual(["transport-settled", "unsupported-argument"]);
-      expect(env.receiver.arrivals.map(fields)).toEqual([
-        { pixel: "000000000000000", event: "Purchase", data: [["cd[order_id]", "1"]] },
-      ]);
+        .toEqual(["transport-settled", "transport-settled"]);
+      expect(env.receiver.arrivals.map(fields)).toEqual([1, 2].map((id) => ({
+        pixel: "000000000000000", event: "Purchase", data: [["cd[order_id]", String(id)]],
+      })));
+      expect(new URL(env.receiver.arrivals[1].url).searchParams.get("eid")).toBe("synthetic");
     } finally { await env.close(); }
   }, 5000);
 

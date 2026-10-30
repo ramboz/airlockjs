@@ -251,6 +251,58 @@ describe("actual first-party worker correlated protocol (not receipt evidence)",
     } finally { await chamber.dispose(); }
   }, 5000);
 
+  it.each([false, true])("revalidates custom-event options in the worker (event IDs=%s)", async (enabled) => {
+    const chamber = createNodePrototypeChamber();
+    const requests = [];
+    const unsubscribe = chamber.onMessage((message) => {
+      if (message.type === "intercepted-fetch") requests.push(message);
+    });
+    try {
+      const configured = receive(chamber, "phase");
+      chamber.postMessage({
+        type: "init", endpoint, transportTimeoutMs: 500, experimentalEvents: true,
+        experimentalPageViewData: true, experimentalEventIds: enabled,
+        experimentalRouting: true, experimentalMultiPixelRouting: true,
+      });
+      await configured;
+      const initialized = receive(chamber, "result");
+      chamber.postMessage({ type: "event", event: event(1, ["init", "000000000000001"]) });
+      await initialized;
+      const invalid = [
+        ["trackCustom", "Purchase", {}, { eventID: 1 }],
+        ["trackSingleCustom", "000000000000001", "Purchase", {}, { eventID: "one" }],
+      ];
+      for (const [index, args] of invalid.entries()) {
+        const rejected = receive(chamber, "result");
+        chamber.postMessage({ type: "event", event: event(index + 2, args) });
+        expect((await rejected).summary).toMatchObject({
+          seq: index + 2, disposition: "rejected",
+          reason: enabled && index === 0 ? "unsupported-options" : "unsupported-command", requests: 0,
+        });
+      }
+      if (!enabled) {
+        const rejected = receive(chamber, "result");
+        chamber.postMessage({ type: "event", event: event(4, ["trackCustom", "Purchase", {}, { eventID: "one" }]) });
+        expect((await rejected).summary).toMatchObject({
+          seq: 4, disposition: "rejected", reason: "unsupported-command", requests: 0,
+        });
+        expect(requests).toEqual([]);
+      } else {
+        expect(requests).toEqual([]);
+        const requested = receive(chamber, "intercepted-fetch");
+        chamber.postMessage({ type: "event", event: event(4, ["trackCustom", "Purchase", {}, { eventID: "one" }]) });
+        const request = await requested;
+        expect(new URL(request.url).searchParams.get("eid")).toBe("one");
+        const settled = receive(chamber, "result");
+        chamber.postMessage({ type: "intercepted-fetch-response", id: request.id, status: 204, body: "" });
+        expect((await settled).summary).toMatchObject({
+          seq: 4, disposition: "transport-settled",
+          branches: [{ ordinal: 1, disposition: "transport-settled", status: 204 }],
+        });
+      }
+    } finally { unsubscribe(); await chamber.dispose(); }
+  }, 5000);
+
   it("revalidates synthetic init identities after serialization", async () => {
     const chamber = createNodePrototypeChamber();
     try {

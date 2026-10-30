@@ -71,9 +71,20 @@ caller-supplied `eventID`, maps it to an `eid` query field in the chamber and
 routes it through the real serialized first-party Node worker and governed
 loopback receiver. Tests cover broadcast, targeting, mutation, malformed
 options, consent holds and repeated same-ID browser-only calls; no duplicates
-are suppressed. Unsupported custom-event option positions remain rejected.
+are suppressed.
 
-The documented input shape is not a native input-to-wire capture. The `eid`
+With `experimentalEvents` enabled, the existing event-ID opt-in also accepts
+the fourth argument of `trackCustom`. Meta's Magento plugin sets
+[`trackCustom` and `Purchase` in its browser payload](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/purchase.phtml#L22-L40)
+and [passes `eventID` to `fbq`](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/web/js/metaPixelTracker.js#L34-L47).
+The local subset snapshots and revalidates that option, emits its assumed
+`eid` through the serialized worker and loopback seal, and retains host and
+tag consent controls. Tests cover broadcast, standard targeted controls,
+mutation, malformed records and no replay. The plugin's complete payload is
+not yet supported or qualified. The `trackSingleCustom` option remains
+rejected; the source does not establish that form.
+
+The input examples are not native input-to-wire captures. The `eid`
 mapping, accepted types/bounds and errors are experimental assumptions, not a
 qualified native representation. The local receiver cannot establish vendor
 receipt, browser/server matching or deduplication; no CAPI or vendor event was

@@ -121,7 +121,8 @@ export function createMetaPageViewPrototype({
       const custom = args[0] === "trackCustom" || args[0] === "trackSingleCustom";
       const dataIndex = single ? 3 : 2;
       const name = args[single ? 2 : 1];
-      const hasOptions = experimentalEventIds && !custom && args.length === dataIndex + 2;
+      const hasOptions = experimentalEventIds && (!custom || args[0] === "trackCustom") &&
+        args.length === dataIndex + 2;
       if ((!single && args[0] !== "track" && args[0] !== "trackCustom") ||
           (custom && !experimentalEvents) || (!experimentalEvents && name !== "PageView") ||
           !(args.length === dataIndex || experimentalPageViewData && args.length === dataIndex + 1 || hasOptions)) {

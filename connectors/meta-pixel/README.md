@@ -144,11 +144,12 @@ browser behavior and full production replacement remain unverified.
   [1](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Test/Unit/Block/Pixel/PurchaseTest.php#L236-L245);
   its [tracker](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/web/js/metaPixelTracker.js#L34-L47)
   passes the payload to `fbq`. The plugin also supplies an `eventID` option
-  to `trackCustom`, which this prototype still rejects, so its complete call
-  is not supported. These sources establish the input example, not native
-  serialization. Limits, conversion to `cd[order_id]`, other routes and
-  consent behavior are local choices, not qualified native behavior. Use
-  synthetic IDs only: the local receiver retains request URLs.
+  to `trackCustom`; the local option path is described below. The full plugin
+  payload remains unsupported and unqualified. These sources establish the
+  input example, not native serialization. Limits, conversion to
+  `cd[order_id]`, other routes and consent behavior are local choices, not
+  qualified native behavior. Use synthetic IDs only: the local receiver
+  retains request URLs.
 - With both `experimentalPageViewData: true` and
   `experimentalContentIds: true`, event data can contain `content_ids` as an
   ordinary same-realm array of up to 16 strings or nonnegative safe integers.
@@ -176,15 +177,22 @@ browser behavior and full production replacement remain unverified.
   `experimentalEventIds: true`, `fbq("track", name, data, { eventID })`
   accepts the documented fourth argument. With multi-Pixel routing enabled,
   `fbq("trackSingle", pixelId, name, data, { eventID })` accepts the
-  documented fifth argument. `data` must be a supported record, even when
-  empty; the options record must contain exactly one own data property
-  `eventID`, a nonempty well-formed string of at most 64 UTF-16 code units.
+  documented fifth argument. With `experimentalEvents: true`, the same
+  event-ID opt-in also accepts `fbq("trackCustom", name, data, { eventID })`.
+  Meta's Magento plugin uses this custom-event form for
+  [Purchase](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/purchase.phtml#L22-L40)
+  and [forwards the options to fbq](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/web/js/metaPixelTracker.js#L34-L47).
+  `trackSingleCustom` with an option remains unsupported. `data` must be a
+  supported record, even when empty; the options record must contain exactly
+  one own data property `eventID`, a nonempty well-formed string of at most
+  64 UTF-16 code units.
   The input is snapshotted and the chamber emits its value as `eid` on each
   selected local request. The bound, errors, empty-value handling and wire
-  representation are experimental, not native-qualified. Custom-event option
-  positions are unverified and remain unsupported. Repeating an event ID does
-  not suppress a browser event; this path does not generate IDs, send server
-  events or establish backend deduplication.
+  representation are experimental, not native-qualified. The source example
+  establishes the custom input position, not native encoding, consent behavior
+  or broadcast semantics. Repeating an event ID does not suppress a browser
+  event; this path does not generate IDs, send server events or establish
+  backend deduplication.
 - With `experimentalRouting`, `experimentalMultiPixelRouting` and
   `experimentalSyntheticAdvancedMatching` all enabled, the documented
   `fbq("init", pixelId, identity)` position accepts only the two per-instance
@@ -286,8 +294,8 @@ The chamber supplies `id` and `ev` in addition to those context fields, plus
 the opted-in event fields above when supplied. Extra context is not
 captured. By default args are limited to three primitive values (strings ≤64
 characters); multi-Pixel routing allows four for targeted data calls. The
-event-ID opt-in permits a fourth argument for `track` and, with multi-Pixel
-routing, a fifth for `trackSingle`.
+event-ID opt-in permits a fourth argument for `track` and `trackCustom` (when
+events are enabled) and, with multi-Pixel routing, a fifth for `trackSingle`.
 Data records are limited to the opted-in fields listed above.
 Other objects, arrays, accessors and functions are not copied.
 Malformed/unsupported calls and extra arguments remain visible rejections,

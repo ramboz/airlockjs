@@ -175,9 +175,9 @@ tests the getter with the [number 1](https://github.com/meta/meta-for-magento2/b
 and [passes the payload to fbq](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/web/js/metaPixelTracker.js#L34-L47).
 The local subset accepts only nonnegative safe integers other than negative
 zero and sends their decimal string as `cd[order_id]`. Worker and loopback
-tests cover capture, routing, refusals and consent holds. The plugin also
-passes a custom-event `eventID` option, which the prototype still rejects;
-the complete plugin call is not supported. The number limits, wire mapping
+tests cover capture, routing, refusals and consent holds. The plugin also passes a custom-event `eventID` option,
+now supported for this local argument position as described in 060-10. The
+complete plugin payload is not supported. The number limits, wire mapping
 and other event routes remain assumptions rather than native observations.
 Only synthetic IDs are used. No native request, backend receipt, parity or
 readiness criterion is claimed.
