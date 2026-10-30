@@ -34,12 +34,18 @@ experimental replacement work from the available references before complete
 native responses exist. Local, source-only opt-ins now cover Google routing,
 parameter scopes, callbacks, conservative consent commands, an explicit
 manual dataLayer drain, synthetic purchase classification and a bounded cart
-subset; Meta covers multiple Pixels, event routing, bounded commerce data,
-synthetic custom properties, event IDs, synthetic init identity,
+subset, plus three documented custom-variable example names; Meta covers
+multiple Pixels, event routing, bounded commerce data and content-name arrays,
+synthetic custom properties, event IDs, local agent settings, synthetic init identity,
 local tag-consent commands and an explicitly supplied bootstrap stub. Each uses
 a serialized worker and governed loopback receiver;
 the existing production defaults remain unchanged. Most ordering, encoding and
 identity choices remain experimental, not native findings.
+
+Google's documented consent wait remains unsupported. A potential conflict
+between retaining pre-grant conversions and the local drop/no-replay policy
+needs qualified native evidence and an owner decision; the current seal has
+not been relaxed. See [059-03](../specs/059-google-ads-full-compatibility/slice-03-consent-journeys.md).
 
 A repeatable offline comparison matched five selected Google field relationships
 for three retained inputs against six aborted native attempts. It did not
