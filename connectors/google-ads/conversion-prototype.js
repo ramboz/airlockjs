@@ -2,7 +2,7 @@ import { snapshotDestinationSelectors } from "./destination-selectors.js";
 import { validConsentCommand } from "./consent-commands.js";
 import { validBootstrapCommand } from "./bootstrap-command.js";
 import { snapshotPurchaseCartItems } from "./purchase-cart-items.js";
-import { snapshotViewItems, validViewItemValue } from "./view-items.js";
+import { isEnabledViewEvent, snapshotViewItems, validViewItemValue } from "./view-items.js";
 
 const PARAMS = ["send_to", "value", "currency", "transaction_id"];
 const SCOPE_PARAMS = ["value", "currency", "transaction_id"];
@@ -54,22 +54,28 @@ export function createGoogleAdsConversionPrototype({
   experimentalPurchaseCart = false, experimentalPurchaseDiscount = false, experimentalPurchaseFeed = false,
   experimentalCustomVariables = false, experimentalRetailViewItem = false, experimentalEducationViewItem = false,
   experimentalLocalViewItem = false, experimentalRealEstateViewItem = false, experimentalTravelViewItem = false,
-  experimentalViewItemList = false,
+  experimentalViewItemList = false, experimentalViewSearchResults = false, experimentalAddToCart = false,
 } = {}) {
   const viewOptions = {
     retail: experimentalRetailViewItem, education: experimentalEducationViewItem,
     local: experimentalLocalViewItem, realEstate: experimentalRealEstateViewItem, travel: experimentalTravelViewItem,
   };
   const experimentalViewItem = Object.values(viewOptions).some((enabled) => enabled === true);
+  const viewEvents = {
+    view_item_list: experimentalViewItemList,
+    view_search_results: experimentalViewSearchResults,
+    add_to_cart: experimentalAddToCart,
+  };
+  const experimentalViewEvent = Object.values(viewEvents).some((enabled) => enabled === true);
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
       typeof experimentalMultiDestination !== "boolean" || typeof experimentalConsentCommands !== "boolean" ||
       typeof experimentalBootstrap !== "boolean" || typeof experimentalPurchase !== "boolean" ||
       typeof experimentalPurchaseCart !== "boolean" || (experimentalPurchaseCart && !experimentalPurchase) ||
       typeof experimentalPurchaseDiscount !== "boolean" || (experimentalPurchaseDiscount && !experimentalPurchase) ||
       typeof experimentalPurchaseFeed !== "boolean" || (experimentalPurchaseFeed && !experimentalPurchaseCart) ||
-      typeof experimentalCustomVariables !== "boolean" || typeof experimentalViewItemList !== "boolean" ||
+      typeof experimentalCustomVariables !== "boolean" || Object.values(viewEvents).some((enabled) => typeof enabled !== "boolean") ||
       Object.values(viewOptions).some((enabled) => typeof enabled !== "boolean") ||
-      ((experimentalViewItem || experimentalViewItemList) && (experimentalParameterScopes || experimentalMultiDestination)) ||
+      ((experimentalViewItem || experimentalViewEvent) && (experimentalParameterScopes || experimentalMultiDestination)) ||
       (experimentalMultiDestination && !experimentalRouting)) {
     throw new Error("invalid-experimental-option");
   }
@@ -138,8 +144,7 @@ export function createGoogleAdsConversionPrototype({
         return [];
       }
       const purchase = experimentalPurchase && args[1] === "purchase";
-      const viewItem = experimentalViewItem &&
-        (args[1] === "view_item" || (experimentalViewItemList && args[1] === "view_item_list"));
+      const viewItem = isEnabledViewEvent(args[1], experimentalViewItem, viewEvents);
       if (args.length !== 3 || args[0] !== "event" || (args[1] !== "conversion" && !purchase && !viewItem)) throw new Error("unsupported-command");
       if (!configs.size) throw new Error("conversion-before-config");
       if (viewItem) {

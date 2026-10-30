@@ -350,8 +350,8 @@ dynamic remarketing event object may have an optional `value`. Its required
 uses `item_id` instead. Neither is the direct-Ads purchase-cart schema above.
 
 The separately gated, default-off `experimentalRetailViewItem: true` admits
-that event with `items` and optional `value`. A separate flag is also required
-for the list-event experiment below. Its local subset requires
+that event with `items` and optional `value`. Separate flags are also required
+for the additional event experiments below. Its local subset requires
 one to ten dense own-data items, each with exactly a positive safe-integer `id`
 and the string `retail`; an optional value must be finite and nonnegative,
 excluding negative zero. Zero is retained; absent or explicitly undefined
@@ -460,8 +460,8 @@ The [guide's travel example](https://support.google.com/google-ads/answer/730579
 shows a numeric `value` and items with `google_business_vertical: "travel"`,
 required `destination`, and optional `origin`, `start_date` and `end_date`.
 It specifies dates as `YYYY-MM-DD`. The separately gated, default-off
-`experimentalTravelViewItem` admits this synthetic `view_item` subset; a
-separate flag is also required for the list-event experiment below. It can
+`experimentalTravelViewItem` admits this synthetic `view_item` subset;
+separate flags are also required for the additional event experiments below. It can
 coexist with the other view-item flags without enabling them, and
 mixed-vertical item arrays are rejected.
 
@@ -528,6 +528,40 @@ observations, so accepted bounds do not guarantee a hard main-thread work
 limit or untrusted-input isolation. Native validation, routing, feed keys,
 encoding, audiences, attribution, reporting and parity remain unqualified.
 Production defaults, the purchase path and release gates are unchanged.
+
+### Experimental view_search_results and add_to_cart
+
+The [same guide](https://support.google.com/google-ads/answer/7305793?hl=en)
+also lists `view_search_results` and `add_to_cart`, alongside the general
+dynamic-remarketing event shape with required `items` and optional `value`.
+`experimentalViewSearchResults` and `experimentalAddToCart` are separate,
+default-off options: neither enables the other, `view_item_list`, or a
+vertical. Each also requires the applicable existing vertical opt-in. Applying
+the five existing narrower `view_item` schemas to these events is a local
+hypothesis, not evidence that native Google accepts these combinations.
+
+Both use the same bounded input snapshot and validation, single configured
+literal-loopback route, independent consent seal and drop-without-replay
+behavior as the list experiment. They refuse mixed verticals, `send_to`,
+labels, callbacks, parameter scopes, multi-destination routing and foreign
+fields. The hypothetical local `airlock_event=view_search_results` and
+`airlock_event=add_to_cart` markers distinguish the requests; `airlock_items`
+and optional `airlock_value` have the same invented local encoding as before.
+The host checks these markers and captured item/value relationships before
+transport. When either new option is enabled, it also requires exactly one
+`purchase` event marker for purchase and no event marker for conversion,
+preventing their local marker substitution; this is not full correlation of
+all labeled-request fields. These added marker checks do not change defaults.
+The conversion comparison excludes both events.
+
+The experiment does not model a search query, search behavior, a shopping
+cart, purchase conversion, feed matching or attribution; the event names do
+not imply such effects. Only synthetic, non-private values are permitted by
+the operating contract; no personal-information detector is provided. Proxy
+traps may run or spoof observations, and a request already sent cannot be
+recalled. The routing, schema reuse and markers are local choices, not native
+wire, fanout, audience, reporting or compatibility evidence. Production and
+release gates remain unchanged.
 
 ### Experimental bootstrap command
 

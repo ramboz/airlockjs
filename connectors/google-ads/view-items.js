@@ -3,6 +3,13 @@ const TRAVEL_KEYS = ["destination", "google_business_vertical"];
 const TRAVEL_OPTIONAL = ["origin", "start_date", "end_date"];
 const MAX_ITEMS = 10;
 
+export const VIEW_EVENT_NAMES = Object.freeze(["view_item", "view_item_list", "view_search_results", "add_to_cart"]);
+
+export function isEnabledViewEvent(name, enabledVertical, events) {
+  return enabledVertical && VIEW_EVENT_NAMES.includes(name) &&
+    (name === "view_item" || events[name] === true);
+}
+
 function dataValue(object, key) {
   const descriptor = Object.getOwnPropertyDescriptor(object, key);
   return descriptor && Object.hasOwn(descriptor, "value") ? descriptor.value : undefined;

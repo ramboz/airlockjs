@@ -4,7 +4,7 @@ import { snapshotDestinationSelectors } from "../connectors/google-ads/destinati
 import { CONSENT_COMMAND_KEYS, validConsentCommand } from "../connectors/google-ads/consent-commands.js";
 import { validBootstrapCommand } from "../connectors/google-ads/bootstrap-command.js";
 import { snapshotPurchaseCartItems } from "../connectors/google-ads/purchase-cart-items.js";
-import { snapshotViewItems, validViewItemValue } from "../connectors/google-ads/view-items.js";
+import { isEnabledViewEvent, snapshotViewItems, validViewItemValue, VIEW_EVENT_NAMES } from "../connectors/google-ads/view-items.js";
 
 const PARAM_KEYS = ["send_to", "value", "currency", "transaction_id"];
 const FEED_KEYS = ["aw_merchant_id", "aw_feed_country", "aw_feed_language"];
@@ -39,13 +39,9 @@ const REASONS = new Set([
   "held-at-seal", "transport-failed", "destination-mismatch", "unsupported-bootstrap",
 ]);
 
-function viewItemEvent(args, viewItem, viewItemList) {
-  return viewItem && (args?.[1] === "view_item" || (viewItemList && args?.[1] === "view_item_list"));
-}
-
-function dispatchEvent(args, purchase, viewItem, viewItemList) {
+function dispatchEvent(args, purchase, viewItem, viewEvents) {
   return args?.[0] === "event" &&
-    (args[1] === "conversion" || (purchase && args[1] === "purchase") || viewItemEvent(args, viewItem, viewItemList));
+    (args[1] === "conversion" || (purchase && args[1] === "purchase") || isEnabledViewEvent(args[1], viewItem, viewEvents));
 }
 
 function matchesViewItemRequest(url, endpoint, args, viewOptions) {
@@ -64,8 +60,16 @@ function matchesViewItemRequest(url, endpoint, args, viewOptions) {
 
 function hasViewItemMarker(url) {
   if (typeof url !== "string") return false;
-  try { return new URL(url).searchParams.getAll("airlock_event").some((event) => ["view_item", "view_item_list"].includes(event)); }
+  try { return new URL(url).searchParams.getAll("airlock_event").some((event) => VIEW_EVENT_NAMES.includes(event)); }
   catch { return false; }
+}
+
+function matchesLabeledEventMarker(url, event) {
+  if (typeof url !== "string") return false;
+  try {
+    const markers = new URL(url).searchParams.getAll("airlock_event");
+    return event === "purchase" ? markers.length === 1 && markers[0] === "purchase" : markers.length === 0;
+  } catch { return false; }
 }
 
 function browserChamber() {
@@ -169,12 +173,19 @@ export function createGoogleAdsPrototype({
   experimentalPurchaseFeed = false, experimentalCustomVariables = false, experimentalRetailViewItem = false,
   experimentalEducationViewItem = false, experimentalLocalViewItem = false, experimentalRealEstateViewItem = false,
   experimentalTravelViewItem = false, experimentalViewItemList = false,
+  experimentalViewSearchResults = false, experimentalAddToCart = false,
 } = {}) {
   const viewOptions = {
     retail: experimentalRetailViewItem, education: experimentalEducationViewItem,
     local: experimentalLocalViewItem, realEstate: experimentalRealEstateViewItem, travel: experimentalTravelViewItem,
   };
   const experimentalViewItem = Object.values(viewOptions).some((enabled) => enabled === true);
+  const viewEvents = {
+    view_item_list: experimentalViewItemList,
+    view_search_results: experimentalViewSearchResults,
+    add_to_cart: experimentalAddToCart,
+  };
+  const experimentalViewEvent = Object.values(viewEvents).some((enabled) => enabled === true);
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
       typeof experimentalCallbacks !== "boolean" || typeof experimentalMultiDestination !== "boolean" ||
       typeof experimentalConsentCommands !== "boolean" || typeof experimentalBootstrap !== "boolean" ||
@@ -182,9 +193,9 @@ export function createGoogleAdsPrototype({
       typeof experimentalPurchaseCart !== "boolean" || (experimentalPurchaseCart && !experimentalPurchase) ||
       typeof experimentalPurchaseDiscount !== "boolean" || (experimentalPurchaseDiscount && !experimentalPurchase) ||
       typeof experimentalPurchaseFeed !== "boolean" || (experimentalPurchaseFeed && !experimentalPurchaseCart) ||
-      typeof experimentalCustomVariables !== "boolean" || typeof experimentalViewItemList !== "boolean" ||
+      typeof experimentalCustomVariables !== "boolean" || Object.values(viewEvents).some((enabled) => typeof enabled !== "boolean") ||
       Object.values(viewOptions).some((enabled) => typeof enabled !== "boolean") ||
-      ((experimentalViewItem || experimentalViewItemList) && (experimentalParameterScopes || experimentalMultiDestination)) ||
+      ((experimentalViewItem || experimentalViewEvent) && (experimentalParameterScopes || experimentalMultiDestination)) ||
       (experimentalMultiDestination && !experimentalRouting)) throw new Error("invalid-experimental-option");
   const pattern = experimentalRouting === true
     ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,32})\/$/
@@ -339,7 +350,7 @@ export function createGoogleAdsPrototype({
         summary.status === undefined && summary.terminal === undefined && summary.branches === undefined;
     }
     if (experimentalMultiDestination) {
-      if (!dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, experimentalViewItemList) ||
+      if (!dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, viewEvents) ||
           !activeSelectors?.length || activeSelectors.length > 2 || activeRequests.length !== summary.requests ||
           activeRequests.some((request) => !request.response) || !Array.isArray(summary.branches) ||
           summary.branches.length !== activeSelectors.length || summary.status !== undefined || summary.reason !== undefined) return false;
@@ -357,7 +368,7 @@ export function createGoogleAdsPrototype({
       return summary.disposition === (dispositions.size === 1 ? branches[0].disposition : "partial");
     }
     const response = activeRequest?.response;
-    if (!response || !dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, experimentalViewItemList) ||
+    if (!response || !dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, viewEvents) ||
         summary.status !== response.status) return false;
     const disposition = response.held ? "held" : response.status >= 200 && response.status < 300 ? "transport-settled" : "failed";
     const reason = response.held ? "held-at-seal" : response.status === 0 ? "transport-failed" : undefined;
@@ -420,7 +431,7 @@ export function createGoogleAdsPrototype({
       activeCommand = event.payload.args;
       activeRequest = undefined;
       activeRequests = [];
-      const eventParams = dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, experimentalViewItemList)
+      const eventParams = dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, viewEvents)
         ? activeCommand?.[2] : undefined;
       const sendTo = eventParams && Object.hasOwn(eventParams, "send_to") ? eventParams.send_to : undefined;
       activeSelectors = experimentalMultiDestination && (typeof sendTo === "string" || Array.isArray(sendTo))
@@ -508,7 +519,7 @@ export function createGoogleAdsPrototype({
         const feedCommand = experimentalPurchaseFeed && purchaseCommand;
         const customCommand = experimentalCustomVariables && index === 2 && args[0] === "event" && args[1] === "conversion";
         const viewItemCommand = index === 2 && args[0] === "event" &&
-          viewItemEvent(args, experimentalViewItem, experimentalViewItemList);
+          isEnabledViewEvent(args[1], experimentalViewItem, viewEvents);
         const allowedKeys = consentCommand ? CONSENT_COMMAND_KEYS : viewItemCommand ? ["items", "value"] : purchaseCommand
           ? [...PARAM_KEYS, "new_customer", ...(cartCommand ? ["items"] : []), ...(discountCommand ? ["discount"] : []),
             ...(feedCommand ? FEED_KEYS : [])] : customCommand ? [...PARAM_KEYS, ...CUSTOM_KEYS] : PARAM_KEYS;
@@ -631,7 +642,7 @@ export function createGoogleAdsPrototype({
       }
       if (message?.type === "intercepted-fetch") {
         if (!inFlight || !awaitingResult ||
-            !dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, experimentalViewItemList) ||
+            !dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, viewEvents) ||
             (experimentalMultiDestination
               ? !activeSelectors || message.index !== activeRequests.length || message.index >= activeSelectors.length ||
                 (activeRequest && (!activeRequest.response ||
@@ -639,12 +650,17 @@ export function createGoogleAdsPrototype({
               : activeRequest) || !Number.isSafeInteger(message.id) || message.id <= lastRequestId) {
           stop("request-correlation-failed"); return;
         }
-        if (viewItemEvent(activeCommand, experimentalViewItem, experimentalViewItemList) &&
+        if (isEnabledViewEvent(activeCommand[1], experimentalViewItem, viewEvents) &&
             !matchesViewItemRequest(message.url, endpoint, activeCommand, viewOptions)) {
           stop("request-correlation-failed"); return;
         }
-        if ((experimentalViewItem || experimentalViewItemList) &&
-            !viewItemEvent(activeCommand, experimentalViewItem, experimentalViewItemList) && hasViewItemMarker(message.url)) {
+        if ((experimentalViewItem || experimentalViewEvent) &&
+            !isEnabledViewEvent(activeCommand[1], experimentalViewItem, viewEvents) && hasViewItemMarker(message.url)) {
+          stop("request-correlation-failed"); return;
+        }
+        if ((experimentalViewSearchResults || experimentalAddToCart) &&
+            !isEnabledViewEvent(activeCommand[1], experimentalViewItem, viewEvents) &&
+            !matchesLabeledEventMarker(message.url, activeCommand[1])) {
           stop("request-correlation-failed"); return;
         }
         if (experimentalMultiDestination) {
@@ -712,6 +728,8 @@ export function createGoogleAdsPrototype({
       ...(experimentalRealEstateViewItem === true ? { experimentalRealEstateViewItem: true } : {}),
       ...(experimentalTravelViewItem === true ? { experimentalTravelViewItem: true } : {}),
       ...(experimentalViewItemList === true ? { experimentalViewItemList: true } : {}),
+      ...(experimentalViewSearchResults === true ? { experimentalViewSearchResults: true } : {}),
+      ...(experimentalAddToCart === true ? { experimentalAddToCart: true } : {}),
       ...(experimentalMultiDestination ? { additionalEndpoint, experimentalMultiDestination: true } : {}) });
   } catch { stop("worker-unavailable"); }
   return {
