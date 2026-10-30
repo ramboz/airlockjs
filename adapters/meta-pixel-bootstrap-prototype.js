@@ -40,7 +40,7 @@ function readPreload(bootstrap, limit) {
 function samePreload(first, second) {
   return first.queue === second.queue && first.property.writable === second.property.writable &&
     first.property.enumerable === second.property.enumerable &&
-    first.property.configurable === second.property.configurable && first.entries.length === second.entries.length &&
+    first.property.configurable === second.property.configurable && first.entries.length <= second.entries.length &&
     first.entries.every((args, index) => args.length === second.entries[index].length &&
       args.every((value, argument) => Object.is(value, second.entries[index][argument])));
 }
@@ -65,7 +65,7 @@ export async function createMetaPixelBootstrapPrototype({ bootstrap, ...options 
     }
     const current = readPreload(bootstrap, limit);
     if (current.error || !samePreload(preload, current)) {
-      failure = "bootstrap-preload-changed";
+      failure = current.error === "bootstrap-queue-limit" ? current.error : "bootstrap-preload-changed";
       throw new Error(failure);
     }
     if (adapter.getState().phase !== "ready") {
@@ -78,7 +78,7 @@ export async function createMetaPixelBootstrapPrototype({ bootstrap, ...options 
       configurable: true, writable: true, value: (...args) => adapter.fbq(...args),
     });
     methodInstalled = true;
-    for (const args of preload.entries) adapter.fbq(...args);
+    for (const args of current.entries) adapter.fbq(...args);
     return adapter;
   } catch {
     const failures = [];

@@ -72,6 +72,63 @@ describe("opt-in local Meta bootstrap entry", () => {
     } finally { await env.close(); }
   }, 5000);
 
+  it("forwards calls appended during worker startup in their original order", async () => {
+    const fbq = fixtureStub();
+    fbq("init", pixel);
+    fbq("track", "PageView", { value: 1, currency: "USD" });
+    const originalQueue = fbq.queue;
+    const receiver = await createPrototypeReceiver();
+    const chamber = createNodePrototypeChamber();
+    let adapter;
+    try {
+      const attachment = createMetaPixelBootstrapPrototype({
+        bootstrap: fbq, endpoint: receiver.endpoint, chamber, captureContext: page,
+        consent: { ad_storage: "granted" }, experimentalPageViewData: true, queueLimit: 3,
+      });
+      fbq("track", "PageView", { value: 2, currency: "USD" });
+      expect(fbq.queue).toBe(originalQueue);
+      adapter = await attachment;
+      const state = await adapter.flush();
+      expect(state.outcomes.map((item) => item.disposition))
+        .toEqual(["initialized", "transport-settled", "transport-settled"]);
+      expect(receiver.arrivals.map(({ url }) => new URL(url).searchParams.get("cd[value]")))
+        .toEqual(["1", "2"]);
+    } finally {
+      try { await adapter?.dispose(); } finally {
+        try { await chamber.dispose(); } finally { await receiver.close(); }
+      }
+    }
+  }, 5000);
+
+  it("applies appended consent commands without replaying held startup events", async () => {
+    const fbq = fixtureStub();
+    fbq("init", pixel);
+    fbq("track", "PageView");
+    const receiver = await createPrototypeReceiver();
+    const chamber = createNodePrototypeChamber();
+    let adapter;
+    try {
+      const attachment = createMetaPixelBootstrapPrototype({
+        bootstrap: fbq, endpoint: receiver.endpoint, chamber, captureContext: page,
+        consent: { ad_storage: "granted" }, experimentalTagConsent: true,
+      });
+      fbq("consent", "revoke");
+      fbq("consent", "grant");
+      fbq("track", "PageView");
+      adapter = await attachment;
+      const state = await adapter.flush();
+      expect(state.outcomes.map((item) => item.disposition))
+        .toEqual(["initialized", "held", "consent-updated", "consent-updated", "transport-settled"]);
+      expect(receiver.arrivals).toHaveLength(1);
+      await adapter.flush();
+      expect(receiver.arrivals).toHaveLength(1);
+    } finally {
+      try { await adapter?.dispose(); } finally {
+        try { await chamber.dispose(); } finally { await receiver.close(); }
+      }
+    }
+  }, 5000);
+
   it("applies a preloaded revoke before older queued dispatch and does not replay on grant", async () => {
     const fbq = fixtureStub();
     fbq("init", pixel);
@@ -204,7 +261,7 @@ describe("opt-in local Meta bootstrap entry", () => {
     await expect(createMetaPixelBootstrapPrototype({ bootstrap: installed })).rejects.toThrow("bootstrap-already-attached");
   });
 
-  it("rejects a changed preload during worker startup and disposes without installing", async () => {
+  it("rejects changes to an earlier entry during worker startup", async () => {
     const fbq = fixtureStub();
     fbq("init", pixel);
     const originalQueue = fbq.queue;
@@ -214,6 +271,7 @@ describe("opt-in local Meta bootstrap entry", () => {
       onError: () => () => {},
       postMessage(command) {
         if (command.type === "init") {
+          fbq.queue[0][1] = "000000000000001";
           fbq("track", "PageView");
           queueMicrotask(() => message({ type: "phase", name: "configured" }));
         }
@@ -273,7 +331,7 @@ describe("opt-in local Meta bootstrap entry", () => {
     expect(Object.hasOwn(fbq, "callMethod")).toBe(false);
   });
 
-  it("keeps the original stub active until readiness and refuses a changed preload", async () => {
+  it("keeps the original stub active until readiness and refuses replacement of an earlier entry", async () => {
     const fbq = fixtureStub();
     fbq("init", pixel);
     const originalQueue = fbq.queue;
@@ -289,12 +347,13 @@ describe("opt-in local Meta bootstrap entry", () => {
     });
     expect(fbq.queue).toBe(originalQueue);
     expect(Object.hasOwn(fbq, "callMethod")).toBe(false);
+    fbq.queue.shift();
     fbq("track", "PageView");
     message({ type: "phase", name: "configured" });
     await expect(attachment).rejects.toThrow("bootstrap-preload-changed");
     expect(chamber.dispose).toHaveBeenCalledTimes(1);
     expect(fbq.queue).toBe(originalQueue);
-    expect(fbq.queue).toHaveLength(2);
+    expect(fbq.queue).toHaveLength(1);
     expect(Object.hasOwn(fbq, "callMethod")).toBe(false);
   });
 
@@ -310,6 +369,49 @@ describe("opt-in local Meta bootstrap entry", () => {
     })).rejects.toThrow("bootstrap-worker-unavailable");
     expect(chamber.dispose).toHaveBeenCalledTimes(1);
     expect(fbq.queue).toBe(originalQueue);
+    expect(Object.hasOwn(fbq, "callMethod")).toBe(false);
+  });
+
+  it("retains the whole queue if startup appends exceed the configured limit", async () => {
+    const fbq = fixtureStub();
+    fbq("init", pixel);
+    const originalQueue = fbq.queue;
+    let message;
+    const chamber = {
+      onMessage(listener) { message = listener; return () => {}; },
+      onError: () => () => {}, postMessage() {}, dispose: vi.fn(),
+    };
+    const attachment = createMetaPixelBootstrapPrototype({
+      bootstrap: fbq, endpoint: "http://127.0.0.1:43210/tr/", chamber, captureContext: page, queueLimit: 1,
+    });
+    fbq("track", "PageView");
+    message({ type: "phase", name: "configured" });
+    await expect(attachment).rejects.toThrow("bootstrap-queue-limit");
+    expect(chamber.dispose).toHaveBeenCalledTimes(1);
+    expect(fbq.queue).toBe(originalQueue);
+    expect(fbq.queue).toHaveLength(2);
+    expect(Object.hasOwn(fbq, "callMethod")).toBe(false);
+  });
+
+  it("refuses a replaced startup queue even when its entries are unchanged", async () => {
+    const fbq = fixtureStub();
+    fbq("init", pixel);
+    const originalQueue = fbq.queue;
+    let message;
+    const chamber = {
+      onMessage(listener) { message = listener; return () => {}; },
+      onError: () => () => {}, postMessage() {}, dispose: vi.fn(),
+    };
+    const attachment = createMetaPixelBootstrapPrototype({
+      bootstrap: fbq, endpoint: "http://127.0.0.1:43210/tr/", chamber, captureContext: page,
+    });
+    const replacement = originalQueue.slice();
+    fbq.queue = replacement;
+    message({ type: "phase", name: "configured" });
+    await expect(attachment).rejects.toThrow("bootstrap-preload-changed");
+    expect(chamber.dispose).toHaveBeenCalledTimes(1);
+    expect(fbq.queue).toBe(replacement);
+    expect(originalQueue).toHaveLength(1);
     expect(Object.hasOwn(fbq, "callMethod")).toBe(false);
   });
 

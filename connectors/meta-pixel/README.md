@@ -61,10 +61,12 @@ Elements are read from own data descriptors; extra non-index properties and
 their accessors are not interpreted. This is not a hard main-thread work
 bound or proxy isolation:
 reflection can execute proxy traps, and this is for a trusted local stub.
-Attachment waits for the worker's configured signal. If setup fails or times
-out, or the preload changes while waiting, attachment is refused and the
-original queue is retained. Failures after attachment remain visible in adapter
-outcomes.
+Attachment waits for the worker's configured signal. Calls appended while
+waiting are forwarded in order, within the same queue limit. If setup fails or
+times out, if that limit is exceeded, or if the original queue reference,
+descriptor or previously captured top-level arguments change while waiting,
+attachment is refused without replacing the stub's current queue. Failures
+after attachment remain visible in adapter outcomes.
 
 Argument data and page context are captured when each queued call is forwarded
 during attachment, **not** when the original stub call was made. This is not an

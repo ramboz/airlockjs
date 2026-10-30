@@ -104,7 +104,9 @@ effects, consent equivalence, receipt and attribution remain unverified.
 The separate local bootstrap entry accepts an explicitly supplied fixture-style
 stub, forwards bounded pre-install queued argument objects and later calls to
 the same serialized worker and loopback seal, and leaves global installation
-and default production behavior untouched. The retained 058-02 source shows
+and default production behavior untouched. Calls appended while the worker is
+starting join the bounded preload, provided the earlier captured arguments and
+queue identity remain unchanged. The retained 058-02 source shows
 the stub's `arguments` queue and `callMethod` forwarding, not native queue
 draining, installation, error, mutation or disposal behavior. Those and the
 local limits are prototype choices; this is neither native parity nor a change
