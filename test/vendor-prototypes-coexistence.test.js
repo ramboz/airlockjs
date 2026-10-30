@@ -31,7 +31,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
       });
       meta = createMetaPixelPrototype({
         endpoint: metaReceiver.endpoint, chamber: metaChamber,
-        experimentalPageViewData: true, experimentalCustomProperties: true,
+        experimentalPageViewData: true, experimentalCustomProperties: true, experimentalNumericOrderId: true,
         consent: { ad_storage: "granted" },
         captureContext: () => ({
           pageURL, referrer: "", inFrame: false, screenWidth: 412, screenHeight: 823, timezoneOffset: 0,
@@ -42,7 +42,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
       google.gtag("event", "purchase", {
         ...conversion, new_customer: true, items: [{ id: "held-sku", price: 4, quantity: 1 }],
       });
-      meta.fbq("track", "PageView", { placement: "synthetic" });
+      meta.fbq("track", "PageView", { placement: "synthetic", order_id: 1 });
       let states = await Promise.all([google.flush(), meta.flush()]);
       expect(states.map((state) => state.outcomes.at(-1).disposition)).toEqual(["held", "transport-settled"]);
       expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([0, 1]);
@@ -53,7 +53,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
       const items = [{ id: "local-sku", price: 5, quantity: 2 }];
       google.gtag("event", "purchase", { ...conversion, new_customer: false, items });
       items[0].id = "changed";
-      meta.fbq("track", "PageView", { placement: "second" });
+      meta.fbq("track", "PageView", { placement: "second", order_id: 2 });
       states = await Promise.all([google.flush(), meta.flush()]);
       expect(states.map((state) => state.outcomes.at(-1).disposition))
         .toEqual(["transport-settled", "transport-settled"]);
@@ -63,7 +63,9 @@ describe("experimental vendor coexistence on independent local workers", () => {
       expect(googleQuery.get("airlock_new_customer")).toBe("false");
       expect(JSON.parse(googleQuery.get("airlock_items"))).toEqual([{ id: "local-sku", price: 5, quantity: 2 }]);
       expect(googleQuery.has("cd[placement]")).toBe(false);
+      expect(googleQuery.has("cd[order_id]")).toBe(false);
       expect(metaQuery.get("cd[placement]")).toBe("second");
+      expect(metaQuery.get("cd[order_id]")).toBe("2");
       expect(metaQuery.has("airlock_new_customer")).toBe(false);
       expect(metaQuery.has("airlock_items")).toBe(false);
     } catch (error) {
