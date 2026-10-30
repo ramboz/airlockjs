@@ -35,10 +35,12 @@ describe("experimental vendor coexistence on independent local workers", () => {
       meta = createMetaPixelPrototype({
         endpoint: metaReceiver.endpoint, chamber: metaChamber,
         experimentalPageViewData: true, experimentalCustomProperties: true, experimentalNumericOrderId: true,
-        experimentalEvents: true, experimentalEventIds: true, experimentalContents: true, experimentalContentsItemPrice: true,
+        experimentalEvents: true, experimentalEventIds: true, experimentalContentIds: true,
+        experimentalContents: true, experimentalContentsItemPrice: true,
         experimentalScalarEventData: true, experimentalContentNameArray: true,
         experimentalSetAgent: true,
         experimentalNullPurchaseValue: true,
+        experimentalViewContentJsonStrings: true,
         consent: { ad_storage: "granted" },
         captureContext: () => ({
           pageURL, referrer: "", inFrame: false, screenWidth: 412, screenHeight: 823, timezoneOffset: 0,
@@ -132,6 +134,18 @@ describe("experimental vendor coexistence on independent local workers", () => {
       expect(retailQuery.has("cd[content_name]")).toBe(false);
       expect(metaQuery.has("airlock_event")).toBe(false);
       expect(metaQuery.has("airlock_value")).toBe(false);
+
+      const metaView = { content_ids: '[ "meta-view" ]', contents: '[{"id":"meta-view","quantity":1}]' };
+      meta.fbq("track", "ViewContent", metaView);
+      metaView.content_ids = '["changed"]';
+      states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states[1].outcomes.at(-1).disposition).toBe("transport-settled");
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([3, 3]);
+      const viewQuery = new URL(metaReceiver.arrivals[2].url).searchParams;
+      expect(viewQuery.get("cd[content_ids]")).toBe('[ "meta-view" ]');
+      expect(viewQuery.get("cd[contents]")).toBe('[{"id":"meta-view","quantity":1}]');
+      expect(viewQuery.has("airlock_event")).toBe(false);
+      expect(retailQuery.has("cd[content_ids]")).toBe(false);
     } catch (error) {
       cause = error;
       throw error;
