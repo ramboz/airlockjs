@@ -119,6 +119,7 @@ self.onmessage = async ({ data }) => {
         experimentalMagentoHeadArray: data.experimentalMagentoHeadArray,
         experimentalNullPurchaseValue: data.experimentalNullPurchaseValue,
         experimentalEmptyCheckoutValue: data.experimentalEmptyCheckoutValue,
+        experimentalFalseCheckoutContentId: data.experimentalFalseCheckoutContentId,
         experimentalViewContentJsonStrings: data.experimentalViewContentJsonStrings,
         experimentalTagConsent: data.experimentalTagConsent,
         experimentalSyntheticAdvancedMatching: data.experimentalSyntheticAdvancedMatching,

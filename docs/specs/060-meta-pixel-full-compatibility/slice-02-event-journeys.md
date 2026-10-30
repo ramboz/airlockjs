@@ -221,6 +221,20 @@ price and other item fields were rejected. Native contents input-to-wire
 evidence, backend receipt, catalog matching and all readiness/acceptance
 gates remain open.
 
+The separately gated `experimentalFalseCheckoutContentId` admits boolean
+`false` in `content_ids` or nested `contents.id` only for synthetic broadcast
+`trackCustom` InitiateCheckout, with the existing event, page-data, content-ID
+and contents opt-ins. The pinned Magento [identifier helper](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Helper/MagentoDataHelper.php)
+returns `false` for an invalid identifier configuration; the
+[checkout getters](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Block/Pixel/InitiateCheckout.php)
+place those results in arrays that the [template](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/initiate_checkout.phtml)
+passes to the tracker. Tests cover a synthetic composition, snapshots, existing
+bounds and types, worker revalidation, routing, consent and no replay. Arrays
+are validated separately without a correspondence check. Partial and mixed
+multi-item inputs, JSON encoding and consent are local assumptions, not native
+evidence. The AddToCart undefined-ID case remains unsupported. Catalog behavior,
+full Magento execution and all acceptance criteria remain unqualified.
+
 The separately gated `experimentalContentsItemPrice` admits an optional
 numeric `item_price` in those same item records. Meta's Magento plugin
 [tests a numeric price of 100 in its `getContents()` result](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Test/Unit/Block/Pixel/PurchaseTest.php#L152-L198)

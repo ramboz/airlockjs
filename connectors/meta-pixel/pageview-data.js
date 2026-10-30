@@ -23,7 +23,7 @@ export function isStandardEventDataKey(key) {
     key === "content_ids" || key === "contents";
 }
 
-function snapshotContentValues(value, allowNumbers) {
+function snapshotContentValues(value, allowNumbers, allowFalseId = false) {
   if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype) return null;
   const length = Object.getOwnPropertyDescriptor(value, "length")?.value;
   if (!Number.isInteger(length) || length < 0 || length > 16) return null;
@@ -36,13 +36,14 @@ function snapshotContentValues(value, allowNumbers) {
     const item = descriptor.value;
     if (typeof item === "string") {
       if (!item.length || item.length > 64 || !item.isWellFormed()) return null;
-    } else if (!allowNumbers || !Number.isSafeInteger(item) || item < 0 || Object.is(item, -0)) return null;
+    } else if (!(allowNumbers && allowFalseId && item === false) &&
+        (!allowNumbers || !Number.isSafeInteger(item) || item < 0 || Object.is(item, -0))) return null;
     result.push(item);
   }
   return result;
 }
 
-function snapshotContents(value, experimentalContentsItemPrice) {
+function snapshotContents(value, experimentalContentsItemPrice, allowFalseId = false) {
   if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype) return null;
   const length = Object.getOwnPropertyDescriptor(value, "length")?.value;
   if (!Number.isInteger(length) || length < 0 || length > 16) return null;
@@ -59,7 +60,8 @@ function snapshotContents(value, experimentalContentsItemPrice) {
     if (!id || !quantity || !Object.hasOwn(id, "value") || !Object.hasOwn(quantity, "value")) return null;
     if (typeof id.value === "string") {
       if (!id.value.length || id.value.length > 64 || !id.value.isWellFormed()) return null;
-    } else if (!Number.isSafeInteger(id.value) || id.value < 0 || Object.is(id.value, -0)) return null;
+    } else if (!(allowFalseId && id.value === false) &&
+        (!Number.isSafeInteger(id.value) || id.value < 0 || Object.is(id.value, -0))) return null;
     if (typeof quantity.value !== "number" || !Number.isFinite(quantity.value) || quantity.value < 0 ||
         quantity.value > Number.MAX_SAFE_INTEGER || Object.is(quantity.value, -0)) return null;
     const keys = Reflect.ownKeys(item);
@@ -118,7 +120,8 @@ function snapshotMagentoHeadArray(value) {
 export function snapshotPageViewData(value, experimentalScalarEventData = false, experimentalContentIds = false,
   experimentalContents = false, experimentalCustomProperties = false, experimentalNumericOrderId = false,
   experimentalContentsItemPrice = false, experimentalContentNameArray = false, allowNullPurchaseValue = false,
-  allowViewContentJsonStrings = false, allowMagentoHeadArray = false, allowEmptyCheckoutValue = false) {
+  allowViewContentJsonStrings = false, allowMagentoHeadArray = false, allowEmptyCheckoutValue = false,
+  allowFalseCheckoutContentId = false) {
   if (allowMagentoHeadArray && experimentalCustomProperties && Array.isArray(value)) {
     return snapshotMagentoHeadArray(value);
   }
@@ -155,7 +158,7 @@ export function snapshotPageViewData(value, experimentalScalarEventData = false,
         continue;
       }
       if (key === "content_ids") {
-        const ids = snapshotContentValues(item, true);
+        const ids = snapshotContentValues(item, true, allowFalseCheckoutContentId);
         if (ids === null) return null;
         result[key] = ids;
         continue;
@@ -165,7 +168,7 @@ export function snapshotPageViewData(value, experimentalScalarEventData = false,
         result[key] = names;
         continue;
       } else if (key === "contents") {
-        const contents = snapshotContents(item, experimentalContentsItemPrice);
+        const contents = snapshotContents(item, experimentalContentsItemPrice, allowFalseCheckoutContentId);
         if (contents === null) return null;
         result[key] = contents;
         continue;

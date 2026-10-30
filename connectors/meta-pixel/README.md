@@ -223,7 +223,8 @@ browser behavior and full production replacement remain unverified.
   ordinary same-realm array of up to 16 strings or nonnegative safe integers.
   Strings must be nonempty, well-formed and at most 64 UTF-16 code units;
   negative zero, sparse arrays,
-  accessors, extra properties and other values reject the whole command.
+  accessors, extra properties and other values reject the whole command unless
+  separately enabled below.
   Empty arrays are retained and undefined is omitted. The chamber encodes the
   snapshot as one JSON value in `cd[content_ids]`, retaining element order,
   duplicates and string/number types. This encoding and these limits are
@@ -258,6 +259,26 @@ browser behavior and full production replacement remain unverified.
   in the chamber, which emits one JSON value in `cd[contents]`. The type
   restrictions, required keys, size bounds, empty handling and wire encoding
   are **unverified prototype choices**, not native behavior or catalog proof.
+- The separately gated `experimentalFalseCheckoutContentId: true` accepts
+  boolean `false` in `content_ids` and in a `contents` item's `id` only for
+  broadcast `fbq("trackCustom", "InitiateCheckout", data)`. The existing
+  `experimentalEvents`, `experimentalPageViewData`, `experimentalContentIds`
+  and `experimentalContents` opt-ins are required. The same array and item
+  bounds apply; `true`, null, undefined IDs and other unsupported types still
+  reject. The worker revalidates the captured arrays and uses the existing
+  local JSON mapping, preserving `false` rather than converting it to zero,
+  null or a string.
+
+  Magento's pinned [identifier helper](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Helper/MagentoDataHelper.php)
+  returns `false` for an invalid identifier configuration. The
+  [checkout getters](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Block/Pixel/InitiateCheckout.php)
+  put that result in both arrays, which the
+  [template](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/initiate_checkout.phtml)
+  passes to the tracker. Tests use synthetic data only. The arrays are
+  validated independently; partial and mixed multi-item inputs are local
+  assumptions, with no cross-field consistency check. JSON encoding, consent,
+  catalog behavior and native handling remain unqualified. This does not
+  admit AddToCart's separate undefined-ID case or establish plugin parity.
 - With `experimentalContentsItemPrice: true` and both
   `experimentalPageViewData` and `experimentalContents` enabled, each
   contents item may also have an own data property `item_price`. It must be
