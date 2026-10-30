@@ -37,6 +37,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
         experimentalEvents: true, experimentalEventIds: true, experimentalContents: true, experimentalContentsItemPrice: true,
         experimentalScalarEventData: true, experimentalContentNameArray: true,
         experimentalSetAgent: true,
+        experimentalNullPurchaseValue: true,
         consent: { ad_storage: "granted" },
         captureContext: () => ({
           pageURL, referrer: "", inFrame: false, screenWidth: 412, screenHeight: 823, timezoneOffset: 0,
@@ -64,7 +65,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
       items[0].id = "changed";
       const contentNames = ["meta-product"];
       meta.fbq("trackCustom", "Purchase", {
-        placement: "second", order_id: 2, content_name: contentNames,
+        placement: "second", order_id: 2, content_name: contentNames, value: null,
         contents: [{ id: "meta-sku", quantity: 1, item_price: 7 }],
       }, { eventID: "second-event" });
       contentNames[0] = "changed";
@@ -84,6 +85,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
       expect(googleQuery.has("cd[order_id]")).toBe(false);
       expect(googleQuery.has("cd[contents]")).toBe(false);
       expect(googleQuery.has("cd[content_name]")).toBe(false);
+      expect(googleQuery.has("cd[value]")).toBe(false);
       expect(googleQuery.has("eid")).toBe(false);
       expect(googleQuery.has("a")).toBe(false);
       expect(metaQuery.get("ev")).toBe("Purchase");
@@ -91,6 +93,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
       expect(metaQuery.get("a")).toBe("magento_opensource-0.0.0-1.2.3");
       expect(metaQuery.get("cd[placement]")).toBe("second");
       expect(metaQuery.get("cd[order_id]")).toBe("2");
+      expect(metaQuery.getAll("cd[value]")).toEqual(["null"]);
       expect(JSON.parse(metaQuery.get("cd[content_name]"))).toEqual(["meta-product"]);
       expect(JSON.parse(metaQuery.get("cd[contents]"))).toEqual([{ id: "meta-sku", quantity: 1, item_price: 7 }]);
       expect(metaQuery.has("airlock_new_customer")).toBe(false);
