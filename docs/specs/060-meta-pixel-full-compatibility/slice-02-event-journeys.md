@@ -234,6 +234,13 @@ A second synthetic composition exercises the pinned Magento AddToCart
 template's selected fields together with tracker-added metadata, agent and
 event ID. The local test does not execute Magento or its product-info/server
 requests, prove their response types or establish native wire behavior.
+In an invalid identifier configuration, the pinned
+[product helper](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Helper/MagentoDataHelper.php)
+can return `false`; the [product-info controller](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Controller/Pixel/ProductInfoForAddToCart.php)
+filters that field out, so the template can construct undefined item IDs. The
+prototype rejects those inputs. Its JSON representation cannot preserve
+undefined array elements and object properties as-is; native handling and a
+lossless replacement remain open, not silently coerced to null or omitted.
 
 The separate `experimentalCustomProperties` opt-in accepts a bounded subset
 of additional string-valued event properties, on the existing standard or

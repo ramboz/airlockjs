@@ -84,6 +84,9 @@ retail subset but does not establish education feed matching or native behavior.
 Separately gated local-deals and real-estate `view_item` subsets exercise the
 same guide's string-ID examples. Their value requirements, single local route
 and markers are also assumptions; neither qualifies audience or feed outcomes.
+The separately gated travel subset adds bounded synthetic origin, destination
+and date inputs from that guide. Destination remains event data, not a network
+address. Calendar validation, routing and feed-key behavior remain unqualified.
 
 ## Assumptions
 

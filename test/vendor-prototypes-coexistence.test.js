@@ -33,6 +33,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
         experimentalEducationViewItem: true,
         experimentalLocalViewItem: true,
         experimentalRealEstateViewItem: true,
+        experimentalTravelViewItem: true,
         consent: { ad_storage: "denied" }, captureContext: () => ({ pageURL, referrer: "" }),
       });
       meta = createMetaPixelPrototype({
@@ -184,6 +185,20 @@ describe("experimental vendor coexistence on independent local workers", () => {
       const cartQuery = new URL(metaReceiver.arrivals[3].url).searchParams;
       expect(cartQuery.get("ev")).toBe("AddToCart");
       expect(JSON.parse(cartQuery.get("cd[content_ids]"))).toEqual(["meta-cart"]);
+      expect(cartQuery.has("airlock_items")).toBe(false);
+
+      const itinerary = { origin: "ORIGIN1", destination: "DEST1", start_date: "2030-01-02", google_business_vertical: "travel" };
+      google.gtag("event", "view_item", { value: 40, items: [itinerary] });
+      itinerary.destination = "changed";
+      states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states[0].outcomes.at(-1).disposition).toBe("transport-settled");
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([7, 4]);
+      const travelUrl = new URL(googleReceiver.arrivals[6].url);
+      expect(travelUrl.origin).toBe(new URL(googleReceiver.endpoint).origin);
+      expect(JSON.parse(travelUrl.searchParams.get("airlock_items"))).toEqual([{
+        destination: "DEST1", google_business_vertical: "travel", origin: "ORIGIN1", start_date: "2030-01-02",
+      }]);
+      expect(travelUrl.searchParams.has("cd[content_ids]")).toBe(false);
       expect(cartQuery.has("airlock_items")).toBe(false);
     } catch (error) {
       cause = error;
