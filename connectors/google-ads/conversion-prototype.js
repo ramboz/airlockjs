@@ -54,12 +54,14 @@ export function createGoogleAdsConversionPrototype({
   experimentalPurchaseCart = false, experimentalPurchaseDiscount = false, experimentalPurchaseFeed = false,
   experimentalCustomVariables = false, experimentalRetailViewItem = false, experimentalEducationViewItem = false,
   experimentalLocalViewItem = false, experimentalRealEstateViewItem = false, experimentalTravelViewItem = false,
+  experimentalFlightsViewItem = false,
   experimentalViewItemList = false, experimentalViewSearchResults = false, experimentalAddToCart = false,
   experimentalRemarketingPurchase = false,
 } = {}) {
   const viewOptions = {
     retail: experimentalRetailViewItem, education: experimentalEducationViewItem,
-    local: experimentalLocalViewItem, realEstate: experimentalRealEstateViewItem, travel: experimentalTravelViewItem,
+    local: experimentalLocalViewItem, realEstate: experimentalRealEstateViewItem,
+    travel: experimentalTravelViewItem, flights: experimentalFlightsViewItem,
   };
   const experimentalViewItem = Object.values(viewOptions).some((enabled) => enabled === true);
   const viewEvents = {

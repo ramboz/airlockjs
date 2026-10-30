@@ -218,12 +218,13 @@ export function createGoogleAdsPrototype({
   experimentalDataLayer = false, experimentalPurchase = false, experimentalPurchaseCart = false, experimentalPurchaseDiscount = false,
   experimentalPurchaseFeed = false, experimentalCustomVariables = false, experimentalRetailViewItem = false,
   experimentalEducationViewItem = false, experimentalLocalViewItem = false, experimentalRealEstateViewItem = false,
-  experimentalTravelViewItem = false, experimentalViewItemList = false,
+  experimentalTravelViewItem = false, experimentalFlightsViewItem = false, experimentalViewItemList = false,
   experimentalViewSearchResults = false, experimentalAddToCart = false, experimentalRemarketingPurchase = false,
 } = {}) {
   const viewOptions = {
     retail: experimentalRetailViewItem, education: experimentalEducationViewItem,
-    local: experimentalLocalViewItem, realEstate: experimentalRealEstateViewItem, travel: experimentalTravelViewItem,
+    local: experimentalLocalViewItem, realEstate: experimentalRealEstateViewItem,
+    travel: experimentalTravelViewItem, flights: experimentalFlightsViewItem,
   };
   const experimentalViewItem = Object.values(viewOptions).some((enabled) => enabled === true);
   const viewEvents = {
@@ -785,6 +786,7 @@ export function createGoogleAdsPrototype({
       ...(experimentalLocalViewItem === true ? { experimentalLocalViewItem: true } : {}),
       ...(experimentalRealEstateViewItem === true ? { experimentalRealEstateViewItem: true } : {}),
       ...(experimentalTravelViewItem === true ? { experimentalTravelViewItem: true } : {}),
+      ...(experimentalFlightsViewItem === true ? { experimentalFlightsViewItem: true } : {}),
       ...(experimentalViewItemList === true ? { experimentalViewItemList: true } : {}),
       ...(experimentalViewSearchResults === true ? { experimentalViewSearchResults: true } : {}),
       ...(experimentalAddToCart === true ? { experimentalAddToCart: true } : {}),

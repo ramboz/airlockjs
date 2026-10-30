@@ -116,6 +116,7 @@ self.onmessage = async ({ data }) => {
         experimentalLocalViewItem: data.experimentalLocalViewItem,
         experimentalRealEstateViewItem: data.experimentalRealEstateViewItem,
         experimentalTravelViewItem: data.experimentalTravelViewItem,
+        experimentalFlightsViewItem: data.experimentalFlightsViewItem,
         experimentalViewItemList: data.experimentalViewItemList,
         experimentalViewSearchResults: data.experimentalViewSearchResults,
         experimentalAddToCart: data.experimentalAddToCart,

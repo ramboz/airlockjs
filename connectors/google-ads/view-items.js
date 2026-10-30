@@ -48,7 +48,9 @@ function validDate(value) {
   return day <= days[month - 1];
 }
 
-export function snapshotViewItems(value, { retail = false, education = false, local = false, realEstate = false, travel = false } = {}) {
+export function snapshotViewItems(value, {
+  retail = false, education = false, local = false, realEstate = false, travel = false, flights = false,
+} = {}) {
   if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype) return null;
   const length = dataValue(value, "length");
   if (!Number.isInteger(length) || length < 1 || length > MAX_ITEMS) return null;
@@ -62,7 +64,7 @@ export function snapshotViewItems(value, { retail = false, education = false, lo
     if (!source || typeof source !== "object" || ![Object.prototype, null].includes(Object.getPrototypeOf(source))) return null;
     const vertical = dataValue(source, "google_business_vertical");
     if (eventVertical && eventVertical !== vertical) return null;
-    const keys = vertical === "travel"
+    const keys = vertical === "flights" ? [...TRAVEL_KEYS, ...TRAVEL_OPTIONAL] : vertical === "travel"
       ? [...TRAVEL_KEYS, ...TRAVEL_OPTIONAL.filter((key) => Object.hasOwn(source, key))]
       : vertical === "education" && Object.hasOwn(source, "location_id") ? [...ITEM_KEYS, "location_id"] : ITEM_KEYS;
     if (!hasKeys(source, keys)) return null;
@@ -77,8 +79,8 @@ export function snapshotViewItems(value, { retail = false, education = false, lo
       if (!local || !validText(id)) return null;
     } else if (vertical === "real_estate") {
       if (!realEstate || !validText(id)) return null;
-    } else if (vertical === "travel") {
-      if (!travel || !validText(item.destination) ||
+    } else if (vertical === "travel" || vertical === "flights") {
+      if (!(vertical === "travel" ? travel : flights) || !validText(item.destination) ||
           (keys.includes("origin") && !validText(item.origin)) ||
           (keys.includes("start_date") && !validDate(item.start_date)) ||
           (keys.includes("end_date") && !validDate(item.end_date))) return null;

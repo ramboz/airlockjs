@@ -497,6 +497,45 @@ date behavior, routing, encoding, audiences, attribution, reporting and parity
 remain unqualified. Conversion and purchase behavior, production defaults and
 release gates are unchanged.
 
+### Experimental flights remarketing
+
+The [dynamic-remarketing guide](https://support.google.com/google-ads/answer/7305793?hl=en)
+shows an unlabeled `purchase` example with `origin`, `destination`,
+`start_date`, `end_date`, and `google_business_vertical: "flights"`.
+The separately gated, default-off `experimentalFlightsViewItem` enables the
+flights vertical in the existing synthetic remarketing path. It neither
+enables nor depends on the travel vertical. A flights purchase additionally
+requires `experimentalRemarketingPurchase`; labeled purchases still require
+their own separate option and selector.
+
+This local subset requires all four illustrated fields and the vertical on
+each of one to ten dense own-data items. Origin and destination must be
+nonempty well-formed strings of at most 128 UTF-16 code units. The dates use
+the existing travel validator: valid proleptic Gregorian `YYYY-MM-DD` dates
+from `0001-01-01` through `9999-12-31`. No date ordering, timezone, flight
+availability or itinerary semantics are inferred. Requiring all four fields,
+the string/date bounds and acceptance of omitted or undefined event `value`
+are local narrowing choices, not native validation evidence. Travel's existing
+optional item fields are unchanged; mixed travel/flights arrays are rejected.
+
+As with the other vertical flags, flights also enables local `view_item` and
+can be combined with the separately gated list, search and add-to-cart events.
+These additional event/vertical combinations reuse local schemas and are not
+established by the cited flights purchase example. The local marker, single
+configured literal-loopback route, host correlation, worker revalidation,
+independent consent seal and drop-without-replay behavior remain those of the
+existing remarketing paths. No labels, `send_to` selectors, purchase-cart
+fields, parameter scopes or multi-destination routing are inferred for the
+unlabeled subset.
+
+Only synthetic, non-private values are permitted by the operating contract;
+there is no personal-information detector. Proxy traps may run or spoof
+observations, so accepted bounds do not guarantee hard main-thread work limits
+or untrusted-input isolation; a sent request cannot be recalled. Native flight
+feed keys, date semantics, routing, encoding, audiences, attribution,
+reporting and parity remain unqualified. Production defaults and release gates
+are unchanged.
+
 ### Experimental view_item_list
 
 [Google's dynamic-remarketing guide](https://support.google.com/google-ads/answer/7305793?hl=en)
@@ -507,8 +546,8 @@ The separately gated, default-off `experimentalViewItemList: true` permits
 the local `gtag("event", "view_item_list", { items, value })` subset only when
 the relevant existing vertical flag is also enabled. The list flag alone does
 not enable a vertical; an existing vertical flag alone does not enable lists.
-This reuse of the five narrower `view_item` schemas for list inputs is a local
-model, not proof that Google accepts these exact combinations.
+This reuse of the bounded vertical schemas for list inputs is a local model,
+not proof that Google accepts these exact combinations.
 
 The same bounds, exact fields, mixed-vertical refusal, snapshots, worker
 revalidation, value omission and zero rules apply. `send_to`, labels,
@@ -539,8 +578,8 @@ dynamic-remarketing event shape with required `items` and optional `value`.
 `experimentalViewSearchResults` and `experimentalAddToCart` are separate,
 default-off options: neither enables the other, `view_item_list`, or a
 vertical. Each also requires the applicable existing vertical opt-in. Applying
-the five existing narrower `view_item` schemas to these events is a local
-hypothesis, not evidence that native Google accepts these combinations.
+the bounded vertical schemas to these events is a local hypothesis, not
+evidence that native Google accepts these combinations.
 
 Both use the same bounded input snapshot and validation, single configured
 literal-loopback route, independent consent seal and drop-without-replay
