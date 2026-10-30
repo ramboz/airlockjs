@@ -183,6 +183,34 @@ consent or conversion routing. Repetition and its order relative to other
 commands are local prototype behavior, not native initialization semantics.
 It does not reproduce native config/auxiliary traffic, encoding or parity.
 
+### Experimental dataLayer entry
+
+The generated 058-04 fixture uses `dataLayer.push(arguments)` for its standard
+`gtag` bootstrap. `experimentalDataLayer: true` adds an explicit
+`adapter.drainDataLayer(dataLayer)` entry point for that input shape; it does
+not install or replace globals, patch `push`, or automatically watch the array.
+Enable `experimentalBootstrap` separately to accept its `js` command. The caller
+must explicitly drain newly appended calls.
+
+The local entry accepts one same-realm array per adapter, at most 128 entries
+for its lifetime, containing dense arguments-like objects with at most three own
+data arguments. It bounds the array length before reading entries, refuses
+holes, accessors and inconsistent lengths or replaced processed entries, and
+does not truncate. Structural refusal occurs before forwarding the batch.
+Each newly observed command is then passed in order through the existing
+adapter capture, whose individual rejections and queue-overflow outcomes remain
+visible. Already processed entries are not replayed, including after a consent
+change; replacing or shortening the array is refused. The Date, parameters and
+page context are snapshotted when drained, not when the page originally queued
+them. Disposal releases the retained queue reference.
+
+This is an explicitly invoked local assumption, not the native SDK's queue
+draining, initialization, timing or consent ordering. Field limits do not
+establish a hard main-thread work bound or isolate untrusted inputs: existing
+parameter capture enumerates record keys synchronously and may invoke proxy
+traps. Egress remains independently gated by the host seal, and this entry adds
+no vendor request or parity claim.
+
 For local routing experiments, `experimentalRouting: true` allows a literal
 loopback endpoint with a one-to-32-digit destination in its conversion path.
 This matches the 058-04 reference manifest's parser bound, not evidence that

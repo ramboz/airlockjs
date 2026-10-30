@@ -6,6 +6,7 @@ import { validBootstrapCommand } from "../connectors/google-ads/bootstrap-comman
 
 const PARAM_KEYS = ["send_to", "value", "currency", "transaction_id"];
 const LIMIT = 256;
+const DATA_LAYER_LIMIT = 128;
 const dateIntrinsics = (() => {
   try {
     return {
@@ -58,6 +59,47 @@ function primitive(value, limit) {
     (typeof value !== "string" || value.length <= limit);
 }
 
+const DATA_LAYER_CHANGED = Symbol("data-layer-changed");
+
+function dataValue(object, key) {
+  const descriptor = Object.getOwnPropertyDescriptor(object, key);
+  if (!descriptor || !Object.hasOwn(descriptor, "value")) throw new Error("invalid-data-layer");
+  return descriptor.value;
+}
+
+function snapshotDataLayer(layer, previous = []) {
+  if (!Array.isArray(layer) || Object.getPrototypeOf(layer) !== Array.prototype) throw new Error("invalid-data-layer");
+  const length = dataValue(layer, "length");
+  if (!Number.isInteger(length) || length < 0 || length > DATA_LAYER_LIMIT) throw new Error("invalid-data-layer");
+  if (length < previous.length) throw DATA_LAYER_CHANGED;
+  const entries = [];
+  const commands = [];
+  for (let index = 0; index < length; index += 1) {
+    const entry = dataValue(layer, String(index));
+    if (index < previous.length && entry !== previous[index]) throw DATA_LAYER_CHANGED;
+    entries.push(entry);
+    if (index < previous.length) continue;
+    if (!entry || typeof entry !== "object" || Array.isArray(entry) ||
+        Object.getPrototypeOf(entry) !== Object.prototype) throw new Error("invalid-data-layer");
+    const count = dataValue(entry, "length");
+    if (!Number.isInteger(count) || count < 0 || count > 3) throw new Error("invalid-data-layer");
+    const args = [];
+    for (let position = 0; position < count; position += 1) args.push(dataValue(entry, String(position)));
+    commands.push({ entry, args });
+  }
+  if (dataValue(layer, "length") !== length) throw new Error("invalid-data-layer");
+  for (const [index, entry] of entries.entries()) {
+    if (dataValue(layer, String(index)) !== entry) throw new Error("invalid-data-layer");
+  }
+  for (const { entry, args } of commands) {
+    if (dataValue(entry, "length") !== args.length) throw new Error("invalid-data-layer");
+    for (const [index, arg] of args.entries()) {
+      if (!Object.is(dataValue(entry, String(index)), arg)) throw new Error("invalid-data-layer");
+    }
+  }
+  return { entries, commands };
+}
+
 async function responseText(response) {
   if (!response.body) return "";
   const reader = response.body.getReader();
@@ -88,10 +130,12 @@ export function createGoogleAdsPrototype({
   transportTimeoutMs = 1000, fetchImpl = globalThis.fetch,
   experimentalRouting = false, experimentalParameterScopes = false, experimentalCallbacks = false,
   experimentalMultiDestination = false, experimentalConsentCommands = false, experimentalBootstrap = false,
+  experimentalDataLayer = false,
 } = {}) {
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
       typeof experimentalCallbacks !== "boolean" || typeof experimentalMultiDestination !== "boolean" ||
       typeof experimentalConsentCommands !== "boolean" || typeof experimentalBootstrap !== "boolean" ||
+      typeof experimentalDataLayer !== "boolean" ||
       (experimentalMultiDestination && !experimentalRouting)) throw new Error("invalid-experimental-option");
   const pattern = experimentalRouting === true
     ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,32})\/$/
@@ -152,6 +196,9 @@ export function createGoogleAdsPrototype({
   let closed;
   let transport;
   let host;
+  let dataLayerSource;
+  let dataLayerEntries = [];
+  let drainingDataLayer = false;
 
   function record(outcome) {
     if (outcomes.length === LIMIT) { outcomes.shift(); truncated += 1; }
@@ -275,6 +322,8 @@ export function createGoogleAdsPrototype({
     }
     phase = disposed ? "disposed" : "terminal";
     terminalReason = reason;
+    dataLayerSource = undefined;
+    dataLayerEntries = [];
     clearTimeout(initTimer);
     for (const unsubscribe of subscriptions) {
       try { unsubscribe?.(); } catch { cleanupFailure = "listener-dispose-failed"; }
@@ -461,6 +510,22 @@ export function createGoogleAdsPrototype({
     } catch { reject("capture-unavailable"); }
     finally { capturing = false; }
   }
+  function drainDataLayer(layer) {
+    if (phase === "terminal" || phase === "disposed") throw new Error("prototype-unavailable");
+    if (drainingDataLayer || capturing) throw new Error("data-layer-reentrant");
+    if (dataLayerSource && layer !== dataLayerSource) throw new Error("data-layer-changed");
+    drainingDataLayer = true;
+    try {
+      let snapshot, failure;
+      try { snapshot = snapshotDataLayer(layer, dataLayerEntries); }
+      catch (error) { failure = error === DATA_LAYER_CHANGED ? "data-layer-changed" : "invalid-data-layer"; }
+      if (failure) throw new Error(failure);
+      if (phase === "terminal" || phase === "disposed") throw new Error("prototype-unavailable");
+      dataLayerSource = layer;
+      dataLayerEntries = snapshot.entries;
+      for (const { args } of snapshot.commands) gtag(...args);
+    } finally { drainingDataLayer = false; }
+  }
   try {
     transport = chamber || browserChamber();
     const hostListeners = new Set();
@@ -559,6 +624,7 @@ export function createGoogleAdsPrototype({
   } catch { stop("worker-unavailable"); }
   return {
     gtag, getState,
+    ...(experimentalDataLayer ? { drainDataLayer } : {}),
     flush() {
       if (!queue.length && !inFlight && !callbacks.size) return Promise.resolve(getState());
       if (waiters.size >= 16) return Promise.resolve({ ...getState(), flush: "waiter-limit" });
