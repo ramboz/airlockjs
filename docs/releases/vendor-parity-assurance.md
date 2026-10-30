@@ -75,8 +75,9 @@ remain open.
 
 An SDK-free local coexistence control exercises both prototypes in separate
 Node workers and loopback receivers. It checks independent adapter consent,
-no replay after a grant, distinct routing and continued Meta operation after
-the Google adapter is disposed, plus both explicit local bootstrap paths.
+immediate queued tag-denial isolation and no replay after a grant, distinct
+routing and continued Meta operation after the Google adapter is disposed,
+plus both explicit local bootstrap paths.
 This is not a shared-consent integration, browser isolation, native queue,
 vendor receipt or performance qualification.
 

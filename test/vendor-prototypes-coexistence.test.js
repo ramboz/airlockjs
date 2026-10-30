@@ -543,6 +543,75 @@ describe("experimental vendor coexistence on independent local workers", () => {
     }
   }, 10000);
 
+  it("keeps queued tag-consent denials local to each vendor without replay", async () => {
+    let googleReceiver, googleChamber, google, metaReceiver, metaChamber, meta, cause;
+    try {
+      googleReceiver = await createConversionReceiver();
+      metaReceiver = await createPrototypeReceiver();
+      googleChamber = createNodeConversionChamber();
+      metaChamber = createNodePrototypeChamber();
+      google = createGoogleAdsPrototype({
+        endpoint: googleReceiver.endpoint, chamber: googleChamber, experimentalConsentCommands: true,
+        consent: { ad_storage: "granted" }, captureContext: () => ({ pageURL, referrer: "" }),
+      });
+      meta = createMetaPixelPrototype({
+        endpoint: metaReceiver.endpoint, chamber: metaChamber, experimentalTagConsent: true,
+        consent: { ad_storage: "granted" },
+        captureContext: () => ({
+          pageURL, referrer: "", inFrame: false, screenWidth: 412, screenHeight: 823, timezoneOffset: 0,
+        }),
+      });
+      google.gtag("config", "AW-0000000000");
+      google.gtag("consent", "update", { ad_storage: "granted" });
+      meta.fbq("init", "000000000000000");
+      await Promise.all([google.flush(), meta.flush()]);
+
+      google.gtag("event", "conversion", conversion);
+      meta.fbq("track", "PageView");
+      meta.fbq("consent", "revoke");
+      let states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states[0].outcomes.at(-1).disposition).toBe("transport-settled");
+      expect(states[1].outcomes.slice(-2).map((outcome) => outcome.disposition))
+        .toEqual(["held", "consent-updated"]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([1, 0]);
+
+      meta.fbq("consent", "grant");
+      await Promise.all([google.flush(), meta.flush()]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([1, 0]);
+      google.gtag("event", "conversion", conversion);
+      meta.fbq("track", "PageView");
+      google.gtag("consent", "update", { ad_storage: "denied" });
+      states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states[0].outcomes.slice(-2).map((outcome) => outcome.disposition))
+        .toEqual(["held", "consent-updated"]);
+      expect(states[1].outcomes.at(-1).disposition).toBe("transport-settled");
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([1, 1]);
+
+      google.gtag("consent", "update", { ad_storage: "granted" });
+      await Promise.all([google.flush(), meta.flush()]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([1, 1]);
+      google.gtag("event", "conversion", conversion);
+      meta.fbq("track", "PageView");
+      states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states.map((state) => state.outcomes.at(-1).disposition))
+        .toEqual(["transport-settled", "transport-settled"]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([2, 2]);
+    } catch (error) {
+      cause = error;
+      throw error;
+    } finally {
+      const cleanup = await Promise.allSettled([
+        closeConversionResources({ adapter: google, chamber: googleChamber, receiver: googleReceiver, cause }),
+        closePrototypeResources({ adapter: meta, chamber: metaChamber, receiver: metaReceiver, cause }),
+      ]);
+      expect(cleanup.map((result) => result.status)).toEqual(["fulfilled", "fulfilled"]);
+      if (googleChamber) expect(googleChamber.getState().closed).toBe(true);
+      if (metaChamber) expect(metaChamber.getState().closed).toBe(true);
+      if (googleReceiver) expect(googleReceiver.getState()).toEqual({ listening: false, openSockets: 0 });
+      if (metaReceiver) expect(metaReceiver.getState()).toEqual({ listening: false, openSockets: 0 });
+    }
+  }, 10000);
+
   it("isolates routing, per-adapter consent, holds and disposal", async () => {
     let googleReceiver, googleChamber, google, metaReceiver, metaChamber, meta, cause;
     try {
