@@ -196,6 +196,21 @@ describe("opt-in local Meta bootstrap entry", () => {
     } finally { await env.close(); }
   }, 5000);
 
+  it("passes the custom-property opt-in through the local bootstrap entry", async () => {
+    const fbq = fixtureStub();
+    fbq("init", pixel);
+    fbq("track", "PageView", { placement: "preload" });
+    const env = await setup(fbq, { experimentalPageViewData: true, experimentalCustomProperties: true });
+    try {
+      fbq("track", "PageView", { placement: "after" });
+      const state = await env.adapter.flush();
+      expect(state.outcomes.map((item) => item.disposition))
+        .toEqual(["initialized", "transport-settled", "transport-settled"]);
+      expect(env.receiver.arrivals.map(({ url }) => new URL(url).searchParams.get("cd[placement]")))
+        .toEqual(["preload", "after"]);
+    } finally { await env.close(); }
+  }, 5000);
+
   it("refuses oversized preloads before enumerating or reading an element", async () => {
     const fbq = fixtureStub();
     const reads = vi.fn();
