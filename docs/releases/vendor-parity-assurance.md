@@ -39,8 +39,8 @@ gated `view_item` vertical subsets with optional value and separately gated
 local list, search-results, add-to-cart and unlabeled remarketing purchases;
 Meta covers
 multiple Pixels, event routing, a bounded Magento-shaped PageView array,
-bounded commerce data, content-name arrays and the Magento-shaped empty
-checkout-value fallback,
+bounded commerce data, content-name arrays, the Magento-shaped empty
+checkout-value fallback and boolean-false checkout identifiers,
 synthetic custom properties, event IDs, local agent settings, synthetic init identity,
 local tag-consent commands and an explicitly supplied bootstrap stub. Each uses
 a serialized worker and governed loopback receiver;
@@ -49,7 +49,11 @@ identity choices remain experimental, not native findings.
 The remarketing route and fields are local hypotheses, not feed matching,
 audience membership or attribution evidence. The Meta AddToCart prototype
 rejects the pinned Magento invalid-identifier case instead of silently
-coercing its undefined item IDs; native handling remains unknown.
+coercing its undefined item IDs; native handling remains unknown. The local
+Meta host also does not yet correlate every worker request's event, target and
+data against the captured command: a synthetic fake worker substituted
+`Purchase` for `PageView` and reached a mock transport. No network request was
+made, and correlation remains an open blocker.
 
 Google's documented consent wait remains unsupported. A potential conflict
 between retaining pre-grant conversions and the local drop/no-replay policy
