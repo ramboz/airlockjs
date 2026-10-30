@@ -35,7 +35,7 @@ function snapshotContentIds(value) {
   return result;
 }
 
-function snapshotContents(value) {
+function snapshotContents(value, experimentalContentsItemPrice) {
   if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype) return null;
   const length = Object.getOwnPropertyDescriptor(value, "length")?.value;
   if (!Number.isInteger(length) || length < 0 || length > 16) return null;
@@ -56,14 +56,25 @@ function snapshotContents(value) {
     if (typeof quantity.value !== "number" || !Number.isFinite(quantity.value) || quantity.value < 0 ||
         quantity.value > Number.MAX_SAFE_INTEGER || Object.is(quantity.value, -0)) return null;
     const keys = Reflect.ownKeys(item);
-    if (keys.length !== 2 || !keys.includes("id") || !keys.includes("quantity")) return null;
-    result.push({ id: id.value, quantity: quantity.value });
+    const hasPrice = keys.includes("item_price");
+    if (keys.length !== (hasPrice ? 3 : 2) || !keys.includes("id") || !keys.includes("quantity") ||
+        (hasPrice && !experimentalContentsItemPrice)) return null;
+    const snapshot = { id: id.value, quantity: quantity.value };
+    if (hasPrice) {
+      const price = Object.getOwnPropertyDescriptor(item, "item_price");
+      if (!price || !Object.hasOwn(price, "value") || typeof price.value !== "number" ||
+          !Number.isFinite(price.value) || price.value < 0 || price.value > Number.MAX_SAFE_INTEGER ||
+          Object.is(price.value, -0)) return null;
+      snapshot.item_price = price.value;
+    }
+    result.push(snapshot);
   }
   return result;
 }
 
 export function snapshotPageViewData(value, experimentalScalarEventData = false, experimentalContentIds = false,
-  experimentalContents = false, experimentalCustomProperties = false, experimentalNumericOrderId = false) {
+  experimentalContents = false, experimentalCustomProperties = false, experimentalNumericOrderId = false,
+  experimentalContentsItemPrice = false) {
   if (!value || typeof value !== "object" || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return null;
   const result = {};
   let customCount = 0;
@@ -97,7 +108,7 @@ export function snapshotPageViewData(value, experimentalScalarEventData = false,
         result[key] = ids;
         continue;
       } else if (key === "contents") {
-        const contents = snapshotContents(item);
+        const contents = snapshotContents(item, experimentalContentsItemPrice);
         if (contents === null) return null;
         result[key] = contents;
         continue;

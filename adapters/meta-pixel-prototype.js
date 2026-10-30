@@ -219,6 +219,7 @@ export function createMetaPixelPrototype({
   experimentalScalarEventData = false,
   experimentalContentIds = false,
   experimentalContents = false,
+  experimentalContentsItemPrice = false,
   experimentalCustomProperties = false,
   experimentalNumericOrderId = false,
   experimentalEventIds = false,
@@ -226,7 +227,7 @@ export function createMetaPixelPrototype({
   experimentalTagConsent = false,
 } = {}) {
   if ([experimentalPageViewData, experimentalRouting, experimentalMultiPixelRouting, experimentalEvents,
-    experimentalScalarEventData, experimentalContentIds, experimentalContents, experimentalCustomProperties,
+    experimentalScalarEventData, experimentalContentIds, experimentalContents, experimentalContentsItemPrice, experimentalCustomProperties,
     experimentalNumericOrderId, experimentalEventIds,
     experimentalSyntheticAdvancedMatching, experimentalTagConsent]
     .some((option) => typeof option !== "boolean")) {
@@ -236,6 +237,7 @@ export function createMetaPixelPrototype({
   if (experimentalScalarEventData && !experimentalPageViewData) throw new Error("scalar-data-requires-pageview-data");
   if (experimentalContentIds && !experimentalPageViewData) throw new Error("content-ids-require-pageview-data");
   if (experimentalContents && !experimentalPageViewData) throw new Error("contents-require-pageview-data");
+  if (experimentalContentsItemPrice && !experimentalContents) throw new Error("item-price-requires-contents");
   if (experimentalCustomProperties && !experimentalPageViewData) throw new Error("custom-properties-require-pageview-data");
   if (experimentalNumericOrderId && !experimentalCustomProperties) throw new Error("numeric-order-id-requires-custom-properties");
   if (experimentalEventIds && !experimentalPageViewData) throw new Error("event-ids-require-pageview-data");
@@ -463,7 +465,7 @@ export function createMetaPixelPrototype({
       if (experimentalPageViewData === true && dataIndex >= 0 && (args.length === dataIndex + 1 || hasOptions)) {
         const data = snapshotPageViewData(
           args[dataIndex], experimentalScalarEventData, experimentalContentIds, experimentalContents, experimentalCustomProperties,
-          experimentalNumericOrderId,
+          experimentalNumericOrderId, experimentalContentsItemPrice,
         );
         if (!data) { reject("unsupported-parameters"); return; }
         args[dataIndex] = data;
@@ -594,6 +596,7 @@ export function createMetaPixelPrototype({
       ...(experimentalScalarEventData === true ? { experimentalScalarEventData: true } : {}),
       ...(experimentalContentIds === true ? { experimentalContentIds: true } : {}),
       ...(experimentalContents === true ? { experimentalContents: true } : {}),
+      ...(experimentalContentsItemPrice === true ? { experimentalContentsItemPrice: true } : {}),
       ...(experimentalCustomProperties === true ? { experimentalCustomProperties: true } : {}),
       ...(experimentalNumericOrderId === true ? { experimentalNumericOrderId: true } : {}),
       ...(experimentalEventIds === true ? { experimentalEventIds: true } : {}),

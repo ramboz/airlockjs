@@ -36,7 +36,7 @@ async function configure(chamber, transportTimeoutMs = 500) {
 }
 
 describe("actual first-party worker correlated protocol (not receipt evidence)", () => {
-  it.each(["experimentalRouting", "experimentalPageViewData", "experimentalMultiPixelRouting", "experimentalEvents", "experimentalScalarEventData", "experimentalContentIds", "experimentalContents", "experimentalCustomProperties", "experimentalNumericOrderId", "experimentalEventIds", "experimentalSyntheticAdvancedMatching", "experimentalTagConsent"])("rejects mistyped %s during worker initialization", async (option) => {
+  it.each(["experimentalRouting", "experimentalPageViewData", "experimentalMultiPixelRouting", "experimentalEvents", "experimentalScalarEventData", "experimentalContentIds", "experimentalContents", "experimentalContentsItemPrice", "experimentalCustomProperties", "experimentalNumericOrderId", "experimentalEventIds", "experimentalSyntheticAdvancedMatching", "experimentalTagConsent"])("rejects mistyped %s during worker initialization", async (option) => {
     const chamber = createNodePrototypeChamber();
     try {
       const failed = receive(chamber, "fatal");
@@ -98,6 +98,18 @@ describe("actual first-party worker correlated protocol (not receipt evidence)",
     try {
       const failed = receive(chamber, "fatal");
       chamber.postMessage({ type: "init", endpoint, transportTimeoutMs: 500, experimentalContents: true });
+      expect(await failed).toEqual({ type: "fatal", message: "worker-configuration-failed" });
+    } finally { await chamber.dispose(); }
+  }, 5000);
+
+  it("rejects the item-price opt-in when contents are disabled", async () => {
+    const chamber = createNodePrototypeChamber();
+    try {
+      const failed = receive(chamber, "fatal");
+      chamber.postMessage({
+        type: "init", endpoint, transportTimeoutMs: 500,
+        experimentalPageViewData: true, experimentalContentsItemPrice: true,
+      });
       expect(await failed).toEqual({ type: "fatal", message: "worker-configuration-failed" });
     } finally { await chamber.dispose(); }
   }, 5000);
@@ -224,6 +236,50 @@ describe("actual first-party worker correlated protocol (not receipt evidence)",
       chamber.postMessage({ type: "intercepted-fetch-response", id: request.id, status: 204, body: "" });
       expect((await settled).summary).toMatchObject({ seq: 3, disposition: "transport-settled", status: 204 });
     } finally { await chamber.dispose(); }
+  }, 5000);
+
+  it.each([false, true])("revalidates serialized item prices in the worker (enabled=%s)", async (enabled) => {
+    const chamber = createNodePrototypeChamber();
+    const requests = [];
+    const unsubscribe = chamber.onMessage((message) => {
+      if (message.type === "intercepted-fetch") requests.push(message);
+    });
+    try {
+      const configured = receive(chamber, "phase");
+      chamber.postMessage({
+        type: "init", endpoint, transportTimeoutMs: 500, experimentalEvents: true,
+        experimentalPageViewData: true, experimentalContents: true, experimentalContentsItemPrice: enabled,
+      });
+      await configured;
+      const initialized = receive(chamber, "result");
+      chamber.postMessage({ type: "event", event: event(1, ["init", "000000000000000"]) });
+      await initialized;
+      const invalid = [
+        { id: "sku", quantity: 1, item_price: -1 },
+        { id: "sku", quantity: 1, item_price: NaN },
+        { id: "sku", quantity: 1, item_price: 100, extra: true },
+      ];
+      if (!enabled) invalid.push({ id: "sku", quantity: 1, item_price: 100 });
+      for (const [index, item] of invalid.entries()) {
+        const rejected = receive(chamber, "result");
+        chamber.postMessage({ type: "event", event: event(index + 2, ["trackCustom", "Purchase", { contents: [item] }]) });
+        expect((await rejected).summary).toMatchObject({
+          seq: index + 2, disposition: "rejected", reason: "unsupported-parameters", requests: 0,
+        });
+      }
+      expect(requests).toEqual([]);
+      if (enabled) {
+        const requested = receive(chamber, "intercepted-fetch");
+        chamber.postMessage({
+          type: "event", event: event(5, ["trackCustom", "Purchase", { contents: [{ id: "sku", quantity: 1, item_price: 100 }] }]),
+        });
+        const request = await requested;
+        expect(new URL(request.url).searchParams.get("cd[contents]")).toBe('[{"id":"sku","quantity":1,"item_price":100}]');
+        const settled = receive(chamber, "result");
+        chamber.postMessage({ type: "intercepted-fetch-response", id: request.id, status: 204, body: "" });
+        expect((await settled).summary).toMatchObject({ seq: 5, disposition: "transport-settled", status: 204 });
+      }
+    } finally { unsubscribe(); await chamber.dispose(); }
   }, 5000);
 
   it("revalidates event options after serialization before the worker requests transport", async () => {

@@ -167,12 +167,26 @@ browser behavior and full production replacement remain unverified.
   UTF-16 code units or nonnegative safe integer IDs; quantity is a finite,
   nonnegative number no greater than `Number.MAX_SAFE_INTEGER`, including
   fractions. Negative zero, null, accessors, sparse arrays, extra properties
-  and unsupported fields such as `item_price` reject the whole command. Empty
-  arrays are retained and undefined is omitted. Each nested record is
-  snapshotted before queuing and revalidated in the chamber, which emits one
-  JSON value in `cd[contents]`. The type restrictions, required keys, size
-  bounds, empty handling and wire encoding are **unverified prototype
-  choices**, not native behavior or catalog proof.
+  and unsupported fields such as `item_price` without its separate opt-in
+  reject the whole command. Empty arrays are retained and undefined is
+  omitted. Each nested record is snapshotted before queuing and revalidated
+  in the chamber, which emits one JSON value in `cd[contents]`. The type
+  restrictions, required keys, size bounds, empty handling and wire encoding
+  are **unverified prototype choices**, not native behavior or catalog proof.
+- With `experimentalContentsItemPrice: true` and both
+  `experimentalPageViewData` and `experimentalContents` enabled, each
+  contents item may also have an own data property `item_price`. It must be
+  a finite, nonnegative number no greater than `Number.MAX_SAFE_INTEGER`,
+  including fractions but excluding negative zero. Missing price is accepted;
+  undefined, null, accessors, other types and extra fields reject the whole
+  command. The worker emits the optional price in the existing local JSON
+  `cd[contents]` hypothesis; it does not calculate totals or change `value`.
+  Meta's Magento plugin [tests a numeric price of 100](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Test/Unit/Block/Pixel/PurchaseTest.php#L152-L198)
+  as part of its `getContents()` result and
+  [passes that result into a Purchase payload](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/purchase.phtml#L22-L40).
+  The local price range, optionality, ordering and JSON wire form are
+  unverified choices. The complete Magento payload and `fbq("set", "agent",
+  ...)` remain unsupported and unqualified. Use synthetic data only.
 - With both `experimentalPageViewData: true` and
   `experimentalEventIds: true`, `fbq("track", name, data, { eventID })`
   accepts the documented fourth argument. With multi-Pixel routing enabled,

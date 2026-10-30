@@ -151,10 +151,24 @@ malformed records, unsupported prices, combined event data and size limits.
 
 The permitted string/integer ID and finite nonnegative numeric quantity
 subset, required fields, bounds, empty/undefined behavior and JSON wire form
-are local prototype choices, not captured native behavior. Price and other
-item fields remain rejected: the retained documentation does not establish
-their supported Pixel schema. Native contents input-to-wire evidence, backend
-receipt, catalog matching and all readiness/acceptance gates remain open.
+are local prototype choices, not captured native behavior. At that checkpoint,
+price and other item fields were rejected. Native contents input-to-wire
+evidence, backend receipt, catalog matching and all readiness/acceptance
+gates remain open.
+
+The separately gated `experimentalContentsItemPrice` admits an optional
+numeric `item_price` in those same item records. Meta's Magento plugin
+[tests a numeric price of 100 in its `getContents()` result](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Test/Unit/Block/Pixel/PurchaseTest.php#L152-L198)
+and puts the result in its [`trackCustom` Purchase payload](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/purchase.phtml#L22-L40).
+The local subset accepts finite, nonnegative numbers up to
+`Number.MAX_SAFE_INTEGER`, excluding negative zero, and retains existing
+unpriced items. Snapshots and worker revalidation feed the existing local JSON
+mapping, with no total calculation. Tests cover custom Purchase composition,
+routing, consent holds, no replay, invalid prices and existing defaults.
+Optionality, bounds and JSON mapping are local assumptions; the source does
+not establish native wire behavior. Other item fields, the full Magento
+payload including array-valued `content_name`, and `fbq("set", "agent", ...)`
+remain unsupported. No native request, receipt or parity is claimed.
 
 The separate `experimentalCustomProperties` opt-in accepts a bounded subset
 of additional string-valued event properties, on the existing standard or
