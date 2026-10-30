@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createGoogleAdsPrototype } from "../adapters/google-ads-prototype.js";
 import { createMetaPixelPrototype } from "../adapters/meta-pixel-prototype.js";
+import { createMetaPixelBootstrapPrototype } from "../adapters/meta-pixel-bootstrap-prototype.js";
 import {
   closeConversionResources, createConversionReceiver, createNodeConversionChamber,
 } from "../rig/google-ads-conversion-prototype.mjs";
@@ -17,6 +18,68 @@ const conversion = {
 };
 
 describe("experimental vendor coexistence on independent local workers", () => {
+  it("drains both local bootstrap shapes without duplicate sends", async () => {
+    let googleReceiver, googleChamber, google, metaReceiver, metaChamber, meta, cause;
+    try {
+      googleReceiver = await createConversionReceiver();
+      metaReceiver = await createPrototypeReceiver();
+      googleChamber = createNodeConversionChamber();
+      metaChamber = createNodePrototypeChamber();
+      const dataLayer = [];
+      function gtag() { dataLayer.push(arguments); }
+      function fbq() {
+        fbq.callMethod ? fbq.callMethod.apply(fbq, arguments) : fbq.queue.push(arguments);
+      }
+      fbq.queue = [];
+      gtag("config", "AW-0000000000");
+      gtag("event", "conversion", conversion);
+      fbq("init", "000000000000000");
+      fbq("track", "PageView");
+
+      google = createGoogleAdsPrototype({
+        endpoint: googleReceiver.endpoint, chamber: googleChamber, experimentalDataLayer: true,
+        consent: { ad_storage: "granted" }, captureContext: () => ({ pageURL, referrer: "" }),
+      });
+      meta = await createMetaPixelBootstrapPrototype({
+        bootstrap: fbq, endpoint: metaReceiver.endpoint, chamber: metaChamber,
+        consent: { ad_storage: "granted" },
+        captureContext: () => ({
+          pageURL, referrer: "", inFrame: false, screenWidth: 412, screenHeight: 823, timezoneOffset: 0,
+        }),
+      });
+      google.drainDataLayer(dataLayer);
+      let states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states.map((state) => state.outcomes.map((item) => item.disposition))).toEqual([
+        ["configured", "transport-settled"], ["initialized", "transport-settled"],
+      ]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([1, 1]);
+
+      gtag("event", "conversion", conversion);
+      fbq("track", "PageView");
+      google.drainDataLayer(dataLayer);
+      google.drainDataLayer(dataLayer);
+      states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states.map((state) => state.outcomes.at(-1).disposition))
+        .toEqual(["transport-settled", "transport-settled"]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([2, 2]);
+      expect(new URL(googleReceiver.arrivals[1].url).searchParams.get("oid")).toBe(conversion.transaction_id);
+      expect(new URL(metaReceiver.arrivals[1].url).searchParams.get("ev")).toBe("PageView");
+    } catch (error) {
+      cause = error;
+      throw error;
+    } finally {
+      const cleanup = await Promise.allSettled([
+        closeConversionResources({ adapter: google, chamber: googleChamber, receiver: googleReceiver, cause }),
+        closePrototypeResources({ adapter: meta, chamber: metaChamber, receiver: metaReceiver, cause }),
+      ]);
+      expect(cleanup.map((result) => result.status)).toEqual(["fulfilled", "fulfilled"]);
+      if (googleChamber) expect(googleChamber.getState().closed).toBe(true);
+      if (metaChamber) expect(metaChamber.getState().closed).toBe(true);
+      if (googleReceiver) expect(googleReceiver.getState()).toEqual({ listening: false, openSockets: 0 });
+      if (metaReceiver) expect(metaReceiver.getState()).toEqual({ listening: false, openSockets: 0 });
+    }
+  }, 10000);
+
   it("isolates routing, per-adapter consent, holds and disposal", async () => {
     let googleReceiver, googleChamber, google, metaReceiver, metaChamber, meta, cause;
     try {

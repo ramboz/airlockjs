@@ -33,9 +33,9 @@ The 2026-10-15 allowance above is historical, not a renewed execution budget.
 experimental replacement work from the available references before complete
 native responses exist. Local, source-only opt-ins now cover Google routing,
 parameter scopes, callbacks, conservative consent commands and an explicit
-manual dataLayer drain; Meta covers
-multiple Pixels, event routing, bounded commerce data, event IDs and synthetic
-init identity, plus local tag-consent commands. Each uses a serialized worker
+manual dataLayer drain; Meta covers multiple Pixels, event routing, bounded
+commerce data, event IDs, synthetic init identity, local tag-consent commands
+and an explicitly supplied bootstrap stub. Each uses a serialized worker
 and governed loopback receiver;
 the existing production defaults remain unchanged. Most ordering, encoding and
 identity choices remain experimental, not native findings.
@@ -54,8 +54,9 @@ remain open.
 An SDK-free local coexistence control exercises both prototypes in separate
 Node workers and loopback receivers. It checks independent adapter consent,
 no replay after a grant, distinct routing and continued Meta operation after
-the Google adapter is disposed. This is not a shared-consent integration,
-browser isolation, vendor receipt or performance qualification.
+the Google adapter is disposed, plus both explicit local bootstrap paths.
+This is not a shared-consent integration, browser isolation, native queue,
+vendor receipt or performance qualification.
 
 **Next pick:** return to the bounded evidence gaps for full060-01/059-01 after
 the delivered060-14/059-20 local increments. Their original
