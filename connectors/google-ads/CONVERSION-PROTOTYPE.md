@@ -559,6 +559,15 @@ Unsupported keys (including `wait_for_update` and region controls), values,
 accessors and malformed commands reject as a whole; no timer, region selection
 or implicit replay is implemented.
 
+[Google's asynchronous consent guide](https://developers.google.com/tag-platform/security/guides/consent#async)
+shows a denied `ad_storage` default with `wait_for_update: 500` and describes
+giving the consent tool time to update before tags fire. It does not specify
+all event queue, update and expiry ordering needed by this prototype. Retaining
+a conversion captured under denial for a later grant would change the current
+drop/no-replay policy; dropping it does not establish native wait behavior.
+The owner decision and qualified evidence for that case remain open. The field
+continues to reject rather than silently ignoring a requested wait.
+
 The local policy retains separate default and update values, merges partial
 commands, and prefers an explicit update over a later default for that purpose.
 An admitted valid denial tightens the host seal immediately, including for

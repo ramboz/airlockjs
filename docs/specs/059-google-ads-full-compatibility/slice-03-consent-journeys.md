@@ -66,6 +66,18 @@ native-equivalent basic and advanced Google Ads measurement behavior.
 **Anti-horizontal-phasing check:** A visitor's choice produces the complete
 correct browsing/conversion path and observable operator outcome in both modes.
 
+## Open wait and seal question
+
+[Google's asynchronous consent guide](https://developers.google.com/tag-platform/security/guides/consent#async)
+shows a denied default with `wait_for_update: 500`, allowing time for an
+update before tags fire. It does not establish the complete event and update
+queue behavior at the wait boundary. The local prototype rejects the field
+and drops held conversions without replay. Retaining a conversion captured
+under denial for a later grant would change that policy; a demonstrated native
+requirement, any policy change and privacy review remain open. Pending denials
+must still take effect immediately and the independent host seal must be
+checked at dispatch. This observation does not advance this DRAFT slice.
+
 ## Assumptions
 
 - Unverified: current consent encodings, region/remote overrides and native
