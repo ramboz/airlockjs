@@ -29,6 +29,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
         endpoint: googleReceiver.endpoint, chamber: googleChamber,
         experimentalPurchase: true, experimentalPurchaseCart: true, experimentalPurchaseDiscount: true, experimentalPurchaseFeed: true,
         experimentalCustomVariables: true,
+        experimentalRetailViewItem: true,
         consent: { ad_storage: "denied" }, captureContext: () => ({ pageURL, referrer: "" }),
       });
       meta = createMetaPixelPrototype({
@@ -116,6 +117,21 @@ describe("experimental vendor coexistence on independent local workers", () => {
       expect(customQuery.has("a")).toBe(false);
       expect(metaQuery.has("airlock_custom_color")).toBe(false);
       expect(metaQuery.has("airlock_custom_product_name")).toBe(false);
+
+      const retailItems = [{ id: 1234, google_business_vertical: "retail" }];
+      google.gtag("event", "view_item", { value: 99, items: retailItems });
+      retailItems[0].id = 5678;
+      states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states[0].outcomes.at(-1).disposition).toBe("transport-settled");
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([3, 2]);
+      const retailQuery = new URL(googleReceiver.arrivals[2].url).searchParams;
+      expect(retailQuery.get("airlock_event")).toBe("view_item");
+      expect(JSON.parse(retailQuery.get("airlock_items"))).toEqual([{ id: 1234, google_business_vertical: "retail" }]);
+      expect(retailQuery.get("airlock_value")).toBe("99");
+      expect(retailQuery.has("label")).toBe(false);
+      expect(retailQuery.has("cd[content_name]")).toBe(false);
+      expect(metaQuery.has("airlock_event")).toBe(false);
+      expect(metaQuery.has("airlock_value")).toBe(false);
     } catch (error) {
       cause = error;
       throw error;

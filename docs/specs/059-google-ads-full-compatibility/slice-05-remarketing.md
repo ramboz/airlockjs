@@ -67,6 +67,17 @@ through a complete browse-to-cart/purchase journey with correct feed relationshi
 **Anti-horizontal-phasing check:** The adopter's browsing and commerce actions
 produce the complete governed audience path and an actionable feed-aware result.
 
+## Owner-directed offline experiment - 2026-10-29
+
+The separately gated `experimentalRetailViewItem` accepts a bounded synthetic
+subset of the numeric-ID retail `view_item` example in
+[Google's dynamic-remarketing guide](https://support.google.com/google-ads/answer/7305793?hl=en).
+It snapshots items and optional value through a worker and a single local
+receiver without inventing a conversion label. Its local route, marker fields
+and limits are hypotheses. Other event shapes, scope and multi-destination
+handling, native wire behavior, audience membership, feed matching and
+attribution remain unqualified. This does not advance this DRAFT slice.
+
 ## Assumptions
 
 - Unverified: current native item schemas and auxiliary branch behavior can be
