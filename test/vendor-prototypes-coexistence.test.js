@@ -42,7 +42,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
         experimentalEvents: true, experimentalEventIds: true, experimentalContentIds: true,
         experimentalContents: true, experimentalContentsItemPrice: true,
         experimentalScalarEventData: true, experimentalContentNameArray: true,
-        experimentalSetAgent: true,
+        experimentalSetAgent: true, experimentalInitAgent: true,
         experimentalNullPurchaseValue: true,
         experimentalViewContentJsonStrings: true,
         consent: { ad_storage: "granted" },
@@ -51,8 +51,9 @@ describe("experimental vendor coexistence on independent local workers", () => {
         }),
       });
       google.gtag("config", "AW-0000000000");
-      meta.fbq("init", "000000000000000");
-      meta.fbq("set", "agent", "magento_opensource-0.0.0-1.2.3", "000000000000000");
+      const initOptions = { agent: "adobe_commerce-0.0.0-4.5.6" };
+      meta.fbq("init", "000000000000000", {}, initOptions);
+      initOptions.agent = "magento_opensource-0.0.0-9.9.9";
       google.gtag("event", "purchase", {
         ...conversion, new_customer: true, items: [{ id: "held-sku", price: 4, quantity: 1 }], discount: 1,
       });
@@ -60,8 +61,12 @@ describe("experimental vendor coexistence on independent local workers", () => {
       let states = await Promise.all([google.flush(), meta.flush()]);
       expect(states.map((state) => state.outcomes.at(-1).disposition)).toEqual(["held", "transport-settled"]);
       expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([0, 1]);
+      const firstMetaQuery = new URL(metaReceiver.arrivals[0].url).searchParams;
+      expect(firstMetaQuery.getAll("a")).toEqual(["adobe_commerce-0.0.0-4.5.6"]);
+      expect(firstMetaQuery.has("airlock_items")).toBe(false);
 
       google.setConsent({ ad_storage: "granted" });
+      meta.fbq("set", "agent", "magento_opensource-0.0.0-1.2.3", "000000000000000");
       await Promise.all([google.flush(), meta.flush()]);
       expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([0, 1]);
       const items = [{ id: "local-sku", price: 5, quantity: 2 }];
