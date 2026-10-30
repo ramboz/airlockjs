@@ -50,6 +50,12 @@ observation establishes receipt, attribution or full parity. These are not
 production cutovers; the first journeys' full evidence and acceptance gates
 remain open.
 
+An SDK-free local coexistence control exercises both prototypes in separate
+Node workers and loopback receivers. It checks independent adapter consent,
+no replay after a grant, distinct routing and continued Meta operation after
+the Google adapter is disposed. This is not a shared-consent integration,
+browser isolation, vendor receipt or performance qualification.
+
 **Next pick:** return to the bounded evidence gaps for full060-01/059-01 after
 the delivered060-14/059-20 local increments. Their original
 readiness/native-reference/capability/performance gates remain open; do not
