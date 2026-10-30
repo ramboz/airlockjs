@@ -30,8 +30,12 @@ const REASONS = new Set([
   "connector-not-initialized", "unsupported-command", "unsupported-config", "synthetic-destination-required",
   "duplicate-config", "conversion-before-config", "unsupported-parameters", "synthetic-selector-required",
   "unsupported-value", "unsupported-currency", "unsupported-transaction", "invalid-context",
-  "encoded-context-limit", "held-at-seal", "transport-failed", "destination-mismatch", "unsupported-bootstrap",
+  "unsupported-new-customer", "encoded-context-limit", "held-at-seal", "transport-failed", "destination-mismatch", "unsupported-bootstrap",
 ]);
+
+function conversionEvent(args, purchase) {
+  return args?.[0] === "event" && (args[1] === "conversion" || (purchase && args[1] === "purchase"));
+}
 
 function browserChamber() {
   const worker = new Worker(new URL("../connectors/google-ads/conversion-prototype.worker.js", import.meta.url), { type: "module" });
@@ -130,12 +134,12 @@ export function createGoogleAdsPrototype({
   transportTimeoutMs = 1000, fetchImpl = globalThis.fetch,
   experimentalRouting = false, experimentalParameterScopes = false, experimentalCallbacks = false,
   experimentalMultiDestination = false, experimentalConsentCommands = false, experimentalBootstrap = false,
-  experimentalDataLayer = false,
+  experimentalDataLayer = false, experimentalPurchase = false,
 } = {}) {
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
       typeof experimentalCallbacks !== "boolean" || typeof experimentalMultiDestination !== "boolean" ||
       typeof experimentalConsentCommands !== "boolean" || typeof experimentalBootstrap !== "boolean" ||
-      typeof experimentalDataLayer !== "boolean" ||
+      typeof experimentalDataLayer !== "boolean" || typeof experimentalPurchase !== "boolean" ||
       (experimentalMultiDestination && !experimentalRouting)) throw new Error("invalid-experimental-option");
   const pattern = experimentalRouting === true
     ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,32})\/$/
@@ -290,7 +294,7 @@ export function createGoogleAdsPrototype({
         summary.status === undefined && summary.terminal === undefined && summary.branches === undefined;
     }
     if (experimentalMultiDestination) {
-      if (activeCommand?.[0] !== "event" || activeCommand?.[1] !== "conversion" ||
+      if (!conversionEvent(activeCommand, experimentalPurchase) ||
           !activeSelectors?.length || activeSelectors.length > 2 || activeRequests.length !== summary.requests ||
           activeRequests.some((request) => !request.response) || !Array.isArray(summary.branches) ||
           summary.branches.length !== activeSelectors.length || summary.status !== undefined || summary.reason !== undefined) return false;
@@ -308,7 +312,7 @@ export function createGoogleAdsPrototype({
       return summary.disposition === (dispositions.size === 1 ? branches[0].disposition : "partial");
     }
     const response = activeRequest?.response;
-    if (!response || activeCommand?.[0] !== "event" || activeCommand?.[1] !== "conversion" ||
+    if (!response || !conversionEvent(activeCommand, experimentalPurchase) ||
         summary.status !== response.status) return false;
     const disposition = response.held ? "held" : response.status >= 200 && response.status < 300 ? "transport-settled" : "failed";
     const reason = response.held ? "held-at-seal" : response.status === 0 ? "transport-failed" : undefined;
@@ -371,7 +375,7 @@ export function createGoogleAdsPrototype({
       activeCommand = event.payload.args;
       activeRequest = undefined;
       activeRequests = [];
-      const eventParams = activeCommand?.[0] === "event" && activeCommand?.[1] === "conversion" ? activeCommand?.[2] : undefined;
+      const eventParams = conversionEvent(activeCommand, experimentalPurchase) ? activeCommand?.[2] : undefined;
       const sendTo = eventParams && Object.hasOwn(eventParams, "send_to") ? eventParams.send_to : undefined;
       activeSelectors = experimentalMultiDestination && (typeof sendTo === "string" || Array.isArray(sendTo))
         ? (Array.isArray(sendTo) ? sendTo : [sendTo]) : undefined;
@@ -452,10 +456,11 @@ export function createGoogleAdsPrototype({
         if (![Object.prototype, null].includes(Object.getPrototypeOf(arg))) { reject("unsupported-parameters"); return; }
         const keys = Reflect.ownKeys(arg);
         const consentCommand = experimentalConsentCommands && index === 2 && args[0] === "consent";
-        const allowedKeys = consentCommand ? CONSENT_COMMAND_KEYS : PARAM_KEYS;
+        const purchaseCommand = experimentalPurchase && index === 2 && args[0] === "event" && args[1] === "purchase";
+        const allowedKeys = consentCommand ? CONSENT_COMMAND_KEYS : purchaseCommand ? [...PARAM_KEYS, "new_customer"] : PARAM_KEYS;
         const allowCallback = experimentalCallbacks && index === 2 && args[0] === "event" && args[1] === "conversion";
         const callbackKeys = allowCallback ? ["event_callback", "event_timeout"] : [];
-        if (keys.length > 4 + callbackKeys.length ||
+        if (keys.length > 4 + Number(purchaseCommand) + callbackKeys.length ||
             keys.some((key) => !allowedKeys.includes(key) && !callbackKeys.includes(key))) { reject("unsupported-parameters"); return; }
         if (keys.some((key) => callbackKeys.includes(key))) {
           const fn = Object.getOwnPropertyDescriptor(arg, "event_callback");
@@ -558,7 +563,7 @@ export function createGoogleAdsPrototype({
         awaitingResult = false;
       }
       if (message?.type === "intercepted-fetch") {
-        if (!inFlight || !awaitingResult || activeCommand?.[0] !== "event" || activeCommand?.[1] !== "conversion" ||
+        if (!inFlight || !awaitingResult || !conversionEvent(activeCommand, experimentalPurchase) ||
             (experimentalMultiDestination
               ? !activeSelectors || message.index !== activeRequests.length || message.index >= activeSelectors.length ||
                 (activeRequest && (!activeRequest.response ||
@@ -620,6 +625,7 @@ export function createGoogleAdsPrototype({
       ...(experimentalParameterScopes === true ? { experimentalParameterScopes: true } : {}),
       ...(experimentalConsentCommands === true ? { experimentalConsentCommands: true } : {}),
       ...(experimentalBootstrap === true ? { experimentalBootstrap: true } : {}),
+      ...(experimentalPurchase === true ? { experimentalPurchase: true } : {}),
       ...(experimentalMultiDestination ? { additionalEndpoint, experimentalMultiDestination: true } : {}) });
   } catch { stop("worker-unavailable"); }
   return {

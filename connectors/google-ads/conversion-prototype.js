@@ -46,11 +46,11 @@ function selectorValues(value, multiple) {
  */
 export function createGoogleAdsConversionPrototype({
   endpoint, additionalEndpoint, experimentalRouting = false, experimentalParameterScopes = false,
-  experimentalMultiDestination = false, experimentalConsentCommands = false, experimentalBootstrap = false,
+  experimentalMultiDestination = false, experimentalConsentCommands = false, experimentalBootstrap = false, experimentalPurchase = false,
 } = {}) {
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
       typeof experimentalMultiDestination !== "boolean" || typeof experimentalConsentCommands !== "boolean" ||
-      typeof experimentalBootstrap !== "boolean" ||
+      typeof experimentalBootstrap !== "boolean" || typeof experimentalPurchase !== "boolean" ||
       (experimentalMultiDestination && !experimentalRouting)) {
     throw new Error("invalid-experimental-option");
   }
@@ -118,10 +118,14 @@ export function createGoogleAdsConversionPrototype({
         configs.set(args[1], configScope);
         return [];
       }
-      if (args.length !== 3 || args[0] !== "event" || args[1] !== "conversion") throw new Error("unsupported-command");
+      const purchase = experimentalPurchase && args[1] === "purchase";
+      if (args.length !== 3 || args[0] !== "event" || (args[1] !== "conversion" && !purchase)) throw new Error("unsupported-command");
       if (!configs.size) throw new Error("conversion-before-config");
-      const params = dataRecord(args[2], PARAMS);
+      const params = dataRecord(args[2], purchase ? [...PARAMS, "new_customer"] : PARAMS);
       if (!params) throw new Error("unsupported-parameters");
+      if (purchase && params.new_customer !== undefined && typeof params.new_customer !== "boolean") {
+        throw new Error("unsupported-new-customer");
+      }
       let selected;
       if (experimentalRouting === true) {
         const selectors = selectorValues(params.send_to, experimentalMultiDestination);
@@ -149,6 +153,10 @@ export function createGoogleAdsConversionPrototype({
         const query = new URLSearchParams({ label });
         for (const [input, output] of [["value", "value"], ["currency", "currency_code"], ["transaction_id", "oid"]]) {
           if (effective[input] !== undefined) query.set(output, String(effective[input]));
+        }
+        if (purchase) {
+          query.set("airlock_event", "purchase");
+          if (params.new_customer !== undefined) query.set("airlock_new_customer", String(params.new_customer));
         }
         query.set("url", context.pageURL);
         const url = `${destinations.get(destination)}?${query}`;

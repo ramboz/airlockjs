@@ -106,6 +106,7 @@ self.onmessage = async ({ data }) => {
         experimentalParameterScopes: data.experimentalParameterScopes,
         additionalEndpoint: data.additionalEndpoint, experimentalMultiDestination: data.experimentalMultiDestination,
         experimentalConsentCommands: data.experimentalConsentCommands, experimentalBootstrap: data.experimentalBootstrap,
+        experimentalPurchase: data.experimentalPurchase,
       });
       await connector.init({});
       if (!terminal) self.postMessage({ type: "phase", name: "configured" });

@@ -157,6 +157,49 @@ rejects a complete encoded GET over8192 characters before requesting transport,
 without making the instance terminal or losing the next valid conversion.
 Use synthetic, non-PII page and transaction data only.
 
+### Experimental purchase classification
+
+The [Google Ads new-customer guidance](https://support.google.com/google-ads/answer/12077475?hl=en)
+shows a `gtag("event", "purchase", ...)` call containing `send_to` and
+`new_customer`, and discusses true, false and unspecified classifications.
+It limits acquisition reporting to Purchase conversions. Its printed example
+uses placeholders and contains an apparent stray bracket; it is not an
+executable fixture or evidence for an exact request encoding.
+
+With `experimentalPurchase: true`, the standalone adapter and worker accept
+the following bounded, synthetic input:
+
+```js
+gtag("event", "purchase", {
+  send_to: "AW-0000000000/SYNTHETIC_LABEL",
+  value: 12.5,
+  currency: "USD",
+  new_customer: true,
+});
+```
+
+The supplied classification must be a boolean or omitted; an explicit
+`undefined` is treated as omission. The experiment does not infer a value from
+cookies or identity. `new_customer` is an event-only field: it is not accepted
+on `conversion`, in scopes or on config. All other keys, routing, context,
+scope and consent rules remain those of the existing local prototype. The
+callback opt-in remains conversion-only. The existing dataLayer and
+multi-destination opt-ins can carry this bounded command; host consent is
+still checked independently for every branch, and held events do not replay.
+
+For the literal-loopback receiver only, the worker adds the **hypothetical**
+fields `airlock_event=purchase` and, when provided,
+`airlock_new_customer=true` or `airlock_new_customer=false`. These distinguish
+local purchase/unknown/true/false cases; they are not Google wire fields or a
+proposed production protocol. Google documentation's inconsistent `vndc` /
+`vdnc` troubleshooting text does not establish a native wire mapping.
+The existing conversion relationship report does not evaluate purchase input
+and cannot qualify this experiment. Native purchase routing, wire encoding,
+customer data, attribution, reporting, browser behavior and production
+compatibility remain unverified. No account or real customer data is used.
+The option defaults to false and does not change installed globals or
+production behavior.
+
 ### Experimental bootstrap command
 
 `experimentalBootstrap: true` additionally accepts `gtag("js", new Date())`.
