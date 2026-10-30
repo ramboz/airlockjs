@@ -38,7 +38,8 @@ subset, three documented custom-variable example names and five separately
 gated `view_item` vertical subsets with optional value and separately gated
 local list, search-results and add-to-cart events; Meta covers
 multiple Pixels, event routing, a bounded Magento-shaped PageView array,
-bounded commerce data and content-name arrays,
+bounded commerce data, content-name arrays and the Magento-shaped empty
+checkout-value fallback,
 synthetic custom properties, event IDs, local agent settings, synthetic init identity,
 local tag-consent commands and an explicitly supplied bootstrap stub. Each uses
 a serialized worker and governed loopback receiver;

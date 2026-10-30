@@ -47,6 +47,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
         experimentalScalarEventData: true, experimentalContentNameArray: true,
         experimentalSetAgent: true, experimentalInitAgent: true, experimentalMagentoHeadArray: true,
         experimentalNullPurchaseValue: true,
+        experimentalEmptyCheckoutValue: true,
         experimentalViewContentJsonStrings: true,
         consent: { ad_storage: "granted" },
         captureContext: () => ({
@@ -235,8 +236,10 @@ describe("experimental vendor coexistence on independent local workers", () => {
         value: 42, items: [{ destination: "NEXT1", google_business_vertical: "travel" }],
       });
       meta.fbq("track", "ViewContent", { content_ids: ["meta-held"] });
+      meta.fbq("trackCustom", "InitiateCheckout", { value: "" });
       states = await Promise.all([google.flush(), meta.flush()]);
       expect(states.map((state) => state.outcomes.at(-1).disposition)).toEqual(["transport-settled", "held"]);
+      expect(states[1].outcomes.slice(-2).map((outcome) => outcome.disposition)).toEqual(["held", "held"]);
       expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([8, 5]);
       expect(JSON.parse(new URL(googleReceiver.arrivals[7].url).searchParams.get("airlock_items")))
         .toEqual([{ destination: "NEXT1", google_business_vertical: "travel" }]);
@@ -323,6 +326,20 @@ describe("experimental vendor coexistence on independent local workers", () => {
       expect(independentCart.get("airlock_event")).toBe("add_to_cart");
       expect(independentCart.has("cd[source]")).toBe(false);
       expect(independentCart.has("cd[pluginVersion]")).toBe(false);
+
+      meta.fbq("trackCustom", "InitiateCheckout", { value: "" });
+      google.gtag("event", "view_item", { items: [{ id: 34, google_business_vertical: "retail" }], value: 0 });
+      states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states.map((state) => state.outcomes.at(-1).disposition))
+        .toEqual(["transport-settled", "transport-settled"]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([14, 10]);
+      const checkoutQuery = new URL(metaReceiver.arrivals[9].url).searchParams;
+      expect(checkoutQuery.get("ev")).toBe("InitiateCheckout");
+      expect(checkoutQuery.getAll("cd[value]")).toEqual([""]);
+      expect(checkoutQuery.has("airlock_value")).toBe(false);
+      const zeroQuery = new URL(googleReceiver.arrivals[13].url).searchParams;
+      expect(zeroQuery.getAll("airlock_value")).toEqual(["0"]);
+      expect(zeroQuery.has("cd[value]")).toBe(false);
     } catch (error) {
       cause = error;
       throw error;
