@@ -118,8 +118,12 @@ initialization, a `track PageView` command accepted a worker request marked
 `ev=Purchase` and passed it to a mock transport. The host checked the loopback
 endpoint and command/result sequencing, but did not correlate that event field
 with the captured command. No network request was made. This is not a native
-observation or production exploit claim; event, target and data-field
-correlation remain open before the replacement can satisfy criteria 5 and 6.
+observation or production exploit claim. Subsequent synthetic controls also
+demonstrate target and data substitutions, added fields and duplicate events
+in default and multi-Pixel modes. Host and tag denials still hold the forged
+requests without replay. These are passing characterizations of the gap, not
+protection tests; event, target and data-field correlation remain open before
+the replacement can satisfy criteria 5 and 6.
 
 ## Readiness checkpoint - 2026-10-16
 
