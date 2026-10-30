@@ -18,7 +18,7 @@ const conversion = {
 };
 
 describe("experimental vendor coexistence on independent local workers", () => {
-  it("keeps local purchase classification and Meta custom data in their own workers", async () => {
+  it("keeps local purchase cart and Meta custom data in their own workers", async () => {
     let googleReceiver, googleChamber, google, metaReceiver, metaChamber, meta, cause;
     try {
       googleReceiver = await createConversionReceiver();
@@ -26,7 +26,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
       googleChamber = createNodeConversionChamber();
       metaChamber = createNodePrototypeChamber();
       google = createGoogleAdsPrototype({
-        endpoint: googleReceiver.endpoint, chamber: googleChamber, experimentalPurchase: true,
+        endpoint: googleReceiver.endpoint, chamber: googleChamber, experimentalPurchase: true, experimentalPurchaseCart: true,
         consent: { ad_storage: "denied" }, captureContext: () => ({ pageURL, referrer: "" }),
       });
       meta = createMetaPixelPrototype({
@@ -39,7 +39,9 @@ describe("experimental vendor coexistence on independent local workers", () => {
       });
       google.gtag("config", "AW-0000000000");
       meta.fbq("init", "000000000000000");
-      google.gtag("event", "purchase", { ...conversion, new_customer: true });
+      google.gtag("event", "purchase", {
+        ...conversion, new_customer: true, items: [{ id: "held-sku", price: 4, quantity: 1 }],
+      });
       meta.fbq("track", "PageView", { placement: "synthetic" });
       let states = await Promise.all([google.flush(), meta.flush()]);
       expect(states.map((state) => state.outcomes.at(-1).disposition)).toEqual(["held", "transport-settled"]);
@@ -48,7 +50,9 @@ describe("experimental vendor coexistence on independent local workers", () => {
       google.setConsent({ ad_storage: "granted" });
       await Promise.all([google.flush(), meta.flush()]);
       expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([0, 1]);
-      google.gtag("event", "purchase", { ...conversion, new_customer: false });
+      const items = [{ id: "local-sku", price: 5, quantity: 2 }];
+      google.gtag("event", "purchase", { ...conversion, new_customer: false, items });
+      items[0].id = "changed";
       meta.fbq("track", "PageView", { placement: "second" });
       states = await Promise.all([google.flush(), meta.flush()]);
       expect(states.map((state) => state.outcomes.at(-1).disposition))
@@ -57,9 +61,11 @@ describe("experimental vendor coexistence on independent local workers", () => {
       const googleQuery = new URL(googleReceiver.arrivals[0].url).searchParams;
       const metaQuery = new URL(metaReceiver.arrivals[1].url).searchParams;
       expect(googleQuery.get("airlock_new_customer")).toBe("false");
+      expect(JSON.parse(googleQuery.get("airlock_items"))).toEqual([{ id: "local-sku", price: 5, quantity: 2 }]);
       expect(googleQuery.has("cd[placement]")).toBe(false);
       expect(metaQuery.get("cd[placement]")).toBe("second");
       expect(metaQuery.has("airlock_new_customer")).toBe(false);
+      expect(metaQuery.has("airlock_items")).toBe(false);
     } catch (error) {
       cause = error;
       throw error;

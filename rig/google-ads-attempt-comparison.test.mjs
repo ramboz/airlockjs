@@ -151,12 +151,15 @@ describe("offline Google prototype attempt comparison", () => {
     expect(receiver).not.toHaveBeenCalled();
   });
 
-  it("does not treat a new-customer input as a retained conversion comparison", async () => {
+  it.each([
+    ["new_customer", true],
+    ["items", [{ id: "synthetic", price: 1, quantity: 1 }]],
+  ])("does not treat purchase %s as a retained conversion comparison", async (key, value) => {
     const { inputs } = await manifest();
     const reference = syntheticReference();
     const item = reference.capture.cases[0];
-    item.synthetic_inputs.new_customer = true;
-    item.native_state.conversion_input.new_customer = true;
+    item.synthetic_inputs[key] = value;
+    item.native_state.conversion_input[key] = structuredClone(value);
     vi.mocked(inspectNativeAttempt).mockResolvedValue(reference);
     const receiver = vi.spyOn(local, "createConversionReceiver");
     const result = await runGoogleAdsAttemptComparison({ inputs });
