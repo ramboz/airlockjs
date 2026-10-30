@@ -342,8 +342,9 @@ Production behavior and defaults are unchanged.
 ### Experimental retail view_item
 
 [Google's dynamic-remarketing guide](https://support.google.com/google-ads/answer/7305793?hl=en)
-shows a retail `gtag("event", "view_item", ...)` example with optional `value`
-and required `items`, each containing a numeric `id` and
+shows a retail `gtag("event", "view_item", ...)` example and states that the
+dynamic remarketing event object may have an optional `value`. Its required
+`items` each contain a numeric `id` and
 `google_business_vertical: "retail"`; the example has no `send_to`. The
 [GA4-source example](https://developers.google.com/google-ads/api/docs/dynamic-remarketing/prerequisites)
 uses `item_id` instead. Neither is the direct-Ads purchase-cart schema above.
@@ -396,15 +397,17 @@ The local education subset requires 1–10 dense own-data items with exactly
 `id`, `google_business_vertical`, and optionally `location_id`. The two ID
 fields, when present, must be nonempty well-formed strings of at most 128
 UTF-16 code units; an explicitly undefined `location_id` is rejected rather
-than treated as absent. A finite, nonnegative numeric `value` other than
-negative zero is required, with zero preserved. Requiring `value` and these
-string, count and omission bounds are local narrowing choices, not claims
+than treated as absent. The event's `value` is optional: absent or explicitly
+undefined is omitted, while zero is preserved. When supplied it must be finite
+and nonnegative, excluding negative zero. The guide's general optional-value
+statement replaces this experiment's earlier required-value restriction.
+The string, count and numeric bounds are local narrowing choices, not claims
 about native validation. The adapter snapshots the array and the worker
 revalidates it; dataLayer calls are captured when drained. The same proxy-trap
 and main-thread work limitations described above apply.
 
 This uses the same single configured literal-loopback endpoint, invented
-`airlock_event`, `airlock_items` and `airlock_value` markers, host request
+`airlock_event`, `airlock_items` and optional `airlock_value` markers, host request
 correlation, seal and no-replay policy as the retail experiment. It refuses
 `send_to`, labels, parameter scopes and multi-destination routing rather than
 guessing how they interact. Conversion and purchase fields are not inherited
@@ -426,8 +429,11 @@ retail or education.
 
 Each local subset requires 1–10 dense own-data items, with exactly `id` and
 the matching `google_business_vertical`. The ID must be a nonempty,
-well-formed string of at most 128 UTF-16 code units. A finite, nonnegative
-numeric `value` other than negative zero is required; zero is retained.
+well-formed string of at most 128 UTF-16 code units. The event's `value` is
+optional; absent or explicitly undefined is omitted and zero is retained.
+When supplied it must be finite and nonnegative, excluding negative zero. The
+guide's general optional-value statement replaces the earlier required-value
+restriction.
 These restrictions are local narrowing choices, not claims about Google's
 complete validation. Mixed-vertical arrays, `item_id`, education's
 `location_id`, purchase-cart fields, conversion labels, callbacks and all
@@ -437,7 +443,7 @@ Array length is bounded before enumeration, but proxy traps may run or spoof
 observations; accepted bounds are not a hard work or isolation guarantee.
 
 The single-configured literal-loopback route, invented `airlock_event`,
-`airlock_items` and `airlock_value` markers, host request correlation,
+`airlock_items` and optional `airlock_value` markers, host request correlation,
 independent consent seal, and drop-without-replay policy are shared with the
 earlier view-item experiments. Parameter scopes and multi-destination routing
 cannot be enabled with either option. The conversion-shaped local receiver
@@ -463,16 +469,18 @@ fields. Destination and supplied origin must be nonempty well-formed strings
 of at most 128 UTF-16 code units. Supplied dates must be ten ASCII characters
 in `YYYY-MM-DD` form and valid proleptic Gregorian calendar dates from
 `0001-01-01` through `9999-12-31`, including leap-year checks. Explicitly
-undefined optional fields are rejected, not treated as absent. Dates are
+undefined optional item fields are rejected, not treated as absent. Dates are
 independently optional: no ordering, duration, current-date, timezone, travel
-availability or itinerary semantics are inferred. A finite, nonnegative
-numeric `value` other than negative zero is required, with zero preserved.
-These validation and required-value rules are local narrowing choices, not
+availability or itinerary semantics are inferred. The event's `value` is
+optional; absent or explicitly undefined is omitted and zero is retained.
+When supplied it must be finite and nonnegative, excluding negative zero. The
+guide's general optional-value statement replaces the earlier required-value
+restriction. The remaining validation rules are local narrowing choices, not
 claims about native validation or date semantics.
 
 The travel item's `destination` is data, never a network selector. The
 experiment uses the same one explicitly configured literal-loopback endpoint,
-invented `airlock_event`, `airlock_items` and `airlock_value` markers, host
+invented `airlock_event`, `airlock_items` and optional `airlock_value` markers, host
 request correlation, independent consent seal, and drop-without-replay policy
 as the other view-item experiments. `send_to`, labels, foreign fields,
 parameter scopes and multi-destination routing are refused. Inputs are

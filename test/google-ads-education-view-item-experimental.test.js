@@ -171,20 +171,20 @@ describe("experimental Google education view_item subset", () => {
         { items: [education()], send_to: `${destination}/LABEL` }, { items: [education()], currency: "USD" },
         { items: [education()], new_customer: true }, { items: [education()], fbp: "synthetic" },
       ]) adapter.gtag("event", "view_item", params);
-      for (const value of [undefined, null, "1", -1, -0, NaN, Infinity]) {
+      for (const value of [null, "1", -1, -0, NaN, Infinity]) {
         adapter.gtag("event", "view_item", { items: [education()], value });
       }
       const state = await adapter.flush();
       expect(state.outcomes.slice(1).map(({ reason }) => reason)).toEqual([
         ...invalid.map(() => "unsupported-items"), ...Array.from({ length: 4 }, () => "unsupported-parameters"),
-        ...Array.from({ length: 7 }, () => "unsupported-value"),
+        ...Array.from({ length: 6 }, () => "unsupported-value"),
       ]);
       expect(receiver.arrivals).toEqual([]);
       expect(getter).not.toHaveBeenCalled();
     });
   }, 8000);
 
-  it("bounds and revalidates education items at both capture and worker boundaries", async () => {
+  it("bounds and revalidates education items while accepting the documented optional value", async () => {
     let enumerations = 0;
     const oversized = new Proxy(Array(11), { ownKeys(target) { enumerations += 1; return Reflect.ownKeys(target); } });
     let reads = 0;
@@ -205,10 +205,11 @@ describe("experimental Google education view_item subset", () => {
       adapter.gtag("event", "view_item", { items: [{ id: "y".repeat(128), location_id: "z".repeat(128), google_business_vertical: "education" }], value: 1 });
       const state = await adapter.flush();
       expect(state.outcomes.map(({ disposition, reason }) => reason || disposition)).toEqual([
-        "configured", "unsupported-items", "unsupported-items", "unsupported-value", "transport-settled", "transport-settled",
+        "configured", "unsupported-items", "unsupported-items", "transport-settled", "transport-settled", "transport-settled",
       ]);
-      expect(receiver.arrivals).toHaveLength(2);
-      expect(new URL(receiver.arrivals[0].url).searchParams.get("airlock_value")).toBe("0");
+      expect(receiver.arrivals).toHaveLength(3);
+      expect(new URL(receiver.arrivals[0].url).searchParams.has("airlock_value")).toBe(false);
+      expect(new URL(receiver.arrivals[1].url).searchParams.get("airlock_value")).toBe("0");
     });
     const host = createConnectorHost(createGoogleAdsConversionPrototype, {
       endpoint, experimentalEducationViewItem: true, experimentalRetailViewItem: true,
@@ -218,11 +219,17 @@ describe("experimental Google education view_item subset", () => {
     await host.routeBatch([event(["config", destination])]);
     for (const params of [
       { items: oversized }, { items: [education(), retail()] }, { items: [{ ...education(), location_id: null }] },
-      { items: [education()] }, { items: [education()], value: Infinity }, { items: [education()], send_to: `${destination}/LABEL` },
+      { items: [education()], value: Infinity }, { items: [education()], send_to: `${destination}/LABEL` },
     ]) {
       const result = await host.routeBatch([event(["event", "view_item", params])]);
       expect(result.ready).toEqual([]);
       expect(result.dropped).toHaveLength(1);
+    }
+    for (const params of [{ items: [education()] }, { items: [education()], value: undefined }]) {
+      const result = await host.routeBatch([event(["event", "view_item", params])]);
+      expect(result.dropped).toEqual([]);
+      expect(result.ready).toHaveLength(1);
+      expect(new URL(result.ready[0].url).searchParams.has("airlock_value")).toBe(false);
     }
     expect(enumerations).toBe(0);
   }, 8000);

@@ -172,7 +172,7 @@ describe("experimental Google local and real estate view_item subsets", () => {
       ];
       adapter.gtag("config", destination);
       for (const items of invalid) adapter.gtag("event", "view_item", { items, value: 1 });
-      for (const value of [undefined, null, "1", -1, -0, NaN, Infinity]) {
+      for (const value of [null, "1", -1, -0, NaN, Infinity]) {
         adapter.gtag("event", "view_item", { items: [item(vertical)], value });
       }
       for (const params of [
@@ -182,7 +182,7 @@ describe("experimental Google local and real estate view_item subsets", () => {
       ]) adapter.gtag("event", "view_item", params);
       expect((await adapter.flush()).outcomes.slice(1).map(({ reason }) => reason)).toEqual([
         ...invalid.map(() => "unsupported-items"),
-        ...Array.from({ length: 7 }, () => "unsupported-value"),
+        ...Array.from({ length: 6 }, () => "unsupported-value"),
         ...Array.from({ length: 3 }, () => "unsupported-parameters"),
       ]);
       expect(receiver.arrivals).toEqual([]);
@@ -190,7 +190,7 @@ describe("experimental Google local and real estate view_item subsets", () => {
     });
   }, 8000);
 
-  it.each(variants)("bounds and independently revalidates $vertical item snapshots", async ({ vertical, option }) => {
+  it.each(variants)("bounds and revalidates $vertical items while accepting the documented optional value", async ({ vertical, option }) => {
     let enumerations = 0;
     const oversized = new Proxy(Array(11), { ownKeys(target) { enumerations += 1; return Reflect.ownKeys(target); } });
     let reads = 0;
@@ -217,12 +217,18 @@ describe("experimental Google local and real estate view_item subsets", () => {
     await host.routeBatch([event(["config", destination])]);
     for (const params of [
       { items: oversized, value: 1 }, { items: [{ ...item(vertical), location_id: "SFO" }], value: 1 },
-      { items: [item(vertical)] }, { items: [item(vertical)], value: Infinity },
+      { items: [item(vertical)], value: Infinity },
       { items: [item(vertical)], value: 1, send_to: `${destination}/LABEL` },
     ]) {
       const result = await host.routeBatch([event(["event", "view_item", params])]);
       expect(result.ready).toEqual([]);
       expect(result.dropped).toHaveLength(1);
+    }
+    for (const params of [{ items: [item(vertical)] }, { items: [item(vertical)], value: undefined }]) {
+      const result = await host.routeBatch([event(["event", "view_item", params])]);
+      expect(result.dropped).toEqual([]);
+      expect(result.ready).toHaveLength(1);
+      expect(new URL(result.ready[0].url).searchParams.has("airlock_value")).toBe(false);
     }
     expect(enumerations).toBe(0);
   }, 8000);

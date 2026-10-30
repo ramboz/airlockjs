@@ -13,8 +13,8 @@ function hasKeys(object, expected) {
   return keys.length === expected.length && keys.every((key) => expected.includes(key));
 }
 
-export function validViewItemValue(value, items) {
-  return (value === undefined && items[0].google_business_vertical === "retail") ||
+export function validViewItemValue(value) {
+  return value === undefined ||
     (typeof value === "number" && Number.isFinite(value) &&
     value >= 0 && !Object.is(value, -0));
 }

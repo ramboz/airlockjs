@@ -47,7 +47,7 @@ function dispatchEvent(args, purchase, viewItem) {
 function matchesViewItemRequest(url, endpoint, args, viewOptions) {
   const params = args?.[2];
   const items = snapshotViewItems(params?.items, viewOptions);
-  if (!items || !validViewItemValue(params?.value, items) || typeof url !== "string" ||
+  if (!items || !validViewItemValue(params?.value) || typeof url !== "string" ||
       url.length > 8192 || !url.startsWith(`${endpoint}?`) || url.includes("#")) return false;
   try {
     const query = new URL(url).searchParams;

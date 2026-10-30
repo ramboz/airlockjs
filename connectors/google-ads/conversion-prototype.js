@@ -145,7 +145,7 @@ export function createGoogleAdsConversionPrototype({
         if (!values) throw new Error("unsupported-parameters");
         const items = snapshotViewItems(values.items, viewOptions);
         if (!items) throw new Error("unsupported-items");
-        if (!validViewItemValue(values.value, items)) throw new Error("unsupported-value");
+        if (!validViewItemValue(values.value)) throw new Error("unsupported-value");
         const context = dataRecord(capturedContext, ["pageURL", "referrer"]);
         if (!context || Reflect.ownKeys(context).length !== 2 ||
             !Object.hasOwn(context, "pageURL") || !Object.hasOwn(context, "referrer") ||

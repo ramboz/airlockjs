@@ -144,7 +144,7 @@ describe("experimental Google travel view_item subset", () => {
         adapter.gtag("event", "view_item", { items: [{ ...item(), start_date: date }], value: 1 });
         adapter.gtag("event", "view_item", { items: [{ ...item(), end_date: date }], value: 1 });
       }
-      for (const value of [undefined, null, "1", -1, -0, NaN, Infinity]) {
+      for (const value of [null, "1", -1, -0, NaN, Infinity]) {
         adapter.gtag("event", "view_item", { items: [item()], value });
       }
       for (const params of [
@@ -153,7 +153,7 @@ describe("experimental Google travel view_item subset", () => {
       ]) adapter.gtag("event", "view_item", params);
       expect((await adapter.flush()).outcomes.slice(1).map(({ reason }) => reason)).toEqual([
         ...invalid.map(() => "unsupported-items"), ...dates.flatMap(() => ["unsupported-items", "unsupported-items"]),
-        ...Array.from({ length: 7 }, () => "unsupported-value"),
+        ...Array.from({ length: 6 }, () => "unsupported-value"),
         ...Array.from({ length: 3 }, () => "unsupported-parameters"),
       ]);
       expect(receiver.arrivals).toEqual([]);
@@ -161,7 +161,7 @@ describe("experimental Google travel view_item subset", () => {
     });
   }, 8000);
 
-  it("bounds and revalidates nested inputs at both capture and worker boundaries", async () => {
+  it("bounds and revalidates nested inputs while accepting the documented optional value", async () => {
     let enumerations = 0;
     const oversized = new Proxy(Array(11), { ownKeys(target) { enumerations += 1; return Reflect.ownKeys(target); } });
     let reads = 0;
@@ -197,12 +197,18 @@ describe("experimental Google travel view_item subset", () => {
     await host.routeBatch([event(["config", destination])]);
     for (const params of [
       { items: oversized, value: 1 }, { items: [{ ...item(), start_date: "1900-02-29" }], value: 1 },
-      { items: [{ ...item(), id: "sku" }], value: 1 }, { items: [item()] }, { items: [item()], value: Infinity },
+      { items: [{ ...item(), id: "sku" }], value: 1 }, { items: [item()], value: Infinity },
       { items: [item()], value: 1, send_to: `${destination}/LABEL` },
     ]) {
       const result = await host.routeBatch([event(["event", "view_item", params])]);
       expect(result.ready).toEqual([]);
       expect(result.dropped).toHaveLength(1);
+    }
+    for (const params of [{ items: [item()] }, { items: [item()], value: undefined }]) {
+      const result = await host.routeBatch([event(["event", "view_item", params])]);
+      expect(result.dropped).toEqual([]);
+      expect(result.ready).toHaveLength(1);
+      expect(new URL(result.ready[0].url).searchParams.has("airlock_value")).toBe(false);
     }
     expect(enumerations).toBe(0);
   }, 8000);
