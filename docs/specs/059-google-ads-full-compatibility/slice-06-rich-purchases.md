@@ -87,6 +87,9 @@ The separate `experimentalPurchaseDiscount` opt-in adds the documented
 order-level `discount` input as an invented local marker without performing
 discount arithmetic. Processing with or without items and all validation and
 encoding choices remain unqualified.
+The separate `experimentalPurchaseFeed` opt-in accepts narrow synthetic
+merchant, country and language inputs from the same table. Its local markers
+do not establish native encoding, feed ownership, selection or matching.
 
 ## Assumptions
 
