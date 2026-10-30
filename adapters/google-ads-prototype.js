@@ -31,7 +31,8 @@ const REASONS = new Set([
   "connector-not-initialized", "unsupported-command", "unsupported-config", "synthetic-destination-required",
   "duplicate-config", "conversion-before-config", "unsupported-parameters", "synthetic-selector-required",
   "unsupported-value", "unsupported-currency", "unsupported-transaction", "invalid-context",
-  "unsupported-new-customer", "unsupported-items", "encoded-context-limit", "held-at-seal", "transport-failed", "destination-mismatch", "unsupported-bootstrap",
+  "unsupported-new-customer", "unsupported-items", "unsupported-discount", "encoded-context-limit",
+  "held-at-seal", "transport-failed", "destination-mismatch", "unsupported-bootstrap",
 ]);
 
 function conversionEvent(args, purchase) {
@@ -135,13 +136,14 @@ export function createGoogleAdsPrototype({
   transportTimeoutMs = 1000, fetchImpl = globalThis.fetch,
   experimentalRouting = false, experimentalParameterScopes = false, experimentalCallbacks = false,
   experimentalMultiDestination = false, experimentalConsentCommands = false, experimentalBootstrap = false,
-  experimentalDataLayer = false, experimentalPurchase = false, experimentalPurchaseCart = false,
+  experimentalDataLayer = false, experimentalPurchase = false, experimentalPurchaseCart = false, experimentalPurchaseDiscount = false,
 } = {}) {
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
       typeof experimentalCallbacks !== "boolean" || typeof experimentalMultiDestination !== "boolean" ||
       typeof experimentalConsentCommands !== "boolean" || typeof experimentalBootstrap !== "boolean" ||
       typeof experimentalDataLayer !== "boolean" || typeof experimentalPurchase !== "boolean" ||
       typeof experimentalPurchaseCart !== "boolean" || (experimentalPurchaseCart && !experimentalPurchase) ||
+      typeof experimentalPurchaseDiscount !== "boolean" || (experimentalPurchaseDiscount && !experimentalPurchase) ||
       (experimentalMultiDestination && !experimentalRouting)) throw new Error("invalid-experimental-option");
   const pattern = experimentalRouting === true
     ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,32})\/$/
@@ -460,11 +462,12 @@ export function createGoogleAdsPrototype({
         const consentCommand = experimentalConsentCommands && index === 2 && args[0] === "consent";
         const purchaseCommand = experimentalPurchase && index === 2 && args[0] === "event" && args[1] === "purchase";
         const cartCommand = experimentalPurchaseCart && purchaseCommand;
+        const discountCommand = experimentalPurchaseDiscount && purchaseCommand;
         const allowedKeys = consentCommand ? CONSENT_COMMAND_KEYS : purchaseCommand
-          ? [...PARAM_KEYS, "new_customer", ...(cartCommand ? ["items"] : [])] : PARAM_KEYS;
+          ? [...PARAM_KEYS, "new_customer", ...(cartCommand ? ["items"] : []), ...(discountCommand ? ["discount"] : [])] : PARAM_KEYS;
         const allowCallback = experimentalCallbacks && index === 2 && args[0] === "event" && args[1] === "conversion";
         const callbackKeys = allowCallback ? ["event_callback", "event_timeout"] : [];
-        if (keys.length > 4 + Number(purchaseCommand) + Number(cartCommand) + callbackKeys.length ||
+        if (keys.length > 4 + Number(purchaseCommand) + Number(cartCommand) + Number(discountCommand) + callbackKeys.length ||
             keys.some((key) => !allowedKeys.includes(key) && !callbackKeys.includes(key))) { reject("unsupported-parameters"); return; }
         if (keys.some((key) => callbackKeys.includes(key))) {
           const fn = Object.getOwnPropertyDescriptor(arg, "event_callback");
@@ -637,6 +640,7 @@ export function createGoogleAdsPrototype({
       ...(experimentalBootstrap === true ? { experimentalBootstrap: true } : {}),
       ...(experimentalPurchase === true ? { experimentalPurchase: true } : {}),
       ...(experimentalPurchaseCart === true ? { experimentalPurchaseCart: true } : {}),
+      ...(experimentalPurchaseDiscount === true ? { experimentalPurchaseDiscount: true } : {}),
       ...(experimentalMultiDestination ? { additionalEndpoint, experimentalMultiDestination: true } : {}) });
   } catch { stop("worker-unavailable"); }
   return {

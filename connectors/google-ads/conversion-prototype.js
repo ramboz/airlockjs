@@ -48,12 +48,13 @@ function selectorValues(value, multiple) {
 export function createGoogleAdsConversionPrototype({
   endpoint, additionalEndpoint, experimentalRouting = false, experimentalParameterScopes = false,
   experimentalMultiDestination = false, experimentalConsentCommands = false, experimentalBootstrap = false, experimentalPurchase = false,
-  experimentalPurchaseCart = false,
+  experimentalPurchaseCart = false, experimentalPurchaseDiscount = false,
 } = {}) {
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
       typeof experimentalMultiDestination !== "boolean" || typeof experimentalConsentCommands !== "boolean" ||
       typeof experimentalBootstrap !== "boolean" || typeof experimentalPurchase !== "boolean" ||
       typeof experimentalPurchaseCart !== "boolean" || (experimentalPurchaseCart && !experimentalPurchase) ||
+      typeof experimentalPurchaseDiscount !== "boolean" || (experimentalPurchaseDiscount && !experimentalPurchase) ||
       (experimentalMultiDestination && !experimentalRouting)) {
     throw new Error("invalid-experimental-option");
   }
@@ -125,7 +126,8 @@ export function createGoogleAdsConversionPrototype({
       if (args.length !== 3 || args[0] !== "event" || (args[1] !== "conversion" && !purchase)) throw new Error("unsupported-command");
       if (!configs.size) throw new Error("conversion-before-config");
       const params = dataRecord(args[2], purchase
-        ? [...PARAMS, "new_customer", ...(experimentalPurchaseCart ? ["items"] : [])] : PARAMS);
+        ? [...PARAMS, "new_customer", ...(experimentalPurchaseCart ? ["items"] : []),
+          ...(experimentalPurchaseDiscount ? ["discount"] : [])] : PARAMS);
       if (!params) throw new Error("unsupported-parameters");
       if (purchase && params.new_customer !== undefined && typeof params.new_customer !== "boolean") {
         throw new Error("unsupported-new-customer");
@@ -133,6 +135,9 @@ export function createGoogleAdsConversionPrototype({
       const items = purchase && experimentalPurchaseCart && params.items !== undefined
         ? snapshotPurchaseCartItems(params.items) : undefined;
       if (items === null) throw new Error("unsupported-items");
+      if (purchase && experimentalPurchaseDiscount && params.discount !== undefined &&
+          (typeof params.discount !== "number" || !Number.isFinite(params.discount) ||
+           params.discount < 0 || Object.is(params.discount, -0))) throw new Error("unsupported-discount");
       let selected;
       if (experimentalRouting === true) {
         const selectors = selectorValues(params.send_to, experimentalMultiDestination);
@@ -165,6 +170,7 @@ export function createGoogleAdsConversionPrototype({
           query.set("airlock_event", "purchase");
           if (params.new_customer !== undefined) query.set("airlock_new_customer", String(params.new_customer));
           if (items) query.set("airlock_items", JSON.stringify(items));
+          if (experimentalPurchaseDiscount && params.discount !== undefined) query.set("airlock_discount", String(params.discount));
         }
         query.set("url", context.pageURL);
         const url = `${destinations.get(destination)}?${query}`;

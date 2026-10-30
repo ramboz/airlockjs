@@ -249,6 +249,31 @@ qualification; no production cutover or parity is implied. Use synthetic
 non-PII IDs only. Consent, no-replay, multi-destination and resource limits
 continue to apply as described above.
 
+### Experimental purchase order discount
+
+[Google's cart guidance](https://support.google.com/google-ads/answer/14943675?hl=en)
+lists an optional order-level `discount` as a float, separate from item prices.
+With `experimentalPurchaseDiscount: true` and `experimentalPurchase: true`, a
+local purchase may provide an own-data `discount` field. This option is separate
+from the cart option: the local experiment accepts the discount with or without
+`items`, but does not claim Google processes a discount without cart data.
+
+The local rule accepts a finite nonnegative JavaScript number other than
+negative zero; zero is retained, and omission or explicit `undefined` omits
+the field. Other types and invalid values reject the whole command. These are
+experimental restrictions, not native validation rules. Discount is event-only:
+it is not accepted on conversion, config, set, or individual items. The main
+adapter snapshots its primitive value and the worker validates it again.
+
+The loopback-only field `airlock_discount` contains the JavaScript string form
+of the supplied number. It is an **invented local marker**, not Google's wire
+encoding. The experiment does not add, subtract, allocate or otherwise
+calculate any value or item price, infer units or feed data, or validate their
+relationship. Existing host consent, per-branch checks, no replay, URL ceiling
+and dataLayer drain-time capture remain in force. The conversion report does
+not evaluate this purchase field; native processing, encoding, reporting,
+attribution and production compatibility remain unverified.
+
 ### Experimental bootstrap command
 
 `experimentalBootstrap: true` additionally accepts `gtag("js", new Date())`.
