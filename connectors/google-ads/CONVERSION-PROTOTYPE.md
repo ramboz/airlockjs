@@ -48,8 +48,9 @@ This is a **selected field-relationship comparison**, not identical wire or
 journey evidence. The native attempts used vendor endpoints and a native-default
 consent context; the local endpoint was loopback and the host seal was
 explicitly granted. Their consent equivalence is unverified. The local
-prototype does not reproduce the native `js` command, config traffic or
-auxiliaries. The decoded field checks do not compare request encoding, headers,
+comparison did not issue the `js` command; the separate opt-in marker below
+does not implement native SDK initialization. The prototype does not reproduce
+native config traffic or auxiliaries. The decoded field checks do not compare request encoding, headers,
 method, sequence or complete payloads. The native attempts had no vendor
 response or receipt; local 204 responses are not vendor success. Scope,
 multi-destination and native Consent Mode behavior, full compatibility and
@@ -148,6 +149,32 @@ UTF-16 is rejected rather than silently replaced by URL encoding. The worker
 rejects a complete encoded GET over8192 characters before requesting transport,
 without making the instance terminal or losing the next valid conversion.
 Use synthetic, non-PII page and transaction data only.
+
+### Experimental bootstrap command
+
+`experimentalBootstrap: true` additionally accepts `gtag("js", new Date())`.
+The main-side adapter snapshots the Date's time value synchronously as an
+integer millisecond primitive; the Date object itself never crosses into the
+worker. The worker independently checks the finite Date range and acknowledges
+the command without dispatch. The host accepts that acknowledgement only for
+the matching in-flight bootstrap command and sequence. Its outcome is
+`bootstrap-accepted`, not proof that a vendor SDK initialized.
+
+The adapter captures the Date time intrinsic at module load and invokes it
+without calling methods or accessors on the supplied object. Invalid Dates,
+non-Dates and proxies reject. This loopback experiment assumes a trusted
+same-realm runtime and ordinary JavaScript intrinsics when the module loads;
+pre-load primordial compromise is not covered. The captured method must match
+the expected native source string or the opt-in fails closed. That string
+check does not prove intrinsic authenticity or broader isolation; other engines
+may also reject because their string representations are not qualified. A
+trusted-realm solution, if needed for production, remains a separate unresolved
+boundary decision. The option defaults off.
+
+This command is a local, zero-send marker: it has no effect on configuration,
+consent or conversion routing. Repetition and its order relative to other
+commands are local prototype behavior, not native initialization semantics.
+It does not reproduce native config/auxiliary traffic, encoding or parity.
 
 For local routing experiments, `experimentalRouting: true` allows a literal
 loopback endpoint with a one-to-20-digit destination in its conversion path.

@@ -52,6 +52,32 @@ describe("actual worker correlation faults, not independent receiver evidence", 
     } finally { await chamber.dispose(); }
   }, 5000);
 
+  it("rejects a mistyped bootstrap option during worker initialization", async () => {
+    const chamber = createNodeConversionChamber();
+    try {
+      const fatal = receive(chamber, "fatal");
+      chamber.postMessage({ type: "init", endpoint, transportTimeoutMs: 500, experimentalBootstrap: "true" });
+      expect(await fatal).toEqual({ type: "fatal", message: "worker-configuration-failed" });
+    } finally { await chamber.dispose(); }
+  }, 5000);
+
+  it("validates the primitive bootstrap timestamp inside the actual worker", async () => {
+    const chamber = createNodeConversionChamber();
+    try {
+      const configured = receive(chamber, "phase");
+      chamber.postMessage({ type: "init", endpoint, transportTimeoutMs: 500, experimentalBootstrap: true });
+      await configured;
+      const values = [123, NaN, Infinity, 0.5, 8640000000000001, "123", new Date(123), {}, null];
+      for (const [index, value] of values.entries()) {
+        const result = receive(chamber, "result");
+        chamber.postMessage({ type: "event", event: event(index + 1, ["js", value]) });
+        expect((await result).summary).toEqual(index === 0
+          ? { seq: 1, disposition: "bootstrap-accepted", requests: 0 }
+          : { seq: index + 1, disposition: "rejected", reason: "unsupported-bootstrap", requests: 0 });
+      }
+    } finally { await chamber.dispose(); }
+  }, 5000);
+
   it.each(["unknown-id", "invalid-status", "oversized-body"])("fails terminally on %s rather than posting a success result", async (fault) => {
     const chamber = createNodeConversionChamber();
     try {

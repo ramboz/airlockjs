@@ -1,5 +1,6 @@
 import { snapshotDestinationSelectors } from "./destination-selectors.js";
 import { validConsentCommand } from "./consent-commands.js";
+import { validBootstrapCommand } from "./bootstrap-command.js";
 
 const PARAMS = ["send_to", "value", "currency", "transaction_id"];
 const SCOPE_PARAMS = ["value", "currency", "transaction_id"];
@@ -45,10 +46,11 @@ function selectorValues(value, multiple) {
  */
 export function createGoogleAdsConversionPrototype({
   endpoint, additionalEndpoint, experimentalRouting = false, experimentalParameterScopes = false,
-  experimentalMultiDestination = false, experimentalConsentCommands = false,
+  experimentalMultiDestination = false, experimentalConsentCommands = false, experimentalBootstrap = false,
 } = {}) {
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
       typeof experimentalMultiDestination !== "boolean" || typeof experimentalConsentCommands !== "boolean" ||
+      typeof experimentalBootstrap !== "boolean" ||
       (experimentalMultiDestination && !experimentalRouting)) {
     throw new Error("invalid-experimental-option");
   }
@@ -81,6 +83,10 @@ export function createGoogleAdsConversionPrototype({
       if (!initialized) throw new Error("connector-not-initialized");
       const { args, context: capturedContext } = event?.payload || {};
       if (event?.type !== "google-ads-command" || !Array.isArray(args)) throw new Error("unsupported-command");
+      if (experimentalBootstrap && args[0] === "js") {
+        if (!validBootstrapCommand(args)) throw new Error("unsupported-bootstrap");
+        return [];
+      }
       if (experimentalConsentCommands && args[0] === "consent") {
         if (!validConsentCommand(args)) throw new Error("unsupported-consent");
         return [];
