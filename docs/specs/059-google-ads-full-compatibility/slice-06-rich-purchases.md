@@ -65,6 +65,18 @@ preserving native cart values, duplicate behavior and feature-specific reporting
 **Anti-horizontal-phasing check:** The adopter submits meaningful rich orders
 and receives a complete, scoped counting/reporting result, not just item parsing.
 
+## Owner-directed offline experiment - 2026-10-29
+
+The separately gated `experimentalPurchase` option accepts the `purchase`
+call and boolean `new_customer` input shown in
+[Google's acquisition guidance](https://support.google.com/google-ads/answer/12077475?hl=en).
+It exercises true, false and unspecified values through the local worker and
+loopback receiver, without inferring classification from identity. Its
+`airlock_event` and `airlock_new_customer` fields are invented local test
+markers, not Google wire fields. Native routing and encoding, business
+classification, cart data, reporting and attribution remain unqualified.
+This experiment does not advance this DRAFT slice or its acceptance criteria.
+
 ## Assumptions
 
 - Unverified: complete current native cart/custom/acquisition behavior can be
