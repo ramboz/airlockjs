@@ -13,6 +13,15 @@ rejected. The accepted field limits therefore do not bound worst-case
 main-thread work or establish isolation from untrusted input. Use controlled
 synthetic inputs; Core Web Vitals qualification remains open.
 
+For the gated remarketing paths, host-side correlation also revalidates and
+JSON-serializes item snapshots and checks their local wire fields. With
+`experimentalRemarketingPurchase` enabled, it additionally constructs expected
+labeled-purchase query fields on the host. The worker constructs the dispatched
+request, but these checks duplicate mapping work outside the chamber. They are
+experimental safeguards, not proof of the capture-and-enqueue-only main-thread
+architecture or its performance; a reviewed off-thread correlation design is
+still required for the full replacement.
+
 ```sh
 node rig/google-ads-conversion-prototype.mjs
 # This checkout's installed local executable:

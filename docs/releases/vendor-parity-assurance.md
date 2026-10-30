@@ -47,7 +47,9 @@ a serialized worker and governed loopback receiver;
 the existing production defaults remain unchanged. Most ordering, encoding and
 identity choices remain experimental, not native findings.
 The remarketing route and fields are local hypotheses, not feed matching,
-audience membership or attribution evidence. The Meta AddToCart prototype
+audience membership or attribution evidence. Its Google host correlation
+duplicates some item serialization and labeled-purchase field mapping, so the
+capture-and-enqueue-only architectural target remains open. The Meta AddToCart prototype
 rejects the pinned Magento invalid-identifier case instead of silently
 coercing its undefined item IDs; native handling remains unknown. The local
 Meta host also does not yet correlate every worker request's event, target and

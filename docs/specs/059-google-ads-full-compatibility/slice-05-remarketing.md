@@ -105,6 +105,10 @@ The separately gated flights subset exercises the guide's purchase example
 with all four illustrated origin, destination and date fields. Requiring all
 four, reusing this schema for other events and applying travel's local date
 validation are assumptions, not native validation or flight-feed evidence.
+Current host-side correlation revalidates and serializes remarketing items and
+constructs expected labeled-purchase query fields when its purchase gate is on.
+The worker constructs the dispatched request, but this duplicated host mapping
+does not satisfy the capture-and-enqueue-only architectural target in criterion 8.
 
 ## Assumptions
 
