@@ -241,6 +241,8 @@ filters that field out, so the template can construct undefined item IDs. The
 prototype rejects those inputs. Its JSON representation cannot preserve
 undefined array elements and object properties as-is; native handling and a
 lossless replacement remain open, not silently coerced to null or omitted.
+The synthetic composition test explicitly exercises both undefined-ID
+positions, their separate refusals and an omitted scalar-value control.
 
 The separate `experimentalCustomProperties` opt-in accepts a bounded subset
 of additional string-valued event properties, on the existing standard or

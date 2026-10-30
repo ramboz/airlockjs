@@ -104,6 +104,39 @@ describe("Magento-shaped AddToCart through the experimental local worker", () =>
     } finally { await env.close(); }
   }, 5000);
 
+  it("rejects filtered-out Magento item IDs rather than coercing or omitting them", async () => {
+    const env = await setup();
+    try {
+      const { adapter, receiver } = env;
+      const missingIds = {
+        ...addToCart(),
+        content_ids: [undefined],
+        contents: [{ id: undefined, quantity: 1 }],
+      };
+      expect(JSON.stringify(missingIds.content_ids)).toBe("[null]");
+      expect(JSON.stringify(missingIds.contents)).toBe('[{"quantity":1}]');
+
+      adapter.fbq("init", pixelId);
+      adapter.fbq("track", "AddToCart", missingIds);
+      adapter.fbq("track", "AddToCart", { ...addToCart(), content_ids: [undefined] });
+      adapter.fbq("track", "AddToCart", { ...addToCart(), contents: [{ id: undefined, quantity: 1 }] });
+      adapter.fbq("track", "AddToCart", { ...addToCart(), value: undefined });
+      const state = await adapter.flush();
+      expect(state.outcomes.slice(1).map(({ disposition, reason }) => [disposition, reason])).toEqual([
+        ["rejected", "unsupported-parameters"],
+        ["rejected", "unsupported-parameters"],
+        ["rejected", "unsupported-parameters"],
+        ["transport-settled", undefined],
+      ]);
+      expect(receiver.arrivals).toHaveLength(1);
+      expect(fields(receiver.arrivals[0])).toMatchObject({
+        "cd[content_ids]": ['["synthetic-sku"]'],
+        "cd[contents]": ['[{"id":"synthetic-sku","quantity":1}]'],
+        "cd[value]": [],
+      });
+    } finally { await env.close(); }
+  }, 5000);
+
   it("holds the composition under tag or host denial and does not replay on grant", async () => {
     const env = await setup();
     try {
