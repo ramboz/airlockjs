@@ -32,7 +32,8 @@ The 2026-10-15 allowance above is historical, not a renewed execution budget.
 **Owner-directed construction (2026-10-29):** the owner approved starting
 experimental replacement work from the available references before complete
 native responses exist. Local, source-only opt-ins now cover Google routing,
-parameter scopes, callbacks and conservative consent commands; Meta covers
+parameter scopes, callbacks, conservative consent commands and an explicit
+manual dataLayer drain; Meta covers
 multiple Pixels, event routing, bounded commerce data, event IDs and synthetic
 init identity, plus local tag-consent commands. Each uses a serialized worker
 and governed loopback receiver;

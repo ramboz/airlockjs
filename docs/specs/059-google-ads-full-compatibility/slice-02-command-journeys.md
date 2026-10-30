@@ -81,6 +81,13 @@ exact timing, failure or consent policy. Native scope and queue semantics,
 callbacks, routing fanout, browser behavior, complete wire,
 production cutover and the acceptance criteria above remain unqualified.
 
+The separate `experimentalDataLayer` opt-in accepts an explicit manual drain
+of a bounded local array containing the arguments-shaped entries used by the
+058-04 fixture. It forwards them in order through the existing adapter and
+worker, without installing globals or watching the array. Arguments and page
+context are captured at drain time. This is a local construction choice, not
+evidence of native queue behavior or a change to this slice's status.
+
 ## Assumptions
 
 - Unverified: all required Ads get/queue/callback edge semantics can be
