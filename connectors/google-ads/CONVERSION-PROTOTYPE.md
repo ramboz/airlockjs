@@ -50,11 +50,11 @@ consent context; the local endpoint was loopback and the host seal was
 explicitly granted. Their consent equivalence is unverified. The local
 comparison did not issue the `js` command; the separate opt-in marker below
 does not implement native SDK initialization. The prototype does not reproduce
-native config traffic or auxiliaries. The decoded field checks do not compare request encoding, headers,
-method, sequence or complete payloads. The native attempts had no vendor
-response or receipt; local 204 responses are not vendor success. Scope,
-multi-destination and native Consent Mode behavior, full compatibility and
-production readiness remain unproved.
+native config traffic or auxiliaries. The decoded field checks do not compare
+request encoding, headers, method, sequence or complete payloads. The native
+attempts had no vendor response or receipt; local 204 responses are not vendor
+success. Scope, multi-destination and native Consent Mode behavior, full
+compatibility and production readiness remain unproved.
 
 The reusable offline tool runs the same limited comparison against an explicitly
 supplied Google native-attempt reference:
