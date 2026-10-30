@@ -350,7 +350,8 @@ dynamic remarketing event object may have an optional `value`. Its required
 uses `item_id` instead. Neither is the direct-Ads purchase-cart schema above.
 
 The separately gated, default-off `experimentalRetailViewItem: true` admits
-only that event with `items` and optional `value`. Its local subset requires
+that event with `items` and optional `value`. A separate flag is also required
+for the list-event experiment below. Its local subset requires
 one to ten dense own-data items, each with exactly a positive safe-integer `id`
 and the string `retail`; an optional value must be finite and nonnegative,
 excluding negative zero. Zero is retained; absent or explicitly undefined
@@ -459,8 +460,9 @@ The [guide's travel example](https://support.google.com/google-ads/answer/730579
 shows a numeric `value` and items with `google_business_vertical: "travel"`,
 required `destination`, and optional `origin`, `start_date` and `end_date`.
 It specifies dates as `YYYY-MM-DD`. The separately gated, default-off
-`experimentalTravelViewItem` admits only this synthetic `view_item` subset;
-it can coexist with the other view-item flags without enabling them, and
+`experimentalTravelViewItem` admits this synthetic `view_item` subset; a
+separate flag is also required for the list-event experiment below. It can
+coexist with the other view-item flags without enabling them, and
 mixed-vertical item arrays are rejected.
 
 Locally, one to ten dense own-data items are required. Each has exactly
@@ -493,6 +495,39 @@ there is no personal-information detector. Native feed-key interpretation,
 date behavior, routing, encoding, audiences, attribution, reporting and parity
 remain unqualified. Conversion and purchase behavior, production defaults and
 release gates are unchanged.
+
+### Experimental view_item_list
+
+[Google's dynamic-remarketing guide](https://support.google.com/google-ads/answer/7305793?hl=en)
+lists `view_item_list` and describes required `items` and optional `value` for
+the dynamic-remarketing event object. It does not establish a native request,
+route, fanout, or a complete per-vertical list-event schema for this experiment.
+The separately gated, default-off `experimentalViewItemList: true` permits
+the local `gtag("event", "view_item_list", { items, value })` subset only when
+the relevant existing vertical flag is also enabled. The list flag alone does
+not enable a vertical; an existing vertical flag alone does not enable lists.
+This reuse of the five narrower `view_item` schemas for list inputs is a local
+model, not proof that Google accepts these exact combinations.
+
+The same bounds, exact fields, mixed-vertical refusal, snapshots, worker
+revalidation, value omission and zero rules apply. `send_to`, labels,
+callbacks, foreign fields, parameter scopes and multi-destination routing are
+refused. One destination must be explicitly configured; each accepted local
+command produces at most one request to its literal-loopback endpoint. The
+invented `airlock_event=view_item_list`, `airlock_items`, and optional
+`airlock_value` fields distinguish it from `view_item` and from labeled
+conversion or purchase requests. This is hypothetical local encoding and
+routing, not native wire or fanout behavior. The host checks the event name
+and captured values before transport; the conversion comparison excludes
+this event. Independent host/tag consent, immediate admitted denials and
+drop-without-replay remain in force. A request already sent cannot be recalled.
+
+Only synthetic, non-private values are permitted by the operating contract;
+there is no personal-information detector. Proxy traps may run or spoof
+observations, so accepted bounds do not guarantee a hard main-thread work
+limit or untrusted-input isolation. Native validation, routing, feed keys,
+encoding, audiences, attribution, reporting and parity remain unqualified.
+Production defaults, the purchase path and release gates are unchanged.
 
 ### Experimental bootstrap command
 

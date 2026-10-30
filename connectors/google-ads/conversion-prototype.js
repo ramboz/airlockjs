@@ -54,6 +54,7 @@ export function createGoogleAdsConversionPrototype({
   experimentalPurchaseCart = false, experimentalPurchaseDiscount = false, experimentalPurchaseFeed = false,
   experimentalCustomVariables = false, experimentalRetailViewItem = false, experimentalEducationViewItem = false,
   experimentalLocalViewItem = false, experimentalRealEstateViewItem = false, experimentalTravelViewItem = false,
+  experimentalViewItemList = false,
 } = {}) {
   const viewOptions = {
     retail: experimentalRetailViewItem, education: experimentalEducationViewItem,
@@ -66,9 +67,9 @@ export function createGoogleAdsConversionPrototype({
       typeof experimentalPurchaseCart !== "boolean" || (experimentalPurchaseCart && !experimentalPurchase) ||
       typeof experimentalPurchaseDiscount !== "boolean" || (experimentalPurchaseDiscount && !experimentalPurchase) ||
       typeof experimentalPurchaseFeed !== "boolean" || (experimentalPurchaseFeed && !experimentalPurchaseCart) ||
-      typeof experimentalCustomVariables !== "boolean" ||
+      typeof experimentalCustomVariables !== "boolean" || typeof experimentalViewItemList !== "boolean" ||
       Object.values(viewOptions).some((enabled) => typeof enabled !== "boolean") ||
-      (experimentalViewItem && (experimentalParameterScopes || experimentalMultiDestination)) ||
+      ((experimentalViewItem || experimentalViewItemList) && (experimentalParameterScopes || experimentalMultiDestination)) ||
       (experimentalMultiDestination && !experimentalRouting)) {
     throw new Error("invalid-experimental-option");
   }
@@ -137,7 +138,8 @@ export function createGoogleAdsConversionPrototype({
         return [];
       }
       const purchase = experimentalPurchase && args[1] === "purchase";
-      const viewItem = experimentalViewItem && args[1] === "view_item";
+      const viewItem = experimentalViewItem &&
+        (args[1] === "view_item" || (experimentalViewItemList && args[1] === "view_item_list"));
       if (args.length !== 3 || args[0] !== "event" || (args[1] !== "conversion" && !purchase && !viewItem)) throw new Error("unsupported-command");
       if (!configs.size) throw new Error("conversion-before-config");
       if (viewItem) {
@@ -150,7 +152,7 @@ export function createGoogleAdsConversionPrototype({
         if (!context || Reflect.ownKeys(context).length !== 2 ||
             !Object.hasOwn(context, "pageURL") || !Object.hasOwn(context, "referrer") ||
             !validURL(context.pageURL) || !validURL(context.referrer, true)) throw new Error("invalid-context");
-        const query = new URLSearchParams({ airlock_event: "view_item", airlock_items: JSON.stringify(items) });
+        const query = new URLSearchParams({ airlock_event: args[1], airlock_items: JSON.stringify(items) });
         if (values.value !== undefined) query.set("airlock_value", String(values.value));
         const url = `${endpoints[0]}?${query}`;
         if (url.length > 8192) throw new Error("encoded-context-limit");

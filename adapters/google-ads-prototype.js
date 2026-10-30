@@ -39,9 +39,13 @@ const REASONS = new Set([
   "held-at-seal", "transport-failed", "destination-mismatch", "unsupported-bootstrap",
 ]);
 
-function dispatchEvent(args, purchase, viewItem) {
+function viewItemEvent(args, viewItem, viewItemList) {
+  return viewItem && (args?.[1] === "view_item" || (viewItemList && args?.[1] === "view_item_list"));
+}
+
+function dispatchEvent(args, purchase, viewItem, viewItemList) {
   return args?.[0] === "event" &&
-    (args[1] === "conversion" || (purchase && args[1] === "purchase") || (viewItem && args[1] === "view_item"));
+    (args[1] === "conversion" || (purchase && args[1] === "purchase") || viewItemEvent(args, viewItem, viewItemList));
 }
 
 function matchesViewItemRequest(url, endpoint, args, viewOptions) {
@@ -53,14 +57,14 @@ function matchesViewItemRequest(url, endpoint, args, viewOptions) {
     const query = new URL(url).searchParams;
     const names = params.value === undefined ? ["airlock_event", "airlock_items"] : ["airlock_event", "airlock_items", "airlock_value"];
     return [...query.keys()].length === names.length && names.every((name) => query.getAll(name).length === 1) &&
-      query.get("airlock_event") === "view_item" && query.get("airlock_items") === JSON.stringify(items) &&
+      query.get("airlock_event") === args[1] && query.get("airlock_items") === JSON.stringify(items) &&
       (params.value === undefined || query.get("airlock_value") === String(params.value));
   } catch { return false; }
 }
 
 function hasViewItemMarker(url) {
   if (typeof url !== "string") return false;
-  try { return new URL(url).searchParams.getAll("airlock_event").includes("view_item"); }
+  try { return new URL(url).searchParams.getAll("airlock_event").some((event) => ["view_item", "view_item_list"].includes(event)); }
   catch { return false; }
 }
 
@@ -164,7 +168,7 @@ export function createGoogleAdsPrototype({
   experimentalDataLayer = false, experimentalPurchase = false, experimentalPurchaseCart = false, experimentalPurchaseDiscount = false,
   experimentalPurchaseFeed = false, experimentalCustomVariables = false, experimentalRetailViewItem = false,
   experimentalEducationViewItem = false, experimentalLocalViewItem = false, experimentalRealEstateViewItem = false,
-  experimentalTravelViewItem = false,
+  experimentalTravelViewItem = false, experimentalViewItemList = false,
 } = {}) {
   const viewOptions = {
     retail: experimentalRetailViewItem, education: experimentalEducationViewItem,
@@ -178,9 +182,9 @@ export function createGoogleAdsPrototype({
       typeof experimentalPurchaseCart !== "boolean" || (experimentalPurchaseCart && !experimentalPurchase) ||
       typeof experimentalPurchaseDiscount !== "boolean" || (experimentalPurchaseDiscount && !experimentalPurchase) ||
       typeof experimentalPurchaseFeed !== "boolean" || (experimentalPurchaseFeed && !experimentalPurchaseCart) ||
-      typeof experimentalCustomVariables !== "boolean" ||
+      typeof experimentalCustomVariables !== "boolean" || typeof experimentalViewItemList !== "boolean" ||
       Object.values(viewOptions).some((enabled) => typeof enabled !== "boolean") ||
-      (experimentalViewItem && (experimentalParameterScopes || experimentalMultiDestination)) ||
+      ((experimentalViewItem || experimentalViewItemList) && (experimentalParameterScopes || experimentalMultiDestination)) ||
       (experimentalMultiDestination && !experimentalRouting)) throw new Error("invalid-experimental-option");
   const pattern = experimentalRouting === true
     ? /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,32})\/$/
@@ -335,7 +339,7 @@ export function createGoogleAdsPrototype({
         summary.status === undefined && summary.terminal === undefined && summary.branches === undefined;
     }
     if (experimentalMultiDestination) {
-      if (!dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem) ||
+      if (!dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, experimentalViewItemList) ||
           !activeSelectors?.length || activeSelectors.length > 2 || activeRequests.length !== summary.requests ||
           activeRequests.some((request) => !request.response) || !Array.isArray(summary.branches) ||
           summary.branches.length !== activeSelectors.length || summary.status !== undefined || summary.reason !== undefined) return false;
@@ -353,7 +357,7 @@ export function createGoogleAdsPrototype({
       return summary.disposition === (dispositions.size === 1 ? branches[0].disposition : "partial");
     }
     const response = activeRequest?.response;
-    if (!response || !dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem) ||
+    if (!response || !dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, experimentalViewItemList) ||
         summary.status !== response.status) return false;
     const disposition = response.held ? "held" : response.status >= 200 && response.status < 300 ? "transport-settled" : "failed";
     const reason = response.held ? "held-at-seal" : response.status === 0 ? "transport-failed" : undefined;
@@ -416,7 +420,8 @@ export function createGoogleAdsPrototype({
       activeCommand = event.payload.args;
       activeRequest = undefined;
       activeRequests = [];
-      const eventParams = dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem) ? activeCommand?.[2] : undefined;
+      const eventParams = dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, experimentalViewItemList)
+        ? activeCommand?.[2] : undefined;
       const sendTo = eventParams && Object.hasOwn(eventParams, "send_to") ? eventParams.send_to : undefined;
       activeSelectors = experimentalMultiDestination && (typeof sendTo === "string" || Array.isArray(sendTo))
         ? (Array.isArray(sendTo) ? sendTo : [sendTo]) : undefined;
@@ -502,7 +507,8 @@ export function createGoogleAdsPrototype({
         const discountCommand = experimentalPurchaseDiscount && purchaseCommand;
         const feedCommand = experimentalPurchaseFeed && purchaseCommand;
         const customCommand = experimentalCustomVariables && index === 2 && args[0] === "event" && args[1] === "conversion";
-        const viewItemCommand = experimentalViewItem && index === 2 && args[0] === "event" && args[1] === "view_item";
+        const viewItemCommand = index === 2 && args[0] === "event" &&
+          viewItemEvent(args, experimentalViewItem, experimentalViewItemList);
         const allowedKeys = consentCommand ? CONSENT_COMMAND_KEYS : viewItemCommand ? ["items", "value"] : purchaseCommand
           ? [...PARAM_KEYS, "new_customer", ...(cartCommand ? ["items"] : []), ...(discountCommand ? ["discount"] : []),
             ...(feedCommand ? FEED_KEYS : [])] : customCommand ? [...PARAM_KEYS, ...CUSTOM_KEYS] : PARAM_KEYS;
@@ -624,7 +630,8 @@ export function createGoogleAdsPrototype({
         awaitingResult = false;
       }
       if (message?.type === "intercepted-fetch") {
-        if (!inFlight || !awaitingResult || !dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem) ||
+        if (!inFlight || !awaitingResult ||
+            !dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, experimentalViewItemList) ||
             (experimentalMultiDestination
               ? !activeSelectors || message.index !== activeRequests.length || message.index >= activeSelectors.length ||
                 (activeRequest && (!activeRequest.response ||
@@ -632,11 +639,12 @@ export function createGoogleAdsPrototype({
               : activeRequest) || !Number.isSafeInteger(message.id) || message.id <= lastRequestId) {
           stop("request-correlation-failed"); return;
         }
-        if (experimentalViewItem && activeCommand[1] === "view_item" &&
+        if (viewItemEvent(activeCommand, experimentalViewItem, experimentalViewItemList) &&
             !matchesViewItemRequest(message.url, endpoint, activeCommand, viewOptions)) {
           stop("request-correlation-failed"); return;
         }
-        if (experimentalViewItem && activeCommand[1] !== "view_item" && hasViewItemMarker(message.url)) {
+        if ((experimentalViewItem || experimentalViewItemList) &&
+            !viewItemEvent(activeCommand, experimentalViewItem, experimentalViewItemList) && hasViewItemMarker(message.url)) {
           stop("request-correlation-failed"); return;
         }
         if (experimentalMultiDestination) {
@@ -703,6 +711,7 @@ export function createGoogleAdsPrototype({
       ...(experimentalLocalViewItem === true ? { experimentalLocalViewItem: true } : {}),
       ...(experimentalRealEstateViewItem === true ? { experimentalRealEstateViewItem: true } : {}),
       ...(experimentalTravelViewItem === true ? { experimentalTravelViewItem: true } : {}),
+      ...(experimentalViewItemList === true ? { experimentalViewItemList: true } : {}),
       ...(experimentalMultiDestination ? { additionalEndpoint, experimentalMultiDestination: true } : {}) });
   } catch { stop("worker-unavailable"); }
   return {
