@@ -451,7 +451,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
     }
   }, 10000);
 
-  it("isolates false checkout identifiers from Google and preserves independent holds", async () => {
+  it("isolates flights and false checkout identifiers and preserves independent holds", async () => {
     let googleReceiver, googleChamber, google, metaReceiver, metaChamber, meta, cause;
     try {
       googleReceiver = await createConversionReceiver();
@@ -460,6 +460,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
       metaChamber = createNodePrototypeChamber();
       google = createGoogleAdsPrototype({
         endpoint: googleReceiver.endpoint, chamber: googleChamber,
+        experimentalFlightsViewItem: true, experimentalRemarketingPurchase: true,
         consent: { ad_storage: "granted" }, captureContext: () => ({ pageURL, referrer: "" }),
       });
       meta = createMetaPixelPrototype({
@@ -503,6 +504,29 @@ describe("experimental vendor coexistence on independent local workers", () => {
       google.setConsent({ ad_storage: "granted" });
       await Promise.all([google.flush(), meta.flush()]);
       expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([1, 1]);
+      meta.setConsent({ ad_storage: "denied" });
+      const flights = [{
+        origin: "SFO", destination: "LAX", start_date: "2028-02-29", end_date: "2028-03-01",
+        google_business_vertical: "flights",
+      }];
+      google.gtag("event", "purchase", { items: flights });
+      meta.fbq("trackCustom", "InitiateCheckout", { content_ids: [false], contents: [{ id: false, quantity: 1 }] });
+      flights[0].destination = "changed";
+      states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states.map((state) => state.outcomes.at(-1).disposition)).toEqual(["transport-settled", "held"]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([2, 1]);
+      const flightsQuery = new URL(googleReceiver.arrivals[1].url).searchParams;
+      expect(flightsQuery.get("airlock_event")).toBe("remarketing_purchase");
+      expect(JSON.parse(flightsQuery.get("airlock_items"))).toEqual([{
+        origin: "SFO", destination: "LAX", start_date: "2028-02-29", end_date: "2028-03-01",
+        google_business_vertical: "flights",
+      }]);
+      expect(flightsQuery.has("cd[content_ids]")).toBe(false);
+      expect(flightsQuery.has("cd[contents]")).toBe(false);
+      expect(metaQuery.has("airlock_items")).toBe(false);
+      meta.setConsent({ ad_storage: "granted" });
+      await Promise.all([google.flush(), meta.flush()]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([2, 1]);
     } catch (error) {
       cause = error;
       throw error;

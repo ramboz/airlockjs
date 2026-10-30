@@ -34,7 +34,7 @@ experimental replacement work from the available references before complete
 native responses exist. Local, source-only opt-ins now cover Google routing,
 parameter scopes, callbacks, conservative consent commands, an explicit
 manual dataLayer drain, synthetic purchase classification and a bounded cart
-subset, three documented custom-variable example names and five separately
+subset, three documented custom-variable example names and six separately
 gated `view_item` vertical subsets with optional value and separately gated
 local list, search-results, add-to-cart and unlabeled remarketing purchases;
 Meta covers

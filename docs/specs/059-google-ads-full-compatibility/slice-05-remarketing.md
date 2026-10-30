@@ -101,6 +101,10 @@ behavior, shopping-cart effects nor native event handling is established.
 The separately gated unlabeled `purchase` experiment uses the same bounded
 model and rejects ambiguity with a labeled purchase. The distinction, marker,
 schema reuse and route are local choices; native purchase fanout remains open.
+The separately gated flights subset exercises the guide's purchase example
+with all four illustrated origin, destination and date fields. Requiring all
+four, reusing this schema for other events and applying travel's local date
+validation are assumptions, not native validation or flight-feed evidence.
 
 ## Assumptions
 
