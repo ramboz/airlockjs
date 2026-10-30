@@ -267,6 +267,8 @@ export function createMetaPixelPrototype({
   let closed;
   let host;
   let transport;
+  let resolveReadiness;
+  const readiness = new Promise((resolve) => { resolveReadiness = resolve; });
   let hostAdStorage = consent?.ad_storage;
   let tagAllowed = true;
   let revokeGeneration = 0;
@@ -312,6 +314,7 @@ export function createMetaPixelPrototype({
     if (phase === "terminal" || phase === "disposed") return;
     phase = disposed ? "disposed" : "terminal";
     terminalReason = reason;
+    resolveReadiness();
     clearTimeout(initTimer);
     for (const unsubscribe of subscriptions) {
       try { unsubscribe?.(); } catch { cleanupFailure = "listener-dispose-failed"; }
@@ -532,6 +535,7 @@ export function createMetaPixelPrototype({
       if (message?.type === "phase" && message.name === "configured") {
         if (phase !== "starting") { stop("duplicate-configured"); return; }
         phase = "ready";
+        resolveReadiness();
         clearTimeout(initTimer);
       }
       if (message?.type === "intercepted-fetch") {
@@ -593,6 +597,7 @@ export function createMetaPixelPrototype({
   return {
     fbq,
     getState,
+    ready() { return readiness.then(getState); },
     ...(experimentalSyntheticAdvancedMatching ? {
       syntheticIdentity(index) {
         if (index !== 0 && index !== 1) throw new Error("invalid-synthetic-identity-index");

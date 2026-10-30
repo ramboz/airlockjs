@@ -208,10 +208,16 @@ describe("opt-in local Meta bootstrap entry", () => {
     const fbq = fixtureStub();
     fbq("init", pixel);
     const originalQueue = fbq.queue;
+    let message;
     const chamber = {
-      onMessage: () => () => {},
+      onMessage(listener) { message = listener; return () => {}; },
       onError: () => () => {},
-      postMessage(message) { if (message.type === "init") fbq("track", "PageView"); },
+      postMessage(command) {
+        if (command.type === "init") {
+          fbq("track", "PageView");
+          queueMicrotask(() => message({ type: "phase", name: "configured" }));
+        }
+      },
       dispose: vi.fn(),
     };
     await expect(createMetaPixelBootstrapPrototype({
@@ -245,6 +251,98 @@ describe("opt-in local Meta bootstrap entry", () => {
     expect(Object.hasOwn(fbq, "callMethod")).toBe(false);
   });
 
+  it("preserves the preload when worker startup fails asynchronously", async () => {
+    const fbq = fixtureStub();
+    fbq("init", pixel);
+    fbq("track", "PageView");
+    const originalQueue = fbq.queue;
+    let fail;
+    const chamber = {
+      onMessage: () => () => {},
+      onError(listener) { fail = listener; return () => {}; },
+      postMessage() { queueMicrotask(() => fail()); },
+      dispose: vi.fn(),
+    };
+    const error = await createMetaPixelBootstrapPrototype({
+      bootstrap: fbq, endpoint: "http://127.0.0.1:43210/tr/", chamber, captureContext: page,
+    }).catch((failure) => failure);
+    expect(error.message).toBe("bootstrap-worker-unavailable");
+    expect(chamber.dispose).toHaveBeenCalledTimes(1);
+    expect(fbq.queue).toBe(originalQueue);
+    expect(fbq.queue).toHaveLength(2);
+    expect(Object.hasOwn(fbq, "callMethod")).toBe(false);
+  });
+
+  it("keeps the original stub active until readiness and refuses a changed preload", async () => {
+    const fbq = fixtureStub();
+    fbq("init", pixel);
+    const originalQueue = fbq.queue;
+    let message;
+    const chamber = {
+      onMessage(listener) { message = listener; return () => {}; },
+      onError: () => () => {},
+      postMessage() {},
+      dispose: vi.fn(),
+    };
+    const attachment = createMetaPixelBootstrapPrototype({
+      bootstrap: fbq, endpoint: "http://127.0.0.1:43210/tr/", chamber, captureContext: page,
+    });
+    expect(fbq.queue).toBe(originalQueue);
+    expect(Object.hasOwn(fbq, "callMethod")).toBe(false);
+    fbq("track", "PageView");
+    message({ type: "phase", name: "configured" });
+    await expect(attachment).rejects.toThrow("bootstrap-preload-changed");
+    expect(chamber.dispose).toHaveBeenCalledTimes(1);
+    expect(fbq.queue).toBe(originalQueue);
+    expect(fbq.queue).toHaveLength(2);
+    expect(Object.hasOwn(fbq, "callMethod")).toBe(false);
+  });
+
+  it("retains the preload when worker readiness times out", async () => {
+    const fbq = fixtureStub();
+    fbq("init", pixel);
+    const originalQueue = fbq.queue;
+    const chamber = {
+      onMessage: () => () => {}, onError: () => () => {}, postMessage() {}, dispose: vi.fn(),
+    };
+    await expect(createMetaPixelBootstrapPrototype({
+      bootstrap: fbq, endpoint: "http://127.0.0.1:43210/tr/", chamber, captureContext: page, initTimeoutMs: 20,
+    })).rejects.toThrow("bootstrap-worker-unavailable");
+    expect(chamber.dispose).toHaveBeenCalledTimes(1);
+    expect(fbq.queue).toBe(originalQueue);
+    expect(Object.hasOwn(fbq, "callMethod")).toBe(false);
+  });
+
+  it("refuses attachment if the worker fails during the final preload check", async () => {
+    const target = fixtureStub();
+    target("init", pixel);
+    const originalQueue = target.queue;
+    let message, fail, armed = false;
+    const bootstrap = new Proxy(target, {
+      getOwnPropertyDescriptor(object, key) {
+        if (key === "queue" && armed) { armed = false; fail(); }
+        return Reflect.getOwnPropertyDescriptor(object, key);
+      },
+    });
+    const chamber = {
+      onMessage(listener) { message = listener; return () => {}; },
+      onError(listener) { fail = listener; return () => {}; },
+      postMessage(command) {
+        if (command.type === "init") queueMicrotask(() => {
+          armed = true;
+          message({ type: "phase", name: "configured" });
+        });
+      },
+      dispose: vi.fn(),
+    };
+    await expect(createMetaPixelBootstrapPrototype({
+      bootstrap, endpoint: "http://127.0.0.1:43210/tr/", chamber, captureContext: page,
+    })).rejects.toThrow("bootstrap-worker-unavailable");
+    expect(chamber.dispose).toHaveBeenCalledTimes(1);
+    expect(target.queue).toBe(originalQueue);
+    expect(Object.hasOwn(target, "callMethod")).toBe(false);
+  });
+
   it("restores the original queue and disposes if attachment fails", async () => {
     const target = fixtureStub();
     target("init", pixel);
@@ -255,8 +353,14 @@ describe("opt-in local Meta bootstrap entry", () => {
         return Reflect.defineProperty(object, key, descriptor);
       },
     });
+    let message;
     const chamber = {
-      onMessage: () => () => {}, onError: () => () => {}, postMessage() {}, dispose: vi.fn(),
+      onMessage(listener) { message = listener; return () => {}; },
+      onError: () => () => {},
+      postMessage(command) {
+        if (command.type === "init") queueMicrotask(() => message({ type: "phase", name: "configured" }));
+      },
+      dispose: vi.fn(),
     };
     const error = await createMetaPixelBootstrapPrototype({
       bootstrap, endpoint: "http://127.0.0.1:43210/tr/", chamber, captureContext: page,

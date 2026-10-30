@@ -33,6 +33,8 @@ Supply `endpoint: "http://127.0.0.1:<port>/tr/"` explicitly and a trusted
 holds. There is no remote default. The browser default creates a module Worker;
 this path is source-only and **not browser-tested**. Node tests inject a real
 `{ postMessage, onMessage, onError, dispose }` bridge to the same worker entry.
+`adapter.ready()` resolves with the current redacted state after the first
+configured or terminal transition; it does not guarantee future worker health.
 
 ### Fixture-style bootstrap entry
 
@@ -59,9 +61,10 @@ Elements are read from own data descriptors; extra non-index properties and
 their accessors are not interpreted. This is not a hard main-thread work
 bound or proxy isolation:
 reflection can execute proxy traps, and this is for a trusted local stub.
-If worker setup has already failed synchronously, attachment is refused and
-the original queue is retained. Attachment does not wait for asynchronous
-worker readiness; later failures remain visible in adapter outcomes.
+Attachment waits for the worker's configured signal. If setup fails or times
+out, or the preload changes while waiting, attachment is refused and the
+original queue is retained. Failures after attachment remain visible in adapter
+outcomes.
 
 Argument data and page context are captured when each queued call is forwarded
 during attachment, **not** when the original stub call was made. This is not an
