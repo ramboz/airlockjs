@@ -339,6 +339,47 @@ remain in force. Supply synthetic non-private values only: this experiment
 does not detect personal information or make such values safe to transmit.
 Production behavior and defaults are unchanged.
 
+### Experimental retail view_item
+
+[Google's dynamic-remarketing guide](https://support.google.com/google-ads/answer/7305793?hl=en)
+shows a retail `gtag("event", "view_item", ...)` example with optional `value`
+and required `items`, each containing a numeric `id` and
+`google_business_vertical: "retail"`; the example has no `send_to`. The
+[GA4-source example](https://developers.google.com/google-ads/api/docs/dynamic-remarketing/prerequisites)
+uses `item_id` instead. Neither is the direct-Ads purchase-cart schema above.
+
+The separately gated, default-off `experimentalRetailViewItem: true` admits
+only that event with `items` and optional `value`. Its local subset requires
+one to ten dense own-data items, each with exactly a positive safe-integer `id`
+and the string `retail`; an optional value must be finite and nonnegative,
+excluding negative zero. Zero is retained; absent or explicitly undefined
+`value` is omitted. These bounds, numeric restrictions and omission rules are
+local assumptions, not Google's complete validation rules. It rejects
+`item_id`, conversion labels, purchase-cart fields, callbacks and other keys.
+The adapter snapshots the nested items and the worker validates them again.
+Array length is bounded before enumeration, but proxy traps may run or spoof
+observations: these limits are not a hard main-thread work bound or
+untrusted-input isolation.
+
+For this experiment **one configured destination** is required and the event
+uses its single explicit literal-loopback endpoint. `send_to` is not accepted
+and no label is invented. `experimentalParameterScopes` and
+`experimentalMultiDestination` cannot be enabled with this option; their
+precedence and routing are intentionally not guessed. The endpoint's existing
+`/pagead/conversion/` path is only a local receiver path, not a claim about
+Google's remarketing endpoint. The worker emits invented `airlock_event`,
+`airlock_items` and optional `airlock_value` query fields; these are not native
+encoding. The captured page context is validated but not included in this
+local request. The host checks the event-specific request against its captured
+input, and the conversion comparison report excludes this event.
+
+The independent host/tag seal and drop-without-replay policy still apply;
+an already admitted denial tightens the seal, and an already sent request
+cannot be recalled. Use synthetic, non-private values only: the experiment
+does not detect personal information. It does not establish native routing,
+scope, network behavior, audiences, feed matching, attribution, reporting or
+parity. Production defaults, the purchase path and release gates are unchanged.
+
 ### Experimental bootstrap command
 
 `experimentalBootstrap: true` additionally accepts `gtag("js", new Date())`.

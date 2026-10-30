@@ -2,6 +2,7 @@ import { snapshotDestinationSelectors } from "./destination-selectors.js";
 import { validConsentCommand } from "./consent-commands.js";
 import { validBootstrapCommand } from "./bootstrap-command.js";
 import { snapshotPurchaseCartItems } from "./purchase-cart-items.js";
+import { snapshotRetailViewItems, validRetailValue } from "./retail-view-items.js";
 
 const PARAMS = ["send_to", "value", "currency", "transaction_id"];
 const SCOPE_PARAMS = ["value", "currency", "transaction_id"];
@@ -51,7 +52,7 @@ export function createGoogleAdsConversionPrototype({
   endpoint, additionalEndpoint, experimentalRouting = false, experimentalParameterScopes = false,
   experimentalMultiDestination = false, experimentalConsentCommands = false, experimentalBootstrap = false, experimentalPurchase = false,
   experimentalPurchaseCart = false, experimentalPurchaseDiscount = false, experimentalPurchaseFeed = false,
-  experimentalCustomVariables = false,
+  experimentalCustomVariables = false, experimentalRetailViewItem = false,
 } = {}) {
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
       typeof experimentalMultiDestination !== "boolean" || typeof experimentalConsentCommands !== "boolean" ||
@@ -59,7 +60,8 @@ export function createGoogleAdsConversionPrototype({
       typeof experimentalPurchaseCart !== "boolean" || (experimentalPurchaseCart && !experimentalPurchase) ||
       typeof experimentalPurchaseDiscount !== "boolean" || (experimentalPurchaseDiscount && !experimentalPurchase) ||
       typeof experimentalPurchaseFeed !== "boolean" || (experimentalPurchaseFeed && !experimentalPurchaseCart) ||
-      typeof experimentalCustomVariables !== "boolean" ||
+      typeof experimentalCustomVariables !== "boolean" || typeof experimentalRetailViewItem !== "boolean" ||
+      (experimentalRetailViewItem && (experimentalParameterScopes || experimentalMultiDestination)) ||
       (experimentalMultiDestination && !experimentalRouting)) {
     throw new Error("invalid-experimental-option");
   }
@@ -128,8 +130,25 @@ export function createGoogleAdsConversionPrototype({
         return [];
       }
       const purchase = experimentalPurchase && args[1] === "purchase";
-      if (args.length !== 3 || args[0] !== "event" || (args[1] !== "conversion" && !purchase)) throw new Error("unsupported-command");
+      const retail = experimentalRetailViewItem && args[1] === "view_item";
+      if (args.length !== 3 || args[0] !== "event" || (args[1] !== "conversion" && !purchase && !retail)) throw new Error("unsupported-command");
       if (!configs.size) throw new Error("conversion-before-config");
+      if (retail) {
+        const values = dataRecord(args[2], ["items", "value"]);
+        if (!values) throw new Error("unsupported-parameters");
+        const items = snapshotRetailViewItems(values.items);
+        if (!items) throw new Error("unsupported-items");
+        if (!validRetailValue(values.value)) throw new Error("unsupported-value");
+        const context = dataRecord(capturedContext, ["pageURL", "referrer"]);
+        if (!context || Reflect.ownKeys(context).length !== 2 ||
+            !Object.hasOwn(context, "pageURL") || !Object.hasOwn(context, "referrer") ||
+            !validURL(context.pageURL) || !validURL(context.referrer, true)) throw new Error("invalid-context");
+        const query = new URLSearchParams({ airlock_event: "view_item", airlock_items: JSON.stringify(items) });
+        if (values.value !== undefined) query.set("airlock_value", String(values.value));
+        const url = `${endpoints[0]}?${query}`;
+        if (url.length > 8192) throw new Error("encoded-context-limit");
+        return [{ url, method: "GET" }];
+      }
       const params = dataRecord(args[2], purchase
         ? [...PARAMS, "new_customer", ...(experimentalPurchaseCart ? ["items"] : []),
           ...(experimentalPurchaseDiscount ? ["discount"] : []), ...(experimentalPurchaseFeed ? FEED_PARAMS : [])]
