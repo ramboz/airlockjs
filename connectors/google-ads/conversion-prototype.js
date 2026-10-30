@@ -53,11 +53,11 @@ export function createGoogleAdsConversionPrototype({
   experimentalMultiDestination = false, experimentalConsentCommands = false, experimentalBootstrap = false, experimentalPurchase = false,
   experimentalPurchaseCart = false, experimentalPurchaseDiscount = false, experimentalPurchaseFeed = false,
   experimentalCustomVariables = false, experimentalRetailViewItem = false, experimentalEducationViewItem = false,
-  experimentalLocalViewItem = false, experimentalRealEstateViewItem = false,
+  experimentalLocalViewItem = false, experimentalRealEstateViewItem = false, experimentalTravelViewItem = false,
 } = {}) {
   const viewOptions = {
     retail: experimentalRetailViewItem, education: experimentalEducationViewItem,
-    local: experimentalLocalViewItem, realEstate: experimentalRealEstateViewItem,
+    local: experimentalLocalViewItem, realEstate: experimentalRealEstateViewItem, travel: experimentalTravelViewItem,
   };
   const experimentalViewItem = Object.values(viewOptions).some((enabled) => enabled === true);
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||

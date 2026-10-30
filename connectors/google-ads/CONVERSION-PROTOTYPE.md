@@ -447,6 +447,45 @@ there is no personal-information detector. Native feed matching, audience
 behavior, attribution, reporting and parity remain unqualified. Production
 defaults and release gates are unchanged.
 
+### Experimental travel view_item
+
+The [guide's travel example](https://support.google.com/google-ads/answer/7305793?hl=en#travel)
+shows a numeric `value` and items with `google_business_vertical: "travel"`,
+required `destination`, and optional `origin`, `start_date` and `end_date`.
+It specifies dates as `YYYY-MM-DD`. The separately gated, default-off
+`experimentalTravelViewItem` admits only this synthetic `view_item` subset;
+it can coexist with the other view-item flags without enabling them, and
+mixed-vertical item arrays are rejected.
+
+Locally, one to ten dense own-data items are required. Each has exactly
+`destination` and `google_business_vertical`, plus any of the three optional
+fields. Destination and supplied origin must be nonempty well-formed strings
+of at most 128 UTF-16 code units. Supplied dates must be ten ASCII characters
+in `YYYY-MM-DD` form and valid proleptic Gregorian calendar dates from
+`0001-01-01` through `9999-12-31`, including leap-year checks. Explicitly
+undefined optional fields are rejected, not treated as absent. Dates are
+independently optional: no ordering, duration, current-date, timezone, travel
+availability or itinerary semantics are inferred. A finite, nonnegative
+numeric `value` other than negative zero is required, with zero preserved.
+These validation and required-value rules are local narrowing choices, not
+claims about native validation or date semantics.
+
+The travel item's `destination` is data, never a network selector. The
+experiment uses the same one explicitly configured literal-loopback endpoint,
+invented `airlock_event`, `airlock_items` and `airlock_value` markers, host
+request correlation, independent consent seal, and drop-without-replay policy
+as the other view-item experiments. `send_to`, labels, foreign fields,
+parameter scopes and multi-destination routing are refused. Inputs are
+snapshotted and revalidated; array length is bounded before enumeration, but
+proxy traps can run or spoof observations, so accepted bounds do not guarantee
+a hard work limit or untrusted-input isolation.
+
+Only synthetic, non-private inputs are permitted by the operating contract;
+there is no personal-information detector. Native feed-key interpretation,
+date behavior, routing, encoding, audiences, attribution, reporting and parity
+remain unqualified. Conversion and purchase behavior, production defaults and
+release gates are unchanged.
+
 ### Experimental bootstrap command
 
 `experimentalBootstrap: true` additionally accepts `gtag("js", new Date())`.

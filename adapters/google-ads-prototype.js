@@ -164,10 +164,11 @@ export function createGoogleAdsPrototype({
   experimentalDataLayer = false, experimentalPurchase = false, experimentalPurchaseCart = false, experimentalPurchaseDiscount = false,
   experimentalPurchaseFeed = false, experimentalCustomVariables = false, experimentalRetailViewItem = false,
   experimentalEducationViewItem = false, experimentalLocalViewItem = false, experimentalRealEstateViewItem = false,
+  experimentalTravelViewItem = false,
 } = {}) {
   const viewOptions = {
     retail: experimentalRetailViewItem, education: experimentalEducationViewItem,
-    local: experimentalLocalViewItem, realEstate: experimentalRealEstateViewItem,
+    local: experimentalLocalViewItem, realEstate: experimentalRealEstateViewItem, travel: experimentalTravelViewItem,
   };
   const experimentalViewItem = Object.values(viewOptions).some((enabled) => enabled === true);
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
@@ -701,6 +702,7 @@ export function createGoogleAdsPrototype({
       ...(experimentalEducationViewItem === true ? { experimentalEducationViewItem: true } : {}),
       ...(experimentalLocalViewItem === true ? { experimentalLocalViewItem: true } : {}),
       ...(experimentalRealEstateViewItem === true ? { experimentalRealEstateViewItem: true } : {}),
+      ...(experimentalTravelViewItem === true ? { experimentalTravelViewItem: true } : {}),
       ...(experimentalMultiDestination ? { additionalEndpoint, experimentalMultiDestination: true } : {}) });
   } catch { stop("worker-unavailable"); }
   return {
