@@ -154,6 +154,26 @@ describe("experimental set agent through the serialized Meta worker", () => {
     } finally { await env.close(); }
   }, 5000);
 
+  it("rejects trailing line terminators in agent values and routed Pixel IDs", async () => {
+    const env = await setup();
+    try {
+      env.adapter.fbq("init", ids[0]);
+      env.adapter.fbq("set", "agent", agentOne, ids[0]);
+      for (const suffix of ["\n", "\r", "\r\n", "\u2028", "\u2029"]) {
+        env.adapter.fbq("set", "agent", agentTwo + suffix, ids[0]);
+        env.adapter.fbq("set", "agent", agentTwo, ids[0] + suffix);
+      }
+      env.adapter.fbq("track", "PageView");
+      const state = await env.adapter.flush();
+      expect(state.outcomes.slice(2, -1).map((outcome) => outcome.reason)).toEqual(
+        Array.from({ length: 5 }, () => ["unsupported-agent", "invalid-pixel-id"]).flat(),
+      );
+      expect(env.receiver.arrivals.map(fields)).toEqual([
+        { pixel: ids[0], event: "PageView", eventId: null, agent: [agentOne] },
+      ]);
+    } finally { await env.close(); }
+  }, 5000);
+
   it("does not capture page context for an agent-setting command", async () => {
     const captureContext = vi.fn(page);
     const env = await setup({ captureContext });
