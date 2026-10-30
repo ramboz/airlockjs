@@ -108,6 +108,21 @@ browser behavior and full production replacement remain unverified.
   reject the entire call unless explicitly enabled below. The added fields use
   `cd[...]` keys; order and conversion to strings are prototype choices, not
   qualified native behavior.
+- With `experimentalContentNameArray: true` and both
+  `experimentalPageViewData` and `experimentalScalarEventData` enabled,
+  `content_name` also accepts an ordinary same-realm array of up to 16
+  nonempty, well-formed strings of at most 64 UTF-16 code units each. Empty
+  arrays are retained and undefined is omitted. Sparse arrays, extra
+  properties, accessors and non-string elements reject the whole command.
+  Existing scalar strings remain unchanged. The array is snapshotted and
+  revalidated in the worker, which emits one JSON value in `cd[content_name]`
+  with the input order and duplicates retained. Meta's Magento plugin
+  [tests a single product name in an array](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Test/Unit/Block/Pixel/PurchaseTest.php#L217-L233)
+  and [passes the result into its Purchase payload](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/purchase.phtml#L22-L40).
+  Array length, name limits, empty handling, multi-item behavior and JSON wire
+  form are local choices, not native-qualified. Use synthetic data only: the
+  local receiver retains request URLs. Reflection may invoke proxy traps and
+  is not a hard main-thread work bound or proxy isolation.
 - With both `experimentalPageViewData: true` and
   `experimentalCustomProperties: true`, standard and custom events can
   include up to eight additional own string-valued properties. Each key
@@ -185,8 +200,8 @@ browser behavior and full production replacement remain unverified.
   as part of its `getContents()` result and
   [passes that result into a Purchase payload](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/purchase.phtml#L22-L40).
   The local price range, optionality, ordering and JSON wire form are
-  unverified choices. The complete Magento payload and `fbq("set", "agent",
-  ...)` remain unsupported and unqualified. Use synthetic data only.
+  unverified choices. The complete Magento payload remains unqualified;
+  `fbq("set", "agent", ...)` remains unsupported. Use synthetic data only.
 - With both `experimentalPageViewData: true` and
   `experimentalEventIds: true`, `fbq("track", name, data, { eventID })`
   accepts the documented fourth argument. With multi-Pixel routing enabled,

@@ -131,6 +131,18 @@ the documented floor above; scalar encoding, ordering, type/enum admission and
 count bounds are prototype assumptions. This is not a native commerce capture,
 array/nested serialization, full event support or a C1-C9 pass.
 
+The separately gated `experimentalContentNameArray` extends the existing
+`content_name` scalar with a bounded array of synthetic strings. Meta's
+Magento plugin [tests one product name in an array](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Test/Unit/Block/Pixel/PurchaseTest.php#L217-L233)
+and [places the result in its Purchase payload](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/purchase.phtml#L22-L40).
+The local subset snapshots and revalidates arrays of up to 16 nonempty,
+well-formed strings, each at most 64 UTF-16 code units, and emits one
+JSON-stringified `cd[content_name]` value. Tests cover mutation, scalar and
+targeted controls, custom Purchase composition, consent and refusals.
+Bounds, empty arrays, multiple names, ordering, duplicates and the wire mapping
+are prototype assumptions. The source does not establish native encoding.
+No native request, receipt, parity or readiness criterion is claimed.
+
 The separately gated `experimentalContentIds` path now snapshots bounded
 `content_ids` arrays of strings and nonnegative safe integers, then emits one
 JSON-stringified `cd[content_ids]` value via the worker and local receiver.
@@ -166,9 +178,9 @@ unpriced items. Snapshots and worker revalidation feed the existing local JSON
 mapping, with no total calculation. Tests cover custom Purchase composition,
 routing, consent holds, no replay, invalid prices and existing defaults.
 Optionality, bounds and JSON mapping are local assumptions; the source does
-not establish native wire behavior. Other item fields, the full Magento
-payload including array-valued `content_name`, and `fbq("set", "agent", ...)`
-remain unsupported. No native request, receipt or parity is claimed.
+not establish native wire behavior. Other item fields and
+`fbq("set", "agent", ...)` remain unsupported. The full Magento payload
+remains unqualified. No native request, receipt or parity is claimed.
 
 The separate `experimentalCustomProperties` opt-in accepts a bounded subset
 of additional string-valued event properties, on the existing standard or

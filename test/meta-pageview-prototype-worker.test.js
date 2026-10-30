@@ -36,7 +36,7 @@ async function configure(chamber, transportTimeoutMs = 500) {
 }
 
 describe("actual first-party worker correlated protocol (not receipt evidence)", () => {
-  it.each(["experimentalRouting", "experimentalPageViewData", "experimentalMultiPixelRouting", "experimentalEvents", "experimentalScalarEventData", "experimentalContentIds", "experimentalContents", "experimentalContentsItemPrice", "experimentalCustomProperties", "experimentalNumericOrderId", "experimentalEventIds", "experimentalSyntheticAdvancedMatching", "experimentalTagConsent"])("rejects mistyped %s during worker initialization", async (option) => {
+  it.each(["experimentalRouting", "experimentalPageViewData", "experimentalMultiPixelRouting", "experimentalEvents", "experimentalScalarEventData", "experimentalContentNameArray", "experimentalContentIds", "experimentalContents", "experimentalContentsItemPrice", "experimentalCustomProperties", "experimentalNumericOrderId", "experimentalEventIds", "experimentalSyntheticAdvancedMatching", "experimentalTagConsent"])("rejects mistyped %s during worker initialization", async (option) => {
     const chamber = createNodePrototypeChamber();
     try {
       const failed = receive(chamber, "fatal");
@@ -82,6 +82,58 @@ describe("actual first-party worker correlated protocol (not receipt evidence)",
       chamber.postMessage({ type: "init", endpoint, transportTimeoutMs: 500, experimentalContentIds: true });
       expect(await failed).toEqual({ type: "fatal", message: "worker-configuration-failed" });
     } finally { await chamber.dispose(); }
+  }, 5000);
+
+  it("rejects the content-name array opt-in when scalar data is disabled", async () => {
+    const chamber = createNodePrototypeChamber();
+    try {
+      const failed = receive(chamber, "fatal");
+      chamber.postMessage({
+        type: "init", endpoint, transportTimeoutMs: 500,
+        experimentalPageViewData: true, experimentalContentNameArray: true,
+      });
+      expect(await failed).toEqual({ type: "fatal", message: "worker-configuration-failed" });
+    } finally { await chamber.dispose(); }
+  }, 5000);
+
+  it.each([false, true])("revalidates serialized content-name arrays in the worker (enabled=%s)", async (enabled) => {
+    const chamber = createNodePrototypeChamber();
+    const requests = [];
+    const unsubscribe = chamber.onMessage((message) => {
+      if (message.type === "intercepted-fetch") requests.push(message);
+    });
+    try {
+      const configured = receive(chamber, "phase");
+      chamber.postMessage({
+        type: "init", endpoint, transportTimeoutMs: 500, experimentalEvents: true,
+        experimentalPageViewData: true, experimentalScalarEventData: true, experimentalContentNameArray: enabled,
+      });
+      await configured;
+      const initialized = receive(chamber, "result");
+      chamber.postMessage({ type: "event", event: event(1, ["init", "000000000000000"]) });
+      await initialized;
+      const invalid = [[1], [null], Array(17).fill("name")];
+      if (!enabled) invalid.push(["Test Product"]);
+      for (const [index, names] of invalid.entries()) {
+        const rejected = receive(chamber, "result");
+        chamber.postMessage({ type: "event", event: event(index + 2, ["trackCustom", "Purchase", { content_name: names }]) });
+        expect((await rejected).summary).toMatchObject({
+          seq: index + 2, disposition: "rejected", reason: "unsupported-parameters", requests: 0,
+        });
+      }
+      expect(requests).toEqual([]);
+      if (enabled) {
+        const requested = receive(chamber, "intercepted-fetch");
+        chamber.postMessage({
+          type: "event", event: event(5, ["trackCustom", "Purchase", { content_name: ["Test Product"] }]),
+        });
+        const request = await requested;
+        expect(new URL(request.url).searchParams.get("cd[content_name]")).toBe('["Test Product"]');
+        const settled = receive(chamber, "result");
+        chamber.postMessage({ type: "intercepted-fetch-response", id: request.id, status: 204, body: "" });
+        expect((await settled).summary).toMatchObject({ seq: 5, disposition: "transport-settled", status: 204 });
+      }
+    } finally { unsubscribe(); await chamber.dispose(); }
   }, 5000);
 
   it("rejects the event-ID opt-in when its data prerequisite is absent", async () => {

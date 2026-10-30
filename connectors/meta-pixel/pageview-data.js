@@ -16,7 +16,7 @@ export function isStandardEventDataKey(key) {
     key === "content_ids" || key === "contents";
 }
 
-function snapshotContentIds(value) {
+function snapshotContentValues(value, allowNumbers) {
   if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype) return null;
   const length = Object.getOwnPropertyDescriptor(value, "length")?.value;
   if (!Number.isInteger(length) || length < 0 || length > 16) return null;
@@ -26,11 +26,11 @@ function snapshotContentIds(value) {
   for (let index = 0; index < length; index += 1) {
     const descriptor = descriptors[index];
     if (!descriptor || !Object.hasOwn(descriptor, "value")) return null;
-    const id = descriptor.value;
-    if (typeof id === "string") {
-      if (!id.length || id.length > 64 || !id.isWellFormed()) return null;
-    } else if (!Number.isSafeInteger(id) || id < 0 || Object.is(id, -0)) return null;
-    result.push(id);
+    const item = descriptor.value;
+    if (typeof item === "string") {
+      if (!item.length || item.length > 64 || !item.isWellFormed()) return null;
+    } else if (!allowNumbers || !Number.isSafeInteger(item) || item < 0 || Object.is(item, -0)) return null;
+    result.push(item);
   }
   return result;
 }
@@ -74,7 +74,7 @@ function snapshotContents(value, experimentalContentsItemPrice) {
 
 export function snapshotPageViewData(value, experimentalScalarEventData = false, experimentalContentIds = false,
   experimentalContents = false, experimentalCustomProperties = false, experimentalNumericOrderId = false,
-  experimentalContentsItemPrice = false) {
+  experimentalContentsItemPrice = false, experimentalContentNameArray = false) {
   if (!value || typeof value !== "object" || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return null;
   const result = {};
   let customCount = 0;
@@ -103,9 +103,14 @@ export function snapshotPageViewData(value, experimentalScalarEventData = false,
     }
     if (item !== undefined) {
       if (key === "content_ids") {
-        const ids = snapshotContentIds(item);
+        const ids = snapshotContentValues(item, true);
         if (ids === null) return null;
         result[key] = ids;
+        continue;
+      } else if (key === "content_name" && experimentalContentNameArray && Array.isArray(item)) {
+        const names = snapshotContentValues(item, false);
+        if (names === null) return null;
+        result[key] = names;
         continue;
       } else if (key === "contents") {
         const contents = snapshotContents(item, experimentalContentsItemPrice);
