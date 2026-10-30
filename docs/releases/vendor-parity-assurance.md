@@ -34,13 +34,18 @@ experimental replacement work from the available references before complete
 native responses exist. Local, source-only opt-ins now cover Google routing,
 parameter scopes, callbacks, conservative consent commands, an explicit
 manual dataLayer drain, synthetic purchase classification and a bounded cart
-subset, plus three documented custom-variable example names; Meta covers
+subset, three documented custom-variable example names and five separately
+gated `view_item` vertical subsets with optional value; Meta covers
 multiple Pixels, event routing, bounded commerce data and content-name arrays,
 synthetic custom properties, event IDs, local agent settings, synthetic init identity,
 local tag-consent commands and an explicitly supplied bootstrap stub. Each uses
 a serialized worker and governed loopback receiver;
 the existing production defaults remain unchanged. Most ordering, encoding and
 identity choices remain experimental, not native findings.
+The remarketing route and fields are local hypotheses, not feed matching,
+audience membership or attribution evidence. The Meta AddToCart prototype
+rejects the pinned Magento invalid-identifier case instead of silently
+coercing its undefined item IDs; native handling remains unknown.
 
 Google's documented consent wait remains unsupported. A potential conflict
 between retaining pre-grant conversions and the local drop/no-replay policy
