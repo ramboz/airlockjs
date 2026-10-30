@@ -28,7 +28,8 @@ conversion command. Synthetic fake-worker controls substituted a label, value
 or transaction ID, added a field, or duplicated a label, and a mock transport
 was invoked with a plausible settled result. These are passing
 characterizations of the gap, not protection tests; no network request was
-made. Endpoint and consent checks remain separate. The prototype does not
+made. Separate synthetic controls show that host and tag denials still hold
+the forged request and do not replay it after grant. The prototype does not
 establish conversion-field integrity against a compromised worker.
 
 ```sh
