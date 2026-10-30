@@ -158,7 +158,10 @@ describe("offline Google prototype attempt comparison", () => {
     ["aw_merchant_id", 98765],
     ["aw_feed_country", "US"],
     ["aw_feed_language", "en"],
-  ])("does not treat purchase %s as a retained conversion comparison", async (key, value) => {
+    ["example_variable", "synthetic"],
+    ["color", "blue"],
+    ["product_name", "synthetic-product"],
+  ])("excludes unretained %s from the conversion comparison", async (key, value) => {
     const { inputs } = await manifest();
     const reference = syntheticReference();
     const item = reference.capture.cases[0];

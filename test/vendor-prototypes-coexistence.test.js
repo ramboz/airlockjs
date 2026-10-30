@@ -28,6 +28,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
       google = createGoogleAdsPrototype({
         endpoint: googleReceiver.endpoint, chamber: googleChamber,
         experimentalPurchase: true, experimentalPurchaseCart: true, experimentalPurchaseDiscount: true, experimentalPurchaseFeed: true,
+        experimentalCustomVariables: true,
         consent: { ad_storage: "denied" }, captureContext: () => ({ pageURL, referrer: "" }),
       });
       meta = createMetaPixelPrototype({
@@ -94,6 +95,19 @@ describe("experimental vendor coexistence on independent local workers", () => {
       expect(metaQuery.has("airlock_merchant_id")).toBe(false);
       expect(metaQuery.has("airlock_feed_country")).toBe(false);
       expect(metaQuery.has("airlock_feed_language")).toBe(false);
+
+      const custom = { ...conversion, color: "synthetic-blue", product_name: "google-product" };
+      google.gtag("event", "conversion", custom);
+      custom.product_name = "changed";
+      states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states[0].outcomes.at(-1).disposition).toBe("transport-settled");
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([2, 2]);
+      const customQuery = new URL(googleReceiver.arrivals[1].url).searchParams;
+      expect(customQuery.get("airlock_custom_color")).toBe("synthetic-blue");
+      expect(customQuery.get("airlock_custom_product_name")).toBe("google-product");
+      expect(customQuery.has("cd[content_name]")).toBe(false);
+      expect(metaQuery.has("airlock_custom_color")).toBe(false);
+      expect(metaQuery.has("airlock_custom_product_name")).toBe(false);
     } catch (error) {
       cause = error;
       throw error;

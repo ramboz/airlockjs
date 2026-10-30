@@ -91,6 +91,13 @@ The separate `experimentalPurchaseFeed` opt-in accepts narrow synthetic
 merchant, country and language inputs from the same table. Its local markers
 do not establish native encoding, feed ownership, selection or matching.
 
+The separately gated `experimentalCustomVariables` option accepts only three
+synthetic example names shown in
+[Google's custom-variable setup guide](https://support.google.com/google-ads/answer/9962082?hl=en)
+on conversion events. Its fixed allowlist, validation and loopback markers are
+local choices; native encoding, arbitrary names, activation and reporting
+remain unqualified. The retained conversion comparison excludes these fields.
+
 ## Assumptions
 
 - Unverified: complete current native cart/custom/acquisition behavior can be
