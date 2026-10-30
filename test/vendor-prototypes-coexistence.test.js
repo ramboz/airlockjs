@@ -45,7 +45,7 @@ describe("experimental vendor coexistence on independent local workers", () => {
         experimentalEvents: true, experimentalEventIds: true, experimentalContentIds: true,
         experimentalContents: true, experimentalContentsItemPrice: true,
         experimentalScalarEventData: true, experimentalContentNameArray: true,
-        experimentalSetAgent: true, experimentalInitAgent: true,
+        experimentalSetAgent: true, experimentalInitAgent: true, experimentalMagentoHeadArray: true,
         experimentalNullPurchaseValue: true,
         experimentalViewContentJsonStrings: true,
         consent: { ad_storage: "granted" },
@@ -301,6 +301,28 @@ describe("experimental vendor coexistence on independent local workers", () => {
       expect(metaActionQuery.get("ev")).toBe("AddToCart");
       expect(JSON.parse(metaActionQuery.get("cd[content_ids]"))).toEqual(["meta-new-cart"]);
       expect(metaActionQuery.has("airlock_event")).toBe(false);
+
+      const metaHeadData = [];
+      metaHeadData.source = "magento_opensource";
+      metaHeadData.pluginVersion = "1.2.3";
+      meta.fbq("track", "PageView", metaHeadData, { eventID: "meta-head" });
+      google.gtag("event", "add_to_cart", { items: [{ id: 33, google_business_vertical: "retail" }] });
+      metaHeadData.source = "changed";
+      metaHeadData.push("late");
+      states = await Promise.all([google.flush(), meta.flush()]);
+      expect(states.map((state) => state.outcomes.at(-1).disposition))
+        .toEqual(["transport-settled", "transport-settled"]);
+      expect([googleReceiver.arrivals.length, metaReceiver.arrivals.length]).toEqual([13, 9]);
+      const headQuery = new URL(metaReceiver.arrivals[8].url).searchParams;
+      expect(headQuery.get("ev")).toBe("PageView");
+      expect(headQuery.get("eid")).toBe("meta-head");
+      expect(headQuery.get("cd[source]")).toBe("magento_opensource");
+      expect(headQuery.get("cd[pluginVersion]")).toBe("1.2.3");
+      expect(headQuery.has("airlock_event")).toBe(false);
+      const independentCart = new URL(googleReceiver.arrivals[12].url).searchParams;
+      expect(independentCart.get("airlock_event")).toBe("add_to_cart");
+      expect(independentCart.has("cd[source]")).toBe(false);
+      expect(independentCart.has("cd[pluginVersion]")).toBe(false);
     } catch (error) {
       cause = error;
       throw error;
