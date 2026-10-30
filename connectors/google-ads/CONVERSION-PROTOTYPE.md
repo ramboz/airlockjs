@@ -380,6 +380,39 @@ does not detect personal information. It does not establish native routing,
 scope, network behavior, audiences, feed matching, attribution, reporting or
 parity. Production defaults, the purchase path and release gates are unchanged.
 
+### Experimental education view_item
+
+The [same guide's education example](https://support.google.com/google-ads/answer/7305793?hl=en#education)
+shows a `view_item` with numeric `value`, string `id`, optional `location_id`,
+and `google_business_vertical: "education"`, again without `send_to`.
+`experimentalEducationViewItem: true` is a separate default-off opt-in: it
+does not enable retail, and enabling retail alone does not admit education.
+Both may be enabled together, but one event's items must all use the same
+enabled vertical. Mixed arrays, GA4 `item_id`, retail IDs or fields on
+education items, education fields on retail items, and purchase-cart schemas
+are rejected, not translated.
+
+The local education subset requires 1–10 dense own-data items with exactly
+`id`, `google_business_vertical`, and optionally `location_id`. The two ID
+fields, when present, must be nonempty well-formed strings of at most 128
+UTF-16 code units; an explicitly undefined `location_id` is rejected rather
+than treated as absent. A finite, nonnegative numeric `value` other than
+negative zero is required, with zero preserved. Requiring `value` and these
+string, count and omission bounds are local narrowing choices, not claims
+about native validation. The adapter snapshots the array and the worker
+revalidates it; dataLayer calls are captured when drained. The same proxy-trap
+and main-thread work limitations described above apply.
+
+This uses the same single configured literal-loopback endpoint, invented
+`airlock_event`, `airlock_items` and `airlock_value` markers, host request
+correlation, seal and no-replay policy as the retail experiment. It refuses
+`send_to`, labels, parameter scopes and multi-destination routing rather than
+guessing how they interact. Conversion and purchase fields are not inherited
+or carried across events, and the conversion comparison excludes this event.
+Only synthetic, non-private values are allowed by the experiment's operating
+contract; it does not detect personal information. Native feed keys, routing,
+wire format, audiences, attribution, reporting and parity remain unqualified.
+
 ### Experimental bootstrap command
 
 `experimentalBootstrap: true` additionally accepts `gtag("js", new Date())`.

@@ -2,7 +2,7 @@ import { snapshotDestinationSelectors } from "./destination-selectors.js";
 import { validConsentCommand } from "./consent-commands.js";
 import { validBootstrapCommand } from "./bootstrap-command.js";
 import { snapshotPurchaseCartItems } from "./purchase-cart-items.js";
-import { snapshotRetailViewItems, validRetailValue } from "./retail-view-items.js";
+import { snapshotViewItems, validViewItemValue } from "./view-items.js";
 
 const PARAMS = ["send_to", "value", "currency", "transaction_id"];
 const SCOPE_PARAMS = ["value", "currency", "transaction_id"];
@@ -52,7 +52,7 @@ export function createGoogleAdsConversionPrototype({
   endpoint, additionalEndpoint, experimentalRouting = false, experimentalParameterScopes = false,
   experimentalMultiDestination = false, experimentalConsentCommands = false, experimentalBootstrap = false, experimentalPurchase = false,
   experimentalPurchaseCart = false, experimentalPurchaseDiscount = false, experimentalPurchaseFeed = false,
-  experimentalCustomVariables = false, experimentalRetailViewItem = false,
+  experimentalCustomVariables = false, experimentalRetailViewItem = false, experimentalEducationViewItem = false,
 } = {}) {
   if (typeof experimentalRouting !== "boolean" || typeof experimentalParameterScopes !== "boolean" ||
       typeof experimentalMultiDestination !== "boolean" || typeof experimentalConsentCommands !== "boolean" ||
@@ -61,7 +61,8 @@ export function createGoogleAdsConversionPrototype({
       typeof experimentalPurchaseDiscount !== "boolean" || (experimentalPurchaseDiscount && !experimentalPurchase) ||
       typeof experimentalPurchaseFeed !== "boolean" || (experimentalPurchaseFeed && !experimentalPurchaseCart) ||
       typeof experimentalCustomVariables !== "boolean" || typeof experimentalRetailViewItem !== "boolean" ||
-      (experimentalRetailViewItem && (experimentalParameterScopes || experimentalMultiDestination)) ||
+      typeof experimentalEducationViewItem !== "boolean" ||
+      ((experimentalRetailViewItem || experimentalEducationViewItem) && (experimentalParameterScopes || experimentalMultiDestination)) ||
       (experimentalMultiDestination && !experimentalRouting)) {
     throw new Error("invalid-experimental-option");
   }
@@ -76,6 +77,7 @@ export function createGoogleAdsConversionPrototype({
   }
   const destinations = new Map([[`AW-${match[2]}`, endpoint]]);
   if (experimentalMultiDestination) destinations.set(`AW-${second[2]}`, additionalEndpoint);
+  const viewOptions = { retail: experimentalRetailViewItem, education: experimentalEducationViewItem };
   let initialized = false;
   const globalScope = Object.create(null);
   const configs = new Map();
@@ -130,15 +132,15 @@ export function createGoogleAdsConversionPrototype({
         return [];
       }
       const purchase = experimentalPurchase && args[1] === "purchase";
-      const retail = experimentalRetailViewItem && args[1] === "view_item";
-      if (args.length !== 3 || args[0] !== "event" || (args[1] !== "conversion" && !purchase && !retail)) throw new Error("unsupported-command");
+      const viewItem = (experimentalRetailViewItem || experimentalEducationViewItem) && args[1] === "view_item";
+      if (args.length !== 3 || args[0] !== "event" || (args[1] !== "conversion" && !purchase && !viewItem)) throw new Error("unsupported-command");
       if (!configs.size) throw new Error("conversion-before-config");
-      if (retail) {
+      if (viewItem) {
         const values = dataRecord(args[2], ["items", "value"]);
         if (!values) throw new Error("unsupported-parameters");
-        const items = snapshotRetailViewItems(values.items);
+        const items = snapshotViewItems(values.items, viewOptions);
         if (!items) throw new Error("unsupported-items");
-        if (!validRetailValue(values.value)) throw new Error("unsupported-value");
+        if (!validViewItemValue(values.value, items)) throw new Error("unsupported-value");
         const context = dataRecord(capturedContext, ["pageURL", "referrer"]);
         if (!context || Reflect.ownKeys(context).length !== 2 ||
             !Object.hasOwn(context, "pageURL") || !Object.hasOwn(context, "referrer") ||
