@@ -749,10 +749,18 @@ owned cleanup observations remain mandatory. Require private exclusive stdout
 publication, independently witnessed whole-command exit and digest comparison.
 Stop on first failure with no retry or automatic successor.
 
-Independent Sol source/operational review is still required. Changing a static
-version pin does not qualify the new cohort or grant execution. The original
-proposal and current integration record both retain false browser/qualification
-and run-authority flags. No output/case slot has been reserved.
+Fresh independent Sol source/operational review passed checkpoint
+`9d0f51a0ae5527e0dbdb333c00d877b5d822e113`. Reviewer
+`2b5ad154-2403-4ee4-8f7b-d68e43857206` was explicitly pinned to Sol and
+native metadata reported that model. It found no hard technical blocker to
+requesting one bounded supervised GO after fresh source/cohort preflight,
+while keeping execution NOT ADMITTED. The actual verdict is preserved privately
+alongside the immutable proposal and separate integration record.
+
+Changing a static version pin does not qualify the new cohort or grant
+execution. The original proposal and current integration record both retain
+false browser/qualification and run-authority flags. No output/case slot has
+been reserved.
 
 Actual owner presence, acknowledgement of agent-loss cleanup UNKNOWN and
 finite final GO remain missing. The existing procedure is owner-supervised,
