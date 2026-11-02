@@ -425,7 +425,8 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
     log.push(["connect", endpoint]);
     const browser = new EventEmitter();
     let contexts = 0;
-    browser.version = () => fault === "version" ? "155.0.0.0" : "156.0.8078.48";
+    browser.version = () => fault === "version" ? "155.0.0.0"
+      : fault === "old-version" ? "156.0.8078.48" : "156.0.8078.76";
     browser.newContext = async (options) => {
       log.push(["new-context", options]);
       return new Context(["preflight", "product", "failure"][contexts++]);
@@ -467,6 +468,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
   it("runs fixed Meta then Google, real sink controls and held 503; captures ownership before connect and cleans normally", async () => {
     const fake = await controlledBrowser();
     const result = await runLocalBrowserForeground();
+    expect(result.vendors[0].errors).toEqual([]);
     expect(result.normalJourneyChecks).toBe("PASS");
     expect(result).toMatchObject({ overall: "INCONCLUSIVE", fullCompatibility: false, interruptionLossQualification: false });
     expect(result.limits).toEqual({
@@ -475,6 +477,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
     });
     expect(result.vendors.map((vendor) => vendor.vendor)).toEqual(["meta", "google"]);
     for (const vendor of result.vendors) {
+      expect(vendor.browserVersion).toBe("156.0.8078.76");
       expect(vendor.errors).toEqual([]);
       expect(vendor.controls).toEqual({
         allowedArrivals: 1, enforcedNewArrivals: 0, bypassNewArrivals: 1,
@@ -522,6 +525,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
 
   it.each([
     ["source-substitution", "served-source-identity"], ["version", "browser-version-mismatch"],
+    ["old-version", "browser-version-mismatch"],
     ["preflight-source", "request-outside-fixed-manifest"], ["preflight-document", "request-outside-fixed-manifest"],
     ["preflight-worker", "unexpected-worker"], ["missing-source", "loaded-source-closure"],
     ["duplicate-source", "loaded-source-closure"],

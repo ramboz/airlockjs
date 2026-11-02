@@ -1,9 +1,14 @@
 # Fixed local foreground procedure
 
-This prepares one owner-supervised, headed **Meta → Google** run against the
-existing first-party fixtures. It does not qualify native compatibility or
-unattended shutdown. Source/operational review must precede the parent's single
-issuance; tests of this module do **not** issue it or launch Chrome.
+This prepares a proposed owner-supervised, headed **Meta → Google** run against
+the existing first-party fixtures. It does not qualify native compatibility or
+unattended shutdown. Source/operational review and a separate owner decision
+must precede any issuance; tests of this module do **not** issue it or launch Chrome.
+
+The static browser selection is now `156.0.8078.76`, based on installed Chrome
+plist metadata only. This source-only preparation is not a browser run,
+qualification or execution grant. Owner presence, acceptance of agent-loss
+cleanup as UNKNOWN, and final finite admission remain pending.
 
 ## Current owner-selected acknowledgment
 
@@ -17,7 +22,7 @@ compared exact payload/source/response hashes and confirmed both exact root
 PIDs/profiles absent. HTTP204, native parity and agent-loss cleanup remain
 unqualified; earlier failures remain failures.
 
-**Current preflight refinement:** changing only204→200 did not remove the abort:
+**Historical preflight refinement:** changing only204→200 did not remove the abort:
 the one HTTP200 attempt also stopped before product work (exit1/7.82s), with
 normal cleanup. The present owner separately approved one further supervised
 sequence testing strict zero-body consumption. The preflight now waits for
@@ -32,8 +37,8 @@ cohort. It demonstrates the corrected local sequence, not a universal browser fi
 The later source-closure correction uses a separate inert `/preflight` document
 and updated exact module expectations. It has only controlled-event and Node
 HTTP evidence. The historical Chrome cohort does not qualify these changed
-sources. The configured Chrome pin remains `156.0.8078.48`; the coordinator
-reported an installed `.76` during this correction, without launching it.
+sources. That correction retained the `156.0.8078.48` pin; the coordinator
+reported an installed `.76` at the time, without launching it.
 
 After the separately approved corrected attempt still failed on
 `net::ERR_ABORTED` despite page Fetch204 and recorded empty framing, the present
@@ -106,8 +111,12 @@ checkpoints and actual request/response/worker observations, not just counters.
 There is no output-path option. Do not pipe through an uploader or retry a
 failed/nonempty run.
 
-Installed Playwright launches Chrome **156.0.8078.48**, headed, through unchanged
+The proposed entry selects Chrome **156.0.8078.76**, headed, through unchanged
 `rig/qualification-loopback-chrome` and its exact existing Seatbelt policy.
+The installed plist is metadata, not proof of the launched binary's version.
+The procedure rejects a different browser-reported version before navigation.
+The parent must check the proposed cohort and source identities before any
+acquisition; these checks do not establish atomic custody of the executable.
 Playwright creates each fresh profile; no personal/shared MCP browser is used.
 The WebSocket listener and connection are literal `127.0.0.1`. Pending
 acquisitions are retained before awaiting them, including late resolutions.
@@ -182,9 +191,11 @@ after loss of the producer. Do not inject browser-loss/TERM experiments here.
 Offline checks only:
 
 ```sh
-npx vitest run test/local-browser-foreground.test.js test/local-browser-journeys.test.js
-npx eslint rig/local-browser-foreground.mjs test/local-browser-foreground.test.js
+/opt/homebrew/Cellar/node/24.10.0/bin/node <resolved-vitest-cli> run test/local-browser-foreground.test.js test/local-browser-journeys.test.js -t '^(?!.*serializes one JSON artifact)'
+/opt/homebrew/Cellar/node/24.10.0/bin/node <resolved-eslint-cli> rig/local-browser-foreground.mjs test/local-browser-foreground.test.js
 ```
 
 The controlled-browser tests use synthetic browser/worker events and real
 literal-loopback **Node HTTP**, not Chrome execution or native guard evidence.
+The selected test run excludes the existing mocked CLI-main import test; this
+preparation does not execute or import the foreground entry as main.
