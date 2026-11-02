@@ -1,15 +1,15 @@
 ---
-status: ROOT_CAUSED
+status: FIXING
 tier: gnarly
 severity: medium
 claimed_by: local-fixture-import-closure
-regression_test:
+regression_test: "test/local-browser-journeys.test.js::serves two fixed pages and the entire actual adapter/module-worker import closure"
 main_repro_checked_at:
 main_repro_ref:
 main_repro_result:
-red_confirmed_at:
+red_confirmed_at: 2026-11-02
 green_confirmed_at:
-fix_class:
+fix_class: local_patch
 security_surface: true
 escalated_to:
 closure_schema: 1
@@ -43,7 +43,7 @@ expected 200 for `/connectors/meta-pixel/pageview-data.js` and received 404.
   before comparing the graph with the manifest.
 - Other Meta and Google imports also appear in the adapter and worker source
   but not in the original fixture catalogue. The first 404 stops the test;
-  the complete corrected closure and its byte/request budget remain unverified.
+  the initial failure does not enumerate the complete closure.
 - `rig/local-browser-foreground.mjs:430-437` separately checks a fixed
   per-vendor loaded-source set. The controlled-event test has its own lists
   in `test/local-browser-foreground.test.js:127-140`.
@@ -108,12 +108,23 @@ operator documents describe the fixture and its evidence boundaries.
 
 **Reuse decision:** Preserve the existing fixed catalogue, separate
 foreground expectations, and independent traversal. Do not add a dynamic
-static root or runtime import discovery. Exact additions are not yet
-determined and require a permitted correction and independent graph check.
+static root or runtime import discovery. A provisional correction was tested
+and then removed from the worktree because the existing request limit blocks
+the controlled foreground sequence. The experimental patch is retained in
+the session artifact `bug-002-provisional.patch`, not as a qualified fix.
 
 ## Fix class
 
+`local_patch`: update the fixed fixture and its exact foreground expectations
+to match current imports, without introducing discovery or broadening policy.
+
 ## Fix
+
+Blocked. The exploratory patch added the 11 missing fixed source entries and
+adjusted the foreground manifest and controlled source events. The independent
+graph regression passed on that patch, but the controlled foreground sequence
+failed its unchanged global request limit. No source correction is retained
+in the worktree.
 
 ## Call-site closure
 
@@ -121,10 +132,12 @@ determined and require a permitted correction and independent graph check.
      in the inventory above as changed, tested, or intentionally left
      alone. Accounting, not mandatory widening. -->
 
-**Disposition per affected site:** No source, tests, or rig documentation
-changed. Server, foreground expectations and controlled-event lists remain
-pending a permitted fix; preserve the independent graph oracle. Historical
-slice and product-readiness records remain unchanged.
+**Disposition per affected site:** The server catalogue, foreground exact
+source check, and controlled-event lists were modified only for the experiment,
+then restored; their correction is blocked. The independent HTTP graph test
+remained unchanged and passed against the experiment. Foreground request
+admission and response identity checks were not changed. The operator docs,
+historical slice records and product-readiness records remain unchanged.
 
 ## Already tried
 
@@ -136,15 +149,52 @@ a fresh-main result. No check was recorded, no gate was bypassed, and no
 source fix was started. `bug.py transition 002 FIXING` exited 1, reporting
 missing `main_repro_checked_at`, `main_repro_ref`, and `main_repro_result`.
 
+On 2026-11-02 the owner replied "yes, approved" to the coordinator's explicit
+request for a Bug-002-only fresh-main-gate exception using integration baseline
+`201413a036be3e2e5d7565d30efcc4abf2cbec34`. The exception applies only to
+the `ROOT_CAUSED -> FIXING` invocation for this bug, using command-local
+`JIG_BUG_MAIN_CHECK_GATE=0`. It does not assert a main result, authorize
+other gate exceptions, or change the requirement for red/green evidence and
+later bug, craft and security reviews.
+
 ## Regression test
 
 The existing graph traversal in `test/local-browser-journeys.test.js` is the
-red regression. The helper has not witnessed a red transition because the
-main gate is unmet.
+regression. The authorized command-local exception was used once on
+`bug.py transition 002 FIXING`; the helper witnessed red and stamped
+`red_confirmed_at`. With the experimental patch applied,
+`python3 /Users/ramboz/.copilot/installed-plugins/jig/jig/.github/skills/tdd-loop/tdd.py run . --test 'test/local-browser-journeys.test.js::serves two fixed pages and the entire actual adapter/module-worker import closure'`
+exited 0, with 1 passed and 11 skipped. The patch was then removed, so this is
+not a green result for the final worktree. `green_confirmed_at` remains empty.
 
 ## Proof
 
-No fix or green proof. No source catalogue count change, budget qualification,
-lint, real browser, native SDK, vendor request or product qualification.
+The current static source graph has 29 unique modules versus 18 in the fixed
+catalogue. The missing entries are five Meta and six Google modules. Each
+vendor has 19 unique modules including the worker graph. Meta has 12 main
+and 11 worker modules with four shared paths; Google has 14 main and 11 worker
+modules with six shared paths. The combined module bytes are 276,517, with a
+48,560-byte maximum module, below the existing 8 MiB retained-source and
+2 MiB per-response limits before page and receipt accounting.
+
+The controlled foreground model requests main and worker imports separately.
+It uses three page loads, two worker graphs and seven control/measurement
+requests per vendor. Counting repeated shared paths gives Meta
+`3 + 3*12 + 2*11 + 7 = 68` and Google
+`3 + 3*14 + 2*11 + 7 = 74` observed requests. The existing per-vendor
+foreground limit is 64. Against the provisional patch, the controlled Meta
+run stopped at the 65th request with `request-count-limit`; its retained
+counter was 1,532,591 bytes at that point. Google was not reached. These are
+controlled-event counts, not a claim about actual Chrome's request behavior.
+
+`npm test -- --reporter=dot test/local-browser-foreground.test.js test/local-browser-journeys.test.js`
+against the provisional patch exited 1: 49 passed, 2 failed. Both failures
+were foreground success-path tests; the first exposed `request-count-limit`.
+`./node_modules/.bin/eslint rig/local-browser-journeys.mjs rig/local-browser-foreground.mjs test/local-browser-foreground.test.js`
+exited 127 because the local ESLint executable is missing. No tooling was
+installed. No limit, browser pin, transport policy, runtime mapping or API
+was changed. No browser, native SDK, vendor request or product qualification
+was performed. Bug, craft and security reviews remain pending after a
+legitimately unblocked fix.
 
 ## Learning
