@@ -540,3 +540,50 @@ input. Remaining private case bindings, original evidence and technical
 qualification are separate. The confirmation does not authorize modifying the
 Pixel, running the SDK/browser or sending vendor traffic. The scratch case
 record carries the same confirmation, without private identifiers.
+
+## 12. Autonomous offline checks and fixture defect
+
+The owner asked to continue through the remaining list, stop only for required
+input, and report at least hourly. The same-conversation hourly reporter was
+configured and verified as reporting-only, with no worker or run authority.
+It is paused while the owner decision below is pending; restore the reporting
+cadence when active work resumes. No app-wide job or peer scheduler was created.
+
+### Actual offline results
+
+| Check | Result and limit |
+|---|---|
+| Five Meta/host Node files | Exit 0: 189 pass, zero failures, runner duration 1.79s. Synthetic values, fake transports and first-party Node worker protocol; not actual browser/native/performance evidence. |
+| Two local fixture/control files | Exit 1: 50 pass, one failure, runner duration 8.44s. Controlled browser events plus literal-loopback Node HTTP; Chrome was not launched. |
+| Failure | The independent source-import traversal expected 200 for `/connectors/meta-pixel/pageview-data.js` but received 404. The adapter imports that tracked module; the fixed fixture source catalogue omits it. |
+| Fresh default branch | Fetched `origin/main` is `a4008d5ddb8f10b459500921bf974a064de2beca`; neither the fixture nor its test exists there. Missing unmerged code is not a resolved bug or a trunk reproduction. |
+| Existing browser procedure | Source pin is Chrome 156.0.8078.48; installed application plist reports 156.0.8078.76. Metadata only, no browser acquired and no pin changed. The historical procedure also requires owner-supervised loss/cleanup acknowledgement, not unattended qualification. |
+
+[Bug 002](../bugs/002-local-fixture-import-closure.md) is ROOT_CAUSED, not fixed.
+The Terra writer reproduced the first 404 using the smaller existing regression
+selector and recorded hypotheses, history/reuse and affected call sites.
+Its commit `82f9f1b9b74ccf5b54c11480e314e94b4ae084eb` contains only the
+diagnostic record and is integrated as `dfc9338`.
+No fixture, test, source policy, limit, browser pin or accepted ADR changed.
+
+### Specific owner decision required
+
+Jig's `ROOT_CAUSED -> FIXING` gate requires a reproducing fresh-main check.
+The helper's arbitrary reference string does not turn an integration-only
+result into a main reproduction. The worker attempted the transition, received
+the missing-main-evidence refusal and stopped without bypassing it or recording
+a false result. The preserved repro is on the intentionally selected integration
+baseline `201413a036be3e2e5d7565d30efcc4abf2cbec34`.
+
+The coordinator requested one narrow exception: for Bug 002 only, replace
+the inapplicable fresh-main reproduction with that pinned integration-baseline
+check, using `JIG_BUG_MAIN_CHECK_GATE=0` for that transition only. Diagnosis,
+closure inventory, witnessed red/green tests and independent Sol bug, craft and
+security reviews would remain mandatory. No exception has been approved.
+The owner-input tool returned unavailable, not consent.
+
+The blocked child `79d223bc-7914-4cc7-bbf6-41fe42244cdf` remains preserved
+and idle for a same-assignment continuation after a real decision; it is not
+archived or claimed finished. No automatic successor, browser or Meta run is
+scheduled. Pixel availability, unchanged settings, POC reservation and its
+private binding are already supplied and are not the blocker.
