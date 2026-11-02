@@ -525,3 +525,18 @@ ADR is unchanged after `319120f8a72f7092f78764db8e284fdd2a37250c`; no slice,
 source, consent or live grant changed. The retained-record document work stops
 at the explicit current input-bundle blocker above. No automatic successor is
 scheduled or started.
+
+### Standing owner confirmation after the document handoff
+
+On 2026-11-02 the owner confirmed that the existing Meta test Pixel remains
+available, unchanged and reserved exclusively for this POC. The owner will not
+modify it unless requested. This confirmation is now the standing setup record;
+do not ask the owner to repeat it unless there is an actual change,
+contradictory observation or proposed setup change. Do not expire it merely
+because a session or date changed.
+
+Pixel availability/current-setting attestation is no longer a missing owner
+input. Remaining private case bindings, original evidence and technical
+qualification are separate. The confirmation does not authorize modifying the
+Pixel, running the SDK/browser or sending vendor traffic. The scratch case
+record carries the same confirmation, without private identifiers.

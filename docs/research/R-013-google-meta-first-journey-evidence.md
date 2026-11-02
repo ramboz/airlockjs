@@ -20,7 +20,25 @@ records the document-review scope. The owner commissioned this bounded research 
 [work plan](../releases/google-meta-work-plan.md). Google's case remains
 unresolved. No acquisition route or live action is approved.
 Independent Sol document review passed the integrated case/limits manifest;
-the explicit current private input bundle remains the first blocker.
+remaining case bindings, original evidence and route/control inputs are still
+required.
+
+## Standing owner setup confirmation
+
+On 2026-11-02, the owner confirmed that the existing owned Meta test Pixel is
+still available and unchanged, is reserved for this proof of concept (POC)
+only, and will not be modified unless requested.
+
+Reuse that confirmation for this POC. Do not repeatedly ask about availability,
+unchanged settings or dedicated use. Revisit it only if an actual change or
+contradiction is reported or observed, or a setup change is proposed. A new
+session or elapsed time alone is not a reason to ask the owner again.
+
+This is owner-reported setup evidence, not independent account readback. It
+does not supply private resource bindings, missing capture originals or new
+permission for account changes, SDK/browser execution or vendor traffic.
+Unchanged-resource checks for a specifically approved operation do not require
+repeating the owner confirmation absent a concrete discrepancy.
 
 ## Question
 
