@@ -7,112 +7,229 @@ frame_review: true
 
 # ADR-0043: Google and Meta request integrity and egress authority
 
-The prototypes need a clear owner for request construction and dispatch.
-This draft records the alternatives before more verifier code is written.
-A second worker may detect changed messages, but adds state, lifecycle and
-performance costs and does not by itself confine malicious code.
+Give one trusted first-party worker authority to interpret commands and build
+requests. Keep live consent, destination checks and privileged operations on
+the host. This avoids a second runtime mapper, but leaves mapper correctness
+with reviewed code and independent native evaluation.
 
 ## Status
 
 Proposed (2026-11-02)
 
-Filed for tracking at the owner's request. No architecture option is selected
-or accepted. The number is local/provisional until integration checks it
-against trunk. Implementation remains paused.
+Option C is recommended for owner review, with Option D's browser admission
+and independent evaluation requirements. No option is accepted. Awaiting
+independent Jig frame review, boundary-fit review and owner acceptance.
+The number is local/provisional until integration checks it against trunk.
+Implementation remains paused; no test, browser or live authority follows.
 
 ## Context
 
-Google and Meta need request integrity without main-thread vendor mapping.
+Google and Meta need an explicit request-construction authority.
 
-The [Google](../../test/google-ads-prototype-request-correlation.test.js)
-and [Meta](../../test/meta-prototype-request-correlation.test.js) synthetic
-controls demonstrate altered mediated requests reaching mock transports in
-the tested modes. Some Google options add expected-field checks on the host,
-duplicating mapping outside the chamber.
+[R-014](../research/R-014-google-meta-request-authority.md) records the source
+investigation at `7fe4aac0306dbc1407e22612e3b9f62e4c612c77`. Retained fake-worker
+tests expect altered mediated requests to reach mock transports:
+`test/google-ads-prototype-request-correlation.test.js:23-72` and
+`test/meta-prototype-request-correlation.test.js:50-95`. Some Google modes
+reconstruct expected fields on main (`adapters/google-ads-prototype.js:58-145`).
+No tests were executed in R-014. These sources establish a local correlation
+gap, not a production exploit or native incompatibility.
 
-The fixed Node bridges explicitly disclaim adversarial sandboxing. Comparing
-messages cannot stop Node code from using capabilities outside that channel.
-Native correctness, browser confinement and correspondence to a captured
-command are separate guarantees.
+The host's endpoint ceiling intentionally ignores query/fragment
+(`core/endpoint-ceiling.js:71-137`), so it cannot bind a Pixel ID or event value.
+The first-party mappers already retain command state and construct requests
+off-thread (`connectors/google-ads/conversion-prototype.js:99-163,236-265`;
+`connectors/meta-pixel/pageview-prototype.js:101-164,197-237`). Their fixed worker
+entries provide a smaller candidate construction authority than a second
+state machine.
 
-[R-014](../research/R-014-google-meta-request-authority.md) owns the bounded
-source/design investigation. [059-01](../specs/059-google-ads-full-compatibility/slice-01-owned-conversion.md)
+The fixed Node bridges disclaim adversarial sandboxing
+(`rig/google-ads-conversion-prototype-node.worker.mjs:1-12`;
+`rig/meta-pageview-prototype-node.worker.mjs:1-15`). [Node workers](https://nodejs.org/api/worker_threads.html)
+and [`node:vm`](https://nodejs.org/api/vm.html) do not establish the required
+browser boundary. Global shims leave a loader residual
+(`core/egress-confinement.js:47-52`) and are mutable (`:109-125`).
+Message verification, malicious-code containment and native correctness need
+separate claims and evidence.
+
+[059-01](../specs/059-google-ads-full-compatibility/slice-01-owned-conversion.md)
 and [060-01](../specs/060-meta-pixel-full-compatibility/slice-01-pageview-entry.md)
-own the resulting product work. Unfinished verifier drafts are preserved in
-the paused sessions, not adopted as the architecture.
+remain the product owners with unchanged criteria. The paused verifier drafts
+were not inspected or adopted. R-014 remains OPEN pending integration disposition.
 
 ## Decision Options Considered
 
 ### Option A: Extend host-side expected-field checks
 
-- **Pros:** Small local change for a bounded schema.
-- **Cons:** Repeats mapping on main; partial checks leave semantic gaps and do
-  not satisfy the off-main-thread target.
+- **Pros:** Existing Google checks show that a small schema can be checked
+  locally (`adapters/google-ads-prototype.js:90-145,779-802`).
+- **Cons:** Repeats vendor serialization/state on main. Partial checks cannot
+  cover the complete request/state/response sequence.
+- **Disposition:** Reject as the destination architecture under ADR-0033.
+  Remove existing checks only with a reviewed replacement, never in this draft.
 
 ### Option B: Independently provision a trusted verifier worker
 
-- **Pros:** Can compare complete mediated request bytes without host mapping.
-- **Cons:** Adds another stateful lifecycle, copying and latency. A shared
-  mapper can reproduce the same mistake. Node code can bypass the message
-  channel unless a separate confinement boundary prevents it.
+- **Pros:** Can detect a candidate worker diverging from a separately trusted
+  command-to-request authority without mapping on main.
+- **Cons:** Requires independent loader/port identity and the complete command,
+  config, agent, identity, consent and response history. It must compare zero
+  outputs, counts/order, state and full serialized requests before dispatch.
+  Two heaps, duplicated private inputs and state synchronization add costs.
+  A shared mapper reproduces common bugs; comparing messages cannot contain
+  bypass I/O. Current branch/timeout handling shows the state to replicate
+  (`connectors/meta-pixel/pageview-prototype.worker.js:15-105`;
+  `connectors/google-ads/conversion-prototype.worker.js:16-104`).
+- **Disposition:** Conditional alternative if the owner requires integrity
+  against malicious candidate mapping code. No second worker by default.
 
 ### Option C: Give a trusted first-party mapper explicit request authority
 
-- **Pros:** Makes the trusted construction path and allowed host operations clear.
-- **Cons:** Requires separation from any untrusted connector code and an
-  independent evaluator for native correctness.
+- **Pros:** Uses the retained first-party connector instance
+  (`core/connector-host.js:41-90`) and fixed worker entries
+  (`adapters/google-ads-prototype.js:148-165`;
+  `adapters/meta-pixel-prototype.js:164-181`). Keeps interpretation/hashing off main
+  with one semantic state owner.
+- **Cons:** Trusts that mapper and its dependency closure for values and
+  command semantics. Protocol checks do not stop a malicious trusted mapper
+  sending wrong data to an allowed recipient. Separately untrusted modules
+  cannot share its realm, port or grants.
+- **Disposition:** Recommended for the first journeys, subject to explicit
+  owner acceptance of that trust boundary.
 
 ### Option D: Use browser capability enforcement and independent evaluation
 
-- **Pros:** Could avoid a second runtime mapper.
-- **Cons:** Must establish the actual browser boundary and identify which
-  semantic integrity obligations are enforced at runtime versus tested.
+- **Pros:** Establishes the real execution/capability boundary and keeps
+  independent native correctness outside the runtime mapper.
+- **Cons:** Endpoint ceilings alone do not bind values
+  (`core/endpoint-ceiling.js:49-63`). [CSP](https://w3c.github.io/webappsec-csp/)
+  distinguishes connections, script loading and worker creation; a `fetch`
+  shim or `connect-src` rule alone cannot prove loader confinement.
+- **Disposition:** Required alongside C, insufficient as a construction
+  authority by itself. Actual deployed-browser evidence is still absent.
 
 ## Recommended Decision
 
-Pending R-014 and owner review. No option is selected by filing this draft.
+**Recommend C with D's browser admission and independent evaluation, pending
+independent review and owner acceptance.** Use one trusted first-party authority
+per connector. A second verifier is justified only by a stronger selected
+threat model. This recommendation is not that selection's acceptance.
 
-The recommendation must preserve off-thread mapping, independent live consent
-and destination checks at every actual dispatch, bounded state and redacted
-failure reporting. It must cover the complete command/request/result lifecycle,
-including zero requests, branch ordering, mutation, stale replies, failure,
-readiness, timeout and disposal.
+1. **Trust explicitly.** Host, policy source, loader and first-party mapper are
+   trusted. Bind authority to the host-owned worker/port and reviewed source
+   closure, never a worker-supplied identity marker. Separately untrusted code
+   gets no direct authority and cannot execute in that realm. Its future
+   isolation/intent boundary remains unfinished. A compromised trusted host,
+   build or mapper is outside C's semantic integrity guarantee.
+2. **Split runtime and evaluation obligations.** Runtime enforces grants,
+   live consent/destinations and complete protocol accounting. Mapper tests
+   detect command-to-byte mutations; independent evaluation must qualify
+   actual browser wire/response/host effects and native value relationships.
+   Shared mapper tests, counters, hashes, HTTP success and callbacks do not
+   prove native equivalence, receipt, matching or attribution.
+3. **Keep one serialized protocol.** Use the required relationships in
+   [R-014's candidate private protocol](../research/R-014-google-meta-request-authority.md#candidate-private-protocol):
+   version/instance/epoch, monotonic command and committed state revisions,
+   single init/readiness acknowledgment, ordered config/agent/identity changes
+   with async hashing completed before dependent events, explicit zero-output
+   completion, declared bounded stage counts/branch order, correlated requests
+   and host responses, and a final result reconciled to the host ledger.
+   The host checks metadata/envelopes, not a duplicate vendor mapping.
+4. **Fail observably.** Reject unsolicited, malformed, duplicate or wrong-order
+   active messages and contradictory counts/results. Retired epochs cannot act.
+   Bound init/whole-command/transport deadlines. Timeout or disposal invalidates
+   pending work and settles bookkeeping once; preserve partial sends, unknown
+   receipt and cleanup failures. No automatic retry, restart/replay or native
+   fallback. Idempotent disposal removes listeners/timers and terminates the
+   owned worker. Callback timing remains evidence-derived, not a receipt signal.
+5. **Recheck at dispatch.** Immediately before every actual transport call,
+   after every asynchronous wait, check current host consent/policy, actual
+   destination/envelope, lifecycle and operation eligibility with no intervening
+   async work or untrusted callback. Tighten admitted tag restrictions without
+   waiting behind slow event processing; tag grants cannot override host policy.
+   Revoke cannot recall an issued request. Later grant cannot revive invalidated
+   operations. If policy requires different data-use shaping, transport
+   permission cannot release stale bytes; any fresh construction must follow
+   separately accepted retention/remap rules. Preserve current prototype
+   no-replay and stable core hold/remap behavior separately; change neither
+   here. ADR-0044 remains unchanged.
+6. **Admit real browser capabilities separately.** Verify worker response policy,
+   loader closure and denied ambient routes. [HTML worker policy initialization](https://html.spec.whatwg.org/multipage/workers.html#worker-processing-model),
+   CSP `connect-src`/`script-src`/`worker-src` and actual-browser controls are
+   distinct from trusted Node plumbing. Automatic redirects can bypass a
+   JavaScript per-dispatch checkpoint; keep prototype redirect rejection.
+   Native-required redirects/credentials/cookies/opaque responses need their
+   own evidenced bounded transport decision before implementation.
+7. **Preserve contracts and budgets.** Keep mapping/hashing/state off main,
+   including these paths' unload handling. Main still snapshots inputs, clones,
+   tracks bounded state and validates/fulfills operations. These costs depend
+   on input/request length; proxy inspection is not hard isolation. Target
+   one authority worker, one active command and one outstanding branch per
+   instance, with case-pinned finite queues/bytes/graphs/deadlines. These are
+   proposed structural budgets. No startup/CPU/memory/latency/CWV measurements
+   or numeric acceptance limits are established. Pin the full performance
+   manifest before dependent implementation. Classify private protocol changes
+   against ADR-0017; any frozen-surface break needs its named superseding
+   decision/version treatment, not an experimental-config excuse.
 
-Before acceptance, record a concrete threat model, existing mechanism reuse,
-measured or explicitly proposed overhead budgets, a bounded validation plan
-and any required stable-contract treatment. Independent frame review is still
-required. No new test or browser execution follows from this draft.
+R-014's [cost comparison](../research/R-014-google-meta-request-authority.md#costs-and-proposed-budgets)
+accounts for startup, input/request/response copying, heaps/state and latency.
+All estimates are structural and unmeasured. C avoids the second heap and
+replicated state of B, but still incurs worker startup, snapshot/clone work and
+sequential response waits.
+
+The [bounded validation proposal](../research/R-014-google-meta-request-authority.md#bounded-later-validation-proposal)
+separates contract fit, local mutation/fault controls, actual browser confinement
+and independent native evaluation. Request the currently out-of-allowlist
+wrapped host and frozen declarations for the contract-fit packet. No new
+worker, confinement framework, implementation or validation run is authorized.
 
 ## Consequences
 
 **Becomes easier:**
-- One tracked decision owns the prototype integrity and host-mapping concern.
-- The first product slices can depend on an explicit boundary rather than a
-  partially integrated verifier experiment.
+- One trusted owner constructs requests without repeating vendor mapping on main.
+- Transport protocol failures have a host-owned ledger and finite lifecycle.
+- Native correctness and browser confinement remain independently falsifiable.
 
 **Becomes harder:**
-- Implementation waits for a justified choice and its validation plan.
-- Any selected design must account for startup, copying, memory and latency
-  costs, as well as native correctness and browser confinement.
+- A mapper compromise is an explicit residual. Supporting malicious candidate
+  code requires a different authority boundary, rather than stronger wording.
+- Source closure, real browser policy, native references, numerical performance
+  limits and contract fit remain pre-implementation work.
+- Strict branch ordering can add latency; native timing may require a later
+  bounded concurrency decision with evidence.
 
 ## Assumptions
 
-- Unverified: a bounded design can satisfy the required browser integrity,
-  isolation and performance contract without changing the frozen surface.
-- Unverified: a runtime verifier provides enough additional value to justify
-  its second stateful worker. R-014 must compare it with simpler alternatives.
+- Source-grounded: fixed first-party worker entries, retained mapper state,
+  off-thread identity hashing and bounded serialized request plumbing exist
+  in the cited allowlisted files. R-014 did not execute them or follow imports.
+- Proposed trust choice: the owner permits a trusted first-party mapper rather
+  than requiring runtime resistance to malicious mapping code. Awaiting acceptance.
+- Unverified: complete browser capability enforcement, native behavior and
+  numerical performance fit can be established without a frozen-surface break.
+- No measured evidence justifies B's extra startup, heap and state replication
+  for the first journeys. This does not establish that its overhead is negligible
+  or that C is sufficient for a stronger threat model.
 
 ## Kill criteria
 
 - The chosen design moves vendor interpretation or unbounded mapping to main.
 - A message-consistency check is presented as malicious-code containment or
   native equivalence without the corresponding evidence.
-- The design needs an unbounded verifier or confinement project without a
-  concrete first-journey consumer and finite exit.
+- Separately untrusted code shares the trusted authority's realm or grants,
+  or an arbitrary worker is admitted as production authority.
+- A stale check, implicit redirect, grant-triggered replay or automatic retry
+  bypasses current policy; a core contract or consent policy changes silently.
+- A verifier or confinement prerequisite grows without a named first-journey
+  consumer, finite exit and separate approval.
 
 ## Open questions
 
-- Which code and loader are trusted in the intended browser deployment?
-- Which semantic relationships need runtime enforcement?
-- Can existing capabilities and independent evaluation meet the requirement
-  without a second mapper?
+- Will the owner accept C's explicit semantic trust boundary after independent
+  frame and boundary-fit review, or require malicious-mapper resistance?
+- What exact private envelope fits the frozen core, and which deployed loader/
+  response-policy controls can the first case establish?
+- Which native response/redirect and timing requirements need a separate
+  authority decision? Numerical performance limits and complete references
+  remain unpinned. None is inferred from this recommendation.
