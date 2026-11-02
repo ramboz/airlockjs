@@ -1,6 +1,19 @@
 # Plan - full Meta Pixel compatibility
 
-## Current delivery order and work boundaries
+## Owner review queue - 2026-11-02
+
+Execution is paused. The [bounded work plan](../../releases/google-meta-work-plan.md)
+is the review entry point and proposed order; its research briefs have not
+started. Preserve the unfinished verifier adapter/test changes in the Meta
+session. Do not integrate or continue them without a reviewed boundary.
+
+060-01 remains the first full product owner. R-013 proposes one case/evidence
+plan; R-014 proposes the request-authority recommendation that must precede
+any verifier decision. The owner selects each subsequent short session.
+The older reference packet, browser pins and additional-case lineage are
+retained history, not current execution permission.
+
+## Historical delivery planning and evidence through 2026-10-29
 
 **Current work - 2026-10-27:** prepare the
 [one additional Meta native-reference plan](meta-native-reference-plan.md)

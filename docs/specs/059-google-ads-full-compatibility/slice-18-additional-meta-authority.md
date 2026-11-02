@@ -1,11 +1,10 @@
 ---
-status: IN_PROGRESS
+status: DEFERRED
 dependencies: [059-13, 059-14, adr-0035, adr-0038]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
-claimed_by: google-and-meta-feasibility
 ---
 
 ## Slice 059-18 - Additional lineage-bound Meta stock case
@@ -21,6 +20,18 @@ This is a separate authority path under [ADR-0035](../../decisions/adr-0035-addi
 not an amendment of the original four-case record, ADR-0034 or closed slices.
 It serves UC-10 and leaves full native/chamber/product/C2/C3 gates unchanged.
 
+## Owner pause - 2026-11-02
+
+The owner stopped execution and requested a planning reset. This slice is
+parked; the earlier engineering reentry and historical grants are not pickup
+instructions. Preserve its failed-run evidence, spent lineage and unresolved
+ownership observations without further runner repair or retry.
+
+**Resolution trigger:** Owner selects a named 060-01 evidence packet after reviewing R-013 and approves its current setup, source, execution/stop and authority gates.
+
+See [R-013](../../research/R-013-google-meta-first-journey-evidence.md).
+Reopen through DRAFT only for that bounded assignment.
+
 ## Work disposition - 2026-10-26
 
 Historical deferral: parked until actual native preparation can consume a complete, current plan;
@@ -32,7 +43,7 @@ cleanup is complete. No native ownership, clock or general holder was qualified.
 Use the [delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
 for product work and evidence-driven decisions.
 
-**Resolution trigger:** Reviewed current browser execution/loss/stop plan, applicable decision gates, fresh setup/source and exact remaining-case authorization/coordination for060-01.
+**Historical resolution trigger:** Reviewed current browser execution/loss/stop plan, applicable decision gates, fresh setup/source and exact remaining-case authorization/coordination for060-01.
 
 Reopen through DRAFT for that bounded plan. This does not accept ADR-0038,
 transfer another lane's exception, refund any case or commission more runner work.
@@ -2517,3 +2528,7 @@ Approved single local control - 2026-10-26:
 
 - [ ] Preserve original/additional spend history and complete native/
       replacement/consumer/equivalence/C2/C3/vendor residuals.
+
+## Release log
+
+- 2026-11-02 — released claim from google-and-meta-feasibility: Owner paused Google/Meta execution on 2026-11-02 for planning review and bounded owner-orchestrated sessions; no further runner or capture work is assigned.

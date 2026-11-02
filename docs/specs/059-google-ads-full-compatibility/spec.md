@@ -84,14 +84,17 @@ All remaining native gates and the consumed canonical reservation are preserved.
 
 ## Remaining work and next authoring step
 
+**Paused for owner review (2026-11-02).** The
+[goal/status/work plan](../../releases/google-meta-work-plan.md)
+is the proposed bounded pickup order. No research or implementation follows
+without an owner-selected packet. 059-20 is already DONE for its historical
+local-browser scope; it is not the next draft. Full059-01 remains unqualified.
+
 The [delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
 maps every documented remaining feature to its existing059/060 owner and
-separates product construction, reference evidence and adoption.
-The next Google draft is
-[059-20 local-browser conversion](slice-20-local-browser-conversion.md).
-It builds on059-19 without qualifying059-01, introducing live authority or
-silently changing a frozen capability. Later02-12 remain DRAFT, not ready
-to implement from their presence in the queue.
+separates product construction, reference evidence and adoption. Its dated
+instructions are historical following the owner pause. Later02-12 remain
+DRAFT, not ready to implement from their presence in the queue.
 
 ## Overview
 

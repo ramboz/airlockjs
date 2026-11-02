@@ -32,7 +32,7 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 ### Active specs
 - [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01/04/05/06/07/08 DONE. Recorded-payload checker and passive browser request/response recorder are implemented; initial receipts are preserved. Full 051-02 live/control/performance and actual chamber proof remain; further reporting is nonblocking follow-up. [Operator guide](probes/adobe-compatibility/README.md).
 - **052-057** — unsliced DRAFT outlines for the remaining [Adobe release portfolio](docs/releases/adobe-compatibility.md#jig-handoff); refine after 051 evidence. See [status board](docs/specs/README.md).
-- **059-060** — Offline prototypes059-19/060-13 and local browser journeys059-20/060-14 are delivered; these do not prove native/204/CWV/attribution parity. Full059-01/060-01 remain READY_FOR_REVIEW.059-18 is IN_PROGRESS: five.49 guard attempts failed. The latest stopped on listener inventory; recorded resources were checked absent and the owner released the observer. An offline successor is uninitialized pending review of an inherited identity-transition concern. The earlier stop and H1 UNKNOWNs remain.059-15 stays DEFERRED. Original Meta remains SPENT/inconclusive, additional ONE unspent; native/loss gates stay open. [Delivery queue](docs/releases/vendor-parity-assurance.md).
+- **059-060 paused by owner (2026-11-02)**: review the [goal, status and bounded work plan](docs/releases/google-meta-work-plan.md) before assigning research or implementation. Local prototypes/browser journeys are delivered; no full-compatibility journey is qualified. 059-18 is parked, unfinished verifier drafts are preserved, and historical case grants are not current execution permission.
 
 ### Deferred decisions
 - See [docs/refinement-todo.md](docs/refinement-todo.md).
@@ -49,6 +49,7 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 | [docs/bugs/README.md](docs/bugs/README.md) | Bug status board | Before folding reported defects into a spec |
 | [docs/refinement-todo.md](docs/refinement-todo.md) | Deferred decisions | When hitting an undefined case |
 | [docs/research/README.md](docs/research/README.md) | Open investigations (R-NNN notes; probe code in `probes/`) | Before starting or citing research |
+| [docs/releases/google-meta-work-plan.md](docs/releases/google-meta-work-plan.md) | Google/Meta goal, evidence stocktake and proposed short-session queue | Owner review before any further Google/Meta execution |
 | [docs/releases/adobe-compatibility-goal.md](docs/releases/adobe-compatibility-goal.md) | Clean-session goal brief and private-input handoff | Before launching the Adobe implementation run |
 | [docs/memory/glossary.md](docs/memory/glossary.md) | Domain terms | When encountering unknown terms |
 | [docs/inbox.md](docs/inbox.md) | Parked ideas | During reconciliation |

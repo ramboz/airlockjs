@@ -4,7 +4,21 @@ The full-compatibility journeys remain unfinished. The separate offline
 prototype below stages construction without changing their evidence gates.
 An authored AC is not a passing evaluation.
 
-## Next bounded deliverable
+## Owner review queue - 2026-11-02
+
+- [x] Stop vendor execution and preserve unfinished verifier changes.
+- [x] Prepare the [goal/status/work plan](../../releases/google-meta-work-plan.md)
+      and planning-only R-013/R-014 research briefs.
+- [ ] Owner reviews the goal, status and proposed session order.
+- [ ] Only after selection, produce the R-013 Meta case card and R-014
+      request-authority recommendation in bounded research sessions.
+- [ ] Review any required architecture ADR and 060-01 readiness before code.
+
+No unchecked item below is an automatic work assignment. The checklist is
+retained as the pre-reset record; the additional case and old reference packet
+do not grant current execution.
+
+## Historical next-deliverable checklist
 
 - [x] Review the2026-10-27 [Meta reference packet](meta-native-reference-plan.md);
       retain concrete pre-admission gates and one unspent

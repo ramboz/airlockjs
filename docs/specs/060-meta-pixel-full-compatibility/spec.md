@@ -30,13 +30,18 @@ target, live authority or the production boot.
 
 ## Remaining work and next authoring step
 
+**Paused for owner review (2026-11-02).** The
+[goal/status/work plan](../../releases/google-meta-work-plan.md)
+is the proposed bounded pickup order. No research or implementation follows
+without an owner-selected packet. 060-14 is already DONE for its historical
+local-browser scope; it is not the next draft. Full060-01 remains unqualified.
+
 The [delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
 orders construction, native evidence and adoption while preserving every
-documented feature owner. The next draft is
-[060-14 local-browser PageView](slice-14-local-browser-pageview.md), not a new
-native/reference or product-support claim. Full060-01 and later02-12 keep
-their original evidence/dependency requirements. Accepted ADR-0042 records
-the work-admission rule, not an execution decision.
+documented feature owner. Its dated instructions are historical following the
+owner pause. Full060-01 and later02-12 keep their original evidence/dependency
+requirements. Accepted ADR-0042 records the work-admission rule, not an
+execution decision.
 
 ## Overview
 

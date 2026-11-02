@@ -8,6 +8,13 @@
 
 `candidate`
 
+**Owner pause and planning reset (2026-11-02):** Google/Meta execution is
+stopped. Review the [goal, progress and bounded work plan](google-meta-work-plan.md)
+before assigning anything else. The dated queue and execution history below
+remain evidence, not the current pickup instructions. No new research run,
+implementation, browser/capture, deployment or autonomous successor is
+authorized. The complete-replacement target and Adobe-first scope are unchanged.
+
 Post-Adobe-first direction; version, appetite and build commitment unassigned.
 Captured 2026-10-06 under [ADR-0031](../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md).
 
@@ -93,7 +100,7 @@ importable despite the withheld ambient `fetch`; it opened no connection or
 file. Mediated-message checks cannot establish containment of malicious Node
 code, and browser/CSP confinement remains a separate unqualified boundary.
 
-**Next pick:** return to the bounded evidence gaps for full060-01/059-01 after
+**Historical next pick (2026-10-29):** return to the bounded evidence gaps for full060-01/059-01 after
 the delivered060-14/059-20 local increments. Their original
 readiness/native-reference/capability/performance gates remain open; do not
 silently reopen the deferred operator tracks or guess redacted native fields.

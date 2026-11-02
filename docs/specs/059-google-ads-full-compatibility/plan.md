@@ -1,6 +1,19 @@
 # Plan - full Google Ads browser-tag compatibility
 
-## Current delivery order and work boundaries
+## Owner review queue - 2026-11-02
+
+Execution is paused. The [bounded work plan](../../releases/google-meta-work-plan.md)
+is the review entry point and proposed order; its research briefs have not
+started. Preserve the unfinished verifier test in the Google session.
+Do not continue field experiments, tooling repair or the verifier by default.
+
+059-01 remains the first full product owner. The next proposed research
+outputs are a case/evidence plan under R-013 and a request-authority
+recommendation under R-014. A concrete boundary choice may need a Proposed
+ADR before implementation. The owner selects each subsequent short session;
+this plan grants no execution or live authority.
+
+## Historical delivery planning and evidence through 2026-10-29
 
 **Latest actual outcome:** the separately approved zero-body-EOF sequence
 reached Google and passed both real local module-worker journeys. Two exact

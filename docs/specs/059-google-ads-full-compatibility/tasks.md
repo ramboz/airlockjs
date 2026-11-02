@@ -4,7 +4,21 @@ The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
 
-## Next bounded deliverable
+## Owner review queue - 2026-11-02
+
+- [x] Stop vendor execution and preserve unfinished work.
+- [x] Prepare the [goal/status/work plan](../../releases/google-meta-work-plan.md)
+      and planning-only R-013/R-014 research briefs.
+- [ ] Owner reviews the goal, status and proposed session order.
+- [ ] Only after selection, produce the R-013 Google case card and R-014
+      request-authority recommendation in bounded research sessions.
+- [ ] Review any required architecture ADR and 059-01 readiness before code.
+
+No unchecked item below is an automatic work assignment. The checklist is
+retained as the pre-reset record; current permissions and pickup order come
+from the owner-reviewed work packet.
+
+## Historical next-deliverable checklist
 
 - [x] Exercise059-20's actual local-browser conversion, strict local controls
       and normal owned cleanup on the separately approved Chrome156/empty200 cohort.
