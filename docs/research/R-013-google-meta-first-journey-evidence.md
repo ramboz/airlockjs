@@ -19,6 +19,8 @@ manifest.** The [current handoff](../releases/google-meta-work-plan.md#11-owner-
 records the document-review scope. The owner commissioned this bounded research through the
 [work plan](../releases/google-meta-work-plan.md). Google's case remains
 unresolved. No acquisition route or live action is approved.
+Independent Sol document review passed the integrated case/limits manifest;
+the explicit current private input bundle remains the first blocker.
 
 ## Question
 
