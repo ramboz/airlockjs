@@ -126,15 +126,28 @@ endpoint admission, vendor semantics, or public contracts.
 **Disposition per affected site:** The Alloy host, Google prototype, and Meta
 prototype retain their wiring and use the shared host's recheck. Their focused
 adapter tests pass. The host tests cover consent, endpoint and integrity
-holds, correlation, response, timeout and split behavior. The coalescing
-tests pass with the same capability seam. Generic `core/airlock.js` keeps its
-own strict and cookieless policy unchanged. No external consumer inventory is
-claimed; the recheck applies to configured host purposes.
+holds, correlation, response, timeout and split behavior. The coalescing broker
+implementation and wiring are intentionally unchanged: the injected dispatch
+request/response contract and broker parameters are unchanged. The initially
+selected `test/egress-coalescing.test.js` exercises generic airlock batching,
+not the broker. The coordinator separately ran the actual broker files
+`test/coalescing-broker-core.test.js` and
+`test/alloy-coalescing-broker.test.js`: 16 passed, exit 0. Those directly test
+the broker's existing fake-dispatch invariants, not a composed host/broker
+consent proof. Generic `core/airlock.js` keeps its own strict and cookieless
+policy unchanged. No external consumer inventory is claimed; the recheck
+applies to configured host purposes.
 
 ## Already tried
 
 The initial fake-capability repro observed one call after revocation, before
 any host source change. No browser, SDK, real endpoint or private case ran.
+
+The first independent bug-review pass requested a correction to coalescing
+coverage attribution, not an implementation change. The record now names the
+intentionally unchanged broker, distinguishes generic airlock batching from
+broker tests, and records the additional 16 passing broker tests. No source or
+test file changed for that correction.
 
 ## Regression test
 
@@ -156,6 +169,18 @@ The focused command below passed 8 files and 237 tests:
 ```sh
 npm test -- --reporter=dot test/wrapped-sdk-host.test.js test/alloy-consent.test.js test/eds-boot-alloy.test.js test/egress-coalescing.test.js test/google-ads-prototype-request-correlation.test.js test/google-ads-conversion-prototype-adapter.test.js test/meta-prototype-request-correlation.test.js test/meta-pageview-prototype-adapter.test.js
 ```
+
+Coordinator validation at `601b1afef64a0be829de2cffc23baad65af28617`
+added both corrected fixture files and `test/contract-stability.test.js`:
+331 passed in 11 files, exit 0. The separate broker-specific command
+`npm test -- --reporter=dot test/coalescing-broker-core.test.js test/alloy-coalescing-broker.test.js`
+then passed 16 tests in two files, exit 0 (runner duration 141ms).
+
+The original reported repro was rerun by the coordinator using the identical
+private fake-capability probe against that integrated host source. It returned
+`calls: 0`, `replyStatus: 0`, `statusText: held at the seal: consent` and
+`mainDispatch: 0`; the original assertion exited 0. No actual transport exists
+in the probe.
 
 Focused ESLint passed on both changed JavaScript files using the isolated
 locked tools and a byte-identical copy of the repository config. `git diff
