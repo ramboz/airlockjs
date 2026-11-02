@@ -52,12 +52,13 @@ amendment or Adobe reporting waiver follows.
 
 ## Google/Meta pending decisions (2026-11-02)
 
-All entries remain open. Research is planning-only, ADRs are Proposed, and the
-existing feature slices own any later implementation.
+The owner selected request authority through Accepted ADR-0043. Other rows
+remain open; the source/document research does not supply runtime qualification
+or a run grant. Existing feature slices still own any later implementation.
 
 | Decision | Filed owner | Resolution or ADR-promotion trigger |
 |---|---|---|
-| Request integrity and egress authority | [ADR-0043](decisions/adr-0043-google-meta-request-authority.md), fed by [R-014](research/R-014-google-meta-request-authority.md); 059-01/060-01 | Research-backed recommendation, threat model, bounded validation plan, independent frame review and owner acceptance. |
+| Request integrity and egress authority: decision resolved 2026-11-02 | [Accepted ADR-0043](decisions/adr-0043-google-meta-request-authority.md), fed by [R-014](research/R-014-google-meta-request-authority.md); 059-01/060-01 | Owner selected C with D after source/design and independent Sol reviews. Production boundary fit, native/browser evidence and numerical readiness remain open; no implementation or live grant. |
 | Google consent wait, retention and replay | [ADR-0044](decisions/adr-0044-google-ads-consent-wait.md); 059-03 | Controlled native timeline evidence and explicit privacy/policy decision. It does not set Meta semantics. |
 | Native reference acquisition and supervision | [R-013](research/R-013-google-meta-first-journey-evidence.md), existing [ADR-0038](decisions/adr-0038-supervised-native-meta-resource-lifecycle.md); 059-15/18 | Owner reviews a bounded route and any applicable decision before separately approving a run. Keep the existing route parked meanwhile. |
 | Scoped vendor-cookie operations and continuity | 059-04; 060-05/06 | A named journey establishes required names, attributes, lifetime and capability gaps. Draft the concrete capability ADR then; no general cookie-store commitment. |

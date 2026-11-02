@@ -17,12 +17,16 @@ requests. Keep the host responsible for bounded operations, live consent and
 destination enforcement. This avoids a second runtime mapper, at the cost of
 trusting the reviewed mapper and its dependency closure for semantic correctness.
 
-**Recommendation for review, source/design only (2026-11-02).** Recommend
-ADR-0043 Option C, with Option D's browser admission and independent evaluation
-obligations. No option is accepted. R-014 remains OPEN; integration owns its
-final lifecycle disposition. Independent review, owner acceptance, implementation
-and live authority are separate gates. The paused verifier drafts were not read
-or imported.
+**Owner decision recorded (2026-11-02).** Accepted ADR-0043 selects Option C
+with Option D's required browser admission and independent evaluation.
+The owner approved trusting the first-party mapper, not malicious-mapper
+resistance. R-014 remains OPEN for production fit, native/browser evidence and
+numerical acceptance. Implementation and live authority remain separate gates.
+The paused verifier drafts were not read or imported.
+
+The dated source/design packets below retain their original proposal and
+pending-owner language as historical context. The accepted ADR and this status
+paragraph govern the current decision; no missing runtime evidence is upgraded.
 
 ## Question
 
@@ -552,13 +556,14 @@ accounting, and independently established browser confinement/native evaluation.
 A second runtime verifier is conditional on a stronger owner-selected threat
 model. It does not repair loader bypasses or prove native correctness.
 
-[ADR-0043](../decisions/adr-0043-google-meta-request-authority.md) carries this
-recommendation as Proposed with `frame_review: true`.
+[ADR-0043](../decisions/adr-0043-google-meta-request-authority.md) records the
+owner-approved C-with-D decision as Accepted with `frame_review: true`.
 [Independent frame critique](../decisions/reviews/adr-0043-frame-critique.md)
-passed the proposed premise, not owner trust acceptance or boundary fit.
+passed the acceptance-ready premise; it is not production boundary fit or
+native qualification.
 The [Meta-first source/contract check](#meta-first-source-and-contract-fit)
 adds a conditional private-interface design and concrete source findings.
-R-014 remains OPEN for owner trust acceptance, production boot/unload fit,
+R-014 remains OPEN for production boot/unload fit,
 native/browser evidence and numerical limits. No further packet is commissioned
 by its handoff. This source/design package changes no runtime, policy, native
 claim or execution authority.

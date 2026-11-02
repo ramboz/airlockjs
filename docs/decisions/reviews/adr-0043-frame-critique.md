@@ -3,17 +3,20 @@ adr: 0043
 pass: frame-critique
 verdict: pass
 reviewer: jig:reviewer (gpt-6.1-sol; host-reported)
-reviewed_at: 2026-11-02T16:49:52Z
-prompt_source: review.py frame-critique docs/decisions/adr-0043-google-meta-request-authority.md at 85719712c73f80473b54010002eee5d55ba97365
+reviewed_at: 2026-11-02T17:35:37Z
+prompt_source: review.py frame-critique docs/decisions/adr-0043-google-meta-request-authority.md; acceptance-ready draft 531f64bfaaed92ce3a62a744cee92a40dbbff705
 ---
 
 VERDICT: pass
 
 REASONING:
-Reviewed HEAD `85719712c73f80473b54010002eee5d55ba97365`; model: `gpt-6.1-sol` (host-reported). The load-bearing assumption is that the first journeys may trust the first-party mapper for semantic integrity. R-014 establishes the correlation gap, not the acceptability of that trust choice, and ADR-0043 leaves owner acceptance explicitly pending. The frame survives because it exposes that limitation, preserves the consumers' acceptance criteria and separates later validation consistently with ADR-0017/0033/0042.
+Reviewed ADR-0043 draft `531f64bfaaed92ce3a62a744cee92a40dbbff705` and the supplied base-to-draft diff, limited to frame critique and linked grounding. The highest-risk premise is that the first journeys can use one trusted semantic authority without independent runtime mapping verification. The frame survives because owner approval records that trust choice without claiming mapper correctness or malicious-mapper resistance. Browser admission, independent native evaluation, numerical limits and production integration remain unresolved gates; acceptance does not waive ADR-0017/0033/0042 or the slice requirements.
 
 SPECIFIC ISSUES:
-- `docs/decisions/adr-0043-google-meta-request-authority.md:118-128`: Primary assumption, nonblocking while Proposed: trusting the mapper is acceptable. A compromised mapper could substitute another Pixel ID while preserving valid protocol accounting; `test/meta-prototype-request-correlation.test.js:52-95` characterizes that mechanism with a fake worker. Browser confinement would not catch this mediated substitution. If malicious-mapper resistance becomes mandatory, C is insufficient and both first journeys need a different authority boundary. The ADR acknowledges this consequence rather than claiming it solved.
+- `docs/decisions/adr-0043-google-meta-request-authority.md:124-135`: Primary premise, nonblocking residual: semantic integrity depends on the trusted mapper. The retained assertions in `test/meta-prototype-request-correlation.test.js:50-95` expect substituted Pixel/event/value data to reach mock transport with plausible accounting; endpoint policy drops query fields (`core/endpoint-ceiling.js:71-76`). Browser confinement and consistent protocol messages cannot detect that substitution. If malicious-mapper resistance becomes required, the first journeys need a different authority boundary. The draft states this limitation explicitly, and the confirmed owner approval selects it without asserting confinement or correctness.
 
 RECONCILIATION NOTES:
-No deviations identified. Owner trust acceptance and browser/native/performance validation remain open.
+No frame-invalidating deviation found. Owner trust approval is newly recorded; source/contract fit remains conditional and standalone. Proposed status and the implementation pause remain intact at the reviewed draft.
+
+MODEL PROVENANCE:
+Explicit task model `gpt-6.1-sol`; native agent metadata reports that model for reviewer `5fea0252-70e8-4cb7-92d5-a834be61a60f`. No provider-side execution attestation is claimed.

@@ -1,7 +1,7 @@
 ---
-status: Proposed
+status: Accepted
 dependencies: [adr-0017, adr-0033, adr-0042]
-last_verified:
+last_verified: 2026-11-02
 frame_review: true
 ---
 
@@ -14,14 +14,15 @@ with reviewed code and independent native evaluation.
 
 ## Status
 
-Proposed (2026-11-02)
+Accepted (2026-11-02)
 
-Option C is recommended for owner review, with Option D's browser admission
-and independent evaluation requirements. No option is accepted.
+The owner approved Option C with Option D's browser admission and independent
+evaluation requirements on 2026-11-02. This selects the trusted first-party
+mapper boundary, not malicious-mapper resistance.
 [Independent Jig frame critique](reviews/adr-0043-frame-critique.md) passed
 the proposed premise. [Source/contract architecture review](reviews/adr-0043-arch.md)
-passed the conditional standalone fit; production boundary-fit review and owner
-acceptance remain open.
+passed the conditional standalone fit. Production boundary fit, native/browser
+evidence and numerical limits remain open implementation gates.
 The number is local/provisional until integration checks it against trunk.
 Implementation remains paused; no test, browser or live authority follows.
 
@@ -58,7 +59,8 @@ separate claims and evidence.
 [059-01](../specs/059-google-ads-full-compatibility/slice-01-owned-conversion.md)
 and [060-01](../specs/060-meta-pixel-full-compatibility/slice-01-pageview-entry.md)
 remain the product owners with unchanged criteria. The paused verifier drafts
-were not inspected or adopted. R-014 remains OPEN pending integration disposition.
+were not inspected or adopted. R-014 remains OPEN for unresolved production fit,
+native/browser evidence and numerical limits.
 
 ## Decision Options Considered
 
@@ -69,7 +71,7 @@ were not inspected or adopted. R-014 remains OPEN pending integration dispositio
 - **Cons:** Repeats vendor serialization/state on main. Partial checks cannot
   cover the complete request/state/response sequence.
 - **Disposition:** Reject as the destination architecture under ADR-0033.
-  Remove existing checks only with a reviewed replacement, never in this draft.
+  Remove existing checks only with a reviewed replacement, not by accepting this decision.
 
 ### Option B: Independently provision a trusted verifier worker
 
@@ -97,8 +99,8 @@ were not inspected or adopted. R-014 remains OPEN pending integration dispositio
   command semantics. Protocol checks do not stop a malicious trusted mapper
   sending wrong data to an allowed recipient. Separately untrusted modules
   cannot share its realm, port or grants.
-- **Disposition:** Recommended for the first journeys, subject to explicit
-  owner acceptance of that trust boundary.
+- **Disposition:** Selected by the owner for the first journeys. Required
+  capability enforcement, independent evaluation and readiness remain separate.
 
 ### Option D: Use browser capability enforcement and independent evaluation
 
@@ -113,10 +115,11 @@ were not inspected or adopted. R-014 remains OPEN pending integration dispositio
 
 ## Recommended Decision
 
-**Recommend C with D's browser admission and independent evaluation, pending
-independent review and owner acceptance.** Use one trusted first-party authority
-per connector. A second verifier is justified only by a stronger selected
-threat model. This recommendation is not that selection's acceptance.
+**Select C with D's required browser admission and independent evaluation.**
+The owner approved this trust choice on 2026-11-02. Use one trusted first-party
+authority per connector. Do not add a second verifier by default. A future
+requirement to withstand malicious mapping code needs a separately reviewed
+authority decision; this choice does not provide that stronger guarantee.
 
 1. **Trust explicitly.** Host, policy source, loader and first-party mapper are
    trusted. Bind authority to the host-owned worker/port and reviewed source
@@ -183,16 +186,17 @@ sequential response waits.
 
 The [bounded validation proposal](../research/R-014-google-meta-request-authority.md#bounded-later-validation-proposal)
 separates contract fit, local mutation/fault controls, actual browser confinement
-and independent native evaluation. Request the currently out-of-allowlist
-wrapped host and frozen declarations for the contract-fit packet. No new
+and independent native evaluation. Its first source packet left the wrapped
+host and frozen declarations for the subsequently commissioned check below. No new
 worker, confinement framework, implementation or validation run is authorized.
 
 The later [Meta-first source/contract check](../research/R-014-google-meta-request-authority.md#meta-first-source-and-contract-fit)
 inspected that host and the frozen declarations. It finds conditional fit for
 the standalone private protocol, an earlier-gate/actual-call consent gap and
 missing owned host cleanup. It does not establish production boot/unload fit,
-native compatibility or numerical performance. This evidence supplements the
-recommendation; the Proposed state and owner acceptance gate are unchanged.
+native compatibility or numerical performance. Owner acceptance selects the
+architecture; these unverified readiness conditions remain prerequisites for
+dependent implementation and are not cleared by acceptance.
 
 ## Consequences
 
@@ -213,9 +217,11 @@ recommendation; the Proposed state and owner acceptance gate are unchanged.
 
 - Source-grounded: fixed first-party worker entries, retained mapper state,
   off-thread identity hashing and bounded serialized request plumbing exist
-  in the cited allowlisted files. R-014 did not execute them or follow imports.
-- Proposed trust choice: the owner permits a trusted first-party mapper rather
-  than requiring runtime resistance to malicious mapping code. Awaiting acceptance.
+  in the cited allowlisted files. R-014 did not execute them; the later Meta
+  packet followed its explicitly enumerated local static source closure.
+- Owner-approved trust choice: the first-party mapper is trusted rather than
+  required to resist malicious mapping code. Acceptance does not establish
+  semantic correctness, browser confinement or native equivalence.
 - Unverified: complete browser capability enforcement, native behavior and
   numerical performance fit can be established without a frozen-surface break.
 - No measured evidence justifies B's extra startup, heap and state replication
@@ -236,8 +242,6 @@ recommendation; the Proposed state and owner acceptance gate are unchanged.
 
 ## Open questions
 
-- Will the owner accept C's explicit semantic trust boundary after independent
-  frame and boundary-fit review, or require malicious-mapper resistance?
 - What exact private envelope fits the frozen core, and which deployed loader/
   response-policy controls can the first case establish?
 - Which native response/redirect and timing requirements need a separate
