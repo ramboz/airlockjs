@@ -11,10 +11,12 @@ prototypes, but we have not demonstrated that replacement. The next step is
 to prove one complete journey per vendor before expanding feature coverage.
 That trades some parallelism for a result we can evaluate.
 
-**Review status:** proposed work order, awaiting owner review. Both vendor
-sessions are stopped. No implementation, research execution, browser run,
-capture, deployment or autonomous loop is authorized by this document.
-The owner's planning request does not renew earlier case or budget grants.
+**Review status:** the owner commissioned the first bounded source/document
+research wave and its independent reviews. Both research outputs are integrated;
+their review and closing disposition are recorded below. The old vendor sessions
+remain paused. Later work-order packets are still proposals. No implementation,
+browser run, capture, deployment or autonomous loop is authorized here, and no
+earlier case or spending grant is renewed.
 
 ## 1. The goal has not changed
 
@@ -76,7 +78,7 @@ Time limits below are proposed checkpoints, not new execution or spending grants
 | Order | Packet and owner | Deliverable | Stop condition |
 |---|---|---|---|
 | 1 | Native evidence planning, [R-013](../research/R-013-google-meta-first-journey-evidence.md), consuming 060-01 and 059-01 | A separate first-journey case card for each vendor, an evidence gap list and one recommended acquisition route. Start with retained records and public source. | One read-only session per vendor, at most 60 active minutes. No launcher repair, capture or new tool implementation. Missing access or a safety prerequisite becomes a named blocker. |
-| 2 | Request authority design, [R-014](../research/R-014-google-meta-request-authority.md), consuming the first journeys' integrity criteria | A threat model, alternatives and a recommendation in Proposed ADR-0043 on whether a runtime verifier is needed. Identify main-thread work and performance costs. | One read-only session, at most 90 active minutes. No verifier implementation or new confinement framework. |
+| 2 | Request authority design, [R-014](../research/R-014-google-meta-request-authority.md), consuming the first journeys' integrity criteria | Source/design recommendation prepared: C's trusted first-party mapping authority with D's browser admission and independent evaluation, without a second verifier by default. Owner trust choice, boundary fit and numerical performance evidence remain open. | Commissioned document packet delivered. No verifier implementation, new confinement framework or automatic successor. |
 | 3 | Decision and case review | Owner reviews the two research handoffs, the necessary architecture ADR and the first case's evaluation and performance criteria. Existing slices remain the implementation owners. | No code starts without a reviewed boundary and a sufficiently grounded case. Live actions need their own finite approval. |
 | 4 | First complete Meta PageView, 060-01 | Reuse the prototype and evaluator. Obtain the permitted reference, implement only the demonstrated gaps, then compare actual browser/chamber requests, responses and host effects. | Each session has one named gap or one admitted run. Missing native behavior blocks the claim, not another automatic infrastructure task. All 060-01/C1-C9 criteria remain binding. |
 | 5 | First complete Google conversion, 059-01 | Apply the same process to the owned direct conversion, including its response and auxiliary branches. | Same checkpoint rule. Do not treat the Meta result as Google qualification. |
@@ -97,7 +99,7 @@ each manufacture a new DONE milestone.
 |---|---|---|
 | Full target and product-first delivery | ADR-0033 and ADR-0042 | Reaffirm. No supersession or duplicate reframe ADR. |
 | Native acquisition and supervision | [ADR-0038](../decisions/adr-0038-supervised-native-meta-resource-lifecycle.md), 059-15/18 | Keep parked. R-013 must determine whether this route is needed, can be bounded, or should be replaced. No run grant or new general runner follows from the research. |
-| Request integrity, mapping and egress authority | 059-01 and 060-01 | [Proposed ADR-0043](../decisions/adr-0043-google-meta-request-authority.md) is filed. R-014 supplies its recommendation; no architecture option is selected. Do not accept the unfinished two-worker experiment by default. |
+| Request integrity, mapping and egress authority | 059-01 and 060-01 | [Proposed ADR-0043](../decisions/adr-0043-google-meta-request-authority.md) carries R-014's C-with-D recommendation. No option is accepted. Owner trust choice and boundary-fit review remain required; no unfinished two-worker experiment is adopted. |
 | Consent wait, retention and replay | [059-03](../specs/059-google-ads-full-compatibility/slice-03-consent-journeys.md) and [060-04](../specs/060-meta-pixel-full-compatibility/slice-04-consent-processing.md) | [Proposed ADR-0044](../decisions/adr-0044-google-ads-consent-wait.md) tracks the specific Google wait question. Preserve current behavior until evidence and owner policy review select a recommendation. Meta semantics remain separately owned by 060-04. |
 | Cookies, credentials, DOM and lifecycle capabilities | Existing feature slices | The [pending-decision register](../refinement-todo.md#googlemeta-pending-decisions-2026-11-02) tracks each capability and its promotion trigger. Draft its ADR when a named journey supplies a concrete choice; do not prebuild a general API. |
 | First replacement paths | 059-01 and 060-01 | Reuse their full acceptance criteria. Refine them after the research and review; no duplicate first-journey specs. |
@@ -105,16 +107,17 @@ each manufacture a new DONE milestone.
 
 The research and decisions are now filed, rather than left as future document
 creation tasks. Existing product specs remain their implementation owners.
-Neither new ADR selects an architecture or policy; both await evidence and
-review. Their numbers are provisional local allocations, not trunk reservations.
+ADR-0043 now recommends an architecture for review; ADR-0044 still selects no
+consent policy. Neither is accepted. Their numbers remain provisional local
+allocations, not trunk reservations.
 
 ### Filed artifact register
 
 | Artifact | State | Next review or consumer |
 |---|---|---|
-| [R-013: first-journey evidence](../research/R-013-google-meta-first-journey-evidence.md) | OPEN, planning only | Owner-selected research sessions; then 059-01/060-01 case review. |
-| [R-014: request authority](../research/R-014-google-meta-request-authority.md) | OPEN, planning only | Owner-selected research session; update ADR-0043. |
-| [ADR-0043: request authority](../decisions/adr-0043-google-meta-request-authority.md) | Proposed, no option selected | R-014 recommendation, independent frame review and owner decision before the first full implementations. |
+| [R-013: first-journey evidence](../research/R-013-google-meta-first-journey-evidence.md) | OPEN; Meta card delivered, Google unresolved | Owner review of an owner-operated capture feasibility/safety packet. No qualified acquisition route or live permission. |
+| [R-014: request authority](../research/R-014-google-meta-request-authority.md) | OPEN; bounded source/design recommendation delivered | C with D recommended; source closure, final-dispatch/contract fit and owner trust choice remain open. No successor commissioned. |
+| [ADR-0043: request authority](../decisions/adr-0043-google-meta-request-authority.md) | Proposed; C with D recommended, not accepted | Independent frame verdict below; boundary-fit review and owner decision still required before implementation. |
 | [ADR-0044: Google consent wait](../decisions/adr-0044-google-ads-consent-wait.md) | Proposed, no policy selected | Native timeline evidence and owner privacy/policy decision before 059-03. |
 | [ADR-0038: native supervision](../decisions/adr-0038-supervised-native-meta-resource-lifecycle.md) | Existing Proposed record, parked | R-013 determines whether this route is needed; no implementation or run follows. |
 | [Spec 058](../specs/058-native-tag-evaluation-qualification/spec.md) | DONE for named supporting layers | Reuse its actual scope; it does not qualify replacement behavior. |
@@ -200,3 +203,88 @@ The next owner review is the goal, the evidence-based status and this proposed
 work order. Research, ADR acceptance, implementation and live authorization
 remain separate later decisions. No original acceptance criterion has been
 weakened to make the reset look complete.
+
+## 9. First research-wave handoff
+
+The owner commissioned two new document-writing children from
+`7fe4aac0306dbc1407e22612e3b9f62e4c612c77`. The coordinator is
+`google-meta-orchestration`, explicitly on `gpt-6.1-sol`. Both children used
+isolated native Copilot worktrees, creator coordination and completion
+notifications. The old vendor sessions and their unfinished drafts were not
+resumed or imported. No peer service, scheduler or successor was created.
+
+### Results and evidence
+
+| Mission | Output and remaining limit | Child commit | Integrated commit |
+|---|---|---|---|
+| Meta evidence, `gpt-6.1-terra` | [R-013 Meta card](../research/R-013-google-meta-first-journey-evidence.md#meta-first-case-evidence-card) maps 060-01/C1-C9, inputs, gaps, controls and route alternatives. Recommends an owner-operated capture feasibility/safety packet for review. No currently qualified acquisition route; Google remains unresolved. | `eb74fa2c4832093db1c2938d97b94320f5ec5104` | `93a66b6` |
+| Request authority, `gpt-6.1-sol` | [R-014](../research/R-014-google-meta-request-authority.md) and [Proposed ADR-0043](../decisions/adr-0043-google-meta-request-authority.md) recommend one trusted first-party mapping authority (C) with actual-browser admission and independent evaluation (D). A second verifier is conditional on a stronger owner-selected threat model. | `6f34ec998b15fd83333a937d55c25d157bec5803` | `85719712c73f80473b54010002eee5d55ba97365` |
+
+These are source/document results, not native observations or implementation
+passes. Mapper semantics are explicitly trusted in C. Wrong-but-well-formed
+mapper output is an independent test/evaluation obligation; a malicious mapper
+is outside that guarantee. Browser loader/policy closure, exact final-dispatch
+wiring, frozen-contract fit and numerical performance limits are unverified.
+Native responses, equivalent browser state and separate vendor outcome evidence
+remain missing. Both first journeys stay READY_FOR_REVIEW and blocked before
+implementation; ADR-0043/0044 remain Proposed.
+
+R-013 stays OPEN because Google's case and a qualified acquisition route remain
+unresolved. R-014 stays OPEN because the trust choice and identified
+source/contract-fit questions remain unresolved. Completion of these bounded
+document missions does not commission the remaining investigation.
+
+### Review and scope record
+
+The canonical ADR frame verdict is
+[ADR-0043 frame critique](../decisions/reviews/adr-0043-frame-critique.md).
+It passed at research HEAD `85719712c73f80473b54010002eee5d55ba97365` on
+host-reported `gpt-6.1-sol`. The nonblocking residual is explicit mapper trust:
+a malicious mapper can make a wrong but protocol-valid mediated request.
+The pass preserves that owner decision and does not establish containment,
+native correctness or performance.
+The document-closeout verdict and reviewed checkpoint are recorded below after
+the shared records are reconciled. These reviews do not stand in for the
+product slices' required compliance, craft, architecture or reconciliation
+passes, or any required code-health judgment. All reviewer dispatches are
+explicitly pinned to `gpt-6.1-sol`.
+
+The first frame-review turn stopped before reading artifacts because the
+reviewer could not see its own model identity. Native `read_agent` metadata
+reported `model: gpt-6.1-sol` for that exact agent, and the same reviewer was
+resumed with that host-provided routing evidence. This was an operational stop,
+not an ADR finding or a substitute model.
+
+The Meta child reports exposed Terra model metadata; the authority child reports
+exposed Sol model metadata. These agree with their explicit kickoff pins.
+No independent provider-side execution attestation or native active-time/credit
+meter is exposed. Reported wall intervals were about 2 minutes and 10 minutes,
+respectively, below their commissioned 60/90-active-minute checkpoints. Those
+intervals are not measured active time or a claim of tool-enforced caps.
+
+One process deviation is preserved: the authority child's local commit used
+a command-only `core.hooksPath=/dev/null` override to avoid executing global
+hooks it considered outside its read/run scope. No persistent Git setting was
+changed and no review verdict or acceptance gate was bypassed. The coordinator
+does not reuse that override; closing commits use the normal configured hooks.
+The Meta child reported its normal commit secret-scan hook ran.
+
+The authority research also flags broad existing browser-confinement prose and
+`connect-src`-only loader comments for a later scoped correction. They were not
+edited here. Reading the wrapped host and frozen declarations needs the
+separately selected source/contract-fit packet, not an implicit extension of
+this wave.
+
+### Owner decision and stop
+
+The next decision is whether to accept the proposed first-party mapper trust
+boundary after the required boundary-fit review, or require resistance to
+malicious mapping code. That choice determines whether the extra verifier
+alternative needs further investigation. A separate Meta route decision may
+commission a bounded owner-operated feasibility/safety packet, with explicitly
+supplied resources and controls.
+
+Neither packet is dispatched by this handoff. No browser, SDK/runtime-byte
+acquisition, measurement traffic, private-input discovery, account/campaign
+change, deployment, old-case retry, consent-policy change or implementation was
+performed by this wave. Further grants remain separate.

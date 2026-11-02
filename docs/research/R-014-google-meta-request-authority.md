@@ -311,6 +311,9 @@ A second runtime verifier is conditional on a stronger owner-selected threat
 model. It does not repair loader bypasses or prove native correctness.
 
 [ADR-0043](../decisions/adr-0043-google-meta-request-authority.md) carries this
-recommendation as Proposed with `frame_review: true`, awaiting independent
-review and owner acceptance. This source/design package changes no runtime,
-policy, native claim or execution authority.
+recommendation as Proposed with `frame_review: true`.
+[Independent frame critique](../decisions/reviews/adr-0043-frame-critique.md)
+passed the proposed premise, not owner trust acceptance or boundary fit.
+R-014 remains OPEN for those decisions and the identified source/contract-fit
+questions; no continuation is commissioned. This source/design package
+changes no runtime, policy, native claim or execution authority.

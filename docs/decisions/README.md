@@ -44,7 +44,7 @@
 - [ADR-0035: Additional Meta stock authority preserves the original spent slot](adr-0035-additional-one-shot-meta-authority.md) — One newly authorized Meta stock case can proceed without refunding the spent one. (2026-10-21, Accepted)
 - [ADR-0038: Supervised native Meta resource lifecycle](adr-0038-supervised-native-meta-resource-lifecycle.md) — A fixed supervised native runner would preserve owned browser lifetimes through interrupted launch and cleanup. (2026-10-21, Proposed)
 - [ADR-0042: Google and Meta product-first delivery gates](adr-0042-google-meta-product-delivery-gates.md) — Google and Meta need product milestones that cannot be replaced by infrastructure progress. (2026-10-26, Accepted)
-- [ADR-0043: Google and Meta request integrity and egress authority](adr-0043-google-meta-request-authority.md) — Google and Meta need request integrity without main-thread vendor mapping. (2026-11-02, Proposed)
+- [ADR-0043: Google and Meta request integrity and egress authority](adr-0043-google-meta-request-authority.md) — Google and Meta need an explicit request-construction authority. (2026-11-02, Proposed)
 - [ADR-0044: Google Ads consent wait, retention and replay](adr-0044-google-ads-consent-wait.md) — Google Ads consent waiting needs a recorded policy decision before implementation. (2026-11-02, Proposed)
 
 ## Format

@@ -14,8 +14,10 @@ We have local worker journeys and partial native observations. We still need a
 credible route to a same-input native/replacement comparison. This brief asks
 for that route before more capture infrastructure is built.
 
-**Planning only. Research execution has not started.** The owner will review
-the [work plan](../releases/google-meta-work-plan.md) and commission any session.
+**Meta source/document research is complete; independent document review is
+pending.** The owner commissioned this bounded research through the
+[work plan](../releases/google-meta-work-plan.md). Google's case remains
+unresolved. No acquisition route or live action is approved.
 
 ## Question
 
@@ -277,7 +279,10 @@ other cohorts and product outcomes remain open.
 
 ## Conclusion
 
-Pending research and owner review. No route has been selected or executed.
+The Meta card recommends an owner-operated capture feasibility/safety packet
+for owner review. No qualified acquisition route is established or approved.
+Google research and the overall evidence-route investigation remain open.
+No capture or live action was executed by this research.
 
 Promoted to: pending; implementation stays with 059-01 and 060-01. Use 059-15/18
 for any explicitly approved native-acquisition changes, not a duplicate tool spec.
