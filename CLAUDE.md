@@ -33,6 +33,7 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 - [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01/04/05/06/07/08 DONE. Recorded-payload checker and passive browser request/response recorder are implemented; initial receipts are preserved. Full 051-02 live/control/performance and actual chamber proof remain; further reporting is nonblocking follow-up. [Operator guide](probes/adobe-compatibility/README.md).
 - **052-057** — unsliced DRAFT outlines for the remaining [Adobe release portfolio](docs/releases/adobe-compatibility.md#jig-handoff); refine after 051 evidence. See [status board](docs/specs/README.md).
 - **059-060 paused by owner (2026-11-02)**: review the [goal, status and bounded work plan](docs/releases/google-meta-work-plan.md) before assigning research or implementation. Local prototypes/browser journeys are delivered; no full-compatibility journey is qualified. 059-18 is parked, unfinished verifier drafts are preserved, and historical case grants are not current execution permission.
+- **Google/Meta session routing (2026-11-02)**: use a fresh bounded coordinator on `gpt-6.1-sol`, implementation on `gpt-6.1-terra`, and every Jig review on `gpt-6.1-sol`, explicitly pinned at dispatch. See the [launch guide](docs/releases/google-meta-orchestration-start.md). Start with a plan for owner approval, not resumed implementation.
 
 ### Deferred decisions
 - See [docs/refinement-todo.md](docs/refinement-todo.md).

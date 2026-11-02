@@ -140,6 +140,12 @@ The remaining portfolio stays with its current owners:
 
 ## 6. How smaller sessions will work
 
+Use the [fresh-session launch guide](google-meta-orchestration-start.md) for
+the concrete runtime setup. The owner selected `gpt-6.1-sol` for orchestration
+and every Jig review, and `gpt-6.1-terra` for implementation. Pass model IDs
+explicitly at dispatch; do not rely on inherited defaults. Architecture work
+stays on Sol, while bounded evidence extraction can use Terra.
+
 For this workstream, every future assignment names:
 
 1. One goal and its canonical slice or research owner.
@@ -159,6 +165,10 @@ and limits are reviewed; it cannot supply missing native evidence.
 Progress reports count completed qualified journeys and open acceptance
 criteria. Commits, token usage, field counts and passing local tests are
 supporting information.
+
+A coordinator owns one bounded wave, not an indefinite session for the complete
+replacement programme. It returns an integrated handoff or a named blocker and
+stops. The owner can then launch the next phase in a fresh Sol session.
 
 ## 7. Preserved work at the pause
 
