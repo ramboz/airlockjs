@@ -60,6 +60,12 @@ host, but `core/wrapped-sdk-host.js` was outside the read allowlist. Its exact
 last-dispatch and cleanup behavior is unverified here. A later boundary-fit
 packet must request that file before claiming the proposed checks are wired.
 
+That limit describes the first packet. The subsequently commissioned
+[Meta-first source/contract check](#meta-first-source-and-contract-fit)
+inspected the wrapped host and frozen declarations. It identifies the
+standalone path's final-dispatch gap and cleanup limits; production integration,
+actual browser behavior and numerical acceptance remain unverified.
+
 ## Trust and guarantee split
 
 | Actor or failure | Proposed treatment | Required guarantee |
@@ -545,6 +551,9 @@ model. It does not repair loader bypasses or prove native correctness.
 recommendation as Proposed with `frame_review: true`.
 [Independent frame critique](../decisions/reviews/adr-0043-frame-critique.md)
 passed the proposed premise, not owner trust acceptance or boundary fit.
-R-014 remains OPEN for those decisions and the identified source/contract-fit
-questions; no continuation is commissioned. This source/design package
-changes no runtime, policy, native claim or execution authority.
+The [Meta-first source/contract check](#meta-first-source-and-contract-fit)
+adds a conditional private-interface design and concrete source findings.
+R-014 remains OPEN for owner trust acceptance, production boot/unload fit,
+native/browser evidence and numerical limits. No further packet is commissioned
+by its handoff. This source/design package changes no runtime, policy, native
+claim or execution authority.

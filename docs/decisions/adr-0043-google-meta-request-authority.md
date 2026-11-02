@@ -185,6 +185,13 @@ and independent native evaluation. Request the currently out-of-allowlist
 wrapped host and frozen declarations for the contract-fit packet. No new
 worker, confinement framework, implementation or validation run is authorized.
 
+The later [Meta-first source/contract check](../research/R-014-google-meta-request-authority.md#meta-first-source-and-contract-fit)
+inspected that host and the frozen declarations. It finds conditional fit for
+the standalone private protocol, an earlier-gate/actual-call consent gap and
+missing owned host cleanup. It does not establish production boot/unload fit,
+native compatibility or numerical performance. This evidence supplements the
+recommendation; the Proposed state and owner acceptance gate are unchanged.
+
 ## Consequences
 
 **Becomes easier:**

@@ -11,10 +11,11 @@ prototypes, but we have not demonstrated that replacement. The next step is
 to prove one complete journey per vendor before expanding feature coverage.
 That trades some parallelism for a result we can evaluate.
 
-**Review status:** the owner commissioned the first bounded source/document
-research wave and its independent reviews. Both research outputs are integrated;
-their review and closing disposition are recorded below. The old vendor sessions
-remain paused. Later work-order packets are still proposals. No implementation,
+**Review status:** the first bounded source/document research wave is complete.
+The owner then commissioned a Meta-first source/contract check and independent
+Sol review; its document result is integrated and its review is recorded below.
+The old vendor sessions remain paused. Further work-order packets remain
+proposals. No implementation,
 browser run, capture, deployment or autonomous loop is authorized here, and no
 earlier case or spending grant is renewed.
 
@@ -116,7 +117,7 @@ allocations, not trunk reservations.
 | Artifact | State | Next review or consumer |
 |---|---|---|
 | [R-013: first-journey evidence](../research/R-013-google-meta-first-journey-evidence.md) | OPEN; Meta card delivered, Google unresolved | Owner review of an owner-operated capture feasibility/safety packet. No qualified acquisition route or live permission. |
-| [R-014: request authority](../research/R-014-google-meta-request-authority.md) | OPEN; bounded source/design recommendation delivered | C with D recommended; source closure, final-dispatch/contract fit and owner trust choice remain open. No successor commissioned. |
+| [R-014: request authority](../research/R-014-google-meta-request-authority.md) | OPEN; recommendation and Meta source/contract check delivered | C with D recommended; conditional standalone private-interface fit, source-derived final-call consent/cleanup gaps. Production boot/unload, owner trust choice and native/browser/performance inputs remain open. No further packet commissioned. |
 | [ADR-0043: request authority](../decisions/adr-0043-google-meta-request-authority.md) | Proposed; C with D recommended, not accepted | Independent frame verdict below; boundary-fit review and owner decision still required before implementation. |
 | [ADR-0044: Google consent wait](../decisions/adr-0044-google-ads-consent-wait.md) | Proposed, no policy selected | Native timeline evidence and owner privacy/policy decision before 059-03. |
 | [ADR-0038: native supervision](../decisions/adr-0038-supervised-native-meta-resource-lifecycle.md) | Existing Proposed record, parked | R-013 determines whether this route is needed; no implementation or run follows. |
@@ -336,3 +337,76 @@ Neither packet is dispatched by this handoff. No browser, SDK/runtime-byte
 acquisition, measurement traffic, private-input discovery, account/campaign
 change, deployment, old-case retry, consent-policy change or implementation was
 performed by this wave. Further grants remain separate.
+
+## 10. Meta-first source/contract wave handoff
+
+The owner's "ok, sounds good. do it" commissioned one Sol source/design
+packet, its fresh Sol review, integration and handoff from clean base
+`bbc42581dff94ae32125cb7f25746bbb859f5586`. It did not commission the later
+conditional Terra implementation, owner ADR acceptance or live activity.
+This is a new bounded wave, not an automatic successor to wave 1.
+
+### Source/design result
+
+[R-014's Meta-first check](../research/R-014-google-meta-request-authority.md#meta-first-source-and-contract-fit)
+enumerates the 18-file standalone static source closure and maps its message
+flow and missing guarantees against the frozen interfaces. One trusted mapper
+with a private protocol can fit that inspected route without changing the
+frozen Connector or round-trip capability types. Production boot/unload
+integration is not established: an asynchronous fresh command cannot silently
+replace the frozen critical-send-before-return behavior.
+
+Two concrete source findings narrow the implementation question:
+
+- The wrapped host reads consent before a Promise continuation. The adapter's
+  actual Fetch call lacks a final recheck. A denial between them is a
+  source-derived ordering counterexample, not an executed race.
+- Adapter stop can settle its outer wait while the wrapped host retains an
+  unresolved drive and owned timer/callback state. A narrowly private close
+  helper is proposed, not implemented.
+
+The conditional change list is the existing Meta adapter, worker, mapper and
+README plus private wrapped-host cleanup. No second verifier or general
+framework is selected. Malicious-mapper resistance is outside the proposed
+trust guarantee. Full native behavior, served-loader confinement, production
+integration and evidence-backed numerical limits remain open. Both research
+notes stay OPEN, ADR-0043/0044 stay Proposed and all slice states are unchanged.
+
+### Provenance, scope and review
+
+| Item | Recorded state |
+|---|---|
+| Coordinator / child / reviewer models | Explicit `gpt-6.1-sol`; no lower-model design or review |
+| Native child | `e6d6c087-75fa-4123-9770-178758d1b26b`, new isolated coordinated worktree, completion notifications |
+| Child source commit | `a46789b22892dea6ec6bca0ef93408c641a078eb`, direct parent is the exact commissioned base |
+| Child write scope | Only R-014's new Meta-first section: one insertion hunk, 231 lines, no deletions |
+| Integrated source commit | `0cb43258f5236e6ef6ddef20f5f6be43a7f64ee7` |
+| Checkpoint | One document result; reported wall interval about 10 minutes, below the newly commissioned 90-active-minute checkpoint. No native active-time/credit meter or hard timer is claimed. |
+| Authority | Source/design only; normal commit hooks, no disabled hooks, push or PR |
+
+The child reported exposed runtime metadata matching the explicit Sol pin,
+clean initial/final state and a normal commit secret scan with no leaks.
+Regression test filenames were inventoried and past browser records were read;
+test contents and present adequacy were not reassessed, run or requalified.
+The coordinator supplied generated aggregate and child-specific Git patches
+to the independent reviewer so its read-only tools could assess ownership.
+The bounded ADR architecture/contract-fit verdict is recorded at
+[ADR-0043 architecture review](../decisions/reviews/adr-0043-arch.md).
+This is not a full production, runtime or native qualification, or a product
+slice implementation review. The previous frame critique remains its
+historical proposed-premise verdict; ADR acceptance is still separate.
+
+### Remaining decision and stop
+
+After review, the owner can accept or reject the trusted-mapper premise.
+Production boundary fit, complete first-case native/browser inputs and
+numerical acceptance still block dependent implementation. A required frozen
+break needs its specific superseding decision and version treatment, not an
+experimental-config exception.
+
+The child proposes a separate Meta case-and-limit document packet under
+R-013/060-01, returning acquisition/observation feasibility, required private
+inputs, graph and performance-limit manifest, or one precise unavailable
+input/control. That packet is not dispatched. No browser, SDK/vendor request,
+capture, deployment, account change, consent-policy change, old-case retry,
+implementation or automatic successor follows from this wave.
