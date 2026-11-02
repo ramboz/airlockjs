@@ -14,10 +14,11 @@ That trades some parallelism for a result we can evaluate.
 **Review status:** the first research and Meta source/contract waves are complete.
 The owner approved ADR-0043's trusted-mapper architecture, now Accepted through
 Jig after a refreshed Sol frame pass, and commissioned the Meta case/limits
-document packet. Its closing handoff is in section 11. The old vendor sessions
-remain paused. Further work-order packets remain proposals. No implementation,
-browser run, capture, deployment or autonomous loop is authorized here, and no
-earlier case or spending grant is renewed.
+document packet. Its closing handoff is in section 11. Under the subsequent
+instruction to continue local work, fixture Bug 002 is DONE and shared-host
+Bug 003 has a source fix under review. The old vendor sessions remain paused.
+Full replacement-journey implementation, browser runs, captures, deployment and
+vendor traffic remain gated; no earlier case or spending grant is renewed.
 
 ## 1. The goal has not changed
 
@@ -640,3 +641,50 @@ explicitly approved entry exception.
 No runtime mapping, consent, frozen API, Chrome pin, native policy or historical
 DONE record changed. The real-browser `.48` versus installed `.76` admission
 problem and owner-supervised loss/cleanup requirement remain separate.
+
+## 13. Shared-host live-consent correction
+
+The next local safety item was the already identified deferred-consent gap.
+A fresh Terra child, `1d4cccb7-9d17-48d5-9fff-2b6e7a3a62f5`, started from
+clean `ebec3fc9cf25ef09af018edbe422e55b4a7e52cc`.
+Its source commit `498b13196d9fc089e7447450e33457871ac3f9ba` is integrated
+as `de29009761bc42939a3eade697d2e8f0c747023c`. Only the shared host, its
+existing unit test file and [Bug 003](../bugs/003-shared-host-live-consent.md)
+changed.
+
+### Actual reproduction and bounded fix
+
+The deterministic fake-chamber/fake-capability probe revoked consent after the
+early host gate but before its Promise continuation. The old host still invoked
+the capability once and returned status 200. It genuinely reproduced on freshly
+fetched `origin/main@a4008d5ddb8f10b459500921bf974a064de2beca` in a clean
+temporary checkout. Normal diagnosis, main-check and witnessed-red FIXING
+gates ran without any bypass. Bug 002's one-time exception was not reused.
+
+The host now reapplies its existing purpose decision inside the deferred
+callback, preserves its existing personalization split and checks again after
+the injected strip diagnostic. It counts `mainDispatch` at capability
+invocation. The fixed fake probe records zero calls, held status 0 and zero
+dispatch count; later grant does not replay the held request. Already-issued
+work remains distinct.
+
+This is the host-controlled capability boundary, not a guarantee of final wire
+authorization inside an independently asynchronous capability. It does not
+cancel already-issued requests or change strict/cookieless policy, grants,
+endpoints, consent retention, vendor semantics or frozen signatures. No real
+resource identifier or external transport is used by the reproduction.
+
+### Integrated validation and review state
+
+The source writer's affected-caller selection passed 237 tests across eight
+files and targeted lint. The coordinator expanded the integrated selection to
+the two corrected fixture files and frozen contract guards: all 331 tests across
+11 files passed, and both changed JavaScript files passed targeted lint using
+the isolated locked tool installation and unchanged config. These are local
+Node/fake-transport/loopback results, not browser/native/performance evidence.
+
+Bug 003 remains FIXING for fresh independent Sol bug, craft and security
+reviews, normal green REVIEWED, original-repro VERIFIED and learning-backed
+DONE. It has a real fresh-main reproduction and no workflow exception.
+The source/real-browser pin mismatch, supervised-only loss mode and full Meta
+case qualifications remain separate; no browser, SDK or vendor job is admitted.
