@@ -767,3 +767,34 @@ finite final GO remain missing. The existing procedure is owner-supervised,
 not independently qualified for unattended loss. Preparation chooses that
 existing bounded path; it does not create an unattended framework or infer
 execution permission from the Pixel confirmation/general continuation request.
+
+### Current execution gate
+
+The fresh non-executing source/cohort preflight at
+2026-11-02T23:29:22Z matched all 39 workspace hashes, the Chrome plist identity,
+explicit Node24, Playwright and OS/kernel metadata, with a clean coordinator
+tree at `ae138178549e9b33a14e9e05466b9219af3ebb4d`.
+This is a static preflight report, not a browser qualification or atomic
+executable-custody certificate. It must be repeated immediately before an
+approved run, failing closed if anything changed.
+
+The coordinator requested one exact owner-supervised SDK-free localhost
+Meta-to-Google attempt: at most 60 seconds per vendor through cleanup, 64
+observed requests and eight synthetic measurement attempts, zero vendor traffic,
+no real Pixel, stop on first failure and no retry. The request explicitly
+requires actual owner presence and acceptance of agent-loss cleanup UNKNOWN
+with responsibility for the exact owned-browser handoff.
+The owner-input tool returned unavailable, not a positive GO. Execution remains
+NOT ADMITTED and no browser or case/output slot was acquired/reserved.
+
+The source-preparation child was independently verified clean at its delivered
+commit and had no automation. Its exact proposal and reviewed integration
+record were preserved before the finished child was archived.
+Hourly reporting is paused while this real owner decision is pending; restore
+the reporting-only cadence when actual work resumes.
+
+The source-only queue is complete at this checkpoint: Bugs 002/003 are DONE
+with their normal gates and independent Sol reviews, and the current-cohort
+source/case packet has a passing Sol operational review. The next input is
+the explicit supervised execution decision, not another Pixel confirmation,
+identifier, folder choice or generic evidence-bundle request.
