@@ -696,3 +696,66 @@ Actual verdicts and the learning were recorded, then the normal DONE gate passed
 The bug has a real fresh-main reproduction and no workflow exception.
 The source/real-browser pin mismatch, supervised-only loss mode and full Meta
 case qualifications remain separate; no browser, SDK or vendor job is admitted.
+
+## 14. Current-cohort SDK-free browser preparation
+
+The remaining safe preparation adapts the existing fixed local procedure to
+the installed cohort without acquiring a browser. Fresh Terra child
+`d163ee21-12a1-413c-b31c-75fbe9b1c526` started from clean `ccc902c`.
+Its source-preparation commit `77d485e031dc26200638e4610a061e43b0ee5b4e`
+is integrated as `676707c9932ff6db17e4170fdb94f08e209be553`.
+The production diff is only the exact static Chrome version literal:
+156.0.8078.48 to 156.0.8078.76. Independent controlled tests and the live operator
+guide were updated; actual historical .48 observations remain historical.
+
+### Source-only evidence
+
+Metadata-only reads found Chrome .76, installed Playwright 1.62.1 and the
+documented Node v24.10.0 binary available. Default shell Node is v22.16.0;
+the planned procedure and source validation use explicit Node24. The proposed
+OS cohort is macOS 27.0.1 / Darwin 27.0.0 arm64. These are metadata, not
+browser-reported behavior or executable/atomic-custody proof.
+
+The current-cohort positive first failed against the old static source pin.
+The source writer then passed 58 controlled fixture tests with one mocked
+CLI-entry unit case excluded by its conservative task boundary. The coordinator
+inspected that fully mocked case and ran the complete two-file selection under
+explicit Node24: all 59 passed, zero skipped. It imports the entry only inside
+Vitest's mocked Playwright/fixture environment; no actual foreground CLI or
+Chrome job was issued. Targeted Node24 lint passed.
+
+The original proposal is preserved byte-identically in private coordinator
+artifacts, SHA-256
+`4777c0a9e608386ba5cfa42f25e26e44c6808eeea0a8a17a4e42deaebea8a004`.
+All 39 recorded workspace source/config hashes match the integrated files.
+The child-to-coordinator commit mapping and the complete 59-test supplement
+are recorded separately, not by rewriting the original pending proposal.
+
+### Proposed finite operation, not admission
+
+The existing fixed entry remains unchanged: explicit Node24 runs
+`rig/local-browser-foreground.mjs`, with no arguments, against fresh owned
+nonpersonal headed browser profiles and literal-loopback fixtures/listener.
+It is the SDK-free Meta then Google sequence with synthetic values only;
+the real Pixel, vendor endpoints, native SDK bytes, production navigation,
+campaigns and account changes are excluded.
+
+All existing limits remain: 60 seconds per vendor through cleanup/publication,
+work cutoff 50 seconds, 64 observed requests, eight measurement attempts and
+the original URL/request/response/retention/socket bounds. Exact source/guard/
+cohort preflight precedes any acquisition, matched receiving controls precede
+product navigation, and actual worker/resource/request/response/receipt and
+owned cleanup observations remain mandatory. Require private exclusive stdout
+publication, independently witnessed whole-command exit and digest comparison.
+Stop on first failure with no retry or automatic successor.
+
+Independent Sol source/operational review is still required. Changing a static
+version pin does not qualify the new cohort or grant execution. The original
+proposal and current integration record both retain false browser/qualification
+and run-authority flags. No output/case slot has been reserved.
+
+Actual owner presence, acknowledgement of agent-loss cleanup UNKNOWN and
+finite final GO remain missing. The existing procedure is owner-supervised,
+not independently qualified for unattended loss. Preparation chooses that
+existing bounded path; it does not create an unattended framework or infer
+execution permission from the Pixel confirmation/general continuation request.
