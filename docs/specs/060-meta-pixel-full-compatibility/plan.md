@@ -9,7 +9,9 @@ session. Do not integrate or continue them without a reviewed boundary.
 
 060-01 remains the first full product owner. R-013 proposes one case/evidence
 plan; R-014 proposes the request-authority recommendation that must precede
-any verifier decision. The owner selects each subsequent short session.
+any verifier decision in
+[Proposed ADR-0043](../../decisions/adr-0043-google-meta-request-authority.md).
+The owner selects each subsequent short session.
 The older reference packet, browser pins and additional-case lineage are
 retained history, not current execution permission.
 

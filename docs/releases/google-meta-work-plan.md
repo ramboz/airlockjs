@@ -76,7 +76,7 @@ Time limits below are proposed checkpoints, not new execution or spending grants
 | Order | Packet and owner | Deliverable | Stop condition |
 |---|---|---|---|
 | 1 | Native evidence planning, [R-013](../research/R-013-google-meta-first-journey-evidence.md), consuming 060-01 and 059-01 | A separate first-journey case card for each vendor, an evidence gap list and one recommended acquisition route. Start with retained records and public source. | One read-only session per vendor, at most 60 active minutes. No launcher repair, capture or new tool implementation. Missing access or a safety prerequisite becomes a named blocker. |
-| 2 | Request authority design, [R-014](../research/R-014-google-meta-request-authority.md), consuming the first journeys' integrity criteria | A threat model, alternatives and a recommendation on whether a runtime verifier is needed. Identify main-thread work and performance costs. | One read-only session, at most 90 active minutes. No verifier implementation or new confinement framework. |
+| 2 | Request authority design, [R-014](../research/R-014-google-meta-request-authority.md), consuming the first journeys' integrity criteria | A threat model, alternatives and a recommendation in Proposed ADR-0043 on whether a runtime verifier is needed. Identify main-thread work and performance costs. | One read-only session, at most 90 active minutes. No verifier implementation or new confinement framework. |
 | 3 | Decision and case review | Owner reviews the two research handoffs, the necessary architecture ADR and the first case's evaluation and performance criteria. Existing slices remain the implementation owners. | No code starts without a reviewed boundary and a sufficiently grounded case. Live actions need their own finite approval. |
 | 4 | First complete Meta PageView, 060-01 | Reuse the prototype and evaluator. Obtain the permitted reference, implement only the demonstrated gaps, then compare actual browser/chamber requests, responses and host effects. | Each session has one named gap or one admitted run. Missing native behavior blocks the claim, not another automatic infrastructure task. All 060-01/C1-C9 criteria remain binding. |
 | 5 | First complete Google conversion, 059-01 | Apply the same process to the owned direct conversion, including its response and auxiliary branches. | Same checkpoint rule. Do not treat the Meta result as Google qualification. |
@@ -97,14 +97,32 @@ each manufacture a new DONE milestone.
 |---|---|---|
 | Full target and product-first delivery | ADR-0033 and ADR-0042 | Reaffirm. No supersession or duplicate reframe ADR. |
 | Native acquisition and supervision | [ADR-0038](../decisions/adr-0038-supervised-native-meta-resource-lifecycle.md), 059-15/18 | Keep parked. R-013 must determine whether this route is needed, can be bounded, or should be replaced. No run grant or new general runner follows from the research. |
-| Request integrity, mapping and egress authority | 059-01 and 060-01 | R-014 feeds a Proposed architecture ADR if the selected design changes trust or module boundaries. Do not accept the unfinished two-worker experiment by default. Reserve the ADR through `adr.py new --no-push` only when there is a concrete recommendation. |
-| Consent wait, retention and replay | [059-03](../specs/059-google-ads-full-compatibility/slice-03-consent-journeys.md) and [060-04](../specs/060-meta-pixel-full-compatibility/slice-04-consent-processing.md) | Preserve current behavior. A demonstrated conflict gets a separate policy ADR and owner decision before changing it. |
-| Cookies, credentials, DOM and lifecycle capabilities | Existing feature slices | Draft a capability ADR only when a named journey supplies the required behavior and alternatives. Do not prebuild a general API. |
+| Request integrity, mapping and egress authority | 059-01 and 060-01 | [Proposed ADR-0043](../decisions/adr-0043-google-meta-request-authority.md) is filed. R-014 supplies its recommendation; no architecture option is selected. Do not accept the unfinished two-worker experiment by default. |
+| Consent wait, retention and replay | [059-03](../specs/059-google-ads-full-compatibility/slice-03-consent-journeys.md) and [060-04](../specs/060-meta-pixel-full-compatibility/slice-04-consent-processing.md) | [Proposed ADR-0044](../decisions/adr-0044-google-ads-consent-wait.md) tracks the specific Google wait question. Preserve current behavior until evidence and owner policy review select a recommendation. Meta semantics remain separately owned by 060-04. |
+| Cookies, credentials, DOM and lifecycle capabilities | Existing feature slices | The [pending-decision register](../refinement-todo.md#googlemeta-pending-decisions-2026-11-02) tracks each capability and its promotion trigger. Draft its ADR when a named journey supplies a concrete choice; do not prebuild a general API. |
 | First replacement paths | 059-01 and 060-01 | Reuse their full acceptance criteria. Refine them after the research and review; no duplicate first-journey specs. |
 | Local prototypes and completed qualification tools | DONE slice records | Preserve their historical results and limitations. No amendment or requalification is performed in this planning pass. |
 
-No new numbered spec or ADR is needed merely to reset the queue. The new
-research briefs are plans, with no new findings asserted.
+The research and decisions are now filed, rather than left as future document
+creation tasks. Existing product specs remain their implementation owners.
+Neither new ADR selects an architecture or policy; both await evidence and
+review. Their numbers are provisional local allocations, not trunk reservations.
+
+### Filed artifact register
+
+| Artifact | State | Next review or consumer |
+|---|---|---|
+| [R-013: first-journey evidence](../research/R-013-google-meta-first-journey-evidence.md) | OPEN, planning only | Owner-selected research sessions; then 059-01/060-01 case review. |
+| [R-014: request authority](../research/R-014-google-meta-request-authority.md) | OPEN, planning only | Owner-selected research session; update ADR-0043. |
+| [ADR-0043: request authority](../decisions/adr-0043-google-meta-request-authority.md) | Proposed, no option selected | R-014 recommendation, independent frame review and owner decision before the first full implementations. |
+| [ADR-0044: Google consent wait](../decisions/adr-0044-google-ads-consent-wait.md) | Proposed, no policy selected | Native timeline evidence and owner privacy/policy decision before 059-03. |
+| [ADR-0038: native supervision](../decisions/adr-0038-supervised-native-meta-resource-lifecycle.md) | Existing Proposed record, parked | R-013 determines whether this route is needed; no implementation or run follows. |
+| [Spec 058](../specs/058-native-tag-evaluation-qualification/spec.md) | DONE for named supporting layers | Reuse its actual scope; it does not qualify replacement behavior. |
+| [Spec 059](../specs/059-google-ads-full-compatibility/spec.md) | Existing partial work, execution paused | 059-01 first; later 02-12 remain DRAFT. |
+| [Spec 060](../specs/060-meta-pixel-full-compatibility/spec.md) | Existing partial work, execution paused | 060-01 first; later 02-12 remain DRAFT. |
+
+The [spec board](../specs/README.md) lists each individual slice. No duplicate
+feature specs, runtime changes or acceptance decisions are introduced by filing.
 
 The remaining portfolio stays with its current owners:
 

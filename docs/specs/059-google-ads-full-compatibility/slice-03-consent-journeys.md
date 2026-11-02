@@ -1,6 +1,6 @@
 ---
 status: DRAFT
-dependencies: [059-02]
+dependencies: [059-02, adr-0044]
 last_verified:
 kind: feature
 frame_review: true
@@ -18,6 +18,9 @@ native-equivalent basic and advanced Google Ads measurement behavior.
       positive controls and current HTTP encodings from native evidence.
 - [ ] Review purpose/storage/user-data/dispatch boundaries and the host consent
       integration. Basic and advanced support are fixed requirements, not choices.
+- [ ] [ADR-0044](../../decisions/adr-0044-google-ads-consent-wait.md)
+      records the evidence-backed wait/retention/replay policy and clears
+      review and owner acceptance before implementation.
 
 **Acceptance Criteria:**
 
@@ -67,6 +70,10 @@ native-equivalent basic and advanced Google Ads measurement behavior.
 correct browsing/conversion path and observable operator outcome in both modes.
 
 ## Open wait and seal question
+
+This decision is filed as
+[Proposed ADR-0044](../../decisions/adr-0044-google-ads-consent-wait.md).
+No policy is selected and no implementation is authorized.
 
 [Google's asynchronous consent guide](https://developers.google.com/tag-platform/security/guides/consent#async)
 shows a denied default with `wait_for_update: 500`, allowing time for an

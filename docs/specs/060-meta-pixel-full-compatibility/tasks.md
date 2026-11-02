@@ -12,7 +12,9 @@ An authored AC is not a passing evaluation.
 - [ ] Owner reviews the goal, status and proposed session order.
 - [ ] Only after selection, produce the R-013 Meta case card and R-014
       request-authority recommendation in bounded research sessions.
-- [ ] Review any required architecture ADR and 060-01 readiness before code.
+- [ ] Complete the recommendation/review/acceptance of
+      [ADR-0043](../../decisions/adr-0043-google-meta-request-authority.md)
+      and 060-01 readiness before code.
 
 No unchecked item below is an automatic work assignment. The checklist is
 retained as the pre-reset record; the additional case and old reference packet

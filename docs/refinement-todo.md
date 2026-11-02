@@ -16,13 +16,11 @@
 
 ## Full Google/Meta preparation owners (2026-10-15)
 
-**Current routing (2026-10-26):** the
-[delivery queue](releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
-maps the remaining work to existing feature owners. Accepted ADR-0042 addresses
-product-first work admission;060-14/059-20 draft the next actual local-browser
-journeys. Cookie/transport/timing decisions remain evidence-triggered under
-their original first-journey and feature slices; none of the deferrals below
-is marked resolved by this planning packet or the completed Node prototypes.
+**Current routing (2026-11-02):** execution is paused for owner review of the
+[bounded work plan](releases/google-meta-work-plan.md). The pending-decision
+register below names the filed records and remaining promotion triggers.
+060-14/059-20 are delivered for their historical local-browser scope; they do
+not qualify native replacement. No deferral below is resolved by filing a draft.
 
 [ADR-0033](decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md)
 sets complete replacement as the target, without closing the residuals below.
@@ -51,6 +49,20 @@ Resolve these with native evidence and narrowly mediated designs, not broad
 cookie/network grants or invented identifiers. A concrete conflict gets an
 individual decision. This is preparation only; no runtime grant, closed-record
 amendment or Adobe reporting waiver follows.
+
+## Google/Meta pending decisions (2026-11-02)
+
+All entries remain open. Research is planning-only, ADRs are Proposed, and the
+existing feature slices own any later implementation.
+
+| Decision | Filed owner | Resolution or ADR-promotion trigger |
+|---|---|---|
+| Request integrity and egress authority | [ADR-0043](decisions/adr-0043-google-meta-request-authority.md), fed by [R-014](research/R-014-google-meta-request-authority.md); 059-01/060-01 | Research-backed recommendation, threat model, bounded validation plan, independent frame review and owner acceptance. |
+| Google consent wait, retention and replay | [ADR-0044](decisions/adr-0044-google-ads-consent-wait.md); 059-03 | Controlled native timeline evidence and explicit privacy/policy decision. It does not set Meta semantics. |
+| Native reference acquisition and supervision | [R-013](research/R-013-google-meta-first-journey-evidence.md), existing [ADR-0038](decisions/adr-0038-supervised-native-meta-resource-lifecycle.md); 059-15/18 | Owner reviews a bounded route and any applicable decision before separately approving a run. Keep the existing route parked meanwhile. |
+| Scoped vendor-cookie operations and continuity | 059-04; 060-05/06 | A named journey establishes required names, attributes, lifetime and capability gaps. Draft the concrete capability ADR then; no general cookie-store commitment. |
+| Browser transport, credentials and response branches | 059-01/10; 060-01/09 | A case identifies required native behavior and a missing governed operation. Reuse existing contracts where they fit; otherwise draft the specific ADR before implementation. |
+| Timing-critical DOM, navigation and lifecycle operations | 059-04/08/09/10; 060-07/08/09 | Observed journey needs and measured work/latency limits justify a bounded host operation. Draft its ADR before changing the boundary. |
 
 ## Architecture — design open questions (OQ1–OQ8)
 

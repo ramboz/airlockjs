@@ -12,7 +12,12 @@ implementation, review or readiness.
 - [ ] Owner reviews the goal, status and proposed session order.
 - [ ] Only after selection, produce the R-013 Google case card and R-014
       request-authority recommendation in bounded research sessions.
-- [ ] Review any required architecture ADR and 059-01 readiness before code.
+- [ ] Complete the recommendation/review/acceptance of
+      [ADR-0043](../../decisions/adr-0043-google-meta-request-authority.md)
+      and 059-01 readiness before code.
+- [ ] Before later consent work, resolve
+      [ADR-0044](../../decisions/adr-0044-google-ads-consent-wait.md)
+      from native timeline evidence and owner policy review.
 
 No unchecked item below is an automatic work assignment. The checklist is
 retained as the pre-reset record; current permissions and pickup order come

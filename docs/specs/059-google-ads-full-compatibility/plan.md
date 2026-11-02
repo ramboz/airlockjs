@@ -9,9 +9,10 @@ Do not continue field experiments, tooling repair or the verifier by default.
 
 059-01 remains the first full product owner. The next proposed research
 outputs are a case/evidence plan under R-013 and a request-authority
-recommendation under R-014. A concrete boundary choice may need a Proposed
-ADR before implementation. The owner selects each subsequent short session;
-this plan grants no execution or live authority.
+recommendation under R-014. [Proposed ADR-0043](../../decisions/adr-0043-google-meta-request-authority.md)
+tracks that boundary choice; [Proposed ADR-0044](../../decisions/adr-0044-google-ads-consent-wait.md)
+tracks the later consent-wait policy. Neither is accepted. The owner selects
+each subsequent short session; this plan grants no execution or live authority.
 
 ## Historical delivery planning and evidence through 2026-10-29
 

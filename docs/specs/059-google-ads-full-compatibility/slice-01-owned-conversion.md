@@ -1,6 +1,6 @@
 ---
 status: READY_FOR_REVIEW
-dependencies: [adr-0017, adr-0033, 058-01, 058-02, 058-03, 058-04]
+dependencies: [adr-0017, adr-0033, adr-0043, 058-01, 058-02, 058-03, 058-04]
 last_verified:
 kind: feature
 frame_review: true
@@ -18,6 +18,9 @@ Ads fallback or an overstated product claim.
 - [x] ADR-0033 is Accepted after its real frame review.
 - [ ] This slice frame and bounded transport/response design pass required
       review without silently changing ADR-0017.
+- [ ] [ADR-0043](../../decisions/adr-0043-google-meta-request-authority.md)
+      has a research-backed recommendation, required review and acceptance
+      before implementation. Filing its Proposed draft is not that decision.
 - [ ] 058-01 qualifies the exact recorder/guard surface; shared 058-02 controls
       and Google-specific 058-04 supply a positive pinned attempted reference;
       058-03 detects missing branches, input-value mutations and empty/partial

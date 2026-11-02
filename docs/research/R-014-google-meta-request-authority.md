@@ -5,6 +5,7 @@ created: 2026-11-02
 related:
   - ../releases/google-meta-work-plan.md
   - ../decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md
+  - ../decisions/adr-0043-google-meta-request-authority.md
   - ../specs/059-google-ads-full-compatibility/slice-01-owned-conversion.md
   - ../specs/060-meta-pixel-full-compatibility/slice-01-pageview-entry.md
 ---
@@ -98,5 +99,6 @@ confinement proof into an automatic sandbox or verifier project.
 
 Pending research and owner review. No architecture option is accepted.
 
-Promoted to: pending. A concrete trust/module-boundary choice requires a
-Proposed ADR through the ADR workflow before implementation under 059-01/060-01.
+Decision record filed: [Proposed ADR-0043](../decisions/adr-0043-google-meta-request-authority.md).
+The research remains OPEN and unstarted. Its recommendation will fill that
+draft before review; filing the ADR does not conclude the investigation.

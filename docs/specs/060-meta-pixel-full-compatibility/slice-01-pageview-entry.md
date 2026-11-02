@@ -1,6 +1,6 @@
 ---
 status: READY_FOR_REVIEW
-dependencies: [adr-0033, 058-01, 058-02, 058-03]
+dependencies: [adr-0033, adr-0043, 058-01, 058-02, 058-03]
 last_verified:
 kind: feature
 frame_review: true
@@ -16,6 +16,9 @@ through fbq and sees actual governed chamber dispatch with a truthful comparison
 **DoR:**
 - [x] ADR-0033 is Accepted for the target.
 - [ ] This slice frame and proposed boundary fit are reviewed.
+- [ ] [ADR-0043](../../decisions/adr-0043-google-meta-request-authority.md)
+      has a research-backed recommendation, required review and acceptance
+      before implementation. The unfinished verifier experiment is not the decision.
 - [x] Parent supplies current legacy boot/seal/worker/source evidence without
       modifying ADR-0017's frozen contracts; gaps are recorded, not qualified away.
 - [ ] 058-01/02/03 qualify the exact Meta recorder, positive `native_attempt`
