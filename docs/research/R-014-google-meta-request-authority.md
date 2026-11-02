@@ -324,6 +324,11 @@ tests, browser, SDK or vendor request ran. ADR-0043 remains Proposed. The
 recommendation below is conditional on its owner decision; no frozen break,
 consent-policy change or later packet is commissioned.
 
+[Independent architecture/contract review](../decisions/reviews/adr-0043-arch.md)
+passed this conditional standalone source/design result. Production boundary
+fit, owner trust acceptance, runtime/native evidence and numerical limits remain
+open. The pass is not implementation readiness.
+
 ### Resolved source scope
 
 The standalone adapter and its literal browser worker entry form an inspected

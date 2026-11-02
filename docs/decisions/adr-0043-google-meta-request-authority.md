@@ -19,7 +19,9 @@ Proposed (2026-11-02)
 Option C is recommended for owner review, with Option D's browser admission
 and independent evaluation requirements. No option is accepted.
 [Independent Jig frame critique](reviews/adr-0043-frame-critique.md) passed
-the proposed premise; boundary-fit review and owner acceptance remain open.
+the proposed premise. [Source/contract architecture review](reviews/adr-0043-arch.md)
+passed the conditional standalone fit; production boundary-fit review and owner
+acceptance remain open.
 The number is local/provisional until integration checks it against trunk.
 Implementation remains paused; no test, browser or live authority follows.
 
