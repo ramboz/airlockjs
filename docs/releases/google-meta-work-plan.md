@@ -692,7 +692,7 @@ they are not composed host/broker consent proof. Security was heuristic static
 inspection, no scanner and no reportable findings.
 
 Normal green REVIEWED and original-repro VERIFIED transitions then passed.
-Actual verdicts and the learning are recorded before the remaining normal
-DONE gate. The bug has a real fresh-main reproduction and no workflow exception.
+Actual verdicts and the learning were recorded, then the normal DONE gate passed.
+The bug has a real fresh-main reproduction and no workflow exception.
 The source/real-browser pin mismatch, supervised-only loss mode and full Meta
 case qualifications remain separate; no browser, SDK or vendor job is admitted.

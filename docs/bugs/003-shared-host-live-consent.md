@@ -1,5 +1,5 @@
 ---
-status: VERIFIED
+status: DONE
 tier: gnarly
 severity: medium
 claimed_by: shared-host-live-consent

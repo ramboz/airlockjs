@@ -24,6 +24,15 @@ resistance. R-014 remains OPEN for production fit, native/browser evidence and
 numerical acceptance. Implementation and live authority remain separate gates.
 The paused verifier drafts were not read or imported.
 
+The subsequent [Bug 003](../bugs/003-shared-host-live-consent.md) correction is
+DONE after a real fresh-main reproduction, witnessed red/green, independent Sol
+bug/craft/security reviews and original-repro verification. It closes the
+shared host's deferred capability-invocation consent gap, including injected
+diagnostic callbacks. It does not enforce final wire inside an independently
+asynchronous capability, implement the proposed complete private protocol or
+qualify browser/native behavior. The remaining production/lifecycle and
+numerical-evidence questions stay open.
+
 The dated source/design packets below retain their original proposal and
 pending-owner language as historical context. The accepted ADR and this status
 paragraph govern the current decision; no missing runtime evidence is upgraded.
