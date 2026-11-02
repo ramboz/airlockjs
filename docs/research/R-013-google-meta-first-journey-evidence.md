@@ -14,9 +14,9 @@ We have local worker journeys and partial native observations. We still need a
 credible route to a same-input native/replacement comparison. This brief asks
 for that route before more capture infrastructure is built.
 
-**Meta source/document research is complete and independently reviewed.**
-The [document-closeout record](../releases/google-meta-work-plan.md#document-closeout-review)
-preserves the review scope. The owner commissioned this bounded research through the
+**Meta source/document research has produced a case card and a case/limits
+manifest.** The [current handoff](../releases/google-meta-work-plan.md#11-owner-decision-and-meta-caselimits-wave)
+records the document-review scope. The owner commissioned this bounded research through the
 [work plan](../releases/google-meta-work-plan.md). Google's case remains
 unresolved. No acquisition route or live action is approved.
 
@@ -480,12 +480,12 @@ research, runner work, measurement or successor is automatically commissioned.
 
 ### Exit
 
-**For owner review:** select whether to investigate an owner-operated capture
-and supply current resource owners, private inputs and a bounded observation,
-stop and cleanup proposal. A separate review must establish that it meets the
-case and safety gates before any acquisition decision. If it cannot, return
-the specific blocker rather than repairing or retrying the parked route.
-The first reference would inform 060-01 only; replacement qualification,
+**Blocked on owner input:** explicitly supply the minimum
+`<META_CASE_INPUT_BUNDLE>` defined above, using private handles and current
+resource/route evidence. Do not automatically commission another feasibility
+study, runner repair or retry. A locally supplied bundle can establish whether
+a complete safe acquisition proposal is feasible; it is not permission to run
+one. The first reference would inform 060-01 only; replacement qualification,
 other cohorts and product outcomes remain open.
 
 ## Open questions
@@ -499,10 +499,12 @@ other cohorts and product outcomes remain open.
 
 ## Conclusion
 
-The Meta card recommends an owner-operated capture feasibility/safety packet
-for owner review. No qualified acquisition route is established or approved.
-Google research and the overall evidence-route investigation remain open.
-No capture or live action was executed by this research.
+The Meta case/limits manifest identifies the first blocker: an explicit current
+`<META_CASE_INPUT_BUNDLE>` with ownership, case state, original-evidence handles
+and route/control facts. Existing records establish no qualified complete
+acquisition route. Google research and the overall evidence-route investigation
+remain open. No capture, measurement or live action was executed, and no
+additional research or infrastructure packet is automatically commissioned.
 
 Promoted to: pending; implementation stays with 059-01 and 060-01. Use 059-15/18
 for any explicitly approved native-acquisition changes, not a duplicate tool spec.

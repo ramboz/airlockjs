@@ -116,7 +116,7 @@ not trunk reservations; implementation and live gates are unchanged.
 
 | Artifact | State | Next review or consumer |
 |---|---|---|
-| [R-013: first-journey evidence](../research/R-013-google-meta-first-journey-evidence.md) | OPEN; Meta card delivered, Google unresolved | Owner review of an owner-operated capture feasibility/safety packet. No qualified acquisition route or live permission. |
+| [R-013: first-journey evidence](../research/R-013-google-meta-first-journey-evidence.md) | OPEN; Meta card and case/limits manifest delivered, Google unresolved | Explicit current META_CASE_INPUT_BUNDLE is required. Existing records establish no qualified complete acquisition path. No new research, repair or live action follows automatically. |
 | [R-014: request authority](../research/R-014-google-meta-request-authority.md) | OPEN; architecture accepted, Meta source/contract check delivered | Conditional standalone private-interface fit and source-derived final-call consent/cleanup gaps. Production boot/unload and native/browser/performance inputs remain open. |
 | [ADR-0043: request authority](../decisions/adr-0043-google-meta-request-authority.md) | Accepted; owner selected C with D | Refreshed independent Sol frame pass; production boundary fit and evidence/readiness still required before implementation. |
 | [ADR-0044: Google consent wait](../decisions/adr-0044-google-ads-consent-wait.md) | Proposed, no policy selected | Native timeline evidence and owner privacy/policy decision before 059-03. |
@@ -462,3 +462,38 @@ not private-file discovery, guessed values or another infrastructure project.
 Acceptance and document-review dispositions, integrated commits and verified
 child disposition are recorded below at closing. All uncommissioned capture,
 deployment, account, consent-policy and implementation actions remain blocked.
+
+### Results and concrete blocker
+
+| Item | Result |
+|---|---|
+| Architecture | ADR-0043 Accepted by Jig with refreshed Sol frame evidence; persisted at `319120f8a72f7092f78764db8e284fdd2a37250c`. Accepted text is immutable after that transition. ADR-0044 remains Proposed. |
+| Case/limits document | [R-013 manifest](../research/R-013-google-meta-first-journey-evidence.md#meta-case-and-limits-manifest) classifies inputs, graph/response/host effects, originals/derivations, controls, route/stop/cleanup duties and numerical fields. All unmeasured acceptance values remain unset. |
+| Original child commit | `a4e399354ba55a865826023c0136521291f8951f`, direct parent is the commissioned base; only a 219-line Meta subsection insertion, no deletions or Google/global edits |
+| Integrated case commit | `ec6dee01d97034e4db1d4db343ff5210a622bf0f` |
+| Model / accounting | Explicit Sol kickoff; child reports matching exposed runtime metadata and about 7 minutes wall time, not measured active time or credits. Normal hooks reported no leaks. |
+| Product/readiness state | No source, frozen interface, consent, live permission, first-journey criteria or slice state changed. Production boot/unload fit and numerical/native/browser readiness remain open. |
+
+**First blocker:** no explicit current `<META_CASE_INPUT_BUNDLE>` was supplied.
+The minimum bundle privately binds:
+
+- The owned page/Pixel and current resource owners, exact command/page/config/
+  consent/browser/profile state.
+- Available original source/capture handles with provenance and completeness
+  limits; historical document references are not discovery permission.
+- Whether only retained originals exist or an owner-operated capture is
+  proposed. For the latter, a concrete procedure, operator, independent stop/
+  cleanup owners and existing observation/enforcement proof or its exact absence.
+- Proposed paired measurement conditions and method, leaving numerical results
+  and acceptance unset until evidence supports them.
+
+All complete-case acquisition alternatives remain blocked in the retained
+records. The manifest distinguishes historical acquisition ceilings from
+replacement performance budgets and present grants. Unknown branches are not
+zero, an unspent historical slot is not executable permission, and owner
+operation waives no safety gate.
+
+The useful retained-record extraction is complete. Further progress requires
+an explicitly supplied, authorized local bundle or its exact unavailable
+input/control. Do not start another research/runner project to avoid that
+blocker. No further packet or live action is commissioned by this handoff.
