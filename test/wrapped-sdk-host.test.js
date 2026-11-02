@@ -1004,6 +1004,116 @@ describe("createWrappedSdkHost — consent enforcement (spec 020-02 AC1, ADR-000
     return { chamber, dispatched, diags, host };
   }
 
+  it("revocation before the deferred capability call holds without replay", async () => {
+    const consent = { analytics_storage: "granted" };
+    const { chamber, dispatched, diags, host } = makeSpyingHost({
+      egressPurposes: ["analytics_storage"],
+      consent,
+      endpointCeiling: ["https://example.test/collect"],
+      timeoutMs: 10,
+    });
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: "revoked", url: "https://example.test/collect", method: "POST", body: "{}" });
+    consent.analytics_storage = "denied";
+    const reply = await posted;
+
+    expect(dispatched).toEqual([]);
+    expect(reply).toEqual({ type: "intercepted-fetch-response", id: "revoked", status: 0, statusText: "held at the seal: consent", body: "" });
+    expect(host.getState().mainDispatch.count).toBe(0);
+    expect(host.getState().consentHeld).toBe(1);
+    expect(diags.filter((d) => d.kind === "consent")).toEqual([
+      expect.objectContaining({ disposition: "held", beaconId: expect.stringMatching(/#revoked$/), destination: "example.test" }),
+    ]);
+
+    consent.analytics_storage = "granted";
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    expect(dispatched).toEqual([]);
+    expect(chamber.posted).toHaveLength(1);
+  });
+
+  it("does not replay a request held at the initial gate after a later grant", async () => {
+    const consent = { analytics_storage: "denied" };
+    const { chamber, dispatched, host } = makeSpyingHost({ egressPurposes: ["analytics_storage"], consent });
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: "initial-hold", url: "https://example.test/collect" });
+    consent.analytics_storage = "granted";
+    expect(await posted).toMatchObject({ id: "initial-hold", statusText: "held at the seal: consent" });
+    await Promise.resolve();
+    expect(dispatched).toEqual([]);
+    expect(host.getState().consentHeld).toBe(1);
+  });
+
+  it("keeps a granted request and its response correlated", async () => {
+    const { chamber, dispatched, host } = makeSpyingHost({
+      egressPurposes: ["analytics_storage"],
+      consent: { analytics_storage: "granted" },
+    });
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: "granted", url: "https://example.test/collect", method: "POST", body: "{}" });
+    expect(await posted).toMatchObject({ id: "granted", status: 200 });
+    expect(dispatched).toHaveLength(1);
+    expect(host.getState().mainDispatch.count).toBe(1);
+  });
+
+  it("does not cancel work already issued to the capability when consent is revoked", async () => {
+    const consent = { analytics_storage: "granted" };
+    const chamber = makeFakeChamber();
+    let finish;
+    let calls = 0;
+    const host = createWrappedSdkHost({
+      chamber,
+      consent,
+      egressPurposes: ["analytics_storage"],
+      caps: { egress: { dispatch: () => { calls += 1; return new Promise((resolve) => { finish = resolve; }); } } },
+    });
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: "issued", url: "https://example.test/collect" });
+    await Promise.resolve();
+    expect(calls).toBe(1);
+    consent.analytics_storage = "denied";
+    finish({ status: 202, body: "accepted" });
+    expect(await posted).toMatchObject({ id: "issued", status: 202, body: "accepted" });
+    expect(host.getState().mainDispatch.count).toBe(1);
+    expect(host.getState().consentHeld).toBe(0);
+  });
+
+  it("applies the existing personalization split when consent changes before dispatch", async () => {
+    const consent = { analytics_storage: "granted", personalization: "granted" };
+    const { chamber, dispatched, host } = makeSpyingHost({
+      egressPurposes: EGRESS_PURPOSES,
+      consent,
+    });
+    const body = JSON.stringify({ events: [{ query: { personalization: { scopes: ["synthetic"] }, other: 1 } }] });
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: "split", url: "https://example.test/collect", method: "POST", body });
+    consent.personalization = "denied";
+    expect(await posted).toMatchObject({ id: "split", status: 200 });
+    expect(JSON.parse(dispatched[0].body)).toEqual({ events: [{ query: { other: 1 } }] });
+    expect(host.getState().consentHeld).toBe(0);
+  });
+
+  it("rechecks consent after a personalization diagnostic changes it", async () => {
+    const consent = { analytics_storage: "granted", personalization: "granted" };
+    const chamber = makeFakeChamber();
+    const dispatched = [];
+    const host = createWrappedSdkHost({
+      chamber,
+      consent,
+      egressPurposes: EGRESS_PURPOSES,
+      onDiagnostic: (diagnostic) => {
+        if (diagnostic.disposition === "personalization-stripped") consent.analytics_storage = "denied";
+      },
+      caps: { egress: { dispatch: (request) => { dispatched.push(request); return Promise.resolve({ status: 200 }); } } },
+    });
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: "diagnostic", url: "https://example.test/collect", body: '{"events":[{"query":{"personalization":{}}}]}' });
+    consent.personalization = "denied";
+    expect(await posted).toMatchObject({ id: "diagnostic", statusText: "held at the seal: consent" });
+    expect(dispatched).toEqual([]);
+    expect(host.getState().mainDispatch.count).toBe(0);
+    expect(host.getState().consentHeld).toBe(1);
+  });
+
   it("a DENIED governing purpose HOLDS the interact — zero real egress, alerted, consentHeld+1", async () => {
     const { chamber, dispatched, diags, host } = makeSpyingHost({
       egressPurposes: EGRESS_PURPOSES,
