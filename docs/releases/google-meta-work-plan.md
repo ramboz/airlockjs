@@ -546,8 +546,9 @@ record carries the same confirmation, without private identifiers.
 The owner asked to continue through the remaining list, stop only for required
 input, and report at least hourly. The same-conversation hourly reporter was
 configured and verified as reporting-only, with no worker or run authority.
-It is paused while the owner decision below is pending; restore the reporting
-cadence when active work resumes. No app-wide job or peer scheduler was created.
+It was paused at the initial owner-decision blocker and restored after explicit
+approval. It reports during active work and pauses when a real owner decision
+is pending. No app-wide job or peer scheduler was created.
 
 ### Actual offline results
 
@@ -564,7 +565,8 @@ The Terra writer reproduced the first 404 using the smaller existing regression
 selector and recorded hypotheses, history/reuse and affected call sites.
 Its commit `82f9f1b9b74ccf5b54c11480e314e94b4ae084eb` contains only the
 diagnostic record and is integrated as `dfc9338`.
-No fixture, test, source policy, limit, browser pin or accepted ADR changed.
+At that diagnostic checkpoint no fixture, test, source policy, limit, browser
+pin or accepted ADR changed.
 
 ### Specific owner decision required
 
@@ -579,11 +581,54 @@ The coordinator requested one narrow exception: for Bug 002 only, replace
 the inapplicable fresh-main reproduction with that pinned integration-baseline
 check, using `JIG_BUG_MAIN_CHECK_GATE=0` for that transition only. Diagnosis,
 closure inventory, witnessed red/green tests and independent Sol bug, craft and
-security reviews would remain mandatory. No exception has been approved.
-The owner-input tool returned unavailable, not consent.
+security reviews remain mandatory. The initial owner-input tool returned
+unavailable, not consent. The owner subsequently replied "yes, approved" to
+that exact request on 2026-11-02. The one-bug, one-transition exception is now
+authorized; no other gate, browser limit or execution permission is changed.
 
-The blocked child `79d223bc-7914-4cc7-bbf6-41fe42244cdf` remains preserved
-and idle for a same-assignment continuation after a real decision; it is not
-archived or claimed finished. No automatic successor, browser or Meta run is
-scheduled. Pixel availability, unchanged settings, POC reservation and its
-private binding are already supplied and are not the blocker.
+The preserved child `79d223bc-7914-4cc7-bbf6-41fe42244cdf` was resumed on the
+same Terra assignment with the explicit owner decision. It must record the
+exception, retain truthful trunk absence, witness red/green through Jig and
+return a bounded patch for fresh Sol bug/craft/security reviews. It is not
+archived or claimed finished. Hourly reporting-only updates are restored during
+active work. No automatic browser or Meta run is scheduled. Pixel availability,
+unchanged settings, POC reservation and its private binding are already supplied.
+
+### Source correction and pending review
+
+The Terra writer recorded the approved exception and used it once, with
+command-local scope. Jig witnessed the original regression red; no main result
+was invented and no other gate was bypassed. The first exploratory catalogue
+correction exposed a controlled-workload limit conflict: 68 Meta and 74 Google
+requests exceeded the existing 64-request cap. That provisional patch was
+removed and preserved only as diagnostic evidence, not a green fix.
+
+The Sol coordinator selected a smaller transport-only preflight using one fixed
+inert `/preflight` document. The resulting source correction is integrated at
+`1ebc2afa9c0b604058559b29c1184385e95396c0` from the child's
+`a9fcce09efe96ab4815487a817cfa5b5f90845d4`:
+
+- Serve all 29 fixed first-party module paths and hash the inert control page
+  alongside the two product pages.
+- Preflight admits its control document and existing canonical control request
+  only; product documents, modules and workers are denied there. It loads no
+  product controller just to test receiving.
+- Product and failure phases keep complete per-realm module observations,
+  existing positive/negative/error/correlation/cleanup controls and the
+  independent actual-import traversals. Every actual request is still counted.
+- The controlled model now records 56 Meta and 60 Google requests, seven
+  measurement/control attempts each, with unchanged 64/8, byte, time and socket
+  bounds. These are controlled-event counts, not measured Chrome behavior.
+
+Both fixture test files pass all 58 tests on the correction. The original
+graph selector also passed through `tdd.py`. The normal REVIEWED transition
+will independently witness green after all required reviews. Targeted lint
+passed using isolated, lock-matching dependencies with install scripts disabled
+and a byte-identical repository config. No manifest, lockfile or shared install
+was changed; exact tool-path receipts stay private.
+
+Bug 002 remains FIXING, with fresh Sol bug, craft and security passes pending.
+Its gnarly/security classification and VERIFIED requirement are retained.
+No runtime mapping, consent, frozen API, Chrome pin, native policy or historical
+DONE record changed. The real-browser `.48` versus installed `.76` admission
+problem and owner-supervised loss/cleanup requirement remain separate.

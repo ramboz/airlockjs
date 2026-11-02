@@ -219,10 +219,12 @@ the project cwd on both rig modules and both tests, using a byte-identical
 copy of `eslint.config.js` (SHA-256
 `7ce029fcdae14afe0de4795ef21895b22fd44a9177dc86e553d587841b6ecfff`),
 and exited 0. No project manifest, lockfile or shared install was changed.
-The lint command was:
+The lint command below uses `<ISOLATED_LINT_TOOLS>` for the private
+session-scoped tool location. The exact command/path receipt is retained
+privately by the coordinator, not committed:
 
 ```sh
-/Users/ramboz/.copilot/session-state/79d223bc-7914-4cc7-bbf6-41fe42244cdf/files/bug-002-lint/node_modules/.bin/eslint --config /Users/ramboz/.copilot/session-state/79d223bc-7914-4cc7-bbf6-41fe42244cdf/files/bug-002-lint/eslint.config.mjs rig/local-browser-journeys.mjs rig/local-browser-foreground.mjs test/local-browser-journeys.test.js test/local-browser-foreground.test.js
+<ISOLATED_LINT_TOOLS>/node_modules/.bin/eslint --config <ISOLATED_LINT_TOOLS>/eslint.config.mjs rig/local-browser-journeys.mjs rig/local-browser-foreground.mjs test/local-browser-journeys.test.js test/local-browser-foreground.test.js
 ```
 
 No limit, browser pin, transport policy, runtime mapping or frozen interface
