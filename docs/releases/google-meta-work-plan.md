@@ -243,8 +243,8 @@ host-reported `gpt-6.1-sol`. The nonblocking residual is explicit mapper trust:
 a malicious mapper can make a wrong but protocol-valid mediated request.
 The pass preserves that owner decision and does not establish containment,
 native correctness or performance.
-The document-closeout verdict and reviewed checkpoint are recorded below after
-the shared records are reconciled. These reviews do not stand in for the
+The [document-closeout verdict](#document-closeout-review) and reviewed checkpoint
+are recorded below. These reviews do not stand in for the
 product slices' required compliance, craft, architecture or reconciliation
 passes, or any required code-health judgment. All reviewer dispatches are
 explicitly pinned to `gpt-6.1-sol`.
@@ -268,12 +268,60 @@ hooks it considered outside its read/run scope. No persistent Git setting was
 changed and no review verdict or acceptance gate was bypassed. The coordinator
 does not reuse that override; closing commits use the normal configured hooks.
 The Meta child reported its normal commit secret-scan hook ran.
+The coordinator's reconciled checkpoint commit used normal hooks; its configured
+secret scan completed with no leaks.
 
 The authority research also flags broad existing browser-confinement prose and
 `connect-src`-only loader comments for a later scoped correction. They were not
 edited here. Reading the wrapped host and frozen declarations needs the
 separately selected source/contract-fit packet, not an implicit extension of
 this wave.
+
+### Document closeout review
+
+**Disposition: pass for the document-only wave.** The independently reviewed
+integrated checkpoint is `9a88406d465cfb70b80a95089f7abb6844574d91`, against
+base `7fe4aac0306dbc1407e22612e3b9f62e4c612c77`. The final closing commit
+adds only this verdict, review-status and verified disposition metadata.
+Research recommendations, original criteria and authority are unchanged.
+
+The first fresh Sol closeout reviewer found both cards complete against their
+commission, evidence limitations honest, Proposed status preserved and no
+substantive document defect. It returned `needs-changes` solely because its
+read-only tools could not obtain the Git patch. A same-agent follow-up was
+attempted, but the native tool refuses messages to sync-mode task agents.
+A narrowly scoped Sol evidence supplement therefore examined the generated
+base-to-checkpoint diff and original child manifests. Its first response
+requested the separate Terra/coordinator hunks; those exact Git patches were
+supplied without changing the reviewed checkpoint.
+
+Final supplemental verdict:
+
+> **VERDICT: pass.** Terra's patch is solely a 187-line Meta-section insertion,
+> leaving Google/global framing untouched. Its resulting blob matches the
+> coordinator patch's starting blob. The global introduction/conclusion edits
+> are separately attributed to the coordinator. Together with the aggregate
+> diff and child manifests, this establishes compliant ownership, unchanged
+> excluded surfaces, no slice promotion and no accepted ADR. No specific
+> issues remain. This clears the initial missing-evidence blocker.
+
+Both closeout tasks and the frame reviewer were explicitly pinned to
+`gpt-6.1-sol`; native agent metadata reported that model. Initial and final
+verdicts and the generated patch evidence are preserved in the coordinator's
+session artifacts. This record makes the result available without replaying
+either child's conversation. It is not a native/browser/performance pass or
+an implementation review.
+
+### Verified child dispositions
+
+| Native child | Final source state | Disposition |
+|---|---|---|
+| Meta `90fcd853-c22e-4d62-a309-d1e26044293e` | Clean at `eb74fa2c4832093db1c2938d97b94320f5ec5104`; integrated and reviewed | Archived after verified completion; no attached automation |
+| Authority `040dd76c-0fe3-4758-9253-501ade25b631` | Clean at `6f34ec998b15fd83333a937d55c25d157bec5803`; integrated and reviewed | Archived after verified completion; no attached automation |
+
+No unfinished child work was discarded. Old vendor sessions were untouched.
+The coordinator's checkpoint tree was clean. Closing metadata uses the normal
+commit path; final HEAD and dirty-state verification accompany the owner handoff.
 
 ### Owner decision and stop
 

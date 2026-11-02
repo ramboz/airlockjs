@@ -14,8 +14,9 @@ We have local worker journeys and partial native observations. We still need a
 credible route to a same-input native/replacement comparison. This brief asks
 for that route before more capture infrastructure is built.
 
-**Meta source/document research is complete; independent document review is
-pending.** The owner commissioned this bounded research through the
+**Meta source/document research is complete and independently reviewed.**
+The [document-closeout record](../releases/google-meta-work-plan.md#document-closeout-review)
+preserves the review scope. The owner commissioned this bounded research through the
 [work plan](../releases/google-meta-work-plan.md). Google's case remains
 unresolved. No acquisition route or live action is approved.
 
