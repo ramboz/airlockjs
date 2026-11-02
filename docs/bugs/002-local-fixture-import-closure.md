@@ -1,5 +1,5 @@
 ---
-status: FIXING
+status: VERIFIED
 tier: gnarly
 severity: medium
 claimed_by: local-fixture-import-closure
@@ -8,7 +8,7 @@ main_repro_checked_at:
 main_repro_ref:
 main_repro_result:
 red_confirmed_at: 2026-11-02
-green_confirmed_at:
+green_confirmed_at: 2026-11-02
 fix_class: local_patch
 security_surface: true
 escalated_to:
@@ -227,9 +227,27 @@ privately by the coordinator, not committed:
 <ISOLATED_LINT_TOOLS>/node_modules/.bin/eslint --config <ISOLATED_LINT_TOOLS>/eslint.config.mjs rig/local-browser-journeys.mjs rig/local-browser-foreground.mjs test/local-browser-journeys.test.js test/local-browser-foreground.test.js
 ```
 
+The original reported repro was rerun on integrated review checkpoint
+`41f2abe40e297068215c718bad9bb7b0604f8e70`:
+`npm test -- --reporter=dot test/local-browser-journeys.test.js -t source`
+exited 0, with 12 passed and zero failures (runner duration 2.43s).
+The coordinator also independently ran both complete fixture files: 58 passed,
+exit 0, and targeted lint passed with the byte-identical isolated config.
+
+Fresh independent Sol bug, craft and security reviews all returned pass at
+that checkpoint. The security review was heuristic static inspection with no
+scanner run and no reportable findings. Actual verdicts are recorded through
+Jig before the normal REVIEWED, VERIFIED and DONE transitions.
+
 No limit, browser pin, transport policy, runtime mapping or frozen interface
 was changed. The controlled model is not a measurement of Chrome's loading
 or caching behavior. No browser, native SDK, vendor request or product
-qualification was performed. Bug, craft and security reviews remain pending.
+qualification was performed.
 
 ## Learning
+
+Keep fixed fixture catalogues checked against actual served imports and retain
+main/worker multiplicities. Transport-only preflight should use its inert
+control page instead of loading the product graph and exhausting the same
+request budget. Keep independent product/error observations and all resource
+bounds. See [the recorded learning](../memory/learnings.md#transport-only-preflight-should-not-load-product-modules).

@@ -627,8 +627,13 @@ passed using isolated, lock-matching dependencies with install scripts disabled
 and a byte-identical repository config. No manifest, lockfile or shared install
 was changed; exact tool-path receipts stay private.
 
-Bug 002 remains FIXING, with fresh Sol bug, craft and security passes pending.
-Its gnarly/security classification and VERIFIED requirement are retained.
+Fresh Sol bug, craft and security passes all returned pass at source checkpoint
+`41f2abe40e297068215c718bad9bb7b0604f8e70`; actual verdicts are recorded in
+`docs/bugs/reviews/`. The security pass was heuristic read-only inspection with
+no scanner run and no reportable findings, not assurance of vulnerability
+absence. Normal Jig green and VERIFIED transitions then passed without any
+further bypass. The original reported repro returned 12 passed, zero failures.
+Its gnarly/security classification and remaining normal DONE gate are retained.
 No runtime mapping, consent, frozen API, Chrome pin, native policy or historical
 DONE record changed. The real-browser `.48` versus installed `.76` admission
 problem and owner-supervised loss/cleanup requirement remain separate.
