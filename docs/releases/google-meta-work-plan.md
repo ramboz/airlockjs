@@ -633,7 +633,10 @@ Fresh Sol bug, craft and security passes all returned pass at source checkpoint
 no scanner run and no reportable findings, not assurance of vulnerability
 absence. Normal Jig green and VERIFIED transitions then passed without any
 further bypass. The original reported repro returned 12 passed, zero failures.
-Its gnarly/security classification and remaining normal DONE gate are retained.
+Its gnarly/security classification was retained, and the normal DONE gate
+subsequently passed with the recorded learning. The bug board is regenerated
+from the final record; no source or review gate was bypassed after the one
+explicitly approved entry exception.
 No runtime mapping, consent, frozen API, Chrome pin, native policy or historical
 DONE record changed. The real-browser `.48` versus installed `.76` admission
 problem and owner-supervised loss/cleanup requirement remain separate.
