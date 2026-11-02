@@ -302,6 +302,237 @@ The `connect-src`-only loader comments in `core/endpoint-ceiling.js:58-63` and
 `core/egress-confinement.js:47-52` need separate correction against CSP's script
 and worker directives; no source correction is performed by this document mission.
 
+## Meta-first source and contract fit
+
+The inspected Meta init/PageView path can carry a private authority protocol
+without changing the frozen connector or round-trip capability signatures.
+It still needs a final transport-side consent check, complete protocol
+accounting and owned host cleanup. Recommend those changes around one trusted
+first-party mapper, subject to owner acceptance of that trust choice. This is
+a source/design result, not an implementation-ready or native-compatible path.
+
+**Checkpoint:** 2026-11-02, base
+`bbc42581dff94ae32125cb7f25746bbb859f5586`, initially clean. This packet
+inspected tracked source and the permitted documents only. No project code,
+tests, browser, SDK or vendor request ran. ADR-0043 remains Proposed. The
+recommendation below is conditional on its owner decision; no frozen break,
+consent-policy change or later packet is commissioned.
+
+### Resolved source scope
+
+The standalone adapter and its literal browser worker entry form an inspected
+18-file local source closure. The table enumerates the resolved files, including
+imports evaluated even when an experimental flag is off. Leaf files were read,
+not inferred safe from their names or comments.
+
+| Root or dependency edge | Inspected resolved files and evidence |
+|---|---|
+| Main entry and worker selection | `adapters/meta-pixel-prototype.js:1-5,153-181,628-669`; the default worker is `connectors/meta-pixel/pageview-prototype.worker.js`, selected by a literal module URL. |
+| Main host and its five imports | `core/wrapped-sdk-host.js:126-130`; `core/endpoint-ceiling.js:71-134`; `core/config-integrity.js:77-211`; `core/consent.js:59-131`; `core/payload-governance.js:1-251`; `core/cookie-scope.js:1-112`. Config override, payload stripping and cookie reconciliation code is present in this closure, but Meta does not grant or enable those operations. |
+| Four shared snapshot leaves | `connectors/meta-pixel/pageview-data.js:1-196`; `connectors/meta-pixel/event-options.js:1-10`; `connectors/meta-pixel/synthetic-identity.js:1-31`; `connectors/meta-pixel/agent-options.js:1-16`. Both main capture and the worker mapper import these. |
+| Worker entry, confinement and generic host | `connectors/meta-pixel/pageview-prototype.worker.js:1-3`; `core/confine-pixel-chamber.js:23-29` imports `core/egress-confinement.js:1-199`; `core/connector-host.js:40-90` retains the factory instance. |
+| Mapper and its other two leaves | `connectors/meta-pixel/pageview-prototype.js:1-6,45-241`; `connectors/pixel/vendors/meta.js:1-120` supplies the synthetic ID; `connectors/pixel/advanced-matching.js:1-159` supplies the off-thread hash function. No further runtime imports were found in these leaves. |
+
+This closes the local static source question for that standalone route. It does
+not close deployment or loader authority. No dynamic module load was found in
+those 18 files, but JavaScript shims cannot revoke the language loader. Module
+fetches, served bytes, redirects and response policy were not observed.
+`forceProp` leaves properties writable/configurable and reports possible failure
+(`core/egress-confinement.js:109-125`); the pixel caller does not verify its
+returned record (`core/confine-pixel-chamber.js:27-29`). This is no proof of
+malicious-code confinement.
+
+The injected `chamber`, `captureContext` and `fetchImpl` remain trusted caller
+dependencies, not authenticated browser implementations
+(`adapters/meta-pixel-prototype.js:211-220,394-398,562-563`). Native runtime,
+remote configuration, response headers, browser policy, production build/boot
+and the separate fixture-style bootstrap adapter were not inspected here.
+The R-013 Meta card and 060-13/14 records were read as documents, not replayed.
+
+For comparison only, the inspected legacy surfaces add
+`core/airlock.js:217-349,380-553,636-900`, `core/egress.js:1-162`,
+`core/pixel-chamber.worker.js:58-140` and
+`connectors/pixel/connector.js:72-153`. They are not another closed source
+graph. Unfollowed legacy imports include the RUM, GA4-gtag, Google Ads and
+Floodlight modules named at `core/airlock.js:26-29`, the GA4 mapper at
+`core/egress.js:30`, and non-Meta worker entries at `core/airlock.js:339-349`.
+They are unnecessary to establish this standalone Meta path and are not
+qualified by this packet.
+
+### Existing capture-to-result path
+
+Runtime initialization and the caller's `fbq("init", ...)` are different
+operations. The former creates the retained connector and makes the worker
+ready. The latter establishes Pixel state after readiness.
+
+| Step | Existing sequence and exact source evidence | Limit |
+|---|---|---|
+| 1. Capture and queue | `fbq` allocates a sequence, checks admission, snapshots args and six context fields, structured-clones them into an `AirlockEvent`, then queues it (`adapters/meta-pixel-prototype.js:462-559`). Browser context reads are at `:153-161`. | Synchronous void capture, no global fbq install. Optional snapshot helpers perform vendor-aware admission on main; reflection and cloning are length-dependent, and proxy traps can execute. No hard CPU bound or native invocation semantics follows. |
+| 2. Runtime readiness | Adapter constructs the wrapped host with only egress, the literal endpoint and strict `ad_storage` (`adapters/meta-pixel-prototype.js:628-669`). Worker constructs one connector host, awaits `connector.init({})`, then posts `configured` (`connectors/meta-pixel/pageview-prototype.worker.js:101-130`). | Adapter queue waits for `ready` (`adapters/meta-pixel-prototype.js:407-427,593-597`). This is runtime initialization, not Pixel init, SDK boot or proof of native readiness. |
+| 3. Serialized command | `pump` permits one drive at a time; `driveEvent` posts the event after configuration (`adapters/meta-pixel-prototype.js:407-445`; `core/wrapped-sdk-host.js:570-589`). Worker checks busy and increasing safe sequence, then awaits `routeBatch([event])` (`connectors/meta-pixel/pageview-prototype.worker.js:36-44`). | The host's own drive slot is single-entry. Sequence gaps from rejected capture calls are possible; increasing does not mean contiguous. |
+| 4. Mapper state and bytes | Generic host awaits `handle` and collects requests/drops (`core/connector-host.js:40-88`). Meta retains Pixel, pending-ID, hash and agent state (`connectors/meta-pixel/pageview-prototype.js:101-164`); optional init hashing uses WebCrypto (`connectors/pixel/advanced-matching.js:115-128`). PageView constructs the eight-field GET and optional data in the worker (`connectors/meta-pixel/pageview-prototype.js:166-238`). | Successful local Pixel init returns zero requests. The synthetic identity path awaits hashing before committing that Pixel. Native init traffic, identity update/clear and complete native fields are not established. |
+| 5. Mediated operation | Worker sends one numeric-ID `intercepted-fetch`, awaits its response and only then advances the next branch (`connectors/meta-pixel/pageview-prototype.worker.js:26-33,56-78`). Wrapped host checks ceiling and strict purposes (`core/wrapped-sdk-host.js:245-263,337-401`), then schedules the capability call (`:421-440`). | The host count is incremented before the injected transport is invoked. It is not a physical-dispatch or receipt ledger. No stage plan precedes the requests. |
+| 6. Actual transport call | Injected adapter dispatch checks phase, literal URL, GET and absent body/headers, then calls `fetchImpl` with credentials omitted, redirects rejected and no referrer (`adapters/meta-pixel-prototype.js:382-405`). It reads at most 4096 response-stream bytes (`:185-204`). | This is local Fetch, without `keepalive`, not qualified native Image/Fetch behavior. It discards response headers and does not recheck consent at this final call. Injected transport and actual browser activity were not executed here. |
+| 7. Host response and result | Wrapped host posts one correlated response under a settled flag (`core/wrapped-sdk-host.js:424-454`). Adapter forwards it (`adapters/meta-pixel-prototype.js:448-460`). Worker resolves the pending ID and derives branch outcomes, then posts its final summary (`connectors/meta-pixel/pageview-prototype.worker.js:58-99`). Host resolves the drive; adapter records it (`core/wrapped-sdk-host.js:526-532`; `adapters/meta-pixel-prototype.js:428-441`). | The mapper does not consume response content to build another stage. Stronger summary/count checks are mode-gated, not universal (`adapters/meta-pixel-prototype.js:322,567-584,610-618`). A final summary cannot prove correct bytes, native equivalence or receipt. |
+
+### Existing guarantees versus missing relationships
+
+Here, **EXISTING** means inspected source behavior, **MISSING** means the
+candidate relationship is absent, **CONFLICT** means an existing path cannot
+be cited as that guarantee, and **UNVERIFIED** means the necessary external or
+execution evidence is unavailable. These labels do not report fresh test passes.
+
+| Subject | Classification | Evidence and consequence |
+|---|---|---|
+| Init/readiness | EXISTING bounded pre-ready queue and one configured transition; MISSING version/instance/epoch acknowledgment and pinned grant/limit agreement; UNVERIFIED native bootstrap/init I/O. | `adapters/meta-pixel-prototype.js:293-308,407-427,593-597,641-669`; `connectors/meta-pixel/pageview-prototype.worker.js:101-130`. Runtime readiness must not imply Pixel initialization or qualified configuration. |
+| Serialized state and async identity | EXISTING retained state and awaited synthetic init hash; MISSING committed revision/epoch and general atomic update/clear rules; UNVERIFIED native identity semantics. | `core/connector-host.js:40-88`; `connectors/meta-pixel/pageview-prototype.js:101-164`. No general identity update exists to qualify. Legacy eager per-field hashing is a separate, nonserialized channel (`core/pixel-chamber.worker.js:79-137`), not a ready-made replacement state barrier. |
+| Explicit zero output | EXISTING initialized/updated/rejected summaries with zero requests; MISSING mandatory host reconciliation in default mode; UNVERIFIED native zero-output expectations. | `connectors/meta-pixel/pageview-prototype.worker.js:45-54`; `adapters/meta-pixel-prototype.js:57-150,322,567-584`. No returned `EgressRequest` is not proof of no capability operation. Silence is never a zero-result acknowledgment. |
+| Staged request/response | EXISTING one outstanding request and bounded text response; MISSING announced stages, parent-response references and response-driven mapping; UNVERIFIED complete native graph/response visibility. | `connectors/meta-pixel/pageview-prototype.worker.js:26-33,56-99`; `adapters/meta-pixel-prototype.js:185-204,394-398`. Response status drives summary only; headers are discarded and no browser cookie/host effect is observed. |
+| Correlation and branch counts | EXISTING sequence, increasing request ID and optional response/count checks; MISSING universal envelope, predeclared graph and independent host operation ledger. | `connectors/meta-pixel/pageview-prototype.worker.js:9-12,26-44`; `adapters/meta-pixel-prototype.js:448-458,567-624`. Counts do not bind Pixel/event/value semantics under the proposed trusted-mapper model. |
+| Live consent after waits | CONFLICT with a final-dispatch guarantee; EXISTING earlier strict gate and optional tag-revoke generation; MISSING last-call recheck and host-policy lease invalidation. | Wrapped consent is read at `core/wrapped-sdk-host.js:337-401`, then a Promise continuation calls dispatch at `:439-440`. The adapter's `:382-398` does not read consent. A host denial between these points can therefore miss the earlier check. This is a source-derived ordering counterexample, not an executed race. |
+| Revocation and no replay | EXISTING immediate admitted tag restriction and no replay of held operations; UNVERIFIED native retention/timeline rules. Host consent updates do not have the same generation barrier as tag revocation. | `adapters/meta-pixel-prototype.js:313-321,543-550,684-687`. A queued command first evaluated after a later grant is different from replaying a command already held. Do not silently decide either policy or transplant stable hold/remap (`core/airlock.js:778-856`). |
+| Destination, credentials and redirects | EXISTING literal loopback GET, no supplied headers/body, credential omission and redirect error; UNVERIFIED required official transport/credentials/redirects. | `adapters/meta-pixel-prototype.js:278-284,382-398`; `core/endpoint-ceiling.js:71-134`. Origin/path matching drops query/fragment and cannot independently bind Pixel ID or data. Automatic redirect following would evade per-hop JavaScript checks. |
+| Deadlines | EXISTING init/whole-command/transport timers and abort requests; MISSING one reconciled absolute deadline/epoch and cancellation of host-owned pending work. | `adapters/meta-pixel-prototype.js:352-405,416-427,641`; `core/wrapped-sdk-host.js:424-454`; `connectors/meta-pixel/pageview-prototype.worker.js:15-32`. Timers are event-loop-dependent. Host timeout does not abort its injected capability; signal cancellation does not prove no arrival. |
+| Disposal | EXISTING adapter admission stop, listener removal, abort, waiter settlement, worker termination and retained cleanup error; MISSING wrapped-host close/unsubscribe/drive rejection/timer ownership. | `adapters/meta-pixel-prototype.js:164-181,346-379,689-692`; `core/wrapped-sdk-host.js:229-236,550-620`. There is no host dispose. The adapter can finish its outer wait while the host's internal drive remains unresolved; late transport callbacks still retain host state. |
+
+### Proposed private Meta contract
+
+Keep the fixed first-party worker as the single semantic authority. Host
+validation checks structure, granted operations and observed accounting. It
+does not reconstruct a second expected Meta query. A malicious mapper can
+still send wrong, protocol-valid values to an allowed recipient. That risk is
+outside this proposed guarantee. Independent mapper mutation evaluation,
+actual browser confinement and native correctness remain separate obligations.
+
+Use the following concrete private wrapper, removed before calling existing
+host/capability interfaces. This is a design shape, not an installed API.
+
+| Message or transition | Proposed binding |
+|---|---|
+| Every message | `{ protocol: 1, instance, epoch, type, ... }`, bound to the host-owned worker subscription. Host supplies fresh instance/epoch values and a fixed source/config/grant/limit record. Fields correlate messages; they do not authenticate code. Unknown types/fields, incompatible versions and active-epoch duplicates fail the instance. Retired epochs cannot act. |
+| Runtime init/ready | One init, one matching ready with initial committed revision. Queue capture without dispatch until ready. A separately evidenced initialization request would require its own admitted stage before readiness; none is inferred from this local no-I/O init. Host-owned grants are the fixed declaration intersected with policy, not grants nominated by a worker manifest. |
+| Command | `{ seq, expectedRevision, event }`, with strictly increasing admitted sequence, immutable captured event data and one active command. Keep `AirlockEvent` unchanged. Host may have rejected sequence numbers before admission. Worker owns interpretation and advances revision only after an atomic successful state command; events keep that revision. Hashing completes before dependent events. Uncertain partial commit terminates the epoch. |
+| Plan | `{ seq, revision, stage, parentRequestId, branches: [{ ordinal, requestId, destinationRef, operationRef }] }` precedes each stage's requests, without another request-body copy or plan-ack round trip. References are unique within the epoch and bounded by the case graph. Initial synthetic init declares zero operations; the initial single-Pixel synthetic PageView declares one GET. These are local design cases, not a native graph declaration. |
+| Request | `{ seq, revision, stage, ordinal, requestId, request }`; `request` retains the existing egress descriptor. Adapter validates the plan/lease, then forwards only the existing `intercepted-fetch` shape to the wrapped host. One outstanding branch. Repeated URLs from distinct commands remain distinct operations. |
+| Last-call gate | Adapter's injected dispatch owns the actual transport ledger. Immediately before the captured trusted Fetch call, recheck current host/tag consent, epoch, lease, actual URL, method, credential/redirect policy and byte/deadline limits. No await or caller callback may intervene. Reuse the shared consent primitive. Denial returns the existing status-zero held response plus private reason/accounting, without transport. Do not count wrapped-host attempts as actual calls. |
+| Response/stage continuation | Adapter restores the private correlation wrapper around the host-observed response and separately records held, invoked, responded, failed or unknown. Keep the existing text response descriptor inside it. A response-dependent stage is admitted only after native evidence specifies its parent and limits. If needed, wire the existing `caps.egress.dispatch` into the mapper so it can await a response inside `handle` and return `[]`; do not move response interpretation into main or add a response channel to `EgressRequest`. This wiring is not needed for the inspected one-stage case. |
+| Completion | Exactly one `{ seq, previousRevision, committedRevision, disposition, stageCount, branches }`, with each branch's final state reconciled to the host ledger. Preserve planned but unsubmitted branches, denied branches and invoked-but-unobserved work explicitly. Zero operations requires zero declared and observed operations. Worker-declared counts or 2xx summaries cannot override host facts. |
+| Failure/close | Init, command or transport deadline closes admission and invalidates leases/continuations. Check elapsed monotonic deadlines after waits as well as running timers. Privately close the wrapped host, reject its drive slot, clear owned timers/subscriptions, abort adapter-owned transports and terminate the worker. Settle caller waiters once and retain cleanup failure. No restart, retry, grant-triggered resurrection or receipt inference from abort. |
+
+Preserve the current prototype's held-operation drop/no-replay behavior.
+An admitted restrictive tag command must still tighten safety at capture,
+before queued interpretation. Host-policy changes must invalidate affected
+unsent leases immediately. A later grant cannot revive an invalidated lease.
+Any change to retained-command eligibility, retention, remapping or consent
+data shaping needs its own evidenced owner choice. This contract does not
+accept Meta policy or resolve Google's ADR-0044.
+
+### Frozen-contract fit and stop rules
+
+ADR-0017 freezes behavior as well as names
+(`docs/decisions/adr-0017-airlock-1-0-api-contract.md:60-95`). Its 0.x amendment
+requires a named superseding ADR, minor-version break and CHANGELOG notice for
+a stable-core break; the major-break rule resumes at 1.0 (`:140-146`).
+Experimental config is no permission to alter those obligations.
+
+| Proposed change | Classification against the inspected contract | Boundary |
+|---|---|---|
+| Version/epoch/revision/plan/ledger messages around the Meta worker | Internal/private. | Do not add required fields to `AirlockEvent`, `EgressRequest` or `routeBatch` output. `contracts/connector.d.ts:39-52,73-129,205-218`; `core/connector-host.js:55-90`. Keep `{ ready, dropped }` and the factory's `{ manifest, init, handle }`. |
+| Awaited state commits and zero/multiple request returns | Existing compatible behavior; private state discipline. | `Connector.init` and `handle` already allow Promises and zero/multiple requests (`contracts/connector.d.ts:205-218`). Do not require a new connector method or turn `routeBatch` into a stream. Worker glue owns private revision acknowledgment. |
+| Response-dependent mapping, only if the case requires it | Compatible wiring of an existing capability, not a new return type. | `contracts/capability.d.ts:155-187,243-260` already defines `dispatch(req) -> Promise<response>`. Gate declaration intersected with allowed policy. Keep request/response inner shapes unchanged; zero returned requests does not mean zero dispatch calls. |
+| Final transport guard and private wrapped-host close | Internal/private implementation change, with a compatible additive close helper on the nonfrozen host module. | Keep `GrantedCapabilities.egress.dispatch` unchanged. Adapter owns AbortControllers; host close only cancels its own subscription, timers, deferred invocation and drive bookkeeping. Existing callers not using close retain their behavior. The frozen installed handle's `dispose` is not replaced by this helper. |
+| Observable round-trip responses | Fit the existing capability for bounded observable text only; unresolved for required opaque/binary/credentialed/redirect behavior. | `EgressDriver.dispatch` has only `sent`, `sent-unknown`, `held`, not response data (`contracts/seams.d.ts:52-77`). Use the separate round-trip capability, never widen or reinterpret that seam as a response channel. New required capability fields or response semantics need explicit contract review. |
+| Cookie, storage, DOM, source/configuration and transport grants | Unresolved native requirements, no additional grant selected. | Existing declarations are at `contracts/capability.d.ts:37-187`. The prototype has no cookie/DOM/storage grant and manually mirrors manifest endpoint/purpose (`connectors/meta-pixel/pageview-prototype.js:107-114`; `adapters/meta-pixel-prototype.js:628-639`). Bind that mirror to the fixed instance policy; do not let the worker widen it. Existing name-scoped cookies do not prove native cookie/credential fit. |
+| Standalone fbq readiness/reporting | Private/experimental standalone seam only; production boot integration unresolved. | `adapters/meta-pixel-prototype.js:207-211,668-694` does not install `window.airlock` or global fbq. Preserve the frozen boot entrypoints and installed handle from ADR-0017 `:71-95`. Their concrete production implementation is outside this inspected graph. Do not install the prototype handle as the frozen one. |
+| `push`, `pushCritical`, projection and unload | Unchanged for this proposal. Routing a fresh Meta command through an asynchronous frozen `pushCritical` would be a frozen behavioral break. | `contracts/push-api.md:17-26,33-51,109-118` requires synchronous void push, synchronous projection and critical send before return. Legacy Pixel has main-thread critical mapping (`core/airlock.js:226-288,636-681`; `core/egress.js:119-133`). Neither transplant that mapper into the proposed path nor silently replace immediate-send behavior with a worker wait. |
+
+**Named stop:** no frozen break is required for the inspected private
+init/PageView protocol. This does not establish full production fit. If
+060-01 integration requires changing the installed handle, synchronous
+projection, critical-send timing, connector returns or capability/seam
+semantics, stop and request the specific superseding decision and version
+treatment. If native transport cannot be governed under the proposed grants,
+return that transport-authority choice. Neither case commissions code here.
+
+### Smallest proposed change list
+
+This is the conditional implementation footprint for owner/reviewer selection,
+not permission to implement it or to promote 060-01 readiness.
+
+| File | Exact proposed responsibility |
+|---|---|
+| `adapters/meta-pixel-prototype.js` | Own private envelope validation, fixed instance grants, bounded queue/operation ledger and the final live gate at the actual transport call. Make correlation/count checks mandatory for the selected path, independent of feature flags. Preserve structural/privacy admission; keep vendor interpretation and hashing in the worker. Current vendor-semantic snapshot decisions must be moved behind that boundary or explicitly justified as host admission policy, never inherited as native rules. Wire owned host close. |
+| `connectors/meta-pixel/pageview-prototype.worker.js` | Own matching init/ready, command/revision barriers, plans, request/response correlation and one final reconciled completion. Preserve single-command/single-branch order and zero-output acknowledgment; invalidate late work on failure. No SDK loader, second authority or generic scheduler. |
+| `connectors/meta-pixel/pageview-prototype.js` | Keep the sole Meta semantic state/request constructor. Make asynchronous commits atomic within that instance and support the private worker's commit barrier without changing the Connector interface. Implement only evidence-demonstrated first-case mapping gaps after their inputs are supplied. Do not add identity update/clear, extra events or response branches speculatively. |
+| `core/wrapped-sdk-host.js` | Add only privately invoked lifecycle close: stop message admission/deferred capability calls, reject the outstanding drive, release its queued event/listener and cancel owned timers/late responses. Keep existing capability calls and unrelated caller behavior intact. No Meta parsing, verifier or generalized protocol framework in core. |
+| `connectors/meta-pixel/README.md` | Document the selected private path, trust boundary, supported local behavior and unchanged native/browser/production limits when code is separately approved. |
+
+Later regression owners can reuse the existing
+`test/meta-pageview-prototype-adapter.test.js`,
+`test/meta-pageview-prototype-worker.test.js`,
+`test/meta-pageview-prototype.test.js`,
+`test/meta-pageview-prototype-integration.test.js`,
+`test/meta-prototype-request-correlation.test.js` and
+`test/wrapped-sdk-host.test.js`, with the existing
+`test/connector-host.test.js` and `test/contract-stability.test.js` protecting
+the reused surfaces. Only their tracked filenames were checked in this packet;
+their contents, adequacy and present results were not reassessed. A later
+mission must select exact controls/commands, including denial in the
+post-gate continuation gap and disposal with an unsettled host drive.
+Wrong-but-well-formed mapper mutations belong to independent evaluation;
+they must not be relabeled runtime-rejected without a different trust decision.
+No new source file, general framework or verifier is recommended.
+
+### Required limits, missing inputs and disposition
+
+The structural proposal is one authority, one active command and one
+outstanding branch. Numerical limits still need a case-backed manifest.
+Existing local defaults are regression facts, not production acceptance.
+
+| Manifest item | Existing source or retained input | Still needed before dependent implementation/qualification |
+|---|---|---|
+| Input/copy bytes and capture work | Six primitive context values, 2048-character context strings and structured clone (`adapters/meta-pixel-prototype.js:525-545`); reflective snapshot helpers (`connectors/meta-pixel/pageview-data.js:124-196`). | Accepted command/config/identity depth, keys and UTF-8 bytes; per-command and aggregate clone/retention budgets; measured main-thread admission time and rejection behavior. Character limits and accepted shapes do not bound proxy execution or heap. |
+| Queue, history and waiters | Queue default 32, allowed 1-128, 256 lifetime admissions/history and 16 flush waiters (`adapters/meta-pixel-prototype.js:8,216,281-285,324-326,468-470,679-682`). | Native-supported burst/pre-ready workload, finite queue bytes/age, ledger lifetime and diagnostic bounds. Demonstrate visible overflow without silently trimming the required sequence. These defaults are not an adopter workload model. |
+| Requests, responses and graph | URL limit 8192 characters, stream body limit 4096 bytes; local branches limited to one or four (`adapters/meta-pixel-prototype.js:185-204,382-398`; `connectors/meta-pixel/pageview-prototype.worker.js:56-78`). | Full first-case dependency/init/PageView/auxiliary graph, exact operation count/depth/order, URL/header/body UTF-8 and aggregate response bytes, visibility/content types and browser-owned effects. No native branch count is known here. |
+| Deadlines and lifecycle | Init/command defaults 2000 ms and transport 1000 ms, configured bounds 10-10000 ms (`adapters/meta-pixel-prototype.js:217-219,281-284`). | Measured readiness/hash/queue/transport/body/whole-command and close deadlines, timeout uncertainty and no-retry rules. Fit the complete sequential graph, not each request independently. Establish browser unload requirements before choosing leases or keepalive behavior. |
+| Performance and resource acceptance | R-013 Meta equivalent-input/performance gap (`docs/research/R-013-google-meta-first-journey-evidence.md:149-173`); historical local browser result is not a baseline (`docs/specs/060-meta-pixel-full-compatibility/slice-14-local-browser-pageview.md:93-117`). | Same-input native/replacement browser/device/profile, CPU/network/cache and repetition/noise controls; numerical startup, main/worker CPU, clone cost, latency, heap and LCP/INP/CLS acceptance. Logical queue/byte limits are not process CPU/memory enforcement. No measurements or thresholds were invented here. |
+| Native/browser authority inputs | R-013 Meta evidence and safety card (`docs/research/R-013-google-meta-first-journey-evidence.md:149-260`); 060/C1-C9 (`docs/specs/060-meta-pixel-full-compatibility/spec.md:135-155`). | Owner-supplied private resource handles, pinned native/config/dependency originals, equivalent consent/storage/URL/profile state, complete requests/responses/host effects and qualified positive/negative comparison. Also production entry/build/served-worker policy and actual denied-loader/ambient-route evidence. No private discovery or current live permission is inferred. |
+
+R-013's proposed acquisition ceilings (`:218-236`) constrain a possible future
+reference case. They are not measured replacement performance budgets, a
+qualified owner-operated route or a renewal of a historical grant.
+
+**Document mission: READY_FOR_OWNER_REVIEW. Implementation: blocked.**
+The source path, static closure, scheduling gap and private-interface fit are
+now answered for the standalone route. Actual browser confinement, native
+completeness, production boot/unload fit, numerical limits and the owner trust
+choice remain open. No source result satisfies 060-01/C1-C9 or accepts ADR-0043.
+
+The owner action is to accept or reject the single trusted-mapper premise
+after independent Sol review, then select the next finite packet. If resistance
+to a malicious mapper is required, stop this design and reopen the authority
+choice; stronger correlation is insufficient.
+
+**Proposed NEXT packet, owner selection only:** one Meta case-and-limit
+document packet under R-013/060-01. Use the existing Meta card to return a
+reviewable native acquisition/observation feasibility plan and the required
+input, graph and performance-limit manifest, or the exact unavailable input/
+control. Proposed checkpoint: one manifest/blocker or 60 active minutes.
+No browser, capture, code, new runner or successor follows from this proposal.
+Missing measurements remain named prerequisites for a separately approved run.
+
+Shared corrections belong to the coordinator. Link this section from the
+work-plan register and Proposed ADR-0043 as a completed source/contract-fit
+packet with unresolved production/native/budget gates; preserve both research
+notes' OPEN state and every slice status. The earlier R-014 paragraph saying
+the wrapped host was outside its allowlist describes the earlier packet only.
+Its final-dispatch/cleanup uncertainty is now narrowed by this section, not
+silently erased. The README's blanket source-only/not-browser-tested language
+(`connectors/meta-pixel/README.md:3-6,34-35`) needs the historical 060-14 cohort
+qualification and later-opt-in limit, not a fresh browser pass. The earlier
+architecture/CSP corrections remain due. No shared text or source was edited
+by this packet.
+
 ## Conclusion
 
 The smallest justified default is an explicit trusted first-party mapping
