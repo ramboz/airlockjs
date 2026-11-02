@@ -1,5 +1,5 @@
 ---
-status: FIXING
+status: VERIFIED
 tier: gnarly
 severity: medium
 claimed_by: shared-host-live-consent
@@ -8,7 +8,7 @@ main_repro_checked_at: 2026-11-02
 main_repro_ref: origin/main@a4008d5ddb8f10b459500921bf974a064de2beca
 main_repro_result: reproduces
 red_confirmed_at: 2026-11-02
-green_confirmed_at:
+green_confirmed_at: 2026-11-02
 fix_class: structural_fix
 security_surface: true
 escalated_to:
@@ -153,7 +153,7 @@ test file changed for that correction.
 
 `test/wrapped-sdk-host.test.js::revocation before the deferred capability call holds without replay`
 uses a synthetic request and fake capability. The workflow must witness it
-fail before the host change.
+fail before the host change; that red witness is recorded above.
 
 ## Proof
 
@@ -188,11 +188,21 @@ locked tools and a byte-identical copy of the repository config. `git diff
 SDK, final-wire, delivery or performance evidence. Exact private paths and
 probe commands are retained in the session artifacts.
 
-The bug remains `FIXING`. Independent bug, craft and security review,
-`REVIEWED`, original-repro attestation for `VERIFIED`, and final closure
-remain for the coordinator. The derived bug board needs regeneration there.
+Fresh Sol craft and security reviews passed the unchanged source at `601b1af`.
+The bug reviewer passed the doc-only coverage correction at `e3b2c6e`, with
+no source change or remaining issue. Security was heuristic static inspection,
+no scanner run and no reportable findings. The actual verdicts are recorded
+before the normal REVIEWED, original-repro VERIFIED and final DONE gates.
+No browser, native or final-wire assurance follows from those source reviews.
 
 ## Learning
+
+Recheck existing consent inside the deferred capability callback and after
+injected diagnostics that can themselves revoke it. An early admission read
+is not authorization for a later invocation; held work must settle without
+replay and without being counted as dispatched. The downstream transport still
+owns authorization at its actual send if it performs more asynchronous work.
+See [the recorded learning](../memory/learnings.md#deferred-capability-calls-need-a-fresh-consent-check).
 
 ## Main recheck
 

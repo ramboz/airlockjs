@@ -179,3 +179,6 @@ The single approved no-work local control on2026-10-26 failed before START becau
 
 ## Transport-only preflight should not load product modules
 The fixed local fixture catalogue drifted when adapter imports changed. Independently traverse served imports and retain main/worker multiplicities. Updating the catalogue alone exceeded the unchanged request budget because transport-only preflight loaded the product graph. Use a fixed inert preflight page with strict phase admission, while retaining full product/error graph observations and all resource limits. Controlled Node HTTP tests do not establish actual browser loading, native compatibility or performance. See [bug 002](../bugs/002-local-fixture-import-closure.md).
+
+## Deferred capability calls need a fresh consent check
+A consent read before a Promise continuation is not authorization for the later capability invocation. Reapply the existing purpose and personalization policy inside the callback, including after injected diagnostics that can revoke consent. Count actual capability invocations, keep held requests settled without replay, and distinguish already-issued work. This host-side check cannot authorize final wire inside a separately asynchronous downstream transport. See [bug 003](../bugs/003-shared-host-live-consent.md).

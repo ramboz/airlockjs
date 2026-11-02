@@ -683,8 +683,16 @@ the two corrected fixture files and frozen contract guards: all 331 tests across
 the isolated locked tool installation and unchanged config. These are local
 Node/fake-transport/loopback results, not browser/native/performance evidence.
 
-Bug 003 remains FIXING for fresh independent Sol bug, craft and security
-reviews, normal green REVIEWED, original-repro VERIFIED and learning-backed
-DONE. It has a real fresh-main reproduction and no workflow exception.
+Fresh Sol craft and security reviews passed the source at `601b1af`. The first
+bug-review pass requested an accurate broker-coverage attribution, not a source
+change. The coordinator corrected the record, ran the actual two broker test
+files (16 passed), and the same independent reviewer passed the doc-only
+correction at `e3b2c6e`. The extra tests validate the unchanged broker itself;
+they are not composed host/broker consent proof. Security was heuristic static
+inspection, no scanner and no reportable findings.
+
+Normal green REVIEWED and original-repro VERIFIED transitions then passed.
+Actual verdicts and the learning are recorded before the remaining normal
+DONE gate. The bug has a real fresh-main reproduction and no workflow exception.
 The source/real-browser pin mismatch, supervised-only loss mode and full Meta
 case qualifications remain separate; no browser, SDK or vendor job is admitted.
