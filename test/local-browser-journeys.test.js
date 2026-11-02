@@ -82,6 +82,18 @@ describe("fixed fixture source and REAL Node HTTP only — NOT browser/worker qu
 
   it("serves two fixed pages and the entire actual adapter/module-worker import closure", async () => {
     const fixture = await start();
+    const control = await get(fixture.origin, "/preflight");
+    expect(control.status).toBe(200);
+    expect(control.headers["content-type"]).toBe("text/html; charset=utf-8");
+    expect(control.headers["cache-control"]).toBe("no-store");
+    expect(control.headers["x-content-type-options"]).toBe("nosniff");
+    expect(control.headers["content-security-policy"]).toContain("connect-src 'self'");
+    expect(control.body).not.toMatch(/<script|<iframe|<img|<link|\bon\w+\s*=|Worker\s*\(/i);
+    expect(fixture.pageManifest.find((row) => row.path === "/preflight")).toEqual({
+      path: "/preflight", bytes: Buffer.byteLength(control.body),
+      sha256: createHash("sha256").update(control.body).digest("hex"),
+    });
+    expect(fixture.pageManifest.map((row) => row.path).sort()).toEqual(["/google", "/meta", "/preflight"]);
     const discovered = new Set();
     const pending = [];
     for (const vendor of ["meta", "google"]) {
@@ -172,7 +184,7 @@ describe("fixed fixture source and REAL Node HTTP only — NOT browser/worker qu
   it("refuses unknown paths, queries, aliases, traversal, methods, foreign Host/Origin and request/header/body overflow", async () => {
     const fixture = await start();
     for (const path of [
-      "/", "/favicon.ico", "/meta/", "/google/", "/meta?x=1", "/google?",
+      "/", "/favicon.ico", "/meta/", "/google/", "/preflight/", "/preflight?x=1", "/meta?x=1", "/google?",
       "/rig/local-browser-journeys-meta.js?v=1", "/adapters/eds/index.js",
       "/core/query-params.js", "/tr", "/tr/?", "/pagead/conversion/123/",
       "/control/meta/release", "/%6deta", "//meta", "/rig/../meta",

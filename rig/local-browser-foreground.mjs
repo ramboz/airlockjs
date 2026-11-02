@@ -38,6 +38,12 @@ const COMMON = [
   "/core/wrapped-sdk-host.js", "/core/endpoint-ceiling.js", "/core/config-integrity.js",
   "/core/consent.js", "/core/payload-governance.js", "/core/cookie-scope.js",
 ];
+const SHARED_VENDOR_SOURCES = {
+  meta: ["pageview-data", "event-options", "synthetic-identity", "agent-options"]
+    .map((name) => `/connectors/meta-pixel/${name}.js`),
+  google: ["destination-selectors", "consent-commands", "bootstrap-command", "purchase-cart-items",
+    "remarketing-control", "view-items"].map((name) => `/connectors/google-ads/${name}.js`),
+};
 const workerPath = (vendor) => vendor === "meta"
   ? "/connectors/meta-pixel/pageview-prototype.worker.js"
   : "/connectors/google-ads/conversion-prototype.worker.js";
@@ -96,18 +102,20 @@ export function assertForegroundReceipts(vendor, rows, statuses = [200, 200]) {
   });
 }
 
-export function checkForegroundRequest(fixture, vendor, input) {
+export function checkForegroundRequest(fixture, vendor, input, mode) {
   requireFact(vendor === "meta" || vendor === "google", "fixed-vendor-required");
+  requireFact(["preflight", "product", "failure"].includes(mode), "fixed-mode-required");
   requireFact(/^http:\/\/127\.0\.0\.1:[1-9]\d{0,4}$/.test(fixture.origin), "fixture-origin");
   requireFact(typeof input.url === "string" && Buffer.byteLength(input.url) <= LIMITS.urlBytes &&
     input.method === "GET" && input.bodyBytes === 0 &&
     Number.isInteger(input.headerBytes) && input.headerBytes >= 0 &&
     input.headerBytes <= LIMITS.requestBytes, "request-bounds");
-  if (input.url === `${fixture.origin}/${vendor}` && input.resourceType === "document") return "document";
-  if (fixture.sourceManifest.some(({ path }) => input.url === `${fixture.origin}${path}`) &&
+  const documentPath = mode === "preflight" ? "/preflight" : `/${vendor}`;
+  if (input.url === `${fixture.origin}${documentPath}` && input.resourceType === "document") return "document";
+  if (mode !== "preflight" && fixture.sourceManifest.some(({ path }) => input.url === `${fixture.origin}${path}`) &&
       input.resourceType === "script") return "asset";
   if (["fetch", "xhr"].includes(input.resourceType) &&
-      [false, true].some((second) =>
+      (mode === "preflight" ? [false] : [false, true]).some((second) =>
         input.url === `${fixture.origin}${receiverPath(vendor)}?${queryFor(vendor, second)}`)) return "measurement";
   throw new Error("request-outside-fixed-manifest");
 }
@@ -257,7 +265,7 @@ async function runVendor(vendor, interruption, ownedProfiles) {
     const entry = acquire("fixture", () => startLocalBrowserJourneys());
     const fixture = await bounded(() => entry.promise, "fixture-start", 2500);
     const hashes = [...fixture.pageManifest, ...fixture.sourceManifest];
-    requireFact(hashes.length === 20 && hashes.every((row) => row.bytes <= LIMITS.responseBytes &&
+    requireFact(hashes.length === 32 && hashes.every((row) => row.bytes <= LIMITS.responseBytes &&
       /^[a-f0-9]{64}$/.test(row.sha256)), "source-manifest");
     retainedBytes += hashes.reduce((sum, row) => sum + row.bytes, 0);
     requireFact(retainedBytes <= LIMITS.retainedBytes, "retention-limit");
@@ -266,6 +274,7 @@ async function runVendor(vendor, interruption, ownedProfiles) {
     return entry;
   }
   async function pageFor(browser, fixture, mode) {
+    const documentPath = mode === "preflight" ? "/preflight" : `/${vendor}`;
     receiverFixtures.set(mode, fixture);
     const contextEntry = acquire("context", () => browser.newContext({ serviceWorkers: "block" }));
     const context = await bounded(() => contextEntry.promise, "context-start");
@@ -285,7 +294,7 @@ async function runVendor(vendor, interruption, ownedProfiles) {
       page.on("download", () => fail("unexpected-download"));
       page.on("frameattached", () => fail("unexpected-frame"));
       page.on("framenavigated", (frame) => {
-        if (frame !== page.mainFrame() || frame.url() !== `${fixture.origin}/${vendor}`) fail("unexpected-navigation");
+        if (frame !== page.mainFrame() || frame.url() !== `${fixture.origin}${documentPath}`) fail("unexpected-navigation");
       });
       page.on("websocket", () => fail("unexpected-websocket"));
       page.on("worker", (worker) => {
@@ -317,7 +326,7 @@ async function runVendor(vendor, interruption, ownedProfiles) {
           url: request.url(), method: request.method(), bodyBytes: request.postDataBuffer()?.length || 0,
           headerBytes: Buffer.byteLength(headers.map(({ name, value }) => `${name}: ${value}\r\n`).join("")),
           resourceType: request.resourceType(),
-        });
+        }, mode);
         requireFact(headers.length <= 64, "request-header-count");
         const document = { url: request.url(), method: request.method(),
           resourceType: request.resourceType(), headers, bodyBytes: request.postDataBuffer()?.length || 0 };
@@ -395,15 +404,17 @@ async function runVendor(vendor, interruption, ownedProfiles) {
     await bounded(() => context.grantPermissions(["local-network-access"], { origin: fixture.origin }), "local-permission");
     const page = await bounded(() => context.newPage(), "page-start");
     requireFact(state.page === page, "unobserved-page");
-    await bounded(() => page.goto(`${fixture.origin}/${vendor}`, {
+    await bounded(() => page.goto(`${fixture.origin}${documentPath}`, {
       waitUntil: "load", timeout: Math.min(5000, Math.max(1, cutoff - performance.now())),
     }), "page-load");
-    await bounded(() => page.waitForFunction(() =>
-      typeof window.getJourneyState === "function" && typeof window.beginNegativeControls === "function" &&
-      typeof window.beginPositiveControls === "function" && typeof window.finishJourney === "function",
-    null, { timeout: Math.min(3000, Math.max(1, cutoff - performance.now())) }), "controller-ready");
-    requireFact((await bounded(() => page.evaluate(() => window.getJourneyState()), "controller-idle")).phase === "not-started",
-      "controller-not-idle");
+    if (mode !== "preflight") {
+      await bounded(() => page.waitForFunction(() =>
+        typeof window.getJourneyState === "function" && typeof window.beginNegativeControls === "function" &&
+        typeof window.beginPositiveControls === "function" && typeof window.finishJourney === "function",
+      null, { timeout: Math.min(3000, Math.max(1, cutoff - performance.now())) }), "controller-ready");
+      requireFact((await bounded(() => page.evaluate(() => window.getJourneyState()), "controller-idle")).phase === "not-started",
+        "controller-not-idle");
+    }
     return { contextEntry, state, page };
   }
   async function closePhase(fixtureEntry, pageState) {
@@ -431,10 +442,11 @@ async function runVendor(vendor, interruption, ownedProfiles) {
       ...COMMON, `/rig/local-browser-journeys-${vendor}.js`, `/adapters/${vendor === "meta" ? "meta-pixel" : "google-ads"}-prototype.js`,
       workerPath(vendor), vendor === "meta"
         ? "/connectors/meta-pixel/pageview-prototype.js" : "/connectors/google-ads/conversion-prototype.js",
-      ...(vendor === "meta" ? ["/connectors/pixel/vendors/meta.js"] : []),
+      ...(vendor === "meta" ? ["/connectors/pixel/vendors/meta.js", "/connectors/pixel/advanced-matching.js"] : []),
+      ...SHARED_VENDOR_SOURCES[vendor], ...SHARED_VENDOR_SOURCES[vendor],
     ];
     const actual = requests.filter((row) => row.mode === pageState.state.mode && row.kind === "asset").map((row) => row.path);
-    requireFact(equal([...new Set(actual)].sort(), expected.sort()) && actual.length === expected.length, "loaded-source-closure");
+    requireFact(equal(actual.sort(), expected.sort()), "loaded-source-closure");
   }
   async function beginPositive(pageState) {
     pageState.state.positive = true;
@@ -514,6 +526,10 @@ async function runVendor(vendor, interruption, ownedProfiles) {
     controls.bypassNewArrivals = fixture.getReceiverArrivals(vendor).length - controls.allowedArrivals;
     requireFact(controls.allowedArrivals === 1 && controls.enforcedNewArrivals === 0 &&
       controls.bypassNewArrivals === 1 && preflight.state.measurements === 3, "receiving-controls");
+    requireFact(preflight.state.documents === 1 && !preflight.state.worker &&
+      !workers.some((worker) => worker.mode === "preflight") &&
+      requests.filter((row) => row.mode === "preflight").every((row) =>
+        row.kind === "document" || row.kind === "measurement"), "preflight-product-activity");
     assertForegroundReceipts(vendor, fixture.getReceiverArrivals(vendor).slice(0, 1), [200]);
     const bypass = fixture.getReceiverArrivals(vendor)[1];
     assertForegroundReceipts(vendor, [bypass], [200]);

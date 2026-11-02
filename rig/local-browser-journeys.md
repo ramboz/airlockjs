@@ -1,14 +1,17 @@
 # Fixed local journey source fixtures
 
-This prepares two SDK-free pages and a bounded localhost receiver. It is **not a
+This prepares two SDK-free product pages, an inert control page and a bounded
+localhost receiver. It is **not a
 browser runner, execution approval or browser/worker qualification**. This
 helper itself never acquires a browser; its Node HTTP tests are not browser
 evidence. The separately approved, owner-supervised
-[foreground procedure](local-browser-foreground.md) now supplies actual
+[foreground procedure](local-browser-foreground.md) supplied historical
 Chrome156.0.8078.48 local-worker evidence for both060-14 and059-20, including
 independent receivers, controls and normal owned cleanup. This is one
 explicit-empty200 cohort, not native204 compatibility or unattended shutdown.
-Three earlier failed attempts and frozen evidence remain unchanged.
+Three earlier failed attempts and frozen evidence remain unchanged. The later
+source-closure and preflight correction has not been run in a real browser and
+does not inherit that cohort's qualification.
 
 ## Source/local HTTP API
 
@@ -30,10 +33,12 @@ try {
 }
 ```
 
-Only `/meta`, `/google` and the explicitly listed transitive JS source modules
-are served, using GET, no-store, nosniff and restrictive same-origin script/
-worker/connect CSP. Source and generated-page SHA-256 manifests describe the
-exact served bytes; cached source bytes do not change after listening.
+Only `/preflight`, `/meta`, `/google` and the explicitly listed transitive JS
+source modules are served, using GET, no-store, nosniff and restrictive
+same-origin script/worker/connect CSP. `/preflight` is an inert document with no
+product controller, scripts or worker. Source and generated-page SHA-256
+manifests describe the exact served bytes; cached source bytes do not change
+after listening.
 Only `/tr/?…` and `/pagead/conversion/0000000000/?…` accept queries, in canonical
 prototype field order/encoding with the fixed synthetic values in the controllers.
 Unknown paths, aliases, extra fields, foreign Host/Origin, non-GET and bodies are

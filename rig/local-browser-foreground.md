@@ -7,7 +7,7 @@ issuance; tests of this module do **not** issue it or launch Chrome.
 
 ## Current owner-selected acknowledgment
 
-**Actual outcome:** the one separately approved EOF sequence passed both real
+**Historical outcome:** the one separately approved EOF sequence passed both real
 local browser journeys on Chrome156.0.8078.48. Meta received two distinct local
 PageViews and Google two distinct conversions, with actual module workers,
 zero-send consent controls, held-response barrier and held503 failure.
@@ -28,6 +28,12 @@ All network-failure checks remain fatal. A witnessed pending-versus-headers RED
 and55 offline controls support only this completion-contract correction;
 the browser's internal abort cause is not established by this one successful
 cohort. It demonstrates the corrected local sequence, not a universal browser fix.
+
+The later source-closure correction uses a separate inert `/preflight` document
+and updated exact module expectations. It has only controlled-event and Node
+HTTP evidence. The historical Chrome cohort does not qualify these changed
+sources. The configured Chrome pin remains `156.0.8078.48`; the coordinator
+reported an installed `.76` during this correction, without launching it.
 
 After the separately approved corrected attempt still failed on
 `net::ERR_ABORTED` despite page Fetch204 and recorded empty framing, the present
@@ -121,7 +127,8 @@ output cannot attest to its own future exit.
   serve actual fixture assets, never fulfill substitutes. Block service workers,
   WebSockets, unexpected frames/pages, unknown resources and all external URLs.
   Grant local-network access only for the current fixture origin.
-- On the first fresh fixture/context, leave the controller idle. Send a fixed
+- On the first fresh fixture/context, load the fixed inert `/preflight` page.
+  Product pages, scripts and workers are rejected in this phase. Send a fixed
   canonical synthetic query with page Fetch to the **actual HTTP receiver**:
   hold/release one positive, enforce an exact local abort and independently
   observe zero new arrivals, then remove only that denial and observe one
@@ -148,6 +155,9 @@ requests, 8 measurement attempts, 8192 URL bytes, 64 KiB request/header bytes,
 sequence has 7 measurement attempts: 2 preflight receipts + 1 preflight abort,
 2 product receipts, 1 error receipt + 1 error-control abort. Overruns, missing
 observations and unknown surfaces fail; no counter or HTTP status alone passes.
+The controlled-event tests count 56 Meta and 60 Google requests under these
+limits. They model separate main and worker module requests; they do not
+measure Chrome caching or establish the counts of a future browser run.
 
 ## Scope and stop
 

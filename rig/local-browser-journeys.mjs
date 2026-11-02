@@ -11,9 +11,20 @@ const SOURCE_PATHS = [
   "/adapters/google-ads-prototype.js",
   "/connectors/meta-pixel/pageview-prototype.worker.js",
   "/connectors/meta-pixel/pageview-prototype.js",
+  "/connectors/meta-pixel/pageview-data.js",
+  "/connectors/meta-pixel/event-options.js",
+  "/connectors/meta-pixel/synthetic-identity.js",
+  "/connectors/meta-pixel/agent-options.js",
+  "/connectors/pixel/advanced-matching.js",
   "/connectors/pixel/vendors/meta.js",
   "/connectors/google-ads/conversion-prototype.worker.js",
   "/connectors/google-ads/conversion-prototype.js",
+  "/connectors/google-ads/destination-selectors.js",
+  "/connectors/google-ads/consent-commands.js",
+  "/connectors/google-ads/bootstrap-command.js",
+  "/connectors/google-ads/purchase-cart-items.js",
+  "/connectors/google-ads/remarketing-control.js",
+  "/connectors/google-ads/view-items.js",
   "/core/confine-pixel-chamber.js",
   "/core/egress-confinement.js",
   "/core/connector-host.js",
@@ -77,7 +88,10 @@ export async function startLocalBrowserJourneys() {
   const sources = new Map(await Promise.all(SOURCE_PATHS.map(async (path) => [
     path, await readFile(new URL(`..${path}`, import.meta.url)),
   ])));
-  const pages = new Map([["/meta", page("meta")], ["/google", page("google")]]);
+  const pages = new Map([
+    ["/preflight", Buffer.from("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Local transport control</title></head><body></body></html>")],
+    ["/meta", page("meta")], ["/google", page("google")],
+  ]);
   const bytes = [...sources.values(), ...pages.values()];
   let retainedBytes = bytes.reduce((total, buffer) => total + buffer.length, 0);
   if (bytes.some((buffer) => buffer.length > LIMITS.responseBytes) || retainedBytes > LIMITS.retainedBytes) {

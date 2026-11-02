@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 import { request as httpRequest } from "node:http";
+import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -98,13 +99,30 @@ describe("foreground source-only receipt and route checks — NOT browser qualif
   it("permits only literal current-fixture GET resources and canonical measurements", () => {
     const fixture = { origin, sourceManifest: [{ path: "/fixed.js" }], pageManifest: [{ path: "/meta" }] };
     const input = { url: `${origin}/fixed.js`, method: "GET", bodyBytes: 0, headerBytes: 100, resourceType: "script" };
-    expect(checkForegroundRequest(fixture, "meta", input)).toBe("asset");
+    expect(checkForegroundRequest(fixture, "meta", input, "product")).toBe("asset");
     expect(checkForegroundRequest(fixture, "meta", {
       ...input, url: `${origin}/meta`, resourceType: "document",
-    })).toBe("document");
+    }, "product")).toBe("document");
     expect(checkForegroundRequest(fixture, "meta", {
       ...input, url: `${origin}/tr/?${rows("meta")[0].query}`, resourceType: "fetch",
-    })).toBe("measurement");
+    }, "preflight")).toBe("measurement");
+    expect(checkForegroundRequest(fixture, "meta", {
+      ...input, url: `${origin}/preflight`, resourceType: "document",
+    }, "preflight")).toBe("document");
+    for (const patch of [
+      input,
+      { ...input, url: `${origin}/meta`, resourceType: "document" },
+      { ...input, url: `${origin}/google`, resourceType: "document" },
+      { ...input, url: `${origin}/preflight`, resourceType: "script" },
+      { ...input, url: `${origin}/tr/?${rows("meta")[1].query}`, resourceType: "fetch" },
+    ]) expect(() => checkForegroundRequest(fixture, "meta", patch, "preflight")).toThrow();
+    expect(() => checkForegroundRequest(fixture, "meta", {
+      ...input, url: `${origin}/preflight`, resourceType: "document",
+    }, "product")).toThrow();
+    expect(() => checkForegroundRequest(fixture, "meta", {
+      ...input, url: `${origin}/preflight`, resourceType: "document",
+    }, "failure")).toThrow();
+    expect(() => checkForegroundRequest(fixture, "meta", input, "unknown")).toThrow();
     for (const patch of [
       { url: "https://example.test/fixed.js" }, { url: "http://localhost:43111/fixed.js" },
       { url: `${origin}/unknown` }, { url: `${origin}/fixed.js?v=1` },
@@ -112,7 +130,7 @@ describe("foreground source-only receipt and route checks — NOT browser qualif
       { method: "POST" }, { bodyBytes: 1 }, { bodyBytes: 65537 }, { headerBytes: 65537 },
       { resourceType: "websocket" }, { url: `${origin}/${"x".repeat(8192)}` },
       { url: `${origin}/tr/?id=000000000000000`, resourceType: "fetch" },
-    ]) expect(() => checkForegroundRequest(fixture, "meta", { ...input, ...patch })).toThrow();
+    ]) expect(() => checkForegroundRequest(fixture, "meta", { ...input, ...patch }, "product")).toThrow();
   });
 });
 
@@ -124,19 +142,51 @@ afterEach(async () => {
   vi.unstubAllGlobals();
   await Promise.all(openFixtures.splice(0).map((fixture) => fixture.close()));
 });
+const sharedVendorSources = (vendor) => vendor === "meta"
+  ? ["pageview-data", "event-options", "synthetic-identity", "agent-options"]
+    .map((name) => `/connectors/meta-pixel/${name}.js`)
+  : ["destination-selectors", "consent-commands", "bootstrap-command", "purchase-cart-items",
+    "remarketing-control", "view-items"].map((name) => `/connectors/google-ads/${name}.js`);
 const mainSources = (vendor) => [
   `/rig/local-browser-journeys-${vendor}.js`,
   `/adapters/${vendor === "meta" ? "meta-pixel" : "google-ads"}-prototype.js`,
   ...["wrapped-sdk-host", "endpoint-ceiling", "config-integrity", "consent", "payload-governance", "cookie-scope"]
     .map((name) => `/core/${name}.js`),
+  ...sharedVendorSources(vendor),
 ];
 const workerSources = (vendor) => [
   ...["confine-pixel-chamber", "egress-confinement", "connector-host"].map((name) => `/core/${name}.js`),
   ...(vendor === "meta" ? [
     "/connectors/meta-pixel/pageview-prototype.worker.js", "/connectors/meta-pixel/pageview-prototype.js",
-    "/connectors/pixel/vendors/meta.js",
+    "/connectors/pixel/vendors/meta.js", "/connectors/pixel/advanced-matching.js",
   ] : ["/connectors/google-ads/conversion-prototype.worker.js", "/connectors/google-ads/conversion-prototype.js"]),
+  ...sharedVendorSources(vendor),
 ];
+
+async function actualImports(start) {
+  const found = new Set();
+  const pending = [start];
+  while (pending.length) {
+    const path = pending.shift();
+    if (found.has(path)) continue;
+    found.add(path);
+    const source = await readFile(new URL(`..${path}`, import.meta.url), "utf8");
+    for (const [, specifier] of source.matchAll(/^\s*import\s+(?:[^;"']+?\s+from\s+)?["']([^"']+)["']/gm)) {
+      expect(specifier).toMatch(/^\.\.?\//);
+      pending.push(new URL(specifier, `${origin}${path}`).pathname);
+    }
+  }
+  return [...found].sort();
+}
+
+it.each(["meta", "google"])("controlled %s source events match actual main and worker imports independently", async (vendor) => {
+  const adapter = `/adapters/${vendor === "meta" ? "meta-pixel" : "google-ads"}-prototype.js`;
+  const source = await readFile(new URL(`..${adapter}`, import.meta.url), "utf8");
+  const [, worker] = source.match(/new Worker\(new URL\(["']([^"']+)["'], import\.meta\.url\)/);
+  const workerURL = new URL(worker, `${origin}${adapter}`).pathname;
+  expect([...mainSources(vendor)].sort()).toEqual(await actualImports(`/rig/local-browser-journeys-${vendor}.js`));
+  expect([...workerSources(vendor)].sort()).toEqual(await actualImports(workerURL));
+});
 
 // Controlled browser/worker EVENTS, never browser execution. Requests below use
 // actual Node HTTP against the unmodified literal-loopback fixture/receiver.
@@ -241,8 +291,18 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
         vi.spyOn(performance, "now").mockReturnValue(afterCutoff);
       }
       await this.context.send(url, "document");
-      for (const path of mainSources(this.vendor)) await this.context.send(`${this.origin}${path}`, "script");
-      if (fault === "request-count") {
+      if (this.context.mode === "preflight") {
+        if (fault === "preflight-source") await this.context.send(`${this.origin}/adapters/meta-pixel-prototype.js`, "script");
+        if (fault === "preflight-document") await this.context.send(`${this.origin}/meta`, "document");
+        if (fault === "preflight-worker") {
+          const worker = new EventEmitter();
+          worker.url = () => `${this.origin}/connectors/meta-pixel/pageview-prototype.worker.js`;
+          this.emit("worker", worker);
+        }
+      } else {
+        for (const path of mainSources(this.vendor)) await this.context.send(`${this.origin}${path}`, "script");
+      }
+      if (fault === "request-count" && this.context.mode === "product") {
         for (let index = 0; index < 70; index += 1) {
           await this.context.send(`${this.origin}/core/wrapped-sdk-host.js`, "script");
         }
@@ -270,7 +330,10 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
         this.worker = new EventEmitter();
         this.worker.url = () => `${this.origin}${workerSources(this.vendor)[3]}`;
         if (fault !== "missing-worker") this.emit("worker", this.worker);
-        for (const path of workerSources(this.vendor)) await this.context.send(`${this.origin}${path}`, "script");
+        const paths = workerSources(this.vendor);
+        if (fault === "missing-source") paths.pop();
+        if (fault === "duplicate-source") paths.push(paths.at(-1));
+        for (const path of paths) await this.context.send(`${this.origin}${path}`, "script");
         this.journey = {
           ...this.journey, phase: "negative-controls-complete", disposal: "pending",
           controls: { pendingDispatchAttempts: 0, deniedDispatchAttempts: 0, grantWithoutCommandDispatchAttempts: 0 },
@@ -406,6 +469,10 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
     const result = await runLocalBrowserForeground();
     expect(result.normalJourneyChecks).toBe("PASS");
     expect(result).toMatchObject({ overall: "INCONCLUSIVE", fullCompatibility: false, interruptionLossQualification: false });
+    expect(result.limits).toEqual({
+      intervalMs: 60000, workMs: 50000, launchMs: 10000, requests: 64,
+      measurements: 8, urlBytes: 8192, requestBytes: 65536, responseBytes: 2097152, retainedBytes: 8388608,
+    });
     expect(result.vendors.map((vendor) => vendor.vendor)).toEqual(["meta", "google"]);
     for (const vendor of result.vendors) {
       expect(vendor.errors).toEqual([]);
@@ -414,8 +481,13 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
         governedZeroArrivals: true, responseBarrier: true, held503FailedWithout2xx: true,
       });
       expect(vendor.counts.measurementAttempts).toBe(7);
-      expect(vendor.counts.observedRequests).toBeLessThanOrEqual(64);
+      expect(vendor.counts.observedRequests).toBe(vendor.vendor === "meta" ? 56 : 60);
       expect(vendor.counts.retainedBytes).toBeLessThanOrEqual(8388608);
+      expect(vendor.sourceHashes.fixture).toHaveLength(32);
+      const preflight = vendor.privateEvidence.requests.filter((row) => row.mode === "preflight");
+      expect(preflight.map((row) => row.kind)).toEqual(["document", "measurement", "measurement", "measurement"]);
+      expect(preflight[0]).toMatchObject({ path: "/preflight", bodyChecked: true });
+      expect(vendor.privateEvidence.workers.every((worker) => worker.mode !== "preflight")).toBe(true);
       expect(vendor.cleanup).toMatchObject({
         contexts: [true, true, true], fixtures: [true, true, true], profileAbsent: true,
         workersClosed: true, normalNonsignalExit: true, serverCloseEvent: true, serverCloseResolved: true,
@@ -445,11 +517,14 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
     expect(fake.log.filter(([event]) => event === "new-context").every(([, options]) =>
       options.serviceWorkers === "block")).toBe(true);
     const gotos = fake.log.filter(([event]) => event === "goto");
-    expect(gotos.map(([, vendor]) => vendor)).toEqual(["meta", "meta", "meta", "google", "google", "google"]);
+    expect(gotos.map(([, vendor]) => vendor)).toEqual(["preflight", "meta", "meta", "preflight", "google", "google"]);
   });
 
   it.each([
     ["source-substitution", "served-source-identity"], ["version", "browser-version-mismatch"],
+    ["preflight-source", "request-outside-fixed-manifest"], ["preflight-document", "request-outside-fixed-manifest"],
+    ["preflight-worker", "unexpected-worker"], ["missing-source", "loaded-source-closure"],
+    ["duplicate-source", "loaded-source-closure"],
     ["foreign-endpoint", "owned-browser-endpoint"], ["missing-worker", "missing-worker-event"],
     ["empty-result", "negative-controls-not-zero"], ["profile-present", "profile-disposition"],
     ["context-close", "context-close-failed"], ["websocket", "unexpected-websocket"],
@@ -467,7 +542,10 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
     expect(result.vendors[0].fullCompatibility).toBe(false);
     expect(fake.launch).toHaveBeenCalledOnce();
     expect(fake.servers[0].close).toHaveBeenCalledOnce();
-    if (fault === "request-count") expect(result.vendors[0].counts.observedRequests).toBe(65);
+    if (fault === "request-count") {
+      expect(result.vendors[0].counts.observedRequests).toBe(65);
+      expect(result.vendors[0].privateEvidence.requests.at(-1).mode).toBe("product");
+    }
     if (fault === "work-cutoff") expect(result.vendors[0].elapsedMs).toBeLessThan(60000);
     if (fault === "loading-failure-200") expect(result.vendors[0].privateEvidence.requests.at(-1))
       .toMatchObject({ status: 200, failureCode: "net::ERR_ABORTED" });

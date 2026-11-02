@@ -108,23 +108,27 @@ operator documents describe the fixture and its evidence boundaries.
 
 **Reuse decision:** Preserve the existing fixed catalogue, separate
 foreground expectations, and independent traversal. Do not add a dynamic
-static root or runtime import discovery. A provisional correction was tested
-and then removed from the worktree because the existing request limit blocks
-the controlled foreground sequence. The experimental patch is retained in
-the session artifact `bug-002-provisional.patch`, not as a qualified fix.
+static root or runtime import discovery. The first provisional correction
+was removed after the controlled foreground sequence exceeded its request
+limit. Its experimental patch remains in the session artifact
+`bug-002-provisional.patch`, not as a qualified fix.
 
 ## Fix class
 
 `local_patch`: update the fixed fixture and its exact foreground expectations
-to match current imports, without introducing discovery or broadening policy.
+to match current imports. Separate transport-only preflight from product
+loading without introducing discovery or broadening policy.
 
 ## Fix
 
-Blocked. The exploratory patch added the 11 missing fixed source entries and
-adjusted the foreground manifest and controlled source events. The independent
-graph regression passed on that patch, but the controlled foreground sequence
-failed its unchanged global request limit. No source correction is retained
-in the worktree.
+The first exploratory patch added the 11 missing fixed source entries and
+adjusted foreground expectations, but failed the existing global request
+limit in controlled events. The coordinator then directed a fixed inert
+`/preflight` page for transport controls. Product and failure phases still
+load their vendor page, controller and full main/worker source multiset.
+Preflight admits its control page and canonical control request only. It
+rejects product assets, other documents and workers. Every observed request
+still counts and served bytes remain hash-checked. Limits remain unchanged.
 
 ## Call-site closure
 
@@ -132,12 +136,16 @@ in the worktree.
      in the inventory above as changed, tested, or intentionally left
      alone. Accounting, not mandatory widening. -->
 
-**Disposition per affected site:** The server catalogue, foreground exact
-source check, and controlled-event lists were modified only for the experiment,
-then restored; their correction is blocked. The independent HTTP graph test
-remained unchanged and passed against the experiment. Foreground request
-admission and response identity checks were not changed. The operator docs,
-historical slice records and product-readiness records remain unchanged.
+**Disposition per affected site:** The server catalogue now includes all 29
+actual graph modules and an inert page whose bytes are included in the page
+manifest. Foreground admission and navigation are phase-specific, its hash
+checks remain in place, and its exact product/worker source multiset is
+updated. Controlled-event lists match independent disk import traversal for
+each realm; tests reject preflight product activity, missing/extra source
+events and a 65th request in the admitted product phase. The independent HTTP
+graph traversal is preserved and also checks the inert page. Both operator
+docs describe the changed source and evidence limits. Historical slice and
+product-readiness records remain unchanged.
 
 ## Already tried
 
@@ -157,6 +165,9 @@ the `ROOT_CAUSED -> FIXING` invocation for this bug, using command-local
 other gate exceptions, or change the requirement for red/green evidence and
 later bug, craft and security reviews.
 
+The Sol coordinator subsequently directed the bounded inert-page correction.
+No second main-gate exception or other gate bypass was used.
+
 ## Regression test
 
 The existing graph traversal in `test/local-browser-journeys.test.js` is the
@@ -164,13 +175,15 @@ regression. The authorized command-local exception was used once on
 `bug.py transition 002 FIXING`; the helper witnessed red and stamped
 `red_confirmed_at`. With the experimental patch applied,
 `python3 /Users/ramboz/.copilot/installed-plugins/jig/jig/.github/skills/tdd-loop/tdd.py run . --test 'test/local-browser-journeys.test.js::serves two fixed pages and the entire actual adapter/module-worker import closure'`
-exited 0, with 1 passed and 11 skipped. The patch was then removed, so this is
-not a green result for the final worktree. `green_confirmed_at` remains empty.
+exited 0, with 1 passed and 11 skipped. That patch was then removed. The same
+helper command passed again on the current correction, 1 passed and
+11 skipped. The green review-transition stamp remains empty because
+independent reviews and `REVIEWED` have not been performed.
 
 ## Proof
 
-The current static source graph has 29 unique modules versus 18 in the fixed
-catalogue. The missing entries are five Meta and six Google modules. Each
+The current static source graph has 29 unique modules versus 18 in the
+original fixed catalogue. The missing entries were five Meta and six Google modules. Each
 vendor has 19 unique modules including the worker graph. Meta has 12 main
 and 11 worker modules with four shared paths; Google has 14 main and 11 worker
 modules with six shared paths. The combined module bytes are 276,517, with a
@@ -190,11 +203,31 @@ controlled-event counts, not a claim about actual Chrome's request behavior.
 `npm test -- --reporter=dot test/local-browser-foreground.test.js test/local-browser-journeys.test.js`
 against the provisional patch exited 1: 49 passed, 2 failed. Both failures
 were foreground success-path tests; the first exposed `request-count-limit`.
+On the current correction the same command exited 0: 58 passed in 2 files.
+The controlled model now counts 56 Meta and 60 Google requests, including
+all three documents and seven measurement attempts per vendor. The fixture
+manifest has 29 source and three page hashes. The request, byte, time and
+socket limits remain unchanged; retained bytes are checked against 8 MiB.
+The 65th-request mutation remains a failure in the product phase.
+
 `./node_modules/.bin/eslint rig/local-browser-journeys.mjs rig/local-browser-foreground.mjs test/local-browser-foreground.test.js`
-exited 127 because the local ESLint executable is missing. No tooling was
-installed. No limit, browser pin, transport policy, runtime mapping or API
-was changed. No browser, native SDK, vendor request or product qualification
-was performed. Bug, craft and security reviews remain pending after a
-legitimately unblocked fix.
+originally exited 127 because the local executable was missing. The three
+locked direct lint packages and their dependencies were installed in an
+isolated session directory with npm `--ignore-scripts`; all 70 installed
+package versions match versions in the repository lockfile. Lint ran from
+the project cwd on both rig modules and both tests, using a byte-identical
+copy of `eslint.config.js` (SHA-256
+`7ce029fcdae14afe0de4795ef21895b22fd44a9177dc86e553d587841b6ecfff`),
+and exited 0. No project manifest, lockfile or shared install was changed.
+The lint command was:
+
+```sh
+/Users/ramboz/.copilot/session-state/79d223bc-7914-4cc7-bbf6-41fe42244cdf/files/bug-002-lint/node_modules/.bin/eslint --config /Users/ramboz/.copilot/session-state/79d223bc-7914-4cc7-bbf6-41fe42244cdf/files/bug-002-lint/eslint.config.mjs rig/local-browser-journeys.mjs rig/local-browser-foreground.mjs test/local-browser-journeys.test.js test/local-browser-foreground.test.js
+```
+
+No limit, browser pin, transport policy, runtime mapping or frozen interface
+was changed. The controlled model is not a measurement of Chrome's loading
+or caching behavior. No browser, native SDK, vendor request or product
+qualification was performed. Bug, craft and security reviews remain pending.
 
 ## Learning
