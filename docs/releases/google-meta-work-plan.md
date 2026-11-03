@@ -850,3 +850,34 @@ All 39 integrated workspace hashes match. Its operation and limits equal the
 original proposal exactly. The .76 proposal, review and preflight refusal are
 preserved separately. Fresh independent Sol source/operational review is
 pending; execution and qualification remain false.
+
+### .80 review and current execution gate
+
+Fresh independent Sol review assessed checkpoint
+`77a82520ee1f34a1f05230346fd98ad82e80974d`. It found no source or
+operational defect but requested native reviewer-model provenance. The native
+task listing confirmed `gpt-6.1-sol` for that exact reviewer. A narrow fresh Sol
+supplement passed that evidence and resolved the sole process blocker without
+re-reviewing or changing source. Both explicit task pins and native routing
+metadata match Sol; no provider-side model/build attestation is claimed.
+The original verdict, provenance receipts and final supplement are preserved
+separately in private coordinator artifacts.
+
+The revised packet is eligible to request one supervised GO. Static preflight
+at 2026-11-03T00:49:01Z matched all 39 workspace hashes, Chrome .80 plist,
+Node24, Playwright and OS/kernel metadata on that clean checkpoint. This is
+source/metadata evidence only. Repeat those checks immediately before any
+separately admitted acquisition; stop on mismatch or unavailable observation.
+
+The clean finished Terra child had no automation. Its source and proposal were
+preserved before archival. Source-only preparation is complete, and hourly
+reporting is paused at the actual owner-input block. No browser, output/case
+slot, SDK or vendor traffic occurred.
+
+**Required decision:** actual owner presence, informed acceptance that
+agent-loss cleanup remains UNKNOWN, and one new finite GO for the reviewed
+.80 SDK-free localhost Meta-to-Google sequence. Keep the unchanged
+60s/vendor, 64-request/eight-attempt limits, independent completion/cleanup
+observations and stop-first-failure/no-retry rule. The aborted .76 approval is
+not reused. No Pixel confirmation, identifier, folder choice or generic
+evidence-bundle request is needed.
