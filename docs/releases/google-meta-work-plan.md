@@ -768,7 +768,7 @@ not independently qualified for unattended loss. Preparation chooses that
 existing bounded path; it does not create an unattended framework or infer
 execution permission from the Pixel confirmation/general continuation request.
 
-### Current execution gate
+### .76 source-only checkpoint
 
 The fresh non-executing source/cohort preflight at
 2026-11-02T23:29:22Z matched all 39 workspace hashes, the Chrome plist identity,
@@ -798,3 +798,32 @@ with their normal gates and independent Sol reviews, and the current-cohort
 source/case packet has a passing Sol operational review. The next input is
 the explicit supervised execution decision, not another Pixel confirmation,
 identifier, folder choice or generic evidence-bundle request.
+
+### Approved .76 attempt stopped before acquisition
+
+The owner subsequently replied "ok, do it" to that supervised one-attempt
+request. This supplied the informed finite GO for the reviewed .76 case;
+the earlier unavailable input tool is no longer the missing decision.
+
+Fresh preflight on clean `ec1dfa67b355dd2072392243c4310cd49bb86593`
+matched all 39 recorded workspace hashes, then stopped at the Chrome-version
+equality check. A separate metadata-only read found installed Chrome
+156.0.8078.80, bundle 8078.80, instead of reviewed 156.0.8078.76.
+No browser was acquired, foreground entry issued, output/case slot reserved
+or vendor request sent. This was a pre-acquisition refusal, not a measured
+browser failure. No physical case ran and no retry was issued.
+
+Under the standing offline-continuation request, fresh coordinated Terra
+child `89e4fda4-482d-4d4f-b32c-7ef781148740` starts from that exact
+checkpoint for a source-only .80 refresh. Its ownership is limited to the
+foreground version literal, independent controlled tests and operator guide,
+plus a new private proposal. The .76 proposal and review remain preserved.
+The coordinator owns integration and a fresh independent Sol operational
+review. All guards, limits, routes, observations and cleanup duties stay
+unchanged. The old GO does not authorize running the revised cohort.
+
+Hourly reporting-only updates are restored during this preparation.
+The revised case needs a passing source/operational review and a fresh
+finite supervised execution decision. Pixel availability, its private binding
+and the working-folder choice remain supplied and are irrelevant to this
+synthetic-only procedure.
