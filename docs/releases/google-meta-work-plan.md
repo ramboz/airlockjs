@@ -827,3 +827,26 @@ The revised case needs a passing source/operational review and a fresh
 finite supervised execution decision. Pixel availability, its private binding
 and the working-folder choice remain supplied and are irrelevant to this
 synthetic-only procedure.
+
+### .80 source handoff
+
+The Terra child delivered clean source commit
+`1851836eb3e8b0b549d4685eaccfde515d187f14`, integrated as
+`5a08ca28ee9abcc899bc361aeecaf957d3369d15`.
+The production diff is exactly the static .76-to-.80 version literal.
+Controlled tests independently accept .80 and reject .48, .76 and an unrelated
+version. The operator guide preserves the historical/source-only distinction
+and does not carry the aborted case's approval forward.
+
+The coordinator independently passed the complete two-file controlled
+selection under explicit Node24: 61 passed, zero skipped. Targeted lint passed
+with isolated locked tools and the unchanged config. Temporary tool links were
+removed; no package manifest, lockfile or shared installation changed.
+These remain Node/fake-browser/loopback results, with no Chrome acquisition.
+
+The new proposal is preserved byte-identically in private coordinator artifacts,
+SHA-256 `98a356de42c1791b8a774decc73a974d72bbd9c3384ebaf70dc416553dfcc78b`.
+All 39 integrated workspace hashes match. Its operation and limits equal the
+original proposal exactly. The .76 proposal, review and preflight refusal are
+preserved separately. Fresh independent Sol source/operational review is
+pending; execution and qualification remain false.
