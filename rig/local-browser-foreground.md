@@ -5,10 +5,15 @@ the existing first-party fixtures. It does not qualify native compatibility or
 unattended shutdown. Source/operational review and a separate owner decision
 must precede any issuance; tests of this module do **not** issue it or launch Chrome.
 
-The static browser selection is now `156.0.8078.76`, based on installed Chrome
+The static browser selection is now `156.0.8078.80`, based on installed Chrome
 plist metadata only. This source-only preparation is not a browser run,
 qualification or execution grant. Owner presence, acceptance of agent-loss
 cleanup as UNKNOWN, and final finite admission remain pending.
+
+The `.76` source-only proposal was reviewed separately. Its supervised attempt
+stopped at external preflight because the installed Chrome metadata had changed
+to `.80`, before browser acquisition or output allocation. That approval does
+not authorize this revised case. The `.48` browser observations remain historical.
 
 ## Current owner-selected acknowledgment
 
@@ -111,7 +116,7 @@ checkpoints and actual request/response/worker observations, not just counters.
 There is no output-path option. Do not pipe through an uploader or retry a
 failed/nonempty run.
 
-The proposed entry selects Chrome **156.0.8078.76**, headed, through unchanged
+The proposed entry selects Chrome **156.0.8078.80**, headed, through unchanged
 `rig/qualification-loopback-chrome` and its exact existing Seatbelt policy.
 The installed plist is metadata, not proof of the launched binary's version.
 The procedure rejects a different browser-reported version before navigation.
@@ -191,11 +196,12 @@ after loss of the producer. Do not inject browser-loss/TERM experiments here.
 Offline checks only:
 
 ```sh
-/opt/homebrew/Cellar/node/24.10.0/bin/node <resolved-vitest-cli> run test/local-browser-foreground.test.js test/local-browser-journeys.test.js -t '^(?!.*serializes one JSON artifact)'
+/opt/homebrew/Cellar/node/24.10.0/bin/node <resolved-vitest-cli> run test/local-browser-foreground.test.js test/local-browser-journeys.test.js
 /opt/homebrew/Cellar/node/24.10.0/bin/node <resolved-eslint-cli> rig/local-browser-foreground.mjs test/local-browser-foreground.test.js
 ```
 
 The controlled-browser tests use synthetic browser/worker events and real
 literal-loopback **Node HTTP**, not Chrome execution or native guard evidence.
-The selected test run excludes the existing mocked CLI-main import test; this
-preparation does not execute or import the foreground entry as main.
+The CLI serialization test imports the foreground entry as main only inside
+Vitest, after mocking Playwright, the fixture factory and stdout. It does not
+launch Chrome or issue a real foreground command.

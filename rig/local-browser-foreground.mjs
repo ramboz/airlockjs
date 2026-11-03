@@ -7,7 +7,7 @@ import { startLocalBrowserJourneys } from "./local-browser-journeys.mjs";
 
 const LAUNCHER = fileURLToPath(new URL("./qualification-loopback-chrome", import.meta.url));
 const IS_MAIN = !!process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
-const VERSION = "156.0.8078.76";
+const VERSION = "156.0.8078.80";
 const LEGACY_GUARD_HASHES = {
   "/rig/qualification-loopback-chrome": "3ce657f2c85945a13c2ab9cc8a6cb364eb8f66725f643a608aa978b5363b3cbf",
   "/rig/qualification-loopback-network.sb": "3204564960c5bdc369d996647e0e52176b63028bf8efe3924fbff7e1f9c0e3ee",

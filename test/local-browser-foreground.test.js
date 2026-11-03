@@ -425,8 +425,10 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
     log.push(["connect", endpoint]);
     const browser = new EventEmitter();
     let contexts = 0;
-    browser.version = () => fault === "version" ? "155.0.0.0"
-      : fault === "old-version" ? "156.0.8078.48" : "156.0.8078.76";
+    browser.version = () => fault === "version-80" ? "156.0.8078.80"
+      : fault === "version" ? "155.0.0.0"
+      : fault === "old-version" ? "156.0.8078.48"
+      : fault === "prior-version" ? "156.0.8078.76" : "156.0.8078.80";
     browser.newContext = async (options) => {
       log.push(["new-context", options]);
       return new Context(["preflight", "product", "failure"][contexts++]);
@@ -438,6 +440,15 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
 }
 
 describe("controlled browser events + real Node HTTP — NOT actual Chrome/worker proof", () => {
+  it("accepts exact Chrome 156.0.8078.80 in the controlled cohort", async () => {
+    await controlledBrowser("version-80");
+    const result = await runLocalBrowserForeground();
+    expect(result.normalJourneyChecks).toBe("PASS");
+    expect(result.vendors.map((vendor) => vendor.browserVersion)).toEqual([
+      "156.0.8078.80", "156.0.8078.80",
+    ]);
+  });
+
   it("does not qualify HTTP204 through the owner-selected local HTTP200 path", async () => {
     await controlledBrowser("204-body-unavailable");
     const result = await runLocalBrowserForeground();
@@ -477,7 +488,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
     });
     expect(result.vendors.map((vendor) => vendor.vendor)).toEqual(["meta", "google"]);
     for (const vendor of result.vendors) {
-      expect(vendor.browserVersion).toBe("156.0.8078.76");
+      expect(vendor.browserVersion).toBe("156.0.8078.80");
       expect(vendor.errors).toEqual([]);
       expect(vendor.controls).toEqual({
         allowedArrivals: 1, enforcedNewArrivals: 0, bypassNewArrivals: 1,
@@ -525,7 +536,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
 
   it.each([
     ["source-substitution", "served-source-identity"], ["version", "browser-version-mismatch"],
-    ["old-version", "browser-version-mismatch"],
+    ["old-version", "browser-version-mismatch"], ["prior-version", "browser-version-mismatch"],
     ["preflight-source", "request-outside-fixed-manifest"], ["preflight-document", "request-outside-fixed-manifest"],
     ["preflight-worker", "unexpected-worker"], ["missing-source", "loaded-source-closure"],
     ["duplicate-source", "loaded-source-closure"],
