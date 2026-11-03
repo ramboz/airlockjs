@@ -887,3 +887,84 @@ tool reported that the owner is unavailable and will review the work later.
 That response supplies no current presence or execution GO. Execution remains
 NOT ADMITTED. Source-only work stops at this concrete owner-input block;
 hourly reporting is paused and no automatic attempt or successor is scheduled.
+
+## 15. Supervised SDK-free local browser result
+
+The single approved .80 sequence passed both Meta and Google checks in actual
+headed Chrome. This is the first actual-browser result for the corrected
+29-module fixture closure and inert preflight. It covers the first-party
+adapters, module workers and governed localhost transport. Native vendor
+compatibility and complete replacement journeys remain unqualified.
+
+The owner replied "I'm here, and I authorize it" at 2026-11-02 16:57 local
+to the explicit supervised request, including agent-loss cleanup UNKNOWN.
+Fresh preflight on clean `5d7e6ad5c95b927ed1ac5f901ce142f3fed90f8b`
+matched all 39 source/config hashes, Chrome 156.0.8078.80 plist identity,
+explicit Node v24.10.0, Playwright 1.62.1 and OS/kernel metadata before
+acquisition. The existing no-argument entry ran once, Meta then Google.
+No launcher, policy, source, limit or interface changed for the run.
+
+| Actual vendor result | Meta | Google | Unchanged bound |
+|---|---:|---:|---:|
+| Observed requests | 56 | 60 | 64 per vendor |
+| Synthetic measurement attempts | 7 | 7 | 8 per vendor |
+| Cumulative retained bytes | 1,431,110 | 1,429,378 | 8 MiB per vendor |
+| Vendor elapsed time | 8,559 ms | 1,999 ms | 60,000 ms through publication/cleanup |
+| Stdout callback acknowledgement | 8,560 ms | 2,000 ms | Within the same original interval |
+
+These are actual bounded local observations, not native performance budgets or
+general benchmark results. External whole-CLI observation recorded exit 0,
+no signal, empty stderr and about 10.864 seconds wall-clock duration. Both
+vendor records were published in their original intervals.
+
+### Independent completion and evidence checks
+
+The caller independently rechecked the retained output against current source,
+generated page bytes and static imports. All 32 fixture manifest rows and four
+procedure/guard hashes match. The actual per-phase import multisets match
+separate main/worker traversals: Meta 12/11 modules, Google 14/11, retaining
+shared modules in both realms.
+
+Both vendors have exact independent receiver documents for two preflight,
+two product and one failure arrival. Correlated observations preserve the
+zero-send consent controls, held-response barrier, empty-200 EOF consumption,
+denial with zero new arrivals, bypass positive, and held-503 failure with no
+false 2xx success. Two module workers per vendor were observed and closed.
+All observed request URLs were literal loopback; no real Pixel, vendor SDK,
+vendor endpoint, account change or deployment was used.
+
+Normal nonsignal process/stdio/server close callbacks, all three contexts and
+fixtures, zero pending acquisitions and worker closure passed. After the whole
+CLI exited, the caller separately checked that the exact owned browser PIDs
+and distinct profiles were absent. No process scan, extra signal, profile
+deletion or browser retry was needed.
+
+Raw stdout, stderr, external observer events and the independent post-run
+receipt remain private in the coordinator case workspace. Stdout is 124,592
+bytes, SHA-256
+`ea48e564e00467ada82911f8009c380bc375b81ea197bf58a3ef4fd2443fd103`.
+Private output files are mode 0600; no ownership identifiers or payload bodies
+are copied into Git.
+
+Four intentional request denials retain the reviewed source's fixed
+`request-failure-detail-unavailable` diagnostic. Their underlying browser
+error text is not established. An initial offline post-check incorrectly
+required a network-code string for every denial; the caller corrected that
+assumption to the already reviewed diagnostic contract and preserved the
+absence explicitly. Exact receiving/correlation controls remain strict.
+This did not change production code or issue another browser attempt.
+
+### Stop and remaining scope
+
+The authorized attempt is consumed and complete. Hourly reporting is paused;
+no retry or automatic successor is scheduled. Immutable source-only proposals
+and historical .48/.76 records remain unchanged. Actual .80 observations live
+in the separate execution receipts.
+
+The report still says `overall: INCONCLUSIVE`, `fullCompatibility: false` and
+`interruptionLossQualification: false`. Native acquisition, the public-IP
+full guard, SDK/product behavior, response-linked native branches, production
+boot/unload integration and measured replacement acceptance remain open.
+No slice, bug, accepted ADR or native/full-compatibility status is advanced
+by this local result. Any further browser/native operation needs its own
+bounded admission.
