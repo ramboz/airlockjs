@@ -881,3 +881,9 @@ agent-loss cleanup remains UNKNOWN, and one new finite GO for the reviewed
 observations and stop-first-failure/no-retry rule. The aborted .76 approval is
 not reused. No Pixel confirmation, identifier, folder choice or generic
 evidence-bundle request is needed.
+
+The coordinator requested that exact finite .80 decision. The owner-input
+tool reported that the owner is unavailable and will review the work later.
+That response supplies no current presence or execution GO. Execution remains
+NOT ADMITTED. Source-only work stops at this concrete owner-input block;
+hourly reporting is paused and no automatic attempt or successor is scheduled.
