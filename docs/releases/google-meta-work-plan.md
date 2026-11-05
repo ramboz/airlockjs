@@ -46,10 +46,13 @@ historical Meta capture artifact.
 **Next product step:** prepare the first owned direct conversion under 059-01.
 The [Google case card](../research/R-013-google-meta-first-journey-evidence.md#google-first-case-evidence-card)
 now identifies its command/state inputs, missing evidence and recommended
-acquisition route. The first blocker is a current private case/input bundle,
-followed by complete reference, boundary and numerical readiness review.
-059-01 remains READY_FOR_REVIEW. This integration neither reopens a DONE slice
-nor declares the replacement implementation-ready.
+acquisition route. In the follow-up, the owner confirmed the existing setup
+and supplied the test page. Retained configuration, loader and capture were
+located and integrity-checked; the published destination and captured labels
+match that configuration. No new input document is needed from the owner.
+The remaining blockers are complete reference, boundary and numerical
+readiness review. 059-01 remains READY_FOR_REVIEW. This integration neither
+reopens a DONE slice nor declares the replacement implementation-ready.
 
 The proposed Google-adapter late-consent regression increment was stopped at
 that readiness gate before edits. Existing shared-host tests remain the

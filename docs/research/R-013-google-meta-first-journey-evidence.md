@@ -27,6 +27,34 @@ required.
 
 ## Standing owner setup confirmation
 
+### Google confirmation and recovered inputs - 2026-11-05
+
+The owner confirmed that the previous Google Ads test setup is available and
+unchanged, and identified the existing owned test homepage. No new configuration
+document is required from the owner.
+
+Read-only inspection recovered the earlier private Google input manifest and
+native capture. The retained loader exists, is 443,549 bytes and matches its
+recorded digest. The capture also matches its recorded source digest. The
+published homepage's Google destination matches the retained configuration,
+and both labeled requests in the capture match its saved action label.
+Identifiers, original URLs, raw captures and local artifact paths remain private.
+
+The inspected head initializes the native Google tag by default and supports
+the exact `google-ads=off` disable switch. It contains no conversion-event call.
+The inspected `scripts/consented.js` is an empty extension point. This does not
+enumerate every block, widget or possible page action, and it does not prove a
+conversion was delivered. Current published markup is not the historical
+document's missing original bytes.
+
+No page JavaScript or vendor SDK was executed. Only the owned page and three
+published page-support scripts were fetched as text. No conversion was sent,
+and no site, account or Google setting was changed. The setup/locator question
+is resolved; missing native response branches and implementation readiness
+remain separate.
+
+### Meta confirmation - 2026-11-02
+
 On 2026-11-02, the owner confirmed that the existing owned Meta test Pixel is
 still available and unchanged, is reserved for this proof of concept (POC)
 only, and will not be modified unless requested.
@@ -107,7 +135,8 @@ return BLOCKED rather than inventing another prerequisite implementation.
 ## Google first-case evidence card
 
 **Status (2026-11-05):** bounded preparation for 059-01 on
-`google-ads-chamber`. Private originals were not inspected in this pass.
+`google-ads-chamber`. The follow-up above recovered and integrity-checked
+retained private inputs and matched their destination/label relationships.
 Acquisition and full-journey implementation remain blocked.
 
 The first case is one owned direct website conversion. Start with a granted
@@ -133,14 +162,16 @@ An observed branch required by the native case cannot be excluded.
 ### Retained evidence and gaps
 
 The [059 source-handle register and B2-B4 blockers](../specs/059-google-ads-full-compatibility/spec.md#blocking-discovery-and-authority-register)
-describe the available layers. This is a record-based inventory, not a new
-verification of the private inputs.
+describe the available layers. The historical gap assessment below remains
+record-based. The follow-up verified file integrity and configuration
+relationships only; it did not requalify the complete reference.
 
 | Layer | What the records retain | What blocks the first complete case |
 |---|---|---|
 | Native smoke | `ADS-NATIVE-LEDGER` accounts for 12 request ordinals and 62 query names. `ADS-NATIVE-RAW` / `ADS-NATIVE-CHECK` record one conversion command, primary HTTP 200 and controlled input relationships. | Secondary labeled response absent, two auxiliary attempts blocked by our gate, two bodies unavailable, and fallback applicability unresolved. Our blocks are not native behavior. |
 | Attempted reference | 058-04 retains the pinned Google attempted-reference layer. | Aborted attempts supply no actual response, cookie or downstream evidence. |
 | Local construction | 059-19 and 059-20 retain offline and historical local-browser prototype results. The consolidated branch also contains experimental feature paths. | Synthetic encoding and local dispatch do not establish native semantics, production boot, complete response chains or current-browser qualification. |
+| Runtime provenance | The retained input manifest's 443,549-byte loader and native capture passed digest checks on 2026-11-05. | The manifest declares no retained dependency resources. A loader digest does not establish complete runtime/configuration closure, restore missing responses or pin the currently served Google SDK. |
 | Authority and performance | Accepted ADR-0043 selects a trusted first-party mapper with browser admission and independent evaluation. | Exact production boundary, C2 cohort and numerical C3 acceptance manifest remain unqualified. Proposed ADR-0044 selects no native consent-wait policy. |
 
 ### Recommended route and required input
@@ -154,7 +185,10 @@ An owner-operated capture still needs the same safety and provenance checks.
 The existing supervised path is a fallback only if its current source,
 browser, ownership and route controls qualify for this Google case.
 
-The next input is one private `<GOOGLE_CASE_INPUT_BUNDLE>`:
+The private `<GOOGLE_CASE_INPUT_BUNDLE>` is a working set of the inputs below,
+not a new document the owner must assemble. Reuse the recovered configuration
+and captures, with the owner's unchanged-setup confirmation. Resolve only the
+remaining missing facts:
 
 - Current `OWNED-RESOURCES` handles for destination, action label, Secondary
   status and isolated surface. Historical setup is not current confirmation.
@@ -170,11 +204,12 @@ The next input is one private `<GOOGLE_CASE_INPUT_BUNDLE>`:
 - A paired no-tag/native/chamber measurement plan and evidence-backed numeric
   limits for C3. Missing limits stay missing; prototype defaults are not budgets.
 
-**Exit:** BLOCKED on that current bundle and its readiness review. Supplying it
-permits inspection only when explicitly authorized; it does not authorize a
-browser run, resend, account change or deployment. Review the first unsupported
-input or control rather than starting another field experiment. Keep 059-01
-READY_FOR_REVIEW until its required reviews and prerequisites actually clear.
+**Exit:** setup and retained-input location are resolved. BLOCKED on complete
+reference branches and the case's remaining boundary, scenario and numerical
+readiness review. Reusing the inputs does not authorize a browser run, resend,
+account change or deployment. Review the first unsupported input or control
+rather than starting another field experiment. Keep 059-01 READY_FOR_REVIEW
+until its required reviews and prerequisites actually clear.
 
 ## Meta first-case evidence card
 
@@ -596,11 +631,12 @@ other cohorts and product outcomes remain open.
 The Meta case/limits manifest identifies the first blocker: an explicit current
 `<META_CASE_INPUT_BUNDLE>` with ownership, case state, original-evidence handles
 and route/control facts. Existing records establish no qualified complete
-acquisition route. The Google case card now identifies the corresponding
-`<GOOGLE_CASE_INPUT_BUNDLE>` and first-conversion gaps. Both cases and the
-overall evidence-route investigation remain open. No capture, measurement or
-live action was executed, and no additional research or infrastructure packet
-is automatically commissioned.
+acquisition route. Google's existing setup and retained-input location are now
+resolved, including file-integrity and destination/label checks. Its missing
+response branches and remaining first-conversion readiness are still open.
+Both cases and the overall evidence-route investigation remain open. No
+capture, measurement or live action was executed, and no additional research
+or infrastructure packet is automatically commissioned.
 
 Promoted to: pending; implementation stays with 059-01 and 060-01. Use 059-15/18
 for any explicitly approved native-acquisition changes, not a duplicate tool spec.
