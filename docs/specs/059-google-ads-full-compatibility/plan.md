@@ -50,6 +50,61 @@ Keep 059-01 READY_FOR_REVIEW until its actual prerequisites clear.
 Do not advertise a new runner, local primary send or inspected reference as
 the completed conversion or ordinary-browser product parity.
 
+### Complete-cleanup source-fit stop - 2026-11-05
+
+The continuation starts from integrated
+`3a1ebd17a8c7a744312c2fbb921e587ca094dd60`. HEAD, local and fetched
+`origin/google-ads-chamber` matched that commit before edits; it contains the
+controller checkpoint. The integration coordinator retains landing ownership.
+059-15 stays IN_PROGRESS with non-clearing compliance. 059-01 stays
+READY_FOR_REVIEW.
+
+**Bounded packet:** inspect the existing Google acquisition, cleanup and
+admission path without launching a browser. Resolve complete descendant
+cleanup only if the current runner already supplies the necessary custody
+mechanism. Otherwise record the first missing mechanism and stop before
+permission/lease composition, browser qualification or native execution.
+Do not restart the process-group, fork-denial or Chrome-import investigations.
+
+**Source fit:** `rig/inspected-google-qualification.mjs:39-76` closes
+admission, attempts context/browser/server shutdown and reads one
+`browserServer.process()` handle. Its exit predicate checks that child's
+`exitCode` or `signalCode`. Both immediate transport close and the deferred
+exit listener depend on that root predicate. The final cleanup check at
+`:475-497` checks root exit and broker/receiver/task/key settlement; it has no
+independently observed descendant-boundary completion.
+The launch at `:280-285` uses the network sandbox in
+`rig/inspected-google-loopback-chrome:19-31`. That profile restricts network
+access; it does not provide complete process custody or an empty-boundary
+observation. These are findings about this runner, not a claim that macOS
+cannot support a different mechanism.
+
+**Stop:** this runner cannot establish the required complete cleanup from
+its current evidence. Preserve the integrated guard-until-observed-root-exit
+behavior and durable incomplete witness. Neither is complete descendant
+proof. The native preparer explicitly retains
+`browser_descendant_cleanup_unqualified`
+(`rig/inspected-google-admission.mjs:148-149`), and its native run rejects
+before reservation (`:324-326`). No runtime correction is justified by
+renaming a root-exit flag or trusting a caller's success assertion.
+
+**Missing mechanism and decision:** a reviewed case-owned boundary must
+cover descendants from before browser creation, including acquisition
+failure and descendants that outlive the root. It must support independent
+empty-boundary observation on normal close and abort, with guards retained
+until that observation and incomplete ownership preserved on failure.
+Selecting or introducing that execution boundary needs a separately scoped
+Google-only design/qualification decision, or an explicitly supplied already
+qualified runner. No new environment is selected or approved here. The
+separate namespace work is not a ready substitute: its image admission still
+refuses every status
+(`rig/sdk-absent-owned-namespace-image-admission.mjs:9-13`).
+
+This packet changes documentation only. No browser, SDK, public request,
+original authority read/reservation, private-input discovery or Meta work is
+part of the source-fit check. No new time allocation, finite window or slot
+renewal follows. Later conversion stages remain blocked at this first gate.
+
 ### Reference checkpoint stop - 2026-11-05
 
 The two-hour prerequisite checkpoint ended without a qualified native path.

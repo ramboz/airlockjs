@@ -33,6 +33,27 @@ criterion is closed by the local source corrections.
 reference closes its unchanged product criteria. Meta work and spent slots
 remain separate.
 
+### Complete-cleanup source-fit stop
+
+- [x] Verify the integrated controller base at
+      `3a1ebd17a8c7a744312c2fbb921e587ca094dd60` and integration ownership.
+- [x] Inspect current Google launch, root-exit cleanup and native admission
+      without browser execution or repeating exhausted investigations.
+- [x] Record the missing complete descendant-custody/empty-boundary mechanism
+      in the [plan](plan.md#complete-cleanup-source-fit-stop---2026-11-05).
+- [ ] Resolve the owner-level Google-only runner-boundary scope decision or
+      supply an already qualified runner. No new environment is approved.
+- [ ] Establish independently reviewed current-source complete cleanup,
+      including acquisition failure, abort and descendants outliving the root.
+- [ ] Only after that gate clears, resume authenticated permission/review
+      provenance, native transport/lease composition and finite qualification.
+
+The current runner checks one owned root's exit. Its broker and receiver
+settlement does not account for every browser descendant. The continuation
+therefore stops at the first unsatisfied safety gate. No runtime patch,
+browser control, official SDK execution or original reservation is part of
+this documentation packet. Later conversion tasks above stay open.
+
 ### Current bounded controller source batch
 
 - [x] Verify ancestry at `f51642b73cf03da196277310b6869ca256a92cc9`
@@ -49,8 +70,9 @@ remain separate.
       provenance. The candidate records are not authority.
 - [ ] Qualify the current browser and complete descendant cleanup.
 - [x] Complete coordinator source verification and prepare the stable handoff.
-- [ ] Parent runs the required independent Sol reviews and integrates the
-      committed checkpoint. Full compliance stays non-clearing.
+- [x] Parent runs a fresh independent Sol packet review and integrates the
+      committed checkpoint at `3a1ebd17`. Full compliance stays non-clearing;
+      this is not clearance of the complete required review set.
 
 Node-only implementation now covers the synthetic command sequence, bounded
 registry, real loopback relay, canonical synthetic reservation and separate
