@@ -17,8 +17,10 @@ for that route before more capture infrastructure is built.
 **Meta source/document research has produced a case card and a case/limits
 manifest.** The [current handoff](../releases/google-meta-work-plan.md#11-owner-decision-and-meta-caselimits-wave)
 records the document-review scope. The owner commissioned this bounded research through the
-[work plan](../releases/google-meta-work-plan.md). Google's case remains
-unresolved. No acquisition route or live action is approved.
+[work plan](../releases/google-meta-work-plan.md). The Google case card below
+was prepared on 2026-11-05 for the owner-directed Google integration pickup.
+Its inputs and qualification remain unresolved. No acquisition route or live
+action is approved.
 Independent Sol document review passed the integrated case/limits manifest;
 remaining case bindings, original evidence and route/control inputs are still
 required.
@@ -102,10 +104,82 @@ resources.
 A new general runner is not an output of this research. If no route fits,
 return BLOCKED rather than inventing another prerequisite implementation.
 
+## Google first-case evidence card
+
+**Status (2026-11-05):** bounded preparation for 059-01 on
+`google-ads-chamber`. Private originals were not inspected in this pass.
+Acquisition and full-journey implementation remain blocked.
+
+The first case is one owned direct website conversion. Start with a granted
+host `ad_storage` purpose and one explicit page action. Retain the native
+consent settings and transcript separately; a host grant does not establish
+native consent equivalence. Do not add enhanced conversion, remarketing,
+cross-domain or wait/replay behavior to make this first case larger.
+An observed branch required by the native case cannot be excluded.
+
+### Case and acceptance
+
+| Item | Proposed case or required evidence |
+|---|---|
+| Consumer | [059-01 criteria 1-8](../specs/059-google-ads-full-compatibility/slice-01-owned-conversion.md), with the parent spec's complete-chain C1, scenario C2 and measured-budget C3 requirements. This card satisfies none of them by itself. |
+| Commands | Preserve the original ordered initialization/configuration commands, then one `conversion` event with an explicitly bound destination/action label and controlled value, currency and transaction ID. Inputs are private handles, not sample values. Include callbacks/timeouts only if applicable to the selected original case. |
+| Site action | Choose one page-load or click action in the private bundle before review. Keep the intended page action and any navigation. Native and chamber arms must use equivalent action, configuration and initial state. |
+| Native arm | Retain original runtime/module bytes and effective settings, exact browser/cohort and state, command/consent timeline, all requests and responses, redirects, cookies and host effects. Use the owned isolated surface only. |
+| Chamber arm | Use serialized first-party worker execution with native Ads absent. Mapping stays in the trusted worker under Accepted ADR-0043. The host retains current consent/destination enforcement and bounded privileged operations. Production boundary fit is still a gate. |
+| Comparison | Bind original values and omission/empty/zero distinctions. Account for initial config traffic, the primary and secondary labeled requests, returned fetch/fallback references and every applicable auxiliary branch. A referenced URL is not evidence that the branch executed. |
+| Failing controls | Missing worker, altered label/value/currency/order, missing response branch, duplicate request and empty native reference must prevent qualification. Consent denial and chamber failure must remain visible. These are required controls, not results from this pass. |
+| Outcome | Report worker execution, attempt, actual dispatch, vendor receipt, matching, reporting and attribution separately. HTTP 200, local 204 and callback completion do not establish an accepted or attributed conversion. |
+
+### Retained evidence and gaps
+
+The [059 source-handle register and B2-B4 blockers](../specs/059-google-ads-full-compatibility/spec.md#blocking-discovery-and-authority-register)
+describe the available layers. This is a record-based inventory, not a new
+verification of the private inputs.
+
+| Layer | What the records retain | What blocks the first complete case |
+|---|---|---|
+| Native smoke | `ADS-NATIVE-LEDGER` accounts for 12 request ordinals and 62 query names. `ADS-NATIVE-RAW` / `ADS-NATIVE-CHECK` record one conversion command, primary HTTP 200 and controlled input relationships. | Secondary labeled response absent, two auxiliary attempts blocked by our gate, two bodies unavailable, and fallback applicability unresolved. Our blocks are not native behavior. |
+| Attempted reference | 058-04 retains the pinned Google attempted-reference layer. | Aborted attempts supply no actual response, cookie or downstream evidence. |
+| Local construction | 059-19 and 059-20 retain offline and historical local-browser prototype results. The consolidated branch also contains experimental feature paths. | Synthetic encoding and local dispatch do not establish native semantics, production boot, complete response chains or current-browser qualification. |
+| Authority and performance | Accepted ADR-0043 selects a trusted first-party mapper with browser admission and independent evaluation. | Exact production boundary, C2 cohort and numerical C3 acceptance manifest remain unqualified. Proposed ADR-0044 selects no native consent-wait policy. |
+
+### Recommended route and required input
+
+First review explicitly supplied retained originals. If they contain the
+missing response/state branches for this exact case, reuse them without a
+new run. Otherwise recommend an owner-operated capture on the isolated owned
+surface, with an independently reviewed complete observer and finite
+stop/cleanup plan. That avoids commissioning another general runner.
+An owner-operated capture still needs the same safety and provenance checks.
+The existing supervised path is a fallback only if its current source,
+browser, ownership and route controls qualify for this Google case.
+
+The next input is one private `<GOOGLE_CASE_INPUT_BUNDLE>`:
+
+- Current `OWNED-RESOURCES` handles for destination, action label, Secondary
+  status and isolated surface. Historical setup is not current confirmation.
+- The selected page action, exact commands and consent timeline, controlled
+  input relationships, browser/privacy/profile/storage/cache state, and
+  runtime/configuration bytes with provenance and integrity pins.
+- Authorized handles for retained originals, with a branch-by-branch response
+  and host-effect gap list. No private path, identifier or raw payload goes
+  into this document.
+- The proposed route, allowed destinations and applicable auxiliary ownership,
+  finite request counts/window, independent stop/cleanup owners and their
+  current observation/enforcement evidence.
+- A paired no-tag/native/chamber measurement plan and evidence-backed numeric
+  limits for C3. Missing limits stay missing; prototype defaults are not budgets.
+
+**Exit:** BLOCKED on that current bundle and its readiness review. Supplying it
+permits inspection only when explicitly authorized; it does not authorize a
+browser run, resend, account change or deployment. Review the first unsupported
+input or control rather than starting another field experiment. Keep 059-01
+READY_FOR_REVIEW until its required reviews and prerequisites actually clear.
+
 ## Meta first-case evidence card
 
 **Status:** Research output for owner review. The case is proposed; acquisition
-is blocked. The Google case remains unresolved.
+is blocked. The separate Google card above also remains blocked on its inputs.
 
 ### Consumer
 
@@ -522,9 +596,11 @@ other cohorts and product outcomes remain open.
 The Meta case/limits manifest identifies the first blocker: an explicit current
 `<META_CASE_INPUT_BUNDLE>` with ownership, case state, original-evidence handles
 and route/control facts. Existing records establish no qualified complete
-acquisition route. Google research and the overall evidence-route investigation
-remain open. No capture, measurement or live action was executed, and no
-additional research or infrastructure packet is automatically commissioned.
+acquisition route. The Google case card now identifies the corresponding
+`<GOOGLE_CASE_INPUT_BUNDLE>` and first-conversion gaps. Both cases and the
+overall evidence-route investigation remain open. No capture, measurement or
+live action was executed, and no additional research or infrastructure packet
+is automatically commissioned.
 
 Promoted to: pending; implementation stays with 059-01 and 060-01. Use 059-15/18
 for any explicitly approved native-acquisition changes, not a duplicate tool spec.

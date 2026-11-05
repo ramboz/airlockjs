@@ -32,6 +32,14 @@ and the offline sequence comparator are implemented; full native-wire,
 scenario and readiness gates remain open. Vendor work is in authoring, not full
 support. The shipped connectors remain bounded subsets.
 
+**Google Ads development:** `google-ads-chamber` is the integration branch for
+Google Ads and shared Google/Meta groundwork. The
+[branch handoff](docs/releases/google-meta-work-plan.md#google-ads-integration---2026-11-05)
+records included and deferred work. Start with the
+[first-conversion case card](docs/research/R-013-google-meta-first-journey-evidence.md#google-first-case-evidence-card)
+for 059-01, rather than extending another field experiment. Full replacement
+is still blocked on reviewed readiness and complete native evidence.
+
 The [local qualification guide](rig/native-tag-qualification.md) describes its
 fixed loopback-only evidence layer, explicit browser suite and non-vacuity
 controls. It authorizes no live vendor or customer capture.

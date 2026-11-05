@@ -20,6 +20,55 @@ Bug 003 has a source fix under review. The old vendor sessions remain paused.
 Full replacement-journey implementation, browser runs, captures, deployment and
 vendor traffic remain gated; no earlier case or spending grant is renewed.
 
+## Google Ads integration - 2026-11-05
+
+Google Ads work now has one integration branch, `google-ads-chamber`. The owner
+selected Google Ads plus shared Google/Meta groundwork, with the later Meta
+implementation kept separate. The current assignment starts Google work
+without waiting for the earlier plan's recommended Meta-first sequence.
+It does not renew historical capture, account or deployment authority.
+
+| Source | Disposition |
+|---|---|
+| `google-meta-wave`, `google-and-meta-feasibility`, `google-meta-orchestration` | Integrated by fast-forward through `4375025`, including the Google prototypes, shared host consent fix, evaluation tools and Accepted ADR-0043. |
+| `google-ads-replacement` | Google runtime code is identical to the integrated tree. Keep the newer integrated correlation tests and limitation notes. Its dormant 059-18 claim was already released in the integrated lineage; retain that stricter existing deferral instead of duplicating the release. |
+| `google-ads-compatibility` | Duplicate authoring packet. The integrated 059 documents are the working copies. |
+| `request-authority-design` | Its draft recommendation is superseded by the integrated Accepted ADR-0043 and updated R-014. |
+| Later Meta branches, including `meta-native-admission`, `meta-behavioral-poc`, `meta-live-delivery`, `meta-poc-integration` and `meta-pixel-chamber` | Not merged. Their unique deltas have no Google runtime, core, contract, build or dependency changes in the inspected path inventory. Meta-only capture and implementation work stays with its owners. |
+
+All source branches are preserved. Historical Meta prototypes and fixtures
+needed by the shared rigs remain in the integrated tree; this is not a merge
+of the later full Meta implementation. The integration review covered the
+Google/shared runtime and tests. Scout had no Airlock index, so the review used
+Git source and recorded that evidence gap. It was not a full review of every
+historical Meta capture artifact.
+
+**Next product step:** prepare the first owned direct conversion under 059-01.
+The [Google case card](../research/R-013-google-meta-first-journey-evidence.md#google-first-case-evidence-card)
+now identifies its command/state inputs, missing evidence and recommended
+acquisition route. The first blocker is a current private case/input bundle,
+followed by complete reference, boundary and numerical readiness review.
+059-01 remains READY_FOR_REVIEW. This integration neither reopens a DONE slice
+nor declares the replacement implementation-ready.
+
+The proposed Google-adapter late-consent regression increment was stopped at
+that readiness gate before edits. Existing shared-host tests remain the
+retained coverage. No new production behavior, native consent-wait policy or
+vendor execution follows from this handoff.
+
+**Integration checks:** after restoring this worktree's locked dependencies,
+the focused Google/shared run passed 1,088 tests across 40 files. Build, lint
+and the derived spec-board check passed. The full default suite is not green:
+6,313 tests passed, 47 failed, 62 were skipped, and 20 unhandled errors were
+reported. The four failing suites are
+`rig/meta-additional-supervision.test.mjs`,
+`rig/meta-preexec-bootstrap.test.mjs`, `rig/native-stock-capture.test.mjs`
+and `rig/sdk-absent-chrome-runtime.boundary.test.mjs`. Failures include
+historical synthetic source/control bindings, a 110-versus-118 source-pin count
+and supervision timing. These remain unresolved validation gaps in the retained
+capture groundwork. They are not Google qualification and must not be hidden
+by excluding tests or broadening native execution authority.
+
 ## 1. The goal has not changed
 
 [ADR-0033](../decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md)
