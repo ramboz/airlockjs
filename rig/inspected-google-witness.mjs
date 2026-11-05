@@ -59,58 +59,91 @@ export async function witnessLocalGoogleQualification(options) {
       append(bytes);
     });
   }
-  const exit = await new Promise((resolve, reject) => {
-    child.once("error", reject);
+  let exit = null, spawnError = null;
+  child.once("exit", (code, signal) => { exit = { code, signal }; });
+  const close = await new Promise(resolve => {
+    child.once("error", error => { spawnError = error; });
     child.once("close", (code, signal) => resolve({ code, signal }));
   });
-  const duration = performance.now() - started, sourceAfter = inspectedMetaSourcePins(), cohortAfter = currentGoogleCohort();
-  const bytes = readMetaPrivate(join(runDir, "result.json"));
-  const report = JSON.parse(bytes.toString("utf8"));
-  const wire = report.originals?.wire;
-  const responses = report.originals?.responses;
-  if ((wire !== undefined && !Array.isArray(wire)) || !Array.isArray(responses))
-    fail("local_google_originals_invalid");
-  const originals = [...(wire ?? []).flatMap(row => [row.request, row.response]),
-    ...responses.map(row => row.body)];
-  const names = new Set();
-  let originalBytes = 0;
-  for (const original of originals) {
-    if (!original || typeof original.file !== "string" || !/^original-[1-9][0-9]*\.bin$/.test(original.file)
-      || names.has(original.file) || !Number.isSafeInteger(original.bytes) || original.bytes < 0
-      || !Array.isArray(original.chunks) || original.chunks.some(size => !Number.isSafeInteger(size) || size < 0)
-      || original.chunks.reduce((sum, size) => sum + size, 0) !== original.bytes
-      || typeof original.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(original.sha256))
+  const duration = performance.now() - started;
+  const completion = {
+    schema: "airlock.sdk-absent-google-command-completion.v1", protocol, control, complete: false,
+    producer_evidence: "not_validated", command_exit_observed: exit !== null, command_close_observed: true,
+    exit_code: exit?.code ?? null, signal: exit?.signal ?? null, close_code: close.code, close_signal: close.signal,
+    spawn_failed: spawnError !== null,
+    spawn_error_code: typeof spawnError?.code === "string" && /^[A-Z0-9_]+$/.test(spawnError.code)
+      ? spawnError.code : spawnError ? "unknown" : null,
+    elapsed_ms: duration, stdout_sha256: hash(stdout), stderr_sha256: hash(stderr),
+    source_before_sha256: hash(JSON.stringify(sourceBefore)), cohort_before_sha256: hash(JSON.stringify(cohortBefore)),
+    output_overflow: overflow,
+  };
+  writeMetaPrivate(join(outputDir, "command-completion.json"), completion);
+  let stage = "child_completion", witness;
+  try {
+    if (spawnError || !exit || exit.code !== close.code || exit.signal !== close.signal)
+      fail("local_google_child_completion_invalid");
+    stage = "source_cohort";
+    const sourceAfter = inspectedMetaSourcePins(), cohortAfter = currentGoogleCohort();
+    stage = "result";
+    const bytes = readMetaPrivate(join(runDir, "result.json"));
+    const report = JSON.parse(bytes.toString("utf8"));
+    stage = "originals";
+    const wire = report.originals?.wire;
+    const responses = report.originals?.responses;
+    if ((wire !== undefined && !Array.isArray(wire)) || !Array.isArray(responses))
       fail("local_google_originals_invalid");
-    names.add(original.file);
-    const data = readMetaPrivate(join(runDir, original.file), 8388608);
-    originalBytes += data.length;
-    if (data.length !== original.bytes || hash(data) !== original.sha256
-      || originalBytes + bytes.length > 8388608) fail("local_google_originals_invalid");
+    const originals = [...(wire ?? []).flatMap(row => [row.request, row.response]),
+      ...responses.map(row => row.body)];
+    const names = new Set();
+    let originalBytes = 0;
+    for (const original of originals) {
+      if (!original || typeof original.file !== "string" || !/^original-[1-9][0-9]*\.bin$/.test(original.file)
+        || names.has(original.file) || !Number.isSafeInteger(original.bytes) || original.bytes < 0
+        || !Array.isArray(original.chunks) || original.chunks.some(size => !Number.isSafeInteger(size) || size < 0)
+        || original.chunks.reduce((sum, size) => sum + size, 0) !== original.bytes
+        || typeof original.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(original.sha256))
+        fail("local_google_originals_invalid");
+      names.add(original.file);
+      const data = readMetaPrivate(join(runDir, original.file), 8388608);
+      originalBytes += data.length;
+      if (data.length !== original.bytes || hash(data) !== original.sha256
+        || originalBytes + bytes.length > 8388608) fail("local_google_originals_invalid");
+    }
+    stage = "producer_report";
+    const expectedAbort = control === "abort";
+    const outcomeMatches = expectedAbort
+      ? report.outcome === "inconclusive" && JSON.stringify(report.errors) === JSON.stringify(["synthetic_abort"])
+        && report.receiver_attempts === 1 && report.cleanup.guard_at_context_close === true
+      : report.outcome === "pass" && Array.isArray(report.errors) && report.errors.length === 0;
+    const valid = exit.code === (expectedAbort ? 1 : 0) && exit.signal === null && !overflow && Number.isFinite(duration)
+      && duration > 0 && duration < 60000 && report.protocol === protocol && report.control === control
+      && outcomeMatches
+      && report.native_sdk_executed === false && report.public_upstream_requests === 0
+      && report.native_execution_qualified === false
+      && JSON.stringify(sourceBefore) === JSON.stringify(sourceAfter)
+      && JSON.stringify(sourceBefore) === JSON.stringify(report.source_before)
+      && JSON.stringify(report.source_before) === JSON.stringify(report.source_after)
+      && JSON.stringify(cohortBefore) === JSON.stringify(cohortAfter)
+      && JSON.stringify(cohortBefore) === JSON.stringify(report.cohort_before)
+      && JSON.stringify(report.cohort_before) === JSON.stringify(report.cohort_after);
+    witness = { schema: "airlock.sdk-absent-google-child-witness.v1",
+      protocol, control, command_exit_observed: true, exit_code: exit.code, signal: exit.signal,
+      elapsed_ms: duration, producer_outcome: report.outcome, result_sha256: hash(bytes),
+      stdout_sha256: hash(stdout), stderr_sha256: hash(stderr),
+      source_sha256: hash(JSON.stringify(sourceBefore)), cohort_sha256: hash(JSON.stringify(cohortBefore)), complete: valid,
+      failure_category: valid ? null : "local_google_witness_inconclusive",
+      native_sdk_executed: false, public_upstream_requests: 0, native_execution_qualified: false };
+  } catch (error) {
+    try {
+      writeMetaPrivate(join(outputDir, "witness.json"), { ...completion,
+        schema: "airlock.sdk-absent-google-child-witness.v1", failure_category: `local_google_${stage}_failed` });
+    } catch (writeError) {
+      throw new AggregateError([error, writeError], "local_google_failure_witness_write_failed", { cause: writeError });
+    }
+    throw new Error(`local_google_${stage}_failed`, { cause: error });
   }
-  const expectedAbort = control === "abort";
-  const outcomeMatches = expectedAbort
-    ? report.outcome === "inconclusive" && JSON.stringify(report.errors) === JSON.stringify(["synthetic_abort"])
-      && report.receiver_attempts === 1 && report.cleanup.guard_at_context_close === true
-    : report.outcome === "pass" && Array.isArray(report.errors) && report.errors.length === 0;
-  const valid = exit.code === (expectedAbort ? 1 : 0) && exit.signal === null && !overflow && Number.isFinite(duration)
-    && duration > 0 && duration < 60000 && report.protocol === protocol && report.control === control
-    && outcomeMatches
-    && report.native_sdk_executed === false && report.public_upstream_requests === 0
-    && report.native_execution_qualified === false
-    && JSON.stringify(sourceBefore) === JSON.stringify(sourceAfter)
-    && JSON.stringify(sourceBefore) === JSON.stringify(report.source_before)
-    && JSON.stringify(report.source_before) === JSON.stringify(report.source_after)
-    && JSON.stringify(cohortBefore) === JSON.stringify(cohortAfter)
-    && JSON.stringify(cohortBefore) === JSON.stringify(report.cohort_before)
-    && JSON.stringify(report.cohort_before) === JSON.stringify(report.cohort_after);
-  const witness = { schema: "airlock.sdk-absent-google-child-witness.v1",
-    protocol, control, command_exit_observed: true, exit_code: exit.code, signal: exit.signal,
-    elapsed_ms: duration, producer_outcome: report.outcome, result_sha256: hash(bytes),
-    stdout_sha256: hash(stdout), stderr_sha256: hash(stderr),
-    source_sha256: hash(JSON.stringify(sourceBefore)), cohort_sha256: hash(JSON.stringify(cohortBefore)), complete: valid,
-    native_sdk_executed: false, public_upstream_requests: 0, native_execution_qualified: false };
   writeMetaPrivate(join(outputDir, "witness.json"), witness);
-  if (!valid) fail("local_google_witness_inconclusive");
+  if (!witness.complete) fail("local_google_witness_inconclusive");
   return witness;
 }
 

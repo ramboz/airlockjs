@@ -382,6 +382,15 @@ The current cohort's Chrome framework imports both `setsid` and
 `posix_spawnattr_setpgroup`. That binary inspection does not establish that
 either function ran in the browser case.
 
+**Google review correction:** Local cleanup now retains the broker guard when
+the owned browser root has not exited or its handle is unavailable. The
+disposition remains incomplete. The child witness durably records the observed
+exit and close before validating the producer report and originals, and writes
+an incomplete witness on validation failure. Node-only controls cover failed
+close and kill, absent reports, missing originals and invalid digests. These
+source changes make the 84 earlier source-bound witnesses historical. They do
+not close the native controller, admission or descendant-cleanup gaps.
+
 **2026-11-05 Google loopback continuation:** A separate Google-only loopback
 broker now composes the declared policy, physical observer and raw relay.
 CONNECT authority is bound to the actual request authority; the original Meta

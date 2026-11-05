@@ -37,6 +37,44 @@ const profile = () => ({
 });
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+export async function closeLocalGoogleBrowser({ context, browser, browserServer, launchAttempted, transport,
+  settle, cleanup, errors }) {
+  if (transport) transport.closeAdmission();
+  if (context) try { await settle(context.close()); } catch { errors.push("context_close_failed"); }
+  if (browser) try { await settle(browser.close()); } catch { errors.push("browser_close_failed"); }
+  if (browserServer) try { await settle(browserServer.close(), 8000); } catch (error) {
+    cleanup.browser_server_close_failure = error.message === "cleanup_timeout" ? "timeout" : "rejected";
+    errors.push("browser_server_close_failed");
+  }
+  let child;
+  if (browserServer) try { child = browserServer.process(); } catch { errors.push("browser_process_ownership_unavailable"); }
+  const exited = () => child && (Number.isInteger(child.exitCode) || typeof child.signalCode === "string");
+  if (child && !exited()) {
+    try { await settle(browserServer.kill(), 2000); } catch { errors.push("browser_process_close_failed"); }
+  }
+  cleanup.browser_process_exited = child ? Boolean(exited()) : !launchAttempted && !browserServer;
+  cleanup.ipv6_guard_at_browser_exit = cleanup.browser_process_exited
+    && Boolean(transport?.snapshot().ipv6_guard_listening);
+  cleanup.transport_guard_retained = Boolean(transport && !cleanup.browser_process_exited
+    && transport.snapshot().ipv6_guard_listening);
+  if (!cleanup.browser_process_exited) {
+    errors.push("cleanup_incomplete");
+    if (transport && !cleanup.transport_guard_retained) errors.push("ipv6_guard_not_retained");
+    if (child && transport && typeof child.once === "function") {
+      let closing = false;
+      const closeAfterExit = () => {
+        if (closing || !exited()) return;
+        closing = true;
+        transport.close().catch(() => { process.stderr.write("local_google_deferred_transport_close_failed\n"); });
+      };
+      child.once("exit", closeAfterExit);
+      closeAfterExit();
+    } else if (child && transport) errors.push("browser_process_exit_unobservable");
+  } else if (transport) {
+    try { await settle(transport.close()); } catch { errors.push("transport_close_failed"); }
+  }
+}
+
 function diagnosticBypass(transparent = false) {
   let observed = 0, forwarded = 0, stopped = false, reason = null, retained = 0;
   const stop = value => { if (!stopped) { stopped = true; reason = value; } };
@@ -129,7 +167,7 @@ export async function runLocalGoogleQualification(options) {
   const cohortBefore = currentGoogleCohort();
   let cookies = [];
   let browserServer, browser, context, page, cdp, sink, transport, heldParent, heldParentTail, socketDir;
-  let guard = true, guardAtClose = false, faultInjected = false;
+  let guard = true, guardAtClose = false, faultInjected = false, launchAttempted = false;
   const track = promise => {
     tasks.add(promise);
     promise.catch(() => errors.push("cdp_event_failed")).finally(() => tasks.delete(promise));
@@ -238,6 +276,7 @@ export async function runLocalGoogleQualification(options) {
         logicalAuthority: authority => logical.some(row => new URL(row.url).host + ":443" === authority) } }, bypass);
     const { chromium } = await import("playwright");
     socketDir = realpathSync(tmpdir());
+    launchAttempted = true;
     browserServer = await chromium.launchServer({ executablePath: fileURLToPath(new URL("./inspected-google-loopback-chrome", import.meta.url)),
       host: "127.0.0.1", headless: true, timeout: 10000, proxy: { server: "http://127.0.0.1:" + transport.port },
       env: { ...process.env, TMPDIR: socketDir, AIRLOCK_GOOGLE_SOCKET_DIR: socketDir,
@@ -435,23 +474,9 @@ export async function runLocalGoogleQualification(options) {
   } catch (error) {
     errors.push(error.message);
   } finally {
-    if (transport) transport.closeAdmission();
-    if (context) try { await settle(context.close()); } catch { errors.push("context_close_failed"); }
+    await closeLocalGoogleBrowser({ context, browser, browserServer, launchAttempted, transport, settle, cleanup, errors });
     cleanup.guard_at_context_close = guardAtClose;
-    if (browser) try { await settle(browser.close()); } catch { errors.push("browser_close_failed"); }
-    if (browserServer) try { await settle(browserServer.close(), 8000); } catch (error) {
-      cleanup.browser_server_close_failure = error.message === "cleanup_timeout" ? "timeout" : "rejected";
-      errors.push("browser_server_close_failed");
-    }
-    const child = browserServer?.process();
-    if (child && child.exitCode === null && child.signalCode === null) {
-      try { await settle(browserServer.kill(), 2000); } catch { errors.push("browser_process_close_failed"); }
-    }
-    guard = false;
-    cleanup.browser_process_exited = !child || child.exitCode !== null || child.signalCode !== null;
-    cleanup.ipv6_guard_at_browser_exit = cleanup.browser_process_exited
-      && Boolean(transport?.snapshot().ipv6_guard_listening);
-    if (transport) try { await settle(transport.close()); } catch { errors.push("transport_close_failed"); }
+    if (cleanup.browser_process_exited) guard = false;
     for (const session of sessions) session.destroy();
     for (const socket of sockets) socket.destroy();
     if (sink) try { await settle(new Promise((resolve, reject) => sink.close(error => error ? reject(error) : resolve()))); }
@@ -466,7 +491,7 @@ export async function runLocalGoogleQualification(options) {
     if (!cleanup.guard_at_context_close || !cleanup.browser_process_exited || !cleanup.ipv6_guard_at_browser_exit || !cleanup.receiver_sockets_closed
       || !cleanup.receiver_sessions_closed || !cleanup.keys_removed || !cleanup.transport?.server_closed
       || !cleanup.transport?.sockets_closed || !cleanup.transport?.tasks_settled || !cleanup.cdp_tasks_settled)
-      errors.push("cleanup_incomplete");
+      if (!errors.includes("cleanup_incomplete")) errors.push("cleanup_incomplete");
     if (cleanup.transport?.errors.length) errors.push("transport_errors");
     const expectedReason = control === "marker" ? "owned_input_mismatch"
       : control === "path" ? "unqualified_route_or_field" : control === "response-limit" ? "response_overflow"

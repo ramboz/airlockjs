@@ -26,6 +26,18 @@ admission remain open.
 Both Meta source inventories include the Google observer and local-control
 imports. Earlier source-bound receipts do not qualify the changed source.
 
+After a local child closes, the witness writes a private, exclusive
+`command-completion.json` before checking the producer report or originals.
+It records the observed exit and close and remains marked incomplete. A
+validation failure also produces an incomplete `witness.json` with a failure
+category when that file can be written. Neither file grants native admission.
+
+If browser close and kill do not establish that the owned root exited, local
+cleanup closes admission and retains the broker guard. The run stays
+incomplete and may remain alive until that exit is observed. An unavailable
+process handle also leaves the guard in place. Root exit does not establish
+complete descendant cleanup.
+
 The local controls now retain binary originals and bind each child witness to
 the current Node, Chrome, Playwright and operating-system cohort. Body,
 expiration, authority, response-parent, unsupported-transport and
