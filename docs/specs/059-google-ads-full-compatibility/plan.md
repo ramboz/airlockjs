@@ -1,18 +1,42 @@
 # Plan - full Google Ads browser-tag compatibility
 
-## Owner review queue - 2026-11-02
+## Current local assignment - 2026-11-05
 
-Execution is paused. The [bounded work plan](../../releases/google-meta-work-plan.md)
-is the review entry point and proposed order; its research briefs have not
-started. Preserve the unfinished verifier test in the Google session.
-Do not continue field experiments, tooling repair or the verifier by default.
+The owner authorized completing the local Google conversion implementation
+plan on `google-ads-chamber`. The existing test setup and retained private
+configuration/capture were recovered and checked; no new owner-authored input
+document is needed. Accepted ADR-0043 supplies the trusted-mapper decision.
+The historical reset and earlier permissions below remain their own records.
 
-059-01 remains the first full product owner. The next proposed research
-outputs are a case/evidence plan under R-013 and a request-authority
-recommendation under R-014. [Proposed ADR-0043](../../decisions/adr-0043-google-meta-request-authority.md)
-tracks that boundary choice; [Proposed ADR-0044](../../decisions/adr-0044-google-ads-consent-wait.md)
-tracks the later consent-wait policy. Neither is accepted. The owner selects
-each subsequent short session; this plan grants no execution or live authority.
+The smallest missing entry behavior is automatic capture from the standard
+`gtag` queue stub. The existing adapter accepts the queue only when the caller
+explicitly drains it. [059-21](slice-21-local-datalayer-entry.md) adds an opt-in
+local attachment that drains prior entries once and captures subsequent
+appends, with exact queue ownership and cleanup. It reuses the actual
+first-party worker and independent loopback receiver for validation.
+
+Review the local frame, implement with a witnessed failing entry test, run
+Google/shared regressions and lint, then obtain independent compliance, craft
+and reconciliation reviews. Do not start a parallel feature experiment.
+No browser, vendor traffic, deployment or account action is part of this task.
+Full 059-01 remains READY_FOR_REVIEW with complete-response and production
+boundary/scenario/numerical readiness outstanding.
+
+## Reset follow-up and full-product gates
+
+The [bounded work plan](../../releases/google-meta-work-plan.md) remains the
+shared review entry point. The owner selected the local assignment above;
+the earlier blanket pause no longer blocks that task. Preserve the unfinished
+verifier work. Field experiments, tooling repair and native acquisition are
+not part of this assignment.
+
+059-01 remains the first full product owner. R-013 now has the recovered-input
+case card. [Accepted ADR-0043](../../decisions/adr-0043-google-meta-request-authority.md)
+records trusted first-party mapping authority. Complete native-response,
+boundary, scenario and numerical readiness still precede full qualification.
+[Proposed ADR-0044](../../decisions/adr-0044-google-ads-consent-wait.md)
+still owns the unresolved consent-wait policy. This local assignment grants
+no vendor or live authority.
 
 ## Historical delivery planning and evidence through 2026-10-29
 

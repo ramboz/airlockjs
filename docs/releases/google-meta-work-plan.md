@@ -54,10 +54,28 @@ The remaining blockers are complete reference, boundary and numerical
 readiness review. 059-01 remains READY_FOR_REVIEW. This integration neither
 reopens a DONE slice nor declares the replacement implementation-ready.
 
-The proposed Google-adapter late-consent regression increment was stopped at
-that readiness gate before edits. Existing shared-host tests remain the
-retained coverage. No new production behavior, native consent-wait policy or
-vendor execution follows from this handoff.
+The earlier proposed regression increment under 059-01 stopped at its
+readiness gate before edits. The owner then authorized the bounded local
+implementation plan. [059-21](../specs/059-google-ads-full-compatibility/slice-21-local-datalayer-entry.md)
+adds automatic capture from the standard `gtag` queue stub into the existing
+first-party worker. It removes the need to drain after each append and keeps
+exclusive queue ownership and cleanup visible.
+
+Review exposed a startup consent gap in the shared Google prototype: granting
+before worker readiness could send an older pending/denied command. The fix
+retains capture-time host eligibility as well as the live pre-dispatch check,
+covering direct calls, explicit drains and the new entry helper. Actual-worker
+tests also verify that rejected attachment closes a newly supplied worker
+without closing an existing owner's worker. This remains source-only
+Node/loopback construction, with no production boot, native consent-wait policy,
+browser qualification, vendor traffic or deployment.
+
+**Local entry checks:** the final selected Google/Meta/host run passed 857 tests
+across 40 files; this is a different selector from the consolidation run below.
+The new helper has actual-worker receiver and consent/cleanup controls.
+Repository lint, build, the executable usage example and required independent
+frame, compliance, craft and reconciliation reviews pass. These checks do not
+change the retained default-suite or native-qualification gaps.
 
 **Integration checks:** after restoring this worktree's locked dependencies,
 the focused Google/shared run passed 1,088 tests across 40 files. Build, lint
@@ -98,12 +116,12 @@ server-side APIs. Adobe-first v1.0 remains a separate workstream.
 
 | Area | Retained result | What is still missing |
 |---|---|---|
-| Owned setup | Dedicated test resources and historical native observations exist. Google has a primary conversion observation; the owner confirmed a Meta Test Events PageView. | Current setup confirmation, complete paired references and outcome evidence. Historical setup is not current permission. |
+| Owned setup | Dedicated test resources and historical native observations exist. Google's existing setup is confirmed and its retained inputs recovered; the owner confirmed a historical Meta Test Events PageView. | Complete paired references and outcome evidence. Historical setup is not current live permission. |
 | Evaluation tools | [058](../specs/058-native-tag-evaluation-qualification/spec.md) is DONE for its named local, attempted-request and comparator layers. | Complete native responses, browser state and independently qualified same-input comparisons for the replacement. |
 | Working prototypes | [059-19](../specs/059-google-ads-full-compatibility/slice-19-offline-conversion-prototype.md) and [060-13](../specs/060-meta-pixel-full-compatibility/slice-13-offline-pageview-prototype.md) exercise real Node workers and loopback receivers. | These are synthetic local encodings, not complete native implementations. |
 | Browser construction | [059-20](../specs/059-google-ads-full-compatibility/slice-20-local-browser-conversion.md) and [060-14](../specs/060-meta-pixel-full-compatibility/slice-14-local-browser-pageview.md) passed their historical local-browser journeys. | Native wire, browser identity, production integration and performance acceptance. Later opt-ins have not inherited that browser qualification. |
 | Added feature experiments | Default-off Google and Meta experiments cover additional commands and event data. | Native semantics and wire behavior for most of those experiments remain hypotheses. |
-| Integrity and architecture | Synthetic controls expose mediated-request correlation gaps. Some Google checks duplicate mapping on the host. | A reviewed request-authority design that meets the chamber boundary. A second verifier worker is only an unfinished experiment. |
+| Integrity and architecture | Accepted ADR-0043 selects trusted first-party mapping authority. Synthetic controls expose mediated-request correlation gaps; some Google checks duplicate mapping on the host. | Production boundary fit and independent native/browser/numerical evidence. A second verifier worker is only an unfinished experiment. |
 | Full replacement | **0 of the 24 currently planned full-compatibility slices is DONE.** | The first full journeys, [059-01](../specs/059-google-ads-full-compatibility/slice-01-owned-conversion.md) and [060-01](../specs/060-meta-pixel-full-compatibility/slice-01-pageview-entry.md), remain READY_FOR_REVIEW, not implementation-ready. The other 22 remain DRAFT. |
 
 This is a proof-of-concept stage, not a nearly finished product. The slice count

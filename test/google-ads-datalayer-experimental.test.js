@@ -77,6 +77,22 @@ describe("experimental local dataLayer entry", () => {
     });
   }, 8000);
 
+  it.each(["pending", "denied"])("preserves %s capture eligibility for explicit drains and direct calls before readiness", async (ad_storage) => {
+    await local({ experimentalDataLayer: true, consent: { ad_storage } }, async ({ adapter, receiver }) => {
+      adapter.drainDataLayer([
+        command("config", "AW-0000000000"),
+        command("event", "conversion", { send_to: selector, transaction_id: "queued-ungranted" }),
+      ]);
+      adapter.gtag("event", "conversion", { send_to: selector, transaction_id: "direct-ungranted" });
+      adapter.setConsent({ ad_storage: "granted" });
+      adapter.gtag("event", "conversion", { send_to: selector, transaction_id: "new-granted" });
+      expect((await adapter.flush()).outcomes.map(({ disposition }) => disposition))
+        .toEqual(["configured", "held", "held", "transport-settled"]);
+      expect(receiver.arrivals).toHaveLength(1);
+      expect(new URL(receiver.arrivals[0].url).searchParams.get("oid")).toBe("new-granted");
+    });
+  }, 8000);
+
   it("does not enable bootstrap or tag consent commands implicitly", async () => {
     await local({ experimentalDataLayer: true }, async ({ adapter, receiver }) => {
       const layer = [

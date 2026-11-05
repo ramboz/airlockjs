@@ -144,6 +144,97 @@ The fixed Node bridge is in `rig/google-ads-conversion-prototype-node.worker.mjs
 The browser Worker factory is source plumbing only: no browser qualification
 is claimed by the Node tests.
 
+### Automatic local queue entry
+
+`attachGoogleAdsDataLayerPrototype` in
+`adapters/google-ads-datalayer-prototype.js` connects an ordinary local
+`dataLayer` array to the same adapter. The standard queue stub works before
+attachment and captures later appends without manual `drainDataLayer()` calls.
+The helper enables only dataLayer entry. Bootstrap, consent commands and the
+other experimental command modes still need their existing explicit opt-ins.
+It does not install globals or load, disable or detect a native SDK. Keep native
+Google tags absent; an ordinary array is not proof of that condition.
+
+Save this example as an `.mjs` file at the repository root and run it with
+`node <filename>.mjs`:
+
+```js
+import { attachGoogleAdsDataLayerPrototype } from "./adapters/google-ads-datalayer-prototype.js";
+import {
+  closeConversionResources, createConversionReceiver, createNodeConversionChamber,
+} from "./rig/google-ads-conversion-prototype.mjs";
+
+const dataLayer = [];
+function gtag() { dataLayer.push(arguments); }
+gtag("config", "AW-0000000000");
+
+let adapter, chamber, receiver, cause;
+try {
+  receiver = await createConversionReceiver();
+  chamber = createNodeConversionChamber();
+  adapter = await attachGoogleAdsDataLayerPrototype({
+    dataLayer,
+    endpoint: receiver.endpoint,
+    chamber,
+    captureContext: () => ({ pageURL: "https://example.test/local-entry", referrer: "" }),
+    consent: { ad_storage: "granted" },
+  });
+  gtag("event", "conversion", {
+    send_to: "AW-0000000000/SYNTHETIC_LABEL",
+    value: 7.5,
+    currency: "CAD",
+    transaction_id: "local-entry-only",
+  });
+  const state = await adapter.flush();
+  if (state.outcomes.at(-1)?.disposition !== "transport-settled" ||
+      receiver.arrivals.length !== 1) throw new Error("local-entry-not-verified");
+  console.log({ localArrivals: receiver.arrivals.length, fullCompatibility: false });
+} catch (error) {
+  cause = error;
+  throw error;
+} finally {
+  await closeConversionResources({ adapter, chamber, receiver, cause });
+}
+```
+
+Attachment is asynchronous so a failed initial drain can close the worker
+before rejecting. Commands are snapshotted synchronously when the queue drains
+at attachment or on a later ordinary `push()`. Queued objects changed before
+attachment therefore use their attachment-time values, not their original
+enqueue-time values. Each push keeps its normal length return value. The
+128-entry retained-array bound and adapter's separate pending-command bounds
+still apply; overflow fails visibly instead of growing the array.
+
+Use one attachment attempt per array identity for the page lifetime. A failed
+attempt that reached adapter construction also consumes that identity. Duplicate
+attachment and reattachment after disposal cannot replay the retained queue.
+This in-module identity guard is not durable deduplication or protection
+against a caller copying history to another array. Existing own `push` hooks,
+accessors, non-extensible arrays and nonstandard array prototypes are rejected.
+Invalid structural appends throw and stay visible in the array for the caller
+to repair; they are not captured. Invalid commands that are structurally valid
+retain the adapter's rejection outcomes. Direct index writes or calls to
+`Array.prototype.push.call` bypass automatic capture; later drains still check
+the retained history.
+
+`dispose()` closes the adapter and removes only its own hook. A later owner's
+replacement is left alone. Disposal is idempotent, including its rejection
+when cleanup fails, and does not erase queue entries. The caller retains
+responsibility for the receiver. Attachment rejection closes a newly supplied
+chamber even when input validation fails. A duplicate attempt using the
+existing queue owner's chamber does not acquire or close that borrowed
+resource. The example's `finally` also closes every resource independently.
+
+The adapter now retains host-consent eligibility at each command capture as
+well as checking live consent before dispatch. Granting before worker readiness
+does not release commands captured while pending or denied. Only a new
+granted command can send. This fixes the same startup gap for direct calls and
+explicit queue drains without adding field mapping or a new worker contract.
+
+The new tests exercise an actual Node worker and independent receiver, not a
+browser. Native queue equivalence, Google wire compatibility, browser behavior,
+performance and attribution remain open under 059-01.
+
 An explicit literal endpoint is mandatory:
 `http://127.0.0.1:<port>/pagead/conversion/0000000000/`.
 There is **no default vendor destination** or arbitrary worker-code option.

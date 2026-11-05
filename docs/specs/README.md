@@ -212,6 +212,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-18 - Additional lineage-bound Meta stock case | DEFERRED |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-19 - Exercise an offline SDK-free Google conversion | **DONE** |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-20 - Exercise the SDK-free conversion in a local browser | **DONE** |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-21 - Connect a local gtag queue to the conversion chamber | RECONCILED (google-ads-chamber) |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-01 - Replace bootstrap and first PageView | READY_FOR_REVIEW (google-and-meta-feasibility) |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-02 - Report complete event and commerce data | DRAFT |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-03 - Route and configure multiple Pixels | DRAFT |  |
@@ -253,7 +254,7 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
 
 - **20** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **104** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **62** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **63** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
@@ -314,5 +315,6 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
   - `059-google-ads-full-compatibility/slice-17-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `059-google-ads-full-compatibility/slice-19-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `059-google-ads-full-compatibility/slice-20-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `059-google-ads-full-compatibility/slice-21-craft.md` — applied `pr-review`; declined: independent-review, scout-pr-review
   - `060-meta-pixel-full-compatibility/slice-13-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `060-meta-pixel-full-compatibility/slice-14-craft.md` — applied `pr-review`; declined: scout-pr-review

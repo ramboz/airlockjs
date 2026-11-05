@@ -262,6 +262,14 @@ and remains INCONCLUSIVE; five local primary mappings do not establish native
 endpoint/value or complete-sequence equivalence. No existing Meta or production
 module, core contract, build, account setting or live authority is changed.
 
+The opt-in queue-entry helper in
+`adapters/google-ads-datalayer-prototype.js:8-72` attaches an ordinary local
+`dataLayer` array to that same adapter. It captures subsequent `push()` calls
+without manual drains and restores only its own hook during disposal.
+It adds no mapping authority or production boot selection. Its actual-worker
+tests remain Node/loopback evidence; callers must keep native tags absent.
+See the [usage and queue limits](../connectors/google-ads/CONVERSION-PROTOTYPE.md#automatic-local-queue-entry).
+
 ### The native-tag suppressor and consent-input drivers
 
 Two host-coupled pieces sit outside `core/` and `connectors/` by the same code-home rule:

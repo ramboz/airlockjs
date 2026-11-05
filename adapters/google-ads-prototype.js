@@ -291,6 +291,7 @@ export function createGoogleAdsPrototype({
     throw new Error("invalid-prototype-bounds");
   }
   const queue = [];
+  const capturedConsent = new WeakMap();
   const outcomes = [];
   const waiters = new Set();
   const controllers = new Set();
@@ -308,6 +309,7 @@ export function createGoogleAdsPrototype({
   const consentVector = {
     get ad_storage() {
       const hostValue = resolveConsent(hostConsent, "ad_storage");
+      if (inFlight && activeHostConsent !== "granted") return activeHostConsent;
       if (hostValue !== "granted" || !experimentalConsentCommands) return hostValue;
       if (pendingDenials.size || appliedDenials.size) return "denied";
       if (CONSENT_COMMAND_KEYS.some((purpose) => purpose !== "ad_storage" && tagConsent(purpose) === "denied")) return "denied";
@@ -324,6 +326,7 @@ export function createGoogleAdsPrototype({
   let inFlight = false;
   let capturing = false;
   let activeSequence;
+  let activeHostConsent;
   let activeCommand;
   let activeContext;
   let activeRequest;
@@ -518,6 +521,7 @@ export function createGoogleAdsPrototype({
     while (queue.length && phase === "ready") {
       const event = queue.shift();
       activeSequence = event.seq;
+      activeHostConsent = capturedConsent.get(event);
       activeCommand = event.payload.args;
       activeContext = event.payload.context;
       activeRequest = undefined;
@@ -569,6 +573,7 @@ export function createGoogleAdsPrototype({
       inFlight = false;
       awaitingResult = false;
       activeSequence = undefined;
+      activeHostConsent = undefined;
       activeCommand = undefined;
       activeContext = undefined;
       activeRequest = undefined;
@@ -586,6 +591,7 @@ export function createGoogleAdsPrototype({
     if (queue.length >= queueLimit) { reject("queue-overflow"); return; }
     if (admitted >= LIMIT) { reject("session-command-limit"); return; }
     if (args.length > 3) { reject("argument-limit"); return; }
+    const hostConsentAtCapture = resolveConsent(hostConsent, "ad_storage");
     if (experimentalDisableRemarketing && args[0] === "set" && args[1] === "allow_ad_personalization_signals" &&
         (!validRemarketingDisableCommand(args) || admitted !== 0)) { reject("unsupported-remarketing-control"); return; }
     capturing = true;
@@ -677,6 +683,7 @@ export function createGoogleAdsPrototype({
       if (phase === "terminal" || phase === "disposed") { reject(phase); return; }
       if (queue.length >= queueLimit || admitted >= LIMIT) { reject("capture-admission-changed"); return; }
       const event = { seq, type: "google-ads-command", ts: performance.now(), payload, snapshot: {} };
+      capturedConsent.set(event, hostConsentAtCapture);
       if (callback) {
         const entry = { fn: callback.fn, scheduled: false, timer: undefined };
         entry.timer = setTimeout(() => scheduleCallback(seq, "timeout"), callback.timeout);

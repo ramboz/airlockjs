@@ -389,6 +389,13 @@ and separate downstream obligations pass.
 11. [059-11 - mixed-tag migration and rollback](slice-11-adoption-rollback.md)
 12. [059-12 - full-portfolio adoption qualification](slice-12-portfolio-qualification.md)
 
+### Local construction follow-up
+
+[059-21 - local dataLayer entry](slice-21-local-datalayer-entry.md) connects
+the standard queued `gtag` stub to the existing local chamber without manual
+draining after each append. It is a bounded local construction task, not a
+replacement for 059-01 or an additional full-compatibility family.
+
 ## Collected public reference anchors
 
 Retrieved 2026-10-15 in `ADS-INVENTORY`; no fresh network retrieval in this turn.

@@ -4,24 +4,38 @@ The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
 
-## Owner review queue - 2026-11-02
+## Current local assignment - 2026-11-05
+
+- [x] Recover existing owned setup, configuration, loader and capture.
+- [x] Prepare the Google first-conversion case card under R-013.
+- [x] Owner authorizes completing the local implementation plan.
+- [x] Review 059-21's standard queue-entry frame.
+- [x] Implement the local attachment with a witnessed failing regression.
+- [x] Verify actual-worker conversion values, consent, queue ownership and cleanup.
+- [x] Pass targeted Google/shared tests, lint and independent required reviews.
+- [ ] Reconcile and publish on `google-ads-chamber`.
+
+This local task does not complete 059-01, renew historical live grants or
+remove complete native-reference and performance-readiness obligations.
+
+## Reset follow-up and full-product gates
 
 - [x] Stop vendor execution and preserve unfinished work.
 - [x] Prepare the [goal/status/work plan](../../releases/google-meta-work-plan.md)
       and planning-only R-013/R-014 research briefs.
-- [ ] Owner reviews the goal, status and proposed session order.
-- [ ] Only after selection, produce the R-013 Google case card and R-014
-      request-authority recommendation in bounded research sessions.
-- [ ] Complete the recommendation/review/acceptance of
-      [ADR-0043](../../decisions/adr-0043-google-meta-request-authority.md)
-      and 059-01 readiness before code.
+- [x] Owner selects the bounded local implementation plan above.
+- [x] Recover the Google inputs and add the R-013 first-case card.
+- [x] Integrate the accepted trusted-mapper decision in
+      [ADR-0043](../../decisions/adr-0043-google-meta-request-authority.md).
+- [ ] Complete 059-01 native-response and boundary/scenario/numerical readiness
+      before claiming the full product conversion.
 - [ ] Before later consent work, resolve
       [ADR-0044](../../decisions/adr-0044-google-ads-consent-wait.md)
       from native timeline evidence and owner policy review.
 
 No unchecked item below is an automatic work assignment. The checklist is
-retained as the pre-reset record; current permissions and pickup order come
-from the owner-reviewed work packet.
+retained as the earlier work queue; current permissions and pickup order come
+from the owner-selected local assignment and its unchanged live limits.
 
 ## Historical next-deliverable checklist
 
