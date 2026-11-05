@@ -19,7 +19,7 @@ const bounded = async promise => {
   })]); } finally { clearTimeout(timer); }
 };
 
-describe("Google browser network confinement", () => {
+describe.runIf(process.env.AIRLOCK_INSPECTED_GOOGLE_CONFINEMENT === "1")("Google browser network confinement", () => {
   it("denies same-port UDP to an owned receiver that the matched bypass reaches", async () => {
     const broker = createNetServer(), receiver = createSocket("udp4");
     const socketDir = realpathSync(tmpdir()), wrapper = fileURLToPath(new URL("./inspected-google-loopback-chrome", import.meta.url));

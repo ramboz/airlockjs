@@ -26,6 +26,16 @@ admission remain open.
 Both Meta source inventories include the Google observer and local-control
 imports. Earlier source-bound receipts do not qualify the changed source.
 
+The Google confinement controls are skipped by the default test suite. When
+explicitly authorized, run them with:
+
+```sh
+AIRLOCK_INSPECTED_GOOGLE_CONFINEMENT=1 npx vitest run rig/inspected-google-confinement.test.mjs
+```
+
+These controls launch Chrome and use macOS `sandbox-exec`. Changing their source
+also makes earlier source-bound receipts historical.
+
 After a local child closes, the witness writes a private, exclusive
 `command-completion.json` before checking the producer report or originals.
 It records the observed exit and close and remains marked incomplete. A
