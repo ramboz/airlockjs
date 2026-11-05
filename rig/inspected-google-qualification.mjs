@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { createHash, X509Certificate } from "node:crypto";
 import { chmodSync, closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync,
-  unlinkSync, writeFileSync } from "node:fs";
+  realpathSync, unlinkSync, writeFileSync } from "node:fs";
 import { createServer as createHttpServer } from "node:http";
 import { createSecureServer, constants as H2 } from "node:http2";
 import { dirname, isAbsolute, join, resolve } from "node:path";
@@ -9,8 +9,10 @@ import { createServer as createTlsServer } from "node:tls";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { isProxy } from "node:util/types";
+import { tmpdir } from "node:os";
 import { createInspectedHttpWire, createInspectedRequestFramer } from "./inspected-http-wire.mjs";
-import { startLocalGoogleAuthorityBypass, startLocalGoogleInspectedTransport } from "./inspected-transport.mjs";
+import { startLocalGoogleAuthorityBypass, startLocalGoogleInspectedTransport, startLocalGoogleProtocolControl }
+  from "./inspected-transport.mjs";
 import { inspectedMetaSourcePins } from "./inspected-meta-stock.mjs";
 import { currentGoogleCohort } from "./inspected-google-cohort.mjs";
 import { writeGoogleOriginals } from "./inspected-google-originals.mjs";
@@ -73,6 +75,7 @@ export async function runLocalGoogleQualification(options) {
     || !["h1", "h2"].includes(options.protocol)
     || !["positive", "marker", "marker-bypass", "path", "path-bypass", "changed-input", "changed-input-bypass",
       "ambiguous", "ambiguous-bypass", "authority", "authority-bypass", "body", "body-bypass", "expiration", "expiration-bypass",
+      "unsupported-transport", "unsupported-transport-bypass",
       "response-parent", "response-parent-unlinked", "response-parent-unlinked-bypass",
       "response-parent-incomplete", "response-parent-incomplete-bypass",
       "aggregate", "aggregate-bypass",
@@ -125,7 +128,7 @@ export async function runLocalGoogleQualification(options) {
   const sourceBefore = inspectedMetaSourcePins();
   const cohortBefore = currentGoogleCohort();
   let cookies = [];
-  let browserServer, browser, context, page, cdp, sink, transport, heldParent, heldParentTail;
+  let browserServer, browser, context, page, cdp, sink, transport, heldParent, heldParentTail, socketDir;
   let guard = true, guardAtClose = false, faultInjected = false;
   const track = promise => {
     tasks.add(promise);
@@ -158,10 +161,12 @@ export async function runLocalGoogleQualification(options) {
       control === "wrong-name" ? ["wrong.example"] : NAMES);
     const spki = createHash("sha256").update(new X509Certificate(inspector.cert).publicKey
       .export({ type: "spki", format: "der" })).digest("base64");
-    const application = protocol === "h1" ? createHttpServer({ maxHeaderSize: 131072 })
+    const protocolControl = control.startsWith("unsupported-transport");
+    const receiverProtocol = protocolControl ? (protocol === "h1" ? "h2" : "h1") : protocol;
+    const application = receiverProtocol === "h1" ? createHttpServer({ maxHeaderSize: 131072 })
       : createSecureServer({ ...upstream, maxHeaderListPairs: 8192, settings: { maxHeaderListSize: 131072 },
         ALPNProtocols: ["h2"] });
-    sink = protocol === "h1" ? createTlsServer({ ...upstream, ALPNProtocols: ["http/1.1"] }, secure => {
+    sink = receiverProtocol === "h1" ? createTlsServer({ ...upstream, ALPNProtocols: ["http/1.1"] }, secure => {
       own(secure); application.emit("connection", secure);
     }) : application;
     sink.on("connection", own);
@@ -226,13 +231,17 @@ export async function runLocalGoogleQualification(options) {
     await wait(new Promise((resolve, reject) => {
       sink.once("error", reject); sink.listen(0, "127.0.0.1", resolve);
     }));
-    const startTransport = control === "authority-bypass" ? startLocalGoogleAuthorityBypass : startLocalGoogleInspectedTransport;
+    const startTransport = control === "authority-bypass" ? startLocalGoogleAuthorityBypass
+      : protocolControl ? startLocalGoogleProtocolControl : startLocalGoogleInspectedTransport;
     transport = await startTransport({ inspector, protocol, observer, check: checkAdmission, wait,
       receiver: { port: sink.address().port, certificate: control === "certificate" ? inspector.cert : upstream.cert,
-        logicalAuthority: authority => logical.some(row => new URL(row.url).host + ":443" === authority) } });
+        logicalAuthority: authority => logical.some(row => new URL(row.url).host + ":443" === authority) } }, bypass);
     const { chromium } = await import("playwright");
-    browserServer = await chromium.launchServer({ executablePath: fileURLToPath(new URL("./qualification-loopback-chrome", import.meta.url)),
+    socketDir = realpathSync(tmpdir());
+    browserServer = await chromium.launchServer({ executablePath: fileURLToPath(new URL("./inspected-google-loopback-chrome", import.meta.url)),
       host: "127.0.0.1", headless: true, timeout: 10000, proxy: { server: "http://127.0.0.1:" + transport.port },
+      env: { ...process.env, TMPDIR: socketDir, AIRLOCK_GOOGLE_SOCKET_DIR: socketDir,
+        AIRLOCK_GOOGLE_BROKER_PORT: String(transport.port) },
       args: ["--disable-background-networking", "--dns-prefetch-disable", `--ignore-certificate-errors-spki-list=${spki}`] });
     if (new URL(browserServer.wsEndpoint()).hostname !== "127.0.0.1") fail("driver_not_loopback");
     browser = await wait(chromium.connect(browserServer.wsEndpoint()));
@@ -301,7 +310,7 @@ export async function runLocalGoogleQualification(options) {
     const truncated = control.startsWith("truncated");
     const aggregate = control.startsWith("aggregate");
     const bodyControl = control.startsWith("body");
-    const total = certificateFault || control === "no-ticket" || control === "redirect" || responseLimit || headerLimit || truncated ? 1
+    const total = certificateFault || protocolControl || control === "no-ticket" || control === "redirect" || responseLimit || headerLimit || truncated ? 1
       : control.startsWith("budget") ? 21 : retry ? 20 : aggregate ? 4 : 2;
     for (let n = 0; n < total; n++) {
       const primary = control.startsWith("close") || aggregate || n % 2 === 0;
@@ -362,7 +371,8 @@ export async function runLocalGoogleQualification(options) {
     }
     await wait(Promise.allSettled([...tasks]));
     cookies = retain(await wait(context.cookies()));
-    const expected = certificateFault || control === "no-ticket" || (headerLimit && !bypass) ? 0
+    const expected = certificateFault || protocolControl && !bypass || control === "no-ticket" || (headerLimit && !bypass) ? 0
+      : protocolControl ? 1
       : ["body", "expiration", "authority", "response-parent-unlinked", "response-parent-incomplete"].includes(control) ? 1
       : control === "aggregate" ? 3 : control === "aggregate-bypass" ? 4
       : control === "body-bypass" ? 2
@@ -380,7 +390,7 @@ export async function runLocalGoogleQualification(options) {
                 : control === "aggregate" ? "aggregate_overflow"
         : control === "response-limit" ? "response_overflow" : control === "header-limit" ? "semantic_header_limit"
           : control === "truncated" ? "truncated_response"
-          : certificateFault ? "upstream_tls_failed"
+          : certificateFault ? "upstream_tls_failed" : protocolControl && !bypass ? "upstream_protocol_failed"
         : control === "budget" || (retry && !bypass) ? "physical_request_limit" : null;
     const truncatedH2Bypass = control === "truncated-bypass" && protocol === "h2";
     const expectedSuccesses = control === "redirect" ? 1 : retry ? (bypass ? 20 : 19) : control === "aggregate" ? 2
@@ -407,7 +417,7 @@ export async function runLocalGoogleQualification(options) {
       || (!bypass && observer.originals().responses.some(row => row.state === "complete"
         && createHash("sha256").update(Buffer.concat(row.body)).digest("hex")
           !== receiver[row.ordinal - 1]?.response_body_sha256))
-      || (!certificateFault && control !== "no-ticket" && control !== "redirect" && !responseLimit && !headerLimit && !truncated
+      || (!certificateFault && !protocolControl && control !== "no-ticket" && control !== "redirect" && !responseLimit && !headerLimit && !truncated
         && !["marker", "path", "changed-input", "ambiguous", "body", "expiration", "authority", "response-parent-unlinked",
           "response-parent-incomplete", "aggregate"].some(value => control.startsWith(value))
         && !control.startsWith("close") && !cookies.some(cookie => cookie.name === "qualification"
@@ -417,7 +427,8 @@ export async function runLocalGoogleQualification(options) {
         && !receiver.some((row, index) => index > 1 && row.authority === "ad.doubleclick.net"
           && row.headers.some((value, at) => at % 2 === 0 && value.toLowerCase() === "cookie"
             && row.headers[at + 1].includes("qualification=one"))))
-      || (certificateFault ? transport.snapshot().denials.upstream_certificate !== 1 : control === "no-ticket"
+      || (certificateFault ? transport.snapshot().denials.upstream_certificate !== 1
+        : protocolControl && !bypass ? transport.snapshot().denials.upstream_protocol !== 1 : control === "no-ticket"
         ? !transport.snapshot().denial_authorities.no_authority?.["www.googleadservices.com:443"]
         : !transport.snapshot().tunnels.length || transport.snapshot().tunnels.some(row => !row.upstream_authorized)))
       fail("receiving_control_failed");
@@ -428,15 +439,18 @@ export async function runLocalGoogleQualification(options) {
     if (context) try { await settle(context.close()); } catch { errors.push("context_close_failed"); }
     cleanup.guard_at_context_close = guardAtClose;
     if (browser) try { await settle(browser.close()); } catch { errors.push("browser_close_failed"); }
-    if (browserServer) try { await settle(browserServer.close()); } catch { errors.push("browser_server_close_failed"); }
+    if (browserServer) try { await settle(browserServer.close(), 8000); } catch (error) {
+      cleanup.browser_server_close_failure = error.message === "cleanup_timeout" ? "timeout" : "rejected";
+      errors.push("browser_server_close_failed");
+    }
     const child = browserServer?.process();
     if (child && child.exitCode === null && child.signalCode === null) {
-      const exit = new Promise(resolve => child.once("exit", resolve));
-      child.kill("SIGKILL");
-      try { await settle(exit, 2000); } catch { errors.push("browser_process_close_failed"); }
+      try { await settle(browserServer.kill(), 2000); } catch { errors.push("browser_process_close_failed"); }
     }
     guard = false;
     cleanup.browser_process_exited = !child || child.exitCode !== null || child.signalCode !== null;
+    cleanup.ipv6_guard_at_browser_exit = cleanup.browser_process_exited
+      && Boolean(transport?.snapshot().ipv6_guard_listening);
     if (transport) try { await settle(transport.close()); } catch { errors.push("transport_close_failed"); }
     for (const session of sessions) session.destroy();
     for (const socket of sockets) socket.destroy();
@@ -449,7 +463,7 @@ export async function runLocalGoogleQualification(options) {
     cleanup.transport = transport?.snapshot() ?? null;
     for (const file of files) try { if (existsSync(file)) unlinkSync(file); } catch { errors.push("certificate_cleanup_failed"); }
     cleanup.keys_removed = files.every(file => !existsSync(file));
-    if (!cleanup.guard_at_context_close || !cleanup.browser_process_exited || !cleanup.receiver_sockets_closed
+    if (!cleanup.guard_at_context_close || !cleanup.browser_process_exited || !cleanup.ipv6_guard_at_browser_exit || !cleanup.receiver_sockets_closed
       || !cleanup.receiver_sessions_closed || !cleanup.keys_removed || !cleanup.transport?.server_closed
       || !cleanup.transport?.sockets_closed || !cleanup.transport?.tasks_settled || !cleanup.cdp_tasks_settled)
       errors.push("cleanup_incomplete");
@@ -466,6 +480,7 @@ export async function runLocalGoogleQualification(options) {
         : control === "header-limit" ? "semantic_header_limit"
           : control === "truncated" ? "truncated_response"
         : ["certificate", "wrong-name"].includes(control) ? "upstream_tls_failed"
+          : control === "unsupported-transport" ? "upstream_protocol_failed"
         : control === "budget" || (["retry", "goaway"].includes(control)) ? "physical_request_limit" : null;
     if (observer.snapshot().reason !== expectedReason) errors.push("final_observer_state_mismatch");
     if (observer.snapshot().late_wire_overflow) errors.push("aggregate_overflow");

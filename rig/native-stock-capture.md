@@ -28,19 +28,20 @@ imports. Earlier source-bound receipts do not qualify the changed source.
 
 The local controls now retain binary originals and bind each child witness to
 the current Node, Chrome, Playwright and operating-system cohort. Body,
-expiration, authority, response-parent and aggregate-limit controls are
-SDK-free. A source-bound H1/H2 matrix produced 80 complete child witnesses:
-78 passing controls and two expected synthetic aborts. These do not fill the
-native admission or cleanup gaps.
+expiration, authority, response-parent, unsupported-transport and
+aggregate-limit controls are SDK-free. The guarded H1/H2 matrix produced 84
+complete child witnesses: 82 passing controls and two expected synthetic
+aborts. These controls do not fill the native admission or cleanup gaps.
 
-The broker-port sandbox experiment is not a native confinement solution. On
-the current macOS and Chrome cohort, a separate `::1` listener using the
-broker's IPv4 port received a request. The matched broader sandbox also reached
-that listener. The experimental wrapper is diagnostic only and the local
-qualification still uses the earlier loopback-only wrapper. Playwright's owned
-browser-server exit and sampled process-tree checks do not establish that
-every descendant was accounted for. Both confinement and independent
-descendant cleanup remain open before native admission.
+On the current macOS and Chrome cohort, the first broker-port sandbox let a
+separate `::1` listener receive a request at the broker's IPv4 port. The local
+broker now holds that IPv6 port and stops the case on a direct connection.
+Local controls use the narrower sandbox. Separate socket probes deny Unix
+outbound and same-port UDP, while matched bypasses reach their receivers.
+These controls do not establish complete native confinement. Playwright's
+owned browser-server exit and sampled
+process-tree checks do not establish that every descendant was accounted for.
+Independent descendant cleanup remains open before native admission.
 
 ## Current ownership guardrail - 2026-10-29
 

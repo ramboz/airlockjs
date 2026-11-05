@@ -346,6 +346,26 @@ confinement and independent complete descendant cleanup remain unqualified.
 The native Google transport, controller, private binding and real receipt
 validation remain unimplemented. No slot or official source was used.
 
+**2026-11-05 guard follow-up:** The SDK-free local broker now holds `::1` on
+the IPv4 broker port and stops on a direct IPv6 connection. The current browser
+control reaches that guard, while an independently owned same-port listener
+cannot bind. The narrower sandbox denies Unix outbound and same-port UDP in
+separate socket controls; their matched bypasses reach the receivers. Chrome
+still needs to bind its singleton socket in the operating-system temporary directory.
+Opposite-ALPN H1/H2 controls deny the unsupported upstream protocol, and local
+bypasses reach their receivers. The local browser path uses these changes.
+The preceding source-bound 80-witness matrix is stale. A fresh matrix produced
+84 complete child witnesses, including two expected synthetic aborts. Native
+admission and complete independent descendant cleanup remain open.
+
+The subsequent TCP-only sandbox matrix stopped at H1 `ambiguous-bypass`:
+the receiver saw both requests, but browser-server close reported failure.
+The child retained an incomplete witness and reported root exit and local
+socket cleanup. This does not qualify the failed control or descendant cleanup.
+The close diagnostic now distinguishes a timeout from a rejected close. A
+subsequent TCP-only matrix produced 84 complete witnesses, including two
+expected synthetic aborts. It does not explain the earlier close failure.
+
 **2026-11-05 Google loopback continuation:** A separate Google-only loopback
 broker now composes the declared policy, physical observer and raw relay.
 CONNECT authority is bound to the actual request authority; the original Meta

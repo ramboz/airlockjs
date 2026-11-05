@@ -1,7 +1,7 @@
 import { connect, createServer } from "node:net";
 import { describe, expect, it } from "vitest";
 import { createInspectedHttpWire } from "./inspected-http-wire.mjs";
-import { authenticateOwnedBrowserPeer, startLocalGoogleAuthorityBypass, startLocalGoogleInspectedTransport }
+import { authenticateOwnedBrowserPeer, startLocalGoogleAuthorityBypass, startLocalGoogleInspectedTransport, startLocalGoogleProtocolControl }
   from "./inspected-transport.mjs";
 
 const request = (port, authority) => new Promise((resolve, reject) => {
@@ -15,6 +15,26 @@ const request = (port, authority) => new Promise((resolve, reject) => {
 });
 
 describe("SDK-free Google transport authority", () => {
+  it("holds the same-port IPv6 loopback guard until the Google broker closes", async () => {
+    const transport = await startLocalGoogleInspectedTransport({
+      inspector: {}, receiver: { port: 1, certificate: Buffer.alloc(0), logicalAuthority: () => true },
+      protocol: "h1", observer: createInspectedHttpWire(), check() {}, wait: promise => promise,
+    });
+    const probe = async port => {
+      const server = createServer();
+      const outcome = await new Promise(resolve => {
+        server.once("error", error => resolve(error.code));
+        server.listen({ host: "::1", port, ipv6Only: true }, () => resolve("listening"));
+      });
+      if (server.listening) await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+      return outcome;
+    };
+    const { port } = transport;
+    try { expect(await probe(port)).toBe("EADDRINUSE"); }
+    finally { await transport.close(); }
+    expect(await probe(port)).toBe("listening");
+  });
+
   it("denies a peer when lsof reports no established socket without treating it as a relay failure", async () => {
     const cdp = { send: async () => ({ processInfo: [] }) };
     expect(await authenticateOwnedBrowserPeer(cdp, { localPort: 1, remotePort: 1 }, promise => promise, true)).toBe(false);
@@ -32,12 +52,20 @@ describe("SDK-free Google transport authority", () => {
       inspector: {}, receiver: { port: 1, certificate: Buffer.alloc(0), logicalAuthority: () => true },
       protocol: "h1", observer, check() {}, wait: promise => promise,
     });
+
     try {
       expect(await request(transport.port, "other.example:443")).toBe("HTTP/1.1 403 Denied");
       expect(await request(transport.port, "foreign.example:443")).toBe("HTTP/1.1 403 Denied");
       expect(transport.snapshot().denials).toMatchObject({ authority: 1, peer: 1 });
       expect(transport.snapshot().public_upstream_requests).toBe(0);
     } finally { await transport.close(); }
+  });
+
+  it("does not allow a native policy observer to enable the opposite-ALPN bypass", async () => {
+    await expect(startLocalGoogleProtocolControl({
+      inspector: {}, receiver: { port: 1 }, protocol: "h1", observer: createInspectedHttpWire(),
+      check() {}, wait: promise => promise,
+    }, true)).rejects.toThrow("local_diagnostic_observer_required");
   });
 
   it("denies an expired CONNECT without forwarding or disguising the deadline as a relay error", async () => {

@@ -12,6 +12,7 @@ const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const controls = ["positive", "marker", "marker-bypass", "path", "path-bypass", "changed-input", "changed-input-bypass",
   "ambiguous", "ambiguous-bypass", "authority", "authority-bypass", "body", "body-bypass", "expiration", "expiration-bypass",
+  "unsupported-transport", "unsupported-transport-bypass",
   "response-parent", "response-parent-unlinked", "response-parent-unlinked-bypass",
   "response-parent-incomplete", "response-parent-incomplete-bypass",
   "aggregate", "aggregate-bypass",
