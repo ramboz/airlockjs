@@ -378,6 +378,9 @@ As a bounded alternative, the same browser sandbox with `process-fork` denied
 returned an owned browser-server handle but failed on browser connection. Its
 root exited with `SIGTRAP` while the IPv6 guard remained active. The trap's
 cause is not established, and this attempt does not qualify that alternative.
+The current cohort's Chrome framework imports both `setsid` and
+`posix_spawnattr_setpgroup`. That binary inspection does not establish that
+either function ran in the browser case.
 
 **2026-11-05 Google loopback continuation:** A separate Google-only loopback
 broker now composes the declared policy, physical observer and raw relay.

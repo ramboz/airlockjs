@@ -53,6 +53,8 @@ A separate `process-fork` denial attempt obtained a browser-server handle but
 failed when connecting to Chrome. Its root exited with `SIGTRAP` while the
 IPv6 guard was active. The trap's cause is unknown, so that alternative is
 not qualified.
+The current Chrome framework imports `setsid` and
+`posix_spawnattr_setpgroup`; the import check does not show either function ran.
 
 ## Current ownership guardrail - 2026-10-29
 
