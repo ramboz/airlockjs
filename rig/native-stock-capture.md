@@ -46,6 +46,9 @@ On the current guarded path, separate normal and synthetic-abort probes each
 sampled seven owned processes. All sampled processes were absent after closure;
 the IPv6 guard was active at root exit. Neither probe excludes an unobserved
 descendant.
+An owned synthetic child also entered a separate process group under the same
+sandbox and exited normally. This shows the sandbox does not guarantee group
+containment; it is not evidence that Chrome escaped.
 
 ## Current ownership guardrail - 2026-10-29
 

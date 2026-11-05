@@ -369,6 +369,11 @@ Fresh normal and synthetic-abort probes on the guarded browser each sampled
 seven owned processes. All sampled processes were absent after closure and
 the IPv6 guard remained active at root exit. The probes did not continuously
 enumerate descendants and cannot exclude an unobserved escape.
+An additional finite synthetic process probe under the same sandbox created an
+owned detached child in a different process group and waited for its normal
+exit. The sandbox alone therefore does not keep descendants in the root group.
+This does not show that Chrome escaped; it rules out treating group membership
+as a guarantee.
 
 **2026-11-05 Google loopback continuation:** A separate Google-only loopback
 broker now composes the declared policy, physical observer and raw relay.
