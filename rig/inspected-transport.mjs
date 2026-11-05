@@ -10,6 +10,8 @@ import { claimNativeMetaTransport } from "./inspected-meta-stock.mjs";
 
 const execute = promisify(execFile);
 const AUTHORITY = "www.facebook.com:443";
+const GOOGLE_AUTHORITIES = new Set(["www.googleadservices.com:443", "www.google.com:443",
+  "googleads.g.doubleclick.net:443", "ad.doubleclick.net:443"]);
 
 export function inspectedDecoderDependencyPins() {
   const require = createRequire(import.meta.url), result = {};
@@ -166,9 +168,21 @@ export async function startLocalInspectedTransport({ inspector, receiver, protoc
       servername: "www.facebook.com", ca: receiver.certificate, rejectUnauthorized: true,
       ALPNProtocols: [protocol === "h2" ? "h2" : "http/1.1"] }) });
 }
-async function startInspectedTransport({ inspector, observer, check, wait, logicalAuthority, beforeConnect, openUpstream, expectedProtocol, mode }) {
-  const sockets = new Set(), tasks = new Set(), errors = [], denials = {}, tunnels = [];
-  let browserSession = null, closed = false, serverClosing = null, authenticatedPeers = 0;
+
+/** SDK-free only: fixed Google names, with every upstream bound to literal loopback. */
+export async function startLocalGoogleInspectedTransport({ inspector, receiver, protocol, observer, check, wait }) {
+  if (!["h1", "h2"].includes(protocol) || !Number.isInteger(receiver.port) || receiver.port < 1 || receiver.port > 65535)
+    throw new Error("invalid_local_transport");
+  return startInspectedTransport({ inspector, observer, check, wait, mode: "sdk-absent-google",
+    beforeConnect: check, google: true,
+    logicalAuthority: receiver.logicalAuthority, expectedProtocol: protocol,
+    openUpstream: authority => tlsConnect({ host: "127.0.0.1", port: receiver.port,
+      servername: authority.slice(0, -4), ca: receiver.certificate, rejectUnauthorized: true,
+      ALPNProtocols: [protocol === "h2" ? "h2" : "http/1.1"] }) });
+}
+async function startInspectedTransport({ inspector, observer, check, wait, logicalAuthority, beforeConnect, openUpstream, expectedProtocol, mode, google = false }) {
+  const sockets = new Set(), tasks = new Set(), errors = [], diagnosticErrors = [], denials = {}, denialAuthorities = {}, tunnels = [];
+  let browserSession = null, closed = false, admissionOpen = true, serverClosing = null, authenticatedPeers = 0;
   let connectAttempts = 0;
   const own = socket => {
     sockets.add(socket); socket.on("error", () => {});
@@ -177,7 +191,14 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
   const stop = () => { for (const socket of sockets) socket.destroy(); };
   const track = work => {
     tasks.add(work);
-    work.catch(() => { errors.push("local_relay_failed"); observer.stop("local_relay_failed"); stop(); })
+    work.catch(error => {
+      errors.push("local_relay_failed");
+      if (google) diagnosticErrors.push({ name: error.name, code: error.code ?? null,
+        category: /closed/i.test(error.message) ? "closed_resource"
+          : /protocol/i.test(error.message) ? "protocol_error"
+            : error.message === "qualification_expired" ? "qualification_expired" : "other" });
+      observer.stop("local_relay_failed"); stop();
+    })
       .finally(() => tasks.delete(work));
   };
   const authenticate = async socket => {
@@ -192,26 +213,41 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
   proxy.on("connect", (request, client, head) => track((async () => {
     const deny = reason => {
       denials[reason] = (denials[reason] ?? 0) + 1;
+      if (google && GOOGLE_AUTHORITIES.has(request.url)) {
+        denialAuthorities[reason] ??= {};
+        denialAuthorities[reason][request.url] = (denialAuthorities[reason][request.url] ?? 0) + 1;
+      }
       client.end("HTTP/1.1 403 Denied\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
     };
     check();
     if (++connectAttempts > 64) { observer.stop("transport_observation_limit"); return deny("observation_limit"); }
-    if (closed || request.url !== AUTHORITY || head.length) return deny("authority");
-    if (!await authenticate(client)) return deny("peer");
+    if (closed || !(google ? GOOGLE_AUTHORITIES.has(request.url) : request.url === AUTHORITY) || head.length)
+      return deny("authority");
+    if (google && !admissionOpen) return deny("admission_closed");
+    let authenticated;
+    try { authenticated = await authenticate(client); }
+    catch (error) {
+      if (google && !admissionOpen) return deny("admission_closed");
+      throw error;
+    }
+    if (!authenticated) return deny("peer");
+    if (google && !admissionOpen) return deny("admission_closed");
     authenticatedPeers++;
-    if (observer.snapshot().stopped || !logicalAuthority())
+    if (observer.snapshot().stopped || !logicalAuthority(request.url))
       return deny("no_authority");
     beforeConnect();
-    const remote = own(openUpstream());
+    const remote = own(openUpstream(request.url));
     let protocol;
     try {
       await wait(new Promise((resolve, reject) => {
         remote.once("secureConnect", resolve); remote.once("error", reject);
       }));
       check();
+      if (google && !admissionOpen) { remote.destroy(); return deny("admission_closed"); }
       protocol = remote.alpnProtocol === "h2" ? "h2" : remote.alpnProtocol === "http/1.1" ? "h1" : null;
       if (!remote.authorized || !protocol || expectedProtocol && protocol !== expectedProtocol
-        || remote.servername !== "www.facebook.com") throw new Error("upstream_tls_failed");
+        || remote.servername !== (google ? request.url.slice(0, -4) : "www.facebook.com"))
+        throw new Error("upstream_tls_failed");
     } catch {
       observer.stop("upstream_tls_failed"); remote.destroy(); return deny("upstream_certificate");
     }
@@ -220,10 +256,11 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
       request: createHash("sha256"),
       response: createHash("sha256"), request_bytes: 0, response_bytes: 0, upstream_termination: null };
     tunnels.push(tunnel);
-    relayInspectedSockets({ client, remote, inspector, protocol, gate: observer.connection(protocol), observer,
+    relayInspectedSockets({ client, remote, inspector, protocol,
+      gate: observer.connection(protocol, google ? request.url : null), observer,
       own, task: track, bounded: wait,
       requestBytes() {
-        try { check(); return true; }
+        try { check(); if (google && !admissionOpen) { stop(); return false; } return true; }
         catch { observer.stop("case_window_inactive"); stop(); return false; }
       },
       responseBytes(bytes) {
@@ -233,7 +270,8 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
         catch { observer.stop("case_window_inactive"); stop(); return false; }
       },
       acceptedRequest(bytes) {
-        try { check(); tunnel.request.update(bytes); tunnel.request_bytes += bytes.length; return true; }
+        try { check(); if (google && !admissionOpen) { stop(); return false; }
+          tunnel.request.update(bytes); tunnel.request_bytes += bytes.length; return true; }
         catch { observer.stop("case_window_inactive"); stop(); return false; }
       },
       acceptedResponse() {
@@ -251,12 +289,14 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
   }));
   return Object.freeze({
     port: proxy.address().port,
+    ...(google ? { closeAdmission() { admissionOpen = false; } } : {}),
     attachOwnedBrowser(session) {
       if (browserSession || closed) throw new Error("local_browser_already_bound");
       browserSession = session;
     },
     snapshot: () => ({ mode, connect_attempts: connectAttempts, authenticated_peers: authenticatedPeers,
       denials: { ...denials }, errors: [...errors],
+      ...(google ? { diagnostic_errors: [...diagnosticErrors], denial_authorities: structuredClone(denialAuthorities) } : {}),
       public_upstream_requests: mode === "native" ? observer.snapshot().forwarded : 0,
       tunnels: tunnels.map(({ request, response, ...row }) => ({
         ...row, request_sha256: request.copy().digest("hex"), response_sha256: response.copy().digest("hex"),

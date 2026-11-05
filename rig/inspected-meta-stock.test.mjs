@@ -441,12 +441,15 @@ describe("inspected Meta stock preparation", () => {
     const { inspectedMetaSourcePins } = await load();
     const { inspectedDecoderDependencyPins } = await import("./inspected-transport.mjs");
     const pins = inspectedMetaSourcePins();
-    expect(Object.keys(pins)).toHaveLength(124);
+    expect(Object.keys(pins)).toHaveLength(129);
     for (const name of ["meta-attended-control.mjs", "meta-attended-control.test.mjs",
       "meta-attended-reference.mjs", "meta-attended-reference.test.mjs",
       "meta-attended-stop.mjs", "meta-attended-stop.test.mjs",
       "local-guard-observation.mjs", "local-guard-observation.test.mjs",
-      "inspected-google-policy.mjs", "inspected-google-policy.test.mjs"]) {
+      "inspected-google-policy.mjs", "inspected-google-policy.test.mjs",
+      "inspected-google-transport.test.mjs", "inspected-google-qualification.mjs",
+      "inspected-google-qualification.test.mjs", "inspected-google-witness.mjs",
+      "inspected-google-witness.test.mjs"]) {
       expect(pins[name]).toMatch(/^[a-f0-9]{64}$/);
     }
     expect(Object.keys(pins.header_decoder_dependencies)).toHaveLength(12);

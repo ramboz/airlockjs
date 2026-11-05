@@ -332,6 +332,33 @@ now include the Google observer import and test; earlier source-bound receipts
 are stale. The stock CLI remains blocked. No review or native admission is
 claimed by this checkpoint.
 
+**2026-11-05 Google loopback continuation:** A separate Google-only loopback
+broker now composes the declared policy, physical observer and raw relay.
+CONNECT authority is bound to the actual request authority; the original Meta
+broker remains fixed to Meta. H1/H2 current-browser controls exercised local
+receiving, changed and missing markers, changed input, ambiguous logical
+binding, path denial, certificate and hostname failure, response and header
+limits, truncation, redirect, 20/21 attempts, retry faults and cleanup. H2
+also exercised GOAWAY. Matched local bypasses expose the corresponding faults
+where implemented. These are SDK-free controls, not native evidence.
+
+One attempted witness batch reused old output paths; child directory creation
+failed and the witnesses correctly remained incomplete. The witness now
+creates its own exclusive output directory before starting the child; the
+collision regression failed first and then passed. A fresh source-bound batch
+used new paths. Guards stayed installed through context close and the owned
+browser-server child exited in the retained runs; descendant cleanup is not
+established by that observation.
+
+The Google native transport and controller, private input and real review
+receipt validation, original-slot admission, and the full required control
+set remain open. In particular, local browser proof of unsupported body and
+transport, incomplete response parents, expiry, aggregate failure and
+descendant cleanup is not established. The two Meta source inventories now
+also include the directly coupled Google transport and qualification files;
+earlier source-bound receipts remain stale. No official SDK, public vendor
+traffic, original reservation or native permission is claimed.
+
 **2026-10-21 actual original Meta stock case:** The owner separately approved
 the 16:15–16:16Z (09:15 PDT) window and original-slot binding. All actual
 discipline/context receipts and active-window preparation cleared; the fixed

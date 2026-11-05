@@ -125,4 +125,12 @@ describe("declared Google policy on physical HTTP bytes", () => {
     expect(() => createInspectedHttpWire(input)).toThrow("invalid_google_binding_input");
     expect(invoked).toBe(false);
   });
+
+  it("binds a physical connection to its exact authenticated CONNECT authority", () => {
+    const wire = createInspectedHttpWire(options());
+    const connection = wire.connection("h1", "www.googleadservices.com:443");
+    expect(connection.request(h1(primary))).toEqual(h1(primary));
+    expect(connection.request(h1(companion))).toEqual(Buffer.alloc(0));
+    expect(wire.snapshot()).toMatchObject({ stopped: true, reason: "inspected_authority_mismatch", forwarded: 1 });
+  });
 });
