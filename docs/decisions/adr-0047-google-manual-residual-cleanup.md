@@ -1,7 +1,7 @@
 ---
-status: Proposed
+status: Accepted
 dependencies: [adr-0045]
-last_verified:
+last_verified: 2026-11-05
 frame_review: true
 ---
 
@@ -14,7 +14,7 @@ and complete reference evidence still need independent proof.
 
 ## Status
 
-Proposed (2026-11-05)
+Accepted (2026-11-05)
 
 ## Context
 

@@ -47,7 +47,7 @@
 - [ADR-0043: Google and Meta request integrity and egress authority](adr-0043-google-meta-request-authority.md) — Google and Meta need an explicit request-construction authority. (2026-11-02, Accepted)
 - [ADR-0044: Google Ads consent wait, retention and replay](adr-0044-google-ads-consent-wait.md) — Google Ads consent waiting needs a recorded policy decision before implementation. (2026-11-02, Proposed)
 - [ADR-0045: Inspected Google reference for the first conversion](adr-0045-inspected-google-reference.md) — The first Google conversion needs a complete application-layer reference. (2026-11-05, Accepted)
-- [ADR-0047: Google Chrome residual helpers and manual cleanup](adr-0047-google-manual-residual-cleanup.md) — The owner accepts residual Chrome helpers for the bounded Google reference. (2026-11-05, Proposed)
+- [ADR-0047: Google Chrome residual helpers and manual cleanup](adr-0047-google-manual-residual-cleanup.md) — The owner accepts residual Chrome helpers for the bounded Google reference. (2026-11-05, Accepted)
 
 ## Format
 

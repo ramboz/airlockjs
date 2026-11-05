@@ -9,7 +9,23 @@ reference blocks its dependent chamber case.
 
 ## Google checkpoint - 2026-11-05
 
-### Complete-cleanup stop
+### Current owner-directed Chrome helper exception
+
+Accepted [ADR-0047](../docs/decisions/adr-0047-google-manual-residual-cleanup.md)
+records the owner's choice to continue with installed Chrome and a fresh
+disposable profile, accepting possible residual helpers and manual cleanup.
+Never use an everyday profile or claim complete descendant cleanup.
+The actual pinned Sol frame/architecture passes cover this decision only.
+
+Native admission remains closed. Independent network stop and safe
+guard/listener release still need current-source/browser qualification with
+possible surviving helpers, including reconnects and port reuse. Closing
+the old broker or observing root exit alone is insufficient. No indefinite
+guardian, extra case, retry, new environment or longer window is approved.
+All authority, original-slot, final-egress, finite-limit and evidence gates
+remain. See the [current packet](../docs/specs/059-google-ads-full-compatibility/plan.md#current-chrome-helper-exception-and-next-packet---2026-11-05).
+
+### Historical complete-cleanup stop
 
 The continuation from integrated `3a1ebd17` stopped before browser execution.
 The current cleanup helper observes the owned root, not an independently
