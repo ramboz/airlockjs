@@ -1,6 +1,6 @@
 ---
 status: IN_PROGRESS
-dependencies: [059-13, 059-14, adr-0033, adr-0034, adr-0045]
+dependencies: [059-13, 059-14, adr-0033, adr-0034, adr-0045, adr-0047]
 last_verified:
 kind: feature
 frame_review: true
@@ -33,6 +33,23 @@ private permissions, found the original Meta stock reservation, and found no
 Google stock or chamber reservation. No slot was reserved by that inspection.
 Recheck the original authority and namespace immediately before execution;
 do not create a replacement authority directory.
+
+The owner subsequently directed installed Chrome with a fresh disposable
+profile and accepted possible leftover helpers with manual cleanup.
+Accepted [ADR-0047](../../decisions/adr-0047-google-manual-residual-cleanup.md)
+records the narrow Google reference exception after actual pinned Sol frame
+and architecture reviews. Complete descendant cleanup stays unproved and
+must be reported as unknown/manual. The original full-slice criteria remain
+intact; no current-source, stop, guard-release, authority or product pass
+follows from that exception. The earlier isolated-runner proposal below is
+historical and not selected.
+
+The [next bounded packet](plan.md#current-chrome-helper-exception-and-next-packet---2026-11-05)
+targets synchronous Google transport stop through pinned Terra and
+browser-free controls after decision integration. Safe guard release with
+possible surviving helpers remains unqualified, including reconnects after
+port reuse. Native admission remains closed. This is the same IN_PROGRESS
+slice, not a reset or a new owner.
 
 The subsequent Node-only source batch adds a synthetic Google controller,
 closed physical-policy/loopback-relay composition, private output and a

@@ -33,7 +33,30 @@ criterion is closed by the local source corrections.
 reference closes its unchanged product criteria. Meta work and spent slots
 remain separate.
 
-### Complete-cleanup source-fit stop
+### Current owner-directed Chrome helper exception
+
+- [x] Record the direct owner choice of installed Chrome, possible leftover
+      helpers and manual cleanup in Accepted ADR-0047.
+- [x] Resolve the provisional ADR-0046 collision by renumbering to the
+      integration owner's local/provisional ADR-0047 hold.
+- [x] Pass fresh explicitly pinned Sol frame and architecture reviews of
+      that narrow exception. Full 059-15 compliance stays non-clearing.
+- [ ] Integrate the decision checkpoint through the existing landing owner.
+- [ ] Use pinned Terra for synchronous Google admission/socket stop and
+      browser-free red/green controls through the existing fixed transport.
+- [ ] Review and land that source checkpoint without opening native admission.
+- [ ] Establish current-source stop and safe guard release with possible
+      surviving helpers, including reconnects and port reuse.
+- [ ] Complete authenticated permission/review provenance, native transport/
+      lease and all unchanged current-source, receiving, setup/window gates.
+- [ ] Only then admit the eligible original case and continue the actual
+      reference/chamber conversion tasks above.
+
+The [current packet](plan.md#current-chrome-helper-exception-and-next-packet---2026-11-05)
+does not claim complete descendant cleanup or approve an indefinite guardian.
+The isolated-runner proposal below is historical and no longer selected.
+
+### Historical complete-cleanup source-fit stop
 
 - [x] Verify the integrated controller base at
       `3a1ebd17a8c7a744312c2fbb921e587ca094dd60` and integration ownership.
@@ -48,12 +71,11 @@ remain separate.
       with cited kernel interfaces, failure controls and unproved host needs.
 - [x] Pass independent pinned Sol architecture review for the proposed design
       packet only. Full-slice compliance and readiness remain non-clearing.
-- [ ] Select and approve a named execution boundary through the existing
-      decision/review process, or supply an already qualified runner.
-- [ ] Establish independently reviewed current-source complete cleanup,
-      including acquisition failure, abort and descendants outliving the root.
-- [ ] Only after that gate clears, resume authenticated permission/review
-      provenance, native transport/lease composition and finite qualification.
+
+The later owner instruction rejects a new isolated runner and changes the
+helper-exit prerequisite through ADR-0047. The earlier proposed boundary
+selection and complete-descendant-cleanup work is not the active queue.
+Independent stop and all non-excepted gates remain required.
 
 The current runner checks one owned root's exit. Its broker and receiver
 settlement does not account for every browser descendant. The continuation
@@ -82,7 +104,8 @@ not adopted or expanded.
 - [x] Retain scoped results, source manifest and the synthetic Node witness.
 - [ ] Complete native transport/lease and authenticate permission and review
       provenance. The candidate records are not authority.
-- [ ] Qualify the current browser and complete descendant cleanup.
+- [ ] Qualify the current browser and independent stop under ADR-0047,
+      keeping descendant cleanup explicitly unknown/manual.
 - [x] Complete coordinator source verification and prepare the stable handoff.
 - [x] Parent runs a fresh independent Sol packet review and integrates the
       committed checkpoint at `3a1ebd17`. Full compliance stays non-clearing;

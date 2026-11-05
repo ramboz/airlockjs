@@ -50,6 +50,55 @@ Keep 059-01 READY_FOR_REVIEW until its actual prerequisites clear.
 Do not advertise a new runner, local primary send or inspected reference as
 the completed conversion or ordinary-browser product parity.
 
+### Current Chrome helper exception and next packet - 2026-11-05
+
+The owner now directs use of installed Chrome and accepts possible leftover
+helpers with manual cleanup. Accepted
+[ADR-0047](../../decisions/adr-0047-google-manual-residual-cleanup.md)
+records that narrow change. It preserves ADR-0045 and the original full-slice
+criteria. The earlier isolated-runner proposal below is historical and not
+selected. Do not provision it or repeat its environment-approval question.
+
+The Google capture controller relayed the new direct owner instruction.
+This is distinct from its earlier coordinator-answered design-only question.
+Fresh reviewers explicitly pinned to `gpt-6.1-sol` passed the ADR's frame
+and bounded architecture reviews. Their pass covers the scoped exception,
+not current-source safety or full 059-15 compliance.
+
+Start from verified integration base `7b3ec627874b371d13e03b528c273eeaac85b259`.
+The integration owner holds local/provisional ADR-0047 after identifying the
+other line's ADR-0046 allocation. The provisional 0046 reservation remains
+in Git history; its draft was renumbered without changing the other record.
+
+**Next bounded source packet, after decision integration:** use pinned Terra
+to make Google network stop synchronously close admission and cancel owned
+upstream sockets, including the direct transport-close path. Use existing
+raw relay, policy, source inventories and fixed loopback receiver. Witness
+browser-free red/green controls for already-pending authentication/upstream
+setup, active H1/H2 work and expiry. Record the actual stopped resource state.
+Do not open native admission, change the Meta path or replace unknown/manual
+descendant cleanup with a success receipt.
+
+**Remaining safety gate:** qualify final stop and safe guard/listener release
+even when helpers survive root exit. The sandbox permits a loopback port,
+not one listener's permanent identity. Closing the original broker alone
+does not rule out reconnects after port reuse. Root exit and a zero receiver
+sample cannot clear this gate. A new indefinite guardian or longer complete
+case is not implied. If the reviewed current path cannot satisfy this
+condition, preserve its blocked/incomplete result and surface that concrete
+mechanism or authority conflict.
+
+Native permission/review provenance and transport/lease composition remain
+open. Current-source/browser/receiving qualification, original slot, setup,
+coordination and a real finite window still precede the one eligible case.
+No browser, official SDK, public request or original reservation is part of
+this decision packet. 059-15 stays IN_PROGRESS with non-clearing compliance;
+059-01 stays READY_FOR_REVIEW.
+
+The following source-fit stop and custody proposal retain the earlier
+complete-cleanup requirement and its then-current disposition as history.
+ADR-0047 supplies the current Google helper-exit exception only.
+
 ### Complete-cleanup source-fit stop - 2026-11-05
 
 The continuation starts from integrated
