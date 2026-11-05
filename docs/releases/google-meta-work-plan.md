@@ -22,6 +22,21 @@ vendor traffic remain gated; no earlier case or spending grant is renewed.
 
 ## Google Ads integration - 2026-11-05
 
+**Current instruction:** complete the Google conversion autonomously on
+`google-ads-chamber`. Meta stays with its parallel session. The owner approved
+one bounded inspected Google reference in
+[ADR-0045](../decisions/adr-0045-inspected-google-reference.md) and delegated
+routine implementation, qualification and finite scheduling.
+[059-01's current plan](../specs/059-google-ads-full-compatibility/plan.md#current-assignment-complete-the-google-conversion---2026-11-05)
+now owns that sequence. Completed 059-21 is a building block, not the current
+finish line. The unchanged product criteria remain open.
+
+The original Google stock/chamber slots were checked read-only and remain
+unreserved; the original Meta stock reservation remains spent. No new namespace
+or retry is created. The Google reference is conditional on actual reviewed
+current-source physical-count/response/cleanup controls. The present browser
+is .80, not the historical .48/.49 qualification cohort.
+
 Google Ads work now has one integration branch, `google-ads-chamber`. The owner
 selected Google Ads plus shared Google/Meta groundwork, with the later Meta
 implementation kept separate. The current assignment starts Google work

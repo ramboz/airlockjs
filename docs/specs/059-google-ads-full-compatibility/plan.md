@@ -1,6 +1,56 @@
 # Plan - full Google Ads browser-tag compatibility
 
-## Current local assignment - 2026-11-05
+## Current assignment: complete the Google conversion - 2026-11-05
+
+The owner directed autonomous completion of the Google conversion on
+`google-ads-chamber`. Meta stays with its parallel session. The target is
+[059-01](slice-01-owned-conversion.md), with actual native/chamber evidence.
+Completed 059-21 is the local entry building block, not the current finish line.
+
+Use the existing owned setup and recovered private inputs. Accepted ADR-0043
+supplies the trusted first-party mapping boundary. The owner additionally
+approved the bounded inspected Google reference in
+[ADR-0045](../../decisions/adr-0045-inspected-google-reference.md), subject to
+source and safety qualification. Routine implementation, control execution
+and finite scheduling are delegated; do not ask for approval of each step.
+This does not renew spent slots or waive a failed safety/evidence gate.
+
+Work in this order:
+
+1. Prepare and independently review the Google-only reference composition
+   under existing 059-15. Reuse its policy and physical HTTP mechanisms.
+   Do not repair or extend the separate Meta supervisor programme.
+2. Verify the original Google stock slot and current private setup/source
+   bindings. Qualify the exact .80 browser/transport, receiving controls,
+   response retention, finite stop and cleanup before the one native case.
+3. Retain the complete reference or its visible incomplete outcome. Do not
+   retry or treat blocked branches as native behavior.
+4. Use complete pinned reference bytes for offline response replay and
+   matched no-tag/native/chamber calibration. Pin C2 and evidence-backed C3
+   limits before dependent product implementation.
+5. Complete the adopter path through a real first-party chamber, including
+   every required request, response and host effect. Keep mapping off-main,
+   consent/destination enforcement on-host, and native Ads absent.
+6. Exercise causal failing controls and the eligible conditional chamber
+   comparison. Obtain the required independent Jig reviews, reconcile
+   evidence and publish the result on this integration branch.
+
+The Meta coordinator reported no active site/browser/measurement hold and
+source `c2af5f8c66620c9ba9881796f70b9364f6e75108`; a read-only GitHub query
+independently matched that pin. The root still contains default-on native Meta.
+Use `meta-pixel=off` or a verified Meta-free fixture. Recheck source and any
+new hold at actual case admission.
+
+The installed browser reports 156.0.8078.80 and Playwright 1.62.1.
+Historical .48/.49 controls are not current qualification. The recovered
+Google loader still matches the exact existing policy pin; the missing
+secondary response and historical body gaps remain missing.
+
+Keep 059-01 READY_FOR_REVIEW until its actual prerequisites clear.
+Do not advertise a new runner, local primary send or inspected reference as
+the completed conversion or ordinary-browser product parity.
+
+## Completed local assignment - 2026-11-05
 
 The owner authorized completing the local Google conversion implementation
 plan on `google-ads-chamber`. The existing test setup and retained private
@@ -26,17 +76,17 @@ boundary/scenario/numerical readiness outstanding.
 
 The [bounded work plan](../../releases/google-meta-work-plan.md) remains the
 shared review entry point. The owner selected the local assignment above;
-the earlier blanket pause no longer blocks that task. Preserve the unfinished
-verifier work. Field experiments, tooling repair and native acquisition are
-not part of this assignment.
+the earlier blanket pause no longer blocks the current Google assignment.
+Preserve the unfinished verifier work. Native acquisition is limited to the
+approved Google reference above; unrelated runner work is excluded.
 
 059-01 remains the first full product owner. R-013 now has the recovered-input
 case card. [Accepted ADR-0043](../../decisions/adr-0043-google-meta-request-authority.md)
 records trusted first-party mapping authority. Complete native-response,
 boundary, scenario and numerical readiness still precede full qualification.
 [Proposed ADR-0044](../../decisions/adr-0044-google-ads-consent-wait.md)
-still owns the unresolved consent-wait policy. This local assignment grants
-no vendor or live authority.
+still owns the unresolved consent-wait policy. Keep it outside this first
+granted direct-conversion case unless native evidence makes it necessary.
 
 ## Historical delivery planning and evidence through 2026-10-29
 

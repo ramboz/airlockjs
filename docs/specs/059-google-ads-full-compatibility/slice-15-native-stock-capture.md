@@ -1,6 +1,6 @@
 ---
-status: DEFERRED
-dependencies: [059-13, 059-14, adr-0033, adr-0034]
+status: READY_FOR_IMPLEMENTATION
+dependencies: [059-13, 059-14, adr-0033, adr-0034, adr-0045]
 last_verified:
 kind: feature
 frame_review: true
@@ -18,6 +18,97 @@ This is reference tooling, not a tag replacement. The first live execution is
 Meta only after actual independent reviews, qualified preflight and scheduling;
 Google follows only when its own policy/branch prerequisites are satisfied.
 Neither chamber slot is executable through this stock-only entry.
+
+## Current Google checkpoint - 2026-11-05
+
+The owner resumed the Google reference for 059-01 and approved isolated HTTPS
+inspection under [ADR-0045](../../decisions/adr-0045-inspected-google-reference.md).
+The coordinator owns routine source preparation and finite scheduling. Meta's
+spent slots, unfinished supervisor and earlier failed receipts stay unchanged.
+Reopening this slice does not restart that separate programme.
+
+The recovered loader matches the Google policy's exact retained-source pin.
+Read-only inspection of the original authority locator verified its hash and
+private permissions, found the original Meta stock reservation, and found no
+Google stock or chamber reservation. No slot was reserved by that inspection.
+Recheck the original authority and namespace immediately before execution;
+do not create a replacement authority directory.
+
+### Bounded implementation packet
+
+**Consumer:** 059-01 criteria 4, 5 and 7 need a complete native reference.
+The deliverable is one concrete Google stock capture path and its actual
+local controls, followed by at most the eligible original Google stock case.
+It is not a general runner, replacement mapper or second feature owner.
+
+**Construction boundary:** reuse `createNativeStockPolicy`, original
+`reserveStockSlot`, the physical request framer/header/response observer and
+the raw TLS relay. Add a closed Google policy composition and Google-specific
+entry/qualification where the Meta-only fixed authority cannot be reused.
+Keep Meta behavior and its eight-request limit unchanged. Do not copy its
+supervisor programme or make a configurable public upstream proxy.
+
+**Required behavior:**
+
+1. Accept only the bound original Google stock slot, private owned inputs,
+   verified retained official source, current source/browser/dependency
+   fingerprints, explicit inspection permission and real passing review/
+   qualification receipts. Validate before reservation and SDK execution.
+   The command is one initialization/configuration followed by one new
+   controlled USD 1 conversion, with native consent state recorded separately.
+2. Admit only the fixed Google policy's HTTPS authorities and exact eligible
+   paths/methods/resource types/fields. Bind actual physical headers to
+   unambiguous logical observations; preserve duplicate/order information.
+   Bind response-linked and redirect requests to complete prior originals.
+   The explicitly approved selector-free companion still needs the same-case
+   owned primary and its exact AUID. Unknown or unsupported inputs stop.
+3. Enforce 20 physical requests globally across all Google tunnels, including
+   internal retries. Reserve before forwarding, with the unchanged 64-request/
+   60-second/byte ceilings. Preserve complete original application bytes and
+   actual browser cookie/storage effects. Unknown/truncated/bodyless-as-unknown
+   responses are never filled with successful substitutes.
+4. Use only a fresh disposable browser, loopback-only process confinement,
+   authenticated case-owned broker and its exact ephemeral inspector trust.
+   Validate real upstream certificates and names. The isolated fixture must
+   contain no Meta or Adobe bootstrap. Serve only the pinned native source
+   and declared fixture bytes; no CDN fallback or dependency download.
+5. Before native execution, run fixed SDK-free current-browser H1/H2 receiving
+   controls through the same composed policy/relay. Cover normal responses,
+   retries/GOAWAY, the 20/21 boundary, missing/foreign markers, changed input,
+   ambiguous logical binding, unsupported authority/path/transport/body,
+   redirect/response parents, header/response/aggregate limits, certificate
+   failure, expiration and normal/aborted cleanup. Matched bypasses must expose
+   the intended fault at an independent local receiver. Bypasses cannot be
+   enabled in a native entry.
+6. Preserve failures and source-bound originals privately, with exclusive
+   durable output and an independent actual process-completion observation.
+   Close admission first on failure/expiry; close only verified owned
+   resources, keep guards through browser close, and retain unresolved cleanup
+   as incomplete. A failed or partial local control blocks native admission.
+7. Recheck source, current setup and coordination before the finite native
+   window. Durably spend the original slot before official source execution.
+   No retry, additional event, replacement slot or automatic grant expansion
+   follows an incomplete case. Separate application-layer reference quality,
+   SDK execution, actual HTTP, product receipt and ordinary-browser TLS parity.
+
+**Allowed source surface:** Google-specific modules/tests under `rig/`;
+the minimal shared physical observer change needed to select the closed
+Google profile and its fixed count; and this slice's operator documentation.
+Do not change core/contracts, production adapters, Meta-specific policy or
+collector permissions, dependency manifests, account configuration or site
+defaults. Follow directly required imports/tests when the concrete source
+proves they are needed; keep any such change explicit in the handoff.
+
+**Execution boundary:** implementation and SDK-free loopback qualification are
+delegated. The parent admits the one real Google case only after independent
+source/safety review and actual current-path controls. No official SDK or
+public vendor traffic is part of the implementer's local work.
+
+**Checkpoint:** use the existing two-active-hour prerequisite checkpoint.
+Return a concrete runnable path with red/green and local qualification
+evidence, or the first specific unsatisfied control. Do not launch an
+unrelated ownership, scheduler, Docker or acquisition framework.
+059-01 and full 059-15 remain open until their own actual criteria clear.
 
 ## Work disposition - 2026-10-26
 
@@ -103,8 +194,11 @@ of the spent Meta case or implicit renewal of historical grants/source leases.
    [ADR-0034](../../decisions/adr-0034-inspected-meta-stock-reference.md).
    Bind its separate conditional permission and ephemeral inspector trust;
    retain strict upstream certificate/hostname validation and pre-forward
-   physical semantic/count/header/body checks. This grants no Google,
-   candidate or production inspection and no default-browser TLS parity.
+   physical semantic/count/header/body checks.    The separately approved Google stock exception is
+   [ADR-0045](../../decisions/adr-0045-inspected-google-reference.md), with
+   its own Google composition and twenty-request controls.
+   Neither exception grants candidate or production inspection or
+   default-browser TLS parity.
 4. **Finite one-shot authority.** The executable accepts only `google-stock`
    or `meta-stock`, after validating the explicit owner grant, current setup
    receipt and case source/input/cohort/window binding. Reserve the fixed
@@ -145,7 +239,8 @@ of the spent Meta case or implicit renewal of historical grants/source leases.
    Generated fixture TLS trust is narrowly pinned and never authorizes actual
    collector trust. The conditional inspected Meta mode binds its own exact
    ephemeral inspector certificate and independently validates upstream;
-   other native cases receive no local trust exception. Every negative links to a passing matched positive
+   the separate conditional Google mode binds only its own ADR-0045
+   permission and Google controls. Every negative links to a passing matched positive
    and fails for its intended reason. Do not call a local synthetic result
    actual native execution, a live advertising event or complete vendor parity.
    Include receiver-recorded requests followed by a reused H1 connection close,

@@ -5,7 +5,7 @@ last_verified:
 kind: feature
 frame_review: true
 arch_review: true
-claimed_by: google-and-meta-feasibility
+claimed_by: google-ads-chamber
 ---
 
 ## Slice 059-01 - Owned direct conversion cutover
@@ -18,9 +18,9 @@ Ads fallback or an overstated product claim.
 - [x] ADR-0033 is Accepted after its real frame review.
 - [ ] This slice frame and bounded transport/response design pass required
       review without silently changing ADR-0017.
-- [ ] [ADR-0043](../../decisions/adr-0043-google-meta-request-authority.md)
-      has a research-backed recommendation, required review and acceptance
-      before implementation. Filing its Proposed draft is not that decision.
+- [x] [ADR-0043](../../decisions/adr-0043-google-meta-request-authority.md)
+      has the research-backed recommendation, required reviews and owner
+      acceptance recorded on 2026-11-02. Production fit remains a separate gate.
 - [ ] 058-01 qualifies the exact recorder/guard surface; shared 058-02 controls
       and Google-specific 058-04 supply a positive pinned attempted reference;
       058-03 detects missing branches, input-value mutations and empty/partial

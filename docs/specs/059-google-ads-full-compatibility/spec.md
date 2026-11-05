@@ -84,11 +84,13 @@ All remaining native gates and the consumed canonical reservation are preserved.
 
 ## Remaining work and next authoring step
 
-**Paused for owner review (2026-11-02).** The
-[goal/status/work plan](../../releases/google-meta-work-plan.md)
-is the proposed bounded pickup order. No research or implementation follows
-without an owner-selected packet. 059-20 is already DONE for its historical
-local-browser scope; it is not the next draft. Full059-01 remains unqualified.
+**Google resumed by the owner (2026-11-05).** Complete the first Google
+conversion autonomously under the [current plan](plan.md#current-assignment-complete-the-google-conversion---2026-11-05).
+The owner approved the bounded inspected reference in
+[ADR-0045](../../decisions/adr-0045-inspected-google-reference.md), subject to
+source and safety review. Meta remains with its parallel session.
+059-20/21 are DONE for their local scopes; neither is the next draft or a
+qualified full conversion. Full059-01 remains READY_FOR_REVIEW.
 
 The [delivery queue](../../releases/vendor-parity-assurance.md#googlemeta-delivery-queue-2026-10-26)
 maps every documented remaining feature to its existing059/060 owner and

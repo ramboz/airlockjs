@@ -4,7 +4,27 @@ The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
 
-## Current local assignment - 2026-11-05
+## Current assignment: complete the Google conversion - 2026-11-05
+
+- [x] Owner delegates autonomous completion of Google conversion only.
+- [x] Reuse recovered inputs and coordinate the shared site with the Meta lane.
+- [x] Owner approves bounded isolated Google HTTPS inspection; no repeated
+      routine permission questions.
+- [ ] Pass ADR-0045 frame review and record the scoped decision through Jig.
+- [ ] Prepare/review the Google-only 059-15 physical capture composition.
+- [ ] Verify original slot availability, current setup/source and .80 browser.
+- [ ] Qualify Google receiving, failure, retention and cleanup controls.
+- [ ] Execute the one eligible native reference case and retain its full outcome.
+- [ ] Derive/pin C2 and measured C3 limits using complete reference/replay controls.
+- [ ] Complete the governed native-free adopter/worker/response-chain path.
+- [ ] Run causal failure controls and the eligible chamber comparison.
+- [ ] Pass independent required reviews and reconcile/publish actual evidence.
+
+059-01 remains READY_FOR_REVIEW. Neither a source checkpoint nor an incomplete
+reference closes its unchanged product criteria. Meta work and spent slots
+remain separate.
+
+## Completed local assignment - 2026-11-05
 
 - [x] Recover existing owned setup, configuration, loader and capture.
 - [x] Prepare the Google first-conversion case card under R-013.
@@ -35,7 +55,7 @@ remove complete native-reference and performance-readiness obligations.
 
 No unchecked item below is an automatic work assignment. The checklist is
 retained as the earlier work queue; current permissions and pickup order come
-from the owner-selected local assignment and its unchanged live limits.
+from the current Google assignment and its exact finite live limits.
 
 ## Historical next-deliverable checklist
 

@@ -134,10 +134,13 @@ return BLOCKED rather than inventing another prerequisite implementation.
 
 ## Google first-case evidence card
 
-**Status (2026-11-05):** bounded preparation for 059-01 on
-`google-ads-chamber`. The follow-up above recovered and integrity-checked
-retained private inputs and matched their destination/label relationships.
-Acquisition and full-journey implementation remain blocked.
+**Status (2026-11-05):** the owner directed autonomous completion of 059-01 on
+`google-ads-chamber`, with Meta handled separately. Retained private inputs
+were recovered, integrity-checked and matched to the published destination
+and captured labels. The owner approved the bounded inspected Google
+reference in [ADR-0045](../decisions/adr-0045-inspected-google-reference.md).
+Actual acquisition still requires current-source Google guard/review gates;
+full-journey readiness and complete native evidence remain open.
 
 The first case is one owned direct website conversion. Start with a granted
 host `ad_storage` purpose and one explicit page action. Retain the native
@@ -176,14 +179,24 @@ relationships only; it did not requalify the complete reference.
 
 ### Recommended route and required input
 
-First review explicitly supplied retained originals. If they contain the
-missing response/state branches for this exact case, reuse them without a
-new run. Otherwise recommend an owner-operated capture on the isolated owned
-surface, with an independently reviewed complete observer and finite
-stop/cleanup plan. That avoids commissioning another general runner.
-An owner-operated capture still needs the same safety and provenance checks.
-The existing supervised path is a fallback only if its current source,
-browser, ownership and route controls qualify for this Google case.
+The retained originals were reviewed. They lack the required response/state
+branches. Use the approved single inspected Google stock case through the
+existing 059-15 owner, with a Google-specific composition of the policy,
+physical observer and bounded relay. No general runner or Meta supervisor
+repair is commissioned. Qualification, complete observation and finite
+cleanup still precede the case.
+
+Read-only inspection verified the original authority file against its retained
+locator, including private permissions. The original Meta stock reservation
+exists; Google stock and chamber reservations do not. This inspection reserved
+nothing. Recheck that exact namespace at admission; a copied authority or new
+output directory is not another slot.
+
+The Meta lane reported no active site/browser/measurement hold. A read-only
+GitHub query independently matched its reported source pin. The root still
+loads native Meta by default, so a Google visit needs `meta-pixel=off` or a
+verified Meta-free fixture. The installed browser reports 156.0.8078.80 and
+Playwright 1.62.1; earlier .48/.49 receipts cannot qualify that source/cohort.
 
 The private `<GOOGLE_CASE_INPUT_BUNDLE>` is a working set of the inputs below,
 not a new document the owner must assemble. Reuse the recovered configuration
@@ -204,12 +217,12 @@ remaining missing facts:
 - A paired no-tag/native/chamber measurement plan and evidence-backed numeric
   limits for C3. Missing limits stay missing; prototype defaults are not budgets.
 
-**Exit:** setup and retained-input location are resolved. BLOCKED on complete
-reference branches and the case's remaining boundary, scenario and numerical
-readiness review. Reusing the inputs does not authorize a browser run, resend,
-account change or deployment. Review the first unsupported input or control
-rather than starting another field experiment. Keep 059-01 READY_FOR_REVIEW
-until its required reviews and prerequisites actually clear.
+**Exit:** setup/input location and the inspected-reference policy choice are
+resolved. Complete reference branches, exact Google path qualification and
+the product's boundary/scenario/numerical readiness remain open. Routine
+preparation and finite scheduling are delegated. The conditional one-case
+approval does not permit retries, account changes, Meta work or weakened
+controls. Keep 059-01 READY_FOR_REVIEW until its actual prerequisites clear.
 
 ## Meta first-case evidence card
 

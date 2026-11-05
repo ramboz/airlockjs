@@ -46,6 +46,7 @@
 - [ADR-0042: Google and Meta product-first delivery gates](adr-0042-google-meta-product-delivery-gates.md) — Google and Meta need product milestones that cannot be replaced by infrastructure progress. (2026-10-26, Accepted)
 - [ADR-0043: Google and Meta request integrity and egress authority](adr-0043-google-meta-request-authority.md) — Google and Meta need an explicit request-construction authority. (2026-11-02, Accepted)
 - [ADR-0044: Google Ads consent wait, retention and replay](adr-0044-google-ads-consent-wait.md) — Google Ads consent waiting needs a recorded policy decision before implementation. (2026-11-02, Proposed)
+- [ADR-0045: Inspected Google reference for the first conversion](adr-0045-inspected-google-reference.md) — The first Google conversion needs a complete application-layer reference. (2026-11-05, Accepted)
 
 ## Format
 
