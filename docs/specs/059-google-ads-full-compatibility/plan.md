@@ -50,6 +50,43 @@ Keep 059-01 READY_FOR_REVIEW until its actual prerequisites clear.
 Do not advertise a new runner, local primary send or inspected reference as
 the completed conversion or ordinary-browser product parity.
 
+### Product boundary source checkpoint - 2026-11-05
+
+The existing local adapter remains a construction tool. It admits literal
+loopback endpoints only (`adapters/google-ads-prototype.js:274-284`) and uses
+GET with omitted credentials, rejected redirects and no referrer
+(`:513`). Its worker treats returned bodies as data without cookie or
+response-driven branches
+(`connectors/google-ads/conversion-prototype.worker.js:81`). Changing the
+endpoint expression would leave those native behavior gaps unresolved.
+
+The frozen round-trip descriptors carry URL, method, headers and body, then
+status, headers and response body
+(`contracts/capability.d.ts:243-261`). They do not declare a resource type,
+credential mode or redirect policy. A later Google design must classify
+each required operation against those actual types and ADR-0017, rather
+than extending a frozen descriptor under the config carve-out. The private
+serialized protocol in ADR-0043 remains the candidate around that boundary.
+Its exact fit depends on the complete native response graph.
+
+The wrapped host rechecks consent before calling the egress capability
+(`core/wrapped-sdk-host.js:444-453`). An independently asynchronous transport
+must also check at its final network call. The test-origin cookie helper
+strips Domain, Secure and SameSite (`:650-658`); it cannot establish production
+attribute preservation. The shipped `bootGoogleAds` still wires the existing
+page-collection connector and hold/remap behavior
+(`adapters/eds/index.js:858-932`). Preserve that path while implementing the
+separate first-conversion authority.
+
+Read-only inspection of site commit
+`c2af5f8c66620c9ba9881796f70b9364f6e75108` found the existing standalone
+`tools/google-ads/test-purchase.html` and its local module entry. The HTML
+contains no Meta script reference, and its 118-byte entry imports only
+`conversion-test.js`. This is source inspection, not proof of transitive
+browser isolation, deployed bytes or an executed reference. No page was
+opened. The live case still needs its own closed dependency and network
+policy checks.
+
 ## Completed local assignment - 2026-11-05
 
 The owner authorized completing the local Google conversion implementation

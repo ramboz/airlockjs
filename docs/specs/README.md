@@ -206,7 +206,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-12 - Full-portfolio adoption qualification | DRAFT |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-13 - Paired validation admission component | **DONE** |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-14 - Browser admission and original-byte capture controls | **DONE** |  |
-| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-15 - Exact native policy and one-shot stock capture | READY_FOR_IMPLEMENTATION |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-15 - Exact native policy and one-shot stock capture | IN_PROGRESS (glowing-barnacle) |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-16 - SDK-absent chamber capture qualification | **DONE** |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-17 - Offline native-attempt/chamber diagnostic | **DONE** |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-18 - Additional lineage-bound Meta stock case | DEFERRED |  |

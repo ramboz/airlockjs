@@ -10,7 +10,10 @@ implementation, review or readiness.
 - [x] Reuse recovered inputs and coordinate the shared site with the Meta lane.
 - [x] Owner approves bounded isolated Google HTTPS inspection; no repeated
       routine permission questions.
-- [ ] Pass ADR-0045 frame review and record the scoped decision through Jig.
+- [x] Pass ADR-0045 frame review and record the scoped decision through Jig.
+- [x] Connect the declared Google physical observer and verify its shared
+      20-attempt counter offline. This does not qualify Google transport.
+- [x] Inspect the existing product boundary and record its contract/response gaps.
 - [ ] Prepare/review the Google-only 059-15 physical capture composition.
 - [ ] Verify original slot availability, current setup/source and .80 browser.
 - [ ] Qualify Google receiving, failure, retention and cleanup controls.
