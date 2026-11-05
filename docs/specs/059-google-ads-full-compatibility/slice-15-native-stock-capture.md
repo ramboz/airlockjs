@@ -332,6 +332,20 @@ now include the Google observer import and test; earlier source-bound receipts
 are stale. The stock CLI remains blocked. No review or native admission is
 claimed by this checkpoint.
 
+**2026-11-05 Google local-control follow-up:** Added SDK-free body,
+expiration, authority, response-parent and aggregate controls. The independent
+child witness checks private binary originals and current source and runtime
+cohort fingerprints. The final source matrix has 80 complete child witnesses,
+including two expected synthetic aborts. A same-port sandbox experiment denied
+another IPv4 port but delivered a request to an independently owned `::1`
+listener at the broker's port. Its matched bypass reached the listener too. The experiment is
+diagnostic only and is not used for qualification or native admission.
+Sampled normal and abort process trees exited in the local probes; those
+samples do not exclude an unobserved escaped descendant. Exact broker
+confinement and independent complete descendant cleanup remain unqualified.
+The native Google transport, controller, private binding and real receipt
+validation remain unimplemented. No slot or official source was used.
+
 **2026-11-05 Google loopback continuation:** A separate Google-only loopback
 broker now composes the declared policy, physical observer and raw relay.
 CONNECT authority is bound to the actual request authority; the original Meta

@@ -6,11 +6,16 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { isProxy } from "node:util/types";
 import { readMetaPrivate, writeMetaPrivate } from "./native-stock-meta.mjs";
 import { inspectedMetaSourcePins } from "./inspected-meta-stock.mjs";
+import { currentGoogleCohort } from "./inspected-google-cohort.mjs";
 
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const controls = ["positive", "marker", "marker-bypass", "path", "path-bypass", "changed-input", "changed-input-bypass",
-  "ambiguous", "ambiguous-bypass", "close", "close-positive", "no-ticket", "abort", "redirect",
+  "ambiguous", "ambiguous-bypass", "authority", "authority-bypass", "body", "body-bypass", "expiration", "expiration-bypass",
+  "response-parent", "response-parent-unlinked", "response-parent-unlinked-bypass",
+  "response-parent-incomplete", "response-parent-incomplete-bypass",
+  "aggregate", "aggregate-bypass",
+  "close", "close-positive", "no-ticket", "abort", "redirect",
   "budget", "budget-bypass", "certificate", "wrong-name", "response-limit", "response-limit-bypass",
   "header-limit", "header-limit-bypass",
   "truncated", "truncated-bypass",
@@ -33,6 +38,7 @@ export async function witnessLocalGoogleQualification(options) {
   if (!parent.isDirectory() || parent.isSymbolicLink() || parent.uid !== process.getuid()
     || (parent.mode & 0o7777) !== 0o700) fail("invalid_google_witness_parent");
   const sourceBefore = inspectedMetaSourcePins();
+  const cohortBefore = currentGoogleCohort();
   try { mkdirSync(outputDir, { mode: 0o700 }); }
   catch (error) {
     if (error.code === "EEXIST") fail("google_witness_output_exists");
@@ -56,9 +62,30 @@ export async function witnessLocalGoogleQualification(options) {
     child.once("error", reject);
     child.once("close", (code, signal) => resolve({ code, signal }));
   });
-  const duration = performance.now() - started, sourceAfter = inspectedMetaSourcePins();
+  const duration = performance.now() - started, sourceAfter = inspectedMetaSourcePins(), cohortAfter = currentGoogleCohort();
   const bytes = readMetaPrivate(join(runDir, "result.json"));
   const report = JSON.parse(bytes.toString("utf8"));
+  const wire = report.originals?.wire;
+  const responses = report.originals?.responses;
+  if ((wire !== undefined && !Array.isArray(wire)) || !Array.isArray(responses))
+    fail("local_google_originals_invalid");
+  const originals = [...(wire ?? []).flatMap(row => [row.request, row.response]),
+    ...responses.map(row => row.body)];
+  const names = new Set();
+  let originalBytes = 0;
+  for (const original of originals) {
+    if (!original || typeof original.file !== "string" || !/^original-[1-9][0-9]*\.bin$/.test(original.file)
+      || names.has(original.file) || !Number.isSafeInteger(original.bytes) || original.bytes < 0
+      || !Array.isArray(original.chunks) || original.chunks.some(size => !Number.isSafeInteger(size) || size < 0)
+      || original.chunks.reduce((sum, size) => sum + size, 0) !== original.bytes
+      || typeof original.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(original.sha256))
+      fail("local_google_originals_invalid");
+    names.add(original.file);
+    const data = readMetaPrivate(join(runDir, original.file), 8388608);
+    originalBytes += data.length;
+    if (data.length !== original.bytes || hash(data) !== original.sha256
+      || originalBytes + bytes.length > 8388608) fail("local_google_originals_invalid");
+  }
   const expectedAbort = control === "abort";
   const outcomeMatches = expectedAbort
     ? report.outcome === "inconclusive" && JSON.stringify(report.errors) === JSON.stringify(["synthetic_abort"])
@@ -71,12 +98,15 @@ export async function witnessLocalGoogleQualification(options) {
     && report.native_execution_qualified === false
     && JSON.stringify(sourceBefore) === JSON.stringify(sourceAfter)
     && JSON.stringify(sourceBefore) === JSON.stringify(report.source_before)
-    && JSON.stringify(report.source_before) === JSON.stringify(report.source_after);
+    && JSON.stringify(report.source_before) === JSON.stringify(report.source_after)
+    && JSON.stringify(cohortBefore) === JSON.stringify(cohortAfter)
+    && JSON.stringify(cohortBefore) === JSON.stringify(report.cohort_before)
+    && JSON.stringify(report.cohort_before) === JSON.stringify(report.cohort_after);
   const witness = { schema: "airlock.sdk-absent-google-child-witness.v1",
     protocol, control, command_exit_observed: true, exit_code: exit.code, signal: exit.signal,
     elapsed_ms: duration, producer_outcome: report.outcome, result_sha256: hash(bytes),
     stdout_sha256: hash(stdout), stderr_sha256: hash(stderr),
-    source_sha256: hash(JSON.stringify(sourceBefore)), complete: valid,
+    source_sha256: hash(JSON.stringify(sourceBefore)), cohort_sha256: hash(JSON.stringify(cohortBefore)), complete: valid,
     native_sdk_executed: false, public_upstream_requests: 0, native_execution_qualified: false };
   writeMetaPrivate(join(outputDir, "witness.json"), witness);
   if (!valid) fail("local_google_witness_inconclusive");

@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { createHash, X509Certificate } from "node:crypto";
-import { chmodSync, closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync,
+  unlinkSync, writeFileSync } from "node:fs";
 import { createServer as createHttpServer } from "node:http";
 import { createSecureServer, constants as H2 } from "node:http2";
 import { dirname, isAbsolute, join, resolve } from "node:path";
@@ -9,8 +10,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { isProxy } from "node:util/types";
 import { createInspectedHttpWire, createInspectedRequestFramer } from "./inspected-http-wire.mjs";
-import { startLocalGoogleInspectedTransport } from "./inspected-transport.mjs";
+import { startLocalGoogleAuthorityBypass, startLocalGoogleInspectedTransport } from "./inspected-transport.mjs";
 import { inspectedMetaSourcePins } from "./inspected-meta-stock.mjs";
+import { currentGoogleCohort } from "./inspected-google-cohort.mjs";
+import { writeGoogleOriginals } from "./inspected-google-originals.mjs";
 
 const execute = promisify(execFile);
 const DOCUMENT = "https://owned.example/inspection";
@@ -19,7 +22,8 @@ const BASE = "https://www.googleadservices.com/pagead/conversion/000000000/"
   + "&url=https%3A%2F%2Fowned.example%2Finspection&auid=synthetic-auid";
 const COMPANION = "https://ad.doubleclick.net/ccm/s/collect?auid=synthetic-auid";
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
-const NAMES = ["www.googleadservices.com", "www.google.com", "googleads.g.doubleclick.net", "ad.doubleclick.net"];
+const NAMES = ["www.googleadservices.com", "www.google.com", "googleads.g.doubleclick.net", "ad.doubleclick.net",
+  "foreign.example"];
 const fail = reason => { throw Error(reason); };
 const profile = () => ({
   schema_version: 1, profile: "google-ads-conversion", case_name: "google-stock", document_url: DOCUMENT,
@@ -31,17 +35,24 @@ const profile = () => ({
 });
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-function diagnosticBypass() {
+function diagnosticBypass(transparent = false) {
   let observed = 0, forwarded = 0, stopped = false, reason = null, retained = 0;
   const stop = value => { if (!stopped) { stopped = true; reason = value; } };
+  const reserveObservation = bytes => {
+    if (!Number.isSafeInteger(bytes) || bytes < 0 || retained + bytes > 8388608) { stop("aggregate_overflow"); return false; }
+    retained += bytes; return true;
+  };
   return Object.freeze({
-    stop, snapshot: () => ({ observed, forwarded, stopped, reason, diagnostic_bypass: true, retained_bytes: retained }),
-    reserveObservation(bytes) {
-      if (!Number.isSafeInteger(bytes) || bytes < 0 || retained + bytes > 8388608) { stop("aggregate_overflow"); return false; }
-      retained += bytes; return true;
-    },
+    stop, snapshot: () => ({ observed: transparent ? null : observed, forwarded: transparent ? null : forwarded,
+      stopped, reason, diagnostic_bypass: true, transparent_wire_bypass: transparent, retained_bytes: retained }),
+    reserveObservation,
     originals: () => ({ responses: [] }),
     connection(protocol) {
+      if (transparent) {
+        const pass = bytes => reserveObservation(bytes.length) ? bytes : Buffer.alloc(0);
+        return { request: pass, response: async bytes => pass(bytes),
+          endRequest() {}, async endResponse() {} };
+      }
       const framer = createInspectedRequestFramer(protocol, {
         stop, stopped: () => stopped, rawHeaderLimit: 131072, frameLimit: 65536,
         begin() { observed++; if (observed > 64) { stop("observation_overflow"); return false; } return observed; },
@@ -61,7 +72,11 @@ export async function runLocalGoogleQualification(options) {
       || !Object.hasOwn(Object.getOwnPropertyDescriptor(options, key), "value"))
     || !["h1", "h2"].includes(options.protocol)
     || !["positive", "marker", "marker-bypass", "path", "path-bypass", "changed-input", "changed-input-bypass",
-      "ambiguous", "ambiguous-bypass", "close", "close-positive", "no-ticket", "abort", "redirect",
+      "ambiguous", "ambiguous-bypass", "authority", "authority-bypass", "body", "body-bypass", "expiration", "expiration-bypass",
+      "response-parent", "response-parent-unlinked", "response-parent-unlinked-bypass",
+      "response-parent-incomplete", "response-parent-incomplete-bypass",
+      "aggregate", "aggregate-bypass",
+      "close", "close-positive", "no-ticket", "abort", "redirect",
       "response-limit", "response-limit-bypass",
       "truncated", "truncated-bypass",
       "header-limit", "header-limit-bypass",
@@ -86,6 +101,11 @@ export async function runLocalGoogleQualification(options) {
   const check = () => {
     if (Date.now() >= expires || performance.now() - started >= 60000) fail("qualification_expired");
   };
+  let admissionDeadline = Infinity;
+  const checkAdmission = () => {
+    check();
+    if (control === "expiration" && performance.now() >= admissionDeadline) fail("case_window_inactive");
+  };
   const wait = async (promise, maximum = 5000) => {
     check();
     const remaining = Math.min(maximum, expires - Date.now(), 60000 - (performance.now() - started));
@@ -103,8 +123,10 @@ export async function runLocalGoogleQualification(options) {
   const files = [], sockets = new Set(), sessions = new Set(), tasks = new Set(), logical = [], networkEvents = [], receiver = [];
   const errors = [], cleanup = {}, outputs = [];
   const sourceBefore = inspectedMetaSourcePins();
+  const cohortBefore = currentGoogleCohort();
   let cookies = [];
-  let browserServer, browser, context, page, cdp, sink, transport, guard = true, guardAtClose = false, faultInjected = false;
+  let browserServer, browser, context, page, cdp, sink, transport, heldParent, heldParentTail;
+  let guard = true, guardAtClose = false, faultInjected = false;
   const track = promise => {
     tasks.add(promise);
     promise.catch(() => errors.push("cdp_event_failed")).finally(() => tasks.delete(promise));
@@ -112,7 +134,7 @@ export async function runLocalGoogleQualification(options) {
   const own = socket => { sockets.add(socket); socket.on("error", () => {});
     socket.once("close", () => sockets.delete(socket)); };
   const bypass = control.endsWith("-bypass");
-  const observer = bypass ? diagnosticBypass() : createInspectedHttpWire({
+  const observer = bypass ? diagnosticBypass(control === "body-bypass") : createInspectedHttpWire({
     mode: "DECLARED-GOOGLE-PROFILE", profile: profile(),
     resolveObservation: ({ url, method }) => logical.filter(row => row.url === url && row.method === method) });
   const retain = value => {
@@ -148,8 +170,27 @@ export async function runLocalGoogleQualification(options) {
       req.on("error", () => {}); res.on("error", () => {}); req.stream?.on("error", () => {});
       const received = { method: req.method, url: req.url, authority: req.headers[":authority"] ?? req.headers.host,
         headers: req.rawHeaders, response_body_sha256: null };
+      if (control === "response-parent-incomplete-bypass" && receiver.length === 1) {
+        received.parent_response_incomplete = Boolean(heldParent && !heldParent.writableFinished);
+        heldParent.end(heldParentTail);
+      }
       try { receiver.push(retain(received)); }
       catch { errors.push("aggregate_overflow"); observer.stop("aggregate_overflow"); req.destroy(); return; }
+      if (control === "body-bypass" && req.method === "POST") {
+        const chunks = [];
+        req.on("data", chunk => {
+          chunks.push(chunk);
+          if (chunks.reduce((total, item) => total + item.length, 0) > 1024) req.destroy();
+        });
+        req.on("end", () => {
+          const bytes = Buffer.concat(chunks);
+          try { received.request_body_base64 = retain(bytes.toString("base64")); }
+          catch { errors.push("aggregate_overflow"); observer.stop("aggregate_overflow"); res.destroy(); return; }
+          res.writeHead(200, { "access-control-allow-origin": "*", "content-type": "text/plain", "content-length": 18 });
+          res.end("synthetic-original");
+        });
+        return;
+      }
       if ((control.startsWith("retry") || control.startsWith("goaway")) && !faultInjected && receiver.length === 20) {
         faultInjected = true;
         if (protocol === "h1") req.socket.destroy();
@@ -160,23 +201,33 @@ export async function runLocalGoogleQualification(options) {
         return;
       }
       const redirecting = control === "redirect" && receiver.length === 1;
+      const parentResponse = control.startsWith("response-parent") && receiver.length === 1;
       const body = redirecting ? Buffer.from("redirect-original")
+        : parentResponse ? Buffer.from(JSON.stringify(control === "response-parent" || control.startsWith("response-parent-incomplete")
+          ? { url: COMPANION + "&gtm=1" } : { url: "https://foreign.example/unlinked" }))
+        : control.startsWith("aggregate") ? Buffer.alloc(1572864, 65)
         : control.startsWith("response-limit") ? Buffer.alloc(2097152, 65)
         : control.startsWith("truncated") ? Buffer.from("incomplete")
         : req.url.startsWith("/ccm/s/collect?") ? PNG : Buffer.from("synthetic-original");
       received.response_body_sha256 = retain(createHash("sha256").update(body).digest("hex"));
       res.writeHead(redirecting ? 302 : 200, { "access-control-allow-origin": "*",
         ...(redirecting ? { location: BASE + "&random=1" } : {}),
-        "content-type": body === PNG ? "image/png" : "text/plain",
+        "content-type": body === PNG ? "image/png" : parentResponse ? "application/json" : "text/plain",
         "content-length": control.startsWith("truncated") ? body.length + 10 : body.length,
         ...(control.startsWith("truncated") && protocol === "h1" ? { connection: "close" } : {}),
         "set-cookie": "qualification=one; Secure; SameSite=None; Partitioned" });
+      if (control.startsWith("response-parent-incomplete") && parentResponse) {
+        heldParent = res; heldParentTail = body.subarray(body.length - 1);
+        res.write(body.subarray(0, -1));
+        return;
+      }
       res.end(body);
     });
     await wait(new Promise((resolve, reject) => {
       sink.once("error", reject); sink.listen(0, "127.0.0.1", resolve);
     }));
-    transport = await startLocalGoogleInspectedTransport({ inspector, protocol, observer, check, wait,
+    const startTransport = control === "authority-bypass" ? startLocalGoogleAuthorityBypass : startLocalGoogleInspectedTransport;
+    transport = await startTransport({ inspector, protocol, observer, check: checkAdmission, wait,
       receiver: { port: sink.address().port, certificate: control === "certificate" ? inspector.cert : upstream.cert,
         logicalAuthority: authority => logical.some(row => new URL(row.url).host + ":443" === authority) } });
     const { chromium } = await import("playwright");
@@ -207,6 +258,7 @@ export async function runLocalGoogleQualification(options) {
           responseHeaders: [{ name: "Content-Type", value: "text/html" }],
           body: Buffer.from("<!doctype html><title>SDK-free local fixture</title>").toString("base64") });
       } else if (event.request.url.startsWith("https://www.googleadservices.com/")
+        || control.startsWith("authority") && event.request.url.startsWith("https://foreign.example/")
         || event.request.url.startsWith("https://ad.doubleclick.net/")) {
         if (!event.networkId) fail("missing_logical_network_id");
         let matches = [];
@@ -226,7 +278,9 @@ export async function runLocalGoogleQualification(options) {
         if (control !== "no-ticket") {
           const row = { network_id: event.networkId, fetch_id: event.requestId, url: event.request.url,
             method: event.request.method, resource_type: network.resource_type,
-            ...(parent ? { redirect_from: parent.ordinal } : {}) };
+            ...(parent ? { redirect_from: parent.ordinal } : {}),
+            ...(control.startsWith("response-parent") && event.request.url === COMPANION + "&gtm=1"
+              ? { response_parent: 1 } : {}) };
           logical.push(retain(row));
           if (control.startsWith("ambiguous") && logical.length === 2) logical.push(retain({ ...row }));
         }
@@ -245,19 +299,47 @@ export async function runLocalGoogleQualification(options) {
     const responseLimit = control.startsWith("response-limit");
     const headerLimit = control.startsWith("header-limit");
     const truncated = control.startsWith("truncated");
+    const aggregate = control.startsWith("aggregate");
+    const bodyControl = control.startsWith("body");
     const total = certificateFault || control === "no-ticket" || control === "redirect" || responseLimit || headerLimit || truncated ? 1
-      : control.startsWith("budget") ? 21 : retry ? 20 : 2;
+      : control.startsWith("budget") ? 21 : retry ? 20 : aggregate ? 4 : 2;
     for (let n = 0; n < total; n++) {
-      const primary = control.startsWith("close") || n % 2 === 0;
+      const primary = control.startsWith("close") || aggregate || n % 2 === 0;
+      const sendBody = bodyControl && n === 1;
       if (control === "close" && n === 1) transport.closeAdmission();
+      if (control.startsWith("expiration") && n === 1) {
+        admissionDeadline = performance.now() + 100;
+        await sleep(150);
+        faultInjected = true;
+      }
       let url = primary ? BASE + "&random=" + n : COMPANION + "&gtm=" + n;
       if (control.startsWith("marker") && n === 1) url = BASE.replace("label=synthetic&", "") + "&random=1";
       if (control.startsWith("path") && n === 1) url = BASE.replace("/pagead/conversion/", "/unknown/conversion/") + "&random=1";
+      if (control.startsWith("authority") && n === 1) url = BASE.replace("www.googleadservices.com", "foreign.example") + "&random=1";
       if (control.startsWith("changed-input") && n === 1)
         url = BASE.replace("oid=synthetic-transaction", "oid=other-transaction") + "&random=1";
-      const kind = ["marker", "path", "changed-input"].some(value => control.startsWith(value)) && n === 1
+      const kind = (["marker", "path", "changed-input", "authority"].some(value => control.startsWith(value)) && n === 1) || sendBody
         ? "xhr" : primary ? "xhr" : "image";
-      const outcome = await wait(page.evaluate(({ url, kind }) => new Promise(resolve => {
+      if (control.startsWith("response-parent-incomplete") && n === 0) {
+        await wait(page.evaluate(url => {
+          window.__heldParent = new Promise(resolve => {
+            const xhr = new XMLHttpRequest();
+            xhr.onload = () => resolve({ ok: xhr.status === 200, body: xhr.responseText });
+            xhr.onerror = () => resolve({ ok: false });
+            xhr.open("GET", url); xhr.send();
+          });
+        }, url));
+        for (let attempt = 0; attempt < 200; attempt++) {
+          const response = observer.originals().responses[0];
+          if (heldParent && (bypass || response?.state === "streaming" && response.decoded_body_bytes > 0)) break;
+          await sleep(5);
+        }
+        if (!heldParent || !bypass && observer.originals().responses[0]?.state !== "streaming")
+          fail("incomplete_parent_not_observed");
+        faultInjected = true;
+        continue;
+      }
+      const outcome = await wait(page.evaluate(({ url, kind, sendBody }) => new Promise(resolve => {
         if (kind === "image") {
           const image = new Image();
           image.onload = () => resolve({ ok: true }); image.onerror = () => resolve({ ok: false });
@@ -267,48 +349,71 @@ export async function runLocalGoogleQualification(options) {
           xhr.onload = () => resolve(xhr.responseText.length > 100
             ? { ok: xhr.status === 200, length: xhr.responseText.length }
             : { ok: xhr.status === 200, body: xhr.responseText });
-          xhr.onerror = () => resolve({ ok: false }); xhr.open("GET", url); xhr.send();
+          xhr.onerror = () => resolve({ ok: false }); xhr.open(sendBody ? "POST" : "GET", url);
+          xhr.send(sendBody ? "synthetic-owned-body" : undefined);
         }
-      }), { url, kind }), 10000);
+      }), { url, kind, sendBody }), 10000);
       outputs.push(retain(outcome));
+      if (control.startsWith("response-parent-incomplete") && n === 1) {
+        if (!bypass && !heldParent.destroyed) heldParent.end(heldParentTail);
+        outputs.unshift(retain(await wait(page.evaluate(() => window.__heldParent), 5000)));
+      }
       if (control === "abort" && n === 0) fail("synthetic_abort");
     }
     await wait(Promise.allSettled([...tasks]));
     cookies = retain(await wait(context.cookies()));
     const expected = certificateFault || control === "no-ticket" || (headerLimit && !bypass) ? 0
+      : ["body", "expiration", "authority", "response-parent-unlinked", "response-parent-incomplete"].includes(control) ? 1
+      : control === "aggregate" ? 3 : control === "aggregate-bypass" ? 4
+      : control === "body-bypass" ? 2
       : control === "redirect" ? 2 : responseLimit || headerLimit || truncated ? 1
-      : retry ? (bypass ? 21 : 20) : bypass ? total : ["positive", "close-positive"].includes(control) ? 2
+      : retry ? (bypass ? 21 : 20) : bypass ? total : ["positive", "close-positive", "response-parent"].includes(control) ? 2
         : ["marker", "path", "changed-input", "ambiguous", "close"].includes(control) ? 1 : 20;
     const snapshot = observer.snapshot(), reason = control === "marker" ? "owned_input_mismatch"
       : control === "path" ? "unqualified_route_or_field"
         : control === "changed-input" ? "owned_input_mismatch"
           : control === "ambiguous" ? "missing_or_ambiguous_logical_observation"
+        : control === "body" ? `unsupported_${protocol}_request`
+          : control === "expiration" ? "case_window_inactive"
+            : control === "response-parent-unlinked" ? "unverified_parent_url"
+              : control === "response-parent-incomplete" ? "unverified_parent_url"
+                : control === "aggregate" ? "aggregate_overflow"
         : control === "response-limit" ? "response_overflow" : control === "header-limit" ? "semantic_header_limit"
           : control === "truncated" ? "truncated_response"
           : certificateFault ? "upstream_tls_failed"
         : control === "budget" || (retry && !bypass) ? "physical_request_limit" : null;
     const truncatedH2Bypass = control === "truncated-bypass" && protocol === "h2";
-    const expectedSuccesses = control === "redirect" ? 1 : retry ? (bypass ? 20 : 19)
-      : control === "response-limit" || truncated && !truncatedH2Bypass ? 0 : expected;
-    if (receiver.length !== expected || snapshot.forwarded !== expected || snapshot.reason !== reason
-      || (retry && !faultInjected) || outputs.length !== total || outputs.slice(0, expectedSuccesses).some(row => !row.ok)
+    const expectedSuccesses = control === "redirect" ? 1 : retry ? (bypass ? 20 : 19) : control === "aggregate" ? 2
+      : control === "response-limit" || control === "response-parent-incomplete" || truncated && !truncatedH2Bypass ? 0 : expected;
+    if (receiver.length !== expected || (!bodyControl || !bypass) && snapshot.forwarded !== expected || snapshot.reason !== reason
+      || (control === "body-bypass" && receiver[1]?.request_body_base64 !== Buffer.from("synthetic-owned-body").toString("base64"))
+      || (control === "authority" && !transport.snapshot().denial_authorities.authority?.["foreign.example:443"])
+      || (control === "authority-bypass" && receiver[1]?.authority !== "foreign.example")
+      || (control === "response-parent-incomplete-bypass" && receiver[1]?.parent_response_incomplete !== true)
+      || ((retry || control.startsWith("expiration") || control.startsWith("response-parent-incomplete")) && !faultInjected)
+      || outputs.length !== total || outputs.slice(0, expectedSuccesses).some(row => !row.ok)
       || outputs.slice(expectedSuccesses).some(row => row.ok)
-      || outputs.filter(row => row.body !== undefined).some(row =>
-        row.body !== (truncatedH2Bypass ? "incomplete" : "synthetic-original"))
+      || outputs.some((row, index) => row.body !== undefined
+        && !(control.startsWith("response-parent") && index === 0)
+        && row.body !== (truncatedH2Bypass ? "incomplete" : "synthetic-original"))
       || (control === "response-limit-bypass" && outputs[0]?.length !== 2097152)
+      || (aggregate && outputs.slice(0, expectedSuccesses).some(row => row.length !== 1572864))
       || (!bypass && observer.originals().responses.filter(row => row.state === "complete").length
         !== (control === "redirect" ? 2 : expectedSuccesses))
       || (control === "redirect" && observer.originals().requests[1]?.redirect_from !== 1)
+      || (control === "response-parent" && observer.originals().requests[1]?.response_parent !== 1)
       || (!bypass && observer.originals().requests.some((row, index) =>
         JSON.stringify(row.headers.flat()) !== JSON.stringify(receiver[index]?.headers)))
       || (!bypass && observer.originals().responses.some(row => row.state === "complete"
         && createHash("sha256").update(Buffer.concat(row.body)).digest("hex")
           !== receiver[row.ordinal - 1]?.response_body_sha256))
       || (!certificateFault && control !== "no-ticket" && control !== "redirect" && !responseLimit && !headerLimit && !truncated
-        && !["marker", "path", "changed-input", "ambiguous"].some(value => control.startsWith(value))
+        && !["marker", "path", "changed-input", "ambiguous", "body", "expiration", "authority", "response-parent-unlinked",
+          "response-parent-incomplete", "aggregate"].some(value => control.startsWith(value))
         && !control.startsWith("close") && !cookies.some(cookie => cookie.name === "qualification"
         && cookie.domain === "ad.doubleclick.net" && cookie.partitionKey === "https://owned.example"))
       || (!certificateFault && !control.startsWith("marker") && !control.startsWith("path") && total > 2
+        && !aggregate
         && !receiver.some((row, index) => index > 1 && row.authority === "ad.doubleclick.net"
           && row.headers.some((value, at) => at % 2 === 0 && value.toLowerCase() === "cookie"
             && row.headers[at + 1].includes("qualification=one"))))
@@ -353,6 +458,11 @@ export async function runLocalGoogleQualification(options) {
       : control === "path" ? "unqualified_route_or_field" : control === "response-limit" ? "response_overflow"
         : control === "changed-input" ? "owned_input_mismatch"
           : control === "ambiguous" ? "missing_or_ambiguous_logical_observation"
+            : control === "body" ? `unsupported_${protocol}_request`
+              : control === "expiration" ? "case_window_inactive"
+                : control === "response-parent-unlinked" ? "unverified_parent_url"
+                  : control === "response-parent-incomplete" ? "unverified_parent_url"
+                    : control === "aggregate" ? "aggregate_overflow"
         : control === "header-limit" ? "semantic_header_limit"
           : control === "truncated" ? "truncated_response"
         : ["certificate", "wrong-name"].includes(control) ? "upstream_tls_failed"
@@ -362,19 +472,18 @@ export async function runLocalGoogleQualification(options) {
     if (Date.now() >= expires || performance.now() - started >= 60000) errors.push("qualification_expired");
   }
   const sourceAfter = inspectedMetaSourcePins();
+  const cohortAfter = currentGoogleCohort();
   if (JSON.stringify(sourceBefore) !== JSON.stringify(sourceAfter)) errors.push("qualification_source_changed");
+  if (JSON.stringify(cohortBefore) !== JSON.stringify(cohortAfter)) errors.push("qualification_cohort_changed");
   const originals = observer.originals();
-  const originalWire = originals.wire?.map(row => ({ connection: row.connection, protocol: row.protocol,
-    request: row.request.map(bytes => bytes.toString("base64")),
-    response: row.response.map(bytes => bytes.toString("base64")) }));
-  const originalResponses = originals.responses.map(row => ({ ...row,
-    body: row.body.map(bytes => bytes.toString("base64")) }));
+  const capture = writeGoogleOriginals(outputDir, originals);
   const report = { protocol, control, outcome: errors.length ? "inconclusive" : "pass", errors,
     receiver_attempts: receiver.length, fault_injected: faultInjected, observer: observer.snapshot(), outputs, cleanup,
-    logical, network_events: networkEvents, receiver, cookies, originals: { requests: originals.requests ?? [], responses: originalResponses,
-      wire: originalWire ?? [] }, source_before: sourceBefore, source_after: sourceAfter,
+    logical, network_events: networkEvents, receiver, cookies, originals: { requests: originals.requests ?? [], responses: capture.responses,
+      wire: capture.wire ?? [] }, source_before: sourceBefore, source_after: sourceAfter,
+    cohort_before: cohortBefore, cohort_after: cohortAfter,
     native_sdk_executed: false, public_upstream_requests: 0, native_execution_qualified: false };
-  if (Buffer.byteLength(JSON.stringify(report)) > 8388608) fail("qualification_output_limit");
+  if (capture.bytes + Buffer.byteLength(JSON.stringify(report)) + 1 > 8388608) fail("qualification_output_limit");
   const path = join(outputDir, "result.json");
   const fd = openSync(path, "wx", 0o600);
   try { writeFileSync(fd, JSON.stringify(report) + "\n"); fsyncSync(fd); } finally { closeSync(fd); }

@@ -12,6 +12,7 @@ const execute = promisify(execFile);
 const AUTHORITY = "www.facebook.com:443";
 const GOOGLE_AUTHORITIES = new Set(["www.googleadservices.com:443", "www.google.com:443",
   "googleads.g.doubleclick.net:443", "ad.doubleclick.net:443"]);
+const FOREIGN_TEST_AUTHORITY = "foreign.example:443";
 
 export function inspectedDecoderDependencyPins() {
   const require = createRequire(import.meta.url), result = {};
@@ -65,11 +66,18 @@ export function inspectedDecoderDependencyPins() {
   return result;
 }
 
-export async function authenticateOwnedBrowserPeer(browserCdp, socket, wait) {
+export async function authenticateOwnedBrowserPeer(browserCdp, socket, wait, denyMissing = false) {
   const info = await browserCdp.send("SystemInfo.getProcessInfo");
   const allowed = new Set(info.processInfo.map(process => Number(process.id)));
-  const result = await wait(execute("/usr/sbin/lsof", ["-nP", "-a", "-u", String(process.getuid()),
-    "-iTCP:" + socket.localPort, "-sTCP:ESTABLISHED", "-Fpn"], { timeout: 2000, maxBuffer: 65536 }));
+  let result;
+  try {
+    result = await wait(execute("/usr/sbin/lsof", ["-nP", "-a", "-u", String(process.getuid()),
+      "-iTCP:" + socket.localPort, "-sTCP:ESTABLISHED", "-Fpn"], { timeout: 2000, maxBuffer: 65536 }));
+  } catch (error) {
+    if (denyMissing && error.code === 1 && error.stdout === "" && error.stderr === ""
+      && error.signal === null && error.killed === false) return false;
+    throw error;
+  }
   const expected = `127.0.0.1:${socket.remotePort}->127.0.0.1:${socket.localPort}`;
   let pid = null;
   for (const line of result.stdout.split("\n")) {
@@ -171,16 +179,27 @@ export async function startLocalInspectedTransport({ inspector, receiver, protoc
 
 /** SDK-free only: fixed Google names, with every upstream bound to literal loopback. */
 export async function startLocalGoogleInspectedTransport({ inspector, receiver, protocol, observer, check, wait }) {
+  return startLocalGoogleTransport({ inspector, receiver, protocol, observer, check, wait }, false);
+}
+
+/** Fixed foreign test name and literal loopback only; unavailable to native policy observers. */
+export async function startLocalGoogleAuthorityBypass({ inspector, receiver, protocol, observer, check, wait }) {
+  if (observer.snapshot().diagnostic_bypass !== true) throw new Error("local_diagnostic_observer_required");
+  return startLocalGoogleTransport({ inspector, receiver, protocol, observer, check, wait }, true);
+}
+
+async function startLocalGoogleTransport({ inspector, receiver, protocol, observer, check, wait }, foreign) {
   if (!["h1", "h2"].includes(protocol) || !Number.isInteger(receiver.port) || receiver.port < 1 || receiver.port > 65535)
     throw new Error("invalid_local_transport");
-  return startInspectedTransport({ inspector, observer, check, wait, mode: "sdk-absent-google",
-    beforeConnect: check, google: true,
+  return startInspectedTransport({ inspector, observer, check, wait,
+    mode: foreign ? "sdk-absent-google-authority-bypass" : "sdk-absent-google",
+    beforeConnect: check, google: true, foreign,
     logicalAuthority: receiver.logicalAuthority, expectedProtocol: protocol,
     openUpstream: authority => tlsConnect({ host: "127.0.0.1", port: receiver.port,
       servername: authority.slice(0, -4), ca: receiver.certificate, rejectUnauthorized: true,
       ALPNProtocols: [protocol === "h2" ? "h2" : "http/1.1"] }) });
 }
-async function startInspectedTransport({ inspector, observer, check, wait, logicalAuthority, beforeConnect, openUpstream, expectedProtocol, mode, google = false }) {
+async function startInspectedTransport({ inspector, observer, check, wait, logicalAuthority, beforeConnect, openUpstream, expectedProtocol, mode, google = false, foreign = false }) {
   const sockets = new Set(), tasks = new Set(), errors = [], diagnosticErrors = [], denials = {}, denialAuthorities = {}, tunnels = [];
   let browserSession = null, closed = false, admissionOpen = true, serverClosing = null, authenticatedPeers = 0;
   let connectAttempts = 0;
@@ -204,7 +223,7 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
   const authenticate = async socket => {
     check();
     if (!browserSession) return false;
-    const result = await authenticateOwnedBrowserPeer(browserSession, socket, wait);
+    const result = await authenticateOwnedBrowserPeer(browserSession, socket, wait, google);
     check();
     return result;
   };
@@ -213,20 +232,28 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
   proxy.on("connect", (request, client, head) => track((async () => {
     const deny = reason => {
       denials[reason] = (denials[reason] ?? 0) + 1;
-      if (google && GOOGLE_AUTHORITIES.has(request.url)) {
+      if (google && (GOOGLE_AUTHORITIES.has(request.url) || request.url === FOREIGN_TEST_AUTHORITY)) {
         denialAuthorities[reason] ??= {};
         denialAuthorities[reason][request.url] = (denialAuthorities[reason][request.url] ?? 0) + 1;
       }
       client.end("HTTP/1.1 403 Denied\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
     };
-    check();
+    try { check(); }
+    catch (error) {
+      if (!google || error.message !== "case_window_inactive") throw error;
+      observer.stop("case_window_inactive"); return deny("case_window_inactive");
+    }
     if (++connectAttempts > 64) { observer.stop("transport_observation_limit"); return deny("observation_limit"); }
-    if (closed || !(google ? GOOGLE_AUTHORITIES.has(request.url) : request.url === AUTHORITY) || head.length)
+    if (closed || !(google ? GOOGLE_AUTHORITIES.has(request.url) || foreign && request.url === FOREIGN_TEST_AUTHORITY
+      : request.url === AUTHORITY) || head.length)
       return deny("authority");
     if (google && !admissionOpen) return deny("admission_closed");
     let authenticated;
     try { authenticated = await authenticate(client); }
     catch (error) {
+      if (google && error.message === "case_window_inactive") {
+        observer.stop("case_window_inactive"); return deny("case_window_inactive");
+      }
       if (google && !admissionOpen) return deny("admission_closed");
       throw error;
     }
@@ -235,7 +262,11 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
     authenticatedPeers++;
     if (observer.snapshot().stopped || !logicalAuthority(request.url))
       return deny("no_authority");
-    beforeConnect();
+    try { beforeConnect(); }
+    catch (error) {
+      if (!google || error.message !== "case_window_inactive") throw error;
+      observer.stop("case_window_inactive"); return deny("case_window_inactive");
+    }
     const remote = own(openUpstream(request.url));
     let protocol;
     try {
@@ -248,7 +279,10 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
       if (!remote.authorized || !protocol || expectedProtocol && protocol !== expectedProtocol
         || remote.servername !== (google ? request.url.slice(0, -4) : "www.facebook.com"))
         throw new Error("upstream_tls_failed");
-    } catch {
+    } catch (error) {
+      if (google && error.message === "case_window_inactive") {
+        observer.stop("case_window_inactive"); remote.destroy(); return deny("case_window_inactive");
+      }
       observer.stop("upstream_tls_failed"); remote.destroy(); return deny("upstream_certificate");
     }
     const tunnel = { upstream_peer_port: remote.localPort, protocol, upstream_authorized: true,

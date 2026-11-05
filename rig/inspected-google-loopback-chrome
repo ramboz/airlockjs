@@ -1,0 +1,17 @@
+#!/bin/sh
+# Diagnostic only: localhost includes IPv6 at the same port, so this is not
+# the case-broker confinement required for a native run.
+port="${AIRLOCK_GOOGLE_BROKER_PORT-}"
+case "$port" in
+  ""|*[!0-9]*) exit 2 ;;
+esac
+if [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then exit 2; fi
+unset AIRLOCK_GOOGLE_BROKER_PORT
+exec /usr/bin/sandbox-exec -p "(version 1)
+(allow default)
+(deny network*)
+(allow network* (local unix-socket) (remote unix-socket))
+(allow network-outbound (remote ip \"localhost:$port\"))
+(deny network* (literal \"/var/run/mDNSResponder\") (literal \"/private/var/run/mDNSResponder\"))
+(deny mach-lookup (global-name \"com.apple.mDNSResponder\"))" \
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' "$@"
