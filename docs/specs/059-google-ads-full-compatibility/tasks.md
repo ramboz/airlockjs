@@ -33,6 +33,37 @@ criterion is closed by the local source corrections.
 reference closes its unchanged product criteria. Meta work and spent slots
 remain separate.
 
+### Current bounded controller source batch
+
+- [x] Verify ancestry at `f51642b73cf03da196277310b6869ca256a92cc9`
+      and record the source-fit packet in the existing plan.
+- [x] Implement the SDK-free Google controller and blocked private manifest
+      preparation through pinned Terra, with witnessed failing tests.
+- [x] Exercise SDK-free Node/loopback command sequencing, physical/logical/
+      response-parent binding, bounds, deadlines and private failure receipts.
+- [x] Block missing/stale/incomplete authority, source/cohort/window,
+      qualification and review evidence before native reservation.
+- [x] Verify synthetic-only reservation failures and unchanged Meta behavior.
+- [x] Retain scoped results, source manifest and the synthetic Node witness.
+- [ ] Complete native transport/lease and authenticate permission and review
+      provenance. The candidate records are not authority.
+- [ ] Qualify the current browser and complete descendant cleanup.
+- [x] Complete coordinator source verification and prepare the stable handoff.
+- [ ] Parent runs the required independent Sol reviews and integrates the
+      committed checkpoint. Full compliance stays non-clearing.
+
+Node-only implementation now covers the synthetic command sequence, bounded
+registry, real loopback relay, canonical synthetic reservation and separate
+child-completion witness. The private preparer validates case-bound candidate
+records, source/cohort and window, review documents and supplied qualification
+originals and child completions. It cannot authenticate owner permission or
+review provenance. The native run rejects unconditionally. Current-browser
+controls, native transport and descendant cleanup remain open. The checked
+items are source and Node-only results, not full-slice completion.
+
+This packet does not enable native execution, qualify descendant cleanup,
+spend an original slot or clear full 059-15 compliance.
+
 ## Completed local assignment - 2026-11-05
 
 - [x] Recover existing owned setup, configuration, loader and capture.

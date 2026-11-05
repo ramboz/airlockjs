@@ -15,7 +15,11 @@ describe("SDK-free Google receiving qualification", () => {
     const { inspectedMetaSourcePins } = await import("./inspected-meta-stock.mjs");
     const inventories = [metaSourcePins(), inspectedMetaSourcePins()];
     for (const name of ["inspected-google-qualification.mjs", "inspected-google-qualification.test.mjs",
-      "inspected-google-witness.mjs", "inspected-google-witness.test.mjs"]) {
+      "inspected-google-witness.mjs", "inspected-google-witness.test.mjs",
+      "inspected-google-controller.mjs", "inspected-google-controller.test.mjs",
+      "inspected-google-controller-fixture.mjs", "inspected-google-controller-witness.mjs",
+      "inspected-google-controller-witness.test.mjs",
+      "inspected-google-admission.mjs", "inspected-google-admission.test.mjs"]) {
       const digest = createHash("sha256").update(readFileSync(new URL(name, import.meta.url))).digest("hex");
       for (const pins of inventories) expect(pins[name]).toBe(digest);
     }

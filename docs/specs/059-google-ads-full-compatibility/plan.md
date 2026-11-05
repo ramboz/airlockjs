@@ -76,6 +76,71 @@ without qualifying deployed bytes or clearing another lane's hold. No native
 Google source executed, no slot was reserved, and no site change was made
 by this checkpoint.
 
+### Google controller source batch - 2026-11-05
+
+Continue the existing 059-15 slice from consolidated checkpoint
+`f51642b73cf03da196277310b6869ca256a92cc9`. Ancestry and a clean worktree
+were checked before this packet. Full 059-15 compliance remains
+`needs-changes`; 059-01 remains READY_FOR_REVIEW.
+
+**Source fit:** `inspected-google-policy.mjs:46-130` already binds physical
+requests to logical observations and completed response parents.
+`inspected-transport.mjs:182-218` composes that observer with the raw relay
+for literal-loopback Google fixtures. Its native lease entry at `:161-167`
+is Meta-only. `reserveStockSlot` in `native-stock-capture.mjs:65-224` owns
+the original authority-derived namespace and durable, nonrefundable spend.
+The existing private original writer and independent child-completion
+witness supply reusable evidence mechanisms. None supplies the missing
+Google controller, complete cleanup or current native qualification.
+
+**Bounded packet:** add the Google-specific controller and closed admission
+composition with tests first. Bind original authority location/identity,
+case/input/source/cohort/window, inspection permission, actual review
+artifacts and independently completed qualification evidence. Compose the
+existing policy, physical observer and raw relay. Enforce one initialization/
+configuration plus one conversion, causal request/response relationships,
+finite budgets/deadlines and private failure output. Exercise reservation
+and receipt failures only with clearly synthetic temporary authorities,
+using the existing reservation function and namespace derivation.
+
+Native admission must reject missing, stale or incomplete qualification.
+Complete browser-descendant cleanup is still unresolved, so this source
+batch cannot enable native execution or create a lease from test assertions.
+An SDK-free controller result cannot certify native behavior.
+
+**Node-only source result:** a fixed synthetic controller now composes the
+closed Google policy, physical observer and literal-loopback relay. It uses
+the canonical reservation function only with a newly created synthetic
+authority. Private originals and an independently observed Node child
+completion remain local evidence. Private manifest preparation checks the
+fixed policy, original locator and slot, current source/cohort, finite scope,
+review documents and supplied qualification originals and completions.
+Candidate permission and review receipts are not authenticated authority.
+The native run remains unconditionally closed before reservation. Native
+transport, current-browser qualification and descendant cleanup are still
+open. No browser, official SDK or public vendor request was used in this batch.
+
+**Coordinator verification:** 367 Node tests passed with 15 browser opt-ins
+skipped. A preceding parallel verification had one timeout in the existing
+gzip boundary test; the same suite passed with one worker and unchanged
+timeouts. Scoped lint, slice consistency and the status board passed. Three
+retained synthetic originals and the independent Node completion match the
+141-entry source closure and current cohort. No new independent Jig verdict
+is claimed. The parent owns the required Sol reviews and integration.
+
+**Execution:** Node/unit tests and SDK-free literal-loopback receivers only.
+No browser, official SDK, public vendor request, real selector/cookie access,
+original authority mutation/reservation, site/account/trust change or native/
+chamber case. Keep all browser opt-ins off. No repeated process-group,
+fork-denial or Chrome-import investigation and no Meta supervisor expansion.
+
+Implementation runs through a pinned `gpt-6.1-terra` implementer. Required
+Jig reviews remain pinned to `gpt-6.1-sol`; the parent owns the independent
+review and integration handoff. Retain the existing two-active-hour
+prerequisite checkpoint. Return the implemented source packet, witnessed
+red/green commands, manifest, commit, evidence handles and exact blockers.
+Do not transition the slice or replace its non-clearing compliance record.
+
 ### Product boundary source checkpoint - 2026-11-05
 
 The existing local adapter remains a construction tool. It admits literal

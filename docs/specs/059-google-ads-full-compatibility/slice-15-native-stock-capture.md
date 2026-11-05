@@ -34,6 +34,18 @@ Google stock or chamber reservation. No slot was reserved by that inspection.
 Recheck the original authority and namespace immediately before execution;
 do not create a replacement authority directory.
 
+The subsequent Node-only source batch adds a synthetic Google controller,
+closed physical-policy/loopback-relay composition, private output and a
+separate child-completion witness. Synthetic reservation uses the original
+reservation function and a newly created fake authority. Private preparation
+now checks the policy, candidate permission bindings, current source/cohort,
+finite window, actual review document bindings and supplied qualification
+originals/completions. It cannot authenticate the candidate permission and
+review provenance. The native run remains closed before reservation. Native
+transport, current-browser qualification and descendant cleanup still require
+work and independent review. This batch did not run a browser, official SDK or
+native case.
+
 ### Bounded implementation packet
 
 **Consumer:** 059-01 criteria 4, 5 and 7 need a complete native reference.
