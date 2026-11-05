@@ -46,6 +46,18 @@ transport, current-browser qualification and descendant cleanup still require
 work and independent review. This batch did not run a browser, official SDK or
 native case.
 
+The continuation from integrated `3a1ebd17` stopped at the complete-cleanup
+source-fit check. The current helper observes one owned browser-root handle;
+it has no independent observation that every descendant has exited
+(`rig/inspected-google-qualification.mjs:39-76,475-497`). The network sandbox
+does not supply that process-custody boundary. The
+[plan](plan.md#complete-cleanup-source-fit-stop---2026-11-05) records the exact
+missing mechanism and the separately scoped runner-boundary decision needed
+before further execution. No new runner or environment is approved.
+The integrated root-exit guard retention and incomplete witnesses remain
+unchanged. This documentation-only stop does not qualify cleanup, clear the
+non-passing compliance record, change lifecycle ownership or admit a case.
+
 ### Bounded implementation packet
 
 **Consumer:** 059-01 criteria 4, 5 and 7 need a complete native reference.

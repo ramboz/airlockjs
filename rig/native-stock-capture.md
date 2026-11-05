@@ -9,6 +9,16 @@ reference blocks its dependent chamber case.
 
 ## Google checkpoint - 2026-11-05
 
+### Complete-cleanup stop
+
+The continuation from integrated `3a1ebd17` stopped before browser execution.
+The current cleanup helper observes the owned root, not an independently
+complete descendant boundary. Keep native admission closed. The
+[source-fit plan](../docs/specs/059-google-ads-full-compatibility/plan.md#complete-cleanup-source-fit-stop---2026-11-05)
+names the source evidence, missing custody/empty-boundary mechanism and
+Google-only decision needed to resume. No new execution environment, browser
+run or slot renewal is approved by this documentation checkpoint.
+
 ### Node-only controller source checkpoint
 
 `inspected-google-controller.mjs` provides an SDK-free synthetic controller.
