@@ -142,6 +142,14 @@ reference in [ADR-0045](../decisions/adr-0045-inspected-google-reference.md).
 Actual acquisition still requires current-source Google guard/review gates;
 full-journey readiness and complete native evidence remain open.
 
+The [reference checkpoint](../specs/059-google-ads-full-compatibility/plan.md#reference-checkpoint-stop---2026-11-05)
+stopped without native admission. Google-specific SDK-free H1/H2 receiving
+controls and private originals now exist, but the native controller and complete
+browser cleanup remain unqualified. The independent compliance verdict is
+non-clearing. Local failure-handling corrections make the earlier browser
+witnesses stale; they do not supply a complete reference. Both original Google
+slots remained unreserved at the final read-only check.
+
 The first case is one owned direct website conversion. Start with a granted
 host `ad_storage` purpose and one explicit page action. Retain the native
 consent settings and transcript separately; a host grant does not establish
@@ -197,6 +205,10 @@ GitHub query independently matched its reported source pin. The root still
 loads native Meta by default, so a Google visit needs `meta-pixel=off` or a
 verified Meta-free fixture. The installed browser reports 156.0.8078.80 and
 Playwright 1.62.1; earlier .48/.49 receipts cannot qualify that source/cohort.
+The later source recheck found
+`467c6b8f6f0eb0da23800de398da78ed954c1539`, with changes limited to two Adobe
+stock tools relative to the earlier pin. This is source readback only, not a
+deployed-byte or fresh cross-lane execution clearance.
 
 The private `<GOOGLE_CASE_INPUT_BUNDLE>` is a working set of the inputs below,
 not a new document the owner must assemble. Reuse the recovered configuration

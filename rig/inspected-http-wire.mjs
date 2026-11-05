@@ -217,7 +217,9 @@ export function createInspectedHttpWire(options) {
       return Buffer.from(bytes);
     },
     stop,
-    connection(protocol) {
+    connection(protocol, boundAuthority = null) {
+      if (boundAuthority !== null && (typeof boundAuthority !== "string"
+        || !/^[a-z0-9.-]+:443$/.test(boundAuthority))) error("invalid_inspected_authority");
       const id = connections.size + 1, decoder = protocol === "h2" ? createInspectedHeaderBlockDecoder() : null;
       const responseDecoder = decoder ? createInspectedHeaderBlockDecoder() : null;
       const raw = meta ? { connection: id, protocol, request: [], response: [] } : null;
@@ -403,6 +405,8 @@ export function createInspectedHttpWire(options) {
             if (values.length !== 1) error(meta ? "invalid_inspected_authority" : "synthetic_authority");
             return values[0]; };
           const authority = one(decoder ? ":authority" : "host"), method = decoder ? one(":method") : entry.method;
+          if (boundAuthority !== null && authority !== boundAuthority
+            && authority + ":443" !== boundAuthority) error("inspected_authority_mismatch");
           const target = decoder ? one(":path") : entry.target;
           if (decoder && one(":scheme") !== "https") error(meta ? "invalid_inspected_url" : "synthetic_url");
           if (decoder && (fields(pairs, "host").some(host => host !== authority)

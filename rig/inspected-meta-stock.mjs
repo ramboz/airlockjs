@@ -222,6 +222,12 @@ export function inspectedMetaSourcePins() {
     "inspected-http-wire.mjs", "inspected-http-wire.test.mjs",
     "inspected-meta-policy.mjs", "inspected-meta-policy.test.mjs",
     "inspected-google-policy.mjs", "inspected-google-policy.test.mjs",
+    "inspected-google-cohort.mjs",
+    "inspected-google-loopback-chrome", "inspected-google-confinement.test.mjs",
+    "inspected-google-originals.mjs", "inspected-google-originals.test.mjs",
+    "inspected-google-transport.test.mjs",
+    "inspected-google-qualification.mjs", "inspected-google-qualification.test.mjs",
+    "inspected-google-witness.mjs", "inspected-google-witness.test.mjs",
     "inspected-header-block.mjs", "inspected-header-block.test.mjs",
     "reference-inspection.mjs", "reference-inspection.test.mjs",
     "qualification-loopback-chrome", "qualification-loopback-network.sb", "../package.json", "../package-lock.json"];

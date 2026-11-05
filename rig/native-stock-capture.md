@@ -9,17 +9,74 @@ reference blocks its dependent chamber case.
 
 ## Google checkpoint - 2026-11-05
 
-The declared Google observer is an offline policy and framing component. Its
-20-attempt counter is shared across connections. It is not a stock executor
-or a qualification receipt. The existing loopback broker rejects Google
-authorities, so the current Google H1/H2 receiving controls cannot run through
-the composed path. The native CLI remains blocked before reservation.
+The declared Google observer shares its 20-attempt counter across connections.
+A separate Google-only broker now reaches a literal-loopback receiver through
+the physical observer and raw relay; the Meta broker's fixed authority and
+eight-attempt limit are unchanged. This is not a native stock executor. The
+stock CLI remains blocked before reservation.
 
-The new shared import is included in both existing Meta source inventories.
-Earlier source-bound receipts do not qualify the changed source. A browser
-lifetime probe with a synthetic abort is not proof of descendant cleanup or
-native-case readiness. Google transport, current-source qualification, private
-bindings, independent reviews and the original-slot admission remain open.
+SDK-free current-browser H1/H2 controls exercise local receiving, final-call
+limits, retry faults, denials, TLS failures and cleanup. Their source-bound
+child witnesses are local evidence only, not native authority or a complete
+qualification. They observe the owned browser-server process exit but do not
+establish that every browser descendant exited. Native transport and controller,
+private bindings, complete controls, independent reviews and original-slot
+admission remain open.
+
+Both Meta source inventories include the Google observer and local-control
+imports. Earlier source-bound receipts do not qualify the changed source.
+
+The Google confinement controls are skipped by the default test suite. When
+explicitly authorized, run them with:
+
+```sh
+AIRLOCK_INSPECTED_GOOGLE_CONFINEMENT=1 npx vitest run rig/inspected-google-confinement.test.mjs
+```
+
+These controls launch Chrome and use macOS `sandbox-exec`. Changing their source
+also makes earlier source-bound receipts historical.
+
+After a local child closes, the witness writes a private, exclusive
+`command-completion.json` before checking the producer report or originals.
+It records the observed exit and close and remains marked incomplete. A
+validation failure also produces an incomplete `witness.json` with a failure
+category when that file can be written. Neither file grants native admission.
+
+If browser close and kill do not establish that the owned root exited, local
+cleanup closes admission and retains the broker guard. The run stays
+incomplete and may remain alive until that exit is observed. An unavailable
+process handle also leaves the guard in place. Root exit does not establish
+complete descendant cleanup.
+
+The local controls now retain binary originals and bind each child witness to
+the current Node, Chrome, Playwright and operating-system cohort. Body,
+expiration, authority, response-parent, unsupported-transport and
+aggregate-limit controls are SDK-free. The guarded H1/H2 matrix produced 84
+complete child witnesses: 82 passing controls and two expected synthetic
+aborts. These controls do not fill the native admission or cleanup gaps.
+
+On the current macOS and Chrome cohort, the first broker-port sandbox let a
+separate `::1` listener receive a request at the broker's IPv4 port. The local
+broker now holds that IPv6 port and stops the case on a direct connection.
+Local controls use the narrower sandbox. Separate socket probes deny Unix
+outbound and same-port UDP, while matched bypasses reach their receivers.
+These controls do not establish complete native confinement. Playwright's
+owned browser-server exit and sampled
+process-tree checks do not establish that every descendant was accounted for.
+Independent descendant cleanup remains open before native admission.
+On the current guarded path, separate normal and synthetic-abort probes each
+sampled seven owned processes. All sampled processes were absent after closure;
+the IPv6 guard was active at root exit. Neither probe excludes an unobserved
+descendant.
+An owned synthetic child also entered a separate process group under the same
+sandbox and exited normally. This shows the sandbox does not guarantee group
+containment; it is not evidence that Chrome escaped.
+A separate `process-fork` denial attempt obtained a browser-server handle but
+failed when connecting to Chrome. Its root exited with `SIGTRAP` while the
+IPv6 guard was active. The trap's cause is unknown, so that alternative is
+not qualified.
+The current Chrome framework imports `setsid` and
+`posix_spawnattr_setpgroup`; the import check does not show either function ran.
 
 ## Current ownership guardrail - 2026-10-29
 

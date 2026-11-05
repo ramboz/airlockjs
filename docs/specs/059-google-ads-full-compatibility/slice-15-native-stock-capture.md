@@ -5,7 +5,6 @@ last_verified:
 kind: feature
 frame_review: true
 arch_review: true
-claimed_by: glowing-barnacle
 ---
 
 ## Slice 059-15 - Exact native policy and one-shot stock capture
@@ -309,14 +308,14 @@ milestone. Local qualification is the prerequisite path, not the product claim.
 
 Checkpoint record only; full-slice reconciliation is not yet complete.
 
-**2026-11-05 Google implementation checkpoint:** The physical observer now
+**2026-11-05 initial Google implementation checkpoint (historical):** The physical observer now
 selects the closed Google policy for synthetic declared profiles and applies
 one 20-attempt counter across its connections. Ten offline tests cover H1/H2
 count boundaries, owned-input denials, companion correlation, redirect
 completion and ambiguous observations. The first seven failed before the
 composition was added. This is eligibility and framing evidence only.
 
-The current local broker still accepts only its fixed Meta authority. Two
+At that checkpoint, the local broker accepted only its fixed Meta authority. Two
 SDK-free loopback probes using distinct Google authorities received 403 before
 the receiver saw a connection. The broker and its sockets settled on the
 second cleanup observation; an immediate first snapshot had reported a socket
@@ -331,6 +330,92 @@ controls remain unimplemented or unqualified. Existing Meta source inventories
 now include the Google observer import and test; earlier source-bound receipts
 are stale. The stock CLI remains blocked. No review or native admission is
 claimed by this checkpoint.
+
+**2026-11-05 Google local-control follow-up:** Added SDK-free body,
+expiration, authority, response-parent and aggregate controls. The independent
+child witness checks private binary originals and current source and runtime
+cohort fingerprints. The final source matrix has 80 complete child witnesses,
+including two expected synthetic aborts. A same-port sandbox experiment denied
+another IPv4 port but delivered a request to an independently owned `::1`
+listener at the broker's port. Its matched bypass reached the listener too. The experiment is
+diagnostic only and is not used for qualification or native admission.
+Sampled normal and abort process trees exited in the local probes; those
+samples do not exclude an unobserved escaped descendant. Exact broker
+confinement and independent complete descendant cleanup remain unqualified.
+The native Google transport, controller, private binding and real receipt
+validation remain unimplemented. No slot or official source was used.
+
+**2026-11-05 guard follow-up:** The SDK-free local broker now holds `::1` on
+the IPv4 broker port and stops on a direct IPv6 connection. The current browser
+control reaches that guard, while an independently owned same-port listener
+cannot bind. The narrower sandbox denies Unix outbound and same-port UDP in
+separate socket controls; their matched bypasses reach the receivers. Chrome
+still needs to bind its singleton socket in the operating-system temporary directory.
+Opposite-ALPN H1/H2 controls deny the unsupported upstream protocol, and local
+bypasses reach their receivers. The local browser path uses these changes.
+The preceding source-bound 80-witness matrix is stale. A fresh matrix produced
+84 complete child witnesses, including two expected synthetic aborts. Native
+admission and complete independent descendant cleanup remain open.
+
+The subsequent TCP-only sandbox matrix stopped at H1 `ambiguous-bypass`:
+the receiver saw both requests, but browser-server close reported failure.
+The child retained an incomplete witness and reported root exit and local
+socket cleanup. This does not qualify the failed control or descendant cleanup.
+The close diagnostic now distinguishes a timeout from a rejected close. A
+subsequent TCP-only matrix produced 84 complete witnesses, including two
+expected synthetic aborts. It does not explain the earlier close failure.
+Fresh normal and synthetic-abort probes on the guarded browser each sampled
+seven owned processes. All sampled processes were absent after closure and
+the IPv6 guard remained active at root exit. The probes did not continuously
+enumerate descendants and cannot exclude an unobserved escape.
+An additional finite synthetic process probe under the same sandbox created an
+owned detached child in a different process group and waited for its normal
+exit. The sandbox alone therefore does not keep descendants in the root group.
+This does not show that Chrome escaped; it rules out treating group membership
+as a guarantee.
+As a bounded alternative, the same browser sandbox with `process-fork` denied
+returned an owned browser-server handle but failed on browser connection. Its
+root exited with `SIGTRAP` while the IPv6 guard remained active. The trap's
+cause is not established, and this attempt does not qualify that alternative.
+The current cohort's Chrome framework imports both `setsid` and
+`posix_spawnattr_setpgroup`. That binary inspection does not establish that
+either function ran in the browser case.
+
+**Google review correction:** Local cleanup now retains the broker guard when
+the owned browser root has not exited or its handle is unavailable. The
+disposition remains incomplete. The child witness durably records the observed
+exit and close before validating the producer report and originals, and writes
+an incomplete witness on validation failure. Node-only controls cover failed
+close and kill, absent reports, missing originals and invalid digests. These
+source changes make the 84 earlier source-bound witnesses historical. They do
+not close the native controller, admission or descendant-cleanup gaps.
+
+**2026-11-05 Google loopback continuation (earlier source cohort):** A separate Google-only loopback
+broker now composes the declared policy, physical observer and raw relay.
+CONNECT authority is bound to the actual request authority; the original Meta
+broker remains fixed to Meta. H1/H2 current-browser controls exercised local
+receiving, changed and missing markers, changed input, ambiguous logical
+binding, path denial, certificate and hostname failure, response and header
+limits, truncation, redirect, 20/21 attempts, retry faults and cleanup. H2
+also exercised GOAWAY. Matched local bypasses expose the corresponding faults
+where implemented. These are SDK-free controls, not native evidence.
+
+One attempted witness batch reused old output paths; child directory creation
+failed and the witnesses correctly remained incomplete. The witness now
+creates its own exclusive output directory before starting the child; the
+collision regression failed first and then passed. A fresh source-bound batch
+used new paths. Guards stayed installed through context close and the owned
+browser-server child exited in the retained runs; descendant cleanup is not
+established by that observation.
+
+The Google native transport and controller, private input and real review
+receipt validation, original-slot admission, and the full required control
+set remain open. In particular, local browser proof of unsupported body and
+transport, incomplete response parents, expiry, aggregate failure and
+descendant cleanup is not established. The two Meta source inventories now
+also include the directly coupled Google transport and qualification files;
+earlier source-bound receipts remain stale. No official SDK, public vendor
+traffic, original reservation or native permission is claimed.
 
 **2026-10-21 actual original Meta stock case:** The owner separately approved
 the 16:15–16:16Z (09:15 PDT) window and original-slot binding. All actual
@@ -742,3 +827,7 @@ native-reference qualification and final slice close-out remain open.
 - [ ] Regenerate/check the board; first product slices still require complete
       native wire, measured C2/C3, actual chamber implementation/evaluation and
       their own review gates.
+
+## Release log
+
+- 2026-11-05 — released claim from glowing-barnacle: Terra implementation checkpoint ended; coordinator integrates the source result while native admission and qualification remain blocked.

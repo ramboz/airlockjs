@@ -116,6 +116,29 @@ describe("declared Google policy on physical HTTP bytes", () => {
     expect(truncated.snapshot()).toMatchObject({ stopped: true, reason: "uncompleted_redirect_parent", forwarded: 1 });
   });
 
+  it("accepts a response-linked request only from its complete matching original", async () => {
+    const resolver = ({ url, method, ordinal }) => [{
+      network_id: `logical-${ordinal}`, url, method,
+      resource_type: url === primary ? "XHR" : "Image",
+      ...(url === companion ? { response_parent: 1 } : {}),
+    }];
+    const body = JSON.stringify({ url: companion });
+    const response = text => Buffer.from(`HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: ${Buffer.byteLength(body)}\r\n\r\n${text}`);
+    const complete = createInspectedHttpWire(options(resolver));
+    const first = complete.connection("h1");
+    expect(first.request(h1(primary))).toEqual(h1(primary));
+    await first.response(response(body));
+    expect(complete.connection("h1").request(h1(companion))).toEqual(h1(companion));
+    expect(complete.originals().requests[1]).toMatchObject({ response_parent: 1 });
+
+    const incomplete = createInspectedHttpWire(options(resolver));
+    const partial = incomplete.connection("h1");
+    partial.request(h1(primary));
+    await partial.response(response(body.slice(0, -1)));
+    expect(incomplete.connection("h1").request(h1(companion))).toEqual(Buffer.alloc(0));
+    expect(incomplete.snapshot()).toMatchObject({ stopped: true, reason: "unverified_parent_url", forwarded: 1 });
+  });
+
   it("rejects getters without invoking them", () => {
     let invoked = false;
     const input = options();
@@ -124,5 +147,13 @@ describe("declared Google policy on physical HTTP bytes", () => {
     });
     expect(() => createInspectedHttpWire(input)).toThrow("invalid_google_binding_input");
     expect(invoked).toBe(false);
+  });
+
+  it("binds a physical connection to its exact authenticated CONNECT authority", () => {
+    const wire = createInspectedHttpWire(options());
+    const connection = wire.connection("h1", "www.googleadservices.com:443");
+    expect(connection.request(h1(primary))).toEqual(h1(primary));
+    expect(connection.request(h1(companion))).toEqual(Buffer.alloc(0));
+    expect(wire.snapshot()).toMatchObject({ stopped: true, reason: "inspected_authority_mismatch", forwarded: 1 });
   });
 });

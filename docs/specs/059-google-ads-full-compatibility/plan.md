@@ -50,6 +50,32 @@ Keep 059-01 READY_FOR_REVIEW until its actual prerequisites clear.
 Do not advertise a new runner, local primary send or inspected reference as
 the completed conversion or ordinary-browser product parity.
 
+### Reference checkpoint stop - 2026-11-05
+
+The two-hour prerequisite checkpoint ended without a qualified native path.
+The Google-only loopback composition reached real local H1/H2 receivers.
+Its browser controls and retained originals remain SDK-free evidence.
+Current process samples and the owned browser-server exit do not establish
+complete browser cleanup. The native Google controller and admission
+bindings also remain unimplemented.
+
+The independent Sol compliance pass returned `needs-changes`. Besides the
+missing native and qualification requirements, it found premature guard
+release after failed browser cleanup and loss of the completion witness
+when producer evidence cannot be validated. A separate Sol corrective review
+cleared the two surgical Node-only fixes. The full verdict remains
+non-clearing. Earlier browser witnesses are historical for the corrected
+source; the fixes do not resume browser research, extend the native grant
+or close 059-15.
+
+A read-only recheck found both original Google reservations absent and the
+authority hash unchanged. The site source had advanced to
+`467c6b8f6f0eb0da23800de398da78ed954c1539`; the comparison changed only
+the two Adobe stock tools. This supersedes the earlier current-source pin,
+without qualifying deployed bytes or clearing another lane's hold. No native
+Google source executed, no slot was reserved, and no site change was made
+by this checkpoint.
+
 ### Product boundary source checkpoint - 2026-11-05
 
 The existing local adapter remains a construction tool. It admits literal

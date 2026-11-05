@@ -31,6 +31,12 @@ routine implementation, qualification and finite scheduling.
 now owns that sequence. Completed 059-21 is a building block, not the current
 finish line. The unchanged product criteria remain open.
 
+The [two-hour reference checkpoint](../specs/059-google-ads-full-compatibility/plan.md#reference-checkpoint-stop---2026-11-05)
+ended with a working SDK-free local transport and a non-clearing compliance
+review. Native admission, the native controller and complete browser cleanup
+remain blocked. Correcting local failure handling does not requalify the
+earlier browser witnesses. No Google stock slot was consumed.
+
 The original Google stock/chamber slots were checked read-only and remain
 unreserved; the original Meta stock reservation remains spent. No new namespace
 or retry is created. The Google reference is conditional on actual reviewed

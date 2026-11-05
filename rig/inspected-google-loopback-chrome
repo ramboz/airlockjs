@@ -1,0 +1,30 @@
+#!/bin/sh
+# Local control only. The caller must own the IPv6 guard.
+port="${AIRLOCK_GOOGLE_BROKER_PORT-}"
+socket_dir="${AIRLOCK_GOOGLE_SOCKET_DIR-}"
+case "$port" in
+  ""|*[!0-9]*) exit 2 ;;
+esac
+if [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then exit 2; fi
+case "$socket_dir" in
+  /private/var/folders/*) ;;
+  *) exit 2 ;;
+esac
+case "$socket_dir" in
+  *[!A-Za-z0-9._/-]*|*/../*|*/..|*//*|*/./*|*/.) exit 2 ;;
+esac
+if [ ! -d "$socket_dir" ] || [ "$TMPDIR" != "$socket_dir" ]; then exit 2; fi
+unset AIRLOCK_GOOGLE_BROKER_PORT AIRLOCK_GOOGLE_SOCKET_DIR
+profile="(version 1)
+(allow default)
+(deny network*)
+(allow network-bind (subpath \"$socket_dir\"))
+(allow network-inbound (subpath \"$socket_dir\"))
+(allow network-outbound (remote tcp \"localhost:$port\"))
+(deny network* (literal \"/var/run/mDNSResponder\") (literal \"/private/var/run/mDNSResponder\"))
+(deny mach-lookup (global-name \"com.apple.mDNSResponder\"))"
+if [ "$#" -eq 1 ] && [ "$1" = "--airlock-print-profile" ]; then
+  printf '%s\n' "$profile"
+  exit 0
+fi
+exec /usr/bin/sandbox-exec -p "$profile" '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' "$@"
