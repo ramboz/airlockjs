@@ -65,19 +65,55 @@ Fresh reviewers explicitly pinned to `gpt-6.1-sol` passed the ADR's frame
 and bounded architecture reviews. Their pass covers the scoped exception,
 not current-source safety or full 059-15 compliance.
 
-Start from verified integration base `7b3ec627874b371d13e03b528c273eeaac85b259`.
-The integration owner holds local/provisional ADR-0047 after identifying the
-other line's ADR-0046 allocation. The provisional 0046 reservation remains
-in Git history; its draft was renumbered without changing the other record.
+Decision preparation started from verified integration base
+`7b3ec627874b371d13e03b528c273eeaac85b259`. The integration owner held
+ADR-0047 locally after identifying the other line's ADR-0046 allocation.
+That hold was not a trunk-wide reservation. The provisional 0046 reservation
+remains in Git history; its draft was renumbered without changing the other
+record. The accepted decision is now published at `b972ca7e`.
 
-**Next bounded source packet, after decision integration:** use pinned Terra
-to make Google network stop synchronously close admission and cancel owned
-upstream sockets, including the direct transport-close path. Use existing
-raw relay, policy, source inventories and fixed loopback receiver. Witness
-browser-free red/green controls for already-pending authentication/upstream
-setup, active H1/H2 work and expiry. Record the actual stopped resource state.
-Do not open native admission, change the Meta path or replace unknown/manual
-descendant cleanup with a success receipt.
+**Local source packet:** from published integration base
+`b972ca7e5cadb2f2972aee3e4b58a5512f5a5f76`, the Google admission stop now
+closes admission and destroys owned sockets
+before returning. Direct transport close establishes the same barrier before
+waiting. A closed socket also settles pending Google TLS setup. The existing
+listeners remain bound after admission stop. Their separate close path is
+unchanged. Meta and fixed upstream destinations are unchanged.
+
+Browser-free Node controls use real loopback TLS and H1/H2 receivers. They
+cover active tunnels, direct close, pending peer authentication, upstream
+setup and expiry checks. Matched live controls sent requests before stop.
+The red H1 control saw an upstream socket remain open. The red direct-close
+control saw a tunnel constructed after completed TLS setup. A third red
+control saw a stalled TLS setup task remain pending after its socket closed.
+All three controls passed after correction. The authentication pause uses
+the actual lsof result. Destroying the client can also invalidate its socket
+identity, so that control alone does not isolate the admission recheck.
+
+Fresh pinned Sol compliance review found no packet-local landing blocker.
+Its full-slice verdict remains `needs-changes`. Craft passed with two
+test-hardening nits. Pinned Terra then bounded the pause waits, tested
+failure-path teardown and added matched held-partial-response controls for
+H1/H2 admission stop and direct close. Interrupted responses stay
+inconclusive with unexpected-close evidence. The runtime patch did not
+change during this hardening. The final pinned Sol architecture pass
+examined the exact baseline patch and stronger controls and passed the
+bounded source packet.
+
+The final coordinator regression passed 395 tests across twelve files,
+including all seven Node-mocked browser-witness tests. Fifteen opt-in
+qualification tests stayed skipped. The revised transport suite has 27
+tests; scoped ESLint passed. The first combined run exposed the fixture
+parent's non-private mode. Verification used mode 0700 for that run and
+restored the prior mode afterward. External temporary witness directories
+were owned test fixtures, not a browser run or a qualification gap.
+
+The revised source invalidates prior source cohorts. This reviewed source
+checkpoint is not a remote landing or browser qualification. The existing
+integration owner retains merge/push ownership. Source/test digests,
+red/green commands and results remain in the session files. ADR-0047's
+Context describes the source at its decision checkpoint; that Accepted
+history is unchanged.
 
 **Remaining safety gate:** qualify final stop and safe guard/listener release
 even when helpers survive root exit. The sandbox permits a loopback port,
@@ -87,6 +123,22 @@ sample cannot clear this gate. A new indefinite guardian or longer complete
 case is not implied. If the reviewed current path cannot satisfy this
 condition, preserve its blocked/incomplete result and surface that concrete
 mechanism or authority conflict.
+
+After this checkpoint lands, the next bounded source-fit step is to assess
+case-specific broker endpoint identity without a new runner or indefinite
+guardian. Chromium's pinned 156.0.8078.80
+[proxy documentation](https://chromium.googlesource.com/chromium/src/+/156.0.8078.80/net/docs/proxy.md)
+supports HTTPS proxies. Its
+[WebRTC TCP client](https://chromium.googlesource.com/chromium/src/+/156.0.8078.80/services/network/p2p/socket_tcp.cc)
+uses the proxy-resolving socket factory.
+These are positive traces, not a complete transport enumeration or
+qualification. The
+[SPKI-ignore verifier](https://chromium.googlesource.com/chromium/src/+/156.0.8078.80/services/network/ignore_errors_cert_verifier.cc)
+adds a certificate-error exception; it does not require that key
+exclusively. Any candidate must survive
+same-port listener substitution, reconnection, implicit loopback bypass,
+unsupported transports and loss controls before actual admission. No
+scheme switch or caller success assertion clears that work.
 
 Native permission/review provenance and transport/lease composition remain
 open. Current-source/browser/receiving qualification, original slot, setup,
