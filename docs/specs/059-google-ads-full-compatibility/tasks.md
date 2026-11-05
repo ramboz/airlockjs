@@ -41,8 +41,15 @@ remain separate.
       without browser execution or repeating exhausted investigations.
 - [x] Record the missing complete descendant-custody/empty-boundary mechanism
       in the [plan](plan.md#complete-cleanup-source-fit-stop---2026-11-05).
-- [ ] Resolve the owner-level Google-only runner-boundary scope decision or
-      supply an already qualified runner. No new environment is approved.
+- [x] Receive the coordinating session's design-only answer on the user's
+      behalf, grounded in the earlier completion instruction. This is not a
+      new direct owner grant; no environment or runner execution is approved.
+- [x] Prepare the [Google-only custody proposal](plan.md#proposed-google-child-custody-design---2026-11-05)
+      with cited kernel interfaces, failure controls and unproved host needs.
+- [x] Pass independent pinned Sol architecture review for the proposed design
+      packet only. Full-slice compliance and readiness remain non-clearing.
+- [ ] Select and approve a named execution boundary through the existing
+      decision/review process, or supply an already qualified runner.
 - [ ] Establish independently reviewed current-source complete cleanup,
       including acquisition failure, abort and descendants outliving the root.
 - [ ] Only after that gate clears, resume authenticated permission/review
@@ -53,6 +60,13 @@ settlement does not account for every browser descendant. The continuation
 therefore stops at the first unsatisfied safety gate. No runtime patch,
 browser control, official SDK execution or original reservation is part of
 this documentation packet. Later conversion tasks above stay open.
+
+The custody proposal identifies direct cgroup-v2 creation and independent
+recursive emptiness as a concrete candidate. It is not a Linux environment
+selection, a working custody service or qualified cleanup. Source review and
+actual host authority precede implementation; source/current-browser and
+native admission remain closed. The separate Meta namespace programme is
+not adopted or expanded.
 
 ### Current bounded controller source batch
 

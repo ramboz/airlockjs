@@ -19,6 +19,11 @@ names the source evidence, missing custody/empty-boundary mechanism and
 Google-only decision needed to resume. No new execution environment, browser
 run or slot renewal is approved by this documentation checkpoint.
 
+The follow-up [custody design](../docs/specs/059-google-ads-full-compatibility/plan.md#proposed-google-child-custody-design---2026-11-05)
+is a proposal only. Its cgroup-backed candidate is not an available or
+approved execution environment. Do not provision it, run its controls or
+interpret it as permission to resume the native entry.
+
 ### Node-only controller source checkpoint
 
 `inspected-google-controller.mjs` provides an SDK-free synthetic controller.

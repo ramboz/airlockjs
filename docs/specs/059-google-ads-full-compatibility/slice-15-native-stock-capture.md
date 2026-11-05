@@ -58,6 +58,11 @@ The integrated root-exit guard retention and incomplete witnesses remain
 unchanged. This documentation-only stop does not qualify cleanup, clear the
 non-passing compliance record, change lifecycle ownership or admit a case.
 
+The subsequent [Google-only custody proposal](plan.md#proposed-google-child-custody-design---2026-11-05)
+is design-only. It names a kernel-backed candidate, its failure controls and
+the missing host/service authority. No environment, implementation or
+execution is selected, and the complete-cleanup gate remains unsatisfied.
+
 ### Bounded implementation packet
 
 **Consumer:** 059-01 criteria 4, 5 and 7 need a complete native reference.

@@ -105,6 +105,148 @@ original authority read/reservation, private-input discovery or Meta work is
 part of the source-fit check. No new time allocation, finite window or slot
 renewal follows. Later conversion stages remain blocked at this first gate.
 
+### Proposed Google child-custody design - 2026-11-05
+
+Give the Google runner one owned process boundary that exists before launch
+and can report when no live work remains. Keep its observer and network
+guards outside that boundary. The tradeoff is that a concrete kernel-backed
+candidate needs a different, separately approved execution environment;
+the current macOS root-exit helper cannot provide this evidence.
+
+**Status and permission:** proposal only. After the source-fit stop, the
+Google capture controller coordinator answered the design-only question on
+the user's behalf, grounded in the earlier direct "ok, do this all the way"
+instruction. This was not a new direct owner message or independent grant.
+It permits this proposal, not implementation, browser launch, environment
+selection/change, new send limits or approval of a runner.
+The source-fit checkpoint is integrated at
+`a9e1bc4789a72b7060d52752eb30ec1624347a45`; this proposal starts from that
+verified integration base. No Accepted record or lifecycle state changes.
+
+**Concrete candidate, not an environment selection:** on a separately
+approved Linux host, use one fresh non-root cgroup v2 domain for this Google
+case. A cgroup is a kernel-maintained process hierarchy, independent of
+process groups and sampled parent trees. Create the fixed workload directly
+inside it with `clone3(CLONE_INTO_CGROUP)`. Do not launch Chrome first and
+move a discovered PID later. The workload includes the fixed producer,
+Playwright driver, browser and helpers; no shared browser or host-service
+spawn may create work outside it.
+
+The [kernel cgroup v2 guide](https://docs.kernel.org/admin-guide/cgroup-v2.html)
+documents inherited membership on fork, recursive `cgroup.events` populated
+state and `cgroup.kill` handling concurrent forks/migration during the kill.
+The [clone3 manual](https://man7.org/linux/man-pages/man2/clone.2.html)
+documents creating the child directly in a target cgroup through its open
+directory descriptor. These are public interface facts read on 2026-11-05,
+not executed probes or evidence that a suitable host is available.
+
+#### Required ownership and stop sequence
+
+1. A fixed trusted custody owner, outside the workload, acquires the exact
+   private case boundary and opens its kernel directory/events/kill handles
+   before any workload creation. Bind the handles to the same kernel mount,
+   directory identity, source/cohort and case lease. A reused pathname or
+   caller-provided descriptor/identity cannot select another case.
+2. Keep the custody owner independent of the producer/controller. Workload
+   credentials must not write a migration target/common ancestor, obtain
+   cgroup-management descriptors or ask a privileged service to spawn outside
+   the boundary. The exact credential, capability, mount and IPC restrictions
+   are mandatory host-admission evidence, not consequences of cgroup
+   membership alone. No delegated workload administration is proposed.
+3. Keep the existing closed Google network policy, physical counter, broker
+   and independent completion observer outside the kill boundary. A cgroup
+   is not a network sandbox. No public connection becomes eligible merely
+   because its process is contained. Every new platform still needs its own
+   pre-execution confinement and final-network controls.
+4. On completion, failure, expiry or caller loss, close network admission
+   first. Permit bounded graceful shutdown only inside the unchanged case
+   deadline, then use the exact owned boundary's `cgroup.kill` if required.
+   Do not signal a name match, host-wide process list or sampled PID set.
+   A successful kill write is not completion.
+5. After workload creation has settled and further creation/migration is
+   disabled, the outside observer must read `populated=0` from the retained
+   same-boundary events handle. An initially empty boundary before launch
+   cannot attest later cleanup. Root exit and notifications alone cannot
+   substitute for this final read. Unknown identity/read/kill results retain
+   guards and an incomplete receipt, without deadline extension.
+6. Observe root/producer completion separately and reap owned children.
+   `populated=0` describes no live processes, not reaping, closed host sockets,
+   broker settlement, key removal or durable output. A dedicated outside
+   subreaper can adopt orphaned descendants, as described by
+   [PR_SET_CHILD_SUBREAPER](https://man7.org/linux/man-pages/man2/PR_SET_CHILD_SUBREAPER.2const.html).
+   Its exact ownership/reaping closure still needs source review and controls;
+   that API alone is not complete custody.
+7. Release guards and remove profile/key/boundary resources only after
+   independently observed workload emptiness and the existing owned-resource
+   settlement. Preserve both the independent completion and any incomplete
+   producer evidence privately. A cleanup success cannot turn a failed
+   conversion into a complete reference.
+
+**Owner-loss requirement:** cgroups do not automatically kill workloads when
+an observer exits. The eventual named environment must supply a trusted
+custody service that survives producer/client loss, enforces the same
+absolute deadline and owns cleanup-only recovery if its observer fails.
+No such service is supplied or qualified here. Loss of that authority or
+its final observation blocks admission or leaves UNKNOWN; a child-reported
+success, auto-restarted workload or proposed guardian is not evidence.
+This missing deployment/lifetime contract must clear before implementation,
+not be postponed to a later successful-browser run.
+
+#### Next falsifiable controls, not execution permission
+
+| Control | Required observation and matched failure |
+|---|---|
+| Root exits before helper | A fixed SDK-free helper remains alive after root exit. The boundary stays populated and guards remain. Root-only cleanup must be rejected; independent emptiness follows actual helper termination. |
+| Abort during child creation | Abort while the fixed fixture creates children. Stop admits no new work; kernel-boundary kill and the final empty read account for the complete fixture, without a sampled-PID oracle. |
+| Acquisition fails before handle return | The workload begins inside the boundary but the controller never receives a browser handle. The outside owner still identifies and empties that exact boundary. |
+| Controller/client disappears | The independent custody service closes admission and settles the original boundary by the unchanged deadline. Losing the service/observation instead produces UNKNOWN, never a cleanup pass. |
+| Migration or delegated spawn | The fixed fixture cannot move work outside the boundary or use a host service to do so. A separately isolated matched defeat exposes the custody break and rejects qualification. |
+| Wrong or stale boundary | Substituting another empty boundary, stale handle or pre-launch empty observation rejects before cleanup acceptance. Killing another case is forbidden. |
+| Failed kill/read/settlement/output | Preserve incomplete originals and independent completion where writable; do not release guards or issue a success-shaped fallback. Host resource/key/output checks remain separate. |
+
+These are proposed controls. No helper, kernel operation, container, VM,
+browser or native source ran to establish them. Their bounded fixture,
+positive/defeat pairs and independent observer require source review before
+execution. Ordinary tests remain browser-free. No new numeric budget is
+chosen: the existing 60-second complete-case envelope and preparation stop
+limits remain, with feasibility unproved.
+
+#### Alternatives and decision still needed
+
+The current macOS runner remains blocked. Repeated process samples,
+process-group membership and the exhausted fork/import experiments do not
+supply this design's invariant. A separately supplied runner may be assessed
+against the same custody/empty-boundary and network requirements; a container
+label or root-exit receipt is insufficient. The unqualified Meta namespace
+programme is not adopted, repaired or expanded.
+
+The recommendation is to evaluate the cgroup-backed mechanism only if the
+owner supplies and approves one named environment with the required custody
+service and privileges. No Linux host, kernel/runtime pin, isolation policy,
+service or provisioning grant is selected by this proposal. Selecting that
+boundary is the next concrete owner decision and needs the existing
+load-bearing-decision/review process before implementation. This draft does
+not make the current slice implementation-ready or waive an Accepted rule.
+
+A platform change would invalidate the historical macOS browser/transport
+cohort as qualification for the new path. Exact browser/dependency/source,
+clock/deadline, trust, confinement, receiving controls and receipt provenance
+must be qualified afresh. Original canonical authority/slot location and
+nonrefundable semantics must survive any handoff; do not copy the authority
+to manufacture a fresh namespace. Authenticated permission, current setup,
+coordination and a real finite window remain separate later gates. C2/C3 and
+native/chamber product evidence remain unproved.
+
+**Independent design review:** a fresh read-only reviewer explicitly pinned
+to `gpt-6.1-sol` applied the generated Jig architecture prompt and the selected
+`arch-review` lenses. Verdict: `pass` for this proposed, unqualified four-file
+design packet, with no blocker or nit. It confirmed the direct-creation and
+final-empty-read distinctions. Host privileges, service lifetime, deadline
+feasibility and actual qualification remain unverified. This is separate
+from the older Meta-only canonical architecture review and does not replace
+059-15's non-clearing compliance or clear 059-01. No test or execution was
+performed by the reviewer.
+
 ### Reference checkpoint stop - 2026-11-05
 
 The two-hour prerequisite checkpoint ended without a qualified native path.
