@@ -1,5 +1,6 @@
 import { createInspectedHeaderBlockDecoder } from "./inspected-header-block.mjs";
 import { createInspectedMetaPolicy } from "./inspected-meta-policy.mjs";
+import { createInspectedGooglePolicy } from "./inspected-google-policy.mjs";
 import { createGunzip, createInflate, createBrotliDecompress } from "node:zlib";
 import { isProxy, isUint8Array } from "node:util/types";
 
@@ -169,7 +170,9 @@ function validPairs(pairs, h2, request) {
  * untrimmed H1 fields, excluding the separately bounded request line.
  */
 export function createInspectedHttpWire(options) {
-  const meta = options === undefined ? null : createInspectedMetaPolicy(options);
+  const mode = options && !isProxy(options) && Object.getOwnPropertyDescriptor(options, "mode")?.value;
+  const google = mode === "DECLARED-GOOGLE-PROFILE";
+  const meta = options === undefined ? null : google ? createInspectedGooglePolicy(options) : createInspectedMetaPolicy(options);
   const requests = [], responses = [], connections = new Set();
   const wireOriginals = [];
   const decompressors = new Set(), redirects = new Map(), pendingRedirects = new Map();
@@ -384,7 +387,7 @@ export function createInspectedHttpWire(options) {
         rawHeaderLimit: HEADER + 2048 + 32,
         frameLimit: 16384,
         stopped: () => stopped, stop,
-        begin() { observed++; if (observed > 8) { stop("physical_request_limit"); return false; } return observed; },
+        begin() { observed++; if (observed > (google ? 20 : 8)) { stop("physical_request_limit"); return false; } return observed; },
         header(entry) {
           let pairs = entry.pairs;
           if (decoder) pairs = decoder.decode(entry.block).pairs;

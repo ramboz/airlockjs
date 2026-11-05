@@ -1,10 +1,11 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: IN_PROGRESS
 dependencies: [059-13, 059-14, adr-0033, adr-0034, adr-0045]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
+claimed_by: glowing-barnacle
 ---
 
 ## Slice 059-15 - Exact native policy and one-shot stock capture
@@ -307,6 +308,29 @@ milestone. Local qualification is the prerequisite path, not the product claim.
 ### Deviation log (after reconciliation)
 
 Checkpoint record only; full-slice reconciliation is not yet complete.
+
+**2026-11-05 Google implementation checkpoint:** The physical observer now
+selects the closed Google policy for synthetic declared profiles and applies
+one 20-attempt counter across its connections. Ten offline tests cover H1/H2
+count boundaries, owned-input denials, companion correlation, redirect
+completion and ambiguous observations. The first seven failed before the
+composition was added. This is eligibility and framing evidence only.
+
+The current local broker still accepts only its fixed Meta authority. Two
+SDK-free loopback probes using distinct Google authorities received 403 before
+the receiver saw a connection. The broker and its sockets settled on the
+second cleanup observation; an immediate first snapshot had reported a socket
+still open. Separate current-browser normal and synthetic-abort probes saw
+the context close while its guard was installed, the owned browser process
+exit, and the connection close. Those probes did not exercise the Google
+relay, browser descendants, native SDK, public traffic or a case slot.
+
+The Google transport, complete controller, private-input and receipt
+validation, original-slot execution path and current-browser H1/H2 receiving
+controls remain unimplemented or unqualified. Existing Meta source inventories
+now include the Google observer import and test; earlier source-bound receipts
+are stale. The stock CLI remains blocked. No review or native admission is
+claimed by this checkpoint.
 
 **2026-10-21 actual original Meta stock case:** The owner separately approved
 the 16:15–16:16Z (09:15 PDT) window and original-slot binding. All actual

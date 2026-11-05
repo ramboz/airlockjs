@@ -7,6 +7,20 @@ remains disabled; the separately gated native API executed once. Google stock,
 Google chamber and Meta chamber remain unused, and the incomplete Meta stock
 reference blocks its dependent chamber case.
 
+## Google checkpoint - 2026-11-05
+
+The declared Google observer is an offline policy and framing component. Its
+20-attempt counter is shared across connections. It is not a stock executor
+or a qualification receipt. The existing loopback broker rejects Google
+authorities, so the current Google H1/H2 receiving controls cannot run through
+the composed path. The native CLI remains blocked before reservation.
+
+The new shared import is included in both existing Meta source inventories.
+Earlier source-bound receipts do not qualify the changed source. A browser
+lifetime probe with a synthetic abort is not proof of descendant cleanup or
+native-case readiness. Google transport, current-source qualification, private
+bindings, independent reviews and the original-slot admission remain open.
+
 ## Current ownership guardrail - 2026-10-29
 
 The additional supervisor no longer accepts an observed launcher-to-Chrome

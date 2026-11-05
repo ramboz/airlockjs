@@ -221,6 +221,7 @@ export function inspectedMetaSourcePins() {
     "native-stock-policy.mjs", "native-stock-policy.test.mjs",
     "inspected-http-wire.mjs", "inspected-http-wire.test.mjs",
     "inspected-meta-policy.mjs", "inspected-meta-policy.test.mjs",
+    "inspected-google-policy.mjs", "inspected-google-policy.test.mjs",
     "inspected-header-block.mjs", "inspected-header-block.test.mjs",
     "reference-inspection.mjs", "reference-inspection.test.mjs",
     "qualification-loopback-chrome", "qualification-loopback-network.sb", "../package.json", "../package-lock.json"];

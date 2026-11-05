@@ -70,6 +70,7 @@ const SOURCE_FILES = ["native-stock-capture.mjs", "native-stock-meta.mjs", "nati
   "inspected-meta-stock.mjs", "inspected-meta-stock.test.mjs", "inspected-transport.mjs",
   "inspected-http-wire.mjs", "inspected-http-wire.test.mjs",
   "inspected-meta-policy.mjs", "inspected-meta-policy.test.mjs",
+  "inspected-google-policy.mjs", "inspected-google-policy.test.mjs",
   "inspected-header-block.mjs", "inspected-header-block.test.mjs",
   "reference-inspection.mjs", "reference-inspection.test.mjs",
   "qualification-loopback-chrome", "qualification-loopback-network.sb", "../package.json", "../package-lock.json"];
