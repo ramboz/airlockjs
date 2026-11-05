@@ -42,6 +42,10 @@ These controls do not establish complete native confinement. Playwright's
 owned browser-server exit and sampled
 process-tree checks do not establish that every descendant was accounted for.
 Independent descendant cleanup remains open before native admission.
+On the current guarded path, separate normal and synthetic-abort probes each
+sampled seven owned processes. All sampled processes were absent after closure;
+the IPv6 guard was active at root exit. Neither probe excludes an unobserved
+descendant.
 
 ## Current ownership guardrail - 2026-10-29
 

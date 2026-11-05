@@ -365,6 +365,10 @@ socket cleanup. This does not qualify the failed control or descendant cleanup.
 The close diagnostic now distinguishes a timeout from a rejected close. A
 subsequent TCP-only matrix produced 84 complete witnesses, including two
 expected synthetic aborts. It does not explain the earlier close failure.
+Fresh normal and synthetic-abort probes on the guarded browser each sampled
+seven owned processes. All sampled processes were absent after closure and
+the IPv6 guard remained active at root exit. The probes did not continuously
+enumerate descendants and cannot exclude an unobserved escape.
 
 **2026-11-05 Google loopback continuation:** A separate Google-only loopback
 broker now composes the declared policy, physical observer and raw relay.
