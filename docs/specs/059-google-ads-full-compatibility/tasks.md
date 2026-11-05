@@ -13,7 +13,7 @@ implementation, review or readiness.
 - [x] Implement the local attachment with a witnessed failing regression.
 - [x] Verify actual-worker conversion values, consent, queue ownership and cleanup.
 - [x] Pass targeted Google/shared tests, lint and independent required reviews.
-- [ ] Reconcile and publish on `google-ads-chamber`.
+- [x] Reconcile and publish on `google-ads-chamber`.
 
 This local task does not complete 059-01, renew historical live grants or
 remove complete native-reference and performance-readiness obligations.

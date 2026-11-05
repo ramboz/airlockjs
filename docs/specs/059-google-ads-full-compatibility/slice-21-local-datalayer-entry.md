@@ -1,11 +1,10 @@
 ---
-status: RECONCILED
+status: DONE
 dependencies: [059-19, 059-20, adr-0043]
 last_verified: 2026-11-05
 kind: feature
 frame_review: true
 arch_review: false
-claimed_by: google-ads-chamber
 ---
 
 ## Slice 059-21 - Connect a local gtag queue to the conversion chamber
