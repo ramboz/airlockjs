@@ -374,6 +374,10 @@ owned detached child in a different process group and waited for its normal
 exit. The sandbox alone therefore does not keep descendants in the root group.
 This does not show that Chrome escaped; it rules out treating group membership
 as a guarantee.
+As a bounded alternative, the same browser sandbox with `process-fork` denied
+returned an owned browser-server handle but failed on browser connection. Its
+root exited with `SIGTRAP` while the IPv6 guard remained active. The trap's
+cause is not established, and this attempt does not qualify that alternative.
 
 **2026-11-05 Google loopback continuation:** A separate Google-only loopback
 broker now composes the declared policy, physical observer and raw relay.
