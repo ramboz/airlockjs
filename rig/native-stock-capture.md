@@ -9,6 +9,67 @@ reference blocks its dependent chamber case.
 
 ## Google checkpoint - 2026-11-05
 
+### Node-only controller source checkpoint
+
+`inspected-google-controller.mjs` provides an SDK-free synthetic controller.
+It accepts only the fixed fake profile, tracks one ordered initialize,
+configure and conversion sequence, and owns the bounded logical registry.
+Its Node loopback path uses the existing Google policy, physical observer and
+raw relay. The fixture reserves only a newly created synthetic authority
+through `reserveStockSlot` and the existing derived slot namespace.
+It cannot select an owner authority or a public upstream.
+
+`inspected-google-controller-witness.mjs` observes a separate fixed Node
+child's exit and close. It writes exclusive private completion evidence
+before validating the result and exact synthetic original bytes. This is
+local evidence only. It is not a browser qualification, SDK execution,
+native permission, or independent proof of vendor behavior.
+
+`inspected-google-admission.mjs` provides private manifest preparation and a
+separate synthetic-only inspection. Preparation parses the owned inputs,
+compiles the existing closed policy, checks the original authority and slot
+locator, the retained source pin, source/cohort snapshots, finite window,
+commands, limits and exact ADR-0045 scope. Supplied review receipts must bind
+the case and source to actual matching review documents. Supplied browser
+qualification indexes must contain all 84 expected controls and traverse
+their private results, child-completion witnesses and originals.
+
+The inspection and case permission records use candidate structural shapes.
+The Google case-location and independent receipt provenance is not established
+by the existing Meta format. A matching record or caller assertion therefore
+does not become permission. A structurally prepared native plan is opaque,
+non-serializable and blocked. `runNativeGoogleStock` rejects it before any
+reservation or network access. The native Google transport/lease, current-source
+browser qualification and complete descendant cleanup remain open.
+
+Final Node-only source check on Node v22.16.0:
+
+```sh
+env -u AIRLOCK_INSPECTED_GOOGLE_CONFINEMENT -u AIRLOCK_INSPECTED_META_CONTROLLER_QUALIFICATION -u AIRLOCK_META_COUNT_QUALIFICATION -u AIRLOCK_NATIVE_STOCK_QUALIFICATION -u AIRLOCK_ADDITIONAL_META_QUALIFICATION TMPDIR="$PWD/rig/out" npx --no-install vitest run --maxWorkers=1 rig/inspected-google-admission.test.mjs rig/inspected-google-controller.test.mjs rig/inspected-google-controller-witness.test.mjs rig/inspected-google-policy.test.mjs rig/inspected-google-originals.test.mjs rig/inspected-google-qualification.test.mjs rig/inspected-google-transport.test.mjs rig/inspected-http-wire.test.mjs rig/native-stock-policy.test.mjs rig/native-stock-capture.test.mjs rig/inspected-meta-stock.test.mjs
+npx eslint rig/inspected-google-admission.mjs rig/inspected-google-admission.test.mjs rig/inspected-google-controller.mjs rig/inspected-google-controller.test.mjs rig/inspected-google-controller-fixture.mjs rig/inspected-google-controller-witness.mjs rig/inspected-google-controller-witness.test.mjs rig/inspected-google-qualification.test.mjs rig/inspected-meta-stock.mjs rig/inspected-meta-stock.test.mjs rig/native-stock-meta.mjs rig/native-stock-capture.test.mjs
+```
+
+The regression passed 11 files and 367 tests, with 15 skipped. ESLint passed.
+The session `files/google-final-cleanup-regression.log` and
+`files/google-final-cleanup-eslint.log` retain the output. The parent-directory
+fsync tests are red and green in `files/google-final-cleanup-fsync-{red,green}.log`.
+Coordinator verification also passed 367 tests with 15 skipped, using one
+worker and unchanged test timeouts. Its preceding parallel run had one
+five-second timeout in the existing gzip boundary test, with 366 passing.
+Both outcomes are retained in
+`files/google-controller-coordinator-regression{,-serial}.log`; scoped lint,
+slice consistency and the unchanged status board passed.
+`files/google-final-cleanup-witness-index.json` records the final source and
+cohort. Its actual synthetic result and three original binary files remain in
+`rig/out/google-result-500276b554d687a0`; independent completion and witness
+remain in `rig/out/google-witness-500276b554d687a0`. The corresponding
+synthetic-only slot is in `rig/out/google-slot-500276b554d687a0`.
+
+The fixed fixture uses only synthetic IDs and literal-loopback TLS.
+Its producer result is `inconclusive`, even when `capture_complete` is true.
+It does not assert deadline qualification or independent child completion.
+The separate witness records actual Node child exit and close.
+
 The declared Google observer shares its 20-attempt counter across connections.
 A separate Google-only broker now reaches a literal-loopback receiver through
 the physical observer and raw relay; the Meta broker's fixed authority and

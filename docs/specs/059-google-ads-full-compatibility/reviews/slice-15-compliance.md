@@ -2,24 +2,26 @@
 slice: 059-15 - Exact native policy and one-shot stock capture
 pass: compliance
 verdict: needs-changes
-reviewer: jig:reviewer (gpt-6.1-sol)
-reviewed_at: 2026-11-05T19:56:50Z
-prompt_source: review.py implementation; full checkpoint through a7b414ec; fresh corrective verification of 2ba919a4
+reviewer: general-purpose (gpt-6.1-sol)
+reviewed_at: 2026-11-05T22:05:23Z
+prompt_source: review.py implementation; exact 8c4538d2 controller checkpoint on f51642b7; independent reviewer f905fbee
 ---
 
 VERDICT: needs-changes
 
 REASONING:
-Both local correctness blockers are resolved by 2ba919a42b9692ec71e7a20d9402d1357cd5563c. The transport guard remains until observed owned-browser-root exit, and independent exit/close evidence is durably recorded before producer validation. Failure tests cover failed close/kill, unavailable ownership, absent reports, missing originals and invalid digests. Static corrective review found no new tightly coupled defect. This clears those two defects only. Full 059-15 remains incomplete.
+No new concrete landing-blocking correctness defect was found in the exact 16-file packet at 8c4538d2fbabd0e3cee7c7c66b617a28a57751a5 relative to f51642b73cf03da196277310b6869ca256a92cc9. It can land as an explicitly incomplete source checkpoint. The synthetic controller preserves closed-policy correlation, command ordering, fixed loopback routing and original bytes. Its separate witness observes actual child completion, and both source inventories include the seven coupled files with digest assertions. Native execution rejects before reservation. Full 059-15 remains incomplete.
 
 SPECIFIC ISSUES:
-- docs/specs/059-google-ads-full-compatibility/slice-15-native-stock-capture.md:411-418: Native Google transport/controller, private-input and review bindings, original-slot admission and complete qualification remain unfinished. Root-exit observation does not establish descendant cleanup.
-- The original compliance pass also identified missing output-failure, failed-cleanup, unsupported-resource and 64-observation-boundary qualification. The new Node-only failure tests do not supply a current-browser qualification or complete this required set.
+- rig/inspected-google-admission.mjs:148: Acknowledged full-slice blocker, High confidence. Permission/review provenance and current-browser qualification remain unverified. Structural candidate validation is not authority.
+- rig/inspected-google-admission.mjs:324: Acknowledged full-slice blocker, High confidence. Native execution remains closed. Actual source consumption, native command/input behavior and complete stock capture are not established.
+- docs/specs/059-google-ads-full-compatibility/tasks.md:50: Acknowledged full-slice blocker, High confidence. Complete browser-descendant cleanup remains unresolved. Node child exit/close does not establish it.
 
 RECONCILIATION NOTES:
-The prior 84 browser witnesses are marked historical after the source corrections in slice-15-native-stock-capture.md:385-392. plan.md's checkpoint explicitly disclaims current qualification and closure of 059-15. Preserve the non-clearing full-slice result. Native admission remains blocked, and no stock slot was consumed.
+Keep source-checkpoint integration separate from slice completion and native admission. Preserve the documented blockers and synthetic-only labels. The historical per-file-flood signal cannot be attributed to this delta without packet evidence. No craft or architecture pass has been substituted for the non-clearing full-slice compliance result. Prior local guard-retention and completion-witness corrections remain integrated; this packet does not turn them into browser qualification.
 
 REVIEW PROVENANCE:
-The initial fresh Sol implementation review examined the Google checkpoint through a7b414ec4a475dc80667ef81525ea629a1c2400f and returned needs-changes. A separate fresh jig:reviewer on gpt-6.1-sol verified the surgical 2ba919a corrective packet and inspected its failure tests without executing them. That review found the two local defects resolved and retained needs-changes for the unfinished full criteria. No craft, architecture or reconciliation pass has been substituted for the missing compliance result.
+Fresh independent general-purpose reviewer on explicitly pinned gpt-6.1-sol, agent f905fbee-92b6-40f3-87aa-1f8a9df32e41. Prompt built by Jig review.py implementation for spec 059 and slice 059-15, with the exact staged packet as its review surface. The reviewer did not edit files or execute tests, browsers, SDKs or native cases.
 
-The later e16e68328d19d8f94706e6e8f19cd315a6dd4350 changes only the browser-confinement suite's explicit opt-in and its operator command. It adds no native execution or qualification authority.
+PARENT VERIFICATION:
+The parent ran the eleven-file SDK-free Node regression on the staged pinned source: 367 passed, 15 skipped. Scoped ESLint and both working-tree and index diff checks passed. Browser opt-ins were unset. Output is retained in this session's files/google-controller-integrated-tests.log. These checks do not qualify native execution, current browser behavior or full descendant cleanup.
