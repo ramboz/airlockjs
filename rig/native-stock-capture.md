@@ -41,6 +41,48 @@ its full-slice verdict remains `needs-changes`. Craft and final architecture
 passes cover the bounded source correction only. The integration owner
 retains landing responsibility.
 
+### Experimental Google broker identity - 2026-11-06
+
+`startLocalGoogleTlsInspectedTransport` is an unselected SDK-free experiment,
+not the native or browser-qualification transport. It wraps CONNECT in TLS,
+generates a fresh `broker.<128-bit-random>.localhost` name and returns its
+literal-loopback mapping. It keeps the existing Google peer check, physical
+observer and raw inner H1/H2 relay. Default Google and Meta paths are unchanged.
+
+The Node controls first show why listener release needs its own receiver:
+a same-port substitute can receive bytes while the old observer's count
+stays unchanged. With outer TLS, a plaintext substitute received a TLS hello,
+not CONNECT. A different untrusted key received no CONNECT; a test-only
+defeated check did deliver it.
+
+**Unresolved control:** a different key with an explicitly trusted,
+same-name Node certificate also received CONNECT after stop. The additive
+case-key exception is not exclusive pinning. This test configures only
+Node's test CA; it does not inspect or change Chrome's trust store.
+No current-browser route, safe guard release or residual helper behavior is
+qualified by these results. Do not select this entry for the native case or
+treat its proxy metadata as authority.
+
+The current browser-free regression passed 433 tests across thirteen files,
+with 26 opt-in tests skipped; the transport file has 52 tests. This run
+includes the shared relay's other caller.
+The source-port collision control needs a reachable, already configured
+non-loopback IPv4 source as well as loopback. Its destination stays literal
+`127.0.0.1`. On a loopback-only host this control fails as a test-environment
+limitation; do not skip it and claim collision coverage. Do not create a new
+interface alias or change host networking for this packet.
+Receiver-originated reset controls reject both the TLS-handle error and
+clean-EOF manufacture; the correction resets the actual owned TCP peer.
+Interrupted originals stay inconclusive and issued requests stay issued.
+A second control reproduced wrong-peer selection when two local sources
+used the same source port. The correction matches the full accepted TCP
+tuple and preserves the unrelated request while resetting the intended peer.
+Source/safety review and the unchanged admission gates still precede any
+browser control.
+The owner's new shared safety phase ends conservatively at
+`2026-11-06T02:04:58Z`, without automatic renewal. Original slots and send
+limits are unchanged.
+
 ### Historical complete-cleanup stop
 
 The continuation from integrated `3a1ebd17` stopped before browser execution.
