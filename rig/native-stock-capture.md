@@ -25,6 +25,22 @@ guardian, extra case, retry, new environment or longer window is approved.
 All authority, original-slot, final-egress, finite-limit and evidence gates
 remain. See the [current packet](../docs/specs/059-google-ads-full-compatibility/plan.md#current-chrome-helper-exception-and-next-packet---2026-11-05).
 
+### Local Google stop source correction
+
+Google admission stop now destroys its owned sockets and retains the
+listeners. Direct transport close also closes admission before waiting.
+Pending Google TLS setup settles when its socket closes. Node H1/H2 receiver
+controls and matched pre-stop requests cover the local stop paths. The
+source change invalidates earlier source cohorts. It does not qualify
+current-browser confinement, listener release or port reuse. It does not
+revoke requests already issued. Descendant cleanup remains unknown/manual.
+The final twelve-file browser-free run had 395 passed and 15 opt-in tests
+skipped. All seven Node-mocked browser-witness tests ran.
+Sol compliance found no packet-local landing blocker;
+its full-slice verdict remains `needs-changes`. Craft and final architecture
+passes cover the bounded source correction only. The integration owner
+retains landing responsibility.
+
 ### Historical complete-cleanup stop
 
 The continuation from integrated `3a1ebd17` stopped before browser execution.
@@ -70,8 +86,10 @@ The Google case-location and independent receipt provenance is not established
 by the existing Meta format. A matching record or caller assertion therefore
 does not become permission. A structurally prepared native plan is opaque,
 non-serializable and blocked. `runNativeGoogleStock` rejects it before any
-reservation or network access. The native Google transport/lease, current-source
-browser qualification and complete descendant cleanup remain open.
+reservation or network access. The native Google transport/lease, current-source browser qualification
+and independent stop/safe guard release remain open. Descendant cleanup is
+explicitly unknown/manual under ADR-0047. The existing native admission
+blockers stay in place until the non-excepted safety gates clear.
 
 Final Node-only source check on Node v22.16.0:
 

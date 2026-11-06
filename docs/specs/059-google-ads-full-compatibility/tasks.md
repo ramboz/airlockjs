@@ -41,10 +41,15 @@ remain separate.
       integration owner's local/provisional ADR-0047 hold.
 - [x] Pass fresh explicitly pinned Sol frame and architecture reviews of
       that narrow exception. Full 059-15 compliance stays non-clearing.
-- [ ] Integrate the decision checkpoint through the existing landing owner.
-- [ ] Use pinned Terra for synchronous Google admission/socket stop and
+- [x] Integrate the decision checkpoint through the existing landing owner
+      at published `b972ca7e`.
+- [x] Use pinned Terra for the local Google admission/socket correction and
       browser-free red/green controls through the existing fixed transport.
-- [ ] Review and land that source checkpoint without opening native admission.
+- [x] Obtain source compliance/craft/architecture reviews through pinned Sol.
+      No packet-local blocker; full-slice compliance stays `needs-changes`.
+- [x] Address craft test-hardening nits through pinned Terra and pass the
+      final 395-test browser-free regression with 15 opt-in skips.
+- [ ] Land that source checkpoint without opening native admission.
 - [ ] Establish current-source stop and safe guard release with possible
       surviving helpers, including reconnects and port reuse.
 - [ ] Complete authenticated permission/review provenance, native transport/
@@ -53,7 +58,9 @@ remain separate.
       reference/chamber conversion tasks above.
 
 The [current packet](plan.md#current-chrome-helper-exception-and-next-packet---2026-11-05)
-does not claim complete descendant cleanup or approve an indefinite guardian.
+is reviewed source work awaiting integration. It does not claim complete
+descendant cleanup, qualify broker endpoint identity or approve an indefinite
+guardian.
 The isolated-runner proposal below is historical and no longer selected.
 
 ### Historical complete-cleanup source-fit stop

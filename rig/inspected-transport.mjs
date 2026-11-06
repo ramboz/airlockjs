@@ -283,6 +283,12 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
     try {
       await wait(new Promise((resolve, reject) => {
         remote.once("secureConnect", resolve); remote.once("error", reject);
+        if (google) {
+          const onClose = () => reject(Error("upstream_closed"));
+          remote.once("close", onClose);
+          remote.once("secureConnect", () => remote.removeListener("close", onClose));
+          remote.once("error", () => remote.removeListener("close", onClose));
+        }
       }));
       check();
       if (google && !admissionOpen) { remote.destroy(); return deny("admission_closed"); }
@@ -295,6 +301,7 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
       if (google && error.message === "case_window_inactive") {
         observer.stop("case_window_inactive"); remote.destroy(); return deny("case_window_inactive");
       }
+      if (google && !admissionOpen) { remote.destroy(); return deny("admission_closed"); }
       const protocolFailure = google && error.message === "upstream_protocol_failed";
       observer.stop(protocolFailure ? "upstream_protocol_failed" : "upstream_tls_failed");
       remote.destroy(); return deny(protocolFailure ? "upstream_protocol" : "upstream_certificate");
@@ -367,7 +374,7 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
   }
   return Object.freeze({
     port: proxy.address().port,
-    ...(google ? { closeAdmission() { admissionOpen = false; } } : {}),
+    ...(google ? { closeAdmission() { admissionOpen = false; stop(); } } : {}),
     attachOwnedBrowser(session) {
       if (browserSession || closed) throw new Error("local_browser_already_bound");
       browserSession = session;
@@ -375,13 +382,14 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
     snapshot: () => ({ mode, connect_attempts: connectAttempts, authenticated_peers: authenticatedPeers,
       denials: { ...denials }, errors: [...errors],
       ...(google ? { diagnostic_errors: [...diagnosticErrors], denial_authorities: structuredClone(denialAuthorities),
-        ipv6_guard_listening: guard.listening, ipv6_guard_connections: guardConnections } : {}),
+        admission_open: admissionOpen, ipv6_guard_listening: guard.listening, ipv6_guard_connections: guardConnections } : {}),
       public_upstream_requests: mode === "native" ? observer.snapshot().forwarded : 0,
       tunnels: tunnels.map(({ request, response, ...row }) => ({
         ...row, request_sha256: request.copy().digest("hex"), response_sha256: response.copy().digest("hex"),
       })),
       sockets_closed: sockets.size === 0, tasks_settled: tasks.size === 0, server_closed: closed }),
     async close() {
+      if (google) admissionOpen = false;
       stop();
       if (!serverClosing) {
         guardClosing = true;
