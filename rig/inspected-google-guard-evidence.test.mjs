@@ -8,8 +8,8 @@ import { expect, it } from "vitest";
 
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const sourceModule = fileURLToPath(new URL("./inspected-google-guard-evidence.mjs", import.meta.url));
-const fixture = async () => {
-  const directory = resolve("rig", `.google-guard-parent-${randomBytes(16).toString("hex")}`);
+const fixture = async (prefix = ".google-guard-parent") => {
+  const directory = resolve("rig", `${prefix}-${randomBytes(16).toString("hex")}`);
   mkdirSync(directory, { mode: 0o700 });
   try {
     const copy = join(directory, "evidence.mjs");
@@ -125,6 +125,56 @@ it.runIf(process.platform === "darwin")("records pending, not readiness, for an 
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
+});
+
+it.runIf(process.platform === "darwin")("unit-only synthetic receipt writers distinguish failure and return without executing a command", async () => {
+  const { directory, root, evidence } = await fixture(".google-guard-synthetic-unit");
+  const unitId = () => `554e495454455354${randomBytes(8).toString("hex")}`;
+  const failureId = unitId(), returnedId = unitId(), port = 59927;
+  const syntheticError = { status: 73, signal: "SYNTHETIC_UNIT_SIGNAL", code: "SYNTHETIC_UNIT_ERROR" };
+  const readReceipt = (saved, name) => {
+    const path = join(saved, name);
+    expect(statSync(path).mode & 0o777).toBe(0o600);
+    return JSON.parse(readFileSync(path, "utf8"));
+  };
+  try {
+    evidence.prepareGoogleGuardParent();
+    for (const id of [failureId, returnedId]) {
+      makeCase(root, evidence, id, port);
+      const saved = evidence.captureGoogleGuardEvidence(id, port);
+      expect(readReceipt(saved, "prepared.json")).toMatchObject({
+        state: "prepared_not_invoked", command_invoked: false, readiness: "unknown", id,
+      });
+      expect(() => evidence.recordGoogleGuardCommandFailure(id, syntheticError)).toThrow();
+      expect(() => evidence.recordGoogleGuardCommandReturned(id)).toThrow();
+      expect(existsSync(join(saved, "command-failure.json"))).toBe(false);
+      expect(existsSync(join(saved, "command-returned.json"))).toBe(false);
+      evidence.recordGoogleGuardInvocationAttempt(id);
+      expect(readReceipt(saved, "invocation-attempt.json")).toEqual({
+        state: "invocation_pending", command_invoked: "unknown", readiness: "unknown", id,
+      });
+      expect(() => evidence.recordSyntheticGoogleGuardFailure(id)).toThrow("guard_invocation_already_pending");
+      expect(existsSync(join(saved, "synthetic-failure.json"))).toBe(false);
+      if (id === failureId) {
+        evidence.recordGoogleGuardCommandFailure(id, syntheticError);
+        expect(readReceipt(saved, "command-failure.json")).toEqual({
+          state: "actual_command_failure", command_invoked: "attempted", readiness: "unknown", id,
+          exit_status: 73, signal: "SYNTHETIC_UNIT_SIGNAL", error_code: "SYNTHETIC_UNIT_ERROR",
+        });
+        expect(existsSync(join(saved, "command-returned.json"))).toBe(false);
+      } else {
+        evidence.recordGoogleGuardCommandReturned(id);
+        expect(readReceipt(saved, "command-returned.json")).toEqual({
+          state: "command_returned", command_invoked: true, readiness: "unknown", id,
+        });
+        expect(existsSync(join(saved, "command-failure.json"))).toBe(false);
+      }
+    }
+    console.log("SYNTHETIC UNIT ONLY: receipt metadata tested; no command executed");
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+  expect(existsSync(directory)).toBe(false);
 });
 
 it.runIf(process.platform === "darwin")("creates only a missing private parent and rejects symlinks", async () => {

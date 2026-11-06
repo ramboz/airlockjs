@@ -155,12 +155,20 @@ remain separate.
       source and rerun the scoped parent regression: 64 passed, C/ESLint
       clean. Actual Sol compliance/craft remain `needs-changes`, bounded
       architecture `pass`, with no packet-local landing blocker.
-- [ ] Cover initially empty service queue waiting for a later client;
-      current service fixture only proves rejection of a prequeued client.
-- [ ] Cover failure/returned receipt writers and synthetic-failure refusal
-      after pending. These two coverage nits are nonblocking, not authority
-      for another platform attempt.
-- [ ] Land the stable exact-manifest checkpoint through the existing owner.
+- [x] Cover an initially empty service queue and later client with a real
+      timed-poll/pipe witness. Preserve instrumentation limits; private
+      poll-removal mutation is falsifiability evidence, not a historical bug.
+- [x] Cover failure/returned receipt writers and synthetic-failure refusal
+      after pending. Outcomes are explicitly unit data, not command
+      execution or authority. Parent regression is 65 passed; actual
+      Sol passes find no packet-local blocker, without clearing full gates.
+- [x] Land the paired stable source checkpoint through the existing owner:
+      `9ab4c2bc` plus `69a78247`, integrated/pushed at `43b05d10`.
+- [x] Complete the final controller-scoped exact-label unprivileged log
+      read in a retained 58-second acquisition bracket: zero events,
+      no cause established, no scope relaxation or retry.
+- [ ] Land the reviewed test-only coverage and final diagnostic disposition
+      through the existing owner. Runtime acquisition remains blocked.
 - [ ] Continue current-Chrome/native steps only when their actual remaining
       source/safety/admission conditions clear. Guard retention grants no
       new forwarding window, case, retry or original authority.

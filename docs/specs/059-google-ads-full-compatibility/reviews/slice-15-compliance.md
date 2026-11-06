@@ -2,33 +2,29 @@
 slice: 059-15 - Exact native policy and one-shot stock capture
 pass: compliance
 verdict: needs-changes
-reviewer: jig:reviewer (explicit gpt-6.1-sol; retained 2fdde6a7 turn 4)
-reviewed_at: 2026-11-06T05:40:07Z
-prompt_source: review.py implementation spec.md 059-15; corrections-compliance prompt plus parent-safety follow-up; exact snapshot b608925e
+reviewer: jig:reviewer (explicit gpt-6.1-sol; retained 2fdde6a7 turn 5)
+reviewed_at: 2026-11-06T05:56:30Z
+prompt_source: review.py implementation spec.md 059-15; google-retained-guard-coverage-compliance-prompt.txt; exact test/plan snapshot 60baedde
 ---
 
-Actual retained reviewer: 2fdde6a7-0ca3-451e-a643-b4900f1c7040, turn 4.
-Explicit gpt-6.1-sol. Prompt: google-retained-guard-corrections-compliance-prompt.txt
-plus the same-task parent-safety follow-up.
-Reviewed snapshot: google-retained-guard-parent-safety-reviewed.patch,
-SHA256 b608925efad5f1a08e48a0901a51ae7e2969fce3086089dee8f323e0387a16b6.
-Final source hashes: google-retained-guard-parent-safety-manifest.log.
+Actual retained reviewer: 2fdde6a7-0ca3-451e-a643-b4900f1c7040, turn 5.
+Explicit gpt-6.1-sol. Prompt: google-retained-guard-coverage-compliance-prompt.txt.
+Snapshot: google-retained-guard-coverage-reviewed.patch,
+SHA256 60baedde07a1d7043ec3d6eda1e452acb31d6d8b4bc1d575c4ae44ff34dc3f4d.
+Test hashes: google-retained-guard-coverage-test-sha256.txt.
 
 VERDICT: needs-changes
 
 REASONING:
-Both packet-local blockers are corrected: bootstrap safely prepares the fixed parent before case creation, capture/invocation reject unsafe parents, and isolated tests no longer depend on pre-existing `rig/out`. The real filesystem refusal controls and supplied 64-test worker green meaningfully support these changes; no packet-local landing blocker remains in this follow-up. Full 059-15 remains needs-changes, 059-01 remains READY_FOR_REVIEW, and native admission stays closed.
+The two named coverage nits are addressed within the documented test scope: receipt-state assertions exercise the actual writers, and the later-client fixture uses real polling, observes client closure, checks unchanged flags and reaps its child. No packet-local blocker is evident in this test-only/documentation delta. Full 059-15 remains needs-changes, 059-01 remains READY_FOR_REVIEW, and native admission remains closed.
 
 RECONCILIATION NOTES:
-Preserve the original findings and actual refusal red/green, distinguishing them from the missing-helper failures. Foreign-owner refusal is source-checked but not experimentally exercised; same-owner concurrent mutations remain outside the non-atomic checks’ guarantee.
+- Preserve the instrumentation limit: the real 150 ms empty wait precedes client creation, but this does not prove the uninstrumented infinite poll was already blocked before connection.
+- Record the private poll-removal failure as mutation-regression evidence, not a historical production defect or runtime modification.
+- Synthetic receipt fields—including `command_invoked: true`—are unit-test metadata, not command-execution evidence or authority.
+- The supplied ordinary worker run passed 11 tests; the parent’s 65-test regression remains pending on the supplied evidence. Bootstrap status 5, missing historical originals and all activation/lifetime/Chrome/native qualification gaps remain unchanged. No retry or new numeric budget follows.
 
-The parent’s independent rerun remains pending on the supplied evidence. Historical bootstrap status 5 and missing originals remain unchanged. Actual activated-descriptor flags, shared-holder mutation, custody/exclusivity, restart/logout/unload and Chrome/native behavior remain unqualified; this source clearance authorizes no retry or expanded operation.
-
-Parent reconciliation, not a reviewer attestation:
-The independent four-file rerun subsequently passed 64 tests, recorded in
-google-retained-guard-parent-final-regression.log. C syntax and scoped
-ESLint also passed; google-retained-guard-parent-final-eslint.log.
-The earlier actual parent-permission and clean-checkout findings are retained
-in google-retained-guard-corrections-compliance-first.txt, with their actual
-red and correction indexed by google-retained-guard-parent-safety-result.txt.
-The source hashes were not changed after this final follow-up.
+Parent reconciliation, not reviewer attestation:
+The independent four-file rerun passed 65 tests. Its actual output is in
+google-retained-guard-coverage-parent-regression.log; scoped ESLint and C
+syntax checks also passed. Test code is unchanged after this review.

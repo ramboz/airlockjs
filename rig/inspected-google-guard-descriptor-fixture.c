@@ -1,8 +1,28 @@
+#include <errno.h>
+#include <poll.h>
+#include <unistd.h>
+
+static int witness_listener = -1, witness_notice = -1;
+static int witness_poll(struct pollfd *fds, nfds_t count, int timeout) {
+  if (witness_notice >= 0 && count == 1 && fds[0].fd == witness_listener && timeout == -1) {
+    /* A real empty kernel wait completes before the parent may connect. */
+    int observed;
+    do { observed = poll(fds, count, 150); } while (observed < 0 && errno == EINTR);
+    if (observed != 0 || write(witness_notice, "W", 1) != 1) return -1;
+    witness_notice = -1;
+  }
+  return poll(fds, count, timeout);
+}
+
+#define poll witness_poll
 #define main google_guard_service_main
 #include "inspected-google-reject-guard.c"
 #undef main
+#undef poll
 #include <fcntl.h>
+#include <signal.h>
 #include <sys/time.h>
+#include <sys/wait.h>
 
 static int check_descriptor(const char *name, int sharing, int listening, int datagram,
                             int nonblocking, int wrong_port, int expected) {
@@ -151,6 +171,78 @@ static int check_connected_or_queued(int queued) {
   return valid == !!queued && same_flags && (!queued || rejected);
 }
 
+static int wait_notice(int fd, char expected) {
+  struct pollfd ready = { .fd = fd, .events = POLLIN };
+  int result;
+  do { result = witness_poll(&ready, 1, 2000); } while (result < 0 && errno == EINTR);
+  char notice;
+  return result == 1 && (ready.revents & POLLIN) && read(fd, &notice, 1) == 1 && notice == expected;
+}
+
+static int check_later_reject(void) {
+  int listener = -1, client = -1, notices[2] = { -1, -1 }, status = 0, success = 0;
+  pid_t child = -1;
+  struct sockaddr_in address = { .sin_len = sizeof(address), .sin_family = AF_INET,
+    .sin_addr.s_addr = htonl(INADDR_LOOPBACK) };
+  socklen_t length = sizeof(address);
+  listener = socket(AF_INET, SOCK_STREAM, 0);
+  if (listener < 0 || bind(listener, (struct sockaddr *)&address, sizeof(address)) != 0
+      || listen(listener, 1) != 0 || getsockname(listener, (struct sockaddr *)&address, &length) != 0)
+    goto cleanup;
+  int flags = fcntl(listener, F_GETFL);
+  if (flags < 0 || fcntl(listener, F_SETFL, flags | O_NONBLOCK) != 0) goto cleanup;
+  flags = fcntl(listener, F_GETFL);
+  struct pollfd empty = { .fd = listener, .events = POLLIN };
+  if (flags < 0 || witness_poll(&empty, 1, 0) != 0 || pipe(notices) != 0) goto cleanup;
+  child = fork();
+  if (child < 0) goto cleanup;
+  if (child == 0) {
+    close(notices[0]);
+    alarm(4);
+    witness_listener = listener;
+    witness_notice = notices[1];
+    int result = reject_next(listener);
+    if (write(notices[1], "D", 1) != 1) _exit(1);
+    _exit(result == 0 ? 0 : 1);
+  }
+  close(notices[1]);
+  notices[1] = -1;
+  if (!wait_notice(notices[0], 'W')) {
+    fprintf(stderr, "fixture_later_empty_wait_not_observed\n");
+    goto cleanup;
+  }
+  client = socket(AF_INET, SOCK_STREAM, 0);
+  struct timeval timeout = { .tv_sec = 2 };
+  if (client < 0 || setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) != 0
+      || connect(client, (struct sockaddr *)&address, sizeof(address)) != 0) goto cleanup;
+  char byte;
+  ssize_t received = recv(client, &byte, 1, 0);
+  int rejected = received == 0 || (received < 0 && errno == ECONNRESET);
+  if (!rejected || !wait_notice(notices[0], 'D')) goto cleanup;
+  if (waitpid(child, &status, 0) != child) goto cleanup;
+  long child_pid = (long)child;
+  child = -1;
+  int same_flags = fcntl(listener, F_GETFL) == flags;
+  success = WIFEXITED(status) && WEXITSTATUS(status) == 0 && same_flags;
+  printf("case=later-service-reject empty_before=1 waited_empty_ms=150 client_after_wait=1 rejected=%d service_exit=%d flags_unchanged=%d child_pid=%ld child_reaped=1\n",
+         rejected, WIFEXITED(status) ? WEXITSTATUS(status) : -1, same_flags, child_pid);
+cleanup:
+  if (child > 0) {
+    pid_t reaped;
+    do { reaped = waitpid(child, NULL, WNOHANG); } while (reaped < 0 && errno == EINTR);
+    if (reaped == 0) {
+      kill(child, SIGKILL);
+      do { reaped = waitpid(child, NULL, 0); } while (reaped < 0 && errno == EINTR);
+    }
+    fprintf(stderr, "fixture_later_cleanup child_pid=%ld reaped=%d\n", (long)child, reaped == child);
+  }
+  if (notices[0] >= 0) close(notices[0]);
+  if (notices[1] >= 0) close(notices[1]);
+  if (client >= 0) close(client);
+  if (listener >= 0) close(listener);
+  return success;
+}
+
 int main(void) {
   int okay = 1;
   okay &= check_descriptor("nonsharing-listener", 0, 1, 0, 1, 0, 1);
@@ -164,5 +256,6 @@ int main(void) {
   okay &= check_connected_or_queued(0);
   okay &= check_connected_or_queued(1);
   okay &= check_connected_or_queued(2);
+  okay &= check_later_reject();
   return okay ? 0 : 1;
 }
