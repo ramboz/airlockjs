@@ -4,6 +4,24 @@ The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
 
+## Offline manual-response packet - 2026-11-06
+
+- [x] Adopt published `3fbe4dfc` without unrelated trunk or main-checkout work.
+- [x] Bind the owner-directed source packet to the retained partial manual HAR.
+      Google stock is consumed once; previous unused-slot statements are dated.
+- [x] Identify exact framing and route/economic-field source mismatches.
+      Existing native/inspected eligibility and admission remain unchanged.
+- [x] Implement sanitized evidence-derived fixtures and the bounded Google
+      offline decoder/sequence consumer through explicitly pinned Terra.
+- [x] Witness red/green for the captured chain, missing responses, mutations,
+      duplicate/dropped requests and malformed/ambiguous/limit failures.
+- [x] Independently verify private derivation; retain originals separately.
+- [x] Run pinned Sol compliance/craft/architecture reviews; resolve packet-local
+      blockers without claiming a full059-15 or059-01 pass.
+      Final covering run:208 passed, scoped ESLint/spec/board checks clean.
+- [x] Commit the reviewed source packet and deliver exact commands, evidence
+      handles and remaining gates. No live send or guard retry follows.
+
 ## Current assignment: complete the Google conversion - 2026-11-05
 
 - [x] Owner delegates autonomous completion of Google conversion only.
