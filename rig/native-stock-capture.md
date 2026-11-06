@@ -93,6 +93,13 @@ requires authority outside the grant. Native capture stays deferred unless
 a reviewed case-scoped enforcement mechanism clears the unchanged gates.
 No browser control, trust-store access or host-network mutation was run.
 
+The [non-executing Mac TCP-fence proposal](../docs/specs/059-google-ads-full-compatibility/plan.md#proposed-case-scoped-mac-tcp-fence---non-executing)
+describes the intended loopback destination-port deny and exact case-state
+scope. It is **not execution-ready**. Unknown live PF anchoring/loopback
+behavior, unmatched public kernel source, failure-independent lifetime and
+safe removal remain blockers. Root access would not by itself solve them.
+No administrative access or operation is requested or approved.
+
 ### Historical complete-cleanup stop
 
 The continuation from integrated `3a1ebd17` stopped before browser execution.
