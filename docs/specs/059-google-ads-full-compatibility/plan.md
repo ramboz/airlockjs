@@ -1809,3 +1809,115 @@ non-vacuous references/mutations, browser credential/response fidelity and truth
 outcome/performance boundaries. During later implementation, each slice needs
 witnessed red-to-green controls, targeted existing tests, applicable lint and
 independent required reviews. Never mark those future tasks complete now.
+
+## Offline manual-response packet - 2026-11-06
+
+The owner directed implementation after the manual capture. This is one
+bounded source packet within existing IN_PROGRESS059-15. It starts from
+published `3fbe4dfc`;059-01 remains READY_FOR_REVIEW. The existing two-active-hour
+source checkpoint applies. No old native, guard or measurement grant is renewed.
+
+The owner's conversion-phase archive contains one primary GET200, a
+response-linked POST302 and its exact redirected GET200. The primary body
+has `event: message` / `data:` framing despite its JSON MIME. Its fallback
+URL is offered but not separately observed. Final response headers/body are
+unavailable, including in the owner's existing DevTools Response tab.
+Initialization and current executable/source closure are not captured.
+
+The original Google stock reservation was consumed once. Its first window
+expired unused; the owner approved a separate ten-minute phase for the same
+already-open Incognito tab and reported one submission followed by Offline.
+The owner had navigated the native page before reservation. Reported native
+initialization preceded that bookkeeping; its network/source execution was
+not captured or retrospectively covered by the conversion-recording window.
+No refund, rewrite, second reservation or new transaction occurred. Earlier
+unused-slot and complete-reference statements remain historical observations,
+not current availability or qualification.
+
+**Concrete source fit:** `rig/native-stock-policy.mjs:183-211` does not admit
+the observed POST viewthrough or GET first-party redirect routes. Its
+JSON-MIME path at `:344-356` parses the entire body as JSON. Fixing those
+route/economic-field permissions is not selected by this packet. New offline
+Google code may decode the captured message and correlate the observed chain;
+existing native/inspected policy and admission remain unchanged.
+
+**Deliverable:**
+
+1. Sanitized, evidence-derived request/response fixtures preserving pair order,
+   omission/empty distinctions, response URL identity and redirect relationships.
+   Private originals and the original-to-surrogate derivation stay uncommitted.
+2. A bounded Google-only offline response decoder and exact-case sequence
+   consumer. Parse the actual single event/data frame without executing response
+   code or following URLs. Bound bytes/structure and reject malformed or
+   ambiguous messages. Retain the conditional fallback as offered, not executed.
+3. Tests and honest output for the captured partial chain, missing final
+   response data, wrong ownership/economic/order values, foreign/broken parent
+   URLs, duplicate/dropped requests and malformed/framing/limit failures.
+   Correlation cannot become complete-reference, native or dispatch authority.
+4. A concrete SDK-free command, operator guide, witnessed red/green and pinned
+   Sol compliance/craft/architecture reviews of the pinned Terra implementation.
+   Full059-15 compliance remains non-clearing; packet-local defects must clear.
+
+**Allowed changes:** new Google-only rig modules/tests and sanitized fixtures,
+this plan/tasks/slice note and the operator guide. Do not change existing
+policy/transport/source inventories, Meta implementation, core/contracts,
+production adapters, dependency manifests, oracle profiles or Accepted records.
+Do not launch Chrome/SDKs, follow vendor URLs, reserve original slots, change
+account/site/trust settings or restart guard diagnostics. A necessary authority
+or contract change stops that dependent work with the exact evidenced question.
+
+### Bounded result
+
+`rig/google-manual-response.mjs` now decodes the captured single message and
+checks the exact three-entry surrogate sequence against separately supplied
+owned expectations. The fixed offline CLI reports `sequence: matched` and
+`overall: inconclusive`. Missing responses, offered fallback, unqualified HAR
+resource metadata and retained size metadata remain explicit. Every dispatch,
+native, complete-reference, chamber and product claim stays false.
+
+The parent independently checked every ordered query pair and one-to-one
+surrogate, exact fetch/fallback/redirect relationship and unavailable body state
+against the retained private originals. The committed fixture has 1931 decoded
+body bytes; original 3424/1222 size/header metadata is not replacement wire proof.
+Private originals, mappings and reproducible verification remain uncommitted.
+
+The final covering command is:
+
+```sh
+npm test -- rig/google-manual-response.test.mjs rig/native-stock-policy.test.mjs rig/inspected-google-policy.test.mjs
+```
+
+It passed 208 tests: 86 new offline controls and 122 unchanged policy controls.
+Scoped ESLint, the CLI, spec lint and board consistency also passed. Retained
+red/green includes defeated fetch-parent, duplicate-member, depth, node,
+nonownership-prefix and fetch-count checks. CLI corruption, limit and read
+failures have safe distinct codes. No browser, SDK or vendor request ran.
+
+Actual pinned Sol compliance retained full-slice `needs-changes`. Its
+corrective pass cleared all packet-local findings. Craft and architecture
+passed; craft's two nits were corrected and independently cleared.
+
+### Bounded packet deviation log
+
+The initial Jig-specific implementer refused an already-IN_PROGRESS continuation
+without writing code. The coordinator did not reset readiness or ownership.
+An explicitly pinned Terra general-purpose implementer completed the narrower
+module/test task; the parent independently supplied and verified fixture data.
+
+The offline decoder is deliberately not imported by native/inspected policy.
+Their observed route/economic-field/resource/duplicate-query gaps stay
+unselected. No fixture or caller flag becomes native authority. Required
+test-guard falsifiability and CLI error distinctions were corrected during
+independent review rather than left as untested follow-ups.
+
+### Bounded packet reconciliation sweep
+
+- Updated: the Google-only module/test/fixture, operator guide and current
+  plan/tasks/slice notes; actual review evidence records the bounded disposition.
+- No-op: native/inspected policy, transport/source inventories, Meta, core,
+  production adapters, dependencies, oracle profiles and Accepted decisions.
+- No-op: lifecycle/status board;059-15 stays IN_PROGRESS and059-01 stays
+  READY_FOR_REVIEW. No REVIEWED/RECONCILED/DONE transition is requested.
+- Held open: initialization/source closure, missing responses, cookies,
+  actual qualification, C2/C3, native-free chamber execution and product
+  receipt. The original Google stock is not refunded or reserved again.

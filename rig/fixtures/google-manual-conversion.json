@@ -1,0 +1,71 @@
+{
+  "kind": "sanitized-manual-google-conversion-phase",
+  "owned": {
+    "conversion_id": "AW-1234567890",
+    "conversion_label": "fixture-conversion-label",
+    "value": 1,
+    "currency": "USD",
+    "transaction_id": "airlock-test-12345678-1234-1234-1234-123456789012",
+    "document_url": "https://owned.example.test/tools/google-ads/test-purchase.html",
+    "auid": "123.456"
+  },
+  "entries": [
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://www.googleadservices.com/pagead/conversion/1234567890/?random=fixture-token-4&cv=fixture-token-5&fst=fixture-token-4&fmt=fixture-token-6&bg=fixture-token-7&guid=ON&async=1&en=conversion&gtm=fixture-token-8&gcd=fixture-token-9&dma=0&tag_exp=fixture-token-10&u_w=fixture-token-11&u_h=fixture-token-12&url=https%3A%2F%2Fowned.example.test%2Ftools%2Fgoogle-ads%2Ftest-purchase.html&rcb=fixture-token-13&label=fixture-conversion-label&gtm_ee=1&frm=0&tiba=fixture-token-14&oid=airlock-test-12345678-1234-1234-1234-123456789012&value=1&currency_code=USD&hn=fixture-token-15&npa=0&pscdl=fixture-token-16&auid=123.456&uaa=fixture-token-17&uab=64&uafvl=fixture-token-18&uamb=0&uam=&uap=macOS&uapv=fixture-token-19&uaw=0&gcl_ctr=fixture-token-20&data=fixture-token-21&category=fixture-token-22&ept=fixture-token-23",
+        "resource_type": "fetch",
+        "body_size": 0
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          ["content-encoding", "br"],
+          ["content-length", "1222"],
+          ["content-type", "application/json; charset=UTF-8"]
+        ],
+        "body": "event: message\ndata: {\"fetch\":[\"https://googleads.g.doubleclick.net/pagead/viewthroughconversion/1234567890/?random=fixture-token-24&cv=fixture-token-5&fst=fixture-token-4&fmt=fixture-token-25&bg=fixture-token-7&guid=ON&async=1&en=conversion&gtm=fixture-token-8&gcd=fixture-token-9&dma=0&tag_exp=fixture-token-10&u_w=fixture-token-11&u_h=fixture-token-12&url=https%3A%2F%2Fowned.example.test%2Ftools%2Fgoogle-ads%2Ftest-purchase.html&rcb=fixture-token-13&label=fixture-conversion-label&gtm_ee=1&frm=0&tiba=fixture-token-14&value=1&currency_code=USD&hn=fixture-token-15&npa=0&pscdl=fixture-token-16&auid=123.456&uaa=fixture-token-17&uab=64&uafvl=fixture-token-18&uamb=0&uam=&uap=macOS&uapv=fixture-token-19&uaw=0&gcl_ctr=fixture-token-20&data=fixture-token-21&category=fixture-token-22&ept=fixture-token-23&ct_cookie_present=fixture-token-26&eoid=fixture-token-27&crd=fixture-token-28&cerd=fixture-token-29&fsk=fixture-token-30&pscrd=fixture-token-31\"],\"options\":{\"fallback_url\":\"https://www.google.com/pagead/1p-conversion/1234567890/?random=fixture-token-24&cv=fixture-token-5&fst=fixture-token-4&fmt=fixture-token-25&bg=fixture-token-7&guid=ON&async=1&en=conversion&gtm=fixture-token-8&gcd=fixture-token-9&dma=0&tag_exp=fixture-token-10&u_w=fixture-token-11&u_h=fixture-token-12&url=https%3A%2F%2Fowned.example.test%2Ftools%2Fgoogle-ads%2Ftest-purchase.html&rcb=fixture-token-13&label=fixture-conversion-label&gtm_ee=1&frm=0&tiba=fixture-token-14&value=1&currency_code=USD&hn=fixture-token-15&npa=0&pscdl=fixture-token-16&auid=123.456&uaa=fixture-token-17&uab=64&uafvl=fixture-token-18&uamb=0&uam=&uap=macOS&uapv=fixture-token-19&uaw=0&gcl_ctr=fixture-token-20&data=fixture-token-21&category=fixture-token-22&ept=fixture-token-23&ct_cookie_present=fixture-token-26&eoid=fixture-token-27&crd=fixture-token-28&cerd=fixture-token-29&fsk=fixture-token-30&pscrd=fixture-token-31&gcp=fixture-token-34\",\"fallback_url_method\":\"fetch\"}}\n\n",
+        "content_size": 3424
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "url": "https://googleads.g.doubleclick.net/pagead/viewthroughconversion/1234567890/?random=fixture-token-24&cv=fixture-token-5&fst=fixture-token-4&fmt=fixture-token-25&bg=fixture-token-7&guid=ON&async=1&en=conversion&gtm=fixture-token-8&gcd=fixture-token-9&dma=0&tag_exp=fixture-token-10&u_w=fixture-token-11&u_h=fixture-token-12&url=https%3A%2F%2Fowned.example.test%2Ftools%2Fgoogle-ads%2Ftest-purchase.html&rcb=fixture-token-13&label=fixture-conversion-label&gtm_ee=1&frm=0&tiba=fixture-token-14&value=1&currency_code=USD&hn=fixture-token-15&npa=0&pscdl=fixture-token-16&auid=123.456&uaa=fixture-token-17&uab=64&uafvl=fixture-token-18&uamb=0&uam=&uap=macOS&uapv=fixture-token-19&uaw=0&gcl_ctr=fixture-token-20&data=fixture-token-21&category=fixture-token-22&ept=fixture-token-23&ct_cookie_present=fixture-token-26&eoid=fixture-token-27&crd=fixture-token-28&cerd=fixture-token-29&fsk=fixture-token-30&pscrd=fixture-token-31",
+        "resource_type": "fetch",
+        "body_size": 0
+      },
+      "response": {
+        "status": 302,
+        "headers": [
+          ["content-length", "0"],
+          ["content-type", "text/html; charset=UTF-8"],
+          ["location", "https://www.google.com/pagead/1p-conversion/1234567890/?random=fixture-token-24&cv=fixture-token-5&fst=fixture-token-4&fmt=fixture-token-25&bg=fixture-token-7&guid=ON&async=1&en=conversion&gtm=fixture-token-8&gcd=fixture-token-9&dma=0&tag_exp=fixture-token-10&u_w=fixture-token-11&u_h=fixture-token-12&url=https%3A%2F%2Fowned.example.test%2Ftools%2Fgoogle-ads%2Ftest-purchase.html&rcb=fixture-token-13&label=fixture-conversion-label&gtm_ee=1&frm=0&tiba=fixture-token-14&value=1&currency_code=USD&hn=fixture-token-15&npa=0&pscdl=fixture-token-16&auid=123.456&uaa=fixture-token-17&uab=64&uafvl=fixture-token-18&uamb=0&uam=&uap=macOS&uapv=fixture-token-19&uaw=0&gcl_ctr=fixture-token-20&data=fixture-token-21&category=fixture-token-22&ept=fixture-token-23&ct_cookie_present=fixture-token-26&eoid=fixture-token-27&crd=fixture-token-28&cerd=fixture-token-29&fsk=fixture-token-30&pscrd=fixture-token-31&is_vtc=1&cid=fixture-token-32&random=fixture-token-33"]
+        ],
+        "body": null,
+        "content_size": 0
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://www.google.com/pagead/1p-conversion/1234567890/?random=fixture-token-24&cv=fixture-token-5&fst=fixture-token-4&fmt=fixture-token-25&bg=fixture-token-7&guid=ON&async=1&en=conversion&gtm=fixture-token-8&gcd=fixture-token-9&dma=0&tag_exp=fixture-token-10&u_w=fixture-token-11&u_h=fixture-token-12&url=https%3A%2F%2Fowned.example.test%2Ftools%2Fgoogle-ads%2Ftest-purchase.html&rcb=fixture-token-13&label=fixture-conversion-label&gtm_ee=1&frm=0&tiba=fixture-token-14&value=1&currency_code=USD&hn=fixture-token-15&npa=0&pscdl=fixture-token-16&auid=123.456&uaa=fixture-token-17&uab=64&uafvl=fixture-token-18&uamb=0&uam=&uap=macOS&uapv=fixture-token-19&uaw=0&gcl_ctr=fixture-token-20&data=fixture-token-21&category=fixture-token-22&ept=fixture-token-23&ct_cookie_present=fixture-token-26&eoid=fixture-token-27&crd=fixture-token-28&cerd=fixture-token-29&fsk=fixture-token-30&pscrd=fixture-token-31&is_vtc=1&cid=fixture-token-32&random=fixture-token-33",
+        "resource_type": "fetch",
+        "body_size": 0
+      },
+      "response": {
+        "status": 200,
+        "headers": null,
+        "body": null,
+        "content_size": 0
+      }
+    }
+  ],
+  "limits": {
+    "source": "partial manual conversion-phase capture; no initialization, source closure, cookie or product receipt",
+    "last_response": "Failed to load response data; missing headers/body are unavailable, not empty",
+    "secondary_body": "not exported; retained Content-Length header declares zero",
+    "browser_resource_type": "HAR fetch metadata is not a qualified CDP resource binding",
+    "duplicate_random": "final redirect contains two random query pairs; preserve them, do not treat as duplicate ownership"
+  }
+}

@@ -3,9 +3,58 @@
 [059-15](../docs/specs/059-google-ads-full-compatibility/slice-15-native-stock-capture.md)
 has admitted **one original Meta stock case**, which is now permanently
 spent/inconclusive. No complete native reference was obtained. The stock CLI
-remains disabled; the separately gated native API executed once. Google stock,
-Google chamber and Meta chamber remain unused, and the incomplete Meta stock
-reference blocks its dependent chamber case.
+remains disabled; the separately gated native API executed once. Google stock
+was subsequently consumed once for an owner-operated manual conversion case.
+It produced partial conversion-phase evidence, not a complete native reference.
+The original reservation was not refunded or rewritten. Neither chamber is
+cleared by these records.
+
+## Manual Google response evidence - 2026-11-06
+
+The owner's HAR retains GET200 -> response-linked POST302 -> redirected GET200.
+The primary JSON-MIME body is a single `event: message` / `data:` frame.
+Its offered fallback was not separately observed. The final headers/body are
+unavailable; `size: 0` with failed DevTools response loading does not prove an
+empty response. Initialization, SDK/source closure, cookie effects and backend
+receipt remain unverified.
+
+The owner had already opened the native page before the original reservation.
+Reported initialization preceded bookkeeping and is outside this HAR's
+conversion phase. The unused first reservation window and the separately
+approved same-case timing extension do not retrospectively cover it.
+
+The [offline packet](../docs/specs/059-google-ads-full-compatibility/plan.md#offline-manual-response-packet---2026-11-06)
+adds capture-backed decoding and sequence checks without executing URLs.
+Existing native/inspected route permissions and all live gates remain closed.
+No new send, reload, reservation, guard retry or site change is part of it.
+
+Run the committed surrogate entirely offline:
+
+```sh
+node rig/google-manual-response.mjs
+npm test -- rig/google-manual-response.test.mjs
+```
+
+The replay should report `sequence: "matched"` and `overall: "inconclusive"`.
+Dispatch, native execution, complete reference, chamber execution and product
+receipt claims stay false. A match records the observed URL relationships; it
+does not authorize following them.
+
+`rig/fixtures/google-manual-conversion.json` is a structural/value-relationship
+surrogate. Its sanitized primary body is 1931 UTF-8 bytes. The copied
+`content_size` 3424 and compressed `Content-Length` 1222 describe retained
+original HAR/header metadata, not the surrogate's byte length or fresh wire
+observations. Actual supplied body bytes are bounded independently. Missing
+secondary/final bodies remain unavailable. The final redirect's two `random`
+pairs are retained in order; they are not duplicate ownership fields.
+Private original-to-surrogate verification stays outside Git.
+
+The offline decoder limits each body to 65,536 UTF-8 bytes, JSON depth to 16
+(root at 0) and values to 1,024 nodes. Each URL is limited to 8,192 UTF-16 code
+units; each response has at most 32 headers with name/value limits of 256/8,192
+code units. The fixed-fixture CLI accepts at most 262,144 bytes. These are
+offline parser limits, not a change to native request, response or admission
+limits.
 
 ## Google checkpoint - 2026-11-05
 
