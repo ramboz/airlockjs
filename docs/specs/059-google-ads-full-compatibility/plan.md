@@ -52,6 +52,9 @@ the completed conversion or ordinary-browser product parity.
 
 ### Renewed Chrome-only stop/guard-release packet - 2026-11-06 UTC
 
+**Historical allocation:** this phase ended at `02:04:58Z`. It supplies no
+balance to the later specifically approved retained-guard packet below.
+
 The owner directly approved another shared two-active-hour checkpoint for
 the remaining Chrome-only safety work. The original checkpoint is closed;
 this is a new allocation, not an inferred balance. Phase start is
@@ -374,6 +377,70 @@ An independent, explicitly pinned Sol architecture pass found no
 packet-local landing blocker. Its one nonblocking finality clarification
 is incorporated above. The pass covers this negative-readiness finding,
 not the proposed controller, execution permission or full-slice compliance.
+
+### Owner-approved retained local guard packet - 2026-11-06 UTC
+
+The capture controller relayed a new direct owner selection,
+`Allow the local guard until manual cleanup (Recommended)`, at approximately
+20:37 Pacific on November 5. This approves implementing and qualifying one
+case-owned local reject guard, including retention after the 60-second
+capture until explicit manual cleanup. It does not approve more forwarding,
+firewall/privilege changes, a new runner or native admission.
+
+The actual packet starts `2026-11-06T04:39:05Z` from verified clean local and
+remote integration `52099de77757a32fdef987a44c6c2abb89b4b40b`.
+The earlier phase expired; no balance, inactivity deduction or automatic
+renewal is claimed. This new authorization specifies an implement/qualify
+packet without a numeric time allocation. Record actual elapsed time at
+each checkpoint; do not invent an allowance or unlimited continuation.
+
+Accepted [ADR-0048](../../decisions/adr-0048-google-retained-local-reject-guard.md)
+records the narrow change to ADR-0047's no-inferred-guardian rule. The
+Accepted ADR-0047 history is preserved, including unknown/manual helpers
+and its unchanged stop/authority/evidence constraints. The integration
+owner checked refreshed main/integration and known local/remote ref trees,
+found no collision and holds 0048 in this stream. It is not a trunk-wide
+reservation. Fresh explicitly pinned Sol frame and architecture passes
+found no decision-local blocker. Their pass does not qualify the mechanism.
+
+**Source-fit:** installed `launch(3)` and `launchd.plist(5)` describe sockets
+held for an absent service and named-descriptor activation. Explicit
+`SockNodeName`, `SockFamily`, TCP and passive-listener configuration can
+describe one literal endpoint. `launchctl(1)` says `user/<uid>` may exist
+independently of a logged-in user; it distinguishes that domain from
+GUI/login domains. These are supported candidate APIs, not current
+crash/logout/unload qualification. The existing browser permission still
+uses `localhost:<port>`; exact route/endpoint coverage must be reconciled
+before any actual Chrome test.
+
+**Bounded sequence and stop conditions:**
+
+1. Review and record the scoped decision through actual explicitly pinned
+   Sol frame/architecture passes. No browser or user job starts at this step.
+2. Use one explicitly pinned Terra implementer for SDK-free literal-loopback
+   socket activation/reject controls. The earlier retained agent no longer
+   resolves; do not duplicate or restart a running task. Keep permanent
+   login directories, system services, other user jobs and private host
+   network state untouched.
+3. Establish exclusive acquisition and real descriptor identity first.
+   Observe attempts at the independent replacement receiver through
+   controller/service loss, queued/restarted rejection and exact synthetic
+   job removal. If the supported mechanism loses endpoint custody while a
+   producer can survive, preserve that first failing control and stop this
+   mechanism. A removal control is not actual logout qualification.
+4. Do not log out this shared Mac, remove a whole user domain or broaden
+   runner/OS research. Stop if current logout/domain-loss safety cannot be
+   established without such a change, extra privileges or a complete-helper
+   claim. Do not install a permanent login job to mask the condition.
+5. Obtain required bounded reviews and land one coherent source/evidence
+   checkpoint through the existing integration owner. Continue only steps
+   genuinely enabled by its actual result. No synthetic receipt clears
+   059-15 or 059-01, and native admission remains closed.
+
+Any exact temporary control job must be identified, observed and explicitly
+removed after its synthetic producer is known exited. A real case reject
+guard has the owner's approved manual lifetime and is never silently removed
+on a test timer or output failure. There is no live case in this packet.
 
 ### Current Chrome helper exception and next packet - 2026-11-05
 

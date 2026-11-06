@@ -105,11 +105,33 @@ remain separate.
 - [ ] Only then admit the eligible original case and continue the actual
       reference/chamber conversion tasks above.
 
-The [current packet](plan.md#current-chrome-helper-exception-and-next-packet---2026-11-05)
+### Newly approved retained local guard packet
+
+- [x] Receive the new direct owner choice allowing the exact case-owned
+      reject guard until manual cleanup. Start the new specifically bounded
+      implement/qualify packet at `2026-11-06T04:39:05Z` from `52099de7`;
+      the prior `02:04:58Z` stop remains historical and unrenewed.
+- [x] Record Accepted ADR-0048 after actual pinned Sol frame/architecture review.
+      Preserve Accepted ADR-0047 and all non-excepted constraints.
+- [ ] Use pinned Terra for witnessed SDK-free exact-endpoint acquisition,
+      activation, controller/service loss, restart/reject and explicit
+      synthetic-release controls. No permanent job or broad domain removal.
+- [ ] Establish supported logout/domain-loss behavior or retain the first
+      concrete unsatisfied control. Do not infer it from a synthetic unload
+      or claim complete helper exit.
+- [ ] Obtain applicable pinned Sol source reviews, scoped regression and
+      exact manifest; land the stable checkpoint through the existing owner.
+- [ ] Continue current-Chrome/native steps only when their actual remaining
+      source/safety/admission conditions clear. Guard retention grants no
+      new forwarding window, case, retry or original authority.
+
+The [historical packet](plan.md#current-chrome-helper-exception-and-next-packet---2026-11-05)
 contains the integrated stop correction and renewed bounded safety packet.
 It does not claim complete
 descendant cleanup, qualify broker endpoint identity or approve an indefinite
-guardian.
+guardian. The later [retained-guard packet](plan.md#owner-approved-retained-local-guard-packet---2026-11-06-utc)
+records the owner's new narrow lifetime approval; its technical qualification
+is still open.
 The isolated-runner proposal below is historical and no longer selected.
 
 ### Historical complete-cleanup source-fit stop
