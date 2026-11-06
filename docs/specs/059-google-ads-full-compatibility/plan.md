@@ -656,6 +656,79 @@ are recorded, not silently counted as coverage. Full native/Chrome
 admission stays closed, and no new platform attempt follows from landing
 this source checkpoint.
 
+#### Test-only coverage follow-up from integrated `43b05d10`
+
+The paired source checkpoint was integrated and remotely verified at
+`43b05d105caf511d53827b7a5c9e339837986391`. This worktree adopted that base
+at `05:44:45Z`, with all fourteen landing hashes unchanged.
+
+The same retained Terra prepared the two named coverage controls privately
+while that source was held, then applied only three test-file changes
+after integration. Production guard, bootstrap and evidence helper bytes
+are unchanged. No new worker, physical control or allocation was started.
+
+The later-client fixture verifies an initially empty real loopback socket.
+A test-only wrapper around the production poll call performs a real empty
+kernel wait before releasing a pipe notice that allows the parent to create
+the client. The client is observed closed, flags remain unchanged and the
+child is reaped. The wrapper does not fake kernel results. It does delay
+the infinite poll, so this does not prove that the uninstrumented infinite
+poll was already blocked before connection.
+
+A private deliberate poll-removal mutation fails because that empty wait
+is not observed. This is a falsifiability control, not a historical
+production defect or a change to the landed runtime.
+
+Receipt unit cases cover failure/returned writers before and after pending,
+synthetic-failure refusal after pending, exact state fields, unknown
+readiness, private modes and absence of the opposite outcome. They use
+explicitly synthetic unit directories and identifiers. Even a unit-written
+`command_invoked: true` value is test data, not evidence that any command
+ran or acquired execution authority. No launchctl or stand-in command is
+invoked.
+
+The worker's ordinary two-file run passed **11 tests**; scoped lint and
+C syntax checks passed. Exact patch/manifests, private mutant and ordinary
+green are indexed in `google-retained-guard-later-test-result.txt`.
+At `05:48:38Z`, actual packet elapsed time was **69m33s**. These controls
+do not diagnose bootstrap 5, recover missing originals or clear any
+activation, lifetime, Chrome or native gate. Independent review and the
+parent regression remain required before this test-only follow-up lands.
+
+The parent four-file regression subsequently passed **65 tests**, with
+scoped ESLint and C syntax clean. Actual pinned Sol compliance and craft
+remain `needs-changes` for the full slice, with no packet-local blocker;
+architecture is `pass`. Both named coverage nits are addressed within
+the instrumented/unit scope above. The exact reviewed snapshot is
+`60baedde...`, with unchanged final test hashes retained separately.
+
+#### Final exact-case read-only diagnostic
+
+The controller allowed one last unprivileged log read only if the original
+owned label and a tightly bounded acquisition window were established.
+The label matches retained original-stage and exact-job records. The
+acquisition instant was not directly timestamped; retained runner time,
+same-task chronology and the subsequent UTC job observation support a
+**58-second bracket**. No file modification time was used.
+
+After checking installed log-show/predicate help, the same Terra made one
+exact-label, bounded-window read with a 15-second/65,536-byte limit. It
+returned successfully with **zero events**, no stderr, timeout or truncation.
+Private mode-0600 command, raw output, bounds and their provenance remain
+in the `google-retained-guard-exact-log-*` artifacts. No filter relaxation,
+alternate identity, privilege, broad log scan or launchctl retry followed.
+
+This empty result supplies no case-specific refusal reason. Retention,
+redaction and messages without the full label remain untested. Bootstrap
+status 5 is still undiagnosed; it establishes neither a privilege
+requirement nor universal platform impossibility. Actual acquisition and
+the remaining guard/Chrome/native gates stay closed. No safe concrete
+runtime continuation was established in this packet.
+
+The result and source-integrity checks are retained in
+`google-retained-guard-exact-log-result.txt`. At `05:55:12Z`, actual elapsed
+time was **76m07s** from `04:39:05Z`; no numeric balance or renewal is inferred.
+
 ### Current Chrome helper exception and next packet - 2026-11-05
 
 The owner now directs use of installed Chrome and accepts possible leftover

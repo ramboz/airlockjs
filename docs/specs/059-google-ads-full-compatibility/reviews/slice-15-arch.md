@@ -2,29 +2,29 @@
 slice: 059-15 - Exact native policy and one-shot stock capture
 pass: arch
 verdict: pass
-reviewer: jig:reviewer (explicit gpt-6.1-sol; final coupled-source architecture)
-reviewed_at: 2026-11-06T05:40:08Z
-prompt_source: review.py arch-review spec.md 059-15; google-retained-guard-parent-final-arch-prompt.txt; exact snapshot b608925e
+reviewer: jig:reviewer (explicit gpt-6.1-sol; bounded coverage architecture)
+reviewed_at: 2026-11-06T05:56:30Z
+prompt_source: review.py arch-review spec.md 059-15; google-retained-guard-coverage-arch-prompt.txt; exact test/plan snapshot 60baedde
 substrate: shown
 applied_skill: arch-review
 shown_candidates: [arch-review:high-confidence, access:speculative, adr-workflow:speculative, agent-development:speculative, analyze:speculative, bug-fix:speculative, build-dashboard:speculative, build-mcp-app:speculative, build-mcp-server:speculative, build-mcpb:speculative, cardputer-buddy:speculative, clarify:speculative, claude-automation-recommender:speculative, claude-md-improver:speculative, code-health:speculative, command-development:speculative, configure:speculative, contracts:speculative, cowork-plugin-customizer:speculative, create-cowork-plugin:speculative, create-viz:speculative, data-context-extractor:speculative, data-visualization:speculative, example-command:speculative, example-skill:speculative, explain:speculative, explore-data:speculative, frontend-design:speculative, hook-development:speculative, independent-review:speculative, m5-onboard:speculative, math-olympiad:speculative, mcp-integration:speculative, memory-sync:speculative, migrate:speculative, orient:speculative, playground:speculative, plugin-settings:speculative, plugin-structure:speculative, pr-review:speculative, project-artifact:speculative, reframe:speculative, scaffold-init:speculative, scout-autotune:speculative, scout-bench-create:speculative, scout-memory-init:speculative, scout-pr-review:speculative, scout-scrum-master:speculative, security-review:speculative, session-report:speculative, skill-creator:speculative, skill-development:speculative, slice-land:speculative, spec-workflow:speculative, sql-queries:speculative, statistical-analysis:speculative, tdd-loop:speculative, validate-data:speculative, vision-elicitation:speculative, write-query:speculative, writing-hookify-rules:speculative]
 ---
 
 Actual reviewer: jig:reviewer, explicitly pinned gpt-6.1-sol.
-Prompt: google-retained-guard-parent-final-arch-prompt.txt.
-Reviewed snapshot: google-retained-guard-parent-safety-reviewed.patch,
-SHA256 b608925efad5f1a08e48a0901a51ae7e2969fce3086089dee8f323e0387a16b6.
-Final source hashes: google-retained-guard-parent-safety-manifest.log.
+Prompt: google-retained-guard-coverage-arch-prompt.txt.
+Snapshot: google-retained-guard-coverage-reviewed.patch,
+SHA256 60baedde07a1d7043ec3d6eda1e452acb31d6d8b4bc1d575c4ae44ff34dc3f4d.
+Test hashes: google-retained-guard-coverage-test-sha256.txt.
 
 VERDICT: pass
 
 REASONING:
-This architecture pass covers only the explicitly unqualified diagnostic source checkpoint. The corrections preserve the reference-tooling boundary: descriptor validation stays reject-only, and fixed private evidence preparation separates invocation from readiness without adding forwarding, native wiring, public contracts or authority. I found no packet-local architectural blocker after the parent-permission and clean-checkout fixes; the retained 64-test result is source-control evidence only, and full 059-15 remains `needs-changes` with current-browser/native admission closed.
-
-SPECIFIC ISSUES:
-- [nit][impl] rig/inspected-google-guard-descriptor-fixture.c:103 — The service control connects before calling `reject_next` at line 135. It verifies prequeued rejection, but does not regression-test an initially empty listener waiting for a later client.
-- [nit][impl] rig/inspected-google-guard-evidence.test.mjs:115 — Coverage reaches safe pending state, but does not exercise the failure/returned receipt writers or synthetic-failure refusal after pending. These remain nonblocking coverage gaps.
-- [strength][impl] rig/inspected-google-guard-evidence.mjs:79 — Independent, exclusive, fsynced originals precede the validated pending receipt. Fixed invocation binding and unknown readiness avoid treating command submission as guard qualification.
+The bounded three-test-file plus factual-plan packet has no architecture blocker. The poll observer stays inside the fixture translation unit, while isolated copies exercise unchanged receipt writers without adding a configurable runtime root, command-execution path or production capability. The documentation preserves the distinction between local test coverage and runtime qualification: full 059-15 remains needs-changes, 059-01 remains READY_FOR_REVIEW, and native admission stays closed.
 
 RECONCILIATION NOTES:
-Record this bounded architecture pass separately from the retained full-slice compliance/craft `needs-changes` dispositions. Preserve both coverage nits as open. Actual launchd flags, concurrent shared-flag mutation, custody/restart/logout/release, route coverage and current-browser/native composition remain unqualified; filesystem checks are not an atomic same-owner mutation lock. Bootstrap status 5 remains undiagnosed, and future retention cannot recover the lost historical originals. The later owner message is a creator-transcribed direct instruction, not a signed receipt or interrupted-question result; the packet start establishes no numeric budget. No retry, activation or admission follows from this review.
+No new architecture deviation identified. Preserve these evidence limits:
+- `rig/inspected-google-guard-descriptor-fixture.c:6` — the real empty timed poll precedes client creation; it does not prove the uninstrumented infinite poll was already blocked. The private poll-removal mutant demonstrates falsifiability, not a historical runtime defect.
+- `rig/inspected-google-guard-evidence.test.mjs:130` — receipt outcomes, including `command_invoked: true`, are explicitly synthetic unit data and establish no execution authority or readiness.
+- `docs/specs/059-google-ads-full-compatibility/plan.md:659` — this coverage does not diagnose bootstrap status 5, recover lost original bytes, or qualify activation, lifetime, Chrome routes or native execution.
+
+This was a read-only assessment; supplied test results were not rerun.
