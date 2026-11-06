@@ -2,32 +2,31 @@
 slice: 059-15 - Exact native policy and one-shot stock capture
 pass: arch
 verdict: pass
-reviewer: jig:reviewer (fresh explicit gpt-6.1-sol)
-reviewed_at: 2026-11-06T01:01:21Z
-prompt_source: review.py arch-review spec.md 059-15 --richer-skill arch-review; google-tls-broker-tuple-arch-prompt.txt; patch 081f6f205a4c340638c233f2d3390c48f9cfce9554f520ce1b604d81f489e772
+reviewer: jig:reviewer (fresh explicit gpt-6.1-sol; bounded capability finding only)
+reviewed_at: 2026-11-06T01:17:14Z
+prompt_source: review.py arch-review spec.md 059-15 --richer-skill arch-review; google-capability-fit-arch-prompt.txt; docs patch 23fa4f4acd0d3faf8a7739b153b13901dcd3a75cfb465ae388b5a738bab2d0bf
 substrate: shown
 applied_skill: arch-review
 shown_candidates: [arch-review:high-confidence, access:speculative, adr-workflow:speculative, agent-development:speculative, analyze:speculative, bug-fix:speculative, build-dashboard:speculative, build-mcp-app:speculative, build-mcp-server:speculative, build-mcpb:speculative, cardputer-buddy:speculative, clarify:speculative, claude-automation-recommender:speculative, claude-md-improver:speculative, code-health:speculative, command-development:speculative, configure:speculative, contracts:speculative, cowork-plugin-customizer:speculative, create-cowork-plugin:speculative, create-viz:speculative, data-context-extractor:speculative, data-visualization:speculative, example-command:speculative, example-skill:speculative, explain:speculative, explore-data:speculative, frontend-design:speculative, hook-development:speculative, independent-review:speculative, m5-onboard:speculative, math-olympiad:speculative, mcp-integration:speculative, memory-sync:speculative, migrate:speculative, orient:speculative, playground:speculative, plugin-settings:speculative, plugin-structure:speculative, pr-review:speculative, project-artifact:speculative, reframe:speculative, scaffold-init:speculative, scout-autotune:speculative, scout-bench-create:speculative, scout-memory-init:speculative, scout-pr-review:speculative, scout-scrum-master:speculative, security-review:speculative, session-report:speculative, skill-creator:speculative, skill-development:speculative, slice-land:speculative, spec-workflow:speculative, sql-queries:speculative, statistical-analysis:speculative, tdd-loop:speculative, validate-data:speculative, vision-elicitation:speculative, write-query:speculative, writing-hookify-rules:speculative]
 ---
 
 Reviewer: jig:reviewer, fresh explicitly pinned gpt-6.1-sol
-Prompt: google-tls-broker-tuple-arch-prompt.txt
-Patch: 081f6f205a4c340638c233f2d3390c48f9cfce9554f520ce1b604d81f489e772
+Prompt: google-capability-fit-arch-prompt.txt
+Reviewed three-document diff: 23fa4f4acd0d3faf8a7739b153b13901dcd3a75cfb465ae388b5a738bab2d0bf
+Base: e99b68b856d24b9ffb92b8444a429688d25e0e7b
 
 VERDICT: pass
 
 REASONING:
-Summary: The supplied two-file packet against baseline 353510b2 is architecturally fit to land as an unselected SDK-free experiment, with no packet-local blockers or nits found. Technical soundness, ownership, failure semantics, trust boundaries and compatibility are addressed through the existing rig composition without changing frozen contracts, production policy, dependencies, admission or Accepted decisions. This disposition does not select the mechanism or clear full-slice/native qualification.
+Summary: This bounded documentation finding can land. The pinned sources support the distinctions between additive certificate exceptions, profile trust reduction, context disposal and whole-route revocation. The documents correctly treat the Chrome composition as unestablished, while identifying direct packet-filter access as a current authority limitation; they do not prove universal impossibility or qualify native execution.
 
 SPECIFIC ISSUES:
-- [strength][impl] rig/inspected-transport.mjs:195-223: The additive local entry generates its broker name internally and fixes upstream connections to literal loopback, while retaining Google authority checks, peer authentication, physical observation and inner H1/H2 relay.
-- [strength][impl] rig/inspected-transport.mjs:228-278: Acquisition and lookup share the complete accepted TCP tuple; removal checks object identity, and CONNECT captures the raw peer before awaits. This preserves ownership across collisions and asynchronous teardown.
-- [strength][impl] rig/inspected-transport.mjs:136-148: Abnormal TLS closure resets the owned raw TCP peer without private-handle access or manufactured clean EOF. Plain-client reset behavior remains unchanged.
-- [strength][impl] rig/inspected-google-transport.test.mjs:428-472: Independent replacement-receiver assertions explicitly retain normally trusted, same-name/different-key CONNECT delivery as a counterexample to exclusive identity.
+- [strength][impl] docs/specs/059-google-ads-full-compatibility/plan.md:207-209: Strengths: Acknowledges genuine profile trust-reduction and context-management APIs. Correctly preserves Chrome Root Store, separate system-verifier parameters and unsupported MTC constraint overrides as limits on the proposed compositions.
+- [strength][impl] docs/specs/059-google-ads-full-compatibility/plan.md:210-227: Strengths: Separates the static port allowance from revocable endpoint authority. Any privileged Mac control remains a separately authorized design/review option, not a selected implementation.
 
 RECONCILIATION NOTES:
-Concerns: Exclusive endpoint identity remains unsatisfied. Node's supplied test CA does not establish Chrome trust behavior. Browser routes, reconnect/resumption, surviving helpers and safe guard release remain unqualified; all native authority, provenance, lease, original-slot, setup/source/review/coordination/window gates stay open. Descendant cleanup remains unknown/manual under ADR-0047.
+Concerns: No blocking source/document issue found from technical-soundness, trust-boundary and failure-mode review. No supported end-to-end composition is demonstrated by the supplied evidence; broader feasibility remains unresolved.
 
-Open questions: Which case-exclusive endpoint binding or independently revoked TCP route can satisfy the replacement and reconnect controls before future selection?
+Open questions: The owner tradeoff remains deferral under existing constraints versus separately authorizing case-scoped Mac route-revocation design and review.
 
-Evidence: Retain the failed green-2 attempt and the teardown-order attribution correction. The inspected final artifact reports 433 passed/26 skipped; it is regression evidence, not browser qualification. The operator guide honestly records the collision test's configured-source prerequisite and loopback-only-host limitation. No additional architectural deviation found. Review was read-only; nothing was executed.
+Record this as a source-only negative finding, not native qualification or a new safety exception. ADR-0047 still accepts only unknown/manual residual cleanup. No trust, privilege, runner or runtime change is selected. Full-slice compliance remains needs-changes, and actual conversion remains incomplete.

@@ -83,6 +83,16 @@ The owner's new shared safety phase ends conservatively at
 `2026-11-06T02:04:58Z`, without automatic renewal. Original slots and send
 limits are unchanged.
 
+The follow-up [installed-Chrome capability check](../docs/specs/059-google-ads-full-compatibility/plan.md#installed-chrome-capability-fit---2026-11-06-utc)
+assessed production verifier/context policy, debugger controls, context
+proxy/disposal and the current Mac launcher. No end-to-end fit was established
+without changing trust, privileges, browser or environment. Profile trust
+reduction is supported, but was not established as a closed trust set across
+every permitted context. The checked direct OS packet-filter alternative
+requires authority outside the grant. Native capture stays deferred unless
+a reviewed case-scoped enforcement mechanism clears the unchanged gates.
+No browser control, trust-store access or host-network mutation was run.
+
 ### Historical complete-cleanup stop
 
 The continuation from integrated `3a1ebd17` stopped before browser execution.
