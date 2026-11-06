@@ -116,11 +116,34 @@ remain separate.
 - [ ] Use pinned Terra for witnessed SDK-free exact-endpoint acquisition,
       activation, controller/service loss, restart/reject and explicit
       synthetic-release controls. No permanent job or broad domain removal.
+- [x] Implement the minimal fixed reject-only activation candidate and
+      witness ordinary process-listener loss at an independent replacement
+      receiver. Its passing negative-control assertion is not guard TDD
+      success.
+- [x] Retain the single actual user-domain bootstrap failure: status 5,
+      Input/output error, before any service handshake. No retry,
+      domain/identity change or privilege diagnostic. Exact job was absent;
+      known synthetic resources were observed settled and removed.
+      Cause remains undiagnosed, not a proven privilege requirement.
+- [x] Correct the source-review sharing-option refusal through pinned Terra
+      and real-socket option-policy red/green. Preserve the additional
+      `SO_ACCEPTCONN`/`ENOPROTOOPT` limitation: the matched nonsharing full
+      validator also refuses. No full-validator/activation green or second
+      platform bootstrap is claimed.
+- [x] Complete the controller-directed static cross-check of the exact
+      failed acquisition. No established plist/domain/program/mode cause
+      found; original deleted bytes/digest and launchd-specific rejection
+      evidence remain unavailable. A blind retry is not recommended.
+- [x] Correct craft's unexpected collision-listener cleanup path through
+      the same Terra context and a real assertion-failure red/green.
 - [ ] Establish supported logout/domain-loss behavior or retain the first
       concrete unsatisfied control. Do not infer it from a synthetic unload
       or claim complete helper exit.
-- [ ] Obtain applicable pinned Sol source reviews, scoped regression and
-      exact manifest; land the stable checkpoint through the existing owner.
+- [x] Obtain actual pinned Sol source reviews and cleanup/docs follow-ups.
+      Full compliance remains `needs-changes`, with no packet-local landing
+      blocker. Final source-only regression is 55 passed across three files;
+      C syntax and scoped ESLint are clean.
+- [ ] Land the stable exact-manifest checkpoint through the existing owner.
 - [ ] Continue current-Chrome/native steps only when their actual remaining
       source/safety/admission conditions clear. Guard retention grants no
       new forwarding window, case, retry or original authority.
