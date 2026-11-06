@@ -56,6 +56,50 @@ code units. The fixed-fixture CLI accepts at most 262,144 bytes. These are
 offline parser limits, not a change to native request, response or admission
 limits.
 
+## Local Google worker response-chain experiment - 2026-11-06
+
+This separate default-off experiment connects the existing experimental
+conversion adapter and first-party worker to three fixed local routes.
+It does not reopen stock capture or use the original authority.
+
+```sh
+node rig/google-manual-worker-chain.mjs
+npm test -- test/google-manual-worker-chain.test.js test/google-manual-worker-chain-correlation.test.js rig/google-manual-response.test.mjs
+```
+
+The command runs Node workers and HTTP receivers bound to literal `127.0.0.1`.
+It does not launch Chrome or load a Google SDK. It uses the existing mapper's
+five-field primary, the sanitized single message as a local primary response,
+a synthetic 302 with the retained Location shape, and an explicitly empty
+synthetic final 200. The secondary and final empty local bodies are new fixture
+behavior; the missing native bodies remain missing.
+
+The opt-in adapter option is
+`experimentalManualResponseChain: { auid: <synthetic identity> }`, together
+with `experimentalRouting: true`. It is restricted to this direct conversion
+experiment and cannot be combined with the other experimental feature modes.
+Caller input binds the synthetic identity, not native admission or success.
+Returned public collector URLs are data. Only the three corresponding paths
+on the selected same loopback origin can be requested as GET, POST, GET.
+The returned fallback is recorded but never executed. Redirects are handled
+explicitly; there is no automatic redirect, script or cookie operation.
+
+The fixed command uses a 1500 ms transport deadline and a 5000 ms whole-command
+deadline, with a 7000 ms journey bound. Each local response is limited to
+4096 actual UTF-8 bytes. The shared strict parser still has its separate
+65,536-byte, depth-16 and 1024-node limits. Cleanup bounds the adapter's
+capability/host bookkeeping and tracked body-cancellation drain to 1800 ms.
+Missing-header streaming responses abort and cancel before tracking is removed.
+A non-cooperative cancellation leaves `capability-drain-timeout`, not verified
+cleanup.
+
+Expected output separates actual Node worker, local calls, independent receiver
+methods and owned cleanup. `overall` remains `INCONCLUSIVE`. Native, complete
+reference, browser, chamber-conversion and product-receipt claims stay false.
+This Node bridge is first-party test execution, not an adversarial sandbox.
+The primary's missing native fields, initialization, original response bytes,
+cookies, browser/performance qualification and backend receipt remain open.
+
 ## Google checkpoint - 2026-11-05
 
 ### Current owner-directed Chrome helper exception

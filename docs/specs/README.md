@@ -253,7 +253,7 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
 
 - **18** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **104** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **64** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **65** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
@@ -308,6 +308,7 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
   - `058-native-tag-evaluation-qualification/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `058-native-tag-evaluation-qualification/slice-02-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `058-native-tag-evaluation-qualification/slice-04-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `059-google-ads-full-compatibility/slice-01-craft.md` — applied `pr-review`; declined: independent-review, scout-pr-review
   - `059-google-ads-full-compatibility/slice-13-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `059-google-ads-full-compatibility/slice-14-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `059-google-ads-full-compatibility/slice-15-craft.md` — applied `pr-review`; declined: independent-review, scout-pr-review
