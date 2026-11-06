@@ -387,6 +387,16 @@ case-owned local reject guard, including retention after the 60-second
 capture until explicit manual cleanup. It does not approve more forwarding,
 firewall/privilege changes, a new runner or native admission.
 
+The controller subsequently supplied the exact direct-message timestamp,
+`2026-11-06T04:37:52.794Z` (`2026-11-05T20:37:52.794-08:00`).
+The original `ask_user` call was interrupted without a result; that call
+did not supply approval. The subsequent direct user message selected the
+answer. The controller's retained transcription, handed to the integration
+owner as `google-local-guard-owner-answer.txt`, records the question/answer
+and limits. It is not a signed receipt or an independent witness.
+Accepted ADR-0048 preserves the earlier approximate relay description;
+this precise provenance supplements it without rewriting Accepted history.
+
 The actual packet starts `2026-11-06T04:39:05Z` from verified clean local and
 remote integration `52099de77757a32fdef987a44c6c2abb89b4b40b`.
 The earlier phase expired; no balance, inactivity deduction or automatic
@@ -441,6 +451,210 @@ Any exact temporary control job must be identified, observed and explicitly
 removed after its synthetic producer is known exited. A real case reject
 guard has the owner's approved manual lifetime and is never silently removed
 on a test timer or output failure. There is no live case in this packet.
+
+#### First implementation/control outcome
+
+The fixed C candidate calls `launch_activate_socket("Reject")`, requires
+one IPv4 stream listener at the exact supplied `127.0.0.1` port, checks
+listener/socket options and closes accepted clients without any upstream.
+The opt-in bootstrap entry builds only that source and a private uniquely
+named user-domain job with explicit literal node/family/protocol. This is
+an unqualified diagnostic, not native transport or a retained case guard.
+
+The ordinary Node control independently witnessed the known process-custody
+failure. Binding a replacement initially failed with `EADDRINUSE`; after
+the exact owned listener received SIGKILL, a surviving synthetic producer
+connected and the replacement receiver read its marker. The initial safety
+assertion failed. The later passing assertion deliberately verifies that
+negative control; it is **not a green launchd custody result**.
+
+The one opt-in platform attempt
+`AIRLOCK_GOOGLE_LAUNCHD_CONTROL=1 node rig/inspected-google-guard-bootstrap.mjs`
+returned `launchctl bootstrap` status **5, Input/output error** before a
+service handshake. At `2026-11-06T04:50:25Z`, elapsed packet time was
+**11m20s**. No retry, alternate domain/identity, privilege escalation or
+suggested root diagnostic followed. The failure does not diagnose a
+privilege requirement, prove an invalid platform API or establish universal
+impossibility. It is the first actual failed acquisition in this packet.
+
+Two exact-service observations found no job; no service log/handshake was
+created. No exact-job unload was attempted. Known synthetic producers and
+receivers settled, exact owned case files were removed, and scoped process
+observations found no known fixture or matching service executable left.
+These are observed synthetic cleanup facts, not complete browser/helper
+cleanup. The source preserves an unavailable result rather than a passing
+guard receipt.
+
+The first source review also found that the candidate queried
+`SO_REUSEPORT` without refusing a sharing-enabled descriptor. Pinned Terra
+corrected the actual internal option policy and added a real-socket
+regression. Its red accepted both zero and nonzero option values; its green
+accepts zero and refuses nonzero. The test exercises the policy actually
+called by the service, with matched bound/listening loopback descriptors.
+
+That correction exposed a separate source limitation: this Mac returns
+`ENOPROTOOPT` (42) for `getsockopt(SO_ACCEPTCONN)` on the matched listening
+descriptor. The full validator therefore also refuses the nonsharing
+listener. The guard has no qualified usable descriptor path here; the
+listener check was not weakened, emulated or bypassed. The option-policy
+red/green is **not** a full-validator or activation red/green. An earlier
+fixture attempt also compared the returned nonzero bitmask to literal 1;
+it is retained as an invalid attempted red, not regression evidence.
+
+Retained session evidence is indexed in `google-retained-guard-result.txt`
+and `google-retained-guard-manifest.log`, with the exact command output in
+`google-retained-guard-bootstrap.log` and the separate failed safety/
+passing negative-control logs. The follow-up
+`google-retained-guard-reuseport-result.txt` and its manifest index the
+option-policy correction and full-validator limitation. Source compilation,
+scoped lint and these controls do not qualify socket activation. Actual exclusive
+descriptor custody, service/controller loss, queued/restarted rejection,
+manual-release/unload, logout/domain loss and `localhost`/IPv6 route coverage
+remain untested. No Chrome, official SDK, vendor send or original
+authority/reservation was used.
+
+The controller then scoped a static cross-check of the exact generated
+plist, label/user-domain, executable/arguments, ownership/modes and
+descriptor expectations against the installed documentation. It found no
+established cause of error 5. The reconstructed plist parses and matches
+the logged inputs; its `job.plist` name differs from the documented naming
+convention, but no evidence establishes that as a rejection cause. No
+purported filename fix or clean retry followed.
+
+The original temporary plist and binary were removed after exact-job
+absence was observed, without preserving their original bytes or binary
+digest. Reconstruction from unchanged source and logged inputs does not
+recover that proof. Also unavailable are launchd's specific rejection
+reason, its path/ACL/authorization interpretation, acquisition/collision
+state at submission, startup output/PID and actual activated descriptors.
+The recorded owner/mode observations do not fill those gaps. See
+`google-retained-guard-static-diagnosis-result.txt` for the bounded
+documentary cross-check and evidence limits. At `05:04:35Z`, packet elapsed
+time was **25m30s**, with no numeric allowance inferred.
+
+Stop further platform qualification at this undiagnosed result. A repeated
+same-authority bootstrap would still be blind; the separate unsupported
+listener-query expectation also needs a reviewed implementation solution,
+not removal of the check. Do not select another framework, change the host
+or claim that the owner must grant administrative access. Full 059-15
+compliance stays `needs-changes`; 059-01 stays READY_FOR_REVIEW and the
+actual conversion remains incomplete.
+
+After the sharing-option correction, pinned Sol compliance found no
+packet-local blocker to landing this explicitly unavailable diagnostic,
+with the documented full-validator limitation preserved. Its full-slice
+verdict remains `needs-changes`. The parent's three-file browser-free
+regression passed **54 tests**; scoped ESLint and C compilation checks
+passed. Those source checks did not repeat the platform attempt or qualify
+a guard.
+
+Craft's nonblocking collision-listener cleanup nit was corrected by the same
+Terra context. A real failure-path red bound an unexpected collision
+listener and showed it left open after assertion failure. The corrected
+finally-owned cleanup closes it while preserving the original independent
+producer/receiver assertions. Its logs are separate from guard qualification.
+
+Final source-only checks after that correction: **55 passed across three
+files**, C syntax and scoped ESLint clean. Actual pinned Sol compliance
+remains `needs-changes`, with no packet-local landing blocker. The initial
+craft/architecture passes cover reviewed snapshot `af78a764...`; actual
+craft/compliance follow-ups cover the test-only cleanup delta and static
+diagnosis. The other five source files are unchanged. These dispositions
+do not establish activation or a working retained guard.
+
+#### Coupled source corrections after the first checkpoint
+
+The controller directed the same retained Terra to correct the listening
+predicate and future original-evidence retention independently of error 5.
+The first diagnostic snapshot is preserved in `9ab4c2bc`; it was not handed
+off as the final corrected source.
+
+The listener fixture first reproduced the full-validator failure on real
+nonsharing listeners. The installed SDK labels `proc_pidfdinfo` private,
+so no private process API was used. The correction instead uses documented
+`accept(2)` behavior on the exact supplied descriptor, after all existing
+endpoint/type/port/nonsharing checks. It requires an already nonblocking
+descriptor. Successful accept immediately closes the client; an empty
+listening queue returns `EWOULDBLOCK`. Other errors refuse readiness.
+Production never changes shared descriptor status flags. It checks that
+the flags observed before and after the operation match. Blocking
+descriptors remain refused.
+
+Real source-only controls now accept the owned nonblocking IPv4 listener
+and reject bound-unlistening, blocking, connected, datagram, wrong-port,
+sharing and bound/listening IPv6 `::1` descriptors. Queued and subsequent
+clients are observed closed without reads or upstream forwarding. The
+initial queued green attempt lacked an observed ready queue and failed;
+the corrected fixture waits for actual `POLLIN`. Both observations are
+retained. A separate bound IPv4 alternative was not established:
+`127.0.0.2` failed with `EADDRNOTAVAIL`; the unbound-address control does
+not isolate a different listening IPv4 address.
+
+These controls do not establish the flags of an actual launchd descriptor
+or exclude another holder changing shared flags between observations.
+Actual acquisition/custody, crash/restart, logout/unload and Chrome routes
+remain unqualified. The reject loop now polls its nonblocking listener
+and closes accepted clients rather than exiting on an empty queue.
+
+Future acquisition preparation also retains independent private copies
+of the generated plist and compiled binary before invocation. Original
+bytes, SHA-256 values and the exact fixed bootstrap invocation are fsynced
+to an owner-only sibling evidence directory. Working/retained bytes are
+checked before a durable invocation-pending receipt. Preparation,
+pending/unknown invocation, command failure and returned command are
+distinct from readiness. A synthetic failure receipt explicitly says no
+command was invoked and cannot follow an invocation-pending receipt.
+Receipt failures remain explicit; they do not trigger resource release
+or success fallback.
+
+A real-file/compiled-binary red first showed missing independent
+preparation evidence. Its green checks retained bytes/digests, private
+modes, distinct inodes, fixed invocation, changed-input refusal and a
+clearly synthetic failure receipt after removing only the synthetic
+working directory. This does not reconstruct the original failed job's
+missing bytes or diagnose bootstrap status 5. No second launchctl
+attempt, browser or native case occurred.
+
+The worker's three-file/four-test source-control green and exact source
+manifest are retained in `google-retained-guard-final-corrections.txt` and
+`google-retained-guard-final-manifest.log`. At `05:21:07Z`, actual packet
+elapsed time was **42m02s** from `04:39:05Z`; no numeric balance is inferred.
+The corrected source still requires the bounded final Sol reviews and
+parent regression before integration.
+
+The next actual Sol compliance pass found two packet-local retention
+defects: writable output-parent permissions were accepted, and the
+ordinary fixture assumed the ignored output parent already existed.
+The same Terra corrected both with real filesystem red/green. A missing
+fixed parent is created owner-only; existing parents must be directories
+owned by the current user without group/world write permission. Symlinks
+and unsafe parents are refused, not repaired. Capture and invocation
+prechecks both revalidate the parent.
+
+Isolated copies of the unchanged production module exercise missing,
+safe-existing, symlink and real `0720`/`0702`/`0722` parent modes without
+changing shared `rig/out`. The safe pending control still records unknown
+invocation/readiness without executing a command. Foreign ownership is
+refused in source but was not tested through identity/privilege changes.
+The worker's final four-file source regression passed **64 tests**;
+C syntax and scoped ESLint passed. The checks do not provide an atomic
+lock against same-owner concurrent mutations. At `05:33:20Z`, actual
+elapsed time was **54m15s**, without an inferred numeric balance.
+
+The parent independently reran the final four-file source cohort:
+**64 passed**, C syntax and scoped ESLint clean. Actual pinned Sol reviews
+find no packet-local landing blocker. Full compliance and craft remain
+`needs-changes`; the bounded architecture pass is `pass`. Their exact
+source snapshot is `b608925e...`, with final hashes in
+`google-retained-guard-parent-safety-manifest.log`.
+
+Two nonblocking coverage nits remain open. The service fixture already has
+a queued client, so it does not prove waiting on an initially empty queue
+for a later connection. Receipt tests also do not exercise command-failure/
+returned writers or synthetic-failure refusal after pending. These limits
+are recorded, not silently counted as coverage. Full native/Chrome
+admission stays closed, and no new platform attempt follows from landing
+this source checkpoint.
 
 ### Current Chrome helper exception and next packet - 2026-11-05
 

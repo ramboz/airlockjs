@@ -2,32 +2,33 @@
 slice: 059-15 - Exact native policy and one-shot stock capture
 pass: compliance
 verdict: needs-changes
-reviewer: jig:reviewer (explicit gpt-6.1-sol; baa18288 turn 2)
-reviewed_at: 2026-11-06T00:54:33Z
-prompt_source: review.py implementation spec.md 059-15; google-tls-broker-tuple-compliance-prompt.txt; patch 081f6f205a4c340638c233f2d3390c48f9cfce9554f520ce1b604d81f489e772
+reviewer: jig:reviewer (explicit gpt-6.1-sol; retained 2fdde6a7 turn 4)
+reviewed_at: 2026-11-06T05:40:07Z
+prompt_source: review.py implementation spec.md 059-15; corrections-compliance prompt plus parent-safety follow-up; exact snapshot b608925e
 ---
 
-Reviewer: jig:reviewer, explicitly pinned gpt-6.1-sol
-Agent: baa18288-a6ca-43f5-98c9-3eb96f95e1f0, turn 2
-Runtime: 15e1a89a21b9edf2603b7dcbcc40f270a93bd409fdba022ba7568790e194e358
-Test: 9fc8e84322f699ff17a6557df478bd2152b192cddb9d8a4d6f0d0d9fc59c430b
-Patch: 081f6f205a4c340638c233f2d3390c48f9cfce9554f520ce1b604d81f489e772
+Actual retained reviewer: 2fdde6a7-0ca3-451e-a643-b4900f1c7040, turn 4.
+Explicit gpt-6.1-sol. Prompt: google-retained-guard-corrections-compliance-prompt.txt
+plus the same-task parent-safety follow-up.
+Reviewed snapshot: google-retained-guard-parent-safety-reviewed.patch,
+SHA256 b608925efad5f1a08e48a0901a51ae7e2969fce3086089dee8f323e0387a16b6.
+Final source hashes: google-retained-guard-parent-safety-manifest.log.
 
 VERDICT: needs-changes
 
 REASONING:
-Packet-local disposition: pass for landing this explicitly unqualified prototype; no remaining source landing blocker found. Tuple-keyed acquisition/lookup, identity-checked removal and capture before awaits preserve raw-peer ownership, while receiver-reset controls verify abnormal closure and inconclusive originals without changing plaintext/Meta reset handling. Supplied logs report 52 transport passes and 433 regression passes with 26 opt-in skips across thirteen files. Full-slice compliance remains non-clearing for the qualification and native gates below.
-
-SPECIFIC ISSUES:
-- rig/inspected-google-transport.test.mjs:470-473; docs/specs/059-google-ads-full-compatibility/plan.md:142-163: High; existing qualification blocker, not packet defect. Exclusive broker identity remains the first unsatisfied guard-release condition: the explicitly trusted same-name Node fixture delivers CONNECT using a different key. This does not establish Chrome trust behavior. AC3/6 still require current-browser route coverage, reconnect/resumption, listener-release and residual-helper controls.
-- rig/inspected-google-admission.mjs:148-149,324-326; docs/specs/059-google-ads-full-compatibility/slice-15-native-stock-capture.md:306-321: High; existing full-slice incompleteness. AC1/2 retain partial synthetic policy/causality evidence, with permission/review provenance still unauthenticated. AC4 lacks an admitted original-slot execution path, AC5 lacks complete native execution/originals, and AC7 lacks current native durable-output/completion evidence. The DoD remains open; the prototype's landing disposition clears none of these requirements.
+Both packet-local blockers are corrected: bootstrap safely prepares the fixed parent before case creation, capture/invocation reject unsafe parents, and isolated tests no longer depend on pre-existing `rig/out`. The real filesystem refusal controls and supplied 64-test worker green meaningfully support these changes; no packet-local landing blocker remains in this follow-up. Full 059-15 remains needs-changes, 059-01 remains READY_FOR_REVIEW, and native admission stays closed.
 
 RECONCILIATION NOTES:
-Documentation faithfully records the tuple/reset corrections and current test counts. Preserve unselected/unqualified status, closed native admission, unchanged authority/slots, and ADR-0047's unknown/manual, not complete, helper cleanup. Keep the simple-destroy green-2 run recorded as failed and the original teardown-order red as confounded, not isolated runtime proof. Missing-peer/reset errors remain tracked failures rather than success evidence. This review performed no execution or file changes.
+Preserve the original findings and actual refusal red/green, distinguishing them from the missing-helper failures. Foreign-owner refusal is source-checked but not experimentally exercised; same-owner concurrent mutations remain outside the non-atomic checks’ guarantee.
 
-Prior actual review evidence is retained separately in
-google-tls-broker-compliance-review-first.txt and
-google-tls-broker-compliance-review-second.txt. The first reset blocker and
-second tuple-collision blocker were corrected through witnessed controls.
-This final source disposition does not supersede any native qualification
-or full-slice requirement with a pass.
+The parent’s independent rerun remains pending on the supplied evidence. Historical bootstrap status 5 and missing originals remain unchanged. Actual activated-descriptor flags, shared-holder mutation, custody/exclusivity, restart/logout/unload and Chrome/native behavior remain unqualified; this source clearance authorizes no retry or expanded operation.
+
+Parent reconciliation, not a reviewer attestation:
+The independent four-file rerun subsequently passed 64 tests, recorded in
+google-retained-guard-parent-final-regression.log. C syntax and scoped
+ESLint also passed; google-retained-guard-parent-final-eslint.log.
+The earlier actual parent-permission and clean-checkout findings are retained
+in google-retained-guard-corrections-compliance-first.txt, with their actual
+red and correction indexed by google-retained-guard-parent-safety-result.txt.
+The source hashes were not changed after this final follow-up.
