@@ -100,6 +100,17 @@ behavior, unmatched public kernel source, failure-independent lifetime and
 safe removal remain blockers. Root access would not by itself solve them.
 No administrative access or operation is requested or approved.
 
+### Owner-approved retained reject guard
+
+Accepted [ADR-0048](../docs/decisions/adr-0048-google-retained-local-reject-guard.md)
+records the owner's new direct approval for one case-owned local reject guard
+until manual cleanup. A fresh packet starts at `2026-11-06T04:39:05Z`; the
+earlier two-hour phase remains expired. Socket activation is a candidate,
+not qualified crash/logout/unload behavior. No permanent login job,
+firewall/privilege change or vendor forwarding extension is approved.
+Follow the [bounded implementation and stop conditions](../docs/specs/059-google-ads-full-compatibility/plan.md#owner-approved-retained-local-guard-packet---2026-11-06-utc).
+All native admission gates remain closed.
+
 ### Historical complete-cleanup stop
 
 The continuation from integrated `3a1ebd17` stopped before browser execution.
