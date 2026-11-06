@@ -232,6 +232,149 @@ source/document issue in this bounded finding. Broader feasibility remains
 unresolved; its pass neither supplies the missing capability nor authorizes
 the proposed host-network design work.
 
+### Proposed case-scoped Mac TCP fence - non-executing
+
+**Status: not execution-ready.** A possible packet-filter fence would deny
+TCP packets to the case's loopback broker port before listener release.
+Its intended packet scope can be described, but current evidence does not
+establish a safe installation context, failure-independent deadline or
+removal condition. Administrative access alone would not close those gaps.
+No administrative operation or permission request is part of this proposal.
+
+The owning capture controller requested this one source-backed proposal
+under the existing continuation. It is not a new direct owner grant.
+Base `950d5c399a0a728eba15fccb77482f99f1ca031c` is the verified integrated
+capability finding. All work remains inside the phase ending
+`2026-11-06T02:04:58Z`. No runner, trust, identity, privilege or network-state
+change is selected.
+
+#### Intended scope and prerequisites
+
+Let `P` be the original case's broker port, with no case or port allocated
+by this document. The proposed deny selector is TCP on `lo0`, destined to
+`127.0.0.0/8:P` for IPv4 or `[::1]:P` for IPv6. It matches the remote
+loopback/port allowance rather than only one current listener. IPv4-mapped
+IPv6 and any different effective local route require current-kernel proof;
+an uncovered route disqualifies this scope.
+
+Use one dedicated, case-named filter anchor, separate from Apple, VPN and
+other applications' anchors. This does not replace the original authority
+or reservation namespace. Only the exact case anchor and matching TCP
+states are candidates for mutation. No DNS, UDP, NAT/redirection, other
+port, physical interface, root ruleset, enable reference or unrelated state
+is in the proposed mutation scope. This is a selector specification, not
+a loadable policy or an administrative command recipe.
+
+The following must already be established before this can become an
+implementation proposal:
+
+- PF is enabled, `lo0` is filtered, and a dedicated anchor is reached before
+  any rule that could bypass the case deny. The deny must also be terminal:
+  no later matching pass may override it. The installed manual describes
+  `quick` rule/anchor finality; its effective placement still needs proof.
+  The live host configuration is unknown and was not inspected.
+  Enabling PF, changing `set skip on lo0`,
+  inserting/reordering a root anchor or reloading a root ruleset would
+  affect more than this case and is outside this proposal.
+- Every relevant existing state is absent or exactly attributable to the
+  case endpoint. An anchor update alone does not revoke a matching state.
+  The installed `pf.conf(5)` manual says state matches pass without rule
+  evaluation. Its `no state` option avoids new states for the last matching
+  pass rule, but does not erase prior states or prove earlier rules did not
+  create them.
+- Any state removal is restricted by address family, TCP, loopback interface
+  and the exact oriented case endpoint/port, with case ownership where
+  supported and proved. Do not substitute a whole-host/network kill or
+  global state flush. The installed `pfctl(8)` host/network kill interface
+  is too broad for that claim.
+
+The available public comparison source,
+[`pf_ioctl.c`](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/net/pf_ioctl.c#L3473-L3538),
+has address-family/protocol/address/transport/interface/owner selectors for
+state removal. This is **XNU 12377.1.9**, not a verified match for this Mac's
+reported **XNU 13432.1.9 / Darwin 27.0.0**. The exact matching tag was not
+found in the checked Apple OSS repository. Its API/ABI and state orientation
+cannot be assumed current or implemented from that comparison alone.
+
+#### Lifetime, stop and loss behavior
+
+The intended stop ordering is: close native admission, establish the kernel
+deny, settle only attributable case states/connections, independently
+witness failed case-destination attempts, then release the listener.
+Keep the existing absolute 60-second complete-case deadline. Require a
+matched defeat control that actually reaches a replacement receiver, plus
+IPv4/IPv6, existing-connection, reconnect, controller/root-loss and sleep/wake
+coverage. A reported rule-load success or an empty old observer is not proof.
+
+**Unresolved lifetime condition:** this ordering depends on reaching the
+deny installation step. Controller/guard failure before that step would
+leave the old port permission usable. A temporary pass rule would also
+remain unsafe if its revoker died. The installed `pf.conf(5)` manual states
+that each matching packet resets a state's TTL; state timeouts are not the
+absolute case deadline or a self-expiring pass permission. The comparison
+[`pf_state_expires`](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/net/pf.c#L1630-L1667)
+likewise uses the state's expiry base plus its timeout.
+
+No failure-independent, fail-closed lease primitive has been established
+for this proposed PF change. Do not fill that gap with a shell timer,
+another unreviewed privileged watcher, a new framework or an indefinite
+guardian. No native case may begin on the strength of this proposal.
+
+#### Privilege, shared-Mac effects and recovery
+
+The `/dev/pf` character device exists, is root-owned with mode `0600`, and
+is not readable/writable by this process. Only metadata/access checks were
+performed. No other identity/path, `sudo`, device open, PF rule/state query
+or mutation is authorized.
+
+The selector is port-scoped, not Chrome/PID-scoped. It would also block
+another local application's traffic to the same loopback destination port.
+Changing global PF enablement, loopback skipping or root anchor order could
+affect unrelated networking; the installed manuals explicitly describe
+those global effects. Existing VPN, application firewall, translation and
+interface behavior are unknown, not assumed compatible.
+
+If a future authorized implementation fails, it must not report a safe
+release or remove the deny to make a connection succeed. A deny retained
+for safety quarantines `P` and can affect later port reuse; that residual
+host change is not silently approved as manual helper cleanup.
+
+Removal would require independent evidence that no surviving case process
+can use the permission, followed by removal of only the owned anchor and
+its attributable artifacts, and verification of the preserved baseline.
+Unknown/manual helper cleanup does not supply that evidence. Never disable
+PF, reload/flush the root ruleset, flush all states or remove another
+owner's anchor/reference as recovery. No safe automatic removal condition
+has been established here, so removal is a blocking design gap.
+
+#### Owner-review disposition
+
+This proposal makes the desired packet/state scope and its limits concrete;
+it cannot yet bound the real shared-host impact or provide the required
+independent lifetime/removal behavior. **Do not request blanket
+administrative access or select a PF controller.** The missing inputs are
+a separately authorized, narrowly scoped baseline/anchor/loopback/state
+assessment, current-kernel interface evidence, and a reviewed fail-closed
+lease/removal mechanism. This document authorizes none of them.
+
+Even a qualified TCP fence would not prove complete descendant cleanup,
+authenticate permission/review provenance, create a native lease/original
+slot, supply current receiving/source/setup/window bindings or complete the
+reference/chamber conversion. Those gates remain unchanged and closed.
+
+Evidence retained with this source-only packet: installed `pf.conf(5)`
+extracts at lines 144-155 (refreshed state TTL), 379-387 (loopback skip),
+821-870 (state bypass/`no state`) and 1565-1590 (anchor evaluation);
+`pfctl(8)` lines 89-116 (enable references/global flush/root load) and
+133-154 (host/network state removal); device metadata/access observation;
+and the pinned public comparison files. These are documentation and
+metadata observations, not live PF configuration or execution evidence.
+
+An independent, explicitly pinned Sol architecture pass found no
+packet-local landing blocker. Its one nonblocking finality clarification
+is incorporated above. The pass covers this negative-readiness finding,
+not the proposed controller, execution permission or full-slice compliance.
+
 ### Current Chrome helper exception and next packet - 2026-11-05
 
 The owner now directs use of installed Chrome and accepts possible leftover

@@ -90,6 +90,14 @@ remain separate.
       surfaces. This is a bounded result, not universal impossibility or an
       actual Chrome trust-store observation. Coordinate the specific
       host-network-authority tradeoff with the owning controller.
+- [x] Prepare the controller-requested, non-executing Mac TCP-fence proposal
+      from public source and installed manuals, without privileged access.
+      Record exact intended port/interface/state scope, shared-host effects,
+      deadline/loss and removal gaps. It is not execution-ready: live
+      baseline/anchor scope is unknown, the public kernel comparison is not
+      a current match, and no fail-closed lease/removal mechanism is established.
+      Actual pinned Sol architecture pass found no packet-local blocker;
+      its nonblocking terminal-deny clarification is incorporated.
 - [ ] Establish current-source stop and safe guard release with possible
       surviving helpers, including reconnects and port reuse.
 - [ ] Complete authenticated permission/review provenance, native transport/
