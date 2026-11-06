@@ -1,11 +1,11 @@
 import { execFile } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { lstatSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
 import { createServer as httpServer } from "node:http";
 import { createServer as netServer } from "node:net";
-import { connect as tlsConnect, createServer as tlsServer } from "node:tls";
+import { connect as tlsConnect, createServer as tlsServer, TLSSocket } from "node:tls";
 import { promisify } from "node:util";
 import { claimNativeMetaTransport } from "./inspected-meta-stock.mjs";
 
@@ -90,7 +90,7 @@ export async function authenticateOwnedBrowserPeer(browserCdp, socket, wait, den
 
 // Raw application bytes only: no HTTP re-encoding, clean-EOF manufacture or
 // destination selection. Callers own authentication, upstream TLS and budgets.
-export function relayInspectedSockets({ client, remote, inspector, protocol, gate, observer,
+export function relayInspectedSockets({ client, clientTcp, remote, inspector, protocol, gate, observer,
   own, task, bounded, requestBytes, acceptedRequest, responseBytes, afterResponse, inspectorReady,
   acceptedResponse, inspectorError, stopped, upstreamClosed }) {
   const server = tlsServer({ ...inspector, ALPNProtocols: [protocol === "h2" ? "h2" : "http/1.1"] }, secure => {
@@ -133,8 +133,16 @@ export function relayInspectedSockets({ client, remote, inspector, protocol, gat
       responseWork = responseWork.then(async () => {
         if (observer) await gate.endResponse(termination);
         if (termination !== "clean_eof") {
-          if (!client.destroyed) client.resetAndDestroy();
-          secure.destroy();
+          if (client instanceof TLSSocket) {
+            // Reset the owned TCP peer, not the TLS wrapper's non-TCP handle.
+            if (!client.destroyed && !clientTcp) throw new Error("missing_tls_client_tcp_peer");
+            if (!client.destroyed && !clientTcp.destroyed) clientTcp.resetAndDestroy();
+            secure.destroy();
+            if (!client.destroyed) client.destroy();
+          } else {
+            if (!client.destroyed) client.resetAndDestroy();
+            secure.destroy();
+          }
         } else if (stopped()) secure.destroy();
         else secure.end();
       });
@@ -183,6 +191,11 @@ export async function startLocalGoogleInspectedTransport({ inspector, receiver, 
   return startLocalGoogleTransport({ inspector, receiver, protocol, observer, check, wait }, false);
 }
 
+/** Experimental SDK-free HTTPS broker, with the same fixed loopback upstream. */
+export async function startLocalGoogleTlsInspectedTransport({ inspector, receiver, protocol, observer, check, wait }) {
+  return startLocalGoogleTransport({ inspector, receiver, protocol, observer, check, wait }, false, null, true);
+}
+
 /** Fixed foreign test name and literal loopback only; unavailable to native policy observers. */
 export async function startLocalGoogleAuthorityBypass({ inspector, receiver, protocol, observer, check, wait }) {
   if (observer.snapshot().diagnostic_bypass !== true) throw new Error("local_diagnostic_observer_required");
@@ -196,21 +209,24 @@ export async function startLocalGoogleProtocolControl({ inspector, receiver, pro
   return startLocalGoogleTransport({ inspector, receiver, protocol, observer, check, wait }, false, bypass ? "bypass" : "deny");
 }
 
-async function startLocalGoogleTransport({ inspector, receiver, protocol, observer, check, wait }, foreign, mismatch = null) {
+async function startLocalGoogleTransport({ inspector, receiver, protocol, observer, check, wait }, foreign, mismatch = null, tlsProxy = false) {
   if (!["h1", "h2"].includes(protocol) || !Number.isInteger(receiver.port) || receiver.port < 1 || receiver.port > 65535)
     throw new Error("invalid_local_transport");
   const upstreamProtocol = mismatch ? (protocol === "h1" ? "h2" : "h1") : protocol;
   return startInspectedTransport({ inspector, observer, check, wait,
-    mode: foreign ? "sdk-absent-google-authority-bypass"
+    mode: tlsProxy ? "sdk-absent-google-tls-broker" : foreign ? "sdk-absent-google-authority-bypass"
       : mismatch ? "sdk-absent-google-protocol-" + mismatch : "sdk-absent-google",
-    beforeConnect: check, google: true, foreign,
+    beforeConnect: check, google: true, foreign, tlsProxy,
     logicalAuthority: receiver.logicalAuthority, expectedProtocol: mismatch === "bypass" ? null : protocol,
     openUpstream: authority => tlsConnect({ host: "127.0.0.1", port: receiver.port,
       servername: authority.slice(0, -4), ca: receiver.certificate, rejectUnauthorized: true,
       ALPNProtocols: [upstreamProtocol === "h2" ? "h2" : "http/1.1"] }) });
 }
-async function startInspectedTransport({ inspector, observer, check, wait, logicalAuthority, beforeConnect, openUpstream, expectedProtocol, mode, google = false, foreign = false }) {
+async function startInspectedTransport({ inspector, observer, check, wait, logicalAuthority, beforeConnect, openUpstream, expectedProtocol, mode, google = false, foreign = false, tlsProxy = false }) {
   const sockets = new Set(), tasks = new Set(), errors = [], diagnosticErrors = [], denials = {}, denialAuthorities = {}, tunnels = [];
+  const outerPeers = new Map();
+  const peerTuple = socket => JSON.stringify([socket.remoteAddress, socket.remotePort, socket.localAddress, socket.localPort]);
+  const proxyName = tlsProxy ? `broker.${randomBytes(16).toString("hex")}.localhost` : null;
   let browserSession = null, closed = false, admissionOpen = true, serverClosing = null, authenticatedPeers = 0;
   let guard = null, guardClosing = false, guardConnections = 0;
   let connectAttempts = 0;
@@ -218,7 +234,11 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
     sockets.add(socket); socket.on("error", () => {});
     socket.once("close", () => sockets.delete(socket)); return socket;
   };
-  const stop = () => { for (const socket of sockets) socket.destroy(); };
+  const stop = () => {
+    if (!tlsProxy) { for (const socket of sockets) socket.destroy(); return; }
+    // Close nested TLS wrappers before their underlying owned sockets.
+    for (const socket of [...sockets].reverse()) socket.destroy();
+  };
   const track = work => {
     tasks.add(work);
     work.catch(error => {
@@ -240,7 +260,21 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
   };
   const proxy = httpServer((_request, response) => response.writeHead(403).end());
   proxy.on("connection", own);
+  const listener = tlsProxy ? tlsServer({ ...inspector, ALPNProtocols: ["http/1.1"] }, secure => {
+    if (secure.alpnProtocol !== "http/1.1") return secure.destroy();
+    proxy.emit("connection", secure);
+  }) : proxy;
+  if (tlsProxy) {
+    listener.on("connection", socket => {
+      own(socket);
+      const tuple = peerTuple(socket);
+      outerPeers.set(tuple, socket);
+      socket.once("close", () => { if (outerPeers.get(tuple) === socket) outerPeers.delete(tuple); });
+    });
+    listener.on("tlsClientError", (_error, socket) => socket.destroy());
+  }
   proxy.on("connect", (request, client, head) => track((async () => {
+    const clientTcp = tlsProxy ? outerPeers.get(peerTuple(client)) : null;
     const deny = reason => {
       denials[reason] = (denials[reason] ?? 0) + 1;
       if (google && (GOOGLE_AUTHORITIES.has(request.url) || request.url === FOREIGN_TEST_AUTHORITY)) {
@@ -311,7 +345,7 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
       request: createHash("sha256"),
       response: createHash("sha256"), request_bytes: 0, response_bytes: 0, upstream_termination: null };
     tunnels.push(tunnel);
-    relayInspectedSockets({ client, remote, inspector, protocol,
+    relayInspectedSockets({ client, clientTcp, remote, inspector, protocol,
       gate: observer.connection(protocol, google ? request.url : null), observer,
       own, task: track, bounded: wait,
       requestBytes() {
@@ -340,7 +374,7 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
     });
   })()));
   await wait(new Promise((resolve, reject) => {
-    proxy.once("error", reject); proxy.listen(0, "127.0.0.1", resolve);
+    listener.once("error", reject); listener.listen(0, "127.0.0.1", resolve);
   }));
   if (google) {
     guard = netServer(socket => {
@@ -351,7 +385,7 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
       await wait(new Promise((resolve, reject) => {
         const onError = error => reject(error);
         guard.once("error", onError);
-        guard.listen({ host: "::1", port: proxy.address().port, ipv6Only: true, exclusive: true }, () => {
+        guard.listen({ host: "::1", port: listener.address().port, ipv6Only: true, exclusive: true }, () => {
           guard.removeListener("error", onError);
           resolve();
         });
@@ -361,7 +395,7 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
       const cleanup = await Promise.allSettled([
         new Promise((resolve, reject) => guard.close(closeError =>
           closeError && closeError.code !== "ERR_SERVER_NOT_RUNNING" ? reject(closeError) : resolve())),
-        new Promise((resolve, reject) => proxy.close(closeError => closeError ? reject(closeError) : resolve())),
+        new Promise((resolve, reject) => listener.close(closeError => closeError ? reject(closeError) : resolve())),
       ]);
       const failures = cleanup.filter(result => result.status === "rejected").map(result => result.reason);
       if (failures.length) throw new AggregateError([error, ...failures], "ipv6_guard_start_cleanup_failed", { cause: error });
@@ -372,8 +406,11 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
       if (!guardClosing) { errors.push("ipv6_guard_lost"); admissionOpen = false; observer.stop("ipv6_guard_lost"); stop(); }
     });
   }
+  const port = listener.address().port;
   return Object.freeze({
-    port: proxy.address().port,
+    port,
+    ...(tlsProxy ? { proxy_url: `https://${proxyName}:${port}`,
+      host_mapping: Object.freeze({ hostname: proxyName, address: "127.0.0.1" }) } : {}),
     ...(google ? { closeAdmission() { admissionOpen = false; stop(); } } : {}),
     attachOwnedBrowser(session) {
       if (browserSession || closed) throw new Error("local_browser_already_bound");
@@ -393,7 +430,7 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
       stop();
       if (!serverClosing) {
         guardClosing = true;
-        serverClosing = Promise.all([proxy, ...(guard ? [guard] : [])].map(server => new Promise((resolve, reject) =>
+        serverClosing = Promise.all([listener, ...(guard ? [guard] : [])].map(server => new Promise((resolve, reject) =>
           server.close(error => error ? reject(error) : resolve()))));
       }
       await wait(serverClosing);

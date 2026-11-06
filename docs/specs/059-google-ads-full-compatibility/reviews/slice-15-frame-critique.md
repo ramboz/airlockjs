@@ -2,15 +2,24 @@
 slice: 059-15 - Exact native policy and one-shot stock capture
 pass: frame-critique
 verdict: pass
-reviewer: jig:reviewer gpt-6.1-sol; agent f23d29d1-ad7c-4053-9ccd-ea6e4449b2d0
-reviewed_at: 2026-11-05T17:37:15Z
-prompt_source: review.py frame-critique docs/specs/059-google-ads-full-compatibility/spec.md 059-15 rig/native-stock-policy.mjs rig/inspected-http-wire.mjs rig/inspected-transport.mjs
+reviewer: jig:reviewer (gpt-6.1-sol; 1466dd36-7ec0-42e3-ac00-1a0558cf640b)
+reviewed_at: 2026-11-06T00:26:54Z
+prompt_source: review.py frame-critique; google-guard-release-frame-prompt.txt; bounded experiment only
 ---
+
+Reviewer: jig:reviewer, explicitly pinned gpt-6.1-sol
+Agent: 1466dd36-7ec0-42e3-ac00-1a0558cf640b
+Pass: frame-critique, 059-15 renewed guard-release experiment
+Prompt: google-guard-release-frame-prompt.txt
+Scope: proposed bounded experiment, before TLS-broker implementation.
 
 VERDICT: pass
 
 REASONING:
-The highest-risk assumption is that Google's logical requests and causal parents can be bound to every physical H1/H2 attempt, including hidden retries, while preserving complete originals. The existing observer/transport is Meta-specific, but the checkpoint explicitly commissions the missing closed Google composition rather than claiming it already works, and requires current-browser receiver-backed retry, 20/21-boundary, bypass and parent controls before native admission. Read against ADR-0045 and the entire original acceptance/DoD block, unresolved source closure or unsupported branches remain stop conditions, not permission to widen authority or invent a complete reference.
+The highest-risk assumption is that every TCP route reachable by surviving Chrome work either authenticates the case broker before CONNECT or is independently denied. The retained source research supports HTTPS proxies and one WebRTC TCP route, not exhaustive coverage; a fresh hostname and additive SPKI exception alone cannot establish that boundary. The proposal survives as a bounded experiment because it explicitly preserves these unknowns, blocks on substitution or unclosed routes, and retains the wall stop at 2026-11-06T02:04:58Z. This is not candidate selection, qualification or native-admission readiness.
+
+SPECIFIC ISSUES:
+- docs/specs/059-google-ads-full-compatibility/plan.md:87-105: Outstanding condition, not a framing blocker: establish source-backed closure of every reachable surviving TCP route, then corroborate it with matched same-port substitution controls witnessing actual post-stop attempts. If an available direct/loopback route bypasses proxy TLS, a replacement listener can receive application bytes regardless of broker hostname or key. Require that route to be independently denied, and require the defeated control to demonstrate receiver delivery; an unchanged original-broker snapshot proves nothing about the replacement listener.
 
 RECONCILIATION NOTES:
-The explicit deviation is the separately approved Google inspected-network cohort replacing opaque TLS for this bounded reference; ordinary-browser TLS parity and downstream product proof remain unestablished. ADR-0045 awaited mechanical acceptance at review time and has since been accepted through the helper. This frame pass does not qualify source, authorize execution, complete 059-01/059-15, or certify/change historical Meta outcomes or its deferred supervisor.
+No deviation established by this framing review. Preserve candidate-unselected/unqualified status, unknown/manual descendant cleanup and closed native admission.

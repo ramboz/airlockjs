@@ -50,6 +50,126 @@ Keep 059-01 READY_FOR_REVIEW until its actual prerequisites clear.
 Do not advertise a new runner, local primary send or inspected reference as
 the completed conversion or ordinary-browser product parity.
 
+### Renewed Chrome-only stop/guard-release packet - 2026-11-06 UTC
+
+The owner directly approved another shared two-active-hour checkpoint for
+the remaining Chrome-only safety work. The original checkpoint is closed;
+this is a new allocation, not an inferred balance. Phase start is
+`2026-11-06T00:04:58Z`; the conservative wall stop is
+`2026-11-06T02:04:58Z`. Do not deduct pauses or renew it automatically.
+Use integrated base `353510b2044a1f99587629b12bb9b7a2caab32f1`.
+The Google capture controller retains the direct question/answer and owns
+the shared accounting. The retained Terra implementer continues this work;
+required independent reviews remain explicitly pinned Sol.
+
+**Bounded outcome:** a reviewed runnable guard-release mechanism with actual
+current-path controls, or the first specific unsatisfied control before the
+stop. Keep 059-15 IN_PROGRESS, 059-01 READY_FOR_REVIEW and native admission
+closed. No new isolated environment, Meta work, indefinite guardian,
+original case/retry or public/native traffic is granted.
+
+Start with SDK-free literal-loopback source controls. The current plaintext
+CONNECT endpoint identifies a port, not the listener that later owns it.
+Establish a matched retained-guard/released-port control with actual receiver
+bytes. A producer's unchanged zero-forwarding snapshot after listener
+substitution must not be accepted as proof of confinement.
+
+The first Node-only diagnostic witnessed `EADDRINUSE` while the guard
+listened. Once released, an owned substitute on the same IPv4 port received
+85 CONNECT bytes and 211 decrypted request bytes while the old observer
+still reported one forward. The substitute used the fixture certificate.
+This is not Chrome behavior or proof an untrusted listener has the case
+key. It establishes why replacement-receiver evidence is necessary.
+
+**Candidate for evaluation, not selection:** a TLS-protected Google-local
+broker connection before CONNECT, with a fresh case-specific proxy hostname
+and private case key. Reuse the fixed Google policy, actual peer check,
+physical observer and raw inner relay. Keep public/native transport closed.
+Do not add a general configurable proxy or treat a supplied certificate,
+success flag or matching candidate record as authority.
+
+The additive SPKI exception alone does not establish exclusive endpoint
+identity. Evaluation must address ordinary-verifier fallback, hostname
+binding, case-key/listener lifetime and reconnection/resumption. It must
+also establish which reachable Chrome TCP paths use that protection and
+which are independently denied. URL success and one WebRTC trace are not
+a complete path enumeration.
+
+Before any browser control, obtain current source/safety review of its fixed
+producer, expected attempts, private output, receiver observations and
+unchanged complete-case deadline. Then test a matched valid path and
+same-port plaintext/other-case TLS substitutions. A successful substitution
+or an unclosed route is a blocking outcome, never an empty-result pass.
+Include supported URL/worker/WebSocket and WebRTC TCP routes, Direct Sockets
+availability, loopback bypass, IPv6/UDP denial and relevant loss paths.
+Do not claim actual root-exit/helper qualification from a surviving-context
+surrogate or replace the existing guard-until-observed-root-exit rule.
+
+**Unverified assumptions:** forced proxy use covers the permitted surviving
+Chrome work; endpoint identity remains effective after listener release;
+and the revised path settles within the original case envelope. These are
+the controls to prove, not native admission premises already satisfied.
+Stop rather than waive one if the concrete mechanism cannot establish it.
+
+**Implemented experiment, not qualification:** the Google-local TLS entry
+keeps upstreams at literal `127.0.0.1`, reuses the physical observer and raw
+inner H1/H2 relay, and generates its own 128-bit broker hostname. Its outer
+connection accepts H1 only. Matched Node controls cover live requests,
+admission/direct stop, pending outer TLS, peer authentication, interrupted
+responses, retained guards and same-port substitutions. The covering
+browser-free regression passed 433 tests with 26 opt-in skips across thirteen
+files, including the shared relay's other caller. The transport file has
+52 tests. Scoped ESLint passed. No browser or SDK ran.
+
+The first compliance pass found a coupled abnormal-close defect: resetting
+the outer TLS wrapper raised `ERR_INVALID_HANDLE_TYPE`. A receiver-originated
+H1/H2 reset reproduced it. Simply destroying the wrapper then produced a
+clean H1 end and was rejected. The correction resets the actual owned TCP
+peer captured before asynchronous CONNECT work. Matched plain/TLS controls
+retain partial bytes as inconclusive, propagate the abnormal close and
+leave the issued-request count unchanged. These are Node source controls,
+not current-browser qualification.
+
+The follow-up compliance pass found that source port alone could select the
+wrong raw peer. A real control used two already configured local source
+addresses with the same source port against literal `127.0.0.1`. Before the
+correction, the unrelated connection lost its response and the intended
+client saw a clean end. Matching the complete accepted TCP tuple fixed both:
+the unrelated request received its expected 403 and the intended client
+closed abnormally. Acquisition, lookup and identity-checked removal use the
+same tuple; the peer is still captured before asynchronous CONNECT work.
+No interface alias, host-networking or trust-store change was made.
+
+Pinned Sol compliance found no remaining packet-local source landing blocker
+after those corrections. Fresh pinned Sol craft and architecture passes
+cover the unselected experiment only. The craft portability nit is recorded
+in the operator guide: the collision control needs a reachable, already
+configured second local IPv4 source; its absence is a setup limitation,
+never a passing control. Full 059-15 compliance remains `needs-changes`.
+Neither these reviews nor the source regression admit a browser control.
+
+**First unsatisfied identity control:** a replacement with a different key
+and an explicitly trusted, same-name Node certificate received CONNECT
+after stop. A plaintext listener received only a TLS hello; an untrusted
+different key received no CONNECT, while its defeated check did. Thus the
+test is non-vacuous, but the normal-verifier branch is not exclusive to the
+case key. Node's supplied CA models that branch, not Chrome's actual trust
+store. This result cannot qualify safe guard release. Every reachable
+Chrome route, key/listener lifetime and current-browser behavior remain
+unqualified; no browser control is admitted by the prototype.
+
+A qualifying mechanism must bind surviving connections to the authorized
+case endpoint or independently revoke that TCP route before release. The
+next identity control is rejection of a different normally trusted key for
+the exact broker name, with attempted connection and matched defeat
+delivery observed independently. Neither mechanism is implemented or
+qualified here. The pinned Chromium verifier's
+[fallback branch](https://github.com/chromium/chromium/blob/fb096c0011f9d50f0a264a9376420cdea9c421e3/services/network/ignore_errors_cert_verifier.cc#L75-L96)
+returns to normal verification when no allowed SPKI matches. A test-only
+deny-default verifier hook was found in the browser-test helper, not an
+established installed-Chrome path. Do not select a new runner, change trust
+stores or claim that an unsupported flag supplies the missing mechanism.
+
 ### Current Chrome helper exception and next packet - 2026-11-05
 
 The owner now directs use of installed Chrome and accepts possible leftover
@@ -108,9 +228,10 @@ parent's non-private mode. Verification used mode 0700 for that run and
 restored the prior mode afterward. External temporary witness directories
 were owned test fixtures, not a browser run or a qualification gap.
 
-The revised source invalidates prior source cohorts. This reviewed source
-checkpoint is not a remote landing or browser qualification. The existing
-integration owner retains merge/push ownership. Source/test digests,
+The revised source invalidates prior source cohorts. Source checkpoint
+`dcc30714` is integrated and pushed at `353510b2`; its identical runtime/test
+hashes and parent 395/15 regression are verified. It is not browser
+qualification. The existing integration owner retains merge/push ownership. Source/test digests,
 red/green commands and results remain in the session files. ADR-0047's
 Context describes the source at its decision checkpoint; that Accepted
 history is unchanged.
@@ -124,7 +245,7 @@ case is not implied. If the reviewed current path cannot satisfy this
 condition, preserve its blocked/incomplete result and surface that concrete
 mechanism or authority conflict.
 
-After this checkpoint lands, the next bounded source-fit step is to assess
+The renewed packet above assesses
 case-specific broker endpoint identity without a new runner or indefinite
 guardian. Chromium's pinned 156.0.8078.80
 [proxy documentation](https://chromium.googlesource.com/chromium/src/+/156.0.8078.80/net/docs/proxy.md)

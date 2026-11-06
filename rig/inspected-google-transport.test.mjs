@@ -1,9 +1,10 @@
 import { execFileSync } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes, X509Certificate } from "node:crypto";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { createServer as createHttpServer } from "node:http";
 import { connect as h2Connect, createSecureServer } from "node:http2";
 import { connect, createServer } from "node:net";
+import { networkInterfaces } from "node:os";
 import { resolve } from "node:path";
 import { connect as tlsConnect, createServer as tlsServer } from "node:tls";
 import { describe, expect, it } from "vitest";
@@ -40,9 +41,58 @@ const until = async (predicate, maximum = 5000) => {
     await new Promise(resolve => setTimeout(resolve, 10));
   }
 };
+const spki = certificate => createHash("sha256").update(new X509Certificate(certificate).publicKey
+  .export({ type: "spki", format: "der" })).digest("hex");
+const googleConnect = Buffer.from("CONNECT www.googleadservices.com:443 HTTP/1.1\r\nHost: www.googleadservices.com:443\r\n\r\n");
+const bounded = async (promise, maximum = 5000) => {
+  let timer;
+  try {
+    return await Promise.race([promise, new Promise((_, reject) => {
+      timer = setTimeout(() => reject(Error("fixture_timeout")), maximum);
+    })]);
+  } finally { clearTimeout(timer); }
+};
+
+function replacementIdentity(dir, name, hostname) {
+  const key = `${dir}/${name}-key.pem`, cert = `${dir}/${name}-cert.pem`;
+  execFileSync("/usr/bin/openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1",
+    "-keyout", key, "-out", cert, "-subj", `/CN=${hostname}`,
+    "-addext", `subjectAltName=DNS:${hostname}`], { stdio: "ignore", timeout: 10000 });
+  return { key: readFileSync(key), cert: readFileSync(cert) };
+}
+
+async function nodeProxySurrogate({ port, hostname, caseCertificate, ca, defeat = false, ready }) {
+  // Node's supplied test CA is not Chrome's trust store.
+  const socket = tlsConnect({ host: "127.0.0.1", port, servername: hostname,
+    ca, rejectUnauthorized: false, ALPNProtocols: ["http/1.1"] });
+  socket.on("error", () => {});
+  try {
+    await bounded(new Promise((resolve, reject) => {
+      socket.once("secureConnect", resolve); socket.once("error", reject);
+      socket.once("close", () => reject(Error("proxy_socket_closed")));
+    }));
+    await ready();
+    const matchesCaseKey = spki(socket.getPeerCertificate().raw) === spki(caseCertificate);
+    const facts = { authorized: socket.authorized, matchesCaseKey, alpn: socket.alpnProtocol };
+    if (!socket.authorized && !matchesCaseKey && !defeat)
+      throw Object.assign(Error("node_proxy_certificate_rejected"), facts);
+    const response = new Promise((resolve, reject) => {
+      let bytes = "";
+      socket.on("data", chunk => {
+        bytes += chunk.toString("latin1");
+        if (bytes.includes("\r\n\r\n")) resolve(bytes);
+      });
+      socket.once("error", reject);
+      socket.once("close", () => reject(Error("proxy_socket_closed")));
+    });
+    socket.write(googleConnect);
+    expect(await bounded(response)).toBe("HTTP/1.1 200 Connection Established\r\n\r\n");
+    return facts;
+  } finally { socket.destroy(); }
+}
 
 async function localFixture({ wait = promise => promise, protocol = "h1", stallSetup = false,
-  holdResponse = false, check = () => {} } = {}) {
+  holdResponse = false, tlsProxy = false, peerPids = [process.pid], check = () => {} } = {}) {
   const dir = resolve("rig/out", `google-stop-${randomBytes(8).toString("hex")}`);
   mkdirSync(dir, { mode: 0o700 });
   let sink, transport;
@@ -86,22 +136,33 @@ async function localFixture({ wait = promise => promise, protocol = "h1", stallS
     }));
     const observer = createInspectedHttpWire({ mode: "DECLARED-GOOGLE-PROFILE", profile,
       resolveObservation: ({ url, method }) => logical.filter(row => row.url === url && row.method === method) });
-    transport = await startLocalGoogleInspectedTransport({
+    const start = tlsProxy ? (await import("./inspected-transport.mjs")).startLocalGoogleTlsInspectedTransport
+      : startLocalGoogleInspectedTransport;
+    transport = await start({
       inspector: identity, receiver: { port: sink.address().port, certificate: identity.cert,
         logicalAuthority: () => true }, protocol, observer, check, wait,
     });
-    transport.attachOwnedBrowser({ send: async () => ({ processInfo: [{ id: process.pid }] }) });
+    transport.attachOwnedBrowser({ send: async () => ({ processInfo: peerPids.map(id => ({ id })) }) });
     const open = async () => {
-      const client = connect({ host: "127.0.0.1", port: transport.port });
+      const client = tlsProxy ? tlsConnect({ host: "127.0.0.1", port: transport.port,
+        servername: transport.host_mapping.hostname, ca: identity.cert, rejectUnauthorized: false,
+        ALPNProtocols: ["http/1.1"] }) : connect({ host: "127.0.0.1", port: transport.port });
       clients.add(client); client.on("error", () => {});
       await new Promise((resolve, reject) => {
         let response = "";
-        client.once("connect", () => client.write("CONNECT www.googleadservices.com:443 HTTP/1.1\r\nHost: www.googleadservices.com:443\r\n\r\n"));
+        client.once(tlsProxy ? "secureConnect" : "connect", () => {
+          if (tlsProxy && (client.alpnProtocol !== "http/1.1"
+            || !client.authorized && spki(client.getPeerCertificate().raw) !== spki(identity.cert))) {
+            reject(Error("proxy_certificate_rejected")); client.destroy(); return;
+          }
+          client.write("CONNECT www.googleadservices.com:443 HTTP/1.1\r\nHost: www.googleadservices.com:443\r\n\r\n");
+        });
         client.on("data", function onData(bytes) {
           response += bytes;
           if (!response.includes("\r\n\r\n")) return;
           client.removeListener("data", onData);
-          if (!response.startsWith("HTTP/1.1 200")) reject(Error(response)); else resolve();
+          if (!response.startsWith("HTTP/1.1 200")) { client.destroy(); reject(Error(response)); }
+          else resolve();
         });
         client.once("error", reject);
         client.once("close", () => reject(Error("client_closed")));
@@ -122,6 +183,7 @@ async function localFixture({ wait = promise => promise, protocol = "h1", stallS
         const stream = secure.request({ ":method": "GET", ":scheme": "https", ":authority": parsed.host,
           ":path": parsed.pathname + parsed.search });
         stream.on("error", () => {}); stream.resume(); stream.end();
+        return stream;
       }
     };
     const cleanup = async () => {
@@ -132,7 +194,8 @@ async function localFixture({ wait = promise => promise, protocol = "h1", stallS
       await new Promise(resolve => sink.close(resolve));
       rmSync(dir, { recursive: true, force: true });
     };
-    return { transport, arrivals, sockets, open, send, cleanup, observer, responses, connections: () => connections };
+    return { transport, arrivals, sockets, clients, open, send, cleanup, observer, responses, identity, dir,
+      connections: () => connections };
   } catch (error) {
     for (const session of sessions) session.destroy();
     for (const socket of clients) socket.destroy();
@@ -192,6 +255,231 @@ function holdUpstreamSetup() {
 }
 
 describe("SDK-free Google transport authority", () => {
+  it.each(["h1", "h2"])("relays a matched %s request through an experimental outer TLS broker", async protocol => {
+    const fixture = await localFixture({ protocol, tlsProxy: true });
+    try {
+      expect(fixture.transport.host_mapping).toMatchObject({ address: "127.0.0.1" });
+      expect(fixture.transport.host_mapping.hostname).toMatch(/^broker\.[a-f0-9]{32}\.localhost$/);
+      expect(fixture.transport.proxy_url)
+        .toBe(`https://${fixture.transport.host_mapping.hostname}:${fixture.transport.port}`);
+      const client = await fixture.open();
+      const outer = [...fixture.clients][0];
+      expect(outer.alpnProtocol).toBe("http/1.1");
+      expect(outer.authorized).toBe(false);
+      expect(spki(outer.getPeerCertificate().raw)).toBe(spki(fixture.identity.cert));
+      fixture.send(client, primary);
+      await until(() => fixture.arrivals.length === 1 && fixture.observer.snapshot().forwarded === 1
+        && fixture.observer.originals().responses[0]?.state === "complete");
+      expect(fixture.transport.snapshot().tunnels).toMatchObject([{ protocol, upstream_authorized: true }]);
+      expect(fixture.transport.snapshot().public_upstream_requests).toBe(0);
+    } finally { await fixture.cleanup(); }
+  }, 20000);
+
+  it("denies an unowned Node peer at the experimental TLS broker", async () => {
+    const fixture = await localFixture({ tlsProxy: true, peerPids: [] });
+    try {
+      await expect(bounded(fixture.open())).rejects.toThrow("HTTP/1.1 403");
+      await until(() => fixture.transport.snapshot().tasks_settled);
+      expect(fixture.transport.snapshot().denials.peer).toBe(1);
+      expect(fixture.arrivals).toHaveLength(0);
+      expect(fixture.observer.snapshot().forwarded).toBe(0);
+    } finally { await fixture.cleanup(); }
+  }, 20000);
+
+  it("refuses a connection without the H1 proxy ALPN", async () => {
+    const fixture = await localFixture({ tlsProxy: true });
+    const socket = tlsConnect({ host: "127.0.0.1", port: fixture.transport.port,
+      servername: fixture.transport.host_mapping.hostname, ca: fixture.identity.cert,
+      rejectUnauthorized: false, ALPNProtocols: ["h2"] });
+    let closed = false;
+    socket.on("error", () => {}); socket.once("close", () => { closed = true; });
+    try {
+      await expect(bounded(new Promise((resolve, reject) => {
+        socket.once("secureConnect", resolve); socket.once("error", reject);
+      }))).rejects.toMatchObject({ code: "ERR_SSL_TLSV1_ALERT_NO_APPLICATION_PROTOCOL" });
+      await until(() => closed);
+      await until(() => fixture.transport.snapshot().sockets_closed);
+      expect(fixture.transport.snapshot().connect_attempts).toBe(0);
+      expect(fixture.arrivals).toHaveLength(0);
+    } finally { socket.destroy(); await fixture.cleanup(); }
+  }, 20000);
+
+  it("generates a different fixed-format local broker name for each case", async () => {
+    const first = await localFixture({ tlsProxy: true });
+    let second;
+    try {
+      second = await localFixture({ tlsProxy: true });
+      expect(first.transport.host_mapping.hostname).not.toBe(second.transport.host_mapping.hostname);
+      expect(second.transport.host_mapping).toMatchObject({ address: "127.0.0.1" });
+      expect(second.transport.host_mapping.hostname).toMatch(/^broker\.[a-f0-9]{32}\.localhost$/);
+    } finally { if (second) await second.cleanup(); await first.cleanup(); }
+  }, 20000);
+
+  it.each([["h1", "admission"], ["h2", "admission"], ["h1", "direct"], ["h2", "direct"]])(
+    "closes outer and inner sockets for active %s work on %s stop", async (protocol, method) => {
+    const fixture = await localFixture({ protocol, tlsProxy: true });
+    try {
+      const client = await fixture.open();
+      if (protocol === "h1") client.resume();
+      fixture.send(client, primary);
+      await until(() => fixture.arrivals.length === 1 && fixture.observer.originals().responses[0]?.state === "complete");
+      const outer = [...fixture.clients][0];
+      expect(outer.destroyed).toBe(false);
+      const closing = method === "direct" ? fixture.transport.close()
+        : (fixture.transport.closeAdmission(), Promise.resolve());
+      expect(fixture.transport.snapshot().admission_open).toBe(false);
+      try { await until(() => outer.destroyed && fixture.sockets.size === 0); }
+      catch (error) { throw Error(JSON.stringify({ outerDestroyed: outer.destroyed,
+        receiverSockets: fixture.sockets.size, transport: fixture.transport.snapshot() }), { cause: error }); }
+      await closing;
+      if (method === "admission") {
+        expect(fixture.transport.snapshot().ipv6_guard_listening).toBe(true);
+        await expect(fixture.open()).rejects.toThrow("HTTP/1.1 403");
+      }
+      try { await until(() => fixture.transport.snapshot().sockets_closed && fixture.transport.snapshot().tasks_settled); }
+      catch (error) { throw Error(JSON.stringify(fixture.transport.snapshot()), { cause: error }); }
+      expect(fixture.arrivals).toHaveLength(1);
+      expect(fixture.observer.snapshot().forwarded).toBe(1);
+    } finally { await fixture.cleanup(); }
+  }, 20000);
+
+  it.each(["admission", "direct"])("settles an incomplete outer TLS handshake on %s stop", async method => {
+    const fixture = await localFixture({ tlsProxy: true });
+    const client = connect({ host: "127.0.0.1", port: fixture.transport.port });
+    let closed = false;
+    client.on("error", () => {}); client.once("close", () => { closed = true; });
+    try {
+      await new Promise((resolve, reject) => {
+        client.once("connect", resolve); client.once("error", reject);
+      });
+      client.write(Buffer.from([0x16, 0x03, 0x01]));
+      await until(() => !fixture.transport.snapshot().sockets_closed);
+      const closing = method === "direct" ? fixture.transport.close()
+        : (fixture.transport.closeAdmission(), Promise.resolve());
+      await until(() => closed && fixture.transport.snapshot().sockets_closed);
+      await closing;
+      expect(fixture.transport.snapshot()).toMatchObject({ admission_open: false, tasks_settled: true });
+      if (method === "admission") expect(fixture.transport.snapshot().ipv6_guard_listening).toBe(true);
+    } finally { client.destroy(); await fixture.cleanup(); }
+  }, 20000);
+
+  it.each(["admission", "direct"])("stops a peer authentication queued behind outer TLS on %s stop", async method => {
+    const gate = holdAuthentication(), fixture = await localFixture({ tlsProxy: true, wait: gate.wait });
+    try {
+      const opened = fixture.open();
+      await awaitPause(gate, opened);
+      const closing = method === "direct" ? fixture.transport.close()
+        : (fixture.transport.closeAdmission(), Promise.resolve());
+      expect(fixture.transport.snapshot().admission_open).toBe(false);
+      gate.release();
+      await bounded(closing);
+      await expect(opened).rejects.toThrow("client_closed");
+      await until(() => fixture.transport.snapshot().tasks_settled && fixture.transport.snapshot().sockets_closed);
+      expect(fixture.connections()).toBe(0);
+      expect(fixture.observer.snapshot().forwarded).toBe(0);
+    } finally { gate.release(); await fixture.cleanup(); }
+  }, 20000);
+
+  it("sends a TLS hello, not CONNECT, to a same-port plaintext replacement", async () => {
+    const fixture = await localFixture({ tlsProxy: true });
+    const port = fixture.transport.port, hostname = fixture.transport.host_mapping.hostname;
+    const sockets = new Set();
+    let replacement, surrogate, received = Buffer.alloc(0), connections = 0;
+    try {
+      const client = await bounded(fixture.open());
+      client.resume(); fixture.send(client, primary);
+      await until(() => fixture.arrivals.length === 1 && fixture.observer.originals().responses[0]?.state === "complete");
+      fixture.transport.closeAdmission();
+      await bounded(fixture.transport.close());
+      expect(fixture.observer.snapshot().forwarded).toBe(1);
+      replacement = createServer(socket => {
+        connections++; sockets.add(socket); socket.on("error", () => {});
+        socket.once("close", () => sockets.delete(socket));
+        socket.on("data", bytes => {
+          received = Buffer.concat([received, bytes]);
+          socket.end("HTTP/1.1 200 Connection Established\r\n\r\n");
+        });
+      });
+      await bounded(new Promise((resolve, reject) => {
+        replacement.once("error", reject);
+        replacement.listen({ host: "127.0.0.1", port, exclusive: true }, resolve);
+      }));
+      surrogate = tlsConnect({ host: "127.0.0.1", port, servername: hostname,
+        ca: fixture.identity.cert, rejectUnauthorized: false, ALPNProtocols: ["http/1.1"] });
+      surrogate.on("error", () => {});
+      await expect(bounded(new Promise((resolve, reject) => {
+        surrogate.once("secureConnect", resolve); surrogate.once("error", reject);
+        surrogate.once("close", () => reject(Error("proxy_socket_closed")));
+      }))).rejects.toMatchObject({ code: "ERR_SSL_WRONG_VERSION_NUMBER" });
+      await until(() => received.length > 0 && sockets.size === 0);
+      expect(connections).toBe(1);
+      expect(received[0]).toBe(0x16);
+      expect(received.includes(Buffer.from("CONNECT "))).toBe(false);
+      expect(fixture.observer.snapshot().forwarded).toBe(1);
+    } finally {
+      surrogate?.destroy();
+      for (const socket of sockets) socket.destroy();
+      try {
+        if (replacement) await bounded(new Promise((resolve, reject) => replacement.close(error => error ? reject(error) : resolve())));
+      } finally { await fixture.cleanup(); }
+    }
+  }, 20000);
+
+  it("rejects another case key, while a defeated check and normal trust each deliver CONNECT", async () => {
+    const fixture = await localFixture({ tlsProxy: true });
+    const port = fixture.transport.port, hostname = fixture.transport.host_mapping.hostname;
+    const records = [], sockets = new Set();
+    let replacement;
+    try {
+      const client = await bounded(fixture.open());
+      client.resume(); fixture.send(client, primary);
+      await until(() => fixture.arrivals.length === 1 && fixture.observer.originals().responses[0]?.state === "complete");
+      fixture.transport.closeAdmission();
+      await bounded(fixture.transport.close());
+      const otherCase = replacementIdentity(fixture.dir, "other-case", "www.googleadservices.com");
+      const normallyTrusted = replacementIdentity(fixture.dir, "normally-trusted", hostname);
+      expect(spki(otherCase.cert)).not.toBe(spki(fixture.identity.cert));
+      expect(spki(normallyTrusted.cert)).not.toBe(spki(fixture.identity.cert));
+      replacement = tlsServer({ ...otherCase, ALPNProtocols: ["http/1.1"] }, socket => {
+        const row = { bytes: Buffer.alloc(0), closed: false };
+        records.push(row); sockets.add(socket); socket.on("error", () => {});
+        socket.once("close", () => { row.closed = true; sockets.delete(socket); });
+        socket.on("data", bytes => {
+          row.bytes = Buffer.concat([row.bytes, bytes]);
+          if (row.bytes.length > googleConnect.length) return socket.destroy();
+          if (row.bytes.length === googleConnect.length)
+            socket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
+        });
+      });
+      replacement.on("tlsClientError", () => {});
+      await bounded(new Promise((resolve, reject) => {
+        replacement.once("error", reject);
+        replacement.listen({ host: "127.0.0.1", port, exclusive: true }, resolve);
+      }));
+      const common = { port, hostname, caseCertificate: fixture.identity.cert, ca: fixture.identity.cert };
+      await expect(nodeProxySurrogate({ ...common, ready: () => until(() => records.length === 1) }))
+        .rejects.toMatchObject({ message: "node_proxy_certificate_rejected", authorized: false, matchesCaseKey: false });
+      await until(() => records[0].closed);
+      expect(records[0].bytes).toEqual(Buffer.alloc(0));
+
+      // This test-only defeat skips certificate verification for a different key.
+      const defeated = await nodeProxySurrogate({ ...common, defeat: true, ready: () => until(() => records.length === 2) });
+      expect(defeated).toMatchObject({ authorized: false, matchesCaseKey: false, alpn: "http/1.1" });
+      expect(records[1].bytes).toEqual(googleConnect);
+
+      replacement.setSecureContext(normallyTrusted);
+      const normal = await nodeProxySurrogate({ ...common, ca: normallyTrusted.cert, ready: () => until(() => records.length === 3) });
+      expect(normal).toMatchObject({ authorized: true, matchesCaseKey: false, alpn: "http/1.1" });
+      expect(records[2].bytes).toEqual(googleConnect);
+      expect(fixture.observer.snapshot().forwarded).toBe(1);
+    } finally {
+      for (const socket of sockets) socket.destroy();
+      try {
+        if (replacement) await bounded(new Promise((resolve, reject) => replacement.close(error => error ? reject(error) : resolve())));
+      } finally { await fixture.cleanup(); }
+    }
+  }, 20000);
+
   it("reports opening failure or an absent pause without waiting for the test timeout", async () => {
     const never = new Promise(() => {});
     await expect(awaitPause({ paused: never }, Promise.reject(Error("opening_failed")))).rejects.toThrow("opening_failed");
@@ -394,11 +682,13 @@ describe("SDK-free Google transport authority", () => {
     } finally { await fixture.cleanup(); }
   }, 20000);
 
-  it.each([["h1", "admission"], ["h2", "admission"], ["h1", "direct"], ["h2", "direct"]])(
-    "keeps a held partial %s response inconclusive on %s stop", async (protocol, method) => {
-    const positive = await localFixture({ protocol, holdResponse: true });
+  it.each([["h1", "admission", false], ["h2", "admission", false], ["h1", "direct", false], ["h2", "direct", false],
+    ["h1", "admission", true], ["h2", "admission", true], ["h1", "direct", true], ["h2", "direct", true]])(
+    "keeps a held partial %s response inconclusive on %s stop (TLS broker: %s)", async (protocol, method, tlsProxy) => {
+    const positive = await localFixture({ protocol, holdResponse: true, tlsProxy });
     try {
       const client = await positive.open();
+      if (protocol === "h1") client.resume();
       positive.send(client, primary);
       await until(() => positive.observer.originals().responses[0]?.decoded_body_bytes === 4);
       expect(positive.observer.originals().responses[0].state).toBe("streaming");
@@ -407,9 +697,10 @@ describe("SDK-free Google transport authority", () => {
       expect(Buffer.concat(positive.observer.originals().responses[0].body).toString()).toBe("parttail");
     } finally { await positive.cleanup(); }
 
-    const fixture = await localFixture({ protocol, holdResponse: true });
+    const fixture = await localFixture({ protocol, holdResponse: true, tlsProxy });
     try {
       const client = await fixture.open();
+      if (protocol === "h1") client.resume();
       fixture.send(client, primary);
       await until(() => fixture.observer.originals().responses[0]?.decoded_body_bytes === 4);
       const original = fixture.observer.originals().responses[0];
@@ -428,6 +719,147 @@ describe("SDK-free Google transport authority", () => {
         transport_error: "upstream_unexpected_close" });
     } finally { await fixture.cleanup(); }
   }, 20000);
+
+  it.each([["h1", true], ["h2", true], ["h1", false], ["h2", false]])(
+    "retains a partial %s response after a receiver-originated TCP reset (outer TLS: %s)", async (protocol, tlsProxy) => {
+    const fixture = await localFixture({ protocol, holdResponse: true, tlsProxy });
+    try {
+      const client = await bounded(fixture.open());
+      let cleanEnd = false, responseClosed = false;
+      const received = [], stream = protocol === "h1" ? client : fixture.send(client, primary);
+      stream.on("data", bytes => received.push(bytes));
+      stream.once("end", () => { cleanEnd = true; });
+      stream.once("close", () => { responseClosed = true; });
+      if (protocol === "h1") { stream.resume(); fixture.send(client, primary); }
+      await until(() => fixture.observer.originals().responses[0]?.decoded_body_bytes === 4);
+      await until(() => Buffer.concat(received).includes(Buffer.from("part")));
+      const original = fixture.observer.originals().responses[0];
+      expect(original.state).toBe("streaming");
+      expect(Buffer.concat(original.body).toString()).toBe("part");
+      expect(fixture.arrivals).toHaveLength(1);
+      expect(fixture.observer.snapshot().forwarded).toBe(1);
+      expect(fixture.sockets.size).toBe(1);
+      const outer = [...fixture.clients][0];
+      expect(outer.destroyed).toBe(false);
+      expect(fixture.transport.snapshot().admission_open).toBe(true);
+      [...fixture.sockets][0].resetAndDestroy();
+      await until(() => fixture.transport.snapshot().tunnels[0]?.upstream_termination !== null);
+      await until(() => fixture.transport.snapshot().tasks_settled && fixture.transport.snapshot().sockets_closed);
+      await until(() => outer.destroyed && responseClosed);
+      expect(fixture.transport.snapshot().diagnostic_errors).toEqual([]);
+      expect(fixture.transport.snapshot().errors).toEqual([]);
+      expect(fixture.transport.snapshot().tunnels[0].upstream_termination).toBe("upstream_connection_reset");
+      expect(fixture.observer.originals().requests[0].response_state).toBe("inconclusive");
+      expect(original).toMatchObject({ state: "inconclusive", headers: [], body: [],
+        transport_error: "upstream_connection_reset" });
+      expect(cleanEnd).toBe(false);
+      expect(fixture.observer.snapshot().forwarded).toBe(1);
+    } finally { await fixture.cleanup(); }
+  }, 20000);
+
+  it("resets the matching TLS peer when two local sources use the same source port", async () => {
+    const fixture = await localFixture({ protocol: "h1", holdResponse: true, tlsProxy: true });
+    try {
+      const first = tlsConnect({ host: "127.0.0.1", port: fixture.transport.port, localAddress: "127.0.0.1",
+        servername: fixture.transport.host_mapping.hostname, rejectUnauthorized: false, ALPNProtocols: ["http/1.1"] });
+      let firstError = null;
+      fixture.clients.add(first); first.on("error", error => { firstError ??= error; });
+      await bounded(new Promise((resolve, reject) => {
+        first.once("secureConnect", resolve); first.once("error", reject);
+      }));
+      expect(first.alpnProtocol).toBe("http/1.1");
+      expect(spki(first.getPeerCertificate().raw)).toBe(spki(fixture.identity.cert));
+      const addresses = [...new Set(Object.values(networkInterfaces()).flat()
+        .filter(item => item && item.family === "IPv4" && !item.internal).map(item => item.address))];
+      let secondTcp;
+      const sourceDeadline = Date.now() + 10000;
+      for (const localAddress of addresses) {
+        const remaining = sourceDeadline - Date.now();
+        if (remaining <= 0) break;
+        const candidate = connect({ host: "127.0.0.1", port: fixture.transport.port,
+          localAddress, localPort: first.localPort });
+        fixture.clients.add(candidate);
+        try {
+          await bounded(new Promise((resolve, reject) => {
+            candidate.once("connect", resolve); candidate.once("error", reject);
+          }), Math.min(2000, remaining));
+          secondTcp = candidate;
+          break;
+        } catch (error) {
+          candidate.destroy();
+          if (error.message !== "fixture_timeout" && !["EADDRNOTAVAIL", "EADDRINUSE", "ENETUNREACH",
+            "EHOSTUNREACH", "ETIMEDOUT"].includes(error.code)) throw error;
+        }
+      }
+      if (!secondTcp) throw Error("collision_control_no_reachable_configured_source_within_deadline");
+      expect(secondTcp.localPort).toBe(first.localPort);
+      expect(secondTcp.localAddress).not.toBe(first.localAddress);
+      expect(secondTcp.remoteAddress).toBe("127.0.0.1");
+      expect(secondTcp.remotePort).toBe(fixture.transport.port);
+      const second = tlsConnect({ socket: secondTcp, servername: fixture.transport.host_mapping.hostname,
+        rejectUnauthorized: false, ALPNProtocols: ["http/1.1"] });
+      fixture.clients.add(second);
+      let secondError = null, secondClosed = false, secondReply = "";
+      second.on("error", error => { secondError = error; });
+      second.on("data", bytes => { secondReply += bytes.toString("latin1"); });
+      second.once("close", () => { secondClosed = true; });
+      await bounded(new Promise((resolve, reject) => {
+        second.once("secureConnect", resolve); second.once("error", reject);
+      }));
+      expect(second.alpnProtocol).toBe("http/1.1");
+      expect(spki(second.getPeerCertificate().raw)).toBe(spki(fixture.identity.cert));
+      await bounded(new Promise((resolve, reject) => {
+        let response = "";
+        first.on("data", function onData(bytes) {
+          response += bytes.toString("latin1");
+          if (!response.includes("\r\n\r\n")) return;
+          first.removeListener("data", onData);
+          if (response !== "HTTP/1.1 200 Connection Established\r\n\r\n") reject(Error("unexpected_connect_response"));
+          else resolve();
+        });
+        first.once("error", reject);
+        first.write(googleConnect);
+      }));
+      const inner = tlsConnect({ socket: first, servername: "www.googleadservices.com",
+        ca: fixture.identity.cert, ALPNProtocols: ["http/1.1"] });
+      let innerError = null;
+      fixture.clients.add(inner); inner.on("error", error => { innerError ??= error; });
+      await bounded(new Promise((resolve, reject) => {
+        inner.once("secureConnect", resolve); inner.once("error", reject);
+      }));
+      let cleanEnd = false, responseClosed = false;
+      const received = [];
+      inner.on("data", bytes => received.push(bytes));
+      inner.once("end", () => { cleanEnd = true; });
+      inner.once("close", () => { responseClosed = true; });
+      inner.resume();
+      fixture.send(inner, primary);
+      await until(() => fixture.observer.originals().responses[0]?.decoded_body_bytes === 4
+        && Buffer.concat(received).includes(Buffer.from("part")));
+      expect(fixture.arrivals).toHaveLength(1);
+      expect(fixture.observer.originals().responses[0].state).toBe("streaming");
+      expect(second.destroyed).toBe(false);
+      expect(fixture.sockets.size).toBe(1);
+      [...fixture.sockets][0].resetAndDestroy();
+      await until(() => responseClosed && fixture.transport.snapshot().tasks_settled
+        && fixture.transport.snapshot().tunnels[0]?.upstream_termination !== null);
+      if (!second.destroyed) second.write("GET / HTTP/1.1\r\nHost: fixture.invalid\r\nConnection: close\r\n\r\n");
+      await until(() => secondReply.includes("\r\n\r\n") || secondError || secondClosed);
+      if (firstError && firstError.code !== "ECONNRESET") throw firstError;
+      if (innerError && innerError.code !== "ECONNRESET") throw innerError;
+      if (secondError && secondError.code !== "ECONNRESET") throw secondError;
+      expect.soft(secondReply.split("\r\n")[0]).toBe("HTTP/1.1 403 Forbidden");
+      expect.soft(cleanEnd).toBe(false);
+      expect(fixture.transport.snapshot().tunnels[0].upstream_termination).toBe("upstream_connection_reset");
+      expect(fixture.transport.snapshot().diagnostic_errors).toEqual([]);
+      expect(fixture.transport.snapshot().errors).toEqual([]);
+      expect(fixture.observer.originals().requests[0].response_state).toBe("inconclusive");
+      expect(fixture.observer.originals().responses[0]).toMatchObject({
+        state: "inconclusive", headers: [], body: [], transport_error: "upstream_connection_reset",
+      });
+      expect(fixture.observer.snapshot().forwarded).toBe(1);
+    } finally { await fixture.cleanup(); }
+  }, 45000);
 
   it("holds the same-port IPv6 loopback guard until the Google broker closes", async () => {
     const transport = await startLocalGoogleInspectedTransport({
@@ -448,6 +880,114 @@ describe("SDK-free Google transport authority", () => {
     finally { await transport.close(); }
     expect(await probe(port)).toBe("listening");
   });
+
+  it("observes plaintext port substitution using an explicitly compromised fixture key", async () => {
+    const bounded = async promise => {
+      let timer;
+      try {
+        return await Promise.race([promise, new Promise((_, reject) => {
+          timer = setTimeout(() => reject(Error("substitution_timeout")), 5000);
+        })]);
+      } finally { clearTimeout(timer); }
+    };
+    const fixture = await localFixture({ wait: bounded }), port = fixture.transport.port;
+    const closeServer = server => bounded(new Promise((resolve, reject) => server.close(error =>
+      error && error.code !== "ERR_SERVER_NOT_RUNNING" ? reject(error) : resolve())));
+    const blockedBind = async (host, ipv6Only = false) => {
+      const probe = createServer();
+      try {
+        await bounded(new Promise((resolve, reject) => {
+          probe.once("error", reject);
+          probe.listen({ host, port, ipv6Only, exclusive: true }, resolve);
+        }));
+        throw Error("unexpected_replacement_bind");
+      } catch (error) {
+        if (error.code !== "EADDRINUSE") throw error;
+        return error.code;
+      } finally { await closeServer(probe); }
+    };
+    const sockets = new Set();
+    let replacement, surrogate, secure;
+    const connectBytes = Buffer.from("CONNECT www.googleadservices.com:443 HTTP/1.1\r\nHost: www.googleadservices.com:443\r\n\r\n");
+    const target = new URL(primary);
+    const applicationBytes = Buffer.from(`GET ${target.pathname + target.search} HTTP/1.1\r\nHost: ${target.host}\r\n\r\n`);
+    const response = "HTTP/1.1 200 Connection Established\r\n\r\n";
+    let receivedConnect = Buffer.alloc(0), receivedApplication = Buffer.alloc(0), connections = 0;
+    try {
+      const originalClient = await bounded(fixture.open());
+      fixture.send(originalClient, primary);
+      await until(() => fixture.arrivals.length === 1 && fixture.observer.snapshot().forwarded === 1
+        && fixture.observer.originals().responses[0]?.state === "complete");
+      fixture.transport.closeAdmission();
+      expect(fixture.transport.snapshot()).toMatchObject({ admission_open: false, ipv6_guard_listening: true });
+      expect(await blockedBind("127.0.0.1")).toBe("EADDRINUSE");
+      expect(await blockedBind("::1", true)).toBe("EADDRINUSE");
+      expect(await request(port, "www.googleadservices.com:443")).toBe("HTTP/1.1 403 Denied");
+      await bounded(fixture.transport.close());
+      const oldForwarded = fixture.observer.snapshot().forwarded;
+      expect(oldForwarded).toBe(1);
+
+      // Test-only key-compromise control: the replacement uses the fixture's inspector key.
+      const tunnel = tlsServer({ ...fixture.identity, ALPNProtocols: ["http/1.1"] }, socket => {
+        socket.on("error", () => {});
+        socket.on("data", bytes => {
+          receivedApplication = Buffer.concat([receivedApplication, bytes]);
+          if (receivedApplication.length > applicationBytes.length) socket.destroy();
+          else if (receivedApplication.length === applicationBytes.length)
+            socket.end("HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok");
+        });
+      });
+      tunnel.on("tlsClientError", () => {});
+      replacement = createServer(socket => {
+        connections++;
+        sockets.add(socket); socket.on("error", () => {}); socket.once("close", () => sockets.delete(socket));
+        socket.on("data", function onConnect(bytes) {
+          receivedConnect = Buffer.concat([receivedConnect, bytes]);
+          if (receivedConnect.length > connectBytes.length) return socket.destroy();
+          if (receivedConnect.length !== connectBytes.length) return;
+          socket.removeListener("data", onConnect);
+          socket.write(response);
+          tunnel.emit("connection", socket);
+        });
+      });
+      await bounded(new Promise((resolve, reject) => {
+        replacement.once("error", reject);
+        replacement.listen({ host: "127.0.0.1", port, exclusive: true }, resolve);
+      }));
+      surrogate = connect({ host: "127.0.0.1", port });
+      surrogate.on("error", () => {});
+      const handshake = new Promise((resolve, reject) => {
+        let received = "";
+        surrogate.once("connect", () => surrogate.write(connectBytes));
+        surrogate.on("data", function onData(bytes) {
+          received += bytes.toString("latin1");
+          if (!received.includes("\r\n\r\n")) return;
+          surrogate.removeListener("data", onData);
+          resolve(received);
+        });
+        surrogate.once("error", reject);
+        surrogate.once("close", () => reject(Error("surrogate_closed")));
+      });
+      expect(await bounded(handshake)).toBe(response);
+      secure = tlsConnect({ socket: surrogate, servername: "www.googleadservices.com",
+        ca: fixture.identity.cert, ALPNProtocols: ["http/1.1"] });
+      secure.on("error", () => {});
+      await bounded(new Promise((resolve, reject) => { secure.once("secureConnect", resolve); secure.once("error", reject); }));
+      secure.write(applicationBytes);
+      await until(() => receivedApplication.length === applicationBytes.length);
+      expect(connections).toBe(1);
+      expect(receivedConnect).toEqual(connectBytes);
+      expect(receivedApplication).toEqual(applicationBytes);
+      expect(fixture.observer.snapshot().forwarded).toBe(oldForwarded);
+      expect(fixture.arrivals).toHaveLength(1);
+    } finally {
+      secure?.destroy();
+      surrogate?.destroy();
+      for (const socket of sockets) socket.destroy();
+      try { if (replacement) await closeServer(replacement); }
+      finally { await bounded(fixture.cleanup()); }
+    }
+  }, 20000);
 
   it("denies a peer when lsof reports no established socket without treating it as a relay failure", async () => {
     const cdp = { send: async () => ({ processInfo: [] }) };

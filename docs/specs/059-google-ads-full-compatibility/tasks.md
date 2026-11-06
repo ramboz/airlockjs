@@ -49,7 +49,35 @@ remain separate.
       No packet-local blocker; full-slice compliance stays `needs-changes`.
 - [x] Address craft test-hardening nits through pinned Terra and pass the
       final 395-test browser-free regression with 15 opt-in skips.
-- [ ] Land that source checkpoint without opening native admission.
+- [x] Land source `dcc30714` at published `353510b2` without opening native
+      admission; parent independently passed the same 395/15 regression.
+- [x] Receive the direct new shared two-active-hour Chrome-only safety
+      allocation, ending conservatively at `2026-11-06T02:04:58Z`.
+- [x] Establish the Node-only retained-guard/released-port diagnostic:
+      replacement binding first failed with `EADDRINUSE`, then an owned
+      fixture-key substitute received CONNECT and request bytes after
+      release. This is not a Chrome or untrusted-key qualification.
+- [x] Pass pinned Sol frame review for the bounded experiment only.
+- [x] Implement and independently review the Google-local TLS-broker
+      candidate and its matched SDK-free controls. Keep normal-verifier
+      fallback and full route coverage explicitly unqualified. Pinned Sol
+      compliance found no packet-local blocker; craft and architecture
+      passed for the unselected source experiment. Full compliance stays
+      `needs-changes`.
+- [x] Run the prototype's Node controls and covering browser-free regression:
+      52 transport tests; 433 passed and 26 opt-in skips across thirteen files,
+      including the shared relay's other caller.
+      A trusted same-name Node replacement with a different key did receive
+      CONNECT. This is the first unsatisfied identity control, not a safety
+      pass or a claim about Chrome's actual trust store.
+- [x] Correct the review-discovered TLS reset error through receiver-originated
+      H1/H2 red/green controls. Reject a clean-end workaround; preserve
+      inconclusive originals and unchanged plaintext behavior. The other
+      relay caller is included in the final covering run.
+- [x] Reproduce the review-discovered same-source-port collision using two
+      already configured local source addresses. Correct raw-peer ownership
+      to the complete accepted TCP tuple. The unrelated request retains its
+      expected 403, while the intended interrupted client closes abnormally.
 - [ ] Establish current-source stop and safe guard release with possible
       surviving helpers, including reconnects and port reuse.
 - [ ] Complete authenticated permission/review provenance, native transport/
@@ -58,7 +86,8 @@ remain separate.
       reference/chamber conversion tasks above.
 
 The [current packet](plan.md#current-chrome-helper-exception-and-next-packet---2026-11-05)
-is reviewed source work awaiting integration. It does not claim complete
+contains the integrated stop correction and renewed bounded safety packet.
+It does not claim complete
 descendant cleanup, qualify broker endpoint identity or approve an indefinite
 guardian.
 The isolated-runner proposal below is historical and no longer selected.
