@@ -78,6 +78,18 @@ remain separate.
       already configured local source addresses. Correct raw-peer ownership
       to the complete accepted TCP tuple. The unrelated request retains its
       expected 403, while the intended interrupted client closes abnormally.
+- [x] Land the reviewed experiment at published `e99b68b8` and adopt the
+      verified integration base without opening native/browser admission.
+- [x] Complete the one source-only installed-Chrome/current-Mac capability
+      check by `2026-11-06T01:26:50Z`, within the existing shared phase.
+      Find a supported exclusive endpoint binding or independently revocable
+      TCP route without new trust, privileges, browser patch or environment;
+      otherwise record the assessed surface and exact capability/authority gap.
+      No end-to-end fit was established in the assessed production verifier,
+      debugger, profile/system context, proxy/disposal and Mac control
+      surfaces. This is a bounded result, not universal impossibility or an
+      actual Chrome trust-store observation. Coordinate the specific
+      host-network-authority tradeoff with the owning controller.
 - [ ] Establish current-source stop and safe guard release with possible
       surviving helpers, including reconnects and port reuse.
 - [ ] Complete authenticated permission/review provenance, native transport/

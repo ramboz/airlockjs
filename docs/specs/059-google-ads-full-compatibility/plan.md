@@ -170,6 +170,68 @@ deny-default verifier hook was found in the browser-test helper, not an
 established installed-Chrome path. Do not select a new runner, change trust
 stores or claim that an unsupported flag supplies the missing mechanism.
 
+### Installed-Chrome capability fit - 2026-11-06 UTC
+
+The experiment is integrated at
+`e99b68b856d24b9ffb92b8444a429688d25e0e7b`; this worktree verified ancestry,
+identical source and the remote pin before adopting that base.
+The controller directed one source-only determination of whether existing
+installed Chrome/current Mac authority can supply exclusive proxy endpoint
+binding or independently revocable TCP access. The local check starts at
+`2026-11-06T01:06:50Z` and stops no later than
+`2026-11-06T01:26:50Z`, within the same phase ending at `02:04:58Z`.
+This is not another allocation.
+
+Assess the pinned production verifier/context/switch wiring, supported
+debugger certificate controls and the existing Mac launcher. Reuse earlier
+proxy/verifier evidence rather than replaying the Node counterexample.
+No new trust, privileges, browser patch, runner or environment change is
+within this determination. No browser, native send or original reservation
+is admitted. If no assessed supported mechanism fits, record the missing
+capability and the owner-level tradeoff rather than start another search loop.
+
+**Finding:** no end-to-end mechanism fitting those constraints was established
+in the assessed surface below. This is a bounded source-fit result, not a
+claim that every possible Chrome/Mac composition is impossible. The Node
+test CA is still a model; this check did not inspect the installed trust
+store or run Chrome.
+
+All Chromium links below use source
+`fb096c0011f9d50f0a264a9376420cdea9c421e3`, the resolved
+`156.0.8078.80` tag. Retained raw source keeps its license headers.
+
+| Assessed surface | Concrete source result | Remaining gap |
+|---|---|---|
+| Production verifier construction | [`NetworkContext`](https://github.com/chromium/chromium/blob/fb096c0011f9d50f0a264a9376420cdea9c421e3/services/network/network_context.cc#L2876-L2903) builds a normal Mojo verifier with caching/coalescing, then wraps it in the additive exception. The separate testing verifier requires the testing installation path. | The selected SPKI exception does not replace normal verification with deny-default. No installed-browser testing hook was established. |
+| Debugger certificate controls | [`SecurityHandler`](https://github.com/chromium/chromium/blob/fb096c0011f9d50f0a264a9376420cdea9c421e3/content/browser/devtools/protocol/security_handler.cc#L84-L178) handles certificate **errors**, including continue/cancel/ignore. | Cancelling errors does not reject another certificate that normal verification accepts. This is not an all-certificates exclusive-key callback. |
+| Profile trust reduction | [`GetCertificatePolicy`](https://github.com/chromium/chromium/blob/fb096c0011f9d50f0a264a9376420cdea9c421e3/chrome/browser/net/profile_network_context_service.cc#L900-L920) supplies distrusted SPKIs and platform integration policy. [`CreateNewCertVerifyProc`](https://github.com/chromium/chromium/blob/fb096c0011f9d50f0a264a9376420cdea9c421e3/services/cert_verifier/cert_verifier_creation.cc#L116-L142) keeps the Chrome Root Store when platform integration is disabled. The [system context](https://github.com/chromium/chromium/blob/fb096c0011f9d50f0a264a9376420cdea9c421e3/chrome/browser/net/system_network_context_manager.cc#L1040-L1054) constructs separate default verifier parameters and does not update its instance policy while running. | These are real trust-reduction controls, not absent APIs. A profile-only distrust list or disabled platform integration is not a verified closed trust set across every permitted context. No such all-context composition was established here. |
+| Context-specific proxy and disposal | [`TargetHandler`](https://github.com/chromium/chromium/blob/fb096c0011f9d50f0a264a9376420cdea9c421e3/content/browser/devtools/protocol/target_handler.cc#L1530-L1558) accepts an initial context proxy. [Its installation](https://github.com/chromium/chromium/blob/fb096c0011f9d50f0a264a9376420cdea9c421e3/content/browser/devtools/protocol/target_handler.cc#L1688-L1707) clears the proxy-config receiver. [Disposal](https://github.com/chromium/chromium/blob/fb096c0011f9d50f0a264a9376420cdea9c421e3/content/browser/devtools/protocol/target_handler.cc#L1638-L1678) delegates closure of one nondefault context. | Initial routing and a context-close response do not themselves supply an independently observed TCP-capability revocation covering surviving routes and control/root-loss paths. No such completion mechanism was established. |
+| Chrome Root Store constraint override | [`TrustStoreChrome`](https://github.com/chromium/chromium/blob/fb096c0011f9d50f0a264a9376420cdea9c421e3/net/cert/internal/trust_store_chrome.cc#L481-L490) consumes a root-specific testing constraint override; [MTC anchors](https://github.com/chromium/chromium/blob/fb096c0011f9d50f0a264a9376420cdea9c421e3/net/cert/internal/trust_store_chrome.cc#L630-L637) do not support those overrides. | Its presence is not proof of a supported global deny-default verifier for every trust source. No override was tried or selected. |
+| Existing Mac confinement | The [launcher](../../../rig/inspected-google-loopback-chrome) supplies a static `localhost:<port>` allowance to `sandbox-exec -p`. Installed `sandbox-exec(1)` enters the profile and executes the command; `sandbox_init(3)` describes restriction of the current process and resource-acquisition enforcement. | No controller-owned lease, expiry or remote revocation operation is supplied by this selected launcher/interface. Listener closure does not alter its TCP permission. |
+| Direct Mac packet-filter control | The installed `pfctl(8)` interface uses `/dev/pf`; a read/write access check found that device unavailable under the current process privileges. No device open, rule/state query or mutation was attempted. | This concrete OS-control alternative needs authority outside the existing grant. It is not a selected or qualified case-scoped design. |
+
+The missing capability is **case-scoped enforcement that remains effective
+through control/root loss**: either exclusive endpoint verification across
+every permitted Chrome network context, or independently witnessed TCP
+revocation before listener release. The assessed controls do not establish
+that capability under the unchanged authority. More instances of the same
+Node replacement counterexample would not resolve it.
+
+**Owner-level tradeoff:** preserve installed Chrome with no additional
+host-network privileges and keep native capture deferred, or separately
+authorize design/review of a case-scoped Mac route-revocation control that
+may require privileged host-network changes. The latter introduces host
+network-state and recovery risks; it is not permission to run `pfctl`, a
+selected implementation, a new runner proposal or native admission. The
+owning capture controller coordinates this decision. No trust-store
+mutation, indefinite guardian, helper-cleanup claim or safety waiver is
+inferred from the completion instruction.
+
+An independent, explicitly pinned Sol architecture pass found no blocking
+source/document issue in this bounded finding. Broader feasibility remains
+unresolved; its pass neither supplies the missing capability nor authorizes
+the proposed host-network design work.
+
 ### Current Chrome helper exception and next packet - 2026-11-05
 
 The owner now directs use of installed Chrome and accepts possible leftover
