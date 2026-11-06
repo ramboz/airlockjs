@@ -1921,3 +1921,180 @@ independent review rather than left as untested follow-ups.
 - Held open: initialization/source closure, missing responses, cookies,
   actual qualification, C2/C3, native-free chamber execution and product
   receipt. The original Google stock is not refunded or reserved again.
+
+## Local worker response-chain packet - 2026-11-06
+
+The owner said "ok, do it. implement it" at 21:24:04Z after the recommendation
+to connect the manual response evidence to the experimental conversion path.
+This is a new bounded construction packet from integrated `466e82a1`, not a
+continuation of the retired capture/guard packet. It serves existing 059-01's
+experimental construction allowance. 059-01 remains READY_FOR_REVIEW and
+059-15 remains IN_PROGRESS with non-clearing full compliance.
+
+**Source fit:** the existing adapter dispatches a literal-loopback GET and
+returns at most 4096 response bytes with no headers
+(`adapters/google-ads-prototype.js:504-517`). The existing first-party worker
+awaits correlated responses but leaves bodies and URLs inert
+(`connectors/google-ads/conversion-prototype.worker.js:26-83`). The existing
+wrapped host already carries method, headers and body across the round-trip
+(`core/wrapped-sdk-host.js:441-486`); its stable capability need not change.
+The analyzed parser in `rig/google-manual-response.mjs` imports Node file
+helpers and its public API deliberately returns no URLs. Reusing its parsing
+requires a browser-safe Google leaf, not importing the rig CLI in the worker.
+ADR-0017's experimental handle carve-out and ADR-0043's trusted first-party
+mapper choice are the existing authority; no new core capability is selected.
+
+**Packet acceptance criteria:**
+
+1. An explicit opt-in experimental mode connects one captured conversion
+   command through the existing adapter, real first-party Node worker,
+   unchanged wrapped host and fixed literal-loopback receiver. Config remains
+   local retained state. Existing default modes and Meta remain unchanged.
+2. The worker decodes the observed bounded single event/data message and
+   requests exactly its linked POST followed by the independently observed
+   302 Location's GET. Public collector URLs are data only. Any permitted
+   surrogate dispatch is confined to the same literal loopback origin and
+   three closed paths for the selected conversion ID. No arbitrary proxy,
+   automatic redirect, script, cookie, fallback execution or ambient fetch.
+3. Capture-derived framing and ordered follow-up relationships retain owned
+   label/value/currency/page/identity consistency, omission and legitimate
+   duplicate random pairs. The primary remains the experimental mapping;
+   its missing native fields are not filled from a reference to fake parity.
+   Each stage has independent command/request/response-parent accounting.
+   A final result must agree with the host ledger. Trusted first-party
+   mapping is not malicious-mapper resistance.
+4. Targeted TDD covers a real-worker/independent-receiver positive and visible
+   failures for altered values, foreign/broken parents, duplicate/dropped or
+   wrong-order stages, malformed/oversized or unavailable responses, denied
+   or revoked consent, deadlines, disposal and forged completion. Withheld
+   responses must prevent completion; no automatic retry or replacement
+   worker. Existing strict parsing and unchanged default modes regress.
+5. The fixed SDK-free CLI reports actual local worker/dispatch/cleanup
+   observations separately from permanently unqualified native reference,
+   browser, complete conversion and product receipt. Synthetic local empty
+   responses do not repair the original HAR's missing secondary/final data.
+   Preserve fallback as offered and unexecuted.
+
+**Execution and scope:** Node/unit tests and SDK-free literal-loopback controls
+only. Allowed changes are experimental Google adapter/connector/worker code,
+one browser-safe Google parsing leaf reused by the rig analyzer, a fixed local
+chain rig and directly related tests/docs/reviews. Core/contracts, stable
+boot, production connectors, build/dependency manifests, native/inspected
+policy and inventories, Meta, oracle profiles and Accepted decisions stay
+unchanged. No browser, SDK, public request, deployment, account operation,
+original authority/slot access or guard/runtime retry. Source changes cannot
+qualify historical browser witnesses. A demonstrated frozen-contract or new
+authority need stops the dependent path instead of silently extending it.
+
+The coordinator records source fit and owns integration. Implementation is
+explicitly pinned to gpt-6.1-terra; required Jig reviews to gpt-6.1-sol.
+Use the existing two-active-hour source checkpoint discipline, with a
+conservative checkpoint at 23:24:04Z. This grants no live window, numeric
+performance threshold, case reservation or further programme.
+
+### Implementation and review checkpoint
+
+The initial implementation exposes the default-off
+`experimentalManualResponseChain: { auid }` mode, a shared browser-safe
+`connectors/google-ads/manual-response.js` leaf, and the fixed
+`node rig/google-manual-worker-chain.mjs` command. The original analyzer
+re-exports its existing APIs from that leaf; its fixture and outputs remain
+unchanged. The fixed local command independently observed three GET/POST/GET
+calls and empty synthetic secondary/final bodies. It did not recover native
+bytes. Its result remains INCONCLUSIVE.
+
+The initial covering run passed 1475 tests across 70 files. Actual red/green
+also isolated UTF-8, BOM/structure, queued revoke-to-grant, resource drain,
+budget and partial-CLI failures. These logs are retained privately. Required
+source reviews and final covering verification remain pending at this checkpoint.
+
+The initial pinned Sol compliance review found three packet-local blockers:
+one-stage summaries could incorrectly settle a dropped chain, an idle request
+could read an undefined ledger, and the new mode added a host semantic
+serialization check contrary to ADR-0043. These are implementation defects,
+not permission to change the accepted authority. Corrections must close
+the protocol gaps and remove that new semantic check only from the new mode;
+existing default-mode protections stay unchanged. Semantic construction stays
+in the trusted worker and independent receiver comparisons evaluate it.
+Full 059-01 compliance remains non-clearing.
+
+The corrective pinned Sol compliance pass cleared all three packet-local
+blockers. It verified exact held-primary versus three-stage completion,
+startup/idle terminal handling and removal of the new host semantic mapper.
+The correction run passed 84 focused chain tests and 404 existing controls.
+Craft and architecture passed on source. Craft identified two refinements:
+cancel or abort a streaming response when required headers are missing, and
+make the fixed CLI's primary comparison independently falsifiable. Their
+correction and final review are still pending at this checkpoint.
+
+### Final bounded source result
+
+Both craft refinements were corrected through pinned Terra and cleared by a
+fresh pinned Sol corrective pass. Missing-header streaming responses now abort
+and cancel while tracked; non-cooperative cancellation rejects cleanup instead
+of being reported closed. Five isolated fixed-CLI primary mutations return
+failed/nonzero; defeating only the uniquely identified primary comparison
+exposes the missing check. Committed runtime code has no bypass or extra CLI
+option. The final focused chain suite has 92 passing tests.
+
+The parent independently ran:
+
+```sh
+npm test -- --no-file-parallelism test/google-ads-*.test.js test/google-manual-worker-chain*.test.js rig/google-manual-response.test.mjs rig/native-stock-policy.test.mjs rig/inspected-google-policy.test.mjs test/wrapped-sdk-host.test.js test/contract-stability.test.js test/meta-pageview-prototype*.test.js test/meta-prototype-request-correlation.test.js --reporter=dot
+```
+
+All 1171 tests across 45 files passed. Scoped ESLint passed for the seven
+source/test files. Browser-platform esbuild bundling of the worker succeeded
+without running a browser. Both fixed CLIs were checked: the local command
+observed exactly three GET/POST/GET calls, parent-linked stages, independent
+receiving observations and verified owned cleanup, while keeping every
+native/browser/full-reference/chamber-conversion/product claim false. The
+original offline CLI remains matched/inconclusive.
+
+All seven final source hashes matched the tested correction manifest. The
+sanitized HAR fixture and native/inspected policy remain unchanged. Full
+059-01 compliance is still needs-changes; this is a completed construction
+packet, not a qualified native or deployed-browser conversion.
+
+### Bounded worker-chain deviation log
+
+The initial synchronous Terra context could not receive tool follow-ups.
+The coordinator used one narrower retained Terra correction context for the
+three compliance blockers and two craft refinements. Both phases were explicitly
+pinned; no lifecycle reset, gate bypass or new product owner was created.
+
+The parser moved to a browser-safe Google leaf for genuine reuse by the
+existing analyzer and first-party worker. Its Node file CLI stays in the rig.
+The new mode shares the existing text round-trip capability under ADR-0017
+and ADR-0043; no core API, new authority or rejected-alternative decision
+was introduced. No ADR number was allocated.
+
+The initial host semantic check was removed from the new mode during review.
+Default-mode checks remain. Runtime protocol accounting is not a second vendor
+mapper or malicious-trusted-mapper protection. The first-party mapper is
+evaluated through independent receiving/CLI controls.
+
+### Bounded worker-chain reconciliation sweep
+
+- Updated: experimental Google adapter/worker, shared parsing leaf, fixed rig
+  and tests, operator guide, architecture's experimental note, current
+  plan/tasks/slice note and actual review records.
+- No-op: core/contracts/stable boot, production connectors, Meta, dependencies,
+  build inputs, native/inspected policy and inventories, oracle and Accepted
+  records. The fixture and private native captures remain unchanged.
+- No-op: lifecycle. 059-01 stays READY_FOR_REVIEW; 059-15 stays
+  IN_PROGRESS/non-clearing. The full-slice criteria have not been waived.
+  The generated status board updates review-selection audit metadata only.
+- Checked leanness: one default-off mode, one reused parser and fixed three-path
+  local rig; no general proxy/runner, second verifier or production bypass.
+- Preserved: five-field experimental primary, unavailable native secondary/
+  final bytes, offered-only fallback, unknown native initialization/cookies/
+  browser/performance/product qualification and original spent Google stock.
+- Preserved privately: source hashes, original and corrective red/green,
+  selected review prompts/verdicts, CLI results and exact covering commands.
+  Retire this packet after reviewed commit/handoff; no live or successor run.
+
+Pinned Sol reconciliation passed for this construction only. No additional
+deviation was found. The coordinator owns final base-diff/hash checks and
+retaining the actual commit/delivery receipt. Full product reconciliation and
+native/browser qualification remain open.

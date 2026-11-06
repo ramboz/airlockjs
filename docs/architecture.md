@@ -37,6 +37,23 @@ A framework-agnostic runtime core, with EDS as the first adapter and connectors 
 - `test/` — vitest suites, including the oracle components servo will score.
 - `.jig/` — durable workflow state.
 
+### Experimental Google local response chain
+
+The standalone experimental Google path has a default-off local response-chain
+mode. The trusted first-party worker parses the captured single message using
+`connectors/google-ads/manual-response.js` and requests its linked POST and
+redirect GET (`connectors/google-ads/conversion-prototype.worker.js:66-101`).
+The adapter owns consent, ordered stage/parent accounting and three fixed
+same-loopback routes. It uses the existing wrapped-host text response capability;
+no stable core or capability contract changes. This follows ADR-0043's existing
+trusted-mapper boundary, not a second semantic verifier on main.
+
+The fixed [Node command](../rig/native-stock-capture.md#local-google-worker-response-chain-experiment---2026-11-06)
+uses synthetic responses and no Google runtime or public dispatch. It proves
+only its independently observed local path and cleanup. Native response bytes,
+browser confinement, complete conversion, performance and product receipt
+remain unqualified. The Node worker bridge is not an adversarial sandbox.
+
 ### Reference-only capture boundary
 
 [ADR-0034](decisions/adr-0034-inspected-meta-stock-reference.md) permits a

@@ -4,6 +4,26 @@ The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
 
+## Local worker response-chain packet - 2026-11-06
+
+- [x] Bind the new owner-directed experiment to integrated `466e82a1` and
+      inspect the existing round-trip without altering product lifecycle.
+- [x] Review the bounded construction fit before selecting the opt-in path.
+- [x] Use pinned Terra TDD to connect the actual worker and unchanged host
+      to fixed loopback primary/POST/redirect stages with strict parsing.
+- [x] Prove independent receiver relationships, failure controls, finite
+      settlement/cleanup and unchanged default Google/Meta behavior.
+- [x] Run pinned Sol compliance, craft and architecture. Close all local
+      findings, including streaming cancellation and CLI falsifiability.
+      Parent final covering run: 1171 passed across 45 files.
+- [x] Finish bounded documentation reconciliation through pinned Sol.
+      Keep full 059-01/059-15 native/product criteria non-clearing.
+- [x] Retain exact red/green and local-only commands/results; update the
+      operator guide and prepare the reviewed packet for commit/delivery.
+
+The final private source handoff records the actual commit and integration
+delivery after they succeed. No successor or live run starts from this packet.
+
 ## Offline manual-response packet - 2026-11-06
 
 - [x] Adopt published `3fbe4dfc` without unrelated trunk or main-checkout work.

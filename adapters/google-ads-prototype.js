@@ -32,6 +32,10 @@ function dateTimeValue(value) {
 const FAILURES = new Set([
   "transport-timeout", "transport-failed", "invalid-transport-response", "invalid-command-order",
   "duplicate-worker-init", "worker-configuration-failed", "unsupported-worker-message",
+  "invalid-owned", "invalid-url", "invalid-ownership", "invalid-parent", "body-limit", "invalid-utf8",
+  "invalid-json", "duplicate-json", "structure-limit", "invalid-frame", "invalid-message",
+  "invalid-fetch-count", "invalid-chain-response",
+  "response-unavailable", "response-too-large",
 ]);
 const REASONS = new Set([
   "connector-not-initialized", "unsupported-command", "unsupported-config", "synthetic-destination-required",
@@ -232,6 +236,41 @@ async function responseText(response) {
   }
 }
 
+async function manualResponse(response, stage) {
+  if (!response || !response.headers || typeof response.headers.get !== "function" ||
+      !response.body || typeof response.body.getReader !== "function") throw new Error("response-unavailable");
+  const headers = {};
+  for (const name of ["content-type", "location"]) {
+    const value = response.headers.get(name);
+    if (value !== null) {
+      if (typeof value !== "string" || value.length > 8192) throw new Error("response-unavailable");
+      headers[name] = value;
+    }
+  }
+  if ((stage === "primary" && !headers["content-type"]) || (stage === "secondary" && !headers.location)) {
+    throw new Error("response-unavailable");
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
+  const decode = (value, options) => {
+    try { return decoder.decode(value, options); }
+    catch (error) { throw new Error("invalid-utf8", { cause: error }); }
+  };
+  let bytes = 0, body = "";
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) return { status: response.status, headers, body: body + decode() };
+      bytes += value.byteLength;
+      if (bytes > 4096) throw new Error("response-too-large");
+      body += decode(value, { stream: true });
+    }
+  } finally {
+    await reader.cancel().catch(() => {});
+    reader.releaseLock();
+  }
+}
+
 /** EXPERIMENTAL, source-only, synthetic/loopback ONLY. No global installation.
  * Main captures data, not command meaning. Mapping and retained config are in
  * the first-party worker. Transport settlement is never receiver/native proof.
@@ -248,6 +287,7 @@ export function createGoogleAdsPrototype({
   experimentalTravelViewItem = false, experimentalFlightsViewItem = false, experimentalViewItemList = false,
   experimentalViewSearchResults = false, experimentalAddToCart = false, experimentalRemarketingPurchase = false,
   experimentalDisableRemarketing = false,
+  experimentalManualResponseChain = false,
 } = {}) {
   const viewOptions = {
     retail: experimentalRetailViewItem, education: experimentalEducationViewItem,
@@ -280,21 +320,46 @@ export function createGoogleAdsPrototype({
     : /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/0000000000\/$/;
   const match = typeof endpoint === "string" && endpoint.match(pattern);
   if (!match || Number(match[1]) > 65535) throw new Error("literal-loopback-endpoint-required");
+  let manualIdentity;
+  if (experimentalManualResponseChain !== false) {
+    const option = experimentalManualResponseChain;
+    const descriptor = option && typeof option === "object" && Object.getOwnPropertyDescriptor(option, "auid");
+    if (!option || ![Object.prototype, null].includes(Object.getPrototypeOf(option)) ||
+        Reflect.ownKeys(option).length !== 1 || !descriptor || !Object.hasOwn(descriptor, "value") ||
+        typeof descriptor.value !== "string" || !/^[A-Za-z0-9._-]{1,128}$/.test(descriptor.value) ||
+        !experimentalRouting || experimentalParameterScopes || experimentalCallbacks || experimentalMultiDestination ||
+        experimentalConsentCommands || experimentalBootstrap || experimentalDataLayer || experimentalPurchase ||
+        experimentalCustomVariables || experimentalViewItem || experimentalViewEvent || experimentalDisableRemarketing) {
+      throw new Error("invalid-experimental-option");
+    }
+    manualIdentity = { auid: descriptor.value };
+  }
   const second = experimentalMultiDestination && typeof additionalEndpoint === "string" && additionalEndpoint.match(pattern);
   if (experimentalMultiDestination && (!second || Number(second[1]) > 65535 || match[2] === second[2])) {
     throw new Error("literal-loopback-endpoint-required");
   }
   const endpoints = experimentalMultiDestination ? [endpoint, additionalEndpoint] : [endpoint];
+  const manualPaths = manualIdentity ? [
+    endpoint,
+    `http://127.0.0.1:${match[1]}/pagead/viewthroughconversion/${match[2]}/`,
+    `http://127.0.0.1:${match[1]}/pagead/1p-conversion/${match[2]}/`,
+  ] : null;
   const routes = experimentalMultiDestination ? new Map([[`AW-${match[2]}`, endpoint], [`AW-${second[2]}`, additionalEndpoint]]) : null;
   if (!Number.isInteger(queueLimit) || queueLimit < 1 || queueLimit > 128 ||
-      ![initTimeoutMs, commandTimeoutMs, transportTimeoutMs].every((n) => Number.isInteger(n) && n >= 10 && n <= 10000)) {
+      ![initTimeoutMs, commandTimeoutMs, transportTimeoutMs].every((n) => Number.isInteger(n) && n >= 10 && n <= 10000) ||
+      (manualIdentity && (initTimeoutMs > 2000 || commandTimeoutMs > 5000 || transportTimeoutMs > 1500))) {
     throw new Error("invalid-prototype-bounds");
   }
   const queue = [];
   const capturedConsent = new WeakMap();
+  const capturedConsentGeneration = new WeakMap();
   const outcomes = [];
   const waiters = new Set();
   const controllers = new Set();
+  const capabilityWork = new Set();
+  const hostDrives = new Set();
+  const hostResponsesPending = new Map();
+  const hostListeners = new Set();
   const subscriptions = [];
   const callbacks = new Map();
   const callbackStats = { invoked: 0, timeout: 0, errors: 0, cancelled: 0 };
@@ -309,6 +374,7 @@ export function createGoogleAdsPrototype({
   const consentVector = {
     get ad_storage() {
       const hostValue = resolveConsent(hostConsent, "ad_storage");
+      if (manualIdentity && inFlight && activeLeaseInvalid) return "denied";
       if (inFlight && activeHostConsent !== "granted") return activeHostConsent;
       if (hostValue !== "granted" || !experimentalConsentCommands) return hostValue;
       if (pendingDenials.size || appliedDenials.size) return "denied";
@@ -332,6 +398,9 @@ export function createGoogleAdsPrototype({
   let activeRequest;
   let activeRequests;
   let activeSelectors;
+  let activeLeaseInvalid = false;
+  let consentGeneration = 0;
+  let manualActualCalls = 0;
   let lastRequestId = 0;
   let awaitingResult = false;
   let finishCurrent;
@@ -354,9 +423,13 @@ export function createGoogleAdsPrototype({
       outcomes: outcomes.map((entry) => ({
         ...entry,
         ...(entry.branches ? { branches: entry.branches.map((branch) => ({ ...branch })) } : {}),
+        ...(entry.chain ? { chain: entry.chain.map((stage) => ({ ...stage })) } : {}),
         ...(entry.unmodeledPurposes ? { unmodeledPurposes: [...entry.unmodeledPurposes] } : {}),
       })).sort((a, b) => a.seq - b.seq),
-      host: { dispatchAttempts: state?.mainDispatch.count || 0, consentHeld: state?.consentHeld || 0, ceilingHeld: state?.ceilingHeld || 0 },
+      host: { dispatchAttempts: state?.mainDispatch.count || 0, consentHeld: state?.consentHeld || 0, ceilingHeld: state?.ceilingHeld || 0,
+        ...(manualIdentity ? { actualCalls: manualActualCalls } : {}) },
+      ...(manualIdentity ? { manualCleanup: { capabilityPending: capabilityWork.size, hostDrivesPending: hostDrives.size,
+        hostResponsesPending: hostResponsesPending.size, controllers: controllers.size, hostListeners: hostListeners.size } } : {}),
       receipt: "not-observed-by-adapter", fullCompatibility: false,
       ...(experimentalCallbacks ? { callbacks: { ...callbackStats, pending: callbacks.size } } : {}),
     };
@@ -401,6 +474,7 @@ export function createGoogleAdsPrototype({
       status: message.status,
       held: message.status === 0 && typeof message.statusText === "string" &&
         message.statusText.startsWith("held at the seal:"),
+      ...(manualIdentity ? { body: message.body, headers: message.headers } : {}),
     };
     return true;
   }
@@ -415,6 +489,11 @@ export function createGoogleAdsPrototype({
   function branchOutcomes() {
     if (!experimentalMultiDestination || !activeSelectors || activeSelectors.length > 2) return undefined;
     return activeSelectors.map((_selector, index) => branchOutcome(activeRequests[index], index));
+  }
+  function manualChainOutcome() {
+    return activeRequests.map(({ id, stage, parent, actual, response }) => ({
+      id, stage, parent, actual: !!actual, status: response?.status,
+    }));
   }
   function matchesHostResponse(summary) {
     if (summary.requests === 0) {
@@ -441,6 +520,23 @@ export function createGoogleAdsPrototype({
         (summary.disposition !== "consent-updated" ||
           (experimentalConsentCommands && summary.reason === undefined && validConsentCommand(activeCommand))) &&
         summary.status === undefined && summary.terminal === undefined && summary.branches === undefined;
+    }
+    if (manualIdentity) {
+      if (!dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, viewEvents, experimentalRemarketingPurchase) ||
+          summary.branches !== undefined || summary.terminal !== undefined) return false;
+      if (summary.requests === 1) {
+        const request = activeRequests[0];
+        return activeRequests.length === 1 && activeRequest === request && request.stage === "primary" &&
+          request.parent === 0 && !request.actual && request.response?.status === 0 && request.response.held &&
+          summary.disposition === "held" && summary.status === 0 && summary.reason === "held-at-seal";
+      }
+      return summary.requests === 3 && activeRequests.length === 3 &&
+        activeRequest === activeRequests[2] &&
+        activeRequests.every((request, index) => request.actual && request.response &&
+          request.stage === ["primary", "secondary", "final"][index] &&
+          request.parent === (index ? activeRequests[index - 1].id : 0)) &&
+        activeRequests.map((request) => request.response.status).join(",") === "200,302,200" &&
+        summary.disposition === "transport-settled" && summary.status === 200 && summary.reason === undefined;
     }
     if (experimentalMultiDestination) {
       if (!dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, viewEvents, experimentalRemarketingPurchase) ||
@@ -475,6 +571,11 @@ export function createGoogleAdsPrototype({
     }
     phase = disposed ? "disposed" : "terminal";
     terminalReason = reason;
+    if (manualIdentity) {
+      activeLeaseInvalid = true;
+      for (const listener of hostListeners) listener({ type: "fatal", message: reason });
+      hostListeners.clear();
+    }
     dataLayerSource = undefined;
     dataLayerEntries = [];
     clearTimeout(initTimer);
@@ -493,15 +594,66 @@ export function createGoogleAdsPrototype({
     let disposal;
     try { disposal = transport?.dispose?.(); }
     catch { disposal = Promise.reject(new Error("transport-dispose-failed")); }
-    closed = Promise.resolve(disposal).then(
+    const cleanup = manualIdentity ? (async () => {
+      await Promise.resolve();
+      const pending = Promise.allSettled([...hostDrives, ...capabilityWork,
+        ...[...hostResponsesPending.values()].map(({ promise }) => promise), Promise.resolve(disposal)]);
+      let timer;
+      try {
+        const results = await Promise.race([pending, new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error("cleanup-deadline")), 1800);
+        })]);
+        if (results.at(-1)?.status === "rejected") throw new Error("transport-dispose-failed");
+        hostListeners.clear();
+      } finally { clearTimeout(timer); }
+    })() : Promise.resolve(disposal);
+    closed = cleanup.then(
       () => { if (cleanupFailure) throw new Error("prototype-cleanup-failed"); },
-      () => { cleanupFailure = "transport-dispose-failed"; throw new Error("prototype-cleanup-failed"); },
+      (error) => {
+        cleanupFailure = manualIdentity && error?.message === "cleanup-deadline" ? "capability-drain-timeout" : "transport-dispose-failed";
+        throw new Error("prototype-cleanup-failed", { cause: error });
+      },
     );
     // Observe event-driven failure without replacing the rejection dispose returns.
     void closed.catch(() => {});
     settle();
   }
   async function dispatch(request) {
+    if (manualIdentity) {
+      const current = activeRequest;
+      if (phase !== "ready" || !current || current.actual || activeLeaseInvalid ||
+          consentVector.ad_storage !== "granted" || request.url !== current.url ||
+          request.method !== current.method || request.headers !== undefined || request.body !== undefined) {
+        throw new Error("literal-loopback-policy");
+      }
+      const controller = new AbortController();
+      controllers.add(controller);
+      let timedOut = false;
+      let response;
+      const timer = setTimeout(() => { timedOut = true; controller.abort(); }, transportTimeoutMs);
+      try {
+        if (phase !== "ready" || activeLeaseInvalid || consentVector.ad_storage !== "granted") throw new Error("consent-revoked");
+        current.actual = true;
+        manualActualCalls += 1;
+        response = await fetchImpl(request.url, {
+          method: request.method, credentials: "omit", redirect: "manual", referrerPolicy: "no-referrer", signal: controller.signal,
+        });
+        if (phase !== "ready" || activeLeaseInvalid || consentVector.ad_storage !== "granted") throw new Error("consent-revoked");
+        const result = await manualResponse(response, current.stage);
+        if (phase !== "ready" || activeLeaseInvalid || consentVector.ad_storage !== "granted") throw new Error("consent-revoked");
+        return result;
+      } catch (error) {
+        controller.abort();
+        try {
+          if (response?.body && !response.body.locked && typeof response.body.cancel === "function") {
+            await response.body.cancel();
+          }
+        } catch { /* Abort or cancellation may already have closed the body. */ }
+        const safe = ["response-unavailable", "response-too-large", "invalid-utf8", "consent-revoked"];
+        throw new Error(timedOut ? "transport-timeout" :
+          safe.includes(error?.message) ? error.message : "loopback-transport-failed", { cause: error });
+      } finally { clearTimeout(timer); controllers.delete(controller); }
+    }
     if (phase !== "ready" || request.method !== "GET" || request.headers !== undefined || request.body !== undefined ||
         typeof request.url !== "string" || request.url.length > 8192 ||
         !endpoints.some((value) => request.url.startsWith(`${value}?`)) || request.url.includes("#")) throw new Error("literal-loopback-policy");
@@ -526,6 +678,8 @@ export function createGoogleAdsPrototype({
       activeContext = event.payload.context;
       activeRequest = undefined;
       activeRequests = [];
+      activeLeaseInvalid = activeHostConsent !== "granted" ||
+        (manualIdentity && capturedConsentGeneration.get(event) !== consentGeneration);
       const eventParams = dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, viewEvents, experimentalRemarketingPurchase)
         ? activeCommand?.[2] : undefined;
       const sendTo = eventParams && Object.hasOwn(eventParams, "send_to") ? eventParams.send_to : undefined;
@@ -544,11 +698,17 @@ export function createGoogleAdsPrototype({
         };
         const timer = setTimeout(() => finish({ failure: "command-timeout" }), commandTimeoutMs);
         finishCurrent = finish;
-        host.driveEvent(event).then((result) => finish({ result }), () => finish({ failure: "worker-fatal" }));
+        const drive = host.driveEvent(event);
+        if (manualIdentity) {
+          hostDrives.add(drive);
+          void drive.then(() => hostDrives.delete(drive), () => hostDrives.delete(drive));
+        }
+        drive.then((result) => finish({ result }), () => finish({ failure: "worker-fatal" }));
       });
       if (settled.failure) {
         const branches = branchOutcomes();
-        record({ seq: event.seq, disposition: "rejected", reason: settled.failure, ...(branches ? { branches } : {}) });
+        record({ seq: event.seq, disposition: "rejected", reason: settled.failure, ...(branches ? { branches } : {}),
+          ...(manualIdentity && activeRequests.length ? { chain: manualChainOutcome() } : {}) });
         stop(settled.failure);
       } else {
         const summary = settled.result.summary;
@@ -565,6 +725,7 @@ export function createGoogleAdsPrototype({
           ...(Number.isInteger(summary.status) ? { status: summary.status } : {}),
           ...(summary.reason ? { reason: REASONS.has(summary.reason) ? summary.reason : "worker-rejected" } : {}),
           ...(experimentalMultiDestination && summary.branches ? { branches: branchOutcomes() } : {}),
+          ...(manualIdentity && activeRequests.length ? { chain: manualChainOutcome() } : {}),
           ...(summary.disposition === "consent-updated"
             ? { unmodeledPurposes: Object.keys(activeCommand[2]).filter((key) => key !== "ad_storage") } : {}),
         });
@@ -592,6 +753,7 @@ export function createGoogleAdsPrototype({
     if (admitted >= LIMIT) { reject("session-command-limit"); return; }
     if (args.length > 3) { reject("argument-limit"); return; }
     const hostConsentAtCapture = resolveConsent(hostConsent, "ad_storage");
+    const generationAtCapture = consentGeneration;
     if (experimentalDisableRemarketing && args[0] === "set" && args[1] === "allow_ad_personalization_signals" &&
         (!validRemarketingDisableCommand(args) || admitted !== 0)) { reject("unsupported-remarketing-control"); return; }
     capturing = true;
@@ -684,6 +846,7 @@ export function createGoogleAdsPrototype({
       if (queue.length >= queueLimit || admitted >= LIMIT) { reject("capture-admission-changed"); return; }
       const event = { seq, type: "google-ads-command", ts: performance.now(), payload, snapshot: {} };
       capturedConsent.set(event, hostConsentAtCapture);
+      if (manualIdentity) capturedConsentGeneration.set(event, generationAtCapture);
       if (callback) {
         const entry = { fn: callback.fn, scheduled: false, timer: undefined };
         entry.timer = setTimeout(() => scheduleCallback(seq, "timeout"), callback.timeout);
@@ -716,7 +879,6 @@ export function createGoogleAdsPrototype({
   }
   try {
     transport = chamber || browserChamber();
-    const hostListeners = new Set();
     subscriptions.push(transport.onMessage((message) => {
       if (phase === "terminal" || phase === "disposed") return;
       if (message?.type === "fatal") { stop(FAILURES.has(message.message) ? message.message : "worker-fatal"); return; }
@@ -744,12 +906,49 @@ export function createGoogleAdsPrototype({
           ...(experimentalBootstrap ? ["bootstrap-accepted"] : []),
           ...(experimentalDisableRemarketing ? ["remarketing-disabled", "remarketing-suppressed"] : []),
           ...(experimentalParameterScopes ? ["scope-updated"] : [])].includes(summary.disposition) ||
-            !(experimentalMultiDestination ? [0, 1, 2] : [0, 1]).includes(summary.requests) ||
+            !(manualIdentity ? [0, 1, 3] : experimentalMultiDestination ? [0, 1, 2] : [0, 1]).includes(summary.requests) ||
             (summary.status !== undefined && (!Number.isInteger(summary.status) || summary.status < 0 || summary.status > 599))) {
           stop("invalid-worker-result"); return;
         }
         if (!matchesHostResponse(summary)) { stop("result-transport-mismatch"); return; }
         awaitingResult = false;
+      }
+      if (manualIdentity && message?.type === "intercepted-fetch") {
+        if (phase !== "ready" || !inFlight || !awaitingResult || !Array.isArray(activeRequests)) {
+          stop("request-correlation-failed"); return;
+        }
+        const index = activeRequests.length;
+        const stages = ["primary", "secondary", "final"];
+        const methods = ["GET", "POST", "GET"];
+        const prior = activeRequests.at(-1);
+        const validKeys = ["type", "id", "url", "method", "stage", "parent", ...(index ? ["source"] : [])];
+        let valid = inFlight && awaitingResult && activeCommand?.[0] === "event" && activeCommand[1] === "conversion" &&
+          index < 3 && message.id === lastRequestId + 1 && message.stage === stages[index] &&
+          message.method === methods[index] && message.parent === (prior?.id ?? 0) &&
+          Object.keys(message).length === validKeys.length && Object.keys(message).every((key) => validKeys.includes(key)) &&
+          typeof message.url === "string" && message.url.length <= 8192 &&
+          message.url.startsWith(`${manualPaths[index]}?`) && !message.url.includes("#");
+        if (valid && index > 0) {
+          const prefix = index === 1
+            ? `https://googleads.g.doubleclick.net/pagead/viewthroughconversion/${match[2]}/`
+            : `https://www.google.com/pagead/1p-conversion/${match[2]}/`;
+          valid = prior.actual && prior.response?.status === (index === 1 ? 200 : 302) &&
+            typeof message.source === "string" && message.source.startsWith(`${prefix}?`) &&
+            message.url === `${manualPaths[index]}${message.source.slice(prefix.length)}` &&
+            (index === 1 ? typeof prior.response.body === "string" &&
+              prior.response.body.includes(JSON.stringify(message.source)) : prior.response.headers?.location === message.source);
+        }
+        if (!valid) { stop("request-correlation-failed"); return; }
+        lastRequestId = message.id;
+        activeRequest = { id: message.id, stage: message.stage, parent: message.parent,
+          url: message.url, method: message.method, actual: false };
+        activeRequests.push(activeRequest);
+        let finishResponse;
+        const promise = new Promise((resolve) => { finishResponse = resolve; });
+        hostResponsesPending.set(message.id, { promise, resolve: finishResponse });
+        for (const listener of hostListeners) listener({ type: "intercepted-fetch", id: message.id,
+          url: message.url, method: message.method });
+        return;
       }
       if (message?.type === "intercepted-fetch") {
         if (!inFlight || !awaitingResult ||
@@ -824,17 +1023,32 @@ export function createGoogleAdsPrototype({
     host = createWrappedSdkHost({
       chamber: {
         postMessage(message) {
+          if (manualIdentity && message?.type === "intercepted-fetch-response") {
+            const pendingResponse = hostResponsesPending.get(message.id);
+            if (pendingResponse) {
+              hostResponsesPending.delete(message.id);
+              pendingResponse.resolve();
+            }
+          }
           if (phase === "terminal" || phase === "disposed") return;
           if (message?.type === "intercepted-fetch-response" && !recordHostResponse(message)) return;
           try { transport.postMessage(message); } catch { stop("transport-post-failed"); }
         },
         onMessage: (listener) => hostListeners.add(listener),
       },
-      caps: { egress: { dispatch } }, endpointCeiling: endpoints, consent: consentVector,
+      caps: { egress: { dispatch(request) {
+        const work = dispatch(request);
+        if (manualIdentity) {
+          capabilityWork.add(work);
+          void work.then(() => capabilityWork.delete(work), () => capabilityWork.delete(work));
+        }
+        return work;
+      } } }, endpointCeiling: manualPaths || endpoints, consent: consentVector,
       egressPurposes: ["ad_storage"], grantedCookieNames: [], timeoutMs: transportTimeoutMs, onDiagnostic() {},
     });
     initTimer = setTimeout(() => stop("init-timeout"), initTimeoutMs);
     host.init({ endpoint, transportTimeoutMs,
+      ...(manualIdentity ? { experimentalManualResponseChain: manualIdentity } : {}),
       ...(experimentalRouting === true ? { experimentalRouting: true } : {}),
       ...(experimentalParameterScopes === true ? { experimentalParameterScopes: true } : {}),
       ...(experimentalConsentCommands === true ? { experimentalConsentCommands: true } : {}),
@@ -866,7 +1080,15 @@ export function createGoogleAdsPrototype({
       return new Promise((resolve) => waiters.add(resolve));
     },
     setConsent(vector) {
-      if (phase !== "terminal" && phase !== "disposed") hostConsent.ad_storage = vector?.ad_storage;
+      if (phase !== "terminal" && phase !== "disposed") {
+        hostConsent.ad_storage = vector?.ad_storage;
+        if (manualIdentity && resolveConsent(hostConsent, "ad_storage") !== "granted") consentGeneration += 1;
+        if (manualIdentity && inFlight && activeCommand?.[0] === "event" &&
+            resolveConsent(hostConsent, "ad_storage") !== "granted") {
+          activeLeaseInvalid = true;
+          stop("consent-revoked");
+        }
+      }
     },
     async dispose() { stop("disposed", true); await closed; },
   };
