@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
 
-it.runIf(process.platform === "darwin")("refuses a real sharing-enabled loopback listener", () => {
+it.runIf(process.platform === "darwin")("validates real owned loopback descriptors", () => {
   const source = fileURLToPath(new URL("./inspected-google-guard-descriptor-fixture.c", import.meta.url));
   const binary = resolve("rig", `.google-guard-descriptor-${randomBytes(16).toString("hex")}`);
   try {
@@ -14,8 +14,14 @@ it.runIf(process.platform === "darwin")("refuses a real sharing-enabled loopback
     console.log(result.stdout);
     expect(result.error).toBeUndefined();
     expect(result.status, result.stderr).toBe(0);
-    expect(result.stdout).toMatch(/actual_reuseport=0 validator_reuseport=0 policy_accepted=1 expected=1/);
-    expect(result.stdout).toMatch(/actual_reuseport=1 validator_reuseport=1 policy_accepted=0 expected=0/);
+    for (const name of ["nonsharing-listener", "blocking-listener", "bound-unlistening", "wrong-type", "wrong-address-unbound",
+      "wrong-port", "sharing-listener"]) {
+      expect(result.stdout).toMatch(new RegExp(`case=${name} .* accepted=${name === "nonsharing-listener" ? 1 : 0} expected=`));
+    }
+    expect(result.stdout).toMatch(/case=wrong-family (actual=::1 listening=1 accepted=0 expected=0|skip_errno=(47|49|43))/);
+    expect(result.stdout).toMatch(/case=connected accepted=0 expected=0 flags_unchanged=1/);
+    expect(result.stdout).toMatch(/case=queued-listener accepted=1 expected=1 flags_unchanged=1 queued_rejected=1/);
+    expect(result.stdout).toMatch(/case=service-reject accepted=1 expected=1 flags_unchanged=1 queued_rejected=1/);
   } finally {
     if (existsSync(binary)) unlinkSync(binary);
   }

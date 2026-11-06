@@ -562,6 +562,100 @@ craft/compliance follow-ups cover the test-only cleanup delta and static
 diagnosis. The other five source files are unchanged. These dispositions
 do not establish activation or a working retained guard.
 
+#### Coupled source corrections after the first checkpoint
+
+The controller directed the same retained Terra to correct the listening
+predicate and future original-evidence retention independently of error 5.
+The first diagnostic snapshot is preserved in `9ab4c2bc`; it was not handed
+off as the final corrected source.
+
+The listener fixture first reproduced the full-validator failure on real
+nonsharing listeners. The installed SDK labels `proc_pidfdinfo` private,
+so no private process API was used. The correction instead uses documented
+`accept(2)` behavior on the exact supplied descriptor, after all existing
+endpoint/type/port/nonsharing checks. It requires an already nonblocking
+descriptor. Successful accept immediately closes the client; an empty
+listening queue returns `EWOULDBLOCK`. Other errors refuse readiness.
+Production never changes shared descriptor status flags. It checks that
+the flags observed before and after the operation match. Blocking
+descriptors remain refused.
+
+Real source-only controls now accept the owned nonblocking IPv4 listener
+and reject bound-unlistening, blocking, connected, datagram, wrong-port,
+sharing and bound/listening IPv6 `::1` descriptors. Queued and subsequent
+clients are observed closed without reads or upstream forwarding. The
+initial queued green attempt lacked an observed ready queue and failed;
+the corrected fixture waits for actual `POLLIN`. Both observations are
+retained. A separate bound IPv4 alternative was not established:
+`127.0.0.2` failed with `EADDRNOTAVAIL`; the unbound-address control does
+not isolate a different listening IPv4 address.
+
+These controls do not establish the flags of an actual launchd descriptor
+or exclude another holder changing shared flags between observations.
+Actual acquisition/custody, crash/restart, logout/unload and Chrome routes
+remain unqualified. The reject loop now polls its nonblocking listener
+and closes accepted clients rather than exiting on an empty queue.
+
+Future acquisition preparation also retains independent private copies
+of the generated plist and compiled binary before invocation. Original
+bytes, SHA-256 values and the exact fixed bootstrap invocation are fsynced
+to an owner-only sibling evidence directory. Working/retained bytes are
+checked before a durable invocation-pending receipt. Preparation,
+pending/unknown invocation, command failure and returned command are
+distinct from readiness. A synthetic failure receipt explicitly says no
+command was invoked and cannot follow an invocation-pending receipt.
+Receipt failures remain explicit; they do not trigger resource release
+or success fallback.
+
+A real-file/compiled-binary red first showed missing independent
+preparation evidence. Its green checks retained bytes/digests, private
+modes, distinct inodes, fixed invocation, changed-input refusal and a
+clearly synthetic failure receipt after removing only the synthetic
+working directory. This does not reconstruct the original failed job's
+missing bytes or diagnose bootstrap status 5. No second launchctl
+attempt, browser or native case occurred.
+
+The worker's three-file/four-test source-control green and exact source
+manifest are retained in `google-retained-guard-final-corrections.txt` and
+`google-retained-guard-final-manifest.log`. At `05:21:07Z`, actual packet
+elapsed time was **42m02s** from `04:39:05Z`; no numeric balance is inferred.
+The corrected source still requires the bounded final Sol reviews and
+parent regression before integration.
+
+The next actual Sol compliance pass found two packet-local retention
+defects: writable output-parent permissions were accepted, and the
+ordinary fixture assumed the ignored output parent already existed.
+The same Terra corrected both with real filesystem red/green. A missing
+fixed parent is created owner-only; existing parents must be directories
+owned by the current user without group/world write permission. Symlinks
+and unsafe parents are refused, not repaired. Capture and invocation
+prechecks both revalidate the parent.
+
+Isolated copies of the unchanged production module exercise missing,
+safe-existing, symlink and real `0720`/`0702`/`0722` parent modes without
+changing shared `rig/out`. The safe pending control still records unknown
+invocation/readiness without executing a command. Foreign ownership is
+refused in source but was not tested through identity/privilege changes.
+The worker's final four-file source regression passed **64 tests**;
+C syntax and scoped ESLint passed. The checks do not provide an atomic
+lock against same-owner concurrent mutations. At `05:33:20Z`, actual
+elapsed time was **54m15s**, without an inferred numeric balance.
+
+The parent independently reran the final four-file source cohort:
+**64 passed**, C syntax and scoped ESLint clean. Actual pinned Sol reviews
+find no packet-local landing blocker. Full compliance and craft remain
+`needs-changes`; the bounded architecture pass is `pass`. Their exact
+source snapshot is `b608925e...`, with final hashes in
+`google-retained-guard-parent-safety-manifest.log`.
+
+Two nonblocking coverage nits remain open. The service fixture already has
+a queued client, so it does not prove waiting on an initially empty queue
+for a later connection. Receipt tests also do not exercise command-failure/
+returned writers or synthetic-failure refusal after pending. These limits
+are recorded, not silently counted as coverage. Full native/Chrome
+admission stays closed, and no new platform attempt follows from landing
+this source checkpoint.
+
 ### Current Chrome helper exception and next packet - 2026-11-05
 
 The owner now directs use of installed Chrome and accepts possible leftover

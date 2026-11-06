@@ -136,13 +136,30 @@ remain separate.
       evidence remain unavailable. A blind retry is not recommended.
 - [x] Correct craft's unexpected collision-listener cleanup path through
       the same Terra context and a real assertion-failure red/green.
+- [x] Correct the historical unsupported listener query through the same
+      Terra and real-descriptor red/green. Documented nonblocking accept
+      verifies the supplied listener; blocking descriptors remain refused.
+      Actual activated flags/shared-holder behavior remain unqualified.
+- [x] Retain future independent private original plist/binary bytes,
+      digests, exact invocation and durable preparation/failure receipts.
+      Real-file red/green verifies survival after synthetic work cleanup.
+      Historical missing bytes and undiagnosed bootstrap 5 remain unchanged.
 - [ ] Establish supported logout/domain-loss behavior or retain the first
       concrete unsatisfied control. Do not infer it from a synthetic unload
       or claim complete helper exit.
 - [x] Obtain actual pinned Sol source reviews and cleanup/docs follow-ups.
       Full compliance remains `needs-changes`, with no packet-local landing
-      blocker. Final source-only regression is 55 passed across three files;
-      C syntax and scoped ESLint are clean.
+      blocker for the first diagnostic snapshot. That source-only regression
+      was 55 passed across three files; C syntax and scoped ESLint were clean.
+- [x] Review the coupled descriptor/evidence corrections on exact final
+      source and rerun the scoped parent regression: 64 passed, C/ESLint
+      clean. Actual Sol compliance/craft remain `needs-changes`, bounded
+      architecture `pass`, with no packet-local landing blocker.
+- [ ] Cover initially empty service queue waiting for a later client;
+      current service fixture only proves rejection of a prequeued client.
+- [ ] Cover failure/returned receipt writers and synthetic-failure refusal
+      after pending. These two coverage nits are nonblocking, not authority
+      for another platform attempt.
 - [ ] Land the stable exact-manifest checkpoint through the existing owner.
 - [ ] Continue current-Chrome/native steps only when their actual remaining
       source/safety/admission conditions clear. Guard retention grants no

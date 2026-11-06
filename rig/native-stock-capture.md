@@ -119,8 +119,8 @@ observed absent and known synthetic resources were cleaned.
 
 The new ordinary process-listener test witnesses the expected unsafe
 replacement after SIGKILL. Its passing negative-control assertion is not
-a working guard or current-browser pass. The C reject candidate compiled,
-but its full validator rejects even a matched nonsharing listener here:
+a working guard or current-browser pass. The first C reject candidate compiled,
+but its full validator rejected even a matched nonsharing listener here:
 `getsockopt(SO_ACCEPTCONN)` returns `ENOPROTOOPT` (42). The source-review
 `SO_REUSEPORT` refusal correction has real-socket option-policy red/green;
 that narrower result is not full-validator or activation success.
@@ -135,6 +135,17 @@ removed without retained original bytes/digest; reconstructed inputs do not
 restore that evidence. The specific launchd rejection reason is also
 unavailable. No clean same-authority retry is recommended from these facts,
 and no administrative need or universal platform limitation is inferred.
+
+The subsequent source-only correction replaces that unsupported query
+with documented accept behavior on an already nonblocking descriptor.
+All endpoint/type/port/nonsharing checks remain. Real listener and
+queued-client controls pass; blocking descriptors are refused. No flag
+mutation or private process API is used. Actual launchd descriptor flags,
+other shared holders and activation/lifetime behavior remain unqualified.
+Future preparation now retains independent private original bytes,
+digests, fixed invocation and separate unknown/failure receipts before
+cleanup. This does not restore the historical missing originals or grant
+another platform attempt.
 
 ### Historical complete-cleanup stop
 
