@@ -243,6 +243,7 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
             : failureDetail }),
         headersArray: async () => [{ name: "accept", value: fault === "header-overrun" ? "x".repeat(65537) : "*/*" }],
         headers: () => ({ accept: "*/*" }),
+        isNavigationRequest: () => type === "document",
       };
       await this.handler({
         request: () => request,
@@ -254,9 +255,46 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
             res.on("data", (chunk) => chunks.push(chunk));
             res.on("end", () => {
               const body = Buffer.concat(chunks);
+              const delayedOpaque = fault?.startsWith("opaque-observer-") &&
+                this.mode === "opaque" && type === "fetch" && method === "POST";
+              if (delayedOpaque) {
+                log.push(["opaque-controller-headers"]);
+                resolve({ status: res.statusCode, body });
+                if (fault === "opaque-observer-never") return;
+                const deliverResponse = () => {
+                  log.push(["opaque-recorder-response"]);
+                  this.emit("response", {
+                    request: () => request, status: () => res.statusCode,
+                    body: async () => {
+                      if (fault === "opaque-observer-complete") {
+                        await new Promise((done) => setTimeout(done, 75));
+                      }
+                      if (fault === "opaque-observer-unavailable" || this.realmRemoved) {
+                        throw new Error("observer-body-unavailable");
+                      }
+                      log.push(["opaque-recorder-body"]);
+                      return body;
+                    },
+                  });
+                };
+                if (fault === "opaque-observer-complete") deliverResponse();
+                setTimeout(() => {
+                  if (fault !== "opaque-observer-complete") deliverResponse();
+                  if (fault === "opaque-observer-requestfailed" || this.realmRemoved) {
+                    this.emit("requestfailed", request);
+                    log.push(["opaque-recorder-failed"]);
+                  } else {
+                    this.emit("requestfinished", request);
+                    log.push(["opaque-recorder-finished"]);
+                  }
+                }, 75);
+                return;
+              }
               this.emit("response", {
                 request: () => request,
                 status: () => fault === "204-body-unavailable" && type === "fetch" ? 204 : res.statusCode,
+                headerValue: async (name) => res.headers[name],
+                frame: () => type === "document" && this.mode !== "preflight" ? {} : this.page.mainFrame(),
                 body: async () => {
                   if (fault === "204-body-unavailable" && type === "fetch") {
                     throw new Error("Protocol error: No resource with given identifier found");
@@ -310,6 +348,7 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
       this.origin = new URL(url).origin;
       this.fixture = fixtures.get(this.origin);
       this.context.contextCase = this.vendor === "google-browser-operation" ? "operation" : "legacy";
+      if (this.context.contextCase === "operation") this.context.mode = this.fixture.caseName;
       log.push(["goto", this.vendor, this.context.mode]);
       this.emit("framenavigated", this.frame);
       if (fault === "work-cutoff") {
@@ -317,6 +356,10 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
         vi.spyOn(performance, "now").mockReturnValue(afterCutoff);
       }
       await this.context.send(url, "document");
+      if (fault?.startsWith("opaque-observer-") && this.vendor === "google-browser-operation") {
+        if (this.fixture.caseName === "unreadable-primary") throw new Error("source-test-after-opaque");
+        return;
+      }
       if (["operation-accounting", "operation-overrun"].includes(fault) && this.vendor === "google-browser-operation") {
         await this.context.send(`${this.fixture.origins[1]}${this.fixture.operationPaths.secondary}`, "fetch", "POST");
         await this.context.send(`${this.fixture.origin}${this.fixture.operationPaths.primary}`, "fetch");
@@ -346,6 +389,45 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
     async waitForFunction() {}
     async evaluate(fn, arg) {
       const source = fn.toString();
+      if (fault?.startsWith("opaque-observer-") && this.vendor === "google-browser-operation") {
+        if (source.includes("window.prepareBrowserOperation()")) {
+          this.worker = new EventEmitter();
+          this.worker.url = () => `${this.origin}/connectors/google-ads/conversion-prototype.worker.js`;
+          this.emit("worker", this.worker);
+          await this.context.send(`${this.origin}/rig/google-browser-operation-frame.html`, "document");
+          this.operation = { phase: "ready", runtime: { phase: "ready", outcomes: [] } };
+          return structuredClone(this.operation);
+        }
+        if (source.includes("window.beginBrowserOperation()")) {
+          this.operation.phase = "in-flight";
+          this.operationPromise = (async () => {
+            await this.context.send(`${this.origin}${this.fixture.operationPaths.primary}`, "fetch");
+            await this.context.send(`${this.fixture.origins[1]}${this.fixture.operationPaths.secondary}`, "fetch", "POST");
+            if (this.fixture.caseName === "readable") {
+              await this.context.send(`${this.fixture.origins[1]}/operation-unexpected-path`, "fetch");
+            }
+            this.operation = { phase: "settled", runtime: { phase: "ready", outcomes: [{
+              disposition: this.fixture.caseName === "opaque" ? "opaque" : "readable",
+              authoredOperations: 2, ...(this.fixture.caseName === "readable" ? { status: 200 } : {}),
+            }] } };
+            return structuredClone(this.operation);
+          })();
+          return;
+        }
+        if (source.includes("window.waitBrowserOperation()")) return this.operationPromise;
+        if (source.includes("window.getBrowserOperationState()")) return structuredClone(this.operation);
+        if (source.includes("window.stopBrowserOperation(")) {
+          log.push(["opaque-realm-removed"]);
+          this.context.realmRemoved = true;
+          this.operation.runtime.phase = "terminal";
+          return;
+        }
+        if (source.includes("window.disposeBrowserOperation()")) {
+          this.worker.emit("close");
+          this.operation.phase = "disposed";
+          return;
+        }
+      }
       if (source.includes("void fetch(")) {
         this.control = { state: "pending", status: null };
         void this.context.send(arg, "fetch").then(
@@ -471,6 +553,45 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
 }
 
 describe("controlled browser events + real Node HTTP — NOT actual Chrome/worker proof", () => {
+  it.each(["complete", "late-response", "unavailable", "requestfailed", "never"])(
+    "keeps the opaque realm until independent recorder %s, preserving the runtime observation",
+    async (kind) => {
+      const fake = await controlledBrowser(`opaque-observer-${kind}`);
+      vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+        callback(null, "156.0.8078.80", "");
+        return {};
+      });
+      const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
+      const snapshot = result.privateEvidence.commandObservations.find((row) =>
+        row.mode === "opaque" && row.phase === "runtime-opaque-settled");
+      expect(snapshot?.state.runtime.outcomes.at(-1), JSON.stringify({ errors: result.errors, log: fake.log })).toMatchObject({
+        disposition: "opaque", authoredOperations: 2,
+      });
+      expect(snapshot.state.runtime.outcomes.at(-1)).not.toHaveProperty("status");
+      const secondary = result.privateEvidence.requests.find((row) =>
+        row.mode === "opaque" && row.kind === "measurement" && row.method === "POST");
+      const captured = result.privateEvidence.requests.filter((row) => row.bodyVerified === true).length;
+      expect(result.counts.verifiedResponseBodies).toBe(captured);
+      expect(result.normalJourneyChecks).toBe("FAILED");
+      if (kind === "complete" || kind === "late-response") {
+        expect(result.errors).toContain("source-test-after-opaque");
+        expect(secondary).toMatchObject({ status: 200, finished: true, responseBodyState: "captured-bytes",
+          responseBytes: 0, bodyVerified: true });
+        expect(fake.log.findIndex(([event]) => event === "opaque-recorder-body")).toBeGreaterThan(-1);
+        expect(fake.log.findIndex(([event]) => event === "opaque-recorder-body")).toBeLessThan(
+          fake.log.findIndex(([event]) => event === "opaque-realm-removed"));
+        expect(fake.log.findIndex(([event]) => event === "opaque-recorder-finished")).toBeLessThan(
+          fake.log.findIndex(([event]) => event === "opaque-realm-removed"));
+      } else {
+        expect(result.errors).toContain(kind === "unavailable" ? "response-body-unavailable"
+          : kind === "never" ? "opaque-observer-completion-deadline" : "opaque-request-failed");
+        if (kind === "requestfailed") expect(secondary.failureCode).toBe("net::ERR_ABORTED");
+        if (kind === "unavailable") expect(secondary.responseBodyState).toBe("unavailable");
+        if (kind !== "requestfailed") expect(secondary.bodyVerified).not.toBe(true);
+        expect(fake.log.some(([event]) => event === "opaque-realm-removed")).toBe(false);
+      }
+    }, 10000);
+
   it.each([
     ["operation-accounting", "response-body-unavailable"],
     ["operation-overrun", "response-byte-limit"],

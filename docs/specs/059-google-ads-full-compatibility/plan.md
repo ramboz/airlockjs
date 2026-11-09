@@ -369,6 +369,139 @@ The owner's ordinary source/review extension is used for bounded close-out
 through2026-11-09T19:15:00Z: final reconciliation, static checks, commit and
 handoff only. It creates no new browser window or exception to an admission gate.
 
+### Verification-repair diagnostic checkpoint - 2026-11-09
+
+The retained packet exposes an observer-lifetime defect in the local harness.
+After opaque runtime settlement, it removed the transport iframe before waiting
+for independent body recording. It also retained the runtime observation only
+after removal, disposal and recorder flush. The source repair orders those
+steps and preserves the earlier runtime snapshot. The historical Chrome abort
+still has no proven cause.
+
+This is the existing active059 preparation packet, not implementation readiness
+for full059-01. The fresh source/Node prerequisite checkpoint starts at
+2026-11-09T20:14:38.421Z and retains its two-active-hour ceiling through
+22:14:38.421Z. It creates no browser window. The clean starting commit is
+`912540cdd9e7d6db931cd3599ae15a8dbd85796b`, tree
+`bce2a959ed86fca93b9cc8706246d9eede02bee4`; the reviewed source commit
+`512487d94453a802b1e3d9387f1272057df658d5` is an ancestor.
+All25 integrated source-manifest blobs,13 final old cohort blobs and71 retained
+private artifacts matched their supplied hashes. The older bytes were not edited.
+
+#### Retained packet and causal limits
+
+Chrome156.0.8078.80 passed independent allow/deny/bypass preflight. The readable
+case observed GET200/POST302/GET200 with two authored operations, the held-final
+response barrier and the intentionally permitted unexpected path. The next
+opaque case stopped at `response-body-unavailable` with `net::ERR_ABORTED`.
+Its receiver completed a1931-byte primary and an empty secondary POST200.
+The secondary arrived and responded at1794247638535. That server completion and
+the recorder's status200 do not establish an opaque runtime HTTP outcome.
+
+The report contains69 request events: preflight4, readable33 and partial opaque32.
+There are66 captured byte bodies, one unavailable redirect body and one failed
+unavailable body. The frozen counter68 remains unchanged. No completed opaque
+controller observation or timestamps ordering runtime settlement, iframe removal,
+loading failure and body-reader rejection were retained. CSP-negative,
+unreadable-primary,307, revocation and lifecycle browser proof remain absent.
+The whole CLI exited1 after3.83s.
+
+Three hypotheses remain falsifiable:
+
+1. **Observer teardown race, leading hypothesis.** At the integrated base,
+   `rig/local-browser-foreground.mjs:627-654` removed the realm before recorder
+   flush and command-evidence retention. The
+   [Fetch algorithm](https://fetch.spec.whatwg.org/#fetch-method) resolves on its
+   response-processing path; an [opaque filtered response](https://fetch.spec.whatwg.org/#concept-filtered-response-opaque)
+   exposes a null body. Runtime settlement is therefore no recorder-body barrier.
+   Controlled pending-body and late-response schedules reproduce this ordering
+   defect. A historical loading failure preceding realm removal would refute
+   removal as that failure's cause; those timestamps are missing.
+2. **Fixture or browser filtering.** The opaque fixture sends empty200 with
+   `nosniff`, no Content-Type and no Access-Control-Allow-Origin. Real Node HTTP
+   controls verify that response and complete socket closure. Node does not
+   exercise browser CORS, opaque-response blocking or iframe lifetime. Failure
+   while keeping the realm alive, with a matching browser blocking diagnostic,
+   would support this hypothesis. Successful independent body capture before
+   teardown would refute that response as a sufficient cause. Neither browser
+   observation exists for the corrected cohort.
+3. **Runtime rejection or deadline.** A correlated terminal reason or abort
+   before the loading failure would support runtime cancellation. A retained
+   opaque settlement preceding the failure would refute a prior rejection.
+   The old opaque runtime observation is missing, so this remains unresolved.
+
+#### Source repair and repository closure
+
+Pinned Terra added the `runtime-opaque-settled` evidence phase before destructive
+action. The harness now waits for the exact primary GET and secondary POST rows
+to have recorded200, completed requests and verified captured bodies. A request
+failure remains an explicit `opaque-request-failed`; missing response/body
+completion stays bounded and fail-closed. It then flushes observations before
+the existing realm-loss negative. The retained runtime snapshot has no invented
+status and supplies no response bytes to the runtime.
+
+The witnessed TDD command was:
+
+```sh
+python3 /Users/ramboz/.copilot/installed-plugins/jig/jig/.github/skills/tdd-loop/tdd.py \
+  run . --test 'test/local-browser-foreground.test.js::keeps the opaque realm until independent recorder'
+```
+
+Four controlled schedule cases failed on unchanged source, then five passed
+after the repair, including an additional never-completing observer control.
+The targeted Node selection passed100 tests across3 files on Node22.16.0;
+scoped ESLint passed. These use controlled browser/worker events and real
+literal-loopback HTTP. They do not execute Chrome, qualify the historical abort
+or prove current-source browser behavior. Exact commands, outputs and hashes
+are retained in private0600/fsynced artifacts.
+
+The closure inventory used Scout's opaque/controller/recorder ranges and the
+existing private fixture/foreground tests, plus `git log` on the touched surfaces.
+Commit512487d9 introduced this private operation path. Existing `until`, `flush`,
+`retain` and request rows supply the repair; no new observation framework is
+needed. The only changed executable caller is the private opaque case.
+Readable, CSP-negative,307, revocation and lifecycle cases are left unchanged;
+default/manual Google, shared host, frozen contracts and Meta stay unchanged.
+The existing unit selection covers those unchanged runtime and contract edges.
+
+#### Admission and checkpoint delivery
+
+Current corrected source has never run in Chrome. The historical observer-body
+failure remains unresolved, and the required CSP-negative browser proof is
+missing. A controlled source repair cannot clear either browser qualification.
+
+The retained exact root47152 exited/closed0 and its exact PID/profile were
+independently absent. Both observed workers and all three contexts/fixtures
+closed; no acquisition remained pending. The retained ownership fields contain
+the root PID/profile, not a complete descendant identity set. Descendant-tree
+absence and agent-loss cleanup remain UNKNOWN. The missing prerequisite is a
+contemporaneous complete owned descendant set with independent closure evidence;
+it cannot be reconstructed from root exit, profile absence or CLI completion.
+No process scan, inferred closure or new custody mechanism was used.
+
+No new local browser plan/window is proposed while either gate remains
+failed/unknown. Required current-cohort Sol reviews and final commit/delivery
+receipts are recorded only after they occur. Full059-01 remains
+READY_FOR_REVIEW/non-clearing and059-15 IN_PROGRESS. No native slot, Accepted
+decision, production behavior, product receipt or performance gate changes.
+
+The coordinator independently passed287 tests across11 files on the corrected
+source, scoped ESLint and slice059-01 contradiction lint. Pinned Sol compliance
+found no repair-local must-fix but remains `needs-changes` for the full slice.
+Craft and architecture passed. These reviewers inspected current source through
+UNINDEXED reads; their contexts lacked Scout, exact-diff execution and fresh
+tests. Impact coverage remains incomplete. The coordinator retains the exact
+base-to-worktree patch and separate integrity/validation evidence.
+
+The pinned Terra dispatch left the source repair and actual RED/GREEN/test/lint
+logs before its final model request failed with DNS resolution errors. It
+returned no normal final implementation handoff. The source and executed logs
+are the implementation witness; the failed final response is not a completion
+or browser witness. Pinned Sol reconciliation passed for this bounded packet;
+its read-only source/patch review did not rerun commands, recompute integrity or
+provide complete indexed impact coverage. Final commit and delivery are
+recorded separately only after they occur.
+
 ### Browser-operation source and execution checkpoint
 
 Pinned Terra implemented the private protocol, own-realm transport asset and
