@@ -1,5 +1,40 @@
 # Fixed local foreground procedure
 
+## Current local helper prerequisite checkpoint - 2026-11-09
+
+The owner extended unknown/manual-helper acceptance to SDK-free local Google
+tests. Accepted
+[ADR-0051](../docs/decisions/adr-0051-google-local-manual-helper-cleanup.md)
+records only that cleanup-risk choice after actual pinned Sol frame review and
+the helper record/accept/index flow. Complete descendants and agent-loss
+cleanup stay unproved. Acceptance supplies no independent confinement,
+network stop or permission to launch.
+
+**Current admission is CLOSED.** The parent confirmed the source/Node technical
+stop. The missing old descendant set is no longer a circular prerequisite;
+the older repair-admission paragraph below is historical. No Chrome was
+acquired in this new packet, and no new framework or mechanism search follows.
+
+Two bounded Node controls observed actual fixture cancellation/closure, then
+a deliberate new GET from a retained policy-confined Node client to an
+independent same-port replacement receiver. A separate exact-policy Unix-domain
+control reached its owned receiver. These observations show limits of treating
+fixture closure as permanent client revocation. They do not prove a dispatch
+from closed Chrome resources, helper behavior, a Chrome proxy or public egress.
+Independent residual-helper confinement and relevant network-stop/release
+remain unqualified. Root exit, zero samples and fixture close cannot fill that
+gap. Both Node commands completed and their owned receivers closed.
+
+The [active source-backed checkpoint and proposed finite plan](../docs/specs/059-google-ads-full-compatibility/plan.md#local-helper-prerequisite-checkpoint---2026-11-09)
+retain exact private source/browser/launcher/policy hashes and result evidence.
+The existing command still means one preflight plus `readable`, `opaque`,
+`unreadable-primary`, `csp-negative`, `redirect-307`, `revoke`, `lifecycle`.
+The original one-root/eight-phase/256-request/24-attempt/100s-work/120s-total
+ceilings are unchanged. The plan is NOT ADMITTED, and complete timestamped
+failure-path causal ordering is an additional diagnostic evidence gap.
+Another finite run requires an independently supported current-path safety
+argument and affirmative parent admission of the exact packet.
+
 ## Private Google browser-operation packet - 2026-11-09
 
 The owner accepted the Google-only model in
