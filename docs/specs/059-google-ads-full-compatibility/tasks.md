@@ -66,6 +66,34 @@ is closed by this local browser construction.
       The private delivery receipt records actual commit/tree and handoff only
       after success. No push or PR.
 
+### Verification-repair diagnostic checkpoint - 2026-11-09
+
+- [x] Verify clean912540cd/tree and512487d9 ancestry, all25 integrated manifest
+      blobs,13 final old cohort blobs and71 retained private artifacts.
+- [x] Correlate the actual opaque primary/secondary receiver and recorder rows.
+      Preserve69 events,66 captures versus frozen68, exit1/3.83s, missing opaque
+      runtime settlement and missing causal timestamps.
+- [x] Record three falsifiable hypotheses: recorder teardown race, fixture or
+      browser filtering, and runtime rejection/deadline. Historical cause remains
+      unresolved; real Node HTTP controls do not establish browser behavior.
+- [x] Pinned Terra witnesses four RED failures, repairs private observer ordering
+      and runtime-snapshot retention, then passes five focused controls and
+      the100-test/3-file Node selection. No unavailable body or request failure
+      is accepted as successful browser qualification.
+- [x] Evaluate retained exact owned handles without acquiring or scanning.
+      Root/profile closure does not reconstruct the missing complete descendant
+      set. Descendant-tree absence and agent-loss cleanup remain UNKNOWN.
+- [x] Record actual current-cohort pinned Sol compliance, craft, architecture
+      and reconciliation results. Keep full-slice compliance non-clearing.
+- [x] Prepare the affected-file/evidence manifests and first diagnostic payload.
+      The final private receipt records actual reviewed-commit verification and
+      parent delivery only after they succeed.
+
+This is a two-active-hour source/Node prerequisite checkpoint from
+2026-11-09T20:14:38.421Z through22:14:38.421Z, not a new browser window.
+No Chrome was acquired. Observer qualification and cleanup admission remain
+blocked; no new acquisition plan is proposed over failed/unknown gates.
+
 Full059-01 remains READY_FOR_REVIEW/non-clearing and059-15 remains IN_PROGRESS.
 No completed059-20/21 record is reopened or rewritten.
 

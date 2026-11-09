@@ -75,6 +75,31 @@ fake-based control corrected the private body counter: the frozen attempt has
 its old counter68. That report is not rewritten. Final corrected source hashes
 have no browser run; the retained observations belong only to the issued cohort.
 
+**Source-only diagnostic repair, 2026-11-09:** the old opaque branch removed the
+iframe before waiting for recorder-body completion and retained its runtime
+snapshot afterward. Pinned Terra reproduced that observation-ordering defect
+with four RED controlled cases, then added a pre-teardown
+`runtime-opaque-settled` snapshot and a bounded barrier for the exact primary
+GET/secondary POST recording. Five focused controls and100 tests across3 files
+passed. The barrier requires completed requests and verified captured bodies;
+unavailable bodies, failed requests and missing completion still stop the packet.
+The existing realm-loss negative follows that barrier. No recorder data enters
+the runtime, and opaque runtime output still has no HTTP status.
+
+The historical Chrome cause remains unresolved. Realm teardown, fixture/browser
+filtering and runtime rejection remain distinguishable hypotheses in the
+[active diagnostic checkpoint](../docs/specs/059-google-ads-full-compatibility/plan.md#verification-repair-diagnostic-checkpoint---2026-11-09).
+The old packet lacks the timestamps and opaque runtime observation needed to
+choose between them. Real Node HTTP verifies the fixture's empty200, absent
+Content-Type/Access-Control-Allow-Origin and `nosniff`; it does not exercise
+browser filtering. Current repaired source has never run in Chrome.
+
+Admission remains blocked by unresolved observer qualification and the missing
+complete historical owned-descendant set. Exact root/profile closure cannot
+recover that set. Descendant-tree absence and agent-loss cleanup remain UNKNOWN.
+The new two-active-hour prerequisite checkpoint is source/Node-only, with no
+new browser window or permission to acquire over those gates.
+
 Retain the exact source cohort, private stdout/stderr, receiver/frame evidence,
 owned handles and cleanup dispositions. The caller must independently observe
 whole-CLI completion after exit. Root exit alone does not establish descendant

@@ -627,6 +627,17 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
         } else if (name === "opaque") {
           requireFact(outcome?.disposition === "opaque" && outcome.authoredOperations === 2 && !("status" in outcome),
             "opaque-outcome");
+          commandObservations.push({ mode: name, phase: "runtime-opaque-settled", state: retain(result) });
+          await until(() => {
+            const observed = requests.filter((row) => row.mode === name && row.kind === "measurement");
+            requireFact(!observed.some((row) => row.failureCode), "opaque-request-failed");
+            return observed.length === 2 &&
+              observed.some((row) => row.method === "GET" && row.url === `${fixture.origin}${fixture.operationPaths.primary}`) &&
+              observed.some((row) => row.method === "POST" &&
+                row.url === `${fixture.origins[1]}${fixture.operationPaths.secondary}`) &&
+              observed.every((row) => row.status === 200 && row.finished && row.bodyVerified === true);
+          }, "opaque-observer-completion");
+          await flush();
           await evaluate(() => window.stopBrowserOperation("realm"));
           await until(async () => (await page.evaluate(() => window.getBrowserOperationState())).runtime.phase === "terminal",
             "realm-loss");
