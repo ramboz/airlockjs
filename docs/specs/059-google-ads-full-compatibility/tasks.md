@@ -4,6 +4,37 @@ The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
 
+## Local helper prerequisite checkpoint - 2026-11-09
+
+- [x] Verify clean0df88c7021b71f645fec7893b0b7106a1a2681cc and identical
+      repair tree/required ancestry; recover prior evidence without repeating
+      completed implementation or reviews.
+- [x] Retain the direct local-only unknown/manual-helper owner answer and
+      receive the integration owner's explicit0051 feature-line allocation.
+- [x] Complete actual pinned Sol frame review, `record-review`, accept and
+      index for [ADR-0051](../../decisions/adr-0051-google-local-manual-helper-cleanup.md).
+- [x] Pinned Terra source/Node assessment of the actual nonproxy fixed path.
+      Both private controls completed; no executable/test changes were made.
+- [x] Retain actual fixture cancellation and deliberately reissued Node
+      same-port replacement/Unix-domain observations with their Node-only
+      limits, exact source/cohort hashes and owned command completion.
+- [x] Stop at current independent confinement/stop qualification gaps without
+      importing native guard rules or starting another mechanism search.
+- [x] Record one concrete existing-selector finite plan as NOT ADMITTED.
+      Missing historical helper identities are no longer a circular prerequisite.
+- [x] Complete bounded pinned Sol decision/admissibility review and prepare
+      the documentary cohort/private evidence for the parent checkpoint.
+      Documentary pass; browser plan NOT_ADMISSIBLE. The private final receipt
+      records validation, commit and delivery only after they succeed.
+- [ ] Independent confinement/network-stop qualification and parent admission.
+      **Blocked:** owner helper-risk acceptance does not supply these technical
+      properties. Current repaired source has zero Chrome runs.
+
+No full-slice promotion, native send, product claim or automatic retry follows.
+The [current checkpoint](plan.md#local-helper-prerequisite-checkpoint---2026-11-09)
+leaves059-01 READY_FOR_REVIEW/non-clearing and059-15 IN_PROGRESS. Earlier dated
+tasks and outcomes below remain historical.
+
 ## Local browser response-chain packet - 2026-11-09
 
 - [x] Verify clean 5d1a4cfb base/tree and required 0ffa1b4c ancestry.

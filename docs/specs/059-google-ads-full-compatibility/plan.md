@@ -1,7 +1,162 @@
 # Plan - full Google Ads browser-tag compatibility
 
-Current construction is the [accepted browser-operation packet](#accepted-browser-operation-construction-packet---2026-11-09).
-The preceding manual-response source stop below is preserved as dated evidence.
+Current admission is the [local helper prerequisite checkpoint](#local-helper-prerequisite-checkpoint---2026-11-09).
+The earlier [accepted browser-operation construction](#accepted-browser-operation-construction-packet---2026-11-09)
+and manual-response source stops below remain dated evidence.
+
+## Local helper prerequisite checkpoint - 2026-11-09
+
+The owner selected "Extend manual-helper acceptance to local tests
+(Recommended)" in response to the exact local-only question retained in
+[ADR-0051](../../decisions/adr-0051-google-local-manual-helper-cleanup.md).
+This removes the requirement to reconstruct the old packet's missing complete
+descendant set. Helper cleanup stays `unknown_manual`, complete descendant
+cleanup stays false, and agent-loss cleanup remains UNKNOWN.
+It does not waive independent confinement, network stop, known root/resource
+closure, strict recorder failures or parent admission. Accepted0047/48/50 and
+historical059-20/21 remain unchanged.
+
+The integration owner explicitly assigned0051 and its slug to the Google
+feature lane after cross-lane checks. This is not a main/global/remote
+reservation. The local helper scaffold was guarded to require that exact
+number and a scaffolded project, without committing or publishing a
+reservation. Actual pinned `gpt-6.1-sol`/default frame review passed; the
+runtime dispatch/result identify agent9c6a8770-78b9-489c-9ce6-c2f57cef5fe2.
+`record-review`, `adr.py accept` and `index` completed. ADR-0051 is Accepted.
+The read-only reviewer could not attest its own model or recompute hashes;
+model provenance is the coordinator-observed dispatch/result metadata.
+Its UNINDEXED document/evidence assessment supplies no implementation or
+browser qualification.
+
+**Current technical stop:** independent confinement and the relevant
+network-stop/fixture-release property remain unqualified on this fixed
+nonproxy local path. The parent confirmed this stop. No Chrome or new
+mechanism search is authorized. This is a current technical prerequisite,
+not the impossible historical descendant-recovery requirement.
+
+### Source and bounded Node evidence
+
+This new two-active-hour source/Node checkpoint began at
+2026-11-09T22:31:27.370Z. Its verified clean base is
+`0df88c7021b71f645fec7893b0b7106a1a2681cc`,
+tree `af432209773a0167043da9c12e1631461dc80b55`.
+The repaired `2d850cb31215bfa9683072d427b4bf2b1aace120` tree is identical,
+and repair/`512487d9` ancestry was verified before editing. The prior actual
+Terra repair and its RED/GREEN/regression/Sol review evidence were recovered,
+not repeated. Its controlled source-ordering correction does not establish
+why historical Chrome returned `net::ERR_ABORTED`. That cause stays unresolved.
+
+Pinned `gpt-6.1-terra`/default inspected the actual foreground selector,
+launcher/policy, pre-navigation guards, receiver preflight, known handles and
+fixture closure. It executed two bounded SDK-free Node controls on Node22.16.0.
+The lifecycle fixture's held request observed `ECONNRESET` at closure;
+listeners, tracked sockets and pending responses closed. A known Node process
+under the exact policy was then deliberately instructed to send another GET
+after an independent receiver rebound the released port. The receiver got
+one arrival and returned204. The child exited0/signal null, and replacement
+receiver closure was observed. A separate exact-policy control reached an
+owned Unix-domain receiver.
+
+These are Node policy/receiver observations. The deliberate new request is a
+counterexample to treating fixture close as permanent revocation for an
+independently surviving client. It is not a late event on the closed
+connection, a dispatch by closed Chrome resources, a demonstrated helper
+retry, a Chrome proxy or public egress. Neither observed capability establishes
+or refutes every possible independent network-stop argument.
+
+The actual policy allows Unix-domain operations and outbound `localhost:*`.
+Its fixed launcher/policy hashes remain unchanged. The source closes tracked
+response/socket work and listeners (`rig/local-browser-journeys.mjs:241-283`),
+but releasing a listener does not itself revoke a surviving client's ability
+to connect to a replacement. Existing request/WebSocket routing and independent
+allow/deny/bypass preflight remain required
+(`rig/local-browser-foreground.mjs:319-437,708-750`). They have not supplied
+the missing residual-helper confinement/stop qualification.
+The two Scout-excluded launcher/policy files required a disclosed UNINDEXED
+exact-path read after a targeted retry; indexed impact proof is not claimed.
+
+Private0600/fsynced `local-prerequisite-manifest.json` pins exact source,
+commands/results and browser metadata/binary hashes with SHA-256
+`3c9010b616266cd1e9714453f759f864ec3c201142d33609d69dc8450eb21024`.
+The two command results are separately retained as
+`local-prerequisite-control-result.json` and `confined-reconnect-result.json`.
+Both commands completed with exit0. All their owned Node fixtures/receivers
+closed; no service is intentionally retained. The source-backed assessment is
+`local-source-assessment-report.md`. Installed metadata reports
+Chrome156.0.8078.80; no launched-version observation is claimed.
+
+No executable or test change, new RED/GREEN repair or shared regression was
+made in this packet. A minimum existing-path correction was not established.
+This is not a proof that every small correction is impossible. Root exit,
+fixture cleanup, later close ordering or zero samples alone cannot establish
+the stronger property. No runner, guardian, launchd job, retained socket,
+native proxy or custody framework is proposed.
+
+### Concrete finite plan, not admitted
+
+The existing selector is
+`node rig/local-browser-foreground.mjs --google-browser-operations`.
+It selects one preflight plus seven cases in order:
+`readable`, `opaque`, `unreadable-primary`, `csp-negative`, `redirect-307`,
+`revoke`, `lifecycle` (`rig/local-browser-foreground.mjs:578-670,941-975`).
+These are eight fixture/context phases, not an isolated opaque-only rerun.
+
+Admission stays CLOSED until the new decision is formally Accepted, independent
+confinement and relevant stop/release prerequisites are established, and the
+parent affirmatively admits the exact current packet. The parent has not
+waived those prerequisites. If they later clear:
+
+1. Recheck exact source/cohort hashes and use one fresh workspace-local profile.
+   Keep one root, at most eight fixture/context pairs and workers,256 observed
+   requests,24 measurement attempts,100s work and120s total including cleanup
+   and publication. There is no retry or expanded window.
+2. Install existing request/WebSocket guards before navigation. Require the
+   actual browser-reported version to match156.0.8078.80, then pass independent
+   receiver allow/deny/bypass preflight before product cases.
+3. Retain the readable GET200/POST302/GET200 chain with two authored operations,
+   held-final-response settlement barrier, loaded frame bytes/enforcing CSP and
+   the allowed-origin unexpected path. No final GET is separately authored.
+4. Retain `runtime-opaque-settled` before teardown. Require the exact primary
+   GET and secondary POST to finish with independently verified captured bodies
+   and no request failures before flushing and applying realm loss. Missing
+   completion, unavailable bodies and failed requests still stop the packet;
+   runtime opaque HTTP stays unknown and recorder data never enters the runtime.
+5. Continue only on success to unreadable-primary stop, the actually reachable
+   CSP-disallowed receiver,307 observation, revocation and lifecycle controls.
+   A harness abort cannot impersonate the CSP negative.
+6. Preserve known resource/root closure, receiver/frame/worker evidence and
+   independent external whole-CLI completion. Residual helpers stay
+   unknown/manual; agent-loss cleanup remains unqualified.
+
+The snapshot/barrier supplies one causal ordering edge, but current source
+does not retain complete timestamped runtime-versus-observer ordering for
+every error path. That diagnostic evidence gap must be dispositioned before
+the plan can be called ready. It is not evidence of the old cause. A reviewed
+controlled-source correction can justify a new falsifiable diagnostic test
+once actual prerequisites clear; historical missing timestamps alone do not
+create a permanent ban.
+
+### Checkpoint disposition
+
+Actual pinned `gpt-6.1-sol`/default supplemental checkpoint review passed,
+with browser plan verdict **NOT_ADMISSIBLE**
+(agentc6f7d14e-ee05-4046-bcdb-d22deb8f4bfd). It found no documentary blocker.
+This is a read-only, supplied-evidence UNINDEXED assessment, not a repeat or
+replacement of the earlier059 implementation reviews. The reviewer did not
+recompute hashes, rerun commands or self-verify model/context; actual runtime
+dispatch/result metadata and separate coordinator integrity evidence are
+retained. Its supplemental ADR-side reconciliation record cannot clear full
+059 compliance or browser admission.
+
+The original helper-owner receipt remains private and immutable with SHA-256
+`088e39d9616122860eb95590ae1d4741f8bb35f64e2b152184847cb082f3fe9a`.
+Unknown historical helpers/profile residue retain a private manual-recovery
+disposition, not complete cleanup proof. No scan, name-based process kill,
+everyday-profile access or unverified profile deletion is authorized.
+The new packet acquired no Chrome, sent no public/vendor request and changed
+no native/original-case authority, production/core/frozen contract or Meta code.
+Full059-01 stays READY_FOR_REVIEW/non-clearing and059-15 stays IN_PROGRESS.
+Parent and the existing integrator own later adoption.
 
 ## Local browser response-chain packet - 2026-11-09
 
