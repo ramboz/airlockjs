@@ -259,6 +259,19 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
                 this.mode === "opaque" && type === "fetch" && method === "POST";
               if (delayedOpaque) {
                 log.push(["opaque-controller-headers"]);
+                if (["opaque-observer-early", "opaque-observer-pending"].includes(fault)) {
+                  setTimeout(() => {
+                    this.emit("response", {
+                      request: () => request, status: () => res.statusCode,
+                      body: async () => { throw new Error("observer-body-unavailable"); },
+                    });
+                    this.emit("requestfinished", request);
+                  }, 30);
+                  if (fault === "opaque-observer-early") {
+                    setTimeout(() => resolve({ status: res.statusCode, body }), 75);
+                  }
+                  return;
+                }
                 resolve({ status: res.statusCode, body });
                 if (fault === "opaque-observer-never") return;
                 const deliverResponse = () => {
@@ -269,7 +282,9 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
                       if (fault === "opaque-observer-complete") {
                         await new Promise((done) => setTimeout(done, 75));
                       }
-                      if (fault === "opaque-observer-unavailable" || this.realmRemoved) {
+                      if (["opaque-observer-unavailable", "opaque-observer-snapshot-unavailable",
+                        "opaque-observer-snapshot-hangs"].includes(fault) ||
+                          this.realmRemoved) {
                         throw new Error("observer-body-unavailable");
                       }
                       log.push(["opaque-recorder-body"]);
@@ -415,7 +430,15 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
           return;
         }
         if (source.includes("window.waitBrowserOperation()")) return this.operationPromise;
-        if (source.includes("window.getBrowserOperationState()")) return structuredClone(this.operation);
+        if (source.includes("window.getBrowserOperationState()")) {
+          if (fault === "opaque-observer-snapshot-unavailable" && this.fixture.caseName === "opaque") {
+            throw new Error("private-snapshot-error");
+          }
+          if (fault === "opaque-observer-snapshot-hangs" && this.fixture.caseName === "opaque") {
+            return new Promise(() => {});
+          }
+          return structuredClone(this.operation);
+        }
         if (source.includes("window.stopBrowserOperation(")) {
           log.push(["opaque-realm-removed"]);
           this.context.realmRemoved = true;
@@ -573,6 +596,17 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
       const captured = result.privateEvidence.requests.filter((row) => row.bodyVerified === true).length;
       expect(result.counts.verifiedResponseBodies).toBe(captured);
       expect(result.normalJourneyChecks).toBe("FAILED");
+      const timeline = result.privateEvidence.operationTimeline;
+      const settled = timeline.findIndex((row) => row.mode === "opaque" && row.event === "runtime-wait-settled");
+      expect(timeline[settled].state.runtime.outcomes.at(-1)).toMatchObject({
+        disposition: "opaque", authoredOperations: 2,
+      });
+      expect(timeline[settled].state.runtime.outcomes.at(-1)).not.toHaveProperty("status");
+      const secondaryIndex = result.privateEvidence.requests.indexOf(secondary);
+      const failed = timeline.findIndex((row) => row.event === "failure");
+      const cleanup = timeline.findIndex((row) => row.event === "cleanup-start");
+      expect(failed).toBeGreaterThan(settled);
+      expect(cleanup).toBeGreaterThan(failed);
       if (kind === "complete" || kind === "late-response") {
         expect(result.errors).toContain("source-test-after-opaque");
         expect(secondary).toMatchObject({ status: 200, finished: true, responseBodyState: "captured-bytes",
@@ -582,6 +616,8 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
           fake.log.findIndex(([event]) => event === "opaque-realm-removed"));
         expect(fake.log.findIndex(([event]) => event === "opaque-recorder-finished")).toBeLessThan(
           fake.log.findIndex(([event]) => event === "opaque-realm-removed"));
+        expect(timeline.findIndex((row) => row.event === "response-body-verified" &&
+          row.request === secondaryIndex)).toBeGreaterThan(settled);
       } else {
         expect(result.errors).toContain(kind === "unavailable" ? "response-body-unavailable"
           : kind === "never" ? "opaque-observer-completion-deadline" : "opaque-request-failed");
@@ -589,8 +625,91 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
         if (kind === "unavailable") expect(secondary.responseBodyState).toBe("unavailable");
         if (kind !== "requestfailed") expect(secondary.bodyVerified).not.toBe(true);
         expect(fake.log.some(([event]) => event === "opaque-realm-removed")).toBe(false);
+        const snapshot = timeline.find((row) => row.event === "failure-snapshot");
+        expect(snapshot).toMatchObject({ mode: "opaque", status: "observed", state: {
+          phase: "settled", runtime: { outcomes: [expect.objectContaining({ disposition: "opaque" })] },
+        } });
+        expect(timeline.indexOf(snapshot)).toBeGreaterThan(failed);
+        expect(timeline.indexOf(snapshot)).toBeLessThan(cleanup);
+        if (kind === "unavailable") expect(timeline.some((row) =>
+          row.event === "response-body-unavailable" && row.request === secondaryIndex)).toBe(true);
+        if (kind === "requestfailed") expect(timeline.some((row) =>
+          row.event === "request-failed" && row.request === secondaryIndex)).toBe(true);
       }
     }, 10000);
+
+  it.each(["unavailable", "hangs"])("reports a %s failure snapshot without changing the original error", async (kind) => {
+    await controlledBrowser(`opaque-observer-snapshot-${kind}`);
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "156.0.8078.80", "");
+      return {};
+    });
+    const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
+    expect(result.errors).toContain("response-body-unavailable");
+    expect(result.privateEvidence.operationTimeline.find((row) => row.event === "failure-snapshot"))
+      .toMatchObject({ mode: "opaque", status: "unavailable", reason: "evaluation-state-or-snapshot-deadline" });
+    expect(JSON.stringify(result.privateEvidence.operationTimeline)).not.toContain("private-snapshot-error");
+  }, 10000);
+
+  it.each([
+    ["early", "settled"],
+    ["pending", "in-flight"],
+  ])("retains %s observer failure and the subsequently observed %s runtime state", async (kind, phase) => {
+    await controlledBrowser(`opaque-observer-${kind}`);
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "156.0.8078.80", "");
+      return {};
+    });
+    const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
+    expect(result.normalJourneyChecks).toBe("FAILED");
+    expect(result.errors).toContain("response-body-unavailable");
+    const events = result.privateEvidence.operationTimeline;
+    const failure = events.findIndex((row) => row.event === "failure" && row.code === "response-body-unavailable");
+    const snapshot = events.findIndex((row) => row.event === "failure-snapshot");
+    const cleanup = events.findIndex((row) => row.event === "cleanup-start");
+    expect(failure).toBeGreaterThan(-1);
+    expect(snapshot).toBeGreaterThan(failure);
+    expect(events[snapshot]).toMatchObject({ mode: "opaque", status: "observed", state: { phase } });
+    expect(cleanup).toBeGreaterThan(snapshot);
+    const secondary = result.privateEvidence.requests.findIndex((row) =>
+      row.mode === "opaque" && row.kind === "measurement" && row.method === "POST");
+    const responseEvent = events.findIndex((row) => row.event === "response-event" && row.request === secondary);
+    const responseProcessed = events.findIndex((row) => row.event === "response-processed" && row.request === secondary);
+    const requestFinished = events.findIndex((row) => row.event === "request-finished" && row.request === secondary);
+    expect(responseEvent).toBeGreaterThan(-1);
+    expect(requestFinished).toBeGreaterThan(responseEvent);
+    expect(responseProcessed).toBeGreaterThan(requestFinished);
+    const settled = events.findIndex((row) => row.event === "runtime-wait-settled" && row.mode === "opaque");
+    if (kind === "early") expect(settled).toBeGreaterThan(failure);
+    else {
+      expect(settled).toBe(-1);
+      expect(result.errors).toContain("operation-opaque-deadline");
+    }
+    expect(events.slice(cleanup).some((row) => row.event === "close-finished" &&
+      row.kind === "context" && row.mode === "opaque" && row.closed)).toBe(true);
+    expect(events.slice(cleanup).some((row) => row.event === "close-finished" &&
+      row.kind === "fixture" && row.mode === "opaque" && row.closed)).toBe(true);
+    expect(events.slice(cleanup).find((row) => row.event === "fixture-closure" && row.mode === "opaque"))
+      .toMatchObject({ status: "observed-closed", state: {
+        closure: "closed", listening: false, openSockets: 0, pendingResponses: 0,
+      } });
+    expect(result.privateEvidence.timelineStatus).toMatchObject({
+      ordering: "host-observation-order-only", failureSnapshot: "observed", omitted: 0,
+    });
+  }, 10000);
+
+  it("reports an unavailable snapshot if failure precedes any operation page", async () => {
+    await controlledBrowser("context-close");
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "156.0.8078.80", "");
+      return {};
+    });
+    const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
+    expect(result.errors).toContain("context-close-failed");
+    expect(result.privateEvidence.operationTimeline.find((row) => row.event === "failure-snapshot"))
+      .toMatchObject({ mode: null, status: "unavailable", reason: "page-unavailable" });
+    expect(result.normalJourneyChecks).toBe("FAILED");
+  }, 10000);
 
   it.each([
     ["operation-accounting", "response-body-unavailable"],
@@ -611,6 +730,11 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
     const captured = rows.filter((row) => row.responseBodyState === "captured-bytes" && row.bodyVerified).length;
     expect(captured).toBeGreaterThan(0);
     expect(result.counts.verifiedResponseBodies).toBe(captured);
+    const timeline = result.privateEvidence.operationTimeline;
+    expect(timeline.find((row) => row.event === "failure-snapshot"))
+      .toMatchObject({ mode: "readable", status: "unavailable" });
+    if (fault === "operation-overrun") expect(timeline.some((row) =>
+      row.event === "response-body-captured" && row.bytes === 2097153)).toBe(true);
   }, 10000);
 
   it("accepts exact Chrome 156.0.8078.80 in the controlled cohort", async () => {

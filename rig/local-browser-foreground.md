@@ -1,5 +1,40 @@
 # Fixed local foreground procedure
 
+## Prospective known-case stop - 2026-11-09
+
+**Browser admission remains blocked:** independent current-path no-external
+evidence beyond the local Fetch preflight is unestablished. Unix/localhost
+permissions leave relay paths unexcluded. No actual failed current external
+check or new Chrome run is claimed; no mechanism expansion or waiver follows.
+
+Accepted
+[ADR-0052](../docs/decisions/adr-0052-google-local-known-case-stop.md)
+records the direct owner's new known-case stop choice. Require this run's
+known requests, pending responses, sockets and fixtures to close, with known
+root/worker/context and independent whole-CLI completion evidence. Do not
+require permanent revocation of a surviving process's local permissions.
+Unknown/manual helpers and agent-loss UNKNOWN remain separate. The older
+stronger stop checkpoint below stays historical and is not rewritten.
+
+Independent no-external checks and strict recorder/CSP/required-body gates are
+unchanged. The old deliberately reissued Node request and Unix-domain
+observation neither fail the new criterion automatically nor prove those
+checks passed. Current source/Node evidence is not current-Chrome proof.
+
+The private Google report now retains a bounded host-observation
+`operationTimeline`. Use its runtime snapshots, request/body observations,
+failure and teardown events together with actual receiver/closure evidence.
+An observed snapshot does not timestamp the underlying worker event or prove
+cross-clock ordering. Check omitted events, failure-snapshot unavailability
+and pending observers at publication; preserve failure/UNKNOWN rather than
+infer missing events. Strict opaque body/finished-request barriers remain.
+
+The [current revised checkpoint](../docs/specs/059-google-ads-full-compatibility/plan.md#known-case-stop-revision---2026-11-09)
+keeps the existing one-preflight/seven-case selector and all original ceilings.
+No Chrome is admitted. Parent must affirmatively admit the exact current
+source/cohort and finite plan; actual safety preflight must pass before product
+cases. No new runner, guardian, policy expansion, retry or public send follows.
+
 ## Current local helper prerequisite checkpoint - 2026-11-09
 
 The owner extended unknown/manual-helper acceptance to SDK-free local Google

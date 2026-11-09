@@ -165,6 +165,9 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
   const workers = [];
   const receiverFixtures = new Map();
   const commandObservations = [];
+  const operationTimeline = [];
+  const timelineStatus = { ordering: "host-observation-order-only", omitted: 0, failureSnapshot: "not-needed",
+    observersPendingAtPublication: 0 };
   const controls = {};
   const cleanup = { contexts: [], fixtures: [] };
   let retainedBytes = 0;
@@ -175,9 +178,31 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
   let browserVersion;
   let processFacts;
   let productChecked = false;
+  let activeOperation;
+  let timelineOpen = true;
+  function recordOperation(event, details = {}) {
+    if (!operationPacket || !timelineOpen) return false;
+    const row = { event, ...details };
+    try {
+      const bytes = Buffer.byteLength(JSON.stringify(row));
+      if (operationTimeline.length >= 1536 || bytes > 32768 || retainedBytes + bytes > LIMITS.retainedBytes) {
+        timelineStatus.omitted += 1;
+        return false;
+      }
+      retainedBytes += bytes;
+      operationTimeline.push(row);
+      return true;
+    } catch {
+      timelineStatus.omitted += 1;
+      return false;
+    }
+  }
   const fail = (message) => {
     const code = typeof message === "string" && /^[a-z][a-z0-9-]{0,80}$/.test(message) ? message : "unexpected-tool-error";
-    if (errors.length < 16 && !errors.includes(code)) errors.push(code);
+    if (errors.length < 16 && !errors.includes(code)) {
+      errors.push(code);
+      recordOperation("failure", { mode: activeOperation?.mode ?? null, code });
+    }
   };
   function retain(value) {
     retainedBytes += Buffer.isBuffer(value) ? value.length : Buffer.byteLength(JSON.stringify(value));
@@ -278,6 +303,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
   async function closeEntry(entry) {
     if (!entry.value) return;
     if (!entry.closing) entry.closing = (async () => {
+      recordOperation("close-start", { kind: entry.kind, mode: entry.mode ?? null });
       try {
         entry.closeOperation = Promise.resolve().then(() => entry.value.close()).then(() => { entry.closed = true; });
         void entry.closeOperation.catch(() => {});
@@ -290,9 +316,15 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
         const closed = entry.closed === true && state.closure === "closed" && !state.listening &&
           state.openSockets === 0 && state.pendingResponses === 0 && state.errors.length === 0 &&
           state.refusedRequests === 0 && state.overLimitRequests === 0;
+        recordOperation("fixture-closure", { mode: entry.mode ?? null,
+          status: closed ? "observed-closed" : "not-proven", state });
         cleanup.fixtures.push(closed);
         if (!closed) fail("fixture-disposition");
-      } catch { cleanup.fixtures.push(false); fail("fixture-disposition"); }
+      } catch {
+        recordOperation("fixture-closure", { mode: entry.mode ?? null, status: "unavailable" });
+        cleanup.fixtures.push(false); fail("fixture-disposition");
+      }
+      recordOperation("close-finished", { kind: entry.kind, mode: entry.mode ?? null, closed: entry.closed === true });
     })();
     return entry.closing;
   }
@@ -300,6 +332,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
     if (sourceHashes) requireFact(retainedBytes + sourceHashes.fixture.reduce((sum, row) => sum + row.bytes, 0) <=
       LIMITS.retainedBytes, "retention-limit");
     const entry = acquire("fixture", () => caseName ? startGoogleBrowserOperationFixture(caseName) : startLocalBrowserJourneys());
+    entry.mode = caseName ?? "preflight";
     const fixture = await bounded(() => entry.promise, "fixture-start", 2500);
     const hashes = [...fixture.pageManifest, ...fixture.sourceManifest];
     requireFact(hashes.length === (caseName ? 34 : 33) && hashes.every((row) => row.bytes <= LIMITS.responseBytes &&
@@ -321,6 +354,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
     const documentPath = mode === "preflight" ? "/preflight" : operation ? "/google-browser-operation" : `/${vendor}`;
     receiverFixtures.set(mode, fixture);
     const contextEntry = acquire("context", () => browser.newContext({ serviceWorkers: "block" }));
+    contextEntry.mode = mode;
     const context = await bounded(() => contextEntry.promise, "context-start");
     const state = { mode, page: null, documents: 0, measurements: 0, deny: false, positive: false, worker: null,
       cspDenialObserved: false };
@@ -333,6 +367,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
         return;
       }
       state.page = page;
+      if (operation && activeOperation?.mode === mode) activeOperation.page = page;
       page.on("pageerror", () => fail("page-error"));
       page.on("console", (message) => {
         if (operation && mode === "csp-negative") {
@@ -358,7 +393,10 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
         if (mode === "preflight" || (state.worker && !operation) ||
             worker.url() !== `${fixture.origin}${row.path}`) fail("unexpected-worker");
         state.worker = worker;
-        worker.once("close", () => { row.closed = true; });
+        worker.once("close", () => {
+          row.closed = true;
+          recordOperation("worker-close", { mode });
+        });
       });
     });
     await bounded(() => context.routeWebSocket("**/*", (socket) => {
@@ -399,6 +437,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
         Object.assign(row, document);
         row.path = new URL(request.url()).pathname;
         row.kind = kind;
+        recordOperation("request", { mode, request: requests.indexOf(row), kind });
         retain(row);
         if (kind === "document") requireFact(++state.documents === 1, "extra-document");
         if (kind === "measurement") {
@@ -436,6 +475,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
           denied: false, status: null, finished: false, bodyChecked: false, redirected: true };
         requests.push(row);
         rows.set(request, row);
+        recordOperation("request", { mode, request: requests.indexOf(row), kind: row.kind });
         retain(row);
         observe(async () => {
           const headers = Object.entries(request.headers()).map(([name, value]) => ({ name, value }));
@@ -453,6 +493,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
         // Keep a bounded network code, never a URL or arbitrary protocol text.
         row.failureCode = typeof detail === "string" && detail.length <= 96 && /^net::ERR_[A-Z0-9_]+$/.test(detail)
           ? detail : "request-failure-detail-unavailable";
+        recordOperation("request-failed", { mode, request: requests.indexOf(row), code: row.failureCode });
       }
       if (!row?.denied && !(operation && row?.kind === "measurement")) fail("unexpected-request-failure");
       if (row) {
@@ -463,12 +504,24 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
     context.on("requestfinished", (request) => {
       const row = rows.get(request);
       if (!row) fail("unobserved-request");
-      else row.finished = true;
+      else {
+        row.finished = true;
+        recordOperation("request-finished", { mode, request: requests.indexOf(row) });
+      }
+    });
+    if (operationPacket) context.on("response", (response) => {
+      try {
+        const row = rows.get(response.request());
+        recordOperation("response-event", { mode, request: row ? requests.indexOf(row) : null });
+      } catch {
+        recordOperation("response-event-unavailable", { mode });
+      }
     });
     context.on("response", (response) => observe(async () => {
       const row = rows.get(response.request());
       requireFact(row && !row.denied && !row.violation && row.status === null, "unobserved-response");
       row.status = response.status();
+      recordOperation("response-processed", { mode, request: requests.indexOf(row), status: row.status });
       const expected = row.kind === "measurement"
         ? (mode === "failure" ? 503 : 200)
         : 200;
@@ -477,6 +530,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
         if (row.status === 302 || row.status === 307) {
           row.responseBodyState = "redirect-unavailable";
           row.bodyChecked = true;
+          recordOperation("response-body-redirect-unavailable", { mode, request: requests.indexOf(row) });
           return;
         }
       } else requireFact(row.status === expected, "unexpected-response-status");
@@ -484,9 +538,11 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       try { body = await response.body(); }
       catch {
         row.responseBodyState = "unavailable";
+        recordOperation("response-body-unavailable", { mode, request: requests.indexOf(row) });
         throw new Error("response-body-unavailable");
       }
       row.responseBodyState = "captured-bytes";
+      recordOperation("response-body-captured", { mode, request: requests.indexOf(row), bytes: body.length });
       requireFact(body.length <= LIMITS.responseBytes, "response-byte-limit");
       retain(body);
       row.responseBytes = body.length;
@@ -508,6 +564,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       }
       row.bodyChecked = true;
       if (operationPacket) row.bodyVerified = true;
+      recordOperation("response-body-verified", { mode, request: requests.indexOf(row) });
     }));
     await bounded(() => context.grantPermissions(["local-network-access"], { origin: fixture.origin }), "local-permission");
     const page = await bounded(() => context.newPage(), "page-start");
@@ -577,6 +634,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
   }
   async function operationCases(browser) {
     for (const name of OPERATION_CASES) {
+      activeOperation = { mode: name, page: null };
       const fixtureEntry = await startFixture(name);
       const fixture = fixtureEntry.value;
       const pageState = await pageFor(browser, fixture, name);
@@ -586,7 +644,14 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       const waitStage = (stage, count = 1) => until(() => receipts().filter((row) => row.stage === stage).length >= count,
         `operation-${name}-${stage}`, 2500);
       const begin = () => evaluate(() => window.beginBrowserOperation());
-      const wait = () => evaluate(() => window.waitBrowserOperation());
+      const wait = async () => {
+        recordOperation("runtime-wait-requested", { mode: name });
+        return bounded(async () => {
+          const state = await page.evaluate(() => window.waitBrowserOperation());
+          recordOperation("runtime-wait-settled", { mode: name, state });
+          return state;
+        }, `operation-${name}`, 5000);
+      };
       const prepare = () => evaluate(() => window.prepareBrowserOperation());
       if (name === "csp-negative") {
         requireFact(await evaluate(() => window.probeDisallowedReceiver()) === "reachable", "csp-reachability");
@@ -638,6 +703,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
               observed.every((row) => row.status === 200 && row.finished && row.bodyVerified === true);
           }, "opaque-observer-completion");
           await flush();
+          recordOperation("realm-stop-start", { mode: name });
           await evaluate(() => window.stopBrowserOperation("realm"));
           await until(async () => (await page.evaluate(() => window.getBrowserOperationState())).runtime.phase === "terminal",
             "realm-loss");
@@ -665,6 +731,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       commandObservations.push({ mode: name, state: retain(await evaluate(() => window.getBrowserOperationState())),
         receipts: retain(receipts()) });
       await closePhase(fixtureEntry, pageState);
+      activeOperation = undefined;
     }
     await until(() => workers.length === 8 && workers.every((worker) => worker.closed), "worker-disposition");
     controls.browserOperationCases = true;
@@ -800,9 +867,31 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
     await closePhase(failedFixture, failed);
     requireFact(workers.length === 2 && workers.every((worker) => worker.closed), "worker-disposition");
     }
-  } catch (error) { fail(error.message); }
+  } catch (error) {
+    fail(error.message);
+    if (operationPacket) {
+      let snapshot;
+      try {
+        requireFact(activeOperation?.page, "snapshot-page-unavailable");
+        snapshot = await bounded(() => activeOperation.page.evaluate(() => window.getBrowserOperationState()),
+          "failure-snapshot", 250, true, end - 3000);
+        requireFact(snapshot && typeof snapshot === "object" && typeof snapshot.phase === "string",
+          "snapshot-state-unavailable");
+        timelineStatus.failureSnapshot = recordOperation("failure-snapshot", {
+          mode: activeOperation.mode, status: "observed", state: snapshot,
+        }) ? "observed" : "unavailable-retention-limit";
+      } catch {
+        timelineStatus.failureSnapshot = recordOperation("failure-snapshot", {
+          mode: activeOperation?.mode ?? null, status: "unavailable",
+          reason: !activeOperation?.page ? "page-unavailable" : performance.now() >= end - 3000
+            ? "cleanup-reserve-or-deadline" : "evaluation-state-or-snapshot-deadline",
+        }) ? "unavailable" : "unavailable-retention-limit";
+      }
+    }
+  }
   finally {
     stopping = true;
+    recordOperation("cleanup-start");
     // Independent attempts: a failed context/browser close cannot skip a fixture or the process.
     for (const kind of ["context", "browser", "server", "fixture"]) {
       for (const entry of entries.filter((entry) => entry.kind === kind)) await closeEntry(entry);
@@ -849,6 +938,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
         processFacts.exit?.signal === null && processFacts.close?.code === 0 && processFacts.close?.signal === null;
       if (!cleanup.normalNonsignalExit || !cleanup.serverCloseEvent || !cleanup.serverCloseResolved) fail("browser-cleanup-unknown");
     } else fail("browser-ownership-unknown");
+    recordOperation("cleanup-finished");
   }
   if (interruption.signal.aborted) fail("owner-interrupted");
   if (entries.some((entry) => !entry.settled || !entry.closed)) fail("acquisition-or-cleanup-unknown");
@@ -860,6 +950,11 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       ? fixture.getReceiverArrivals(vendor) : fixture.getOperationReceipts());
     receiverCounts[mode] = receiverDocuments[mode].length;
   } catch { fail("receiver-final-observation"); }
+  if (operationPacket && errors.length && timelineStatus.failureSnapshot === "not-needed") {
+    timelineStatus.failureSnapshot = recordOperation("failure-snapshot", {
+      mode: activeOperation?.mode ?? null, status: "unavailable", reason: "failure-after-snapshot-opportunity",
+    }) ? "unavailable" : "unavailable-retention-limit";
+  }
   const expectedPhases = operationPacket ? 8 : 3;
   const passed = productChecked && (operationPacket ? controls.browserOperationCases : controls.held503FailedWithout2xx) &&
     errors.length === 0 && cleanup.profileAbsent && cleanup.normalNonsignalExit && cleanup.contexts.length === expectedPhases &&
@@ -891,8 +986,13 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       pendingAcquisitions: entries.filter((entry) => !entry.settled).map((entry) => entry.kind),
       instruction: "Owner supervises this exact test browser only; agent-loss cleanup is UNKNOWN. No process scans or profile deletion.",
     },
-    privateEvidence: { receiverDocuments, commandObservations, requests, workers },
+    privateEvidence: { receiverDocuments, commandObservations, requests, workers,
+      ...(operationPacket ? { operationTimeline, timelineStatus } : {}) },
   };
+  if (operationPacket) {
+    timelineStatus.observersPendingAtPublication = observations.size;
+    timelineOpen = false;
+  }
   // Stream each completed vendor record before starting the next interval.
   // The final footer makes this ONE ordinary JSON document, not NDJSON.
   if (IS_MAIN) {

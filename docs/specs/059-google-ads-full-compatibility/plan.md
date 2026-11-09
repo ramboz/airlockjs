@@ -1,8 +1,155 @@
 # Plan - full Google Ads browser-tag compatibility
 
-Current admission is the [local helper prerequisite checkpoint](#local-helper-prerequisite-checkpoint---2026-11-09).
+Current admission is the [known-case stop revision](#known-case-stop-revision---2026-11-09).
+The earlier [local helper prerequisite checkpoint](#local-helper-prerequisite-checkpoint---2026-11-09)
+retains its then-current stronger stop assessment; it is not retroactively cleared.
 The earlier [accepted browser-operation construction](#accepted-browser-operation-construction-packet---2026-11-09)
 and manual-response source stops below remain dated evidence.
+
+## Known-case stop revision - 2026-11-09
+
+**Browser admission remains blocked.** Independent current-path no-external
+support beyond the local Fetch receiver preflight is unestablished. The policy
+permits Unix sockets and localhost connections; that preflight does not
+exclude relay paths or qualify whole-process no-external behavior. No failed
+current external-traffic check or current-source Chrome run is claimed.
+This is separate from the newly accepted known-case stop criterion. No
+further mechanism search, framework or waiver follows.
+
+The direct owner selected "Use known-case stop condition (Recommended)".
+Accepted [ADR-0052](../../decisions/adr-0052-google-local-known-case-stop.md)
+records the exact question, answer and receipt SHA-256
+`30476695c601188caf28adc00988b09659dee33949702a61b9c7ba2de0a09f23`.
+Its actual pinned Sol/default frame review passed before the helper
+record/accept/index flow. The integration owner explicitly assigned0052 for
+feature-line authoring; the guarded local scaffold made no reservation,
+commit, fetch or push. Accepted0051/0047/48/50 and old dated evidence remain
+unchanged.
+
+The prospective local stop condition is closure of this run's known requests,
+pending responses, sockets and fixtures, together with the existing known
+root/worker/context and external whole-CLI completion requirements. It does
+not require permanent revocation of a surviving process's local connection
+permissions. Helpers remain unknown/manual and complete descendants/loss
+cleanup unproved. The prior deliberate Node replacement-receiver and Unix
+observations remain true and narrow. They neither automatically fail the new
+criterion nor establish independent no-external checks.
+
+This is the same prerequisite checkpoint, started2026-11-09T22:31:27.370Z
+with ceiling2026-11-10T00:31:27.370Z. The clean source base was
+`8d7a2467b074eb9f7249e913f9a48bd0ab4eb405`,
+tree `134be6530e35a0edd0a2ad6db48f9ce405f5623e`.
+The parent's later publication edge has the identical whole tree and is not
+merged into this continuation. No new spec/slice/bug owner or browser window
+was created.
+
+### New bounded causal instrumentation
+
+Fresh pinned `gpt-6.1-terra`/default changed only the private foreground harness
+and its existing test file. Its Google-only `operationTimeline` retains
+host-observed runtime snapshots, observer request/response/body outcomes,
+failure and teardown/cleanup ordering. It does not timestamp an underlying
+worker event or compare unsynchronized browser/worker/Node clocks as causal
+proof. Failure snapshot unavailability, omitted events and pending observers
+remain explicit; they cannot become success.
+
+The timeline is bounded to1536 events,32KiB per event and the existing shared
+8MiB retained-evidence ceiling. The original work/total deadlines and
+measurement/request/resource ceilings remain. Check `timelineStatus.omitted`,
+failure snapshot disposition, request rows and `observersPendingAtPublication`
+before drawing any diagnosis. The opaque snapshot and strict exact
+finished/body-verified primaryGET/secondaryPOST barrier still precede realm
+loss. Missing bodies, failed requests and incomplete observation still stop;
+opaque runtime HTTP remains unknown and observer data never enters runtime.
+
+The retained RED log contains five absent-timeline source failures and one
+unrelated fake snapshot setup failure/unhandled socket. That fake setup was
+corrected; it is not counted as source RED evidence. Eight focused controls,
+68 tests across the two targeted files and scoped ESLint passed. The final
+three-file covering run passed105 tests with unchanged source hashes. Actual
+new-delta Sol compliance found no revision-local must-fix but retained
+`needs-changes` for inherited full059 gaps. Actual craft and architecture
+passed for this bounded source delta. Architecture explicitly retained the
+independent no-external admission gap above; its source pass is not browser
+admissibility. Actual documentary reconciliation also passed; the
+[supplemental records](../../decisions/reviews/adr-0052-reconciliation.md)
+retain each pass's scope and limitations. No prior
+policy/reconnect/Unix control or completed
+implementation review was repeated.
+
+Private0600/fsynced revision evidence lives under `known-case-revision/`,
+separate from the immutable preceding72-artifact inventory. `assessment.md`
+and `source-manifest.json` describe the exact new source/tests and their limits.
+Current cohort bytes were re-observed at23:21UTC: the existing launcher/policy,
+Chrome plist/executable/versioned framework and Node pins match their retained
+hashes. Installed metadata is156.0.8078.80; a launched version is unobserved.
+Missing dependencies were restored offline without manifest edits; the
+unrelated Lighthouse Node-engine warning is retained. Test-generated
+`node-compile-cache/` remains untracked because cleanup permission was denied.
+It is not committed, and no alternative deletion was attempted.
+
+### Current safety and one finite plan
+
+Known-case closure must be evidenced by actual request outcomes, tracked
+pending-response/socket/listener settlement, close callbacks and receiver
+rows. A failed request may terminate through its failure event; fixture close
+alone does not prove a browser finished event. Unresolved request/observer work,
+missing owned closure or unavailable external command completion stays
+failed/unknown. None is excused by manual-helper acceptance.
+
+Independent no-external checks remain mandatory. The unchanged fixed policy,
+pre-navigation request/WebSocket guards and positive/deny/bypass independent
+receiver preflight are reviewed existing-path controls, not sufficient
+independent whole-process current-Chrome no-external qualification. The
+remaining prerequisite is evidence beyond that local Fetch preflight. The
+earlier Unix/replacement observations are not
+substitutes in either direction. A concrete failed current safety check stops
+the packet without another mechanism search or policy expansion.
+
+**No Chrome is admitted by this revision.** The exact proposed selector remains
+`node rig/local-browser-foreground.mjs --google-browser-operations`: one
+preflight plus `readable`, `opaque`, `unreadable-primary`, `csp-negative`,
+`redirect-307`, `revoke`, `lifecycle`. Preserve one root, eight fixture/context
+phases and workers,256 requests,24 measurements,100s work and120s total
+including cleanup/publication. No retry or widened interval follows.
+
+After affirmative parent admission of the exact reviewed cohort, install
+existing guards before navigation, verify the actual launched pin and pass
+independent per-run safety preflight before product cases. Retain the readable
+two-authored-operation GET200/POST302/GET200 chain, held-final-response barrier,
+allowed-origin unexpected path, actual loaded frame bytes/CSP, honest opaque
+settlement and unreadable-primary stop. Require the paired reachable but
+CSP-disallowed redirect,307 observation and revocation/lifecycle controls.
+No harness abort may impersonate CSP, no final GET is authored and no missing
+body is relaxed. Retain the new timeline and actual known-case closure,
+workers/frame/receiver evidence and independent whole-CLI completion.
+
+Actual current-source Chrome controls remain unexecuted. Historical abort
+cause remains unresolved. Full059-01 stays READY_FOR_REVIEW/non-clearing and
+059-15 stays IN_PROGRESS. No public Google/SDK/cookies/credentials/native/
+original-slot/Meta or production/core/frozen/shared-policy authority follows.
+
+### Revision reconciliation log
+
+This is a bounded prerequisite revision, not completion of059-01 or059-15.
+The new source compliance/craft/architecture and reconciliation records sit
+beside ADR-0052 under `docs/decisions/reviews/`. Their generated prompts target
+the current059 owner and exact8d7a2467 source delta. This supplemental location
+preserves the older canonical059 reviews and their non-clearing outcomes; no
+transition or review-gate override is attempted. Actual dispatch/returned
+runtime model evidence, rather than reviewer self-attestation, records every
+review as `gpt-6.1-sol`/default and implementation as
+`gpt-6.1-terra`/default. The reviews are UNINDEXED read-only passes and did not
+execute tests or independently verify hashes. Coordinator integrity checks
+and retained implementation command receipts provide those separate claims.
+
+The only new stop-definition change is the direct known-case owner choice in
+Accepted0052. The independent no-external admission gap is not waived by that
+decision, successful Node tests or architecture source PASS. The same finite
+plan is retained as a proposal, not an authorized launch. Old causal and
+cleanup evidence remains unchanged; no prior control was repeated to relabel
+its result. Helper-generated temporary skill-candidate sidecars are retained
+privately and excluded from the delivered source cohort.
 
 ## Local helper prerequisite checkpoint - 2026-11-09
 
