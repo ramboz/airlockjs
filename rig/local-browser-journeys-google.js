@@ -137,3 +137,117 @@ async function runJourney() {
 Object.assign(window, { runJourney, getJourneyState, beginNegativeControls, beginPositiveControls, finishJourney });
 window.addEventListener("pagehide", () => { if (adapter && phase !== "completed-page-checks") void fail("page-unloaded"); }, { once: true });
 show();
+
+if (location.pathname === "/google-browser-operation") {
+  const allowedCases = ["readable", "opaque", "unreadable-primary", "csp-negative", "redirect-307", "revoke", "lifecycle"];
+  const data = document.body.dataset;
+  const origins = data.recipients.split(" ");
+  const identity = {
+    conversionId: "AW-1234567890", label: "fixture-conversion-label", value: 1, currency: "USD",
+    transaction: "airlock-test-12345678-1234-1234-1234-123456789012",
+    pageURL: "https://owned.example.test/tools/google-ads/test-purchase.html", auid: "123.456",
+  };
+  let operationAdapter;
+  let operationPromise;
+  let operationPhase = "not-started";
+  let operationFailure = null;
+  let operationDisposal = "not-created";
+  function operationState() {
+    return {
+      caseName: data.case, phase: operationPhase, failure: operationFailure, disposal: operationDisposal,
+      runtime: operationAdapter?.getState() || null, overall: "INCONCLUSIVE", fullCompatibility: false,
+      receipt: "requires-independent-receiver-observation",
+    };
+  }
+  function operationShow() {
+    document.getElementById("journey-state").textContent = JSON.stringify(operationState(), null, 2);
+  }
+  async function prepareBrowserOperation() {
+    if (arguments.length || !["not-started", "disposed"].includes(operationPhase) || !allowedCases.includes(data.case) ||
+        origins.length !== 2 || origins.some((origin) => !/^http:\/\/127\.0\.0\.1:[1-9]\d{0,4}$/.test(origin)) ||
+        !origins.includes(data.primary) || !origins.includes(data.secondary)) throw new Error("invalid-operation-case");
+    operationPhase = "preparing";
+    operationPromise = undefined;
+    operationFailure = null;
+    operationAdapter = createGoogleAdsPrototype({
+      endpoint: `${data.primary}/pagead/conversion/1234567890/`,
+      captureContext: () => ({ pageURL: identity.pageURL, referrer: "" }),
+      consent: { ad_storage: "granted" }, experimentalRouting: true,
+      experimentalBrowserOperation: {
+        auid: identity.auid, recipientOrigins: origins, secondaryOrigin: data.secondary,
+        secondaryMode: data.case === "opaque" ? "no-cors" : "cors",
+        permissions: Object.fromEntries(origins.flatMap((origin) => [
+          [new URL(origin).origin, ["ad_storage"]],
+          [new URL(origin.replace("http:", "https:")).origin, ["ad_storage"]],
+          ...(origin.endsWith(":80") ? [["https://127.0.0.1", ["ad_storage"]]] : []),
+        ])),
+      },
+      initTimeoutMs: 2000, commandTimeoutMs: 5000, transportTimeoutMs: data.case === "lifecycle" ? 300 : 1500,
+    });
+    operationDisposal = "pending";
+    operationAdapter.gtag("config", identity.conversionId);
+    const state = await operationAdapter.flush();
+    if (state.phase !== "ready" || state.outcomes.at(-1)?.disposition !== "configured") throw new Error("operation-config-failed");
+    operationPhase = "ready";
+    operationShow();
+    return operationState();
+  }
+  function beginBrowserOperation() {
+    if (arguments.length || !["ready", "settled"].includes(operationPhase)) throw new Error("operation-not-ready");
+    operationPhase = "in-flight";
+    operationAdapter.gtag("event", "conversion", {
+      send_to: `${identity.conversionId}/${identity.label}`, value: identity.value,
+      currency: identity.currency, transaction_id: identity.transaction,
+    });
+    operationPromise = operationAdapter.flush().then((state) => {
+      operationPhase = state.phase === "ready" ? "settled" : "terminal";
+      operationShow();
+      return operationState();
+    }).catch(() => {
+      operationFailure = "operation-flush-failed";
+      operationPhase = "failed";
+      operationShow();
+      return operationState();
+    });
+    operationShow();
+  }
+  function stopBrowserOperation(kind) {
+    if (arguments.length !== 1 || !operationAdapter) throw new Error("invalid-operation-stop");
+    if (kind === "consent") operationAdapter.setConsent({ ad_storage: "denied" });
+    else if (kind === "permission") operationAdapter.setBrowserPermissions({});
+    else if (kind === "worker") operationAdapter.retireBrowserWorker();
+    else if (kind === "realm") {
+      const frame = document.querySelector("iframe");
+      if (!frame) throw new Error("missing-operation-frame");
+      frame.remove();
+    } else throw new Error("invalid-operation-stop");
+    operationShow();
+  }
+  async function disposeBrowserOperation() {
+    if (arguments.length || !operationAdapter) throw new Error("invalid-operation-dispose");
+    try {
+      await operationAdapter.dispose();
+      operationDisposal = "resolved-worker-exit-needs-independent-observation";
+    } catch { operationDisposal = "UNKNOWN"; throw new Error("operation-cleanup-failed"); }
+    operationPhase = "disposed";
+    operationShow();
+    return operationState();
+  }
+  async function waitBrowserOperation() {
+    if (arguments.length || !operationPromise) throw new Error("operation-not-started");
+    return operationPromise;
+  }
+  async function probeDisallowedReceiver() {
+    if (arguments.length || data.case !== "csp-negative" ||
+        !/^http:\/\/127\.0\.0\.1:[1-9]\d{0,4}$/.test(data.denied)) throw new Error("invalid-reachability-control");
+    const response = await fetch(`${data.denied}/reachability`, { credentials: "omit", redirect: "error", mode: "cors" });
+    if (response.status !== 200 || (await response.text()) !== "") throw new Error("reachability-control-failed");
+    return "reachable";
+  }
+  Object.assign(window, {
+    prepareBrowserOperation, beginBrowserOperation, stopBrowserOperation, disposeBrowserOperation, waitBrowserOperation,
+    getBrowserOperationState: operationState, probeDisallowedReceiver,
+  });
+  window.addEventListener("pagehide", () => { if (operationAdapter) void operationAdapter.dispose(); }, { once: true });
+  operationShow();
+}

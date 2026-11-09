@@ -82,6 +82,230 @@ function syntheticFields(vendor, query) {
   return [...fields];
 }
 
+  const GOOGLE_OPERATION_CASES = Object.freeze([
+    "readable", "opaque", "unreadable-primary", "csp-negative", "redirect-307", "revoke", "lifecycle",
+  ]);
+
+  /** Fixed synthetic receiver packet. It never acquires a browser. */
+  export async function startGoogleBrowserOperationFixture(caseName) {
+    if (arguments.length !== 1 || !GOOGLE_OPERATION_CASES.includes(caseName)) throw new Error("fixed-operation-case-required");
+    const started = performance.now();
+    const limits = Object.freeze({
+      observedRequests: 256, measurementAttempts: 24, urlBytes: 8192, requestBodyBytes: 65536,
+      headerBytes: 65536, headerCount: 64, responseBytes: 2097152, retainedBytes: 8388608,
+      sockets: 64, responseHoldMs: 3000, cleanupMs: 2000, lifetimeMs: 120000,
+    });
+    const paths = [...SOURCE_PATHS, "/adapters/google-browser-operation-realm.js"];
+    const sources = new Map(await Promise.all(paths.map(async (path) => [path, await readFile(new URL(`..${path}`, import.meta.url))])));
+    const framePath = "/rig/google-browser-operation-frame.html";
+    const frameBytes = await readFile(new URL(`..${framePath}`, import.meta.url));
+    const original = JSON.parse(await readFile(new URL("./fixtures/google-manual-conversion.json", import.meta.url), "utf8"));
+    const { owned, entries } = original;
+    const secondaryQuery = new URL(entries[1].request.url).search;
+    const receipts = [];
+    const sockets = new Set();
+    const held = new Map();
+    const errors = [];
+    const servers = [];
+    let observedRequests = 0;
+    let measurementAttempts = 0;
+    let retainedBytes = [...sources.values(), frameBytes].reduce((sum, value) => sum + value.length, 0);
+    let closed = false;
+    let closing;
+    let lifetime;
+    let origins;
+    let pageBody;
+    const preflight = Buffer.from("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Local transport control</title></head><body></body></html>");
+    const recordError = (reason) => { if (!errors.includes(reason) && errors.length < 8) errors.push(reason); };
+    const state = () => ({
+      qualification: "source-and-Node-HTTP-only", overall: "INCONCLUSIVE", fullCompatibility: false, caseName,
+      observedRequests, measurementAttempts, retainedBytes, listening: servers.some((server) => server.listening),
+      openSockets: sockets.size, pendingResponses: held.size, closure: closed ? "closed" : "open", errors: [...errors],
+      refusedRequests: errors.length, overLimitRequests: errors.includes("request-limit") ? 1 : 0,
+    });
+    function policy() {
+      return "default-src 'none'; script-src 'none'; worker-src 'none'; frame-src 'none'; object-src 'none'; " +
+        `connect-src ${origins[0]} ${origins[1]}`;
+    }
+    function headers(extra = {}) {
+      return { "cache-control": "no-store", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer",
+        connection: "close", ...extra };
+    }
+    function finish(response, status, body = Buffer.alloc(0), extra = {}) {
+      response.writeHead(status, headers({ "content-length": String(body.length), ...extra })).end(body);
+    }
+    function release(stage, status = 200) {
+      const entry = held.get(stage);
+      if (!entry) return false;
+      held.delete(stage);
+      clearTimeout(entry.timer);
+      entry.row.status = status;
+      entry.row.respondedAt = Date.now();
+      finish(entry.response, status, Buffer.alloc(0),
+        entry.row.origin !== origins[0] && caseName !== "opaque" ? { "access-control-allow-origin": origins[0] } : {});
+      return true;
+    }
+    function hold(stage, response, row) {
+      if (held.has(stage)) throw new Error("duplicate-held-response");
+      const timer = setTimeout(() => release(stage, 504), limits.responseHoldMs);
+      held.set(stage, { response, row, timer });
+      response.once("close", () => {
+        if (held.get(stage)?.response === response) { clearTimeout(timer); held.delete(stage); }
+        if (!response.writableFinished) row.response = "aborted";
+      });
+    }
+    function handler(index, request, response) {
+      try {
+        if (++observedRequests > limits.observedRequests) throw new Error("request-limit");
+        if (!origins || request.headers.host !== new URL(origins[index]).host ||
+            Buffer.byteLength(request.url) > limits.urlBytes || request.rawHeaders.length > limits.headerCount * 2 ||
+            Buffer.byteLength(request.rawHeaders.join("\r\n")) > limits.headerBytes ||
+            request.headers["transfer-encoding"] !== undefined ||
+            (request.headers["content-length"] !== undefined && request.headers["content-length"] !== "0")) {
+          throw new Error("request-invalid");
+        }
+        const url = new URL(request.url, origins[index]);
+        if (index === 0 && request.method === "GET") {
+          if (request.url === "/preflight") return finish(response, 200, preflight, {
+            "content-type": "text/html; charset=utf-8",
+            "content-security-policy": `default-src 'none'; connect-src ${origins.join(" ")}; script-src 'none'`,
+          });
+          if (request.url === "/google-browser-operation") return finish(response, 200, pageBody, {
+            "content-type": "text/html; charset=utf-8",
+            "content-security-policy": `default-src 'none'; script-src 'self'; worker-src 'self'; frame-src ${origins[0]}${framePath}; connect-src ${origins.join(" ")}; object-src 'none'; base-uri 'none'; form-action 'none'`,
+          });
+          if (request.url === framePath) return finish(response, 200, frameBytes, {
+            "content-type": "text/html; charset=utf-8", "content-security-policy": policy(),
+          });
+          const source = sources.get(request.url);
+          if (source) return finish(response, 200, source, { "content-type": "text/javascript; charset=utf-8" });
+        }
+        const primaryOrigin = caseName === "unreadable-primary" ? origins[1] : origins[0];
+        const primaryPath = `/pagead/conversion/${owned.conversion_id.slice(3)}/`;
+        const secondaryPath = `/pagead/viewthroughconversion/${owned.conversion_id.slice(3)}/`;
+        const expected = new URLSearchParams({
+          label: owned.conversion_label, value: String(owned.value), currency_code: owned.currency,
+          oid: owned.transaction_id, url: owned.document_url,
+        }).toString();
+        const stage = index === 2 && url.pathname === "/reachability" && request.method === "GET" ? "reachability" :
+          origins[index] === primaryOrigin && url.pathname === primaryPath && url.search === `?${expected}` && request.method === "GET" ? "primary" :
+            index === 1 && url.pathname === secondaryPath && url.search === secondaryQuery && request.method === "POST" ? "secondary" :
+              index === 1 && url.pathname === "/operation-intermediate" && request.method === "POST" && caseName === "redirect-307" ? "intermediate" :
+                ((index === 1 && url.pathname === "/operation-unexpected-path") ||
+                 (index === 2 && url.pathname === "/operation-csp-denied") ||
+                 (index === 1 && url.pathname === "/operation-final")) && request.method === "GET" ? "final" : null;
+        if (!stage || ++measurementAttempts > limits.measurementAttempts) throw new Error("measurement-invalid");
+        const row = { stage, origin: origins[index], path: url.pathname, method: request.method, status: null,
+          arrivedAt: Date.now(), respondedAt: null, response: "pending" };
+        retainedBytes += Buffer.byteLength(JSON.stringify(row)) + 256;
+        if (retainedBytes > limits.retainedBytes) throw new Error("retention-limit");
+        receipts.push(row);
+        response.once("finish", () => { row.response = "finished"; });
+        if (stage === "reachability") {
+          row.status = 200; row.respondedAt = Date.now();
+          return finish(response, 200, Buffer.alloc(0), { "access-control-allow-origin": origins[0] });
+        }
+        if (stage === "primary") {
+          if (caseName === "lifecycle") return hold("primary", response, row);
+          const body = Buffer.from(entries[0].response.body);
+          row.status = 200; row.respondedAt = Date.now();
+          return finish(response, 200, body, { "content-type": "application/json" });
+        }
+        if (stage === "secondary") {
+          if (caseName === "opaque") {
+            row.status = 200; row.respondedAt = Date.now();
+            return finish(response, 200);
+          }
+          const target = caseName === "csp-negative" ? `${origins[2]}/operation-csp-denied` :
+            caseName === "redirect-307" ? `${origins[1]}/operation-intermediate` :
+              caseName === "readable" ? `${origins[1]}/operation-unexpected-path` : `${origins[1]}/operation-final`;
+          row.status = caseName === "redirect-307" ? 307 : 302; row.respondedAt = Date.now();
+          return finish(response, row.status, Buffer.alloc(0), {
+            location: target, ...(caseName === "opaque" ? {} : { "access-control-allow-origin": origins[0] }),
+          });
+        }
+        if (stage === "intermediate") {
+          row.status = 200; row.respondedAt = Date.now();
+          return finish(response, 200, Buffer.alloc(0), { "access-control-allow-origin": origins[0] });
+        }
+        if (caseName === "readable" || caseName === "revoke") return hold("final", response, row);
+        row.status = 200; row.respondedAt = Date.now();
+        return finish(response, 200, Buffer.alloc(0),
+          index !== 0 && caseName !== "opaque" ? { "access-control-allow-origin": origins[0] } : {});
+      } catch (error) {
+        recordError(error?.message === "request-limit" ? "request-limit" : "request-invalid");
+        if (!response.headersSent) finish(response, 400);
+        else response.destroy();
+      }
+    }
+    async function close() {
+      if (!closing) closing = (async () => {
+        clearTimeout(lifetime);
+        for (const { timer, response } of held.values()) { clearTimeout(timer); response.destroy(); }
+        held.clear();
+        const waits = servers.map((server) => new Promise((resolve) => {
+          try { server.close(() => resolve()); server.closeAllConnections(); } catch { resolve(); }
+        }));
+        const socketWaits = [...sockets].map((socket) => new Promise((resolve) => {
+          if (socket.closed) { sockets.delete(socket); resolve(); return; }
+          socket.once("close", resolve);
+          socket.destroy();
+        }));
+        let timer;
+        await Promise.race([Promise.all([...waits, ...socketWaits]), new Promise((resolve) => {
+          timer = setTimeout(() => { recordError("cleanup-deadline"); resolve(); }, limits.cleanupMs);
+        })]);
+        clearTimeout(timer);
+        closed = !servers.some((server) => server.listening) && sockets.size === 0 && errors.length === 0;
+        return state();
+      })();
+      return closing;
+    }
+    try {
+      for (let index = 0; index < 3; index += 1) {
+        const server = createServer({ maxHeaderSize: limits.headerBytes, headersTimeout: 2000, requestTimeout: 2000 },
+          (request, response) => handler(index, request, response));
+        servers.push(server);
+        server.maxConnections = limits.sockets;
+        server.on("connection", (socket) => {
+          sockets.add(socket);
+          socket.once("close", () => sockets.delete(socket));
+          socket.on("error", () => {});
+          if (sockets.size > limits.sockets || closing) socket.destroy();
+        });
+        server.on("error", () => recordError("server-error"));
+        await new Promise((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error("listen-deadline")), 2000);
+          server.once("error", reject);
+          server.listen(0, "127.0.0.1", () => { clearTimeout(timer); resolve(); });
+        });
+      }
+      origins = servers.map((server) => `http://127.0.0.1:${server.address().port}`);
+      const data = [
+        `data-case="${caseName}"`, `data-primary="${caseName === "unreadable-primary" ? origins[1] : origins[0]}"`,
+        `data-secondary="${origins[1]}"`, `data-recipients="${origins[0]} ${origins[1]}"`,
+        `data-denied="${origins[2]}"`,
+      ].join(" ");
+      pageBody = Buffer.from(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Google browser-operation fixture</title></head><body ${data}><pre id="journey-state"></pre><script type="module" src="/rig/local-browser-journeys-google.js"></script></body></html>`);
+      retainedBytes += pageBody.length + preflight.length;
+      if (retainedBytes > limits.retainedBytes) throw new Error("retention-limit");
+      lifetime = setTimeout(() => { void close(); }, Math.max(0, limits.lifetimeMs - limits.cleanupMs - (performance.now() - started)));
+      const digest = (path, body) => Object.freeze({ path, bytes: body.length, sha256: createHash("sha256").update(body).digest("hex") });
+      return {
+        origin: origins[0], origins: [...origins], caseName, limits,
+        operationPaths: Object.freeze({ primary: `/pagead/conversion/${owned.conversion_id.slice(3)}/?${new URLSearchParams({
+          label: owned.conversion_label, value: String(owned.value), currency_code: owned.currency,
+          oid: owned.transaction_id, url: owned.document_url,
+        })}`, secondary: `/pagead/viewthroughconversion/${owned.conversion_id.slice(3)}/${secondaryQuery}` }),
+        sourceManifest: Object.freeze([...sources].map(([path, body]) => digest(path, body))),
+        pageManifest: Object.freeze([digest("/preflight", preflight), digest("/google-browser-operation", pageBody), digest(framePath, frameBytes)]),
+        getOperationReceipts: () => structuredClone(receipts),
+        releaseResponse: (stage) => release(stage),
+        framePolicy: policy(), getState: state, close,
+      };
+    } catch (error) { await close(); throw error; }
+  }
+
 /** Source/local-HTTP preparation only; never acquires a browser. */
 export async function startLocalBrowserJourneys() {
   if (arguments.length) throw new Error("fixed-fixture-no-options");

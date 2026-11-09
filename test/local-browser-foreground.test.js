@@ -3,11 +3,18 @@ import { request as httpRequest } from "node:http";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { execFile } from "node:child_process";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as fixtureModule from "../rig/local-browser-journeys.mjs";
 import {
-  assertForegroundReceipts, checkForegroundRequest, runLocalBrowserForeground, startForegroundControlFetch,
+  assertForegroundReceipts, checkForegroundRequest, runGoogleBrowserOperationsForeground,
+  runLocalBrowserForeground, startForegroundControlFetch,
 } from "../rig/local-browser-foreground.mjs";
+
+vi.mock("node:child_process", async (importOriginal) => {
+  const actual = await importOriginal();
+  return { ...actual, execFile: vi.fn(actual.execFile) };
+});
 
 const origin = "http://127.0.0.1:43111";
 const metaFields = (second = false) => [
@@ -135,6 +142,7 @@ describe("foreground source-only receipt and route checks — NOT browser qualif
 });
 
 const originalStart = fixtureModule.startLocalBrowserJourneys;
+const originalOperationStart = fixtureModule.startGoogleBrowserOperationFixture;
 const openFixtures = [];
 afterEach(async () => {
   vi.useRealTimers();
@@ -202,6 +210,12 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
     if (fault === "missing-receiver") fixture.getReceiverArrivals = () => [];
     return fixture;
   });
+  vi.spyOn(fixtureModule, "startGoogleBrowserOperationFixture").mockImplementation(async (name) => {
+    const fixture = await originalOperationStart(name);
+    openFixtures.push(fixture);
+    fixtures.set(fixture.origin, fixture);
+    return fixture;
+  });
   class Context extends EventEmitter {
     constructor(mode) { super(); this.mode = mode; this.closed = false; }
     async routeWebSocket(pattern, handler) { log.push(["websocket-route", pattern]); this.socketRoute = handler; }
@@ -215,25 +229,27 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
       this.emit("page", this.page);
       return this.page;
     }
-    async send(url, type) {
+    async send(url, type, method = "GET") {
       let resolve;
       let reject;
       const completion = new Promise((ok, no) => { resolve = ok; reject = no; });
       void completion.catch(() => {});
       const request = {
-        url: () => url, method: () => "GET", resourceType: () => type,
+        url: () => url, method: () => method, resourceType: () => type,
+        redirectedFrom: () => null,
         postDataBuffer: () => fault === "request-body" ? Buffer.from("x") : null,
         failure: () => ({ errorText: fault === "oversized-failure-code" ? `net::ERR_${"X".repeat(2048)}`
           : fault === "private-failure-detail" ? "Protocol error at https://private.invalid/?secret=not-retained"
             : failureDetail }),
         headersArray: async () => [{ name: "accept", value: fault === "header-overrun" ? "x".repeat(65537) : "*/*" }],
+        headers: () => ({ accept: "*/*" }),
       };
       await this.handler({
         request: () => request,
         abort: async () => { this.emit("requestfailed", request); reject(new Error("source-test-aborted")); },
         continue: async () => {
           expect(new URL(url).hostname).toBe("127.0.0.1");
-          const req = httpRequest(url, { agent: false }, (res) => {
+          const req = httpRequest(url, { agent: false, method }, (res) => {
             const chunks = [];
             res.on("data", (chunk) => chunks.push(chunk));
             res.on("end", () => {
@@ -248,11 +264,19 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
                   if (fault === "non204-body-unavailable" && res.statusCode !== 204) {
                     throw new Error("private protocol error unavailable");
                   }
+                  if (fault === "operation-accounting" && this.contextCase === "operation" &&
+                      type === "fetch" && method === "GET" && res.statusCode === 200) {
+                    throw new Error("private protocol error unavailable");
+                  }
+                  if (fault === "operation-overrun" && this.contextCase === "operation" &&
+                      type === "fetch" && method === "GET" && res.statusCode === 200) return Buffer.alloc(2097153);
                   if (fault === "response-overrun") return Buffer.alloc(2097153);
                   return fault === "source-substitution" && type === "script" ? Buffer.from("wrong") : body;
                 },
               });
-              if (["loading-failure-200", "oversized-failure-code", "private-failure-detail"].includes(fault) &&
+              if ((["loading-failure-200", "oversized-failure-code", "private-failure-detail"].includes(fault) ||
+                ["operation-accounting", "operation-overrun"].includes(fault) && method === "GET" && res.statusCode === 200 &&
+                  this.contextCase === "operation") &&
                 type === "fetch") this.emit("requestfailed", request);
               else this.emit("requestfinished", request);
               resolve({ status: res.statusCode, body });
@@ -285,6 +309,7 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
       this.vendor = new URL(url).pathname.slice(1);
       this.origin = new URL(url).origin;
       this.fixture = fixtures.get(this.origin);
+      this.context.contextCase = this.vendor === "google-browser-operation" ? "operation" : "legacy";
       log.push(["goto", this.vendor, this.context.mode]);
       this.emit("framenavigated", this.frame);
       if (fault === "work-cutoff") {
@@ -292,6 +317,11 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
         vi.spyOn(performance, "now").mockReturnValue(afterCutoff);
       }
       await this.context.send(url, "document");
+      if (["operation-accounting", "operation-overrun"].includes(fault) && this.vendor === "google-browser-operation") {
+        await this.context.send(`${this.fixture.origins[1]}${this.fixture.operationPaths.secondary}`, "fetch", "POST");
+        await this.context.send(`${this.fixture.origin}${this.fixture.operationPaths.primary}`, "fetch");
+        return;
+      }
       if (this.context.mode === "preflight") {
         if (fault === "preflight-source") await this.context.send(`${this.origin}/adapters/meta-pixel-prototype.js`, "script");
         if (fault === "preflight-document") await this.context.send(`${this.origin}/meta`, "document");
@@ -441,6 +471,27 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
 }
 
 describe("controlled browser events + real Node HTTP — NOT actual Chrome/worker proof", () => {
+  it.each([
+    ["operation-accounting", "response-body-unavailable"],
+    ["operation-overrun", "response-byte-limit"],
+  ])("counts only verified response bytes for private %s", async (fault, error) => {
+    await controlledBrowser(fault);
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "156.0.8078.80", "");
+      return {};
+    });
+    const report = await runGoogleBrowserOperationsForeground();
+    const result = report.vendors[0];
+    const rows = result.privateEvidence.requests;
+    expect(result.errors).toContain(error);
+    expect(rows.some((row) => row.responseBodyState === "redirect-unavailable" && row.bodyChecked)).toBe(true);
+    expect(rows.some((row) => row.responseBodyState ===
+      (fault === "operation-overrun" ? "captured-bytes" : "unavailable") && row.bodyChecked && !row.bodyVerified)).toBe(true);
+    const captured = rows.filter((row) => row.responseBodyState === "captured-bytes" && row.bodyVerified).length;
+    expect(captured).toBeGreaterThan(0);
+    expect(result.counts.verifiedResponseBodies).toBe(captured);
+  }, 10000);
+
   it("accepts exact Chrome 156.0.8078.80 in the controlled cohort", async () => {
     await controlledBrowser("version-80");
     const result = await runLocalBrowserForeground();

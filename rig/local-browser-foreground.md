@@ -1,5 +1,91 @@
 # Fixed local foreground procedure
 
+## Private Google browser-operation packet - 2026-11-09
+
+The owner accepted the Google-only model in
+[ADR-0050](../docs/decisions/adr-0050-google-browser-operations.md) and authorized
+reviewed local implementation. That decision does not authorize Google traffic,
+cookies, credentials, official SDK execution, deployment or changes to network
+or system trust. Existing manual/default Google and Meta modes stay unchanged.
+The older Meta-to-Google proposals and observations below remain historical.
+
+The private, SDK-free command is fixed:
+
+```sh
+node rig/local-browser-foreground.mjs --google-browser-operations
+```
+
+Ordinary tests never launch it. Before issuance, review the exact current source
+cohort, installed browser metadata, launcher/policy hashes, owned acquisition and
+stop paths. The current pin is Chrome `156.0.8078.80`; plist metadata alone is not
+proof of a launched version. Source checks the actual version before navigation.
+The existing Seatbelt launcher and request/WebSocket guards remain required.
+Install guards before the inert preflight page. Receiver allow/deny/bypass
+preflight must pass before any product navigation. A failed gate stops the packet;
+there is no automatic retry or alternative confinement mechanism.
+
+One issued packet permits one browser root, at most eight fixture/context pairs,
+eight workers, 256 observed requests and 24 measurement attempts. Its 120-second
+interval includes publication and cleanup; work stops by 100 seconds. URL,
+request/header, response and retained-evidence limits are 8,192 bytes, 64 KiB,
+2 MiB and 8 MiB respectively. Ordinary source/review time extensions do not
+extend an issued browser interval.
+
+The fixed cases cover readable and opaque secondary results, unreadable primary
+data, a reachable but CSP-disallowed receiver, a 307 redirect, revocation and
+lifecycle loss. Independent receivers must observe GET200/POST302/GET200 with
+two authored operations for the readable case. Holding the final response must
+hold settlement. Loaded iframe navigation bytes and enforcing response CSP must
+be retained. A disallowed redirect must produce a browser CSP observation with
+zero receiver arrivals, without a harness abort. An unexpected path on an
+allowed recipient is permitted. A 307 preserves POST; it is not evidence that
+the runtime enforces 302 or an exact physical request count.
+
+Consent/permission withdrawal, owned worker loss, frame identity loss,
+deadlines and disposal deny future authored calls and discard late results.
+Cancellation cannot guarantee zero subsequent arrivals. An opaque result means
+the operation settled with HTTP unknown. Required unreadable primary data stops
+before the secondary. No recorder response is fed into the runtime.
+
+**Recorded outcome:** the first source safety review found three blockers:
+effective CSP upgrade permissions, final absolute deadlines and the parent's
+broad frame policy. Terra corrected them with witnessed RED/GREEN controls, and
+a fresh pinned Sol source closure passed. The command was then issued once on
+Chrome156.0.8078.80. Independent receivers observed the readable
+GET200/POST302/GET200 chain with two authored operations and an allowed
+unexpected final path. Actual frame navigation bytes/CSP were retained.
+
+The opaque case stopped at `response-body-unavailable`; its secondary POST
+recorded `net::ERR_ABORTED`. The cause is unresolved, and no completed opaque
+runtime observation is retained. The CSP-negative and remaining browser cases
+did not run. Own-realm origin enforcement is still unqualified without that
+paired negative control. No retry or replacement launcher was issued.
+
+Whole CLI exit1/3.83s was observed externally. The producer reported3566ms,
+69 observed request events, eight measurement attempts and1799497 retained bytes. All three
+contexts/fixtures and both observed workers closed; root exit/close were0 and
+the exact root/profile were independently absent. Its aggregate cleanup field
+remains `UNKNOWN-or-failed-see-errors`. Descendant-tree absence and agent-loss
+cleanup remain UNKNOWN. Private0600/fsynced artifacts retain the raw report,
+receiver/frame evidence, source cohort and external completion/cleanup receipt.
+
+Later source review corrected bounded streaming-response cleanup. A separate
+fake-based control corrected the private body counter: the frozen attempt has
+66 captured bodies, one unavailable redirect body and one failed body, despite
+its old counter68. That report is not rewritten. Final corrected source hashes
+have no browser run; the retained observations belong only to the issued cohort.
+
+Retain the exact source cohort, private stdout/stderr, receiver/frame evidence,
+owned handles and cleanup dispositions. The caller must independently observe
+whole-CLI completion after exit. Root exit alone does not establish descendant
+cleanup; unknown ownership stays UNKNOWN. Known owned termination/error paths
+invalidate immediately, while genuinely unobservable OS loss can only fail by
+deadline. Native cookies, CORS/client context, performance and product receipts
+remain separate gaps. Full059-01 stays READY_FOR_REVIEW/non-clearing and059-15
+stays IN_PROGRESS.
+
+## Legacy Meta-to-Google proposal
+
 This prepares a proposed owner-supervised, headed **Meta → Google** run against
 the existing first-party fixtures. It does not qualify native compatibility or
 unattended shutdown. Source/operational review and a separate owner decision

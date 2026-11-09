@@ -14,6 +14,7 @@ const FEED_KEYS = ["aw_merchant_id", "aw_feed_country", "aw_feed_language"];
 const CUSTOM_KEYS = ["example_variable", "color", "product_name"];
 const LIMIT = 256;
 const DATA_LAYER_LIMIT = 128;
+let browserInstanceCounter = 0;
 const dateIntrinsics = (() => {
   try {
     return {
@@ -149,8 +150,10 @@ function matchesLabeledConversionRequest(url, endpoint, args, context, routing, 
   } catch { return false; }
 }
 
-function browserChamber() {
+function browserChamber(withLoss = false) {
   const worker = new Worker(new URL("../connectors/google-ads/conversion-prototype.worker.js", import.meta.url), { type: "module" });
+  const lossListeners = new Set();
+  let closed = false;
   return {
     postMessage: (message) => worker.postMessage(message),
     onMessage(listener) {
@@ -166,8 +169,28 @@ function browserChamber() {
         worker.removeEventListener("messageerror", listener);
       };
     },
-    dispose: () => worker.terminate(),
+    ...(withLoss ? {
+      onLoss(listener) { lossListeners.add(listener); return () => lossListeners.delete(listener); },
+      dispose() {
+        if (closed) return;
+        closed = true;
+        for (const listener of lossListeners) listener();
+        lossListeners.clear();
+        worker.terminate();
+      },
+    } : { dispose: () => worker.terminate() }),
   };
+}
+
+function browserPermissionOrigins(origins) {
+  const effective = new Set();
+  for (const literal of origins) {
+    const port = literal.slice(literal.lastIndexOf(":") + 1);
+    effective.add(new URL(literal).origin);
+    effective.add(new URL(`https://127.0.0.1:${port}`).origin);
+    if (port === "80") effective.add("https://127.0.0.1");
+  }
+  return [...effective];
 }
 
 function primitive(value, limit) {
@@ -236,7 +259,7 @@ async function responseText(response) {
   }
 }
 
-async function manualResponse(response, stage) {
+async function manualResponse(response, stage, ownership) {
   if (!response || !response.headers || typeof response.headers.get !== "function" ||
       !response.body || typeof response.body.getReader !== "function") throw new Error("response-unavailable");
   const headers = {};
@@ -251,23 +274,34 @@ async function manualResponse(response, stage) {
     throw new Error("response-unavailable");
   }
   const reader = response.body.getReader();
+  if (ownership) ownership.reader = reader;
   const decoder = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
   const decode = (value, options) => {
     try { return decoder.decode(value, options); }
     catch (error) { throw new Error("invalid-utf8", { cause: error }); }
   };
-  let bytes = 0, body = "";
+  let bytes = 0, body = "", reachedEOF = false;
   try {
     for (;;) {
       const { done, value } = await reader.read();
-      if (done) return { status: response.status, headers, body: body + decode() };
+      if (done) {
+        const result = { status: response.status, headers, body: body + decode() };
+        if (ownership && !ownership.signal.aborted) reachedEOF = true;
+        return result;
+      }
       bytes += value.byteLength;
       if (bytes > 4096) throw new Error("response-too-large");
       body += decode(value, { stream: true });
     }
   } finally {
-    await reader.cancel().catch(() => {});
-    reader.releaseLock();
+    if (!ownership) {
+      await reader.cancel().catch(() => {});
+      reader.releaseLock();
+    } else if (reachedEOF) {
+      reader.releaseLock();
+      ownership.reader = undefined;
+      ownership.complete = true;
+    }
   }
 }
 
@@ -288,6 +322,7 @@ export function createGoogleAdsPrototype({
   experimentalViewSearchResults = false, experimentalAddToCart = false, experimentalRemarketingPurchase = false,
   experimentalDisableRemarketing = false,
   experimentalManualResponseChain = false,
+  experimentalBrowserOperation = false,
 } = {}) {
   const viewOptions = {
     retail: experimentalRetailViewItem, education: experimentalEducationViewItem,
@@ -334,6 +369,40 @@ export function createGoogleAdsPrototype({
     }
     manualIdentity = { auid: descriptor.value };
   }
+  let browserIdentity;
+  if (experimentalBrowserOperation !== false) {
+    const option = experimentalBrowserOperation;
+    const keys = ["auid", "recipientOrigins", "secondaryOrigin", "secondaryMode", "permissions"];
+    if (!option || Object.getPrototypeOf(option) !== Object.prototype ||
+        Reflect.ownKeys(option).length !== keys.length ||
+        keys.some((key) => !Object.hasOwn(Object.getOwnPropertyDescriptor(option, key) || {}, "value")) ||
+        typeof option.auid !== "string" || !/^[A-Za-z0-9._-]{1,128}$/.test(option.auid) ||
+        !Array.isArray(option.recipientOrigins) || option.recipientOrigins.length < 1 || option.recipientOrigins.length > 4 ||
+        option.recipientOrigins.some((origin) => typeof origin !== "string" ||
+          !/^http:\/\/127\.0\.0\.1:[1-9]\d{0,4}$/.test(origin) || Number(new URL(origin).port) > 65535) ||
+        new Set(option.recipientOrigins).size !== option.recipientOrigins.length ||
+        !option.recipientOrigins.some((origin) => new URL(origin).origin === new URL(endpoint).origin) ||
+        !option.recipientOrigins.includes(option.secondaryOrigin) ||
+        !["cors", "no-cors"].includes(option.secondaryMode) ||
+        !option.permissions || Object.getPrototypeOf(option.permissions) !== Object.prototype ||
+        !experimentalRouting || manualIdentity || experimentalParameterScopes || experimentalCallbacks || experimentalMultiDestination ||
+        experimentalConsentCommands || experimentalBootstrap || experimentalDataLayer || experimentalPurchase ||
+        experimentalCustomVariables || experimentalViewItem || experimentalViewEvent || experimentalDisableRemarketing) {
+      throw new Error("invalid-experimental-option");
+    }
+    const permissionOrigins = browserPermissionOrigins(option.recipientOrigins);
+    if (Reflect.ownKeys(option.permissions).length !== permissionOrigins.length ||
+        permissionOrigins.some((origin) => {
+          const descriptor = Object.getOwnPropertyDescriptor(option.permissions, origin);
+          return !descriptor || !Object.hasOwn(descriptor, "value") ||
+            !Array.isArray(descriptor.value) || descriptor.value.length !== 1 || descriptor.value[0] !== "ad_storage";
+        })) throw new Error("invalid-experimental-option");
+    browserIdentity = {
+      auid: option.auid, instanceId: `browser-${++browserInstanceCounter}`, epoch: 1,
+      recipientOrigins: [...option.recipientOrigins], permissionOrigins,
+      secondaryOrigin: option.secondaryOrigin, secondaryMode: option.secondaryMode,
+    };
+  }
   const second = experimentalMultiDestination && typeof additionalEndpoint === "string" && additionalEndpoint.match(pattern);
   if (experimentalMultiDestination && (!second || Number(second[1]) > 65535 || match[2] === second[2])) {
     throw new Error("literal-loopback-endpoint-required");
@@ -347,7 +416,7 @@ export function createGoogleAdsPrototype({
   const routes = experimentalMultiDestination ? new Map([[`AW-${match[2]}`, endpoint], [`AW-${second[2]}`, additionalEndpoint]]) : null;
   if (!Number.isInteger(queueLimit) || queueLimit < 1 || queueLimit > 128 ||
       ![initTimeoutMs, commandTimeoutMs, transportTimeoutMs].every((n) => Number.isInteger(n) && n >= 10 && n <= 10000) ||
-      (manualIdentity && (initTimeoutMs > 2000 || commandTimeoutMs > 5000 || transportTimeoutMs > 1500))) {
+      ((manualIdentity || browserIdentity) && (initTimeoutMs > 2000 || commandTimeoutMs > 5000 || transportTimeoutMs > 1500))) {
     throw new Error("invalid-prototype-bounds");
   }
   const queue = [];
@@ -392,6 +461,7 @@ export function createGoogleAdsPrototype({
   let inFlight = false;
   let capturing = false;
   let activeSequence;
+  let activeCommandDeadline;
   let activeHostConsent;
   let activeCommand;
   let activeContext;
@@ -411,6 +481,10 @@ export function createGoogleAdsPrototype({
   let dataLayerSource;
   let dataLayerEntries = [];
   let drainingDataLayer = false;
+  let browserRealm;
+  let browserRealmReady;
+  const browserSetup = browserIdentity ? new AbortController() : null;
+  let browserPermissions = browserIdentity ? new Set(browserIdentity.permissionOrigins) : null;
 
   function record(outcome) {
     if (outcomes.length === LIMIT) { outcomes.shift(); truncated += 1; }
@@ -430,6 +504,8 @@ export function createGoogleAdsPrototype({
         ...(manualIdentity ? { actualCalls: manualActualCalls } : {}) },
       ...(manualIdentity ? { manualCleanup: { capabilityPending: capabilityWork.size, hostDrivesPending: hostDrives.size,
         hostResponsesPending: hostResponsesPending.size, controllers: controllers.size, hostListeners: hostListeners.size } } : {}),
+      ...(browserIdentity ? { browserCleanup: { capabilityPending: capabilityWork.size, hostDrivesPending: hostDrives.size,
+        controllers: controllers.size, realmReady: !!browserRealm, hostListeners: hostListeners.size } } : {}),
       receipt: "not-observed-by-adapter", fullCompatibility: false,
       ...(experimentalCallbacks ? { callbacks: { ...callbackStats, pending: callbacks.size } } : {}),
     };
@@ -496,6 +572,26 @@ export function createGoogleAdsPrototype({
     }));
   }
   function matchesHostResponse(summary) {
+    if (browserIdentity && summary.authoredOperations !== undefined) {
+      const allowedKeys = ["seq", "disposition", "authoredOperations",
+        ...(summary.status !== undefined ? ["status"] : []), ...(summary.reason !== undefined ? ["reason"] : [])];
+      if (!Number.isInteger(summary.authoredOperations) || summary.authoredOperations < 1 ||
+          summary.authoredOperations > 2 || activeRequests.length !== summary.authoredOperations ||
+          Object.keys(summary).length !== allowedKeys.length || !Object.keys(summary).every((key) => allowedKeys.includes(key)) ||
+          activeRequests.some((request) => !request.actual || !request.response) ||
+          summary.requests !== undefined || summary.branches !== undefined || summary.terminal !== undefined) return false;
+      const last = activeRequests.at(-1).response;
+      if (summary.authoredOperations === 1) {
+        const reason = ["rejected", "aborted", "timed-out"].includes(last.kind) ? last.kind : "primary-unreadable";
+        return summary.disposition === "failed" && summary.reason === reason &&
+          (last.kind !== "readable" || last.status !== 200 ||
+           !/^application\/json(?:\s*;|$)/i.test(last.headers["content-type"] || "")) &&
+          summary.status === undefined;
+      }
+      if (last.kind === "opaque") return summary.disposition === "opaque" && summary.status === undefined && summary.reason === undefined;
+      if (last.kind === "readable") return summary.disposition === "readable" && summary.status === last.status && summary.reason === undefined;
+      return summary.disposition === "failed" && summary.reason === last.kind && summary.status === undefined;
+    }
     if (summary.requests === 0) {
       return !activeRequest && ["configured", "scope-updated", "rejected",
         ...(experimentalBootstrap ? ["bootstrap-accepted"] : []),
@@ -571,8 +667,14 @@ export function createGoogleAdsPrototype({
     }
     phase = disposed ? "disposed" : "terminal";
     terminalReason = reason;
-    if (manualIdentity) {
+    if (manualIdentity || browserIdentity) {
       activeLeaseInvalid = true;
+      if (browserIdentity) {
+        browserIdentity.epoch += 1;
+        browserSetup.abort();
+        browserRealm?.dispose();
+        browserRealm = undefined;
+      }
       for (const listener of hostListeners) listener({ type: "fatal", message: reason });
       hostListeners.clear();
     }
@@ -594,10 +696,11 @@ export function createGoogleAdsPrototype({
     let disposal;
     try { disposal = transport?.dispose?.(); }
     catch { disposal = Promise.reject(new Error("transport-dispose-failed")); }
-    const cleanup = manualIdentity ? (async () => {
+    const cleanup = manualIdentity || browserIdentity ? (async () => {
       await Promise.resolve();
       const pending = Promise.allSettled([...hostDrives, ...capabilityWork,
-        ...[...hostResponsesPending.values()].map(({ promise }) => promise), Promise.resolve(disposal)]);
+        ...[...hostResponsesPending.values()].map(({ promise }) => promise),
+        ...(browserRealmReady ? [browserRealmReady] : []), Promise.resolve(disposal)]);
       let timer;
       try {
         const results = await Promise.race([pending, new Promise((_, reject) => {
@@ -610,7 +713,7 @@ export function createGoogleAdsPrototype({
     closed = cleanup.then(
       () => { if (cleanupFailure) throw new Error("prototype-cleanup-failed"); },
       (error) => {
-        cleanupFailure = manualIdentity && error?.message === "cleanup-deadline" ? "capability-drain-timeout" : "transport-dispose-failed";
+        cleanupFailure = (manualIdentity || browserIdentity) && error?.message === "cleanup-deadline" ? "capability-drain-timeout" : "transport-dispose-failed";
         throw new Error("prototype-cleanup-failed", { cause: error });
       },
     );
@@ -668,6 +771,157 @@ export function createGoogleAdsPrototype({
     } catch { throw new Error("loopback-transport-failed"); }
     finally { clearTimeout(timer); controllers.delete(controller); }
   }
+  async function cancelBrowserResponse(response, ownership) {
+    let timer;
+    try {
+      const reader = ownership.reader;
+      const target = reader || response?.body;
+      if (!target) return true;
+      if (typeof target.cancel !== "function") throw new Error("cancel-unavailable");
+      const work = Promise.resolve().then(() => target.cancel()).then(
+        () => { if (reader) reader.releaseLock(); },
+        (error) => { if (reader) reader.releaseLock(); throw error; },
+      );
+      capabilityWork.add(work);
+      void work.then(() => capabilityWork.delete(work), () => capabilityWork.delete(work));
+      await Promise.race([work, new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error("cancel-deadline")), 1000);
+      })]);
+      return true;
+    } catch (error) {
+      cleanupFailure ||= error?.message === "cancel-deadline"
+        ? "browser-response-cancel-timeout" : "browser-response-cancel-failed";
+      return false;
+    } finally { clearTimeout(timer); }
+  }
+
+  async function dispatchBrowserOperation(message, request) {
+    const epoch = browserIdentity.epoch;
+    let controller;
+    let timer;
+    let timedOut = false;
+    let outcome;
+    let response;
+    let failed = false;
+    const ownership = { reader: undefined, complete: false };
+    try {
+      const realm = await browserRealmReady;
+      controller = new AbortController();
+      controllers.add(controller);
+      ownership.signal = controller.signal;
+      if (phase !== "ready" || !inFlight || activeLeaseInvalid || activeRequest !== request ||
+          browserIdentity.epoch !== epoch || resolveConsent(hostConsent, "ad_storage") !== "granted" ||
+          browserIdentity.permissionOrigins.some((origin) => !browserPermissions.has(origin)) || !realm.valid()) {
+        throw new Error("browser-authority-lost");
+      }
+      let now = performance.now();
+      if (now >= activeCommandDeadline) { stop("command-timeout"); return; }
+      if (now >= request.deadline) { stop("browser-operation-timeout"); return; }
+      timer = setTimeout(() => { timedOut = true; controller.abort(); },
+        Math.floor(Math.min(activeCommandDeadline, request.deadline) - now));
+      now = performance.now();
+      if (now >= activeCommandDeadline) { stop("command-timeout"); return; }
+      if (now >= request.deadline) { stop("browser-operation-timeout"); return; }
+      request.actual = true;
+      const pending = realm.fetch(request.url, {
+        method: request.method, credentials: "omit", redirect: request.stage === "primary" ? "error" : "follow",
+        mode: request.stage === "primary" ? "cors" : browserIdentity.secondaryMode,
+        referrerPolicy: "no-referrer", signal: controller.signal,
+      });
+      const result = await pending;
+      response = result;
+      if (phase !== "ready" || browserIdentity.epoch !== epoch || activeLeaseInvalid) return;
+      if (performance.now() >= activeCommandDeadline) { stop("command-timeout"); return; }
+      if (performance.now() >= request.deadline) { timedOut = true; throw new Error("browser-operation-timeout"); }
+      if (result?.type === "opaque") {
+        ownership.complete = true;
+        outcome = { kind: "opaque" };
+      }
+      else {
+        const reading = manualResponse(result, request.stage === "primary" ? "primary" : "final", ownership);
+        capabilityWork.add(reading);
+        void reading.then(() => capabilityWork.delete(reading), () => capabilityWork.delete(reading));
+        let onAbort;
+        const aborted = new Promise((_, reject) => {
+          onAbort = () => reject(new Error("browser-aborted"));
+          controller.signal.addEventListener("abort", onAbort, { once: true });
+          if (controller.signal.aborted) onAbort();
+        });
+        let readable;
+        try { readable = await Promise.race([reading, aborted]); }
+        finally { controller.signal.removeEventListener("abort", onAbort); }
+        if (phase !== "ready" || browserIdentity.epoch !== epoch || activeLeaseInvalid) return;
+        if (performance.now() >= activeCommandDeadline) { stop("command-timeout"); return; }
+        if (performance.now() >= request.deadline) { timedOut = true; throw new Error("browser-operation-timeout"); }
+        const contentType = readable.headers["content-type"];
+        if (contentType !== undefined && contentType.length > 256) throw new Error("response-unavailable");
+        outcome = { kind: "readable", status: readable.status, body: readable.body,
+          headers: contentType === undefined ? {} : { "content-type": contentType } };
+      }
+    } catch (error) {
+      failed = true;
+      if (error?.message === "browser-authority-lost") {
+        stop("browser-authority-lost"); return;
+      }
+      outcome = { kind: timedOut ? "timed-out" : controller?.signal.aborted ? "aborted" : "rejected" };
+    } finally {
+      if (controller && (failed || (response && !ownership.complete))) controller.abort();
+      if (response && !ownership.complete && !await cancelBrowserResponse(response, ownership)) {
+        stop("browser-response-cleanup-failed");
+      }
+      clearTimeout(timer);
+      if (controller) controllers.delete(controller);
+    }
+    if (phase !== "ready" || browserIdentity.epoch !== epoch || activeLeaseInvalid || activeRequest !== request) return;
+    if (performance.now() >= activeCommandDeadline) { stop("command-timeout"); return; }
+    if (performance.now() >= request.deadline) outcome = { kind: "timed-out" };
+    if (resolveConsent(hostConsent, "ad_storage") !== "granted" ||
+        browserIdentity.permissionOrigins.some((origin) => !browserPermissions.has(origin)) || !browserRealm?.valid()) {
+      stop("browser-authority-lost"); return;
+    }
+    request.response = outcome;
+    try {
+      transport.postMessage({
+        type: "browser-operation-response", instanceId: browserIdentity.instanceId, epoch,
+        commandId: message.commandId, operationId: message.operationId, outcome,
+      });
+    } catch { stop("transport-post-failed"); }
+  }
+
+  function admitBrowserOperation(message) {
+    const index = activeRequests?.length;
+    const previous = activeRequests?.at(-1);
+    const keys = ["type", "instanceId", "epoch", "commandId", "operationId", "parentId", "stage", "url", "method",
+      ...(index === 1 ? ["source"] : [])];
+    let valid = phase === "ready" && inFlight && awaitingResult && activeCommand?.[0] === "event" &&
+      activeCommand[1] === "conversion" && index < 2 && message.instanceId === browserIdentity.instanceId &&
+      message.epoch === browserIdentity.epoch && message.commandId === activeSequence &&
+      message.operationId === lastRequestId + 1 && message.parentId === (previous?.id ?? 0) &&
+      message.stage === ["primary", "secondary"][index] && message.method === ["GET", "POST"][index] &&
+      Object.keys(message).length === keys.length && Object.keys(message).every((key) => keys.includes(key)) &&
+      typeof message.url === "string" && message.url.length <= 8192 && message.url.isWellFormed() &&
+      // eslint-disable-next-line no-control-regex -- reject URLs that Fetch would normalize before applying the grant.
+      !/[\u0000-\u0020\u007f\\#]/u.test(message.url);
+    if (valid && index === 0) valid = message.url.startsWith(`${endpoint}?`);
+    if (valid && index === 1) {
+      const sourcePrefix = `https://googleads.g.doubleclick.net/pagead/viewthroughconversion/${match[2]}/`;
+      const target = `${browserIdentity.secondaryOrigin}/pagead/viewthroughconversion/${match[2]}/`;
+      valid = previous.actual && previous.response?.kind === "readable" && previous.response.status === 200 &&
+        typeof message.source === "string" && message.source.startsWith(`${sourcePrefix}?`) &&
+        message.url === `${target}${message.source.slice(sourcePrefix.length)}` &&
+        previous.response.body.includes(JSON.stringify(message.source));
+    }
+    if (!valid) { stop("request-correlation-failed"); return; }
+    lastRequestId = message.operationId;
+    const request = { id: message.operationId, stage: message.stage, parent: message.parentId,
+      url: message.url, method: message.method, actual: false, deadline: performance.now() + transportTimeoutMs };
+    activeRequest = request;
+    activeRequests.push(request);
+    const work = dispatchBrowserOperation(message, request);
+    capabilityWork.add(work);
+    void work.then(() => capabilityWork.delete(work), () => capabilityWork.delete(work));
+  }
+
   async function pump() {
     if (inFlight || phase !== "ready") return;
     while (queue.length && phase === "ready") {
@@ -679,7 +933,7 @@ export function createGoogleAdsPrototype({
       activeRequest = undefined;
       activeRequests = [];
       activeLeaseInvalid = activeHostConsent !== "granted" ||
-        (manualIdentity && capturedConsentGeneration.get(event) !== consentGeneration);
+        ((manualIdentity || browserIdentity) && capturedConsentGeneration.get(event) !== consentGeneration);
       const eventParams = dispatchEvent(activeCommand, experimentalPurchase, experimentalViewItem, viewEvents, experimentalRemarketingPurchase)
         ? activeCommand?.[2] : undefined;
       const sendTo = eventParams && Object.hasOwn(eventParams, "send_to") ? eventParams.send_to : undefined;
@@ -687,6 +941,7 @@ export function createGoogleAdsPrototype({
         ? (Array.isArray(sendTo) ? sendTo : [sendTo]) : undefined;
       inFlight = true;
       awaitingResult = true;
+      if (browserIdentity) activeCommandDeadline = performance.now() + commandTimeoutMs;
       const settled = await new Promise((resolve) => {
         let done = false;
         const finish = (value) => {
@@ -699,7 +954,7 @@ export function createGoogleAdsPrototype({
         const timer = setTimeout(() => finish({ failure: "command-timeout" }), commandTimeoutMs);
         finishCurrent = finish;
         const drive = host.driveEvent(event);
-        if (manualIdentity) {
+        if (manualIdentity || browserIdentity) {
           hostDrives.add(drive);
           void drive.then(() => hostDrives.delete(drive), () => hostDrives.delete(drive));
         }
@@ -708,6 +963,7 @@ export function createGoogleAdsPrototype({
       if (settled.failure) {
         const branches = branchOutcomes();
         record({ seq: event.seq, disposition: "rejected", reason: settled.failure, ...(branches ? { branches } : {}),
+          ...(browserIdentity && activeRequests.length ? { authoredOperations: activeRequests.length } : {}),
           ...(manualIdentity && activeRequests.length ? { chain: manualChainOutcome() } : {}) });
         stop(settled.failure);
       } else {
@@ -721,9 +977,13 @@ export function createGoogleAdsPrototype({
           pendingDenials.delete(event.seq);
         }
         record({
-          seq: event.seq, disposition: summary.disposition, requests: summary.requests,
+          seq: event.seq, disposition: summary.disposition,
+          ...(browserIdentity && summary.authoredOperations !== undefined
+            ? { authoredOperations: summary.authoredOperations } : { requests: summary.requests }),
           ...(Number.isInteger(summary.status) ? { status: summary.status } : {}),
-          ...(summary.reason ? { reason: REASONS.has(summary.reason) ? summary.reason : "worker-rejected" } : {}),
+          ...(summary.reason ? { reason: REASONS.has(summary.reason) ||
+            (browserIdentity && ["primary-unreadable", "rejected", "aborted", "timed-out"].includes(summary.reason))
+            ? summary.reason : "worker-rejected" } : {}),
           ...(experimentalMultiDestination && summary.branches ? { branches: branchOutcomes() } : {}),
           ...(manualIdentity && activeRequests.length ? { chain: manualChainOutcome() } : {}),
           ...(summary.disposition === "consent-updated"
@@ -734,6 +994,7 @@ export function createGoogleAdsPrototype({
       inFlight = false;
       awaitingResult = false;
       activeSequence = undefined;
+      activeCommandDeadline = undefined;
       activeHostConsent = undefined;
       activeCommand = undefined;
       activeContext = undefined;
@@ -846,7 +1107,7 @@ export function createGoogleAdsPrototype({
       if (queue.length >= queueLimit || admitted >= LIMIT) { reject("capture-admission-changed"); return; }
       const event = { seq, type: "google-ads-command", ts: performance.now(), payload, snapshot: {} };
       capturedConsent.set(event, hostConsentAtCapture);
-      if (manualIdentity) capturedConsentGeneration.set(event, generationAtCapture);
+      if (manualIdentity || browserIdentity) capturedConsentGeneration.set(event, generationAtCapture);
       if (callback) {
         const entry = { fn: callback.fn, scheduled: false, timer: undefined };
         entry.timer = setTimeout(() => scheduleCallback(seq, "timeout"), callback.timeout);
@@ -878,10 +1139,18 @@ export function createGoogleAdsPrototype({
     } finally { drainingDataLayer = false; }
   }
   try {
-    transport = chamber || browserChamber();
+    transport = chamber || browserChamber(!!browserIdentity);
     subscriptions.push(transport.onMessage((message) => {
       if (phase === "terminal" || phase === "disposed") return;
+      if (browserIdentity && (!message || typeof message !== "object" || Array.isArray(message) ||
+          !["fatal", "phase", "result", "browser-operation-request"].includes(message.type))) {
+        stop("request-correlation-failed"); return;
+      }
       if (message?.type === "fatal") { stop(FAILURES.has(message.message) ? message.message : "worker-fatal"); return; }
+      if (browserIdentity && message?.type === "phase" &&
+          (message.name !== "configured" || Object.keys(message).length !== 2)) {
+        stop("request-correlation-failed"); return;
+      }
       if (message?.type === "phase" && message.name === "configured") {
         if (phase !== "starting") { stop("duplicate-configured"); return; }
         phase = "ready";
@@ -890,6 +1159,20 @@ export function createGoogleAdsPrototype({
       if (message?.type === "result") {
         const summary = message.summary;
         if (!inFlight || !awaitingResult || summary?.seq !== activeSequence) { stop("result-correlation-failed"); return; }
+        const browserResult = browserIdentity && summary.authoredOperations !== undefined;
+        if (browserIdentity && !browserResult &&
+            (!Array.isArray(message.ready) || message.ready.length !== 0 ||
+             Object.keys(message).length !== 3 ||
+             Object.keys(message).some((key) => !["type", "summary", "ready"].includes(key)) ||
+             !["seq", "disposition", "requests", "reason"].every((key) => key in summary || key === "reason") ||
+             Object.keys(summary).some((key) => !["seq", "disposition", "requests", "reason"].includes(key)))) {
+          stop("result-transport-mismatch"); return;
+        }
+        if (browserResult && (!Array.isArray(message.ready) || message.ready.length !== 0 ||
+            Object.keys(message).length !== 3 ||
+            Object.keys(message).some((key) => !["type", "summary", "ready"].includes(key)))) {
+          stop("result-transport-mismatch"); return;
+        }
         if (summary.disposition === "bootstrap-accepted" &&
             (!Array.isArray(message.ready) || message.ready.length !== 0 ||
               Object.keys(message).some((key) => !["type", "summary", "ready"].includes(key)))) {
@@ -900,18 +1183,22 @@ export function createGoogleAdsPrototype({
               Object.keys(message).some((key) => !["type", "summary", "ready"].includes(key)))) {
           stop("result-transport-mismatch"); return;
         }
-        if (!["configured", "rejected", "held", "transport-settled", "failed",
+        if (!(browserResult ? ["readable", "opaque", "failed"] : ["configured", "rejected", "held", "transport-settled", "failed",
           ...(experimentalMultiDestination ? ["partial"] : []),
           ...(experimentalConsentCommands ? ["consent-updated"] : []),
           ...(experimentalBootstrap ? ["bootstrap-accepted"] : []),
           ...(experimentalDisableRemarketing ? ["remarketing-disabled", "remarketing-suppressed"] : []),
-          ...(experimentalParameterScopes ? ["scope-updated"] : [])].includes(summary.disposition) ||
-            !(manualIdentity ? [0, 1, 3] : experimentalMultiDestination ? [0, 1, 2] : [0, 1]).includes(summary.requests) ||
+          ...(experimentalParameterScopes ? ["scope-updated"] : [])]).includes(summary.disposition) ||
+            (!browserResult && !(manualIdentity ? [0, 1, 3] : experimentalMultiDestination ? [0, 1, 2] : [0, 1]).includes(summary.requests)) ||
             (summary.status !== undefined && (!Number.isInteger(summary.status) || summary.status < 0 || summary.status > 599))) {
           stop("invalid-worker-result"); return;
         }
         if (!matchesHostResponse(summary)) { stop("result-transport-mismatch"); return; }
         awaitingResult = false;
+      }
+      if (browserIdentity && message?.type === "browser-operation-request") {
+        admitBrowserOperation(message);
+        return;
       }
       if (manualIdentity && message?.type === "intercepted-fetch") {
         if (phase !== "ready" || !inFlight || !awaitingResult || !Array.isArray(activeRequests)) {
@@ -1020,6 +1307,7 @@ export function createGoogleAdsPrototype({
       void pump();
     }));
     subscriptions.push(transport.onError?.(() => stop("worker-error")));
+    if (browserIdentity) subscriptions.push(transport.onLoss?.(() => stop("worker-lost")));
     host = createWrappedSdkHost({
       chamber: {
         postMessage(message) {
@@ -1047,8 +1335,28 @@ export function createGoogleAdsPrototype({
       egressPurposes: ["ad_storage"], grantedCookieNames: [], timeoutMs: transportTimeoutMs, onDiagnostic() {},
     });
     initTimer = setTimeout(() => stop("init-timeout"), initTimeoutMs);
+    if (browserIdentity) {
+      const setupTimer = setTimeout(() => { browserSetup.abort(); stop("realm-timeout"); }, initTimeoutMs);
+      browserRealmReady = import("./google-browser-operation-realm.js")
+        .then(({ createGoogleBrowserRealm }) =>
+          createGoogleBrowserRealm(browserIdentity.recipientOrigins, () => stop("realm-lost"), browserSetup.signal))
+        .then((realm) => {
+          if (browserSetup.signal.aborted || phase === "terminal" || phase === "disposed") {
+            realm.dispose(); throw new Error("realm-retired");
+          }
+          browserRealm = realm;
+          return realm;
+        })
+        .catch((error) => { stop("realm-unavailable"); throw error; })
+        .finally(() => clearTimeout(setupTimer));
+      void browserRealmReady.catch(() => {});
+    }
     host.init({ endpoint, transportTimeoutMs,
       ...(manualIdentity ? { experimentalManualResponseChain: manualIdentity } : {}),
+      ...(browserIdentity ? { experimentalBrowserOperation: {
+        instanceId: browserIdentity.instanceId, epoch: browserIdentity.epoch, auid: browserIdentity.auid,
+        secondaryOrigin: browserIdentity.secondaryOrigin,
+      } } : {}),
       ...(experimentalRouting === true ? { experimentalRouting: true } : {}),
       ...(experimentalParameterScopes === true ? { experimentalParameterScopes: true } : {}),
       ...(experimentalConsentCommands === true ? { experimentalConsentCommands: true } : {}),
@@ -1082,14 +1390,32 @@ export function createGoogleAdsPrototype({
     setConsent(vector) {
       if (phase !== "terminal" && phase !== "disposed") {
         hostConsent.ad_storage = vector?.ad_storage;
-        if (manualIdentity && resolveConsent(hostConsent, "ad_storage") !== "granted") consentGeneration += 1;
-        if (manualIdentity && inFlight && activeCommand?.[0] === "event" &&
-            resolveConsent(hostConsent, "ad_storage") !== "granted") {
+        if ((manualIdentity || browserIdentity) && resolveConsent(hostConsent, "ad_storage") !== "granted") consentGeneration += 1;
+        if (resolveConsent(hostConsent, "ad_storage") !== "granted" &&
+            (browserIdentity || (manualIdentity && inFlight && activeCommand?.[0] === "event"))) {
           activeLeaseInvalid = true;
           stop("consent-revoked");
         }
       }
     },
+    ...(browserIdentity ? {
+      retireBrowserWorker() { stop("worker-lost"); },
+      setBrowserPermissions(permissions) {
+        if (phase === "terminal" || phase === "disposed") return;
+        const allowed = new Set();
+        if (permissions && Object.getPrototypeOf(permissions) === Object.prototype) {
+          for (const origin of browserIdentity.permissionOrigins) {
+            const descriptor = Object.getOwnPropertyDescriptor(permissions, origin);
+            if (descriptor && Object.hasOwn(descriptor, "value") &&
+                Array.isArray(descriptor.value) && descriptor.value.length === 1 && descriptor.value[0] === "ad_storage") {
+              allowed.add(origin);
+            }
+          }
+        }
+        browserPermissions = allowed;
+        if (browserIdentity.permissionOrigins.some((origin) => !allowed.has(origin))) stop("browser-permission-revoked");
+      },
+    } : {}),
     async dispose() { stop("disposed", true); await closed; },
   };
 }

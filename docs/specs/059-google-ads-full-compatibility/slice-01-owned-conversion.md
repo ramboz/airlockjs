@@ -168,6 +168,13 @@ experimental worker-chain construction is implemented separately. Its
 records the browser-safe parser reuse and actual review corrections.
 Full compliance remains needs-changes; no native/product DoR is cleared.
 
+The owner-accepted2026-11-09 private browser-operation packet is recorded in its
+[dated deviation log](plan.md#browser-operation-deviation-log). ADR-0050 adds a
+narrow exception without changing frozen contracts. One actual local browser
+attempt observed the readable two-operation chain, then stopped at the opaque
+observer-body gate. Its CSP-negative control and remaining cases are unqualified;
+source tests are not substituted for browser evidence.
+
 ### Reconciliation sweep
 
 Full product reconciliation remains pending. The bounded construction
@@ -176,3 +183,10 @@ experimental Google sources and related documentation. Core/contracts,
 Meta, Accepted decisions, native policy, original authority and lifecycle
 remain unchanged. Parent covering verification passed 1171 tests; local
 Node/loopback evidence is not browser or complete conversion qualification.
+
+The2026-11-09 browser-operation [sweep](plan.md#browser-operation-reconciliation-sweep)
+accounts for this packet relative to its verified87d97dec base. It preserves
+prior records, full READY_FOR_REVIEW/non-clearing status and059-15 IN_PROGRESS.
+Only the readable local browser case has a completed observation. Remaining
+browser controls, native/product evidence and descendant/loss cleanup are not
+silently cleared.

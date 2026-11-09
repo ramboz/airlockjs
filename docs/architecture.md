@@ -54,6 +54,49 @@ only its independently observed local path and cleanup. Native response bytes,
 browser confinement, complete conversion, performance and product receipt
 remain unqualified. The Node worker bridge is not an adversarial sandbox.
 
+### Private Google browser operations
+
+[ADR-0050](decisions/adr-0050-google-browser-operations.md) adds a narrow,
+default-off exception for the standalone Google experiment. It does not change
+the manual response chain above, production boot, Meta, core capabilities or
+frozen contracts. The trusted mapper worker authors a readable, redirect-rejecting
+primary GET, then parses its bounded event/data response to author one POST.
+The browser follows that POST's redirects. The worker never authors a final GET.
+
+The private host in `adapters/google-ads-prototype.js` owns current consent,
+recipient-purpose permissions, exact initial destinations, correlated
+command/epoch/operation identity, finite deadlines and cancellation. The
+`authoredOperations` ledger counts these two calls, not physical redirect hops.
+An opaque response has unknown HTTP status. It is not an HTTP success or a
+product receipt. Missing readable primary data stops before the POST.
+
+`adapters/google-browser-operation-realm.js` captures Fetch and Request from an
+empty, script-free same-origin iframe at the fixed
+`rig/google-browser-operation-frame.html` asset. Adoption requires trusted
+asset bytes and an enforcing response CSP for the pinned recipient origins.
+The parent policy must admit only that asset. Realm identity loss fails closed.
+Effective CSP recipients include HTTP-to-HTTPS scheme/port matches, and each
+requires the correct current purpose permission.
+
+The origin ceiling allows other paths, query strings, accounts and labels on
+those origins. It does not provide hidden-hop consent or method checks, exact
+physical request counts, or zero arrivals after revocation. Abort is best effort.
+Known owned worker termination/error/messageerror invalidates authority;
+unobservable OS disappearance can only fail by deadline. No heartbeat or
+supervisor is added.
+
+The [fixed local procedure](../rig/local-browser-foreground.md#private-google-browser-operation-packet---2026-11-09)
+uses synthetic receivers and credentials omitted. Node controls and source
+review do not establish that iframe-realm Fetch enforces its response CSP across
+redirects. Actual loaded-navigation bytes/policy and positive/negative browser
+observations are required. Native CORS, cookies, client context, performance,
+full compatibility and Google product receipt remain unqualified.
+The one2026-11-09 attempt observed the readable local chain, then stopped at
+the opaque observer-body gate before the required CSP-negative control.
+It does not qualify the origin-enforcement assumption.
+Subsequent bounded response-cleanup and private counter corrections have their
+own source cohort. The earlier browser observation does not qualify those bytes.
+
 ### Reference-only capture boundary
 
 [ADR-0034](decisions/adr-0034-inspected-meta-stock-reference.md) permits a
