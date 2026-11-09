@@ -265,7 +265,7 @@ async function runVendor(vendor, interruption, ownedProfiles) {
     const entry = acquire("fixture", () => startLocalBrowserJourneys());
     const fixture = await bounded(() => entry.promise, "fixture-start", 2500);
     const hashes = [...fixture.pageManifest, ...fixture.sourceManifest];
-    requireFact(hashes.length === 32 && hashes.every((row) => row.bytes <= LIMITS.responseBytes &&
+    requireFact(hashes.length === 33 && hashes.every((row) => row.bytes <= LIMITS.responseBytes &&
       /^[a-f0-9]{64}$/.test(row.sha256)), "source-manifest");
     retainedBytes += hashes.reduce((sum, row) => sum + row.bytes, 0);
     requireFact(retainedBytes <= LIMITS.retainedBytes, "retention-limit");
@@ -443,6 +443,7 @@ async function runVendor(vendor, interruption, ownedProfiles) {
       workerPath(vendor), vendor === "meta"
         ? "/connectors/meta-pixel/pageview-prototype.js" : "/connectors/google-ads/conversion-prototype.js",
       ...(vendor === "meta" ? ["/connectors/pixel/vendors/meta.js", "/connectors/pixel/advanced-matching.js"] : []),
+      ...(vendor === "google" ? ["/connectors/google-ads/manual-response.js"] : []),
       ...SHARED_VENDOR_SOURCES[vendor], ...SHARED_VENDOR_SOURCES[vendor],
     ];
     const actual = requests.filter((row) => row.mode === pageState.state.mode && row.kind === "asset").map((row) => row.path);

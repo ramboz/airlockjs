@@ -1,5 +1,245 @@
 # Plan - full Google Ads browser-tag compatibility
 
+## Local browser response-chain packet - 2026-11-09
+
+The owner said "ok, do it. I approve any extension you need" after agreeing
+to extend the existing local browser conversion demo. This is a Google-only,
+synthetic construction packet under 059-01. It adds no native send or new
+product owner. Meta remains separate. Full 059-01 stays READY_FOR_REVIEW with
+needs-changes compliance; 059-15 stays IN_PROGRESS and non-clearing.
+
+The clean starting commit is `5d1a4cfbfbcf8da0eee0ddcaf7c4d0b87608aba3`,
+tree `272f1454c58807cdaa98e385c04cae05ea834e5c`. Both that commit and
+`0ffa1b4c2bc4726d57e6dc20e13d612f134475c8` were verified as ancestors before
+editing. Work stays on this packet's worktree branch, with no push or main
+write. The source checkpoint starts at 2026-11-09T15:50:17Z and ends at
+17:50:17Z. The owner's extension grant covers ordinary bounded continuation;
+it cannot waive a failed safety or evidence check.
+
+**Starting source fit at `5d1a4cfb`:** the fixed foreground procedure owns fresh
+profiles, contexts, a headed browser root, workers and local fixtures. It
+installs request/WebSocket controls before navigation and uses the unchanged
+loopback Seatbelt launcher (`rig/local-browser-foreground.mjs:271-450,680-709`).
+Its current no-option mode is Meta then Google, with two primary-only
+conversions. The fixture accepts GET only and its fixed source list does not
+yet include the manual-response leaf imported by the current worker
+(`rig/local-browser-journeys.mjs:7-36,142-151`). Extend this fixture and
+procedure, rather than introducing a proxy, runner or supervisor.
+Installed plist metadata reports Chrome 156.0.8078.80; actual launched version
+must still match. The historical .48 outcome does not qualify current source.
+
+### Browser packet acceptance criteria
+
+1. A default-off, fixed Google response-chain mode uses the existing local
+   page and intended adapter/queue entry. One synthetic conversion crosses
+   real browser structured clone to the actual module worker, then reaches
+   independent literal 127.0.0.1 GET, POST and GET receivers. Config sends zero.
+   The primary remains the real five-field mapper output. Default Google and
+   Meta behavior is preserved.
+2. The worker interprets the bounded primary message and secondary Location.
+   Public Google URLs and fallback remain inert data. Only the closed local
+   asset graph and three selected local paths can send. No automatic redirect,
+   native SDK, public request, arbitrary response/URL proxy, cookie operation,
+   browser-fetch bypass, second mapper or verifier is added.
+3. Independent evidence records actual browser worker start and serialized
+   messages, receiving methods/values, ordered request/response parents,
+   response bytes and command completion after the final response. Holding
+   that final response keeps the command pending. The controller's counters
+   alone cannot certify receipt.
+4. Consent withdrawal, missing or malformed required responses and worker
+   loss fail visibly without retry, revival or replacement. Retain the actual
+   browser controls separately from valid reused Node/unit controls. Prior
+   cancellation, ledger, lifecycle and CLI-falsifiability protections regress.
+5. Before acquisition, review exact source, browser selection, ownership,
+   supported transport denials and finite launch/work/stop limits. Run the
+   existing matched local allow/deny/bypass preflight before product navigation.
+   All guards must be installed before the first navigation. Keep actual
+   request/response and independent receiver evidence. Source-only limits
+   remain explicit; missing prerequisites stop execution without a new safety
+   framework or replay of an old launch grant.
+6. Bind the actual Google-only procedure to at most 120 seconds, with work
+   ending by 100 seconds and cleanup/publication inside the original interval.
+   Use no more than eight fresh fixture/context pairs, one browser root,
+   eight workers, 256 observed requests and 24 measurement attempts. Retain
+   existing per-request and source/body bounds; bound cumulative evidence.
+   The coordinator owns launch and exact-handle stop. Observe each worker,
+   context, profile, server and socket disposition plus external CLI completion.
+   Root exit does not prove descendant cleanup. Lost ownership stays UNKNOWN.
+7. Pinned Terra implements with witnessed red/green. Pinned Sol runs actual
+   Jig compliance, craft, architecture/source-safety and reconciliation.
+   Retain private 0600/fsynced logs and exact source/hash/command/result evidence,
+   then commit the reviewed packet on this branch with no PR or push.
+
+### Scope and execution conditions
+
+Allowed changes are the directly needed experimental Google sources, existing
+fixed browser fixture/procedure, tests and current docs/reviews. Core, frozen
+contracts, stable boot/build/dependencies, production adapters, native/inspected
+policy, inventories, oracle, Meta implementation and Accepted records stay
+unchanged. Completed 059-20/21 are historical records and are not amended.
+
+The new owner grant permits this local-only batch and needed duration
+extensions. It does not import historical launch windows, native authority,
+stock slots or platform qualification. Google stock stays spent. No private
+HAR, real label/destination, cookie, credential, trust-store access, deployment,
+account operation or host networking mutation belongs here.
+
+Existing installed-Chrome helper limitations remain explicit. This packet
+does not qualify interruption/agent-loss cleanup or infer complete descendant
+cleanup from root exit. If the existing path cannot meet a real prerequisite,
+record that exact blocker and stop browser execution. Do not revisit launchd,
+process-group, Chrome-import or new-supervisor investigations.
+
+Native primary fields, initialization/cookies, original follow-up bytes, a
+current complete native reference, calibrated performance and confirmation
+that Google counted a conversion remain open regardless of local outcome.
+Local secondary/final empty responses remain synthetic.
+
+### Browser packet source-fit stop
+
+The existing Fetch transport cannot expose the real secondary HTTP 302 to
+the worker. It sets `redirect: "manual"`
+(`adapters/google-ads-prototype.js:638-645`). Browser Fetch then returns an
+opaque-redirect response: status 0, no exposed headers and a null body. See
+the [Fetch response definition](https://fetch.spec.whatwg.org/#concept-filtered-response-opaque-redirect)
+and [Response.type](https://developer.mozilla.org/en-US/docs/Web/API/Response/type#opaqueredirect).
+Same-origin local URLs do not remove this filtering.
+
+The adapter requires a readable stream and secondary `Location`
+(`adapters/google-ads-prototype.js:239-266`). The worker requires status 302
+and parses that Location before requesting the final GET
+(`connectors/google-ads/conversion-prototype.worker.js:83-91`). Node Fetch
+exposes these values, which explains why the prior Node success is not a
+browser transport qualification. This finding is backed by source and the
+platform contract. It is not an observed Chrome result.
+
+The bounded source work repairs the current fixed fixture's missing worker
+import and its independent source-graph expectations. It does not add a
+browser-success mode that cannot satisfy the real response contract.
+Automatic redirect, substituting a 200 response or bridging the browser
+request through Node/CDP would change or bypass the selected transport.
+None is selected here. The exact browser acquisition prerequisite therefore
+fails before launch. The coordinator sent this material blocker to the
+parent; no browser, profile, context, browser worker or browser socket was
+acquired, and no new launch command was issued.
+
+Packet criteria 1-4 and actual-browser portions of 5-6 remain unmet. A modeled
+opaque response and existing Node controls may characterize the failure but
+cannot fill those gaps. Required source reviews cover only the bounded
+import correction, failure evidence and honest stop. A successful browser
+chain needs a separately selected transport/response design. Full 059-01
+and 059-15 remain non-clearing.
+
+### Smallest transport choices at this stop
+
+The owner's extension grant covers implementation time. The unresolved choice
+is what transport and evidence boundary the next result should claim.
+
+| Choice | Source-backed fit | Disposition |
+|---|---|---|
+| Keep ordinary browser Fetch with manual redirects | The selected adapter uses it at `adapters/google-ads-prototype.js:638-645`. The filtered response lacks the fields required at `:239-266` and `connectors/google-ads/conversion-prototype.worker.js:83-91`. | Cannot complete this worker-driven real-302 chain. CORS header exposure does not remove opaque-redirect filtering. More implementation time alone cannot supply the hidden fields. |
+| Observe the browser response through the existing debugger recorder, then bridge its result to the adapter | `rig/first-journey-browser.mjs:281-323` records actual response status/headers at the Chrome DevTools Protocol (CDP) response pause. It retains actual body bytes when available and separately identifies explicit empty HTTP framing. The request leg continues the browser request at `:375-381`; Node need not perform the measurement dispatch. | A possible **test-only** integration, not implemented or browser-qualified here. Returning this observation to the adapter would add a new privileged CDP-to-page response bridge with request/parent correlation and deadlines. Existing recording alone does not deliver it to the worker or make it adopter-capable. |
+| Use a server response envelope or Node raw-response transport | The existing wrapped-host result already carries status/headers/body (`core/wrapped-sdk-host.js:454-469`), and the experimental adapter accepts `fetchImpl` at `adapters/google-ads-prototype.js:279-281`. | An envelope would change the actual local HTTP 302 into another protocol; Node dispatch would stop being browser dispatch. Either can exercise synthetic worker logic, but neither satisfies the requested real-browser 302 path. No such substitution is selected. |
+| Let the browser follow the redirect automatically | This would bypass the worker's explicit secondary-to-final checkpoint at `connectors/google-ads/conversion-prototype.worker.js:83-91`. The present foreground recorder also requires 200/503 rather than 302 (`rig/local-browser-foreground.mjs:378-402`). | Not selected. It changes redirect ownership and consent/route accounting rather than filling a missing observer callback. |
+
+The CDP recorder can provide privileged evidence of a real browser 302
+without substituting Node dispatch. It does not expose that response through
+ordinary page Fetch. The foreground procedure's current observer is only a
+recorder and accepts no 302 path; the separate admission recorder is not a
+drop-in worker controller. Its unavailable-body condition remains fatal.
+An explicit local `Content-Length: 0` could support a framed-empty synthetic
+response observation, but cannot recover the missing native response body.
+No actual current-browser attestation follows from this source inspection.
+
+**Concrete next decision:** choose between a clearly labelled CDP-assisted
+local integration proof and an adopter-capable browser redirect design.
+The first keeps actual browser measurement dispatch but adds test-only
+privileged response delivery. The second requires a separately reviewed
+decision about redirect ownership or transport authority; no ordinary
+browser API in the selected path supplies the required intermediate fields.
+Neither choice is made here. No bridge or ADR was implemented, and no new
+guard investigation or execution grant is inferred.
+
+### Browser packet bounded result and deviation log
+
+The requested successful browser chain is blocked and was not implemented.
+The delivered prerequisite repair serves the manual-response leaf already
+imported by the Google worker. The fixed manifest now has 33 entries, and the
+independently traversed Google main/worker graphs produce 62 controlled-event
+requests within the existing 64-request limit. Meta remains at 56. This
+repairs source closure; it does not qualify those sources in Chrome.
+
+The import checks failed twice before the correction, then the 65 existing
+fixture/controller/foreground checks passed. Two new matched controls use
+the actual Node worker and independent literal-loopback receiver. The failure
+leg first receives the real GET/POST and secondary 302, then supplies a clearly
+labelled opaque-response model to the adapter. It fails visibly with
+`response-unavailable`, receives no final GET and cannot revive after consent
+changes or a new command. The unmodified Node leg receives GET/POST/GET.
+Both verify worker, receiver/socket and adapter-bookkeeping cleanup. These
+are Node/model observations, not browser response or cleanup observations.
+
+Pinned Terra's final five-file run passed 159 tests. The coordinator's
+covering run on Node 22.16.0 passed 1238 tests across 48 files, including
+Google, shared host/contracts, Meta, native/inspected policy and fixed local
+fixture controls. The exact selector set was:
+
+```sh
+node node_modules/vitest/vitest.mjs run --no-file-parallelism test/google-ads-*.test.js test/google-manual-worker-chain*.test.js rig/google-manual-response.test.mjs rig/native-stock-policy.test.mjs rig/inspected-google-policy.test.mjs test/wrapped-sdk-host.test.js test/contract-stability.test.js test/meta-pageview-prototype*.test.js test/meta-prototype-request-correlation.test.js test/local-browser-foreground.test.js test/local-browser-journeys.test.js test/local-browser-controller-state.test.js --reporter=dot
+```
+
+The first covering attempt passed 1226 tests in 47 files but could not load
+one suite because `hpack.js` was missing. Restoring the existing lockfile's
+dependencies inside this worktree resolved that load failure; no dependency
+manifest changed. Scoped ESLint passed for all four changed JavaScript files.
+Both fixed Node CLIs exited 0 with separately observed whole-command
+completion and fsynced output. The chain retained three actual local calls,
+verified owned cleanup and false native/browser/product claims.
+
+Eight existing offline CLI failure-input tests also have a runtime-specific
+baseline failure: all eight pass on Node 22.16.0, while all eight fail on
+Node 24.10.0 in both the working tree and an independent HEAD source copy.
+The Node 24 ESM loader invokes their patched `fs.openSync` before the intended
+module import. No unrelated test/source correction or full default-suite pass
+is claimed. Exact commands, original failures, matched baseline bytes, source
+hashes and logs remain private.
+
+The specialized Jig implementer refused because full 059-01 is not
+READY_FOR_IMPLEMENTATION. A pinned Terra general-purpose implementer then
+performed only the expressly permitted experimental work without changing
+that lifecycle. The same retained context added the failure model. Pinned Sol
+compliance found no source-local landing blocker and kept full needs-changes.
+Craft passed with one starting-state wording nit, now corrected. Architecture
+and source-safety review passed the bounded stop and transport-options
+disposition, without qualifying a browser or choosing the next design.
+
+### Browser packet reconciliation sweep
+
+- Updated: the fixed Google worker source list, foreground manifest/graph
+  expectations, matched Node failure model, current foreground guide,
+  this plan/tasks and actual 059-01 review evidence.
+- Preserved: the seven proposed browser criteria and their unmet actual
+  outcome. No success-shaped browser mode, launch, new transport, CDP bridge,
+  automatic redirect, forged response or ADR was added.
+- No-op: experimental adapter/worker/parser logic, core/contracts, production
+  boot/build/dependencies, Meta implementation, native/inspected policy,
+  inventories, oracle, Accepted records and completed 059-20/21 records.
+- No-op: lifecycle and authority. 059-01 remains READY_FOR_REVIEW with
+  needs-changes compliance; 059-15 remains IN_PROGRESS/non-clearing.
+  Google stock remains spent and the native/product gaps remain open.
+- Checked: leanness, inbox and memory. No inbox item was closed, convention
+  or settled architectural choice changed, or new domain term introduced.
+  The source-specific stop belongs here rather than in a generic memory rule.
+  Coverage has no uncovered or dangling use cases; nine older untraced specs
+  remain advisory. The derived board and scoped spec lint pass.
+- Retained privately: 0600/fsynced red/green, baseline and final logs, review
+  prompts/verdicts, CLI exit witnesses, exact source/hash manifest and final
+  commit/handoff receipt after those operations succeed.
+- Resource disposition: no browser/profile/context/browser worker was
+  acquired. Node controls and CLIs observed their own cleanup and external
+  completion. No complete descendant-cleanup or interruption-safety claim
+  follows. The browser execution gate remains blocked, not consumed or retried.
+
 ## Current assignment: complete the Google conversion - 2026-11-05
 
 The owner directed autonomous completion of the Google conversion on
