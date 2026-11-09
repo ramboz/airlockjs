@@ -4,6 +4,32 @@ The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
 
+## Known-case stop revision - 2026-11-09
+
+- [x] Verify the exact new owner receipt and clean8d7a2467 source/tree while
+      preserving the old72-artifact seal and original checkpoint ceiling.
+- [x] Receive explicit0052 feature-line allocation and complete actual pinned
+      Sol frame/record/helper accept/index for
+      [ADR-0052](../../decisions/adr-0052-google-local-known-case-stop.md).
+- [x] Fresh pinned Terra adds minimum private Google-only causal instrumentation
+      and Node tests. Preserve strict recorder/body/CSP and finite budgets.
+- [x] Retain genuine absent-timeline RED evidence separately from the corrected
+      fake setup error, eight focused GREEN controls,68 targeted tests and lint.
+- [x] Complete final covering run and actual required Sol new-delta
+      compliance/craft/architecture/reconciliation evidence without replacing
+      old dated stop records or claiming full059 compliance.
+- [x] Prepare exact reviewed source/cohort hashes, known-case stop/no-external
+      assessment and one finite plan for parent review. Browser admission stays
+      blocked by independent no-external evidence beyond local Fetch preflight;
+      no parent review or known-case acceptance waives that prerequisite.
+- [ ] Actual current-source independent safety/observer/CSP controls and
+      known-case/root/resource/external-CLI closure. No Chrome permission yet.
+
+Permanent surviving-process local-permission revocation is not the new local
+stop predicate. Unknown/manual helpers, independent no-external checks and
+strict known-resource closure remain separate. Earlier checklists below are
+dated evidence. Full059 remains non-clearing.
+
 ## Local helper prerequisite checkpoint - 2026-11-09
 
 - [x] Verify clean0df88c7021b71f645fec7893b0b7106a1a2681cc and identical
