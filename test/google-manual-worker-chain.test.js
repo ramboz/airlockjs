@@ -296,6 +296,90 @@ describe("Google manual worker response chain", () => {
       } finally { await close(resources); }
     });
 
+    it.each([
+      ["browser-shaped opaque-redirect response MODEL", true],
+      ["unmodified Node response", false],
+    ])("uses the real worker and receiver with %s", async (_label, modelOpaqueRedirect) => {
+      let resources;
+      const observed = [];
+      const fetchImpl = vi.fn(async (url, options) => {
+        const response = await globalThis.fetch(url, options);
+        if (options.method !== "POST") return response;
+        const arrivals = resources.receiver.arrivals;
+        expect(arrivals.map(({ method }) => method)).toEqual(["GET", "POST"]);
+        expect(arrivals[1].url).toBe(url);
+        expect(arrivals[1].bodySize).toBe(0);
+        expect(options.redirect).toBe("manual");
+        expect(response.status).toBe(302);
+        expect(response.headers.get("location")).toBe(
+          fixture.entries[1].response.headers.find(([name]) => name === "location")[1],
+        );
+        expect((await response.arrayBuffer()).byteLength).toBe(0);
+        observed.push("actual-secondary-post-and-302");
+        // This is a browser-shaped response MODEL, not an observed browser response.
+        return { type: "opaqueredirect", status: 0, headers: new Headers(), body: null };
+      });
+      resources = await setup({ options: modelOpaqueRedirect ? { fetchImpl } : {} });
+      const workerMessages = [];
+      const unsubscribe = resources.chamber.onMessage((message) => workerMessages.push(message));
+      const postMessage = vi.spyOn(resources.chamber, "postMessage");
+      try {
+        expect((await resources.chamber.probe).threadId).toBeGreaterThan(0);
+        resources.adapter.gtag("event", "conversion", resources.params);
+        const state = await resources.adapter.flush();
+        const methods = resources.receiver.arrivals.map(({ method }) => method);
+        const stages = workerMessages.filter(({ type }) => type === "intercepted-fetch");
+        expect(stages.map(({ stage }) => stage)).toEqual(modelOpaqueRedirect
+          ? ["primary", "secondary"] : ["primary", "secondary", "final"]);
+        expect(stages.map(({ parent }) => parent)).toEqual(
+          stages.map((_, index) => index ? stages[index - 1].id : 0),
+        );
+        expect(resources.receiver.arrivals.every(({ url, bodySize }) =>
+          new URL(url).hostname === "127.0.0.1" && bodySize === 0)).toBe(true);
+        const [primary, secondary] = resources.receiver.arrivals.map(({ url }) => new URL(url));
+        expect(primary.pathname).toBe("/pagead/conversion/1234567890/");
+        expect([...primary.searchParams]).toEqual([...new URLSearchParams({
+          label: fixture.owned.conversion_label, value: String(fixture.owned.value),
+          currency_code: fixture.owned.currency, oid: fixture.owned.transaction_id, url: fixture.owned.document_url,
+        })]);
+        expect(secondary.pathname).toBe("/pagead/viewthroughconversion/1234567890/");
+        expect(secondary.search).toBe(new URL(fixture.entries[1].request.url).search);
+        if (modelOpaqueRedirect) {
+          expect(observed).toEqual(["actual-secondary-post-and-302"]);
+          expect(resources.receiver.responses.map(({ status }) => status)).toEqual([200, 302]);
+          expect(fetchImpl).toHaveBeenCalledTimes(2);
+          expect(methods).toEqual(["GET", "POST"]);
+          expect(state).toMatchObject({
+            phase: "terminal", terminalReason: "response-unavailable",
+            host: { actualCalls: 2, dispatchAttempts: 2 },
+          });
+          expect(state.outcomes.some(({ disposition }) => disposition === "transport-settled")).toBe(false);
+          expect(workerMessages.some(({ type, summary }) =>
+            type === "result" && summary?.disposition === "transport-settled")).toBe(false);
+          await vi.waitFor(() => expect(resources.chamber.getState().closed).toBe(true));
+          const postedBefore = postMessage.mock.calls.length;
+          resources.adapter.setConsent({ ad_storage: "denied" });
+          resources.adapter.setConsent({ ad_storage: "granted" });
+          resources.adapter.gtag("event", "conversion", resources.params);
+          const after = await resources.adapter.flush();
+          expect(after).toMatchObject({ phase: "terminal", terminalReason: "response-unavailable",
+            inFlight: false, host: { actualCalls: 2, dispatchAttempts: 2 } });
+          expect(after.outcomes.at(-1)).toMatchObject({ disposition: "rejected", reason: "terminal" });
+          expect(postMessage).toHaveBeenCalledTimes(postedBefore);
+          expect(resources.receiver.arrivals.map(({ method }) => method)).toEqual(["GET", "POST"]);
+        } else {
+          expect(methods).toEqual(["GET", "POST", "GET"]);
+          expect(state).toMatchObject({ phase: "ready", terminalReason: null,
+            host: { actualCalls: 3, dispatchAttempts: 3 } });
+          expect(state.outcomes.at(-1)).toMatchObject({ disposition: "transport-settled", requests: 3, status: 200 });
+          expect(resources.receiver.responses.map(({ status }) => status)).toEqual([200, 302, 200]);
+        }
+      } finally {
+        unsubscribe();
+        await close(resources);
+      }
+    });
+
     it.each(["denied", "pending"])("holds %s at the seal without retry after grant", async (consent) => {
       const resources = await setup({ consent });
       try {

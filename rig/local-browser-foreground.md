@@ -169,9 +169,31 @@ requests, 8 measurement attempts, 8192 URL bytes, 64 KiB request/header bytes,
 sequence has 7 measurement attempts: 2 preflight receipts + 1 preflight abort,
 2 product receipts, 1 error receipt + 1 error-control abort. Overruns, missing
 observations and unknown surfaces fail; no counter or HTTP status alone passes.
-The controlled-event tests count 56 Meta and 60 Google requests under these
+The controlled-event tests count 56 Meta and 62 Google requests under these
 limits. They model separate main and worker module requests; they do not
 measure Chrome caching or establish the counts of a future browser run.
+
+The proposed local Google response-chain extension is not implemented. Its
+secondary stage requires a manual HTTP302 and its `Location`. Browser Fetch
+exposes a manual redirect as an opaque-redirect response, so the existing
+adapter cannot read that status, header or body as it can in Node. This is a
+source and browser-platform blocker, not an observed Chrome result. Do not
+launch the proposed chain or infer empty response bytes. No Fetch bypass or
+replacement transport is approved by this procedure.
+
+Source and evidence for this stop:
+
+- The [adapter](../adapters/google-ads-prototype.js) uses
+  `redirect: "manual"` and requires a readable response body and secondary
+  `Location`. The [worker](../connectors/google-ads/conversion-prototype.worker.js)
+  requires secondary status302 and that header before it issues the final GET.
+- [MDN's Response.type reference](https://developer.mozilla.org/en-US/docs/Web/API/Response/type)
+  describes `opaqueredirect` as status0, empty headers and a null body. This
+  platform finding is not an observation of Chrome in this packet.
+- The [Node worker control](../test/google-manual-worker-chain.test.js) first
+  receives the actual local POST and302, then returns a browser-shaped
+  opaque-redirect **model** to the adapter. A matched unmodified Node control
+  reaches all three local receivers. Neither control is a browser run.
 
 ## Scope and stop
 

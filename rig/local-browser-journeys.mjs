@@ -19,6 +19,7 @@ const SOURCE_PATHS = [
   "/connectors/pixel/vendors/meta.js",
   "/connectors/google-ads/conversion-prototype.worker.js",
   "/connectors/google-ads/conversion-prototype.js",
+  "/connectors/google-ads/manual-response.js",
   "/connectors/google-ads/destination-selectors.js",
   "/connectors/google-ads/consent-commands.js",
   "/connectors/google-ads/bootstrap-command.js",

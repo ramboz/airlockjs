@@ -159,7 +159,8 @@ const workerSources = (vendor) => [
   ...(vendor === "meta" ? [
     "/connectors/meta-pixel/pageview-prototype.worker.js", "/connectors/meta-pixel/pageview-prototype.js",
     "/connectors/pixel/vendors/meta.js", "/connectors/pixel/advanced-matching.js",
-  ] : ["/connectors/google-ads/conversion-prototype.worker.js", "/connectors/google-ads/conversion-prototype.js"]),
+  ] : ["/connectors/google-ads/conversion-prototype.worker.js", "/connectors/google-ads/conversion-prototype.js",
+    "/connectors/google-ads/manual-response.js"]),
   ...sharedVendorSources(vendor),
 ];
 
@@ -495,9 +496,9 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
         governedZeroArrivals: true, responseBarrier: true, held503FailedWithout2xx: true,
       });
       expect(vendor.counts.measurementAttempts).toBe(7);
-      expect(vendor.counts.observedRequests).toBe(vendor.vendor === "meta" ? 56 : 60);
+      expect(vendor.counts.observedRequests).toBe(vendor.vendor === "meta" ? 56 : 62);
       expect(vendor.counts.retainedBytes).toBeLessThanOrEqual(8388608);
-      expect(vendor.sourceHashes.fixture).toHaveLength(32);
+      expect(vendor.sourceHashes.fixture).toHaveLength(33);
       const preflight = vendor.privateEvidence.requests.filter((row) => row.mode === "preflight");
       expect(preflight.map((row) => row.kind)).toEqual(["document", "measurement", "measurement", "measurement"]);
       expect(preflight[0]).toMatchObject({ path: "/preflight", bodyChecked: true });
