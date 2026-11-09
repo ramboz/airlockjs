@@ -1,9 +1,10 @@
 import { createHash } from "node:crypto";
+import { execFile } from "node:child_process";
 import { lstat, readFile } from "node:fs/promises";
 import { isAbsolute } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { chromium } from "playwright";
-import { startLocalBrowserJourneys } from "./local-browser-journeys.mjs";
+import { startGoogleBrowserOperationFixture, startLocalBrowserJourneys } from "./local-browser-journeys.mjs";
 
 const LAUNCHER = fileURLToPath(new URL("./qualification-loopback-chrome", import.meta.url));
 const IS_MAIN = !!process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
@@ -33,6 +34,9 @@ const LIMITS = Object.freeze({
   intervalMs: 60000, workMs: 50000, launchMs: 10000, requests: 64,
   measurements: 8, urlBytes: 8192, requestBytes: 65536, responseBytes: 2097152, retainedBytes: 8388608,
 });
+const LEGACY_LIMITS = LIMITS;
+const OPERATION_LIMITS = Object.freeze({ ...LIMITS, intervalMs: 120000, workMs: 100000, requests: 256, measurements: 24 });
+const OPERATION_CASES = Object.freeze(["readable", "opaque", "unreadable-primary", "csp-negative", "redirect-307", "revoke", "lifecycle"]);
 const COMMON = [
   "/core/confine-pixel-chamber.js", "/core/egress-confinement.js", "/core/connector-host.js",
   "/core/wrapped-sdk-host.js", "/core/endpoint-ceiling.js", "/core/config-integrity.js",
@@ -120,7 +124,36 @@ export function checkForegroundRequest(fixture, vendor, input, mode) {
   throw new Error("request-outside-fixed-manifest");
 }
 
-async function runVendor(vendor, interruption, ownedProfiles) {
+export function checkGoogleOperationRequest(fixture, input) {
+  requireFact(OPERATION_CASES.includes(fixture.caseName) && Array.isArray(fixture.origins) &&
+    fixture.origins.length === 3 && fixture.origins.every((origin) =>
+      /^http:\/\/127\.0\.0\.1:[1-9]\d{0,4}$/.test(origin)), "operation-fixture");
+  requireFact(typeof input.url === "string" && Buffer.byteLength(input.url) <= OPERATION_LIMITS.urlBytes &&
+    ["GET", "POST"].includes(input.method) && input.bodyBytes === 0 &&
+    Number.isInteger(input.headerBytes) && input.headerBytes >= 0 &&
+    input.headerBytes <= OPERATION_LIMITS.requestBytes, "request-bounds");
+  const [parent, secondary, denied] = fixture.origins;
+  const url = input.url;
+  const resource = input.resourceType;
+  if (input.method === "GET" && resource === "document" && url === `${parent}/google-browser-operation`) return "document";
+  if (input.method === "GET" && ["document", "fetch"].includes(resource) &&
+      url === `${parent}/rig/google-browser-operation-frame.html`) return resource === "document" ? "frame" : "frame-verification";
+  if (input.method === "GET" && resource === "script" &&
+      fixture.sourceManifest.some(({ path }) => url === `${parent}${path}`)) return "asset";
+  if (["fetch", "xhr"].includes(resource)) {
+    const primary = fixture.caseName === "unreadable-primary" ? secondary : parent;
+    if (input.method === "GET" && url === `${primary}${fixture.operationPaths.primary}`) return "measurement";
+    if (input.method === "POST" && url === `${secondary}${fixture.operationPaths.secondary}`) return "measurement";
+    if (input.method === "GET" && fixture.caseName === "csp-negative" && url === `${denied}/reachability`) return "measurement";
+    if (input.method === "GET" && fixture.caseName === "csp-negative" && url === `${denied}/operation-csp-denied`) return "measurement";
+    if (input.method === "POST" && fixture.caseName === "redirect-307" && url === `${secondary}/operation-intermediate`) return "measurement";
+    if (input.method === "GET" && url === `${secondary}/${fixture.caseName === "readable" ? "operation-unexpected-path" : "operation-final"}`) return "measurement";
+  }
+  throw new Error("request-outside-fixed-manifest");
+}
+
+async function runVendor(vendor, interruption, ownedProfiles, operationPacket = false) {
+  const LIMITS = operationPacket ? OPERATION_LIMITS : LEGACY_LIMITS;
   const start = performance.now();
   const cutoff = start + LIMITS.workMs;
   const end = start + LIMITS.intervalMs;
@@ -203,6 +236,10 @@ async function runVendor(vendor, interruption, ownedProfiles) {
   }
   function acquire(kind, action) {
     // Register ownership BEFORE invoking/awaiting any allocating operation.
+    if (operationPacket) {
+      const maximum = kind === "fixture" || kind === "context" ? 8 : 1;
+      requireFact(entries.filter((entry) => entry.kind === kind).length < maximum, "operation-acquisition-limit");
+    }
     const entry = { kind, value: null, settled: false };
     entries.push(entry);
     entry.promise = Promise.resolve().then(() => {
@@ -259,26 +296,34 @@ async function runVendor(vendor, interruption, ownedProfiles) {
     })();
     return entry.closing;
   }
-  async function startFixture() {
+  async function startFixture(caseName) {
     if (sourceHashes) requireFact(retainedBytes + sourceHashes.fixture.reduce((sum, row) => sum + row.bytes, 0) <=
       LIMITS.retainedBytes, "retention-limit");
-    const entry = acquire("fixture", () => startLocalBrowserJourneys());
+    const entry = acquire("fixture", () => caseName ? startGoogleBrowserOperationFixture(caseName) : startLocalBrowserJourneys());
     const fixture = await bounded(() => entry.promise, "fixture-start", 2500);
     const hashes = [...fixture.pageManifest, ...fixture.sourceManifest];
-    requireFact(hashes.length === 33 && hashes.every((row) => row.bytes <= LIMITS.responseBytes &&
+    requireFact(hashes.length === (caseName ? 34 : 33) && hashes.every((row) => row.bytes <= LIMITS.responseBytes &&
       /^[a-f0-9]{64}$/.test(row.sha256)), "source-manifest");
     retainedBytes += hashes.reduce((sum, row) => sum + row.bytes, 0);
     requireFact(retainedBytes <= LIMITS.retainedBytes, "retention-limit");
-    if (sourceHashes) requireFact(equal(sourceHashes.fixture, hashes), "fixture-source-changed");
-    else sourceHashes = { fixture: retain(hashes) };
+    if (!sourceHashes) sourceHashes = { fixture: retain(hashes) };
+    else if (!caseName) requireFact(equal(sourceHashes.fixture, hashes), "fixture-source-changed");
+    else {
+      sourceHashes.operation ||= {};
+      sourceHashes.operation[caseName] = retain(hashes);
+      if (sourceHashes.operationSources) requireFact(equal(sourceHashes.operationSources, fixture.sourceManifest), "operation-source-changed");
+      else sourceHashes.operationSources = retain(fixture.sourceManifest);
+    }
     return entry;
   }
   async function pageFor(browser, fixture, mode) {
-    const documentPath = mode === "preflight" ? "/preflight" : `/${vendor}`;
+    const operation = operationPacket && mode !== "preflight";
+    const documentPath = mode === "preflight" ? "/preflight" : operation ? "/google-browser-operation" : `/${vendor}`;
     receiverFixtures.set(mode, fixture);
     const contextEntry = acquire("context", () => browser.newContext({ serviceWorkers: "block" }));
     const context = await bounded(() => contextEntry.promise, "context-start");
-    const state = { mode, page: null, documents: 0, measurements: 0, deny: false, positive: false, worker: null };
+    const state = { mode, page: null, documents: 0, measurements: 0, deny: false, positive: false, worker: null,
+      cspDenialObserved: false };
     const rows = new Map();
     context.on("serviceworker", () => fail("unexpected-service-worker"));
     context.on("page", (page) => {
@@ -289,19 +334,29 @@ async function runVendor(vendor, interruption, ownedProfiles) {
       }
       state.page = page;
       page.on("pageerror", () => fail("page-error"));
+      page.on("console", (message) => {
+        if (operation && mode === "csp-negative") {
+          const text = message.text();
+          if (text.length <= 2048 && /content security policy/i.test(text) &&
+              /connect-src/i.test(text) && text.includes(fixture.origins[2])) state.cspDenialObserved = true;
+        }
+      });
       page.on("crash", () => fail("page-crashed"));
       page.on("dialog", (dialog) => { fail("unexpected-dialog"); observe(() => dialog.dismiss()); });
       page.on("download", () => fail("unexpected-download"));
-      page.on("frameattached", () => fail("unexpected-frame"));
+      page.on("frameattached", () => { if (!operation) fail("unexpected-frame"); });
       page.on("framenavigated", (frame) => {
-        if (frame !== page.mainFrame() || frame.url() !== `${fixture.origin}${documentPath}`) fail("unexpected-navigation");
+        if (frame === page.mainFrame() ? frame.url() !== `${fixture.origin}${documentPath}` :
+          !operation || frame.parentFrame() !== page.mainFrame() ||
+          frame.url() !== `${fixture.origin}/rig/google-browser-operation-frame.html`) fail("unexpected-navigation");
       });
       page.on("websocket", () => fail("unexpected-websocket"));
       page.on("worker", (worker) => {
-        if (workers.length >= 2) { fail("unexpected-worker"); return; }
+        if (workers.length >= (operationPacket ? 8 : 2)) { fail("unexpected-worker"); return; }
         const row = { path: workerPath(vendor), observedURL: worker.url(), closed: false, mode };
         workers.push(row);
-        if (mode === "preflight" || state.worker || worker.url() !== `${fixture.origin}${row.path}`) fail("unexpected-worker");
+        if (mode === "preflight" || (state.worker && !operation) ||
+            worker.url() !== `${fixture.origin}${row.path}`) fail("unexpected-worker");
         state.worker = worker;
         worker.once("close", () => { row.closed = true; });
       });
@@ -315,18 +370,25 @@ async function runVendor(vendor, interruption, ownedProfiles) {
       let row;
       try {
         requireFact(!stopping && performance.now() < cutoff, "request-after-work-cutoff");
+        if (operation && request.redirectedFrom() && rows.has(request)) {
+          await route.continue();
+          return;
+        }
         observedRequests = Math.min(observedRequests + 1, LIMITS.requests + 1);
         requireFact(observedRequests <= LIMITS.requests, "request-count-limit");
         requireFact(errors.length === 0, errors[0]);
         row = { mode, path: null, denied: false, status: null, finished: false, bodyChecked: false };
         requests.push(row);
         rows.set(request, row);
-        const headers = await request.headersArray();
-        const kind = checkForegroundRequest(fixture, vendor, {
+        const headers = operationPacket
+          ? Object.entries(request.headers()).map(([name, value]) => ({ name, value }))
+          : await request.headersArray();
+        const input = {
           url: request.url(), method: request.method(), bodyBytes: request.postDataBuffer()?.length || 0,
           headerBytes: Buffer.byteLength(headers.map(({ name, value }) => `${name}: ${value}\r\n`).join("")),
           resourceType: request.resourceType(),
-        }, mode);
+        };
+        const kind = operation ? checkGoogleOperationRequest(fixture, input) : checkForegroundRequest(fixture, vendor, input, mode);
         requireFact(headers.length <= 64, "request-header-count");
         const document = { url: request.url(), method: request.method(),
           resourceType: request.resourceType(), headers, bodyBytes: request.postDataBuffer()?.length || 0 };
@@ -343,7 +405,7 @@ async function runVendor(vendor, interruption, ownedProfiles) {
           requireFact(++measurementAttempts <= LIMITS.measurements, "measurement-count-limit");
           state.measurements += 1;
           const second = state.measurements === 2 && mode !== "preflight";
-          requireFact(request.url() === `${fixture.origin}${receiverPath(vendor)}?${queryFor(vendor, second)}` &&
+          if (!operation) requireFact(request.url() === `${fixture.origin}${receiverPath(vendor)}?${queryFor(vendor, second)}` &&
             state.measurements <= (mode === "preflight" ? 3 : 2) &&
             (mode === "preflight" || state.positive), "unexpected-measurement");
           if (state.deny || (mode === "failure" && second)) {
@@ -359,6 +421,31 @@ async function runVendor(vendor, interruption, ownedProfiles) {
         try { await route.abort("blockedbyclient"); } catch { fail("route-abort-failed"); }
       }
     }), "request-denial");
+    context.on("request", (request) => {
+      if (!operation || !request.redirectedFrom()) return;
+      try {
+        requireFact(!stopping && performance.now() < cutoff && errors.length === 0, "redirect-after-work-cutoff");
+        requireFact(++observedRequests <= LIMITS.requests && ++measurementAttempts <= LIMITS.measurements,
+          "redirect-count-limit");
+        const input = {
+          url: request.url(), method: request.method(), bodyBytes: request.postDataBuffer()?.length || 0,
+          headerBytes: 0, resourceType: request.resourceType(),
+        };
+        requireFact(checkGoogleOperationRequest(fixture, input) === "measurement", "redirect-outside-manifest");
+        const row = { mode, kind: "measurement", path: new URL(input.url).pathname, ...input,
+          denied: false, status: null, finished: false, bodyChecked: false, redirected: true };
+        requests.push(row);
+        rows.set(request, row);
+        retain(row);
+        observe(async () => {
+          const headers = Object.entries(request.headers()).map(([name, value]) => ({ name, value }));
+          const headerBytes = Buffer.byteLength(headers.map(({ name, value }) => `${name}: ${value}\r\n`).join(""));
+          requireFact(headers.length <= 64 && headerBytes <= LIMITS.requestBytes, "redirect-header-limit");
+          row.headers = retain(headers);
+          row.headerBytes = headerBytes;
+        });
+      } catch (error) { fail(error.message); }
+    });
     context.on("requestfailed", (request) => {
       const row = rows.get(request);
       if (row) {
@@ -367,8 +454,11 @@ async function runVendor(vendor, interruption, ownedProfiles) {
         row.failureCode = typeof detail === "string" && detail.length <= 96 && /^net::ERR_[A-Z0-9_]+$/.test(detail)
           ? detail : "request-failure-detail-unavailable";
       }
-      if (!row?.denied) fail("unexpected-request-failure");
-      if (row) row.finished = true;
+      if (!row?.denied && !(operation && row?.kind === "measurement")) fail("unexpected-request-failure");
+      if (row) {
+        row.finished = true;
+        if (operation && row.kind === "measurement") row.bodyChecked = true;
+      }
     });
     context.on("requestfinished", (request) => {
       const row = rows.get(request);
@@ -382,7 +472,14 @@ async function runVendor(vendor, interruption, ownedProfiles) {
       const expected = row.kind === "measurement"
         ? (mode === "failure" ? 503 : 200)
         : 200;
-      requireFact(row.status === expected, "unexpected-response-status");
+      if (operation && row.kind === "measurement") {
+        requireFact([200, 302, 307].includes(row.status), "unexpected-response-status");
+        if (row.status === 302 || row.status === 307) {
+          row.responseBodyState = "redirect-unavailable";
+          row.bodyChecked = true;
+          return;
+        }
+      } else requireFact(row.status === expected, "unexpected-response-status");
       let body;
       try { body = await response.body(); }
       catch {
@@ -394,12 +491,23 @@ async function runVendor(vendor, interruption, ownedProfiles) {
       retain(body);
       row.responseBytes = body.length;
       row.responseSha256 = digest(body);
-      if (row.kind === "measurement") requireFact(body.length === 0, "measurement-response-body");
+      if (row.kind === "measurement") {
+        if (!operation) requireFact(body.length === 0, "measurement-response-body");
+      }
       else {
         const manifest = [...fixture.pageManifest, ...fixture.sourceManifest].find((entry) => entry.path === row.path);
         requireFact(manifest && body.length === manifest.bytes && digest(body) === manifest.sha256, "served-source-identity");
       }
+      if (operation && row.kind === "frame") {
+        const policy = await response.headerValue("content-security-policy");
+        requireFact(policy === fixture.framePolicy &&
+          response.request().isNavigationRequest() &&
+          response.frame() !== state.page.mainFrame(), "frame-navigation-policy");
+        row.frameNavigationPolicy = policy;
+        row.frameNavigationBytes = body.toString("utf8");
+      }
       row.bodyChecked = true;
+      if (operationPacket) row.bodyVerified = true;
     }));
     await bounded(() => context.grantPermissions(["local-network-access"], { origin: fixture.origin }), "local-permission");
     const page = await bounded(() => context.newPage(), "page-start");
@@ -407,7 +515,10 @@ async function runVendor(vendor, interruption, ownedProfiles) {
     await bounded(() => page.goto(`${fixture.origin}${documentPath}`, {
       waitUntil: "load", timeout: Math.min(5000, Math.max(1, cutoff - performance.now())),
     }), "page-load");
-    if (mode !== "preflight") {
+    if (operation) {
+      await bounded(() => page.waitForFunction(() => typeof window.prepareBrowserOperation === "function" &&
+        typeof window.getBrowserOperationState === "function"), "operation-controller-ready");
+    } else if (mode !== "preflight") {
       await bounded(() => page.waitForFunction(() =>
         typeof window.getJourneyState === "function" && typeof window.beginNegativeControls === "function" &&
         typeof window.beginPositiveControls === "function" && typeof window.finishJourney === "function",
@@ -464,6 +575,89 @@ async function runVendor(vendor, interruption, ownedProfiles) {
       state.captureAndTransport.inFlight === true && state.captureAndTransport.outcomes.length === 3 &&
       !state.captureAndTransport.outcomes.some((outcome) => outcome.seq >= 4), "response-barrier-not-observed");
   }
+  async function operationCases(browser) {
+    for (const name of OPERATION_CASES) {
+      const fixtureEntry = await startFixture(name);
+      const fixture = fixtureEntry.value;
+      const pageState = await pageFor(browser, fixture, name);
+      const page = pageState.page;
+      const evaluate = (fn, arg) => bounded(() => page.evaluate(fn, arg), `operation-${name}`, 5000);
+      const receipts = () => fixture.getOperationReceipts();
+      const waitStage = (stage, count = 1) => until(() => receipts().filter((row) => row.stage === stage).length >= count,
+        `operation-${name}-${stage}`, 2500);
+      const begin = () => evaluate(() => window.beginBrowserOperation());
+      const wait = () => evaluate(() => window.waitBrowserOperation());
+      const prepare = () => evaluate(() => window.prepareBrowserOperation());
+      if (name === "csp-negative") {
+        requireFact(await evaluate(() => window.probeDisallowedReceiver()) === "reachable", "csp-reachability");
+        await waitStage("reachability");
+      }
+      await prepare();
+      await begin();
+      if (name === "readable") {
+        await waitStage("final");
+        const pending = await evaluate(() => window.getBrowserOperationState());
+        requireFact(pending.phase === "in-flight" && receipts().at(-1).status === null, "final-response-barrier");
+        requireFact(fixture.releaseResponse("final"), "final-response-release");
+      } else if (name === "revoke") {
+        for (const [index, stop] of ["consent", "permission"].entries()) {
+          if (index) { await prepare(); await begin(); }
+          await waitStage("final", index + 1);
+          await evaluate((kind) => window.stopBrowserOperation(kind), stop);
+          const stopped = await wait();
+          requireFact(stopped.runtime.phase === "terminal", "revocation-not-terminal");
+          await evaluate(() => window.disposeBrowserOperation());
+        }
+      } else if (name === "lifecycle") {
+        await waitStage("primary");
+        const timedOut = await wait();
+        requireFact(timedOut.runtime.outcomes.at(-1)?.reason === "timed-out", "transport-deadline");
+        await begin();
+        await waitStage("primary", 2);
+        await evaluate(() => window.stopBrowserOperation("worker"));
+        requireFact((await wait()).runtime.phase === "terminal", "owned-worker-loss");
+      }
+      if (name !== "revoke" && name !== "lifecycle") {
+        const result = await wait();
+        const outcome = result.runtime.outcomes.at(-1);
+        const rows = receipts().filter((row) => row.stage !== "reachability");
+        if (name === "readable" || name === "redirect-307") {
+          requireFact(outcome?.disposition === "readable" && outcome.authoredOperations === 2 && outcome.status === 200,
+            "readable-outcome");
+        } else if (name === "opaque") {
+          requireFact(outcome?.disposition === "opaque" && outcome.authoredOperations === 2 && !("status" in outcome),
+            "opaque-outcome");
+          await evaluate(() => window.stopBrowserOperation("realm"));
+          await until(async () => (await page.evaluate(() => window.getBrowserOperationState())).runtime.phase === "terminal",
+            "realm-loss");
+        } else if (name === "unreadable-primary") {
+          requireFact(outcome?.disposition === "failed" && outcome.authoredOperations === 1 &&
+            rows.every((row) => row.stage === "primary"), "unreadable-primary-control");
+        } else {
+          requireFact(outcome?.disposition === "failed" && outcome.authoredOperations === 2 &&
+            !rows.some((row) => row.origin === fixture.origins[2]), "csp-denial-control");
+          await until(() => pageState.state.cspDenialObserved, "csp-console-observation");
+          requireFact(!requests.some((row) => row.mode === name &&
+            row.url === `${fixture.origins[2]}/operation-csp-denied` && row.denied), "csp-harness-aborted");
+        }
+        if (name === "readable") requireFact(equal(rows.map((row) => [row.method, row.status]),
+          [["GET", 200], ["POST", 302], ["GET", 200]]), "readable-receiver-sequence");
+        if (name === "redirect-307") requireFact(equal(rows.map((row) => [row.method, row.status]),
+          [["GET", 200], ["POST", 307], ["POST", 200]]), "redirect-receiver-sequence");
+        await evaluate(() => window.disposeBrowserOperation());
+      } else if (name === "lifecycle") await evaluate(() => window.disposeBrowserOperation());
+      await flush();
+      const frameRows = requests.filter((row) => row.mode === name && row.kind === "frame");
+      requireFact(frameRows.length === (name === "revoke" ? 2 : 1) &&
+        frameRows.every((row) => row.bodyChecked && row.frameNavigationPolicy === fixture.framePolicy &&
+          typeof row.frameNavigationBytes === "string"), "loaded-frame-observation");
+      commandObservations.push({ mode: name, state: retain(await evaluate(() => window.getBrowserOperationState())),
+        receipts: retain(receipts()) });
+      await closePhase(fixtureEntry, pageState);
+    }
+    await until(() => workers.length === 8 && workers.every((worker) => worker.closed), "worker-disposition");
+    controls.browserOperationCases = true;
+  }
   try {
     const preflightFixture = await startFixture();
     const ownSources = [
@@ -477,6 +671,14 @@ async function runVendor(vendor, interruption, ownedProfiles) {
       requireFact(!LEGACY_GUARD_HASHES[path] || LEGACY_GUARD_HASHES[path] === sha256, "legacy-guard-source-changed");
       return { path, bytes: body.length, sha256 };
     })), "procedure-sources");
+    if (operationPacket) await bounded(() => new Promise((resolve, reject) => {
+      execFile("/usr/bin/plutil", ["-extract", "CFBundleShortVersionString", "raw",
+        "/Applications/Google Chrome.app/Contents/Info.plist"], { timeout: 2000, maxBuffer: 1024 },
+      (error, stdout) => {
+        if (error || stdout.trim() !== VERSION) reject(new Error("installed-browser-version-mismatch"));
+        else resolve();
+      });
+    }), "installed-browser-metadata", 2500);
     const serverEntry = acquire("server", () => chromium.launchServer({
       executablePath: LAUNCHER, host: "127.0.0.1", headless: false,
       timeout: Math.min(LIMITS.launchMs, Math.max(1, cutoff - performance.now())),
@@ -536,6 +738,10 @@ async function runVendor(vendor, interruption, ownedProfiles) {
     assertForegroundReceipts(vendor, [bypass], [200]);
     await closePhase(preflightFixture, preflight);
 
+    if (operationPacket) {
+      await operationCases(browser);
+      productChecked = true;
+    } else {
     const productFixture = await startFixture();
     const product = await pageFor(browser, productFixture.value, "product");
     await negatives(product, productFixture.value);
@@ -582,6 +788,7 @@ async function runVendor(vendor, interruption, ownedProfiles) {
     controls.held503FailedWithout2xx = true;
     await closePhase(failedFixture, failed);
     requireFact(workers.length === 2 && workers.every((worker) => worker.closed), "worker-disposition");
+    }
   } catch (error) { fail(error.message); }
   finally {
     stopping = true;
@@ -638,27 +845,31 @@ async function runVendor(vendor, interruption, ownedProfiles) {
   const receiverCounts = {};
   const receiverDocuments = {};
   for (const [mode, fixture] of receiverFixtures) try {
-    receiverDocuments[mode] = retain(fixture.getReceiverArrivals(vendor));
+    receiverDocuments[mode] = retain(mode === "preflight" || !operationPacket
+      ? fixture.getReceiverArrivals(vendor) : fixture.getOperationReceipts());
     receiverCounts[mode] = receiverDocuments[mode].length;
   } catch { fail("receiver-final-observation"); }
-  const passed = productChecked && controls.held503FailedWithout2xx && errors.length === 0 &&
-    cleanup.profileAbsent && cleanup.normalNonsignalExit && cleanup.contexts.length === 3 &&
-    cleanup.fixtures.length === 3 && cleanup.contexts.every(Boolean) && cleanup.fixtures.every(Boolean);
+  const expectedPhases = operationPacket ? 8 : 3;
+  const passed = productChecked && (operationPacket ? controls.browserOperationCases : controls.held503FailedWithout2xx) &&
+    errors.length === 0 && cleanup.profileAbsent && cleanup.normalNonsignalExit && cleanup.contexts.length === expectedPhases &&
+    cleanup.fixtures.length === expectedPhases && cleanup.contexts.every(Boolean) && cleanup.fixtures.every(Boolean);
   const report = {
     vendor, normalJourneyChecks: passed ? "PASS" : "FAILED", overall: "INCONCLUSIVE",
     fullCompatibility: false, interruptionLossQualification: false,
-    transportScope: "Local explicitly empty HTTP200 only; HTTP204 remains unqualified.",
+    transportScope: operationPacket ? "Synthetic local browser operations only; opaque HTTP outcome and hidden hops remain unknown." :
+      "Local explicitly empty HTTP200 only; HTTP204 remains unqualified.",
     browserVersion, workerURLPath: workerPath(vendor), sourceHashes, controls,
     receiptSource: "Independent local HTTP receiver, never controller JSON or host dispatch counters.",
     nativeGaps: vendor === "google" ? {
       historicalRows: 12, historicalNames: 62, primaryNames: 39, localMappings: 5, missingPrimaryNames: 34,
-      responseLinkedBranch: "unimplemented",
+      responseLinkedBranch: operationPacket ? "experimental-browser-only-not-product-parity" : "unimplemented",
     } : { localMappings: 8, historicalFields: 20 },
     counts: {
       observedRequests, measurementAttempts, retainedBytes,
       productArrivals: receiverCounts.product ?? null, workerEvents: workers.length,
       deniedLocalRequests: requests.filter((row) => row.denied).length,
-      verifiedResponseBodies: requests.filter((row) => row.bodyChecked).length,
+      verifiedResponseBodies: requests.filter((row) =>
+        operationPacket ? row.bodyVerified === true : row.bodyChecked).length,
       receiverArrivals: receiverCounts,
     },
     cleanup: { ...cleanup, workersClosed: workers.every((worker) => worker.closed),
@@ -716,13 +927,36 @@ export async function runLocalBrowserForeground() {
   };
 }
 
+/** Separate fixed packet through the same owned launcher, guards and cleanup. */
+export async function runGoogleBrowserOperationsForeground() {
+  requireFact(arguments.length === 0, "fixed-operation-no-options");
+  const interruption = new AbortController();
+  const onSignal = () => interruption.abort();
+  process.on("SIGINT", onSignal);
+  process.on("SIGTERM", onSignal);
+  let result;
+  try { result = await runVendor("google", interruption, new Set(), true); }
+  finally {
+    process.off("SIGINT", onSignal);
+    process.off("SIGTERM", onSignal);
+  }
+  return {
+    procedure: "fixed-headed-local-Google-browser-operations", overall: "INCONCLUSIVE", fullCompatibility: false,
+    interruptionLossQualification: false, limits: OPERATION_LIMITS,
+    guardScope: "Fixed loopback experiment; CSP constrains origins, not hidden redirect paths or hops.",
+    externalWholeCLICompletion: "Parent must observe actual command exit afterwards.",
+    publicationReceipts, normalJourneyChecks: result.normalJourneyChecks, vendors: [result],
+  };
+}
+
 if (IS_MAIN) {
-  if (process.argv.length !== 2) {
+  const operationPacket = process.argv.length === 3 && process.argv[2] === "--google-browser-operations";
+  if (process.argv.length !== 2 && !operationPacket) {
     console.error("fixed-foreground-no-options");
     process.exitCode = 1;
   } else {
     await writeOutput('{"vendors":[');
-    const report = await runLocalBrowserForeground();
+    const report = operationPacket ? await runGoogleBrowserOperationsForeground() : await runLocalBrowserForeground();
     const { vendors: _vendors, ...footer } = report;
     try {
       await writeOutput(`],${JSON.stringify(footer).slice(1)}\n`, publicationDeadline);

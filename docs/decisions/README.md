@@ -49,6 +49,7 @@
 - [ADR-0045: Inspected Google reference for the first conversion](adr-0045-inspected-google-reference.md) — The first Google conversion needs a complete application-layer reference. (2026-11-05, Accepted)
 - [ADR-0047: Google Chrome residual helpers and manual cleanup](adr-0047-google-manual-residual-cleanup.md) — The owner accepts residual Chrome helpers for the bounded Google reference. (2026-11-05, Accepted)
 - [ADR-0048: Google case-owned reject guard until manual cleanup](adr-0048-google-retained-local-reject-guard.md) — The owner permits one case-owned local reject guard until manual cleanup. (2026-11-05, Accepted)
+- [ADR-0050: Private Google browser-managed redirect operations](adr-0050-google-browser-operations.md) — Ordinary browser Fetch hides the intermediate manual redirect response. (2026-11-09, Accepted)
 
 ## Format
 

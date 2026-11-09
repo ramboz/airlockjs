@@ -2,7 +2,9 @@ import "../../core/confine-pixel-chamber.js";
 import { createConnectorHost } from "../../core/connector-host.js";
 import { createGoogleAdsConversionPrototype } from "./conversion-prototype.js";
 import { validRemarketingDisableCommand } from "./remarketing-control.js";
-import { parseGoogleWorkerMessage, parseGoogleWorkerRedirect } from "./manual-response.js";
+import {
+  parseGoogleBrowserWorkerMessage, parseGoogleWorkerMessage, parseGoogleWorkerRedirect, validateGoogleBrowserOwned,
+} from "./manual-response.js";
 
 let connector;
 let configuring = false;
@@ -13,6 +15,7 @@ let requestId = 0;
 let timeoutMs = 1000;
 let multiDestination = false;
 let manualChain;
+let browserOperation;
 const pending = new Map();
 
 function fatal(reason) {
@@ -42,12 +45,51 @@ function workerOwned(event) {
   const params = args[2];
   const selector = typeof params?.send_to === "string" && /^(AW-\d{1,32})\/([A-Za-z0-9_-]{1,128})$/.exec(params.send_to);
   if (args[0] !== "event" || args[1] !== "conversion" || !selector ||
-      selector[1] !== `AW-${manualChain.id}`) throw new Error("invalid-owned");
+      selector[1] !== `AW-${(manualChain || browserOperation).id}`) throw new Error("invalid-owned");
   return {
     conversion_id: selector[1], conversion_label: selector[2], value: params.value,
     currency: params.currency, transaction_id: params.transaction_id,
-    document_url: event.payload.context.pageURL, auid: manualChain.auid,
+    document_url: event.payload.context.pageURL, auid: (manualChain || browserOperation).auid,
   };
+}
+
+function dispatchBrowser(event, request, stage, parentId, source) {
+  if (terminal || pending.size) throw new Error("invalid-pending-state");
+  const operationId = ++requestId;
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => fatal("transport-timeout"), timeoutMs + 250);
+    pending.set(operationId, { resolve, reject, timer, commandId: event.seq, browser: true });
+    self.postMessage({
+      type: "browser-operation-request", instanceId: browserOperation.instanceId, epoch: browserOperation.epoch,
+      commandId: event.seq, operationId, parentId, stage, url: request.url, method: request.method,
+      ...(source ? { source } : {}),
+    });
+  });
+}
+
+async function routeBrowserOperation(event, request) {
+  const owned = workerOwned(event);
+  validateGoogleBrowserOwned(owned);
+  const primaryId = requestId + 1;
+  const primary = await dispatchBrowser(event, request, "primary", 0);
+  if (["rejected", "aborted", "timed-out"].includes(primary.kind)) {
+    return { seq: event.seq, disposition: "failed", reason: primary.kind, authoredOperations: 1 };
+  }
+  if (primary.kind !== "readable" || primary.status !== 200 ||
+      !/^application\/json(?:\s*;|$)/i.test(primary.headers?.["content-type"] || "")) {
+    return { seq: event.seq, disposition: "failed", reason: "primary-unreadable", authoredOperations: 1 };
+  }
+  const message = parseGoogleBrowserWorkerMessage(primary.body, owned);
+  const parsed = new URL(message.fetch);
+  const secondary = await dispatchBrowser(event, {
+    url: `${browserOperation.secondaryOrigin}/pagead/viewthroughconversion/${browserOperation.id}/${parsed.search}`,
+    method: "POST",
+  }, "secondary", primaryId, message.fetch);
+  if (secondary.kind === "opaque") return { seq: event.seq, disposition: "opaque", authoredOperations: 2 };
+  if (secondary.kind === "readable") return {
+    seq: event.seq, disposition: "readable", authoredOperations: 2, status: secondary.status,
+  };
+  return { seq: event.seq, disposition: "failed", reason: secondary.kind, authoredOperations: 2 };
 }
 
 function localUrl(raw, path) {
@@ -110,6 +152,9 @@ async function route(event) {
           event.payload.args[0] === "set" ? "scope-updated" :
           event.payload.args[0] === "consent" ? "consent-updated" :
             event.payload.args[0] === "js" ? "bootstrap-accepted" : "configured", requests: 0 };
+    } else if (browserOperation) {
+      if (result.ready.length !== 1) throw new Error("invalid-request-count");
+      summary = await routeBrowserOperation(event, result.ready[0]);
     } else if (manualChain) {
       if (result.ready.length !== 1) throw new Error("invalid-request-count");
       summary = await routeManualChain(event, result.ready[0]);
@@ -151,9 +196,33 @@ async function route(event) {
 
 self.onmessage = async ({ data }) => {
   if (terminal) return;
-  if (data?.type === "intercepted-fetch-response") {
+  if (data?.type === "browser-operation-response") {
+    const entry = pending.get(data.operationId);
+    const outcome = data.outcome;
+    const keys = ["type", "instanceId", "epoch", "commandId", "operationId", "outcome"];
+    const validKind = outcome && ["readable", "opaque", "rejected", "aborted", "timed-out"].includes(outcome.kind);
+    const validReadable = outcome?.kind !== "readable" ||
+      (Number.isInteger(outcome.status) && outcome.status >= 100 && outcome.status <= 599 &&
+       typeof outcome.body === "string" && outcome.body.isWellFormed() &&
+       new TextEncoder().encode(outcome.body).byteLength <= 65536 &&
+       outcome.headers && typeof outcome.headers === "object" && !Array.isArray(outcome.headers) &&
+       Object.keys(outcome.headers).every((key) => key === "content-type") &&
+       (outcome.headers["content-type"] === undefined ||
+        typeof outcome.headers["content-type"] === "string" && outcome.headers["content-type"].length <= 256));
+    const validOutcomeKeys = outcome && Object.keys(outcome).every((key) =>
+      (outcome.kind === "readable" ? ["kind", "status", "body", "headers"] : ["kind"]).includes(key));
+    if (!browserOperation || !entry?.browser || data.instanceId !== browserOperation.instanceId ||
+        data.epoch !== browserOperation.epoch || data.commandId !== entry.commandId ||
+        Object.keys(data).length !== keys.length || !Object.keys(data).every((key) => keys.includes(key)) ||
+        !validKind || !validReadable || !validOutcomeKeys) {
+      fatal("invalid-transport-response"); return;
+    }
+    pending.delete(data.operationId);
+    clearTimeout(entry.timer);
+    entry.resolve(outcome);
+  } else if (data?.type === "intercepted-fetch-response") {
     const entry = pending.get(data.id);
-    if (!entry || !Number.isInteger(data.status) || (data.status !== 0 && (data.status < 100 || data.status > 599)) ||
+    if (!entry || entry.browser || !Number.isInteger(data.status) || (data.status !== 0 && (data.status < 100 || data.status > 599)) ||
         typeof data.body !== "string" || data.body.length > 4096 ||
         (data.statusText !== undefined && typeof data.statusText !== "string")) {
       fatal("invalid-transport-response");
@@ -169,6 +238,24 @@ self.onmessage = async ({ data }) => {
       if (!Number.isInteger(data.transportTimeoutMs) || data.transportTimeoutMs < 10 || data.transportTimeoutMs > 10000) throw new Error("invalid-timeout");
       timeoutMs = data.transportTimeoutMs;
       multiDestination = data.experimentalMultiDestination === true;
+      if (data.experimentalBrowserOperation) {
+        const match = /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,32})\/$/.exec(data.endpoint);
+        const option = data.experimentalBrowserOperation;
+        const secondaryOrigin = option.secondaryOrigin === undefined ? `http://127.0.0.1:${match?.[1]}` : option.secondaryOrigin;
+        if (!match || Number(match[1]) > 65535 || !option || typeof option !== "object" || Array.isArray(option) ||
+            data.experimentalRouting !== true ||
+            Object.keys(data).some((key) => key.startsWith("experimental") &&
+              !["experimentalRouting", "experimentalBrowserOperation"].includes(key) && data[key]) ||
+            typeof option.instanceId !== "string" || !/^[A-Za-z0-9._-]{1,128}$/.test(option.instanceId) ||
+            !Number.isSafeInteger(option.epoch) || option.epoch < 1 ||
+            typeof option.auid !== "string" || !/^[A-Za-z0-9._-]{1,128}$/.test(option.auid) ||
+            !/^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})$/.test(secondaryOrigin) ||
+            Number(new URL(secondaryOrigin).port) > 65535 ||
+            Object.keys(option).some((key) => !["instanceId", "epoch", "auid", "secondaryOrigin"].includes(key))) {
+          throw new Error("invalid-browser-operation");
+        }
+        browserOperation = { ...option, id: match[2], secondaryOrigin };
+      }
       if (data.experimentalManualResponseChain) {
         const match = /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})\/pagead\/conversion\/(\d{1,32})\/$/.exec(data.endpoint);
         const identity = data.experimentalManualResponseChain;

@@ -130,16 +130,18 @@ function safeUrl(raw) {
   } catch { fail("invalid-url"); }
 }
 
-function checkOwned(owned) {
+function checkOwned(owned, manual = true) {
   if (!owned || typeof owned !== "object" || !/^AW-\d{1,32}$/.test(owned.conversion_id) ||
       typeof owned.conversion_label !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(owned.conversion_label) ||
-      owned.value !== 1 || owned.currency !== "USD" ||
+      (manual ? owned.value !== 1 || owned.currency !== "USD" :
+        typeof owned.value !== "number" || !Number.isFinite(owned.value) ||
+        typeof owned.currency !== "string" || !owned.currency.isWellFormed() || owned.currency.length > 64) ||
       typeof owned.transaction_id !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(owned.transaction_id) ||
       typeof owned.auid !== "string" || !/^[A-Za-z0-9._-]{1,128}$/.test(owned.auid)) fail("invalid-owned");
   safeUrl(owned.document_url);
 }
 
-function checkUrl(raw, owned, kind) {
+function checkUrl(raw, owned, kind, manual = true) {
   const url = safeUrl(raw), id = owned.conversion_id.slice(3);
   const routes = {
     primary: ["www.googleadservices.com", "conversion"],
@@ -150,7 +152,7 @@ function checkUrl(raw, owned, kind) {
   if (url.hostname !== host || url.pathname !== `/pagead/${path}/${id}/`) fail("invalid-url");
   const params = url.searchParams;
   for (const key of PROTECTED) if (params.getAll(key).length > 1) fail("invalid-ownership");
-  const expected = { label: owned.conversion_label, value: "1", currency_code: "USD",
+  const expected = { label: owned.conversion_label, value: manual ? "1" : String(owned.value), currency_code: manual ? "USD" : owned.currency,
     url: owned.document_url, auid: owned.auid, en: "conversion" };
   for (const [key, value] of Object.entries(expected)) {
     if (params.getAll(key).length !== 1 || params.get(key) !== value) fail("invalid-ownership");
@@ -240,17 +242,30 @@ export function analyzeGoogleManualCapture(entries, owned) {
   }
 }
 
-/** First-party worker only: the returned URLs remain inert until confined by its caller. */
-export function parseGoogleWorkerMessage(body, owned) {
-  checkOwned(owned);
+function workerMessage(body, owned, manual) {
+  checkOwned(owned, manual);
   const message = parseFrame(body);
-  const fetchPairs = checkUrl(message.fetch[0], owned, "fetch");
-  const fallbackPairs = checkUrl(message.options.fallback_url, owned, "firstparty");
+  const fetchPairs = checkUrl(message.fetch[0], owned, "fetch", manual);
+  const fallbackPairs = checkUrl(message.options.fallback_url, owned, "firstparty", manual);
   if (fetchPairs.some(([key]) => key === "oid") ||
       fetchPairs.filter(([key]) => key === "random").length !== 1 ||
       !samePairsPrefix(fetchPairs, fallbackPairs) || fallbackPairs.length !== fetchPairs.length + 1 ||
       fallbackPairs.at(-1)[0] !== "gcp" || !fallbackPairs.at(-1)[1]) fail("invalid-parent");
   return { fetch: message.fetch[0], fallback: message.options.fallback_url };
+}
+
+/** First-party worker only: the returned URLs remain inert until confined by its caller. */
+export function parseGoogleWorkerMessage(body, owned) {
+  return workerMessage(body, owned, true);
+}
+
+/** Browser-operation worker: retain the command's actual values, not the capture defaults. */
+export function parseGoogleBrowserWorkerMessage(body, owned) {
+  return workerMessage(body, owned, false);
+}
+
+export function validateGoogleBrowserOwned(owned) {
+  checkOwned(owned, false);
 }
 
 /** Validate the actual secondary response's Location against its exact parent. */

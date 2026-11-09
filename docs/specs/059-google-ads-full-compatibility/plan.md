@@ -1,5 +1,8 @@
 # Plan - full Google Ads browser-tag compatibility
 
+Current construction is the [accepted browser-operation packet](#accepted-browser-operation-construction-packet---2026-11-09).
+The preceding manual-response source stop below is preserved as dated evidence.
+
 ## Local browser response-chain packet - 2026-11-09
 
 The owner said "ok, do it. I approve any extension you need" after agreeing
@@ -239,6 +242,306 @@ disposition, without qualifying a browser or choosing the next design.
   acquired. Node controls and CLIs observed their own cleanup and external
   completion. No complete descendant-cleanup or interruption-safety claim
   follows. The browser execution gate remains blocked, not consumed or retried.
+
+## Accepted browser-operation construction packet - 2026-11-09
+
+The owner selected "Redesign the deployable browser transport (Recommended)",
+then answered "Accept this model and implement locally (Recommended)" to the
+explicit Google-only redirect tradeoff. The private approval receipt preserves
+the exact question, answer and accepted proposal hash
+`751261085b9dcc66c851811a7069948ac68704d6ab9231a9026b758cc06fc332`.
+This permits reviewed local construction under 059-01's existing experimental
+allowance. It grants no Google traffic, cookie permission, production cutover,
+new stock slot or change to the original authority.
+
+The verified clean base is `87d97dec433915b50bf054c3d124e570e28dbb28`,
+tree `956a2810d66c443daeb405a225017d57202a18d9`; prerequisite
+`4617c9e52b2308e498ad8cc966e02561c7529799` is an ancestor. Work stays on
+the supplied worktree branch without main-checkout access, unrelated merges,
+push or PR. The integration owner confirmed coordinated allocation of
+[ADR-0050](../../decisions/adr-0050-google-browser-operations.md) after explicit
+Adobe/Meta noncompetition checks. The helper has no explicit-number option, so
+the record follows its template under that allocation, without an automatic
+reservation. No source authority changes before its own pinned Sol frame review
+and formal acceptance. ADR-0017 and Accepted ADR-0043 remain immutable.
+
+ADR-0050 now has its own actual pinned Sol frame pass and was accepted/indexed
+through the helpers using the exact owner decision. The frame review used
+bounded UNINDEXED reads and the retrieved standards excerpts; it did not run
+a browser or verify native CORS. Its iframe-CSP residual remains an explicit
+browser stop gate. The source implementation release follows that acceptance.
+
+### Revised local criteria and limits
+
+The earlier response-chain packet and its source-stop result above remain
+historical evidence. Its explicit three-dispatch/manual-302 criteria do not
+describe this newly accepted model. For this private branch only, the browser
+owns hidden redirects within the pinned recipient ceiling. Airlock checks
+current consent, all recipient permissions and the exact initial destination
+before each newly authored call. It cannot check hidden-hop paths, query,
+account/label or methods, recheck hidden-hop consent, enforce an exact physical
+request count, or guarantee zero later arrivals after cancellation.
+
+This is a narrow exception to the redirect rejection in ADR-0043, not blanket
+supersession. The original 059-01 AC4 whole-chain evidence and AC5 independent
+HTTP/cookie observations still apply to qualification. AC8's distinct product
+receipt, C1-C3, native initialization, complete native bytes and performance
+remain open. Full 059-01 stays READY_FOR_REVIEW with non-clearing compliance;
+059-15 stays IN_PROGRESS. Completed 059-20/21 records are unchanged.
+
+### Finite packet acceptance criteria
+
+1. **Private entry.** A default-off standalone experimental option uses the
+   ordinary first-party page entry, existing real mapper module worker and
+   bounded command queue. Existing default/manual Google, production boot,
+   shared wrapped-host results, frozen contracts and Meta behavior are unchanged.
+2. **Worker-owned meaning.** The worker builds the actual five-field primary
+   from command/configuration state. A redirect-rejecting primary must expose
+   genuinely readable bounded event/data bytes under browser rules. The
+   existing parser supplies the secondary URL. An opaque, missing, malformed
+   or oversized primary stops before the secondary. No guessed URL, fallback
+   execution, synthesized field, second mapper or privileged response bridge.
+3. **Realm capability.** Use a fixed empty, script-free same-origin static
+   transport document with a pinned enforcing response CSP and captured own-realm
+   Fetch/Request built-ins. Connect policy admits only the pinned recipient
+   origins, without wildcard or general self. The parent admits only the
+   fixed frame asset. Missing readiness, detached/navigated/replaced realm or
+   lost policy fails closed. Hosting those bytes and response headers is an
+   adoption requirement. Iframe-realm CSP enforcement remains unproved until
+   an actual browser negative control demonstrates it.
+4. **Host authority.** Bind instance, epoch, command, operation and parent IDs
+   to the owned worker. Validate exact initial route/method and current purpose
+   permissions for every potential recipient. Recheck after asynchronous waits,
+   immediately before the realm browser call, with no further async handoff.
+   Reject malformed, foreign, stale, duplicate and out-of-order messages and
+   contradictory accounting. Bound queues, bytes, pending resources and
+   init/command/transport deadlines. No application retry or replay.
+5. **Honest settlement.** The private protocol distinguishes readable, opaque,
+   rejected, aborted and timed-out outcomes. Include only observed fields.
+   Opaque means operation settled with unknown HTTP outcome, never status200,
+   HTTP success, native compatibility or product receipt. Count
+   `authoredOperations`, not physical sends or hidden redirect hops. Revoke,
+   permission loss, worker loss and disposal invalidate the epoch immediately,
+   abort best effort, discard late events and deny later authored calls.
+6. **Actual local chain.** Independent loopback receivers observe
+   GET200/POST302/GET200 while the runtime authors exactly two operations.
+   No separately authored final GET. Holding the readable terminal response
+   keeps completion pending. Separately observe a cross-origin no-CORS
+   secondary's opaque/HTTP-unknown result and unreadable-primary zero-secondary
+   control. Credentials stay omitted; no cookie or real identity is used.
+7. **Actual browser negatives.** A CSP-disallowed redirected recipient receives
+   zero arrivals because of the realm policy, not a harness abort substitute.
+   An unexpected path on an allowed origin is intentionally permitted.
+   A307 or extra hop is observed honestly, without claiming302 or physical-count
+   enforcement. Exercise consent/permission change during redirect, realm
+   identity loss, worker loss, deadlines and disposal. Preserve partial
+   physical observations without promising zero post-revocation arrivals.
+8. **Finite acquisition.** Review current source, installed browser selection,
+   owned handles and stop path before acquisition. Existing Seatbelt loopback,
+   request/WebSocket and independent receiver preflight must satisfy the
+   no-external gate before first navigation. One Google-only packet lasts at
+   most120s, work ends by100s, cleanup/publication remain inside120s; at most
+   eight fresh fixture/context pairs, one browser root, eight workers,
+   256 observed requests and24 measurement attempts. Retain existing per-request
+   and cumulative byte bounds. Ordinary tests never launch Chrome. Stop at
+   an unmet safety gate; no new confinement framework or repeated launcher
+   investigation. Report unknown handle/descendant cleanup as UNKNOWN.
+9. **Reviewed delivery.** Pinned Terra supplies witnessed red/green and actual
+   corrections. Pinned Sol supplies real ADR frame, compliance, craft,
+   architecture/source-safety and reconciliation evidence. Regress old manual
+   ledger/stream cancellation/CLI controls, core contracts and Meta. Retain
+   private0600/fsynced commands/results, browser/receiver/cleanup observations,
+   review outputs and exact source/hash manifest. Commit only the reviewed
+   packet on this branch with the required trailer, without PR or push.
+
+Source-only or Node controls cannot satisfy criteria6-7. A failed acquisition
+gate yields an honest blocked browser result, not a substitute qualification.
+No native/product/performance gap is waived by a bounded local pass.
+
+The source/review checkpoint runs from2026-11-09T16:54:48Z to18:54:48Z.
+The owner's ordinary extension grant covers further bounded implementation
+and review work if needed; it does not extend an issued browser interval or
+waive a failed gate. The one actual browser interval starts only at acquisition
+and retains its own120s ceiling,100s work cutoff and cleanup reserve.
+Existing byte ceilings remain8192 URL bytes,64KiB request/header bytes,
+2MiB per response and8MiB cumulative retained evidence for this packet.
+The owner's ordinary source/review extension is used for bounded close-out
+through2026-11-09T19:15:00Z: final reconciliation, static checks, commit and
+handoff only. It creates no new browser window or exception to an admission gate.
+
+### Browser-operation source and execution checkpoint
+
+Pinned Terra implemented the private protocol, own-realm transport asset and
+fixed local procedure. Its post-browser correction run passed438 tests
+across17 files, scoped ESLint and `git diff --check`. The final independent
+covering selection passed1248 tests across53 files on Node22.16.0, including
+the shared-host controls. Earlier429/17,1159/52, separate80/1 and1282/52 results
+belong to preceding source/selection checkpoints. They are retained separately,
+not additive totals or current-source validation substitutes.
+
+The first pinned Sol source-safety review stopped acquisition on three findings:
+effective HTTP-to-HTTPS CSP recipient permissions, absolute deadlines at final
+invocation, and a broad parent frame policy. Terra supplied four witnessed RED
+failures, then corrected these sites. A fresh pinned Sol closure passed the
+bounded source gate. Both reviews used disclosed UNINDEXED reads. That closure
+permitted one local packet with all runtime gates intact; it did not establish
+browser CSP enforcement or full-slice compliance.
+
+The fixed Google-only command was issued once on2026-11-09. It launched the
+actual pinned Chrome156.0.8078.80 and passed the independent allow/deny/bypass
+receiver preflight. The ordinary readable page used a real mapper module worker
+and the iframe-realm transport. Independent receivers recorded
+GET200/POST302/GET200 with two runtime-authored operations. The final GET used
+`/operation-unexpected-path` on the allowed recipient, as the accepted model
+permits. The procedure passed its held-final-response check. Actual loaded
+iframe navigation bytes and response CSP are retained separately from the
+verification fetch.
+
+The next, opaque case stopped at **`response-body-unavailable`**. The browser
+observer recorded a secondary POST response with status200 and
+`net::ERR_ABORTED`, but could not retain its response body. Its underlying cause
+is unresolved. This independent observer status is not a runtime opaque HTTP
+result. No completed opaque controller observation was retained. The unreadable
+primary, CSP-negative,307, revocation and lifecycle browser cases did not run.
+In particular, the required paired CSP-negative control remains absent, so the
+load-bearing iframe-realm enforcement assumption is still unqualified.
+
+External whole-CLI completion was exit1 after3.83s; the producer interval was
+3566ms. It recorded69 browser request events, including one denied preflight
+attempt, eight measurement attempts and1799497 retained bytes. Three contexts
+and three fixtures closed, both observed workers closed,
+and no acquisition remained pending. The exact browser root exited/closed
+normally with code0. The caller independently confirmed that exact PID and its
+owned profile were absent. The producer's aggregate cleanup disposition remains
+`UNKNOWN-or-failed-see-errors`; descendant-tree absence and agent-loss cleanup
+are UNKNOWN. Root exit is not substituted for either.
+
+Final architecture review then found a separate source ownership gap: an early
+missing-Content-Type rejection could leave a streaming body without cancellation.
+Terra retained the response through bounded abort/cancellation, added controls
+for rejected streams and successful EOF, and preserved the original failure
+classification. An additional fake-based RED/GREEN corrected private response
+counting. The frozen browser report's `verifiedResponseBodies:68` counted
+classifications/attempts; only66 rows contained captured bytes. One redirect
+body and the failed opaque body were unavailable. The raw report is unchanged.
+The corrected private counter counts captured bytes only; legacy modes retain
+their existing result behavior.
+
+These are **post-browser source corrections**. The issued browser cohort is
+the retained `preacquisition-source-manifest-v2.json`, not the final corrected
+source. Its actual per-case manifests have34 entries, with31 declared source
+assets plus the separate fixed frame and documents. The caller matched61
+actual captured page/module/frame responses to that cohort. Observed request
+events were preflight4, readable33 and partial opaque32. No browser observation
+is transferred to the final source hashes.
+
+The attempt stopped without retry, replacement confinement or further launcher
+investigation. Criteria6-7 remain incomplete. Criteria1-5 have source/unit
+evidence, with the realm's browser-enforcement residual still explicit;
+criterion8 was exercised as a finite stop, not an all-cases pass. The bounded
+deliverable is a reviewed source packet plus this exact partial/blocked browser
+outcome. Full059-01 remains READY_FOR_REVIEW/non-clearing and059-15 IN_PROGRESS.
+No native/product/performance gap or original authority is cleared.
+
+A later local test is not a refunded native slot or an automatic retry. It
+would need its own finite current-source plan and all existing gates. Here the
+opaque observer-body gate remains unresolved, and descendant-tree absence is
+UNKNOWN despite the exact root/profile closure observations. Those are current
+admission blockers. Source-hash invalidation alone is not the reason to stop,
+and no new acquisition is admitted over the failed/unknown gates.
+
+Private0600/fsynced artifacts retain the accepted decision, ADR frame pass,
+witnessed RED/GREEN commands, current source cohorts, both source-safety
+verdicts, browser stdout/stderr, receiver/frame observations and external
+completion/cleanup receipts. The final delivery receipt records actual reviewed
+commit/tree and changed-file hashes only after commit succeeds. No push or PR.
+
+### Browser-operation deviation log
+
+- **Accepted model:** ADR-0050 records the owner's exact local-only approval as
+  a narrow exception to0043. Accepted0017/0043 are unchanged. Coordinated0050
+  allocation required template scaffolding because `adr.py` has no explicit
+  number option; actual frame-review, record, accept and index helpers still ran.
+- **Implementation route:** the specialized implementer refused edits without
+  full READY_FOR_IMPLEMENTATION. The owner-directed construction allowance was
+  implemented by retained general-purpose Terra instead. No lifecycle flag or
+  gate was bypassed, and no product implementation clearance is implied.
+- **Review corrections:** effective secure-upgrade recipient grants, monotonic
+  absolute command/operation deadlines after waits, and the exact parent frame
+  asset replace the three failed safety sites. The private permission map
+  accounts for CSP's effective schemes/ports; it grants no TLS/trust change.
+- **Worker-loss limit:** owned termination/error/messageerror invalidates
+  authority immediately. Genuinely unobservable OS disappearance can only fail
+  by deadline. No heartbeat/supervisor or zero-post-revocation-arrival promise.
+- **Post-browser ownership correction:** a later architecture pass found the
+  missing-header stream gap independently of the earlier three-finding stop.
+  Two witnessed RED failures covered cancellation and successful EOF.
+  Bounded abort/body cancellation now retains ownership through cleanup without
+  cancelling completed EOF readers. The final source cohort has not run in Chrome.
+- **Post-browser accounting correction:** the actual failed report exposed a
+  misleading private body counter. A controlled-event RED observed6 reported
+  bodies versus4 captures; GREEN counts only captured-byte rows. Historical
+  browser66 captures versus68 producer-counter entries remain distinct.
+- **Browser stop:** readable local dispatch and actual frame responses were
+  observed. The opaque observer body gate failed; its cause and all remaining
+  browser cases are unqualified. Source/Node controls do not replace them.
+- **Review range:** helper snapshots based on `main...HEAD` include ancestor
+  work from other packets. This packet's authoritative range is verified
+  `87d97dec` through its working tree/final commit. Ancestor Meta/core changes
+  are deliberately excluded, not described as this packet's edits.
+- **Compliance documentation correction:** the actual current compliance pass
+  found no packet-local runtime mustfix and flagged premature review-completion
+  wording. That wording now describes conditional recording. The canonical
+  verdict remains needs-changes for the open full-slice/browser obligations.
+- **Craft nit, deferred:** the source-coupled timer identification in
+  `test/google-browser-operation-host.test.js` is nonblocking. Replace it with
+  direct signal-abort/outcome observation when the existing059 host-deadline
+  controls next change. This test-polish deferral adds no execution authority or
+  new work programme. The separate post-browser fixes have their own source cohort.
+
+### Browser-operation reconciliation sweep
+
+The bounded source review set and final manifest account for:
+
+- **Updated runtime:** `adapters/google-ads-prototype.js`,
+  `adapters/google-browser-operation-realm.js`,
+  `connectors/google-ads/conversion-prototype.worker.js` and
+  `connectors/google-ads/manual-response.js`. Only the private standalone option
+  changes; the worker retains vendor parsing and the host retains authority.
+- **Updated fixed fixture/procedure:** `rig/google-browser-operation-frame.html`,
+  `rig/local-browser-journeys.mjs`, `rig/local-browser-journeys-google.js` and
+  `rig/local-browser-foreground.mjs`. The old33-entry manifest and old
+  Google62/Meta56 controlled-request observations remain historical. The new
+  private packet's69 recorded requests span preflight, readable and partial
+  opaque cases, with its own256 cap. They are not a revised old-mode count.
+- **Added controls:** `test/google-browser-operation-fixture.test.js`,
+  `test/google-browser-operation-host.test.js`,
+  `test/google-browser-operation-realm.test.js` and
+  `test/google-browser-operation-worker.test.js`.
+  The existing `test/local-browser-foreground.test.js` gains the controlled-event
+  counter regression without acquiring Chrome.
+- **Updated decision evidence:** `docs/decisions/adr-0050-google-browser-operations.md`,
+  `docs/decisions/reviews/adr-0050-frame-critique.md` and the derived
+  `docs/decisions/README.md`. The new Accepted record is not edited after acceptance.
+- **Updated live prose:** this `plan.md`, `tasks.md`,
+  `slice-01-owned-conversion.md`, `docs/architecture.md` and
+  `rig/local-browser-foreground.md`. The new dated packet preserves earlier
+  failure records and distinguishes actual browser observations from source tests.
+- **Review evidence:** the canonical059-01 compliance, craft, architecture and
+  reconciliation files are recorded from actual pinned Sol outputs as each
+  pass completes. Pending reviews are not described as completed. Full
+  compliance remains non-clearing. Early source-gate outputs and historical
+  failures remain in the private packet.
+- **No-op in this packet:** core, frozen contracts, production boot, all Meta
+  sources, native policy, dependency/build/oracle manifests, original authority,
+  completed059-20/21, README/front-door support claims, CLAUDE/hot cache, memory,
+  inbox and refinement todo. This private path adds no supported product claim
+  or successor programme. The generated spec board needs no status change.
+- **Deferred:** complete browser criteria6-7 require separately bounded
+  disposition of the exact stopped gate and any later authorized attempt.
+  Native cookies, CORS/client context, source-IP/performance parity, complete
+  Google compatibility and product receipt retain their existing qualification
+  owners/gates. No new execution authority follows from this packet.
 
 ## Current assignment: complete the Google conversion - 2026-11-05
 
