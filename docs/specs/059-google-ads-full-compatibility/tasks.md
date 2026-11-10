@@ -4,6 +4,30 @@ The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
 
+## Opaque source diagnosis - 2026-11-10
+
+- [x] Verify clean6e93b095/tree47e84208 and current indexed manifest; keep
+      the original two-active-hour checkpoint ceiling from01:03:29UTC.
+- [x] Read preserved raw failure and the current receiver/page/realm/adapter/
+      recorder trace; record confirm/falsify hypotheses and relevant history.
+- [x] Keep the observer-lifetime repair and strict body/request/CSP requirements.
+      No root cause or executable correction is proved.
+- [x] Run110 browser-free tests and one pinned Terra/default literal Node HTTP
+      control. Retain complete200/empty acknowledgment and clean fixture closure,
+      explicitly separate from browser proof and regression RED/GREEN.
+- [x] Propose the bounded unchanged-adapter/direct-realm diagnostic comparison
+      for parent review, without implementing a selector or acquiring Chrome.
+- [x] Record genuine pinned Sol supplemental compliance/craft/architecture/
+      reconciliation results without overwriting canonical evidence.
+- [x] Prepare the commit/evidence handoff. Its private final receipt records
+      the actual commit and sealing only after they succeed.
+- [ ] Obtain a separately reviewed source packet and affirmative exact browser
+      admission before any distinguishing browser experiment.
+
+The [diagnosis](plan.md#opaque-source-diagnosis---2026-11-10) remains within
+059-15. It does not create a numbered owner, move lifecycle status or clear
+inherited full059 compliance.
+
 ## Admitted local packet result - 2026-11-10
 
 - [x] Verify the exact parent admission,1181891f/tree5ff5863c, source/binary
