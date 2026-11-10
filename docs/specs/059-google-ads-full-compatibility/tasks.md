@@ -4,6 +4,31 @@ The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
 
+## CSP-negative classification - 2026-11-10
+
+- [x] Verify clean2614529a/tree8df5d099 and record the fixed05:25:51Z start,
+      07:25:51Z absolute ceiling before edits, without reset or extension.
+- [x] Read and hash the newly frozen parent157 evidence. Preserve FAILED,
+      actual untracked ERR_ABORTED, unknown parent and missing browser302 fields.
+- [x] Receive and verify the parent's OWN physical dependency provision before
+      dispatching a fresh generic Terra/default implementer.
+- [x] Witness actual-shape RED/GREEN and isolated fail-closed Google controls.
+- [x] Run exact Google-only direct OWN Node22 tools with private caches and
+      compile cache disabled; retain available command evidence privately.
+      Some receipts were expanded retrospectively; one failed diagnostic has
+      tool-transcript output only, not a separately retained log.
+- [x] Record four distinct fresh Sol/default supplemental classification reviews,
+      source corrections and genuine followups without rewriting canonical records.
+- [x] Prepare the single-parent candidate manifest and one finite ordinary-route
+      NOT_ADMITTED plan. Actual commit/tree and final seal belong in the private
+      post-commit handoff receipt; parent independently decides admission.
+
+059-15 stays IN_PROGRESS;059-01 stays READY_FOR_REVIEW and full059 needs-changes.
+All three earlier parent157 grants are consumed. The prior custody deviations,
+earlier/dynamic-write uncertainty and dated records below remain unchanged.
+Two tool-wrapper external temporary retentions are disclosed in the plan;
+neither was opened or removed by these agents or coordinator.
+
 ## CSP error-evidence source checkpoint - 2026-11-10
 
 - [x] Verify clean92d/treeb248 containing reviewed60aa and record the actual

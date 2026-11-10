@@ -401,7 +401,9 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
     contextEntry.mode = mode;
     const context = await bounded(() => contextEntry.promise, "context-start");
     const state = { mode, page: null, documents: 0, measurements: 0, deny: false, positive: false, worker: null,
-      cspDenialObserved: false };
+      cspDenialObserved: false, cspCandidateOpen: false, cspCandidate: null, cspConsoleTypes: [],
+      cspMeasurementFailures: [] };
+    if (operation && !paired && mode === "csp-negative") activeOperation.cspState = state;
     const rows = new Map();
     context.on("serviceworker", () => fail("unexpected-service-worker"));
     context.on("page", (page) => {
@@ -457,6 +459,9 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
             if (recordOperation("csp-console-witness", { mode, text: ownedText ? text : "UNKNOWN", location }) && ownedText) {
               timelineStatus.cspConsoleWitness = "observed";
               if (location !== "UNKNOWN") state.cspDenialObserved = true;
+            }
+            if (state.cspConsoleTypes.length < 2) {
+              try { state.cspConsoleTypes.push(message.type?.()); } catch { state.cspConsoleTypes.push("UNKNOWN"); }
             }
           }
         }
@@ -598,7 +603,6 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
     context.on("requestfailed", (request) => {
       const row = rows.get(request);
       const unexpected = !row?.denied && !(operation && row?.kind === "measurement");
-      if (operation && !paired && unexpected) fail("unexpected-request-failure");
       let detail;
       if (operation && !paired && unexpected) {
         try { detail = request.failure?.()?.errorText; } catch { /* unavailable */ }
@@ -606,6 +610,8 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       const code = typeof detail === "string" && detail.length <= 96 && /^net::ERR_[A-Z0-9_]+$/.test(detail)
         ? detail : "request-failure-detail-unavailable";
       if (row) {
+        if (operation && !paired && mode === "csp-negative" && row.kind === "measurement" &&
+            state.cspMeasurementFailures.length < 2) state.cspMeasurementFailures.push(row);
         // Keep a bounded network code, never a URL or arbitrary protocol text.
         row.failureCode = code;
         recordOperation("request-failed", { mode, request: requests.indexOf(row), code: row.failureCode });
@@ -613,8 +619,11 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       if (operation && !paired && unexpected) {
         let redirectParent = "UNKNOWN";
         let identity = "UNKNOWN";
+        let parentAbsent = false;
         try {
-          const parent = rows.get(request.redirectedFrom?.());
+          const observedParent = request.redirectedFrom?.();
+          parentAbsent = observedParent === null;
+          const parent = rows.get(observedParent);
           if (parent) redirectParent = requests.indexOf(parent);
         } catch { /* unavailable */ }
         try {
@@ -625,9 +634,27 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
           identity = { url: input.url, method: input.method, resourceType: input.resourceType,
             kind: checkGoogleOperationRequest(fixture, input) };
         } catch { /* not a bounded manifest identity */ }
+        // This is only a pending observation: it is not a redirect parent or a runtime result.
+        const candidate = mode === "csp-negative" && fixture.caseName === mode && activeOperation?.page === state.page &&
+            state.cspCandidateOpen && !state.cspCandidate && !row && parentAbsent && code === "net::ERR_ABORTED" &&
+            identity !== "UNKNOWN" && identity.url === `${fixture.origins[2]}/operation-csp-denied` &&
+            identity.method === "GET" && identity.resourceType === "fetch" && identity.kind === "measurement" &&
+            rows.size > 0 && requests.some((entry) => entry.mode === mode && entry.kind === "measurement" &&
+              entry.url === `${fixture.origins[1]}${fixture.operationPaths.secondary}` && entry.method === "POST") &&
+            errors.length === 0;
+        if (!candidate) fail("unexpected-request-failure");
         recordOperation("unexpected-request-failure-detail", {
           mode, request: row ? requests.indexOf(row) : "UNKNOWN", redirectParent, identity, code,
         });
+        if (candidate) {
+          if (++observedRequests > LIMITS.requests || ++measurementAttempts > LIMITS.measurements) {
+            fail("unexpected-request-failure");
+            fail("request-count-limit");
+          } else {
+            state.cspCandidate = { mode, request: "UNKNOWN", redirectParent, identity, code };
+          }
+          return;
+        }
       }
       if (unexpected) fail("unexpected-request-failure");
       if (row) {
@@ -1087,8 +1114,10 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
         requireFact(await evaluate(() => window.probeDisallowedReceiver()) === "reachable", "csp-reachability");
         await waitStage("reachability");
       }
-      await prepare();
+      const prepared = await prepare();
+      if (name === "csp-negative") pageState.state.cspCandidateOpen = true;
       await begin();
+      let cspResult;
       if (name === "readable") {
         await waitStage("final");
         const pending = await evaluate(() => window.getBrowserOperationState());
@@ -1114,6 +1143,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       }
       if (name !== "revoke" && name !== "lifecycle") {
         const result = await wait();
+        if (name === "csp-negative") cspResult = result;
         const outcome = result.runtime.outcomes.at(-1);
         const rows = receipts().filter((row) => row.stage !== "reachability");
         if (name === "readable" || name === "redirect-307") {
@@ -1163,6 +1193,61 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       commandObservations.push({ mode: name, state: retain(await evaluate(() => window.getBrowserOperationState())),
         receipts: retain(receipts()) });
       await closePhase(fixtureEntry, pageState);
+      if (name === "csp-negative" && pageState.state.cspCandidate) {
+        // Classify only after independent evidence and owned case resources have settled.
+        const { state } = pageState;
+        await until(() => workers.filter((worker) => worker.mode === name).length === 1 &&
+          workers.find((worker) => worker.mode === name).closed, "csp-worker-close");
+        const frameURL = `${fixture.origin}/rig/google-browser-operation-frame.html`;
+        const expectedText = `Connecting to '${fixture.origins[2]}/operation-csp-denied' violates the following ` +
+          `Content Security Policy directive: "connect-src ${fixture.origins[0]} ${fixture.origins[1]}". ` +
+          "The action has been blocked.";
+        const witnesses = operationTimeline.filter((row) => row.mode === name && row.event === "csp-console-witness");
+        const loaded = operationTimeline.filter((row) => row.mode === name && row.event === "csp-loaded-frame");
+        const phaseRows = requests.filter((row) => row.mode === name);
+        const measurements = phaseRows.filter((row) => row.kind === "measurement");
+        const frame = loaded.length === 1 ? requests[loaded[0].request] : null;
+        const primary = measurements.filter((row) => row.url === `${fixture.origin}${fixture.operationPaths.primary}`);
+        const secondary = measurements.filter((row) => row.url === `${fixture.origins[1]}${fixture.operationPaths.secondary}`);
+        const reachability = measurements.filter((row) => row.url === `${fixture.origins[2]}/reachability`);
+        const runtimeOutcomes = cspResult?.runtime?.outcomes;
+        requireFact(prepared?.caseName === name && prepared.phase === "ready" &&
+          prepared.runtime?.phase === "ready" && prepared.runtime.inFlight === false &&
+          prepared.runtime.queued === 0 && prepared.runtime.truncated === 0 && prepared.runtime.outcomes?.length === 1 &&
+          prepared.runtime.outcomes[0]?.seq === 1 && prepared.runtime.outcomes[0]?.disposition === "configured" &&
+          cspResult?.caseName === name && cspResult.phase === "settled" && cspResult.runtime?.phase === "ready" &&
+          cspResult.runtime.inFlight === false && cspResult.runtime.queued === 0 && cspResult.runtime.truncated === 0 &&
+          Array.isArray(runtimeOutcomes) && runtimeOutcomes.length === 2 &&
+          runtimeOutcomes[0]?.seq === 1 && runtimeOutcomes[0]?.disposition === "configured" &&
+          runtimeOutcomes[1]?.seq === 2 && runtimeOutcomes[1]?.disposition === "failed" &&
+          runtimeOutcomes[1]?.reason === "rejected" && runtimeOutcomes[1]?.authoredOperations === 2 &&
+          !("status" in runtimeOutcomes[1]) && state.worker, "csp-runtime-evidence");
+        requireFact(equal(receipts().map((row) => [row.stage, row.origin, row.method, row.status, row.response]), [
+          ["reachability", fixture.origins[2], "GET", 200, "finished"],
+          ["primary", fixture.origin, "GET", 200, "finished"],
+          ["secondary", fixture.origins[1], "POST", 302, "finished"],
+        ]), "csp-receiver-evidence");
+        requireFact(measurements.length === 3 && primary.length === 1 && secondary.length === 1 && reachability.length === 1 &&
+          reachability[0].method === "GET" && reachability[0].status === 200 && reachability[0].finished &&
+          reachability[0].bodyVerified === true && !reachability[0].failureCode && !reachability[0].denied &&
+          primary[0].method === "GET" && primary[0].status === 200 && primary[0].finished &&
+          primary[0].bodyVerified === true && !primary[0].failureCode && !primary[0].denied &&
+          secondary[0].method === "POST" && secondary[0].status === null &&
+          secondary[0].failureCode === "request-failure-detail-unavailable" &&
+          secondary[0].finished && secondary[0].bodyChecked && !secondary[0].denied &&
+          state.cspMeasurementFailures.length === 1 && state.cspMeasurementFailures[0] === secondary[0] &&
+          !phaseRows.some((row) => row.url === `${fixture.origins[2]}/operation-csp-denied`), "csp-browser-evidence");
+        requireFact(witnesses.length === 1 && state.cspConsoleTypes.length === 1 &&
+          state.cspConsoleTypes[0] === "error" && witnesses[0].text === expectedText &&
+          witnesses[0].location?.url === frameURL && loaded.length === 1 && loaded[0].frameURL === frameURL &&
+          frame?.kind === "frame" && frame.url === frameURL && frame.bodyVerified === true &&
+          frame.frameNavigationPolicy === fixture.framePolicy && typeof frame.frameNavigationBytes === "string" &&
+          timelineStatus.omitted === 0 && performance.now() < cutoff && !interruption.signal.aborted,
+        "csp-independent-evidence");
+        requireFact(recordOperation("csp-expected-denial-classified", state.cspCandidate), "diagnostic-timeline-limit");
+        state.cspCandidateOpen = false;
+        state.cspCandidate = null;
+      }
       activeOperation = undefined;
     }
     await until(() => workers.length === 8 && workers.every((worker) => worker.closed), "worker-disposition");
@@ -1308,6 +1393,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
     }
   } catch (error) {
     fail(error.message);
+    if (activeOperation?.cspState?.cspCandidate) fail("unexpected-request-failure");
     if (operationPacket) {
       let snapshot;
       try {
