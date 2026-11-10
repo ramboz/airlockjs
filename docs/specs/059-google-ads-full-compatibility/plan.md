@@ -1,8 +1,7 @@
 # Plan - full Google Ads browser-tag compatibility
 
-Current disposition is the [CSP error-evidence source checkpoint](#csp-error-evidence-source-checkpoint---2026-11-10).
-The two separately admitted157 runs below are parent-owned observations;
-both grants are consumed. No further acquisition is admitted.
+Current disposition is the [CSP-negative classification packet](#csp-negative-classification---2026-11-10).
+All three parent157 grants are consumed. No further acquisition is admitted.
 The [Chrome157 source-only prerequisite](#chrome157-source-only-prerequisite---2026-11-10)
 is the preceding dated source checkpoint.
 The [paired diagnostic source](#paired-diagnostic-source---2026-11-10) remains
@@ -19,6 +18,92 @@ The earlier [local helper prerequisite checkpoint](#local-helper-prerequisite-ch
 retains its then-current stronger stop assessment; it is not retroactively cleared.
 The earlier [accepted browser-operation construction](#accepted-browser-operation-construction-packet---2026-11-09)
 and manual-response source stops below remain dated evidence.
+
+## CSP-negative classification - 2026-11-10
+
+The newly retained parent157 result is still FAILED. Its untracked denied-target
+GET/fetch failed with `net::ERR_ABORTED`; request and redirect parent are UNKNOWN.
+Actual CSP console/location and verified loaded-frame policy corroborate the
+closed case. The browser's original POST has no observed302 status or Location;
+the independent receiver recorded302. Missing browser fields stay missing.
+
+This source packet starts from clean `2614529a`, tree `8df5d099`, containing
+reviewed `df8af853`. Its checkpoint is `2026-11-10T05:25:51Z`, with absolute
+ceiling `2026-11-10T07:25:51Z` and no reset or extension. The parent provisioned
+this workspace's physical dependencies before implementation dispatch. Its
+private receipt and the archived evidence hashes were checked. Earlier custody
+deviations and unattested earlier/dynamic writes remain in the historical notes.
+
+The bounded change targets only the ordinary Google operation's CSP-negative
+classification. It must preserve independent current-case runtime, receiver,
+actual console, verified-frame and no-harness-substitution checks. A pending
+untracked event cannot supply runtime response data or invented parent metadata.
+The runner now holds at most one precisely bound pending event and classifies
+it after runtime, receiver, console, loaded-frame and owned-resource checks.
+Invalid or unsettled candidates retain `unexpected-request-failure`; unrelated
+errors are never removed. No runtime response or browser metadata is synthesized.
+
+Fresh generic Terra `b01e3727-0738-4f18-9aa1-0600fc2bc983`, explicitly pinned
+`gpt-6.1-terra`/`default`, witnessed one actual-shape assertion RED then GREEN.
+The controlled CSP gate advances to the deliberately failing later fake307 case;
+the journey stays FAILED. Scoped checks report85 foreground and59 host/worker/
+fixture/realm tests passing. Private `implementation-evidence/` retains27
+command/output/exit/hash receipts. Another27 in `counter-closure-evidence/`
+record separate request/measurement mutation failures and restored GREEN.
+The coordinator independently repeated the strengthened85-test selection.
+
+Tool wrappers reported external temporary retention of an oversized diff and
+an architecture archive-search output. Neither was opened or removed by these
+agents or coordinator. Their mode/hash remain unattested; details are private.
+The current OWN dependency provision does not erase these custody limits.
+Some command text was expanded retrospectively from path placeholders, and one
+failed diagnostic has only tool-transcript output. The private provenance note
+keeps those limits alongside the independent coordinator checks.
+Local source passes:
+[compliance](reviews/supplemental-slice-15-csp-negative-classification-2026-11-10-compliance.md),
+[craft](reviews/supplemental-slice-15-csp-negative-classification-2026-11-10-craft.md),
+[architecture](reviews/supplemental-slice-15-csp-negative-classification-2026-11-10-arch.md),
+[reconciliation](reviews/supplemental-slice-15-csp-negative-classification-2026-11-10-reconciliation.md).
+The same compliance/craft reviewers passed genuine delta followups. Both craft
+nits are closed: qualified provenance and nonvacuous assertions for both charges.
+Reconciliation found no additional deviation. Full059 needs-changes,
+059-15 IN_PROGRESS and059-01 READY_FOR_REVIEW are unchanged.
+
+### Deviation log
+
+The change is confined to the Google operation branch and its existing
+controlled harness. A pending observation spends the existing request and
+measurement budgets without manufacturing a tracked row or receiver arrival.
+The host retains its private protocol identity checks; the runtime summary does
+not independently expose those IDs. This is source/control evidence only.
+
+### Reconciliation sweep
+
+Updated: the Google runner, controlled foreground tests, this plan, tasks,
+operator guide and supplemental review records. No-op: Accepted0050/51/52,
+canonical reviews, architecture/contracts, production/default/Meta behavior,
+dependency manifests, authority and lifecycle. The two-file source change adds
+no new framework or module boundary. Historical tails and custody disclosures
+are preserved; full compatibility and any new browser admission remain open.
+Front-door docs/primers, memory/inbox/refinement and ADR index/status board need
+no update: this packet changes no product claim, decision or lifecycle status.
+
+### One finite ordinary-route plan, NOT_ADMITTED
+
+After exact final source/cohort validation and affirmative parent admission,
+issue `--google-browser-operations` once through the existing ordinary route.
+No paired observer/direct control, retry or new selector is proposed. Preserve
+one browser root, at most eight fixture/context pairs and workers,256 requests,
+24 measurement attempts,100s work and120s total including cleanup/publication.
+Existing byte ceilings, per-case deadlines, request/WebSocket guards, actual
+version and receiver allow/deny/bypass preflight remain required.
+
+Stop on missing or contradictory witnesses, forbidden arrivals, harness abort,
+budget/deadline failure or unresolved known work/resources. Retain the original
+errors and strict recorder outcomes. Opaque HTTP and helpers remain UNKNOWN;
+known-case closure does not establish complete descendants or agent-loss cleanup.
+The final source-bound private plan must be sealed before handoff. All three
+previous grants stay consumed. This proposal grants no browser or vendor access.
 
 ## CSP error-evidence source checkpoint - 2026-11-10
 

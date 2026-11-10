@@ -1,5 +1,29 @@
 # Fixed local foreground procedure
 
+## CSP-negative classification, no browser admission - 2026-11-10
+
+The newly instrumented parent157 run remains FAILED during `csp-negative`.
+The denied-target GET/fetch was untracked and reported `net::ERR_ABORTED`.
+Its redirect parent is UNKNOWN. The actual console names the denied target and
+loaded frame; that frame's response bytes and enforcing policy were verified.
+The original browser POST has no observed302 status or Location. The independent
+receiver's302 does not fill those browser fields.
+
+The current [source packet](../docs/specs/059-google-ads-full-compatibility/plan.md#csp-negative-classification---2026-11-10)
+implements the closed control's classification only. It holds at most one
+precisely bound event until independent runtime, receiver, actual console,
+verified-frame and cleanup checks settle. Invalid candidates stay fatal.
+Controlled actual-shape RED/GREEN advances only that gate; the later fake case
+still fails. All four local source reviews pass; the two craft nits are closed,
+including separate counter-mutation witnesses.
+Positive body/operation checks and opaque HTTP UNKNOWN remain required.
+
+All three parent157 grants are consumed. The only proposed next route is one
+ordinary `--google-browser-operations` packet, **NOT_ADMITTED**, with unchanged
+finite limits and fresh exact-source/current-cohort safety checks. No paired
+observer/direct control or retry is proposed. Historical failures, dependency
+custody deviations and unknown/manual helper cleanup below remain unchanged.
+
 ## CSP error-evidence source checkpoint, no browser admission - 2026-11-10
 
 The parent's ordinary157 Google run stopped during `csp-negative` with
