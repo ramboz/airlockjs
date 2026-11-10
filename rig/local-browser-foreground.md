@@ -1,5 +1,28 @@
 # Fixed local foreground procedure
 
+## Chrome157 source-only prerequisite, no browser admission - 2026-11-10
+
+The fixed Google operation and paired diagnostic checks require installed
+metadata and connected browser version `157.0.8103.40`. The default Meta and
+Google procedure retains `156.0.8078.80`. The coordinator observed157
+installed metadata and framework bytes without launching Chrome; this is not
+proof of launched version or safety. No current157 browser run is claimed.
+
+Coordinator validation passed157 controlled tests in three files and scoped
+ESLint/whitespace checks on Node22.16.0 with the compile cache disabled.
+Compliance found no local must-fix while retaining inherited full059
+needs-changes; craft and architecture returned local PASS. Reconciliation
+initially returned needs-changes, then targeted PASS with no local must-fix.
+All four reviews were read-only UNINDEXED and did not independently authenticate
+hashes or execute tests or Chrome. The fourth record and postcommit packaging
+remain pending.
+
+The [source-only packet](../docs/specs/059-google-ads-full-compatibility/plan.md#chrome157-source-only-prerequisite---2026-11-10)
+records the unchanged finite paired limits and pending independent checks.
+The plan is NOT_ADMITTED. Do not execute it before source/cohort binding,
+current-browser safety checks and affirmative exact parent admission.
+The prior156 observations below remain historical.
+
 ## Paired diagnostic source, no browser admission - 2026-11-10
 
 The closed `--google-opaque-diagnostic` selector is implemented. It reuses the
@@ -30,8 +53,8 @@ No executable repository source changed. There was no regression RED/GREEN,
 new Chrome run, repaired browser result or new execution grant.
 
 The proposed unchanged-adapter/direct-realm comparison needs a separately
-implemented, reviewed and parent-admitted finite diagnostic packet. The current
-runner has no such selector. Preserve strict independent bodies, failure
+implemented, reviewed and parent-admitted finite diagnostic packet. At that
+checkpoint the runner had no such selector. Preserve strict independent bodies, failure
 reporting, the existing observer barrier, enforcing CSP and HTTP UNKNOWN for
 opaque settlement. Do not rerun the consumed packet or improvise a control.
 
@@ -193,8 +216,9 @@ node rig/local-browser-foreground.mjs --google-browser-operations
 
 Ordinary tests never launch it. Before issuance, review the exact current source
 cohort, installed browser metadata, launcher/policy hashes, owned acquisition and
-stop paths. The current pin is Chrome `156.0.8078.80`; plist metadata alone is not
-proof of a launched version. Source checks the actual version before navigation.
+stop paths. The fixed Google operation pin is Chrome `157.0.8103.40`; plist
+metadata alone is not proof of a launched version. Source checks the actual
+version before navigation.
 The existing Seatbelt launcher and request/WebSocket guards remain required.
 Install guards before the inert preflight page. Receiver allow/deny/bypass
 preflight must pass before any product navigation. A failed gate stops the packet;
@@ -292,8 +316,9 @@ the existing first-party fixtures. It does not qualify native compatibility or
 unattended shutdown. Source/operational review and a separate owner decision
 must precede any issuance; tests of this module do **not** issue it or launch Chrome.
 
-The static browser selection is now `156.0.8078.80`, based on installed Chrome
-plist metadata only. This source-only preparation is not a browser run,
+The default procedure still selects `156.0.8078.80`. The earlier installed
+plist observation was156; current installed metadata is157 and does not qualify
+this default procedure. This source-only preparation is not a browser run,
 qualification or execution grant. Owner presence, acceptance of agent-loss
 cleanup as UNKNOWN, and final finite admission remain pending.
 
@@ -405,7 +430,8 @@ failed/nonempty run.
 
 The proposed entry selects Chrome **156.0.8078.80**, headed, through unchanged
 `rig/qualification-loopback-chrome` and its exact existing Seatbelt policy.
-The installed plist is metadata, not proof of the launched binary's version.
+The current installed plist reports157 and is not proof of the launched binary's
+version or a match for this legacy entry.
 The procedure rejects a different browser-reported version before navigation.
 The parent must check the proposed cohort and source identities before any
 acquisition; these checks do not establish atomic custody of the executable.

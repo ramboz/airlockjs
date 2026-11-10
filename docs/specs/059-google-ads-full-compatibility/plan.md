@@ -1,6 +1,8 @@
 # Plan - full Google Ads browser-tag compatibility
 
-Current disposition is the [paired diagnostic source](#paired-diagnostic-source---2026-11-10).
+Current disposition is the [Chrome157 source-only prerequisite](#chrome157-source-only-prerequisite---2026-11-10).
+The [paired diagnostic source](#paired-diagnostic-source---2026-11-10) remains
+the preceding source packet and its earlier browser pin is historical.
 The [opaque source diagnosis](#opaque-source-diagnosis---2026-11-10)
 remains the earlier no-repair assessment.
 The [admitted local packet result](#admitted-local-packet-result---2026-11-10)
@@ -13,6 +15,120 @@ The earlier [local helper prerequisite checkpoint](#local-helper-prerequisite-ch
 retains its then-current stronger stop assessment; it is not retroactively cleared.
 The earlier [accepted browser-operation construction](#accepted-browser-operation-construction-packet---2026-11-09)
 and manual-response source stops below remain dated evidence.
+
+## Chrome157 source-only prerequisite - 2026-11-10
+
+The current installed Chrome metadata no longer matches the prior Google
+operation pin. The coordinator's read-only cohort observation reports plist
+and framework version `157.0.8103.40`. It did not launch Chrome. The mismatch
+is external to the source and Node tests; its cause and timing are unknown.
+The private `chrome157-cohort.json` and `chrome157-playwright-bytes.json`
+retain the observed byte identities. They are not browser safety evidence.
+The private `chrome157-preseal-cohort-check.json` records installed157 hashes
+and179 unchanged Playwright rows. It records no browser execution.
+
+This checkpoint starts at `2026-11-10T03:08:48Z` and ends no later than
+`2026-11-10T05:08:48Z`, without reset or extension. Its clean base is commit
+`d085b0feda3f4d28243c7f035154305014d03c58`, tree
+`dee0fc8c3cb7712ad4efc0b19f223419bdb62dd7`. The scope was recorded before
+edits in the private `chrome157-scope.json`.
+
+The prior shared `VERSION` controls the operation metadata check and every
+connected browser check. Replacing it globally would also change default
+Meta and Google behavior. The fixed Google operation and paired diagnostic
+paths now require `157.0.8103.40` for both installed metadata and connected
+browser version. The default Meta and Google paths retain `156.0.8078.80`.
+There is no version option or policy change.
+
+Controlled Node tests witnessed four assertion failures before the source
+change: both Google selectors rejected157 and failed to reject old156 metadata.
+The focused follow-up passed12 tests. The three specified test files passed
+157 tests and scoped ESLint passed. Commands, complete outputs and shell IDs
+are retained in `chrome157-implementation/`. These are SDK-free controlled
+events and literal-loopback checks, not Chrome execution or qualification.
+
+The coordinator independently reran the three-file cover on Node22.16.0 with
+`NODE_DISABLE_COMPILE_CACHE=1`:157 tests passed, shell2204 exit0. Scoped ESLint
+and whitespace checks passed in shell2205 exit0. The independent results do
+not add browser evidence. Coordinator shell2228 passed spec, board, index and
+whitespace checks and found all65 frozen records and six runtime/test byte
+bindings unchanged.
+
+### Supplemental source reviews
+
+The four reviewers were dispatched as `gpt-6.1-sol` with the default context
+tier. Each `read_agent` result reported model `gpt-6.1-sol`; runtime context was
+NOT_EXPOSED. All used read-only UNINDEXED fallback because Scout and schema
+discovery were unavailable to them. They inspected narrow source and supplied
+records, without independent test or browser execution or authenticated raw
+provenance checks.
+
+- Compliance `009bbe7f-b122-4228-bc4e-d32249ccb83d` returned overall
+  needs-changes solely for inherited full059, with no local must-fix.
+  `read_agent` reported idle132s and one turn.
+- Craft `d0bee688-97ab-4b28-85d2-e9558da32d9b` returned local PASS.
+  `read_agent` reported idle152s and one turn.
+- Architecture `8cb2a8a1-e701-41aa-8fdc-ef4327e2a03b` returned local PASS.
+  `read_agent` reported idle163s and one turn.
+
+The three distinct records use the prefix
+`reviews/supplemental-slice-15-current-chrome157-source-2026-11-10-` and suffixes
+`compliance.md`, `craft.md` and `arch.md`. The coordinator generated them with
+`review.py` in an isolated exact-file mirror and copied them into the slice
+review directory. Canonical records were not overwritten.
+
+Fourth reconciliation review `a3e87f71-15f3-4574-9cbb-d7ce0da466d6` initially
+returned needs-changes for the stale board sentence and abbreviated artifact
+name, alongside inherited full059 non-clearance. The same reviewer returned
+targeted PASS with no local must-fix after correction. The reviewer read
+`chrome157-preseal-cohort-check.json`, which records matching157 hashes and179
+bound Playwright files without mismatches or an executable launch. This was
+not independent hash authentication. `read_agent` reported model
+`gpt-6.1-sol`, idle494s and two total turns; runtime context was NOT_EXPOSED.
+The coordinator will generate and copy its distinct record as
+`reviews/supplemental-slice-15-current-chrome157-source-2026-11-10-reconciliation.md`.
+All four reviews are complete locally; that record and final packaging remain
+subsequent work.
+
+### Deviations and reconciliation
+
+- The installed version changed since the preceding dated packet. This is a
+  source-only re-pin of the same closed construction, not a retry or a new
+  browser grant. Earlier156 observations and their limits remain historical.
+- The default and Meta pin, paired baseline/direct comparison, realm, guards,
+  strict body and observer failures, opaque HTTP UNKNOWN and diagnostic
+  nonqualification remain unchanged. The diagnostic CLI still exits1.
+- 059-15 remains IN_PROGRESS, 059-01 remains READY_FOR_REVIEW and the inherited
+  full059 needs-changes disposition remains. Accepted ADR-0050/0051/0052 are
+  unchanged. Meta and core source remain unchanged.
+- The original implementation manifest is the foreground source and test plus
+  this plan, tasks and operator guide. Three separate supplemental review
+  records now exist; the fourth reconciliation record awaits generation.
+  Canonical records and lifecycle state remain unchanged.
+- Initial `check-board` shell2220 flagged one extra advisory richer-skill-selection
+  audit row from the `slice-*.md` supplement names. The read-only renderer in
+  shell2221 showed65 to66 audit rows, with all65 frozen rows unchanged.
+  The coordinator renamed the three records byte-for-byte to the supplemental
+  prefix above, outside the canonical lifecycle glob. The board and canonical
+  records were not changed; full generated substrate and candidate telemetry
+  remain retained. No helper or gate changed. The coordinator's board recheck
+  shell2222 exited0 clean, with the board unchanged.
+- Current157 browser safety, launched version and per-run evidence are
+  UNOBSERVED. No safety or result is borrowed from the prior156 packet.
+- Final commit, tree, cohort manifest and seal remain pending. A commit cannot
+  contain its own final identity. The coordinator's private postcommit receipt
+  will be authoritative for those identities and final packaging; these notes
+  do not claim those future facts.
+
+### One finite paired plan, NOT_ADMITTED
+
+The coordinator must bind a new plan to the final reviewed source and current
+cohort. It permits one start, zero retries, one root, a fresh profile, at most
+three contexts, one worker, two fixtures, six attempts,128 requests,100 seconds
+of work and120 seconds total. Known-case and unknown/manual helpers remain
+unchanged. Independent current-browser no-external and owned-stop checks, plus
+affirmative exact parent admission, must precede any acquisition. This section
+does not authorize execution.
 
 ## Paired diagnostic source - 2026-11-10
 
