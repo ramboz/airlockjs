@@ -1,7 +1,9 @@
 # Plan - full Google Ads browser-tag compatibility
 
-Current disposition is the [CSP-negative classification packet](#csp-negative-classification---2026-11-10).
-All three parent157 grants are consumed. No further acquisition is admitted.
+Current disposition is the [SDK-free local runtime result](#sdk-free-local-runtime-result---2026-11-10).
+All four current157 grants are consumed. No further acquisition is admitted.
+The [CSP-negative classification packet](#csp-negative-classification---2026-11-10)
+is the preceding reviewed source packet.
 The [Chrome157 source-only prerequisite](#chrome157-source-only-prerequisite---2026-11-10)
 is the preceding dated source checkpoint.
 The [paired diagnostic source](#paired-diagnostic-source---2026-11-10) remains
@@ -18,6 +20,103 @@ The earlier [local helper prerequisite checkpoint](#local-helper-prerequisite-ch
 retains its then-current stronger stop assessment; it is not retroactively cleared.
 The earlier [accepted browser-operation construction](#accepted-browser-operation-construction-packet---2026-11-09)
 and manual-response source stops below remain dated evidence.
+
+## SDK-free local runtime result - 2026-11-10
+
+The parent separately admitted one ordinary `--google-browser-operations` run.
+It completed at `2026-11-10T06:52:13.558091Z` on Chrome `157.0.8103.40`.
+The independent whole-CLI observation recorded exit0 in `3513.566958ms`.
+`normalJourneyChecks` is PASS; raw `overall` remains INCONCLUSIVE and
+`fullCompatibility` is false. All seven local cases completed: readable and
+permitted path, opaque, unreadable primary, CSP negative, 307, consent and
+permission revocation, and timeout/worker loss.
+
+The run recorded 249 requests (248 tracked and one classified), 24 attempts,
+237 verified bodies, 5,548,352 retained bytes and 1,534 host-observation-order
+events, with zero omitted and zero pending at publication. Producer cleanup is
+`normal-owned-cleanup-observed`: eight known contexts, workers and fixtures
+closed; root713 and its profile were independently absent; root exit and stdio
+close were0. Complete descendants and agent-loss cleanup remain UNKNOWN.
+Helpers remain UNKNOWN/manual under Accepted0051/0052. Opaque runtime HTTP and
+the hidden parent/browser302 remain UNKNOWN. This does not establish universal
+cleanup, no host traffic, historical156 cause or repair, native SDK behavior,
+product receipt or full compatibility. Earlier failed runs remain FAILED.
+
+This is inherited, authenticated parent-archive evidence, not this writer's
+original browser observation. Source `825e0c1f31b201387caee2c5fc5032e9141ffbaa`
+was contained in checkout `bbfa6b5b5304b91193fe32f0a220b2442513a25a`,
+tree `e9cb556ba8d6a2f60979a2a7b7dd5cfda21c52e1`. The original parent observed
+the browser run. This coordinator re-read and hash-verified all ten inherited
+archive files, including eight inventory entries and inventory/seal; the exact
+private handles remain in the session receipt. Archive basename:
+`google-csp-classification-157-825e0c1f`. SHA-256 pins:
+`browser.stdout.json` `233cd2a067b60427fa8cad8a3de8dc22210021b238f82bd6afd8724bde3e1422`,
+`parent-actual-observation.json` `1ce44865821a37ec69d02e1707507a754d022486b8305718fef19a213900df96`,
+`interpretation.json` `9f36588eb528d6b73631ef902f4d02d021bbd58443ee479a92282b3209859483`,
+`inventory.json` `2428d87b40cf058097674a2a22e0b59f099890e0c7bbb573d8c613d2e5225277`,
+`runtime-seal.json` `46a025e1e7e1f7cb635fdf35026408de56edcf8553eb873af1f37ab6830b0465`.
+The runtime inventory records automatic derived output from run inspection2457;
+the parent owns the oversized-tool-output custody disclosure.
+
+All four current157 grants are CONSUMED. Original native authority is spent;
+there is no fresh native grant or slot. Manual-helper acceptance does not admit
+native execution. Accepted0050/51/52, canonical reviews, 059-15 IN_PROGRESS,
+059-01 READY_FOR_REVIEW and inherited full059 needs-changes are unchanged.
+The earlier prohibited main dependency read/copy and Meta-fake deviations remain,
+as do NOT_ATTESTED clean history and earlier/dynamic-write absence, retrospective
+command receipt expansions, the transcript-only failed diagnostic and two
+uninspected external temporary outputs.
+
+### Next native/reference readiness, not selected
+
+The [native entry](../../../rig/inspected-google-admission.mjs#L310-L326) is
+unconditionally closed; the [fixed original authority path](../../../rig/inspected-google-admission.mjs#L109-L149)
+cannot consume an additional Google grant. The shown additional-authority branch
+and native lease are Meta-specific ([capture](../../../rig/native-stock-capture.mjs#L126-L174),
+[transport](../../../rig/inspected-transport.mjs#L162-L223)). The native
+[cohort](../../../rig/inspected-google-cohort.mjs#L26-L41) remains Chrome156;
+its [84 H1/H2 controls](../../../rig/inspected-google-admission.mjs#L146-L290)
+are not the seven ordinary local cases. Native [ADR-0045](../../decisions/adr-0045-inspected-google-reference.md#L79-L126)
+retains one USD1 conversion, 20 attempts, 64 observations and 60 seconds;
+[ADR-0047](../../decisions/adr-0047-google-manual-residual-cleanup.md#L79-L129)
+and [ADR-0048](../../decisions/adr-0048-google-retained-local-reject-guard.md#L82-L124)
+retain native stop and reject-guard gates. Local [0050](../../decisions/adr-0050-google-browser-operations.md#L31-L39),
+[0051](../../decisions/adr-0051-google-local-manual-helper-cleanup.md#L108-L138)
+and [0052](../../decisions/adr-0052-google-local-known-case-stop.md#L55-L65)
+do not import those native conditions. The [November 5 unreserved-slot observation](slice-15-native-stock-capture.md#L30-L35)
+is historical, not current authority.
+
+**Owner decision, unselected:** may we prepare one additional Google-only
+inspected reference under a separately reviewed lineage-bound authority,
+preserving the spent original authority and slots and the native safety above?
+Recommend a source/contract readiness packet only: resolve authority lineage,
+cohort/qualification, witnesses and transport/guard fit with the entry closed.
+The alternative is to keep native reference blocked. No namespace is selected;
+no automatic permission, browser/SDK execution, private authority/slot inspection
+or reservation follows.
+
+### Deviation log
+
+This packet records inherited evidence rather than a new runtime observation.
+The documentation checkpoint began `2026-11-10T06:56:22Z` with absolute ceiling
+`2026-11-10T08:56:22Z`, without reset or extension. Implementation agent
+`8b04a775-c878-4e06-8c9e-0412325fa597` was dispatched as
+`gpt-6.1-terra`/`default`; the parent observed the model via `read_agent`.
+Exact context allocation is NOT_EXPOSED. Earlier deviations remain above.
+
+### Reconciliation sweep
+
+This documentation-only reconciliation changes this plan, tasks and operator
+guide and requires the four supplemental reviews below. It changes no state,
+contract or authority. The earlier four classification reviews are SOURCE
+reviews, not reviews of this result packet. New supplemental
+[compliance](reviews/supplemental-slice-15-local-runtime-result-2026-11-10-compliance.md),
+[craft](reviews/supplemental-slice-15-local-runtime-result-2026-11-10-craft.md),
+[architecture](reviews/supplemental-slice-15-local-runtime-result-2026-11-10-arch.md)
+and [reconciliation](reviews/supplemental-slice-15-local-runtime-result-2026-11-10-reconciliation.md)
+reviews returned local PASS without blockers or nits. They were fresh
+`gpt-6.1-sol`/`default` dispatches, with models observed by the coordinator;
+exact context allocation is NOT_EXPOSED. They do not replace canonical records.
 
 ## CSP-negative classification - 2026-11-10
 
