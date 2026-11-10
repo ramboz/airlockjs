@@ -1,5 +1,92 @@
 # Plan - full Google Ads browser-tag compatibility
 
+## Google authority contract proposal - 2026-11-10
+
+The owner selected **source-only proposal preparation**. Proposed
+[ADR-0053](../../decisions/adr-0053-additional-google-inspected-reference-authority.md)
+recommends exactly one separately reviewed additional Google stock lineage.
+Its number is local and provisional. It preserves the spent original authority,
+the original stock/chamber slot records and their states, the physical envelope
+and native stop/guard conditions.
+It does not allocate authority, admit a control or capture, or authorize source
+implementation. The earlier unselected question below is a dated checkpoint,
+not the current status of this proposal.
+
+The separate ADR frame critique passed on the reviewed proposal. The owner
+contract decision is next, then separate bounded implementation approval and
+reviews, then the parent's explicit finite control/capture admissions with
+current authority and receipts. Acceptance alone is not an allocation. A stock
+reference does not create chamber authority.
+Current native entry remains closed. The inherited local result and its
+uncertainties, failures and custody/provenance limitations remain unchanged.
+059-15 is IN_PROGRESS, 059-01 READY_FOR_REVIEW and full059 needs-changes.
+
+### Proposal deviation and reconciliation
+
+This packet is documentation only, within the existing 059-15. It does not
+implement or qualify the slice's native capture. The fixed checkpoint is
+`2026-11-10T18:41:51Z` with absolute ceiling `2026-11-10T20:41:51Z`;
+neither is reset or extended. The helper's off-main `new --no-push` normally
+commits without the required coauthor trailer. A session-scoped Git argument
+adapter added the standard `--trailer` option before the path separator while
+preserving all other arguments and hooks. This is process-local documentation
+metadata only. It changed no plugin, runtime source or Git configuration.
+The helper made local provisional reservation commit
+`41b4c5c3fdae11c571e36c38b5650e0f8395a498`. At that scaffold stage, the
+proposal content was uncommitted for review.
+
+The compliance, craft and architecture reviews passed with no blockers or nits.
+The observed model was `gpt-6.1-sol`; default context was requested, but actual
+context allocation was not exposed. Model observations come from coordinator
+`list_agents` metadata. Review outputs are coordinator transcriptions, not
+independently authenticated raw bytes. These reviews cover this LOCAL proposal
+only. They identified three strengths: finite lineage that burns the attempt on
+failure, accepted manual helpers with the native retained guard, and staged
+non-executing gates.
+The ADR-owned records are
+[compliance](../../decisions/reviews/adr-0053-compliance.md),
+[craft](../../decisions/reviews/adr-0053-craft.md) and
+[architecture](../../decisions/reviews/adr-0053-arch.md). Initial reconciliation
+needs-changes was addressed. Same-reviewer followup was unavailable; a fresh
+independent narrow reconciliation closure passed on the complete manifest
+sweep and corrected model/context provenance. LOCAL proposal scope only, no059
+gate cleared.
+
+The separate [ADR frame critique](../../decisions/reviews/adr-0053-frame-critique.md)
+passed at reviewed target `231e201529c39a19b964371b0171a45659670390`, without
+contract or source changes. Reviewer `c775bc94-8240-44d4-85bd-3ce12effdce2`
+was requested and observed as `gpt-6.1-sol`; default context was requested and
+actual allocation was NOT_EXPOSED. The model observation is coordinator
+`list_agents` metadata. The retained full output is a coordinator verbatim
+transcription of the sync tool result, not independently authenticated raw
+transport. Its SHA-256 is
+`afd9e6c4a598a73785712fa31a9a3bb527ce736531ba9b98c8ab6c31c16c3d8c`.
+
+The strongest attack was that renamed authority, copied receipts and a new
+reservation path could counterfeit owner consent or a non-replayable allocation.
+The conditional proposal survived because it rejects those substitutes and
+keeps authentication mechanics and safety qualification unproved and closed.
+No premise blocker was established. This is not mechanism feasibility or a
+real grant. If contract terms change, the pass does not automatically cover
+the new terms.
+
+The proposal reconciliation sweep is limited to this packet:
+
+- ADR-0053 is the unaccepted authority contract proposal; the decisions README
+  is its derived index. Neither allocates authority.
+- This 059 plan records scope and deviations; 059 tasks track remaining gates;
+  `rig/local-browser-foreground.md` links the proposal without admitting a run.
+- The four earlier ADR-owned compliance, craft, architecture and reconciliation
+  records remain dated LOCAL proposal evidence, not fresh passes for this
+  update. The separate frame-critique record is the fifth local review record
+  and covers premise scrutiny only. None can clear full059.
+
+Exclude inherited `main...HEAD` programme history from this packet's changed
+files. Accepted ADR-0045/0047/0048/0050/0051/0052, canonical slice reviews,
+the 059 spec and slice-01/slice-15 records remain unchanged. Historical tails
+below are preserved. No earlier review is reclassified, no full059 gate clears,
+and 059-15 remains IN_PROGRESS while 059-01 remains READY_FOR_REVIEW.
+
 Current disposition is the [SDK-free local runtime result](#sdk-free-local-runtime-result---2026-11-10).
 All four current157 grants are consumed. No further acquisition is admitted.
 The [CSP-negative classification packet](#csp-negative-classification---2026-11-10)
