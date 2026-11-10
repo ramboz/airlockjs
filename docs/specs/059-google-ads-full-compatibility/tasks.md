@@ -4,6 +4,28 @@ The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
 
+## Proxy-disable correction - 2026-11-10
+
+- [x] Continue from parent-adopted a2a5d185 without resetting the original
+      2026-11-10T00:31:27.370Z checkpoint ceiling.
+- [x] Pinned Terra adds one fixed Google-operation-only `--no-proxy-server`
+      argument and honest requested/owned launcher argv evidence. Default
+      Google and Meta launch behavior remains unchanged.
+- [x] Witness the focused missing-argument RED and same-selector GREEN;
+      retain110 browser-free covering tests, scoped lint and fake-only argv.
+- [x] Complete actual required pinned Sol correction reviews and documentary
+      reconciliation without overwriting prior evidence.
+- [x] Prepare the exact corrected source/safety/finite-plan checkpoint for
+      affirmative parent admission. The private final receipt records commit
+      and sealing only after they succeed. No Chrome permission yet.
+- [ ] Actual current-source independent no-external, version/argv,
+      observer/CSP and known-resource/external-CLI closure checks.
+
+The [current correction](plan.md#proxy-disable-correction---2026-11-10)
+addresses missing explicit proxy disablement. It does not prove arbitrary host
+IPC closure or replace independent current-path checks. Earlier Node/Unix
+observations and dated stop records remain unchanged; full059 is non-clearing.
+
 ## Known-case stop revision - 2026-11-09
 
 - [x] Verify the exact new owner receipt and clean8d7a2467 source/tree while

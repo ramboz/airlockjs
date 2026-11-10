@@ -1,10 +1,115 @@
 # Plan - full Google Ads browser-tag compatibility
 
-Current admission is the [known-case stop revision](#known-case-stop-revision---2026-11-09).
+Current admission is the [proxy-disable correction](#proxy-disable-correction---2026-11-10).
+The [known-case stop revision](#known-case-stop-revision---2026-11-09)
+retains its then-current source assessment.
 The earlier [local helper prerequisite checkpoint](#local-helper-prerequisite-checkpoint---2026-11-09)
 retains its then-current stronger stop assessment; it is not retroactively cleared.
 The earlier [accepted browser-operation construction](#accepted-browser-operation-construction-packet---2026-11-09)
 and manual-response source stops below remain dated evidence.
+
+## Proxy-disable correction - 2026-11-10
+
+**NOT ADMITTED. No current-source Chrome run occurred.** This is one
+parent-directed correction of the existing Google-only packet. It adds the
+fixed `--no-proxy-server` launch argument only for
+`--google-browser-operations`. Default Google and Meta launch options retain
+their previous shape. There is no proxy configuration surface, launcher or
+policy change, new decision, or permission to launch.
+
+The private Google report's `proxyLaunch` evidence separates the requested
+argument from the owned launcher's `ChildProcess.spawnargs`. The Google packet
+fails if the owned argument evidence is unavailable or lacks the fixed flag.
+The existing launcher forwards `"$@"` unchanged. Owned launcher arguments do
+not establish Chrome's parsed or effective configuration. The retained sample
+comes from a controlled Node fake; it is labelled accordingly. Current Chrome
+execution and effective proxy behavior remain unobserved.
+
+### Fixed-path safety argument
+
+The construction uses the pinned trusted Chrome binary and fixed Seatbelt
+launcher. Playwright supplies its existing background-networking, extension
+and component-update suppression switches, a fresh profile and a control
+pipe. Those switches did not explicitly disable system/browser proxies.
+The new closed argument addresses that concrete omission. It does not prove
+every possible host IPC path is closed.
+
+The existing kernel policy declares `deny network*`, with localhost outbound
+and Unix-socket exceptions and the retained DNS-service denials. It supplies
+the direct-IP ceiling; its source does not limit localhost connections to
+three ports. The fixture itself creates a closed set of three owned literal
+`127.0.0.1` HTTP recipients and returns local content or local redirects.
+There is no authored forwarding receiver. The other concrete edges are the
+owned loopback Playwright control WebSocket and browser-control pipe.
+Neither is an evidenced HTTP egress relay.
+
+No current Chrome/fixture edge to a Unix or localhost egress relay has been
+observed. The earlier deliberate Node replacement-receiver and Unix controls
+remain true observations about those separately constructed clients. They
+neither demonstrate such a Chrome edge nor establish no-external behavior for
+this packet. A universal claim about arbitrary policy-confined programs or
+all host IPC is outside this fixed trusted construction.
+
+Independent no-external checks remain mandatory for the whole actual path.
+Pre-navigation request/WebSocket guards, the fixed launcher/policy, actual
+per-run version and owned arguments, and positive/deny/bypass receiver controls
+must be considered together. A local Fetch preflight alone is not
+whole-process proof. No source result, zero receiver sample, root exit or
+proxy flag substitutes for a required independent check. The current source
+argument and its specific runtime uncertainties go to the parent for review;
+they do not self-admit a browser run.
+
+### Correction evidence and unchanged finite plan
+
+The correction starts at parent-adopted
+`a2a5d185220a45bed49150d87022b9b14ed998de`,
+tree `d8d2a999f29a386cf838b586bc261aa1e1c2d7a8`.
+The original prerequisite window still ends2026-11-10T00:31:27.370Z.
+Pinned Terra/default delivered the harness/test correction with one focused
+missing-argument RED, the same selector GREEN,110 covering tests in three
+files and scoped lint. Actual required pinned Sol correction reviews are
+complete for source compliance, craft and architecture. Compliance retains
+`needs-changes` only for inherited full059 gaps; none found a correction-local
+must-fix. Craft and architecture passed. The
+[architecture record](../../decisions/reviews/adr-0052-proxy-disable-arch.md)
+finds no additional unavoidable source change. It marks the prior no-external
+concern partially resolved: the proxy omission is corrected and actual
+recipients are enumerated, while independent whole-path runtime qualification
+remains open. Actual
+[documentary reconciliation](../../decisions/reviews/adr-0052-proxy-disable-reconciliation.md)
+also passed. Full059 remains non-clearing. New private0600/fsynced artifacts live
+only in `proxy-disable-correction/`. The prior72 and115 artifact cohorts,
+Accepted0047/48/50/51/52 and old review records remain immutable.
+
+**Correction deviations:** none. Supplemental correction review records use
+new `adr-0052-proxy-disable-<pass>.md` filenames. The helper emits each record
+in the new private evidence directory; its bytes are moved to that distinct
+source path. No canonical slice or previous ADR-side verdict is overwritten,
+and these supplemental files do not clear the full-slice gate.
+
+The proposed command remains
+`node rig/local-browser-foreground.mjs --google-browser-operations`.
+It permits one root and eight phases: preflight, readable, opaque,
+unreadable-primary, csp-negative, redirect-307, revoke and lifecycle.
+Keep eight fixture/context pairs and workers,256 requests,24 measurements,
+100s work and120s total including cleanup/publication. No retry or widened
+window follows.
+
+Only affirmative parent admission of this exact reviewed cohort may precede
+acquisition. Then verify the actual Chrome156.0.8078.80 pin and owned launch
+arguments, install guards before navigation and pass independent
+allow/deny/bypass preflight before product cases. Retain the readable
+two-authored-operation chain and held response, honest opaque settlement,
+unreadable primary, matched reachable CSP-disallowed redirect, allowed-origin
+unexpected path,307 observation and revocation/lifecycle controls. Required
+body/finished-request checks and runtime-versus-observer evidence stay strict.
+Any failed or unavailable required gate stops.
+
+Known requests, pending responses, sockets and fixtures must close, together
+with known root/worker/context and external whole-CLI completion evidence.
+Helpers stay unknown/manual; descendants and loss cleanup remain unproved.
+No Google traffic, SDK, cookies, credentials, native case or original slot is
+authorized.059-01 remains READY_FOR_REVIEW/non-clearing and059-15 IN_PROGRESS.
 
 ## Known-case stop revision - 2026-11-09
 

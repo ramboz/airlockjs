@@ -165,6 +165,10 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
   const workers = [];
   const receiverFixtures = new Map();
   const commandObservations = [];
+  const proxyLaunch = operationPacket ? {
+    requestedArgs: null, ownedArgv: null, ownedArgvStatus: "unavailable",
+    scope: "owned-launcher-argv-not-Chrome-effective-configuration",
+  } : null;
   const operationTimeline = [];
   const timelineStatus = { ordering: "host-observation-order-only", omitted: 0, failureSnapshot: "not-needed",
     observersPendingAtPublication: 0 };
@@ -282,7 +286,22 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
           child.once("close", (code, signal) => { processFacts.close = { code, signal }; });
           child.once("error", () => fail("owned-process-error"));
           value.once("close", () => { processFacts.serverEvent = true; });
-          const profiles = child.spawnargs.filter((arg) => arg.startsWith("--user-data-dir="));
+          const argv = child.spawnargs;
+          if (operationPacket) {
+            if (Array.isArray(argv) && argv.length <= 256 &&
+                argv.every((arg) => typeof arg === "string" && Buffer.byteLength(arg) <= LIMITS.urlBytes) &&
+                Buffer.byteLength(JSON.stringify(argv)) <= LIMITS.requestBytes &&
+                retainedBytes + Buffer.byteLength(JSON.stringify(argv)) <= LIMITS.retainedBytes) {
+              proxyLaunch.ownedArgv = retain([...argv]);
+              proxyLaunch.ownedArgvStatus = "observed-owned-launcher-argv";
+              if (argv.filter((arg) => arg === "--no-proxy-server").length !== 1) {
+                fail("owned-no-proxy-flag-missing");
+              }
+            } else fail("owned-launch-args-unavailable");
+          }
+          const profiles = operationPacket
+            ? (Array.isArray(argv) ? argv.filter((arg) => typeof arg === "string" && arg.startsWith("--user-data-dir=")) : [])
+            : argv.filter((arg) => arg.startsWith("--user-data-dir="));
           processFacts.profile = profiles.length === 1 ? profiles[0].slice("--user-data-dir=".length) : null;
           requireFact(Number.isSafeInteger(child.pid) && child.pid > 0 && processFacts.profile &&
             isAbsolute(processFacts.profile), "owned-process-profile-identity");
@@ -757,11 +776,16 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
         else resolve();
       });
     }), "installed-browser-metadata", 2500);
-    const serverEntry = acquire("server", () => chromium.launchServer({
-      executablePath: LAUNCHER, host: "127.0.0.1", headless: false,
-      timeout: Math.min(LIMITS.launchMs, Math.max(1, cutoff - performance.now())),
-      handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false,
-    }));
+    const serverEntry = acquire("server", () => {
+      const args = operationPacket ? ["--no-proxy-server"] : undefined;
+      if (operationPacket) proxyLaunch.requestedArgs = retain([...args]);
+      return chromium.launchServer({
+        executablePath: LAUNCHER, host: "127.0.0.1", headless: false,
+        timeout: Math.min(LIMITS.launchMs, Math.max(1, cutoff - performance.now())),
+        handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false,
+        ...(operationPacket ? { args } : {}),
+      });
+    });
     const server = await bounded(() => serverEntry.promise, "browser-acquisition", LIMITS.launchMs);
     const endpoint = server.wsEndpoint();
     const parsed = new URL(endpoint);
@@ -987,7 +1011,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       instruction: "Owner supervises this exact test browser only; agent-loss cleanup is UNKNOWN. No process scans or profile deletion.",
     },
     privateEvidence: { receiverDocuments, commandObservations, requests, workers,
-      ...(operationPacket ? { operationTimeline, timelineStatus } : {}) },
+      ...(operationPacket ? { operationTimeline, timelineStatus, proxyLaunch } : {}) },
   };
   if (operationPacket) {
     timelineStatus.observersPendingAtPublication = observations.size;
