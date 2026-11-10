@@ -1,5 +1,44 @@
 # Fixed local foreground procedure
 
+## Prospective proxy-disable correction - 2026-11-10
+
+**NOT ADMITTED.** The Google browser-operation selector now requests the fixed
+`--no-proxy-server` argument. Default Google and Meta launches are unchanged.
+No current-source Chrome launch occurred, and no new decision, configurable
+proxy, launcher or policy was added.
+
+Inspect private `proxyLaunch.requestedArgs`, `ownedArgvStatus` and `ownedArgv`.
+The latter comes from the already owned launcher's `ChildProcess.spawnargs`;
+missing/unavailable required evidence fails. The fixed launcher forwards its
+arguments unchanged. This is launcher-argument evidence, not a readback of
+Chrome's effective proxy configuration. The retained Node test sample is a
+fake and must never be reported as current Chrome.
+
+The fixed trusted construction has three owned literal loopback fixture
+recipients, local content/redirect handlers, a loopback browser-control
+WebSocket and a control pipe. No Chrome-to-egress-relay edge is evidenced.
+The Seatbelt source retains its direct-IP denial and Unix/localhost
+exceptions. Those permissions are not proof that Chrome used a relay.
+The earlier deliberate Node clients do not model every behavior of this
+fixed browser/fixture construction. The new flag does not establish that all
+possible host IPC is closed.
+
+Independent whole-path no-external checks are still required. Consider the
+fixed launcher/policy, explicit proxy option, actual per-run version and owned
+argv, guards installed before navigation and independent allow/deny/bypass
+receiver preflight together. Local Fetch controls alone are not whole-process
+proof. Required current-browser behavior remains unexecuted; source/Node
+evidence does not supply it.
+
+The [corrected checkpoint and finite plan](../docs/specs/059-google-ads-full-compatibility/plan.md#proxy-disable-correction---2026-11-10)
+go to the parent for affirmative admission. Keep the existing eight phases,
+one root/eight fixture-context-worker limits,256 requests,24 attempts and
+100s-work/120s-total interval. No acquisition precedes admission. No product
+case precedes actual version/argv, guards and receiver preflight checks.
+Strict observer/body/CSP gates and known-case/root/resource/external-CLI
+closure remain mandatory. Helpers stay unknown/manual and loss cleanup
+unqualified. Old dated sections below remain historical.
+
 ## Prospective known-case stop - 2026-11-09
 
 **Browser admission remains blocked:** independent current-path no-external

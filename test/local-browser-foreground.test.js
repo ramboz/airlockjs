@@ -522,14 +522,16 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
       throw new Error("unexpected-source-test-evaluation");
     }
   }
-  function makeServer() {
+  function makeServer(options = {}) {
     const server = new EventEmitter();
     const child = new EventEmitter();
     child.pid = 910001 + servers.length;
-    child.spawnargs = [
-      "source-only-fake-Chrome", `--user-data-dir=${fileURLToPath(new URL(
+    child.spawnargs = fault === "owned-argv-unavailable" ? undefined : [
+      "source-only-fake-Chrome", ...(fault === "owned-argv-missing-proxy" ? [] : options.args || []),
+      `--user-data-dir=${fileURLToPath(new URL(
         fault === "profile-present" ? "../" : `../.foreground-source-only-nonexistent-profile-${servers.length + 1}`, import.meta.url,
       ))}`,
+      ...(fault === "owned-argv-oversize" ? ["x".repeat(8193)] : []),
     ];
     child.exitCode = null;
     child.signalCode = null;
@@ -555,7 +557,7 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
   }
   const launch = vi.spyOn(chromium, "launchServer").mockImplementation(async (options) => {
     log.push(["launch", options]);
-    return makeServer();
+    return makeServer(options);
   });
   const connect = vi.spyOn(chromium, "connect").mockImplementation(async (endpoint) => {
     log.push(["connect", endpoint]);
@@ -576,6 +578,59 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
 }
 
 describe("controlled browser events + real Node HTTP — NOT actual Chrome/worker proof", () => {
+  it("requests and retains the fixed no-proxy flag for the Google operation launcher", async () => {
+    const fake = await controlledBrowser("opaque-observer-unavailable");
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "156.0.8078.80", "");
+      return {};
+    });
+    const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
+    expect(fake.launch.mock.calls[0][0].args).toEqual(["--no-proxy-server"]);
+    expect(result.privateEvidence.proxyLaunch).toMatchObject({
+      requestedArgs: ["--no-proxy-server"], ownedArgvStatus: "observed-owned-launcher-argv",
+      ownedArgv: fake.servers[0].child.spawnargs,
+    });
+    console.info("FAKE NODE LAUNCH EVIDENCE (not Chrome)", JSON.stringify({
+      requestedArgs: result.privateEvidence.proxyLaunch.requestedArgs,
+      ownedArgv: result.privateEvidence.proxyLaunch.ownedArgv,
+    }));
+  }, 10000);
+
+  it.each([
+    ["owned-argv-missing-proxy", "owned-no-proxy-flag-missing", "observed-owned-launcher-argv"],
+    ["owned-argv-unavailable", "owned-launch-args-unavailable", "unavailable"],
+    ["owned-argv-oversize", "owned-launch-args-unavailable", "unavailable"],
+  ])("fails closed when %s", async (fault, error, status) => {
+    const fake = await controlledBrowser(fault);
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "156.0.8078.80", "");
+      return {};
+    });
+    const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
+    expect(result.normalJourneyChecks).toBe("FAILED");
+    expect(result.errors).toContain(error);
+    expect(result.privateEvidence.proxyLaunch).toMatchObject({
+      requestedArgs: ["--no-proxy-server"], ownedArgvStatus: status,
+      ownedArgv: fault === "owned-argv-missing-proxy" ? fake.servers[0].child.spawnargs : null,
+    });
+    expect(fake.connect).not.toHaveBeenCalled();
+    expect(fake.servers[0].close).toHaveBeenCalled();
+  }, 10000);
+
+  it("does not claim requested or owned argv when the operation launch was not attempted", async () => {
+    const fake = await controlledBrowser();
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "155.0.0.0", "");
+      return {};
+    });
+    const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
+    expect(result.errors).toContain("installed-browser-version-mismatch");
+    expect(result.privateEvidence.proxyLaunch).toMatchObject({
+      requestedArgs: null, ownedArgv: null, ownedArgvStatus: "unavailable",
+    });
+    expect(fake.launch).not.toHaveBeenCalled();
+  }, 10000);
+
   it.each(["complete", "late-response", "unavailable", "requestfailed", "never"])(
     "keeps the opaque realm until independent recorder %s, preserving the runtime observation",
     async (kind) => {
@@ -821,7 +876,9 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
       expect(options).toMatchObject({ host: "127.0.0.1", headless: false, timeout: 10000, handleSIGINT: false, handleSIGTERM: false });
       expect(options.executablePath).toBe(fileURLToPath(new URL("../rig/qualification-loopback-chrome", import.meta.url)));
       expect(options).not.toHaveProperty("userDataDir");
+      expect(options).not.toHaveProperty("args");
     }
+    expect(result.vendors.every((vendor) => !("proxyLaunch" in vendor.privateEvidence))).toBe(true);
     const capture = fake.log.findIndex(([event]) => event === "process-captured");
     expect(capture).toBeLessThan(fake.log.findIndex(([event]) => event === "connect"));
     expect(fake.servers.every((server) => server.child.kill.mock.calls.length === 0)).toBe(true);
