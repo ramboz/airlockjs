@@ -17,10 +17,14 @@ and review machinery for a reference that still cannot prove browser TLS parity.
 Proposed (2026-11-10). This number is a local provisional reservation and
 requires collision checking before integration.
 
-The owner selected **source-only proposal preparation**. This record has not
-passed its independent ADR frame critique or received owner acceptance. It
-allocates no authority, case, attempt, slot, control run or execution window.
-It authorizes no source implementation, browser, SDK or vendor work.
+The owner selected **source-only proposal preparation**. The separate
+[ADR frame critique](reviews/adr-0053-frame-critique.md) passed for the proposal
+at `231e201529c39a19b964371b0171a45659670390`. It tested the premise, not
+mechanism feasibility or a real grant. If contract terms change, that pass does
+not automatically cover the new terms. The owner contract decision is next.
+This record remains Proposed and has not received owner acceptance. It allocates
+no authority, case, attempt, slot, control run or execution window. It authorizes
+no source implementation, browser, SDK or vendor work.
 
 ## Context
 

@@ -6,8 +6,9 @@
       [ADR-0053](../../decisions/adr-0053-additional-google-inspected-reference-authority.md)
       for one separately reviewed additional Google stock lineage. The number
       is local and provisional; this task grants no authority or execution.
-- [ ] Complete the proposal's independent reviews and ADR frame critique.
-- [ ] Obtain owner acceptance of the contract, separately from any allocation.
+- [x] Record the separate ADR frame-critique pass for the reviewed proposal;
+      changed contract terms are not automatically covered.
+- [ ] Obtain the owner contract decision; acceptance is separate from allocation.
 - [ ] Obtain distinct bounded implementation approval and review, then separate
       parent admission for exact finite controls and capture with current
       authority and receipts. No chamber authority follows from stock.

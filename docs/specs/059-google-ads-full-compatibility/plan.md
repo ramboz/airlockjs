@@ -12,10 +12,11 @@ It does not allocate authority, admit a control or capture, or authorize source
 implementation. The earlier unselected question below is a dated checkpoint,
 not the current status of this proposal.
 
-The gates are independent ADR frame critique and owner acceptance, then separate
-bounded implementation approval and reviews, then the parent's explicit finite
-control/capture admissions with current authority and receipts. Acceptance alone
-is not an allocation. A stock reference does not create chamber authority.
+The separate ADR frame critique passed on the reviewed proposal. The owner
+contract decision is next, then separate bounded implementation approval and
+reviews, then the parent's explicit finite control/capture admissions with
+current authority and receipts. Acceptance alone is not an allocation. A stock
+reference does not create chamber authority.
 Current native entry remains closed. The inherited local result and its
 uncertainties, failures and custody/provenance limitations remain unchanged.
 059-15 is IN_PROGRESS, 059-01 READY_FOR_REVIEW and full059 needs-changes.
@@ -31,8 +32,8 @@ adapter added the standard `--trailer` option before the path separator while
 preserving all other arguments and hooks. This is process-local documentation
 metadata only. It changed no plugin, runtime source or Git configuration.
 The helper made local provisional reservation commit
-`41b4c5c3fdae11c571e36c38b5650e0f8395a498`; the proposal content remains
-uncommitted for review.
+`41b4c5c3fdae11c571e36c38b5650e0f8395a498`. At that scaffold stage, the
+proposal content was uncommitted for review.
 
 The compliance, craft and architecture reviews passed with no blockers or nits.
 The observed model was `gpt-6.1-sol`; default context was requested, but actual
@@ -49,7 +50,25 @@ The ADR-owned records are
 needs-changes was addressed. Same-reviewer followup was unavailable; a fresh
 independent narrow reconciliation closure passed on the complete manifest
 sweep and corrected model/context provenance. LOCAL proposal scope only, no059
-gate cleared. The separate required ADR frame critique remains pending.
+gate cleared.
+
+The separate [ADR frame critique](../../decisions/reviews/adr-0053-frame-critique.md)
+passed at reviewed target `231e201529c39a19b964371b0171a45659670390`, without
+contract or source changes. Reviewer `c775bc94-8240-44d4-85bd-3ce12effdce2`
+was requested and observed as `gpt-6.1-sol`; default context was requested and
+actual allocation was NOT_EXPOSED. The model observation is coordinator
+`list_agents` metadata. The retained full output is a coordinator verbatim
+transcription of the sync tool result, not independently authenticated raw
+transport. Its SHA-256 is
+`afd9e6c4a598a73785712fa31a9a3bb527ce736531ba9b98c8ab6c31c16c3d8c`.
+
+The strongest attack was that renamed authority, copied receipts and a new
+reservation path could counterfeit owner consent or a non-replayable allocation.
+The conditional proposal survived because it rejects those substitutes and
+keeps authentication mechanics and safety qualification unproved and closed.
+No premise blocker was established. This is not mechanism feasibility or a
+real grant. If contract terms change, the pass does not automatically cover
+the new terms.
 
 The proposal reconciliation sweep is limited to this packet:
 
@@ -57,10 +76,10 @@ The proposal reconciliation sweep is limited to this packet:
   is its derived index. Neither allocates authority.
 - This 059 plan records scope and deviations; 059 tasks track remaining gates;
   `rig/local-browser-foreground.md` links the proposal without admitting a run.
-- The three ADR-owned compliance, craft and architecture records cover only
-  this proposal. The [ADR-0053 reconciliation record](../../decisions/reviews/adr-0053-reconciliation.md)
-  is the home for its needs-changes result and any actual narrow closure; it
-  cannot clear full059.
+- The four earlier ADR-owned compliance, craft, architecture and reconciliation
+  records remain dated LOCAL proposal evidence, not fresh passes for this
+  update. The separate frame-critique record is the fifth local review record
+  and covers premise scrutiny only. None can clear full059.
 
 Exclude inherited `main...HEAD` programme history from this packet's changed
 files. Accepted ADR-0045/0047/0048/0050/0051/0052, canonical slice reviews,
