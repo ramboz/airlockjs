@@ -9,6 +9,7 @@ import { startGoogleBrowserOperationFixture, startLocalBrowserJourneys } from ".
 const LAUNCHER = fileURLToPath(new URL("./qualification-loopback-chrome", import.meta.url));
 const IS_MAIN = !!process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 const VERSION = "156.0.8078.80";
+const GOOGLE_OPERATION_VERSION = "157.0.8103.40";
 const LEGACY_GUARD_HASHES = {
   "/rig/qualification-loopback-chrome": "3ce657f2c85945a13c2ab9cc8a6cb364eb8f66725f643a608aa978b5363b3cbf",
   "/rig/qualification-loopback-network.sb": "3204564960c5bdc369d996647e0e52176b63028bf8efe3924fbff7e1f9c0e3ee",
@@ -155,6 +156,7 @@ export function checkGoogleOperationRequest(fixture, input) {
 
 async function runVendor(vendor, interruption, ownedProfiles, operationPacket = false, paired = false) {
   const LIMITS = paired ? PAIRED_LIMITS : operationPacket ? OPERATION_LIMITS : LEGACY_LIMITS;
+  const expectedVersion = vendor === "google" && operationPacket ? GOOGLE_OPERATION_VERSION : VERSION;
   const start = performance.now();
   const cutoff = start + LIMITS.workMs;
   const end = start + LIMITS.intervalMs;
@@ -1110,7 +1112,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       execFile("/usr/bin/plutil", ["-extract", "CFBundleShortVersionString", "raw",
         "/Applications/Google Chrome.app/Contents/Info.plist"], { timeout: 2000, maxBuffer: 1024 },
       (error, stdout) => {
-        if (error || stdout.trim() !== VERSION) reject(new Error("installed-browser-version-mismatch"));
+        if (error || stdout.trim() !== expectedVersion) reject(new Error("installed-browser-version-mismatch"));
         else resolve();
       });
     }), "installed-browser-metadata", 2500);
@@ -1135,7 +1137,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
     const browser = await bounded(() => browserEntry.promise, "browser-connect");
     browser.on("disconnected", () => { if (!stopping) fail("unexpected-browser-disconnect"); });
     browserVersion = browser.version();
-    requireFact(browserVersion === VERSION, "browser-version-mismatch");
+    requireFact(browserVersion === expectedVersion, "browser-version-mismatch");
     const preflight = await pageFor(browser, preflightFixture.value, "preflight");
     const fixture = preflightFixture.value;
     const localURL = `${fixture.origin}${receiverPath(vendor)}?${queryFor(vendor)}`;

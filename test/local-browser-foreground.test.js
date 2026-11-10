@@ -216,7 +216,7 @@ it.each(["meta", "google"])("controlled %s source events match actual main and w
 
 // Controlled browser/worker EVENTS, never browser execution. Requests below use
 // actual Node HTTP against the unmodified literal-loopback fixture/receiver.
-async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED") {
+async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED", browserVersion = null) {
   const log = [];
   const servers = [];
   const fixtures = new Map();
@@ -665,10 +665,11 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
     log.push(["connect", endpoint]);
     const browser = new EventEmitter();
     let contexts = 0;
-    browser.version = () => fault === "version-80" ? "156.0.8078.80"
+    browser.version = () => (Array.isArray(browserVersion) ? browserVersion[servers.length - 1] : browserVersion) ?? (fault === "version-80" ? "156.0.8078.80"
       : fault === "version" ? "155.0.0.0"
       : fault === "old-version" ? "156.0.8078.48"
-      : fault === "prior-version" ? "156.0.8078.76" : "156.0.8078.80";
+      : fault === "prior-version" ? "156.0.8078.76"
+      : launch.mock.calls.at(-1)[0].args ? "157.0.8103.40" : "156.0.8078.80");
     browser.newContext = async (options) => {
       log.push(["new-context", options]);
       return new Context((paired ? ["preflight", "opaque", "opaque-direct"] : ["preflight", "product", "failure"])[contexts++]);
@@ -680,6 +681,80 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
 }
 
 describe("controlled browser events + real Node HTTP — NOT actual Chrome/worker proof", () => {
+  it.each([
+    ["operation", runGoogleBrowserOperationsForeground, "opaque-observer-unavailable"],
+    ["diagnostic", foregroundModule.runGoogleOpaqueDiagnosticForeground, "paired-protocol-unknown"],
+  ])("pins Google %s to Chrome 157 in metadata and connected browser", async (_name, run, fault) => {
+    const fake = await controlledBrowser(fault, "net::ERR_ABORTED", "157.0.8103.40");
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "157.0.8103.40", "");
+      return {};
+    });
+    const result = (await run()).vendors[0];
+    expect(result.errors).not.toContain("installed-browser-version-mismatch");
+    expect(result.errors).not.toContain("browser-version-mismatch");
+    expect(result.browserVersion).toBe("157.0.8103.40");
+    expect(fake.connect).toHaveBeenCalledOnce();
+  }, 10000);
+
+  it.each([
+    ["operation", runGoogleBrowserOperationsForeground],
+    ["diagnostic", foregroundModule.runGoogleOpaqueDiagnosticForeground],
+  ])("rejects old Chrome 156 metadata before Google %s launch", async (_name, run) => {
+    const fake = await controlledBrowser();
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "156.0.8078.80", "");
+      return {};
+    });
+    const result = (await run()).vendors[0];
+    expect(result.errors).toContain("installed-browser-version-mismatch");
+    expect(fake.launch).not.toHaveBeenCalled();
+  }, 10000);
+
+  it.each([
+    ["operation", runGoogleBrowserOperationsForeground],
+    ["diagnostic", foregroundModule.runGoogleOpaqueDiagnosticForeground],
+  ])("rejects a mismatched Chrome 157 metadata patch before Google %s launch", async (_name, run) => {
+    const fake = await controlledBrowser();
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "157.0.8103.41", "");
+      return {};
+    });
+    const result = (await run()).vendors[0];
+    expect(result.errors).toContain("installed-browser-version-mismatch");
+    expect(fake.launch).not.toHaveBeenCalled();
+  }, 10000);
+
+  it.each([
+    ["operation", "156.0.8078.80", runGoogleBrowserOperationsForeground],
+    ["operation", "157.0.8103.41", runGoogleBrowserOperationsForeground],
+    ["diagnostic", "156.0.8078.80", foregroundModule.runGoogleOpaqueDiagnosticForeground],
+    ["diagnostic", "157.0.8103.41", foregroundModule.runGoogleOpaqueDiagnosticForeground],
+  ])("rejects Google %s connected browser %s when metadata matches", async (_name, version, run) => {
+    const fake = await controlledBrowser(null, "net::ERR_ABORTED", version);
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "157.0.8103.40", "");
+      return {};
+    });
+    const result = (await run()).vendors[0];
+    expect(result.errors).toContain("browser-version-mismatch");
+    expect(fake.connect).toHaveBeenCalledOnce();
+    expect(fake.log.some(([event]) => event === "new-context")).toBe(false);
+  }, 10000);
+
+  it.each([
+    ["meta", ["157.0.8103.40"]],
+    ["google", ["156.0.8078.80", "157.0.8103.40"]],
+  ])("keeps the default %s browser pinned to Chrome 156", async (vendor, versions) => {
+    await controlledBrowser(null, "net::ERR_ABORTED", versions);
+    const result = await runLocalBrowserForeground();
+    expect(result.normalJourneyChecks).toBe("FAILED");
+    expect(result.vendors.at(-1)).toMatchObject({
+      vendor, browserVersion: "157.0.8103.40",
+    });
+    expect(result.vendors.at(-1).errors).toContain("browser-version-mismatch");
+  }, 10000);
+
   it("allows only one fixed captured-realm control even under concurrent calls", async () => {
     const fixture = await originalOperationStart("opaque");
     openFixtures.push(fixture);
@@ -852,7 +927,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
   ])("retains paired fake observer outcomes for %s without qualification", async (fault, baseline, direct, comparison) => {
     const fake = await controlledBrowser(fault);
     vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-      callback(null, "156.0.8078.80", "");
+      callback(null, "157.0.8103.40", "");
       return {};
     });
     const report = await foregroundModule.runGoogleOpaqueDiagnosticForeground();
@@ -909,7 +984,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
   ])("stops a paired fake run on %s and does not start the direct control", async (fault, error) => {
     const fake = await controlledBrowser(fault);
     vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-      callback(null, "156.0.8078.80", "");
+      callback(null, "157.0.8103.40", "");
       return {};
     });
     const result = (await foregroundModule.runGoogleOpaqueDiagnosticForeground()).vendors[0];
@@ -921,7 +996,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
   it("reports unavailable passive protocol data as UNKNOWN in the fake", async () => {
     await controlledBrowser("paired-protocol-unknown");
     vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-      callback(null, "156.0.8078.80", "");
+      callback(null, "157.0.8103.40", "");
       return {};
     });
     const result = (await foregroundModule.runGoogleOpaqueDiagnosticForeground()).vendors[0];
@@ -934,7 +1009,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
   it("correlates bounded fake protocol failure fields only to each context's request", async () => {
     await controlledBrowser("paired-protocol-failure");
     vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-      callback(null, "156.0.8078.80", "");
+      callback(null, "157.0.8103.40", "");
       return {};
     });
     const result = (await foregroundModule.runGoogleOpaqueDiagnosticForeground()).vendors[0];
@@ -950,7 +1025,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
   it("retains bounded fake console errors as private observations", async () => {
     await controlledBrowser("paired-console");
     vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-      callback(null, "156.0.8078.80", "");
+      callback(null, "157.0.8103.40", "");
       return {};
     });
     const result = (await foregroundModule.runGoogleOpaqueDiagnosticForeground()).vendors[0];
@@ -964,7 +1039,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
   it("reports request header comparison UNKNOWN when full headers are unavailable", async () => {
     await controlledBrowser("paired-requestheaders-unknown");
     vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-      callback(null, "156.0.8078.80", "");
+      callback(null, "157.0.8103.40", "");
       return {};
     });
     const result = (await foregroundModule.runGoogleOpaqueDiagnosticForeground()).vendors[0];
@@ -975,7 +1050,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
   it("retains a differential observer result while response matching is UNKNOWN", async () => {
     await controlledBrowser("paired-baseline-noresponse");
     vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-      callback(null, "156.0.8078.80", "");
+      callback(null, "157.0.8103.40", "");
       return {};
     });
     const result = (await foregroundModule.runGoogleOpaqueDiagnosticForeground()).vendors[0];
@@ -991,7 +1066,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
   it("stops a direct-control deadline without reporting diagnostic completion", async () => {
     const fake = await controlledBrowser("paired-direct-deadline");
     vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-      callback(null, "156.0.8078.80", "");
+      callback(null, "157.0.8103.40", "");
       return {};
     });
     const result = (await foregroundModule.runGoogleOpaqueDiagnosticForeground()).vendors[0];
@@ -1005,7 +1080,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
     "keeps %s fatal after direct observer settlement", async (fault) => {
       const fake = await controlledBrowser(fault);
       vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-        callback(null, "156.0.8078.80", "");
+        callback(null, "157.0.8103.40", "");
         return {};
       });
       const result = (await foregroundModule.runGoogleOpaqueDiagnosticForeground()).vendors[0];
@@ -1022,7 +1097,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
   it("does not hide a late unrelated frame observer failure after a successful baseline", async () => {
     const fake = await controlledBrowser("paired-late-frame");
     vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-      callback(null, "156.0.8078.80", "");
+      callback(null, "157.0.8103.40", "");
       return {};
     });
     const result = (await foregroundModule.runGoogleOpaqueDiagnosticForeground()).vendors[0];
@@ -1039,7 +1114,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
   ])("rejects altered synthetic response evidence for %s", async (fault, error) => {
     const fake = await controlledBrowser(fault);
     vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-      callback(null, "156.0.8078.80", "");
+      callback(null, "157.0.8103.40", "");
       return {};
     });
     const result = (await foregroundModule.runGoogleOpaqueDiagnosticForeground()).vendors[0];
@@ -1051,7 +1126,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
   it("requests and retains the fixed no-proxy flag for the Google operation launcher", async () => {
     const fake = await controlledBrowser("opaque-observer-unavailable");
     vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-      callback(null, "156.0.8078.80", "");
+      callback(null, "157.0.8103.40", "");
       return {};
     });
     const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
@@ -1073,7 +1148,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
   ])("fails closed when %s", async (fault, error, status) => {
     const fake = await controlledBrowser(fault);
     vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-      callback(null, "156.0.8078.80", "");
+      callback(null, "157.0.8103.40", "");
       return {};
     });
     const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
@@ -1106,7 +1181,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
     async (kind) => {
       const fake = await controlledBrowser(`opaque-observer-${kind}`);
       vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-        callback(null, "156.0.8078.80", "");
+        callback(null, "157.0.8103.40", "");
         return {};
       });
       const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
@@ -1166,7 +1241,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
   it.each(["unavailable", "hangs"])("reports a %s failure snapshot without changing the original error", async (kind) => {
     await controlledBrowser(`opaque-observer-snapshot-${kind}`);
     vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-      callback(null, "156.0.8078.80", "");
+      callback(null, "157.0.8103.40", "");
       return {};
     });
     const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
@@ -1182,7 +1257,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
   ])("retains %s observer failure and the subsequently observed %s runtime state", async (kind, phase) => {
     await controlledBrowser(`opaque-observer-${kind}`);
     vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-      callback(null, "156.0.8078.80", "");
+      callback(null, "157.0.8103.40", "");
       return {};
     });
     const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
@@ -1226,7 +1301,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
   it("reports an unavailable snapshot if failure precedes any operation page", async () => {
     await controlledBrowser("context-close");
     vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-      callback(null, "156.0.8078.80", "");
+      callback(null, "157.0.8103.40", "");
       return {};
     });
     const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
@@ -1242,7 +1317,7 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
   ])("counts only verified response bytes for private %s", async (fault, error) => {
     await controlledBrowser(fault);
     vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-      callback(null, "156.0.8078.80", "");
+      callback(null, "157.0.8103.40", "");
       return {};
     });
     const report = await runGoogleBrowserOperationsForeground();

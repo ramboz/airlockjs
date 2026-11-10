@@ -4,6 +4,39 @@ The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
 
+## Chrome157 source-only prerequisite - 2026-11-10
+
+- [x] Record scope at `2026-11-10T03:08:48Z`, with absolute ceiling
+      `2026-11-10T05:08:48Z` and clean base `d085b0feda3f4d28243c7f035154305014d03c58`.
+- [x] Re-pin only the fixed Google operation and paired diagnostic metadata
+      and connected-browser checks to `157.0.8103.40`; preserve default
+      Meta/Google `156.0.8078.80`.
+- [x] Witness current157 acceptance and old156 refusal assertion RED before
+      source change, then cover both selectors, mismatched metadata and
+      browser versions, and the unchanged default modes. The three specified
+      SDK-free Node/loopback files pass157 tests; scoped ESLint passes.
+- [x] Coordinator independently passed157 tests in three files, shell2204
+      exit0, and scoped ESLint/whitespace, shell2205 exit0, on Node22.16.0
+      with `NODE_DISABLE_COMPILE_CACHE=1`.
+- [x] Record three actual supplemental reviews: compliance has no local
+      must-fix and retains inherited full059 needs-changes; craft and
+      architecture each return local PASS. Details and limits are in the plan.
+- [x] Fourth reconciliation initially returned needs-changes for the board
+      statement and artifact name. The same reviewer returned targeted PASS
+      with no local must-fix. All four source reviews are complete locally.
+- [ ] Coordinator generates the distinct fourth supplemental record and binds
+      final source and current cohort to the finite plan.
+- [ ] Final commit, tree, cohort manifest and seal remain pending. The private
+      postcommit receipt will record their identities and final packaging.
+- [ ] Independent current-browser no-external and owned-stop checks plus
+      affirmative exact parent admission remain required. Chrome157 safety,
+      launched version and per-run results are UNOBSERVED; no execution is
+      admitted by this source-only checkpoint.
+
+The [prerequisite packet](plan.md#chrome157-source-only-prerequisite---2026-11-10)
+keeps 059-15 IN_PROGRESS, 059-01 READY_FOR_REVIEW and inherited full059
+needs-changes. The prior paired packet below remains dated history.
+
 ## Paired diagnostic source - 2026-11-10
 
 - [x] Continue from7fffec5e under the original03:03:29UTC ceiling, with no
