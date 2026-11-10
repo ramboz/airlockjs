@@ -1,5 +1,21 @@
 # Tasks - full Google Ads browser-tag compatibility
 
+## Google authority contract proposal - 2026-11-10
+
+- [x] Prepare source-only Proposed
+      [ADR-0053](../../decisions/adr-0053-additional-google-inspected-reference-authority.md)
+      for one separately reviewed additional Google stock lineage. The number
+      is local and provisional; this task grants no authority or execution.
+- [ ] Complete the proposal's independent reviews and ADR frame critique.
+- [ ] Obtain owner acceptance of the contract, separately from any allocation.
+- [ ] Obtain distinct bounded implementation approval and review, then separate
+      parent admission for exact finite controls and capture with current
+      authority and receipts. No chamber authority follows from stock.
+
+059-15 remains IN_PROGRESS, 059-01 READY_FOR_REVIEW and full059 needs-changes.
+The earlier unselected owner-decision item below records its prior checkpoint.
+It does not undo the source-only proposal selection or assert acceptance.
+
 The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
