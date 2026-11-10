@@ -1,6 +1,8 @@
 # Plan - full Google Ads browser-tag compatibility
 
-Current disposition is the [admitted local packet result](#admitted-local-packet-result---2026-11-10).
+Current disposition is the [opaque source diagnosis](#opaque-source-diagnosis---2026-11-10).
+The [admitted local packet result](#admitted-local-packet-result---2026-11-10)
+remains failed and its browser grant consumed.
 The [proxy-disable correction](#proxy-disable-correction---2026-11-10)
 retains its pre-execution source assessment.
 The [known-case stop revision](#known-case-stop-revision---2026-11-09)
@@ -9,6 +11,161 @@ The earlier [local helper prerequisite checkpoint](#local-helper-prerequisite-ch
 retains its then-current stronger stop assessment; it is not retroactively cleared.
 The earlier [accepted browser-operation construction](#accepted-browser-operation-construction-packet---2026-11-09)
 and manual-response source stops below remain dated evidence.
+
+## Opaque source diagnosis - 2026-11-10
+
+**No repair is proved. No browser ran in this checkpoint.** The current
+failure cannot be assigned to an adapter defect, fixture defect or browser
+observer limitation from the retained evidence. Keep the failed output and
+diagnose the process that produced it. Do not remove the required body,
+accept an aborted request, or turn opaque settlement into HTTP success.
+
+### Source fit and routing
+
+The fresh checkpoint began at2026-11-10T01:03:29Z with a two-active-hour
+ceiling, no reset, on clean parent base
+`6e93b0957ad88bc009fe5d51f95f613cd1647b3c`,
+tree`47e84208f8a5ca568dc811b3f59716cf6e2e5dca`.
+Scout's blocking tracked-manifest check covered that commit with zero gaps;
+derived views were not independently verified. Executable source remains
+the1181891f cohort. No fetch, trunk merge or main-checkout edit occurred.
+
+The boards retain059-15 IN_PROGRESS,059-01 READY_FOR_REVIEW and bugs001-003
+DONE. This is diagnosis within059-15, not a second bug/spec/ADR owner or a
+ROOT_CAUSED/FIXING transition. A fresh-main reproduction and witnessed
+RED/GREEN are not claimed. Neither is appropriate before a repair is proved;
+the assignment forbids unrelated trunk work and any browser acquisition.
+
+The raw receipt and stdout hashes match the admitted result below. Request68
+has status200, `net::ERR_ABORTED` and unavailable recorder bytes. Host events
+420-426 put failure, settled runtime and the failure snapshot before owned
+cleanup. The snapshot retains ready phase, opaque/two-authored-operation
+outcome without status, disposal pending and realm ready. This is host order,
+not synchronized browser causation.
+
+### Hypotheses and distinguishing evidence
+
+| Candidate | Confirm / falsify | Current result |
+|---|---|---|
+| Owned realm teardown causes this abort | Confirm an owned stop/dispose before failure; falsify that specific explanation with the retained realm and cleanup observations. | The host observed failure before owned cleanup and never reached its explicit realm stop. This does not exclude an unrecorded browser event or establish a historical cause. |
+| The successful opaque branch aborts its controller in the adapter finalizer | Confirm a successful-opaque abort path; falsify it by reading the completion flag and abort condition together. | `adapters/google-ads-prototype.js:831-873` sets `ownership.complete` for opaque and only aborts on failure/incomplete response. This named finalizer explanation is unsupported; no browser-wide negative claim follows. |
+| The fixture sends an incomplete or malformed HTTP acknowledgment | Confirm incomplete Node response/framing or failed receiver closure; falsify a general server-framing explanation with the literal HTTP control. | Pinned Terra/default observed GET200/1931 bytes and POST200/zero bytes, both complete and not aborted, then closed resources without errors. Node does not exercise browser security or the independent browser recorder. |
+| Browser response handling or recorder delivery fails for this no-CORS acknowledgment | Confirm with an actual matched browser control and browser protocol reason; falsify a response-only explanation if the matched direct realm succeeds while the adapter path fails. | Unresolved. The empty200 has nosniff but no Content-Type or CORS header. There is no retained browser blocked reason, response-header record or matching direct-realm control. A MIME/security explanation is a hypothesis, not a cause or permission to change headers. |
+
+### Closure inventory and controls
+
+The continuous source trace is the fixed receiver
+(`rig/local-browser-journeys.mjs:130-145,198-225`), page registration and
+no-CORS selector (`rig/local-browser-journeys-google.js:165-190,247-250`),
+captured iframe Fetch (`adapters/google-browser-operation-realm.js:65-90`),
+experimental dispatch/finalizer
+(`adapters/google-ads-prototype.js:798-888`), and independent recorder/barrier
+(`rig/local-browser-foreground.mjs:425-480,508-586,704-728`).
+The bodyless opaque acknowledgment and normal redirect use the existing
+`finish` helper. A new response helper or second transport is not justified.
+
+Scout lookups covered `opaque-request-failed`, `response-body-unavailable`,
+`AbortController`, `opaque`, `startGoogleBrowserOperationFixture` and
+`experimentalBrowserOperation`. Relevant path history and `git log -S`
+identify512487d9's fixture branch,2d850cb3's observer-lifetime repair,
+a2a5d185's diagnostic timeline and1181891f's proxy correction.
+The host's successful-opaque branch, existing recorder failure controls,
+realm lifecycle and actual Node fixture were inspected. No convergent path
+is changed. Default/manual/production Google, Meta and shared core are left
+alone because no fault on those paths was established.
+
+The browser-free command
+`NODE_DISABLE_COMPILE_CACHE=1 npm test -- --run test/local-browser-foreground.test.js test/google-browser-operation-fixture.test.js test/google-browser-operation-host.test.js`
+passed110 tests in3 files. Its foreground browser is controlled, and its host
+realm is mocked; those results do not reproduce the Chrome failure.
+The pinned Terra/default literal Node HTTP control also passed, with
+setup/control/cleanup exit0. It records exact raw headers, complete bodies
+and known receiver closure. There was no regression RED, repair GREEN or
+setup error represented as RED. No executable repository file was changed.
+
+Private Node evidence lives in this checkpoint's
+`opaque-source-diagnosis/` directory, all0600/fsynced:
+`opaque-node-control-result.json` SHA-256
+`26435848fbe5352e416a7a654a3251128b4a4276712ad8a43c52a4ad52c4899f`,
+and `opaque-node-control.mjs` SHA-256
+`8e3652855ed2c7c801488aff1d6dbb3cb2ef97ca982c365ce68168dbe818e4dd`.
+The result's end timestamp denotes control completion, before its evidence
+publication and actual process exit. The final checkpoint receipt separately
+binds review, commit, file manifest and sealing after they occur.
+
+### Proposed smallest distinguishing packet, not admitted
+
+**PROPOSED, no acquisition or executable command is authorized.** Before a
+browser grant, a fresh bounded source packet would need pinned Terra
+instrumentation and actual pinned Sol reviews. There is no new diagnostic
+selector in the current runner. Do not improvise one at execution time.
+
+Keep the current opaque receiver bytes/headers, enforcing frame response CSP,
+own-realm Fetch, credential omission and no-proxy launcher unchanged.
+Add only bounded private observation for the selected Google diagnostic:
+response headers/status, request identity, independent body/finished/failure,
+console errors and the browser protocol's loading-failure/cancellation/
+blocked-reason fields when present. Missing fields are UNKNOWN, never invented.
+Do not inject response data into the runtime or intercept/fulfil responses.
+
+The proposed finite comparison has three phases: the existing independent
+allow/deny/bypass preflight; one unchanged adapter opaque case; and one
+separately labelled direct captured-realm control that issues the same
+bodyless no-CORS POST to the exact synthetic secondary receiver without the
+adapter/worker. Keep each realm alive through independent recorder settlement.
+The control is one authored POST, not an adapter conversion or a substitute
+for its two authored operations. Pin identical method, mode, headers, signal
+ownership, recipient CSP and receiver response; record any unavoidable
+difference. No MIME/CORS change, retry, fallback or later case is part of it.
+
+Use one owned root/fresh profile, at most3 contexts,1 worker and2 fixture
+objects (preflight and opaque),6 measurement attempts,128 observed requests,
+the existing byte/socket ceilings and100s-work/120s-total limit. The direct
+control reuses the opaque fixture's exact origins. The baseline's strict
+failure must remain FAILED; a diagnostic-only driver may then collect the
+predeclared control without claiming a passing journey. If that distinction
+cannot be implemented without weakening the qualification entry, stop.
+
+If both cells fail alike, investigate the common browser/response/observer
+edge; that result alone does not prove which common component is wrong.
+If only the adapter cell fails, investigate its additional lifetime/signal
+edges without treating correlation as a root cause. If both succeed, report
+the original failure as unreproduced, not fixed. Adapter success/control
+failure or different failure signatures are inconclusive comparisons; record
+the mismatch and assign no cause. A browser block reason may
+justify a later fixture correction only after a failing regression and
+matching browser evidence. If normal supported opacity inherently prevents
+the required independent bytes, return that precise contract conflict to the
+owner; do not lower the success condition.
+
+Independent whole-path no-external checks, exact source/browser/launcher pins,
+parent admission of that finite packet and known-case resource/root/external
+CLI closure are prerequisites. This proposal supplies none of them. Existing
+confinement/Meta special test flags remain off. Helpers stay UNKNOWN/manual;
+descendants/loss cleanup and full059 remain unqualified. Accepted0047/48/50/51/52
+and all earlier reviews/evidence are unchanged.
+
+### Deviation log
+
+The bounded diagnosis stopped before ROOT_CAUSED/FIXING because the browser
+edge is unobserved, rather than inventing a repair and a proxy regression.
+Only existing notes and distinct dated supplemental review records change.
+Pinned Terra/default supplied the literal Node control; pinned Sol/default
+reviewed compliance, craft and architecture. Compliance retains inherited
+full059 needs-changes with no checkpoint-local must-fix. Craft and architecture
+passed locally; craft's optional unmatched-outcome clarification is applied.
+The [supplemental records](reviews/slice-15-opaque-diagnosis-2026-11-10-compliance.md)
+do not replace canonical review evidence or promote the slice. The review
+helper's canonical recorder would overwrite earlier evidence, so this
+checkpoint preserves the actual verdicts in dated, non-gating records instead.
+Reviewers disclosed UNINDEXED known-range reads where their tool surface did
+not expose Scout. The coordinator's current-source trace used the verified
+tracked manifest. Actual pinned Sol/default
+[documentary reconciliation](reviews/slice-15-opaque-diagnosis-2026-11-10-reconciliation.md)
+passed. It checked the source, review transcriptions and captured110/3 exit0
+log without independently revalidating historical hashes, permissions or Git.
+The commit and final evidence seal remain private-receipt attestations after
+they succeed.
 
 ## Admitted local packet result - 2026-11-10
 

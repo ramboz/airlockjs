@@ -1,5 +1,24 @@
 # Fixed local foreground procedure
 
+## Source diagnosis stopped before repair - 2026-11-10
+
+The new source-only checkpoint found no proved correction for the admitted
+opaque failure. The owned teardown and successful-opaque finalizer explanations
+are unsupported by the current source and retained host observations. A literal
+Node HTTP control completed the exact empty200 acknowledgment, but does not
+exercise Chrome response security or recorder delivery.
+
+The [dated diagnosis and proposed comparison](../docs/specs/059-google-ads-full-compatibility/plan.md#opaque-source-diagnosis---2026-11-10)
+record the hypotheses,110 browser-free tests and private Node evidence.
+No executable repository source changed. There was no regression RED/GREEN,
+new Chrome run, repaired browser result or new execution grant.
+
+The proposed unchanged-adapter/direct-realm comparison needs a separately
+implemented, reviewed and parent-admitted finite diagnostic packet. The current
+runner has no such selector. Preserve strict independent bodies, failure
+reporting, the existing observer barrier, enforcing CSP and HTTP UNKNOWN for
+opaque settlement. Do not rerun the consumed packet or improvise a control.
+
 ## Admitted packet stopped - 2026-11-10
 
 The parent expressly admitted one exact1181891f/tree5ff5863c Google packet.
