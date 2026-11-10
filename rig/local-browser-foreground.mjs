@@ -192,7 +192,8 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
     consoleErrors: [],
   } : null;
   const timelineStatus = { ordering: "host-observation-order-only", omitted: 0, failureSnapshot: "not-needed",
-    observersPendingAtPublication: 0 };
+    observersPendingAtPublication: 0,
+    ...(operationPacket && !paired ? { cspConsoleWitness: "UNKNOWN", cspLoadedFrame: "UNKNOWN" } : {}) };
   const controls = {};
   const cleanup = { contexts: [], fixtures: [] };
   let retainedBytes = 0;
@@ -212,7 +213,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       const bytes = Buffer.byteLength(JSON.stringify(row));
       if (operationTimeline.length >= 1536 || bytes > 32768 || retainedBytes + bytes > LIMITS.retainedBytes) {
         timelineStatus.omitted += 1;
-        if (paired) fail("diagnostic-timeline-limit");
+        fail("diagnostic-timeline-limit");
         return false;
       }
       retainedBytes += bytes;
@@ -220,7 +221,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       return true;
     } catch {
       timelineStatus.omitted += 1;
-      if (paired) fail("diagnostic-timeline-limit");
+      fail("diagnostic-timeline-limit");
       return false;
     }
   }
@@ -424,9 +425,40 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
           } catch (error) { fail(error.message); }
         }
         if (operation && mode === "csp-negative") {
-          const text = message.text();
-          if (text.length <= 2048 && /content security policy/i.test(text) &&
-              /connect-src/i.test(text) && text.includes(fixture.origins[2])) state.cspDenialObserved = true;
+          let text;
+          try {
+            text = message.text();
+            if (typeof text !== "string") fail("csp-console-observation");
+          } catch { fail("csp-console-observation"); }
+          const matches = typeof text === "string" && text.length <= 2048 && /content security policy/i.test(text) &&
+            /connect-src/i.test(text) && text.includes(fixture.origins[2]);
+          if (!paired) {
+            let location = "UNKNOWN";
+            try {
+              const observed = message.location?.();
+              if (observed?.url === `${fixture.origin}/rig/google-browser-operation-frame.html`) {
+                location = {
+                  url: observed.url,
+                  lineNumber: Number.isSafeInteger(observed.lineNumber) && observed.lineNumber >= 0
+                    ? observed.lineNumber : "UNKNOWN",
+                  columnNumber: Number.isSafeInteger(observed.columnNumber) && observed.columnNumber >= 0
+                    ? observed.columnNumber : "UNKNOWN",
+                };
+              }
+            } catch { /* unavailable */ }
+            const ownedText = matches && Buffer.byteLength(text) <= 2048 &&
+              [...text.matchAll(/https?:\/\/[^\s"'<>;,]+/gi)].every(([raw]) => {
+                try {
+                  const url = new URL(raw);
+                  return fixture.origins.includes(url.origin) && !url.username && !url.password && !url.search &&
+                    !url.hash && ["/", "/operation-csp-denied"].includes(url.pathname);
+                } catch { return false; }
+              });
+            if (recordOperation("csp-console-witness", { mode, text: ownedText ? text : "UNKNOWN", location }) && ownedText) {
+              timelineStatus.cspConsoleWitness = "observed";
+              if (location !== "UNKNOWN") state.cspDenialObserved = true;
+            }
+          }
         }
       });
       page.on("crash", () => fail("page-crashed"));
@@ -434,9 +466,13 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       page.on("download", () => fail("unexpected-download"));
       page.on("frameattached", () => { if (!operation) fail("unexpected-frame"); });
       page.on("framenavigated", (frame) => {
-        if (frame === page.mainFrame() ? frame.url() !== `${fixture.origin}${documentPath}` :
+        const mainFrame = page.mainFrame();
+        if (frame === mainFrame ? frame.url() !== `${fixture.origin}${documentPath}` :
           !operation || frame.parentFrame() !== page.mainFrame() ||
           frame.url() !== `${fixture.origin}/rig/google-browser-operation-frame.html`) fail("unexpected-navigation");
+        else if (operation && !paired && mode === "csp-negative" && frame !== mainFrame) {
+          recordOperation("csp-frame-navigation", { mode, frameURL: `${fixture.origin}/rig/google-browser-operation-frame.html` });
+        }
       });
       page.on("websocket", () => fail("unexpected-websocket"));
       page.on("worker", (worker) => {
@@ -561,14 +597,39 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
     });
     context.on("requestfailed", (request) => {
       const row = rows.get(request);
+      const unexpected = !row?.denied && !(operation && row?.kind === "measurement");
+      if (operation && !paired && unexpected) fail("unexpected-request-failure");
+      let detail;
+      if (operation && !paired && unexpected) {
+        try { detail = request.failure?.()?.errorText; } catch { /* unavailable */ }
+      } else if (row) detail = request.failure?.()?.errorText;
+      const code = typeof detail === "string" && detail.length <= 96 && /^net::ERR_[A-Z0-9_]+$/.test(detail)
+        ? detail : "request-failure-detail-unavailable";
       if (row) {
-        const detail = request.failure?.()?.errorText;
         // Keep a bounded network code, never a URL or arbitrary protocol text.
-        row.failureCode = typeof detail === "string" && detail.length <= 96 && /^net::ERR_[A-Z0-9_]+$/.test(detail)
-          ? detail : "request-failure-detail-unavailable";
+        row.failureCode = code;
         recordOperation("request-failed", { mode, request: requests.indexOf(row), code: row.failureCode });
       }
-      if (!row?.denied && !(operation && row?.kind === "measurement")) fail("unexpected-request-failure");
+      if (operation && !paired && unexpected) {
+        let redirectParent = "UNKNOWN";
+        let identity = "UNKNOWN";
+        try {
+          const parent = rows.get(request.redirectedFrom?.());
+          if (parent) redirectParent = requests.indexOf(parent);
+        } catch { /* unavailable */ }
+        try {
+          const input = {
+            url: request.url(), method: request.method(), resourceType: request.resourceType(),
+            bodyBytes: request.postDataBuffer()?.length || 0, headerBytes: 0,
+          };
+          identity = { url: input.url, method: input.method, resourceType: input.resourceType,
+            kind: checkGoogleOperationRequest(fixture, input) };
+        } catch { /* not a bounded manifest identity */ }
+        recordOperation("unexpected-request-failure-detail", {
+          mode, request: row ? requests.indexOf(row) : "UNKNOWN", redirectParent, identity, code,
+        });
+      }
+      if (unexpected) fail("unexpected-request-failure");
       if (row) {
         row.finished = true;
         if (operation && row.kind === "measurement") row.bodyChecked = true;
@@ -664,6 +725,16 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       row.bodyChecked = true;
       if (operationPacket) row.bodyVerified = true;
       recordOperation("response-body-verified", { mode, request: requests.indexOf(row) });
+      if (operation && !paired && mode === "csp-negative" && row.kind === "frame") {
+        let frameURL = "UNKNOWN";
+        try {
+          const frame = response.frame();
+          if (frame.parentFrame() === state.page.mainFrame() && frame.url() === row.url) frameURL = row.url;
+        } catch { /* unavailable */ }
+        if (recordOperation("csp-loaded-frame", { mode, request: requests.indexOf(row), frameURL })) {
+          timelineStatus.cspLoadedFrame = "observed";
+        }
+      }
     }));
     await bounded(() => context.grantPermissions(["local-network-access"], { origin: fixture.origin }), "local-permission");
     const page = await bounded(() => context.newPage(), "page-start");
@@ -1072,7 +1143,9 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
         } else {
           requireFact(outcome?.disposition === "failed" && outcome.authoredOperations === 2 &&
             !rows.some((row) => row.origin === fixture.origins[2]), "csp-denial-control");
-          await until(() => pageState.state.cspDenialObserved, "csp-console-observation");
+          await until(() => pageState.state.cspDenialObserved && operationTimeline.some((row) =>
+            row.event === "csp-loaded-frame" && row.mode === name &&
+            row.frameURL === `${fixture.origin}/rig/google-browser-operation-frame.html`), "csp-console-observation");
           requireFact(!requests.some((row) => row.mode === name &&
             row.url === `${fixture.origins[2]}/operation-csp-denied` && row.denied), "csp-harness-aborted");
         }

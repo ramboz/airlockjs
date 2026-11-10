@@ -256,9 +256,13 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
         url: () => url, method: () => method, resourceType: () => type,
         redirectedFrom: () => null,
         postDataBuffer: () => fault === "request-body" ? Buffer.from("x") : null,
-        failure: () => ({ errorText: fault === "oversized-failure-code" ? `net::ERR_${"X".repeat(2048)}`
-          : fault === "private-failure-detail" ? "Protocol error at https://private.invalid/?secret=not-retained"
-            : failureDetail }),
+        failure: () => {
+          if (fault === "opaque-observer-known-unavailable" && type === "document" &&
+              url.endsWith("/rig/google-browser-operation-frame.html")) throw new Error("private-detail");
+          return { errorText: fault === "oversized-failure-code" ? `net::ERR_${"X".repeat(2048)}`
+            : fault === "private-failure-detail" ? "Protocol error at https://private.invalid/?secret=not-retained"
+              : failureDetail };
+        },
         headersArray: async () => [{ name: "accept", value: fault === "header-overrun" ? "x".repeat(65537) : "*/*" }],
         headers: () => ({ accept: paired && fault === "paired-mismatched-headers" && this.mode === "opaque-direct" ? "other" : "*/*" }),
         allHeaders: async () => {
@@ -267,6 +271,7 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
         },
         isNavigationRequest: () => type === "document",
       };
+      if (this.mode === "csp-negative" && method === "POST") this.secondaryRequest = request;
       await this.handler({
         request: () => request,
         abort: async () => { this.emit("requestfailed", request); reject(new Error("source-test-aborted")); },
@@ -364,7 +369,13 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
                   : fault === "paired-content-type" && pairedSecondary ? { ...res.headers, "content-type": "text/plain" }
                     : fault === "paired-cors-header" && pairedSecondary
                       ? { ...res.headers, "access-control-allow-origin": "*" } : res.headers,
-                frame: () => type === "document" && this.mode !== "preflight" ? {} : this.page.mainFrame(),
+                frame: () => {
+                  if (fault === "opaque-observer-csp-mainframe" && this.mode === "csp-negative" && type === "document") {
+                    this.page.cspResponseFrameCalls = (this.page.cspResponseFrameCalls || 0) + 1;
+                    if (this.page.cspResponseFrameCalls === 2) this.page.failNextMainFrame = true;
+                  }
+                  return type === "document" && this.mode !== "preflight" ? this.page.childFrame : this.page.mainFrame();
+                },
                 body: async () => {
                   if (unavailable) throw new Error("source-test-body-unavailable");
                   if (fault === "paired-response-nonzero" && pairedSecondary) return Buffer.from("unexpected");
@@ -384,6 +395,28 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
                   return fault === "source-substitution" && type === "script" ? Buffer.from("wrong") : body;
                 },
               });
+              if (fault?.startsWith("opaque-observer-unmatched") && this.mode === "readable" &&
+                  url === `${this.page.origin}${this.page.fixture.operationPaths.primary}`) {
+                const failed = {
+                  ...request,
+                  redirectedFrom: () => {
+                    if (fault === "opaque-observer-unmatched-parent-throw") throw new Error("private-parent-detail");
+                    return fault === "opaque-observer-unmatched-parent" ? request : null;
+                  },
+                  url: () => {
+                    if (fault === "opaque-observer-unmatched-url-throw") throw new Error("private-url-detail");
+                    return fault === "opaque-observer-unmatched-foreign" ? "https://private.invalid/?secret=not-retained"
+                      : fault === "opaque-observer-unmatched-oversized" ? `${url}${"X".repeat(4096)}` : url;
+                  },
+                  failure: () => fault === "opaque-observer-unmatched-unavailable" ? (() => { throw new Error("private-detail"); })()
+                    : { errorText: "net::ERR_ABORTED" },
+                };
+                this.emit("requestfailed", failed);
+              }
+              if (fault?.startsWith("opaque-observer-known-") && this.mode === "readable" &&
+                  type === "document" && url.endsWith("/rig/google-browser-operation-frame.html")) {
+                this.emit("requestfailed", request);
+              }
               if (fault === "paired-concurrent-fatal" && unavailable) this.page.emit("pageerror", new Error("test"));
               if (pairedSecondary && this.protocol) {
                 if (fault === "paired-protocol-failure") this.protocol.emit("Network.loadingFailed", {
@@ -435,8 +468,21 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
       this.context = context;
       this.journey = { phase: "not-started", failure: null, fullCompatibility: false, overall: "INCONCLUSIVE", disposal: "not-created" };
       this.frame = { url: () => this.url };
+      this.childFrame = {
+        url: () => `${this.origin}/rig/google-browser-operation-frame.html`,
+        parentFrame: () => fault?.startsWith("opaque-observer-csp-unbound") ? {} : this.frame,
+      };
     }
-    mainFrame() { return this.frame; }
+    mainFrame() {
+      if (this.failNextMainFrame) {
+        this.failNextMainFrame = false;
+        throw new Error("private-loaded-frame-getter");
+      }
+      if (this.diagnosticNavigationActive && ++this.navigationMainFrameCalls === 3) {
+        throw new Error("private-navigation-frame-getter");
+      }
+      return this.frame;
+    }
     async goto(url) {
       this.url = url;
       this.vendor = new URL(url).pathname.slice(1);
@@ -456,7 +502,9 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
       if ((fault?.startsWith("opaque-observer-") || paired) && this.vendor === "google-browser-operation") {
         if (fault === "paired-console-overrun") this.emit("console", { type: () => "error", text: () => "x".repeat(2049) });
         if (fault === "paired-console") this.emit("console", { type: () => "error", text: () => "synthetic console error" });
-        if (this.fixture.caseName === "unreadable-primary") throw new Error("source-test-after-opaque");
+        if (this.fixture.caseName === "unreadable-primary" && !fault?.startsWith("opaque-observer-csp-")) {
+          throw new Error("source-test-after-opaque");
+        }
         return;
       }
       if (["operation-accounting", "operation-overrun"].includes(fault) && this.vendor === "google-browser-operation") {
@@ -489,6 +537,10 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
     async evaluate(fn, arg) {
       const source = fn.toString();
       if ((fault?.startsWith("opaque-observer-") || paired) && this.vendor === "google-browser-operation") {
+        if (source.includes("window.probeDisallowedReceiver()") && fault?.startsWith("opaque-observer-csp-")) {
+          await this.context.send(`${this.fixture.origins[2]}/reachability`, "fetch");
+          return "reachable";
+        }
         if (source.includes("window.prepareBrowserOperation()")) {
           if (fault === "paired-operation-deadline") throw new Error("operation-opaque-deadline");
           this.worker = new EventEmitter();
@@ -496,14 +548,65 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
           this.emit("worker", this.worker);
           if (paired) await this.context.send(`${this.origin}/rig/google-browser-operation-frame.html`, "fetch");
           await this.context.send(`${this.origin}/rig/google-browser-operation-frame.html`, "document");
+          if (fault?.startsWith("opaque-observer-csp-") && !fault.startsWith("opaque-observer-csp-unbound") &&
+              this.fixture.caseName === "csp-negative") {
+            this.diagnosticNavigationActive = fault === "opaque-observer-csp-mainframe";
+            this.navigationMainFrameCalls = 0;
+            this.emit("framenavigated", this.childFrame);
+            this.diagnosticNavigationActive = false;
+          }
           this.operation = { phase: "ready", runtime: { phase: "ready", outcomes: [] } };
           return structuredClone(this.operation);
         }
         if (source.includes("window.beginBrowserOperation()")) {
           this.operation.phase = "in-flight";
           this.operationPromise = (async () => {
-            await this.context.send(`${this.origin}${this.fixture.operationPaths.primary}`, "fetch");
+            const primary = this.fixture.caseName === "unreadable-primary" ? this.fixture.origins[1] : this.origin;
+            await this.context.send(`${primary}${this.fixture.operationPaths.primary}`, "fetch");
+            if (fault?.startsWith("opaque-observer-csp-") && this.fixture.caseName === "unreadable-primary") {
+              this.operation = { phase: "settled", runtime: { phase: "ready", outcomes: [{
+                disposition: "failed", authoredOperations: 1,
+              }] } };
+              return structuredClone(this.operation);
+            }
             await this.context.send(`${this.fixture.origins[1]}${this.fixture.operationPaths.secondary}`, "fetch", "POST");
+            if (fault?.startsWith("opaque-observer-csp-") && this.fixture.caseName === "csp-negative") {
+              const text = `Connecting to '${this.fixture.origins[2]}/operation-csp-denied' violates the following ` +
+                `Content Security Policy directive: "connect-src ${this.fixture.origins[0]} ${this.fixture.origins[1]}".`;
+              const consoleMessage = {
+                type: () => "error",
+                text: () => {
+                  if (fault === "opaque-observer-csp-unavailable") throw new Error("private-console-detail");
+                  if (fault === "opaque-observer-csp-boolean") return true;
+                  if (fault?.startsWith("opaque-observer-csp-oversized")) return `${text}${"X".repeat(4096)}`;
+                  if (fault?.startsWith("opaque-observer-csp-foreign")) return `${text} https://private.invalid/?secret=not-retained`;
+                  if (fault?.startsWith("opaque-observer-csp-prefix")) return `${text} ${this.fixture.origins[2]}.private.invalid/?secret=not-retained`;
+                  return text;
+                },
+                location: () => ({ url: fault?.startsWith("opaque-observer-csp-foreign") ||
+                  fault?.startsWith("opaque-observer-csp-location")
+                  ? "https://private.invalid/?secret=not-retained" : `${this.origin}/rig/google-browser-operation-frame.html`,
+                lineNumber: 1, columnNumber: 2 }),
+              };
+              const failedRequest = {
+                url: () => `${this.fixture.origins[2]}/operation-csp-denied`, method: () => "GET",
+                resourceType: () => "fetch", postDataBuffer: () => null,
+                redirectedFrom: () => this.context.secondaryRequest,
+                failure: () => ({ errorText: "net::ERR_BLOCKED_BY_CSP" }),
+              };
+              if (fault === "opaque-observer-csp-budget-after-failure") this.context.emit("requestfailed", failedRequest);
+              const consoleCount = fault === "opaque-observer-csp-missing-isolated" ? 0
+                : fault?.startsWith("opaque-observer-csp-budget") ? 1600 : 1;
+              for (let count = 0; count < consoleCount; count += 1) {
+                this.emit("console", consoleMessage);
+              }
+              if (!fault.endsWith("-isolated") && fault !== "opaque-observer-csp-budget-after-failure") {
+                this.context.emit("requestfailed", failedRequest);
+              }
+              return { phase: "settled", runtime: { phase: "ready", outcomes: [{
+                disposition: "failed", authoredOperations: 2,
+              }] } };
+            }
             if (this.fixture.caseName === "readable") {
               await this.context.send(`${this.fixture.origins[1]}/operation-unexpected-path`, "fetch");
             }
@@ -513,6 +616,10 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
             }] } };
             return structuredClone(this.operation);
           })();
+          if (fault?.startsWith("opaque-observer-unmatched") || fault?.startsWith("opaque-observer-known-") ||
+              fault?.startsWith("opaque-observer-csp-")) {
+            void this.operationPromise.catch(() => {});
+          }
           return;
         }
         if (source.includes("window.waitBrowserOperation()")) return this.operationPromise;
@@ -1139,6 +1246,215 @@ describe("controlled browser events + real Node HTTP — NOT actual Chrome/worke
       requestedArgs: result.privateEvidence.proxyLaunch.requestedArgs,
       ownedArgv: result.privateEvidence.proxyLaunch.ownedArgv,
     }));
+  }, 10000);
+
+  it.each(["plain", "parent", "foreign", "oversized", "unavailable", "url-throw", "parent-throw"])(
+    "retains bounded unmatched failed-event evidence (%s) without changing failure",
+    async (kind) => {
+      await controlledBrowser(`opaque-observer-unmatched-${kind}`);
+      vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+        callback(null, "157.0.8103.40", "");
+        return {};
+      });
+      const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
+      expect(result.normalJourneyChecks).toBe("FAILED");
+      expect(result.errors).toContain("unexpected-request-failure");
+      const evidence = result.privateEvidence.operationTimeline.find((row) =>
+        row.event === "unexpected-request-failure-detail");
+      expect(evidence).toMatchObject({
+        mode: "readable", request: "UNKNOWN",
+        redirectParent: kind === "parent" ? expect.any(Number) : "UNKNOWN",
+        identity: ["foreign", "oversized", "url-throw"].includes(kind) ? "UNKNOWN" : expect.objectContaining({
+          method: "GET", resourceType: "fetch", kind: "measurement",
+        }),
+        code: kind === "unavailable" ? "request-failure-detail-unavailable" : "net::ERR_ABORTED",
+      });
+      expect(JSON.stringify(evidence)).not.toMatch(/private\.invalid|secret=not-retained|X{97}|private-detail|private-url-detail|private-parent-detail/);
+    }, 10000);
+
+  it("retains the actual CSP console and loaded-frame witness alongside the failed redirect", async () => {
+    await controlledBrowser("opaque-observer-csp-redirect");
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "157.0.8103.40", "");
+      return {};
+    });
+    const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
+    expect(result.normalJourneyChecks).toBe("FAILED");
+    expect(result.errors).toContain("unexpected-request-failure");
+    const { requests, operationTimeline } = result.privateEvidence;
+    const failed = operationTimeline.find((row) => row.event === "unexpected-request-failure-detail" &&
+      row.mode === "csp-negative");
+    expect(failed).toMatchObject({
+      request: "UNKNOWN", redirectParent: expect.any(Number), code: "net::ERR_BLOCKED_BY_CSP",
+      identity: { method: "GET", resourceType: "fetch", kind: "measurement" },
+    });
+    expect(requests[failed.redirectParent]).toMatchObject({ mode: "csp-negative", method: "POST" });
+    const frame = operationTimeline.find((row) => row.event === "csp-loaded-frame");
+    expect(frame).toMatchObject({ mode: "csp-negative", request: expect.any(Number), frameURL: expect.any(String) });
+    expect(requests[frame.request]).toMatchObject({
+      mode: "csp-negative", kind: "frame", bodyVerified: true, frameNavigationPolicy: expect.stringContaining("connect-src"),
+      frameNavigationBytes: expect.any(String),
+    });
+    expect(frame.frameURL).toBe(requests[frame.request].url);
+    const consoleWitness = operationTimeline.find((row) => row.event === "csp-console-witness");
+    expect(consoleWitness).toMatchObject({
+      mode: "csp-negative", text: expect.stringContaining("Content Security Policy"),
+      location: { url: frame.frameURL, lineNumber: 1, columnNumber: 2 },
+    });
+    expect(consoleWitness.text).toContain(failed.identity.url);
+    expect(result.privateEvidence.timelineStatus).toMatchObject({
+      cspConsoleWitness: "observed", cspLoadedFrame: "observed",
+    });
+  }, 10000);
+
+  it.each(["ordinary", "unavailable"])("preserves known failed-row behavior with %s detail", async (kind) => {
+    await controlledBrowser(`opaque-observer-known-${kind}`);
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "157.0.8103.40", "");
+      return {};
+    });
+    const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
+    expect(result.normalJourneyChecks).toBe("FAILED");
+    expect(result.errors).toContain("unexpected-request-failure");
+    const evidence = result.privateEvidence.operationTimeline.find((row) =>
+      row.event === "unexpected-request-failure-detail");
+    expect(evidence).toMatchObject({
+      mode: "readable", request: expect.any(Number), redirectParent: "UNKNOWN",
+      identity: { method: "GET", resourceType: "document", kind: "frame" },
+      code: kind === "unavailable" ? "request-failure-detail-unavailable" : "net::ERR_ABORTED",
+    });
+    expect(result.privateEvidence.requests[evidence.request]).toMatchObject({
+      kind: "frame", finished: true, failureCode: evidence.code,
+    });
+  }, 10000);
+
+  it.each(["foreign", "prefix", "oversized", "unavailable", "boolean", "unbound", "budget"])(
+    "keeps CSP witness %s honest and the original failure intact",
+    async (kind) => {
+      await controlledBrowser(`opaque-observer-csp-${kind}`);
+      vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+        callback(null, "157.0.8103.40", "");
+        return {};
+      });
+      const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
+      expect(result.normalJourneyChecks).toBe("FAILED");
+      expect(result.errors).toContain("unexpected-request-failure");
+      const { operationTimeline, timelineStatus } = result.privateEvidence;
+      const consoleWitness = operationTimeline.find((row) => row.event === "csp-console-witness");
+      const frame = operationTimeline.find((row) => row.event === "csp-loaded-frame");
+      expect(frame?.frameURL).toEqual(kind === "unbound" ? "UNKNOWN" : expect.stringContaining("/rig/google-browser-operation-frame.html"));
+      if (["foreign", "prefix", "oversized", "unavailable", "boolean"].includes(kind)) {
+        expect(consoleWitness?.text).toBe("UNKNOWN");
+        expect(timelineStatus.cspConsoleWitness).toBe("UNKNOWN");
+      }
+      if (kind === "boolean" || kind === "unavailable") expect(result.errors).toContain("csp-console-observation");
+      if (kind === "foreign") expect(consoleWitness?.location).toBe("UNKNOWN");
+      if (kind === "budget") {
+        expect(timelineStatus.omitted).toBeGreaterThan(0);
+        expect(result.errors).toContain("diagnostic-timeline-limit");
+      }
+      expect(JSON.stringify(operationTimeline)).not.toMatch(/private\.invalid|secret=not-retained|X{97}|private-console-detail/);
+    }, 10000);
+
+  it("fails solely on an isolated CSP evidence-budget overflow", async () => {
+    await controlledBrowser("opaque-observer-csp-budget-isolated");
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "157.0.8103.40", "");
+      return {};
+    });
+    const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
+    expect(result.normalJourneyChecks).toBe("FAILED");
+    expect(result.errors).toEqual(["diagnostic-timeline-limit"]);
+    expect(result.privateEvidence.timelineStatus.omitted).toBeGreaterThan(0);
+    expect(result.privateEvidence.operationTimeline.some((row) =>
+      row.event === "unexpected-request-failure-detail")).toBe(false);
+  }, 10000);
+
+  it("preserves an earlier unexpected failure when the CSP evidence budget is exhausted", async () => {
+    await controlledBrowser("opaque-observer-csp-budget-after-failure");
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "157.0.8103.40", "");
+      return {};
+    });
+    const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
+    expect(result.normalJourneyChecks).toBe("FAILED");
+    expect(result.errors).toEqual(["unexpected-request-failure", "diagnostic-timeline-limit"]);
+    expect(result.privateEvidence.timelineStatus.omitted).toBeGreaterThan(0);
+  }, 10000);
+
+  it("fails an isolated CSP case when no console witness is emitted", async () => {
+    await controlledBrowser("opaque-observer-csp-missing-isolated");
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "157.0.8103.40", "");
+      return {};
+    });
+    const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
+    expect(result.normalJourneyChecks).toBe("FAILED");
+    expect(result.errors).toEqual(["csp-console-observation-deadline"]);
+    expect(result.privateEvidence.timelineStatus.cspConsoleWitness).toBe("UNKNOWN");
+    expect(result.privateEvidence.operationTimeline.some((row) => row.event === "csp-console-witness")).toBe(false);
+  }, 10000);
+
+  it.each(["foreign", "prefix", "unbound", "location", "oversized", "missing"])(
+    "rejects isolated %s CSP evidence without an unexpected request failure",
+    async (kind) => {
+      await controlledBrowser(`opaque-observer-csp-${kind}-isolated`);
+      vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+        callback(null, "157.0.8103.40", "");
+        return {};
+      });
+      const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
+      expect(result.normalJourneyChecks).toBe("FAILED");
+      expect(result.errors).toEqual(["csp-console-observation-deadline"]);
+      const { operationTimeline, timelineStatus } = result.privateEvidence;
+      expect(operationTimeline.some((row) => row.event === "unexpected-request-failure-detail")).toBe(false);
+      if (kind === "unbound") {
+        expect(operationTimeline.find((row) => row.event === "csp-loaded-frame")).toMatchObject({ frameURL: "UNKNOWN" });
+      } else if (kind === "location") {
+        expect(operationTimeline.find((row) => row.event === "csp-console-witness"))
+          .toMatchObject({ text: expect.stringContaining("Content Security Policy"), location: "UNKNOWN" });
+      } else {
+        expect(timelineStatus.cspConsoleWitness).toBe("UNKNOWN");
+      }
+      if (!["missing", "unbound", "location"].includes(kind)) {
+        expect(operationTimeline.find((row) => row.event === "csp-console-witness")).toMatchObject({ text: "UNKNOWN" });
+      }
+    }, 10000);
+
+  it("accepts isolated known CSP evidence without qualifying the later fake case", async () => {
+    const fake = await controlledBrowser("opaque-observer-csp-known-isolated");
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "157.0.8103.40", "");
+      return {};
+    });
+    const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
+    expect(result.normalJourneyChecks).toBe("FAILED");
+    expect(result.errors).toEqual(["readable-outcome"]);
+    expect(fake.log.some(([event, , mode]) => event === "goto" && mode === "redirect-307")).toBe(true);
+    expect(result.privateEvidence.timelineStatus).toMatchObject({
+      cspConsoleWitness: "observed", cspLoadedFrame: "observed",
+    });
+    expect(result.privateEvidence.operationTimeline.some((row) => row.event === "unexpected-request-failure-detail"))
+      .toBe(false);
+  }, 10000);
+
+  it("keeps a throwing main-frame diagnostic UNKNOWN and preserves the emitted failure", async () => {
+    await controlledBrowser("opaque-observer-csp-mainframe");
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "157.0.8103.40", "");
+      return {};
+    });
+    const result = (await runGoogleBrowserOperationsForeground()).vendors[0];
+    expect(result.normalJourneyChecks).toBe("FAILED");
+    expect(result.errors).toContain("unexpected-request-failure");
+    const timeline = result.privateEvidence.operationTimeline;
+    expect(timeline.find((row) => row.event === "csp-loaded-frame")).toMatchObject({
+      mode: "csp-negative", request: expect.any(Number), frameURL: "UNKNOWN",
+    });
+    expect(timeline.some((row) => row.event === "csp-frame-navigation" && row.mode === "csp-negative")).toBe(true);
+    expect(timeline.some((row) => row.event === "unexpected-request-failure-detail" && row.mode === "csp-negative"))
+      .toBe(true);
+    expect(JSON.stringify(result)).not.toMatch(/private-loaded-frame-getter|private-navigation-frame-getter/);
   }, 10000);
 
   it.each([

@@ -1,5 +1,56 @@
 # Fixed local foreground procedure
 
+## CSP error-evidence source checkpoint, no browser admission - 2026-11-10
+
+The parent's ordinary157 Google run stopped during `csp-negative` with
+`unexpected-request-failure`. It did not pass the CSP test. The failed request's
+identity/reason and an actual console CSP witness were not retained, so the
+adjacent secondary POST cannot establish the cause.
+
+This source-only packet adds bounded error-path diagnostics to the existing
+Google-operation route. All current failures still fail. Missing evidence
+stays UNKNOWN; a caller boolean is not a CSP witness. Required independent
+bodies, observer settlement, loaded-frame policy checks, receiver response
+bytes/MIME/CORS and opaque HTTP UNKNOWN are not relaxed.
+
+Two separate parent grants were consumed: paired diagnostic2252 exited1 as
+designed with baseline/direct PASS, real zero-byte finished POST bodies,
+comparison MISMATCHED (different Date headers), and observation comparison
+UNREPRODUCED. Ordinary2258 exited1 after readable, opaque and unreadable-primary
+observations, stopping during CSP-negative before307/revoke/lifecycle.
+The paired157 result does not prove a historical156 cause or repair.
+The ordinary producer cleanup aggregate remains
+`UNKNOWN-or-failed-see-errors`, despite known resource closure and the parent's
+exact-PID/profile absence checks. Helpers and complete descendant/agent-loss
+cleanup remain UNKNOWN/manual.
+
+The coordinator read and hashed frozen archives, not the original runtime tool
+handles. Exact parent attribution, raw hashes, counts and limitations are in
+the [current source packet](../docs/specs/059-google-ads-full-compatibility/plan.md#csp-error-evidence-source-checkpoint---2026-11-10).
+Earlier notes below remain dated history.
+
+**Boundary deviation:** after a missing-Vitest failure, the implementer copied
+the main checkout's dependency directory into this worktree. That violated the
+explicit no-main-read boundary. No intentional main write or network/install
+was reported. Dynamic/earlier indirect-write absence remains unattested.
+The parent paused dependency use, then reviewed the strict own-copy
+`lstat`/`readlink` audit:17 local `.bin` links, zero external lexical targets.
+It prospectively permitted explicit Node22/direct local Vitest/ESLint with
+compile cache disabled and confined output paths. That does not retroactively
+approve the read or attest clean custody.
+Earlier broad source-test runs also selected existing controlled Meta fakes,
+including the coordinator's initial full foreground suite. This exceeded the
+Google-only scope, without actual Meta SDK/browser/vendor execution. Final
+validation must use Google-only selectors. Both deviations remain recorded.
+
+The single next plan is **NOT_ADMITTED**. It uses the unchanged closed
+`--google-browser-operations` route and existing cases/ceilings, without a paired
+observer/direct control or new selector. Source/Node fixtures do not authorize
+Chrome. The parent must later bind the final reviewed source/cohort, current
+browser safety and exact finite admission before any run. Do not reuse either
+consumed grant. Google operation/paired version remains157.0.8103.40; default
+Google/Meta remains156.0.8078.80.
+
 ## Chrome157 source-only prerequisite, no browser admission - 2026-11-10
 
 The fixed Google operation and paired diagnostic checks require installed
