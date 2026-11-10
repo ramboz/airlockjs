@@ -1,5 +1,21 @@
 # Fixed local foreground procedure
 
+## Paired diagnostic source, no browser admission - 2026-11-10
+
+The closed `--google-opaque-diagnostic` selector is implemented. It reuses the
+existing preflight, runs one opaque adapter baseline, then one separately
+labelled direct captured-realm POST on the same synthetic receiver. Only the
+two declared baseline request/body observation failures permit continuation;
+safety, identity, byte, budget, deadline and cleanup errors stop.
+
+This is not the existing qualification selector. Baseline failures remain
+FAILED, opaque HTTP stays UNKNOWN and diagnostic completion never qualifies
+the journey; the CLI returns1. The [source packet and single finite plan](../docs/specs/059-google-ads-full-compatibility/plan.md#paired-diagnostic-source---2026-11-10)
+record145 browser-free tests, evidence limitations, exact limits and required
+source/review/acquisition bindings. No Chrome run or root-cause repair is
+claimed. Do not execute this selector before affirmative parent admission
+and the unchanged independent safety prerequisites.
+
 ## Source diagnosis stopped before repair - 2026-11-10
 
 The new source-only checkpoint found no proved correction for the admitted

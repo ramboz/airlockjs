@@ -36,6 +36,7 @@ const LIMITS = Object.freeze({
 });
 const LEGACY_LIMITS = LIMITS;
 const OPERATION_LIMITS = Object.freeze({ ...LIMITS, intervalMs: 120000, workMs: 100000, requests: 256, measurements: 24 });
+const PAIRED_LIMITS = Object.freeze({ ...OPERATION_LIMITS, requests: 128, measurements: 6 });
 const OPERATION_CASES = Object.freeze(["readable", "opaque", "unreadable-primary", "csp-negative", "redirect-307", "revoke", "lifecycle"]);
 const COMMON = [
   "/core/confine-pixel-chamber.js", "/core/egress-confinement.js", "/core/connector-host.js",
@@ -152,8 +153,8 @@ export function checkGoogleOperationRequest(fixture, input) {
   throw new Error("request-outside-fixed-manifest");
 }
 
-async function runVendor(vendor, interruption, ownedProfiles, operationPacket = false) {
-  const LIMITS = operationPacket ? OPERATION_LIMITS : LEGACY_LIMITS;
+async function runVendor(vendor, interruption, ownedProfiles, operationPacket = false, paired = false) {
+  const LIMITS = paired ? PAIRED_LIMITS : operationPacket ? OPERATION_LIMITS : LEGACY_LIMITS;
   const start = performance.now();
   const cutoff = start + LIMITS.workMs;
   const end = start + LIMITS.intervalMs;
@@ -170,6 +171,24 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
     scope: "owned-launcher-argv-not-Chrome-effective-configuration",
   } : null;
   const operationTimeline = [];
+  const diagnostic = paired ? {
+    baseline: { status: "UNKNOWN", errors: [] },
+    direct: { status: "UNKNOWN", errors: [] },
+    comparison: "UNKNOWN",
+    differences: [
+      "direct control has no worker, adapter, consent ledger, or primary request",
+      "direct control starts in a separate context after the baseline",
+      "direct control uses a fresh 1500ms timer rather than the baseline remaining deadline",
+      "the server's automatic Date response header can differ with request time",
+    ],
+    opaqueHTTPOutcome: "UNKNOWN",
+    protocol: Object.fromEntries(["opaque", "opaque-direct"].map((mode) => [mode, {
+      status: "UNKNOWN", requestId: "UNKNOWN", finished: "UNKNOWN",
+      failure: "UNKNOWN", canceled: "UNKNOWN", blockedReason: "UNKNOWN", requestIndex: "UNKNOWN",
+    }])),
+    consoleStatus: { opaque: "UNKNOWN", "opaque-direct": "UNKNOWN" },
+    consoleErrors: [],
+  } : null;
   const timelineStatus = { ordering: "host-observation-order-only", omitted: 0, failureSnapshot: "not-needed",
     observersPendingAtPublication: 0 };
   const controls = {};
@@ -191,6 +210,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       const bytes = Buffer.byteLength(JSON.stringify(row));
       if (operationTimeline.length >= 1536 || bytes > 32768 || retainedBytes + bytes > LIMITS.retainedBytes) {
         timelineStatus.omitted += 1;
+        if (paired) fail("diagnostic-timeline-limit");
         return false;
       }
       retainedBytes += bytes;
@@ -198,6 +218,7 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       return true;
     } catch {
       timelineStatus.omitted += 1;
+      if (paired) fail("diagnostic-timeline-limit");
       return false;
     }
   }
@@ -266,7 +287,8 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
   function acquire(kind, action) {
     // Register ownership BEFORE invoking/awaiting any allocating operation.
     if (operationPacket) {
-      const maximum = kind === "fixture" || kind === "context" ? 8 : 1;
+      const maximum = paired ? (kind === "fixture" ? 2 : kind === "context" ? 3 : 1)
+        : kind === "fixture" || kind === "context" ? 8 : 1;
       requireFact(entries.filter((entry) => entry.kind === kind).length < maximum, "operation-acquisition-limit");
     }
     const entry = { kind, value: null, settled: false };
@@ -388,7 +410,17 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       state.page = page;
       if (operation && activeOperation?.mode === mode) activeOperation.page = page;
       page.on("pageerror", () => fail("page-error"));
+      if (paired && operation) diagnostic.consoleStatus[mode] = "observing";
       page.on("console", (message) => {
+        if (paired && operation && typeof message.type !== "function") diagnostic.consoleStatus[mode] = "UNKNOWN";
+        if (paired && operation && message.type?.() === "error") {
+          try {
+            const text = message.text();
+            requireFact(typeof text === "string" && Buffer.byteLength(text) <= 2048 &&
+              diagnostic.consoleErrors.length < 64, "diagnostic-console-limit");
+            diagnostic.consoleErrors.push(retain({ mode, text }));
+          } catch (error) { fail(error.message); }
+        }
         if (operation && mode === "csp-negative") {
           const text = message.text();
           if (text.length <= 2048 && /content security policy/i.test(text) &&
@@ -406,7 +438,8 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       });
       page.on("websocket", () => fail("unexpected-websocket"));
       page.on("worker", (worker) => {
-        if (workers.length >= (operationPacket ? 8 : 2)) { fail("unexpected-worker"); return; }
+        if (paired && mode === "opaque-direct") { fail("direct-unexpected-worker"); return; }
+        if (workers.length >= (paired ? 1 : operationPacket ? 8 : 2)) { fail("unexpected-worker"); return; }
         const row = { path: workerPath(vendor), observedURL: worker.url(), closed: false, mode };
         workers.push(row);
         if (mode === "preflight" || (state.worker && !operation) ||
@@ -456,6 +489,25 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
         Object.assign(row, document);
         row.path = new URL(request.url()).pathname;
         row.kind = kind;
+        if (paired && operation && kind === "measurement" && input.method === "POST") {
+          row.fullRequestHeaders = "UNKNOWN";
+          if (typeof request.allHeaders === "function") {
+            let allHeaders;
+            try { allHeaders = await bounded(() => request.allHeaders(), "diagnostic-request-headers"); }
+            catch (error) {
+              if (error.message.endsWith("-deadline") || errors.length || interruption.signal.aborted) throw error;
+            }
+            if (allHeaders !== undefined) {
+              requireFact(allHeaders && typeof allHeaders === "object" && !Array.isArray(allHeaders),
+                "diagnostic-request-header-invalid");
+              const pairs = Object.entries(allHeaders);
+              requireFact(pairs.length <= 64 && pairs.every(([name, value]) =>
+                typeof name === "string" && typeof value === "string") &&
+                Buffer.byteLength(JSON.stringify(pairs)) <= LIMITS.requestBytes, "diagnostic-request-header-limit");
+              row.fullRequestHeaders = retain(pairs);
+            }
+          }
+        }
         recordOperation("request", { mode, request: requests.indexOf(row), kind });
         retain(row);
         if (kind === "document") requireFact(++state.documents === 1, "extra-document");
@@ -540,6 +592,29 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       const row = rows.get(response.request());
       requireFact(row && !row.denied && !row.violation && row.status === null, "unobserved-response");
       row.status = response.status();
+      if (paired && operation && row.kind === "measurement" && row.method === "POST") {
+        requireFact(row.status === 200, "diagnostic-response-status");
+      }
+      if (paired && operation && row.kind === "measurement") {
+        row.responseHeaders = "UNKNOWN";
+        if (typeof response.allHeaders === "function") {
+          let headers;
+          try { headers = await response.allHeaders(); } catch { headers = null; }
+          if (headers !== null) {
+            requireFact(headers && typeof headers === "object" && !Array.isArray(headers), "diagnostic-header-invalid");
+            const pairs = Object.entries(headers);
+            requireFact(pairs.length <= 64 && pairs.every(([name, value]) =>
+              typeof name === "string" && typeof value === "string") &&
+              Buffer.byteLength(JSON.stringify(pairs)) <= LIMITS.requestBytes, "diagnostic-header-limit");
+            if (row.method === "POST") {
+              const normalized = Object.fromEntries(pairs.map(([name, value]) => [name.toLowerCase(), value]));
+              requireFact(normalized["content-length"] === "0" && normalized["content-type"] === undefined &&
+                normalized["access-control-allow-origin"] === undefined, "diagnostic-response-headers");
+            }
+            row.responseHeaders = retain(pairs);
+          }
+        }
+      }
       recordOperation("response-processed", { mode, request: requests.indexOf(row), status: row.status });
       const expected = row.kind === "measurement"
         ? (mode === "failure" ? 503 : 200)
@@ -563,6 +638,9 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       row.responseBodyState = "captured-bytes";
       recordOperation("response-body-captured", { mode, request: requests.indexOf(row), bytes: body.length });
       requireFact(body.length <= LIMITS.responseBytes, "response-byte-limit");
+      if (paired && operation && row.kind === "measurement" && row.method === "POST") {
+        requireFact(body.length === 0, "diagnostic-response-body");
+      }
       retain(body);
       row.responseBytes = body.length;
       row.responseSha256 = digest(body);
@@ -588,6 +666,52 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
     await bounded(() => context.grantPermissions(["local-network-access"], { origin: fixture.origin }), "local-permission");
     const page = await bounded(() => context.newPage(), "page-start");
     requireFact(state.page === page, "unobserved-page");
+    if (paired && operation) {
+      const protocol = diagnostic.protocol[mode] = { status: "UNKNOWN", requestId: "UNKNOWN",
+        finished: "UNKNOWN", failure: "UNKNOWN", canceled: "UNKNOWN", blockedReason: "UNKNOWN", requestIndex: "UNKNOWN" };
+      if (typeof context.newCDPSession === "function") {
+        let session;
+        try {
+          session = await bounded(() => context.newCDPSession(page), "diagnostic-protocol-session");
+          await bounded(() => session.send("Network.enable"), "diagnostic-protocol-enable");
+          protocol.status = "observing";
+        } catch (error) {
+          if (error.message.endsWith("-deadline") || errors.length || interruption.signal.aborted) throw error;
+        }
+        if (protocol.status === "observing") {
+          let events = 0;
+          const observeProtocol = (action) => {
+            try {
+              requireFact(++events <= 32, "diagnostic-protocol-limit");
+              action();
+            } catch (error) { fail(error.message); }
+          };
+          session.on("Network.requestWillBeSent", (event) => {
+            if (event.request?.url !== `${fixture.origins[1]}${fixture.operationPaths.secondary}` ||
+                event.request?.method !== "POST") return;
+            observeProtocol(() => {
+              requireFact(protocol.requestId === "UNKNOWN" && typeof event.requestId === "string" &&
+                /^[A-Za-z0-9._:-]{1,128}$/.test(event.requestId), "diagnostic-protocol-identity");
+              protocol.requestId = retain(event.requestId);
+            });
+          });
+          session.on("Network.loadingFinished", (event) => {
+            if (event.requestId !== protocol.requestId || protocol.requestId === "UNKNOWN") return;
+            observeProtocol(() => { protocol.finished = true; });
+          });
+          session.on("Network.loadingFailed", (event) => {
+            if (event.requestId !== protocol.requestId || protocol.requestId === "UNKNOWN") return;
+            observeProtocol(() => {
+              protocol.failure = typeof event.errorText === "string" && /^net::ERR_[A-Z0-9_]{1,80}$/.test(event.errorText)
+                ? retain(event.errorText) : "UNKNOWN";
+              protocol.canceled = typeof event.canceled === "boolean" ? event.canceled : "UNKNOWN";
+              protocol.blockedReason = typeof event.blockedReason === "string" &&
+                /^[a-zA-Z-]{1,80}$/.test(event.blockedReason) ? retain(event.blockedReason) : "UNKNOWN";
+            });
+          });
+        }
+      }
+    }
     await bounded(() => page.goto(`${fixture.origin}${documentPath}`, {
       waitUntil: "load", timeout: Math.min(5000, Math.max(1, cutoff - performance.now())),
     }), "page-load");
@@ -650,6 +774,220 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       state.phase === "positive-in-flight" && state.failure === null &&
       state.captureAndTransport.inFlight === true && state.captureAndTransport.outcomes.length === 3 &&
       !state.captureAndTransport.outcomes.some((outcome) => outcome.seq >= 4), "response-barrier-not-observed");
+  }
+  async function pairedOpaqueCase(browser) {
+    const fixtureEntry = await startFixture("opaque");
+    const fixture = fixtureEntry.value;
+    const expectedErrors = new Set(["opaque-request-failed", "response-body-unavailable"]);
+    const settle = async (action, label, max = 5000) => {
+      requireFact(!interruption.signal.aborted && performance.now() < cutoff, `${label}-deadline`);
+      const value = await bounded(action, label, max, true, cutoff);
+      requireFact(!interruption.signal.aborted && performance.now() < cutoff, `${label}-deadline`);
+      return value;
+    };
+    const settleRows = async (mode) => settle(async () => {
+      const deadline = Math.min(cutoff, performance.now() + 1500);
+      while (true) {
+        await Promise.all([...observations]);
+        const phaseRows = requests.filter((row) => row.mode === mode);
+        const secondary = phaseRows.filter((row) => row.kind === "measurement" && row.method === "POST");
+        if (secondary.length === 1 && phaseRows.every((row) => row.finished &&
+            (row.denied || row.bodyVerified === true || (row === secondary[0] &&
+              (row.responseBodyState === "unavailable" || row.failureCode))))) return secondary[0];
+        requireFact(performance.now() < deadline && !interruption.signal.aborted, "diagnostic-observer-deadline");
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      }
+    }, "diagnostic-observer", 1600);
+    const checkExpected = (caught, secondary) => {
+      requireFact(expectedErrors.has(caught) && errors.every((code) => expectedErrors.has(code)),
+        errors.find((code) => !expectedErrors.has(code)) || caught);
+      requireFact((caught !== "opaque-request-failed" || secondary.failureCode) &&
+        (caught !== "response-body-unavailable" || secondary.responseBodyState === "unavailable") &&
+        (!errors.includes("response-body-unavailable") || secondary.responseBodyState === "unavailable"),
+      "diagnostic-failure-identity");
+    };
+    const verifyFinalObservers = (mode, expectedFailure) => {
+      const phaseRows = requests.filter((row) => row.mode === mode);
+      const secondary = phaseRows.filter((row) => row.kind === "measurement" && row.method === "POST");
+      requireFact(secondary.length === 1 && phaseRows.every((row) => row.finished &&
+        (row.denied || row.bodyVerified === true || (expectedFailure && row === secondary[0] &&
+          (row.responseBodyState === "unavailable" || row.failureCode)))), "diagnostic-unexpected-observer");
+      if (expectedFailure) checkExpected(expectedFailure, secondary[0]);
+      else requireFact(errors.length === 0, errors[0]);
+    };
+    const verifyFrames = (mode) => {
+      const rows = requests.filter((row) => row.mode === mode && row.kind === "frame");
+      requireFact(rows.length === 1 && rows[0].bodyChecked && rows[0].frameNavigationPolicy === fixture.framePolicy &&
+        typeof rows[0].frameNavigationBytes === "string", "loaded-frame-observation");
+    };
+    activeOperation = { mode: "opaque", page: null };
+    const baseline = await pageFor(browser, fixture, "opaque");
+    const page = baseline.page;
+    const evaluate = (fn) => bounded(() => page.evaluate(fn), "operation-opaque", 5000);
+    let runtime;
+    let baselineFailure;
+    let runtimeRecorded = false;
+    try {
+      await evaluate(() => window.prepareBrowserOperation());
+      await evaluate(() => window.beginBrowserOperation());
+      recordOperation("runtime-wait-requested", { mode: "opaque" });
+      runtime = await evaluate(async () => {
+        return window.waitBrowserOperation();
+      });
+      recordOperation("runtime-wait-settled", { mode: "opaque", state: runtime });
+      const outcome = runtime.runtime.outcomes.at(-1);
+      requireFact(outcome?.disposition === "opaque" && outcome.authoredOperations === 2 && !("status" in outcome),
+        "opaque-outcome");
+      commandObservations.push({ mode: "opaque", phase: "runtime-opaque-settled", state: retain(runtime) });
+      runtimeRecorded = true;
+      await until(() => {
+        const observed = requests.filter((row) => row.mode === "opaque" && row.kind === "measurement");
+        requireFact(!observed.some((row) => row.failureCode), "opaque-request-failed");
+        return observed.length === 2 &&
+          observed.some((row) => row.method === "GET" && row.url === `${fixture.origin}${fixture.operationPaths.primary}`) &&
+          observed.some((row) => row.method === "POST" && row.url === `${fixture.origins[1]}${fixture.operationPaths.secondary}`) &&
+          observed.every((row) => row.status === 200 && row.finished && row.bodyVerified === true);
+      }, "opaque-observer-completion");
+      await flush();
+    } catch (error) {
+      baselineFailure = error.message;
+      requireFact(expectedErrors.has(baselineFailure) && errors.every((code) => expectedErrors.has(code)),
+        errors.find((code) => !expectedErrors.has(code)) || baselineFailure);
+      if (!runtime) runtime = await settle(() => page.evaluate(() => window.waitBrowserOperation()), "baseline-runtime");
+      const outcome = runtime?.runtime?.outcomes?.at(-1);
+      requireFact(outcome?.disposition === "opaque" && outcome.authoredOperations === 2 && !("status" in outcome),
+        "opaque-outcome");
+      const secondary = await settleRows("opaque");
+      checkExpected(baselineFailure, secondary);
+      if (!runtimeRecorded) {
+        recordOperation("runtime-wait-settled", { mode: "opaque", state: runtime });
+        commandObservations.push({ mode: "opaque", phase: "runtime-opaque-settled", state: retain(runtime) });
+      }
+      fail(baselineFailure);
+      const snapshot = await settle(() => page.evaluate(() => window.getBrowserOperationState()), "baseline-failure-snapshot", 250);
+      requireFact(snapshot && typeof snapshot.phase === "string", "snapshot-state-unavailable");
+      timelineStatus.failureSnapshot = recordOperation("failure-snapshot", {
+        mode: "opaque", status: "observed", state: snapshot,
+      }) ? "observed" : "unavailable-retention-limit";
+    }
+    verifyFrames("opaque");
+    const baselineRows = requests.filter((row) => row.mode === "opaque" && row.kind === "measurement");
+    requireFact(baselineRows.length === 2 && baselineRows.some((row) => row.method === "GET" &&
+      row.url === `${fixture.origin}${fixture.operationPaths.primary}`) &&
+      baselineRows.some((row) => row.method === "POST" &&
+        row.url === `${fixture.origins[1]}${fixture.operationPaths.secondary}`), "diagnostic-baseline-identity");
+    if (baselineFailure) {
+      recordOperation("realm-stop-start", { mode: "opaque" });
+      await settle(() => page.evaluate(() => window.stopBrowserOperation("realm")), "baseline-realm-stop");
+      const state = await settle(() => page.evaluate(() => window.getBrowserOperationState()), "baseline-realm-state");
+      requireFact(state?.runtime?.phase === "terminal", "realm-loss");
+      await settle(() => page.evaluate(() => window.disposeBrowserOperation()), "baseline-dispose");
+    } else {
+      recordOperation("realm-stop-start", { mode: "opaque" });
+      await evaluate(() => window.stopBrowserOperation("realm"));
+      await until(async () => (await page.evaluate(() => window.getBrowserOperationState())).runtime.phase === "terminal",
+        "realm-loss");
+      await evaluate(() => window.disposeBrowserOperation());
+      await flush();
+    }
+    await closeEntry(baseline.contextEntry);
+    await settle(async () => {
+      while (workers.length !== 1 || !workers[0].closed) {
+        requireFact(performance.now() < cutoff && !interruption.signal.aborted, "worker-disposition-deadline");
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      }
+      await Promise.all([...observations]);
+    }, "worker-disposition", 1500);
+    verifyFinalObservers("opaque", baselineFailure);
+    requireFact(equal(fixture.getOperationReceipts().map((row) => [row.stage, row.method, row.status, row.response]),
+      [["primary", "GET", 200, "finished"], ["secondary", "POST", 200, "finished"]]), "diagnostic-baseline-receipts");
+    requireFact(baseline.contextEntry.closed && errors.every((code) => expectedErrors.has(code)), errors[0] || "baseline-cleanup");
+    diagnostic.baseline = { status: baselineFailure ? "FAILED" : "PASS", errors: [...errors] };
+    errors.length = 0;
+    activeOperation = { mode: "opaque-direct", page: null };
+    const direct = await pageFor(browser, fixture, "opaque-direct");
+    const before = workers.length;
+    const url = `${fixture.origins[1]}${fixture.operationPaths.secondary}`;
+    let directFailure;
+    try {
+      const result = await bounded(() => direct.page.evaluate(async (target) => {
+        try { return await window.beginDirectOpaqueControl(target); }
+        catch (error) {
+          if (error?.message === "direct-control-deadline") return { disposition: "deadline" };
+          throw error;
+        }
+      }, url),
+        "direct-control", 5000);
+      requireFact(result?.disposition !== "deadline", "direct-control-deadline");
+      requireFact(["opaque", "rejected"].includes(result?.disposition) && result.httpOutcome === "UNKNOWN", "direct-opaque-outcome");
+      commandObservations.push({ mode: "opaque-direct",
+        phase: result.disposition === "opaque" ? "direct-opaque-settled" : "direct-fetch-rejected", state: retain(result) });
+      await until(() => {
+        const observed = requests.filter((row) => row.mode === "opaque-direct" && row.kind === "measurement");
+        requireFact(!observed.some((row) => row.failureCode), "opaque-request-failed");
+        return observed.length === 1 && observed[0].method === "POST" && observed[0].url === url &&
+          observed[0].status === 200 && observed[0].finished && observed[0].bodyVerified === true;
+      }, "direct-observer-completion");
+      await flush();
+      requireFact(result.disposition === "opaque", "direct-rejected-without-failure");
+    } catch (error) {
+      directFailure = error.message;
+      requireFact(expectedErrors.has(directFailure) && errors.every((code) => expectedErrors.has(code)),
+        errors.find((code) => !expectedErrors.has(code)) || directFailure);
+      const secondary = await settleRows("opaque-direct");
+      checkExpected(directFailure, secondary);
+      fail(directFailure);
+    }
+    verifyFrames("opaque-direct");
+    requireFact(workers.length === before && !direct.state.worker, "direct-unexpected-worker");
+    const directDisposal = await settle(() => direct.page.evaluate(() => {
+      try { window.disposeDirectOpaqueControl(); return "disposed"; }
+      catch (error) {
+        if (error?.message === "direct-realm-identity") return "direct-realm-identity";
+        throw error;
+      }
+    }), "direct-dispose");
+    requireFact(directDisposal === "disposed", "direct-realm-identity");
+    await closeEntry(direct.contextEntry);
+    await settle(() => Promise.all([...observations]), "direct-observers");
+    verifyFinalObservers("opaque-direct", directFailure);
+    requireFact(direct.contextEntry.closed && errors.every((code) => expectedErrors.has(code)), errors[0] || "direct-cleanup");
+    requireFact(equal(fixture.getOperationReceipts().map((row) => [row.stage, row.method, row.status, row.response]),
+      [["primary", "GET", 200, "finished"], ["secondary", "POST", 200, "finished"],
+        ["secondary", "POST", 200, "finished"]]), "diagnostic-direct-receipts");
+    diagnostic.direct = { status: directFailure ? "FAILED" : "PASS", errors: [...errors] };
+    const baselinePost = baselineRows.find((row) => row.method === "POST");
+    const directPost = requests.find((row) => row.mode === "opaque-direct" && row.kind === "measurement");
+    for (const [mode, row] of [["opaque", baselinePost], ["opaque-direct", directPost]]) {
+      diagnostic.protocol[mode].requestIndex = row ? requests.indexOf(row) : "UNKNOWN";
+    }
+    const normalizeHeaders = (headers) => [...headers].sort(([nameA, valueA], [nameB, valueB]) =>
+      nameA.localeCompare(nameB) || valueA.localeCompare(valueB));
+    diagnostic.match = {
+      target: baselinePost.url === directPost?.url, method: baselinePost.method === directPost?.method,
+      bodyBytes: baselinePost.bodyBytes === directPost?.bodyBytes,
+      headers: Array.isArray(baselinePost.fullRequestHeaders) && Array.isArray(directPost?.fullRequestHeaders)
+        ? equal(normalizeHeaders(baselinePost.fullRequestHeaders), normalizeHeaders(directPost.fullRequestHeaders)) : "UNKNOWN",
+      responseStatus: Number.isInteger(baselinePost.status) && Number.isInteger(directPost?.status)
+        ? baselinePost.status === directPost.status : "UNKNOWN",
+      responseHeaders: Array.isArray(baselinePost.responseHeaders) && Array.isArray(directPost?.responseHeaders)
+        ? equal(normalizeHeaders(baselinePost.responseHeaders), normalizeHeaders(directPost.responseHeaders)) : "UNKNOWN",
+      responseBody: baselinePost.bodyVerified === true && directPost?.bodyVerified === true
+        ? baselinePost.responseBytes === directPost.responseBytes && baselinePost.responseSha256 === directPost.responseSha256
+        : "UNKNOWN",
+      framePolicy: true, mode: "no-cors", credentials: "omit", redirect: "follow", referrerPolicy: "no-referrer",
+    };
+    diagnostic.observationComparison = !baselineFailure && !directFailure ? "UNREPRODUCED" :
+      baselineFailure && directFailure
+        ? equal([...diagnostic.baseline.errors].sort(), [...diagnostic.direct.errors].sort()) ? "MATCHED_FAILURE" : "MISMATCHED"
+        : "DIFFERENTIAL";
+    const values = Object.entries(diagnostic.match).filter(([key, value]) => key !== "responseBody" || value !== "UNKNOWN")
+      .map(([, value]) => value);
+    diagnostic.comparison = values.includes(false) ? "MISMATCHED" : values.includes("UNKNOWN") ? "UNKNOWN"
+      : diagnostic.observationComparison;
+    await closeEntry(fixtureEntry);
+    requireFact(fixtureEntry.closed && cleanup.fixtures.at(-1) === true, "fixture-disposition");
+    activeOperation = undefined;
   }
   async function operationCases(browser) {
     for (const name of OPERATION_CASES) {
@@ -840,7 +1178,9 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
     assertForegroundReceipts(vendor, [bypass], [200]);
     await closePhase(preflightFixture, preflight);
 
-    if (operationPacket) {
+    if (paired) {
+      await pairedOpaqueCase(browser);
+    } else if (operationPacket) {
       await operationCases(browser);
       productChecked = true;
     } else {
@@ -980,9 +1320,21 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
     }) ? "unavailable" : "unavailable-retention-limit";
   }
   const expectedPhases = operationPacket ? 8 : 3;
-  const passed = productChecked && (operationPacket ? controls.browserOperationCases : controls.held503FailedWithout2xx) &&
+  if (paired) {
+    for (const code of diagnostic.baseline.errors) if (!errors.includes(code)) errors.unshift(code);
+  }
+  const passed = !paired && productChecked && (operationPacket ? controls.browserOperationCases : controls.held503FailedWithout2xx) &&
     errors.length === 0 && cleanup.profileAbsent && cleanup.normalNonsignalExit && cleanup.contexts.length === expectedPhases &&
     cleanup.fixtures.length === expectedPhases && cleanup.contexts.every(Boolean) && cleanup.fixtures.every(Boolean);
+  if (paired) {
+    diagnostic.execution = diagnostic.baseline.status !== "UNKNOWN" && diagnostic.direct.status !== "UNKNOWN" &&
+      errors.every((code) => ["opaque-request-failed", "response-body-unavailable"].includes(code)) &&
+      cleanup.profileAbsent && cleanup.normalNonsignalExit && cleanup.contexts.length === 3 &&
+      cleanup.fixtures.length === 2 && cleanup.contexts.every(Boolean) && cleanup.fixtures.every(Boolean) &&
+      workers.length === 1 && workers.every((worker) => worker.closed) && observations.size === 0
+      ? "COMPLETED" : "INCOMPLETE";
+    if (diagnostic.execution !== "COMPLETED") diagnostic.comparison = "UNKNOWN";
+  }
   const report = {
     vendor, normalJourneyChecks: passed ? "PASS" : "FAILED", overall: "INCONCLUSIVE",
     fullCompatibility: false, interruptionLossQualification: false,
@@ -1003,15 +1355,18 @@ async function runVendor(vendor, interruption, ownedProfiles, operationPacket = 
       receiverArrivals: receiverCounts,
     },
     cleanup: { ...cleanup, workersClosed: workers.every((worker) => worker.closed),
-      disposition: passed ? "normal-owned-cleanup-observed" : "UNKNOWN-or-failed-see-errors" },
+      disposition: passed || diagnostic?.execution === "COMPLETED"
+        ? "normal-owned-cleanup-observed" : "UNKNOWN-or-failed-see-errors" },
     elapsedMs: Math.ceil(performance.now() - start), errors,
     privateOwnership: {
       pid: processFacts?.pid || null, profile: processFacts?.profile || null,
       pendingAcquisitions: entries.filter((entry) => !entry.settled).map((entry) => entry.kind),
       instruction: "Owner supervises this exact test browser only; agent-loss cleanup is UNKNOWN. No process scans or profile deletion.",
     },
+    ...(paired ? { pairedDiagnostic: { execution: diagnostic.execution, comparison: diagnostic.comparison } } : {}),
     privateEvidence: { receiverDocuments, commandObservations, requests, workers,
-      ...(operationPacket ? { operationTimeline, timelineStatus, proxyLaunch } : {}) },
+      ...(operationPacket ? { operationTimeline, timelineStatus, proxyLaunch } : {}),
+      ...(paired ? { diagnostic } : {}) },
   };
   if (operationPacket) {
     timelineStatus.observersPendingAtPublication = observations.size;
@@ -1084,14 +1439,38 @@ export async function runGoogleBrowserOperationsForeground() {
   };
 }
 
+/** Separate fixed diagnostic; completion never qualifies the browser journey. */
+export async function runGoogleOpaqueDiagnosticForeground() {
+  requireFact(arguments.length === 0, "fixed-operation-no-options");
+  const interruption = new AbortController();
+  const onSignal = () => interruption.abort();
+  process.on("SIGINT", onSignal);
+  process.on("SIGTERM", onSignal);
+  let result;
+  try { result = await runVendor("google", interruption, new Set(), true, true); }
+  finally {
+    process.off("SIGINT", onSignal);
+    process.off("SIGTERM", onSignal);
+  }
+  return {
+    procedure: "fixed-headed-local-Google-paired-opaque-diagnostic", overall: "INCONCLUSIVE", fullCompatibility: false,
+    interruptionLossQualification: false, limits: PAIRED_LIMITS, normalJourneyChecks: "FAILED",
+    guardScope: "Fixed loopback experiment; CSP constrains origins, not hidden redirect paths or hops.",
+    externalWholeCLICompletion: "Parent must observe actual command exit afterwards.",
+    publicationReceipts, vendors: [result],
+  };
+}
+
 if (IS_MAIN) {
   const operationPacket = process.argv.length === 3 && process.argv[2] === "--google-browser-operations";
-  if (process.argv.length !== 2 && !operationPacket) {
+  const pairedPacket = process.argv.length === 3 && process.argv[2] === "--google-opaque-diagnostic";
+  if (process.argv.length !== 2 && !operationPacket && !pairedPacket) {
     console.error("fixed-foreground-no-options");
     process.exitCode = 1;
   } else {
     await writeOutput('{"vendors":[');
-    const report = operationPacket ? await runGoogleBrowserOperationsForeground() : await runLocalBrowserForeground();
+    const report = pairedPacket ? await runGoogleOpaqueDiagnosticForeground()
+      : operationPacket ? await runGoogleBrowserOperationsForeground() : await runLocalBrowserForeground();
     const { vendors: _vendors, ...footer } = report;
     try {
       await writeOutput(`],${JSON.stringify(footer).slice(1)}\n`, publicationDeadline);

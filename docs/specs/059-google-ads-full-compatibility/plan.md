@@ -1,6 +1,8 @@
 # Plan - full Google Ads browser-tag compatibility
 
-Current disposition is the [opaque source diagnosis](#opaque-source-diagnosis---2026-11-10).
+Current disposition is the [paired diagnostic source](#paired-diagnostic-source---2026-11-10).
+The [opaque source diagnosis](#opaque-source-diagnosis---2026-11-10)
+remains the earlier no-repair assessment.
 The [admitted local packet result](#admitted-local-packet-result---2026-11-10)
 remains failed and its browser grant consumed.
 The [proxy-disable correction](#proxy-disable-correction---2026-11-10)
@@ -11,6 +13,163 @@ The earlier [local helper prerequisite checkpoint](#local-helper-prerequisite-ch
 retains its then-current stronger stop assessment; it is not retroactively cleared.
 The earlier [accepted browser-operation construction](#accepted-browser-operation-construction-packet---2026-11-09)
 and manual-response source stops below remain dated evidence.
+
+## Paired diagnostic source - 2026-11-10
+
+**Concrete source is implemented; no Chrome run or repair is claimed.**
+The parent commissioned this continuation of059-15 after reviewing the
+diagnosis. The original01:03:29->03:03:29UTC checkpoint ceiling is unchanged.
+Clean7fffec5e/tree09178a4c is the source base; no metadata-only parent
+integration, fetch, trunk merge or main-checkout edit was imported.
+
+### Entry, behavior and boundaries
+
+`runGoogleOpaqueDiagnosticForeground()` and the exact
+`--google-opaque-diagnostic` CLI selector select the closed comparison
+(`rig/local-browser-foreground.mjs:1435-1470`). Arguments/options are rejected.
+The existing operation/qualification selector remains separate and retains
+its strict stop. The new entry reuses the existing runner, guards, fixture,
+observations and owned-resource closure; it does not add another transport.
+
+After existing allow/deny/bypass preflight, one unchanged adapter opaque
+baseline runs. Only `opaque-request-failed` and `response-body-unavailable`
+may be retained as expected baseline observation failures before continuing.
+All observations, exact primary/secondary receipts, frame CSP and baseline
+context/worker closure are checked first. Safety, identity, byte, budget,
+deadline, cleanup and concurrent unrelated errors stop the diagnostic
+(`rig/local-browser-foreground.mjs:778-908`).
+
+The direct cell issues exactly one bodyless POST using the captured static
+iframe realm, the same opaque fixture/origins/response, no-CORS,
+credentials omit, redirect follow and no-referrer. Its page registration
+binds the synthetic path/query digest and recipient origin, rejects a second
+start and adds no worker or adapter
+(`rig/local-browser-journeys-google.js:251-310`). No receiver, MIME, CORS,
+adapter, production/core or Meta file changes.
+
+Unavoidable differences are retained explicitly: no direct worker/adapter/
+consent ledger/primary GET; a later separate context; a fresh1500ms direct
+timer instead of the baseline's remaining deadline; and the server's automatic
+Date header. Request/response matching can therefore be false or UNKNOWN.
+`UNREPRODUCED`, `MATCHED_FAILURE`, `DIFFERENTIAL`, `MISMATCHED` and UNKNOWN
+are observations, never a causal verdict. Baseline failures remain in the
+final error record. `normalJourneyChecks` stays FAILED even if diagnostic
+execution is COMPLETED, and the CLI returns1
+(`rig/local-browser-foreground.mjs:951-982,1315-1362,1448-1470`).
+
+New private evidence is passive and bounded: full request/response headers
+when exposed, response status/body/finished/failure correlation, console errors
+and context-scoped protocol request/failure/cancel/blocked fields. Missing
+fields remain UNKNOWN. Protocol observation uses `Network.enable`, not
+Fetch interception or response fulfilment, and supplies no runtime response
+(`rig/local-browser-foreground.mjs:600-714`). Required independent bodies,
+frame-response CSP, realm lifetime, opaque HTTP UNKNOWN and the adapter's
+two authored operations remain unchanged. The direct one-POST control is
+not a conversion.
+
+### Source controls, provenance and reviews
+
+The actual source implementer is8d9e704c-ce8b-407f-973f-052ca11ee28e,
+dispatched `general-purpose`, `gpt-6.1-terra`, context `default`.
+`read_agent` returned model `gpt-6.1-terra`; runtime context was not exposed.
+The custom Jig implementer188348cf-e6d3-428f-bbac-33e2965f6665 made no edits:
+its own pre-edit policy refused IN_PROGRESS continuation, with no repository
+helper denial. Routing was corrected without lifecycle changes or gate bypass.
+
+Actual missing-selector assertion RED, shell2067/exit1, preceded GREEN,
+shell2071/exit0. Further witnessed RED/GREEN controls cover one-shot
+concurrency, unavailable request headers, direct deadline, late frame
+observation, missing response matching and fixed response guards. The two
+first late-frame/missing-response fake attempts were corrected before their
+claimed REDs; missing local `.bin` runner/linter attempts2083/2082 were setup
+failures, not RED or pass.
+
+`NODE_DISABLE_COMPILE_CACHE=1 npx --no-install vitest run test/local-browser-foreground.test.js test/google-browser-operation-fixture.test.js test/google-browser-operation-host.test.js`
+passed141 tests/3 files before review. The post-review realm-loss correction
+adds four controls; final implementer and coordinator runs passed145/3,
+with scoped ESLint and whitespace checks passing. These are
+Node/loopback/controlled-browser tests, not
+Chrome or root-cause evidence. Exact commands, outputs, shells, requested
+dispatch arguments and exposed runtime model observations live in the new
+private `paired-opaque-source/` packet. Earlier sealed bytes are unchanged.
+
+Required fresh pinned Sol/default review results are recorded as distinct
+dated supplemental source records when returned. Inherited full059 remains
+non-clearing; local source review cannot qualify the browser or a conversion.
+The initial actual compliance pass found a local post-Fetch realm-loss gap
+while the independent recorder was pending. It was returned to the same Terra
+implementer for witnessed TDD and targeted re-review; a fix is not accepted
+merely because the Fetch result had already settled.
+Actual correction RED2134/exit1 had two expected assertion failures;
+GREEN2135/exit0 passed both, host guards2137/exit0 passed two more, and
+covering2138/exit0 passed145/3. Coordinator2145 independently passed145/3
+and2144 passed scoped lint. The same Sol reviewer re-read the connecting
+controller/host negatives and found the local must-fix resolved
+(`rig/local-browser-journeys-google.js:271-274,299-301`;
+`rig/local-browser-foreground.mjs:943-950`;
+`test/local-browser-foreground.test.js:773-808,1004-1019`).
+Its needs-changes verdict remains solely inherited full059 non-clearance;
+this is not a lifecycle transition or an evidence-gate override.
+Actual craft reviewfafaeb52-fa9f-45b0-acf3-a0f1997659e8 returned local PASS,
+highlighting baseline observation/cleanup ordering and the two-level realm-loss
+regressions. It ran read-only UNINDEXED and did not rerun tests or Chrome;
+the returned model field was `gpt-6.1-sol`, runtime context unavailable.
+Actual architecture reviewcbb79f58-930e-4ccd-b033-2ae2feea3bbb returned local
+PASS. It found the experimental boundary, fixed dispatch, passive bounded
+evidence and realm/observer lifetime preserved, with no production authority,
+receiver/CSP or Meta widening. It used UNINDEXED fallback and no test/browser
+execution; returned model `gpt-6.1-sol`, runtime context unavailable.
+Actual reconciliation6dfcc903-4c1b-4b94-9516-5c2382815995 returned local PASS
+on the documentary/source match, with no additional deviation. It checked
+supplied records read-only/UNINDEXED, not authenticated runtime envelopes or
+independently executed tests. Returned model `gpt-6.1-sol`, runtime context
+unavailable. The fourth record and final commit/manifest/seal are subsequent
+packaging facts, not established by that verdict.
+
+### One source-bound finite plan, not admitted
+
+After source/review binding and affirmative parent acquisition admission:
+exactly one `NODE_DISABLE_COMPILE_CACHE=1 node rig/local-browser-foreground.mjs --google-opaque-diagnostic`,
+no extra arguments, retry, repair, MIME/CORS change or later case.
+The final private source receipt binds the actual commit/tree and the three
+executable file hashes before this plan can be considered for acquisition.
+
+Use the fixed owned no-proxy launcher and fresh disposable profile after
+current binary/source/guard checks and independent whole-path no-external
+evidence. Retain requested and owned launcher argv separately; argv does not
+prove Chrome's effective configuration. The source enforces one root, at
+most3 contexts/1 worker/2 fixture objects,6 attempts/128 requests, the existing
+byte/socket limits and100s-work/120s-total interval. Independent known-case,
+root/resource/publication and external whole-CLI completion remain required.
+Exit1 is expected for this non-qualifying diagnostic, not permission to hide
+an error. A COMPLETED diagnostic does not establish a repaired baseline.
+
+No acquisition is authorized here. Helpers remain UNKNOWN/manual,
+descendants/loss cleanup unproved, and product/native/reference/performance
+and remaining negative-case evidence open. Any proven inherent opacity/body
+contract conflict returns to the owner rather than lowering success.
+
+### Deviation log
+
+This continuation implements the parent's concrete diagnostic source request,
+not a root-cause repair or a second owner. Existing selectors and Accepted
+records are preserved. The direct control's explicit timing/context/Date and
+worker/ledger differences constrain comparison; unknown evidence is not a
+match. Final review and commit/seal facts are recorded only after they occur.
+
+### Reconciliation sweep
+
+| Surface | Disposition |
+|---|---|
+| `rig/local-browser-foreground.mjs` | updated: closed paired entry, bounded passive evidence and strict labelled outcomes |
+| `rig/local-browser-journeys-google.js` | updated: one direct own-realm synthetic POST, no alternate transport |
+| `test/local-browser-foreground.test.js` | updated: witnessed selector and guard/continuation/correlation negatives |
+| `plan.md`, `tasks.md`, `rig/local-browser-foreground.md` | updated: actual implementation, controls, limitations and the single unadmitted plan |
+| Four distinct dated paired-source review records | updated as actual review results return; canonical/prior records are excluded |
+| `spec.md`, slice059-15, status/bug boards, CLAUDE and ADRs | no-op: existing owner, lifecycle, acceptance and Accepted decisions unchanged |
+| Architecture, contracts, adapters, receiver and Meta surfaces | no-op: no public/production boundary or fixture-response change |
+| Native/product/browser/reference/performance evidence | deferred to existing059-15 owner after exact admission; not a source-checkpoint deliverable |
+| Earlier branch changes shown by a `main...HEAD` helper listing | excluded: this packet is only the actual delta against7fffec5e |
 
 ## Opaque source diagnosis - 2026-11-10
 
