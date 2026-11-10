@@ -1,12 +1,91 @@
 # Plan - full Google Ads browser-tag compatibility
 
-Current admission is the [proxy-disable correction](#proxy-disable-correction---2026-11-10).
+Current disposition is the [admitted local packet result](#admitted-local-packet-result---2026-11-10).
+The [proxy-disable correction](#proxy-disable-correction---2026-11-10)
+retains its pre-execution source assessment.
 The [known-case stop revision](#known-case-stop-revision---2026-11-09)
 retains its then-current source assessment.
 The earlier [local helper prerequisite checkpoint](#local-helper-prerequisite-checkpoint---2026-11-09)
 retains its then-current stronger stop assessment; it is not retroactively cleared.
 The earlier [accepted browser-operation construction](#accepted-browser-operation-construction-packet---2026-11-09)
 and manual-response source stops below remain dated evidence.
+
+## Admitted local packet result - 2026-11-10
+
+**The one admitted packet ran and stopped at a strict opaque observer/body
+failure. The grant is consumed.** There was no retry, source repair or later
+acquisition. Full059 remains non-clearing.
+
+Parent admission SHA-256
+`d314d8975ec74f44104abe0f0c9f3f1f8a04600a4222b1bbde5607eee32dd32f`
+admitted exactly commit1181891f2a30039bc80d5baad2750f0024d71b2c,
+tree5ff5863cb6e2498a6e52a6e1151465f5192c58f3 and finite-plan hash
+`e93f3c323368043f45dc2870560bf3c4cb9f41d1d179648927be1d3863570f40`.
+The original source prerequisite checkpoint was closed, not extended.
+The separate execution allowed one start before00:45UTC,100s work and120s
+total including cleanup/publication. Before acquisition, nine source blobs,
+eight binary/dependency/guard records and a fresh empty workspace-local scratch
+matched. The later integrator publication edge has the identical whole tree
+and does not change this run's cohort.
+
+Actual Chrome156.0.8078.80 and the owned launcher's `--no-proxy-server` were
+observed. Independent receiver preflight passed1 allowed/0 enforced-new/1
+bypass-new arrivals. Readable receiver documents record GET200/POST302/GET200
+with the allowed unexpected final path. The opaque case then stopped with
+`opaque-request-failed` and `response-body-unavailable`. Its secondary POST
+recorded status200 and `net::ERR_ABORTED`; runtime opaque HTTP stays UNKNOWN.
+Server response completion and a settled runtime do not replace the required
+independent body. Unreadable-primary, CSP-negative,307, revoke and lifecycle
+did not run.
+
+The actual external foreground shell returned from the exact CLI at
+00:35:12.205880UTC, exit1 after2997.149292ms. The child coordinator directly
+observed its tool/process-parent result, shell1924 completed/exit1. The root
+cannot read that handle across this provider/session and must not claim it
+did. The exact executed wrapper and archived actual tool report accompany the
+raw external completion record. Producer stdout publication was acknowledged
+at2481ms inside the original interval.
+
+Recorded counts are69 requests,8 measurement attempts,66 verified bodies and
+1,853,089 retained bytes. Three fixture/context phases and two workers were
+observed. The438-event host-order timeline has zero omissions and zero pending
+observers at publication. In that order, opaque request68 failed at420,
+the host observed runtime settlement at421, failures/body unavailability at
+422-424, a settled/disposal-pending/realm-ready failure snapshot at425, and
+cleanup began at426. Opaque context/worker closure followed. These are host
+observations, not synchronized underlying browser/worker timestamps. The
+abort was observed before owned opaque cleanup; its cause and historical
+causes remain unestablished.
+
+Known root exit/stdio-close callbacks were code0/no signal, server close
+event/resolution were retained, three contexts closed and both workers closed.
+Each fixture retained listeningfalse, openSockets0, pendingResponses0,
+closureclosed and no fixture errors. Exact-PID/profile checks found root96885
+and its workspace-local fresh profile absent. There were no pending
+acquisitions. The producer's aggregate cleanup disposition remains
+`UNKNOWN-or-failed-see-errors`; closure evidence does not relabel the failed
+diagnostic PASS. Helpers remain UNKNOWN/manual and descendants/loss cleanup
+unproved. There was no process scan, manual signal/profile deletion or
+replacement-receiver experiment.
+
+The immutable private packet is `admitted-google-local-packet-1181891f/`,
+with ten artifacts plus inventory/receipt, all0600/fsynced. Its receipt hash is
+`b92ce2524e9b9fffb47b1e21db7c5efb1db05ad4e37bf42a01b3ec5e176d0fba`;
+inventory hash is
+`065257e91033b83b6926c6c690fe60d14b63a9e79c9f00c7d08e13ad09918f40`.
+Raw stdout is117859 bytes, SHA-256
+`e61af1cc5b1f37ae2230408a57bc59d2040849eeebe9ec0e8a610de0c51a3bc4`;
+stderr is empty. The old72/115/73 artifact cohorts were verified unchanged.
+Only dated documentary reconciliation/handoff follows. No executable
+requalification, further acquisition, source repair or lifecycle promotion
+is authorized.
+
+Actual pinned Sol/default
+[documentary reconciliation](../../decisions/reviews/adr-0052-admitted-local-packet-reconciliation.md)
+passed. The exact original command string, its readable wrapper archive and
+the child's actual displayed tool report are retained separately in
+`google-local-packet-documentary/`. This preserves provenance without
+claiming a direct root-side read of the child tool handle.
 
 ## Proxy-disable correction - 2026-11-10
 
