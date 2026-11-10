@@ -1,20 +1,5 @@
 # Fixed local foreground procedure
 
-## Google authority contract proposal - 2026-11-10
-
-The owner selected source-only preparation. Proposed
-[ADR-0053](../docs/decisions/adr-0053-additional-google-inspected-reference-authority.md)
-describes one possible additional lineage-bound Google stock reference. Its
-number is local and provisional. No authority, slot, control run, browser,
-SDK or vendor operation is admitted. The native entry remains closed.
-
-The separate ADR frame critique passed on the reviewed proposal. The owner
-contract decision is next; acceptance is not an allocation. A later source
-implementation needs separate approval and reviews. The parent must separately
-admit exact finite controls and capture with current authority and receipts. A
-stock grant cannot create a chamber grant. Historical references to an
-unselected proposal below describe the earlier checkpoint.
-
 ## SDK-free local runtime result - 2026-11-10
 
 The parent separately admitted one ordinary `--google-browser-operations` run
