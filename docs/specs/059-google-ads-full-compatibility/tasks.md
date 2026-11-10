@@ -4,6 +4,24 @@ The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
 
+## SDK-free local runtime result - 2026-11-10
+
+- [x] Record the separately admitted ordinary157 run from the authenticated
+      parent archive: all seven local cases completed, normal journey checks
+      PASS, raw overall INCONCLUSIVE and full compatibility false.
+- [x] Preserve the observed normal owned cleanup and its UNKNOWN descendant,
+      agent-loss and manual-helper limits. All four current157 grants are
+      CONSUMED; no native grant or slot is available.
+- [x] Complete the distinct local-result compliance, craft, architecture and
+      reconciliation reviews linked in the [plan](plan.md#sdk-free-local-runtime-result---2026-11-10).
+- [ ] Obtain the unselected owner decision on the proposed native
+      authority/contract source-readiness packet; no browser or SDK execution
+      follows from that decision ([gate](plan.md#next-nativereference-readiness-not-selected)).
+
+059-15 remains IN_PROGRESS, 059-01 READY_FOR_REVIEW and full059 needs-changes.
+The earlier classification reviews cover source, not this documentation packet.
+Prior failures, custody deviations and unattested history remain as dated below.
+
 ## CSP-negative classification - 2026-11-10
 
 - [x] Verify clean2614529a/tree8df5d099 and record the fixed05:25:51Z start,

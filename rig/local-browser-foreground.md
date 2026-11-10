@@ -1,5 +1,31 @@
 # Fixed local foreground procedure
 
+## SDK-free local runtime result - 2026-11-10
+
+The parent separately admitted one ordinary `--google-browser-operations` run
+on Chrome `157.0.8103.40`. All seven SDK-free local cases completed and normal
+journey checks passed. The independent whole-CLI exit was0; raw overall remains
+INCONCLUSIVE and full compatibility false. The
+[plan](../docs/specs/059-google-ads-full-compatibility/plan.md#sdk-free-local-runtime-result---2026-11-10)
+records the authenticated parent archive, counts and source provenance. This is
+not an original browser observation by the documentation writer.
+
+Known owned contexts, workers and fixtures closed, and root713 and its profile
+were independently absent. Complete descendants and agent-loss cleanup remain
+UNKNOWN; helpers remain UNKNOWN/manual. Opaque runtime HTTP and hidden
+parent/browser302 remain UNKNOWN. Earlier failed runs stay FAILED. No historical
+156 repair, native SDK, vendor or product proof follows from this local result.
+All four current157 grants are CONSUMED, original native authority is spent, and
+no fresh native grant or slot exists. Manual-helper acceptance does not admit
+native execution. Earlier custody deviations and unattested history remain.
+The four local documentation reviews passed. Source reviews and historical
+records below are earlier. Those sections
+describe their dated checkpoints, not current admission.
+
+The [next native readiness gate](../docs/specs/059-google-ads-full-compatibility/plan.md#next-nativereference-readiness-not-selected)
+is an unselected owner decision on source/contract readiness, not permission
+to inspect, reserve or run a native reference.
+
 ## CSP-negative classification, no browser admission - 2026-11-10
 
 The newly instrumented parent157 run remains FAILED during `csp-negative`.
