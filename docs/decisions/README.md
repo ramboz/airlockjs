@@ -52,7 +52,6 @@
 - [ADR-0050: Private Google browser-managed redirect operations](adr-0050-google-browser-operations.md) — Ordinary browser Fetch hides the intermediate manual redirect response. (2026-11-09, Accepted)
 - [ADR-0051: SDK-free Google local tests with manual helper cleanup](adr-0051-google-local-manual-helper-cleanup.md) — The owner accepts unknown/manual helper cleanup for SDK-free local Google tests. (2026-11-09, Accepted)
 - [ADR-0052: Known-case stop for SDK-free Google local tests](adr-0052-google-local-known-case-stop.md) — The owner chooses known-case closure for SDK-free local Google tests. (2026-11-09, Accepted)
-- [ADR-0053: One additional lineage-bound Google reference](adr-0053-additional-google-inspected-reference-authority.md) — The native Google entry is closed and the original allowance is spent. (Proposed)
 
 ## Format
 
