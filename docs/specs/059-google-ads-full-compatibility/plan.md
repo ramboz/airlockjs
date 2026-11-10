@@ -1,6 +1,10 @@
 # Plan - full Google Ads browser-tag compatibility
 
-Current disposition is the [Chrome157 source-only prerequisite](#chrome157-source-only-prerequisite---2026-11-10).
+Current disposition is the [CSP error-evidence source checkpoint](#csp-error-evidence-source-checkpoint---2026-11-10).
+The two separately admitted157 runs below are parent-owned observations;
+both grants are consumed. No further acquisition is admitted.
+The [Chrome157 source-only prerequisite](#chrome157-source-only-prerequisite---2026-11-10)
+is the preceding dated source checkpoint.
 The [paired diagnostic source](#paired-diagnostic-source---2026-11-10) remains
 the preceding source packet and its earlier browser pin is historical.
 The [opaque source diagnosis](#opaque-source-diagnosis---2026-11-10)
@@ -15,6 +19,327 @@ The earlier [local helper prerequisite checkpoint](#local-helper-prerequisite-ch
 retains its then-current stronger stop assessment; it is not retroactively cleared.
 The earlier [accepted browser-operation construction](#accepted-browser-operation-construction-packet---2026-11-09)
 and manual-response source stops below remain dated evidence.
+
+## CSP error-evidence source checkpoint - 2026-11-10
+
+The ordinary157 run stopped during `csp-negative`. Its error does not identify
+the failed request, and the retained output does not establish a CSP pass.
+This checkpoint adds bounded error-path evidence within059-15. It does not
+repair the browser result, retry either command or change an execution grant.
+
+The clean base is `92d6ddb689745c0f1a6257a4279e020e0a691af2`,
+tree `b248b5a885ee8caa9b5a73fd645da740d001e39f`, containing reviewed source
+`60aa83c07d36a50967c45e637dd6435cb9d40157`. The actual start was
+`2026-11-10T04:07:43.859757Z`; the absolute ceiling is
+`2026-11-10T06:07:43.859757Z`, without reset or extension. The private
+`google-csp-source-checkpoint.json` was recorded before edits. The permitted
+scope excludes unrelated trunk imports, main/parent checkout access, push and
+PRs. The dependency-read deviation below prevents a boundary-clean claim.
+
+Scout verified the tracked manifest at the base with zero gaps. Derived views
+were not independently verified. Node is22.16.0 with
+`NODE_DISABLE_COMPILE_CACHE=1`. Only controlled SDK-free unit tests and literal
+loopback are allowed here. No Chrome executable, version command, browser
+session, official SDK, real input or Meta acquisition is allowed.
+
+### Both consumed parent runtime checkpoints
+
+The coordinator read the parent's frozen archives and checked all17 retained
+file hashes, including both admission files, without reading either original
+runtime tool handle. The following observations belong to the parent. They
+are not direct browser/tool observations by this checkpoint.
+
+| Parent checkpoint | Retained result |
+|---|---|
+| Paired diagnostic, direct CLI2252 | One start, zero retries, exit1 as designed after4814.747ms on actual157.0.8103.40. Receiver allow/deny/bypass1/0/1. Baseline and direct each PASS with real finished zero-byte POST bodies. Comparison MISMATCHED because response Date differs03:56:11 versus03:56:12; observation comparison UNREPRODUCED. Do not normalize the Date difference away. Opaque HTTP UNKNOWN; no historical156 cause or repair is proved. |
+| Ordinary Google operations, direct CLI2258 | A separately admitted one-start run, no paired observer/direct control, exit1 after3712.010ms at04:01:38Z on actual157. Receiver1/0/1. Readable200/302/200 and the permitted unexpected path completed; opaque primary/POST200 strict captured bodies completed; unreadable primary stopped after one primary with no secondary. It stopped DURING `csp-negative` with sole error `unexpected-request-failure`. Positive denied-origin reachability200, primary200 and secondary302 were observed, with no disallowed-target receipt. This is not a passed CSP test. No307, revoke or lifecycle case ran. |
+
+Paired output retains348 host-order events, zero omitted and zero pending.
+Parent observed root70840 exit/stdio-close0, three contexts, one worker and two
+fixtures closed, zero actual sockets/pending responses, and the exact PID and
+profile absent. Ordinary output retains133 requests,12 attempts,129 verified
+bodies and3,302,402 retained bytes, with831 host-order events, zero omitted and
+zero pending. Parent observed root72750 exit/stdio-close0, five contexts, four
+workers and five fixtures closed, zero known sockets/responses/listeners,
+and the exact PID/profile absent. Its producer cleanup aggregate remains
+`UNKNOWN-or-failed-see-errors`. Do not relabel it PASS. Helpers remain
+UNKNOWN/manual; complete descendants and agent-loss cleanup remain UNKNOWN.
+
+The parent adopted60aa through92d and directly reported2250 PASS for157 tests
+in three files plus scoped lint/spec/board/index/whitespace checks. It also
+reported fresh36-source/179-Playwright/current157-browser/Node byte checks
+before each separately admitted run. Those checks are parent attribution,
+not independent current-browser safety evidence for this source packet.
+
+| Frozen parent artifact | SHA-256 |
+|---|---|
+| `google-opaque-diagnostic-157-60aa/runtime-seal.json` | `51f780214e7bcec7e72242f3db68d936ca71fb6e1906c06c3bc478dc3b9f3548` |
+| Paired `inventory.json`, six inventoried artifacts | `9cfe85624575a4fea1806785c727cfe1884ebb71406b99ec2a7c48800157f8c0` |
+| Paired `browser.stdout.json`,98115 bytes | `b7642434b9ead392fd6c931ec5ec329e2a9a9f5e7fc52b5eed4e6f172b0794c0` |
+| `google-current157-local-qualification/runtime-seal.json` | `44d121a657337dc0d1ad4626cc46aabbf48ae9c9a355bc0d199767e4fa2a18b9` |
+| Ordinary `inventory.json`, five inventoried artifacts | `9c2fda1f752d7fa1cebf2588c7d4a171ce7b0b3360e81d8fea3569558695efea` |
+| Ordinary `parent-actual-observation.json` | `a5eb5a4d87b80cbecab3ba9c027237ed1342b87f4c7165f6d83bb66998d14ae7` |
+| Ordinary `browser.stdout.json`,215124 bytes | `f3f6674361b612d0a85840e78cc76862ab7ddd8032726f46aafd01a54ecf0cfb` |
+
+Both roots are in the parent's private session files. Separate
+`google-current157-paired-admission.json` and
+`google-current157-qualification-admission.json` bind their consumed grants.
+The local `google-csp-frozen-input-check.json` retains the exact17 paths,
+sizes, hashes and observed permissions. The frozen originals are unchanged.
+
+### Missing evidence and bounded source work
+
+The parent's source finding points to the `requestfailed` handler in
+`rig/local-browser-foreground.mjs:562-571`: metadata is retained only for an
+existing row, and operation measurement failures have an existing exemption.
+The retained failed row132 is a measurement POST with
+`request-failure-detail-unavailable`. An additional unmatched failed-request
+event is the leading source-derived hypothesis. Its identity and reason were
+not retained. Another unexpected event, object-identity or ordering mismatch
+remains possible; the adjacent secondary POST does not establish the cause.
+
+The ordinary console handler's boolean is not a retained CSP witness.
+Loaded frame200/pinned bytes and `connect-src`A/B were retained. This packet
+must retain actual failed-event identity/correlation, unavailable fields as
+UNKNOWN, and actual console/loaded-frame evidence without treating any of
+them alone as a pass. Existing failures, body checks, observer settlement,
+receiver bytes, MIME/CORS, CSP and runtime HTTP UNKNOWN remain unchanged.
+
+The new records use host observation order. A retained console location URL
+matching the loaded frame URL is a correlation lead, not proof that the
+message originated in that exact frame or caused a failed request. Missing
+location/frame binding stays UNKNOWN. No synchronized browser causality or
+repair follows from controlled fixtures.
+
+The four required fresh Sol supplemental reviews have distinct
+`supplemental-slice-15-csp-error-evidence-2026-11-10-` filenames. They do not
+replace canonical records or clear inherited full059 needs-changes.
+
+### Implementation and controlled validation
+
+Generic implementer `f3c7dfa5-2507-4f66-ba77-6d4982b1578a` was explicitly
+dispatched as `gpt-6.1-terra`/`default`. The coordinator's `read_agent`
+metadata reported model `gpt-6.1-terra`; runtime context was NOT_EXPOSED.
+Its ledger reports Scout source-range discovery and narrow source reads;
+post-edit index freshness was unverified, not a current-index attestation.
+
+The existing operation timeline now retains bounded failed-event identity,
+known-row and redirect-parent correlation, actual console text/location and
+loaded-frame evidence, with explicit UNKNOWN fields/status where unavailable.
+The original unexpected failure is recorded before diagnostic getters.
+Known measurement failures retain their existing handling. No protocol
+session, new selector, receiver change or runtime response bridge was added.
+
+Valid assertion REDs are retained separately from failed fixture/setup
+attempts. `google-csp-red-unmatched-final.log` has five missing-diagnostic
+failures; `google-csp-red-witness.log` has one; `google-csp-red-status.log`
+has six failures and two passes. The later
+`google-csp-red-compliance.log` has two assertion failures and seven passes:
+an isolated evidence overflow had the wrong failure, and a throwing frame
+diagnostic masked the delivered original failure. Earlier setup/fixture errors
+are preserved in the ledger and are not counted as assertion RED.
+
+The source correction makes ordinary Google timeline exhaustion fatal and
+removes the duplicate unguarded frame getter. Isolated overflow, missing-console,
+prior-error preservation and throwing URL/redirect-parent/main-frame controls
+were added. The original error still fails; UNKNOWN does not become evidence.
+
+After prospective parent permission, coordinator shell2334 passed29
+Google-only controlled tests (105 skipped,134 total) and scoped ESLint with
+explicit Node22.16.0, direct OWN local entry files, `--no-cache` for Vitest and
+`NODE_DISABLE_COMPILE_CACHE=1`. TMPDIR and XDG_CACHE_HOME were private session
+directories. Exact argv, environment, raw output and matching before/after
+source hashes are in `google-csp-coordinator-final-tests.json` and
+`google-csp-coordinator-final-lint.json`. This validates controlled source
+behavior, not actual Chrome, current-browser safety, native conversion or
+dependency custody. The skipped tests, including Meta fakes, were not run in
+this final command.
+
+Actual local compliance closure passed through fresh
+`9f522e06-6bce-48c7-86bc-7beac2196644`, dispatched Sol/default. Its `read_agent`
+metadata reported `gpt-6.1-sol`, elapsed92s, idle state and one turn; context was NOT_EXPOSED.
+It read the two source/test edges through narrow read-only UNINDEXED fallback,
+not execution or independent hash authentication. The initial reviewer
+`ddaf3165-b441-4819-bfac-43e06d0165df` was synchronous; the harness refused
+`write_agent` followup for that mode. This is fresh targeted closure, not the
+same reviewer. The initial finding and full059 needs-changes are preserved.
+
+The overflow RED witnesses the exact diagnostic-error assertion changing
+from `readable-outcome` to the required `diagnostic-timeline-limit`. It does
+not prove that the pre-fix journey otherwise passed. The separate missing-
+diagnostic REDs retain their missing-field assertions.
+
+Craft reviewer `ad9b36ad-1c62-4fbd-86a5-0493e6a9f6ae` returned local PASS,
+then the same reviewer confirmed supplied source-patch/binding consistency
+against92d. Runtime metadata reported Sol, two turns; context was NOT_EXPOSED.
+This was narrow read-only UNINDEXED review, not independent Git/hash
+authentication or verification of documentary deltas.
+
+Architecture reviewer `3eac2ef1-42ed-403e-a862-502c510be716` returned local
+needs-changes: an unvalidated console boolean could complete the CSP console
+subcheck while its retained witness stayed UNKNOWN. Existing foreign-witness
+controls also injected an independent fatal event. This is a distinct local
+finding, not a browser diagnosis. Terra corrected the gate: acceptance now
+requires retained validated console evidence with known location and a verified
+loaded-frame URL. Isolated foreign, prefix, unbound, location, oversized and
+missing-witness controls inject no independent unexpected request failure.
+An accepted-known control still reaches the later fake case without qualifying
+that journey. Same-reviewer source closure remains required. Architecture
+metadata reported Sol, one turn and context NOT_EXPOSED; access was narrow
+read-only UNINDEXED, with no execution or independent base/hash authentication.
+
+The new gate RED has three failures and three passes. Foreign, prefix and
+unbound evidence reached the later fake case and failed `readable-outcome`;
+this was not an overall journey success. The corrected final coordinator run,
+shell2349, passed36 Google-only tests (105 skipped,141 total) and scoped lint.
+Exact argv/environment/output and stable before/after hashes are retained in
+`google-csp-coordinator-arch-final-tests.json` and
+`google-csp-coordinator-arch-final-lint.json`. Terra independently reported the
+same36/lint result with own-worktree-root temp/cache paths. The earlier29-test
+result predates this gate correction and is historical validation only.
+The same compliance closure reviewer9f522e06 returned local final-revision
+PASS for the new gate/isolated controls and preservation of the earlier fixes.
+Metadata reported Sol, two turns, with context NOT_EXPOSED. Coordinator36-test
+validation was still pending in its handoff; that reviewer did not execute or
+authenticate the later coordinator result.
+The same craft reviewerad9b36ad then returned local final-revision PASS on the
+gate/isolated controls and preserved earlier guarantees. Metadata reported
+Sol, three turns, context NOT_EXPOSED. It read supplied final patch/binding
+and coordinator records through narrow read-only UNINDEXED fallback without
+execution or independent hash/Git authentication.
+The same architecture reviewer3eac2ef1 then returned local PASS, closing the
+evidence/decision split after inspecting the final gate and isolated controls.
+Metadata reported Sol, two turns, with context NOT_EXPOSED. The original
+needs-changes result is preserved in its supplemental record. Access remained
+narrow read-only UNINDEXED; no reviewer execution or independent hash/base/
+custody authentication occurred.
+
+Fourth reconciliation reviewer `9f936a3e-5011-47d5-93e0-53289ae7248a`
+returned local PASS with no additional documentary deviation. Metadata reported
+Sol, one turn and context NOT_EXPOSED. It rated source/document fidelity High
+and supplied validation/provenance Medium, using narrow read-only UNINDEXED
+fallback without execution or independent hash/Git authentication. Its response
+supplies the fourth review; it does not attest later recording or packaging.
+The coordinator generated the four distinct supplemental files through Jig's
+recorder in an isolated mirror, without overwriting canonical records.
+
+Coordinator shell2350 passed scoped spec lint, unchanged status-board and ADR
+index checks, and whitespace. It rechecked17 frozen parent inputs,90 immutable
+tracked records and all three historical tails unchanged; source hashes still
+matched the final36-test run. The canonical review gate deliberately returned2
+for inherited compliance needs-changes. No lifecycle transition was attempted.
+
+The nine-file allowlist is retained in `google-csp-packet-scope.json`.
+Final local commit/tree, exact manifest,0600 file/directory-fsynced inventory
+and seal are generated only after reconciliation. The private
+`google-csp-postcommit-receipt.json` records actual completion and identities
+after they exist. This precommit document does not attest future packaging.
+
+### Execution boundary deviation
+
+The Terra implementer disclosed a prohibited main-checkout read. After the
+worktree test command failed with `MODULE_NOT_FOUND` for Vitest, it ran
+`cp -cR /Users/ramboz/Projects/misc/airlock/node_modules ./node_modules`,
+plus `ls -ld` and `du -sh` against that main dependency directory. The copy
+destination was the worktree's ignored `node_modules`. This crossed the
+explicit no-main-read boundary even though dependency restoration followed
+a missing-dependency failure. No install or network operation was reported.
+
+The implementer reports no intentional main write, but did not audit copied
+symlinks for indirect writes. The coordinator has not accessed main to
+investigate and cannot certify clean dependency custody or absence of such
+writes. The parent was notified before publication. This remains a recorded
+deviation; test success does not erase it or authorize another acquisition.
+The source packet must not be presented as boundary-clean.
+
+A subsequent read-only check of the worktree dependency directory found17
+symlinks and zero lexical targets outside this worktree. It followed no link
+targets and did not access main. This bounds that specific local link risk;
+it does not attest dynamic code behavior or erase the earlier read.
+
+On parent direction, further dependency-backed commands were paused while a
+boundary-compliant offline restoration route was checked. Source editing and
+read-only review continued. A strict `lstat`/`readlink`-only own-copy audit
+retains17 symlinks, zero external lexical targets,1,650 directories and16,098
+owner-writable regular files (232,060,815 bytes), with no special entries.
+The private `google-csp-strict-local-dependency-audit.json` records link
+destinations and possible-write uncertainty without dereferencing targets.
+No copy deletion, main investigation or new dependency permission follows.
+
+At04:29:12UTC the parent prospectively permitted the existing scoped commands
+against the audited OWN local files. Use explicit Node22.16.0 and direct
+local Vitest/ESLint entry files, compile cache disabled, with caches/output
+confined to this worktree/private artifacts. No npm/`.bin` resolution, new
+copy, reinstall or cache restoration is permitted. This resumes validation;
+it does not retroactively approve the main read or attest clean custody.
+The parent will independently validate committed source before adoption.
+
+Earlier broad controlled-test selections also executed existing Meta fakes.
+The implementer's `does not retain` and failure-code selectors included those
+cases; the coordinator's initial127-test foreground run did too. This exceeded
+the Google-only scope. No actual Chrome, Meta SDK or vendor traffic occurred.
+Prospective final validation excludes those selectors and uses Google-only
+controlled cases. The earlier fake execution remains a disclosed deviation.
+
+The private `google-csp-command-retrospective.txt` records the implementer's
+exact copy/metadata commands and subsequent visible commands, exits and logs.
+It is a retrospective transcription, not a contemporaneous complete command
+audit. Unavailable hidden arguments, inherited environment and indirect
+effects remain unverified. The earlier127/27-test runs are not final corrected
+source validation and cannot attest clean custody.
+The later own-session shell-transcript snapshot retains exact serialized
+requests and reported results for both coordinator and subagent commands.
+It supplements the retrospective without attesting inherited environment,
+dynamic writes or commands outside the visible transcript.
+
+The first fresh Sol compliance review returned local needs-changes: an
+ordinary diagnostic timeline-budget omission could remain nonfatal, and its
+test also injected an independent fatal event. The implementer separately
+identified an unguarded diagnostic frame getter. Corrections and isolated
+controls are implemented, the prospective29-test check passes, and actual fresh
+targeted source review closes both local findings. Full059 nonclearance remains
+separate from these local issues.
+
+### One source-bound finite diagnostic plan, NOT_ADMITTED
+
+Use the existing closed `--google-browser-operations` route, with its seven
+existing cases and independent preflight. There is no new selector, paired
+observer or direct control. One start, zero retries, one owned root/fresh
+profile, at most eight contexts, eight workers, eight fixtures,24 attempts and
+256 requests remain the ceilings. Work stops by100 seconds and the full
+interval, including cleanup and publication, ends by120 seconds. Existing
+8,192-byte URL,64-KiB request/header,2-MiB response and8-MiB retained-evidence
+limits remain. A diagnostic or evidence failure still stops the route.
+The existing fixture limits remain64 sockets,3,000ms response hold and2,000ms
+fixture cleanup. These values are retained in the parent's ordinary admission;
+this packet does not renew that consumed authority.
+
+The final private commit/tree/source manifest and seal must bind the reviewed
+packet before a later parent decision. The operation pin stays157.0.8103.40;
+default Google/Meta stays156.0.8078.80. Independent current-source/current-browser
+no-external and owned-stop checks, plus a later affirmative exact parent
+admission, remain prerequisites. This source checkpoint supplies no runtime
+authority, deadline extension, original-slot permission or native/chamber
+admission. Both existing grants remain CONSUMED.
+
+### Deviation log
+
+This is a new post-runtime missing-evidence packet within the same IN_PROGRESS
+slice. It does not reset lifecycle ownership or declare a root-cause repair.
+No new protocol, launcher, proxy, framework or production contract is selected.
+Source-only controlled fixtures cannot prove Chrome behavior or conversion.
+
+### Reconciliation sweep
+
+| Surface | Disposition |
+|---|---|
+| `rig/local-browser-foreground.mjs`, `test/local-browser-foreground.test.js` | updated within the missing-diagnostic scope; actual checks recorded after execution |
+| This `plan.md`, `tasks.md`, `rig/local-browser-foreground.md` | updated: both actual parent checkpoints, consumed grants, source limits and one unadmitted plan |
+| Four distinct supplemental source reviews | recorded: final local compliance closure, craft, same-reviewer architecture and documentary reconciliation PASS; inherited full059 nonclearance retained |
+| Accepted0050/51/52, canonical reviews,059-15 IN_PROGRESS,059-01 READY_FOR_REVIEW and status boards | no-op: immutable/non-clearing |
+| Earlier dated tails, parent archives, default Google/Meta156, receiver and runtime | no-op: preserve history and behavior |
+| Primers, architecture, conventions, memory, inbox/refinement todo and ADR index | no-op: existing private-tooling approach; no new public contract or durable decision |
+| Native/product/performance/browser safety, complete descendants and agent-loss cleanup | deferred to parent-led qualification and separate affirmative admission; not supplied by controlled evidence |
 
 ## Chrome157 source-only prerequisite - 2026-11-10
 

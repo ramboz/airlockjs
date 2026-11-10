@@ -4,6 +4,58 @@ The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
 
+## CSP error-evidence source checkpoint - 2026-11-10
+
+- [x] Verify clean92d/treeb248 containing reviewed60aa and record the actual
+      `2026-11-10T04:07:43.859757Z` start and absolute
+      `2026-11-10T06:07:43.859757Z` ceiling before edits, without extension.
+- [x] Read both frozen parent157 archives and verify all17 artifact/admission
+      hashes. Reconcile paired2252 exit1/UNREPRODUCED/MISMATCHED and ordinary2258
+      exit1 during `csp-negative`, with no inferred CSP pass or historical repair.
+- [x] Preserve both CONSUMED grants, original failure, HTTP UNKNOWN, cleanup
+      aggregate and unknown/manual helpers. No new browser acquisition is allowed.
+- [x] Disclose the implementer's prohibited main dependency read/copy and
+      uncertain indirect-write custody to the parent. Do not claim a
+      boundary-clean packet or use passing tests to clear that deviation.
+- [x] Disclose earlier controlled Meta-fake selections, including the
+      coordinator's initial full foreground suite. Exclude them from final
+      Google-only validation; no actual Meta/browser/vendor execution is claimed.
+- [x] Fresh pinned generic Terra implements bounded Google-operation failed-event
+      identity/correlation and actual CSP console/loaded-frame evidence.
+- [x] Witness diagnostic RED then GREEN while the original failure still fails;
+      known events retain behavior and foreign/unbound/oversized evidence fails.
+- [x] Correct the initial local compliance timeline-budget blocker and unguarded
+      diagnostic getter with isolated controls and actual targeted closure.
+      Source and isolated controls are corrected;29 prospective Google-only
+      tests and scoped lint pass. The synchronous review could not accept a
+      followup; fresh narrow closure reviewer9f522e06 returns local PASS, not a
+      claimed same-reviewer result. The overflow RED is an exact diagnostic
+      error assertion, not a pre-fix journey-PASS witness.
+- [x] Correct the distinct architecture console-evidence gate blocker with
+      isolated controls, fresh scoped validation and same-reviewer closure.
+      An unvalidated boolean must not complete the subcheck while the actual
+      retained console witness is UNKNOWN. Gate/isolated controls are corrected;
+      the final coordinator36-test/lint run passes. Actual final source
+      compliance/craft followups and same architecture reviewer return local
+      PASS on the final source, with inherited full059 nonclearance unchanged.
+- [x] Run scoped Node22.16.0 unit/SDK-free literal-loopback checks with compile
+      cache disabled, plus lint/spec/board/index/whitespace checks.
+- [x] Retain four fresh pinned Sol/default supplemental source review records,
+      keeping canonical reviews and inherited full059 needs-changes unchanged.
+- [x] Define the nine-file local commit/seal handoff with sole parent92d.
+      The coordinator owns post-review packaging. Actual commit/tree and
+     0600/fsynced manifests/seals are recorded after completion in private
+      `google-csp-postcommit-receipt.json`; this precommit checkbox records
+      preparation, not future execution.
+- [ ] Parent may later bind current-source/browser safety and affirmatively
+      admit the one [source-bound finite plan](plan.md#one-source-bound-finite-diagnostic-plan-not_admitted).
+      It is NOT_ADMITTED here; source fixtures are not browser authority.
+
+059-15 remains IN_PROGRESS and059-01 READY_FOR_REVIEW. Accepted0050/51/52,
+canonical records and old dated notes below remain unchanged. The earlier157
+source-only notes describe their checkpoint; subsequent parent execution is
+recorded in the [current packet](plan.md#both-consumed-parent-runtime-checkpoints).
+
 ## Chrome157 source-only prerequisite - 2026-11-10
 
 - [x] Record scope at `2026-11-10T03:08:48Z`, with absolute ceiling
