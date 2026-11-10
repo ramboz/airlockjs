@@ -152,6 +152,11 @@ if (location.pathname === "/google-browser-operation") {
   let operationPhase = "not-started";
   let operationFailure = null;
   let operationDisposal = "not-created";
+  let directRealm;
+  let directPromise;
+  let directStarted = false;
+  let directDone = false;
+  let directRealmLost = false;
   function operationState() {
     return {
       caseName: data.case, phase: operationPhase, failure: operationFailure, disposal: operationDisposal,
@@ -244,10 +249,67 @@ if (location.pathname === "/google-browser-operation") {
     if (response.status !== 200 || (await response.text()) !== "") throw new Error("reachability-control-failed");
     return "reachable";
   }
+  async function beginDirectOpaqueControl(url) {
+    if (arguments.length !== 1 || data.case !== "opaque" || directStarted || typeof url !== "string" ||
+        origins.length !== 2 || origins.some((origin) => !/^http:\/\/127\.0\.0\.1:[1-9]\d{0,4}$/.test(origin)) ||
+        !origins.includes(data.primary) || !origins.includes(data.secondary)) throw new Error("invalid-direct-control");
+    directStarted = true;
+    const target = new URL(url);
+    if (target.origin !== data.secondary || target.hash || target.username || target.password) throw new Error("invalid-direct-control");
+    const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(target.pathname + target.search));
+    const hex = Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, "0")).join("");
+    if (hex !== "41785ca700594788e74114571ff012fd073c8de69bc1220bd4e6d9a918a352ac") {
+      throw new Error("invalid-direct-control");
+    }
+    directPromise = (async () => {
+      const { createGoogleBrowserRealm } = await import("../adapters/google-browser-operation-realm.js");
+      const controller = new AbortController();
+      let timedOut = false;
+      let timer;
+      let complete = false;
+      try {
+        directRealm = await createGoogleBrowserRealm(origins, () => {
+          directRealmLost = true;
+          if (!complete) controller.abort();
+        }, controller.signal);
+        timer = setTimeout(() => { timedOut = true; controller.abort(); }, 1500);
+        let response;
+        try {
+          response = await directRealm.fetch(url, {
+            method: "POST", credentials: "omit", redirect: "follow", mode: "no-cors",
+            referrerPolicy: "no-referrer", signal: controller.signal,
+          });
+        } catch {
+          if (timedOut) throw new Error("direct-control-deadline");
+          if (directRealmLost || !directRealm.valid()) throw new Error("direct-realm-identity");
+          return { disposition: "rejected", httpOutcome: "UNKNOWN" };
+        }
+        if (timedOut) throw new Error("direct-control-deadline");
+        if (directRealmLost || !directRealm.valid()) throw new Error("direct-realm-identity");
+        complete = response?.type === "opaque";
+        if (!complete) throw new Error("direct-nonopaque-response");
+        return { disposition: "opaque", httpOutcome: "UNKNOWN" };
+      } finally {
+        if (!complete) controller.abort();
+        clearTimeout(timer);
+        directDone = true;
+      }
+    })();
+    return directPromise;
+  }
+  function disposeDirectOpaqueControl() {
+    if (arguments.length || !directPromise || !directDone || !directRealm) throw new Error("invalid-direct-dispose");
+    if (directRealmLost || !directRealm.valid()) throw new Error("direct-realm-identity");
+    directRealm.dispose();
+    directRealm = undefined;
+  }
   Object.assign(window, {
     prepareBrowserOperation, beginBrowserOperation, stopBrowserOperation, disposeBrowserOperation, waitBrowserOperation,
-    getBrowserOperationState: operationState, probeDisallowedReceiver,
+    getBrowserOperationState: operationState, probeDisallowedReceiver, beginDirectOpaqueControl, disposeDirectOpaqueControl,
   });
-  window.addEventListener("pagehide", () => { if (operationAdapter) void operationAdapter.dispose(); }, { once: true });
+  window.addEventListener("pagehide", () => {
+    if (operationAdapter) void operationAdapter.dispose();
+    directRealm?.dispose();
+  }, { once: true });
   operationShow();
 }

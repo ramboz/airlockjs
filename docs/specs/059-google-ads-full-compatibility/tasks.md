@@ -4,6 +4,29 @@ The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
 
+## Paired diagnostic source - 2026-11-10
+
+- [x] Continue from7fffec5e under the original03:03:29UTC ceiling, with no
+      lifecycle reset, new numbered owner or browser permission.
+- [x] Actual pinned Terra implements the closed selector, unchanged opaque
+      baseline and labelled direct captured-realm control on the same fixture.
+- [x] Witness missing-selector RED then meaningful continuation, correlation,
+      guards, UNKNOWN and deadline controls GREEN; final145/3 covering tests.
+- [x] Preserve receiver/MIME/CORS, prior qualification stops, required bodies/
+      CSP/realm lifetime, opaque HTTP UNKNOWN and requested/owned proxy evidence.
+- [x] Correct actual compliance's post-Fetch realm-loss must-fix through two
+      assertion REDs -> two GREENs plus host negatives; same Sol reviewer
+      confirms no remaining local must-fix, inherited full059 non-clearing.
+- [x] Complete fresh required pinned Sol source reviews and documentary
+      reconciliation, retaining inherited full059 non-clearing.
+- [ ] Bind the actual source commit/manifest, one finite paired plan and
+      private evidence in the parent handoff before the unchanged ceiling.
+- [ ] Obtain independent current-browser/no-external evidence and affirmative
+      exact parent acquisition admission. No browser run is authorized here.
+
+See the [concrete source packet](plan.md#paired-diagnostic-source---2026-11-10).
+The earlier diagnosis-only source state below is dated history.
+
 ## Opaque source diagnosis - 2026-11-10
 
 - [x] Verify clean6e93b095/tree47e84208 and current indexed manifest; keep

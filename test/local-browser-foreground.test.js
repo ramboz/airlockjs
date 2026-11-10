@@ -3,9 +3,10 @@ import { request as httpRequest } from "node:http";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { execFile } from "node:child_process";
+import { execFile, spawnSync } from "node:child_process";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as fixtureModule from "../rig/local-browser-journeys.mjs";
+import * as foregroundModule from "../rig/local-browser-foreground.mjs";
 import {
   assertForegroundReceipts, checkForegroundRequest, runGoogleBrowserOperationsForeground,
   runLocalBrowserForeground, startForegroundControlFetch,
@@ -40,6 +41,22 @@ function rows(vendor) {
 }
 
 describe("foreground source-only receipt and route checks — NOT browser qualification", () => {
+  it("exports the closed paired opaque diagnostic selector", () => {
+    expect(foregroundModule.runGoogleOpaqueDiagnosticForeground).toBeTypeOf("function");
+  });
+
+  it("rejects options and extra CLI arguments without launching a browser", async () => {
+    const launch = vi.spyOn(chromium, "launchServer");
+    await expect(foregroundModule.runGoogleOpaqueDiagnosticForeground({})).rejects.toThrow("fixed-operation-no-options");
+    expect(launch).not.toHaveBeenCalled();
+    const result = spawnSync(process.execPath, [
+      fileURLToPath(new URL("../rig/local-browser-foreground.mjs", import.meta.url)), "--google-opaque-diagnostic", "extra",
+    ], { encoding: "utf8", env: { ...process.env, NODE_DISABLE_COMPILE_CACHE: "1" } });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("fixed-foreground-no-options");
+    expect(result.stdout).toBe("");
+  });
+
   it("does not resolve a positive preflight after headers before zero-body EOF", async () => {
     let finish;
     const body = new Promise((resolve) => { finish = resolve; });
@@ -203,6 +220,7 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
   const log = [];
   const servers = [];
   const fixtures = new Map();
+  const paired = fault?.startsWith("paired-") === true;
   vi.spyOn(fixtureModule, "startLocalBrowserJourneys").mockImplementation(async () => {
     const fixture = await originalStart();
     openFixtures.push(fixture);
@@ -242,7 +260,11 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
           : fault === "private-failure-detail" ? "Protocol error at https://private.invalid/?secret=not-retained"
             : failureDetail }),
         headersArray: async () => [{ name: "accept", value: fault === "header-overrun" ? "x".repeat(65537) : "*/*" }],
-        headers: () => ({ accept: "*/*" }),
+        headers: () => ({ accept: paired && fault === "paired-mismatched-headers" && this.mode === "opaque-direct" ? "other" : "*/*" }),
+        allHeaders: async () => {
+          if (fault === "paired-requestheaders-unknown" && this.mode === "opaque-direct") throw new Error("not available");
+          return { accept: paired && fault === "paired-mismatched-headers" && this.mode === "opaque-direct" ? "other" : "*/*" };
+        },
         isNavigationRequest: () => type === "document",
       };
       await this.handler({
@@ -255,6 +277,28 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
             res.on("data", (chunk) => chunks.push(chunk));
             res.on("end", () => {
               const body = Buffer.concat(chunks);
+              if (fault === "paired-late-frame" && this.mode === "opaque" && type === "fetch" &&
+                  url.endsWith("/rig/google-browser-operation-frame.html")) {
+                this.pendingFrame = { request, status: res.statusCode };
+                this.emit("requestfinished", request);
+                resolve({ status: res.statusCode, body });
+                return;
+              }
+              const pairedSecondary = paired && type === "fetch" && method === "POST";
+              const unavailable = pairedSecondary &&
+                (fault === "paired-both-unavailable" ||
+                  fault === "paired-baseline-unavailable" && this.mode === "opaque" ||
+                  fault === "paired-direct-unavailable" && this.mode === "opaque-direct" ||
+                  fault === "paired-direct-lost-unavailable" && this.mode === "opaque-direct" ||
+                  fault === "paired-concurrent-fatal" && this.mode === "opaque");
+              if (pairedSecondary && this.protocol) {
+                this.protocol.emit("Network.requestWillBeSent", {
+                  requestId: "test.1", request: { url, method },
+                });
+                if (fault === "paired-protocol-duplicate") this.protocol.emit("Network.requestWillBeSent", {
+                  requestId: "test.2", request: { url, method },
+                });
+              }
               const delayedOpaque = fault?.startsWith("opaque-observer-") &&
                 this.mode === "opaque" && type === "fetch" && method === "POST";
               if (delayedOpaque) {
@@ -305,12 +349,25 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
                 }, 75);
                 return;
               }
+              if (fault === "paired-baseline-noresponse" && pairedSecondary && this.mode === "opaque") {
+                this.emit("requestfailed", request);
+                resolve({ status: res.statusCode, body });
+                return;
+              }
               this.emit("response", {
                 request: () => request,
-                status: () => fault === "204-body-unavailable" && type === "fetch" ? 204 : res.statusCode,
+                status: () => fault === "204-body-unavailable" && type === "fetch" ? 204
+                  : fault === "paired-response-status" && pairedSecondary ? 302 : res.statusCode,
                 headerValue: async (name) => res.headers[name],
+                allHeaders: async () => fault === "paired-header-overrun" && pairedSecondary
+                  ? { oversized: "x".repeat(65537) }
+                  : fault === "paired-content-type" && pairedSecondary ? { ...res.headers, "content-type": "text/plain" }
+                    : fault === "paired-cors-header" && pairedSecondary
+                      ? { ...res.headers, "access-control-allow-origin": "*" } : res.headers,
                 frame: () => type === "document" && this.mode !== "preflight" ? {} : this.page.mainFrame(),
                 body: async () => {
+                  if (unavailable) throw new Error("source-test-body-unavailable");
+                  if (fault === "paired-response-nonzero" && pairedSecondary) return Buffer.from("unexpected");
                   if (fault === "204-body-unavailable" && type === "fetch") {
                     throw new Error("Protocol error: No resource with given identifier found");
                   }
@@ -327,7 +384,17 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
                   return fault === "source-substitution" && type === "script" ? Buffer.from("wrong") : body;
                 },
               });
-              if ((["loading-failure-200", "oversized-failure-code", "private-failure-detail"].includes(fault) ||
+              if (fault === "paired-concurrent-fatal" && unavailable) this.page.emit("pageerror", new Error("test"));
+              if (pairedSecondary && this.protocol) {
+                if (fault === "paired-protocol-failure") this.protocol.emit("Network.loadingFailed", {
+                  requestId: "test.1", errorText: "net::ERR_ABORTED", canceled: true, blockedReason: "csp",
+                });
+                else this.protocol.emit("Network.loadingFinished", { requestId: "test.1" });
+              }
+              if ((pairedSecondary && (fault === "paired-both-requestfailed" ||
+                    fault === "paired-direct-rejected" && this.mode === "opaque-direct" ||
+                    fault === "paired-baseline-requestfailed" && this.mode === "opaque") ||
+                ["loading-failure-200", "oversized-failure-code", "private-failure-detail"].includes(fault) ||
                 ["operation-accounting", "operation-overrun"].includes(fault) && method === "GET" && res.statusCode === 200 &&
                   this.contextCase === "operation") &&
                 type === "fetch") this.emit("requestfailed", request);
@@ -345,8 +412,21 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
     async close() {
       log.push(["context-close", this.mode]);
       if (fault === "context-close" && this.mode === "preflight") throw new Error("source-test-context-close");
+      if (fault === "paired-close-failure" && this.mode === "opaque") throw new Error("source-test-context-close");
+      if (this.pendingFrame) {
+        this.emit("response", {
+          request: () => this.pendingFrame.request, status: () => this.pendingFrame.status,
+          body: async () => { throw new Error("source-test-late-frame"); },
+        });
+      }
       this.closed = true;
       this.page?.worker?.emit("close");
+    }
+    async newCDPSession() {
+      if (!paired || fault === "paired-protocol-unknown") throw new Error("source-test-unavailable");
+      this.protocol = new EventEmitter();
+      this.protocol.send = async () => {};
+      return this.protocol;
     }
   }
   class Page extends EventEmitter {
@@ -363,7 +443,9 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
       this.origin = new URL(url).origin;
       this.fixture = fixtures.get(this.origin);
       this.context.contextCase = this.vendor === "google-browser-operation" ? "operation" : "legacy";
-      if (this.context.contextCase === "operation") this.context.mode = this.fixture.caseName;
+      if (this.context.contextCase === "operation" && !(paired && this.context.mode === "opaque-direct")) {
+        this.context.mode = this.fixture.caseName;
+      }
       log.push(["goto", this.vendor, this.context.mode]);
       this.emit("framenavigated", this.frame);
       if (fault === "work-cutoff") {
@@ -371,7 +453,9 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
         vi.spyOn(performance, "now").mockReturnValue(afterCutoff);
       }
       await this.context.send(url, "document");
-      if (fault?.startsWith("opaque-observer-") && this.vendor === "google-browser-operation") {
+      if ((fault?.startsWith("opaque-observer-") || paired) && this.vendor === "google-browser-operation") {
+        if (fault === "paired-console-overrun") this.emit("console", { type: () => "error", text: () => "x".repeat(2049) });
+        if (fault === "paired-console") this.emit("console", { type: () => "error", text: () => "synthetic console error" });
         if (this.fixture.caseName === "unreadable-primary") throw new Error("source-test-after-opaque");
         return;
       }
@@ -404,11 +488,13 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
     async waitForFunction() {}
     async evaluate(fn, arg) {
       const source = fn.toString();
-      if (fault?.startsWith("opaque-observer-") && this.vendor === "google-browser-operation") {
+      if ((fault?.startsWith("opaque-observer-") || paired) && this.vendor === "google-browser-operation") {
         if (source.includes("window.prepareBrowserOperation()")) {
+          if (fault === "paired-operation-deadline") throw new Error("operation-opaque-deadline");
           this.worker = new EventEmitter();
           this.worker.url = () => `${this.origin}/connectors/google-ads/conversion-prototype.worker.js`;
           this.emit("worker", this.worker);
+          if (paired) await this.context.send(`${this.origin}/rig/google-browser-operation-frame.html`, "fetch");
           await this.context.send(`${this.origin}/rig/google-browser-operation-frame.html`, "document");
           this.operation = { phase: "ready", runtime: { phase: "ready", outcomes: [] } };
           return structuredClone(this.operation);
@@ -449,6 +535,22 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
           this.worker.emit("close");
           this.operation.phase = "disposed";
           return;
+        }
+        if (source.includes("window.beginDirectOpaqueControl(")) {
+          log.push(["direct-control", arg]);
+          await this.context.send(`${this.origin}/rig/google-browser-operation-frame.html`, "fetch");
+          await this.context.send(`${this.origin}/rig/google-browser-operation-frame.html`, "document");
+          await this.context.send(arg, "fetch", "POST");
+          if (fault === "paired-direct-deadline") return { disposition: "deadline" };
+          if (fault === "paired-direct-rejected") return { disposition: "rejected", httpOutcome: "UNKNOWN" };
+          return { disposition: "opaque", httpOutcome: "UNKNOWN" };
+        }
+        if (source.includes("window.disposeDirectOpaqueControl()")) {
+          log.push(["direct-dispose"]);
+          if (fault === "paired-direct-lost" || fault === "paired-direct-lost-unavailable") {
+            return "direct-realm-identity";
+          }
+          return "disposed";
         }
       }
       if (source.includes("void fetch(")) {
@@ -569,7 +671,7 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
       : fault === "prior-version" ? "156.0.8078.76" : "156.0.8078.80";
     browser.newContext = async (options) => {
       log.push(["new-context", options]);
-      return new Context(["preflight", "product", "failure"][contexts++]);
+      return new Context((paired ? ["preflight", "opaque", "opaque-direct"] : ["preflight", "product", "failure"])[contexts++]);
     };
     browser.close = async () => { log.push(["browser-close"]); browser.emit("disconnected"); };
     return browser;
@@ -578,6 +680,374 @@ async function controlledBrowser(fault = null, failureDetail = "net::ERR_ABORTED
 }
 
 describe("controlled browser events + real Node HTTP — NOT actual Chrome/worker proof", () => {
+  it("allows only one fixed captured-realm control even under concurrent calls", async () => {
+    const fixture = await originalOperationStart("opaque");
+    openFixtures.push(fixture);
+    const realm = {
+      valid: vi.fn(() => true), fetch: vi.fn(async () => ({ type: "opaque" })), dispose: vi.fn(),
+    };
+    const createRealm = vi.fn(async () => realm);
+    const createAdapter = vi.fn();
+    vi.resetModules();
+    vi.doMock("../adapters/google-browser-operation-realm.js", () => ({ createGoogleBrowserRealm: createRealm }));
+    vi.doMock("../adapters/google-ads-prototype.js", () => ({ createGoogleAdsPrototype: createAdapter }));
+    vi.stubGlobal("window", { addEventListener: vi.fn() });
+    vi.stubGlobal("location", { pathname: "/google-browser-operation" });
+    vi.stubGlobal("document", {
+      body: { dataset: {
+        case: "opaque", primary: fixture.origin, secondary: fixture.origins[1],
+        recipients: fixture.origins.slice(0, 2).join(" "),
+      } },
+      getElementById: () => ({ textContent: "" }),
+    });
+    try {
+      await import("../rig/local-browser-journeys-google.js");
+      const url = `${fixture.origins[1]}${fixture.operationPaths.secondary}`;
+      const first = window.beginDirectOpaqueControl(url);
+      const second = window.beginDirectOpaqueControl(url);
+      await expect(second).rejects.toThrow("invalid-direct-control");
+      await expect(first).resolves.toEqual({ disposition: "opaque", httpOutcome: "UNKNOWN" });
+      expect(createRealm).toHaveBeenCalledOnce();
+      expect(createAdapter).not.toHaveBeenCalled();
+      expect(createRealm.mock.calls[0][0]).toEqual(fixture.origins.slice(0, 2));
+      expect(realm.fetch).toHaveBeenCalledOnce();
+      const [target, init] = realm.fetch.mock.calls[0];
+      expect(target).toBe(url);
+      expect(init).toMatchObject({
+        method: "POST", credentials: "omit", redirect: "follow", mode: "no-cors", referrerPolicy: "no-referrer",
+        signal: expect.any(AbortSignal),
+      });
+      expect(init).not.toHaveProperty("body");
+      expect(init).not.toHaveProperty("headers");
+      expect(realm.dispose).not.toHaveBeenCalled();
+      window.disposeDirectOpaqueControl();
+      expect(realm.dispose).toHaveBeenCalledOnce();
+    } finally {
+      vi.doUnmock("../adapters/google-browser-operation-realm.js");
+      vi.doUnmock("../adapters/google-ads-prototype.js");
+      vi.resetModules();
+    }
+  }, 10000);
+
+  it("reports a direct control abort caused by its deadline as a deadline", async () => {
+    const fixture = await originalOperationStart("opaque");
+    openFixtures.push(fixture);
+    let started;
+    const startedPromise = new Promise((resolve) => { started = resolve; });
+    const realm = {
+      valid: vi.fn(() => true),
+      fetch: vi.fn((_url, init) => new Promise((_resolve, reject) => {
+        started();
+        init.signal.addEventListener("abort", () => reject(new Error("source-aborted")), { once: true });
+      })),
+      dispose: vi.fn(),
+    };
+    vi.resetModules();
+    vi.doMock("../adapters/google-browser-operation-realm.js", () => ({ createGoogleBrowserRealm: vi.fn(async () => realm) }));
+    vi.stubGlobal("window", { addEventListener: vi.fn() });
+    vi.stubGlobal("location", { pathname: "/google-browser-operation" });
+    vi.stubGlobal("document", {
+      body: { dataset: {
+        case: "opaque", primary: fixture.origin, secondary: fixture.origins[1],
+        recipients: fixture.origins.slice(0, 2).join(" "),
+      } },
+      getElementById: () => ({ textContent: "" }),
+    });
+    try {
+      await import("../rig/local-browser-journeys-google.js");
+      vi.useFakeTimers();
+      const promise = window.beginDirectOpaqueControl(`${fixture.origins[1]}${fixture.operationPaths.secondary}`);
+      void promise.catch(() => {});
+      await startedPromise;
+      await vi.advanceTimersByTimeAsync(1500);
+      await expect(promise).rejects.toThrow("direct-control-deadline");
+      window.disposeDirectOpaqueControl();
+      expect(realm.dispose).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+      vi.doUnmock("../adapters/google-browser-operation-realm.js");
+      vi.resetModules();
+    }
+  }, 10000);
+
+  it.each(["loss-callback", "invalid-realm"])("rejects %s after opaque fetch while recorder is pending", async (fault) => {
+    const fixture = await originalOperationStart("opaque");
+    openFixtures.push(fixture);
+    let onLoss;
+    let valid = true;
+    let finishRecorder;
+    let recorderSettled = false;
+    const recorder = new Promise((resolve) => { finishRecorder = resolve; }).then(() => { recorderSettled = true; });
+    const realm = {
+      valid: vi.fn(() => valid), fetch: vi.fn(async () => ({ type: "opaque" })), dispose: vi.fn(),
+    };
+    vi.resetModules();
+    vi.doMock("../adapters/google-browser-operation-realm.js", () => ({
+      createGoogleBrowserRealm: vi.fn(async (_origins, lost) => { onLoss = lost; return realm; }),
+    }));
+    vi.stubGlobal("window", { addEventListener: vi.fn() });
+    vi.stubGlobal("location", { pathname: "/google-browser-operation" });
+    vi.stubGlobal("document", {
+      body: { dataset: {
+        case: "opaque", primary: fixture.origin, secondary: fixture.origins[1],
+        recipients: fixture.origins.slice(0, 2).join(" "),
+      } },
+      getElementById: () => ({ textContent: "" }),
+    });
+    try {
+      await import("../rig/local-browser-journeys-google.js");
+      const url = `${fixture.origins[1]}${fixture.operationPaths.secondary}`;
+      await expect(window.beginDirectOpaqueControl(url)).resolves.toEqual({ disposition: "opaque", httpOutcome: "UNKNOWN" });
+      expect(recorderSettled).toBe(false);
+      if (fault === "loss-callback") onLoss();
+      else valid = false;
+      finishRecorder();
+      await recorder;
+      expect(() => window.disposeDirectOpaqueControl()).toThrow("direct-realm-identity");
+      expect(realm.dispose).not.toHaveBeenCalled();
+      expect(realm.fetch.mock.calls[0][1].signal.aborted).toBe(false);
+    } finally {
+      vi.doUnmock("../adapters/google-browser-operation-realm.js");
+      vi.resetModules();
+    }
+  }, 10000);
+
+  it.each(["foreign-origin", "changed-query"])("rejects a %s direct target without a fetch or retry", async (fault) => {
+    const fixture = await originalOperationStart("opaque");
+    openFixtures.push(fixture);
+    const createRealm = vi.fn();
+    vi.resetModules();
+    vi.doMock("../adapters/google-browser-operation-realm.js", () => ({ createGoogleBrowserRealm: createRealm }));
+    vi.stubGlobal("window", { addEventListener: vi.fn() });
+    vi.stubGlobal("location", { pathname: "/google-browser-operation" });
+    vi.stubGlobal("document", {
+      body: { dataset: {
+        case: "opaque", primary: fixture.origin, secondary: fixture.origins[1],
+        recipients: fixture.origins.slice(0, 2).join(" "),
+      } },
+      getElementById: () => ({ textContent: "" }),
+    });
+    try {
+      await import("../rig/local-browser-journeys-google.js");
+      const fixed = `${fixture.origins[1]}${fixture.operationPaths.secondary}`;
+      const bad = fault === "foreign-origin" ? `https://example.test${fixture.operationPaths.secondary}` : `${fixed}&extra=1`;
+      await expect(window.beginDirectOpaqueControl(bad)).rejects.toThrow("invalid-direct-control");
+      await expect(window.beginDirectOpaqueControl(fixed)).rejects.toThrow("invalid-direct-control");
+      expect(createRealm).not.toHaveBeenCalled();
+    } finally {
+      vi.doUnmock("../adapters/google-browser-operation-realm.js");
+      vi.resetModules();
+    }
+  }, 10000);
+
+  it.each([
+    ["paired-both-pass", "PASS", "PASS", "UNREPRODUCED"],
+    ["paired-baseline-unavailable", "FAILED", "PASS", "DIFFERENTIAL"],
+    ["paired-direct-unavailable", "PASS", "FAILED", "DIFFERENTIAL"],
+    ["paired-both-unavailable", "FAILED", "FAILED", "MATCHED_FAILURE"],
+    ["paired-mismatched-headers", "PASS", "PASS", "MISMATCHED"],
+    ["paired-baseline-requestfailed", "FAILED", "PASS", "DIFFERENTIAL"],
+    ["paired-both-requestfailed", "FAILED", "FAILED", "MATCHED_FAILURE"],
+    ["paired-direct-rejected", "PASS", "FAILED", "DIFFERENTIAL"],
+  ])("retains paired fake observer outcomes for %s without qualification", async (fault, baseline, direct, comparison) => {
+    const fake = await controlledBrowser(fault);
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "156.0.8078.80", "");
+      return {};
+    });
+    const report = await foregroundModule.runGoogleOpaqueDiagnosticForeground();
+    const result = report.vendors[0];
+    const evidence = result.privateEvidence.diagnostic;
+    expect(report.normalJourneyChecks).toBe("FAILED");
+    expect(result.normalJourneyChecks).toBe("FAILED");
+    expect(evidence.baseline.status).toBe(baseline);
+    expect(evidence.direct.status).toBe(direct);
+    expect(evidence.opaqueHTTPOutcome).toBe("UNKNOWN");
+    expect(evidence.match).toMatchObject({
+      target: true, method: true, bodyBytes: true, framePolicy: true,
+      headers: fault !== "paired-mismatched-headers", mode: "no-cors", credentials: "omit",
+      redirect: "follow", referrerPolicy: "no-referrer",
+      responseStatus: true,
+      responseBody: fault.includes("unavailable") ? "UNKNOWN" : true,
+    });
+    const baselinePost = result.privateEvidence.requests.find((row) => row.mode === "opaque" && row.method === "POST");
+    const directPost = result.privateEvidence.requests.find((row) => row.mode === "opaque-direct" && row.method === "POST");
+    const withoutDate = (headers) => headers.filter(([name]) => name.toLowerCase() !== "date");
+    expect(withoutDate(baselinePost.responseHeaders)).toEqual(withoutDate(directPost.responseHeaders));
+    const baselineDate = baselinePost.responseHeaders.find(([name]) => name.toLowerCase() === "date")?.[1];
+    const directDate = directPost.responseHeaders.find(([name]) => name.toLowerCase() === "date")?.[1];
+    expect(evidence.match.responseHeaders).toBe(baselineDate === directDate);
+    expect(result.pairedDiagnostic).toEqual({
+      execution: "COMPLETED", comparison: baselineDate === directDate ? comparison : "MISMATCHED",
+    });
+    expect(result.counts.workerEvents).toBe(1);
+    expect(fake.log.filter(([name]) => name === "new-context")).toHaveLength(3);
+    expect(fake.log.filter(([name]) => name === "direct-control")).toHaveLength(1);
+    expect(result.cleanup.contexts).toEqual([true, true, true]);
+    expect(result.cleanup.fixtures).toEqual([true, true]);
+    expect(result.counts.measurementAttempts).toBe(6);
+    expect(result.privateEvidence.receiverDocuments.opaque.map((row) => row.stage))
+      .toEqual(["primary", "secondary", "secondary"]);
+    expect(result.privateEvidence.requests.filter((row) => row.mode === "opaque-direct" && row.kind === "measurement"))
+      .toHaveLength(1);
+    if (baseline === "FAILED") expect(result.errors).toContain(
+      fault.includes("requestfailed") ? "opaque-request-failed" : "response-body-unavailable",
+    );
+    expect(evidence.protocol.opaque).toMatchObject({ status: "observing", requestId: "test.1", finished: true });
+    expect(evidence.protocol["opaque-direct"]).toMatchObject({ status: "observing", requestId: "test.1", finished: true });
+    expect(result.privateEvidence.requests.find((row) => row.mode === "opaque" && row.method === "POST").responseHeaders)
+      .toEqual(expect.arrayContaining([["content-length", "0"]]));
+  }, 10000);
+
+  it.each([
+    ["paired-concurrent-fatal", "page-error"],
+    ["paired-header-overrun", "diagnostic-header-limit"],
+    ["paired-console-overrun", "diagnostic-console-limit"],
+    ["paired-close-failure", "context-close-failed"],
+    ["paired-operation-deadline", "operation-opaque-deadline"],
+    ["paired-protocol-duplicate", "diagnostic-protocol-identity"],
+  ])("stops a paired fake run on %s and does not start the direct control", async (fault, error) => {
+    const fake = await controlledBrowser(fault);
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "156.0.8078.80", "");
+      return {};
+    });
+    const result = (await foregroundModule.runGoogleOpaqueDiagnosticForeground()).vendors[0];
+    expect(result.errors).toContain(error);
+    expect(result.pairedDiagnostic).toEqual({ execution: "INCOMPLETE", comparison: "UNKNOWN" });
+    expect(fake.log.some(([name]) => name === "direct-control")).toBe(false);
+  }, 10000);
+
+  it("reports unavailable passive protocol data as UNKNOWN in the fake", async () => {
+    await controlledBrowser("paired-protocol-unknown");
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "156.0.8078.80", "");
+      return {};
+    });
+    const result = (await foregroundModule.runGoogleOpaqueDiagnosticForeground()).vendors[0];
+    expect(result.privateEvidence.diagnostic.protocol.opaque).toMatchObject({
+      status: "UNKNOWN", requestId: "UNKNOWN", finished: "UNKNOWN", failure: "UNKNOWN",
+      canceled: "UNKNOWN", blockedReason: "UNKNOWN",
+    });
+  }, 10000);
+
+  it("correlates bounded fake protocol failure fields only to each context's request", async () => {
+    await controlledBrowser("paired-protocol-failure");
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "156.0.8078.80", "");
+      return {};
+    });
+    const result = (await foregroundModule.runGoogleOpaqueDiagnosticForeground()).vendors[0];
+    for (const mode of ["opaque", "opaque-direct"]) {
+      const protocol = result.privateEvidence.diagnostic.protocol[mode];
+      expect(protocol).toMatchObject({
+        status: "observing", requestId: "test.1", failure: "net::ERR_ABORTED", canceled: true, blockedReason: "csp",
+      });
+      expect(result.privateEvidence.requests[protocol.requestIndex]).toMatchObject({ mode, kind: "measurement", method: "POST" });
+    }
+  }, 10000);
+
+  it("retains bounded fake console errors as private observations", async () => {
+    await controlledBrowser("paired-console");
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "156.0.8078.80", "");
+      return {};
+    });
+    const result = (await foregroundModule.runGoogleOpaqueDiagnosticForeground()).vendors[0];
+    expect(result.privateEvidence.diagnostic.consoleStatus).toEqual({ opaque: "observing", "opaque-direct": "observing" });
+    expect(result.privateEvidence.diagnostic.consoleErrors).toEqual([
+      { mode: "opaque", text: "synthetic console error" },
+      { mode: "opaque-direct", text: "synthetic console error" },
+    ]);
+  }, 10000);
+
+  it("reports request header comparison UNKNOWN when full headers are unavailable", async () => {
+    await controlledBrowser("paired-requestheaders-unknown");
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "156.0.8078.80", "");
+      return {};
+    });
+    const result = (await foregroundModule.runGoogleOpaqueDiagnosticForeground()).vendors[0];
+    expect(result.pairedDiagnostic).toEqual({ execution: "COMPLETED", comparison: "UNKNOWN" });
+    expect(result.privateEvidence.diagnostic.match.headers).toBe("UNKNOWN");
+  }, 10000);
+
+  it("retains a differential observer result while response matching is UNKNOWN", async () => {
+    await controlledBrowser("paired-baseline-noresponse");
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "156.0.8078.80", "");
+      return {};
+    });
+    const result = (await foregroundModule.runGoogleOpaqueDiagnosticForeground()).vendors[0];
+    expect(result.pairedDiagnostic).toEqual({ execution: "COMPLETED", comparison: "UNKNOWN" });
+    const evidence = result.privateEvidence.diagnostic;
+    expect(evidence.observationComparison).toBe("DIFFERENTIAL");
+    expect(evidence.baseline).toEqual({ status: "FAILED", errors: ["opaque-request-failed"] });
+    expect(evidence.match).toMatchObject({
+      responseStatus: "UNKNOWN", responseHeaders: "UNKNOWN", responseBody: "UNKNOWN",
+    });
+  }, 10000);
+
+  it("stops a direct-control deadline without reporting diagnostic completion", async () => {
+    const fake = await controlledBrowser("paired-direct-deadline");
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "156.0.8078.80", "");
+      return {};
+    });
+    const result = (await foregroundModule.runGoogleOpaqueDiagnosticForeground()).vendors[0];
+    expect(result.errors).toContain("direct-control-deadline");
+    expect(result.pairedDiagnostic).toEqual({ execution: "INCOMPLETE", comparison: "UNKNOWN" });
+    expect(fake.log.filter(([name]) => name === "direct-control")).toHaveLength(1);
+    expect(result.normalJourneyChecks).toBe("FAILED");
+  }, 10000);
+
+  it.each(["paired-direct-lost", "paired-direct-lost-unavailable"])(
+    "keeps %s fatal after direct observer settlement", async (fault) => {
+      const fake = await controlledBrowser(fault);
+      vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+        callback(null, "156.0.8078.80", "");
+        return {};
+      });
+      const result = (await foregroundModule.runGoogleOpaqueDiagnosticForeground()).vendors[0];
+      expect(result.errors).toContain("direct-realm-identity");
+      if (fault.endsWith("-unavailable")) expect(result.errors).toContain("response-body-unavailable");
+      expect(result.pairedDiagnostic).toEqual({ execution: "INCOMPLETE", comparison: "UNKNOWN" });
+      expect(result.normalJourneyChecks).toBe("FAILED");
+      expect(fake.log.filter(([name]) => name === "direct-control")).toHaveLength(1);
+      expect(result.cleanup.contexts).toEqual([true, true, true]);
+      expect(result.cleanup.fixtures).toEqual([true, true]);
+    }, 10000,
+  );
+
+  it("does not hide a late unrelated frame observer failure after a successful baseline", async () => {
+    const fake = await controlledBrowser("paired-late-frame");
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "156.0.8078.80", "");
+      return {};
+    });
+    const result = (await foregroundModule.runGoogleOpaqueDiagnosticForeground()).vendors[0];
+    expect(result.errors).toContain("diagnostic-unexpected-observer");
+    expect(result.pairedDiagnostic).toEqual({ execution: "INCOMPLETE", comparison: "UNKNOWN" });
+    expect(fake.log.some(([name]) => name === "direct-control")).toBe(false);
+  }, 10000);
+
+  it.each([
+    ["paired-content-type", "diagnostic-response-headers"],
+    ["paired-cors-header", "diagnostic-response-headers"],
+    ["paired-response-nonzero", "diagnostic-response-body"],
+    ["paired-response-status", "diagnostic-response-status"],
+  ])("rejects altered synthetic response evidence for %s", async (fault, error) => {
+    const fake = await controlledBrowser(fault);
+    vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+      callback(null, "156.0.8078.80", "");
+      return {};
+    });
+    const result = (await foregroundModule.runGoogleOpaqueDiagnosticForeground()).vendors[0];
+    expect(result.errors).toContain(error);
+    expect(result.pairedDiagnostic).toEqual({ execution: "INCOMPLETE", comparison: "UNKNOWN" });
+    expect(fake.log.some(([name]) => name === "direct-control")).toBe(false);
+  }, 10000);
+
   it("requests and retains the fixed no-proxy flag for the Google operation launcher", async () => {
     const fake = await controlledBrowser("opaque-observer-unavailable");
     vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
