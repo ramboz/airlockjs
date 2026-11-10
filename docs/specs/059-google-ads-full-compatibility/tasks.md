@@ -4,6 +4,30 @@ The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
 
+## Admitted local packet result - 2026-11-10
+
+- [x] Verify the exact parent admission,1181891f/tree5ff5863c, source/binary
+      pins and fresh workspace-local scratch before the single start.
+- [x] Execute the exact Google-only selector once. Actual version/owned flag
+      and independent allow/deny/bypass preflight passed; readable completed.
+- [x] Stop at strict opaque request/body failure with exit1. Retain the settled
+      runtime snapshot and abort-before-cleanup host order. No retry or repair.
+- [x] Retain known fixture socket/response/listener settlement, context/worker/
+      root evidence and exact root/profile absence, separately from
+      UNKNOWN/manual helpers and unproved descendants/loss cleanup.
+- [x] Freeze ten runtime artifacts plus inventory/receipt and preserve all
+      old72/115/73 artifact cohorts. External CLI completion is actual child
+      tool/process-parent observation; the root did not directly read shell1924.
+- [x] Complete actual pinned Sol documentary reconciliation and prepare the
+      documentary handoff. Its private final receipt records commit/sealing
+      after they succeed. No executable/source requalification follows.
+- [ ] Remaining local negative cases, complete current-browser qualification
+      and full059 product evidence. This execution grants no further start.
+
+The [actual packet result](plan.md#admitted-local-packet-result---2026-11-10)
+remains failed/non-clearing. Earlier dated source/admission notes stay
+historical; they are not rewritten as runtime proof.
+
 ## Proxy-disable correction - 2026-11-10
 
 - [x] Continue from parent-adopted a2a5d185 without resetting the original

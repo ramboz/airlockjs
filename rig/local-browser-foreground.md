@@ -1,5 +1,37 @@
 # Fixed local foreground procedure
 
+## Admitted packet stopped - 2026-11-10
+
+The parent expressly admitted one exact1181891f/tree5ff5863c Google packet.
+It executed once and stopped at opaque `net::ERR_ABORTED` and required-body
+unavailability. The execution grant is consumed. No retry, source repair or
+later acquisition is authorized.
+
+Actual Chrome156.0.8078.80/owned no-proxy argument and independent receiver
+allow/deny/bypass preflight were observed. Readable GET200/POST302/GET200
+completed. Opaque runtime settled with HTTP UNKNOWN, but the independent
+secondary POST body remained unavailable. The strict failure is preserved;
+later negative/control cases did not run.
+
+Host-order evidence places the request failure before the failure snapshot and
+owned opaque cleanup. It does not establish an underlying browser cause,
+cross-clock ordering or a historical cause. Known fixture socket/response/
+listener state closed; three contexts, two workers and the known root closed.
+External exact-PID/profile checks found both absent. Helpers remain
+UNKNOWN/manual, and descendants/loss cleanup unproved. The aggregate failed
+cleanup disposition is not relabelled PASS.
+
+The child coordinator directly observed external CLI exit1 after2997.149292ms
+and tool/process-parent shell1924 completed/exit1. The root cannot directly read
+that handle across providers. The raw completion JSON, exact executed wrapper
+and archived actual tool report preserve that attribution. In-harness
+publication was acknowledged at2481ms. All original finite ceilings held.
+
+The [dated result](../docs/specs/059-google-ads-full-compatibility/plan.md#admitted-local-packet-result---2026-11-10)
+links the immutable private packet hashes and remaining limits. Only
+documentary reconciliation/handoff follows. Older source-only admission notes
+below remain unchanged; full059 stays non-clearing.
+
 ## Prospective proxy-disable correction - 2026-11-10
 
 **NOT ADMITTED.** The Google browser-operation selector now requests the fixed
