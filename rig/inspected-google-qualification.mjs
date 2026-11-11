@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { createHash, X509Certificate } from "node:crypto";
 import { chmodSync, closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync,
   realpathSync, unlinkSync, writeFileSync } from "node:fs";
@@ -16,6 +16,7 @@ import { startLocalGoogleAuthorityBypass, startLocalGoogleInspectedTransport, st
 import { inspectedMetaSourcePins } from "./inspected-meta-stock.mjs";
 import { currentGoogleCohort, isSupportedGoogleChromeVersion } from "./inspected-google-cohort.mjs";
 import { writeGoogleOriginals } from "./inspected-google-originals.mjs";
+import { isOwnedGoogleWitnessCustody } from "./inspected-google-witness.mjs";
 
 const execute = promisify(execFile);
 const DOCUMENT = "https://owned.example/inspection";
@@ -37,9 +38,86 @@ const profile = () => ({
 });
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+export async function runLocalGoogleScenarioDriver(total, step, custody, stop) {
+  if (!Number.isInteger(total) || total < 1 || total > 21 || typeof step !== "function"
+    || !custody || typeof custody.onChild !== "function" || typeof custody.onFailure !== "function"
+    || typeof stop !== "function") fail("invalid_google_scenario");
+  const program = fileURLToPath(new URL("./inspected-google-qualification.mjs", import.meta.url));
+  const child = spawn(process.execPath, [program, "--scenario-driver"], {
+    cwd: resolve(fileURLToPath(new URL("..", import.meta.url))),
+    stdio: ["ignore", "pipe", "pipe", "ipc"],
+  });
+  custody.onChild(child);
+  let next = 0, pending = false, failure = null, exit = null, activeStep = Promise.resolve();
+  const failDriver = error => {
+    if (failure) return;
+    failure = error;
+    try { stop(); } finally { custody.onFailure("scenario_incomplete"); }
+  };
+  child.once("exit", (code, signal) => { exit = { code, signal }; });
+  child.on("message", message => {
+    if (!message || Object.getPrototypeOf(message) !== Object.prototype
+      || Reflect.ownKeys(message).length !== 2 || message.type !== "step"
+      || !Number.isInteger(message.index) || message.index !== next || pending || failure || next >= total) {
+      failDriver(Error("invalid_google_scenario_message"));
+      return;
+    }
+    pending = true;
+    activeStep = Promise.resolve().then(() => step(next)).then(() => {
+      pending = false;
+      if (failure) return;
+      next++;
+      if (child.connected) {
+        try { child.send({ type: "step-result", index: next - 1 }); }
+        catch (error) { failDriver(error); }
+      } else failDriver(Error("google_scenario_channel_closed"));
+    }, error => {
+      pending = false;
+      failDriver(error);
+    });
+  });
+  const closed = new Promise(resolve => {
+    child.on("error", failDriver);
+    child.on("disconnect", () => {
+      if (next !== total || pending) failDriver(Error("google_scenario_channel_closed"));
+    });
+    child.once("close", (code, signal) => resolve({ code, signal }));
+  });
+  try { child.send({ type: "scenario", total }); }
+  catch (error) { failDriver(error); }
+  const close = await closed;
+  await activeStep;
+  if (failure) throw failure;
+  if (pending || next !== total || !exit || exit.code !== 0 || exit.signal !== null
+    || close.code !== exit.code || close.signal !== exit.signal) throw Error("google_scenario_incomplete");
+}
+
+function runScenarioDriverChild() {
+  if (!process.send || !process.connected) throw Error("google_scenario_channel_required");
+  let total = null, next = 0;
+  process.on("message", message => {
+    if (total === null && message?.type === "scenario" && Number.isInteger(message.total)
+      && message.total >= 1 && message.total <= 21 && Reflect.ownKeys(message).length === 2) {
+      total = message.total;
+      process.send({ type: "step", index: next });
+      return;
+    }
+    if (total !== null && message?.type === "step-result" && message.index === next
+      && Reflect.ownKeys(message).length === 2) {
+      if (++next === total) process.disconnect();
+      else process.send({ type: "step", index: next });
+      return;
+    }
+    process.exitCode = 1;
+    process.disconnect();
+  });
+}
+
 export async function closeLocalGoogleBrowser({ context, browser, browserServer, launchAttempted, transport,
-  settle, cleanup, errors }) {
-  if (transport) transport.closeAdmission();
+  settle, cleanup, errors, custody }) {
+  for (const [name, value] of Object.entries({ context, browser, browserServer }))
+    if (value) custody?.onResource(name, value);
+  if (transport) try { transport.closeAdmission(); } catch { errors.push("admission_close_failed"); }
   if (context) try { await settle(context.close()); } catch { errors.push("context_close_failed"); }
   if (browser) try { await settle(browser.close()); } catch { errors.push("browser_close_failed"); }
   if (browserServer) try { await settle(browserServer.close(), 8000); } catch (error) {
@@ -47,7 +125,10 @@ export async function closeLocalGoogleBrowser({ context, browser, browserServer,
     errors.push("browser_server_close_failed");
   }
   let child;
-  if (browserServer) try { child = browserServer.process(); } catch { errors.push("browser_process_ownership_unavailable"); }
+  if (browserServer) try {
+    child = browserServer.process();
+    if (child) custody?.onResource("browserProcess", child);
+  } catch { errors.push("browser_process_ownership_unavailable"); }
   const exited = () => child && (Number.isInteger(child.exitCode) || typeof child.signalCode === "string");
   if (child && !exited()) {
     try { await settle(browserServer.kill(), 2000); } catch { errors.push("browser_process_close_failed"); }
@@ -55,23 +136,13 @@ export async function closeLocalGoogleBrowser({ context, browser, browserServer,
   cleanup.browser_process_exited = child ? Boolean(exited()) : !launchAttempted && !browserServer;
   cleanup.ipv6_guard_at_browser_exit = cleanup.browser_process_exited
     && Boolean(transport?.snapshot().ipv6_guard_listening);
-  cleanup.transport_guard_retained = Boolean(transport && !cleanup.browser_process_exited
-    && transport.snapshot().ipv6_guard_listening);
+  cleanup.transport_guard_retained = Boolean(transport?.snapshot().ipv6_guard_listening);
   if (!cleanup.browser_process_exited) {
     errors.push("cleanup_incomplete");
     if (transport && !cleanup.transport_guard_retained) errors.push("ipv6_guard_not_retained");
-    if (child && transport && typeof child.once === "function") {
-      let closing = false;
-      const closeAfterExit = () => {
-        if (closing || !exited()) return;
-        closing = true;
-        transport.close().catch(() => { process.stderr.write("local_google_deferred_transport_close_failed\n"); });
-      };
-      child.once("exit", closeAfterExit);
-      closeAfterExit();
-    } else if (child && transport) errors.push("browser_process_exit_unobservable");
-  } else if (transport) {
-    try { await settle(transport.close()); } catch { errors.push("transport_close_failed"); }
+  }
+  if (transport) {
+    errors.push("guard_release_unqualified");
   }
 }
 
@@ -105,7 +176,7 @@ function diagnosticBypass(transparent = false) {
 }
 
 /** Fixed SDK-free loopback controls. This entry cannot execute native source. */
-export async function runLocalGoogleQualification(options) {
+export async function runLocalGoogleQualification(options, custody) {
   if (!options || isProxy(options) || Object.getPrototypeOf(options) !== Object.prototype
     || Reflect.ownKeys(options).length !== 3
     || Reflect.ownKeys(options).some(key => !["protocol", "control", "outputDir"].includes(key)
@@ -126,6 +197,12 @@ export async function runLocalGoogleQualification(options) {
     || (options.control.startsWith("goaway") && options.protocol !== "h2")
     || typeof options.outputDir !== "string" || !isAbsolute(options.outputDir)
     || resolve(options.outputDir) !== options.outputDir) fail("invalid_google_qualification");
+  if (!isOwnedGoogleWitnessCustody(custody)
+    || !Number.isFinite(custody.started) || !Number.isFinite(custody.expires)
+    || custody.started > performance.now() || custody.expires > Date.now() + 60000
+    || typeof custody.onTransport !== "function" || typeof custody.onChild !== "function"
+    || typeof custody.onFailure !== "function" || typeof custody.onResource !== "function"
+    || typeof custody.stopped !== "function") fail("google_witness_required");
   const { protocol, control, outputDir } = options, parent = lstatSync(dirname(outputDir));
   if (!parent.isDirectory() || parent.isSymbolicLink() || parent.uid !== process.getuid()
     || (parent.mode & 0o7777) !== 0o700) fail("invalid_google_output_parent");
@@ -138,26 +215,36 @@ export async function runLocalGoogleQualification(options) {
   mkdirSync(outputDir, { mode: 0o700 });
   const directoryFd = openSync(dirname(outputDir), "r");
   try { fsyncSync(directoryFd); } finally { closeSync(directoryFd); }
-  const started = performance.now(), expires = Date.now() + 60000;
+  const { started, expires } = custody;
   const check = () => {
-    if (Date.now() >= expires || performance.now() - started >= 60000) fail("qualification_expired");
+    if (custody.stopped() || Date.now() >= expires || performance.now() - started >= 60000) fail("qualification_expired");
   };
   let admissionDeadline = Infinity;
   const checkAdmission = () => {
     check();
     if (control === "expiration" && performance.now() >= admissionDeadline) fail("case_window_inactive");
   };
+  const pendingOperations = new Set();
+  let retainNextHandle = false;
+  const ownOperation = promise => {
+    const operation = Promise.resolve(promise);
+    pendingOperations.add(operation);
+    operation.then(() => pendingOperations.delete(operation), () => pendingOperations.delete(operation));
+    return operation;
+  };
   const wait = async (promise, maximum = 5000) => {
+    const operation = ownOperation(promise);
     check();
+    if (retainNextHandle) { retainNextHandle = false; return operation; }
     const remaining = Math.min(maximum, expires - Date.now(), 60000 - (performance.now() - started));
     let timer;
-    try { return await Promise.race([promise, new Promise((_, reject) => {
+    try { return await Promise.race([operation, new Promise((_, reject) => {
       timer = setTimeout(() => reject(Error("qualification_timeout")), Math.max(1, remaining));
     })]); } finally { clearTimeout(timer); }
   };
   const settle = async (promise, maximum = 5000) => {
     let timer;
-    try { return await Promise.race([promise, new Promise((_, reject) => {
+    try { return await Promise.race([ownOperation(promise), new Promise((_, reject) => {
       timer = setTimeout(() => reject(Error("cleanup_timeout")), maximum);
     })]); } finally { clearTimeout(timer); }
   };
@@ -170,7 +257,10 @@ export async function runLocalGoogleQualification(options) {
   let guard = true, guardAtClose = false, faultInjected = false, launchAttempted = false;
   const track = promise => {
     tasks.add(promise);
-    promise.catch(() => errors.push("cdp_event_failed")).finally(() => tasks.delete(promise));
+    promise.catch(() => {
+      errors.push("cdp_event_failed");
+      custody.onFailure("cdp_event_failed");
+    }).finally(() => tasks.delete(promise));
   };
   const own = socket => { sockets.add(socket); socket.on("error", () => {});
     socket.once("close", () => sockets.delete(socket)); };
@@ -185,12 +275,14 @@ export async function runLocalGoogleQualification(options) {
     return value;
   };
   const certificate = async (name, names = NAMES) => {
+    check();
     const key = join(outputDir, name + "-key.pem"), cert = join(outputDir, name + "-cert.pem");
     files.push(key, cert);
-    await execute("/usr/bin/openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", key,
+    await ownOperation(execute("/usr/bin/openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", key,
       "-out", cert, "-days", "1", "-subj", "/CN=www.googleadservices.com",
       "-addext", "subjectAltName=" + names.map(host => "DNS:" + host).join(",")],
-    { timeout: 5000, maxBuffer: 8192 });
+    { timeout: 5000, maxBuffer: 8192 }));
+    check();
     chmodSync(key, 0o600); chmodSync(cert, 0o600);
     return { key: readFileSync(key), cert: readFileSync(cert) };
   };
@@ -266,37 +358,54 @@ export async function runLocalGoogleQualification(options) {
       }
       res.end(body);
     });
-    await wait(new Promise((resolve, reject) => {
+    await ownOperation(new Promise((resolve, reject) => {
       sink.once("error", reject); sink.listen(0, "127.0.0.1", resolve);
     }));
+    check();
     const startTransport = control === "authority-bypass" ? startLocalGoogleAuthorityBypass
       : protocolControl ? startLocalGoogleProtocolControl : startLocalGoogleInspectedTransport;
     transport = await startTransport({ inspector, protocol, observer, check: checkAdmission, wait,
+      onCustody: custody.onTransport, onFailure: custody.onFailure,
       receiver: { port: sink.address().port, certificate: control === "certificate" ? inspector.cert : upstream.cert,
         logicalAuthority: authority => logical.some(row => new URL(row.url).host + ":443" === authority) } }, bypass);
+    custody.onTransport(transport);
+    check();
     const { chromium } = await import("playwright");
+    check();
     socketDir = realpathSync(tmpdir());
     launchAttempted = true;
-    browserServer = await chromium.launchServer({ executablePath: fileURLToPath(new URL("./inspected-google-loopback-chrome", import.meta.url)),
+    browserServer = await ownOperation(chromium.launchServer({ executablePath: fileURLToPath(new URL("./inspected-google-loopback-chrome", import.meta.url)),
       host: "127.0.0.1", headless: true, timeout: 10000, proxy: { server: "http://127.0.0.1:" + transport.port },
       env: { ...process.env, TMPDIR: socketDir, AIRLOCK_GOOGLE_SOCKET_DIR: socketDir,
         AIRLOCK_GOOGLE_BROKER_PORT: String(transport.port) },
-      args: ["--disable-background-networking", "--dns-prefetch-disable", `--ignore-certificate-errors-spki-list=${spki}`] });
+      args: ["--disable-background-networking", "--dns-prefetch-disable", `--ignore-certificate-errors-spki-list=${spki}`] }));
+    custody.onResource("browserServer", browserServer);
+    const ownedBrowserProcess = browserServer.process();
+    if (ownedBrowserProcess) custody.onResource("browserProcess", ownedBrowserProcess);
+    check();
     if (new URL(browserServer.wsEndpoint()).hostname !== "127.0.0.1") fail("driver_not_loopback");
+    // Keep ownership of a late browser handle rather than racing it away.
+    retainNextHandle = true;
     browser = await wait(chromium.connect(browserServer.wsEndpoint()));
     if (!isSupportedGoogleChromeVersion(browser.version())) fail("browser_cohort_mismatch");
-    transport.attachOwnedBrowser(await wait(browser.newBrowserCDPSession()));
-    context = await wait(browser.newContext({ serviceWorkers: "block" }));
+    transport.attachOwnedBrowser(await ownOperation((check(), browser.newBrowserCDPSession())));
+    custody.onResource("browser", browser);
+    check();
+    context = await ownOperation(browser.newContext({ serviceWorkers: "block" }));
+    custody.onResource("context", context);
+    check();
     context.once("close", () => { guardAtClose = guard; });
-    page = await wait(context.newPage()); cdp = await wait(context.newCDPSession(page));
+    page = await ownOperation(context.newPage()); check();
+    cdp = await ownOperation(context.newCDPSession(page)); check();
     cdp.on("Network.requestWillBeSent", event => {
       if (networkEvents.length >= 64) {
-        errors.push("observation_overflow"); observer.stop("observation_overflow"); transport.closeAdmission(); return;
+        errors.push("observation_overflow"); observer.stop("observation_overflow");
+        custody.onFailure("observation_overflow"); return;
       }
       try { networkEvents.push(retain({ network_id: event.requestId, url: event.request.url, method: event.request.method,
         resource_type: event.type, redirect_url: event.redirectResponse?.url ?? null,
         redirect_status: event.redirectResponse?.status ?? null })); }
-      catch { errors.push("aggregate_overflow"); observer.stop("aggregate_overflow"); transport.closeAdmission(); }
+      catch { errors.push("aggregate_overflow"); observer.stop("aggregate_overflow"); custody.onFailure("aggregate_overflow"); }
     });
     await wait(cdp.send("Network.enable"));
     cdp.on("Fetch.requestPaused", event => track((async () => {
@@ -337,6 +446,7 @@ export async function runLocalGoogleQualification(options) {
           ...Object.entries(event.request.headers).map(([name, value]) => ({ name, value })),
           { name: "X-Padding", value: "a".repeat(65536) },
         ];
+        check();
         await cdp.send("Fetch.continueRequest", parameters);
       } else await cdp.send("Fetch.failRequest", { requestId: event.requestId, errorReason: "BlockedByClient" });
     })()));
@@ -351,7 +461,9 @@ export async function runLocalGoogleQualification(options) {
     const bodyControl = control.startsWith("body");
     const total = certificateFault || protocolControl || control === "no-ticket" || control === "redirect" || responseLimit || headerLimit || truncated ? 1
       : control.startsWith("budget") ? 21 : retry ? 20 : aggregate ? 4 : 2;
-    for (let n = 0; n < total; n++) {
+    check();
+    await runLocalGoogleScenarioDriver(total, async n => {
+      check();
       const primary = control.startsWith("close") || aggregate || n % 2 === 0;
       const sendBody = bodyControl && n === 1;
       if (control === "close" && n === 1) transport.closeAdmission();
@@ -369,6 +481,7 @@ export async function runLocalGoogleQualification(options) {
       const kind = (["marker", "path", "changed-input", "authority"].some(value => control.startsWith(value)) && n === 1) || sendBody
         ? "xhr" : primary ? "xhr" : "image";
       if (control.startsWith("response-parent-incomplete") && n === 0) {
+        check();
         await wait(page.evaluate(url => {
           window.__heldParent = new Promise(resolve => {
             const xhr = new XMLHttpRequest();
@@ -385,8 +498,9 @@ export async function runLocalGoogleQualification(options) {
         if (!heldParent || !bypass && observer.originals().responses[0]?.state !== "streaming")
           fail("incomplete_parent_not_observed");
         faultInjected = true;
-        continue;
+        return;
       }
+      check();
       const outcome = await wait(page.evaluate(({ url, kind, sendBody }) => new Promise(resolve => {
         if (kind === "image") {
           const image = new Image();
@@ -407,7 +521,7 @@ export async function runLocalGoogleQualification(options) {
         outputs.unshift(retain(await wait(page.evaluate(() => window.__heldParent), 5000)));
       }
       if (control === "abort" && n === 0) fail("synthetic_abort");
-    }
+    }, custody, () => transport?.closeAdmission());
     await wait(Promise.allSettled([...tasks]));
     cookies = retain(await wait(context.cookies()));
     const expected = certificateFault || protocolControl && !bypass || control === "no-ticket" || (headerLimit && !bypass) ? 0
@@ -473,8 +587,9 @@ export async function runLocalGoogleQualification(options) {
       fail("receiving_control_failed");
   } catch (error) {
     errors.push(error.message);
+    custody.onFailure("qualification_incomplete");
   } finally {
-    await closeLocalGoogleBrowser({ context, browser, browserServer, launchAttempted, transport, settle, cleanup, errors });
+    await closeLocalGoogleBrowser({ context, browser, browserServer, launchAttempted, transport, settle, cleanup, errors, custody });
     cleanup.guard_at_context_close = guardAtClose;
     if (cleanup.browser_process_exited) guard = false;
     for (const session of sessions) session.destroy();
@@ -485,12 +600,14 @@ export async function runLocalGoogleQualification(options) {
     for (let n = 0; n < 100 && (sockets.size || sessions.size || transport && !transport.snapshot().sockets_closed); n++) await sleep(10);
     cleanup.receiver_sockets_closed = sockets.size === 0; cleanup.receiver_sessions_closed = sessions.size === 0;
     cleanup.cdp_tasks_settled = tasks.size === 0;
+    cleanup.pending_operations = pendingOperations.size;
     cleanup.transport = transport?.snapshot() ?? null;
     for (const file of files) try { if (existsSync(file)) unlinkSync(file); } catch { errors.push("certificate_cleanup_failed"); }
     cleanup.keys_removed = files.every(file => !existsSync(file));
     if (!cleanup.guard_at_context_close || !cleanup.browser_process_exited || !cleanup.ipv6_guard_at_browser_exit || !cleanup.receiver_sockets_closed
       || !cleanup.receiver_sessions_closed || !cleanup.keys_removed || !cleanup.transport?.server_closed
-      || !cleanup.transport?.sockets_closed || !cleanup.transport?.tasks_settled || !cleanup.cdp_tasks_settled)
+      || !cleanup.transport?.sockets_closed || !cleanup.transport?.tasks_settled || !cleanup.cdp_tasks_settled
+      || cleanup.pending_operations !== 0)
       if (!errors.includes("cleanup_incomplete")) errors.push("cleanup_incomplete");
     if (cleanup.transport?.errors.length) errors.push("transport_errors");
     const expectedReason = control === "marker" ? "owned_input_mismatch"
@@ -536,8 +653,9 @@ export async function runLocalGoogleQualification(options) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
-    const report = await runLocalGoogleQualification({ protocol: process.argv[2], control: process.argv[3], outputDir: process.argv[4] });
-    console.log(JSON.stringify({ protocol: report.protocol, control: report.control, outcome: report.outcome }));
+    if (process.argv.length !== 3 || process.argv[2] !== "--scenario-driver")
+      fail("google_witness_required");
+    runScenarioDriverChild();
   } catch (error) {
     console.error(error.message);
     process.exitCode = 1;

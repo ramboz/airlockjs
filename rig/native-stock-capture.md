@@ -11,6 +11,20 @@ cleared by these records.
 
 ## Additional Google source candidate
 
+The failed-case custody candidate moves the existing local Google transport,
+physical observer, browser handle and reject guard into the witness. A fixed
+scenario child requests ordered steps; it cannot grant admission or release.
+The witness closes admission and records an incomplete receipt at the original
+60-second deadline. It does not release the guard on browser-root exit.
+
+The candidate cannot declare a case complete: independent safe release is not
+implemented or qualified. A retained guard is only the existing local reject
+guard, not containment of all external traffic. Residual descendants remain
+unknown/manual. A finite custody, cleanup and release plan, separate
+qualification and approval are required before any execution. The isolated
+source tests use synthetic handles and do not start a listener or browser.
+No native grant, slot, owner pin or readiness state changes.
+
 The additional Google path connects browser observations to its physical
 observer. SDK-free tests exercise the native issuer and transport handoff with
 isolated fixtures. They do not authenticate an owner or qualify a browser run.

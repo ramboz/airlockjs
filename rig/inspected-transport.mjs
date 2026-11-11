@@ -205,8 +205,8 @@ export async function startLocalInspectedTransport({ inspector, receiver, protoc
 }
 
 /** SDK-free only: fixed Google names, with every upstream bound to literal loopback. */
-export async function startLocalGoogleInspectedTransport({ inspector, receiver, protocol, observer, check, wait }) {
-  return startLocalGoogleTransport({ inspector, receiver, protocol, observer, check, wait }, false);
+export async function startLocalGoogleInspectedTransport({ inspector, receiver, protocol, observer, check, wait, onCustody, onFailure }) {
+  return startLocalGoogleTransport({ inspector, receiver, protocol, observer, check, wait, onCustody, onFailure }, false);
 }
 
 /** Experimental SDK-free HTTPS broker, with the same fixed loopback upstream. */
@@ -215,32 +215,32 @@ export async function startLocalGoogleTlsInspectedTransport({ inspector, receive
 }
 
 /** Fixed foreign test name and literal loopback only; unavailable to native policy observers. */
-export async function startLocalGoogleAuthorityBypass({ inspector, receiver, protocol, observer, check, wait }) {
+export async function startLocalGoogleAuthorityBypass({ inspector, receiver, protocol, observer, check, wait, onCustody, onFailure }) {
   if (observer.snapshot().diagnostic_bypass !== true) throw new Error("local_diagnostic_observer_required");
-  return startLocalGoogleTransport({ inspector, receiver, protocol, observer, check, wait }, true);
+  return startLocalGoogleTransport({ inspector, receiver, protocol, observer, check, wait, onCustody, onFailure }, true);
 }
 
 /** Fixed opposite-ALPN fixture; it cannot select a public destination. */
-export async function startLocalGoogleProtocolControl({ inspector, receiver, protocol, observer, check, wait }, bypass) {
+export async function startLocalGoogleProtocolControl({ inspector, receiver, protocol, observer, check, wait, onCustody, onFailure }, bypass) {
   if (typeof bypass !== "boolean" || bypass && observer.snapshot().diagnostic_bypass !== true)
     throw new Error("local_diagnostic_observer_required");
-  return startLocalGoogleTransport({ inspector, receiver, protocol, observer, check, wait }, false, bypass ? "bypass" : "deny");
+  return startLocalGoogleTransport({ inspector, receiver, protocol, observer, check, wait, onCustody, onFailure }, false, bypass ? "bypass" : "deny");
 }
 
-async function startLocalGoogleTransport({ inspector, receiver, protocol, observer, check, wait }, foreign, mismatch = null, tlsProxy = false) {
+async function startLocalGoogleTransport({ inspector, receiver, protocol, observer, check, wait, onCustody, onFailure }, foreign, mismatch = null, tlsProxy = false) {
   if (!["h1", "h2"].includes(protocol) || !Number.isInteger(receiver.port) || receiver.port < 1 || receiver.port > 65535)
     throw new Error("invalid_local_transport");
   const upstreamProtocol = mismatch ? (protocol === "h1" ? "h2" : "h1") : protocol;
   return startInspectedTransport({ inspector, observer, check, wait,
     mode: tlsProxy ? "sdk-absent-google-tls-broker" : foreign ? "sdk-absent-google-authority-bypass"
       : mismatch ? "sdk-absent-google-protocol-" + mismatch : "sdk-absent-google",
-    beforeConnect: check, google: true, foreign, tlsProxy,
+    beforeConnect: check, google: true, foreign, tlsProxy, onCustody, onFailure,
     logicalAuthority: receiver.logicalAuthority, expectedProtocol: mismatch === "bypass" ? null : protocol,
     openUpstream: authority => tlsConnect({ host: "127.0.0.1", port: receiver.port,
       servername: authority.slice(0, -4), ca: receiver.certificate, rejectUnauthorized: true,
       ALPNProtocols: [upstreamProtocol === "h2" ? "h2" : "http/1.1"] }) });
 }
-async function startInspectedTransport({ inspector, observer, check, wait, logicalAuthority, beforeConnect, openUpstream, expectedProtocol, mode, google = false, foreign = false, tlsProxy = false }) {
+async function startInspectedTransport({ inspector, observer, check, wait, logicalAuthority, beforeConnect, openUpstream, expectedProtocol, mode, google = false, foreign = false, tlsProxy = false, onCustody, onFailure }) {
   const sockets = new Set(), tasks = new Set(), errors = [], diagnosticErrors = [], denials = {}, denialAuthorities = {}, tunnels = [];
   const outerPeers = new Map();
   const peerTuple = socket => JSON.stringify([socket.remoteAddress, socket.remotePort, socket.localAddress, socket.localPort]);
@@ -266,6 +266,7 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
           : /protocol/i.test(error.message) ? "protocol_error"
             : error.message === "qualification_expired" ? "qualification_expired" : "other" });
       observer.stop("local_relay_failed"); stop();
+      if (onFailure) { admissionOpen = false; onFailure("local_relay_failed"); }
     })
       .finally(() => tasks.delete(work));
   };
@@ -282,6 +283,27 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
     if (secure.alpnProtocol !== "http/1.1") return secure.destroy();
     proxy.emit("connection", secure);
   }) : proxy;
+  let startupComplete = false;
+  const closeUnissued = server => {
+    if (!server) return;
+    const close = () => server.close(() => {});
+    if (server.listening) close();
+    else server.once("listening", close);
+  };
+  if (google && onCustody) onCustody(Object.freeze({
+    closeAdmission() {
+      admissionOpen = false;
+      stop();
+      if (!startupComplete) {
+        closeUnissued(listener);
+        closeUnissued(guard);
+      }
+    },
+  }));
+  if (google && onFailure) listener.on("error", () => {
+    errors.push("local_listener_error"); admissionOpen = false; observer.stop("local_listener_error"); stop();
+    onFailure("local_listener_error");
+  });
   if (tlsProxy) {
     listener.on("connection", socket => {
       own(socket);
@@ -372,7 +394,8 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
       },
       responseBytes(bytes) {
         try {
-          check(); tunnel.response.update(bytes); tunnel.response_bytes += bytes.length; return true;
+          check(); if (google && !admissionOpen) { stop(); return false; }
+          tunnel.response.update(bytes); tunnel.response_bytes += bytes.length; return true;
         }
         catch { observer.stop("case_window_inactive"); stop(); return false; }
       },
@@ -382,7 +405,7 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
         catch { observer.stop("case_window_inactive"); stop(); return false; }
       },
       acceptedResponse() {
-        try { check(); return true; }
+        try { check(); if (google && !admissionOpen) { stop(); return false; } return true; }
         catch { observer.stop("case_window_inactive"); stop(); return false; }
       },
       upstreamClosed(termination) { tunnel.upstream_termination = termination; },
@@ -394,10 +417,12 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
   await wait(new Promise((resolve, reject) => {
     listener.once("error", reject); listener.listen(0, "127.0.0.1", resolve);
   }));
+  if (onCustody && !admissionOpen) throw new Error("local_google_admission_closed");
   if (google) {
     guard = netServer(socket => {
       guardConnections++; admissionOpen = false; observer.stop("ipv6_guard_connection");
       own(socket).destroy(); stop();
+      onFailure?.("ipv6_guard_connection");
     });
     try {
       await wait(new Promise((resolve, reject) => {
@@ -419,11 +444,19 @@ async function startInspectedTransport({ inspector, observer, check, wait, logic
       if (failures.length) throw new AggregateError([error, ...failures], "ipv6_guard_start_cleanup_failed", { cause: error });
       throw error;
     }
-    guard.on("error", () => { errors.push("ipv6_guard_error"); admissionOpen = false; observer.stop("ipv6_guard_error"); stop(); });
+    guard.on("error", () => {
+      errors.push("ipv6_guard_error"); admissionOpen = false; observer.stop("ipv6_guard_error"); stop();
+      onFailure?.("ipv6_guard_error");
+    });
     guard.on("close", () => {
-      if (!guardClosing) { errors.push("ipv6_guard_lost"); admissionOpen = false; observer.stop("ipv6_guard_lost"); stop(); }
+      if (!guardClosing) {
+        errors.push("ipv6_guard_lost"); admissionOpen = false; observer.stop("ipv6_guard_lost"); stop();
+        onFailure?.("ipv6_guard_lost");
+      }
     });
   }
+  if (onCustody && !admissionOpen) throw new Error("local_google_admission_closed");
+  startupComplete = true;
   const port = listener.address().port;
   return Object.freeze({
     port,

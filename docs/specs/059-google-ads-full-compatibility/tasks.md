@@ -4,6 +4,22 @@ The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
 
+## Google failed-case custody source candidate - 2026-11-11
+
+- [x] Move the existing local Google transport, observer, browser handle and
+      reject guard into the witness, with fixed ordered scenario-child steps.
+- [x] Exercise deadline, incomplete receipt, retained guard, acquisition races,
+      ordered steps and post-stop peer handling with synthetic no-listener
+      source tests. These fixtures do not qualify execution.
+- [ ] Independently review the frozen source and documentation candidate.
+- [ ] Define and separately qualify a finite custody, cleanup and independent
+      safe-release plan. Until then no case can be complete and execution
+      remains closed.
+
+The approved 60-second distinction is source-design only. Root exit is not
+release evidence; remaining descendants are unknown/manual. Historical failed
+receipts, consumed grants, native pins and full-slice review state are unchanged.
+
 ## Google cohort and witness source packet - 2026-11-11
 
 - [x] Update the fixed Google cohort pin and add isolated source-only tests;
