@@ -4,6 +4,23 @@ The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
 
+## Additional Google source work - 2026-11-10
+
+- [x] Exercise a separate synthetic reservation and one-use in-memory policy
+      lease, including physical/logical correlation and stop controls. These
+      fixtures cannot authorize native execution.
+- [ ] Review the connected native candidate authority, reservation, consumer and
+      transport source. The candidate now connects browser observations to the
+      physical observer. SDK-free tests exercise the native issuer and one-use
+      handoff with isolated fixtures, not owner authority. No additional Google
+      owner decision is pinned. Native admission remains closed; current-source/
+      cohort qualification, synchronous stop and retained-guard evidence are
+      still required. The browser-observation path has not run natively.
+- [x] Handle the retained single `event: message` / `data:` response framing
+      in the Google policy and observation bridge. Synthetic tests cover a
+      complete physical parent and keep the historical incompatible routes
+      blocked. This does not qualify the historical sequence for execution.
+
 ## SDK-free local runtime result - 2026-11-10
 
 - [x] Record the separately admitted ordinary157 run from the authenticated

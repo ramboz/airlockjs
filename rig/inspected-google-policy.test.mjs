@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import hpack from "hpack.js";
+import { readFileSync } from "node:fs";
 import { createInspectedHttpWire } from "./inspected-http-wire.mjs";
+import { createNativeStockPolicy, LIMITS, parseGoogleStockResponse } from "./native-stock-policy.mjs";
 
 const documentUrl = "https://owned.example/inspection";
 const primary = "https://www.googleadservices.com/pagead/conversion/000000000/"
@@ -43,6 +45,68 @@ const h2 = (url, stream = 1) => {
 };
 
 describe("declared Google policy on physical HTTP bytes", () => {
+  it.each([
+    ["wrong event", Buffer.from('event: other\ndata: {"fetch":[]}\n\n')],
+    ["multiple frames", Buffer.from('event: message\ndata: {}\n\nevent: message\ndata: {}\n\n')],
+    ["trailing newline", Buffer.from('event: message\ndata: {}\n\n\n')],
+    ["multiple data lines", Buffer.from('event: message\ndata: {}\ndata: {}\n\n')],
+    ["invalid JSON", Buffer.from("event: message\ndata: {\n\n")],
+    ["duplicate members", Buffer.from('event: message\ndata: {"fetch":[],"fetch":[]}\n\n')],
+    ["escaped duplicate members", Buffer.from('event: message\ndata: {"fetch":[],"fet\\u0063h":[]}\n\n')],
+    ["duplicate nested members", Buffer.from('event: message\ndata: {"outer":{"x":1,"x":2}}\n\n')],
+    ["unpaired surrogate", Buffer.from('event: message\ndata: {"x":"\\ud800"}\n\n')],
+    ["invalid UTF-8", Buffer.from([0xff])],
+    ["byte order mark", Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from("event: message\ndata: {}\n\n")])],
+    ["over-limit body", Buffer.alloc(LIMITS.response_bytes + 1, 0x61)],
+  ])("rejects malformed or ambiguous framed response: %s", (_name, body) => {
+    expect(() => parseGoogleStockResponse(body)).toThrow();
+    const policy = createNativeStockPolicy(profile());
+    const first = policy.inspect({ url: primary, method: "GET", resource_type: "XHR",
+      headers: {}, body: Buffer.alloc(0) });
+    policy.registerAdmission(first, 0);
+    expect(() => policy.recordResponse({ ordinal: 0, status: 200, headers: [["content-type", "application/json"]],
+      body, complete: true })).toThrow();
+    expect(policy.summary().responses).toBe(0);
+  });
+
+  it.each([
+    ["method", companion, "POST", "Image", "unqualified_route_or_field"],
+    ["resource type", companion, "GET", "XHR", "unqualified_route_or_field"],
+    ["field", `${companion}&unexpected=1`, "GET", "Image", "unqualified_route_or_field"],
+    ["ownership", companion.replace("synthetic-auid", "other"), "GET", "Image", "primary_identity_mismatch"],
+  ])("does not grant a framed response URL with invalid %s", (_name, url, method, resource_type, reason) => {
+    const policy = createNativeStockPolicy(profile());
+    const first = policy.inspect({ url: primary, method: "GET", resource_type: "XHR",
+      headers: {}, body: Buffer.alloc(0) });
+    policy.registerAdmission(first, 0);
+    const body = Buffer.from(`event: message\ndata: ${JSON.stringify({ fetch: [url] })}\n\n`);
+    expect(policy.recordResponse({ ordinal: 0, status: 200, headers: [["content-type", "application/json"]],
+      body, complete: true })).toMatchObject({ urls: 1 });
+    expect(policy.inspect({ url, method, resource_type, headers: {}, body: Buffer.alloc(0), response_parent: 0 }))
+      .toMatchObject({ disposition: "blocked", reason });
+  });
+
+  it("decodes the historical retained frame but rejects its unqualified routes", () => {
+    const fixture = JSON.parse(readFileSync(new URL("./fixtures/google-manual-conversion.json", import.meta.url), "utf8"));
+    const input = profile();
+    input.document_url = fixture.owned.document_url;
+    input.owned = { conversion_id: fixture.owned.conversion_id, conversion_label: fixture.owned.conversion_label,
+      value: fixture.owned.value, currency: fixture.owned.currency, transaction_id: fixture.owned.transaction_id };
+    input.resources[0].url = `https://www.googletagmanager.com/gtag/js?id=${input.owned.conversion_id}`;
+    const policy = createNativeStockPolicy(input);
+    const request = (url, method, extra = {}) => ({ url, method, resource_type: "XHR",
+      headers: {}, body: Buffer.alloc(0), ...extra });
+    const first = policy.inspect(request(fixture.entries[0].request.url, "GET"));
+    expect(first).toMatchObject({ disposition: "eligible", kind: "primary" });
+    policy.registerAdmission(first, 0);
+    expect(policy.recordResponse({ ordinal: 0, status: 200, headers: [["content-type", "application/json"]],
+      body: Buffer.from(fixture.entries[0].response.body), complete: true })).toMatchObject({ urls: 2 });
+    expect(policy.inspect(request(fixture.entries[1].request.url, "POST", { response_parent: 0 })))
+      .toMatchObject({ disposition: "blocked", reason: "unqualified_route_or_field" });
+    expect(policy.inspect(request(fixture.entries[2].request.url, "GET", { redirect_from: 1 })))
+      .toMatchObject({ disposition: "blocked", reason: "unqualified_route_or_field" });
+  });
+
   it("counts twenty physical attempts globally across authorities, then blocks the twenty-first", () => {
     const wire = createInspectedHttpWire(options());
     for (let n = 0; n < 21; n++) {

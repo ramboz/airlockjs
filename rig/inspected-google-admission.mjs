@@ -1,17 +1,30 @@
-import { createHash } from "node:crypto";
-import { lstatSync } from "node:fs";
+import { createHash, randomBytes, X509Certificate } from "node:crypto";
+import { execFile } from "node:child_process";
+import { chmodSync, closeSync, fsyncSync, lstatSync, mkdirSync, openSync, realpathSync, unlinkSync,
+  writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { isProxy } from "node:util/types";
+import { promisify } from "node:util";
 import { currentGoogleCohort } from "./inspected-google-cohort.mjs";
 import { data, equal, json, record } from "./inspected-meta-record.mjs";
 import { inspectedMetaSourcePins } from "./inspected-meta-stock.mjs";
 import { readMetaPrivate } from "./native-stock-meta.mjs";
-import { readPrivateOriginal } from "./private-original-file.mjs";
-import { createNativeStockPolicy, LIMITS } from "./native-stock-policy.mjs";
+import { privateOriginalDirectory, readPrivateOriginal } from "./private-original-file.mjs";
+import { createNativeStockPolicy, LIMITS, parseGoogleStockResponse } from "./native-stock-policy.mjs";
+import { createNativeAdditionalGoogleReader, validateNativeAdditionalGoogle, prepareNativeAdditionalGoogle,
+  consumeNativeAdditionalGoogle, additionalGoogleSourcePin } from "./inspected-google-additional.mjs";
+import { reserveNativeAdditionalGoogleSlot } from "./native-stock-capture.mjs";
+import { startNativeGoogleInspectedTransport } from "./inspected-transport.mjs";
 
 const OFFICIAL_PIN = "318a26b825f07b60faec698d5e771434c36e3f7f248640988c1c0be5220c3e50";
 const digest = value => createHash("sha256").update(JSON.stringify(data(value))).digest("hex");
 const LOADED_SOURCE_PINS = inspectedMetaSourcePins();
 const plans = new WeakMap();
+const nativeEngines = new WeakMap();
+const nativeReservationAdmissions = new WeakMap();
+const execute = promisify(execFile);
 const LOCAL_SOURCE = Buffer.from("/* sdk-absent google fixture */\n");
 const COMMANDS = Object.freeze({ initialize: 1, configure: 1, conversion: 1, consent: "native-default" });
 const GOOGLE_SCOPE = Object.freeze({
@@ -62,6 +75,30 @@ function prepare(options, local) {
   };
   const manifest = json(read({ path: input.manifest_path, sha256: input.manifest_sha256 }));
   record(manifest, ["schema_version", "kind", "case_name", "transport", "binding", "evidence", "output_dir"]);
+  if (!local && manifest.schema_version === 1 && manifest.kind === "airlock.inspected-google-additional-stock.v1"
+    && manifest.case_name === "google-stock" && manifest.transport === "inspected-network") {
+    const reader = createNativeAdditionalGoogleReader();
+    reader.read({ path: input.manifest_path, sha256: input.manifest_sha256 });
+    const validated = validateNativeAdditionalGoogle(manifest.binding, reader);
+    if (!equal(validated.binding.source_pins, LOADED_SOURCE_PINS)
+      || !equal(inspectedMetaSourcePins(), LOADED_SOURCE_PINS)) throw Error("google_additional_source_stale");
+    if (typeof manifest.output_dir !== "string" || !isAbsolute(manifest.output_dir)
+      || resolve(manifest.output_dir) !== manifest.output_dir
+      || manifest.output_dir !== join(dirname(validated.binding.authority.path), "google-additional-output"))
+      throw Error("invalid_google_output");
+    privateOriginalDirectory(dirname(manifest.output_dir), process.getuid());
+    try { lstatSync(manifest.output_dir); throw Error("google_output_exists"); }
+    catch (error) { if (error.code !== "ENOENT") throw error; }
+    const additionalPlan = prepareNativeAdditionalGoogle(manifest.binding);
+    const blockers = Object.freeze(["current_browser_qualification_unverified", "native_stop_unqualified",
+      "retained_guard_unqualified", "evidence_provenance_unqualified"]);
+    const plan = Object.freeze({ admission: "blocked", execution_authority: false,
+      case_name: "google-stock", blockers, toJSON() { throw Error("google_plan_not_serializable"); } });
+    plans.set(plan, { kind: "additional", binding: validated.binding, profile: validated.profile,
+      source: validated.source,
+      reader, additionalPlan, output: manifest.output_dir, blockers, nativeReady: false });
+    return plan;
+  }
   if (manifest.schema_version !== 1 || manifest.kind !== (local
     ? "airlock.inspected-google-local.v1" : "airlock.inspected-google-stock.v1")
     || manifest.case_name !== "google-stock" || manifest.transport !== "inspected-network")
@@ -321,7 +358,399 @@ export function prepareNativeGoogleStock(options) {
   catch { throw Error("google_native_admission_closed"); }
   return prepare(options, false);
 }
+function assertNativeGoogleAdmission(state) {
+  if (!state || state.kind !== "additional" || !state.nativeReady || state.blockers.length)
+    throw Error("google_native_admission_closed");
+  state.reader.unchanged();
+  if (state.binding.source_sha256 !== additionalGoogleSourcePin()
+    || !equal(state.binding.source_pins, LOADED_SOURCE_PINS)
+    || !equal(inspectedMetaSourcePins(), LOADED_SOURCE_PINS)
+    || !equal(state.binding.cohort, currentGoogleCohort())) throw Error("google_source_or_cohort_changed");
+  if (Date.now() < state.binding.window.not_before_ms || Date.now() >= state.binding.observation_end_ms)
+    throw Error("case_window_inactive");
+}
+
+export function claimNativeGoogleEngine(token, additionalPlan) {
+  if (!token || isProxy(token) || !nativeEngines.has(token)) throw Error("invalid_google_native_engine");
+  const engine = nativeEngines.get(token);
+  nativeEngines.delete(token);
+  if (engine.additionalPlan !== additionalPlan) throw Error("invalid_google_native_engine");
+  engine.assertAdmission();
+  return engine;
+}
+
+export function claimNativeGoogleReservationAdmission(ticket, binding) {
+  if (!ticket || isProxy(ticket) || !nativeReservationAdmissions.has(ticket))
+    throw Error("invalid_google_native_reservation_permit");
+  const state = nativeReservationAdmissions.get(ticket);
+  nativeReservationAdmissions.delete(ticket);
+  if (!equal(state.binding, binding)) throw Error("invalid_google_native_reservation_permit");
+  assertNativeGoogleAdmission(state);
+}
+
+function googleNativeDocument(profile) {
+  const nonce = randomBytes(16).toString("hex");
+  const js = value => JSON.stringify(value).replaceAll("<", "\\u003c");
+  const { owned, resources } = profile;
+  const runtime = resources.find(item => item.role === "runtime").url;
+  const script = `
+if(localStorage.length||sessionStorage.length||document.cookie)throw Error("nonempty_native_storage");
+const source=${js(runtime)};
+const policy=trustedTypes.createPolicy("default",{createScriptURL(value){
+ if(value!==source)throw new TypeError("unpinned_script_dependency");return value;
+}});
+window.dataLayer=window.dataLayer||[];
+window.gtag=function(){window.dataLayer.push(arguments)};
+window.__airlockNativeCommands={initialize:0,configure:0,conversion:0,consent:"native-default"};
+const tag=document.createElement("script");tag.async=true;tag.src=policy.createScriptURL(source);
+document.head.appendChild(tag);
+gtag("js",new Date());window.__airlockNativeCommands.initialize++;
+gtag("config",${js(owned.conversion_id)});window.__airlockNativeCommands.configure++;
+gtag("event","conversion",${js({ send_to: `${owned.conversion_id}/${owned.conversion_label}`,
+    value: 1, currency: "USD", transaction_id: owned.transaction_id })});
+window.__airlockNativeCommands.conversion++;
+`;
+  const csp = `default-src 'none'; script-src 'nonce-${nonce}' 'strict-dynamic'; `
+    + "require-trusted-types-for 'script'; connect-src https:; img-src https: data:; "
+    + "frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
+  return { bytes: Buffer.from(`<!doctype html><meta charset="utf-8"><link rel="icon" href="data:,">`
+    + `<title>Isolated Google reference</title><script nonce="${nonce}">${script}</script>`),
+  headers: [{ name: "Content-Type", value: "text/html; charset=utf-8" },
+    { name: "Content-Security-Policy", value: csp }] };
+}
+
+export function createGoogleBrowserObservation({ cdp, profile, observer, logical, check, wait, stop,
+  document, source }) {
+  const policy = createNativeStockPolicy(profile), network = [], pending = new Set(), waiters = new Set();
+  const fulfilled = new Set();
+  let stopped = false, fetchCount = 0;
+  const halt = reason => {
+    if (stopped) return;
+    stopped = true;
+    observer.stop(reason);
+    stop(reason);
+    for (const notify of waiters) notify();
+  };
+  const active = () => {
+    if (stopped) throw Error("google_observation_stopped");
+    check();
+    if (observer.snapshot().stopped) throw Error(observer.snapshot().reason);
+  };
+  const retain = value => {
+    const bytes = Buffer.byteLength(JSON.stringify(value));
+    if (!observer.reserveObservation(bytes)) throw Error("google_observation_retention_limit");
+    return value;
+  };
+  const track = work => {
+    pending.add(work);
+    work.catch(error => halt(error.message)).finally(() => pending.delete(work));
+  };
+  const onNetwork = event => {
+    try {
+      active();
+      if (network.length >= LIMITS.observations || typeof event.requestId !== "string"
+        || typeof event.request?.url !== "string" || Buffer.byteLength(event.request.url) > LIMITS.url_bytes
+        || typeof event.request.method !== "string" || typeof event.type !== "string")
+        throw Error("google_observation_invalid");
+      network.push(retain({ network_id: event.requestId, url: event.request.url, method: event.request.method,
+        resource_type: event.type, redirect_url: event.redirectResponse?.url ?? null,
+        redirect_status: event.redirectResponse?.status ?? null }));
+      for (const notify of waiters) notify();
+    } catch (error) { halt(error.message); }
+  };
+  const onPaused = event => track((async () => {
+    try {
+      active();
+      if (++fetchCount > LIMITS.observations || typeof event.requestId !== "string"
+        || typeof event.networkId !== "string" || typeof event.request?.url !== "string"
+        || Buffer.byteLength(event.request.url) > LIMITS.url_bytes || typeof event.request.method !== "string")
+        throw Error("google_observation_invalid");
+      if (event.request.hasPostData || event.request.postDataEntries?.length
+        || typeof event.request.postData === "string" && event.request.postData.length)
+        throw Error("unqualified_request_body");
+      const headers = data(event.request.headers);
+      if (!headers || typeof headers !== "object" || Array.isArray(headers)
+        || Object.keys(headers).length > 128 || Buffer.byteLength(JSON.stringify(headers)) > LIMITS.request_bytes)
+        throw Error("google_request_header_limit");
+      retain({ fetch_id: event.requestId, network_id: event.networkId, resource_type: event.resourceType,
+        request: { url: event.request.url, method: event.request.method, headers } });
+      const candidates = () => network.filter(row => row.network_id === event.networkId
+        && row.url === event.request.url && row.method === event.request.method);
+      let matches = candidates();
+      if (!matches.length) {
+        let notify;
+        const observed = new Promise(resolve => {
+          notify = () => { if (stopped || candidates().length) resolve(); };
+        });
+        waiters.add(notify);
+        try { await wait(observed, 1000); } finally { waiters.delete(notify); }
+        active();
+        matches = candidates();
+      }
+      if (matches.length !== 1 || matches[0].resource_type !== event.resourceType)
+        throw Error("missing_or_ambiguous_network_observation");
+      const item = matches[0];
+      const decision = policy.inspect({ url: item.url, method: item.method, resource_type: item.resource_type,
+        headers, body: Buffer.alloc(0) });
+      if (decision.disposition !== "eligible" && !(decision.reason === "owned_primary_not_admitted"
+        && observer.snapshot().policy?.primary > 0)) throw Error(decision.reason);
+      if (decision.kind === "fixture" || decision.kind === "local_source") {
+        if (fulfilled.has(decision.kind)) throw Error("repeated_google_local_source");
+        const body = decision.kind === "fixture" ? document?.bytes : source;
+        if (!Buffer.isBuffer(body)) throw Error("google_local_source_unavailable");
+        const encoded = body.toString("base64");
+        if (!observer.reserveObservation(body.length + Buffer.byteLength(encoded)))
+          throw Error("google_observation_retention_limit");
+        active();
+        fulfilled.add(decision.kind);
+        await wait(cdp.send("Fetch.fulfillRequest", { requestId: event.requestId, responseCode: 200,
+          responseHeaders: decision.kind === "fixture" ? document.headers
+            : [{ name: "Content-Type", value: "application/javascript; charset=utf-8" }],
+          body: encoded }));
+        return;
+      }
+      const row = { network_id: item.network_id, fetch_id: event.requestId, url: item.url,
+        method: item.method, resource_type: item.resource_type };
+      const originals = observer.originals();
+      if (originals.requests.some(request => ["awaiting", "streaming"].includes(request.response_state)))
+        throw Error("google_prior_response_incomplete");
+      if (item.redirect_url) {
+        const parents = originals.requests.filter(request => request.logical_network_id === item.network_id
+          && request.url === item.redirect_url && originals.responses.some(response =>
+            response.ordinal === request.ordinal && response.state === "complete"
+            && response.status === item.redirect_status && response.redirect_url === item.url));
+        if (parents.length !== 1) throw Error("missing_actual_redirect_parent");
+        row.redirect_from = parents[0].ordinal;
+      } else {
+        const parents = [];
+        for (const response of originals.responses) {
+          if (response.state !== "complete" || !response.headers.some(([name, value]) =>
+            name.toLowerCase() === "content-type" && value.toLowerCase().split(";")[0].trim() === "application/json"))
+            continue;
+          if (!observer.reserveObservation(response.decoded_body_bytes)) throw Error("google_observation_retention_limit");
+          let value;
+          try { value = parseGoogleStockResponse(Buffer.concat(response.body, response.decoded_body_bytes)); }
+          catch { throw Error("google_response_parent_invalid"); }
+          let count = 0, found = false;
+          const visit = (item, depth) => {
+            if (++count > 5000 || depth > 16) throw Error("google_response_parent_invalid");
+            if (item === row.url) found = true;
+            else if (item && typeof item === "object") Object.values(item).forEach(child => visit(child, depth + 1));
+          };
+          visit(value, 0);
+          if (found) parents.push(response.ordinal);
+        }
+        if (parents.length > 1) throw Error("ambiguous_response_parent");
+        if (parents.length === 1) row.response_parent = parents[0];
+      }
+      const prior = logical.findIndex(value => value.network_id === row.network_id);
+      if (prior >= 0) logical.splice(prior, 1);
+      logical.push(retain(row));
+      active();
+      await wait(cdp.send("Fetch.continueRequest", { requestId: event.requestId }));
+    } catch (error) {
+      halt(error.message);
+      await cdp.send("Fetch.failRequest", { requestId: event.requestId, errorReason: "BlockedByClient" }).catch(() => {});
+    }
+  })());
+  return Object.freeze({
+    async start() {
+      active();
+      cdp.on("Network.requestWillBeSent", onNetwork);
+      cdp.on("Fetch.requestPaused", onPaused);
+      await wait(cdp.send("Network.enable"));
+      active();
+      await wait(cdp.send("Fetch.enable", { patterns: [{ urlPattern: "*", requestStage: "Request" }] }));
+      active();
+    },
+    async settle() { await Promise.allSettled([...pending]); },
+    stop(reason) {
+      halt(reason);
+      cdp.off("Network.requestWillBeSent", onNetwork);
+      cdp.off("Fetch.requestPaused", onPaused);
+    },
+  });
+}
+
+async function preserveGoogleNativeOriginals({ output, observer, transport, cleanup, errors, observation, deadline }) {
+  if (Date.now() >= deadline) throw Error("google_native_output_deadline");
+  const { writeGoogleOriginals } = await import("./inspected-google-originals.mjs");
+  const originals = observer.originals(), capture = writeGoogleOriginals(output, originals);
+  const report = { outcome: "inconclusive", native_execution_qualified: false,
+    producer_completion: "not_observed", descendant_cleanup: "unknown_manual",
+    complete_descendant_cleanup: false, consent_override: "none", native_consent_state: "unobserved",
+    observation, observer: observer.snapshot(),
+    transport: transport?.snapshot() ?? null, cleanup, errors,
+    originals: { requests: originals.requests, responses: capture.responses, wire: capture.wire ?? [] } };
+  const bytes = Buffer.from(JSON.stringify(report) + "\n");
+  if (capture.bytes + bytes.length > LIMITS.aggregate_bytes) throw Error("google_native_output_limit");
+  const fd = openSync(join(output, "result.json"), "wx", 0o600);
+  try { writeFileSync(fd, bytes); fsyncSync(fd); } finally { closeSync(fd); }
+  const directory = openSync(output, "r");
+  try { fsyncSync(directory); } finally { closeSync(directory); }
+  if (Date.now() >= deadline) throw Error("google_native_output_deadline");
+}
+
+async function runNativeGoogleEngine(state) {
+  assertNativeGoogleAdmission(state);
+  const binding = state.binding;
+  const ticket = Object.freeze({});
+  nativeReservationAdmissions.set(ticket, state);
+  const reservation = await reserveNativeAdditionalGoogleSlot(ticket, binding);
+  let transport = null, observer = null, bridge = null, stopping = false, cleanupMode = false;
+  let timer = null, keyPath = null, certificatePath = null, outputCreated = false;
+  let browserServer = null, browser = null, context = null, page = null, launchAttempted = false;
+  const cleanup = {}, errors = [];
+  let operationError, cleanupError = null, observation = null;
+  const check = () => {
+    if (stopping) throw Error("google_native_case_stopped");
+    assertNativeGoogleAdmission(state);
+  };
+  const wait = async (promise, maximum = 5000) => {
+    if (!cleanupMode) check();
+    const remaining = Math.min(maximum, binding.window.expires_at_ms - Date.now());
+    if (remaining <= 0) throw Error("case_window_inactive");
+    let timeout;
+    try {
+      return await Promise.race([promise, new Promise((_, reject) => {
+        timeout = setTimeout(() => reject(Error("case_window_inactive")), remaining);
+      })]);
+    } finally { clearTimeout(timeout); }
+  };
+  try {
+    mkdirSync(state.output, { mode: 0o700 });
+    outputCreated = true;
+    keyPath = join(state.output, "google-inspector-key.pem");
+    certificatePath = join(state.output, "google-inspector-certificate.pem");
+    const remaining = Math.min(5000, binding.window.expires_at_ms - Date.now());
+    if (remaining <= 0) throw Error("case_window_inactive");
+    const oldMask = process.umask(0o077);
+    try {
+      await execute("/usr/bin/openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes",
+        "-keyout", keyPath, "-out", certificatePath, "-days", "1", "-subj", "/CN=www.googleadservices.com",
+        "-addext", "subjectAltName=DNS:www.googleadservices.com,DNS:www.google.com,DNS:googleads.g.doubleclick.net,DNS:ad.doubleclick.net"],
+      { timeout: remaining, maxBuffer: 8192 });
+    } finally { process.umask(oldMask); }
+    check();
+    chmodSync(keyPath, 0o600); chmodSync(certificatePath, 0o600);
+    const inspector = { key: readPrivateOriginal(keyPath, { uid: process.getuid(), maximum: 16384 }).bytes,
+      cert: readPrivateOriginal(certificatePath, { uid: process.getuid(), maximum: 16384 }).bytes };
+    const { createInspectedHttpWire } = await import("./inspected-http-wire.mjs");
+    const logical = [];
+    observer = createInspectedHttpWire({ mode: "DECLARED-GOOGLE-PROFILE", profile: state.profile,
+      resolveObservation: ({ url, method }) => logical.filter(row => row.url === url && row.method === method) });
+    if (!observer.reserveObservation(state.source.length * 2)) throw Error("google_observation_retention_limit");
+    const token = Object.freeze({});
+    nativeEngines.set(token, { additionalPlan: state.additionalPlan, assertAdmission: check,
+      config: { inspector, observer, wait, check, beforeConnect: check,
+        logicalAuthority: authority => !stopping && logical.some(row => {
+          try { return new URL(row.url).host + ":443" === authority; } catch { return false; }
+        }) } });
+    const lease = await consumeNativeAdditionalGoogle(state.additionalPlan, reservation, token);
+    timer = setTimeout(() => { stopping = true; observer.stop("case_window_inactive"); transport?.closeAdmission(); },
+      Math.max(1, binding.observation_end_ms - Date.now()));
+    transport = await startNativeGoogleInspectedTransport(lease);
+    check();
+    const document = googleNativeDocument(state.profile);
+    const spki = createHash("sha256").update(new X509Certificate(inspector.cert).publicKey
+      .export({ type: "spki", format: "der" })).digest("base64");
+    const { chromium } = await import("playwright");
+    check();
+    const socketDir = realpathSync(tmpdir());
+    launchAttempted = true;
+    browserServer = await wait(chromium.launchServer({
+      executablePath: fileURLToPath(new URL("./inspected-google-loopback-chrome", import.meta.url)),
+      host: "127.0.0.1", headless: true, timeout: Math.max(1, Math.min(10000, binding.observation_end_ms - Date.now())),
+      proxy: { server: "http://127.0.0.1:" + transport.port },
+      env: { ...process.env, TMPDIR: socketDir, AIRLOCK_GOOGLE_SOCKET_DIR: socketDir,
+        AIRLOCK_GOOGLE_BROKER_PORT: String(transport.port) },
+      args: ["--disable-background-networking", "--dns-prefetch-disable",
+        `--ignore-certificate-errors-spki-list=${spki}`],
+    }), 10000);
+    if (new URL(browserServer.wsEndpoint()).hostname !== "127.0.0.1") throw Error("invalid_driver_peer");
+    browser = await wait(chromium.connect(browserServer.wsEndpoint()));
+    if (browser.version() !== binding.cohort.chrome) throw Error("google_cohort_mismatch");
+    transport.attachOwnedBrowser(await wait(browser.newBrowserCDPSession()));
+    context = await wait(browser.newContext({ serviceWorkers: "block" }));
+    if ((await wait(context.cookies())).length) throw Error("nonempty_native_storage");
+    page = await wait(context.newPage());
+    const cdp = await wait(context.newCDPSession(page));
+    const stopCase = reason => {
+      stopping = true;
+      observer.stop(reason);
+      transport.closeAdmission();
+    };
+    browserServer.process().once("exit", () => { if (!cleanupMode) stopCase("unexpected_browser_exit"); });
+    browser.once("disconnected", () => { if (!cleanupMode) stopCase("unexpected_browser_disconnect"); });
+    context.once("close", () => { if (!cleanupMode) stopCase("unexpected_context_close"); });
+    page.once("close", () => { if (!cleanupMode) stopCase("unexpected_page_close"); });
+    page.once("crash", () => stopCase("unexpected_page_crash"));
+    page.on("pageerror", () => stopCase("native_script_error"));
+    page.on("websocket", () => stopCase("unsupported_websocket"));
+    page.on("worker", () => stopCase("unsupported_worker"));
+    page.on("frameattached", () => stopCase("unsupported_frame"));
+    context.on("serviceworker", () => stopCase("unsupported_service_worker"));
+    context.on("page", extra => { if (extra !== page) stopCase("unsupported_target"); });
+    bridge = createGoogleBrowserObservation({ cdp, profile: state.profile, observer, logical,
+      check, wait, stop: stopCase, document, source: state.source });
+    await bridge.start();
+    await wait(page.goto(state.profile.document_url, { waitUntil: "load", timeout: 4000 }));
+    check();
+    const commands = await wait(page.evaluate(() => window.__airlockNativeCommands ?? null));
+    if (!equal(commands, { initialize: 1, configure: 1, conversion: 1, consent: "native-default" }))
+      throw Error("google_fixture_commands_incomplete");
+    const pause = Math.max(0, binding.observation_end_ms - Date.now() - 1000);
+    if (pause) await wait(new Promise(resolve => setTimeout(resolve, pause)), pause + 100);
+    check();
+    const storage = await wait(page.evaluate(async () => ({
+      local: { ...localStorage }, session: { ...sessionStorage }, indexed_db: await indexedDB.databases(),
+      cache_names: await caches.keys(), service_workers: (await navigator.serviceWorker.getRegistrations()).map(row => row.scope),
+    })));
+    const cookies = await wait(context.cookies());
+    observation = { at_ms: Date.now(), fixture_commands: commands, storage, cookies,
+      fixture_commands_are_independent_proof: false };
+    if (!observer.reserveObservation(Buffer.byteLength(JSON.stringify(observation))))
+      throw Error("google_observation_retention_limit");
+    if (storage.indexed_db.length || storage.cache_names.length || storage.service_workers.length)
+      throw Error("unsupported_persistent_storage");
+    check();
+    await wait(new Promise(resolve => setTimeout(resolve, Math.max(1, binding.observation_end_ms - Date.now()))),
+      Math.max(1, binding.observation_end_ms - Date.now()));
+    throw Error("google_native_runtime_unqualified");
+  } catch (error) {
+    operationError = error;
+  } finally {
+    stopping = true;
+    cleanupMode = true;
+    clearTimeout(timer);
+    bridge?.stop("google_native_case_stopped");
+    if (transport) transport.closeAdmission();
+    try {
+      const { closeLocalGoogleBrowser } = await import("./inspected-google-qualification.mjs");
+      await closeLocalGoogleBrowser({ context, browser, browserServer, launchAttempted, transport,
+        settle: wait, cleanup, errors });
+      if (bridge) await wait(bridge.settle());
+      if (errors.length) cleanupError = Error("google_native_cleanup_incomplete");
+    } catch (error) { cleanupError = error; }
+    for (const path of [keyPath, certificatePath]) {
+      if (!path) continue;
+      try { unlinkSync(path); }
+      catch (error) { if (error.code !== "ENOENT") cleanupError ??= error; }
+    }
+    if (outputCreated && observer) {
+      try {
+        await preserveGoogleNativeOriginals({ output: state.output, observer, transport, cleanup, errors, observation,
+          deadline: binding.window.expires_at_ms });
+      } catch (error) { cleanupError ??= error; }
+    }
+  }
+  if (cleanupError) throw Error("google_native_cleanup_failed", { cause: cleanupError });
+  if (operationError) throw operationError;
+}
+
 export async function runNativeGoogleStock(plan) {
-  if (!plan || !plans.has(plan)) throw Error("invalid_google_prepared_case");
-  throw Error("google_native_admission_closed");
+  if (!plan || isProxy(plan) || !plans.has(plan)) throw Error("invalid_google_prepared_case");
+  const state = plans.get(plan);
+  assertNativeGoogleAdmission(state);
+  return runNativeGoogleEngine(state);
 }

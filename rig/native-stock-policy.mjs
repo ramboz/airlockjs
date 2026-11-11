@@ -114,6 +114,31 @@ function uniqueJsonMembers(source) {
   return true;
 }
 
+export function parseGoogleStockResponse(bytes) {
+  if (!Buffer.isBuffer(bytes) || size(bytes) > LIMITS.response_bytes) reject("invalid_policy_response");
+  let source;
+  try { source = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes); }
+  catch { reject("invalid_policy_response"); }
+  if (!source.startsWith("event:")) return boundedJson(bytes);
+  const frame = /^event: message\ndata: ([^\r\n]+)\n\n$/.exec(source);
+  if (!frame || frame[0].length !== source.length) reject("invalid_policy_response");
+  const value = boundedJson(Buffer.from(frame[1]));
+  if (!uniqueJsonMembers(frame[1])) reject("invalid_policy_response");
+  let nodes = 0;
+  const validate = (item, depth) => {
+    if (++nodes > 5000 || depth > 16) reject("response_structure_limit");
+    if (typeof item === "string" && !item.isWellFormed()) reject("invalid_policy_response");
+    if (item && typeof item === "object") {
+      for (const [key, child] of Object.entries(item)) {
+        if (!key.isWellFormed()) reject("invalid_policy_response");
+        validate(child, depth + 1);
+      }
+    }
+  };
+  validate(value, 0);
+  return value;
+}
+
 function qualifiedMetaMetadata(url) {
   const hasData = url.searchParams.has("mdc[data]"), hasVersion = url.searchParams.has("mdc[version]");
   if (!hasData && !hasVersion) return true;
@@ -340,7 +365,7 @@ export function createNativeStockPolicy(input) {
     const json = response.headers.some(([key, value]) => key.toLowerCase() === "content-type"
       && value.toLowerCase().split(";")[0].trim() === "application/json");
     if (json) {
-      const parsed = boundedJson(response.body);
+      const parsed = policy.meta ? boundedJson(response.body) : parseGoogleStockResponse(response.body);
       let nodes = 0;
       const visit = (value, depth) => {
         if (++nodes > 5000 || depth > 16) reject("response_structure_limit");
