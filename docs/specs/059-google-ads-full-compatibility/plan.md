@@ -1,6 +1,7 @@
 # Plan - full Google Ads browser-tag compatibility
 
-Current source work is the [Google cohort and witness packet](#google-cohort-and-witness-source-packet---2026-11-11).
+Current source work is the [failed-case custody candidate](#google-failed-case-custody-source-candidate---2026-11-11).
+The prior source packet is the [Google cohort and witness packet](#google-cohort-and-witness-source-packet---2026-11-11).
 The prior disposition is the [SDK-free local runtime result](#sdk-free-local-runtime-result---2026-11-10).
 All four current157 grants are consumed. No further acquisition is admitted.
 The [CSP-negative classification packet](#csp-negative-classification---2026-11-10)
@@ -21,6 +22,34 @@ The earlier [local helper prerequisite checkpoint](#local-helper-prerequisite-ch
 retains its then-current stronger stop assessment; it is not retroactively cleared.
 The earlier [accepted browser-operation construction](#accepted-browser-operation-construction-packet---2026-11-09)
 and manual-response source stops below remain dated evidence.
+
+## Google failed-case custody source candidate - 2026-11-11
+
+The owner approved a source-design distinction: collection and any complete
+result stay inside the original 60 seconds; a failed case stays incomplete,
+closes admission and retains the existing local reject guard beyond that limit
+until independently verified safe release. This is not permission to run a
+guard, browser or native case.
+
+The candidate moves the existing Google policy, physical observer, local relay,
+browser handle and reject guard into the witness. The scenario child uses a
+fixed ordered step protocol and has no admission or release authority. Browser
+peer authentication and the direct browser-to-listener path remain in the
+existing transport. Deadline and failure close admission before cleanup and
+record an incomplete receipt without waiting for a stalled child. Root exit
+alone does not release the guard. Late resource acquisition remains owned for
+cleanup; unresolved operations and descendants remain incomplete or
+unknown/manual.
+
+There is no qualified independent guard-release mechanism in this candidate,
+so it cannot produce a complete case. The exact local reject guard does not
+establish general containment or survival across agent loss, logout or host
+failure. A finite custody, cleanup and release plan, independent qualification
+and separate execution approval remain open. The isolated source tests use
+synthetic handles with no listener or browser. The prior cohort packet's
+reviews do not cover this candidate. No canonical review or lifecycle state is
+cleared; native owner pins remain empty, native readiness false and admission
+closed.
 
 ## Google cohort and witness source packet - 2026-11-11
 

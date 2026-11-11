@@ -19,6 +19,22 @@ Meta only after actual independent reviews, qualified preflight and scheduling;
 Google follows only when its own policy/branch prerequisites are satisfied.
 Neither chamber slot is executable through this stock-only entry.
 
+## Google failed-case custody candidate - 2026-11-11
+
+The current source candidate gives the existing witness custody of the local
+Google policy, observer, browser handle, relay and exact reject guard. Its
+ordered scenario child has no admission or release authority. On failure or
+expiry the witness closes admission, records incomplete and retains the guard.
+The original 60-second collection and complete-result limit is unchanged.
+
+The owner approved this distinction for source design only. Independent safe
+release is not implemented or qualified, so the candidate cannot declare a
+case complete. A finite custody, cleanup and release plan and separate
+qualification and approval remain prerequisites to execution. The guard does
+not prove general external-traffic containment; descendants remain
+unknown/manual. No native readiness, slot, historical receipt or review state
+changes. See the [plan](plan.md#google-failed-case-custody-source-candidate---2026-11-11).
+
 ## Current Google checkpoint - 2026-11-05
 
 The owner resumed the Google reference for 059-01 and approved isolated HTTPS

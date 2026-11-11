@@ -1,4 +1,3 @@
-import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { closeSync, fsyncSync, lstatSync, mkdirSync, openSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
@@ -7,9 +6,12 @@ import { isProxy } from "node:util/types";
 import { readMetaPrivate, writeMetaPrivate } from "./native-stock-meta.mjs";
 import { inspectedMetaSourcePins } from "./inspected-meta-stock.mjs";
 import { currentGoogleCohort } from "./inspected-google-cohort.mjs";
+import { runLocalGoogleQualification } from "./inspected-google-qualification.mjs";
 
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
+const ownedCustodies = new WeakSet();
+export const isOwnedGoogleWitnessCustody = value => ownedCustodies.has(value);
 const controls = ["positive", "marker", "marker-bypass", "path", "path-bypass", "changed-input", "changed-input-bypass",
   "ambiguous", "ambiguous-bypass", "authority", "authority-bypass", "body", "body-bypass", "expiration", "expiration-bypass",
   "unsupported-transport", "unsupported-transport-bypass",
@@ -23,8 +25,9 @@ const controls = ["positive", "marker", "marker-bypass", "path", "path-bypass", 
   "retry", "retry-bypass", "goaway", "goaway-bypass"];
 const fail = reason => { throw Error(reason); };
 
-/** Separate child-exit observation for fixed SDK-free controls only. */
+/** Independent custody and child-exit observation for fixed SDK-free controls only. */
 export async function witnessLocalGoogleQualification(options) {
+  const started = performance.now(), expires = Date.now() + 60000;
   if (!options || isProxy(options) || Object.getPrototypeOf(options) !== Object.prototype
     || Reflect.ownKeys(options).length !== 3
     || Reflect.ownKeys(options).some(key => !["protocol", "control", "outputDir"].includes(key)
@@ -38,8 +41,6 @@ export async function witnessLocalGoogleQualification(options) {
   const { protocol, control, outputDir } = options, parent = lstatSync(dirname(outputDir));
   if (!parent.isDirectory() || parent.isSymbolicLink() || parent.uid !== process.getuid()
     || (parent.mode & 0o7777) !== 0o700) fail("invalid_google_witness_parent");
-  const sourceBefore = inspectedMetaSourcePins();
-  const cohortBefore = currentGoogleCohort();
   try { mkdirSync(outputDir, { mode: 0o700 }); }
   catch (error) {
     if (error.code === "EEXIST") fail("google_witness_output_exists");
@@ -48,39 +49,103 @@ export async function witnessLocalGoogleQualification(options) {
   const parentFd = openSync(dirname(outputDir), "r");
   try { fsyncSync(parentFd); } finally { closeSync(parentFd); }
   const runDir = join(outputDir, "run");
-  const program = fileURLToPath(new URL("./inspected-google-qualification.mjs", import.meta.url));
-  const command = [process.execPath, program, protocol, control, runDir], started = performance.now();
-  const child = spawn(command[0], command.slice(1), { cwd: root, stdio: ["ignore", "pipe", "pipe"] });
   let stdout = Buffer.alloc(0), stderr = Buffer.alloc(0), overflow = false;
-  for (const [stream, append] of [[child.stdout, bytes => { stdout = Buffer.concat([stdout, bytes]); }],
-    [child.stderr, bytes => { stderr = Buffer.concat([stderr, bytes]); }]]) {
-    stream.on("data", bytes => {
-      if (stdout.length + stderr.length + bytes.length > 16384) { overflow = true; return; }
-      append(bytes);
-    });
+  let exit = null, close = null, spawnError = null, child = null, transport = null;
+  const retainedResources = { browserServer: null, browser: null, context: null, browserProcess: null };
+  let stopped = false, stopReason = null, receiptError = null, stopError = null, escalation = null;
+  const stop = reason => {
+    if (stopped) return;
+    stopped = true;
+    stopReason = reason;
+    try { transport?.closeAdmission(); } catch (error) { stopError = error; }
+    if (child && !exit) {
+      try { child.kill("SIGTERM"); } catch (error) { stopError ??= error; }
+      escalation = setTimeout(() => {
+        if (!exit) try { child.kill("SIGKILL"); } catch (error) { stopError ??= error; }
+      }, 2000);
+    }
+    try {
+      writeMetaPrivate(join(outputDir, "custody-incomplete.json"), {
+        schema: "airlock.sdk-absent-google-custody-incomplete.v1", complete: false,
+        reason, native_execution_qualified: false, descendant_cleanup: "unknown_manual",
+        retained_resources: Object.fromEntries(Object.entries(retainedResources).map(([name, value]) => [name, value !== null])),
+      });
+    } catch (error) { receiptError = error; }
+  };
+  const remaining = () => Math.min(expires - Date.now(), 60000 - (performance.now() - started));
+  const timeout = setTimeout(() => stop("qualification_expired"), Math.max(0, remaining()));
+  const custody = {
+    started, expires, stopped: () => stopped, onFailure: stop,
+    onResource(name, value) {
+      if (!Object.hasOwn(retainedResources, name) || !value
+        || retainedResources[name] && retainedResources[name] !== value) throw Error("invalid_google_owned_resource");
+      retainedResources[name] = value;
+    },
+    recoveryResources: () => Object.freeze({ ...retainedResources }),
+    onTransport(value) {
+      transport = value;
+      if (stopped) try { transport.closeAdmission(); } catch (error) { stopError ??= error; }
+    },
+    onChild(value) {
+      if (child) throw Error("google_scenario_child_already_owned");
+      child = value;
+      for (const [stream, append] of [[child.stdout, bytes => { stdout = Buffer.concat([stdout, bytes]); }],
+        [child.stderr, bytes => { stderr = Buffer.concat([stderr, bytes]); }]]) {
+        stream.on("data", bytes => {
+          if (stdout.length + stderr.length + bytes.length > 16384) {
+            overflow = true;
+            stop("scenario_output_overflow");
+            return;
+          }
+          append(bytes);
+        });
+      }
+      child.once("error", error => { spawnError = error; stop("scenario_spawn_failed"); });
+      child.once("exit", (code, signal) => {
+        exit = { code, signal };
+        if (code !== 0 || signal !== null) stop("scenario_exit_incomplete");
+      });
+      child.once("close", (code, signal) => { close = { code, signal }; });
+      if (stopped) {
+        try { child.kill("SIGTERM"); } catch (error) { stopError ??= error; }
+        escalation = setTimeout(() => {
+          if (!exit) try { child.kill("SIGKILL"); } catch (error) { stopError ??= error; }
+        }, 2000);
+      }
+    },
+  };
+  ownedCustodies.add(custody);
+  let sourceBefore, cohortBefore, runError = null;
+  try {
+    sourceBefore = inspectedMetaSourcePins();
+    cohortBefore = currentGoogleCohort();
+    if (remaining() <= 0) stop("qualification_expired");
+    if (!stopped) await runLocalGoogleQualification({ protocol, control, outputDir: runDir }, custody);
+  } catch (error) {
+    runError = error;
+    stop("qualification_incomplete");
   }
-  let exit = null, spawnError = null;
-  child.once("exit", (code, signal) => { exit = { code, signal }; });
-  const close = await new Promise(resolve => {
-    child.once("error", error => { spawnError = error; });
-    child.once("close", (code, signal) => resolve({ code, signal }));
-  });
+  if (!stopped && remaining() <= 0) stop("qualification_expired");
+  try {
   const duration = performance.now() - started;
   const completion = {
     schema: "airlock.sdk-absent-google-command-completion.v1", protocol, control, complete: false,
-    producer_evidence: "not_validated", command_exit_observed: exit !== null, command_close_observed: true,
-    exit_code: exit?.code ?? null, signal: exit?.signal ?? null, close_code: close.code, close_signal: close.signal,
+    producer_evidence: "not_validated", command_exit_observed: exit !== null, command_close_observed: close !== null,
+    exit_code: exit?.code ?? null, signal: exit?.signal ?? null, close_code: close?.code ?? null, close_signal: close?.signal ?? null,
     spawn_failed: spawnError !== null,
     spawn_error_code: typeof spawnError?.code === "string" && /^[A-Z0-9_]+$/.test(spawnError.code)
       ? spawnError.code : spawnError ? "unknown" : null,
     elapsed_ms: duration, stdout_sha256: hash(stdout), stderr_sha256: hash(stderr),
-    source_before_sha256: hash(JSON.stringify(sourceBefore)), cohort_before_sha256: hash(JSON.stringify(cohortBefore)),
-    output_overflow: overflow,
+    source_before_sha256: sourceBefore ? hash(JSON.stringify(sourceBefore)) : null,
+    cohort_before_sha256: cohortBefore ? hash(JSON.stringify(cohortBefore)) : null,
+    output_overflow: overflow, stop_reason: stopReason,
   };
   writeMetaPrivate(join(outputDir, "command-completion.json"), completion);
+  if (!stopped && remaining() <= 0) stop("qualification_expired");
   let stage = "child_completion", witness;
   try {
-    if (spawnError || !exit || exit.code !== close.code || exit.signal !== close.signal)
+    if (receiptError || stopError || runError || stopped || spawnError || !exit || !close
+      || exit.code !== close.code || exit.signal !== close.signal)
       fail("local_google_child_completion_invalid");
     stage = "source_cohort";
     const sourceAfter = inspectedMetaSourcePins(), cohortAfter = currentGoogleCohort();
@@ -115,7 +180,7 @@ export async function witnessLocalGoogleQualification(options) {
       ? report.outcome === "inconclusive" && JSON.stringify(report.errors) === JSON.stringify(["synthetic_abort"])
         && report.receiver_attempts === 1 && report.cleanup.guard_at_context_close === true
       : report.outcome === "pass" && Array.isArray(report.errors) && report.errors.length === 0;
-    const valid = exit.code === (expectedAbort ? 1 : 0) && exit.signal === null && !overflow && Number.isFinite(duration)
+    const reportValid = exit.code === (expectedAbort ? 1 : 0) && exit.signal === null && !overflow && Number.isFinite(duration)
       && duration > 0 && duration < 60000 && report.protocol === protocol && report.control === control
       && outcomeMatches
       && report.native_sdk_executed === false && report.public_upstream_requests === 0
@@ -130,8 +195,8 @@ export async function witnessLocalGoogleQualification(options) {
       protocol, control, command_exit_observed: true, exit_code: exit.code, signal: exit.signal,
       elapsed_ms: duration, producer_outcome: report.outcome, result_sha256: hash(bytes),
       stdout_sha256: hash(stdout), stderr_sha256: hash(stderr),
-      source_sha256: hash(JSON.stringify(sourceBefore)), cohort_sha256: hash(JSON.stringify(cohortBefore)), complete: valid,
-      failure_category: valid ? null : "local_google_witness_inconclusive",
+      source_sha256: hash(JSON.stringify(sourceBefore)), cohort_sha256: hash(JSON.stringify(cohortBefore)), complete: false,
+      failure_category: reportValid ? "google_guard_release_unqualified" : "local_google_witness_inconclusive",
       native_sdk_executed: false, public_upstream_requests: 0, native_execution_qualified: false };
   } catch (error) {
     try {
@@ -143,8 +208,16 @@ export async function witnessLocalGoogleQualification(options) {
     throw new Error(`local_google_${stage}_failed`, { cause: error });
   }
   writeMetaPrivate(join(outputDir, "witness.json"), witness);
+  if (!stopped && remaining() <= 0) stop("qualification_expired");
   if (!witness.complete) fail("local_google_witness_inconclusive");
   return witness;
+  } catch (error) {
+    stop("witness_incomplete");
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+    if (exit) clearTimeout(escalation);
+  }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

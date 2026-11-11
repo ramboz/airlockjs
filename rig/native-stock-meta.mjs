@@ -81,6 +81,7 @@ const SOURCE_FILES = ["native-stock-capture.mjs", "native-stock-meta.mjs", "nati
   "inspected-google-transport.test.mjs",
   "inspected-google-qualification.mjs", "inspected-google-qualification.test.mjs",
   "inspected-google-witness.mjs", "inspected-google-witness.test.mjs", "inspected-google-witness-source.test.mjs",
+  "inspected-google-custody-source.test.mjs",
   "inspected-header-block.mjs", "inspected-header-block.test.mjs",
   "reference-inspection.mjs", "reference-inspection.test.mjs",
   "qualification-loopback-chrome", "qualification-loopback-network.sb", "../package.json", "../package-lock.json"];
