@@ -174,6 +174,24 @@ export async function startNativeInspectedTransport(lease) {
     openUpstream: connectFixedMetaCollector });
 }
 
+function connectFixedGoogleCollector(authority) {
+  if (!GOOGLE_AUTHORITIES.has(authority)) throw new Error("invalid_native_google_authority");
+  const host = authority.slice(0, -4);
+  return tlsConnect({ host, port: 443, servername: host, rejectUnauthorized: true,
+    ALPNProtocols: ["h2", "http/1.1"] });
+}
+
+export async function startNativeGoogleInspectedTransport(lease) {
+  const { claimNativeGoogleTransportLease } = await import("./inspected-google-additional.mjs");
+  const { config, assertAdmission } = claimNativeGoogleTransportLease(lease);
+  assertAdmission();
+  return startInspectedTransport({ ...config, expectedProtocol: null, mode: "native", google: true,
+    check: () => { assertAdmission(); config.check(); },
+    beforeConnect: () => { assertAdmission(); config.beforeConnect(); },
+    logicalAuthority: authority => { assertAdmission(); return config.logicalAuthority(authority); },
+    openUpstream: connectFixedGoogleCollector });
+}
+
 /** Fixed literal-loopback fixture caller of the SAME broker and raw relay. */
 export async function startLocalInspectedTransport({ inspector, receiver, protocol, observer, check, wait }) {
   if (!["h1", "h2"].includes(protocol) || !Number.isInteger(receiver.port) || receiver.port < 1 || receiver.port > 65535)

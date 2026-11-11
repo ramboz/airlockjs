@@ -15,6 +15,8 @@ import { additionalAuthority, additionalSnapshotReader, validateAdditionalAuthor
 
 const execute = promisify(execFile);
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
+const googleAdditionalReservations = new WeakMap();
+const nativeGoogleReservationPermits = new WeakMap();
 const claims = Object.freeze({
   native_sdk_executed: false, live_guard_qualified: false, case_reserved: false,
   vendor_http_received: false, product_receipt: false, matching: false, attribution: false,
@@ -60,6 +62,35 @@ function prepareOutput(path) {
   } catch { throw new Error("output_unavailable"); }
 }
 
+export function claimSyntheticGoogleReservation(reservation, bindingSha256) {
+  return claimGoogleAdditionalReservation(reservation, bindingSha256, "synthetic");
+}
+
+export function claimNativeGoogleReservation(reservation, bindingSha256) {
+  return claimGoogleAdditionalReservation(reservation, bindingSha256, "native");
+}
+
+function claimGoogleAdditionalReservation(reservation, bindingSha256, kind) {
+  if (!reservation || isProxy(reservation) || !googleAdditionalReservations.has(reservation))
+    throw new Error("google_additional_reservation_invalid");
+  const expected = googleAdditionalReservations.get(reservation);
+  googleAdditionalReservations.delete(reservation);
+  if (expected.binding !== bindingSha256 || expected.kind !== kind)
+    throw new Error("google_additional_reservation_invalid");
+}
+
+export async function reserveNativeAdditionalGoogleSlot(admissionTicket, binding) {
+  const { claimNativeGoogleReservationAdmission } = await import("./inspected-google-admission.mjs");
+  claimNativeGoogleReservationAdmission(admissionTicket, binding);
+  const permit = Object.freeze({});
+  nativeGoogleReservationPermits.set(permit, hash(JSON.stringify(data(binding))));
+  try {
+    return reserveStockSlot({ authority_path: binding.authority.path, authority_sha256: binding.authority.sha256,
+      case_name: "google-stock", input_sha256: binding.inputs.sha256, source_sha256: binding.source_sha256,
+      window: binding.window, additional_binding: binding, native_permit: permit });
+  } finally { nativeGoogleReservationPermits.delete(permit); }
+}
+
 // Reservation is bookkeeping only. The caller must establish every execution
 // prerequisite before using it; this API does not make the stock CLI executable.
 export function reserveStockSlot(options) {
@@ -78,7 +109,7 @@ export function reserveStockSlot(options) {
   options.window = snapshotData(options.window);
   const keys = ["authority_path", "authority_sha256", "case_name", "input_sha256",
     "source_sha256", "window"];
-  if (!Reflect.ownKeys(options).every(key => keys.includes(key) || ["clock", "additional_binding"].includes(key))
+  if (!Reflect.ownKeys(options).every(key => keys.includes(key) || ["clock", "additional_binding", "native_permit"].includes(key))
     || !keys.every(key => Object.hasOwn(options, key))
     || typeof options.authority_path !== "string" || !isAbsolute(options.authority_path)
     || resolve(options.authority_path) !== options.authority_path
@@ -91,6 +122,28 @@ export function reserveStockSlot(options) {
     throw new Error("invalid_slot_input");
   options = Object.freeze({ ...options, window: Object.freeze({ ...options.window }),
     ...(Object.hasOwn(options, "additional_binding") ? { additional_binding: data(options.additional_binding) } : {}) });
+  if (options.case_name === "google-stock" && options.additional_binding) {
+    const binding = options.additional_binding, root = dirname(options.authority_path);
+    const synthetic = equal(binding.cohort, { kind: "sdk-free-synthetic", native_execution_qualified: false });
+    if (synthetic ? dirname(root) !== resolve("rig/out")
+      || !/^google-additional-[a-f0-9]{16}$/.test(root.slice(resolve("rig/out").length + 1))
+      || options.authority_path !== join(root, "authority.json") || binding.case_permission?.path !== join(root, "case.json")
+      : options.authority_path !== join(root, "google-additional-authority.json")
+      || binding.case_permission?.path !== join(root, "google-additional-case-permission.json"))
+      throw new Error("google_additional_reservation_binding_invalid");
+    if (synthetic && Object.hasOwn(options, "native_permit"))
+      throw new Error("invalid_google_native_reservation_permit");
+    if (!synthetic) {
+      const permit = options.native_permit;
+      if (!permit || isProxy(permit) || !nativeGoogleReservationPermits.has(permit))
+        throw new Error("invalid_google_native_reservation_permit");
+      const expected = nativeGoogleReservationPermits.get(permit);
+      nativeGoogleReservationPermits.delete(permit);
+      if (expected !== hash(JSON.stringify(data(binding)))) throw new Error("invalid_google_native_reservation_permit");
+    }
+  } else if (Object.hasOwn(options, "native_permit")) {
+    throw new Error("invalid_google_native_reservation_permit");
+  }
   const clock = options.clock ?? (() => Date.now()), window = { ...options.window };
   let last = null;
   const check = () => {
@@ -123,8 +176,36 @@ export function reserveStockSlot(options) {
     authorityBytes = bytes;
     authority = JSON.parse(bytes.toString("utf8"));
   } catch { throw new Error("slot_authority_unavailable"); }
-  let additional = null, additionalReader = null;
-  if (plain(authority) && additionalAuthority(authority)) {
+  let additional = null, additionalReader = null, googleAdditional = false, googleNative = false;
+  if (plain(authority) && authority.authority_variant === "google-additional") {
+    authority = json(authorityBytes);
+    const binding = options.additional_binding;
+    if (!binding || options.case_name !== "google-stock" || Object.hasOwn(options, "clock")
+      || !equal(binding.authority, { path: options.authority_path, sha256: options.authority_sha256 })
+      || binding.inputs?.sha256 !== options.input_sha256 || binding.source_sha256 !== options.source_sha256
+      || !equal(binding.window, options.window)) throw new Error("google_additional_reservation_binding_invalid");
+    const { createNativeAdditionalGoogleReader, validateNativeAdditionalGoogle } =
+      createRequire(import.meta.url)("./inspected-google-additional.mjs");
+    additionalReader = createNativeAdditionalGoogleReader();
+    additional = validateNativeAdditionalGoogle(binding, additionalReader);
+    if (!equal(additional.authority, authority)) throw new Error("google_additional_authority_invalid");
+    googleAdditional = googleNative = true;
+  } else if (plain(authority) && (authority.schema === "airlock.synthetic-google-additional-authority.v1"
+    || typeof authority.authority_id === "string" && authority.authority_id.startsWith("synthetic-google-additional-"))) {
+    authority = json(authorityBytes);
+    const binding = options.additional_binding;
+    if (!binding || options.case_name !== "google-stock" || Object.hasOwn(options, "clock")
+      || !equal(binding.authority, { path: options.authority_path, sha256: options.authority_sha256 })
+      || binding.inputs?.sha256 !== options.input_sha256 || binding.source_sha256 !== options.source_sha256
+      || !equal(binding.window, options.window)) throw new Error("google_additional_reservation_binding_invalid");
+    const { createAdditionalGoogleReader, validateSyntheticAdditionalGoogle } =
+      createRequire(import.meta.url)("./inspected-google-additional.mjs");
+    additionalReader = createAdditionalGoogleReader(dirname(options.authority_path));
+    const validated = validateSyntheticAdditionalGoogle(binding, additionalReader);
+    if (!equal(validated.authority, authority)) throw new Error("google_additional_authority_invalid");
+    additional = validated;
+    googleAdditional = true;
+  } else if (plain(authority) && additionalAuthority(authority)) {
     authority = json(authorityBytes);
     const binding = options.additional_binding;
     if (!binding || options.case_name !== "meta-stock" || Object.hasOwn(options, "clock")
@@ -169,8 +250,9 @@ export function reserveStockSlot(options) {
     source_sha256: options.source_sha256, input_sha256: options.input_sha256,
     reserved_at_ms: reservedAt, window,
     execution_prerequisites_proved_by_reservation: false,
-    ...(additional ? { authority_variant: "additional-meta-2026-10-21",
-      lineage_baseline_sha256: authority.lineage_baseline.sha256,
+    ...(additional ? { authority_variant: googleAdditional
+      ? googleNative ? "google-additional" : "synthetic-google-additional" : "additional-meta-2026-10-21",
+      lineage_baseline_sha256: googleAdditional ? options.additional_binding.baseline.sha256 : authority.lineage_baseline.sha256,
       binding_sha256: hash(JSON.stringify(data(options.additional_binding))) } : {}),
   };
   let recordIdentity;
@@ -216,9 +298,13 @@ export function reserveStockSlot(options) {
     if ([s.dev, s.ino, s.nlink, s.size, s.mode, s.mtimeNs, s.ctimeNs].join(":") !== recordIdentity)
       throw new Error("canonical_reservation_changed");
   }
-  return Object.freeze({ case_name: options.case_name, reserved: true, network_authorized: false,
+  const result = Object.freeze({ case_name: options.case_name, reserved: true, network_authorized: false,
     owner_identity_authenticated: false, execution_prerequisites_proved: false,
     canonical_record_path: path, canonical_record_identity: recordIdentity });
+  if (googleAdditional)
+    googleAdditionalReservations.set(result, { kind: googleNative ? "native" : "synthetic",
+      binding: hash(JSON.stringify(data(options.additional_binding))) });
+  return result;
 }
 
 // No official-source/native execution entry. This delivers the permitted

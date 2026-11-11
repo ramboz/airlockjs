@@ -9,6 +9,18 @@ It produced partial conversion-phase evidence, not a complete native reference.
 The original reservation was not refunded or rewritten. Neither chamber is
 cleared by these records.
 
+## Additional Google source candidate
+
+The additional Google path connects browser observations to its physical
+observer. SDK-free tests exercise the native issuer and transport handoff with
+isolated fixtures. They do not authenticate an owner or qualify a browser run.
+There is no pinned owner decision, so native admission remains closed before
+reservation. Current source/cohort qualification, native stop and retained-guard
+evidence remain open. The browser-observation path has not run natively.
+The source candidate handles the retained single event/data response frame.
+Its synthetic tests link a complete physical parent to an eligible request.
+The retained POST and redirected GET remain outside the closed route policy.
+
 ## Manual Google response evidence - 2026-11-06
 
 The owner's HAR retains GET200 -> response-linked POST302 -> redirected GET200.
