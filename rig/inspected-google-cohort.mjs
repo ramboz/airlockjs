@@ -23,17 +23,27 @@ function executableFingerprint(path, maximum) {
   } finally { closeSync(fd); }
 }
 
+export function isSupportedGoogleChromeVersion(version) {
+  return version === "157.0.8103.40";
+}
+
+export function isSupportedGoogleCohort({ node, platform, arch, darwin, macos, chrome, playwright }) {
+  return node === "v22.16.0" && platform === "darwin" && arch === "arm64"
+    && darwin === "27.0.0" && macos === "27.0.1" && isSupportedGoogleChromeVersion(chrome) && playwright === "1.62.1";
+}
+
 export function currentGoogleCohort() {
   const info = "/Applications/Google Chrome.app/Contents/Info.plist";
   const chrome = execFileSync("/usr/bin/plutil", ["-extract", "CFBundleShortVersionString", "raw", "-o", "-", info],
     { timeout: 2000, maxBuffer: 4096 }).toString().trim();
   const macos = execFileSync("/usr/bin/sw_vers", ["-productVersion"], { timeout: 2000, maxBuffer: 4096 }).toString().trim();
   const require = createRequire(import.meta.url), playwright = require("playwright/package.json").version;
-  if (process.version !== "v22.16.0" || process.platform !== "darwin" || process.arch !== "arm64"
-    || release() !== "27.0.0" || macos !== "27.0.1" || chrome !== "156.0.8078.80" || playwright !== "1.62.1")
+  const darwin = release();
+  if (!isSupportedGoogleCohort({ node: process.version, platform: process.platform, arch: process.arch,
+    darwin, macos, chrome, playwright }))
     throw Error("google_cohort_mismatch");
   const app = "/Applications/Google Chrome.app/Contents";
-  return { node: process.version, platform: process.platform, arch: process.arch, darwin: release(), macos, chrome,
+  return { node: process.version, platform: process.platform, arch: process.arch, darwin, macos, chrome,
     playwright, node_executable_sha256: executableFingerprint(process.execPath, 268435456),
     chrome_executable_sha256: executableFingerprint(`${app}/MacOS/Google Chrome`, 16777216),
     chrome_framework_sha256: executableFingerprint(`${app}/Frameworks/Google Chrome Framework.framework/Versions/${chrome}/Google Chrome Framework`,

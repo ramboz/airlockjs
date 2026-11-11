@@ -1,6 +1,7 @@
 # Plan - full Google Ads browser-tag compatibility
 
-Current disposition is the [SDK-free local runtime result](#sdk-free-local-runtime-result---2026-11-10).
+Current source work is the [Google cohort and witness packet](#google-cohort-and-witness-source-packet---2026-11-11).
+The prior disposition is the [SDK-free local runtime result](#sdk-free-local-runtime-result---2026-11-10).
 All four current157 grants are consumed. No further acquisition is admitted.
 The [CSP-negative classification packet](#csp-negative-classification---2026-11-10)
 is the preceding reviewed source packet.
@@ -20,6 +21,238 @@ The earlier [local helper prerequisite checkpoint](#local-helper-prerequisite-ch
 retains its then-current stronger stop assessment; it is not retroactively cleared.
 The earlier [accepted browser-operation construction](#accepted-browser-operation-construction-packet---2026-11-09)
 and manual-response source stops below remain dated evidence.
+
+## Google cohort and witness source packet - 2026-11-11
+
+The authenticated inventory observed Chrome `157.0.8103.40`, macOS `27.0.1`,
+Darwin `27.0.0`, Node `v22.16.0` on `darwin/arm64`, and own Playwright `1.62.1`.
+It did not qualify a browser. The prior Chrome156 cohort check blocks the
+SDK-free Google witness before fingerprinting. This packet changes only that
+fixed Google pin and the connected producer guard through a closed predicate.
+It retains the other pins and existing before/after source and cohort checks,
+adds isolated source tests and
+the minimum source-inventory entries for those tests. No Meta behavior, policy,
+limits, live authority or slot changes are included.
+
+The start is `2026-11-11T19:56:42.190693Z`; the absolute ceiling is
+`2026-11-11T21:56:42.190693Z`, without reset. Base is
+`34f153d13acc63094ae3d2df8a01ff8dbe4953c7`, tree
+`49debc12d3a8eb207d32cea576b770cb2f380738`. All four earlier Chrome157
+grants and the inventory-only grant are consumed.
+
+Freeze before test execution: only these two new, source-only selectors may
+exercise the predicate and witness with a wholly mocked cohort, child and
+filesystem. A synthetic witness is not execution authority. The original
+three-file regression proposal is excluded: this packet permits no listeners,
+including loopback, and does not rely on the older passing run. No real cohort,
+existing witness suite, admission suite, browser, confinement or Meta selector
+is included. Static inspection covered both new test bodies, their imports and
+the default Vitest config before running. The parent confirmed prospective own
+physical dependency provisioning; the parent-authenticated private receipt has
+SHA-256 `b6cba461000baeaad447c7719f75285b9063f6a173c90b5c127954e37be9def5`.
+The corrected environment and exact argv are:
+
+The parent expanded the source-only packet at 20:28Z solely for the existing
+Google qualification producer's fixed version guard and its isolated source
+regression. Freeze the complete nine-file manifest before that correction:
+
+1. `docs/specs/059-google-ads-full-compatibility/plan.md`
+2. `docs/specs/059-google-ads-full-compatibility/tasks.md`
+3. `rig/inspected-google-cohort.mjs`
+4. `rig/inspected-google-cohort-source.test.mjs`
+5. `rig/inspected-google-witness-source.test.mjs`
+6. `rig/inspected-meta-stock.mjs`
+7. `rig/native-stock-meta.mjs`
+8. `rig/native-stock-capture.md`
+9. `rig/inspected-google-qualification.mjs`
+
+In the producer, only extend the existing cohort import and substitute the
+fixed predicate in its connected-browser guard. Test its source wiring and
+evaluate only the isolated, allowlisted guard statement. Do not import or run
+the producer, launch a browser, probe the host or create any listener.
+
+The producer compliance review found that the first raw-text wiring test
+could accept an import or guard inside a multiline comment. Refreeze the same
+nine-file manifest and command below for a source-test correction. Use the
+own `node_modules/acorn/dist/acorn.mjs` parser directly, with no ancestor
+fallback or new dependency. Test executable import and guard structure, plus
+commented-import and commented-guard counterexamples. Do not execute or import
+the producer. The earlier32-pass result remains historical and incomplete
+for this regression.
+
+```sh
+env -i PATH=/usr/bin:/bin LANG=C LC_ALL=C NODE_DISABLE_COMPILE_CACHE=1 TMPDIR="$PWD/rig/out/current-cohort-private/tmp" XDG_CACHE_HOME="$PWD/rig/out/current-cohort-private/cache" npm_config_cache="$PWD/rig/out/current-cohort-private/npm-cache" /Users/ramboz/.nvm/versions/node/v22.16.0/bin/node ./node_modules/vitest/vitest.mjs run rig/inspected-google-cohort-source.test.mjs rig/inspected-google-witness-source.test.mjs --no-cache --maxWorkers=1
+```
+
+The first baseline attempt stopped at `MODULE_NOT_FOUND` for the own Vitest
+entry. That is an environment failure, not a semantic RED. The earlier attempt
+does not attest the inherited environment. The `env -i` invocation leaves all
+four qualification flags and inherited Node options absent. With the saved
+old-pin refactor, the corrected source-only command failed the two expected
+Chrome157 acceptance and Chrome156 rejection assertions, with 14 other tests
+passing. Restoring the fixed pin passed all16. The private
+`rig/out/current-cohort-private/source-{red,green}.log` files preserve those
+results; the test-only patch and pre-pin source are retained alongside them.
+The tests do not invoke host cohort probing, children, listeners or a browser.
+
+For craft N1, add cases where both producer source snapshots or both producer
+cohort snapshots agree with each other but are stale relative to the witness.
+Use the same frozen command. Test each connecting comparison with a separate
+narrow temporary mutation, restore only that mutation, then rerun the unchanged
+production source. These are isolated source tests and add no authority.
+Removing the source comparison produced one expected failure and 17 passes;
+removing the cohort comparison separately did the same. Restoring both
+comparisons returned the witness to SHA-256
+`97d7a05fa54dbca81c5252efc86eb8c15e5ceab9f2f1f4451d5ed529c59c49da`.
+The final command passed all18 tests. Private logs are
+`rig/out/current-cohort-private/source-n1-{source-mutant-red,cohort-mutant-red,green}.log`.
+Before this correction the parent reran the original two selectors, recording
+16 passes; that run does not cover the new cases.
+
+Fresh architecture review then found the qualification producer still checked
+connected Chrome156 after launch, despite the witness requiring Chrome157.
+That earlier review `95093b55-5ded-4da7-a125-827b902f952d` returned
+needs-changes for its then-current eight-file candidate.
+The parent approved the narrow producer-guard scope above. The cohort now uses
+one fixed Chrome157 predicate, and the producer's existing mismatch guard uses
+the same predicate after connection. Its failure category, ordering and other
+guards are unchanged.
+
+The helper's test-first RED used a temporary standalone Chrome156 helper
+candidate, not the old producer: two expected assertions failed and 25 tests
+passed. The corrected helper passed27. Those results are in private
+`browser-helper-{red,green}.log` under `rig/out/current-cohort-private/`.
+
+The final producer-guard test reads source without importing the producer and
+evaluates only an allowlisted extracted guard in an isolated VM. Against the
+unchanged Chrome156 producer, the final test-first run failed the expected
+wiring, Chrome157 acceptance and Chrome156 rejection assertions, with 29 tests
+passing. After the import and guard substitution, all32 passed. Private logs are
+`rig/out/current-cohort-private/producer-guard-{red-final,green}.log`. An earlier
+test-first run also failed before the test diagnostics were shortened; its
+`producer-guard-red.log` is retained. The next RED/GREEN pair is retained with
+the `-v1` suffix; the final pair repeats RED/GREEN after tightening the import
+check to a line anchor. That anchor still accepted multiline comments. No
+producer, browser or real cohort ran. These results do not qualify the
+connected browser or any native case.
+
+The subsequent source-test correction adds two in-memory mutations that comment
+out the producer import or guard after a fresh producer compliance review
+returned needs-changes for the raw-text false positive. Both mutations exposed
+that finding: RED
+had two expected failures and 32 passes. The corrected test parses the source
+with the own Acorn dependency, checks the real import, function and
+consecutive connection, guard and attach AST statements, then evaluates only
+the allowlisted guard. GREEN passed all34 source-only tests. Logs are
+`rig/out/current-cohort-private/producer-comment-{red,green}.log`. The producer
+remains unexecuted and its two-line source delta is unchanged.
+
+### Final source-packet reviews
+
+The coordinator supplied three fresh actual `SOURCE_PACKET` passes for the
+nine-file candidate manifest SHA-256
+`33b570e205ee27e228806b91311b4b194e6edb65b41f9166c656e3799cf3edaa`.
+The reviewers matched all nine hashes twice. Their requested model and tier
+were `gpt-6.1-sol` and `default`; runtime model and context were not
+independently attested.
+
+- Compliance `7fbb96fb-9051-4f6e-ac91-426297c47137`: PASS for executable
+  source checks and bounded packet compliance.
+- Craft `50d143db-a694-4d03-8374-0b5500749dfd`: PASS, no must-fix.
+- Architecture `0bc08ae6-933d-46e5-8aad-3f27e4db9a3a`: PASS, no new
+  architecture or authority contract. The exact no-external and owned-stop
+  commands remain proposed and unreviewed; independent timeout enforcement
+  remains a gap.
+
+The private prompts are
+`rig/out/current-cohort-private/producer-comment-compliance-prompt.txt`,
+`producer-final-craft-prompt.txt` and `producer-final-arch-prompt.txt` in the
+same directory. The private `actual-review-results.json` records the review
+handoff; its previously read architecture entry still said pending, so the
+final architecture result above is the coordinator's subsequent handoff.
+The reviewers did not run tests or probes. The tracked manifest was verified;
+final untracked and derived-index freshness was not attested.
+
+The coordinator independently reran the two frozen selectors in a direct
+minimal environment: shell3535 exited0 with34 passes. Its private
+`coordinator-final-source-execution.json` receipt has SHA-256
+`690451a6c65672d9ed1bdb7c1a262d9a21d0e96846606202830b3aa828fb4381`;
+`coordinator-final-source-green.log` retains the output. This is source
+evidence, not browser or native qualification.
+
+These reviews cover the frozen candidate above, before this review-record
+documentation update. Narrow final-byte documentation followups are in
+progress. No canonical review is replaced.
+
+### Next finite SDK-free controls: NOT_ADMITTED
+
+A separate, explicit finite permission and current-source reviews are needed.
+The proposed first packet is at most six sequential SDK-free cases: `positive`,
+`marker` and `marker-bypass` once each on H1 and H2. It also needs separately
+admitted, independent current-browser no-external and owned-stop checks before
+the first case; if those cannot be established, stop without launching a case.
+No retry or substitution is implied. Bind the final source inventory and exact
+observed Chrome157/OS/Node/own Playwright cohort, including per-run byte
+fingerprints, before and after each case. Each case must retain independent
+receiver and child-completion evidence, originals and failure witnesses.
+
+The existing qualification index requires the full fixed 84-case H1/H2 matrix.
+The remaining 78 cases include path, input, ambiguity, authority, body, expiry,
+transport, parent completeness, aggregate, close, abort, redirect, budget, TLS,
+response/header/truncation, retry and H2 GOAWAY controls with their applicable
+matched bypasses. They need a separately reviewed finite admission. Neither
+packet establishes native admission or product receipt.
+
+Separately scope and review current-source stop and guard-release controls for
+authentication, active H1/H2 work, expiry, acquisition failure, root exit with
+possible surviving helpers, reconnect and port reuse, and output/stop failure.
+Use private owned outputs only. Keep the existing 20 physical attempts, 64
+observations, 2 KiB URLs, 64 KiB headers/body, 2 MiB response, 8 MiB aggregate
+and absolute 60-second complete-case envelope per case; feasibility remains
+unproved. The proposed six cases are sequential, with at most six such
+envelopes and no retry; preparation needs its own finite admission and stop.
+Stop on mismatches, incomplete response, unknown branches, lost observation,
+timeout or cleanup failure. Close admission before shutdown, retain guards
+until verified safe release, and report descendants/profile as unknown/manual;
+never kill by name. No public or vendor requests, SDK, native/chamber case,
+authority or slot operation follows from this plan.
+
+### Packet reconciliation
+
+The no-listener correction excludes the proposed three-selector regression set;
+its previously reported 107 passes are historical, not current validation.
+The first missing-dependency failure used an inherited environment, which was
+not fully attested, and remains an environment failure. Prospective own
+provisioning preceded the clean-environment RED/GREEN runs. Craft N1 adds the
+two paired-stale tests and mutation checks without changing the final witness.
+The earlier architecture review's Chrome156 producer conflict and the later
+compliance review's commented-code false positive remain recorded above as
+findings on earlier candidates, not retroactive passes. The parent approved
+only the producer import and guard correction; the source regression uses the
+existing own parser. The earlier32-test pass did not cover commented code.
+Three fresh source reviews now cover the candidate manifest identified above;
+documentation followups are in progress. Fresh reconciliation
+`8bc99dbc-e218-4db9-bf04-6e5281567612` passed for `SOURCE_PACKET` on the
+nine-file v3 manifest SHA-256
+`677a5fcf66fc62b33326a3f0f353e3e467abb744ae6b0ea29856a99390b5f07a`.
+The requested model and tier were `gpt-6.1-sol` and `default`; runtime model
+and context remain unattested. The coordinator's private handoff is
+`rig/out/current-cohort-private/actual-review-results.json`. This pass does not
+change full-slice or native readiness.
+Historical source-packet passes, prior failures and custody deviations remain
+unchanged. No permission, native evidence, dependency manifest, safety limit or
+authority was changed by this packet. The native owner pins remain empty,
+`nativeReady` remains false and native entry remains closed. 059-15 remains
+IN_PROGRESS, 059-01 READY_FOR_REVIEW and canonical full059 compliance
+needs-changes.
+
+| Surface | Reconciliation disposition |
+|---|---|
+| Source and tests | Fixed Google version and witness bindings have source-only evidence. The producer's only changes are its cohort import and connected-browser guard. |
+| Decisions and scope | ADR-0045 and ADR-0047 remain unchanged. The parent-approved producer correction adds no new architecture or authority contract. |
+| Operator guide | Updated for the fixed guard and AST source check; its six-control plan remains NOT_ADMITTED. |
+| Custody and execution | Prior failures, consumed grants and manual-helper uncertainty remain. No original authority or slot was inspected or changed in this packet. |
+| Reviews | Three source passes cover the pre-documentation candidate. Final-byte documentation followups and independent reconciliation are pending. |
 
 ## SDK-free local runtime result - 2026-11-10
 
