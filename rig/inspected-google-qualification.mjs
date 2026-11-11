@@ -14,7 +14,7 @@ import { createInspectedHttpWire, createInspectedRequestFramer } from "./inspect
 import { startLocalGoogleAuthorityBypass, startLocalGoogleInspectedTransport, startLocalGoogleProtocolControl }
   from "./inspected-transport.mjs";
 import { inspectedMetaSourcePins } from "./inspected-meta-stock.mjs";
-import { currentGoogleCohort } from "./inspected-google-cohort.mjs";
+import { currentGoogleCohort, isSupportedGoogleChromeVersion } from "./inspected-google-cohort.mjs";
 import { writeGoogleOriginals } from "./inspected-google-originals.mjs";
 
 const execute = promisify(execFile);
@@ -284,7 +284,7 @@ export async function runLocalGoogleQualification(options) {
       args: ["--disable-background-networking", "--dns-prefetch-disable", `--ignore-certificate-errors-spki-list=${spki}`] });
     if (new URL(browserServer.wsEndpoint()).hostname !== "127.0.0.1") fail("driver_not_loopback");
     browser = await wait(chromium.connect(browserServer.wsEndpoint()));
-    if (browser.version() !== "156.0.8078.80") fail("browser_cohort_mismatch");
+    if (!isSupportedGoogleChromeVersion(browser.version())) fail("browser_cohort_mismatch");
     transport.attachOwnedBrowser(await wait(browser.newBrowserCDPSession()));
     context = await wait(browser.newContext({ serviceWorkers: "block" }));
     context.once("close", () => { guardAtClose = guard; });

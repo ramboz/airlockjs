@@ -347,6 +347,15 @@ admission remain open.
 Both Meta source inventories include the Google observer and local-control
 imports. Earlier source-bound receipts do not qualify the changed source.
 
+The 2026-11-11 Google cohort source packet pins the local Google cohort check to
+Chrome `157.0.8103.40` while retaining the other cohort pins and exact witness
+bindings. Its connected producer version guard uses that same fixed pin. The
+source-only regression parses executable import and guard statements without
+running the producer; it does not qualify a browser. The proposed
+first six SDK-free controls and their separate permission, stop and cleanup
+gates are [NOT_ADMITTED](../docs/specs/059-google-ads-full-compatibility/plan.md#next-finite-sdk-free-controls-not_admitted).
+The older control receipts remain historical; native admission stays closed.
+
 The Google confinement controls are skipped by the default test suite. When
 explicitly authorized, run them with:
 

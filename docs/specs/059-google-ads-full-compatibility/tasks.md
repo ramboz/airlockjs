@@ -4,6 +4,40 @@ The product-feature checklist below remains future work. Operator
 foundations have their own slice records; writing a packet does not complete
 implementation, review or readiness.
 
+## Google cohort and witness source packet - 2026-11-11
+
+- [x] Update the fixed Google cohort pin and add isolated source-only tests;
+      preserve exact source/cohort matching and all other pins.
+- [x] Witness semantic RED against the old pin, then GREEN using the corrected
+      no-listener argv in the [plan](plan.md#google-cohort-and-witness-source-packet---2026-11-11).
+      The parent confirmed prospective own dependency provisioning. The
+      original three-file regression set and its historical 107-pass result
+      are excluded by the no-listener scope. The first missing-dependency
+      failure used an unattested inherited environment.
+- [x] Add craft N1 paired-stale source/cohort cases. Each connecting-comparison
+      mutation failed its new test; restored source passed all18 tests using
+      the same clean-environment command.
+- [x] Correct the parent-approved connected-browser producer guard and witness
+      source-only RED/GREEN against the frozen nine-file manifest and argv.
+      The isolated producer-guard RED had three expected failures; GREEN passed
+      all32 tests. It did not import or run the producer or a browser.
+- [x] Correct the raw-text false positive for commented import and guard with
+      executable AST checks and test-first comment mutations. Both mutations
+      failed before the correction; the same source-only command passed34.
+- [x] Record the coordinator's three actual fresh `SOURCE_PACKET` passes
+      against the reviewed nine-file candidate and the independent34-test
+      minimal-environment receipt in the [plan](plan.md#final-source-packet-reviews).
+- [x] Record fresh current-packet reconciliation `8bc99dbc-e218-4db9-bf04-6e5281567612`
+      PASS for `SOURCE_PACKET`; see the [plan](plan.md#packet-reconciliation).
+- [ ] Complete narrow final-byte documentation followups.
+- [ ] Request separate finite permission and qualify the exact-source/cohort
+      SDK-free controls. The plan is NOT_ADMITTED and does not authorize any
+      browser, official SDK, vendor request, native case or slot operation.
+
+059-15 stays IN_PROGRESS, 059-01 READY_FOR_REVIEW and canonical full059
+compliance needs-changes. Previous failures, consumed grants and custody
+deviations remain intact.
+
 ## Additional Google source work - 2026-11-10
 
 - [x] Exercise a separate synthetic reservation and one-use in-memory policy
