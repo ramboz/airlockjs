@@ -658,7 +658,7 @@ Target delivery environments, prove exclusive application-wide credential grants
 datastream routing evidence or authorize editing the other properties. In particular, the
 excluded property labels are not evidence of Analytics or Target environment routing.
 
-New [051-04](../specs/051-adobe-integration-proving-ground/slice-04-workspace-confirmation.md)
+New 051-04 (on `vendor-adobe`)
 introduces the explicit versioned evidence path, preserving closed 051-01 and its real exit-1
 history. Its independent frame review passed. Implementation and subsequent independent reviews
 must preserve strict fresh selected-property checks, complete collection validation and API
@@ -1776,7 +1776,7 @@ No current conclusion that every admin UI step has an API equivalent.
    approves any revision from the full-compatibility ambition before a narrower release gate is used.
 
 Provisioning/probe scripts belong under `probes/` with a bounded investigation spec before execution.
-[Spec 051](../specs/051-adobe-integration-proving-ground/spec.md) carries the implementation contracts:
+Spec 051 (on `vendor-adobe`) carries the implementation contracts:
 the preflight is implemented; its historical v1 report was unverified, and the subsequent v2
 preparation report passed with explicit owner evidence. A reviewed partial stock smoke has executed
 with ordinary Analytics receipt; complete stock-baseline acceptance and chamber compatibility
@@ -1824,4 +1824,4 @@ offline inventory and read-only access preflight; broad implementation waits for
 
 Promoted to: release direction in [ADR-0038](../decisions/adr-0038-reframe-onto-adobe-first-compatibility.md)
 and [Adobe Compatibility & Adoption](../releases/adobe-compatibility.md), with execution scoped by
-[spec 051](../specs/051-adobe-integration-proving-ground/spec.md); investigation remains OPEN.
+spec 051 (on `vendor-adobe`); investigation remains OPEN.

@@ -135,13 +135,13 @@ R-014 remains the investigation record. The portfolio was drafted through Jig on
 
 | Spec | Draft scope | Refinement state |
 |---|---|---|
-| [051 — Adobe integration proving ground](../specs/051-adobe-integration-proving-ground/spec.md) | Safe preflight, reproducible stock baseline, bounded SDK compatibility decision | 051-01/04 DONE with real preparation-ready report. Stock/spike outcome contracts remain open. |
-| [052 — Governed Adobe event collection and SDK commands](../specs/052-adobe-sdk-event-collection/spec.md) | General XDM/data and the documented command/result/event bridge | Unsliced DRAFT; needs 051's contract/approach |
-| [053 — Adobe personalization and reporting](../specs/053-adobe-personalization-reporting/spec.md) | Offers/rendering/scopes/views and Adobe-native display/interaction evidence | Unsliced DRAFT; refine from inventory and relevant command contracts |
-| [054 — aem-martech and Launch migration](../specs/054-aem-martech-launch-migration/spec.md) | Adopter instrumentation, ACDL/Launch compatibility, no duplicate initialization | Unsliced DRAFT; depends on the behaviors being migrated |
-| [055 — Adobe consent, identity and delivery lifecycle](../specs/055-adobe-consent-identity-delivery/spec.md) | Revocation, identity continuity, retained/queued work and page/worker/network edges | Unsliced DRAFT; critical safe behavior is pulled into feature slices immediately |
-| [056 — Adobe product-workflow validation](../specs/056-adobe-product-workflow-validation/spec.md) | Nonblocking downstream product/reporting follow-up | Unsliced DRAFT; owner deferred priority under ADR-0039, trigger a concrete adopter need |
-| [057 — Adobe adoption, performance and release qualification](../specs/057-adobe-adoption-release-qualification/spec.md) | Install/migrate/measure/update/rollback and complete evidence aggregation | Unsliced DRAFT; numeric bands and feature evidence precede readiness |
+| 051 — Adobe integration proving ground (on `vendor-adobe`) | Safe preflight, reproducible stock baseline, bounded SDK compatibility decision | 051-01/04 DONE with real preparation-ready report. Stock/spike outcome contracts remain open. |
+| 052 — Governed Adobe event collection and SDK commands (on `vendor-adobe`) | General XDM/data and the documented command/result/event bridge | Unsliced DRAFT; needs 051's contract/approach |
+| 053 — Adobe personalization and reporting (on `vendor-adobe`) | Offers/rendering/scopes/views and Adobe-native display/interaction evidence | Unsliced DRAFT; refine from inventory and relevant command contracts |
+| 054 — aem-martech and Launch migration (on `vendor-adobe`) | Adopter instrumentation, ACDL/Launch compatibility, no duplicate initialization | Unsliced DRAFT; depends on the behaviors being migrated |
+| 055 — Adobe consent, identity and delivery lifecycle (on `vendor-adobe`) | Revocation, identity continuity, retained/queued work and page/worker/network edges | Unsliced DRAFT; critical safe behavior is pulled into feature slices immediately |
+| 056 — Adobe product-workflow validation (on `vendor-adobe`) | Nonblocking downstream product/reporting follow-up | Unsliced DRAFT; owner deferred priority under ADR-0039, trigger a concrete adopter need |
+| 057 — Adobe adoption, performance and release qualification (on `vendor-adobe`) | Install/migrate/measure/update/rollback and complete evidence aggregation | Unsliced DRAFT; numeric bands and feature evidence precede readiness |
 
 Only 051 is refined into executable slice contracts. None is READY_FOR_IMPLEMENTATION, and no
 authenticated/provisioning action is authorized by drafting. On 2026-10-08 the owner granted
