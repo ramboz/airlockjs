@@ -8,7 +8,7 @@
 - A document is one distinct (number, slug). The same slug on several branches is one document.
 - New numbers follow the earliest commit that added the file on any source branch (ties: old number). ADR 0031 starts the sequence, R 012 and bug 001 likewise.
 - Review files (`docs/decisions/reviews/adr-NNNN-*`) take their ADR's new number. Review files are matched to their ADR per source branch, because `adr-0031-frame-critique.md` etc. exist with different content on `personalization-planning`.
-- Classification: `project` (shared, lives on foundation), `adobe`, `google`, `meta`, `google-meta` (on both vendor branches), `personalization`.
+- Classification: `project` (shared, lives on foundation), `adobe`, `google`, `meta`, `personalization`. Nothing is shared between two vendor branches: two-vendor documents are `project` and live on foundation.
 - Documents already on `origin/main` (ADR-0031 Adobe-first reframe, ADR-0032 boundary acceptance, R-012) stay on foundation, renumbered. Vendor children rename their own copies from the JSON.
 - ADR-0039 (old ADR-0032) is the only project-level ADR found; every other post-0030 ADR is single-vendor.
 
@@ -24,8 +24,8 @@
 |---|---|---|---|---|---|---|
 | BUG-001 | stock-bootstrap-query-isolation | adobe | adobe | BUG-001 | adobe |  |
 | BUG-001 | meta-fbp-wire-redaction | google, meta | meta | BUG-002 | meta |  |
-| BUG-002 | local-fixture-import-closure | google, meta | google-meta | BUG-003 | google+meta |  |
-| BUG-003 | shared-host-live-consent | google, meta | google-meta | BUG-004 | google+meta |  |
+| BUG-002 | local-fixture-import-closure | google, meta | meta | BUG-003 | meta |  |
+| BUG-003 | shared-host-live-consent | google, meta | project | BUG-004 | foundation |  |
 | BUG-002 | admission-ledger-capacity | adobe | adobe | BUG-005 | adobe |  |
 | ADR-0031 | flicker-by-construction-invariant | personalization | personalization | ADR-0031 | personalization | 1 |
 | ADR-0032 | eager-paint-policy-and-flag | personalization | personalization | ADR-0032 | personalization | 1 |
@@ -36,15 +36,15 @@
 | ADR-0037 | config-builder-hosting-github-write-path | personalization | personalization | ADR-0037 | personalization |  |
 | ADR-0031 | reframe-onto-adobe-first-compatibility | main, adobe, google, meta | adobe | ADR-0038 | foundation (already on origin/main) | 1 |
 | ADR-0032 | airlock-boundary-acceptance | main, adobe, google, meta | project | ADR-0039 | foundation (already on origin/main) | 1 |
-| ADR-0033 | reframe-onto-full-google-meta-compatibility | google, meta | google-meta | ADR-0040 | google+meta | 1 |
-| ADR-0034 | inspected-meta-stock-reference | google, meta | google-meta | ADR-0041 | google+meta | 1 |
-| ADR-0035 | additional-one-shot-meta-authority | google, meta | google-meta | ADR-0042 | google+meta | 1 |
-| ADR-0038 | supervised-native-meta-resource-lifecycle | google, meta | google-meta | ADR-0043 | google+meta | 1 |
+| ADR-0033 | reframe-onto-full-google-meta-compatibility | google, meta | project | ADR-0040 | foundation | 1 |
+| ADR-0034 | inspected-meta-stock-reference | google, meta | meta | ADR-0041 | meta | 1 |
+| ADR-0035 | additional-one-shot-meta-authority | google, meta | meta | ADR-0042 | meta | 1 |
+| ADR-0038 | supervised-native-meta-resource-lifecycle | google, meta | meta | ADR-0043 | meta | 1 |
 | ADR-0040 | isolated-linux-qualification-boundary | adobe | adobe | ADR-0044 | adobe | 2 |
 | ADR-0041 | owner-supervised-proving-run | adobe | adobe | ADR-0045 | adobe | 2 |
-| ADR-0042 | google-meta-product-delivery-gates | google, meta | google-meta | ADR-0046 | google+meta | 2 |
-| ADR-0043 | google-meta-request-authority | google, meta | google-meta | ADR-0047 | google+meta | 2 |
-| ADR-0044 | google-ads-consent-wait | google, meta | google-meta | ADR-0048 | google+meta |  |
+| ADR-0042 | google-meta-product-delivery-gates | google, meta | project | ADR-0046 | foundation | 2 |
+| ADR-0043 | google-meta-request-authority | google, meta | project | ADR-0047 | foundation | 2 |
+| ADR-0044 | google-ads-consent-wait | google, meta | google | ADR-0048 | google |  |
 | ADR-0044 | fixed-supervised-original-evidence-reads | adobe | adobe | ADR-0049 | adobe | 1 |
 | ADR-0045 | evidence-independent-05109-source-checkpoint | adobe | adobe | ADR-0050 | adobe | 1 |
 | ADR-0046 | fresh-native-only-admission | adobe | adobe | ADR-0051 | adobe | 10 |
@@ -60,6 +60,9 @@
 | R-012 | personalization-experimentation-runtime | personalization | personalization | R-012 | personalization |  |
 | R-013 | per-site-chunked-dist-feasibility | personalization | personalization | R-013 | personalization |  |
 | R-012 | adobe-first-compatibility | main, adobe, google, meta | adobe | R-014 | foundation (already on origin/main) |  |
-| R-013 | google-meta-first-journey-evidence | google, meta | google-meta | R-015 | google+meta |  |
-| R-014 | google-meta-request-authority | google, meta | google-meta | R-016 | google+meta |  |
+| R-013 | google-meta-first-journey-evidence | google, meta | project | R-015 | foundation |  |
+| R-014 | google-meta-request-authority | google, meta | project | R-016 | foundation |  |
 | R-013 | supervised-adobe-proving-feasibility | adobe | adobe | R-017 | adobe |  |
+
+
+BUG-003 (local-fixture-import-closure) is classified `meta`: the reported symptom is the Meta adapter importing `connectors/meta-pixel/pageview-data.js`, which the local fixture omits, and its owner is spec 060-14 (Meta local browser pageview). The Google imports it mentions are secondary, and the fix is fixture-side, so it needs no shared code.

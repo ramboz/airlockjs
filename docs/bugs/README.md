@@ -8,5 +8,6 @@
 
 | ID | slug | severity | tier | status | reproduces? | regression test | claimed_by | escalated_to | Notes |
 |----|------|----------|------|--------|-------------|-----------------|------------|--------------|-------|
+| [004](004-shared-host-live-consent.md) | shared-host-live-consent | medium | gnarly | DONE | reproduces | `test/wrapped-sdk-host.test.js` | shared-host-live-consent | | Consent recheck before deferred capability call |
 
 <!-- Regenerate with `bug.py status-board`. Add rows as bugs are reported. -->

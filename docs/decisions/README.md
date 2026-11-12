@@ -39,8 +39,11 @@
 - [ADR-0030: Vendor-generic native-tag suppressor (airlock adoption primitive)](adr-0030-native-tag-suppressor.md) — [ADR-0029](./adr-0029-mvp9-developer-side-after-arm.md) decided the MVP9 after-arm is page-side: the adopter's owned EDS repo suppresses the migrated vendors' native (container-fired) tags so airlock's off-thread equivalents can be measured against them. (2026-09-15, Accepted)
 - [ADR-0038: Reframe: Adobe-first compatibility is the v1.0 adoption gate](adr-0038-reframe-onto-adobe-first-compatibility.md) — Adobe-first compatibility replaces the third-party rewire as the next release gate. (2026-10-06, Accepted)
 - [ADR-0039: Airlock boundary acceptance; Adobe reporting as follow-up](adr-0039-airlock-boundary-acceptance.md) — Airlock acceptance belongs at the governed SDK boundary, not Adobe's asynchronous reporting pipeline. (2026-10-12, Accepted)
+- [ADR-0040: Full Google Ads and Meta Pixel replacement is the compatibility target](adr-0040-reframe-onto-full-google-meta-compatibility.md) — Google Ads and Meta Pixel must become complete replacements, not a larger collection of partial beacons. (2026-10-15, Accepted)
+- [ADR-0046: Google and Meta product-first delivery gates](adr-0046-google-meta-product-delivery-gates.md) — Build one observable advertising journey at a time, with full replacement as the final bar. (2026-10-26, Accepted)
+- [ADR-0047: Google and Meta request integrity and egress authority](adr-0047-google-meta-request-authority.md) — One trusted first-party worker interprets commands and builds requests; live consent, destination checks and privileged operations stay on the host. (2026-11-02, Accepted)
 
-ADR-0031 to ADR-0037 are not on this branch (they belong to the personalization branch), and later vendor ADRs live on their vendor branches. See [renumbering-2026-11.md](renumbering-2026-11.md) for the full old-to-new map.
+ADR-0031 to ADR-0037 belong to the personalization branch, and the vendor-specific ADRs (0041-0045, 0048-0060) live on their vendor branches. See [renumbering-2026-11.md](renumbering-2026-11.md) for the full old-to-new map.
 
 ## Format
 
