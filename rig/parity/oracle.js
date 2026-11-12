@@ -34,6 +34,10 @@
  *   spelling the vendor won't ingest is a false pass, the false-shim ADR-0020 forbids).
  * @property {Readonly<Record<string, GapMapEntry>>} gapMap - attribution fields airlock is KNOWN
  *   to not (yet) emit, each owned by a named closing artifact (ADR-0020 commitment 1).
+ * @property {(field: string, value: string) => boolean} [isUnverifiableValue] - identifies
+ *   placeholders that cannot establish same-input equality or inequality.
+ * @property {(field: string, value: string) => string} [redactReportField] - sanitizes values
+ *   only for reports; comparisons must use the original inputs.
  * @property {string} [endpoint] - the vendor's beacon endpoint (report provenance; read by
  *   report.js). Part of the de-facto descriptor contract a new-vendor author must supply.
  * @property {{crossSiteCookies: readonly {cookie: string, owner: string}[], firstPartyIdentity: readonly string[]}} [transport] -
@@ -51,11 +55,11 @@
 /**
  * @typedef {Object} FieldVerdict
  * @property {string} field
- * @property {"maps"|"normalised-out"|"expected-dropped"|"gap-closed"|"dropped"|"divergent"} bucket
+ * @property {"maps"|"normalised-out"|"expected-dropped"|"gap-closed"|"dropped"|"divergent"|"unverifiable"} bucket
  * @property {string} [containerValue]
  * @property {string} [airlockValue]
- * @property {string} [owner] - present for expected-dropped/gap-closed (the gap map's owner)
- * @property {string} [flag] - present for gap-closed ("owner landed — remove from gap map")
+ * @property {string} [owner] - the gap map's owner, when applicable
+ * @property {string} [flag] - explanation for a closed gap or unverifiable value
  */
 
 /**
@@ -68,10 +72,11 @@
  * field the container's OWN capture never sent is skipped entirely (neither a false `dropped`
  * nor a false `maps` — there is nothing to classify).
  *
- * Verdict: `pass` iff no field is `divergent` AND no field is `dropped` (a `dropped` bucket is
+ * Verdict: `pass` iff no field is `divergent`, `dropped` or `unverifiable` (a `dropped` bucket is
  * reached ONLY when the field is attribution-bearing, container-sent, absent from airlock's set,
  * and NOT in the gap map — a gap-map member absent from airlock's set is `expected-dropped`
- * instead, a distinct, green bucket). This is ADR-0020's contract verbatim.
+ * instead, a distinct, green bucket). Unverifiable inputs yield `inconclusive`
+ * unless a divergence or unowned drop independently establishes `fail`.
  *
  * @param {Object} args
  * @param {ParityDescriptor} args.descriptor
@@ -79,7 +84,7 @@
  *   field-set (from a redacted fixture).
  * @param {Readonly<Record<string,string>>} args.airlockFields - airlock's beacon field-set
  *   (replay output, or a supplied fixture — the oracle does not care which).
- * @returns {{ verdict: "pass"|"fail", fields: FieldVerdict[], counts: Record<string, number> }}
+ * @returns {{ verdict: "pass"|"fail"|"inconclusive", fields: FieldVerdict[], counts: Record<string, number> }}
  */
 export function diffParity({ descriptor, containerFields, airlockFields }) {
   const attributionFields = descriptor.attributionFields || [];
@@ -110,6 +115,15 @@ export function diffParity({ descriptor, containerFields, airlockFields }) {
 
     if (hasAirlock) {
       const airlockValue = airlockFields[airlockName];
+      if (descriptor.isUnverifiableValue?.(name, containerValue)
+        || descriptor.isUnverifiableValue?.(name, airlockValue)) {
+        fields.push({
+          field: name, bucket: "unverifiable", containerValue, airlockValue,
+          ...(gap ? { owner: gap.owner } : {}),
+          flag: "placeholder values cannot establish identity equality",
+        });
+        continue;
+      }
       const equal = String(airlockValue) === String(containerValue);
       if (!equal) {
         // Present on both sides but unequal is ALWAYS divergent — landing a WRONG value is never
@@ -139,7 +153,8 @@ export function diffParity({ descriptor, containerFields, airlockFields }) {
 
   const hasDivergent = fields.some((f) => f.bucket === "divergent");
   const hasRegression = fields.some((f) => f.bucket === "dropped");
-  const verdict = hasDivergent || hasRegression ? "fail" : "pass";
+  const hasUnverifiable = fields.some((f) => f.bucket === "unverifiable");
+  const verdict = hasDivergent || hasRegression ? "fail" : hasUnverifiable ? "inconclusive" : "pass";
 
   return { verdict, fields, counts };
 }
