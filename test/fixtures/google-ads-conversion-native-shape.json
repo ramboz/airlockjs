@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "field-only-retained-native-ledger-projection-not-full-reference",
+  "source_assessment": "2026-10-15 retained owned conversion; no new capture",
+  "primary_ordinal": 10,
+  "response_linked_ordinal": 11,
+  "request_rows": [
+    {
+      "ordinal": 0, "method": "GET", "resource_type": "document",
+      "query_names_in_order": [], "query_pair_count": 0,
+      "guard_blocked": false, "response_observed": true, "response_status": 200
+    },
+    {
+      "ordinal": 1, "method": "GET", "resource_type": "script",
+      "query_names_in_order": [], "query_pair_count": 0,
+      "guard_blocked": false, "response_observed": true, "response_status": 200
+    },
+    {
+      "ordinal": 2, "method": "GET", "resource_type": "script",
+      "query_names_in_order": ["id"], "query_pair_count": 1,
+      "guard_blocked": false, "response_observed": true, "response_status": 200
+    },
+    {
+      "ordinal": 3, "method": "GET", "resource_type": "script",
+      "query_names_in_order": [], "query_pair_count": 0,
+      "guard_blocked": false, "response_observed": true, "response_status": 200
+    },
+    {
+      "ordinal": 4, "method": "GET", "resource_type": "script",
+      "query_names_in_order": [
+        "random", "cv", "fst", "bg", "guid", "async", "en", "gtm", "gcd", "dma",
+        "tag_exp", "u_w", "u_h", "url", "rcb", "frm", "tiba", "hn", "npa", "pscdl",
+        "auid", "uaa", "uab", "uafvl", "uamb", "uam", "uap", "uapv", "uaw", "data",
+        "ept", "rfmt", "fmt"
+      ],
+      "query_pair_count": 33, "guard_blocked": false, "response_observed": true, "response_status": 200
+    },
+    {
+      "ordinal": 5, "method": "POST", "resource_type": "fetch",
+      "query_names_in_order": [
+        "random", "cv", "fst", "fmt", "bg", "guid", "async", "en", "gtm", "gcd", "dma",
+        "tag_exp", "u_w", "u_h", "url", "rcb", "frm", "tiba", "hn", "npa", "pscdl",
+        "auid", "uaa", "uab", "uafvl", "uamb", "uam", "uap", "uapv", "uaw", "data",
+        "ept", "gcp"
+      ],
+      "query_pair_count": 33, "guard_blocked": false, "response_observed": true, "response_status": 200
+    },
+    {
+      "ordinal": 6, "method": "POST", "resource_type": "fetch",
+      "query_names_in_order": [
+        "rcb", "frm", "apvc", "auid", "dt", "tid", "en", "dl", "scrsrc", "rnd",
+        "navt", "npa", "gtm", "gcd", "dma", "tag_exp", "tft", "tfd", "tids", "fmt"
+      ],
+      "query_pair_count": 20, "guard_blocked": false, "response_observed": true, "response_status": 200
+    },
+    {
+      "ordinal": 7, "method": "POST", "resource_type": "fetch",
+      "query_names_in_order": ["auid", "gtm", "fmt"], "query_pair_count": 3,
+      "guard_blocked": true, "response_observed": false, "response_status": null
+    },
+    {
+      "ordinal": 8, "method": "GET", "resource_type": "image",
+      "query_names_in_order": ["auid", "gtm", "fmt"], "query_pair_count": 3,
+      "guard_blocked": true, "response_observed": false, "response_status": null
+    },
+    {
+      "ordinal": 9, "method": "GET", "resource_type": "image",
+      "query_names_in_order": [
+        "random", "cv", "fst", "bg", "guid", "async", "en", "gtm", "gcd", "dma", "tag_exp",
+        "u_w", "u_h", "url", "rcb", "frm", "tiba", "hn", "npa", "pscdl", "auid", "uaa",
+        "uab", "uafvl", "uamb", "uam", "uap", "uapv", "uaw", "data", "ept", "rfmt",
+        "fmt", "is_vtc", "cid", "random", "rmt_tld", "ipr"
+      ],
+      "query_pair_count": 38, "guard_blocked": false, "response_observed": true, "response_status": 200
+    },
+    {
+      "ordinal": 10, "method": "GET", "resource_type": "fetch",
+      "query_names_in_order": [
+        "random", "cv", "fst", "fmt", "bg", "guid", "async", "en", "gtm", "gcd", "dma",
+        "tag_exp", "u_w", "u_h", "url", "rcb", "label", "gtm_ee", "frm", "tiba", "oid",
+        "value", "currency_code", "hn", "npa", "pscdl", "auid", "uaa", "uab", "uafvl",
+        "uamb", "uam", "uap", "uapv", "uaw", "gcl_ctr", "data", "category", "ept"
+      ],
+      "query_pair_count": 39, "guard_blocked": false, "response_observed": true, "response_status": 200
+    },
+    {
+      "ordinal": 11, "method": "POST", "resource_type": "fetch",
+      "query_names_in_order": [
+        "random", "cv", "fst", "fmt", "bg", "guid", "async", "en", "gtm", "gcd", "dma",
+        "tag_exp", "u_w", "u_h", "url", "rcb", "label", "gtm_ee", "frm", "tiba", "value",
+        "currency_code", "hn", "npa", "pscdl", "auid", "uaa", "uab", "uafvl", "uamb",
+        "uam", "uap", "uapv", "uaw", "gcl_ctr", "data", "category", "ept",
+        "ct_cookie_present", "eoid", "crd", "cerd", "fsk", "pscrd"
+      ],
+      "query_pair_count": 44, "guard_blocked": false, "response_observed": false, "response_status": null
+    }
+  ],
+  "unique_query_names": [
+    "apvc", "async", "auid", "bg", "category", "cerd", "cid", "crd", "ct_cookie_present",
+    "currency_code", "cv", "data", "dl", "dma", "dt", "en", "eoid", "ept", "fmt", "frm",
+    "fsk", "fst", "gcd", "gcl_ctr", "gcp", "gtm", "gtm_ee", "guid", "hn", "id", "ipr",
+    "is_vtc", "label", "navt", "npa", "oid", "pscdl", "pscrd", "random", "rcb", "rfmt",
+    "rmt_tld", "rnd", "scrsrc", "tag_exp", "tfd", "tft", "tiba", "tid", "tids", "u_h",
+    "u_w", "uaa", "uab", "uafvl", "uam", "uamb", "uap", "uapv", "uaw", "url", "value"
+  ],
+  "limitations": [
+    "No query values, raw URLs, original request/response bytes or private identifiers in this projection",
+    "Endpoint and semantic equality unavailable from field inventory alone",
+    "One native conversion command only; primaryHTTP200 is not backend receipt or attribution",
+    "Ordinal11 lacks an observed response and oid; opaque eoid is not a substitute transaction ID",
+    "Two guard-blocked auxiliaries and two unavailable bodies remain open",
+    "Historical runtime/configuration bytes/version not saved; full chain unqualified"
+  ],
+  "fullCompatibility": false
+}
