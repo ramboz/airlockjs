@@ -27,6 +27,15 @@ A framework-agnostic runtime core, with EDS as the first adapter and connectors 
 - `test/` — vitest suites, including the oracle components servo will score.
 - `.jig/` — durable workflow state.
 
+### Capture and compare toolkit (`rig/`)
+
+Vendor-neutral, local-only tooling for preparing evidence: `rig/chamber-capture.mjs`
+records an SDK-absent chamber run, `rig/native-tag-comparison.mjs` validates a native
+attempt record, and `rig/chamber-comparison.mjs` diffs the two offline; all three share
+`rig/attempt-evidence-io.mjs` for private, strictly validated evidence files (see the
+`.md` next to each). Their output is a diagnostic, not native qualification, vendor
+outcome or a runtime capability. No module interface changes.
+
 ### The connectors
 
 Each connector runs in its own chamber, consumes typed events, and emits a vendor beacon. Two archetypes: **wire-protocol** (reimplement the beacon) and **wrapped-SDK** (contain a stock vendor library in a chamber). Deep detail lives in each connector's spec and ADR.
