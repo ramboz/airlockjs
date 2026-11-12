@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "spec_id": "060-07",
+  "source_spec_path": "docs/specs/060-meta-pixel-full-compatibility/slice-07-automatic-matching.md",
+  "source_hash": "sha256:a8f965bb946a6b746b4b97e848fc143d583f07a5b0cc221b227ec5fd6f6e60ad",
+  "planner_version": "0.1.0",
+  "generated_at": "2026-11-05T16:53:51Z",
+  "checks": [
+    {
+      "id": "AC-060-07-1",
+      "ac_id": "AC-060-07-1",
+      "statement": "On an owned synthetic form, automatic matching off/on with manual matching absent/present produces the native collection triggers and complete measurement sequence through the actual chamber and mediated dispatch. The host only captures registered permitted fields/events; the chamber determines mapping, normalization and hashing.",
+      "family": "command",
+      "source_line": 26,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-07-2",
+      "ac_id": "AC-060-07-2",
+      "statement": "Field changes before/after events, dynamic forms and anonymous/account changes preserve native timing, precedence and same-input digest values. Cover each eligible discovered identity field and account-specific setting; a private `aud`-like field name alone is not automatic-feature support.",
+      "family": "command",
+      "source_line": 31,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-07-3",
+      "ac_id": "AC-060-07-3",
+      "statement": "Sensitive/unrelated/unregistered fields, revoked consent, stale snapshots and unauthorized root references cannot be captured or sent contrary to policy. No selector evaluation, raw DOM node, full mutation stream or arbitrary executable callback crosses the capability boundary.",
+      "family": "command",
+      "source_line": 35,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-07-4",
+      "ac_id": "AC-060-07-4",
+      "statement": "Native configuration/rule updates and missing/blocked settings are provenance-qualified per Pixel. New/private encoding or collection branches become explicit blockers, not manual-only substitutes or discarded fields.",
+      "family": "command",
+      "source_line": 39,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-07-5",
+      "ac_id": "AC-060-07-5",
+      "statement": "No raw identity egress or main-thread hashing occurs. Authorized same-input values are compared privately before redaction; public operator reports show source class, policy version and difference category, not identity values.",
+      "family": "command",
+      "source_line": 42,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-07-6",
+      "ac_id": "AC-060-07-6",
+      "statement": "Alter a permitted input, omit a required field, leak an unrelated field, change a digest or reuse stale identity. Each corresponding positive/ forbidden-collection control fails under C1-C9; equal redaction tokens fail the value-proof requirement.",
+      "family": "command",
+      "source_line": 45,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-07-7",
+      "ac_id": "AC-060-07-7",
+      "statement": "Record DOM observation cost, snapshot volume and dispatch latency against pinned measured conditions. Missing limits block readiness; no speculative fixed CWV band or blanket DOM grant is introduced to make the feature fit.",
+      "family": "command",
+      "source_line": 49,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    }
+  ],
+  "residual_judgment": [],
+  "approval_status": "proposed"
+}

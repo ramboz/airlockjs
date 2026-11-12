@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "spec_id": "060-02",
+  "source_spec_path": "docs/specs/060-meta-pixel-full-compatibility/slice-02-event-journeys.md",
+  "source_hash": "sha256:8857bef934d6d58c9c66c55447577f26e39092c2d0e140c982e4d6df2d49543f",
+  "planner_version": "0.1.0",
+  "generated_at": "2026-11-05T16:53:37Z",
+  "checks": [
+    {
+      "id": "AC-060-02-1",
+      "ac_id": "AC-060-02-1",
+      "statement": "For PageView and all seventeen standard events listed in the overview, the adopter's `track` inputs reach the real chamber and official endpoint with native event names, request counts and event-data relationships. This includes every documented per-event property and newly discovered native option.",
+      "family": "command",
+      "source_line": 25,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-02-2",
+      "ac_id": "AC-060-02-2",
+      "statement": "Commerce journeys preserve exact catalog/content IDs, `content_type`, `contents` quantities and supported price data, value/currency, counts, delivery category and predicted lifetime value. Test scalar/array IDs, multiple items, zero/fractions, boolean status and supported Unicode/nesting. Do not infer input numbers from string-valued fixture fields.",
+      "family": "command",
+      "source_line": 29,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-02-3",
+      "ac_id": "AC-060-02-3",
+      "statement": "`trackCustom` supports native name/parameter behavior, including the documented 50-character boundary and custom properties on standard events. URL/property inputs used by custom conversions remain intact; no new conversion-specific browser command is invented. Backend rule recognition belongs to 060-11.",
+      "family": "command",
+      "source_line": 34,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-02-4",
+      "ac_id": "AC-060-02-4",
+      "statement": "Missing/empty/null/undefined/nonfinite/invalid values, overlong names, oversized payloads, reserved keys and mutation after enqueue produce the observed native caller/event behavior and explicit operator evidence. No success-shaped omission or unreviewed relaxation of payload governance.",
+      "family": "command",
+      "source_line": 38,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-02-5",
+      "ac_id": "AC-060-02-5",
+      "statement": "C1-C9 comparison covers full encoding, duplicate parameters, body/query transport choices, auxiliary requests, responses and browser effects. Scalar `cd[region]` in the historical capture does not prove native value/currency, array/object or conversion serialization.",
+      "family": "command",
+      "source_line": 42,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-02-6",
+      "ac_id": "AC-060-02-6",
+      "statement": "Deliberately alter a monetary value/type, product ID/quantity, custom name, target, nested field or request count. Each corresponding control fails; stripping all custom data or relying on the synthetic Lead fixture cannot pass.",
+      "family": "command",
+      "source_line": 46,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-02-7",
+      "ac_id": "AC-060-02-7",
+      "statement": "The operator can identify the originating call and field for a native difference, denial or capture gap without raw identity or private data in public output. Other generic-pixel vendors and frozen push behavior are unchanged as demonstrated by later targeted regression evidence.",
+      "family": "command",
+      "source_line": 49,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    }
+  ],
+  "residual_judgment": [],
+  "approval_status": "proposed"
+}

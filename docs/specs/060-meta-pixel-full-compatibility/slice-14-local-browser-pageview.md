@@ -1,0 +1,211 @@
+---
+status: DONE
+dependencies: [060-13]
+last_verified: 2026-10-26
+kind: feature
+frame_review: true
+arch_review: true
+---
+
+## Slice 060-14 - Exercise the SDK-free PageView in a local browser
+
+**Goal:** A developer opens one local fixture, invokes its experimental `fbq`
+entry and sees real browser module-worker dispatch, an independent local
+receipt and an honest browser-only result. No production/native parity claim.
+
+**DoR:**
+- [x] 060-13 supplies the separately opt-in source adapter, worker and gap report.
+- [x] The bounded browser-journey frame passes independent critique.
+- [x] The concrete same-origin asset/transport implementation and test plan
+      are reviewed before implementation is admitted.
+- [x] One finite local execution plan names the actual browser/version,
+      first-party source closure, fresh owned profile and launch/stop owner.
+      Use an existing independently qualified execution path or a separately
+      explicit owner-supervised plan covering interruption and cleanup; a
+      successful Node example or another lane's exception cannot supply this.
+- [x] The plan fixes case/send/output/deadline limits, includes cleanup in
+      that interval, and qualifies no-external-send enforcement before navigation.
+      No browser may be acquired while these facts are missing.
+
+**Acceptance Criteria:**
+
+1. A first-party page served only on literal127.0.0.1 imports the actual
+   standalone adapter and same-origin module worker. Pre-ready init and two
+   explicit PageViews with different page-context snapshots traverse capture,
+   real serialized worker processing, host consent checks and the existing
+   literal local `/tr/` receiver. No FakeWorker, direct connector call or
+   Node bridge supplies browser-execution evidence.
+2. Independently record the two local arrivals and their eight exact fields,
+   correlated command outcomes and browser worker execution. Init emits zero;
+   pending/denied and grant-without-new-command each have zero arrivals.
+   A delayed local response prevents command completion until the correlated
+   response; timeout/error is visible and cannot settle another command.
+3. Before any page code runs, permit only the fixed local fixture/assets and
+   receiver. Independent local receiving controls demonstrate allowed,
+   blocked and bypass-detected behavior for the transports this page uses.
+   Enforce no external browser/worker/service-worker egress; an unknown path
+   or unobservable surface fails or stays inconclusive, never silently allowed.
+   No vendor runtime/configuration, remote import, cookies, production URL
+   navigation, ad click, form, global suppressor change or live event occurs.
+4. The native Pixel is absent: inspect the declared module graph and actual
+   resource/execution evidence, not only an empty `window.fbq`. A test-owned
+   `fbq` facade is explicitly labelled first-party. Actual worker confinement
+   and attempt/response/arrival are separate observations; Image versus Fetch,
+   third-party credentials and native response behavior remain unqualified.
+5. Malformed/unsupported calls, changed Pixel/URL, removed worker, extra
+   request, denied consent, substituted empty result and missing receiver
+   observation cannot produce a successful local-journey report. Keep raw
+   synthetic values private to test evidence; public output reports outcomes.
+6. Retain actual final process/worker/server/socket/profile disposition and
+   external command completion. Cleanup failures/interruption are UNKNOWN
+   with an exact owned handoff; no guessed/global process cleanup, profile
+   adoption, credential extraction, hidden retry or deadline renewal.
+   An unclosed browser does not become a passing run because payloads arrived.
+7. Reuse060-13 mapping/reporting. No identity/configuration/experimental flag
+   is invented to make the old fixture match, and no shared runner framework,
+   Docker/profile/custodian refactor is bundled into this slice. If an execution
+   prerequisite cannot be met, return that blocker and continue only independent
+   source work named in the delivery queue.
+   Production boots, package/build/core/contracts and060-01/C1-C9 are unchanged.
+
+**DoD:**
+- [x] Actual browser page-to-worker-to-local-receiver evidence and controls.
+- [x] Final owned cleanup and external command completion, or no DONE.
+- [x] Targeted Meta/prototype/contract regressions and applicable lint pass.
+- [x] Compliance, craft, architecture and reconciliation reviews recorded.
+- [x] Browser/version scope, evidence limits and delivery queue updated.
+
+**Anti-horizontal-phasing check:** The developer runs an actual browser
+PageView journey and sees a local receipt, not a new browser launcher.
+
+## Grounding
+
+- `adapters/meta-pixel-prototype.js` already has a fixed browser module-worker
+  factory, but060-13 exercised only the Node bridge; browser fit is unproved.
+- `connectors/meta-pixel/pageview-prototype.worker.js` applies confinement
+  before connector imports and waits for correlated response before result.
+- Existing059-14 local controls are prior evidence for their own source
+  epoch/transport set, not a reusable live or new-browser qualification flag.
+
+## Assumptions
+
+- Observed for one exact Chrome156.0.8078.48 cohort: the fixed local fixture,
+  CSP and real module worker preserve this prototype path without a core change.
+- One separately approved owner-supervised execution/normal cleanup completed.
+  Future cases still need their own current admission; agent/session-loss
+  handling and native/public-IP guard qualification remain unproved.
+
+### Actual successful local journey - 2026-10-26
+
+The separately approved zero-body-EOF sequence passed actual Meta and Google
+browser journeys; this supersedes only earlier product-unexecuted statements.
+Meta's actual module workers produced two exact, distinct eight-field PageViews
+at the independent local HTTP receiver. Init/pending/denied/grant-without-command
+sent zero; receiving positive/enforced-negative/bypass counted1/0/1. A held
+response blocked the correlated command, and a separate held503 produced failure
+without2xx. Browser resource/source hashes, worker events, exact receiver fields
+and command outcomes are retained, not supplied by controlled-browser fakes.
+
+Meta took8644ms; Google2148ms; parent-observed whole-command exit0/11.22s.
+All owned contexts/fixtures/workers/sockets closed, roots exited/closed0 without
+signals and both exact profiles/PIDs were independently absent. Publication
+completed inside each original interval.252 selected regressions pass/lint clean.
+The actual source epoch is `b991e6c`; private receipt digest is
+`81920ab48c087b15ace6fb78ea31f13652942baf5a26712a6d29f1d1a6396698`.
+All three earlier failures/frozen sources remain unchanged. This proves only
+explicit-empty200 local transport, not204/native compatibility, CWV, attribution,
+unattended shutdown or060-01/C1-C9.
+
+### Deviation log
+
+Concrete fixture and foreground procedure source prepared under reviewed plan.
+Owner explicitly selected supervised foreground execution for both local slices;
+interruption/agent loss remains UNKNOWN, not unattended cleanup qualification.
+Installed bundle156.0.8078.48 is the selected cohort, not historical155.
+Source/local HTTP tests are not browser evidence. The final actual local
+sequence now supplies separate browser/receiver/cleanup evidence;060-01 full
+requirements stay unchanged. Local200 is an explicitly approved workaround,
+not204 or native qualification. The nonblocking byte-fit test limitation remains:
+current-size assertions do not independently prove guard-removal rejection.
+
+### Historical first supervised attempt - 2026-10-26
+
+The fixed foreground sequence was issued once after scoped plan/source reviews.
+Meta preflight failed before the product worker was created; Google acquisition
+was not issued because the procedure stops after a first-vendor failure.
+Native whole-command exit1/8.07 seconds is separately observed by the parent.
+One exact synthetic local GET independently arrived and finished with204.
+The browser observed204 but did not complete response-body verification;
+`unexpected-request-failure` and sanitized `unexpected-tool-error` prevent PASS.
+The root protocol cause remains unresolved; HTTP204 alone is not successful
+recording, and the sanitized diagnostic is insufficient to identify that cause.
+
+Normal owned cleanup was observed: the root browser process emitted exit/close0
+without signals, its exact auto-created profile was absent, and the context,
+local fixture and sockets closed. No product worker, PageView journey, SDK,
+vendor request or production navigation ran. The foreground exception remains
+loss-UNKNOWN, not unattended ownership qualification. The failed source and raw
+private output were frozen; no automatic retry or source-model pass repaired it.
+DoD stays open. Next work is the narrowly named preflight recorder diagnostic,
+not another browser-holder or general harness.
+
+### Historical recorder-correction checkpoint
+
+The following preserves the8b800d7 source-only checkpoint; the actual-success
+section above supersedes its pending statements, never its original failure.
+
+The shared recorder had a confirmed HTTP204 contract defect: it always called
+the browser's body API even though204 has no content. A controlled unavailable-
+body RED preceded the status204-only empty-framing correction. Non204 unreadable
+bodies still fail; an independent request failure after204 still fails. Future
+failure diagnostics retain only bounded network codes, not arbitrary protocol
+text. Review found an unbounded-code retention mistake; a second witnessed RED
+preceded the96-character bound and its exact96/97/private-text controls.
+The narrow correction/finding closure passes source review;49 offline
+fixture/controller/foreground controls pass. None executes Chrome.
+
+This explains a demonstrated source defect, not the historical protocol error:
+its missing specific loading-failure reason leaves that cause unresolved.
+Original failed source/output remain frozen; no new browser was acquired.
+The next product step is one explicitly admitted corrected supervised sequence,
+not automatic retry or new custody infrastructure. Full compliance stays fail,
+the egress DoR remains unchecked, and all actual-product DoD stays open.
+
+### Reconciliation sweep
+
+Historical checkpoint: the owner-approved HTTP200-only sequence failed before any product worker
+(exit1/7.82s, same `net::ERR_ABORTED`, normal exact cleanup). Thus the abort is
+not specific to204. The owner separately approved one further same-limit
+sequence to test consuming the preflight's expected zero-byte body to EOF.
+That check now rejects content/missing stream/framing/read failure and retains
+its final body-consumed observation;55 offline controls pass after a witnessed
+headers-versus-EOF RED. That checkpoint was not an actual journey; the final sequence above is separate.
+
+**Owner-approved local refinement:** the second actual sequence (separately
+approved while the owner was present) verified204 empty framing but still
+failed with `net::ERR_ABORTED`, whole-command exit1/9.37s, no product worker or
+Google acquisition; exact normal cleanup was independently checked.
+The owner then chose explicitly empty HTTP200 local acknowledgments and one
+further supervised sequence under the same limits. This is a local fixture
+workaround only. HTTP204/native response handling remain unqualified; no
+network failure is ignored and neither original failure is upgraded.
+
+- updated - fixed source pages/18-module serving closure, foreground procedure
+  and usage distinguish ordinary Node HTTP controls from actual browser evidence.
+- updated - source review found a late-worker-failure completion race in both
+  page controllers. Two new failing controls preceded current adapter-health/
+  intentional-dispose checks; healthy/failure cases for both vendors pass.
+- updated - operational review required actual receiver/command/resource/worker
+  documents in private output, then bounded retention before attaching rejected
+  raw request data. Initial findings and narrow closures remain separate scopes.
+- updated - actual first preflight failed, Google was not acquired, normal exact
+  cleanup observed, source originals preserved and root-cause uncertainty explicit.
+- updated - status204-only HTTP-framed empty recording and bounded failure codes
+  have witnessed failing controls and narrow review closure, not actual-browser proof.
+- no-op - full060-01/C1-C9, existing production boots/core/contracts/build/version,
+  native case/authority/history, old UNKNOWNs and vendor compatibility.
+- updated - actual product positives/negatives, independent receiver/source/
+  response comparisons and normal owned cleanup now pass for one local200 cohort.
+- updated - full compliance plus its sole documentation-finding closure,
+  craft, architecture and reconciliation pass; canonical frontmatter records
+  mechanical Jig closure. No native/full-vendor or loss qualification follows.

@@ -1,0 +1,14 @@
+# SEED:start spec_oracle_060_03
+score_spec_oracle_060_03() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "missing: python3 (spec-oracle 060-03)" >&2
+    return 2
+  fi
+  python3 "${HOME}/.copilot/installed-plugins/servo/servo/.github/skills/spec-oracle/checks.py" \
+    "docs/specs/060-meta-pixel-full-compatibility/oracle/060-03/checks.json" \
+    --base-dir . \
+    --ledger "docs/specs/060-meta-pixel-full-compatibility/oracle/060-03/ledger.jsonl" \
+    --enforce-freeze \
+    --score-only
+}
+# SEED:end spec_oracle_060_03

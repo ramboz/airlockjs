@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "spec_id": "060-09",
+  "source_spec_path": "docs/specs/060-meta-pixel-full-compatibility/slice-09-lifecycle-nojs.md",
+  "source_hash": "sha256:c54233632507c22f1fb82cd4e7447e1a53dece1b166e149bc6fd89e47366089e",
+  "planner_version": "0.1.0",
+  "generated_at": "2026-11-05T16:53:53Z",
+  "checks": [
+    {
+      "id": "AC-060-09-1",
+      "ac_id": "AC-060-09-1",
+      "statement": "Hard navigation, pushState/replaceState/popstate/hash changes and explicit PageView calls preserve native URL/referrer/metadata, call timing and counts. A no-explicit-call control determines any actual native automatic history behavior; the historical hash-route sample alone cannot establish it.",
+      "family": "command",
+      "source_line": 29,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-09-2",
+      "ac_id": "AC-060-09-2",
+      "statement": "Click, scroll/visibility, developer delays, foreground/background, BFCache restore and prerender transitions preserve actual callbacks, default site behavior and automatic-rule effects under C1-C9.",
+      "family": "command",
+      "source_line": 33,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-09-3",
+      "ac_id": "AC-060-09-3",
+      "statement": "Rapid exit, pagehide/navigation, cold/warm startup, slow worker/hash and offline/intermittent transport record surviving/cancelled attempts, retries, duplicates, time/order and loss. Repeated trials apply pinned measured criteria; a single receipt is not an exactly-once guarantee.",
+      "family": "command",
+      "source_line": 36,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-09-4",
+      "ac_id": "AC-060-09-4",
+      "statement": "Browser-required image/fetch/beacon or other discovered transports remain explicitly mediated with correct credentials, browser-controlled headers/ cookies, responses and redirect/fan-out effects. No arbitrary proxy or forged header is substituted to hide a mismatch.",
+      "family": "command",
+      "source_line": 40,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-09-5",
+      "ac_id": "AC-060-09-5",
+      "statement": "The host may fulfill a bounded pre-serialized lifecycle lease only with current consent/destination/identity validity; no main-thread mapping/ hashing, blocking unload or stale replay. Forbidden, delayed and cancelled dispatches are reported truthfully rather than success-shaped loss.",
+      "family": "command",
+      "source_line": 44,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-09-6",
+      "ac_id": "AC-060-09-6",
+      "statement": "In a distinct approved no-JavaScript journey, the site-owned governed fallback reproduces the pinned native image/other applicable behavior and actual browser/wire response while respecting required query/policy choices. This is not worker execution. Do not re-add the current omitted image, assume static markup can inspect queries, or accept absence as full parity. An infeasible required path remains blocked for an evidence-specific decision.",
+      "family": "command",
+      "source_line": 48,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-09-7",
+      "ac_id": "AC-060-09-7",
+      "statement": "Missing/extra navigation events, changed URL/hash/identity, late revoked release, retry duplication, a lost exit and policy-bypassing no-JavaScript emission are falsifiable controls. Attempt-only interception cannot close actual delivery/redirect/cookie criteria, and owner receipt cannot fill them.",
+      "family": "command",
+      "source_line": 54,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-09-8",
+      "ac_id": "AC-060-09-8",
+      "statement": "The operator can trace a lifecycle event across capture, preparation, attempted/actual transport and loss with safe public reasons, including explicit unavailable evidence. No browser cohort is silently dropped.",
+      "family": "command",
+      "source_line": 58,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    }
+  ],
+  "residual_judgment": [],
+  "approval_status": "proposed"
+}

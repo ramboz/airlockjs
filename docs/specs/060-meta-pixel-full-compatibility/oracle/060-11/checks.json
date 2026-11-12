@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "spec_id": "060-11",
+  "source_spec_path": "docs/specs/060-meta-pixel-full-compatibility/slice-11-product-diagnostics.md",
+  "source_hash": "sha256:3066bead77b1a4eba1bd805906971edcd715f180ed3dac84014a95e9c4a26ece",
+  "planner_version": "0.1.0",
+  "generated_at": "2026-11-05T16:53:54Z",
+  "checks": [
+    {
+      "id": "AC-060-11-1",
+      "ac_id": "AC-060-11-1",
+      "statement": "An operator follows the adopter procedure from actual chamber event through official dispatch/response to a correlated owned Test Events/Events Manager receipt, with missing/delayed/aggregate evidence explicitly classified. The historical owner-confirmed normal-browser receipt remains attributed, not retroactively paired or called agent-witnessed.",
+      "family": "command",
+      "source_line": 28,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-11-2",
+      "ac_id": "AC-060-11-2",
+      "statement": "Using a separately approved isolated pinned helper/Meta Ads Data Advisor profile, event detections, fields, warnings and native-absent replacement statuses are compared to native behavior and actual requests. Read-only diagnostics do not authorize its privileged setup/fix automation; no fake successful badge/internal hook masks a detection gap.",
+      "family": "command",
+      "source_line": 33,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-11-3",
+      "ac_id": "AC-060-11-3",
+      "statement": "ViewContent/AddToCart/Purchase and other applicable catalog collection preserve exact product/product-group IDs, quantities and money against the owned feed. Observe actual catalog source recognition/mismatch diagnostics; differing public requirement wording remains evidence-backed, not a silent restriction to one accepted property shape.",
+      "family": "command",
+      "source_line": 38,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-11-4",
+      "ac_id": "AC-060-11-4",
+      "statement": "Owned custom conversion and website-audience rules receive native-equivalent event/URL/property inputs. Policy rejection, unavailable rule fields and delayed recognition are visible. Collection is distinct from backend audience membership/modeling; no new campaign/backend engine is implemented.",
+      "family": "command",
+      "source_line": 43,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-11-5",
+      "ac_id": "AC-060-11-5",
+      "statement": "Lawful matched inputs and approved native/replacement outcome observations compare matching quality, reporting and attribution under the predeclared criteria/windows, with correlation and uncertainty limits. Synthetic hashes, request 200, event receipt and deduplication are not matching/attribution proof. Missing access/traffic/outcomes blocks that claim, not a waived obligation.",
+      "family": "command",
+      "source_line": 47,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-11-6",
+      "ac_id": "AC-060-11-6",
+      "statement": "Wrong catalog ID, removed event/property, changed normalized identity, unpaired/missing receipt, diagnostic false success and absent attribution controls fail or become inconclusive under C1-C9. Operator summary states per-layer results rather than one green receipt standing for all layers.",
+      "family": "command",
+      "source_line": 52,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-11-7",
+      "ac_id": "AC-060-11-7",
+      "statement": "Public reports expose safe classifications/counts only. Private original request/receipt relationships stay authorized and separate. Initial collection does not require campaign launch/billing; any feature/outcome that truly needs more resources has an explicit later finite owner grant, not implicit spend.",
+      "family": "command",
+      "source_line": 56,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    }
+  ],
+  "residual_judgment": [],
+  "approval_status": "proposed"
+}

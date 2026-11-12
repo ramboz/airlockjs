@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "spec_id": "060-03",
+  "source_spec_path": "docs/specs/060-meta-pixel-full-compatibility/slice-03-pixel-routing.md",
+  "source_hash": "sha256:fbf8125098eba24b8728231cb7095369d569e54d5a076de76afdb7b70b22676a",
+  "planner_version": "0.1.0",
+  "generated_at": "2026-11-05T16:53:39Z",
+  "checks": [
+    {
+      "id": "AC-060-03-1",
+      "ac_id": "AC-060-03-1",
+      "statement": "In the actual replacement, `track`/`trackCustom` broadcast and `trackSingle`/`trackSingleCustom` targeting match the pinned native two-Pixel inputs, including request order/count and absence at the other Pixel.",
+      "family": "command",
+      "source_line": 24,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-03-2",
+      "ac_id": "AC-060-03-2",
+      "statement": "Each Pixel retains its own init data, configuration and identity state. Distinct safe synthetic values reveal cross-Pixel contamination; identical redaction sentinels or repeated placeholder IDs cannot prove isolation.",
+      "family": "command",
+      "source_line": 27,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-03-3",
+      "ac_id": "AC-060-03-3",
+      "statement": "Calls before/after either init, repeated IDs, late initialization, duplicate snippets and invalid/uninitialized targets have observed native behavior and visible errors. Unknown `set` subcommands/options block their support row rather than silently doing nothing.",
+      "family": "command",
+      "source_line": 30,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-03-4",
+      "ac_id": "AC-060-03-4",
+      "statement": "Evidence-backed per-Pixel settings, including `autoConfig` placement/type, are applied to the correct Pixel and produce the same whole-sequence and browser effects. Do not infer privacy-option global/per-Pixel scope; 060-04 qualifies that state machine.",
+      "family": "command",
+      "source_line": 34,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-03-5",
+      "ac_id": "AC-060-03-5",
+      "statement": "Configuration updates use declared, bounded, per-Pixel source/operation references and integrity/version provenance. Native dependency/configuration behavior is accounted for under C3; no arbitrary remote code runs on the privileged main thread or brings the native runtime into the replacement.",
+      "family": "command",
+      "source_line": 38,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-03-6",
+      "ac_id": "AC-060-03-6",
+      "statement": "Wrong-target, extra broadcast, missing fan-out branch, stale configuration and cross-Pixel identity mutations all fail the appropriate comparisons. Unauthorized target/configuration access is denied with visible reason.",
+      "family": "command",
+      "source_line": 42,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-03-7",
+      "ac_id": "AC-060-03-7",
+      "statement": "The adopter/operator can inspect target selection and configuration provenance per call without public IDs or secrets. C1-C9 and unchanged stable-core/other-vendor behavior remain required.",
+      "family": "command",
+      "source_line": 45,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    }
+  ],
+  "residual_judgment": [],
+  "approval_status": "proposed"
+}

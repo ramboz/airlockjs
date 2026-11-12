@@ -1,0 +1,759 @@
+{
+  "version": 1,
+  "sourcePins": {
+    "runtime": "d4487bcc9db399030b7089a15e37a6e755bed441992ced0716fb7f9a874e20d1",
+    "configuration": "b1720ebb329e506fd223f066353d977281280866d85e908dc2561a6c1161c46d",
+    "request": "17cfa580bd805177e3d2407a18a80bb9426e01f628233d47f11403b51b73ba32"
+  },
+  "groups": {
+    "G9": {
+      "label": "SDK build metadata",
+      "disposition": "sdk-metadata",
+      "evidence": [
+        {
+          "sourceRole": "runtime",
+          "module": "SignalsFBEvents",
+          "lineStart": 475,
+          "lineEnd": 475,
+          "startUtf16": 402728,
+          "endUtf16": 402751
+        }
+      ],
+      "nextStep": "Account for SDK build provenance without copying the vendor value."
+    },
+    "G10": {
+      "label": "SDK release metadata",
+      "disposition": "sdk-metadata",
+      "evidence": [
+        {
+          "sourceRole": "runtime",
+          "module": "SignalsFBEvents",
+          "lineStart": 475,
+          "lineEnd": 475,
+          "startUtf16": 402752,
+          "endUtf16": 402832
+        }
+      ],
+      "nextStep": "Account for SDK release provenance without copying the vendor value."
+    },
+    "G12": {
+      "label": "SDK option bitmask",
+      "disposition": "sdk-metadata",
+      "evidence": [
+        {
+          "sourceRole": "runtime",
+          "module": "SignalsFBEvents.plugins.opttracking",
+          "lineStart": 431,
+          "lineEnd": 431,
+          "startUtf16": 365875,
+          "endUtf16": 366831
+        }
+      ],
+      "nextStep": "Investigate configuration and option state without copying the SDK bitmask."
+    },
+    "G13": {
+      "label": "Storage/source diagnostics",
+      "disposition": "sdk-metadata",
+      "evidence": [
+        {
+          "sourceRole": "runtime",
+          "module": "SignalsPixelCookieUtils",
+          "lineStart": 390,
+          "lineEnd": 390,
+          "startUtf16": 309399,
+          "endUtf16": 309407
+        },
+        {
+          "sourceRole": "configuration",
+          "module": "SignalsFBEvents.plugins.cookie",
+          "lineStart": 82,
+          "lineEnd": 82,
+          "startUtf16": 121985,
+          "endUtf16": 122122
+        },
+        {
+          "sourceRole": "configuration",
+          "module": "SignalsFBEvents.plugins.cookie",
+          "lineStart": 82,
+          "lineEnd": 82,
+          "startUtf16": 124730,
+          "endUtf16": 125441
+        }
+      ],
+      "nextStep": "Investigate browser and storage diagnostic state without assuming permission or copying markers."
+    },
+    "G16": {
+      "label": "Browser deprecation label",
+      "disposition": "capability-required",
+      "evidence": [
+        {
+          "sourceRole": "configuration",
+          "module": "SignalsFBEvents.plugins.cookiedeprecationlabel",
+          "lineStart": 127,
+          "lineEnd": 127,
+          "startUtf16": 161232,
+          "endUtf16": 161928
+        }
+      ],
+      "nextStep": "Review authority and lifecycle separately before acquiring or implementing this browser input."
+    },
+    "G17": {
+      "label": "Automatic page metadata",
+      "disposition": "capability-required",
+      "evidence": [
+        {
+          "sourceRole": "configuration",
+          "module": "signalsFBEventsExtractMicrodataSchemas",
+          "lineStart": 149,
+          "lineEnd": 149,
+          "startUtf16": 185341,
+          "endUtf16": 185500
+        },
+        {
+          "sourceRole": "configuration",
+          "module": "SignalsFBEvents.plugins.pagemetadata",
+          "lineStart": 167,
+          "lineEnd": 167,
+          "startUtf16": 204167,
+          "endUtf16": 205079
+        }
+      ],
+      "nextStep": "Review authority and lifecycle separately before acquiring or implementing this browser input."
+    },
+    "G19": {
+      "label": "Smart setup participation",
+      "disposition": "sdk-metadata",
+      "evidence": [
+        {
+          "sourceRole": "configuration",
+          "module": "SignalsFBEvents.plugins.smartsetup",
+          "lineStart": 189,
+          "lineEnd": 189,
+          "startUtf16": 237861,
+          "endUtf16": 238539
+        }
+      ],
+      "nextStep": "Account for the setup participation marker; it does not prove metadata extraction."
+    },
+    "G20": {
+      "label": "Microdata transmission participation",
+      "disposition": "sdk-metadata",
+      "evidence": [
+        {
+          "sourceRole": "configuration",
+          "module": "SignalsFBEvents.plugins.microdatafieldtransmission",
+          "lineStart": 242,
+          "lineEnd": 242,
+          "startUtf16": 285825,
+          "endUtf16": 286507
+        }
+      ],
+      "nextStep": "Account for the gated participation marker; it does not prove extracted content."
+    },
+    "G22": {
+      "label": "SDK lifecycle timestamp",
+      "disposition": "generated",
+      "evidence": [
+        {
+          "sourceRole": "runtime",
+          "module": "SignalsFBEvents",
+          "lineStart": 475,
+          "lineEnd": 475,
+          "startUtf16": 393425,
+          "endUtf16": 393430
+        },
+        {
+          "sourceRole": "runtime",
+          "module": "SignalsFBEvents",
+          "lineStart": 475,
+          "lineEnd": 475,
+          "startUtf16": 399241,
+          "endUtf16": 399265
+        },
+        {
+          "sourceRole": "runtime",
+          "module": "SignalsFBEvents",
+          "lineStart": 475,
+          "lineEnd": 475,
+          "startUtf16": 401327,
+          "endUtf16": 401351
+        },
+        {
+          "sourceRole": "runtime",
+          "module": "SignalsFBEvents",
+          "lineStart": 475,
+          "lineEnd": 475,
+          "startUtf16": 403687,
+          "endUtf16": 403704
+        }
+      ],
+      "nextStep": "Investigate lifecycle clock semantics without copying the retained timestamp."
+    },
+    "G23": {
+      "label": "SDK mode marker",
+      "disposition": "sdk-metadata",
+      "evidence": [
+        {
+          "sourceRole": "runtime",
+          "module": "SignalsFBEvents",
+          "lineStart": 475,
+          "lineEnd": 475,
+          "startUtf16": 403705,
+          "endUtf16": 403752
+        }
+      ],
+      "nextStep": "Account for SDK mode state without assuming a page or worker realm fact."
+    },
+    "GE": {
+      "label": "SDK experiment result metadata",
+      "disposition": "sdk-metadata",
+      "evidence": [
+        {
+          "sourceRole": "runtime",
+          "module": "SignalsFBEvents",
+          "lineStart": 475,
+          "lineEnd": 475,
+          "startUtf16": 396618,
+          "endUtf16": 396681
+        },
+        {
+          "sourceRole": "runtime",
+          "module": "SignalsFBEventsQEV2",
+          "lineStart": 280,
+          "lineEnd": 280,
+          "startUtf16": 141355,
+          "endUtf16": 141698
+        },
+        {
+          "sourceRole": "runtime",
+          "module": "SignalsFBEventsQEV2",
+          "lineStart": 280,
+          "lineEnd": 280,
+          "startUtf16": 142026,
+          "endUtf16": 142113
+        },
+        {
+          "sourceRole": "runtime",
+          "module": "signalsFBEventsFillParamList",
+          "lineStart": 146,
+          "lineEnd": 146,
+          "startUtf16": 84830,
+          "endUtf16": 84879
+        },
+        {
+          "sourceRole": "runtime",
+          "module": "SignalsParamList",
+          "lineStart": 388,
+          "lineEnd": 388,
+          "startUtf16": 307753,
+          "endUtf16": 307977
+        },
+        {
+          "sourceRole": "runtime",
+          "module": "SignalsEventPayload",
+          "lineStart": 48,
+          "lineEnd": 48,
+          "startUtf16": 27089,
+          "endUtf16": 27240
+        },
+        {
+          "sourceRole": "runtime",
+          "module": "signalsFBEventsSendGET",
+          "lineStart": 308,
+          "lineEnd": 308,
+          "startUtf16": 156417,
+          "endUtf16": 156929
+        }
+      ],
+      "nextStep": "Retain experiment lifecycle and exposure as an open parity obligation; do not copy or replay SDK metadata."
+    },
+    "G76": {
+      "label": "Transport mode marker",
+      "disposition": "sdk-metadata",
+      "evidence": [
+        {
+          "sourceRole": "runtime",
+          "module": "signalsFBEventsSendGET",
+          "lineStart": 308,
+          "lineEnd": 308,
+          "startUtf16": 156417,
+          "endUtf16": 156929
+        }
+      ],
+      "nextStep": "Account for selected transport and length-check behavior without copying the marker."
+    }
+  },
+  "rows": [
+    {
+      "nativeQueryIndex": 9,
+      "group": "G9",
+      "definition": null
+    },
+    {
+      "nativeQueryIndex": 10,
+      "group": "G10",
+      "definition": null
+    },
+    {
+      "nativeQueryIndex": 12,
+      "group": "G12",
+      "definition": null
+    },
+    {
+      "nativeQueryIndex": 13,
+      "group": "G13",
+      "definition": null
+    },
+    {
+      "nativeQueryIndex": 16,
+      "group": "G16",
+      "definition": null
+    },
+    {
+      "nativeQueryIndex": 17,
+      "group": "G17",
+      "definition": null
+    },
+    {
+      "nativeQueryIndex": 19,
+      "group": "G19",
+      "definition": null
+    },
+    {
+      "nativeQueryIndex": 20,
+      "group": "G20",
+      "definition": null
+    },
+    {
+      "nativeQueryIndex": 22,
+      "group": "G22",
+      "definition": null
+    },
+    {
+      "nativeQueryIndex": 23,
+      "group": "G23",
+      "definition": null
+    },
+    {
+      "nativeQueryIndex": 24,
+      "group": "GE",
+      "definition": [
+        425821,
+        425985
+      ]
+    },
+    {
+      "nativeQueryIndex": 25,
+      "group": "GE",
+      "definition": [
+        425986,
+        426138
+      ]
+    },
+    {
+      "nativeQueryIndex": 26,
+      "group": "GE",
+      "definition": [
+        426139,
+        426302
+      ]
+    },
+    {
+      "nativeQueryIndex": 27,
+      "group": "GE",
+      "definition": [
+        426460,
+        426658
+      ]
+    },
+    {
+      "nativeQueryIndex": 28,
+      "group": "GE",
+      "definition": [
+        426659,
+        426845
+      ]
+    },
+    {
+      "nativeQueryIndex": 29,
+      "group": "GE",
+      "definition": [
+        426846,
+        426979
+      ]
+    },
+    {
+      "nativeQueryIndex": 30,
+      "group": "GE",
+      "definition": [
+        427120,
+        427275
+      ]
+    },
+    {
+      "nativeQueryIndex": 31,
+      "group": "GE",
+      "definition": [
+        427550,
+        427716
+      ]
+    },
+    {
+      "nativeQueryIndex": 32,
+      "group": "GE",
+      "definition": [
+        427717,
+        427876
+      ]
+    },
+    {
+      "nativeQueryIndex": 33,
+      "group": "GE",
+      "definition": [
+        427877,
+        428036
+      ]
+    },
+    {
+      "nativeQueryIndex": 34,
+      "group": "GE",
+      "definition": [
+        428037,
+        428212
+      ]
+    },
+    {
+      "nativeQueryIndex": 35,
+      "group": "GE",
+      "definition": [
+        428213,
+        428366
+      ]
+    },
+    {
+      "nativeQueryIndex": 36,
+      "group": "GE",
+      "definition": [
+        428367,
+        428514
+      ]
+    },
+    {
+      "nativeQueryIndex": 37,
+      "group": "GE",
+      "definition": [
+        428515,
+        428664
+      ]
+    },
+    {
+      "nativeQueryIndex": 38,
+      "group": "GE",
+      "definition": [
+        428665,
+        428834
+      ]
+    },
+    {
+      "nativeQueryIndex": 39,
+      "group": "GE",
+      "definition": [
+        428835,
+        429002
+      ]
+    },
+    {
+      "nativeQueryIndex": 40,
+      "group": "GE",
+      "definition": [
+        429003,
+        429186
+      ]
+    },
+    {
+      "nativeQueryIndex": 41,
+      "group": "GE",
+      "definition": [
+        429187,
+        429338
+      ]
+    },
+    {
+      "nativeQueryIndex": 42,
+      "group": "GE",
+      "definition": [
+        429339,
+        429518
+      ]
+    },
+    {
+      "nativeQueryIndex": 43,
+      "group": "GE",
+      "definition": [
+        429519,
+        429678
+      ]
+    },
+    {
+      "nativeQueryIndex": 44,
+      "group": "GE",
+      "definition": [
+        429679,
+        429826
+      ]
+    },
+    {
+      "nativeQueryIndex": 45,
+      "group": "GE",
+      "definition": [
+        429827,
+        430002
+      ]
+    },
+    {
+      "nativeQueryIndex": 46,
+      "group": "GE",
+      "definition": [
+        430003,
+        430168
+      ]
+    },
+    {
+      "nativeQueryIndex": 47,
+      "group": "GE",
+      "definition": [
+        430169,
+        430342
+      ]
+    },
+    {
+      "nativeQueryIndex": 48,
+      "group": "GE",
+      "definition": [
+        430343,
+        430506
+      ]
+    },
+    {
+      "nativeQueryIndex": 49,
+      "group": "GE",
+      "definition": [
+        430507,
+        430682
+      ]
+    },
+    {
+      "nativeQueryIndex": 50,
+      "group": "GE",
+      "definition": [
+        430683,
+        430838
+      ]
+    },
+    {
+      "nativeQueryIndex": 51,
+      "group": "GE",
+      "definition": [
+        430839,
+        430994
+      ]
+    },
+    {
+      "nativeQueryIndex": 52,
+      "group": "GE",
+      "definition": [
+        430995,
+        431142
+      ]
+    },
+    {
+      "nativeQueryIndex": 53,
+      "group": "GE",
+      "definition": [
+        431143,
+        431290
+      ]
+    },
+    {
+      "nativeQueryIndex": 54,
+      "group": "GE",
+      "definition": [
+        431291,
+        431438
+      ]
+    },
+    {
+      "nativeQueryIndex": 55,
+      "group": "GE",
+      "definition": [
+        431439,
+        431586
+      ]
+    },
+    {
+      "nativeQueryIndex": 56,
+      "group": "GE",
+      "definition": [
+        431587,
+        431736
+      ]
+    },
+    {
+      "nativeQueryIndex": 57,
+      "group": "GE",
+      "definition": [
+        431737,
+        431880
+      ]
+    },
+    {
+      "nativeQueryIndex": 58,
+      "group": "GE",
+      "definition": [
+        431881,
+        432032
+      ]
+    },
+    {
+      "nativeQueryIndex": 59,
+      "group": "GE",
+      "definition": [
+        432033,
+        432186
+      ]
+    },
+    {
+      "nativeQueryIndex": 60,
+      "group": "GE",
+      "definition": [
+        432187,
+        432328
+      ]
+    },
+    {
+      "nativeQueryIndex": 61,
+      "group": "GE",
+      "definition": [
+        432329,
+        432470
+      ]
+    },
+    {
+      "nativeQueryIndex": 62,
+      "group": "GE",
+      "definition": [
+        432471,
+        432630
+      ]
+    },
+    {
+      "nativeQueryIndex": 63,
+      "group": "GE",
+      "definition": [
+        432631,
+        432796
+      ]
+    },
+    {
+      "nativeQueryIndex": 64,
+      "group": "GE",
+      "definition": [
+        432797,
+        432948
+      ]
+    },
+    {
+      "nativeQueryIndex": 65,
+      "group": "GE",
+      "definition": [
+        432949,
+        433092
+      ]
+    },
+    {
+      "nativeQueryIndex": 66,
+      "group": "GE",
+      "definition": [
+        433093,
+        433256
+      ]
+    },
+    {
+      "nativeQueryIndex": 67,
+      "group": "GE",
+      "definition": [
+        433257,
+        433420
+      ]
+    },
+    {
+      "nativeQueryIndex": 68,
+      "group": "GE",
+      "definition": [
+        433421,
+        433580
+      ]
+    },
+    {
+      "nativeQueryIndex": 69,
+      "group": "GE",
+      "definition": [
+        433581,
+        433736
+      ]
+    },
+    {
+      "nativeQueryIndex": 70,
+      "group": "GE",
+      "definition": [
+        434078,
+        434251
+      ]
+    },
+    {
+      "nativeQueryIndex": 71,
+      "group": "GE",
+      "definition": [
+        434252,
+        434445
+      ]
+    },
+    {
+      "nativeQueryIndex": 72,
+      "group": "GE",
+      "definition": [
+        434446,
+        434603
+      ]
+    },
+    {
+      "nativeQueryIndex": 73,
+      "group": "GE",
+      "definition": [
+        434604,
+        434747
+      ]
+    },
+    {
+      "nativeQueryIndex": 74,
+      "group": "GE",
+      "definition": [
+        434748,
+        434885
+      ]
+    },
+    {
+      "nativeQueryIndex": 75,
+      "group": "GE",
+      "definition": [
+        434886,
+        435057
+      ]
+    },
+    {
+      "nativeQueryIndex": 76,
+      "group": "G76",
+      "definition": null
+    }
+  ]
+}

@@ -1,0 +1,1318 @@
+{
+  "schema": "airlock.meta-reference-matrix.v1",
+  "families": [
+    {
+      "id": "F01",
+      "name": "bootstrap/queue/init",
+      "journeys": [
+        "060-01"
+      ],
+      "scenarios": [
+        "SC01",
+        "SC18"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:250"
+    },
+    {
+      "id": "F02",
+      "name": "standard/commerce",
+      "journeys": [
+        "060-02"
+      ],
+      "scenarios": [
+        "SC03",
+        "SC18"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:251"
+    },
+    {
+      "id": "F03",
+      "name": "custom data/events/conversions",
+      "journeys": [
+        "060-02",
+        "060-11"
+      ],
+      "scenarios": [
+        "SC04",
+        "SC18"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:252"
+    },
+    {
+      "id": "F04",
+      "name": "multi-Pixel",
+      "journeys": [
+        "060-03",
+        "060-04",
+        "060-06"
+      ],
+      "scenarios": [
+        "SC05",
+        "SC06",
+        "SC07",
+        "SC08"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:253"
+    },
+    {
+      "id": "F05",
+      "name": "set/configuration",
+      "journeys": [
+        "060-01",
+        "060-03",
+        "060-07",
+        "060-08"
+      ],
+      "scenarios": [
+        "SC05",
+        "SC08",
+        "SC10",
+        "SC18"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:254"
+    },
+    {
+      "id": "F06",
+      "name": "consent",
+      "journeys": [
+        "060-04",
+        "060-09"
+      ],
+      "scenarios": [
+        "SC06",
+        "SC11",
+        "SC13"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:255"
+    },
+    {
+      "id": "F07",
+      "name": "processing/privacy",
+      "journeys": [
+        "060-04"
+      ],
+      "scenarios": [
+        "SC07",
+        "SC11"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:256"
+    },
+    {
+      "id": "F08",
+      "name": "manual/prehashed matching",
+      "journeys": [
+        "060-06",
+        "060-09"
+      ],
+      "scenarios": [
+        "SC08",
+        "SC05",
+        "SC13"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:257"
+    },
+    {
+      "id": "F09",
+      "name": "identity transitions",
+      "journeys": [
+        "060-06"
+      ],
+      "scenarios": [
+        "SC08",
+        "SC02"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:258"
+    },
+    {
+      "id": "F10",
+      "name": "automatic matching",
+      "journeys": [
+        "060-07"
+      ],
+      "scenarios": [
+        "SC09",
+        "SC10",
+        "SC06"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:259"
+    },
+    {
+      "id": "F11",
+      "name": "automatic events/DOM",
+      "journeys": [
+        "060-08",
+        "060-09",
+        "060-12"
+      ],
+      "scenarios": [
+        "SC10",
+        "SC09",
+        "SC12",
+        "SC17"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:260"
+    },
+    {
+      "id": "F12",
+      "name": "runtime/config provenance",
+      "journeys": [
+        "060-01",
+        "060-03",
+        "060-07",
+        "060-08",
+        "060-12"
+      ],
+      "scenarios": [
+        "SC01",
+        "SC05",
+        "SC09",
+        "SC10"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:261"
+    },
+    {
+      "id": "F13",
+      "name": "first-party/click continuity",
+      "journeys": [
+        "060-05",
+        "060-10"
+      ],
+      "scenarios": [
+        "SC01",
+        "SC02",
+        "SC11",
+        "SC14"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:262"
+    },
+    {
+      "id": "F14",
+      "name": "transport/browser",
+      "journeys": [
+        "060-05",
+        "060-09",
+        "060-12"
+      ],
+      "scenarios": [
+        "SC11",
+        "SC13",
+        "SC17"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:263"
+    },
+    {
+      "id": "F15",
+      "name": "SPA/lifecycle",
+      "journeys": [
+        "060-09"
+      ],
+      "scenarios": [
+        "SC12",
+        "SC13",
+        "SC18"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:264"
+    },
+    {
+      "id": "F16",
+      "name": "event IDs/deduplication",
+      "journeys": [
+        "060-10",
+        "060-09"
+      ],
+      "scenarios": [
+        "SC14",
+        "SC03",
+        "SC04",
+        "SC13"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:265"
+    },
+    {
+      "id": "F17",
+      "name": "helper/diagnostics",
+      "journeys": [
+        "060-11"
+      ],
+      "scenarios": [
+        "SC15",
+        "SC18"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:266"
+    },
+    {
+      "id": "F18",
+      "name": "catalog/audiences",
+      "journeys": [
+        "060-02",
+        "060-11"
+      ],
+      "scenarios": [
+        "SC16",
+        "SC04",
+        "SC03"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:267"
+    },
+    {
+      "id": "F19",
+      "name": "invocation/errors",
+      "journeys": [
+        "060-01",
+        "060-02",
+        "060-09",
+        "060-11"
+      ],
+      "scenarios": [
+        "SC18",
+        "SC01",
+        "SC12"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:268"
+    },
+    {
+      "id": "F20",
+      "name": "performance/confinement",
+      "journeys": [
+        "060-12",
+        "060-07",
+        "060-08",
+        "060-09"
+      ],
+      "scenarios": [
+        "SC17",
+        "SC10",
+        "SC13"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:269"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "SC01",
+      "journeys": [
+        "060-01",
+        "060-05"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:271"
+    },
+    {
+      "id": "SC02",
+      "journeys": [
+        "060-05",
+        "060-06"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:271"
+    },
+    {
+      "id": "SC03",
+      "journeys": [
+        "060-02",
+        "060-10"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:272"
+    },
+    {
+      "id": "SC04",
+      "journeys": [
+        "060-02",
+        "060-11"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:272"
+    },
+    {
+      "id": "SC05",
+      "journeys": [
+        "060-03"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:272"
+    },
+    {
+      "id": "SC06",
+      "journeys": [
+        "060-04",
+        "060-07"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:272"
+    },
+    {
+      "id": "SC07",
+      "journeys": [
+        "060-04"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:272"
+    },
+    {
+      "id": "SC08",
+      "journeys": [
+        "060-06"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:273"
+    },
+    {
+      "id": "SC09",
+      "journeys": [
+        "060-07"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:273"
+    },
+    {
+      "id": "SC10",
+      "journeys": [
+        "060-07",
+        "060-08"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:273"
+    },
+    {
+      "id": "SC11",
+      "journeys": [
+        "060-05",
+        "060-09"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:273"
+    },
+    {
+      "id": "SC12",
+      "journeys": [
+        "060-08",
+        "060-09"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:273"
+    },
+    {
+      "id": "SC13",
+      "journeys": [
+        "060-09",
+        "060-10"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:274"
+    },
+    {
+      "id": "SC14",
+      "journeys": [
+        "060-10"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:274"
+    },
+    {
+      "id": "SC15",
+      "journeys": [
+        "060-11"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:274"
+    },
+    {
+      "id": "SC16",
+      "journeys": [
+        "060-02",
+        "060-11"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:274"
+    },
+    {
+      "id": "SC17",
+      "journeys": [
+        "060-07",
+        "060-08",
+        "060-12"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:274"
+    },
+    {
+      "id": "SC18",
+      "journeys": [
+        "060-01",
+        "060-02",
+        "060-03",
+        "060-09",
+        "060-11"
+      ],
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:275"
+    }
+  ],
+  "journeys": [
+    {
+      "id": "060-01",
+      "criteria": [
+        {
+          "id": "AC-060-01-1",
+          "statement": "An adopter uses the documented replacement boot path and existing fbq calls with native `fbevents.js` absent. Pre-ready and post-ready init/PageView calls traverse capture, ordered serialized chamber processing and mediated dispatch; the report distinguishes worker execution from attempted and actual wire.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-01-pageview-entry.md:33"
+        },
+        {
+          "id": "AC-060-01-2",
+          "statement": "The pinned native bootstrap's applicable callable/queue/alias, duplicate installation and readiness behavior is reproduced under identical inputs. Argument snapshot/mutation, ordering, repeated init and return/error behavior are observed, not inferred from an empty queue or a published bootstrap alone.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-01-pageview-entry.md:37"
+        },
+        {
+          "id": "AC-060-01-3",
+          "statement": "The PageView comparison applies spec C1-C9: complete requests/responses and browser/DOM effects, including dependency/configuration traffic. New/private fields are classified and owned, not omitted. Initialization alone is not assumed to generate the explicitly requested PageView.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-01-pageview-entry.md:41"
+        },
+        {
+          "id": "AC-060-01-4",
+          "statement": "Default-on and exact `meta-pixel=off` policy are preserved on the owned setup. An exact duplicate off suppresses Meta initialization even beside another value. Pair these negatives with a qualified enabled positive; two silent profiles cannot pass. No persistent opt-out or consent API is invented.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-01-pageview-entry.md:45"
+        },
+        {
+          "id": "AC-060-01-5",
+          "statement": "Removing a PageView, adding an extra send, altering the Pixel/URL/value, blocking runtime/configuration, disabling the observer and substituting the known empty reference each fails or becomes inconclusive as appropriate. HTTP 200, callable fbq, one Pixel record and owner Test Events receipt cannot replace the complete independently qualified scenario reference.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-01-pageview-entry.md:49"
+        },
+        {
+          "id": "AC-060-01-6",
+          "statement": "The operator receives per-call/request correlation and a visible held, dropped, denied, unavailable or incomplete explanation without identifiers in public output. No main-thread mapping/hash work, direct-connector shortcut, unrestricted fallback or stable-core signature change is introduced.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-01-pageview-entry.md:54"
+        },
+        {
+          "id": "AC-060-01-7",
+          "statement": "With separately approved live evidence, actual official-endpoint dispatch/response and any newly correlated receipt are recorded as separate layers. The historical owner-confirmed receipt stays unpaired and not agent-witnessed; attempts are not upgraded to delivery.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-01-pageview-entry.md:58"
+        }
+      ],
+      "obligations": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7",
+        "C8",
+        "C9"
+      ]
+    },
+    {
+      "id": "060-02",
+      "criteria": [
+        {
+          "id": "AC-060-02-1",
+          "statement": "For PageView and all seventeen standard events listed in the overview, the adopter's `track` inputs reach the real chamber and official endpoint with native event names, request counts and event-data relationships. This includes every documented per-event property and newly discovered native option.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-02-event-journeys.md:25"
+        },
+        {
+          "id": "AC-060-02-2",
+          "statement": "Commerce journeys preserve exact catalog/content IDs, `content_type`, `contents` quantities and supported price data, value/currency, counts, delivery category and predicted lifetime value. Test scalar/array IDs, multiple items, zero/fractions, boolean status and supported Unicode/nesting. Do not infer input numbers from string-valued fixture fields.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-02-event-journeys.md:29"
+        },
+        {
+          "id": "AC-060-02-3",
+          "statement": "`trackCustom` supports native name/parameter behavior, including the documented 50-character boundary and custom properties on standard events. URL/property inputs used by custom conversions remain intact; no new conversion-specific browser command is invented. Backend rule recognition belongs to 060-11.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-02-event-journeys.md:34"
+        },
+        {
+          "id": "AC-060-02-4",
+          "statement": "Missing/empty/null/undefined/nonfinite/invalid values, overlong names, oversized payloads, reserved keys and mutation after enqueue produce the observed native caller/event behavior and explicit operator evidence. No success-shaped omission or unreviewed relaxation of payload governance.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-02-event-journeys.md:38"
+        },
+        {
+          "id": "AC-060-02-5",
+          "statement": "C1-C9 comparison covers full encoding, duplicate parameters, body/query transport choices, auxiliary requests, responses and browser effects. Scalar `cd[region]` in the historical capture does not prove native value/currency, array/object or conversion serialization.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-02-event-journeys.md:42"
+        },
+        {
+          "id": "AC-060-02-6",
+          "statement": "Deliberately alter a monetary value/type, product ID/quantity, custom name, target, nested field or request count. Each corresponding control fails; stripping all custom data or relying on the synthetic Lead fixture cannot pass.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-02-event-journeys.md:46"
+        },
+        {
+          "id": "AC-060-02-7",
+          "statement": "The operator can identify the originating call and field for a native difference, denial or capture gap without raw identity or private data in public output. Other generic-pixel vendors and frozen push behavior are unchanged as demonstrated by later targeted regression evidence.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-02-event-journeys.md:49"
+        }
+      ],
+      "obligations": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7",
+        "C8",
+        "C9"
+      ]
+    },
+    {
+      "id": "060-03",
+      "criteria": [
+        {
+          "id": "AC-060-03-1",
+          "statement": "In the actual replacement, `track`/`trackCustom` broadcast and `trackSingle`/`trackSingleCustom` targeting match the pinned native two-Pixel inputs, including request order/count and absence at the other Pixel.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-03-pixel-routing.md:24"
+        },
+        {
+          "id": "AC-060-03-2",
+          "statement": "Each Pixel retains its own init data, configuration and identity state. Distinct safe synthetic values reveal cross-Pixel contamination; identical redaction sentinels or repeated placeholder IDs cannot prove isolation.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-03-pixel-routing.md:27"
+        },
+        {
+          "id": "AC-060-03-3",
+          "statement": "Calls before/after either init, repeated IDs, late initialization, duplicate snippets and invalid/uninitialized targets have observed native behavior and visible errors. Unknown `set` subcommands/options block their support row rather than silently doing nothing.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-03-pixel-routing.md:30"
+        },
+        {
+          "id": "AC-060-03-4",
+          "statement": "Evidence-backed per-Pixel settings, including `autoConfig` placement/type, are applied to the correct Pixel and produce the same whole-sequence and browser effects. Do not infer privacy-option global/per-Pixel scope; 060-04 qualifies that state machine.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-03-pixel-routing.md:34"
+        },
+        {
+          "id": "AC-060-03-5",
+          "statement": "Configuration updates use declared, bounded, per-Pixel source/operation references and integrity/version provenance. Native dependency/configuration behavior is accounted for under C3; no arbitrary remote code runs on the privileged main thread or brings the native runtime into the replacement.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-03-pixel-routing.md:38"
+        },
+        {
+          "id": "AC-060-03-6",
+          "statement": "Wrong-target, extra broadcast, missing fan-out branch, stale configuration and cross-Pixel identity mutations all fail the appropriate comparisons. Unauthorized target/configuration access is denied with visible reason.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-03-pixel-routing.md:42"
+        },
+        {
+          "id": "AC-060-03-7",
+          "statement": "The adopter/operator can inspect target selection and configuration provenance per call without public IDs or secrets. C1-C9 and unchanged stable-core/other-vendor behavior remain required.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-03-pixel-routing.md:45"
+        }
+      ],
+      "obligations": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7",
+        "C8",
+        "C9"
+      ]
+    },
+    {
+      "id": "060-04",
+      "criteria": [
+        {
+          "id": "AC-060-04-1",
+          "statement": "Revoke before init, events while revoked, grant, event, revoke again, more events and re-grant follow the pinned native state transitions through actual chamber and host. Repeat on navigation with revoke reapplied as required. Record retention, flush/drop, ordering and duplicate counts explicitly.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-04-consent-processing.md:25"
+        },
+        {
+          "id": "AC-060-04-2",
+          "statement": "The applicable seal policy is rechecked at each dispatch/redirect and timing-critical path. A stale grant/version, queued identity or previously prepared request cannot release data after revocation contrary to policy.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-04-consent-processing.md:29"
+        },
+        {
+          "id": "AC-060-04-3",
+          "statement": "Observe and compare script/config fetching, cookies, automatic/manual collection and egress separately. Do not equate pausing fires with stopping all collection or clearing every cookie, and do not invent native replay.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-04-consent-processing.md:32"
+        },
+        {
+          "id": "AC-060-04-4",
+          "statement": "`dataProcessingOptions` empty, LDU automatic-location and documented explicit location cases, plus observed mid-page changes, produce native-equivalent fields and scope for every relevant request family. Preserve omitted versus empty values; LDU is not consent or a no-send guarantee.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-04-consent-processing.md:35"
+        },
+        {
+          "id": "AC-060-04-5",
+          "statement": "Multi-Pixel and browser-cohort cases show the actual setting scope and no unintended release. `meta-pixel=off` remains a separate initialization choice, not a substitute for revoke/grant or data-use options.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-04-consent-processing.md:39"
+        },
+        {
+          "id": "AC-060-04-6",
+          "statement": "Positive permitted sends, paired denied cases, delayed consent updates, repeated grants and altered privacy-field controls are falsifiable under C1-C9. No recording with both positive/negative paths empty can pass.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-04-consent-processing.md:42"
+        },
+        {
+          "id": "AC-060-04-7",
+          "statement": "Operators see why each event was captured/held/replayed/dropped/denied and which policy version applied, without private values in public reports. A demonstrated native-versus-policy contradiction blocks that case for one parent-routed owner decision; no silent collection loss or blanket waiver.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-04-consent-processing.md:45"
+        }
+      ],
+      "obligations": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7",
+        "C8",
+        "C9"
+      ]
+    },
+    {
+      "id": "060-05",
+      "criteria": [
+        {
+          "id": "AC-060-05-1",
+          "statement": "Run independent wholly-replacement clean first-visit, second-page and return journeys with native runtime absent. Observe creation/reuse/absence of authorized `_fbp`/`_fbc` state and corresponding `fbp`/`fbc` wire values. A native-seeded cookie-only comparison does not prove first-visit support.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-05-browser-continuity.md:26"
+        },
+        {
+          "id": "AC-060-05-2",
+          "statement": "Match observed native domain/path/expiry/refresh/security attributes and handling of existing, expired, malformed, deleted and changed cookies. The server-cookie 90-day recommendation is not substituted for measured native behavior or actual browser restrictions.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-05-browser-continuity.md:30"
+        },
+        {
+          "id": "AC-060-05-3",
+          "statement": "No-click, same-click and changed case-sensitive `fbclid` cases preserve input-to-cookie-to-request relationships across navigation and allowed subdomains. Do not synthesize a ClickID when none exists, mutate its case or assume cross-site propagation.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-05-browser-continuity.md:34"
+        },
+        {
+          "id": "AC-060-05-4",
+          "statement": "Named cohorts include first/third-party allowed, third-party blocked with first-party allowed, all writes denied, private/partitioned and applicable anti-tracking states in Chromium, Firefox and WebKit/mobile variants. Unsupported/unavailable combinations block their rows, not the browser's privacy controls; no circumvention or false cookie-success fallback.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-05-browser-continuity.md:38"
+        },
+        {
+          "id": "AC-060-05-5",
+          "statement": "Actual browser transport evidence distinguishes first-party local state from outgoing third-party Cookie/Set-Cookie and browser-controlled headers. Compare credentials, methods, redirects/fan-out and responses where observed; do not forge browser headers or declare worker fetch/image/proxy equivalent.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-05-browser-continuity.md:43"
+        },
+        {
+          "id": "AC-060-05-6",
+          "statement": "Only exact owner-declared cookie names/scopes/attributes may be read/written/ deleted. Worker prepares values; host enforces bounds and the seal. Arbitrary names/domains, stale policy and unauthorized operations fail visibly without a general cookie jar or identity-resolution service.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-05-browser-continuity.md:47"
+        },
+        {
+          "id": "AC-060-05-7",
+          "statement": "Wrong wire key, new ID on every page, changed ClickID/hash, excessive cookie scope and skipped denial controls fail under C1-C9. Generated IDs compare by pinned native relationships, not unrelated random byte equality or sentinels.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-05-browser-continuity.md:51"
+        }
+      ],
+      "obligations": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7",
+        "C8",
+        "C9"
+      ]
+    },
+    {
+      "id": "060-06",
+      "criteria": [
+        {
+          "id": "AC-060-06-1",
+          "statement": "Manual init identity for `em`, `ph`, `fn`, `ln`, `external_id`, `ge`, `db`, `ct`, `st`, `zp`, `country` reaches the real chamber and actual governed measurement path with the same native normalized/hash values per input. Presence or 64-character shape is not a passing comparison.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-06-manual-identity.md:25"
+        },
+        {
+          "id": "AC-060-06-2",
+          "statement": "Raw/normalized inputs and documented prehashed email, plus other fields only after native acceptance is established, avoid double hashing. Case/space, Unicode, punctuation, phone-country, postal/date, empty and malformed vectors follow the observed native rules, not an assumed copy of CAPI's schema.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-06-manual-identity.md:29"
+        },
+        {
+          "id": "AC-060-06-3",
+          "statement": "Anonymous -> account A -> update A -> logout -> account B journeys compare native merge/replace/clear behavior and every affected request. Distinct per-Pixel values expose stale/cross-Pixel leakage. Native absence and actual first-visit support are retained throughout.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-06-manual-identity.md:33"
+        },
+        {
+          "id": "AC-060-06-4",
+          "statement": "No raw identity or unhashed fallback escapes on normal, delayed-hash, navigation or teardown paths. If evidence shows a required native representation cannot meet that invariant, block the specific case for one parent-routed decision; do not change hash rules or silently mark omission as parity.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-06-manual-identity.md:37"
+        },
+        {
+          "id": "AC-060-06-5",
+          "statement": "Validate exact values privately before safe output. Report normalization, omission and identity-version relationships without publishing identifiers or value-derived hashes. Equal synthetic/redacted tokens cannot pass value equality or matching efficacy.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-06-manual-identity.md:41"
+        },
+        {
+          "id": "AC-060-06-6",
+          "statement": "Wrong normalization, reused account identity, double hashing, field removal, stale consent and cross-Pixel leakage controls fail under C1-C9. Native private auxiliary matching encodings remain blocking discoveries if required; neither invent them nor discard them.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-06-manual-identity.md:45"
+        },
+        {
+          "id": "AC-060-06-7",
+          "statement": "Operator reports distinguish input/hash correctness, actual wire and backend matching quality. Synthetic vectors prove deterministic relationships only; real matching/attribution needs the separately authorized 060-11 evidence.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-06-manual-identity.md:49"
+        }
+      ],
+      "obligations": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7",
+        "C8",
+        "C9"
+      ]
+    },
+    {
+      "id": "060-07",
+      "criteria": [
+        {
+          "id": "AC-060-07-1",
+          "statement": "On an owned synthetic form, automatic matching off/on with manual matching absent/present produces the native collection triggers and complete measurement sequence through the actual chamber and mediated dispatch. The host only captures registered permitted fields/events; the chamber determines mapping, normalization and hashing.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-07-automatic-matching.md:26"
+        },
+        {
+          "id": "AC-060-07-2",
+          "statement": "Field changes before/after events, dynamic forms and anonymous/account changes preserve native timing, precedence and same-input digest values. Cover each eligible discovered identity field and account-specific setting; a private `aud`-like field name alone is not automatic-feature support.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-07-automatic-matching.md:31"
+        },
+        {
+          "id": "AC-060-07-3",
+          "statement": "Sensitive/unrelated/unregistered fields, revoked consent, stale snapshots and unauthorized root references cannot be captured or sent contrary to policy. No selector evaluation, raw DOM node, full mutation stream or arbitrary executable callback crosses the capability boundary.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-07-automatic-matching.md:35"
+        },
+        {
+          "id": "AC-060-07-4",
+          "statement": "Native configuration/rule updates and missing/blocked settings are provenance-qualified per Pixel. New/private encoding or collection branches become explicit blockers, not manual-only substitutes or discarded fields.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-07-automatic-matching.md:39"
+        },
+        {
+          "id": "AC-060-07-5",
+          "statement": "No raw identity egress or main-thread hashing occurs. Authorized same-input values are compared privately before redaction; public operator reports show source class, policy version and difference category, not identity values.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-07-automatic-matching.md:42"
+        },
+        {
+          "id": "AC-060-07-6",
+          "statement": "Alter a permitted input, omit a required field, leak an unrelated field, change a digest or reuse stale identity. Each corresponding positive/ forbidden-collection control fails under C1-C9; equal redaction tokens fail the value-proof requirement.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-07-automatic-matching.md:45"
+        },
+        {
+          "id": "AC-060-07-7",
+          "statement": "Record DOM observation cost, snapshot volume and dispatch latency against pinned measured conditions. Missing limits block readiness; no speculative fixed CWV band or blanket DOM grant is introduced to make the feature fit.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-07-automatic-matching.md:49"
+        }
+      ],
+      "obligations": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7",
+        "C8",
+        "C9"
+      ]
+    },
+    {
+      "id": "060-08",
+      "criteria": [
+        {
+          "id": "AC-060-08-1",
+          "statement": "The adopter's actual replacement reproduces pinned automatic standard events, button-click/page metadata and Event Setup Tool rule outcomes, with `autoConfig`/automatic-event toggles independently tested. An explicit manual event emitted in place of missing automatic behavior does not pass.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-08-automatic-events.md:24"
+        },
+        {
+          "id": "AC-060-08-2",
+          "statement": "OpenGraph/Schema.org and supported native metadata, labels, nested click targets, changed content, dynamic DOM and saved URL/element rules preserve native inputs, encoding, trigger timing and event fan-out. Discover actual native rules instead of inventing private selector/configuration syntax.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-08-automatic-events.md:28"
+        },
+        {
+          "id": "AC-060-08-3",
+          "statement": "Manual plus automatic triggers for the same action preserve observed duplicates/suppression; CAPI deduplication is not assumed to remove repeated browser events. Automatic matching interactions use 060-07's value proof.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-08-automatic-events.md:32"
+        },
+        {
+          "id": "AC-060-08-4",
+          "statement": "Approved root/element/field references and finite snapshots are captured by the host; rule interpretation stays in the chamber. Ordinary site callbacks, default actions, layout and navigation remain unchanged. No ambient DOM, raw-node transfer, full mutation stream or remote main-thread rules.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-08-automatic-events.md:35"
+        },
+        {
+          "id": "AC-060-08-5",
+          "statement": "Per-Pixel remote configuration is bounded and provenance-qualified. Removing a rule, blocked config, unknown module/field or stale pin produces visible unsupported/inconclusive evidence, not an empty successful event set.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-08-automatic-events.md:39"
+        },
+        {
+          "id": "AC-060-08-6",
+          "statement": "Revoke/deny/stale-consent and forbidden field/root controls demonstrate no unauthorized collection/dispatch, while separately paired positive controls still detect native automatic events under C1-C9.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-08-automatic-events.md:42"
+        },
+        {
+          "id": "AC-060-08-7",
+          "statement": "Mutated labels/rules/values, missed or extra events, duplicate sends and site callback/DOM effects are independently discriminable. Record measured main-thread observer/snapshot cost for 060-12; no unmeasured broad observer is justified by the full-support requirement.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-08-automatic-events.md:45"
+        }
+      ],
+      "obligations": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7",
+        "C8",
+        "C9"
+      ]
+    },
+    {
+      "id": "060-09",
+      "criteria": [
+        {
+          "id": "AC-060-09-1",
+          "statement": "Hard navigation, pushState/replaceState/popstate/hash changes and explicit PageView calls preserve native URL/referrer/metadata, call timing and counts. A no-explicit-call control determines any actual native automatic history behavior; the historical hash-route sample alone cannot establish it.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-09-lifecycle-nojs.md:29"
+        },
+        {
+          "id": "AC-060-09-2",
+          "statement": "Click, scroll/visibility, developer delays, foreground/background, BFCache restore and prerender transitions preserve actual callbacks, default site behavior and automatic-rule effects under C1-C9.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-09-lifecycle-nojs.md:33"
+        },
+        {
+          "id": "AC-060-09-3",
+          "statement": "Rapid exit, pagehide/navigation, cold/warm startup, slow worker/hash and offline/intermittent transport record surviving/cancelled attempts, retries, duplicates, time/order and loss. Repeated trials apply pinned measured criteria; a single receipt is not an exactly-once guarantee.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-09-lifecycle-nojs.md:36"
+        },
+        {
+          "id": "AC-060-09-4",
+          "statement": "Browser-required image/fetch/beacon or other discovered transports remain explicitly mediated with correct credentials, browser-controlled headers/ cookies, responses and redirect/fan-out effects. No arbitrary proxy or forged header is substituted to hide a mismatch.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-09-lifecycle-nojs.md:40"
+        },
+        {
+          "id": "AC-060-09-5",
+          "statement": "The host may fulfill a bounded pre-serialized lifecycle lease only with current consent/destination/identity validity; no main-thread mapping/ hashing, blocking unload or stale replay. Forbidden, delayed and cancelled dispatches are reported truthfully rather than success-shaped loss.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-09-lifecycle-nojs.md:44"
+        },
+        {
+          "id": "AC-060-09-6",
+          "statement": "In a distinct approved no-JavaScript journey, the site-owned governed fallback reproduces the pinned native image/other applicable behavior and actual browser/wire response while respecting required query/policy choices. This is not worker execution. Do not re-add the current omitted image, assume static markup can inspect queries, or accept absence as full parity. An infeasible required path remains blocked for an evidence-specific decision.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-09-lifecycle-nojs.md:48"
+        },
+        {
+          "id": "AC-060-09-7",
+          "statement": "Missing/extra navigation events, changed URL/hash/identity, late revoked release, retry duplication, a lost exit and policy-bypassing no-JavaScript emission are falsifiable controls. Attempt-only interception cannot close actual delivery/redirect/cookie criteria, and owner receipt cannot fill them.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-09-lifecycle-nojs.md:54"
+        },
+        {
+          "id": "AC-060-09-8",
+          "statement": "The operator can trace a lifecycle event across capture, preparation, attempted/actual transport and loss with safe public reasons, including explicit unavailable evidence. No browser cohort is silently dropped.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-09-lifecycle-nojs.md:58"
+        }
+      ],
+      "obligations": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7",
+        "C8",
+        "C9"
+      ]
+    },
+    {
+      "id": "060-10",
+      "criteria": [
+        {
+          "id": "AC-060-10-1",
+          "statement": "Browser `eventID` reaches native-equivalent `eid`/other observed encoding through actual chamber and host. Compare track fourth-argument and trackSingle fifth-argument options as documented; custom-event/single-custom options require their own observed native semantics, not argument guessing.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-10-event-correlation.md:26"
+        },
+        {
+          "id": "AC-060-10-2",
+          "statement": "Matching and mismatched event name/ID/Pixel relationships to the existing CAPI `event_name`/`event_id` are preserved. Same-input first-party/identity values remain consistent across channels without changing native hash rules.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-10-event-correlation.md:30"
+        },
+        {
+          "id": "AC-060-10-3",
+          "statement": "Correlated actual browser/server dispatch, response and available backend deduplication/merging evidence are recorded separately, with browser-first, server-first and mismatched controls. The documented 48-hour window and any delayed case require their own finite plan; simulated clocks cannot stand in for real backend-window evidence.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-10-event-correlation.md:33"
+        },
+        {
+          "id": "AC-060-10-4",
+          "statement": "Repeated browser-only and server-only sends, with and without explicit IDs, retain native source-specific behavior. Do not suppress two browser calls because cross-source deduplication exists. Distinguish transport retries and automatic/manual duplication from one logical event.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-10-event-correlation.md:38"
+        },
+        {
+          "id": "AC-060-10-5",
+          "statement": "Where applicable, native `fbp`/`external_id` fallback and ordering semantics are observed using authorized values; no fallback becomes a substitute for missing browser ID/path behavior or matching efficacy.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-10-event-correlation.md:42"
+        },
+        {
+          "id": "AC-060-10-6",
+          "statement": "Alter target/name/ID, duplicate a conversion, remove the browser send, change an identity relationship and withhold a receipt. Each control fails or becomes inconclusive under C1-C9; presence-only/redaction equality and a successful server response cannot qualify browser parity.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-10-event-correlation.md:45"
+        },
+        {
+          "id": "AC-060-10-7",
+          "statement": "The operator sees request/event correlation, actual counts and unavailable deduplication evidence without public identifiers. The replacement remains fully browser-capable with no new ambient egress or CAPI credentials in page code; later lifecycle integration must preserve these relationships.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-10-event-correlation.md:49"
+        }
+      ],
+      "obligations": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7",
+        "C8",
+        "C9"
+      ]
+    },
+    {
+      "id": "060-11",
+      "criteria": [
+        {
+          "id": "AC-060-11-1",
+          "statement": "An operator follows the adopter procedure from actual chamber event through official dispatch/response to a correlated owned Test Events/Events Manager receipt, with missing/delayed/aggregate evidence explicitly classified. The historical owner-confirmed normal-browser receipt remains attributed, not retroactively paired or called agent-witnessed.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-11-product-diagnostics.md:28"
+        },
+        {
+          "id": "AC-060-11-2",
+          "statement": "Using a separately approved isolated pinned helper/Meta Ads Data Advisor profile, event detections, fields, warnings and native-absent replacement statuses are compared to native behavior and actual requests. Read-only diagnostics do not authorize its privileged setup/fix automation; no fake successful badge/internal hook masks a detection gap.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-11-product-diagnostics.md:33"
+        },
+        {
+          "id": "AC-060-11-3",
+          "statement": "ViewContent/AddToCart/Purchase and other applicable catalog collection preserve exact product/product-group IDs, quantities and money against the owned feed. Observe actual catalog source recognition/mismatch diagnostics; differing public requirement wording remains evidence-backed, not a silent restriction to one accepted property shape.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-11-product-diagnostics.md:38"
+        },
+        {
+          "id": "AC-060-11-4",
+          "statement": "Owned custom conversion and website-audience rules receive native-equivalent event/URL/property inputs. Policy rejection, unavailable rule fields and delayed recognition are visible. Collection is distinct from backend audience membership/modeling; no new campaign/backend engine is implemented.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-11-product-diagnostics.md:43"
+        },
+        {
+          "id": "AC-060-11-5",
+          "statement": "Lawful matched inputs and approved native/replacement outcome observations compare matching quality, reporting and attribution under the predeclared criteria/windows, with correlation and uncertainty limits. Synthetic hashes, request 200, event receipt and deduplication are not matching/attribution proof. Missing access/traffic/outcomes blocks that claim, not a waived obligation.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-11-product-diagnostics.md:47"
+        },
+        {
+          "id": "AC-060-11-6",
+          "statement": "Wrong catalog ID, removed event/property, changed normalized identity, unpaired/missing receipt, diagnostic false success and absent attribution controls fail or become inconclusive under C1-C9. Operator summary states per-layer results rather than one green receipt standing for all layers.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-11-product-diagnostics.md:52"
+        },
+        {
+          "id": "AC-060-11-7",
+          "statement": "Public reports expose safe classifications/counts only. Private original request/receipt relationships stay authorized and separate. Initial collection does not require campaign launch/billing; any feature/outcome that truly needs more resources has an explicit later finite owner grant, not implicit spend.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-11-product-diagnostics.md:56"
+        }
+      ],
+      "obligations": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7",
+        "C8",
+        "C9"
+      ]
+    },
+    {
+      "id": "060-12",
+      "criteria": [
+        {
+          "id": "AC-060-12-1",
+          "statement": "The adopter replaces only the intended native Pixel installation through a documented pinned site-owned configuration. Actual native runtime absence, no duplicate native/replacement sends, applicable call compatibility and all feature settings are verified; other vendors and Adobe behavior remain unchanged against owned baselines.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-12-adoption-assurance.md:29"
+        },
+        {
+          "id": "AC-060-12-2",
+          "statement": "Demonstrate the complete F01-F20/SC01-SC18 ledger and all newly discovered behaviors/options/cohorts, with links to independent evidence. No partial field set, DONE slice count, known gap, expired reference or missing no-JavaScript path can qualify full support. Privacy-safe summaries retain private value relationships rather than hiding mismatches.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-12-adoption-assurance.md:34"
+        },
+        {
+          "id": "AC-060-12-3",
+          "statement": "Measure Core Web Vitals (CWV), including loading, interaction and layout stability, plus main-thread work/long tasks, observer cost, worker startup, serialization, queue/dispatch latency, memory and network bytes. All approved pinned criteria must pass with noise/repetition treatment; moving code to a worker alone is not a performance win. No threshold is changed after failure.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-12-adoption-assurance.md:39"
+        },
+        {
+          "id": "AC-060-12-4",
+          "statement": "A finite owner-controlled rollback restores the known native installation and its policy/configuration with no overlapping sends, stale identity, unexpected cookie destruction or untouched-tail changes. Restoration of a native tag is explicit owner-directed work outside chamber governance, not an automatic ambient fallback.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-12-adoption-assurance.md:44"
+        },
+        {
+          "id": "AC-060-12-5",
+          "statement": "Runtime/configuration/browser/diagnostic changes and unknown native fields/ endpoints invalidate affected assurance until independently requalified. The operator sees exact stale/blocked scope and required next evidence. Drift does not silently disable customer collection or authorize live recapture, remote privilege expansion or unreviewed production changes.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-12-adoption-assurance.md:49"
+        },
+        {
+          "id": "AC-060-12-6",
+          "statement": "Capability-denial, wrong scope/transport, stale consent, missing worker, main-thread interpretation, bypassed serialized dispatch, unknown egress and rolled-back policy controls are falsifiable. Stable-core shapes and declared-intersected-allowed grants remain intact; real invariant conflicts stop the affected case for a bounded decision, not a full-versus-subset poll.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-12-adoption-assurance.md:54"
+        },
+        {
+          "id": "AC-060-12-7",
+          "statement": "Before any future servo optimization, a separate finite grant, actual readiness/independent review and qualified native reference/comparator exist. A `.servo` approval, global oracle threshold or unrelated green test is not written or relaxed to bypass these gates.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-12-adoption-assurance.md:59"
+        },
+        {
+          "id": "AC-060-12-8",
+          "statement": "Operator release/adoption reporting states worker execution, attempted/actual wire, receipt, matching, deduplication, catalog/audience and attribution evidence separately. All required layers must be supported for the full replacement claim; Adobe-first release authority and current product claims are not changed by this compatibility workstream.",
+          "source": "docs/specs/060-meta-pixel-full-compatibility/slice-12-adoption-assurance.md:63"
+        }
+      ],
+      "obligations": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7",
+        "C8",
+        "C9"
+      ]
+    }
+  ],
+  "obligations": [
+    {
+      "id": "C1",
+      "name": "truthful reference",
+      "statement": "Consume 058-01's qualified `local_network` recorder/guard, 058-02's positive pinned `native_attempt` acquisition and 058-03's falsifiable comparator. Zero expected-positive native events, missing provenance, unsupported observation or stale pins are `inconclusive`, not PASS. A paired positive is required for expected-zero controls.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:141"
+    },
+    {
+      "id": "C2",
+      "name": "actual replacement",
+      "statement": "An adopter performs the journey through real serialized chamber/host dispatch with native runtime absent. Record worker execution separately from request attempts, actual dispatch/response and backend receipt. Direct connector invocation is insufficient.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:142"
+    },
+    {
+      "id": "C3",
+      "name": "whole sequence",
+      "statement": "Account for every destination/method/path, ordered query multimap, body/encoding, browser-controlled headers/cookies/credentials, response, redirect/fan-out, ordering/timing, retry, duplicate and cancellation. Include dependency/configuration and auxiliary traffic. No hidden field/branch exclusions or private-encoding invention.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:143"
+    },
+    {
+      "id": "C4",
+      "name": "value relationships",
+      "statement": "Compare authorized same inputs before privacy transformation: identity normalization/hashes, cookie-to-wire IDs, ClickID, event IDs, catalog IDs, timestamps, quantities and monetary values. Pin field-specific generated-value relationships; equal redaction sentinels, field presence and two missing values cannot establish equality.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:144"
+    },
+    {
+      "id": "C5",
+      "name": "browser and DOM behavior",
+      "statement": "Observe URL/referrer/metadata, actual browser storage transitions, callbacks/site behavior and lifecycle effects. No browser-header spoofing or assumption that worker fetch, image, beacon and server proxy are equivalent. A blocked attempt does not establish delivery, cookies or redirects.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:145"
+    },
+    {
+      "id": "C6",
+      "name": "governed authority",
+      "statement": "Main thread only captures/enqueues approved inputs or fulfills bounded privileged operations. Interpretation, mapping, hashing and connector state stay in the chamber; each actual dispatch passes consent and destination checks. Granted authority remains declared intersected with allowed. No ambient DOM, cookie jar or network; no silent stable-core changes.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:146"
+    },
+    {
+      "id": "C7",
+      "name": "independent layers",
+      "statement": "Reports separately name `worker_execution`, `native_attempt`, `actual_dispatch_response`, `backend_receipt`, `matching`, `deduplication`, `catalog_audience` and `attribution`, with pass/fail/inconclusive/unavailable evidence per criterion. Reuse 058's closed report states and exits for supported report layers; do not add a success-shaped fallback. Owner receipt is attributed and unpaired unless directly correlated.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:147"
+    },
+    {
+      "id": "C8",
+      "name": "preserve scope and safety",
+      "statement": "Missing native behavior remains unfinished. CAPI complements browser collection, never substitutes for it; campaign/model/backend implementation is not rebuilt. Further events, production capture, account changes and feature access need separate finite grants. No customer or fake production conversions, automatic deployment or campaign spend.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:148"
+    },
+    {
+      "id": "C9",
+      "name": "falsifiable assurance",
+      "statement": "Each required positive and negative control is capable of detecting loss, extra requests, altered values/routing/consent, incorrect DOM effects and unavailable responses. Evidence limitations block the affected claim; no frozen/global oracle threshold or failing criterion is weakened to obtain green.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:149"
+    }
+  ],
+  "scope": "planned structural ownership only; no native or product qualification",
+  "layers": [
+    {
+      "id": "public_documentation",
+      "status": "partial_metadata",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:331",
+      "blocker": "documentation is not native evidence"
+    },
+    {
+      "id": "worker_execution",
+      "status": "partial_synthetic",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/slice-01-pageview-entry.md:84",
+      "blocker": "local worker execution does not establish native or product equivalence"
+    },
+    {
+      "id": "synthetic_local_loopback",
+      "status": "partial_synthetic",
+      "source": "rig/meta-behavioral-report.mjs:31",
+      "blocker": "local comparison remains inconclusive"
+    },
+    {
+      "id": "native_attempt",
+      "status": "partial_attempt",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/slice-01-pageview-entry.md:21",
+      "blocker": "qualified case-bound native references unavailable"
+    },
+    {
+      "id": "actual_dispatch_response",
+      "status": "unavailable",
+      "source": "rig/chamber-comparison.md:49",
+      "blocker": "independent qualified executor and responses unavailable"
+    },
+    {
+      "id": "backend_receipt",
+      "status": "unavailable",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/slice-01-pageview-entry.md:58",
+      "blocker": "attributed paired receipts unavailable"
+    },
+    {
+      "id": "matching",
+      "status": "unavailable",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:147",
+      "blocker": "qualified product outcome executor unavailable"
+    },
+    {
+      "id": "deduplication",
+      "status": "unavailable",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:147",
+      "blocker": "qualified product outcome executor unavailable"
+    },
+    {
+      "id": "catalog_audience",
+      "status": "unavailable",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:147",
+      "blocker": "qualified product outcome executor unavailable"
+    },
+    {
+      "id": "attribution",
+      "status": "unavailable",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:147",
+      "blocker": "qualified product outcome executor unavailable"
+    }
+  ],
+  "epochs": [
+    {
+      "version": "2.9.426",
+      "status": "retained_replay_pin_not_current_qualification",
+      "source": "docs/releases/google-meta-work-plan.md:1240",
+      "configuration_sha256": "b1720ebb329e506fd223f066353d977281280866d85e908dc2561a6c1161c46d",
+      "configuration_source": "docs/specs/062-meta-pageview-behavior-followup/spec.md:29-33"
+    },
+    {
+      "version": "2.9.435",
+      "status": "owner_described_current_site_unverified",
+      "source": "docs/releases/google-meta-work-plan.md:1241"
+    }
+  ],
+  "scenario_definitions": {
+    "status": "unavailable",
+    "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:125",
+    "blocker": "The original scenario inventory is an explicit private input handle; names and case details are not reconstructed here."
+  },
+  "required": [
+    "case-bound approved references and native cohort pins",
+    "independent executor for each required evidence layer",
+    "human-approved frozen plans and truth",
+    "unknown behavior and unavailable scenario-definition discovery",
+    "paired positive negative controls"
+  ],
+  "public_sources": [
+    {
+      "id": "P1",
+      "title": "Get started",
+      "url": "https://developers.facebook.com/documentation/meta-pixel/get-started",
+      "limit": "bootstrap/explicit PageView, requirements and noscript example.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:338"
+    },
+    {
+      "id": "P2",
+      "title": "Reference",
+      "url": "https://developers.facebook.com/documentation/meta-pixel/reference",
+      "limit": "standard-event and property tables, not a complete private runtime schema.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:339"
+    },
+    {
+      "id": "P3",
+      "title": "Advanced",
+      "url": "https://developers.facebook.com/documentation/meta-pixel/advanced",
+      "limit": "multi-Pixel, autoConfig, metadata, image examples and signals/config paths; lightweight IMG is not full fbevents behavior.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:340"
+    },
+    {
+      "id": "P4",
+      "title": "Advanced matching",
+      "url": "https://developers.facebook.com/documentation/meta-pixel/advanced/advanced-matching",
+      "limit": "manual fields, hashing, explicit raw/prehashed email and image ud examples.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:341"
+    },
+    {
+      "id": "P5",
+      "title": "Consent",
+      "url": "https://developers.facebook.com/documentation/meta-pixel/implementation/gdpr",
+      "limit": "revoke/grant, not an exhaustive queue/storage state machine.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:342"
+    },
+    {
+      "id": "P6",
+      "title": "Browser/server deduplication",
+      "url": "https://developers.facebook.com/documentation/ads-commerce/conversions-api/deduplicate-pixel-and-server-events",
+      "limit": "eventID/eid relationships and source-specific limits; no blanket browser-only deduplication.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:343"
+    },
+    {
+      "id": "P7",
+      "title": "Conversion tracking",
+      "url": "https://developers.facebook.com/documentation/meta-pixel/implementation/conversion-tracking",
+      "limit": "standard/custom data, custom conversions and policy restrictions.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:344"
+    },
+    {
+      "id": "P8",
+      "title": "Website audiences",
+      "url": "https://developers.facebook.com/documentation/meta-pixel/implementation/custom-audiences",
+      "limit": "collection inputs versus backend audience rules.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:345"
+    },
+    {
+      "id": "P9",
+      "title": "Catalog guide",
+      "url": "https://developers.facebook.com/documentation/meta-pixel/get-started/advantage-catalog-ads",
+      "limit": "catalog-ID relationships; requirement wording differs from P2.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:346"
+    },
+    {
+      "id": "P10",
+      "title": "Helper/Data Advisor",
+      "url": "https://developers.facebook.com/documentation/meta-pixel/support/meta-ads-data-advisor",
+      "limit": "former Pixel Helper, diagnostics versus optional privileged automation.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:347"
+    },
+    {
+      "id": "P13",
+      "title": "CAPI customer information",
+      "url": "https://developers.facebook.com/documentation/ads-commerce/conversions-api/parameters/customer-information-parameters",
+      "limit": "cross-channel reference, not a universal Pixel input schema.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:348"
+    },
+    {
+      "id": "P14",
+      "title": "fbp/fbc and ClickID",
+      "url": "https://developers.facebook.com/documentation/ads-commerce/conversions-api/parameters/fbp-and-fbc",
+      "limit": "cookie/parameter distinctions; server guidance is not native lifetime proof.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:349"
+    },
+    {
+      "id": "P17",
+      "title": "Processing options",
+      "url": "https://developers.facebook.com/documentation/meta-pixel/implementation/data-processing-options",
+      "limit": "API/image examples with dpo/vdpo inconsistency.",
+      "source": "docs/specs/060-meta-pixel-full-compatibility/spec.md:350"
+    }
+  ],
+  "historical_records": [
+    {
+      "id": "058",
+      "scope": "local recorder controls and narrowly retained native attempts; comparison is layer-bound, not full parity",
+      "source": "docs/specs/058-native-tag-evaluation-qualification/spec.md:25"
+    },
+    {
+      "id": "061",
+      "scope": "bounded PageView behavioral proof of concept; not complete wire or production readiness",
+      "source": "docs/specs/061-meta-behavioral-poc/spec.md:12"
+    },
+    {
+      "id": "062",
+      "scope": "bounded PageView timezone and mediated cookie follow-up, not broader event qualification",
+      "source": "docs/specs/062-meta-pageview-behavior-followup/spec.md:12"
+    },
+    {
+      "id": "063",
+      "scope": "one scoped worker PageView delivery goal; does not establish native compatibility or attribution",
+      "source": "docs/specs/063-meta-pageview-live-delivery/spec.md:12"
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "approval_status": "proposed",
+  "archetype": "single_dimension",
+  "source_ac": {
+    "id": "AC-060-01-7",
+    "statement": "With separately approved live evidence, actual official-endpoint dispatch/response and any newly correlated receipt are recorded as separate layers. The historical owner-confirmed receipt stays unpaired and not agent-witnessed; attempts are not upgraded to delivery."
+  },
+  "judge": {
+    "transport": "copilot",
+    "model": "gpt-6.1-sol",
+    "runtime_version": "unresolved",
+    "decoding_consent": "unresolved"
+  },
+  "samples": {
+    "n": null,
+    "k": null,
+    "delta": null
+  },
+  "threshold": null,
+  "rubric": "Assess only whether the candidate report faithfully describes the supplied, hypothetical evidence. 1.0: it identifies observed and unavailable layers and avoids unsupported delivery, receipt or correlation claims. 0.0: it asserts a higher evidence layer than supplied, or conceals a material uncertainty. Insufficient source evidence must be explicitly reported as inconclusive. This rubric cannot establish private wire correctness or product truth.",
+  "cases": [
+    {
+      "id": "synthetic-response-only-honest",
+      "category": "happy_path",
+      "scenario": "Hypothetical HTTP response without backend receipt; honest report",
+      "input": "Synthetic supplied evidence: actual request has HTTP 200. No backend receipt or matching data is supplied. Candidate report: HTTP response observed; backend receipt and matching unavailable.",
+      "expected_output": {
+        "description": "Pass report fidelity: HTTP response does not imply receipt or matching."
+      }
+    },
+    {
+      "id": "synthetic-response-overclaim",
+      "category": "edge_case",
+      "scenario": "Hypothetical HTTP response without backend receipt; false delivery claim",
+      "input": "Synthetic supplied evidence: HTTP 200 only. Candidate report: backend received and attributed the event.",
+      "expected_output": {
+        "description": "Fail report fidelity: receipt and attribution are unsupported."
+      }
+    },
+    {
+      "id": "synthetic-aborted-attempt",
+      "category": "edge_case",
+      "scenario": "Hypothetical aborted native attempt is not dispatch",
+      "input": "Synthetic supplied evidence: a native request attempt was aborted before network dispatch. Candidate report: native delivery succeeded.",
+      "expected_output": {
+        "description": "Fail report fidelity: aborted attempt is not delivery."
+      }
+    },
+    {
+      "id": "synthetic-unknown-receipt",
+      "category": "edge_case",
+      "scenario": "Insufficient evidence is named explicitly",
+      "input": "Synthetic supplied evidence: receipt data is unavailable. Candidate report: backend receipt is unknown; no delivery conclusion follows.",
+      "expected_output": {
+        "description": "Pass report fidelity while recording insufficient evidence, not product success."
+      }
+    }
+  ]
+}

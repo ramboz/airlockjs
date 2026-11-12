@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "spec_id": "060-08",
+  "source_spec_path": "docs/specs/060-meta-pixel-full-compatibility/slice-08-automatic-events.md",
+  "source_hash": "sha256:038b3eb75fa7c97acc500799edb0635f419214c3fb6412ef4fd518b5f0a5cd9f",
+  "planner_version": "0.1.0",
+  "generated_at": "2026-11-05T16:53:52Z",
+  "checks": [
+    {
+      "id": "AC-060-08-1",
+      "ac_id": "AC-060-08-1",
+      "statement": "The adopter's actual replacement reproduces pinned automatic standard events, button-click/page metadata and Event Setup Tool rule outcomes, with `autoConfig`/automatic-event toggles independently tested. An explicit manual event emitted in place of missing automatic behavior does not pass.",
+      "family": "command",
+      "source_line": 24,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-08-2",
+      "ac_id": "AC-060-08-2",
+      "statement": "OpenGraph/Schema.org and supported native metadata, labels, nested click targets, changed content, dynamic DOM and saved URL/element rules preserve native inputs, encoding, trigger timing and event fan-out. Discover actual native rules instead of inventing private selector/configuration syntax.",
+      "family": "command",
+      "source_line": 28,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-08-3",
+      "ac_id": "AC-060-08-3",
+      "statement": "Manual plus automatic triggers for the same action preserve observed duplicates/suppression; CAPI deduplication is not assumed to remove repeated browser events. Automatic matching interactions use 060-07's value proof.",
+      "family": "command",
+      "source_line": 32,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-08-4",
+      "ac_id": "AC-060-08-4",
+      "statement": "Approved root/element/field references and finite snapshots are captured by the host; rule interpretation stays in the chamber. Ordinary site callbacks, default actions, layout and navigation remain unchanged. No ambient DOM, raw-node transfer, full mutation stream or remote main-thread rules.",
+      "family": "command",
+      "source_line": 35,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-08-5",
+      "ac_id": "AC-060-08-5",
+      "statement": "Per-Pixel remote configuration is bounded and provenance-qualified. Removing a rule, blocked config, unknown module/field or stale pin produces visible unsupported/inconclusive evidence, not an empty successful event set.",
+      "family": "command",
+      "source_line": 39,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-08-6",
+      "ac_id": "AC-060-08-6",
+      "statement": "Revoke/deny/stale-consent and forbidden field/root controls demonstrate no unauthorized collection/dispatch, while separately paired positive controls still detect native automatic events under C1-C9.",
+      "family": "command",
+      "source_line": 42,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-08-7",
+      "ac_id": "AC-060-08-7",
+      "statement": "Mutated labels/rules/values, missed or extra events, duplicate sends and site callback/DOM effects are independently discriminable. Record measured main-thread observer/snapshot cost for 060-12; no unmeasured broad observer is justified by the full-support requirement.",
+      "family": "command",
+      "source_line": 45,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    }
+  ],
+  "residual_judgment": [],
+  "approval_status": "proposed"
+}

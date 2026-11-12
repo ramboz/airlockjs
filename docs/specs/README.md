@@ -188,6 +188,32 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-06 — deployed stock smoke journey | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-07 — checking recorded stock wire semantics | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-08 — observing browser request and response bytes | **DONE** |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-01 - Replace bootstrap and first PageView | READY_FOR_REVIEW (google-and-meta-feasibility) |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-02 - Report complete event and commerce data | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-03 - Route and configure multiple Pixels | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-04 - Apply consent and processing choices | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-05 - Preserve anonymous and click continuity | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-06 - Match explicit identity through account changes | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-07 - Match approved forms automatically | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-08 - Preserve code-less event and metadata collection | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-09 - Measure navigation, exit and no-JavaScript journeys | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-10 - Correlate browser and server events | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-11 - Diagnose connected product collection | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-12 - Cut over, roll back and maintain assurance | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-13 - Exercise an offline SDK-free PageView prototype | **DONE** |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-14 - Exercise the SDK-free PageView in a local browser | **DONE** |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-15 - Prepare the Meta reference matrix and autonomous evaluation | **DONE** |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-16 - Evaluate one pinned PageView against the actual worker | **DONE** |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-17 - Classify retained PageView data and add governed timing | **DONE** |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-18 - Govern persisted first-PageView referrer state | **DONE** |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-19 - Prepare one private referrer and timing comparison | **DONE** |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-20 - Distinguish worker cache behavior and prepare a real timing transition | **DONE** |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-21 - Prepare a bounded native timing comparison | **DONE** |  |
+| [061-meta-behavioral-poc](061-meta-behavioral-poc/spec.md) | 061-01 - Record and compare one PageView | **DONE** |  |
+| [062-meta-pageview-behavior-followup](062-meta-pageview-behavior-followup/spec.md) | 062-01 - Correct pinned PageView behavior | **DONE** |  |
+| [063-meta-pageview-live-delivery](063-meta-pageview-live-delivery/spec.md) | 063-01 - Deliver one consented test PageView | IN_PROGRESS (meta-live-delivery) |  |
+| [063-meta-pageview-live-delivery](063-meta-pageview-live-delivery/spec.md) | 063-02 - Prepare one owned-site worker PageView | **DONE** |  |
+| [063-meta-pageview-live-delivery](063-meta-pageview-live-delivery/spec.md) | 063-03 - One automatic owned-page PageView trial | **DONE** |  |
 
 ## Deferred slices
 

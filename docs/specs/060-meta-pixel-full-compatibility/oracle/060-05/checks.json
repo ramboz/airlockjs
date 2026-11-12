@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "spec_id": "060-05",
+  "source_spec_path": "docs/specs/060-meta-pixel-full-compatibility/slice-05-browser-continuity.md",
+  "source_hash": "sha256:645926faf8885aa2ba0609c2a53366eed354903b58b19dc0839cab2c4eadfce7",
+  "planner_version": "0.1.0",
+  "generated_at": "2026-11-05T16:53:45Z",
+  "checks": [
+    {
+      "id": "AC-060-05-1",
+      "ac_id": "AC-060-05-1",
+      "statement": "Run independent wholly-replacement clean first-visit, second-page and return journeys with native runtime absent. Observe creation/reuse/absence of authorized `_fbp`/`_fbc` state and corresponding `fbp`/`fbc` wire values. A native-seeded cookie-only comparison does not prove first-visit support.",
+      "family": "command",
+      "source_line": 26,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-05-2",
+      "ac_id": "AC-060-05-2",
+      "statement": "Match observed native domain/path/expiry/refresh/security attributes and handling of existing, expired, malformed, deleted and changed cookies. The server-cookie 90-day recommendation is not substituted for measured native behavior or actual browser restrictions.",
+      "family": "command",
+      "source_line": 30,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-05-3",
+      "ac_id": "AC-060-05-3",
+      "statement": "No-click, same-click and changed case-sensitive `fbclid` cases preserve input-to-cookie-to-request relationships across navigation and allowed subdomains. Do not synthesize a ClickID when none exists, mutate its case or assume cross-site propagation.",
+      "family": "command",
+      "source_line": 34,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-05-4",
+      "ac_id": "AC-060-05-4",
+      "statement": "Named cohorts include first/third-party allowed, third-party blocked with first-party allowed, all writes denied, private/partitioned and applicable anti-tracking states in Chromium, Firefox and WebKit/mobile variants. Unsupported/unavailable combinations block their rows, not the browser's privacy controls; no circumvention or false cookie-success fallback.",
+      "family": "command",
+      "source_line": 38,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-05-5",
+      "ac_id": "AC-060-05-5",
+      "statement": "Actual browser transport evidence distinguishes first-party local state from outgoing third-party Cookie/Set-Cookie and browser-controlled headers. Compare credentials, methods, redirects/fan-out and responses where observed; do not forge browser headers or declare worker fetch/image/proxy equivalent.",
+      "family": "command",
+      "source_line": 43,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-05-6",
+      "ac_id": "AC-060-05-6",
+      "statement": "Only exact owner-declared cookie names/scopes/attributes may be read/written/ deleted. Worker prepares values; host enforces bounds and the seal. Arbitrary names/domains, stale policy and unauthorized operations fail visibly without a general cookie jar or identity-resolution service.",
+      "family": "command",
+      "source_line": 47,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-05-7",
+      "ac_id": "AC-060-05-7",
+      "statement": "Wrong wire key, new ID on every page, changed ClickID/hash, excessive cookie scope and skipped denial controls fail under C1-C9. Generated IDs compare by pinned native relationships, not unrelated random byte equality or sentinels.",
+      "family": "command",
+      "source_line": 51,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    }
+  ],
+  "residual_judgment": [],
+  "approval_status": "proposed"
+}

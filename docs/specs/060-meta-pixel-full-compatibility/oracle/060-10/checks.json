@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "spec_id": "060-10",
+  "source_spec_path": "docs/specs/060-meta-pixel-full-compatibility/slice-10-event-correlation.md",
+  "source_hash": "sha256:1ed428d2497b92e42073ccf46438d7669143cdbca0f8a60583f85bff4efeec26",
+  "planner_version": "0.1.0",
+  "generated_at": "2026-11-05T16:53:53Z",
+  "checks": [
+    {
+      "id": "AC-060-10-1",
+      "ac_id": "AC-060-10-1",
+      "statement": "Browser `eventID` reaches native-equivalent `eid`/other observed encoding through actual chamber and host. Compare track fourth-argument and trackSingle fifth-argument options as documented; custom-event/single-custom options require their own observed native semantics, not argument guessing.",
+      "family": "command",
+      "source_line": 26,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-10-2",
+      "ac_id": "AC-060-10-2",
+      "statement": "Matching and mismatched event name/ID/Pixel relationships to the existing CAPI `event_name`/`event_id` are preserved. Same-input first-party/identity values remain consistent across channels without changing native hash rules.",
+      "family": "command",
+      "source_line": 30,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-10-3",
+      "ac_id": "AC-060-10-3",
+      "statement": "Correlated actual browser/server dispatch, response and available backend deduplication/merging evidence are recorded separately, with browser-first, server-first and mismatched controls. The documented 48-hour window and any delayed case require their own finite plan; simulated clocks cannot stand in for real backend-window evidence.",
+      "family": "command",
+      "source_line": 33,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-10-4",
+      "ac_id": "AC-060-10-4",
+      "statement": "Repeated browser-only and server-only sends, with and without explicit IDs, retain native source-specific behavior. Do not suppress two browser calls because cross-source deduplication exists. Distinguish transport retries and automatic/manual duplication from one logical event.",
+      "family": "command",
+      "source_line": 38,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-10-5",
+      "ac_id": "AC-060-10-5",
+      "statement": "Where applicable, native `fbp`/`external_id` fallback and ordering semantics are observed using authorized values; no fallback becomes a substitute for missing browser ID/path behavior or matching efficacy.",
+      "family": "command",
+      "source_line": 42,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-10-6",
+      "ac_id": "AC-060-10-6",
+      "statement": "Alter target/name/ID, duplicate a conversion, remove the browser send, change an identity relationship and withhold a receipt. Each control fails or becomes inconclusive under C1-C9; presence-only/redaction equality and a successful server response cannot qualify browser parity.",
+      "family": "command",
+      "source_line": 45,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-10-7",
+      "ac_id": "AC-060-10-7",
+      "statement": "The operator sees request/event correlation, actual counts and unavailable deduplication evidence without public identifiers. The replacement remains fully browser-capable with no new ambient egress or CAPI credentials in page code; later lifecycle integration must preserve these relationships.",
+      "family": "command",
+      "source_line": 49,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    }
+  ],
+  "residual_judgment": [],
+  "approval_status": "proposed"
+}

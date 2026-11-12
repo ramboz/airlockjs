@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "spec_id": "060-12",
+  "source_spec_path": "docs/specs/060-meta-pixel-full-compatibility/slice-12-adoption-assurance.md",
+  "source_hash": "sha256:9c5b871e559c9a3cf7b145ef2c23b3bae669409549ed82ae7cd2b9d19f35cab7",
+  "planner_version": "0.1.0",
+  "generated_at": "2026-11-05T16:53:55Z",
+  "checks": [
+    {
+      "id": "AC-060-12-1",
+      "ac_id": "AC-060-12-1",
+      "statement": "The adopter replaces only the intended native Pixel installation through a documented pinned site-owned configuration. Actual native runtime absence, no duplicate native/replacement sends, applicable call compatibility and all feature settings are verified; other vendors and Adobe behavior remain unchanged against owned baselines.",
+      "family": "command",
+      "source_line": 29,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-12-2",
+      "ac_id": "AC-060-12-2",
+      "statement": "Demonstrate the complete F01-F20/SC01-SC18 ledger and all newly discovered behaviors/options/cohorts, with links to independent evidence. No partial field set, DONE slice count, known gap, expired reference or missing no-JavaScript path can qualify full support. Privacy-safe summaries retain private value relationships rather than hiding mismatches.",
+      "family": "command",
+      "source_line": 34,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-12-3",
+      "ac_id": "AC-060-12-3",
+      "statement": "Measure Core Web Vitals (CWV), including loading, interaction and layout stability, plus main-thread work/long tasks, observer cost, worker startup, serialization, queue/dispatch latency, memory and network bytes. All approved pinned criteria must pass with noise/repetition treatment; moving code to a worker alone is not a performance win. No threshold is changed after failure.",
+      "family": "command",
+      "source_line": 39,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-12-4",
+      "ac_id": "AC-060-12-4",
+      "statement": "A finite owner-controlled rollback restores the known native installation and its policy/configuration with no overlapping sends, stale identity, unexpected cookie destruction or untouched-tail changes. Restoration of a native tag is explicit owner-directed work outside chamber governance, not an automatic ambient fallback.",
+      "family": "command",
+      "source_line": 44,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-12-5",
+      "ac_id": "AC-060-12-5",
+      "statement": "Runtime/configuration/browser/diagnostic changes and unknown native fields/ endpoints invalidate affected assurance until independently requalified. The operator sees exact stale/blocked scope and required next evidence. Drift does not silently disable customer collection or authorize live recapture, remote privilege expansion or unreviewed production changes.",
+      "family": "command",
+      "source_line": 49,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-12-6",
+      "ac_id": "AC-060-12-6",
+      "statement": "Capability-denial, wrong scope/transport, stale consent, missing worker, main-thread interpretation, bypassed serialized dispatch, unknown egress and rolled-back policy controls are falsifiable. Stable-core shapes and declared-intersected-allowed grants remain intact; real invariant conflicts stop the affected case for a bounded decision, not a full-versus-subset poll.",
+      "family": "command",
+      "source_line": 54,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-12-7",
+      "ac_id": "AC-060-12-7",
+      "statement": "Before any future servo optimization, a separate finite grant, actual readiness/independent review and qualified native reference/comparator exist. A `.servo` approval, global oracle threshold or unrelated green test is not written or relaxed to bypass these gates.",
+      "family": "command",
+      "source_line": 59,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    },
+    {
+      "id": "AC-060-12-8",
+      "ac_id": "AC-060-12-8",
+      "statement": "Operator release/adoption reporting states worker execution, attempted/actual wire, receipt, matching, deduplication, catalog/audience and attribution evidence separately. All required layers must be supported for the full replacement claim; Adobe-first release authority and current product claims are not changed by this compatibility workstream.",
+      "family": "command",
+      "source_line": 63,
+      "status": "executor_unavailable",
+      "reason": "Independently qualified case-bound reference and layer executor are unavailable; no native evidence command is specified."
+    }
+  ],
+  "residual_judgment": [],
+  "approval_status": "proposed"
+}
