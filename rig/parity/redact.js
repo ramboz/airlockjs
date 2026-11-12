@@ -1,9 +1,9 @@
 /**
  * Redaction — spec 038-01 AC1. A raw Meta `/tr` capture (a real container beacon, from a real
  * page — R5/ADR-0020: LOCAL ONLY, never committed) carries LIVE identifiers: a real pixel id,
- * real `_fbp`/`fbc` first-party cookie values, and real SHA-256 hashed advanced-matching data
- * under `ud[...]`. `redactMetaBeacon` replaces each with a clearly-synthetic, REAL-SHAPED
- * placeholder — same field vocabulary, no live value — so the *committed* fixture
+ * real `fbp`/`_fbp`/`fbc` first-party identity values, and advanced-matching data
+ * under `ud[...]`, `aud[...]`, `cud[...]` and `ncud[...]`. `redactMetaBeacon` replaces each
+ * with a synthetic placeholder — same field vocabulary, no live value — so the *committed* fixture
  * (test/fixtures/parity-meta-tr.redacted.json) is safe to ship (CLAUDE.md security-MUST).
  *
  * Every non-identifier field carries through UNCHANGED, EXCEPT that URL-valued fields (`dl`
@@ -12,6 +12,8 @@
  * the `fbc` cookie while leaving `fbclid` in `dl` would leak it (craft-review 2026-09-08).
  * Redaction targets identity — cookie/hash fields AND URL-embedded click ids — never the
  * attribution shape the oracle needs to see.
+ * Unrecognized fields are not sanitized; URL paths, fragments and unlisted
+ * query parameters are also retained. Review captures before sharing them.
  *
  * Pure, import-free (mirrors core/consent.js / connectors/pixel/validate.js's dependency-free
  * primitive style) — safe to unit-test with a fabricated "raw" object that is itself never
@@ -31,10 +33,26 @@ export const SYNTHETIC_FBP = "fb.1.0000000000000.0000000000";
  * click-id segment is a literal SYNTHETIC marker so it can never be mistaken for a live value. */
 export const SYNTHETIC_FBC = "fb.1.0000000000000.SYNTHETIC-FBCLID-0000";
 
-/** A SHA-256-shaped (64 hex chars), all-zero placeholder for any `ud[...]` hashed-match field. */
+/** A SHA-256-shaped (64 hex chars), all-zero placeholder for hashed-match fields. */
 export const SYNTHETIC_HASH = "0".repeat(64);
 
-const ADVANCED_MATCH_FIELD = /^ud\[/;
+const COOKIE_IDENTITY_FIELDS = new Set(["fbp", "_fbp", "fbc"]);
+
+export function isMetaCookieIdentityField(field) {
+  return COOKIE_IDENTITY_FIELDS.has(field);
+}
+
+/** Whether a cookie identity value is a known placeholder, not equality evidence. */
+export function isUnverifiableMetaCookieIdentity(field, value) {
+  return isMetaCookieIdentityField(field) && typeof value === "string"
+    && (value === SYNTHETIC_FBP || value === SYNTHETIC_FBC
+      || /^redacted(?:[_-][a-z0-9_-]+)?$/i.test(value)
+      || /\[redacted\]|<redacted>|\*\*\*|\[removed\]|\[masked\]/i.test(value));
+}
+
+const HASHED_MATCH_FIELD = /^(?:ud|aud)\[/;
+const MASKED_MATCH_FIELD = /^(?:cud|ncud)\[/;
+const SYNTHETIC_MASK = "SYNTHETIC-MASKED-IDENTITY";
 
 /** URL-valued fields whose query string can carry a live identifier (`dl` document-location,
  *  `dr` referrer). `fbclid` is Facebook's click id, and `fbc` is DERIVED from it — so scrubbing
@@ -62,9 +80,10 @@ export function redactMetaBeacon(rawFields) {
   const redacted = {};
   for (const [key, value] of Object.entries(rawFields)) {
     if (key === "id") redacted[key] = SYNTHETIC_META_PIXEL_ID;
-    else if (key === "_fbp") redacted[key] = SYNTHETIC_FBP;
+    else if (key === "fbp" || key === "_fbp") redacted[key] = SYNTHETIC_FBP;
     else if (key === "fbc") redacted[key] = SYNTHETIC_FBC;
-    else if (ADVANCED_MATCH_FIELD.test(key)) redacted[key] = SYNTHETIC_HASH;
+    else if (HASHED_MATCH_FIELD.test(key)) redacted[key] = SYNTHETIC_HASH;
+    else if (MASKED_MATCH_FIELD.test(key)) redacted[key] = SYNTHETIC_MASK;
     else if (URL_VALUED_FIELDS.has(key)) redacted[key] = scrubUrlIdentifiers(value);
     else redacted[key] = value;
   }

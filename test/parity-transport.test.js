@@ -30,9 +30,9 @@ function findGap(cell, name) {
 }
 
 describe("AC1 — per-vendor transport declaration", () => {
-  it("Meta declares fr as a cross-site cookie owned by E10, and _fbp/fbc as first-party identity", () => {
+  it("Meta declares fr as a cross-site cookie owned by E10, and fbp/fbc as first-party wire fields", () => {
     expect(metaParityDescriptor.transport.crossSiteCookies).toEqual([{ cookie: "fr", owner: "E10" }]);
-    expect(metaParityDescriptor.transport.firstPartyIdentity).toEqual(["_fbp", "fbc"]);
+    expect(metaParityDescriptor.transport.firstPartyIdentity).toEqual(["fbp", "fbc"]);
   });
 
   it("GA4 declares NO cross-site cookie and cid as its only first-party identity field", () => {
@@ -54,16 +54,16 @@ describe("AC2/AC3 — Meta per-cohort gap classification, two DISTINCT owners", 
     expect(findGap(meta.cohorts.blocked, "fr")).toBeUndefined();
   });
 
-  it("first-party identity (_fbp/fbc) is a gap on the ALLOWED cohort, owner cookie-capability", () => {
-    for (const name of ["_fbp", "fbc"]) {
+  it("first-party identity (fbp/fbc) is a gap on the ALLOWED cohort, owner cookie-capability", () => {
+    for (const name of ["fbp", "fbc"]) {
       const gap = findGap(meta.cohorts.allowed, name);
       expect(gap).toMatchObject({ class: "first-party-identity", name, owner: OWNER_COOKIE_CAP });
     }
   });
 
-  it("KEYSTONE (frame-critique's correction): first-party identity (_fbp/fbc) is STILL a gap on the BLOCKED cohort — never false-greened as 'no gap'", () => {
+  it("KEYSTONE: first-party identity (fbp/fbc) is STILL a gap on the BLOCKED cohort", () => {
     expect(meta.cohorts.blocked.gapFree).toBe(false);
-    for (const name of ["_fbp", "fbc"]) {
+    for (const name of ["fbp", "fbc"]) {
       const gap = findGap(meta.cohorts.blocked, name);
       expect(gap).toMatchObject({ class: "first-party-identity", name, owner: OWNER_COOKIE_CAP });
     }
@@ -71,8 +71,8 @@ describe("AC2/AC3 — Meta per-cohort gap classification, two DISTINCT owners", 
 
   it("the blocked-cohort cell is a GAP overall, not green — the allowed cohort carries the strictly larger gap set (fr + both first-party fields)", () => {
     expect(meta.cohorts.allowed.gapFree).toBe(false);
-    expect(meta.cohorts.allowed.gaps.length).toBe(3); // fr + _fbp + fbc
-    expect(meta.cohorts.blocked.gaps.length).toBe(2); // _fbp + fbc only
+    expect(meta.cohorts.allowed.gaps.length).toBe(3); // fr + fbp + fbc
+    expect(meta.cohorts.blocked.gaps.length).toBe(2); // fbp + fbc only
   });
 
   it("the two gap classes carry visibly DISTINCT owners on the allowed cohort — E10 is never conflated with cookie-capability", () => {
@@ -99,23 +99,23 @@ describe("AC2 — GA4 is gap-free on BOTH cohorts (cid emitted from _ga, no cros
 });
 
 describe("the owner is READ from the descriptor's gapMap, never hardcoded", () => {
-  it("mutating a descriptor's gapMap owner for _fbp changes the ledger's reported owner on BOTH cohorts", () => {
-    const mutated = { ...metaParityDescriptor, gapMap: { ...metaParityDescriptor.gapMap, _fbp: { owner: "a-different-owner" } } };
+  it("mutating a descriptor's gapMap owner for fbp changes the ledger's reported owner on BOTH cohorts", () => {
+    const mutated = { ...metaParityDescriptor, gapMap: { ...metaParityDescriptor.gapMap, fbp: { owner: "a-different-owner" } } };
     const ledger = buildTransportLedger({ descriptors: [mutated] });
     const meta = findVendor(ledger, "meta");
-    expect(findGap(meta.cohorts.allowed, "_fbp").owner).toBe("a-different-owner");
-    expect(findGap(meta.cohorts.blocked, "_fbp").owner).toBe("a-different-owner");
+    expect(findGap(meta.cohorts.allowed, "fbp").owner).toBe("a-different-owner");
+    expect(findGap(meta.cohorts.blocked, "fbp").owner).toBe("a-different-owner");
     // the sibling field is unaffected — only the mutated entry moved
     expect(findGap(meta.cohorts.allowed, "fbc").owner).toBe(OWNER_COOKIE_CAP);
   });
 
   it("removing a first-party field from the gapMap (the owner LANDED it) clears its gap from BOTH cohorts", () => {
-    const { _fbp: _removed, ...rest } = metaParityDescriptor.gapMap;
+    const { fbp: _removed, ...rest } = metaParityDescriptor.gapMap;
     const mutated = { ...metaParityDescriptor, gapMap: rest };
     const ledger = buildTransportLedger({ descriptors: [mutated] });
     const meta = findVendor(ledger, "meta");
-    expect(findGap(meta.cohorts.allowed, "_fbp")).toBeUndefined();
-    expect(findGap(meta.cohorts.blocked, "_fbp")).toBeUndefined();
+    expect(findGap(meta.cohorts.allowed, "fbp")).toBeUndefined();
+    expect(findGap(meta.cohorts.blocked, "fbp")).toBeUndefined();
     // fbc is still gap-map-owned and unaffected
     expect(findGap(meta.cohorts.allowed, "fbc")).toBeTruthy();
   });
@@ -171,7 +171,7 @@ describe("AC4 — the Markdown table (an E10 author reads)", () => {
     expect(md).toContain("meta");
     expect(md).toContain("ga4");
     expect(md).toContain("fr");
-    expect(md).toContain("_fbp");
+    expect(md).toContain("fbp");
     expect(md).toContain("fbc");
     expect(md).toContain("cross-site-cookie");
     expect(md).toContain("first-party-identity");
