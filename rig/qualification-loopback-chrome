@@ -1,0 +1,3 @@
+#!/bin/sh
+policy_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+exec /usr/bin/sandbox-exec -f "$policy_dir/qualification-loopback-network.sb" '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' "$@"
