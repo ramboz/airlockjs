@@ -67,4 +67,26 @@ describe("sync cookie cache (spec 012-01 AC3)", () => {
     const cache2 = createSyncCookieCache(null);
     expect(cache2.readSync()).toBe("");
   });
+
+  it.each([
+    ["gone=; Expires=Thu, 01 Jan 1970 00:00:00 GMT", true],
+    ["gone=; MAX-AGE=0", true],
+    ["gone=; max-age=-1; expires=Wed, 01 Jan 3000 00:00:00 GMT", true],
+    ["gone=; max-age=60; expires=Thu, 01 Jan 1970 00:00:00 GMT", false],
+    ["gone=; max-age=invalid; expires=Thu, 01 Jan 1970 00:00:00 GMT", true],
+    ["gone=; max-age=1x; expires=invalid", false],
+    ["gone=; max-age=1.5; expires=invalid", false],
+    ["gone=; expires=invalid", false],
+    ["gone=", false],
+    ["gone=; expires=Wed, 01 Jan 3000 00:00:00 GMT", false],
+  ])("handles immediate expiry without changing raw writeback: %s", (raw, deleted) => {
+    const writes = [];
+    const cache = createSyncCookieCache("other=keep; gone=old", value => writes.push(value));
+    cache.writeSync(raw);
+    expect(cache.readSync()).toBe(deleted ? "other=keep" : "other=keep; gone=");
+    expect(writes).toEqual([raw]);
+    const empty = createSyncCookieCache();
+    empty.writeSync(raw);
+    expect(empty.readSync()).toBe(deleted ? "" : "gone=");
+  });
 });

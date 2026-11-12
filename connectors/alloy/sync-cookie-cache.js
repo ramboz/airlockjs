@@ -13,13 +13,9 @@
  * (readSync / writeSync) — see contracts/capability.d.ts. The pinned async
  * `get`/`set` cookie surface is untouched (AC3 additive; AC6 signature-stability).
  *
- * The upsert logic is deliberately byte-for-byte R-004's proven `setCookie`
- * (probes/alloy-worker/worker.js): parse `name=value; attrs`, drop any prior
- * entry of the same name, append the first `name=value` pair. Deliberately no
- * expiry/max-age handling — R-004 confirmed alloy's getTld probe + identity
- * writes round-trip correctly under this exact simple upsert (33 reads / 5
- * writes for one page + one event). Do NOT "improve" it away from the proven
- * shape without re-running the probe.
+ * R-004 proved the original simple upsert for its observed writes. This cache
+ * also removes immediately expired writes; it does not track future expiry
+ * or implement a complete browser cookie jar.
  *
  * @param {string} [seed] the boot cookie string (the broker's jar snapshot).
  * @param {(rawSetCookie: string) => void} [onWriteBack] async reconcile hook —
@@ -41,7 +37,21 @@ export function createSyncCookieCache(seed = "", onWriteBack = () => {}) {
     const name = raw.split("=")[0].trim();
     const firstPair = raw.split(";")[0];
     const pairs = jar ? jar.split("; ").filter((p) => p.split("=")[0].trim() !== name) : [];
-    pairs.push(firstPair);
+    let maxAge;
+    let expires;
+    for (const attribute of raw.split(";").slice(1)) {
+      const separator = attribute.indexOf("=");
+      if (separator < 0) continue;
+      const key = attribute.slice(0, separator).trim().toLowerCase();
+      const value = attribute.slice(separator + 1).trim();
+      if (key === "max-age" && /^-?\d+$/.test(value)) maxAge = Number(value);
+      if (key === "expires") {
+        const parsed = Date.parse(value);
+        if (Number.isFinite(parsed)) expires = parsed;
+      }
+    }
+    const expired = maxAge !== undefined ? maxAge <= 0 : expires !== undefined && expires <= Date.now();
+    if (!expired) pairs.push(firstPair);
     jar = pairs.join("; ");
     // Reconcile to the broker's authoritative jar asynchronously (the caller
     // posts this to the main thread). The cache is already updated above, so a
