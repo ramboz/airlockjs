@@ -48,6 +48,17 @@ Target/Analytics resources with limited product-setup experience?
 
 ## Access status
 
+### Later source-routing update — 2026-10-26T21:59:57.102Z approval
+
+The owner separately approved the closed opt-in probe grant. The
+[routing implementation](../specs/051-adobe-integration-proving-ground/slice-09-routing-implementation-witness.md)
+now admits only16 exact native consent/interact Edge destinations with the
+same tenant, purpose, cookie and payload controls. Scoped compliance, craft
+and architecture pass; the parent independently observed188 controlled tests.
+The earlier source-known routing refusal is historical for this profile.
+Default connector/core/official SDK bytes are unchanged. Actual supplier
+SDK/browser execution and051-09AC6/7 remain unexecuted; this is not live parity.
+
 ### 051-01 CLI validation: hermetic and real unverified result
 
 The versioned preflight utility is implemented and validated with 278 hermetic tests using
