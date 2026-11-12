@@ -16,7 +16,7 @@
  *    nothing for airlock to diverge from — no gap there. Owner: **E10**, read directly off the
  *    descriptor's `transport.crossSiteCookies` entry (a security-boundary decision, never derived
  *    from the gap map).
- *  - **first-party identity** (Meta `_fbp`/`fbc`; GA4 `cid`) — a FIRST-PARTY cookie on the
+ *  - **first-party identity** (Meta `fbp`/`fbc`; GA4 `cid`) — a FIRST-PARTY cookie on the
  *    PUBLISHER's own origin, so it survives third-party-cookie blocking and is the container's
  *    cookieless fallback on BOTH cohorts. Whether airlock itself emits it is READ from the
  *    descriptor's own `gapMap` (grounded, never re-declared here): a field IN the gap map is a gap
@@ -104,7 +104,7 @@ function buildVendorRow(descriptor) {
   // that set alone). A first-party field OUTSIDE attributionFields would be invisible to BOTH
   // surfaces: absent from the gap map here it reads gap-free, yet diffParity never checks it either,
   // so a real drop would false-green on every cohort. Fail loud rather than let a future descriptor
-  // introduce that blind spot (both shipped descriptors already satisfy it: Meta _fbp/fbc, GA4 cid).
+  // introduce that blind spot (both shipped descriptors already satisfy it: Meta fbp/fbc, GA4 cid).
   for (const field of firstPartyIdentity) {
     if (!attributionFields.includes(field)) {
       throw new Error(
