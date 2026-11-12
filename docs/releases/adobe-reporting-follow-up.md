@@ -19,7 +19,7 @@ The SDK/wire/host facts and downstream facts stay separately classified.
 
 Start when a concrete adopter requires ingestion/reporting/attribution evidence, a
 downstream discrepancy could reveal a request defect, or product configuration changes
-need qualification. [Spec 056](../specs/056-adobe-product-workflow-validation/spec.md)
+need qualification. Spec 056 (on `vendor-adobe`)
 owns refinement and execution. No timeline or staffed export schedule is promised now.
 
 Possible scenarios: per-run Target display/click goal deltas and duplicate attribution;
