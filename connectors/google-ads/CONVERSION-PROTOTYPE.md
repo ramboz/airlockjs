@@ -1,0 +1,1118 @@
+# Offline Google conversion prototype — experimental, not native-compatible
+
+This source-only example sends synthetic conversion data through an actual
+first-party Node worker and an independently observed loopback HTTP receiver.
+It constructs one small conversion request, not Google's complete protocol.
+No vendor SDK, Docker, browser, download, account or production request is used.
+Production Google/Meta boots and the package/build are unchanged.
+
+Command capture inspects parameter records synchronously on the main thread.
+It enumerates own keys before rejecting an oversized record, and JavaScript
+proxy traps can run during inspection even though ordinary getters are
+rejected. The accepted field limits therefore do not bound worst-case
+main-thread work or establish isolation from untrusted input. Use controlled
+synthetic inputs; Core Web Vitals qualification remains open.
+
+For the gated remarketing paths, host-side correlation also revalidates and
+JSON-serializes item snapshots and checks their local wire fields. With
+`experimentalRemarketingPurchase` enabled, it additionally constructs expected
+labeled-purchase query fields on the host. When the separate one-way
+remarketing-suppression command is active, it also constructs expected
+labeled-conversion fields. The worker constructs the dispatched
+request, but these checks duplicate mapping work outside the chamber. They are
+experimental safeguards, not proof of the capture-and-enqueue-only main-thread
+architecture or its performance; a reviewed off-thread correlation design is
+still required for the full replacement.
+
+**Known local conversion integrity gap:** the default and remarketing-enabled
+paths do not independently match conversion query fields against the captured
+conversion command unless the separate suppression command is active.
+Synthetic fake-worker controls substituted a label, value
+or transaction ID, added a field, or duplicated a label, and a mock transport
+was invoked with a plausible settled result. These are passing
+characterizations of the gap, not protection tests; no network request was
+made. Separate synthetic controls show that host and tag denials still hold
+the forged request and do not replay it after grant. The prototype does not
+establish conversion-field integrity against a compromised worker.
+
+```sh
+node rig/google-ads-conversion-prototype.mjs
+# This checkout's installed local executable:
+/opt/homebrew/Cellar/node/24.10.0/bin/node rig/google-ads-conversion-prototype.mjs
+```
+
+No arguments or environment credentials are needed. The example opens a
+random port on **127.0.0.1 only**, runs pending/denied/no-replay controls, then
+observes two conversions with different values, currencies, transactions and
+page context. It closes its worker, server and sockets before returning.
+Errors fail the executable; cleanup attempts every resource independently,
+retaining sanitized aggregate failures and the original cause.
+
+### Retained same-input attempt comparison
+
+On 2026-10-29, an offline comparison used the explicitly supplied 058-04
+Google reference and its original pins and completion attestation. The strict
+native-attempt reader passed before and after the run. Baseline, value1 and
+value2 each supplied their retained conversion input and document URL to a
+separate first-party Node worker and independent literal-loopback receiver.
+Each local receiver observed exactly one GET; each host reported one dispatch
+and a local 204 settlement. All three workers, receivers and sockets closed.
+Raw values and URLs were passed through local process memory and loopback only;
+they were not printed or written to files. The executed command was ephemeral;
+its private script and sanitized result were reconstructed after the run. The
+original result is a transcription, not an independently witnessed completion
+record. A later execution of that reconstructed script reproduced the same
+counts and controls on this branch, with exit zero and no reported diagnostics.
+
+Each case's two retained primary attempts were aborted before transmission.
+For all six attempts, the local receiver matched the original destination-ID
+relationship and the exact `label`, `value`, `currency_code`, `oid` and `url`
+relationships: 30 field comparisons. In-memory mutations of each field and
+the local route were rejected by their corresponding comparison controls.
+The 24 retained auxiliary attempts were counted but not compared or reproduced.
+The local run injected a direct Node HTTP transport to the receiver; it did
+not exercise the default fetch implementation.
+
+This is a **selected field-relationship comparison**, not identical wire or
+journey evidence. The native attempts used vendor endpoints and a native-default
+consent context; the local endpoint was loopback and the host seal was
+explicitly granted. Their consent equivalence is unverified. The local
+comparison did not issue the `js` command; the separate opt-in marker below
+does not implement native SDK initialization. The prototype does not reproduce
+native config traffic or auxiliaries. The decoded field checks do not compare
+request encoding, headers, method, sequence or complete payloads. The native
+attempts had no vendor response or receipt; local 204 responses are not vendor
+success. Scope, multi-destination and native Consent Mode behavior, full
+compatibility and production readiness remain unproved.
+
+The reusable offline tool runs the same limited comparison against an explicitly
+supplied Google native-attempt reference:
+
+```sh
+node rig/google-ads-attempt-comparison.mjs --inputs /absolute/private/inputs.json
+```
+
+The mode-0600 input file, in an owned mode-0700 directory, contains exactly:
+
+```json
+{
+  "schema": "airlock.google-ads-prototype-attempt-comparison.v1",
+  "reference": {
+    "report": { "path": "/absolute/private/report.json", "sha256": "<original digest>" },
+    "capture": { "path": "/absolute/private/capture.json", "sha256": "<original digest>" },
+    "completion": { "path": "/absolute/private/completion.json", "sha256": "<original digest>" }
+  },
+  "expected_pins": {
+    "profile": "google-ads-conversion",
+    "node_version": "<original version>",
+    "browser_version": "<original version>",
+    "os_release": "<original release>",
+    "macos_version": "<original version>",
+    "runtime_sha256": "<original digest>",
+    "configuration_sha256": null,
+    "network_policy_sha256": "<original digest>"
+  }
+}
+```
+
+Supply the original canonical handles, byte digests and pins explicitly; no
+reference discovery, input rewriting or output files are provided. The strict
+reader validates the original reference and completion before and after the
+local cases. The original manifest and reference identities are rechecked.
+The tool emits fixed counts, status and false claims only, never input values,
+URLs, paths or error text. Values cross only the local worker and literal
+loopback HTTP receiver. The transport uses direct Node HTTP without a proxy.
+The tool closes resources even on a failed case and reports cleanup failures.
+
+Exit 0 means the selected local relationships matched; its overall result
+is still `inconclusive`, not native qualification. Exit 1 reports a selected
+relationship difference, exit 2 an incomplete reference or local run, and
+exit 3 invalid input. Even a match leaves the consent, endpoint, auxiliary,
+transport, response and compatibility limitations above unchanged. The owner
+must separately authorize each use of private reference inputs; this command
+does not authorize browser, vendor or live activity.
+
+The reusable tool was also run against the retained 058-04 reference described
+above: all three cases completed, with 30 selected field comparisons matching.
+It returned `inconclusive` and did not qualify the untested behavior.
+
+## Experimental standalone seam
+
+`createGoogleAdsPrototype` in `adapters/google-ads-prototype.js` returns
+`{ gtag, flush, getState, setConsent, dispose }`; it never installs `window.gtag`.
+The fixed Node bridge is in `rig/google-ads-conversion-prototype-node.worker.mjs`.
+The browser Worker factory is source plumbing only: no browser qualification
+is claimed by the Node tests.
+
+### Automatic local queue entry
+
+`attachGoogleAdsDataLayerPrototype` in
+`adapters/google-ads-datalayer-prototype.js` connects an ordinary local
+`dataLayer` array to the same adapter. The standard queue stub works before
+attachment and captures later appends without manual `drainDataLayer()` calls.
+The helper enables only dataLayer entry. Bootstrap, consent commands and the
+other experimental command modes still need their existing explicit opt-ins.
+It does not install globals or load, disable or detect a native SDK. Keep native
+Google tags absent; an ordinary array is not proof of that condition.
+
+Save this example as an `.mjs` file at the repository root and run it with
+`node <filename>.mjs`:
+
+```js
+import { attachGoogleAdsDataLayerPrototype } from "./adapters/google-ads-datalayer-prototype.js";
+import {
+  closeConversionResources, createConversionReceiver, createNodeConversionChamber,
+} from "./rig/google-ads-conversion-prototype.mjs";
+
+const dataLayer = [];
+function gtag() { dataLayer.push(arguments); }
+gtag("config", "AW-0000000000");
+
+let adapter, chamber, receiver, cause;
+try {
+  receiver = await createConversionReceiver();
+  chamber = createNodeConversionChamber();
+  adapter = await attachGoogleAdsDataLayerPrototype({
+    dataLayer,
+    endpoint: receiver.endpoint,
+    chamber,
+    captureContext: () => ({ pageURL: "https://example.test/local-entry", referrer: "" }),
+    consent: { ad_storage: "granted" },
+  });
+  gtag("event", "conversion", {
+    send_to: "AW-0000000000/SYNTHETIC_LABEL",
+    value: 7.5,
+    currency: "CAD",
+    transaction_id: "local-entry-only",
+  });
+  const state = await adapter.flush();
+  if (state.outcomes.at(-1)?.disposition !== "transport-settled" ||
+      receiver.arrivals.length !== 1) throw new Error("local-entry-not-verified");
+  console.log({ localArrivals: receiver.arrivals.length, fullCompatibility: false });
+} catch (error) {
+  cause = error;
+  throw error;
+} finally {
+  await closeConversionResources({ adapter, chamber, receiver, cause });
+}
+```
+
+Attachment is asynchronous so a failed initial drain can close the worker
+before rejecting. Commands are snapshotted synchronously when the queue drains
+at attachment or on a later ordinary `push()`. Queued objects changed before
+attachment therefore use their attachment-time values, not their original
+enqueue-time values. Each push keeps its normal length return value. The
+128-entry retained-array bound and adapter's separate pending-command bounds
+still apply; overflow fails visibly instead of growing the array.
+
+Use one attachment attempt per array identity for the page lifetime. A failed
+attempt that reached adapter construction also consumes that identity. Duplicate
+attachment and reattachment after disposal cannot replay the retained queue.
+This in-module identity guard is not durable deduplication or protection
+against a caller copying history to another array. Existing own `push` hooks,
+accessors, non-extensible arrays and nonstandard array prototypes are rejected.
+Invalid structural appends throw and stay visible in the array for the caller
+to repair; they are not captured. Invalid commands that are structurally valid
+retain the adapter's rejection outcomes. Direct index writes or calls to
+`Array.prototype.push.call` bypass automatic capture; later drains still check
+the retained history.
+
+`dispose()` closes the adapter and removes only its own hook. A later owner's
+replacement is left alone. Disposal is idempotent, including its rejection
+when cleanup fails, and does not erase queue entries. The caller retains
+responsibility for the receiver. Attachment rejection closes a newly supplied
+chamber even when input validation fails. A duplicate attempt using the
+existing queue owner's chamber does not acquire or close that borrowed
+resource. The example's `finally` also closes every resource independently.
+
+The adapter now retains host-consent eligibility at each command capture as
+well as checking live consent before dispatch. Granting before worker readiness
+does not release commands captured while pending or denied. Only a new
+granted command can send. This fixes the same startup gap for direct calls and
+explicit queue drains without adding field mapping or a new worker contract.
+
+The new tests exercise an actual Node worker and independent receiver, not a
+browser. Native queue equivalence, Google wire compatibility, browser behavior,
+performance and attribution remain open under 059-01.
+
+An explicit literal endpoint is mandatory:
+`http://127.0.0.1:<port>/pagead/conversion/0000000000/`.
+There is **no default vendor destination** or arbitrary worker-code option.
+The host reuses unchanged `createWrappedSdkHost` with endpoint ceiling and
+strict `ad_storage`, plus a literal-base GET-only driver: no request headers
+or body, credentials omitted, redirects rejected. Receiver response bodies
+are size-bounded data, never scripts, callbacks, follow-up URLs or cookies.
+
+Supported queued calls:
+
+```js
+gtag("config", "AW-0000000000"); // retains synthetic config; deliberately sends NOTHING
+gtag("event", "conversion", {
+  send_to: "AW-0000000000/SYNTHETIC_LABEL",
+  value: 28.75,
+  currency: "CAD",
+  transaction_id: "offline-example-only",
+});
+```
+
+The third argument is a plain/null-prototype own-property record with at most these four
+primitive data properties, plus the optional callback pair described below.
+`send_to` must match exactly. Optional `value` is a
+finite Number, `currency` a string up to 64 characters, and `transaction_id`
+a string up to 128 characters. No numeric coercion or defaults: zero and
+empty currency/transaction strings survive; omitted and explicit `undefined`
+optional fields are omitted. An empty-string value is unsupported.
+Captured context has only `pageURL` and `referrer` (absolute HTTP(S), no
+URL credentials; empty referrer allowed), at most 2048 characters each.
+Currency, transaction and URL strings must be well-formed Unicode; invalid
+UTF-16 is rejected rather than silently replaced by URL encoding. The worker
+rejects a complete encoded GET over8192 characters before requesting transport,
+without making the instance terminal or losing the next valid conversion.
+Use synthetic, non-PII page and transaction data only.
+
+### Experimental purchase classification
+
+The [Google Ads new-customer guidance](https://support.google.com/google-ads/answer/12077475?hl=en)
+shows a `gtag("event", "purchase", ...)` call containing `send_to` and
+`new_customer`, and discusses true, false and unspecified classifications.
+It limits acquisition reporting to Purchase conversions. Its printed example
+uses placeholders and contains an apparent stray bracket; it is not an
+executable fixture or evidence for an exact request encoding.
+
+With `experimentalPurchase: true`, the standalone adapter and worker accept
+the following bounded, synthetic input:
+
+```js
+gtag("event", "purchase", {
+  send_to: "AW-0000000000/SYNTHETIC_LABEL",
+  value: 12.5,
+  currency: "USD",
+  new_customer: true,
+});
+```
+
+The supplied classification must be a boolean or omitted; an explicit
+`undefined` is treated as omission. The experiment does not infer a value from
+cookies or identity. `new_customer` is an event-only field: it is not accepted
+on `conversion`, in scopes or on config. All other keys, routing, context,
+scope and consent rules remain those of the existing local prototype. The
+callback opt-in remains conversion-only. The existing dataLayer and
+multi-destination opt-ins can carry this bounded command; host consent is
+still checked independently for every branch, and held events do not replay.
+
+For the literal-loopback receiver only, the worker adds the **hypothetical**
+fields `airlock_event=purchase` and, when provided,
+`airlock_new_customer=true` or `airlock_new_customer=false`. These distinguish
+local purchase/unknown/true/false cases; they are not Google wire fields or a
+proposed production protocol. Google documentation's inconsistent `vndc` /
+`vdnc` troubleshooting text does not establish a native wire mapping.
+The existing conversion relationship report does not evaluate purchase input
+and cannot qualify this experiment. Native purchase routing, wire encoding,
+customer data, attribution, reporting, browser behavior and production
+compatibility remain unverified. No account or real customer data is used.
+The option defaults to false and does not change installed globals or
+production behavior.
+
+### Experimental direct-Ads purchase cart subset
+
+[Google's cart guidance](https://support.google.com/google-ads/answer/14943675?hl=en)
+says cart data is processed only on purchase events. Its table lists direct
+Google Ads item fields `id`, `price` and `quantity`, while distinguishing
+Analytics/Firebase `item_id`; its introductory note instead says `item_id` is
+essential. This internal conflict is unresolved. The following implements only
+an explicitly local direct-Ads **`id` subset**; it does not resolve the conflict,
+translate between schemas or establish native behavior.
+
+`experimentalPurchaseCart: true` requires `experimentalPurchase: true`. It
+adds an optional, event-only `items` array to the local purchase command:
+
+```js
+gtag("event", "purchase", {
+  send_to: "AW-0000000000/SYNTHETIC_LABEL",
+  currency: "USD",
+  items: [{ id: "synthetic-sku", price: 12.5, quantity: 2 }],
+});
+```
+
+The local subset requires one to ten dense items, each an own-data record with
+exactly `id`, `price` and `quantity`. The ID is a nonempty well-formed string
+of at most 128 UTF-16 code units; price is a finite nonnegative number other
+than negative zero; quantity is a positive safe integer up to 1,000,000.
+These limits and required fields are local restrictions, not claims about
+Google's validation. Empty arrays, `item_id`, mixed schemas, extra keys,
+accessors and invalid or excessive values reject the whole command. Duplicate
+IDs are preserved, not deduplicated. Omitted or explicitly undefined `items`
+omits the cart. Items are not accepted in scopes, configs or conversions.
+
+Main snapshots the nested own-data records before queueing; the worker repeats
+validation on the received copy. Array length is checked before enumerating,
+and a changed length, keys, element identity or item value observed during
+rechecking is refused. Proxy traps can spoof observations and key enumeration
+can invoke them synchronously; accepted field limits are not a hard work bound
+or untrusted-input isolation. dataLayer values are captured when drained, not
+when pushed.
+
+The literal-loopback request uses a single **invented local-only**
+`airlock_items` field containing a JSON array, preserving item order and field
+association. The existing encoded URL ceiling still applies. This encoding
+is not Google's wire format. The existing conversion report does not evaluate
+cart inputs. There is no native comparison, feed matching, item-id translation,
+price/unit arithmetic, customer or product reporting, attribution or browser
+qualification; no production cutover or parity is implied. Use synthetic
+non-PII IDs only. Consent, no-replay, multi-destination and resource limits
+continue to apply as described above.
+
+### Experimental purchase order discount
+
+[Google's cart guidance](https://support.google.com/google-ads/answer/14943675?hl=en)
+lists an optional order-level `discount` as a float, separate from item prices.
+With `experimentalPurchaseDiscount: true` and `experimentalPurchase: true`, a
+local purchase may provide an own-data `discount` field. This option is separate
+from the cart option: the local experiment accepts the discount with or without
+`items`, but does not claim Google processes a discount without cart data.
+
+The local rule accepts a finite nonnegative JavaScript number other than
+negative zero; zero is retained, and omission or explicit `undefined` omits
+the field. Other types and invalid values reject the whole command. These are
+experimental restrictions, not native validation rules. Discount is event-only:
+it is not accepted on conversion, config, set, or individual items. The main
+adapter snapshots its primitive value and the worker validates it again.
+
+The loopback-only field `airlock_discount` contains the JavaScript string form
+of the supplied number. It is an **invented local marker**, not Google's wire
+encoding. The experiment does not add, subtract, allocate or otherwise
+calculate any value or item price, infer units or feed data, or validate their
+relationship. Existing host consent, per-branch checks, no replay, URL ceiling
+and dataLayer drain-time capture remain in force. The conversion report does
+not evaluate this purchase field; native processing, encoding, reporting,
+attribution and production compatibility remain unverified.
+
+### Experimental direct-Ads feed metadata
+
+[Google's cart parameter table](https://support.google.com/google-ads/answer/14943675?hl=en)
+lists `aw_merchant_id` as an optional integer Merchant Center ID, and
+`aw_feed_country` and `aw_feed_language` as optional strings. It points to
+Unicode Common Locale Data Repository (CLDR) territory codes and ISO 639-1
+language codes respectively. Its `aw_feed_label` is supported only when
+Analytics is the conversion source; this direct-Ads experiment rejects it.
+The table gives examples, not exhaustive validation or native wire encoding.
+The `id` / `item_id` documentation conflict described above remains open.
+
+`experimentalPurchaseFeed: true` requires both `experimentalPurchase: true`
+and `experimentalPurchaseCart: true`. It allows the three fields only on a
+local purchase event, independently and optionally. As a local assumption,
+the fields may be present even when `items` is omitted; this does not assert
+native processing without cart data. A local `aw_merchant_id` must be a
+positive safe integer. `aw_feed_country` is restricted to exactly two uppercase
+ASCII letters, and `aw_feed_language` to exactly two ASCII letters of either
+case. Strings are preserved without normalization. These narrow syntactic
+checks do **not** validate CLDR or ISO membership, actual merchant ownership,
+or the full formats Google accepts. Omitted or explicitly undefined fields
+are omitted; invalid fields reject the entire command.
+
+The captured values are revalidated in the worker and encoded only for the
+literal-loopback receiver as the **invented local markers**
+`airlock_merchant_id`, `airlock_feed_country` and `airlock_feed_language`.
+They do not represent Google's native encoding or establish feed selection,
+matching, conversion receipt, product reporting or attribution. The existing
+conversion report does not evaluate these purchase fields. Host consent,
+per-branch checks, no replay, URL ceiling and dataLayer drain-time capture
+remain in force. Use synthetic inputs only; no merchant account or customer
+data is needed. Production behavior and defaults are unchanged.
+
+### Experimental conversion custom-variable examples
+
+[Google's custom-variable setup guide](https://support.google.com/google-ads/answer/9962082?hl=en)
+shows a conversion event with the string-valued example fields
+`example_variable`, `color` and `product_name`. It says activation is separately
+required for reporting, warns against private data and mentions a 100-character
+string limit in troubleshooting. It does not establish a native wire encoding.
+
+The default-off `experimentalCustomVariables: true` admits **only these three
+example names**, independently and optionally, on a local `conversion` event.
+It does not support arbitrary custom-variable names, purchase events or custom
+values in global/config scopes. Other keys and purchase-only fields remain
+rejected; existing conversion controls such as `send_to`, value fields and the
+separately enabled callback pair retain their own rules. This fixed allowlist
+is a local collision-avoidance choice, not a Google naming restriction.
+
+Each provided value must be a well-formed string of at most 100 UTF-16 code
+units; empty strings are preserved and omitted or explicitly undefined fields
+are omitted. The code-unit bound and omission rules are local assumptions,
+not proof of Google's character counting or validation. Invalid values reject
+the whole command. The adapter snapshots the primitives and the worker
+revalidates them. dataLayer values are captured at drain time.
+
+For literal-loopback only, the worker emits the **invented local markers**
+`airlock_custom_example_variable`, `airlock_custom_color` and
+`airlock_custom_product_name`. They do not prove native encoding, activation,
+reporting, attribution or parity; the existing conversion report does not
+evaluate them. Host consent, per-branch checks, no replay and the URL ceiling
+remain in force. Supply synthetic non-private values only: this experiment
+does not detect personal information or make such values safe to transmit.
+Production behavior and defaults are unchanged.
+
+### Experimental retail view_item
+
+[Google's dynamic-remarketing guide](https://support.google.com/google-ads/answer/7305793?hl=en)
+shows a retail `gtag("event", "view_item", ...)` example and states that the
+dynamic remarketing event object may have an optional `value`. Its required
+`items` each contain a numeric `id` and
+`google_business_vertical: "retail"`; the example has no `send_to`. The
+[GA4-source example](https://developers.google.com/google-ads/api/docs/dynamic-remarketing/prerequisites)
+uses `item_id` instead. Neither is the direct-Ads purchase-cart schema above.
+
+The separately gated, default-off `experimentalRetailViewItem: true` admits
+that event with `items` and optional `value`. Separate flags are also required
+for the additional event experiments below. Its local subset requires
+one to ten dense own-data items, each with exactly a positive safe-integer `id`
+and the string `retail`; an optional value must be finite and nonnegative,
+excluding negative zero. Zero is retained; absent or explicitly undefined
+`value` is omitted. These bounds, numeric restrictions and omission rules are
+local assumptions, not Google's complete validation rules. It rejects
+`item_id`, conversion labels, purchase-cart fields, callbacks and other keys.
+The adapter snapshots the nested items and the worker validates them again.
+Array length is bounded before enumeration, but proxy traps may run or spoof
+observations: these limits are not a hard main-thread work bound or
+untrusted-input isolation.
+
+For this experiment **one configured destination** is required and the event
+uses its single explicit literal-loopback endpoint. `send_to` is not accepted
+and no label is invented. `experimentalParameterScopes` and
+`experimentalMultiDestination` cannot be enabled with this option; their
+precedence and routing are intentionally not guessed. The endpoint's existing
+`/pagead/conversion/` path is only a local receiver path, not a claim about
+Google's remarketing endpoint. The worker emits invented `airlock_event`,
+`airlock_items` and optional `airlock_value` query fields; these are not native
+encoding. The captured page context is validated but not included in this
+local request. The host checks the event-specific request against its captured
+input, and the conversion comparison report excludes this event.
+
+The independent host/tag seal and drop-without-replay policy still apply;
+an already admitted denial tightens the seal, and an already sent request
+cannot be recalled. Use synthetic, non-private values only: the experiment
+does not detect personal information. It does not establish native routing,
+scope, network behavior, audiences, feed matching, attribution, reporting or
+parity. Production defaults, the existing labeled purchase path and release
+gates are unchanged unless additional experiments are explicitly enabled.
+
+### Experimental education view_item
+
+The [same guide's education example](https://support.google.com/google-ads/answer/7305793?hl=en#education)
+shows a `view_item` with numeric `value`, string `id`, optional `location_id`,
+and `google_business_vertical: "education"`, again without `send_to`.
+`experimentalEducationViewItem: true` is a separate default-off opt-in: it
+does not enable retail, and enabling retail alone does not admit education.
+The view-item options may be enabled together, but one event's items must all
+use the same enabled vertical. Mixed arrays, GA4 `item_id`, retail IDs or fields on
+education items, education fields on retail items, and purchase-cart schemas
+are rejected, not translated.
+
+The local education subset requires 1–10 dense own-data items with exactly
+`id`, `google_business_vertical`, and optionally `location_id`. The two ID
+fields, when present, must be nonempty well-formed strings of at most 128
+UTF-16 code units; an explicitly undefined `location_id` is rejected rather
+than treated as absent. The event's `value` is optional: absent or explicitly
+undefined is omitted, while zero is preserved. When supplied it must be finite
+and nonnegative, excluding negative zero. The guide's general optional-value
+statement replaces this experiment's earlier required-value restriction.
+The string, count and numeric bounds are local narrowing choices, not claims
+about native validation. The adapter snapshots the array and the worker
+revalidates it; dataLayer calls are captured when drained. The same proxy-trap
+and main-thread work limitations described above apply.
+
+This uses the same single configured literal-loopback endpoint, invented
+`airlock_event`, `airlock_items` and optional `airlock_value` markers, host request
+correlation, seal and no-replay policy as the retail experiment. It refuses
+`send_to`, labels, parameter scopes and multi-destination routing rather than
+guessing how they interact. Conversion and purchase fields are not inherited
+or carried across events, and the conversion comparison excludes this event.
+Only synthetic, non-private values are allowed by the experiment's operating
+contract; it does not detect personal information. Native feed keys, routing,
+wire format, audiences, attribution, reporting and parity remain unqualified.
+
+### Experimental local deals and real estate view_item
+
+The [same guide](https://support.google.com/google-ads/answer/7305793?hl=en)
+also shows `view_item` examples with numeric `value` and string item `id`,
+using `google_business_vertical: "local"` for local deals and
+`google_business_vertical: "real_estate"` for real estate. Neither example
+uses `send_to`. The independently gated, default-off
+`experimentalLocalViewItem` and `experimentalRealEstateViewItem` options
+admit their respective example shapes; neither enables the other vertical,
+retail or education.
+
+Each local subset requires 1–10 dense own-data items, with exactly `id` and
+the matching `google_business_vertical`. The ID must be a nonempty,
+well-formed string of at most 128 UTF-16 code units. The event's `value` is
+optional; absent or explicitly undefined is omitted and zero is retained.
+When supplied it must be finite and nonnegative, excluding negative zero. The
+guide's general optional-value statement replaces the earlier required-value
+restriction.
+These restrictions are local narrowing choices, not claims about Google's
+complete validation. Mixed-vertical arrays, `item_id`, education's
+`location_id`, purchase-cart fields, conversion labels, callbacks and all
+other fields are rejected, not translated. Items are snapshotted at capture
+and revalidated in the worker; dataLayer calls are captured when drained.
+Array length is bounded before enumeration, but proxy traps may run or spoof
+observations; accepted bounds are not a hard work or isolation guarantee.
+
+The single-configured literal-loopback route, invented `airlock_event`,
+`airlock_items` and optional `airlock_value` markers, host request correlation,
+independent consent seal, and drop-without-replay policy are shared with the
+earlier view-item experiments. Parameter scopes and multi-destination routing
+cannot be enabled with either option. The conversion-shaped local receiver
+path and local markers do not establish native routing or wire behavior.
+Only synthetic, non-private values are permitted by the operating contract;
+there is no personal-information detector. Native feed matching, audience
+behavior, attribution, reporting and parity remain unqualified. Production
+defaults and release gates are unchanged.
+
+### Experimental travel view_item
+
+The [guide's travel example](https://support.google.com/google-ads/answer/7305793?hl=en#travel)
+shows a numeric `value` and items with `google_business_vertical: "travel"`,
+required `destination`, and optional `origin`, `start_date` and `end_date`.
+It specifies dates as `YYYY-MM-DD`. The separately gated, default-off
+`experimentalTravelViewItem` admits this synthetic `view_item` subset;
+separate flags are also required for the additional event experiments below. It can
+coexist with the other view-item flags without enabling them, and
+mixed-vertical item arrays are rejected.
+
+Locally, one to ten dense own-data items are required. Each has exactly
+`destination` and `google_business_vertical`, plus any of the three optional
+fields. Destination and supplied origin must be nonempty well-formed strings
+of at most 128 UTF-16 code units. Supplied dates must be ten ASCII characters
+in `YYYY-MM-DD` form and valid proleptic Gregorian calendar dates from
+`0001-01-01` through `9999-12-31`, including leap-year checks. Explicitly
+undefined optional item fields are rejected, not treated as absent. Dates are
+independently optional: no ordering, duration, current-date, timezone, travel
+availability or itinerary semantics are inferred. The event's `value` is
+optional; absent or explicitly undefined is omitted and zero is retained.
+When supplied it must be finite and nonnegative, excluding negative zero. The
+guide's general optional-value statement replaces the earlier required-value
+restriction. The remaining validation rules are local narrowing choices, not
+claims about native validation or date semantics.
+
+The travel item's `destination` is data, never a network selector. The
+experiment uses the same one explicitly configured literal-loopback endpoint,
+invented `airlock_event`, `airlock_items` and optional `airlock_value` markers, host
+request correlation, independent consent seal, and drop-without-replay policy
+as the other view-item experiments. `send_to`, labels, foreign fields,
+parameter scopes and multi-destination routing are refused. Inputs are
+snapshotted and revalidated; array length is bounded before enumeration, but
+proxy traps can run or spoof observations, so accepted bounds do not guarantee
+a hard work limit or untrusted-input isolation.
+
+Only synthetic, non-private inputs are permitted by the operating contract;
+there is no personal-information detector. Native feed-key interpretation,
+date behavior, routing, encoding, audiences, attribution, reporting and parity
+remain unqualified. Conversion and purchase behavior, production defaults and
+release gates are unchanged.
+
+### Experimental flights remarketing
+
+The [dynamic-remarketing guide](https://support.google.com/google-ads/answer/7305793?hl=en)
+shows an unlabeled `purchase` example with `origin`, `destination`,
+`start_date`, `end_date`, and `google_business_vertical: "flights"`.
+The separately gated, default-off `experimentalFlightsViewItem` enables the
+flights vertical in the existing synthetic remarketing path. It neither
+enables nor depends on the travel vertical. A flights purchase additionally
+requires `experimentalRemarketingPurchase`; labeled purchases still require
+their own separate option and selector.
+
+This local subset requires all four illustrated fields and the vertical on
+each of one to ten dense own-data items. Origin and destination must be
+nonempty well-formed strings of at most 128 UTF-16 code units. The dates use
+the existing travel validator: valid proleptic Gregorian `YYYY-MM-DD` dates
+from `0001-01-01` through `9999-12-31`. No date ordering, timezone, flight
+availability or itinerary semantics are inferred. Requiring all four fields,
+the string/date bounds and acceptance of omitted or undefined event `value`
+are local narrowing choices, not native validation evidence. Travel's existing
+optional item fields are unchanged; mixed travel/flights arrays are rejected.
+
+As with the other vertical flags, flights also enables local `view_item` and
+can be combined with the separately gated list, search and add-to-cart events.
+These additional event/vertical combinations reuse local schemas and are not
+established by the cited flights purchase example. The local marker, single
+configured literal-loopback route, host correlation, worker revalidation,
+independent consent seal and drop-without-replay behavior remain those of the
+existing remarketing paths. No labels, `send_to` selectors, purchase-cart
+fields, parameter scopes or multi-destination routing are inferred for the
+unlabeled subset.
+
+Only synthetic, non-private values are permitted by the operating contract;
+there is no personal-information detector. Proxy traps may run or spoof
+observations, so accepted bounds do not guarantee hard main-thread work limits
+or untrusted-input isolation; a sent request cannot be recalled. Native flight
+feed keys, date semantics, routing, encoding, audiences, attribution,
+reporting and parity remain unqualified. Production defaults and release gates
+are unchanged.
+
+### Experimental view_item_list
+
+[Google's dynamic-remarketing guide](https://support.google.com/google-ads/answer/7305793?hl=en)
+lists `view_item_list` and describes required `items` and optional `value` for
+the dynamic-remarketing event object. It does not establish a native request,
+route, fanout, or a complete per-vertical list-event schema for this experiment.
+The separately gated, default-off `experimentalViewItemList: true` permits
+the local `gtag("event", "view_item_list", { items, value })` subset only when
+the relevant existing vertical flag is also enabled. The list flag alone does
+not enable a vertical; an existing vertical flag alone does not enable lists.
+This reuse of the bounded vertical schemas for list inputs is a local model,
+not proof that Google accepts these exact combinations.
+
+The same bounds, exact fields, mixed-vertical refusal, snapshots, worker
+revalidation, value omission and zero rules apply. `send_to`, labels,
+callbacks, foreign fields, parameter scopes and multi-destination routing are
+refused. One destination must be explicitly configured; each accepted local
+command produces at most one request to its literal-loopback endpoint. The
+invented `airlock_event=view_item_list`, `airlock_items`, and optional
+`airlock_value` fields distinguish it from `view_item` and from labeled
+conversion or purchase requests. This is hypothetical local encoding and
+routing, not native wire or fanout behavior. The host checks the event name
+and captured values before transport; the conversion comparison excludes
+this event. Independent host/tag consent, immediate admitted denials and
+drop-without-replay remain in force. A request already sent cannot be recalled.
+
+Only synthetic, non-private values are permitted by the operating contract;
+there is no personal-information detector. Proxy traps may run or spoof
+observations, so accepted bounds do not guarantee a hard main-thread work
+limit or untrusted-input isolation. Native validation, routing, feed keys,
+encoding, audiences, attribution, reporting and parity remain unqualified.
+Production defaults, the existing labeled purchase path and release gates are
+unchanged unless additional experiments are explicitly enabled.
+
+### Experimental view_search_results and add_to_cart
+
+The [same guide](https://support.google.com/google-ads/answer/7305793?hl=en)
+also lists `view_search_results` and `add_to_cart`, alongside the general
+dynamic-remarketing event shape with required `items` and optional `value`.
+`experimentalViewSearchResults` and `experimentalAddToCart` are separate,
+default-off options: neither enables the other, `view_item_list`, or a
+vertical. Each also requires the applicable existing vertical opt-in. Applying
+the bounded vertical schemas to these events is a local hypothesis, not
+evidence that native Google accepts these combinations.
+
+Both use the same bounded input snapshot and validation, single configured
+literal-loopback route, independent consent seal and drop-without-replay
+behavior as the list experiment. They refuse mixed verticals, `send_to`,
+labels, callbacks, parameter scopes, multi-destination routing and foreign
+fields. The hypothetical local `airlock_event=view_search_results` and
+`airlock_event=add_to_cart` markers distinguish the requests; `airlock_items`
+and optional `airlock_value` have the same invented local encoding as before.
+The host checks these markers and captured item/value relationships before
+transport. When either new option is enabled, it also requires exactly one
+`purchase` event marker for purchase and no event marker for conversion,
+preventing their local marker substitution; this is not full correlation of
+all labeled-request fields. These added marker checks do not change defaults.
+The conversion comparison excludes both events.
+
+The experiment does not model a search query, search behavior, a shopping
+cart, purchase conversion, feed matching or attribution; the event names do
+not imply such effects. Only synthetic, non-private values are permitted by
+the operating contract; no personal-information detector is provided. Proxy
+traps may run or spoof observations, and a request already sent cannot be
+recalled. The routing, schema reuse and markers are local choices, not native
+wire, fanout, audience, reporting or compatibility evidence. Production and
+release gates remain unchanged.
+
+### Experimental unlabeled remarketing purchase
+
+The [dynamic-remarketing guide](https://support.google.com/google-ads/answer/7305793?hl=en)
+also shows `purchase` examples without `send_to`. The independently
+default-off `experimentalRemarketingPurchase` admits an input-only subset
+with `items` and optional `value`, using one already-enabled vertical's
+bounded schema. Applying the existing view-item schemas to this event is a
+local assumption, not proof of Google's complete accepted purchase shapes.
+The option alone enables no vertical and does not enable labeled purchase.
+
+The two local purchase paths are deliberately disjoint, including when both
+options are enabled. Absence of an own `send_to` selects only the remarketing
+subset: `items` is required; `value` can be omitted or explicitly undefined;
+zero is preserved. Presence of an own `send_to` selects only the existing
+labeled-purchase path and requires its separate `experimentalPurchase` flag
+and valid selector. Explicitly undefined, null or invalid `send_to` is not
+treated as absent. Foreign fields and mixed item schemas are rejected; there
+is no automatic fallback or fanout between paths. This distinction is a
+local safety policy, not a claim about native purchase precedence.
+
+The unlabeled request requires one explicitly configured literal-loopback
+destination. Its hypothetical `airlock_event=remarketing_purchase`,
+`airlock_items`, and optional `airlock_value` fields distinguish it from the
+labeled path's local `airlock_event=purchase` and `label`. The host checks the
+unlabeled marker and captured item/value relationships; with the new option
+enabled, it also correlates the labeled purchase's expected route, selector,
+query fields and captured page URL before transport. These are local
+relationship checks, not native validation or encoding. The conversion
+comparison excludes both purchase paths.
+
+The existing item limits, exact field rules, snapshots, worker revalidation,
+independent host/tag seal and drop-without-replay behavior remain in force.
+Parameter scopes and multi-destination routing cannot be enabled with the new
+option. Proxy traps may run or spoof observations, so accepted bounds do not
+guarantee hard main-thread work limits or untrusted-input isolation; a sent
+request cannot be recalled. Use synthetic, non-private values only; there is
+no personal-information detector. Native schema, routing, wire behavior,
+feed matching, audiences, attribution, reporting and parity remain unqualified.
+Production defaults and release gates remain unchanged.
+
+### Experimental one-way remarketing suppression
+
+The [Google Ads conversion setup guide](https://developers.google.com/tag-platform/devguides/conversions)
+shows `gtag("set", "allow_ad_personalization_signals", false)` before
+`gtag("js", ...)` and describes it as disabling remarketing data collection
+for all configured Google Ads accounts. It does not specify complete request
+branches, timing, wire encoding or the behavior of this prototype.
+
+With `experimentalDisableRemarketing: true`, that exact three-argument call is
+accepted only as the first admitted command. It makes this adapter's local
+remarketing suppression permanent until disposal. `true`, object-form, late,
+and other variants remain unsupported; this is a deliberately narrower local
+policy, not a claim about native updates. The option defaults off; enabling
+the option without the call changes no event behavior. It cannot be combined
+with experimental parameter scopes or multi-destination routing.
+
+The worker validates enabled `view_item`, `view_item_list`,
+`view_search_results`, `add_to_cart`, and unlabeled remarketing `purchase`
+inputs as before, but produces no request for a valid event after the command.
+The host independently rejects a worker request for such an event and checks
+the complete local labeled conversion and purchase query against the captured
+input, rather than allowing a worker to substitute remarketing fields there.
+The value-free outcomes are `remarketing-disabled` for the command and
+`remarketing-suppressed` for each valid suppressed event. Malformed or disabled
+event shapes still reject; captured item data is still snapshotted locally.
+There is no automatic page-load event in this prototype to suppress.
+
+Labeled purchase and conversion requests still go through the independent
+host/tag consent seal; blocked or suppressed events are not replayed. This
+control is **not consent**, does not grant consent, and does not model native
+personalization settings, audience membership, account-wide effects, product
+reporting, wire behavior or a re-enable transition. No native SDK, browser,
+vendor request or product observation was used to establish these local rules.
+
+### Experimental bootstrap command
+
+`experimentalBootstrap: true` additionally accepts `gtag("js", new Date())`.
+The main-side adapter snapshots the Date's time value synchronously as an
+integer millisecond primitive; the Date object itself never crosses into the
+worker. The worker independently checks the finite Date range and acknowledges
+the command without dispatch. The host accepts that acknowledgement only for
+the matching in-flight bootstrap command and sequence. Its outcome is
+`bootstrap-accepted`, not proof that a vendor SDK initialized.
+
+The adapter captures the Date time intrinsic at module load and invokes it
+without calling methods or accessors on the supplied object. Invalid Dates,
+non-Dates and proxies reject. This loopback experiment assumes a trusted
+same-realm runtime and ordinary JavaScript intrinsics when the module loads;
+pre-load primordial compromise is not covered. The captured method must match
+the expected native source string or the opt-in fails closed. That string
+check does not prove intrinsic authenticity or broader isolation; other engines
+may also reject because their string representations are not qualified. A
+trusted-realm solution, if needed for production, remains a separate unresolved
+boundary decision. The option defaults off.
+
+This command is a local, zero-send marker: it has no effect on configuration,
+consent or conversion routing. Repetition and its order relative to other
+commands are local prototype behavior, not native initialization semantics.
+It does not reproduce native config/auxiliary traffic, encoding or parity.
+
+### Experimental dataLayer entry
+
+The generated 058-04 fixture uses `dataLayer.push(arguments)` for its standard
+`gtag` bootstrap. `experimentalDataLayer: true` adds an explicit
+`adapter.drainDataLayer(dataLayer)` entry point for that input shape; it does
+not install or replace globals, patch `push`, or automatically watch the array.
+Enable `experimentalBootstrap` separately to accept its `js` command. The caller
+must explicitly drain newly appended calls.
+
+The local entry accepts one same-realm array per adapter, at most 128 entries
+for its lifetime, containing dense arguments-like objects with at most three own
+data arguments. It bounds the array length before reading entries, refuses
+holes, accessors and inconsistent lengths or replaced processed entries, and
+does not truncate. Structural refusal occurs before forwarding the batch.
+Each newly observed command is then passed in order through the existing
+adapter capture, whose individual rejections and queue-overflow outcomes remain
+visible. Already processed entries are not replayed, including after a consent
+change; replacing or shortening the array is refused. The Date, parameters and
+page context are snapshotted when drained, not when the page originally queued
+them. Disposal releases the retained queue reference.
+
+This is an explicitly invoked local assumption, not the native SDK's queue
+draining, initialization, timing or consent ordering. Field limits do not
+establish a hard main-thread work bound or isolate untrusted inputs: existing
+parameter capture enumerates record keys synchronously and may invoke proxy
+traps. Egress remains independently gated by the host seal, and this entry adds
+no vendor request or parity claim.
+
+For local routing experiments, `experimentalRouting: true` allows a literal
+loopback endpoint with a one-to-32-digit destination in its conversion path.
+This matches the 058-04 reference manifest's parser bound, not evidence that
+Google accepts 32-digit destinations. The separate native-stock policy remains
+unchanged.
+`gtag("config", "AW-<destination>")` must match that path, and the conversion
+`send_to` must use the same destination plus an alphanumeric, underscore or
+hyphen label of at most 128 characters. Mismatches reject without dispatch.
+This is a bounded local rule, not a claim about native Google validation or
+authorization to send to Google. The default remains the fixed synthetic route.
+
+### Experimental multi-destination routing
+
+[Google documents](https://developers.google.com/tag-platform/gtagjs/reference/parameters)
+`send_to` as a string or string array and describes
+[multi-target routing](https://developers.google.com/tag-platform/gtagjs/routing).
+Those sources and the retained one-conversion capture do **not** establish the
+native request count, ordering, duplicate handling, failure or callback
+semantics for arrays of labeled Ads conversions. The following is a local
+experiment, not an observed Google fanout or a compatibility claim.
+
+`experimentalMultiDestination: true` requires `experimentalRouting: true`
+and an `additionalEndpoint`: a second literal 127.0.0.1 conversion endpoint
+with a different numeric destination. There are exactly two predeclared
+endpoints at most; no vendor or non-loopback endpoint is allowed. Configure
+each selected destination separately before a conversion. A `send_to` string
+or an array of one or two distinct configured destinations is accepted:
+
+```js
+gtag("config", "AW-111", { currency: "USD" });
+gtag("config", "AW-222", { currency: "CAD" });
+gtag("event", "conversion", { send_to: ["AW-111/LOCAL_ONE", "AW-222/LOCAL_TWO"], value: 3 });
+```
+
+The config parameters in this example additionally require
+`experimentalParameterScopes: true`. The local policy builds one request per
+selected destination, in array order, using that destination's config scope.
+It rejects the entire command before dispatch if a destination is missing,
+unconfigured, duplicated or invalid. Repeated config remains unsupported.
+The host snapshots the array without executing getters, bounds its own length
+before enumerating properties and rejects a changed length during capture.
+The connector independently applies the same checks. The host checks each
+request's sequence, selected endpoint and label before dispatch. The seal
+checks current `ad_storage` independently for each request; a held branch
+is dropped and never replayed. A non-2xx HTTP response allows the next branch
+to proceed; a transport failure stops the sequence. These choices are all
+experimental and must not be used to infer native duplicate, ordering,
+partial-failure or consent behavior.
+
+Completed conversion outcomes include redacted `branches`, indexed in input
+order. Each is `transport-settled`, `held`, `failed`, or `not-attempted`,
+with a host-observed status where available. A terminal interruption can
+instead produce `unknown` for an in-flight branch. Different branch results
+produce the aggregate `partial`, never full settlement. A settled HTTP
+response proves neither independent receiver receipt nor vendor processing.
+The host checks every worker-reported branch against its own correlated
+response and rejects a fabricated, premature, duplicate or wrong-route result.
+For an admitted callback, the existing experimental terminal/timeout policy
+still applies to the whole command, not each branch.
+
+This mode defaults off; without it arrays remain rejected. The existing
+single-destination relationship report does not evaluate these arrays. Use
+only the separate local receiver observations when exercising this option;
+neither they nor the branch outcomes establish native parity. Qualifying
+native behavior requires a pinned, same-input multi-label/multi-account
+capture including branch requests/responses, ordering, duplicates, partial
+failure, consent and callback completion, with separate authorization for
+live activity.
+
+For local command experiments, `experimentalParameterScopes: true` also
+supports both `gtag("set", values)` and `gtag("set", key, value)`, plus
+optional config values:
+
+```js
+gtag("set", { value: 10, currency: "USD" });
+gtag("set", "transaction_id", "synthetic-order");
+gtag("config", "AW-0000000000", { currency: "CAD" });
+gtag("event", "conversion", {
+  send_to: "AW-0000000000/SYNTHETIC_LABEL", value: 12,
+});
+```
+
+In this experiment the worker retains independent global and destination-config
+records, then resolves each conversion as global < config < event. Only `value`,
+`currency` and `transaction_id` can be set in the first two scopes; `send_to`
+remains mandatory on each event. Calls are captured by value and processed in
+order. A valid `set` updates only supplied keys and reports `scope-updated`;
+invalid updates are rejected atomically. An explicitly supplied `undefined`
+overrides lower scopes and omits that field from the request; zero and empty
+strings remain present. The existing duplicate-config rejection still applies.
+Scope changes do not bypass the seal or replay a denied conversion. Each
+adapter/chamber has its own scope state. These choices are **experimental
+semantics**, not qualified native behavior; native key/value set semantics, other parameters,
+repeated config and native undefined/consent behavior remain unverified.
+The option defaults to false and works independently of experimental routing.
+
+Main synchronously captures/clones primitive data and returns `undefined`.
+The chamber interprets commands, retains config, validates types and builds
+the query. Outside the scope opt-in, config options and `set` are rejected.
+Duplicate config, pre-config conversions, unknown
+commands/keys, arrays (except the explicitly opted-in `send_to` form above),
+nested objects and accessors reject visibly.
+The pure connector independently enforces own-data-property parameter/context
+records too; inherited values or getters cannot supply optional wire fields.
+Without the callback opt-in, callbacks reject the **whole** call; none are
+executed or silently stripped.
+These are deliberate prototype rules, **not native gtag validation/queue/
+config/callback semantics**.
+
+### Experimental host callback
+
+[Google documents](https://developers.google.com/tag-platform/gtagjs/reference/parameters)
+`event_callback` as a function called when event processing completes and
+`event_timeout` as its timeout in milliseconds. This does not pin the native
+timeout default, completion boundary or failure/consent behavior.
+
+With `experimentalCallbacks: true`, one conversion can provide both an own
+`event_callback` function and an explicit integer `event_timeout` from 10 to
+10000 ms. The host retains the function; only the primitive event data crosses
+to the worker. Other commands, incomplete metadata, accessors and out-of-range
+timeouts are rejected as whole calls. Callback support is off by default and
+does not install a global or add a DOM capability.
+
+The **local experimental policy**, not a native finding, schedules the
+callback once without arguments on a microtask when the worker result settles,
+including held or rejected results, or when an admitted command reaches a
+terminal worker failure. A timer starts on admission; if it wins, the callback
+can run before dispatch or settlement. Timeout neither cancels nor retries the
+conversion. Disposal cancels callbacks that have not yet run. The timer is
+subject to the host event loop, not a real-time guarantee. This callback is
+never evidence of dispatch, HTTP success, product receipt or attribution.
+
+With the option enabled `getState().callbacks` gives bounded counts for
+pending, invoked, timeout, cancelled and errors, without functions or error text.
+Synchronous throws and rejected returned promises are counted, but `flush`
+waits only for callback invocation, not asynchronous callback results.
+Navigation/form behavior, native completion ordering, multi-target callbacks
+and browser timing remain unqualified.
+
+`setConsent({ ad_storage: "granted" })` controls the host seal, not native
+Google Consent Mode. Pending/denied conversions are dropped; grant does not
+replay them. Defaults: 32 queued calls (maximum 128), 256 lifetime admissions
+and bounded outcome history, 16 flush waiters, 2-second startup/command and
+1-second transport deadlines. Timeouts and lost correlation terminate the
+adapter rather than allowing late results to settle another command.
+An intercepted request must belong to the active conversion and have a fresh
+request ID. The adapter checks the worker's request count, disposition and
+status against the response it sent through the trusted host; an unsolicited
+request, extra request or contradictory result terminates the adapter instead
+of reporting settlement. This corroborates local host transport only, not the
+worker's full native request semantics or an independent receiver.
+`flush` reports outcomes, not independent receipt; the example observes the
+receiver separately. Repeated `dispose` preserves cleanup failure.
+
+### Experimental consent commands
+
+[Google documents](https://developers.google.com/tag-platform/gtagjs/reference#consent)
+`gtag("consent", "default", values)` and `gtag("consent", "update", values)`
+with `granted` / `denied` purpose values. With
+`experimentalConsentCommands: true`, this prototype accepts nonempty plain
+records containing only the documented `ad_storage`, `analytics_storage`,
+`ad_user_data` and `ad_personalization` purposes. The option is off by default.
+Unsupported keys (including `wait_for_update` and region controls), values,
+accessors and malformed commands reject as a whole; no timer, region selection
+or implicit replay is implemented.
+
+[Google's asynchronous consent guide](https://developers.google.com/tag-platform/security/guides/consent#async)
+shows a denied `ad_storage` default with `wait_for_update: 500` and describes
+giving the consent tool time to update before tags fire. It does not specify
+all event queue, update and expiry ordering needed by this prototype. Retaining
+a conversion captured under denial for a later grant would change the current
+drop/no-replay policy; dropping it does not establish native wait behavior.
+The owner decision and qualified evidence for that case remain open. The field
+continues to reject rather than silently ignoring a requested wait.
+
+The local policy retains separate default and update values, merges partial
+commands, and prefers an explicit update over a later default for that purpose.
+An admitted valid denial tightens the host seal immediately, including for
+branches of a conversion already in flight and earlier queued conversions; it
+does not cancel a request already sent. Each pending denial remains effective
+until its command is processed. A later grant takes effect only after its
+serialized worker acknowledgment, and cannot bypass a different pending denial.
+Once a denial is processed, it conservatively remains a hold until a later
+processed grant for that purpose, even when a prior update would otherwise
+outrank a new default. The ordinary update-over-default rule can still keep an
+earlier update denial in force after a later default grant. Invalid or
+unadmitted commands do not change the seal. These are local safety and ordering
+choices, not findings about native gtag queues. A worker rejection or
+contradictory acknowledgment for an admitted consent command terminates the
+adapter instead of silently ignoring it. These commands do not call the trusted
+host `setConsent` API or change the host's decision.
+
+For local dispatch, **both** the independent host `ad_storage` signal and the
+latest applicable tag `ad_storage` value must be granted. In addition, an
+explicit denial of any other supported tag purpose holds the entire request,
+as a conservative local policy rather than an implementation of native Google
+consent behavior. An omitted or pending non-storage purpose does not itself
+hold. The host seal evaluates these restrictions for each branch. The tag
+starts with no value, so enabling this option
+holds conversions until a tag default or update grants `ad_storage`. Host
+`setConsent` still takes effect independently at the seal; tag commands cannot
+grant past it. Holds are dropped, not buffered or replayed.
+
+**The other three purposes are not fully modeled.** An explicit denial holds
+the whole request, but the prototype does not implement their native
+purpose-specific payload shaping or processing semantics; each
+`consent-updated` outcome lists those supplied names in `unmodeledPurposes`,
+without their values. In particular, the local hold for `ad_user_data: "denied"`
+does not implement Google's data-use restrictions. This is a concrete blocker for
+privacy qualification and production use, not a claim that those signals are
+honored. The local request also carries no native Consent Mode fields or
+modeling pings. Native wire, ordering, asynchronous wait, queue and data-use
+semantics need separately authorized native evidence and review; no tag
+command outcome establishes native compatibility or product receipt.
+
+## Exactly five mapped fields, not the whole native primary
+
+Only `label`, `value`, `currency_code`, `oid`, and `url` are mapped. Routing
+and controlled input-to-local-wire relationships are synthetic assertions,
+not native endpoint/value equality. Host dispatch attempts, independent
+receiver arrivals and correlated response settlement are distinct evidence.
+
+`test/fixtures/google-ads-conversion-native-shape.json` is an exact value-free
+projection of the explicitly supplied **partial retained native shape**:
+12 rows, 62 unique query names, primary ordinal 10 with 39 ordered pairs,
+and response-linked ordinal 11 with 44 pairs, no observed response and no
+`oid`. Ordered names, duplicate `random`, guard blocks and response limits
+remain intact. It contains no native values, raw URLs, bodies, SDK bytes,
+private identifiers or source digest. It is not synthetic conversion values,
+a native replay, a complete chain or a compatibility oracle. The old synthetic
+page-load fixture is not used as conversion evidence.
+
+`rig/google-ads-conversion-prototype-report.mjs` is pure and accepts explicit
+independent arrivals, controlled snapshots and the shape projection. It
+accounts for every retained row/field/occurrence, including all 34 unmapped
+primary names. Public output contains field names, counts, dispositions,
+types and relationship booleans—not raw URLs or transaction/input values.
+Missing/invalid projection is visible. The result is **always INCONCLUSIVE**
+with `fullCompatibility: false`. To evaluate scoped values, explicitly pass
+`experimentalParameterScopes: true` and a `scopeSnapshots` array aligned
+one-for-one with the event snapshots and independent arrivals. Each entry
+must have complete `global` and `config` own-data records at the event:
+
+```js
+scopeSnapshots: [{ global: { value: 10 }, config: { currency: "CAD" } }]
+```
+
+The report applies the experimental precedence to those caller-supplied
+snapshots; it cannot establish that they describe actual worker state or prove
+the preceding command history. Missing, invalid or misaligned snapshots fail
+the local relationship checks. Field-level output identifies only the winning
+scope, type, omission and comparison result, never the values. The default
+direct-input report is unchanged.
+For an input snapshot containing the callback pair, pass
+`experimentalCallbacks: true` to the report as well. It validates but never
+executes the function; a wire relationship is not evidence that the callback
+ran or that its timing matched native behavior.
+For an experimental destination, pass `experimentalRouting: true` to the
+report as well; it checks that the snapshotted destination matches the
+loopback path and that the observed label matches the call. The default report
+continues to accept only the fixed synthetic route.
+
+Missing behavior includes config/page/remarketing companions, the first-party
+primary alternative, response-linked fetch/fallback/redirect/cookie branches,
+identity/click IDs, Consent Mode, native callback/navigation semantics, browser transport and
+headers/cookies, deduplication/matching/attribution/backend receipt and CWV.
+Original request/response bytes, native values/endpoints and historical
+runtime/configuration/version are unavailable; historical context is not a
+fresh same-input native reference. Node first-party execution is not browser
+qualification or a sandbox for adversarial Node modules. Full 059-01/native/
+whole-wire/live/C2-C3 obligations remain open.
