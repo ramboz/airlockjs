@@ -349,6 +349,67 @@ describe("Google failed-case custody with synthetic handles only", () => {
       && value.reason === "qualification_expired")).toBe(true);
   });
 
+  it("retains a late browser connection when expiry precedes wait and cleanup fails", async () => {
+    vi.useFakeTimers();
+    mocks.supported.mockReturnValue(true);
+    mocks.readFile.mockReturnValue(Buffer.from("synthetic-certificate"));
+    mocks.originals.mockReturnValue({ bytes: 0, responses: [], wire: [] });
+    mocks.realpath.mockReturnValue("/synthetic-custody-never-created");
+    mocks.server.mockReturnValue(fakeServer(true));
+    mocks.observer.mockReturnValue({
+      snapshot: () => ({ stopped: false, reason: null }),
+      originals: () => ({ requests: [], responses: [] }), reserveObservation: () => true,
+    });
+    const transport = {
+      port: 12345, closeAdmission: vi.fn(), close: vi.fn(),
+      snapshot: () => ({ ipv6_guard_listening: true, sockets_closed: true, tasks_settled: true, errors: [] }),
+    };
+    mocks.transport.mockImplementation(async ({ onCustody }) => { onCustody(transport); return transport; });
+    const root = { pid: 123, exitCode: null, signalCode: null };
+    const browserServer = {
+      wsEndpoint: () => "ws://127.0.0.1/synthetic", process: () => root,
+      close: vi.fn(async () => { throw Error("synthetic-close-failure"); }),
+      kill: vi.fn(async () => { throw Error("synthetic-kill-failure"); }),
+    };
+    const browser = {
+      version: () => "synthetic-version",
+      close: vi.fn(async () => { throw Error("synthetic-browser-close-failure"); }),
+    };
+    mocks.chromium.launchServer = vi.fn(async () => browserServer);
+    let finishConnect, custody;
+    mocks.chromium.connect = vi.fn(() => {
+      vi.setSystemTime(Date.now() + 60001);
+      return new Promise(resolve => { finishConnect = () => resolve(browser); });
+    });
+    const actual = await vi.importActual("./inspected-google-qualification.mjs");
+    mocks.run.mockImplementation((options, owner) => {
+      custody = owner;
+      return actual.runLocalGoogleQualification(options, owner);
+    });
+    const { witnessLocalGoogleQualification } = await import("./inspected-google-witness.mjs");
+    const pending = witnessLocalGoogleQualification({
+      protocol: "h1", control: "positive", outputDir: "/synthetic-custody-never-created/case",
+    });
+    const rejected = expect(pending).rejects.toThrow();
+    let settled = false;
+    pending.then(() => { settled = true; }, () => { settled = true; });
+    for (let n = 0; n < 100 && !finishConnect; n++) await Promise.resolve();
+    expect(finishConnect).toBeTypeOf("function");
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(settled).toBe(false);
+    expect(mocks.write.mock.calls.some(([, value]) => value.reason === "qualification_expired"
+      && value.complete === false)).toBe(true);
+    finishConnect();
+    await vi.advanceTimersByTimeAsync(0);
+    await rejected;
+    expect(transport.closeAdmission).toHaveBeenCalled();
+    expect(transport.close).not.toHaveBeenCalled();
+    expect(browser.close).toHaveBeenCalledOnce();
+    expect(browserServer.close).toHaveBeenCalledOnce();
+    expect(browserServer.kill).toHaveBeenCalledOnce();
+    expect(custody.recoveryResources()).toMatchObject({ browser, browserServer, browserProcess: root });
+  });
+
   it("installs the witness observation before a scenario step and retains the guard on failure", async () => {
     const calls = [], cdp = new EventEmitter(), browserCdp = {}, child = new EventEmitter();
     child.connected = true;
