@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { inspectNativeAttempt, runNativeComparison } from "./native-tag-comparison.mjs";
+import { runGoogleAdsAttemptComparison } from "./google-ads-attempt-comparison.mjs";
 
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const execute = promisify(execFile);
@@ -215,6 +216,37 @@ async function nativeFixture(profile = "meta-pageview") {
 }
 
 describe("059-17 read-only native-attempt seam (synthetic recorder-shaped units, NOT SDK evidence)", () => {
+  it("runs the local Google comparison after real strict validation of synthetic recorder-shaped input", async () => {
+    const f = await nativeFixture("google-ads-conversion");
+    await f.save();
+    const inputs = join(f.parent, "google-attempt-inputs.json");
+    await writeFile(inputs, JSON.stringify({
+      schema: "airlock.google-ads-prototype-attempt-comparison.v1",
+      reference: f.manifest.reference, expected_pins: f.manifest.expected_pins,
+    }), { mode: 0o600 });
+    const result = await runGoogleAdsAttemptComparison({ inputs });
+    expect(result).toMatchObject({
+      overall: "inconclusive", comparison: "matched", exit_code: 0, reference_rechecked: true,
+      counts: { cases: 3, native_primary_attempts: 3, local_arrivals: 3, cleaned_cases: 3, field_comparisons: 15 },
+    });
+    expect(JSON.stringify(result)).not.toContain("private-label");
+    expect(JSON.stringify(result)).not.toContain(f.parent);
+  }, 15000);
+
+  it("rejects a rehashed changed native command before starting the local comparison", async () => {
+    const f = await nativeFixture("google-ads-conversion");
+    f.capture.cases.find((row) => row.name === "value2").native_state.conversion_input.value = 999;
+    await f.save();
+    const inputs = join(f.parent, "google-attempt-inputs.json");
+    await writeFile(inputs, JSON.stringify({
+      schema: "airlock.google-ads-prototype-attempt-comparison.v1",
+      reference: f.manifest.reference, expected_pins: f.manifest.expected_pins,
+    }), { mode: 0o600 });
+    const result = await runGoogleAdsAttemptComparison({ inputs });
+    expect(result).toMatchObject({ overall: "inconclusive", comparison: "not-completed",
+      stage: "reference", exit_code: 2, counts: { local_dispatches: 0, local_arrivals: 0 } });
+  });
+
   it.each(["meta-pageview", "google-ads-conversion"])("AC2: validates %s without comparing or writing", async profile => {
     const f = await nativeFixture(profile);
     await f.save();
