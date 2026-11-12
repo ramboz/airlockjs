@@ -5,7 +5,7 @@ last_verified: 2026-10-06
 frame_review: true
 ---
 
-# ADR-0031: Reframe: Adobe-first compatibility is the v1.0 adoption gate
+# ADR-0038: Reframe: Adobe-first compatibility is the v1.0 adoption gate
 
 ## Status
 
@@ -33,7 +33,7 @@ The reference integration is pinned for the initial investigation to
 [`aem-martech` commit 1aa3dee3c4791636efa9ad2994342f861c8e149b](https://github.com/adobe-rnd/aem-martech/tree/1aa3dee3c4791636efa9ad2994342f861c8e149b).
 Its general `sendEvent`/XDM/data, ACDL, callbacks, personalization and reporting surface is substantially
 broader than Airlock's current page-view/HTML-placement Alloy adapter.
-The [investigation note](../research/R-012-adobe-first-compatibility.md) distinguishes inspected source,
+The [investigation note](../research/R-014-adobe-first-compatibility.md) distinguishes inspected source,
 official documentation, proposed experiments, and unverified access/API capabilities.
 
 ## Decision Options Considered
@@ -118,7 +118,7 @@ spec 002 is a scaffold placeholder, and deferred 022-03/039-04 are unrelated/his
 | Other specs/slices/review records | `reaffirm` | Keep implementation history and deferred/abandoned states; no coverage-based promotion. |
 | `docs/real-site-validation.md`; `docs/adoption/rewire-a-container.md` | `rewrite` | Add current-route pointers; the existing harness/procedure remains supported without claiming completed live evidence. |
 | `docs/refinement-todo.md`; `docs/inbox.md` | `rewrite` | Add compact routing pointers; preserve original residuals and their triggers. |
-| Research R-001-R-011 and their index | `reaffirm` | Historical measurements/reference framing survive; add R-012 and current direction in the index. |
+| Research R-001-R-011 and their index | `reaffirm` | Historical measurements/reference framing survive; add R-014 and current direction in the index. |
 | Other live-prose guides, workflow/conventions and tooling notes | `reaffirm` | No changed workflow, legal guarantee, or runtime behavior; no unrelated cleanup. |
 
 No existing shipped behavior is invalidated by this prioritization change, so there is **no `retrofit`
@@ -155,7 +155,7 @@ guidance reopens reconciliation; it does not permit silently rewriting accepted 
 
 | Work | Route |
 |---|---|
-| API/entitlement discovery, pinned SDK/API matrix, first live Adobe vertical proof | R-012 and Adobe release's investigation checkpoint; author a bounded spike spec before executing provisioning/probes. |
+| API/entitlement discovery, pinned SDK/API matrix, first live Adobe vertical proof | R-014 and Adobe release's investigation checkpoint; author a bounded spike spec before executing provisioning/probes. |
 | General event/XDM/data and command bridge; Adobe display/interaction reporting | Build specs after matrix review; do not expose unrestricted RPC or modify frozen contracts without an ADR. |
 | `aem-martech`/Launch compatibility; product scenarios; measured rollout | Vertical implementation/validation specs, gated by test resources and the phased stock baseline. |
 | Third-party report honesty, identity/conversion/transport/attribution evidence | Candidate Vendor Parity & Adoption Assurance release. |
@@ -179,7 +179,7 @@ guidance reopens reconciliation; it does not permit silently rewriting accepted 
   test permissions; no authenticated call has confirmed them. Developer Console alone is insufficient
   ([official guide](https://developer.adobe.com/developer-console/docs/guides/apis-and-services)).
 - **Compatibility is feasible without weakening the boundary.** Current page-view/HTML proofs support
-  investigating this, not assuming every SDK feature works. R-012's inventory and live scenarios test it.
+  investigating this, not assuming every SDK feature works. R-014's inventory and live scenarios test it.
 - **The phased baseline leaves meaningful value to gain.** Off-thread work does not remove decision-network
   latency, host rendering, or remaining Launch/GTM cost; measure against stock phased `aem-martech`.
 

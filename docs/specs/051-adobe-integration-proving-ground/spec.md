@@ -11,17 +11,17 @@ use_cases: [UC-1, UC-2, UC-6, UC-7, UC-8, UC-10, UC-11]
 > Drafted through Jig on 2026-10-06. This is the only refined spec in the
 > [Adobe-first portfolio](../../releases/adobe-compatibility.md#jig-handoff).
 > Refined at DRAFT on 2026-10-08. Selected authenticated checks and owner-authorized fixture
-> setup are recorded in R-012; the versioned preflight is now implemented and hermetically
+> setup are recorded in R-014; the versioned preflight is now implemented and hermetically
 > validated in 051-01. Historical readiness refusals and later owner-confirmed passes are
 > separate. 051-06 deployed real stock smoke; headed ordinary Analytics page/custom receipt is
-> verified, while full wire baseline and chamber proof remain open. ADR-0032 makes
+> verified, while full wire baseline and chamber proof remain open. ADR-0039 makes
 > further downstream reporting nonblocking follow-up, without claiming product processing.
 > Independent implementation/reconciliation reviews passed; 051-01 utility is DONE.
 > This does not clear the real stock baseline gate.
 
 ## Overview
 
-**Current acceptance authority:** [ADR-0032](../../decisions/adr-0032-airlock-boundary-acceptance.md)
+**Current acceptance authority:** [ADR-0039](../../decisions/adr-0039-airlock-boundary-acceptance.md)
 implements the owner's 2026-10-12 decision. Actual serialized dispatch, governed
 stock/chamber equivalence and real result/rendering behavior are required; downstream
 report counters and attribution are optional follow-up. No staffed CSV schedule is a
@@ -30,13 +30,13 @@ baseline prerequisite. Closed evidence and all SDK/control/performance gates are
 Give the integrator an actionable permission report, a reproducible stock Adobe baseline and
 an evidence-led compatibility decision before attempting the broad SDK bridge.
 This implements the investigation checkpoint of
-[ADR-0031](../../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md) and
-[R-012](../../research/R-012-adobe-first-compatibility.md), not the full v1.0 release.
+[ADR-0038](../../decisions/adr-0038-reframe-onto-adobe-first-compatibility.md) and
+[R-014](../../research/R-014-adobe-first-compatibility.md), not the full v1.0 release.
 
-R-012 is authoritative for operational facts: the dedicated Analytics suite/report queries and
+R-014 is authoritative for operational facts: the dedicated Analytics suite/report queries and
 Target environment/property/workspace association, owned offers/activity create/edit and a
 future-only approval/restoration check are verified. After the successful smoke the owner permits
-retained bounded approval, with actual schedule recorded in R-012. Managed
+retained bounded approval, with actual schedule recorded in R-014. Managed
 datastream routing is established by owner screenshots, exact selector comparisons and saved
 environment-pin confirmation, **not** a configuration API readback. Reference push dry-run passed;
 051-06 subsequently deployed and executed real stock events/render/notifications. Its new headed
@@ -49,7 +49,7 @@ The current Alloy adapter remains a
 page-view/HTML-placement subset, not the entire stock SDK.
 
 The immediate proving ground is Alloy/Analytics/Target. AJO/CJA/RTCDP are owner-deferred for this
-run, not removed from ADR-0031 or later release obligations. Platform ingestion remains disabled;
+run, not removed from ADR-0038 or later release obligations. Platform ingestion remains disabled;
 a new AEP development sandbox is not an initial Analytics/Target prerequisite.
 
 ### Historical initial grant — 2026-10-08
@@ -64,8 +64,8 @@ made no live calls or code changes; implementation and the real unverified prefl
 applicable readiness gates. A spending/time grant does not verify input evidence, approve a mutation
 plan or satisfy DoR.
 
-The later owner-approved continuation beyond the original credit stop is recorded in R-012.
-ADR-0032 now changes only the downstream-reporting assurance boundary; the separate
+The later owner-approved continuation beyond the original credit stop is recorded in R-014.
+ADR-0039 now changes only the downstream-reporting assurance boundary; the separate
 eight-active-hour spike, mutation isolation and no-publication rules remain.
 
 ## Scope and operator-facing deliverables
@@ -77,13 +77,13 @@ eight-active-hour spike, mutation isolation and no-publication rules remain.
 - A pinned SDK public-surface inventory and representative compatibility experiments, resulting in
   a proceed/reshape/stop recommendation and proposed measurable performance budgets.
 - Small reusable probe/report utilities under `probes/adobe-compatibility/`, existing Vitest tests
-  under `test/`, sanitized durable evidence in R-012, and approved private live state/captures
+  under `test/`, sanitized durable evidence in R-014, and approved private live state/captures
   outside committed artifacts.
 
 The exact Node ES module command, private export/input/evidence schemas, public immutable report,
 operation inventory and test selectors are specified in
 [051-01's reviewed v1 contract](slice-01-access-preflight.md#draft-v1-operator-and-evidence-contract).
-Its CLI and hermetic tests now exist, and the parent-owned real result is recorded in R-012.
+Its CLI and hermetic tests now exist, and the parent-owned real result is recorded in R-014.
 Implementation and reconciliation reviews passed; 051-01 utility is DONE. A fixture-ready report grants no later
 live/write authority.
 
@@ -101,7 +101,7 @@ live/write authority.
   the explicitly documented bounded Analytics query are the only preflight POST exceptions.
 - An SDK call, local stub or HTTP success alone is not boundary conformance or product receipt.
   Require actual payload/routing dispatch, response/result and host-behavior assertions under
-  ADR-0032. Missing required wire/return evidence blocks; missing optional vendor report
+  ADR-0039. Missing required wire/return evidence blocks; missing optional vendor report
   visibility does not. A report contradiction exposing a request defect is investigated.
 - Run stock and chamber arms separately with equivalent synthetic inputs; no duplicate production
   conversions or irreversible SDK/data migration.
@@ -112,7 +112,7 @@ live/write authority.
 
 - [Pinned `aem-martech` reference](https://github.com/adobe-rnd/aem-martech/tree/1aa3dee3c4791636efa9ad2994342f861c8e149b):
   public SDK submission, phased integration and Adobe notification behavior.
-- [R-012 source/API table](../../research/R-012-adobe-first-compatibility.md#sources--findings):
+- [R-014 source/API table](../../research/R-014-adobe-first-compatibility.md#sources--findings):
   direct official references and current Airlock source gaps.
 - [Stock Alloy supplier decision](../../decisions/adr-0016-alloy-stock-bundle-site-supplied.md):
   keep the official SDK unmodified. The pinned `aem-martech` README declares Alloy **2.31.1** and
@@ -175,7 +175,7 @@ separate. Its completion cannot satisfy 051-02's actual wire/response, deploymen
 
 Completion means the proving-ground tools and evidence are reviewed, not full Adobe support.
 Live setup, wire, return-path or host-behavior blockers leave the relevant baseline unfinished.
-Downstream reporting follows 056's nonblocking goal under ADR-0032.
+Downstream reporting follows 056's nonblocking goal under ADR-0039.
 The spike may conclude with a demonstrated incompatibility and a reshape recommendation;
 that does not authorize a narrower release gate or automatically unblock a build.
 

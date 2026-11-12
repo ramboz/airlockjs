@@ -1,7 +1,7 @@
 # Adobe initial-preparation preflight — 051-01 / 051-04
 
 **Current acceptance boundary — 2026-10-12:**
-[ADR-0032](../../docs/decisions/adr-0032-airlock-boundary-acceptance.md) requires
+[ADR-0039](../../docs/decisions/adr-0039-airlock-boundary-acceptance.md) requires
 actual final stock/chamber wire, governed dispatch and real response/rendering behavior.
 Periodic vendor exports, goal-counter setup and asynchronous reporting are nonblocking
 [follow-up](../../docs/releases/adobe-reporting-follow-up.md). This does not waive fresh
@@ -13,7 +13,7 @@ execute HTML/SDKs, activate activities, provision, publish, inspect browser stat
 product outcomes. A ready report does not authorize 051-02. See the
 [reviewed v1 contract](../../docs/specs/051-adobe-integration-proving-ground/slice-01-access-preflight.md)
 for the complete closed private schemas and official references, and
-[R-012](../../docs/research/R-012-adobe-first-compatibility.md) for actual access observations.
+[R-014](../../docs/research/R-014-adobe-first-compatibility.md) for actual access observations.
 Hermetic validation and a real unverified preparation result are recorded below. The orchestrator
 owns live runs; the implementation agent does not access private state or credentials.
 
@@ -142,7 +142,7 @@ Input and routing schemas remain v1. Reports are now **v2** with the same closed
 enums, exits and redaction; only this declared evidence policy extends their semantics.
 Workspace confirmation does not renew routing/selection evidence or clear other required unknowns,
 product, activation, write or deployment gates. After independent reviews the parent runs the
-real CLI and records its actual result in R-012. Hermetic readiness is not a real readiness claim.
+real CLI and records its actual result in R-014. Hermetic readiness is not a real readiness claim.
 
 ## Closed request inventory
 
@@ -321,7 +321,7 @@ require their separate reviewed 051-02 plan.
 The historical real readiness rerun refused expired source evidence (`stale_evidence`, exit 1,
 zero API requests). The owner renewed unchanged-settings confirmation on 2026-10-12; a new
 stage-bound reassessment and current real preflight are still required before live work.
-This manual observation does not fix or verify configuration API access; R-012 records the
+This manual observation does not fix or verify configuration API access; R-014 records the
 separate service-specific API-key rejection and its investigation.
 This local operator remains usable without credentials or network; its passing cases do not
 renew those observations or authorize the activity. The owner permits a successful test to
@@ -676,7 +676,7 @@ Every report **always sets all six claims false**: actual dispatch, SDK executio
 host rendering, chamber compatibility, downstream receipt and full wire conformance.
 Expected values, host observations and returned identity are recorded observer assertions,
 not independently verified provenance. Exit 0 does not complete 051-02/03, authorize a
-live run, or establish ADR-0032's full stock/chamber boundary acceptance.
+live run, or establish ADR-0039's full stock/chamber boundary acceptance.
 
 Module consumers can call pure `checkStockWire(value)` (recursively frozen report,
 no input mutation/references) or async `runWireCli({argv, stdout, stderr})` (numeric exit).

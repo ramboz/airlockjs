@@ -27,7 +27,7 @@ with a versioned compatibility/evidence report that supports an honest v1.0 deci
 - Assemble every public SDK row and declared product scenario's owner/evidence status; missing
   coverage or product access must remain visible and cannot appear as a passing full-support label.
 
-[ADR-0032](../../decisions/adr-0032-airlock-boundary-acceptance.md) qualifies SDK-facing
+[ADR-0039](../../decisions/adr-0039-airlock-boundary-acceptance.md) qualifies SDK-facing
 scenario wire/results/rendering rather than requiring report exports. Downstream outcomes
 owned by 056 are a visible nonblocking follow-up, not a release dependency. Missing access
 needed for an assigned live protocol/response scenario still blocks that scenario.
@@ -56,6 +56,6 @@ investigation's measurement checkpoint.
 No version bump, dist publication or v1.0 cut is authorized by this DRAFT. Any SDK exclusion requires
 an explicit owner-approved revised gate; no automatic full-support claim from a report count.
 Third-party rewire residuals remain with [vendor assurance](../../releases/vendor-parity-assurance.md).
-Sources: [ADR-0031](../../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md),
-[release-check](../../releases/adobe-compatibility.md#release-check-criteria), [R-012](../../research/R-012-adobe-first-compatibility.md).
+Sources: [ADR-0038](../../decisions/adr-0038-reframe-onto-adobe-first-compatibility.md),
+[release-check](../../releases/adobe-compatibility.md#release-check-criteria), [R-014](../../research/R-014-adobe-first-compatibility.md).
 No slice ACs or implementation plan authored yet.

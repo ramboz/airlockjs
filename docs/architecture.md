@@ -5,10 +5,10 @@
 > This document reflects the architecture **as built through MVP8 (v0.8.0)**: the stable core is frozen
 > ([ADR-0017](decisions/adr-0017-airlock-1-0-api-contract.md)); implementation decisions live in
 > [docs/decisions/](decisions/). The next release direction is **Adobe-first v1.0**
-> ([ADR-0031](decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)), replacing the former
+> ([ADR-0038](decisions/adr-0038-reframe-onto-adobe-first-compatibility.md)), replacing the former
 > MVP9 gate without altering shipped module interfaces. The current Alloy path is a bounded
 > page-view/HTML-placement adapter, not the planned full SDK compatibility bridge.
-> [ADR-0032](decisions/adr-0032-airlock-boundary-acceptance.md) qualifies actual final
+> [ADR-0039](decisions/adr-0039-airlock-boundary-acceptance.md) qualifies actual final
 > dispatch, governed controls and real returned/host behavior; further vendor reporting
 > is a nonblocking follow-up. No module interface or runtime capability changes here.
 >
@@ -95,7 +95,7 @@ Feeds `/jig:contracts`. Five surfaces, in priority order:
 > contract: contract-stability guards (`test/contract-stability.test.js`) pin the frozen surfaces, so a future
 > regression fails a test rather than surfacing as a broken integration. Two aspects stay explicit carve-outs — the
 > event-payload SCHEMA (OQ3) and multi-chamber sync-coherence (OQ9's remaining axis) — see the ADR. **What "1.0"
-> *means* is not this pin** — [ADR-0031](decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)
+> *means* is not this pin** — [ADR-0038](decisions/adr-0038-reframe-onto-adobe-first-compatibility.md)
 > now makes Adobe compatibility/adoption the gate; this frozen surface is the stable core airlock ships *on*.
 >
 > **Plus one experimental surface, deliberately NOT among the frozen five (spec 032):** the **instrumentation config**

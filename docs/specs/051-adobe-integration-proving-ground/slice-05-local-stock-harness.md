@@ -1,6 +1,6 @@
 ---
 status: DONE
-dependencies: [051-01, 051-04, adr-0031]
+dependencies: [051-01, 051-04, adr-0038]
 last_verified: 2026-10-09
 kind: feature
 frame_review: true
@@ -218,7 +218,7 @@ explicitly excluded; their closed records and previous dispositions are unchange
 | `updated` | `test/adobe-stock-harness.test.js`: actual CLI/module refusal/order/control/timeout cases and real initial red witness. |
 | `updated` | This slice, `051/{spec.md,plan.md,tasks.md}`, `reviews/slice-05-*.md`: checked signatures, implementation and real independent verdicts, not live acceptance. |
 | `updated` | `slice-02-test-baseline.md`: owner active-finish permission and control/error pause reasons; local code is not its deployment/mutation/receipt harness. |
-| `updated` | R-012, primer and board: local milestone and current stale-evidence refusal, not current readiness inferred from the historical v2 pass. |
+| `updated` | R-014, primer and board: local milestone and current stale-evidence refusal, not current readiness inferred from the historical v2 pass. |
 | `updated` | Derived board/trace audit and bounded memory learning for void ACDL/local-only accounting; pre-existing orphan links untouched. |
 | `preserved/no-op` | Runtime/core/vendor bundles, frozen contracts, accepted ADRs, conventions, dependency manifests and closed 051-01/04. Original live/product gates survive. |
 

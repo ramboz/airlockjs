@@ -9,11 +9,11 @@ without copying JIG lifecycle status. Remove dropped or deferred ideas once
 they stop informing a current release decision.
 
 > **Next major release: Adobe Compatibility & Adoption -> v1.0.0**
-> ([ADR-0031](../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md), owner decision 2026-10-06).
+> ([ADR-0038](../decisions/adr-0038-reframe-onto-adobe-first-compatibility.md), owner decision 2026-10-06).
 > Investigate first, then target full pinned Alloy.js compatibility and validated Adobe Web SDK-connected
 > workflows through an Airlock-backed `aem-martech` adoption path. This replaces MVP9 as the v1.0 gate;
 > its third-party gaps and unclosed evidence remain open. ADR-0017's stable core remains frozen.
-> [ADR-0032](../decisions/adr-0032-airlock-boundary-acceptance.md) makes actual wire/response/
+> [ADR-0039](../decisions/adr-0039-airlock-boundary-acceptance.md) makes actual wire/response/
 > rendering conformance the acceptance gate; [downstream Adobe reporting](adobe-reporting-follow-up.md)
 > is an owner-approved nonblocking follow-up, not a staffed-export prerequisite.
 > Shaper is unavailable in the current authoring session; these plans retain the repository's existing
@@ -30,7 +30,7 @@ they stop informing a current release decision.
 
 | Release plan | Why it matters now | Handoff notes |
 |---|---|---|
-| [Adobe Compatibility & Adoption](adobe-compatibility.md) | **The new v1.0 gate.** Owner-selected on 2026-10-06; begin with API-led test-environment access and a pinned SDK compatibility investigation | [R-012](../research/R-012-adobe-first-compatibility.md); [clean-session goal brief](adobe-compatibility-goal.md); bounded investigation before broad build |
+| [Adobe Compatibility & Adoption](adobe-compatibility.md) | **The new v1.0 gate.** Owner-selected on 2026-10-06; begin with API-led test-environment access and a pinned SDK compatibility investigation | [R-014](../research/R-014-adobe-first-compatibility.md); [clean-session goal brief](adobe-compatibility-goal.md); bounded investigation before broad build |
 
 ## Shipping
 
@@ -57,7 +57,7 @@ Recently shipped release plans stay here only while they inform current decision
 
 | Release plan | Why it remains visible | Handoff notes |
 |---|---|---|
-| [Adobe downstream reporting and attribution](adobe-reporting-follow-up.md) | Initial reporting path is demonstrated; finer counters/attribution/product workflows are follow-up when needed | Spec 056, owner decision 2026-10-12/ADR-0032; not a release dependency or proof of those outcomes |
+| [Adobe downstream reporting and attribution](adobe-reporting-follow-up.md) | Initial reporting path is demonstrated; finer counters/attribution/product workflows are follow-up when needed | Spec 056, owner decision 2026-10-12/ADR-0039; not a release dependency or proof of those outcomes |
 | [MVP9 — Real-Site Rewire & Adoption Path](mvp9.md) | Spec 050's demonstrated suppression/emission and indicative bound survive; booted TBT, console receipt, tail goldens, consent-transition and live attribution remain open | Candidate/parked in priority; optional v0.9.0 cut requires a separate owner action. Follow-up evidence routes to vendor assurance |
 
 ## Dropped

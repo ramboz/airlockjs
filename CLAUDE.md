@@ -13,8 +13,8 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 
 ### Project codenames / active work
 - **Airlock** (pkg `airlockjs`) - capability-secured, off-main-thread martech runtime for edge/static sites (EDS first). Main thread only captures + enqueues; all mapping and egress happen behind the airlock. See [docs/product-vision.md](docs/product-vision.md).
-- **Adobe-first v1.0 gate** (ADR-0031, owner decision 2026-10-06) — investigate an Airlock-backed `aem-martech` adoption path, then target full pinned Alloy.js compatibility and validated Adobe workflows; SDK boot is not product proof. Replaces ADR-0018's MVP9 gate; third-party gaps remain open. See [release slate](docs/releases/README.md).
-- **Airlock-boundary acceptance** (ADR-0032, owner decision 2026-10-12) — require real stock/chamber serialized dispatch, governed controls and response/rendering behavior; further downstream Adobe reporting is a nonblocking [follow-up goal](docs/releases/adobe-reporting-follow-up.md), not an export-schedule blocker.
+- **Adobe-first v1.0 gate** (ADR-0038, owner decision 2026-10-06) — investigate an Airlock-backed `aem-martech` adoption path, then target full pinned Alloy.js compatibility and validated Adobe workflows; SDK boot is not product proof. Replaces ADR-0018's MVP9 gate; third-party gaps remain open. See [release slate](docs/releases/README.md).
+- **Airlock-boundary acceptance** (ADR-0039, owner decision 2026-10-12) — require real stock/chamber serialized dispatch, governed controls and response/rendering behavior; further downstream Adobe reporting is a nonblocking [follow-up goal](docs/releases/adobe-reporting-follow-up.md), not an export-schedule blocker.
 
 ### Airlock vocabulary (full defs in [glossary](docs/memory/glossary.md))
 - **airlock** - the mediated main-thread↔worker boundary; nothing crosses without going through the capability bridge.
@@ -65,13 +65,13 @@ Default to collaborative and solution-forward — answer what's asked, propose r
 ## Current Sprint Focus
 
 **Adobe Compatibility & Adoption -> v1.0.0** ([plan](docs/releases/adobe-compatibility.md),
-[ADR-0031](docs/decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)). Start
-[R-012](docs/research/R-012-adobe-first-compatibility.md): pinned SDK/`aem-martech` inventory and
+[ADR-0038](docs/decisions/adr-0038-reframe-onto-adobe-first-compatibility.md)). Start
+[R-014](docs/research/R-014-adobe-first-compatibility.md): pinned SDK/`aem-martech` inventory and
 API-led access/setup discovery, then one Analytics + Target rendering/reporting proof.
 Analytics reporting, scoped Target create/edit/future-only approval and initial datastream routing
-are verified in R-012; the retained activity's bounded serving window has ended. Routing uses owner UI evidence and saved-pin
+are verified in R-014; the retained activity's bounded serving window has ended. Routing uses owner UI evidence and saved-pin
 confirmation, not configuration API readback. Real stock smoke executed; client/HTTP evidence
-is not downstream product receipt. Site code is disabled and the bounded activity state is in R-012.
+is not downstream product receipt. Site code is disabled and the bounded activity state is in R-014.
 AJO/CJA/RTCDP are deferred for the initial proving ground, not removed from the release gate.
 No new AEP sandbox is required for the initial baseline with
 Platform ingestion disabled. Complete stock-versus-chamber/product qualification remains open. [Spec 051](docs/specs/051-adobe-integration-proving-ground/spec.md)
@@ -83,7 +83,7 @@ owned offer and sent native DISPLAY/INTERACT in five Adobe requests; site code i
 Ordinary Analytics page/custom receipts are each one in the original interval. A native seven-day
 Target export shows two cumulative Scoped displays in the owner-confirmed Development environment;
 per-run attribution remains unverified.
-The owner moved further product reporting/attribution to nonblocking follow-up (ADR-0032).
+The owner moved further product reporting/attribution to nonblocking follow-up (ADR-0039).
 Next work is reviewed stock wire/negative-control/performance baseline then the bounded
 chamber comparison; do not request periodic CSVs or relax native notifications/safety.
 Configuration API diagnosis is stopped; its optional denied access is not the current blocker.

@@ -16,7 +16,7 @@ An EDS (Edge Delivery Services) integrator can move a declared `aem-martech` int
 Airlock while retaining supported Launch rules and unmigrated tags, without duplicate SDK
 initialization or measurement. This is the adopter-facing integration contract, not a second SDK host.
 
-Qualification uses ADR-0032's actual wire/result/host boundary and the assigned stock
+Qualification uses ADR-0039's actual wire/result/host boundary and the assigned stock
 contract. Adobe report processing is follow-up, not an installation/rollback prerequisite.
 Initialization, ACDL semantics and no lost/duplicate dispatch remain required.
 
@@ -52,5 +52,5 @@ ACDL/Launch integration paths. Every slice is a working migration path, not a de
 No automatic container translator, arbitrary third-party script containment or production
 container publication. Preserve the existing distribution contract; extend it through an ADR if needed.
 Grounding: [pinned reference](https://github.com/adobe-rnd/aem-martech/tree/1aa3dee3c4791636efa9ad2994342f861c8e149b),
-[R-012](../../research/R-012-adobe-first-compatibility.md),
+[R-014](../../research/R-014-adobe-first-compatibility.md),
 [release plan](../../releases/adobe-compatibility.md). No slice ACs or implementation plan authored yet.

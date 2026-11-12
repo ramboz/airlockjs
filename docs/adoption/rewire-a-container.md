@@ -3,7 +3,7 @@
 > **Current route (2026-10-06):** this third-party procedure remains supported, with its disclosed
 > parity/deployment limits. The initial v1.0 adoption path is now
 > [Adobe Compatibility & Adoption](../releases/adobe-compatibility.md)
-> ([ADR-0031](../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)).
+> ([ADR-0038](../decisions/adr-0038-reframe-onto-adobe-first-compatibility.md)).
 > Further customer vendor migrations use the [vendor-assurance plan](../releases/vendor-parity-assurance.md);
 > changing the release gate does not establish full replacement parity.
 

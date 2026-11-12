@@ -1,6 +1,6 @@
 ---
 status: DONE
-dependencies: [adr-0031]
+dependencies: [adr-0038]
 last_verified: 2026-10-08
 kind: feature
 frame_review: true
@@ -54,7 +54,7 @@ and reconciliation passed; this utility is DONE. No stock readiness or product p
 6. **Deterministic and bounded discovery.** Repeated unchanged fixture input produces the same
    check states/next actions. Pagination and network waits have configured, documented finite
    limits; partial enumeration is `unverified`, not an exhaustive ready result.
-7. **Grounded live status.** R-012 records the redacted real preflight result if access is available,
+7. **Grounded live status.** R-014 records the redacted real preflight result if access is available,
    or explicitly records that only the utility/fixture behavior is proven. Missing credentials
    can block baseline execution without being reported as product access successfully verified.
 
@@ -62,9 +62,9 @@ and reconciliation passed; this utility is DONE. No stock readiness or product p
 
 This command checks **initial Analytics/Target preparation**, not deployment, activity activation,
 SDK delivery or product outcomes. The reviewed contract is implemented and validated hermetically;
-the parent-owned real unverified result is recorded in R-012. Independent implementation reviews
+the parent-owned real unverified result is recorded in R-014. Independent implementation reviews
 and reconciliation passed. The utility is DONE; the real stock gate remains blocked.
-R-012's ad-hoc successes are starting
+R-014's ad-hoc successes are starting
 evidence, not a run of this CLI (command-line interface), fresh readbacks or completed acceptance
 criteria. Review this input/evidence boundary before implementation; do not tick DoR from authoring.
 
@@ -199,7 +199,7 @@ Require all bindings, provenance, service assertions, freshness and current reso
 Stale/missing/incomplete evidence is unverified; explicit mismatch, unsafe destination or unsaved
 pin is blocked. A screenshot digest proves no configuration semantics by itself. The CLI validates
 the scoped owner's attestation and fresh token/resource comparisons; it does not do OCR or inspect
-browser state. Historical fields listed in R-012 can be normalized by the parent with their original
+browser state. Historical fields listed in R-014 can be normalized by the parent with their original
 timestamps and extra selector/provenance bindings; never invent an observation or renew freshness.
 If the saved-pin acknowledgment follows the original screenshot snapshot's assessment, its actual
 recorded timestamp completes the combined assessment. Preserve the original snapshot's assessment
@@ -412,7 +412,7 @@ properly established, not silently moved to diagnostics.
 - [EDS Admin reference](https://www.aem.live/docs/admin.html), GET
   `/status/{org}/{site}/{ref}/{path}` operation `status`: public read option, `webPath`,
   preview/live/code metadata. No Adobe bearer is sent to the public site/status requests.
-- [R-012 current routing and approval evidence](../../research/R-012-adobe-first-compatibility.md#initial-routing-and-approval-checks--2026-10-08):
+- [R-014 current routing and approval evidence](../../research/R-014-adobe-first-compatibility.md#initial-routing-and-approval-checks--2026-10-08):
   owned saved fixture, UI routing basis and actual-deployment/outcome limitations; [datastream
   settings](https://experienceleague.adobe.com/en/docs/experience-platform/datastreams/configure)
   document explicit Target environment/property pins. No supported S2S configuration read is
@@ -461,7 +461,7 @@ and no token or report POST becomes a generic mutation exception.
 - [x] Required frame/input-contract and architecture reviews cover the new CLI/report boundary;
       implementation architecture review evidence is recorded before REVIEWED.
 - [x] Deviation log/reconciliation sweep and reconciliation review completed.
-- [x] R-012 and operator instructions distinguish real access from fixture-only results.
+- [x] R-014 and operator instructions distinguish real access from fixture-only results.
 
 **Anti-horizontal-phasing check:** The preflight is independently useful: an operator gets an
 actionable readiness/access report even if no test resources can yet be created.
@@ -499,7 +499,7 @@ that limitation; no full filesystem-cancellation guarantee or readiness waiver i
 
 ### Reconciliation sweep
 
-Checked R-012, the overview/slice/plan/tasks, operator README and release/primer surfaces:
+Checked R-014, the overview/slice/plan/tasks, operator README and release/primer surfaces:
 updated current status and precise Admin Console guidance; preserved historical setup/TDD evidence
 and broader Adobe/third-party obligations. Accepted ADRs, runtime architecture, conventions,
 frozen contracts and dependency manifests are no-op: their interfaces/rules did not change.
@@ -521,15 +521,15 @@ changes. No shared-main checkout was read or rewritten.
 
 | Disposition | Paths and scope |
 |---|---|
-| `updated` | `CLAUDE.md`, `docs/releases/adobe-compatibility.md`, `docs/research/R-012-adobe-first-compatibility.md`: current operator/status/evidence guidance, with historical context and release obligations preserved. |
+| `updated` | `CLAUDE.md`, `docs/releases/adobe-compatibility.md`, `docs/research/R-014-adobe-first-compatibility.md`: current operator/status/evidence guidance, with historical context and release obligations preserved. |
 | `updated` | `docs/specs/051-adobe-integration-proving-ground/{spec.md,plan.md,tasks.md,slice-01-access-preflight.md}`: exact contracts, witnessed implementation, reviews, deviations and real result. |
 | `updated` | `docs/specs/051-adobe-integration-proving-ground/{slice-02-test-baseline.md,slice-03-compatibility-investigation.md}`: live blocker/approved scope and time-box facts only; neither was implemented. |
 | `updated` | `docs/specs/051-adobe-integration-proving-ground/reviews/slice-01-{frame-critique,compliance,craft,arch}.md`: actual independent evidence, including final test-template supplements. |
 | `updated` | `probes/adobe-compatibility/{preflight.mjs,contract.mjs,responses.mjs,README.md}`: the standalone utility and operator contract/limitations, outside browser runtime/frozen surfaces. |
 | `updated` | `test/adobe-preflight-{cli.test.js,transport.test.js,evidence.test.js,harness.js}`, `test/fixtures/adobe-preflight.json`: hermetic CLI boundary cases and prepared synthetic template; no private data. |
 | `updated` | `docs/specs/README.md`: derived board regenerated/audited and current introduction refreshed. `docs/memory/learnings.md`: bounded source-backed learnings via helper. |
-| `preserved upstream` | `docs/releases/{README.md,adobe-compatibility-goal.md}` and their links in primer/release/R-012: portable handoff from `865bfaa`, not authored as this slice or treated as budget/product proof. |
-| `excluded inherited` | `README.md`, `contracts/README.md`, `docs/adoption/rewire-a-container.md`, `docs/architecture.md`, `docs/decisions/{README.md,adr-0018-reframe-onto-adoptable-one-point-oh.md,adr-0031-reframe-onto-adobe-first-compatibility.md,reviews/adr-0031-frame-critique.md}`: earlier reframe/accepted history already on integrated main, not modified or re-accepted here. |
+| `preserved upstream` | `docs/releases/{README.md,adobe-compatibility-goal.md}` and their links in primer/release/R-014: portable handoff from `865bfaa`, not authored as this slice or treated as budget/product proof. |
+| `excluded inherited` | `README.md`, `contracts/README.md`, `docs/adoption/rewire-a-container.md`, `docs/architecture.md`, `docs/decisions/{README.md,adr-0018-reframe-onto-adoptable-one-point-oh.md,adr-0038-reframe-onto-adobe-first-compatibility.md,reviews/adr-0038-frame-critique.md}`: earlier reframe/accepted history already on integrated main, not modified or re-accepted here. |
 | `excluded inherited` | `docs/{inbox.md,product-vision.md,real-site-validation.md,refinement-todo.md}`, `docs/memory/glossary.md`, `docs/releases/{granular-chamber-policy.md,mvp9.md,vendor-parity-assurance.md}`, `docs/research/README.md`: inherited front-door/index/ledger history retained; no prior residual or accepted gate erased. |
 | `excluded inherited` | `docs/specs/{015,016,017,019,020,022,026,028,029,030,031,032,033,034,035,036,037,038,039,041,044,045,046,047,048,049,050}-*/spec.md`: earlier amendment/reframe paths in the helper list, not this slice's edits. No closed-record rewriting. |
 | `no-op/deferred` | Runtime `core/`, `adapters/`, `connectors/`, `drivers/`, frozen contracts, conventions and dependency manifests unchanged. Specs 052-057 and wider Adobe/third-party evidence remain deferred to their actual prerequisites, not marked complete. |
@@ -546,7 +546,7 @@ No commits, live/private-state access, or review verdict writes were performed.
   (captured through `2>&1 | tail -30`): **172 failed / 0 passed**, three failed suites.
   Load-bearing failures: absent `probes/adobe-compatibility/preflight.mjs` at
   `test/adobe-preflight-harness.js:49`, real help/invalid-input process assertions, and missing
-  fixture-only R-012 documentation. This was observed before implementation, not inferred.
+  fixture-only R-014 documentation. This was observed before implementation, not inferred.
 - **First green:** same three-suite command: **172 passed / 0 failed** after implementing.
   Two test defects were corrected without relaxing the contract: Vitest's array argument
   expansion required wrapping each argv list, and a scope-mismatch test needed a structurally
@@ -652,7 +652,7 @@ The parent must rerun approved live validation and independent compliance; lifec
 
 The orchestrator's real approved-input CLI made 12 bounded requests and returned exit 1:
 11 required checks ready, `target.workspace_snapshot` unverified, four optional diagnostics
-unverified. R-012 and the operator README record the missing optional workspace association
+unverified. R-014 and the operator README record the missing optional workspace association
 metadata and precise Admin Console confirmation needed. Owner confirmation was unavailable.
 No missing field was assumed empty, required check relaxed or product receipt fabricated.
 051-02 has no ready real report; no SDK traffic, deployment or activity activation occurred.

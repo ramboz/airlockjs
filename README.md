@@ -10,10 +10,10 @@ egress happen behind the airlock, in isolated worker "chambers". See
 > Pre-1.0. The **stable core** — the connector, capability, `push()`, seam-driver, and adopter-boot surfaces — is
 > **frozen** ([ADR-0017](docs/decisions/adr-0017-airlock-1-0-api-contract.md)); the instrumentation-config layer
 > below is still experimental and may change. **The next v1.0 gate is Adobe Compatibility & Adoption**
-> ([ADR-0031](docs/decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)): investigate an
+> ([ADR-0038](docs/decisions/adr-0038-reframe-onto-adobe-first-compatibility.md)): investigate an
 > Airlock-backed `aem-martech` path, then target full pinned Alloy.js support and validated Adobe workflows.
 > This is planned work, not the current Alloy adapter's capability; see [the release slate](docs/releases/README.md).
-> The owner-approved [ADR-0032](docs/decisions/adr-0032-airlock-boundary-acceptance.md)
+> The owner-approved [ADR-0039](docs/decisions/adr-0039-airlock-boundary-acceptance.md)
 > gates actual stock/chamber wire, governed egress and response/rendering behavior.
 > Further downstream Adobe reporting is a nonblocking follow-up; this does not claim vendor processing.
 > The former third-party rewire gate is deferred with its evidence gaps intact.

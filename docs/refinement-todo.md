@@ -5,9 +5,9 @@
 
 # Refinement Todo: airlock
 
-> **Routing update (2026-10-06, [ADR-0031](decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)):**
+> **Routing update (2026-10-06, [ADR-0038](decisions/adr-0038-reframe-onto-adobe-first-compatibility.md)):**
 > Adobe compatibility is the next v1.0 gate; investigate access and the SDK surface in
-> [R-012](research/R-012-adobe-first-compatibility.md). Existing MVP9/Meta/Ads/Floodlight residuals below
+> [R-014](research/R-014-adobe-first-compatibility.md). Existing MVP9/Meta/Ads/Floodlight residuals below
 > remain unclosed and route to [vendor assurance](releases/vendor-parity-assurance.md).
 > Per-capability input control, revocation and retention route to
 > [granular policy](releases/granular-chamber-policy.md), with Adobe-critical dependencies pulled forward.
@@ -16,7 +16,7 @@
 
 ## Architecture — design open questions (OQ1–OQ8)
 
-**Adobe assurance update — 2026-10-12:** [ADR-0032](decisions/adr-0032-airlock-boundary-acceptance.md)
+**Adobe assurance update — 2026-10-12:** [ADR-0039](decisions/adr-0039-airlock-boundary-acceptance.md)
 requires actual governed SDK wire, response/results and safe rendering. Further downstream
 Adobe reporting/attribution is a nonblocking [follow-up goal](releases/adobe-reporting-follow-up.md)
 owned by 056; trigger it for a concrete adopter need or suspected request discrepancy.

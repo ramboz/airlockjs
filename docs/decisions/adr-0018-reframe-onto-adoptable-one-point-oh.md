@@ -10,7 +10,7 @@ frame_review: true
 ## Status
 
 Accepted (2026-09-07)
-Superseded by [ADR-0031](./adr-0031-reframe-onto-adobe-first-compatibility.md) (2026-10-06)
+Superseded by [ADR-0038](./adr-0038-reframe-onto-adobe-first-compatibility.md) (2026-10-06)
 
 ## Context
 

@@ -88,7 +88,7 @@ physical-removal materially larger than a pin, it splits into its own slice; the
 
 ## Amendments
 
-> **Amendment (2026-10-06, [ADR-0031](../../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)).**
+> **Amendment (2026-10-06, [ADR-0038](../../decisions/adr-0038-reframe-onto-adobe-first-compatibility.md)).**
 > Adobe Compatibility & Adoption replaces MVP9 as the v1.0 gate. The frozen stable core, guard tests,
 > experimental carve-outs and pre-1.0 breaking-change notice rule survive. The amendment below remains
 > the historical explanation of the earlier label change; its MVP9 cut criterion is no longer current.

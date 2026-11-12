@@ -1,6 +1,6 @@
 ---
 status: DRAFT
-dependencies: [051-02, adr-0031, adr-0032]
+dependencies: [051-02, adr-0038, adr-0039]
 last_verified:
 kind: spike
 frame_review: true
@@ -22,9 +22,9 @@ active-hour cap with explicit unknowns; an extension needs approval, not an unbo
 clear baseline, contract, experiment-review or performance-evidence readiness gates.
 
 **Findings:** No new compatibility experiments executed. Starting source/documentation evidence
-and current subset gaps are in [R-012](../../research/R-012-adobe-first-compatibility.md).
+and current subset gaps are in [R-014](../../research/R-014-adobe-first-compatibility.md).
 
-**Acceptance update:** ADR-0032 makes final governed wire equivalence and actual
+**Acceptance update:** ADR-0039 makes final governed wire equivalence and actual
 response/rendering the gate. Further product reporting is a follow-up, not a prerequisite
 for this spike. SDK boot, pre-send XDM and stock-only proof remain insufficient.
 
@@ -73,7 +73,7 @@ Downstream product/reporting assurance is explicitly nonblocking follow-up in 05
    not guessed or retroactively relaxed thresholds.
 6. **Owned handoff.** Assign every release-relevant inventory row and product scenario to specs
    052-057 or a named unresolved decision with a concrete trigger. Record the recommended approach,
-   alternatives, unsupported behavior, access blockers and next refinement order in R-012.
+   alternatives, unsupported behavior, access blockers and next refinement order in R-014.
    No unowned requirement silently disappears from the full-support contract.
 7. **Bounded conclusion.** Finish within the approved active-time budget with proceed/reshape/stop
    reasoning and the appropriate Outcome. Unverified behavior remains unverified; the spike may
@@ -84,7 +84,7 @@ Downstream product/reporting assurance is explicitly nonblocking follow-up in 05
 - [ ] Probe assertions have negative controls; no fixture-only result is labeled live product proof.
 - [ ] Frame, compliance, craft, architecture and reconciliation evidence required by the lifecycle
       is recorded before the corresponding transitions.
-- [ ] R-012 contains the conclusion, limitations and proposed handoff; new decisions use ADRs.
+- [ ] R-014 contains the conclusion, limitations and proposed handoff; new decisions use ADRs.
 - [ ] Deviation log/sweep includes any time-box change or refused authority expansion.
 
 **Anti-horizontal-phasing check:** The deliverable is an actionable owner decision about the SDK
@@ -104,7 +104,7 @@ parent tracking must include this refinement/review work in the overall credit c
 
 ### Reconciliation sweep
 
-Pending execution: R-012 findings/conclusion, release compatibility gate, inventory ownership across
+Pending execution: R-014 findings/conclusion, release compatibility gate, inventory ownership across
 052-057, approved ADRs, status board, primer and refinement ledger.
 
 ### Close-out (post-DONE)

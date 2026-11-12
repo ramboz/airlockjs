@@ -11,9 +11,9 @@ VERDICT: pass
 
 REASONING:
 This passes only 051-06's partial-smoke acceptance contract, not full baseline, release readiness or run-specific Target outcome verification; final reconciliation/handoff remains pending.
-AC1 is met by recorded pinned deployment/served-byte and default/invalid/disabled browser checks (R-012:967-987); AC2 is met by documented red/green witnesses and meaningful Chromium refusal, payload/order, trusted-click and stopping assertions, plus recorded private-runner budget tests (slice-06:196-301; test/adobe-stock-site.test.js:363-637; R-012:1186-1222), with no vacuous-test blocker identified.
-AC3 is met by the reviewed actual headed attempt following twelve ready checks, preserved owner settings and recorded bounded schedule (R-012:1393-1435).
-AC4 is met by separately classified ordinary Analytics page/custom counts of one, actual Target decision/render/notification evidence and cumulative CSV counts with environment/per-run attribution explicitly unverified (R-012:1421-1542); AC5 is met by verified disabled config at c1438e3, actual approved-but-ended activity disposition and retained failed-run cleanup evidence (R-012:1029-1036,1477-1481).
+AC1 is met by recorded pinned deployment/served-byte and default/invalid/disabled browser checks (R-014:967-987); AC2 is met by documented red/green witnesses and meaningful Chromium refusal, payload/order, trusted-click and stopping assertions, plus recorded private-runner budget tests (slice-06:196-301; test/adobe-stock-site.test.js:363-637; R-014:1186-1222), with no vacuous-test blocker identified.
+AC3 is met by the reviewed actual headed attempt following twelve ready checks, preserved owner settings and recorded bounded schedule (R-014:1393-1435).
+AC4 is met by separately classified ordinary Analytics page/custom counts of one, actual Target decision/render/notification evidence and cumulative CSV counts with environment/per-run attribution explicitly unverified (R-014:1421-1542); AC5 is met by verified disabled config at c1438e3, actual approved-but-ended activity disposition and retained failed-run cleanup evidence (R-014:1029-1036,1477-1481).
 
 SPECIFIC ISSUES:
 - probes/adobe-compatibility/README.md:406,525 - Medium, nonblocking documentation nit: The undated live-gates-open heading and Remaining LIVE gates list present completed deployment/execution gates as pending, despite the current results below; distinguish future-run prerequisites from current disposition.

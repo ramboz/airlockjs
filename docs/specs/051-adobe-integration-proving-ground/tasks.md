@@ -2,7 +2,7 @@
 
 > 051-01 implementation is hermetically validated (278 preflight tests plus 36 frozen-core tests).
 > 051-01 utility is DONE after independent implementation/reconciliation reviews. The parent-owned real
-> preflight returned unverified, and R-012 distinguishes that result from hermetic tests and
+> preflight returned unverified, and R-014 distinguishes that result from hermetic tests and
 > prior ad-hoc access/setup evidence.
 > Only spec 051 is sliced; specs 052-057 remain outlines. Owner execution grant: strictly below
 > 10,000 credits overall; 051-03 separately eight active hours. No boxes clear from this grant.
@@ -22,7 +22,7 @@
       shape, echoed/malformed/thrown-secret paths, unknown input, routing provenance/freshness,
       resource mismatches, redirects/mutations, stream/deadline limits and partial enumeration.
 - [x] Implement the bounded preflight utility and operator instructions.
-- [x] Record hermetic validation and the real unverified CLI result in R-012, without product claims.
+- [x] Record hermetic validation and the real unverified CLI result in R-014, without product claims.
 - [x] Parent runs/records the real scoped preflight after input/frame review and scoped live approval;
       11 required checks ready, workspace snapshot unverified, stock baseline still blocked.
 - [x] Complete required reviews and reconciliation through Jig; do not infer baseline readiness.
@@ -55,17 +55,17 @@ report remains intact. Tests and preparation readiness do not clear stock/produc
 
 - [ ] Require a fresh real preparation report and owner-approved product-specific resource/mutation/
       deployment plan; optional unexercised diagnostics do not verify required live capabilities.
-- [ ] Reuse/recheck R-012's exact owned saved activity/offers and UI routing evidence; do not recreate
+- [ ] Reuse/recheck R-014's exact owned saved activity/offers and UI routing evidence; do not recreate
       fixtures on friendly-name matches or retry the unavailable management API.
 - [ ] Verify stock provenance pins (Alloy 2.31.1, ACDL 3.0.1); use the exact official Alloy artifact
       in both arms, not a claimed byte-identical reference copy. Pin deployment/configuration.
-- [ ] Review the revised ADR-0032 frame; freeze final request/response/host assertions,
+- [ ] Review the revised ADR-0039 frame; freeze final request/response/host assertions,
       narrow normalization and finite negative-control windows before implementation.
 - [ ] Write failing plan/apply/reuse/ownership-conflict/redaction/refusal tests.
 - [ ] Implement supported setup APIs and precise guided steps where supported APIs are unavailable.
 - [ ] Execute real stock Analytics page/custom dispatch and Target return/render/native notification
       journeys with actual negative controls; no required report exports or goal provisioning.
-- [ ] Record redacted resource ownership, evidence and baseline measurements in R-012.
+- [ ] Record redacted resource ownership, evidence and baseline measurements in R-014.
 - [ ] Complete required reviews/reconciliation; distinguish boundary qualification from optional
       unobserved product outcomes. All downstream attribution/reporting follows 056.
 
@@ -95,7 +95,7 @@ Live routing confirmation remains separately unavailable and is not fabricated f
 Current actual smoke: disabled deployed-byte/CSP checks passed after required code reviews;
 official SDK no-offer and corrected positive executed. Positive rendered the owned offer and
 submitted native DISPLAY/INTERACT plus distinct page/custom events. Public test code is disabled;
-owner-approved activity end/state and failed-attempt history are recorded in R-012.
+owner-approved activity end/state and failed-attempt history are recorded in R-014.
 The separately reviewed headed continuation has ordinary Analytics page/custom count one each
 in its original interval. A native seven-day Target export shows two cumulative Scoped display
 counts, with environment and per-run binding still unverified. No full baseline claim.

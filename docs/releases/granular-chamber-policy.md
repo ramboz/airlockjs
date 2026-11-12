@@ -8,7 +8,7 @@
 
 `candidate`
 
-Captured 2026-10-06 under [ADR-0031](../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md);
+Captured 2026-10-06 under [ADR-0038](../decisions/adr-0038-reframe-onto-adobe-first-compatibility.md);
 version, appetite and build commitment unassigned. A dependency needed for safe Adobe compatibility
 is pulled into that release rather than waiting for this broader package.
 

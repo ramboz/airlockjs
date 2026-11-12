@@ -3,7 +3,7 @@
 > **Current release direction (2026-10-06):** this existing harness is reusable infrastructure for
 > [Adobe Compatibility & Adoption](releases/adobe-compatibility.md). It is not by itself a full
 > SDK/product compatibility oracle. The older MVP9 framing below is historical; its evidence stays
-> open, but [ADR-0031](decisions/adr-0031-reframe-onto-adobe-first-compatibility.md) replaces its v1.0 gate.
+> open, but [ADR-0038](decisions/adr-0038-reframe-onto-adobe-first-compatibility.md) replaces its v1.0 gate.
 
 > The consolidated run-procedure for the MVP6 adoption proof's two rigs:
 > `rig/lh-live.mjs` (spec 036-01 — *"does adopting airlock preserve Core Web Vitals on a

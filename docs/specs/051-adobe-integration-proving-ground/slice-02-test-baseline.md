@@ -1,6 +1,6 @@
 ---
 status: READY_FOR_REVIEW
-dependencies: [051-01, 051-04, 051-06, adr-0031, adr-0032]
+dependencies: [051-01, 051-04, 051-06, adr-0038, adr-0039]
 last_verified:
 kind: feature
 frame_review: true
@@ -13,14 +13,14 @@ claimed_by: adobe-adoption-goal
 **Goal:** An integrator can reproduce pinned stock Adobe journeys and compare actual
 outbound requests, responses, rendering, negative controls and performance with the chamber arm.
 
-**Owner-approved reframe — 2026-10-12:** [ADR-0032](../../decisions/adr-0032-airlock-boundary-acceptance.md)
+**Owner-approved reframe — 2026-10-12:** [ADR-0039](../../decisions/adr-0039-airlock-boundary-acceptance.md)
 replaces mandatory downstream report receipts with boundary conformance. Reporting/attribution
 is a nonblocking [056 follow-up](../056-adobe-product-workflow-validation/spec.md).
 The original eight criteria's deployment, repeatability, event/notification correctness,
 controls, isolation, cleanup and performance scope survives. Criteria 3/4 now measure
 actual wire/response/host behavior rather than waiting for vendor report processing.
 The former fifteen-export, fourteen-hour polling plan is retired, not an Adobe requirement.
-Prior draft/history is preserved in Git at `c9008a6` and the dated [R-012](../../research/R-012-adobe-first-compatibility.md)
+Prior draft/history is preserved in Git at `c9008a6` and the dated [R-014](../../research/R-014-adobe-first-compatibility.md)
 record; closed 051-01/04/05/06 and their evidence are unchanged.
 
 ### Established inputs versus remaining work
@@ -41,7 +41,7 @@ authority is added by this reframe.
 
 **DoR:**
 - [x] Reviewed preparation utility and initial stock pins/response/rendering path exist.
-- [x] Owner approved the boundary acceptance change; ADR-0032 is accepted.
+- [x] Owner approved the boundary acceptance change; ADR-0039 is accepted.
 - [ ] Revised frame and exact wire-comparison/operator contract independently reviewed.
 - [ ] Versioned private inputs, approved fixture projections and all applicable source freshness verified.
 - [ ] Exact stock cases, endpoint/payload/result rules, finite observation limits and performance instrumentation frozen.
@@ -237,15 +237,15 @@ grounded before finalizing comparisons. Existing stock proof does not establish 
 
 ### Deviation log (after reconciliation)
 
-The open draft is re-baselined by the owner's 2026-10-12 approval and ADR-0032.
+The open draft is re-baselined by the owner's 2026-10-12 approval and ADR-0039.
 Reporting assurance is explicitly deferred, not silently declared passed. Prior failed
-attempts and reporting observations remain in R-012/closed 051-06. Implementation has not
+attempts and reporting observations remain in R-014/closed 051-06. Implementation has not
 begun under this revised contract; no acceptance box or live authority is inferred.
 
 ### Reconciliation sweep
 
 Revised frame review is required because the acceptance boundary changed. Open 051/052-057,
-release/goal/live guidance point to ADR-0032; closed records and prior review verdicts remain
+release/goal/live guidance point to ADR-0039; closed records and prior review verdicts remain
 history. No documentation change restores a stopped SDK run or renews private evidence.
 
 ### Close-out (post-DONE)

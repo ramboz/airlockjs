@@ -36,7 +36,7 @@ compliance/reconciliation; complete stock baseline and chamber acceptance remain
 Configuration API diagnosis is stopped by the owner; optional automation is not a live blocker.
 
 **Owner-approved gate update — 2026-10-12:**
-[ADR-0032](../decisions/adr-0032-airlock-boundary-acceptance.md) makes actual
+[ADR-0039](../decisions/adr-0039-airlock-boundary-acceptance.md) makes actual
 stock/chamber wire, governed egress and real response/rendering the acceptance boundary.
 051-02 is re-framed for that baseline; further vendor reporting is 056's nonblocking
 follow-up. No manual export schedule or asynchronous counter is a readiness gate.

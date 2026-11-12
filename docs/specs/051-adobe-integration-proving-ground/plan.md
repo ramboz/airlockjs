@@ -5,17 +5,17 @@
 
 ## Current scope and grant
 
-R-012's dated assessments are the operational evidence: Analytics reports work; owned Target
+R-014's dated assessments are the operational evidence: Analytics reports work; owned Target
 offers/activity and scoped create/edit/future-only approval are verified, with the activity
 restored inactive in the initial check. The later partial stock smoke deployed and ran with
 ordinary Analytics receipt, disabled stop and approved-but-ended activity disposition.
 The owner confirmed the native seven-day export's Development environment; per-run counting remains open.
 Datastream routing is accepted owner UI/saved-pin evidence, not configuration API success.
 Full stock/chamber boundary acceptance remains open; run-bound native Target outcomes are
-nonblocking follow-up under ADR-0032.
+nonblocking follow-up under ADR-0039.
 AJO/CJA/RTCDP are deferred for this run without changing release obligations.
 
-**Owner-approved assurance reframe, 2026-10-12:** ADR-0032 replaces mandatory downstream
+**Owner-approved assurance reframe, 2026-10-12:** ADR-0039 replaces mandatory downstream
 product/reporting outcomes with actual stock/chamber wire, response and host-behavior
 acceptance. Optional reports retain their honest scope in 056. No export staffing,
 reporting-driven stage spacing or click-goal setup blocks wire-baseline work.
@@ -45,7 +45,7 @@ headed stage used renewed manual evidence, twelve ready preflight checks and onl
 and config-window changes. It verified ordinary exact Analytics page/custom count one each and
 native DISPLAY/INTERACT wire identity; public test code is disabled, activity serving window ended.
 The supplied seven-day native Target report shows two cumulative Scoped displays, not a verified
-per-run increment. The owner subsequently confirmed Development report context in R-012.
+per-run increment. The owner subsequently confirmed Development report context in R-014.
 Final 051-06 compliance/reconciliation
 passed against its partial-smoke criteria, not by retiring those 051-02 obligations.
 The owner stopped configuration API diagnosis and approved continuation beyond the original
@@ -94,12 +94,12 @@ comparison and final handoff still depend on the baseline. A ready utility is no
 - Hermetic tests using existing Vitest patterns under `test/`; no new tooling before a demonstrated need.
 - Local-only resource/capture state in an owner-approved ignored location; sanitized reference
   fixtures and evidence summaries only in committed files.
-- R-012 access/baseline/compatibility findings with source pins, experiment provenance and blockers.
+- R-014 access/baseline/compatibility findings with source pins, experiment provenance and blockers.
 - A pinned SDK/scenario inventory assigning ownership to portfolio specs 052-057.
 
 051-01's CLI, minimal helpers, README and hermetic suites now exist under the paths above.
 The implementation witness is in the slice. The parent-owned real run returned unverified and
-is recorded in R-012; implementation reviews passed and reconciliation remains open. 051-02/03 must still
+is recorded in R-014; implementation reviews passed and reconciliation remains open. 051-02/03 must still
 refine setup/scenario commands from verified support after their readiness gates clear.
 
 ## 051-01 implementation sequence after review
@@ -115,7 +115,7 @@ refine setup/scenario commands from verified support after their readiness gates
 4. Implement only the Node ES module preflight and thin operator README. No dependencies, provisioner,
    SDK event submission, browser state access, private-state writer or general request client.
 5. The parent runs the scoped real preflight only after lifecycle/input/live gates are cleared;
-   record a redacted result or an explicitly blocked fixture-only status in R-012.
+   record a redacted result or an explicitly blocked fixture-only status in R-014.
 6. Complete required compliance/craft/architecture/reconciliation passes. A preparation report is neither
    stock baseline evidence nor confirmation of unavailable deployment/activity write checks.
 
@@ -138,7 +138,7 @@ enforced. No live URL/fixture flag, credential value or arbitrary transport envi
 Implementation validation now witnesses 278 preflight tests and 36 unchanged contract-stability
 tests passing; the slice records the actual initial and follow-up red runs. Documentation
 refinement itself is not a test run. The implementation agent made no live calls; the later
-parent-owned real unverified report is recorded separately in R-012.
+parent-owned real unverified report is recorded separately in R-014.
 
 The investigation proposes numeric performance/delivery limits from a recorded baseline; owner
 approval and dependent spec refinement occur before broad implementation. No existing thresholds

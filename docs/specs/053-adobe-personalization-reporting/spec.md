@@ -28,7 +28,7 @@ Journey Optimizer (AJO) SDK-facing personalization surface, preserving its routi
 - Compare assigned flows against actual stock request/response, safe rendering and native
   notification evidence. Preserve id/scope/scopeDetails and trusted interaction ordering.
 
-[ADR-0032](../../decisions/adr-0032-airlock-boundary-acceptance.md) makes downstream
+[ADR-0039](../../decisions/adr-0039-airlock-boundary-acceptance.md) makes downstream
 campaign/report counters nonblocking follow-up. This does not make DISPLAY/INTERACT optional,
 permit fake render acknowledgment or qualify unsafe DOM behavior.
 
@@ -54,6 +54,6 @@ decision fetch, application and required reporting into each end-to-end slice.
 No unrestricted DOM/global bridge, SDK fork or fabricated notification receipt. Campaign authoring
 automation and test isolation must follow approved product-specific setup.
 Sources: [manual Adobe rendering/reporting](https://experienceleague.adobe.com/en/docs/experience-platform/collection/use-cases/personalization/render-manual-propositions),
-[R-012](../../research/R-012-adobe-first-compatibility.md),
+[R-014](../../research/R-014-adobe-first-compatibility.md),
 [release plan](../../releases/adobe-compatibility.md). Existing specs 033/034 provide HTML-placement
 foundations, not proof of full DOM/editor behavior. No slice ACs or implementation plan authored yet.

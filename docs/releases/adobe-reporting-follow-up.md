@@ -1,7 +1,7 @@
 # Follow-up goal: Adobe downstream reporting and attribution
 
 **Nonblocking, owner-approved 2026-10-12**
-([ADR-0032](../decisions/adr-0032-airlock-boundary-acceptance.md)).
+([ADR-0039](../decisions/adr-0039-airlock-boundary-acceptance.md)).
 
 Airlock's primary acceptance gate is actual governed request/response/rendering conformance.
 This goal covers the downstream product pipeline when an adopter needs more assurance,
@@ -9,7 +9,7 @@ not a prerequisite for every implementation or performance test.
 
 ## Existing evidence
 
-[R-012](../research/R-012-adobe-first-compatibility.md) records one ordinary Analytics
+[R-014](../research/R-014-adobe-first-compatibility.md) records one ordinary Analytics
 page view and custom-link occurrence in the original headed interval, and a native Target
 seven-day export with two cumulative Scoped displays in owner-confirmed Development.
 Those counts remain valid; they do not prove every product, click goal or per-run attribution.

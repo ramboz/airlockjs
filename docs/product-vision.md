@@ -10,7 +10,7 @@
 > governed GA4/pixel/Ads/Floodlight/RUM connectors, a bounded Alloy adapter and OneTrust integration.
 > Spec 050's third-party rewire proof is partly demonstrated, with live-validation residuals still open.
 > **The next v1.0 gate is Adobe Compatibility & Adoption**
-> ([ADR-0031](decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)): investigate first, then
+> ([ADR-0038](decisions/adr-0038-reframe-onto-adobe-first-compatibility.md)): investigate first, then
 > target full pinned Alloy.js compatibility and validated Adobe workflows through `aem-martech`.
 > SDK boot is not full product support. See [the release slate](releases/README.md).
 
@@ -46,7 +46,7 @@ In scope: the runtime substrate (main-thread capture-and-enqueue, worker-side dr
 
 Out of scope (explicit no-gos for the first releases): session replay / full DOM-mutation streaming (antagonistic to "no DOM access"); identity resolution and a first-party cookie store (airlock reads existing vendor cookies read-only, but never mints identity or keeps its own cookie store); the service-worker egress chokepoint (MVP uses direct keepalive; SW is a later progressive enhancement); edge decision/egress *drivers* (the seams exist from day one, the drivers come later); non-EDS framework adapters (a post-1.0 direction; EDS is the only supported adapter through 1.0).
 
-**The next adoption direction ([ADR-0031](decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)).**
+**The next adoption direction ([ADR-0038](decisions/adr-0038-reframe-onto-adobe-first-compatibility.md)).**
 Start with Adobe-first compatibility: keep the official Alloy.js SDK in a chamber, migrate the
 `aem-martech` integration, and validate Web SDK-connected Analytics, Target, Adobe Journey Optimizer
 (AJO), Customer Journey Analytics (CJA) and Real-Time CDP (RTCDP) scenarios. This is the **next release
@@ -163,11 +163,11 @@ conditions and noise handling against phased stock `aem-martech`, including netw
 worker startup and clone cost. Off-thread placement alone is not a performance result.
 
 **Co-equal criterion: functional fidelity at the Adobe boundary**
-([ADR-0031](decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)). The v1.0 gate combines
+([ADR-0038](decisions/adr-0038-reframe-onto-adobe-first-compatibility.md)). The v1.0 gate combines
 the pinned SDK compatibility matrix, actual governed stock/chamber dispatch and response/rendering,
 correct Adobe personalization
 notifications, an adoptable `aem-martech`/Launch bridge and measured performance.
-The owner-approved [ADR-0032](decisions/adr-0032-airlock-boundary-acceptance.md) makes
+The owner-approved [ADR-0039](decisions/adr-0039-airlock-boundary-acceptance.md) makes
 downstream report/attribution validation a nonblocking follow-up. Wire correctness is not
 a claim of vendor ingestion or every product's reporting; existing initial receipts are retained.
 Any exclusion prevents a full Alloy support claim; a narrower gate requires an explicit owner decision.

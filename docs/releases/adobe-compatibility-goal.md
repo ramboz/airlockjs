@@ -3,7 +3,7 @@
 ## Before launching
 
 Start a new session from **freshly fetched main** containing the latest
-[R-012 evidence](../research/R-012-adobe-first-compatibility.md). Use a local host
+[R-014 evidence](../research/R-014-adobe-first-compatibility.md). Use a local host
 with access to the approved private inputs, or explicitly arrange an approved
 credential/fixture handoff for another host. A Git checkout alone does not
 contain those inputs.
@@ -31,7 +31,7 @@ Run `/goal` with the following task text, or ask it to execute the Task text in
 ## Task text
 
 **Current authority:** The owner-approved
-[ADR-0032](../decisions/adr-0032-airlock-boundary-acceptance.md) changes the reporting gate.
+[ADR-0039](../decisions/adr-0039-airlock-boundary-acceptance.md) changes the reporting gate.
 Final serialized stock/chamber requests, governed dispatch, real caller results and safe
 rendering/native notifications are mandatory; downstream report counters are nonblocking
 follow-up in 056. No periodic CSV handoffs are assumed. Existing budget/fixture/live-operation
@@ -67,7 +67,7 @@ SCOPE AND SUCCESS
   Preserve working existing behavior and all approved safety boundaries.
 - SDK boot, HTTP 200, a sent beacon, a fixture pass or a GA4 exposure is not an
   Adobe product receipt or sufficient boundary conformance. Further downstream reporting
-  is nonblocking follow-up under ADR-0032, not a mandatory export/goal-provisioning gate.
+  is nonblocking follow-up under ADR-0039, not a mandatory export/goal-provisioning gate.
   A malformed request, invalid live response or contradictory evidence showing a request
   defect still blocks its scenario. If a mandatory behavior is infeasible or blocked, report
   it honestly and stop for the required decision; never manufacture completion.
@@ -112,22 +112,22 @@ BUDGET AND DELEGATED AUTHORITY
 
 BOOTSTRAP AND AUTHORITATIVE CONTEXT
 
-1. Verify this checkout contains the latest main and R-012's initial routing and
+1. Verify this checkout contains the latest main and R-014's initial routing and
    approval evidence. If it is stale, stop before implementation and explain the
    missing bootstrap; do not recreate resources because older notes lack them.
 2. Invoke Jig orientation. Read CLAUDE.md/the active primer, docs/workflow.md,
    docs/conventions.md, docs/architecture.md, docs/product-vision.md,
-   docs/releases/adobe-compatibility.md, docs/research/R-012-adobe-first-compatibility.md,
-   ADR-0016, ADR-0017 and ADR-0031, the spec/bug boards, and specs 051-057.
+   docs/releases/adobe-compatibility.md, docs/research/R-014-adobe-first-compatibility.md,
+   ADR-0016, ADR-0017 and ADR-0038, the spec/bug boards, and specs 051-057.
    Use configured semantic-index tooling when available for broad source exploration.
 3. At this brief's authoring, all seven specs remain DRAFT. Only 051 has three
    authored slices, plan and tasks. Re-read current lifecycle state before work;
    do not regress slices that have since advanced. Some DRAFT/spec/release baseline
    wording predates the verified setup. Refresh live operational/DRAFT facts from
-   R-012 through normal review, preserving dated history and accepted decisions.
+   R-014 through normal review, preserving dated history and accepted decisions.
    Do not count ad-hoc setup checks as acceptance of 051-01/02/03.
 4. Keep the official Alloy bundle unmodified and choose/document its exact
-   version/hash. Begin from the aem-martech reference pinned by R-012; do not assume
+   version/hash. Begin from the aem-martech reference pinned by R-014; do not assume
    the historic v2.35.0 SDK pin is automatically the correct current target.
    Maintain a closed documented SDK command/options/results/events/callbacks
    inventory, with explicit ownership and supported/blocked/unverified status.
@@ -162,7 +162,7 @@ schema, Target environment/workspace/property/activity/offer selectors.
 
 VERIFIED STARTING POINT AND LIMITS
 
-The following are dated setup observations in R-012, not a substitute for
+The following are dated setup observations in R-014, not a substitute for
 rechecking current resources or newly implemented behavior:
 
 - Analytics reporting and exact dedicated-suite access work.
@@ -201,7 +201,7 @@ EXECUTION THROUGH JIG
   scoped owner-provided configuration evidence, and unavailable automation.
   Review the input/evidence contract explicitly; do not turn unverified required
   checks green or probe undocumented APIs to evade a manual step.
-- Complete the ADR-0032-revised 051-02 plan/apply/reuse/refusal and real stock
+- Complete the ADR-0039-revised 051-02 plan/apply/reuse/refusal and real stock
   positive/negative wire/response/rendering baseline. Freeze serialized request/result
   predicates, narrowly justified normalization, dispatch observations and finite negative
   windows before sending data. Downstream reporting is optional follow-up. Stock and chamber arms
@@ -246,7 +246,7 @@ INTEGRATION AND FINISH
   Leave test activities inactive and stop temporary test helpers.
 - Provide a concise final report: completed slice/evidence/commit links, how to
   reproduce the initial story, measured limits, what remains deferred or blocked,
-  and the owner-approved ADR-0032 release assurance boundary. Do not claim full portfolio completion,
+  and the owner-approved ADR-0039 release assurance boundary. Do not claim full portfolio completion,
   universal Alloy support, v1.0 qualification or publication from this narrower run.
 - Stop for budget exhaustion, missing required protocol/response/host evidence, infeasible
   behavior or a required authority/core/gate change. Preserve findings and exact

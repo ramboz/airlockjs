@@ -3,12 +3,12 @@ status: OPEN
 topic: Adobe-first SDK compatibility and API-led test-environment setup
 created: 2026-10-06
 related:
-  - ../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md
+  - ../decisions/adr-0038-reframe-onto-adobe-first-compatibility.md
   - ../releases/adobe-compatibility.md
   - ../specs/051-adobe-integration-proving-ground/spec.md
 ---
 
-# R-012: Adobe-first compatibility and owned test-environment setup
+# R-014: Adobe-first compatibility and owned test-environment setup
 
 > Keep the official SDK, investigate the whole documented integration surface, and prove one complete
 > Adobe journey before broad implementation. This is an open investigation record: source/documentation
@@ -30,7 +30,7 @@ related:
 > portfolio is not complete. The release is committed in direction.
 
 **Current acceptance authority — owner decision 2026-10-12T21:08:41.261Z:**
-[ADR-0032](../decisions/adr-0032-airlock-boundary-acceptance.md) requires actual
+[ADR-0039](../decisions/adr-0039-airlock-boundary-acceptance.md) requires actual
 stock/chamber serialized wire, governed egress and real result/response/rendering behavior.
 Further Adobe ingestion/report counters/attribution are a nonblocking
 [follow-up goal](../releases/adobe-reporting-follow-up.md) under 056.
@@ -453,7 +453,7 @@ in private `0600` session state with no credentials or OAuth tokens.
 The owner explicitly authorized Target write checks, confirmed the datastream is open in the
 embedded browser, and deferred AJO/CJA/RTCDP work **for now**. This narrows the immediate proving
 ground to Alloy, Target and Analytics; it does not remove later product requirements from
-ADR-0031 or the broader release portfolio, approve `/goal`, or advance the DRAFT specs.
+ADR-0038 or the broader release portfolio, approve `/goal`, or advance the DRAFT specs.
 
 ### Target write authorization — exercised, not inferred
 
@@ -1822,6 +1822,6 @@ initial proving ground, not removed from the release gate.
 **Open.** The Adobe-first route is worth investigating, not proven compatible. Start with the
 offline inventory and read-only access preflight; broad implementation waits for their evidence.
 
-Promoted to: release direction in [ADR-0031](../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)
+Promoted to: release direction in [ADR-0038](../decisions/adr-0038-reframe-onto-adobe-first-compatibility.md)
 and [Adobe Compatibility & Adoption](../releases/adobe-compatibility.md), with execution scoped by
 [spec 051](../specs/051-adobe-integration-proving-ground/spec.md); investigation remains OPEN.

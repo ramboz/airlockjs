@@ -1,6 +1,6 @@
 # Release Plan: MVP9 — Real-Site Rewire & Adoption Path
 
-> **Current direction, 2026-10-06:** [ADR-0031](../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)
+> **Current direction, 2026-10-06:** [ADR-0038](../decisions/adr-0038-reframe-onto-adobe-first-compatibility.md)
 > replaces this plan as the v1.0 gate with [Adobe Compatibility & Adoption](adobe-compatibility.md).
 > This remains `candidate`, parked in priority; the original plan below is historical framing, not
 > current release authority. Spec 050's implementation/evidence survives. Its booted TBT, event-level

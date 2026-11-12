@@ -1,6 +1,6 @@
 ---
 status: DONE
-dependencies: [051-07, adr-0032]
+dependencies: [051-07, adr-0039]
 last_verified: 2026-10-12
 kind: feature
 frame_review: true
@@ -253,12 +253,12 @@ No SDK/vendor/resource action, renderer/capability change or reporting dependenc
 ### Reconciliation sweep
 
 - **Updated:** recorder,133-case test suite, related README, open051 overview/tasks/derived
-  board and R-012 classify raw-byte capture, real receiving-sink proof and false provenance
+  board and R-014 classify raw-byte capture, real receiving-sink proof and false provenance
   claims consistently. Parent366 targeted tests and explicit recommended lint pass.
 - **No-op:** frozen core, connectors, SDK bytes, closed07 checker/parser records, original
   private captures, credential/profile/routing/Target state and conventions. No new public
   runtime boundary or package/framework warrants a new ADR or install.
-- **No-op:** reporting remains the ADR-0032 nonblocking follow-up; no export schedule,
+- **No-op:** reporting remains the ADR-0039 nonblocking follow-up; no export schedule,
   authenticated-browser scrape or implicit traffic authorization is added.
 - **Deferred:** actual SDK/context authentication, current-source/live serving plan,
   full baseline negative/performance execution and actual chamber parity remain051-02/03.

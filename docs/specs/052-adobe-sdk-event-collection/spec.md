@@ -28,7 +28,7 @@ personalization renderer, broad policy engine or customer migration procedure.
 - Demonstrate assigned command semantics against actual stock final-wire and response evidence for
   relevant collection journeys; no success-shaped stub or silent unsupported-command fallback.
 
-[ADR-0032](../../decisions/adr-0032-airlock-boundary-acceptance.md) requires dispatched
+[ADR-0039](../../decisions/adr-0039-airlock-boundary-acceptance.md) requires dispatched
 serialized XDM/data/routing and caller results/errors, not merely SDK input. Vendor report
 receipts are optional follow-up in 056; request rejection or unsafe egress still blocks.
 
@@ -55,7 +55,7 @@ introduce a transport or schema for the next slice.
 Personalization rendering/reporting belongs to [053](../053-adobe-personalization-reporting/spec.md);
 consent/identity/delivery edge semantics belong to [055](../055-adobe-consent-identity-delivery/spec.md).
 Minimum safe consent/identity and failure behavior is required in each collection slice from the start.
-Grounding: [R-012](../../research/R-012-adobe-first-compatibility.md),
-[ADR-0031](../../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md),
+Grounding: [R-014](../../research/R-014-adobe-first-compatibility.md),
+[ADR-0038](../../decisions/adr-0038-reframe-onto-adobe-first-compatibility.md),
 [release plan](../../releases/adobe-compatibility.md). Current code is a bounded page-view adapter,
 not this future command bridge. No slice ACs or implementation plan authored yet.

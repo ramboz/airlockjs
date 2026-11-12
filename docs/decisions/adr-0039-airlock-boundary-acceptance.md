@@ -1,11 +1,11 @@
 ---
 status: Accepted
-dependencies: [adr-0017, adr-0031]
+dependencies: [adr-0017, adr-0038]
 last_verified: 2026-10-12
 frame_review: true
 ---
 
-# ADR-0032: Airlock boundary acceptance; Adobe reporting as follow-up
+# ADR-0039: Airlock boundary acceptance; Adobe reporting as follow-up
 
 ## Status
 
@@ -21,7 +21,7 @@ the baseline reporting already, so the overall flow works. the rest can be handl
 when the need arises." This follows the explicit proposal to gate stock-versus-chamber
 final-wire conformance, consent/egress enforcement and real response/rendering behavior.
 
-[R-012](../research/R-012-adobe-first-compatibility.md) already records a pinned stock
+[R-014](../research/R-014-adobe-first-compatibility.md) already records a pinned stock
 journey, one ordinary Analytics page/custom receipt each, and two cumulative Target Scoped
 display counts in owner-confirmed Development. These observations establish an initial
 working reporting path, not complete product processing or per-run Target attribution.
@@ -29,8 +29,8 @@ The original fifteen-export, fourteen-hour sequence was an author-selected proto
 open 051-02, not an Adobe requirement. Manual report availability became an unrelated
 dependency on implementation behind the airlock.
 
-This decision refines the **acceptance boundary** in ADR-0031's product-evidence requirements.
-ADR-0031's Adobe-first direction, full pinned SDK inventory and safeguards remain authoritative;
+This decision refines the **acceptance boundary** in ADR-0038's product-evidence requirements.
+ADR-0038's Adobe-first direction, full pinned SDK inventory and safeguards remain authoritative;
 it is not superseded wholesale. Its Accepted body and all closed specs/reviews remain unchanged.
 Where current reporting-gate prose conflicts, this decision takes precedence. No release,
 version bump, additional resource access or runtime capability is authorized.
@@ -106,7 +106,7 @@ Retire draft obligations on the old mandatory reporting premise first.
 |---|---|---|
 | 051-02's fifteen-export/stable-counter/three-hour reporting stages | `retire-draft` | Replace the open draft with bounded stock wire/response/render/control/performance acceptance; preserve the old reporting plan as historical provenance, not an executable prerequisite. |
 | 056 downstream product-workflow outline | `retire-draft` | Keep as a nonblocking follow-up; do not delete scope or manufacture DONE. No executable slices exist. |
-| ADR-0031 | `reaffirm` | Retain Adobe-first/full-SDK/control direction; this decision overrides only mandatory downstream-receipt acceptance. Keep Accepted body unchanged. |
+| ADR-0038 | `reaffirm` | Retain Adobe-first/full-SDK/control direction; this decision overrides only mandatory downstream-receipt acceptance. Keep Accepted body unchanged. |
 | Other ADRs and all DONE slices/reviews, including 051-01/04/05/06 | `reaffirm` | No closed-record amendment, evidence rewrite or gate waiver. |
 | Open 051 overview/02/03/plan/tasks | `rewrite` | Require real stock/chamber dispatch and result/rendering evidence, not mandatory exports. Preserve baseline/spike gates. |
 | Open 052/053/054/055/057 outlines | `rewrite` | Retain event/notification/identity/Launch/adopter/performance work; qualify at wire/response/host boundary, link optional reporting to 056. |
@@ -122,7 +122,7 @@ prose/release/research/memory docs, root README and CLAUDE scanned. Project skil
 are excused: no project-owned SKILL.md found in the listed configuration locations;
 installed skills are tooling, not release authority. No shipped code is changed or claimed audited.
 
-**Level 2:** Detailed reads cover ADR-0031, the 051 overview/open baseline/spike, all
+**Level 2:** Detailed reads cover ADR-0038, the 051 overview/open baseline/spike, all
 052-057 outlines, release/goal/slate, vision success criteria, architecture header, README,
 primer and glossary. Literal receipt/outcome/report/gate/export searches identify current
 references in research/index, refinement/inbox and operator docs. Those named artifacts
@@ -154,7 +154,7 @@ Downstream product assurance needs separate evidence when requested.
 Comparative wire/results tests can expose relevant chamber defects without vendor
 counter exports for every case. This is an assurance choice, not proved absence of all
 possible downstream differences. Actual 051-02/03 tests must validate it; contradictory
-report evidence is a reason to investigate/revisit it. R-012 supplies executed initial
+report evidence is a reason to investigate/revisit it. R-014 supplies executed initial
 stock/Analytics/Target observations; none establishes chamber parity.
 
 ## Kill criteria

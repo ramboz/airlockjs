@@ -1,6 +1,6 @@
 ---
 status: DONE
-dependencies: [051-01, 051-04, 051-05, adr-0031]
+dependencies: [051-01, 051-04, 051-05, adr-0038]
 last_verified: 2026-10-12
 kind: feature
 frame_review: true
@@ -340,7 +340,7 @@ rewritten 051-06 requirement to prove full product parity.
 ### Reconciliation sweep
 
 Owned paths: `stock-site.mjs`, `adobe-stock-site.test.js`, synthetic fixture, operator README,
-this slice/06 verdicts, open051 overview/plan/tasks, R-012, primer and derived board. Updated
+this slice/06 verdicts, open051 overview/plan/tasks, R-014, primer and derived board. Updated
 current actual deployment/journey/stop evidence, retaining failed attempts and all code TDD.
 Inherited reframe/01/04/05 records/accepted ADRs/core/contracts/conventions are deliberately
 excluded from this stage's edits; original stock/product gates remain unchanged. Reference
@@ -350,7 +350,7 @@ tests cover only selected exact-wrapper default/disabled/stall behavior, not eve
 No synthetic or HTTP success is promoted to downstream receipt; finite waiting remains separate.
 
 **Final sweep dispositions — 2026-10-12:**
-- **Updated:** R-012, operator README, this open slice, overview/plan/tasks and primer reflect
+- **Updated:** R-014, operator README, this open slice, overview/plan/tasks and primer reflect
   actual SDK/Analytics/wire/stop evidence and the received cumulative native Target CSV.
   Earlier failed attempts/refusals/credit stop remain dated history; current prose no longer
   calls the export missing or SDK execution pending. Derived board is regenerated at transitions.
@@ -383,7 +383,7 @@ unchanged report intervals. Ordinary page/custom reports remain empty. Two bot p
 bot occurrences are consistent with the original traffic, not per-custom-label receipt.
 Normal-metric absence was not proof of ingestion failure. HeadlessChrome user-agent classification
 is a supported explanation; exact rule/processing latency is not independently identified.
-No events were resent or bot rules changed. R-012 records official metric compatibility and
+No events were resent or bot rules changed. R-014 records official metric compatibility and
 the actual source evidence. Future headed comparison uses new labels and a fresh bounded plan;
 it is not performed yet, and does not silently retire Target/custom/baseline acceptance.
 
@@ -409,7 +409,7 @@ eight-dispatched ceiling. Setup/journey and independent cleanup waits are bounde
 resources are reported honestly. New exclusive private captures and exact new label matching
 preserve original evidence. Forty-four focused tests passed, including real headed Chromium
 with networking disabled and invented HTTP responses; these execute no Adobe SDK/product flow.
-Actual existing disabled/expired inputs refuse before launch. R-012 carries the detailed evidence.
+Actual existing disabled/expired inputs refuse before launch. R-014 carries the detailed evidence.
 Current real preflight, owner confirmation and exact newly bound stage-manifest review remain
 open; no live SDK event or mutation, module/core change or lifecycle transition is implied.
 
@@ -417,7 +417,7 @@ open; no live SDK event or mutation, module/core change or lifecycle transition 
 was changed. The actual observation at 14:55:35.910Z supplies new manual freshness under the
 reviewed 24-hour policy; it is not API readback or replacement of original screenshots.
 Current stage-bound reassessment, real preflight, resource/served-byte checks and exact manifest
-remain prerequisites. R-012 records the separate API investigation: exact configuration error
+remain prerequisites. R-014 records the separate API investigation: exact configuration error
 `EXEG-3036-403`, `Api key is invalid.`, while the same fresh token/client ID reads the owned
 Target activity successfully. Service registration or the UI-route's server-to-server contract
 remains unresolved; existing Developer Console API/service names were requested, with no
@@ -447,7 +447,7 @@ activity remains approved until bounded end 2026-10-12T17:57:33Z as owner permit
 No SDK resend, second visit, owner Page Delivery/offer/goal edit or broader resource change.
 The same-capture finite Analytics observer is running; initial ordinary matched rows absent
 are unobserved, not zero/loss. Native Target CSV requested but owner unavailable; click goal
-still absent. R-012 preserves actual timestamps, initial observation failure and limitations.
+still absent. R-014 preserves actual timestamps, initial observation failure and limitations.
 Final reconciliation and full original baseline/product requirements remain open.
 
 **Ordinary receipts verified — 2026-10-12:** The new headed page has one exact ordinary pageview
@@ -466,7 +466,7 @@ headed run's exact increment. The header is Visitor, not Impression, and the exp
 environment/date-range fields. Approved Development environment confirmation was requested;
 owner unavailable. The currency-formatted Conversions cells and undefined Conversion Counter
 are not interpreted as event counts. No click outcome, report-context binding or full original
-baseline acceptance is inferred. R-012 and private immutable inspection preserve these limits;
+baseline acceptance is inferred. R-014 and private immutable inspection preserve these limits;
 the report is no longer missing or empty.
 
 ### Close-out (post-DONE)
@@ -477,7 +477,7 @@ the report is no longer missing or empty.
 partial-smoke acceptance criteria, including truthful classification of unverified report
 context rather than full Target parity. Required code craft/architecture passes are retained
 for the unchanged module; final reconciliation passed after correcting stale undated summaries
-in R-012/spec/plan/index/release prose. Current targeted browser and frozen-core validation
+in R-014/spec/plan/index/release prose. Current targeted browser and frozen-core validation
 passes 106 tests; the recorded full suite of 2,540 remains historical, not falsely rerun.
 No code/SDK/core/resource change or new traffic was made to obtain this closure.
 Report-environment confirmation and per-run Target attribution remain 051-02 obligations.

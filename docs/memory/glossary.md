@@ -30,7 +30,7 @@ The **source** side of the seal (ADR-0007's consent-input seam): a host-neutral 
 
 ## customer-custom tag
 
-A tag that is a specific customer's own logic (e.g. an in-house event-enrichment or click-tracking chain like the reference site's ECS/TrackStar/UX-Fabric chain), as opposed to a generic third-party vendor tag. ADR-0031 carries ADR-0018's rule: customer-custom tags are validation-only inputs — never a shipped airlock connector, deliverable, or release gate.
+A tag that is a specific customer's own logic (e.g. an in-house event-enrichment or click-tracking chain like the reference site's ECS/TrackStar/UX-Fabric chain), as opposed to a generic third-party vendor tag. ADR-0038 carries ADR-0018's rule: customer-custom tags are validation-only inputs — never a shipped airlock connector, deliverable, or release gate.
 
 ## cycle / lock-through
 
@@ -54,7 +54,7 @@ The only martech code with DOM access, running on the main thread. Owns the appe
 
 ## parity (vendor-boundary)
 
-The property that the migrated events reach the vendor with equivalent relevant semantics, including identity, consent, routing, transport and reporting outcomes. A curated beacon-field comparison is one layer of evidence, not the full property. Under ADR-0031, functional fidelity and performance jointly gate Adobe-first v1.0; third-party equivalence remains an independently proven customer migration requirement. See [Vendor Parity & Adoption Assurance](../releases/vendor-parity-assurance.md).
+The property that the migrated events reach the vendor with equivalent relevant semantics, including identity, consent, routing, transport and reporting outcomes. A curated beacon-field comparison is one layer of evidence, not the full property. Under ADR-0038, functional fidelity and performance jointly gate Adobe-first v1.0; third-party equivalence remains an independently proven customer migration requirement. See [Vendor Parity & Adoption Assurance](../releases/vendor-parity-assurance.md).
 
 ## parity harness
 
@@ -62,7 +62,7 @@ The vendor-generic capture -> replay -> oracle -> report tool (spec 038) that co
 
 ## rewire
 
-Moving supported vendor behavior from a main-thread tag-manager container (Tealium / GTM / Adobe Launch) to an Airlock connector: the native tag stops firing and Airlock emits the scoped governed replacement. ADR-0031 makes Adobe/`aem-martech` the initial adoption path; third-party rewires follow measured offender cost and customer-specific fidelity evidence, not an assumed full-equivalence claim.
+Moving supported vendor behavior from a main-thread tag-manager container (Tealium / GTM / Adobe Launch) to an Airlock connector: the native tag stops firing and Airlock emits the scoped governed replacement. ADR-0038 makes Adobe/`aem-martech` the initial adoption path; third-party rewires follow measured offender cost and customer-specific fidelity evidence, not an assumed full-equivalence claim.
 
 ## the seal
 
@@ -74,7 +74,7 @@ A swappable driver boundary baked in from day one. Two seams: a **decision-sourc
 
 ## stable core
 
-Airlock's frozen public API surface (the five contract surfaces + the adopter boot layer) pinned by ADR-0017 / spec 037-01. It is the contract Airlock ships on, not proof that a release's adoption gate passed. ADR-0031 preserves that contract while replacing the MVP9 release gate with Adobe-first compatibility.
+Airlock's frozen public API surface (the five contract surfaces + the adopter boot layer) pinned by ADR-0017 / spec 037-01. It is the contract Airlock ships on, not proof that a release's adoption gate passed. ADR-0038 preserves that contract while replacing the MVP9 release gate with Adobe-first compatibility.
 
 ## state projection
 
@@ -106,10 +106,10 @@ The vendor-neutral, config-driven, adopter-facing module (spec 049, ADR-0030) th
 The 049-02 discriminator that separates airlock's OWN beacon from a container's copy of the SAME beacon when a URL matcher cannot — because airlock reproduces a vendor's beacon at the container's BYTE-IDENTICAL URL (Meta `/tr`, gtag `/g/collect`), so an `allow` protecting airlock's `/tr` also protects the container's. The load-bearing invariant: airlock emits EVERY main-thread beacon via `fetch(url, {keepalive:true})` (`core/egress.js` `fetchInit`) and NEVER via `<img>`/`sendBeacon`/`XHR`. So the [[native-tag suppressor]] EXEMPTS a `fetch` whose `init.keepalive===true` (unconditionally — airlock's exact egress signature) and SUPPRESSES the container's `<img>`/`sendBeacon`/`XHR`/non-keepalive-`fetch` at the same URL — making airlock the sole emitter even for a URL-identical reproduction (the pixel-without-a-runtime case 049-01's `<script>` block misses). Coarser than "airlock's egress is exempt" — it is really "keepalive-fetch is unsuppressable," page-global — which fails SAFE (never drops airlock's data). Residual (refinement-todo): a container that itself fires `fetch({keepalive:true})` at an airlock-reproduced URL is indistinguishable → not suppressed; cannot bite the MVP9 trial (all four vendors are runtime-based, killed by 049-01). Proven by the rig's `collide_exactly_one_network_request` assertion; forced 049-02's `arch_review` flip false→true (the frame-critique correction).
 
 ## Adobe-first compatibility
-The owner-approved v1.0 direction in ADR-0031: target the full documented pinned Alloy.js surface through an Airlock-backed aem-martech integration. ADR-0032 refines acceptance to actual stock/chamber wire, governed controls and response/rendering; further downstream Adobe reporting is a nonblocking follow-up. Boot success is not full compatibility or product processing; exclusions still require an explicit scope decision. See docs/releases/adobe-compatibility.md.
+The owner-approved v1.0 direction in ADR-0038: target the full documented pinned Alloy.js surface through an Airlock-backed aem-martech integration. ADR-0039 refines acceptance to actual stock/chamber wire, governed controls and response/rendering; further downstream Adobe reporting is a nonblocking follow-up. Boot success is not full compatibility or product processing; exclusions still require an explicit scope decision. See docs/releases/adobe-compatibility.md.
 
 ## Airlock-boundary acceptance
-The owner-approved assurance boundary in ADR-0032: inspect actual serialized SDK requests at governed dispatch and compare stock/chamber payload, routing, identity, consent, responses and host rendering with narrowly justified normalization. SDK calls/pre-send XDM/HTTP success alone are insufficient. Native display/interaction notifications and negative controls remain mandatory; asynchronous vendor ingestion/report counters are optional follow-up, not automatically proven by wire conformance.
+The owner-approved assurance boundary in ADR-0039: inspect actual serialized SDK requests at governed dispatch and compare stock/chamber payload, routing, identity, consent, responses and host rendering with narrowly justified normalization. SDK calls/pre-send XDM/HTTP success alone are insufficient. Native display/interaction notifications and negative controls remain mandatory; asynchronous vendor ingestion/report counters are optional follow-up, not automatically proven by wire conformance.
 
 ## AJO
 Adobe Journey Optimizer. In the Adobe-first Airlock investigation this names Web SDK-connected inbound web/code-based personalization and its delivery/reporting requirements, not every outbound email/SMS/push feature. Product entitlement and configuration are separate from Alloy boot.

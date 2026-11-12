@@ -1,6 +1,6 @@
 ---
 status: DONE
-dependencies: [051-06, adr-0032]
+dependencies: [051-06, adr-0039]
 last_verified: 2026-10-12
 kind: feature
 frame_review: true
@@ -12,7 +12,7 @@ arch_review: false
 **Goal:** An operator can run a secret-safe local checker on recorded final SDK payloads
 and find collection/routing/proposition-reference errors before using them as a stock baseline.
 
-This is a usable evidence-inspection path under ADR-0032, not another live run, baseline
+This is a usable evidence-inspection path under ADR-0039, not another live run, baseline
 plan/apply tool or SDK host. It does not complete 051-02 or establish chamber parity.
 051-06's actual private capture contains `path`, `config_id`, parsed final JSON body,
 response identity and host observations; it does **not** retain full URL/method/headers.
@@ -177,7 +177,7 @@ false even for this actual recorded input. This is not new live SDK or chamber e
 
 ### Implementation / TDD witness
 
-- Entry verified: `READY_FOR_IMPLEMENTATION`, recorded frame `pass`, Accepted ADR-0032.
+- Entry verified: `READY_FOR_IMPLEMENTATION`, recorded frame `pass`, Accepted ADR-0039.
   Workflow helper transitioned this standalone slice to `IN_PROGRESS` before edits.
 - Tests first: `vitest run test/adobe-stock-wire.test.js --reporter=json` witnessed
   **0 passed / 180 failed** before the production module existed. Defined assertions
@@ -204,14 +204,14 @@ false even for this actual recorded input. This is not new live SDK or chamber e
 
 ### Reconciliation sweep
 
-- **Updated:** checker,197-case suite, operator README, open051 index/tasks/board and R-012
+- **Updated:** checker,197-case suite, operator README, open051 index/tasks/board and R-014
   distinguish recorded-field checking from full wire/result/host and chamber acceptance.
   Parent targeted verification passes366 tests and recommended lint has zero findings.
 - **No-op:** frozen runtime/core/connector/vendor bytes, credentials, closed preflight/smoke
   records, original captures and product/report configuration. No new dependency/public
   runtime boundary, convention, decision content or out-of-spec product/UI choice.
 - **No-op:** inbox broader Adobe compatibility and reporting follow-up remain where owned;
-  memory already records ADR-0032 and the native/report evidence distinctions.
+  memory already records ADR-0039 and the native/report evidence distinctions.
 - **Deferred:** full URL/method/header collector, SDK/response/host provenance, real negative
   baseline/performance and actual chamber support belong to051-02/03, not this validator.
   No acceptance gate is satisfied by a success-shaped synthesized capture.

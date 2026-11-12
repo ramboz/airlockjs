@@ -8,7 +8,7 @@ use_cases: [UC-1, UC-2, UC-6, UC-10]
 
 # Spec 056: Adobe product-workflow validation
 
-> Nonblocking follow-up goal under [ADR-0032](../../decisions/adr-0032-airlock-boundary-acceptance.md),
+> Nonblocking follow-up goal under [ADR-0039](../../decisions/adr-0039-airlock-boundary-acceptance.md),
 > owner-approved 2026-10-12. Unsliced DRAFT, not a prerequisite for boundary-qualified v1.0.
 
 ## Overview
@@ -20,7 +20,7 @@ Reuse the collection/personalization implementation; do not create one redundant
 **Resolution trigger:** A concrete adopter need for ingestion/reporting/attribution or a
 suspected downstream discrepancy requiring product evidence. Scope access, configuration,
 cost and operator availability then; no mandatory exports before unrelated implementation.
-Initial Analytics/Target baseline reporting is established at the scope recorded in R-012.
+Initial Analytics/Target baseline reporting is established at the scope recorded in R-014.
 Unverified per-run/click-goal results remain unverified, not discarded or promoted to passes.
 
 ## Intended outcomes
@@ -57,8 +57,8 @@ test configuration, user journey and observable downstream assertion.
 
 Not every product feature, outbound messaging channel, classic at.js/AppMeasurement implementation,
 or arbitrary destination is in scope. Do not narrow the release's product matrix silently when access
-is missing. The owner-approved ADR-0032 release bar explicitly defers downstream qualification;
+is missing. The owner-approved ADR-0039 release bar explicitly defers downstream qualification;
 SDK-facing commands/results/personalization and safety stay in 051-055/057.
-Grounding: [R-012](../../research/R-012-adobe-first-compatibility.md),
+Grounding: [R-014](../../research/R-014-adobe-first-compatibility.md),
 [SDK-facing matrix and follow-up](../../releases/adobe-compatibility.md#3-sdk-facing-scenarios-and-downstream-follow-up).
 No slice ACs or implementation plan authored yet.

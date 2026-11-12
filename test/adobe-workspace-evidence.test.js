@@ -317,7 +317,7 @@ describe("051-04 scoped workspace confirmation", () => {
     expect(report.exit_code).toBe(1);
   });
   it("AC6 leaves the historical real unknown result intact; no fixture can establish live readiness", async () => {
-    const note = await readFile(new URL("../docs/research/R-012-adobe-first-compatibility.md", import.meta.url), "utf8");
+    const note = await readFile(new URL("../docs/research/R-014-adobe-first-compatibility.md", import.meta.url), "utf8");
     expect(note).toContain("exit 1 after 12 bounded requests");
     expect(note).toMatch(/11 required checks ready and `target\.workspace_snapshot` unverified/);
     expect(note).toContain("No SDK traffic, deployment or provisioning ran.");

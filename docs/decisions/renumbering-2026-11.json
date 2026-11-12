@@ -1,0 +1,1004 @@
+[
+ {
+  "kind": "bugs",
+  "old_id": "BUG-001",
+  "slug": "stock-bootstrap-query-isolation",
+  "new_id": "BUG-001",
+  "old_path": "docs/bugs/001-stock-bootstrap-query-isolation.md",
+  "new_path": "docs/bugs/001-stock-bootstrap-query-isolation.md",
+  "sources": [
+   "adobe-adoption-goal"
+  ],
+  "classification": "adobe",
+  "lives": "adobe",
+  "earliest_added": "2026-10-15T18:29:13-07:00",
+  "reviews": []
+ },
+ {
+  "kind": "bugs",
+  "old_id": "BUG-001",
+  "slug": "meta-fbp-wire-redaction",
+  "new_id": "BUG-002",
+  "old_path": "docs/bugs/001-meta-fbp-wire-redaction.md",
+  "new_path": "docs/bugs/002-meta-fbp-wire-redaction.md",
+  "sources": [
+   "google-ads-chamber",
+   "meta-pixel-chamber"
+  ],
+  "classification": "meta",
+  "lives": "meta",
+  "earliest_added": "2026-10-29T10:09:43-07:00",
+  "reviews": []
+ },
+ {
+  "kind": "bugs",
+  "old_id": "BUG-002",
+  "slug": "local-fixture-import-closure",
+  "new_id": "BUG-003",
+  "old_path": "docs/bugs/002-local-fixture-import-closure.md",
+  "new_path": "docs/bugs/003-local-fixture-import-closure.md",
+  "sources": [
+   "google-ads-chamber",
+   "meta-pixel-chamber"
+  ],
+  "classification": "google-meta",
+  "lives": "google+meta",
+  "earliest_added": "2026-11-02T13:38:58-08:00",
+  "reviews": []
+ },
+ {
+  "kind": "bugs",
+  "old_id": "BUG-003",
+  "slug": "shared-host-live-consent",
+  "new_id": "BUG-004",
+  "old_path": "docs/bugs/003-shared-host-live-consent.md",
+  "new_path": "docs/bugs/004-shared-host-live-consent.md",
+  "sources": [
+   "google-ads-chamber",
+   "meta-pixel-chamber"
+  ],
+  "classification": "google-meta",
+  "lives": "google+meta",
+  "earliest_added": "2026-11-02T14:40:18-08:00",
+  "reviews": []
+ },
+ {
+  "kind": "bugs",
+  "old_id": "BUG-002",
+  "slug": "admission-ledger-capacity",
+  "new_id": "BUG-005",
+  "old_path": "docs/bugs/002-admission-ledger-capacity.md",
+  "new_path": "docs/bugs/005-admission-ledger-capacity.md",
+  "sources": [
+   "adobe-adoption-goal"
+  ],
+  "classification": "adobe",
+  "lives": "adobe",
+  "earliest_added": "2026-11-10T11:19:10-08:00",
+  "reviews": []
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0031",
+  "slug": "flicker-by-construction-invariant",
+  "new_id": "ADR-0031",
+  "old_path": "docs/decisions/adr-0031-flicker-by-construction-invariant.md",
+  "new_path": "docs/decisions/adr-0031-flicker-by-construction-invariant.md",
+  "sources": [
+   "personalization-planning"
+  ],
+  "classification": "personalization",
+  "lives": "personalization",
+  "earliest_added": "2026-09-18T09:13:09-07:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0031-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0031-frame-critique.md",
+    "sources": [
+     "personalization-planning"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0032",
+  "slug": "eager-paint-policy-and-flag",
+  "new_id": "ADR-0032",
+  "old_path": "docs/decisions/adr-0032-eager-paint-policy-and-flag.md",
+  "new_path": "docs/decisions/adr-0032-eager-paint-policy-and-flag.md",
+  "sources": [
+   "personalization-planning"
+  ],
+  "classification": "personalization",
+  "lives": "personalization",
+  "earliest_added": "2026-09-18T09:13:10-07:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0032-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0032-frame-critique.md",
+    "sources": [
+     "personalization-planning"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0033",
+  "slug": "proposition-contract-placement-registry",
+  "new_id": "ADR-0033",
+  "old_path": "docs/decisions/adr-0033-proposition-contract-placement-registry.md",
+  "new_path": "docs/decisions/adr-0033-proposition-contract-placement-registry.md",
+  "sources": [
+   "personalization-planning"
+  ],
+  "classification": "personalization",
+  "lives": "personalization",
+  "earliest_added": "2026-09-18T09:13:10-07:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0033-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0033-frame-critique.md",
+    "sources": [
+     "personalization-planning"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0034",
+  "slug": "eager-decision-landing-head-fetch",
+  "new_id": "ADR-0034",
+  "old_path": "docs/decisions/adr-0034-eager-decision-landing-head-fetch.md",
+  "new_path": "docs/decisions/adr-0034-eager-decision-landing-head-fetch.md",
+  "sources": [
+   "personalization-planning"
+  ],
+  "classification": "personalization",
+  "lives": "personalization",
+  "earliest_added": "2026-09-18T09:13:11-07:00",
+  "reviews": []
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0035",
+  "slug": "prerender-seal-hold-speculative-prefetch",
+  "new_id": "ADR-0035",
+  "old_path": "docs/decisions/adr-0035-prerender-seal-hold-speculative-prefetch.md",
+  "new_path": "docs/decisions/adr-0035-prerender-seal-hold-speculative-prefetch.md",
+  "sources": [
+   "personalization-planning"
+  ],
+  "classification": "personalization",
+  "lives": "personalization",
+  "earliest_added": "2026-09-18T09:13:11-07:00",
+  "reviews": []
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0036",
+  "slug": "per-site-composition",
+  "new_id": "ADR-0036",
+  "old_path": "docs/decisions/adr-0036-per-site-composition.md",
+  "new_path": "docs/decisions/adr-0036-per-site-composition.md",
+  "sources": [
+   "personalization-planning"
+  ],
+  "classification": "personalization",
+  "lives": "personalization",
+  "earliest_added": "2026-09-18T10:11:54-07:00",
+  "reviews": []
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0037",
+  "slug": "config-builder-hosting-github-write-path",
+  "new_id": "ADR-0037",
+  "old_path": "docs/decisions/adr-0037-config-builder-hosting-github-write-path.md",
+  "new_path": "docs/decisions/adr-0037-config-builder-hosting-github-write-path.md",
+  "sources": [
+   "personalization-planning"
+  ],
+  "classification": "personalization",
+  "lives": "personalization",
+  "earliest_added": "2026-09-18T10:11:54-07:00",
+  "reviews": []
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0031",
+  "slug": "reframe-onto-adobe-first-compatibility",
+  "new_id": "ADR-0038",
+  "old_path": "docs/decisions/adr-0031-reframe-onto-adobe-first-compatibility.md",
+  "new_path": "docs/decisions/adr-0038-reframe-onto-adobe-first-compatibility.md",
+  "sources": [
+   "origin/main",
+   "adobe-adoption-goal",
+   "google-ads-chamber",
+   "meta-pixel-chamber"
+  ],
+  "classification": "adobe",
+  "lives": "foundation (already on origin/main)",
+  "earliest_added": "2026-10-06T17:45:54-07:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0031-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0038-frame-critique.md",
+    "sources": [
+     "origin/main",
+     "adobe-adoption-goal",
+     "google-ads-chamber",
+     "meta-pixel-chamber"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0032",
+  "slug": "airlock-boundary-acceptance",
+  "new_id": "ADR-0039",
+  "old_path": "docs/decisions/adr-0032-airlock-boundary-acceptance.md",
+  "new_path": "docs/decisions/adr-0039-airlock-boundary-acceptance.md",
+  "sources": [
+   "origin/main",
+   "adobe-adoption-goal",
+   "google-ads-chamber",
+   "meta-pixel-chamber"
+  ],
+  "classification": "project",
+  "lives": "foundation (already on origin/main)",
+  "earliest_added": "2026-10-12T14:09:23-07:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0032-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0039-frame-critique.md",
+    "sources": [
+     "origin/main",
+     "adobe-adoption-goal",
+     "google-ads-chamber",
+     "meta-pixel-chamber"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0033",
+  "slug": "reframe-onto-full-google-meta-compatibility",
+  "new_id": "ADR-0040",
+  "old_path": "docs/decisions/adr-0033-reframe-onto-full-google-meta-compatibility.md",
+  "new_path": "docs/decisions/adr-0040-reframe-onto-full-google-meta-compatibility.md",
+  "sources": [
+   "google-ads-chamber",
+   "meta-pixel-chamber"
+  ],
+  "classification": "google-meta",
+  "lives": "google+meta",
+  "earliest_added": "2026-10-15T16:37:58-07:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0033-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0040-frame-critique.md",
+    "sources": [
+     "google-ads-chamber",
+     "meta-pixel-chamber"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0034",
+  "slug": "inspected-meta-stock-reference",
+  "new_id": "ADR-0041",
+  "old_path": "docs/decisions/adr-0034-inspected-meta-stock-reference.md",
+  "new_path": "docs/decisions/adr-0041-inspected-meta-stock-reference.md",
+  "sources": [
+   "google-ads-chamber",
+   "meta-pixel-chamber"
+  ],
+  "classification": "google-meta",
+  "lives": "google+meta",
+  "earliest_added": "2026-10-20T06:22:48-07:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0034-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0041-frame-critique.md",
+    "sources": [
+     "google-ads-chamber",
+     "meta-pixel-chamber"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0035",
+  "slug": "additional-one-shot-meta-authority",
+  "new_id": "ADR-0042",
+  "old_path": "docs/decisions/adr-0035-additional-one-shot-meta-authority.md",
+  "new_path": "docs/decisions/adr-0042-additional-one-shot-meta-authority.md",
+  "sources": [
+   "google-ads-chamber",
+   "meta-pixel-chamber"
+  ],
+  "classification": "google-meta",
+  "lives": "google+meta",
+  "earliest_added": "2026-10-21T11:39:33-07:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0035-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0042-frame-critique.md",
+    "sources": [
+     "google-ads-chamber",
+     "meta-pixel-chamber"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0038",
+  "slug": "supervised-native-meta-resource-lifecycle",
+  "new_id": "ADR-0043",
+  "old_path": "docs/decisions/adr-0038-supervised-native-meta-resource-lifecycle.md",
+  "new_path": "docs/decisions/adr-0043-supervised-native-meta-resource-lifecycle.md",
+  "sources": [
+   "google-ads-chamber",
+   "meta-pixel-chamber"
+  ],
+  "classification": "google-meta",
+  "lives": "google+meta",
+  "earliest_added": "2026-10-21T15:47:24-07:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0038-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0043-frame-critique.md",
+    "sources": [
+     "google-ads-chamber",
+     "meta-pixel-chamber"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0040",
+  "slug": "isolated-linux-qualification-boundary",
+  "new_id": "ADR-0044",
+  "old_path": "docs/decisions/adr-0040-isolated-linux-qualification-boundary.md",
+  "new_path": "docs/decisions/adr-0044-isolated-linux-qualification-boundary.md",
+  "sources": [
+   "adobe-adoption-goal"
+  ],
+  "classification": "adobe",
+  "lives": "adobe",
+  "earliest_added": "2026-10-26T10:29:00-07:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0040-arch.md",
+    "new_path": "docs/decisions/reviews/adr-0044-arch.md",
+    "sources": [
+     "adobe-adoption-goal"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0040-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0044-frame-critique.md",
+    "sources": [
+     "adobe-adoption-goal"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0041",
+  "slug": "owner-supervised-proving-run",
+  "new_id": "ADR-0045",
+  "old_path": "docs/decisions/adr-0041-owner-supervised-proving-run.md",
+  "new_path": "docs/decisions/adr-0045-owner-supervised-proving-run.md",
+  "sources": [
+   "adobe-adoption-goal"
+  ],
+  "classification": "adobe",
+  "lives": "adobe",
+  "earliest_added": "2026-10-26T11:23:49-07:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0041-arch.md",
+    "new_path": "docs/decisions/reviews/adr-0045-arch.md",
+    "sources": [
+     "adobe-adoption-goal"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0041-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0045-frame-critique.md",
+    "sources": [
+     "adobe-adoption-goal"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0042",
+  "slug": "google-meta-product-delivery-gates",
+  "new_id": "ADR-0046",
+  "old_path": "docs/decisions/adr-0042-google-meta-product-delivery-gates.md",
+  "new_path": "docs/decisions/adr-0046-google-meta-product-delivery-gates.md",
+  "sources": [
+   "google-ads-chamber",
+   "meta-pixel-chamber"
+  ],
+  "classification": "google-meta",
+  "lives": "google+meta",
+  "earliest_added": "2026-10-26T14:31:59-07:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0042-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0046-frame-critique.md",
+    "sources": [
+     "google-ads-chamber",
+     "meta-pixel-chamber"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0042-reconciliation.md",
+    "new_path": "docs/decisions/reviews/adr-0046-reconciliation.md",
+    "sources": [
+     "google-ads-chamber",
+     "meta-pixel-chamber"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0043",
+  "slug": "google-meta-request-authority",
+  "new_id": "ADR-0047",
+  "old_path": "docs/decisions/adr-0043-google-meta-request-authority.md",
+  "new_path": "docs/decisions/adr-0047-google-meta-request-authority.md",
+  "sources": [
+   "google-ads-chamber",
+   "meta-pixel-chamber"
+  ],
+  "classification": "google-meta",
+  "lives": "google+meta",
+  "earliest_added": "2026-11-02T07:39:04-08:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0043-arch.md",
+    "new_path": "docs/decisions/reviews/adr-0047-arch.md",
+    "sources": [
+     "google-ads-chamber",
+     "meta-pixel-chamber"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0043-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0047-frame-critique.md",
+    "sources": [
+     "google-ads-chamber",
+     "meta-pixel-chamber"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0044",
+  "slug": "google-ads-consent-wait",
+  "new_id": "ADR-0048",
+  "old_path": "docs/decisions/adr-0044-google-ads-consent-wait.md",
+  "new_path": "docs/decisions/adr-0048-google-ads-consent-wait.md",
+  "sources": [
+   "google-ads-chamber",
+   "meta-pixel-chamber"
+  ],
+  "classification": "google-meta",
+  "lives": "google+meta",
+  "earliest_added": "2026-11-02T07:39:04-08:00",
+  "reviews": []
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0044",
+  "slug": "fixed-supervised-original-evidence-reads",
+  "new_id": "ADR-0049",
+  "old_path": "docs/decisions/adr-0044-fixed-supervised-original-evidence-reads.md",
+  "new_path": "docs/decisions/adr-0049-fixed-supervised-original-evidence-reads.md",
+  "sources": [
+   "adobe-adoption-goal"
+  ],
+  "classification": "adobe",
+  "lives": "adobe",
+  "earliest_added": "2026-11-02T13:31:21-08:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0044-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0049-frame-critique.md",
+    "sources": [
+     "adobe-adoption-goal"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0045",
+  "slug": "evidence-independent-05109-source-checkpoint",
+  "new_id": "ADR-0050",
+  "old_path": "docs/decisions/adr-0045-evidence-independent-05109-source-checkpoint.md",
+  "new_path": "docs/decisions/adr-0050-evidence-independent-05109-source-checkpoint.md",
+  "sources": [
+   "adobe-adoption-goal"
+  ],
+  "classification": "adobe",
+  "lives": "adobe",
+  "earliest_added": "2026-11-02T16:32:08-08:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0045-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0050-frame-critique.md",
+    "sources": [
+     "adobe-adoption-goal"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0046",
+  "slug": "fresh-native-only-admission",
+  "new_id": "ADR-0051",
+  "old_path": "docs/decisions/adr-0046-fresh-native-only-admission.md",
+  "new_path": "docs/decisions/adr-0051-fresh-native-only-admission.md",
+  "sources": [
+   "adobe-adoption-goal"
+  ],
+  "classification": "adobe",
+  "lives": "adobe",
+  "earliest_added": "2026-11-04T13:49:35-08:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0046-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0051-frame-critique.md",
+    "sources": [
+     "adobe-adoption-goal"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0046-frame-critique-browser-bundle-cleanup-pass.md",
+    "new_path": "docs/decisions/reviews/adr-0051-frame-critique-browser-bundle-cleanup-pass.md",
+    "sources": [
+     "adobe-adoption-goal"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0046-frame-critique-initial-deadline-clearing-pass.md",
+    "new_path": "docs/decisions/reviews/adr-0051-frame-critique-initial-deadline-clearing-pass.md",
+    "sources": [
+     "adobe-adoption-goal"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0046-frame-critique-initial-deadline-needs-changes.md",
+    "new_path": "docs/decisions/reviews/adr-0051-frame-critique-initial-deadline-needs-changes.md",
+    "sources": [
+     "adobe-adoption-goal"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0046-frame-critique-pre-attestation-amendment.md",
+    "new_path": "docs/decisions/reviews/adr-0051-frame-critique-pre-attestation-amendment.md",
+    "sources": [
+     "adobe-adoption-goal"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0046-frame-critique-producer-phase-clearing-pass.md",
+    "new_path": "docs/decisions/reviews/adr-0051-frame-critique-producer-phase-clearing-pass.md",
+    "sources": [
+     "adobe-adoption-goal"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0046-frame-critique-producer-phase-needs-changes.md",
+    "new_path": "docs/decisions/reviews/adr-0051-frame-critique-producer-phase-needs-changes.md",
+    "sources": [
+     "adobe-adoption-goal"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0046-frame-critique-producer-phase-semantic-pass.md",
+    "new_path": "docs/decisions/reviews/adr-0051-frame-critique-producer-phase-semantic-pass.md",
+    "sources": [
+     "adobe-adoption-goal"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0046-frame-critique-qualification-window-needs-changes.md",
+    "new_path": "docs/decisions/reviews/adr-0051-frame-critique-qualification-window-needs-changes.md",
+    "sources": [
+     "adobe-adoption-goal"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0046-frame-critique-safety-window-clearing-pass.md",
+    "new_path": "docs/decisions/reviews/adr-0051-frame-critique-safety-window-clearing-pass.md",
+    "sources": [
+     "adobe-adoption-goal"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0045",
+  "slug": "inspected-google-reference",
+  "new_id": "ADR-0052",
+  "old_path": "docs/decisions/adr-0045-inspected-google-reference.md",
+  "new_path": "docs/decisions/adr-0052-inspected-google-reference.md",
+  "sources": [
+   "google-ads-chamber"
+  ],
+  "classification": "google",
+  "lives": "google",
+  "earliest_added": "2026-11-05T09:37:17-08:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0045-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0052-frame-critique.md",
+    "sources": [
+     "google-ads-chamber"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0047",
+  "slug": "google-manual-residual-cleanup",
+  "new_id": "ADR-0053",
+  "old_path": "docs/decisions/adr-0047-google-manual-residual-cleanup.md",
+  "new_path": "docs/decisions/adr-0053-google-manual-residual-cleanup.md",
+  "sources": [
+   "google-ads-chamber"
+  ],
+  "classification": "google",
+  "lives": "google",
+  "earliest_added": "2026-11-05T15:17:14-08:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0047-arch.md",
+    "new_path": "docs/decisions/reviews/adr-0053-arch.md",
+    "sources": [
+     "google-ads-chamber"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0047-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0053-frame-critique.md",
+    "sources": [
+     "google-ads-chamber"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0048",
+  "slug": "google-retained-local-reject-guard",
+  "new_id": "ADR-0054",
+  "old_path": "docs/decisions/adr-0048-google-retained-local-reject-guard.md",
+  "new_path": "docs/decisions/adr-0054-google-retained-local-reject-guard.md",
+  "sources": [
+   "google-ads-chamber"
+  ],
+  "classification": "google",
+  "lives": "google",
+  "earliest_added": "2026-11-05T20:39:56-08:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0048-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0054-frame-critique.md",
+    "sources": [
+     "google-ads-chamber"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0049",
+  "slug": "meta-local-referrer-storage",
+  "new_id": "ADR-0055",
+  "old_path": "docs/decisions/adr-0049-meta-local-referrer-storage.md",
+  "new_path": "docs/decisions/adr-0055-meta-local-referrer-storage.md",
+  "sources": [
+   "meta-pixel-chamber"
+  ],
+  "classification": "meta",
+  "lives": "meta",
+  "earliest_added": "2026-11-06T14:13:46-08:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0049-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0055-frame-critique.md",
+    "sources": [
+     "meta-pixel-chamber"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0050",
+  "slug": "google-browser-operations",
+  "new_id": "ADR-0056",
+  "old_path": "docs/decisions/adr-0050-google-browser-operations.md",
+  "new_path": "docs/decisions/adr-0056-google-browser-operations.md",
+  "sources": [
+   "google-ads-chamber"
+  ],
+  "classification": "google",
+  "lives": "google",
+  "earliest_added": "2026-11-09T10:57:04-08:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0050-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0056-frame-critique.md",
+    "sources": [
+     "google-ads-chamber"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0051",
+  "slug": "google-local-manual-helper-cleanup",
+  "new_id": "ADR-0057",
+  "old_path": "docs/decisions/adr-0051-google-local-manual-helper-cleanup.md",
+  "new_path": "docs/decisions/adr-0057-google-local-manual-helper-cleanup.md",
+  "sources": [
+   "google-ads-chamber"
+  ],
+  "classification": "google",
+  "lives": "google",
+  "earliest_added": "2026-11-09T14:49:11-08:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0051-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0057-frame-critique.md",
+    "sources": [
+     "google-ads-chamber"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0051-reconciliation.md",
+    "new_path": "docs/decisions/reviews/adr-0057-reconciliation.md",
+    "sources": [
+     "google-ads-chamber"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0052",
+  "slug": "google-local-known-case-stop",
+  "new_id": "ADR-0058",
+  "old_path": "docs/decisions/adr-0052-google-local-known-case-stop.md",
+  "new_path": "docs/decisions/adr-0058-google-local-known-case-stop.md",
+  "sources": [
+   "google-ads-chamber"
+  ],
+  "classification": "google",
+  "lives": "google",
+  "earliest_added": "2026-11-09T15:40:50-08:00",
+  "reviews": [
+   {
+    "old_path": "docs/decisions/reviews/adr-0052-admitted-local-packet-reconciliation.md",
+    "new_path": "docs/decisions/reviews/adr-0058-admitted-local-packet-reconciliation.md",
+    "sources": [
+     "google-ads-chamber"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0052-arch.md",
+    "new_path": "docs/decisions/reviews/adr-0058-arch.md",
+    "sources": [
+     "google-ads-chamber"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0052-compliance.md",
+    "new_path": "docs/decisions/reviews/adr-0058-compliance.md",
+    "sources": [
+     "google-ads-chamber"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0052-craft.md",
+    "new_path": "docs/decisions/reviews/adr-0058-craft.md",
+    "sources": [
+     "google-ads-chamber"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0052-frame-critique.md",
+    "new_path": "docs/decisions/reviews/adr-0058-frame-critique.md",
+    "sources": [
+     "google-ads-chamber"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0052-proxy-disable-arch.md",
+    "new_path": "docs/decisions/reviews/adr-0058-proxy-disable-arch.md",
+    "sources": [
+     "google-ads-chamber"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0052-proxy-disable-compliance.md",
+    "new_path": "docs/decisions/reviews/adr-0058-proxy-disable-compliance.md",
+    "sources": [
+     "google-ads-chamber"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0052-proxy-disable-craft.md",
+    "new_path": "docs/decisions/reviews/adr-0058-proxy-disable-craft.md",
+    "sources": [
+     "google-ads-chamber"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0052-proxy-disable-reconciliation.md",
+    "new_path": "docs/decisions/reviews/adr-0058-proxy-disable-reconciliation.md",
+    "sources": [
+     "google-ads-chamber"
+    ]
+   },
+   {
+    "old_path": "docs/decisions/reviews/adr-0052-reconciliation.md",
+    "new_path": "docs/decisions/reviews/adr-0058-reconciliation.md",
+    "sources": [
+     "google-ads-chamber"
+    ]
+   }
+  ]
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0042",
+  "slug": "remaining-adobe-baseline-execution",
+  "new_id": "ADR-0059",
+  "old_path": "docs/decisions/adr-0042-remaining-adobe-baseline-execution.md",
+  "new_path": "docs/decisions/adr-0059-remaining-adobe-baseline-execution.md",
+  "sources": [
+   "adobe-adoption-goal"
+  ],
+  "classification": "adobe",
+  "lives": "adobe",
+  "earliest_added": "2026-11-10T12:39:26-08:00",
+  "reviews": []
+ },
+ {
+  "kind": "decisions",
+  "old_id": "ADR-0043",
+  "slug": "governed-adobe-sdk-command-bridge",
+  "new_id": "ADR-0060",
+  "old_path": "docs/decisions/adr-0043-governed-adobe-sdk-command-bridge.md",
+  "new_path": "docs/decisions/adr-0060-governed-adobe-sdk-command-bridge.md",
+  "sources": [
+   "adobe-adoption-goal"
+  ],
+  "classification": "adobe",
+  "lives": "adobe",
+  "earliest_added": "2026-11-10T12:39:26-08:00",
+  "reviews": []
+ },
+ {
+  "kind": "research",
+  "old_id": "R-012",
+  "slug": "personalization-experimentation-runtime",
+  "new_id": "R-012",
+  "old_path": "docs/research/R-012-personalization-experimentation-runtime.md",
+  "new_path": "docs/research/R-012-personalization-experimentation-runtime.md",
+  "sources": [
+   "personalization-planning"
+  ],
+  "classification": "personalization",
+  "lives": "personalization",
+  "earliest_added": "2026-09-18T10:02:53-07:00",
+  "reviews": []
+ },
+ {
+  "kind": "research",
+  "old_id": "R-013",
+  "slug": "per-site-chunked-dist-feasibility",
+  "new_id": "R-013",
+  "old_path": "docs/research/R-013-per-site-chunked-dist-feasibility.md",
+  "new_path": "docs/research/R-013-per-site-chunked-dist-feasibility.md",
+  "sources": [
+   "personalization-planning"
+  ],
+  "classification": "personalization",
+  "lives": "personalization",
+  "earliest_added": "2026-09-18T10:11:54-07:00",
+  "reviews": []
+ },
+ {
+  "kind": "research",
+  "old_id": "R-012",
+  "slug": "adobe-first-compatibility",
+  "new_id": "R-014",
+  "old_path": "docs/research/R-012-adobe-first-compatibility.md",
+  "new_path": "docs/research/R-014-adobe-first-compatibility.md",
+  "sources": [
+   "origin/main",
+   "adobe-adoption-goal",
+   "google-ads-chamber",
+   "meta-pixel-chamber"
+  ],
+  "classification": "adobe",
+  "lives": "foundation (already on origin/main)",
+  "earliest_added": "2026-10-06T17:55:38-07:00",
+  "reviews": []
+ },
+ {
+  "kind": "research",
+  "old_id": "R-013",
+  "slug": "google-meta-first-journey-evidence",
+  "new_id": "R-015",
+  "old_path": "docs/research/R-013-google-meta-first-journey-evidence.md",
+  "new_path": "docs/research/R-015-google-meta-first-journey-evidence.md",
+  "sources": [
+   "google-ads-chamber",
+   "meta-pixel-chamber"
+  ],
+  "classification": "google-meta",
+  "lives": "google+meta",
+  "earliest_added": "2026-11-02T07:27:06-08:00",
+  "reviews": []
+ },
+ {
+  "kind": "research",
+  "old_id": "R-014",
+  "slug": "google-meta-request-authority",
+  "new_id": "R-016",
+  "old_path": "docs/research/R-014-google-meta-request-authority.md",
+  "new_path": "docs/research/R-016-google-meta-request-authority.md",
+  "sources": [
+   "google-ads-chamber",
+   "meta-pixel-chamber"
+  ],
+  "classification": "google-meta",
+  "lives": "google+meta",
+  "earliest_added": "2026-11-02T07:27:06-08:00",
+  "reviews": []
+ },
+ {
+  "kind": "research",
+  "old_id": "R-013",
+  "slug": "supervised-adobe-proving-feasibility",
+  "new_id": "R-017",
+  "old_path": "docs/research/R-013-supervised-adobe-proving-feasibility.md",
+  "new_path": "docs/research/R-017-supervised-adobe-proving-feasibility.md",
+  "sources": [
+   "adobe-adoption-goal"
+  ],
+  "classification": "adobe",
+  "lives": "adobe",
+  "earliest_added": "2026-11-10T12:39:26-08:00",
+  "reviews": []
+ }
+]

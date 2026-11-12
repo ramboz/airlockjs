@@ -10,9 +10,9 @@
 `committed`
 
 **Owner-selected direction, 2026-10-06; targets v1.0.0**
-([ADR-0031](../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md)).
+([ADR-0038](../decisions/adr-0038-reframe-onto-adobe-first-compatibility.md)).
 **Acceptance boundary updated by the owner on 2026-10-12**
-([ADR-0032](../decisions/adr-0032-airlock-boundary-acceptance.md)): stock/chamber
+([ADR-0039](../decisions/adr-0039-airlock-boundary-acceptance.md)): stock/chamber
 actual wire, governed egress and real response/rendering are mandatory. Further Adobe
 downstream reporting is a nonblocking follow-up, not a release prerequisite.
 Investigation comes first; this status commits the release direction, not undiscovered APIs, unreviewed
@@ -28,7 +28,7 @@ The former [MVP9](mvp9.md) gate is replaced; its unclosed evidence remains defer
   is the initial compatibility reference, not code to transplant wholesale. It already phases eager
   personalization, lazy analytics and delayed Launch. Compare against that competent baseline.
 - At initial drafting, the owner needed an isolated Target/Analytics setup and API-led discovery.
-  [R-012](../research/R-012-adobe-first-compatibility.md) now records owned fixtures, Analytics queries and scoped Target
+  [R-014](../research/R-014-adobe-first-compatibility.md) now records owned fixtures, Analytics queries and scoped Target
   create/edit/future-only approval and its initial inactive restoration. Later partial stock smoke
   deployed with ordinary Analytics page/custom receipt and native Target wire proof; cumulative
   Target report counts are observed in the owner-confirmed Development environment,
@@ -51,7 +51,7 @@ request; do not pretend the live checkpoint passed.
 
 ### 1. Investigation and owned test environment
 
-- Start [R-012](../research/R-012-adobe-first-compatibility.md): read-only entitlement/resource
+- Start [R-014](../research/R-014-adobe-first-compatibility.md): read-only entitlement/resource
   discovery, then propose a least-privilege setup plan. Prefer OAuth Server-to-Server and supported
   APIs; never paste credentials into chat, code, reports or fixtures.
 - Identify a safe EDS test deployment, an Analytics test report suite, a Target test
@@ -131,7 +131,7 @@ The [reporting follow-up](adobe-reporting-follow-up.md) retains that work and it
 ## JIG Handoff
 
 Use cases: **UC-1, UC-2, UC-4, UC-6, UC-7, UC-8, UC-9, UC-10, UC-11, UC-13, UC-14**.
-R-012 remains the investigation record. The portfolio was drafted through Jig on 2026-10-06:
+R-014 remains the investigation record. The portfolio was drafted through Jig on 2026-10-06:
 
 | Spec | Draft scope | Refinement state |
 |---|---|---|
@@ -140,7 +140,7 @@ R-012 remains the investigation record. The portfolio was drafted through Jig on
 | [053 — Adobe personalization and reporting](../specs/053-adobe-personalization-reporting/spec.md) | Offers/rendering/scopes/views and Adobe-native display/interaction evidence | Unsliced DRAFT; refine from inventory and relevant command contracts |
 | [054 — aem-martech and Launch migration](../specs/054-aem-martech-launch-migration/spec.md) | Adopter instrumentation, ACDL/Launch compatibility, no duplicate initialization | Unsliced DRAFT; depends on the behaviors being migrated |
 | [055 — Adobe consent, identity and delivery lifecycle](../specs/055-adobe-consent-identity-delivery/spec.md) | Revocation, identity continuity, retained/queued work and page/worker/network edges | Unsliced DRAFT; critical safe behavior is pulled into feature slices immediately |
-| [056 — Adobe product-workflow validation](../specs/056-adobe-product-workflow-validation/spec.md) | Nonblocking downstream product/reporting follow-up | Unsliced DRAFT; owner deferred priority under ADR-0032, trigger a concrete adopter need |
+| [056 — Adobe product-workflow validation](../specs/056-adobe-product-workflow-validation/spec.md) | Nonblocking downstream product/reporting follow-up | Unsliced DRAFT; owner deferred priority under ADR-0039, trigger a concrete adopter need |
 | [057 — Adobe adoption, performance and release qualification](../specs/057-adobe-adoption-release-qualification/spec.md) | Install/migrate/measure/update/rollback and complete evidence aggregation | Unsliced DRAFT; numeric bands and feature evidence precede readiness |
 
 Only 051 is refined into executable slice contracts. None is READY_FOR_IMPLEMENTATION, and no
@@ -149,7 +149,7 @@ proceeding after independent reviews under strictly fewer than 10,000 credits ov
 8-active-hour 051-03 budget. This does not clear input/evidence, setup/mutation or baseline gates,
 approve numeric performance bands, or authorize release/publication beyond scoped test plans.
 AJO/CJA/RTCDP provisioning remains deferred for this run; shared SDK semantics remain required.
-ADR-0032 additionally makes downstream outcomes for all products a nonblocking follow-up.
+ADR-0039 additionally makes downstream outcomes for all products a nonblocking follow-up.
 051-01 implements API, scoped owner-evidence and unavailable-automation report bases. Its real
 historical exit-1 report has one workspace unknown. The owner supplied exact profile confirmation;
 new 051-04's schema-v2 report now verifies all 12 required checks with explicit owner evidence.
@@ -163,7 +163,7 @@ Existing specs 012-014, 020, 033-036 are reusable foundations, not the complete 
 [The portable `/goal` brief](adobe-compatibility-goal.md) carries the implementation/review
 workflow and private-input handles. Its current run scope prioritizes Alloy/Target/Analytics;
 AJO/CJA/RTCDP shared SDK behavior remains inventoried; downstream product-workflow reporting is
-a nonblocking follow-up under ADR-0032. Running the
+a nonblocking follow-up under ADR-0039. Running the
 brief is a proposed owner execution grant; committing it does not approve a budget or start a run.
 Credentials, live selectors and raw evidence remain outside Git.
 
@@ -188,6 +188,6 @@ Credentials, live selectors and raw evidence remain outside Git.
   the isolation/redaction rules.
 - Only after these checks (or an explicitly approved revised bar) may **v1.0.0** be cut.
 
-_Release checks remain desired future evidence. R-012 records limited prior admin/setup observations,
+_Release checks remain desired future evidence. R-014 records limited prior admin/setup observations,
 and actual partial stock proof, not full SDK/chamber compatibility. This assurance reframe makes no authenticated calls
 and executes no new compatibility workflow._

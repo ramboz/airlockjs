@@ -9,7 +9,7 @@ describe("051-01 required evidence and exact selectors", () => {
     expect(report.claims.product_outcomes_verified).toBe(false);
   });
   it("AC7 records the real unverified result separately from hermetic and ad-hoc evidence", async () => {
-    const note = await readFile(new URL("../docs/research/R-012-adobe-first-compatibility.md", import.meta.url), "utf8");
+    const note = await readFile(new URL("../docs/research/R-014-adobe-first-compatibility.md", import.meta.url), "utf8");
     expect(note).toContain("051-01 CLI validation: hermetic and real unverified result");
     expect(note).toContain("exit 1 after 12 bounded requests");
     expect(note).toMatch(/11 required checks ready and `target\.workspace_snapshot` unverified/);

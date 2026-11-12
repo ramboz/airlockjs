@@ -9,7 +9,7 @@
 `candidate`
 
 Post-Adobe-first direction; version, appetite and build commitment unassigned.
-Captured 2026-10-06 under [ADR-0031](../decisions/adr-0031-reframe-onto-adobe-first-compatibility.md).
+Captured 2026-10-06 under [ADR-0038](../decisions/adr-0038-reframe-onto-adobe-first-compatibility.md).
 
 ## Problem / Baseline
 
