@@ -150,6 +150,7 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-02 — Consent Mode state carriage (gcs) | **DONE** |  |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-03 — session-state reproduction + `_ga_<stream>` writer (closes OQ13-2) | **DONE** |  |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-04 — batched POST transport (per-cycle event coalescing) | DEFERRED |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-18 - Additional lineage-bound Meta stock case | Owner selects a named 060-01 evidence packet after reviewing R-015 and approves its current setup, source, execution/stop and authority gates. |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-05 — Consent-Mode defaults carriage (gcd derivation) | **DONE** |  |
 | [040-core-egress-batching](040-core-egress-batching/spec.md) | 🔬 040-01 — request-count measurement gate (spike) | **DONE** |  |
 | [040-core-egress-batching](040-core-egress-batching/spec.md) | 040-02 — core coalescing seam (post-verdict, per-cycle, protocol-pluggable) | **DONE** |  |
@@ -188,6 +189,26 @@ every outline and its refinement prerequisites. None is ready for implementation
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-06 — deployed stock smoke journey | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-07 — checking recorded stock wire semantics | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-08 — observing browser request and response bytes | **DONE** |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-01 - Owned direct conversion cutover | READY_FOR_REVIEW (google-ads-chamber) |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-02 - Command routing and callback journeys | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-03 - Consent-respecting measurement journeys | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-04 - Returning and linked journeys | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-05 - Audience and dynamic remarketing journeys | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-06 - Rich purchase and counting journeys | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-07 - Manual enhanced matching journeys | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-08 - Automatic and lead matching journeys | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-09 - Website-call forwarding journey | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-10 - Remote rules and browser lifecycle journeys | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-11 - Mixed-tag migration and rollback | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-12 - Full-portfolio adoption qualification | DRAFT |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-13 - Paired validation admission component | **DONE** |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-14 - Browser admission and original-byte capture controls | **DONE** |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-15 - Exact native policy and one-shot stock capture | IN_PROGRESS |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-16 - SDK-absent chamber capture qualification | **DONE** |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-17 - Offline native-attempt/chamber diagnostic | **DONE** |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-19 - Exercise an offline SDK-free Google conversion | **DONE** |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-20 - Exercise the SDK-free conversion in a local browser | **DONE** |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-21 - Connect a local gtag queue to the conversion chamber | **DONE** |  |
 
 ## Deferred slices
 

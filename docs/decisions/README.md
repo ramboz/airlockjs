@@ -42,8 +42,15 @@
 - [ADR-0040: Full Google Ads and Meta Pixel replacement is the compatibility target](adr-0040-reframe-onto-full-google-meta-compatibility.md) — Google Ads and Meta Pixel must become complete replacements, not a larger collection of partial beacons. (2026-10-15, Accepted)
 - [ADR-0046: Google and Meta product-first delivery gates](adr-0046-google-meta-product-delivery-gates.md) — Build one observable advertising journey at a time, with full replacement as the final bar. (2026-10-26, Accepted)
 - [ADR-0047: Google and Meta request integrity and egress authority](adr-0047-google-meta-request-authority.md) — One trusted first-party worker interprets commands and builds requests; live consent, destination checks and privileged operations stay on the host. (2026-11-02, Accepted)
+- [ADR-0048: Google Ads consent wait, retention and replay](adr-0048-google-ads-consent-wait.md) — Google Ads consent waiting needs a recorded policy decision before implementation. (2026-11-02, Proposed)
+- [ADR-0052: Inspected Google reference for the first conversion](adr-0052-inspected-google-reference.md) — The first Google conversion needs a complete application-layer reference. (2026-11-05, Accepted)
+- [ADR-0053: Google Chrome residual helpers and manual cleanup](adr-0053-google-manual-residual-cleanup.md) — The owner accepts residual Chrome helpers for the bounded Google reference. (2026-11-05, Accepted)
+- [ADR-0054: Google case-owned reject guard until manual cleanup](adr-0054-google-retained-local-reject-guard.md) — The owner permits one case-owned local reject guard until manual cleanup. (2026-11-05, Accepted)
+- [ADR-0056: Private Google browser-managed redirect operations](adr-0056-google-browser-operations.md) — Ordinary browser Fetch hides the intermediate manual redirect response. (2026-11-09, Accepted)
+- [ADR-0057: SDK-free Google local tests with manual helper cleanup](adr-0057-google-local-manual-helper-cleanup.md) — The owner accepts unknown/manual helper cleanup for SDK-free local Google tests. (2026-11-09, Accepted)
+- [ADR-0058: Known-case stop for SDK-free Google local tests](adr-0058-google-local-known-case-stop.md) — The owner chooses known-case closure for SDK-free local Google tests. (2026-11-09, Accepted)
 
-ADR-0031 to ADR-0037 belong to the personalization branch, and the vendor-specific ADRs (0041-0045, 0048-0060) live on their vendor branches. See [renumbering-2026-11.md](renumbering-2026-11.md) for the full old-to-new map.
+ADR-0031 to ADR-0037 belong to the personalization branch, and the other vendor-specific ADRs (0041-0045, 0049-0051, 0055, 0059-0060) live on their vendor branches. See [renumbering-2026-11.md](renumbering-2026-11.md) for the full old-to-new map.
 
 ## Format
 
