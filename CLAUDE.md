@@ -29,8 +29,7 @@ Always-loaded primer, kept lean per jig's context-cost discipline. This is an **
 - More terms belong in [docs/memory/glossary.md](docs/memory/glossary.md), not in this primer.
 
 ### Active specs
-- [051-adobe-integration-proving-ground](docs/specs/051-adobe-integration-proving-ground/spec.md) — IN_PROGRESS; 051-01/04/05/06/07/08 DONE. Recorded-payload checker and passive browser request/response recorder are implemented; initial receipts are preserved. Full 051-02 live/control/performance and actual chamber proof remain; further reporting is nonblocking follow-up. [Operator guide](probes/adobe-compatibility/README.md).
-- **052-057** — unsliced DRAFT outlines for the remaining [Adobe release portfolio](docs/releases/adobe-compatibility.md#jig-handoff); refine after 051 evidence. See [status board](docs/specs/README.md).
+- **Adobe specs 051-057** live on the `vendor-adobe` branch (with the Alloy connector work); the October live-verification probes/tests stay on the archive tags. See [status board](docs/specs/README.md).
 
 ### Deferred decisions
 - See [docs/refinement-todo.md](docs/refinement-todo.md).
@@ -65,37 +64,13 @@ Default to collaborative and solution-forward — answer what's asked, propose r
 ## Current Sprint Focus
 
 **Adobe Compatibility & Adoption -> v1.0.0** ([plan](docs/releases/adobe-compatibility.md),
-[ADR-0038](docs/decisions/adr-0038-reframe-onto-adobe-first-compatibility.md)). Start
-[R-014](docs/research/R-014-adobe-first-compatibility.md): pinned SDK/`aem-martech` inventory and
-API-led access/setup discovery, then one Analytics + Target rendering/reporting proof.
-Analytics reporting, scoped Target create/edit/future-only approval and initial datastream routing
-are verified in R-014; the retained activity's bounded serving window has ended. Routing uses owner UI evidence and saved-pin
-confirmation, not configuration API readback. Real stock smoke executed; client/HTTP evidence
-is not downstream product receipt. Site code is disabled and the bounded activity state is in R-014.
-AJO/CJA/RTCDP are deferred for the initial proving ground, not removed from the release gate.
-No new AEP sandbox is required for the initial baseline with
-Platform ingestion disabled. Complete stock-versus-chamber/product qualification remains open. [Spec 051](docs/specs/051-adobe-integration-proving-ground/spec.md)
-supplies the contracts and reviewed preflight utility. The owner confirmed scoped profile permissions;
-051-04's historical real schema-v2 report verified all 12 preparation checks with explicit manual evidence.
-The owner renewed unchanged setup and delegated dates on 2026-10-12; date-only preparation
-and all twelve required preflight checks now pass. One actual headed stock case rendered the
-owned offer and sent native DISPLAY/INTERACT in five Adobe requests; site code is disabled.
-Ordinary Analytics page/custom receipts are each one in the original interval. A native seven-day
-Target export shows two cumulative Scoped displays in the owner-confirmed Development environment;
-per-run attribution remains unverified.
-The owner moved further product reporting/attribution to nonblocking follow-up (ADR-0039).
-Next work is reviewed stock wire/negative-control/performance baseline then the bounded
-chamber comparison; do not request periodic CSVs or relax native notifications/safety.
-Configuration API diagnosis is stopped; its optional denied access is not the current blocker.
-The local harness runs
-four synthetic cases and never claims vendor SDK/product execution.
-Deployment, scoped activity scheduling/targeting and product observation still require the stock plan.
-The owner approved continued work beyond the original 10,000-credit stop;
-the eight-active-hour cap for 051-03 remains. Independent-review, input/evidence, setup-scope and
-readiness gates remain open. The pinned stock reference declares Alloy 2.31.1/ACDL 3.0.1;
-offline byte provenance is in 051-02, not live SDK proof.
-Current runtime remains v0.8.0; spec 050 is DONE but its live-validation residuals remain open.
-Vendor assurance and granular policy are candidate follow-ons, not silently completed work.
+[ADR-0038](docs/decisions/adr-0038-reframe-onto-adobe-first-compatibility.md)). Research state is in
+[R-014](docs/research/R-014-adobe-first-compatibility.md); acceptance boundary is
+[ADR-0039](docs/decisions/adr-0039-airlock-boundary-acceptance.md). Adobe specs (051-057) and
+vendor-specific code live on `vendor-adobe`; this branch keeps shared code and project-level docs.
+Recorded real-tag request/response fixtures are the per-slice source of truth; live vendor checks
+run once per release. Current runtime remains v0.8.0; spec 050 is DONE but its live-validation
+residuals remain open.
 
 ## Development Conventions
 
