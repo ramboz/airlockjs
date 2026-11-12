@@ -113,6 +113,9 @@
  * defense-in-depth — seam-enforce (trusted) + delegate (idiomatic, but
  * inside the untrusted chamber). Gated on `egressPurposes.length`
  * (back-compat: no purposes wired -> skipped entirely, byte-unchanged).
+ * The host rechecks live consent in the deferred callback before invoking
+ * the capability. It cannot revoke a request already handed to that
+ * capability or enforce consent inside an independently asynchronous transport.
  *
  * Payload strip (spec 020-02 AC3, optional, non-load-bearing): an optional
  * `payloadDenylist` strips denylisted fields from every intercepted
@@ -334,7 +337,8 @@ export function createWrappedSdkHost({
     // (alloy's own pending `sendEvent` promise), not a queued { url, body }
     // beacon like GA4's async seal (017-03) — a pending->hold+flush
     // refinement mirroring that seal is a named follow-on, not built here.
-    if (egressPurposes.length) {
+    function applyConsent(onHold) {
+      if (!egressPurposes.length) return true;
       // AC1 (spec 034-01, ADR-0007) — COARSE-CONSENT SPLIT: consent gating is
       // PER-PURPOSE, not all-or-nothing. `personalization` is the one egress
       // purpose whose query alloy builds PER-EVENT (alloy-core `utils/event.js`'s
@@ -357,8 +361,7 @@ export function createWrappedSdkHost({
       const effectivePurposes = splitPersonalization
         ? egressPurposes.filter((p) => p !== "personalization")
         : egressPurposes;
-      const verdict = egressVerdict(consent, effectivePurposes, { strict: true });
-      if (verdict !== "send") {
+      function hold() {
         state.consentHeld += 1;
         // ALERT (009-02) — redacted: names the governing purpose(s) only,
         // never the resolved identity/XDM values. Reports the full declared
@@ -375,9 +378,10 @@ export function createWrappedSdkHost({
         // HOLD: no real egress. Settle the chamber's pending fetch REJECTED
         // (same shape as the ceiling/config-integrity holds above) so
         // sendEvent rejects instead of hanging — fail-closed.
-        chamber.postMessage({ type: "intercepted-fetch-response", id: m.id, status: 0, statusText: "held at the seal: consent", body: "" });
-        return;
+        onHold();
+        return false;
       }
+      if (egressVerdict(consent, effectivePurposes, { strict: true }) !== "send") return hold();
       // SEND — but if we dropped `personalization` from the gated set, the
       // egress must NOT carry the personalization QUERY (the TRUSTED seam
       // removes it; a compromised chamber is NOT trusted to have omitted it —
@@ -400,7 +404,11 @@ export function createWrappedSdkHost({
         );
         if (strippedBody !== m.body) m = { ...m, body: strippedBody };
       }
+      // The strip diagnostic is an injected callback and may change consent.
+      if (egressVerdict(consent, effectivePurposes, { strict: true }) !== "send") return hold();
+      return true;
     }
+    if (!applyConsent(() => chamber.postMessage({ type: "intercepted-fetch-response", id: m.id, status: 0, statusText: "held at the seal: consent", body: "" }))) return;
 
     // AC3 (spec 020-02) — optional thin defense-in-depth payload strip: gated
     // on a non-empty `payloadDenylist` (back-compat: absent/empty leaves
@@ -418,9 +426,6 @@ export function createWrappedSdkHost({
       if (strippedBody !== m.body) m = { ...m, body: strippedBody };
     }
 
-    state.mainDispatch.count += 1;
-    state.mainDispatch.requests.push({ url: m.url, method: m.method, body: m.body });
-
     let settled = false;
     const respond = (payload) => {
       if (settled) return;
@@ -437,9 +442,19 @@ export function createWrappedSdkHost({
     }, timeoutMs);
 
     Promise.resolve()
-      .then(() => caps.egress.dispatch({ url: m.url, method: m.method, headers: m.headers, body: m.body }))
+      .then(() => {
+        // Consent can change between the initial gate and this continuation.
+        if (!applyConsent(() => respond({ status: 0, statusText: "held at the seal: consent", body: "" }))) {
+          clearTimeout(timer);
+          return;
+        }
+        state.mainDispatch.count += 1;
+        state.mainDispatch.requests.push({ url: m.url, method: m.method, body: m.body });
+        return caps.egress.dispatch({ url: m.url, method: m.method, headers: m.headers, body: m.body });
+      })
       .then((res) => {
         clearTimeout(timer);
+        if (settled) return;
         respond({
           status: (res && res.status) || 0,
           statusText: (res && res.statusText) || "",
