@@ -14,7 +14,9 @@ use_cases: [UC-1, UC-2, UC-6, UC-7, UC-8, UC-10, UC-11]
 > setup are recorded in R-014; the versioned preflight is now implemented and hermetically
 > validated in 051-01. Historical readiness refusals and later owner-confirmed passes are
 > separate. 051-06 deployed real stock smoke; headed ordinary Analytics page/custom receipt is
-> verified, while full wire baseline and chamber proof remain open. ADR-0039 makes
+> verified. A later [configured stock/chamber positive](slice-09-configured-positive-witness.md)
+> returned observed and passed independent read-only verification. Full wire baseline,
+> negative controls and slice acceptance remain open. ADR-0039 makes
 > further downstream reporting nonblocking follow-up, without claiming product processing.
 > Independent implementation/reconciliation reviews passed; 051-01 utility is DONE.
 > This does not clear the real stock baseline gate.
@@ -160,6 +162,14 @@ closed 051-01. The stock baseline depends on its reviewed evidence path and a fr
 - [051-06 — deployed stock smoke journey](slice-06-deployed-stock-smoke.md)
 - [051-07 — checking recorded stock wire semantics](slice-07-recorded-wire-checker.md)
 - [051-08 — observing browser request and response bytes](slice-08-browser-wire-recorder.md)
+- [051-09 — one focused Analytics and Target chamber journey](slice-09-focused-chamber-journey.md)
+  — owner-prioritized on2026-10-26; fixed probe/evidence milestone, not full
+  baseline or SDK compatibility. Source preparation and actual live admission
+  remain separate;051-02/03 criteria and dependencies are preserved.
+  [Replacement R1](slice-09-focused-chamber-journey.md#replacement-r1-source-only-contract-and-completion-bar)
+  uses supplied synthetic records while historical originals are unavailable;
+  its bounded source checkpoint and independent reviews are complete, but new
+  run and retry admission are withdrawn and AC6/7 remain open.
 
 051-07 supplies an end-to-end local capture-inspection operator with fixed redacted
 predicates. Its supplied-record checks do not independently prove network/SDK/DOM

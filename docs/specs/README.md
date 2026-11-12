@@ -20,36 +20,21 @@ slice progress and `workflow.py coverage --project-dir .` for reference coverage
 internal mechanisms can remain unanchored; live-validation residuals and release gates are not retired
 by a DONE slice or a green coverage report.
 
-**Adobe-first portfolio:** [051](051-adobe-integration-proving-ground/spec.md) has an implemented,
-reviewed preflight and owner-confirmation extension, plus a READY_FOR_REVIEW baseline and DRAFT
-spike below. The dedicated-site owner relaxation removes the added targeting/marker prerequisite.
-The historical v1 workspace unknown and v2 twelve-check pass are preserved. The
-historical rerun refused stale source evidence with zero requests. The owner renewed unchanged
-setup confirmation and delegated dates on 2026-10-12. Reviewed date-only preparation and
-all twelve required checks now pass. One actual headed stock case rendered the owned offer
-and sent native notifications in five Adobe requests; test code is disabled and the serving
-window ended. Exact ordinary Analytics page/custom rows each show one in the original interval;
-the received seven-day native Target export shows two cumulative Scoped displays, with
-environment now owner-confirmed as Development; per-run attribution remains unverified.
-Partial-smoke 051-06 is DONE after final
-compliance/reconciliation; complete stock baseline and chamber acceptance remain open.
-Configuration API diagnosis is stopped by the owner; optional automation is not a live blocker.
+**Adobe-first portfolio:** [051](051-adobe-integration-proving-ground/spec.md) remains
+in progress. One [configured stock/chamber positive](051-adobe-integration-proving-ground/slice-09-configured-positive-witness.md)
+is independently verified. Negative controls have reviewed source checkpoints,
+but actual controls, full 051-09 acceptance and the remaining 051-02/03 work
+are open. The [current work queue](051-adobe-integration-proving-ground/tasks.md#current-work-queue--051-09-only)
+links the checkpoints and their limits.
 
-**Owner-approved gate update — 2026-10-12:**
-[ADR-0039](../decisions/adr-0039-airlock-boundary-acceptance.md) makes actual
-stock/chamber wire, governed egress and real response/rendering the acceptance boundary.
-051-02 is re-framed for that baseline; further vendor reporting is 056's nonblocking
-follow-up. No manual export schedule or asynchronous counter is a readiness gate.
-Native notifications, controls, full SDK inventory, adoption and performance remain required.
-051-07's reviewed local checker now validates supplied recorded payloads without echoing
-private content; it does not independently witness SDK/network/DOM/chamber provenance.
-051-08 adds a passive Page recorder with original request bytes and paired responses,
-tested against a real loopback receiving sink. It does not send/enforce/authenticate
-traffic; full live baseline and actual worker qualification remain open.
-051-05's local harness is DONE and does not establish SDK or product execution. Specs 052-057 are
-intentionally unsliced DRAFT outlines, so the generated slice table
-does not list them yet; the [release handoff](../releases/adobe-compatibility.md#jig-handoff) links
-every outline and its refinement prerequisites. None is ready for implementation.
+[ADR-0039](../decisions/adr-0039-airlock-boundary-acceptance.md) requires actual
+stock/chamber wire, governed egress, native notifications and real response and
+rendering. Further reporting is a [nonblocking follow-up](../releases/adobe-reporting-follow-up.md);
+full SDK coverage, adoption and performance remain required. Historical
+preflight and partial-smoke evidence is preserved in the
+[051 task history](051-adobe-integration-proving-ground/tasks.md). Source checks
+do not grant live authority. Specs 052-057 remain unsliced DRAFT outlines in the
+[release handoff](../releases/adobe-compatibility.md#jig-handoff).
 
 | Spec | Slice | Status | Notes |
 |------|-------|--------|-------|

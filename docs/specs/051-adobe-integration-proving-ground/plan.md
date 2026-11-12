@@ -3,6 +3,55 @@
 > DRAFT authoring plan, not permission to call Adobe APIs or provision resources.
 > The slice files carry acceptance criteria and readiness gates.
 
+## Current bounded work queue — replacement R1
+
+The approved source-only checkpoint uses [ADR-0050](../../decisions/adr-0050-evidence-independent-05109-source-checkpoint.md)
+and the [R1 contract](slice-09-focused-chamber-journey.md#replacement-r1-source-only-contract-and-completion-bar).
+Historical originals are unavailable; the former original-backed producer,
+manifest, handoff and assembler are withdrawn as the current assignment, not
+completed. New run and historical retry admission are withdrawn. The bounded
+source checkpoint has passed independent source reviews and
+[reconciliation](reviews/replacement-r1-reconciliation.md); no live operation
+is authorized. Full 051-09 AC6/7 and the SDK/product gates remain open.
+
+## Historical bounded work queue — 2026-10-26 owner checkpoint
+
+**Single active product slice:** [051-09](slice-09-focused-chamber-journey.md).
+**Decision record:** [ADR-0045](../../decisions/adr-0045-owner-supervised-proving-run.md),
+Accepted after the owner's21:38:31.044Z approval. This selects the supervised
+approach, not routing permission or execution readiness.
+This dated checkpoint retains history and standing constraints, not a current
+or parallel assignment.
+
+**Done means:** one actually observed stock/chamber journey with distinct
+Analytics page/custom events, qualified Target rendering, native DISPLAY and
+trusted INTERACT, governed wire/results and an honest stop disposition.
+Source tests or runner mechanics alone cannot finish it.
+
+1. **Routing, source complete:** the owner's21:59:57.102Z permission is
+   implemented under the closed16-destination grant. TDD and scoped
+   compliance/craft/architecture pass;188 controlled tests pass. No actual
+   supplier SDK/browser compatibility is inferred.
+2. **Attended operator, next:** specify/review one fixed foreground pair, independent
+   human-owned stop access and cumulative accounting. No execution framework.
+3. **One proving pair:** only after operator readiness, fresh setup/preflight,
+   served/source pins and exact operational approval; capture and compare the
+   two arms, then stop. Keep full baseline/release obligations separate.
+
+**Approved budget,21:13:51.054Z:** two additional proof contexts, aggregate22;
+at most10 requests for the pair, planned aggregate63 under the unchanged64.
+All original cases/spending and other ceilings remain. Nothing is reserved,
+launched or routing-authorized by that budget approval.
+
+**Scope control for this run:** one step at a time. Before taking a new
+prerequisite, identify the acceptance criterion it unblocks and the smallest
+necessary change; update this slice/decision explicitly rather than opening
+another side project. General Docker/launchd/supervisor work, repeated normal
+host controls and broad SDK-command compatibility are not current tasks.
+Use a30-active-minute checkpoint for the routing increment, charged to the
+existing allowance, not a new budget. Report a concrete blocker instead of
+growing the slice.
+
 ## Current scope and grant
 
 R-014's dated assessments are the operational evidence: Analytics reports work; owned Target

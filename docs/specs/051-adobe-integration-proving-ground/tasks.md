@@ -1,11 +1,29 @@
 # Tasks: Adobe integration proving ground
 
-> 051-01 implementation is hermetically validated (278 preflight tests plus 36 frozen-core tests).
-> 051-01 utility is DONE after independent implementation/reconciliation reviews. The parent-owned real
-> preflight returned unverified, and R-014 distinguishes that result from hermetic tests and
-> prior ad-hoc access/setup evidence.
-> Only spec 051 is sliced; specs 052-057 remain outlines. Owner execution grant: strictly below
-> 10,000 credits overall; 051-03 separately eight active hours. No boxes clear from this grant.
+## Current work queue — 051-09 only
+
+The [configured positive witness](slice-09-configured-positive-witness.md)
+records one independently verified stock/chamber pair. The
+[finite negative controls](slice-09-finite-control-contract.md) are accepted
+for source-only implementation. The [no-offer](slice-09-no-offer-source-witness.md),
+[non-render](slice-09-non-render-source-witness.md), and
+[no-consent](slice-09-no-consent-source-witness.md) source checkpoints passed
+scoped reviews but remain blocked from START and observed results. Traffic remains gated. Full 051-09
+acceptance and 051-02/03 remain open.
+
+Routing-continuity source support and its remaining live-input gates are indexed in
+[project memory](../../memory/learnings.md#routing-continuity-source-support-does-not-clear-live-gates).
+
+ADR-0050 selects the bounded source checkpoint, not a run. Original-backed C
+producer/manifest/handoff/assembler work is withdrawn from the current queue;
+its original bar remains unmet.
+
+- [x] Independently review and reconcile the bounded R1 source checkpoint;
+      this does not qualify live effects.
+- [x] Scope and verify the one configured actual positive pair, including its
+      source, SDK provenance and independent stop.
+- [ ] Complete required controls and remaining 051-09 AC6/7 under their
+      applicable gates. Old budgets and routing grants are not a new run.
 
 ## 051-01 — read-only access preflight
 

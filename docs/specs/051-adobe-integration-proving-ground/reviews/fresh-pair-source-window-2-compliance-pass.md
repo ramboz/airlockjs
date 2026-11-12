@@ -1,0 +1,36 @@
+---
+slice: 051-09
+pass: compliance
+verdict: pass
+reviewer: gpt-6.1-sol
+reviewed_at: 2026-11-04T16:18:03Z
+prompt_source: coordinator-supplied same-reviewer new-window independent Sol source compliance back-edge
+reviewed_checkpoint: 89d72c4c7402e4ba5ecac4735fc6ab3b9db74098
+---
+
+<!-- BEGIN VERDICT -->
+VERDICT: pass
+
+REASONING:
+The immutable candidate closes both findings from this reviewer's first pass and retains the previously checked supplemental source constraints. Each indexed admission must now be no later than its own observed response, and the original stock host identity must exactly match the selected original proposition. The coupled command, wire, response, qualified-render and native-notification joins remain intact; no additional blocking issue was found within this supplemental SOURCE compliance scope. This pass establishes neither actual SDK compatibility nor execution readiness.
+
+SPECIFIC ISSUES:
+None blocking within the supplemental SOURCE compliance scope.
+
+RECONCILIATION NOTES:
+- Finding disposition: `probes/adobe-compatibility/fresh-pair-wire.mjs:130-141` now rejects an admission after its own response while preserving millisecond equality and allowing admission/request-observation times to differ. The unchanged protected checker binds that indexed admission and native body witness to the request by UUID, URL/body hashes, ordinal, method/content type, length and matching witness timestamp. `:169-175` now joins the complete original stock host identity to proposition id, scope and scopeDetails, in addition to the existing original SDK response, qualified/applied HTML and native notification checks. The prior fetch-XDM/name and next-request/prior-observed-response repairs remain intact.
+- Supplemental criterion 1 is met at the declared source-inspection level: bounded descriptor-safe inputs, closed private resource declarations, fixed finite two-arm/five-request limits, current metadata/configuration bounds, one inspection instant, capture-window and admission/response consistency, asset declaration matching and public-safe category output. Supplied metadata remains private input, not a Job, Prepared record, owner approval, authoritative current setup or proof of unused allocation. Declared asset matching and supplied-byte hashing remain explicitly separate from actual received/deployed/debugger-line provenance.
+- Supplemental criterion 2 is met at the supplied-record level: one exact POC root URL, preserved google-ads=off/meta-pixel=off guards, equal page/custom input labels, distinct private arm correlation, strict original command validation, fixed consent/fetch/page/custom/INTERACT ordering, full fixed fetch-XDM correspondence and unnormalized original request/response-body comparison. Response proposition, selected activity/experience, offer hash, original stock host identity, qualified/applied HTML and DISPLAY/INTERACT identity checks remain joined. No page URL or proposition identity is normalized to conceal differences.
+- Supplemental criterion 3 is met at the source-wiring level: the exact POC-plus-fixture host boundary, typed matching browser context, two ordered cookie candidates, observed stock/chamber cookie traces, fixed original stock observer path and chamber measured-input wiring remain present. Original SDK results and rejection observations remain distinct from wrapper/initialize/render host facts; original consent results are retained. The existing recorder, admission and native-body-witness shapes and protected checker are reused without changing core/default grants, endpoint/tenant fences, SDK bytes or historical run/retry refusals. Native timing, complete awaited response delivery, paint, trusted input, actual SDK command shape/serialization and actual deployed/debugger binding remain unqualified.
+- Supplemental criteria 4 and 5 remain satisfied only at their declared source level: deterministic experience selection, complete authoritative baseline restoration and conflict escalation are proposed future procedures. Independently callable enter/stop exports remain unconditionally blocked without inspecting caller input or performing effects. No selection, restoration, admission, resume, retry, native stop/lifetime, caller-loss or filesystem-race qualification follows. Current preflight/manual permission and routing evidence, exact live authority/allocation and operator/native ownership gates remain open.
+- The complete source-base path set and this four-file back-edge preserve original full-slice obligations, protected operator/core/default/SDK and historical evidence boundaries. No new sandbox, generic command broker, custody platform or runner is introduced. The new source-specific record preserves this reviewer's complete earlier adverse body and metadata; both older adverse compliance records, frame history and document-only reconciliation passes remain historical and do not clear themselves. This supplemental PASS does not replace historical C FAIL, promote 051-09 from IN_PROGRESS, or establish full-slice, live, EDS-adoption or release acceptance. Required craft, architecture and reconciliation reviews remain separate.
+- I read all five newly handed-off synthetic logs and verified their SHA-256 values against the candidate witness, together with the changed source/test hashes. Both RED logs show behavioral assertion failures against the prior candidate; both targeted GREEN logs pass the same selectors, and the named two-file unit log records 24 passing synthetic tests. The authored cases cover all five admission/response boundaries in both arms, equality at recorder precision, a nonidentical earlier admission, and changed/missing/null/extra stock identity fields. These are source consistency evidence, not actual vendor or native proof; I executed no tests or SDK/browser/native probes.
+- Preserve the accidental synthetic SDK-double test selection as excluded acceptance evidence and the earlier source commit's one-command pre-commit bypass as a skipped hook. Later normal gitleaks cannot retroactively qualify that skipped hook or source commit. The witness's false executionReady/actualEvidence/provenance claims and all earlier consumed allocations and residual UNKNOWNs remain. No historical-original survey, external research, credentials/network/resource/site action, write, commit, agent or lifecycle/ADR acceptance was performed in this review.
+
+END OF VERDICT BODY
+
+reviewed_checkpoint: 89d72c4c7402e4ba5ecac4735fc6ab3b9db74098
+completed_at_utc: 2026-11-04T16:18:03Z
+model: GPT-6.1 Sol (model ID: gpt-6.1-sol)
+scope: Same-task new-window supplemental fresh-pair SOURCE compliance back-edge by the existing native5/8 reviewer. Reviewed immutable local candidate objects, exact da6419aa03c812fb96b372f5cc370ab1532ecdf5..89d72c4c7402e4ba5ecac4735fc6ab3b9db74098 repair, complete source-base73d75613e306f78db17ea85e36d5028bcedd5412 scope previously reviewed in this session and coupled changed/unchanged behavior. Own checkout remained clean and unchanged at da6419aa03c812fb96b372f5cc370ab1532ecdf5 at start and finish; no checkout/reset or other-worktree reads. Supplemental source compliance only, not full05109, SDK/live, EDS-adoption, release or authority acceptance. Reporting complete; stopping. No new session or time grant.
+<!-- END VERDICT -->

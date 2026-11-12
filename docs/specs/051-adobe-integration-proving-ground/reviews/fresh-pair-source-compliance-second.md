@@ -1,0 +1,37 @@
+---
+slice: 051-09
+pass: compliance
+verdict: needs-changes
+reviewer: gpt-6.1-sol
+reviewed_at: 2026-11-04T15:14:29Z
+prompt_source: coordinator-supplied second independent Sol fresh-pair source implementation compliance pass
+reviewed_checkpoint: 1e473a8a0f4a3dfd945503ca0a9889a8fa86afef
+---
+
+<!-- BEGIN VERDICT -->
+VERDICT: needs-changes
+
+REASONING:
+The candidate materially addresses the first pass: complete supplied command objects are checked, wire event types must follow the fixed sequence, initialize/render results are validated, and capture intervals are bound to the inspected metadata/configuration window and one inspection instant. However, the fetch command-to-wire join still drops a substantive original field, and ordinal event order still accepts timestamps contradicting the awaited journey. These remaining source-checkable gaps prevent clearing the supplemental source contract; neither finding requires live or vendor evidence.
+
+SPECIFIC ISSUES:
+1. High confidence — `probes/adobe-compatibility/fresh-pair-wire.mjs:92-93,154-157`: the expected original fetch command includes `xdm.web.webPageDetails.name: "airlock-stock-v1"`, but its HTTP join checks only URL and decisionScopes. Unlike the other event branches, it never checks that original fetch name against the recorded event. Both arms can therefore contain the same missing or different fetch name, with matching updated admission/body hashes and counts, while the strict original command remains unchanged. The inherited wire checker also does not constrain that fetch field (`probes/adobe-compatibility/stock-wire-check.mjs:184-189`), and the new positive fixture actually omits it (`test/helpers/adobe-supervised-source-fixture.js:24-26`, `test/adobe-fresh-pair-controller.test.js:110-114`). This is still an incomplete original-command/serialized-wire join, not an actual-SDK compatibility question. Bind all fixed supplied fetch XDM fields, including its original name, without replacing the original records; use a coherent positive fixture and a causal missing/changed-name negative case.
+2. High confidence — `probes/adobe-compatibility/fresh-pair-wire.mjs:62-71,128-152`: request/response times are checked individually and against the outer window, but not against the preceding awaited operation. A capture whose DISPLAY-bearing page request precedes the fetch response still passes if its array has the correct event types. The positive fixture demonstrates the gap: every request is at `00:15:00.000Z` and every response at `00:15:00.001Z` (`test/adobe-fresh-pair-controller.test.js:133-140`), so page/DISPLAY precedes the proposition response, and INTERACT precedes the custom response, despite a supposedly completed sequential journey. Require causal timing consistency for the fixed awaited chain, retaining recorder precision rather than inventing browser timing. Add a plausible positive timeline and a coherent in-window negative case with a next operation before its prerequisite response. This is validation of contradictory supplied observations, not proof of actual paint, trusted input or native lifetime.
+
+RECONCILIATION NOTES:
+- First-pass disposition: strict full-command equality now rejects changed URLs, identities, consent, scopes, labels, render options and extra command fields. The new exact event-type sequence rejects coherent custom/INTERACT permutation. Exact initialize/render host-result checks close the previously identified contradictory render-result case. Passing the same captured `now` and inspected validity bounds closes the previously identified stale/future capture-window gap. Those fixes are real, but do not close the two coupled omissions above.
+- Supplemental criterion 1: bounded descriptor-safe inputs, private/public separation, fixed finite caps, matching resource and asset declarations, expiry categories and current capture-window bounds remain present. Resource declarations are not current authoritative setup reads. Supplied-byte hashing, declared pins and actual served/deployed/debugger provenance remain distinct; actual provenance stays false.
+- Supplemental criterion 2: exact shared root URL and event labels, both third-party-off query guards, distinct private arm correlation, unnormalized original body comparison and response/proposition/offer binding are preserved. The original fetch-name/HTTP join remains incomplete as finding 1 states.
+- Supplemental criterion 3: the exact POC-plus-fixture host boundary, typed matching context, two ordered cookie candidates, observed stock/chamber cookie traces, fixed original stock observer path, original SDK results/rejections and real recorder/admission/native-body-witness shapes remain wired. Native DISPLAY/INTERACT predicates and qualified/applied HTML checks remain; supplied causal notification timing is still insufficient as finding 2 states. Actual SDK command-shape and serialization compatibility remain unverified, not silently established by the strict synthetic expectations.
+- Supplemental criteria 4 and 5 remain satisfied only at their declared source level: deterministic selection, complete baseline restoration and conflict escalation are proposed procedures; entry and independently callable stop remain unconditionally blocked. No mutation, admission, resume, retry, native-stop/lifetime or caller-loss qualification follows.
+- The full source-base-to-candidate path list and remediation delta preserve protected historical operator/run/retry behavior, roots, original full-slice obligations, core/default grants and endpoint/tenant fences. No second sandbox, generic execution platform or SDK-byte change is introduced. The first adverse compliance body is preserved in the new source-specific record; prior partial witnesses and the accidental SDK-double selection remain visible and are not acceptance evidence.
+- I read all explicitly supplied command, full-command, order, render and window RED/GREEN logs, the final window log and the final two-file unit log. They show actual behavioral assertion REDs and later selected GREENs; the final log records 20 passing synthetic tests. They do not cover the two remaining cases above. I ran no tests, SDK evaluation, browser/native probe, credentials/network or effects and authored no files. The writer reports hooks disabled for this commit and explicit syntax/lint/unit checks; this review does not claim hidden hook success or independent execution of those checks.
+- Required source reviews/reconciliation remain uncleared. Historical C FAIL, full 051-09 IN_PROGRESS, actual measurement/served-byte proof, current preflight/manual permission and routing evidence, accepted fresh admission, exact owner live authority/allocation and independent native ownership/stop gates remain unchanged. No source or full-slice promotion follows from this final pass.
+
+END OF VERDICT BODY
+
+reviewed_checkpoint: 1e473a8a0f4a3dfd945503ca0a9889a8fa86afef
+completed_at_utc: 2026-11-04T15:14:29Z
+model: GPT-6.1 Sol (model ID: gpt-6.1-sol)
+scope: SECOND AND FINAL independent read-only supplemental fresh-pair SOURCE compliance pass. Reviewed immutable local candidate Git objects against source base 73d75613e306f78db17ea85e36d5028bcedd5412, with focused first-pass-to-candidate remediation and coupled unchanged seams. Own checkout remained clean at f95e63a242fbfd7976261190572407a9801c08f1 throughout; no checkout/reset or previous-worktree/history reads. No full05109, SDK/live, EDS-adoption or release acceptance. Stopping; no third pass.
+<!-- END VERDICT -->

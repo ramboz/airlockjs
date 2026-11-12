@@ -682,3 +682,70 @@ Production schemas, code, authority, unknown workspace state and source observat
 
 - [x] Regenerate the status board through Jig and retain the live-access caveat in its notes.
 - [x] Record any unresolved permission/API limitation without making 051-02 ready.
+
+> ### Amendment, 2026-11-06: owner continuity for the selected POC
+>
+> For the selected owner-designated POC only, a separately versioned
+> `owner-continuity` routing-evidence path may be used instead of obtaining
+> new routing screenshots. The path requires the unchanged original version 1
+> owner UI and saved-pin baseline and a separately recorded, current owner
+> confirmation that the complete baseline configuration remains unchanged.
+> The original source and its observation, assessment, pin-confirmation and
+> expiry timestamps remain unchanged and retain their historical meaning.
+> The three original screenshot digests are provenance for that historical
+> baseline, not evidence that a new screenshot was taken.
+>
+> The trusted operator must bind the exact original baseline bytes and its
+> authority and source references to the new confirmation. A future,
+> separately approved preparation may make a protected byte-identical
+> snapshot in its fixed job-directory role. It remains a copy of the
+> historical baseline, including the unchanged historical token-comparison
+> digest, and its copy time is not an observation or confirmation time.
+> The original remains in place. The confirmation
+> must be an actual owner event with its original timestamp, source and exact
+> selected baseline binding. It must cover the selected datastream, complete
+> service inventory, the single selected Analytics suite, the selected Target
+> property, workspace and exact saved environment pin, and all other version 1
+> routing selectors. The owner statement and its binding must be traceable to
+> the original event, not generated from a boolean or from a copied old record.
+> An unavailable response, a digest alone, a changed selector or an unsupported
+> service cannot establish continuity.
+>
+> Continuity is valid no earlier than the actual confirmation and no later than
+> the earliest of its explicit expiry, 24 hours after confirmation, the current
+> approved scope and operation deadlines, and all independent earlier expiry
+> and cleanup limits. It must cover the complete required run and cleanup. No
+> old screenshot, approval, resource designation, grant, allowance or activity
+> window is renewed. Any known or suspected credential, resource, routing or
+> pin change invalidates continuity and requires fresh appropriate evidence.
+>
+> Before using that baseline, validate its historical meaning separately from
+> current freshness: original observation must precede or equal the saved-pin
+> acknowledgment, which must precede or equal aggregate assessment, which must
+> precede original expiry. Require the complete original selectors, provenance,
+> inventory, single suite, saved pin and false configuration-API-read assertion.
+> Do not evaluate the expired v1 record as currently ready.
+>
+> Fresh required property and environment reads, exact selector comparisons,
+> the in-memory comparison of the fresh selected-property token with the
+> protected baseline digest, and all existing preflight checks remain required.
+> The fresh token, computed token hash and raw property response remain in
+> memory and are not written to reports, logs, job inputs or witnesses. The
+> existing historical digest remains only in the protected original baseline
+> and any explicitly approved byte-identical protected baseline snapshot.
+> Historical token and screenshot digests are not current API or UI reads.
+>
+> A public report must identify this basis as `owner_continuity`, not
+> `owner_ui_confirmation` or `api_read`, and must not expose selectors,
+> private references, confirmation content, token material or token hashes.
+> It does not claim configuration API success, deployment, write authority,
+> native coverage, product delivery, or run admission. Missing or stale
+> continuity is unverified. A mismatched binding, known unsafe configuration,
+> or an explicit unsaved pin is blocked. Malformed or unknown schema is invalid
+> input. These classifications do not relax existing version 1 behavior.
+>
+> Owner-selection freshness and resource designation, credential identity,
+> current setup and grants, operator presence, allocation, native coverage,
+> finite cohorts, independent START refusal, STOP and cleanup, and all
+> remaining approval and safety checks remain separate. This amendment grants
+> none of them and does not reopen a historical allocation.
