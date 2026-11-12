@@ -6,7 +6,7 @@
  * unrelated descriptor through the same `diffParity`).
  *
  * The reference field set is the CONTAINER's (documented Meta `/tr` params — `id`/`ev`, the
- * `cd[...]` event-data namespace, `_fbp`/`fbc`, `ud[...]`), never airlock's own `meta.js` config —
+ * `cd[...]` event-data namespace, `fbp`/`fbc`, `ud[...]`), never airlock's own `meta.js` config —
  * grounding it in the artifact under test would blind the oracle to exactly the fields airlock
  * drops (spec 038 § "The oracle", the frame-critique's central correction).
  *
@@ -23,6 +23,7 @@
  * as a real `maps` match against this descriptor's `attributionFields` below.
  */
 import { createMetaPixelConfig, META_TR_ENDPOINT } from "../../../connectors/pixel/vendors/meta.js";
+import { isUnverifiableMetaCookieIdentity, redactMetaBeacon } from "../redact.js";
 
 // The reverse of meta.js's OWN eventMap (site event -> Meta event name), so the capture ->
 // logical-event derivation below can never drift out of sync with the shipped connector config.
@@ -37,7 +38,7 @@ export const metaParityDescriptor = {
 
   // The container's CURATED, documented Meta /tr attribution-bearing field set — id/ev (routing
   // + attribution), the four documented cd[...] event-data params, first-party cookie identity
-  // (_fbp/fbc), and hashed advanced-matching (ud[...]). NOT every wire field fbevents.js could
+  // (fbp/fbc), and hashed advanced-matching (ud[...]). NOT every wire field fbevents.js could
   // ever send — deliberately curated (spec 038-01 AC3).
   //
   // ud[external_id] (spec 038-04 AC1): 026-04 shipped the capability to emit it
@@ -58,11 +59,8 @@ export const metaParityDescriptor = {
   // emits none of them (only ud[external_id]) — see
   // test/fixtures/meta-tr-pageview.redacted.json's _ud_note.
   //
-  // WIRE-NAME FOLLOW-UP (spec 038-04 AC4 — a pre-existing 038-01 gap, not fixed by this slice):
-  // the real capture's first-party cookie query param is `fbp` (no underscore), but this
-  // descriptor (and redactMetaBeacon) key on `_fbp` — so `_fbp` never matches against a real
-  // capture's field set today, only against the synthetic fixture below (which uses `_fbp`).
-  // Named, not rabbit-holed.
+  // The observed wire field is `fbp`; `_fbp` is retained independently for the
+  // historical synthetic fixture. They are never mapped to one another.
   attributionFields: [
     "id",
     "ev",
@@ -70,6 +68,7 @@ export const metaParityDescriptor = {
     "cd[currency]",
     "cd[content_name]",
     "cd[content_category]",
+    "fbp",
     "_fbp",
     "fbc",
     "ud[em]",
@@ -83,10 +82,16 @@ export const metaParityDescriptor = {
   normaliseDenylist: ["rdp", "v", "dl", "ts", "cb"],
 
   // The same-protocol descriptor's MINIMAL wire-name table (spec 038 "two descriptor kinds") —
-  // empty for Meta. id/ev/_fbp/fbc/ud[...] are already 1:1 by name; the cd[...] namespace is ALSO
+  // empty for Meta. id/ev/fbp/_fbp/fbc/ud[...] are compared by exact name; the cd[...] namespace is ALSO
   // 1:1 by name now that meta.js emits it directly (spec 026-06) — no translation needed either
   // way (identity, not a gap-map member — see the module doc comment above).
   wireNameMap: {},
+
+  isUnverifiableValue: isUnverifiableMetaCookieIdentity,
+
+  redactReportField(field, value) {
+    return redactMetaBeacon({ [field]: value })[field];
+  },
 
   // ADR-0020 commitment 1 — every dropped attribution field owned by a named closing artifact.
   // The four cd[...] fields (value/currency/content_name/content_category) were REMOVED from here
@@ -103,6 +108,7 @@ export const metaParityDescriptor = {
   // advanced matching) follow-ups) for the resolution trigger. They stay green
   // (`expected-dropped`), never `maps`.
   gapMap: {
+    fbp: { owner: "chamber cookie-capability follow-up" },
     _fbp: { owner: "chamber cookie-capability follow-up" },
     fbc: { owner: "chamber cookie-capability follow-up" },
     "ud[em]": { owner: "signed-in ud[em]/ph live-capture follow-up" },
@@ -111,13 +117,13 @@ export const metaParityDescriptor = {
 
   // spec 038-03's transport declaration (feeds ADR-0018 E10, ADR-0020 commitment 3): Meta's
   // THIRD-PARTY cross-site cookie (`fr`, set on facebook.com — opaque to page JS, absent from the
-  // beacon URL, owner E10) and its FIRST-PARTY identity fields (`_fbp`/`fbc`, publisher-origin
-  // cookies fbevents.js sets). Owner for the first-party fields is deliberately NOT declared here —
+  // beacon URL, owner E10) and its FIRST-PARTY identity wire fields (`fbp`/`fbc`, derived from
+  // publisher-origin cookies). Owner for the first-party fields is deliberately NOT declared here —
   // rig/parity/transport-report.js reads it from THIS descriptor's own `gapMap` above, so the two
   // can never drift apart.
   transport: {
     crossSiteCookies: [{ cookie: "fr", owner: "E10" }],
-    firstPartyIdentity: ["_fbp", "fbc"],
+    firstPartyIdentity: ["fbp", "fbc"],
   },
 
   /**

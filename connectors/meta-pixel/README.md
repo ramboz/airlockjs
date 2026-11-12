@@ -1,0 +1,575 @@
+# Experimental offline PageView prototype
+
+This SDK-free source entry exercises capture → real worker → governed local GET
+→ independently observed receipt. It is **not Meta Pixel compatibility**, an
+eight-field product subset, a production boot, or a browser qualification.
+`bootMetaPixel`, builds, installed handles and stable contracts are unchanged.
+
+Command capture inspects event records synchronously on the main thread.
+It enumerates own keys before rejecting an oversized record, and JavaScript
+proxy traps can run during inspection even though ordinary getters are
+rejected. The accepted field limits therefore do not bound worst-case
+main-thread work or establish isolation from untrusted input. Use controlled
+synthetic inputs; Core Web Vitals qualification remains open.
+
+Run the first-party Node example (no browser, SDK or external requests):
+
+```sh
+/opt/homebrew/Cellar/node/24.10.0/bin/node rig/meta-pageview-prototype.mjs
+```
+
+It binds only `127.0.0.1` on an ephemeral port, runs the actual module worker
+through a fixed `worker_threads` bridge, and closes its worker/server/sockets.
+The historical fixture's document URL is captured **as data**, never fetched.
+Output contains field names/types/dispositions, not identity or URL values.
+Receiver arrivals, host attempts and command completion are separate evidence.
+The gap report always remains inconclusive.
+
+## Standalone source seam
+
+Import `createMetaPixelPrototype` from `adapters/meta-pixel-prototype.js`.
+Supply `endpoint: "http://127.0.0.1:<port>/tr/"` explicitly and a trusted
+`consent: { ad_storage: "granted" | "pending" | "denied" }`. Missing consent
+holds. There is no remote default. The browser default creates a module Worker;
+this path is source-only and **not browser-tested**. Node tests inject a real
+`{ postMessage, onMessage, onError, dispose }` bridge to the same worker entry.
+`adapter.ready()` resolves with the current redacted state after the first
+configured or terminal transition; it does not guarantee future worker health.
+
+**Known local integrity gap:** the host enforces loopback destination and
+consent, and some modes validate worker request sequencing and result shape.
+It does not independently correlate the worker's request event, target or data
+with the active captured command. A synthetic fake worker can substitute
+these fields or add query fields and still obtain a `transport-settled`
+outcome from a mock transport. A matching summary is not proof of request
+contents. `test/meta-prototype-request-correlation.test.js` characterizes
+this current gap, including consent holds; it is not a protection test. The
+prototype must not be used as evidence of integrity against a compromised
+worker. The open [060-01](../../docs/specs/060-meta-pixel-full-compatibility/slice-01-pageview-entry.md)
+boundary and acceptance criteria remain unfulfilled.
+
+[Accepted ADR-0047](../../docs/decisions/adr-0047-google-meta-request-authority.md)
+selects one trusted first-party mapper with host-owned privileged operations
+and separate browser admission/evaluation. This standalone source path uses
+that trust choice; it does not provide integrity against a malicious mapper.
+An independent verifier remains an alternative for a different threat model,
+not a default second worker. Production boundary fit and native/browser
+qualification remain open. A worker-supplied marker or hash alone does not
+independently bind request contents.
+
+### Governed local persisted referrer
+
+[060-18](../../docs/specs/060-meta-pixel-full-compatibility/slice-18-governed-referrer-storage.md)
+adds `experimentalPageViewReferrer`, default false, under
+[Accepted ADR-0055](../../docs/decisions/adr-0055-meta-local-referrer-storage.md).
+The local implementation has fresh Sol compliance, craft and architecture
+passes at `38b79748`; it is not a native or production compatibility claim.
+
+Enabled adapter use requires a host-owned
+`referrerStorageBinding: { origin, window }`. The origin is one canonical
+`http://127.0.0.1:<port>` value and the window is the trusted backing object,
+never transferred to the worker. Noncanonical origins, aliases, other schemes,
+ports outside 1-65535 and explicit default port `:80` reject. Both live/owned
+factories reject the feature/binding. A binding supplied while the feature is
+off also rejects. The connector receives only mediated get/set/remove methods,
+not the backing object or general storage authority.
+
+Only `lastExternalReferrer` and `lastExternalReferrerTime` may be read/written;
+removal is expiry-only. Values are null or at most 16 ASCII bytes, with at most
+eight primitive operations during one installation sample. Explicit host
+`ad_storage` and admitted tag permission intersect. UA/XHR availability are
+captured only for a granted initialization and interpreted in the worker.
+They are not persisted or sent.
+
+The worker owns category, epoch time, exact greater-than-90-day expiry and
+once-only caching. Absent or external referrer refreshes the pair; same-host
+navigation preserves both values and time, including legitimate missing
+category. PageView does not resample. Malformed/partial/future state rejects;
+an unknown bounded category with valid time maps to `other`. Revocation clears
+the worker sample and invalidates queued/prepared work without deleting denied
+storage. Regrant does not revive the sample or replay events.
+
+Storage outcomes are fixed dispositions and issued-operation/effect counts.
+Effect counts include issued mutation attempts that throw or time out, not
+confirmed stored changes. A non-ok response closes further sampling access.
+They are not proof that every effect applied atomically. Exceptions, partial
+writes/removals and readback mismatches remain failures without automatic
+repair, rollback, retry or a fabricated category. The separate `_fbp` opt-in
+is not authority for these keys.
+
+The owning checks are audited synthetic/pure and actual first-party Node
+worker/loopback controls. Native configuration-plugin sampling, SDK referrer
+manager modes, lifetime/consent/cohorts, `iw` realm, timing causality and vendor
+responses/receipts remain unqualified. Any later `ler`/`plt` browser/SDK
+comparison needs its own exact source/operational review and owner execution
+approval; this configuration description grants no run.
+
+### Fixture-style bootstrap entry
+
+The separate, explicitly invoked `createMetaPixelBootstrapPrototype` export
+in `adapters/meta-pixel-bootstrap-prototype.js` accepts an owned synthetic
+`bootstrap` function and the same options as the standalone factory. It
+expects the fixture's callable shape: before `callMethod` is set, calls push
+their `arguments` objects into `bootstrap.queue`; afterwards calls forward to
+`callMethod`. The entry point does not create, discover or install a global,
+load an SDK, change production boot, or grant a remote endpoint. Do not use
+customer data. It enables no other experimental option: in particular, tag
+consent commands remain unsupported unless `experimentalTagConsent` is
+explicitly enabled.
+
+On successful attachment it replaces the stub's queue with an empty array,
+installs `callMethod`, and forwards the previously queued calls in order through
+the existing adapter. An existing handler, invalid or sparse preload, accessors,
+or a preload over `queueLimit` refuses attachment; it never truncates an
+oversized preload. Each entry's argument count is limited to five before
+copying; unsupported commands and data remain visible adapter rejections.
+The queue and its dense arguments-like objects or arrays must be same-realm.
+Queue and argument-array lengths are checked before element inspection.
+Elements are read from own data descriptors; extra non-index properties and
+their accessors are not interpreted. This is not a hard main-thread work
+bound or proxy isolation:
+reflection can execute proxy traps, and this is for a trusted local stub.
+Attachment waits for the worker's configured signal. Calls appended while
+waiting are forwarded in order, within the same queue limit. If setup fails or
+times out, if that limit is exceeded, or if the original queue reference,
+descriptor or previously captured top-level arguments change while waiting,
+attachment is refused without replacing the stub's current queue. Failures
+after attachment remain visible in adapter outcomes.
+
+Argument data and page context are captured when each queued call is forwarded
+during attachment, **not** when the original stub call was made. This is not an
+atomic deep snapshot of the entire preload; a reentrant caller must not mutate
+later inputs. A capture-hook reentrant call is rejected by the existing adapter.
+The prior queue may still be retained by other references; callers own its
+cleanup. The handler stays attached after disposal so subsequent calls receive
+visible disposed outcomes instead of being silently queued again. Reattachment
+to that stub is refused.
+
+The retained 058-02 fixture establishes only the stub's queued-arguments and
+`callMethod` forwarding source shape. Draining, mutation timing, errors,
+limits, disposal, aliases and duplicate-install behavior here are local
+choices, not qualified native semantics. Native response, queue-drain ordering,
+browser behavior and full production replacement remain unverified.
+
+- `fbq("init", "000000000000000")` captures synchronously, returns `undefined`,
+  and never sends. By default only the existing synthetic all-zero Pixel ID is
+  accepted. The separate `experimentalRouting: true` opt-in accepts a one-to-
+  32-digit ID for local routing experiments; it does not enable vendor egress.
+  Use synthetic IDs for these experiments.
+- `fbq("track", "PageView")` captures and enqueues a page snapshot.
+- With the opt-in `experimentalPageViewData: true`,
+  `fbq("track", "PageView", { value, currency })` also snapshots those two
+  optional fields and emits `cd[value]` and `cd[currency]`. Value must be a
+  finite number; currency must be a well-formed string of at most 64
+  characters. Unknown keys reject unless separately enabled below; accessors
+  and unsupported values reject the whole call. These are experimental
+  admission rules, not native semantics.
+- The separate `experimentalMagentoHeadArray: true` opt-in accepts one
+  additional `fbq("track", "PageView", data, options)` input when
+  `experimentalPageViewData`, `experimentalCustomProperties` and
+  `experimentalEventIds` are enabled, with valid event-ID options.
+  The data must be an empty array with exactly two own enumerable data
+  properties, `source` and `pluginVersion`, both bounded strings under the
+  existing custom-property rules. Other arrays, extra keys, accessors and
+  non-PageView routes reject. The adapter snapshots an array rather than
+  converting it to a record, and the serialized worker revalidates it. The
+  worker's local mapping emits those properties as `cd[source]` and
+  `cd[pluginVersion]`.
+
+  Magento's pinned [head template](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/head.phtml)
+  encodes an empty PHP array for the PageView payload; its
+  [tracker](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/web/js/metaPixelTracker.js)
+  adds the named properties before calling `fbq` with an event ID. The
+  synthetic loopback test combines this with empty-data init and the agent
+  command. It does not execute Magento, its initialization events or server
+  AJAX. Admission rules, encoding and consent behavior are local choices, not
+  evidence of native array handling. Use only synthetic data. Reflection can
+  invoke proxy traps; this is neither proxy isolation nor a hard main-thread
+  work bound.
+- With `experimentalNullPurchaseValue: true` and both
+  `experimentalEvents` and `experimentalPageViewData` enabled, a synthetic
+  `fbq("trackCustom", "Purchase", data)` may contain an own `value: null`.
+  The snapshot retains null and the worker emits the literal string `null` as
+  one `cd[value]` field; an omitted or undefined value emits no field and zero
+  remains `0`. Other commands and other null-valued fields remain rejected.
+  Meta's Magento [Purchase getter](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Block/Pixel/Purchase.php)
+  returns null for an existing order with a falsy total, and the
+  [Purchase template](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/purchase.phtml#L22-L40)
+  forwards that value. This is a local input subset, not execution of the
+  plugin. The encoding, command scope and consent behavior are hypotheses;
+  native null handling, the no-order template path and product parity remain
+  unverified. Use synthetic data only.
+- With the separate `experimentalEmptyCheckoutValue: true` opt-in and both
+  `experimentalEvents` and `experimentalPageViewData` enabled, synthetic
+  broadcast `fbq("trackCustom", "InitiateCheckout", data)` accepts an own
+  `value: ""`. The snapshot retains the empty string and the worker emits one
+  empty `cd[value]` field. Omitted or undefined value emits no field; zero
+  emits `0`. Null remains rejected for InitiateCheckout, including when the
+  separate null-Purchase opt-in is enabled. Other strings remain rejected for
+  `value`, and the empty string remains rejected on other event routes.
+
+  Magento's pinned [cart-total helper](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Helper/MagentoDataHelper.php)
+  returns null for an existing quote with a falsy subtotal. Its
+  [checkout getter](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Block/Pixel/InitiateCheckout.php)
+  forwards that result and the [template](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/initiate_checkout.phtml)
+  substitutes an empty string. The composition test uses only synthetic
+  inputs; it does not execute Magento or server AJAX. Currency already accepts
+  an empty string under its existing rule; this option does not change it.
+  The local encoding, consent behavior, sample item-price type and complete
+  checkout semantics are unqualified. No native handling or parity is claimed.
+- With both `experimentalPageViewData: true` and
+  `experimentalScalarEventData: true`, event data can additionally contain
+  `region`, `content_category`, `content_name`, `search_string`,
+  `content_type`, `predicted_ltv`, `num_items`, `status` and
+  `delivery_category`. Strings are well-formed and at most 64 UTF-16 code
+  units; lifetime value is finite, item count is a nonnegative safe integer,
+  and status is boolean. `content_type` accepts `product` or `product_group`;
+  delivery accepts `in_store`, `curbside` or `home_delivery`. Undefined
+  fields are omitted; null, unknown fields, accessors and nested/array values
+  reject the entire call unless explicitly enabled below. The added fields use
+  `cd[...]` keys; order and conversion to strings are prototype choices, not
+  qualified native behavior.
+- With `experimentalContentNameArray: true` and both
+  `experimentalPageViewData` and `experimentalScalarEventData` enabled,
+  `content_name` also accepts an ordinary same-realm array of up to 16
+  nonempty, well-formed strings of at most 64 UTF-16 code units each. Empty
+  arrays are retained and undefined is omitted. Sparse arrays, extra
+  properties, accessors and non-string elements reject the whole command.
+  Existing scalar strings remain unchanged. The array is snapshotted and
+  revalidated in the worker, which emits one JSON value in `cd[content_name]`
+  with the input order and duplicates retained. Meta's Magento plugin
+  [tests a single product name in an array](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Test/Unit/Block/Pixel/PurchaseTest.php#L217-L233)
+  and [passes the result into its Purchase payload](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/purchase.phtml#L22-L40).
+  Array length, name limits, empty handling, multi-item behavior and JSON wire
+  form are local choices, not native-qualified. Use synthetic data only: the
+  local receiver retains request URLs. Reflection may invoke proxy traps and
+  is not a hard main-thread work bound or proxy isolation.
+- With both `experimentalPageViewData: true` and
+  `experimentalCustomProperties: true`, standard and custom events can
+  include up to eight additional own string-valued properties. Each key
+  must start with an ASCII letter and contain only ASCII letters, digits or
+  underscores, up to 32 characters. Values may be empty but must be
+  well-formed strings of at most 64 UTF-16 code units. Undefined, null,
+  numbers (except the separately enabled `order_id` subset below), booleans,
+  nested values, accessors, symbols and excess properties reject the whole
+  call. Standard-data names, `eventID`, and the names `em`,
+  `ph`, `fn`, `ln`, `external_id`, `ge`, `db`, `ct`, `st`, `zp`, `country`,
+  `email`, `phone`, `fbp`, `fbc` and `fbclid` are reserved rather than
+  treated as custom, including case variants. This does not enable any
+  otherwise unsupported input.
+  `Object.prototype`'s own names also reject. Custom keys are emitted as
+  `cd[<key>]` after the supported standard fields, preserving their input
+  order. Use only synthetic values: the name restrictions are not a
+  general sensitive-data detector, and the local receiver retains URLs.
+  The opt-in does not enable custom event names, identity, other data flags
+  or vendor transport. Key/value types, limits, reserved names, ordering and
+  wire encoding are local assumptions, not qualified native behavior.
+  Property enumeration can perform unbounded main-thread work and invoke
+  proxy traps; this is not proxy isolation.
+- With `experimentalNumericOrderId: true` and both
+  `experimentalPageViewData` and `experimentalCustomProperties` enabled,
+  the custom property `order_id` can also be a nonnegative safe integer other
+  than negative zero. Other numeric custom properties, fractions and invalid
+  numbers still reject the whole call. This extends the same local standard,
+  custom, broadcast and targeted event paths; existing string `order_id`
+  support is unchanged. The value is snapshotted, revalidated in the worker
+  and sent as a decimal string in `cd[order_id]` to the loopback receiver.
+  Meta's Magento plugin uses `order_id` in a `trackCustom` Purchase
+  [payload](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/purchase.phtml#L22-L40)
+  and tests its getter with the numeric value
+  [1](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Test/Unit/Block/Pixel/PurchaseTest.php#L236-L245);
+  its [tracker](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/web/js/metaPixelTracker.js#L34-L47)
+  passes the payload to `fbq`. The plugin also supplies an `eventID` option
+  to `trackCustom`; the local option path is described below. The full plugin
+  payload remains unsupported and unqualified. These sources establish the
+  input example, not native serialization. Limits, conversion to
+  `cd[order_id]`, other routes and consent behavior are local choices, not
+  qualified native behavior. Use synthetic IDs only: the local receiver
+  retains request URLs.
+- With both `experimentalPageViewData: true` and
+  `experimentalContentIds: true`, event data can contain `content_ids` as an
+  ordinary same-realm array of up to 16 strings or nonnegative safe integers.
+  Strings must be nonempty, well-formed and at most 64 UTF-16 code units;
+  negative zero, sparse arrays,
+  accessors, extra properties and other values reject the whole command unless
+  separately enabled below.
+  Empty arrays are retained and undefined is omitted. The chamber encodes the
+  snapshot as one JSON value in `cd[content_ids]`, retaining element order,
+  duplicates and string/number types. This encoding and these limits are
+  **unverified prototype choices**, not observed native behavior.
+- With `experimentalViewContentJsonStrings: true` and the existing event,
+  page-data, content-ID and contents opt-ins, standard broadcast `ViewContent`
+  also accepts JSON **strings** in `content_ids` and `contents`. Meta's
+  Magento [ViewContent template](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/view_content.phtml)
+  separately JSON-encodes those inputs; its
+  [getter](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Block/Pixel/ViewContent.php)
+  builds contents entries with `id` and `quantity: 1`. The local subset
+  bounds each string to 2048 UTF-16 code units and validates a JSON array
+  of at most 16 supported IDs or entries. Contents strings must use only
+  `id` then `quantity`, with quantity exactly `1`; duplicate or additional
+  keys reject. The worker revalidates and emits the original string unchanged
+  as one `cd[...]` value, rather than JSON-encoding the string again. Existing
+  array inputs keep their separate behavior. Strings on other commands,
+  malformed JSON and unsupported shapes reject. The string and array fields
+  are validated separately; the prototype does not check their correspondence.
+  Bounds, ordering restrictions, multi-item behavior and loopback encoding
+  are local choices, not native evidence. Use synthetic data only.
+- With both `experimentalPageViewData: true` and
+  `experimentalContents: true`, event data can contain `contents`, an array
+  of at most 16 ordinary objects containing exactly `id` and `quantity`.
+  The local subset accepts nonempty, well-formed string IDs of at most 64
+  UTF-16 code units or nonnegative safe integer IDs; quantity is a finite,
+  nonnegative number no greater than `Number.MAX_SAFE_INTEGER`, including
+  fractions. Negative zero, null, accessors, sparse arrays, extra properties
+  and unsupported fields such as `item_price` without its separate opt-in
+  reject the whole command. Empty arrays are retained and undefined is
+  omitted. Each nested record is snapshotted before queuing and revalidated
+  in the chamber, which emits one JSON value in `cd[contents]`. The type
+  restrictions, required keys, size bounds, empty handling and wire encoding
+  are **unverified prototype choices**, not native behavior or catalog proof.
+- The separately gated `experimentalFalseCheckoutContentId: true` accepts
+  boolean `false` in `content_ids` and in a `contents` item's `id` only for
+  broadcast `fbq("trackCustom", "InitiateCheckout", data)`. The existing
+  `experimentalEvents`, `experimentalPageViewData`, `experimentalContentIds`
+  and `experimentalContents` opt-ins are required. The same array and item
+  bounds apply; `true`, null, undefined IDs and other unsupported types still
+  reject. The worker revalidates the captured arrays and uses the existing
+  local JSON mapping, preserving `false` rather than converting it to zero,
+  null or a string.
+
+  Magento's pinned [identifier helper](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Helper/MagentoDataHelper.php)
+  returns `false` for an invalid identifier configuration. The
+  [checkout getters](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Block/Pixel/InitiateCheckout.php)
+  put that result in both arrays, which the
+  [template](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/initiate_checkout.phtml)
+  passes to the tracker. Tests use synthetic data only. The arrays are
+  validated independently; partial and mixed multi-item inputs are local
+  assumptions, with no cross-field consistency check. JSON encoding, consent,
+  catalog behavior and native handling remain unqualified. This does not
+  admit AddToCart's separate undefined-ID case or establish plugin parity.
+- With `experimentalContentsItemPrice: true` and both
+  `experimentalPageViewData` and `experimentalContents` enabled, each
+  contents item may also have an own data property `item_price`. It must be
+  a finite, nonnegative number no greater than `Number.MAX_SAFE_INTEGER`,
+  including fractions but excluding negative zero. Missing price is accepted;
+  undefined, null, accessors, other types and extra fields reject the whole
+  command. The worker emits the optional price in the existing local JSON
+  `cd[contents]` hypothesis; it does not calculate totals or change `value`.
+  Meta's Magento plugin [tests a numeric price of 100](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Test/Unit/Block/Pixel/PurchaseTest.php#L152-L198)
+  as part of its `getContents()` result and
+  [passes that result into a Purchase payload](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/purchase.phtml#L22-L40).
+  The local price range, optionality, ordering and JSON wire form are
+  unverified choices. The complete Magento payload remains unqualified. Use
+  synthetic data only.
+- With both `experimentalPageViewData: true` and
+  `experimentalEventIds: true`, `fbq("track", name, data, { eventID })`
+  accepts the documented fourth argument. With multi-Pixel routing enabled,
+  `fbq("trackSingle", pixelId, name, data, { eventID })` accepts the
+  documented fifth argument. With `experimentalEvents: true`, the same
+  event-ID opt-in also accepts `fbq("trackCustom", name, data, { eventID })`.
+  Meta's Magento plugin uses this custom-event form for
+  [Purchase](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/templates/pixel/purchase.phtml#L22-L40)
+  and [forwards the options to fbq](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/web/js/metaPixelTracker.js#L34-L47).
+  `trackSingleCustom` with an option remains unsupported. `data` must be a
+  supported record, even when empty; the options record must contain exactly
+  one own data property `eventID`, a nonempty well-formed string of at most
+  64 UTF-16 code units.
+  The input is snapshotted and the chamber emits its value as `eid` on each
+  selected local request. The bound, errors, empty-value handling and wire
+  representation are experimental, not native-qualified. The source example
+  establishes the custom input position, not native encoding, consent behavior
+  or broadcast semantics. Repeating an event ID does not suppress a browser
+  event; this path does not generate IDs, send server events or establish
+  backend deduplication.
+- With `experimentalSetAgent: true`, the local prototype accepts
+  `fbq("set", "agent", agent, pixelId)` after the selected Pixel is
+  initialized. This command captures no page context and sends no request.
+  For this synthetic subset, `agent` must match
+  `(magento_opensource|adobe_commerce)-0.0.0-X.Y.Z`, where each version
+  component contains one to four digits. The Pixel ID must satisfy the
+  existing routing rules and already be initialized. A later accepted setting
+  replaces the value for that Pixel. The worker keeps it in memory until
+  disposal and emits it as an `a` query field on that Pixel's subsequent
+  local requests. No agent value or Pixel ID appears in adapter outcomes.
+  The independent host and tag consent seal still governs every event
+  request. Settings do not grant consent; held events are not replayed.
+  Without the opt-in the command remains unsupported.
+
+  Meta's Magento tracker [calls this four-argument form before tracking](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/web/js/metaPixelTracker.js#L34-L47).
+  Its [getter](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/Block/Pixel/Common.php#L152-L160)
+  supplies a [source/version string](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/BusinessExtension/Helper/FBEHelper.php#L137-L171).
+  A retained PageView fixture contains an `a` field, but does not establish
+  that this command produces it. The allowed pattern, per-Pixel lifetime,
+  update order, no-egress rule, consent interaction and `a` mapping are local
+  assumptions, not native observations. Use only synthetic strings and IDs
+  for this loopback path; the local receiver retains request URLs.
+  Full Magento plugin behavior remains unqualified.
+- With the separate `experimentalInitAgent: true` opt-in,
+  `fbq("init", pixelId, {}, { agent })` accepts only an empty plain data record
+  and exactly one own data property `agent` in the options record. The agent
+  uses the same synthetic format and Pixel routing rules as the local
+  `set agent` subset. Both records are snapshotted and revalidated in the
+  worker; nonempty data, accessors and extra keys reject. Init captures no
+  page context and sends no request. On successful initialization the worker
+  retains the agent per Pixel and emits it as `a` on subsequent governed
+  loopback events; outcomes expose neither the agent nor the Pixel ID.
+  A later separately enabled `set agent` replaces that local setting. Duplicate
+  init remains rejected without updating it. The independent host and tag
+  consent seal governs events and held events do not replay.
+
+  Meta's Magento [init script](https://github.com/meta/meta-for-magento2/blob/5ab5527cdc72ec248b1385f8aa4c80baf81109ba/app/code/Meta/Conversion/view/frontend/web/js/initPixel.js)
+  supplies that initial empty-data call, but may later issue another init with
+  user data. That later behavior, personal data and full Magento initialization
+  are not supported here. The `a` mapping, lifetime, update ordering, duplicate
+  rejection and consent interaction are local assumptions, not native
+  evidence. Use synthetic data only. Reflection can invoke proxy traps and is
+  not a hard main-thread work bound or proxy isolation.
+- With `experimentalRouting`, `experimentalMultiPixelRouting` and
+  `experimentalSyntheticAdvancedMatching` all enabled, the documented
+  `fbq("init", pixelId, identity)` position accepts only the two per-instance
+  synthetic records returned by `adapter.syntheticIdentity(0)` and
+  `adapter.syntheticIdentity(1)`. Values are randomly generated in memory;
+  do not use customer data. Other fields, values, prehashed inputs, accessors
+  and extra properties reject the whole init. The input is snapshotted,
+  revalidated and hashed in the chamber; init sends no request. The worker
+  privately retains the synthetic fixture allowlist and per-Pixel hashes until
+  disposal. Later selected events attach the hash as a local
+  `ud[external_id]` field through the consent seal. Duplicate init is rejected,
+  and there is no update or clear command; worker disposal ends the retained
+  state. A held request is not replayed, while a later newly submitted,
+  consent-granted event uses the retained synthetic hash. These are local
+  prototype choices, not qualified native behavior. The multi-Pixel
+  prerequisite also provides validated, host-correlated result summaries.
+  Public adapter state omits inputs and hashes; the private host and local
+  receiver retain request URLs containing hashes. Do not log, publish or
+  export those URLs or the input values.
+- With both `experimentalRouting: true` and
+  `experimentalMultiPixelRouting: true`, up to four distinct synthetic IDs
+  can be initialized. `track` broadcasts to all in initialization order;
+  `trackSingle` targets one initialized ID. Duplicate, unknown and excess IDs
+  reject without dispatch. These ordering and error rules are prototype
+  choices; native multi-Pixel behavior has not been captured.
+- With `experimentalEvents: true`, `track` additionally accepts the 17
+  standard names listed in spec 060, and `trackCustom` accepts a nonempty,
+  well-formed name of at most 50 UTF-16 code units. When multi-Pixel routing is
+  also enabled, `trackSingle` and `trackSingleCustom` provide targeting.
+  The existing `experimentalPageViewData` opt-in also allows the same
+  `value`/`currency` record on these events; the separate scalar opt-in above
+  adds its listed properties, and the separate content-ID opt-in adds that
+  array; the separate contents opt-in adds its bounded array of item records.
+  Other arrays, objects and unrecognized fields reject unless a separate
+  opt-in above supports them.
+  No native conversion event or general
+  custom-event serialization was captured, and the admission rules, field
+  encoding and order here are working assumptions.
+- With `experimentalTagConsent: true`, `fbq("consent", "revoke")` and
+  `fbq("consent", "grant")` are admitted as global tag commands, including
+  before init. They capture no page context and never request transport.
+  Malformed commands reject without changing tag consent. Without the opt-in,
+  both commands remain unsupported. The local tag permission initially
+  permits dispatch, but the independent host `ad_storage` consent must also
+  be granted. A tag grant never changes or overrides host consent.
+  An admitted revoke tightens the trusted seal immediately, including for
+  remaining branches of an in-flight broadcast and older queued events. A
+  later grant permits only newly captured events: it does not release a
+  held or previously captured event invalidated by a revoke. An already
+  dispatched request cannot be recalled. Commands rejected by queue or
+  session limits do not alter tag permission.
+  These timing, initial-state, global-scope and no-replay rules are local
+  safety choices. The retained native control reports no PageView for a
+  revoke before init; it does not establish native grant, replay, later
+  transitions, collection, storage or multi-Pixel behavior.
+- Multi-Pixel commands dispatch one branch at a time through the seal. Their
+  redacted outcomes list branch ordinals, statuses and dispositions, plus
+  selected and submitted-to-host counts (which include holds, not just network
+  dispatches); a mixture is `partial`, never success. A
+  status-zero transport failure stops remaining branches and the adapter;
+  a non-2xx response does not imply receipt or prevent later branches.
+  Consent is checked for each branch, and held branches are not replayed.
+  A command timeout can terminate before a branch summary is returned.
+  Malformed or inconsistent multi-Pixel worker summaries terminate with
+  `invalid-worker-result` rather than exposing extra fields or values. Branch
+  counts and statuses must match the host's own responses; a worker cannot
+  report settlement without a corresponding response.
+- When tag consent is enabled, single-Pixel outcomes are also checked against
+  host responses, consent commands cannot dispatch, and malformed worker
+  summaries terminate the adapter. `consent-updated` means only that the
+  local command was processed; it is not evidence of host consent or native
+  behavior.
+- `await flush()` observes bounded command/transport outcomes, **not receipt**.
+  `transport-settled` means a correlated 2xx response, not vendor acceptance.
+- `setConsent(vector)` governs subsequent dispatch. Held commands are dropped;
+  grant does not replay them. This is a prototype rule, not native semantics.
+- `getState()` returns redacted outcomes/counters. `await dispose()` terminates
+  owned work. Init, command and transport deadlines are finite; a timed-out
+  command makes the instance terminal so late results cannot settle another.
+  Disposal errors reject with a sanitized message and remain visible in
+  `cleanupFailure`; they are not reported as successful closure. The example
+  attempts adapter, chamber and receiver cleanup independently before
+  surfacing any aggregate failure.
+
+Main captures only six own primitive context properties. The default has no
+cookie access; the controlled POC can explicitly enable the mediated `_fbp`
+grant described in [the recorder guide](../../rig/meta-behavioral-poc.md).
+The default capture reads `document.URL`, `document.referrer`, frame status,
+`window.screen.width/height`, and `Date#getTimezoneOffset`. Tests provide
+`captureContext()` explicitly:
+
+| Context key | Chamber validation | Query field |
+| --- | --- | --- |
+| `pageURL` | Absolute HTTP(S), no credentials/whitespace/control characters, ≤2048 characters | `dl` |
+| `referrer` | Same URL rule, or empty string | `rl` |
+| `inFrame` | Boolean | `if` |
+| `screenWidth`, `screenHeight` | Integers, 0–32768 | `sw`, `sh` |
+| `timezoneOffset` | Integer minutes, −1440–1440 | `tz` (negated) |
+
+The chamber supplies `id` and `ev` in addition to those context fields, plus
+the opted-in event fields above when supplied. Extra context is not
+captured. By default args are limited to three primitive values (strings ≤64
+characters); multi-Pixel routing allows four for targeted data calls. The
+event-ID opt-in permits a fourth argument for `track` and `trackCustom` (when
+events are enabled) and, with multi-Pixel routing, a fifth for `trackSingle`.
+Data records are limited to the opted-in fields listed above.
+Other objects, arrays, accessors and functions are not copied.
+Malformed/unsupported calls and extra arguments remain visible rejections,
+not native error-semantic claims. Reentrant capture is rejected; disposal
+inside a capture hook cannot enqueue work or strand `flush()`.
+Defaults: queue 32, outcome history 256,
+session admissions 256, simultaneous flush waiters 16; response data ≤4096
+bytes and the complete percent-encoded GET URL ≤8192 characters. Oversized
+encoding is rejected inside the chamber before transport. The lifetime
+admission cap bounds the unchanged host's history to at most 1,024 dispatched
+requests in multi-Pixel mode. The command deadline covers the entire broadcast,
+not each branch separately.
+
+The unchanged connector host retains state inside the chamber. The unchanged
+wrapped host enforces the endpoint ceiling and strict `ad_storage`; the adapter
+additionally requires the literal loopback destination and GET without supplied
+headers/body. Fetch uses `credentials: "omit"` and `redirect: "error"`.
+There is no proxy, default cookie grant, ambient worker fetch, SDK wrapper or fallback.
+Node confinement is not a malicious-code sandbox.
+
+## Evidence limits
+
+The comparison uses the union of **every actual query/reference field** in the
+selected historical redacted beacon. Only seven explicitly named annotation
+keys are metadata; other underscore fields are not hidden. Repeated query
+values, arrays, structured fields, missing/extra values, different types and
+redactions stay visible. `fbp` is never renamed `_fbp`. Matching synthetic IDs
+or redaction sentinels cannot prove identity equivalence.
+
+The fixture omits 38 experiment flags and lacks original bytes/order, complete
+response/header/browser/cookie/consent behavior and equivalent native inputs.
+It contains a PageView `cd[region]=us` wire field, but does not establish
+the original input-to-wire relationship, general custom-data serialization,
+content-ID array serialization, or contents item serialization.
+The supplied references do not establish native event-ID wire encoding,
+actual deduplication or server/browser correlation for this prototype.
+Meta documents the third init argument, but the retained beacon does not prove
+the input-to-`ud[external_id]` relationship, normalization, hashing behavior,
+per-Pixel identity lifetime, account transitions or matching efficacy. The
+synthetic-only local path does not implement other matching fields or
+prehashed email.
+Loopback Fetch is not native vendor Image/Fetch transport. Matching,
+attribution, other commands, performance and C2/C3 remain unproved. Nothing
+here completes or waives060-01 or its full native/whole-wire/live criteria.
