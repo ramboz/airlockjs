@@ -234,8 +234,11 @@ export async function runLocalGoogleQualification(options, custody) {
   };
   const wait = async (promise, maximum = 5000) => {
     const operation = ownOperation(promise);
+    if (retainNextHandle) {
+      retainNextHandle = false;
+      return operation.then(browser => { custody.onResource("browser", browser); return browser; });
+    }
     check();
-    if (retainNextHandle) { retainNextHandle = false; return operation; }
     const remaining = Math.min(maximum, expires - Date.now(), 60000 - (performance.now() - started));
     let timer;
     try { return await Promise.race([operation, new Promise((_, reject) => {
