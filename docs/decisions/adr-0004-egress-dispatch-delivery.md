@@ -11,6 +11,8 @@ frame_review: true
 
 Accepted (2026-08-26)
 
+Amended by [ADR-0062](./adr-0062-stock-default-parity.md) (2026-11-13): the ~64 KiB keepalive budget and the capture ring (:114-117) no longer drop stock output by default; tighter limits are opt-in. The default allowlist contents follow ADR-0062 point 7. The consent hold ring's oldest-dropped cap stays.
+
 ## Context
 
 [ADR-0002](./adr-0002-event-descriptor-cycle-semantics.md) fixed the event

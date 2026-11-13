@@ -155,6 +155,16 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 | [049-native-tag-suppressor](049-native-tag-suppressor/spec.md) | 049-02 — direct-beacon-transport suppression (egress-parity completeness) | **DONE** |  |
 | [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-01 — the reference-site `?martech=airlock` rewire arm | **DONE** |  |
 | [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-02 — measured Lighthouse/TBT + parity evidence + scripted adoption path | **DONE** |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-01 — ADR status lines and docs rewording (docs only) | READY_FOR_IMPLEMENTATION |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-02 — consent hold on every track, no-consent-input warning, explicit override | DRAFT |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-03 — Alloy empty `egressPurposes` holds and warns; pending holds and flushes | DRAFT |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-04 — default egress allowlist = stock destination set | DRAFT |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-05 — default cookie and storage grant = stock set | DRAFT |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-06 — limits never drop or delay stock output by default | DRAFT |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-07 — stock-context channel (separate from the snapshot) | DRAFT |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-08 — Alloy `context` defaults to the stock list | DRAFT |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-09 — credentials denylist on by default, explicit override, pinned | DRAFT |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-10 — input governance at the wrapped-SDK seam | DRAFT |  |
 
 ## Deferred slices
 
