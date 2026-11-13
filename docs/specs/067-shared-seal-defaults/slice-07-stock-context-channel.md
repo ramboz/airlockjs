@@ -1,5 +1,5 @@
 ---
-status: IN_PROGRESS
+status: REVIEWED
 dependencies: [067-01]
 last_verified: 2026-11-13
 claimed_by: 067-07-stock-context-channel
@@ -49,8 +49,10 @@ claimed_by: 067-07-stock-context-channel
 - Chamber side: `host.readStockContext()` returns a frozen object, `{}` when nothing arrived. For a worker that doesn't use `createConnectorHost`, `createStockContextStore()` gives the same read.
 - Not covered here: high-entropy client hints (async), and per-field fidelity against Alloy 2.31.1 (064-17).
 
-**Measured cost (AC7, spec 067 section 8 item 6).** Chromium (Playwright), `rig/harness.html` in worker mode, 5 trackers, 8 alternating runs of 40 trusted clicks each (`npm run rig:stock-context-cost`):
-- Collection: 0.039 ms mean per call over 2000 calls (p99 0.3 ms, max 0.4 ms). It runs at boot and on debounced change events, never in a capture handler.
-- INP-style interaction latency (p98): 8 ms with and without. No difference.
-- LCP: 20 ms median with and without (p90 48 ms without, 24 ms with, which is run noise).
-- Verdict: no measurable regression, so ADR-0062's kill criterion doesn't trip. The harness page is tiny, so this bounds the collector's own cost, not a heavy real page. The open question is a real EDS page with a large DOM, since `document.title` and `location` reads are cheap but resize storms are not covered by this rig.
+**Measured cost (AC7, spec 067 section 8 item 6).** Chromium (Playwright), `rig/harness.html` in worker mode, 5 trackers, 8 alternating runs with and without the channel, 40 trusted clicks per run, each click preceded by a viewport resize so the channel re-collects (`npm run rig:stock-context-cost`):
+- Collection: 0.035 to 0.039 ms mean per call over 2000 calls (p99 0.2 to 0.3 ms, max 0.4 ms). It runs at boot and on throttled change events, never in a capture handler. This is the number the verdict rests on.
+- Main-thread blocking: 0 long tasks (>50 ms) in all 16 runs, with and without.
+- INP: the Event Timing observer only records interactions of 16 ms or more, so each run kept 1 interaction (the first input, 8 ms, the reporting floor), with and without. That is a no-signal control. It shows no interaction crossed 16 ms under a resize storm, and it can't show a smaller difference.
+- LCP: 24 ms median with and without. The LCP paints before `createAirlock` boots (about 51 ms), so boot collection sits after LCP in this harness. I haven't measured a page where it overlaps.
+- Verdict: no measurable regression, so ADR-0062's kill criterion doesn't trip. The harness page is tiny. A real EDS page with a large DOM is still unmeasured, and the collector reads only `location`, `document.referrer`/`title`/`visibilityState`, `screen`, `navigator` and `window` sizes, none of which scale with DOM size.
+- Decisions logged: the credentials denylist can't be turned off here (slice AC4 says "never crosses", ADR-0062 point 4b allows an explicit override, which 067-09 owns). AC2's "snapshot byte-identical" is tested on the `events` batches, since airlock has no separate snapshot message. Only the default GA4 chamber reads the channel today. Other chambers ignore the message until 067-08 and 064-17 wire them. The hard-coded stand-ins in `core/wrapped-sdk-host.js` stay until then.

@@ -38,16 +38,25 @@ async function runOnce(stockctx) {
     new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__lcp = e.startTime; })
       .observe({ type: "largest-contentful-paint", buffered: true });
   });
+  await page.addInitScript(() => {
+    window.__long = [];
+    new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__long.push(e.duration); })
+      .observe({ type: "longtask", buffered: true });
+  });
   await page.goto(`http://localhost:${port}/rig/harness.html?mode=worker&trackers=5&work=30000${stockctx ? "&stockctx=1" : ""}`);
   await page.waitForFunction(() => window.__rig, { timeout: 10000 });
+  const boot = await page.evaluate(() => performance.now());
   for (let i = 0; i < CLICKS; i++) {
+    // resize storm: every click is preceded by a viewport change, so the channel re-collects
+    await page.setViewportSize({ width: 900 + (i % 2) * 40, height: 700 });
     await page.locator("#target").click({ timeout: 5000 });
     await page.waitForTimeout(40);
   }
   const snap = await page.evaluate(() => window.__rig.snapshot());
   const lcp = await page.evaluate(() => window.__lcp);
+  const long = await page.evaluate(() => window.__long);
   await page.close();
-  return { inp_p98: snap.inp_p98, inp_max: snap.inp_max, interactions: snap.interactions, lcp };
+  return { boot_ms: Math.round(boot), long_tasks: long.length, long_task_ms: Math.round(long.reduce((a, b) => a + b, 0)), inp_p98: snap.inp_p98, inp_max: snap.inp_max, interactions: snap.interactions, lcp };
 }
 
 const off = [], on = [];
@@ -74,6 +83,10 @@ const col = (rs, k) => rs.map((r) => r[k]);
 const summ = (rs) => ({
   inp_p98_median: median(col(rs, "inp_p98")), inp_p98_p90: pct(col(rs, "inp_p98"), 90),
   inp_max_median: median(col(rs, "inp_max")),
+  interactions_median: median(col(rs, "interactions")),
+  long_tasks_total: col(rs, "long_tasks").reduce((a, b) => a + b, 0),
+  long_task_ms_total: col(rs, "long_task_ms").reduce((a, b) => a + b, 0),
+  boot_ms_median: median(col(rs, "boot_ms")),
   lcp_median: Math.round(median(col(rs, "lcp"))), lcp_p90: Math.round(pct(col(rs, "lcp"), 90)),
 });
 console.log(JSON.stringify({ runs: RUNS, clicks: CLICKS, collection: micro, without: summ(off), with: summ(on), raw: { off, on } }, null, 2));

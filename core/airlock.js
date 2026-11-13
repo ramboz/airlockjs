@@ -394,14 +394,15 @@ export function createAirlock({
   );
 
   // 067-07: stock-context channel. Collected once here (boot path) and again,
-  // debounced, after navigation/viewport/visibility changes; the listeners only
+  // throttled (150 ms), after navigation/viewport/visibility changes; the listeners only
   // arm a timer, so nothing is collected inside a capture handler (ADR-0002).
   const stockOpts = stockContext === true ? {} : stockContext && typeof stockContext === "object" ? stockContext : null;
+  let disposed = false;
   let stockFingerprint = null;
   let stockTimer = null;
   const STOCK_EVENTS = ["popstate", "hashchange", "resize", "orientationchange", "visibilitychange"];
   function refreshStockContext() {
-    if (!stockOpts) return;
+    if (!stockOpts || disposed) return;
     const context = collectStockContext(stockOpts);
     if (!Object.keys(context).length) return;
     const fp = stockContextFingerprint(context);
@@ -733,7 +734,6 @@ export function createAirlock({
   // `removeEventListener` global, or a Worker stand-in with no `.terminate`, both
   // silently skip that step rather than throw). Purely additive: nothing above ever
   // calls `dispose()` itself, so the single-boot path (AC3) is byte-unchanged.
-  let disposed = false;
   function dispose() {
     if (disposed) return;
     disposed = true;

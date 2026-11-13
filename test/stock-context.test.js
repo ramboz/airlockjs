@@ -4,6 +4,7 @@ import { createAirlock } from "../core/airlock.js";
 import { createConnectorHost } from "../core/connector-host.js";
 import {
   collectStockContext,
+  governStockContext,
   createStockContextStore,
   EMPTY_STOCK_CONTEXT,
   STOCK_CONTEXT_GROUPS,
@@ -60,6 +61,16 @@ describe("collectStockContext", () => {
     expect(bare.device.screenHeight).toBe(1080);
   });
 
+  it("the built-in credentials denylist always applies, whatever the site passes", () => {
+    const dirty = { web: { url: "u", password: "x", CVV: "1" }, device: { ssn: "2" } };
+    for (const deny of [undefined, [], null, ["web.url"]]) {
+      const out = governStockContext(dirty, deny);
+      expect(out.web.password).toBeUndefined();
+      expect(out.web.CVV).toBeUndefined();
+      expect(out.device.ssn).toBeUndefined();
+    }
+  });
+
   it("a throwing page getter does not break collection", () => {
     const win = fakeWin();
     Object.defineProperty(win, "screen", { get() { throw new Error("boom"); } });
@@ -97,8 +108,11 @@ describe("createAirlock stockContext channel", () => {
     vi.useFakeTimers();
     vi.stubGlobal("Worker", FakeWorker);
     vi.stubGlobal("requestIdleCallback", (fn) => setTimeout(fn, 0));
-    vi.stubGlobal("addEventListener", (t, fn) => listeners.set(t, fn));
-    vi.stubGlobal("removeEventListener", (t) => listeners.delete(t));
+    vi.stubGlobal("addEventListener", (t, fn) => listeners.set(t, [...(listeners.get(t) || []), fn]));
+    vi.stubGlobal("removeEventListener", (t, fn) => {
+      const rest = (listeners.get(t) || []).filter((f) => f !== fn);
+      if (rest.length) listeners.set(t, rest); else listeners.delete(t);
+    });
     const w = fakeWin();
     for (const k of ["location", "document", "screen", "navigator"]) vi.stubGlobal(k, w[k]);
     vi.stubGlobal("devicePixelRatio", 2);
@@ -112,7 +126,7 @@ describe("createAirlock stockContext channel", () => {
   it("is off by default: no extra message", () => {
     createAirlock(base);
     expect(FakeWorker.last.messages.map((m) => m.type)).toEqual(["init"]);
-    expect(listeners.size).toBe(2); // only the pre-existing unload listeners
+    expect([...listeners.keys()].sort()).toEqual(["pagehide", "visibilitychange"]); // only the pre-existing unload listeners
   });
 
   it("posts a dedicated message at boot; the event batches are byte-identical with and without it", async () => {
@@ -143,17 +157,20 @@ describe("createAirlock stockContext channel", () => {
   it("re-collects debounced off the handler on a change, only when something changed", () => {
     const a = createAirlock({ ...base, stockContext: true });
     const count = () => FakeWorker.last.messages.filter((m) => m.type === "stock-context").length;
-    listeners.get("resize")();
-    listeners.get("resize")();
+    listeners.get("resize")[0]();
+    listeners.get("resize")[0]();
     expect(count()).toBe(1); // handler did no collection
     vi.advanceTimersByTime(200);
     expect(count()).toBe(1); // nothing but the clock changed
     vi.stubGlobal("innerWidth", 500);
-    listeners.get("resize")();
+    listeners.get("resize")[0]();
     vi.advanceTimersByTime(200);
     expect(count()).toBe(2);
     a.dispose();
     expect(listeners.has("resize")).toBe(false);
+    FakeWorker.last.messages.length = 0;
+    a.refreshStockContext();
+    expect(FakeWorker.last.messages).toEqual([]);
   });
 
   it("sends nothing to a vendor itself: no fetch during collection", () => {

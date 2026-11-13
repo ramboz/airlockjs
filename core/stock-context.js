@@ -14,20 +14,22 @@
 //                referrer, title
 //   device       screenWidth, screenHeight, screenOrientation, colorDepth,
 //                pixelRatio
-//   environment  viewportWidth, viewportHeight, userAgent, language,
+//   environment  viewportWidth, viewportHeight, visibilityState, userAgent, language,
 //                languages, cookieEnabled, doNotTrack, platform, mobile, brands
 //   placeContext localTime (ISO 8601 with offset), timezoneOffset (minutes,
 //                `Date#getTimezoneOffset` sign), timeZone
 // A field the page cannot supply is omitted, never faked.
 //
 // NARROWING: a site passes `groups` (a list of group names). Value governance
-// is opt-in through `denylist` (bare group-field names, or `group.field`
+// is opt-in through `denylist` (note: `url`, `search`, `hash` and `referrer`
+// carry raw query and fragment values, so a site that wants those governed
+// denies each of them) (bare group-field names, or `group.field`
 // paths, same match rules as core/payload-governance.js). The built-in
 // credentials denylist always applies: a credentials-named field never
 // crosses.
 //
 // COST: collection is a handful of property reads, runs at boot and on
-// debounced change events, never inside a capture handler (ADR-0002).
+// throttled change events, never inside a capture handler (ADR-0002).
 //
 // The module has no module-level ambient access: every global is read from
 // the injected `win`, so it is testable under Node.
@@ -78,6 +80,7 @@ function environmentGroup(win) {
   const out = {};
   pick(out, "viewportWidth", win.innerWidth);
   pick(out, "viewportHeight", win.innerHeight);
+  pick(out, "visibilityState", win.document && win.document.visibilityState);
   const n = win.navigator;
   if (n) {
     pick(out, "userAgent", n.userAgent);
@@ -133,7 +136,6 @@ const COLLECTORS = {
  */
 export function collectStockContext({ groups = STOCK_CONTEXT_GROUPS, denylist = [], win = globalThis, now = () => new Date() } = {}) {
   const wanted = Array.isArray(groups) ? groups.filter((g) => Object.hasOwn(COLLECTORS, g)) : [];
-  const entries = [...DEFAULT_DENYLIST, ...(Array.isArray(denylist) ? denylist : [])];
   const context = {};
   for (const group of new Set(wanted)) {
     let record;
@@ -142,10 +144,21 @@ export function collectStockContext({ groups = STOCK_CONTEXT_GROUPS, denylist = 
     } catch {
       record = {}; // a throwing page getter must not break boot
     }
-    context[group] = governPayload(record, entries).governed;
+    context[group] = record;
   }
-  // Group-qualified paths ("web.referrer") are matched against the whole context.
-  return governPayload(context, entries).governed;
+  return governStockContext(context, denylist);
+}
+
+/**
+ * Apply the denylist to a collected context. The built-in credentials list is
+ * always merged in and a site can only add to it. Bare names match inside each
+ * group record; `group.field` paths match against the whole context.
+ */
+export function governStockContext(context, denylist = []) {
+  const entries = [...DEFAULT_DENYLIST, ...(Array.isArray(denylist) ? denylist : [])];
+  const out = {};
+  for (const [group, record] of Object.entries(context)) out[group] = governPayload(record, entries).governed;
+  return governPayload(out, entries).governed;
 }
 
 /** Stable form used to dedupe: the clock sample alone never triggers a re-send. */
@@ -176,7 +189,11 @@ export function createStockContextStore() {
       if (ctx && typeof ctx === "object" && !Array.isArray(ctx)) {
         const next = {};
         for (const g of STOCK_CONTEXT_GROUPS) {
-          if (ctx[g] && typeof ctx[g] === "object") next[g] = Object.freeze({ ...ctx[g] });
+          if (ctx[g] && typeof ctx[g] === "object") {
+            const rec = { ...ctx[g] };
+            for (const k of Object.keys(rec)) if (Array.isArray(rec[k])) rec[k] = Object.freeze([...rec[k]]);
+            next[g] = Object.freeze(rec);
+          }
         }
         current = Object.freeze(next);
       }
