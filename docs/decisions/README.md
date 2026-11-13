@@ -43,7 +43,7 @@
 - [ADR-0046: Google and Meta product-first delivery gates](adr-0046-google-meta-product-delivery-gates.md) — Build one observable advertising journey at a time, with full replacement as the final bar. (2026-10-26, Accepted)
 - [ADR-0047: Google and Meta request integrity and egress authority](adr-0047-google-meta-request-authority.md) — One trusted first-party worker interprets commands and builds requests; live consent, destination checks and privileged operations stay on the host. (2026-11-02, Accepted)
 - [ADR-0061: Definition of done for vendor compatibility work](adr-0061-definition-of-done-vendor-compatibility.md) — Fixtures prove each slice, one live check per release, and each vendor's parity inventory is frozen per pinned version. (2026-11-12, Accepted)
-- [ADR-0062: Stock-default parity on every vendor track](adr-0062-stock-default-parity.md) — Airlock matches the stock vendor tag's default behaviour on every track; privacy controls are opt-in, and the consent hold is the one named exception. (2026-11-13, Proposed)
+- [ADR-0062: Stock-default parity on every vendor track](adr-0062-stock-default-parity.md) — Airlock matches the stock vendor tag's default behaviour on every track; privacy controls are opt-in, with two privacy-first exceptions: the consent hold and the credentials denylist. (2026-11-13, Accepted)
 
 ADR-0031 to ADR-0037 belong to the personalization branch, and the vendor-specific ADRs (0041-0045, 0048-0060) live on their vendor branches. See [renumbering-2026-11.md](renumbering-2026-11.md) for the full old-to-new map.
 
