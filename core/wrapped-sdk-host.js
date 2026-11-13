@@ -119,7 +119,7 @@
  *
  * Payload strip (spec 020-02 AC3, optional, non-load-bearing): an optional
  * `payloadDenylist` strips denylisted fields from every intercepted
- * `events[].xdm` (parse -> core/payload-governance.js's `governPayload` ->
+ * `events[].xdm`, `events[].data`, `events[].query` and top-level `query`/`meta` (067-10; parse -> core/payload-governance.js's `governPayload` ->
  * re-serialize; 020-01 live-confirmed the round-trip is Edge-safe) before
  * dispatch. The alloy body is already read-minimized by construction
  * (connectors/alloy/connector.js's `toXdm` 2-field allowlist + `context:[]`)
@@ -668,14 +668,14 @@ export function reconcileForBrokerJar(raw) {
 }
 
 /**
- * AC3 (spec 020-02) — parse the intercepted alloy interact body, strip every
- * `denylist`-denied field from EVERY `events[].xdm` via
+ * AC3 (spec 020-02) + 067-10 — parse the intercepted alloy interact body, strip every
+ * `denylist`-denied field from EVERY `events[].xdm|data|query` and top-level `query|meta` via
  * core/payload-governance.js's `governPayload`, and re-serialize (020-01
  * live-confirmed this parse -> strip -> re-serialize round-trip is
  * Edge-safe). Calls `onStripped(field)` once per stripped field NAME (never
  * the value — redaction discipline) and `onError(reason)` if governance
  * failed safe on a given event's xdm. Never throws: a body that is not valid
- * JSON, or carries no `events` array, is returned UNCHANGED (the identical
+ * JSON (error diagnostic `unparseable-body`) is returned UNCHANGED (the identical
  * string reference) — same when nothing actually matched the denylist,
  * mirroring `governPayload`'s own no-needless-copy contract.
  * @param {string} rawBody
@@ -689,24 +689,42 @@ function stripInterceptedXdmBody(rawBody, denylist, onStripped, onError) {
   try {
     parsed = JSON.parse(rawBody);
   } catch (e) {
+    if (typeof onError === "function") onError("unparseable-body");
     return rawBody; // not JSON — leave untouched, never throw
   }
-  if (!parsed || !Array.isArray(parsed.events)) return rawBody;
+  if (!parsed || typeof parsed !== "object") return rawBody;
 
   let changed = false;
-  const events = parsed.events.map((evt) => {
-    if (!evt || typeof evt !== "object" || evt.xdm == null || typeof evt.xdm !== "object") return evt;
-    const { governed, stripped, error } = governPayload(evt.xdm, denylist);
+  // 067-10: one pass governs every input container Alloy writes into the body (site xdm and
+  // context land in `events[].xdm`; `data`, `query` and `meta` carry the rest). Same reference
+  // back when nothing matched.
+  const govern = (obj) => {
+    if (obj == null || typeof obj !== "object" || Array.isArray(obj)) return obj;
+    const { governed, stripped, error } = governPayload(obj, denylist);
     if (error && typeof onError === "function") onError("govern-failed");
-    if (!stripped.length) return evt;
+    if (!stripped.length) return obj;
     changed = true;
     for (const field of stripped) {
       if (typeof onStripped === "function") onStripped(field);
     }
-    return { ...evt, xdm: governed };
-  });
+    return governed;
+  };
+  const governKeys = (obj, keys) => {
+    let out = obj;
+    for (const k of keys) {
+      if (!(k in obj)) continue;
+      const g = govern(obj[k]);
+      if (g !== obj[k]) out = out === obj ? { ...obj, [k]: g } : { ...out, [k]: g };
+    }
+    return out;
+  };
 
-  return changed ? JSON.stringify({ ...parsed, events }) : rawBody;
+  const events = Array.isArray(parsed.events)
+    ? parsed.events.map((evt) => (evt && typeof evt === "object" ? governKeys(evt, ["xdm", "data", "query"]) : evt))
+    : parsed.events;
+  const top = governKeys(parsed, ["query", "meta"]);
+
+  return changed ? JSON.stringify(Array.isArray(parsed.events) ? { ...top, events } : top) : rawBody;
 }
 
 /**
