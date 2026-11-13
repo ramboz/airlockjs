@@ -1,8 +1,7 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: [067-01]
 last_verified: 2026-11-13
-claimed_by: 067-05-cookie-storage-grant
 ---
 
 ## Slice 067-05: Default cookie and storage grant is the stock set
@@ -29,6 +28,12 @@ claimed_by: 067-05-cookie-storage-grant
 **Consumers:** Adobe 064-17 (storage seeding) and 064-18 onward (vendor-adobe); Google G4; Meta D1 row (M5 reads it through M4).
 
 **Anti-horizontal-phasing check:** Vertical: manifest field, read filter, write-back filter and denial path for one connector.
+
+### Reconciliation sweep
+
+- Spec 067 checks 5, 7, 8: matched (mechanism plus test vendor set; storage split; undeclared callers pinned by a migration test).
+- ADR-0062 point 7 and ADR-0006: no change needed.
+- Docs updated: `docs/architecture.md`, `contracts/README.md`, config schema (`cookieGrantNarrowing`).
 
 ### Deviation log
 

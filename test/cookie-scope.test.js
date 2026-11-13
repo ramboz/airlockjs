@@ -16,7 +16,7 @@
 // itself — manifest.capabilities.cookies === ALLOY_COOKIE_NAMES — is pinned in
 // test/alloy-connector.test.js, AC3).
 import { describe, it, expect } from "vitest";
-import { isValidCookieName, matchesGrantedName, scopeSeedCookies } from "../core/cookie-scope.js";
+import { isValidCookieName, matchesGrantedName, scopeSeedCookies, resolveCookieGrant } from "../core/cookie-scope.js";
 
 // alloy's real declared set (connectors/alloy/connector.js).
 const ALLOY_NAMES = ["com.adobe.alloy.getTld", "kndctr_", "AMCV_", "demdex", "s_ecid"];
@@ -167,7 +167,6 @@ describe("core/cookie-scope.js: scopeSeedCookies (the READ-side boot-seed filter
 });
 
 // spec 067-05 — the default grant is the stock set; narrowing is an opt-in subset.
-import { resolveCookieGrant } from "../core/cookie-scope.js";
 
 describe("resolveCookieGrant (spec 067-05)", () => {
   const STOCK = ["vendor_", "vsid", "vtld"]; // TEST vendor fixture set

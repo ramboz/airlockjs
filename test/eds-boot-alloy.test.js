@@ -636,6 +636,17 @@ describe("boot(config) — AC1/AC5 (spec 035-01): the boot seed is scoped to all
     expect(initOf(alloyWorker()).cookie).toBe("demdex=3");
   });
 
+  it("067-05 AC4: alloy write-back drops a stock cookie whose storage purpose is denied, keeps one whose purpose is granted", async () => {
+    const writes = [];
+    vi.stubGlobal("document", { get cookie() { return ""; }, set cookie(v) { writes.push(v); } });
+    await bootAlloy({ ...alloyEntry(), consent: { analytics_storage: "denied", ad_storage: "granted" } });
+    const w = alloyWorker();
+    w.emit({ type: "cookie-writeback", value: "kndctr_org_identity=abc; Path=/" });
+    w.emit({ type: "cookie-writeback", value: "demdex=d; Path=/" });
+    expect(writes.some((v) => v.startsWith("kndctr_org_identity="))).toBe(false);
+    expect(writes.some((v) => v.startsWith("demdex="))).toBe(true);
+  });
+
   it("067-05: a narrowing outside the stock set fails loud at boot", async () => {
     vi.stubGlobal("document", { cookie: "" });
     await expect(bootAlloy({ ...alloyEntry(), cookieGrantNarrowing: ["_ga"] })).rejects.toThrow(TypeError);
