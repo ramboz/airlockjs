@@ -1,6 +1,6 @@
 ---
 status: READY_FOR_IMPLEMENTATION
-dependencies: [064-01]
+dependencies: []
 last_verified:
 ---
 
@@ -9,7 +9,7 @@ last_verified:
 **Goal:** Provide the manifest schema, stored-input-state check, pre-commit credential check and field-rule comparison the capture session needs.
 
 **DoR:**
-- ✅ Spec 064 approved (D1). T1 done.
+- ✅ Spec 064 approved (D1).
 
 **Acceptance Criteria:**
 

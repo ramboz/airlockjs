@@ -4,12 +4,12 @@ dependencies: [064-15]
 last_verified:
 ---
 
-## Slice 064-16 — B12: release check wiring
+## Slice 064-16 — B8: release check wiring
 
 **Goal:** Wire the release check: fixtures against live behavior and the live-only rows (ADR-0061 point 1).
 
 **DoR:**
-- ✅ B11 done.
+- ✅ B7 done.
 
 **Acceptance Criteria:**
 

@@ -1,15 +1,15 @@
 ---
 status: READY_FOR_IMPLEMENTATION
-dependencies: [064-05, 064-06, 064-07, 064-08, 064-09, 064-10, 064-11, 064-12, 064-13, 064-14]
+dependencies: [064-17, 064-18, 064-19, 064-20, 064-21, 064-22]
 last_verified:
 ---
 
-## Slice 064-15 — B11: compatibility report and perf budget
+## Slice 064-15 — B7: compatibility report and perf budget
 
 **Goal:** Publish the row-by-row compatibility report and a performance budget (spec 057 content).
 
 **DoR:**
-- ✅ B1 to B10 done.
+- ✅ B1 to B6 done.
 
 **Acceptance Criteria:**
 

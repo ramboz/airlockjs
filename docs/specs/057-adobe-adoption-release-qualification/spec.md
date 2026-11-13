@@ -4,7 +4,7 @@ skill: jig:spec-workflow
 use_cases: [UC-4, UC-8, UC-10, UC-11, UC-13, UC-14]
 ---
 
-> **Rescoped 2026-11 by [spec 064](../064-adobe-parity-inventory/spec.md) (ADR-0061).** Reframed as slices B11, B12 plus the ADR-0061 release check.
+> **Rescoped 2026-11 by [spec 064](../064-adobe-parity-inventory/spec.md) (ADR-0061).** Reframed as slices B7, B8 plus the ADR-0061 release check.
 
 <!-- jig self-defining vocabulary (soft, forward-only): expand each acronym on first use and link the term to docs/memory/glossary.md (or jig's lexicon). See docs/workflow.md "Self-defining vocabulary". -->
 

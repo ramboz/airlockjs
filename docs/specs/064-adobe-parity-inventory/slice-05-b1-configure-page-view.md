@@ -1,5 +1,5 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: ABANDONED
 dependencies: [064-03, 064-04]
 last_verified:
 ---
@@ -20,3 +20,5 @@ last_verified:
 - `npm test && npm run lint` and servo gate pass.
 
 **Anti-horizontal-phasing check:** Vertical: config to wire to comparison for one real journey.
+
+**Abandoned 2026-11-13:** Regrouped into new B1 (064-17). See spec 064 section 8.

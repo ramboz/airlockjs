@@ -1,5 +1,5 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: ABANDONED
 dependencies: [064-07, 064-08]
 last_verified:
 ---
@@ -19,3 +19,5 @@ last_verified:
 - Tests, lint and servo gate pass.
 
 **Anti-horizontal-phasing check:** Vertical: command to response to result.
+
+**Abandoned 2026-11-13:** Regrouped into new B4 (064-20). See spec 064 section 8.

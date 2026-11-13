@@ -1,6 +1,6 @@
 ---
 status: READY_FOR_IMPLEMENTATION
-dependencies: [064-01, 064-02, 064-03]
+dependencies: [064-02, 064-03]
 last_verified:
 kind: spike
 ---
@@ -10,7 +10,7 @@ kind: spike
 **Goal:** Record the Adobe corpus (S0 to S13) once, per spec 064 sections 4 and 5, under ADR-0061.
 
 **DoR:**
-- ✅ D1 to D7 recorded. T1, T2, B0 done. Owner has filled in the POC site URL and datastream ID (section 9) if the probe is used, and scheduled the settings window (D7).
+- ✅ D1 to D8 recorded. T2, B0 done. Owner has filled in the POC site URL and datastream ID (section 9) if the probe is used, and scheduled the settings window (D7).
 
 **Acceptance Criteria:**
 

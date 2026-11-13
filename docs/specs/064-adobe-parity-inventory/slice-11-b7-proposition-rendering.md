@@ -1,5 +1,5 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: ABANDONED
 dependencies: [064-10]
 last_verified:
 ---
@@ -19,3 +19,5 @@ last_verified:
 - Tests, lint and servo gate pass.
 
 **Anti-horizontal-phasing check:** Vertical: proposition to DOM to notification wire.
+
+**Abandoned 2026-11-13:** Regrouped into new B4 (064-20). See spec 064 section 8.

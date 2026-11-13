@@ -1,5 +1,5 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: ABANDONED
 dependencies: []
 last_verified:
 ---
@@ -20,3 +20,5 @@ last_verified:
 - Spec 064 section 2.1 updated; the pinned SHA-256 is cited.
 
 **Anti-horizontal-phasing check:** Preparation task for the capture session (spec 064 section 8); it ships a closed inventory, not a layer.
+
+**Abandoned 2026-11-13:** T1 dropped by the 2026-11-13 Alloy-source simplification (P1): the command list is closed from source (2 core + 15 component commands). The public-docs reconcile moves to T2. See spec 064 section 8.

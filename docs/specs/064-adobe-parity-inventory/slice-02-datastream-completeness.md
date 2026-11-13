@@ -14,7 +14,8 @@ last_verified:
 **Acceptance Criteria:**
 
 1. Each setting has a triggering input and a disposition: covered by S9, no effect (with the three conditions in spec 064 section 6), or gap.
-2. The out-of-inventory rate is computed and compared with the 10% threshold.
+2. The public command list is reconciled against the 17 commands read from the pinned source (2 core, 15 component). Any difference is a row or an explicit non-row.
+3. The out-of-inventory rate is computed and compared with the 10% threshold.
 
 **DoD:**
 - Table committed in spec 064 section 6. No production probe run except under section 9.
