@@ -21,7 +21,7 @@ It also retires the old plan. Specs 052 to 057 were unsliced outlines. Spec 051 
 
 The main tradeoff is front-loading. We spend one capture session before any slice. In exchange, every slice has fixtures, and the pilot (capture session plus slice B1) tells us if the corpus was complete.
 
-Decisions I need from you are in section 11. There are seven (D1 to D7).
+The seven decisions (D1 to D7) were made on 2026-11-12 and are recorded in section 11.
 
 ## 1. Scope and frozen inventory rules
 
@@ -128,7 +128,7 @@ Every state is recorded as base plus same-setup repeat. The one-factor-at-a-time
 
 ADR-0061 includes egress region for Google and Meta because `dma` is geo-derived. Adobe has no client-side geo-derived field. The Edge Network chooses a region by anycast and `locationHint`, and the SDK stores the hint in `kndctr_*` state. So egress region is **not a recording factor** for Adobe request fields.
 
-It might still change response fields (`locationHint:result`, Target geo audiences, Edge cluster in a response header). One check covers it: a single pair of test captures of the same state, one from the default egress and one from a second region, compared on response fields only. If any response field differs in a way the chamber would need to handle, egress region becomes a factor in the base set. This uses a VPN, so the VPN credential check (4.2) applies and the pair needs the owner to provide the second egress. If the owner does not want to provide one, the row is tagged `live-only: geo` and the gap is stated in the freeze note. That is a deliberate, owner-decided deviation from point 9's EEA-egress rule (which is a Google/Meta item), accepted when the owner answers D2.
+It might still change response fields (`locationHint:result`, Target geo audiences, Edge cluster in a response header). One check covers it: a single pair of test captures of the same state, one from the default egress and one from a second region, compared on response fields only. If any response field differs in a way the chamber would need to handle, egress region becomes a factor in the base set. This uses a VPN, so the VPN credential check (4.2) applies and the pair needs the owner to provide the second egress. The owner decided yes (D2, 2026-11-12) and provides the second egress, so S13 runs. If it later becomes unavailable, the row is tagged `live-only: geo` and the gap is stated in the freeze note.
 
 ### 4.5 Full stored input state (point 1)
 
@@ -213,7 +213,7 @@ Rules:
 
 - **Settings-state list.** S9 records one state per setting above that the owner can change on the owned test datastream. The owner changes settings (owner session, ADR-0061 point 6); agents record.
 - **Completeness analogue.** The Google/Meta check compares our inventory against real configs. For Adobe, we compare against the datastream configuration *schema* and the set of `handle` types seen. Task T2 lists every datastream setting from Adobe's public docs and schema only (the agent has no console access; see D6 for an optional owner export of the owned datastream config) and marks each "covered by S9", "affects no wire field we send or receive", or "gap". A gap is filled now or tagged `live-only`.
-- **Production probes.** Comparing against real production datastreams needs production-site or tenant access. That is **not** approved. If the owner wants it, they approve it in section 11 (D4) before it runs, with the site list.
+- **Production probes.** Comparing against real production datastreams needs production-site or tenant access. Production sites stay unapproved, with one exception: the owner's dedicated POC site and datastream (section 9, D4).
 - **Point 11 analogue.** Point 11 has no design yet even for Google and Meta. For Adobe the analogue is a visible diagnostic when a response contains a `handle` type or datastream-driven behavior outside the inventory (for example, an unknown `handle.type`). The design is deferred to the same place as Google/Meta and is a listed pilot check: B3 must surface an unknown `handle` type as a loud, visible error, never silent. Design of the user-facing form is left to the point 11 decision; this spec only requires "not silent".
 
 ## 7. Disposition of specs 051 to 057
@@ -247,7 +247,7 @@ Counting rule: T1, T2 and B0 are pre-capture preparation tasks with their own co
 |---|---|---|
 | T1 (task) | Close the command inventory from the pinned bundle (names the two open `commands`; reconciles core commands) | none |
 | T2 (task) | Datastream setting list and completeness table | none |
-| B0 (task) | Capture tooling: manifest schema, stored-input-state check, pre-commit secrets check, extension of the 051-07 checker, and native field-rule evaluation in the comparator (today `native_normalization_unsupported`, rig/native-tag-comparison.md lines 186-194; ADR-0061 Consequences). B1 is blocked until this lands | T1 |
+| B0 (task) | Capture tooling: manifest schema, stored-input-state check, pre-commit secrets check, extension of the 051-07 checker, and native field-rule evaluation in the comparator (today `native_normalization_unsupported`, rig/native-tag-comparison.md lines 186-194; ADR-0061 Consequences). B1 is blocked until this lands. The comparator field-rule part is shared toolkit work that lands on main and is merged into the vendor branches; B0 consumes it and does not fork it | T1 |
 | CAP | **Capture session** (section 4). One session, owner approval first | B0, T1, T2 |
 | B1 | `configure`, `getLibraryInfo`, page-view `sendEvent`, context block, network shape. **Pilot slice** | CAP |
 | B2 | Custom `sendEvent`, `mergeId`, `createEventMergeId`, `onBeforeEventSend` | B1 |
@@ -266,7 +266,14 @@ Each slice carries its own DoR and acceptance when its file is written. The exis
 
 ## 9. Production-site probes
 
-No probe touching a production site, tenant or real-user data runs without the owner's written approval in this section, naming the site and the probe. **Approved today: none.**
+No probe touching a production site, tenant or real-user data runs without the owner's written approval in this section, naming the site and the probe. 
+
+**Approved (D4, 2026-11-12):** the owner's dedicated POC site and dedicated POC datastream only, for the datastream completeness comparison and read-only probes. In the owner's words: "I have a dedicated site and dedicated datastream for the POC, so yes we can use it if it helps". Before the probe runs the owner fills in:
+
+- POC site URL: `<OWNER TO FILL IN>`
+- POC datastream ID: `<OWNER TO FILL IN>`
+
+The probe does not run while either value is a placeholder. Nothing else in production is approved.
 
 ## 10. Applicability of ADR-0061 carried checks and kill criteria
 
@@ -294,19 +301,15 @@ Kill criteria, from ADR-0061 plus the completeness metric:
 
 ## 11. Decisions for the owner
 
-D1. Approve this spec and the slice order in section 8, so the capture session can start. **Recommended: yes.**
+Decided by the owner on 2026-11-12:
 
-D2. Provide a second egress region for the single geo response check (4.4)? **Recommended: no for now.** The check is cheap but needs VPN credentials. Without it the geo row is tagged `live-only`.
-
-D3. Reactivate the owned Target activity for S4? **Recommended: yes**, as an owner settings change. Without it S4 records only the no-decision shape.
-
-D4. Approve any production datastream comparison? **Recommended: no.** The completeness check uses Adobe's docs and the owned datastream.
-
-D5. When you do the normal-browser capture (S12), is one state enough, or do you want two? **Recommended: one**, as ADR-0061 says.
-
-D6. Export the owned datastream config (screenshots or JSON, test IDs only) into the repo before T2? **Recommended: yes**, it lets T2 compare against the real owned datastream. Without it, T2 uses Adobe's docs only.
-
-D7. Commit one settings window (about 3 hours, section 5.1) for the owner steps? **Recommended: yes.**
+- **D1. Approved.** Spec and slice order as written.
+- **D2. Yes.** The owner provides a second egress region, so S13 runs. The VPN credential check (4.2) applies.
+- **D3. Yes.** The owner reactivates the Target activity in the settings window (5.1).
+- **D4. Yes, for the dedicated POC site and datastream only** (section 9). The site URL and datastream ID are placeholders the owner fills in before the probe runs.
+- **D5. One state** for the normal-browser capture (S12).
+- **D6. Yes.** The owner exports the test datastream config into the repo before T2 (test IDs only).
+- **D7. Yes.** One settings window of about 3 hours (5.1).
 
 ## 12. Review log and carried findings
 
@@ -315,6 +318,7 @@ Review rounds are capped at three before owner review (owner decision). Findings
 - Round 1 (independent review): 4 findings. Pre-capture items relabeled as tasks; counts fixed; B9 split into B9, B10, B11, B12. All fixed.
 - Round 2 (fresh Opus reviewer): 10 findings (4 blocking). Fixed: comparator field-rule work added to B0; OFAT matrix made consistent; request-level classes and the unstable-state rule added; datastream no-effect conditions added; completeness metric, kill criterion and combined state added; normal-browser difference escalation restored; drift probe sequencing stated; ladder order unified; setDebug single owner; T1/T2 approval stated.
 - Round 3 (fresh Opus reviewer): 8 findings (3 blocking). Fixed: T2 input source (docs only, optional owner export D6); capture run order, restore step and owner window added (5.1, D7); 051-02 recordings are re-taken, not reused; ECID class naming; S13 added; summary wording; kill criterion 4 bounded; bundle SHA recorded per manifest. Nothing carried open.
+- Owner decisions D1 to D7 recorded 2026-11-12; status moved to READY_FOR_IMPLEMENTATION.
 - Anything still open after round 3 goes to the pilot as a listed check.
 - Pilot count of extra captures: _to be filled at pilot close_.
 
