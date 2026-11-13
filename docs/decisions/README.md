@@ -49,6 +49,7 @@
 - [ADR-0056: Private Google browser-managed redirect operations](adr-0056-google-browser-operations.md) — Ordinary browser Fetch hides the intermediate manual redirect response. (2026-11-09, Accepted)
 - [ADR-0057: SDK-free Google local tests with manual helper cleanup](adr-0057-google-local-manual-helper-cleanup.md) — The owner accepts unknown/manual helper cleanup for SDK-free local Google tests. (2026-11-09, Accepted)
 - [ADR-0058: Known-case stop for SDK-free Google local tests](adr-0058-google-local-known-case-stop.md) — The owner chooses known-case closure for SDK-free local Google tests. (2026-11-09, Accepted)
+- [ADR-0061: Definition of done for vendor compatibility work](adr-0061-definition-of-done-vendor-compatibility.md) — Fixtures prove each slice, one live check per release, and each vendor's parity inventory is frozen per pinned version. (2026-11-12, Accepted)
 
 ADR-0031 to ADR-0037 belong to the personalization branch, and the other vendor-specific ADRs (0041-0045, 0049-0051, 0055, 0059-0060) live on their vendor branches. See [renumbering-2026-11.md](renumbering-2026-11.md) for the full old-to-new map.
 

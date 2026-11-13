@@ -9,6 +9,8 @@ frame_review: true
 
 ## Status
 
+Partially superseded by [ADR-0061](./adr-0061-definition-of-done-vendor-compatibility.md) (2026-11-12): live-proof-per-slice and open-ended-parity clauses only.
+
 Accepted (2026-10-06)
 Supersedes ADR-0018
 
