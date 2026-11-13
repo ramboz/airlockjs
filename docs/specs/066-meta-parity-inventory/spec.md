@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 skill: jig:spec-workflow
 use_cases: [UC-5, UC-6, UC-7, UC-9, UC-10]
 ---
@@ -348,6 +348,8 @@ Mapping of the abandoned journeys:
 
 Counting rule: MT1, MT2 and MT0 are pre-capture tasks with their own completion checks (no fixture comparison, because the corpus does not exist yet, ADR-0061 point 7). CAP is the capture session. M1 to M13 are slices. MT1 and MT2 are read-only (retained bytes and public documents) and may start before approval. MT0 writes tooling only and may also start before approval. CAP and everything after it wait for approval (O1). Each slice is sized for one fresh session and ends with a recorded-fixture comparison through real chamber dispatch (ADR-0061 point 1). Slice files with acceptance criteria are written after approval so the pilot can still change them.
 
+Slice files exist now for the four slices that can start before capture: [066-01](slice-01-close-inventory.md) = MT1, [066-02](slice-02-candidate-settings.md) = MT2, [066-03](slice-03-capture-tooling.md) = MT0, [066-04](slice-04-capture-session.md) = CAP. The post-capture slices M1 to M13 get their files when CAP freezes the inventory.
+
 | Slice | Goal | Depends on |
 |---|---|---|
 | MT1 (task) | Close the command, field and request inventory from the retained runtime and config bytes; list every flag and plugin the config enables; locate the 058-02 retained bytes | none |
@@ -439,6 +441,7 @@ Review rounds are capped at three before owner review (owner decision). Each is 
 - 2026-11-13, owner rule (ADR-0062, Accepted): section 1.1 added, O12 added, O5 annotated. 2026-11-13: ADR-0062 now Accepted, credentials denylist added as second exception, no-consent warning added to M4 and D1. O12 answered (consent hold kept as the one exception), D1 dependency slice added, fork removed. No review round, by instruction.
 - 2026-11-13, owner answers O1 to O11 recorded in section 11 (O1 approved as amended, no re-review; O4 dated approval in 10.1; O6 time-box 5 days and 2 sittings; O11 escalation rule added to 4.4). Main merged (spec 067, AC3 flake fix). D1 now points at spec 067; MT0's shared half points at 064-03. Status moved through jig. No review round, by instruction.
 - 2026-11-13: status DRAFT to READY_FOR_REVIEW to READY_FOR_IMPLEMENTATION on the owner's O1 approval (approved as amended, no re-review). The spec has no slice headings, so the jig transition command cannot move it; the frontmatter was set by hand. ADR-0061 point 1 now carries the O11 line (main 0633a5f4).
+- 2026-11-13 (correction): the spec status is derived from slice files, so the by-hand READY_FOR_IMPLEMENTATION line above is replaced. Slice files 066-01 to 066-04 (MT1, MT2, MT0, CAP) are written and READY_FOR_IMPLEMENTATION. M1 to M13 get files after CAP.
 - Pilot count of extra captures: _to be filled at pilot close_.
 
 ## 13. Clarifications

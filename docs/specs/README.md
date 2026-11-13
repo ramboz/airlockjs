@@ -181,6 +181,10 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 | [063-meta-pageview-live-delivery](063-meta-pageview-live-delivery/spec.md) | 063-01 - Deliver one consented test PageView | ABANDONED |  |
 | [063-meta-pageview-live-delivery](063-meta-pageview-live-delivery/spec.md) | 063-02 - Prepare one owned-site worker PageView | **DONE** |  |
 | [063-meta-pageview-live-delivery](063-meta-pageview-live-delivery/spec.md) | 063-03 - One automatic owned-page PageView trial | **DONE** |  |
+| [066-meta-parity-inventory](066-meta-parity-inventory/spec.md) | 066-01: MT1, close the command, field and request inventory | READY_FOR_IMPLEMENTATION |  |
+| [066-meta-parity-inventory](066-meta-parity-inventory/spec.md) | 066-02: MT2, candidate settings list and completeness-probe protocol | READY_FOR_IMPLEMENTATION |  |
+| [066-meta-parity-inventory](066-meta-parity-inventory/spec.md) | 066-03: MT0, Meta capture tooling on top of the shared 064-03 tooling | READY_FOR_IMPLEMENTATION |  |
+| [066-meta-parity-inventory](066-meta-parity-inventory/spec.md) | 066-04: CAP, the Meta capture session | READY_FOR_IMPLEMENTATION |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-01: ADR status lines and docs rewording | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-02: Consent hold on every track, with a no-consent-input warning | DRAFT |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-03: Alloy holds and flushes, and an empty `egressPurposes` holds and warns | DRAFT |  |
