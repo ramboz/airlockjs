@@ -15,6 +15,7 @@ describe("core/consent.js: CONSENT_PURPOSES", () => {
       "ad_personalization",
       "functional",
       "personalization",
+      "measurement",
     ]);
   });
 });
@@ -192,5 +193,25 @@ describe("core/consent.js: egressVerdict", () => {
     it("no governing purposes -> send even under the flag (nothing to gate on)", () => {
       expect(egressVerdict({}, [], { holdOnDenied: true })).toBe("send");
     });
+  });
+});
+
+describe("067-11 measurement purpose (ADR-0007 amendment, owner decision D4)", () => {
+  it("default-granted: absent from the vector, or no vector at all, resolves granted", () => {
+    expect(resolveConsent({}, "measurement")).toBe("granted");
+    expect(resolveConsent(undefined, "measurement")).toBe("granted");
+    expect(resolveConsent({ analytics_storage: "denied" }, "measurement")).toBe("granted");
+    expect(egressVerdict({}, ["measurement"])).toBe("send");
+  });
+
+  it("explicit-deny: a denied entry denies it, case-insensitively", () => {
+    expect(resolveConsent({ measurement: "denied" }, "measurement")).toBe("denied");
+    expect(resolveConsent({ measurement: "DENIED" }, "measurement")).toBe("denied");
+  });
+
+  it("every other purpose keeps its pending default", () => {
+    for (const p of CONSENT_PURPOSES.filter((x) => x !== "measurement")) {
+      expect(resolveConsent({}, p)).toBe("pending");
+    }
   });
 });

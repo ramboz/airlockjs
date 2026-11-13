@@ -72,7 +72,7 @@ import { createExposureReporter } from "./exposure.js";
 import { createBlockInstrumenter } from "./blocks.js";
 import { startCwvCapture } from "../../connectors/helix-rum/cwv-capture.js";
 import { rumUrl, resolveWeight } from "../../connectors/helix-rum/map.js";
-import { DEFAULT_COLLECT_BASE_URL, HELIX_RUM_EVENTS } from "../../connectors/helix-rum/connector.js";
+import { DEFAULT_COLLECT_BASE_URL, HELIX_RUM_EVENTS, HELIX_RUM_EGRESS_PURPOSES } from "../../connectors/helix-rum/connector.js";
 // 030-02: the REAL web-vitals/attribution subscribers — the production wiring the DONE
 // 022-04 slice deferred (cwv-capture.js is DI'd). Import is side-effect-free (web-vitals
 // registers observers only when onLCP/onCLS/onINP are CALLED), so it is safe at module
@@ -1367,7 +1367,10 @@ export function bootHelixRum(opts = {}) {
     connectorConfig: { collectBaseURL, weight, id, isSelected: true, ctx, sampling: { weight, id } },
     endpoints: [endpoint], // host-owned ceiling (ADR-0006) — byte-matches the connector's endpoint
     ctx,
-    egressPurposes: [], // RUM governance class: confined, NOT consent-gated (spec 022)
+    // 067-11: `measurement` is granted by default (no consent input -> sends, as stock EDS does);
+    // an explicit `denied` holds the beacon at the seal. Still confined to `ot.aem.live`.
+    egressPurposes: HELIX_RUM_EGRESS_PURPOSES,
+    holdOnDenied: true,
     trackers: 1,
     onDiagnostic, // spec 028: inspector diagnostic sink pass-through (see bootGa4Core)
   });

@@ -90,14 +90,30 @@ describe("bootHelixRum — the production RUM authority (030-02)", () => {
     expect(globalThis.fetch).not.toHaveBeenCalled(); // held at the seal — the connector cannot self-widen the ceiling
   });
 
-  it("AC4 — NOT consent-gated: the beacon egressed above with NO consent wired (egressPurposes:[])", () => {
-    // The AC3 boot passed no `consent` and no `egressPurposes`, yet the unload beacon fired —
-    // the RUM governance class (confined, not-consent-gated). Re-assert the property directly:
+  it("067-11 AC2/AC5 default-granted: with NO consent input the beacon sends (`measurement` is granted by default)", () => {
     const wv = stubWebVitals();
     bootHelixRum({ weight: 100, forceSelect: true, ...wv });
     wv.cbs.inp({ name: "INP", value: 8 });
     listeners.visibilitychange[0]();
-    expect(globalThis.fetch).toHaveBeenCalled(); // fired despite no consent (would be HELD if consent-gated)
+    expect(globalThis.fetch).toHaveBeenCalled();
+  });
+
+  it("067-11 AC2/AC5 explicit-deny: a consent input denying `measurement` holds the beacon (nothing sent)", () => {
+    const wv = stubWebVitals();
+    const h = bootHelixRum({ weight: 100, forceSelect: true, ...wv });
+    h.setConsent({ measurement: "denied" });
+    wv.cbs.inp({ name: "INP", value: 8 });
+    listeners.visibilitychange[0]();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it("067-11 AC2 — a vector that denies OTHER purposes does not touch RUM", () => {
+    const wv = stubWebVitals();
+    const h = bootHelixRum({ weight: 100, forceSelect: true, ...wv });
+    h.setConsent({ analytics_storage: "denied", ad_storage: "denied" });
+    wv.cbs.inp({ name: "INP", value: 8 });
+    listeners.visibilitychange[0]();
+    expect(globalThis.fetch).toHaveBeenCalled();
   });
 
   it("an UNSELECTED page-load emits NOTHING (sampleRUM parity) and constructs no airlock", () => {

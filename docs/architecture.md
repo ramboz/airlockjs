@@ -56,6 +56,7 @@ Three cross-connector facts that are architectural, not per-connector:
 
 - **Egress-confined chambers.** A chamber that emits is egress-confined (`withholdFetch`): it maps the beacon off-thread and hands a ready request back, and only the main-thread orchestrator dispatches it. A compromised chamber cannot reach the network directly.
 - **Consent-gated ad connectors.** `google-ads` and `floodlight` are `ad_storage`-purposed and opt into `holdOnDenied` ([ADR-0023](decisions/adr-0023-ad-pzn-egress-hold-until-consent.md)): a denied purpose holds the beacon instead of sending, and it is re-mapped under the current consent when a grant flushes it.
+- **Privacy-safe `measurement` purpose.** Next to the consent taxonomy in `core/consent.js`, `measurement` is granted by default and an explicit `denied` still denies it ([ADR-0007](decisions/adr-0007-consent-purpose-model.md) amendment, spec 067-11). Only `helix-rum` declares it. A connector qualifies only if it sets no cookies or storage and sends no identifiers or personal data, and `test/measurement-purpose-guard.test.js` fails if any other connector names it.
 - **Shared Consent-Mode encoder.** `connectors/consent-mode.js` holds the gtag-family Consent Mode v2 (`gcs`/`gcd`/`npa`) encoders, reused by `ga4-gtag`, `google-ads`, and `floodlight`. It lives connector-side, not in `core/`, because it emits Google-specific wire strings and `core/` carries no vendor coupling (the [conventions](conventions.md) *code-home rule*).
 
 ### The native-tag suppressor and consent-input drivers

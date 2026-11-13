@@ -1,7 +1,8 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: IN_PROGRESS
 dependencies: [067-01]
 last_verified: 2026-11-13
+claimed_by: 067-11-measurement-purpose
 ---
 
 ## Slice 067-11: A privacy-safe measurement purpose for helix-rum

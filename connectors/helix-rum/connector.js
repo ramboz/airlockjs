@@ -26,6 +26,12 @@ export const DEFAULT_WEIGHT = RATE_WEIGHTS.medium;
 export const HELIX_RUM_EVENTS = Object.freeze(["top", "error", "cwv"]);
 
 /**
+ * helix-rum's declared egress purposes (067-11): the single home both the manifest and
+ * `adapters/eds/index.js` consume. Frozen.
+ */
+export const HELIX_RUM_EGRESS_PURPOSES = Object.freeze(["measurement"]);
+
+/**
  * helix-rum connector — spec 022-01, mechanism B: reproduce the AEM RUM `top`
  * (page-view) beacon NATIVELY, fed by airlock's own main-thread capture — NOT
  * a hosted/wrapped `helix-rum-enhancer` (that A/B fork is grounded + recorded
@@ -147,9 +153,11 @@ export function createHelixRumConnector(config = {}) {
     // egress"; core/airlock.js's seal skips the consent gate on the CALLER's
     // (not this manifest's) empty `egressPurposes` config — see this file's
     // header and the seam tests (test/helix-rum-seam.test.js).
+    // 067-11 (ADR-0007 amendment): RUM declares the privacy-safe `measurement`
+    // purpose, granted by default; an explicit `denied` holds it at the seal.
     purposes: {
-      egress: [],
-      endpoints: { [endpoint]: [] },
+      egress: [...HELIX_RUM_EGRESS_PURPOSES],
+      endpoints: { [endpoint]: [...HELIX_RUM_EGRESS_PURPOSES] },
     },
   };
 

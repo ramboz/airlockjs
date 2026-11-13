@@ -37,7 +37,17 @@ export const CONSENT_PURPOSES = [
   "ad_personalization",
   "functional",
   "personalization",
+  "measurement",
 ];
+
+/**
+ * Purposes that resolve to "granted" when absent from the vector (ADR-0007
+ * amendment, spec 067-11, owner decision D4). `measurement` covers privacy-safe
+ * performance telemetry (helix-rum): no cookies or storage, no user/device/click
+ * identifiers, no personal data. An explicit `denied` still denies it. Adding a
+ * purpose here, or a connector that declares `measurement`, needs owner approval.
+ */
+export const DEFAULT_GRANTED_PURPOSES = Object.freeze(["measurement"]);
 
 /**
  * Resolve one purpose's consent state from a host-supplied vector.
@@ -53,13 +63,14 @@ export const CONSENT_PURPOSES = [
  * @param {string} purpose the purpose to resolve — normally one of
  *   CONSENT_PURPOSES; any other string resolves to "pending".
  * @returns {"granted"|"denied"|"pending"} "pending" for an unrecognized
- *   `purpose`, an absent vector entry, or an unrecognized value — "no signal
+ *   `purpose`, an absent vector entry (except `measurement`, which defaults to
+ *   "granted"), or an unrecognized value — "no signal
  *   yet" is the uniform default, never a silent deny or a silent allow.
  */
 export function resolveConsent(vector, purpose) {
   if (!CONSENT_PURPOSES.includes(purpose)) return "pending";
   const raw = vector == null ? undefined : vector[purpose];
-  if (typeof raw !== "string") return "pending";
+  if (typeof raw !== "string") return DEFAULT_GRANTED_PURPOSES.includes(purpose) ? "granted" : "pending";
   const normalized = raw.toLowerCase();
   if (normalized === "granted") return "granted";
   if (normalized === "denied") return "denied";

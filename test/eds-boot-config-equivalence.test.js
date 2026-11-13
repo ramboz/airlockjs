@@ -234,7 +234,7 @@ describe("AC3 — helix-rum keeps its spec-022 governance class (EXEMPT from con
     expect(fromConfig).toEqual(standalone);
     // and specifically: NONE of the top-level governance leaked in
     expect(fromConfig.connector).toBe("helix-rum");
-    expect(fromConfig.egressPurposes).toEqual([]); // NOT consent-gated
+    expect(fromConfig.egressPurposes).toEqual(["measurement"]); // granted by default (067-11)
     expect(fromConfig.consent).toBeUndefined();
     expect(fromConfig.consentStrict).toBeUndefined();
     expect(fromConfig.payloadDenylist).toBeUndefined();
