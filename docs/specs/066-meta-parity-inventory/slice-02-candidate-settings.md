@@ -1,8 +1,7 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: []
 last_verified: 2026-11-13
-claimed_by: meta-mt1-mt2-inventory
 ---
 
 ## Slice 066-02: MT2, candidate settings list and completeness-probe protocol
@@ -27,3 +26,19 @@ claimed_by: meta-mt1-mt2-inventory
 **Consumers:** 066-04 (CAP) runs the settings window and the completeness probe from this slice's output.
 
 **Anti-horizontal-phasing check:** A read-only planning task with a reviewable list as its end state.
+
+### Deviation log
+
+1. **Review-driven protocol changes (2026-11-13).** The independent review (Opus 5.5) found five points, all fixed in spec 066: redirects are not followed in the fallback (keeps the hard 60-GET cap); the EEA split applies only to configs fetched by GET; a rate above 10% fails at any sample size and a lower rate under 30 samples is `inconclusive`; the window plan states elapsed time as changes x (wait + recording + change) with a count derived from the measured first wait; a pre-window Events Manager check fixes the SET8 state count.
+2. **EEA and non-EEA pairs.** 6.1 had "ten configs fetched from both exits". O4 allows one config GET per pixel, so the pairs are out unless the owner extends O4. Recorded as the one open owner question.
+3. **SET8 list is provisional.** It comes from module names in `pageview-disposition.json` and spec 062, not from the config bytes, because MT1 is blocked on the private bytes. Stated in section 3.
+4. **No public-doc setting beyond SET1 to SET7** was found in the two Meta pages read. The AC allows "any further candidate", so this is a finding, not a gap.
+
+### Reconciliation sweep
+
+- `docs/specs/066-meta-parity-inventory/spec.md` sections 3, 3.1, 6.1, 10.1: updated (dated 2026-11-13). Section 12 log: updated.
+- Slice 066-03 DoR line about 064-03: corrected by the coordinator's instruction.
+- Slice 066-04 AC5 and spec sections 3.1, 5.1 and O2 (window model, round-2 review): aligned to 3.1.
+- `docs/specs/README.md` board: regenerated at the DONE transition.
+- ADR-0061 and ADR-0062: not touched.
+- No other doc, glossary or refinement-todo entry needed (no new term, no deferred decision beyond the open question above, which lives in 6.1).
