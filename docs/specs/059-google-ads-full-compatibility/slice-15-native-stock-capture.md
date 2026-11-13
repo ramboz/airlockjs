@@ -1,5 +1,5 @@
 ---
-status: IN_PROGRESS
+status: ABANDONED
 dependencies: [059-13, 059-14, adr-0033, adr-0034, adr-0045, adr-0047]
 last_verified:
 kind: feature

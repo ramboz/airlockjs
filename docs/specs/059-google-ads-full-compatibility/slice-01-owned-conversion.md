@@ -1,11 +1,10 @@
 ---
-status: READY_FOR_REVIEW
+status: ABANDONED
 dependencies: [adr-0017, adr-0033, adr-0043, 058-01, 058-02, 058-03, 058-04]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
-claimed_by: google-ads-chamber
 ---
 
 > **Rescoped 2026-11 by [spec 065](../065-google-ads-parity-inventory/spec.md) (ADR-0061).** Replaced by G1 in spec 065 section 9. History kept; criteria are inputs to the new slice file.

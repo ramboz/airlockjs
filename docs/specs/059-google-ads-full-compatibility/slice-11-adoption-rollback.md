@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: ABANDONED
 dependencies: [059-02, 059-03, 059-04, 059-10]
 last_verified:
 kind: feature
