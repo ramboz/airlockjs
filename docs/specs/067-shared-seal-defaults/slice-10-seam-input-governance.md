@@ -1,8 +1,7 @@
 ---
-status: REVIEWED
+status: DONE
 dependencies: [067-09]
 last_verified: 2026-11-13
-claimed_by: 067-10-seam-input-governance
 ---
 
 ## Slice 067-10: Input governance at the wrapped-SDK seam
