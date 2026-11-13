@@ -50,6 +50,7 @@
 - [ADR-0059: Execution policy for the remaining Adobe baseline](adr-0059-remaining-adobe-baseline-execution.md) — The remaining stock baseline needs an execution policy separate from the one proving pair. (2026-11-02, Proposed)
 - [ADR-0060: Governed Adobe SDK command and result bridge](adr-0060-governed-adobe-sdk-command-bridge.md) — The production Adobe bridge needs a declared command and result contract. (2026-11-02, Proposed)
 - [ADR-0061: Definition of done for vendor compatibility work](adr-0061-definition-of-done-vendor-compatibility.md) — Fixtures prove each slice, one live check per release, and each vendor's parity inventory is frozen per pinned version. (2026-11-12, Accepted)
+- [ADR-0062: Stock-default parity on every vendor track](adr-0062-stock-default-parity.md) — Airlock matches the stock vendor tag's default behaviour on every track; privacy controls are opt-in, with two privacy-first exceptions: the consent hold and the credentials denylist. (2026-11-13, Accepted)
 
 ADR-0031 to ADR-0037 belong to the personalization branch, and the other vendor-specific ADRs (0041-0043, 0048, 0052-0058) live on their vendor branches. See [renumbering-2026-11.md](renumbering-2026-11.md) for the full old-to-new map.
 
