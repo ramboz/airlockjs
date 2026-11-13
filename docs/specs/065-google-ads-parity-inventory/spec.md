@@ -46,13 +46,13 @@ Seeded from 059's 28 families (F01 to F28), the Google descriptor and R-015. Two
 | 3 | `get`, `event_callback`, `event_timeout` (F03) | mediated | G2 | Callback timing is a host effect |
 | 4 | `set` (global and scoped params) | worker-native | G2 | Precedence rules from capture |
 | 5 | `consent` (`default`, `update`, `wait_for_update`, regions, the consent types) (F16 to F19) | mediated | G3 | Basic zero-send and advanced cookieless modes both owed |
-| 6 | Click IDs and cookies: `gclid`, `gbraid`, `wbraid`, `_gcl_au`, `_gcl_aw`, `_gcl_gs` and any others the loader writes (F20) | mediated | G4 | Rules in 3.3 |
+| 6 | Click IDs and cookies: `gclid`, `gbraid`, `wbraid`, `_gcl_au`, `_gcl_aw`, `_gcl_gs` and any others the loader writes (F20) | mediated | G4 | Rules in 3.3. Cookie lifetimes and attribution of a test click: `live-only` (4.9) |
 | 7 | Cross-domain `linker` and form decoration, `url_passthrough`, `ads_data_redaction` (F21, F22) | host-side | G4 | Needs an owned peer domain (D7) |
-| 8 | Standard and dynamic remarketing events, business-vertical item schemas (F07, F08) | mediated | G5 | |
-| 9 | Cart data, custom variables, new-customer acquisition, counting and duplicate behavior (F06, F09 to F11) | mediated | G6 | |
+| 8 | Standard and dynamic remarketing events, business-vertical item schemas (F07, F08) | mediated | G5 | List membership: `live-only` (4.9) |
+| 9 | Cart data, custom variables, new-customer acquisition, counting and duplicate behavior (F06, F09 to F11) | mediated | G6 | Counting and attribution in the Ads UI: `live-only` (4.9) |
 | 10 | Manual enhanced data via `set user_data` (raw and prehashed) (F12) | worker-native | G7 | Normalization and hashing in the chamber |
 | 11 | Automatic detection, selector and JS-variable collection, lead forms (F13 to F15) | host-side | G8 | Bounded extraction, no arbitrary evaluation |
-| 12 | Website calls: `phone_conversion_number` lookup, number swap (F23) | host-side | G9 | Needs an eligible call resource (D8) |
+| 12 | Website calls: `phone_conversion_number` lookup, number swap (F23) | host-side | G9 | Needs an eligible call resource (D8). Call forwarding beyond the lookup response: `live-only` (4.9) |
 | 13 | Remote config handling, transport, credentials, redirects, retries, lifecycle (`pagehide`, bfcache) (F24, F26, F27) | mediated | G10 | |
 | 14 | Multiple destinations and GA4/GTM coexistence (F25) | host-side | G12 | We do not reimplement GA4 or GTM |
 | 15 | Cookie customization (`cookie_domain`, `cookie_prefix`, `cookie_expires`, `cookie_update`, `cookie_flags`) | mediated | G4 | Page-side inputs, agent-run |
@@ -70,7 +70,7 @@ Every request the tag makes gets a request-level class (ADR-0061 point 10): `alw
 | Secondary labeled request | conditional | Absent in the retained smoke. The rule is unknown today |
 | `viewthroughconversion` and `rmkt` mirrors | conditional | Two bodies were unavailable in the smoke |
 | `ccm/form-data` (enhanced conversions) | conditional | Depends on the enhanced-conversions state |
-| `cm.g.doubleclick.net/pixel` (cookie match) | conditional | Credentialed and cross-site. Never captured here |
+| `cm.g.doubleclick.net/pixel` (cookie match) | conditional | Credentialed and cross-site. Never captured here. Effects visible only downstream: `live-only` (4.9) |
 | Any request not in this list | unknown | Resolves to always, conditional or volatile before the freeze commit. Owner: the capture session (CAP) |
 
 Fan-out completeness was left open at ADR-0040:224. The positive control (4.1) plus every state's full request list closes it for the frozen corpus.
@@ -181,7 +181,7 @@ Two exits: a non-EEA exit (the owner's default) and an EEA exit the owner provid
 
 ### 4.9 Live-only tags
 
-Each item below is marked `live-only` in its section 2 row (rows 5, 6, 8, 9, 12 and the cookie-match request in 2.2), so the release check reads the list from the inventory.
+Each item below is marked `live-only` in its section 2 row (rows 6, 8, 9 and 12 and the cookie-match request in 2.2), so the release check reads the list from the inventory.
 
 Tagged now, with reason, and checked once at the release check: conversion counting and attribution in the Ads UI (including whether a test click is attributed); enhanced-conversions matching; remarketing list membership; cookie-match (`cm.g.doubleclick.net`) effects if only visible downstream; website-call forwarding beyond the lookup response; cookie lifetimes beyond the `Set-Cookie` and storage values we record; any geo-dependent response from an egress we could not use.
 
