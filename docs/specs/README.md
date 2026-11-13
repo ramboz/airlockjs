@@ -163,7 +163,7 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-06: Limits never drop or delay stock output by default | READY_FOR_IMPLEMENTATION |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-07: The stock-context channel | READY_FOR_IMPLEMENTATION |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-08: Alloy `context` defaults to the stock list | READY_FOR_IMPLEMENTATION |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-09: The credentials denylist stays on, with an explicit override | READY_FOR_IMPLEMENTATION |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-09: The credentials denylist stays on, with an explicit override | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-10: Input governance at the wrapped-SDK seam | READY_FOR_IMPLEMENTATION |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-11: A privacy-safe measurement purpose for helix-rum | READY_FOR_IMPLEMENTATION |  |
 
@@ -190,7 +190,7 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
 - **9** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **104** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **105** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **49** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review

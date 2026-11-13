@@ -1,8 +1,7 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: [067-01]
 last_verified: 2026-11-13
-claimed_by: 067-09-denylist-override
 ---
 
 ## Slice 067-09: The credentials denylist stays on, with an explicit override
@@ -29,6 +28,16 @@ claimed_by: 067-09-denylist-override
 **Consumers:** Adobe 064-18 onward (vendor-adobe); Google G3 and G12; Meta D1 row.
 
 **Anti-horizontal-phasing check:** Vertical: option, governance path, diagnostic and the three pinning tests.
+
+### Deviation log
+
+- The alloy track (`createWrappedSdkHost`) had no built-in default strip, only a host-list strip. The slice's "on by default on every track" goal needed it, so this slice made the alloy strip default-on (review finding, fixed in 7de3124e). No other deviation.
+
+### Reconciliation sweep
+
+- Spec 067 section 7 D3: matches (option name, `false` or array, one-time `warn`, threaded like `payloadDenylist`).
+- ADR-0012 and ADR-0062 exception (b): no change needed.
+- `docs/architecture.md`, `contracts/README.md` and the config schema name the option. Consumers 067-10 and 067-08 reuse `resolveDenylist`.
 
 **Implementation notes (2026-11-13):**
 - `resolveDenylist` in `core/payload-governance.js` is the one place the effective list is built. `createAirlock` (ga4, gtag, google-ads, floodlight, pixel) and `createWrappedSdkHost` (alloy egress strip) both use it, so the override has one shape on every governed track. The alloy strip now uses the built-in list by default (it only ran on a host list before).
