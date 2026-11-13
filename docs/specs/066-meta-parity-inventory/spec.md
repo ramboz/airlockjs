@@ -45,12 +45,13 @@ Owner rule, 2026-11-13: "we want full parity, just with better controls, so we s
 Effect on this spec and the M-slices:
 - Every fixture comparison (ADR-0061 point 1) runs the chamber in its default configuration, with no control turned on, against stock. A reduction (stripped field, held event, allowlist) is a separate opt-in test in the slice that owns the control. It is never part of the parity comparison.
 - M7 (automatic matching) and M8 (automatic events): the default follows the pixel's served settings, as stock does. Spec 060's "approved forms" and "owner-registered roots" are the opt-in restriction, not the default.
-- M4 (consent): the default sends as stock does, with no hold. Stock honors `consent revoke`. An Airlock consent hold is an opt-in. See O12.
+- M4 (consent): the seal's consent hold stays the default. It is a deliberate exception to stock-by-default (ADR-0062, pending), decided by the owner on 2026-11-13 (O12). Fixture comparisons supply a consent state matching the recording, so the hold never counts as a parity failure. Stock's `consent revoke` and `grant` behavior is still matched.
 - M5 and M6: the default writes `_fbp`/`_fbc` and sends identity fields exactly as stock. Field strips are opt-in.
-- M9 and M12: the default does not cap, drop or delay what stock sends. Byte limits, ring caps and lease limits in spec 060's contract table apply only when a site opts in. See O12.
+- M9 and M12: the default does not cap, drop or delay what stock sends. Byte limits, ring caps, queue and retention limits and "approved forms" from spec 060's contract table are site opt-ins.
+- Egress allowlist: the default covers every destination fbevents contacts in the inventory, so egress stays mediated and stock traffic is not blocked. A site can narrow it. If the seal's default-deny needs a shared change on main, that is dependency slice D1 (section 9), not an owner decision.
 - M11: the diagnostic is visible-only and changes no output, so it is already stock-compatible by default.
 - SET7 and the capture plan are unchanged. The corpus records stock. Nothing in section 4 captures a control.
-- Defaults inherited from 060 to 063 that this rule overrides: the pending-consent default and default-deny egress in the seal (architecture-wide, see O12), the "approved forms" default, and bounded queue and retention limits. The 061 and 062 no-send guard, the abort of the native `/tr` request and the `meta-pixel=off` site choice are test setup and a site choice, not product defaults. They stay as history.
+- Defaults inherited from 060 to 063 that this rule overrides: default-deny egress in the seal (D1), the "approved forms" default, and bounded queue and retention limits. The consent hold is kept as the one exception (O12). The 061 and 062 no-send guard, the abort of the native `/tr` request and the `meta-pixel=off` site choice are test setup and a site choice, not product defaults. They stay as history.
 
 ## 2. Inventory
 
@@ -87,7 +88,8 @@ Data vocabulary (spec 060, "Commands and event data"): `content_category`, `cont
 | Errors | Blocked script, config or `/tr`; non-200; invalid commands | worker-native | M2, M9 |
 | Config provenance | Served config shape, plugin set, `signals/config` effects | mediated | M3, M11 |
 | Diagnostics | Helper-style diagnostics, catalog and audience inputs (collection side only) | host-side | M12 |
-| Backend | Test Events receipt, matching quality, deduplication with server events, catalog and audience results, attribution | live-only | M13 |
+| Backend | Test Events receipt, matching quality, deduplication with server events, catalog and audience results, attribution | live-only | D1 (dependency, on main) | Shared seal change under ADR-0062 (pending): default egress allowlist covers every destination the inventory lists, caps and queue and retention limits become opt-in, "approved forms" becomes opt-in. Consent hold unchanged. Lands on main, not built on this branch | none |
+| M13 |
 
 ### 2.3 Family coverage
 
@@ -355,12 +357,12 @@ Counting rule: MT1, MT2 and MT0 are pre-capture tasks with their own completion 
 | M1 | Bootstrap, queue, `init`, PageView, network shape, `ler`/`plt`, served-config reading for the pilot state. **Pilot slice** | CAP, comparator rules |
 | M2 | Standard events, data vocabulary, custom events, invalid input, catalog data (collection side) | M1 |
 | M3 | Multi-pixel routing, `set`, config effects of the settings in S14 | M1 |
-| M4 | Consent and data processing options, queue retention and replay | M1 |
+| M4 | Consent and data processing options, queue retention and replay. States the consent hold as the stock-default exception | M1 |
 | M5 | `_fbp`, `_fbc`, `fbclid`, first-party cookie setting (SET3), transport credentials | M1, M4 |
 | M6 | Manual identity matching: raw and prehashed fields, login and logout | M5 |
-| M7 | Automatic matching (SET1) | M6 |
+| M7 | Automatic matching (SET1) | M6, D1 |
 | M8 | Automatic events and page metadata (SET2, SET4) | M2 |
-| M9 | SPA, unload, transport choice, no-JavaScript, error paths | M2, M5 |
+| M9 | SPA, unload, transport choice, no-JavaScript, error paths | M2, M5, D1 |
 | M10 | `eventID`/`eid` browser side; server-event correlation fields | M2 |
 | M11 | Point 11: served-config reading in production, out-of-inventory diagnostic. Needs owner decision O5 | M3, M7, M8 |
 | M12 | Diagnostics, compatibility report, performance and confinement budget (specs 060-11, part of 060-12) | M1 to M10 |
@@ -420,7 +422,7 @@ All are open. The recommendation comes first in each.
 - **O9. Second pixel for multi-pixel states.** Recommended: a second owned test pixel. If you don't have one, use a never-created ID and accept that the config for it is whatever Meta returns.
 - **O10. State of 063-01.** Recommended: the claim holder closes it with the rescope note, and the live readback becomes a release-check row. No action from you beyond a yes.
 - **O11. Variant scope.** Recommended: accept the bounded deviation in 4.4 (one-factor variants for S1, S2 and S4 Purchase, egress region for every state). Full variants for every state would multiply the corpus by about 4 and add little, since those factors do not depend on the command. If you want a different set, say which. A yes is recorded as a dated amendment line under ADR-0061 point 1.
-- **O12. Defaults that cannot simply align to stock.** The seal's default today is consent pending and egress blocked until allowed (architecture.md, Clarifications Q2), and spec 060 sets bounded queues, byte limits and "approved" forms and roots. Under the new rule these must become opt-in. Changing them touches shared code and the other vendors' tracks, so it is your call. Recommended: yes for Meta now. Meta slices default to stock (no hold, no cap, form and metadata observation per served settings). The consent hold, allowlist, field strips and caps become site opt-ins, and the shared seal default is changed in a separate cross-vendor slice on main under ADR-0062. Until that slice lands, M4 and M7 to M9 wait for it, or run with the Meta chamber's own default override.
+- **O12. Consent hold vs stock-by-default.** Decided 2026-11-13: the owner chose "No, keep the consent hold as the one exception to the rule". The seal's consent hold stays the default and M4 states it as a deliberate exception (section 1.1). Everything else follows stock. No action left for the owner.
 
 ## 12. Review log and carried findings
 
@@ -429,7 +431,7 @@ Review rounds are capped at three before owner review (owner decision). Each is 
 - Round 1 (Opus, 2026-11-12): 6 major, 7 minor. Fixed: settings-window arithmetic and the kill criterion no longer tied to one window (5.1, 10.3); C8 capped at 3 with a pre-CAP list; recording count derived per state, cap raised to 450; one-factor variants widened to S1, S2 and S4 Purchase and declared as a deviation (O11); drift probe split into script leg and config leg because configs are per pixel; section 8 Today column updated to applied state; section 0 slice counts; candidate settings got owning slices; sample size reconciled (60 homepage GETs for 30 pixel IDs, threshold is 4 configs); single unexplained held-out failure blocks its row; drift loads re-run in the ladder-selected mode; MT0 may start before approval; credential check is a repository test.
 - Round 2 (Opus, 2026-11-12): 3 major, 5 minor. Fixed: settings candidates renamed SET1 to SET9 to avoid clashing with spec 060's C1 to C9 acceptance criteria; positive-control rule for image beacons with empty bodies, and 058-02 and 061 attribution corrected; window arithmetic restated (up to 10 candidates, 12 waits, 6 hours agent time); CAP gated on O11; release-check clause of point 10 added to M13 and 10.2; `mixed`/`unknown` allowed only before freeze; credential check wording unified; S1 and S4 recording counts reconciled.
 - Round 3 (Opus, 2026-11-12): 2 major, 9 minor. Fixed: one settings change per step (revert and flip together) so states stay one-factor; one derivation of state and wait counts used in 3, S14, 5.1 and O2; SET9 owner; CAP no longer gated on O4 and O5; returning-profile held-out recording in S18; MT0 named in the summary; rescope-note sentence narrowed to 060 and 063; exit recorded as label plus opaque ID; O11 yes becomes an ADR-0061 amendment line; B0 fallback in section 7; citations corrected. Nothing open carried to the pilot.
-- 2026-11-13, owner rule (ADR-0062, pending): section 1.1 added, O12 added, O5 annotated. No review round, by instruction.
+- 2026-11-13, owner rule (ADR-0062, pending): section 1.1 added, O12 added, O5 annotated. 2026-11-13: O12 answered (consent hold kept as the one exception), D1 dependency slice added, fork removed. No review round, by instruction.
 - Pilot count of extra captures: _to be filled at pilot close_.
 
 ## 13. Clarifications
