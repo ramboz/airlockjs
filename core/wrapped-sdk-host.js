@@ -123,13 +123,14 @@
  * re-serialize; 020-01 live-confirmed the round-trip is Edge-safe) before
  * dispatch. The alloy body is already read-minimized by construction
  * (connectors/alloy/connector.js's `toXdm` 2-field allowlist + `context:[]`)
- * — this is thin defense-in-depth, gated on `payloadDenylist` being
- * non-empty (byte-unchanged otherwise).
+ * — this is thin defense-in-depth. Since 067-09 the built-in credentials
+ * denylist is on by default here; `payloadDenylistOverride` (`false` or an
+ * array) is the only way to turn it off or replace it.
  */
 import { checkEndpointCeiling } from "./endpoint-ceiling.js";
 import { checkConfigIntegrity, pinnedDispatchUrl, hostOf } from "./config-integrity.js";
 import { egressVerdict, resolveConsent } from "./consent.js";
-import { governPayload } from "./payload-governance.js";
+import { governPayload, resolveDenylist } from "./payload-governance.js";
 import { isValidCookieName, matchesGrantedName } from "./cookie-scope.js";
 
 // Default diagnostics seam (mirrors core/airlock.js's `consoleDiagnostic`):
@@ -161,6 +162,7 @@ function consoleDiagnostic(record) {
  *   consent?: (Record<string, string> | null),
  *   egressPurposes?: readonly string[],
  *   payloadDenylist?: (readonly string[] | null),
+ *   payloadDenylistOverride?: (false | readonly string[]),
  *   grantedCookieNames?: (readonly string[] | null),
  *   onDiagnostic?: (record: { level: string, kind: string, [k: string]: unknown }) => void,
  * }} opts
@@ -192,10 +194,18 @@ export function createWrappedSdkHost({
   consent = null,
   egressPurposes = [],
   payloadDenylist = null,
+  payloadDenylistOverride,
   grantedCookieNames = null,
   onDiagnostic,
 }) {
   const diagnose = typeof onDiagnostic === "function" ? onDiagnostic : consoleDiagnostic;
+  // 067-09: the built-in credentials denylist is ON by default here too; only an explicit
+  // `payloadDenylistOverride` turns it off or replaces it (a host list still extends).
+  const resolvedDenylist = resolveDenylist(payloadDenylistOverride, payloadDenylist);
+  const effectiveDenylist = resolvedDenylist.list;
+  if (resolvedDenylist.overridden) {
+    diagnose({ level: "warn", kind: "payload-governance", disposition: "denylist-overridden", reason: resolvedDenylist.reason });
+  }
   // 028-02 per-beacon correlation: a per-INSTANCE random tag namespaces this host's
   // beacon ids so they stay unique in the SHARED inspector collector. The beacon id
   // reuses the intercepted-fetch's own `m.id` (already unique per fetch): `<tag>#<m.id>`.
@@ -411,15 +421,14 @@ export function createWrappedSdkHost({
     if (!applyConsent(() => chamber.postMessage({ type: "intercepted-fetch-response", id: m.id, status: 0, statusText: "held at the seal: consent", body: "" }))) return;
 
     // AC3 (spec 020-02) — optional thin defense-in-depth payload strip: gated
-    // on a non-empty `payloadDenylist` (back-compat: absent/empty leaves
-    // `m.body` byte-unchanged). Non-load-bearing — the alloy interact body
+    // on a non-empty effective denylist (built-in default unless overridden). Non-load-bearing — the alloy interact body
     // is already read-minimized by construction
     // (connectors/alloy/connector.js's `toXdm` 2-field allowlist +
     // `context:[]`; 020-01 Finding).
-    if (payloadDenylist && payloadDenylist.length && m.body) {
+    if (effectiveDenylist.length && m.body) {
       const strippedBody = stripInterceptedXdmBody(
         m.body,
-        payloadDenylist,
+        effectiveDenylist,
         (field) => diagnose({ level: "warn", kind: "payload-governance", disposition: "stripped", field }),
         (reason) => diagnose({ level: "error", kind: "payload-governance", disposition: "skipped", reason }),
       );

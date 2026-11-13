@@ -31,7 +31,7 @@ import { createPixelConnector } from "../connectors/pixel/connector.js";
 import { mergeAdvancedMatching } from "../connectors/pixel/advanced-matching.js";
 import { originPath, checkEndpointCeiling } from "./endpoint-ceiling.js";
 import { egressVerdict, resolveConsent } from "./consent.js";
-import { governPayload, DEFAULT_DENYLIST } from "./payload-governance.js";
+import { governPayload, resolveDenylist } from "./payload-governance.js";
 
 // Default diagnostics seam: console-backed, severity-differentiated (warn for a
 // per-descriptor drop, error for a chamber-level crash). Callers may inject
@@ -148,24 +148,11 @@ export function createAirlock({
   // reference when nothing is stripped). The host `payloadDenylist` EXTENDS
   // the built-in set (defense-in-depth — the default is never the sole
   // protection, CLAUDE.md security-MUST).
-  if (
-    payloadDenylistOverride !== undefined &&
-    payloadDenylistOverride !== false &&
-    !(Array.isArray(payloadDenylistOverride) && payloadDenylistOverride.every((k) => typeof k === "string"))
-  ) {
-    throw new TypeError("createAirlock: payloadDenylistOverride must be false or an array of strings");
-  }
-  const overridden = payloadDenylistOverride !== undefined;
-  const baseDenylist = overridden ? payloadDenylistOverride || [] : DEFAULT_DENYLIST;
-  const effectiveDenylist = [...baseDenylist, ...(payloadDenylist || [])];
-  if (overridden) {
+  const resolved = resolveDenylist(payloadDenylistOverride, payloadDenylist);
+  const effectiveDenylist = resolved.list;
+  if (resolved.overridden) {
     // One per airlock (= per connector), at construction, not per payload.
-    diagnose({
-      level: "warn",
-      kind: "payload-governance",
-      disposition: "denylist-overridden",
-      reason: payloadDenylistOverride === false ? "built-in-off" : "built-in-replaced",
-    });
+    diagnose({ level: "warn", kind: "payload-governance", disposition: "denylist-overridden", reason: resolved.reason });
   }
   // 019-01 AC7: the IMPURE caller — both governance points below share this
   // ONE closure — emits a redacted diagnostic per stripped field (the field

@@ -1521,6 +1521,29 @@ describe("createWrappedSdkHost — optional payload strip (spec 020-02 AC3)", ()
     for (const d of diags) expect(JSON.stringify(d)).not.toContain("s3cr3t"); // never the value
   }, 2000);
 
+  it("067-09: the built-in credentials denylist is on by default; override false / array turns it off / replaces it with one warn", async () => {
+    const run = async (opts, id) => {
+      const { chamber, dispatched, diags } = makeSpyingHost(opts);
+      const posted = chamber.nextPost();
+      chamber.emit({ type: "intercepted-fetch", id, url: INTERACT, method: "POST", headers: {}, body: eventBody({ password: "x", token: "t" }) });
+      await posted;
+      return { xdm: JSON.parse(dispatched[0].body).events[0].xdm, diags };
+    };
+    expect((await run({}, 10)).xdm.password).toBeUndefined();
+    expect((await run({ payloadDenylist: ["email"] }, 11)).xdm.password).toBeUndefined();
+
+    const off = await run({ payloadDenylistOverride: false }, 12);
+    expect(off.xdm.password).toBe("x");
+    expect(off.diags.filter((d) => d.disposition === "denylist-overridden")).toEqual([
+      { level: "warn", kind: "payload-governance", disposition: "denylist-overridden", reason: "built-in-off" },
+    ]);
+
+    const replaced = await run({ payloadDenylistOverride: ["token"] }, 13);
+    expect(replaced.xdm.password).toBe("x");
+    expect(replaced.xdm.token).toBeUndefined();
+    expect(replaced.diags.find((d) => d.disposition === "denylist-overridden").reason).toBe("built-in-replaced");
+  }, 2000);
+
   it("back-compat: no payloadDenylist wired -> the body is byte-unchanged (same string reference)", async () => {
     const { chamber, dispatched, diags } = makeSpyingHost({});
     const body = eventBody({ eventType: "web.webpagedetails.pageViews", _airlocktest: "s3cr3t" });

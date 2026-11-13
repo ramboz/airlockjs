@@ -29,3 +29,9 @@ claimed_by: 067-09-denylist-override
 **Consumers:** Adobe 064-18 onward (vendor-adobe); Google G3 and G12; Meta D1 row.
 
 **Anti-horizontal-phasing check:** Vertical: option, governance path, diagnostic and the three pinning tests.
+
+**Implementation notes (2026-11-13):**
+- `resolveDenylist` in `core/payload-governance.js` is the one place the effective list is built. `createAirlock` (ga4, gtag, google-ads, floodlight, pixel) and `createWrappedSdkHost` (alloy egress strip) both use it, so the override has one shape on every governed track. The alloy strip now uses the built-in list by default (it only ran on a host list before).
+- `contracts/instrumentation-config.schema.json` accepts `payloadDenylistOverride` on every governed connector, with a golden fixture.
+- AC5: the note lives in `rig/native-tag-comparison.md` (the rig doc owns it).
+- 067-10 (input governance at the wrapped-SDK seam) should reuse `resolveDenylist` rather than rebuild the list.
