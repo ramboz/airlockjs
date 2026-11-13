@@ -86,6 +86,11 @@ export function createAirlock({
   // 1:1 remap that ignores the third arg is byte-unchanged.
   remap,
   payloadDenylist = [],
+  // 067-09 (ADR-0062 exception b, owner decision D3): the ONLY way to turn the
+  // built-in credentials denylist off (`false`) or replace it (an array of field
+  // names). Absent -> the built-in default stays on. A host `payloadDenylist`
+  // never disables it; it still extends whatever base this selects.
+  payloadDenylistOverride,
   // Connector-selection seam (spec 026-01 AC3, resolving the "GA4-hardcoded
   // connector factory + worker URL" gap; spec 025-03 AC6 adds a THIRD
   // branch): `connector: "pixel"` hosts `connectors/pixel/connector.js`'s
@@ -143,7 +148,25 @@ export function createAirlock({
   // reference when nothing is stripped). The host `payloadDenylist` EXTENDS
   // the built-in set (defense-in-depth — the default is never the sole
   // protection, CLAUDE.md security-MUST).
-  const effectiveDenylist = [...DEFAULT_DENYLIST, ...(payloadDenylist || [])];
+  if (
+    payloadDenylistOverride !== undefined &&
+    payloadDenylistOverride !== false &&
+    !(Array.isArray(payloadDenylistOverride) && payloadDenylistOverride.every((k) => typeof k === "string"))
+  ) {
+    throw new TypeError("createAirlock: payloadDenylistOverride must be false or an array of strings");
+  }
+  const overridden = payloadDenylistOverride !== undefined;
+  const baseDenylist = overridden ? payloadDenylistOverride || [] : DEFAULT_DENYLIST;
+  const effectiveDenylist = [...baseDenylist, ...(payloadDenylist || [])];
+  if (overridden) {
+    // One per airlock (= per connector), at construction, not per payload.
+    diagnose({
+      level: "warn",
+      kind: "payload-governance",
+      disposition: "denylist-overridden",
+      reason: payloadDenylistOverride === false ? "built-in-off" : "built-in-replaced",
+    });
+  }
   // 019-01 AC7: the IMPURE caller — both governance points below share this
   // ONE closure — emits a redacted diagnostic per stripped field (the field
   // NAME only, never the value) via the existing `diagnose` seam.

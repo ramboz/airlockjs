@@ -418,6 +418,7 @@ async function bootGa4Core(opts = {}) {
     endpoints = DEFAULT_ENDPOINTS,
     trackers = endpoints.length,
     payloadDenylist,
+    payloadDenylistOverride,
     onDiagnostic,
   } = opts;
 
@@ -513,6 +514,7 @@ async function bootGa4Core(opts = {}) {
     egressPurposes: consent ? GA4_EGRESS_PURPOSES : [],
     consentStrict,
     payloadDenylist,
+    payloadDenylistOverride,
     // spec 028: thread the inspector's diagnostic sink so a PROD-booted instance's
     // enforcement decisions (held/dropped/stripped) are observable — without it the
     // 028 inspector is blind to production boots (docs/inbox.md, 2026-09-03). Absent
@@ -714,6 +716,7 @@ export async function bootGa4Gtag(opts = {}) {
     consentDefault,
     consentStrict = false,
     payloadDenylist,
+    payloadDenylistOverride,
     streamCookieName,
     endpoint = GA4_GTAG_COLLECT_ENDPOINT,
     onDiagnostic,
@@ -792,6 +795,7 @@ export async function bootGa4Gtag(opts = {}) {
     egressPurposes: consent ? GA4_GTAG_EGRESS_PURPOSES : [],
     consentStrict,
     payloadDenylist,
+    payloadDenylistOverride,
     // 041-03: wire the 040-03/040-05 GA4 batching strategy onto the 040-02 core
     // coalescing seam — a same-context cycle of >=2 /g/collect GETs now
     // egresses as gtag's own batched-POST convention (split when oversized),
@@ -863,6 +867,7 @@ export async function bootGoogleAds(opts = {}) {
     consentDefault,
     consentStrict = false,
     payloadDenylist,
+    payloadDenylistOverride,
     endpoint = GOOGLE_ADS_CCM_COLLECT_ENDPOINT,
     onDiagnostic,
   } = opts;
@@ -914,6 +919,7 @@ export async function bootGoogleAds(opts = {}) {
       readCookieString: () => (typeof document !== "undefined" ? document.cookie : ""),
     }),
     payloadDenylist,
+    payloadDenylistOverride,
     onDiagnostic,
   });
 
@@ -996,6 +1002,7 @@ export async function bootFloodlight(opts = {}) {
     consentDefault,
     consentStrict = false,
     payloadDenylist,
+    payloadDenylistOverride,
     endpoint = FLOODLIGHT_CCM_COLLECT_ENDPOINT,
     activityEndpoint = FLOODLIGHT_ACTIVITY_ENDPOINT,
     onDiagnostic,
@@ -1055,6 +1062,7 @@ export async function bootFloodlight(opts = {}) {
       readCookieString: () => (typeof document !== "undefined" ? document.cookie : ""),
     }),
     payloadDenylist,
+    payloadDenylistOverride,
     onDiagnostic,
   });
 
@@ -1116,7 +1124,7 @@ function bootPixelConnector(vendor, opts = {}) {
   // NOTE: `onDiagnostic` MUST be destructured out explicitly — otherwise `...ids`
   // swallows it into the vendor id-bag (createConfig ignores extras), and it would
   // never reach createAirlock. spec 028: inspector diagnostic sink (see bootGa4Core).
-  const { consent, consentStrict = false, payloadDenylist, externalId, externalIdCookie, onDiagnostic, ...ids } = opts;
+  const { consent, consentStrict = false, payloadDenylist, payloadDenylistOverride, externalId, externalIdCookie, onDiagnostic, ...ids } = opts;
 
   // 026-04 (ADR-0022): advanced-matching `external_id` sourcing — META only
   // (gated on `entry.advancedMatching`; linkedin/bing stay identity-free, byte-
@@ -1150,6 +1158,7 @@ function bootPixelConnector(vendor, opts = {}) {
     egressPurposes: consent ? entry.egressPurposes : [],
     consentStrict,
     payloadDenylist,
+    payloadDenylistOverride,
     onDiagnostic, // spec 028: inspector diagnostic sink pass-through (see bootGa4Core)
   });
 
@@ -1561,7 +1570,7 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit }) {
  * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, stats: Function, dispose: Function }>}
  */
 export async function bootAlloy(opts = {}) {
-  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, context = [], consent, payloadDenylist, workerUrl, reservedPlacements, compositeEmit } = opts;
+  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, context = [], consent, payloadDenylist, payloadDenylistOverride, workerUrl, reservedPlacements, compositeEmit } = opts;
 
   // ADR-0016 prerequisite — fail LOUD here too (validateConnectorEntry also checks it
   // on the config path) so a direct bootAlloy caller gets an actionable error rather
@@ -1670,6 +1679,7 @@ export async function bootAlloy(opts = {}) {
     // no consent → [] → gate off, byte-unchanged), mirroring every other boot.
     egressPurposes: consent ? ALLOY_EGRESS_PURPOSES : [],
     payloadDenylist,
+    payloadDenylistOverride,
     // spec 035-01 AC2/AC3 — the WRITE-side name-scope + validation gate, wired to
     // the SAME ALLOY_COOKIE_NAMES the READ-side seed filter uses (above) — one
     // source of truth, both enforcement seams.

@@ -166,6 +166,17 @@ describe("bootEdsAnalytics consent wiring (spec 017-03 — the seal's egressPurp
 // `requestIdleCallback` is stubbed per-test (not in the shared beforeEach
 // above) since none of the OTHER eds-boot tests ever call push() directly.
 describe("bootEdsAnalytics payload-denylist wiring (spec 019-01 — ADR-0012)", () => {
+  it("067-09: `payloadDenylistOverride: false` is threaded to the airlock (built-in list off); default keeps it on", async () => {
+    vi.stubGlobal("requestIdleCallback", (cb) => { cb({ didTimeout: false, timeRemaining: () => 0 }); return 1; });
+    const on = await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" } });
+    on.push({ event: "signup", password: "x" });
+    expect(FakeWorker.last.messages.find((m) => m.type === "events").batch[0].params.password).toBeUndefined();
+
+    const off = await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" }, payloadDenylistOverride: false, onDiagnostic: () => {} });
+    off.push({ event: "signup", password: "x" });
+    expect(FakeWorker.last.messages.find((m) => m.type === "events").batch[0].params.password).toBe("x");
+  });
+
   it("no `payloadDenylist` opt at all -> byte-unchanged: a pushed field crosses to the worker untouched (back-compat)", async () => {
     vi.stubGlobal("requestIdleCallback", (cb) => { cb({ didTimeout: false, timeRemaining: () => 0 }); return 1; });
     const handle = await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" } });
