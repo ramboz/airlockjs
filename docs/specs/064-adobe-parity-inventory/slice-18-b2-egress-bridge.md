@@ -17,7 +17,7 @@ last_verified:
 2. `sendBeacon` is routed or denied with a visible diagnostic; ID-sync and URL-destination pixels and script or iframe loads are either bridged or tagged with a reason.
 3. Edge domain kind (first-party versus Adobe) is honored and `x-adobe-edge` is read.
 4. An unknown handle type raises a visible error, using the known-types list in spec 064 section 2.2.
-5. The default egress allowlist covers every destination in spec 064 section 2.2 (D8 exception: the consent hold stays, and fixtures supply a matching consent state).
+5. The default egress allowlist covers every destination in spec 064 section 2.2 (ADR-0062 exceptions: the consent hold and the credentials denylist stay; fixtures supply the recorded consent state).
 6. Fixtures S0, S3, S6 (request and transport shape only; consent command behavior is B3), S8 and S11 compare clean through real chamber dispatch.
 
 **DoD:**
