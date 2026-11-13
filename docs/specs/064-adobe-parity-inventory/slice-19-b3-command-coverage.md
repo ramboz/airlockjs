@@ -13,10 +13,10 @@ last_verified:
 
 **Acceptance Criteria:**
 
-1. Each row of spec 064 section 2.1 points to a fixture and compares clean, or is marked incompatible with a reason.
+1. Each row of spec 064 section 2.1 owned by B3 (rows 3 to 9) points to a fixture and compares clean. Rows owned by B4 (10 to 12) and B6 (13 to 17) are checked by those slices. B3 only confirms the 17-row matrix has an owner for every row.
 2. Disposition of the 6 function-valued options (`onBeforeEventSend`, `clickCollection.filterClickProperties`, `onBeforeLinkClickSend`, `subscribeRulesetItems.callback`, `createMediaSession.getPlayerDetails`, `sendConversationEvent.onStreamResponse`) is decided and recorded.
 3. `appendIdentityToUrl` runs worker-native.
-4. Fixtures S3 to S7 compare clean.
+4. Fixtures S3 to S7 compare clean. S6 supplies a consent state matching the recording (D8 exception: the consent hold stays).
 
 **DoD:**
 - `npm test && npm run lint` and servo gate pass.

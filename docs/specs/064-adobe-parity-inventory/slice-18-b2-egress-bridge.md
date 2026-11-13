@@ -18,7 +18,7 @@ last_verified:
 3. Edge domain kind (first-party versus Adobe) is honored and `x-adobe-edge` is read.
 4. An unknown handle type raises a visible error, using the known-types list in spec 064 section 2.2.
 5. The default egress allowlist covers every destination in spec 064 section 2.2 (D8 exception: the consent hold stays, and fixtures supply a matching consent state).
-6. Fixtures S0, S3, S6, S8 and S11 compare clean through real chamber dispatch.
+6. Fixtures S0, S3, S6 (request and transport shape only; consent command behavior is B3), S8 and S11 compare clean through real chamber dispatch.
 
 **DoD:**
 - `npm test && npm run lint` and servo gate pass.
