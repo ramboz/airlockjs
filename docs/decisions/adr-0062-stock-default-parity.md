@@ -11,7 +11,7 @@ frame_review: true
 
 Accepted (2026-11-13). The owner's answers under "Owner answers (2026-11-13)" are the acceptance record.
 
-Amends and partially supersedes ADR-0003, ADR-0006 (projection and cookie/storage clauses), ADR-0012 (default denylist, ambient-context boundary note) and ADR-0013 (minimization claims). The clauses are listed under Recommended Decision. Everything else in those ADRs stands.
+Amends and partially supersedes ADR-0003, ADR-0006 (projection and cookie/storage clauses), ADR-0012 (ambient-context boundary note) and ADR-0013 (minimization claims). The clauses are listed under Recommended Decision. Everything else in those ADRs stands.
 
 ## Summary
 
@@ -76,7 +76,8 @@ Adopt Option B.
 | refinement-todo.md:374-376 | Alloy "read-minimized by construction" | **Superseded** with ADR-0013. |
 | refinement-todo.md:507 | Pixels are default-deny on event declarations | **Unaffected.** It is event routing, not data minimization. |
 | architecture.md:90, 154 | "Privacy-filtered" snapshot; OQ4 privacy boundary | **Amended.** Reword in the follow-up slice. |
-| connectors/alloy/connector.js:104 and core/payload-governance.js:88 | Code defaults (`context = []`, always-on denylist) | Change in the slices that follow. Not part of this ADR. |
+| connectors/alloy/connector.js:104 | Code default `context = []` | Changes in the slices that follow. Not part of this ADR. |
+| core/payload-governance.js:88 | Code default: always-on denylist | **Unaffected.** Stays on (exception (b)). |
 
 The accepted ADRs are not edited here. Per the repo's convention the follow-up slices add the `Amended by ADR-0062` status lines when this ADR is accepted.
 
