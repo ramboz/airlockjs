@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 skill: jig:spec-workflow
 use_cases: [UC-4, UC-5, UC-6, UC-7, UC-8, UC-9, UC-10, UC-11, UC-13, UC-14]
 ---
@@ -294,7 +294,7 @@ History is kept. Spec 059 gets a dated rescope note and each slice a new status.
 
 ## 9. Ordered slice list
 
-T1, T2, T3 and G0 are pre-capture tasks with their own completion checks. T1, T2 and G0 may start before approval (T1 and T2 are read-only). T3 needs D4. They need no fixture comparison, because the corpus does not exist yet (point 7). T1 and T2 are read-only. CAP and everything after it wait for D1. Each slice is sized for one fresh session and ends with a recorded-fixture comparison through real chamber dispatch (point 1). Slice files with DoR and acceptance are written after D1, so the pilot can still change them.
+T1, T2, T3 and G0 are pre-capture tasks with their own completion checks. T1, T2 and G0 may start before approval (T1 and T2 are read-only). T3 needs D4. They need no fixture comparison, because the corpus does not exist yet (point 7). T1 and T2 are read-only. CAP and everything after it wait for D1. Each slice is sized for one fresh session and ends with a recorded-fixture comparison through real chamber dispatch (point 1). Slice files exist now for T1, T2, T3, G0 and CAP (065-01 to 065-05, in this order). The post-capture slices G1 to G14 get their files when CAP freezes the inventory, so the pilot can still change them.
 
 | Slice | Goal | Depends on |
 |---|---|---|

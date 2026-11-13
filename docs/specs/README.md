@@ -176,6 +176,11 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-19 - Exercise an offline SDK-free Google conversion | **DONE** |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-20 - Exercise the SDK-free conversion in a local browser | **DONE** |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-21 - Connect a local gtag queue to the conversion chamber | **DONE** |  |
+| [065-google-ads-parity-inventory](065-google-ads-parity-inventory/spec.md) | 065-01: T1: Close the Google surface from retained bytes | READY_FOR_IMPLEMENTATION |  |
+| [065-google-ads-parity-inventory](065-google-ads-parity-inventory/spec.md) | 065-02: T2: Candidate settings list from Google's public docs | READY_FOR_IMPLEMENTATION |  |
+| [065-google-ads-parity-inventory](065-google-ads-parity-inventory/spec.md) | 065-03: T3: Completeness probe on real configs | READY_FOR_IMPLEMENTATION |  |
+| [065-google-ads-parity-inventory](065-google-ads-parity-inventory/spec.md) | 065-04: G0: Google-specific capture tooling | READY_FOR_IMPLEMENTATION |  |
+| [065-google-ads-parity-inventory](065-google-ads-parity-inventory/spec.md) | 065-05: CAP: Capture session | READY_FOR_IMPLEMENTATION |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-01: ADR status lines and docs rewording | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-02: Consent hold on every track, with a no-consent-input warning | DRAFT |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-03: Alloy holds and flushes, and an empty `egressPurposes` holds and warns | DRAFT |  |
