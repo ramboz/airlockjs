@@ -138,6 +138,7 @@ export type ConsentPurpose =
   | "ad_personalization"
   | "functional"
   | "personalization"
+  | "measurement" // default-granted; owner-approved connectors only (067-11)
   | (string & {});
 
 /**

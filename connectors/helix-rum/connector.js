@@ -146,13 +146,6 @@ export function createHelixRumConnector(config = {}) {
     // {collectBaseURL, weight} handle() uses, so the ceiling's origin+pathname
     // exact-match (core/endpoint-ceiling.js) matches the runtime URL byte-for-byte.
     endpoints: [endpoint],
-    // ADR-0007 purpose annotation — DELIBERATELY EMPTY egress purposes (not
-    // omitted): RUM's governance class is "NOT consent-gated" (spec 022 §
-    // Governance class, maintainer 2026-08-31) — a conscious declaration, not a
-    // missing one. The empty array documents "no consent purpose governs this
-    // egress"; core/airlock.js's seal skips the consent gate on the CALLER's
-    // (not this manifest's) empty `egressPurposes` config — see this file's
-    // header and the seam tests (test/helix-rum-seam.test.js).
     // 067-11 (ADR-0007 amendment): RUM declares the privacy-safe `measurement`
     // purpose, granted by default; an explicit `denied` holds it at the seal.
     purposes: {

@@ -15,7 +15,7 @@
     },
     "consent": {
       "type": "object",
-      "description": "ADR-0007 consent vector: purpose name -> state (e.g. {\"analytics_storage\":\"granted\",\"ad_storage\":\"denied\"}). Applies to the CONSENT-GOVERNED connectors (GA4, pixels); helix-rum is EXEMPT (spec 022 — RUM is not consent-gated). An open taxonomy, so purpose names are unconstrained; values are strings resolved case-insensitively (granted/denied; anything else -> pending).",
+      "description": "ADR-0007 consent vector: purpose name -> state (e.g. {\"analytics_storage\":\"granted\",\"ad_storage\":\"denied\"}). Applies to the CONSENT-GOVERNED connectors (GA4, pixels); helix-rum reads only the `measurement` purpose, which is granted by default (spec 067-11), so it sends unless `measurement` is explicitly denied. An open taxonomy, so purpose names are unconstrained; values are strings resolved case-insensitively (granted/denied; anything else -> pending).",
       "additionalProperties": { "type": "string" }
     },
     "consentStrict": {

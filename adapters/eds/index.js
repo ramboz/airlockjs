@@ -1328,6 +1328,8 @@ export async function bootBingUet(opts = {}) {
  * @param {string} [opts.rate]           a sampleRUM rate name (on/high/medium/low/off)
  * @param {number} [opts.weight]         a raw sampling weight (wins over `rate`)
  * @param {string} [opts.referer]        host-sourced page ref (default `document.referrer`)
+ * @param {Record<string,string>} [opts.consent] consent vector; only a denied measurement entry affects RUM (granted by default)
+ * @param {boolean} [opts.consentStrict] strict regime: drops RUM if measurement is explicitly denied
  * @param {boolean} [opts.forceSelect]   test seam: force `isSelected` past the random gate
  * @param {Function} [opts.onLCP] [opts.onCLS] [opts.onINP] web-vitals subscriber overrides (tests inject stubs)
  * @returns {{ push, pushCritical, setConsent, getState, flushNow, stats, dispose, sampled: boolean }}
@@ -1339,6 +1341,8 @@ export function bootHelixRum(opts = {}) {
     weight: weightOverride,
     referer = (typeof document !== "undefined" && document.referrer) || "",
     forceSelect,
+    consent,
+    consentStrict,
     onLCP: onLCPImpl = onLCP,
     onCLS: onCLSImpl = onCLS,
     onINP: onINPImpl = onINP,
@@ -1367,10 +1371,12 @@ export function bootHelixRum(opts = {}) {
     connectorConfig: { collectBaseURL, weight, id, isSelected: true, ctx, sampling: { weight, id } },
     endpoints: [endpoint], // host-owned ceiling (ADR-0006) — byte-matches the connector's endpoint
     ctx,
-    // 067-11: `measurement` is granted by default (no consent input -> sends, as stock EDS does);
+    // 067-11: the measurement purpose is granted by default (no consent input -> sends, as stock EDS does);
     // an explicit `denied` holds the beacon at the seal. Still confined to `ot.aem.live`.
     egressPurposes: HELIX_RUM_EGRESS_PURPOSES,
     holdOnDenied: true,
+    consent,
+    consentStrict,
     trackers: 1,
     onDiagnostic, // spec 028: inspector diagnostic sink pass-through (see bootGa4Core)
   });
@@ -2155,13 +2161,14 @@ async function bootConnector(entry, governance, index, reservedPlacements, compo
       return { handle, events };
     }
     case "helix-rum":
-      // AC3 carve-out: booted from its OWN fields only — top-level governance is NOT
-      // threaded, so `egressPurposes` stays [], no denylist, sync boot (byte-identical
-      // to a standalone bootHelixRum). Its vocabulary is the RUM checkpoints only.
+      // AC3 carve-out: booted from its OWN fields only, sync boot. Of the top-level
+      // governance only `consent`/`consentStrict` are threaded (067-11): RUM declares the
+      // granted-by-default measurement purpose, so a site's consent input can deny it.
+      // No denylist. Its vocabulary is the RUM checkpoints only.
       // spec 028: `onDiagnostic` IS threaded even here — a diagnostic sink is orthogonal
       // to the governance carve-out (RUM still emits endpoint-ceiling/dropped records the
       // inspector should see); it defaults to the console fallback when absent.
-      return { handle: bootHelixRum({ ...rest, onDiagnostic }), events: HELIX_RUM_EVENTS };
+      return { handle: bootHelixRum({ ...rest, consent: governance.consent, consentStrict: governance.consentStrict, onDiagnostic }), events: HELIX_RUM_EVENTS };
     case "alloy":
       // 033-02: the analytics vertical. alloy is consent-governed (NOT exempt like
       // helix-rum), so it receives the top-level governance (consent/consentStrict/

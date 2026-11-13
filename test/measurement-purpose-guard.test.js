@@ -10,7 +10,7 @@ import { join, dirname, relative } from "node:path";
 import { createHelixRumConnector } from "../connectors/helix-rum/connector.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const ALLOWED = new Set(["connectors/helix-rum/connector.js", "adapters/eds/index.js", "core/consent.js"]);
+const ALLOWED = new Set(["connectors/helix-rum/connector.js", "core/consent.js"]);
 
 function walk(dir, out = []) {
   for (const f of readdirSync(dir)) {
@@ -33,6 +33,11 @@ describe("measurement purpose guard (067-11 AC3)", () => {
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  it("the adapter wires the helix-rum purposes constant exactly once (import + the bootHelixRum seam), never on another connector", () => {
+    const src = readFileSync(join(ROOT, "adapters/eds/index.js"), "utf8");
+    expect(src.match(/HELIX_RUM_EGRESS_PURPOSES|DEFAULT_GRANTED_PURPOSES/g)).toHaveLength(2);
   });
 
   it("helix-rum is the only connector whose manifest declares `measurement`", () => {

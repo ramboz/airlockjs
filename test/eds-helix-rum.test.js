@@ -107,6 +107,21 @@ describe("bootHelixRum — the production RUM authority (030-02)", () => {
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
+  it("067-11 AC2 — boot-time consent input `{measurement:'denied'}` holds the beacon (steady-state seal path and unload)", () => {
+    const wv = stubWebVitals();
+    bootHelixRum({ weight: 100, forceSelect: true, consent: { measurement: "denied" }, ...wv });
+    FakeWorker.last.onmessage(readyMsg([{ url: rumUrl("https://ot.aem.live", 100), body: "{}" }]));
+    wv.cbs.inp({ name: "INP", value: 8 });
+    listeners.visibilitychange[0]();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it("067-11 AC2 — a default-granted steady-state beacon goes to ot.aem.live", () => {
+    bootHelixRum({ weight: 100, forceSelect: true, ...stubWebVitals() });
+    FakeWorker.last.onmessage(readyMsg([{ url: rumUrl("https://ot.aem.live", 100), body: "{}" }]));
+    expect(globalThis.fetch).toHaveBeenCalledWith(rumUrl("https://ot.aem.live", 100), expect.anything());
+  });
+
   it("067-11 AC2 — a vector that denies OTHER purposes does not touch RUM", () => {
     const wv = stubWebVitals();
     const h = bootHelixRum({ weight: 100, forceSelect: true, ...wv });

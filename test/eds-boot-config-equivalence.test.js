@@ -218,25 +218,23 @@ describe("AC3 — helix-rum keeps its spec-022 governance class (EXEMPT from con
     vi.stubGlobal("crypto", { randomUUID: () => "abcdef-0123456789" });
   });
 
-  it("a helix-rum entry under top-level consent/denylist boots byte-identical to bootHelixRum (no gate, no strip, no async)", async () => {
+  it("a helix-rum entry takes top-level consent/consentStrict (067-11) but never the denylist; other-purpose denials do not gate it", async () => {
     await bootHelixRum({ weight: 100, forceSelect: true, ...stubWebVitals() });
     await boot({
       connectors: [{ type: "helix-rum", weight: 100, forceSelect: true, ...stubWebVitals() }],
-      consent: { ad_storage: "denied" }, // would GATE a consent-governed connector
+      consent: { ad_storage: "denied" }, // would GATE a consent-governed connector, not RUM
       consentStrict: true,
       payloadDenylist: ["email"], // would STRIP a consent-governed connector
     });
 
     const standalone = argsOf(0);
     const fromConfig = argsOf(1);
-    // byte-identical createAirlock inputs (id fixed above) — the config path did not
-    // fork or re-parameterize the helix boot
-    expect(fromConfig).toEqual(standalone);
-    // and specifically: NONE of the top-level governance leaked in
     expect(fromConfig.connector).toBe("helix-rum");
     expect(fromConfig.egressPurposes).toEqual(["measurement"]); // granted by default (067-11)
-    expect(fromConfig.consent).toBeUndefined();
-    expect(fromConfig.consentStrict).toBeUndefined();
+    expect(fromConfig.consent).toEqual({ ad_storage: "denied" });
+    expect(fromConfig.consentStrict).toBe(true);
     expect(fromConfig.payloadDenylist).toBeUndefined();
+    expect(fromConfig.connectorConfig).toEqual(standalone.connectorConfig);
+    expect(fromConfig.endpoints).toEqual(standalone.endpoints);
   });
 });

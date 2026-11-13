@@ -26,7 +26,8 @@
 /**
  * The ADR-0007 purpose taxonomy: the Consent Mode v2 four
  * (`analytics_storage`, `ad_storage`, `ad_user_data`, `ad_personalization`)
- * plus the two starter extensions (`functional`, `personalization`). A
+ * plus the two starter extensions (`functional`, `personalization`) and the
+ * default-granted `measurement` (067-11). A
  * purpose NOT in this list is unrecognized — `resolveConsent` treats it as
  * pending without ever consulting the vector for it.
  */
