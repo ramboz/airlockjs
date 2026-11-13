@@ -1,8 +1,7 @@
 ---
-status: REVIEWED
+status: DONE
 dependencies: [067-01]
 last_verified: 2026-11-13
-claimed_by: 067-07-stock-context-channel
 ---
 
 ## Slice 067-07: The stock-context channel
@@ -56,3 +55,17 @@ claimed_by: 067-07-stock-context-channel
 - LCP: 24 ms median with and without. The LCP paints before `createAirlock` boots (about 51 ms), so boot collection sits after LCP in this harness. I haven't measured a page where it overlaps.
 - Verdict: no measurable regression, so ADR-0062's kill criterion doesn't trip. The harness page is tiny. A real EDS page with a large DOM is still unmeasured, and the collector reads only `location`, `document.referrer`/`title`/`visibilityState`, `screen`, `navigator` and `window` sizes, none of which scale with DOM size.
 - Decisions logged: the channel's credentials denylist follows `payloadDenylistOverride` (067-09): on by default, replaced or turned off only by that explicit config, as ADR-0062 point 4b says. AC2's "snapshot byte-identical" is tested on the `events` batches, since airlock has no separate snapshot message. Only the default GA4 chamber reads the channel today. Other chambers ignore the message until 067-08 and 064-17 wire them. The hard-coded stand-ins in `core/wrapped-sdk-host.js` stay until then.
+
+### Deviation log
+
+- **AC2 "snapshot byte-identical" is tested on the `events` batches.** Airlock has no separate projection-snapshot message today, so the test compares the batches posted with and without the channel and checks no context value appears in them.
+- **AC3 "navigation, viewport, visibility" uses event listeners plus a manual hook.** `popstate`, `hashchange`, `resize`, `orientationchange` and `visibilitychange` re-collect (throttled, 150 ms). An SPA `pushState` fires none of them, so `refreshStockContext()` is the hook for adapters.
+- **AC7 INP is a no-signal control.** The Event Timing floor is 16 ms, so one interaction per run is recorded. The verdict rests on the collection microbenchmark and zero long tasks (see Notes).
+- **The channel is opt-in at the `createAirlock` API** (`stockContext`), so existing connectors are byte-unchanged. 067-08 turns it on for Alloy.
+
+### Reconciliation sweep
+
+- **Architecture:** `docs/architecture.md` lists the channel next to the projection snapshot (DoD item).
+- **Consumers named:** 067-08 and Adobe 064-17 get the shape in Notes. Their open work is wiring Alloy's `context` to the groups, plus the wrapped-SDK stand-ins in `core/wrapped-sdk-host.js`.
+- **Sibling interaction:** the channel honors 067-09's `payloadDenylistOverride` through `resolveDenylist`.
+- **Open item:** high-entropy client hints (async) are not collected. No other deferred decision was created, so `docs/refinement-todo.md` is unchanged.
