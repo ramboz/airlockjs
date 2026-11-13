@@ -49,6 +49,7 @@
 - [ADR-0051: Fresh native-only admission and independent stop](adr-0051-fresh-native-only-admission.md) — One owner-supervised pair needs a native ownership and independent-stop check before any actual SDK traffic. (2026-11-05, Rejected)
 - [ADR-0059: Execution policy for the remaining Adobe baseline](adr-0059-remaining-adobe-baseline-execution.md) — The remaining stock baseline needs an execution policy separate from the one proving pair. (2026-11-02, Proposed)
 - [ADR-0060: Governed Adobe SDK command and result bridge](adr-0060-governed-adobe-sdk-command-bridge.md) — The production Adobe bridge needs a declared command and result contract. (2026-11-02, Proposed)
+- [ADR-0061: Definition of done for vendor compatibility work](adr-0061-definition-of-done-vendor-compatibility.md) — Fixtures prove each slice, one live check per release, and each vendor's parity inventory is frozen per pinned version. (2026-11-12, Accepted)
 
 ADR-0031 to ADR-0037 belong to the personalization branch, and the other vendor-specific ADRs (0041-0043, 0048, 0052-0058) live on their vendor branches. See [renumbering-2026-11.md](renumbering-2026-11.md) for the full old-to-new map.
 

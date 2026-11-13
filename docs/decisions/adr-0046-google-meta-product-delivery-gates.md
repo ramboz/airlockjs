@@ -15,6 +15,8 @@ relaxed acceptance or unsafe execution.
 
 ## Status
 
+Partially superseded by [ADR-0061](./adr-0061-definition-of-done-vendor-compatibility.md) (2026-11-12): live-proof-per-slice, open-ended-parity and (ADR-0046) per-run approval clauses only.
+
 Accepted (2026-10-26)
 
 Owner explicitly accepted this recommendation on2026-10-26.
