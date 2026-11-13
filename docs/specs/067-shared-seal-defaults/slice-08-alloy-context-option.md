@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: READY_FOR_IMPLEMENTATION
 dependencies: [067-07, 067-09, 067-10]
 last_verified: 2026-11-13
 ---

@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: READY_FOR_IMPLEMENTATION
 dependencies: [067-02]
 last_verified: 2026-11-13
 ---
@@ -17,7 +17,7 @@ last_verified: 2026-11-13
 
 **Acceptance Criteria:**
 
-1. No consent vector: the chamber configures Alloy to hold (`defaultConsent:"pending"`) and the host emits the 067-02 no-consent-input warning. Nothing reaches the wire before an explicit grant. The 067-02 override turns this off.
+1. No consent vector: the chamber configures Alloy to hold (`defaultConsent:"pending"`) and the host emits the 067-02 no-consent-input warning. Nothing reaches the wire before an explicit grant. The per-connector `consentHold: false` override from 067-02 (D2) turns this off for Alloy.
 2. A consent vector with empty `egressPurposes` holds and warns, and no longer sends. The existing "seam gate is OFF" diagnostic is replaced by the hold-and-warn path.
 3. Pending consent holds and flushes on grant. If the seam strict drop can still lose an interact that Alloy's own queue would have held, the seam becomes the backstop only and drops nothing that Alloy queued, or the slice documents why the drop is unreachable and pins that with a test.
 4. A grant flushes the queued `sendEvent`s with the full round trip preserved (decisions, identity, consent cookie), as `rig/alloy-consent-pending.mjs` proves for the existing path.

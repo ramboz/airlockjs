@@ -1,12 +1,12 @@
 ---
-status: DRAFT
-dependencies: [067-01]
+status: READY_FOR_IMPLEMENTATION
+dependencies: [067-01, 067-11]
 last_verified: 2026-11-13
 ---
 
 ## Slice 067-02: Consent hold on every track, with a no-consent-input warning
 
-**Goal:** On every track and by default, events are held until consent is explicitly given. This holds for a site with no consent input at all: nothing is sent, a diagnostic warning says no consent input is wired, and the held events flush on grant. A site overrides the hold only with explicit config (decision D2).
+**Goal:** On every track and by default, events are held until consent is explicitly given. This holds for a site with no consent input at all: nothing is sent, a diagnostic warning says no consent input is wired, and the held events flush on grant. A site overrides the hold only with explicit config (decision D2: a per-connector switch).
 
 **DoR:**
 - ✅ ADR-0062 point 4 and exception (a). ADR-0007 and ADR-0023 stand.
@@ -17,10 +17,10 @@ last_verified: 2026-11-13
 **Acceptance Criteria:**
 
 1. With no consent input and no explicit override, a connector that declares any egress purpose holds, sends nothing, and a `warn` diagnostic (`kind: "consent"`, a stable reason such as `no consent input wired`) is emitted once per airlock, not once per event. "No consent input" means no `consent` boot option and no `setConsent` call by the first held beacon (sites often call `setConsent` after a consent tool loads, `core/airlock.js:778`); the warning fires at that first held beacon, not at boot.
-2. A connector that declares no egress purpose also holds under the same condition, so the hold is shared and not limited to connectors with a declared purpose. Where a connector's purposes are empty, the slice names the default governing purpose it falls under and records the choice in the slice notes; the choice is policy, so it goes to the owner as D4 if no obvious purpose exists.
+2. A connector that declares no egress purpose also holds under the same condition, so the hold is shared and not limited to connectors with a declared purpose. Where a connector's purposes are empty, it falls under the purpose D4 set: ad pixels use `ad_storage`, and helix-rum uses the `measurement` purpose from 067-11, which is granted by default, so RUM still sends with no consent input. This slice never holds helix-rum without that purpose in place.
 3. A later grant flushes the held events through the existing `heldBeacons` and `setConsent` machinery, re-mapped under the now-current consent where a `remap` exists (spec 045-01, 045-03).
 4. The consent hold ring is capped, drops the oldest past the cap and emits a diagnostic when it does (architecture.md Q2, ADR-0062 point 6 exception). The cap value and its diagnostic are recorded in the slice notes and in architecture.md Q2.
-5. The explicit override from D2 (recommended: boot option `consentHold: false`) turns the hold off, emits a one-time `warn` that the hold is off, and sends as stock does. The default path never reads this option as true by accident (a test passes a truthy non-boolean and the hold stays on).
+5. The explicit override from D2 is a per-connector wiring option, `consentHold: false`, on each track's options (the adapters in `adapters/eds/index.js`). It turns the hold off for that connector, emits a one-time `warn` per connector that the hold is off, and sends as stock does. The default path never reads this option as true by accident (a test passes a truthy non-boolean and the hold stays on).
 6. When a site wires consent, behavior is unchanged: pending holds, denied follows ADR-0007 and ADR-0023, granted sends. A regression test pins each.
 7. Tests cover the stock-default path (consent supplied as granted: stock output unchanged) and the opt-in as separate states.
 8. Parity helpers used by existing rigs supply the recorded consent state, so the hold never fails a comparison.

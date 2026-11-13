@@ -155,16 +155,17 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 | [049-native-tag-suppressor](049-native-tag-suppressor/spec.md) | 049-02 — direct-beacon-transport suppression (egress-parity completeness) | **DONE** |  |
 | [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-01 — the reference-site `?martech=airlock` rewire arm | **DONE** |  |
 | [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-02 — measured Lighthouse/TBT + parity evidence + scripted adoption path | **DONE** |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-01 — ADR status lines and docs rewording (docs only) | DONE |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-02 — consent hold on every track, no-consent-input warning, explicit override | DRAFT |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-03 — Alloy empty `egressPurposes` holds and warns; pending holds and flushes | DRAFT |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-04 — default egress allowlist = stock destination set | DRAFT |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-05 — default cookie and storage grant = stock set | DRAFT |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-06 — limits never drop or delay stock output by default | DRAFT |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-07 — stock-context channel (separate from the snapshot) | DRAFT |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-08 — Alloy `context` defaults to the stock list | DRAFT |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-09 — credentials denylist on by default, explicit override, pinned | DRAFT |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-10 — input governance at the wrapped-SDK seam | DRAFT |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-01: ADR status lines and docs rewording | **DONE** |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-02: Consent hold on every track, with a no-consent-input warning | READY_FOR_IMPLEMENTATION |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-03: Alloy holds and flushes, and an empty `egressPurposes` holds and warns | READY_FOR_IMPLEMENTATION |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-04: Default egress allowlist is the stock destination set | READY_FOR_IMPLEMENTATION |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-05: Default cookie and storage grant is the stock set | READY_FOR_IMPLEMENTATION |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-06: Limits never drop or delay stock output by default | READY_FOR_IMPLEMENTATION |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-07: The stock-context channel | READY_FOR_IMPLEMENTATION |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-08: Alloy `context` defaults to the stock list | READY_FOR_IMPLEMENTATION |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-09: The credentials denylist stays on, with an explicit override | READY_FOR_IMPLEMENTATION |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-10: Input governance at the wrapped-SDK seam | READY_FOR_IMPLEMENTATION |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-11: A privacy-safe measurement purpose for helix-rum | READY_FOR_IMPLEMENTATION |  |
 
 ## Deferred slices
 
@@ -188,9 +189,9 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
-- **14** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
+- **9** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **104** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **51** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **49** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
@@ -240,5 +241,3 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
   - `049-native-tag-suppressor/slice-02-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `050-mvp9-reference-site-rewire-trial/slice-01-craft.md` — applied `none`; declined: pr-review, scout-pr-review
   - `050-mvp9-reference-site-rewire-trial/slice-02-craft.md` — applied `none`; declined: pr-review, scout-pr-review
-  - `051-adobe-integration-proving-ground/slice-04-craft.md` — applied `pr-review`; declined: scout-pr-review
-  - `051-adobe-integration-proving-ground/slice-05-craft.md` — applied `pr-review`; declined: scout-pr-review

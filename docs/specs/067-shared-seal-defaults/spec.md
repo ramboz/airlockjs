@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 skill:
 use_cases: [UC-2, UC-6]
 ---
@@ -20,7 +20,7 @@ use_cases: [UC-2, UC-6]
 
 **Main tradeoff.** The chamber sees more page data by default. The egress confinement, endpoint ceiling, consent hold and denylist still bound where data goes and when.
 
-**What needs you.** Two decisions under section 7. This spec implements ADR-0062 and does not re-open it.
+**What needs you.** Nothing open. The owner answered D1 to D4 on 2026-11-13 (section 7). This spec implements ADR-0062 and does not re-open it.
 
 ## 1. Scope
 
@@ -54,11 +54,12 @@ These are the starting points each slice re-verifies in its own DoR.
 
 SPIDR, rules first. Each slice is sized for one fresh session and ships observable behavior. Slice 01 is docs-only and is implemented with this spec. The others wait for owner approval, then the coordinator dispatches each to a fresh session.
 
-Order: 01 (docs) first. 02, 04, 05, 06 and 09 are independent of each other. 03 follows 02. 07 precedes 08. 09 precedes 10. 08 follows 07, 09 and 10 (the wider default context must not ship before input governance and the denylist override). The storage grant (05 AC5) is a new mechanism: carried check 7.
+Order: 01 (docs) first, then 11 (the measurement purpose), then 02. 04, 05, 06 and 09 are independent of each other. 03 follows 02. 07 precedes 08. 09 precedes 10. 08 follows 07, 09 and 10 (the wider default context must not ship before input governance and the denylist override). The storage grant (05 AC5) is a new mechanism: carried check 7.
 
 | Slice | ADR-0062 point | One line |
 |---|---|---|
 | [067-01](slice-01-adr-status-and-docs-rewording.md) | table | ADR status lines and the docs rewording (docs only) |
+| [067-11](slice-11-measurement-purpose-helix-rum.md) | 4 (D4) | A privacy-safe measurement purpose, granted by default, that governs helix-rum |
 | [067-02](slice-02-consent-hold-no-input-warning.md) | 4 | Consent hold on every track, a no-consent-input diagnostic warning, and the explicit override |
 | [067-03](slice-03-alloy-hold-and-empty-purposes.md) | 4 | Alloy: empty `egressPurposes` holds and warns, and pending holds and flushes instead of dropping |
 | [067-04](slice-04-default-endpoint-ceiling.md) | 7 | Default egress allowlist = the connector's stock destination set; sites narrow it |
@@ -98,6 +99,7 @@ Vendor slices that depend on each shared slice. Rows are read from the sister sp
 | Shared slice | Adobe (`vendor-adobe`, spec 064) | Google (`vendor-google-ads`, spec 065 section 9) | Meta (`vendor-meta-pixel`, spec 066 section 9) |
 |---|---|---|---|
 | 067-01 docs | none (reading aid) | none | none |
+| 067-11 measurement purpose | none (EDS RUM only) | none | none |
 | 067-02 hold and warn | 064-18 onward | G3 | M4; D1 |
 | 067-03 Alloy hold and empty purposes | 064-18 onward | none (Alloy only) | none (Alloy only) |
 | 067-04 default endpoint ceiling | 064-18 (AC5), 064-19 onward | G12 | M9; D1 |
@@ -120,10 +122,16 @@ The Meta "D1 (dependency, on main)" row in spec 066 section 9 is satisfied by 06
 
 ## 7. Decisions for the owner
 
-- **D1. Approve this spec and its slice order.** Recommended: yes. It lets the coordinator dispatch ten small slices and unblocks the three vendor branches. 067-01 is implemented in the same commit as this spec; the other nine wait for approval.
-- **D3. Shape of the denylist override (exception b).** Recommended: boot option `payloadDenylistOverride`, either `false` (off) or an explicit array replacing the defaults, with a one-time `warn`. Reason: the same explicit-and-audited pattern as D2, and an array lets a site drop one key without disabling the rest.
-- **D4. Governing purpose for connectors with empty purposes (helix-rum, pixels).** Recommended: the vendor's own marketing/analytics purpose per ADR-0007, decided in 067-02 notes. Reason: reusing declared purposes keeps one consent model.
-- **D2. Shape of the explicit override for the consent hold.** ADR-0062 says a site overrides the hold only with explicit config but does not name the config. Recommended: one site-level boot option on the core seal, `consentHold: false`, that must be set on purpose and logs a one-time `warn` diagnostic that the hold is off. Reason: a single named switch is easy to find, easy to audit and leaves the safe default unchanged. The alternative is a per-connector switch, which spreads the privacy exception across every connector.
+All four answered on 2026-11-13.
+
+- **D1. Approve this spec and its slice order.** Approved.
+- **D2. Shape of the consent-hold override.** Answered: a per-connector switch, not the recommended site-level option. Each track's wiring options take `consentHold: false`. It logs a one-time `warn` per connector. 067-02 and 067-03 follow this.
+- **D3. Shape of the denylist override.** Answered: per-connector `payloadDenylistOverride`, either `false` (off) or an explicit array that replaces the defaults, with a one-time `warn`. It threads per track the way `payloadDenylist` does today (`adapters/eds/index.js`). 067-09 follows this.
+- **D4. Governing purpose for connectors with empty purposes.** Answered:
+  - Ad pixels are governed by `ad_storage`.
+  - helix-rum gets a new privacy-safe measurement purpose, granted by default. RUM sends with no consent input, as stock EDS does. A site's consent input can still deny it explicitly.
+  - A connector qualifies for that purpose only if it sets no cookies or storage, sends no user, device or click identifiers and no personal data, and a test checks its payload. Only helix-rum qualifies now. Adding any other connector needs owner approval.
+  - It is recorded as dated amendment lines on ADR-0007 (the new purpose) and ADR-0062 (RUM sits outside the hold, matching stock EDS). New slice 067-11 does this and runs before 067-02, so 067-02 never holds helix-rum without the purpose in place.
 
 ## 8. Carried checks (listed, not blocking)
 
@@ -144,6 +152,7 @@ Each is a check a slice DoR runs, not an open decision.
 
 ## 9. Review log
 
+- 2026-11-13: owner answered D1 to D4. D2 and D3 become per-connector options, D4 adds slice 067-11. Spec and slices 02 to 11 are READY_FOR_IMPLEMENTATION.
 - 2026-11-13: review round done, findings applied (section 10).
 - 2026-11-13: drafted from ADR-0062, the three sister specs' consumer rows, and the code read in section 2. One fresh review round follows (section 10).
 
