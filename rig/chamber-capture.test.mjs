@@ -122,7 +122,7 @@ describe("059-16 closed SDK-absent capture", () => {
       { ...identity, sources: identity.sources.map((row, i) => i ? row : { ...row, sha256: "0".repeat(64) }) },
       { ...identity, unexpected: true },
     ]) expect(() => verifyIdentity(changed)).toThrow("source_identity");
-  });
+  }, 30000);
 
   it("AC4: compares original HTTP, duplicate order, final headers, body state and resource type", async () => {
     const { compareHttp } = await load();

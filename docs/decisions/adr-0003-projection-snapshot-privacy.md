@@ -11,6 +11,8 @@ frame_review: true
 
 Accepted (2026-08-25)
 
+Amended by [ADR-0062](./adr-0062-stock-default-parity.md) (2026-11-13): stock-read context travels on a new host-collected channel, not the snapshot (:39-43, :88-96). The snapshot stays default-deny, with its principle (:60-63) and kill criterion (:157-159) intact. The broad-need collapse risk (:49-58, :160-165) is superseded: stock context no longer rides the snapshot.
+
 ## Context
 
 A connector reads across two channels, and the security thesis holds only if both

@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { evaluateFieldRule } from "./field-rules.mjs";
 import { inspectNativeAttempt, runNativeComparison } from "./native-tag-comparison.mjs";
 
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
@@ -598,7 +599,8 @@ describe("058-03 complete value-preserving offline comparisons", () => {
     // A bounded local code mutation falsifies the positive: checking digests
     // alone is insufficient if normalized originals are never projected.
     const mutant = source.replace(projection, "{ void side; void p; }")
-      .replace('"./attempt-evidence-io.mjs"', JSON.stringify(new URL("./attempt-evidence-io.mjs", import.meta.url).href));
+      .replace('"./attempt-evidence-io.mjs"', JSON.stringify(new URL("./attempt-evidence-io.mjs", import.meta.url).href))
+      .replace('"./field-rules.mjs"', JSON.stringify(new URL("./field-rules.mjs", import.meta.url).href));
     const { runNativeComparison: withoutProjection } = await import(
       `data:text/javascript;base64,${Buffer.from(mutant).toString("base64")}`);
     const result = await withoutProjection({ inputs: f.inputs, outputDir: join(f.parent, "no-projection") });
@@ -800,5 +802,155 @@ describe("058-03 complete value-preserving offline comparisons", () => {
     const result = await runNativeComparison({ inputs: f.inputs, outputDir: f.outputDir });
     expect(result.exit_code).toBe(2);
     expect(result.errors).toContain("capture_unavailable");
+  });
+});
+
+describe("064-03 native-side field rules (ADR-0061 point 10)", () => {
+  const corpus = [hash("fixture-a"), hash("fixture-b")];
+  const uuid = n => `0000000${n}-0000-4000-8000-00000000000${n}`;
+  const find = (rows, key) => rows.filter(r => r.category === "native_measurement")
+    .map(r => ({ row: r, index: r.query_pairs.findIndex(p => p[0] === key) }));
+  async function field(reference, candidate, key = "fbp", profile = "meta-pageview") {
+    const f = await nativeFixture(profile);
+    const refs = find(f.capture.requests, key), cands = find(f.candidateCapture.requests, key);
+    refs.forEach(({ row, index }, i) => query(row, index, reference(i)));
+    cands.forEach(({ row, index }, i) => query(row, index, candidate(i)));
+    const ordinals = refs.map(({ row }) => row.ordinal);
+    const index = refs[0].index;
+    f.sel = ordinals.map(request => ({ request, field: "query", index }));
+    f.rule = (extra = {}) => ({ class: "generated", selectors: f.sel, derived_from: corpus,
+      format: { kind: "token", min: 4, max: 64 }, relation: "equal", ...extra });
+    return f;
+  }
+  const same = value => () => value;
+
+  it("without a rule, differing generated values are a plain query difference", async () => {
+    const f = await field(same("fb.1.111.aaaa"), same("fb.1.222.bbbb"));
+    const result = await f.run();
+    expect(result.exit_code).not.toBe(0);
+    expect(result.differences.some(d => d.category === "query")).toBe(true);
+  });
+
+  it("generated: values of the declared format qualify and are counted as preserved relationships", async () => {
+    const f = await field(same("fb.1.111.aaaa"), same("fb.1.222.bbbb"));
+    f.manifest.rules.fields = [f.rule()];
+    const result = await f.run();
+    expect(result.errors).toEqual([]);
+    expect(result.exit_code).toBe(0);
+    expect(result.counts.preserved_relationships).toBe(1);
+    expect(result.counts.differences).toBe(0);
+  });
+
+  it("generated: a value outside the declared format fails the rule on either side", async () => {
+    for (const [ref, cand] of [[same("fb.1.111.aaaa"), same("bad value!")], [same("bad value!"), same("fb.1.2.b")]]) {
+      const f = await field(ref, cand);
+      f.manifest.rules.fields = [f.rule()];
+      const result = await f.run();
+      expect(result.exit_code).not.toBe(0);
+      expect(result.errors).toContain("field_rule_violation");
+    }
+  });
+
+  it("generated relation=equal requires one value per capture; distinct requires different values", async () => {
+    const equalOk = await field(same("fb.1.111.aaaa"), same("fb.1.222.bbbb"));
+    equalOk.manifest.rules.fields = [equalOk.rule({ relation: "equal" })];
+    expect((await equalOk.run()).exit_code).toBe(0);
+    const equalBad = await field(i => `fb.1.1.a${i}aa`, same("fb.1.222.bbbb"));
+    equalBad.manifest.rules.fields = [equalBad.rule({ relation: "equal" })];
+    expect((await equalBad.run()).errors).toContain("field_rule_violation");
+    const distinctBad = await field(same("fb.1.111.aaaa"), same("fb.1.222.bbbb"));
+    distinctBad.manifest.rules.fields = [distinctBad.rule({ relation: "distinct" })];
+    expect((await distinctBad.run()).errors).toContain("field_rule_violation");
+  });
+
+  it("volatile: presence and format only; a protected routing/value key is rejected", async () => {
+    const volatile = { class: "volatile", format: { kind: "uuid" } };
+    expect(evaluateFieldRule(volatile, 0, [uuid(1), uuid(2)]).valid).toBe(true);
+    expect(evaluateFieldRule(volatile, 0, [uuid(1), "not-a-uuid"]).valid).toBe(false);
+    expect(evaluateFieldRule(volatile, 0, [uuid(1), ""]).valid).toBe(false);
+    const identity = await field(same(uuid(1)), same(uuid(2)));
+    identity.manifest.rules.fields = [{ ...identity.rule(), class: "volatile", format: { kind: "uuid" } }];
+    delete identity.manifest.rules.fields[0].relation;
+    expect((await identity.run()).errors).toContain("rule_target_unsupported");
+    const protectedKey = await field(same("PageView"), same("PageView"), "ev");
+    protectedKey.manifest.rules.fields = [protectedKey.rule({ format: { kind: "token", min: 1, max: 20 } })];
+    const result = await protectedKey.run();
+    expect(result.exit_code).toBe(3);
+    expect(result.errors).toContain("rule_target_unsupported");
+  });
+
+  it("input_derived: the value must equal the declared transform of its source on each side", async () => {
+    const f = await field(same(hash("fixture.invalid")), same(hash("fixture.invalid")));
+    const dl = find(f.capture.requests, "dl")[0];
+    const rule = { class: "input_derived", selectors: f.sel, derived_from: corpus,
+      source: { request: dl.row.ordinal, field: "query", index: dl.index }, transform: "identity" };
+    f.manifest.rules.fields = [{ ...rule, transform: "sha256_hex" }];
+    // dl is a document URL, so the hash of "fixture.invalid" is not derived from it.
+    expect((await f.run()).errors).toContain("field_rule_violation");
+    for (const c of [f.capture, f.candidateCapture]) {
+      const row = c.requests[dl.row.ordinal], v = row.query_pairs[dl.index][1];
+      for (const { row: target, index } of find(c.requests, "fbp")) query(target, index, hash(v));
+    }
+    f.manifest.rules.fields = [{ ...rule, transform: "sha256_hex" }];
+    f.outputDir = join(f.parent, "second-run");
+    const result = await f.run();
+    expect(result.errors).toEqual([]);
+    expect(result.exit_code).toBe(0);
+  });
+
+  it("server_context: both sides must hold a value from the frozen allowed set", async () => {
+    const ok = await field(same("eea"), same("eea"));
+    ok.manifest.rules.fields = [{ class: "server_context", selectors: ok.sel, derived_from: corpus,
+      context: "egress_region", allowed: ["eea", "non-eea"] }];
+    expect((await ok.run()).exit_code).toBe(0);
+    const differs = await field(same("eea"), same("non-eea"));
+    differs.manifest.rules.fields = [{ class: "server_context", selectors: differs.sel, derived_from: corpus,
+      context: "egress_region", allowed: ["eea", "non-eea"] }];
+    expect((await differs.run()).errors).toContain("field_rule_violation");
+    const unseen = await field(same("eea"), same("apac"));
+    unseen.manifest.rules.fields = [{ class: "server_context", selectors: unseen.sel, derived_from: corpus,
+      context: "egress_region", allowed: ["eea", "non-eea"] }];
+    expect((await unseen.run()).errors).toContain("field_rule_violation");
+  });
+
+  it("an input_derived source cannot be targeted by another rule", async () => {
+    const f = await field(same("fb.1.111.aaaa"), same("fb.1.111.aaaa"));
+    const dl = find(f.capture.requests, "dl")[0];
+    const source = { request: dl.row.ordinal, field: "query", index: dl.index };
+    f.manifest.rules.fields = [
+      { class: "input_derived", selectors: f.sel, derived_from: corpus, source, transform: "identity" },
+      { class: "volatile", selectors: [source], derived_from: corpus, format: { kind: "token", min: 1, max: 64 } },
+    ];
+    const result = await f.run();
+    expect(result.exit_code).toBe(3);
+    expect(result.errors).toContain("overlapping_rules");
+  });
+
+  it.each([
+    ["no frozen-corpus digests", r => { r.derived_from = []; }, "field_rule_corpus_missing"],
+    ["an unknown class (no generic ignore)", r => { r.class = "ignore"; }, "invalid_field_rule"],
+    ["a regex or expression key", r => { r.pattern = ".*"; }, "invalid_field_rule"],
+    ["an unknown format kind", r => { r.format = { kind: "regex", min: 1, max: 4 }; }, "invalid_field_format"],
+    ["an overlapping selector", r => { r.selectors = [r.selectors[0], r.selectors[0]]; }, "overlapping_rules"],
+  ])("rejects a rule with %s as invalid manifest input", async (_name, mutate, code) => {
+    const f = await field(same("fb.1.111.aaaa"), same("fb.1.222.bbbb"));
+    const rule = f.rule();
+    mutate(rule);
+    f.manifest.rules.fields = [rule];
+    const result = await f.run();
+    expect(result.exit_code).toBe(3);
+    expect(result.errors).toContain(code);
+  });
+
+  it("field rules on a local layer are inconclusive, never silently ignored; identity/hash native rules stay unsupported", async () => {
+    const local = await fixture();
+    local.manifest.rules.fields = [{ class: "generated", selectors: [selector(0)], derived_from: corpus,
+      format: { kind: "token", min: 1, max: 64 }, relation: "none" }];
+    const localResult = await local.run();
+    expect(localResult.exit_code).toBe(2);
+    expect(localResult.errors).toContain("field_rules_native_only");
+    const native = await field(same("fb.1.111.aaaa"), same("fb.1.222.bbbb"));
+    native.manifest.rules.hashes = [{ input: native.sel[0], digest: native.sel[1], normalization: "identity" }];
+    expect((await native.run()).errors).toContain("native_normalization_unsupported");
   });
 });

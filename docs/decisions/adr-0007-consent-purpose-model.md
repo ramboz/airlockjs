@@ -11,6 +11,8 @@ frame_review: true
 
 Accepted (2026-08-28)
 
+Amended by [ADR-0062](./adr-0062-stock-default-parity.md) (2026-11-13) in scope (:105): the pending-purpose hold also covers a site with no consent input, which holds and logs a diagnostic warning. The rest of this ADR stands.
+
 ## Context
 
 Airlock gates egress on a single global consent state, which cannot express the

@@ -79,7 +79,7 @@ Adopt Option B.
 | connectors/alloy/connector.js:104 | Code default `context = []` | Changes in the slices that follow. Not part of this ADR. |
 | core/payload-governance.js:88 | Code default: always-on denylist | **Unaffected.** Stays on (exception (b)). |
 
-The accepted ADRs are not edited here. Per the repo's convention the follow-up slices add the `Amended by ADR-0062` status lines when this ADR is accepted.
+The accepted ADRs are not edited here. Per the repo's convention the follow-up slices add the `Amended by ADR-0062` status lines when this ADR is accepted. The status lines and the docs rewording landed in [spec 067-01](../specs/067-shared-seal-defaults/slice-01-adr-status-and-docs-rewording.md).
 
 ## Consequences
 
