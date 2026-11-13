@@ -26,4 +26,6 @@ last_verified: 2026-11-13
 
 **Consumers:** 066-03 (MT0) and 066-04 (CAP) take the field and request lists as their checklist.
 
+**Status note (2026-11-13): blocked, DoR item 2 unmet. Do not pick this slice up until the owner supplies the handle.** The retained 058-02 bytes (runtime `d4487bcc…`, config `b1720ebb…`) were not supplied. Spec 066 and spec 060 name no store path, spec 060 forbids committing one and forbids filesystem discovery, and the digests appear only in committed docs, so no discovery was attempted beyond checking that the repository holds only docs for those digests. Nothing was run or fetched. Needed from the owner: the private-input handle for the two retained files and their 058-02 manifest. The slice stays READY_FOR_IMPLEMENTATION in jig (it has no blocked status).
+
 **Anti-horizontal-phasing check:** A read-only inventory task. It ends with a committed, reviewable list, not a layer.

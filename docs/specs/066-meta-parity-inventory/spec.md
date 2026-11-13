@@ -110,6 +110,8 @@ Each of the 20 inventory families from spec 060 has an owner. Coverage is planne
 
 ### 2.4 Field and request classes (ADR-0061 point 10)
 
+> 2026-11-13, MT1 (066-01): blocked. The retained runtime and config bytes were not supplied, so 2.1 to 2.4 are unchanged and still the floor from public documents. See the status note in the slice file. MT0 and CAP stay gated on MT1 (section 9); only an owner decision changes that. Any `unknown` row stays open.
+
 Every request field is in exactly one class, and every request gets a request-level class.
 
 | Field class | Compared by | Rule |
@@ -152,9 +154,26 @@ The inventory freezes after the capture session has toggled each candidate. Cand
 | SET5 | Allowed or restricted domains | One load from an allowed host and one from a host not on the list |
 | SET6 | Aggregated Event Measurement and domain verification state | Any load; the config bytes decide whether it matters |
 | SET7 | Region and consent defaults, including limited data use | EEA and non-EEA loads |
-| SET8 | Further flags or plugins MT1 or MT2 find, at most 3 for v1.0 | Named per item. MT1 and MT2 deliver a numbered SET8 list before CAP. Overflow goes to the next version's inventory (ADR-0061 point 3) |
+| SET8 | Further flags or plugins MT1 or MT2 find, at most 3 for v1.0 | Named per item in the SET8 list below. Overflow goes to the next version's inventory (ADR-0061 point 3) |
+| SET9 | Combined state: SET1, SET2 and SET3 on together | The union of the SET1, SET2 and SET3 inputs in one load |
 
 Owning slices: SET9 M3 (config effects), SET1 M7, SET2 and SET4 M8, SET3 M5, SET5 and SET6 M3, SET7 M4, SET8 as named in the SET8 list. Combined state SET9: SET1, SET2 and SET3 on together (at least one combined-settings state, ADR-0061 carried check).
+
+**MT2 extension (2026-11-13).** No candidate was dropped. Each carries the three no-effect conditions above and the owning slice in the paragraph above.
+
+Evidence for the extension is three sources only. The first is public Meta documentation read on 2026-11-13: the developer page on [advanced matching](https://developers.facebook.com/documentation/meta-pixel/advanced/advanced-matching) (manual path, and it points to Events Manager for the automatic path) and the Meta Business Help article on automatic advanced matching (`business/help/1993001664341800`, cited from that page). The second is the module names already committed from the retained bytes in [`pageview-disposition.json`](../060-meta-pixel-full-compatibility/pageview-disposition.json) (read from that file, not from the bytes). The third is the spec 062 framing baseline (timezone plugin). Pages not read stay "unread" as before. This slice found no further public-doc setting that is not already SET1 to SET7. The SET8 list is provisional until MT1 reads the retained config.
+
+SET8 list (numbered, cap 3). Each is a candidate whose toggle is not yet known. A SET8 item becomes a state only if an owner-visible Meta setting is found that changes it (the owner's Events Manager check before the window, or an owner export). Otherwise it is recorded as `config-only` with its config module and gets no settings state:
+
+| # | Candidate | Source | Owning slice |
+|---|---|---|---|
+| SET8a | Timezone plugin, the opted-in plugin that negates `getTimezoneOffset()` (spec 062 framing baseline) | Retained config, offset 291440 | M1 (`tz`), M3 |
+| SET8b | Tracking-option bitmask, module `SignalsFBEvents.plugins.opttracking` (G12 in the disposition file) | Retained runtime | M3 |
+| SET8c | Microdata field transmission gate, module `SignalsFBEvents.plugins.microdatafieldtransmission` (G20) | Retained config | M8 |
+
+Considered and not made SET8 items: `cookie` plugin storage diagnostics (G13, part of SET3, M5); `pagemetadata` (G17) and `smartsetup` (G19), which are the SET2 and SET4 mechanisms and carried by those states; `cookiedeprecationlabel` (G16), a browser input and not an account setting (M5 owns it; no settings state). The SET1 per-field subset is not its own state. If Events Manager exposes it and it changes the wire, it takes a SET8 slot at that point, so the cap still holds.
+
+MT1 (blocked, see its slice file) can still reorder or replace SET8a to SET8c when the retained config bytes are read. The list above is the most that could be named without them.
 
 A candidate counts as "no effect" only if all three hold:
 1. the check came after a propagation wait. Default: wait until the served config bytes change, or 30 minutes after the change, whichever comes first. The wait is recorded in the manifest;
@@ -162,6 +181,16 @@ A candidate counts as "no effect" only if all three hold:
 3. the triggering input was present in the load.
 
 Meta's account settings changes reach `connect.facebook.net` through a CDN, so the second condition is the one most likely to fail quietly. Expected propagation time is not known yet. The first window measures it, and the worst case is stated in 5.1. A state with no config-byte change and no output change is recorded as "no effect" with those three facts attached.
+
+### 3.1 Settings window plan (MT2, 2026-11-13)
+
+Runs only inside CAP (5.1 step 3) with the owner present. It uses the owned test pixel (O8), never a production pixel.
+
+- States: SET1 to SET7 (7), SET8a to SET8c (0 to 3), SET9 (1), then the restore. That is 8 to 11 recorded states and 9 to 12 settings changes, one wait each. This is the same arithmetic as 5.1.
+- Order, one change per step (each step reverts the previous candidate and flips the next in the same save, so a state is exactly one factor from base): SET3, SET1, SET2, SET4, SET5, SET6, SET7, SET8a, SET8b, SET8c (only those with a found toggle), SET9 (SET1, SET2 and SET3 on, the one step that flips three), restore. SET3 goes first because the first-party cookie change is the cheapest to see and its wait measures propagation for the rest. SET9 goes last so its reference states are already recorded.
+- Per-change wait: the agent polls the served config bytes of the owned pixel every 2 minutes and records at the first byte change or after 30 minutes, whichever comes first. The wait, the digest before and after, and the polling log go in the manifest. A state with no byte change after 30 minutes is recorded with the three no-effect facts (section 3), never silently.
+- Fit with O2 (about 2.5 hours, same day as the Adobe window): the sitting is serial, because a change made during a recording would change the served config under it. Elapsed time is changes × (wait + recording of about 5 minutes + about 3 minutes for the owner's change). Only the waits can be filled with the owner's Adobe-console work (a different console), not the recordings. So the plan fits 2.5 hours only if the changes that fit are limited: with a measured wait W, at most floor(150 / (W + 8)) changes fit (W of 10 minutes gives 8, W of 5 gives 11, W of 30 gives 3). The first change (SET3) measures W. Changes beyond that count, taken from the end of the order (SET8 items, then SET9), move to the O2 fallback second window. Every window ends with the restore, so a split adds one restore. If W is 30 minutes the plan needs more than one sitting, a scheduling event and not a kill (5.1), and the agent says so at once.
+- Before the window opens (CAP start), the owner confirms in Events Manager which SET8 items have a toggle. That fixes the state count (8 to 11) before the first change. An item with no toggle is recorded as `config-only` and gets no state.
 
 ## 4. Capture session plan (ADR-0061)
 
@@ -287,8 +316,21 @@ Size estimate, by state (base, repeat and EEA = 3 each unless noted): S1 about 1
 
 Before the freeze, compare the candidate inventory with the config shapes and setting combinations public sites actually serve (`connect.facebook.net/signals/config/<pixel>`).
 
-- Sample: at least 30 distinct pixel IDs, from up to 60 homepage GETs. At 30 samples the 10% threshold is 4 configs (more than 3 out-of-inventory fails). Method: one plain HTTP GET per site of a public homepage chosen from a public site list (no JavaScript executed, no interaction, no cookies), extract the pixel ID from the HTML, then one GET of its `signals/config/<pixel>` bytes. Ten of the sampled configs are fetched from both the EEA and the non-EEA exit.
+- Sample: at least 30 distinct pixel IDs, from up to 60 homepage GETs. At 30 samples the 10% threshold is 4 configs (more than 3 out-of-inventory fails). Method: one plain HTTP GET per site of a public homepage chosen from a public site list (no JavaScript executed, no interaction, no cookies), extract the pixel ID from the HTML, then one GET of its `signals/config/<pixel>` bytes. Ten of the sampled configs are fetched from the EEA exit and the rest from the non-EEA exit (amended 2026-11-13 to fit O4's one config GET per pixel; see the protocol below).
 - Metric: out-of-inventory rate = (sampled configs with at least one flag, plugin or setting shape not covered by an inventory state) divided by (all sampled configs). Value so far: not measured.
+
+**Protocol (MT2, written 2026-11-13, not run).** It runs only inside CAP or after, under the O4 approval in 10.1. This slice made no request to any site.
+
+1. Crawl data first (no site is contacted). Source: the public HTTP Archive dataset on BigQuery. Select pages whose detected technologies include the Meta Pixel (`httparchive.crawl.pages`, technologies field), desktop client, root pages, the latest monthly crawl. Where the crawl's stored request rows or response bodies already hold `connect.facebook.net/signals/config/<pixel>` requests or bytes, take the pixel IDs and the config bytes from there. Record the crawl date and the query text in the probe manifest. Table and column names are as documented on httparchive.org/docs on 2026-11-13 and are checked when the query first runs. The sampled configs are whatever the crawl captured, so each is dated by its crawl.
+2. Pick the sample: 30 distinct pixel IDs, in rank order of the page's Tranco rank (list below), skipping pages with a pixel already taken.
+3. Fallback, only if step 1 yields fewer than 30 distinct pixel IDs with config bytes. The public site list is **the Tranco ranking (tranco-list.eu), the permanent-ID list generated on the CAP day, filtered to the domains the crawl data flags as Meta Pixel sites, in ascending Tranco rank**. Record the Tranco list ID. Take domains in that order. Make one plain GET of each homepage (`https://<domain>/`, no JavaScript, no cookies, no interaction, default `User-Agent` stated in the manifest, redirects not followed (a redirect response counts as no pixel for that site), no retries). Stop at 30 distinct pixel IDs or 60 homepage GETs, whichever comes first. The cap is hard. Then one GET of `https://connect.facebook.net/signals/config/<pixel>` per distinct pixel found, at most 30. Crawl-sourced configs from step 1 count toward the 30 and need no GET.
+4. Exit: each fetched pixel config gets one GET. Of the configs fetched by GET, ten (or a third, if fewer than 30 are fetched) come from the EEA exit and the rest from the non-EEA exit, chosen in rank order at 1 in 3. Configs taken from crawl data are not fetched, so they have no exit choice. Their crawl location is recorded in the manifest, and if fewer than 10 configs in total come from the EEA, the report says so and does not add requests. Fetching the same pixel from both exits would exceed "one config GET per pixel found" in O4. It stays out unless the owner extends O4 (see Open below).
+5. Compare each config's flag, plugin and setting shapes with the inventory (2.1 to 2.3 and section 3 after MT1 and MT2). Out-of-inventory rate = configs with at least one uncovered shape / all sampled configs. The threshold is 4 of 30 (more than 3 fails, above 10%).
+6. If the cap leaves fewer than 30 pixel IDs, the rule is: a rate above 10% fails (kill criterion 6) at any sample size, and a rate at or below 10% is `inconclusive`, reported with the count. The cap is not raised without a new owner approval.
+7. Worst-case request count: 60 homepage GETs plus 30 config GETs, 90 in total, all from the public list, none authenticated.
+
+Open (one owner decision, not blocking): whether to let the 10 EEA configs also be fetched from the non-EEA exit for a like-for-like comparison. Default: no.
+
 - Threshold: above 10% is kill criterion 6. Include at least one combined-settings state (SET9). Sampled shapes that are not covered are filled now (a new S14 state, the owner window permitting) or the freeze unit is revisited.
 - This probe touches production sites. The owner approved it on 2026-11-13 (O4, recorded in 10.1): public crawl data first, and the plain-GET fallback below only if the crawl data is not enough. Reading a public site's served config does not change anything on that site.
 
@@ -379,7 +421,7 @@ The existing prototype (`connectors/meta-pixel/pageview-prototype.js`, `adapters
 
 No probe touching a production site, tenant or real-user data runs without the owner's written approval in this section, naming the site list and the probe.
 
-Approved 2026-11-13 (O4): the inventory completeness probe (6.1). Use public crawl data first. The fallback is up to 60 plain homepage GETs (one request each, no JavaScript, no interaction, no cookies) plus one `signals/config/<pixel>` GET per pixel found, from the public site list named in 6.1. Site list: `<OWNER OR MT2 TO NAME THE PUBLIC LIST>`; MT2 writes the exact list into the probe protocol before the fallback runs. Nothing else touching a production site is approved.
+Approved 2026-11-13 (O4): the inventory completeness probe (6.1). Use public crawl data first. The fallback is up to 60 plain homepage GETs (one request each, no JavaScript, no interaction, no cookies) plus one `signals/config/<pixel>` GET per pixel found, from the public site list named in 6.1. Site list: the Tranco ranking (tranco-list.eu), the permanent-ID list generated on the CAP day, filtered to domains public crawl data flags as Meta Pixel sites, in ascending rank. MT2 wrote the exact method into 6.1 on 2026-11-13. The Tranco list ID is recorded when the probe runs. Nothing else touching a production site is approved.
 
 The Meta test pixel and the owned test site are not production for this purpose. Placeholders the owner fills in before capture:
 
@@ -443,6 +485,7 @@ Review rounds are capped at three before owner review (owner decision). Each is 
 - 2026-11-13: status DRAFT to READY_FOR_REVIEW to READY_FOR_IMPLEMENTATION on the owner's O1 approval (approved as amended, no re-review). The spec has no slice headings, so the jig transition command cannot move it; the frontmatter was set by hand. ADR-0061 point 1 now carries the O11 line (main 0633a5f4).
 - 2026-11-13 (correction): the spec status is derived from slice files, so the by-hand READY_FOR_IMPLEMENTATION line above is replaced. Slice files 066-01 to 066-04 (MT1, MT2, MT0, CAP) are written and READY_FOR_IMPLEMENTATION. M1 to M13 get files after CAP.
 - Pilot count of extra captures: _to be filled at pilot close_.
+- 2026-11-13, MT2 (066-02) done (SET8 list provisional until MT1 reads the retained config): section 3 extended (owning slices, SET8a to SET8c list, SET9 row), settings window plan added as 3.1, probe protocol written into 6.1 (public HTTP Archive crawl data first; fallback from the Tranco list, hard cap 60 homepage GETs and 30 config GETs), site list named in 10.1. Not run. One open owner question in 6.1 (EEA and non-EEA config pairs). MT1 (066-01) is blocked on the private bytes. MT0's DoR line about 064-03 corrected (the shared tooling has been on main since 98694865).
 
 ## 13. Clarifications
 

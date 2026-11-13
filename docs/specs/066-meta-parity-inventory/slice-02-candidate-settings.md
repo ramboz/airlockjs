@@ -1,7 +1,8 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: IN_PROGRESS
 dependencies: []
 last_verified: 2026-11-13
+claimed_by: meta-mt1-mt2-inventory
 ---
 
 ## Slice 066-02: MT2, candidate settings list and completeness-probe protocol

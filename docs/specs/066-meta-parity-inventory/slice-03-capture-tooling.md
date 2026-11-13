@@ -10,7 +10,7 @@ last_verified: 2026-11-13
 
 **DoR:**
 - Spec 066 approved by the owner as amended (O1, 2026-11-13).
-- 064-03 is on main. It is DONE on `vendor-adobe` and not yet on main at the time of writing, so this is checked at start. If it is missing, this slice waits (it does not fork the tooling).
+- The shared tooling is on main (since 98694865) and `vendor-meta-pixel` contains it: `rig/fixture-manifest.mjs`, `rig/fixture-credentials.mjs`, `rig/field-rules.mjs`, `rig/native-tag-comparison.mjs` and the policy in `rig/native-tag-comparison.md`. Checked at start. This line replaces the earlier stale note that 064-03 was not on main (corrected 2026-11-13).
 - 066-01 is done, so the field and request lists exist.
 
 **Acceptance Criteria:**
