@@ -14,6 +14,8 @@ with reviewed code and independent native evaluation.
 
 ## Status
 
+Partially superseded by [ADR-0061](./adr-0061-definition-of-done-vendor-compatibility.md) (2026-11-12): standing approval for test-only runs only.
+
 Accepted (2026-11-02)
 
 The owner approved Option C with Option D's browser admission and independent
