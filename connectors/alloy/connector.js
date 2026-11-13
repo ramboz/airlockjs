@@ -37,6 +37,24 @@ export const ALLOY_INTERACT_ENDPOINT = "https://adobedc.demdex.net/ee/v1/interac
 export const ALLOY_COOKIE_NAMES = ["com.adobe.alloy.getTld", "kndctr_", "AMCV_", "demdex", "s_ecid"];
 
 /**
+ * Alloy's per-cookie consent purposes (ADR-0007 annotation), hoisted so the host-side
+ * write-back seam (spec 067-05 AC4) and the manifest read ONE table. Keys are the
+ * `ALLOY_COOKIE_NAMES` entries.
+ */
+export const ALLOY_COOKIE_PURPOSES = Object.freeze({
+  // apex-domain probe cookie — functional infrastructure, no data use.
+  "com.adobe.alloy.getTld": ["functional"],
+  // Adobe Edge consent/identity + Visitor ECID — a SHARED identity serving
+  // BOTH analytics and personalization (ADR-0007: one I/O, several purposes).
+  "kndctr_": ["analytics_storage", "personalization"],
+  "AMCV_": ["analytics_storage", "personalization"],
+  // third-party Audience Manager sync — ad/identity (server-directed; MVP3).
+  "demdex": ["ad_storage"],
+  // Analytics ECID mirror.
+  "s_ecid": ["analytics_storage"],
+});
+
+/**
  * alloy's declared vocabulary — the SINGLE SOURCE OF TRUTH the manifest below AND the
  * `adapters/eds/index.js` boot/composite-fan-out consume (imported, not hand-mirrored), mirroring
  * `ALLOY_COOKIE_NAMES`'s own "SAME array reference so the two can never drift" discipline (035-01 AC3).
@@ -175,18 +193,7 @@ export function createAlloyConnector(config = {}) {
       endpoints: {
         [ALLOY_INTERACT_ENDPOINT]: ["analytics_storage", "personalization"],
       },
-      cookies: {
-        // apex-domain probe cookie — functional infrastructure, no data use.
-        "com.adobe.alloy.getTld": ["functional"],
-        // Adobe Edge consent/identity + Visitor ECID — a SHARED identity serving
-        // BOTH analytics and personalization (ADR-0007: one I/O, several purposes).
-        "kndctr_": ["analytics_storage", "personalization"],
-        "AMCV_": ["analytics_storage", "personalization"],
-        // third-party Audience Manager sync — ad/identity (server-directed; MVP3).
-        "demdex": ["ad_storage"],
-        // Analytics ECID mirror.
-        "s_ecid": ["analytics_storage"],
-      },
+      cookies: ALLOY_COOKIE_PURPOSES,
       reads: {
         "page_view.params.page_location": ["analytics_storage"],
         "page_view.params.page_title": ["analytics_storage"],

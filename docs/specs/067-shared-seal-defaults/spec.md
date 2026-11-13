@@ -69,6 +69,7 @@ Order: 01 (docs) first, then 11 (the measurement purpose), then 02. 04, 05, 06 a
 | [067-08](slice-08-alloy-context-option.md) | 2, 3 | Alloy `context` defaults to the stock list and is fed by the channel |
 | [067-09](slice-09-denylist-default-and-override.md) | 4b | The credentials denylist stays on by default, an explicit override exists, and a test pins both |
 | [067-10](slice-10-seam-input-governance.md) | 3 | Input governance at the wrapped-SDK seam (ADR-0012's deferred second placement) |
+| [067-12](slice-12-default-storage-grant.md) | 7 | Default localStorage and sessionStorage grant = the stock set (split out of 067-05) |
 
 ## 4. Boundaries
 
@@ -152,6 +153,7 @@ Each is a check a slice DoR runs, not an open decision.
 
 ## 9. Review log
 
+- 2026-11-13: 067-05 split. The cookie grant (AC1-AC4, AC6, AC7 for cookies) stays in 067-05. The localStorage/sessionStorage grant (AC5) moves to new slice 067-12, as check 7 allowed: storage has no host seam yet (no chamber storage shim, no read seed, no write path), so it is a new mechanism on its own.
 - 2026-11-13: owner answered D1 to D4. D2 and D3 become per-connector options, D4 adds slice 067-11. Spec and slices 02 to 11 are READY_FOR_IMPLEMENTATION.
 - 2026-11-13: review round done, findings applied (section 10).
 - 2026-11-13: drafted from ADR-0062, the three sister specs' consumer rows, and the code read in section 2. One fresh review round follows (section 10).

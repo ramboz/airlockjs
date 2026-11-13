@@ -36,11 +36,11 @@ import { createWrappedSdkHost } from "../../core/wrapped-sdk-host.js";
 import { hostOf } from "../../core/config-integrity.js";
 import { resolveConsent } from "../../core/consent.js";
 import { resolveOnetrustBootConsent, subscribeOnetrustConsentChanges } from "../../drivers/consent/onetrust.js";
-import { ALLOY_INTERACT_ENDPOINT, ALLOY_COOKIE_NAMES, ALLOY_EVENTS, ALLOY_EGRESS_PURPOSES } from "../../connectors/alloy/connector.js";
+import { ALLOY_INTERACT_ENDPOINT, ALLOY_COOKIE_NAMES, ALLOY_COOKIE_PURPOSES, ALLOY_EVENTS, ALLOY_EGRESS_PURPOSES } from "../../connectors/alloy/connector.js";
 // spec 014-03: GA4-MP's declared vocabulary — its SOT manifest home (imported, not mirrored; see the
 // retired mirror-const note below). Only the vocab consts are imported (esbuild tree-shakes the factory).
 import { GA4_EVENTS, GA4_EGRESS_PURPOSES } from "../../connectors/ga4/connector.js";
-import { scopeSeedCookies } from "../../core/cookie-scope.js";
+import { scopeSeedCookies, resolveCookieGrant } from "../../core/cookie-scope.js";
 import { getCookieValue } from "../../core/cookie-parse.js";
 import { htmlOfDecision } from "../../connectors/alloy/decisions.js";
 import { createPropositionExposureReporter, PROPOSITION_EXPOSURE_EVENT } from "./decisions-exposure.js";
@@ -1579,7 +1579,7 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit }) {
  * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, stats: Function, dispose: Function }>}
  */
 export async function bootAlloy(opts = {}) {
-  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, context = [], consent, payloadDenylist, payloadDenylistOverride, workerUrl, reservedPlacements, compositeEmit } = opts;
+  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, context = [], consent, payloadDenylist, payloadDenylistOverride, cookieGrantNarrowing, workerUrl, reservedPlacements, compositeEmit } = opts;
 
   // ADR-0016 prerequisite — fail LOUD here too (validateConnectorEntry also checks it
   // on the config path) so a direct bootAlloy caller gets an actionable error rather
@@ -1693,6 +1693,10 @@ export async function bootAlloy(opts = {}) {
     // the SAME ALLOY_COOKIE_NAMES the READ-side seed filter uses (above) — one
     // source of truth, both enforcement seams.
     grantedCookieNames: ALLOY_COOKIE_NAMES,
+    // 067-05: the default grant IS the stock set above; a site may narrow it (never widen),
+    // and a denied storage purpose blocks the write-back of the cookies it governs.
+    cookieGrantNarrowing,
+    cookiePurposes: ALLOY_COOKIE_PURPOSES,
   });
 
   // spec 034-02: derive the decision scope set the connector requests on the interact
@@ -1712,7 +1716,7 @@ export async function bootAlloy(opts = {}) {
   // foreign cookie (closes the live whole-jar READ leak).
   const config = { datastreamId: resolvedDatastreamId, orgId, context, ...(decisionScopes.length ? { decisionScopes } : {}) };
   const rawSeedCookie = (typeof document !== "undefined" && document.cookie) || "";
-  const seedCookie = scopeSeedCookies(rawSeedCookie, ALLOY_COOKIE_NAMES);
+  const seedCookie = scopeSeedCookies(rawSeedCookie, resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).names);
   host.init({ cookie: seedCookie, config, bundleUrl, consent });
 
   // Serialize push/pushCritical through the single-slot driveEvent: a sequential

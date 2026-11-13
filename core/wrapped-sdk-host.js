@@ -131,7 +131,7 @@ import { checkEndpointCeiling } from "./endpoint-ceiling.js";
 import { checkConfigIntegrity, pinnedDispatchUrl, hostOf } from "./config-integrity.js";
 import { egressVerdict, resolveConsent } from "./consent.js";
 import { governPayload, resolveDenylist } from "./payload-governance.js";
-import { isValidCookieName, matchesGrantedName } from "./cookie-scope.js";
+import { isValidCookieName, matchesGrantedName, resolveCookieGrant } from "./cookie-scope.js";
 
 // Default diagnostics seam (mirrors core/airlock.js's `consoleDiagnostic`):
 // console-backed, so a caller that doesn't inject `onDiagnostic` still
@@ -164,6 +164,8 @@ function consoleDiagnostic(record) {
  *   payloadDenylist?: (readonly string[] | null),
  *   payloadDenylistOverride?: (false | readonly string[]),
  *   grantedCookieNames?: (readonly string[] | null),
+ *   cookieGrantNarrowing?: readonly string[],
+ *   cookiePurposes?: (Record<string, readonly string[]> | null),
  *   onDiagnostic?: (record: { level: string, kind: string, [k: string]: unknown }) => void,
  * }} opts
  * @returns {{
@@ -182,6 +184,7 @@ function consoleDiagnostic(record) {
  *     ceilingHeld: number,
  *     consentHeld: number,
  *     cookieScopeHeld: number,
+ *     cookieConsentHeld: number,
  *   },
  * }}
  */
@@ -195,9 +198,25 @@ export function createWrappedSdkHost({
   egressPurposes = [],
   payloadDenylist = null,
   payloadDenylistOverride,
-  grantedCookieNames = null,
+  grantedCookieNames: stockCookieNames = null,
+  cookieGrantNarrowing,
+  cookiePurposes = null,
   onDiagnostic,
 }) {
+  // 067-05: `grantedCookieNames` is the connector's STOCK set and is the default grant;
+  // `cookieGrantNarrowing` is the site's opt-in subset (never wider). Absent stock = ungated (today).
+  const grantedCookieNames = resolveCookieGrant(stockCookieNames, cookieGrantNarrowing).names;
+  // 067-05 AC4: consent-driven cookie write denial. `cookiePurposes` maps a declared
+  // cookie entry (`prefix_` or exact) to its purposes; only STORAGE purposes (`*_storage`)
+  // gate a write, and only an explicit denial blocks it (pending is the seal hold's concern).
+  function cookieWriteDenied(name) {
+    if (!cookiePurposes || !consent) return false;
+    for (const [entry, purposes] of Object.entries(cookiePurposes)) {
+      if (!matchesGrantedName(name, [entry])) continue;
+      if ((purposes || []).some((p) => p.endsWith("_storage") && resolveConsent(consent, p) === "denied")) return true;
+    }
+    return false;
+  }
   const diagnose = typeof onDiagnostic === "function" ? onDiagnostic : consoleDiagnostic;
   // 067-09: the built-in credentials denylist is ON by default here too; only an explicit
   // `payloadDenylistOverride` turns it off or replaces it (a host list still extends).
@@ -237,6 +256,7 @@ export function createWrappedSdkHost({
     ceilingHeld: 0,
     consentHeld: 0,
     cookieScopeHeld: 0,
+    cookieConsentHeld: 0,
   };
 
   let queuedEvent = null;
@@ -540,6 +560,11 @@ export function createWrappedSdkHost({
         // DROP: never reconciled, never reaches document.cookie — fail-closed,
         // the untrusted chamber cannot persist an arbitrary/malformed name to
         // the real jar.
+      } else if (cookieWriteDenied(cookieName)) {
+        // 067-05 AC4: a granted name is still not WRITTEN while a storage purpose it
+        // serves is denied (the live consent ref, read per write). Name only, no value.
+        state.cookieConsentHeld += 1;
+        diagnose({ level: "warn", kind: "cookie-consent", disposition: "dropped", reason: "storage purpose denied — cookie write-back dropped at the seal", name: cookieName });
       } else {
         const reconciled = reconcileForBrokerJar(m.value);
         if (caps.cookies && typeof caps.cookies.reconcile === "function") {
@@ -640,6 +665,7 @@ export function createWrappedSdkHost({
         ceilingHeld: state.ceilingHeld,
         consentHeld: state.consentHeld,
         cookieScopeHeld: state.cookieScopeHeld,
+        cookieConsentHeld: state.cookieConsentHeld,
       };
     },
   };

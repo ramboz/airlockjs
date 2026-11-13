@@ -630,6 +630,17 @@ describe("boot(config) — AC1/AC5 (spec 035-01): the boot seed is scoped to all
     }
   });
 
+  it("067-05 narrowed opt-in: `cookieGrantNarrowing` shrinks the seed to the declared subset (stock default above is separate)", async () => {
+    vi.stubGlobal("document", { cookie: "kndctr_org=2; demdex=3; s_ecid=e; _ga=1" });
+    await bootAlloy({ ...alloyEntry(), cookieGrantNarrowing: ["demdex"] });
+    expect(initOf(alloyWorker()).cookie).toBe("demdex=3");
+  });
+
+  it("067-05: a narrowing outside the stock set fails loud at boot", async () => {
+    vi.stubGlobal("document", { cookie: "" });
+    await expect(bootAlloy({ ...alloyEntry(), cookieGrantNarrowing: ["_ga"] })).rejects.toThrow(TypeError);
+  });
+
   it("an empty document.cookie still boots (no throw) and seeds an empty scoped jar", async () => {
     vi.stubGlobal("document", { cookie: "" });
     await expect(bootAlloy(alloyEntry())).resolves.toBeTruthy();

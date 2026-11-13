@@ -165,3 +165,31 @@ describe("core/cookie-scope.js: scopeSeedCookies (the READ-side boot-seed filter
     expect(scopeSeedCookies(jar, ALLOY_NAMES)).toBe("kndctr_org=2; demdex=3");
   });
 });
+
+// spec 067-05 — the default grant is the stock set; narrowing is an opt-in subset.
+import { resolveCookieGrant } from "../core/cookie-scope.js";
+
+describe("resolveCookieGrant (spec 067-05)", () => {
+  const STOCK = ["vendor_", "vsid", "vtld"]; // TEST vendor fixture set
+
+  it("stock default: no narrowing -> the grant is the stock set, not narrowed", () => {
+    expect(resolveCookieGrant(STOCK, undefined)).toEqual({ names: STOCK, narrowed: false });
+  });
+
+  it("narrowed opt-in: a subset replaces the grant", () => {
+    expect(resolveCookieGrant(STOCK, ["vsid", "vendor_org"])).toEqual({ names: ["vsid", "vendor_org"], narrowed: true });
+    expect(resolveCookieGrant(STOCK, [])).toEqual({ names: [], narrowed: true });
+  });
+
+  it("narrowing cannot widen: an entry outside the stock set throws", () => {
+    expect(() => resolveCookieGrant(STOCK, ["_ga"])).toThrow(TypeError);
+    expect(() => resolveCookieGrant(STOCK, ["vsid_x"])).toThrow(TypeError);
+    expect(() => resolveCookieGrant(STOCK, ["vend_"])).toThrow(TypeError);
+    expect(() => resolveCookieGrant(STOCK, "vsid")).toThrow(TypeError);
+  });
+
+  it("no stock declared: no grant is imposed (today's behavior); a narrowing alone still restricts", () => {
+    expect(resolveCookieGrant(null, undefined)).toEqual({ names: null, narrowed: false });
+    expect(resolveCookieGrant(null, ["a"])).toEqual({ names: ["a"], narrowed: true });
+  });
+});

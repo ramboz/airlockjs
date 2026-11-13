@@ -47,7 +47,7 @@ of architecture.md's five frozen contract surfaces.
 
 The project JSON config `boot(config)` (`adapters/eds/index.js`) consumes:
 `{ connectors: [...], consent?, consentStrict?, payloadDenylist? }` (plus a per-connector
-`payloadDenylistOverride`: `false` or an array, see architecture.md), where each connector
+`payloadDenylistOverride`: `false` or an array, see architecture.md; on `alloy` an optional `cookieGrantNarrowing` array narrows the default stock cookie grant, never widens it), where each connector
 entry is a **discriminated union** on `type` (`ga4` / `pixel` / `helix-rum`; nested `vendor`
 ∈ {`meta`,`linkedin`,`bing`} under `pixel`; helix-rum's governance-free shape). Modelled with
 `oneOf` on the `type` const, golden fixtures one-per-connector + a breadth golden (ga4 + pixel +

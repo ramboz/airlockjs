@@ -159,13 +159,14 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-02: Consent hold on every track, with a no-consent-input warning | READY_FOR_IMPLEMENTATION |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-03: Alloy holds and flushes, and an empty `egressPurposes` holds and warns | READY_FOR_IMPLEMENTATION |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-04: Default egress allowlist is the stock destination set | READY_FOR_IMPLEMENTATION |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-05: Default cookie and storage grant is the stock set | READY_FOR_IMPLEMENTATION |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-05: Default cookie and storage grant is the stock set | IN_PROGRESS (067-05-cookie-storage-grant) |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-06: Limits never drop or delay stock output by default | READY_FOR_IMPLEMENTATION |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-07: The stock-context channel | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-08: Alloy `context` defaults to the stock list | READY_FOR_IMPLEMENTATION |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-09: The credentials denylist stays on, with an explicit override | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-10: Input governance at the wrapped-SDK seam | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-11: A privacy-safe measurement purpose for helix-rum | **DONE** |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-12: Default localStorage and sessionStorage grant is the stock set | READY_FOR_IMPLEMENTATION |  |
 
 ## Deferred slices
 
