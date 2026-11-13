@@ -71,6 +71,11 @@ describe("collectStockContext", () => {
     }
   });
 
+  it("an explicit built-in override (067-09) is honored", () => {
+    const dirty = { web: { password: "x", url: "u" } };
+    expect(governStockContext(dirty, [], []).web.password).toBe("x");
+  });
+
   it("a throwing page getter does not break collection", () => {
     const win = fakeWin();
     Object.defineProperty(win, "screen", { get() { throw new Error("boom"); } });

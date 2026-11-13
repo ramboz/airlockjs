@@ -31,7 +31,7 @@ import { createPixelConnector } from "../connectors/pixel/connector.js";
 import { mergeAdvancedMatching } from "../connectors/pixel/advanced-matching.js";
 import { originPath, checkEndpointCeiling } from "./endpoint-ceiling.js";
 import { egressVerdict, resolveConsent } from "./consent.js";
-import { governPayload, resolveDenylist } from "./payload-governance.js";
+import { governPayload, resolveDenylist, DEFAULT_DENYLIST } from "./payload-governance.js";
 import { collectStockContext, stockContextFingerprint, STOCK_CONTEXT_MESSAGE } from "./stock-context.js";
 
 // Default diagnostics seam: console-backed, severity-differentiated (warn for a
@@ -403,7 +403,7 @@ export function createAirlock({
   const STOCK_EVENTS = ["popstate", "hashchange", "resize", "orientationchange", "visibilitychange"];
   function refreshStockContext() {
     if (!stockOpts || disposed) return;
-    const context = collectStockContext(stockOpts);
+    const context = collectStockContext({ ...stockOpts, builtin: resolved.overridden ? resolveDenylist(payloadDenylistOverride).list : DEFAULT_DENYLIST });
     if (!Object.keys(context).length) return;
     const fp = stockContextFingerprint(context);
     if (fp === stockFingerprint) return;

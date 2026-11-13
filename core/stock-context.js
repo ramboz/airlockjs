@@ -129,12 +129,12 @@ const COLLECTORS = {
 /**
  * Collect the stock-read page context on the main thread.
  *
- * @param {{ groups?: readonly string[], denylist?: readonly string[], win?: object, now?: () => Date }} [opts]
+ * @param {{ groups?: readonly string[], denylist?: readonly string[], builtin?: readonly string[], win?: object, now?: () => Date }} [opts]
  *   `groups` defaults to every group (the stock default). Unknown names are
  *   ignored. `denylist` extends the built-in credentials denylist.
  * @returns {Record<string, Record<string, unknown>>} only the requested groups
  */
-export function collectStockContext({ groups = STOCK_CONTEXT_GROUPS, denylist = [], win = globalThis, now = () => new Date() } = {}) {
+export function collectStockContext({ groups = STOCK_CONTEXT_GROUPS, denylist = [], win = globalThis, now = () => new Date(), builtin = DEFAULT_DENYLIST } = {}) {
   const wanted = Array.isArray(groups) ? groups.filter((g) => Object.hasOwn(COLLECTORS, g)) : [];
   const context = {};
   for (const group of new Set(wanted)) {
@@ -146,16 +146,17 @@ export function collectStockContext({ groups = STOCK_CONTEXT_GROUPS, denylist = 
     }
     context[group] = record;
   }
-  return governStockContext(context, denylist);
+  return governStockContext(context, denylist, builtin);
 }
 
 /**
  * Apply the denylist to a collected context. The built-in credentials list is
- * always merged in and a site can only add to it. Bare names match inside each
+ * merged in unless the site set `payloadDenylistOverride` (067-09, passed as
+ * `builtin`); otherwise a site can only add to it. Bare names match inside each
  * group record; `group.field` paths match against the whole context.
  */
-export function governStockContext(context, denylist = []) {
-  const entries = [...DEFAULT_DENYLIST, ...(Array.isArray(denylist) ? denylist : [])];
+export function governStockContext(context, denylist = [], builtin = DEFAULT_DENYLIST) {
+  const entries = [...builtin, ...(Array.isArray(denylist) ? denylist : [])];
   const out = {};
   for (const [group, record] of Object.entries(context)) out[group] = governPayload(record, entries).governed;
   return governPayload(out, entries).governed;
