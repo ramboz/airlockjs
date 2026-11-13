@@ -8,7 +8,7 @@ arch_review: true
 claimed_by: adobe-adoption-goal
 ---
 
-> **Rescoped 2026-11 by [spec 064](../064-adobe-parity-inventory/spec.md) (ADR-0061).** Superseded. Local stock recordings become corpus S1 to S3; live reporting gates move to the live-only list. History kept below.
+> **Rescoped 2026-11 by [spec 064](../064-adobe-parity-inventory/spec.md) (ADR-0061).** Superseded. The local stock harness is reused and S1 to S3 are re-recorded; live reporting gates move to the live-only list. History kept below.
 
 ## Slice 051-02 — reproducible stock wire baseline
 
