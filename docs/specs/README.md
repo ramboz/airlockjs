@@ -185,7 +185,7 @@ do not grant live authority.
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-09 — one focused Analytics and Target chamber journey | IN_PROGRESS (adobe-adoption-goal) |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-01 — T1: close the command inventory | ABANDONED |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-02 — T2: datastream setting list and completeness table | READY_FOR_IMPLEMENTATION |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-03 — B0: capture tooling | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-03 — B0: capture tooling | **DONE** |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 🔬 064-04 — CAP: the capture session | READY_FOR_IMPLEMENTATION |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-05 — B1: configure, getLibraryInfo, page-view sendEvent (pilot) | ABANDONED |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-06 — B2: custom sendEvent, mergeId, onBeforeEventSend | ABANDONED |  |
