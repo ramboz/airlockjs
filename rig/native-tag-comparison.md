@@ -282,22 +282,25 @@ and must name the frozen-corpus fixtures it was derived from:
 |---|---|---|
 | `generated` | `format`, `relation` | value matches `format`; `relation` `equal` (one value across the selectors), `distinct` or `none` |
 | `input_derived` | `source`, `transform` | value equals `transform(source value)` on the same side; `source` is another selector and stays compared exactly |
-| `server_context` | `context`, `allowed` | value is in the enumerated `allowed` set (≤16); `context` is `egress_region`, `served_config` or `response` |
+| `server_context` | `context`, `allowed` | value is in the enumerated `allowed` set (≤16) **and identical on both sides** (same input state, same server answer); `context` is `egress_region`, `served_config` or `response` |
 | `volatile` | `format` | present, and matches `format`; nothing else is checked |
 
 Every rule also has `selectors` (1–8, same four selector forms as above,
 `body_utf8` only for `input_derived`) and `derived_from`, 1–32 distinct SHA-256
 digests of the corpus fixtures the rule was read from. A rule with no corpus
 digest is rejected (`field_rule_corpus_missing`): rules are bounded to the
-frozen corpus, never invented at comparison time. "Fixed" is the default:
+frozen corpus, never invented at comparison time. The comparator checks the
+digest shape only; that each digest names a committed corpus fixture is the
+reviewer's and the held-out check's job (ADR-0061 point 7), not enforced here. "Fixed" is the default:
 anything not selected compares exactly.
 
 `format.kind` is one of `uuid`, `hex`, `decimal`, `base64url`, `token`,
 `epoch_ms` (13 digits), `epoch_s` (10 digits), with `min`/`max` length for the
 variable kinds. `transform` is one of `identity`, `lowercase`, `sha256_hex`,
 `trim_lowercase_sha256_hex`, `base64`, `base64url`. There is no generic ignore,
-regex DSL, expression or eval, and unknown keys or values are
-`invalid_manifest` input (exit 3).
+regex DSL, expression or eval, and unknown keys or values are invalid manifest
+input (exit 3; `invalid_field_rule`, `invalid_field_format`,
+`invalid_field_transform` or `field_rule_corpus_missing`).
 
 Closed policy:
 
@@ -311,11 +314,16 @@ Closed policy:
 - A `volatile` rule is only for fields shown to have no relationship to any
   other value; a field that links to a cookie, storage, another request or a
   response uses `generated` (with `relation`) or `input_derived`.
-- Selectors may not overlap across any rule (`overlapping_rules`); the
-  `input_derived` source may not be one of its own targets.
+- Identity values (`fbp`, `fbc`, `fbclid`, `gclid`, `gbraid`, `wbraid`, `auid`,
+  `mid`, `ecid`) may be `generated` only with `relation` `equal` or `distinct`,
+  never `volatile` or relation `none`: a link to a cookie or another request
+  must be proven, not waved through.
+- Selectors may not overlap across any rule (`overlapping_rules`), and an
+  `input_derived` source may not be a target of any rule, so it stays exact.
 - Selected query values keep which escape spellings occurred (literal, `+`,
   percent with letter case) but not their length, because a rule covers values
   of different lengths. Query keys/order and unselected URL bytes stay exact.
+- "Fixed" is not a rule class: it is the default for every unselected field.
 - Field rules are native-only. On a local layer they are inconclusive
   (`field_rules_native_only`); identity/hash rules on native stay unsupported.
 - Each applied rule counts once in `preserved_relationships`.

@@ -246,11 +246,15 @@ function manifestShape(m) {
         ? e.message : "invalid_field_rule");
     }
     rule.selectors.forEach(use);
-    if (rule.class === "input_derived" && rule.selectors.some(s =>
-      s.request === rule.source.request && s.field === rule.source.field
-      && (s.index ?? s.name ?? null) === (rule.source.index ?? rule.source.name ?? null)))
-      reject("overlapping_rules");
   }
+  // An input_derived source stays compared exactly: no rule may target it.
+  const same = (x, y) => x.request === y.request && x.field === y.field
+    && (x.index ?? x.name ?? null) === (y.index ?? y.name ?? null);
+  for (const rule of m.rules.fields ?? [])
+    if (rule.class === "input_derived"
+      && (m.rules.fields.some(o => o.selectors.some(s => same(s, rule.source)))
+        || m.rules.hashes.some(o => same(o.input, rule.source) || same(o.digest, rule.source))))
+      reject("overlapping_rules");
 }
 async function loadSide(resources, budget, inspection = null) {
   const loaded = {};
@@ -798,6 +802,11 @@ function applyFieldRules(a, b, pa, pb, rules, issues) {
     const results = [a, b].map(side => evaluateFieldRule(rule, i,
       rule.selectors.map(s => selected(side, s)), rule.source ? selected(side, rule.source) : undefined));
     if (results.some(r => !r.valid)) { issues.add("field_rule_violation"); continue; }
+    // Same input state must yield the same server-supplied value on both sides.
+    if (rule.class === "server_context"
+      && JSON.stringify(rule.selectors.map(s => selected(a, s))) !== JSON.stringify(rule.selectors.map(s => selected(b, s)))) {
+      issues.add("field_rule_violation"); continue;
+    }
     for (const [p, r] of [[pa, results[0]], [pb, results[1]]])
       rule.selectors.forEach((s, k) => replaceSelected(p, s, r.tokens[k], true));
     applied++;

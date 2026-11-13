@@ -14,6 +14,9 @@ export const RELATIONS = Object.freeze(["equal", "distinct", "none"]);
 // generated or volatile: a changed value there is a real difference.
 export const PROTECTED_KEYS = Object.freeze(["ev", "id", "pixel_id", "send_to", "label", "value", "currency",
   "currency_code", "cd[value]", "cd[currency]", "consent", "gcs", "gcd", "gdpr", "gdpr_consent", "dp", "dl", "en"]);
+// Identity values must be proven related to their cookie or another request, so
+// they cannot be declared volatile or relation "none" (nothing proven).
+export const IDENTITY_KEYS = Object.freeze(["fbp", "fbc", "fbclid", "gclid", "gbraid", "wbraid", "auid", "mid", "ecid"]);
 export const LIMITS = Object.freeze({ selectors: 8, derived_from: 32, allowed: 16, allowed_bytes: 256, length: 512 });
 
 const FORMAT_PATTERNS = {
@@ -122,6 +125,8 @@ export function evaluateFieldRule(rule, index, values, source) {
 }
 
 export function protectedTarget(rule, key) {
-  return ["generated", "volatile"].includes(rule.class)
-    && typeof key === "string" && PROTECTED_KEYS.includes(key.toLowerCase());
+  if (!["generated", "volatile"].includes(rule.class) || typeof key !== "string") return false;
+  const k = key.toLowerCase();
+  return PROTECTED_KEYS.includes(k)
+    || (IDENTITY_KEYS.includes(k) && (rule.class === "volatile" || rule.relation === "none"));
 }

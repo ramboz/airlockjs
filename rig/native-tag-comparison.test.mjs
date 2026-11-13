@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { evaluateFieldRule } from "./field-rules.mjs";
 import { inspectNativeAttempt, runNativeComparison } from "./native-tag-comparison.mjs";
 
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
@@ -809,8 +810,8 @@ describe("064-03 native-side field rules (ADR-0061 point 10)", () => {
   const uuid = n => `0000000${n}-0000-4000-8000-00000000000${n}`;
   const find = (rows, key) => rows.filter(r => r.category === "native_measurement")
     .map(r => ({ row: r, index: r.query_pairs.findIndex(p => p[0] === key) }));
-  async function field(reference, candidate, key = "fbp") {
-    const f = await nativeFixture("meta-pageview");
+  async function field(reference, candidate, key = "fbp", profile = "meta-pageview") {
+    const f = await nativeFixture(profile);
     const refs = find(f.capture.requests, key), cands = find(f.candidateCapture.requests, key);
     refs.forEach(({ row, index }, i) => query(row, index, reference(i)));
     cands.forEach(({ row, index }, i) => query(row, index, candidate(i)));
@@ -818,7 +819,7 @@ describe("064-03 native-side field rules (ADR-0061 point 10)", () => {
     const index = refs[0].index;
     f.sel = ordinals.map(request => ({ request, field: "query", index }));
     f.rule = (extra = {}) => ({ class: "generated", selectors: f.sel, derived_from: corpus,
-      format: { kind: "token", min: 4, max: 64 }, relation: "none", ...extra });
+      format: { kind: "token", min: 4, max: 64 }, relation: "equal", ...extra });
     return f;
   }
   const same = value => () => value;
@@ -863,10 +864,14 @@ describe("064-03 native-side field rules (ADR-0061 point 10)", () => {
   });
 
   it("volatile: presence and format only; a protected routing/value key is rejected", async () => {
-    const ok = await field(same(uuid(1)), same(uuid(2)));
-    ok.manifest.rules.fields = [{ ...ok.rule(), class: "volatile", format: { kind: "uuid" } }];
-    delete ok.manifest.rules.fields[0].relation;
-    expect((await ok.run()).exit_code).toBe(0);
+    const volatile = { class: "volatile", format: { kind: "uuid" } };
+    expect(evaluateFieldRule(volatile, 0, [uuid(1), uuid(2)]).valid).toBe(true);
+    expect(evaluateFieldRule(volatile, 0, [uuid(1), "not-a-uuid"]).valid).toBe(false);
+    expect(evaluateFieldRule(volatile, 0, [uuid(1), ""]).valid).toBe(false);
+    const identity = await field(same(uuid(1)), same(uuid(2)));
+    identity.manifest.rules.fields = [{ ...identity.rule(), class: "volatile", format: { kind: "uuid" } }];
+    delete identity.manifest.rules.fields[0].relation;
+    expect((await identity.run()).errors).toContain("rule_target_unsupported");
     const protectedKey = await field(same("PageView"), same("PageView"), "ev");
     protectedKey.manifest.rules.fields = [protectedKey.rule({ format: { kind: "token", min: 1, max: 20 } })];
     const result = await protectedKey.run();
@@ -894,14 +899,31 @@ describe("064-03 native-side field rules (ADR-0061 point 10)", () => {
   });
 
   it("server_context: both sides must hold a value from the frozen allowed set", async () => {
-    const ok = await field(same("eea"), same("non-eea"));
+    const ok = await field(same("eea"), same("eea"));
     ok.manifest.rules.fields = [{ class: "server_context", selectors: ok.sel, derived_from: corpus,
       context: "egress_region", allowed: ["eea", "non-eea"] }];
     expect((await ok.run()).exit_code).toBe(0);
+    const differs = await field(same("eea"), same("non-eea"));
+    differs.manifest.rules.fields = [{ class: "server_context", selectors: differs.sel, derived_from: corpus,
+      context: "egress_region", allowed: ["eea", "non-eea"] }];
+    expect((await differs.run()).errors).toContain("field_rule_violation");
     const unseen = await field(same("eea"), same("apac"));
     unseen.manifest.rules.fields = [{ class: "server_context", selectors: unseen.sel, derived_from: corpus,
       context: "egress_region", allowed: ["eea", "non-eea"] }];
     expect((await unseen.run()).errors).toContain("field_rule_violation");
+  });
+
+  it("an input_derived source cannot be targeted by another rule", async () => {
+    const f = await field(same("fb.1.111.aaaa"), same("fb.1.111.aaaa"));
+    const dl = find(f.capture.requests, "dl")[0];
+    const source = { request: dl.row.ordinal, field: "query", index: dl.index };
+    f.manifest.rules.fields = [
+      { class: "input_derived", selectors: f.sel, derived_from: corpus, source, transform: "identity" },
+      { class: "volatile", selectors: [source], derived_from: corpus, format: { kind: "token", min: 1, max: 64 } },
+    ];
+    const result = await f.run();
+    expect(result.exit_code).toBe(3);
+    expect(result.errors).toContain("overlapping_rules");
   });
 
   it.each([

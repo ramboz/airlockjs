@@ -80,8 +80,6 @@ export function checkFixtureManifest(manifest) {
     }
   }
   // A manifest is committed unredacted, so it must also pass the credential check.
-  if (errors.size === 0 || plain(manifest)) {
-    for (const f of scanFixtureText(JSON.stringify(manifest), "manifest")) errors.add(`credential_${f.rule}`);
-  }
+  for (const f of scanFixtureText(JSON.stringify(manifest), "manifest")) errors.add(`credential_${f.rule}`);
   return { ok: errors.size === 0, errors: [...errors] };
 }

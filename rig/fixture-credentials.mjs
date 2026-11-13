@@ -60,8 +60,15 @@ function walk(value, where, ctx, found) {
   }
   if (value && typeof value === "object") {
     if (typeof value.name === "string" && ctx.cookies) found.push(...cookieFinding(value.name, where));
+    // HAR/Playwright-style {name, value} headers behave like [name, value] pairs.
+    if (typeof value.name === "string" && typeof value.value === "string")
+      walk([value.name, value.value], where, ctx, found);
     for (const [k, v] of Object.entries(value)) {
       const here = `${where}.${k}`;
+      if (typeof v === "string" && /_base64$/i.test(k) && v.length > 0) {
+        const decoded = Buffer.from(v, "base64").toString("utf8");
+        if (!decoded.includes("\ufffd")) scanText(decoded, `${here}(decoded)`, found);
+      }
       if (typeof v === "string") {
         if (/^cookie$/i.test(k)) found.push(...cookieHeader(v, here, false));
         else if (/^set-cookie$/i.test(k)) found.push(...cookieHeader(v, here, true));
