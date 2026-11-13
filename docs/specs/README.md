@@ -164,7 +164,7 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-07: The stock-context channel | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-08: Alloy `context` defaults to the stock list | READY_FOR_IMPLEMENTATION |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-09: The credentials denylist stays on, with an explicit override | **DONE** |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-10: Input governance at the wrapped-SDK seam | READY_FOR_IMPLEMENTATION |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-10: Input governance at the wrapped-SDK seam | REVIEWED (067-10-seam-input-governance) |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-11: A privacy-safe measurement purpose for helix-rum | **DONE** |  |
 
 ## Deferred slices

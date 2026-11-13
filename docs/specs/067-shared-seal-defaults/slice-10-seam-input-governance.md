@@ -1,5 +1,5 @@
 ---
-status: IN_PROGRESS
+status: REVIEWED
 dependencies: [067-09]
 last_verified: 2026-11-13
 claimed_by: 067-10-seam-input-governance
@@ -35,11 +35,19 @@ claimed_by: 067-10-seam-input-governance
 
 - 067-09 already ran the default-on denylist over `events[].xdm` in `stripInterceptedXdmBody`. This slice extends that one function instead of adding a second pass, so the single-pass rule (AC6) holds by construction. Gaps closed: `events[].data`, `events[].query`, top-level `query` and `meta` are now governed (Alloy writes site `xdm` and context into `events[].xdm`; the rest ride in those containers); an unparseable body now emits the `skipped` error diagnostic (reason `unparseable-body`) instead of passing silently.
 - "The input the chamber is given": the host hands the chamber only config and the captured event, and the chamber builds its own body. The interact body at the seam is the one place that sees everything Alloy sends, so the pass lives there. Not a separate chamber-input pass.
+- The untrusted chamber still receives the raw `push` params; the Alloy path has no mapped-payload pass. Only what leaves for the Edge is governed. Dotted `payloadDenylist` entries are relative to each container here. A body that is valid JSON but not an object also gets the `unparseable-body` diagnostic. Visible behaviour change: an unparseable body with the (now default) denylist emits one error diagnostic.
+- AC6 holds by construction: the Alloy path never calls `createAirlock`, and the seam pass is one function over the body once per request; the test pins one warn per field.
 - 067-08 not required: stock context reaches the Edge only through the request body, so it is covered by the same pass.
+
+### Reconciliation sweep
+
+- Spec 067 section 7 D3 and ADR-0062 exception (b): match; the override and `payloadDenylist` apply at the seam via `resolveDenylist`.
+- ADR-0012 second placement: satisfied for the Edge request body; chamber input stays ungoverned by design (see deviation log). No ADR edit needed.
+- `docs/architecture.md` and the config schema need no change (no new option).
 
 ### Honest boundary (AC7)
 
-A field-name denylist cannot catch renamed fields (`pw` for `password`) or value-level PII inside a benign-named field (an email in `xdm.web.pageName`). ADR-0012's boundary stands.
+A field-name denylist cannot catch renamed fields (`pw` for `password`) or value-level PII inside a benign-named field (an email in `xdm.web.pageName`). ADR-0012's boundary stands. A third limit: a bare name (`password`) only matches a key directly inside a container (`xdm`, `data`, `query`, `meta`), not deeper (`xdm._tenant.form.password`). Nested names need dotted `payloadDenylist` paths, which resolve from the top of each container on this track.
 
 **Implementation notes (2026-11-13):**
 - Wire-level test: `test/seam-input-governance.test.js` runs `bootAlloy` -> real `createWrappedSdkHost` -> egress with a self-reacting chamber Worker emitting the body under test (same harness style as `test/eds-boot-alloy.test.js`). A real-browser chamber is the existing rig/credentials-gated residual.

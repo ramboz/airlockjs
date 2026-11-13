@@ -674,7 +674,7 @@ export function reconcileForBrokerJar(raw) {
  * live-confirmed this parse -> strip -> re-serialize round-trip is
  * Edge-safe). Calls `onStripped(field)` once per stripped field NAME (never
  * the value — redaction discipline) and `onError(reason)` if governance
- * failed safe on a given event's xdm. Never throws: a body that is not valid
+ * failed safe on any governed container, or the body is not a JSON object. Never throws: a body that is not valid
  * JSON (error diagnostic `unparseable-body`) is returned UNCHANGED (the identical
  * string reference) — same when nothing actually matched the denylist,
  * mirroring `governPayload`'s own no-needless-copy contract.
@@ -692,7 +692,10 @@ function stripInterceptedXdmBody(rawBody, denylist, onStripped, onError) {
     if (typeof onError === "function") onError("unparseable-body");
     return rawBody; // not JSON — leave untouched, never throw
   }
-  if (!parsed || typeof parsed !== "object") return rawBody;
+  if (!parsed || typeof parsed !== "object") {
+    if (typeof onError === "function") onError("unparseable-body");
+    return rawBody;
+  }
 
   let changed = false;
   // 067-10: one pass governs every input container Alloy writes into the body (site xdm and
