@@ -1,6 +1,6 @@
 ---
 status: READY_FOR_IMPLEMENTATION
-dependencies: [064-03, 064-04]
+dependencies: [064-03, 064-04, 067-05, 067-07, 067-08, 067-10]
 last_verified:
 ---
 
@@ -24,3 +24,5 @@ last_verified:
 - `npm test && npm run lint` and servo gate pass.
 
 **Anti-horizontal-phasing check:** Vertical: bridge surface to wire to comparison for one real journey.
+
+> 2026-11-13: depends on shared seal defaults (spec 067)
