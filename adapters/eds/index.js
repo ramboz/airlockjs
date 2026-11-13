@@ -499,17 +499,9 @@ async function bootGa4Core(opts = {}) {
   // page_view) goes via pushCritical, which bypasses the ring, so `unloadCritical`
   // (the ring-tail sort) stays the core default (empty).
   //
-  // 017-03: `egressPurposes` is gated on `consent` being wired at all — mirroring
-  // `storageGranted`/`shapedConsent` above — NOT passed unconditionally. GA4's
-  // `analytics_storage` purpose is PENDING (no signal) whenever no vector is
-  // supplied at all (core/consent.js fails-to-pending on an absent vector, and
-  // nothing distinguishes "no CMP wired" from "CMP wired, not yet resolved" at
-  // the resolver), and nothing would ever call `setConsent` to release a hold on
-  // an unconfigured page — so passing the purpose unconditionally would silently
-  // hold EVERY beacon forever on any caller that never wires a consent vector
-  // (every current rig/testbed boot). Gating on `consent` keeps that legacy
-  // always-dispatch behavior back-compat, exactly like 017-01/017-02, and only
-  // engages the seal-hold once a host actually wires a consent-input driver.
+  // 067-02: `egressPurposes` is passed unconditionally. With no consent input the seal
+  // holds every beacon until consent is granted (and warns once); `consentHold: false`
+  // is the per-connector opt-out (core/airlock.js).
   const airlock = createAirlock({
     trackers,
     workFactor: 0,
@@ -917,9 +909,8 @@ export async function bootGoogleAds(opts = {}) {
     consentStrict,
     // 045-01/044-02 (ADR-0023 Option E): g-ads OPTS IN to hold-on-denied — grounded on
     // R-009 §(b) (the container HELD the AW family under reject-all). Unconditional:
-    // inert when egressPurposes is [] (no consent wired), because the seal's hold/gate
-    // logic is itself gated on `egressPurposes.length` in core/airlock.js — back-compat
-    // safe, exactly like bootGa4Gtag's own unconditional `coalesce: coalesceGa4` wiring.
+    // inert only when the hold is off (`consentHold: false`, no consent), since the
+    // seal's hold/gate logic is gated on `egressPurposes.length` in core/airlock.js.
     holdOnDenied: true,
     // The connector's held→grant-flush re-mapper (045-01, test/google-ads-seal.test.js).
     // A fresh `readCookieString` closure re-reads `document.cookie` on EVERY call (never
@@ -1209,10 +1200,8 @@ function bootPixelConnector(vendor, opts = {}) {
  * a vendor config fixture (`createMetaPixelConfig`) feeds the SAME
  * `createAirlock` seam through the connector-selection option
  * (`connector: "pixel"`), with `META_EGRESS_PURPOSES` wired into
- * `egressPurposes` the SAME `consent ? … : []` back-compat gate
- * `bootEdsAnalytics` uses for `GA4_EGRESS_PURPOSES` (see that function's own
- * doc comment for the full rationale — an unconditional wire would silently
- * hold every beacon forever on a caller that never wires a consent vector).
+ * `egressPurposes` unconditionally (067-02): the seal holds until consent is
+ * given, and `consentHold: false` opts out.
  *
  * Deliberately MINIMAL relative to `bootEdsAnalytics` (026-01's scope is the
  * connector + core seams + the seal bindings, not a full UC-2-style

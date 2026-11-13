@@ -184,7 +184,8 @@ describe("067-02 AC6/AC7 — wired consent behaves as before", () => {
   });
 
   it("core createAirlock with no purposes declared is unaffected by the hold", () => {
-    const a = createAirlock({ trackers: [], onDiagnostic: vi.fn() });
-    expect(a).toBeTruthy();
+    const onDiagnostic = vi.fn();
+    createAirlock({ trackers: [], onDiagnostic });
+    expect(onDiagnostic.mock.calls.filter(([d]) => d.kind === "consent")).toHaveLength(0);
   });
 });

@@ -211,7 +211,7 @@ export function createAirlock({
   // 067-02 AC1: "no consent input" = no `consent` opt and no `setConsent` yet.
   let consentInputWired = Boolean(consent);
   let noInputWarned = false;
-  if (consentHoldOff && declaredEgressPurposes.length) {
+  if (consentHoldOff && !consent && declaredEgressPurposes.length) {
     diagnose({
       level: "warn",
       kind: "consent",

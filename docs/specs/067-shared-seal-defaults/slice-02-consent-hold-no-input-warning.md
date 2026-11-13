@@ -1,5 +1,5 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: DONE
 dependencies: [067-01, 067-11]
 last_verified: 2026-11-13
 ---
@@ -36,6 +36,8 @@ last_verified: 2026-11-13
 ### Deviation log
 
 - The slice's "check" for the existing no-consent tests changed meaning: tests that booted a track with no consent and expected a send now pass a granted vector or `consentHold: false`. No product deviation.
+
+- Review round 1 deviations (noted): `pushCritical` events (`outbound_click`, pagehide `page_view`) are dropped, not held, when consent is pending, so with no consent input they are lost and never sent on grant (unload gate, persistence out of scope). The hold covers connectors with no purposes only because every adapter declares a non-empty list (D4); core `createAirlock` with no purposes declared does not hold. The `hold-off` warning fires only when no `consent` vector is wired.
 
 ### Reconciliation sweep
 
