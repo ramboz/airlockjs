@@ -1,10 +1,10 @@
 ---
-status: IN_PROGRESS
+status: DONE
 skill:
 use_cases: [UC-5, UC-6, UC-7, UC-9]
 ---
 
-> **Rescoped 2026-11-12 by spec 066 (Meta parity inventory).** The live Test Events readback becomes a live-only row checked at the release check. Slice 063-01 stays with its claim holder, who closes it. Slices 063-02 and 063-03 stay DONE.
+> **Rescoped 2026-11-12 by spec 066 (Meta parity inventory).** The live Test Events readback becomes a live-only row checked at the release check. Slice 063-01 stays with its claim holder, who closes it. *Update 2026-11-13 (owner decision O10): 063-01 is closed as ABANDONED with the claim released, and the spec rolls up to DONE.* Slices 063-02 and 063-03 stay DONE.
 
 # Spec 063: One Meta PageView delivery
 

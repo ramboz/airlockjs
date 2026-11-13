@@ -11,6 +11,8 @@ frame_review: true
 
 Accepted (2026-08-31)
 
+Superseded in part by [ADR-0062](./adr-0062-stock-default-parity.md) (2026-11-13): the "read-minimized by construction" claim (:24-30) no longer holds, since `context` defaults to stock and `toXdm` forwards the site `xdm`. Amended: the optional-strip reason (:66-71, :89-93), and the seam drop (:79-84), where pending holds and flushes and an empty `egressPurposes` holds and warns.
+
 ## Context
 
 Airlock enforces ADR-0007 purpose-vector consent for the GA4 / wire-protocol archetype (spec 017), but the

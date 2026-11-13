@@ -1,11 +1,10 @@
 ---
-status: IN_PROGRESS
+status: ABANDONED
 dependencies: [062-01]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
-claimed_by: meta-live-delivery
 ---
 
 ## Slice 063-01 - Deliver one consented test PageView
@@ -241,3 +240,7 @@ was used. No further execution is commissioned.
 
 - [ ] Regenerate and check the derived board.
 - [ ] Check primer/memory/inbox hygiene without rewriting closed records.
+
+## Release log
+
+- 2026-11-13 — released claim from meta-live-delivery: Owner O10 2026-11-13: closed with the 066 rescope note; live readback becomes a release-check row (066 M13)

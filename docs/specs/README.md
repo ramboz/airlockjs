@@ -178,9 +178,19 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-21 - Prepare a bounded native timing comparison | **DONE** |  |
 | [061-meta-behavioral-poc](061-meta-behavioral-poc/spec.md) | 061-01 - Record and compare one PageView | **DONE** |  |
 | [062-meta-pageview-behavior-followup](062-meta-pageview-behavior-followup/spec.md) | 062-01 - Correct pinned PageView behavior | **DONE** |  |
-| [063-meta-pageview-live-delivery](063-meta-pageview-live-delivery/spec.md) | 063-01 - Deliver one consented test PageView | IN_PROGRESS (meta-live-delivery) |  |
+| [063-meta-pageview-live-delivery](063-meta-pageview-live-delivery/spec.md) | 063-01 - Deliver one consented test PageView | ABANDONED |  |
 | [063-meta-pageview-live-delivery](063-meta-pageview-live-delivery/spec.md) | 063-02 - Prepare one owned-site worker PageView | **DONE** |  |
 | [063-meta-pageview-live-delivery](063-meta-pageview-live-delivery/spec.md) | 063-03 - One automatic owned-page PageView trial | **DONE** |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-01: ADR status lines and docs rewording | **DONE** |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-02: Consent hold on every track, with a no-consent-input warning | DRAFT |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-03: Alloy holds and flushes, and an empty `egressPurposes` holds and warns | DRAFT |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-04: Default egress allowlist is the stock destination set | DRAFT |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-05: Default cookie and storage grant is the stock set | DRAFT |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-06: Limits never drop or delay stock output by default | DRAFT |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-07: The stock-context channel | DRAFT |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-08: Alloy `context` defaults to the stock list | DRAFT |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-09: The credentials denylist stays on, with an explicit override | DRAFT |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-10: Input governance at the wrapped-SDK seam | DRAFT |  |
 
 ## Deferred slices
 
@@ -211,6 +221,7 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-10 - Correlate browser and server events |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-11 - Diagnose connected product collection |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-12 - Cut over, roll back and maintain assurance |  |
+| [063-meta-pageview-live-delivery](063-meta-pageview-live-delivery/spec.md) | 063-01 - Deliver one consented test PageView |  |
 
 ## Richer-skill selection audit (spec 096-05)
 

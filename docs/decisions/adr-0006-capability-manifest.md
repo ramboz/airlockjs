@@ -11,6 +11,8 @@ frame_review: true
 
 Accepted (2026-08-28)
 
+Amended by [ADR-0062](./adr-0062-stock-default-parity.md) (2026-11-13) for endpoints and cookie/storage (:95-98, :155-160, :221): the default grants the stock set and name-scoping becomes an opt-in narrowing. Projection reads (:30-33) and the consent term are unchanged.
+
 ## Context
 
 The connector manifest already exists as a pinned contract, but it governs a

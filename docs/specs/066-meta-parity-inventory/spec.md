@@ -9,20 +9,20 @@ use_cases: [UC-5, UC-6, UC-7, UC-9, UC-10]
 > Frozen inventory and capture plan. Written 2026-11-12 on branch `vendor-meta-pixel`.
 > Definition of done: [ADR-0061](../../decisions/adr-0061-definition-of-done-vendor-compatibility.md). Not re-opened here.
 > Target and framing: [ADR-0040](../../decisions/adr-0040-reframe-onto-full-google-meta-compatibility.md), partly superseded by ADR-0061.
-> Sister specs: 064 (Adobe) and 065 (Google) live on their own branches. This spec creates no 067+ specs; build work is an ordered slice list (section 9).
+> Sister specs: 064 (Adobe) and 065 (Google) live on their own branches. Spec 067 (shared seal defaults, on main) is shared work all three vendors consume. This spec creates no other new specs; build work is an ordered slice list (section 9).
 > Structural model: spec 064 (on `vendor-adobe`).
 
 ## 0. Summary for the owner
 
 This spec turns "full Meta Pixel compatibility" into a list we can build against. For Meta, the frozen unit is one captured fbevents.js build plus the pixel-settings states that actually change what the tag sends. We plan one capture session that records the real tag in all of those states, so every slice can be proven against recordings instead of waiting for live runs.
 
-Nothing live runs until you approve this spec. That includes captures, calls to Meta, and any probe of production sites. Reading the bytes and notes already in the repo is fine. Tasks MT1 and MT2 are read-only, and MT0 only writes tooling, with no vendor contact.
+You approved this spec on 2026-11-13 (O1). Nothing live runs until the placeholders in 10.1 are filled in and the settings window is booked. That includes captures and calls to Meta. The one production probe you approved is the completeness check on public pages (O4). Reading the bytes and notes already in the repo is fine. Tasks MT1 and MT2 are read-only, and MT0 only writes tooling, with no vendor contact.
 
 It also retires the old plan. Specs 060 to 063 grew to 26 slice files. 14 of them are evidence preparation, one-shot grants and live sends. The 12 product journeys (060-01 to 060-12) are written but were never built. Section 8 closes or reframes each one. Section 9 gives three pre-capture tasks, the capture session, and thirteen slices (M1 to M13) that each fit one fresh session.
 
 The main tradeoff is front-loading. We spend one capture session before any slice starts. In return, every slice has fixtures, and the pilot (capture session plus slice M1) tells us whether the corpus was complete.
 
-Meta has one risk Adobe does not. Prior automated headless runs saw no beacon, and the only positive native beacons came from a headed browser and from your normal browser (ADR-0040:49-51, spec 060:107-115). Section 6.3 sets a time-box for the owner-only route and puts one decision to you if it runs out. Section 11 lists twelve decisions with a recommendation each. The two that need your calendar are the settings window (about 2.5 hours, placed next to the Adobe one) and the EU exit (reuse the one you agreed for Adobe).
+Meta has one risk Adobe does not. Prior automated headless runs saw no beacon, and the only positive native beacons came from a headed browser and from your normal browser (ADR-0040:49-51, spec 060:107-115). Section 6.3 sets a time-box for the owner-only route and puts one decision to you if it runs out. Section 11 records your twelve answers. Two of them need your calendar: the settings window (about 2.5 hours, same day as the Adobe one) and the EU exit (the second egress you agreed for Adobe).
 
 ## 1. Scope and frozen inventory rules
 
@@ -48,8 +48,8 @@ Effect on this spec and the M-slices:
 - M4 (consent): the seal's consent hold stays the default. It is deliberate exception (a) to stock-by-default (ADR-0062, Accepted), decided by the owner on 2026-11-13 (O12). Owner, verbatim: "we should hold consent until it's explicitly given. so sites not having the proper config would send nothing (and could have a warning in the logs or something)". A site with no consent setup holds and sends nothing, and Airlock logs a diagnostic warning. Fixture comparisons still supply the recorded consent state, so the hold never counts as a parity failure. Stock's `consent revoke` and `grant` behavior is still matched.
 - Credentials denylist, exception (b): the ADR-0012 built-in denylist (`password`, `cvv`, `ssn`, card fields) stays on by default, and a site overrides it only with explicit config. A field it removes from a stock recording is a documented deliberate difference, not a parity failure. ADR-0022's hashed advanced-matching path is unaffected.
 - M5 and M6: the default writes `_fbp`/`_fbc` and sends identity fields exactly as stock. Field strips are opt-in.
-- M9 and M12: the default does not cap, drop or delay what stock sends. Byte limits, ring caps, queue and retention limits and "approved forms" from spec 060's contract table are site opt-ins.
-- Egress allowlist: the default covers every destination fbevents contacts in the inventory, so egress stays mediated and stock traffic is not blocked. A site can narrow it. If the seal's default-deny needs a shared change on main, that is dependency slice D1 (section 9), not an owner decision.
+- M9 and M12 (both consume 067-06, limits never drop or delay stock output): the default does not cap, drop or delay what stock sends. Byte limits, ring caps, queue and retention limits and "approved forms" from spec 060's contract table are site opt-ins.
+- Egress allowlist: the default covers every destination fbevents contacts in the inventory, so egress stays mediated and stock traffic is not blocked. A site can narrow it. If the seal's default-deny needs a shared change on main, that is dependency slice D1 (section 9), which is now spec 067 on main, not an owner decision.
 - M11: the diagnostic is visible-only and changes no output, so it is already stock-compatible by default.
 - SET7 and the capture plan are unchanged. The corpus records stock. Nothing in section 4 captures a control.
 - Defaults inherited from 060 to 063 that this rule overrides: default-deny egress in the seal (D1), the "approved forms" default, and bounded queue and retention limits. The consent hold and the credentials denylist are the two exceptions (O12). The 061 and 062 no-send guard, the abort of the native `/tr` request and the `meta-pixel=off` site choice are test setup and a site choice, not product defaults. They stay as history.
@@ -202,7 +202,7 @@ Known so far: headless runs loaded the script and config and sent no beacon (ADR
 
 ### 4.4 Recording set per state (point 1)
 
-Every state gets: base, same-setup repeat, and an EEA recording of the same setup (egress region is a factor for Meta everywhere). The one-factor-at-a-time variants (viewport, locale and timezone, referrer, fresh vs returning) are recorded for S1, S2 and S4 Purchase. This is a bounded deviation from ADR-0061 point 1, which asks for variants per state. The reason: these factors are page-context inputs that do not depend on the command, so one plain state and one event-bearing state give a multi-setup basis for each rule family. The deviation is owner decision O11. Egress region is recorded for every state:
+Every state gets: base, same-setup repeat, and an EEA recording of the same setup (egress region is a factor for Meta everywhere). The one-factor-at-a-time variants (viewport, locale and timezone, referrer, fresh vs returning) are recorded for S1, S2 and S4 Purchase. This is a bounded deviation from ADR-0061 point 1, which asks for variants per state. The reason: these factors are page-context inputs that do not depend on the command, so one plain state and one event-bearing state give a multi-setup basis for each rule family. The deviation is owner decision O11 (approved 2026-11-13). Egress region is recorded for every state. Escalation rule (Google's, adopted for Meta): if a one-factor variant changes any field, that factor extends to every other state carrying a field of the same family, and the manifest records the extension. The dated ADR-0061 point 1 line for O11 is written on main by the Google inventory work (spec 065); this spec references it and does not edit ADR-0061:
 
 | Factor | Applies | Why |
 |---|---|---|
@@ -290,7 +290,7 @@ Before the freeze, compare the candidate inventory with the config shapes and se
 - Sample: at least 30 distinct pixel IDs, from up to 60 homepage GETs. At 30 samples the 10% threshold is 4 configs (more than 3 out-of-inventory fails). Method: one plain HTTP GET per site of a public homepage chosen from a public site list (no JavaScript executed, no interaction, no cookies), extract the pixel ID from the HTML, then one GET of its `signals/config/<pixel>` bytes. Ten of the sampled configs are fetched from both the EEA and the non-EEA exit.
 - Metric: out-of-inventory rate = (sampled configs with at least one flag, plugin or setting shape not covered by an inventory state) divided by (all sampled configs). Value so far: not measured.
 - Threshold: above 10% is kill criterion 6. Include at least one combined-settings state (SET9). Sampled shapes that are not covered are filled now (a new S14 state, the owner window permitting) or the freeze unit is revisited.
-- This probe touches production sites, so it is an owner decision (O4) and does not run before approval. Reading a public site's served config does not change anything on that site.
+- This probe touches production sites. The owner approved it on 2026-11-13 (O4, recorded in 10.1): public crawl data first, and the plain-GET fallback below only if the crawl data is not enough. Reading a public site's served config does not change anything on that site.
 
 ### 6.2 Point 11: reading a customer's served config in production
 
@@ -300,7 +300,7 @@ ADR-0061 point 11 has no design. Today the only config path is adopter-supplied 
 
 If only the owner's normal browser yields Meta traffic (ladder rung 3 reached for the positive control or most states):
 
-- Time-box: 10 calendar days from the start of the capture session, and at most 3 owner capture sittings of 45 minutes. Recommended; the owner may change it (O6).
+- Time-box: 5 calendar days from the start of the capture session, and at most 2 owner capture sittings of 45 minutes each. Owner decision O6, 2026-11-13: shorter than the 10 days and 3 sittings I recommended. The sitting length was not restated, so it stays 45 minutes.
 - When the time-box runs out, Meta work stops. We do not keep the session open.
 - At that point one decision goes to the owner: may slices start on the states already captured? Allowing it would change ADR-0061 point 7 (a vendor's capture session runs before any of that vendor's slices start). Default if the owner does not answer: no.
 - States never captured are reported as `blocked`, with the ladder log. They are not filled with synthetic data (kill criterion 1).
@@ -309,7 +309,7 @@ If only the owner's normal browser yields Meta traffic (ladder rung 3 reached fo
 
 The comparator treats native values as exact. It marks native-side rules `native_normalization_unsupported` (`rig/native-tag-comparison.md:186-194`; ADR-0061 Consequences). Meta slices need rules of the kinds in 2.4 (generated, input-derived, server-context-derived) on native inputs, so no Meta field slice can close without it.
 
-This is shared toolkit work that lands on main: it is the comparator part of Adobe task B0 (spec 064, section 8). We do not build it on this branch. Meta M1 and every later slice wait for it. The capture session does not: it only records. If B0 is not on main when CAP closes, we report that to the owner, captures stay done, and slices stay blocked until it lands. MT0 (below) consumes whatever the shared work has landed, merges main when it arrives, and does not fork the comparator.
+This is shared toolkit work that lands on main: it is the comparator part of Adobe task B0 (spec 064, section 8). We do not build it on this branch. Meta M1 and every later slice wait for it. The capture session does not: it only records. If B0 is not on main when CAP closes, we report that to the owner, captures stay done, and slices stay blocked until it lands. The shared half of MT0 (manifest schema, stored-input check, credential check, native-side comparator rules) is built on main by the Adobe B0 child (spec 064-03). MT0 here points at it and builds only the Meta-specific half. MT0 consumes whatever the shared work has landed, merges main when it arrives, and does not fork the comparator.
 
 ## 8. Disposition of specs 060 to 063
 
@@ -323,9 +323,9 @@ History is kept. Specs 060 and 063 get a dated rescope note at its top, and its 
 | 060-13 to 060-21 | DONE | Stay DONE. They are the existing prototype, the retained pins, the referrer and timing work (ADR-0055) and the sampling discriminant. Their code is the starting point for M1 and M5 |
 | 061 spec and 061-01 | DONE | Stay DONE. Their recordings lack the stored-input manifest, so S1 is re-taken |
 | 062 spec and 062-01 | DONE | Stay DONE. The timezone and `_fbp` behavior is reused by M1 and M5 |
-| 063-01 once PageView | IN_PROGRESS (meta-live-delivery) | Rescope note only. A live Test Events readback is a live-only row checked at the release check (4.10). Its claim holder closes the slice. This spec does not change the claim |
+| 063-01 once PageView | ABANDONED (O10, 2026-11-13, claim released) | Closed with the rescope note. A live Test Events readback is a live-only row checked at the release check (4.10, M13). |
 | 063-02, 063-03 | DONE | Stay DONE |
-| 063 spec | IN_PROGRESS (063-01 open) | Rescope note added. Closes when 063-01 is closed |
+| 063 spec | DONE (rolled up once 063-01 closed) | Rescope note added |
 
 Mapping of the abandoned journeys:
 
@@ -352,9 +352,9 @@ Counting rule: MT1, MT2 and MT0 are pre-capture tasks with their own completion 
 |---|---|---|
 | MT1 (task) | Close the command, field and request inventory from the retained runtime and config bytes; list every flag and plugin the config enables; locate the 058-02 retained bytes | none |
 | MT2 (task) | Candidate settings list (section 3) from public docs; completeness-probe protocol and site list (6.1) | none |
-| MT0 (task) | Capture tooling: manifest schema and stored-input check, credential check as a repository test (4.3), no-abort native recorder with response capture, headed and headless modes, EEA exit routing. Consumes the shared comparator rules from main | MT1 |
+| MT0 (task) | Meta capture tooling: no-abort native recorder with response capture, headed and headless modes, EEA exit routing. The shared half (manifest schema, stored-input check, credential check as a repository test (4.3), native-side comparator rules) is built on main by the Adobe B0 child (064-03); MT0 points at it and does not build it | MT1 |
 | CAP | **Capture session** (section 4). Owner approval first | MT0, MT1, MT2, O1, O2, O3, O6, O7, O8, O9, O11 (O4 gates 6.1 and O5 gates M11, not CAP) |
-| D1 (dependency, on main) | Cross-vendor seal defaults change on main under ADR-0062: the default egress allowlist covers every destination the inventory lists (still mediated, a site can narrow it); caps, queue and retention limits and "approved forms" become site opt-ins; the consent hold is unchanged, and the seal logs a diagnostic warning when a site has no consent setup and so holds everything; the ADR-0012 credentials denylist stays on by default. Dispatched once for all three vendors, not built on this branch | ADR-0062 (Accepted, b486cfb9). Needed before M4 is closed, and by M7 and M9. Can run in parallel with MT0, MT1, MT2 and CAP |
+| D1 (dependency, on main: spec 067, slices 067-02 to 067-10) | Cross-vendor seal defaults change on main under ADR-0062: the default egress allowlist covers every destination the inventory lists (still mediated, a site can narrow it); caps, queue and retention limits and "approved forms" become site opt-ins; the consent hold is unchanged, and the seal logs a diagnostic warning when a site has no consent setup and so holds everything; the ADR-0012 credentials denylist stays on by default. Dispatched once for all three vendors, not built on this branch. Meta consumers: M4 needs 067-02, M7 keeps "approved forms" as a site opt-in, M9 and M12 consume 067-06 | ADR-0062 (Accepted, b486cfb9). Needed before M4 is closed, and by M7 and M9. Can run in parallel with MT0, MT1, MT2 and CAP |
 | M1 | Bootstrap, queue, `init`, PageView, network shape, `ler`/`plt`, served-config reading for the pilot state. **Pilot slice** | CAP, comparator rules |
 | M2 | Standard events, data vocabulary, custom events, invalid input, catalog data (collection side) | M1 |
 | M3 | Multi-pixel routing, `set`, config effects of the settings in S14 | M1 |
@@ -375,11 +375,15 @@ The existing prototype (`connectors/meta-pixel/pageview-prototype.js`, `adapters
 
 ### 10.1 Production-site probes
 
-No probe touching a production site, tenant or real-user data runs without the owner's written approval in this section, naming the site list and the probe. At review time none is approved. The completeness probe (6.1) needs that approval (O4). The Meta test pixel and the owned test site are not production for this purpose. Placeholders the owner fills in:
+No probe touching a production site, tenant or real-user data runs without the owner's written approval in this section, naming the site list and the probe.
 
-- Owned test pixel ID: `<OWNER TO CONFIRM>`
+Approved 2026-11-13 (O4): the inventory completeness probe (6.1). Use public crawl data first. The fallback is up to 60 plain homepage GETs (one request each, no JavaScript, no interaction, no cookies) plus one `signals/config/<pixel>` GET per pixel found, from the public site list named in 6.1. Site list: `<OWNER OR MT2 TO NAME THE PUBLIC LIST>`; MT2 writes the exact list into the probe protocol before the fallback runs. Nothing else touching a production site is approved.
+
+The Meta test pixel and the owned test site are not production for this purpose. Placeholders the owner fills in before capture:
+
+- Owned test pixel ID (O8: test-owned, ID may be committed, not attached to a live ad account): `<OWNER TO FILL IN>`
 - Owned capture host URL: `<OWNER TO FILL IN>`
-- Second owned test pixel ID for multi-pixel states (O9): `<OWNER TO FILL IN, or "none, use a never-created ID">`
+- Second owned test pixel ID for multi-pixel states (O9, the owner has one): `<OWNER TO FILL IN>`
 
 No capture and no probe run while any of these is a placeholder.
 
@@ -410,19 +414,19 @@ From ADR-0061, with numbers added where it left the choice open:
 
 ## 11. Decisions for the owner
 
-All are open. The recommendation comes first in each.
+All answered by the owner on 2026-11-13. Each line records the answer and what it changed.
 
-- **O1. Approve this spec and the slice order.** Recommended: yes. Nothing live runs before this, and one yes unblocks CAP. MT0 writes tooling only and may start earlier, like MT1 and MT2.
-- **O2. Settings window length.** Recommended: one sitting of about 2.5 hours, right after the Adobe window. The waits dominate: 8 to 11 candidate states and a restore, each with a config-propagation wait of up to 30 minutes (9 to 12 waits, up to 6 hours of agent time in the worst case). I can overlap waits with the Adobe window, since they sit in different consoles, so the two vendors need much less than the sum of both. If you can only give 2 hours, S14 candidates SET6 and SET8 move to a second short window.
-- **O3. EU exit.** Recommended: reuse the exit you agreed for Adobe (a second egress region). Meta needs it for more of the session than Adobe, because every state gets an EEA recording, so the exit has to stay up for the agent part of the capture (several hours, not one pair of captures). If the exit is a VPN, the credential check (4.3) covers it.
-- **O4. Completeness probe on public sites.** Recommended: approve up to 60 plain homepage GETs (one request each, no JavaScript, no interaction), enough to reach 30 distinct pixel IDs because many homepages load the pixel through a tag manager and show none. Add one GET of each found pixel's config, from the public site list we name in the spec. It tells us the out-of-inventory rate. If you'd rather not touch third-party sites, the fallback is the owned test pixel only, and we say the metric was not measured. Then the kill criterion has nothing to trigger on.
-- **O5. Point 11.** (Checked against ADR-0062 Accepted: the diagnostic changes no output, so it is stock by default.) Recommended: slice M11, with the chamber reading the served config at boot and showing a visible diagnostic. ADR-0061 says the shipped chamber reads each customer's live config, and the diagnostic is the only guard when assurance is stale. The alternative is an explicit v1.0 scope decision that production only reads adopter-supplied config, which is cheaper and leaves a gap you accept.
-- **O6. Owner-only route.** Recommended: time-box of 10 calendar days and at most 3 sittings of 45 minutes. If it runs out, Meta stops, and the question comes back to you: may slices start on states already captured? Recommended answer when asked: no, unless a majority of the S1 to S8 states were captured and the drift check passed, then yes for those. That would change ADR-0061 point 7 for Meta, so your call at the time.
-- **O7. Normal-browser reference state.** Recommended: the S1 base PageView, the simplest state we also record from an agent, so a difference is easy to read.
-- **O8. Test pixel.** Recommended: confirm that the dedicated test pixel is test-owned and its ID may be committed, and that it is not attached to a live ad account. State the owned capture host URL (10.1).
-- **O9. Second pixel for multi-pixel states.** Recommended: a second owned test pixel. If you don't have one, use a never-created ID and accept that the config for it is whatever Meta returns.
-- **O10. State of 063-01.** Recommended: the claim holder closes it with the rescope note, and the live readback becomes a release-check row. No action from you beyond a yes.
-- **O11. Variant scope.** Recommended: accept the bounded deviation in 4.4 (one-factor variants for S1, S2 and S4 Purchase, egress region for every state). Full variants for every state would multiply the corpus by about 4 and add little, since those factors do not depend on the command. If you want a different set, say which. A yes is recorded as a dated amendment line under ADR-0061 point 1.
+- **O1. Approve this spec and the slice order.** Approved as amended, no re-review. CAP still waits for the placeholders in 10.1 and the settings window.
+- **O2. Settings window length.** Answer: about 2.5 hours on the same day as the Adobe window, with overlapping waits (they sit in different consoles). The SET6 and SET8 split into a second short window stays the fallback if the window runs short.
+- **O3. EU exit.** Answer: reuse Adobe's second egress, which is in the EEA. It stays up for the whole agent part of the capture. One third exit (any region, never used in the corpus) is used once at release for M13, shared with Google G14. If the exit is a VPN, the credential check (4.3) covers it.
+- **O4. Completeness probe on public sites.** Approved, crawl data first. Fallback: up to 60 plain homepage GETs plus one config GET per pixel found, from the public site list named in 6.1. Dated approval is in 10.1.
+- **O5. Point 11.** Answer: full point 11. Slice M11 reads the served `signals/config` at boot through mediated egress and shows a visible diagnostic (6.2). It changes no output, so it is stock by default (ADR-0062).
+- **O6. Owner-only route.** Answer: 5 calendar days and at most 2 sittings (shorter than the 10 days and 3 sittings I recommended). Sitting length stays 45 minutes, since it was not restated. On expiry Meta stops and the question "may slices start on captured states?" goes to the owner (6.3).
+- **O7. Normal-browser reference state.** Answer: S1, the base PageView.
+- **O8. Test pixel.** Confirmed: test-owned, ID may be committed, not attached to a live ad account. The ID and the owned capture host URL stay placeholders in 10.1 until the owner fills them in.
+- **O9. Second pixel for multi-pixel states.** Answer: the owner has a second owned test pixel. The ID stays a placeholder in 10.1. The "never-created ID" option is dropped.
+- **O10. State of 063-01.** Answer: yes. 063-01 is closed with the rescope note and the live readback is a release-check row (M13). Recorded in section 8.
+- **O11. Variant scope.** Approved. This deviates from ADR-0061 point 1. 4.4 adds Google's escalation rule: if a one-factor variant changes any field, that factor extends to every other state carrying a field of the same family, and the manifest records it. The dated ADR-0061 point 1 line is written on main by the Google inventory child (065); this spec references it and does not edit the ADR.
 - **O12. Consent hold vs stock-by-default.** Decided 2026-11-13: the owner chose "No, keep the consent hold as the one exception to the rule", and then: "we should hold consent until it's explicitly given. so sites not having the proper config would send nothing (and could have a warning in the logs or something)". The hold stays the default, a site with no consent setup sends nothing and gets a logged warning, and the credentials denylist is the second exception (section 1.1). Everything else follows stock. No action left for the owner.
 
 ## 12. Review log and carried findings
@@ -433,6 +437,7 @@ Review rounds are capped at three before owner review (owner decision). Each is 
 - Round 2 (Opus, 2026-11-12): 3 major, 5 minor. Fixed: settings candidates renamed SET1 to SET9 to avoid clashing with spec 060's C1 to C9 acceptance criteria; positive-control rule for image beacons with empty bodies, and 058-02 and 061 attribution corrected; window arithmetic restated (up to 10 candidates, 12 waits, 6 hours agent time); CAP gated on O11; release-check clause of point 10 added to M13 and 10.2; `mixed`/`unknown` allowed only before freeze; credential check wording unified; S1 and S4 recording counts reconciled.
 - Round 3 (Opus, 2026-11-12): 2 major, 9 minor. Fixed: one settings change per step (revert and flip together) so states stay one-factor; one derivation of state and wait counts used in 3, S14, 5.1 and O2; SET9 owner; CAP no longer gated on O4 and O5; returning-profile held-out recording in S18; MT0 named in the summary; rescope-note sentence narrowed to 060 and 063; exit recorded as label plus opaque ID; O11 yes becomes an ADR-0061 amendment line; B0 fallback in section 7; citations corrected. Nothing open carried to the pilot.
 - 2026-11-13, owner rule (ADR-0062, Accepted): section 1.1 added, O12 added, O5 annotated. 2026-11-13: ADR-0062 now Accepted, credentials denylist added as second exception, no-consent warning added to M4 and D1. O12 answered (consent hold kept as the one exception), D1 dependency slice added, fork removed. No review round, by instruction.
+- 2026-11-13, owner answers O1 to O11 recorded in section 11 (O1 approved as amended, no re-review; O4 dated approval in 10.1; O6 time-box 5 days and 2 sittings; O11 escalation rule added to 4.4). Main merged (spec 067, AC3 flake fix). D1 now points at spec 067; MT0's shared half points at 064-03. Status moved through jig. No review round, by instruction.
 - Pilot count of extra captures: _to be filled at pilot close_.
 
 ## 13. Clarifications
