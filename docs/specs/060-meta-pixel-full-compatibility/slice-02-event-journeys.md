@@ -1,11 +1,13 @@
 ---
-status: DRAFT
+status: ABANDONED
 dependencies: [060-01]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
 ---
+
+> Abandoned 2026-11-12: rescoped by spec 066 into an M-slice (see spec 066 section 8). History kept.
 
 ## Slice 060-02 - Report complete event and commerce data
 
@@ -342,3 +344,7 @@ Not implemented; no conversion execution, type proof or review is claimed.
 
 Pending implementation: event documentation, support inventory, configuration/
 governance, other-vendor behavior and stable contracts require reconciliation.
+
+## Release log
+
+- 2026-11-12 — released claim from (unclaimed): Rescoped by spec 066 (2026-11-12)

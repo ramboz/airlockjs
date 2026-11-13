@@ -1,11 +1,13 @@
 ---
-status: DRAFT
+status: ABANDONED
 dependencies: [060-02, 060-04, 060-05, 060-06, 060-08]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
 ---
+
+> Abandoned 2026-11-12: rescoped by spec 066 into an M-slice (see spec 066 section 8). History kept.
 
 ## Slice 060-09 - Measure navigation, exit and no-JavaScript journeys
 
@@ -90,3 +92,7 @@ Not implemented; no unload delivery, SPA automation or no-JavaScript parity clai
 
 Pending implementation: lifecycle/boot docs, host transport leases, identity/
 consent coherence, no-JavaScript policy, browser matrix and measured performance.
+
+## Release log
+
+- 2026-11-12 — released claim from (unclaimed): Rescoped by spec 066 (2026-11-12)

@@ -4,6 +4,8 @@ skill:
 use_cases: [UC-5, UC-6, UC-7, UC-9]
 ---
 
+> **Rescoped 2026-11-12 by spec 066 (Meta parity inventory).** The live Test Events readback becomes a live-only row checked at the release check. Slice 063-01 stays with its claim holder, who closes it. Slices 063-02 and 063-03 stay DONE.
+
 # Spec 063: One Meta PageView delivery
 
 > Local provisional reservation, 2026-11-04. No push or pull request.

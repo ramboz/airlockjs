@@ -1,11 +1,13 @@
 ---
-status: DRAFT
+status: ABANDONED
 dependencies: [060-06]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
 ---
+
+> Abandoned 2026-11-12: rescoped by spec 066 into an M-slice (see spec 066 section 8). History kept.
 
 ## Slice 060-07 - Match approved forms automatically
 
@@ -79,3 +81,7 @@ Not implemented; no automatic matching or new DOM authority is claimed.
 
 Pending implementation: automatic/manual matching docs, capture ceilings,
 configuration provenance, consent, identity privacy and performance reports.
+
+## Release log
+
+- 2026-11-12 — released claim from (unclaimed): Rescoped by spec 066 (2026-11-12)

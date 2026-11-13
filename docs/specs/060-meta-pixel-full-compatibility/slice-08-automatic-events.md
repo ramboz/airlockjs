@@ -1,11 +1,13 @@
 ---
-status: DRAFT
+status: ABANDONED
 dependencies: [060-03, 060-04, 060-06, 060-07]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
 ---
+
+> Abandoned 2026-11-12: rescoped by spec 066 into an M-slice (see spec 066 section 8). History kept.
 
 ## Slice 060-08 - Preserve code-less event and metadata collection
 
@@ -76,3 +78,7 @@ Not implemented; no Event Setup Tool, automatic event or metadata support is cla
 
 Pending implementation: configuration/rule and adopter docs, DOM/callback
 effects, privacy policy, identity interactions, observer costs and support rows.
+
+## Release log
+
+- 2026-11-12 — released claim from (unclaimed): Rescoped by spec 066 (2026-11-12)

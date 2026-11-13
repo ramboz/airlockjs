@@ -1,11 +1,13 @@
 ---
-status: DRAFT
+status: ABANDONED
 dependencies: [060-03]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
 ---
+
+> Abandoned 2026-11-12: rescoped by spec 066 into an M-slice (see spec 066 section 8). History kept.
 
 ## Slice 060-04 - Apply consent and processing choices
 
@@ -99,3 +101,7 @@ No native consent, replay or legal-compliance qualification claimed.
 
 Pending implementation: consent/purpose documentation, processing vocabulary,
 cookie/automatic/lifecycle paths, operator diagnostics and shared policy records.
+
+## Release log
+
+- 2026-11-12 — released claim from (unclaimed): Rescoped by spec 066 (2026-11-12)

@@ -1,11 +1,13 @@
 ---
-status: DRAFT
+status: ABANDONED
 dependencies: [060-01, 060-02]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
 ---
+
+> Abandoned 2026-11-12: rescoped by spec 066 into an M-slice (see spec 066 section 8). History kept.
 
 ## Slice 060-03 - Route and configure multiple Pixels
 
@@ -94,3 +96,7 @@ Not implemented; no multi-Pixel or configuration isolation is claimed.
 
 Pending implementation: routing/configuration docs, capability declarations,
 state isolation, shared-source behavior and operator reports.
+
+## Release log
+
+- 2026-11-12 — released claim from (unclaimed): Rescoped by spec 066 (2026-11-12)

@@ -1,11 +1,13 @@
 ---
-status: DRAFT
+status: ABANDONED
 dependencies: [060-03, 060-04, 060-05]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
 ---
+
+> Abandoned 2026-11-12: rescoped by spec 066 into an M-slice (see spec 066 section 8). History kept.
 
 ## Slice 060-06 - Match explicit identity through account changes
 
@@ -103,3 +105,7 @@ by virtue of this DRAFT.
 
 Pending implementation: identity channel/privacy docs, lifecycle/cache
 coherence, multi-Pixel state, private vector handling and support reports.
+
+## Release log
+
+- 2026-11-12 — released claim from (unclaimed): Rescoped by spec 066 (2026-11-12)

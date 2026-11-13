@@ -1,11 +1,13 @@
 ---
-status: DRAFT
+status: ABANDONED
 dependencies: [060-04]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
 ---
+
+> Abandoned 2026-11-12: rescoped by spec 066 into an M-slice (see spec 066 section 8). History kept.
 
 ## Slice 060-05 - Preserve anonymous and click continuity
 
@@ -82,3 +84,7 @@ Not implemented; no continuity, cookie lifetime or new authority is claimed.
 
 Pending implementation: cookie/transport contracts, vision/ADR routing,
 browser cohort matrix, identity privacy, other vendors and adoption guidance.
+
+## Release log
+
+- 2026-11-12 — released claim from (unclaimed): Rescoped by spec 066 (2026-11-12)

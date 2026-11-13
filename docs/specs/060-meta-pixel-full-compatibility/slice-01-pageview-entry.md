@@ -1,12 +1,13 @@
 ---
-status: READY_FOR_REVIEW
+status: ABANDONED
 dependencies: [adr-0040, adr-0047, 058-01, 058-02, 058-03]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
-claimed_by: google-and-meta-feasibility
 ---
+
+> Abandoned 2026-11-12: rescoped by spec 066 into an M-slice (see spec 066 section 8). History kept.
 
 ## Slice 060-01 - Replace bootstrap and first PageView
 
@@ -194,3 +195,7 @@ Not implemented. No deviations, reviewed behavior or validation pass is claimed.
 Pending implementation. Capture/boot documentation, stable contracts, support
 inventory, shared site/Adobe coexistence and parent-owned board require a real
 sweep; none is marked checked or updated by this DRAFT.
+
+## Release log
+
+- 2026-11-12 — released claim from google-and-meta-feasibility: Rescoped by spec 066 (2026-11-12)

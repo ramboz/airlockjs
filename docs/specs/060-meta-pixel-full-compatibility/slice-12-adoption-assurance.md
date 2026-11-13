@@ -1,11 +1,13 @@
 ---
-status: DRAFT
+status: ABANDONED
 dependencies: [060-01, 060-02, 060-03, 060-04, 060-05, 060-06, 060-07, 060-08, 060-09, 060-10, 060-11]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
 ---
+
+> Abandoned 2026-11-12: rescoped by spec 066 into an M-slice (see spec 066 section 8). History kept.
 
 ## Slice 060-12 - Cut over, roll back and maintain assurance
 
@@ -104,3 +106,7 @@ compatibility or release readiness is claimed.
 Pending implementation: full inventory/evidence, adoption/rollback/operator
 docs, architecture/contracts, vision/ADR ownership, performance criteria,
 other-vendor/shared-site behavior, release claims, board and primers.
+
+## Release log
+
+- 2026-11-12 — released claim from (unclaimed): Rescoped by spec 066 (2026-11-12)

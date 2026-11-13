@@ -1,10 +1,12 @@
 ---
-status: IN_PROGRESS
+status: DONE
 skill: spec-workflow
 use_cases: [UC-4, UC-5, UC-6, UC-7, UC-8, UC-9, UC-10, UC-11, UC-13, UC-14]
 ---
 
 <!-- jig self-defining vocabulary (soft, forward-only): expand each acronym on first use and link the term to docs/memory/glossary.md (or jig's lexicon). See docs/workflow.md "Self-defining vocabulary". -->
+
+> **Rescoped 2026-11-12 by spec 066 (Meta parity inventory).** Slices 060-01 to 060-12 are abandoned and replaced by slices M1 to M13 in spec 066 (section 8 maps each one). Slices 060-13 to 060-21 stay DONE. This spec is kept as history and as the source of the contract wording.
 
 # Spec 060: Full Meta Pixel compatibility
 

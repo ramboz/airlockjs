@@ -1,11 +1,13 @@
 ---
-status: DRAFT
+status: ABANDONED
 dependencies: [060-08, 060-09, 060-10]
 last_verified:
 kind: feature
 frame_review: true
 arch_review: true
 ---
+
+> Abandoned 2026-11-12: rescoped by spec 066 into an M-slice (see spec 066 section 8). History kept.
 
 ## Slice 060-11 - Diagnose connected product collection
 
@@ -89,3 +91,7 @@ or attribution qualification is claimed.
 
 Pending implementation: operator/adopter docs, diagnostic permissions,
 product-rule/access matrix, private receipts and per-layer support terminology.
+
+## Release log
+
+- 2026-11-12 — released claim from (unclaimed): Rescoped by spec 066 (2026-11-12)

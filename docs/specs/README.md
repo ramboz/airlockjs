@@ -155,18 +155,18 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 | [049-native-tag-suppressor](049-native-tag-suppressor/spec.md) | 049-02 — direct-beacon-transport suppression (egress-parity completeness) | **DONE** |  |
 | [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-01 — the reference-site `?martech=airlock` rewire arm | **DONE** |  |
 | [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-02 — measured Lighthouse/TBT + parity evidence + scripted adoption path | **DONE** |  |
-| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-01 - Replace bootstrap and first PageView | READY_FOR_REVIEW (google-and-meta-feasibility) |  |
-| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-02 - Report complete event and commerce data | DRAFT |  |
-| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-03 - Route and configure multiple Pixels | DRAFT |  |
-| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-04 - Apply consent and processing choices | DRAFT |  |
-| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-05 - Preserve anonymous and click continuity | DRAFT |  |
-| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-06 - Match explicit identity through account changes | DRAFT |  |
-| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-07 - Match approved forms automatically | DRAFT |  |
-| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-08 - Preserve code-less event and metadata collection | DRAFT |  |
-| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-09 - Measure navigation, exit and no-JavaScript journeys | DRAFT |  |
-| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-10 - Correlate browser and server events | DRAFT |  |
-| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-11 - Diagnose connected product collection | DRAFT |  |
-| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-12 - Cut over, roll back and maintain assurance | DRAFT |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-01 - Replace bootstrap and first PageView | ABANDONED |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-02 - Report complete event and commerce data | ABANDONED |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-03 - Route and configure multiple Pixels | ABANDONED |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-04 - Apply consent and processing choices | ABANDONED |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-05 - Preserve anonymous and click continuity | ABANDONED |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-06 - Match explicit identity through account changes | ABANDONED |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-07 - Match approved forms automatically | ABANDONED |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-08 - Preserve code-less event and metadata collection | ABANDONED |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-09 - Measure navigation, exit and no-JavaScript journeys | ABANDONED |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-10 - Correlate browser and server events | ABANDONED |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-11 - Diagnose connected product collection | ABANDONED |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-12 - Cut over, roll back and maintain assurance | ABANDONED |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-13 - Exercise an offline SDK-free PageView prototype | **DONE** |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-14 - Exercise the SDK-free PageView in a local browser | **DONE** |  |
 | [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-15 - Prepare the Meta reference matrix and autonomous evaluation | **DONE** |  |
@@ -199,14 +199,26 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 |------|-------|---------------------|
 | [011-mvp2-coherency-probe](011-mvp2-coherency-probe/spec.md) | 🔬 011-04 — async-mint coalescing needs broker-proxied egress (the OQ9 mechanism + its condition) |  |
 | [027-mvp4-residuals](027-mvp4-residuals/spec.md) | 027-01 — tbd |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-01 - Replace bootstrap and first PageView |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-02 - Report complete event and commerce data |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-03 - Route and configure multiple Pixels |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-04 - Apply consent and processing choices |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-05 - Preserve anonymous and click continuity |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-06 - Match explicit identity through account changes |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-07 - Match approved forms automatically |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-08 - Preserve code-less event and metadata collection |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-09 - Measure navigation, exit and no-JavaScript journeys |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-10 - Correlate browser and server events |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-11 - Diagnose connected product collection |  |
+| [060-meta-pixel-full-compatibility](060-meta-pixel-full-compatibility/spec.md) | 060-12 - Cut over, roll back and maintain assurance |  |
 
 ## Richer-skill selection audit (spec 096-05)
 
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
-- **14** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
+- **12** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **104** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **51** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **61** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
@@ -256,5 +268,15 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
   - `049-native-tag-suppressor/slice-02-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `050-mvp9-reference-site-rewire-trial/slice-01-craft.md` — applied `none`; declined: pr-review, scout-pr-review
   - `050-mvp9-reference-site-rewire-trial/slice-02-craft.md` — applied `none`; declined: pr-review, scout-pr-review
-  - `051-adobe-integration-proving-ground/slice-04-craft.md` — applied `pr-review`; declined: scout-pr-review
-  - `051-adobe-integration-proving-ground/slice-05-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `060-meta-pixel-full-compatibility/slice-13-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `060-meta-pixel-full-compatibility/slice-14-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `060-meta-pixel-full-compatibility/slice-15-craft.md` — applied `pr-review`; declined: independent-review, scout-pr-review
+  - `060-meta-pixel-full-compatibility/slice-16-craft.md` — applied `pr-review`; declined: independent-review, scout-pr-review
+  - `060-meta-pixel-full-compatibility/slice-17-craft.md` — applied `pr-review`; declined: independent-review, scout-pr-review
+  - `060-meta-pixel-full-compatibility/slice-18-craft.md` — applied `pr-review`; declined: independent-review, scout-pr-review
+  - `060-meta-pixel-full-compatibility/slice-19-craft.md` — applied `pr-review`; declined: independent-review, scout-pr-review
+  - `061-meta-behavioral-poc/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `062-meta-pageview-behavior-followup/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `063-meta-pageview-live-delivery/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `063-meta-pageview-live-delivery/slice-02-craft.md` — applied `pr-review`; declined: independent-review, scout-pr-review
+  - `063-meta-pageview-live-delivery/slice-03-craft.md` — applied `pr-review`; declined: independent-review, scout-pr-review
