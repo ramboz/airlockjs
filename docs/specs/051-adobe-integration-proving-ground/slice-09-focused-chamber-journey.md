@@ -8,6 +8,8 @@ arch_review: true
 claimed_by: adobe-adoption-goal
 ---
 
+> **Rescoped 2026-11 by [spec 064](../064-adobe-parity-inventory/spec.md) (ADR-0061).** Reframed as slice B1 plus the built part of B2. Witness files stay as evidence.
+
 ## Slice 051-09 — one focused Analytics and Target chamber journey
 
 **Goal:** The operator can attempt one named Analytics/Target journey through

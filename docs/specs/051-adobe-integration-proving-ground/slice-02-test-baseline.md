@@ -1,5 +1,5 @@
 ---
-status: IN_PROGRESS
+status: ABANDONED
 dependencies: [051-01, 051-04, 051-06, 051-07, 051-08, adr-0038, adr-0039]
 last_verified:
 kind: feature
@@ -7,6 +7,8 @@ frame_review: true
 arch_review: true
 claimed_by: adobe-adoption-goal
 ---
+
+> **Rescoped 2026-11 by [spec 064](../064-adobe-parity-inventory/spec.md) (ADR-0061).** Superseded. Local stock recordings become corpus S1 to S3; live reporting gates move to the live-only list. History kept below.
 
 ## Slice 051-02 — reproducible stock wire baseline
 

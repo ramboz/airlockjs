@@ -4,6 +4,8 @@ skill: jig:spec-workflow
 use_cases: [UC-1, UC-2, UC-6, UC-10]
 ---
 
+> **Rescoped 2026-11 by [spec 064](../064-adobe-parity-inventory/spec.md) (ADR-0061).** Kept as the nonblocking follow-up (ADR-0039). No change to scope.
+
 <!-- jig self-defining vocabulary (soft, forward-only): expand each acronym on first use and link the term to docs/memory/glossary.md (or jig's lexicon). See docs/workflow.md "Self-defining vocabulary". -->
 
 # Spec 056: Adobe product-workflow validation

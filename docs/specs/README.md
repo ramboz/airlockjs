@@ -166,13 +166,14 @@ do not grant live authority. Specs 052-057 remain unsliced DRAFT outlines in the
 | [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-01 — the reference-site `?martech=airlock` rewire arm | **DONE** |  |
 | [050-mvp9-reference-site-rewire-trial](050-mvp9-reference-site-rewire-trial/spec.md) | 050-02 — measured Lighthouse/TBT + parity evidence + scripted adoption path | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-01 — read-only access preflight | **DONE** |  |
-| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-02 — reproducible stock wire baseline | READY_FOR_REVIEW (adobe-adoption-goal) |  |
-| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 🔬 051-03 — bounded SDK compatibility decision | DRAFT |  |
+| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-02 — reproducible stock wire baseline | ABANDONED |  |
+| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 🔬 051-03 — bounded SDK compatibility decision | ABANDONED |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-04 — scoped workspace confirmation | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-05 — local stock journey harness | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-06 — deployed stock smoke journey | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-07 — checking recorded stock wire semantics | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-08 — observing browser request and response bytes | **DONE** |  |
+| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-09 — one focused Analytics and Target chamber journey | IN_PROGRESS (adobe-adoption-goal) |  |
 
 ## Deferred slices
 
@@ -191,6 +192,8 @@ do not grant live authority. Specs 052-057 remain unsliced DRAFT outlines in the
 |------|-------|---------------------|
 | [011-mvp2-coherency-probe](011-mvp2-coherency-probe/spec.md) | 🔬 011-04 — async-mint coalescing needs broker-proxied egress (the OQ9 mechanism + its condition) |  |
 | [027-mvp4-residuals](027-mvp4-residuals/spec.md) | 027-01 — tbd |  |
+| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-02 — reproducible stock wire baseline |  |
+| [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 🔬 051-03 — bounded SDK compatibility decision |  |
 
 ## Richer-skill selection audit (spec 096-05)
 
@@ -198,7 +201,7 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
 
 - **14** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **104** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **51** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **52** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
@@ -250,3 +253,4 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
   - `050-mvp9-reference-site-rewire-trial/slice-02-craft.md` — applied `none`; declined: pr-review, scout-pr-review
   - `051-adobe-integration-proving-ground/slice-04-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `051-adobe-integration-proving-ground/slice-05-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `051-adobe-integration-proving-ground/slice-09-craft.md` — applied `pr-review`; declined: scout-pr-review

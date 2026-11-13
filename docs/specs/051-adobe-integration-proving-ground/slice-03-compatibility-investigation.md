@@ -1,11 +1,13 @@
 ---
-status: DRAFT
+status: ABANDONED
 dependencies: [051-02, adr-0038, adr-0039]
 last_verified:
 kind: spike
 frame_review: true
 arch_review: true
 ---
+
+> **Rescoped 2026-11 by [spec 064](../064-adobe-parity-inventory/spec.md) (ADR-0061).** Abandoned. The 8-hour spike is replaced by the capture session and pilot slice B1.
 
 ## Slice 051-03 — bounded SDK compatibility decision
 
