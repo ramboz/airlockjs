@@ -176,8 +176,8 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-19 - Exercise an offline SDK-free Google conversion | **DONE** |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-20 - Exercise the SDK-free conversion in a local browser | **DONE** |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-21 - Connect a local gtag queue to the conversion chamber | **DONE** |  |
-| [065-google-ads-parity-inventory](065-google-ads-parity-inventory/spec.md) | 065-01: T1: Close the Google surface from retained bytes | READY_FOR_IMPLEMENTATION |  |
-| [065-google-ads-parity-inventory](065-google-ads-parity-inventory/spec.md) | 065-02: T2: Candidate settings list from Google's public docs | READY_FOR_IMPLEMENTATION |  |
+| [065-google-ads-parity-inventory](065-google-ads-parity-inventory/spec.md) | 065-01: T1: Close the Google surface from retained bytes | **DONE** |  |
+| [065-google-ads-parity-inventory](065-google-ads-parity-inventory/spec.md) | 065-02: T2: Candidate settings list from Google's public docs | **DONE** |  |
 | [065-google-ads-parity-inventory](065-google-ads-parity-inventory/spec.md) | 065-03: T3: Completeness probe on real configs | READY_FOR_IMPLEMENTATION |  |
 | [065-google-ads-parity-inventory](065-google-ads-parity-inventory/spec.md) | 065-04: G0: Google-specific capture tooling | READY_FOR_IMPLEMENTATION |  |
 | [065-google-ads-parity-inventory](065-google-ads-parity-inventory/spec.md) | 065-05: CAP: Capture session | READY_FOR_IMPLEMENTATION |  |
@@ -229,7 +229,7 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
 - **11** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **104** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **106** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **58** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review

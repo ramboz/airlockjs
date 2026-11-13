@@ -1,5 +1,5 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: DONE
 dependencies: []
 last_verified: 2026-11-13
 ---
@@ -24,3 +24,14 @@ last_verified: 2026-11-13
 - `npm run lint` passes. Spec lint passes.
 
 **Source:** spec 065 section 9 and the owner answers in section 12.
+
+### Deviation log
+
+- Added a 2.2 correction: the secondary labeled request (ledger 11) was recorded in the smoke, without a response. The spec said it was absent.
+- Rows 17 to 20 added to 2.1 (4 of the 5 new-row budget). One row left for T2, T3 and CAP.
+- Field classes in 3.2a are proposals from names and structure, since the ledger keeps no values.
+
+### Reconciliation sweep
+
+- Spec 2.1, 2.2, 2.3, 3.2a, 3.4 and 13 updated. Slice 065-02 and 065-03 inputs (6.1, 7.1 skeleton) unaffected beyond the new-row count. No ADR change.
+- No private values copied. Loader digest shown in short form only.

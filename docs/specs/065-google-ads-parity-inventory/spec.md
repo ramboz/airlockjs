@@ -57,7 +57,11 @@ Seeded from 059's 28 families (F01 to F28), the Google descriptor and R-015. Two
 | 13 | Remote config handling, transport, credentials, redirects, retries, lifecycle (`pagehide`, bfcache) (F24, F26, F27) | mediated | G10 | |
 | 14 | Multiple destinations and GA4/GTM coexistence (F25) | host-side | G12 | We do not reimplement GA4 or GTM |
 | 15 | Cookie customization (`cookie_domain`, `cookie_prefix`, `cookie_expires`, `cookie_update`, `cookie_flags`) | mediated | G4 | Page-side inputs, agent-run |
-| 16 | Anything else the loader exposes that T1 finds | unknown | T1 | Must be named before the freeze |
+| 16 | Anything else the loader exposes that T1 finds | closed by T1 | T1 | Closed 2026-11-13: found rows 17 to 20 (4 new rows, 2.3). The other commands, keys and endpoints T1 listed fall under rows 1 to 15 or 2.2 |
+| 17 | Built-in automatic events (`__ogt_auto_events`: outbound click, scroll, download, history change, form, video, page view), switched on per container (loader L12) | host-side | G8 | New row (T1). Served config decides which are on. Observed on in the retained loader |
+| 18 | Geo lookup `GET www.google.com/ccm/geo` with `cache:no-store`, `mode:cors` (loader L352) | mediated | G10 | New row (T1). Whether it feeds `dma` is unproven. CAP records it in S0 and S1 |
+| 19 | Server-container routing: `server_container_url`, `transport_url` and the first-party path suffixes `/as/d`, `/g/d`, `/gs` and `/d` (loader L42, L345) | mediated, `incompatible` for v1.0 unless CAP shows the owned page sets it | G10 | New row (T1). Alternate endpoint base for the same requests. No state of ours uses it, so it stays `incompatible` until then |
+| 20 | Cookie transfer: `/pagead/set_partitioned_cookie` on `google.com` and `googleadservices.com` (loader L349) and the `gcl_transfer` message accepted from `google.com`, `youtube.com` and `m.youtube.com` (loader L758) | host-side | G4 | New row (T1). Partitioned storage and click-ID handoff from Google origins |
 
 ### 2.2 Requests (request-level classes)
 
@@ -68,13 +72,62 @@ Every request the tag makes gets a request-level class (ADR-0061 point 10): `alw
 | `gtag/js?id=` loader and served config | always | Not replaced as a request. Its served bytes are the config source (3.1) |
 | `www.google.com/ccm/collect` page-load beacon | conditional | Present in the R-009 capture. Rule to be derived: consent state, config |
 | Primary labeled conversion request | always (for a conversion) | Its response carries a fetch URL that points at the secondary request |
-| Secondary labeled request | conditional | Absent in the retained smoke. The rule is unknown today |
+| Secondary labeled request | conditional | T1 correction: it was recorded in the smoke (ledger 11, its URL equals the primary response's fetch target, `B02`), but no response was recorded. Whether it always follows a conversion is unknown, so the rule is still open |
 | `viewthroughconversion` and `rmkt` mirrors | conditional | Two bodies were unavailable in the smoke |
 | `ccm/form-data` (enhanced conversions) | conditional | Depends on the enhanced-conversions state |
-| `cm.g.doubleclick.net/pixel` (cookie match) | conditional | Credentialed and cross-site. Never captured here. Effects visible only downstream: `live-only` (4.9) |
+| `cm.g.doubleclick.net/pixel` (cookie match) | conditional | Credentialed and cross-site. Never captured here. T1: the host does not appear in the retained loader, so it can only arrive from a response or another script. Effects visible only downstream: `live-only` (4.9) |
 | Any request not in this list | unknown | Resolves to always, conditional or volatile before the freeze commit. Owner: the capture session (CAP) |
 
 Fan-out completeness was left open at ADR-0040:224. The positive control (4.1) plus every state's full request list closes it for the frozen corpus.
+
+### 2.3 T1 closed lists (retained loader and 12-request ledger)
+
+Closed 2026-11-13 by task T1 (slice 065-01) from two private handles read in place, with no network and no vendor code run: the retained loader (443,549 bytes, SHA-256 `318a26b8…c3e50`, length and digest re-checked on 2026-11-13 against the private manifest, as R-015:37 records) and the owned native wire ledger (12 request ordinals, 62 query names). Citations are `loader Lnn` (line number in the retained file) and `ledger <n>` (request ordinal, or the ledger's own `B01`/`B02` response-link ids). The loader is a Google Tag Manager container for one destination (`resource` JSON: macros, tags, predicates, rules) plus the tag library. Its config region carries the destination, an egress country and subdivision, and a first-party endpoint base (loader L12, L42). Destination IDs and account values are not copied here.
+
+**Commands.** `js`, `config`, `event` and `get` are accepted at the queue boundary (loader L729). `set` is built next to `config` and `event` (loader L675). `consent` carries `default` and `update` with `region` and `wait_for_update` (loader L42, L273). Internal event names the loader emits or consumes include `gtag.config`, `gtag.get`, `page_view`, `conversion`, `purchase`, `view_item`, `view_item_list`, `add_to_cart`, `remove_from_cart`, `view_cart`, `begin_checkout`, `add_payment_info`, `add_shipping_info`, `generate_lead`, `select_item`, `select_promotion`, `view_promotion`, `add_to_wishlist`, `refund`, `first_visit`, `session_start`, `user_engagement`, `ga_conversion` and `consent_update` (loader L42).
+
+**Config and event keys** (by group; each is in loader L42 to L44 and L280 to L281 unless noted):
+- Destination and routing: `send_to`, `groups`, `ignore_dupe_config` (loader L44), `server_container_url`, `transport_url`, `first_party_collection`.
+- Page view: `send_page_view`, `page_location`, `page_title`, `page_referrer`, `page_path`, `page_hostname`, `ignore_referrer`, `language`, `screen_resolution`.
+- Conversion: `value`, `currency`, `transaction_id`, `items`, `new_customer`, `customer_lifetime_value`, `discount`, `shipping`, `tax`, `aw_basket_type`, `event_callback`, `event_timeout`, `conversion_linker`, `conversion_cookie_prefix`.
+- Remarketing: `aw_remarketing`, `aw_remarketing_only`, `aw_merchant_id`, `aw_feed_country`, `aw_feed_language`, `allow_ad_personalization_signals`, `allow_google_signals`, `allow_custom_scripts`, `allow_display_features`, `restricted_data_processing`, `ads_data_redaction`, `url_passthrough`.
+- User data and enhanced conversions: `user_data` with `user_data_mode`, `user_data_settings`, `user_data_lead`, `user_data_auto_selectors`, `user_data_auto_status`, `user_data_from_code`, `user_data_from_manual`, `user_data_from_automatic`, `allow_enhanced_conversions`, `enhanced_conversions`, `enhanced_conversions_automatic_settings`, `ccd_add_1p_data`, `ccd_enable_cm`, `ccd_ga_ads_ids_opt_out`.
+- Cookies and linker: `cookie_domain`, `cookie_prefix`, `cookie_expires`, `cookie_update`, `cookie_flags`, `cookie_path`, `cookie_name`, `cookie_options`, `linker` with `domains`, `accept_incoming`, `decorate_forms`, `url_position` (loader L280).
+- Phone: `phone_conversion_number`, `phone_conversion_ids`, `phone_conversion_css_class`, `phone_conversion_country_code`, `phone_conversion_callback`, `phone_conversion_options`.
+- Click-ID inputs: URL parameters `gclid`, `gbraid`, `wbraid`, `dclid`, `gclsrc`, `gad_source`, `gad_campaignid` and the linker parameter `_gl`.
+- Container tags in the retained config (loader L12): `__ogt_auto_events` (all seven switches on), `__ogt_1p_data_v2` (automatic detection on, with phone, address and email collection on and manual off), `__ccd_ads_first`, `__dest_aw` (`ignoreDupeGtagConfigCalls` on), `__rep`, `__ccd_ads_last`.
+
+**Consent types** the loader names: `ad_storage`, `analytics_storage`, `ad_user_data`, `ad_personalization` (loader L42). `functionality_storage`, `personalization_storage` and `security_storage` do not appear, so the corpus does not need them.
+
+**Endpoints** (the loader's tables are at loader L345 to L352, and the ledger rows are in 2.2). Each entry gets its request-level class at CAP:
+
+| Endpoint | Where | Seed class |
+|---|---|---|
+| `www.googletagmanager.com/gtag/js?id=`, `/gtag/destination` (loader fetch of destination configs), `/gtm.js` | ledger 2, loader L643 | always, conditional, conditional |
+| `googleads.g.doubleclick.net/pagead/viewthroughconversion/<dest>/` | ledger 4 and 11, loader L349 | conditional |
+| `www.google.com/rmkt/collect/<dest>/` (POST) | ledger 5, loader L349 | conditional |
+| `www.google.com/ccm/collect`, `pagead2.googlesyndication.com/ccm/collect` (`/gs`) | ledger 6, loader L349 | conditional |
+| `ad.doubleclick.net/ccm/s/collect` | ledger 7 and 8, loader L349. **Blocked by the capture guard in the smoke**, so its effect on the tag is unobserved | conditional (CAP records it unblocked or reports why not) |
+| `www.google.com/pagead/1p-user-list/<dest>/` | ledger 9 (response-provided by 4, `B01`) | conditional |
+| `www.googleadservices.com/pagead/conversion/<dest>/` (and the `pagead2.googlesyndication.com/pagead/conversion` `/gs` form) | ledger 10, loader L348 | always (for a conversion) |
+| `www.google.com/pagead/1p-conversion/<dest>/` (fallback named in the primary response, `B03`) | loader L348. Never requested in the smoke | conditional, rule unknown |
+| `www.google.com/pagead/uconversion`, `www.google.com/measurement/enhanced` (`/d`), `www.google.com/pagead/form-data` and `/ccm/form-data` (also on `google.com`, `/d`) | loader L348, L349 | conditional (enhanced conversions) |
+| `www.googleadservices.com/ccm/conversion` (`/as/d`), `www.google.com/ccm/conversion` (`/g/d`), `pagead2.googlesyndication.com/ccm/conversion` (`/gs`) | loader L345 | conditional |
+| `www.google.com/pagead/set_partitioned_cookie`, `www.googleadservices.com/pagead/set_partitioned_cookie` | loader L349 (row 20) | conditional |
+| `www.google.com/ccm/geo` | loader L352 (row 18) | conditional |
+| `ade.googlesyndication.com/ddm/activity` (Floodlight) | loader L349 | conditional, expected not fired by our states |
+| `www.google.com/travel/flights/click/conversion` | loader L349 | conditional, expected not fired (row 8, vertical schemas) |
+| `ad.doubleclick.net/activity;` and `<x>.fls.doubleclick.net/activityi;` (Floodlight variants) | loader L349 | conditional, expected not fired by our states |
+| `www.gstatic.com/call-tracking/call-tracking_<n>.js` (website-calls script) | loader L862 | conditional (row 12), vendor code loaded at runtime like the gaphone loader |
+| `adservice.google.com/pagead/regclk` | loader L97 | conditional, rule unknown. No 2.1 row owns it: it rides row 8 (vertical and conversion schemas) until CAP shows its trigger |
+| `www.gstatic.com/wcm/loader.js`, `www.gstatic.com/gaphone/loader.js` (a second script the phone feature loads) | loader L862 | conditional (row 12). It is vendor code loaded at runtime, so CAP records it and G9 decides how we treat it |
+| `www.google.com/g/collect`, `/ga/g/c` (GA4 hit paths) | loader L353 | conditional. Not reimplemented (row 14) |
+| `cct.google/taggy/agent.js`, `tagassistant.google.com` (preview and debug) | loader L97 | volatile or not fired in production. CAP records whether any state loads them |
+
+**Not found in the ledger's recorded queries:** no `em` or user-data field names, no cart item names and no `gclid`, `gbraid` or `wbraid` query names occur in the ledger's recorded queries (ledger `semantic_limits`). That is a recorded-vocabulary observation for this one run, not proof the features are absent.
+
+**New-row count (kill criterion 4).** T1 added 4 rows (17 to 20). The endpoint list above fills 2.2 and does not add rows, because each endpoint serves behavior an existing row owns. At most 1 more new row is allowed across T2, T3 and CAP before the freeze review.
+
 
 ## 3. Field classes and identity
 
@@ -106,7 +159,82 @@ Seed classes only. The drift probe and the corpus confirm or change them.
 | `rcb`, `tft`, `tfd`, `_p`, `fst`, `random` | generated, pending | Counters, dispatch timestamps and cachebusters. Rule from capture |
 | Build or experiment stamps (for example a `gtm` stamp, if present) | volatile candidate | Volatile only after the drift probe shows no link to any other value |
 
-The descriptor's `normaliseDenylist` (`dma`, `rnd`, `rcb`, `tft`, `tfd`, `_p`, `fst`, `random`) is **not** evidence of volatility. It was a comparison shortcut. Under point 10 each of those fields is re-classed from recordings. T1 lists the remaining query names (the ledger has 62) here before the freeze.
+The descriptor's `normaliseDenylist` (`dma`, `rnd`, `rcb`, `tft`, `tfd`, `_p`, `fst`, `random`) is **not** evidence of volatility. It was a comparison shortcut. Under point 10 each of those fields is re-classed from recordings. T1 lists the remaining query names in 3.2a. The 62 names are the ledger's whole query vocabulary.
+
+### 3.2a All 62 ledger query names (T1)
+
+Closed 2026-11-13 from the ledger's `query_vocabulary.names`. The ledger keeps names and order, not values, so every class below is a **proposal** from the name, where the name shows up and what the request is. The corpus confirms or changes each one (ADR-0061 point 10). A name marked pending needs its rule from capture. Ordinals are ledger request ordinals: 2 loader, 4 and 11 `viewthroughconversion`, 5 `rmkt`, 6 `ccm/collect`, 7 and 8 guard-blocked `ccm/s/collect`, 9 `1p-user-list`, 10 primary conversion.
+
+Two structural findings:
+- **Response-provided URLs.** Ordinal 9 equals a URL returned in the body of 4 (`B01`), and ordinal 11 equals the `fetch` URL returned in the body of 10 (`B02`). Every field on those two requests is therefore at least server-context-derived (a prior response). The fields that only they carry (`cid`, `is_vtc`, `rmt_tld`, `ipr`, `ct_cookie_present`, `eoid`, `crd`, `cerd`, `fsk`, `pscrd`) are classed that way. The fields they share with 4 and 10 stay under their own class, and CAP checks that the response URL and the request agree.
+- **Seed table corrections (3.2).** `gcs` does not appear in the native ledger at all, and the native `rnd` differs from `auid`, so the seed rows for those two stay unconfirmed until CAP. Against the earlier ccm fixture, the ledger adds eight names: `frm`, `apvc`, `scrsrc`, `navt`, `gtm`, `tag_exp`, `tids`, `fmt`.
+
+| Name | Ledger ordinals | Proposed class | Note |
+|---|---|---|---|
+| `apvc` | 6 | generated, pending | Page-view counter-like name; only on 6. Opaque, rule from capture |
+| `async` | 4,5,9,10,11 | fixed (candidate) | Same on every request that carries it, if the corpus agrees |
+| `auid` | 4,5,6,7,8,9,10,11 | generated / input-derived | 3.3. Also on blocked 7 and 8 |
+| `bg` | 4,5,9,10,11 | input-derived, pending | Opaque; page or document state. Rule from capture |
+| `category` | 10,11 | input-derived | Conversion event parameter |
+| `cerd` | 11 | server-context-derived | Only on 11, the response-provided URL (B02) |
+| `cid` | 9 | server-context-derived | Only on 9, the response-provided URL (B01) |
+| `crd` | 11 | server-context-derived | Only on 11 (B02) |
+| `ct_cookie_present` | 11 | server-context-derived | Only on 11 (B02). Name suggests a cookie-presence flag, rule from capture |
+| `currency_code` | 10,11 | input-derived | Conversion currency |
+| `cv` | 4,5,9,10,11 | fixed (candidate) | Same on every request that carries it |
+| `data` | 4,5,9,10,11 | input-derived | Nested `event` key equals `en` (ledger nested_query_data) |
+| `dl` | 6 | input-derived | Page URL, 3.2 |
+| `dma` | 4,5,6,9,10,11 | server-context-derived | 3.2 |
+| `dt` | 6 | input-derived | Page title, 3.2 |
+| `en` | 4,5,6,9,10,11 | input-derived | Event name |
+| `eoid` | 11 | server-context-derived | Only on 11 (B02) |
+| `ept` | 4,5,9,10,11 | generated, pending | Opaque, timestamp-like; rule from capture |
+| `fmt` | 4,5,6,7,8,9,10,11 | fixed per endpoint (candidate) | Value may differ by endpoint; checked per request class |
+| `frm` | 4,5,6,9,10,11 | input-derived | Frame context, pending |
+| `fsk` | 11 | server-context-derived | Only on 11 (B02) |
+| `fst` | 4,5,9,10,11 | generated | First-seen timestamp-like, pending |
+| `gcd` | 4,5,6,9,10,11 | input-derived | Consent state, 3.2 |
+| `gcl_ctr` | 10,11 | input-derived, pending | Likely a conversion-linker counter read from a `_gcl_*` cookie; rule from capture |
+| `gcp` | 5 | input-derived, pending | Only on 5. Opaque |
+| `gtm` | 4,5,6,7,8,9,10,11 | volatile candidate | Build stamp, 3.2. Volatile only after the drift probe |
+| `gtm_ee` | 10,11 | input-derived, pending | Only on 10 and 11. Possibly the enhanced-conversions state |
+| `guid` | 4,5,9,10,11 | fixed (candidate) | Same on every request that carries it |
+| `hn` | 4,5,9,10,11 | input-derived | Page hostname |
+| `id` | 2 | input-derived | Destination, on the loader request only (2) |
+| `ipr` | 9 | server-context-derived | Only on 9 (B01) |
+| `is_vtc` | 9 | server-context-derived | Only on 9 (B01) |
+| `label` | 10,11 | input-derived | Conversion action label |
+| `navt` | 6 | generated, pending | Only on 6. Navigation-timing-like, rule from capture |
+| `npa` | 4,5,6,9,10,11 | input-derived | Consent state, 3.2 |
+| `oid` | 10 | input-derived | Order or transaction ID. Equals the page `transaction_id` (ledger parent check) |
+| `pscdl` | 4,5,9,10,11 | input-derived, pending | Opaque; cookie or storage related. Rule from capture |
+| `pscrd` | 11 | server-context-derived | Only on 11 (B02) |
+| `random` | 4,5,9,10,11 | generated | Cachebuster. Occurs twice on 9 with different values (ledger duplicate_keys) |
+| `rcb` | 4,5,6,9,10,11 | generated | Counter, 3.2 |
+| `rfmt` | 4,9 | fixed (candidate) | Only on 4 and 9 |
+| `rmt_tld` | 9 | server-context-derived | Only on 9 (B01) |
+| `rnd` | 6 | generated | Cachebuster. Native `rnd` differs from `auid` (ledger) |
+| `scrsrc` | 6 | input-derived | Script source URL (carries the destination) |
+| `tag_exp` | 4,5,6,9,10,11 | volatile candidate | Experiment list. Volatile only after the drift probe |
+| `tfd` | 6 | generated, pending | Dispatch timestamp, 3.2 |
+| `tft` | 6 | generated, pending | Dispatch timestamp, 3.2 |
+| `tiba` | 4,5,9,10,11 | input-derived | Page title (likely) |
+| `tid` | 6 | input-derived | Destination, 3.2 |
+| `tids` | 6 | input-derived | Destination list |
+| `u_h` | 4,5,9,10,11 | input-derived | Screen or viewport height (OFAT viewport, 4.3) |
+| `u_w` | 4,5,9,10,11 | input-derived | Screen or viewport width (OFAT viewport, 4.3) |
+| `uaa` | 4,5,9,10,11 | input-derived | Client-hint architecture |
+| `uab` | 4,5,9,10,11 | input-derived | Client-hint bitness |
+| `uafvl` | 4,5,9,10,11 | input-derived | Client-hint full version list |
+| `uam` | 4,5,9,10,11 | input-derived | Client-hint model. Empty on every request that carries it (ledger empty_values) |
+| `uamb` | 4,5,9,10,11 | input-derived | Client-hint mobile flag |
+| `uap` | 4,5,9,10,11 | input-derived | Client-hint platform |
+| `uapv` | 4,5,9,10,11 | input-derived | Client-hint platform version |
+| `uaw` | 4,5,9,10,11 | input-derived | Client-hint 32-bit-on-64-bit flag |
+| `url` | 4,5,9,10,11 | input-derived | Page URL |
+| `value` | 10,11 | input-derived | Conversion value |
+
+Counts: 62 names, 11 server-context-derived (10 response-provided plus `dma`), 2 volatile candidates, 4 fixed candidates plus `fmt`, and the rest input-derived or generated.
 
 ### 3.3 Identity rules: `gclid` and `auid` (point 1)
 
@@ -117,6 +245,23 @@ The descriptor's `normaliseDenylist` (`dma`, `rnd`, `rcb`, `tft`, `tfd`, `_p`, `
 - **`auid`, returning profile:** read from the stored `_gcl_au`. Class: input-derived.
 - A fresh recording is never compared with a returning one except as the declared one-factor variant.
 - The held-out check (4.5) includes at least one returning-profile recording whose cookie values were not used to derive the rule.
+
+### 3.4 Credential allow-list seed for G0 (T1, 4.2)
+
+G0 seeds the cookie-name allow-list in 4.2 from this list. Sources: the retained loader and the ledger's cookie metadata (names only, no values). A new name seen in the positive control is added under review before the first fixture commit, as 4.2 says.
+
+| Name or pattern | Kind | Source | Allow-list |
+|---|---|---|---|
+| `_gcl_au` | first-party cookie | ledger cookie metadata, `cookiesAfter` | yes |
+| `<prefix>_aw`, `_dc`, `_gb`, `_ag`, `_gf`, `_ha`, `_gp`, `_gs` with prefix `_gcl` (the whole `_gcl_*` family) | first-party cookies | loader L449 | yes. The prefix can change with `conversion_cookie_prefix` or `cookie_prefix`, so the check reads the configured prefix from the manifest and allows `<prefix>_*` |
+| `_gcl_ls` | `localStorage` key, JSON `schema: "gcl"` | loader L446 | yes (storage dump, not a cookie) |
+| `_gac_*` (`_gac_gb`, `_gac_<UA id>`) | first-party cookies, legacy Ads-linking | loader L418 | yes |
+| `_ga`, `_ga_*` | first-party cookies (GA4), when the page also runs GA4 | spec 4.2 seed. Not found as a literal in the retained loader | yes, only if the manifest lists GA4 as part of the page input (S12) |
+| `FPAU`, `FPGCLAW` | first-party-mode cookies | loader L449, L764 | yes, only in a state that sets a first-party endpoint base (row 19) |
+| `test_cookie` | vendor-domain cookie (doubleclick, `Secure`, `SameSite=None`) | ledger cookie metadata, ledger 4 `Set-Cookie`, ledger 11 `Cookie`. Not a literal in the loader | yes, on the vendor domain only. A tag-set cookie, not a login cookie. Its name is set by vendor code, so G0 confirms it in the positive control |
+| `_gl` (URL parameter, not a cookie) | linker token | loader L280 | n/a. Checked in URL fields |
+
+Denied by name, as 4.2 already says: `SID`, `HSID`, `SSID`, `APISID`, `SAPISID`, `__Secure-*PSID`, `LSID`, `Authorization` headers, and bearer or OAuth tokens. The allow-list is a name check. It does not decide whether a value is safe.
 
 ## 4. Capture session plan (ADR-0061)
 
@@ -234,6 +379,31 @@ The inventory freezes after the session toggles each candidate. Eight candidates
 | Website calls | console | A page with a phone number the tag can swap |
 | Combined | console | One page carrying the union of the triggers above, with every candidate that changed served bytes switched on |
 
+### 6.1 Candidate list closed by T2
+
+Closed 2026-11-13 from Google's public help pages (the enhanced conversions overview, answer 9888656, read in full; the other topics, which are enhanced conversions for leads, automatic detection, conversion actions, first-party cookies, remarketing and website calls, from help-center titles and the loader evidence, so T3 or the window re-checks any that the console contradicts) and from the T1 loader evidence (2.3). No console change and no account access. No candidate was added, so the new-row budget stays at 4 of 5 used (2.3).
+
+| # | Candidate | Side | Setting group (3-a) | Toggle states for S15 | Console check in the window |
+|---|---|---|---|---|---|
+| C1 | Enhanced conversions for web | console | enhanced matching | off, automatic, manual | **To confirm in window (D8).** Absent means `blocked: account-ineligible`. If present: the state each toggle gives |
+| C2 | Enhanced conversions for leads | console | enhanced matching | off, on | **To confirm in window (D8).** Absent means `blocked: account-ineligible` |
+| C3 | Automatic detection and exclusions | console | enhanced matching | detection on, with and without an excluded field | Exclusion list editable on the test account |
+| C4 | First-party cookie and conversion-linking | console | cookies and linking | off, on | Setting visible. Page side is already in S3 and S10 |
+| C5 | Remarketing and data-segment collection | console | audiences | on, off | Remarketing tag setting visible on the test account |
+| C6 | New-customer acquisition | console | audiences | off, on | **To confirm in window (D8).** Absent means `blocked: account-ineligible` |
+| C7 | Conversion action properties (count, value mode, window) | console | conversion actions | count one vs every, value mode | The properties editable on the test action |
+| C8 | Website calls | console | calls | off, on with an eligible call resource | **To confirm in window (D8).** Absent, or no eligible call resource, means `blocked: account-ineligible` |
+| P1 | Cross-domain `linker` | page | not applicable | none (S10) | None. Agents run it on the standing approval |
+| P2 | Cookie options (`cookie_*`) | page | not applicable | none (S11) | None. Agents run it on the standing approval |
+
+Notes from T1 that shape the candidates (2.3):
+- The retained loader was fetched with the owned test conversion id (private manifest), so it may already hold a same-id baseline, which drift probe A in 4.1 should check first. Its source account had enhanced-conversion automatic detection on, with phone, address and email collection on and manual off, and all seven `__ogt_auto_events` switches on. That is the baseline, not a candidate. S15 states are compared against it, and the manifest records the account's own state before the first toggle.
+- Consent types in the loader are four (`ad_storage`, `analytics_storage`, `ad_user_data`, `ad_personalization`). Consent mode is page-side and covered by S4 to S6, not by a console candidate.
+
+**Triggering input per candidate** is the column in the table above this section. **S15 combined state:** one page carrying the union of C1 to C8 triggers, run once with every console candidate that changed served bytes switched on at once. C2, C6 and C8 join it only if the window confirmed them. The combined state is recorded after the singles, never in place of one.
+
+**Per-candidate no-effect check:** each C row uses the three conditions below in full (wait, served config bytes, triggering input). A row has the manifest fields `candidate`, `toggle_time`, `polls`, `bytes_digest_before`, `bytes_digest_after`, `trigger_present`. Nothing is tagged no effect without all three.
+
 A candidate counts as **no effect** only if all three conditions hold (point 3):
 
 - (a) The check came after a stated propagation wait. Default: poll the served config bytes every 2 minutes up to 20 minutes after the owner's change. A candidate still unchanged at 20 minutes is not waited on in the window: the owner moves on to a candidate in a different setting group while the agent runs one more 20-minute poll in the background. Groups: enhanced matching (enhanced conversions, for leads, automatic detection), cookies and linking (first-party cookie), audiences (remarketing, new-customer), conversion actions (action properties), calls (website calls). Only cross-group overlap is allowed, at most two toggles pending, and the manifest records both so an ambiguous byte change is re-run and never attributed. A candidate still unchanged after that goes to the second window, or is tagged no effect only if all three conditions then hold. The times go in the manifest.
@@ -252,6 +422,13 @@ Before the freeze we compare the candidate inventory with the `gtag/js?id=` conf
 - **Feature:** a distinct config key or flag position actually present in a sampled served config region, extracted by a bounded scan of the region (key names and flag slots, no execution and no full parse of Google's script). Each extracted feature is then classed covered or uncovered against sections 2 and 6. The closed token list from T1 and T2 (the 62 ledger query names and the candidate setting keys) is only the covered set, never the sample frame. If the crawl bodies lack `gtag/js` responses, T3 falls back to the single-GET route under D4, bounded at 2 days of effort.
 - **Metrics:** feature-level out-of-inventory rate = features seen in the sample that no section 6 state or section 2 row covers, divided by all distinct features seen. Site-level rate = sites with at least one uncovered feature, divided by sites sampled.
 - **Combined settings:** S15 includes one combined state. The probe also reports, for information only, the share of sampled sites whose settings combination our combined state does not cover.
+- **Completeness table skeleton (T2).** T3 fills it. One row per distinct feature found in the sample. Empty until T3 runs.
+
+| Feature (config key or flag slot) | Sites seen | Covered by (2.x row or S-state) | Class | Notes |
+|---|---|---|---|---|
+| _filled by T3_ | | | covered / uncovered | |
+
+  Totals block: distinct features, covered, uncovered, feature-level rate, sites sampled, sites with an uncovered feature, site-level rate, combined-state coverage share (information only). Each uncovered feature that becomes a new inventory row counts against kill criterion 4.
 - **Kill criterion:** feature-level rate above 10%, or site-level rate above 25%, means the inventory is not finite enough to freeze. Value so far: not measured.
 
 ### 7.2 Point 11: reading a customer's served config in production
@@ -366,6 +543,9 @@ The owner answered all of these on 2026-11-13. Each entry keeps the recommendati
 ## 13. Review log and carried findings
 
 - 2026-11-13: owner answered D1 to D10 (D11 earlier). Recorded in section 12 with the consequences in sections 0, 4, 6, 9 and 11. ADR-0061 amendments for points 1 and 11 landed on main (0633a5f4). 059 slices 01 to 12 and 15 moved to ABANDONED through jig. G1 now depends on 067-02 and G10 on 067-06 (spec 067 section 8 item 11). No new review round.
+
+- 2026-11-13 (T1, 065-01): closed the surface from the retained loader and the 12-request ledger: new 2.3 lists, rows 17 to 20 in 2.1 (4 of the 5 new-row budget used), 2.2 corrections, 62-name field table in 3.2a, credential allow-list seed in 3.4. Classes are proposals until the corpus confirms them. No private values copied.
+- 2026-11-13 (T2, 065-02): new 6.1 candidate list (8 console, 2 page, D8 items marked to confirm in the window), S15 combined state, per-candidate manifest fields, and the 7.1 skeleton. No new rows.
 
 Review rounds are capped at three before owner review. Findings left after round 3 go into the pilot as listed checks.
 

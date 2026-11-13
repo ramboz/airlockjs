@@ -1,5 +1,5 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: DONE
 dependencies: []
 last_verified: 2026-11-13
 ---
@@ -24,3 +24,12 @@ last_verified: 2026-11-13
 - `npm run lint` passes. Spec lint passes.
 
 **Source:** spec 065 section 9 and the owner answers in section 12.
+
+### Deviation log
+
+- No deviation from the slice. No new inventory rows added (budget stays at 4 of 5 used).
+- Only the enhanced conversions overview help page was read in full. The other topics rest on help-center titles and T1 loader evidence, and 6.1 says so.
+
+### Reconciliation sweep
+
+- Spec 6.1, 7.1 skeleton and 13 updated. D8 items (C1, C2, C6, C8) marked to confirm in the window. S15 combined state defined. No ADR change.
