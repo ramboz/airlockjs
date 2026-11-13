@@ -70,6 +70,10 @@
       "type": "array",
       "items": { "type": "string", "minLength": 1 }
     },
+    "consentHold": {
+      "description": "Per-connector switch for the default consent hold (spec 067-02, ADR-0062 exception a). Only false turns the hold off; the connector then sends without waiting for consent and logs one warn diagnostic. Absent keeps the hold on.",
+      "const": false
+    },
     "ga4Connector": {
       "type": "object",
       "additionalProperties": false,
@@ -78,6 +82,7 @@
       "properties": {
         "type": { "const": "ga4" },
         "payloadDenylistOverride": { "$ref": "#/$defs/payloadDenylistOverride" },
+        "consentHold": { "$ref": "#/$defs/consentHold" },
         "endpoints": {
           "type": "array",
           "minItems": 1,
@@ -99,6 +104,7 @@
       "properties": {
         "type": { "const": "ga4-gtag" },
         "payloadDenylistOverride": { "$ref": "#/$defs/payloadDenylistOverride" },
+        "consentHold": { "$ref": "#/$defs/consentHold" },
         "measurementId": { "type": "string", "minLength": 1, "description": "The GA4 measurement id (`tid`, REQUIRED)." },
         "streamCookieName": { "type": "string", "description": "The concrete `_ga_<STREAM>` cookie name for session-state read-modify-write (039-03/041-02). Absent -> the session-state write is skipped entirely." },
         "consentDefault": {
@@ -125,6 +131,7 @@
           "properties": {
             "type": { "const": "pixel" },
             "payloadDenylistOverride": { "$ref": "#/$defs/payloadDenylistOverride" },
+            "consentHold": { "$ref": "#/$defs/consentHold" },
             "vendor": { "const": "meta" },
             "pixelId": { "type": "string", "minLength": 1, "description": "Meta pixel id (REQUIRED)." },
             "endpoint": { "type": "string" }
@@ -136,6 +143,7 @@
           "properties": {
             "type": { "const": "pixel" },
             "payloadDenylistOverride": { "$ref": "#/$defs/payloadDenylistOverride" },
+            "consentHold": { "$ref": "#/$defs/consentHold" },
             "vendor": { "const": "linkedin" },
             "partnerId": { "type": "string", "minLength": 1, "description": "LinkedIn partner id (REQUIRED)." },
             "conversionId": { "type": "string", "minLength": 1, "description": "Optional LinkedIn conversion id for the `lead` event." },
@@ -148,6 +156,7 @@
           "properties": {
             "type": { "const": "pixel" },
             "payloadDenylistOverride": { "$ref": "#/$defs/payloadDenylistOverride" },
+            "consentHold": { "$ref": "#/$defs/consentHold" },
             "vendor": { "const": "bing" },
             "tagId": { "type": "string", "minLength": 1, "description": "Bing UET tag id (REQUIRED)." },
             "endpoint": { "type": "string" }
@@ -163,6 +172,7 @@
       "properties": {
         "type": { "const": "google-ads" },
         "payloadDenylistOverride": { "$ref": "#/$defs/payloadDenylistOverride" },
+        "consentHold": { "$ref": "#/$defs/consentHold" },
         "conversionId": { "type": "string", "minLength": 1, "description": "The AW conversion id (`tid`, e.g. \"AW-1234567890\", REQUIRED)." },
         "consentDefault": {
           "type": "object",
@@ -184,6 +194,7 @@
       "properties": {
         "type": { "const": "floodlight" },
         "payloadDenylistOverride": { "$ref": "#/$defs/payloadDenylistOverride" },
+        "consentHold": { "$ref": "#/$defs/consentHold" },
         "conversionId": { "type": "string", "minLength": 1, "description": "The DC conversion id (`tid`, e.g. \"DC-1234567890\", REQUIRED)." },
         "src": { "type": "string", "description": "The Floodlight-native activity identity. Its mere PRESENCE gates whether the `;`-matrix activity beacon/endpoint exist at all (absent -> ccm/collect ONLY, byte-identical to a 046-01-only boot)." },
         "activityType": { "type": "string", "description": "The Floodlight-native activity `type` tag (renamed from the connector's own `type` field to avoid colliding with this entry's `type` discriminant, 048-02 AC3)." },

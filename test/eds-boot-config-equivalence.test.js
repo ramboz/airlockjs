@@ -62,18 +62,18 @@ describe("AC2 — the pixel-vendor boot duplication is collapsed into ONE config
       const config = argsOf(1);
       expect(config).toEqual(perFn); // connector, connectorConfig, endpoints, egressPurposes gate, ctx, ...
       expect(config.connector).toBe("pixel");
-      expect(config.egressPurposes).toEqual([]); // no consent wired -> gate closed on both paths
+      expect(config.egressPurposes).toEqual(["ad_storage"]); // no consent wired -> holds by default (067-02), same on both paths
     });
   }
 });
 
 describe("AC3 — governance threads to consent-governed connectors (GA4, pixels)", () => {
-  it("GA4: an absent consent vector yields egressPurposes:[] on BOTH paths (legacy always-dispatch)", async () => {
+  it("GA4: an absent consent vector yields the full default egressPurposes (hold-by-default, 067-02) on BOTH paths", async () => {
     await bootEdsAnalytics({ ctx: gaCtx });
     await boot({ connectors: [{ type: "ga4", ctx: gaCtx }] });
 
     expect(argsOf(1)).toEqual(argsOf(0));
-    expect(argsOf(1).egressPurposes).toEqual([]);
+    expect(argsOf(1).egressPurposes).toEqual(["analytics_storage"]);
   });
 
   it("GA4: a top-level consent vector threads through identically to bootEdsAnalytics({consent})", async () => {
@@ -109,12 +109,12 @@ describe("AC3 — governance threads to consent-governed connectors (GA4, pixels
 });
 
 describe("041-04 AC1/AC2 — a {type:'ga4-gtag'} config entry produces the SAME createAirlock inputs as bootGa4Gtag, governance threaded like GA4/pixel", () => {
-  it("an absent consent vector yields egressPurposes:[] on BOTH paths (legacy always-dispatch)", async () => {
+  it("an absent consent vector yields the full default egressPurposes (hold-by-default, 067-02) on BOTH paths", async () => {
     await bootGa4Gtag({ ctx: gaCtx, measurementId: "G-XXXX" });
     await boot({ connectors: [{ type: "ga4-gtag", ctx: gaCtx, measurementId: "G-XXXX" }] });
 
     expect(argsOf(1)).toEqual(argsOf(0));
-    expect(argsOf(1).egressPurposes).toEqual([]);
+    expect(argsOf(1).egressPurposes).toEqual(["analytics_storage"]);
   });
 
   it("a top-level consent vector threads through identically to bootGa4Gtag({consent}) — no helix-rum-style exemption", async () => {
@@ -140,12 +140,12 @@ describe("048-01 AC3 — a {type:'google-ads'} config entry produces the SAME cr
   // it is compared structurally (typeof) and excluded from the whole-object `toEqual`.
   const withoutRemap = (args) => { const { remap, ...rest } = args; return rest; };
 
-  it("an absent consent vector yields egressPurposes:[] on BOTH paths (legacy always-dispatch)", async () => {
+  it("an absent consent vector yields the full default egressPurposes (hold-by-default, 067-02) on BOTH paths", async () => {
     await bootGoogleAds({ ctx: {}, conversionId: "AW-1234567890" });
     await boot({ connectors: [{ type: "google-ads", ctx: {}, conversionId: "AW-1234567890" }] });
 
     expect(withoutRemap(argsOf(1))).toEqual(withoutRemap(argsOf(0)));
-    expect(argsOf(1).egressPurposes).toEqual([]);
+    expect(argsOf(1).egressPurposes).toEqual(["ad_storage"]);
     expect(typeof argsOf(0).remap).toBe("function");
     expect(typeof argsOf(1).remap).toBe("function");
   });
@@ -174,12 +174,12 @@ describe("048-02 AC3 — a {type:'floodlight'} config entry produces the SAME cr
   // structurally (typeof) and excluded from the whole-object `toEqual` (mirrors the google-ads block).
   const withoutRemap = (args) => { const { remap, ...rest } = args; return rest; };
 
-  it("an absent consent vector yields egressPurposes:[] on BOTH paths (legacy always-dispatch)", async () => {
+  it("an absent consent vector yields the full default egressPurposes (hold-by-default, 067-02) on BOTH paths", async () => {
     await bootFloodlight({ ctx: {}, conversionId: "DC-1234567890" });
     await boot({ connectors: [{ type: "floodlight", ctx: {}, conversionId: "DC-1234567890" }] });
 
     expect(withoutRemap(argsOf(1))).toEqual(withoutRemap(argsOf(0)));
-    expect(argsOf(1).egressPurposes).toEqual([]);
+    expect(argsOf(1).egressPurposes).toEqual(["ad_storage"]);
     expect(typeof argsOf(0).remap).toBe("function");
     expect(typeof argsOf(1).remap).toBe("function");
   });

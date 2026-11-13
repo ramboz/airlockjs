@@ -109,12 +109,12 @@ describe("AC4 — an absent/unresolved OneTrust boot HOLDS at the seal (fail-to-
     expect(fetchMock).not.toHaveBeenCalled(); // pending -> held, never leaked
   });
 
-  it("back-compat: a boot with NO `onetrust` and NO `consent` is byte-unchanged (egressPurposes []) -> SENDS", async () => {
+  it("consentHold:false restores the legacy no-consent send (a ready beacon dispatches without a consent vector)", async () => {
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal("fetch", fetchMock);
     vi.stubGlobal("document", fakeDocument("_ga=GA1.1.5555555555.1600000000"));
 
-    await bootEdsAnalytics({ endpoints: [ENDPOINT] });
+    await bootEdsAnalytics({ endpoints: [ENDPOINT], consentHold: false });
     FakeWorker.last.onmessage(readyMsg([{ url: ENDPOINT, body: '{"n":1}' }]));
 
     expect(fetchMock).toHaveBeenCalledTimes(1); // no consent wired -> no seal gate -> send

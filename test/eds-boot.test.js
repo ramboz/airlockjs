@@ -120,11 +120,11 @@ const collectUrl = "https://www.google-analytics.com/mp/collect"; // DEFAULT_END
 const readyOne = (body) => ({ data: { ready: [{ url: collectUrl, body }], dropped: [] } });
 
 describe("bootEdsAnalytics consent wiring (spec 017-03 — the seal's egressPurposes gate)", () => {
-  it("no `consent` opt at all -> the gate stays OFF: a ready beacon dispatches normally (back-compat)", async () => {
+  it("consentHold:false restores the legacy no-consent send (a ready beacon dispatches without a consent vector)", async () => {
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal("fetch", fetchMock);
 
-    await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" } });
+    await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" }, consentHold: false });
     FakeWorker.last.onmessage(readyOne("{}"));
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -209,6 +209,7 @@ describe("bootEdsAnalytics payload-denylist wiring (spec 019-01 — ADR-0012)", 
     const handle = await bootEdsAnalytics({
       ctx: { clientId: "1.1", sessionId: "2" },
       payloadDenylist: ["email"],
+      consent: { analytics_storage: "granted" },
     });
 
     handle.pushCritical({ event: "page_view", email: "a@b.c", link_text: "Buy" });

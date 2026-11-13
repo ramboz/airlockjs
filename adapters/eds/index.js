@@ -380,6 +380,10 @@ function installOnWindow(handle) {
  *                                         live OneTrust never throws.
  * @param {string[]} [opts.endpoints]      per-tracker collect URLs.
  * @param {number}   [opts.trackers]       tracker count (defaults to endpoints.length).
+ * @param {false}    [opts.consentHold]  067-02 (ADR-0062 exception a): only the exact value
+ *                                         `false` turns off the default consent hold for this connector
+ *                                         (it then sends without waiting for consent, with a one-time
+ *                                         `warn`). Anything else keeps the hold on.
  * @param {boolean}  [opts.consentStrict]  spec 017-03 AC3 (ADR-0007 point ③): declare a
  *                                         strict/no-processing regime — an un-granted
  *                                         `analytics_storage` purpose DROPS the beacon
@@ -415,6 +419,7 @@ async function bootGa4Core(opts = {}) {
     consent: providedConsent,
     onetrust,
     consentStrict = false,
+    consentHold,
     endpoints = DEFAULT_ENDPOINTS,
     trackers = endpoints.length,
     payloadDenylist,
@@ -511,7 +516,8 @@ async function bootGa4Core(opts = {}) {
     endpoints,
     ctx: ctxWithConsent,
     consent,
-    egressPurposes: consent ? GA4_EGRESS_PURPOSES : [],
+    egressPurposes: GA4_EGRESS_PURPOSES,
+    consentHold,
     consentStrict,
     payloadDenylist,
     payloadDenylistOverride,
@@ -689,6 +695,10 @@ export async function bootEdsAnalytics(opts = {}) {
  *                                         read-only `findGaStreamCookie`).
  *                                         Absent -> the session-state write
  *                                         is skipped entirely (back-compat).
+ * @param {false}    [opts.consentHold]  067-02 (ADR-0062 exception a): only the exact value
+ *                                         `false` turns off the default consent hold for this connector
+ *                                         (it then sends without waiting for consent, with a one-time
+ *                                         `warn`). Anything else keeps the hold on.
  * @param {boolean}  [opts.consentStrict]  spec 017-03 AC3 — a strict/
  *                                         no-processing regime.
  * @param {string[]} [opts.payloadDenylist] spec 019-01 (ADR-0012) — threaded
@@ -715,6 +725,7 @@ export async function bootGa4Gtag(opts = {}) {
     consent,
     consentDefault,
     consentStrict = false,
+    consentHold,
     payloadDenylist,
     payloadDenylistOverride,
     streamCookieName,
@@ -792,7 +803,8 @@ export async function bootGa4Gtag(opts = {}) {
     endpoints: [endpoint],
     ctx: ctxWithConsent,
     consent,
-    egressPurposes: consent ? GA4_GTAG_EGRESS_PURPOSES : [],
+    egressPurposes: GA4_GTAG_EGRESS_PURPOSES,
+    consentHold,
     consentStrict,
     payloadDenylist,
     payloadDenylistOverride,
@@ -849,6 +861,10 @@ export async function bootGa4Gtag(opts = {}) {
  * @param {Record<string,string>} [opts.consent] ADR-0007 consent vector.
  * @param {Record<string,string>} [opts.consentDefault] the declared Consent-Mode default
  *   vector — folded into `ctx.consentDefault` (gcd's scope gate), mirrors bootGa4Gtag.
+ * @param {false}    [opts.consentHold]  067-02 (ADR-0062 exception a): only the exact value
+ *                                         `false` turns off the default consent hold for this connector
+ *                                         (it then sends without waiting for consent, with a one-time
+ *                                         `warn`). Anything else keeps the hold on.
  * @param {boolean}  [opts.consentStrict] spec 017-03 AC3 — a strict/no-processing regime.
  * @param {string[]} [opts.payloadDenylist] spec 019-01 (ADR-0012).
  * @param {string}   [opts.endpoint] ccm/collect endpoint override. Defaults to
@@ -866,6 +882,7 @@ export async function bootGoogleAds(opts = {}) {
     consent,
     consentDefault,
     consentStrict = false,
+    consentHold,
     payloadDenylist,
     payloadDenylistOverride,
     endpoint = GOOGLE_ADS_CCM_COLLECT_ENDPOINT,
@@ -895,7 +912,8 @@ export async function bootGoogleAds(opts = {}) {
     endpoints: [endpoint],
     ctx: ctxWithConsent,
     consent,
-    egressPurposes: consent ? GOOGLE_ADS_EGRESS_PURPOSES : [],
+    egressPurposes: GOOGLE_ADS_EGRESS_PURPOSES,
+    consentHold,
     consentStrict,
     // 045-01/044-02 (ADR-0023 Option E): g-ads OPTS IN to hold-on-denied — grounded on
     // R-009 §(b) (the container HELD the AW family under reject-all). Unconditional:
@@ -981,6 +999,10 @@ export async function bootGoogleAds(opts = {}) {
  * @param {Record<string,string>} [opts.consent] ADR-0007 consent vector.
  * @param {Record<string,string>} [opts.consentDefault] the declared Consent-Mode default vector —
  *   folded into `ctx.consentDefault` (gcd's scope gate), mirrors bootGoogleAds.
+ * @param {false}    [opts.consentHold]  067-02 (ADR-0062 exception a): only the exact value
+ *                                         `false` turns off the default consent hold for this connector
+ *                                         (it then sends without waiting for consent, with a one-time
+ *                                         `warn`). Anything else keeps the hold on.
  * @param {boolean}  [opts.consentStrict] spec 017-03 AC3 — a strict/no-processing regime.
  * @param {string[]} [opts.payloadDenylist] spec 019-01 (ADR-0012).
  * @param {string}   [opts.endpoint] ccm/collect endpoint override. Defaults to
@@ -1001,6 +1023,7 @@ export async function bootFloodlight(opts = {}) {
     consent,
     consentDefault,
     consentStrict = false,
+    consentHold,
     payloadDenylist,
     payloadDenylistOverride,
     endpoint = FLOODLIGHT_CCM_COLLECT_ENDPOINT,
@@ -1042,7 +1065,8 @@ export async function bootFloodlight(opts = {}) {
     endpoints,
     ctx: ctxWithConsent,
     consent,
-    egressPurposes: consent ? FLOODLIGHT_EGRESS_PURPOSES : [],
+    egressPurposes: FLOODLIGHT_EGRESS_PURPOSES,
+    consentHold,
     consentStrict,
     // 045-01 (ADR-0023 Option E): DC OPTS IN to hold-on-denied — grounded on R-009 §(b) (the container
     // held the WHOLE DC family under reject-all, "none — fully held"), mirrors bootGoogleAds/044-02.
@@ -1124,7 +1148,7 @@ function bootPixelConnector(vendor, opts = {}) {
   // NOTE: `onDiagnostic` MUST be destructured out explicitly — otherwise `...ids`
   // swallows it into the vendor id-bag (createConfig ignores extras), and it would
   // never reach createAirlock. spec 028: inspector diagnostic sink (see bootGa4Core).
-  const { consent, consentStrict = false, payloadDenylist, payloadDenylistOverride, externalId, externalIdCookie, onDiagnostic, ...ids } = opts;
+  const { consent, consentStrict = false, consentHold, payloadDenylist, payloadDenylistOverride, externalId, externalIdCookie, onDiagnostic, ...ids } = opts;
 
   // 026-04 (ADR-0022): advanced-matching `external_id` sourcing — META only
   // (gated on `entry.advancedMatching`; linkedin/bing stay identity-free, byte-
@@ -1155,7 +1179,8 @@ function bootPixelConnector(vendor, opts = {}) {
     connector: "pixel",
     connectorConfig,
     consent,
-    egressPurposes: consent ? entry.egressPurposes : [],
+    egressPurposes: entry.egressPurposes,
+    consentHold,
     consentStrict,
     payloadDenylist,
     payloadDenylistOverride,

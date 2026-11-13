@@ -56,6 +56,9 @@ const EGRESS_TEXT_ENCODER = new TextEncoder();
 // (core/egress.js's own `createCriticalDispatcher`) share the exact same,
 // can't-drift GET/POST init shape instead of two copies that could diverge.
 
+// 067-02 AC4: cap on the consent hold ring (architecture.md Q2).
+const MAX_HELD_BEACONS = 200;
+
 export function createAirlock({
   trackers,
   workFactor,
@@ -64,8 +67,12 @@ export function createAirlock({
   unloadCritical,
   onDiagnostic,
   consent = null,
-  egressPurposes = [],
+  egressPurposes: declaredEgressPurposes = [],
   consentStrict = false,
+  // 067-02 (ADR-0062 exception a, owner decision D2): a per-connector switch.
+  // Only the exact value `false` turns the default hold off; with it off and no
+  // `consent` wired, the seal is skipped and the connector sends as stock does.
+  consentHold,
   // 045-01 (ADR-0023 Option E): the per-connector `holdOnDenied` opt-in,
   // mirroring `consentStrict` above. When true, a DENIED governing egress
   // purpose HOLDS (buffer + flush-on-grant) instead of the default send —
@@ -199,6 +206,34 @@ export function createAirlock({
   // purpose is unaffected (back-compat).
   let consentVector = consent || {};
   const heldBeacons = [];
+  const consentHoldOff = consentHold === false;
+  const egressPurposes = consentHoldOff && !consent ? [] : declaredEgressPurposes;
+  // 067-02 AC1: "no consent input" = no `consent` opt and no `setConsent` yet.
+  let consentInputWired = Boolean(consent);
+  let noInputWarned = false;
+  if (consentHoldOff && declaredEgressPurposes.length) {
+    diagnose({
+      level: "warn",
+      kind: "consent",
+      disposition: "hold-off",
+      reason: "consentHold: false — the consent hold is off for this connector; it sends without waiting for consent",
+    });
+  }
+  // 067-02 AC4 (architecture.md Q2): bounded hold ring, oldest dropped past the cap.
+  const holdBeacon = (item) => {
+    heldBeacons.push(item);
+    while (heldBeacons.length > MAX_HELD_BEACONS) {
+      const dropped = heldBeacons.shift();
+      diagnose({
+        level: "warn",
+        kind: "consent",
+        disposition: "dropped",
+        purpose: egressPurposes.join(","),
+        reason: `consent hold ring full (cap ${MAX_HELD_BEACONS}) — oldest held beacon dropped`,
+        beaconId: dropped.beaconId,
+      });
+    }
+  };
   // 026-04 (ADR-0022 Option C): the main-side advanced-matching hash cache —
   // per-field `ud[...]` hashes the pixel chamber posts back on the `identity`
   // channel (worker→main), keyed by field. HASH-ONLY: raw identity never
@@ -541,9 +576,9 @@ export function createAirlock({
               // 045-03 (ADR-0024): preserve the fan-out disambiguator on the
               // held record (undefined for a 1:1 connector — byte-unchanged)
               // so the flush below can thread it into `remap` as its third arg.
-              heldBeacons.push({ event: r.event, remap: true, beaconId, remapKey: r.remapKey });
+              holdBeacon({ event: r.event, remap: true, beaconId, remapKey: r.remapKey });
             } else {
-              heldBeacons.push({ url: r.url, method: r.method, body: r.body, beaconId });
+              holdBeacon({ url: r.url, method: r.method, body: r.body, beaconId });
             }
             // The held diagnostic's `reason` names the ACTUAL governing state
             // (denied vs pending), derived from the consent vector — NOT the
@@ -564,6 +599,16 @@ export function createAirlock({
               heldReason = `purpose ${stateWord} under holdOnDenied — held at the seal; NO re-map wired (source event or remap fn missing) — flush will RE-SEND the under-consent payload verbatim`;
             } else {
               heldReason = "purpose pending — held at the seal"; // 017-03 pending (not opted in) — byte-unchanged
+            }
+            if (!consentInputWired && !noInputWarned) {
+              noInputWarned = true;
+              diagnose({
+                level: "warn",
+                kind: "consent",
+                disposition: "held",
+                purpose: egressPurposes.join(","),
+                reason: "no consent input wired — events are held until consent is granted; pass `consent` or call setConsent (consentHold: false turns the hold off)",
+              });
             }
             diagnose({
               level: "warn",
@@ -824,6 +869,7 @@ export function createAirlock({
      *   (core/consent.js's shape), merged over the existing state.
      */
     setConsent(vector) {
+      consentInputWired = true;
       consentVector = { ...consentVector, ...(vector || {}) };
       if (
         egressPurposes.length &&

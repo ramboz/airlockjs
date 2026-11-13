@@ -71,8 +71,10 @@ describe("AC1/AC6 — pending purpose HOLDS a ready beacon at the async seal", (
     );
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(onDiagnostic).toHaveBeenCalledTimes(2); // one per held beacon
-    for (const [record] of onDiagnostic.mock.calls) {
+    expect(onDiagnostic).toHaveBeenCalledTimes(3); // one no-input warning, then one per held beacon
+    expect(onDiagnostic.mock.calls[0][0]).toMatchObject({ level: "warn", kind: "consent", disposition: "held" });
+    expect(onDiagnostic.mock.calls[0][0].reason).toMatch(/^no consent input wired/);
+    for (const [record] of onDiagnostic.mock.calls.slice(1)) {
       expect(record).toMatchObject({
         level: "warn",
         kind: "consent",
@@ -468,8 +470,9 @@ describe("AC2/AC3 — holdOnDenied HOLDS a denied beacon, then RE-MAPS it on gra
     FakeWorker.last.onmessage(heldReadyMsg());
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(onDiagnostic).toHaveBeenCalledTimes(1);
-    const { reason } = onDiagnostic.mock.calls[0][0];
+    expect(onDiagnostic).toHaveBeenCalledTimes(2); // no-input warning, then the per-beacon held record
+    expect(onDiagnostic.mock.calls[0][0].reason).toMatch(/^no consent input wired/);
+    const { reason } = onDiagnostic.mock.calls[1][0];
     expect(reason).toContain("pending"); // was mislabeled "denied" (the canRemap-keyed bug)
     expect(reason).toContain("re-maps on grant");
   });

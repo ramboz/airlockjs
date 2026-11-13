@@ -32,3 +32,22 @@ last_verified: 2026-11-13
 **Consumers:** Adobe 064-18 onward (vendor-adobe); Google G3; Meta M4 and the D1 row.
 
 **Anti-horizontal-phasing check:** Vertical: seal verdict, diagnostic, override and flush on one connector, proven in the browser rig.
+
+### Deviation log
+
+- The slice's "check" for the existing no-consent tests changed meaning: tests that booted a track with no consent and expected a send now pass a granted vector or `consentHold: false`. No product deviation.
+
+### Reconciliation sweep
+
+- Spec 067 D2 (per-connector `consentHold: false`, one-time `warn`), D4 (helix-rum granted by default via `measurement`): match.
+- ADR-0007, ADR-0023, ADR-0062 point 4 and exception a: no change needed. `docs/architecture.md` (seal paragraph, Q2) and `contracts/README.md` and the config schema name the option.
+
+**Implementation notes (2026-11-13):**
+- Adapter gates changed in `adapters/eds/index.js` (line numbers shifted from the slice text): `bootGa4Core` (ga4), `bootGa4Gtag`, `bootGoogleAds`, `bootFloodlight`, `bootPixelConnector` (meta, linkedin, bing). Each used `egressPurposes: consent ? X : []` and now passes `egressPurposes: X` plus `consentHold`. The Alloy gate (`consent ? ALLOY_EGRESS_PURPOSES : []`) is untouched: it belongs to 067-03. `bootHelixRum` is untouched (always passes its default-granted purposes).
+- `createAirlock` (`core/airlock.js`) takes `consentHold`. Only the exact value `false` with no `consent` wired makes the effective purposes `[]` (stock behaviour); a wired vector still applies the seal. One `warn` (`disposition: "hold-off"`) at construction when the hold is off.
+- No-input warning: `warn`, `kind: "consent"`, `disposition: "held"`, reason `no consent input wired …`, once per airlock at the first held beacon, suppressed once `consent` was passed or `setConsent` called.
+- AC4 cap: `MAX_HELD_BEACONS = 200` in `core/airlock.js`; the oldest is dropped with a `warn` (`disposition: "dropped"`, reason `consent hold ring full (cap 200)`). Recorded in `docs/architecture.md` Q2.
+- Unload: `criticalDispatchGated` still drops non-send verdicts at teardown (`core/airlock.js`), so held events are lost on page unload. Persistence is out of scope.
+- Config schema accepts `consentHold` (const `false`) on ga4, ga4-gtag, pixel (all three vendors), google-ads, floodlight, with a golden fixture.
+- AC8: the parity rigs (`rig/chamber-capture.mjs` and the descriptors) already supply a granted vector. The EDS testbed (`probes/eds-testbed/scripts/scripts.js`) and `rig/subtree-install.mjs` booted with no consent, so they now pass a granted stand-in. `npm run rig:subset-smoke` and `npm run rig:google-ads-hold-flush` pass; `rig:subtree` could not run here (`git subtree` missing).
+- Tests: `test/consent-hold-default.test.js` (AC1-AC7); about 34 existing tests updated to supply consent or `consentHold: false`.

@@ -52,10 +52,10 @@ describe("bootLinkedInInsight (spec 026-02 AC1 — the adapter's LinkedIn wiring
     expect(initMsg().paramMap.pid).toEqual({ from: "static", value: "7654321" });
   });
 
-  it("no `consent` opt at all -> the gate stays OFF: a ready beacon dispatches normally (back-compat)", async () => {
+  it("consentHold:false restores the legacy no-consent send (a ready beacon dispatches without a consent vector)", async () => {
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal("fetch", fetchMock);
-    await bootLinkedInInsight();
+    await bootLinkedInInsight({ consentHold: false });
 
     FakeWorker.last.onmessage({
       data: { ready: [{ url: `${LINKEDIN_COLLECT_ENDPOINT}?pid=x&fmt=gif`, method: "GET" }], dropped: [] },
