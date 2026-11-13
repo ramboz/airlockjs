@@ -88,8 +88,7 @@ Data vocabulary (spec 060, "Commands and event data"): `content_category`, `cont
 | Errors | Blocked script, config or `/tr`; non-200; invalid commands | worker-native | M2, M9 |
 | Config provenance | Served config shape, plugin set, `signals/config` effects | mediated | M3, M11 |
 | Diagnostics | Helper-style diagnostics, catalog and audience inputs (collection side only) | host-side | M12 |
-| Backend | Test Events receipt, matching quality, deduplication with server events, catalog and audience results, attribution | live-only | D1 (dependency, on main) | Shared seal change under ADR-0062 (pending): default egress allowlist covers every destination the inventory lists, caps and queue and retention limits become opt-in, "approved forms" becomes opt-in. Consent hold unchanged. Lands on main, not built on this branch | none |
-| M13 |
+| Backend | Test Events receipt, matching quality, deduplication with server events, catalog and audience results, attribution | live-only | M13 |
 
 ### 2.3 Family coverage
 
@@ -354,10 +353,11 @@ Counting rule: MT1, MT2 and MT0 are pre-capture tasks with their own completion 
 | MT2 (task) | Candidate settings list (section 3) from public docs; completeness-probe protocol and site list (6.1) | none |
 | MT0 (task) | Capture tooling: manifest schema and stored-input check, credential check as a repository test (4.3), no-abort native recorder with response capture, headed and headless modes, EEA exit routing. Consumes the shared comparator rules from main | MT1 |
 | CAP | **Capture session** (section 4). Owner approval first | MT0, MT1, MT2, O1, O2, O3, O6, O7, O8, O9, O11 (O4 gates 6.1 and O5 gates M11, not CAP) |
+| D1 (dependency, on main) | Cross-vendor seal defaults change on main under ADR-0062: the default egress allowlist covers every destination the inventory lists (still mediated, a site can narrow it); caps, queue and retention limits and "approved forms" become site opt-ins; the consent hold is unchanged. Dispatched once for all three vendors, not built on this branch | ADR-0062 accepted. Needed before M4 is closed, and by M7 and M9. Can run in parallel with MT0, MT1, MT2 and CAP |
 | M1 | Bootstrap, queue, `init`, PageView, network shape, `ler`/`plt`, served-config reading for the pilot state. **Pilot slice** | CAP, comparator rules |
 | M2 | Standard events, data vocabulary, custom events, invalid input, catalog data (collection side) | M1 |
 | M3 | Multi-pixel routing, `set`, config effects of the settings in S14 | M1 |
-| M4 | Consent and data processing options, queue retention and replay. States the consent hold as the stock-default exception | M1 |
+| M4 | Consent and data processing options, queue retention and replay. States the consent hold as the stock-default exception | M1, D1 |
 | M5 | `_fbp`, `_fbc`, `fbclid`, first-party cookie setting (SET3), transport credentials | M1, M4 |
 | M6 | Manual identity matching: raw and prehashed fields, login and logout | M5 |
 | M7 | Automatic matching (SET1) | M6, D1 |
