@@ -20,21 +20,29 @@ slice progress and `workflow.py coverage --project-dir .` for reference coverage
 internal mechanisms can remain unanchored; live-validation residuals and release gates are not retired
 by a DONE slice or a green coverage report.
 
-**Adobe-first portfolio:** [051](051-adobe-integration-proving-ground/spec.md) remains
-in progress. One [configured stock/chamber positive](051-adobe-integration-proving-ground/slice-09-configured-positive-witness.md)
-is independently verified. Negative controls have reviewed source checkpoints,
-but actual controls, full 051-09 acceptance and the remaining 051-02/03 work
-are open. The [current work queue](051-adobe-integration-proving-ground/tasks.md#current-work-queue--051-09-only)
-links the checkpoints and their limits.
+**Adobe-first portfolio:** [064](064-adobe-parity-inventory/spec.md) (owner decisions D1-D7 recorded 2026-11-12;
+its 16 slices are READY_FOR_IMPLEMENTATION and the spec rolls up as IN_PROGRESS) is the frozen Adobe parity inventory for Alloy 2.31.1
+and the capture plan under [ADR-0061](../decisions/adr-0061-definition-of-done-vendor-compatibility.md).
+Its slices 064-01 to 064-16 are on the board below, in this order: 064-01 T1 (close the command
+inventory), 064-02 T2 (datastream setting list), 064-03 B0 (capture tooling and shared comparator field rules),
+064-04 CAP (the capture session), then 064-05 to 064-16 for B1 (pilot) through B12 (release-check wiring). Specs 065
+and 066 are reserved for the Google and Meta inventories.
+
+Spec 064 section 7 sets the disposition of the earlier Adobe specs. [051](051-adobe-integration-proving-ground/spec.md)
+stays in progress only until its slices are dispositioned: 051-02 and 051-03 are abandoned,
+051-09 is reframed as B1 plus the built part of B2, and 051-01, 04, 05, 06, 07 and 08 stay DONE
+and are reused. One [configured stock/chamber positive](051-adobe-integration-proving-ground/slice-09-configured-positive-witness.md)
+remains as evidence. Specs 052-055 are superseded by slices B1-B10, 057 is reframed as B11 and B12,
+and 056 stays as the nonblocking follow-up. Each carries a dated rescope note.
 
 [ADR-0039](../decisions/adr-0039-airlock-boundary-acceptance.md) requires actual
 stock/chamber wire, governed egress, native notifications and real response and
-rendering. Further reporting is a [nonblocking follow-up](../releases/adobe-reporting-follow-up.md);
+rendering, partly superseded by ADR-0061 (recorded real-tag fixtures prove each slice; live
+checks run at the release check). Further reporting is a [nonblocking follow-up](../releases/adobe-reporting-follow-up.md);
 full SDK coverage, adoption and performance remain required. Historical
 preflight and partial-smoke evidence is preserved in the
 [051 task history](051-adobe-integration-proving-ground/tasks.md). Source checks
-do not grant live authority. Specs 052-057 remain unsliced DRAFT outlines in the
-[release handoff](../releases/adobe-compatibility.md#jig-handoff).
+do not grant live authority.
 
 | Spec | Slice | Status | Notes |
 |------|-------|--------|-------|
@@ -174,6 +182,22 @@ do not grant live authority. Specs 052-057 remain unsliced DRAFT outlines in the
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-07 — checking recorded stock wire semantics | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-08 — observing browser request and response bytes | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-09 — one focused Analytics and Target chamber journey | IN_PROGRESS (adobe-adoption-goal) |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-01 — T1: close the command inventory | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-02 — T2: datastream setting list and completeness table | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-03 — B0: capture tooling | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 🔬 064-04 — CAP: the capture session | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-05 — B1: configure, getLibraryInfo, page-view sendEvent (pilot) | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-06 — B2: custom sendEvent, mergeId, onBeforeEventSend | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-07 — B3: response handling and applyResponse | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-08 — B4: identity and storage | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-09 — B5: consent | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-10 — B6: personalization commands | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-11 — B7: proposition rendering and notifications | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-12 — B8: aem-martech, ACDL, Launch bridge | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-13 — B9: media commands | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-14 — B10: push, conversation and debug | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-15 — B11: compatibility report and perf budget | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-16 — B12: release check wiring | READY_FOR_IMPLEMENTATION |  |
 
 ## Deferred slices
 

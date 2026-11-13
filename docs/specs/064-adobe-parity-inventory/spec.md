@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: IN_PROGRESS
 skill: jig:spec-workflow
 use_cases: [UC-2, UC-7, UC-8, UC-10]
 ---
@@ -241,7 +241,7 @@ History is kept. Each spec gets a dated rescope note and its slices get new stat
 
 ## 8. Ordered slice list (Adobe first)
 
-Counting rule: T1, T2 and B0 are pre-capture preparation tasks with their own completion checks (no fixture comparison, because the corpus does not exist yet, per ADR-0061 point 7). CAP is the capture session. B1 to B12 are slices. T1 and T2 are read-only (pinned bundle, public docs, owned datastream read-only view) and may start before D1. B0 writes tooling only. CAP and anything after it wait for D1. Order matters. Each slice is sized for one fresh session and ends with a recorded-fixture comparison through real chamber dispatch (ADR-0061 point 1). Each has a numbered slice file in this spec's directory once the owner approves the order. (Slice files are not written yet. This avoids freezing detail the pilot may change.)
+Counting rule: T1, T2 and B0 are pre-capture preparation tasks with their own completion checks (no fixture comparison, because the corpus does not exist yet, per ADR-0061 point 7). CAP is the capture session. B1 to B12 are slices. T1 and T2 are read-only (pinned bundle, public docs, owned datastream read-only view) and may start before D1. B0 writes tooling only. CAP and anything after it wait for D1. Order matters. Each slice is sized for one fresh session and ends with a recorded-fixture comparison through real chamber dispatch (ADR-0061 point 1). Each has a slice file in this spec's directory: T1 = 064-01, T2 = 064-02, B0 = 064-03, CAP = 064-04, B1 to B12 = 064-05 to 064-16. The files are short; each carries its DoR and acceptance and may be refined by the pilot.
 
 | Slice | Goal | Depends on |
 |---|---|---|
@@ -318,10 +318,10 @@ Review rounds are capped at three before owner review (owner decision). Findings
 - Round 1 (independent review): 4 findings. Pre-capture items relabeled as tasks; counts fixed; B9 split into B9, B10, B11, B12. All fixed.
 - Round 2 (fresh Opus reviewer): 10 findings (4 blocking). Fixed: comparator field-rule work added to B0; OFAT matrix made consistent; request-level classes and the unstable-state rule added; datastream no-effect conditions added; completeness metric, kill criterion and combined state added; normal-browser difference escalation restored; drift probe sequencing stated; ladder order unified; setDebug single owner; T1/T2 approval stated.
 - Round 3 (fresh Opus reviewer): 8 findings (3 blocking). Fixed: T2 input source (docs only, optional owner export D6); capture run order, restore step and owner window added (5.1, D7); 051-02 recordings are re-taken, not reused; ECID class naming; S13 added; summary wording; kill criterion 4 bounded; bundle SHA recorded per manifest. Nothing carried open.
-- Owner decisions D1 to D7 recorded 2026-11-12; status moved to READY_FOR_IMPLEMENTATION.
+- Owner decisions D1 to D7 recorded 2026-11-12; slice files 064-01 to 064-16 created and moved to READY_FOR_IMPLEMENTATION through jig's transition helper (the spec-level status is the jig rollup of its slices).
 - Anything still open after round 3 goes to the pilot as a listed check.
 - Pilot count of extra captures: _to be filled at pilot close_.
 
 ## 13. Clarifications
 
-None open. Slice files with DoR and acceptance are written after D1, so the pilot can change them.
+None open.
