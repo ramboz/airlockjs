@@ -1,7 +1,8 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: IN_PROGRESS
 dependencies: [067-01]
 last_verified: 2026-11-13
+claimed_by: 067-07-stock-context-channel
 ---
 
 ## Slice 067-07: The stock-context channel
@@ -31,3 +32,25 @@ last_verified: 2026-11-13
 **Consumers:** Adobe 064-17 (vendor-adobe), via 067-08. Google and Meta name no need today (spec 067 section 8, check 4).
 
 **Anti-horizontal-phasing check:** Vertical: collector, message type, chamber read function and a measured rig run.
+
+## Notes
+
+**What shipped.** `core/stock-context.js` (collector, chamber-side store), a `stockContext` option on `createAirlock`, and `readStockContext()` / `acceptStockContext()` on `createConnectorHost` (wired into the default GA4 chamber). Tests are in `test/stock-context.test.js`.
+
+**The channel shape, for 067-08 and Adobe 064-17.**
+- Wire message: `{ type: "stock-context", context }`. It is posted after `init` and before any event batch, and again only when the context changed (the clock sample alone never triggers a re-send).
+- `context` has up to four groups, each a flat record. A field the page can't supply is left out, never faked.
+  - `web`: `url`, `origin`, `protocol`, `host`, `hostname`, `pathname`, `search`, `hash`, `referrer`, `title`.
+  - `device`: `screenWidth`, `screenHeight`, `screenOrientation`, `colorDepth`, `pixelRatio`.
+  - `environment`: `viewportWidth`, `viewportHeight`, `userAgent`, `language`, `languages`, `cookieEnabled`, `doNotTrack`, `platform`, `mobile`, `brands` (`"Brand/version"` strings, low-entropy client hints only).
+  - `placeContext`: `localTime` (ISO 8601 with offset, a sample from the last collection), `timezoneOffset` (minutes), `timeZone`.
+- Option: `stockContext: true` is the stock default (all groups). `{ groups: [...], denylist: [...] }` narrows it. A denylist entry is a bare field name or a `group.field` path. The built-in credentials denylist always applies.
+- The option is off unless a caller sets it, so existing connectors see no change. 067-08 turns it on for Alloy.
+- Chamber side: `host.readStockContext()` returns a frozen object, `{}` when nothing arrived. For a worker that doesn't use `createConnectorHost`, `createStockContextStore()` gives the same read.
+- Not covered here: high-entropy client hints (async), and per-field fidelity against Alloy 2.31.1 (064-17).
+
+**Measured cost (AC7, spec 067 section 8 item 6).** Chromium (Playwright), `rig/harness.html` in worker mode, 5 trackers, 8 alternating runs of 40 trusted clicks each (`npm run rig:stock-context-cost`):
+- Collection: 0.039 ms mean per call over 2000 calls (p99 0.3 ms, max 0.4 ms). It runs at boot and on debounced change events, never in a capture handler.
+- INP-style interaction latency (p98): 8 ms with and without. No difference.
+- LCP: 20 ms median with and without (p90 48 ms without, 24 ms with, which is run noise).
+- Verdict: no measurable regression, so ADR-0062's kill criterion doesn't trip. The harness page is tiny, so this bounds the collector's own cost, not a heavy real page. The open question is a real EDS page with a large DOM, since `document.title` and `location` reads are cheap but resize storms are not covered by this rig.

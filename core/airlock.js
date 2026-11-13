@@ -32,6 +32,7 @@ import { mergeAdvancedMatching } from "../connectors/pixel/advanced-matching.js"
 import { originPath, checkEndpointCeiling } from "./endpoint-ceiling.js";
 import { egressVerdict, resolveConsent } from "./consent.js";
 import { governPayload, resolveDenylist } from "./payload-governance.js";
+import { collectStockContext, stockContextFingerprint, STOCK_CONTEXT_MESSAGE } from "./stock-context.js";
 
 // Default diagnostics seam: console-backed, severity-differentiated (warn for a
 // per-descriptor drop, error for a chamber-level crash). Callers may inject
@@ -121,6 +122,11 @@ export function createAirlock({
   // `core/coalescing-broker.js` (Alloy's identity-mint deduper on a different,
   // round-trip path; ADR-0021 Amendment 2026-09-09).
   coalesce,
+  // 067-07 (ADR-0062 point 2): the host-collected stock-context channel. Off
+  // (undefined/false) -> nothing collected or posted, byte-unchanged. `true`
+  // -> every group (the stock default); `{ groups, denylist }` narrows it.
+  // Posted as its own `stock-context` message, never inside an event batch.
+  stockContext,
 }) {
   const diagnose = typeof onDiagnostic === "function" ? onDiagnostic : consoleDiagnostic;
   // 028-02 per-beacon correlation: a per-INSTANCE random tag (minted once) namespaces
@@ -386,6 +392,36 @@ export function createAirlock({
         ? { type: "init", ...(connectorConfig || {}) }
         : { type: "init", trackers, workFactor, endpoints, ctx },
   );
+
+  // 067-07: stock-context channel. Collected once here (boot path) and again,
+  // debounced, after navigation/viewport/visibility changes; the listeners only
+  // arm a timer, so nothing is collected inside a capture handler (ADR-0002).
+  const stockOpts = stockContext === true ? {} : stockContext && typeof stockContext === "object" ? stockContext : null;
+  let stockFingerprint = null;
+  let stockTimer = null;
+  const STOCK_EVENTS = ["popstate", "hashchange", "resize", "orientationchange", "visibilitychange"];
+  function refreshStockContext() {
+    if (!stockOpts) return;
+    const context = collectStockContext(stockOpts);
+    if (!Object.keys(context).length) return;
+    const fp = stockContextFingerprint(context);
+    if (fp === stockFingerprint) return;
+    stockFingerprint = fp;
+    worker.postMessage({ type: STOCK_CONTEXT_MESSAGE, context });
+  }
+  function onStockChange() {
+    if (stockTimer !== null) return;
+    stockTimer = setTimeout(() => {
+      stockTimer = null;
+      refreshStockContext();
+    }, 150);
+  }
+  if (stockOpts) {
+    refreshStockContext();
+    if (typeof addEventListener === "function") {
+      for (const t of STOCK_EVENTS) addEventListener(t, onStockChange, { passive: true });
+    }
+  }
 
   // Orchestrator dispatch: the worker returns mapped requests; send them on the
   // MAIN thread immediately (fetch keepalive is cheap + survives page teardown).
@@ -704,7 +740,9 @@ export function createAirlock({
     if (typeof removeEventListener === "function") {
       removeEventListener("visibilitychange", onVisibilityChange);
       removeEventListener("pagehide", unloadFlush);
+      if (stockOpts) for (const t of STOCK_EVENTS) removeEventListener(t, onStockChange);
     }
+    if (stockTimer !== null) { clearTimeout(stockTimer); stockTimer = null; }
     if (worker && typeof worker.terminate === "function") worker.terminate();
   }
 
@@ -907,6 +945,12 @@ export function createAirlock({
      * -> skipped, never throws). See the `dispose` closure above for the guard.
      */
     dispose,
+    /**
+     * 067-07: re-collect the stock-context channel now (e.g. after an SPA
+     * `pushState` navigation, which fires no event). Posts only when the
+     * context changed; a no-op when the channel is off.
+     */
+    refreshStockContext,
     // spec 025-03 AC6: expose the raw `worker` ONLY for connector:"dom" —
     // GA4/pixel stay byte-unchanged (no `worker` key at all — this handle's
     // shape for those two connectors is unaffected). A dom-chamber tag's

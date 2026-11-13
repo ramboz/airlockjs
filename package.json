@@ -50,6 +50,7 @@
     "lh:eds": "node rig/lh-eds.mjs",
     "lh:live": "node rig/lh-live.mjs",
     "lh:r010": "node rig/lh-r010.mjs",
+    "rig:stock-context-cost": "node rig/stock-context-cost.mjs",
     "rig:erp-waterfall": "node rig/erp-runtime-waterfall.mjs",
     "cwv:budget": "node rig/cwv-budget.mjs",
     "cwv:scoreboard": "node rig/cwv-scoreboard.mjs",
