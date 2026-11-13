@@ -8,6 +8,8 @@ arch_review: true
 claimed_by: google-ads-chamber
 ---
 
+> **Rescoped 2026-11 by [spec 065](../065-google-ads-parity-inventory/spec.md) (ADR-0061).** Replaced by G1 in spec 065 section 9. History kept; criteria are inputs to the new slice file.
+
 ## Slice 059-01 - Owned direct conversion cutover
 
 **Goal:** An adopter replaces one owned direct website-conversion path with actual

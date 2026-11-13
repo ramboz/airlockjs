@@ -7,6 +7,8 @@ frame_review: true
 arch_review: true
 ---
 
+> **Rescoped 2026-11 by [spec 065](../065-google-ads-parity-inventory/spec.md) (ADR-0061).** Replaced by G9 in spec 065 section 9. History kept; criteria are inputs to the new slice file.
+
 ## Slice 059-09 - Website-call forwarding journey
 
 **Goal:** An adopter's owned website number is correctly replaced and callable

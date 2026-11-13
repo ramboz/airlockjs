@@ -7,6 +7,8 @@ frame_review: true
 arch_review: true
 ---
 
+> **Rescoped 2026-11 by [spec 065](../065-google-ads-parity-inventory/spec.md) (ADR-0061).** Replaced by ADR-0061 point 6 and the CAP capture session in spec 065 section 9. History kept; criteria are inputs to the new slice file.
+
 ## Slice 059-15 - Exact native policy and one-shot stock capture
 
 **Goal:** The operator binds an owned Google conversion or Meta PageView to the

@@ -7,6 +7,8 @@ frame_review: true
 arch_review: true
 ---
 
+> **Rescoped 2026-11 by [spec 065](../065-google-ads-parity-inventory/spec.md) (ADR-0061).** Replaced by G7 in spec 065 section 9. History kept; criteria are inputs to the new slice file.
+
 ## Slice 059-07 - Manual enhanced matching journeys
 
 **Goal:** An adopter supplies permitted first-party conversion data and preserves

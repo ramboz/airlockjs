@@ -7,6 +7,8 @@ frame_review: true
 arch_review: true
 ---
 
+> **Rescoped 2026-11 by [spec 065](../065-google-ads-parity-inventory/spec.md) (ADR-0061).** Replaced by G3 in spec 065 section 9. History kept; criteria are inputs to the new slice file.
+
 ## Slice 059-03 - Consent-respecting measurement journeys
 
 **Goal:** A site owner can honor the visitor's exact choices while retaining

@@ -125,7 +125,6 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-02 — Consent Mode state carriage (gcs) | **DONE** |  |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-03 — session-state reproduction + `_ga_<stream>` writer (closes OQ13-2) | **DONE** |  |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-04 — batched POST transport (per-cycle event coalescing) | DEFERRED |  |
-| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-18 - Additional lineage-bound Meta stock case | Owner selects a named 060-01 evidence packet after reviewing R-015 and approves its current setup, source, execution/stop and authority gates. |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-05 — Consent-Mode defaults carriage (gcd derivation) | **DONE** |  |
 | [040-core-egress-batching](040-core-egress-batching/spec.md) | 🔬 040-01 — request-count measurement gate (spike) | **DONE** |  |
 | [040-core-egress-batching](040-core-egress-batching/spec.md) | 040-02 — core coalescing seam (post-verdict, per-cycle, protocol-pluggable) | **DONE** |  |
@@ -173,6 +172,7 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-15 - Exact native policy and one-shot stock capture | IN_PROGRESS |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-16 - SDK-absent chamber capture qualification | **DONE** |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-17 - Offline native-attempt/chamber diagnostic | **DONE** |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-18 - Additional lineage-bound Meta stock case | DEFERRED |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-19 - Exercise an offline SDK-free Google conversion | **DONE** |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-20 - Exercise the SDK-free conversion in a local browser | **DONE** |  |
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-21 - Connect a local gtag queue to the conversion chamber | **DONE** |  |
@@ -185,6 +185,7 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 |------|-------|--------------------|
 | [022-helix-rum-connector](022-helix-rum-connector/spec.md) | 022-03 — page-side sampleRUM cutover + integration proof |  |
 | [039-ga4-gtag-connector](039-ga4-gtag-connector/spec.md) | 039-04 — batched POST transport (per-cycle event coalescing) |  |
+| [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-18 - Additional lineage-bound Meta stock case | Owner selects a named 060-01 evidence packet after reviewing R-015 and approves its current setup, source, execution/stop and authority gates. |
 
 ## Abandoned slices
 
@@ -199,9 +200,9 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
-- **14** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
+- **11** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **104** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
-- **51** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
+- **58** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
   - `012-mvp2-alloy-chamber/slice-01-craft.md` — applied `pr-review`; declined: scout-pr-review
@@ -251,5 +252,12 @@ Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/sli
   - `049-native-tag-suppressor/slice-02-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `050-mvp9-reference-site-rewire-trial/slice-01-craft.md` — applied `none`; declined: pr-review, scout-pr-review
   - `050-mvp9-reference-site-rewire-trial/slice-02-craft.md` — applied `none`; declined: pr-review, scout-pr-review
-  - `051-adobe-integration-proving-ground/slice-04-craft.md` — applied `pr-review`; declined: scout-pr-review
-  - `051-adobe-integration-proving-ground/slice-05-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `059-google-ads-full-compatibility/slice-01-craft.md` — applied `pr-review`; declined: independent-review, scout-pr-review
+  - `059-google-ads-full-compatibility/slice-13-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `059-google-ads-full-compatibility/slice-14-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `059-google-ads-full-compatibility/slice-15-craft.md` — applied `pr-review`; declined: independent-review, scout-pr-review
+  - `059-google-ads-full-compatibility/slice-16-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `059-google-ads-full-compatibility/slice-17-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `059-google-ads-full-compatibility/slice-19-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `059-google-ads-full-compatibility/slice-20-craft.md` — applied `pr-review`; declined: scout-pr-review
+  - `059-google-ads-full-compatibility/slice-21-craft.md` — applied `pr-review`; declined: independent-review, scout-pr-review

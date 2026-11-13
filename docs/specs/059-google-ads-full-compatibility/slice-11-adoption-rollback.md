@@ -7,6 +7,8 @@ frame_review: true
 arch_review: true
 ---
 
+> **Rescoped 2026-11 by [spec 065](../065-google-ads-parity-inventory/spec.md) (ADR-0061).** Replaced by G12 in spec 065 section 9. History kept; criteria are inputs to the new slice file.
+
 ## Slice 059-11 - Mixed-tag migration and rollback
 
 **Goal:** An integrator deploys a pinned Ads replacement alongside retained native

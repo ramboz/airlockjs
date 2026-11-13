@@ -4,6 +4,8 @@ skill: spec-workflow
 use_cases: [UC-4, UC-5, UC-6, UC-7, UC-8, UC-9, UC-10, UC-11, UC-13, UC-14]
 ---
 
+> **Rescoped 2026-11 by [spec 065](../065-google-ads-parity-inventory/spec.md) (ADR-0061).** The goal now lives in spec 065's frozen parity inventory and slice list (T1, T2, G0, CAP, G1 to G14). Slices 059-01 to 059-12 and 059-15 are ABANDONED. 059-13, 14, 16, 17, 19, 20, 21 stay DONE; 059-18 stays DEFERRED (Meta, spec 066). plan.md and tasks.md are history.
+
 # Spec 059: Full Google Ads browser-tag compatibility
 
 An adopter can replace the native Google Ads browser tag without losing its

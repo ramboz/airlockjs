@@ -7,6 +7,8 @@ frame_review: true
 arch_review: true
 ---
 
+> **Rescoped 2026-11 by [spec 065](../065-google-ads-parity-inventory/spec.md) (ADR-0061).** Replaced by G10 and G11 in spec 065 section 9. History kept; criteria are inputs to the new slice file.
+
 ## Slice 059-10 - Remote rules and browser lifecycle journeys
 
 **Goal:** An operator preserves remotely enabled native Ads behavior across real
