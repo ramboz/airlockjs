@@ -16,9 +16,9 @@ use_cases: [UC-4, UC-5, UC-6, UC-7, UC-8, UC-9, UC-10, UC-11, UC-13, UC-14]
 
 This spec turns "full Google Ads compatibility" into a finite list we can build against. It plans one capture session that records the real gtag.js tag, so every slice can be proven against recordings instead of waiting on live runs.
 
-Nothing live runs until you approve it: no captures, no Google calls, no production probes. Two read-only tasks and one tooling task may start before.
+Nothing live runs until you approve it: no captures, no Google calls, no production probes. Three pre-capture tasks (two read-only, one tooling) may start before. The fourth waits for your answer on D4.
 
-It also retires spec 059 as a plan. Section 8 closes or reframes every 059 slice. Section 9 replaces them with three pre-capture tasks, the capture session, and 14 slices (G1 to G14), each sized for one fresh session.
+It also retires spec 059 as a plan. Section 8 closes or reframes every 059 slice. Section 9 replaces them with four pre-capture tasks, the capture session, and 14 slices (G1 to G14), each sized for one fresh session.
 
 The main tradeoff is the same as Adobe's: we pay for one capture session before any slice. Google is harder in one way. Its tag is evergreen and remotely configured, and we reimplement it instead of running Google's code. So the session starts with a drift probe, and the pilot (capture session plus G1) has to show that our field rules are right, not only that the corpus is complete.
 
@@ -31,7 +31,7 @@ The decisions I need from you are in section 12, each with a recommendation. The
 - **Row classes:** `worker-native` (runs in the chamber unchanged), `mediated` (needs a capability-bridge call), `host-side` (stays on the main thread), `incompatible` (stated, with reason), `live-only` (cannot be fixture-proven, tagged up front, 4.9).
 - **Browser scope (point 9).** Desktop Chromium only. Firefox, Safari/WebKit, mobile and in-app browsers go to the next version. This replaces 059's scenario floor C2 for browsers and cohorts. EEA egress stays in v1.0.
 - **No synthetic fixtures.** The redacted R-009 capture (`test/fixtures/parity-google-ads-ccm.redacted.json`) has redaction sentinels (rig/native-tag-comparison.md:174-175), no stored-input manifest and no script digest, and the 059-19 prototype fixtures are synthetic. Neither is evidence of parity. They stay as unit-test inputs.
-- Each row has an owning slice (section 9). A row without an owner is a defect in this spec. An owner is a slice, or task T1 or T2 for rows still being closed.
+- New rows found by T1 or T2 go to an existing G-slice, or become G15. More than 5 new rows triggers kill criterion 4. Each row has an owning slice (section 9). A row without an owner is a defect in this spec. An owner is a slice, or task T1 or T2 for rows still being closed.
 
 ## 2. Inventory
 
@@ -71,7 +71,7 @@ Every request the tag makes gets a request-level class (ADR-0061 point 10): `alw
 | `viewthroughconversion` and `rmkt` mirrors | conditional | Two bodies were unavailable in the smoke |
 | `ccm/form-data` (enhanced conversions) | conditional | Depends on the enhanced-conversions state |
 | `cm.g.doubleclick.net/pixel` (cookie match) | conditional | Credentialed and cross-site. Never captured here |
-| Any request not in this list | unknown | Resolves to always, conditional or volatile before the freeze commit |
+| Any request not in this list | unknown | Resolves to always, conditional or volatile before the freeze commit. Owner: the capture session (CAP) |
 
 Fan-out completeness was left open at ADR-0040:224. The positive control (4.1) plus every state's full request list closes it for the frozen corpus.
 
@@ -140,7 +140,7 @@ The part-B loads are probe loads, not corpus states, so they sit after the contr
 
 ### 4.3 Recording set per state (point 1)
 
-Each state is recorded as base plus a same-setup repeat. The exemptions are in the section 5 variant column: states that carry no identity, generated or `dma` field (S11, S13, S14) are recorded base-only from the non-EEA exit, and S12 and S15 record the EEA exit only where noted there. Every exemption is listed in the freeze note. Egress region is a factor for every Google state, because `dma` is geo-derived, so each state's base and repeat are recorded from both a non-EEA and an EEA exit. The other factors are context fields that do not depend on the command. They are recorded as one-factor-at-a-time (OFAT) variants of the base on S1 and S2, which carry the page-load and conversion field families. If an OFAT factor changes any field there, that factor extends to every other state that carries the field (escalation rule), and the manifest records it.
+Each state is recorded as base plus a same-setup repeat. The exemptions are in the section 5 variant column: S11, S13 and S14 add no field family beyond those S1 and S2 already cover on both exits, so they are recorded once from the non-EEA exit, and S12 and S15 record the EEA exit only where noted there. Every exemption is listed in the freeze note. Egress region is a factor for every Google state, because `dma` is geo-derived, so each state's base and repeat are recorded from both a non-EEA and an EEA exit. The other factors are context fields that do not depend on the command. They are recorded as one-factor-at-a-time (OFAT) variants of the base on S1 and S2, which carry the page-load and conversion field families, plus locale and timezone on S7 and S9, where phone and email normalization and number swap depend on them. This narrows ADR-0061 point 1 from every state to field families, to keep the corpus under 150. If an OFAT factor changes any field there, that factor extends to every other state that carries a field of the same family (escalation rule), and the manifest records it.
 
 | Factor | Applies | Where |
 |---|---|---|
@@ -158,7 +158,7 @@ Every fixture stores in its manifest: URL and referrer, viewport, locale, timezo
 
 ### 4.5 Held-out check of derived rules (point 7)
 
-Every derived field rule is checked against recordings not used to derive it: the day-2 drift-probe loads, plus at least one extra fresh-profile setup (a different viewport and locale, from a third egress if D2 provides one, otherwise from one of the two exits), and one returning-profile recording from a reused profile whose cookie values were not in the derivation set. If only two exits exist, G14's out-of-corpus egress is tagged `live-only: geo` instead. A rule that fails is rewritten, or the field is classed volatile only if it then meets the volatile definition. If the corpus cannot explain a failure, stop and report (kill criterion 3).
+Every derived field rule is checked against recordings not used to derive it: the day-2 drift-probe loads, plus at least one extra fresh-profile setup (a different viewport and locale, from a third egress if D2 provides one, otherwise from one of the two exits), and one returning-profile recording from a reused profile whose cookie values were not in the derivation set. If only two exits exist, G14's out-of-corpus egress is an owner-approved narrowing of point 10, recorded with a dated note like D5. A rule that fails is rewritten, or the field is classed volatile only if it then meets the volatile definition. If the corpus cannot explain a failure, stop and report (kill criterion 3).
 
 ### 4.6 Owner's normal-browser reference capture
 
@@ -171,15 +171,17 @@ The owner records one normal-browser capture of a state agents also record (reco
 3. **One owner settings window** (about 3 hours in one sitting, hard cap 4) for the console-side candidates in section 6. For each one the owner changes the setting and says so. Toggles are serialized: the owner changes candidate n only after the agent confirms candidate n-1's served bytes changed or the poll timed out. The agent polls the served config bytes, waits, records, and logs the change and times in the manifest. EEA loads and repeats continue after the owner leaves. Budget: about 9 console candidates at an average of 10 to 15 minutes plus the combined state fits 3 hours only if most settings propagate fast, so D3 pre-authorises a second window of up to 2 hours. The normal-browser capture (S17) is the first action of the window, before any toggle, so it compares against S2 under identical account settings. Then the toggles, then one combined-settings state.
 4. **Restore step.** The owner restores the account to its original settings and the agent records one S2 load to confirm it matches the step-2 recordings.
 5. Day 2 (agent): repeat the drift probe, S1 and S2 from both exits, the held-out check, and any top-ups that need no settings change.
-6. Every manifest records the script digest actually loaded. If the digest changes between states, the session stops, reruns drift probes A and B, and reports. If fixed fields moved, kill criterion 2 applies.
+6. Every manifest records the script digest actually loaded (library region and config region). If the library-region digest changes between states, or the config-region digest changes without a logged owner toggle, the session stops, reruns drift probes A and B, and reports. If fixed fields moved, kill criterion 2 applies.
 
-The owner window can sit next to the Adobe window (spec 064, D7) and reuse the same EU exit (D2), so the owner gives one block of time.
+The owner window can sit next to the Adobe window (spec 064's own D7, the Adobe settings window) and reuse the same EU exit (D2), so the owner gives one block of time.
 
 ### 4.8 Egress
 
 Two exits: a non-EEA exit (the owner's default) and an EEA exit the owner provides or approves. VPN or proxy credentials never enter Git, and the credential check applies. The EEA exit is in an EEA country, not the UK or Switzerland, because `dma` follows the DMA scope. If the EU exit is unavailable, states with a `dma` or server-context difference are tagged `live-only: geo` and the gap goes in the freeze note.
 
 ### 4.9 Live-only tags
+
+Each item below is marked `live-only` in its section 2 row (rows 5, 6, 8, 9, 12 and the cookie-match request in 2.2), so the release check reads the list from the inventory.
 
 Tagged now, with reason, and checked once at the release check: conversion counting and attribution in the Ads UI (including whether a test click is attributed); enhanced-conversions matching; remarketing list membership; cookie-match (`cm.g.doubleclick.net`) effects if only visible downstream; website-call forwarding beyond the lookup response; cookie lifetimes beyond the `Set-Cookie` and storage values we record; any geo-dependent response from an egress we could not use.
 
@@ -189,7 +191,7 @@ The pilot is the capture session plus slice G1. We count the captures G1 needed 
 
 ## 5. Capture corpus
 
-Estimated size: about 105 recordings (S0 2, P0 14, S1 ~16 with OFAT, S2 ~16, S3 8, S4 ~10, S5 to S10 ~24, S11 to S14 ~8, S15 ~15 minus overlap, S16 ~8, S17 1), under the 150 bound in section 10. If the section 4.3 escalation rule would push the count past 150, the session stops and reports to the owner (kill criterion 4).
+Estimated size: about 131 recordings against the 150 bound in section 10. Arithmetic: S0 2, P0 14 (probe A twice, part B six loads on each day), S1 8 (base and repeat on two exits, 4 OFAT), S2 8, S3 8, S4 16 (4 journeys x 4), S5 to S10 24 (6 states x 4), locale OFAT on S7 and S9 2, S11 to S14 12 (3 each), S15 30 (10 candidates x 3), S16 6, S17 1. Headroom is 19. If the section 4.3 escalation rule would pass 150, the session stops and reports to the owner (kill criterion 4). Pre-declared first cuts: the S15 EEA loads, then the S12 EEA load.
 
 | ID | State | Variants |
 |---|---|---|
@@ -198,14 +200,14 @@ Estimated size: about 105 recordings (S0 2, P0 14, S1 ~16 with OFAT, S2 ~16, S3 
 | S1 | Page load, `config` only, granted consent, direct, fresh | base, repeat, both egresses, OFAT |
 | S2 | Owned direct conversion: `conversion` with label, value, currency, `transaction_id` (the 059-01 case) | base, repeat, both egresses, OFAT |
 | S3 | Click-ID landing, then returning visit (cookie reuse, cookie update) | fresh and returning, each with repeat, both egresses |
-| S4 | Consent: default denied then update granted; advanced cookieless; `wait_for_update`; revoke | each, both egresses |
+| S4 | Consent: default denied then update granted; advanced cookieless; `wait_for_update`; revoke (4 journeys) | each, base and repeat, both egresses |
 | S5 | Remarketing and dynamic remarketing events with items | base, repeat, both egresses |
 | S6 | Rich purchase: cart data, custom variables, new customer, duplicate transaction | base, repeat, both egresses |
 | S7 | Manual `user_data` (raw, prehashed) | base, repeat, both egresses |
 | S8 | Automatic detection and lead form submit | base, repeat, both egresses |
 | S9 | Website call lookup and swap | base, repeat, both egresses |
 | S10 | Cross-domain link and form decoration to the owned peer; `url_passthrough` | base, repeat, both egresses |
-| S11 | Page-side config: cookie options, `send_page_view:false`, `ads_data_redaction` | one each |
+| S11 | Page-side config: cookie options, `send_page_view:false`, `ads_data_redaction` | one each, non-EEA |
 | S12 | Multiple destinations, `send_to`, native GA4 present | base, repeat, non-EEA plus one EEA |
 | S13 | Lifecycle: click navigation with callback, `pagehide`, bfcache | one each |
 | S14 | Errors: blocked network, non-200, malformed config response | one each, scripted |
@@ -233,7 +235,7 @@ The inventory freezes after the session toggles each candidate. T2 lists candida
 
 A candidate counts as **no effect** only if all three conditions hold (point 3):
 
-- (a) The check came after a stated propagation wait. Default: poll the served config bytes every 2 minutes up to 20 minutes after the owner's change, then one more 20-minute poll if still unchanged. The times go in the manifest.
+- (a) The check came after a stated propagation wait. Default: poll the served config bytes every 2 minutes up to 20 minutes after the owner's change. A candidate still unchanged at 20 minutes is not waited on in the window: the owner moves on to a candidate in a different setting group while the agent runs one more 20-minute poll in the background. A candidate still unchanged after that goes to the second window, or is tagged no effect only if all three conditions then hold. The times go in the manifest.
 - (b) The served config bytes were checked: a fetch of `gtag/js?id=<test id>` before and after, compared by digest and by the config region, plus the set of requests recorded.
 - (c) The triggering input was present in the page.
 
@@ -246,7 +248,7 @@ A candidate whose bytes change only after the window closes is a gap to fill now
 Before the freeze we compare the candidate inventory with the `gtag/js?id=` configs public sites actually serve. This probe touches production, so it is owner decision D4 and does not run before approval.
 
 - **Sample:** at least 50 distinct Ads/gtag configs. First choice, if the data covers it: public crawl data (for example the HTTP Archive response bodies), which touches no site. Second choice: single GETs of `gtag/js?id=<id>` for ids found on an owner-approved list of public pages, with no page JavaScript executed, no cookies, no consent clicks, and a rate limit.
-- **Feature:** one distinct config key or setting value the tag reads.
+- **Feature:** a hit on a closed token list that T1 and T2 produce (the 62 ledger query names and the candidate setting keys from section 6), matched against the served config region. No parsing of Google's script. If the crawl bodies lack `gtag/js` responses, T3 falls back to the single-GET route under D4, bounded at 2 days of effort.
 - **Metrics:** feature-level out-of-inventory rate = features seen in the sample that no section 6 state or section 2 row covers, divided by all distinct features seen. Site-level rate = sites with at least one uncovered feature, divided by sites sampled.
 - **Combined settings:** S15 includes one combined state. The probe also reports, for information only, the share of sampled sites whose settings combination our combined state does not cover.
 - **Kill criterion:** feature-level rate above 10%, or site-level rate above 25%, means the inventory is not finite enough to freeze. Value so far: not measured.
@@ -291,14 +293,14 @@ History is kept. Spec 059 gets a dated rescope note and each slice a new status.
 
 ## 9. Ordered slice list
 
-T1, T2 and G0 are pre-capture tasks with their own completion checks. They need no fixture comparison, because the corpus does not exist yet (point 7). T1 and T2 are read-only. CAP and everything after it wait for D1. Each slice is sized for one fresh session and ends with a recorded-fixture comparison through real chamber dispatch (point 1). Slice files with DoR and acceptance are written after D1, so the pilot can still change them.
+T1, T2, T3 and G0 are pre-capture tasks with their own completion checks. T1, T2 and G0 may start before approval (T1 and T2 are read-only). T3 needs D4. They need no fixture comparison, because the corpus does not exist yet (point 7). T1 and T2 are read-only. CAP and everything after it wait for D1. Each slice is sized for one fresh session and ends with a recorded-fixture comparison through real chamber dispatch (point 1). Slice files with DoR and acceptance are written after D1, so the pilot can still change them.
 
 | Slice | Goal | Depends on |
 |---|---|---|
 | T1 (task) | Close the surface from the retained loader and the 12-request ledger: command, config, parameter and endpoint lists, and all 62 query names for the field table. No vendor code runs | none |
 | T2 (task) | Candidate-settings list from Google's public docs, page-side or console-side, with triggers (including the combined state), and the completeness table skeleton | none |
 | T3 (task) | Completeness probe (7.1): sample acquisition, both metrics, threshold verdict. The freeze waits for it | T1, T2, D4 |
-| G0 (task) | Capture tooling. **Shared, lands on main once (Adobe task B0):** manifest schema, stored-input-state check, pre-commit credential check, and native-side field rules in the comparator (today `native_normalization_unsupported`, rig/native-tag-comparison.md:186-194). **Google part, built here:** the drift-probe recorder, the field and request classifier output, retiring `normaliseDenylist` in `rig/parity/descriptors/google-ads.js` in favor of the frozen per-field classes, and a capture driver that reuses 059-14 and 059-16 pieces where they fit. The shared half also needs the reviewed policy amendment to `rig/native-tag-comparison.md` (native path-specific normalization, bounded to rules derived from the frozen corpus), because the doc today calls it unimplemented. Adobe's B0 owns both. This branch does not build them. If B0 slips past the capture session, CAP can still run but G1 waits, and the owner is told in D1. G1 and every later field slice wait for them on main | T1 |
+| G0 (task) | Capture tooling. **Shared, lands on main once (Adobe task B0):** manifest schema, stored-input-state check, pre-commit credential check, and native-side field rules in the comparator (today `native_normalization_unsupported`, rig/native-tag-comparison.md:186-194). **Google part, built here:** the drift-probe recorder, the field and request classifier output, retiring `normaliseDenylist` in `rig/parity/descriptors/google-ads.js` in favor of the frozen per-field classes, and a capture driver that reuses 059-14 and 059-16 pieces where they fit. The shared half also needs the reviewed policy amendment to `rig/native-tag-comparison.md` (native path-specific normalization, bounded to rules derived from the frozen corpus), because the doc today calls it unimplemented. Adobe's B0 owns both. This branch does not build them. CAP needs the manifest checker and credential check, so CAP waits for B0 on main. G1 waits for the comparator rules too. If B0 slips, the owner is told in D1 and nothing is captured early. G1 and every later field slice wait for them on main | T1 |
 | CAP | **Capture session** (section 4). One session, owner approval first | G0, T1, T2, T3, B0 on main, D1 to D3 |
 | G1 | Owned direct conversion on a fresh profile: `config`, page-load beacon, labeled conversion and its fan-out. **Pilot slice**, replaces 059-01 | CAP, B0 comparator rules on main |
 | G2 | Commands and callbacks: `config`, `set`, `get`, `event_callback`, destinations and `send_to` | G1 |
@@ -310,9 +312,9 @@ T1, T2 and G0 are pre-capture tasks with their own completion checks. They need 
 | G8 | Automatic detection and lead forms | G7 |
 | G9 | Website calls | G3 |
 | G10 | Remote config handling, transport, redirects, retries, lifecycle | G2, G3 |
-| G11 | Out-of-inventory diagnostic (point 11, 7.2) | G10 |
+| G11 | Out-of-inventory diagnostic (point 11, 7.2) | G10, D5 |
 | G12 | Multiple destinations, native GA4 and GTM coexistence, rollback | G2, G4 |
-| G13 | Compatibility report and performance budget (the 059 C3 numbers, pinned from measured controls) | G1 to G12 |
+| G13 | Compatibility report and performance budget (produce an approved measurement plan with comparable native and replacement measurements, then the measured numbers; no pass/fail bar until the owner approves limits, per R-015:440-446) | G1 to G12 |
 | G14 | Release check wiring: fixtures against live, live-only rows, chamber next to native in one setup and one egress not in the corpus (point 10) | G13 |
 
 Existing starting points under `connectors/google-ads/`: `bootstrap-command.js`, `conversion-prototype.js`, `consent-commands.js`, `cookies.js`, `purchase-cart-items.js`, `remarketing-control.js`, `view-items.js`, `manual-response.js`. A slice that cannot be finished in one fresh session splits when its own file is written.
@@ -334,7 +336,7 @@ Existing starting points under `connectors/google-ads/`: `bootstrap-command.js`,
 Kill criteria (from ADR-0061, bounded numerically here):
 
 1. A capture set cannot be acquired, including the positive control: stop. Slices never close on synthetic fixtures.
-2. More than half of the fields seeded as fixed in 3.2 differ across the six part-B loads or across the states captured so far, the served build changes fixed fields during the session, or the request set varies between loads without explanation: stop and report before any slice.
+2. More than half of the non-volatile fields in 3.2 (input-derived and server-context-derived, which should hold still at constant inputs and egress, plus any field later classed fixed) differ across the six part-B loads or across the states captured so far, the served build changes fixed fields during the session, or the request set varies between loads without explanation: stop and report before any slice.
 3. Derived rules fail the held-out recordings and the corpus cannot explain why: stop and report before any slice.
 4. The inventory needs more than 150 recordings, more than one owner settings window plus the pre-authorised second window of at most 2 hours, or follow-up captures keep adding missing states after the pilot (more than 3 extra for G1): revisit the freeze unit.
 5. A release check finds fixtures no longer match live behavior in 3 or more inventory rows: revisit the freeze unit and the refresh cadence.
@@ -349,11 +351,11 @@ No probe touching a production site, tenant or real-user data runs without the o
 I recommend approving all of these as written. Each is yours to change.
 
 - **D1. Spec and slice order.** Approve this spec, the 059 closure in section 8 and the slice order in section 9. Recommended: yes. It makes every slice finishable offline.
-- **D2. EU exit.** Provide or approve one EEA exit for agent runs on day 1 and day 2. A third exit (any region) for the G14 and held-out checks is welcome but optional. Recommended: reuse the second egress you already agreed to give Adobe, as long as it is in an EEA country. Google needs it on every state, so it has to stay up for both days.
+- **D2. EU exit.** Provide or approve one EEA exit for agent runs on day 1 and day 2. A third exit (any region, needed once for the G14 release check, not for both days) is part of this ask, because ADR-0061 point 10 requires an egress outside the corpus. Recommended: reuse the second egress you already agreed to give Adobe, as long as it is in an EEA country. Google needs it on every state, so it has to stay up for both days.
 - **D3. Settings window.** One sitting of about 3 hours, hard cap 4, for the console-side toggles in section 6. Recommended: put it right next to the Adobe window on the same day and let the propagation waits overlap. Pre-authorise a second window of up to 2 hours, used only if toggles are still pending or a setting lands after the first closes. The overlap with Adobe's window is for the owner's time. Google toggles stay serialized.
 - **D4. Completeness probe on real configs.** Recommended: yes, with public crawl data first, so no site is touched. If that does not cover enough configs, I come back to you with a list of public pages for single GETs. Thresholds are in 7.1.
 - **D5. Reading a customer's config in production.** Approving this narrows ADR-0061 point 11 for v1.0, and I add an amendment note to the ADR. Recommended: ship the diagnostic slice G11 with the `boot(config)` check and the adopter's own build-time check, and leave a runtime read of the served script to the next version. The cost: a setting changed upstream shows up at the adopter's next check, not live.
-- **D6. Meta time-box.** Not applicable to Google (7.3). Nothing to decide.
+- **D6.** Skipped on purpose. It is the Meta-only time-box, which does not apply here (7.3). The numbers stay aligned with the other inventories.
 - **D7. Peer domain for the linker.** Confirm you own a second domain I can use for cross-domain states. Recommended: yes. If not, the S10 captures are marked `blocked: no peer domain` and listed in the freeze note.
 - **D8. Console features on the test account.** Confirm which of these exist and can be toggled: enhanced conversions (including for leads), website calls with an eligible call resource, new-customer acquisition. Recommended: tell me which exist, and I mark the rest `blocked: account-ineligible` with the reason.
 - **D9. Normal-browser state.** One state: S2 on the non-EEA exit, in a fresh profile never signed in to Google. Recommended: yes.
@@ -364,6 +366,7 @@ I recommend approving all of these as written. Each is yours to change.
 Review rounds are capped at three before owner review. Findings left after round 3 go into the pilot as listed checks.
 
 - Round 1 (fresh Opus reviewer, 7 blocking, 9 non-blocking, 3 suggestions): all fixed. Main changes: D5 now states it narrows ADR-0061 point 11 with an amendment note; credential allow-list seeded from T1 with in-session additions; drift probe A split into library and config regions; S17 moved before any toggle; recording exemptions listed; serialized toggle protocol and a pre-authorised second window; returning-profile held-out recording; kill criteria 2 and 5 made measurable; new task T3 owns the completeness probe; `normaliseDenylist` retirement and the comparator policy amendment added to G0; B0 on main added to CAP and G1 dependencies; request classes limited to always, conditional, volatile; per-state recording arithmetic.
+- Round 2 (fresh Opus reviewer, 14 findings): all fixed. Main changes: kill criterion 2 restated over non-volatile fields; recording arithmetic recomputed to about 131 with headroom and first cuts; CAP waits for B0 on main; digest-stop rule scoped to the library region; OFAT extended to S7 and S9 by field family and the narrowing of point 1 stated; exemption reason corrected; poll cap so the owner is not blocked; third exit made part of D2; live-only marked in section 2 rows; completeness feature defined as a closed token list; task counts corrected; ownerless rows get a rule and a bound; G13 produces a measurement plan; G11 depends on D5.
 - Pilot count of extra captures: _to be filled at pilot close_.
 
 ## 14. Clarifications
