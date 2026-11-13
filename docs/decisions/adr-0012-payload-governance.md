@@ -11,6 +11,8 @@ frame_review: true
 
 Accepted (2026-08-30)
 
+Superseded in part by [ADR-0062](./adr-0062-stock-default-parity.md) (2026-11-13): the ambient web/device context boundary note (:82-83, :196-199) no longer applies, because stock context is fed from real host values. The built-in default denylist (:108-116) stands and stays on by default.
+
 ## Context
 
 Airlock exposes **two** channels through which host/site data reaches a connector inside its chamber, and

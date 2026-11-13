@@ -13,6 +13,12 @@ Accepted (2026-11-12)
 
 Partially supersedes ADR-0038, ADR-0039, ADR-0040, ADR-0046 and ADR-0047 (clauses listed under Recommended Decision). Everything else in those ADRs stands.
 
+Amendments (owner decisions, 2026-11-13):
+
+- **2026-11-13, point 11 (spec 065 D5).** For Google v1.0, point 11 is met by the `boot(config)` check plus the adopter's own build-time check of its served gtag.js. Reading the served config at runtime is deferred to the next version. Meta keeps the full point 11 (spec 066 O5): slice M11 reads the served `signals/config` at boot through mediated egress.
+- **2026-11-13, point 1 (spec 065 D6).** For Google, one-factor variants run by field family on S1, S2, S7 and S9 instead of on every state. The egress region is a factor on every state except the exemptions (S11, S13 and S14 non-EEA only; S12 and S15 partial EEA). The repeat rule in spec 065 section 4.3 applies. If a variant changes a field, that factor extends to every other state carrying a field of the same family, and the manifest records it.
+- **2026-11-13, point 1 (spec 066 O11).** For Meta, one-factor variants run on S1, S2 and S4 Purchase only, plus the egress region on every state. The escalation rule applies: if a one-factor variant changes any field, that factor extends to every other state carrying a field of the same family, and the manifest records it.
+
 ## Context
 
 Slices waited on live vendor proof and on per-run approval gates (browser runs included), and vendor inventories could keep growing, so five weeks of verification harnesses and process documents produced almost no product code. This ADR fixes what "done" means for vendor compatibility work so slices can finish: fixtures per slice, one live check per release, and a frozen inventory per pinned vendor version. Owner decisions of 2026-11-12 (also: capture once per vendor at freeze time; test identities so fixtures commit unredacted; Google/Meta frozen as script plus remote config pair): "Recorded fixtures per slice, live check per release"; "Keep full parity as the v1.0 bar"; "Freeze the inventory per pinned tag version; later discoveries go to the next version"; "just follow the jig ceremony for each".

@@ -4,6 +4,7 @@ import { mkdir, open, writeFile } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { isDeepStrictEqual as equal } from "node:util";
+import { evaluateFieldRule, fieldRuleShape, protectedTarget } from "./field-rules.mjs";
 import { evidenceSession, keys as strictKeys, parseEvidence } from "./attempt-evidence-io.mjs";
 
 // Offline only. This module deliberately imports no browser, SDK or network API.
@@ -208,9 +209,12 @@ function manifestShape(m) {
     if (p.endsWith("sha256") ? !digest(m.expected_pins[p]) : !text(m.expected_pins[p]))
       reject("invalid_expected_pins");
   }
-  exactKeys(m.rules, ["identities", "hashes"]);
+  const withFields = Object.hasOwn(m.rules, "fields");
+  exactKeys(m.rules, withFields ? ["identities", "hashes", "fields"] : ["identities", "hashes"]);
+  if (withFields && !Array.isArray(m.rules.fields)) reject("invalid_field_rule");
   if (!Array.isArray(m.rules.identities) || !Array.isArray(m.rules.hashes)
-    || m.rules.identities.length + m.rules.hashes.length > LIMITS.rules) reject("rule_limit");
+    || m.rules.identities.length + m.rules.hashes.length + (m.rules.fields?.length ?? 0) > LIMITS.rules)
+    reject("rule_limit");
   const used = new Set();
   const use = s => {
     selectorShape(s);
@@ -235,6 +239,22 @@ function manifestShape(m) {
     if (!["identity", "trim_lowercase_utf8"].includes(rule.normalization)) reject("invalid_hash_rule");
     use(rule.input); use(rule.digest);
   }
+  for (const rule of m.rules.fields ?? []) {
+    try { fieldRuleShape(rule, selectorShape); } catch (e) {
+      if (e instanceof ComparisonError) throw e;
+      reject(e.message.startsWith("invalid_field") || e.message.startsWith("field_rule")
+        ? e.message : "invalid_field_rule");
+    }
+    rule.selectors.forEach(use);
+  }
+  // An input_derived source stays compared exactly: no rule may target it.
+  const same = (x, y) => x.request === y.request && x.field === y.field
+    && (x.index ?? x.name ?? null) === (y.index ?? y.name ?? null);
+  for (const rule of m.rules.fields ?? [])
+    if (rule.class === "input_derived"
+      && (m.rules.fields.some(o => o.selectors.some(s => same(s, rule.source)))
+        || m.rules.hashes.some(o => same(o.input, rule.source) || same(o.digest, rule.source))))
+      reject("overlapping_rules");
 }
 async function loadSide(resources, budget, inspection = null) {
   const loaded = {};
@@ -552,6 +572,7 @@ function validateSide(side, m, issues, verifyObservations) {
     if (r.network_policy_sha256 !== r.provenance.network_policy_sha256) issues.add("stale_pins");
     if (m.layer !== "local_control" || r.evidence_layer !== "local_control"
       || r.profile !== "local-synthetic" || c.complete !== true) issues.add("source_unqualified");
+    if (m.rules.fields?.length) issues.add("field_rules_native_only");
   } else {
     if (m.rules.identities.length || m.rules.hashes.length)
       issues.add("native_normalization_unsupported");
@@ -687,7 +708,9 @@ function project(side, exclusions) {
   for (const row of c.receiver_requests) remove(row, "at", 1);
   return c;
 }
-function replaceSelected(projected, s, value) {
+// `collapse` keeps which escape spellings occurred but not the value length,
+// because a field rule legitimately covers values of different lengths.
+function replaceSelected(projected, s, value, collapse = false) {
   const row = projected.requests[s.request];
   if (s.field === "query") {
     const question = row.url.indexOf("?");
@@ -697,7 +720,8 @@ function replaceSelected(projected, s, value) {
     const token = tokens[s.index];
     const equals = token.indexOf("=");
     if (equals < 0) reject("rule_evidence_unavailable", "inconclusive");
-    tokens[s.index] = `${token.slice(0, equals + 1)}${JSON.stringify([value, encoding(token.slice(equals + 1))])}`;
+    tokens[s.index] = `${token.slice(0, equals + 1)}${JSON.stringify([value, collapse
+      ? [...new Set(encoding(token.slice(equals + 1)))].sort() : encoding(token.slice(equals + 1))])}`;
     row.url = row.url.slice(0, question + 1) + tokens.join("&") + row.url.slice(end);
     row.query_pairs[s.index][1] = value;
   } else if (s.field === "body_utf8") row.body_base64 = Buffer.from(value).toString("base64");
@@ -757,7 +781,37 @@ function applyRules(a, b, pa, pb, rules, issues) {
       replaceSelected(p, rule.input, normalize(selected(side, rule.input)));
     preserved++;
   }
-  return preserved;
+  return preserved + applyFieldRules(a, b, pa, pb, rules.fields ?? [], issues);
+}
+// Native-side field rules (ADR-0061 point 10). Each class validates the ORIGINAL
+// values on both sides first; only a valid rule replaces them with one token.
+function applyFieldRules(a, b, pa, pb, rules, issues) {
+  if (a.capture.kind === "local_complete_sequence") return 0;
+  const keyOf = (side, s) => {
+    const row = side.capture.requests[s.request];
+    if (!row) reject("rule_evidence_unavailable", "inconclusive");
+    return s.field === "query" ? row.query_pairs[s.index]?.[0] : s.field === "header" ? s.name : null;
+  };
+  let applied = 0;
+  for (const [i, rule] of rules.entries()) {
+    for (const side of [a, b]) for (const s of rule.selectors) {
+      const key = keyOf(side, s);
+      if (s.field === "body_utf8" && rule.class !== "input_derived") reject("rule_target_unsupported");
+      if (protectedTarget(rule, key)) reject("rule_target_unsupported");
+    }
+    const results = [a, b].map(side => evaluateFieldRule(rule, i,
+      rule.selectors.map(s => selected(side, s)), rule.source ? selected(side, rule.source) : undefined));
+    if (results.some(r => !r.valid)) { issues.add("field_rule_violation"); continue; }
+    // Same input state must yield the same server-supplied value on both sides.
+    if (rule.class === "server_context"
+      && JSON.stringify(rule.selectors.map(s => selected(a, s))) !== JSON.stringify(rule.selectors.map(s => selected(b, s)))) {
+      issues.add("field_rule_violation"); continue;
+    }
+    for (const [p, r] of [[pa, results[0]], [pb, results[1]]])
+      rule.selectors.forEach((s, k) => replaceSelected(p, s, r.tokens[k], true));
+    applied++;
+  }
+  return applied;
 }
 function compare(a, b, m, budget, control = false) {
   const result = publicReport();

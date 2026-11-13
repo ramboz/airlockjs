@@ -371,9 +371,9 @@ reshape ①, cookie-capability deny ②, seal hold/strict-drop ③) — see
 `dispatchInterceptedFetch` via `egressVerdict(consent, egressPurposes, {strict:true})`
 (the TRUSTED seam-side drop) + the in-chamber `setConsent` command
 (`connectors/alloy/consent.js` → the Adobe 2.0 shape, driven `configure → setConsent →
-sendEvent`). The probe (020-01) found alloy's payload already read-minimized by
+sendEvent`). The probe (020-01) found alloy's payload read-minimized by
 construction (`toXdm` 2-field allowlist + `context:[]`), with an optional Edge-safe
-defense-in-depth strip. Recorded in [ADR-0013](decisions/adr-0013-alloy-consent-enforcement.md)
+defense-in-depth strip. **Superseded in part by [ADR-0062](decisions/adr-0062-stock-default-parity.md) (2026-11-13):** that minimization is no longer the default (`context` defaults to stock and `toXdm` forwards the site `xdm`); the strip stays optional. Follow-up slices: [067-08](specs/067-shared-seal-defaults/slice-08-alloy-context-option.md) (configurable `context`) and [067-10](specs/067-shared-seal-defaults/slice-10-seam-input-governance.md) (input governance at the seam). Recorded in [ADR-0013](decisions/adr-0013-alloy-consent-enforcement.md)
 (supersedes ADR-0012's alloy-Split + resolves ADR-0007's alloy residual). **Named follow-ons:**
 - **`pending → hold+flush` for the alloy seam** — 020-02 does `pending → drop` (fail-closed, the
   first-impl choice: the alloy interact is a synchronous vendor round-trip, not a queued `{url,body}`
