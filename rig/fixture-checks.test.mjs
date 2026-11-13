@@ -26,7 +26,7 @@ describe("064-03 credential check: rejects (positive cases)", () => {
     ["Bearer token in a body string", JSON.stringify({ body: "Authorization: Bearer abcdef0123456789" }), "bearer_token"],
     ["Google OAuth token", JSON.stringify({ body: "ya29.a0AfH6SMBabcdefghijklmnopqrstuv" }), "google_oauth_token"],
     ["Meta access token", JSON.stringify({ body: "EAAGm0PX4ZCpsBAabcdefghijklmnop" }), "meta_access_token"],
-    ["JWT", JSON.stringify({ body: [b64("{\"alg\":\"none\"}"), b64("{\"sub\":\"x\"}"), "c2ln"].join(".") }), "jwt"],
+    ["JWT", JSON.stringify({ body: [b64("{\"alg\":\"none\"}"), b64("{\"sub\":\"fixture-subject\"}"), "c2lnbmF0dXJl"].join(".") }), "jwt"],
     ["access_token query parameter", JSON.stringify({ url: `https://x.invalid/p?a=1&${"access_"}token=${"abc"}${"def123456"}` }), "token_parameter"],
     ["token as a JSON field", JSON.stringify({ response: { refresh_token: "abc" } }), "token_field"],
     ["proxy credentials in a URL", JSON.stringify({ egress: "http://user:s3cret@proxy.invalid:8080" }), "url_credentials"],
