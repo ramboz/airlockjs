@@ -1,8 +1,7 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: [067-01]
 last_verified: 2026-11-13
-claimed_by: 067-11-measurement-purpose
 ---
 
 ## Slice 067-11: A privacy-safe measurement purpose for helix-rum
@@ -28,3 +27,16 @@ claimed_by: 067-11-measurement-purpose
 **Consumers:** 067-02 (it must never hold helix-rum without this purpose). No vendor slice depends on it directly.
 
 **Anti-horizontal-phasing check:** Vertical: taxonomy entry, helix-rum wiring, qualification test and ADR lines in one slice.
+
+### Deviation log
+
+1. **Explicit deny holds, it does not drop.** helix-rum opts into `holdOnDenied`, so a denied `measurement` is held at the seal (buffered, released if consent is later granted) and dropped at unload. The AC only says it does not send.
+2. **Boot-time consent now reaches helix-rum.** The `boot(config)` helix-rum branch passes `consent` and `consentStrict` (not the denylist) to `bootHelixRum`, so a site's consent input can deny RUM. The review found this gap. Spec 022's "exempt from config governance" test was rewritten to match.
+3. **OneTrust cannot deny `measurement`.** The driver maps only the Consent Mode v2 four. A site denies RUM through the `consent` vector or `setConsent`. Recorded in `docs/architecture.md`; a OneTrust mapping is not in this slice.
+4. **Guard is a source scan plus a payload test.** It fails if any source outside `connectors/helix-rum/connector.js` and `core/consent.js` names the purpose, and checks the adapter wires the constant only once.
+
+### Reconciliation sweep
+
+- ADR-0007 and ADR-0062: dated amendment lines added; frontmatter stays Accepted.
+- `docs/architecture.md`, `connectors/helix-rum/README.md`, `contracts/instrumentation-config.schema.json`, `contracts/connector.d.ts`, `core/consent.js` JSDoc: updated to the new purpose.
+- 067-02 (consent hold warning) can rely on helix-rum declaring `measurement`. The held-beacon cap there also bounds RUM held under explicit deny.
