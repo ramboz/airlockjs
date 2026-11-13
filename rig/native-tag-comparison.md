@@ -55,7 +55,8 @@ Allowed candidate kinds: `reference_control`, `observed_sequence`. The latter
 does **not** assert independent acquisition or actual chamber execution.
 All digest strings are lowercase, 64-character SHA-256 of the **file bytes**.
 Only `configuration_sha256` may be null. All fields shown are required; extra
-manifest, descriptor, pin, rule or selector fields are rejected.
+manifest, descriptor, pin, rule or selector fields are rejected. The one
+optional addition is `rules.fields` (see [native field rules](#native-field-rules--frozen-corpus-classes)).
 
 Each completion file has exactly this schema:
 
@@ -193,9 +194,10 @@ Nonempty rules are supported **only** for declared `local_control` fixtures.
 Native inputs with any nonempty identity/hash rules are explicitly inconclusive
 `native_normalization_unsupported`; those rules are never silently ignored.
 An owner must not reinterpret account destinations, action labels, controlled
-values, consent or pins as variable native identities. Native path-specific
-normalization needs a separately reviewed policy and is not implemented here.
-The supplied native manifests intentionally have empty rule arrays.
+values, consent or pins as variable native identities. Native-side variation is
+handled only by the separate [native field rules](#native-field-rules--frozen-corpus-classes)
+below. The supplied native manifests have empty rule arrays unless they declare
+`rules.fields`.
 
 Selectors identify exactly one recorded original field:
 
@@ -264,6 +266,61 @@ percent encoding, including hex-letter case and byte positions. The original
 query keys/order and nonselected URL bytes remain exact. This is deliberately
 conservative: different encoded lengths/spellings can remain nonconformant even
 when a declared semantic relationship is valid.
+
+## Native field rules — frozen-corpus classes
+
+Policy amendment (spec 064-03, ADR-0061 point 10; **independent review
+required**). This replaces "native path-specific normalization is not
+implemented". It is shared toolkit work for Adobe, Google and Meta; the
+implementation is `field-rules.mjs` plus `applyFieldRules` in the comparator.
+
+Native manifests may add an optional `rules.fields` array (absent = exact
+comparison, as before). Each rule puts the selected fields in exactly one class
+and must name the frozen-corpus fixtures it was derived from:
+
+| Class | Rule keys | Both sides must satisfy |
+|---|---|---|
+| `generated` | `format`, `relation` | value matches `format`; `relation` `equal` (one value across the selectors), `distinct` or `none` |
+| `input_derived` | `source`, `transform` | value equals `transform(source value)` on the same side; `source` is another selector and stays compared exactly |
+| `server_context` | `context`, `allowed` | value is in the enumerated `allowed` set (≤16); `context` is `egress_region`, `served_config` or `response` |
+| `volatile` | `format` | present, and matches `format`; nothing else is checked |
+
+Every rule also has `selectors` (1–8, same four selector forms as above,
+`body_utf8` only for `input_derived`) and `derived_from`, 1–32 distinct SHA-256
+digests of the corpus fixtures the rule was read from. A rule with no corpus
+digest is rejected (`field_rule_corpus_missing`): rules are bounded to the
+frozen corpus, never invented at comparison time. "Fixed" is the default:
+anything not selected compares exactly.
+
+`format.kind` is one of `uuid`, `hex`, `decimal`, `base64url`, `token`,
+`epoch_ms` (13 digits), `epoch_s` (10 digits), with `min`/`max` length for the
+variable kinds. `transform` is one of `identity`, `lowercase`, `sha256_hex`,
+`trim_lowercase_sha256_hex`, `base64`, `base64url`. There is no generic ignore,
+regex DSL, expression or eval, and unknown keys or values are
+`invalid_manifest` input (exit 3).
+
+Closed policy:
+
+- Original values are validated on **both** sides before any replacement. A
+  failed rule is `field_rule_violation` (nonconformant, exit 1), not an ignore.
+- `generated` and `volatile` may not target routing, action, amount, currency,
+  consent or page-identity keys (`ev`, `id`, `pixel_id`, `send_to`, `label`,
+  `value`, `currency`, `currency_code`, `cd[value]`, `cd[currency]`, `consent`,
+  `gcs`, `gcd`, `gdpr`, `gdpr_consent`, `dp`, `dl`, `en`): `rule_target_unsupported`
+  (exit 3). Those fields stay exact, input-derived or server-context.
+- A `volatile` rule is only for fields shown to have no relationship to any
+  other value; a field that links to a cookie, storage, another request or a
+  response uses `generated` (with `relation`) or `input_derived`.
+- Selectors may not overlap across any rule (`overlapping_rules`); the
+  `input_derived` source may not be one of its own targets.
+- Selected query values keep which escape spellings occurred (literal, `+`,
+  percent with letter case) but not their length, because a rule covers values
+  of different lengths. Query keys/order and unselected URL bytes stay exact.
+- Field rules are native-only. On a local layer they are inconclusive
+  (`field_rules_native_only`); identity/hash rules on native stay unsupported.
+- Each applied rule counts once in `preserved_relationships`.
+- The evaluator proves only what the rule states. It does not prove the rule is
+  right: that is the held-out recordings check in ADR-0061 point 7.
 
 ## Complete local synthetic schema
 
