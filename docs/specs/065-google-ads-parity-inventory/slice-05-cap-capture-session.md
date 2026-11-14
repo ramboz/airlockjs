@@ -17,7 +17,7 @@ last_verified: 2026-11-13
 
 1. Run order of 4.7 is followed: drift probe A, positive control, drift probe B, agent-only states, the owner settings window, a restore step, then day 2.
 2. Every recording has its stored-input manifest and the script digest. The credential check passes before each commit.
-3. The corpus stays within 150 recordings (about 137 planned) and one settings window plus at most the second one. Held-out check (4.5) passes, or kill criterion 3 applies.
+3. The corpus stays within 150 recordings (about 143 planned after D12) and one settings window plus at most the second one. Held-out check (4.5) passes, or kill criterion 3 applies.
 4. The owner's one normal-browser reference capture (S2, non-EEA, fresh never-signed-in profile, D9) is compared field by field, with fixed or generated differences going to the owner first.
 5. Live-only rows are tagged. The freeze note lists every exemption and every `blocked` state. Slice files for G1 to G14 are then written.
 
