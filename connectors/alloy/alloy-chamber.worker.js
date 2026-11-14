@@ -74,6 +74,7 @@ import { createAlloyConnector } from "./connector.js";
 import { createSyncCookieCache } from "./sync-cookie-cache.js";
 import { applyEgressConfinement, denySendBeacon } from "../../core/egress-confinement.js";
 import { shapeAlloyBoot } from "./consent.js";
+import { createSyncStorage } from "./sync-storage.js";
 
 const summary = {
   booted: false,
@@ -181,22 +182,8 @@ function buildCaps(seedCookie) {
   return caps;
 }
 
-/* ---- storage shim (synchronous, in-memory) — R-004 ---- */
-function makeStorage() {
-  const m = new Map();
-  const api = {
-    getItem: (k) => (m.has(k) ? m.get(k) : null),
-    setItem: (k, v) => { m.set(k, String(v)); },
-    removeItem: (k) => { m.delete(k); },
-    clear: () => m.clear(),
-    key: (i) => [...m.keys()][i] ?? null,
-    get length() { return m.size; },
-  };
-  return new Proxy(api, {
-    get(t, p) { if (p in t) return t[p]; return m.get(p); },
-    set(t, p, v) { m.set(p, String(v)); return true; },
-  });
-}
+/* ---- storage shim (synchronous, in-memory) — R-004; seeded + mirrored per 067-12 ---- */
+const makeStorage = () => createSyncStorage();
 
 /* ---- element / node stub — R-004 ---- */
 function makeEl(tag) {
@@ -381,8 +368,15 @@ const windowShim = new Proxy(winBack, {
 winBack.window = windowShim; winBack.self = windowShim; winBack.top = windowShim; winBack.parent = windowShim; winBack.globalThis = windowShim;
 
 /* ---- install the shim globals + the alloy base-code queue snippet — R-004 ---- */
-function install(seedCookie) {
+function install(seedCookie, storageSeed) {
   buildCaps(seedCookie);
+  // 067-12: a boot that carries a (host-filtered) `storage` seed gets seeded shims that mirror
+  // every write back to the host seam; without one the shims stay plain and silent (as before).
+  if (storageSeed && typeof storageSeed === "object") {
+    for (const area of ["localStorage", "sessionStorage"]) {
+      winBack[area] = createSyncStorage(storageSeed[area], (key, value) => post("storage-writeback", { area, key, value }));
+    }
+  }
   self.window = windowShim;
   self.document = documentShim;
   try { self.screen = winBack.screen; } catch (e) {}
@@ -412,9 +406,9 @@ let host = null;
 // message below. `null` until a boot supplies one (no CMP wired -> stays null).
 let consentVector = null;
 
-async function boot({ cookie, config, bundleUrl, consent }) {
+async function boot({ cookie, config, bundleUrl, consent, storage }) {
   try {
-    install(cookie);
+    install(cookie, storage);
     post("phase", { name: "install" });
     // 045-02: retain the vector for the mid-session `setConsent` flush trigger.
     consentVector = consent == null ? null : { ...consent };

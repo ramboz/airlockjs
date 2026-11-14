@@ -70,6 +70,15 @@
       "type": "array",
       "items": { "type": "string", "minLength": 1 }
     },
+    "storageGrantNarrowing": {
+      "description": "Opt-in narrowing of a connector's localStorage/sessionStorage grant (spec 067-12, ADR-0062 point 7). The default grant is the connector's stock storage set per area; each area here names a SUBSET of it (exact keys, or `prefix_` entries extending a stock prefix). An unmentioned area keeps its stock set. It can never widen the grant; an out-of-set entry fails boot. A connector that declares no stock storage set is ungated unless narrowed.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "localStorage": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "sessionStorage": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
     "consentHold": {
       "description": "Per-connector switch for the default consent hold (spec 067-02, ADR-0062 exception a). Only false turns the hold off; the connector then sends without waiting for consent and logs one warn diagnostic. Absent keeps the hold on.",
       "const": false
@@ -239,6 +248,7 @@
         "type": { "const": "alloy" },
         "payloadDenylistOverride": { "$ref": "#/$defs/payloadDenylistOverride" },
         "cookieGrantNarrowing": { "$ref": "#/$defs/cookieGrantNarrowing" },
+        "storageGrantNarrowing": { "$ref": "#/$defs/storageGrantNarrowing" },
         "bundleUrl": { "type": "string", "minLength": 1, "description": "URL to the ADOPTER-SUPPLIED stock @adobe/alloy bundle the chamber importScripts (REQUIRED — ADR-0016; airlock does not ship it). Same-origin byte-pinned recommended; a cross-origin Adobe-CDN URL is supported with the stated integrity/CSP trade-off." },
         "datastreamId": { "type": "string", "description": "alloy configure() datastream id (the Edge config id)." },
         "orgId": { "type": "string", "description": "alloy configure() IMS org id." },

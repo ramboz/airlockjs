@@ -164,6 +164,11 @@ export interface ConnectorPurposes {
   readonly endpoints?: Readonly<Record<string, readonly ConsentPurpose[]>>;
   /** Purpose(s) each declared cookie/storage capability serves, keyed by name. */
   readonly cookies?: Readonly<Record<string, readonly ConsentPurpose[]>>;
+  /** Purpose(s) each declared localStorage/sessionStorage key or `prefix_` entry serves, per area (spec 067-12). */
+  readonly storage?: {
+    readonly localStorage?: Readonly<Record<string, readonly ConsentPurpose[]>>;
+    readonly sessionStorage?: Readonly<Record<string, readonly ConsentPurpose[]>>;
+  };
   /** Purpose(s) each declared projection read serves, keyed by read path. */
   readonly reads?: Readonly<Record<string, readonly ConsentPurpose[]>>;
 }

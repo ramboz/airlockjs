@@ -53,6 +53,17 @@ export interface CapabilityRequest {
   readonly cookies?: readonly string[];
   /** In-chamber key/value persistence. */
   readonly storage?: boolean;
+  /**
+   * The connector's STOCK localStorage/sessionStorage set per area (spec 067-12, ADR-0062 point
+   * 7): exact keys and `prefix_` entries, the same match rule as `cookies`. It is the default
+   * grant (boot seed and write-back); a site narrows it with `storageGrantNarrowing`, never
+   * widens. Omitted = no storage grant imposed (today's behavior). Enforced on the trusted host
+   * seams (`core/storage-scope.js`).
+   */
+  readonly storageKeys?: {
+    readonly localStorage?: readonly string[];
+    readonly sessionStorage?: readonly string[];
+  };
   /** May produce egress requests (subject to the seal). */
   readonly egress?: boolean;
   /** May request CWV-safe DOM injection. */
@@ -122,6 +133,12 @@ export interface GrantedCapabilities {
   };
   /** In-chamber mediated key/value storage (not real localStorage). */
   readonly storage?: {
+    /**
+     * Host-internal write-back SINK (spec 067-12, not connector-facing, unpinned like
+     * `cookies.reconcile`): receives a chamber `localStorage`/`sessionStorage` write AFTER the
+     * host seam filtered it against the grant. `value === null` is a removal.
+     */
+    reconcile?(area: "localStorage" | "sessionStorage", key: string, value: string | null): void;
     get(key: string): Promise<string | null>;
     set(key: string, value: string): Promise<void>;
     remove(key: string): Promise<void>;

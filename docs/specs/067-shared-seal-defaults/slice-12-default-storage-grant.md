@@ -1,7 +1,8 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: IN_PROGRESS
 dependencies: [067-05]
 last_verified: 2026-11-13
+claimed_by: 067-12-storage-grant
 ---
 
 ## Slice 067-12: Default localStorage and sessionStorage grant is the stock set

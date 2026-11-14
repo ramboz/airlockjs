@@ -132,6 +132,7 @@ import { checkConfigIntegrity, pinnedDispatchUrl, hostOf } from "./config-integr
 import { egressVerdict, resolveConsent } from "./consent.js";
 import { governPayload, resolveDenylist } from "./payload-governance.js";
 import { isValidCookieName, matchesGrantedName, resolveCookieGrant } from "./cookie-scope.js";
+import { resolveStorageGrant, storageKeyGranted } from "./storage-scope.js";
 
 // Default diagnostics seam (mirrors core/airlock.js's `consoleDiagnostic`):
 // console-backed, so a caller that doesn't inject `onDiagnostic` still
@@ -168,6 +169,9 @@ function consoleDiagnostic(record) {
  *   grantedCookieNames?: (readonly string[] | null),
  *   cookieGrantNarrowing?: readonly string[],
  *   cookiePurposes?: (Record<string, readonly string[]> | null),
+ *   grantedStorage?: ({ localStorage?: readonly string[], sessionStorage?: readonly string[] } | null),
+ *   storageGrantNarrowing?: { localStorage?: readonly string[], sessionStorage?: readonly string[] },
+ *   storagePurposes?: ({ localStorage?: Record<string, readonly string[]>, sessionStorage?: Record<string, readonly string[]> } | null),
  *   onDiagnostic?: (record: { level: string, kind: string, [k: string]: unknown }) => void,
  * }} opts
  * @returns {{
@@ -187,6 +191,8 @@ function consoleDiagnostic(record) {
  *     consentHeld: number,
  *     cookieScopeHeld: number,
  *     cookieConsentHeld: number,
+ *     storageScopeHeld: number,
+ *     storageConsentHeld: number,
  *   },
  * }}
  */
@@ -207,6 +213,9 @@ export function createWrappedSdkHost({
   grantedCookieNames: stockCookieNames = null,
   cookieGrantNarrowing,
   cookiePurposes = null,
+  grantedStorage: stockStorage = null,
+  storageGrantNarrowing,
+  storagePurposes = null,
   onDiagnostic,
 }) {
   const endpointCeiling =
@@ -223,6 +232,19 @@ export function createWrappedSdkHost({
     if (!cookiePurposes || !consent) return false;
     for (const [entry, purposes] of Object.entries(cookiePurposes)) {
       if (!matchesGrantedName(name, [entry])) continue;
+      if ((purposes || []).some((p) => p.endsWith("_storage") && resolveConsent(consent, p) === "denied")) return true;
+    }
+    return false;
+  }
+  // 067-12: the localStorage/sessionStorage twin of the cookie grant. `grantedStorage` is the
+  // connector's stock set per area (default grant); `storageGrantNarrowing` is the site's opt-in
+  // subset. Nothing declared = ungated (today's behavior).
+  const storageAreas = resolveStorageGrant(stockStorage, storageGrantNarrowing).areas;
+  function storageWriteDenied(area, key) {
+    const table = storagePurposes && storagePurposes[area];
+    if (!table || !consent) return false;
+    for (const [entry, purposes] of Object.entries(table)) {
+      if (!matchesGrantedName(key, [entry])) continue;
       if ((purposes || []).some((p) => p.endsWith("_storage") && resolveConsent(consent, p) === "denied")) return true;
     }
     return false;
@@ -267,6 +289,8 @@ export function createWrappedSdkHost({
     consentHeld: 0,
     cookieScopeHeld: 0,
     cookieConsentHeld: 0,
+    storageScopeHeld: 0,
+    storageConsentHeld: 0,
   };
 
   let queuedEvent = null;
@@ -583,6 +607,22 @@ export function createWrappedSdkHost({
           try { caps.cookies.reconcile(reconciled); } catch (e) { /* sink self-guards */ }
         }
       }
+    } else if (m.type === "storage-writeback") {
+      // 067-12: the chamber's localStorage/sessionStorage write-back. Fail closed on an
+      // unknown area, a non-string key, a non-string/non-null value, or a key outside the grant
+      // (ungated only when nothing is declared); a denied storage purpose drops a granted key.
+      // Diagnostics carry the area and key name only, never the value.
+      const { area, key, value } = m;
+      const badShape = typeof key !== "string" || !(typeof value === "string" || value === null);
+      if (badShape || !storageKeyGranted(storageAreas, area, key)) {
+        state.storageScopeHeld += 1;
+        diagnose({ level: "error", kind: "storage-scope", disposition: "dropped", reason: "un-granted or malformed storage key — write-back dropped at the seal", area: String(area), name: typeof key === "string" ? key : "" });
+      } else if (storageWriteDenied(area, key)) {
+        state.storageConsentHeld += 1;
+        diagnose({ level: "warn", kind: "storage-consent", disposition: "dropped", reason: "storage purpose denied — storage write-back dropped at the seal", area, name: key });
+      } else if (caps.storage && typeof caps.storage.reconcile === "function") {
+        try { caps.storage.reconcile(area, key, value); } catch (e) { /* sink self-guards */ }
+      }
     } else if (m.type === "result") {
       state.summary = m.summary;
       state.ready = m.ready || [];
@@ -676,6 +716,8 @@ export function createWrappedSdkHost({
         consentHeld: state.consentHeld,
         cookieScopeHeld: state.cookieScopeHeld,
         cookieConsentHeld: state.cookieConsentHeld,
+        storageScopeHeld: state.storageScopeHeld,
+        storageConsentHeld: state.storageConsentHeld,
       };
     },
   };

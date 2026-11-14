@@ -36,11 +36,12 @@ import { createWrappedSdkHost } from "../../core/wrapped-sdk-host.js";
 import { hostOf } from "../../core/config-integrity.js";
 import { resolveConsent } from "../../core/consent.js";
 import { resolveOnetrustBootConsent, subscribeOnetrustConsentChanges } from "../../drivers/consent/onetrust.js";
-import { ALLOY_INTERACT_ENDPOINT, ALLOY_COOKIE_NAMES, ALLOY_COOKIE_PURPOSES, ALLOY_EVENTS, ALLOY_EGRESS_PURPOSES } from "../../connectors/alloy/connector.js";
+import { ALLOY_INTERACT_ENDPOINT, ALLOY_COOKIE_NAMES, ALLOY_COOKIE_PURPOSES, ALLOY_STORAGE_NAMES, ALLOY_STORAGE_PURPOSES, ALLOY_EVENTS, ALLOY_EGRESS_PURPOSES } from "../../connectors/alloy/connector.js";
 // spec 014-03: GA4-MP's declared vocabulary — its SOT manifest home (imported, not mirrored; see the
 // retired mirror-const note below). Only the vocab consts are imported (esbuild tree-shakes the factory).
 import { GA4_EVENTS, GA4_EGRESS_PURPOSES } from "../../connectors/ga4/connector.js";
 import { scopeSeedCookies, resolveCookieGrant } from "../../core/cookie-scope.js";
+import { resolveStorageGrant, scopeSeedStorage } from "../../core/storage-scope.js";
 import { getCookieValue } from "../../core/cookie-parse.js";
 import { htmlOfDecision } from "../../connectors/alloy/decisions.js";
 import { createPropositionExposureReporter, PROPOSITION_EXPOSURE_EVENT } from "./decisions-exposure.js";
@@ -1546,6 +1547,15 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit }) {
   };
 }
 
+// The page's Storage objects, guarded: absent in node/SSR and the getter can throw (SecurityError).
+function pageStorage() {
+  const out = {};
+  for (const area of ["localStorage", "sessionStorage"]) {
+    try { out[area] = globalThis[area]; } catch (e) { out[area] = undefined; }
+  }
+  return out;
+}
+
 /**
  * Boot Adobe/alloy through the wrapped-SDK path (spec 033-02 — the analytics
  * vertical). Unlike the `createAirlock`-shaped boots (GA4/pixel/helix-rum), alloy is
@@ -1593,7 +1603,7 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit }) {
  * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, stats: Function, dispose: Function }>}
  */
 export async function bootAlloy(opts = {}) {
-  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, context = [], consent, payloadDenylist, payloadDenylistOverride, cookieGrantNarrowing, workerUrl, reservedPlacements, compositeEmit } = opts;
+  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, context = [], consent, payloadDenylist, payloadDenylistOverride, cookieGrantNarrowing, storageGrantNarrowing, workerUrl, reservedPlacements, compositeEmit } = opts;
 
   // ADR-0016 prerequisite — fail LOUD here too (validateConnectorEntry also checks it
   // on the config path) so a direct bootAlloy caller gets an actionable error rather
@@ -1651,6 +1661,17 @@ export async function bootAlloy(opts = {}) {
       // by the host into a form the real jar accepts (Domain/Secure/SameSite dropped).
       reconcile: (reconciled) => {
         try { if (typeof document !== "undefined") document.cookie = reconciled; } catch (e) { /* jar self-guards */ }
+      },
+    },
+    storage: {
+      // 067-12: the chamber's storage write-back, already filtered by the host seam against the
+      // grant. A null value is a removal. The page Storage self-guards (quota, SecurityError).
+      reconcile: (area, key, value) => {
+        try {
+          const store = pageStorage()[area];
+          if (!store) return;
+          if (value === null) store.removeItem(key); else store.setItem(key, value);
+        } catch (e) { /* storage self-guards */ }
       },
     },
   };
@@ -1711,6 +1732,11 @@ export async function bootAlloy(opts = {}) {
     // and a denied storage purpose blocks the write-back of the cookies it governs.
     cookieGrantNarrowing,
     cookiePurposes: ALLOY_COOKIE_PURPOSES,
+    // 067-12: the storage twin: stock set by area (none declared today), opt-in narrowing,
+    // and the storage-purpose write denial.
+    grantedStorage: ALLOY_STORAGE_NAMES,
+    storageGrantNarrowing,
+    storagePurposes: ALLOY_STORAGE_PURPOSES,
   });
 
   // spec 034-02: derive the decision scope set the connector requests on the interact
@@ -1731,7 +1757,11 @@ export async function bootAlloy(opts = {}) {
   const config = { datastreamId: resolvedDatastreamId, orgId, context, ...(decisionScopes.length ? { decisionScopes } : {}) };
   const rawSeedCookie = (typeof document !== "undefined" && document.cookie) || "";
   const seedCookie = scopeSeedCookies(rawSeedCookie, resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).names);
-  host.init({ cookie: seedCookie, config, bundleUrl, consent });
+  // 067-12: the storage seed crosses the same way, ONLY when a storage grant is in force; a boot
+  // that declares none posts the exact init message it always did.
+  const storageGrant = resolveStorageGrant(ALLOY_STORAGE_NAMES, storageGrantNarrowing);
+  const storageSeed = storageGrant.active ? scopeSeedStorage(pageStorage(), storageGrant.areas) : null;
+  host.init({ cookie: seedCookie, config, bundleUrl, consent, ...(storageSeed ? { storage: storageSeed } : {}) });
 
   // Serialize push/pushCritical through the single-slot driveEvent: a sequential
   // promise chain so two events never overlap (the re-entry guard at

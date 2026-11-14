@@ -1,0 +1,10 @@
+{
+  "connectors": [
+    {
+      "type": "alloy",
+      "bundleUrl": "/vendor/alloy.min.js",
+      "datastreamId": "ds-1234",
+      "storageGrantNarrowing": { "localStorage": ["vendor_"], "sessionStorage": [] }
+    }
+  ]
+}

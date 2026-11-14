@@ -55,6 +55,16 @@ export const ALLOY_COOKIE_PURPOSES = Object.freeze({
 });
 
 /**
+ * Alloy's stock localStorage/sessionStorage set (spec 067-12), shape `{ localStorage?, sessionStorage? }`
+ * of exact keys and `prefix_` entries. `null` = none declared: alloy's stock tag persists identity
+ * through cookies (R-004), and the real storage keys are grounded with Adobe 064-17. Until then
+ * the storage grant stays ungated, today's behavior (spec 067 check 8). `ALLOY_STORAGE_PURPOSES`
+ * is the matching `{ [area]: { [entry]: purposes } }` table for the consent write denial.
+ */
+export const ALLOY_STORAGE_NAMES = null;
+export const ALLOY_STORAGE_PURPOSES = null;
+
+/**
  * alloy's declared vocabulary — the SINGLE SOURCE OF TRUTH the manifest below AND the
  * `adapters/eds/index.js` boot/composite-fan-out consume (imported, not hand-mirrored), mirroring
  * `ALLOY_COOKIE_NAMES`'s own "SAME array reference so the two can never drift" discipline (035-01 AC3).
