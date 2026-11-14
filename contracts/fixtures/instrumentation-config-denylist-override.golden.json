@@ -1,0 +1,7 @@
+{
+  "connectors": [
+    { "type": "ga4", "payloadDenylistOverride": false },
+    { "type": "pixel", "vendor": "meta", "pixelId": "1234567890", "payloadDenylistOverride": ["token"] }
+  ],
+  "consent": { "analytics_storage": "granted" }
+}

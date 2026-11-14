@@ -63,6 +63,10 @@ if (typeof self !== "undefined") {
       initPromise = host.init({}); // no capabilities are wired for GA4 today
       return;
     }
+    if (m.type === "stock-context" && host) {
+      host.acceptStockContext(m);
+      return;
+    }
     if (m.type === "events" && host) {
       Promise.resolve(initPromise)
         .then(() => host.routeBatch(m.batch))

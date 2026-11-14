@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createAirlock } from "../core/airlock.js";
+import { DEFAULT_DENYLIST } from "../core/payload-governance.js";
 
 // Spec 019-01 (ADR-0012) — the payload denylist wired at BOTH governance
 // points core/airlock.js owns: the async `sendBatch` chokepoint (drain() +
@@ -223,5 +224,61 @@ describe("default denylist merges with a host-configured payloadDenylist (defens
     const clean = make();
     clean.push({ event: "view", link_text: "Read" });
     expect(clean.getState("view").params.link_text).toBe("Read");
+  });
+});
+
+// Spec 067-09 (ADR-0062 exception b, owner decision D3): the credentials denylist is on by
+// default on every path, and only an explicit `payloadDenylistOverride` turns it off or replaces it.
+describe("067-09 — default-on, extension-never-disables, explicit override", () => {
+  const fields = Object.fromEntries(DEFAULT_DENYLIST.map((k) => [k, "secret"]));
+  const rawFields = () => ({ ...fields, link_text: "Buy" });
+
+  it("on by default: every built-in field is stripped on the batch path and the critical path", () => {
+    const batch = make();
+    batch.push({ event: "signup", ...rawFields() });
+    const params = eventsMsg().batch[0].params;
+    for (const k of DEFAULT_DENYLIST) expect(params[k]).toBeUndefined();
+    expect(params.link_text).toBe("Buy");
+
+    const crit = make();
+    crit.pushCritical({ event: "page_view", ...rawFields() });
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    for (const k of DEFAULT_DENYLIST) expect(body.events[0].params[k]).toBeUndefined();
+  });
+
+  it("a host payloadDenylist extension never removes the built-in list", () => {
+    const airlock = make({ payloadDenylist: ["email"] });
+    airlock.push({ event: "signup", password: "x", cvv: "1", email: "a@b.c" });
+    const params = eventsMsg().batch[0].params;
+    expect(params.password).toBeUndefined();
+    expect(params.cvv).toBeUndefined();
+    expect(params.email).toBeUndefined();
+  });
+
+  it("payloadDenylistOverride: false turns the built-in list off, warns once, and the host list still extends", () => {
+    const onDiagnostic = vi.fn();
+    const airlock = make({ payloadDenylistOverride: false, payloadDenylist: ["email"], onDiagnostic });
+    airlock.push({ event: "a", password: "x", email: "a@b.c" });
+    airlock.push({ event: "b", password: "y" });
+    const first = FakeWorker.last.messages.filter((m) => m.type === "events").flatMap((m) => m.batch);
+    expect(first.every((e) => e.params.password !== undefined)).toBe(true);
+    expect(first[0].params.email).toBeUndefined();
+    const overrides = onDiagnostic.mock.calls.filter(([r]) => r.disposition === "denylist-overridden");
+    expect(overrides).toHaveLength(1);
+    expect(overrides[0][0]).toMatchObject({ level: "warn", kind: "payload-governance", reason: "built-in-off" });
+  });
+
+  it("payloadDenylistOverride: [array] replaces the built-in list (critical path too)", () => {
+    const onDiagnostic = vi.fn();
+    const airlock = make({ payloadDenylistOverride: ["token"], onDiagnostic });
+    airlock.pushCritical({ event: "page_view", password: "x", token: "t" });
+    const params = JSON.parse(fetchMock.mock.calls[0][1].body).events[0].params;
+    expect(params.password).toBe("x");
+    expect(params.token).toBeUndefined();
+    expect(onDiagnostic).toHaveBeenCalledWith(expect.objectContaining({ disposition: "denylist-overridden", reason: "built-in-replaced" }));
+  });
+
+  it("rejects a malformed override (true, a string, a non-string array)", () => {
+    for (const bad of [true, "password", [1]]) expect(() => make({ payloadDenylistOverride: bad })).toThrow(TypeError);
   });
 });

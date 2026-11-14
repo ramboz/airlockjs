@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Limits burst rig (067-06 AC4)</title>
+  </head>
+  <body>
+    <div id="status">booting…</div>
+    <script type="module">
+      // rig/limits-burst.mjs drives this. The BUILT eds.js boots the real GA4 chamber with
+      // consent granted and default limits, then pushes a burst larger than every former cap
+      // (50-event drain chunk, 200 hold ring) AND larger than the browser's 64 KiB keepalive limit.
+      const BURST = 600;
+      const PAD = "x".repeat(300);
+      const diags = [];
+      const calls = []; // fetch call order as issued by the seal: { i, keepalive }
+      window.__DIAGS__ = diags;
+      window.__CALLS__ = calls;
+      const realFetch = window.fetch.bind(window);
+      window.fetch = (url, init) => {
+        if (String(url).includes("/mp/collect")) {
+          let i = null;
+          try { i = JSON.parse(init.body).events[0].params.i; } catch { /* keep null */ }
+          calls.push({ i, keepalive: init && init.keepalive === true });
+        }
+        return realFetch(url, init);
+      };
+      window.__BURST__ = BURST;
+      try {
+        const { boot } = await import("/probes/eds-testbed/scripts/airlock/eds.js");
+        await boot(
+          { connectors: [{ type: "ga4", ctx: { clientId: "1234567890.1700000000", sessionId: "1724668790" } }], consent: { analytics_storage: "granted" } },
+          { onDiagnostic: (d) => diags.push(d) },
+        );
+        for (let i = 0; i < BURST; i++) window.airlock.push({ event: "burst", i, pad: PAD });
+        window.__READY__ = true;
+      } catch (e) {
+        window.__HARNESS_ERROR__ = String((e && e.stack) || e);
+      }
+    </script>
+  </body>
+</html>

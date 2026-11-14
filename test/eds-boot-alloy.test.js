@@ -32,7 +32,9 @@ const INTERACT = "https://adobedc.demdex.net/ee/v1/interact";
 const ECID = "07430525002133203327640620273122850896";
 const DATASTREAM_ID = "12345678-1234-1234-1234-123456789012"; // the honest, host-pinned datastream (configId)
 const ATTACKER_DS = "99999999-9999-9999-9999-999999999999"; // a re-tenant attacker's datastream
-const alloyEntry = (extra = {}) => ({ type: "alloy", bundleUrl: BUNDLE_URL, datastreamId: DATASTREAM_ID, orgId: "ORG@AdobeOrg", ...extra });
+// 067-03: these suites cover the round trip, not the default hold, so they opt out of it; the
+// hold itself is pinned in alloy-consent-hold.test.js.
+const alloyEntry = (extra = {}) => ({ type: "alloy", bundleUrl: BUNDLE_URL, datastreamId: DATASTREAM_ID, orgId: "ORG@AdobeOrg", consentHold: false, ...extra });
 
 // The interact URL the (round-trip) chamber emits. Default (null) is the HONEST interact —
 // the real Edge routes by `configId` (013-03), so it carries `?configId=<the configured
@@ -300,6 +302,65 @@ describe("boot(config) — AC2: bootAlloy owns a classic chamber Worker + a comp
     expect(init).toBeTruthy();
     expect(init.bundleUrl).toBe(BUNDLE_URL);
     expect(init.config).toMatchObject({ datastreamId: DATASTREAM_ID, orgId: "ORG@AdobeOrg" });
+  });
+
+  it("067-08: context defaults to the stock list and the stock-context channel reaches the chamber before init", async () => {
+    vi.stubGlobal("location", { href: "https://site.example/p?token=abc", hostname: "site.example", pathname: "/p", search: "?token=abc" });
+    await bootAlloy(alloyEntry());
+    const w = alloyWorker();
+    expect(initOf(w).config.context).toEqual(["web", "device", "environment", "placeContext"]);
+    const idx = w.messages.findIndex((m) => m.type === "stock-context");
+    expect(idx).toBeGreaterThanOrEqual(0);
+    expect(idx).toBeLessThan(w.messages.findIndex((m) => m.type === "init"));
+    expect(w.messages[idx].context.web.hostname).toBe("site.example");
+    expect(Object.keys(w.messages[idx].context).sort()).toEqual(["device", "environment", "placeContext", "web"]);
+  });
+
+  it("067-08: a narrowed context sends only those groups; [] sends no channel message; the denylist applies", async () => {
+    vi.stubGlobal("location", { href: "https://site.example/", hostname: "site.example" });
+    vi.stubGlobal("screen", { width: 100, height: 50 });
+    await bootAlloy(alloyEntry({ context: ["web"], payloadDenylist: ["hostname"] }));
+    const msg = alloyWorker().messages.find((m) => m.type === "stock-context");
+    expect(Object.keys(msg.context)).toEqual(["web"]);
+    expect(msg.context.web.url).toBe("https://site.example/");
+    expect(msg.context.web).not.toHaveProperty("hostname");
+
+    RecordingWorker.instances = [];
+    await bootAlloy(alloyEntry({ context: [] }));
+    const w = alloyWorker();
+    expect(initOf(w).config.context).toEqual([]);
+    expect(w.messages.some((m) => m.type === "stock-context")).toBe(false);
+  });
+
+  it("067-08: the channel is re-collected ahead of each event and re-posted only when it changed", async () => {
+    const loc = { href: "https://site.example/a", hostname: "site.example", pathname: "/a" };
+    vi.stubGlobal("location", loc);
+    const handle = await bootAlloy(alloyEntry({ context: ["web"] }));
+    const w = alloyWorker();
+    w.emit({ type: "phase", name: "configured" });
+    const kinds = () => w.messages.map((m) => m.type).filter((t) => t === "stock-context" || t === "event");
+
+    handle.push({ event: "page_view" });
+    await waitFor(() => eventsOf(w).length >= 1);
+    expect(kinds()).toEqual(["stock-context", "event"]); // unchanged: no second post
+    w.emit({ type: "result", summary: { booted: true }, ready: [] });
+
+    loc.href = "https://site.example/b";
+    loc.pathname = "/b";
+    handle.push({ event: "page_view" });
+    await waitFor(() => eventsOf(w).length >= 2);
+    expect(kinds()).toEqual(["stock-context", "event", "stock-context", "event"]);
+    expect(w.messages.filter((m) => m.type === "stock-context")[1].context.web.url).toBe("https://site.example/b");
+  });
+
+  it("067-08: payloadDenylistOverride replaces the built-in denylist on the channel; minimalXdm is forwarded", async () => {
+    vi.stubGlobal("location", { href: "https://site.example/", hostname: "site.example" });
+    await bootAlloy(alloyEntry({ context: ["web"], payloadDenylistOverride: ["hostname"], minimalXdm: true, onDiagnostic: () => {} }));
+    const w = alloyWorker();
+    const web = w.messages.find((m) => m.type === "stock-context").context.web;
+    expect(web).not.toHaveProperty("hostname");
+    expect(web.url).toBe("https://site.example/");
+    expect(initOf(w).config.minimalXdm).toBe(true);
   });
 
   it("returns a composite-compatible handle (push / pushCritical / setConsent / getState / dispose)", async () => {
@@ -628,6 +689,28 @@ describe("boot(config) — AC1/AC5 (spec 035-01): the boot seed is scoped to all
     for (const dropped of ["_ga=g", "sessionid=x", "auth=secret"]) {
       expect(init.cookie).not.toContain(dropped);
     }
+  });
+
+  it("067-05 narrowed opt-in: `cookieGrantNarrowing` shrinks the seed to the declared subset (stock default above is separate)", async () => {
+    vi.stubGlobal("document", { cookie: "kndctr_org=2; demdex=3; s_ecid=e; _ga=1" });
+    await bootAlloy({ ...alloyEntry(), cookieGrantNarrowing: ["demdex"] });
+    expect(initOf(alloyWorker()).cookie).toBe("demdex=3");
+  });
+
+  it("067-05 AC4: alloy write-back drops a stock cookie whose storage purpose is denied, keeps one whose purpose is granted", async () => {
+    const writes = [];
+    vi.stubGlobal("document", { get cookie() { return ""; }, set cookie(v) { writes.push(v); } });
+    await bootAlloy({ ...alloyEntry(), consent: { analytics_storage: "denied", ad_storage: "granted" } });
+    const w = alloyWorker();
+    w.emit({ type: "cookie-writeback", value: "kndctr_org_identity=abc; Path=/" });
+    w.emit({ type: "cookie-writeback", value: "demdex=d; Path=/" });
+    expect(writes.some((v) => v.startsWith("kndctr_org_identity="))).toBe(false);
+    expect(writes.some((v) => v.startsWith("demdex="))).toBe(true);
+  });
+
+  it("067-05: a narrowing outside the stock set fails loud at boot", async () => {
+    vi.stubGlobal("document", { cookie: "" });
+    await expect(bootAlloy({ ...alloyEntry(), cookieGrantNarrowing: ["_ga"] })).rejects.toThrow(TypeError);
   });
 
   it("an empty document.cookie still boots (no throw) and seeds an empty scoped jar", async () => {

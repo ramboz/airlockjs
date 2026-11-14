@@ -120,11 +120,11 @@ const collectUrl = "https://www.google-analytics.com/mp/collect"; // DEFAULT_END
 const readyOne = (body) => ({ data: { ready: [{ url: collectUrl, body }], dropped: [] } });
 
 describe("bootEdsAnalytics consent wiring (spec 017-03 — the seal's egressPurposes gate)", () => {
-  it("no `consent` opt at all -> the gate stays OFF: a ready beacon dispatches normally (back-compat)", async () => {
+  it("consentHold:false restores the legacy no-consent send (a ready beacon dispatches without a consent vector)", async () => {
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal("fetch", fetchMock);
 
-    await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" } });
+    await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" }, consentHold: false });
     FakeWorker.last.onmessage(readyOne("{}"));
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -166,6 +166,17 @@ describe("bootEdsAnalytics consent wiring (spec 017-03 — the seal's egressPurp
 // `requestIdleCallback` is stubbed per-test (not in the shared beforeEach
 // above) since none of the OTHER eds-boot tests ever call push() directly.
 describe("bootEdsAnalytics payload-denylist wiring (spec 019-01 — ADR-0012)", () => {
+  it("067-09: `payloadDenylistOverride: false` is threaded to the airlock (built-in list off); default keeps it on", async () => {
+    vi.stubGlobal("requestIdleCallback", (cb) => { cb({ didTimeout: false, timeRemaining: () => 0 }); return 1; });
+    const on = await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" } });
+    on.push({ event: "signup", password: "x" });
+    expect(FakeWorker.last.messages.find((m) => m.type === "events").batch[0].params.password).toBeUndefined();
+
+    const off = await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" }, payloadDenylistOverride: false, onDiagnostic: () => {} });
+    off.push({ event: "signup", password: "x" });
+    expect(FakeWorker.last.messages.find((m) => m.type === "events").batch[0].params.password).toBe("x");
+  });
+
   it("no `payloadDenylist` opt at all -> byte-unchanged: a pushed field crosses to the worker untouched (back-compat)", async () => {
     vi.stubGlobal("requestIdleCallback", (cb) => { cb({ didTimeout: false, timeRemaining: () => 0 }); return 1; });
     const handle = await bootEdsAnalytics({ ctx: { clientId: "1.1", sessionId: "2" } });
@@ -198,6 +209,7 @@ describe("bootEdsAnalytics payload-denylist wiring (spec 019-01 — ADR-0012)", 
     const handle = await bootEdsAnalytics({
       ctx: { clientId: "1.1", sessionId: "2" },
       payloadDenylist: ["email"],
+      consent: { analytics_storage: "granted" },
     });
 
     handle.pushCritical({ event: "page_view", email: "a@b.c", link_text: "Buy" });

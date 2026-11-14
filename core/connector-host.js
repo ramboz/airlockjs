@@ -1,3 +1,5 @@
+import { createStockContextStore } from "./stock-context.js";
+
 /**
  * The connector host (spec 012-01, AC1) — the generic runtime piece that
  * turns a `ConnectorFactory` + config into a live, STATEFUL connector and
@@ -42,6 +44,8 @@ export function createConnectorHost(factory, config) {
   // routes through, so connector-internal state (e.g. a wrapped SDK's own
   // identity cache) carries across events instead of being rebuilt per event.
   const connector = factory(config);
+  // 067-07: the chamber-side read point for the host-collected stock context.
+  const stockContext = createStockContextStore();
 
   let initStarted = false;
   let initResult;
@@ -86,5 +90,13 @@ export function createConnectorHost(factory, config) {
     return { ready, dropped };
   }
 
-  return { manifest: connector.manifest, init, routeBatch };
+  return {
+    manifest: connector.manifest,
+    init,
+    routeBatch,
+    /** Feed a `stock-context` message; returns true when it was one. */
+    acceptStockContext: (msg) => stockContext.accept(msg),
+    /** The received stock context, or an explicit empty object when none arrived. */
+    readStockContext: () => stockContext.read(),
+  };
 }

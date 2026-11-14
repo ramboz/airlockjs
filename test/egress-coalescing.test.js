@@ -292,8 +292,9 @@ describe("AC3 — default path (no `coalesce` declared) stays BYTE-IDENTICAL to 
     );
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(onDiagnostic).toHaveBeenCalledTimes(2);
-    const [first, second] = onDiagnostic.mock.calls.map((c) => c[0]);
+    expect(onDiagnostic).toHaveBeenCalledTimes(3); // no-input warning, then one per held beacon
+    const [noInput, first, second] = onDiagnostic.mock.calls.map((c) => c[0]);
+    expect(noInput.reason).toMatch(/^no consent input wired/);
     expect(first).toMatchObject({ kind: "consent", disposition: "held", beaconId: expect.stringMatching(/#1$/) });
     expect(second).toMatchObject({ kind: "consent", disposition: "held", beaconId: expect.stringMatching(/#2$/) });
 

@@ -111,10 +111,10 @@ describe("bootGoogleAds (spec 048-01 AC2 — the boot-happy-path skeleton)", () 
     expect(parsed.searchParams.get("npa")).toBe("0");
   });
 
-  it("no `consent` opt at all -> the gate stays OFF: a ready beacon dispatches normally (back-compat, mirrors GA4/gtag's own gating)", async () => {
+  it("consentHold:false restores the legacy no-consent send (a ready beacon dispatches without a consent vector)", async () => {
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal("fetch", fetchMock);
-    await bootGoogleAds({ ctx: {}, conversionId: CONVERSION_ID });
+    await bootGoogleAds({ ctx: {}, conversionId: CONVERSION_ID, consentHold: false });
 
     FakeWorker.last.onmessage(readyMsg([{ url: `${GOOGLE_ADS_CCM_COLLECT_ENDPOINT}?tid=${CONVERSION_ID}`, method: "GET" }]));
 

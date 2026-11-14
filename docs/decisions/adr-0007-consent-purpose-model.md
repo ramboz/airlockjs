@@ -13,6 +13,8 @@ Accepted (2026-08-28)
 
 Amended by [ADR-0062](./adr-0062-stock-default-parity.md) (2026-11-13) in scope (:105): the pending-purpose hold also covers a site with no consent input, which holds and logs a diagnostic warning. The rest of this ADR stands.
 
+Amended (2026-11-13, [spec 067-11](../specs/067-shared-seal-defaults/slice-11-measurement-purpose-helix-rum.md), owner decision D4): the taxonomy gains a `measurement` purpose. Absent from the consent vector it resolves to `granted`, not `pending`, and an explicit `denied` still denies it. A connector may declare it only if it sets no cookies or storage, sends no user, device or click identifiers and no personal data, and a test checks its payload. Only helix-rum qualifies. Any other connector needs owner approval. The rest of this ADR stands.
+
 ## Context
 
 Airlock gates egress on a single global consent state, which cannot express the

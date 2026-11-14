@@ -45,6 +45,10 @@ if (window.hlx?.rum?.sampleRUM) {
 }
 /* --- end probe --- */
 
+// 067-02: airlock holds every beacon until consent is given; the testbed has no
+// consent banner, so it stands in for a granted site.
+const TESTBED_CONSENT = { analytics_storage: 'granted', ad_storage: 'granted', personalization: 'granted' };
+
 const experimentationConfig = {
   prodHost: 'www.example-prod-host.test',
   audiences: {
@@ -249,10 +253,10 @@ async function loadLazy(doc) {
       // the pre-reserved box (never reserving post-paint). This is the config-driven boot
       // (composite over the declared connectors), used INSTEAD OF the default GA4 boot below.
       const { boot } = await import(`${window.hlx.codeBasePath}/scripts/airlock/eds.js`);
-      await boot(window.__airlockConfig, { reservedPlacements: airlockReservedPlacements });
+      await boot({ consent: TESTBED_CONSENT, ...window.__airlockConfig }, { reservedPlacements: airlockReservedPlacements });
     } else {
       const { bootEdsAnalytics } = await import(`${window.hlx.codeBasePath}/scripts/airlock/eds.js`);
-      await bootEdsAnalytics();
+      await bootEdsAnalytics({ consent: TESTBED_CONSENT });
     }
     rec('airlock:init');
   } catch (e) {

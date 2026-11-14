@@ -188,6 +188,8 @@ These exclusions do not touch URL query timestamps, request header/body values,
 retained-resource response digests, or any recorded local response/edge. There
 is no generic field ignore, gap whitelist, replacement rule, regex DSL or eval.
 
+A field the credentials denylist strips (the ADR-0012 built-in list, on by default) can be present in a stock recording and absent from the airlock request. That is a documented difference (ADR-0062 point 5, spec 067-09), never a parity failure. Record it as a field rule, and don't widen the comparator to hide it.
+
 ## Closed relationship rules — local controls only
 
 Nonempty rules are supported **only** for declared `local_control` fixtures.

@@ -25,10 +25,10 @@ The `helix-rum` connector makes airlock a **governed, off-main-thread RUM author
 
 - **Confined** — egress is pinned to `ot.aem.live` by the host endpoint ceiling; a compromised or
   misconfigured chamber **cannot** widen it (a re-pointed beacon is held at the seal).
-- **NOT consent-gated** — RUM is performance telemetry with an **ephemeral per-page** id
-  (`crypto.randomUUID().slice(-9)`, not a cross-site/persistent identifier) and no PII, so it fires
-  regardless of consent — exactly as unmodified `sampleRUM` does. (Consent-gating it would collect
-  *less* than the stock page and defeat the parity goal.)
+- **Granted by default (`measurement` purpose)** — RUM is performance telemetry with an **ephemeral per-page** id
+  (`crypto.randomUUID().slice(-9)`, not a cross-site/persistent identifier) and no PII, so it sends
+  with no consent input, as unmodified `sampleRUM` does. A site's consent input can still deny it
+  (`measurement: "denied"` holds the beacon). Only helix-rum may declare this purpose.
 - **Off-thread mapped** — all mapping + egress happen behind the airlock; the main thread only
   captures and enqueues. CWV is captured on the main thread (web-vitals needs real DOM/PerformanceObserver
   APIs) and its values feed the chamber.

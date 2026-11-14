@@ -59,12 +59,12 @@ describe("helix-rum connector manifest (spec 022-01 AC2 — declared per ADR-000
     expect(manifest.endpoints).toEqual([`${DEFAULT_COLLECT_BASE_URL}/.rum/${DEFAULT_WEIGHT}`]);
   });
 
-  it("declares purposes.egress: [] DELIBERATELY (not omitted) — the not-consent-gated RUM governance class (spec 022 § Governance class)", () => {
+  it("declares purposes.egress: [\"measurement\"] — the privacy-safe, granted-by-default purpose (067-11, ADR-0007 amendment)", () => {
     vi.spyOn(Math, "random").mockReturnValue(SELECTED_DRAW);
     const { manifest } = createHelixRumConnector({ ctx });
 
     expect(manifest.purposes).toBeDefined();
-    expect(manifest.purposes.egress).toEqual([]);
+    expect(manifest.purposes.egress).toEqual(["measurement"]);
   });
 
   it("honours a custom collectBaseURL/weight in BOTH the declared endpoint and the runtime URL (ceiling-consistency)", () => {

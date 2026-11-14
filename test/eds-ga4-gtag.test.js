@@ -81,7 +81,7 @@ describe("bootGa4Gtag (spec 041-01 AC4 — the boot-happy-path skeleton)", () =>
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal("fetch", fetchMock);
     const ctx = { clientId: "1234567890.1700000000", sessionId: "1724668790" };
-    await bootGa4Gtag({ ctx, measurementId: "G-XXXX" });
+    await bootGa4Gtag({ ctx, measurementId: "G-XXXX", consent: { analytics_storage: "granted" } });
 
     // Simulate the chamber's real response: the SAME gtag connector maps the event —
     // mirrors test/pixel-seam.test.js's `metaReady` pattern (never a hand-built URL).
@@ -100,11 +100,11 @@ describe("bootGa4Gtag (spec 041-01 AC4 — the boot-happy-path skeleton)", () =>
     expect(parsed.searchParams.get("sid")).toBe(String(ctx.sessionId));
   });
 
-  it("no `consent` opt at all -> the gate stays OFF: a ready beacon dispatches normally (back-compat, mirrors GA4/pixel's own gating)", async () => {
+  it("consentHold:false restores the legacy no-consent send (a ready beacon dispatches without a consent vector)", async () => {
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal("fetch", fetchMock);
     const ctx = { clientId: "1.1", sessionId: "2" };
-    await bootGa4Gtag({ ctx, measurementId: "G-XXXX" });
+    await bootGa4Gtag({ ctx, measurementId: "G-XXXX", consentHold: false });
 
     FakeWorker.last.onmessage({
       data: { ready: [{ url: `${GA4_GTAG_COLLECT_ENDPOINT}?tid=G-XXXX`, method: "GET" }], dropped: [] },
@@ -186,7 +186,7 @@ describe("bootGa4Gtag (opts.endpoint override — regional GA4 collect endpoints
     vi.stubGlobal("fetch", fetchMock);
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const ctx = { clientId: "1234567890.1700000000", sessionId: "1724668790" };
-    await bootGa4Gtag({ ctx, measurementId: "G-XXXX", endpoint: CUSTOM_ENDPOINT });
+    await bootGa4Gtag({ ctx, measurementId: "G-XXXX", endpoint: CUSTOM_ENDPOINT, consent: { analytics_storage: "granted" } });
 
     // The override reaches the CONNECTOR too, not only the ceiling: the posted
     // init message's connectorConfig carries the custom endpoint (so the in-worker
@@ -218,7 +218,7 @@ describe("bootGa4Gtag (opts.endpoint override — regional GA4 collect endpoints
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal("fetch", fetchMock);
     const ctx = { clientId: "1234567890.1700000000", sessionId: "1724668790" };
-    await bootGa4Gtag({ ctx, measurementId: "G-XXXX" });
+    await bootGa4Gtag({ ctx, measurementId: "G-XXXX", consent: { analytics_storage: "granted" } });
 
     const connector = createGa4GtagConnector({ measurementId: "G-XXXX", ctx, endpoint: GA4_GTAG_COLLECT_ENDPOINT });
     const [req] = connector.handle({ type: "page_view", params: { page_location: "https://spike.example/" } });
@@ -424,7 +424,7 @@ describe("bootGa4Gtag (spec 041-03 — coalesceGa4 wired on the live path)", () 
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal("fetch", fetchMock);
     const ctx = { clientId: "1234567890.1700000000", sessionId: "1724668790" };
-    await bootGa4Gtag({ ctx, measurementId: "G-XXXX" });
+    await bootGa4Gtag({ ctx, measurementId: "G-XXXX", consent: { analytics_storage: "granted" } });
 
     // Mirrors the 041-01 "real page_view" pattern — never a hand-built beacon.
     const connector = createGa4GtagConnector({ measurementId: "G-XXXX", ctx, endpoint: GA4_GTAG_COLLECT_ENDPOINT });
@@ -449,7 +449,7 @@ describe("bootGa4Gtag (spec 041-03 — coalesceGa4 wired on the live path)", () 
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal("fetch", fetchMock);
     const ctx = { clientId: "1234567890.1700000000", sessionId: "1724668790" };
-    await bootGa4Gtag({ ctx, measurementId: "G-XXXX" });
+    await bootGa4Gtag({ ctx, measurementId: "G-XXXX", consent: { analytics_storage: "granted" } });
 
     const connector = createGa4GtagConnector({ measurementId: "G-XXXX", ctx, endpoint: GA4_GTAG_COLLECT_ENDPOINT });
     const [req] = connector.handle({ type: "page_view", params: { page_location: "https://spike.example/" } });

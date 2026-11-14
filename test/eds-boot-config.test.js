@@ -133,7 +133,7 @@ describe("boot(config) — AC1: a ga4 config entry boots GA4 equivalently to boo
   });
 
   it("a beacon fires: the ga4 chamber's ready request egresses via fetch", async () => {
-    await boot({ connectors: [{ type: "ga4", ctx: gaCtx }] });
+    await boot({ connectors: [{ type: "ga4", ctx: gaCtx }], consent: { analytics_storage: "granted" } });
 
     ga4Worker().onmessage(readyGa("{}"));
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
@@ -222,7 +222,10 @@ describe("boot(config) — AC5: an end-to-end multi-connector (GA4 + pixel) boot
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal("fetch", fetchMock);
 
-    await boot({ connectors: [{ type: "ga4", ctx: gaCtx }, { type: "pixel", vendor: "meta", pixelId: "999" }] });
+    await boot({
+      connectors: [{ type: "ga4", ctx: gaCtx }, { type: "pixel", vendor: "meta", pixelId: "999" }],
+      consent: { analytics_storage: "granted", ad_storage: "granted" },
+    });
 
     // both connectors booted (one worker each)
     expect(ga4Worker()).toBeTruthy();

@@ -11,6 +11,8 @@ frame_review: true
 
 Accepted (2026-11-13). The owner's answers under "Owner answers (2026-11-13)" are the acceptance record.
 
+Amended (2026-11-13, spec 067-11, owner decision D4): helix-rum RUM sits outside the consent hold, as stock EDS does. It declares the `measurement` purpose from ADR-0007, which is granted by default, so RUM sends with no consent input. A site can still deny it explicitly. Exception (a) is unchanged for every other connector.
+
 Amends and partially supersedes ADR-0003, ADR-0006 (projection and cookie/storage clauses), ADR-0012 (ambient-context boundary note) and ADR-0013 (minimization claims). The clauses are listed under Recommended Decision. Everything else in those ADRs stands.
 
 ## Summary
