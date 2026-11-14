@@ -142,7 +142,7 @@ Served-script drift probe (ADR-0061 point 10): not applicable to the script, bec
 
 ### 4.2 Test identities and profile (point 5)
 
-- Owned test-account IDs may be committed: Adobe org ID, datastream ID, Target property, Analytics report suite, Launch property. Only IDs the owner confirms as test-owned. Nothing from a customer or production tenant.
+- Only two owned test-account IDs are committed: the Adobe org ID (`908936ED5D35CC220A495CD4@AdobeOrg`) and the datastream ID (`23190fa7-9e6b-4250-b87b-abcdc8ebc297`). Both are visible in every Edge request. The Analytics report suite, Target property token, Target environment ID and Launch property stay out of the public repo and are written as labels (D9). Nothing from a customer or production tenant.
 - Reference site: the owned EDS test site and local harness only.
 - Fresh Chromium profile created for this session, never logged in to any vendor, separate from the owner's console session. One new profile per "fresh" recording; one reused profile per "returning" recording.
 - Pre-commit check, added before the first capture is stored: it rejects vendor login or session cookies, bearer and API tokens, Adobe IMS tokens, and VPN or proxy credentials in any staged fixture. It is a test in the repo, runs in `npm test`, and has its own positive and negative cases. It scans request headers, response headers, bodies, and stored cookie and storage dumps.
@@ -231,13 +231,13 @@ The ADR's Google/Meta clean-room risk is **not** tested by this pilot, because A
 | S6 | `setConsent` out, in, pending then in | each with queued events |
 | S7 | Link click and SPA view change | base, repeat |
 | S8 | Error shapes (blocked network, non-200) | one each, scripted |
-| S9 | Datastream config states (section 6) | one per setting, plus one combined-settings state |
+| S9 | Datastream config states (section 6.2) | 13 states, S9-00 to S9-12, one per setting group, with S9-11 as the combined-settings state |
 | S10 | Launch + `aem-martech` + ACDL page | base, repeat |
 | S11 | Second-day drift probe | repeat of S1, S3 on day 2 |
 | S12 | Normal-browser reference (owner) | repeat of S1 |
 | S13 | Egress response-field pair (only if D2 = yes) | default egress vs second region, response fields only |
 
-Estimated size: about 45 recordings. Kill criterion 4 fires if the session needs more than 60 recordings or more than one owner settings window.
+Estimated size: 61 recordings after T2 (6.3; the earlier estimate was about 45). Kill criterion 4 fires if the session needs more than 60 recordings or more than one owner settings window.
 
 ### 5.1 Capture run order
 
@@ -251,16 +251,7 @@ Estimated size: about 45 recordings. Kill criterion 4 fires if the session needs
 
 For Google and Meta the "config" is in the page (`gtag/js?id=`, `signals/config`). For Adobe the page only carries `datastreamId` and `orgId`. The datastream is server-side. It changes responses without changing the SDK or the page.
 
-Datastream settings that change served behavior, to be recorded as states in S9:
-
-- Adobe Analytics enabled or not, report suite;
-- Target enabled or not, property token;
-- Adobe Audience Manager, Experience Platform enabled or not;
-- first-party ID cookie enabled;
-- request and response overrides at the datastream level (for example, forwarded fields);
-- consent handling in the datastream;
-- geo-lookup and device-lookup enrichment;
-- Edge domain (first-party vs `edge.adobedc.net`).
+Datastream settings that change served behavior are listed in the table in 6.1 (36 rows, from T2).
 
 Each setting is listed with its triggering page input (for example Target needs a `decisionScopes` or page-load request; consent handling needs a consent state). A setting is dispositioned "no effect" only if: (a) the check came after a stated propagation wait (default 10 minutes after the owner's change, recorded in the manifest); (b) the Adobe analogue of served config bytes was checked, meaning the full response body and the `handle` set; and (c) the triggering input was present in the request.
 
@@ -270,6 +261,149 @@ Rules:
 - **Completeness analogue.** The Google/Meta check compares our inventory against real configs. For Adobe, we compare against the datastream configuration *schema* and the set of `handle` types seen. Task T2 (which also reconciles Adobe's public command list against the 17 source commands) lists every datastream setting from Adobe's public docs and schema only (the agent has no console access; see D6 for an optional owner export of the owned datastream config) and marks each "covered by S9", "affects no wire field we send or receive", or "gap". A gap is filled now or tagged `live-only`.
 - **Production probes.** Comparing against real production datastreams needs production-site or tenant access. Production sites stay unapproved, with one exception: the owner's dedicated POC site and datastream (section 9, D4).
 - **Point 11 analogue.** Point 11 has no design yet even for Google and Meta. For Adobe the analogue is a visible diagnostic when a response contains a `handle` type or datastream-driven behavior outside the inventory (for example, an unknown `handle.type`). The design is deferred to the same place as Google/Meta and is a listed pilot check: B2 must surface a `handle` type outside the known list as a loud, visible error, never silent. The known list is the 8 types the SDK consumes (2.2) plus the ignored types observed in capture, because the Edge returns types the SDK ignores and a consumed-only list would fire on every response. Design of the user-facing form is left to the point 11 decision; this spec only requires "not silent".
+
+### 6.1 Datastream setting table (T2, 064-02)
+
+Sources, read only: the public Experience League datastream pages (Create and configure datastreams, Configure datastream overrides, Bot detection, Dynamic datastream configurations) and the Web SDK `configure`, `edgeConfigOverrides` and `edgeDomain` pages, read from `AdobeDocs/experience-platform.en` at `eb869b80cc` (2026-11-13). No console access, no live call. The owned test datastream is `23190fa7-9e6b-4250-b87b-abcdc8ebc297` ("Airlock Web Events - Test"), org ID `908936ED5D35CC220A495CD4@AdobeOrg`. The repo is public, so per D9 the report suite, Target property token and Target environment ID are labels (owned test report suite, owned Target property, owned Target environment), not IDs. No Launch property exists. The owner said Analytics and Target are the only services on, so every other service is currently off. Every other value is `confirm at window start`: the agent reads it in the settings window before the first change.
+
+Dispositions:
+
+- **S9-nn**: covered by that S9 state (6.2). The state records the response body and `handle` set, so the finding is whatever the recording shows.
+- **no effect (C)**: expected to change no wire field. It is flipped in the combined state S9-11, with a request that carries the triggering input. That gives conditions (a) to (c) of section 6 at once: the propagation wait, the full body and `handle` set, and the trigger present. If S9-11 differs from S9-08, the row is bisected (reserve in 6.3) and the effect becomes an S9 state.
+- **gap, live-only**: a downstream object the test org may not have (segments, destinations, decision rules, campaigns) or a command outside the capture corpus is needed to see any effect. Tagged `live-only` per 4.9.
+
+| ID | Setting | Triggering page input | Disposition | Owned value |
+|---|---|---|---|---|
+| DS-01 | Analytics service | any `interact` or `collect` request | S9-09 | on (report suite below) |
+| DS-02 | Analytics report suite ID | any request with Analytics on | no effect (C). Downstream reporting is live-only (4.9) | on (owned test report suite) |
+| DS-03 | Analytics Visitor ID namespace | `sendEvent` with an `identityMap` entry in that namespace | no effect (C) | confirm at window start |
+| DS-04 | Analytics report suite overrides (list) | page-sent `edgeConfigOverrides.com_adobe_analytics.reportSuites` | no effect (C) | confirm at window start |
+| DS-05 | Target service | `sendEvent` with `renderDecisions` or `decisionScopes`, or a page-load request | S9-10 | on |
+| DS-06 | Target property token | same as DS-05, activity scoped to a property | S9-02 | on (owned Target property) |
+| DS-07 | Target environment ID | same as DS-05 | S9-01 | on (owned Target environment) |
+| DS-08 | Target Third Party ID namespace | `sendEvent` with an `identityMap` entry in that namespace | no effect (C) | confirm at window start |
+| DS-09 | Target property token overrides (list) | page-sent `edgeConfigOverrides.com_adobe_target.propertyToken` | no effect (C) | confirm at window start |
+| DS-10 | Audience Manager service | first request with identity, third-party cookies on, Chrome | S9-03 | off |
+| DS-11 | Audience Manager cookie destinations | any request, with a destination and a qualifying trait | S9-04 | confirm at window start |
+| DS-12 | Audience Manager URL destinations | same as DS-11 | S9-04 | confirm at window start |
+| DS-13 | Experience Platform service | any request | S9-07 | off |
+| DS-14 | Experience Platform event dataset(s) | any request with the service on | S9-07 | confirm at window start |
+| DS-15 | Experience Platform profile dataset (consent, push token, region) | `setConsent` (S6 inputs) | S9-08 | confirm at window start |
+| DS-16 | Mapping schema and Data Prep rules | any request with the service on | no effect (C) | confirm at window start |
+| DS-17 | Decision Management (Offer Decisioning) | `decisionScopes` for an offer placement | gap, live-only: needs an owned decision | confirm at window start |
+| DS-18 | Edge Segmentation | request for a profile with segment membership | gap, live-only: needs an owned segment | confirm at window start |
+| DS-19 | Personalization Destinations | request for a profile mapped to an edge destination | gap, live-only: needs an owned destination | confirm at window start |
+| DS-20 | Adobe Journey Optimizer | `decisionScopes` or surfaces for a campaign | gap, live-only: needs an owned campaign | confirm at window start |
+| DS-21 | Event dataset overrides (list) | page-sent `edgeConfigOverrides.com_adobe_experience_platform.datasets` | no effect (C) | confirm at window start |
+| DS-22 | Adobe Advertising service | Advertising component configured on the page (iframe, ID5 script) | gap, live-only: B6 owns the component | off |
+| DS-23 | Event Forwarding service (Launch property, environment) | any request with the service on | no effect (C) | off. Launch property not yet provided |
+| DS-24 | Media Analytics | `createMediaSession` (not in the corpus, B6) | gap, live-only: trigger command is outside S1 to S13 | confirm at window start |
+| DS-25 | Geo Lookup (country, postal code, state, DMA, city, lat/long) | any request (IP-derived) | no effect (C) | confirm at window start |
+| DS-26 | Network Lookup (carrier, domain, ISP, connection type) | any request (IP-derived) | no effect (C) | confirm at window start |
+| DS-27 | Device Lookup (keep UA and client hints, device lookup, or none) | any request carrying UA and client hints | no effect (C) | confirm at window start |
+| DS-28 | IP Obfuscation (none, partial, full) | any request (IP-derived) | no effect (C) | confirm at window start |
+| DS-29 | First Party ID cookie (name) | page sets a cookie with that name | S9-06 | confirm at window start |
+| DS-30 | Third Party ID Sync (on, container ID) | first request with identity, AAM on | S9-05 | confirm at window start |
+| DS-31 | Container ID overrides (list) | page-sent `edgeConfigOverrides.com_adobe_identity.idSyncContainerId` | no effect (C) | confirm at window start |
+| DS-32 | Access Type (mixed, authenticated only) | any unauthenticated Web SDK request | S9-12 | confirm at window start |
+| DS-33 | Bot detection rules (IP, IP range, header) | a request that matches a rule (the harness sends a matching header) | no effect (C) | confirm at window start |
+| DS-34 | Dynamic datastream configuration rules | an event whose fields match a rule (for example `eventType`) | gap, live-only: rule evaluation has a 25 ms budget and falls back silently. The effects it can route are the service toggles above | confirm at window start |
+| DS-35 | Page-sent `edgeConfigOverrides` (`configure`, `sendEvent`, `setConsent`, `getIdentity`, `appendIdentityToUrl`) | `configure` or per-command option; per-service `enabled: false` | S9-00 | not a datastream setting |
+| DS-36 | Edge domain (`edgeDomain`: first-party CNAME or Adobe) | `configure` `edgeDomain` | S1 edge-domain-kind variant (4.3), no owner change | Adobe default `edge.adobedc.net`, no first-party CNAME (POC repo opt-in stock entry sets it, `tools/airlock-stock/stock-site.mjs:347` at main 2bd8accf). Page-side, not a datastream setting |
+
+36 rows: 24 service rows (DS-01 to DS-24), 10 advanced rows (DS-25 to DS-34), 2 page-side rows (DS-35, DS-36). Explicit non-rows, each with its reason:
+
+- Name, description, datastream ID (it is the page input `datastreamId`), sandbox and permissions: no served behavior.
+- Datastream-level consent handling, listed in the earlier version of this section: the public docs have no such setting. Consent is page-side (`defaultConsent`, `setConsent`, S6), and its only datastream effect is the AEP profile dataset (DS-15).
+- `defaultConsent`, `thirdPartyCookiesEnabled`, `idMigrationEnabled`, `targetMigrationEnabled`, `context`, `edgeBasePath` and the other `configure` options: page-side, owned by B1 and B3.
+- Dynamic datastream rules and client overrides exclude each other per event (Adobe docs). An event with `edgeConfigOverrides` skips the rules silently. S9-00 therefore never exercises DS-34.
+
+### 6.2 Settings window checklist (ordered)
+
+Order rule: each state changes one setting (or one tightly paired pair) from the state before it, and nothing is reverted until the restore step, except that S9-03 restores the two Target changes of S9-01 and S9-02. That is one propagation wait per change. Dependencies set the order (ID sync needs Audience Manager; profile dataset needs the AEP service; the no-effect rows need their service on and their trigger present), so the service-off states come after S9-11.
+
+| State | When | Owner change | Rows |
+|---|---|---|---|
+| S9-00 | agent only, before the window, no wait | none: the page sends `edgeConfigOverrides` with `enabled: false` for Target and Analytics (no IDs) | DS-35 |
+| window start | | Agent reads every current value (read-only). Owner reactivates the Target activity (D3) and does S12 | |
+| S9-01 | | Target environment ID: switch to another existing environment (its ID stays out of the repo) | DS-07 |
+| S9-02 | | Target property token: clear it | DS-06 |
+| S9-03 | | Restore the Target environment ID and property token (paired with the next change, one wait), then Audience Manager service: on | DS-10 |
+| S9-04 | | Audience Manager cookie destinations and URL destinations: both on | DS-11, DS-12 |
+| S9-05 | | Third Party ID Sync: on, container ID 0 | DS-30 |
+| S9-06 | | First Party ID cookie: on, with a cookie name the harness page sets | DS-29 |
+| S9-07 | | Experience Platform service: on, with an event dataset and a mapping schema | DS-13, DS-14 |
+| S9-08 | | Experience Platform profile dataset: set. The agent sends the S6 `setConsent` inputs | DS-15 |
+| S9-11 | combined state | All no-effect rows flipped at once: report suite and Visitor ID namespace, Target third-party namespace, every override list, Data Prep rule, Event Forwarding on, Geo, Network, Device, IP obfuscation, a bot rule matching the harness header. The agent sends the matching triggers (identityMap entries, overrides, header) | DS-02, 03, 04, 08, 09, 16, 21, 23, 25 to 28, 31, 33 |
+| S9-10 | | Target service: off | DS-05 |
+| S9-09 | | Analytics service: off | DS-01 |
+| S9-12 | | Access Type: authenticated only | DS-32 |
+| restore | 5.1 step 3 | Owner restores the original settings; the agent records one S1 load | |
+
+The state IDs keep their numbers from 6.1; the table lists them in toggle order. S9-03 restores the S9-01 and S9-02 changes so the later Target states (S9-10, S9-11) see a working Target.
+
+Inputs the owner supplies at window start for S9-11 and S9-01 (test values, kept out of the repo per D9): a second Target environment, a second report suite, a test identity namespace, an AEP event dataset and mapping schema, a Launch property for Event Forwarding. If one is missing, its row stays `no effect (C)` unverified and is listed in the manifest. The org ID is known (4.2). Window order, top to bottom: S9-01 to S9-08, S9-11, S9-10, S9-09, S9-12, restore.
+
+The Target activity must be active (D3) for S9-01 to S9-03 and S9-10 to show a difference. Without D3 those states record the no-decision shape.
+
+### 6.3 Size of S9 against kill criterion 4
+
+Public docs say a saved datastream change takes **up to 35 minutes** to propagate. Section 5.1 and condition (a) above assume 10 minutes. The 10 minutes is not an Adobe figure. This is reported for the owner. D1 to D8 are not edited.
+
+Recordings, each state recorded as base plus repeat (4.3):
+
+| Group | Recordings |
+|---|---|
+| S0 (headed, headless) | 2 |
+| S1 (base, two same-day repeats, viewport, locale, timezone, referrer, edge domain kind) | 8 |
+| S2, S3, S7, S8, S10 (base and repeat each) | 10 |
+| S4 (no-decision base and repeat, then active base and repeat) | 4 |
+| S5 (fresh, returning) | 2 |
+| S6 (out, in, pending then in) | 3 |
+| S11 (S1 and S3 on day 2) | 2 |
+| S12 | 1 |
+| S13 (default and second egress) | 2 |
+| Restore confirmation (one S1 load) | 1 |
+| **Subtotal without S9** | **35** |
+| S9: 12 window states and S9-00, two each | 26 |
+| **Total** | **61** |
+
+61 is above the 60 of kill criterion 4, so criterion 4 fires on this count. The earlier estimate was about 45. Scope is not changed here. Levers for the owner: record S9 states without a repeat (13 fewer, 48 total), or merge S9-01 with S9-02 and S9-03 with S9-04. A bisect of S9-11 would add 2 recordings per extra state; that reserve is not in the 61.
+
+Window time. Each owner change costs one propagation wait plus about 6 minutes (owner click, base and repeat recording, manifest entry). There are 12 changes and the restore, so 13 waits, plus about 30 minutes for the window start (value read, D3, S12). Time = 13 x (wait + 6) + 30 minutes.
+
+| Propagation wait | Window |
+|---|---|
+| 5 minutes | about 173 min (fits one ~3 h window) |
+| 10 minutes (section 5.1 default) | about 238 min (4 h, over one window) |
+| 35 minutes (public docs cap) | about 563 min (9.4 h, several windows) |
+
+The times are lower bounds (owner lookup and retries are not counted). The window fits one ~3 h session only if the wait is at most about 5 minutes. An agent can shorten the wait for the states that change the response (S9-01 to S9-03, S9-09, S9-10, S9-12) by polling until the response changes, then recording. The no-effect batch in S9-11 cannot be polled, so it must wait the longest observed time. Kill criterion 4 (more than one owner settings window) is therefore at risk, and this is reported, not resolved.
+
+### 6.4 Command list reconciliation (T2)
+
+Public list: the command pages in `AdobeDocs/experience-platform.en` at `help/collection/js/commands/` (`eb869b80cc`, 2026-11-13). It has **14** commands: `configure`, `sendEvent`, `setConsent`, `getIdentity`, `appendIdentityToUrl`, `setDebug`, `getLibraryInfo`, `applyResponse`, `applyPropositions`, `subscribeRulesetItems`, `createMediaSession`, `sendMediaEvent`, `getMediaAnalyticsTracker`, `sendPushSubscription`. Source list: the 17 in 2.1, re-read from the tag `@adobe/alloy@2.31.1` (commit `a175b80`).
+
+| Difference | Rows | Reading |
+|---|---|---|
+| In source, no public command page | 3: `createEventMergeId` (`components/EventMerge/createComponent.js:16`), `evaluateRulesets` (`components/RulesEngine/index.js:125`), `sendConversationEvent` (`components/BrandConcierge/index.js:82`) | `createEventMergeId` and `evaluateRulesets` appear in the public custom-build component table (`install/create-custom-build.md`, lines 49 and 50) and `evaluateRulesets` in one release note, with no command page. `sendConversationEvent` has no command page, only the `conversation` configure page (Web SDK 2.31.0 or later, Brand Concierge beta). All three stay in 2.1 with their slices (B3, B3, B6). No new row |
+| In public list, not in source | 0 | Explicit non-row. Every public command is one of the 17 |
+| Names that differ | 0 | Explicit non-row |
+| Tag-extension actions (for example the reset-event-merge-ID action) | n/a | Tag actions, not library commands. Non-row. B5 covers the Launch bridge |
+
+Result: 17 = 14 public plus 3 source-only. The closed list in 2.1 stands and nothing is added to it.
+
+### 6.5 Out-of-inventory rate (section 10)
+
+Rate = settings not covered by S9, divided by all settings listed. Covered means an S9 state, the combined state S9-11, or (DS-36) the S1 edge-domain variant. `gap, live-only` rows are not covered.
+
+- Listed settings: 36 (6.1).
+- Not covered: 7 (DS-17, DS-18, DS-19, DS-20, DS-22, DS-24, DS-34).
+- **Out-of-inventory rate: 7 / 36 = 19.4%, above the 10% threshold. Kill criterion 6 trips on this count.** Scope is not changed. It is recorded and reported.
+- Sensitivity only, not applied: if DS-17 to DS-20 were switched on in S9-07 as sub-toggles of the AEP service, the rate would be 3 / 36 = 8.3%. Those toggles show no effect without an owned decision, segment, destination or campaign, so they would still fail condition (c).
+- Observed `handle` types: none observed yet, because there is no capture. That half of the metric is measured after CAP. The 8 consumed types of 2.2 do not enter the denominator until they are observed.
+
+Open point for the owner: kill criterion 6 and kill criterion 4 both trip on the T2 count. Neither was reached by a scope change.
 
 ## 7. Disposition of specs 051 to 057
 
@@ -324,10 +458,10 @@ No probe touching a production site, tenant or real-user data runs without the o
 
 **Approved (D4, 2026-11-12):** the owner's dedicated POC site and dedicated POC datastream only, for the datastream completeness comparison and read-only probes. In the owner's words: "I have a dedicated site and dedicated datastream for the POC, so yes we can use it if it helps". Before the probe runs the owner fills in:
 
-- POC site URL: `<OWNER TO FILL IN>`
-- POC datastream ID: `<OWNER TO FILL IN>`
+- POC site URL: `https://main--aem-eds-airlock-poc--adobe-rnd.aem.live/` (owner-stated test site, 2026-11-14)
+- POC datastream ID: `23190fa7-9e6b-4250-b87b-abcdc8ebc297` (the same owned test datastream)
 
-The probe does not run while either value is a placeholder. Nothing else in production is approved.
+The probe does not run until the owner confirms both. The POC site loads no Alloy, Launch or aem-martech by default; its opt-in stock entry (`tools/airlock-stock/`, disabled) would load Alloy 2.31.1 with no Launch. Nothing else in production is approved.
 
 ## 10. Applicability of ADR-0061 carried checks and kill criteria
 
@@ -342,7 +476,7 @@ The probe does not run while either value is a placeholder. Nothing else in prod
 | Held-out rule check | Yes | Section 4.7 |
 | Drift and field classes (point 10) | Yes, adapted | Alloy is versioned. Field classes are `fixed`, `generated`, `input-derived`, `server-context-derived` (a source field is named, for example the edge region or datastream), `volatile`. Request classes are in section 2.2. A field that differs across setups or days without an explanation makes the state `unstable` and goes to the owner |
 
-Completeness metric: out-of-inventory rate = (datastream settings and observed `handle` types not covered by S9) divided by (all listed). Threshold: above 10% is a kill criterion (item 6). Value so far: not measured.
+Completeness metric: out-of-inventory rate = (datastream settings and observed `handle` types not covered by S9) divided by (all listed). Threshold: above 10% is a kill criterion (item 6). Value so far: 7 of 36 settings = 19.4% (T2, 6.5); the `handle` half is not measured until capture. This is above the threshold, so kill criterion 6 trips on the settings count; scope is not changed.
 
 Kill criteria, from ADR-0061 plus the completeness metric:
 
@@ -373,6 +507,10 @@ Decided by the owner on 2026-11-13:
 - **Fixture comparisons** supply the recorded consent state (S6 and every consent row), so the hold never counts as a parity failure (ADR-0062 point 5). The default egress allowlist covers every destination Alloy contacts in the inventory, including `privacy/set-consent`, `identity/acquire`, the location-hint path and the Assurance query. B2 checks this.
 - Also approved the same day: drop T1 (P1), seed the field-rule table from source (P2), regroup the build slices into eight (P3), and give each one-factor variant an exact expected difference (P5). S13 and D2 stand.
 
+Decided by the owner on 2026-11-14:
+
+- **D9.** Only the org ID and datastream ID are committed; the report suite, Target property and environment IDs stay out of the public repo.
+
 ## 12. Review log and carried findings
 
 Review rounds are capped at three before owner review (owner decision). Findings left after round 3 are carried into the pilot as listed checks, as ADR-0061 did with round 10.
@@ -383,6 +521,7 @@ Review rounds are capped at three before owner review (owner decision). Findings
 - Owner decisions D1 to D7 recorded 2026-11-12; slice files 064-01 to 064-16 created and moved to READY_FOR_IMPLEMENTATION through jig's transition helper (the spec-level status is the jig rollup of its slices).
 - Jig consistency check (`/jig:analyze`) run 2026-11-13 on spec 064 and its slice files after the simplification: 8 findings (0 CRITICAL, 3 HIGH, 3 MEDIUM, 2 LOW; the ADR-0062 citation MEDIUM was closed on 2026-11-13 when ADR-0062 was accepted). The 3 HIGH are fixed (B3 AC covered rows owned by B4 and B6; S6 owned by both B2 and B3; B6 wrote results into the frozen section 2). Carried into the slices: MEDIUM, slice file names 064-15 and 064-16 still say b11 and b12 (B7 and B8, names kept to preserve history); MEDIUM, B4 owns `applyPropositions` while B5 consumes it, so B5 must not re-test rendering. LOW, the 064-17..22 file names use the new B numbers while 064-05..14 keep the old ones; LOW, section 12 lists D1 to D7 in one entry and D8 in section 11 only.
 - Alloy-source simplification pass, 2026-11-13 (owner-approved, one jig consistency check instead of new rounds): T1 dropped; field-rule table added (2.3); B1 to B12 regrouped into B1 to B8; exact expected OFAT differences added; 13 source-review errors fixed (row 18, `appendIdentityToUrl` class, Context class, handle list, unknown-handle rule, network and transport inventory, missing components, push build, RulesEngine globals, Assurance request side, edge domain kind factor, stale chamber comment and deprecation note); D8 recorded.
+- Slice 064-02 (T2) review: one Opus 5.5 pass, 2 rounds (reviews/slice-02-*.md). Round 1: needs-changes, 2 blocking, fixed; round 2: pass on all three passes.
 - Anything still open after round 3 goes to the pilot as a listed check.
 - Pilot count of extra captures: _to be filled at pilot close_.
 

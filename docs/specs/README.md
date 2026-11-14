@@ -184,7 +184,7 @@ do not grant live authority.
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-08 — observing browser request and response bytes | **DONE** |  |
 | [051-adobe-integration-proving-ground](051-adobe-integration-proving-ground/spec.md) | 051-09 — one focused Analytics and Target chamber journey | IN_PROGRESS (adobe-adoption-goal) |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-01 — T1: close the command inventory | ABANDONED |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-02 — T2: datastream setting list and completeness table | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-02 — T2: datastream setting list and completeness table | **DONE** |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-03 — B0: capture tooling | **DONE** |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 🔬 064-04 — CAP: the capture session | READY_FOR_IMPLEMENTATION |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-05 — B1: configure, getLibraryInfo, page-view sendEvent (pilot) | ABANDONED |  |
@@ -254,7 +254,7 @@ do not grant live authority.
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
 - **14** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **108** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **109** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **52** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
