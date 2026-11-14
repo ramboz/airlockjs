@@ -1,3 +1,10 @@
-# Slice 065-04 reconciliation review
+---
+slice: 065-04: G0: Google-specific capture tooling
+pass: reconciliation
+verdict: pass
+reviewer: claude-opus-5.5
+reviewed_at: 2026-11-14T00:56:07Z
+prompt_source: jig:reviewer subagent, shared prompt
+---
 
-Fresh Opus 5.5 reviewer, 2 rounds. Round 1: needs-changes (one blocking bug in part B cross-region compare over repeated request slots, plus non-blocking items), all fixed with tests. Round 2: PASS, no blocking findings. Open non-blocking: a slot present in only some loads of a region is not flagged against the region load count. Spec diff checked: one section-13 line added, sections 1, 2, 6, 7.1, 10, 12 untouched. Checks: npm test, npm run lint, spec_lint pass; servo quality-gate ran, composite 1.0 (threshold 1.0).
+Two rounds, fresh Opus 5.5 reviewer. Round 1 needs-changes: part B cross-region compare collapsed repeated request slots (fixed per slot, with test), plus non-blocking items (shared helpers, vacuous test, missing input_derived/layout tests, rule cap and source overlap) all fixed. Round 2 pass, no blocking findings. Spec 065 diff touches only one section-13 line. Servo quality-gate ran, composite 1.0.
