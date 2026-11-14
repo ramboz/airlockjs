@@ -1,8 +1,7 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: [067-07, 067-09, 067-10]
 last_verified: 2026-11-13
-claimed_by: 067-08-alloy-context-option
 ---
 
 ## Slice 067-08: Alloy `context` defaults to the stock list
