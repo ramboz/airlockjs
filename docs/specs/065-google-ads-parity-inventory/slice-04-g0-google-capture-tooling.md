@@ -1,8 +1,7 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: [065-01]
 last_verified: 2026-11-13
-claimed_by: google-g0-capture-tooling
 ---
 
 ## Slice 065-04: G0: Google-specific capture tooling
