@@ -158,7 +158,7 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-01: ADR status lines and docs rewording | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-02: Consent hold on every track, with a no-consent-input warning | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-03: Alloy holds and flushes, and an empty `egressPurposes` holds and warns | READY_FOR_IMPLEMENTATION |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-04: Default egress allowlist is the stock destination set | READY_FOR_IMPLEMENTATION |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-04: Default egress allowlist is the stock destination set | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-05: Default cookie and storage grant is the stock set | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-06: Limits never drop or delay stock output by default | READY_FOR_IMPLEMENTATION |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-07: The stock-context channel | **DONE** |  |

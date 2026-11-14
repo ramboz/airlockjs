@@ -210,7 +210,7 @@ export function createWrappedSdkHost({
   onDiagnostic,
 }) {
   const endpointCeiling =
-    stockEndpoints !== undefined || endpointNarrowing !== undefined
+    stockEndpoints != null || endpointNarrowing !== undefined
       ? resolveEndpointCeiling({ stock: stockEndpoints, narrowing: endpointNarrowing, declared: declaredCeiling }).endpoints
       : declaredCeiling;
   // 067-05: `grantedCookieNames` is the connector's STOCK set and is the default grant;

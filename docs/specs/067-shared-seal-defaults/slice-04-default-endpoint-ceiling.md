@@ -1,8 +1,7 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: [067-01]
 last_verified: 2026-11-13
-claimed_by: 067-04-default-egress-allowlist
 ---
 
 ## Slice 067-04: Default egress allowlist is the stock destination set
@@ -29,3 +28,17 @@ claimed_by: 067-04-default-egress-allowlist
 **Consumers:** Adobe 064-18 (AC5) and 064-19 onward (vendor-adobe); Google G12; Meta M9 and the D1 row.
 
 **Anti-horizontal-phasing check:** Vertical: manifest field, ceiling build, narrowing option and a held and a sent beacon in the rig.
+
+### Reconciliation sweep
+
+- Spec 067 checks 5 and 8: matched (mechanism plus test vendor set; callers declaring nothing pinned by a migration test).
+- ADR-0062 point 7 and ADR-0006: no change needed (`ceiling = stock` or the site's subset, never wider).
+- Docs updated: `docs/architecture.md`, `contracts/connector.d.ts` (`stockEndpoints`).
+
+### Deviation log
+
+- The ceiling is wired in three places, not one: `createAirlock` (flush path, coalescer re-check, remap re-send), the unload dispatcher (`createCriticalDispatcher` takes `ceilingEndpoints`, only when a stock set is declared; off-ceiling unload sends drop silently with no diagnostic) and the wrapped-SDK host (`stockEndpoints`/`endpointNarrowing`). Review round 1 found the unload gap.
+- `endpointNarrowing` and `stockEndpoints` are programmatic options. They are not in the instrumentation-config schema or the EDS boot layer; that plumbing arrives with the real vendor lists (064/065/066), as spec 067 check 5 allows.
+- The worker `init` still receives the full declared `endpoints`, so a narrowed-away tracker fails closed with an `endpoint-ceiling` diagnostic per beacon.
+- A malformed, empty or non-array stock set, an empty narrowing, and a narrowing with no stock set all throw at construction rather than turning the ceiling off.
+- Tests are vitest unit tests with a fake worker, not rig tests. The remap flush path under a narrowed ceiling shares the same `ceilingEndpoints` but has no dedicated test.
