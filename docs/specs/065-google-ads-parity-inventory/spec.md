@@ -569,6 +569,7 @@ The owner answered all of these on 2026-11-13. Each entry keeps the recommendati
 
 ## 13. Review log and carried findings
 
+- 2026-11-13 (G0, 065-04): Google-specific capture tooling landed in `rig/google-capture.mjs` (drift probe parts A and B, field and request classifier, cookie allow-list, no-abort recorder and storage driver), on the shared 064-03 modules. `normaliseDenylist` retirement (AC3) is recorded as blocked on the capture and the freeze. See the slice deviation log.
 - 2026-11-13: T3 (065-03) ran the completeness probe under the D4 amendment. 50 distinct configs, feature-level 7.4% primary (38.5% strict), site-level 62% primary (100% strict). Kill criterion 6 tripped on the site-level rate. Freeze waits for the owner. Details in 7.1.
 - 2026-11-13: owner answered D1 to D10 (D11 earlier). Recorded in section 12 with the consequences in sections 0, 4, 6, 9 and 11. ADR-0061 amendments for points 1 and 11 landed on main (0633a5f4). 059 slices 01 to 12 and 15 moved to ABANDONED through jig. G1 now depends on 067-02 and G10 on 067-06 (spec 067 section 8 item 11). No new review round.
 
