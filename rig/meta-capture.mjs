@@ -74,6 +74,10 @@ export function buildMetaManifest({ capturedAt, inputState, settingsState }) {
 }
 
 const b64 = bytes => Buffer.from(bytes).toString("base64");
+// A UTF-8 copy next to the base64 one, so the shared text-based credential scan can see bodies.
+const utf8 = bytes => { try { return new TextDecoder("utf-8", { fatal: true }).decode(bytes); } catch { return null; } };
+// allHeaders() includes Cookie and Set-Cookie, which headers() hides in Playwright.
+const fullHeaders = async o => (o.allHeaders ? o.allHeaders() : o.headers());
 
 // Records every request and its full response fan-out (redirect chain, status line,
 // headers, body, zero-length body as such). It subscribes to page events only: it
@@ -94,6 +98,7 @@ export function createNativeRecorder(page, { now = () => new Date().toISOString(
       resource_type: request.resourceType?.() ?? null,
       request_headers: request.headers(),
       post_data_base64: post ? b64(post) : null,
+      post_data_text: post ? utf8(post) : null,
       redirected_from: redirected && byRequest.has(redirected) ? byRequest.get(redirected).index : null,
       started_at: now(),
       response: null,
@@ -103,18 +108,24 @@ export function createNativeRecorder(page, { now = () => new Date().toISOString(
     entries.push(entry);
   };
   const onResponse = response => {
-    const entry = byRequest.get(response.request());
+    const request = response.request();
+    const entry = byRequest.get(request);
     if (!entry) return;
     entry.response = {
       status: response.status(),
       status_text: response.statusText?.() ?? "",
       headers: response.headers(),
       body_base64: null,
+      body_text: null,
       body_length: null,
       body_error: null,
     };
-    const job = Promise.resolve().then(() => response.body()).then(
-      body => { entry.response.body_base64 = b64(body); entry.response.body_length = body.length; },
+    const job = Promise.resolve().then(async () => {
+      entry.request_headers = await fullHeaders(request);
+      entry.response.headers = await fullHeaders(response);
+      return response.body();
+    }).then(
+      body => { entry.response.body_base64 = b64(body); entry.response.body_text = utf8(body); entry.response.body_length = body.length; },
       error => { entry.response.body_error = String(error?.message ?? error).slice(0, 200); },
     ).finally(() => pending.delete(job));
     pending.add(job);
@@ -130,7 +141,7 @@ export function createNativeRecorder(page, { now = () => new Date().toISOString(
 
   return {
     async settled() { while (pending.size) await Promise.all([...pending]); },
-    entries() { return entries; },
+    entries() { return structuredClone(entries); },
     detach() {
       page.off("request", onRequest);
       page.off("response", onResponse);

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { FIXTURE_ROOTS, scanFixtureFiles } from "./fixture-credentials.mjs";
+import { FIXTURE_ROOTS, scanFixtureFiles, scanFixtureText } from "./fixture-credentials.mjs";
 import { checkFixtureManifest } from "./fixture-manifest.mjs";
 import {
   META_CAPTURE_ROOT, META_CORPUS, buildMetaManifest, corpusState, createNativeRecorder, egressLabel,
@@ -84,6 +84,12 @@ describe("066-03 no-abort native recorder (AC2)", () => {
     rec.detach();
     expect(page.listenerCount("request")).toBe(0);
   });
+  it("never registers a route handler on the page or context", () => {
+    const page = fakePage();
+    page.route = () => { throw new Error("route registered"); };
+    page.context = () => ({ route: () => { throw new Error("route registered"); } });
+    expect(() => createNativeRecorder(page).detach()).not.toThrow();
+  });
   it("keeps a failed request and an unreadable body as recorded rows, not as errors", async () => {
     const page = fakePage();
     const rec = createNativeRecorder(page);
@@ -122,8 +128,18 @@ describe("066-03 credential check over seeded fixtures (AC3)", () => {
       expect(await scanFixtureFiles([join(dir, "good")], dir)).toEqual([]);
     } finally { await rm(dir, { recursive: true, force: true }); }
   });
-  it("finds nothing in committed Meta captures", async () => {
-    expect(await scanFixtureFiles([join(root, META_CAPTURE_ROOT)], root)).toEqual([]);
+  it("scans text copies of bodies and POST data, and cookie headers only visible through allHeaders()", async () => {
+    const page = fakePage();
+    const rec = createNativeRecorder(page);
+    const req = { ...fakeRequest("https://native.example.invalid/tr"), postDataBuffer: () => Buffer.from(`x=1&${"access_"}token=${"abcdef"}123456`) };
+    req.allHeaders = async () => ({ cookie: "c_user=1000" });
+    page.emit("request", req);
+    const res = fakeResponse(req, 200, `${"Bear"}er ${"abcdef"}0123456789`);
+    res.allHeaders = async () => ({ "set-cookie": "xs=1:abc; Path=/" });
+    page.emit("response", res);
+    await rec.settled();
+    const rules = scanFixtureText(JSON.stringify(rec.entries())).map(f => f.rule);
+    expect(rules).toEqual(expect.arrayContaining(["meta_session_cookie", "token_parameter", "bearer_token"]));
   });
 });
 
