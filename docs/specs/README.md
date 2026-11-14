@@ -166,7 +166,7 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-09: The credentials denylist stays on, with an explicit override | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-10: Input governance at the wrapped-SDK seam | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-11: A privacy-safe measurement purpose for helix-rum | **DONE** |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-12: Default localStorage and sessionStorage grant is the stock set | READY_FOR_IMPLEMENTATION |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-12: Default localStorage and sessionStorage grant is the stock set | **DONE** |  |
 
 ## Deferred slices
 

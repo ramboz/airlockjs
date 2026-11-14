@@ -1,8 +1,7 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: [067-05]
 last_verified: 2026-11-13
-claimed_by: 067-12-storage-grant
 ---
 
 ## Slice 067-12: Default localStorage and sessionStorage grant is the stock set
@@ -28,3 +27,14 @@ claimed_by: 067-12-storage-grant
 **Consumers:** 067-08 (Alloy context) and Adobe 064-17 (storage seeding, on vendor-adobe).
 
 **Anti-horizontal-phasing check:** Vertical: manifest field, seed filter, write-back filter and denial path for one connector.
+
+### Deviation log
+
+- Alloy declares no stock storage set yet (`ALLOY_STORAGE_NAMES = null`; real keys arrive with Adobe 064-17). The stock-default path is proven with a mocked test vendor set (`vendor_`, `vtld`, `vsid`), as the slice allowed.
+- An area with no declared stock grants nothing: the host drops `storage-writeback` and the chamber storage stays in memory, as today. A narrowing with no stock set throws at boot (nothing to narrow). Independent review round 1 found the first draft fail-open here; fixed.
+- New seam: chamber `storage-writeback` message, `init.storage` seed (only when a grant is active), `caps.storage.reconcile` sink, and a `storageGrantNarrowing` config key with schema and golden fixture.
+
+### Reconciliation sweep
+
+- `docs/architecture.md` ("Storage grant defaults to the stock set"), `contracts/README.md`, `contracts/capability.d.ts`, `contracts/connector.d.ts` and `contracts/instrumentation-config.schema.json` updated.
+- Reviews: `reviews/slice-12-compliance.md`, `slice-12-craft.md`, `slice-12-reconciliation.md`. All ACs 1-6 met; check 8 pinned by `test/wrapped-sdk-host-storage.test.js` and `test/eds-boot-alloy-storage-default.test.js`.

@@ -46,10 +46,9 @@ describe("resolveStorageGrant", () => {
     }
   });
 
-  it("with no stock declared, a narrowing alone still restricts that area", () => {
-    const g = resolveStorageGrant(null, { localStorage: ["only"] });
-    expect(g.areas).toEqual({ localStorage: ["only"], sessionStorage: null });
-    expect(g.active).toBe(true);
+  it("with no stock declared, a non-empty narrowing throws (it can't widen) and an empty one is inactive", () => {
+    expect(() => resolveStorageGrant(null, { localStorage: ["only"] })).toThrow(/storageGrantNarrowing/);
+    expect(resolveStorageGrant(null, { localStorage: [] }).active).toBe(false);
   });
 });
 

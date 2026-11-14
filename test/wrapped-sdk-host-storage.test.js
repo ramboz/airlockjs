@@ -106,12 +106,11 @@ describe("067-12 consent-driven write denial", () => {
 });
 
 describe("067-12 migration: a caller that declares nothing keeps today's behavior (spec 067 check 8)", () => {
-  it("no stock set and no narrowing: no grant is imposed, no storage diagnostics or counters move", () => {
-    const { emit, writes, diags, host } = makeHost({});
+  it("no stock set and no narrowing: write-backs are dropped (chamber storage stays in memory), as before", () => {
+    const { emit, writes, host } = makeHost({});
     emit(wb("localStorage", "anything"));
-    expect(writes).toEqual([["localStorage", "anything", "v"]]);
-    expect(diags.filter((d) => d.kind.startsWith("storage"))).toEqual([]);
-    expect(host.getState()).toMatchObject({ storageScopeHeld: 0, storageConsentHeld: 0 });
+    expect(writes).toEqual([]);
+    expect(host.getState()).toMatchObject({ storageScopeHeld: 1 });
   });
 
   it("no caps.storage sink at all: a write-back is a silent no-op, as before", () => {

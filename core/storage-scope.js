@@ -17,8 +17,8 @@ export const STORAGE_AREAS = Object.freeze(["localStorage", "sessionStorage"]);
  * nothing declared: every area stays ungated and inactive, today's behavior, spec 067 check 8).
  * A declared stock that omits an area grants nothing there (fail closed). `narrowing` names a
  * subset per area; an unmentioned area keeps its stock. Throws TypeError on a malformed or
- * out-of-stock narrowing so a typo can't silently widen the grant. With no stock, a narrowing
- * alone still restricts the area it names.
+ * out-of-stock narrowing so a typo can't silently widen the grant. With no stock, any non-empty
+ * narrowing entry is out of the (empty) stock and throws.
  * @param {{ localStorage?: readonly string[], sessionStorage?: readonly string[] }|null|undefined} stock
  * @param {{ localStorage?: readonly string[], sessionStorage?: readonly string[] }|undefined} narrowing
  * @returns {{ areas: { localStorage: (readonly string[]|null), sessionStorage: (readonly string[]|null) }, narrowed: boolean, active: boolean }}
@@ -31,11 +31,11 @@ export function resolveStorageGrant(stock, narrowing) {
   const areas = {};
   let narrowed = false;
   for (const area of STORAGE_AREAS) {
-    const stockNames = declared ? (Array.isArray(declared[area]) ? declared[area] : []) : null;
+    const stockNames = declared ? (Array.isArray(declared[area]) ? declared[area] : []) : [];
     const narrow = narrowing ? narrowing[area] : undefined;
     try {
       const r = resolveCookieGrant(stockNames, narrow);
-      areas[area] = r.names;
+      areas[area] = declared ? r.names : null;
       narrowed = narrowed || r.narrowed;
     } catch (e) {
       throw new TypeError(`storageGrantNarrowing.${area} is invalid or outside the connector's stock ${area} set (narrowing can't widen): ${e.message}`, { cause: e });
@@ -45,13 +45,13 @@ export function resolveStorageGrant(stock, narrowing) {
 }
 
 /**
- * Whether a key is granted in an area. An ungated (`null`) area grants everything (no declaration).
+ * Whether a key is granted in an area. An ungated (`null`) area grants nothing: with no declared stock the chamber storage stays in memory.
  * @param {{ localStorage: (readonly string[]|null), sessionStorage: (readonly string[]|null) }} areas
  */
 export function storageKeyGranted(areas, area, key) {
   if (!STORAGE_AREAS.includes(area) || typeof key !== "string") return false;
   const names = areas[area];
-  return names === null ? true : matchesGrantedName(key, names);
+  return names ? matchesGrantedName(key, names) : false;
 }
 
 /**

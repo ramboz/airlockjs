@@ -33,19 +33,15 @@ describe("bootAlloy with no storage grant declared", () => {
     expect(reads).not.toHaveBeenCalled();
   });
 
-  it("a storage write-back is applied ungated, as no grant is imposed", async () => {
+  it("a storage write-back never reaches page storage when no grant is declared", async () => {
     const setItem = vi.fn();
     vi.stubGlobal("localStorage", { setItem, removeItem() {} });
     await bootAlloy(entry());
     RecordingWorker.instances[0].emit({ type: "storage-writeback", area: "localStorage", key: "k", value: "v" });
-    expect(setItem).toHaveBeenCalledWith("k", "v");
+    expect(setItem).not.toHaveBeenCalled();
   });
 
-  it("a narrowing alone restricts the area it names and seeds only those keys", async () => {
-    const data = { a: "1", b: "2" };
-    vi.stubGlobal("localStorage", { get length() { return 2; }, key: (i) => Object.keys(data)[i], getItem: (k) => data[k] });
-    await bootAlloy(entry({ storageGrantNarrowing: { localStorage: ["a"] } }));
-    const init = RecordingWorker.instances[0].messages.find((m) => m.type === "init");
-    expect(init.storage).toEqual({ localStorage: { a: "1" }, sessionStorage: {} });
+  it("a narrowing with no stock set throws at boot: nothing to narrow, never a grant", async () => {
+    await expect(bootAlloy(entry({ storageGrantNarrowing: { localStorage: ["a"] } }))).rejects.toThrow(/storageGrantNarrowing/);
   });
 });
