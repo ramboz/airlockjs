@@ -51,7 +51,7 @@ describe("measurement purpose guard (067-11 AC3)", () => {
   it("helix-rum payloads carry no identifier or personal-data fields, even when extra params are pushed", () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
     const c = createHelixRumConnector({ ctx: { referer: "https://site.example/" } });
-    const hostile = { userId: "u1", clientId: "c1", deviceId: "d1", email: "a@b.example", cookie: "x=1", clickId: "gclid" };
+    const hostile = { userId: "sentinel-user-u1", clientId: "sentinel-client-c1", deviceId: "sentinel-device-d1", email: "a@b.example", cookie: "sentinel-cookie=1", clickId: "sentinel-gclid" };
     const bodies = [
       c.handle({ type: "top", ts: 1, params: hostile }),
       c.handle({ type: "error", ts: 2, params: { source: "a.js", target: "boom", ...hostile } }),
@@ -66,7 +66,7 @@ describe("measurement purpose guard (067-11 AC3)", () => {
         expect(forbidden.test(k), `forbidden field ${k}`).toBe(false);
         if (b.checkpoint !== "cwv") expect(allowed.has(k), `unexpected field ${k}`).toBe(true);
       }
-      expect(JSON.stringify(b)).not.toMatch(/a@b\.example|u1|c1|d1|gclid/);
+      expect(JSON.stringify(b)).not.toMatch(/a@b\.example|sentinel-/);
     }
     // the per-page id is ephemeral (never persisted): a fresh 9-char slice, not a stored identifier
     expect(bodies[0].id).toMatch(/^[0-9a-f-]{9}$/);
