@@ -110,7 +110,7 @@ describe("059-16 closed SDK-absent capture", () => {
     expect(() => decodeOriginal(["unknown"])).toThrow("original_shape");
   });
 
-  it("AC3: pins the current closed first-party graph and unchanged resolver-denying launcher", async () => {
+  it.runIf(process.env.AIRLOCK_CHAMBER_QUALIFICATION === "1")("AC3: pins the current closed first-party graph and unchanged resolver-denying launcher", async () => {
     const { currentIdentity, verifyIdentity } = await load();
     const identity = currentIdentity();
     expect(identity.browser.expected_version).toBe("155.0.8059.85");

@@ -182,3 +182,6 @@ It is not a field the producer can self-certify.
 AIRLOCK_CHAMBER_QUALIFICATION=1 PATH=/opt/homebrew/bin:$PATH \
   npx --no-install vitest run rig/chamber-capture.test.mjs
 ```
+
+The AC3 identity-pin test (macOS Chrome, `sandbox-exec`) runs only with this
+flag, i.e. on the capture machine; hermetic CI skips it.
