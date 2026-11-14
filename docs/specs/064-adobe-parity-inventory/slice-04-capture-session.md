@@ -18,6 +18,7 @@ kind: spike
 2. Every fixture carries its full stored input state and passes the credential check.
 3. Run order follows section 5.1, including the restore step and the Alloy bundle SHA check.
 4. The owner's normal-browser capture (S12) is compared field by field; fixed or generated differences go to the owner before freeze.
+5. Corpus size is 48 recordings: S9 states are recorded once without a repeat and the agent polls for changes (D12); S10 runs on the POC site without Launch (D10). A window past about 3 h continues in a second short sitting.
 
 **DoD:**
 - Corpus committed and frozen; the freeze note lists live-only rows and any gap.

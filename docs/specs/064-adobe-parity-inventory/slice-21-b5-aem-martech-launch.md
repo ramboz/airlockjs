@@ -14,7 +14,8 @@ last_verified:
 **Acceptance Criteria:**
 
 1. Decision is one of drop-in, wrapper or not viable, with evidence.
-2. Fixture S10 compares clean.
+2. Fixture S10 (POC site, `aem-martech` + ACDL + Alloy 2.31.1, no Launch, D10) compares clean.
+3. The Launch bridge is a gap row owned here (D10): added if this slice shows it is needed, otherwise tagged `live-only` (no Launch property exists).
 
 **DoD:**
 - `npm test && npm run lint` and servo gate pass.

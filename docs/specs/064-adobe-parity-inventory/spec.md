@@ -231,18 +231,18 @@ The ADR's Google/Meta clean-room risk is **not** tested by this pilot, because A
 | S6 | `setConsent` out, in, pending then in | each with queued events |
 | S7 | Link click and SPA view change | base, repeat |
 | S8 | Error shapes (blocked network, non-200) | one each, scripted |
-| S9 | Datastream config states (section 6.2) | 13 states, S9-00 to S9-12, one per setting group, with S9-11 as the combined-settings state |
-| S10 | Launch + `aem-martech` + ACDL page | base, repeat |
+| S9 | Datastream config states (section 6.2) | 13 states, S9-00 to S9-12, one per setting group, with S9-11 as the combined-settings state. Each state is recorded once, no repeat (D12) |
+| S10 | POC site with pinned `aem-martech` + ACDL + Alloy 2.31.1, no Launch (D10) | base, repeat |
 | S11 | Second-day drift probe | repeat of S1, S3 on day 2 |
 | S12 | Normal-browser reference (owner) | repeat of S1 |
 | S13 | Egress response-field pair (only if D2 = yes) | default egress vs second region, response fields only |
 
-Estimated size: 61 recordings after T2 (6.3; the earlier estimate was about 45). Kill criterion 4 fires if the session needs more than 60 recordings or more than one owner settings window.
+Estimated size: 48 recordings after T2 and D12 (6.3; T2 first counted 61 with S9 repeats; the earlier estimate was about 45). Kill criterion 4 fires if the session needs more than 60 recordings or more than one owner settings window; the owner proceeded on it under D12.
 
 ### 5.1 Capture run order
 
 1. Agent-only states, in this order: S0, three same-day S1 loads, S2, S3, S4 (no-decision shape), S5, S6, S7, S8, S10.
-2. One owner settings window: for each S9 setting the owner changes it and says so; the agent waits the propagation time (10 minutes), records, and logs the change and time in the manifest. D3 (Target reactivation) happens in the same window. S12 is done by the owner in the same window.
+2. One owner settings window: for each S9 setting the owner changes it and says so; the agent polls until the response changes (states that change the response) or waits the propagation time (10 minutes default; the S9-11 batch waits the longest wait seen so far in the window), records once, and logs the change and time in the manifest. D3 (Target reactivation) happens in the same window. S12 is done by the owner in the same window. If the window runs past about 3 h it continues in a second short sitting (D12); that is not a kill.
 3. Restore step: the owner restores the datastream to its original settings and the agent records one S1 load to confirm it matches the step 1 recordings.
 4. S11 and S13 follow on day 2.
 5. Every manifest records the SHA-256 of the Alloy bundle actually loaded. The session aborts on a mismatch with the pin in section 1.
@@ -350,7 +350,7 @@ The Target activity must be active (D3) for S9-01 to S9-03 and S9-10 to show a d
 
 Public docs say a saved datastream change takes **up to 35 minutes** to propagate. Section 5.1 and condition (a) above assume 10 minutes. The 10 minutes is not an Adobe figure. This is reported for the owner. D1 to D8 are not edited.
 
-Recordings, each state recorded as base plus repeat (4.3):
+Recordings. Every state is base plus repeat (4.3) except S9, which is recorded once per state (D12); the S1 same-day loads give the noise floor:
 
 | Group | Recordings |
 |---|---|
@@ -365,20 +365,20 @@ Recordings, each state recorded as base plus repeat (4.3):
 | S13 (default and second egress) | 2 |
 | Restore confirmation (one S1 load) | 1 |
 | **Subtotal without S9** | **35** |
-| S9: 12 window states and S9-00, two each | 26 |
-| **Total** | **61** |
+| S9: 12 window states and S9-00, one each (D12) | 13 |
+| **Total** | **48** |
 
-61 is above the 60 of kill criterion 4, so criterion 4 fires on this count. The earlier estimate was about 45. Scope is not changed here. Levers for the owner: record S9 states without a repeat (13 fewer, 48 total), or merge S9-01 with S9-02 and S9-03 with S9-04. A bisect of S9-11 would add 2 recordings per extra state; that reserve is not in the 61.
+With S9 repeats the count was 61, above the 60 of kill criterion 4, so the criterion tripped. The owner chose to proceed by dropping the S9 repeats (D12), which gives 48. The earlier estimate was about 45. A bisect of S9-11 would add 1 recording per extra state; that reserve is not in the 48.
 
-Window time. Each owner change costs one propagation wait plus about 6 minutes (owner click, base and repeat recording, manifest entry). There are 12 changes and the restore, so 13 waits, plus about 30 minutes for the window start (value read, D3, S12). Time = 13 x (wait + 6) + 30 minutes.
+Window time. Each owner change costs one propagation wait plus about 4 minutes (owner click, one recording, manifest entry). There are 12 changes and the restore, so 13 waits, plus about 30 minutes for the window start (value read, D3, S12). Time = 13 x (wait + 4) + 30 minutes.
 
 | Propagation wait | Window |
 |---|---|
-| 5 minutes | about 173 min (fits one ~3 h window) |
-| 10 minutes (section 5.1 default) | about 238 min (4 h, over one window) |
-| 35 minutes (public docs cap) | about 563 min (9.4 h, several windows) |
+| 5 minutes | about 147 min (fits one ~3 h window) |
+| 10 minutes (section 5.1 default) | about 212 min (3.5 h) |
+| 35 minutes (public docs cap) | about 537 min (9 h, several sittings) |
 
-The times are lower bounds (owner lookup and retries are not counted). The window fits one ~3 h session only if the wait is at most about 5 minutes. An agent can shorten the wait for the states that change the response (S9-01 to S9-03, S9-09, S9-10, S9-12) by polling until the response changes, then recording. The no-effect batch in S9-11 cannot be polled, so it must wait the longest observed time. Kill criterion 4 (more than one owner settings window) is therefore at risk, and this is reported, not resolved.
+The times are lower bounds (owner lookup and retries are not counted). Polling for the states that change the response (S9-01 to S9-03, S9-09, S9-10, S9-12) cuts the wait to the time the change takes to show. The S9-11 no-effect batch cannot be polled, so it waits the longest wait seen so far. If the window passes about 3 h it continues in a second short sitting, which the owner accepted under D12 and which does not count as a kill of criterion 4.
 
 ### 6.4 Command list reconciliation (T2)
 
@@ -399,11 +399,11 @@ Rate = settings not covered by S9, divided by all settings listed. Covered means
 
 - Listed settings: 36 (6.1).
 - Not covered: 7 (DS-17, DS-18, DS-19, DS-20, DS-22, DS-24, DS-34).
-- **Out-of-inventory rate: 7 / 36 = 19.4%, above the 10% threshold. Kill criterion 6 trips on this count.** Scope is not changed. It is recorded and reported.
+- **Out-of-inventory rate: 7 / 36 = 19.4%, above the 10% threshold. Kill criterion 6 trips on this count.** Scope is not changed. It is recorded and reported; the owner chose to proceed (D11).
 - Sensitivity only, not applied: if DS-17 to DS-20 were switched on in S9-07 as sub-toggles of the AEP service, the rate would be 3 / 36 = 8.3%. Those toggles show no effect without an owned decision, segment, destination or campaign, so they would still fail condition (c).
 - Observed `handle` types: none observed yet, because there is no capture. That half of the metric is measured after CAP. The 8 consumed types of 2.2 do not enter the denominator until they are observed.
 
-Open point for the owner: kill criterion 6 and kill criterion 4 both trip on the T2 count. Neither was reached by a scope change.
+Kill criteria 6 and 4 both tripped on the T2 counts. Neither was reached by a scope change. The owner proceeded on both (D11, D12). The 7 gap rows are known gaps owned by B6 (064-22) and stay outside the v1.0 compatibility claim until owned resources exist.
 
 ## 7. Disposition of specs 051 to 057
 
@@ -476,7 +476,7 @@ The probe does not run until the owner confirms both. The POC site loads no Allo
 | Held-out rule check | Yes | Section 4.7 |
 | Drift and field classes (point 10) | Yes, adapted | Alloy is versioned. Field classes are `fixed`, `generated`, `input-derived`, `server-context-derived` (a source field is named, for example the edge region or datastream), `volatile`. Request classes are in section 2.2. A field that differs across setups or days without an explanation makes the state `unstable` and goes to the owner |
 
-Completeness metric: out-of-inventory rate = (datastream settings and observed `handle` types not covered by S9) divided by (all listed). Threshold: above 10% is a kill criterion (item 6). Value so far: 7 of 36 settings = 19.4% (T2, 6.5); the `handle` half is not measured until capture. This is above the threshold, so kill criterion 6 trips on the settings count; scope is not changed.
+Completeness metric: out-of-inventory rate = (datastream settings and observed `handle` types not covered by S9) divided by (all listed). Threshold: above 10% is a kill criterion (item 6). Value so far: 7 of 36 settings = 19.4% (T2, 6.5); the `handle` half is not measured until capture. This is above the threshold, so kill criterion 6 tripped on the settings count; scope is not changed and the owner proceeded (D11).
 
 Kill criteria, from ADR-0061 plus the completeness metric:
 
@@ -511,6 +511,12 @@ Decided by the owner on 2026-11-14:
 
 - **D9.** Only the org ID and datastream ID are committed; the report suite, Target property and environment IDs stay out of the public repo.
 
+Decided by the owner on 2026-11-14 (after T2):
+
+- **D10 (S10).** Record `aem-martech` + ACDL without Launch on the POC site (pinned `aem-martech` 1aa3dee3, ACDL, Alloy 2.31.1; no Launch property exists). The Launch bridge becomes a gap row owned by B5 (064-21), added if B5 shows it is needed. No customer sites: the section 9 gate, the pin mismatch on a Launch-built Alloy, test traffic in customer data and uncommittable IDs rule them out.
+- **D11 (kill criterion 6).** Proceed. Owner: "I'm fine with proceeding. just keep in mind we have the full source code, so we can also likely infer most of the logic". The 7 rows (DS-17 to DS-20, DS-22, DS-24, DS-34) are known gaps owned by B6 (064-22) and stay outside the v1.0 claim until owned resources exist. B6 derives their client-side handling from the pinned 2.31.1 source, labeled source-derived, not capture-verified. Only their server responses stay unverified. The rate stays reported as 19.4%.
+- **D12 (kill criterion 4).** Drop S9 repeats and poll for changes; continue in a second sitting if needed. Each S9 state is recorded once (61 down to 48). The agent polls until the change shows for response-changing states; the S9-11 batch waits the longest wait seen. A second short sitting past about 3 h does not count as a kill.
+
 ## 12. Review log and carried findings
 
 Review rounds are capped at three before owner review (owner decision). Findings left after round 3 are carried into the pilot as listed checks, as ADR-0061 did with round 10.
@@ -521,7 +527,7 @@ Review rounds are capped at three before owner review (owner decision). Findings
 - Owner decisions D1 to D7 recorded 2026-11-12; slice files 064-01 to 064-16 created and moved to READY_FOR_IMPLEMENTATION through jig's transition helper (the spec-level status is the jig rollup of its slices).
 - Jig consistency check (`/jig:analyze`) run 2026-11-13 on spec 064 and its slice files after the simplification: 8 findings (0 CRITICAL, 3 HIGH, 3 MEDIUM, 2 LOW; the ADR-0062 citation MEDIUM was closed on 2026-11-13 when ADR-0062 was accepted). The 3 HIGH are fixed (B3 AC covered rows owned by B4 and B6; S6 owned by both B2 and B3; B6 wrote results into the frozen section 2). Carried into the slices: MEDIUM, slice file names 064-15 and 064-16 still say b11 and b12 (B7 and B8, names kept to preserve history); MEDIUM, B4 owns `applyPropositions` while B5 consumes it, so B5 must not re-test rendering. LOW, the 064-17..22 file names use the new B numbers while 064-05..14 keep the old ones; LOW, section 12 lists D1 to D7 in one entry and D8 in section 11 only.
 - Alloy-source simplification pass, 2026-11-13 (owner-approved, one jig consistency check instead of new rounds): T1 dropped; field-rule table added (2.3); B1 to B12 regrouped into B1 to B8; exact expected OFAT differences added; 13 source-review errors fixed (row 18, `appendIdentityToUrl` class, Context class, handle list, unknown-handle rule, network and transport inventory, missing components, push build, RulesEngine globals, Assurance request side, edge domain kind factor, stale chamber comment and deprecation note); D8 recorded.
-- Slice 064-02 (T2) review: one Opus 5.5 pass, 2 rounds (reviews/slice-02-*.md). Round 1: needs-changes, 2 blocking, fixed; round 2: pass on all three passes.
+- Slice 064-02 (T2) review: one Opus 5.5 pass, 2 rounds (reviews/slice-02-*.md; D10 to D12 were added after the rounds, by owner decision). Round 1: needs-changes, 2 blocking, fixed; round 2: pass on all three passes.
 - Anything still open after round 3 goes to the pilot as a listed check.
 - Pilot count of extra captures: _to be filled at pilot close_.
 
