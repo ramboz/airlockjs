@@ -758,6 +758,17 @@ describe("createWrappedSdkHost — endpoint ceiling + config-integrity compositi
     expect(host.getState().held).toBe(0);
   }, 2000);
 
+  it("(a3, 067-04) a stock set is the default ceiling and a narrowing away from it holds the rest", async () => {
+    const other = "https://other.vendor.test/collect";
+    const { chamber, dispatched, host } = makeSpyingHost({ stockEndpoints: [INTERACT, other], endpointNarrowing: [INTERACT] });
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 9, url: other, method: "POST", headers: {}, body: "{}" });
+    await posted;
+    expect(dispatched.length).toBe(0);
+    expect(host.getState().ceilingHeld).toBe(1);
+    expect(() => makeSpyingHost({ stockEndpoints: [INTERACT], endpointNarrowing: [other] })).toThrow(/outside/);
+  }, 2000);
+
   it("(a2) a WRONG PATH on the ALLOWED host is HELD by the ceiling — the path confinement 015 lacks", async () => {
     const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN, endpointCeiling: [INTERACT] });
     const url = `https://adobedc.demdex.net/steal?configId=${HONEST_DS}`; // right host, wrong path, honest tenant

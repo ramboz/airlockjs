@@ -28,6 +28,7 @@
  * instead of failing silently.
  */
 import { mapToMp } from "../connectors/ga4/map.js";
+import { checkEndpointCeiling } from "./endpoint-ceiling.js";
 
 /** Chrome's aggregate in-flight `keepalive` request-body cap. */
 export const KEEPALIVE_BUDGET_BYTES = 64 * 1024;
@@ -95,7 +96,11 @@ export function createCriticalDispatcher({
   fetchImpl = typeof fetch !== "undefined" ? fetch : null,
   encode = (s) => new TextEncoder().encode(s).length,
   requestMapper,
+  // 067-04: when set, an unload send to a destination outside this ceiling is
+  // dropped (never sent), so stock/narrowed ceilings also bind teardown.
+  ceilingEndpoints,
 }) {
+  const offCeiling = (url) => Array.isArray(ceilingEndpoints) && checkEndpointCeiling(url, ceilingEndpoints).verdict !== "allow";
   let used = 0;
   let dispatched = 0;
   let dropped = 0;
@@ -120,6 +125,10 @@ export function createCriticalDispatcher({
     if (typeof requestMapper === "function") {
       const requests = requestMapper(event) || [];
       for (const req of requests) {
+        if (offCeiling(req.url)) {
+          dropped++;
+          continue;
+        }
         try {
           const p = fetchImpl(req.url, fetchInit(req.method, req.body));
           // Swallow async rejection: at teardown there is no one to handle it.
@@ -135,6 +144,10 @@ export function createCriticalDispatcher({
       const body = JSON.stringify(mapper(event, ctx));
       const bytes = encode(body);
       if (used + bytes > budgetBytes) {
+        dropped++;
+        continue;
+      }
+      if (offCeiling(endpoints[t])) {
         dropped++;
         continue;
       }

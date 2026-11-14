@@ -152,14 +152,19 @@ function coveredByStock(entry, stock) {
  * (`stock`); a site may NARROW it to a non-empty subset with `narrowing`,
  * never widen it (an out-of-stock or malformed narrowing throws, and an empty
  * one throws rather than silently meaning "no ceiling"). With no stock set
- * (`null`/empty) the caller's `declared` endpoints stay the ceiling and a
+ * (`null`/absent) the caller's `declared` endpoints stay the ceiling and a
  * narrowing is rejected: today's behavior for callers that declare nothing
  * (spec 067 check 8). Pure.
  * @param {{ stock?: readonly string[]|null, narrowing?: readonly string[], declared?: readonly string[] }} input
  * @returns {{ endpoints: readonly string[], narrowed: boolean, fromStock: boolean }}
  */
 export function resolveEndpointCeiling({ stock, narrowing, declared } = {}) {
-  const base = Array.isArray(stock) && stock.length ? stock : null;
+  if (stock !== undefined && stock !== null) {
+    if (!Array.isArray(stock) || !stock.length || stock.some((e) => typeof e !== "string" || !originPath(e))) {
+      throw new TypeError("stockEndpoints must be a non-empty array of parseable endpoint URLs");
+    }
+  }
+  const base = Array.isArray(stock) ? stock : null;
   if (narrowing === undefined) {
     return { endpoints: base || declared || [], narrowed: false, fromStock: Boolean(base) };
   }

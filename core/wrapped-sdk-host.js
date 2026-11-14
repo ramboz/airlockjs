@@ -127,7 +127,7 @@
  * denylist is on by default here; `payloadDenylistOverride` (`false` or an
  * array) is the only way to turn it off or replace it.
  */
-import { checkEndpointCeiling } from "./endpoint-ceiling.js";
+import { checkEndpointCeiling, resolveEndpointCeiling } from "./endpoint-ceiling.js";
 import { checkConfigIntegrity, pinnedDispatchUrl, hostOf } from "./config-integrity.js";
 import { egressVerdict, resolveConsent } from "./consent.js";
 import { governPayload, resolveDenylist } from "./payload-governance.js";
@@ -159,6 +159,8 @@ function consoleDiagnostic(record) {
  *   timeoutMs?: number,
  *   configIntegrity?: ({ pinnedHost: string, tenantKey: string, pinnedTenant: string, pinnedScheme?: string, disposition?: ("hold" | "override") } | null),
  *   endpointCeiling?: (readonly string[] | null),
+ *   stockEndpoints?: readonly string[],
+ *   endpointNarrowing?: readonly string[],
  *   consent?: (Record<string, string> | null),
  *   egressPurposes?: readonly string[],
  *   payloadDenylist?: (readonly string[] | null),
@@ -193,7 +195,11 @@ export function createWrappedSdkHost({
   caps,
   timeoutMs = 5000,
   configIntegrity = null,
-  endpointCeiling = null,
+  endpointCeiling: declaredCeiling = null,
+  // 067-04: the stock destination set (default ceiling) and the site's opt-in
+  // narrowing; absent both, `endpointCeiling` is used as before.
+  stockEndpoints,
+  endpointNarrowing,
   consent = null,
   egressPurposes = [],
   payloadDenylist = null,
@@ -203,6 +209,10 @@ export function createWrappedSdkHost({
   cookiePurposes = null,
   onDiagnostic,
 }) {
+  const endpointCeiling =
+    stockEndpoints !== undefined || endpointNarrowing !== undefined
+      ? resolveEndpointCeiling({ stock: stockEndpoints, narrowing: endpointNarrowing, declared: declaredCeiling }).endpoints
+      : declaredCeiling;
   // 067-05: `grantedCookieNames` is the connector's STOCK set and is the default grant;
   // `cookieGrantNarrowing` is the site's opt-in subset (never wider). Absent stock = ungated (today).
   const grantedCookieNames = resolveCookieGrant(stockCookieNames, cookieGrantNarrowing).names;

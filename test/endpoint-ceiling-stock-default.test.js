@@ -2,6 +2,7 @@
 // connector's stock destination set; a site may only narrow it.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createAirlock } from "../core/airlock.js";
+import { createCriticalDispatcher } from "../core/egress.js";
 import { resolveEndpointCeiling } from "../core/endpoint-ceiling.js";
 
 class FakeWorker {
@@ -95,6 +96,28 @@ describe("site narrowing (opt-in, its own state)", () => {
     make({ stockEndpoints: STOCK, endpointNarrowing: ["https://a.vendor.test/collect"], coalesce });
     send("https://a.vendor.test/collect");
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("unload dispatch and malformed stock", () => {
+  it("the unload path drops a destination outside the ceiling", () => {
+    const fetchImpl = vi.fn(() => Promise.resolve());
+    const d = createCriticalDispatcher({
+      ctx,
+      endpoints: ["https://a.vendor.test/collect", NON_STOCK],
+      trackers: 2,
+      fetchImpl,
+      ceilingEndpoints: ["https://a.vendor.test/collect"],
+    });
+    d.dispatch({ type: "x" });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl.mock.calls[0][0]).toBe("https://a.vendor.test/collect");
+  });
+
+  it("a malformed or empty stock set throws instead of disabling the ceiling", () => {
+    expect(() => resolveEndpointCeiling({ stock: ["http://["] })).toThrow(/stockEndpoints/);
+    expect(() => resolveEndpointCeiling({ stock: [] })).toThrow(/stockEndpoints/);
+    expect(() => resolveEndpointCeiling({ stock: "https://a.vendor.test/collect" })).toThrow(/stockEndpoints/);
   });
 });
 

@@ -191,7 +191,8 @@ export function createAirlock({
     return governed;
   }
   // 016-01 AC3/AC5: the endpoint ceiling, reduced ONCE from the host's
-  // construction-time declared `endpoints` — never derived from a chamber's
+  // construction-time declaration (067-04: the stock set, optionally narrowed by
+  // the site, else the declared `endpoints`) — never derived from a chamber's
   // `ready` request, so a compromised chamber cannot widen its own ceiling.
   // Gated below on `ceiling.length` so a caller with no declared endpoints is
   // unaffected (back-compat); a connector with declared endpoints (GA4,
@@ -294,6 +295,9 @@ export function createAirlock({
     ctx,
     endpoints,
     trackers,
+    // 067-04: the unload path honors a stock/narrowed ceiling too. Passed only
+    // when a stock set is declared, so other callers' unload path is unchanged.
+    ...(stockEndpoints ? { ceilingEndpoints } : {}),
     ...(connector === "helix-rum" && connectorConfig && connectorConfig.sampling
       ? { mapper: (event, mapCtx) => mapToRum(event, mapCtx, connectorConfig.sampling) }
       : {}),
