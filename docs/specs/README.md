@@ -178,7 +178,7 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 | [059-google-ads-full-compatibility](059-google-ads-full-compatibility/spec.md) | 059-21 - Connect a local gtag queue to the conversion chamber | **DONE** |  |
 | [065-google-ads-parity-inventory](065-google-ads-parity-inventory/spec.md) | 065-01: T1: Close the Google surface from retained bytes | **DONE** |  |
 | [065-google-ads-parity-inventory](065-google-ads-parity-inventory/spec.md) | 065-02: T2: Candidate settings list from Google's public docs | **DONE** |  |
-| [065-google-ads-parity-inventory](065-google-ads-parity-inventory/spec.md) | 065-03: T3: Completeness probe on real configs | READY_FOR_IMPLEMENTATION |  |
+| [065-google-ads-parity-inventory](065-google-ads-parity-inventory/spec.md) | 065-03: T3: Completeness probe on real configs | **DONE** |  |
 | [065-google-ads-parity-inventory](065-google-ads-parity-inventory/spec.md) | 065-04: G0: Google-specific capture tooling | READY_FOR_IMPLEMENTATION |  |
 | [065-google-ads-parity-inventory](065-google-ads-parity-inventory/spec.md) | 065-05: CAP: Capture session | READY_FOR_IMPLEMENTATION |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-01: ADR status lines and docs rewording | **DONE** |  |
@@ -231,7 +231,7 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
 - **11** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **110** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **111** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **58** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review

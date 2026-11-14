@@ -422,14 +422,20 @@ Before the freeze we compare the candidate inventory with the `gtag/js?id=` conf
 - **Feature:** a distinct config key or flag position actually present in a sampled served config region, extracted by a bounded scan of the region (key names and flag slots, no execution and no full parse of Google's script). Each extracted feature is then classed covered or uncovered against sections 2 and 6. The closed token list from T1 and T2 (the 62 ledger query names and the candidate setting keys) is only the covered set, never the sample frame. If the crawl bodies lack `gtag/js` responses, T3 falls back to the single-GET route under D4, bounded at 2 days of effort.
 - **Metrics:** feature-level out-of-inventory rate = features seen in the sample that no section 6 state or section 2 row covers, divided by all distinct features seen. Site-level rate = sites with at least one uncovered feature, divided by sites sampled.
 - **Combined settings:** S15 includes one combined state. The probe also reports, for information only, the share of sampled sites whose settings combination our combined state does not cover.
-- **Completeness table skeleton (T2).** T3 fills it. One row per distinct feature found in the sample. Empty until T3 runs.
+- **Completeness table (T3, run 2026-11-13).** The full per-feature table (135 rows) and the per-config source list are in [t3-completeness-table.md](t3-completeness-table.md). Sample: 50 distinct Ads-scope configs from Tranco `Y897G` homepages, ranks 1 to 473 of the 500 planned (crawl data was not reachable, so every config came from the approved single downloads; 41 are GTM containers and 9 are `gtag/js` bodies). Extraction is a bounded scan of the `tags` region for Ads-scope tags, key names only, no values kept.
 
-| Feature (config key or flag slot) | Sites seen | Covered by (2.x row or S-state) | Class | Notes |
-|---|---|---|---|---|
-| _filled by T3_ | | | covered / uncovered | |
+| Total | Primary (judgement calls covered) | Strict (judgement calls uncovered) |
+|---|---|---|
+| Distinct features | 135 | 135 |
+| Covered / uncovered | 125 / 10 | 83 / 52 |
+| Feature-level rate | 7.4% | 38.5% |
+| Sites sampled / with an uncovered feature | 50 / 31 | 50 / 50 |
+| Site-level rate | 62% | 100% |
+| Combined-state coverage (information only) | at most 19 of 50 sites (31 cannot be covered) | 0 of 50 |
 
-  Totals block: distinct features, covered, uncovered, feature-level rate, sites sampled, sites with an uncovered feature, site-level rate, combined-state coverage share (information only). Each uncovered feature that becomes a new inventory row counts against kill criterion 4.
-- **Kill criterion:** feature-level rate above 10%, or site-level rate above 25%, means the inventory is not finite enough to freeze. Value so far: not measured.
+  **Uncovered features (primary), 5 groups:** URL-rule conversion marking (`__ccd_ads_conv_marking`, `vtp_conversionRules`, 5 sites), Ads data terms-of-service flag (`__ogt_ads_datatos`, 8 sites), unused conversion-linker removal (`__awud.vtp_enableUnusedConversionLinkerRemoval`, 9 sites), remarketing user id (`__sp.vtp_enableUserId` and `vtp_userId`, 18 sites) and smart destination id (`vtp_enableSmartDestinationId`, 2 sites). The 42 judgement-call features are the `__ccd_em_*` and `__ccd_pre_auto_pii` tags (mapping to row 11 or row 17 is uncertain, and counted uncovered they would lift the primary feature rate to 13.3%), generic parameter tables, tag firing counts and a few UI-only switches. If these five groups became rows they would cost 5 new rows against the 1 left in kill criterion 4, so a freeze would break criterion 4 as well.
+  Limit: 4 of the 50 count only through the conversion linker tag (46 without them), and 80 script downloads were needed for the 50 (a container cannot be known to hold Ads tags before it is downloaded). 41 of the 50 configs are GTM containers, whose tag region is wider than a `gtag/js` config, and only Ads-scope tags were scanned. The 9 `gtag/js` bodies alone are too few for a separate rate.
+- **Kill criterion:** feature-level rate above 10%, or site-level rate above 25%, means the inventory is not finite enough to freeze. Value so far: **tripped on the site-level rate** (62% against 25% primary, 100% strict). The feature-level rate is 7.4% primary, under 10%, and 38.5% strict, over it. The freeze waits for the owner (T3 report, 2026-11-13).
 
 ### 7.2 Point 11: reading a customer's served config in production
 
@@ -550,6 +556,7 @@ The owner answered all of these on 2026-11-13. Each entry keeps the recommendati
 
 ## 13. Review log and carried findings
 
+- 2026-11-13: T3 (065-03) ran the completeness probe under the D4 amendment. 50 distinct configs, feature-level 7.4% primary (38.5% strict), site-level 62% primary (100% strict). Kill criterion 6 tripped on the site-level rate. Freeze waits for the owner. Details in 7.1.
 - 2026-11-13: owner answered D1 to D10 (D11 earlier). Recorded in section 12 with the consequences in sections 0, 4, 6, 9 and 11. ADR-0061 amendments for points 1 and 11 landed on main (0633a5f4). 059 slices 01 to 12 and 15 moved to ABANDONED through jig. G1 now depends on 067-02 and G10 on 067-06 (spec 067 section 8 item 11). No new review round.
 
 - 2026-11-13 (T1, 065-01): closed the surface from the retained loader and the 12-request ledger: new 2.3 lists, rows 17 to 20 in 2.1 (4 of the 5 new-row budget used), 2.2 corrections, 62-name field table in 3.2a, credential allow-list seed in 3.4. Classes are proposals until the corpus confirms them. No private values copied.
