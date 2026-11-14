@@ -113,6 +113,42 @@ describe("AC2 — settled keepalive requests free their bytes", () => {
   });
 });
 
+describe("AC2 — steady-state and consent-flush sends share the in-flight keepalive accounting", () => {
+  const half = "y".repeat(KEEPALIVE_BUDGET_BYTES / 2 + 100);
+  const reqs = [0, 1, 2].map((i) => ({ url: GA4, method: "POST", body: JSON.stringify({ i, half }) }));
+
+  it("steady-state dispatch: the send that would pass the limit goes out plain, one fetch each, in order", () => {
+    fetchMock.mockImplementation(() => new Promise(() => {})); // stay in flight
+    make();
+    FakeWorker.last.onmessage({ data: { ready: reqs, dropped: [] } });
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls.map((c) => c[1].keepalive)).toEqual([true, undefined, undefined]);
+    expect(fetchMock.mock.calls.map((c) => JSON.parse(c[1].body).i)).toEqual([0, 1, 2]);
+  });
+
+  it("steady-state dispatch: a settled request frees its bytes", async () => {
+    make();
+    FakeWorker.last.onmessage({ data: { ready: [reqs[0]], dropped: [] } });
+    await Promise.resolve();
+    await Promise.resolve();
+    FakeWorker.last.onmessage({ data: { ready: [reqs[1]], dropped: [] } });
+
+    expect(fetchMock.mock.calls.map((c) => c[1].keepalive)).toEqual([true, true]);
+  });
+
+  it("consent-grant flush: the same accounting applies", () => {
+    fetchMock.mockImplementation(() => new Promise(() => {}));
+    const { airlock } = make({ consentHold: true, consent: { analytics_storage: "pending" }, egressPurposes: ["analytics_storage"] });
+    FakeWorker.last.onmessage({ data: { ready: reqs, dropped: [] } });
+    expect(fetchMock).not.toHaveBeenCalled();
+    airlock.setConsent({ analytics_storage: "granted" });
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls.map((c) => c[1].keepalive)).toEqual([true, undefined, undefined]);
+  });
+});
+
 describe("AC3/AC7 — a tighter keepalive budget is opt-in and its drop is its own state", () => {
   it("dispatcher: past an explicit budgetBytes, sends are dropped, counted and reported", () => {
     const sendFetch = vi.fn(() => Promise.resolve());

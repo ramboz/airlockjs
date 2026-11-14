@@ -52,7 +52,7 @@ Grepped `core/`, `connectors/`, `adapters/` for caps, drops, budgets, rings, ret
 
 Remaining browser limit (AC2): a send beyond the browser's shared 64 KiB keepalive quota goes out non-keepalive, so it survives only if the page does. Stock `sendBeacon` hits the same quota.
 
-Known gap (review round 1, logged not fixed): steady-state worker-mapped dispatch and the consent-grant flush send `keepalive: true` with no fallback. A burst beyond the browser's in-flight quota would be rejected there (surfaced as an `egress-failure` diagnostic on the main path). Fixing it needs a retry, which ADR-0021/040-04 AC2 pins as "exactly one fetch per request, no retry"; left for an owner call rather than reopening that contract here.
+Steady-state worker-mapped dispatch and the consent-grant flush share one in-flight keepalive tracker with the unload path (`createKeepaliveTracker`, `sendTracked`): a send that would push in-flight keepalive bytes past 64 KiB goes out as a plain fetch and releases on settle. Still exactly one fetch per request, no retry (ADR-0021/040-04 AC2).
 
 ### Opt-in (AC3)
 
@@ -67,5 +67,5 @@ Known gap (review round 1, logged not fixed): steady-state worker-mapped dispatc
 ### Deviation log
 
 - AC3's "ring cap" example is not built: the ring never dropped, so there is nothing to make opt-in.
-- AC4 is a vitest integration test with a fake worker (`test/limits-stock-default.test.js`), not a browser rig run; the burst path under test is the same code.
-- Docs updated: `docs/architecture.md` Q3.
+- AC4 is proven twice: a vitest integration test with a fake worker (`test/limits-stock-default.test.js`) and a real-Chromium rig (`npm run rig:limits-burst`, 600-event burst, in order, 453 plain fetches, nothing dropped). The rig asserts order on the fetch calls the seal issues, since the browser may reorder wire arrival between keepalive and plain requests.
+- Scope note: the plain-fetch fallback also covers steady-state dispatch and the consent-grant flush (not only unload), per ADR-0062 point 6; Q3 reflects it.

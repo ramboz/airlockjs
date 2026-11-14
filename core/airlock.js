@@ -22,7 +22,7 @@
  * worker — so there is no two-sender dedup problem. Synchronous mapping is only
  * taken at unload, where there is no interaction left to protect.
  */
-import { createCriticalDispatcher, fetchInit } from "./egress.js";
+import { createCriticalDispatcher, createKeepaliveTracker, fetchInit } from "./egress.js";
 import { mapToRum } from "../connectors/helix-rum/map.js";
 import { createGa4GtagConnector } from "../connectors/ga4/gtag.js";
 import { createGoogleAdsConnector } from "../connectors/google-ads/connector.js";
@@ -294,7 +294,29 @@ export function createAirlock({
     connector === "pixel"
       ? createPixelConnector((({ advancedMatching, ...rest }) => rest)(connectorConfig || {}))
       : null;
+  // 067-06: ONE in-flight keepalive tracker for the browser's shared ~64 KiB
+  // limit, used by the unload dispatcher and by every steady-state send below.
+  const keepaliveTracker = createKeepaliveTracker();
+  // One fetch per request, no retry: a POST that would push in-flight keepalive
+  // bytes past the limit goes out plain (stock falls back the same way) instead
+  // of being rejected by the browser.
+  const sendTracked = (req) => {
+    const bytes = req.method === "GET" || req.body == null ? 0 : EGRESS_TEXT_ENCODER.encode(req.body).length;
+    const slot = keepaliveTracker.reserve(bytes);
+    const init = fetchInit(req.method, req.body);
+    if (!slot.keepalive) delete init.keepalive;
+    let p;
+    try {
+      p = fetch(req.url, init);
+    } catch (err) {
+      slot.release();
+      throw err;
+    }
+    if (p && typeof p.then === "function") p.then(slot.release, slot.release);
+    return p;
+  };
   const critical = createCriticalDispatcher({
+    keepaliveTracker,
     ctx,
     endpoints,
     trackers,
@@ -538,7 +560,7 @@ export function createAirlock({
       // assumption (AC3; precise event-count is deferred to 040-05). No
       // retry: exactly one `fetch` call per request, win or lose (AC2).
       const dispatch = (req) => {
-        fetch(req.url, fetchInit(req.method, req.body)).then(
+        sendTracked(req).then(
           () => { dispatched++; },
           () => {
             dispatched++;
@@ -958,7 +980,7 @@ export function createAirlock({
               continue;
             }
           }
-          fetch(req.url, fetchInit(req.method, req.body))
+          sendTracked(req)
             .then(() => { dispatched++; }, () => { dispatched++; });
           diagnose({
             level: "warn",

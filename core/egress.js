@@ -36,6 +36,32 @@ import { checkEndpointCeiling } from "./endpoint-ceiling.js";
 export const KEEPALIVE_BUDGET_BYTES = 64 * 1024;
 
 /**
+ * In-flight keepalive accounting (spec 067-06). The browser's ~64 KiB limit is
+ * shared by every keepalive request still in flight, so one tracker is shared by
+ * the unload dispatcher and the steady-state dispatch. `reserve(bytes)` says
+ * whether a send still fits as keepalive; if not, the caller sends it plain
+ * (still exactly one fetch, no retry). `release()` frees the bytes on settle.
+ * @param {number} [limit]
+ */
+export function createKeepaliveTracker(limit = KEEPALIVE_BUDGET_BYTES) {
+  let inFlight = 0;
+  return {
+    inFlight: () => inFlight,
+    reserve(bytes) {
+      const keepalive = inFlight + bytes <= limit;
+      if (keepalive) inFlight += bytes;
+      let released = false;
+      return {
+        keepalive,
+        release() {
+          if (keepalive && !released) { released = true; inFlight -= bytes; }
+        },
+      };
+    },
+  };
+}
+
+/**
  * Method-aware fetch-init shape — SHARED by this module's own synchronous
  * unload dispatch (below) and the steady-state worker-mapped dispatch path
  * (`core/airlock.js`'s `worker.onmessage` handler + its `setConsent` held-
@@ -105,9 +131,11 @@ export function createCriticalDispatcher({
   // 067-04: when set, an unload send to a destination outside this ceiling is
   // dropped (never sent), so stock/narrowed ceilings also bind teardown.
   ceilingEndpoints,
+  // 067-06: shared in-flight keepalive tracker (airlock passes the one its
+  // steady-state dispatch uses); absent -> a private one.
+  keepaliveTracker = createKeepaliveTracker(),
 }) {
   const offCeiling = (url) => Array.isArray(ceilingEndpoints) && checkEndpointCeiling(url, ceilingEndpoints).verdict !== "allow";
-  let used = 0;
   let total = 0;
   let dispatched = 0;
   let dropped = 0;
@@ -165,18 +193,18 @@ export function createCriticalDispatcher({
       // Past the browser's keepalive limit the fetch would be rejected, so send it
       // plain instead of dropping it (stock parity). The limit counts only requests
       // still in flight, so a settled keepalive request frees its bytes.
-      const keepalive = used + bytes <= KEEPALIVE_BUDGET_BYTES;
-      if (keepalive) used += bytes;
-      else overBrowserLimit++;
+      const slot = keepaliveTracker.reserve(bytes);
+      const keepalive = slot.keepalive;
+      if (!keepalive) overBrowserLimit++;
       try {
         const p = fetchImpl(endpoints[t], keepalive ? { method: "POST", body, keepalive: true } : { method: "POST", body });
         // Swallow async rejection: at teardown there is no one to handle it.
         if (p && typeof p.then === "function") {
-          const release = () => { if (keepalive) used -= bytes; };
-          p.then(release, release);
+          p.then(slot.release, slot.release);
         }
         dispatched++;
       } catch {
+        slot.release();
         dropped++;
       }
     }
@@ -184,12 +212,12 @@ export function createCriticalDispatcher({
 
   return {
     dispatch,
-    bytesUsed: () => used,
+    bytesUsed: () => keepaliveTracker.inFlight(),
     stats: () => ({
       fastDispatched: dispatched,
       fastDropped: dropped,
       fastOverKeepaliveLimit: overBrowserLimit,
-      keepaliveBytesUsed: used,
+      keepaliveBytesUsed: keepaliveTracker.inFlight(),
     }),
   };
 }
