@@ -70,10 +70,13 @@
  */
 
 import { createConnectorHost } from "../../core/connector-host.js";
-import { createAlloyConnector } from "./connector.js";
+import { createAlloyConnector, ALLOY_DEFAULT_CONTEXT } from "./connector.js";
+import { createStockContextStore } from "../../core/stock-context.js";
+import { applyStockContextToShims } from "./stock-shim.js";
 import { createSyncCookieCache } from "./sync-cookie-cache.js";
 import { applyEgressConfinement, denySendBeacon } from "../../core/egress-confinement.js";
 import { shapeAlloyBoot } from "./consent.js";
+import { createSyncStorage } from "./sync-storage.js";
 
 const summary = {
   booted: false,
@@ -181,22 +184,8 @@ function buildCaps(seedCookie) {
   return caps;
 }
 
-/* ---- storage shim (synchronous, in-memory) — R-004 ---- */
-function makeStorage() {
-  const m = new Map();
-  const api = {
-    getItem: (k) => (m.has(k) ? m.get(k) : null),
-    setItem: (k, v) => { m.set(k, String(v)); },
-    removeItem: (k) => { m.delete(k); },
-    clear: () => m.clear(),
-    key: (i) => [...m.keys()][i] ?? null,
-    get length() { return m.size; },
-  };
-  return new Proxy(api, {
-    get(t, p) { if (p in t) return t[p]; return m.get(p); },
-    set(t, p, v) { m.set(p, String(v)); return true; },
-  });
-}
+/* ---- storage shim (synchronous, in-memory) — R-004; seeded + mirrored per 067-12 ---- */
+const makeStorage = () => createSyncStorage();
 
 /* ---- element / node stub — R-004 ---- */
 function makeEl(tag) {
@@ -257,7 +246,7 @@ const documentShim = new Proxy(docBack, {
 const locationShim = {
   href: "https://airlock.example/", origin: "https://airlock.example", protocol: "https:",
   host: "airlock.example", hostname: "airlock.example", port: "", pathname: "/", search: "", hash: "",
-  toString() { return this.href; },
+  toString() { return this.href || ""; },
 };
 docBack.location = locationShim;
 
@@ -381,8 +370,15 @@ const windowShim = new Proxy(winBack, {
 winBack.window = windowShim; winBack.self = windowShim; winBack.top = windowShim; winBack.parent = windowShim; winBack.globalThis = windowShim;
 
 /* ---- install the shim globals + the alloy base-code queue snippet — R-004 ---- */
-function install(seedCookie) {
+function install(seedCookie, storageSeed) {
   buildCaps(seedCookie);
+  // 067-12: a boot that carries a (host-filtered) `storage` seed gets seeded shims that mirror
+  // every write back to the host seam; without one the shims stay plain and silent (as before).
+  if (storageSeed && typeof storageSeed === "object") {
+    for (const area of ["localStorage", "sessionStorage"]) {
+      winBack[area] = createSyncStorage(storageSeed[area], (key, value) => post("storage-writeback", { area, key, value }));
+    }
+  }
   self.window = windowShim;
   self.document = documentShim;
   try { self.screen = winBack.screen; } catch (e) {}
@@ -406,15 +402,31 @@ function install(seedCookie) {
 }
 
 let host = null;
+
+// 067-08 (ADR-0062): feed Alloy's own context collectors from the main-thread
+// stock-context channel (067-07). `contextGroups` is the site's `context` list (the same
+// one `configure` receives). A listed group the channel has not supplied is blanked in the
+// shim, never left at a placeholder, so Alloy cannot collect an invented value.
+const stockStore = createStockContextStore();
+let contextGroups = ALLOY_DEFAULT_CONTEXT;
+function applyStockContext() {
+  applyStockContextToShims(
+    { location: locationShim, document: docBack, screen: winBack.screen, window: winBack, navigator: navBack },
+    stockStore.read(),
+    contextGroups,
+  );
+}
 // 045-02 (ADR-0023): the ADR-0007 consent vector is RETAINED in chamber state so a
 // mid-session `setConsent` message can drive alloy's OWN `setConsent` (the native
 // `defaultConsent:"pending"` queue FLUSH) — see `applyConsent` / the `setConsent`
 // message below. `null` until a boot supplies one (no CMP wired -> stays null).
 let consentVector = null;
 
-async function boot({ cookie, config, bundleUrl, consent }) {
+async function boot({ cookie, config, bundleUrl, consent, storage }) {
   try {
-    install(cookie);
+    install(cookie, storage);
+    contextGroups = Array.isArray(config && config.context) ? config.context : ALLOY_DEFAULT_CONTEXT;
+    applyStockContext();
     post("phase", { name: "install" });
     // 045-02: retain the vector for the mid-session `setConsent` flush trigger.
     consentVector = consent == null ? null : { ...consent };
@@ -459,7 +471,7 @@ async function boot({ cookie, config, bundleUrl, consent }) {
       && typeof host.manifest === "object" && Array.isArray(host.manifest.capabilities.cookies);
 
     try {
-      await host.init(caps); // -> alloy configure({ datastreamId, orgId, context:[] })
+      await host.init(caps); // -> alloy configure({ datastreamId, orgId, context })
       summary.configureSettled = "fulfilled";
 
       // 020-02 AC2 — the idiomatic DELEGATE lever: drive alloy's OWN
@@ -662,6 +674,8 @@ self.onmessage = (e) => {
   const m = e.data || {};
   if (m.type === "init") return void boot(m);
   if (m.type === "event") return void drive(m.event);
+  // 067-08: the main thread's stock-context channel (067-07) -> the page shim.
+  if (m.type === "stock-context") return void (stockStore.accept(m) && applyStockContext());
   // 045-02 (ADR-0023): a mid-session consent update — drive alloy's OWN setConsent
   // so alloy natively FLUSHES its defaultConsent:"pending" queue (grant-time flush).
   if (m.type === "setConsent") return void applyConsent(m.consent);

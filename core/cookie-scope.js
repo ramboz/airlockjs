@@ -110,3 +110,38 @@ export function scopeSeedCookies(jar, grantedNames) {
     .filter((pair) => matchesGrantedName(pair.slice(0, pair.indexOf("=")).trim(), grantedNames))
     .join("; ");
 }
+
+/**
+ * Whether `entry` (a narrowing entry) lies inside the `stock` set: an exact
+ * entry must itself be granted by the stock set; a `prefix_` entry must extend
+ * a stock `prefix_` entry (a prefix can never be carved out of an exact name).
+ */
+function coveredByStock(entry, stock) {
+  if (typeof entry !== "string" || !entry) return false;
+  if (!entry.endsWith("_")) return matchesGrantedName(entry, stock);
+  return stock.some((s) => typeof s === "string" && s.endsWith("_") && entry.startsWith(s));
+}
+
+/**
+ * 067-05 (ADR-0062 point 7, Owner answer 3): the effective cookie grant. The
+ * DEFAULT grant is the connector's stock set (`stock`); a site may NARROW it to
+ * a subset with `narrowing`, never widen it. Throws TypeError on a malformed
+ * or out-of-stock narrowing so a typo can't silently widen the grant. With no
+ * stock set declared (`null`) no grant is imposed (today's behavior, spec 067
+ * check 8) and a narrowing alone still restricts. Pure.
+ * @param {readonly string[]|null|undefined} stock
+ * @param {readonly string[]|undefined} narrowing
+ * @returns {{ names: (readonly string[]|null), narrowed: boolean }}
+ */
+export function resolveCookieGrant(stock, narrowing) {
+  const base = Array.isArray(stock) ? stock : null;
+  if (narrowing === undefined) return { names: base, narrowed: false };
+  if (!Array.isArray(narrowing) || narrowing.some((n) => typeof n !== "string")) {
+    throw new TypeError("cookieGrantNarrowing must be an array of cookie names");
+  }
+  if (base) {
+    const outside = narrowing.find((n) => !coveredByStock(n, base));
+    if (outside !== undefined) throw new TypeError(`cookieGrantNarrowing entry "${outside}" is outside the connector's stock cookie set (narrowing can't widen)`);
+  }
+  return { names: [...narrowing], narrowed: true };
+}

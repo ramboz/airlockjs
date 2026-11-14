@@ -1,0 +1,6 @@
+{
+  "connectors": [
+    { "type": "ga4", "consentHold": false },
+    { "type": "pixel", "vendor": "meta", "pixelId": "1234567890", "consentHold": false }
+  ]
+}

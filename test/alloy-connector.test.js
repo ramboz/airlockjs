@@ -14,7 +14,7 @@
 // main-thread dispatch + ECID mint/write-back is AC4 — the NEXT stage — and is
 // deliberately NOT built here.
 import { describe, it, expect, vi } from "vitest";
-import { createAlloyConnector, ALLOY_COOKIE_NAMES } from "../connectors/alloy/connector.js";
+import { createAlloyConnector, ALLOY_COOKIE_NAMES, ALLOY_DEFAULT_CONTEXT } from "../connectors/alloy/connector.js";
 import { createConnectorHost } from "../core/connector-host.js";
 
 /** A fake alloy command fn (R-004 shape: `alloy(command, options) -> Promise`). */
@@ -61,7 +61,7 @@ describe("alloy connector (spec 012-01 AC2)", () => {
     expect(manifest.capabilities.egress).toBe(true);
   });
 
-  it("init() calls alloy `configure` with the host-owned datastreamId/orgId and context:[] (R-004 shape)", async () => {
+  it("init() calls alloy `configure` with the host-owned datastreamId/orgId and the stock context list (067-08)", async () => {
     const alloy = fakeAlloy();
     const connector = createAlloyConnector({
       datastreamId: "DS-123",
@@ -76,9 +76,39 @@ describe("alloy connector (spec 012-01 AC2)", () => {
     expect(command).toBe("configure");
     expect(options.datastreamId).toBe("DS-123");
     expect(options.orgId).toBe("ORG@AdobeOrg");
-    // context:[] disables ambient auto-collection — the chamber has no real
-    // DOM to collect from (R-004; ADR-0008 headless).
-    expect(options.context).toEqual([]);
+    // ADR-0062: stock Alloy 2.31.1 collects these four groups by default.
+    expect(options.context).toEqual(["web", "device", "environment", "placeContext"]);
+    expect(ALLOY_DEFAULT_CONTEXT).toEqual(options.context);
+  });
+
+  it("a site narrows `context`: configure carries exactly the chosen list, [] included (067-08 AC2/AC4)", async () => {
+    for (const context of [["web", "device"], []]) {
+      const alloy = fakeAlloy();
+      const connector = createAlloyConnector({ datastreamId: "DS", orgId: "O@AdobeOrg", alloy, context });
+      await connector.init({});
+      expect(alloy.calls[0].options.context).toEqual(context);
+    }
+  });
+
+  it("toXdm forwards the site-supplied xdm as stock does; `minimalXdm` opts into the 2-field mapping (067-08 AC5)", async () => {
+    const siteXdm = { eventType: "web.webinteraction.linkClicks", web: { webPageDetails: { URL: "https://a.example/x", name: "X", siteSection: "s" } }, custom: { a: 1 } };
+    const event = pageView({ params: { xdm: siteXdm, page_location: "https://ignored.example/", page_title: "ignored" } });
+
+    const stock = fakeAlloy();
+    const c1 = createAlloyConnector({ ...baseConfig(), alloy: stock });
+    await c1.init({});
+    await c1.handle(event);
+    expect(stock.calls[1].options.xdm).toEqual(siteXdm);
+
+    const minimal = fakeAlloy();
+    const c2 = createAlloyConnector({ ...baseConfig(), alloy: minimal, minimalXdm: true });
+    await c2.init({});
+    await c2.handle(event);
+    expect(minimal.calls[1].options.xdm).toEqual({
+      eventType: "web.webpagedetails.pageViews",
+      web: { webPageDetails: { URL: "https://ignored.example/", name: "ignored" } },
+    });
+    expect(minimal.calls[0].options).not.toHaveProperty("minimalXdm");
   });
 
   it("handle() calls alloy `sendEvent` with renderDecisions:false + an XDM payload, and returns [] (no orchestrator egress this slice)", async () => {
@@ -100,6 +130,14 @@ describe("alloy connector (spec 012-01 AC2)", () => {
     // AC4 (routing alloy's own fetch to the orchestrator) is the NEXT stage:
     // the connector returns NO EgressRequest here.
     expect(out).toEqual([]);
+  });
+
+  it("the pageView fallback carries only the fields the event has, so no placeholder overrides the channel URL (067-08 AC3)", async () => {
+    const alloy = fakeAlloy();
+    const connector = createAlloyConnector({ ...baseConfig(), alloy });
+    await connector.init({});
+    await connector.handle(pageView({ params: {} }));
+    expect(alloy.calls[1].options.xdm).toEqual({ eventType: "web.webpagedetails.pageViews" });
   });
 
   it("boots via createConnectorHost: configure runs exactly once, sendEvent runs per event, on ONE persisted instance", async () => {

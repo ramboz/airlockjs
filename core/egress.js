@@ -22,15 +22,44 @@
  * unloading: there is no subsequent interaction to protect, and delivery now
  * outranks INP. Callers MUST NOT route steady-state events through this path.
  *
- * The aggregate `keepalive` body budget (~64 KiB in Chrome — architecture.md
- * § Tech stack) is enforced here: once exhausted, further sends are dropped and
- * counted, so an over-budget unload burst degrades predictably and visibly
- * instead of failing silently.
+ * The aggregate `keepalive` body limit (~64 KiB in Chrome — architecture.md
+ * § Tech stack) is a BROWSER limit, not an airlock drop (spec 067-06, ADR-0062
+ * point 6). By default nothing is dropped for it: a send that would exceed the
+ * limit goes out as a plain (non-keepalive) fetch, like stock gtag's sendBeacon
+ * fallback — delivered whenever the page survives the unload. A site may opt
+ * into a tighter `budgetBytes`; sends past that are dropped and counted.
  */
 import { mapToMp } from "../connectors/ga4/map.js";
+import { checkEndpointCeiling } from "./endpoint-ceiling.js";
 
-/** Chrome's aggregate in-flight `keepalive` request-body cap. */
+/** Chrome's aggregate in-flight `keepalive` request-body cap (a browser limit, not a drop threshold). */
 export const KEEPALIVE_BUDGET_BYTES = 64 * 1024;
+
+/**
+ * In-flight keepalive accounting (spec 067-06). The browser's ~64 KiB limit is
+ * shared by every keepalive request still in flight, so one tracker is shared by
+ * the unload dispatcher and the steady-state dispatch. `reserve(bytes)` says
+ * whether a send still fits as keepalive; if not, the caller sends it plain
+ * (still exactly one fetch, no retry). `release()` frees the bytes on settle.
+ * @param {number} [limit]
+ */
+export function createKeepaliveTracker(limit = KEEPALIVE_BUDGET_BYTES) {
+  let inFlight = 0;
+  return {
+    inFlight: () => inFlight,
+    reserve(bytes) {
+      const keepalive = inFlight + bytes <= limit;
+      if (keepalive) inFlight += bytes;
+      let released = false;
+      return {
+        keepalive,
+        release() {
+          if (keepalive && !released) { released = true; inFlight -= bytes; }
+        },
+      };
+    },
+  };
+}
 
 /**
  * Method-aware fetch-init shape — SHARED by this module's own synchronous
@@ -58,7 +87,10 @@ export function fetchInit(method, body) {
  * @param {object} [opts.ctx]        session/identity context for `mapper` (POST path only)
  * @param {string[]} [opts.endpoints] per-tracker collect URLs (POST path only)
  * @param {number} [opts.trackers]  number of trackers (defaults to endpoints.length)
- * @param {number} [opts.budgetBytes] aggregate keepalive budget (defaults to 64 KiB)
+ * @param {number} [opts.budgetBytes] OPT-IN tighter budget: sends past it are dropped,
+ *   counted and reported via `onBudgetDrop`. Absent (the default) -> nothing is dropped;
+ *   sends past the browser's 64 KiB keepalive limit fall back to non-keepalive fetch.
+ * @param {(info: {bytes: number, used: number, budgetBytes: number, url: string}) => void} [opts.onBudgetDrop]
  * @param {Function} [opts.fetchImpl] injectable fetch (defaults to global `fetch`)
  * @param {(s: string) => number} [opts.encode] body byte-sizer (defaults to UTF-8 length)
  * @param {(event: object) => Array<{url: string, method?: string, body?: string}>} [opts.requestMapper]
@@ -91,14 +123,24 @@ export function createCriticalDispatcher({
   // unload-critical events (RUM's INP/late-CLS at page-hide) egress correctly instead
   // of being GA4-mis-mapped or dropped.
   mapper = mapToMp,
-  budgetBytes = KEEPALIVE_BUDGET_BYTES,
+  budgetBytes,
+  onBudgetDrop,
   fetchImpl = typeof fetch !== "undefined" ? fetch : null,
   encode = (s) => new TextEncoder().encode(s).length,
   requestMapper,
+  // 067-04: when set, an unload send to a destination outside this ceiling is
+  // dropped (never sent), so stock/narrowed ceilings also bind teardown.
+  ceilingEndpoints,
+  // 067-06: shared in-flight keepalive tracker (airlock passes the one its
+  // steady-state dispatch uses); absent -> a private one.
+  keepaliveTracker = createKeepaliveTracker(),
 }) {
-  let used = 0;
+  const offCeiling = (url) => Array.isArray(ceilingEndpoints) && checkEndpointCeiling(url, ceilingEndpoints).verdict !== "allow";
+  let total = 0;
   let dispatched = 0;
   let dropped = 0;
+  let overBrowserLimit = 0;
+  const optInBudget = typeof budgetBytes === "number" ? budgetBytes : null;
   // Guarded against a missing `endpoints` (byte-unchanged for every existing
   // caller, which always passes `endpoints`): a requestMapper-only construction
   // (042-01, e.g. the ga4-gtag wiring) legitimately omits `endpoints`/`trackers`
@@ -120,6 +162,10 @@ export function createCriticalDispatcher({
     if (typeof requestMapper === "function") {
       const requests = requestMapper(event) || [];
       for (const req of requests) {
+        if (offCeiling(req.url)) {
+          dropped++;
+          continue;
+        }
         try {
           const p = fetchImpl(req.url, fetchInit(req.method, req.body));
           // Swallow async rejection: at teardown there is no one to handle it.
@@ -134,17 +180,31 @@ export function createCriticalDispatcher({
     for (let t = 0; t < n; t++) {
       const body = JSON.stringify(mapper(event, ctx));
       const bytes = encode(body);
-      if (used + bytes > budgetBytes) {
+      if (offCeiling(endpoints[t])) {
         dropped++;
         continue;
       }
-      used += bytes;
+      if (optInBudget !== null && total + bytes > optInBudget) {
+        dropped++;
+        if (typeof onBudgetDrop === "function") onBudgetDrop({ bytes, used: total, budgetBytes: optInBudget, url: endpoints[t] });
+        continue;
+      }
+      total += bytes;
+      // Past the browser's keepalive limit the fetch would be rejected, so send it
+      // plain instead of dropping it (stock parity). The limit counts only requests
+      // still in flight, so a settled keepalive request frees its bytes.
+      const slot = keepaliveTracker.reserve(bytes);
+      const keepalive = slot.keepalive;
+      if (!keepalive) overBrowserLimit++;
       try {
-        const p = fetchImpl(endpoints[t], { method: "POST", body, keepalive: true });
+        const p = fetchImpl(endpoints[t], keepalive ? { method: "POST", body, keepalive: true } : { method: "POST", body });
         // Swallow async rejection: at teardown there is no one to handle it.
-        if (p && typeof p.then === "function") p.then(() => {}, () => {});
+        if (p && typeof p.then === "function") {
+          p.then(slot.release, slot.release);
+        }
         dispatched++;
       } catch {
+        slot.release();
         dropped++;
       }
     }
@@ -152,11 +212,12 @@ export function createCriticalDispatcher({
 
   return {
     dispatch,
-    bytesUsed: () => used,
+    bytesUsed: () => keepaliveTracker.inFlight(),
     stats: () => ({
       fastDispatched: dispatched,
       fastDropped: dropped,
-      keepaliveBytesUsed: used,
+      fastOverKeepaliveLimit: overBrowserLimit,
+      keepaliveBytesUsed: keepaliveTracker.inFlight(),
     }),
   };
 }

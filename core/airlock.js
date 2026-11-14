@@ -22,16 +22,17 @@
  * worker — so there is no two-sender dedup problem. Synchronous mapping is only
  * taken at unload, where there is no interaction left to protect.
  */
-import { createCriticalDispatcher, fetchInit } from "./egress.js";
+import { createCriticalDispatcher, createKeepaliveTracker, fetchInit } from "./egress.js";
 import { mapToRum } from "../connectors/helix-rum/map.js";
 import { createGa4GtagConnector } from "../connectors/ga4/gtag.js";
 import { createGoogleAdsConnector } from "../connectors/google-ads/connector.js";
 import { createFloodlightConnector } from "../connectors/floodlight/connector.js";
 import { createPixelConnector } from "../connectors/pixel/connector.js";
 import { mergeAdvancedMatching } from "../connectors/pixel/advanced-matching.js";
-import { originPath, checkEndpointCeiling } from "./endpoint-ceiling.js";
+import { originPath, checkEndpointCeiling, resolveEndpointCeiling } from "./endpoint-ceiling.js";
 import { egressVerdict, resolveConsent } from "./consent.js";
-import { governPayload, DEFAULT_DENYLIST } from "./payload-governance.js";
+import { governPayload, resolveDenylist, DEFAULT_DENYLIST } from "./payload-governance.js";
+import { collectStockContext, stockContextFingerprint, STOCK_CONTEXT_MESSAGE } from "./stock-context.js";
 
 // Default diagnostics seam: console-backed, severity-differentiated (warn for a
 // per-descriptor drop, error for a chamber-level crash). Callers may inject
@@ -55,16 +56,29 @@ const EGRESS_TEXT_ENCODER = new TextEncoder();
 // (core/egress.js's own `createCriticalDispatcher`) share the exact same,
 // can't-drift GET/POST init shape instead of two copies that could diverge.
 
+// 067-02 AC4: cap on the consent hold ring (architecture.md Q2).
+export const MAX_HELD_BEACONS = 200;
+
 export function createAirlock({
   trackers,
   workFactor,
   endpoints,
+  // 067-04 (ADR-0062 point 7): the connector's declared STOCK destination set
+  // (its default ceiling) and the site's optional opt-in `endpointNarrowing`
+  // (a non-empty subset, never wider). Both absent -> `endpoints` stays the
+  // ceiling, exactly as before.
+  stockEndpoints,
+  endpointNarrowing,
   ctx,
   unloadCritical,
   onDiagnostic,
   consent = null,
-  egressPurposes = [],
+  egressPurposes: declaredEgressPurposes = [],
   consentStrict = false,
+  // 067-02 (ADR-0062 exception a, owner decision D2): a per-connector switch.
+  // Only the exact value `false` turns the default hold off; with it off and no
+  // `consent` wired, the seal is skipped and the connector sends as stock does.
+  consentHold,
   // 045-01 (ADR-0023 Option E): the per-connector `holdOnDenied` opt-in,
   // mirroring `consentStrict` above. When true, a DENIED governing egress
   // purpose HOLDS (buffer + flush-on-grant) instead of the default send —
@@ -86,6 +100,11 @@ export function createAirlock({
   // 1:1 remap that ignores the third arg is byte-unchanged.
   remap,
   payloadDenylist = [],
+  // 067-09 (ADR-0062 exception b, owner decision D3): the ONLY way to turn the
+  // built-in credentials denylist off (`false`) or replace it (an array of field
+  // names). Absent -> the built-in default stays on. A host `payloadDenylist`
+  // never disables it; it still extends whatever base this selects.
+  payloadDenylistOverride,
   // Connector-selection seam (spec 026-01 AC3, resolving the "GA4-hardcoded
   // connector factory + worker URL" gap; spec 025-03 AC6 adds a THIRD
   // branch): `connector: "pixel"` hosts `connectors/pixel/connector.js`'s
@@ -116,6 +135,14 @@ export function createAirlock({
   // `core/coalescing-broker.js` (Alloy's identity-mint deduper on a different,
   // round-trip path; ADR-0021 Amendment 2026-09-09).
   coalesce,
+  // 067-07 (ADR-0062 point 2): the host-collected stock-context channel. Off
+  // (undefined/false) -> nothing collected or posted, byte-unchanged. `true`
+  // -> every group (the stock default); `{ groups, denylist }` narrows it.
+  // Posted as its own `stock-context` message, never inside an event batch.
+  stockContext,
+  // 067-06 (ADR-0062 point 6): OPT-IN tighter keepalive budget for the unload
+  // fast path. Absent -> nothing is dropped for the browser's 64 KiB limit.
+  keepaliveBudgetBytes,
 }) {
   const diagnose = typeof onDiagnostic === "function" ? onDiagnostic : consoleDiagnostic;
   // 028-02 per-beacon correlation: a per-INSTANCE random tag (minted once) namespaces
@@ -143,7 +170,12 @@ export function createAirlock({
   // reference when nothing is stripped). The host `payloadDenylist` EXTENDS
   // the built-in set (defense-in-depth — the default is never the sole
   // protection, CLAUDE.md security-MUST).
-  const effectiveDenylist = [...DEFAULT_DENYLIST, ...(payloadDenylist || [])];
+  const resolved = resolveDenylist(payloadDenylistOverride, payloadDenylist);
+  const effectiveDenylist = resolved.list;
+  if (resolved.overridden) {
+    // One per airlock (= per connector), at construction, not per payload.
+    diagnose({ level: "warn", kind: "payload-governance", disposition: "denylist-overridden", reason: resolved.reason });
+  }
   // 019-01 AC7: the IMPURE caller — both governance points below share this
   // ONE closure — emits a redacted diagnostic per stripped field (the field
   // NAME only, never the value) via the existing `diagnose` seam.
@@ -162,12 +194,14 @@ export function createAirlock({
     return governed;
   }
   // 016-01 AC3/AC5: the endpoint ceiling, reduced ONCE from the host's
-  // construction-time declared `endpoints` — never derived from a chamber's
+  // construction-time declaration (067-04: the stock set, optionally narrowed by
+  // the site, else the declared `endpoints`) — never derived from a chamber's
   // `ready` request, so a compromised chamber cannot widen its own ceiling.
   // Gated below on `ceiling.length` so a caller with no declared endpoints is
   // unaffected (back-compat); a connector with declared endpoints (GA4,
   // always) gets the ceiling enforced on every dispatch.
-  const ceiling = (endpoints || []).map(originPath).filter(Boolean);
+  const ceilingEndpoints = resolveEndpointCeiling({ stock: stockEndpoints, narrowing: endpointNarrowing, declared: endpoints }).endpoints;
+  const ceiling = ceilingEndpoints.map(originPath).filter(Boolean);
   // 017-03 AC1/AC2 (ADR-0007 point ③ — the seal): `consentVector` is a
   // MUTABLE main-thread copy seeded from the boot-time `consent` opt — the
   // returned handle's `setConsent` updates it (this slice's OWN
@@ -183,6 +217,34 @@ export function createAirlock({
   // purpose is unaffected (back-compat).
   let consentVector = consent || {};
   const heldBeacons = [];
+  const consentHoldOff = consentHold === false;
+  const egressPurposes = consentHoldOff && !consent ? [] : declaredEgressPurposes;
+  // 067-02 AC1: "no consent input" = no `consent` opt and no `setConsent` yet.
+  let consentInputWired = Boolean(consent);
+  let noInputWarned = false;
+  if (consentHoldOff && !consent && declaredEgressPurposes.length) {
+    diagnose({
+      level: "warn",
+      kind: "consent",
+      disposition: "hold-off",
+      reason: "consentHold: false — the consent hold is off for this connector; it sends without waiting for consent",
+    });
+  }
+  // 067-02 AC4 (architecture.md Q2): bounded hold ring, oldest dropped past the cap.
+  const holdBeacon = (item) => {
+    heldBeacons.push(item);
+    while (heldBeacons.length > MAX_HELD_BEACONS) {
+      const dropped = heldBeacons.shift();
+      diagnose({
+        level: "warn",
+        kind: "consent",
+        disposition: "dropped",
+        purpose: egressPurposes.join(","),
+        reason: `consent hold ring full (cap ${MAX_HELD_BEACONS}) — oldest held beacon dropped`,
+        beaconId: dropped.beaconId,
+      });
+    }
+  };
   // 026-04 (ADR-0022 Option C): the main-side advanced-matching hash cache —
   // per-field `ud[...]` hashes the pixel chamber posts back on the `identity`
   // channel (worker→main), keyed by field. HASH-ONLY: raw identity never
@@ -232,10 +294,48 @@ export function createAirlock({
     connector === "pixel"
       ? createPixelConnector((({ advancedMatching, ...rest }) => rest)(connectorConfig || {}))
       : null;
+  // 067-06: ONE in-flight keepalive tracker for the browser's shared ~64 KiB
+  // limit, used by the unload dispatcher and by every steady-state send below.
+  const keepaliveTracker = createKeepaliveTracker();
+  // One fetch per request, no retry: a POST that would push in-flight keepalive
+  // bytes past the limit goes out plain (stock falls back the same way) instead
+  // of being rejected by the browser.
+  const sendTracked = (req) => {
+    const bytes = req.method === "GET" || req.body == null ? 0 : EGRESS_TEXT_ENCODER.encode(req.body).length;
+    const slot = keepaliveTracker.reserve(bytes);
+    const init = fetchInit(req.method, req.body);
+    if (!slot.keepalive) delete init.keepalive;
+    let p;
+    try {
+      p = fetch(req.url, init);
+    } catch (err) {
+      slot.release();
+      throw err;
+    }
+    if (p && typeof p.then === "function") p.then(slot.release, slot.release);
+    return p;
+  };
   const critical = createCriticalDispatcher({
+    keepaliveTracker,
     ctx,
     endpoints,
     trackers,
+    // 067-04: the unload path honors a stock/narrowed ceiling too. Passed only
+    // when a stock set is declared, so other callers' unload path is unchanged.
+    ...(stockEndpoints ? { ceilingEndpoints } : {}),
+    ...(typeof keepaliveBudgetBytes === "number"
+      ? {
+          budgetBytes: keepaliveBudgetBytes,
+          onBudgetDrop: ({ bytes, budgetBytes, url }) =>
+            diagnose({
+              level: "warn",
+              kind: "keepalive-budget",
+              disposition: "dropped",
+              destination: url,
+              reason: `opt-in keepalive budget ${budgetBytes} B exceeded (${bytes} B send) — unload send dropped`,
+            }),
+        }
+      : {}),
     ...(connector === "helix-rum" && connectorConfig && connectorConfig.sampling
       ? { mapper: (event, mapCtx) => mapToRum(event, mapCtx, connectorConfig.sampling) }
       : {}),
@@ -377,6 +477,37 @@ export function createAirlock({
         : { type: "init", trackers, workFactor, endpoints, ctx },
   );
 
+  // 067-07: stock-context channel. Collected once here (boot path) and again,
+  // throttled (150 ms), after navigation/viewport/visibility changes; the listeners only
+  // arm a timer, so nothing is collected inside a capture handler (ADR-0002).
+  const stockOpts = stockContext === true ? {} : stockContext && typeof stockContext === "object" ? stockContext : null;
+  let disposed = false;
+  let stockFingerprint = null;
+  let stockTimer = null;
+  const STOCK_EVENTS = ["popstate", "hashchange", "resize", "orientationchange", "visibilitychange"];
+  function refreshStockContext() {
+    if (!stockOpts || disposed) return;
+    const context = collectStockContext({ ...stockOpts, builtin: resolved.overridden ? resolveDenylist(payloadDenylistOverride).list : DEFAULT_DENYLIST });
+    if (!Object.keys(context).length) return;
+    const fp = stockContextFingerprint(context);
+    if (fp === stockFingerprint) return;
+    stockFingerprint = fp;
+    worker.postMessage({ type: STOCK_CONTEXT_MESSAGE, context });
+  }
+  function onStockChange() {
+    if (stockTimer !== null) return;
+    stockTimer = setTimeout(() => {
+      stockTimer = null;
+      refreshStockContext();
+    }, 150);
+  }
+  if (stockOpts) {
+    refreshStockContext();
+    if (typeof addEventListener === "function") {
+      for (const t of STOCK_EVENTS) addEventListener(t, onStockChange, { passive: true });
+    }
+  }
+
   // Orchestrator dispatch: the worker returns mapped requests; send them on the
   // MAIN thread immediately (fetch keepalive is cheap + survives page teardown).
   worker.onmessage = (e) => {
@@ -408,7 +539,7 @@ export function createAirlock({
       // preserved by construction. Do NOT add a per-endpoint verdict here.
       const holdIfOffCeiling = (url) => {
         if (!ceiling.length) return false;
-        const c = checkEndpointCeiling(url, endpoints);
+        const c = checkEndpointCeiling(url, ceilingEndpoints);
         if (c.verdict === "hold") {
           diagnose({ level: "error", kind: "endpoint-ceiling", disposition: "held", destination: c.destination, reason: c.reason });
           return true;
@@ -429,7 +560,7 @@ export function createAirlock({
       // assumption (AC3; precise event-count is deferred to 040-05). No
       // retry: exactly one `fetch` call per request, win or lose (AC2).
       const dispatch = (req) => {
-        fetch(req.url, fetchInit(req.method, req.body)).then(
+        sendTracked(req).then(
           () => { dispatched++; },
           () => {
             dispatched++;
@@ -494,9 +625,9 @@ export function createAirlock({
               // 045-03 (ADR-0024): preserve the fan-out disambiguator on the
               // held record (undefined for a 1:1 connector — byte-unchanged)
               // so the flush below can thread it into `remap` as its third arg.
-              heldBeacons.push({ event: r.event, remap: true, beaconId, remapKey: r.remapKey });
+              holdBeacon({ event: r.event, remap: true, beaconId, remapKey: r.remapKey });
             } else {
-              heldBeacons.push({ url: r.url, method: r.method, body: r.body, beaconId });
+              holdBeacon({ url: r.url, method: r.method, body: r.body, beaconId });
             }
             // The held diagnostic's `reason` names the ACTUAL governing state
             // (denied vs pending), derived from the consent vector — NOT the
@@ -517,6 +648,16 @@ export function createAirlock({
               heldReason = `purpose ${stateWord} under holdOnDenied — held at the seal; NO re-map wired (source event or remap fn missing) — flush will RE-SEND the under-consent payload verbatim`;
             } else {
               heldReason = "purpose pending — held at the seal"; // 017-03 pending (not opted in) — byte-unchanged
+            }
+            if (!consentInputWired && !noInputWarned) {
+              noInputWarned = true;
+              diagnose({
+                level: "warn",
+                kind: "consent",
+                disposition: "held",
+                purpose: egressPurposes.join(","),
+                reason: "no consent input wired — events are held until consent is granted; pass `consent` or call setConsent (consentHold: false turns the hold off)",
+              });
             }
             diagnose({
               level: "warn",
@@ -687,14 +828,15 @@ export function createAirlock({
   // `removeEventListener` global, or a Worker stand-in with no `.terminate`, both
   // silently skip that step rather than throw). Purely additive: nothing above ever
   // calls `dispose()` itself, so the single-boot path (AC3) is byte-unchanged.
-  let disposed = false;
   function dispose() {
     if (disposed) return;
     disposed = true;
     if (typeof removeEventListener === "function") {
       removeEventListener("visibilitychange", onVisibilityChange);
       removeEventListener("pagehide", unloadFlush);
+      if (stockOpts) for (const t of STOCK_EVENTS) removeEventListener(t, onStockChange);
     }
+    if (stockTimer !== null) { clearTimeout(stockTimer); stockTimer = null; }
     if (worker && typeof worker.terminate === "function") worker.terminate();
   }
 
@@ -776,6 +918,7 @@ export function createAirlock({
      *   (core/consent.js's shape), merged over the existing state.
      */
     setConsent(vector) {
+      consentInputWired = true;
       consentVector = { ...consentVector, ...(vector || {}) };
       if (
         egressPurposes.length &&
@@ -824,7 +967,7 @@ export function createAirlock({
           // makes the flushed destination connector-controlled). Gated on
           // `ceiling.length` (back-compat: no declared endpoints -> no ceiling).
           if (b.remap && ceiling.length) {
-            const c = checkEndpointCeiling(req.url, endpoints);
+            const c = checkEndpointCeiling(req.url, ceilingEndpoints);
             if (c.verdict === "hold") {
               diagnose({
                 level: "error",
@@ -837,7 +980,7 @@ export function createAirlock({
               continue;
             }
           }
-          fetch(req.url, fetchInit(req.method, req.body))
+          sendTracked(req)
             .then(() => { dispatched++; }, () => { dispatched++; });
           diagnose({
             level: "warn",
@@ -897,6 +1040,12 @@ export function createAirlock({
      * -> skipped, never throws). See the `dispose` closure above for the guard.
      */
     dispose,
+    /**
+     * 067-07: re-collect the stock-context channel now (e.g. after an SPA
+     * `pushState` navigation, which fires no event). Posts only when the
+     * context changed; a no-op when the channel is off.
+     */
+    refreshStockContext,
     // spec 025-03 AC6: expose the raw `worker` ONLY for connector:"dom" —
     // GA4/pixel stay byte-unchanged (no `worker` key at all — this handle's
     // shape for those two connectors is unaffected). A dom-chamber tag's

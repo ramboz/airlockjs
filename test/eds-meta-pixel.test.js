@@ -52,10 +52,10 @@ describe("bootMetaPixel (spec 026-01 AC6 — the adapter's Meta wiring)", () => 
     expect(initMsg().paramMap.id).toEqual({ from: "static", value: "999999999999999" });
   });
 
-  it("no `consent` opt at all -> the gate stays OFF: a ready beacon dispatches normally (back-compat, mirrors GA4's own gating)", async () => {
+  it("consentHold:false restores the legacy no-consent send (a ready beacon dispatches without a consent vector)", async () => {
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal("fetch", fetchMock);
-    await bootMetaPixel();
+    await bootMetaPixel({ consentHold: false });
 
     FakeWorker.last.onmessage({
       data: { ready: [{ url: `${META_TR_ENDPOINT}?id=x&ev=PageView`, method: "GET" }], dropped: [] },

@@ -186,15 +186,17 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 | [066-meta-parity-inventory](066-meta-parity-inventory/spec.md) | 066-03: MT0, Meta capture tooling on top of the shared 064-03 tooling | **DONE** |  |
 | [066-meta-parity-inventory](066-meta-parity-inventory/spec.md) | 066-04: CAP, the Meta capture session | READY_FOR_IMPLEMENTATION |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-01: ADR status lines and docs rewording | **DONE** |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-02: Consent hold on every track, with a no-consent-input warning | DRAFT |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-03: Alloy holds and flushes, and an empty `egressPurposes` holds and warns | DRAFT |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-04: Default egress allowlist is the stock destination set | DRAFT |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-05: Default cookie and storage grant is the stock set | DRAFT |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-06: Limits never drop or delay stock output by default | DRAFT |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-07: The stock-context channel | DRAFT |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-08: Alloy `context` defaults to the stock list | DRAFT |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-09: The credentials denylist stays on, with an explicit override | DRAFT |  |
-| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-10: Input governance at the wrapped-SDK seam | DRAFT |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-02: Consent hold on every track, with a no-consent-input warning | **DONE** |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-03: Alloy holds and flushes, and an empty `egressPurposes` holds and warns | **DONE** |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-04: Default egress allowlist is the stock destination set | **DONE** |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-05: Default cookie and storage grant is the stock set | **DONE** |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-06: Limits never drop or delay stock output by default | **DONE** |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-07: The stock-context channel | **DONE** |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-08: Alloy `context` defaults to the stock list | **DONE** |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-09: The credentials denylist stays on, with an explicit override | **DONE** |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-10: Input governance at the wrapped-SDK seam | **DONE** |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-11: A privacy-safe measurement purpose for helix-rum | **DONE** |  |
+| [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-12: Default localStorage and sessionStorage grant is the stock set | **DONE** |  |
 
 ## Deferred slices
 
@@ -232,7 +234,7 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
 - **14** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **104** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **108** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **61** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
