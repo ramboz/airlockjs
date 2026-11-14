@@ -1,7 +1,7 @@
 ---
 status: DONE
 dependencies: []
-last_verified:
+last_verified: 2026-11-14
 ---
 
 ## Slice 064-02 — T2: datastream setting list and completeness table
