@@ -181,7 +181,7 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 | [063-meta-pageview-live-delivery](063-meta-pageview-live-delivery/spec.md) | 063-01 - Deliver one consented test PageView | ABANDONED |  |
 | [063-meta-pageview-live-delivery](063-meta-pageview-live-delivery/spec.md) | 063-02 - Prepare one owned-site worker PageView | **DONE** |  |
 | [063-meta-pageview-live-delivery](063-meta-pageview-live-delivery/spec.md) | 063-03 - One automatic owned-page PageView trial | **DONE** |  |
-| [066-meta-parity-inventory](066-meta-parity-inventory/spec.md) | 066-01: MT1, close the command, field and request inventory | READY_FOR_IMPLEMENTATION |  |
+| [066-meta-parity-inventory](066-meta-parity-inventory/spec.md) | 066-01: MT1, close the command, field and request inventory | **DONE** |  |
 | [066-meta-parity-inventory](066-meta-parity-inventory/spec.md) | 066-02: MT2, candidate settings list and completeness-probe protocol | **DONE** |  |
 | [066-meta-parity-inventory](066-meta-parity-inventory/spec.md) | 066-03: MT0, Meta capture tooling on top of the shared 064-03 tooling | READY_FOR_IMPLEMENTATION |  |
 | [066-meta-parity-inventory](066-meta-parity-inventory/spec.md) | 066-04: CAP, the Meta capture session | READY_FOR_IMPLEMENTATION |  |
@@ -231,7 +231,7 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
-- **13** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
+- **14** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **104** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **61** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review

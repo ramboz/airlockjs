@@ -32,7 +32,7 @@ Meta has one risk Adobe does not. Prior automated headless runs saw no beacon, a
   - configuration `b1720ebb329e506fd223f066353d977281280866d85e908dc2561a6c1161c46d`,
   - configuration request `17cfa580bd805177e3d2407a18a80bb9426e01f628233d47f11403b51b73ba32`
   - (spec 060-16 AC1). The retained 058-02 bytes of 2026-10-16 are the reference for the drift probe. They are not in this checkout. MT1 locates them through the private-input handles (spec 060, "Explicit private-input handles"). If they cannot be found, the probe compares against the digests above and the version string only, and says so.
-  - Note 2026-11-13 (O13): the owner says the retained 058-02 bytes are gone. The digests above stay as history only. The drift reference becomes the MT1 re-capture (066-01, private bytes, digests recorded in 2.4). 058-02 is compared by digest and version string only.
+  - Note 2026-11-13 (O13): the owner says the retained 058-02 bytes are gone. The digests above stay as history only. The drift reference becomes the MT1 re-capture (066-01, private bytes, digests recorded in 2.4). 058-02 is compared by digest and version string only. MT1 re-captured on 2026-11-13: runtime `d835d20814c5d955098f6c0f6839233d7a7a72b05857f6f82d4dbd20201d027d` (432263 bytes, declares 2.9.439) and one public pixel's config `5a8b91c522264b21d7d16112f7a33ac37a26a4fb428efc549512d02be6babeb7` (685750 bytes). Details in 2.5.
   - The owner's current site declares 2.9.435 (061 slice-01, "Initial observations"). That already looks like drift. The probe measures it.
 - Frozen per ADR-0061 point 3. A later discovery goes to the next version's inventory unless it breaks a row the frozen build or states already cover. A missing capture for an inventoried behavior is a gap we fill now.
 - Class for every row (`mixed` and `unknown` are allowed only before the freeze and are resolved by MT1 or CAP): `worker-native` (runs in the chamber unchanged), `mediated` (needs a capability-bridge call), `host-side` (stays on the main thread), `incompatible` (stated, with reason), `live-only` (cannot be fixture-proven, tagged up front, section 4.10).
@@ -111,7 +111,7 @@ Each of the 20 inventory families from spec 060 has an owner. Coverage is planne
 
 ### 2.4 Field and request classes (ADR-0061 point 10)
 
-> 2026-11-13, MT1 (066-01): blocked. The retained runtime and config bytes were not supplied, so 2.1 to 2.4 are unchanged and still the floor from public documents. See the status note in the slice file. MT0 and CAP stay gated on MT1 (section 9); only an owner decision changes that. Any `unknown` row stays open.
+> 2026-11-13, MT1 (066-01): closed from the O13 re-capture. Tables 2.1 to 2.3 keep their planned classes and owners. Section 2.5 adds what the bytes show, and its `unknown` rows stay open for CAP.
 
 Every request field is in exactly one class, and every request gets a request-level class.
 
@@ -139,6 +139,105 @@ Initial hypotheses, for planning only. The capture replaces them with measured c
 | build, version, release-channel stamps, experiment flags | server-context-derived, volatile only if proven unrelated | Served script and config; 061 saw experiment fields |
 | counters, load timestamps | generated | Rule must tie them to the cookie or an earlier request, else volatile |
 | config-derived flags and bitfields | server-context-derived | Source is the served config bytes |
+
+### 2.5 MT1 closure from the re-captured bytes (066-01, 2026-11-13)
+
+Read-only. Each file was fetched once with a plain GET under O13 (10.1) and read as text. Nothing was executed. The bytes, the private manifest, the path and the third-party pixel ID stay private (`AIRLOCK_META_PRIVATE_INPUTS_DIR`). Offsets are character offsets in those private files (`rt` runtime, `cfg` config).
+
+#### 2.5.1 Captured bytes and drift
+
+| Item | Runtime (`fbevents.js`) | Config (`signals/config/<pixel>`) |
+|---|---|---|
+| Date | 2026-11-13 | 2026-11-13 |
+| Size | 432263 bytes | 685750 bytes |
+| SHA-256 | `d835d20814c5d955098f6c0f6839233d7a7a72b05857f6f82d4dbd20201d027d` | `5a8b91c522264b21d7d16112f7a33ac37a26a4fb428efc549512d02be6babeb7` |
+| Declares | 2.9.439 (`rt@1077`) | requested with `v=2.9.439&r=stable` |
+| Origin | `connect.facebook.net/en_US/fbevents.js`, HTTP 200 | one public site's own pixel (O13), HTTP 200 |
+
+Drift, by version and digest only: 2.9.426 (058-02, runtime `d4487bcc…`), 2.9.435 (the owner's site, version only, no digest available) and 2.9.439 (now). The build moved, so CAP's drift probe (4.1) compares against these bytes and checks 058-02 by digest and version string only. The config belongs to another site's pixel, so its digest alone proves nothing. Its shape is what we compare.
+
+Limit: this config is not the owner's test pixel. Site-specific values in it (gateway endpoints, filtered keys, bot rules, microdata tables) show shapes only and are not inventory. CAP's day-1 test-pixel config becomes the baseline.
+
+#### 2.5.2 Runtime: commands, requests, plugins (closes 2.1 row 10, 2.2 network)
+
+Commands in the dispatcher: `init`, `track`, `trackCustom`, `trackSingle`, `trackSingleCustom`, `set`, `consent` (`revoke`, `grant`), `dataProcessingOptions`, `userData`, `on`, `loadPlugin`, `optOut`, `optIn`, `autoConfig`. Classes and owners stay as in 2.1. New internal names: `trackSingleSystem`, `getState` and a system track method (`rt@78970`). They are `unknown` until CAP shows whether any is public.
+
+`set` keys accepted (`rt@399232`): `endpoint`, `cdn`, `releaseSegment`, `autoConfig`, `smartSetup`, `firstPartyCookies`, `experiments`, `experimentsV2`, `guardrails`, `moduleEncodings`, `mobileBridge`, `iwlExtractors`, `iwlParameterRules`, `userDataForPDL`, `estRules`, `ccRules`, `startIWLBootstrap`, `parallelfire`, `openbridge`, `trackSingleOnly`, `shopifySandboxContext`, `userData`. `endpoint` and `cdn` redirect where the tag sends, so they are host-side inputs Airlock must watch. The rest are config-driven (`server-context-derived`, 2.4).
+
+| Request | Source | Class and notes |
+|---|---|---|
+| Script `connect.facebook.net/en_US/fbevents.js` | page snippet | `always` |
+| `signals/config/<pixel>?v=&r=` plus `no_min`, `domain`, `optin_meta_enabled_capi`, `im` and module encodings | `rt@76371` | `always` per pixel, skipped if config loading is disabled |
+| `https://www.facebook.com/tr/` events | `rt@120484` | `always` per track. Transport per event: image GET, `fetch` (`no-cors`, credentials, `keepalive`), `sendBeacon` (`rqm=SB`) or form POST |
+| Instagram `www.instagram.com/tr/` | `rt@120484` | `conditional`, trigger `unknown` |
+| Topics registration `www.facebook.com/privacy_sandbox/topics/registration/` | `rt@120678` | `conditional`, trigger `unknown` |
+| `<cdn>/log/error` | `rt@110838` | `conditional` (error paths) |
+| `<cdn>/log/fbevents_telemetry/` | `rt@284051` | `conditional` |
+| Event Setup Tool `signals/iwl.js` | `rt@358046` | `conditional`, Meta-origin pages only |
+| Conversions API gateway and the config's `openbridge` endpoints | `rt@100353` | `conditional`, config-driven fan-out (2.5.3) |
+
+Not seen in the runtime: a noscript image (page markup, not in `fbevents.js`) and `XMLHttpRequest` (the `experiment_xhr_vs_fetch` gate points to fetch).
+
+Built-in config (`registerPlugin("global_config")`, `rt@410188`): the runtime always loads `commonincludes`, `identity` and `opttracking` from it (`rt@410346`), sets an experiment `no_op_exp` with allocation 0.01, sets `moduleEncodings`, and sets 11 named guardrails: `multi_eid_fix`, `send_censored_ph`, `send_censored_em`, `fix_fbevent_uri_error`, `send_normalized_ud_format`, `enable_automatic_parameter_logging`, `release_spa_pageview_fix`, `reset_init_time_on_spa_page_change`, `get_keywords_from_local_storage`, `bot_blocking_client_side_block_enabled` and `page_locale_metadata_enabled`, some limited to named Meta pixels. The 1% random experiment allocation can put `exp` and `expv2` values on a request, so same-pixel runs can differ (2.5.6 item 7).
+
+Wire field names in the runtime: `id`, `ev`, `dl`, `rl`, `if`, `ts`, `iw`, `cd[...]`, `ud[...]`, `sw`, `sh`, `v`, `r`, `eid`, `ec`, `it`, `coo`, `dpo`, `dpoco`, `dpost`, `exp`, `expv2`, `a`, `rqm`, `cud`, `cudff`, `ped`, `up_url`, `rp_url`, `dlc`, `rlc`, `de`, `ie[a]`, `ie[c]`, `hme`, `ex_m`, `qttag`, `fbp`, `fbc`, `tz`, `es`, `ct`, `pm`. Not all go to `/tr`: the error log takes `p`, `pn`, `sl`, `v`, `e`, `f`, `s`, `ue`, `rs`, `ed`. More names come from the bundled `clienthint` plugin (`chmd`, `chpv`, `chfv`, `rt@381948`) and from plugins bundled in the config (`ler`, `plt`, `cdl`, `cs_est`, `cf`, `apcm_eid`). They are all `unknown` until CAP (2.5.6 item 3).
+
+The runtime's module table (around `rt@426000`) names 65 plugins. The 11 bundled ones are above and 32 more are loaded by this config (2.5.3). The rest are loadable but not loaded here, class `unknown`, for CAP or the next version: `atomicsession`, `buffer`, `ccruleevaluator`, `clientsidepixelforking`, `debug`, `defaultcustomdata`, `engagementdata`, `googleanalyticsbridge`, `identifyintegration`, `imagepixelopenbridge`, `iwlparameterrules`, `jsonld_microdata`, `microdata`, `openbridgerollout`, `pagemetadata`, `parallelfire`, `performance`, `prohibitedpixels`, `protecteddatamode`, `scrolldepth`, `shopifyappintegratedpixel`, `shopifysandbox`, `smartsetupselfsupervisedrule`, `timespent`, `topicsapi`, `triggersgwpixeltrackcommand`, `unwantedeventnames`, `unwantedevents`, `urlparamschematization`, `vvp`, `webchat`, `webtee`. A test pixel's config could load any of them. `topicsapi` probably explains the topics request.
+
+Plugins bundled in the runtime (11): `clienthint`, `commonincludes`, `eventvalidation`, `gating`, `identity`, `iwlbootstrapper`, `opttracking`, `prohibitedsources`, `standardparamchecks`, `unwanteddata`, `unwantedparams`. About 222 modules are registered. Every one falls under an owner already named in 2.3 (bootstrap, identity, config, fan-out, lifecycle). New non-plugin modules: SPA navigation util (M9), Shopify util (live-only), mobile app bridge and a web-worker check (see 2.5.6).
+
+#### 2.5.3 Config: plugins, settings blocks and gates (closes AC3)
+
+The served config is JavaScript. It bundles plugin modules, then calls `fbq.loadPlugin` and `optIn` per plugin (from `cfg@594790`), sets 20 blocks with `config.set` and two tables with `fbq.set`. Plugins loaded and opted in, all enabled here: `inferredevents`, `identity`, `iwlbootstrapper`, `smartsetuptotalpriceextraction`, `automaticmatchingregex`, `automaticmatchingai`, `iwlparameters`, `cookie`, `automaticmatchingforpartnerintegrations`, `prohibitedsources`, `openbridge3`, `unwanteddata`, `iabpcmaebridge`, `browserproperties`, `estruleengine`, `eventvalidation`, `clienthint`, `lastexternalreferrer`, `cookiedeprecationlabel`, `unwantedparams`, `standardparamchecks`, `gating`, `automaticparameters`, `botblocking`, `websiteperformance`, `smartsetup`, `privacypreservingdatalookup`, `browserpropertiesplatform`, `microdatacoverage`, `microdatafieldtransmission`, `regexparamfilter`, `timezone`. Opt-ins also exist for `AutomaticMatching`, `FirstPartyCookies` (ties to the `firstPartyCookies` set key and SET3) and `ShadowTest`.
+
+| Block | Offset | Flags and shape | Feeds |
+|---|---|---|---|
+| `inferredEvents` | `cfg@594892` | button selector and size limits, restricted-data, shadow-root, untrusted-click flags | SET2, SET4 |
+| `automaticMatching` | `cfg@595433` | selected keys: em, fn, ln, ge, ph, ct, st, zp, db, country, external_id | SET1 |
+| `automaticMatchingRegex` | `cfg@595923` | scan limits including `maxScanMs` | SET1 |
+| `cookie` | `cfg@596478` | fbc param sources (`fbclid`, `brid` with prefix `aem`, `waaem`), split flags, queue size 5, `enableAemSourceTagToLocalStorage` (a localStorage write) | SET3, M5 |
+| `batching` | `cfg@597208` | `batchWaitTimeMs` 10, `maxBatchSize` 10 | none, but it changes how many requests go out and when (2.4 request-level class) |
+| `microdata` | `cfg@597280` | `waitTimeMs` 500 | SET4, adds a wait |
+| `prohibitedSources` | `cfg@597314` | hashed domain list | none (site-specific) |
+| `openbridge` | `cfg@597568` | endpoints with fallbacks, events filter (mode and names), extra user data, blocked sites | SET8b |
+| `unwantedData` | `cfg@598319` | blacklisted and sensitive key lists | none (site-specific) |
+| `IABPCMAEBridge` | `cfg@599107` | auto event id | none, in-app browser only |
+| `browserProperties` | `cfg@599277` | `delayInMs`, suppression, fbc split flags | SET3 |
+| `eventValidation` | `cfg@600157` | unverified and restricted event names | SET7 |
+| `clientHint` | `cfg@600357` | `delayInMs`, backup timeout | none, adds a wait |
+| `gating` | `cfg@601000` | 31 named gates (below) | none |
+| `botblocking` | `cfg@602957` | spider and browser rules | none |
+| `pdlExplicitUserData` | `cfg@623000` | accepted fields (`em`) | SET1 |
+| `browserPropertiesPlatform` | `cfg@623200` | iOS, Android, platform keys | none (mobile) |
+| `microdataCoverage` | `cfg@623462` | schema switches, sampling rates | SET4 |
+| `microdataFieldTransmission` | `cfg@643932` | schema, `samplingRate` 1, cache TTL | SET8c |
+| `regexParamFilter` | `cfg@683578` | regexes for `value` and `currency` | none |
+
+Tables via `fbq.set`: `iwlExtractors` (`cfg@596429`, empty) and `estRules` (`cfg@599883`, event-setup rules, not account-neutral).
+
+Gates on: `pdl_auto_pii`, `content_type_opt`, `experiment_xhr_vs_fetch`, `enable_gtm_parambuilder`, `enable_gtm_ga4_structure`, `enable_reinit_cidparams2`, `cbsdk_hash_external_id`, `shopify_sandbox_fetch_fallback`, `pixel_shopify_collect_segmentation`, `enable_has_val_total_price_extraction`, `signals_ob3_lazy_arming`, `sbc_total_price_extraction`, `signals_auto_web_details_gateway`. Gates off: `offsite_clo_beta_event_id_coverage`, `enable_shopify_additional_events`, `enable_shopify_search_contents`, `enable_shopify_payment_fields`, `enable_shopify_external_id`, `dpo_country_state_validation`, `enable_reinit_cidparams`, `shopify_sandbox_refresh_cookie`, `enable_allow_total_price_extraction`, `enable_measure_total_price_extraction`, `enable_npvo_total_price_extraction`, `enable_npvo_measure_total_price_extraction`, `inferredevents_shadow_gates`, `sbc_total_price_extraction_npvo`, `signals_ob3_mpc_fast_failover`, `total_price_extraction_node_budget`, `total_price_extraction_reverse_scan`, `signals_ob3_cee_private_domain_path`. Gates are Meta rollout switches served per pixel and per day (`server-context-derived`). They are a reason the freeze unit includes the served config bytes, not settings candidates. A gate that flips between day-1 and day-2 configs is drift evidence (4.1).
+
+#### 2.5.4 Candidate-state feed
+
+SET1: `automaticMatching`, `automaticMatchingRegex`, `pdlExplicitUserData` and the automatic-matching plugins. SET2 and SET4: `inferredEvents`, `microdataCoverage`. SET3: `cookie`, `browserProperties`. SET7 now has a config field, `eventValidation`. SET5, SET6 and SET9 are unchanged.
+
+#### 2.5.5 SET8 reorder
+
+- SET8a, timezone: kept. The config loads and opts in to the plugin (`cfg@683932`).
+- SET8b: `opttracking` is bundled in the runtime (`rt@367009`), the runtime's built-in config always loads it (`rt@410346`), and the served config neither loads nor opts in to it. It is always on and has no toggle, so it is not a state. Replaced by `openbridge`, the one block that adds a request path and ties to an owner-visible Events Manager setting.
+- SET8c, microdata field transmission: kept.
+- Overflow beyond three: `inferredevents` shadow gates, `clienthint`, `botblocking`. They are config-driven and go to the next version unless CAP shows they change output (ADR-0061 point 3).
+- The owner's pre-window Events Manager check (3.1) still decides which of the three has a toggle.
+
+#### 2.5.6 Open `unknown` rows for CAP
+
+1. Trigger rules for the Instagram `/tr`, topics registration, error log and telemetry requests. Seen in code, not yet as requests.
+2. Whether `trackSingleSystem` and `getState` are public.
+3. Meaning of `/tr` fields until a capture shows them: `es`, `ct`, `pm`, `ie[a]`, `ie[c]`, `de`, `qttag`, `ped`, `up_url`, `rp_url`, `dlc`, `rlc`, `cud`, `cudff`, `hme`, `ex_m`, `coo`, `it`, `ec`, `iw`, `a`, `chmd`, `chpv`, `chfv`, `ler`, `plt`, `cdl`, `cs_est`, `cf`, `apcm_eid`. Code hints only: `ec` looks like an event counter, `it` like a timestamp, `dlc` and `rlc` like changed-URL flags, `up_url` and `rp_url` like lists of unwanted parameter names. Nothing is classed from these.
+4. Timing effects that make output depend on time: `browserProperties.delayInMs` and `clientHint.delayInMs` (200 ms), `automaticMatchingRegex.maxScanMs` (8 ms), `batching` (10 ms wait, batches of 10), `microdata` (500 ms wait) and the 1% microdata sample. CAP's wait rules and same-day repeats (4.1 step 2) must cover them.
+5. The runtime has a web-worker check. M1 must read what stock does in a worker, because Airlock runs the tag in one.
+7. The built-in `no_op_exp` experiment (allocation 0.01) is random per page load. Whether it can change `exp` or `expv2` on a request is for CAP's same-day repeats to show.
+6. The config's gateway endpoints are site-specific. How a pixel without them behaves is for the day-1 config to show.
 
 ## 3. Candidate settings states (ADR-0061 point 3)
 
@@ -168,13 +267,13 @@ SET8 list (numbered, cap 3). Each is a candidate whose toggle is not yet known. 
 
 | # | Candidate | Source | Owning slice |
 |---|---|---|---|
-| SET8a | Timezone plugin, the opted-in plugin that negates `getTimezoneOffset()` (spec 062 framing baseline) | Retained config, offset 291440 | M1 (`tz`), M3 |
-| SET8b | Tracking-option bitmask, module `SignalsFBEvents.plugins.opttracking` (G12 in the disposition file) | Retained runtime | M3 |
-| SET8c | Microdata field transmission gate, module `SignalsFBEvents.plugins.microdatafieldtransmission` (G20) | Retained config | M8 |
+| SET8a | Timezone plugin, the opted-in plugin that negates `getTimezoneOffset()` (spec 062 framing baseline) | Re-captured config, `cfg@683932` (2.5.5) | M1 (`tz`), M3 |
+| SET8b | Conversions API Gateway (`openbridge`) block in the served config. Replaces `opttracking` (MT1, 2.5.5): that module sits in the runtime and has no config toggle | Re-captured config, 2.5.3 | M3 |
+| SET8c | Microdata field transmission gate, module `SignalsFBEvents.plugins.microdatafieldtransmission` (G20) | Re-captured config, `cfg@643932` (2.5.3) | M8 |
 
 Considered and not made SET8 items: `cookie` plugin storage diagnostics (G13, part of SET3, M5); `pagemetadata` (G17) and `smartsetup` (G19), which are the SET2 and SET4 mechanisms and carried by those states; `cookiedeprecationlabel` (G16), a browser input and not an account setting (M5 owns it; no settings state). The SET1 per-field subset is not its own state. If Events Manager exposes it and it changes the wire, it takes a SET8 slot at that point, so the cap still holds.
 
-MT1 (blocked, see its slice file) can still reorder or replace SET8a to SET8c when the retained config bytes are read. The list above is the most that could be named without them.
+MT1 read the re-captured config on 2026-11-13 (2.5.5): SET8b changed from `opttracking` to `openbridge`. SET8a and SET8c stay.
 
 A candidate counts as "no effect" only if all three hold:
 1. the check came after a propagation wait. Default: wait until the served config bytes change, or 30 minutes after the change, whichever comes first. The wait is recorded in the manifest;
@@ -494,6 +593,7 @@ Review rounds are capped at three before owner review (owner decision). Each is 
 - 2026-11-13: status DRAFT to READY_FOR_REVIEW to READY_FOR_IMPLEMENTATION on the owner's O1 approval (approved as amended, no re-review). The spec has no slice headings, so the jig transition command cannot move it; the frontmatter was set by hand. ADR-0061 point 1 now carries the O11 line (main 0633a5f4).
 - 2026-11-13 (correction): the spec status is derived from slice files, so the by-hand READY_FOR_IMPLEMENTATION line above is replaced. Slice files 066-01 to 066-04 (MT1, MT2, MT0, CAP) are written and READY_FOR_IMPLEMENTATION. M1 to M13 get files after CAP.
 - Pilot count of extra captures: _to be filled at pilot close_.
+- 2026-11-13, MT1 (066-01) done from the O13 re-capture: section 2.5 added (runtime 2.9.439 and one public config, version and digest only), SET8b replaced by `openbridge` in section 3, `unknown` rows listed in 2.5.6.
 - 2026-11-13, MT2 (066-02) done (SET8 list provisional until MT1 reads the retained config): section 3 extended (owning slices, SET8a to SET8c list, SET9 row), settings window plan added as 3.1, probe protocol written into 6.1 (public HTTP Archive crawl data first; fallback from the Tranco list, hard cap 60 homepage GETs and 30 config GETs), site list named in 10.1. Not run. One open owner question in 6.1 (EEA and non-EEA config pairs). MT1 (066-01) is blocked on the private bytes. MT0's DoR line about 064-03 corrected (the shared tooling has been on main since 98694865).
 
 ## 13. Clarifications
