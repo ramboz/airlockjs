@@ -10,15 +10,15 @@ last_verified: 2026-11-13
 
 **DoR:**
 - Spec 066 approved by the owner as amended (O1, 2026-11-13).
-- The retained bytes (058-02, spec 060, 2026-10-16) are readable from the private store. Pins: runtime `d4487bcc…` (declares 2.9.426), config `b1720ebb…` (spec 066 section 1).
+- Note 2026-11-13 (O13): the 058-02 retained bytes are gone. The slice makes its own re-capture: three plain GETs under spec 066 10.1 (`fbevents.js`, one public homepage, one `signals/config/<pixel>`), stored in the private folder `AIRLOCK_META_PRIVATE_INPUTS_DIR`. The old 058-02 pins stay as history: runtime `d4487bcc…` (declares 2.9.426), config `b1720ebb…` (spec 066 section 1).
 
 **Acceptance Criteria:**
 
 1. Every `fbq` command, event-data key, request and response shape in the retained runtime has a row in 2.1 to 2.3, with its source location in the bytes. A row not found in the bytes is marked as docs-only.
 2. Every request field has a class (fixed, generated, input-derived, server-context-derived, volatile or `unknown`) per 2.4, and every request has a request-level class. `unknown` and `mixed` are allowed until the freeze and listed.
 3. Every flag, plugin and setting shape in the retained config is listed with the candidate state it would need (feeds 066-02 and SET1 to SET9).
-4. The location of the retained 058-02 bytes and their digests are recorded so CAP's drift probe (4.1) can compare against them. The bytes themselves are not committed.
-5. No network call, no capture, no production-site probe. Reading repo and private-store bytes only.
+4. (O13, 2026-11-13) The re-captured runtime and config digests, sizes, declared version and date are recorded so CAP's drift probe (4.1) can compare against them. The old 058-02 pins are recorded as history only. Drift against 2.9.426 and 2.9.435 is recorded by version and digest. The bytes, the private path and the third-party pixel ID are not committed.
+5. Exactly the three GETs approved in 10.1 (O13), no other network call, no capture, no other production-site probe. Nothing fetched is executed.
 
 **DoD:**
 - Section 2 of spec 066 updated with a dated note listing what changed. `npm test && npm run lint` and the servo quality-gate pass.
