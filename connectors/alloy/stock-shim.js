@@ -64,19 +64,23 @@ export function shimValuesFromStockContext(context, groups) {
 export const OWNED_SHIM_FIELDS = Object.freeze({
   web: Object.freeze({ location: ["href", "pathname", "search", "hash"], document: ["referrer", "title"] }),
   device: Object.freeze({ screen: ["width", "height", "availWidth", "availHeight", "colorDepth", "pixelDepth", "orientation"], window: ["devicePixelRatio"] }),
-  environment: Object.freeze({ window: ["innerWidth", "innerHeight", "outerWidth", "outerHeight"], document: ["visibilityState"] }),
+  environment: Object.freeze({ window: ["innerWidth", "innerHeight", "outerWidth", "outerHeight"], document: ["visibilityState"], navigator: ["userAgent", "language", "languages", "cookieEnabled", "doNotTrack"] }),
   placeContext: Object.freeze({}),
 });
 
 /**
  * Apply the channel to the chamber's shim backing objects: clear what each listed group
- * owns, then set the supplied values. Navigator fields fall through to the worker's own
- * navigator when unset, so they are overwritten but never cleared.
+ * owns, then set the supplied values. Navigator keys are set to an own `undefined` rather than
+ * deleted: the chamber's navigator proxy would otherwise answer a missing key with its own
+ * placeholder or the worker's real value.
  * @param {{ location: object, document: object, screen: object, window: object, navigator: object }} targets
  */
 export function applyStockContextToShims(targets, context, groups) {
   for (const g of Array.isArray(groups) ? groups : []) {
-    for (const [t, keys] of Object.entries(OWNED_SHIM_FIELDS[g] || {})) for (const k of keys) delete targets[t][k];
+    for (const [t, keys] of Object.entries(OWNED_SHIM_FIELDS[g] || {})) for (const k of keys) {
+      if (t === "navigator") targets[t][k] = undefined;
+      else delete targets[t][k];
+    }
   }
   for (const [t, values] of Object.entries(shimValuesFromStockContext(context, groups))) Object.assign(targets[t], values);
 }

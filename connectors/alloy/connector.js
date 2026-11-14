@@ -235,7 +235,7 @@ export function createAlloyConnector(config = {}) {
     await getAlloy()("configure", {
       datastreamId,
       orgId,
-      context: [...context],
+      context: [...(Array.isArray(context) ? context : ALLOY_DEFAULT_CONTEXT)],
       ...configureExtras,
     });
   }

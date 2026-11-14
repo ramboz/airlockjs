@@ -44,8 +44,10 @@ claimed_by: 067-08-alloy-context-option
 - **`bootAlloy` re-collects per queued event, not on DOM listeners.** The collection runs inside the serialized queue, never in a capture handler (ADR-0002), and covers SPA navigation without `pushState` hooks.
 - **The default `location` placeholder stays when the web group is unset.** Alloy's apex-domain probe and cookie scope read `location.hostname`; changing that is 064-17's apex work. Screen, viewport, referrer, title, pixel ratio and the rest of the location placeholders are cleared.
 - **The chamber worker itself has no Node test.** The mapping and the apply step it calls (`shimValuesFromStockContext`, `applyStockContextToShims`) are unit-tested with plain objects, and the real-bundle browser run stays with 064-17.
+- **Hand-off to 064-17:** `location.href` is cleared while `origin/hostname` stay; if the pinned Alloy web collector falls back to the `location` object when `href` is missing, a page that denylists `url` would send a serialized location as `URL`. Verify against the 2.31.1 bytes.
+- **An all-empty collection is not re-posted** (the last non-empty context stays in the chamber); unreachable while `placeContext` is listed.
 - **Open item, not collected:** high-entropy client hints (async), as noted in 067-07. Alloy only requests them when `highEntropyUserAgentHints` is configured; follow-up for 064-17.
 
 ### Reconciliation sweep
 
-Pending review.
+Round 1 found four mediums (per-field clearing, stale values, `minimalXdm` forwarding, xdm placeholders) plus craft test gaps; all fixed in 956c8bee. Round 2 found one medium (navigator fields not cleared; the proxy falls back to its own placeholder), fixed by setting owned navigator keys to an own `undefined`. Shipped matches AC1-7; deviations are logged above.

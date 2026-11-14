@@ -67,6 +67,15 @@ describe("applyStockContextToShims (067-08)", () => {
     expect(t.screen).toEqual({ height: 50 }); // width denied: no 1280
   });
 
+  it("a navigator field the channel omits reads undefined, not the placeholder or the worker's own value", () => {
+    const t = targets();
+    t.navigator.languages = ["en-US"];
+    applyStockContextToShims(t, { environment: { language: "fr-FR" } }, ["environment"]);
+    expect(t.navigator.language).toBe("fr-FR");
+    expect(t.navigator.userAgent).toBeUndefined();
+    expect(t.navigator.languages).toBeUndefined();
+  });
+
   it("leaves groups the site did not list alone", () => {
     const t = targets();
     applyStockContextToShims(t, context, ["device"]);
