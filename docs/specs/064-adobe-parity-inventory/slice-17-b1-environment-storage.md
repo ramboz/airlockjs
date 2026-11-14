@@ -1,6 +1,6 @@
 ---
 status: READY_FOR_IMPLEMENTATION
-dependencies: [064-03, 064-04, 067-05, 067-07, 067-08, 067-10]
+dependencies: [064-03, 064-04, 067-05, 067-07, 067-08, 067-10, 067-12]
 last_verified:
 ---
 
@@ -26,3 +26,7 @@ last_verified:
 **Anti-horizontal-phasing check:** Vertical: bridge surface to wire to comparison for one real journey.
 
 > 2026-11-13: depends on shared seal defaults (spec 067)
+> 2026-11-13 (spec 067 s8 check 11): dependencies gain 067-05, 067-07, 067-08, 067-10 and 067-12. Removing the shim stand-ins is this slice's own job (067-08 only changed the default `context`).
+> Open hand-offs from spec 067:
+> - From 067-08: `location.href` is cleared while `origin` and `hostname` stay, so check whether the pinned 2.31.1 web collector falls back to the `location` object when `url` is denylisted. High-entropy client hints are not collected. The default `location` placeholder is kept when the web group is unset (apex probe).
+> - From 067-03: a seeded stale Alloy consent cookie that says "in" while page consent is pending makes Alloy send, and the seam drops the event (not held).
