@@ -186,6 +186,14 @@ export interface ConnectorManifest {
   /** Endpoints the connector intends to emit to (advisory; host allow-list wins). */
   readonly endpoints?: readonly string[];
   /**
+   * The destinations the connector's stock tag contacts (its frozen
+   * inventory), in origin+path form; a path carrying a `;` matrix segment is
+   * matched as a segment-anchored prefix. When declared this is the default
+   * endpoint ceiling (spec 067-04, ADR-0062 point 7); a site may only narrow
+   * it, never widen it. Absent -> `endpoints` stays the ceiling.
+   */
+  readonly stockEndpoints?: readonly string[];
+  /**
    * Consent-purpose annotation for the declared I/O (ADR-0007). The seal
    * enforces on it (ADR-0006's grant law) for the connectors that wire a
    * matching `egressPurposes` config — see ConnectorPurposes. Optional +

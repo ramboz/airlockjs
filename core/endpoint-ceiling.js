@@ -132,3 +132,46 @@ export function checkEndpointCeiling(url, declaredEndpoints) {
     reason: `endpoint-ceiling: outbound ${destination} not in declared endpoints — held at the seal`,
   };
 }
+
+/**
+ * Whether `entry` (a narrowing entry) lies inside the `stock` set, by the same
+ * two match modes `checkEndpointCeiling` applies: an exact entry must equal a
+ * stock origin+path (or sit under a stock `;` prefix); a `;`-prefix entry must
+ * extend a stock `;` prefix at a segment boundary.
+ */
+function coveredByStock(entry, stock) {
+  if (typeof entry !== "string") return false;
+  const reduced = originPath(entry);
+  if (!reduced) return false;
+  return checkEndpointCeiling(reduced, stock).verdict === "allow";
+}
+
+/**
+ * 067-04 (ADR-0062 point 7, Owner answer 3): the effective endpoint ceiling.
+ * The DEFAULT ceiling is the connector's declared stock destination set
+ * (`stock`); a site may NARROW it to a non-empty subset with `narrowing`,
+ * never widen it (an out-of-stock or malformed narrowing throws, and an empty
+ * one throws rather than silently meaning "no ceiling"). With no stock set
+ * (`null`/empty) the caller's `declared` endpoints stay the ceiling and a
+ * narrowing is rejected: today's behavior for callers that declare nothing
+ * (spec 067 check 8). Pure.
+ * @param {{ stock?: readonly string[]|null, narrowing?: readonly string[], declared?: readonly string[] }} input
+ * @returns {{ endpoints: readonly string[], narrowed: boolean, fromStock: boolean }}
+ */
+export function resolveEndpointCeiling({ stock, narrowing, declared } = {}) {
+  const base = Array.isArray(stock) && stock.length ? stock : null;
+  if (narrowing === undefined) {
+    return { endpoints: base || declared || [], narrowed: false, fromStock: Boolean(base) };
+  }
+  if (!Array.isArray(narrowing) || !narrowing.length || narrowing.some((n) => typeof n !== "string")) {
+    throw new TypeError("endpointNarrowing must be a non-empty array of endpoint URLs");
+  }
+  if (!base) {
+    throw new TypeError("endpointNarrowing requires the connector to declare a stock endpoint set (narrowing can't widen)");
+  }
+  const outside = narrowing.find((n) => !coveredByStock(n, base));
+  if (outside !== undefined) {
+    throw new TypeError(`endpointNarrowing entry "${outside}" is outside the connector's stock endpoint set (narrowing can't widen)`);
+  }
+  return { endpoints: [...narrowing], narrowed: true, fromStock: true };
+}

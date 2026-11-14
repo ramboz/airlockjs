@@ -29,7 +29,7 @@ import { createGoogleAdsConnector } from "../connectors/google-ads/connector.js"
 import { createFloodlightConnector } from "../connectors/floodlight/connector.js";
 import { createPixelConnector } from "../connectors/pixel/connector.js";
 import { mergeAdvancedMatching } from "../connectors/pixel/advanced-matching.js";
-import { originPath, checkEndpointCeiling } from "./endpoint-ceiling.js";
+import { originPath, checkEndpointCeiling, resolveEndpointCeiling } from "./endpoint-ceiling.js";
 import { egressVerdict, resolveConsent } from "./consent.js";
 import { governPayload, resolveDenylist, DEFAULT_DENYLIST } from "./payload-governance.js";
 import { collectStockContext, stockContextFingerprint, STOCK_CONTEXT_MESSAGE } from "./stock-context.js";
@@ -63,6 +63,12 @@ export function createAirlock({
   trackers,
   workFactor,
   endpoints,
+  // 067-04 (ADR-0062 point 7): the connector's declared STOCK destination set
+  // (its default ceiling) and the site's optional opt-in `endpointNarrowing`
+  // (a non-empty subset, never wider). Both absent -> `endpoints` stays the
+  // ceiling, exactly as before.
+  stockEndpoints,
+  endpointNarrowing,
   ctx,
   unloadCritical,
   onDiagnostic,
@@ -190,7 +196,8 @@ export function createAirlock({
   // Gated below on `ceiling.length` so a caller with no declared endpoints is
   // unaffected (back-compat); a connector with declared endpoints (GA4,
   // always) gets the ceiling enforced on every dispatch.
-  const ceiling = (endpoints || []).map(originPath).filter(Boolean);
+  const ceilingEndpoints = resolveEndpointCeiling({ stock: stockEndpoints, narrowing: endpointNarrowing, declared: endpoints }).endpoints;
+  const ceiling = ceilingEndpoints.map(originPath).filter(Boolean);
   // 017-03 AC1/AC2 (ADR-0007 point ③ — the seal): `consentVector` is a
   // MUTABLE main-thread copy seeded from the boot-time `consent` opt — the
   // returned handle's `setConsent` updates it (this slice's OWN
@@ -490,7 +497,7 @@ export function createAirlock({
       // preserved by construction. Do NOT add a per-endpoint verdict here.
       const holdIfOffCeiling = (url) => {
         if (!ceiling.length) return false;
-        const c = checkEndpointCeiling(url, endpoints);
+        const c = checkEndpointCeiling(url, ceilingEndpoints);
         if (c.verdict === "hold") {
           diagnose({ level: "error", kind: "endpoint-ceiling", disposition: "held", destination: c.destination, reason: c.reason });
           return true;
@@ -918,7 +925,7 @@ export function createAirlock({
           // makes the flushed destination connector-controlled). Gated on
           // `ceiling.length` (back-compat: no declared endpoints -> no ceiling).
           if (b.remap && ceiling.length) {
-            const c = checkEndpointCeiling(req.url, endpoints);
+            const c = checkEndpointCeiling(req.url, ceilingEndpoints);
             if (c.verdict === "hold") {
               diagnose({
                 level: "error",

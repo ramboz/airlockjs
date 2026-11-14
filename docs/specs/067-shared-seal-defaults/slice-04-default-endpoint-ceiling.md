@@ -1,7 +1,8 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: IN_PROGRESS
 dependencies: [067-01]
 last_verified: 2026-11-13
+claimed_by: 067-04-default-egress-allowlist
 ---
 
 ## Slice 067-04: Default egress allowlist is the stock destination set
