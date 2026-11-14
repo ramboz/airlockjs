@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { EventEmitter } from "node:events";
 import { mkdtemp, readFile, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -58,6 +59,11 @@ describe("065-04 drift probe part B", () => {
     expect(noise.regions.eea.slots[slot].fields.tid.varies).toBe(false);
     expect(noise.region_dependent).toEqual([`${slot} dma`]);
   });
+  it("compares repeated request slots one by one across regions", () => {
+    const two = (region, v) => ({ region, requests: [{ method: "GET", url: url("v=a") }, { method: "GET", url: url(`v=${v}`) }] });
+    const noise = recordFieldNoise({ loads: [two("non-eea", "b"), two("non-eea", "b"), two("eea", "c"), two("eea", "c")] });
+    expect(noise.region_dependent).toEqual(["GET www.googletagmanager.com/g/collect#1 v"]);
+  });
   it("runs both parts through injected loaders", async () => {
     const out = await runDriftProbes({ fetchServed: async () => loader("c"), locateConfig: locate, regions: ["non-eea", "eea"], repeats: 2,
       loadState: async (_r, i) => [{ method: "GET", url: url(`n=${i}`) }] });
@@ -96,7 +102,25 @@ describe("065-04 classifier", () => {
     const odd = { ...set[1], requests: [set[1].requests[0]] };
     expect(classifyRecordings({ recordings: [set[0], odd] })).toEqual({ ok: false, issues: ["sequence_mismatch"] });
   });
-  it("seeds only generated and region fields by default", () => {
+  it("derives input_derived rules from a named source, and flags a changed layout or body", () => {
+    const hashed = v => createHash("sha256").update(v).digest("hex");
+    const set = ["x", "y"].map((v, i) => ({ sha256: D("ab"[i]), region: "x",
+      requests: [{ method: "POST", url: url(`em=${hashed(v)}&src=${v}`), body: `b${i}` }] }));
+    const out = classifyRecordings({ recordings: set, seeds: { em: { class: "input_derived", source: { name: "src" }, transform: "sha256_hex" } } });
+    expect(out.rules.fields[0]).toMatchObject({ class: "input_derived", transform: "sha256_hex", source: { request: 0, field: "query", index: 1 } });
+    expect(out.unstable.map(u => u.reason)).toEqual(["body_differs", "no_class"]);
+    const shifted = [set[0], { ...set[1], requests: [{ method: "POST", url: url(`src=y&em=${hashed("y")}`) }] }];
+    expect(classifyRecordings({ recordings: shifted }).unstable[0].reason).toBe("layout_differs");
+    expect(classifyRecordings({ recordings: set, seeds: { em: { class: "input_derived", source: { name: "src" }, transform: "lowercase" } } })
+      .unstable.some(u => u.reason === "rule_does_not_hold")).toBe(true);
+  });
+  it("reports overlap when a rule targets another rule's input source", () => {
+    const set = [rec(D("a"), "x", "src=1&em=1"), rec(D("b"), "x", "src=3&em=3")];
+    const out = classifyRecordings({ recordings: set, seeds: { src: { class: "volatile" }, em: { class: "input_derived", source: { name: "src" }, transform: "identity" } } });
+    expect(out.issues).toContain("overlapping_rules");
+    expect(out.ok).toBe(false);
+  });
+  it("seeds the generated fields and dma by default", () => {
     expect(Object.keys(GOOGLE_SEED_CLASSES)).toContain("dma");
     expect(queryPairs(url("a=1&a=2"))).toEqual([["a", "1"], ["a", "2"]]);
   });
@@ -107,6 +131,7 @@ describe("065-04 cookie allow-list (3.4)", () => {
     for (const n of ["_gcl_au", "_gcl_aw", "_gcl_ls", "_gac_gb_AW-1"]) expect(cookieAllowed(n)).toBe(true);
     expect(cookieAllowed("_fp_aw", { prefix: "_fp" })).toBe(true);
     expect(cookieAllowed("_gcl_aw", { prefix: "_fp" })).toBe(false);
+    expect(cookieAllowed("_fp_anything", { prefix: "_fp" })).toBe(true);
   });
   it("gates GA4, first-party mode and test_cookie, and denies login names", () => {
     expect(cookieAllowed("_ga")).toBe(false);

@@ -1,7 +1,6 @@
-import { createHash } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { sha256 as byteSha256 } from "./attempt-evidence-io.mjs";
+import { plain, sha256 } from "./attempt-evidence-io.mjs";
 import { CAPS, createPrivateOutput } from "./chamber-capture.mjs";
 import { FORMAT_KINDS, evaluateFieldRule, fieldRuleShape, matchesFormat, protectedTarget } from "./field-rules.mjs";
 import { scanFixtureText } from "./fixture-credentials.mjs";
@@ -29,9 +28,6 @@ export const GOOGLE_SEED_CLASSES = Object.freeze({
     .map(name => [name, Object.freeze({ class: "generated" })])),
 });
 
-const sha256 = bytes => createHash("sha256").update(bytes).digest("hex");
-const plain = v => v !== null && typeof v === "object" && !Array.isArray(v)
-  && Object.getPrototypeOf(v) === Object.prototype;
 
 // ---- Drift probe part A: bytes only (4.1 step 1) ----
 
@@ -121,7 +117,7 @@ export function recordFieldNoise({ loads }) {
           const i = counts.get(name) ?? 0;
           counts.set(name, i + 1);
           const key = i === 0 ? name : `${name}#${i}`;
-          const f = entry.fields.get(key) ?? { values: new Set(), present: 0 };
+          const f = entry.fields.get(key) ?? { values: new Set(), present: 0, first: value };
           f.values.add(value);
           f.present++;
           entry.fields.set(key, f);
@@ -132,23 +128,21 @@ export function recordFieldNoise({ loads }) {
     regions[region] = { loads: group.length, slots: Object.fromEntries([...slots].map(([slot, e]) => [slot, {
       loads: e.loads,
       fields: Object.fromEntries([...e.fields].sort(([a], [b]) => a.localeCompare(b)).map(([name, f]) => [name, {
-        present_in: f.present, distinct_values: f.values.size, varies: f.values.size > 1 || f.present < e.loads }])),
+        present_in: f.present, distinct_values: f.values.size, varies: f.values.size > 1 || f.present < e.loads,
+          first: f.first }])),
       body_varies: new Set(e.bodies).size > 1,
     }])) };
   }
   const names = Object.keys(regions);
   const cross = new Set();
-  const stableValue = (region, slot, name) => {
-    const f = byRegion.get(region).flatMap(l => l.requests).filter(r => slotKey(r) === slot.split("#")[0])
-      .flatMap(r => queryPairs(r.url).filter(([n]) => n === name.split("#")[0]).map(([, v]) => v));
-    return new Set(f);
-  };
   for (const slot of new Set(names.flatMap(r => Object.keys(regions[r].slots))))
     for (const name of new Set(names.flatMap(r => Object.keys(regions[r].slots[slot]?.fields ?? {})))) {
       const per = names.map(r => regions[r].slots[slot]?.fields[name]);
       if (per.some(f => !f || f.varies)) continue;
-      if (new Set(names.map(r => [...stableValue(r, slot, name)][0])).size > 1) cross.add(`${slot} ${name}`);
+      if (new Set(per.map(f => f.first)).size > 1) cross.add(`${slot} ${name}`);
     }
+  for (const region of names) for (const slot of Object.values(regions[region].slots))
+    for (const f of Object.values(slot.fields)) delete f.first;
   return { regions, region_dependent: [...cross].sort() };
 }
 
@@ -239,19 +233,24 @@ export function classifyRecordings({ recordings, requestClasses = [], seeds = GO
       rules.push(rule);
     }
   });
+  const sources = rules.filter(r => r.class === "input_derived").map(r => r.source);
+  const key = s => `${s.request}:${s.index}`;
+  const targeted = new Set(rules.flatMap(r => r.selectors.map(key)));
+  if (sources.some(s => targeted.has(key(s)))) issues.add("overlapping_rules");
+  if (rules.length > 32) issues.add("rule_limit");
   for (const u of unstable) issues.add(`unstable:${u.reason}`);
-  return { ok: unstable.length === 0, issues: [...issues].sort(), requests, rules: { fields: rules }, fixed, unstable };
+  return { ok: unstable.length === 0 && !issues.has("overlapping_rules") && !issues.has("rule_limit"), issues: [...issues].sort(), requests, rules: { fields: rules }, fixed, unstable };
 }
 
 // ---- Cookie-name allow-list (spec 3.4). A name check; it does not decide whether a value is safe ----
 
-const GCL_SUFFIX = /^(?:au|aw|dc|gb|ag|gf|ha|gp|gs)$/;
-// `manifest` names the configured prefix, whether GA4 is page input and whether the state
-// sets a first-party endpoint base. Login/session names are denied by the shared check.
+// Options name the configured prefix (the manifest schema has no field for it, so the
+// session passes it), whether GA4 is page input and whether the state sets a first-party
+// endpoint base. Login/session names are denied by the shared check.
 export function cookieAllowed(name, { prefix = "_gcl", ga4 = false, firstPartyMode = false, vendorDomain = false } = {}) {
   if (typeof name !== "string") return false;
   if (name === "_gcl_au" || name.startsWith("_gac_")) return true;
-  if (name.startsWith(`${prefix}_`) && (GCL_SUFFIX.test(name.slice(prefix.length + 1)) || name === `${prefix}_ls`)) return true;
+  if (name.startsWith(`${prefix}_`)) return true;
   if (ga4 && (name === "_ga" || name.startsWith("_ga_"))) return true;
   if (firstPartyMode && (name === "FPAU" || name === "FPGCLAW")) return true;
   return vendorDomain && name === "test_cookie";
@@ -343,7 +342,7 @@ export async function storeRecording({ outputDir, manifest, entries, cookieOptio
   const digests = {};
   for (const [file, text] of Object.entries(files)) {
     await writeFile(join(outputDir, file), text, { flag: "wx", mode: 0o600 });
-    digests[file] = byteSha256(Buffer.from(text));
+    digests[file] = sha256(Buffer.from(text));
   }
   return digests;
 }
