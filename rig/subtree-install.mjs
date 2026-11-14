@@ -124,7 +124,7 @@ if (window.trustedTypes && window.trustedTypes.createPolicy) {
 (async () => {
   try {
     const { bootEdsAnalytics } = await import(\`\${window.hlx.codeBasePath}/scripts/airlock/eds.js\`);
-    await bootEdsAnalytics();
+    await bootEdsAnalytics({ consent: { analytics_storage: 'granted' } });
     window.__airlockBooted = true;
   } catch (e) {
     window.__airlockBootFailed = String(e);

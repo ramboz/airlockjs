@@ -52,7 +52,9 @@
         worker: () => import("../core/airlock.js").then((m) => m.createAirlock),
       };
       const create = await factories[MODE]();
-      const runtime = create({ trackers: TRACKERS, workFactor: WORK, endpoints, ctx });
+      // ?stockctx=1 turns the 067-07 stock-context channel on (worker mode only).
+      const STOCKCTX = q.get("stockctx") === "1";
+      const runtime = create({ trackers: TRACKERS, workFactor: WORK, endpoints, ctx, ...(STOCKCTX ? { stockContext: true } : {}) });
 
       // --- interaction handler: one event; the runtime routes it to T trackers ---
       let n = 0;

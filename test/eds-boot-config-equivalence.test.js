@@ -62,18 +62,18 @@ describe("AC2 — the pixel-vendor boot duplication is collapsed into ONE config
       const config = argsOf(1);
       expect(config).toEqual(perFn); // connector, connectorConfig, endpoints, egressPurposes gate, ctx, ...
       expect(config.connector).toBe("pixel");
-      expect(config.egressPurposes).toEqual([]); // no consent wired -> gate closed on both paths
+      expect(config.egressPurposes).toEqual(["ad_storage"]); // no consent wired -> holds by default (067-02), same on both paths
     });
   }
 });
 
 describe("AC3 — governance threads to consent-governed connectors (GA4, pixels)", () => {
-  it("GA4: an absent consent vector yields egressPurposes:[] on BOTH paths (legacy always-dispatch)", async () => {
+  it("GA4: an absent consent vector yields the full default egressPurposes (hold-by-default, 067-02) on BOTH paths", async () => {
     await bootEdsAnalytics({ ctx: gaCtx });
     await boot({ connectors: [{ type: "ga4", ctx: gaCtx }] });
 
     expect(argsOf(1)).toEqual(argsOf(0));
-    expect(argsOf(1).egressPurposes).toEqual([]);
+    expect(argsOf(1).egressPurposes).toEqual(["analytics_storage"]);
   });
 
   it("GA4: a top-level consent vector threads through identically to bootEdsAnalytics({consent})", async () => {
@@ -109,12 +109,12 @@ describe("AC3 — governance threads to consent-governed connectors (GA4, pixels
 });
 
 describe("041-04 AC1/AC2 — a {type:'ga4-gtag'} config entry produces the SAME createAirlock inputs as bootGa4Gtag, governance threaded like GA4/pixel", () => {
-  it("an absent consent vector yields egressPurposes:[] on BOTH paths (legacy always-dispatch)", async () => {
+  it("an absent consent vector yields the full default egressPurposes (hold-by-default, 067-02) on BOTH paths", async () => {
     await bootGa4Gtag({ ctx: gaCtx, measurementId: "G-XXXX" });
     await boot({ connectors: [{ type: "ga4-gtag", ctx: gaCtx, measurementId: "G-XXXX" }] });
 
     expect(argsOf(1)).toEqual(argsOf(0));
-    expect(argsOf(1).egressPurposes).toEqual([]);
+    expect(argsOf(1).egressPurposes).toEqual(["analytics_storage"]);
   });
 
   it("a top-level consent vector threads through identically to bootGa4Gtag({consent}) — no helix-rum-style exemption", async () => {
@@ -140,12 +140,12 @@ describe("048-01 AC3 — a {type:'google-ads'} config entry produces the SAME cr
   // it is compared structurally (typeof) and excluded from the whole-object `toEqual`.
   const withoutRemap = (args) => { const { remap, ...rest } = args; return rest; };
 
-  it("an absent consent vector yields egressPurposes:[] on BOTH paths (legacy always-dispatch)", async () => {
+  it("an absent consent vector yields the full default egressPurposes (hold-by-default, 067-02) on BOTH paths", async () => {
     await bootGoogleAds({ ctx: {}, conversionId: "AW-1234567890" });
     await boot({ connectors: [{ type: "google-ads", ctx: {}, conversionId: "AW-1234567890" }] });
 
     expect(withoutRemap(argsOf(1))).toEqual(withoutRemap(argsOf(0)));
-    expect(argsOf(1).egressPurposes).toEqual([]);
+    expect(argsOf(1).egressPurposes).toEqual(["ad_storage"]);
     expect(typeof argsOf(0).remap).toBe("function");
     expect(typeof argsOf(1).remap).toBe("function");
   });
@@ -174,12 +174,12 @@ describe("048-02 AC3 — a {type:'floodlight'} config entry produces the SAME cr
   // structurally (typeof) and excluded from the whole-object `toEqual` (mirrors the google-ads block).
   const withoutRemap = (args) => { const { remap, ...rest } = args; return rest; };
 
-  it("an absent consent vector yields egressPurposes:[] on BOTH paths (legacy always-dispatch)", async () => {
+  it("an absent consent vector yields the full default egressPurposes (hold-by-default, 067-02) on BOTH paths", async () => {
     await bootFloodlight({ ctx: {}, conversionId: "DC-1234567890" });
     await boot({ connectors: [{ type: "floodlight", ctx: {}, conversionId: "DC-1234567890" }] });
 
     expect(withoutRemap(argsOf(1))).toEqual(withoutRemap(argsOf(0)));
-    expect(argsOf(1).egressPurposes).toEqual([]);
+    expect(argsOf(1).egressPurposes).toEqual(["ad_storage"]);
     expect(typeof argsOf(0).remap).toBe("function");
     expect(typeof argsOf(1).remap).toBe("function");
   });
@@ -218,25 +218,23 @@ describe("AC3 — helix-rum keeps its spec-022 governance class (EXEMPT from con
     vi.stubGlobal("crypto", { randomUUID: () => "abcdef-0123456789" });
   });
 
-  it("a helix-rum entry under top-level consent/denylist boots byte-identical to bootHelixRum (no gate, no strip, no async)", async () => {
+  it("a helix-rum entry takes top-level consent/consentStrict (067-11) but never the denylist; other-purpose denials do not gate it", async () => {
     await bootHelixRum({ weight: 100, forceSelect: true, ...stubWebVitals() });
     await boot({
       connectors: [{ type: "helix-rum", weight: 100, forceSelect: true, ...stubWebVitals() }],
-      consent: { ad_storage: "denied" }, // would GATE a consent-governed connector
+      consent: { ad_storage: "denied" }, // would GATE a consent-governed connector, not RUM
       consentStrict: true,
       payloadDenylist: ["email"], // would STRIP a consent-governed connector
     });
 
     const standalone = argsOf(0);
     const fromConfig = argsOf(1);
-    // byte-identical createAirlock inputs (id fixed above) — the config path did not
-    // fork or re-parameterize the helix boot
-    expect(fromConfig).toEqual(standalone);
-    // and specifically: NONE of the top-level governance leaked in
     expect(fromConfig.connector).toBe("helix-rum");
-    expect(fromConfig.egressPurposes).toEqual([]); // NOT consent-gated
-    expect(fromConfig.consent).toBeUndefined();
-    expect(fromConfig.consentStrict).toBeUndefined();
+    expect(fromConfig.egressPurposes).toEqual(["measurement"]); // granted by default (067-11)
+    expect(fromConfig.consent).toEqual({ ad_storage: "denied" });
+    expect(fromConfig.consentStrict).toBe(true);
     expect(fromConfig.payloadDenylist).toBeUndefined();
+    expect(fromConfig.connectorConfig).toEqual(standalone.connectorConfig);
+    expect(fromConfig.endpoints).toEqual(standalone.endpoints);
   });
 });

@@ -58,7 +58,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe("spec 028 — production boot adapters thread onDiagnostic to the inspector collector", () => {
   it("bootEdsAnalytics (GA4 createAirlock path) surfaces an endpoint-ceiling HOLD to the wired collector", async () => {
     const c = createInspectorCollector();
-    await bootEdsAnalytics({ endpoints: [GA4_ENDPOINT], onDiagnostic: c.onDiagnostic });
+    await bootEdsAnalytics({ endpoints: [GA4_ENDPOINT], consent: { analytics_storage: "granted" }, onDiagnostic: c.onDiagnostic });
     FakeWorker.last.onmessage(readyMsg([{ url: EVIL, method: "POST", body: "{}" }]));
 
     expect(c.query({ kind: "endpoint-ceiling", disposition: "held" })).toHaveLength(1);
@@ -66,7 +66,7 @@ describe("spec 028 — production boot adapters thread onDiagnostic to the inspe
 
   it("bootGa4Gtag surfaces an endpoint-ceiling HOLD to the wired collector", async () => {
     const c = createInspectorCollector();
-    await bootGa4Gtag({ measurementId: "G-XXXX", onDiagnostic: c.onDiagnostic });
+    await bootGa4Gtag({ measurementId: "G-XXXX", consent: { analytics_storage: "granted" }, onDiagnostic: c.onDiagnostic });
     FakeWorker.last.onmessage(readyMsg([{ url: EVIL, method: "POST", body: "{}" }]));
 
     expect(c.query({ kind: "endpoint-ceiling", disposition: "held" })).toHaveLength(1);
@@ -74,7 +74,7 @@ describe("spec 028 — production boot adapters thread onDiagnostic to the inspe
 
   it("bootMetaPixel surfaces a HOLD — proving onDiagnostic survives bootPixelConnector's `...ids` rest (not swallowed into the vendor id-bag)", async () => {
     const c = createInspectorCollector();
-    await bootMetaPixel({ pixelId: "111111111111111", onDiagnostic: c.onDiagnostic });
+    await bootMetaPixel({ pixelId: "111111111111111", consent: { ad_storage: "granted" }, onDiagnostic: c.onDiagnostic });
     FakeWorker.last.onmessage(readyMsg([{ url: EVIL, method: "GET" }]));
 
     expect(c.query({ kind: "endpoint-ceiling", disposition: "held" })).toHaveLength(1);
@@ -104,7 +104,7 @@ describe("spec 028 — production boot adapters thread onDiagnostic to the inspe
   it("the composite boot(config) fans onDiagnostic out to a google-ads sub-connector's seam", async () => {
     const c = createInspectorCollector();
     await boot(
-      { connectors: [{ type: "google-ads", ctx: {}, conversionId: "AW-1234567890" }] },
+      { connectors: [{ type: "google-ads", ctx: {}, conversionId: "AW-1234567890" }], consent: { ad_storage: "granted" } },
       { onDiagnostic: c.onDiagnostic },
     );
     FakeWorker.last.onmessage(readyMsg([{ url: EVIL, method: "GET" }]));
@@ -128,7 +128,7 @@ describe("spec 028 — production boot adapters thread onDiagnostic to the inspe
   it("the composite boot(config) fans onDiagnostic out to a floodlight sub-connector's seam", async () => {
     const c = createInspectorCollector();
     await boot(
-      { connectors: [{ type: "floodlight", ctx: {}, conversionId: "DC-1234567890" }] },
+      { connectors: [{ type: "floodlight", ctx: {}, conversionId: "DC-1234567890" }], consent: { ad_storage: "granted" } },
       { onDiagnostic: c.onDiagnostic },
     );
     FakeWorker.last.onmessage(readyMsg([{ url: EVIL, method: "GET" }]));
@@ -138,7 +138,7 @@ describe("spec 028 — production boot adapters thread onDiagnostic to the inspe
 
   it("the composite boot(config) fans onDiagnostic out to a sub-connector's seam", async () => {
     const c = createInspectorCollector();
-    await boot({ connectors: [{ type: "ga4-gtag", measurementId: "G-XXXX" }] }, { onDiagnostic: c.onDiagnostic });
+    await boot({ connectors: [{ type: "ga4-gtag", measurementId: "G-XXXX" }], consent: { analytics_storage: "granted" } }, { onDiagnostic: c.onDiagnostic });
     FakeWorker.last.onmessage(readyMsg([{ url: EVIL, method: "POST", body: "{}" }]));
 
     expect(c.query({ kind: "endpoint-ceiling", disposition: "held" })).toHaveLength(1);
@@ -146,7 +146,7 @@ describe("spec 028 — production boot adapters thread onDiagnostic to the inspe
 
   it("back-compat: a boot with NO onDiagnostic falls back to the console default (no throw, unchanged 009-02)", async () => {
     const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    await bootGa4Gtag({ measurementId: "G-XXXX" }); // no onDiagnostic wired
+    await bootGa4Gtag({ measurementId: "G-XXXX", consent: { analytics_storage: "granted" } }); // no onDiagnostic wired
 
     expect(() => FakeWorker.last.onmessage(readyMsg([{ url: EVIL, method: "POST", body: "{}" }]))).not.toThrow();
     expect(errSpy).toHaveBeenCalled(); // the endpoint-ceiling HOLD still emits via the console default sink

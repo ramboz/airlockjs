@@ -1,6 +1,13 @@
 import { extractDecisions, VIEW_SCOPE } from "./decisions.js";
 
 /**
+ * Alloy's default `context` list: the groups stock `@adobe/alloy@2.31.1` collects
+ * (ADR-0062 point 2, spec 067-08). The chamber fills them from the 067-07 stock-context
+ * channel. A site narrows the list with the `context` option; it never needs to widen it.
+ */
+export const ALLOY_DEFAULT_CONTEXT = Object.freeze(["web", "device", "environment", "placeContext"]);
+
+/**
  * The one Adobe Edge host alloy is known to egress to — the `interact` endpoint,
  * observed by R-004 and the executed 012-01 chamber probe
  * (`https://adobedc.demdex.net/ee/v1/interact`). Declared as an ADVISORY endpoint
@@ -37,6 +44,34 @@ export const ALLOY_INTERACT_ENDPOINT = "https://adobedc.demdex.net/ee/v1/interac
 export const ALLOY_COOKIE_NAMES = ["com.adobe.alloy.getTld", "kndctr_", "AMCV_", "demdex", "s_ecid"];
 
 /**
+ * Alloy's per-cookie consent purposes (ADR-0007 annotation), hoisted so the host-side
+ * write-back seam (spec 067-05 AC4) and the manifest read ONE table. Keys are the
+ * `ALLOY_COOKIE_NAMES` entries.
+ */
+export const ALLOY_COOKIE_PURPOSES = Object.freeze({
+  // apex-domain probe cookie — functional infrastructure, no data use.
+  "com.adobe.alloy.getTld": ["functional"],
+  // Adobe Edge consent/identity + Visitor ECID — a SHARED identity serving
+  // BOTH analytics and personalization (ADR-0007: one I/O, several purposes).
+  "kndctr_": ["analytics_storage", "personalization"],
+  "AMCV_": ["analytics_storage", "personalization"],
+  // third-party Audience Manager sync — ad/identity (server-directed; MVP3).
+  "demdex": ["ad_storage"],
+  // Analytics ECID mirror.
+  "s_ecid": ["analytics_storage"],
+});
+
+/**
+ * Alloy's stock localStorage/sessionStorage set (spec 067-12), shape `{ localStorage?, sessionStorage? }`
+ * of exact keys and `prefix_` entries. `null` = none declared: alloy's stock tag persists identity
+ * through cookies (R-004), and the real storage keys are grounded with Adobe 064-17. Until then
+ * the storage grant stays ungated, today's behavior (spec 067 check 8). `ALLOY_STORAGE_PURPOSES`
+ * is the matching `{ [area]: { [entry]: purposes } }` table for the consent write denial.
+ */
+export const ALLOY_STORAGE_NAMES = null;
+export const ALLOY_STORAGE_PURPOSES = null;
+
+/**
  * alloy's declared vocabulary — the SINGLE SOURCE OF TRUTH the manifest below AND the
  * `adapters/eds/index.js` boot/composite-fan-out consume (imported, not hand-mirrored), mirroring
  * `ALLOY_COOKIE_NAMES`'s own "SAME array reference so the two can never drift" discipline (035-01 AC3).
@@ -57,7 +92,8 @@ export const ALLOY_EGRESS_PURPOSES = Object.freeze(["analytics_storage", "person
  * the instance).
  *
  * Per R-004, the command mapping is:
- *   - init(caps) -> alloy `configure({ datastreamId, orgId, context: [] })`
+ *   - init(caps) -> alloy `configure({ datastreamId, orgId, context })` (context defaults to
+ *     ALLOY_DEFAULT_CONTEXT, the stock list, ADR-0062)
  *   - handle(event) -> alloy `sendEvent({ renderDecisions: false, xdm })`
  *
  * The alloy command function (R-004 base-code queue snippet:
@@ -92,7 +128,9 @@ export const ALLOY_EGRESS_PURPOSES = Object.freeze(["analytics_storage", "person
  * carry no propositions, are unaffected).
  *
  * @param {Readonly<Record<string, unknown>>} [config] host-owned alloy config:
- *   `{ datastreamId, orgId, context?, alloy?, decisionScopes?, ...configureExtras }`.
+ *   `{ datastreamId, orgId, context?, minimalXdm?, alloy?, decisionScopes?, ...configureExtras }`.
+ *   `context` narrows the stock list; `minimalXdm: true` opts into the 2-field pageView
+ *   mapping instead of forwarding the site-supplied `xdm` (ADR-0062).
  *   `decisionScopes` (spec 034-02) is the declared personalization scope set (from
  *   `placements[].scope`); absent → alloy's `__view__` default.
  * @returns {import("../../contracts/connector").Connector}
@@ -101,7 +139,8 @@ export function createAlloyConnector(config = {}) {
   const {
     datastreamId,
     orgId,
-    context = [], // [] disables ambient auto-collection — the chamber is headless (R-004)
+    context = ALLOY_DEFAULT_CONTEXT, // stock list (ADR-0062); a site narrows it, [] disables collection
+    minimalXdm = false, // opt-in 2-field pageView mapping (was the only mapping before ADR-0062)
     alloy, // the injected command fn; defaults to the chamber's self.alloy global
     // spec 034-02: the personalization decision scopes the host declared (from
     // `placements[].scope`, derived by bootAlloy). Carried on the interact so alloy
@@ -175,18 +214,7 @@ export function createAlloyConnector(config = {}) {
       endpoints: {
         [ALLOY_INTERACT_ENDPOINT]: ["analytics_storage", "personalization"],
       },
-      cookies: {
-        // apex-domain probe cookie — functional infrastructure, no data use.
-        "com.adobe.alloy.getTld": ["functional"],
-        // Adobe Edge consent/identity + Visitor ECID — a SHARED identity serving
-        // BOTH analytics and personalization (ADR-0007: one I/O, several purposes).
-        "kndctr_": ["analytics_storage", "personalization"],
-        "AMCV_": ["analytics_storage", "personalization"],
-        // third-party Audience Manager sync — ad/identity (server-directed; MVP3).
-        "demdex": ["ad_storage"],
-        // Analytics ECID mirror.
-        "s_ecid": ["analytics_storage"],
-      },
+      cookies: ALLOY_COOKIE_PURPOSES,
       reads: {
         "page_view.params.page_location": ["analytics_storage"],
         "page_view.params.page_title": ["analytics_storage"],
@@ -207,7 +235,7 @@ export function createAlloyConnector(config = {}) {
     await getAlloy()("configure", {
       datastreamId,
       orgId,
-      context,
+      context: [...(Array.isArray(context) ? context : ALLOY_DEFAULT_CONTEXT)],
       ...configureExtras,
     });
   }
@@ -224,7 +252,7 @@ export function createAlloyConnector(config = {}) {
   async function handle(event) {
     const options = {
       renderDecisions: false, // headless personalization: decisions as data (R-004)
-      xdm: toXdm(event),
+      xdm: toXdm(event, minimalXdm),
     };
     // spec 034-02: carry the declared decision scopes on the interact so alloy fetches
     // EVERY configured scope (source-grounded: sendEvent accepts a top-level
@@ -281,21 +309,25 @@ function mergeDecisionScopes(top, personalization) {
 }
 
 /**
- * Map an airlock event to a minimal Analytics pageView XDM (R-004's sendEvent
- * shape). Tolerant of `params` (the GA4-style descriptor shape the rig drives)
- * or the contract's `payload`; falls back to safe defaults so a sparse event
- * still produces a well-formed pageView.
+ * The XDM for one event. Stock forwards the site-supplied `xdm`, so `params.xdm` (or
+ * `payload.xdm`) goes through as given (ADR-0062). An event without one still gets the
+ * minimal Analytics pageView (R-004's sendEvent shape, only the fields present) so the composite page_view fan-out
+ * keeps working. `minimal` (opt-in `minimalXdm`) forces that 2-field mapping.
  * @param {{ params?: Record<string, unknown>, payload?: Record<string, unknown> }} event
+ * @param {boolean} [minimal]
  */
-function toXdm(event) {
+function toXdm(event, minimal = false) {
   const p = (event && (event.params || event.payload)) || {};
+  if (!minimal && p.xdm && typeof p.xdm === "object" && !Array.isArray(p.xdm)) return p.xdm;
+  // Only what the event carries: Alloy merges this over the context it collects, so a
+  // placeholder here would override the real page URL from the stock-context channel.
+  const details = {};
+  const url = p.page_location || p.URL;
+  const name = p.page_title || p.name;
+  if (url) details.URL = url;
+  if (name) details.name = name;
   return {
     eventType: "web.webpagedetails.pageViews",
-    web: {
-      webPageDetails: {
-        URL: p.page_location || p.URL || "https://airlock.example/",
-        name: p.page_title || p.name || "airlock",
-      },
-    },
+    ...(Object.keys(details).length ? { web: { webPageDetails: details } } : {}),
   };
 }

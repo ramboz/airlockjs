@@ -138,6 +138,7 @@ export type ConsentPurpose =
   | "ad_personalization"
   | "functional"
   | "personalization"
+  | "measurement" // default-granted; owner-approved connectors only (067-11)
   | (string & {});
 
 /**
@@ -163,6 +164,11 @@ export interface ConnectorPurposes {
   readonly endpoints?: Readonly<Record<string, readonly ConsentPurpose[]>>;
   /** Purpose(s) each declared cookie/storage capability serves, keyed by name. */
   readonly cookies?: Readonly<Record<string, readonly ConsentPurpose[]>>;
+  /** Purpose(s) each declared localStorage/sessionStorage key or `prefix_` entry serves, per area (spec 067-12). */
+  readonly storage?: {
+    readonly localStorage?: Readonly<Record<string, readonly ConsentPurpose[]>>;
+    readonly sessionStorage?: Readonly<Record<string, readonly ConsentPurpose[]>>;
+  };
   /** Purpose(s) each declared projection read serves, keyed by read path. */
   readonly reads?: Readonly<Record<string, readonly ConsentPurpose[]>>;
 }
@@ -184,6 +190,14 @@ export interface ConnectorManifest {
   readonly capabilities: CapabilityRequest;
   /** Endpoints the connector intends to emit to (advisory; host allow-list wins). */
   readonly endpoints?: readonly string[];
+  /**
+   * The destinations the connector's stock tag contacts (its frozen
+   * inventory), in origin+path form; a path carrying a `;` matrix segment is
+   * matched as a segment-anchored prefix. When declared this is the default
+   * endpoint ceiling (spec 067-04, ADR-0062 point 7); a site may only narrow
+   * it, never widen it. Absent -> `endpoints` stays the ceiling.
+   */
+  readonly stockEndpoints?: readonly string[];
   /**
    * Consent-purpose annotation for the declared I/O (ADR-0007). The seal
    * enforces on it (ADR-0006's grant law) for the connectors that wire a

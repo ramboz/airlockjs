@@ -117,20 +117,26 @@
  * the capability. It cannot revoke a request already handed to that
  * capability or enforce consent inside an independently asynchronous transport.
  *
+ * ADR-0013's "pending -> DROP" and "empty egressPurposes -> seam OFF" clauses are amended (ADR-0062, spec
+ * 067-03): pending is held by alloy's own queue and the seam drop is a backstop; an empty
+ * `egressPurposes` with a consent vector holds on analytics_storage and warns.
+ *
  * Payload strip (spec 020-02 AC3, optional, non-load-bearing): an optional
  * `payloadDenylist` strips denylisted fields from every intercepted
- * `events[].xdm` (parse -> core/payload-governance.js's `governPayload` ->
+ * `events[].xdm`, `events[].data`, `events[].query` and top-level `query`/`meta` (067-10; parse -> core/payload-governance.js's `governPayload` ->
  * re-serialize; 020-01 live-confirmed the round-trip is Edge-safe) before
- * dispatch. The alloy body is already read-minimized by construction
- * (connectors/alloy/connector.js's `toXdm` 2-field allowlist + `context:[]`)
- * — this is thin defense-in-depth, gated on `payloadDenylist` being
- * non-empty (byte-unchanged otherwise).
+ * dispatch. Since 067-08 (ADR-0062) the alloy body is stock-shaped (the site's
+ * `xdm` plus the stock `context` groups), no longer read-minimized by
+ * construction, so this strip is the governance on what leaves. Since 067-09 the built-in credentials
+ * denylist is on by default here; `payloadDenylistOverride` (`false` or an
+ * array) is the only way to turn it off or replace it.
  */
-import { checkEndpointCeiling } from "./endpoint-ceiling.js";
+import { checkEndpointCeiling, resolveEndpointCeiling } from "./endpoint-ceiling.js";
 import { checkConfigIntegrity, pinnedDispatchUrl, hostOf } from "./config-integrity.js";
 import { egressVerdict, resolveConsent } from "./consent.js";
-import { governPayload } from "./payload-governance.js";
-import { isValidCookieName, matchesGrantedName } from "./cookie-scope.js";
+import { governPayload, resolveDenylist } from "./payload-governance.js";
+import { isValidCookieName, matchesGrantedName, resolveCookieGrant } from "./cookie-scope.js";
+import { resolveStorageGrant, storageKeyGranted } from "./storage-scope.js";
 
 // Default diagnostics seam (mirrors core/airlock.js's `consoleDiagnostic`):
 // console-backed, so a caller that doesn't inject `onDiagnostic` still
@@ -158,10 +164,19 @@ function consoleDiagnostic(record) {
  *   timeoutMs?: number,
  *   configIntegrity?: ({ pinnedHost: string, tenantKey: string, pinnedTenant: string, pinnedScheme?: string, disposition?: ("hold" | "override") } | null),
  *   endpointCeiling?: (readonly string[] | null),
+ *   stockEndpoints?: readonly string[],
+ *   endpointNarrowing?: readonly string[],
  *   consent?: (Record<string, string> | null),
  *   egressPurposes?: readonly string[],
+ *   consentHold?: false,
  *   payloadDenylist?: (readonly string[] | null),
+ *   payloadDenylistOverride?: (false | readonly string[]),
  *   grantedCookieNames?: (readonly string[] | null),
+ *   cookieGrantNarrowing?: readonly string[],
+ *   cookiePurposes?: (Record<string, readonly string[]> | null),
+ *   grantedStorage?: ({ localStorage?: readonly string[], sessionStorage?: readonly string[] } | null),
+ *   storageGrantNarrowing?: { localStorage?: readonly string[], sessionStorage?: readonly string[] },
+ *   storagePurposes?: ({ localStorage?: Record<string, readonly string[]>, sessionStorage?: Record<string, readonly string[]> } | null),
  *   onDiagnostic?: (record: { level: string, kind: string, [k: string]: unknown }) => void,
  * }} opts
  * @returns {{
@@ -180,6 +195,9 @@ function consoleDiagnostic(record) {
  *     ceilingHeld: number,
  *     consentHeld: number,
  *     cookieScopeHeld: number,
+ *     cookieConsentHeld: number,
+ *     storageScopeHeld: number,
+ *     storageConsentHeld: number,
  *   },
  * }}
  */
@@ -188,31 +206,83 @@ export function createWrappedSdkHost({
   caps,
   timeoutMs = 5000,
   configIntegrity = null,
-  endpointCeiling = null,
+  endpointCeiling: declaredCeiling = null,
+  // 067-04: the stock destination set (default ceiling) and the site's opt-in
+  // narrowing; absent both, `endpointCeiling` is used as before.
+  stockEndpoints,
+  endpointNarrowing,
   consent = null,
-  egressPurposes = [],
+  egressPurposes: declaredEgressPurposes = [],
+  consentHold,
   payloadDenylist = null,
-  grantedCookieNames = null,
+  payloadDenylistOverride,
+  grantedCookieNames: stockCookieNames = null,
+  cookieGrantNarrowing,
+  cookiePurposes = null,
+  grantedStorage: stockStorage = null,
+  storageGrantNarrowing,
+  storagePurposes = null,
   onDiagnostic,
 }) {
+  const endpointCeiling =
+    stockEndpoints != null || endpointNarrowing !== undefined
+      ? resolveEndpointCeiling({ stock: stockEndpoints, narrowing: endpointNarrowing, declared: declaredCeiling }).endpoints
+      : declaredCeiling;
+  // 067-05: `grantedCookieNames` is the connector's STOCK set and is the default grant;
+  // `cookieGrantNarrowing` is the site's opt-in subset (never wider). Absent stock = ungated (today).
+  const grantedCookieNames = resolveCookieGrant(stockCookieNames, cookieGrantNarrowing).names;
+  // 067-05 AC4: consent-driven cookie write denial. `cookiePurposes` maps a declared
+  // cookie entry (`prefix_` or exact) to its purposes; only STORAGE purposes (`*_storage`)
+  // gate a write, and only an explicit denial blocks it (pending is the seal hold's concern).
+  function cookieWriteDenied(name) {
+    if (!cookiePurposes || !consent) return false;
+    for (const [entry, purposes] of Object.entries(cookiePurposes)) {
+      if (!matchesGrantedName(name, [entry])) continue;
+      if ((purposes || []).some((p) => p.endsWith("_storage") && resolveConsent(consent, p) === "denied")) return true;
+    }
+    return false;
+  }
+  // 067-12: the localStorage/sessionStorage twin of the cookie grant. `grantedStorage` is the
+  // connector's stock set per area (default grant); `storageGrantNarrowing` is the site's opt-in
+  // subset. Nothing declared = ungated (today's behavior).
+  const storageAreas = resolveStorageGrant(stockStorage, storageGrantNarrowing).areas;
+  function storageWriteDenied(area, key) {
+    const table = storagePurposes && storagePurposes[area];
+    if (!table || !consent) return false;
+    for (const [entry, purposes] of Object.entries(table)) {
+      if (!matchesGrantedName(key, [entry])) continue;
+      if ((purposes || []).some((p) => p.endsWith("_storage") && resolveConsent(consent, p) === "denied")) return true;
+    }
+    return false;
+  }
   const diagnose = typeof onDiagnostic === "function" ? onDiagnostic : consoleDiagnostic;
+  // 067-09: the built-in credentials denylist is ON by default here too; only an explicit
+  // `payloadDenylistOverride` turns it off or replaces it (a host list still extends).
+  const resolvedDenylist = resolveDenylist(payloadDenylistOverride, payloadDenylist);
+  const effectiveDenylist = resolvedDenylist.list;
+  if (resolvedDenylist.overridden) {
+    diagnose({ level: "warn", kind: "payload-governance", disposition: "denylist-overridden", reason: resolvedDenylist.reason });
+  }
   // 028-02 per-beacon correlation: a per-INSTANCE random tag namespaces this host's
   // beacon ids so they stay unique in the SHARED inspector collector. The beacon id
   // reuses the intercepted-fetch's own `m.id` (already unique per fetch): `<tag>#<m.id>`.
   // Fixed 6-char tag even for the ~2^-53 degenerate Math.random() values (028-02 craft review).
   const inspectorTag = (Math.random().toString(36).slice(2) + "000000").slice(0, 6);
-  // FAIL-LOUD on a consent misconfiguration (020-02 arch review): a `consent`
-  // vector wired WITHOUT `egressPurposes` skips the TRUSTED seam-side drop
-  // entirely (the gate below is `egressPurposes.length`-gated), leaving only the
-  // in-chamber `setConsent` DELEGATE — which runs inside the untrusted chamber
-  // and is never enforcement. Warn once at construction so this never silently
-  // disables the trusted control (the in-chamber delegate alone is not the seal).
-  if (consent && !egressPurposes.length) {
+  // 067-03 (ADR-0062 exception a): a consent vector wired with NO `egressPurposes` no longer
+  // turns the TRUSTED seam drop off (the 020-02 "not-enforced" state, which let alloy send). It
+  // holds on the primary collection purpose until that is granted, and warns once. Only the exact
+  // value `consentHold: false` keeps the old behavior, with its own warning.
+  const emptyPurposes = Boolean(consent) && !declaredEgressPurposes.length;
+  const egressPurposes = emptyPurposes && consentHold !== false ? ["analytics_storage"] : declaredEgressPurposes;
+  if (emptyPurposes) {
     diagnose({
       level: "warn",
       kind: "consent",
-      disposition: "not-enforced",
-      reason: "consent vector wired without egressPurposes — the TRUSTED seam-side drop is OFF; only the in-chamber setConsent delegate is active",
+      disposition: consentHold === false ? "hold-off" : "empty-purposes",
+      reason:
+        consentHold === false
+          ? "consent vector wired without egressPurposes and consentHold: false — the TRUSTED seam-side drop is OFF; only the in-chamber setConsent delegate is active"
+          : "consent vector wired with empty egressPurposes — holding on analytics_storage until it is granted; declare egressPurposes to govern the connector's purposes",
     });
   }
   const state = {
@@ -227,6 +297,9 @@ export function createWrappedSdkHost({
     ceilingHeld: 0,
     consentHeld: 0,
     cookieScopeHeld: 0,
+    cookieConsentHeld: 0,
+    storageScopeHeld: 0,
+    storageConsentHeld: 0,
   };
 
   let queuedEvent = null;
@@ -332,11 +405,15 @@ export function createWrappedSdkHost({
     // send). alloy has NO body-consent field, so a denied/pending governing
     // purpose sent anyway would LEAK, not reshape — it must be SUPPRESSED.
     //
-    // pending -> DROP here (not hold+buffer) is the first-impl fail-closed
-    // choice: the alloy interact is a synchronous vendor-SDK round trip
-    // (alloy's own pending `sendEvent` promise), not a queued { url, body }
-    // beacon like GA4's async seal (017-03) — a pending->hold+flush
-    // refinement mirroring that seal is a named follow-on, not built here.
+    // pending -> DROP here (not hold+buffer) is deliberate and, since 067-03,
+    // a BACKSTOP only. The hold is alloy's own `defaultConsent:"pending"` queue
+    // (the chamber configures it whenever the consent state is not granted), so
+    // an interact alloy queued never reaches this gate before a grant: the
+    // adapter updates the live consent ref BEFORE it drives alloy's setConsent,
+    // and the flush then passes this gate as granted. What lands here pending
+    // is something alloy did NOT queue (a compromised chamber, or alloy sending
+    // on a stale consent cookie it was seeded with) — dropping that is the
+    // trusted-seam job, not a loss of held output.
     function applyConsent(onHold) {
       if (!egressPurposes.length) return true;
       // AC1 (spec 034-01, ADR-0007) — COARSE-CONSENT SPLIT: consent gating is
@@ -411,15 +488,13 @@ export function createWrappedSdkHost({
     if (!applyConsent(() => chamber.postMessage({ type: "intercepted-fetch-response", id: m.id, status: 0, statusText: "held at the seal: consent", body: "" }))) return;
 
     // AC3 (spec 020-02) — optional thin defense-in-depth payload strip: gated
-    // on a non-empty `payloadDenylist` (back-compat: absent/empty leaves
-    // `m.body` byte-unchanged). Non-load-bearing — the alloy interact body
-    // is already read-minimized by construction
-    // (connectors/alloy/connector.js's `toXdm` 2-field allowlist +
-    // `context:[]`; 020-01 Finding).
-    if (payloadDenylist && payloadDenylist.length && m.body) {
+    // on a non-empty effective denylist (built-in default unless overridden). The alloy body is
+    // stock-shaped since 067-08 (ADR-0062 superseded the "read-minimized by
+    // construction" claim), so this strip is the governance on what leaves.
+    if (effectiveDenylist.length && m.body) {
       const strippedBody = stripInterceptedXdmBody(
         m.body,
-        payloadDenylist,
+        effectiveDenylist,
         (field) => diagnose({ level: "warn", kind: "payload-governance", disposition: "stripped", field }),
         (reason) => diagnose({ level: "error", kind: "payload-governance", disposition: "skipped", reason }),
       );
@@ -531,6 +606,11 @@ export function createWrappedSdkHost({
         // DROP: never reconciled, never reaches document.cookie — fail-closed,
         // the untrusted chamber cannot persist an arbitrary/malformed name to
         // the real jar.
+      } else if (cookieWriteDenied(cookieName)) {
+        // 067-05 AC4: a granted name is still not WRITTEN while a storage purpose it
+        // serves is denied (the live consent ref, read per write). Name only, no value.
+        state.cookieConsentHeld += 1;
+        diagnose({ level: "warn", kind: "cookie-consent", disposition: "dropped", reason: "storage purpose denied — cookie write-back dropped at the seal", name: cookieName });
       } else {
         const reconciled = reconcileForBrokerJar(m.value);
         if (caps.cookies && typeof caps.cookies.reconcile === "function") {
@@ -538,6 +618,22 @@ export function createWrappedSdkHost({
           // handler (mirrors the harness's `try { document.cookie = … } catch {}`).
           try { caps.cookies.reconcile(reconciled); } catch (e) { /* sink self-guards */ }
         }
+      }
+    } else if (m.type === "storage-writeback") {
+      // 067-12: the chamber's localStorage/sessionStorage write-back. Fail closed on an
+      // unknown area, a non-string key, a non-string/non-null value, or a key outside the grant
+      // (ungated only when nothing is declared); a denied storage purpose drops a granted key.
+      // Diagnostics carry the area and key name only, never the value.
+      const { area, key, value } = m;
+      const badShape = typeof key !== "string" || !(typeof value === "string" || value === null);
+      if (badShape || !storageKeyGranted(storageAreas, area, key)) {
+        state.storageScopeHeld += 1;
+        diagnose({ level: "error", kind: "storage-scope", disposition: "dropped", reason: "un-granted or malformed storage key — write-back dropped at the seal", area: String(area), name: typeof key === "string" ? key : "" });
+      } else if (storageWriteDenied(area, key)) {
+        state.storageConsentHeld += 1;
+        diagnose({ level: "warn", kind: "storage-consent", disposition: "dropped", reason: "storage purpose denied — storage write-back dropped at the seal", area, name: key });
+      } else if (caps.storage && typeof caps.storage.reconcile === "function") {
+        try { caps.storage.reconcile(area, key, value); } catch (e) { /* sink self-guards */ }
       }
     } else if (m.type === "result") {
       state.summary = m.summary;
@@ -631,6 +727,9 @@ export function createWrappedSdkHost({
         ceilingHeld: state.ceilingHeld,
         consentHeld: state.consentHeld,
         cookieScopeHeld: state.cookieScopeHeld,
+        cookieConsentHeld: state.cookieConsentHeld,
+        storageScopeHeld: state.storageScopeHeld,
+        storageConsentHeld: state.storageConsentHeld,
       };
     },
   };
@@ -659,14 +758,14 @@ export function reconcileForBrokerJar(raw) {
 }
 
 /**
- * AC3 (spec 020-02) — parse the intercepted alloy interact body, strip every
- * `denylist`-denied field from EVERY `events[].xdm` via
+ * AC3 (spec 020-02) + 067-10 — parse the intercepted alloy interact body, strip every
+ * `denylist`-denied field from EVERY `events[].xdm|data|query` and top-level `query|meta` via
  * core/payload-governance.js's `governPayload`, and re-serialize (020-01
  * live-confirmed this parse -> strip -> re-serialize round-trip is
  * Edge-safe). Calls `onStripped(field)` once per stripped field NAME (never
  * the value — redaction discipline) and `onError(reason)` if governance
- * failed safe on a given event's xdm. Never throws: a body that is not valid
- * JSON, or carries no `events` array, is returned UNCHANGED (the identical
+ * failed safe on any governed container, or the body is not a JSON object. Never throws: a body that is not valid
+ * JSON (error diagnostic `unparseable-body`) is returned UNCHANGED (the identical
  * string reference) — same when nothing actually matched the denylist,
  * mirroring `governPayload`'s own no-needless-copy contract.
  * @param {string} rawBody
@@ -680,24 +779,45 @@ function stripInterceptedXdmBody(rawBody, denylist, onStripped, onError) {
   try {
     parsed = JSON.parse(rawBody);
   } catch (e) {
+    if (typeof onError === "function") onError("unparseable-body");
     return rawBody; // not JSON — leave untouched, never throw
   }
-  if (!parsed || !Array.isArray(parsed.events)) return rawBody;
+  if (!parsed || typeof parsed !== "object") {
+    if (typeof onError === "function") onError("unparseable-body");
+    return rawBody;
+  }
 
   let changed = false;
-  const events = parsed.events.map((evt) => {
-    if (!evt || typeof evt !== "object" || evt.xdm == null || typeof evt.xdm !== "object") return evt;
-    const { governed, stripped, error } = governPayload(evt.xdm, denylist);
+  // 067-10: one pass governs every input container Alloy writes into the body (site xdm and
+  // context land in `events[].xdm`; `data`, `query` and `meta` carry the rest). Same reference
+  // back when nothing matched.
+  const govern = (obj) => {
+    if (obj == null || typeof obj !== "object" || Array.isArray(obj)) return obj;
+    const { governed, stripped, error } = governPayload(obj, denylist);
     if (error && typeof onError === "function") onError("govern-failed");
-    if (!stripped.length) return evt;
+    if (!stripped.length) return obj;
     changed = true;
     for (const field of stripped) {
       if (typeof onStripped === "function") onStripped(field);
     }
-    return { ...evt, xdm: governed };
-  });
+    return governed;
+  };
+  const governKeys = (obj, keys) => {
+    let out = obj;
+    for (const k of keys) {
+      if (!(k in obj)) continue;
+      const g = govern(obj[k]);
+      if (g !== obj[k]) out = out === obj ? { ...obj, [k]: g } : { ...out, [k]: g };
+    }
+    return out;
+  };
 
-  return changed ? JSON.stringify({ ...parsed, events }) : rawBody;
+  const events = Array.isArray(parsed.events)
+    ? parsed.events.map((evt) => (evt && typeof evt === "object" ? governKeys(evt, ["xdm", "data", "query"]) : evt))
+    : parsed.events;
+  const top = governKeys(parsed, ["query", "meta"]);
+
+  return changed ? JSON.stringify(Array.isArray(parsed.events) ? { ...top, events } : top) : rawBody;
 }
 
 /**

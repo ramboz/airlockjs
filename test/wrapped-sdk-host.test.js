@@ -758,6 +758,17 @@ describe("createWrappedSdkHost — endpoint ceiling + config-integrity compositi
     expect(host.getState().held).toBe(0);
   }, 2000);
 
+  it("(a3, 067-04) a stock set is the default ceiling and a narrowing away from it holds the rest", async () => {
+    const other = "https://other.vendor.test/collect";
+    const { chamber, dispatched, host } = makeSpyingHost({ stockEndpoints: [INTERACT, other], endpointNarrowing: [INTERACT] });
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 9, url: other, method: "POST", headers: {}, body: "{}" });
+    await posted;
+    expect(dispatched.length).toBe(0);
+    expect(host.getState().ceilingHeld).toBe(1);
+    expect(() => makeSpyingHost({ stockEndpoints: [INTERACT], endpointNarrowing: [other] })).toThrow(/outside/);
+  }, 2000);
+
   it("(a2) a WRONG PATH on the ALLOWED host is HELD by the ceiling — the path confinement 015 lacks", async () => {
     const { chamber, dispatched, diags, host } = makeSpyingHost({ configIntegrity: PIN, endpointCeiling: [INTERACT] });
     const url = `https://adobedc.demdex.net/steal?configId=${HONEST_DS}`; // right host, wrong path, honest tenant
@@ -1168,22 +1179,35 @@ describe("createWrappedSdkHost — consent enforcement (spec 020-02 AC1, ADR-000
     expect(host.getState().consentHeld).toBe(0);
   }, 2000);
 
-  it("back-compat: NO egressPurposes wired -> dispatched normally even with a fully-denied vector (the gate is opt-in)", async () => {
-    const { chamber, dispatched, diags, host } = makeSpyingHost({ consent: { analytics_storage: "denied", personalization: "denied" } });
+  it("067-03 AC2: a consent vector with EMPTY egressPurposes HOLDS on analytics_storage and warns once (no longer sends)", async () => {
+    const consent = { analytics_storage: "denied", personalization: "denied" };
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ consent });
 
     const posted = chamber.nextPost();
     chamber.emit({ type: "intercepted-fetch", id: 4, url: INTERACT, method: "POST", headers: {}, body: "{}" });
     const msg = await posted;
 
-    expect(dispatched.length).toBe(1); // no seam gate installed — dispatched exactly as before this slice
-    expect(msg.status).toBe(200);
-    // 020-02 arch review: a consent vector wired WITHOUT egressPurposes now emits a
-    // construction-time FAIL-LOUD warn (the trusted seam drop is OFF — only the
-    // in-chamber delegate would enforce) — but NO per-dispatch "held": the interact
-    // still dispatches (the seam gate is opt-in), so this stays back-compat behaviourally.
-    expect(diags.find((d) => d.kind === "consent" && d.disposition === "not-enforced")).toBeDefined();
-    expect(diags.find((d) => d.kind === "consent" && d.disposition === "held")).toBeUndefined();
-    expect(host.getState().consentHeld).toBe(0);
+    expect(dispatched.length).toBe(0);
+    expect(msg).toMatchObject({ status: 0, statusText: "held at the seal: consent" });
+    expect(host.getState().consentHeld).toBe(1);
+    expect(diags.filter((d) => d.kind === "consent" && d.disposition === "empty-purposes")).toHaveLength(1);
+    expect(diags.find((d) => d.disposition === "not-enforced")).toBeUndefined();
+
+    consent.analytics_storage = "granted";
+    const sent = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 5, url: INTERACT, method: "POST", headers: {}, body: "{}" });
+    expect((await sent).status).toBe(200);
+    expect(dispatched.length).toBe(1);
+  }, 2000);
+
+  it("067-03: consentHold:false keeps the empty-purposes seam off, with its own hold-off warning", async () => {
+    const { chamber, dispatched, diags } = makeSpyingHost({ consent: { analytics_storage: "denied" }, consentHold: false });
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 6, url: INTERACT, method: "POST", headers: {}, body: "{}" });
+    expect((await posted).status).toBe(200);
+    expect(dispatched.length).toBe(1);
+    expect(diags.filter((d) => d.kind === "consent" && d.disposition === "hold-off")).toHaveLength(1);
   }, 2000);
 
   it("back-compat: egressPurposes wired but NO consent vector at all -> pending -> strict-held (unset consent fails closed, not open)", async () => {
@@ -1521,6 +1545,29 @@ describe("createWrappedSdkHost — optional payload strip (spec 020-02 AC3)", ()
     for (const d of diags) expect(JSON.stringify(d)).not.toContain("s3cr3t"); // never the value
   }, 2000);
 
+  it("067-09: the built-in credentials denylist is on by default; override false / array turns it off / replaces it with one warn", async () => {
+    const run = async (opts, id) => {
+      const { chamber, dispatched, diags } = makeSpyingHost(opts);
+      const posted = chamber.nextPost();
+      chamber.emit({ type: "intercepted-fetch", id, url: INTERACT, method: "POST", headers: {}, body: eventBody({ password: "x", token: "t" }) });
+      await posted;
+      return { xdm: JSON.parse(dispatched[0].body).events[0].xdm, diags };
+    };
+    expect((await run({}, 10)).xdm.password).toBeUndefined();
+    expect((await run({ payloadDenylist: ["email"] }, 11)).xdm.password).toBeUndefined();
+
+    const off = await run({ payloadDenylistOverride: false }, 12);
+    expect(off.xdm.password).toBe("x");
+    expect(off.diags.filter((d) => d.disposition === "denylist-overridden")).toEqual([
+      { level: "warn", kind: "payload-governance", disposition: "denylist-overridden", reason: "built-in-off" },
+    ]);
+
+    const replaced = await run({ payloadDenylistOverride: ["token"] }, 13);
+    expect(replaced.xdm.password).toBe("x");
+    expect(replaced.xdm.token).toBeUndefined();
+    expect(replaced.diags.find((d) => d.disposition === "denylist-overridden").reason).toBe("built-in-replaced");
+  }, 2000);
+
   it("back-compat: no payloadDenylist wired -> the body is byte-unchanged (same string reference)", async () => {
     const { chamber, dispatched, diags } = makeSpyingHost({});
     const body = eventBody({ eventType: "web.webpagedetails.pageViews", _airlocktest: "s3cr3t" });
@@ -1621,5 +1668,81 @@ describe("createWrappedSdkHost — decisions delivery (spec 033-03 AC1)", () => 
     createWrappedSdkHost({ chamber, caps });
 
     expect(() => chamber.emit({ type: "decisions", decisions: [{ scope: "__view__" }] })).not.toThrow();
+  });
+});
+
+// spec 067-05 — stock-default cookie grant, opt-in narrowing, consent-driven write denial.
+describe("createWrappedSdkHost — default cookie grant is the stock set (spec 067-05)", () => {
+  const STOCK = ["vendor_", "vsid", "vtld"]; // TEST vendor fixture set
+  function make(opts) {
+    const chamber = makeFakeChamber();
+    const reconciled = [];
+    const diags = [];
+    const caps = { egress: { dispatch: async () => ({ status: 200, body: "" }) }, cookies: { reconcile: (v) => reconciled.push(v) } };
+    const host = createWrappedSdkHost({ chamber, caps, onDiagnostic: (r) => diags.push(r), ...opts });
+    return { chamber, reconciled, diags, host };
+  }
+
+  it("stock default: every stock name flows (exact and prefix), an out-of-set name is refused", () => {
+    const { chamber, reconciled, host } = make({ grantedCookieNames: STOCK });
+    chamber.emit({ type: "cookie-writeback", value: "vendor_org=1" });
+    chamber.emit({ type: "cookie-writeback", value: "vsid=2" });
+    chamber.emit({ type: "cookie-writeback", value: "vtld=3" });
+    chamber.emit({ type: "cookie-writeback", value: "other=4" });
+    expect(reconciled).toEqual(["vendor_org=1", "vsid=2", "vtld=3"]);
+    expect(host.getState().cookieScopeHeld).toBe(1);
+  });
+
+  it("malformed names stay rejected under the stock grant", () => {
+    const { chamber, reconciled } = make({ grantedCookieNames: STOCK });
+    chamber.emit({ type: "cookie-writeback", value: "vsid; domain=evil.com=1" });
+    expect(reconciled).toEqual([]);
+  });
+
+  it("narrowed opt-in: only the declared subset flows; a stock name outside it is refused", () => {
+    const { chamber, reconciled, host } = make({ grantedCookieNames: STOCK, cookieGrantNarrowing: ["vsid"] });
+    chamber.emit({ type: "cookie-writeback", value: "vsid=2" });
+    chamber.emit({ type: "cookie-writeback", value: "vtld=3" });
+    expect(reconciled).toEqual(["vsid=2"]);
+    expect(host.getState().cookieScopeHeld).toBe(1);
+  });
+
+  it("a narrowing outside the stock set fails loud at construction", () => {
+    expect(() => make({ grantedCookieNames: STOCK, cookieGrantNarrowing: ["_ga"] })).toThrow(TypeError);
+  });
+
+  it("migration (check 8): a caller declaring no stock set keeps today's ungated write-back", () => {
+    const { chamber, reconciled, diags } = make({});
+    chamber.emit({ type: "cookie-writeback", value: "anything=1" });
+    expect(reconciled).toEqual(["anything=1"]);
+    expect(diags.find((d) => d.kind === "cookie-scope")).toBeUndefined();
+  });
+
+  describe("consent-driven write denial (AC4)", () => {
+    const PURPOSES = { vendor_: ["analytics_storage"], vsid: ["ad_storage"], vtld: ["functional"] };
+
+    it("a stock-set cookie whose storage purpose is denied is NOT written; a granted one is", () => {
+      const { chamber, reconciled, diags, host } = make({
+        grantedCookieNames: STOCK,
+        cookiePurposes: PURPOSES,
+        consent: { analytics_storage: "denied", ad_storage: "granted" },
+        egressPurposes: ["analytics_storage"],
+      });
+      chamber.emit({ type: "cookie-writeback", value: "vendor_org=1" });
+      chamber.emit({ type: "cookie-writeback", value: "vsid=2" });
+      chamber.emit({ type: "cookie-writeback", value: "vtld=3" });
+      expect(reconciled).toEqual(["vsid=2", "vtld=3"]);
+      expect(diags.find((d) => d.kind === "cookie-consent")).toMatchObject({ disposition: "dropped", name: "vendor_org" });
+      expect(host.getState().cookieConsentHeld).toBe(1);
+    });
+
+    it("the denial follows a live consent change", () => {
+      const consent = { analytics_storage: "denied" };
+      const { chamber, reconciled } = make({ grantedCookieNames: STOCK, cookiePurposes: PURPOSES, consent, egressPurposes: ["analytics_storage"] });
+      chamber.emit({ type: "cookie-writeback", value: "vendor_a=1" });
+      consent.analytics_storage = "granted"; // the live ref the host reads per write
+      chamber.emit({ type: "cookie-writeback", value: "vendor_b=2" });
+      expect(reconciled).toEqual(["vendor_b=2"]);
+    });
   });
 });

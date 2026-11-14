@@ -51,7 +51,7 @@ Two names for one thing: a batch of events crossing the airlock from the main th
 
 ## egress
 
-A connector's network send, fulfilled through the egress seam via `fetch(url, { keepalive: true })` from the worker. Egress is held at the seal until consent and allowlist checks pass; capture and enqueue never wait on it. Batches exceeding the ~64KB aggregate keepalive body cap are split into multiple cycles (architecture.md § Clarifications Q3).
+A connector's network send, fulfilled through the egress seam via `fetch(url, { keepalive: true })` from the worker. Egress is held at the seal until consent and allowlist checks pass; capture and enqueue never wait on it. The ~64KB keepalive cap is a browser limit; nothing is dropped for it by default (architecture.md § Clarifications Q3).
 
 ## event descriptor
 

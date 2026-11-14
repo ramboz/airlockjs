@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: [067-01]
 last_verified: 2026-11-13
 ---
@@ -15,8 +15,8 @@ last_verified: 2026-11-13
 **Acceptance Criteria:**
 
 1. On the default path a payload carrying a denylisted field has it stripped, with the existing `payload-governance` `warn` diagnostic. This holds for the worker batch path and the unload path, as today.
-2. The override is explicit config (recommended: a boot option such as `payloadDenylistOverride`, taking `false` to disable the built-in list or an array to replace it). It cannot be set by accident: a `payloadDenylist` extension alone never removes the built-in list.
-3. Setting the override emits a one-time `warn` diagnostic that the built-in denylist is off or replaced.
+2. The override is explicit config (decision D3: a per-connector `payloadDenylistOverride` option on each track, threaded the way `payloadDenylist` is today in `adapters/eds/index.js`; `false` disables the built-in list and an array replaces it). It cannot be set by accident: a `payloadDenylist` extension alone never removes the built-in list.
+3. Setting the override emits a one-time `warn` per connector diagnostic that the built-in denylist is off or replaced.
 4. A test pins "on by default": an unconfigured airlock strips each built-in field on every connector path that governs payloads. A second test pins "extension never disables it". A third pins the override as its own state.
 5. A field the denylist removes from a stock recording is a documented difference, never a parity failure (ADR-0062 point 5). The comparison helpers (`rig/` and test comparators on `main`) carry that note, or the slice records which helper owns it.
 6. The built-in list is not changed in content here.
@@ -28,3 +28,19 @@ last_verified: 2026-11-13
 **Consumers:** Adobe 064-18 onward (vendor-adobe); Google G3 and G12; Meta D1 row.
 
 **Anti-horizontal-phasing check:** Vertical: option, governance path, diagnostic and the three pinning tests.
+
+### Deviation log
+
+- The alloy track (`createWrappedSdkHost`) had no built-in default strip, only a host-list strip. The slice's "on by default on every track" goal needed it, so this slice made the alloy strip default-on (review finding, fixed in 7de3124e). No other deviation.
+
+### Reconciliation sweep
+
+- Spec 067 section 7 D3: matches (option name, `false` or array, one-time `warn`, threaded like `payloadDenylist`).
+- ADR-0012 and ADR-0062 exception (b): no change needed.
+- `docs/architecture.md`, `contracts/README.md` and the config schema name the option. Consumers 067-10 and 067-08 reuse `resolveDenylist`.
+
+**Implementation notes (2026-11-13):**
+- `resolveDenylist` in `core/payload-governance.js` is the one place the effective list is built. `createAirlock` (ga4, gtag, google-ads, floodlight, pixel) and `createWrappedSdkHost` (alloy egress strip) both use it, so the override has one shape on every governed track. The alloy strip now uses the built-in list by default (it only ran on a host list before).
+- `contracts/instrumentation-config.schema.json` accepts `payloadDenylistOverride` on every governed connector, with a golden fixture.
+- AC5: the note lives in `rig/native-tag-comparison.md` (the rig doc owns it).
+- 067-10 (input governance at the wrapped-SDK seam) should reuse `resolveDenylist` rather than rebuild the list.

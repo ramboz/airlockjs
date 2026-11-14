@@ -102,6 +102,27 @@ export const DEFAULT_DENYLIST = [
 ];
 
 /**
+ * 067-09 (ADR-0062 exception b, owner decision D3): the effective denylist a
+ * connector enforces. The built-in `DEFAULT_DENYLIST` is the base unless the
+ * connector sets `payloadDenylistOverride` (`false` = off, an array = replaces
+ * it); the host `payloadDenylist` always extends the base. Pure. Throws
+ * TypeError on a malformed override so a typo can't silently weaken the strip.
+ * @param {unknown} override
+ * @param {readonly string[] | null | undefined} extension
+ * @returns {{ list: string[], overridden: boolean, reason?: "built-in-off" | "built-in-replaced" }}
+ */
+export function resolveDenylist(override, extension) {
+  if (override !== undefined && override !== false && !(Array.isArray(override) && override.every((k) => typeof k === "string"))) {
+    throw new TypeError("payloadDenylistOverride must be false or an array of strings");
+  }
+  const overridden = override !== undefined;
+  const base = overridden ? override || [] : DEFAULT_DENYLIST;
+  const out = { list: [...base, ...(extension || [])], overridden };
+  if (overridden) out.reason = override === false ? "built-in-off" : "built-in-replaced";
+  return out;
+}
+
+/**
  * Find the actual own key in `obj` matching `name` case-insensitively.
  * Pure, defensive: returns `undefined` (never throws) for a non-object
  * `obj` or when no key matches.

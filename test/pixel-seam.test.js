@@ -209,8 +209,9 @@ describe("AC6 — the seal binds: consent-gated, and the flush is a GET (exercis
     FakeWorker.last.onmessage(readyMsg([req]));
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(onDiagnostic).toHaveBeenCalledTimes(1);
-    expect(onDiagnostic.mock.calls[0][0]).toMatchObject({
+    expect(onDiagnostic).toHaveBeenCalledTimes(2); // no-input warning, then the per-beacon held record
+    expect(onDiagnostic.mock.calls[0][0].reason).toMatch(/^no consent input wired/);
+    expect(onDiagnostic.mock.calls[1][0]).toMatchObject({
       level: "warn", kind: "consent", disposition: "held", purpose: "ad_storage",
     });
   });

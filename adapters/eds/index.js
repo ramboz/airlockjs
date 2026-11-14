@@ -31,16 +31,19 @@
  * `aem:experimentation` listener for a post-boot experiment (deduped). Decisioning
  * stays `aem-experimentation`'s; the airlock only reports the exposure.
  */
-import { createAirlock } from "../../core/airlock.js";
+import { createAirlock, MAX_HELD_BEACONS } from "../../core/airlock.js";
 import { createWrappedSdkHost } from "../../core/wrapped-sdk-host.js";
 import { hostOf } from "../../core/config-integrity.js";
 import { resolveConsent } from "../../core/consent.js";
 import { resolveOnetrustBootConsent, subscribeOnetrustConsentChanges } from "../../drivers/consent/onetrust.js";
-import { ALLOY_INTERACT_ENDPOINT, ALLOY_COOKIE_NAMES, ALLOY_EVENTS, ALLOY_EGRESS_PURPOSES } from "../../connectors/alloy/connector.js";
+import { ALLOY_DEFAULT_CONTEXT, ALLOY_INTERACT_ENDPOINT, ALLOY_COOKIE_NAMES, ALLOY_COOKIE_PURPOSES, ALLOY_STORAGE_NAMES, ALLOY_STORAGE_PURPOSES, ALLOY_EVENTS, ALLOY_EGRESS_PURPOSES } from "../../connectors/alloy/connector.js";
 // spec 014-03: GA4-MP's declared vocabulary — its SOT manifest home (imported, not mirrored; see the
 // retired mirror-const note below). Only the vocab consts are imported (esbuild tree-shakes the factory).
 import { GA4_EVENTS, GA4_EGRESS_PURPOSES } from "../../connectors/ga4/connector.js";
-import { scopeSeedCookies } from "../../core/cookie-scope.js";
+import { collectStockContext, stockContextFingerprint, STOCK_CONTEXT_MESSAGE } from "../../core/stock-context.js";
+import { DEFAULT_DENYLIST, resolveDenylist } from "../../core/payload-governance.js";
+import { scopeSeedCookies, resolveCookieGrant } from "../../core/cookie-scope.js";
+import { resolveStorageGrant, scopeSeedStorage } from "../../core/storage-scope.js";
 import { getCookieValue } from "../../core/cookie-parse.js";
 import { htmlOfDecision } from "../../connectors/alloy/decisions.js";
 import { createPropositionExposureReporter, PROPOSITION_EXPOSURE_EVENT } from "./decisions-exposure.js";
@@ -72,7 +75,7 @@ import { createExposureReporter } from "./exposure.js";
 import { createBlockInstrumenter } from "./blocks.js";
 import { startCwvCapture } from "../../connectors/helix-rum/cwv-capture.js";
 import { rumUrl, resolveWeight } from "../../connectors/helix-rum/map.js";
-import { DEFAULT_COLLECT_BASE_URL, HELIX_RUM_EVENTS } from "../../connectors/helix-rum/connector.js";
+import { DEFAULT_COLLECT_BASE_URL, HELIX_RUM_EVENTS, HELIX_RUM_EGRESS_PURPOSES } from "../../connectors/helix-rum/connector.js";
 // 030-02: the REAL web-vitals/attribution subscribers — the production wiring the DONE
 // 022-04 slice deferred (cwv-capture.js is DI'd). Import is side-effect-free (web-vitals
 // registers observers only when onLCP/onCLS/onINP are CALLED), so it is safe at module
@@ -380,6 +383,10 @@ function installOnWindow(handle) {
  *                                         live OneTrust never throws.
  * @param {string[]} [opts.endpoints]      per-tracker collect URLs.
  * @param {number}   [opts.trackers]       tracker count (defaults to endpoints.length).
+ * @param {false}    [opts.consentHold]  067-02 (ADR-0062 exception a): only the exact value
+ *                                         `false` turns off the default consent hold for this connector
+ *                                         (it then sends without waiting for consent, with a one-time
+ *                                         `warn`). Anything else keeps the hold on.
  * @param {boolean}  [opts.consentStrict]  spec 017-03 AC3 (ADR-0007 point ③): declare a
  *                                         strict/no-processing regime — an un-granted
  *                                         `analytics_storage` purpose DROPS the beacon
@@ -415,9 +422,11 @@ async function bootGa4Core(opts = {}) {
     consent: providedConsent,
     onetrust,
     consentStrict = false,
+    consentHold,
     endpoints = DEFAULT_ENDPOINTS,
     trackers = endpoints.length,
     payloadDenylist,
+    payloadDenylistOverride,
     onDiagnostic,
   } = opts;
 
@@ -493,26 +502,20 @@ async function bootGa4Core(opts = {}) {
   // page_view) goes via pushCritical, which bypasses the ring, so `unloadCritical`
   // (the ring-tail sort) stays the core default (empty).
   //
-  // 017-03: `egressPurposes` is gated on `consent` being wired at all — mirroring
-  // `storageGranted`/`shapedConsent` above — NOT passed unconditionally. GA4's
-  // `analytics_storage` purpose is PENDING (no signal) whenever no vector is
-  // supplied at all (core/consent.js fails-to-pending on an absent vector, and
-  // nothing distinguishes "no CMP wired" from "CMP wired, not yet resolved" at
-  // the resolver), and nothing would ever call `setConsent` to release a hold on
-  // an unconfigured page — so passing the purpose unconditionally would silently
-  // hold EVERY beacon forever on any caller that never wires a consent vector
-  // (every current rig/testbed boot). Gating on `consent` keeps that legacy
-  // always-dispatch behavior back-compat, exactly like 017-01/017-02, and only
-  // engages the seal-hold once a host actually wires a consent-input driver.
+  // 067-02: `egressPurposes` is passed unconditionally. With no consent input the seal
+  // holds every beacon until consent is granted (and warns once); `consentHold: false`
+  // is the per-connector opt-out (core/airlock.js).
   const airlock = createAirlock({
     trackers,
     workFactor: 0,
     endpoints,
     ctx: ctxWithConsent,
     consent,
-    egressPurposes: consent ? GA4_EGRESS_PURPOSES : [],
+    egressPurposes: GA4_EGRESS_PURPOSES,
+    consentHold,
     consentStrict,
     payloadDenylist,
+    payloadDenylistOverride,
     // spec 028: thread the inspector's diagnostic sink so a PROD-booted instance's
     // enforcement decisions (held/dropped/stripped) are observable — without it the
     // 028 inspector is blind to production boots (docs/inbox.md, 2026-09-03). Absent
@@ -687,6 +690,10 @@ export async function bootEdsAnalytics(opts = {}) {
  *                                         read-only `findGaStreamCookie`).
  *                                         Absent -> the session-state write
  *                                         is skipped entirely (back-compat).
+ * @param {false}    [opts.consentHold]  067-02 (ADR-0062 exception a): only the exact value
+ *                                         `false` turns off the default consent hold for this connector
+ *                                         (it then sends without waiting for consent, with a one-time
+ *                                         `warn`). Anything else keeps the hold on.
  * @param {boolean}  [opts.consentStrict]  spec 017-03 AC3 — a strict/
  *                                         no-processing regime.
  * @param {string[]} [opts.payloadDenylist] spec 019-01 (ADR-0012) — threaded
@@ -713,7 +720,9 @@ export async function bootGa4Gtag(opts = {}) {
     consent,
     consentDefault,
     consentStrict = false,
+    consentHold,
     payloadDenylist,
+    payloadDenylistOverride,
     streamCookieName,
     endpoint = GA4_GTAG_COLLECT_ENDPOINT,
     onDiagnostic,
@@ -789,9 +798,11 @@ export async function bootGa4Gtag(opts = {}) {
     endpoints: [endpoint],
     ctx: ctxWithConsent,
     consent,
-    egressPurposes: consent ? GA4_GTAG_EGRESS_PURPOSES : [],
+    egressPurposes: GA4_GTAG_EGRESS_PURPOSES,
+    consentHold,
     consentStrict,
     payloadDenylist,
+    payloadDenylistOverride,
     // 041-03: wire the 040-03/040-05 GA4 batching strategy onto the 040-02 core
     // coalescing seam — a same-context cycle of >=2 /g/collect GETs now
     // egresses as gtag's own batched-POST convention (split when oversized),
@@ -845,6 +856,10 @@ export async function bootGa4Gtag(opts = {}) {
  * @param {Record<string,string>} [opts.consent] ADR-0007 consent vector.
  * @param {Record<string,string>} [opts.consentDefault] the declared Consent-Mode default
  *   vector — folded into `ctx.consentDefault` (gcd's scope gate), mirrors bootGa4Gtag.
+ * @param {false}    [opts.consentHold]  067-02 (ADR-0062 exception a): only the exact value
+ *                                         `false` turns off the default consent hold for this connector
+ *                                         (it then sends without waiting for consent, with a one-time
+ *                                         `warn`). Anything else keeps the hold on.
  * @param {boolean}  [opts.consentStrict] spec 017-03 AC3 — a strict/no-processing regime.
  * @param {string[]} [opts.payloadDenylist] spec 019-01 (ADR-0012).
  * @param {string}   [opts.endpoint] ccm/collect endpoint override. Defaults to
@@ -862,7 +877,9 @@ export async function bootGoogleAds(opts = {}) {
     consent,
     consentDefault,
     consentStrict = false,
+    consentHold,
     payloadDenylist,
+    payloadDenylistOverride,
     endpoint = GOOGLE_ADS_CCM_COLLECT_ENDPOINT,
     onDiagnostic,
   } = opts;
@@ -890,13 +907,13 @@ export async function bootGoogleAds(opts = {}) {
     endpoints: [endpoint],
     ctx: ctxWithConsent,
     consent,
-    egressPurposes: consent ? GOOGLE_ADS_EGRESS_PURPOSES : [],
+    egressPurposes: GOOGLE_ADS_EGRESS_PURPOSES,
+    consentHold,
     consentStrict,
     // 045-01/044-02 (ADR-0023 Option E): g-ads OPTS IN to hold-on-denied — grounded on
     // R-009 §(b) (the container HELD the AW family under reject-all). Unconditional:
-    // inert when egressPurposes is [] (no consent wired), because the seal's hold/gate
-    // logic is itself gated on `egressPurposes.length` in core/airlock.js — back-compat
-    // safe, exactly like bootGa4Gtag's own unconditional `coalesce: coalesceGa4` wiring.
+    // inert only when the hold is off (`consentHold: false`, no consent), since the
+    // seal's hold/gate logic is gated on `egressPurposes.length` in core/airlock.js.
     holdOnDenied: true,
     // The connector's held→grant-flush re-mapper (045-01, test/google-ads-seal.test.js).
     // A fresh `readCookieString` closure re-reads `document.cookie` on EVERY call (never
@@ -914,6 +931,7 @@ export async function bootGoogleAds(opts = {}) {
       readCookieString: () => (typeof document !== "undefined" ? document.cookie : ""),
     }),
     payloadDenylist,
+    payloadDenylistOverride,
     onDiagnostic,
   });
 
@@ -975,6 +993,10 @@ export async function bootGoogleAds(opts = {}) {
  * @param {Record<string,string>} [opts.consent] ADR-0007 consent vector.
  * @param {Record<string,string>} [opts.consentDefault] the declared Consent-Mode default vector —
  *   folded into `ctx.consentDefault` (gcd's scope gate), mirrors bootGoogleAds.
+ * @param {false}    [opts.consentHold]  067-02 (ADR-0062 exception a): only the exact value
+ *                                         `false` turns off the default consent hold for this connector
+ *                                         (it then sends without waiting for consent, with a one-time
+ *                                         `warn`). Anything else keeps the hold on.
  * @param {boolean}  [opts.consentStrict] spec 017-03 AC3 — a strict/no-processing regime.
  * @param {string[]} [opts.payloadDenylist] spec 019-01 (ADR-0012).
  * @param {string}   [opts.endpoint] ccm/collect endpoint override. Defaults to
@@ -995,7 +1017,9 @@ export async function bootFloodlight(opts = {}) {
     consent,
     consentDefault,
     consentStrict = false,
+    consentHold,
     payloadDenylist,
+    payloadDenylistOverride,
     endpoint = FLOODLIGHT_CCM_COLLECT_ENDPOINT,
     activityEndpoint = FLOODLIGHT_ACTIVITY_ENDPOINT,
     onDiagnostic,
@@ -1035,7 +1059,8 @@ export async function bootFloodlight(opts = {}) {
     endpoints,
     ctx: ctxWithConsent,
     consent,
-    egressPurposes: consent ? FLOODLIGHT_EGRESS_PURPOSES : [],
+    egressPurposes: FLOODLIGHT_EGRESS_PURPOSES,
+    consentHold,
     consentStrict,
     // 045-01 (ADR-0023 Option E): DC OPTS IN to hold-on-denied — grounded on R-009 §(b) (the container
     // held the WHOLE DC family under reject-all, "none — fully held"), mirrors bootGoogleAds/044-02.
@@ -1055,6 +1080,7 @@ export async function bootFloodlight(opts = {}) {
       readCookieString: () => (typeof document !== "undefined" ? document.cookie : ""),
     }),
     payloadDenylist,
+    payloadDenylistOverride,
     onDiagnostic,
   });
 
@@ -1116,7 +1142,7 @@ function bootPixelConnector(vendor, opts = {}) {
   // NOTE: `onDiagnostic` MUST be destructured out explicitly — otherwise `...ids`
   // swallows it into the vendor id-bag (createConfig ignores extras), and it would
   // never reach createAirlock. spec 028: inspector diagnostic sink (see bootGa4Core).
-  const { consent, consentStrict = false, payloadDenylist, externalId, externalIdCookie, onDiagnostic, ...ids } = opts;
+  const { consent, consentStrict = false, consentHold, payloadDenylist, payloadDenylistOverride, externalId, externalIdCookie, onDiagnostic, ...ids } = opts;
 
   // 026-04 (ADR-0022): advanced-matching `external_id` sourcing — META only
   // (gated on `entry.advancedMatching`; linkedin/bing stay identity-free, byte-
@@ -1147,9 +1173,11 @@ function bootPixelConnector(vendor, opts = {}) {
     connector: "pixel",
     connectorConfig,
     consent,
-    egressPurposes: consent ? entry.egressPurposes : [],
+    egressPurposes: entry.egressPurposes,
+    consentHold,
     consentStrict,
     payloadDenylist,
+    payloadDenylistOverride,
     onDiagnostic, // spec 028: inspector diagnostic sink pass-through (see bootGa4Core)
   });
 
@@ -1175,10 +1203,8 @@ function bootPixelConnector(vendor, opts = {}) {
  * a vendor config fixture (`createMetaPixelConfig`) feeds the SAME
  * `createAirlock` seam through the connector-selection option
  * (`connector: "pixel"`), with `META_EGRESS_PURPOSES` wired into
- * `egressPurposes` the SAME `consent ? … : []` back-compat gate
- * `bootEdsAnalytics` uses for `GA4_EGRESS_PURPOSES` (see that function's own
- * doc comment for the full rationale — an unconditional wire would silently
- * hold every beacon forever on a caller that never wires a consent vector).
+ * `egressPurposes` unconditionally (067-02): the seal holds until consent is
+ * given, and `consentHold: false` opts out.
  *
  * Deliberately MINIMAL relative to `bootEdsAnalytics` (026-01's scope is the
  * connector + core seams + the seal bindings, not a full UC-2-style
@@ -1319,6 +1345,8 @@ export async function bootBingUet(opts = {}) {
  * @param {string} [opts.rate]           a sampleRUM rate name (on/high/medium/low/off)
  * @param {number} [opts.weight]         a raw sampling weight (wins over `rate`)
  * @param {string} [opts.referer]        host-sourced page ref (default `document.referrer`)
+ * @param {Record<string,string>} [opts.consent] consent vector; only a denied measurement entry affects RUM (granted by default)
+ * @param {boolean} [opts.consentStrict] strict regime: drops RUM if measurement is explicitly denied
  * @param {boolean} [opts.forceSelect]   test seam: force `isSelected` past the random gate
  * @param {Function} [opts.onLCP] [opts.onCLS] [opts.onINP] web-vitals subscriber overrides (tests inject stubs)
  * @returns {{ push, pushCritical, setConsent, getState, flushNow, stats, dispose, sampled: boolean }}
@@ -1330,6 +1358,8 @@ export function bootHelixRum(opts = {}) {
     weight: weightOverride,
     referer = (typeof document !== "undefined" && document.referrer) || "",
     forceSelect,
+    consent,
+    consentStrict,
     onLCP: onLCPImpl = onLCP,
     onCLS: onCLSImpl = onCLS,
     onINP: onINPImpl = onINP,
@@ -1358,7 +1388,12 @@ export function bootHelixRum(opts = {}) {
     connectorConfig: { collectBaseURL, weight, id, isSelected: true, ctx, sampling: { weight, id } },
     endpoints: [endpoint], // host-owned ceiling (ADR-0006) — byte-matches the connector's endpoint
     ctx,
-    egressPurposes: [], // RUM governance class: confined, NOT consent-gated (spec 022)
+    // 067-11: the measurement purpose is granted by default (no consent input -> sends, as stock EDS does);
+    // an explicit `denied` holds the beacon at the seal. Still confined to `ot.aem.live`.
+    egressPurposes: HELIX_RUM_EGRESS_PURPOSES,
+    holdOnDenied: true,
+    consent,
+    consentStrict,
     trackers: 1,
     onDiagnostic, // spec 028: inspector diagnostic sink pass-through (see bootGa4Core)
   });
@@ -1514,6 +1549,15 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit }) {
   };
 }
 
+// The page's Storage objects, guarded: absent in node/SSR and the getter can throw (SecurityError).
+function pageStorage() {
+  const out = {};
+  for (const area of ["localStorage", "sessionStorage"]) {
+    try { out[area] = globalThis[area]; } catch (e) { out[area] = undefined; }
+  }
+  return out;
+}
+
 /**
  * Boot Adobe/alloy through the wrapped-SDK path (spec 033-02 — the analytics
  * vertical). Unlike the `createAirlock`-shaped boots (GA4/pixel/helix-rum), alloy is
@@ -1542,8 +1586,17 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit }) {
  * @param {string}  [opts.datastreamId]    alloy `configure()` datastream id
  *                                         (`datastream`/`edgeConfigId` accepted as aliases).
  * @param {string}  [opts.orgId]           alloy `configure()` IMS org id.
- * @param {unknown[]} [opts.context]       alloy `configure()` context (default `[]` — headless).
- * @param {Record<string,string>} [opts.consent] host consent vector (ADR-0007).
+ * @param {string[]} [opts.context]       alloy `configure()` context. Defaults to the stock list
+ *                                         `[web, device, environment, placeContext]` (ADR-0062); a site
+ *                                         narrows it. The listed groups are fed from the stock-context
+ *                                         channel (067-07); `[]` collects nothing.
+ * @param {boolean} [opts.minimalXdm]     opt into the 2-field pageView `xdm` instead of forwarding the
+ *                                         event's own `xdm` (ADR-0062).
+ * @param {Record<string,string>} [opts.consent] host consent vector (ADR-0007). With none wired, alloy
+ *                                         holds (its own `defaultConsent:"pending"` queue) until a `setConsent`
+ *                                         grant, and warns once (067-03).
+ * @param {false}    [opts.consentHold]    067-03: only the exact value `false` turns the hold off (no consent
+ *                                         vector wired); alloy then sends as stock does and warns once.
  * @param {string[]} [opts.payloadDenylist] optional seam-side XDM strip (020-02 AC3).
  * @param {string|URL} [opts.workerUrl]    test/rig seam: override the chamber Worker
  *                                         URL (default the built same-origin sibling).
@@ -1561,7 +1614,9 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit }) {
  * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, stats: Function, dispose: Function }>}
  */
 export async function bootAlloy(opts = {}) {
-  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, context = [], consent, payloadDenylist, workerUrl, reservedPlacements, compositeEmit } = opts;
+  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, consent, consentHold, minimalXdm, payloadDenylist, payloadDenylistOverride, cookieGrantNarrowing, storageGrantNarrowing, workerUrl, reservedPlacements, compositeEmit } = opts;
+
+  const context = Array.isArray(opts.context) ? opts.context : ALLOY_DEFAULT_CONTEXT;
 
   // ADR-0016 prerequisite — fail LOUD here too (validateConnectorEntry also checks it
   // on the config path) so a direct bootAlloy caller gets an actionable error rather
@@ -1597,10 +1652,24 @@ export async function bootAlloy(opts = {}) {
   };
 
   // A LIVE consent ref the host reads inside its strict seam gate — so `setConsent`
-  // (below) updates enforcement by mutating this same object. `null` when no consent
-  // is wired: `egressPurposes` is then `[]` and the gate is off (the established
-  // back-compat gate — see bootGa4Core's rationale).
-  const consentRef = consent ? { ...consent } : null;
+  // (below) updates enforcement by mutating this same object. 067-03 (ADR-0062 exception
+  // a): with no consent input the ref starts EMPTY (every purpose pending), so the chamber
+  // configures alloy's own `defaultConsent:"pending"` queue and nothing is sent until a
+  // grant. Only `consentHold: false` (and no `consent` vector) leaves it `null`: no hold,
+  // the gate is off and alloy sends as stock does.
+  const consentHoldOff = consentHold === false;
+  const consentRef = consent ? { ...consent } : consentHoldOff ? null : {};
+  let consentInputWired = Boolean(consent);
+  let noInputWarned = false;
+  const warnDiagnostic = typeof opts.onDiagnostic === "function" ? opts.onDiagnostic : decisionDiagnostic;
+  if (consentHoldOff && !consent) {
+    warnDiagnostic({
+      level: "warn",
+      kind: "consent",
+      disposition: "hold-off",
+      reason: "consentHold: false — the consent hold is off for this connector; it sends without waiting for consent",
+    });
+  }
 
   const caps = {
     egress: {
@@ -1619,6 +1688,17 @@ export async function bootAlloy(opts = {}) {
       // by the host into a form the real jar accepts (Domain/Secure/SameSite dropped).
       reconcile: (reconciled) => {
         try { if (typeof document !== "undefined") document.cookie = reconciled; } catch (e) { /* jar self-guards */ }
+      },
+    },
+    storage: {
+      // 067-12: the chamber's storage write-back, already filtered by the host seam against the
+      // grant. A null value is a removal. The page Storage self-guards (quota, SecurityError).
+      reconcile: (area, key, value) => {
+        try {
+          const store = pageStorage()[area];
+          if (!store) return;
+          if (value === null) store.removeItem(key); else store.setItem(key, value);
+        } catch (e) { /* storage self-guards */ }
       },
     },
   };
@@ -1666,14 +1746,24 @@ export async function bootAlloy(opts = {}) {
     // creds-gated live-Alloy follow-on (docs/refinement-todo.md), NOT a silent drop.
     endpointCeiling: [ALLOY_INTERACT_ENDPOINT],
     consent: consentRef,
-    // 020-02: the TRUSTED strict seam gate. Gated on `consent` being wired (back-compat:
-    // no consent → [] → gate off, byte-unchanged), mirroring every other boot.
-    egressPurposes: consent ? ALLOY_EGRESS_PURPOSES : [],
+    // 020-02: the TRUSTED strict seam gate; 067-03: on unless the hold is explicitly off.
+    egressPurposes: consentRef ? ALLOY_EGRESS_PURPOSES : [],
+    consentHold,
     payloadDenylist,
+    payloadDenylistOverride,
     // spec 035-01 AC2/AC3 — the WRITE-side name-scope + validation gate, wired to
     // the SAME ALLOY_COOKIE_NAMES the READ-side seed filter uses (above) — one
     // source of truth, both enforcement seams.
     grantedCookieNames: ALLOY_COOKIE_NAMES,
+    // 067-05: the default grant IS the stock set above; a site may narrow it (never widen),
+    // and a denied storage purpose blocks the write-back of the cookies it governs.
+    cookieGrantNarrowing,
+    cookiePurposes: ALLOY_COOKIE_PURPOSES,
+    // 067-12: the storage twin: stock set by area (none declared today), opt-in narrowing,
+    // and the storage-purpose write denial.
+    grantedStorage: ALLOY_STORAGE_NAMES,
+    storageGrantNarrowing,
+    storagePurposes: ALLOY_STORAGE_PURPOSES,
   });
 
   // spec 034-02: derive the decision scope set the connector requests on the interact
@@ -1691,20 +1781,85 @@ export async function bootAlloy(opts = {}) {
   // crosses into the untrusted chamber — so createSyncCookieCache is seeded with
   // nothing the connector didn't declare, and a chamber read can never surface a
   // foreign cookie (closes the live whole-jar READ leak).
-  const config = { datastreamId: resolvedDatastreamId, orgId, context, ...(decisionScopes.length ? { decisionScopes } : {}) };
+  const config = { datastreamId: resolvedDatastreamId, orgId, context, ...(minimalXdm ? { minimalXdm: true } : {}), ...(decisionScopes.length ? { decisionScopes } : {}) };
   const rawSeedCookie = (typeof document !== "undefined" && document.cookie) || "";
-  const seedCookie = scopeSeedCookies(rawSeedCookie, ALLOY_COOKIE_NAMES);
-  host.init({ cookie: seedCookie, config, bundleUrl, consent });
+  const seedCookie = scopeSeedCookies(rawSeedCookie, resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).names);
+  // 067-08 (ADR-0062 point 2): feed Alloy's listed `context` groups from the stock-context
+  // channel. Collected here at boot (before `init`, so the chamber has it before `configure`)
+  // and again, deduped, ahead of each queued event, inside the queue and never in a capture
+  // handler (ADR-0002). The credentials denylist (and `payloadDenylist`) governs it.
+  const stockGroups = context;
+  const stockOverride = resolveDenylist(payloadDenylistOverride);
+  const stockBuiltin = stockOverride.overridden ? stockOverride.list : DEFAULT_DENYLIST;
+  let stockFingerprint = null;
+  const sendStockContext = () => {
+    if (!stockGroups.length) return;
+    const collected = collectStockContext({ groups: stockGroups, denylist: payloadDenylist, builtin: stockBuiltin });
+    if (!Object.values(collected).some((r) => r && Object.keys(r).length)) return;
+    const fp = stockContextFingerprint(collected);
+    if (fp === stockFingerprint) return;
+    stockFingerprint = fp;
+    worker.postMessage({ type: STOCK_CONTEXT_MESSAGE, context: collected });
+  };
+  sendStockContext();
+  // 067-12: the storage seed crosses the same way, ONLY when a storage grant is in force; a boot
+  // that declares none posts the exact init message it always did.
+  const storageGrant = resolveStorageGrant(ALLOY_STORAGE_NAMES, storageGrantNarrowing);
+  const storageSeed = storageGrant.active ? scopeSeedStorage(pageStorage(), storageGrant.areas) : null;
+  host.init({ cookie: seedCookie, config, bundleUrl, consent: consentRef, ...(storageSeed ? { storage: storageSeed } : {}) });
 
-  // Serialize push/pushCritical through the single-slot driveEvent: a sequential
-  // promise chain so two events never overlap (the re-entry guard at
-  // wrapped-sdk-host.js is respected — one page event per host round-trip).
-  let tail = Promise.resolve();
+  // Serialize push/pushCritical through the single-slot driveEvent: events run one at a time
+  // (the re-entry guard at wrapped-sdk-host.js is respected — one page event per host round-trip).
+  // While consent is not granted the first event waits inside alloy's own pending queue, so the
+  // rest wait here; that wait is bounded by 02's `MAX_HELD_BEACONS` (oldest waiting event dropped,
+  // `disposition: "dropped"`). A granted consent is never capped.
+  const waiting = [];
+  let running = false;
+  const consentOpen = () => resolveConsent(consentRef, "analytics_storage") === "granted";
+  const pump = async () => {
+    if (running) return;
+    running = true;
+    while (waiting.length) {
+      const { event, resolve, reject } = waiting.shift();
+      try {
+        sendStockContext();
+        resolve(await host.driveEvent(event));
+      } catch (e) {
+        reject(e);
+      }
+    }
+    running = false;
+  };
   const enqueue = (event) => {
-    const run = tail.then(() => host.driveEvent(event));
-    // Keep the chain alive past a per-event fatal, and attach a handler to `run` so a
-    // rejection is never unhandled (push discards the returned promise).
-    tail = run.catch(() => {});
+    if (consentRef && !consentInputWired && !noInputWarned) {
+      noInputWarned = true;
+      warnDiagnostic({
+        level: "warn",
+        kind: "consent",
+        disposition: "held",
+        purpose: ALLOY_EGRESS_PURPOSES.join(","),
+        reason: "no consent input wired — events are held until consent is granted; pass `consent` or call setConsent (consentHold: false turns the hold off)",
+      });
+    }
+    const run = new Promise((resolve, reject) => {
+      waiting.push({ event, resolve, reject });
+      if (consentRef && !consentOpen()) {
+        while (waiting.length > MAX_HELD_BEACONS) {
+          const dropped = waiting.shift();
+          dropped.resolve(undefined);
+          warnDiagnostic({
+            level: "warn",
+            kind: "consent",
+            disposition: "dropped",
+            purpose: ALLOY_EGRESS_PURPOSES.join(","),
+            reason: `consent hold ring full (cap ${MAX_HELD_BEACONS}) — oldest held event dropped`,
+          });
+        }
+      }
+    });
+    // Attach a handler so a per-event fatal is never an unhandled rejection (push discards it).
+    run.catch(() => {});
+    pump();
     return run;
   };
   // Map a composite site event `{ event: name, ...fields }` to the chamber descriptor
@@ -1730,11 +1885,11 @@ export async function bootAlloy(opts = {}) {
     //   (b) drive alloy's OWN setConsent in the chamber (host.setConsent -> the
     //       {type:"setConsent"} message) — alloy natively FLUSHES its
     //       defaultConsent:"pending" queue (grounded: rig/alloy-consent-pending.mjs).
-    // Gated on `consentRef` (opt-in via a boot that wired consent): a no-consent boot
-    // leaves the gate off (egressPurposes stayed []) and posts NO chamber message —
-    // byte-unchanged, mirroring every other connector.
+    // Gated on `consentRef`: only a `consentHold: false` boot with no consent vector has none,
+    // leaves the gate off and posts NO chamber message.
     setConsent: (v) => {
       if (!consentRef || !v) return;
+      consentInputWired = true;
       Object.assign(consentRef, v); // (a) seam live ref
       host.setConsent(consentRef); // (b) chamber alloy setConsent -> native flush
     },
@@ -2142,13 +2297,14 @@ async function bootConnector(entry, governance, index, reservedPlacements, compo
       return { handle, events };
     }
     case "helix-rum":
-      // AC3 carve-out: booted from its OWN fields only — top-level governance is NOT
-      // threaded, so `egressPurposes` stays [], no denylist, sync boot (byte-identical
-      // to a standalone bootHelixRum). Its vocabulary is the RUM checkpoints only.
+      // AC3 carve-out: booted from its OWN fields only, sync boot. Of the top-level
+      // governance only `consent`/`consentStrict` are threaded (067-11): RUM declares the
+      // granted-by-default measurement purpose, so a site's consent input can deny it.
+      // No denylist. Its vocabulary is the RUM checkpoints only.
       // spec 028: `onDiagnostic` IS threaded even here — a diagnostic sink is orthogonal
       // to the governance carve-out (RUM still emits endpoint-ceiling/dropped records the
       // inspector should see); it defaults to the console fallback when absent.
-      return { handle: bootHelixRum({ ...rest, onDiagnostic }), events: HELIX_RUM_EVENTS };
+      return { handle: bootHelixRum({ ...rest, consent: governance.consent, consentStrict: governance.consentStrict, onDiagnostic }), events: HELIX_RUM_EVENTS };
     case "alloy":
       // 033-02: the analytics vertical. alloy is consent-governed (NOT exempt like
       // helix-rum), so it receives the top-level governance (consent/consentStrict/

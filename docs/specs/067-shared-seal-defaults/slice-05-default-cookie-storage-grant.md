@@ -1,5 +1,5 @@
 ---
-status: DRAFT
+status: DONE
 dependencies: [067-01]
 last_verified: 2026-11-13
 ---
@@ -18,7 +18,7 @@ last_verified: 2026-11-13
 2. A site narrows the grant with explicit config to a subset. The narrowing is its own tested state.
 3. Names outside the stock set stay refused on read and write-back (fail closed), as today. `isValidCookieName` still rejects malformed names (header-injection and attribute-smuggling guard stays).
 4. Consent-driven write denial still applies: a denied storage purpose blocks writes whatever the grant says. A test pins that a stock-set cookie is not written under denial.
-5. If localStorage and sessionStorage grants are not modeled on `main`, this slice adds the same name-scoped grant shape for them (read before-state, write-back), so 067-08 and 064-17 can seed them. If it is modeled, it reuses it.
+5. **Moved to [067-12](slice-12-default-storage-grant.md)** (see the deviation log). localStorage and sessionStorage grants are not modeled on `main`; the new mechanism is its own slice.
 6. A test vendor connector (fixture set) proves a stock name flows by default and an out-of-set name is refused. Real vendor sets are not added here.
 7. Tests cover the stock-default path and the narrowed opt-in as separate states.
 
@@ -28,3 +28,15 @@ last_verified: 2026-11-13
 **Consumers:** Adobe 064-17 (storage seeding) and 064-18 onward (vendor-adobe); Google G4; Meta D1 row (M5 reads it through M4).
 
 **Anti-horizontal-phasing check:** Vertical: manifest field, read filter, write-back filter and denial path for one connector.
+
+### Reconciliation sweep
+
+- Spec 067 checks 5, 7, 8: matched (mechanism plus test vendor set; storage split; undeclared callers pinned by a migration test).
+- ADR-0062 point 7 and ADR-0006: no change needed.
+- Docs updated: `docs/architecture.md`, `contracts/README.md`, config schema (`cookieGrantNarrowing`).
+
+### Deviation log
+
+- AC5 (the localStorage/sessionStorage grant) is split into [067-12](slice-12-default-storage-grant.md), as spec 067 check 7 allowed. Grounding found no storage seam: the alloy chamber has no storage shim, the EDS adapter reads no storage for the chamber, and no write path exists. Adding it is a new mechanism (chamber shim, seed, write-back, denial), not a variant of the cookie code. The cookie shape (`resolveCookieGrant`, `cookiePurposes`) is built to be reused by it.
+- AC4 on the alloy track needed a new host-side check: before this slice the wrapped-SDK write-back had no consent gate at all (only GA4's `storageGranted` gated writes). The host now takes `cookiePurposes` and drops a write while a storage purpose (`*_storage`) its cookie serves is explicitly denied. Pending is left to the seal hold (067-02/067-03).
+- Real vendor sets are not added here (spec 067 check 5): alloy's existing `ALLOY_COOKIE_NAMES` already is the stock set; the test vendor fixture (`vendor_`, `vsid`, `vtld`) proves the mechanism.
