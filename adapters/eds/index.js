@@ -36,10 +36,12 @@ import { createWrappedSdkHost } from "../../core/wrapped-sdk-host.js";
 import { hostOf } from "../../core/config-integrity.js";
 import { resolveConsent } from "../../core/consent.js";
 import { resolveOnetrustBootConsent, subscribeOnetrustConsentChanges } from "../../drivers/consent/onetrust.js";
-import { ALLOY_INTERACT_ENDPOINT, ALLOY_COOKIE_NAMES, ALLOY_COOKIE_PURPOSES, ALLOY_STORAGE_NAMES, ALLOY_STORAGE_PURPOSES, ALLOY_EVENTS, ALLOY_EGRESS_PURPOSES } from "../../connectors/alloy/connector.js";
+import { ALLOY_DEFAULT_CONTEXT, ALLOY_INTERACT_ENDPOINT, ALLOY_COOKIE_NAMES, ALLOY_COOKIE_PURPOSES, ALLOY_STORAGE_NAMES, ALLOY_STORAGE_PURPOSES, ALLOY_EVENTS, ALLOY_EGRESS_PURPOSES } from "../../connectors/alloy/connector.js";
 // spec 014-03: GA4-MP's declared vocabulary — its SOT manifest home (imported, not mirrored; see the
 // retired mirror-const note below). Only the vocab consts are imported (esbuild tree-shakes the factory).
 import { GA4_EVENTS, GA4_EGRESS_PURPOSES } from "../../connectors/ga4/connector.js";
+import { collectStockContext, stockContextFingerprint, STOCK_CONTEXT_MESSAGE } from "../../core/stock-context.js";
+import { DEFAULT_DENYLIST, resolveDenylist } from "../../core/payload-governance.js";
 import { scopeSeedCookies, resolveCookieGrant } from "../../core/cookie-scope.js";
 import { resolveStorageGrant, scopeSeedStorage } from "../../core/storage-scope.js";
 import { getCookieValue } from "../../core/cookie-parse.js";
@@ -1584,7 +1586,10 @@ function pageStorage() {
  * @param {string}  [opts.datastreamId]    alloy `configure()` datastream id
  *                                         (`datastream`/`edgeConfigId` accepted as aliases).
  * @param {string}  [opts.orgId]           alloy `configure()` IMS org id.
- * @param {unknown[]} [opts.context]       alloy `configure()` context (default `[]` — headless).
+ * @param {string[]} [opts.context]       alloy `configure()` context. Defaults to the stock list
+ *                                         `[web, device, environment, placeContext]` (ADR-0062); a site
+ *                                         narrows it. The listed groups are fed from the stock-context
+ *                                         channel (067-07); `[]` collects nothing.
  * @param {Record<string,string>} [opts.consent] host consent vector (ADR-0007).
  * @param {string[]} [opts.payloadDenylist] optional seam-side XDM strip (020-02 AC3).
  * @param {string|URL} [opts.workerUrl]    test/rig seam: override the chamber Worker
@@ -1603,7 +1608,7 @@ function pageStorage() {
  * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, stats: Function, dispose: Function }>}
  */
 export async function bootAlloy(opts = {}) {
-  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, context = [], consent, payloadDenylist, payloadDenylistOverride, cookieGrantNarrowing, storageGrantNarrowing, workerUrl, reservedPlacements, compositeEmit } = opts;
+  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, context = ALLOY_DEFAULT_CONTEXT, consent, payloadDenylist, payloadDenylistOverride, cookieGrantNarrowing, storageGrantNarrowing, workerUrl, reservedPlacements, compositeEmit } = opts;
 
   // ADR-0016 prerequisite — fail LOUD here too (validateConnectorEntry also checks it
   // on the config path) so a direct bootAlloy caller gets an actionable error rather
@@ -1757,6 +1762,23 @@ export async function bootAlloy(opts = {}) {
   const config = { datastreamId: resolvedDatastreamId, orgId, context, ...(decisionScopes.length ? { decisionScopes } : {}) };
   const rawSeedCookie = (typeof document !== "undefined" && document.cookie) || "";
   const seedCookie = scopeSeedCookies(rawSeedCookie, resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).names);
+  // 067-08 (ADR-0062 point 2): feed Alloy's listed `context` groups from the stock-context
+  // channel. Collected here at boot (before `init`, so the chamber has it before `configure`)
+  // and again, deduped, ahead of each queued event, inside the queue and never in a capture
+  // handler (ADR-0002). The credentials denylist (and `payloadDenylist`) governs it.
+  const stockGroups = Array.isArray(context) ? context : [];
+  const stockBuiltin = resolveDenylist(payloadDenylistOverride).overridden ? resolveDenylist(payloadDenylistOverride).list : DEFAULT_DENYLIST;
+  let stockFingerprint = null;
+  const sendStockContext = () => {
+    if (!stockGroups.length) return;
+    const collected = collectStockContext({ groups: stockGroups, denylist: payloadDenylist, builtin: stockBuiltin });
+    if (!Object.values(collected).some((r) => r && Object.keys(r).length)) return;
+    const fp = stockContextFingerprint(collected);
+    if (fp === stockFingerprint) return;
+    stockFingerprint = fp;
+    worker.postMessage({ type: STOCK_CONTEXT_MESSAGE, context: collected });
+  };
+  sendStockContext();
   // 067-12: the storage seed crosses the same way, ONLY when a storage grant is in force; a boot
   // that declares none posts the exact init message it always did.
   const storageGrant = resolveStorageGrant(ALLOY_STORAGE_NAMES, storageGrantNarrowing);
@@ -1768,7 +1790,7 @@ export async function bootAlloy(opts = {}) {
   // wrapped-sdk-host.js is respected — one page event per host round-trip).
   let tail = Promise.resolve();
   const enqueue = (event) => {
-    const run = tail.then(() => host.driveEvent(event));
+    const run = tail.then(() => { sendStockContext(); return host.driveEvent(event); });
     // Keep the chain alive past a per-event fatal, and attach a handler to `run` so a
     // rejection is never unhandled (push discards the returned promise).
     tail = run.catch(() => {});

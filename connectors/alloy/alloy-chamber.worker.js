@@ -70,7 +70,9 @@
  */
 
 import { createConnectorHost } from "../../core/connector-host.js";
-import { createAlloyConnector } from "./connector.js";
+import { createAlloyConnector, ALLOY_DEFAULT_CONTEXT } from "./connector.js";
+import { createStockContextStore } from "../../core/stock-context.js";
+import { shimValuesFromStockContext, BLANKED_WHEN_UNSET } from "./stock-shim.js";
 import { createSyncCookieCache } from "./sync-cookie-cache.js";
 import { applyEgressConfinement, denySendBeacon } from "../../core/egress-confinement.js";
 import { shapeAlloyBoot } from "./consent.js";
@@ -400,6 +402,23 @@ function install(seedCookie, storageSeed) {
 }
 
 let host = null;
+
+// 067-08 (ADR-0062): feed Alloy's own context collectors from the main-thread
+// stock-context channel (067-07). `contextGroups` is the site's `context` list (the same
+// one `configure` receives). A listed group the channel has not supplied is blanked in the
+// shim, never left at a placeholder, so Alloy cannot collect an invented value.
+const stockStore = createStockContextStore();
+let contextGroups = ALLOY_DEFAULT_CONTEXT;
+function applyStockContext() {
+  const ctx = stockStore.read();
+  const targets = { location: locationShim, document: docBack, screen: winBack.screen, window: winBack, navigator: navBack };
+  for (const g of contextGroups) {
+    if (ctx[g]) continue;
+    const blanked = BLANKED_WHEN_UNSET[g] || {};
+    for (const [t, keys] of Object.entries(blanked)) for (const k of keys) delete targets[t][k];
+  }
+  for (const [t, values] of Object.entries(shimValuesFromStockContext(ctx, contextGroups))) Object.assign(targets[t], values);
+}
 // 045-02 (ADR-0023): the ADR-0007 consent vector is RETAINED in chamber state so a
 // mid-session `setConsent` message can drive alloy's OWN `setConsent` (the native
 // `defaultConsent:"pending"` queue FLUSH) — see `applyConsent` / the `setConsent`
@@ -409,6 +428,8 @@ let consentVector = null;
 async function boot({ cookie, config, bundleUrl, consent, storage }) {
   try {
     install(cookie, storage);
+    contextGroups = Array.isArray(config && config.context) ? config.context : ALLOY_DEFAULT_CONTEXT;
+    applyStockContext();
     post("phase", { name: "install" });
     // 045-02: retain the vector for the mid-session `setConsent` flush trigger.
     consentVector = consent == null ? null : { ...consent };
@@ -453,7 +474,7 @@ async function boot({ cookie, config, bundleUrl, consent, storage }) {
       && typeof host.manifest === "object" && Array.isArray(host.manifest.capabilities.cookies);
 
     try {
-      await host.init(caps); // -> alloy configure({ datastreamId, orgId, context:[] })
+      await host.init(caps); // -> alloy configure({ datastreamId, orgId, context })
       summary.configureSettled = "fulfilled";
 
       // 020-02 AC2 — the idiomatic DELEGATE lever: drive alloy's OWN
@@ -656,6 +677,8 @@ self.onmessage = (e) => {
   const m = e.data || {};
   if (m.type === "init") return void boot(m);
   if (m.type === "event") return void drive(m.event);
+  // 067-08: the main thread's stock-context channel (067-07) -> the page shim.
+  if (m.type === "stock-context") return void (stockStore.accept(m) && applyStockContext());
   // 045-02 (ADR-0023): a mid-session consent update — drive alloy's OWN setConsent
   // so alloy natively FLUSHES its defaultConsent:"pending" queue (grant-time flush).
   if (m.type === "setConsent") return void applyConsent(m.consent);

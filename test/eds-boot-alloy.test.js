@@ -302,6 +302,34 @@ describe("boot(config) — AC2: bootAlloy owns a classic chamber Worker + a comp
     expect(init.config).toMatchObject({ datastreamId: DATASTREAM_ID, orgId: "ORG@AdobeOrg" });
   });
 
+  it("067-08: context defaults to the stock list and the stock-context channel reaches the chamber before init", async () => {
+    vi.stubGlobal("location", { href: "https://site.example/p?token=abc", hostname: "site.example", pathname: "/p", search: "?token=abc" });
+    await bootAlloy(alloyEntry());
+    const w = alloyWorker();
+    expect(initOf(w).config.context).toEqual(["web", "device", "environment", "placeContext"]);
+    const idx = w.messages.findIndex((m) => m.type === "stock-context");
+    expect(idx).toBeGreaterThanOrEqual(0);
+    expect(idx).toBeLessThan(w.messages.findIndex((m) => m.type === "init"));
+    expect(w.messages[idx].context.web.hostname).toBe("site.example");
+    expect(Object.keys(w.messages[idx].context).sort()).toEqual(["device", "environment", "placeContext", "web"]);
+  });
+
+  it("067-08: a narrowed context sends only those groups; [] sends no channel message; the denylist applies", async () => {
+    vi.stubGlobal("location", { href: "https://site.example/", hostname: "site.example" });
+    vi.stubGlobal("screen", { width: 100, height: 50 });
+    await bootAlloy(alloyEntry({ context: ["web"], payloadDenylist: ["hostname"] }));
+    const msg = alloyWorker().messages.find((m) => m.type === "stock-context");
+    expect(Object.keys(msg.context)).toEqual(["web"]);
+    expect(msg.context.web.url).toBe("https://site.example/");
+    expect(msg.context.web).not.toHaveProperty("hostname");
+
+    RecordingWorker.instances = [];
+    await bootAlloy(alloyEntry({ context: [] }));
+    const w = alloyWorker();
+    expect(initOf(w).config.context).toEqual([]);
+    expect(w.messages.some((m) => m.type === "stock-context")).toBe(false);
+  });
+
   it("returns a composite-compatible handle (push / pushCritical / setConsent / getState / dispose)", async () => {
     const handle = await bootAlloy(alloyEntry());
     for (const m of ["push", "pushCritical", "setConsent", "getState", "dispose"]) {

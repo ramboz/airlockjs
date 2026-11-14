@@ -1,4 +1,12 @@
 import { extractDecisions, VIEW_SCOPE } from "./decisions.js";
+import { STOCK_CONTEXT_GROUPS } from "../../core/stock-context.js";
+
+/**
+ * Alloy's default `context` list: the groups stock `@adobe/alloy@2.31.1` collects
+ * (ADR-0062 point 2, spec 067-08). The chamber fills them from the 067-07 stock-context
+ * channel. A site narrows the list with the `context` option; it never needs to widen it.
+ */
+export const ALLOY_DEFAULT_CONTEXT = STOCK_CONTEXT_GROUPS;
 
 /**
  * The one Adobe Edge host alloy is known to egress to — the `interact` endpoint,
@@ -85,7 +93,8 @@ export const ALLOY_EGRESS_PURPOSES = Object.freeze(["analytics_storage", "person
  * the instance).
  *
  * Per R-004, the command mapping is:
- *   - init(caps) -> alloy `configure({ datastreamId, orgId, context: [] })`
+ *   - init(caps) -> alloy `configure({ datastreamId, orgId, context })` (context defaults to
+ *     ALLOY_DEFAULT_CONTEXT, the stock list, ADR-0062)
  *   - handle(event) -> alloy `sendEvent({ renderDecisions: false, xdm })`
  *
  * The alloy command function (R-004 base-code queue snippet:
@@ -120,7 +129,9 @@ export const ALLOY_EGRESS_PURPOSES = Object.freeze(["analytics_storage", "person
  * carry no propositions, are unaffected).
  *
  * @param {Readonly<Record<string, unknown>>} [config] host-owned alloy config:
- *   `{ datastreamId, orgId, context?, alloy?, decisionScopes?, ...configureExtras }`.
+ *   `{ datastreamId, orgId, context?, minimalXdm?, alloy?, decisionScopes?, ...configureExtras }`.
+ *   `context` narrows the stock list; `minimalXdm: true` opts into the 2-field pageView
+ *   mapping instead of forwarding the site-supplied `xdm` (ADR-0062).
  *   `decisionScopes` (spec 034-02) is the declared personalization scope set (from
  *   `placements[].scope`); absent → alloy's `__view__` default.
  * @returns {import("../../contracts/connector").Connector}
@@ -129,7 +140,8 @@ export function createAlloyConnector(config = {}) {
   const {
     datastreamId,
     orgId,
-    context = [], // [] disables ambient auto-collection — the chamber is headless (R-004)
+    context = ALLOY_DEFAULT_CONTEXT, // stock list (ADR-0062); a site narrows it, [] disables collection
+    minimalXdm = false, // opt-in 2-field pageView mapping (was the only mapping before ADR-0062)
     alloy, // the injected command fn; defaults to the chamber's self.alloy global
     // spec 034-02: the personalization decision scopes the host declared (from
     // `placements[].scope`, derived by bootAlloy). Carried on the interact so alloy
@@ -224,7 +236,7 @@ export function createAlloyConnector(config = {}) {
     await getAlloy()("configure", {
       datastreamId,
       orgId,
-      context,
+      context: [...context],
       ...configureExtras,
     });
   }
@@ -241,7 +253,7 @@ export function createAlloyConnector(config = {}) {
   async function handle(event) {
     const options = {
       renderDecisions: false, // headless personalization: decisions as data (R-004)
-      xdm: toXdm(event),
+      xdm: toXdm(event, minimalXdm),
     };
     // spec 034-02: carry the declared decision scopes on the interact so alloy fetches
     // EVERY configured scope (source-grounded: sendEvent accepts a top-level
@@ -298,14 +310,16 @@ function mergeDecisionScopes(top, personalization) {
 }
 
 /**
- * Map an airlock event to a minimal Analytics pageView XDM (R-004's sendEvent
- * shape). Tolerant of `params` (the GA4-style descriptor shape the rig drives)
- * or the contract's `payload`; falls back to safe defaults so a sparse event
- * still produces a well-formed pageView.
+ * The XDM for one event. Stock forwards the site-supplied `xdm`, so `params.xdm` (or
+ * `payload.xdm`) goes through as given (ADR-0062). An event without one still gets the
+ * minimal Analytics pageView (R-004's sendEvent shape) so the composite page_view fan-out
+ * keeps working. `minimal` (opt-in `minimalXdm`) forces that 2-field mapping.
  * @param {{ params?: Record<string, unknown>, payload?: Record<string, unknown> }} event
+ * @param {boolean} [minimal]
  */
-function toXdm(event) {
+function toXdm(event, minimal = false) {
   const p = (event && (event.params || event.payload)) || {};
+  if (!minimal && p.xdm && typeof p.xdm === "object" && !Array.isArray(p.xdm)) return p.xdm;
   return {
     eventType: "web.webpagedetails.pageViews",
     web: {

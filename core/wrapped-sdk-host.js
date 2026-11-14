@@ -121,9 +121,9 @@
  * `payloadDenylist` strips denylisted fields from every intercepted
  * `events[].xdm`, `events[].data`, `events[].query` and top-level `query`/`meta` (067-10; parse -> core/payload-governance.js's `governPayload` ->
  * re-serialize; 020-01 live-confirmed the round-trip is Edge-safe) before
- * dispatch. The alloy body is already read-minimized by construction
- * (connectors/alloy/connector.js's `toXdm` 2-field allowlist + `context:[]`)
- * — this is thin defense-in-depth. Since 067-09 the built-in credentials
+ * dispatch. Since 067-08 (ADR-0062) the alloy body is stock-shaped (the site's
+ * `xdm` plus the stock `context` groups), no longer read-minimized by
+ * construction, so this strip is the governance on what leaves. Since 067-09 the built-in credentials
  * denylist is on by default here; `payloadDenylistOverride` (`false` or an
  * array) is the only way to turn it off or replace it.
  */
@@ -475,10 +475,9 @@ export function createWrappedSdkHost({
     if (!applyConsent(() => chamber.postMessage({ type: "intercepted-fetch-response", id: m.id, status: 0, statusText: "held at the seal: consent", body: "" }))) return;
 
     // AC3 (spec 020-02) — optional thin defense-in-depth payload strip: gated
-    // on a non-empty effective denylist (built-in default unless overridden). Non-load-bearing — the alloy interact body
-    // is already read-minimized by construction
-    // (connectors/alloy/connector.js's `toXdm` 2-field allowlist +
-    // `context:[]`; 020-01 Finding).
+    // on a non-empty effective denylist (built-in default unless overridden). The alloy body is
+    // stock-shaped since 067-08 (ADR-0062 superseded the "read-minimized by
+    // construction" claim), so this strip is the governance on what leaves.
     if (effectiveDenylist.length && m.body) {
       const strippedBody = stripInterceptedXdmBody(
         m.body,
