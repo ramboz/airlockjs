@@ -72,7 +72,7 @@
 import { createConnectorHost } from "../../core/connector-host.js";
 import { createAlloyConnector, ALLOY_DEFAULT_CONTEXT } from "./connector.js";
 import { createStockContextStore } from "../../core/stock-context.js";
-import { shimValuesFromStockContext, BLANKED_WHEN_UNSET } from "./stock-shim.js";
+import { applyStockContextToShims } from "./stock-shim.js";
 import { createSyncCookieCache } from "./sync-cookie-cache.js";
 import { applyEgressConfinement, denySendBeacon } from "../../core/egress-confinement.js";
 import { shapeAlloyBoot } from "./consent.js";
@@ -246,7 +246,7 @@ const documentShim = new Proxy(docBack, {
 const locationShim = {
   href: "https://airlock.example/", origin: "https://airlock.example", protocol: "https:",
   host: "airlock.example", hostname: "airlock.example", port: "", pathname: "/", search: "", hash: "",
-  toString() { return this.href; },
+  toString() { return this.href || ""; },
 };
 docBack.location = locationShim;
 
@@ -410,14 +410,11 @@ let host = null;
 const stockStore = createStockContextStore();
 let contextGroups = ALLOY_DEFAULT_CONTEXT;
 function applyStockContext() {
-  const ctx = stockStore.read();
-  const targets = { location: locationShim, document: docBack, screen: winBack.screen, window: winBack, navigator: navBack };
-  for (const g of contextGroups) {
-    if (ctx[g]) continue;
-    const blanked = BLANKED_WHEN_UNSET[g] || {};
-    for (const [t, keys] of Object.entries(blanked)) for (const k of keys) delete targets[t][k];
-  }
-  for (const [t, values] of Object.entries(shimValuesFromStockContext(ctx, contextGroups))) Object.assign(targets[t], values);
+  applyStockContextToShims(
+    { location: locationShim, document: docBack, screen: winBack.screen, window: winBack, navigator: navBack },
+    stockStore.read(),
+    contextGroups,
+  );
 }
 // 045-02 (ADR-0023): the ADR-0007 consent vector is RETAINED in chamber state so a
 // mid-session `setConsent` message can drive alloy's OWN `setConsent` (the native

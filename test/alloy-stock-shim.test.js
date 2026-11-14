@@ -1,7 +1,7 @@
 // Spec 067-08 AC3: the chamber feeds Alloy's context collection from the 067-07
 // channel, for the listed groups only, and never invents a value.
 import { describe, it, expect } from "vitest";
-import { shimValuesFromStockContext, BLANKED_WHEN_UNSET } from "../connectors/alloy/stock-shim.js";
+import { shimValuesFromStockContext, applyStockContextToShims } from "../connectors/alloy/stock-shim.js";
 import { ALLOY_DEFAULT_CONTEXT } from "../connectors/alloy/connector.js";
 
 const context = {
@@ -36,8 +36,41 @@ describe("shimValuesFromStockContext (067-08)", () => {
     }
   });
 
-  it("names the placeholders a listed-but-unset group blanks", () => {
-    expect(BLANKED_WHEN_UNSET.device.screen).toContain("width");
-    expect(BLANKED_WHEN_UNSET.web.document).toContain("referrer");
+});
+
+describe("applyStockContextToShims (067-08)", () => {
+  const targets = () => ({
+    location: { href: "https://airlock.example/", hostname: "airlock.example", pathname: "/", search: "?old=1", hash: "#old" },
+    document: { referrer: "https://old.example/", title: "airlock", visibilityState: "visible" },
+    screen: { width: 1280, height: 800, orientation: { type: "landscape-primary" } },
+    window: { innerWidth: 1280, innerHeight: 800, devicePixelRatio: 1 },
+    navigator: { userAgent: "UA", language: "en-US" },
+  });
+
+  it("clears the placeholders of a listed group the channel never sent, and keeps the cookie-scope hostname", () => {
+    const t = targets();
+    applyStockContextToShims(t, {}, ["web", "device"]);
+    expect(t.location).toEqual({ hostname: "airlock.example" });
+    expect(t.document.referrer).toBeUndefined();
+    expect(t.screen).toEqual({});
+    expect(t.window.devicePixelRatio).toBeUndefined();
+    expect(t.window.innerWidth).toBe(1280); // environment not listed: untouched
+  });
+
+  it("a denylisted field leaves no placeholder, and a field the page dropped leaves no stale value", () => {
+    const t = targets();
+    applyStockContextToShims(t, { web: { pathname: "/p", title: "T" }, device: { screenHeight: 50 } }, ["web", "device"]);
+    expect(t.location).toMatchObject({ pathname: "/p" });
+    expect(t.location.href).toBeUndefined(); // url denied
+    expect(t.location.search).toBeUndefined(); // dropped
+    expect(t.document.referrer).toBeUndefined();
+    expect(t.screen).toEqual({ height: 50 }); // width denied: no 1280
+  });
+
+  it("leaves groups the site did not list alone", () => {
+    const t = targets();
+    applyStockContextToShims(t, context, ["device"]);
+    expect(t.location.href).toBe("https://airlock.example/");
+    expect(t.screen.width).toBe(1920);
   });
 });

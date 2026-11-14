@@ -1,12 +1,11 @@
 import { extractDecisions, VIEW_SCOPE } from "./decisions.js";
-import { STOCK_CONTEXT_GROUPS } from "../../core/stock-context.js";
 
 /**
  * Alloy's default `context` list: the groups stock `@adobe/alloy@2.31.1` collects
  * (ADR-0062 point 2, spec 067-08). The chamber fills them from the 067-07 stock-context
  * channel. A site narrows the list with the `context` option; it never needs to widen it.
  */
-export const ALLOY_DEFAULT_CONTEXT = STOCK_CONTEXT_GROUPS;
+export const ALLOY_DEFAULT_CONTEXT = Object.freeze(["web", "device", "environment", "placeContext"]);
 
 /**
  * The one Adobe Edge host alloy is known to egress to — the `interact` endpoint,
@@ -312,7 +311,7 @@ function mergeDecisionScopes(top, personalization) {
 /**
  * The XDM for one event. Stock forwards the site-supplied `xdm`, so `params.xdm` (or
  * `payload.xdm`) goes through as given (ADR-0062). An event without one still gets the
- * minimal Analytics pageView (R-004's sendEvent shape) so the composite page_view fan-out
+ * minimal Analytics pageView (R-004's sendEvent shape, only the fields present) so the composite page_view fan-out
  * keeps working. `minimal` (opt-in `minimalXdm`) forces that 2-field mapping.
  * @param {{ params?: Record<string, unknown>, payload?: Record<string, unknown> }} event
  * @param {boolean} [minimal]
@@ -320,13 +319,15 @@ function mergeDecisionScopes(top, personalization) {
 function toXdm(event, minimal = false) {
   const p = (event && (event.params || event.payload)) || {};
   if (!minimal && p.xdm && typeof p.xdm === "object" && !Array.isArray(p.xdm)) return p.xdm;
+  // Only what the event carries: Alloy merges this over the context it collects, so a
+  // placeholder here would override the real page URL from the stock-context channel.
+  const details = {};
+  const url = p.page_location || p.URL;
+  const name = p.page_title || p.name;
+  if (url) details.URL = url;
+  if (name) details.name = name;
   return {
     eventType: "web.webpagedetails.pageViews",
-    web: {
-      webPageDetails: {
-        URL: p.page_location || p.URL || "https://airlock.example/",
-        name: p.page_title || p.name || "airlock",
-      },
-    },
+    ...(Object.keys(details).length ? { web: { webPageDetails: details } } : {}),
   };
 }

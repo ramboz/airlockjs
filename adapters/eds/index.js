@@ -1590,6 +1590,8 @@ function pageStorage() {
  *                                         `[web, device, environment, placeContext]` (ADR-0062); a site
  *                                         narrows it. The listed groups are fed from the stock-context
  *                                         channel (067-07); `[]` collects nothing.
+ * @param {boolean} [opts.minimalXdm]     opt into the 2-field pageView `xdm` instead of forwarding the
+ *                                         event's own `xdm` (ADR-0062).
  * @param {Record<string,string>} [opts.consent] host consent vector (ADR-0007).
  * @param {string[]} [opts.payloadDenylist] optional seam-side XDM strip (020-02 AC3).
  * @param {string|URL} [opts.workerUrl]    test/rig seam: override the chamber Worker
@@ -1608,7 +1610,9 @@ function pageStorage() {
  * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, stats: Function, dispose: Function }>}
  */
 export async function bootAlloy(opts = {}) {
-  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, context = ALLOY_DEFAULT_CONTEXT, consent, payloadDenylist, payloadDenylistOverride, cookieGrantNarrowing, storageGrantNarrowing, workerUrl, reservedPlacements, compositeEmit } = opts;
+  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, consent, minimalXdm, payloadDenylist, payloadDenylistOverride, cookieGrantNarrowing, storageGrantNarrowing, workerUrl, reservedPlacements, compositeEmit } = opts;
+
+  const context = Array.isArray(opts.context) ? opts.context : ALLOY_DEFAULT_CONTEXT;
 
   // ADR-0016 prerequisite — fail LOUD here too (validateConnectorEntry also checks it
   // on the config path) so a direct bootAlloy caller gets an actionable error rather
@@ -1759,15 +1763,16 @@ export async function bootAlloy(opts = {}) {
   // crosses into the untrusted chamber — so createSyncCookieCache is seeded with
   // nothing the connector didn't declare, and a chamber read can never surface a
   // foreign cookie (closes the live whole-jar READ leak).
-  const config = { datastreamId: resolvedDatastreamId, orgId, context, ...(decisionScopes.length ? { decisionScopes } : {}) };
+  const config = { datastreamId: resolvedDatastreamId, orgId, context, ...(minimalXdm ? { minimalXdm: true } : {}), ...(decisionScopes.length ? { decisionScopes } : {}) };
   const rawSeedCookie = (typeof document !== "undefined" && document.cookie) || "";
   const seedCookie = scopeSeedCookies(rawSeedCookie, resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).names);
   // 067-08 (ADR-0062 point 2): feed Alloy's listed `context` groups from the stock-context
   // channel. Collected here at boot (before `init`, so the chamber has it before `configure`)
   // and again, deduped, ahead of each queued event, inside the queue and never in a capture
   // handler (ADR-0002). The credentials denylist (and `payloadDenylist`) governs it.
-  const stockGroups = Array.isArray(context) ? context : [];
-  const stockBuiltin = resolveDenylist(payloadDenylistOverride).overridden ? resolveDenylist(payloadDenylistOverride).list : DEFAULT_DENYLIST;
+  const stockGroups = context;
+  const stockOverride = resolveDenylist(payloadDenylistOverride);
+  const stockBuiltin = stockOverride.overridden ? stockOverride.list : DEFAULT_DENYLIST;
   let stockFingerprint = null;
   const sendStockContext = () => {
     if (!stockGroups.length) return;

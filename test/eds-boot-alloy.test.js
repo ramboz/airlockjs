@@ -330,6 +330,37 @@ describe("boot(config) — AC2: bootAlloy owns a classic chamber Worker + a comp
     expect(w.messages.some((m) => m.type === "stock-context")).toBe(false);
   });
 
+  it("067-08: the channel is re-collected ahead of each event and re-posted only when it changed", async () => {
+    const loc = { href: "https://site.example/a", hostname: "site.example", pathname: "/a" };
+    vi.stubGlobal("location", loc);
+    const handle = await bootAlloy(alloyEntry({ context: ["web"] }));
+    const w = alloyWorker();
+    w.emit({ type: "phase", name: "configured" });
+    const kinds = () => w.messages.map((m) => m.type).filter((t) => t === "stock-context" || t === "event");
+
+    handle.push({ event: "page_view" });
+    await waitFor(() => eventsOf(w).length >= 1);
+    expect(kinds()).toEqual(["stock-context", "event"]); // unchanged: no second post
+    w.emit({ type: "result", summary: { booted: true }, ready: [] });
+
+    loc.href = "https://site.example/b";
+    loc.pathname = "/b";
+    handle.push({ event: "page_view" });
+    await waitFor(() => eventsOf(w).length >= 2);
+    expect(kinds()).toEqual(["stock-context", "event", "stock-context", "event"]);
+    expect(w.messages.filter((m) => m.type === "stock-context")[1].context.web.url).toBe("https://site.example/b");
+  });
+
+  it("067-08: payloadDenylistOverride replaces the built-in denylist on the channel; minimalXdm is forwarded", async () => {
+    vi.stubGlobal("location", { href: "https://site.example/", hostname: "site.example" });
+    await bootAlloy(alloyEntry({ context: ["web"], payloadDenylistOverride: ["hostname"], minimalXdm: true, onDiagnostic: () => {} }));
+    const w = alloyWorker();
+    const web = w.messages.find((m) => m.type === "stock-context").context.web;
+    expect(web).not.toHaveProperty("hostname");
+    expect(web.url).toBe("https://site.example/");
+    expect(initOf(w).config.minimalXdm).toBe(true);
+  });
+
   it("returns a composite-compatible handle (push / pushCritical / setConsent / getState / dispose)", async () => {
     const handle = await bootAlloy(alloyEntry());
     for (const m of ["push", "pushCritical", "setConsent", "getState", "dispose"]) {

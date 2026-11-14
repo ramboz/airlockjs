@@ -35,7 +35,7 @@ export function shimValuesFromStockContext(context, groups) {
     set(out.screen, "width", d.screenWidth);
     set(out.screen, "height", d.screenHeight);
     set(out.screen, "colorDepth", d.colorDepth);
-    if (d.screenOrientation) out.screen.orientation = { type: d.screenOrientation, angle: 0 };
+    if (d.screenOrientation) out.screen.orientation = { type: d.screenOrientation };
     set(out.window, "devicePixelRatio", d.pixelRatio);
   }
   if (wanted.has("environment") && ctx.environment) {
@@ -55,13 +55,28 @@ export function shimValuesFromStockContext(context, groups) {
 }
 
 /**
- * The shim fields a listed group fills from the channel. When a group is listed
- * but the channel has not supplied it (yet, or ever), the chamber blanks these
- * placeholders so Alloy never collects an invented value.
+ * The shim fields each group owns. Before a listed group's channel values are applied, its
+ * owned fields are cleared, so a denylisted field, a field the page stopped supplying, or a
+ * group the channel never sent leaves no placeholder or stale value for Alloy to collect.
+ * `location.origin/protocol/host/hostname` are NOT cleared: Alloy's apex-domain probe and
+ * the cookie scope read them (Adobe 064-17 owns that), and Alloy's context never sends them.
  */
-export const BLANKED_WHEN_UNSET = Object.freeze({
-  web: Object.freeze({ document: ["referrer", "title"] }),
+export const OWNED_SHIM_FIELDS = Object.freeze({
+  web: Object.freeze({ location: ["href", "pathname", "search", "hash"], document: ["referrer", "title"] }),
   device: Object.freeze({ screen: ["width", "height", "availWidth", "availHeight", "colorDepth", "pixelDepth", "orientation"], window: ["devicePixelRatio"] }),
-  environment: Object.freeze({ window: ["innerWidth", "innerHeight", "outerWidth", "outerHeight"] }),
+  environment: Object.freeze({ window: ["innerWidth", "innerHeight", "outerWidth", "outerHeight"], document: ["visibilityState"] }),
   placeContext: Object.freeze({}),
 });
+
+/**
+ * Apply the channel to the chamber's shim backing objects: clear what each listed group
+ * owns, then set the supplied values. Navigator fields fall through to the worker's own
+ * navigator when unset, so they are overwritten but never cleared.
+ * @param {{ location: object, document: object, screen: object, window: object, navigator: object }} targets
+ */
+export function applyStockContextToShims(targets, context, groups) {
+  for (const g of Array.isArray(groups) ? groups : []) {
+    for (const [t, keys] of Object.entries(OWNED_SHIM_FIELDS[g] || {})) for (const k of keys) delete targets[t][k];
+  }
+  for (const [t, values] of Object.entries(shimValuesFromStockContext(context, groups))) Object.assign(targets[t], values);
+}

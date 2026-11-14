@@ -132,6 +132,14 @@ describe("alloy connector (spec 012-01 AC2)", () => {
     expect(out).toEqual([]);
   });
 
+  it("the pageView fallback carries only the fields the event has, so no placeholder overrides the channel URL (067-08 AC3)", async () => {
+    const alloy = fakeAlloy();
+    const connector = createAlloyConnector({ ...baseConfig(), alloy });
+    await connector.init({});
+    await connector.handle(pageView({ params: {} }));
+    expect(alloy.calls[1].options.xdm).toEqual({ eventType: "web.webpagedetails.pageViews" });
+  });
+
   it("boots via createConnectorHost: configure runs exactly once, sendEvent runs per event, on ONE persisted instance", async () => {
     const alloy = fakeAlloy();
     // createConnectorHost calls the factory; pass config carrying the fake alloy.
