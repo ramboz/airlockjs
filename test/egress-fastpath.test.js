@@ -52,7 +52,7 @@ describe("critical dispatcher (OQ10 unload fast path)", () => {
     expect(issuedDuringCall).toBe(3); // all synchronous — nothing deferred to a microtask
   });
 
-  it("enforces the aggregate keepalive budget — drops and counts once exhausted", () => {
+  it("an explicit (opt-in) budgetBytes drops and counts once exhausted", () => {
     const fetchImpl = vi.fn(() => Promise.resolve());
     // 50 bytes/body, budget 80 → only the first tracker fits; the other two drop.
     const d = createCriticalDispatcher({
@@ -76,7 +76,7 @@ describe("critical dispatcher (OQ10 unload fast path)", () => {
     expect(d.stats().fastDispatched).toBe(0);
   });
 
-  it("defaults the budget to Chrome's 64 KiB aggregate keepalive cap", () => {
+  it("pins Chrome's 64 KiB aggregate keepalive limit (a browser limit, not a default drop budget — see limits-stock-default.test.js)", () => {
     expect(KEEPALIVE_BUDGET_BYTES).toBe(64 * 1024);
   });
 });

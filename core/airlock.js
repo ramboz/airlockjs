@@ -140,6 +140,9 @@ export function createAirlock({
   // -> every group (the stock default); `{ groups, denylist }` narrows it.
   // Posted as its own `stock-context` message, never inside an event batch.
   stockContext,
+  // 067-06 (ADR-0062 point 6): OPT-IN tighter keepalive budget for the unload
+  // fast path. Absent -> nothing is dropped for the browser's 64 KiB limit.
+  keepaliveBudgetBytes,
 }) {
   const diagnose = typeof onDiagnostic === "function" ? onDiagnostic : consoleDiagnostic;
   // 028-02 per-beacon correlation: a per-INSTANCE random tag (minted once) namespaces
@@ -298,6 +301,19 @@ export function createAirlock({
     // 067-04: the unload path honors a stock/narrowed ceiling too. Passed only
     // when a stock set is declared, so other callers' unload path is unchanged.
     ...(stockEndpoints ? { ceilingEndpoints } : {}),
+    ...(typeof keepaliveBudgetBytes === "number"
+      ? {
+          budgetBytes: keepaliveBudgetBytes,
+          onBudgetDrop: ({ bytes, budgetBytes, url }) =>
+            diagnose({
+              level: "warn",
+              kind: "keepalive-budget",
+              disposition: "dropped",
+              destination: url,
+              reason: `opt-in keepalive budget ${budgetBytes} B exceeded (${bytes} B send) — unload send dropped`,
+            }),
+        }
+      : {}),
     ...(connector === "helix-rum" && connectorConfig && connectorConfig.sampling
       ? { mapper: (event, mapCtx) => mapToRum(event, mapCtx, connectorConfig.sampling) }
       : {}),

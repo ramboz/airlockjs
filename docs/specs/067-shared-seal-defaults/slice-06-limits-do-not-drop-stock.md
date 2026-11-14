@@ -1,5 +1,5 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: DONE
 dependencies: [067-01]
 last_verified: 2026-11-13
 ---
@@ -29,3 +29,43 @@ last_verified: 2026-11-13
 **Consumers:** Adobe 064-18 onward (vendor-adobe); Google G12; Meta M9 and the D1 row.
 
 **Anti-horizontal-phasing check:** Vertical: the limit, the lifted default and the opt-in proven with one over-limit burst in the rig.
+
+### Grounding list (AC1, AC5)
+
+Grepped `core/`, `connectors/`, `adapters/` for caps, drops, budgets, rings, retention.
+
+| Limit | Where | Drops or delays stock output by default? |
+|---|---|---|
+| `KEEPALIVE_BUDGET_BYTES` 64 KiB, drop in `createCriticalDispatcher` POST path | `core/egress.js` | **Dropped** (unload fast path, POST connectors). Lifted: over the browser limit now sends non-keepalive; an explicit `budgetBytes` / `keepaliveBudgetBytes` is the opt-in drop. GET connectors (`requestMapper`) never consumed it. |
+| Unload flush order (critical types first) | `core/airlock.js` `unloadFlush` | Does not drop. Reorders critical types first; every event is still sent. Kept: with the browser limit as the only loss, ordering decides who wins a keepalive slot. |
+| 50-event drain chunk | `core/airlock.js` `drain`, `flushNow` | Does not. Batching; the loop reschedules until the ring is empty (test: 600-event burst, order kept). Kept as a safety limit (bounds one worker message and the INP cost of one drain). |
+| Capture `ring` / `log` | `core/airlock.js` | Does not: unbounded arrays, no cap (confirmed by test before the change). |
+| Worker reply `ready[]` dispatch | `core/airlock.js` `worker.onmessage` | Does not: one fetch per survivor, no limit (test: 600). |
+| `MAX_HELD_BEACONS` 200 | `core/airlock.js` | Drops oldest, but it is the consent-hold exception (067-02). Untouched; test pins it. |
+| `GA4_BATCH_MAX_BYTES` 60000 / `GA4_BATCH_MAX_EVENTS` 25 | `connectors/ga4/coalesce.js` | Does not: protocol limits; overflow starts a new chunk (and an oversize single item is its own chunk). Nothing dropped. |
+| `requestIdleCallback(drain, { timeout: 50 })` | `core/airlock.js` `schedule` | Delays by up to 50 ms: the ADR-0002 batching delay, not a drop and not a stock-output change; kept. |
+| Intercepted-fetch `timeoutMs` | `core/wrapped-sdk-host.js` | Does not: answers the SDK early; the send still goes out. |
+| 150 ms stock-context throttle | `core/airlock.js` | Does not: context channel, not event output (067-07). |
+| Inspector collector `capacity` | `core/inspector/collector.js` | Does not: diagnostics retention, not stock output. |
+| `GA_COOKIE_MAX_AGE_S`, `slice(0, n)` string trims (pixel advanced matching, EDS label) | connectors, adapters | Do not: protocol or stock formatting, not queue limits. |
+| `mirror.js` `__queue.splice` | `core/worker-dom/mirror.js` | Does not: drains the whole queue. |
+
+Remaining browser limit (AC2): a send beyond the browser's shared 64 KiB keepalive quota goes out non-keepalive, so it survives only if the page does. Stock `sendBeacon` hits the same quota.
+
+Known gap (review round 1, logged not fixed): steady-state worker-mapped dispatch and the consent-grant flush send `keepalive: true` with no fallback. A burst beyond the browser's in-flight quota would be rejected there (surfaced as an `egress-failure` diagnostic on the main path). Fixing it needs a retry, which ADR-0021/040-04 AC2 pins as "exactly one fetch per request, no retry"; left for an owner call rather than reopening that contract here.
+
+### Opt-in (AC3)
+
+`createAirlock({ keepaliveBudgetBytes })` -> `createCriticalDispatcher({ budgetBytes, onBudgetDrop })`. Over it: drop, count in `stats().fastDropped`, `kind: "keepalive-budget"` diagnostic. No ring cap was added: no ring cap exists today and ADR-0062 only requires lifting drops.
+
+### Reconciliation sweep
+
+- Spec 067 check 3: matched (grounding list above; the ring never capped, the keepalive drop is lifted, hold ring untouched).
+- ADR-0062 point 6 and ADR-0004:114-117: no change needed (status lines landed in 067-01).
+- Docs updated: `docs/architecture.md` Q3, `docs/memory/glossary.md`.
+
+### Deviation log
+
+- AC3's "ring cap" example is not built: the ring never dropped, so there is nothing to make opt-in.
+- AC4 is a vitest integration test with a fake worker (`test/limits-stock-default.test.js`), not a browser rig run; the burst path under test is the same code.
+- Docs updated: `docs/architecture.md` Q3.
