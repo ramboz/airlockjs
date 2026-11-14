@@ -57,7 +57,7 @@ const EGRESS_TEXT_ENCODER = new TextEncoder();
 // can't-drift GET/POST init shape instead of two copies that could diverge.
 
 // 067-02 AC4: cap on the consent hold ring (architecture.md Q2).
-const MAX_HELD_BEACONS = 200;
+export const MAX_HELD_BEACONS = 200;
 
 export function createAirlock({
   trackers,

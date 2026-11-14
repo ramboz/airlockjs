@@ -117,6 +117,10 @@
  * the capability. It cannot revoke a request already handed to that
  * capability or enforce consent inside an independently asynchronous transport.
  *
+ * ADR-0013's "pending -> DROP" and "empty egressPurposes -> seam OFF" clauses are amended (ADR-0062, spec
+ * 067-03): pending is held by alloy's own queue and the seam drop is a backstop; an empty
+ * `egressPurposes` with a consent vector holds on analytics_storage and warns.
+ *
  * Payload strip (spec 020-02 AC3, optional, non-load-bearing): an optional
  * `payloadDenylist` strips denylisted fields from every intercepted
  * `events[].xdm`, `events[].data`, `events[].query` and top-level `query`/`meta` (067-10; parse -> core/payload-governance.js's `governPayload` ->
@@ -164,6 +168,7 @@ function consoleDiagnostic(record) {
  *   endpointNarrowing?: readonly string[],
  *   consent?: (Record<string, string> | null),
  *   egressPurposes?: readonly string[],
+ *   consentHold?: false,
  *   payloadDenylist?: (readonly string[] | null),
  *   payloadDenylistOverride?: (false | readonly string[]),
  *   grantedCookieNames?: (readonly string[] | null),
@@ -207,7 +212,8 @@ export function createWrappedSdkHost({
   stockEndpoints,
   endpointNarrowing,
   consent = null,
-  egressPurposes = [],
+  egressPurposes: declaredEgressPurposes = [],
+  consentHold,
   payloadDenylist = null,
   payloadDenylistOverride,
   grantedCookieNames: stockCookieNames = null,
@@ -262,18 +268,21 @@ export function createWrappedSdkHost({
   // reuses the intercepted-fetch's own `m.id` (already unique per fetch): `<tag>#<m.id>`.
   // Fixed 6-char tag even for the ~2^-53 degenerate Math.random() values (028-02 craft review).
   const inspectorTag = (Math.random().toString(36).slice(2) + "000000").slice(0, 6);
-  // FAIL-LOUD on a consent misconfiguration (020-02 arch review): a `consent`
-  // vector wired WITHOUT `egressPurposes` skips the TRUSTED seam-side drop
-  // entirely (the gate below is `egressPurposes.length`-gated), leaving only the
-  // in-chamber `setConsent` DELEGATE — which runs inside the untrusted chamber
-  // and is never enforcement. Warn once at construction so this never silently
-  // disables the trusted control (the in-chamber delegate alone is not the seal).
-  if (consent && !egressPurposes.length) {
+  // 067-03 (ADR-0062 exception a): a consent vector wired with NO `egressPurposes` no longer
+  // turns the TRUSTED seam drop off (the 020-02 "not-enforced" state, which let alloy send). It
+  // holds on the primary collection purpose until that is granted, and warns once. Only the exact
+  // value `consentHold: false` keeps the old behavior, with its own warning.
+  const emptyPurposes = Boolean(consent) && !declaredEgressPurposes.length;
+  const egressPurposes = emptyPurposes && consentHold !== false ? ["analytics_storage"] : declaredEgressPurposes;
+  if (emptyPurposes) {
     diagnose({
       level: "warn",
       kind: "consent",
-      disposition: "not-enforced",
-      reason: "consent vector wired without egressPurposes — the TRUSTED seam-side drop is OFF; only the in-chamber setConsent delegate is active",
+      disposition: consentHold === false ? "hold-off" : "empty-purposes",
+      reason:
+        consentHold === false
+          ? "consent vector wired without egressPurposes and consentHold: false — the TRUSTED seam-side drop is OFF; only the in-chamber setConsent delegate is active"
+          : "consent vector wired with empty egressPurposes — holding on analytics_storage until it is granted; declare egressPurposes to govern the connector's purposes",
     });
   }
   const state = {
@@ -396,11 +405,15 @@ export function createWrappedSdkHost({
     // send). alloy has NO body-consent field, so a denied/pending governing
     // purpose sent anyway would LEAK, not reshape — it must be SUPPRESSED.
     //
-    // pending -> DROP here (not hold+buffer) is the first-impl fail-closed
-    // choice: the alloy interact is a synchronous vendor-SDK round trip
-    // (alloy's own pending `sendEvent` promise), not a queued { url, body }
-    // beacon like GA4's async seal (017-03) — a pending->hold+flush
-    // refinement mirroring that seal is a named follow-on, not built here.
+    // pending -> DROP here (not hold+buffer) is deliberate and, since 067-03,
+    // a BACKSTOP only. The hold is alloy's own `defaultConsent:"pending"` queue
+    // (the chamber configures it whenever the consent state is not granted), so
+    // an interact alloy queued never reaches this gate before a grant: the
+    // adapter updates the live consent ref BEFORE it drives alloy's setConsent,
+    // and the flush then passes this gate as granted. What lands here pending
+    // is something alloy did NOT queue (a compromised chamber, or alloy sending
+    // on a stale consent cookie it was seeded with) — dropping that is the
+    // trusted-seam job, not a loss of held output.
     function applyConsent(onHold) {
       if (!egressPurposes.length) return true;
       // AC1 (spec 034-01, ADR-0007) — COARSE-CONSENT SPLIT: consent gating is

@@ -1,7 +1,8 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: IN_PROGRESS
 dependencies: [067-02]
 last_verified: 2026-11-13
+claimed_by: alloy-hold-and-empty-purposes
 ---
 
 ## Slice 067-03: Alloy holds and flushes, and an empty `egressPurposes` holds and warns
@@ -31,3 +32,21 @@ last_verified: 2026-11-13
 **Consumers:** Adobe 064-18 onward (vendor-adobe). Not used by Google or Meta (Alloy only).
 
 **Anti-horizontal-phasing check:** Vertical: connector config, seam gate and rig proof for the three cases.
+
+## Notes
+
+**Grounding (spec section 8 check 2).** `rig/alloy-consent-pending.mjs` passes against real Alloy: pending queues the `sendEvent` (0 interacts), `setConsent(y)` plus a set-consent round trip flushes it (1 interact, resolved). Cases, before this slice:
+
+| # | Case | Chamber layer | Seam layer (`core/wrapped-sdk-host.js`) | Result |
+|---|---|---|---|---|
+| 1 | no consent vector | `shapeAlloyBoot(null)` sets no `defaultConsent` | `egressPurposes: []`, gate off | **sends** |
+| 2 | vector, empty `egressPurposes` | pending queue if analytics pending | seam OFF + `not-enforced` warning | granted/denied Alloy self-gating only; seam never drops |
+| 3 | vector + purposes, pending | Alloy queue holds | strict drop (never reached by a queued event) | holds, flushes on grant |
+| 4 | vector + purposes, denied | `setConsent(n)` self-suppress | strict drop | nothing sent |
+| 5 | `setConsent` with no boot consent | adapter no-op (`consentRef` null) | none | cannot grant |
+
+**What shipped.** `bootAlloy` starts the live consent ref `{}` (every purpose pending) unless a vector is passed or `consentHold: false`; the chamber therefore configures `defaultConsent:"pending"` and the existing 045-02 flush path does the rest (cases 1 and 5 now hold and can be granted). The first event with no consent input emits 02's `no consent input wired` warning once. `consentHold: false` with no vector leaves the ref null (hold off, `hold-off` warning at boot); a vector wins. `createWrappedSdkHost` takes `consentHold`: a vector with empty `egressPurposes` now holds on `analytics_storage` and emits `empty-purposes` once, replacing `not-enforced` (case 2); `consentHold: false` keeps the old off state with a `hold-off` warning. `MAX_HELD_BEACONS` is exported from `core/airlock.js` and bounds the events waiting behind Alloy's queue while consent is not granted (never when granted). Tests: `test/alloy-consent-hold.test.js` (models the chamber glue with the real `shapeAlloyBoot`) and the host tests; the round-trip suites opt out with `consentHold: false`. AC5 (per-purpose strip) is covered unchanged by the 034-01 tests in `test/eds-boot-alloy.test.js`.
+
+**AC3 decision (documented, pinned).** The seam strict drop is a backstop. Anything Alloy queued never reaches the seam before a grant, and the adapter updates the live ref before driving Alloy's `setConsent`, so the flush passes as granted. What can still reach the seam pending is an interact Alloy did not queue (a compromised chamber, or Alloy sending on a stale consent cookie it was seeded with); dropping that is the seam's job. A test pins this.
+
+**Residual.** `kndctr_` seeds include Alloy's consent cookie; a stale "in" cookie makes Alloy send on a pending page and the seam drops it (not held). Clearing the seeded consent cookie while consent is pending would turn that into a queue hold; follow-up if live checks show it.

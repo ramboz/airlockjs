@@ -32,7 +32,9 @@ const INTERACT = "https://adobedc.demdex.net/ee/v1/interact";
 const ECID = "07430525002133203327640620273122850896";
 const DATASTREAM_ID = "12345678-1234-1234-1234-123456789012"; // the honest, host-pinned datastream (configId)
 const ATTACKER_DS = "99999999-9999-9999-9999-999999999999"; // a re-tenant attacker's datastream
-const alloyEntry = (extra = {}) => ({ type: "alloy", bundleUrl: BUNDLE_URL, datastreamId: DATASTREAM_ID, orgId: "ORG@AdobeOrg", ...extra });
+// 067-03: these suites cover the round trip, not the default hold, so they opt out of it; the
+// hold itself is pinned in alloy-consent-hold.test.js.
+const alloyEntry = (extra = {}) => ({ type: "alloy", bundleUrl: BUNDLE_URL, datastreamId: DATASTREAM_ID, orgId: "ORG@AdobeOrg", consentHold: false, ...extra });
 
 // The interact URL the (round-trip) chamber emits. Default (null) is the HONEST interact —
 // the real Edge routes by `configId` (013-03), so it carries `?configId=<the configured

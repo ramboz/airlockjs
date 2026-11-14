@@ -7,7 +7,7 @@ import { bootAlloy } from "../adapters/eds/index.js";
 // value-level PII in a benign-named field are out of a field-name denylist's reach.
 const INTERACT = "https://adobedc.demdex.net/ee/v1/interact";
 const DS = "12345678-1234-1234-1234-123456789012";
-const entry = (extra = {}) => ({ type: "alloy", bundleUrl: "https://airlock.example/alloy.js", datastreamId: DS, orgId: "ORG@AdobeOrg", ...extra });
+const entry = (extra = {}) => ({ type: "alloy", bundleUrl: "https://airlock.example/alloy.js", datastreamId: DS, orgId: "ORG@AdobeOrg", consentHold: false, ...extra });
 let nextBody;
 
 class BodyWorker {

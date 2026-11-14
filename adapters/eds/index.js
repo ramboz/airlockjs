@@ -31,7 +31,7 @@
  * `aem:experimentation` listener for a post-boot experiment (deduped). Decisioning
  * stays `aem-experimentation`'s; the airlock only reports the exposure.
  */
-import { createAirlock } from "../../core/airlock.js";
+import { createAirlock, MAX_HELD_BEACONS } from "../../core/airlock.js";
 import { createWrappedSdkHost } from "../../core/wrapped-sdk-host.js";
 import { hostOf } from "../../core/config-integrity.js";
 import { resolveConsent } from "../../core/consent.js";
@@ -1592,7 +1592,11 @@ function pageStorage() {
  *                                         channel (067-07); `[]` collects nothing.
  * @param {boolean} [opts.minimalXdm]     opt into the 2-field pageView `xdm` instead of forwarding the
  *                                         event's own `xdm` (ADR-0062).
- * @param {Record<string,string>} [opts.consent] host consent vector (ADR-0007).
+ * @param {Record<string,string>} [opts.consent] host consent vector (ADR-0007). With none wired, alloy
+ *                                         holds (its own `defaultConsent:"pending"` queue) until a `setConsent`
+ *                                         grant, and warns once (067-03).
+ * @param {false}    [opts.consentHold]    067-03: only the exact value `false` turns the hold off (no consent
+ *                                         vector wired); alloy then sends as stock does and warns once.
  * @param {string[]} [opts.payloadDenylist] optional seam-side XDM strip (020-02 AC3).
  * @param {string|URL} [opts.workerUrl]    test/rig seam: override the chamber Worker
  *                                         URL (default the built same-origin sibling).
@@ -1610,7 +1614,7 @@ function pageStorage() {
  * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, stats: Function, dispose: Function }>}
  */
 export async function bootAlloy(opts = {}) {
-  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, consent, minimalXdm, payloadDenylist, payloadDenylistOverride, cookieGrantNarrowing, storageGrantNarrowing, workerUrl, reservedPlacements, compositeEmit } = opts;
+  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, consent, consentHold, minimalXdm, payloadDenylist, payloadDenylistOverride, cookieGrantNarrowing, storageGrantNarrowing, workerUrl, reservedPlacements, compositeEmit } = opts;
 
   const context = Array.isArray(opts.context) ? opts.context : ALLOY_DEFAULT_CONTEXT;
 
@@ -1648,10 +1652,24 @@ export async function bootAlloy(opts = {}) {
   };
 
   // A LIVE consent ref the host reads inside its strict seam gate — so `setConsent`
-  // (below) updates enforcement by mutating this same object. `null` when no consent
-  // is wired: `egressPurposes` is then `[]` and the gate is off (the established
-  // back-compat gate — see bootGa4Core's rationale).
-  const consentRef = consent ? { ...consent } : null;
+  // (below) updates enforcement by mutating this same object. 067-03 (ADR-0062 exception
+  // a): with no consent input the ref starts EMPTY (every purpose pending), so the chamber
+  // configures alloy's own `defaultConsent:"pending"` queue and nothing is sent until a
+  // grant. Only `consentHold: false` (and no `consent` vector) leaves it `null`: no hold,
+  // the gate is off and alloy sends as stock does.
+  const consentHoldOff = consentHold === false;
+  const consentRef = consent ? { ...consent } : consentHoldOff ? null : {};
+  let consentInputWired = Boolean(consent);
+  let noInputWarned = false;
+  const warnDiagnostic = typeof opts.onDiagnostic === "function" ? opts.onDiagnostic : decisionDiagnostic;
+  if (consentHoldOff && !consent) {
+    warnDiagnostic({
+      level: "warn",
+      kind: "consent",
+      disposition: "hold-off",
+      reason: "consentHold: false — the consent hold is off for this connector; it sends without waiting for consent",
+    });
+  }
 
   const caps = {
     egress: {
@@ -1728,9 +1746,9 @@ export async function bootAlloy(opts = {}) {
     // creds-gated live-Alloy follow-on (docs/refinement-todo.md), NOT a silent drop.
     endpointCeiling: [ALLOY_INTERACT_ENDPOINT],
     consent: consentRef,
-    // 020-02: the TRUSTED strict seam gate. Gated on `consent` being wired (back-compat:
-    // no consent → [] → gate off, byte-unchanged), mirroring every other boot.
-    egressPurposes: consent ? ALLOY_EGRESS_PURPOSES : [],
+    // 020-02: the TRUSTED strict seam gate; 067-03: on unless the hold is explicitly off.
+    egressPurposes: consentRef ? ALLOY_EGRESS_PURPOSES : [],
+    consentHold,
     payloadDenylist,
     payloadDenylistOverride,
     // spec 035-01 AC2/AC3 — the WRITE-side name-scope + validation gate, wired to
@@ -1788,17 +1806,60 @@ export async function bootAlloy(opts = {}) {
   // that declares none posts the exact init message it always did.
   const storageGrant = resolveStorageGrant(ALLOY_STORAGE_NAMES, storageGrantNarrowing);
   const storageSeed = storageGrant.active ? scopeSeedStorage(pageStorage(), storageGrant.areas) : null;
-  host.init({ cookie: seedCookie, config, bundleUrl, consent, ...(storageSeed ? { storage: storageSeed } : {}) });
+  host.init({ cookie: seedCookie, config, bundleUrl, consent: consentRef, ...(storageSeed ? { storage: storageSeed } : {}) });
 
-  // Serialize push/pushCritical through the single-slot driveEvent: a sequential
-  // promise chain so two events never overlap (the re-entry guard at
-  // wrapped-sdk-host.js is respected — one page event per host round-trip).
-  let tail = Promise.resolve();
+  // Serialize push/pushCritical through the single-slot driveEvent: events run one at a time
+  // (the re-entry guard at wrapped-sdk-host.js is respected — one page event per host round-trip).
+  // While consent is not granted the first event waits inside alloy's own pending queue, so the
+  // rest wait here; that wait is bounded by 02's `MAX_HELD_BEACONS` (oldest waiting event dropped,
+  // `disposition: "dropped"`). A granted consent is never capped.
+  const waiting = [];
+  let running = false;
+  const consentOpen = () => resolveConsent(consentRef, "analytics_storage") === "granted";
+  const pump = async () => {
+    if (running) return;
+    running = true;
+    while (waiting.length) {
+      const { event, resolve, reject } = waiting.shift();
+      try {
+        sendStockContext();
+        resolve(await host.driveEvent(event));
+      } catch (e) {
+        reject(e);
+      }
+    }
+    running = false;
+  };
   const enqueue = (event) => {
-    const run = tail.then(() => { sendStockContext(); return host.driveEvent(event); });
-    // Keep the chain alive past a per-event fatal, and attach a handler to `run` so a
-    // rejection is never unhandled (push discards the returned promise).
-    tail = run.catch(() => {});
+    if (consentRef && !consentInputWired && !noInputWarned) {
+      noInputWarned = true;
+      warnDiagnostic({
+        level: "warn",
+        kind: "consent",
+        disposition: "held",
+        purpose: ALLOY_EGRESS_PURPOSES.join(","),
+        reason: "no consent input wired — events are held until consent is granted; pass `consent` or call setConsent (consentHold: false turns the hold off)",
+      });
+    }
+    const run = new Promise((resolve, reject) => {
+      waiting.push({ event, resolve, reject });
+      if (consentRef && !consentOpen()) {
+        while (waiting.length > MAX_HELD_BEACONS) {
+          const dropped = waiting.shift();
+          dropped.resolve(undefined);
+          warnDiagnostic({
+            level: "warn",
+            kind: "consent",
+            disposition: "dropped",
+            purpose: ALLOY_EGRESS_PURPOSES.join(","),
+            reason: `consent hold ring full (cap ${MAX_HELD_BEACONS}) — oldest held event dropped`,
+          });
+        }
+      }
+    });
+    // Attach a handler so a per-event fatal is never an unhandled rejection (push discards it).
+    run.catch(() => {});
+    pump();
     return run;
   };
   // Map a composite site event `{ event: name, ...fields }` to the chamber descriptor
@@ -1824,11 +1885,11 @@ export async function bootAlloy(opts = {}) {
     //   (b) drive alloy's OWN setConsent in the chamber (host.setConsent -> the
     //       {type:"setConsent"} message) — alloy natively FLUSHES its
     //       defaultConsent:"pending" queue (grounded: rig/alloy-consent-pending.mjs).
-    // Gated on `consentRef` (opt-in via a boot that wired consent): a no-consent boot
-    // leaves the gate off (egressPurposes stayed []) and posts NO chamber message —
-    // byte-unchanged, mirroring every other connector.
+    // Gated on `consentRef`: only a `consentHold: false` boot with no consent vector has none,
+    // leaves the gate off and posts NO chamber message.
     setConsent: (v) => {
       if (!consentRef || !v) return;
+      consentInputWired = true;
       Object.assign(consentRef, v); // (a) seam live ref
       host.setConsent(consentRef); // (b) chamber alloy setConsent -> native flush
     },

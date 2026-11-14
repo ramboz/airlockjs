@@ -1179,22 +1179,35 @@ describe("createWrappedSdkHost — consent enforcement (spec 020-02 AC1, ADR-000
     expect(host.getState().consentHeld).toBe(0);
   }, 2000);
 
-  it("back-compat: NO egressPurposes wired -> dispatched normally even with a fully-denied vector (the gate is opt-in)", async () => {
-    const { chamber, dispatched, diags, host } = makeSpyingHost({ consent: { analytics_storage: "denied", personalization: "denied" } });
+  it("067-03 AC2: a consent vector with EMPTY egressPurposes HOLDS on analytics_storage and warns once (no longer sends)", async () => {
+    const consent = { analytics_storage: "denied", personalization: "denied" };
+    const { chamber, dispatched, diags, host } = makeSpyingHost({ consent });
 
     const posted = chamber.nextPost();
     chamber.emit({ type: "intercepted-fetch", id: 4, url: INTERACT, method: "POST", headers: {}, body: "{}" });
     const msg = await posted;
 
-    expect(dispatched.length).toBe(1); // no seam gate installed — dispatched exactly as before this slice
-    expect(msg.status).toBe(200);
-    // 020-02 arch review: a consent vector wired WITHOUT egressPurposes now emits a
-    // construction-time FAIL-LOUD warn (the trusted seam drop is OFF — only the
-    // in-chamber delegate would enforce) — but NO per-dispatch "held": the interact
-    // still dispatches (the seam gate is opt-in), so this stays back-compat behaviourally.
-    expect(diags.find((d) => d.kind === "consent" && d.disposition === "not-enforced")).toBeDefined();
-    expect(diags.find((d) => d.kind === "consent" && d.disposition === "held")).toBeUndefined();
-    expect(host.getState().consentHeld).toBe(0);
+    expect(dispatched.length).toBe(0);
+    expect(msg).toMatchObject({ status: 0, statusText: "held at the seal: consent" });
+    expect(host.getState().consentHeld).toBe(1);
+    expect(diags.filter((d) => d.kind === "consent" && d.disposition === "empty-purposes")).toHaveLength(1);
+    expect(diags.find((d) => d.disposition === "not-enforced")).toBeUndefined();
+
+    consent.analytics_storage = "granted";
+    const sent = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 5, url: INTERACT, method: "POST", headers: {}, body: "{}" });
+    expect((await sent).status).toBe(200);
+    expect(dispatched.length).toBe(1);
+  }, 2000);
+
+  it("067-03: consentHold:false keeps the empty-purposes seam off, with its own hold-off warning", async () => {
+    const { chamber, dispatched, diags } = makeSpyingHost({ consent: { analytics_storage: "denied" }, consentHold: false });
+
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: 6, url: INTERACT, method: "POST", headers: {}, body: "{}" });
+    expect((await posted).status).toBe(200);
+    expect(dispatched.length).toBe(1);
+    expect(diags.filter((d) => d.kind === "consent" && d.disposition === "hold-off")).toHaveLength(1);
   }, 2000);
 
   it("back-compat: egressPurposes wired but NO consent vector at all -> pending -> strict-held (unset consent fails closed, not open)", async () => {
