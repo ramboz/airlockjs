@@ -1,8 +1,7 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: [067-02]
 last_verified: 2026-11-13
-claimed_by: alloy-hold-and-empty-purposes
 ---
 
 ## Slice 067-03: Alloy holds and flushes, and an empty `egressPurposes` holds and warns
@@ -50,3 +49,14 @@ claimed_by: alloy-hold-and-empty-purposes
 **AC3 decision (documented, pinned).** The seam strict drop is a backstop. Anything Alloy queued never reaches the seam before a grant, and the adapter updates the live ref before driving Alloy's `setConsent`, so the flush passes as granted. What can still reach the seam pending is an interact Alloy did not queue (a compromised chamber, or Alloy sending on a stale consent cookie it was seeded with); dropping that is the seam's job. A test pins this.
 
 **Residual.** `kndctr_` seeds include Alloy's consent cookie; a stale "in" cookie makes Alloy send on a pending page and the seam drops it (not held). Clearing the seeded consent cookie while consent is pending would turn that into a queue hold; follow-up if live checks show it.
+
+### Deviation log
+
+- **No-input start equals an explicit pending vector.** `bootAlloy` passes `{}`; `resolveConsent` treats an unset purpose as pending, so `shapeAlloyBoot({})` gives the same `defaultConsent:"pending"` the grounding rig exercises (AC4 round trip, rig run above).
+- **Empty-purposes hold keys on `analytics_storage` only** (Alloy's one collect purpose).
+- **Effective cap is `MAX_HELD_BEACONS` + the one event inside Alloy's own queue.**
+- **Round-trip suites opt out with `consentHold:false`;** the no-input hold is covered by the modeled-chamber test, the real-Alloy proof is the rig.
+
+### Reconciliation sweep
+
+Review round 1 (Opus 5.5): two mediums (missing ADR-0013 code pointer, AC4 evidence for the no-input path) and lows (exact cap count); fixed. See `reviews/slice-03-*.md`.

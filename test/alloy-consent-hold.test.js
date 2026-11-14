@@ -145,7 +145,7 @@ describe("067-03 AC3/AC4 — pending holds, a grant flushes the queued sendEvent
     for (let i = 0; i < MAX_HELD_BEACONS + 5; i++) handle.push(view);
     await tick();
     const dropped = diags.filter((d) => d.kind === "consent" && d.disposition === "dropped");
-    expect(dropped.length).toBeGreaterThanOrEqual(4);
+    expect(dropped.length).toBe(4);
     expect(dropped[0].reason).toMatch(new RegExp(`cap ${MAX_HELD_BEACONS}`));
   });
 });
