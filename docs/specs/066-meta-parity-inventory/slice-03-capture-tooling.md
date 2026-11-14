@@ -1,7 +1,8 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: IN_PROGRESS
 dependencies: [066-01]
 last_verified: 2026-11-13
+claimed_by: meta-mt0-capture-tooling
 ---
 
 ## Slice 066-03: MT0, Meta capture tooling on top of the shared 064-03 tooling
