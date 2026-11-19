@@ -10,6 +10,7 @@ import { buildManifest, finishFixture } from "./capture-fixture.mjs";
 //   node capture-session.mjs --id s1-base --state S1 --scenario page-view \
 //     --headed|--headless [--variant viewport|locale|timezone|referrer] \
 //     [--source <profile-source-id>] [--poc-commit <sha>] [--rerecord "why"]
+//     [--owner-change "text" --change-at <iso> --waited "text"]
 // Withheld IDs are read at runtime from the file named by AIRLOCK_PRIVATE_IDS
 // (outside the repo) and scrubbed to labels; nothing about that file is stored.
 
@@ -105,6 +106,18 @@ const SCENARIOS = {
     await step("configure", configure(page, { datastreamId: BOGUS_DATASTREAM }));
     await step("sendEvent", call(page, "sendEvent", PV));
   },
+  fpid: async (page, step) => {
+    await page.evaluate(() => { document.cookie = "airlock064_fpid=airlock064-fpid-value; path=/; SameSite=Lax"; });
+    await step("configure", configure(page));
+    await step("sendEvent", call(page, "sendEvent", { ...PV, decisionScopes: [SCOPE] }));
+  },
+  combined: async (page, step) => {
+    await step("configure", configure(page));
+    await step("sendEvent", call(page, "sendEvent", {
+      ...PV, decisionScopes: [SCOPE],
+      xdm: { ...PV.xdm, identityMap: { airlock064ns: [{ id: "airlock064-id-1", authenticatedState: "ambiguous", primary: false }] } },
+    }));
+  },
   "overrides-off": async (page, step) => {
     await step("configure", configure(page));
     await step("sendEvent", call(page, "sendEvent", { ...PV, edgeConfigOverrides: { com_adobe_target: { enabled: false }, com_adobe_analytics: { enabled: false } } }));
@@ -189,7 +202,9 @@ async function main() {
     const capture = {
       recording_id: id, state, scenario, variant: args.variant ?? null,
       poc_commit: args["poc-commit"] ?? null, source_fixture: args.source ?? null,
-      rerecord: args.rerecord ?? null, user_agent: ua, alloy_loads: alloy.loads, dropped, steps,
+      rerecord: args.rerecord ?? null,
+      owner_change: args["owner-change"] ? { change: args["owner-change"], at: args["change-at"] ?? null, waited: args.waited ?? null } : null,
+      user_agent: ua, alloy_loads: alloy.loads, dropped, steps,
     };
     const done = finishFixture({ manifest, capture, requests, withheld: withheld() });
     mkdirSync(OUT, { recursive: true });
