@@ -62,3 +62,19 @@ Status stays IN_PROGRESS. Phase A is done: 28 of 28 planned recordings stored un
 2. The first response on a fresh profile carries two `__view__` Target propositions (activities 3258675 and 3711334) with default-content items. This is not zero decisions, so the spec 6.2 premise that Target returns nothing needs the owner's attention before S4 is read: the airlock scope itself returns no decision, but `__view__` activities are live on this datastream.
 3. `s5-returning` made no network request: with the stored ECID cookie `getIdentity` and `appendIdentityToUrl` answered from the profile.
 4. Headed viewport reports an inner width of 1265 for a 1280 setting (scrollbar); headless reports 1280. The manifest viewport holds the configured size.
+
+## Phase B notes (settings window, 2026-11-19)
+
+Phase A passed the servo quality-gate (composite 1.0) before its push.
+
+**Window-start baseline (read-only, owner signed in to a dedicated Playwright Chromium profile kept outside the repo; no save, activate, edit or delete click).** Org "Sites Internal", sandbox Prod. Datastream "Airlock Web Events - Test", last modified 2026-10-08 by the owner.
+- Services: Adobe Analytics on, Adobe Target on. Nothing else (so AAM, AEP, Event Forwarding, Decisioning, AJO, Adobe Advertising are all off).
+- Analytics: report suite = `owned test report suite`; Visitor ID namespace empty; report suite overrides empty.
+- Target: property token = `owned Target property`; environment ID = `owned Target environment`; Third Party ID namespace empty; property token overrides empty.
+- Geolocation and network lookup: all 15 boxes off. Device lookup: "Keep user agent and client hints headers"; lookup boxes off. IP obfuscation: None.
+- First Party ID cookie: off, name empty. Third Party ID Sync: off, container ID empty, container overrides empty. Access type: Mixed Authentication. Media Analytics: off. Bot detection: IAB list off, no rules.
+- Not read: the Data Prep mapping rules (the UI needs a sample-data step) and dynamic datastream configuration (DDC) rules. DS-34 stays live-only.
+
+**Target.** Readiness activity "Airlock - Readiness Check - 20261008 - Verified" (ID 3864223, A/B Manual, workspace "Airlock - Test", property "Airlock - Adobe Compatibility (Test)", location `airlock.readiness.2e2319c8`) was Inactive and its schedule had ended 2026-10-28T03:15Z. The owner reactivated it in the UI, which Target ended at once. On the owner's instruction the agent set `endsAt` to 2026-11-30T23:59:00Z through the Target Admin API with the owner-provided OAuth server-to-server credential (kept outside the repo; no other field changed). Activities 3258675 and 3711334 could not be located from this login (all workspaces searched, ID URLs return "Something went wrong"); they are the `__view__` activities seen in every S0-S9 response. Report only; untouched.
+
+**D3 / S4 active.** About 3 minutes after the date change the scope returned an `html-content-item` decision. `s4-active-base` and `s4-active-repeat` record that shape (30 attempts used; earlier `s4-base` and `s4-repeat` stay as the no-decision shape). The repeat reuses the base profile; its first Edge response carries the same airlock decision, and the later notification response has an empty decisions payload.
