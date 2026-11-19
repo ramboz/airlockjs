@@ -1,8 +1,9 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: IN_PROGRESS
 dependencies: [064-02, 064-03]
 last_verified:
 kind: spike
+claimed_by: adobe-cap-capture-064-04
 ---
 
 ## Slice 064-04 — CAP: the capture session
