@@ -1,0 +1,357 @@
+{
+  "schema": "airlock.adobe-capture",
+  "manifest": {
+    "schema_version": 1,
+    "vendor": "adobe",
+    "captured_at": "2026-11-19T16:28:05.292Z",
+    "input_state": {
+      "url": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-stock=v1&case=no-offer&run=airlock05102-4db90b2a24294d1ae730a80d0636b20d&consent=decline&google-ads=off&meta-pixel=off",
+      "referrer": null,
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "locale": "en-US",
+      "timezone": "America/New_York",
+      "egress": {
+        "region": "non-eea",
+        "exit_id": "default"
+      },
+      "browser": {
+        "name": "chromium",
+        "version": "151.0.0.0"
+      },
+      "mode": "headed",
+      "profile_kind": "fresh",
+      "loaded_digests": {
+        "script_sha256": "7dd09409bb07d47b1b2289eec4ca15d67084a85a3d832bef6c73180889da32e8"
+      },
+      "storage_before": {
+        "cookies": [],
+        "local_storage": {},
+        "session_storage": {}
+      },
+      "storage_after": {
+        "cookies": [
+          {
+            "name": "kndctr_908936ED5D35CC220A495CD4_AdobeOrg_cluster",
+            "value": "or2",
+            "domain": ".main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+            "path": "/"
+          },
+          {
+            "name": "kndctr_908936ED5D35CC220A495CD4_AdobeOrg_identity",
+            "value": "CiY2Njk2NjQ1ODI0MzA2MDM4NzI3MDIzMDQ3NTcwNjczMDEzMzg0NlISCMTIi6WfNBABGAEqA09SMjAA8AHEyIulnzQ=",
+            "domain": ".main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+            "path": "/"
+          },
+          {
+            "name": "kndctr_908936ED5D35CC220A495CD4_AdobeOrg_consent",
+            "value": "general=in",
+            "domain": ".main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+            "path": "/"
+          }
+        ],
+        "local_storage": {
+          "com.adobe.alloy.908936ED5D35CC220A495CD4_AdobeOrg.consentHashes.Adobe.2.0": "640d95a7"
+        },
+        "session_storage": {
+          "fonts-loaded": "true"
+        }
+      }
+    }
+  },
+  "capture": {
+    "recording_id": "s10-repeat",
+    "state": "S10",
+    "scenario": "stock-no-offer",
+    "variant": null,
+    "poc_commit": "27054432f4f3248ddb6d24cf44b0bab54bf08023",
+    "source_fixture": null,
+    "rerecord": null,
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+    "alloy_loads": [
+      {
+        "url": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/tools/airlock-stock/vendor/aem-martech/alloy.min.js",
+        "bytes": 152336,
+        "sha256": "7dd09409bb07d47b1b2289eec4ca15d67084a85a3d832bef6c73180889da32e8"
+      }
+    ],
+    "dropped": 0,
+    "steps": [
+      {
+        "step": "control-visible",
+        "at_ms": 1147
+      }
+    ]
+  },
+  "requests": [
+    {
+      "seq": 1,
+      "url": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/tools/airlock-stock/vendor/aem-martech/alloy.min.js",
+      "method": "GET",
+      "resource_type": "script",
+      "started_at": "2026-11-19T16:27:58.138Z",
+      "request_headers": {
+        ":authority": "main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        ":method": "GET",
+        ":path": "/tools/airlock-stock/vendor/aem-martech/alloy.min.js",
+        ":scheme": "https",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US",
+        "origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "priority": "u=1",
+        "referer": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/tools/airlock-stock/vendor/aem-martech/index.js",
+        "sec-ch-ua": "\"Chromium\";v=\"151\", \"Not=A?Brand\";v=\"99\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "sec-fetch-dest": "script",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-origin",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+      },
+      "request_body": null,
+      "request_body_bytes": 0,
+      "request_body_truncated": false,
+      "status": 200,
+      "response_headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "cache-control": "max-age=60, must-revalidate",
+        "content-encoding": "gzip",
+        "content-length": "50279",
+        "content-type": "text/javascript; charset=utf-8",
+        "date": "Thu, 19 Nov 2026 16:27:58 GMT",
+        "etag": "\"09ff98941352bc88ba31ddd0de223e97\"",
+        "last-modified": "Fri, 09 Oct 2026 23:44:21 GMT",
+        "strict-transport-security": "max-age=31557600",
+        "vary": "Accept-Encoding",
+        "via": "1.1 varnish, 1.1 varnish, 1.1 varnish",
+        "x-cache": "MISS, MISS, HIT",
+        "x-cache-hits": "0, 0, 2",
+        "x-robots-tag": "noindex, nofollow",
+        "x-served-by": "cache-iad-kcgs7200145-IAD, cache-iad-kcgs7200145-IAD, cache-den-kden1300032-DEN",
+        "x-timer": "S1795105458.707658,VS0,VE64"
+      },
+      "response_body": null,
+      "response_body_bytes": 152336,
+      "response_body_truncated": false,
+      "failure": null
+    },
+    {
+      "seq": 2,
+      "url": "https://edge.adobedc.net/ee/v1/privacy/set-consent?configId=23190fa7-9e6b-4250-b87b-abcdc8ebc297&requestId=30bfc03f-5a98-41a8-8a67-646439699989",
+      "method": "POST",
+      "resource_type": "fetch",
+      "started_at": "2026-11-19T16:27:58.222Z",
+      "request_headers": {
+        ":authority": "edge.adobedc.net",
+        ":method": "POST",
+        ":path": "/ee/v1/privacy/set-consent?configId=23190fa7-9e6b-4250-b87b-abcdc8ebc297&requestId=30bfc03f-5a98-41a8-8a67-646439699989",
+        ":scheme": "https",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US",
+        "cache-control": "max-age=0",
+        "content-length": "330",
+        "content-type": "text/plain; charset=UTF-8",
+        "origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "priority": "u=1, i",
+        "referer": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-stock=v1&case=no-offer&run=airlock05102-4db90b2a24294d1ae730a80d0636b20d&consent=decline&google-ads=off&meta-pixel=off",
+        "sec-ch-ua": "\"Chromium\";v=\"151\", \"Not=A?Brand\";v=\"99\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "sec-fetch-storage-access": "active",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+      },
+      "request_body": "{\"consent\":[{\"standard\":\"Adobe\",\"version\":\"2.0\",\"value\":{\"collect\":{\"val\":\"y\"},\"marketing\":{\"any\":{\"val\":\"n\"},\"preferred\":\"email\"},\"personalize\":{\"content\":{\"val\":\"y\"}},\"share\":{\"val\":\"n\"}}}],\"query\":{\"identity\":{\"fetch\":[\"ECID\"]}},\"meta\":{\"state\":{\"domain\":\"main--aem-eds-airlock-poc--adobe-rnd.aem.page\",\"cookiesEnabled\":true}}}",
+      "request_body_bytes": 330,
+      "request_body_truncated": false,
+      "status": 200,
+      "response_headers": {
+        "access-control-allow-credentials": "true",
+        "access-control-allow-origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "access-control-expose-headers": "Retry-After, X-Adobe-Edge, X-Request-ID",
+        "cache-control": "no-cache, no-store, max-age=0, no-transform, private",
+        "content-encoding": "gzip",
+        "content-type": "application/json;charset=utf-8",
+        "date": "Thu, 19 Nov 2026 16:27:58 GMT",
+        "server": "jag",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "vary": "Origin",
+        "x-adobe-edge": "OR2;9",
+        "x-content-type-options": "nosniff",
+        "x-konductor": "26.10.2-HEAD-SNAPSHOT:b15ed3dbd",
+        "x-request-id": "30bfc03f-5a98-41a8-8a67-646439699989-4c0ac672f7e941f8",
+        "x-xss-protection": "1; mode=block"
+      },
+      "response_body": "{\"requestId\":\"30bfc03f-5a98-41a8-8a67-646439699989-4c0ac672f7e941f8\",\"handle\":[{\"payload\":[{\"id\":\"66966458243060387270230475706730133846\",\"namespace\":{\"code\":\"ECID\"}}],\"type\":\"identity:result\"},{\"payload\":[{\"scope\":\"Target\",\"hint\":\"35\",\"ttlSeconds\":1800},{\"scope\":\"AAM\",\"hint\":\"9\",\"ttlSeconds\":1800},{\"scope\":\"EdgeNetwork\",\"hint\":\"or2\",\"ttlSeconds\":1800}],\"type\":\"locationHint:result\"},{\"payload\":[{\"collect\":{\"val\":\"y\"},\"share\":{\"val\":\"n\"},\"personalize\":{\"content\":{\"val\":\"y\"}},\"marketing\":{\"preferred\":\"email\",\"any\":{\"val\":\"n\"}}}],\"type\":\"consent:preferences\"},{\"payload\":[{\"key\":\"kndctr_908936ED5D35CC220A495CD4_AdobeOrg_cluster\",\"value\":\"or2\",\"maxAge\":1800,\"attrs\":{\"SameSite\":\"None\"}},{\"key\":\"kndctr_908936ED5D35CC220A495CD4_AdobeOrg_identity\",\"value\":\"CiY2Njk2NjQ1ODI0MzA2MDM4NzI3MDIzMDQ3NTcwNjczMDEzMzg0NlISCMTIi6WfNBABGAEqA09SMjAA8AHEyIulnzQ=\",\"maxAge\":34128000,\"attrs\":{\"SameSite\":\"None\"}},{\"key\":\"kndctr_908936ED5D35CC220A495CD4_AdobeOrg_consent\",\"value\":\"general=in\",\"maxAge\":15552000,\"attrs\":{\"SameSite\":\"None\"}}],\"type\":\"state:store\"}]}",
+      "response_body_bytes": 1049,
+      "response_body_truncated": false,
+      "failure": null
+    },
+    {
+      "seq": 3,
+      "url": "https://edge.adobedc.net/ee/or2/v1/interact?configId=23190fa7-9e6b-4250-b87b-abcdc8ebc297&requestId=3767be63-ee75-4a12-ba69-351bcafd2656",
+      "method": "POST",
+      "resource_type": "fetch",
+      "started_at": "2026-11-19T16:27:58.443Z",
+      "request_headers": {
+        ":authority": "edge.adobedc.net",
+        ":method": "POST",
+        ":path": "/ee/or2/v1/interact?configId=23190fa7-9e6b-4250-b87b-abcdc8ebc297&requestId=3767be63-ee75-4a12-ba69-351bcafd2656",
+        ":scheme": "https",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US",
+        "cache-control": "max-age=0",
+        "content-length": "1646",
+        "content-type": "text/plain; charset=UTF-8",
+        "origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "priority": "u=1, i",
+        "referer": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-stock=v1&case=no-offer&run=airlock05102-4db90b2a24294d1ae730a80d0636b20d&consent=decline&google-ads=off&meta-pixel=off",
+        "sec-ch-ua": "\"Chromium\";v=\"151\", \"Not=A?Brand\";v=\"99\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "sec-fetch-storage-access": "active",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+      },
+      "request_body": "{\"events\":[{\"xdm\":{\"eventType\":\"decisioning.propositionFetch\",\"web\":{\"webPageDetails\":{\"URL\":\"https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-stock=v1&case=no-offer&run=airlock05102-4db90b2a24294d1ae730a80d0636b20d&consent=decline&google-ads=off&meta-pixel=off\",\"name\":\"airlock-stock-v1\"},\"webReferrer\":{\"URL\":\"\"}},\"device\":{\"screenHeight\":800,\"screenWidth\":1280,\"screenOrientation\":\"landscape\"},\"environment\":{\"type\":\"browser\",\"browserDetails\":{\"viewportWidth\":1265,\"viewportHeight\":800}},\"timestamp\":\"2026-11-19T16:27:58.440Z\",\"implementationDetails\":{\"name\":\"https://ns.adobe.com/experience/alloy\",\"version\":\"2.31.1\",\"environment\":\"browser\"}},\"query\":{\"personalization\":{\"schemas\":[\"https://ns.adobe.com/personalization/default-content-item\",\"https://ns.adobe.com/personalization/html-content-item\",\"https://ns.adobe.com/personalization/json-content-item\",\"https://ns.adobe.com/personalization/redirect-item\",\"https://ns.adobe.com/personalization/ruleset-item\",\"https://ns.adobe.com/personalization/message/in-app\",\"https://ns.adobe.com/personalization/message/content-card\"],\"decisionScopes\":[\"airlock.readiness.2e2319c8\"],\"surfaces\":[]}}}],\"query\":{\"identity\":{\"fetch\":[\"ECID\"]}},\"meta\":{\"queueTimeMillis\":3,\"state\":{\"domain\":\"main--aem-eds-airlock-poc--adobe-rnd.aem.page\",\"cookiesEnabled\":true,\"entries\":[{\"key\":\"kndctr_908936ED5D35CC220A495CD4_AdobeOrg_cluster\",\"value\":\"or2\"},{\"key\":\"kndctr_908936ED5D35CC220A495CD4_AdobeOrg_identity\",\"value\":\"CiY2Njk2NjQ1ODI0MzA2MDM4NzI3MDIzMDQ3NTcwNjczMDEzMzg0NlISCMTIi6WfNBABGAEqA09SMjAA8AHEyIulnzQ=\"},{\"key\":\"kndctr_908936ED5D35CC220A495CD4_AdobeOrg_consent\",\"value\":\"general=in\"}]}}}",
+      "request_body_bytes": 1646,
+      "request_body_truncated": false,
+      "status": 200,
+      "response_headers": {
+        "access-control-allow-credentials": "true",
+        "access-control-allow-origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "access-control-expose-headers": "Retry-After, X-Adobe-Edge, X-Request-ID",
+        "cache-control": "no-cache, no-store, max-age=0, no-transform, private",
+        "content-encoding": "gzip",
+        "content-type": "application/json;charset=utf-8",
+        "date": "Thu, 19 Nov 2026 16:27:57 GMT",
+        "server": "jag",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "vary": "Origin",
+        "x-adobe-edge": "OR2;9",
+        "x-content-type-options": "nosniff",
+        "x-konductor": "26.10.2-HEAD-SNAPSHOT:b15ed3dbd",
+        "x-request-id": "3767be63-ee75-4a12-ba69-351bcafd2656-1461527605b940cd",
+        "x-xss-protection": "1; mode=block"
+      },
+      "response_body": "{\"requestId\":\"3767be63-ee75-4a12-ba69-351bcafd2656-1461527605b940cd\",\"handle\":[{\"payload\":[{\"id\":\"66966458243060387270230475706730133846\",\"namespace\":{\"code\":\"ECID\"}}],\"type\":\"identity:result\"},{\"payload\":[],\"type\":\"personalization:decisions\",\"eventIndex\":0},{\"payload\":[{\"scope\":\"Target\",\"hint\":\"35\",\"ttlSeconds\":1800},{\"scope\":\"AAM\",\"hint\":\"9\",\"ttlSeconds\":1800},{\"scope\":\"EdgeNetwork\",\"hint\":\"or2\",\"ttlSeconds\":1800}],\"type\":\"locationHint:result\"},{\"payload\":[{\"key\":\"kndctr_908936ED5D35CC220A495CD4_AdobeOrg_cluster\",\"value\":\"or2\",\"maxAge\":1800,\"attrs\":{\"SameSite\":\"None\"}}],\"type\":\"state:store\"}]}",
+      "response_body_bytes": 602,
+      "response_body_truncated": false,
+      "failure": null
+    },
+    {
+      "seq": 4,
+      "url": "https://edge.adobedc.net/ee/or2/v1/collect?configId=23190fa7-9e6b-4250-b87b-abcdc8ebc297&requestId=92f65b38-f8a3-425b-9c19-bbfd1a1d913e",
+      "method": "POST",
+      "resource_type": "ping",
+      "started_at": "2026-11-19T16:27:58.537Z",
+      "request_headers": {
+        ":authority": "edge.adobedc.net",
+        ":method": "POST",
+        ":path": "/ee/or2/v1/collect?configId=23190fa7-9e6b-4250-b87b-abcdc8ebc297&requestId=92f65b38-f8a3-425b-9c19-bbfd1a1d913e",
+        ":scheme": "https",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US",
+        "content-length": "1522",
+        "content-type": "text/plain; charset=utf-8",
+        "origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "priority": "u=4, i",
+        "referer": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/",
+        "sec-ch-ua": "\"Chromium\";v=\"151\", \"Not=A?Brand\";v=\"99\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "no-cors",
+        "sec-fetch-site": "cross-site",
+        "sec-fetch-storage-access": "active",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+      },
+      "request_body": null,
+      "request_body_bytes": 0,
+      "request_body_truncated": false,
+      "status": 204,
+      "response_headers": {
+        "access-control-allow-credentials": "true",
+        "access-control-allow-origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "access-control-expose-headers": "Retry-After, X-Adobe-Edge, X-Request-ID",
+        "cache-control": "no-cache, no-store, max-age=0, no-transform, private",
+        "date": "Thu, 19 Nov 2026 16:27:58 GMT",
+        "server": "jag",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "vary": "Origin",
+        "x-adobe-edge": "OR2;9",
+        "x-content-type-options": "nosniff",
+        "x-konductor": "26.10.2-HEAD-SNAPSHOT:b15ed3dbd",
+        "x-request-id": "92f65b38-f8a3-425b-9c19-bbfd1a1d913e-0b096321693c4835",
+        "x-xss-protection": "1; mode=block"
+      },
+      "response_body": "",
+      "response_body_bytes": 0,
+      "response_body_truncated": false,
+      "failure": null
+    },
+    {
+      "seq": 5,
+      "url": "https://edge.adobedc.net/ee/or2/v1/collect?configId=23190fa7-9e6b-4250-b87b-abcdc8ebc297&requestId=d1869585-6ae9-412d-b49b-5ef75dec1f2d",
+      "method": "POST",
+      "resource_type": "ping",
+      "started_at": "2026-11-19T16:27:58.812Z",
+      "request_headers": {
+        ":authority": "edge.adobedc.net",
+        ":method": "POST",
+        ":path": "/ee/or2/v1/collect?configId=23190fa7-9e6b-4250-b87b-abcdc8ebc297&requestId=d1869585-6ae9-412d-b49b-5ef75dec1f2d",
+        ":scheme": "https",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US",
+        "content-length": "1383",
+        "content-type": "text/plain; charset=utf-8",
+        "origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "priority": "u=4, i",
+        "referer": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/",
+        "sec-ch-ua": "\"Chromium\";v=\"151\", \"Not=A?Brand\";v=\"99\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "no-cors",
+        "sec-fetch-site": "cross-site",
+        "sec-fetch-storage-access": "active",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+      },
+      "request_body": null,
+      "request_body_bytes": 0,
+      "request_body_truncated": false,
+      "status": 204,
+      "response_headers": {
+        "access-control-allow-credentials": "true",
+        "access-control-allow-origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "access-control-expose-headers": "Retry-After, X-Adobe-Edge, X-Request-ID",
+        "cache-control": "no-cache, no-store, max-age=0, no-transform, private",
+        "date": "Thu, 19 Nov 2026 16:27:58 GMT",
+        "server": "jag",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "vary": "Origin",
+        "x-adobe-edge": "OR2;9",
+        "x-content-type-options": "nosniff",
+        "x-konductor": "26.10.2-HEAD-SNAPSHOT:b15ed3dbd",
+        "x-request-id": "d1869585-6ae9-412d-b49b-5ef75dec1f2d-a4017c89dea14aac",
+        "x-xss-protection": "1; mode=block"
+      },
+      "response_body": "",
+      "response_body_bytes": 0,
+      "response_body_truncated": false,
+      "failure": null
+    }
+  ]
+}

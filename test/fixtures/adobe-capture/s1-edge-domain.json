@@ -1,0 +1,453 @@
+{
+  "schema": "airlock.adobe-capture",
+  "manifest": {
+    "schema_version": 1,
+    "vendor": "adobe",
+    "captured_at": "2026-11-19T16:25:59.110Z",
+    "input_state": {
+      "url": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-capture=v1&run=airlock064-e1eb248901a2e2050e6a6ce92b474bea&state=S1&google-ads=off&meta-pixel=off",
+      "referrer": null,
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "locale": "en-US",
+      "timezone": "America/New_York",
+      "egress": {
+        "region": "non-eea",
+        "exit_id": "default"
+      },
+      "browser": {
+        "name": "chromium",
+        "version": "151.0.0.0"
+      },
+      "mode": "headed",
+      "profile_kind": "fresh",
+      "loaded_digests": {
+        "script_sha256": "7dd09409bb07d47b1b2289eec4ca15d67084a85a3d832bef6c73180889da32e8"
+      },
+      "storage_before": {
+        "cookies": [],
+        "local_storage": {},
+        "session_storage": {}
+      },
+      "storage_after": {
+        "cookies": [
+          {
+            "name": "demdex",
+            "value": "77331268913922388261267441610253477276",
+            "domain": ".demdex.net",
+            "path": "/"
+          },
+          {
+            "name": "kndctr_908936ED5D35CC220A495CD4_AdobeOrg_cluster",
+            "value": "or2",
+            "domain": ".main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+            "path": "/"
+          },
+          {
+            "name": "kndctr_908936ED5D35CC220A495CD4_AdobeOrg_identity",
+            "value": "CiY3MjAwNDUxNjEwMDM0OTc5MDg3MTgxMzM3ODQzNjQyMTkwMjQ1N1ISCLCQhKWfNBABGAEqA09SMjAA8AGwkISlnzQ=",
+            "domain": ".main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+            "path": "/"
+          },
+          {
+            "name": "AMCV_908936ED5D35CC220A495CD4%40AdobeOrg",
+            "value": "MCMID|72004516100349790871813378436421902457",
+            "domain": ".main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+            "path": "/"
+          }
+        ],
+        "local_storage": {},
+        "session_storage": {
+          "fonts-loaded": "true"
+        }
+      }
+    }
+  },
+  "capture": {
+    "recording_id": "s1-edge-domain",
+    "state": "S1",
+    "scenario": "page-view-library",
+    "variant": null,
+    "poc_commit": "27054432f4f3248ddb6d24cf44b0bab54bf08023",
+    "source_fixture": null,
+    "rerecord": null,
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+    "alloy_loads": [
+      {
+        "url": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/tools/airlock-stock/vendor/aem-martech/alloy.min.js",
+        "bytes": 152336,
+        "sha256": "7dd09409bb07d47b1b2289eec4ca15d67084a85a3d832bef6c73180889da32e8"
+      }
+    ],
+    "dropped": 0,
+    "steps": [
+      {
+        "step": "configure",
+        "at_ms": 798,
+        "ok": true,
+        "result": {}
+      },
+      {
+        "step": "getLibraryInfo",
+        "at_ms": 800,
+        "ok": true,
+        "result": {
+          "libraryInfo": {
+            "version": "2.31.1",
+            "configs": {
+              "thirdPartyCookiesEnabled": true,
+              "idMigrationEnabled": true,
+              "context": [
+                "web",
+                "device",
+                "environment",
+                "placeContext"
+              ],
+              "personalizationStorageEnabled": false,
+              "targetMigrationEnabled": false,
+              "autoCollectPropositionInteractions": {
+                "AJO": "always",
+                "TGT": "never"
+              },
+              "defaultConsent": "in",
+              "conversation": {
+                "stickyConversationSession": false,
+                "streamTimeout": 10000
+              },
+              "clickCollectionEnabled": false,
+              "clickCollection": {
+                "internalLinkEnabled": true,
+                "externalLinkEnabled": true,
+                "downloadLinkEnabled": true,
+                "sessionStorageEnabled": false,
+                "eventGroupingEnabled": false
+              },
+              "downloadLinkQualifier": "\\.(exe|zip|wav|mp3|mov|mpg|avi|wmv|pdf|doc|docx|xls|xlsx|ppt|pptx)$",
+              "debugEnabled": false,
+              "datastreamId": "23190fa7-9e6b-4250-b87b-abcdc8ebc297",
+              "edgeDomain": "edge.adobedc.net",
+              "edgeBasePath": "ee",
+              "orgId": "908936ED5D35CC220A495CD4@AdobeOrg",
+              "onBeforeEventSend": "()=>{}"
+            },
+            "commands": [
+              "appendIdentityToUrl",
+              "applyPropositions",
+              "applyResponse",
+              "configure",
+              "createEventMergeId",
+              "createMediaSession",
+              "evaluateRulesets",
+              "getIdentity",
+              "getLibraryInfo",
+              "getMediaAnalyticsTracker",
+              "sendConversationEvent",
+              "sendEvent",
+              "sendMediaEvent",
+              "sendPushSubscription",
+              "setConsent",
+              "setDebug",
+              "subscribeRulesetItems"
+            ],
+            "components": [
+              "ActivityCollector",
+              "Advertising",
+              "Audiences",
+              "BrandConcierge",
+              "Consent",
+              "EventMerge",
+              "Legacy Media Analytics",
+              "Personalization",
+              "Push Notifications",
+              "RulesEngine",
+              "Streaming media",
+              "Context",
+              "DataCollector",
+              "Identity",
+              "LibraryInfo"
+            ]
+          }
+        }
+      },
+      {
+        "step": "sendEvent",
+        "at_ms": 1076,
+        "ok": true,
+        "result": {
+          "destinations": [],
+          "propositions": [
+            {
+              "id": "AT:eyJhY3Rpdml0eUlkIjoiMzI1ODY3NSIsImV4cGVyaWVuY2VJZCI6IjAifQ==",
+              "scope": "__view__",
+              "scopeDetails": {
+                "decisionProvider": "TGT",
+                "activity": {
+                  "id": "3258675"
+                },
+                "experience": {
+                  "id": "0"
+                },
+                "strategies": [
+                  {
+                    "step": "entry",
+                    "trafficType": "0"
+                  },
+                  {
+                    "step": "display",
+                    "trafficType": "0"
+                  },
+                  {
+                    "step": "conversion",
+                    "trafficType": "0"
+                  }
+                ],
+                "characteristics": {
+                  "eventToken": "iBMbxsskMUKaDfcljodiI3ZJRFNRMCdc84hKiEgfaartyf8vZbHfLICMmcVo4KgxhLTdoNAHHAKezCKtLVp0lmnlssGfqtZmAiSO52NWERc="
+                },
+                "correlationID": "3258675:0:0"
+              },
+              "items": [
+                {
+                  "id": "3258675-0",
+                  "schema": "https://ns.adobe.com/personalization/default-content-item",
+                  "meta": {}
+                }
+              ],
+              "renderAttempted": false
+            },
+            {
+              "id": "AT:eyJhY3Rpdml0eUlkIjoiMzcxMTMzNCIsImV4cGVyaWVuY2VJZCI6IjAifQ==",
+              "scope": "__view__",
+              "scopeDetails": {
+                "decisionProvider": "TGT",
+                "activity": {
+                  "id": "3711334"
+                },
+                "experience": {
+                  "id": "0"
+                },
+                "strategies": [
+                  {
+                    "step": "entry",
+                    "trafficType": "0"
+                  },
+                  {
+                    "step": "display",
+                    "trafficType": "0"
+                  },
+                  {
+                    "step": "conversion",
+                    "trafficType": "0"
+                  }
+                ],
+                "characteristics": {
+                  "eventToken": "OocsjjG3R7Q0wTKdb9CRt3ZJRFNRMCdc84hKiEgfaartyf8vZbHfLICMmcVo4KgxhLTdoNAHHAKezCKtLVp0lmnlssGfqtZmAiSO52NWERc="
+                },
+                "correlationID": "3711334:0:0"
+              },
+              "items": [
+                {
+                  "id": "3711334-0",
+                  "schema": "https://ns.adobe.com/personalization/default-content-item",
+                  "meta": {}
+                }
+              ],
+              "renderAttempted": false
+            }
+          ],
+          "decisions": [
+            {
+              "id": "AT:eyJhY3Rpdml0eUlkIjoiMzI1ODY3NSIsImV4cGVyaWVuY2VJZCI6IjAifQ==",
+              "scope": "__view__",
+              "scopeDetails": {
+                "decisionProvider": "TGT",
+                "activity": {
+                  "id": "3258675"
+                },
+                "experience": {
+                  "id": "0"
+                },
+                "strategies": [
+                  {
+                    "step": "entry",
+                    "trafficType": "0"
+                  },
+                  {
+                    "step": "display",
+                    "trafficType": "0"
+                  },
+                  {
+                    "step": "conversion",
+                    "trafficType": "0"
+                  }
+                ],
+                "characteristics": {
+                  "eventToken": "iBMbxsskMUKaDfcljodiI3ZJRFNRMCdc84hKiEgfaartyf8vZbHfLICMmcVo4KgxhLTdoNAHHAKezCKtLVp0lmnlssGfqtZmAiSO52NWERc="
+                },
+                "correlationID": "3258675:0:0"
+              },
+              "items": [
+                {
+                  "id": "3258675-0",
+                  "schema": "https://ns.adobe.com/personalization/default-content-item",
+                  "meta": {}
+                }
+              ]
+            },
+            {
+              "id": "AT:eyJhY3Rpdml0eUlkIjoiMzcxMTMzNCIsImV4cGVyaWVuY2VJZCI6IjAifQ==",
+              "scope": "__view__",
+              "scopeDetails": {
+                "decisionProvider": "TGT",
+                "activity": {
+                  "id": "3711334"
+                },
+                "experience": {
+                  "id": "0"
+                },
+                "strategies": [
+                  {
+                    "step": "entry",
+                    "trafficType": "0"
+                  },
+                  {
+                    "step": "display",
+                    "trafficType": "0"
+                  },
+                  {
+                    "step": "conversion",
+                    "trafficType": "0"
+                  }
+                ],
+                "characteristics": {
+                  "eventToken": "OocsjjG3R7Q0wTKdb9CRt3ZJRFNRMCdc84hKiEgfaartyf8vZbHfLICMmcVo4KgxhLTdoNAHHAKezCKtLVp0lmnlssGfqtZmAiSO52NWERc="
+                },
+                "correlationID": "3711334:0:0"
+              },
+              "items": [
+                {
+                  "id": "3711334-0",
+                  "schema": "https://ns.adobe.com/personalization/default-content-item",
+                  "meta": {}
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "requests": [
+    {
+      "seq": 1,
+      "url": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/tools/airlock-stock/vendor/aem-martech/alloy.min.js",
+      "method": "GET",
+      "resource_type": "script",
+      "started_at": "2026-11-19T16:25:56.236Z",
+      "request_headers": {
+        ":authority": "main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        ":method": "GET",
+        ":path": "/tools/airlock-stock/vendor/aem-martech/alloy.min.js",
+        ":scheme": "https",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US",
+        "origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "priority": "u=1",
+        "referer": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/tools/airlock-stock/capture-entry.mjs",
+        "sec-ch-ua": "\"Chromium\";v=\"151\", \"Not=A?Brand\";v=\"99\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "sec-fetch-dest": "script",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-origin",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+      },
+      "request_body": null,
+      "request_body_bytes": 0,
+      "request_body_truncated": false,
+      "status": 200,
+      "response_headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "cache-control": "max-age=60, must-revalidate",
+        "content-encoding": "gzip",
+        "content-length": "50279",
+        "content-type": "text/javascript; charset=utf-8",
+        "date": "Thu, 19 Nov 2026 16:25:56 GMT",
+        "etag": "\"09ff98941352bc88ba31ddd0de223e97\"",
+        "last-modified": "Fri, 09 Oct 2026 23:44:21 GMT",
+        "strict-transport-security": "max-age=31557600",
+        "vary": "Accept-Encoding",
+        "via": "1.1 varnish, 1.1 varnish, 1.1 varnish",
+        "x-cache": "MISS, MISS, HIT",
+        "x-cache-hits": "0, 0, 1",
+        "x-robots-tag": "noindex, nofollow",
+        "x-served-by": "cache-iad-kcgs7200145-IAD, cache-iad-kcgs7200145-IAD, cache-den-kden1300026-DEN",
+        "x-timer": "S1795105458.707658,VS0,VE64"
+      },
+      "response_body": null,
+      "response_body_bytes": 152336,
+      "response_body_truncated": false,
+      "failure": null
+    },
+    {
+      "seq": 2,
+      "url": "https://adobedc.demdex.net/ee/v1/interact?configId=23190fa7-9e6b-4250-b87b-abcdc8ebc297&requestId=bc85c054-3128-45ab-b5c2-050efe8baef5",
+      "method": "POST",
+      "resource_type": "fetch",
+      "started_at": "2026-11-19T16:25:56.332Z",
+      "request_headers": {
+        ":authority": "adobedc.demdex.net",
+        ":method": "POST",
+        ":path": "/ee/v1/interact?configId=23190fa7-9e6b-4250-b87b-abcdc8ebc297&requestId=bc85c054-3128-45ab-b5c2-050efe8baef5",
+        ":scheme": "https",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US",
+        "cache-control": "max-age=0",
+        "content-length": "1476",
+        "content-type": "text/plain; charset=UTF-8",
+        "origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "priority": "u=1, i",
+        "referer": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-capture=v1&run=airlock064-e1eb248901a2e2050e6a6ce92b474bea&state=S1&google-ads=off&meta-pixel=off",
+        "sec-ch-ua": "\"Chromium\";v=\"151\", \"Not=A?Brand\";v=\"99\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "sec-fetch-storage-access": "active",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+      },
+      "request_body": "{\"events\":[{\"query\":{\"personalization\":{\"schemas\":[\"https://ns.adobe.com/personalization/default-content-item\",\"https://ns.adobe.com/personalization/html-content-item\",\"https://ns.adobe.com/personalization/json-content-item\",\"https://ns.adobe.com/personalization/redirect-item\",\"https://ns.adobe.com/personalization/ruleset-item\",\"https://ns.adobe.com/personalization/message/in-app\",\"https://ns.adobe.com/personalization/message/content-card\",\"https://ns.adobe.com/personalization/dom-action\"],\"decisionScopes\":[\"__view__\"],\"surfaces\":[\"web://main--aem-eds-airlock-poc--adobe-rnd.aem.page/\"]}},\"xdm\":{\"web\":{\"webPageDetails\":{\"URL\":\"https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-capture=v1&run=airlock064-e1eb248901a2e2050e6a6ce92b474bea&state=S1&google-ads=off&meta-pixel=off\",\"name\":\"airlock064-page\"},\"webReferrer\":{\"URL\":\"\"}},\"device\":{\"screenHeight\":800,\"screenWidth\":1280,\"screenOrientation\":\"landscape\"},\"environment\":{\"type\":\"browser\",\"browserDetails\":{\"viewportWidth\":1265,\"viewportHeight\":800}},\"placeContext\":{\"localTimezoneOffset\":300,\"localTime\":\"2026-11-19T11:25:56.330-05:00\"},\"timestamp\":\"2026-11-19T16:25:56.330Z\",\"implementationDetails\":{\"name\":\"https://ns.adobe.com/experience/alloy\",\"version\":\"2.31.1\",\"environment\":\"browser\"},\"eventType\":\"web.webpagedetails.pageViews\"}}],\"query\":{\"identity\":{\"fetch\":[\"ECID\",\"CORE\"]}},\"meta\":{\"queueTimeMillis\":2,\"state\":{\"domain\":\"main--aem-eds-airlock-poc--adobe-rnd.aem.page\",\"cookiesEnabled\":true}}}",
+      "request_body_bytes": 1476,
+      "request_body_truncated": false,
+      "status": 200,
+      "response_headers": {
+        "access-control-allow-credentials": "true",
+        "access-control-allow-origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "access-control-expose-headers": "Retry-After, X-Adobe-Edge, X-Request-ID",
+        "cache-control": "no-cache, no-store, max-age=0, no-transform, private",
+        "content-encoding": "gzip",
+        "content-type": "application/json;charset=utf-8",
+        "date": "Thu, 19 Nov 2026 16:25:55 GMT",
+        "server": "jag",
+        "set-cookie": "demdex=77331268913922388261267441610253477276; Max-Age=15552000; Domain=demdex.net; Path=/; Secure; SameSite=None; $x-enc=URI_ENCODING",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "vary": "Origin",
+        "x-adobe-edge": "OR2;9",
+        "x-content-type-options": "nosniff",
+        "x-konductor": "26.10.2-HEAD-SNAPSHOT:b15ed3dbd",
+        "x-request-id": "bc85c054-3128-45ab-b5c2-050efe8baef5-fd912002fd3a434b",
+        "x-xss-protection": "1; mode=block"
+      },
+      "response_body": "{\"requestId\":\"bc85c054-3128-45ab-b5c2-050efe8baef5-fd912002fd3a434b\",\"handle\":[{\"payload\":[{\"id\":\"72004516100349790871813378436421902457\",\"namespace\":{\"code\":\"ECID\"}},{\"id\":\"77331268913922388261267441610253477276\",\"namespace\":{\"code\":\"CORE\"}}],\"type\":\"identity:result\"},{\"payload\":[{\"id\":\"AT:eyJhY3Rpdml0eUlkIjoiMzI1ODY3NSIsImV4cGVyaWVuY2VJZCI6IjAifQ==\",\"scope\":\"__view__\",\"scopeDetails\":{\"decisionProvider\":\"TGT\",\"activity\":{\"id\":\"3258675\"},\"experience\":{\"id\":\"0\"},\"strategies\":[{\"step\":\"entry\",\"trafficType\":\"0\"},{\"step\":\"display\",\"trafficType\":\"0\"},{\"step\":\"conversion\",\"trafficType\":\"0\"}],\"characteristics\":{\"eventToken\":\"iBMbxsskMUKaDfcljodiI3ZJRFNRMCdc84hKiEgfaartyf8vZbHfLICMmcVo4KgxhLTdoNAHHAKezCKtLVp0lmnlssGfqtZmAiSO52NWERc=\"},\"correlationID\":\"3258675:0:0\"},\"items\":[{\"id\":\"3258675-0\",\"schema\":\"https://ns.adobe.com/personalization/default-content-item\",\"meta\":{}}]},{\"id\":\"AT:eyJhY3Rpdml0eUlkIjoiMzcxMTMzNCIsImV4cGVyaWVuY2VJZCI6IjAifQ==\",\"scope\":\"__view__\",\"scopeDetails\":{\"decisionProvider\":\"TGT\",\"activity\":{\"id\":\"3711334\"},\"experience\":{\"id\":\"0\"},\"strategies\":[{\"step\":\"entry\",\"trafficType\":\"0\"},{\"step\":\"display\",\"trafficType\":\"0\"},{\"step\":\"conversion\",\"trafficType\":\"0\"}],\"characteristics\":{\"eventToken\":\"OocsjjG3R7Q0wTKdb9CRt3ZJRFNRMCdc84hKiEgfaartyf8vZbHfLICMmcVo4KgxhLTdoNAHHAKezCKtLVp0lmnlssGfqtZmAiSO52NWERc=\"},\"correlationID\":\"3711334:0:0\"},\"items\":[{\"id\":\"3711334-0\",\"schema\":\"https://ns.adobe.com/personalization/default-content-item\",\"meta\":{}}]}],\"type\":\"personalization:decisions\",\"eventIndex\":0},{\"payload\":[{\"scope\":\"Target\",\"hint\":\"35\",\"ttlSeconds\":1800},{\"scope\":\"AAM\",\"hint\":\"9\",\"ttlSeconds\":1800},{\"scope\":\"EdgeNetwork\",\"hint\":\"or2\",\"ttlSeconds\":1800}],\"type\":\"locationHint:result\"},{\"payload\":[{\"key\":\"kndctr_908936ED5D35CC220A495CD4_AdobeOrg_cluster\",\"value\":\"or2\",\"maxAge\":1800,\"attrs\":{\"SameSite\":\"None\"}},{\"key\":\"kndctr_908936ED5D35CC220A495CD4_AdobeOrg_identity\",\"value\":\"CiY3MjAwNDUxNjEwMDM0OTc5MDg3MTgxMzM3ODQzNjQyMTkwMjQ1N1ISCLCQhKWfNBABGAEqA09SMjAA8AGwkISlnzQ=\",\"maxAge\":34128000,\"attrs\":{\"SameSite\":\"None\"}}],\"type\":\"state:store\"}]}",
+      "response_body_bytes": 2076,
+      "response_body_truncated": false,
+      "failure": null
+    }
+  ]
+}

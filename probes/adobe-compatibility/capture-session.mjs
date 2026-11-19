@@ -97,7 +97,7 @@ const SCENARIOS = {
     await step("queued", drain(page));
   },
   "error-blocked": async (page, step, ctx) => {
-    await ctx.route("**://edge.adobedc.net/**", route => route.abort("blockedbyclient"));
+    await ctx.route(/^https:\/\/[^/]*(adobedc\.net|demdex\.net)\//, route => route.abort("blockedbyclient"));
     await step("configure", configure(page));
     await step("sendEvent", call(page, "sendEvent", PV));
   },

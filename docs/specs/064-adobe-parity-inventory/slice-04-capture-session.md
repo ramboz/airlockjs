@@ -25,3 +25,40 @@ claimed_by: adobe-cap-capture-064-04
 - Corpus committed and frozen; the freeze note lists live-only rows and any gap.
 
 **Anti-horizontal-phasing check:** One session producing the corpus every B-slice consumes; the pilot (CAP plus B1) proves it.
+
+## Implementation notes: Phase A (agent-only states)
+
+Status stays IN_PROGRESS. Phase A is done: 28 of 28 planned recordings stored under `test/fixtures/adobe-capture/` (one JSON per recording: `manifest` + `capture` + full `requests` fan-out). Session total so far 29 attempts against the kill-criterion-4 limit of 60 (one re-record, below). The owner settings window, restore step, S11, S13, S12, freeze and review are not started.
+
+**Tooling (step 0).** The 051-08 recorder and its test were restored from `b61e42a9^` unchanged apart from the Node 22 sync-loader seam fix B0 used. Its rules (Edge-only, 8 requests, JSON-only) contradict full fan-out, so it is kept as history and the capture uses three new modules instead:
+- `probes/adobe-compatibility/capture-recorder.mjs`: passive context-level recorder of every non-page-origin request plus the Alloy script (headers, body, status, response body, failure; bounds 200 requests and 1 MB per body). It SHA-256-hashes the Alloy bundle actually loaded and throws `AlloyPinError` on mismatch or absence; the driver exits 3 on it. Every recording matched the pin `7dd09409…32e8`.
+- `capture-fixture.mjs`: scrubs the three withheld IDs to their labels, builds the manifest, runs `checkFixtureManifest` (vendor `adobe`) and the credential scan before anything is written. Extra capture metadata (POC SHA, source fixture, re-record reason, steps, UA) sits in a sibling `capture` block because the manifest schema is closed.
+- `capture-session.mjs`: the CLI driver, one fixture per call, fresh persistent profile per fresh recording, the same profile directory reused for returning ones (the manifest names `source_fixture`). Withheld IDs are read at run time from a file outside the repo.
+- Tests: `test/adobe-capture-recorder.test.js` (+ restored `test/adobe-stock-wire-recorder.test.js`).
+- The 051-07 stock-wire checker has a rigid decisioning-flow schema (`case`, `expected`, `proposition`, at most 8 requests); it does not fit the S0 to S9 fixtures, so every fixture passes `checkFixtureManifest` and the credential scan, and the stock-wire checker was not applied. Applying it to S10 is open.
+
+**POC site.** `adobe-rnd/aem-eds-airlock-poc` main `27054432f4f3248ddb6d24cf44b0bab54bf08023` (previous main `2bd8accf`):
+- New strictly opt-in capture gate `?airlock-capture=v1&run=airlock064-<hex32>&state=S..&google-ads=off&meta-pixel=off` (scripts.js, `tools/airlock-stock/capture-entry.mjs`). It re-validates the public config window and loads only the SHA-pinned Alloy 2.31.1 bundle already vendored there; it sends nothing itself and the Playwright driver issues the `alloy` commands. Both `.aem.page` and `.aem.live` origins are accepted by the entry; the config's own `allowedOrigin` stays `.aem.page`. The Meta gate and the Google Ads loader are untouched.
+- `runtime-config.json`: `enabled: true`, window 2026-11-19T16:20:38Z to 2026-11-25T16:21:38Z (6 days). It stays enabled for the settings window and day 2; set it back to `enabled: false` after the corpus is frozen.
+- S10 reuses the existing stock gate with `case=no-offer` (a trusted Playwright click on `#airlock-stock-control`, consent granted by init script), so no new case was needed.
+- The served Alloy bytes are identical to the pin on both origins (the trailing-LF note in spec 1 did not show up).
+
+**Capture mode: headed.** S0 ran headed first, then headless, on fresh profiles. Both returned the same Edge handle set (`identity:result`, `personalization:decisions`, `locationHint:result`, `state:store`), the same Edge region header and a 200 on the same request. Neither response carries an Analytics receipt: that forward is server side and not wire-visible, so the Analytics receipt itself is not verifiable from the wire. Headed wins the tie. Recorded difference: the headless run also showed 5 `ot.aem.live` (AEM RUM) beacons, the headed run none, and the headless UA is `HeadlessChrome`. The `ot.aem.live` beacons also appear in `s1-referrer` (headed), so they look like RUM sampling and not a headless effect.
+
+**Run decisions.**
+- S1 base plus two same-day repeats, then viewport (800x600), locale (de-DE), timezone (Europe/Berlin), referrer (`https://referrer.example/start`). Edge domain kind: there is no first-party CNAME, so `s1-edge-domain` is a plain repeat on the default Adobe edge domain and records that (it is the same setup as base). Base viewport 1280x800, en-US, America/New_York.
+- S2 is returning, reusing the S1 base profile (S2 base) and the S1 repeat-1 profile (S2 repeat). S5 returning reuses the S5 fresh profile.
+- S4 is the no-decision shape. The airlock scope returns an empty `personalization:decisions` payload in the second request.
+- S6: `out` and `in` and `pending-in` all start from `defaultConsent: pending` with two queued `sendEvent`s; `out` then `setConsent` n, `in` then `setConsent` y immediately, `pending-in` holds 3 s before `setConsent` y.
+- S3 uses `xdm.eventMergeId` for the mergeId case.
+- S8: `s8-blocked` aborts requests to the adobedc.net and demdex.net hosts, `s8-non200` uses a random placeholder datastream ID (Edge returns 400 `Invalid datastream ID`).
+- S9-00: `edgeConfigOverrides` `enabled: false` for Target and Analytics on the sendEvent; the response has no `personalization:decisions` handle (compare S1).
+- Egress is labelled `non-eea` / `default`, assumed from the owner's Pacific time zone; not independently verified from the wire.
+
+**Re-record.** `s8-blocked` was recorded twice. The first take only aborted `edge.adobedc.net`, but the first Edge request goes to `adobedc.demdex.net`, so nothing was blocked. Its manifest carries the re-record reason.
+
+**Findings (not quiet fixes).**
+1. The first Edge request goes to `adobedc.demdex.net`, then Alloy follows the `locationHint` to `edge.adobedc.net/ee/or2/...`. Two Edge hosts per fresh page view, not one. The `demdex` host also sets a third-party `demdex` cookie, which appears in the stored cookie dumps and passes the credential check.
+2. The first response on a fresh profile carries two `__view__` Target propositions (activities 3258675 and 3711334) with default-content items. This is not zero decisions, so the spec 6.2 premise that Target returns nothing needs the owner's attention before S4 is read: the airlock scope itself returns no decision, but `__view__` activities are live on this datastream.
+3. `s5-returning` made no network request: with the stored ECID cookie `getIdentity` and `appendIdentityToUrl` answered from the profile.
+4. Headed viewport reports an inner width of 1265 for a 1280 setting (scrollbar); headless reports 1280. The manifest viewport holds the configured size.

@@ -1,0 +1,665 @@
+{
+  "schema": "airlock.adobe-capture",
+  "manifest": {
+    "schema_version": 1,
+    "vendor": "adobe",
+    "captured_at": "2026-11-19T16:24:35.707Z",
+    "input_state": {
+      "url": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-capture=v1&run=airlock064-dd9e2966b687224410a9482ae3cd17fc&state=S0&google-ads=off&meta-pixel=off",
+      "referrer": null,
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "locale": "en-US",
+      "timezone": "America/New_York",
+      "egress": {
+        "region": "non-eea",
+        "exit_id": "default"
+      },
+      "browser": {
+        "name": "chromium",
+        "version": "151.0.7922.34"
+      },
+      "mode": "headless",
+      "profile_kind": "fresh",
+      "loaded_digests": {
+        "script_sha256": "7dd09409bb07d47b1b2289eec4ca15d67084a85a3d832bef6c73180889da32e8"
+      },
+      "storage_before": {
+        "cookies": [],
+        "local_storage": {},
+        "session_storage": {}
+      },
+      "storage_after": {
+        "cookies": [
+          {
+            "name": "demdex",
+            "value": "65667011218784586103690064515384596357",
+            "domain": ".demdex.net",
+            "path": "/"
+          },
+          {
+            "name": "kndctr_908936ED5D35CC220A495CD4_AdobeOrg_cluster",
+            "value": "or2",
+            "domain": ".main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+            "path": "/"
+          },
+          {
+            "name": "kndctr_908936ED5D35CC220A495CD4_AdobeOrg_identity",
+            "value": "CiY2MDI1MDE4NzE1Mjc5MTQ4MzExNDI4OTk3Njk5NjU3MTA1ODc4NFISCMeE_6SfNBABGAEqA09SMjAA8AHHhP-knzQ=",
+            "domain": ".main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+            "path": "/"
+          },
+          {
+            "name": "AMCV_908936ED5D35CC220A495CD4%40AdobeOrg",
+            "value": "MCMID|60250187152791483114289976996571058784",
+            "domain": ".main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+            "path": "/"
+          }
+        ],
+        "local_storage": {},
+        "session_storage": {
+          "fonts-loaded": "true"
+        }
+      }
+    }
+  },
+  "capture": {
+    "recording_id": "s0-headless",
+    "state": "S0",
+    "scenario": "page-view",
+    "variant": null,
+    "poc_commit": "27054432f4f3248ddb6d24cf44b0bab54bf08023",
+    "source_fixture": null,
+    "rerecord": null,
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+    "alloy_loads": [
+      {
+        "url": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/tools/airlock-stock/vendor/aem-martech/alloy.min.js",
+        "bytes": 152336,
+        "sha256": "7dd09409bb07d47b1b2289eec4ca15d67084a85a3d832bef6c73180889da32e8"
+      }
+    ],
+    "dropped": 0,
+    "steps": [
+      {
+        "step": "configure",
+        "at_ms": 840,
+        "ok": true,
+        "result": {}
+      },
+      {
+        "step": "sendEvent",
+        "at_ms": 1142,
+        "ok": true,
+        "result": {
+          "destinations": [],
+          "propositions": [
+            {
+              "id": "AT:eyJhY3Rpdml0eUlkIjoiMzI1ODY3NSIsImV4cGVyaWVuY2VJZCI6IjAifQ==",
+              "scope": "__view__",
+              "scopeDetails": {
+                "decisionProvider": "TGT",
+                "activity": {
+                  "id": "3258675"
+                },
+                "experience": {
+                  "id": "0"
+                },
+                "strategies": [
+                  {
+                    "step": "entry",
+                    "trafficType": "0"
+                  },
+                  {
+                    "step": "display",
+                    "trafficType": "0"
+                  },
+                  {
+                    "step": "conversion",
+                    "trafficType": "0"
+                  }
+                ],
+                "characteristics": {
+                  "eventToken": "iBMbxsskMUKaDfcljodiI3ZJRFNRMCdc84hKiEgfaartyf8vZbHfLICMmcVo4KgxhLTdoNAHHAKezCKtLVp0lmnlssGfqtZmAiSO52NWERc="
+                },
+                "correlationID": "3258675:0:0"
+              },
+              "items": [
+                {
+                  "id": "3258675-0",
+                  "schema": "https://ns.adobe.com/personalization/default-content-item",
+                  "meta": {}
+                }
+              ],
+              "renderAttempted": false
+            },
+            {
+              "id": "AT:eyJhY3Rpdml0eUlkIjoiMzcxMTMzNCIsImV4cGVyaWVuY2VJZCI6IjAifQ==",
+              "scope": "__view__",
+              "scopeDetails": {
+                "decisionProvider": "TGT",
+                "activity": {
+                  "id": "3711334"
+                },
+                "experience": {
+                  "id": "0"
+                },
+                "strategies": [
+                  {
+                    "step": "entry",
+                    "trafficType": "0"
+                  },
+                  {
+                    "step": "display",
+                    "trafficType": "0"
+                  },
+                  {
+                    "step": "conversion",
+                    "trafficType": "0"
+                  }
+                ],
+                "characteristics": {
+                  "eventToken": "OocsjjG3R7Q0wTKdb9CRt3ZJRFNRMCdc84hKiEgfaartyf8vZbHfLICMmcVo4KgxhLTdoNAHHAKezCKtLVp0lmnlssGfqtZmAiSO52NWERc="
+                },
+                "correlationID": "3711334:0:0"
+              },
+              "items": [
+                {
+                  "id": "3711334-0",
+                  "schema": "https://ns.adobe.com/personalization/default-content-item",
+                  "meta": {}
+                }
+              ],
+              "renderAttempted": false
+            }
+          ],
+          "decisions": [
+            {
+              "id": "AT:eyJhY3Rpdml0eUlkIjoiMzI1ODY3NSIsImV4cGVyaWVuY2VJZCI6IjAifQ==",
+              "scope": "__view__",
+              "scopeDetails": {
+                "decisionProvider": "TGT",
+                "activity": {
+                  "id": "3258675"
+                },
+                "experience": {
+                  "id": "0"
+                },
+                "strategies": [
+                  {
+                    "step": "entry",
+                    "trafficType": "0"
+                  },
+                  {
+                    "step": "display",
+                    "trafficType": "0"
+                  },
+                  {
+                    "step": "conversion",
+                    "trafficType": "0"
+                  }
+                ],
+                "characteristics": {
+                  "eventToken": "iBMbxsskMUKaDfcljodiI3ZJRFNRMCdc84hKiEgfaartyf8vZbHfLICMmcVo4KgxhLTdoNAHHAKezCKtLVp0lmnlssGfqtZmAiSO52NWERc="
+                },
+                "correlationID": "3258675:0:0"
+              },
+              "items": [
+                {
+                  "id": "3258675-0",
+                  "schema": "https://ns.adobe.com/personalization/default-content-item",
+                  "meta": {}
+                }
+              ]
+            },
+            {
+              "id": "AT:eyJhY3Rpdml0eUlkIjoiMzcxMTMzNCIsImV4cGVyaWVuY2VJZCI6IjAifQ==",
+              "scope": "__view__",
+              "scopeDetails": {
+                "decisionProvider": "TGT",
+                "activity": {
+                  "id": "3711334"
+                },
+                "experience": {
+                  "id": "0"
+                },
+                "strategies": [
+                  {
+                    "step": "entry",
+                    "trafficType": "0"
+                  },
+                  {
+                    "step": "display",
+                    "trafficType": "0"
+                  },
+                  {
+                    "step": "conversion",
+                    "trafficType": "0"
+                  }
+                ],
+                "characteristics": {
+                  "eventToken": "OocsjjG3R7Q0wTKdb9CRt3ZJRFNRMCdc84hKiEgfaartyf8vZbHfLICMmcVo4KgxhLTdoNAHHAKezCKtLVp0lmnlssGfqtZmAiSO52NWERc="
+                },
+                "correlationID": "3711334:0:0"
+              },
+              "items": [
+                {
+                  "id": "3711334-0",
+                  "schema": "https://ns.adobe.com/personalization/default-content-item",
+                  "meta": {}
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "requests": [
+    {
+      "seq": 1,
+      "url": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/tools/airlock-stock/vendor/aem-martech/alloy.min.js",
+      "method": "GET",
+      "resource_type": "script",
+      "started_at": "2026-11-19T16:24:32.812Z",
+      "request_headers": {
+        ":authority": "main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        ":method": "GET",
+        ":path": "/tools/airlock-stock/vendor/aem-martech/alloy.min.js",
+        ":scheme": "https",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US",
+        "origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "priority": "u=1",
+        "referer": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/tools/airlock-stock/capture-entry.mjs",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"99\", \"HeadlessChrome\";v=\"151\", \"Chromium\";v=\"151\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "sec-fetch-dest": "script",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-origin",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36"
+      },
+      "request_body": null,
+      "request_body_bytes": 0,
+      "request_body_truncated": false,
+      "status": 200,
+      "response_headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "cache-control": "max-age=60, must-revalidate",
+        "content-encoding": "gzip",
+        "content-length": "50279",
+        "content-type": "text/javascript; charset=utf-8",
+        "date": "Thu, 19 Nov 2026 16:24:32 GMT",
+        "etag": "\"09ff98941352bc88ba31ddd0de223e97\"",
+        "last-modified": "Fri, 09 Oct 2026 23:44:21 GMT",
+        "strict-transport-security": "max-age=31557600",
+        "vary": "Accept-Encoding",
+        "via": "1.1 varnish, 1.1 varnish, 1.1 varnish",
+        "x-cache": "MISS, MISS, HIT",
+        "x-cache-hits": "0, 0, 1",
+        "x-robots-tag": "noindex, nofollow",
+        "x-served-by": "cache-iad-kcgs7200145-IAD, cache-iad-kcgs7200145-IAD, cache-den-kden1300032-DEN",
+        "x-timer": "S1795105458.707658,VS0,VE64"
+      },
+      "response_body": null,
+      "response_body_bytes": 152336,
+      "response_body_truncated": false,
+      "failure": null
+    },
+    {
+      "seq": 2,
+      "url": "https://ot.aem.live/.rum/@adobe/helix-rum-enhancer@%5E2/src/index.js",
+      "method": "GET",
+      "resource_type": "script",
+      "started_at": "2026-11-19T16:24:32.889Z",
+      "request_headers": {
+        ":authority": "ot.aem.live",
+        ":method": "GET",
+        ":path": "/.rum/@adobe/helix-rum-enhancer@%5E2/src/index.js",
+        ":scheme": "https",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US",
+        "referer": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"99\", \"HeadlessChrome\";v=\"151\", \"Chromium\";v=\"151\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "sec-fetch-dest": "script",
+        "sec-fetch-mode": "no-cors",
+        "sec-fetch-site": "cross-site",
+        "sec-fetch-storage-access": "active",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36"
+      },
+      "request_body": null,
+      "request_body_bytes": 0,
+      "request_body_truncated": false,
+      "status": 200,
+      "response_headers": {
+        "accept-ranges": "bytes",
+        "access-control-allow-headers": "*",
+        "access-control-allow-methods": "GET, HEAD, OPTIONS",
+        "access-control-allow-origin": "*",
+        "access-control-expose-headers": "*",
+        "age": "1114",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "cache-control": "public, max-age=3600",
+        "cdn-cache-control": "max-age=300, must-revalidate",
+        "content-encoding": "gzip",
+        "content-length": "5256",
+        "content-type": "text/javascript; charset=utf-8",
+        "cross-origin-resource-policy": "cross-origin",
+        "date": "Thu, 19 Nov 2026 16:06:00 GMT",
+        "etag": "\"0a9de4391d01ce380f0b6874b8802271\"",
+        "last-modified": "Mon, 16 Nov 2026 18:35:02 GMT",
+        "strict-transport-security": "max-age=31557600",
+        "vary": "Origin, Accept-Encoding",
+        "via": "1.1 varnish",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex, nofollow",
+        "x-rum-trace": "hlx",
+        "x-served-by": "cache-den-kden1300054-DEN",
+        "x-timer": "S1794859385.639915,VS0,VE0"
+      },
+      "response_body": "/*\n * Copyright 2024 Adobe. All rights reserved.\n * This file is licensed to you under the Apache License, Version 2.0 (the \"License\");\n * you may not use this file except in compliance with the License. You may obtain a copy\n * of the License at http://www.apache.org/licenses/LICENSE-2.0\n *\n * Unless required by applicable law or agreed to in writing, software distributed under\n * the License is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS\n * OF ANY KIND, either express or implied. See the License for the specific language\n * governing permissions and limitations under the License.\n */\n(function(){'use strict';const h = (s, a) => [...s].reduce((p, c) => p + c.charCodeAt(0), a) % 1371;\nconst fflags = {\n  has: f => fflags[f].includes(h(window.origin, 1)) || /localhost/.test(window.origin),\n  enabled: (f, c) => fflags.has(f) && c(),\n  disabled: (f, c) => !fflags.has(f) && c(),\n  eagercwv: [683],\n  example: [543, 770, 1136],\n  allresources: [543, 1139, 339],\n  a11y: [557, 781, 897, 955, 959],\n  softnav: [273]\n};const KNOWN_PROPERTIES = ['weight', 'id', 'referer', 'checkpoint', 't', 'source', 'target', 'cwv', 'CLS', 'FID', 'LCP', 'INP', 'TTFB', 'ua'];\nconst DEFAULT_TRACKING_EVENTS = ['click', 'cwv', 'form', 'viewblock', 'viewmedia', 'loadresource', 'utm', 'paid', 'email', 'consent'];\nfflags.enabled('example', () => DEFAULT_TRACKING_EVENTS.push('example'));const {\n  href\n} = window.location;\nconst urlSanitizers = {\n  full: (url = href) => new URL(url).toString(),\n  origin: (url = href) => new URL(url).origin,\n  path: (url = href) => {\n    const u = new URL(url);\n    return `${u.origin}${u.pathname}`;\n  }\n};const getTargetValue = el => el.getAttribute('data-rum-target') || el.getAttribute('href') || el.currentSrc || el.getAttribute('src') || el.dataset.action || el.action;\nconst targetSelector = el => {\n  try {\n    if (!el) {\n      return undefined;\n    }\n    let v = getTargetValue(el);\n    if (!v && el.tagName !== 'A' && el.closest('a')) {\n      v = getTargetValue(el.closest('a'));\n    }\n    if (v && !v.startsWith('https://')) {\n      v = new URL(v, window.location).href;\n    }\n    return v;\n  } catch (error) {\n    return null;\n  }\n};\nconst untrustedClickPayload = event => {\n  if (event && event.isTrusted === false) {\n    const ua = navigator.userAgent;\n    return {\n      ua: ua.includes('+http') ? ua : `${ua} +http://event.untrusted`\n    };\n  }\n  return {};\n};\nfunction walk(el, check) {\n  if (!el || el === document.body || el === document.documentElement) {\n    return undefined;\n  }\n  return check(el) || walk(el.parentElement || el.parentNode && el.parentNode.host, check);\n}\nfunction isDialog(el) {\n  const cs = window.getComputedStyle(el);\n  return el.tagName === 'DIALOG' || ['dialog', 'alertdialog'].find(r => el.getAttribute('role') === r) || el.getAttribute('aria-modal') === 'true' || cs && cs.position === 'fixed' && cs.zIndex > 100;\n}\nfunction isButton(el) {\n  if (el.tagName === 'BUTTON' || el.tagName === 'INPUT' && el.getAttribute('type') === 'button') {\n    return true;\n  }\n  if (el.tagName === 'A') {\n    return Array.from(el.classList).some(cls => cls.match(/button|cta/));\n  }\n  return el.getAttribute('role') === 'button';\n}\nfunction srcContext(el) {\n  const form = el.closest('form');\n  if (form) {\n    const id = form.getAttribute('id');\n    if (id) {\n      return `form#${CSS.escape(id)}`;\n    }\n    return `form${form.classList.length > 0 ? `.${CSS.escape(form.classList[0])}` : ''}`;\n  }\n  const block = el.closest('.block[data-block-name]');\n  return block && `.${block.getAttribute('data-block-name')}` || walk(el, isDialog) && 'dialog' || walk(el, e => e.tagName && e.tagName.includes('-') && e.tagName.toLowerCase()) || ['nav', 'header', 'footer', 'aside'].find(t => el.closest(t)) || walk(el, e => e.id && `#${CSS.escape(e.id)}`);\n}\nfunction srcElement(el) {\n  const f = el.closest('form');\n  if (f && Array.from(f.elements).includes(el)) {\n    return el.tagName.toLowerCase() + (['INPUT', 'BUTTON'].includes(el.tagName) ? `[type='${el.getAttribute('type') || ''}']` : '');\n  }\n  return walk(el, isButton) && 'button' || el.tagName.toLowerCase().match(/^(a|img|video|form)$/) && el.tagName.toLowerCase();\n}\nfunction srcId(el) {\n  return el.id && `#${CSS.escape(el.id)}` || el.getAttribute('data-block-name') && `.${el.getAttribute('data-block-name')}` || el.classList.length > 0 && `.${CSS.escape(el.classList[0])}`;\n}\nconst sourceSelector = el => {\n  try {\n    if (!el || el === document.body || el === document.documentElement) {\n      return undefined;\n    }\n    if (el.getAttribute('data-rum-source')) {\n      return el.getAttribute('data-rum-source');\n    }\n    const ctx = srcContext(el.parentElement) || '';\n    const name = srcElement(el) || '';\n    const id = srcId(el) || '';\n    return `${ctx} ${name}${id}`.trim() || `\"${el.textContent.substring(0, 10)}\"`;\n  } catch (error) {\n    return null;\n  }\n};function getCookie(name) {\n  try {\n    const matches = document.cookie.split(';').map(c => c.trim()).filter(c => c.startsWith(`${name}=`));\n    if (!matches.length) {\n      return undefined;\n    }\n    return matches.length === 1 ? matches[0].slice(name.length + 1) : null;\n  } catch {\n    return undefined;\n  }\n}\nfunction getLocalStorage(name) {\n  try {\n    return window.localStorage.getItem(name);\n  } catch {\n    return null;\n  }\n}const {\n  sampleRUM,\n  queue,\n  isSelected\n} = window.hlx && window.hlx.rum ? window.hlx.rum : {};\nconst createMO = cb => window.MutationObserver ? new MutationObserver(cb) : {};\nconst [blocksMO, mediaMO] = [blocksMCB, mediaMCB].map(createMO);\nconst hasCookie = key => getCookie(key) !== undefined;\nconst pluginBase = new URL(document.currentScript.src).href.replace(/index(\\.map)?\\.js/, 'plugins');\nconst CONSENT_PROVIDERS = [{\n  name: 'onetrust',\n  detect: () => ['OptanonAlertBoxClosed', 'OptanonConsent'].some(hasCookie) || document.querySelector('#onetrust-banner-sdk, #onetrust-pc-sdk')\n}, {\n  name: 'trustarc',\n  detect: () => ['notice_gdpr_prefs', 'notice_preferences'].some(hasCookie) || document.querySelector('#truste-consent-track')\n}, {\n  name: 'usercentrics',\n  detect: () => getLocalStorage('uc_gcm') || hasCookie('uc_consent_status_essential') || document.querySelector('#usercentrics-root')\n}];\nconst getConsent = () => CONSENT_PROVIDERS.find(({\n  detect\n}) => detect());\nconst bodyChildMO = {\n  target: document.body,\n  options: {\n    attributes: false,\n    childList: true,\n    subtree: false\n  }\n};\nconst PLUGINS = {\n  cwv: `${pluginBase}/cwv.js`,\n  a11y: `${pluginBase}/a11y.js`,\n  form: {\n    url: `${pluginBase}/form.js`,\n    when: () => document.querySelector('form'),\n    isBlockDependent: true,\n    moParams: bodyChildMO\n  },\n  redirect: {\n    url: `${pluginBase}/redirect.js`,\n    when: ({\n      perfEntry: pe,\n      urlParameters: usp\n    }) => pe && (usp.get('redirect_from') || pe.redirectCount > 0 || pe.fetchStart > 50)\n  },\n  video: {\n    url: `${pluginBase}/video.js`,\n    when: () => document.querySelector('video'),\n    isBlockDependent: true\n  },\n  webcomponent: {\n    url: `${pluginBase}/webcomponent.js`,\n    when: () => [...document.querySelectorAll('*')].some(el => el.tagName && el.tagName.includes('-')),\n    isBlockDependent: true\n  },\n  softnav: {\n    url: `${pluginBase}/softnav.js`,\n    when: ({\n      fflags: f\n    }) => f.has('softnav')\n  },\n  martech: {\n    url: `${pluginBase}/martech.js`,\n    when: ({\n      urlParameters\n    }) => urlParameters.size > 0\n  },\n  consent: {\n    when: () => getConsent(),\n    isBlockDependent: true,\n    moParams: bodyChildMO\n  }\n};\nconst MAX_EV = 1023;\nconst vmDedupe = new Set();\nfunction getIntersectionObserver(checkpoint) {\n  if (!window.IntersectionObserver) {\n    return null;\n  }\n  const obs = new IntersectionObserver(entries => {\n    try {\n      entries.filter(e => e.isIntersecting).forEach(e => {\n        obs.unobserve(e.target);\n        const target = targetSelector(e.target);\n        const source = sourceSelector(e.target);\n        if (checkpoint === 'viewmedia') {\n          const key = `${source}\\0${target}`;\n          if (vmDedupe.has(key)) {\n            return;\n          }\n          if (vmDedupe.size < MAX_EV) {\n            vmDedupe.add(key);\n          }\n        }\n        sampleRUM(checkpoint, {\n          target,\n          source\n        });\n      });\n    } catch (error) {}\n  });\n  return obs;\n}\nconst PLUGIN_PARAMS = {\n  context: document.body,\n  fflags,\n  sampleRUM,\n  sourceSelector,\n  targetSelector,\n  untrustedClickPayload,\n  getIntersectionObserver,\n  createMO\n};\nconst pluginCache = new Map();\nfunction loadPlugin(key, params) {\n  const plugin = PLUGINS[key];\n  const usp = new URLSearchParams(window.location.search);\n  if (!pluginCache.has(key) && plugin.when && !plugin.when({\n    ...params,\n    urlParameters: usp\n  })) {\n    if (plugin.moParams && !plugin.isBeingObserved) {\n      createPluginMO(key, params, usp);\n    }\n    return null;\n  }\n  if (key === 'consent') {\n    plugin.url = `${pluginBase}/${getConsent().name}.js`;\n  }\n  if (!pluginCache.has(key)) {\n    pluginCache.set(key, import(`${plugin.url || plugin}`));\n  }\n  return pluginCache.get(key).then(p => p.default && p.default(params) || typeof p === 'function' && p(params)).catch(() => {});\n}\nfunction loadPlugins(filter = () => true, params = PLUGIN_PARAMS) {\n  Object.entries(PLUGINS).filter(([, plugin]) => filter(plugin)).map(([key]) => loadPlugin(key, params));\n}\nfunction createPluginMO(key, params, usp) {\n  const plugin = PLUGINS[key];\n  const obs = createMO(() => {\n    if (plugin.when({\n      urlParameters: usp\n    })) {\n      plugin.isBeingObserved = false;\n      obs.disconnect();\n      loadPlugin(key, params);\n    }\n  });\n  if (obs instanceof MutationObserver) {\n    plugin.isBeingObserved = true;\n    obs.observe(plugin.moParams.target, plugin.moParams.options);\n  }\n}\nlet maxEvents = MAX_EV;\nfunction trackCheckpoint(checkpoint, data, t) {\n  const {\n    weight,\n    id\n  } = window.hlx.rum;\n  if (isSelected && maxEvents) {\n    maxEvents -= 1;\n    const body = JSON.stringify({\n      weight,\n      id,\n      referer: urlSanitizers[window.hlx.RUM_MASK_URL || 'path'](),\n      checkpoint,\n      t,\n      ...data\n    }, KNOWN_PROPERTIES);\n    const urlParams = window.RUM_PARAMS ? `?${new URLSearchParams(window.RUM_PARAMS).toString()}` : '';\n    const {\n      href: url,\n      origin\n    } = new URL(`.rum/${weight}${urlParams.length > 1 ? urlParams : ''}`, sampleRUM.collectBaseURL);\n    if (window.location.origin === origin) {\n      const headers = {\n        type: 'application/json'\n      };\n      navigator.sendBeacon(url, new Blob([body], headers));\n    } else {\n      navigator.sendBeacon(url, body);\n    }\n    console.debug(`ping:${checkpoint}`, data);\n  }\n}\nfunction processQueue() {\n  while (queue && queue.length) {\n    const ck = queue.shift();\n    trackCheckpoint(...ck);\n  }\n}\nfunction addNavigationTracking() {\n  const navigate = (source, type, perfEntry) => {\n    const payload = {\n      source: source && urlSanitizers.path(source),\n      target: document.visibilityState\n    };\n    if (document.prerendering) {\n      document.addEventListener('prerenderingchange', () => {\n        payload.target = 'prerendered';\n        sampleRUM('navigate', payload);\n      }, {\n        once: true\n      });\n      if (type === 'navigate') {\n        sampleRUM('prerender', payload);\n      }\n    } else if (type === 'reload' || source === window.location.href) {\n      sampleRUM('reload', payload);\n    } else if (type && type !== 'navigate') {\n      sampleRUM(type, payload);\n    } else if (source && window.location.origin === new URL(source).origin) {\n      sampleRUM('navigate', payload);\n    } else {\n      sampleRUM('enter', payload);\n    }\n    loadPlugin('redirect', {\n      ...PLUGIN_PARAMS,\n      perfEntry\n    });\n  };\n  const processed = new Set();\n  new PerformanceObserver(list => list.getEntries().filter(({\n    type\n  }) => !processed.has(type)).map(e => [e, processed.add(e.type)]).map(([e]) => navigate(window.hlx.referrer || document.referrer, e.type, e))).observe({\n    type: 'navigation',\n    buffered: true\n  });\n}\nfunction addLoadResourceTracking() {\n  const obs = new PerformanceObserver(list => {\n    try {\n      const entries = list.getEntries();\n      entries.filter(e => !e.responseStatus || e.responseStatus < 400).filter(e => window.location.hostname === new URL(e.name).hostname || fflags.has('allresources')).filter(e => {\n        const {\n          pathname,\n          hostname\n        } = new URL(e.name);\n        const extMatch = pathname.match(hostname !== window.location.hostname ? '.*(\\\\.html$|\\\\.json|\\\\.js|graphql|api)' : '.*(\\\\.plain\\\\.html$|\\\\.json|graphql|api)');\n        const isDropIn = fflags.has('allresources') && (pathname.includes('__dropins__/storefront-') || pathname.includes('scripts/dropins/storefront-'));\n        const isImage = fflags.has('allresources') && pathname.match(/\\.(png|jpe?g|svg)$/i);\n        return extMatch || isDropIn || isImage;\n      }).forEach(e => {\n        sampleRUM('loadresource', {\n          source: e.name,\n          target: Math.round(e.duration)\n        });\n      });\n      entries.filter(e => e.responseStatus >= 400).filter(e => !new URL(e.name).pathname.match('.*(/\\\\.rum/1[0-9]{0,3})')).forEach(e => {\n        sampleRUM('missingresource', {\n          source: e.name,\n          target: e.responseStatus\n        });\n      });\n    } catch (error) {}\n  });\n  obs.observe({\n    type: 'resource',\n    buffered: true\n  });\n}\nfunction activateBlocksMO() {\n  if (!blocksMO || blocksMO.active) {\n    return;\n  }\n  blocksMO.active = true;\n  blocksMO.observe(document.body, {\n    subtree: true,\n    attributes: true,\n    attributeFilter: ['data-block-status']\n  });\n}\nfunction activateMediaMO() {\n  if (!mediaMO || mediaMO.active) {\n    return;\n  }\n  mediaMO.active = true;\n  mediaMO.observe(document.body, {\n    subtree: true,\n    attributes: false,\n    childList: true\n  });\n}\nfunction addViewBlockTracking(el) {\n  const blockObs = getIntersectionObserver('viewblock');\n  if (blockObs) {\n    const blocks = el.getAttribute('data-block-status') ? [el] : el.querySelectorAll('div[data-block-status=\"loaded\"]');\n    blocks.forEach(b => blockObs.observe(b));\n  }\n}\nconst observedMedia = new Set();\nfunction addViewMediaTracking(parent) {\n  const mediaObs = getIntersectionObserver('viewmedia');\n  if (mediaObs) {\n    parent.querySelectorAll('img, video, audio, iframe').forEach(m => {\n      if (!observedMedia.has(m)) {\n        observedMedia.add(m);\n        mediaObs.observe(m);\n      }\n    });\n  }\n}\nfunction addObserver(ck, fn, block) {\n  return DEFAULT_TRACKING_EVENTS.includes(ck) && fn(block);\n}\nfunction blocksMCB(mutations) {\n  mutations.filter(m => m.type === 'attributes' && m.attributeName === 'data-block-status').filter(m => m.target.dataset.blockStatus === 'loaded').forEach(m => {\n    addObserver('form', el => loadPlugins(p => p.isBlockDependent, {\n      ...PLUGIN_PARAMS,\n      context: el\n    }), m.target);\n    addObserver('viewblock', addViewBlockTracking, m.target);\n  });\n}\nfunction mediaMCB(mutations) {\n  mutations.forEach(m => {\n    addObserver('viewmedia', addViewMediaTracking, m.target);\n  });\n}\nfunction addTrackingFromConfig() {\n  activateBlocksMO();\n  activateMediaMO();\n  document.addEventListener('click', event => {\n    if (event.optelHandled) {\n      return;\n    }\n    sampleRUM('click', {\n      target: targetSelector(event.target),\n      source: sourceSelector(event.target),\n      ...untrustedClickPayload(event)\n    });\n  });\n  addNavigationTracking();\n  addLoadResourceTracking();\n  addViewBlockTracking(document.body);\n  addViewMediaTracking(document.body);\n  loadPlugins();\n  const target = navigator.language;\n  const source = document.documentElement.lang;\n  sampleRUM('language', {\n    source,\n    target\n  });\n}\nfunction initEnhancer() {\n  try {\n    if (sampleRUM) {\n      addTrackingFromConfig();\n      window.hlx.rum.collector = trackCheckpoint;\n      processQueue();\n    }\n  } catch (error) {}\n}\ninitEnhancer();})();",
+      "response_body_bytes": 15982,
+      "response_body_truncated": false,
+      "failure": null
+    },
+    {
+      "seq": 3,
+      "url": "https://adobedc.demdex.net/ee/v1/interact?configId=23190fa7-9e6b-4250-b87b-abcdc8ebc297&requestId=8b70ed36-3233-4450-b090-6b79d6e1abd2",
+      "method": "POST",
+      "resource_type": "fetch",
+      "started_at": "2026-11-19T16:24:32.901Z",
+      "request_headers": {
+        ":authority": "adobedc.demdex.net",
+        ":method": "POST",
+        ":path": "/ee/v1/interact?configId=23190fa7-9e6b-4250-b87b-abcdc8ebc297&requestId=8b70ed36-3233-4450-b090-6b79d6e1abd2",
+        ":scheme": "https",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US",
+        "cache-control": "max-age=0",
+        "content-length": "1476",
+        "content-type": "text/plain; charset=UTF-8",
+        "origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "priority": "u=1, i",
+        "referer": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-capture=v1&run=airlock064-dd9e2966b687224410a9482ae3cd17fc&state=S0&google-ads=off&meta-pixel=off",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"99\", \"HeadlessChrome\";v=\"151\", \"Chromium\";v=\"151\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "sec-fetch-storage-access": "active",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36"
+      },
+      "request_body": "{\"events\":[{\"query\":{\"personalization\":{\"schemas\":[\"https://ns.adobe.com/personalization/default-content-item\",\"https://ns.adobe.com/personalization/html-content-item\",\"https://ns.adobe.com/personalization/json-content-item\",\"https://ns.adobe.com/personalization/redirect-item\",\"https://ns.adobe.com/personalization/ruleset-item\",\"https://ns.adobe.com/personalization/message/in-app\",\"https://ns.adobe.com/personalization/message/content-card\",\"https://ns.adobe.com/personalization/dom-action\"],\"decisionScopes\":[\"__view__\"],\"surfaces\":[\"web://main--aem-eds-airlock-poc--adobe-rnd.aem.page/\"]}},\"xdm\":{\"web\":{\"webPageDetails\":{\"URL\":\"https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-capture=v1&run=airlock064-dd9e2966b687224410a9482ae3cd17fc&state=S0&google-ads=off&meta-pixel=off\",\"name\":\"airlock064-page\"},\"webReferrer\":{\"URL\":\"\"}},\"device\":{\"screenHeight\":800,\"screenWidth\":1280,\"screenOrientation\":\"landscape\"},\"environment\":{\"type\":\"browser\",\"browserDetails\":{\"viewportWidth\":1280,\"viewportHeight\":800}},\"placeContext\":{\"localTimezoneOffset\":300,\"localTime\":\"2026-11-19T11:24:32.899-05:00\"},\"timestamp\":\"2026-11-19T16:24:32.899Z\",\"implementationDetails\":{\"name\":\"https://ns.adobe.com/experience/alloy\",\"version\":\"2.31.1\",\"environment\":\"browser\"},\"eventType\":\"web.webpagedetails.pageViews\"}}],\"query\":{\"identity\":{\"fetch\":[\"ECID\",\"CORE\"]}},\"meta\":{\"queueTimeMillis\":2,\"state\":{\"domain\":\"main--aem-eds-airlock-poc--adobe-rnd.aem.page\",\"cookiesEnabled\":true}}}",
+      "request_body_bytes": 1476,
+      "request_body_truncated": false,
+      "status": 200,
+      "response_headers": {
+        "access-control-allow-credentials": "true",
+        "access-control-allow-origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "access-control-expose-headers": "Retry-After, X-Adobe-Edge, X-Request-ID",
+        "cache-control": "no-cache, no-store, max-age=0, no-transform, private",
+        "content-encoding": "gzip",
+        "content-type": "application/json;charset=utf-8",
+        "date": "Thu, 19 Nov 2026 16:24:33 GMT",
+        "server": "jag",
+        "set-cookie": "demdex=65667011218784586103690064515384596357; Max-Age=15552000; Domain=demdex.net; Path=/; Secure; SameSite=None; $x-enc=URI_ENCODING",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "vary": "Origin",
+        "x-adobe-edge": "OR2;9",
+        "x-content-type-options": "nosniff",
+        "x-konductor": "26.10.2-HEAD-SNAPSHOT:b15ed3dbd",
+        "x-request-id": "8b70ed36-3233-4450-b090-6b79d6e1abd2-e47d01e9f74e4cd8",
+        "x-xss-protection": "1; mode=block"
+      },
+      "response_body": "{\"requestId\":\"8b70ed36-3233-4450-b090-6b79d6e1abd2-e47d01e9f74e4cd8\",\"handle\":[{\"payload\":[{\"id\":\"60250187152791483114289976996571058784\",\"namespace\":{\"code\":\"ECID\"}},{\"id\":\"65667011218784586103690064515384596357\",\"namespace\":{\"code\":\"CORE\"}}],\"type\":\"identity:result\"},{\"payload\":[{\"id\":\"AT:eyJhY3Rpdml0eUlkIjoiMzI1ODY3NSIsImV4cGVyaWVuY2VJZCI6IjAifQ==\",\"scope\":\"__view__\",\"scopeDetails\":{\"decisionProvider\":\"TGT\",\"activity\":{\"id\":\"3258675\"},\"experience\":{\"id\":\"0\"},\"strategies\":[{\"step\":\"entry\",\"trafficType\":\"0\"},{\"step\":\"display\",\"trafficType\":\"0\"},{\"step\":\"conversion\",\"trafficType\":\"0\"}],\"characteristics\":{\"eventToken\":\"iBMbxsskMUKaDfcljodiI3ZJRFNRMCdc84hKiEgfaartyf8vZbHfLICMmcVo4KgxhLTdoNAHHAKezCKtLVp0lmnlssGfqtZmAiSO52NWERc=\"},\"correlationID\":\"3258675:0:0\"},\"items\":[{\"id\":\"3258675-0\",\"schema\":\"https://ns.adobe.com/personalization/default-content-item\",\"meta\":{}}]},{\"id\":\"AT:eyJhY3Rpdml0eUlkIjoiMzcxMTMzNCIsImV4cGVyaWVuY2VJZCI6IjAifQ==\",\"scope\":\"__view__\",\"scopeDetails\":{\"decisionProvider\":\"TGT\",\"activity\":{\"id\":\"3711334\"},\"experience\":{\"id\":\"0\"},\"strategies\":[{\"step\":\"entry\",\"trafficType\":\"0\"},{\"step\":\"display\",\"trafficType\":\"0\"},{\"step\":\"conversion\",\"trafficType\":\"0\"}],\"characteristics\":{\"eventToken\":\"OocsjjG3R7Q0wTKdb9CRt3ZJRFNRMCdc84hKiEgfaartyf8vZbHfLICMmcVo4KgxhLTdoNAHHAKezCKtLVp0lmnlssGfqtZmAiSO52NWERc=\"},\"correlationID\":\"3711334:0:0\"},\"items\":[{\"id\":\"3711334-0\",\"schema\":\"https://ns.adobe.com/personalization/default-content-item\",\"meta\":{}}]}],\"type\":\"personalization:decisions\",\"eventIndex\":0},{\"payload\":[{\"scope\":\"Target\",\"hint\":\"35\",\"ttlSeconds\":1800},{\"scope\":\"AAM\",\"hint\":\"9\",\"ttlSeconds\":1800},{\"scope\":\"EdgeNetwork\",\"hint\":\"or2\",\"ttlSeconds\":1800}],\"type\":\"locationHint:result\"},{\"payload\":[{\"key\":\"kndctr_908936ED5D35CC220A495CD4_AdobeOrg_cluster\",\"value\":\"or2\",\"maxAge\":1800,\"attrs\":{\"SameSite\":\"None\"}},{\"key\":\"kndctr_908936ED5D35CC220A495CD4_AdobeOrg_identity\",\"value\":\"CiY2MDI1MDE4NzE1Mjc5MTQ4MzExNDI4OTk3Njk5NjU3MTA1ODc4NFISCMeE_6SfNBABGAEqA09SMjAA8AHHhP-knzQ=\",\"maxAge\":34128000,\"attrs\":{\"SameSite\":\"None\"}}],\"type\":\"state:store\"}]}",
+      "response_body_bytes": 2076,
+      "response_body_truncated": false,
+      "failure": null
+    },
+    {
+      "seq": 4,
+      "url": "https://ot.aem.live/.rum/@adobe/helix-rum-enhancer@%5E2/src/plugins/cwv.js",
+      "method": "GET",
+      "resource_type": "script",
+      "started_at": "2026-11-19T16:24:33.145Z",
+      "request_headers": {
+        ":authority": "ot.aem.live",
+        ":method": "GET",
+        ":path": "/.rum/@adobe/helix-rum-enhancer@%5E2/src/plugins/cwv.js",
+        ":scheme": "https",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US",
+        "origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "priority": "u=1",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"99\", \"HeadlessChrome\";v=\"151\", \"Chromium\";v=\"151\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "sec-fetch-dest": "script",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36"
+      },
+      "request_body": null,
+      "request_body_bytes": 0,
+      "request_body_truncated": false,
+      "status": 200,
+      "response_headers": {
+        "accept-ranges": "bytes",
+        "access-control-allow-headers": "*",
+        "access-control-allow-methods": "GET, HEAD, OPTIONS",
+        "access-control-allow-origin": "*",
+        "access-control-expose-headers": "*",
+        "age": "6637",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "cache-control": "public, max-age=3600",
+        "cdn-cache-control": "max-age=300, must-revalidate",
+        "content-encoding": "gzip",
+        "content-length": "4889",
+        "content-type": "text/javascript; charset=utf-8",
+        "cross-origin-resource-policy": "cross-origin",
+        "date": "Thu, 19 Nov 2026 14:33:57 GMT",
+        "etag": "\"1cd75d8ca09f89f7980db019ac391eed\"",
+        "last-modified": "Mon, 16 Nov 2026 18:35:02 GMT",
+        "strict-transport-security": "max-age=31557600",
+        "vary": "Origin, Accept-Encoding",
+        "via": "1.1 varnish",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex, nofollow",
+        "x-rum-trace": "hlx",
+        "x-served-by": "cache-den-kden1300095-DEN",
+        "x-timer": "S1794861141.218968,VS0,VE0"
+      },
+      "response_body": "/*\n * Copyright 2024 Adobe. All rights reserved.\n * This file is licensed to you under the Apache License, Version 2.0 (the \"License\");\n * you may not use this file except in compliance with the License. You may obtain a copy\n * of the License at http://www.apache.org/licenses/LICENSE-2.0\n *\n * Unless required by applicable law or agreed to in writing, software distributed under\n * the License is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS\n * OF ANY KIND, either express or implied. See the License for the specific language\n * governing permissions and limitations under the License.\n */\n(function (t) {\n\n  let n = -1;\n  const e = () => n,\n    i = t => {\n      addEventListener(\"pageshow\", e => {\n        e.persisted && (n = e.timeStamp, t(e));\n      }, true);\n    },\n    o = (t, n, e, i) => {\n      let o, s;\n      return a => {\n        n.value >= 0 && (a || i) && (s = n.value - (o ?? 0), (s || void 0 === o) && (o = n.value, n.delta = s, n.rating = ((t, n) => t > n[1] ? \"poor\" : t > n[0] ? \"needs-improvement\" : \"good\")(n.value, e), t(n)));\n      };\n    },\n    s = t => {\n      requestAnimationFrame(() => requestAnimationFrame(() => t()));\n    },\n    a = () => {\n      const t = performance.getEntriesByType(\"navigation\")[0];\n      if (t && t.responseStart > 0 && t.responseStart < performance.now()) return t;\n    },\n    r = () => a()?.activationStart ?? 0;\n  let c = -1;\n  const f = new Set(),\n    h = () => \"hidden\" !== document.visibilityState || document.prerendering ? 1 / 0 : 0,\n    d = t => {\n      if (\"hidden\" === document.visibilityState) {\n        if (\"visibilitychange\" === t.type) for (const t of f) t();\n        isFinite(c) || (c = \"visibilitychange\" === t.type ? t.timeStamp : 0, removeEventListener(\"prerenderingchange\", d, true));\n      }\n    },\n    l = (t = false) => {\n      if (t && (c = 1 / 0), c < 0) {\n        const t = r(),\n          n = document.prerendering ? void 0 : globalThis.performance.getEntriesByType(\"visibility-state\").find(n => \"hidden\" === n.name && n.startTime >= t)?.startTime;\n        c = n ?? h(), addEventListener(\"visibilitychange\", d, true), addEventListener(\"prerenderingchange\", d, true), i(() => {\n          setTimeout(() => {\n            c = h();\n          });\n        });\n      }\n      return {\n        get firstHiddenTime() {\n          return c;\n        },\n        onHidden(t) {\n          f.add(t);\n        }\n      };\n    },\n    g = (t, n = -1, i, o = 0, s, c, f) => {\n      const h = a(),\n        d = h?.navigationId || 0;\n      let l = \"navigate\";\n      i ? l = i : e() >= 0 ? l = \"back-forward-cache\" : h && (document.prerendering || r() > 0 ? l = \"prerender\" : document.wasDiscarded ? l = \"restore\" : h.type && (l = h.type.replace(/_/g, \"-\")));\n      return {\n        name: t,\n        value: n,\n        rating: \"good\",\n        delta: 0,\n        entries: [],\n        id: `v6-${Date.now()}-${Math.floor(8999999999999 * Math.random()) + 1e12}`,\n        navigationType: l,\n        navigationId: o || d,\n        navigationInteractionId: s,\n        navigationURL: c || h?.name,\n        navigationStartTime: f || 0\n      };\n    },\n    u = new WeakMap();\n  function v(t, n) {\n    let e = u.get(n);\n    return e || (e = new WeakMap(), u.set(n, e)), e.get(t) || e.set(t, new n()), e.get(t);\n  }\n  class m {\n    t;\n    i = 0;\n    o = [];\n    h(t) {\n      if (t.hadRecentInput) return;\n      const n = this.o[0],\n        e = this.o.at(-1);\n      this.i && n && e && t.startTime - e.startTime < 1e3 && t.startTime - n.startTime < 5e3 ? (this.i += t.value, this.o.push(t)) : (this.i = t.value, this.o = [t]), this.t?.(t);\n    }\n  }\n  const p = (t, n, e = {}) => {\n      try {\n        const i = t.filter(t => PerformanceObserver.supportedEntryTypes.includes(t));\n        if (i.length > 0) {\n          const t = new PerformanceObserver(t => {\n            queueMicrotask(() => {\n              const e = t.getEntries();\n              i.length > 1 && e.sort((t, n) => t.startTime + t.duration - (n.startTime + n.duration)), n(e);\n            });\n          });\n          for (const n of i) t.observe({\n            type: n,\n            buffered: !0,\n            ...e\n          });\n          return t;\n        }\n      } catch {}\n    },\n    b = t => globalThis.PerformanceObserver?.supportedEntryTypes?.includes(\"soft-navigation\") && \"function\" == typeof globalThis.PerformanceSoftNavigation?.prototype?.getLargestInteractionContentfulPaint && t && t.reportSoftNavs,\n    T = (t, n) => {\n      if (t.set(n.navigationId, n), t.size > 2) {\n        const n = t.keys().next().value;\n        void 0 !== n && t.delete(n);\n      }\n    },\n    y = t => {\n      let n = false;\n      return () => {\n        n || (t(), n = true);\n      };\n    };\n  class _ {\n    l;\n  }\n  const E = t => {\n      document.prerendering ? addEventListener(\"prerenderingchange\", t, true) : t();\n    },\n    M = [1800, 3e3],\n    L = (t, n = {}) => {\n      const a = b(n);\n      E(() => {\n        const c = v(n, _),\n          f = l();\n        let h,\n          d = g(\"FCP\");\n        const u = p([\"paint\"], t => {\n          for (const n of t) \"first-contentful-paint\" === n.name && (u.disconnect(), n.startTime < f.firstHiddenTime && (d.value = Math.max(n.startTime - r(), 0), d.entries.push(n), d.navigationId = n.navigationId || d.navigationId, h(true)));\n        });\n        if (u && (h = o(t, d, M, n.reportAllChanges), i(i => {\n          d = g(\"FCP\", -1, \"back-forward-cache\", d.navigationId, d.navigationInteractionId, d.navigationURL, e()), h = o(t, d, M, n.reportAllChanges), s(() => {\n            d.value = performance.now() - i.timeStamp, h(true);\n          });\n        })), a) {\n          p([\"soft-navigation\"], e => {\n            e.forEach(e => {\n              c.l && e.navigationId && T(c.l, e);\n              const i = Math.max((e.presentationTime || e.paintTime || 0) - e.startTime, 0);\n              d = g(\"FCP\", i, \"soft-navigation\", e.navigationId, e.interactionId, e.name, e.startTime), h = o(t, d, M, n.reportAllChanges), h(true);\n            });\n          }, n);\n        }\n      });\n    },\n    w = [.1, .25];\n  let P = 0,\n    I = 1 / 0,\n    k = 0;\n  const C = t => {\n    for (const n of t) n.interactionId && (I = Math.min(I, n.interactionId), k = Math.max(k, n.interactionId), P = k ? (k - I) / 7 + 1 : 0);\n  };\n  let F;\n  const N = () => F ? P : performance.interactionCount ?? 0,\n    B = () => {\n      \"interactionCount\" in performance || F || (F = p([\"event\"], C, {\n        durationThreshold: 0\n      }));\n    };\n  class S {\n    u = 0;\n    v = [];\n    m = new Map();\n    p;\n    T;\n    _() {\n      return N() - this.u;\n    }\n    M() {\n      this.u = N(), this.v.length = 0, this.m.clear();\n    }\n    L(t) {\n      const n = this._(),\n        e = Math.min(this.v.length - 1, Math.floor(n / 50));\n      return !n || -1 !== e || \"soft-navigation\" !== t && \"back-forward-cache\" !== t ? this.v[e] : {\n        P: 8,\n        id: -1,\n        entries: []\n      };\n    }\n    h(t) {\n      if (this.p?.(t), !t.interactionId) return;\n      const n = this.v.at(-1);\n      let e = this.m.get(t.interactionId);\n      if (e || this.v.length < 10 || t.duration > n.P) {\n        if (e ? t.duration > e.P ? (e.entries = [t], e.P = t.duration) : t.duration === e.P && t.startTime === e.entries[0].startTime && e.entries.push(t) : (e = {\n          id: t.interactionId,\n          entries: [t],\n          P: t.duration\n        }, this.m.set(e.id, e), this.v.push(e)), this.v.sort((t, n) => n.P - t.P), this.v.length > 10) {\n          const t = this.v.splice(10);\n          for (const n of t) this.m.delete(n.id);\n        }\n        this.T?.(e);\n      }\n    }\n  }\n  const q = t => {\n      const n = \"requestIdleCallback\" in globalThis ? 1e3 : 0,\n        e = globalThis.requestIdleCallback || setTimeout,\n        i = globalThis.cancelIdleCallback || clearTimeout;\n      if (\"hidden\" === document.visibilityState) t();else {\n        const o = y(t);\n        let s = -1;\n        const a = () => {\n          i(s), o();\n        };\n        addEventListener(\"visibilitychange\", a, {\n          once: true,\n          capture: true\n        }), s = e(() => {\n          removeEventListener(\"visibilitychange\", a, {\n            capture: true\n          }), o();\n        }, {\n          timeout: n\n        });\n      }\n    },\n    A = [200, 500];\n  class H {\n    p;\n    l;\n    h(t) {\n      this.p?.(t);\n    }\n  }\n  const O = [2500, 4e3],\n    U = [800, 1800],\n    V = t => {\n      document.prerendering ? E(() => V(t)) : \"complete\" !== document.readyState ? addEventListener(\"load\", () => V(t), true) : setTimeout(t);\n    };\n  return t.CLSThresholds = w, t.FCPThresholds = M, t.INPThresholds = A, t.LCPThresholds = O, t.TTFBThresholds = U, t.onCLS = (t, n = {}) => {\n    const a = l();\n    L(y(() => {\n      let r,\n        c = g(\"CLS\", 0);\n      const f = v(n, m),\n        h = (e, i, s, a, h) => {\n          c = g(\"CLS\", 0, e, i, s, a, h), f.i = 0, r = o(t, c, w, n.reportAllChanges);\n        },\n        d = (t = false) => {\n          f.i > c.value && (c.value = f.i, c.entries = f.o), r(t);\n        },\n        l = t => {\n          d(true), h(\"soft-navigation\", t.navigationId, t.interactionId, t.name, t.startTime);\n        },\n        u = t => {\n          for (const n of t) \"soft-navigation\" !== n.entryType ? f.h(n) : l(n);\n          d();\n        },\n        T = [\"layout-shift\"];\n      b(n) && T.push(\"soft-navigation\");\n      const y = p(T, u);\n      y && (r = o(t, c, w, n.reportAllChanges), a.onHidden(() => {\n        u(y.takeRecords()), r(true);\n      }), i(() => {\n        h(\"back-forward-cache\", c.navigationId, c.navigationInteractionId, c.navigationURL, e()), s(r);\n      }), setTimeout(r));\n    }));\n  }, t.onFCP = L, t.onINP = (t, n = {}) => {\n    if (!globalThis.PerformanceEventTiming || !(\"interactionId\" in PerformanceEventTiming.prototype)) return;\n    const s = l();\n    E(() => {\n      B();\n      let a,\n        r = g(\"INP\");\n      const c = v(n, S),\n        f = (e, i, s, f, h) => {\n          c.M(), r = g(\"INP\", -1, e, i, s, f, h), a = o(t, r, A, n.reportAllChanges);\n        },\n        h = () => {\n          const t = c.L(r.navigationType);\n          t && t.P !== r.value && (r.value = t.P, r.entries = t.entries, a());\n        },\n        d = t => {\n          h(), a(true), f(\"soft-navigation\", t.navigationId, t.interactionId, t.name, t.startTime);\n        },\n        l = (t, n = false) => {\n          q(() => {\n            for (const n of t) \"soft-navigation\" !== n.entryType ? c.h(n) : d(n);\n            h(), n && a(true);\n          });\n        },\n        u = [\"event\", \"first-input\"];\n      b(n) && u.push(\"soft-navigation\");\n      const m = p(u, l, {\n        ...n,\n        durationThreshold: n.durationThreshold ?? 40\n      });\n      a = o(t, r, A, n.reportAllChanges), m && (s.onHidden(() => {\n        l(m.takeRecords(), true);\n      }), i(() => {\n        f(\"back-forward-cache\", r.navigationId, r.navigationInteractionId, r.navigationURL, e());\n      }));\n    });\n  }, t.onLCP = (t, n = {}) => {\n    let a = false;\n    const c = b(n);\n    E(() => {\n      let f,\n        h = l(),\n        d = g(\"LCP\");\n      const u = v(n, H),\n        m = (e, i, s, r, c) => {\n          d = g(\"LCP\", -1, e, i, s, r, c), f = o(t, d, O, n.reportAllChanges), a = false, \"soft-navigation\" === e && (h = l(true));\n        },\n        b = t => {\n          u.l && t.navigationId && T(u.l, t), a || f(true), m(\"soft-navigation\", t.navigationId, t.interactionId, t.name, t.startTime);\n          const n = t.getLargestInteractionContentfulPaint?.();\n          n && y([n]);\n        },\n        y = t => {\n          n.reportAllChanges || c || (t = t.slice(-1));\n          for (const n of t) {\n            if (!n) continue;\n            if (\"soft-navigation\" === n.entryType) {\n              b(n);\n              continue;\n            }\n            let t = 0,\n              e = [],\n              i = n.startTime;\n            if (\"largest-contentful-paint\" === n.entryType) t = Math.max(n.startTime - r(), 0), u.h(n), e = [n];else if (\"interaction-contentful-paint\" === n.entryType) {\n              const o = n;\n              if (!d.navigationId) continue;\n              if (\"interactionId\" in o && o.interactionId != d.navigationInteractionId) continue;\n              i = o.largestContentfulPaint?.renderTime || 0, t = Math.max(i - n.startTime, 0), o.largestContentfulPaint && (u.h(o.largestContentfulPaint), e = [o.largestContentfulPaint]);\n            }\n            i < h.firstHiddenTime && (d.value = t, d.entries = e, f());\n          }\n        },\n        _ = [\"largest-contentful-paint\"];\n      c && _.push(\"interaction-contentful-paint\", \"soft-navigation\");\n      const E = p(_, y);\n      if (E) {\n        f = o(t, d, O, n.reportAllChanges);\n        const r = [\"keydown\", \"click\", \"visibilitychange\"],\n          h = t => {\n            if (t.isTrusted && !a) {\n              const t = d.id;\n              q(() => {\n                if (!a) {\n                  if (!c) {\n                    E.disconnect();\n                    for (const t of r) removeEventListener(t, h, {\n                      capture: true\n                    });\n                  }\n                  t === d.id && (a = true, f(true));\n                }\n              });\n            }\n          };\n        for (const t of r) addEventListener(t, h, {\n          capture: true\n        });\n        i(i => {\n          m(\"back-forward-cache\", d.navigationId, d.navigationInteractionId, d.navigationURL, e()), f = o(t, d, O, n.reportAllChanges), s(() => {\n            d.value = performance.now() - i.timeStamp, a = true, f(true);\n          });\n        });\n      }\n    });\n  }, t.onTTFB = (t, n = {}) => {\n    const s = b(n);\n    let c = g(\"TTFB\"),\n      f = o(t, c, U, n.reportAllChanges);\n    V(() => {\n      const h = a();\n      if (h) {\n        const a = h.responseStart;\n        if (c.value = Math.max(a - r(), 0), c.entries = [h], f(true), i(() => {\n          c = g(\"TTFB\", 0, \"back-forward-cache\", c.navigationId, c.navigationInteractionId, c.navigationURL, e()), f = o(t, c, U, n.reportAllChanges), f(true);\n        }), s) {\n          p([\"soft-navigation\"], e => {\n            e.forEach(e => {\n              e.navigationId && (c = g(\"TTFB\", 0, \"soft-navigation\", e.navigationId, e.interactionId, e.name, e.startTime), c.entries = [e], f = o(t, c, U, n.reportAllChanges), f(true));\n            });\n          }, n);\n        }\n      }\n    });\n  }, t;\n})({});\n\nfunction addCWVTracking({\n  sampleRUM,\n  sourceSelector,\n  targetSelector,\n  fflags\n}) {\n  setTimeout(() => {\n    try {\n      const cwvScript = new URL('.rum/web-vitals/dist/web-vitals.iife.js', sampleRUM.baseURL).href;\n      if (document.querySelector(`script[src=\"${cwvScript}\"]`)) {\n        return;\n      }\n      const script = document.createElement('script');\n      script.src = cwvScript;\n      script.onload = () => {\n        const storeCWV = measurement => {\n          const data = {\n            cwv: {}\n          };\n          data.cwv[measurement.name] = measurement.value;\n          if (measurement.name === 'LCP' && measurement.entries.length > 0) {\n            const {\n              element\n            } = measurement.entries.pop();\n            data.target = targetSelector(element);\n            data.source = sourceSelector(element) || element && element.outerHTML.slice(0, 30);\n          }\n          if (measurement.name === 'CLS' && measurement.entries.length > 0) {\n            const largest = measurement.entries.reduce((a, b) => b.value > (a ? a.value : 0) ? b : a, undefined);\n            const node = largest && largest.sources && largest.sources.map(s => s.node).find(n => n && n.nodeType === 1);\n            if (node) {\n              data.source = sourceSelector(node) || node.outerHTML.slice(0, 30);\n            }\n          }\n          sampleRUM('cwv', data);\n        };\n        const isEager = metric => ['CLS', 'LCP'].includes(metric);\n        ['INP', 'TTFB', 'CLS', 'LCP'].forEach(metric => {\n          const metricFn = window.webVitals[`on${metric}`];\n          if (typeof metricFn === 'function') {\n            let opts = {};\n            fflags.enabled('eagercwv', () => {\n              opts = {\n                reportAllChanges: isEager(metric)\n              };\n            });\n            metricFn(storeCWV, opts);\n          }\n        });\n      };\n      document.head.appendChild(script);\n    } catch (error) {}\n  }, 2000);\n}\n\nexport { addCWVTracking as default };\n",
+      "response_body_bytes": 16329,
+      "response_body_truncated": false,
+      "failure": null
+    },
+    {
+      "seq": 5,
+      "url": "https://ot.aem.live/.rum/@adobe/helix-rum-enhancer@%5E2/src/plugins/a11y.js",
+      "method": "GET",
+      "resource_type": "script",
+      "started_at": "2026-11-19T16:24:33.146Z",
+      "request_headers": {
+        ":authority": "ot.aem.live",
+        ":method": "GET",
+        ":path": "/.rum/@adobe/helix-rum-enhancer@%5E2/src/plugins/a11y.js",
+        ":scheme": "https",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US",
+        "origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "priority": "u=1",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"99\", \"HeadlessChrome\";v=\"151\", \"Chromium\";v=\"151\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "sec-fetch-dest": "script",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36"
+      },
+      "request_body": null,
+      "request_body_bytes": 0,
+      "request_body_truncated": false,
+      "status": 200,
+      "response_headers": {
+        "accept-ranges": "none",
+        "access-control-allow-headers": "*",
+        "access-control-allow-methods": "GET, HEAD, OPTIONS",
+        "access-control-allow-origin": "*",
+        "access-control-expose-headers": "*",
+        "age": "250874",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cache-control": "public, max-age=3600",
+        "content-digest": "sha256=:tSCP/TOe5PLfYhg89/aOASwa+ncWwoLLnzmxW5SZ47M=:",
+        "content-encoding": "br",
+        "content-type": "text/javascript; charset=utf-8",
+        "cross-origin-resource-policy": "cross-origin",
+        "date": "Mon, 16 Nov 2026 18:43:20 GMT",
+        "expires": "Tue, 16 Nov 2027 18:43:20 GMT",
+        "last-modified": "Mon, 16 Nov 2026 18:43:20 GMT",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "vary": "accept-encoding",
+        "via": "1.1 fly.io",
+        "x-content-type-options": "nosniff",
+        "x-error": "Helix package registry response: 404",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex",
+        "x-rum-trace": "be-u",
+        "x-served-by": "cache-den-kden1300095-DEN"
+      },
+      "response_body": "/*\n * Copyright 2024 Adobe. All rights reserved.\n * This file is licensed to you under the Apache License, Version 2.0 (the \"License\");\n * you may not use this file except in compliance with the License. You may obtain a copy\n * of the License at http://www.apache.org/licenses/LICENSE-2.0\n *\n * Unless required by applicable law or agreed to in writing, software distributed under\n * the License is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS\n * OF ANY KIND, either express or implied. See the License for the specific language\n * governing permissions and limitations under the License.\n */\nconst A_WEIGHT = 1;\nconst AA_WEIGHT = 2;\nconst AAA_WEIGHT = 4;\nconst PREFERENCE_WEIGHTS = {\n  '(prefers-reduced-motion: reduce)': A_WEIGHT,\n  '(prefers-contrast: more)': AA_WEIGHT,\n  '(prefers-contrast: high)': AA_WEIGHT,\n  '(forced-colors: active)': AAA_WEIGHT,\n  '(-ms-high-contrast: active)': AAA_WEIGHT,\n  '(prefers-reduced-transparency: reduce)': A_WEIGHT\n};\nconst KEYBOARD_RELEVANT_KEYS = ['Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', ' ', 'Escape'];\nconst HIGH_ZOOM_LEVEL = 200;\nconst MEDIUM_ZOOM_LEVEL = 125;\nconst BEHAVIORAL_MIN_EVENTS = 10;\nconst FOCUSTRAP_MAX_HISTORY = 25;\nconst FOCUS_TRAP_MIN_HISTORY = 4;\nconst FOCUS_TRAP_PING_PONG_DURATION = 3000;\nconst FOCUS_TRAP_MIN_REPEATS = 3;\nfunction getZoom() {\n  if (window.visualViewport && window.visualViewport.width > 0) {\n    return Math.round(window.innerWidth / window.visualViewport.width * 100);\n  }\n  return 100;\n}\nfunction addAccessibilityAudienceTracking({\n  sampleRUM,\n  sourceSelector\n}) {\n  const focusHistory = [];\n  let score = 0;\n  let reported = false;\n  let focusTrapDetected = false;\n  let keyboardCount = 0;\n  let totalCount = 0;\n  let lastFocusTime = 0;\n  let hadMeaningfulFocus = false;\n  let isKeyboardNav = false;\n  const reportAudience = () => {\n    if (reported) {\n      return;\n    }\n    reported = true;\n    let audience = 'off';\n    if (score > 7) {\n      audience = 'high';\n    } else if (score >= 4) {\n      audience = 'medium';\n    } else if (score >= 1) {\n      audience = 'low';\n    }\n    sampleRUM('a11y', {\n      source: audience,\n      target: 'off:low:medium:high'\n    });\n  };\n  const reportFocusTrap = (trapType, elements) => {\n    if (focusTrapDetected) {\n      return;\n    }\n    focusTrapDetected = true;\n    const elementDescriptions = elements.slice(0, 3).map(sourceSelector);\n    sampleRUM('error', {\n      source: `focus-trap:${trapType}`,\n      target: elementDescriptions.join(', ')\n    });\n  };\n  const detectRepeatingSequence = (elements, seqLength) => {\n    const totalLength = seqLength * FOCUS_TRAP_MIN_REPEATS;\n    if (elements.length < totalLength) {\n      return false;\n    }\n    const recent = elements.slice(-totalLength);\n    const baseSequence = recent.slice(0, seqLength);\n    for (let i = 1; i < FOCUS_TRAP_MIN_REPEATS; i += 1) {\n      const nextSequence = recent.slice(i * seqLength, (i + 1) * seqLength);\n      if (nextSequence.length !== seqLength || !nextSequence.every((el, j) => el === baseSequence[j])) {\n        return false;\n      }\n    }\n    reportFocusTrap('sequence', baseSequence);\n    return true;\n  };\n  const detectFocusTrap = () => {\n    if (focusHistory.length < FOCUS_TRAP_MIN_HISTORY || focusTrapDetected) {\n      return;\n    }\n    const elements = focusHistory.map(h => h.element);\n    const timestamps = focusHistory.map(h => h.timestamp);\n    if (elements.slice(-3).every(el => el === elements[elements.length - 1])) {\n      reportFocusTrap('single', [elements[elements.length - 1]]);\n      return;\n    }\n    const recent4 = elements.slice(-4);\n    const unique = [...new Set(recent4)];\n    const timeDiff = timestamps[timestamps.length - 1] - timestamps[timestamps.length - 4];\n    if (unique.length === 2 && timeDiff < FOCUS_TRAP_PING_PONG_DURATION) {\n      reportFocusTrap('ping-pong', unique);\n      return;\n    }\n    const minSeqLength = 2 * FOCUS_TRAP_MIN_HISTORY + 1;\n    if (focusHistory.length >= minSeqLength) {\n      for (let seqLength = 2; seqLength <= 4; seqLength += 1) {\n        if (detectRepeatingSequence(elements, seqLength)) {\n          return;\n        }\n      }\n    }\n  };\n  const trackFocusForTrap = event => {\n    isKeyboardNav = true;\n    setTimeout(() => {\n      const {\n        activeElement\n      } = document;\n      if (!activeElement || activeElement === document.body) {\n        return;\n      }\n      focusHistory.push({\n        element: activeElement,\n        timestamp: performance.now(),\n        shiftKey: event.shiftKey\n      });\n      if (focusHistory.length > FOCUSTRAP_MAX_HISTORY) {\n        focusHistory.shift();\n      }\n      detectFocusTrap();\n    }, 0);\n  };\n  const checkBehavioralScore = () => {\n    if (totalCount >= BEHAVIORAL_MIN_EVENTS && !reported) {\n      if (keyboardCount / totalCount > 0.7) {\n        score += AAA_WEIGHT;\n      }\n      reportAudience();\n    }\n  };\n  Object.entries(PREFERENCE_WEIGHTS).forEach(([query, queryWeight]) => {\n    if (window.matchMedia(query).matches) {\n      score += queryWeight;\n    }\n  });\n  const zoom = getZoom();\n  if (zoom >= HIGH_ZOOM_LEVEL) {\n    score += AA_WEIGHT;\n  } else if (zoom >= MEDIUM_ZOOM_LEVEL) {\n    score += A_WEIGHT;\n  }\n  if (navigator.maxTouchPoints === 0 && window.matchMedia('(pointer: coarse)').matches) {\n    score += AA_WEIGHT;\n  }\n  if (window.matchMedia('(hover: none)').matches) {\n    score += AA_WEIGHT;\n  }\n  document.addEventListener('keydown', event => {\n    if (KEYBOARD_RELEVANT_KEYS.includes(event.key)) {\n      keyboardCount += 1;\n      totalCount += 1;\n      if (event.key === 'Tab') {\n        trackFocusForTrap(event);\n      }\n      checkBehavioralScore();\n    }\n  });\n  document.addEventListener('click', () => {\n    totalCount += 1;\n    checkBehavioralScore();\n  });\n  const disarm = () => {\n    isKeyboardNav = false;\n  };\n  document.addEventListener('pointerdown', disarm);\n  document.addEventListener('mousedown', disarm);\n  document.addEventListener('touchstart', disarm, {\n    passive: true\n  });\n  const originalPushState = history.pushState;\n  history.pushState = (...args) => {\n    originalPushState.apply(history, args);\n    hadMeaningfulFocus = false;\n  };\n  const originalReplaceState = history.replaceState;\n  history.replaceState = (...args) => {\n    originalReplaceState.apply(history, args);\n    hadMeaningfulFocus = false;\n  };\n  window.addEventListener('popstate', () => {\n    hadMeaningfulFocus = false;\n  });\n  document.addEventListener('focusin', event => {\n    if (event.target !== document.body) {\n      lastFocusTime = performance.now();\n      hadMeaningfulFocus = true;\n    }\n  });\n  const focusLossObserver = new MutationObserver(mutations => {\n    if (hadMeaningfulFocus && isKeyboardNav && document.activeElement === document.body && performance.now() - lastFocusTime > 100) {\n      const mutation = mutations.find(m => m.type === 'childList' && (m.addedNodes.length > 0 || m.removedNodes.length > 0));\n      sampleRUM('error', {\n        source: 'focus-loss',\n        target: sourceSelector(mutation?.target)\n      });\n      hadMeaningfulFocus = false;\n    }\n  });\n  focusLossObserver.observe(document, {\n    childList: true,\n    subtree: true\n  });\n  if (score >= 7) {\n    reportAudience();\n  } else {\n    setTimeout(() => reportAudience(), window.hlx.A11Y_REPORT_DELAY || 10_000);\n  }\n}\n\nexport { addAccessibilityAudienceTracking as default };\n",
+      "response_body_bytes": 7385,
+      "response_body_truncated": false,
+      "failure": null
+    },
+    {
+      "seq": 6,
+      "url": "https://ot.aem.live/.rum/@adobe/helix-rum-enhancer@%5E2/src/plugins/martech.js",
+      "method": "GET",
+      "resource_type": "script",
+      "started_at": "2026-11-19T16:24:33.146Z",
+      "request_headers": {
+        ":authority": "ot.aem.live",
+        ":method": "GET",
+        ":path": "/.rum/@adobe/helix-rum-enhancer@%5E2/src/plugins/martech.js",
+        ":scheme": "https",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US",
+        "origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "priority": "u=1",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"99\", \"HeadlessChrome\";v=\"151\", \"Chromium\";v=\"151\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "sec-fetch-dest": "script",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36"
+      },
+      "request_body": null,
+      "request_body_bytes": 0,
+      "request_body_truncated": false,
+      "status": 200,
+      "response_headers": {
+        "accept-ranges": "bytes",
+        "access-control-allow-headers": "*",
+        "access-control-allow-methods": "GET, HEAD, OPTIONS",
+        "access-control-allow-origin": "*",
+        "access-control-expose-headers": "*",
+        "age": "2609",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "cache-control": "public, max-age=3600",
+        "content-encoding": "gzip",
+        "content-length": "933",
+        "content-type": "text/javascript; charset=utf-8",
+        "cross-origin-resource-policy": "cross-origin",
+        "date": "Thu, 19 Nov 2026 15:41:05 GMT",
+        "etag": "\"beb95039fd0a4661b960d39217d2dafe\"",
+        "last-modified": "Mon, 16 Nov 2026 18:35:02 GMT",
+        "strict-transport-security": "max-age=31557600",
+        "vary": "Origin, Accept-Encoding",
+        "via": "1.1 varnish",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex, nofollow",
+        "x-rum-trace": "hlx",
+        "x-served-by": "cache-den-kden1300095-DEN",
+        "x-timer": "S1794857788.913244,VS0,VE0"
+      },
+      "response_body": "/*\n * Copyright 2024 Adobe. All rights reserved.\n * This file is licensed to you under the Apache License, Version 2.0 (the \"License\");\n * you may not use this file except in compliance with the License. You may obtain a copy\n * of the License at http://www.apache.org/licenses/LICENSE-2.0\n *\n * Unless required by applicable law or agreed to in writing, software distributed under\n * the License is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS\n * OF ANY KIND, either express or implied. See the License for the specific language\n * governing permissions and limitations under the License.\n */\nfunction addAdsParametersTracking(usp, {\n  sampleRUM\n}) {\n  const networks = {\n    google: /gclid|gclsrc|wbraid|gbraid/,\n    doubleclick: /dclid/,\n    microsoft: /msclkid/,\n    facebook: /fb(cl|ad_|pxl_)id/,\n    twitter: /tw(clid|src|term)/,\n    linkedin: /li_fat_id/,\n    pinterest: /epik/,\n    tiktok: /ttclid/,\n    openai: /o(pp|l)ref/\n  };\n  const params = Array.from(usp.keys());\n  Object.entries(networks).forEach(([network, regex]) => {\n    params.filter(param => regex.test(param)).forEach(param => sampleRUM('paid', {\n      source: network,\n      target: param\n    }));\n  });\n}\nfunction addEmailParameterTracking(usp, {\n  sampleRUM\n}) {\n  const networks = {\n    mailchimp: /mc_(c|e)id/,\n    marketo: /mkt_tok/\n  };\n  const params = Array.from(usp.keys());\n  Object.entries(networks).forEach(([network, regex]) => {\n    params.filter(param => regex.test(param)).forEach(param => sampleRUM('email', {\n      source: network,\n      target: param\n    }));\n  });\n}\nfunction addUTMParametersTracking(usp, {\n  sampleRUM\n}) {\n  Array.from(usp.entries()).filter(([key]) => key.startsWith('utm_')).filter(([key]) => key !== 'utm_id').filter(([key]) => key !== 'utm_term').forEach(([source, target]) => sampleRUM('utm', {\n    source,\n    target\n  }));\n}\nfunction addMartechTraking({\n  sampleRUM\n}) {\n  const usp = new URLSearchParams(window.location.search);\n  addAdsParametersTracking(usp, {\n    sampleRUM\n  });\n  addEmailParameterTracking(usp, {\n    sampleRUM\n  });\n  addUTMParametersTracking(usp, {\n    sampleRUM\n  });\n}\n\nexport { addMartechTraking as default };\n",
+      "response_body_bytes": 2183,
+      "response_body_truncated": false,
+      "failure": null
+    },
+    {
+      "seq": 7,
+      "url": "https://ot.aem.live/.rum/web-vitals/dist/web-vitals.iife.js",
+      "method": "GET",
+      "resource_type": "script",
+      "started_at": "2026-11-19T16:24:35.339Z",
+      "request_headers": {
+        ":authority": "ot.aem.live",
+        ":method": "GET",
+        ":path": "/.rum/web-vitals/dist/web-vitals.iife.js",
+        ":scheme": "https",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US",
+        "referer": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"99\", \"HeadlessChrome\";v=\"151\", \"Chromium\";v=\"151\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "sec-fetch-dest": "script",
+        "sec-fetch-mode": "no-cors",
+        "sec-fetch-site": "cross-site",
+        "sec-fetch-storage-access": "active",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36"
+      },
+      "request_body": null,
+      "request_body_bytes": 0,
+      "request_body_truncated": false,
+      "status": 200,
+      "response_headers": {
+        "accept-ranges": "none",
+        "access-control-allow-headers": "*",
+        "access-control-allow-methods": "GET, HEAD, OPTIONS",
+        "access-control-allow-origin": "*",
+        "access-control-expose-headers": "*",
+        "age": "2956881",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cache-control": "public, max-age=31536000",
+        "content-digest": "sha256=:Hl6bmva41xz+9QjlqGnFO0zyu8ytjJtaxmTDTpP2FRo=:",
+        "content-encoding": "br",
+        "content-type": "text/javascript; charset=utf-8",
+        "cross-origin-resource-policy": "cross-origin",
+        "date": "Wed, 11 Nov 2026 11:26:20 GMT",
+        "expires": "Thu, 11 Nov 2027 11:26:20 GMT",
+        "last-modified": "Mon, 05 Oct 2026 10:08:19 GMT",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "vary": "accept-encoding",
+        "via": "1.1 fly.io",
+        "x-content-type-options": "nosniff",
+        "x-error": "",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex",
+        "x-rum-trace": "be-u",
+        "x-served-by": "cache-den-kden1300035-DEN"
+      },
+      "response_body": "var webVitals=function(t){\"use strict\";let n=-1;const e=()=>n,i=t=>{addEventListener(\"pageshow\",e=>{e.persisted&&(n=e.timeStamp,t(e))},!0)},o=(t,n,e,i)=>{let o,s;return a=>{n.value>=0&&(a||i)&&(s=n.value-(o??0),(s||void 0===o)&&(o=n.value,n.delta=s,n.rating=((t,n)=>t>n[1]?\"poor\":t>n[0]?\"needs-improvement\":\"good\")(n.value,e),t(n)))}},s=t=>{requestAnimationFrame(()=>requestAnimationFrame(()=>t()))},a=()=>{const t=performance.getEntriesByType(\"navigation\")[0];if(t&&t.responseStart>0&&t.responseStart<performance.now())return t},r=()=>a()?.activationStart??0;let c=-1;const f=new Set,h=()=>\"hidden\"!==document.visibilityState||document.prerendering?1/0:0,d=t=>{if(\"hidden\"===document.visibilityState){if(\"visibilitychange\"===t.type)for(const t of f)t();isFinite(c)||(c=\"visibilitychange\"===t.type?t.timeStamp:0,removeEventListener(\"prerenderingchange\",d,!0))}},l=(t=!1)=>{if(t&&(c=1/0),c<0){const t=r(),n=document.prerendering?void 0:globalThis.performance.getEntriesByType(\"visibility-state\").find(n=>\"hidden\"===n.name&&n.startTime>=t)?.startTime;c=n??h(),addEventListener(\"visibilitychange\",d,!0),addEventListener(\"prerenderingchange\",d,!0),i(()=>{setTimeout(()=>{c=h()})})}return{get firstHiddenTime(){return c},onHidden(t){f.add(t)}}},g=(t,n=-1,i,o=0,s,c,f)=>{const h=a(),d=h?.navigationId||0;let l=\"navigate\";i?l=i:e()>=0?l=\"back-forward-cache\":h&&(document.prerendering||r()>0?l=\"prerender\":document.wasDiscarded?l=\"restore\":h.type&&(l=h.type.replace(/_/g,\"-\")));return{name:t,value:n,rating:\"good\",delta:0,entries:[],id:`v6-${Date.now()}-${Math.floor(8999999999999*Math.random())+1e12}`,navigationType:l,navigationId:o||d,navigationInteractionId:s,navigationURL:c||h?.name,navigationStartTime:f||0}},u=new WeakMap;function v(t,n){let e=u.get(n);return e||(e=new WeakMap,u.set(n,e)),e.get(t)||e.set(t,new n),e.get(t)}class m{t;i=0;o=[];h(t){if(t.hadRecentInput)return;const n=this.o[0],e=this.o.at(-1);this.i&&n&&e&&t.startTime-e.startTime<1e3&&t.startTime-n.startTime<5e3?(this.i+=t.value,this.o.push(t)):(this.i=t.value,this.o=[t]),this.t?.(t)}}const p=(t,n,e={})=>{try{const i=t.filter(t=>PerformanceObserver.supportedEntryTypes.includes(t));if(i.length>0){const t=new PerformanceObserver(t=>{queueMicrotask(()=>{const e=t.getEntries();i.length>1&&e.sort((t,n)=>t.startTime+t.duration-(n.startTime+n.duration)),n(e)})});for(const n of i)t.observe({type:n,buffered:!0,...e});return t}}catch{}},b=t=>globalThis.PerformanceObserver?.supportedEntryTypes?.includes(\"soft-navigation\")&&\"function\"==typeof globalThis.PerformanceSoftNavigation?.prototype?.getLargestInteractionContentfulPaint&&t&&t.reportSoftNavs,T=(t,n)=>{if(t.set(n.navigationId,n),t.size>2){const n=t.keys().next().value;void 0!==n&&t.delete(n)}},y=t=>{let n=!1;return()=>{n||(t(),n=!0)}};class _{l}const E=t=>{document.prerendering?addEventListener(\"prerenderingchange\",t,!0):t()},M=[1800,3e3],L=(t,n={})=>{const a=b(n);E(()=>{const c=v(n,_),f=l();let h,d=g(\"FCP\");const u=p([\"paint\"],t=>{for(const n of t)\"first-contentful-paint\"===n.name&&(u.disconnect(),n.startTime<f.firstHiddenTime&&(d.value=Math.max(n.startTime-r(),0),d.entries.push(n),d.navigationId=n.navigationId||d.navigationId,h(!0)))});if(u&&(h=o(t,d,M,n.reportAllChanges),i(i=>{d=g(\"FCP\",-1,\"back-forward-cache\",d.navigationId,d.navigationInteractionId,d.navigationURL,e()),h=o(t,d,M,n.reportAllChanges),s(()=>{d.value=performance.now()-i.timeStamp,h(!0)})})),a){p([\"soft-navigation\"],e=>{e.forEach(e=>{c.l&&e.navigationId&&T(c.l,e);const i=Math.max((e.presentationTime||e.paintTime||0)-e.startTime,0);d=g(\"FCP\",i,\"soft-navigation\",e.navigationId,e.interactionId,e.name,e.startTime),h=o(t,d,M,n.reportAllChanges),h(!0)})},n)}})},w=[.1,.25];let P=0,I=1/0,k=0;const C=t=>{for(const n of t)n.interactionId&&(I=Math.min(I,n.interactionId),k=Math.max(k,n.interactionId),P=k?(k-I)/7+1:0)};let F;const N=()=>F?P:performance.interactionCount??0,B=()=>{\"interactionCount\"in performance||F||(F=p([\"event\"],C,{durationThreshold:0}))};class S{u=0;v=[];m=new Map;p;T;_(){return N()-this.u}M(){this.u=N(),this.v.length=0,this.m.clear()}L(t){const n=this._(),e=Math.min(this.v.length-1,Math.floor(n/50));return!n||-1!==e||\"soft-navigation\"!==t&&\"back-forward-cache\"!==t?this.v[e]:{P:8,id:-1,entries:[]}}h(t){if(this.p?.(t),!t.interactionId)return;const n=this.v.at(-1);let e=this.m.get(t.interactionId);if(e||this.v.length<10||t.duration>n.P){if(e?t.duration>e.P?(e.entries=[t],e.P=t.duration):t.duration===e.P&&t.startTime===e.entries[0].startTime&&e.entries.push(t):(e={id:t.interactionId,entries:[t],P:t.duration},this.m.set(e.id,e),this.v.push(e)),this.v.sort((t,n)=>n.P-t.P),this.v.length>10){const t=this.v.splice(10);for(const n of t)this.m.delete(n.id)}this.T?.(e)}}}const q=t=>{const n=\"requestIdleCallback\"in globalThis?1e3:0,e=globalThis.requestIdleCallback||setTimeout,i=globalThis.cancelIdleCallback||clearTimeout;if(\"hidden\"===document.visibilityState)t();else{const o=y(t);let s=-1;const a=()=>{i(s),o()};addEventListener(\"visibilitychange\",a,{once:!0,capture:!0}),s=e(()=>{removeEventListener(\"visibilitychange\",a,{capture:!0}),o()},{timeout:n})}},A=[200,500];class H{p;l;h(t){this.p?.(t)}}const O=[2500,4e3],U=[800,1800],V=t=>{document.prerendering?E(()=>V(t)):\"complete\"!==document.readyState?addEventListener(\"load\",()=>V(t),!0):setTimeout(t)};return t.CLSThresholds=w,t.FCPThresholds=M,t.INPThresholds=A,t.LCPThresholds=O,t.TTFBThresholds=U,t.onCLS=(t,n={})=>{const a=l();L(y(()=>{let r,c=g(\"CLS\",0);const f=v(n,m),h=(e,i,s,a,h)=>{c=g(\"CLS\",0,e,i,s,a,h),f.i=0,r=o(t,c,w,n.reportAllChanges)},d=(t=!1)=>{f.i>c.value&&(c.value=f.i,c.entries=f.o),r(t)},l=t=>{d(!0),h(\"soft-navigation\",t.navigationId,t.interactionId,t.name,t.startTime)},u=t=>{for(const n of t)\"soft-navigation\"!==n.entryType?f.h(n):l(n);d()},T=[\"layout-shift\"];b(n)&&T.push(\"soft-navigation\");const y=p(T,u);y&&(r=o(t,c,w,n.reportAllChanges),a.onHidden(()=>{u(y.takeRecords()),r(!0)}),i(()=>{h(\"back-forward-cache\",c.navigationId,c.navigationInteractionId,c.navigationURL,e()),s(r)}),setTimeout(r))}))},t.onFCP=L,t.onINP=(t,n={})=>{if(!globalThis.PerformanceEventTiming||!(\"interactionId\"in PerformanceEventTiming.prototype))return;const s=l();E(()=>{B();let a,r=g(\"INP\");const c=v(n,S),f=(e,i,s,f,h)=>{c.M(),r=g(\"INP\",-1,e,i,s,f,h),a=o(t,r,A,n.reportAllChanges)},h=()=>{const t=c.L(r.navigationType);t&&t.P!==r.value&&(r.value=t.P,r.entries=t.entries,a())},d=t=>{h(),a(!0),f(\"soft-navigation\",t.navigationId,t.interactionId,t.name,t.startTime)},l=(t,n=!1)=>{q(()=>{for(const n of t)\"soft-navigation\"!==n.entryType?c.h(n):d(n);h(),n&&a(!0)})},u=[\"event\",\"first-input\"];b(n)&&u.push(\"soft-navigation\");const m=p(u,l,{...n,durationThreshold:n.durationThreshold??40});a=o(t,r,A,n.reportAllChanges),m&&(s.onHidden(()=>{l(m.takeRecords(),!0)}),i(()=>{f(\"back-forward-cache\",r.navigationId,r.navigationInteractionId,r.navigationURL,e())}))})},t.onLCP=(t,n={})=>{let a=!1;const c=b(n);E(()=>{let f,h=l(),d=g(\"LCP\");const u=v(n,H),m=(e,i,s,r,c)=>{d=g(\"LCP\",-1,e,i,s,r,c),f=o(t,d,O,n.reportAllChanges),a=!1,\"soft-navigation\"===e&&(h=l(!0))},b=t=>{u.l&&t.navigationId&&T(u.l,t),a||f(!0),m(\"soft-navigation\",t.navigationId,t.interactionId,t.name,t.startTime);const n=t.getLargestInteractionContentfulPaint?.();n&&y([n])},y=t=>{n.reportAllChanges||c||(t=t.slice(-1));for(const n of t){if(!n)continue;if(\"soft-navigation\"===n.entryType){b(n);continue}let t=0,e=[],i=n.startTime;if(\"largest-contentful-paint\"===n.entryType)t=Math.max(n.startTime-r(),0),u.h(n),e=[n];else if(\"interaction-contentful-paint\"===n.entryType){const o=n;if(!d.navigationId)continue;if(\"interactionId\"in o&&o.interactionId!=d.navigationInteractionId)continue;i=o.largestContentfulPaint?.renderTime||0,t=Math.max(i-n.startTime,0),o.largestContentfulPaint&&(u.h(o.largestContentfulPaint),e=[o.largestContentfulPaint])}i<h.firstHiddenTime&&(d.value=t,d.entries=e,f())}},_=[\"largest-contentful-paint\"];c&&_.push(\"interaction-contentful-paint\",\"soft-navigation\");const E=p(_,y);if(E){f=o(t,d,O,n.reportAllChanges);const r=[\"keydown\",\"click\",\"visibilitychange\"],h=t=>{if(t.isTrusted&&!a){const t=d.id;q(()=>{if(!a){if(!c){E.disconnect();for(const t of r)removeEventListener(t,h,{capture:!0})}t===d.id&&(a=!0,f(!0))}})}};for(const t of r)addEventListener(t,h,{capture:!0});i(i=>{m(\"back-forward-cache\",d.navigationId,d.navigationInteractionId,d.navigationURL,e()),f=o(t,d,O,n.reportAllChanges),s(()=>{d.value=performance.now()-i.timeStamp,a=!0,f(!0)})})}})},t.onTTFB=(t,n={})=>{const s=b(n);let c=g(\"TTFB\"),f=o(t,c,U,n.reportAllChanges);V(()=>{const h=a();if(h){const a=h.responseStart;if(c.value=Math.max(a-r(),0),c.entries=[h],f(!0),i(()=>{c=g(\"TTFB\",0,\"back-forward-cache\",c.navigationId,c.navigationInteractionId,c.navigationURL,e()),f=o(t,c,U,n.reportAllChanges),f(!0)}),s){p([\"soft-navigation\"],e=>{e.forEach(e=>{e.navigationId&&(c=g(\"TTFB\",0,\"soft-navigation\",e.navigationId,e.interactionId,e.name,e.startTime),c.entries=[e],f=o(t,c,U,n.reportAllChanges),f(!0))})},n)}}})},t}({});\n//# sourceMappingURL=web-vitals.iife.js.map\n",
+      "response_body_bytes": 8991,
+      "response_body_truncated": false,
+      "failure": null
+    }
+  ]
+}

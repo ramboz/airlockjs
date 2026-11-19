@@ -1,0 +1,182 @@
+{
+  "schema": "airlock.adobe-capture",
+  "manifest": {
+    "schema_version": 1,
+    "vendor": "adobe",
+    "captured_at": "2026-11-19T16:26:33.923Z",
+    "input_state": {
+      "url": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-capture=v1&run=airlock064-8c943c58916013f125091e0599c82ab6&state=S5&google-ads=off&meta-pixel=off",
+      "referrer": null,
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "locale": "en-US",
+      "timezone": "America/New_York",
+      "egress": {
+        "region": "non-eea",
+        "exit_id": "default"
+      },
+      "browser": {
+        "name": "chromium",
+        "version": "151.0.0.0"
+      },
+      "mode": "headed",
+      "profile_kind": "returning",
+      "loaded_digests": {
+        "script_sha256": "7dd09409bb07d47b1b2289eec4ca15d67084a85a3d832bef6c73180889da32e8"
+      },
+      "storage_before": {
+        "cookies": [
+          {
+            "name": "demdex",
+            "value": "73109043416895009253785416203745349566",
+            "domain": ".demdex.net",
+            "path": "/"
+          },
+          {
+            "name": "kndctr_908936ED5D35CC220A495CD4_AdobeOrg_cluster",
+            "value": "or2",
+            "domain": ".main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+            "path": "/"
+          },
+          {
+            "name": "kndctr_908936ED5D35CC220A495CD4_AdobeOrg_identity",
+            "value": "CiY3OTEwOTIyMDkzNjE0Njc4Mjk2NDMzODMxOTQwMDI0NTIwMTQ5OVISCN-ChqWfNBABGAEqA09SMjAA8AHfgoalnzQ=",
+            "domain": ".main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+            "path": "/"
+          },
+          {
+            "name": "AMCV_908936ED5D35CC220A495CD4%40AdobeOrg",
+            "value": "MCMID|79109220936146782964338319400245201499",
+            "domain": ".main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+            "path": "/"
+          }
+        ],
+        "local_storage": {},
+        "session_storage": {}
+      },
+      "storage_after": {
+        "cookies": [
+          {
+            "name": "demdex",
+            "value": "73109043416895009253785416203745349566",
+            "domain": ".demdex.net",
+            "path": "/"
+          },
+          {
+            "name": "kndctr_908936ED5D35CC220A495CD4_AdobeOrg_cluster",
+            "value": "or2",
+            "domain": ".main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+            "path": "/"
+          },
+          {
+            "name": "kndctr_908936ED5D35CC220A495CD4_AdobeOrg_identity",
+            "value": "CiY3OTEwOTIyMDkzNjE0Njc4Mjk2NDMzODMxOTQwMDI0NTIwMTQ5OVISCN-ChqWfNBABGAEqA09SMjAA8AHfgoalnzQ=",
+            "domain": ".main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+            "path": "/"
+          },
+          {
+            "name": "AMCV_908936ED5D35CC220A495CD4%40AdobeOrg",
+            "value": "MCMID|79109220936146782964338319400245201499",
+            "domain": ".main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+            "path": "/"
+          }
+        ],
+        "local_storage": {},
+        "session_storage": {
+          "fonts-loaded": "true"
+        }
+      }
+    }
+  },
+  "capture": {
+    "recording_id": "s5-returning",
+    "state": "S5",
+    "scenario": "identity",
+    "variant": null,
+    "poc_commit": "27054432f4f3248ddb6d24cf44b0bab54bf08023",
+    "source_fixture": "s5-fresh",
+    "rerecord": null,
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+    "alloy_loads": [
+      {
+        "url": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/tools/airlock-stock/vendor/aem-martech/alloy.min.js",
+        "bytes": 152336,
+        "sha256": "7dd09409bb07d47b1b2289eec4ca15d67084a85a3d832bef6c73180889da32e8"
+      }
+    ],
+    "dropped": 0,
+    "steps": [
+      {
+        "step": "configure",
+        "at_ms": 423,
+        "ok": true,
+        "result": {}
+      },
+      {
+        "step": "getIdentity",
+        "at_ms": 424,
+        "ok": true,
+        "result": {
+          "identity": {
+            "ECID": "79109220936146782964338319400245201499"
+          },
+          "edge": {}
+        }
+      },
+      {
+        "step": "appendIdentityToUrl",
+        "at_ms": 425,
+        "ok": true,
+        "result": {
+          "url": "https://destination.example/landing?adobe_mc=TS%3D1795105591%7CMCMID%3D79109220936146782964338319400245201499%7CMCORGID%3D908936ED5D35CC220A495CD4%2540AdobeOrg"
+        }
+      }
+    ]
+  },
+  "requests": [
+    {
+      "seq": 1,
+      "url": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/tools/airlock-stock/vendor/aem-martech/alloy.min.js",
+      "method": "GET",
+      "resource_type": "script",
+      "started_at": "2026-11-19T16:26:31.380Z",
+      "request_headers": {
+        "origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/tools/airlock-stock/capture-entry.mjs",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Chromium\";v=\"151\", \"Not=A?Brand\";v=\"99\"",
+        "accept-language": "en-US",
+        "sec-ch-ua-mobile": "?0"
+      },
+      "request_body": null,
+      "request_body_bytes": 0,
+      "request_body_truncated": false,
+      "status": 200,
+      "response_headers": {
+        "x-robots-tag": "noindex, nofollow",
+        "content-encoding": "gzip",
+        "etag": "\"09ff98941352bc88ba31ddd0de223e97\"",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "x-cache": "MISS, MISS, HIT",
+        "date": "Thu, 19 Nov 2026 16:26:27 GMT",
+        "content-type": "text/javascript; charset=utf-8",
+        "last-modified": "Fri, 09 Oct 2026 23:44:21 GMT",
+        "x-served-by": "cache-iad-kcgs7200145-IAD, cache-iad-kcgs7200145-IAD, cache-den-kden1300089-DEN",
+        "x-cache-hits": "0, 0, 1",
+        "vary": "Accept-Encoding",
+        "cache-control": "max-age=60, must-revalidate",
+        "x-timer": "S1795105458.707658,VS0,VE64",
+        "via": "1.1 varnish, 1.1 varnish, 1.1 varnish",
+        "accept-ranges": "bytes",
+        "content-length": "50279"
+      },
+      "response_body": null,
+      "response_body_bytes": 152336,
+      "response_body_truncated": false,
+      "failure": null
+    }
+  ]
+}

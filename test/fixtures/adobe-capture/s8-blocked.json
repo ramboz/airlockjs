@@ -1,0 +1,187 @@
+{
+  "schema": "airlock.adobe-capture",
+  "manifest": {
+    "schema_version": 1,
+    "vendor": "adobe",
+    "captured_at": "2026-11-19T16:27:41.898Z",
+    "input_state": {
+      "url": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-capture=v1&run=airlock064-6622eed8a2a5291090b0d757690d8b3b&state=S8&google-ads=off&meta-pixel=off",
+      "referrer": null,
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "locale": "en-US",
+      "timezone": "America/New_York",
+      "egress": {
+        "region": "non-eea",
+        "exit_id": "default"
+      },
+      "browser": {
+        "name": "chromium",
+        "version": "151.0.0.0"
+      },
+      "mode": "headed",
+      "profile_kind": "fresh",
+      "loaded_digests": {
+        "script_sha256": "7dd09409bb07d47b1b2289eec4ca15d67084a85a3d832bef6c73180889da32e8"
+      },
+      "storage_before": {
+        "cookies": [],
+        "local_storage": {},
+        "session_storage": {}
+      },
+      "storage_after": {
+        "cookies": [],
+        "local_storage": {},
+        "session_storage": {
+          "fonts-loaded": "true"
+        }
+      }
+    }
+  },
+  "capture": {
+    "recording_id": "s8-blocked",
+    "state": "S8",
+    "scenario": "error-blocked",
+    "variant": null,
+    "poc_commit": "27054432f4f3248ddb6d24cf44b0bab54bf08023",
+    "source_fixture": null,
+    "rerecord": "first take only aborted edge.adobedc.net while the first Edge request goes to adobedc.demdex.net; route now blocks both",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+    "alloy_loads": [
+      {
+        "url": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/tools/airlock-stock/vendor/aem-martech/alloy.min.js",
+        "bytes": 152336,
+        "sha256": "7dd09409bb07d47b1b2289eec4ca15d67084a85a3d832bef6c73180889da32e8"
+      }
+    ],
+    "dropped": 0,
+    "steps": [
+      {
+        "step": "configure",
+        "at_ms": 846,
+        "ok": true,
+        "result": {}
+      },
+      {
+        "step": "sendEvent",
+        "at_ms": 854,
+        "ok": false,
+        "error": {
+          "name": "TypeError",
+          "message": "[alloy] [DataCollector] An error occurred while executing the sendEvent command.\nCaused by: Network request failed.\nCaused by: Failed to fetch"
+        }
+      }
+    ]
+  },
+  "requests": [
+    {
+      "seq": 1,
+      "url": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/tools/airlock-stock/vendor/aem-martech/alloy.min.js",
+      "method": "GET",
+      "resource_type": "script",
+      "started_at": "2026-11-19T16:27:39.287Z",
+      "request_headers": {
+        ":authority": "main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        ":method": "GET",
+        ":path": "/tools/airlock-stock/vendor/aem-martech/alloy.min.js",
+        ":scheme": "https",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US",
+        "origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "priority": "u=1",
+        "referer": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/tools/airlock-stock/capture-entry.mjs",
+        "sec-ch-ua": "\"Chromium\";v=\"151\", \"Not=A?Brand\";v=\"99\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "sec-fetch-dest": "script",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-origin",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+      },
+      "request_body": null,
+      "request_body_bytes": 0,
+      "request_body_truncated": false,
+      "status": 200,
+      "response_headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "cache-control": "max-age=60, must-revalidate",
+        "content-encoding": "gzip",
+        "content-length": "50279",
+        "content-type": "text/javascript; charset=utf-8",
+        "date": "Thu, 19 Nov 2026 16:27:39 GMT",
+        "etag": "\"09ff98941352bc88ba31ddd0de223e97\"",
+        "last-modified": "Fri, 09 Oct 2026 23:44:21 GMT",
+        "strict-transport-security": "max-age=31557600",
+        "vary": "Accept-Encoding",
+        "via": "1.1 varnish, 1.1 varnish, 1.1 varnish",
+        "x-cache": "MISS, MISS, HIT",
+        "x-cache-hits": "0, 0, 2",
+        "x-robots-tag": "noindex, nofollow",
+        "x-served-by": "cache-iad-kcgs7200145-IAD, cache-iad-kcgs7200145-IAD, cache-den-kden1300029-DEN",
+        "x-timer": "S1795105458.707658,VS0,VE64"
+      },
+      "response_body": null,
+      "response_body_bytes": 152336,
+      "response_body_truncated": false,
+      "failure": null
+    },
+    {
+      "seq": 2,
+      "url": "https://adobedc.demdex.net/ee/v1/interact?configId=23190fa7-9e6b-4250-b87b-abcdc8ebc297&requestId=3b5c2e13-1ee9-4df0-ace1-30429e54582d",
+      "method": "POST",
+      "resource_type": "fetch",
+      "started_at": "2026-11-19T16:27:39.384Z",
+      "request_headers": {
+        "accept": "*/*",
+        "accept-language": "en-US",
+        "content-type": "text/plain; charset=UTF-8",
+        "origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "referer": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-capture=v1&run=airlock064-6622eed8a2a5291090b0d757690d8b3b&state=S8&google-ads=off&meta-pixel=off",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Chromium\";v=\"151\", \"Not=A?Brand\";v=\"99\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\""
+      },
+      "request_body": "{\"events\":[{\"query\":{\"personalization\":{\"schemas\":[\"https://ns.adobe.com/personalization/default-content-item\",\"https://ns.adobe.com/personalization/html-content-item\",\"https://ns.adobe.com/personalization/json-content-item\",\"https://ns.adobe.com/personalization/redirect-item\",\"https://ns.adobe.com/personalization/ruleset-item\",\"https://ns.adobe.com/personalization/message/in-app\",\"https://ns.adobe.com/personalization/message/content-card\",\"https://ns.adobe.com/personalization/dom-action\"],\"decisionScopes\":[\"__view__\"],\"surfaces\":[\"web://main--aem-eds-airlock-poc--adobe-rnd.aem.page/\"]}},\"xdm\":{\"web\":{\"webPageDetails\":{\"URL\":\"https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-capture=v1&run=airlock064-6622eed8a2a5291090b0d757690d8b3b&state=S8&google-ads=off&meta-pixel=off\",\"name\":\"airlock064-page\"},\"webReferrer\":{\"URL\":\"\"}},\"device\":{\"screenHeight\":800,\"screenWidth\":1280,\"screenOrientation\":\"landscape\"},\"environment\":{\"type\":\"browser\",\"browserDetails\":{\"viewportWidth\":1265,\"viewportHeight\":800}},\"placeContext\":{\"localTimezoneOffset\":300,\"localTime\":\"2026-11-19T11:27:39.382-05:00\"},\"timestamp\":\"2026-11-19T16:27:39.382Z\",\"implementationDetails\":{\"name\":\"https://ns.adobe.com/experience/alloy\",\"version\":\"2.31.1\",\"environment\":\"browser\"},\"eventType\":\"web.webpagedetails.pageViews\"}}],\"query\":{\"identity\":{\"fetch\":[\"ECID\",\"CORE\"]}},\"meta\":{\"queueTimeMillis\":2,\"state\":{\"domain\":\"main--aem-eds-airlock-poc--adobe-rnd.aem.page\",\"cookiesEnabled\":true}}}",
+      "request_body_bytes": 1476,
+      "request_body_truncated": false,
+      "status": null,
+      "response_headers": null,
+      "response_body": null,
+      "response_body_bytes": 0,
+      "response_body_truncated": false,
+      "failure": "net::ERR_BLOCKED_BY_CLIENT.Inspector"
+    },
+    {
+      "seq": 3,
+      "url": "https://edge.adobedc.net/ee/v1/interact?configId=23190fa7-9e6b-4250-b87b-abcdc8ebc297&requestId=3b5c2e13-1ee9-4df0-ace1-30429e54582d",
+      "method": "POST",
+      "resource_type": "fetch",
+      "started_at": "2026-11-19T16:27:39.387Z",
+      "request_headers": {
+        "accept": "*/*",
+        "accept-language": "en-US",
+        "content-type": "text/plain; charset=UTF-8",
+        "origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "referer": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-capture=v1&run=airlock064-6622eed8a2a5291090b0d757690d8b3b&state=S8&google-ads=off&meta-pixel=off",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Chromium\";v=\"151\", \"Not=A?Brand\";v=\"99\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\""
+      },
+      "request_body": "{\"events\":[{\"query\":{\"personalization\":{\"schemas\":[\"https://ns.adobe.com/personalization/default-content-item\",\"https://ns.adobe.com/personalization/html-content-item\",\"https://ns.adobe.com/personalization/json-content-item\",\"https://ns.adobe.com/personalization/redirect-item\",\"https://ns.adobe.com/personalization/ruleset-item\",\"https://ns.adobe.com/personalization/message/in-app\",\"https://ns.adobe.com/personalization/message/content-card\",\"https://ns.adobe.com/personalization/dom-action\"],\"decisionScopes\":[\"__view__\"],\"surfaces\":[\"web://main--aem-eds-airlock-poc--adobe-rnd.aem.page/\"]}},\"xdm\":{\"web\":{\"webPageDetails\":{\"URL\":\"https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-capture=v1&run=airlock064-6622eed8a2a5291090b0d757690d8b3b&state=S8&google-ads=off&meta-pixel=off\",\"name\":\"airlock064-page\"},\"webReferrer\":{\"URL\":\"\"}},\"device\":{\"screenHeight\":800,\"screenWidth\":1280,\"screenOrientation\":\"landscape\"},\"environment\":{\"type\":\"browser\",\"browserDetails\":{\"viewportWidth\":1265,\"viewportHeight\":800}},\"placeContext\":{\"localTimezoneOffset\":300,\"localTime\":\"2026-11-19T11:27:39.382-05:00\"},\"timestamp\":\"2026-11-19T16:27:39.382Z\",\"implementationDetails\":{\"name\":\"https://ns.adobe.com/experience/alloy\",\"version\":\"2.31.1\",\"environment\":\"browser\"},\"eventType\":\"web.webpagedetails.pageViews\"}}],\"query\":{\"identity\":{\"fetch\":[\"ECID\",\"CORE\"]}},\"meta\":{\"queueTimeMillis\":2,\"state\":{\"domain\":\"main--aem-eds-airlock-poc--adobe-rnd.aem.page\",\"cookiesEnabled\":true}}}",
+      "request_body_bytes": 1476,
+      "request_body_truncated": false,
+      "status": null,
+      "response_headers": null,
+      "response_body": null,
+      "response_body_bytes": 0,
+      "response_body_truncated": false,
+      "failure": "net::ERR_BLOCKED_BY_CLIENT.Inspector"
+    }
+  ]
+}
