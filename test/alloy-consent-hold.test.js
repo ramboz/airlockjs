@@ -61,6 +61,19 @@ const boot = async (extra = {}) => {
 };
 const noInputWarnings = (diags) => diags.filter((d) => d.kind === "consent" && /no consent input wired/.test(d.reason ?? ""));
 
+describe("064-26 the command entry warns once under a hold with no consent input", () => {
+  it("getIdentity warns, other commands and a later push do not add warnings", async () => {
+    const { handle, diags } = await boot();
+    handle.command("getIdentity").catch(() => {});
+    await tick();
+    expect(noInputWarnings(diags)).toHaveLength(1);
+    handle.command("getLibraryInfo").catch(() => {});
+    handle.push(view);
+    await tick();
+    expect(noInputWarnings(diags)).toHaveLength(1);
+  });
+});
+
 describe("067-03 AC1 — no consent input: alloy holds and warns once", () => {
   it("boots alloy pending, sends nothing, and warns once (not per event)", async () => {
     const { handle, diags, worker } = await boot();

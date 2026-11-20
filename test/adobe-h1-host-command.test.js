@@ -136,7 +136,7 @@ describe("064-26 the main-thread entry (hermetic)", () => {
     await expect(q).rejects.toThrow(/lost/);
   });
 
-  it("a fatal load error rejects calls waiting for boot and in flight, with a plain Error", async () => {
+  it("a fatal load error rejects a call waiting for boot, with a plain Error", async () => {
     const w = fakeWorker();
     const { command } = createHostCommandEntry({ worker: w, renderer: rendererStub() });
     const waiting = command("getIdentity");
@@ -320,10 +320,10 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
     const out = {};
     const names = ["getIdentity", "appendIdentityToUrl", "getLibraryInfo", "createEventMergeId", "applyResponse"];
     const opts = { appendIdentityToUrl: { url: "https://destination.example/landing" }, applyResponse: { responseBody: body } };
-    await Promise.all(names.map(async (n) => {
-      const p = run(n, opts[n] || {}).then(() => "resolved", (e) => "rejected:" + e.name);
-      out[n] = await Promise.race([p, new Promise((r) => setTimeout(() => r("pending"), ms))]);
-    }));
+    const calls = Object.fromEntries(names.map((n) => [n, run(n, opts[n] || {}).then(() => "resolved", (e) => "rejected:" + e.name)]));
+    // only getIdentity can park, so the others are awaited without a timer and a slow runner cannot flip them to "pending"
+    for (const n of names.filter((x) => x !== "getIdentity")) out[n] = await calls[n];
+    out.getIdentity = await Promise.race([calls.getIdentity, new Promise((r) => setTimeout(() => r("pending"), ms))]);
     return out;
   })`;
 
@@ -378,13 +378,13 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
     const respond = await edgeAnswers();
     const body = await s3Body();
     const stock = await replayFixture(browser, "s5-fresh", { skipSteps: true, event: null, respond, run: (page) => stockStatus(page, { defaultConsent: "in", body }) });
-    const ours = await replayFixture(browser, "s5-fresh", { skipSteps: true, event: null, respond, bootOptions: { consentHold: null }, run: (page) => ourStatus(page, body) });
+    const ours = await replayFixture(browser, "s5-fresh", { skipSteps: true, event: null, respond, bootOptions: { consentHold: null /* undoes the harness default of no hold */ }, run: (page) => ourStatus(page, body) });
     // stock has no hold: its default consent lets every command through and the identity is fetched
     expect(Object.values(stock.results.run).every((v) => v === "resolved")).toBe(true);
     // the handle parks only getIdentity, as it would a push, and tells the site why
     expect(ours.results.run).toEqual({ ...stock.results.run, getIdentity: "pending" });
     expect(edgeCalls(ours)).toEqual([]);
-    expect(ours.diagnostics.filter((d) => d.kind === "consent" && d.disposition === "held")).toHaveLength(1);
+    expect(ours.diagnostics.filter((d) => d.kind === "consent" && d.disposition === "held" && /no consent input wired/.test(d.reason ?? ""))).toHaveLength(1);
   }, T);
 
   it("a command parked under pending consent stays pending, then resolves once consent is granted", async () => {
@@ -404,15 +404,16 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
     expect(r.results.run.after).toEqual({ ok: true });
   }, T);
 
+  const DOM_ACTION_BODY = { requestId: "00000000-0000-0000-0000-000000000026", handle: [{ type: "personalization:decisions", payload: [{ id: "p26", scope: "__view__", scopeDetails: { decisionProvider: "TGT", activity: { id: "act-26" }, characteristics: { scopeType: "view" } }, items: [{ id: "i26", schema: "https://ns.adobe.com/personalization/dom-action", data: { type: "setHtml", selector: "#z26", content: "<b>done</b>" } }] }] }] };
+
   it("applyResponse with renderDecisions:true renders through the 064-20 renderer; without it nothing renders (SYNTHETIC body)", async () => {
-    const body = { requestId: "00000000-0000-0000-0000-000000000026", handle: [{ type: "personalization:decisions", payload: [{ id: "p26", scope: "__view__", scopeDetails: { decisionProvider: "TGT", activity: { id: "act-26" }, characteristics: { scopeType: "view" } }, items: [{ id: "i26", schema: "https://ns.adobe.com/personalization/dom-action", data: { type: "setHtml", selector: "#z26", content: "<b>done</b>" } }] }] }] };
     const r = await replayFixture(browser, "s3-base", {
       event: null,
       bodyHtml: '<div id="z26">orig</div>',
       run: async (page) => {
-        const headless = await call(page, "applyResponse", { responseBody: body });
+        const headless = await call(page, "applyResponse", { responseBody: DOM_ACTION_BODY });
         const domA = await page.evaluate(() => document.getElementById("z26").innerHTML);
-        const rendered = await call(page, "applyResponse", { responseBody: body, renderDecisions: true });
+        const rendered = await call(page, "applyResponse", { responseBody: DOM_ACTION_BODY, renderDecisions: true });
         const domB = await page.evaluate(() => document.getElementById("z26").innerHTML);
         return { headless, domA, rendered, domB };
       },
@@ -460,11 +461,13 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
     expect(edgeCalls(stock)).toEqual([]);
   }, T);
 
-  const DOM_ACTION_BODY = { requestId: "00000000-0000-0000-0000-000000000026", handle: [{ type: "personalization:decisions", payload: [{ id: "p26", scope: "__view__", scopeDetails: { decisionProvider: "TGT", activity: { id: "act-26" }, characteristics: { scopeType: "view" } }, items: [{ id: "i26", schema: "https://ns.adobe.com/personalization/dom-action", data: { type: "setHtml", selector: "#z26", content: "<b>done</b>" } }] }] }] };
-
-  it("a boot-level renderDecisions:true does not change applyResponse: omitted renders nothing and sends nothing (SYNTHETIC body)", async () => {
-    const stock = await replayFixture(browser, "s3-base", { event: null, bodyHtml: '<div id="z26">orig</div>', run: (page) => stockApplyResponse(page, { responseBody: DOM_ACTION_BODY }) });
-    const ours = await replayFixture(browser, "s3-base", { event: null, bodyHtml: '<div id="z26">orig</div>', bootOptions: { renderDecisions: true }, run: (page) => ourApplyResponse(page, { responseBody: DOM_ACTION_BODY }) });
+  it.each([
+    ["with no personalization configured (the option is not even wired)", {}],
+    ["with personalization configured, where the boot option is wired", { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] }],
+  ])("a boot-level renderDecisions:true does not change applyResponse %s: omitted renders nothing and sends nothing (SYNTHETIC body)", async (_label, extra) => {
+    const html = '<div id="v"></div><div id="z26">orig</div>';
+    const stock = await replayFixture(browser, "s3-base", { event: null, bodyHtml: html, run: (page) => stockApplyResponse(page, { responseBody: DOM_ACTION_BODY }) });
+    const ours = await replayFixture(browser, "s3-base", { event: null, bodyHtml: html, bootOptions: { renderDecisions: true, ...extra }, run: (page) => ourApplyResponse(page, { responseBody: DOM_ACTION_BODY }) });
     expect(stock.results.run.dom).toBe("orig");
     expect(ours.results.run.dom).toBe("orig");
     expect(ours.results.run.renderAttempted).toEqual([false]);
@@ -474,7 +477,16 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
   }, T);
 
   it("applyResponse with renderDecisions:true: two recorded gaps against stock: no display notification, and `decisions` keeps the rendered proposition", async () => {
-    const stock = await replayFixture(browser, "s3-base", { event: null, bodyHtml: '<div id="z26">orig</div>', run: (page) => stockApplyResponse(page, { responseBody: DOM_ACTION_BODY, renderDecisions: true }) });
+    const stock = await replayFixture(browser, "s3-base", {
+      event: null,
+      bodyHtml: '<div id="z26">orig</div>',
+      run: async (page) => {
+        const notified = page.waitForRequest((req) => /propositionDisplay/.test(req.postData() || ""), { timeout: 10000 });
+        const out = await stockApplyResponse(page, { responseBody: DOM_ACTION_BODY, renderDecisions: true });
+        await notified;
+        return out;
+      },
+    });
     const ours = await replayFixture(browser, "s3-base", { event: null, bodyHtml: '<div id="z26">orig</div>', run: (page) => ourApplyResponse(page, { responseBody: DOM_ACTION_BODY, renderDecisions: true }) });
     expect(stock.results.run.dom).toContain("done");
     expect(ours.results.run.dom).toContain("done");
