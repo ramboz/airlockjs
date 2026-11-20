@@ -1,8 +1,12 @@
 // 067-12 migration (spec 067 check 8): a bootAlloy caller that declares no storage grant keeps
-// today's behavior. Alloy declares no stock storage set, so with no narrowing the init message
+// today's behavior. A connector declaring no stock storage set, with no narrowing, the init message
 // carries NO `storage` key and a storage write-back is not an error and touches nothing.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { bootAlloy } from "../adapters/eds/index.js";
+
+// 064-27: Alloy now declares its stock set, so this migration test (spec 067 check 8) swaps in a connector
+// that declares none, which is what any other caller without a vendor list still looks like.
+vi.mock("../connectors/alloy/connector.js", async (orig) => ({ ...(await orig()), alloyStorageGrant: () => ({ names: null, purposes: null }) }));
+const { bootAlloy } = await import("../adapters/eds/index.js");
 
 class RecordingWorker {
   constructor(url) { RecordingWorker.instances.push(this); this.url = String(url); this.messages = []; this.handlers = []; }

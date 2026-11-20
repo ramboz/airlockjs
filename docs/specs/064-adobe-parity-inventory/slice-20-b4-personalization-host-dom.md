@@ -53,7 +53,7 @@ The corpus has no dom-action, redirect, JSON, ruleset, `propositionInteract` or 
 
 ### Storage grant
 
-Not needed: S4 and S7 compare clean without it. `ALLOY_STORAGE_NAMES` is untouched and the refinement-todo entry "Alloy chamber storage persistence" stays open.
+Not needed for S4 and S7, which compare clean without it. The storage grant was built separately in 064-27.
 
 ### Cutline (2026-11-20, coordinator)
 
@@ -67,7 +67,8 @@ The three ACs were reworded to what is built and fully met; each ends `except <g
 
 - **064-23, 064-24, 064-25** own C2 (SPA view cache, with first-event-only `decisionScopes`), C3 (redirect display) and C5 (interact shape). The three bullets below name the gaps; the slices are the owners.
 
-- **Activity-map persistence** (goes with the storage-grant slice, reserved number 064-27): stock `eventGroupingEnabled` and `sessionStorageEnabled` click persistence across pages is not ported (the main-thread collector keeps only the last page name in memory). Parity gap, carry to the host-command/storage item.
+
+- **Activity-map persistence**: stock `eventGroupingEnabled` and `sessionStorageEnabled` click persistence across pages is not ported (the main-thread collector keeps only the last page name in memory). Parity gap; dispositioned in 064-27 (not a grant item, stays open in refinement-todo).
 - **Two linkClicks POSTs in the replay** were the rig booting airlock (click collection on) on the stock page too. The stock arm now boots with `clickCollectionEnabled:false`; the test asserts exactly one stock POST and compares full bodies.
 - **SPA view cache (C2)**: stock caches view-scoped propositions and renders/notifies on a push naming the view. Not built -> 064-23. Source of the S7 SPA-view display delta.
 - **Redirect display notification (C3)**: stock sends it with keepalive/`documentMayUnload`; we send none for redirects. The seam keepalive path exists (see Cutline) -> 064-24.

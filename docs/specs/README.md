@@ -25,7 +25,7 @@ its live slices are READY_FOR_IMPLEMENTATION and the spec rolls up as IN_PROGRES
 and the capture plan under [ADR-0061](../decisions/adr-0061-definition-of-done-vendor-compatibility.md).
 Its slices are on the board below, in this order: 064-02 T2 (datastream setting list and command reconcile),
 064-03 B0 (capture tooling and shared comparator field rules), 064-04 CAP (the capture session), then
-064-17 to 064-22 for B1 (pilot) through B6, and 064-15 B7 and 064-16 B8 (release-check wiring). 064-01 (T1) and
+064-17 to 064-22 for B1 (pilot) through B6, 064-27 (Alloy storage grant), and 064-15 B7 and 064-16 B8 (release-check wiring). 064-01 (T1) and
 064-05 to 064-14 are abandoned with a note (Alloy-source simplification, 2026-11-13). Specs 065
 and 066 are reserved for the Google and Meta inventories.
 
@@ -209,6 +209,7 @@ do not grant live authority.
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-21 — B5: aem-martech, ACDL and Launch | READY_FOR_IMPLEMENTATION |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-22 — B6: Out-of-default-surface disposition | DONE |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-26 — H1: Host command entry | DRAFT |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-27 — Alloy storage grant | DONE |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-01: ADR status lines and docs rewording | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-02: Consent hold on every track, with a no-consent-input warning | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-03: Alloy holds and flushes, and an empty `egressPurposes` holds and warns | **DONE** |  |

@@ -14,7 +14,7 @@
 // main-thread dispatch + ECID mint/write-back is AC4 — the NEXT stage — and is
 // deliberately NOT built here.
 import { describe, it, expect, vi } from "vitest";
-import { createAlloyConnector, ALLOY_COOKIE_NAMES, ALLOY_DEFAULT_CONTEXT } from "../connectors/alloy/connector.js";
+import { createAlloyConnector, ALLOY_COOKIE_NAMES, ALLOY_DEFAULT_CONTEXT, ALLOY_STORAGE_NAMES, ALLOY_STORAGE_PURPOSES, alloyStorageGrant } from "../connectors/alloy/connector.js";
 import { createConnectorHost } from "../core/connector-host.js";
 
 /** A fake alloy command fn (R-004 shape: `alloy(command, options) -> Promise`). */
@@ -351,5 +351,49 @@ describe("alloy connector (spec 035-01 AC3): ALLOY_COOKIE_NAMES is the manifest'
 
   it("names alloy's real declared set (exact + prefix mix, grounded 2026-09-05)", () => {
     expect(ALLOY_COOKIE_NAMES).toEqual(["com.adobe.alloy.getTld", "kndctr_", "AMCV_", "demdex", "s_ecid"]);
+  });
+});
+
+// 064-27: the stock storage grant, ONE source of truth (the cookie-name discipline above). Source-derived
+// from the pinned Alloy 2.31.1 (`com.adobe.alloy.` namespace, `utils/injectStorage.js`) except the
+// consentHashes key, which the CAP corpus also shows.
+describe("alloy connector (064-27): the stock storage grant", () => {
+  const ORG = "908936ED5D35CC220A495CD4@AdobeOrg";
+  const NS = "com.adobe.alloy.";
+
+  it("org-independent base: Assurance clientId (localStorage) and the debug flag (sessionStorage)", () => {
+    expect(ALLOY_STORAGE_NAMES).toEqual({
+      localStorage: [`${NS}validation.clientId`],
+      sessionStorage: [`${NS}instance.alloy.debug`],
+    });
+    expect(Object.isFrozen(ALLOY_STORAGE_NAMES)).toBe(true);
+    expect(Object.isFrozen(ALLOY_STORAGE_NAMES.localStorage)).toBe(true);
+  });
+
+  it("adds the org-scoped consent hashes, with '@' sanitized to '_' as stock does", () => {
+    const { names } = alloyStorageGrant(ORG);
+    expect(names.localStorage).toEqual([
+      `${NS}validation.clientId`,
+      `${NS}908936ED5D35CC220A495CD4_AdobeOrg.consentHashes.Adobe.2.0`,
+    ]);
+    expect(names.sessionStorage).toEqual([`${NS}instance.alloy.debug`]);
+  });
+
+  it("grants nothing stock does not write: no click data, decisioning events or push keys", () => {
+    const all = Object.values(alloyStorageGrant(ORG).names).flat().join("\n");
+    expect(all).not.toMatch(/clickData|decisioning|pushNotifications/);
+  });
+
+  it("a missing org still grants the org-independent base", () => {
+    expect(alloyStorageGrant(undefined).names).toEqual(ALLOY_STORAGE_NAMES);
+  });
+
+  it("purposes cover exactly the granted keys, each non-empty", () => {
+    const { names, purposes } = alloyStorageGrant(ORG);
+    for (const area of ["localStorage", "sessionStorage"]) {
+      expect(Object.keys(purposes[area]).sort()).toEqual([...names[area]].sort());
+      for (const p of Object.values(purposes[area])) expect(p.length).toBeGreaterThan(0);
+    }
+    expect(Object.keys(ALLOY_STORAGE_PURPOSES.localStorage)).toEqual(ALLOY_STORAGE_NAMES.localStorage);
   });
 });

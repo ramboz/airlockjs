@@ -124,6 +124,12 @@ jobs:
         env:
           AIRLOCK_REAL_CHROMIUM: "1"
 
+      - name: GATING — 064-27 Alloy storage grant persists across page loads (real Chromium, pinned Alloy 2.31.1)
+        # Stock-vs-airlock: consent hash and Assurance clientId reused on load 2; a narrowed grant drops the write.
+        run: npx vitest run test/adobe-storage-grant.test.js
+        env:
+          AIRLOCK_REAL_CHROMIUM: "1"
+
       - name: GATING — real-Worker isolation invariant (07-02)
         run: npm run rig:isolation
 

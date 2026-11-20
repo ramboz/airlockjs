@@ -1,13 +1,14 @@
 // 067-12 at the bootAlloy seam: the boot storage seed and write-back honor the storage grant.
-// Alloy declares no stock storage set yet (real sets arrive with 064/065/066), so the stock set
-// below is a TEST VENDOR fixture swapped in for the connector's ALLOY_STORAGE_* exports; the
+// The stock set below is a TEST VENDOR fixture swapped in for the connector's `alloyStorageGrant` (the real set is pinned in test/alloy-connector.test.js and proved in real Chromium, 064-27); the
 // no-stock cases run unmocked in test/eds-boot-alloy-storage-default.test.js.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("../connectors/alloy/connector.js", async (orig) => ({
   ...(await orig()),
-  ALLOY_STORAGE_NAMES: { localStorage: ["vendor_", "vtld"], sessionStorage: ["vsid"] },
-  ALLOY_STORAGE_PURPOSES: { localStorage: { vendor_: ["analytics_storage"] }, sessionStorage: { vsid: ["analytics_storage"] } },
+  alloyStorageGrant: () => ({
+    names: { localStorage: ["vendor_", "vtld"], sessionStorage: ["vsid"] },
+    purposes: { localStorage: { vendor_: ["analytics_storage"] }, sessionStorage: { vsid: ["analytics_storage"] } },
+  }),
 }));
 
 const { bootAlloy } = await import("../adapters/eds/index.js");

@@ -1418,7 +1418,7 @@ Owner decision 2026-11-20 ("Forward the opt-out only, via a narrow seam exemptio
 
 Owner approved the command entry 2026-11-20. Proposed in [ADR-0063](decisions/adr-0063-host-command-entry.md), built in slice 064-26. Open question: whether `evaluateRulesets` joins the allowlist.
 
-- **Alloy chamber storage persistence (open, from 064-22).** `ALLOY_STORAGE_NAMES` is `null`, so chamber storage is in-memory: the Assurance `validation.clientId` (and other stock localStorage keys) is regenerated every page load instead of reused. Trigger: Assurance or any stock localStorage key is needed across page loads; needs a storage-grant decision (B4-adjacent) before changing the allowlist.
+- **Alloy chamber storage persistence (RESOLVED by 064-27, 2026-11-20).** The default grant now equals the stock set (`alloyStorageGrant(orgId)` in `connectors/alloy/connector.js`), so the Assurance `validation.clientId` and the consent hashes persist and are reused across page loads. See `docs/specs/064-adobe-parity-inventory/slice-27-alloy-storage-grant.md`.
 
 ## Personalization follow-ups (064-20, 2026-11-20)
 
@@ -1427,4 +1427,4 @@ Owner approved the command entry 2026-11-20. Proposed in [ADR-0063](decisions/ad
 - **Interact notification parity (open) -> slice 064-25.** Merged interact-in-click event, `viewName`, `trackingLabel` tokens, AJO auto-collect.
 - **Trusted Types for rendered HTML (open).** Template write is not behind a Trusted Types policy.
 - **Low:** prehide selector injection and nonce, dedup attribute, one observer per item, remote fetches from rendered content sit outside the seal.
-- **Activity-map persistence (open, 064-20).** Stock `eventGroupingEnabled`/`sessionStorageEnabled` click persistence across pages is not ported; only the last page name is kept in memory. Goes with the storage-grant slice (reserved number 064-27).
+- **Activity-map persistence (open, 064-20).** Stock `eventGroupingEnabled`/`sessionStorageEnabled` click persistence across pages is not ported; only the last page name is kept in memory. Disposition (064-27): not a storage-grant item. The collector is main-thread and never reads the chamber grant, so porting means a collector change that rewrites page-view events, not a grant. Trigger: a site relies on click-to-next-page activity-map continuity.

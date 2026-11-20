@@ -123,14 +123,54 @@ export const ALLOY_COOKIE_PURPOSES = Object.freeze({
 });
 
 /**
- * Alloy's stock localStorage/sessionStorage set (spec 067-12), shape `{ localStorage?, sessionStorage? }`
- * of exact keys and `prefix_` entries. `null` = none declared: alloy's stock tag persists identity
- * through cookies (R-004), and the real storage keys are grounded with Adobe 064-17. Until then
- * the storage grant stays ungated, today's behavior (spec 067 check 8). `ALLOY_STORAGE_PURPOSES`
- * is the matching `{ [area]: { [entry]: purposes } }` table for the consent write denial.
+ * Alloy's stock localStorage/sessionStorage set (spec 067-12, grounded by 064-27), shape
+ * `{ localStorage?, sessionStorage? }` of exact keys. Stock Alloy 2.31.1 names every key
+ * `com.adobe.alloy.` + a per-component namespace (`utils/injectStorage.js`), and the prefix rule
+ * (a trailing `_`) cannot express keys that END in a version, so every entry is exact. What the
+ * chamber's default configuration writes, and nothing else:
+ *  - localStorage `validation.clientId`: the Assurance client id, created when `adb_validation_sessionid` is
+ *    on the URL (`utils/request/createGetAssuranceValidationTokenParams.js`). Source-derived.
+ *  - sessionStorage `instance.alloy.debug`: the debug flag, written when the `alloy_debug` URL parameter is
+ *    present (`core/createLogController.js`; the bundle's default instance name is `alloy`). Source-derived.
+ *  - the org-scoped localStorage consent hashes: see `alloyStorageGrant`.
+ * Not granted because the stock default never writes them: `<org>.decisioning.events` (needs
+ * `personalizationStorageEnabled`, not exposed), `<org>clickData` (needs `clickCollection.sessionStorageEnabled`,
+ * and clicks are collected on the main thread, never in the chamber) and `<org>.pushNotifications.*`
+ * (push is incompatible, 064-22). `ALLOY_STORAGE_PURPOSES` is the matching
+ * `{ [area]: { [entry]: purposes } }` table for the consent write denial.
  */
-export const ALLOY_STORAGE_NAMES = null;
-export const ALLOY_STORAGE_PURPOSES = null;
+const ALLOY_STORAGE_NAMESPACE = "com.adobe.alloy.";
+const FUNCTIONAL = Object.freeze(["functional"]);
+export const ALLOY_STORAGE_NAMES = Object.freeze({
+  localStorage: Object.freeze([`${ALLOY_STORAGE_NAMESPACE}validation.clientId`]),
+  sessionStorage: Object.freeze([`${ALLOY_STORAGE_NAMESPACE}instance.alloy.debug`]),
+});
+// Identifiers for tooling and consent bookkeeping, not analytics or personalization data: functional.
+export const ALLOY_STORAGE_PURPOSES = Object.freeze({
+  localStorage: Object.freeze({ [`${ALLOY_STORAGE_NAMESPACE}validation.clientId`]: FUNCTIONAL }),
+  sessionStorage: Object.freeze({ [`${ALLOY_STORAGE_NAMESPACE}instance.alloy.debug`]: FUNCTIONAL }),
+});
+
+/**
+ * The full stock storage grant for one org: `ALLOY_STORAGE_NAMES` plus the consent-hash keys
+ * `com.adobe.alloy.<org>.consentHashes.Adobe.2.0` (org `@` becomes `_`, as stock's
+ * `sanitizeOrgIdForCookieName`), the one standard the chamber's consent driver sends (CAP-corpus-verified).
+ * Other standards (e.g. TCF) are not granted until a consent path sends them. Consent hashes are functional:
+ * stock writes them under any consent state, they only record what was sent.
+ * @param {string} [orgId]
+ * @returns {{ names: object, purposes: object }}
+ */
+export function alloyStorageGrant(orgId) {
+  if (typeof orgId !== "string" || !orgId) return { names: ALLOY_STORAGE_NAMES, purposes: ALLOY_STORAGE_PURPOSES };
+  const local = [...ALLOY_STORAGE_NAMES.localStorage, `${ALLOY_STORAGE_NAMESPACE}${orgId.replace("@", "_")}.consentHashes.Adobe.2.0`];
+  return {
+    names: Object.freeze({ localStorage: Object.freeze(local), sessionStorage: ALLOY_STORAGE_NAMES.sessionStorage }),
+    purposes: Object.freeze({
+      localStorage: Object.freeze(Object.fromEntries(local.map((k) => [k, ALLOY_STORAGE_PURPOSES.localStorage[k] || FUNCTIONAL]))),
+      sessionStorage: ALLOY_STORAGE_PURPOSES.sessionStorage,
+    }),
+  };
+}
 
 /**
  * alloy's declared vocabulary — the SINGLE SOURCE OF TRUTH the manifest below AND the

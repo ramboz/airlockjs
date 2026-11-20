@@ -66,9 +66,8 @@ describe.runIf(real)("064-22 out-of-default-surface dispositions (real Chromium)
       const sent = new URL(r.observed[0].url);
       const token = sent.searchParams.get("adobeAepValidationToken");
       expect(token.startsWith(`${FAKE_SESSION}|`)).toBe(true);
-      expect(token.split("|")[1]).toMatch(/^[0-9a-f-]{36}$/);
-      // Known gap: chamber storage is in-memory, so the seeded clientId is not read.
-      expect(token.split("|")[1]).not.toBe(FAKE_CLIENT);
+      // 064-27: the stock storage grant lets the chamber read the page's clientId, as stock does.
+      expect(token.split("|")[1]).toBe(FAKE_CLIENT);
       expect(r.network.some((n) => n.url.includes("adobeAepValidationToken="))).toBe(true);
     }, T);
 

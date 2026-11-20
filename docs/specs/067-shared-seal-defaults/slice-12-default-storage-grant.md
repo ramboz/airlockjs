@@ -30,7 +30,7 @@ last_verified: 2026-11-13
 
 ### Deviation log
 
-- Alloy declares no stock storage set yet (`ALLOY_STORAGE_NAMES = null`; real keys arrive with Adobe 064-17). The stock-default path is proven with a mocked test vendor set (`vendor_`, `vtld`, `vsid`), as the slice allowed.
+- Alloy declares no stock storage set yet (`ALLOY_STORAGE_NAMES = null`; real keys arrive with Adobe 064-17; the set was declared in 064-27). The stock-default path is proven with a mocked test vendor set (`vendor_`, `vtld`, `vsid`), as the slice allowed.
 - An area with no declared stock grants nothing: the host drops `storage-writeback` and the chamber storage stays in memory, as today. A narrowing with no stock set throws at boot (nothing to narrow). Independent review round 1 found the first draft fail-open here; fixed.
 - New seam: chamber `storage-writeback` message, `init.storage` seed (only when a grant is active), `caps.storage.reconcile` sink, and a `storageGrantNarrowing` config key with schema and golden fixture.
 

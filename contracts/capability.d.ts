@@ -57,7 +57,7 @@ export interface CapabilityRequest {
    * The connector's STOCK localStorage/sessionStorage set per area (spec 067-12, ADR-0062 point
    * 7): exact keys and `prefix_` entries, the same match rule as `cookies`. It is the default
    * grant (boot seed and write-back); a site narrows it with `storageGrantNarrowing`, never
-   * widens. Omitted = no storage grant imposed (today's behavior). Enforced on the trusted host
+   * widens. Omitted = no storage grant imposed (today's behavior). Not read yet: Alloy supplies its grant through the `alloyStorageGrant` export (064-27). Enforced on the trusted host
    * seams (`core/storage-scope.js`).
    */
   readonly storageKeys?: {

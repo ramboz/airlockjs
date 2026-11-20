@@ -37,7 +37,7 @@ import { ALLOY_CONSENT_OPT_OUT } from "../../connectors/alloy/connector.js";
 import { hostOf } from "../../core/config-integrity.js";
 import { resolveConsent } from "../../core/consent.js";
 import { resolveOnetrustBootConsent, subscribeOnetrustConsentChanges } from "../../drivers/consent/onetrust.js";
-import { ALLOY_DEFAULT_CONTEXT, ALLOY_INTERACT_ENDPOINT, ALLOY_STOCK_ENDPOINTS, ALLOY_KNOWN_HANDLE_TYPES, allowlistForEdgeDomain, ALLOY_COOKIE_NAMES, ALLOY_COOKIE_PURPOSES, ALLOY_STORAGE_NAMES, ALLOY_STORAGE_PURPOSES, ALLOY_EVENTS, ALLOY_EGRESS_PURPOSES } from "../../connectors/alloy/connector.js";
+import { ALLOY_DEFAULT_CONTEXT, ALLOY_INTERACT_ENDPOINT, ALLOY_STOCK_ENDPOINTS, ALLOY_KNOWN_HANDLE_TYPES, allowlistForEdgeDomain, ALLOY_COOKIE_NAMES, ALLOY_COOKIE_PURPOSES, alloyStorageGrant, ALLOY_EVENTS, ALLOY_EGRESS_PURPOSES } from "../../connectors/alloy/connector.js";
 // spec 014-03: GA4-MP's declared vocabulary — its SOT manifest home (imported, not mirrored; see the
 // retired mirror-const note below). Only the vocab consts are imported (esbuild tree-shakes the factory).
 import { GA4_EVENTS, GA4_EGRESS_PURPOSES } from "../../connectors/ga4/connector.js";
@@ -1833,6 +1833,8 @@ export async function bootAlloy(opts = {}) {
   }
   const endPrehiding = () => { if (prehidingTimer) { clearTimeout(prehidingTimer); prehidingTimer = null; } removePrehiding(); };
 
+  // 064-27: the stock storage set for this org (consent-hash keys carry the org id).
+  const stockStorage = alloyStorageGrant(orgId);
   const host = createWrappedSdkHost({
     chamber,
     caps,
@@ -1877,11 +1879,11 @@ export async function bootAlloy(opts = {}) {
     // and a denied storage purpose blocks the write-back of the cookies it governs.
     cookieGrantNarrowing,
     cookiePurposes: ALLOY_COOKIE_PURPOSES,
-    // 067-12: the storage twin: stock set by area (none declared today), opt-in narrowing,
+    // 067-12: the storage twin: stock set by area (064-27), opt-in narrowing,
     // and the storage-purpose write denial.
-    grantedStorage: ALLOY_STORAGE_NAMES,
+    grantedStorage: stockStorage.names,
     storageGrantNarrowing,
-    storagePurposes: ALLOY_STORAGE_PURPOSES,
+    storagePurposes: stockStorage.purposes,
   });
 
   // spec 034-02: derive the decision scope set the connector requests on the interact
@@ -1927,7 +1929,7 @@ export async function bootAlloy(opts = {}) {
   sendStockContext();
   // 067-12: the storage seed crosses the same way, ONLY when a storage grant is in force; a boot
   // that declares none posts the exact init message it always did.
-  const storageGrant = resolveStorageGrant(ALLOY_STORAGE_NAMES, storageGrantNarrowing);
+  const storageGrant = resolveStorageGrant(stockStorage.names, storageGrantNarrowing);
   const storageSeed = storageGrant.active ? scopeSeedStorage(pageStorage(), storageGrant.areas) : null;
   const apex = probeApexDomain(resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).narrowed ? resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).names : null);
   host.init({ cookie: seedCookie, config, bundleUrl, consent: consentRef, ...(apex ? { apex } : {}), ...(storageSeed ? { storage: storageSeed } : {}) });
