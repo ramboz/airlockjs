@@ -1559,6 +1559,30 @@ function pageStorage() {
 }
 
 /**
+ * The registrable domain the browser would accept a cookie for, found the way Alloy does: write a
+ * probe cookie at each shorter host suffix and keep the first the real jar reads back. The chamber
+ * has no public-suffix list, so it takes this answer instead of accepting every Domain attribute
+ * (an `aem.page` write would otherwise "succeed" and Alloy would scope its state to a suffix the
+ * browser rejects). Empty when there is no document.
+ */
+function probeApexDomain() {
+  if (typeof document === "undefined" || typeof location === "undefined" || !location.hostname) return "";
+  const parts = location.hostname.split(".");
+  const name = "com.adobe.alloy.getTld";
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const candidate = parts.slice(i).join(".");
+    try {
+      document.cookie = `${name}=1; domain=${candidate}`;
+      if (document.cookie.includes(`${name}=1`)) {
+        document.cookie = `${name}=; domain=${candidate}; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+        return candidate;
+      }
+    } catch { /* try the next suffix */ }
+  }
+  return "";
+}
+
+/**
  * Boot Adobe/alloy through the wrapped-SDK path (spec 033-02 — the analytics
  * vertical). Unlike the `createAirlock`-shaped boots (GA4/pixel/helix-rum), alloy is
  * hosted by `core/wrapped-sdk-host.js` over airlock's CLASSIC alloy chamber Worker,
@@ -1793,8 +1817,13 @@ export async function bootAlloy(opts = {}) {
   const stockBuiltin = stockOverride.overridden ? stockOverride.list : DEFAULT_DENYLIST;
   let stockFingerprint = null;
   const sendStockContext = () => {
-    if (!stockGroups.length) return;
-    const collected = collectStockContext({ groups: stockGroups, denylist: payloadDenylist, builtin: stockBuiltin });
+    // `web` is always collected for the host identity the cookie scope needs; when the site did not
+    // list it, only those four fields cross, never the URL, referrer or title.
+    const withHost = stockGroups.includes("web") ? stockGroups : [...stockGroups, "web"];
+    const collected = collectStockContext({ groups: withHost, denylist: payloadDenylist, builtin: stockBuiltin });
+    if (!stockGroups.includes("web") && collected.web) {
+      collected.web = Object.fromEntries(["origin", "protocol", "host", "hostname"].filter((k) => k in collected.web).map((k) => [k, collected.web[k]]));
+    }
     if (!Object.values(collected).some((r) => r && Object.keys(r).length)) return;
     const fp = stockContextFingerprint(collected);
     if (fp === stockFingerprint) return;
@@ -1806,7 +1835,8 @@ export async function bootAlloy(opts = {}) {
   // that declares none posts the exact init message it always did.
   const storageGrant = resolveStorageGrant(ALLOY_STORAGE_NAMES, storageGrantNarrowing);
   const storageSeed = storageGrant.active ? scopeSeedStorage(pageStorage(), storageGrant.areas) : null;
-  host.init({ cookie: seedCookie, config, bundleUrl, consent: consentRef, ...(storageSeed ? { storage: storageSeed } : {}) });
+  const apex = probeApexDomain();
+  host.init({ cookie: seedCookie, config, bundleUrl, consent: consentRef, ...(apex ? { apex } : {}), ...(storageSeed ? { storage: storageSeed } : {}) });
 
   // Serialize push/pushCritical through the single-slot driveEvent: events run one at a time
   // (the re-entry guard at wrapped-sdk-host.js is respected — one page event per host round-trip).

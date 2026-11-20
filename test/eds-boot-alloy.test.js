@@ -329,7 +329,10 @@ describe("boot(config) — AC2: bootAlloy owns a classic chamber Worker + a comp
     await bootAlloy(alloyEntry({ context: [] }));
     const w = alloyWorker();
     expect(initOf(w).config.context).toEqual([]);
-    expect(w.messages.some((m) => m.type === "stock-context")).toBe(false);
+    // Nothing is listed, so only the host identity the cookie scope needs crosses; no URL, no title.
+    const hostOnly = w.messages.find((m) => m.type === "stock-context");
+    expect(Object.keys(hostOnly.context)).toEqual(["web"]);
+    expect(Object.keys(hostOnly.context.web).sort()).toEqual(["hostname"]);
   });
 
   it("067-08: the channel is re-collected ahead of each event and re-posted only when it changed", async () => {

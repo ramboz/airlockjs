@@ -94,6 +94,13 @@ jobs:
         env:
           AIRLOCK_REAL_CHROMIUM: "1"
 
+      - name: GATING — 064-17 B1 environment and storage replay (real Chromium, pinned Alloy 2.31.1)
+        # Replays the frozen S1/S2/S5 corpus through the real chamber; downloads the pinned bundle
+        # and verifies its SHA-256. Browser-free hermetic-oracle skips it.
+        run: npx vitest run test/adobe-b1-replay.test.js
+        env:
+          AIRLOCK_REAL_CHROMIUM: "1"
+
       - name: GATING — real-Worker isolation invariant (07-02)
         run: npm run rig:isolation
 

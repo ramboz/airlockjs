@@ -90,3 +90,21 @@ describe("sync cookie cache (spec 012-01 AC3)", () => {
     expect(empty.readSync()).toBe(deleted ? "" : "gone=");
   });
 });
+
+describe("apex-aware Domain attribute (064-17)", () => {
+  it("rejects a write whose Domain is above the measured apex, as a browser does for a public suffix", () => {
+    const cache = createSyncCookieCache("", () => {}, { apex: "site.example" });
+    cache.writeSync("probe=1; domain=example");
+    expect(cache.readSync()).toBe("");
+    cache.writeSync("probe=1; domain=.site.example");
+    expect(cache.readSync()).toBe("probe=1");
+    cache.writeSync("sub=1; domain=a.site.example");
+    expect(cache.readSync()).toBe("probe=1; sub=1");
+  });
+
+  it("without a measured apex every Domain is accepted, as before", () => {
+    const cache = createSyncCookieCache();
+    cache.writeSync("probe=1; domain=example");
+    expect(cache.readSync()).toBe("probe=1");
+  });
+});

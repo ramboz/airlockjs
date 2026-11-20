@@ -21,9 +21,12 @@
  * @param {(rawSetCookie: string) => void} [onWriteBack] async reconcile hook —
  *   handed the raw `name=value; attrs` string on every write so the chamber can
  *   post it back to the main thread. Optional; a no-op by default.
+ * @param {{ apex?: string }} [opts] `apex` is the registrable domain the main thread measured
+ *   (no public-suffix list lives here). A write whose Domain attribute is not that domain or a
+ *   subdomain of it fails, as in a browser, so Alloy's apex probe settles on the real one.
  * @returns {{ readSync: () => string, writeSync: (setCookie: string) => void }}
  */
-export function createSyncCookieCache(seed = "", onWriteBack = () => {}) {
+export function createSyncCookieCache(seed = "", onWriteBack = () => {}, { apex = "" } = {}) {
   // Defensive: a non-string seed (undefined / null / anything) yields an empty
   // jar so the FIRST synchronous read (alloy's getApexDomain probe) never throws.
   let jar = typeof seed === "string" ? seed : "";
@@ -39,17 +42,20 @@ export function createSyncCookieCache(seed = "", onWriteBack = () => {}) {
     const pairs = jar ? jar.split("; ").filter((p) => p.split("=")[0].trim() !== name) : [];
     let maxAge;
     let expires;
+    let domain;
     for (const attribute of raw.split(";").slice(1)) {
       const separator = attribute.indexOf("=");
       if (separator < 0) continue;
       const key = attribute.slice(0, separator).trim().toLowerCase();
       const value = attribute.slice(separator + 1).trim();
+      if (key === "domain") domain = value.replace(/^\./, "").toLowerCase();
       if (key === "max-age" && /^-?\d+$/.test(value)) maxAge = Number(value);
       if (key === "expires") {
         const parsed = Date.parse(value);
         if (Number.isFinite(parsed)) expires = parsed;
       }
     }
+    if (apex && domain !== undefined && domain !== apex && !domain.endsWith(`.${apex}`)) return;
     const expired = maxAge !== undefined ? maxAge <= 0 : expires !== undefined && expires <= Date.now();
     if (!expired) pairs.push(firstPair);
     jar = pairs.join("; ");

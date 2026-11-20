@@ -10,6 +10,9 @@
 // with Adobe 064-17.
 
 const LOCATION_KEYS = ["href", "origin", "protocol", "host", "hostname", "pathname", "search", "hash"];
+// The cookie scope and Alloy's apex-domain probe read these, so the chamber always takes them
+// from the channel, whichever groups the site listed. Alloy's context never sends them.
+const HOST_KEYS = ["origin", "protocol", "host", "hostname"];
 const URL_FIELD = { href: "url" };
 
 /**
@@ -18,16 +21,17 @@ const URL_FIELD = { href: "url" };
  * @returns {{ location: object, document: object, screen: object, window: object, navigator: object }}
  */
 export function shimValuesFromStockContext(context, groups) {
-  const out = { location: {}, document: {}, screen: {}, window: {}, navigator: {} };
+  const out = { location: {}, document: {}, documentElement: {}, screen: {}, window: {}, navigator: {} };
   const wanted = new Set(Array.isArray(groups) ? groups : []);
   const ctx = context && typeof context === "object" ? context : {};
   const set = (target, key, value) => {
     if (value !== undefined && value !== null && value !== "") target[key] = value;
   };
 
+  if (ctx.web) for (const k of HOST_KEYS) set(out.location, k, ctx.web[k]);
   if (wanted.has("web") && ctx.web) {
     for (const k of LOCATION_KEYS) set(out.location, k, ctx.web[URL_FIELD[k] || k]);
-    set(out.document, "referrer", ctx.web.referrer);
+    if (typeof ctx.web.referrer === "string") out.document.referrer = ctx.web.referrer;
     set(out.document, "title", ctx.web.title);
   }
   if (wanted.has("device") && ctx.device) {
@@ -42,6 +46,8 @@ export function shimValuesFromStockContext(context, groups) {
     const e = ctx.environment;
     set(out.window, "innerWidth", e.viewportWidth);
     set(out.window, "innerHeight", e.viewportHeight);
+    set(out.documentElement, "clientWidth", e.viewportWidth);
+    set(out.documentElement, "clientHeight", e.viewportHeight);
     set(out.document, "visibilityState", e.visibilityState);
     set(out.navigator, "userAgent", e.userAgent);
     set(out.navigator, "language", e.language);
@@ -58,13 +64,13 @@ export function shimValuesFromStockContext(context, groups) {
  * The shim fields each group owns. Before a listed group's channel values are applied, its
  * owned fields are cleared, so a denylisted field, a field the page stopped supplying, or a
  * group the channel never sent leaves no placeholder or stale value for Alloy to collect.
- * `location.origin/protocol/host/hostname` are NOT cleared: Alloy's apex-domain probe and
- * the cookie scope read them (Adobe 064-17 owns that), and Alloy's context never sends them.
+ * `location.origin/protocol/host/hostname` are not owned by a group: Alloy's apex-domain probe and
+ * the cookie scope read them, so they always come from the channel (064-17); no placeholder exists.
  */
 export const OWNED_SHIM_FIELDS = Object.freeze({
   web: Object.freeze({ location: ["href", "pathname", "search", "hash"], document: ["referrer", "title"] }),
   device: Object.freeze({ screen: ["width", "height", "availWidth", "availHeight", "colorDepth", "pixelDepth", "orientation"], window: ["devicePixelRatio"] }),
-  environment: Object.freeze({ window: ["innerWidth", "innerHeight", "outerWidth", "outerHeight"], document: ["visibilityState"], navigator: ["userAgent", "language", "languages", "cookieEnabled", "doNotTrack"] }),
+  environment: Object.freeze({ window: ["innerWidth", "innerHeight", "outerWidth", "outerHeight"], document: ["visibilityState"], documentElement: ["clientWidth", "clientHeight"], navigator: ["userAgent", "language", "languages", "cookieEnabled", "doNotTrack"] }),
   placeContext: Object.freeze({}),
 });
 
@@ -73,14 +79,20 @@ export const OWNED_SHIM_FIELDS = Object.freeze({
  * owns, then set the supplied values. Navigator keys are set to an own `undefined` rather than
  * deleted: the chamber's navigator proxy would otherwise answer a missing key with its own
  * placeholder or the worker's real value.
- * @param {{ location: object, document: object, screen: object, window: object, navigator: object }} targets
+ * @param {{ location: object, document: object, documentElement: object, screen: object, window: object, navigator: object }} targets
  */
 export function applyStockContextToShims(targets, context, groups) {
   for (const g of Array.isArray(groups) ? groups : []) {
     for (const [t, keys] of Object.entries(OWNED_SHIM_FIELDS[g] || {})) for (const k of keys) {
+      if (!targets[t]) continue;
       if (t === "navigator") targets[t][k] = undefined;
       else delete targets[t][k];
     }
   }
-  for (const [t, values] of Object.entries(shimValuesFromStockContext(context, groups))) Object.assign(targets[t], values);
+  for (const [t, values] of Object.entries(shimValuesFromStockContext(context, groups))) if (targets[t]) Object.assign(targets[t], values);
+  // Alloy reads `location.href || location` and later calls string methods on it, so an empty href
+  // (the URL was denylisted, or `web` is unlisted) falls back to the host root: the one value of
+  // the page identity the chamber always holds. A documented difference from stock, not a placeholder.
+  const loc = targets.location || {};
+  if (!loc.href && loc.origin) loc.href = `${loc.origin}/`;
 }

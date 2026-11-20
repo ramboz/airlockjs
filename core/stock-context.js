@@ -57,7 +57,8 @@ function webGroup(win) {
   }
   const doc = win.document;
   if (doc) {
-    pick(out, "referrer", doc.referrer);
+    // An empty referrer is a real value Alloy reads (`webReferrer.URL: ""`), not an absent one.
+    if (typeof doc.referrer === "string") out.referrer = doc.referrer;
     pick(out, "title", doc.title);
   }
   return out;
@@ -78,8 +79,10 @@ function deviceGroup(win) {
 
 function environmentGroup(win) {
   const out = {};
-  pick(out, "viewportWidth", win.innerWidth);
-  pick(out, "viewportHeight", win.innerHeight);
+  // Stock Alloy reads `documentElement.clientWidth/Height` (the viewport without a scrollbar).
+  const root = win.document && win.document.documentElement;
+  pick(out, "viewportWidth", (root && root.clientWidth) || win.innerWidth);
+  pick(out, "viewportHeight", (root && root.clientHeight) || win.innerHeight);
   pick(out, "visibilityState", win.document && win.document.visibilityState);
   const n = win.navigator;
   if (n) {

@@ -134,11 +134,11 @@ function loadStockBundle(bundleUrl) {
 /* ---- AC3: the synchronous cookie cache + the granted sync-read surface ---- */
 let cache = null;
 let caps = null;
-function buildCaps(seedCookie) {
+function buildCaps(seedCookie, apex = "") {
   cache = createSyncCookieCache(seedCookie || "", (raw) => {
     summary.writeBacks++;
     post("cookie-writeback", { value: raw }); // async reconcile to the real jar
-  });
+  }, { apex });
   // The GrantedCapabilities the host hands the connector. The pinned async
   // get/set are present for SHAPE (unused by alloy, which reads document.cookie);
   // the ADDITIVE `sync` surface is what serves the synchronous reads (AC3).
@@ -223,7 +223,7 @@ function setCookie(v) {
 }
 
 const docBack = {
-  referrer: "", title: "airlock", visibilityState: "visible", hidden: false, readyState: "complete",
+  referrer: "", title: "", visibilityState: "visible", hidden: false, readyState: "complete",
   documentElement: makeEl("html"), head: makeEl("head"), body: makeEl("body"),
   location: null,
   createElement: (tag) => makeEl(tag),
@@ -244,8 +244,8 @@ const documentShim = new Proxy(docBack, {
 });
 
 const locationShim = {
-  href: "https://airlock.example/", origin: "https://airlock.example", protocol: "https:",
-  host: "airlock.example", hostname: "airlock.example", port: "", pathname: "/", search: "", hash: "",
+  // No invented host: every value comes from the main-thread stock-context channel (064-17).
+  href: "", origin: "", protocol: "", host: "", hostname: "", port: "", pathname: "", search: "", hash: "",
   toString() { return this.href || ""; },
 };
 docBack.location = locationShim;
@@ -253,7 +253,7 @@ docBack.location = locationShim;
 /* ---- navigator shim — R-004 ---- */
 const navBack = {
   userAgent: (self.navigator && self.navigator.userAgent) || "airlock-chamber",
-  language: "en-US", languages: ["en-US"], cookieEnabled: true, onLine: true, doNotTrack: null,
+  language: undefined, languages: undefined, cookieEnabled: true, onLine: true, doNotTrack: null,
   sendBeacon: (url) => { summary.fetchCalls.push({ via: "sendBeacon", url: String(url) }); return true; },
 };
 const navigatorShim = new Proxy(navBack, {
@@ -340,8 +340,8 @@ function resolveInterceptedFetch(m) {
 const winBack = {
   __alloyNS: ["alloy"],
   document: documentShim, location: locationShim, navigator: navigatorShim,
-  screen: { width: 1280, height: 800, availWidth: 1280, availHeight: 800, colorDepth: 24, pixelDepth: 24, orientation: { type: "landscape-primary", angle: 0 } },
-  innerWidth: 1280, innerHeight: 800, outerWidth: 1280, outerHeight: 800, devicePixelRatio: 1, screenX: 0, screenY: 0,
+  screen: {},
+  screenX: 0, screenY: 0,
   Intl: self.Intl, Promise, Object, Array, JSON, Math, Date, Error, RegExp, Map, Set, WeakMap, Symbol,
   setTimeout: (...a) => self.setTimeout(...a), clearTimeout: (...a) => self.clearTimeout(...a),
   setInterval: (...a) => self.setInterval(...a), clearInterval: (...a) => self.clearInterval(...a),
@@ -370,8 +370,8 @@ const windowShim = new Proxy(winBack, {
 winBack.window = windowShim; winBack.self = windowShim; winBack.top = windowShim; winBack.parent = windowShim; winBack.globalThis = windowShim;
 
 /* ---- install the shim globals + the alloy base-code queue snippet — R-004 ---- */
-function install(seedCookie, storageSeed) {
-  buildCaps(seedCookie);
+function install(seedCookie, storageSeed, apex) {
+  buildCaps(seedCookie, apex);
   // 067-12: a boot that carries a (host-filtered) `storage` seed gets seeded shims that mirror
   // every write back to the host seam; without one the shims stay plain and silent (as before).
   if (storageSeed && typeof storageSeed === "object") {
@@ -411,7 +411,7 @@ const stockStore = createStockContextStore();
 let contextGroups = ALLOY_DEFAULT_CONTEXT;
 function applyStockContext() {
   applyStockContextToShims(
-    { location: locationShim, document: docBack, screen: winBack.screen, window: winBack, navigator: navBack },
+    { location: locationShim, document: docBack, documentElement: docBack.documentElement, screen: winBack.screen, window: winBack, navigator: navBack },
     stockStore.read(),
     contextGroups,
   );
@@ -422,9 +422,9 @@ function applyStockContext() {
 // message below. `null` until a boot supplies one (no CMP wired -> stays null).
 let consentVector = null;
 
-async function boot({ cookie, config, bundleUrl, consent, storage }) {
+async function boot({ cookie, config, bundleUrl, consent, storage, apex }) {
   try {
-    install(cookie, storage);
+    install(cookie, storage, apex);
     contextGroups = Array.isArray(config && config.context) ? config.context : ALLOY_DEFAULT_CONTEXT;
     applyStockContext();
     post("phase", { name: "install" });

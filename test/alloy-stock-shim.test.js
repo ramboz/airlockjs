@@ -1,5 +1,6 @@
 // Spec 067-08 AC3: the chamber feeds Alloy's context collection from the 067-07
 // channel, for the listed groups only, and never invents a value.
+import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { shimValuesFromStockContext, applyStockContextToShims } from "../connectors/alloy/stock-shim.js";
 import { ALLOY_DEFAULT_CONTEXT } from "../connectors/alloy/connector.js";
@@ -24,9 +25,20 @@ describe("shimValuesFromStockContext (067-08)", () => {
   it("a narrowed list yields only those groups", () => {
     const v = shimValuesFromStockContext(context, ["device"]);
     expect(v.screen.width).toBe(1920);
-    expect(v.location).toEqual({});
+    expect(v.location).toEqual({ origin: "https://a.example", hostname: "a.example" }); // host identity only
     expect(v.document).toEqual({});
     expect(v.navigator).toEqual({});
+  });
+
+  it("the host identity comes from the channel even when `web` is not listed", () => {
+    const v = shimValuesFromStockContext({ web: { origin: "https://a.example", host: "a.example", hostname: "a.example", protocol: "https:", url: "https://a.example/p" } }, []);
+    expect(v.location).toEqual({ origin: "https://a.example", host: "a.example", hostname: "a.example", protocol: "https:" });
+  });
+
+  it("an empty referrer is a real value; the viewport also feeds documentElement.clientWidth/Height", () => {
+    const v = shimValuesFromStockContext({ web: { referrer: "" }, environment: { viewportWidth: 785, viewportHeight: 600 } }, ALLOY_DEFAULT_CONTEXT);
+    expect(v.document.referrer).toBe("");
+    expect(v.documentElement).toEqual({ clientWidth: 785, clientHeight: 600 });
   });
 
   it("an unset channel, or a missing group, yields no values", () => {
@@ -76,10 +88,32 @@ describe("applyStockContextToShims (067-08)", () => {
     expect(t.navigator.languages).toBeUndefined();
   });
 
+  it("a denied url falls back to the host root, never to the location object", () => {
+    const t = { ...targets(), documentElement: {} };
+    applyStockContextToShims(t, { web: { origin: "https://a.example", hostname: "a.example", pathname: "/p" } }, ["web"]);
+    expect(t.location.href).toBe("https://a.example/");
+  });
+
   it("leaves groups the site did not list alone", () => {
     const t = targets();
     applyStockContextToShims(t, context, ["device"]);
     expect(t.location.href).toBe("https://airlock.example/");
     expect(t.screen.width).toBe(1920);
+  });
+});
+
+describe("chamber shims carry no invented page identity (064-17 AC1, AC4)", () => {
+  const src = readFileSync(new URL("../connectors/alloy/alloy-chamber.worker.js", import.meta.url), "utf8");
+  const winBack = src.slice(src.indexOf("const winBack = {"), src.indexOf("Intl: self.Intl"));
+
+  it("hard-codes no host, locale or 1280x800 screen", () => {
+    expect(src).not.toMatch(/airlock\.example/);
+    expect(src).not.toMatch(/en-US/);
+    expect(src).not.toMatch(/\b1280\b|\b800\b/);
+  });
+
+  it("the window shim does not define title, url, referrer, height or width", () => {
+    for (const key of ["title", "url", "referrer", "height", "width"]) expect(winBack).not.toMatch(new RegExp(`\\b${key}\\s*:`));
+    expect(winBack).not.toMatch(/\b(inner|outer)(Width|Height)\b/);
   });
 });
