@@ -105,7 +105,7 @@
  * redacted `kind:"consent"` diagnostic) — the same fail-closed shape the
  * ceiling/config-integrity holds use above. An explicit denial rejects
  * at once; a pending verdict rejects too unless the caller opts in with
- * `flushOnGrant` (Alloy does; Google's own seam never replays), in which case it parks the request (the chamber fetch stays
+ * `flushOnGrant` (Alloy does; Google's own seam never replays; a new adapter should opt in unless its SDK queues pending events itself), in which case it parks the request (the chamber fetch stays
  * pending) and `setConsent` re-runs it through every gate: sent once on
  * grant, dropped on denial or teardown (ADR-0062 point 4, spec 068-01).
  * This seam gate is independent of, and complements, alloy's OWN
