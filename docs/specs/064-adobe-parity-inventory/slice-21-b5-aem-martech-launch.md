@@ -1,6 +1,6 @@
 ---
 status: READY_FOR_IMPLEMENTATION
-dependencies: [064-19, 064-20]
+dependencies: [064-19, 064-20, 064-26]
 last_verified:
 ---
 

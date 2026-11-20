@@ -1416,6 +1416,8 @@ Owner decision 2026-11-20 ("Forward the opt-out only, via a narrow seam exemptio
 
 `bootAlloy`'s handle has no entry point for `getIdentity`, `appendIdentityToUrl`, `applyResponse`, `getLibraryInfo`, `createEventMergeId`; they work in the chamber but only the test rig can call them. A mediated, allowlisted command entry is a new capability contract. Owner decision before 064-21 claims parity.
 
+Owner approved the command entry 2026-11-20. Proposed in [ADR-0063](decisions/adr-0063-host-command-entry.md), built in slice 064-26. Open question: whether `evaluateRulesets` joins the allowlist.
+
 - **Alloy chamber storage persistence (open, from 064-22).** `ALLOY_STORAGE_NAMES` is `null`, so chamber storage is in-memory: the Assurance `validation.clientId` (and other stock localStorage keys) is regenerated every page load instead of reused. Trigger: Assurance or any stock localStorage key is needed across page loads; needs a storage-grant decision (B4-adjacent) before changing the allowlist.
 
 ## Personalization follow-ups (064-20, 2026-11-20)
