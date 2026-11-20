@@ -59,6 +59,8 @@ Read from the Alloy 2.31.1 source and checked against the pinned bundle: **17 co
 
 The 6 function-valued options (`onBeforeEventSend`, `clickCollection.filterClickProperties`, `onBeforeLinkClickSend`, `subscribeRulesetItems.callback`, `createMediaSession.getPlayerDetails`, `sendConversationEvent.onStreamResponse`) are decided inside B3, not here. Note: the `onBeforeLinkClickSend` deprecation message names `filterClickDetails`, but the validator key is `filterClickProperties`. We use the validator key.
 
+**Decided in 064-19 (2026-11-20):** `onBeforeEventSend`, `filterClickProperties`, `onBeforeLinkClickSend`, `createMediaSession.getPlayerDetails` and `sendConversationEvent.onStreamResponse` are **incompatible as functions** (they cannot cross the airlock and the chamber has no site code or DOM); each has a data-form equivalent on the main thread, see the slice 064-19 notes. `subscribeRulesetItems.callback` is **mediated as data** (results delivered through the `decisions` capability, no function). 064-20 and 064-22 cite that table.
+
 ### 2.2 Other rows
 
 | Area | Rows | Initial class | Slice |

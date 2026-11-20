@@ -1,5 +1,5 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: IN_PROGRESS
 dependencies: [064-18, 067-03]
 last_verified:
 ---
@@ -22,3 +22,21 @@ last_verified:
 - `npm test && npm run lint` and servo gate pass.
 
 **Anti-horizontal-phasing check:** Vertical: bridge surface to wire to comparison for one real journey.
+
+## Notes (2026-11-20)
+
+### AC2: the 6 function-valued options (decided)
+
+Why this is a design call: a function cannot cross the airlock (structured clone), and the chamber has no DOM and no site code. The connector configures Alloy from a fixed, data-only option set, so none of these options can be forwarded. Rule used for each option: where could the function legitimately run, and is there a data form of the same effect?
+
+| Option | Disposition | Reason and the supported equivalent |
+|---|---|---|
+| `onBeforeEventSend` | **incompatible as a function** | Event content is built on the main thread. The site shapes `params.xdm` (or does not push, to cancel) before `push`; `payloadDenylist` covers declarative stripping. Not forwarded; the connector emits an `unsupported-callback` diagnostic if one is passed, so it never vanishes silently. |
+| `clickCollection.filterClickProperties` | **incompatible as a function** | Clicks happen on the main thread and the chamber configures `clickCollectionEnabled:false`. The site decides which click properties go into the pushed link event. Validator key is `filterClickProperties` (not the deprecation text's `filterClickDetails`). |
+| `onBeforeLinkClickSend` | **incompatible as a function** (deprecated by Adobe) | Same reason and same equivalent as `filterClickProperties`. |
+| `subscribeRulesetItems.callback` | **mediated as data, no function** | Rulesets and their results are Alloy-side data. The chamber delivers results through the granted `decisions` capability (already how propositions leave); the host maps them. The site subscribes by command and receives data, not by passing a function. 064-20 (B4) checks the delivery. |
+| `createMediaSession.getPlayerDetails` | **incompatible as a function** | Alloy calls it repeatedly to read live player state, which is a main-thread DOM read. A cross-thread async round trip changes the cadence Alloy relies on. 064-22 (B6) may propose a main-thread player adapter that pushes details as data; it is out of the default surface. |
+| `sendConversationEvent.onStreamResponse` | **incompatible as a function** | A function fed by a streaming fetch. The seal bridges whole responses (067-06), not incremental chunks. 064-22 (B6) may propose chunked data delivery; out of the default surface. |
+
+Consequence for 064-20 (B4): only `subscribeRulesetItems.callback` is B4's to verify, and the check is that results arrive as data through `decisions`, not that a function runs.
+Consequence for 064-22 (B6): cite this table for `getPlayerDetails` and `onStreamResponse`.
