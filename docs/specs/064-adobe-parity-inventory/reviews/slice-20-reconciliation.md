@@ -1,8 +1,8 @@
 ---
 model: claude-opus-5.5
-reviewed_at: 2026-11-20
-round: 2
-verdict: pass
+reviewed_at: 2026-11-20T18:08Z
+round: 3
+verdict: needs-changes (all findings fixed in 63f84b92, see Round 3)
 ---
 
 # Slice 064-20 (B4) reconciliation review, round 1
@@ -69,3 +69,16 @@ New findings (all Low):
 - **R9 — Low — slice notes, Activity-map persistence carry.** It points to "the host-command/storage item" but has no
   entry in the new refinement-todo section. Add one line.
 - R6: board row is REVIEW. Add the review-pass line to spec s12 when the slice moves to DONE.
+
+## Round 3 (2026-11-20T18:08Z, jig:reviewer, claude-opus-5.5, cutline commit 283e8b8f)
+
+The reviewer had read-only tools; this section was transcribed by the implementer from its reply. **Verdict: needs-changes.** Checked out: the 064-24 keepalive correction (`createKeepaliveTracker` in `core/egress.js`; beacons and `init.keepalive` go through the tracker and `caps.egress`; the connector has no `documentUnloading` hint), the S7 comment (R7), and the new slices 064-23/24/25 (frontmatter, DoR, testable ACs, board rows, deps `[064-20]`; 064-26/27 not used as slices).
+
+- **R10 High, fixed.** AC1 and the notes claimed stock differentials for JSON content and rule set items. Added a JSON-content stock differential; reworded AC1 so rule set items are "evaluated by stock Alloy in the chamber, delivered as data (M3 test, no stock-page arm)".
+- **R11 Medium, fixed.** `renderDecisions:false` still fills reserved boxes and emits `proposition_display`. Documented in the `bootAlloy` JSDoc and slice notes (the 033-03 flicker invariant is unchanged); not gated.
+- **R12 Medium, fixed.** Test name no longer says "(stock parity)".
+- **R13 Low, fixed.** 064-26/064-27 worded as reserved numbers.
+- **R14 Low, fixed.** Slice 064-24 names `documentUnloading` consistently.
+- **R15 Low, fixed.** AC3 says "two filters, plus the 064-19 URL filter that stays".
+
+Fixes verified: 25/25 B4 tests in Chromium, lint clean.
