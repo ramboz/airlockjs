@@ -110,6 +110,7 @@ const DEFAULT_ENDPOINTS = ["https://www.google-analytics.com/mp/collect"];
  * `consent ? … : []` back-compat gate `bootMetaPixel` uses.
  */
 export { META_EGRESS_PURPOSES, LINKEDIN_EGRESS_PURPOSES, BING_EGRESS_PURPOSES };
+export { attachAlloyBridge, createAlloyCommandBridge, consentToVector } from "./alloy-bridge.js";
 
 /**
  * The DISTINCT GA4 event names the UC-2 interaction wiring emits (slice 004-04).
@@ -2113,7 +2114,7 @@ export async function bootAlloy(opts = {}) {
     return run;
   };
   // A merged click event is classed with the notifications (its eventType is the interact's), as it renders nothing of its own.
-  const isNotificationDescriptor = (d) => !!(d && d.params && d.params.xdm && typeof d.params.xdm.eventType === "string" && d.params.xdm.eventType.startsWith("decisioning.proposition"));
+  const isNotificationDescriptor = (d) => !!(d && d.params && d.params.xdm && typeof d.params.xdm.eventType === "string" && /^decisioning\.proposition(Display|Interact|Dismiss|Trigger)$/.test(d.params.xdm.eventType));
   // Map a composite site event `{ event: name, ...fields }` to the chamber descriptor
   // `{ type: name, params: fields }`: routeBatch requires a string `type`, and the
   // alloy connector's `toXdm` reads `params.page_location`/`params.page_title`.

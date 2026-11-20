@@ -135,6 +135,12 @@ jobs:
         env:
           AIRLOCK_REAL_CHROMIUM: "1"
 
+      - name: GATING — 064-21 B5 aem-martech and ACDL through the airlock wrapper (real Chromium, pinned Alloy 2.31.1)
+        # S10 against the recording, plus a SYNTHETIC stock-vs-airlock differential for the collect bodies (pinned aem-martech 1aa3dee3, ACDL 3.0.1).
+        run: npx vitest run test/adobe-b5-martech.test.js
+        env:
+          AIRLOCK_REAL_CHROMIUM: "1"
+
       - name: GATING — real-Worker isolation invariant (07-02)
         run: npm run rig:isolation
 

@@ -103,12 +103,13 @@ const interactResponses = (fixture) => fixture.requests.filter((r) => r.method =
  * @param {{ bootOptions?: object, title?: string, commands?: {command: string, options?: object}[], extraHosts?: string[], respond?: Function, extraCookies?: object[], run?: (page: import("playwright").Page) => Promise<unknown> }} [opts]
  *   `event: null` skips the default page-view push; `run(page)` drives a scenario of its own (064-19) and its value lands in `results.run`.
  *   064-20: `bodyHtml` / `headHtml` seed the replay page (a placement box, a link to click, a prehiding target).
+ *   064-21: `serve` maps a page-origin path to the JavaScript text served there (the pinned `aem-martech` files and the bridge shim).
  *   `bootOptions` is merged into the bootAlloy options (a site opt-in such as a reduced `context`).
  *   064-26: `skipSteps` leaves the recorded getIdentity / appendIdentityToUrl steps to `run(page)`, which drives them through `handle.command`.
  *   064-18: `extraHosts` are further vendor hosts answered from the fixture (a first-party edge domain);
  *   `respond(request, index)` may return `{ status, headers, body }` to override the recorded answer.
  */
-export async function replayFixture(browser, name, { bootOptions = {}, title = "airlock064-page", seed = true, event = PAGE_VIEW, commands = [], extraHosts = [], respond = null, extraCookies = [], run = null, bodyHtml = "", headHtml = "", skipSteps = false } = {}) {
+export async function replayFixture(browser, name, { bootOptions = {}, title = "airlock064-page", seed = true, event = PAGE_VIEW, commands = [], extraHosts = [], respond = null, extraCookies = [], run = null, bodyHtml = "", headHtml = "", skipSteps = false, serve = {} } = {}) {
   // 064-22: a caller may pass a synthetic fixture object instead of a recorded file stem.
   const fixture = typeof name === "object" ? name : await loadFixture(name);
   const { manifest, capture } = fixture;
@@ -157,6 +158,7 @@ export async function replayFixture(browser, name, { bootOptions = {}, title = "
         if (url.pathname === "/rig/airlock-eds.js") return route.fulfill({ contentType: "text/javascript", body: adapter });
         if (url.pathname === "/rig/chamber.js") return route.fulfill({ contentType: "text/javascript", body: worker });
         if (url.pathname === "/rig/alloy.min.js") return route.fulfill({ contentType: "text/javascript", body: bundle });
+        if (Object.hasOwn(serve, url.pathname)) return route.fulfill({ contentType: "text/javascript", body: serve[url.pathname] });
         const opts = { datastreamId, orgId, consentHold: false, bundleUrl: `${pageUrl.origin}/rig/alloy.min.js`, workerUrl: "/rig/chamber.js", ...bootOptions };
         return route.fulfill({ contentType: "text/html", body: pageHtml(opts, title, bodyHtml, headHtml) });
       }

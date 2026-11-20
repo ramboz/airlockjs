@@ -434,3 +434,38 @@ describe("alloy connector (064-27): the stock storage grant", () => {
     expect(Object.keys(ALLOY_STORAGE_PURPOSES.localStorage)).toEqual(ALLOY_STORAGE_NAMES.localStorage);
   });
 });
+
+// Spec 064-21 (hermetic): the per-call stock `sendEvent` options aem-martech's propositionFetch passes, and the
+// notification test that must not swallow `decisioning.propositionFetch` (recorded S10 interact).
+describe("alloy connector — explicit propositionFetch and per-call personalization options (spec 064-21)", () => {
+  const fetchEvent = (params = {}) => pageView({ params: { xdm: { eventType: "decisioning.propositionFetch", web: { webPageDetails: { name: "p" } } }, ...params } });
+  const send = async (config, ...events) => {
+    const alloy = fakeAlloy();
+    const connector = createAlloyConnector({ ...baseConfig(), alloy, ...config });
+    await connector.init({});
+    for (const e of events) await connector.handle(e);
+    return alloy.calls.filter((c) => c.command === "sendEvent").map((c) => c.options);
+  };
+
+  it("a propositionFetch is a query: it carries its own decisionScopes and personalization options", async () => {
+    const [o] = await send({}, fetchEvent({ decisionScopes: ["scope-a", "scope-a"], personalization: { defaultPersonalizationEnabled: false, sendDisplayEvent: false } }));
+    expect(o.decisionScopes).toEqual(["scope-a"]);
+    expect(o.personalization).toEqual({ defaultPersonalizationEnabled: false, sendDisplayEvent: false });
+  });
+
+  it("only display, interact, dismiss and trigger are notifications (no query, display flag off)", async () => {
+    for (const t of ["Display", "Interact", "Dismiss", "Trigger"]) {
+      const [o] = await send({ decisionScopes: ["scope-a"] }, pageView({ params: { xdm: { eventType: `decisioning.proposition${t}` }, decisionScopes: ["x"] } }));
+      expect(o.decisionScopes).toBeUndefined();
+      expect(o.personalization).toEqual({ defaultPersonalizationEnabled: false, sendDisplayEvent: false });
+    }
+  });
+
+  it("per-call scopes join the configured first-event scopes, deduped, and only plain personalization options cross", async () => {
+    const [first, second] = await send({ decisionScopes: ["boot"] }, fetchEvent({ decisionScopes: ["call", "boot"], personalization: { sendDisplayEvent: false, surfaces: ["web://a", 3], decisionScopes: ["in-pzn"], onSomething: () => {}, datasetId: "d" } }), fetchEvent({ decisionScopes: ["call"] }));
+    expect(first.decisionScopes).toEqual(["boot", "call", "in-pzn"]);
+    expect(first.personalization).toEqual({ sendDisplayEvent: false, surfaces: ["web://a"] });
+    expect(second.decisionScopes).toEqual(["call"]);
+    expect(second).not.toHaveProperty("personalization");
+  });
+});

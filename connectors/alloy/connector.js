@@ -399,17 +399,25 @@ export function createAlloyConnector(config = {}) {
     if (notification) {
       // 064-20: a display/interact notification is not a personalization query (recorded S4 2nd POST).
       options.personalization = { defaultPersonalizationEnabled: false, sendDisplayEvent: false };
-    } else if (configuredScopes.length && !scopesSent) {
-      sendsScopes = true;
-      options.decisionScopes = configuredScopes;
-      // Live-Alloy caveat (the analogue of 034-01's split): on a cache-uninitialized
-      // event real alloy's shouldRequestDefaultPersonalization() AUTO-ADDS `__view__`
-      // even when only named scopes are configured — a spurious extra proposition. When
-      // NO `__view__` scope is declared, suppress it so only the declared scopes are
-      // fetched. (Not observable in the rig — the injected config.alloy bypasses this
-      // real-alloy path — so it is documented as a live-Alloy caveat.)
-      if (!configuredScopes.includes(VIEW_SCOPE)) {
-        options.personalization = { defaultPersonalizationEnabled: false };
+    } else {
+      // 064-21: stock `sendEvent` options the page passes per call (aem-martech's propositionFetch), as plain data:
+      // `decisionScopes` (top-level and `personalization.decisionScopes`) and the boolean/surface `personalization` options.
+      const params = (event && event.params) || {};
+      const callScopes = mergeDecisionScopes(params.decisionScopes, params.personalization);
+      const callPzn = perCallPersonalization(params.personalization);
+      const bootScopes = configuredScopes.length && !scopesSent ? configuredScopes : [];
+      const scopes = mergeDecisionScopes([...bootScopes, ...callScopes], null);
+      if (scopes.length) options.decisionScopes = scopes;
+      if (callPzn) options.personalization = callPzn;
+      if (bootScopes.length) {
+        sendsScopes = true;
+        // Live-Alloy caveat (the analogue of 034-01's split): on a cache-uninitialized
+        // event real alloy's shouldRequestDefaultPersonalization() AUTO-ADDS `__view__`
+        // even when only named scopes are configured — a spurious extra proposition. When
+        // NO `__view__` scope is declared, suppress it so only the declared scopes are
+        // fetched. (Not observable in the rig — the injected config.alloy bypasses this
+        // real-alloy path — so it is documented as a live-Alloy caveat.)
+        if (!callPzn && !configuredScopes.includes(VIEW_SCOPE)) options.personalization = { defaultPersonalizationEnabled: false };
       }
     }
     const result = await getAlloy()("sendEvent", options);
@@ -429,9 +437,26 @@ export function createAlloyConnector(config = {}) {
   return { manifest, init, handle };
 }
 
-/** Is this XDM a personalization notification (`decisioning.proposition*`)? Those carry no query. */
+/**
+ * Is this XDM a personalization notification (display, interact, dismiss, trigger)? Those carry no query.
+ * `decisioning.propositionFetch` is NOT one: it is the explicit personalization query (064-21, recorded S10).
+ */
 function isPropositionNotification(xdm) {
-  return !!xdm && typeof xdm.eventType === "string" && /^decisioning\.proposition/.test(xdm.eventType);
+  return !!xdm && typeof xdm.eventType === "string" && /^decisioning\.proposition(Display|Interact|Dismiss|Trigger)$/.test(xdm.eventType);
+}
+
+/**
+ * The per-call stock `personalization` options a page may pass, kept to the plain-data ones: the two booleans and a
+ * `surfaces` string list. `decisionScopes` is merged separately; nothing else (no overrides, no callbacks) crosses.
+ * @param {unknown} pzn
+ * @returns {Record<string, unknown> | undefined}
+ */
+function perCallPersonalization(pzn) {
+  if (!pzn || typeof pzn !== "object" || Array.isArray(pzn)) return undefined;
+  const out = {};
+  for (const k of ["defaultPersonalizationEnabled", "sendDisplayEvent"]) if (typeof pzn[k] === "boolean") out[k] = pzn[k];
+  if (Array.isArray(pzn.surfaces)) out.surfaces = pzn.surfaces.filter((x) => typeof x === "string" && x);
+  return Object.keys(out).length ? out : undefined;
 }
 
 /**
