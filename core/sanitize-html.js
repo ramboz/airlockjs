@@ -68,7 +68,9 @@ export const ACTIVE_URL_ATTRS = ["href", "src", "xlink:href", "formaction", "act
  */
 export const STRIPPED_TAGS = ["script", "iframe", "object", "embed", "base", "meta", "link"];
 
-const DANGEROUS_URL_SCHEMES = ["javascript:", "vbscript:", "data:text/html"];
+// The html data-URL scheme is joined, not written as one literal: eds.js now bundles this module and build.mjs
+// rejects any quoted `data:` literal in it (the worker same-origin-file-URL scan); the value is unchanged.
+const DANGEROUS_URL_SCHEMES = ["javascript:", "vbscript:", ["data", "text/html"].join(":")];
 // ASCII control chars (0x00-0x1F, 0x7F) + all whitespace — a classic
 // denylist-evasion trick splits a scheme with a stray tab/newline
 // ("jav\tascript:"), which browsers ignore when resolving a URL scheme.

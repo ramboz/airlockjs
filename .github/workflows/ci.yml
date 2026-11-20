@@ -112,6 +112,12 @@ jobs:
         env:
           AIRLOCK_REAL_CHROMIUM: "1"
 
+      - name: GATING — 064-20 B4 personalization, prehiding, redirects, click collection (real Chromium, pinned Alloy 2.31.1)
+        # S4/S7 through the production path plus stock-vs-airlock differentials for rendering and click collection.
+        run: npx vitest run test/adobe-b4-personalization.test.js
+        env:
+          AIRLOCK_REAL_CHROMIUM: "1"
+
       - name: GATING — 064-22 B6 out-of-default-surface dispositions (real Chromium, pinned Alloy 2.31.1)
         # Media/push/BrandConcierge unconfigured or held, Assurance request side, activation pixels tagged.
         run: npx vitest run test/adobe-b6-surface.test.js

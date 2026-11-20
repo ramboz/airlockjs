@@ -49,6 +49,8 @@ import { getCookieValue } from "../../core/cookie-parse.js";
 import { htmlOfDecision } from "../../connectors/alloy/decisions.js";
 import { createPropositionExposureReporter, PROPOSITION_EXPOSURE_EVENT } from "./decisions-exposure.js";
 import { VIEW_SCOPE, firstDuplicateScope } from "./placements.js";
+import { createPropositionRenderer, displayNotificationXdm, interactNotificationXdm, applyPrehidingStyle } from "./personalization-render.js";
+import { installLinkClickCollection } from "./link-click.js";
 import { sourceGa4Ctx, writeGa4SessionState } from "../../connectors/ga4/cookies.js";
 import { shapeMpConsent } from "../../connectors/ga4/consent.js";
 import { GA4_GTAG_COLLECT_ENDPOINT, GA4_GTAG_EVENTS, GA4_GTAG_EGRESS_PURPOSES } from "../../connectors/ga4/gtag.js";
@@ -1492,7 +1494,7 @@ function deriveDecisionScopes(placements, reserved) {
  *   it, not the mutable `window.airlock` global (fixing the reachable re-boot misroute). Absent
  *   on a standalone bootAlloy (never wired into a composite) -> the exposure is dropped+diagnosed.
  */
-function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit }) {
+function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer, personalization }) {
   const exposureReporter = createPropositionExposureReporter(
     {
       // The exposure routes through the WIRED composite-emit ref (034-03 AC2/AC3) — `{ accepts,
@@ -1522,12 +1524,24 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit }) {
     },
     { seen: new Set() },
   );
-  caps.decisions = {
-    deliver: async (decisions) => {
+  const deliver = async (decisions) => {
+      const displayed = [];
+      const sink = [];
       for (const decision of decisions || []) {
         const scope = decision && decision.scope;
+        // 064-20 M3: ruleset items arrive as data and fan out to the site's main-thread subscribers.
+        if (decision && decision.channel === "ruleset-items") { personalization.rulesetItems(decision.content); continue; }
+        if (decision && decision.content) sink.push(decision.content);
         const handlePromise = scope != null ? reserved[scope] : undefined;
-        if (!handlePromise) {
+        if (!handlePromise || !htmlOfDecision(decision)) {
+          // 064-20: no reserved box to fill (or nothing html for it) -> the main-thread renderer
+          // (default-content, dom-action, redirect).
+          const out = await renderer.render([decision && decision.content]);
+          if (out.displayed.length) { displayed.push(...out.displayed); continue; }
+          if (handlePromise) {
+            diagnose({ level: "warn", kind: "decisions", disposition: "dropped", reason: "the decision carried no renderable html-content-item (a JSON offer / redirect)", scope });
+            continue;
+          }
           diagnose({ level: "warn", kind: "decisions", disposition: "dropped", reason: "no reserved placement for this scope — the eager reservePersonalization was skipped/mis-wired, or the scope is unconfigured (NOT lazily reserved — that would reintroduce the flicker AC2 fixes)", scope });
           continue;
         }
@@ -1545,7 +1559,16 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit }) {
         }
         handle.fill(html); // the pre-reserved box, filled via the 018 sanitizer boundary (never raw)
         exposureReporter.report(decision); // then the proposition_display exposure (AC4)
+        // A reserved-box fill keeps its own proposition_display exposure; no Edge display notification (the recorded
+        // S4 notification likewise omits the readiness proposition the airlock fills itself).
       }
+      personalization.decided(sink, displayed);
+  };
+  caps.decisions = {
+    deliver: (decisions) => {
+      const run = deliver(decisions);
+      personalization.track(run);
+      return run;
     },
   };
 }
@@ -1762,8 +1785,37 @@ export async function bootAlloy(opts = {}) {
   // diagnostics on a Target-enabled page). The mis-wire case (placements CONFIGURED but the
   // eager reserve skipped) still wires + drops+diagnoses, so the adopter SEES the mis-wire (AC3).
   const personalizationConfigured =
-    (Array.isArray(opts.placements) && opts.placements.length > 0) || Object.keys(reserved).length > 0;
-  if (personalizationConfigured) wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit });
+    (Array.isArray(opts.placements) && opts.placements.length > 0) || Object.keys(reserved).length > 0 || typeof opts.onDecisions === "function";
+  // 064-20 (B4): the host-side personalization surface. Rendering, prehiding and click collection run on
+  // the main thread (ADR-0014); every notification they produce goes through the same mediated `enqueue`.
+  const renderer = createPropositionRenderer({ diagnose });
+  const rulesetSubscribers = new Set();
+  let pendingDelivery = Promise.resolve();
+  let notifyDisplayed = () => {};
+  const personalization = {
+    track: (run) => { pendingDelivery = run.catch(() => {}); },
+    decided: (propositions, displayed) => {
+      if (typeof opts.onDecisions === "function" && propositions.length) {
+        try { opts.onDecisions(propositions); } catch (e) { diagnose({ level: "warn", kind: "decisions", disposition: "sink-threw", reason: String(e && e.message || e) }); }
+      }
+      if (displayed.length) notifyDisplayed(displayed);
+    },
+    rulesetItems: (proposition) => {
+      for (const sub of rulesetSubscribers) {
+        const items = (proposition.items || []).filter((i) => !sub.schemas.length || sub.schemas.includes(i.schema));
+        if (!items.length || (sub.surfaces.length && !sub.surfaces.includes(proposition.scope))) continue;
+        try { sub.callback({ propositions: [{ ...proposition, items }] }); } catch (e) { diagnose({ level: "warn", kind: "decisions", disposition: "sink-threw", reason: String(e && e.message || e) }); }
+      }
+    },
+  };
+  if (personalizationConfigured) wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer, personalization });
+  // Stock prehiding: hide before the request, reveal after the first response (or on failure / backstop).
+  const removePrehiding = typeof document !== "undefined" ? applyPrehidingStyle(document, opts.prehidingStyle) : () => {};
+  let prehidingTimer = null;
+  if (typeof opts.prehidingStyle === "string" && opts.prehidingStyle) {
+    prehidingTimer = setTimeout(removePrehiding, Number.isFinite(opts.prehidingTimeoutMs) ? opts.prehidingTimeoutMs : 3000);
+  }
+  const endPrehiding = () => { if (prehidingTimer) { clearTimeout(prehidingTimer); prehidingTimer = null; } removePrehiding(); };
 
   const host = createWrappedSdkHost({
     chamber,
@@ -1882,11 +1934,18 @@ export async function bootAlloy(opts = {}) {
         resolve(await host.driveEvent(event));
       } catch (e) {
         reject(e);
+      } finally {
+        if (!isNotificationDescriptor(event)) { await pendingDelivery; endPrehiding(); }
       }
     }
     running = false;
   };
+  // Stock Alloy remembers the last page name (`webPageDetails.name`) and reuses it as the link-click `activitymap.page`.
+  let lastPageName;
   const enqueue = (event) => {
+    const prm = event && event.params;
+    const nm = prm && ((prm.xdm && prm.xdm.web && prm.xdm.web.webPageDetails && prm.xdm.web.webPageDetails.name) || prm.page_title);
+    if (nm && !(prm.xdm && /^web\.webinteraction\./.test(prm.xdm.eventType || ""))) lastPageName = nm;
     if (consentRef && !consentInputWired && !noInputWarned) {
       noInputWarned = true;
       warnDiagnostic({
@@ -1918,6 +1977,7 @@ export async function bootAlloy(opts = {}) {
     pump();
     return run;
   };
+  const isNotificationDescriptor = (d) => !!(d && d.params && d.params.xdm && typeof d.params.xdm.eventType === "string" && d.params.xdm.eventType.startsWith("decisioning.proposition"));
   // Map a composite site event `{ event: name, ...fields }` to the chamber descriptor
   // `{ type: name, params: fields }`: routeBatch requires a string `type`, and the
   // alloy connector's `toXdm` reads `params.page_location`/`params.page_title`.
@@ -1926,8 +1986,36 @@ export async function bootAlloy(opts = {}) {
     return { type: event, params };
   };
 
+  notifyDisplayed = (displayed) => { enqueue({ type: "page_view", params: { xdm: displayNotificationXdm(displayed) } }); };
+  const uninstallClicks = typeof document !== "undefined" && opts.clickCollectionEnabled !== false
+    ? installLinkClickCollection({
+      document,
+      enqueue: (evt) => { enqueue(toDescriptor(evt)); },
+      config: { clickCollection: opts.clickCollection, downloadLinkQualifier: opts.downloadLinkQualifier },
+      clickMetasFor: renderer.clickMetasFor,
+      getPageName: () => lastPageName,
+      notifyInteract: (metas, extra) => { enqueue({ type: "page_view", params: { xdm: interactNotificationXdm(metas, extra) } }); },
+    })
+    : () => {};
+
   let disposed = false;
   return {
+    /**
+     * 064-20: stock `applyPropositions` — render propositions the site holds (returned by a prior
+     * response / `onDecisions`) on the main thread. Like stock it sends NO notification of its own; the
+     * site reports them with `push` (stock folds them into the next event only on request).
+     */
+    applyPropositions: async ({ propositions, metadata } = {}) => {
+      const out = await renderer.render(propositions, { metadata });
+      return { propositions: out.propositions };
+    },
+    /** 064-20 M3: ruleset items arrive as data through `decisions`; returns the unsubscribe. */
+    subscribeRulesetItems: ({ surfaces, schemas, callback } = {}) => {
+      if (typeof callback !== "function") throw new Error("airlock bootAlloy: subscribeRulesetItems needs a callback function");
+      const sub = { surfaces: Array.isArray(surfaces) ? surfaces : [], schemas: Array.isArray(schemas) ? schemas : [], callback };
+      rulesetSubscribers.add(sub);
+      return () => { rulesetSubscribers.delete(sub); };
+    },
     push: (evt) => { enqueue(toDescriptor(evt)); },
     // alloy's interact is a synchronous vendor round-trip (not a sync sendBeacon), so
     // pushCritical rides the SAME queued driveEvent — best-effort on unload; a true
@@ -1955,6 +2043,8 @@ export async function bootAlloy(opts = {}) {
       if (disposed) return; // idempotent (021-01 AC1)
       disposed = true;
       host.dispose(); // parked consent holds have no later decision to flush to (068-01)
+      uninstallClicks();
+      endPrehiding();
       if (worker && typeof worker.terminate === "function") worker.terminate();
     },
   };

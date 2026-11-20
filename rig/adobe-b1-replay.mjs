@@ -83,8 +83,8 @@ window.__command = (command, options) => new Promise((resolve) => {
 });
 `;
 
-const pageHtml = (bootOptions, title) => `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
-<script src="/rig/airlock-eds.js"></script><script>${PAGE_SCRIPT}</script></head><body>
+const pageHtml = (bootOptions, title, bodyHtml = "", headHtml = "") => `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>${headHtml}
+<script src="/rig/airlock-eds.js"></script><script>${PAGE_SCRIPT}</script></head><body>${bodyHtml}
 <script>AirlockEds.bootAlloy(${JSON.stringify(bootOptions)}).then((h) => { window.__handle = h; });</script></body></html>`;
 
 /** The recorded page view: the capture page sent this XDM with `sendEvent`. */
@@ -98,11 +98,12 @@ const interactResponses = (fixture) => fixture.requests.filter((r) => r.method =
  * @param {string|object} name fixture file stem, or a synthetic fixture object of the same shape (064-22)
  * @param {{ bootOptions?: object, title?: string, commands?: {command: string, options?: object}[], extraHosts?: string[], respond?: Function, extraCookies?: object[], run?: (page: import("playwright").Page) => Promise<unknown> }} [opts]
  *   `event: null` skips the default page-view push; `run(page)` drives a scenario of its own (064-19) and its value lands in `results.run`.
+ *   064-20: `bodyHtml` / `headHtml` seed the replay page (a placement box, a link to click, a prehiding target).
  *   `bootOptions` is merged into the bootAlloy options (a site opt-in such as a reduced `context`).
  *   064-18: `extraHosts` are further vendor hosts answered from the fixture (a first-party edge domain);
  *   `respond(request, index)` may return `{ status, headers, body }` to override the recorded answer.
  */
-export async function replayFixture(browser, name, { bootOptions = {}, title = "airlock064-page", seed = true, event = PAGE_VIEW, commands = [], extraHosts = [], respond = null, extraCookies = [], run = null } = {}) {
+export async function replayFixture(browser, name, { bootOptions = {}, title = "airlock064-page", seed = true, event = PAGE_VIEW, commands = [], extraHosts = [], respond = null, extraCookies = [], run = null, bodyHtml = "", headHtml = "" } = {}) {
   // 064-22: a caller may pass a synthetic fixture object instead of a recorded file stem.
   const fixture = typeof name === "object" ? name : await loadFixture(name);
   const { manifest, capture } = fixture;
@@ -152,7 +153,7 @@ export async function replayFixture(browser, name, { bootOptions = {}, title = "
         if (url.pathname === "/rig/chamber.js") return route.fulfill({ contentType: "text/javascript", body: worker });
         if (url.pathname === "/rig/alloy.min.js") return route.fulfill({ contentType: "text/javascript", body: bundle });
         const opts = { datastreamId, orgId, consentHold: false, bundleUrl: `${pageUrl.origin}/rig/alloy.min.js`, workerUrl: "/rig/chamber.js", ...bootOptions };
-        return route.fulfill({ contentType: "text/html", body: pageHtml(opts, title) });
+        return route.fulfill({ contentType: "text/html", body: pageHtml(opts, title, bodyHtml, headHtml) });
       }
       if (/adobedc\.(demdex|net)|edge\.adobedc\.net/.test(url.hostname) || extraHosts.includes(url.hostname)) {
         const headers = await req.allHeaders();

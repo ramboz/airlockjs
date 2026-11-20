@@ -309,6 +309,19 @@ export function createAlloyConnector(config = {}) {
       context: [...(Array.isArray(context) ? context : ALLOY_DEFAULT_CONTEXT)],
       ...configureExtras,
     });
+    // 064-20 M3: `subscribeRulesetItems.callback` is mediated as DATA — a function cannot cross the
+    // airlock, so the chamber subscribes with its own callback and delivers the ruleset propositions
+    // through the granted `decisions` capability; the main thread fans them out to the site's callback.
+    if (granted && granted.decisions && typeof granted.decisions.deliver === "function") {
+      try {
+        await getAlloy()("subscribeRulesetItems", {
+          callback: (result) => {
+            const props = result && Array.isArray(result.propositions) ? result.propositions : [];
+            if (props.length) granted.decisions.deliver(props.map((p) => ({ scope: (p && p.scope) || null, content: p, channel: "ruleset-items" })));
+          },
+        });
+      } catch (e) { /* an alloy without subscribeRulesetItems: ruleset items stay un-mediated */ }
+    }
   }
 
   /**
@@ -330,7 +343,13 @@ export function createAlloyConnector(config = {}) {
     // `decisionScopes[]`, merged+deduped into the interact query; `renderDecisions:false`
     // does NOT gate the fetch). ABSENT scopes → no `decisionScopes` key → alloy's
     // `__view__` default, byte-unchanged (033-02/033-03).
-    if (configuredScopes.length) {
+    const eventData = event && event.params && event.params.data;
+    if (eventData && typeof eventData === "object" && !Array.isArray(eventData)) options.data = eventData;
+    const notification = isPropositionNotification(options.xdm);
+    if (notification) {
+      // 064-20: a display/interact notification is not a personalization query (recorded S4 2nd POST).
+      options.personalization = { defaultPersonalizationEnabled: false, sendDisplayEvent: false };
+    } else if (configuredScopes.length) {
       options.decisionScopes = configuredScopes;
       // Live-Alloy caveat (the analogue of 034-01's split): on a cache-uninitialized
       // event real alloy's shouldRequestDefaultPersonalization() AUTO-ADDS `__view__`
@@ -348,7 +367,7 @@ export function createAlloyConnector(config = {}) {
     // each decision to its reserved box BY SCOPE (adapters/eds/index.js), not a single
     // filtered scope. In the single-`__view__`/analytics-only paths this is unchanged
     // (only `__view__` — or nothing — comes back).
-    const decisions = extractDecisions(result, { scope: null });
+    const decisions = notification ? [] : extractDecisions(result, { scope: null });
     if (decisions.length && granted && granted.decisions && typeof granted.decisions.deliver === "function") {
       granted.decisions.deliver(decisions);
     }
@@ -356,6 +375,11 @@ export function createAlloyConnector(config = {}) {
   }
 
   return { manifest, init, handle };
+}
+
+/** Is this XDM a personalization notification (`decisioning.proposition*`)? Those carry no query. */
+function isPropositionNotification(xdm) {
+  return !!xdm && typeof xdm.eventType === "string" && /^decisioning\.proposition/.test(xdm.eventType);
 }
 
 /**
