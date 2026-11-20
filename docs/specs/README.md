@@ -200,7 +200,7 @@ do not grant live authority.
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-15 — B7: compatibility report and perf budget | READY_FOR_IMPLEMENTATION |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-16 — B8: release check wiring | READY_FOR_IMPLEMENTATION |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-17 — B1: Environment snapshot and storage seeding (pilot) | DONE |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-18 — B2: Egress bridge | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-18 — B2: Egress bridge | DONE |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-19 — B3: Command coverage and callbacks | READY_FOR_IMPLEMENTATION |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-20 — B4: Personalization and host DOM | READY_FOR_IMPLEMENTATION |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-21 — B5: aem-martech, ACDL and Launch | READY_FOR_IMPLEMENTATION |  |

@@ -101,6 +101,12 @@ jobs:
         env:
           AIRLOCK_REAL_CHROMIUM: "1"
 
+      - name: GATING — 064-18 B2 egress bridge replay (real Chromium, pinned Alloy 2.31.1)
+        # Fetch init, beacon, edge-domain, handle diagnostics and S0/S3/S6/S8/S11 transport through the chamber.
+        run: npx vitest run test/adobe-b2-egress.test.js
+        env:
+          AIRLOCK_REAL_CHROMIUM: "1"
+
       - name: GATING — real-Worker isolation invariant (07-02)
         run: npm run rig:isolation
 

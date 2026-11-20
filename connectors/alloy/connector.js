@@ -22,6 +22,67 @@ export const ALLOY_DEFAULT_CONTEXT = Object.freeze(["web", "device", "environmen
 export const ALLOY_INTERACT_ENDPOINT = "https://adobedc.demdex.net/ee/v1/interact";
 
 /**
+ * 064-18 (spec 064 s2.2 Network, ADR-0062): every destination stock Alloy 2.31.1 posts to
+ * in the frozen capture, as a seam endpoint ceiling. The Adobe domain serves the first page
+ * view and `identity/acquire`; the edge domain serves everything after the location hint is
+ * known, as `/ee/<hint>/v1/...` (`{hint}` is one path segment, see core/endpoint-ceiling.js),
+ * plus the hint-less `privacy/set-consent`. A first-party edge domain adds the same three
+ * paths on the site's own host (`allowlistForEdgeDomain`), host-owned, never chamber-supplied.
+ */
+export const ALLOY_STOCK_ENDPOINTS = Object.freeze([
+  ALLOY_INTERACT_ENDPOINT,
+  "https://adobedc.demdex.net/ee/v1/identity/acquire",
+  "https://adobedc.demdex.net/ee/v1/privacy/set-consent",
+  "https://edge.adobedc.net/ee/v1/interact",
+  "https://edge.adobedc.net/ee/v1/privacy/set-consent",
+  "https://edge.adobedc.net/ee/{hint}/v1/interact",
+  "https://edge.adobedc.net/ee/{hint}/v1/collect",
+  "https://edge.adobedc.net/ee/{hint}/v1/identity/acquire",
+  "https://edge.adobedc.net/ee/{hint}/v1/privacy/set-consent",
+]);
+
+/**
+ * The same destination shapes on a site's first-party edge domain (`edgeDomain` config).
+ * @param {string} edgeDomain a bare host such as `data.example.com`
+ * @returns {string[]}
+ */
+export function allowlistForEdgeDomain(edgeDomain) {
+  const host = String(edgeDomain || "").trim().toLowerCase();
+  if (!/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/.test(host)) {
+    throw new TypeError("edgeDomain must be a bare host name (no scheme, path or port)");
+  }
+  return [
+    `https://${host}/ee/v1/interact`,
+    `https://${host}/ee/v1/identity/acquire`,
+    `https://${host}/ee/v1/privacy/set-consent`,
+    `https://${host}/ee/{hint}/v1/interact`,
+    `https://${host}/ee/{hint}/v1/collect`,
+    `https://${host}/ee/{hint}/v1/identity/acquire`,
+    `https://${host}/ee/{hint}/v1/privacy/set-consent`,
+  ];
+}
+
+/**
+ * 064-18 (spec 064 s2.2 Response handling, AC4): the `handle[].type` values the response
+ * parser may see. The 8 the connector consumes are listed in s2.2; the two extras were
+ * observed in the frozen corpus and are ignored by design (`locationHint:result` is read via
+ * the cluster cookie, `consent:preferences` is the set-consent acknowledgement). A type
+ * outside this list raises a visible `unknown-handle` diagnostic at the seam.
+ */
+export const ALLOY_CONSUMED_HANDLE_TYPES = Object.freeze([
+  "state:store",
+  "identity:result",
+  "identity:exchange",
+  "personalization:decisions",
+  "activation:push",
+  "activation:pull",
+  "media-analytics:new-session",
+  "brand-concierge:conversation",
+]);
+export const ALLOY_IGNORED_HANDLE_TYPES = Object.freeze(["locationHint:result", "consent:preferences"]);
+export const ALLOY_KNOWN_HANDLE_TYPES = Object.freeze([...ALLOY_CONSUMED_HANDLE_TYPES, ...ALLOY_IGNORED_HANDLE_TYPES]);
+
+/**
  * Alloy's declared cookie names — the SAME set the manifest's
  * `capabilities.cookies` (below) declares, hoisted to a static, module-level
  * export (spec 035-01 AC3) so it is ONE source of truth. Before this slice
@@ -201,7 +262,7 @@ export function createAlloyConnector(config = {}) {
     // "manifest mirror-drift" tightening, docs/inbox.md). ADVISORY endpoints (ADR-0006 — host
     // allow-list wins) — a FLOOR, not a complete map: the server-directed demdex/ID-sync
     // breadth is runtime-returned and creds-gated to MVP3 (see ALLOY_INTERACT_ENDPOINT).
-    endpoints: [ALLOY_INTERACT_ENDPOINT],
+    endpoints: [...ALLOY_STOCK_ENDPOINTS],
     // ADR-0007 consent-purpose annotation: tags each declared endpoint / cookie /
     // read (and egress overall) with the purpose(s) it serves, so a grant resolves
     // per declared I/O — not per connector. DISCLOSURE ONLY in MVP2; the grant
@@ -211,9 +272,7 @@ export function createAlloyConnector(config = {}) {
     purposes: {
       // Analytics events + the Target personalization query ride the same interact.
       egress: ALLOY_EGRESS_PURPOSES,
-      endpoints: {
-        [ALLOY_INTERACT_ENDPOINT]: ["analytics_storage", "personalization"],
-      },
+      endpoints: Object.fromEntries(ALLOY_STOCK_ENDPOINTS.map((e) => [e, ["analytics_storage", "personalization"]])),
       cookies: ALLOY_COOKIE_PURPOSES,
       reads: {
         "page_view.params.page_location": ["analytics_storage"],

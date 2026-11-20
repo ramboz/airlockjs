@@ -1,7 +1,7 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: DONE
 dependencies: [064-17, 067-03, 067-06]
-last_verified:
+last_verified: 2026-11-20
 ---
 
 ## Slice 064-18 — B2: Egress bridge
@@ -24,3 +24,19 @@ last_verified:
 - `npm test && npm run lint` and servo gate pass.
 
 **Anti-horizontal-phasing check:** Vertical: bridge surface to wire to comparison for one real journey.
+
+## Notes (2026-11-20)
+
+**Done.** Init (cache, credentials, referrerPolicy, keepalive) is whitelisted by `sanitizeFetchInit` and carried as `req.init` to `caps.egress.dispatch`; all response headers return to the chamber (`x-adobe-edge`, `Retry-After`). `sendBeacon` now routes as a keepalive POST through the seal (held visibly). IMG/SCRIPT/IFRAME loads post `unbridged-load` and get a `warn` diagnostic with a reason. Status 0 throws `TypeError` in the chamber (Alloy's demdex-to-edge fallback keys on it). Allowlist = `ALLOY_STOCK_ENDPOINTS` (incl. `{hint}` segment) plus `allowlistForEdgeDomain(host)`; `bootAlloy({edgeDomain})` pins a first-party host. Unknown `handle` types emit an `unknown-handle` error diagnostic (`knownHandleTypes`, 10 known). Tests: `test/egress-bridge-seam.test.js` (hermetic) and `test/adobe-b2-egress.test.js` (real Chromium, browser-oracle step). S0, S3, S6 (transport), S8, S11 compare clean.
+
+**For 064-19 (B3):** the `knownHandleTypes` option and diagnostic exist; the replay harness has `respond(req,i)`, `extraHosts`, and returns `responses` and `diagnostics`; rig commands `rig:sendBeacon`, `rig:loadElement`.
+
+**For 064-22 (B6):** ID-sync and URL-destination pixels, the Advertising iframe and blob message iframes are tagged (`pixel-not-bridged`, `script-not-bridged`, `iframe-not-bridged`), not bridged. Bridging is yours. Assurance is not exercised.
+
+**Extra captures needed: 1** (first-party CNAME edge domain; see spec 064 end).
+
+**Carried:** 067-03 residual (seeded stale "in" consent cookie with pending page consent drops instead of holding); hold path untouched.
+
+**Upstream to main later:** the additive, opt-in changes in `core/endpoint-ceiling.js` (`{hint}`), `core/egress.js`, `core/wrapped-sdk-host.js`. Google/Meta behaviour unchanged (full suite green).
+
+**Review rounds:** see `reviews/slice-18-*.md`.

@@ -82,6 +82,31 @@ export function fetchInit(method, body) {
   return method === "GET" ? { method: "GET", keepalive: true } : { method: "POST", body, keepalive: true };
 }
 
+const INIT_CACHE = ["default", "no-store", "reload", "no-cache", "force-cache"];
+const INIT_CREDENTIALS = ["omit", "same-origin", "include"];
+const INIT_REFERRER_POLICY = [
+  "", "no-referrer", "no-referrer-when-downgrade", "same-origin", "origin",
+  "strict-origin", "origin-when-cross-origin", "strict-origin-when-cross-origin", "unsafe-url",
+];
+
+/**
+ * 064-18 (spec 064 s2.2 Transport, AC1): the untrusted chamber's fetch init, reduced to the
+ * four transport fields the seam honors. Everything else (`mode`, `redirect`, `signal`, a
+ * `referrer` URL, `integrity`, ...) is dropped, and a value outside its enumeration is dropped
+ * too. `method`, `headers` and `body` travel separately and are not part of the init.
+ * @param {unknown} init
+ * @returns {{ cache?: string, credentials?: string, referrerPolicy?: string, keepalive?: boolean }}
+ */
+export function sanitizeFetchInit(init) {
+  const out = {};
+  if (!init || typeof init !== "object") return out;
+  if (INIT_CACHE.includes(init.cache)) out.cache = init.cache;
+  if (INIT_CREDENTIALS.includes(init.credentials)) out.credentials = init.credentials;
+  if (INIT_REFERRER_POLICY.includes(init.referrerPolicy)) out.referrerPolicy = init.referrerPolicy;
+  if (typeof init.keepalive === "boolean") out.keepalive = init.keepalive;
+  return out;
+}
+
 /**
  * @param {object} opts
  * @param {object} [opts.ctx]        session/identity context for `mapper` (POST path only)

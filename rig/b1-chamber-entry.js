@@ -9,15 +9,23 @@ import "../connectors/alloy/alloy-chamber.worker.js";
 const post = self.postMessage.bind(self);
 self.postMessage = (message, ...rest) => {
   if (message && message.type === "intercepted-fetch") {
-    post({ type: "rig-observed", request: { url: message.url, method: message.method, headers: message.headers, body: message.body } });
+    post({ type: "rig-observed", request: { url: message.url, method: message.method, headers: message.headers, body: message.body, init: message.init, beacon: message.beacon } });
   }
   return post(message, ...rest);
 };
 
 self.addEventListener("message", async (event) => {
   const m = event.data || {};
+  if (m.type === "intercepted-fetch-response") post({ type: "rig-response", response: { id: m.id, status: m.status, statusText: m.statusText, headers: m.headers } });
   if (m.type !== "rig-command") return;
   try {
+    // Rig-only probes for the 064-18 transport: a beacon and an element load made inside the chamber.
+    if (m.command === "rig:sendBeacon") return post({ type: "rig-command-result", id: m.id, result: self.window.navigator.sendBeacon(m.options.url, m.options.body) });
+    if (m.command === "rig:loadElement") {
+      const el = self.document.createElement(m.options.tag);
+      el.src = m.options.url;
+      return post({ type: "rig-command-result", id: m.id, result: true });
+    }
     post({ type: "rig-command-result", id: m.id, result: await self.alloy(m.command, m.options) });
   } catch (error) {
     post({ type: "rig-command-result", id: m.id, error: String((error && error.message) || error) });

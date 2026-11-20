@@ -134,6 +134,7 @@
 import { checkEndpointCeiling, resolveEndpointCeiling } from "./endpoint-ceiling.js";
 import { checkConfigIntegrity, pinnedDispatchUrl, hostOf } from "./config-integrity.js";
 import { egressVerdict, resolveConsent } from "./consent.js";
+import { sanitizeFetchInit, KEEPALIVE_BUDGET_BYTES } from "./egress.js";
 import { governPayload, resolveDenylist } from "./payload-governance.js";
 import { isValidCookieName, matchesGrantedName, resolveCookieGrant } from "./cookie-scope.js";
 import { resolveStorageGrant, storageKeyGranted } from "./storage-scope.js";
@@ -166,6 +167,7 @@ function consoleDiagnostic(record) {
  *   endpointCeiling?: (readonly string[] | null),
  *   stockEndpoints?: readonly string[],
  *   endpointNarrowing?: readonly string[],
+ *   knownHandleTypes?: (readonly string[] | null),
  *   consent?: (Record<string, string> | null),
  *   egressPurposes?: readonly string[],
  *   consentHold?: false,
@@ -222,6 +224,10 @@ export function createWrappedSdkHost({
   grantedStorage: stockStorage = null,
   storageGrantNarrowing,
   storagePurposes = null,
+  // 064-18 (spec 064 s6 point-11 analogue): the response `handle[].type` values the connector
+  // knows. A type outside this list raises a visible `unknown-handle` diagnostic. Absent ->
+  // no check (every other connector is unchanged).
+  knownHandleTypes = null,
   onDiagnostic,
 }) {
   const endpointCeiling =
@@ -256,6 +262,32 @@ export function createWrappedSdkHost({
     return false;
   }
   const diagnose = typeof onDiagnostic === "function" ? onDiagnostic : consoleDiagnostic;
+  // 064-18: the tenant pin covers `pinnedHost` plus any host-owned `extraHosts` (the Adobe edge
+  // domain, a first-party edge domain). Each carries the same `configId` and is checked against
+  // the same pinned tenant, with its own host as the pinned host.
+  const pinnedHosts = new Set(configIntegrity ? [configIntegrity.pinnedHost, ...(configIntegrity.extraHosts || [])] : []);
+  const pinFor = (url) => {
+    const host = hostOf(url);
+    return host && host !== configIntegrity.pinnedHost && pinnedHosts.has(host) ? { ...configIntegrity, pinnedHost: host } : configIntegrity;
+  };
+  const knownHandles = Array.isArray(knownHandleTypes) ? new Set(knownHandleTypes) : null;
+  function checkHandleTypes(m, res) {
+    if (!knownHandles || !res || typeof res.body !== "string" || !(res.status >= 200 && res.status < 300)) return;
+    let parsed;
+    try { parsed = JSON.parse(res.body); } catch { return; }
+    const handles = parsed && Array.isArray(parsed.handle) ? parsed.handle : [];
+    const unknown = [...new Set(handles.map((h) => (h && typeof h.type === "string" ? h.type : "<untyped>")).filter((t) => !knownHandles.has(t)))];
+    if (!unknown.length) return;
+    diagnose({
+      level: "error",
+      kind: "unknown-handle",
+      disposition: "ignored",
+      handleTypes: unknown,
+      reason: `response carried handle type(s) outside the known list: ${unknown.join(", ")} — the connector does not act on them`,
+      beaconId: `${inspectorTag}#${m.id}`,
+      destination: hostOf(m.url),
+    });
+  }
   // 067-09: the built-in credentials denylist is ON by default here too; only an explicit
   // `payloadDenylistOverride` turns it off or replaces it (a host list still extends).
   const resolvedDenylist = resolveDenylist(payloadDenylistOverride, payloadDenylist);
@@ -347,9 +379,9 @@ export function createWrappedSdkHost({
     // requests aimed at its OWN `pinnedHost` (the interact). Absent a ceiling,
     // config-integrity runs on every egress exactly as 015 shipped it
     // (standalone, unchanged — the block below is byte-identical to 015).
-    const runConfigIntegrity = configIntegrity && (!endpointCeiling || hostOf(m.url) === configIntegrity.pinnedHost);
+    const runConfigIntegrity = configIntegrity && (!endpointCeiling || pinnedHosts.has(hostOf(m.url)));
     if (runConfigIntegrity) {
-      const check = checkConfigIntegrity(m.url, configIntegrity);
+      const check = checkConfigIntegrity(m.url, pinFor(m.url));
       if (check.verdict === "hold") {
         // A complete pin can be re-derived to a valid destination; an incomplete
         // one (a misconfiguration) cannot, so it HOLDS even under override.
@@ -361,7 +393,7 @@ export function createWrappedSdkHost({
           // reaches the honest tenant (the ADR-0011 body residual). Never silent.
           state.overridden += 1;
           diagnose({ level: "error", kind: "config-integrity", disposition: "overridden", reason: check.reason, beaconId: `${inspectorTag}#${m.id}`, destination: hostOf(m.url) });
-          m = { ...m, url: pinnedDispatchUrl(m.url, configIntegrity) };
+          m = { ...m, url: pinnedDispatchUrl(m.url, pinFor(m.url)) };
           // fall through to dispatch the CORRECTED url below
         } else {
           state.held += 1;
@@ -373,7 +405,7 @@ export function createWrappedSdkHost({
           return;
         }
       }
-    } else if (endpointCeiling && configIntegrity && hostOf(m.url) !== configIntegrity.pinnedHost) {
+    } else if (endpointCeiling && configIntegrity && !pinnedHosts.has(hostOf(m.url))) {
       // (C) DISCLOSURE (016-02 AC4/AC6d-e — the tenant-coverage gap made
       // OBSERVABLE, never opened silently). Both controls are wired, and this
       // destination is a DECLARED origin (the ceiling above already allowed it)
@@ -524,12 +556,18 @@ export function createWrappedSdkHost({
           return;
         }
         state.mainDispatch.count += 1;
-        state.mainDispatch.requests.push({ url: m.url, method: m.method, body: m.body });
-        return caps.egress.dispatch({ url: m.url, method: m.method, headers: m.headers, body: m.body });
+        // 064-18 (AC1): the chamber's fetch init, reduced to the four honored transport fields.
+        // A beacon (navigator.sendBeacon from the chamber) is a keepalive POST; past the browser's
+        // keepalive budget it goes without keepalive rather than being dropped.
+        const init = sanitizeFetchInit(m.init);
+        if (m.beacon) init.keepalive = new TextEncoder().encode(String(m.body || "")).length <= KEEPALIVE_BUDGET_BYTES;
+        state.mainDispatch.requests.push({ url: m.url, method: m.method, body: m.body, ...(Object.keys(init).length ? { init } : {}), ...(m.beacon ? { beacon: true } : {}) });
+        return caps.egress.dispatch({ url: m.url, method: m.method, headers: m.headers, body: m.body, ...(Object.keys(init).length ? { init } : {}) });
       })
       .then((res) => {
         clearTimeout(timer);
         if (settled) return;
+        checkHandleTypes(m, res);
         respond({
           status: (res && res.status) || 0,
           statusText: (res && res.statusText) || "",
@@ -561,6 +599,10 @@ export function createWrappedSdkHost({
       }
     } else if (m.type === "intercepted-fetch") {
       dispatchInterceptedFetch(m);
+    } else if (m.type === "unbridged-load") {
+      // 064-18 (AC2): an element load the chamber cannot make (pixel / script / iframe) is tagged
+      // with its reason, never swallowed.
+      diagnose({ level: "warn", kind: "unbridged-load", disposition: "not-bridged", tag: m.tag, destination: hostOf(m.url), reason: m.reason, beaconId: `${inspectorTag}#load` });
     } else if (m.type === "decisions") {
       // 033-03 AC1: the chamber posts `{type:"decisions", decisions}` when alloy
       // returns Target propositions as DATA (renderDecisions:false —

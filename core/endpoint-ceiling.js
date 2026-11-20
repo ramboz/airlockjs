@@ -80,6 +80,26 @@ export function originPath(url) {
   }
 }
 
+export const HINT_SEGMENT = "{hint}";
+// One path segment of lowercase letters and digits (an Edge location hint such as `or2`).
+const HINT_PATTERN = "[a-z][a-z0-9]{1,9}";
+
+/**
+ * 064-18: a declared endpoint may carry one `{hint}` path segment standing for
+ * the Edge location hint (`/ee/or2/v1/interact`). It matches exactly one
+ * segment of `[a-z][a-z0-9]{1,9}`; the rest of origin+path stays an exact match.
+ * Returns the matcher, or `null` when the declared endpoint has no placeholder.
+ * @param {string} endpoint
+ * @returns {RegExp | null}
+ */
+function hintMatcher(endpoint) {
+  if (typeof endpoint !== "string" || !endpoint.includes(HINT_SEGMENT)) return null;
+  const reduced = originPath(endpoint.split(HINT_SEGMENT).join("__hint__"));
+  if (!reduced) return null;
+  const escaped = reduced.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`^${escaped.replace("__hint__", HINT_PATTERN)}$`);
+}
+
 /**
  * Check an outbound URL against a connector's declared endpoints, at
  * origin+pathname granularity. FAILS CLOSED on every ambiguous case: an empty
@@ -101,20 +121,26 @@ export function checkEndpointCeiling(url, declaredEndpoints) {
   // set-membership match; matrix endpoints opt into the segment-anchored prefix.
   const exact = new Set();
   const prefixes = [];
+  const hints = [];
   for (const endpoint of declaredEndpoints || []) {
+    const matcher = hintMatcher(endpoint);
+    if (matcher) { hints.push(matcher); continue; }
     const reduced = originPath(endpoint);
     if (!reduced) continue;
     if (reduced.includes(";")) prefixes.push(reduced);
     else exact.add(reduced);
   }
 
-  if (exact.size === 0 && prefixes.length === 0) {
+  if (exact.size === 0 && prefixes.length === 0 && hints.length === 0) {
     return { verdict: "hold", destination, reason: "endpoint-ceiling: no declared endpoints — fail closed (hold)" };
   }
   if (destination === null) {
     return { verdict: "hold", destination, reason: "endpoint-ceiling: unparseable outbound url — fail closed (hold)" };
   }
   if (exact.has(destination)) {
+    return { verdict: "allow", destination, reason: "ok" };
+  }
+  if (hints.some((re) => re.test(destination))) {
     return { verdict: "allow", destination, reason: "ok" };
   }
   // Segment-anchored prefix: the destination is the declared prefix itself, or

@@ -36,7 +36,7 @@ import { createWrappedSdkHost } from "../../core/wrapped-sdk-host.js";
 import { hostOf } from "../../core/config-integrity.js";
 import { resolveConsent } from "../../core/consent.js";
 import { resolveOnetrustBootConsent, subscribeOnetrustConsentChanges } from "../../drivers/consent/onetrust.js";
-import { ALLOY_DEFAULT_CONTEXT, ALLOY_INTERACT_ENDPOINT, ALLOY_COOKIE_NAMES, ALLOY_COOKIE_PURPOSES, ALLOY_STORAGE_NAMES, ALLOY_STORAGE_PURPOSES, ALLOY_EVENTS, ALLOY_EGRESS_PURPOSES } from "../../connectors/alloy/connector.js";
+import { ALLOY_DEFAULT_CONTEXT, ALLOY_INTERACT_ENDPOINT, ALLOY_STOCK_ENDPOINTS, ALLOY_KNOWN_HANDLE_TYPES, allowlistForEdgeDomain, ALLOY_COOKIE_NAMES, ALLOY_COOKIE_PURPOSES, ALLOY_STORAGE_NAMES, ALLOY_STORAGE_PURPOSES, ALLOY_EVENTS, ALLOY_EGRESS_PURPOSES } from "../../connectors/alloy/connector.js";
 // spec 014-03: GA4-MP's declared vocabulary — its SOT manifest home (imported, not mirrored; see the
 // retired mirror-const note below). Only the vocab consts are imported (esbuild tree-shakes the factory).
 import { GA4_EVENTS, GA4_EGRESS_PURPOSES } from "../../connectors/ga4/connector.js";
@@ -1623,6 +1623,10 @@ function probeApexDomain(granted) {
  * @param {false}    [opts.consentHold]    067-03: only the exact value `false` turns the hold off (no consent
  *                                         vector wired); alloy then sends as stock does and warns once.
  * @param {string[]} [opts.payloadDenylist] optional seam-side XDM strip (020-02 AC3).
+ * @param {string}   [opts.edgeDomain]     064-18: a first-party edge domain (bare host, `data.example.com`).
+ *                                         Passed to alloy `configure`, and its `/ee/...` paths join the seam's
+ *                                         endpoint ceiling and the tenant pin. Host-owned: the chamber cannot
+ *                                         add a host.
  * @param {string|URL} [opts.workerUrl]    test/rig seam: override the chamber Worker
  *                                         URL (default the built same-origin sibling).
  * @param {Record<string, Promise<{fill:Function}>>} [opts.reservedPlacements] spec 033-03:
@@ -1639,7 +1643,7 @@ function probeApexDomain(granted) {
  * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, stats: Function, dispose: Function }>}
  */
 export async function bootAlloy(opts = {}) {
-  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, consent, consentHold, minimalXdm, payloadDenylist, payloadDenylistOverride, cookieGrantNarrowing, storageGrantNarrowing, workerUrl, reservedPlacements, compositeEmit } = opts;
+  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, consent, consentHold, minimalXdm, payloadDenylist, payloadDenylistOverride, cookieGrantNarrowing, storageGrantNarrowing, workerUrl, reservedPlacements, compositeEmit, edgeDomain } = opts;
 
   const context = Array.isArray(opts.context) ? opts.context : ALLOY_DEFAULT_CONTEXT;
 
@@ -1655,6 +1659,8 @@ export async function bootAlloy(opts = {}) {
   // interact carries — 013-03). Fail LOUD rather than boot an un-pinnable chamber that would
   // hold every interact (an incomplete pin) or mis-configure alloy.
   const resolvedDatastreamId = datastreamId ?? datastream ?? edgeConfigId;
+  // 064-18: validate the first-party edge domain at boot (throws on a non-host value).
+  const edgeDomainHost = edgeDomain == null ? null : (allowlistForEdgeDomain(edgeDomain), String(edgeDomain).trim().toLowerCase());
   if (typeof resolvedDatastreamId !== "string" || resolvedDatastreamId.length === 0) {
     throw new Error("airlock bootAlloy: a datastream id is required (`datastreamId`, or its `datastream`/`edgeConfigId` alias) — alloy configure() + the config-integrity tenant pin both need it");
   }
@@ -1702,10 +1708,15 @@ export async function bootAlloy(opts = {}) {
       // main-thread fetch (ADR-0004). The host runs the endpoint/consent/config
       // gates BEFORE calling this, so a held interact never reaches the network.
       async dispatch(req) {
-        const res = await fetch(req.url, { method: req.method || "POST", headers: req.headers || {}, body: req.body });
+        // 064-18 (AC1/AC3): the seam-sanitized transport init (cache / credentials / referrerPolicy /
+        // keepalive) is applied, and every response header the page can read is handed back
+        // (`x-adobe-edge` and `Retry-After` drive Alloy's edge-cluster state and retry delay).
+        const res = await fetch(req.url, { method: req.method || "POST", headers: req.headers || {}, body: req.body, ...(req.init || {}) });
         const body = typeof res.text === "function" ? await res.text() : "";
-        const ct = res.headers && typeof res.headers.get === "function" ? res.headers.get("content-type") : null;
-        return { status: res.status, statusText: res.statusText, headers: { "content-type": ct || "application/json" }, body };
+        const headers = {};
+        if (res.headers && typeof res.headers.forEach === "function") res.headers.forEach((v, k) => { headers[k] = v; });
+        if (!headers["content-type"]) headers["content-type"] = "application/json";
+        return { status: res.status, statusText: res.statusText, headers, body };
       },
     },
     cookies: {
@@ -1760,6 +1771,8 @@ export async function bootAlloy(opts = {}) {
     // re-tenant. The pin is chamber-immutable (built here, on main), not chamber-supplied.
     configIntegrity: {
       pinnedHost: hostOf(ALLOY_INTERACT_ENDPOINT),
+      // 064-18: the same tenant pin on the Adobe edge domain and, when set, the first-party edge domain.
+      extraHosts: ["edge.adobedc.net", ...(edgeDomainHost ? [edgeDomainHost] : [])],
       tenantKey: "configId",
       pinnedTenant: resolvedDatastreamId,
       disposition: "hold",
@@ -1769,7 +1782,8 @@ export async function bootAlloy(opts = {}) {
     // destination is HELD. The un-grounded server-directed breadth (demdex/ID-sync URLs the Edge
     // response returns at runtime) is held+surfaced fail-closed — grounding that breadth is the
     // creds-gated live-Alloy follow-on (docs/refinement-todo.md), NOT a silent drop.
-    endpointCeiling: [ALLOY_INTERACT_ENDPOINT],
+    endpointCeiling: [...ALLOY_STOCK_ENDPOINTS, ...(edgeDomainHost ? allowlistForEdgeDomain(edgeDomainHost) : [])],
+    knownHandleTypes: ALLOY_KNOWN_HANDLE_TYPES,
     consent: consentRef,
     // 020-02: the TRUSTED strict seam gate; 067-03: on unless the hold is explicitly off.
     egressPurposes: consentRef ? ALLOY_EGRESS_PURPOSES : [],
@@ -1806,7 +1820,7 @@ export async function bootAlloy(opts = {}) {
   // crosses into the untrusted chamber — so createSyncCookieCache is seeded with
   // nothing the connector didn't declare, and a chamber read can never surface a
   // foreign cookie (closes the live whole-jar READ leak).
-  const config = { datastreamId: resolvedDatastreamId, orgId, context, ...(minimalXdm ? { minimalXdm: true } : {}), ...(decisionScopes.length ? { decisionScopes } : {}) };
+  const config = { datastreamId: resolvedDatastreamId, orgId, context, ...(edgeDomainHost ? { edgeDomain: edgeDomainHost } : {}), ...(minimalXdm ? { minimalXdm: true } : {}), ...(decisionScopes.length ? { decisionScopes } : {}) };
   const rawSeedCookie = (typeof document !== "undefined" && document.cookie) || "";
   const seedCookie = scopeSeedCookies(rawSeedCookie, resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).names);
   // 067-08 (ADR-0062 point 2): feed Alloy's listed `context` groups from the stock-context

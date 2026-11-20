@@ -74,7 +74,7 @@ import { createAlloyConnector, ALLOY_DEFAULT_CONTEXT } from "./connector.js";
 import { createStockContextStore } from "../../core/stock-context.js";
 import { applyStockContextToShims } from "./stock-shim.js";
 import { createSyncCookieCache } from "./sync-cookie-cache.js";
-import { applyEgressConfinement, denySendBeacon } from "../../core/egress-confinement.js";
+import { applyEgressConfinement } from "../../core/egress-confinement.js";
 import { shapeAlloyBoot } from "./consent.js";
 import { createSyncStorage } from "./sync-storage.js";
 
@@ -188,7 +188,32 @@ function buildCaps(seedCookie, apex = "") {
 const makeStorage = () => createSyncStorage();
 
 /* ---- element / node stub — R-004 ---- */
+// 064-18 (AC2): a worker has no network element, so an IMG / SCRIPT / IFRAME `src` can never load
+// here. It is not swallowed: the load is reported to the seam as a tagged, visible diagnostic (ID-sync
+// and URL-destination pixels, the Advertising iframe, message iframes; the bridge for them is 064-22),
+// and the element's `onerror` fires so the tag treats it as a failed load, never a silent success.
+const LOAD_REASONS = {
+  IMG: "pixel-not-bridged: ID-sync / URL-destination pixels do not leave the chamber (064-22)",
+  SCRIPT: "script-not-bridged: a script load does not leave the chamber (064-22)",
+  IFRAME: "iframe-not-bridged: an iframe load does not leave the chamber (064-22)",
+};
+function reportLoad(el, url) {
+  const u = String(url);
+  if (!u || u.startsWith("about:") || u.startsWith("javascript:")) return;
+  post("unbridged-load", { tag: el.tagName, url: u, reason: LOAD_REASONS[el.tagName] });
+  setTimeout(() => { if (typeof el.onerror === "function") el.onerror(new Error("not bridged")); }, 0);
+}
 function makeEl(tag) {
+  const el = makeElBase(tag);
+  if (LOAD_REASONS[el.tagName]) {
+    let src = "";
+    Object.defineProperty(el, "src", { get: () => src, set: (v) => { src = String(v); reportLoad(el, src); }, enumerable: true });
+    const setAttr = el.setAttribute;
+    el.setAttribute = (k, v) => { if (String(k).toLowerCase() === "src") el.src = v; else setAttr(k, v); };
+  }
+  return el;
+}
+function makeElBase(tag) {
   return {
     tagName: String(tag || "div").toUpperCase(), style: {}, dataset: {},
     setAttribute() {}, getAttribute() { return null; }, removeAttribute() {},
@@ -254,7 +279,23 @@ docBack.location = locationShim;
 const navBack = {
   userAgent: (self.navigator && self.navigator.userAgent) || "airlock-chamber",
   language: undefined, languages: undefined, cookieEnabled: true, onLine: true, doNotTrack: null,
-  sendBeacon: (url) => { summary.fetchCalls.push({ via: "sendBeacon", url: String(url) }); return true; },
+  // 064-18 (AC2): a beacon is NOT swallowed. It rides the same bridge as a fetch (flagged
+  // `beacon`), so every seam gate applies and a held or denied beacon is a visible diagnostic
+  // there. Returns true synchronously, as the real API does; the send is fire-and-forget.
+  sendBeacon: (url, data) => {
+    summary.fetchCalls.push({ via: "sendBeacon", url: String(url) });
+    const send = (body) => {
+      post("intercepted-fetch", {
+        id: "af-" + (++fetchSeq), url: String(url), method: "POST", headers: {}, body,
+        init: { credentials: "include", keepalive: true }, beacon: true,
+      });
+    };
+    try {
+      if (data != null && typeof data.text === "function") data.text().then(send, () => send(undefined));
+      else send(data == null ? undefined : String(data));
+    } catch (e) { return false; }
+    return true;
+  },
 };
 const navigatorShim = new Proxy(navBack, {
   get(t, p) {
@@ -298,6 +339,13 @@ self.fetch = (url, opts = {}) => {
   const u = String(isReq ? url.url : url);
   const method = String((opts.method || (isReq && url.method) || "GET")).toUpperCase();
   const headers = normalizeHeaders(opts.headers || (isReq && url.headers));
+  // 064-18 (AC1): the transport init the tag set is carried to the seam, not dropped. The seam
+  // reduces it to cache / credentials / referrerPolicy / keepalive.
+  const init = {};
+  for (const k of ["cache", "credentials", "referrerPolicy", "keepalive"]) {
+    const v = opts[k] !== undefined ? opts[k] : (isReq ? url[k] : undefined);
+    if (v !== undefined) init[k] = v;
+  }
   let body = opts.body != null ? opts.body : (isReq ? url.body : undefined);
   if (body != null && typeof body !== "string") { try { body = String(body); } catch (e) { body = undefined; } }
   summary.fetchCalls.push({ via: "intercepted-to-main", url: u, method });
@@ -306,7 +354,7 @@ self.fetch = (url, opts = {}) => {
     pendingFetches.set(id, { resolve, reject });
     try {
       // Hand the request to the orchestrator on main (the parallel dispatcher).
-      post("intercepted-fetch", { id, url: u, method, headers, body });
+      post("intercepted-fetch", { id, url: u, method, headers, body, init });
     } catch (err) {
       // No main channel to dispatch through — the ONLY path that could do a real
       // worker fetch, and it is counted (workerRealFetchCalls). Never taken for
@@ -325,9 +373,14 @@ function resolveInterceptedFetch(m) {
   if (!pending) return;
   pendingFetches.delete(m.id);
   try {
-    if (m.status === 0) throw new Error(m.statusText || "main-thread dispatch failed");
-    pending.resolve(new Response(m.body != null ? m.body : "", {
-      status: m.status || 200,
+    // A failed network request rejects a real fetch with a TypeError, and Alloy keys its
+    // third-party-domain fallback on that name (064-18, recorded S8).
+    if (m.status === 0) throw new TypeError(m.statusText || "Failed to fetch");
+    const status = m.status || 200;
+    // A null-body status (204 `collect`, 205, 304) cannot carry a body: `new Response("", {status:204})` throws.
+    const noBody = status === 204 || status === 205 || status === 304;
+    pending.resolve(new Response(noBody ? null : (m.body != null ? m.body : ""), {
+      status,
       statusText: m.statusText || "",
       headers: m.headers || { "content-type": "application/json" },
     }));
@@ -443,7 +496,9 @@ async function boot({ cookie, config, bundleUrl, consent, storage, apex }) {
     // so alloy's own egress runs under confinement (R-004: alloy uses only fetch,
     // so this does not break it — the rig asserts it still boots + sends).
     const confinement = applyEgressConfinement(self);
-    confinement.shimSendBeacon = denySendBeacon(navigatorShim); // the shim navigator alloy sees
+    // 064-18 (AC2): the shim navigator alloy sees is NOT denied any more: its sendBeacon is the bridge
+    // route above, so a beacon crosses the seal (held or denied visibly there) instead of throwing in here.
+    confinement.shimSendBeacon = "bridged";
     summary.egressConfinement = confinement;
     summary.egressConfined = confinement.fetchPreserved === true;
 

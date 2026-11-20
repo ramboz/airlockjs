@@ -403,7 +403,7 @@ Rate = settings not covered by S9, divided by all settings listed. Covered means
 - Not covered: 7 (DS-17, DS-18, DS-19, DS-20, DS-22, DS-24, DS-34).
 - **Out-of-inventory rate: 7 / 36 = 19.4%, above the 10% threshold. Kill criterion 6 trips on this count.** Scope is not changed. It is recorded and reported; the owner chose to proceed (D11).
 - Sensitivity only, not applied: if DS-17 to DS-20 were switched on in S9-07 as sub-toggles of the AEP service, the rate would be 3 / 36 = 8.3%. Those toggles show no effect without an owned decision, segment, destination or campaign, so they would still fail condition (c).
-- Observed `handle` types: none observed yet, because there is no capture. That half of the metric is measured after CAP. The 8 consumed types of 2.2 do not enter the denominator until they are observed.
+- Observed `handle` types (064-18, from the 46-fixture corpus, 200 JSON responses): `identity:result`, `personalization:decisions`, `state:store`, `identity:exchange` (4 of the 8 consumed), plus `locationHint:result` and `consent:preferences`, which Alloy ignores. The known list is the 8 consumed types plus these 2 observed ignored ones, so nothing in the corpus is unknown. 6 observed, 0 outside the list.
 
 Kill criteria 6 and 4 both tripped on the T2 counts. Neither was reached by a scope change. The owner proceeded on both (D11, D12). The 7 gap rows are known gaps owned by B6 (064-22) and stay outside the v1.0 compatibility claim until owned resources exist.
 
@@ -478,7 +478,7 @@ The probe does not run until the owner confirms both. The POC site loads no Allo
 | Held-out rule check | Yes | Section 4.7 |
 | Drift and field classes (point 10) | Yes, adapted | Alloy is versioned. Field classes are `fixed`, `generated`, `input-derived`, `server-context-derived` (a source field is named, for example the edge region or datastream), `volatile`. Request classes are in section 2.2. A field that differs across setups or days without an explanation makes the state `unstable` and goes to the owner |
 
-Completeness metric: out-of-inventory rate = (datastream settings and observed `handle` types not covered by S9) divided by (all listed). Threshold: above 10% is a kill criterion (item 6). Value so far: 7 of 36 settings = 19.4% (T2, 6.5); the `handle` half is not measured until capture. This is above the threshold, so kill criterion 6 tripped on the settings count; scope is not changed and the owner proceeded (D11).
+Completeness metric: out-of-inventory rate = (datastream settings and observed `handle` types not covered by S9) divided by (all listed). Threshold: above 10% is a kill criterion (item 6). Value so far: 7 of 36 settings = 19.4% (T2, 6.5); the `handle` half measured in 064-18 is 0 of 6 (0%), so the combined rate is still driven by the settings count. This is above the threshold, so kill criterion 6 tripped on the settings count; scope is not changed and the owner proceeded (D11).
 
 Kill criteria, from ADR-0061 plus the completeness metric:
 
@@ -536,3 +536,7 @@ Review rounds are capped at three before owner review (owner decision). Findings
 ## 13. Clarifications
 
 None open.
+
+### Extra capture needed (064-18)
+
+One: a first-party CNAME edge domain. `s1-edge-domain` is a plain default-domain repeat, so the first-party host path (DS-29, S9-06) is only tested synthetically in 064-18 (`edgeDomain` option, pinned host). Not recorded; owner decision.

@@ -4,7 +4,7 @@
 // referrer, viewport, screen, locale, timezone) into a real page BEFORE the page loads, boots the
 // real `bootAlloy` adapter with the pinned stock Alloy 2.31.1 bundle, runs the recorded scenario,
 // and returns what the chamber emitted. No live network: every vendor host is answered from the
-// fixture. The shared B0 field-rule primitives classify the generated fields.
+// fixture (064-18 adds the response headers and the recorded blocked-network failure). The shared B0 field-rule primitives classify the generated fields.
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -58,7 +58,12 @@ export function buildArtifacts() {
 }
 
 const PAGE_SCRIPT = `
-window.__observed = []; window.__results = new Map(); window.__seq = 0;
+window.__diag = [];
+for (const level of ["warn", "error"]) {
+  const native = console[level].bind(console);
+  console[level] = (...a) => { try { for (const x of a) if (x && typeof x === "object" && x.kind) window.__diag.push(JSON.parse(JSON.stringify(x))); } catch (e) {} native(...a); };
+}
+window.__observed = []; window.__responses = []; window.__results = new Map(); window.__seq = 0;
 const NativeWorker = window.Worker;
 window.Worker = class extends NativeWorker {
   constructor(...a) {
@@ -67,6 +72,7 @@ window.Worker = class extends NativeWorker {
     this.addEventListener("message", (e) => {
       const m = e.data || {};
       if (m.type === "rig-observed") window.__observed.push(m.request);
+      if (m.type === "rig-response") window.__responses.push(m.response);
       if (m.type === "rig-command-result") window.__results.get(m.id)?.(m);
     });
   }
@@ -90,10 +96,12 @@ const interactResponses = (fixture) => fixture.requests.filter((r) => r.method =
  * Replay one fixture.
  * @param {import("playwright").Browser} browser
  * @param {string} name fixture file stem
- * @param {{ bootOptions?: object, title?: string, commands?: {command: string, options?: object}[] }} [opts] `bootOptions` is merged into the
- *   bootAlloy options (a site opt-in such as a reduced `context`)
+ * @param {{ bootOptions?: object, title?: string, commands?: {command: string, options?: object}[], extraHosts?: string[], respond?: Function }} [opts]
+ *   `bootOptions` is merged into the bootAlloy options (a site opt-in such as a reduced `context`).
+ *   064-18: `extraHosts` are further vendor hosts answered from the fixture (a first-party edge domain);
+ *   `respond(request, index)` may return `{ status, headers, body }` to override the recorded answer.
  */
-export async function replayFixture(browser, name, { bootOptions = {}, title = "airlock064-page", seed = true, event = PAGE_VIEW, commands = [] } = {}) {
+export async function replayFixture(browser, name, { bootOptions = {}, title = "airlock064-page", seed = true, event = PAGE_VIEW, commands = [], extraHosts = [], respond = null } = {}) {
   const fixture = await loadFixture(name);
   const { manifest, capture } = fixture;
   const input = manifest.input_state;
@@ -141,11 +149,18 @@ export async function replayFixture(browser, name, { bootOptions = {}, title = "
         const opts = { datastreamId, orgId, consentHold: false, bundleUrl: `${pageUrl.origin}/rig/alloy.min.js`, workerUrl: "/rig/chamber.js", ...bootOptions };
         return route.fulfill({ contentType: "text/html", body: pageHtml(opts, title) });
       }
-      if (/adobedc\.(demdex|net)|edge\.adobedc\.net/.test(url.hostname)) {
+      if (/adobedc\.(demdex|net)|edge\.adobedc\.net/.test(url.hostname) || extraHosts.includes(url.hostname)) {
         const headers = await req.allHeaders();
         network.push({ url: req.url(), method: req.method(), headers, body: req.postData() });
-        const answer = recorded[network.length - 1] || recorded[recorded.length - 1];
-        return route.fulfill({ status: answer ? answer.status : 200, contentType: "application/json", body: answer ? answer.response_body : "{}" });
+        const index = network.length - 1;
+        const answer = recorded[index] || recorded[recorded.length - 1];
+        const override = respond ? respond(req, index) : null;
+        if (override === "abort" || (!override && answer && answer.failure)) return route.abort("blockedbyclient");
+        if (override) return route.fulfill(override);
+        // The recorded answer carries the CORS headers for the capture page origin and the edge
+        // headers the tag reads (`x-adobe-edge`, `Retry-After`); transport framing is dropped.
+        const keep = Object.fromEntries(Object.entries((answer && answer.response_headers) || {}).filter(([k]) => !/^(content-encoding|content-length|set-cookie|date|server|via|strict-transport-security)$/i.test(k)));
+        return route.fulfill({ status: answer ? answer.status : 200, headers: { ...keep, "content-type": keep["content-type"] || "application/json" }, body: answer ? answer.response_body : "{}" });
       }
       return route.fulfill({ status: 204, body: "" });
     });
@@ -171,8 +186,10 @@ export async function replayFixture(browser, name, { bootOptions = {}, title = "
     for (const c of commands) results[c.command] = await page.evaluate((x) => window.__command(x.command, x.options), c);
     await page.waitForTimeout(250);
     const observed = await page.evaluate(() => window.__observed);
+    const responses = await page.evaluate(() => window.__responses);
+    const diagnostics = await page.evaluate(() => window.__diag);
     const pageCookies = await context.cookies();
-    return { fixture, observed, network, results, pageCookies, logs };
+    return { fixture, observed, responses, diagnostics, network, results, pageCookies, logs };
   } finally {
     await context.close();
   }
