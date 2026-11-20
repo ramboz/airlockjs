@@ -103,11 +103,11 @@
  * not the non-strict default. A non-"send" verdict HOLDS (status:0,
  * `statusText: "held at the seal: consent"`, `consentHeld` incremented, a
  * redacted `kind:"consent"` diagnostic) — the same fail-closed shape the
- * ceiling/config-integrity holds use above. pending -> DROP (not
- * hold+buffer) is the first-impl choice: the alloy interact is a
- * synchronous vendor-SDK round trip, not a queued beacon like GA4's async
- * seal — a pending->hold+flush refinement mirroring 017-03 is a named
- * follow-on. This seam gate is independent of, and complements, alloy's OWN
+ * ceiling/config-integrity holds use above. An explicit denial rejects
+ * at once; a pending verdict parks the request (the chamber fetch stays
+ * pending) and `setConsent` re-runs it through every gate: sent once on
+ * grant, dropped on denial or teardown (ADR-0062 point 4, spec 068-01).
+ * This seam gate is independent of, and complements, alloy's OWN
  * `setConsent` command driven in the chamber's alloy-boot glue
  * (connectors/alloy/alloy-chamber.worker.js + connectors/alloy/consent.js):
  * defense-in-depth — seam-enforce (trusted) + delegate (idiomatic, but
@@ -118,7 +118,7 @@
  * capability or enforce consent inside an independently asynchronous transport.
  *
  * ADR-0013's "pending -> DROP" and "empty egressPurposes -> seam OFF" clauses are amended (ADR-0062, spec
- * 067-03): pending is held by alloy's own queue and the seam drop is a backstop; an empty
+ * 067-03, 068-01): pending is held (alloy's own queue, plus the seam parks and flushes on grant); an empty
  * `egressPurposes` with a consent vector holds on analytics_storage and warns.
  *
  * Payload strip (spec 020-02 AC3, optional, non-load-bearing): an optional
@@ -135,6 +135,7 @@ import { checkEndpointCeiling, resolveEndpointCeiling } from "./endpoint-ceiling
 import { checkConfigIntegrity, pinnedDispatchUrl, hostOf } from "./config-integrity.js";
 import { egressVerdict, resolveConsent } from "./consent.js";
 import { governPayload, resolveDenylist } from "./payload-governance.js";
+import { MAX_HELD_BEACONS } from "./airlock.js";
 import { isValidCookieName, matchesGrantedName, resolveCookieGrant } from "./cookie-scope.js";
 import { resolveStorageGrant, storageKeyGranted } from "./storage-scope.js";
 
@@ -169,6 +170,7 @@ function consoleDiagnostic(record) {
  *   consent?: (Record<string, string> | null),
  *   egressPurposes?: readonly string[],
  *   consentHold?: false,
+ *   consentOptOut?: ({ path: string, match: { path: readonly (string | number)[], equals: string }, forward: readonly string[] } | null),
  *   payloadDenylist?: (readonly string[] | null),
  *   payloadDenylistOverride?: (false | readonly string[]),
  *   grantedCookieNames?: (readonly string[] | null),
@@ -214,6 +216,7 @@ export function createWrappedSdkHost({
   consent = null,
   egressPurposes: declaredEgressPurposes = [],
   consentHold,
+  consentOptOut = null,
   payloadDenylist = null,
   payloadDenylistOverride,
   grantedCookieNames: stockCookieNames = null,
@@ -302,6 +305,31 @@ export function createWrappedSdkHost({
     storageConsentHeld: 0,
   };
 
+  // 068-01 (ADR-0062 point 4): a PENDING consent hold keeps the chamber's fetch pending (no
+  // response) and parks the request here; the next consent update re-runs it through every gate.
+  // Bounded by the shared hold ring (oldest dropped, ADR-0062 point 6). Denied/revoked and
+  // teardown drop it.
+  let parked = [];
+  let disposed = false;
+  function rejectHeld(req, statusText) {
+    chamber.postMessage({ type: "intercepted-fetch-response", id: req.id, status: 0, statusText, body: "" });
+  }
+  const heldSeen = new WeakSet();
+  function park(req) {
+    parked.push(req);
+    while (parked.length > MAX_HELD_BEACONS) {
+      const dropped = parked.shift();
+      rejectHeld(dropped, "held at the seal: consent (hold ring full)");
+      diagnose({
+        level: "warn",
+        kind: "consent",
+        disposition: "dropped",
+        reason: `consent hold ring full (cap ${MAX_HELD_BEACONS}) — oldest held request dropped`,
+        beaconId: `${inspectorTag}#${dropped.id}`,
+      });
+    }
+  }
+
   let queuedEvent = null;
   let onResult = null; // { resolve, reject } for the in-flight driveEvent() call
   // 033-02 AC2 (N sequential events): once the chamber reports phase:"configured",
@@ -319,6 +347,7 @@ export function createWrappedSdkHost({
    * settle, or vice versa) with a per-call `settled` flag.
    */
   function dispatchInterceptedFetch(m) {
+    const original = m;
     // (A) ENDPOINT CEILING (spec 016-01/016-02, ADR-0006): owns HOST+PATH, runs
     // on EVERY intercepted egress, BEFORE config-integrity and BEFORE
     // caps.egress.dispatch — an undeclared destination must never reach the
@@ -405,15 +434,12 @@ export function createWrappedSdkHost({
     // send). alloy has NO body-consent field, so a denied/pending governing
     // purpose sent anyway would LEAK, not reshape — it must be SUPPRESSED.
     //
-    // pending -> DROP here (not hold+buffer) is deliberate and, since 067-03,
-    // a BACKSTOP only. The hold is alloy's own `defaultConsent:"pending"` queue
-    // (the chamber configures it whenever the consent state is not granted), so
-    // an interact alloy queued never reaches this gate before a grant: the
-    // adapter updates the live consent ref BEFORE it drives alloy's setConsent,
-    // and the flush then passes this gate as granted. What lands here pending
-    // is something alloy did NOT queue (a compromised chamber, or alloy sending
-    // on a stale consent cookie it was seeded with) — dropping that is the
-    // trusted-seam job, not a loss of held output.
+    // pending PARKS here (068-01): the chamber fetch stays pending and
+    // `setConsent` re-runs the request through every gate, so a grant sends it
+    // once and a denial or teardown drops it. This catches what alloy did not
+    // queue itself (a stale consent cookie says "in" while page consent is
+    // pending). Alloy's own `defaultConsent:"pending"` queue still holds
+    // the normal case before it reaches this gate.
     function applyConsent(onHold) {
       if (!egressPurposes.length) return true;
       // AC1 (spec 034-01, ADR-0007) — COARSE-CONSENT SPLIT: consent gating is
@@ -439,23 +465,49 @@ export function createWrappedSdkHost({
         ? egressPurposes.filter((p) => p !== "personalization")
         : egressPurposes;
       function hold() {
-        state.consentHeld += 1;
+        const denied = effectivePurposes.some((p) => resolveConsent(consent, p) === "denied");
+        // 068-02: after an explicit refusal (never pending), the connector's declared opt-out
+        // signal is forwarded alone so the vendor records the refusal; all else stays held.
+        if (denied && consentOptOut) {
+          const forwarded = optOutForward(m, consentOptOut);
+          if (forwarded) {
+            m = forwarded;
+            // The gate runs again in the deferred recheck; report the forward once per request.
+            if (!heldSeen.has(original)) diagnose({
+              level: "warn",
+              kind: "consent",
+              disposition: "opt-out-forwarded",
+              purpose: egressPurposes.join(","),
+              reason: "explicit refusal — the declared opt-out signal is forwarded alone, everything else stays held",
+              beaconId: `${inspectorTag}#${m.id}`,
+              destination: hostOf(m.url),
+            });
+            heldSeen.add(original);
+            return true;
+          }
+        }
+        // A parked request re-run by setConsent is the same request: count and report it once.
+        const firstHold = !heldSeen.has(original);
+        heldSeen.add(original);
+        if (firstHold) state.consentHeld += 1;
         // ALERT (009-02) — redacted: names the governing purpose(s) only,
         // never the resolved identity/XDM values. Reports the full declared
         // `egressPurposes` (the governing set), not the post-split subset.
-        diagnose({
+        if (firstHold) diagnose({
           level: "warn",
           kind: "consent",
           disposition: "held",
           purpose: egressPurposes.join(","),
-          reason: "un-granted governing purpose — alloy interact held at the seal",
+          reason: denied
+            ? "un-granted governing purpose — alloy interact held at the seal"
+            : "pending governing purpose — alloy interact held at the seal until consent is decided",
           beaconId: `${inspectorTag}#${m.id}`,
           destination: hostOf(m.url),
         });
         // HOLD: no real egress. Settle the chamber's pending fetch REJECTED
         // (same shape as the ceiling/config-integrity holds above) so
         // sendEvent rejects instead of hanging — fail-closed.
-        onHold();
+        onHold(denied);
         return false;
       }
       if (egressVerdict(consent, effectivePurposes, { strict: true }) !== "send") return hold();
@@ -485,7 +537,10 @@ export function createWrappedSdkHost({
       if (egressVerdict(consent, effectivePurposes, { strict: true }) !== "send") return hold();
       return true;
     }
-    if (!applyConsent(() => chamber.postMessage({ type: "intercepted-fetch-response", id: m.id, status: 0, statusText: "held at the seal: consent", body: "" }))) return;
+    if (!applyConsent((denied) => {
+      if (denied || disposed) rejectHeld(m, "held at the seal: consent");
+      else park(original);
+    })) return;
 
     // AC3 (spec 020-02) — optional thin defense-in-depth payload strip: gated
     // on a non-empty effective denylist (built-in default unless overridden). The alloy body is
@@ -519,7 +574,14 @@ export function createWrappedSdkHost({
     Promise.resolve()
       .then(() => {
         // Consent can change between the initial gate and this continuation.
-        if (!applyConsent(() => respond({ status: 0, statusText: "held at the seal: consent", body: "" }))) {
+        if (!applyConsent((denied) => {
+          if (denied || disposed) {
+            respond({ status: 0, statusText: "held at the seal: consent", body: "" });
+          } else {
+            settled = true;
+            park(original);
+          }
+        })) {
           clearTimeout(timer);
           return;
         }
@@ -712,6 +774,20 @@ export function createWrappedSdkHost({
      */
     setConsent(vector) {
       chamber.postMessage({ type: "setConsent", consent: vector });
+      // Re-run every parked request through the gates against the live ref: a grant sends it
+      // once, a denial rejects it, and a still-pending decision re-parks it in order.
+      if (disposed || !parked.length) return;
+      const batch = parked;
+      parked = [];
+      for (const req of batch) dispatchInterceptedFetch(req);
+    },
+    /** Teardown: parked requests have no later consent decision to flush to, so they are dropped. */
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      const batch = parked;
+      parked = [];
+      for (const req of batch) rejectHeld(req, "held at the seal: consent (teardown)");
     },
     /** A snapshot of everything observed so far (for rig/test assertions). */
     getState() {
@@ -755,6 +831,41 @@ export function reconcileForBrokerJar(raw) {
       return !s.startsWith("domain=") && s !== "secure" && !s.startsWith("samesite=");
     })
     .join("; ");
+}
+
+/**
+ * 068-02 — build the forwarded form of a request that matches a connector's declared opt-out
+ * signal, or null. Vendor-neutral: the connector declares the URL path suffix, one body value
+ * that must equal the refusal marker, and the only top-level body keys that may leave (everything
+ * else, such as an identity fetch query, is removed). Never throws; anything unparseable or not
+ * matching returns null (stays held).
+ * @param {{ url: string, body?: string }} m
+ * @param {{ path: string, match: { path: readonly (string | number)[], equals: string }, forward: readonly string[] }} optOut
+ * @returns {object|null}
+ */
+function optOutForward(m, optOut) {
+  let pathname;
+  try {
+    pathname = new URL(m.url).pathname;
+  } catch (e) {
+    return null;
+  }
+  if (!pathname.endsWith(optOut.path) || typeof m.body !== "string") return null;
+  let parsed;
+  try {
+    parsed = JSON.parse(m.body);
+  } catch (e) {
+    return null;
+  }
+  let node = parsed;
+  for (const key of optOut.match.path) {
+    if (node == null || typeof node !== "object") return null;
+    node = node[key];
+  }
+  if (node !== optOut.match.equals) return null;
+  const kept = {};
+  for (const key of optOut.forward) if (Object.hasOwn(parsed, key)) kept[key] = parsed[key];
+  return { ...m, body: JSON.stringify(kept) };
 }
 
 /**

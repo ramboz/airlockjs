@@ -56,6 +56,8 @@ function makeFakeChamber() {
   };
 }
 
+import { MAX_HELD_BEACONS } from "../core/airlock.js";
+
 describe("createWrappedSdkHost — round-trip egress dispatch (spec 014-01 AC2, ADR-0010)", () => {
   it("dispatches an intercepted-fetch via caps.egress.dispatch and posts the response back to the chamber", async () => {
     const chamber = makeFakeChamber();
@@ -1151,15 +1153,14 @@ describe("createWrappedSdkHost — consent enforcement (spec 020-02 AC1, ADR-000
   // so this test proves the gate HOLDS on pending but does NOT distinguish strict from
   // the GA4 default — that distinction is pinned by the DENIED test above (a denied
   // purpose SENDS under non-strict, so its dispatched.length===0 fails without strict:true).
-  it("a PENDING governing purpose (no signal at all) HOLDS at the seal (fail-closed)", async () => {
+  it("a PENDING governing purpose (no signal at all) HOLDS at the seal (fail-closed) and keeps the fetch pending", async () => {
     const { chamber, dispatched, host } = makeSpyingHost({ egressPurposes: EGRESS_PURPOSES, consent: {} });
 
-    const posted = chamber.nextPost();
     chamber.emit({ type: "intercepted-fetch", id: 2, url: INTERACT, method: "POST", headers: {}, body: "{}" });
-    const msg = await posted;
+    await new Promise((r) => setTimeout(r, 20));
 
     expect(dispatched.length).toBe(0);
-    expect(msg.status).toBe(0);
+    expect(chamber.posted).toEqual([]); // 068-01: no response yet, the decision is still to come
     expect(host.getState().consentHeld).toBe(1);
   }, 2000);
 
@@ -1213,9 +1214,8 @@ describe("createWrappedSdkHost — consent enforcement (spec 020-02 AC1, ADR-000
   it("back-compat: egressPurposes wired but NO consent vector at all -> pending -> strict-held (unset consent fails closed, not open)", async () => {
     const { chamber, dispatched, host } = makeSpyingHost({ egressPurposes: EGRESS_PURPOSES }); // no consent key at all
 
-    const posted = chamber.nextPost();
     chamber.emit({ type: "intercepted-fetch", id: 5, url: INTERACT, method: "POST", headers: {}, body: "{}" });
-    await posted;
+    await new Promise((r) => setTimeout(r, 20));
 
     expect(dispatched.length).toBe(0);
     expect(host.getState().consentHeld).toBe(1);
@@ -1744,5 +1744,194 @@ describe("createWrappedSdkHost — default cookie grant is the stock set (spec 0
       chamber.emit({ type: "cookie-writeback", value: "vendor_b=2" });
       expect(reconciled).toEqual(["vendor_b=2"]);
     });
+  });
+});
+
+// Slice 068-01 (ADR-0062 point 4): "Hold means hold and flush on grant." A pending seam hold keeps the
+// chamber's fetch pending and re-runs it through every gate on the next consent update.
+describe("createWrappedSdkHost — pending hold flushes on grant (068-01)", () => {
+  const PURPOSES = ["analytics_storage", "personalization"];
+  const INTERACT = "https://adobedc.demdex.net/ee/v1/interact";
+  const wait = () => new Promise((r) => setTimeout(r, 20));
+  function make(consent, extra = {}) {
+    const chamber = makeFakeChamber();
+    const dispatched = [];
+    const diags = [];
+    const caps = { egress: { dispatch: async (req) => { dispatched.push(req); return { status: 200, statusText: "OK", headers: {}, body: "{}" }; } } };
+    const host = createWrappedSdkHost({ chamber, caps, consent, egressPurposes: PURPOSES, onDiagnostic: (d) => diags.push(d), ...extra });
+    const fire = (id, body = "{}") => chamber.emit({ type: "intercepted-fetch", id, url: INTERACT, method: "POST", headers: {}, body });
+    const responses = () => chamber.posted.filter((m) => m.type === "intercepted-fetch-response");
+    return { chamber, dispatched, diags, host, fire, responses };
+  }
+
+  it("sends the held request exactly once on grant, and nothing again on a repeat grant", async () => {
+    const consent = { analytics_storage: "pending", personalization: "pending" };
+    const { dispatched, host, fire, responses } = make(consent);
+    fire("held-1", '{"events":[1]}');
+    await wait();
+    expect(dispatched).toHaveLength(0);
+    expect(responses()).toEqual([]);
+
+    consent.analytics_storage = "granted";
+    consent.personalization = "granted";
+    host.setConsent(consent);
+    await wait();
+    expect(dispatched).toHaveLength(1);
+    expect(dispatched[0].body).toBe('{"events":[1]}');
+    expect(responses()).toEqual([expect.objectContaining({ id: "held-1", status: 200 })]);
+
+    host.setConsent(consent);
+    await wait();
+    expect(dispatched).toHaveLength(1);
+  });
+
+  it("an update that leaves consent pending keeps the request held, in order", async () => {
+    const consent = { analytics_storage: "pending" };
+    const { dispatched, host, fire, diags } = make(consent);
+    fire("a", '{"n":1}');
+    fire("b", '{"n":2}');
+    host.setConsent(consent);
+    await wait();
+    expect(dispatched).toHaveLength(0);
+    expect(host.getState().consentHeld).toBe(2);
+    expect(diags.filter((d) => d.disposition === "held")).toHaveLength(2);
+    consent.analytics_storage = "granted";
+    consent.personalization = "granted";
+    host.setConsent(consent);
+    await wait();
+    expect(dispatched.map((d) => d.body)).toEqual(['{"n":1}', '{"n":2}']);
+  });
+
+  it("drops the held request on a denial, rejecting the chamber fetch with the held shape", async () => {
+    const consent = { analytics_storage: "pending" };
+    const { dispatched, host, fire, responses } = make(consent);
+    fire("held-2");
+    await wait();
+    consent.analytics_storage = "denied";
+    host.setConsent(consent);
+    await wait();
+    expect(dispatched).toHaveLength(0);
+    expect(host.getState().consentHeld).toBe(1);
+    expect(responses()).toEqual([{ type: "intercepted-fetch-response", id: "held-2", status: 0, statusText: "held at the seal: consent", body: "" }]);
+    consent.analytics_storage = "granted";
+    host.setConsent(consent);
+    await wait();
+    expect(dispatched).toHaveLength(0);
+  });
+
+  it("an explicit denial is rejected at once, not parked", async () => {
+    const { host, fire, responses, dispatched } = make({ analytics_storage: "denied" });
+    fire("denied-1");
+    await wait();
+    expect(responses()).toEqual([expect.objectContaining({ id: "denied-1", status: 0, statusText: "held at the seal: consent" })]);
+    host.setConsent({ analytics_storage: "denied" });
+    expect(dispatched).toHaveLength(0);
+  });
+
+  it("teardown drops the held request: a later grant sends nothing", async () => {
+    const consent = { analytics_storage: "pending" };
+    const { dispatched, host, fire, responses } = make(consent);
+    fire("held-3");
+    await wait();
+    host.dispose();
+    expect(responses()).toEqual([expect.objectContaining({ id: "held-3", status: 0 })]);
+    consent.analytics_storage = "granted";
+    consent.personalization = "granted";
+    host.setConsent(consent);
+    await wait();
+    expect(dispatched).toHaveLength(0);
+  });
+
+  it("bounds the parked requests at the hold ring, dropping the oldest with a diagnostic", async () => {
+    const consent = { analytics_storage: "pending" };
+    const { dispatched, diags, host, fire, responses } = make(consent);
+    for (let i = 0; i < MAX_HELD_BEACONS + 2; i++) fire(`r${i}`, JSON.stringify({ i }));
+    await wait();
+    expect(responses().map((r) => r.id)).toEqual(["r0", "r1"]);
+    expect(diags.filter((d) => d.disposition === "dropped")).toHaveLength(2);
+    consent.analytics_storage = "granted";
+    consent.personalization = "granted";
+    host.setConsent(consent);
+    await wait();
+    expect(dispatched).toHaveLength(MAX_HELD_BEACONS);
+  });
+});
+
+// Slice 068-02 (ADR-0062 amendment, 2026-11-20): after an explicit refusal the declared opt-out
+// signal is forwarded alone; everything else stays held. Core only honours the declaration.
+describe("createWrappedSdkHost — opt-out forwarding after refusal (068-02)", () => {
+  const SET_CONSENT = "https://adobedc.demdex.net/ee/v1/privacy/set-consent?configId=x&requestId=y";
+  const INTERACT = "https://adobedc.demdex.net/ee/v1/interact";
+  const OPT_OUT = { path: "/privacy/set-consent", match: { path: ["consent", 0, "value", "collect", "val"], equals: "n" }, forward: ["consent", "meta"] };
+  const refusal = (val = "n") => JSON.stringify({
+    consent: [{ standard: "Adobe", version: "2.0", value: { collect: { val } } }],
+    query: { identity: { fetch: ["ECID", "CORE"] } },
+    meta: { state: { domain: "site.example", cookiesEnabled: true } },
+  });
+  const wait = () => new Promise((r) => setTimeout(r, 20));
+  function make(consent, extra = {}) {
+    const chamber = makeFakeChamber();
+    const dispatched = [];
+    const diags = [];
+    const caps = { egress: { dispatch: async (req) => { dispatched.push(req); return { status: 200, statusText: "OK", headers: {}, body: "{}" }; } } };
+    const host = createWrappedSdkHost({
+      chamber, caps, consent, egressPurposes: ["analytics_storage", "personalization"], consentOptOut: OPT_OUT,
+      endpointCeiling: [INTERACT, "https://adobedc.demdex.net/ee/v1/privacy/set-consent"], onDiagnostic: (d) => diags.push(d), ...extra,
+    });
+    const fire = (id, url, body) => chamber.emit({ type: "intercepted-fetch", id, url, method: "POST", headers: {}, body });
+    return { chamber, dispatched, diags, host, fire };
+  }
+
+  it("forwards the refusal with the consent and meta keys only (no identity fetch) after an explicit refusal", async () => {
+    const { dispatched, host, fire, diags } = make({ analytics_storage: "denied", personalization: "denied" });
+    fire(1, SET_CONSENT, refusal());
+    await wait();
+    expect(dispatched).toHaveLength(1);
+    const sent = JSON.parse(dispatched[0].body);
+    expect(Object.keys(sent).sort()).toEqual(["consent", "meta"]);
+    expect(sent.consent[0].value.collect.val).toBe("n");
+    expect(host.getState().consentHeld).toBe(0);
+    const fwd = diags.filter((d) => d.disposition === "opt-out-forwarded");
+    expect(fwd).toHaveLength(1);
+    expect(JSON.stringify(fwd[0])).not.toContain("site.example");
+  });
+
+  it("a re-tenanted set-consent is held by the ceiling even after a refusal", async () => {
+    const { dispatched, host, fire } = make({ analytics_storage: "denied", personalization: "denied" });
+    fire(10, "https://evil.example/ee/v1/privacy/set-consent", refusal());
+    await wait();
+    expect(dispatched).toHaveLength(0);
+    expect(host.getState().consentHeld).toBe(0);
+  });
+
+  it("does not forward while consent is only pending (the request stays held)", async () => {
+    const { dispatched, host, fire } = make({});
+    fire(2, SET_CONSENT, refusal());
+    await wait();
+    expect(dispatched).toHaveLength(0);
+    expect(host.getState().consentHeld).toBe(1);
+  });
+
+  it("still holds an interact, and a set-consent that is not a refusal, after a refusal", async () => {
+    const { dispatched, fire } = make({ analytics_storage: "denied", personalization: "denied" });
+    fire(3, INTERACT, refusal());
+    fire(4, SET_CONSENT, refusal("y"));
+    fire(5, SET_CONSENT, "not json");
+    await wait();
+    expect(dispatched).toHaveLength(0);
+  });
+
+  it("does not bypass the endpoint ceiling", async () => {
+    const { dispatched, fire } = make({ analytics_storage: "denied" }, { endpointCeiling: [INTERACT] });
+    fire(6, SET_CONSENT, refusal());
+    await wait();
+    expect(dispatched).toHaveLength(0);
+  });
+
+  it("without a declared opt-out the refusal is held as before", async () => {
+    const { dispatched, fire } = make({ analytics_storage: "denied" }, { consentOptOut: null });
+    fire(7, SET_CONSENT, refusal());
+    await wait();
+    expect(dispatched).toHaveLength(0);
   });
 });

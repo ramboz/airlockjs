@@ -13,6 +13,10 @@ Accepted (2026-11-13). The owner's answers under "Owner answers (2026-11-13)" ar
 
 Amended (2026-11-13, spec 067-11, owner decision D4): helix-rum RUM sits outside the consent hold, as stock EDS does. It declares the `measurement` purpose from ADR-0007, which is granted by default, so RUM sends with no consent input. A site can still deny it explicitly. Exception (a) is unchanged for every other connector.
 
+Amended (2026-11-20, spec 068-02, owner decision): after an explicit refusal, the seam forwards the connector's declared opt-out signal (Alloy: `privacy/set-consent` carrying `collect: "n"`, without `query.identity.fetch`) so the vendor records the refusal. Everything else stays held or dropped, and a pending state does not qualify. This is a narrow exemption to exception (a), not a new ADR. See "Amendment: opt-out forwarding (2026-11-20)".
+
+Clarified (2026-11-20, spec 068-01): point 4's "hold and flush on grant" is implemented at the Alloy seam as well. A pending seam hold keeps the request and sends it once on grant; a denial or teardown drops it.
+
 Amends and partially supersedes ADR-0003, ADR-0006 (projection and cookie/storage clauses), ADR-0012 (ambient-context boundary note) and ADR-0013 (minimization claims). The clauses are listed under Recommended Decision. Everything else in those ADRs stands.
 
 ## Summary
@@ -53,7 +57,15 @@ Adopt Option B.
 7. **Egress allowlist and storage grant.** The default allowlist covers every destination the stock tag contacts in its frozen inventory. Egress stays mediated, but stock traffic is not blocked. A site can narrow it. Cookie and storage grants follow the same reading: the default host policy grants the stock tag's own cookie and storage set, name-scoping (ADR-0006) becomes an opt-in narrowing, and consent-driven write denial still applies.
 8. **Relationship to ADR-0061.** This ADR does not re-open ADR-0061. It names parity's default target: the stock default config. Fixtures are recorded with stock defaults. A control a site turns on is tested as its own state, not as the baseline.
 
-### Existing decisions
+### Amendment: opt-out forwarding (2026-11-20)
+
+**Decision (owner, 2026-11-20).** Asked how Airlock should treat the opt-out signal Alloy sends after a refusal while the consent hold is on, the owner chose: "Forward the opt-out only, via a narrow seam exemption (Recommended)".
+
+**What it means.** After an explicit refusal (a governing purpose is `denied`, never merely pending), the shared seam forwards the one request the connector declares as its opt-out signal. For Alloy that is `privacy/set-consent` with `collect: "n"`; the forwarded body keeps only the declared keys, so the ECID `query.identity.fetch` that stock Alloy adds is removed. Adobe then records the refusal. Every other request stays held or dropped. The endpoint ceiling and config-integrity gates still apply.
+
+**Where it lives.** The Alloy-specific request shape is declared by the connector (`ALLOY_CONSENT_OPT_OUT`); `core/wrapped-sdk-host.js` only honours a declared signal and stays vendor-neutral. Implemented by spec 068-02.
+
+## Existing decisions
 
 | Where | Stance today | Disposition |
 |---|---|---|
