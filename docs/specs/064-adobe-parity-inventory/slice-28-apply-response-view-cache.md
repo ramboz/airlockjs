@@ -25,4 +25,6 @@ last_verified: 2026-11-20
 
 ## Notes
 
+From 064-24: (1) AC2 `track` must also wait for the redirect display's keepalive send, since it is a separate event; (2) decide whether a warmed view-scoped redirect proposition navigates (064-24 only renders a redirect on the delivering path).
+
 Raised by the 064-23 round-2 craft and reconciliation reviews. No core change: the host view cache lives in `adapters/eds/index.js`. Stock's `applyResponse` runs the same personalization `onBeforeEvent` as a normal event; confirm against the pinned bundle before building.

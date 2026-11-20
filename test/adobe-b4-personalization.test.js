@@ -131,6 +131,18 @@ describe("064-24 redirect ordering (hermetic)", () => {
     expect(log).toEqual(["https://redirect.example/x"]);
   });
 
+  it("a navigation that throws shows BODY again and lets later renders proceed", async () => {
+    const log = [];
+    const doc = { querySelectorAll: () => [], documentElement: { appendChild: (n) => log.push(n.textContent) }, createElement: () => ({ remove() {} }) };
+    const win = { location: { replace: () => { throw new Error("nav"); } } };
+    const seen = [];
+    const r = createPropositionRenderer({ document: doc, window: win, diagnose: (d) => seen.push(d.disposition), redirectDisplay: async () => ({ sent: true }), redirectTimeoutMs: 20 });
+    await r.render([redirectProp]);
+    await settled();
+    expect(seen).toEqual(["redirect-display-failed"]);
+    expect(r.isRedirecting()).toBe(false);
+  });
+
   it("renders only the first redirect (stock onlyRenderThis): other propositions and later redirects are not rendered", async () => {
     const { r, log } = setup(async () => ({ sent: true }));
     const other = { id: "o", scope: "s", items: [{ id: "d", schema: "https://ns.adobe.com/personalization/default-content-item" }] };

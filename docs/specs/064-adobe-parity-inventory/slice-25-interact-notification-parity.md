@@ -29,4 +29,6 @@ last_verified:
 
 ## Notes
 
+From 064-24: a redirect proposition's display stays a separate keepalive event (`documentUnloading`), not merged into the interact. Decide here whether the merged-interact shape applies to the redirect display or stays separate (stock sends it as its own collect).
+
 Origin: 064-20 carry C5. Today the interact is a separate event, `viewName` is dropped, and the test compares `decisioning` only.

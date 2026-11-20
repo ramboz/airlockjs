@@ -278,10 +278,12 @@ export function createPropositionRenderer(deps = {}) {
       if (navigated) return;
       navigated = true;
       try {
-        if (win.location && typeof win.location.replace === "function") win.location.replace(url);
+        if (!win.location || typeof win.location.replace !== "function") throw new Error("location.replace is unavailable");
+        win.location.replace(url);
       } catch (e) {
         problem("redirect-display-failed", `the redirect could not navigate (${(e && e.message) || e})`);
         reveal("BODY");
+        redirecting = false;
       }
     };
     if (typeof deps.redirectDisplay !== "function") { navigate(); return true; }
