@@ -43,8 +43,8 @@ Origin: 064-20 carries C2 and the "decisionScopes on every event" delta. Today `
 - **Gate:** servo quality-gate composite 1.0 pass; `npm test` 3075 passed, `npm run lint` clean; `test/adobe-b4-personalization.test.js` 31 of 31 in real Chromium (6 new differential cases plus the rewritten S7 pair) and `test/alloy-connector.test.js` hermetic tests for first-event-only scopes.
 - **Deviation:** stock passes `decisionScopes` per call; the S7 capture driver passes them once. The connector's latch reproduces that call pattern. It is set only after a scoped interact succeeds, so a failed first request does not lose the scopes (tested).
 - **Deviation:** per-event `renderDecisions` falls back to the boot option, which defaults to true (064-20 decision, matches the recorded stock rig); stock's own `sendEvent` default is false.
-- **Carry (low, no AC) -> refinement-todo:** `applyResponse` view propositions do not reach the host view cache (only relayed egress fills it), so a push naming a view after `applyResponse` is treated as cold. Outside 064-23's ACs -> 064-28 AC1.
-- **Carry (low) -> 064-28 AC2:** `track` keeps only the last pending delivery; view propositions reach `onDecisions` without `renderAttempted`.
+- **Carry (low, no AC) -> refinement-todo:** `applyResponse` view propositions do not reach the host view cache (only relayed egress fills it), so a push naming a view after `applyResponse` is treated as cold. Outside 064-23's ACs -> 064-28 AC1. **RESOLVED by 064-28 (2026-11-20).**
+- **Carry (low) -> 064-28 AC2:** `track` keeps only the last pending delivery; view propositions reach `onDecisions` without `renderAttempted`. **RESOLVED by 064-28 (2026-11-20).**
 - **Carry (low, accepted):** a cache-parse failure in `cacheViewPropositions` is swallowed without a diagnostic; the cold-cache `renderDecisions:false` push is not covered by a test.
 - **Click-type items** in the display notification are AC5 of 064-25 (closed, DONE 2026-11-20).
 - Review round 1 mediums fixed: double view render when ruleset items deliver in the same event; empty-view display after a failed request; scopes lost after a failed first request.
