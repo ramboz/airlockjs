@@ -1572,7 +1572,7 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer,
       // S4 notification likewise omits the readiness proposition the airlock fills itself).
     }
     // The fetch answer renders the named view too (stock's first request); a warm cache was handled before the send.
-    if (render && ctx && ctx.viewName && !ctx.warm) {
+    if (render && ctx && ctx.viewName && !ctx.warm && !ctx.viewHandled) {
       ctx.viewHandled = true;
       const out = await renderer.render(viewCache.get(ctx.viewName));
       displayed.push(...out.displayed);
@@ -1996,7 +1996,7 @@ export async function bootAlloy(opts = {}) {
   /** After an event settles: an answer that carried no decisions still gets the named view's display; a page view warms the cache. */
   const finishEvent = async (ctx) => {
     if (!ctx) return;
-    if (ctx.render && ctx.viewName && !ctx.warm && !ctx.viewHandled) {
+    if (ctx.render && ctx.viewName && !ctx.warm && !ctx.viewHandled && viewCache.isInitialized()) {
       const out = await renderer.render(viewCache.get(ctx.viewName));
       if (out.displayed.length) notifyDisplayed(out.displayed);
     }

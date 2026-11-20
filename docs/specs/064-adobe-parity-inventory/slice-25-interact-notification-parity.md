@@ -18,6 +18,7 @@ last_verified:
 2. `viewName`, and `trackingLabel` read from item characteristics (not `data-aep-click-label`), are sent as stock does; the token uses `tokens:[token]`.
 3. AJO auto-collect of click interactions is implemented or dispositioned with a reason.
 4. Full request bodies compare clean against stock (meta stripped), not `decisioning` only.
+5. Click-type items are left out of the display notification, as stock does (carried from 064-23; the renderer counts them today).
 
 **DoD:**
 - `npm test && npm run lint` and servo gate pass.

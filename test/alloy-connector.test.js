@@ -283,6 +283,18 @@ describe("alloy connector — multi-scope decisionScopes on the interact (spec 0
     expect(sends[1].options.personalization).toBeUndefined();
   });
 
+  it("064-23: a first interact that fails does not use up the declared scopes", async () => {
+    let n = 0;
+    const alloy = vi.fn((command) => (command === "sendEvent" && n++ === 0 ? Promise.reject(new Error("offline")) : Promise.resolve(undefined)));
+    alloy.calls = [];
+    const connector = createAlloyConnector({ ...baseConfig(), alloy, decisionScopes: ["products"] });
+    await connector.init({});
+    await connector.handle(pageView()).catch(() => {});
+    await connector.handle(pageView());
+    const sends = alloy.mock.calls.filter(([c]) => c === "sendEvent");
+    expect(sends[1][1].decisionScopes).toEqual(["products"]);
+  });
+
   it("delivers ALL returned scopes (not just __view__) — the host maps each by scope", async () => {
     const alloy = fakeAlloyWithDecisions([prop("__view__", "AT:v"), prop("products", "AT:p")]);
     const deliver = vi.fn();

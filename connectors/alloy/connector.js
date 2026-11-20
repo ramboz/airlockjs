@@ -270,7 +270,7 @@ export function createAlloyConnector(config = {}) {
   // when none are configured → the interact carries NO `decisionScopes` (alloy's `__view__` default,
   // byte-unchanged from 033-02/033-03).
   const configuredScopes = mergeDecisionScopes(decisionScopes, personalization);
-  let scopesSent = false;
+  let scopesSent = false; // set once a scoped interact SUCCEEDS, so a failed first request does not lose the scopes
 
   // The granted capabilities, captured at init — `handle` delivers decisions
   // through `granted.decisions` (the push channel to the host). No capability
@@ -388,11 +388,12 @@ export function createAlloyConnector(config = {}) {
     const eventData = event && event.params && event.params.data;
     if (eventData && typeof eventData === "object" && !Array.isArray(eventData)) options.data = eventData;
     const notification = isPropositionNotification(options.xdm);
+    let sendsScopes = false;
     if (notification) {
       // 064-20: a display/interact notification is not a personalization query (recorded S4 2nd POST).
       options.personalization = { defaultPersonalizationEnabled: false, sendDisplayEvent: false };
     } else if (configuredScopes.length && !scopesSent) {
-      scopesSent = true;
+      sendsScopes = true;
       options.decisionScopes = configuredScopes;
       // Live-Alloy caveat (the analogue of 034-01's split): on a cache-uninitialized
       // event real alloy's shouldRequestDefaultPersonalization() AUTO-ADDS `__view__`
@@ -405,6 +406,7 @@ export function createAlloyConnector(config = {}) {
       }
     }
     const result = await getAlloy()("sendEvent", options);
+    if (sendsScopes) scopesSent = true;
     // 012-03 + 034-02: the propositions cross the boundary as DATA via the granted
     // decisions capability. Deliver ALL returned scopes (`scope:null`) — the HOST maps
     // each decision to its reserved box BY SCOPE (adapters/eds/index.js), not a single

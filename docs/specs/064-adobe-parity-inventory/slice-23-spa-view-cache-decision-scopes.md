@@ -39,4 +39,10 @@ Origin: 064-20 carries C2 and the "decisionScopes on every event" delta. Today `
 
 - Per-event `renderDecisions` on `push` is read by the host (the connector still sends `renderDecisions:false` to Alloy). Not a core change.
 - **Carry (no AC) -> 064-25:** the renderer counts click-type items as rendered in the display notification; stock excludes them. Tracked in refinement-todo "Personalization follow-ups".
-- The servo gate is not set up in this checkout (no `.servo/` oracle), so DoD was run as `npm test && npm run lint`. `test/dom-chamber-host-prism.test.js` fails here only because `node_modules/prismjs` is absent in this worktree (unrelated).
+- **Gate:** servo quality-gate composite 1.0 pass; `npm test` 2953 passed, `npm run lint` clean; `test/adobe-b4-personalization.test.js` 29 of 29 in real Chromium (5 new differential cases plus the rewritten S7 pair) and `test/alloy-connector.test.js` hermetic tests for first-event-only scopes.
+- **Deviation:** stock passes `decisionScopes` per call; the S7 capture driver passes them once. The connector's latch reproduces that call pattern. It is set only after a scoped interact succeeds, so a failed first request does not lose the scopes (tested).
+- **Deviation:** per-event `renderDecisions` falls back to the boot option, which defaults to true (064-20 decision, matches the recorded stock rig); stock's own `sendEvent` default is false.
+- **Carry (low, no AC) -> refinement-todo:** `applyResponse` view propositions do not reach the host view cache (only relayed egress fills it), so a push naming a view after `applyResponse` is treated as cold. Outside 064-23's ACs; belongs with the 064-26 host-command path.
+- **Carry (low):** `track` keeps only the last pending delivery; view propositions reach `onDecisions` without `renderAttempted`.
+- **Click-type items** in the display notification are now AC5 of 064-25.
+- Review round 1 mediums fixed: double view render when ruleset items deliver in the same event; empty-view display after a failed request; scopes lost after a failed first request.
