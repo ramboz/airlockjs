@@ -156,14 +156,16 @@ describe.runIf(real)("064-19 command coverage (real Chromium)", () => {
       expectRecorded(r, posts(r.fixture));
     }, T);
 
-    it("s6-out: queued events are dropped; the set-consent n is held at the seal (the one documented S6 delta)", async () => {
+    it("s6-out: queued events are dropped; only the opt-out set-consent n is forwarded, without the identity fetch (068-02)", async () => {
       const r = await replayFixture(browser, "s6-out", { event: null, bootOptions: boot, run: run(false) });
       expect(r.results.run.held).toBe(0);
-      // Recorded: stock sends the opt-out to demdex. Here the strict consent gate holds it, visibly (ADR-0062 exception).
       expect(posts(r.fixture).map((q) => new URL(q.url).pathname)).toEqual(["/ee/v1/privacy/set-consent"]);
       expect(r.observed.map((o) => new URL(o.url).pathname)).toEqual(["/ee/v1/privacy/set-consent"]);
-      expect(r.network).toEqual([]);
-      expect(kinds(r, "consent").filter((d) => d.disposition === "held" && d.beaconId)).toHaveLength(1);
+      // The chamber's request compares clean against the recording; the seam then drops query.identity.fetch from what leaves.
+      expectRecorded(r, posts(r.fixture));
+      expect(Object.keys(JSON.parse(r.network[0].body)).sort()).toEqual(["consent", "meta"]);
+      expect(r.network.map((n) => new URL(n.url).pathname)).toEqual(["/ee/v1/privacy/set-consent"]);
+      expect(kinds(r, "consent").filter((d) => d.disposition === "opt-out-forwarded")).toHaveLength(1);
     }, T);
   });
 
@@ -188,8 +190,8 @@ describe.runIf(real)("064-19 command coverage (real Chromium)", () => {
     }
   });
 
-  describe("067-03 residual: a request held under pending consent is dropped, not replayed, on grant", () => {
-    it("the seam holds the stale-cookie request once; a later grant does not replay it", async () => {
+  describe("067-03 residual (resolved by 068-01): a request held under pending consent is flushed once on grant", () => {
+    it("the seam holds the stale-cookie request once; the grant sends it exactly once", async () => {
       const r = await replayFixture(browser, "s2-base", {
         bootOptions: { consentHold: null },
         extraCookies: [consentCookie],
@@ -203,8 +205,10 @@ describe.runIf(real)("064-19 command coverage (real Chromium)", () => {
       });
       expect(r.results.run.before).toBe(1);
       expect(kinds(r, "consent").filter((d) => d.disposition === "held" && d.beaconId)).toHaveLength(1);
-      // Dropped, not flushed: the grant sends only Alloy's own set-consent; the held interact is never replayed.
-      expect(r.network.map((n) => new URL(n.url).pathname)).toEqual(["/ee/or2/v1/privacy/set-consent"]);
+      // Flushed once on grant (ADR-0062 point 4): Alloy's own set-consent plus the held interact, no duplicate interact.
+      const paths = r.network.map((n) => new URL(n.url).pathname);
+      expect(paths.filter((p) => p.endsWith("/privacy/set-consent"))).toHaveLength(1);
+      expect(paths.filter((p) => p.endsWith("/interact"))).toHaveLength(1);
     }, T);
   });
 });

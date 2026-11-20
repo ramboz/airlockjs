@@ -381,7 +381,7 @@ defense-in-depth strip. **Superseded in part by [ADR-0062](decisions/adr-0062-st
   for the wrapped-SDK path). **Open question (020-02 arch review):** is pending-window data loss
   acceptable for alloy, or should hold+flush be prioritized? Resolution trigger: a deployment where
   the pending-consent window materially drops alloy analytics/personalization.
-  **Update (064-19, 2026-11-20):** with the 067-03 default (Alloy's own `defaultConsent:"pending"` queue holds pending events and flushes them on grant), the seam drop is only a backstop. It fires when a stale Alloy consent cookie says "in" while page consent is pending. That request is held once, visibly, and **dropped, not replayed**, when consent is then granted (`test/adobe-b3-commands.test.js`). Carried, not accepted: ADR-0062 point 4 says hold means hold and flush on grant, so the owner decides whether Alloy gets a seam flush or the ADR is amended.
+  **Update (064-19, 2026-11-20) — RESOLVED 2026-11-20 by 068-01.** The seam drop was a backstop for a stale Alloy consent cookie ("in") with page consent pending; it dropped the held request on grant. ADR-0062 point 4 settled it ("hold and flush on grant") and 068-01 built the flush: the request is sent exactly once on grant, dropped on denial or teardown (`test/adobe-b3-commands.test.js`, `067-03 residual`).
 - **The live `setConsent(collect:n)` flow + HTML-rig consent wiring** — 020 characterized the setConsent
   mechanism from the alloy@2.35.0 source; a live `configure → setConsent(collect:n) → sendEvent`
   (asserting the interact is suppressed) + wiring `rig/alloy-core-host-harness.html` /
@@ -1408,9 +1408,9 @@ Also **050-01 AC5** — the deny→accept consent hold/flush parity is the shipp
 default-granted state on the live arena; re-run the deny→accept flow on a real `?martech=airlock` deploy to close it fully
 (low-risk — the mechanism ships).
 
-## S6 opt-out signal held at the seal (064-19, 2026-11-20)
+## ~~S6 opt-out signal held at the seal (064-19, 2026-11-20)~~ — RESOLVED 2026-11-20 by 068-02
 
-After an explicit refusal, Alloy's opt-out `privacy/set-consent` (`collect:n`) is held by the strict consent gate and never reaches Adobe (fixture `s6-out`). ADR-0062 point 5 covers the pre-consent hold only. Options: a shared seam exemption for `privacy/set-consent` without `query.identity.fetch` (needs main), or amend ADR-0062. Owner decision.
+Owner decision 2026-11-20 ("Forward the opt-out only, via a narrow seam exemption"; ADR-0062 amendment): after an explicit refusal the seam forwards Alloy's `privacy/set-consent` with `collect:n` and without `query.identity.fetch`. The `s6-out` test compares the chamber request clean against the fixture and asserts the forwarded body.
 
 ## Host command surface for Alloy (064-19, 2026-11-20)
 
