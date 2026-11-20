@@ -2,7 +2,9 @@
 // such as the `aem-martech` library, run on a `bootAlloy` handle. It is site code in the adapter: it maps each stock
 // command onto the handle's own entry points and adds no capability, no page-global `alloy` of its own making
 // (`attachAlloyBridge` installs the page's own `alloy` name only when the site calls it; the loader's queue stub is normally already there) and no
-// command beyond the ADR-0063 allowlist.
+// command beyond the ADR-0063 allowlist. It is meant for a `bootAlloy` handle (every stock `sendEvent` is pushed as
+// `page_view`, which that handle ignores; a handle that routes by event name would not be a fit). `configure` options
+// other than function callbacks are fixed at boot and left inert here (064-31 AC6 and AC7).
 //
 //   sendEvent         -> handle.push     (after the page's onBeforeEventSend, run here on the main thread)
 //   setConsent        -> handle.setConsent (the consent vector the seam understands; see CONSENT_GAP below)

@@ -4,7 +4,7 @@ dependencies: [064-21]
 last_verified: 2026-11-20
 ---
 
-## Slice 064-31 — stock `alloy()` wrapper parity (identity list, `sendEvent` result)
+## Slice 064-31 — stock `alloy()` wrapper parity (identity list, `sendEvent` result, hook argument, consent body and host, configure diagnostics)
 
 **Goal:** A page written against stock `alloy(command, options)` (the `aem-martech` journey) sends the identity query it configured and gets back what stock's `sendEvent` resolves with.
 
@@ -19,6 +19,7 @@ last_verified: 2026-11-20
 4. The wrapper's `setConsent` produces the set-consent request stock produces for the same call: the `marketing`, `personalize.content` and `share` consent values are present in the body, and the request goes to the host stock uses (`edge.adobedc.net` with `edgeDomain`), shown by the 064-21 differential with `CONSENT_BODY` removed from its allowed differences. This needs a consent-surface change; if it needs a new ADR (ADR-0062 exception (a) is the consent rule), stop and ask the owner before building.
 5. An `onBeforeEventSend` that throws drops the event with a `hook-threw` diagnostic today; the differential records what stock does for a throwing hook and the wrapper matches it.
 6. `configure` options the wrapper cannot honour that conflict with the boot options (`orgId`, `datastreamId`, `edgeDomain`, `idMigrationEnabled`, `thirdPartyCookiesEnabled`, `clickCollectionEnabled`) get an `unsupported-option` diagnostic, and a `renderDecisions: true` call is checked against what stock renders (the wrapper sends `false` unless the page asks, so personalization rendering through `aem-martech` stays inert until `sendEvent` resolves the interact result, AC2).
+7. Per-event `edgeConfigOverrides` and `datasetId` on a stock `sendEvent` are either carried as the stock wire shape or the disposition is recorded against ADR-0062's config-pin rule (stop and ask if it needs a new ADR); the wrapper's `type` versus `xdm.eventType` precedence matches stock; and a page-requested `__view__` scope on a first call with named boot scopes is checked against the live-Alloy `__view__` suppression (connector.js, 064-21 round-3 craft low). `configure` options the journey passes that the wrapper deliberately leaves inert (`defaultConsent`, `debugEnabled`, `targetMigrationEnabled`, `autoCollectPropositionInteractions`) are named in the wrapper's header.
 
 **DoD:**
 - `npm test && npm run lint` and servo gate pass.
