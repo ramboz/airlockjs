@@ -1,7 +1,7 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: [064-03, 064-04, 067-05, 067-07, 067-08, 067-10, 067-12]
-last_verified:
+last_verified: 2026-11-21
 ---
 
 ## Slice 064-17 — B1: Environment snapshot and storage seeding (pilot)
@@ -43,3 +43,4 @@ last_verified:
 > - **Stale consent cookie (067-03 hand-off), carried.** Not changed here: no corpus fixture seeds an Alloy consent cookie, so replay does not exercise it. Still open: a seeded cookie saying "in" while page consent is pending makes Alloy send and the seam drops the event.
 > - **Storage names.** The corpus only shows `com.adobe.alloy.<org>_AdobeOrg.consentHashes.Adobe.2.0` (localStorage) and `fonts-loaded` (sessionStorage) as after-state; no fixture has a storage before-state, so `ALLOY_STORAGE_NAMES` stays ungated and storage seeding is covered by unit tests only.
 > - **For 064-18 (egress bridge).** The seal's endpoint ceiling is `https://adobedc.demdex.net/ee/v1/interact` only, so it holds `edge.adobedc.net/ee/<cluster>/v1/interact` (S2, the returning profile) and `adobedc.demdex.net/ee/v1/identity/acquire` (S5; `getIdentity` fails with "held at the seal: endpoint-ceiling" and `appendIdentityToUrl` re-asks). The replay therefore compares what the chamber emitted (the `rig-observed` tee), not what the network saw; only S1 has network headers (Accept-Language and Origin match the recorded ones). Host order per CAP: fresh page views go to `adobedc.demdex.net` first, then `edge.adobedc.net`; a returning profile goes to edge only. `s5-returning` sends nothing.
+> - **Review (Opus 5.5, 2 rounds, reviews/slice-17-*.md).** Round 1: compliance pass, reconciliation pass, craft needs-changes (K1: apex probe ignored a narrowed cookie grant). Round 2: K1 fixed (probe skipped when the grant omits `com.adobe.alloy.getTld`); pass. The unnarrowed main-thread probe before consent is kept: stock Alloy probes the same way.

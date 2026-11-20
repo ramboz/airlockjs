@@ -1565,7 +1565,8 @@ function pageStorage() {
  * (an `aem.page` write would otherwise "succeed" and Alloy would scope its state to a suffix the
  * browser rejects). Empty when there is no document.
  */
-function probeApexDomain() {
+function probeApexDomain(granted) {
+  if (Array.isArray(granted) && !granted.includes("com.adobe.alloy.getTld")) return "";
   if (typeof document === "undefined" || typeof location === "undefined" || !location.hostname) return "";
   const parts = location.hostname.split(".");
   const name = "com.adobe.alloy.getTld";
@@ -1835,7 +1836,7 @@ export async function bootAlloy(opts = {}) {
   // that declares none posts the exact init message it always did.
   const storageGrant = resolveStorageGrant(ALLOY_STORAGE_NAMES, storageGrantNarrowing);
   const storageSeed = storageGrant.active ? scopeSeedStorage(pageStorage(), storageGrant.areas) : null;
-  const apex = probeApexDomain();
+  const apex = probeApexDomain(resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).narrowed ? resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).names : null);
   host.init({ cookie: seedCookie, config, bundleUrl, consent: consentRef, ...(apex ? { apex } : {}), ...(storageSeed ? { storage: storageSeed } : {}) });
 
   // Serialize push/pushCritical through the single-slot driveEvent: events run one at a time

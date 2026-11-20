@@ -700,6 +700,14 @@ describe("boot(config) — AC1/AC5 (spec 035-01): the boot seed is scoped to all
     expect(initOf(alloyWorker()).cookie).toBe("demdex=3");
   });
 
+  it("064-17: a narrowed cookie grant without the apex probe cookie leaves document.cookie untouched and sends no apex", async () => {
+    const writes = [];
+    vi.stubGlobal("document", { get cookie() { return ""; }, set cookie(v) { writes.push(v); } });
+    await bootAlloy({ ...alloyEntry(), cookieGrantNarrowing: ["demdex"] });
+    expect(writes).toEqual([]);
+    expect(initOf(alloyWorker()).apex).toBeUndefined();
+  });
+
   it("067-05 AC4: alloy write-back drops a stock cookie whose storage purpose is denied, keeps one whose purpose is granted", async () => {
     const writes = [];
     vi.stubGlobal("document", { get cookie() { return ""; }, set cookie(v) { writes.push(v); } });
