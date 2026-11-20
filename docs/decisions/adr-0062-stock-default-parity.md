@@ -15,7 +15,7 @@ Amended (2026-11-13, spec 067-11, owner decision D4): helix-rum RUM sits outside
 
 Amended (2026-11-20, spec 068-02, owner decision): after an explicit refusal, the seam forwards the connector's declared opt-out signal (Alloy: `privacy/set-consent` carrying `collect: "n"`, without `query.identity.fetch`) so the vendor records the refusal. Everything else stays held or dropped, and a pending state does not qualify. This is a narrow exemption to exception (a), not a new ADR. See "Amendment: opt-out forwarding (2026-11-20)".
 
-Clarified (2026-11-20, spec 068-01): point 4's "hold and flush on grant" is implemented at the Alloy seam as well. A pending seam hold keeps the request and sends it once on grant; a denial or teardown drops it.
+Clarified (2026-11-20, spec 068-01): point 4's "hold and flush on grant" is implemented at the Alloy seam as well. A pending seam hold keeps the request and sends it once on grant; a denial or teardown drops it. The shared wrapped-SDK host makes this an opt-in (`flushOnGrant`, default off): only the Alloy seam opts in. The Google wrapped-SDK seam keeps its pending-reject contract ("never replays on grant") and is a tracked follow-up on the Google track, not changed here.
 
 Amends and partially supersedes ADR-0003, ADR-0006 (projection and cookie/storage clauses), ADR-0012 (ambient-context boundary note) and ADR-0013 (minimization claims). The clauses are listed under Recommended Decision. Everything else in those ADRs stands.
 
