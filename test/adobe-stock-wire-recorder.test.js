@@ -612,7 +612,7 @@ describe("051-08 AC4 privacy, independent snapshots and closed inputs", () => {
   });
 });
 
-describe("051-08 AC5 real Chromium / ephemeral HTTP receiving sink (not SDK proof)", () => {
+describe.runIf(process.env.AIRLOCK_REAL_CHROMIUM === "1")("051-08 AC5 real Chromium / ephemeral HTTP receiving sink (not SDK proof)", () => {
   it("matches native POST bytes and real JSON response, including malformed-byte rejection and actual oversize", async () => {
     const received = [];
     const replies = ['{ "reply": "雪🙂" }\n', '{"ok":true}', `{"large":"${"x".repeat(100)}"}`];

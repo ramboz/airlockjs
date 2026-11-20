@@ -88,6 +88,12 @@ jobs:
       - name: Install Playwright chromium
         run: npx playwright install --with-deps chromium
 
+      - name: GATING — 051-08 AC5 real Chromium wire recorder
+        # Skipped in the browser-free hermetic job; runs here where Chromium exists.
+        run: npx vitest run test/adobe-stock-wire-recorder.test.js -t "051-08 AC5"
+        env:
+          AIRLOCK_REAL_CHROMIUM: "1"
+
       - name: GATING — real-Worker isolation invariant (07-02)
         run: npm run rig:isolation
 
