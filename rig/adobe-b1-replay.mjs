@@ -147,6 +147,7 @@ export async function replayFixture(browser, name, { bootOptions = {}, title = "
 
     const recorded = interactResponses(fixture);
     const network = [];
+    const allHosts = new Set();
     const page = await context.newPage();
     const logs = [];
     page.on("console", (m) => logs.push(m.text()));
@@ -154,6 +155,7 @@ export async function replayFixture(browser, name, { bootOptions = {}, title = "
     await page.route("**/*", async (route) => {
       const req = route.request();
       const url = new URL(req.url());
+      allHosts.add(url.hostname);
       if (url.origin === pageUrl.origin) {
         if (url.pathname === "/rig/airlock-eds.js") return route.fulfill({ contentType: "text/javascript", body: adapter });
         if (url.pathname === "/rig/chamber.js") return route.fulfill({ contentType: "text/javascript", body: worker });
@@ -203,7 +205,7 @@ export async function replayFixture(browser, name, { bootOptions = {}, title = "
     const responses = await page.evaluate(() => window.__responses);
     const diagnostics = await page.evaluate(() => window.__diag);
     const pageCookies = await context.cookies();
-    return { fixture, observed, responses, diagnostics, network, results, pageCookies, logs };
+    return { fixture, observed, responses, diagnostics, network, allHosts: [...allHosts], results, pageCookies, logs };
   } finally {
     await context.close();
   }

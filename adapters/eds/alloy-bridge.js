@@ -13,7 +13,7 @@
 /**
  * `consent` (Adobe 2.0) -> the host consent vector. `collect` and `personalize.content` are the two purposes the seam
  * governs. CONSENT_GAP: `marketing` and `share` have no counterpart in the vector, so they are not carried (the
- * recorded set-consent body names them; tracked as the stock consent path, ADR-0064 / 064-30).
+ * recorded set-consent body names them; owned by 064-31 AC4).
  * @param {unknown} consent the `consent` option of a stock `setConsent`
  * @returns {Record<string, "granted" | "denied"> | null}
  */
@@ -52,14 +52,14 @@ export function createAlloyCommandBridge(handle, opts = {}) {
   const sendEvent = async (options = {}) => {
     const { xdm, data, type, documentUnloading, decisionScopes, personalization, renderDecisions, edgeConfigOverrides, datasetId } = options;
     // Config overrides and dataset ids are a config-pin matter (host-owned): never carried, said out loud when present.
-    if ((edgeConfigOverrides && Object.keys(edgeConfigOverrides).length) || datasetId !== undefined) {
-      diagnose({ level: "warn", kind: "unsupported-option", option: datasetId !== undefined ? "datasetId" : "edgeConfigOverrides", reason: "per-event config overrides are host-owned (config pin) and are not carried by push" });
+    for (const [option, present] of [["edgeConfigOverrides", edgeConfigOverrides && Object.keys(edgeConfigOverrides).length], ["datasetId", datasetId !== undefined]]) {
+      if (present) diagnose({ level: "warn", kind: "unsupported-option", option, reason: "per-event config overrides are host-owned (config pin) and are not carried by push" });
     }
     const content = { xdm: clone(xdm) || {}, ...(data === undefined ? {} : { data: clone(data) }) };
     if (typeof type === "string" && type && !content.xdm.eventType) content.xdm.eventType = type;
     if (onBeforeEventSend) {
       let verdict;
-      try { verdict = onBeforeEventSend(content); } catch (e) { verdict = false; }
+      try { verdict = onBeforeEventSend(content); } catch (e) { diagnose({ level: "warn", kind: "hook-threw", option: "onBeforeEventSend", reason: `onBeforeEventSend threw (${e && e.message}); the event is dropped` }); verdict = false; }
       if (verdict === false) return {};
     }
     handle.push({
@@ -77,6 +77,7 @@ export function createAlloyCommandBridge(handle, opts = {}) {
   const setConsent = async (options = {}) => {
     const vector = consentToVector(options.consent);
     if (vector) handle.setConsent(vector);
+    else diagnose({ level: "warn", kind: "unsupported-consent", reason: "setConsent carried no Adobe 2.0 collect/personalize value; nothing was applied" });
     return {};
   };
 
@@ -103,6 +104,10 @@ export function attachAlloyBridge({ handle, global = globalThis, instanceName = 
   const stub = global[instanceName];
   const queued = stub && Array.isArray(stub.q) ? stub.q.splice(0) : [];
   global[instanceName] = bridge;
-  for (const [resolve, reject, args] of queued) Promise.resolve().then(() => bridge(...args)).then(resolve, reject);
+  for (const [resolve, reject, args] of queued) {
+    let result;
+    try { result = bridge(...args); } catch (e) { reject(e); continue; }
+    Promise.resolve(result).then(resolve, reject);
+  }
   return bridge;
 }

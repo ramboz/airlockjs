@@ -40,7 +40,9 @@ const journey = (page) => page.evaluate(async ({ orgId, datastreamId, scope, lin
   await m.martechLazy();
   m.pushEventToDataLayer(link, { web: { webInteraction: { name: "airlock-stock-link", type: "other", linkClicks: { value: 1 } } } },
     { __adobe: { analytics: { linkType: "o", linkName: "airlock-stock-link" } } }, {});
-  await new Promise((r) => setTimeout(r, 1500));
+  const deadline = Date.now() + 8000;
+  const edgeCalls = () => performance.getEntriesByType("resource").filter((e) => /edge\.adobedc\.net|demdex/.test(e.name)).length;
+  while (edgeCalls() < 4 && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50));
   return { calls: Object.keys(m).sort() };
 }, { orgId: ORG, datastreamId: DATASTREAM, scope: SCOPE, link: LINK, pageUrl: "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-stock=v1&case=no-offer&run=airlock05102-c19434f3bd208c0bd9c3706132f6a24b&consent=decline&google-ads=off&meta-pixel=off" });
 
@@ -61,7 +63,7 @@ const pathOf = (n) => new URL(n.url).pathname;
 
 // Known, owned differences. Anything else in a diff fails the test.
 const IDENTITY_FETCH = "query.identity.fetch[1]"; // stock config `idMigrationEnabled:false` is not a boot option -> 064-31
-const CONSENT_BODY = ["consent[0].value.marketing.any.val", "consent[0].value.marketing.preferred", "consent[0].value.personalize.content.val", "consent[0].value.share.val"]; // stock consent path -> 064-30
+const CONSENT_BODY = ["consent[0].value.marketing.any.val", "consent[0].value.marketing.preferred", "consent[0].value.personalize.content.val", "consent[0].value.share.val"]; // stock consent path -> 064-31 AC4
 
 describe.runIf(real)("spec 064-21: aem-martech through the airlock wrapper (real Chromium)", () => {
   let browser;
@@ -87,7 +89,7 @@ describe.runIf(real)("spec 064-21: aem-martech through the airlock wrapper (real
     const got = posts(ours.network);
     expect(got.map(pathOf)).toEqual(rec.map((r) => new URL(r.url).pathname));
     expect(got.map((n) => n.method)).toEqual(rec.map((r) => r.method));
-    // The interact URL is the recorded one; the set-consent host is part of the consent path (064-30).
+    // The interact URL is the recorded one; the set-consent host is part of the consent path (064-31 AC4).
     expect(splitRequestUrl(got[1].url).stable).toBe(splitRequestUrl(rec[1].url).stable);
     expect(splitRequestUrl(got[0].url).stable.replace(/^https:\/\/[^/]+/, "")).toBe(splitRequestUrl(rec[0].url).stable.replace(/^https:\/\/[^/]+/, ""));
   }, T);
@@ -101,7 +103,7 @@ describe.runIf(real)("spec 064-21: aem-martech through the airlock wrapper (real
     expect(diffBodies(normalised(posts(ours.network)[1].body), normalised(recordedBody("interact")))).toEqual([IDENTITY_FETCH]);
   });
 
-  it("AC2 (recorded S10): the set-consent body differs from the recording only in the consent value and the identity list (-> 064-30, 064-31)", () => {
+  it("AC2 (recorded S10): the set-consent body differs from the recording only in the consent value and the identity list (-> 064-31 AC4, AC1)", () => {
     expect(diffBodies(posts(ours.network)[0].body, recordedBody("set-consent")).sort()).toEqual([...CONSENT_BODY, IDENTITY_FETCH].sort());
   });
 
@@ -117,8 +119,9 @@ describe.runIf(real)("spec 064-21: aem-martech through the airlock wrapper (real
     expect(link.data.__adobe.analytics.linkName).toBe("airlock-stock-link");
   });
 
-  it("AC3 (D10, Launch): the POC journey loads no Launch property; the only hosts are the Edge hosts", () => {
-    const hosts = new Set([...ours.network, ...stock.network].map((n) => new URL(n.url).hostname));
+  it("AC3 (D10, Launch): the POC journey loads no Launch property; no request leaves for a Launch host", () => {
+    const hosts = new Set([...ours.allHosts, ...stock.allHosts]);
+    expect(hosts.size).toBeGreaterThan(1);
     for (const h of hosts) expect(h).not.toMatch(/adobedtm\.com|launch/);
     expect(posts(ours.network).every((n) => /edge\.adobedc\.net|demdex\.net$/.test(new URL(n.url).hostname))).toBe(true);
   });
@@ -152,6 +155,18 @@ describe("spec 064-21: the alloy command wrapper (hermetic)", () => {
     await alloy("sendEvent", { xdm: {}, edgeConfigOverrides: { com_adobe_target: { enabled: false } } });
     expect(diag.map((d) => d.kind)).toEqual(["unsupported-callback", "unsupported-option"]);
     expect(JSON.stringify(h.push.mock.calls)).not.toContain("com_adobe_target");
+  });
+
+  it("reports both overrides, a throwing hook (event dropped) and a consent value it cannot map", async () => {
+    const h = fakeHandle();
+    const diag = [];
+    const alloy = createAlloyCommandBridge(h, { onDiagnostic: (d) => diag.push(d) });
+    await alloy("configure", { onBeforeEventSend: () => { throw new Error("boom"); } });
+    await alloy("sendEvent", { xdm: {}, datasetId: "d", edgeConfigOverrides: { a: 1 } });
+    await alloy("setConsent", { consent: [{ standard: "TCF", version: "2.0", value: "x" }] });
+    expect(diag.map((d) => d.kind)).toEqual(["unsupported-option", "unsupported-option", "hook-threw", "unsupported-consent"]);
+    expect(h.push).not.toHaveBeenCalled();
+    expect(h.setConsent).not.toHaveBeenCalled();
   });
 
   it("setConsent maps Adobe 2.0 collect and personalize onto the vector; applyPropositions and other commands go to the handle", async () => {

@@ -464,8 +464,13 @@ describe("alloy connector — explicit propositionFetch and per-call personaliza
   it("per-call scopes join the configured first-event scopes, deduped, and only plain personalization options cross", async () => {
     const [first, second] = await send({ decisionScopes: ["boot"] }, fetchEvent({ decisionScopes: ["call", "boot"], personalization: { sendDisplayEvent: false, surfaces: ["web://a", 3], decisionScopes: ["in-pzn"], onSomething: () => {}, datasetId: "d" } }), fetchEvent({ decisionScopes: ["call"] }));
     expect(first.decisionScopes).toEqual(["boot", "call", "in-pzn"]);
-    expect(first.personalization).toEqual({ sendDisplayEvent: false, surfaces: ["web://a"] });
+    expect(first.personalization).toEqual({ defaultPersonalizationEnabled: false, sendDisplayEvent: false, surfaces: ["web://a"] });
     expect(second.decisionScopes).toEqual(["call"]);
     expect(second).not.toHaveProperty("personalization");
+  });
+
+  it("an explicit page boolean wins over the __view__ suppression, and an empty surfaces list is not sent", async () => {
+    const [a] = await send({ decisionScopes: ["boot"] }, fetchEvent({ personalization: { defaultPersonalizationEnabled: true, surfaces: [7] } }));
+    expect(a.personalization).toEqual({ defaultPersonalizationEnabled: true });
   });
 });

@@ -16,6 +16,8 @@ last_verified: 2026-11-20
 1. A boot with the stock `idMigrationEnabled: false` sends `query.identity.fetch` of `["ECID"]` (the recorded S10 interact and the stock run), and the default boot keeps `["ECID","CORE"]`, shown by the 064-21 differential with the `query.identity.fetch[1]` exception removed.
 2. The wrapper's `sendEvent` resolves with the result stock gives for the same call (`propositions` and `decisions` from the interact response), shown by a differential test that reads the resolved value in both arms. Today `handle.push` returns nothing, so the wrapper resolves `{}`.
 3. The `onBeforeEventSend` hook the wrapper runs sees the same `xdm` stock passes it (context merged in), shown by a differential that records the hook argument in both arms. `aem-martech` only edits `data` unless `includeDataLayerState` is set, so the S10 journey is unaffected.
+4. The wrapper's `setConsent` produces the set-consent request stock produces for the same call: the `marketing`, `personalize.content` and `share` consent values are present in the body, and the request goes to the host stock uses (`edge.adobedc.net` with `edgeDomain`), shown by the 064-21 differential with `CONSENT_BODY` removed from its allowed differences. This needs a consent-surface change; if it needs a new ADR (ADR-0062 exception (a) is the consent rule), stop and ask the owner before building.
+5. An `onBeforeEventSend` that throws drops the event with a `hook-threw` diagnostic today; the differential records what stock does for a throwing hook and the wrapper matches it.
 
 **DoD:**
 - `npm test && npm run lint` and servo gate pass.
@@ -25,4 +27,4 @@ last_verified: 2026-11-20
 
 ## Notes
 
-Found by the 064-21 stock-versus-airlock differential (AC1) and its mapping review (AC2, AC3). Whether `idMigrationEnabled` becomes a boot option or a pinned default is for the implementer to settle against ADR-0062's config-pin rule; stop and ask if it needs a new ADR. The set-consent body and host differences found by 064-21 are owned by 064-30 (stock consent path), not by this slice.
+Found by the 064-21 stock-versus-airlock differential (AC1) and its mapping review (AC2, AC3). Whether `idMigrationEnabled` becomes a boot option or a pinned default is for the implementer to settle against ADR-0062's config-pin rule; stop and ask if it needs a new ADR. The set-consent body and host differences found by 064-21 are AC4 here.

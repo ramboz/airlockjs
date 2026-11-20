@@ -417,7 +417,7 @@ export function createAlloyConnector(config = {}) {
         // NO `__view__` scope is declared, suppress it so only the declared scopes are
         // fetched. (Not observable in the rig — the injected config.alloy bypasses this
         // real-alloy path — so it is documented as a live-Alloy caveat.)
-        if (!callPzn && !configuredScopes.includes(VIEW_SCOPE)) options.personalization = { defaultPersonalizationEnabled: false };
+        if (!configuredScopes.includes(VIEW_SCOPE)) options.personalization = { defaultPersonalizationEnabled: false, ...callPzn }; // an explicit page boolean still wins
       }
     }
     const result = await getAlloy()("sendEvent", options);
@@ -455,7 +455,8 @@ function perCallPersonalization(pzn) {
   if (!pzn || typeof pzn !== "object" || Array.isArray(pzn)) return undefined;
   const out = {};
   for (const k of ["defaultPersonalizationEnabled", "sendDisplayEvent"]) if (typeof pzn[k] === "boolean") out[k] = pzn[k];
-  if (Array.isArray(pzn.surfaces)) out.surfaces = pzn.surfaces.filter((x) => typeof x === "string" && x);
+  const surfaces = Array.isArray(pzn.surfaces) ? pzn.surfaces.filter((x) => typeof x === "string" && x) : [];
+  if (surfaces.length) out.surfaces = surfaces;
   return Object.keys(out).length ? out : undefined;
 }
 
