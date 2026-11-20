@@ -20,7 +20,7 @@ last_verified: 2026-11-20
 4. An explicit denial at the time of the request is rejected at once (not parked).
 5. Teardown (`host.dispose()`, called from the adapter's `dispose`) drops parked requests and a later grant sends nothing.
 6. The parked set is bounded by `MAX_HELD_BEACONS`; the oldest is rejected with a diagnostic (ADR-0062 point 6).
-7. The 064-18 contract is unchanged: hold and timeout reject with a plain Error (status 0 from the host), never a network error.
+7. The 064-18 contract holds where it applies: a pending hold now parks (no rejection reaches Alloy, so no other-host fallback fires); denial, teardown, hold-ring overflow and an in-flight timeout still reject with a plain Error (status 0 from the host), never a network error.
 
 **DoD:**
 - `npm test && npm run lint` and the servo quality-gate pass.
