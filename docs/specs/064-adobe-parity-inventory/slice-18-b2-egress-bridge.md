@@ -47,6 +47,8 @@ last_verified: 2026-11-20
 
 **Carried:** 067-03 residual (seeded stale "in" consent cookie with pending page consent drops instead of holding); hold path untouched.
 
+**Update (068-01, 2026-11-20):** a pending seam hold now parks (no rejection reaches Alloy, so no other-host fallback fires) instead of rejecting; denial, teardown, ring overflow and timeout still reject with status 0 (plain Error). The stale-cookie test now expects `responses: []`. The 067-03 residual is resolved by 068-01.
+
 **Upstream to main later:** the additive, opt-in changes in `core/endpoint-ceiling.js` (`{hint}`), `core/egress.js`, `core/wrapped-sdk-host.js`. Google/Meta behaviour unchanged (full suite green).
 
 **Review rounds:** 2 (`reviews/slice-18-*.md`). Round 2 delta: C2 keepalive quota, C1 hold vs network failure, F1 `s6-out`, doc reconciliation.
