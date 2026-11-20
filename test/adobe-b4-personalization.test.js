@@ -785,7 +785,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
     };
     const URL_TO = "https://redirect.example/landing";
 
-    it("AC3: a warmed view-scoped redirect displays with keepalive and navigates when its view is pushed, as stock", async () => {
+    it("AC3: a warmed view-scoped redirect displays and navigates when its view is pushed, as stock", async () => {
       const steps = [FIRST, { xdm: viewXdm("cart"), renderDecisions: true }];
       const stock = await redirectArm("stock", { steps, urlTo: URL_TO });
       const ours = await redirectArm("ours", { steps, urlTo: URL_TO });

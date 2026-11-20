@@ -16,6 +16,7 @@ last_verified: 2026-11-20
 
 1. After `applyResponse`, the first push carries the declared decision scopes only when a stock `sendEvent` for the same call does (stock sends no personalization query when the call passes no `decisionScopes` and the cache is warm), shown by a differential test on the request bodies.
 2. A first push that carries scopes and names a view an earlier `applyResponse` cached, where the fetch answer lacks that view, ends in the state stock reaches (stock's fetch replaces the named view with the empty-view placeholder and sends its display), shown by a differential test on the DOM and the notification.
+3. `track` (and so a caller awaiting it) waits for a redirect display's keepalive send to be issued, not only for its queue position, shown by a test that holds the display and observes `track` pending until it leaves.
 
 **DoD:**
 - `npm test && npm run lint` and servo gate pass.

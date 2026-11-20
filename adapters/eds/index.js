@@ -1882,7 +1882,6 @@ export async function bootAlloy(opts = {}) {
   const commands = createHostCommandEntry({ worker, renderer, onApplyResponse: cacheAppliedResponse });
   const rulesetSubscribers = new Set();
   const deliveries = createDeliveryTracker();
-  // A redirect's display notification is a separate event queued behind the one that rendered it, so only the NEXT page event waits for it.
   let notifyDisplayed = () => {};
   const personalization = {
     track: (run) => { deliveries.track(run); },
@@ -2095,7 +2094,8 @@ export async function bootAlloy(opts = {}) {
       if (front) waiting.unshift({ event, resolve, reject }); else waiting.push({ event, resolve, reject });
       if (consentRef && !consentOpen()) {
         while (waiting.length > MAX_HELD_BEACONS) {
-          const dropped = waiting.shift();
+          // A redirect display queued at the front is the newest entry; drop the oldest held event instead.
+          const dropped = front && waiting.length > 1 ? waiting.splice(1, 1)[0] : waiting.shift();
           dropped.resolve(undefined);
           warnDiagnostic({
             level: "warn",
@@ -2136,11 +2136,11 @@ export async function bootAlloy(opts = {}) {
     };
     redirectWatches.add(watch);
     // A display that never leaves (held at the seal, dropped) must not leave its watch behind.
-    const timer = setTimeout(() => redirectWatches.delete(watch), 60000);
+    // The request is issued after its event settles, so only this timer (not the event) may retire the watch.
+    setTimeout(() => redirectWatches.delete(watch), 60000);
     const run = enqueue({ type: "page_view", params: { xdm: displayNotificationXdm(displayed), documentUnloading: true } }, { front: true });
     run.catch((e) => resolve({ sent: false, reason: String((e && e.message) || e) }));
     // Queued ahead of every waiting page event, so the pump (one event at a time) sends it before any of them.
-    run.finally(() => clearTimeout(timer)).catch(() => {});
   });
   notifyDisplayed = (displayed, viewName) => { enqueue({ type: "page_view", params: { xdm: displayNotificationXdm(displayed, viewName) } }); };
   // Stock attaches its click listener whatever `clickCollectionEnabled` says; the flag only drops the link details, not the proposition interact.
