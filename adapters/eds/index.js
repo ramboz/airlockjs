@@ -50,7 +50,7 @@ import { htmlOfDecision } from "../../connectors/alloy/decisions.js";
 import { createPropositionExposureReporter, PROPOSITION_EXPOSURE_EVENT } from "./decisions-exposure.js";
 import { VIEW_SCOPE, firstDuplicateScope } from "./placements.js";
 import { createHostCommandEntry } from "./host-command.js";
-import { createPropositionRenderer, createViewCache, isViewProposition, displayNotificationXdm, interactNotificationXdm, applyPrehidingStyle } from "./personalization-render.js";
+import { createPropositionRenderer, createViewCache, isViewProposition, displayNotificationXdm, applyPrehidingStyle } from "./personalization-render.js";
 import { installLinkClickCollection } from "./link-click.js";
 import { sourceGa4Ctx, writeGa4SessionState } from "../../connectors/ga4/cookies.js";
 import { shapeMpConsent } from "../../connectors/ga4/consent.js";
@@ -1581,7 +1581,7 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer,
       const out = await renderer.render(viewCache.get(ctx.viewName));
       displayed.push(...out.displayed);
     }
-    personalization.decided(sink, displayed);
+    personalization.decided(sink, displayed, ctx && ctx.render ? ctx.viewName : undefined);
   };
   caps.decisions = {
     deliver: (decisions) => {
@@ -1839,7 +1839,7 @@ export async function bootAlloy(opts = {}) {
   // `redirectWatches` sees it leave through the main-thread dispatch below.
   const redirectWatches = new Set();
   let redirectDisplay = () => Promise.resolve({ sent: false, reason: "not wired" });
-  const renderer = createPropositionRenderer({ diagnose, redirectDisplay: (displayed) => redirectDisplay(displayed), redirectTimeoutMs: opts.redirectDisplayTimeoutMs });
+  const renderer = createPropositionRenderer({ diagnose, redirectDisplay: (displayed) => redirectDisplay(displayed), redirectTimeoutMs: opts.redirectDisplayTimeoutMs, autoCollectPropositionInteractions: opts.autoCollectPropositionInteractions });
   // 064-23: the SPA view cache and the event in flight (events run one at a time through the pump below).
   const viewCache = createViewCache();
   let currentEvent = null;
@@ -1862,11 +1862,11 @@ export async function bootAlloy(opts = {}) {
   let notifyDisplayed = () => {};
   const personalization = {
     track: (run) => { pendingDelivery = run.catch(() => {}); },
-    decided: (propositions, displayed) => {
+    decided: (propositions, displayed, viewName) => {
       if (typeof opts.onDecisions === "function" && propositions.length) {
         try { opts.onDecisions(propositions); } catch (e) { diagnose({ level: "warn", kind: "decisions", disposition: "sink-threw", reason: String(e && e.message || e) }); }
       }
-      if (displayed.length) notifyDisplayed(displayed);
+      if (displayed.length) notifyDisplayed(displayed, viewName);
     },
     rulesetItems: (proposition) => {
       for (const sub of rulesetSubscribers) {
@@ -2019,7 +2019,7 @@ export async function bootAlloy(opts = {}) {
     if (!ctx) return;
     if (ctx.render && ctx.viewName && !ctx.warm && !ctx.viewHandled && viewCache.isInitialized()) {
       const out = await renderer.render(viewCache.get(ctx.viewName));
-      if (out.displayed.length) notifyDisplayed(out.displayed);
+      if (out.displayed.length) notifyDisplayed(out.displayed, ctx.viewName);
     }
   };
   const consentOpen = () => resolveConsent(consentRef, "analytics_storage") === "granted";
@@ -2111,15 +2111,14 @@ export async function bootAlloy(opts = {}) {
     setTimeout(() => redirectWatches.delete(watch), 60000);
     enqueue({ type: "page_view", params: { xdm: displayNotificationXdm(displayed), documentUnloading: true } }).catch((e) => resolve({ sent: false, reason: String((e && e.message) || e) }));
   });
-  notifyDisplayed = (displayed) => { enqueue({ type: "page_view", params: { xdm: displayNotificationXdm(displayed) } }); };
+  notifyDisplayed = (displayed, viewName) => { enqueue({ type: "page_view", params: { xdm: displayNotificationXdm(displayed, viewName) } }); };
   const uninstallClicks = typeof document !== "undefined" && opts.clickCollectionEnabled !== false
     ? installLinkClickCollection({
       document,
       enqueue: (evt) => { enqueue(toDescriptor(evt)); },
       config: { clickCollection: opts.clickCollection, downloadLinkQualifier: opts.downloadLinkQualifier },
-      clickMetasFor: renderer.clickMetasFor,
+      collectInteraction: renderer.collectInteraction,
       getPageName: () => lastPageName,
-      notifyInteract: (metas, extra) => { enqueue({ type: "page_view", params: { xdm: interactNotificationXdm(metas, extra) } }); },
     })
     : () => {};
 

@@ -63,7 +63,7 @@ describe("064-20 the renderer (hermetic)", () => {
   it("builds the recorded display and interact notification shapes", () => {
     const d = [{ id: "a", scope: "__view__", scopeDetails: { x: 1 } }];
     expect(displayNotificationXdm(d)).toEqual({ eventType: "decisioning.propositionDisplay", _experience: { decisioning: { propositions: d, propositionEventType: { display: 1 } } } });
-    expect(interactNotificationXdm(d, { label: "L" })._experience.decisioning).toEqual({ propositions: d, propositionEventType: { interact: 1 }, propositionAction: { label: "L" } });
+    expect(interactNotificationXdm({ metas: d, label: "L" })._experience.decisioning).toEqual({ propositions: d, propositionEventType: { interact: 1 }, propositionAction: { label: "L" } });
   });
 
   it("refuses customCode and non-http redirects instead of running them", async () => {
@@ -463,16 +463,99 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
       expect(r.network.filter((n) => /linkClicks/.test(n.body || ""))).toHaveLength(0);
     }, T);
 
-    it("a click on a rendered click-action element sends propositionInteract with the proposition metas (decisioning compared; full shape is 064-25)", async () => {
-      const payload = [proposition("pc", "__view__", [
-        domAction("c0", "setHtml", "#box", '<a id="cta" href="https://destination.example/x" onclick="return false" data-aep-click-label="cta-label" data-aep-click-token="tok">CTA</a>'),
-        { ...domAction("c1", "click", "#cta", {}), characteristics: { trackingLabel: "cta-label" } },
-      ])];
-      const cta = (r) => r.network.filter((n) => n.method === "POST" && /propositionInteract/.test(n.body || "")).map((n) => JSON.parse(n.body).events[0].xdm._experience.decisioning);
-      const stock = await replayFixture(browser, "s4-base", { event: null, bodyHtml: LINKS, respond: synthetic(payload), run: async (page) => { await runStock(page, { renderDecisions: true, xdm: PV_XDM }); await page.waitForTimeout(600); await page.click("#cta"); await page.waitForTimeout(800); } });
-      const ours = await replayFixture(browser, "s4-base", { event: null, bodyHtml: '<div id="v"></div>' + LINKS, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] }, respond: synthetic(payload), run: async (page) => { await page.evaluate((x) => window.__handle.push({ event: "page_view", xdm: x }), PV_XDM); await page.waitForTimeout(900); await page.click("#cta"); await page.waitForTimeout(1000); } });
-      expect(cta(stock)).toHaveLength(1);
-      expect(cta(ours)).toEqual(cta(stock));
+    // 064-25: one SYNTHETIC answer drives stock Alloy and the airlock path; every POST after the setup compares with the meta stripped.
+    const CLICK_HTML = (extra = "") => `<a id="cta" href="https://destination.example/x" onclick="return false" ${extra}>CTA</a>`;
+    const noMeta = (t) => { const b = JSON.parse(t); delete b.meta; return JSON.stringify(b); };
+    const viewXdm = (name) => ({ eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name, viewName: name } } });
+    const prop = (id, scope, provider, scopeType, items) => ({ id, scope, scopeDetails: { decisionProvider: provider, activity: { id: `act-${id}` }, characteristics: scopeType ? { scopeType } : {} }, items });
+    const clickItem = (id, selector, trackingLabel) => ({ ...domAction(id, "click", selector, {}), ...(trackingLabel ? { characteristics: { trackingLabel } } : {}) });
+    /** Stock and airlock on `payload`: a push `xdm`, then `after` (a click). Returns every edge POST body in order, meta stripped, and the page DOM. */
+    const journey = async (browser, payload, { xdm = PV_XDM, click = "#cta", after, bootExtra = {}, stockConfig = {} } = {}) => {
+      const act = async (page) => { if (after) await after(page); else if (click) await page.click(click); await page.waitForTimeout(1000); return page.evaluate(() => document.getElementById("box").outerHTML); };
+      const stock = await replayFixture(browser, "s4-base", { event: null, bodyHtml: LINKS, bootOptions: { clickCollectionEnabled: false }, respond: synthetic(payload), run: async (page) => { await runStock(page, { renderDecisions: true, xdm }, stockConfig); await page.waitForTimeout(700); return act(page); } });
+      const ours = await replayFixture(browser, "s4-base", { event: null, bodyHtml: '<div id="v"></div>' + LINKS, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }], ...bootExtra }, respond: synthetic(payload), run: async (page) => { await page.evaluate((x) => window.__handle.push({ event: "page_view", xdm: x }), xdm); await page.waitForTimeout(900); return act(page); } });
+      const bodies = (r) => r.network.filter((n) => n.method === "POST").map((n) => noMeta(n.body));
+      return { stock: bodies(stock), ours: bodies(ours), stockDom: stock.results.run, oursDom: ours.results.run };
+    };
+    /** Every POST compares clean against stock's, in order. */
+    const expectSameBodies = (j) => {
+      expect(j.ours).toHaveLength(j.stock.length);
+      j.stock.forEach((b, i) => expect(diffBodies(j.ours[i], b), `POST ${i}`).toEqual([]));
+    };
+    const ofType = (bodies, re) => bodies.filter((b) => re.test(JSON.parse(b).events[0].xdm.eventType));
+
+    it("a click on a rendered click element is ONE event: the link click with propositionInteract merged in, viewName and the item's trackingLabel, as stock (AC1, AC2, AC4)", async () => {
+      const payload = [prop("pc", "cart", "TGT", "view", [domAction("c0", "setHtml", "#box", CLICK_HTML()), clickItem("c1", "#cta", "cta-label")])];
+      const j = await journey(browser, payload, { xdm: viewXdm("cart") });
+      const clicks = j.stock.filter((b) => /propositionInteract/.test(b));
+      expect(clicks).toHaveLength(1);
+      const body = JSON.parse(clicks[0]).events[0];
+      expect(body.xdm.web.webPageDetails.viewName).toBe("cart");
+      expect(body.xdm._experience.decisioning.propositionAction).toEqual({ label: "cta-label" });
+      expect(body.xdm.web.webInteraction).toBeTruthy();
+      expect(j.ours.filter((b) => /linkClicks/.test(b) && !/propositionInteract/.test(b))).toHaveLength(0);
+      expectSameBodies(j);
+    }, T);
+
+    it("a click that is not a link still sends the propositionInteract event alone, as stock (AC1, AC4)", async () => {
+      const payload = [prop("pc", "cart", "TGT", "view", [domAction("c0", "setHtml", "#box", '<button id="cta" type="button">CTA</button>'), clickItem("c1", "#cta", "btn-label")])];
+      const j = await journey(browser, payload, { xdm: viewXdm("cart") });
+      expect(j.stock.filter((b) => /propositionInteract/.test(b))).toHaveLength(1);
+      expectSameBodies(j);
+    }, T);
+
+    it("a click item is left out of the display notification, as stock; a proposition with only a click item notifies nothing (AC5)", async () => {
+      const payload = [
+        prop("p-both", "cart", "TGT", "view", [domAction("d0", "setHtml", "#box", CLICK_HTML()), clickItem("d1", "#cta", "l")]),
+        prop("p-only", "cart", "TGT", "view", [clickItem("d2", "#cta", "m")]),
+      ];
+      const j = await journey(browser, payload, { xdm: viewXdm("cart"), click: null });
+      const display = ofType(j.stock, /propositionDisplay/);
+      expect(display).toHaveLength(1);
+      expect(JSON.parse(display[0]).events[0].xdm._experience.decisioning.propositions.map((p) => p.id)).toEqual(["p-both"]);
+      expectSameBodies(j);
+    }, T);
+
+    it("AJO auto-collect: a click inside a rendered AJO element sends the interact with its token and items, as stock; TGT and 'never' do not (AC3)", async () => {
+      const html = '<div id="wrap" data-aep-click-token="tok-1"><a id="cta" href="#target">CTA</a></div>';
+      const ajo = (provider) => [prop("pa", "__view__", provider, undefined, [{ ...domAction("a0", "setHtml", "#box", html), characteristics: { trackingLabel: "ajo-label" } }])];
+      const ajoDefault = await journey(browser, ajo("AJO"));
+      expect(ajoDefault.stock.filter((b) => /propositionInteract/.test(b))).toHaveLength(1);
+      expect(ajoDefault.stockDom).toContain("data-aep-interact-id");
+      expect(ajoDefault.oursDom).toBe(ajoDefault.stockDom);
+      expectSameBodies(ajoDefault);
+      const tgt = await journey(browser, ajo("TGT"));
+      expect(tgt.stock.filter((b) => /propositionInteract/.test(b))).toHaveLength(0);
+      expect(tgt.oursDom).toBe(tgt.stockDom);
+      expectSameBodies(tgt);
+      const never = { AJO: "never", TGT: "never" };
+      const off = await journey(browser, ajo("AJO"), { stockConfig: { autoCollectPropositionInteractions: never }, bootExtra: { autoCollectPropositionInteractions: never } });
+      expect(off.stock.filter((b) => /propositionInteract/.test(b))).toHaveLength(0);
+      expect(off.oursDom).toBe(off.stockDom);
+      expectSameBodies(off);
+    }, T);
+
+    it("AJO 'decoratedElementsOnly' collects only elements with a label or token, as stock (AC3)", async () => {
+      const mode = { AJO: "decoratedElementsOnly", TGT: "decoratedElementsOnly" };
+      const plain = [prop("pa", "__view__", "AJO", undefined, [domAction("a0", "setHtml", "#box", CLICK_HTML())])];
+      const labelled = [prop("pa", "__view__", "AJO", undefined, [{ ...domAction("a0", "setHtml", "#box", CLICK_HTML()), characteristics: { trackingLabel: "lbl" } }])];
+      for (const [name, payload, expected] of [["plain", plain, 0], ["labelled", labelled, 1]]) {
+        const j = await journey(browser, payload, { stockConfig: { autoCollectPropositionInteractions: mode }, bootExtra: { autoCollectPropositionInteractions: mode } });
+        expect(j.stock.filter((b) => /propositionInteract/.test(b)), name).toHaveLength(expected);
+        expectSameBodies(j);
+      }
+    }, T);
+
+    it("one event that renders page-wide and view propositions carries their display notifications in ONE display event, as stock (AC6)", async () => {
+      const payload = [
+        prop("pw", "__view__", "TGT", undefined, [domAction("w0", "setHtml", "#dl", "<b>wide</b>")]),
+        prop("pv", "cart", "TGT", "view", [domAction("v0", "setHtml", "#inl", "<b>view</b>")]),
+      ];
+      const j = await journey(browser, payload, { xdm: viewXdm("cart"), click: null });
+      const display = ofType(j.stock, /propositionDisplay/);
+      expect(display).toHaveLength(1);
+      expect(JSON.parse(display[0]).events[0].xdm._experience.decisioning.propositions.map((p) => p.id).sort()).toEqual(["pv", "pw"]);
+      expectSameBodies(j);
     }, T);
   });
 

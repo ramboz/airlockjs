@@ -123,7 +123,12 @@ export function createPropositionRenderer(deps = {}) {
   const waitMs = deps.selectorTimeoutMs ?? SELECTOR_WAIT_MS;
   const redirectWaitMs = deps.redirectTimeoutMs ?? REDIRECT_DISPLAY_WAIT_MS;
   const rendered = new WeakMap(); // element -> Set of item ids already rendered (stock renderStatusHandler)
-  const clickMetas = new Map(); // selector -> { [propositionId]: { scope, scopeDetails, trackingLabel } }
+  const clickMetas = new Map(); // selector -> { [propositionId]: { scope, scopeDetails, trackingLabel, scopeType } }
+  // Stock `autoCollectPropositionInteractions`: per decision provider, which rendered elements get decorated for click collection.
+  const autoCollect = { AJO: "always", TGT: "never", ...(isObject(deps.autoCollectPropositionInteractions) ? deps.autoCollectPropositionInteractions : {}) };
+  const interactions = new Map(); // interact id -> [{ id, scope, scopeDetails, scopeType, provider, items: [{ id }] }]
+  let interactCounter = 0;
+  let inserted = [];
   const prehidden = new Map(); // selector -> <style>
 
   const warn = (reason, extra) => diagnose({ level: "warn", kind: "decisions", disposition: "unrendered", reason, ...extra });
@@ -144,7 +149,9 @@ export function createPropositionRenderer(deps = {}) {
   const fragmentNodes = (content) => {
     const tpl = doc.createElement("template");
     tpl.innerHTML = html(content);
-    return [...tpl.content.childNodes];
+    const nodes = [...tpl.content.childNodes];
+    inserted = nodes;
+    return nodes;
   };
   const setStyle = (el, style, priority) => {
     for (const [k, v] of Object.entries(style)) {
@@ -204,6 +211,31 @@ export function createPropositionRenderer(deps = {}) {
     }
   }
 
+  const CONTAINER_ACTIONS = new Set(["setHtml", "appendHtml", "setText", "setAttribute", "setStyle", "move", "resize"]);
+  const INSERT_ACTIONS = new Set(["prependHtml", "insertAfter", "insertBefore", "replaceHtml"]);
+  /** The elements stock decorates for an action: the container, the inserted elements, or the swapped pair. */
+  function decorationTargets(type, el, content, before) {
+    if (CONTAINER_ACTIONS.has(type)) return [el];
+    if (INSERT_ACTIONS.has(type)) return inserted.filter((n) => n && n.tagName);
+    if (type === "setImageSource") return String(el.tagName).toUpperCase() === "IMG" ? [el] : [];
+    if (type === "rearrange") { const { from, to } = isObject(content) ? content : {}; return [before[from], before[to]].filter(Boolean); }
+    return [];
+  }
+  /** Stock `decorateProposition`: mark a rendered element so a click on it is collected as an interaction. */
+  function decorate(target, item, proposition) {
+    const provider = proposition.scopeDetails && proposition.scopeDetails.decisionProvider;
+    const mode = autoCollect[provider];
+    if (mode !== "always" && mode !== "decoratedElementsOnly") return;
+    let interactId = target.getAttribute("data-aep-interact-id");
+    if (!interactId) { interactCounter += 1; interactId = String(interactCounter); target.setAttribute("data-aep-interact-id", interactId); }
+    const scopeType = proposition.scopeDetails && proposition.scopeDetails.characteristics && proposition.scopeDetails.characteristics.scopeType;
+    const metas = interactions.get(interactId) || [];
+    metas.push({ id: proposition.id, scope: proposition.scope, scopeDetails: proposition.scopeDetails, scopeType, provider, items: [{ id: item.id }] });
+    interactions.set(interactId, metas);
+    const label = item.characteristics && item.characteristics.trackingLabel;
+    if (label && !target.getAttribute("data-aep-click-label")) target.setAttribute("data-aep-click-label", label);
+  }
+
   /** Render one dom-action item. Resolves true when the item counts as rendered. */
   async function renderDomAction(item, proposition) {
     const data = isObject(item.data) ? item.data : {};
@@ -218,7 +250,7 @@ export function createPropositionRenderer(deps = {}) {
       const byProposition = clickMetas.get(selector) || {};
       byProposition[proposition.id] = meta;
       clickMetas.set(selector, byProposition);
-      return true;
+      return "click"; // rendered (attempted), but stock leaves a click item out of the display notification
     }
     prehide(prehidingSelector);
     try {
@@ -231,7 +263,10 @@ export function createPropositionRenderer(deps = {}) {
         // Stock marks view-scoped items on the element and does not draw one twice (returning to a view).
         const marked = viewScoped ? (el.getAttribute(IDS_ATTR) || "").split(",") : null;
         if (marked && marked.includes(String(item.id))) { any = true; continue; }
+        const before = type === "rearrange" ? [...el.children] : null;
+        inserted = [];
         if (applyAction(type, el, content)) {
+          for (const t of decorationTargets(type, el, content, before)) decorate(t, item, proposition);
           any = true; done.add(item.id); rendered.set(el, done);
           if (marked && el.setAttribute) el.setAttribute(IDS_ATTR, [...marked, String(item.id)].sort().join(","));
         } else { warn(`unknown dom-action type "${type}"`, { scope: proposition.scope }); return false; }
@@ -328,6 +363,7 @@ export function createPropositionRenderer(deps = {}) {
       if (proposition.scope === VIEW_SCOPE && proposition.renderAttempted) { out.push(proposition); continue; }
       const items = Array.isArray(proposition.items) ? proposition.items : [];
       const renderedItems = [];
+      let notified = false;
       for (const item of items) {
         const schema = item && item.schema;
         if (redirecting || (proposition === only && !redirectUrl(item))) continue;
@@ -342,46 +378,95 @@ export function createPropositionRenderer(deps = {}) {
         } catch (e) {
           warn(`item ${item && item.id} failed to render: ${e && e.message}`, { scope: proposition.scope });
         }
-        if (ok) renderedItems.push(item);
+        if (ok) { renderedItems.push(item); if (ok !== "click") notified = true; }
       }
       const attempted = renderedItems.length > 0;
       out.push({ ...proposition, renderAttempted: attempted });
-      if (attempted && !(redirected && proposition === only)) {
+      if (notified && !(redirected && proposition === only)) {
         displayed.push({ id: proposition.id, scope: proposition.scope, scopeDetails: proposition.scopeDetails });
       }
     }
     return { propositions: out, displayed, redirected };
   }
 
-  /** The metas for a clicked element: every stored click selector the element (or an ancestor) matches. */
-  function clickMetasFor(target) {
-    const metas = [];
+  const strip = ({ trackingLabel, scopeType, provider, ...notification }) => notification;
+  const dedupe = (metas) => metas.filter((m, i) => metas.findIndex((o) => JSON.stringify(o) === JSON.stringify(m)) === i);
+  const viewOf = (metas) => { const v = metas.find((m) => m.scopeType === "view"); return v ? v.scope : undefined; };
+
+  /** Stock `collectClicks`: the click-item metas of the nearest matching ancestor per stored selector; the label and view come from the closest. */
+  function collectClicks(target) {
+    const out = { metas: [], label: "", viewName: undefined };
+    let labelDepth = Infinity; let viewDepth = Infinity;
     for (const [selector, byProposition] of clickMetas) {
-      let hit;
-      try { hit = target && typeof target.closest === "function" ? target.closest(selector) : null; } catch (e) { continue; }
-      if (!hit) continue;
-      for (const [id, m] of Object.entries(byProposition)) metas.push({ id, scope: m.scope, scopeDetails: m.scopeDetails, trackingLabel: m.trackingLabel, scopeType: m.scopeType });
+      let depth = 0; let node = target;
+      for (; node; node = node.parentNode, depth += 1) {
+        try { if (typeof node.matches === "function" && node.matches(selector)) break; } catch (e) { node = null; break; }
+      }
+      if (!node) continue;
+      const metas = Object.entries(byProposition).map(([id, m]) => ({ id, ...m }));
+      const labelled = metas.find((m) => m.trackingLabel);
+      if (labelled && depth <= labelDepth) { out.label = labelled.trackingLabel; labelDepth = depth; }
+      const view = viewOf(metas);
+      if (view && depth <= viewDepth) { out.viewName = view; viewDepth = depth; }
+      out.metas.push(...metas);
     }
-    return metas;
+    out.metas = dedupe(out.metas.map(strip));
+    return out;
   }
 
-  return { render, clickMetasFor, hasClickSelectors: () => clickMetas.size > 0, hasRedirect: (p) => hasRedirect(p), isRedirecting: () => redirecting };
+  /** Stock `collectInteractions`: the decorated ancestors' rendered-item metas, filtered by each provider's auto-collect mode. */
+  function collectInteractions(target) {
+    const ids = []; let label = ""; let token;
+    for (let node = target; node && node.nodeType !== 9 && node.tagName !== "HTML"; node = node.parentNode) {
+      if (!node.getAttribute) continue;
+      const id = node.getAttribute("data-aep-interact-id");
+      if (id) ids.push(id);
+      if (!label && node.getAttribute("data-aep-click-label")) label = node.getAttribute("data-aep-click-label");
+      if (!token && node.getAttribute("data-aep-click-token")) token = node.getAttribute("data-aep-click-token");
+    }
+    const out = { metas: [], label: "", token: undefined, viewName: undefined };
+    if (!ids.length) return out;
+    const merged = new Map();
+    for (const id of ids) for (const m of interactions.get(id) || []) {
+      const have = merged.get(m.id);
+      if (have) have.items.push(...m.items); else merged.set(m.id, { ...m, items: [...m.items] });
+    }
+    const kept = [...merged.values()].filter((m) => autoCollect[m.provider] === "always" || (autoCollect[m.provider] === "decoratedElementsOnly" && (label || token)));
+    if (!kept.length) return out;
+    return { metas: kept.map(strip), label, token, viewName: viewOf(kept) };
+  }
+
+  /** What a click on `target` reports to Edge: the propositions, the action (label, token) and the view, merged as stock does. */
+  function collectInteraction(target) {
+    const parts = [collectInteractions(target), collectClicks(target)];
+    const out = { metas: [], label: "", token: undefined, viewName: undefined };
+    for (const p of parts) {
+      out.metas.push(...p.metas);
+      out.label = out.label || p.label || "";
+      out.token = out.token || p.token;
+      out.viewName = out.viewName || p.viewName;
+    }
+    out.metas = dedupe(out.metas);
+    return out;
+  }
+
+  return { render, collectInteraction, hasClickSelectors: () => clickMetas.size > 0, hasInteractions: () => interactions.size > 0, hasRedirect: (p) => hasRedirect(p), isRedirecting: () => redirecting };
 }
 
-/** The display notification XDM Alloy sends after rendering (recorded, S4). */
-export function displayNotificationXdm(displayed) {
+/** The display notification XDM Alloy sends after rendering (recorded, S4); `viewName` is the view the event names. */
+export function displayNotificationXdm(displayed, viewName) {
   return {
     eventType: "decisioning.propositionDisplay",
+    ...(viewName ? { web: { webPageDetails: { viewName } } } : {}),
     _experience: { decisioning: { propositions: displayed, propositionEventType: { display: 1 } } },
   };
 }
 
-/** The click (interact) notification XDM, `propositionEventType.interact = 1`. */
-export function interactNotificationXdm(metas, { label, token } = {}) {
-  const propositions = metas.map(({ id, scope, scopeDetails }) => ({ id, scope, scopeDetails }));
-  const decisioning = { propositions, propositionEventType: { interact: 1 } };
+/** The click (interact) notification XDM, `propositionEventType.interact = 1`, as stock builds it (viewName, `propositionAction`). */
+export function interactNotificationXdm({ metas, label, token, viewName }) {
+  const decisioning = { propositions: metas, propositionEventType: { interact: 1 } };
   if (label || token) decisioning.propositionAction = { ...(label ? { label } : {}), ...(token ? { tokens: [token] } : {}) };
-  return { eventType: "decisioning.propositionInteract", _experience: { decisioning } };
+  return { eventType: "decisioning.propositionInteract", ...(viewName ? { web: { webPageDetails: { viewName } } } : {}), _experience: { decisioning } };
 }
 
 /** The stock prehiding `<style id="alloy-prehiding">`: applied before the request, removed after the response. */
