@@ -1,8 +1,8 @@
 ---
-round: 2
+round: 3
 verdict: changes-requested
 reviewed_at: "2026-11-20 (time not recorded)"
-prompt_source: "round 1: pushed commit 6c722fd0; round 2: pushed commit 0cbf4e16 (after af15a384)"
+prompt_source: "round 1: pushed commit 6c722fd0; round 2: pushed commit 0cbf4e16 (after af15a384); round 3: pushed commit e1822c88"
 ---
 
 # Slice 064-24 reconciliation review
@@ -21,3 +21,9 @@ Opus 5.5 `jig:reviewer`, read-only (the author saved its text, condensed). Verdi
 Fresh Opus 5.5 `jig:reviewer`, read-only (the author saved its text, condensed). Verdict: changes-requested.
 
 Medium: the two handed-off questions (track wait, warmed view-scoped redirect) were recorded only in notes; name an owner slice and add a note there. Low: slice-20:42 and slice-19:64 stale. Fixes went into the next commit.
+
+## Round 3 (commit e1822c88)
+
+Fresh Opus 5.5 `jig:reviewer`, read-only (the author saved its text, condensed). Verdict: changes-requested.
+
+Medium: the spec parity guard did not name 064-28. Low: refinement-todo tense; slice-20:62 placement of "closed". All fixed in the following commit. The 3-round cap is reached, so the fix is not re-reviewed; docs-only, checked by the author.

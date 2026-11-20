@@ -274,6 +274,7 @@ export function createPropositionRenderer(deps = {}) {
       try { diagnose({ level: "warn", kind: "decisions", disposition, reason, scope: proposition.scope }); } catch (e) { /* the sink failed; navigation still proceeds */ }
     };
     let navigated = false;
+    let failedNav = false;
     const navigate = () => {
       if (navigated) return;
       navigated = true;
@@ -284,9 +285,10 @@ export function createPropositionRenderer(deps = {}) {
         problem("redirect-display-failed", `the redirect could not navigate (${(e && e.message) || e})`);
         reveal("BODY");
         redirecting = false;
+        failedNav = true;
       }
     };
-    if (typeof deps.redirectDisplay !== "function") { navigate(); return true; }
+    if (typeof deps.redirectDisplay !== "function") { navigate(); return !failedNav; }
     prehide("BODY");
     const timer = setTimeout(() => {
       navigate();
@@ -328,7 +330,7 @@ export function createPropositionRenderer(deps = {}) {
       const renderedItems = [];
       for (const item of items) {
         const schema = item && item.schema;
-        if (proposition === only && !redirectUrl(item)) continue;
+        if (redirecting || (proposition === only && !redirectUrl(item))) continue;
         let ok = false;
         try {
           if (schema === SCHEMA.DEFAULT) ok = true;

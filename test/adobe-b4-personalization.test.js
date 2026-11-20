@@ -143,6 +143,15 @@ describe("064-24 redirect ordering (hermetic)", () => {
     expect(r.isRedirecting()).toBe(false);
   });
 
+  it("an immediate navigation that throws (no display wiring) is not reported as redirected", async () => {
+    const doc = { querySelectorAll: () => [], documentElement: { appendChild: () => {} }, createElement: () => ({ remove() {} }) };
+    const win = { location: { replace: () => { throw new Error("nav"); } } };
+    const r = createPropositionRenderer({ document: doc, window: win, diagnose: () => {} });
+    const out = await r.render([redirectProp]);
+    expect(out.redirected).toBe(false);
+    expect(r.isRedirecting()).toBe(false);
+  });
+
   it("renders only the first redirect (stock onlyRenderThis): other propositions and later redirects are not rendered", async () => {
     const { r, log } = setup(async () => ({ sent: true }));
     const other = { id: "o", scope: "s", items: [{ id: "d", schema: "https://ns.adobe.com/personalization/default-content-item" }] };
