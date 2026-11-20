@@ -5,7 +5,7 @@ round: 3
 verdict: changes-requested
 reviewer: independent reviewer (Claude Opus 5.5, Copilot jig:reviewer sub-agent)
 reviewed_at: 2026-11-20 (time not recorded)
-prompt_source: review prompts for slice 064-28 (commits 7da926c2, b017a98b, 5428ee36 and d3ba30ed; local commits, squashed into the pushed head)
+prompt_source: review prompts for slice 064-28 (commits 7da926c2, b017a98b, 5428ee36, d3ba30ed and the pushed docs commits)
 ---
 
 # 064-28 craft
