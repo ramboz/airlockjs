@@ -773,7 +773,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
       const run = async (page) => {
         page.on("request", (rq) => {
           if (rq.isNavigationRequest() && rq.url() === urlTo) trace.push("navigate");
-          else if (/interact|adobedc/.test(rq.url()) && rq.method() === "POST") { try { trace.push(JSON.parse(rq.postData()).events[0].xdm.eventType); } catch (e) { trace.push("post"); } }
+          else if (/interact|adobedc/.test(rq.url()) && rq.method() === "POST") { try { const e = JSON.parse(rq.postData()).events[0].xdm; const dp = e.eventType; trace.push(e._experience ? `${dp}+decisioning` : dp); } catch (e) { trace.push("post"); } }
         });
         const options = { responseBody: body([view("vr", "cart", [{ id: "rd", schema: `${NS}redirect-item`, data: { content: urlTo } }])]) };
         if (who === "stock") await stockArm(page, options, steps.map((s, i) => ({ xdm: s.xdm, renderDecisions: s.renderDecisions, ...(i === 0 ? { decisionScopes: ["__view__"] } : {}) }))).catch(() => {});
@@ -789,7 +789,8 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
       const steps = [FIRST, { xdm: viewXdm("cart"), renderDecisions: true }];
       const stock = await redirectArm("stock", { steps, urlTo: URL_TO });
       const ours = await redirectArm("ours", { steps, urlTo: URL_TO });
-      if (process.env.DBG) console.log("DBG", JSON.stringify({ s: stock.trace, o: ours.trace }));
+      expect(stock.trace).toContain("navigate");
+      expect(stock.trace.some((t) => t.includes("decisioning"))).toBe(true);
       expect(ours.trace).toEqual(stock.trace);
     }, T);
 

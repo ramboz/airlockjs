@@ -1883,7 +1883,6 @@ export async function bootAlloy(opts = {}) {
   const rulesetSubscribers = new Set();
   const deliveries = createDeliveryTracker();
   // A redirect's display notification is a separate event queued behind the one that rendered it, so only the NEXT page event waits for it.
-  const redirectDisplays = createDeliveryTracker();
   let notifyDisplayed = () => {};
   const personalization = {
     track: (run) => { deliveries.track(run); },
@@ -2035,7 +2034,7 @@ export async function bootAlloy(opts = {}) {
     const out = await renderer.render(viewCache.get(viewName));
     noteAttempts(currentEvent, out.propositions);
     // A cached redirect leaves the page, so stock never sends the event that named the view (only the redirect's display).
-    if (renderer.isRedirecting()) return null;
+    if (out.redirected) return null;
     if (!out.displayed.length) return event;
     const xdm = event.params.xdm ? { ...event.params.xdm } : {};
     const have = (xdm._experience && xdm._experience.decisioning) || {};
@@ -2056,7 +2055,6 @@ export async function bootAlloy(opts = {}) {
     running = true;
     while (waiting.length) {
       const { event, resolve, reject } = waiting.shift();
-      if (!isNotificationDescriptor(event)) await redirectDisplays.settled();
       currentEvent = personalizationConfigured ? eventContext(event) : null;
       try {
         sendStockContext();
@@ -2129,22 +2127,20 @@ export async function bootAlloy(opts = {}) {
     let issued = false;
     const watch = {
       matches: (body) => typeof body === "string" && body.includes("decisioning.propositionDisplay") && ids.every((id) => body.includes(id)),
-      issued: () => { issued = true; resolve({ sent: true }); watch.done(); },
+      issued: () => { issued = true; resolve({ sent: true }); },
       // A failure after the request left (the page is already navigating) is diagnosed, never retried.
       failed: (e) => {
-        watch.done();
         if (!issued) resolve({ sent: false, reason: String((e && e.message) || e) });
         else diagnose({ level: "warn", kind: "decisions", disposition: "redirect-display-failed", reason: `the redirect display notification failed after it was sent (${(e && e.message) || e})`, scope: displayed[0] && displayed[0].scope });
       },
     };
     redirectWatches.add(watch);
     // A display that never leaves (held at the seal, dropped) must not leave its watch behind.
-    setTimeout(() => redirectWatches.delete(watch), 60000);
-    const left = new Promise((done) => { watch.done = done; });
+    const timer = setTimeout(() => redirectWatches.delete(watch), 60000);
     const run = enqueue({ type: "page_view", params: { xdm: displayNotificationXdm(displayed), documentUnloading: true } }, { front: true });
     run.catch((e) => resolve({ sent: false, reason: String((e && e.message) || e) }));
-    // It is queued ahead of any waiting page event, which waits until the display has left or its event settled (dropped, held and released), never longer.
-    redirectDisplays.track(Promise.race([left, run.catch(() => {})]));
+    // Queued ahead of every waiting page event, so the pump (one event at a time) sends it before any of them.
+    run.finally(() => clearTimeout(timer)).catch(() => {});
   });
   notifyDisplayed = (displayed, viewName) => { enqueue({ type: "page_view", params: { xdm: displayNotificationXdm(displayed, viewName) } }); };
   // Stock attaches its click listener whatever `clickCollectionEnabled` says; the flag only drops the link details, not the proposition interact.
